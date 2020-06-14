@@ -1,0 +1,47 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer From { float from[]; };
+DEFINE_WRITEONLY_IMAGE(0, to);
+
+void main()
+{
+	int vectorSize4 = (P.vectorSize + 3) / 4;
+	int pos4 = ID_VEC;
+	int b = pos4 / vectorSize4;
+	pos4 -= b * vectorSize4;
+	int pos44 = pos4 * 4;
+
+	int rest = P.vectorSize - pos44;
+	int vecPos = b * P.vectorSize + pos44;
+	if(b < P.batchSize) {
+		vec4 data;
+		switch(rest) {
+		default:
+			data = vec4(from[vecPos], from[vecPos + 1], from[vecPos + 2], from[vecPos + 3]);
+			break;
+		case 3:
+			data = vec4(from[vecPos], from[vecPos + 1], from[vecPos + 2], 0);
+			break;
+		case 2:
+			data = vec4(from[vecPos], from[vecPos + 1], 0, 0);
+			break;
+		case 1:
+			data = vec4(from[vecPos], 0, 0, 0);
+			break;
+		}
+		TEXEL_SET(to, pos4, b, data);
+	}
+}

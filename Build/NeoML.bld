@@ -1,0 +1,66 @@
+# BLD file for NeoML with test
+
+set;NeoML_BUILD_DIR;%ROOT%\_cmake_working_dir\NeoML
+
+configuration;x86
+	cmd;generate_sln.cmd;Win32
+end_configuration
+
+configuration;x64
+	cmd;generate_sln.cmd;x64
+end_configuration
+
+group;para;Debug
+	configuration;x86
+		runx;cmake;--build %NeoML_BUILD_DIR%\Win32 --config Debug --target install
+	end_configuration
+	configuration;x64
+		runx;cmake;--build %NeoML_BUILD_DIR%\x64 --config Debug --target install
+	end_configuration
+end_group
+
+group;para;RelWithDebInfo
+	configuration;x86
+		runx;cmake;--build %NeoML_BUILD_DIR%\Win32 --config RelWithDebInfo --target install
+	end_configuration
+	configuration;x64
+		runx;cmake;--build %NeoML_BUILD_DIR%\x64 --config RelWithDebInfo --target install
+	end_configuration
+end_group
+
+group;para;Release
+	configuration;x86
+		runx;cmake;--build %NeoML_BUILD_DIR%\Win32 --config Release --target install
+	end_configuration
+	configuration;x64
+		runx;cmake;--build %NeoML_BUILD_DIR%\x64 --config Release --target install
+	end_configuration
+end_group
+
+group;para;RunMathEngineTests
+	configuration;x86
+		runx;%ROOT%\WinFinal\NeoMathEngineFullTestDesktop.exe;--MathEngine=cpu
+	end_configuration
+	configuration;x64
+		runx;%ROOT%\WinFinal.x64\NeoMathEngineFullTestDesktop.exe;--MathEngine=gpu
+	end_configuration
+end_group
+
+group;para;RunInferenceTests
+	configuration;x86
+		runx;%ROOT%\WinFinal\NeoMLInferenceTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal\ --MathEngine=cpu
+	end_configuration
+	configuration;x64
+		runx;%ROOT%\WinFinal.x64\NeoMLInferenceTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal.x64\ --MathEngine=gpu
+	end_configuration
+end_group
+
+group;para;RunCommonTests
+	configuration;x86
+		runx;%ROOT%\WinFinal\NeoMLTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal\ --MathEngine=cpu
+	end_configuration
+	configuration;x64
+		runx;%ROOT%\WinFinal.x64\NeoMLCCTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal.x64\
+		runx;%ROOT%\WinFinal.x64\NeoMLTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal.x64\ --MathEngine=gpu
+	end_configuration
+end_group

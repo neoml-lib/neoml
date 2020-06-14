@@ -1,0 +1,66 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+layout(std430, binding=2) writeonly buffer Result { float result[]; };
+
+void main()
+{
+    int resultGeomSize = P.resultDepth * P.resultHeight * P.resultWidth;
+    int resultObjectSize = P.channels * resultGeomSize;
+    
+    int b = ID_Z;
+    int channel = ID_Y;
+    int p = ID_X;
+
+    if( b >= P.batchSize || channel >= P.channels || p >= resultGeomSize ) {
+    	return;
+    }
+    
+    int inputWDC = P.inputDepth * P.inputWidth * P.channels;
+    int inputGeom = P.inputHeight * inputWDC;
+    int inputOffset = b * inputGeom;
+    
+    // Output position
+    int xOut = p % P.resultWidth;
+    p /= P.resultWidth;
+    int yOut = p % P.resultHeight;
+    int zOut = p / P.resultHeight;
+
+    int resultShift = b * resultObjectSize + yOut * P.resultWidth * P.resultDepth * P.channels + xOut * P.resultDepth * P.channels + zOut * P.channels + channel;
+    
+    // Input position
+    int xStart = xOut * P.strideWidth;
+    int yStart = yOut * P.strideHeight;
+    int zStart = zOut * P.strideDepth;
+    
+    float sum = 0.0;
+    
+    int iIndex = yStart * inputWDC + channel;
+    for(int i = 0; i < P.filterHeight; i++) {
+    	int jIndex = iIndex + xStart * P.inputDepth * P.channels;
+    	for(int j = 0; j < P.filterWidth; j++) {
+    		int index = jIndex + zStart * P.channels;
+    		for(int k = 0; k < P.filterDepth; k++) {
+    			sum += source[inputOffset + index];
+                index += P.channels;
+    		}
+    		jIndex += P.inputDepth* P.channels;
+    	}
+    	iIndex += inputWDC;
+    }
+
+    result[resultShift] = sum / (P.filterDepth * P.filterHeight * P.filterWidth);
+}

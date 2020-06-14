@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_type">Text</string>
+    <string name="unclassified_type">Unclassified</string>
+    <string name="non_document_type">Non-document</string>
+</resources>

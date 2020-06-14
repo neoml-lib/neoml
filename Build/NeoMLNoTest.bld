@@ -1,0 +1,38 @@
+# BLD file for NeoML
+
+set;NeoML_BUILD_DIR;%ROOT%\_cmake_working_dir\NeoML
+
+configuration;x86
+	cmd;generate_sln.cmd;Win32 -notest
+end_configuration
+
+configuration;x64
+	cmd;generate_sln.cmd;x64 -notest
+end_configuration
+
+group;para;Debug
+	configuration;x86
+		runx;cmake;--build %NeoML_BUILD_DIR%\Win32 --config Debug --target install
+	end_configuration
+	configuration;x64
+		runx;cmake;--build %NeoML_BUILD_DIR%\x64 --config Debug --target install
+	end_configuration
+end_group
+
+group;para;RelWithDebInfo
+	configuration;x86
+		runx;cmake;--build %NeoML_BUILD_DIR%\Win32 --config RelWithDebInfo --target install
+	end_configuration
+	configuration;x64
+		runx;cmake;--build %NeoML_BUILD_DIR%\x64 --config RelWithDebInfo --target install
+	end_configuration
+end_group
+
+group;para;Release
+	configuration;x86
+		runx;cmake;--build %NeoML_BUILD_DIR%\Win32 --config Release --target install
+	end_configuration
+	configuration;x64
+		runx;cmake;--build %NeoML_BUILD_DIR%\x64 --config Release --target install
+	end_configuration
+end_group

@@ -1,0 +1,34 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer First { float first[]; };
+layout(std430, binding=2) readonly buffer SecondRows { int secondRows[]; };
+layout(std430, binding=3) readonly buffer SecondColumns { int secondColumns[]; };
+layout(std430, binding=4) readonly buffer SecondValues { float secondValues[]; };
+layout(std430, binding=5) writeonly buffer Result { float result[]; };
+
+void main()
+{
+	int col = ID_X;
+	if( col >= P.firstWidth ){
+		return;
+	}
+	
+	for( int row = 0; row < P.firstHeight; ++row ) {
+		for( int ind = secondRows[row]; ind < secondRows[row + 1]; ++ind ) {
+			result[col * P.secondWidth + secondColumns[ind]] += first[row * P.firstWidth + col] * secondValues[ind];
+		}
+	}
+}

@@ -1,0 +1,74 @@
+project(LearnTests)
+
+add_library(${PROJECT_NAME} INTERFACE)
+
+target_sources(${PROJECT_NAME} INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/AddHeightIndexTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/AddMatrixElementsToVectorTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/AddVectorToMatrixElementsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/AddWidthIndexTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dConvolutionBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dConvolutionLearnAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dMaxPoolingBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dMeanPoolingBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobConvolutionBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobConvolutionLearnAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobChannelwiseConvolutionBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobChannelwiseConvolutionLearnAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobGlobalMaxPoolingBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobGlobalMaxOverTimePoolingBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobMaxOverTimePoolingBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobMaxPoolingBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobMeanPoolingBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobRleConvolutionLearnAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobTimeConvolutionBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobTimeConvolutionLearnAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BuildIntegerHistTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/EltwiseLogSumExpVectorToMatrixElementsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/FilterSmallValuesTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/FindMinValueInColumnsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/LookupAndAddToTableTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MatrixLogSumExpByColumnsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MatrixLogSumExpByRowsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MatrixRowsToVectorSquaredL2DistanceTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MatrixSoftmaxByColumnsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MatrixSoftmaxByRowsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MatrixSoftmaxDiffOpByColumnsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MatrixSoftmaxDiffOpByRowsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Multiply1DiagMatrixByMatrixTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyLookupMatrixByLookupVectorTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyMatrixByDiagMatrixTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyMatrixByMatrixTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyMatrixByTransposedMatrixTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplySparseMatrixByTransposedMatrixTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedLookupMatrixByVectorAndAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedLookupMatrixByVectorTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedMatrixByMatrixAndAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedMatrixBySparseMatrixAndAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyVectorByTransposedLookupVectorAndAddToTableTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/RowMultiplyMatrixByMatrixTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/SubVectorFromMatrixColumnsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixColumnsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/TransposeMatrixTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorCopyTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMultiplyAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseNegMultiplyTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseNotNegativeTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorHardTanhDiffOpTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorHuberDerivativeTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorLeakyReLUDiffOpTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorMultichannelLookupAndAddToTableTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorMultiplyAndSubTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorNegMultiplyTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorNegSumTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorReLUDiffOpTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorSpreadValuesTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorSquaredHingeDiffTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorSquaredHingeTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorSumAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Upsampling2DBackwardTest.cpp
+)
+
+target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

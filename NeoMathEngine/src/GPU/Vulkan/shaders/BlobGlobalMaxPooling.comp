@@ -1,0 +1,58 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+layout(std430, binding=2) buffer MaxIndices { int indices[]; };
+layout(std430, binding=3) buffer Result { float result[]; };
+
+void main()
+{
+    int batch = ID_X;
+    int channel = ID_Y;
+    if( batch >= P.batchSize || channel >= P.channels ) {
+        return;
+    }
+    
+    int sourceOffset = batch * P.sourceObjectSize + channel;
+    int resultOffset = batch * P.resultObjectSize + channel;
+    int maxIndicesOffset = batch * P.resultObjectSize + channel;
+
+    for( int i = 0; i < P.poolSize; i++ ) {
+        float value = source[sourceOffset + i * P.channels];
+
+        int resultCheckIndex = resultOffset;
+        int maxIndexCheck = maxIndicesOffset;
+        for( int check = 0; check < P.maxCount; check++ ) {
+            if(value >= result[resultCheckIndex]) {
+                float nextVal = value;
+                int nextIndex = i;
+                for(int set = check; set < P.maxCount; ++set) {
+                    float preVal = result[resultCheckIndex];
+                    int preIndex = indices[maxIndexCheck];
+                    result[resultCheckIndex] = nextVal;
+                    indices[maxIndexCheck] = nextIndex;
+                    nextVal = preVal;
+                    nextIndex = preIndex;
+
+                    maxIndexCheck += P.channels;
+                    resultCheckIndex += P.channels;
+                }
+                break;
+            }
+            resultCheckIndex += P.channels;
+            maxIndexCheck += P.channels;
+        }
+    }
+}

@@ -1,0 +1,105 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float from[]; };
+DEFINE_WRITEONLY_IMAGE(0, to);
+
+void main()
+{
+	int outHeight4 = (((P.isTrans != 0) ? P.width : P.height) + 3) / 4;
+	int outWidth4 = (((P.isTrans != 0) ? P.height : P.width) + 3) / 4;
+
+	int yPos = ID_Y;
+	int b = yPos / outHeight4;
+	yPos -= b * outHeight4;
+	int xPos = ID_X;
+
+	if(b >= P.batchSize || xPos >= outWidth4) {
+		return;
+	}
+
+	int inputLineStart = ((P.isTrans != 0) ? xPos : yPos) * 4;
+	int inputLineEnd = inputLineStart + 4;
+	if(inputLineEnd > P.height) {
+		inputLineEnd = P.height;
+	}
+	int inputPosStart = ((P.isTrans != 0) ? yPos : xPos) * 4;
+	int inputPosEnd = inputPosStart + 4;
+	if(inputPosEnd > P.width) {
+		inputPosEnd = P.width;
+	}
+
+	int fromPos = (b * P.height + inputLineStart) * P.rowSize + inputPosStart;
+	int toPosX = xPos * 4;
+	int toPosY = b * outHeight4 + yPos;
+
+	// Align the toPos according to the chunk split of the matrix
+	int toPosXChunk = toPosX / P.chunk.x;
+	int toPosYChunk = toPosY / P.chunk.y;
+
+	toPosX += toPosYChunk * P.chunk.x;
+	toPosX -= toPosXChunk * P.chunk.x;
+
+	toPosY += toPosXChunk * P.chunk.y;
+	toPosY -= toPosYChunk * P.chunk.y;
+
+	////////////////////////////////////////////////////////////////
+	vec4 block[4];
+	int row = 0;
+	switch(inputPosEnd - inputPosStart) {
+	default:
+	case 4:
+		for(int j = inputLineStart; j < inputLineEnd; ++j) {
+			block[row++] = vec4(from[fromPos], from[fromPos + 1], from[fromPos + 2], from[fromPos + 3]);
+			fromPos += P.rowSize;
+		}
+		break;
+	case 3:
+		for(int j = inputLineStart; j < inputLineEnd; ++j) {
+			block[row++] = vec4(from[fromPos], from[fromPos + 1], from[fromPos + 2], 0);
+			fromPos += P.rowSize;
+		}
+		break;
+	case 2:
+		for(int j = inputLineStart; j < inputLineEnd; ++j) {
+			block[row++] = vec4(from[fromPos], from[fromPos + 1], 0, 0);
+			fromPos += P.rowSize;
+		}
+		break;
+	case 1:
+		for(int j = inputLineStart; j < inputLineEnd; ++j) {
+			block[row++] = vec4(from[fromPos], 0, 0, 0);
+			fromPos += P.rowSize;
+		}
+		break;
+	}
+
+	while(row < 4) {
+		block[row++] = vec4(0);
+	}
+
+	if(P.isTrans != 0) {
+		// block must be transposed
+		TEXEL_SET(to, toPosX, toPosY, vec4(block[0].x, block[1].x, block[2].x, block[3].x));
+		TEXEL_SET(to, toPosX + 1, toPosY, vec4(block[0].y, block[1].y, block[2].y, block[3].y));
+		TEXEL_SET(to, toPosX + 2, toPosY, vec4(block[0].z, block[1].z, block[2].z, block[3].z));
+		TEXEL_SET(to, toPosX + 3, toPosY, vec4(block[0].w, block[1].w, block[2].w, block[3].w));
+	} else {
+		TEXEL_SET(to, toPosX, toPosY, block[0]);
+		TEXEL_SET(to, toPosX + 1, toPosY, block[1]);
+		TEXEL_SET(to, toPosX + 2, toPosY, block[2]);
+		TEXEL_SET(to, toPosX + 3, toPosY, block[3]);
+	}
+}

@@ -1,0 +1,105 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { vec4 source[]; };
+layout(std430, binding=2) readonly buffer Filter { vec4 flt[]; };
+layout(std430, binding=3) readonly buffer FreeTerm { vec4 freeTerm[]; };
+layout(std430, binding=4) writeonly buffer Result { float result[]; };
+ 
+void perform8(in int b, in int h, in int w, in int c8, in bool isProc)
+{
+	int inputChannels4 = ( P.inputChannels + 3 ) / 4;
+
+	int inputHStart = h * P.stride.y - P.padding.y;
+	int inputHEnd = inputHStart + P.filterHeight * P.dilation.y;
+	int inputWStart = w * P.stride.x - P.padding.x;
+	int inputWEnd = inputWStart + P.filterWidth * P.dilation.x;
+
+	int inputYStart = 0;
+	int inputXStart = b * P.inputWidth;
+	int inputXSize = P.inputWidth * P.batchSize;
+
+	int filterYStart = 0;
+	int filterXSize = P.filterWidth * P.filterCount;
+	int filterStartTmp = c8 * 8 * P.filterWidth;
+	ivec4 filterXStart[2];
+	filterXStart[0] = ivec4(filterStartTmp, filterStartTmp + P.filterWidth,
+		filterStartTmp + 2 * P.filterWidth, filterStartTmp + 3 * P.filterWidth);
+	filterXStart[1] = filterXStart[0] + ivec4(4 * P.filterWidth);
+
+	vec4 res[2];
+	res[0] = vec4(0);
+	res[1] = vec4(0);
+
+	for(int k = 0; k < inputChannels4; ++k) {
+		int filterY = filterYStart;
+		for(int j = inputHStart; j < inputHEnd; j += P.dilation.y) {
+			ivec4 filterX[2];
+			filterX[0] = filterXStart[0];
+			filterX[1] = filterXStart[1];
+			for(int i = inputWStart; i < inputWEnd; i += P.dilation.x) {
+				if(isProc && j >= 0 && j < P.inputHeight && i >= 0 && i < P.inputWidth) {
+					vec4 inp = source[( inputYStart + j ) * inputXSize + ( inputXStart + i )];
+					mat4 filt = mat4( flt[filterY * filterXSize + filterX[0].x],
+						flt[filterY * filterXSize + filterX[0].y],
+						flt[filterY * filterXSize + filterX[0].z],
+						flt[filterY * filterXSize + filterX[0].w ] );
+					res[0] += inp * filt;
+					filt = mat4( flt[filterY * filterXSize + filterX[1].x],
+						flt[filterY * filterXSize + filterX[1].y],
+						flt[filterY * filterXSize + filterX[1].z],
+						flt[filterY * filterXSize + filterX[1].w] );
+					res[1] += inp * filt;
+				}
+				filterX[0] += 1;
+				filterX[1] += 1;
+			}
+			++filterY;
+		}
+	
+		inputYStart += P.inputHeight;
+		filterYStart += P.filterHeight;
+	}
+
+	if(isProc) {
+		if(P.isFreeTerm != 0) {
+			res[0] += freeTerm[c8 * 2];
+			res[1] += freeTerm[c8 * 2 + 1];
+		}
+	
+		int outPos = ((b * P.height + h) * P.width + w) * P.filterCount + c8 * 8;
+		result[outPos] = res[0].x;
+		result[outPos + 1] = res[0].y;
+		result[outPos + 2] = res[0].z;
+		result[outPos + 3] = res[0].w;
+		result[outPos + 4] = res[1].x;
+		result[outPos + 5] = res[1].y;
+		result[outPos + 6] = res[1].z;
+		result[outPos + 7] = res[1].w;
+	}
+}
+
+void main()
+{
+	int w = ID_X;
+	int b = w / P.width;
+	w -= b * P.width;
+	int c8 = ID_Y;
+	int h = c8 / P.channels8;
+	c8 -= h * P.channels8;
+
+	bool isProc = b < P.batchSize && h < P.height;
+	perform8(b, h, w, c8, isProc);
+}

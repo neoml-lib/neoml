@@ -1,0 +1,39 @@
+project(NeoMathEngineFullTestDesktop)
+
+include(Utils)
+
+add_subdirectory(../src ${CMAKE_CURRENT_BINARY_DIR}/src)
+
+add_executable(${PROJECT_NAME}
+    FullTestDesktop.cpp
+)
+
+if(MSVC)
+    target_link_options(${PROJECT_NAME} PRIVATE "/SUBSYSTEM:Console")
+endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    InferenceTests
+    LearnTests
+
+    CommonTestTools
+    gtest
+    NeoMathEngine
+)
+
+configure_target(${PROJECT_NAME})
+
+add_gtest_for_target(${PROJECT_NAME} CPU ${CMAKE_CURRENT_SOURCE_DIR})
+if(WIN32 AND CMAKE_CUDA_COMPILER)
+    add_gtest_for_target(${PROJECT_NAME} GPU ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
+
+if(USE_FINE_OBJECTS)
+    fine_install(TARGETS ${PROJECT_NAME})
+else()
+    install(
+        TARGETS ${PROJECT_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+endif()

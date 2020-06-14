@@ -1,0 +1,70 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+layout(std430, binding=2) writeonly buffer Result { float result[]; };
+shared float buf[gl_WorkGroupSize.x * gl_WorkGroupSize.y];
+
+void main()
+{
+    buf[LOCAL_ID_X * int(gl_WorkGroupSize.y) + LOCAL_ID_Y] = -FLT_MAX;
+
+    int p = ID_X;
+    int f = ID_Y;
+    if( p < P.blobSize && f < P.filterLen ) {
+		int seqElemSize = P.batchWidth * P.objectSize;
+		int seqNum = p / seqElemSize;
+		int srcPos = p % seqElemSize;
+		int srcSeqNum = seqNum * P.strideLen + f;
+		int srcSeqNumEnd = seqNum * P.strideLen + P.filterLen;
+
+		float value = source[srcSeqNum * seqElemSize + srcPos];
+    
+		srcSeqNum += int(gl_WorkGroupSize.x);
+		while( srcSeqNum < srcSeqNumEnd ) {
+			float candidate = source[srcSeqNum * seqElemSize + srcPos];
+			if( candidate > value ) {
+				value = candidate;
+			}
+			srcSeqNum += int(gl_WorkGroupSize.x);
+		}
+
+		buf[LOCAL_ID_X * int(gl_WorkGroupSize.y) + LOCAL_ID_Y] = value;
+	}
+
+    barrier();
+
+    // Reduce 2D Max
+    
+    uint s = 1;
+    while( s * 2 < gl_WorkGroupSize.y ) {
+        s = s * 2;
+    }
+    
+    int bufferIndex = LOCAL_ID_X * int(gl_WorkGroupSize.y) + LOCAL_ID_Y;
+    
+    for( uint i = s; i >= 1; i = i >> 1 ) {
+		if( LOCAL_ID_Y < i && LOCAL_ID_Y + i < gl_WorkGroupSize.y ) {
+            if( buf[bufferIndex] <= buf[bufferIndex + i] ) {
+                buf[bufferIndex] = buf[bufferIndex + i];
+            }
+        }
+		barrier();
+    }
+
+    if( LOCAL_ID_Y == 0 && p < P.blobSize ) {
+        result[p] = buf[LOCAL_ID_X * int(gl_WorkGroupSize.y)];
+    }
+}

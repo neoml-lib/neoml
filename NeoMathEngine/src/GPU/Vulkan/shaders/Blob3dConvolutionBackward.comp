@@ -1,0 +1,62 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer OutputDiff { float outputDiff[]; };
+layout(std430, binding=2) readonly buffer Filter { float filt[]; };
+layout(std430, binding=3) writeonly buffer InputDiff { float inputDiff[]; };
+
+void main()
+{
+    int row = ID_Y;
+    int layer = ID_X;
+    if( row >= P.inputDiffHeight || layer >= P.inputDiffDepth ) {
+        return;
+    }
+
+    const int inputDiffDataOffset = layer * P.inputDiffChannels + row * P.inputDiffWidth * P.inputDiffChannels * P.inputDiffDepth;
+    const int filtObjectSize = P.filterDepth * P.filterHeight * P.filterWidth * P.inputDiffChannels;
+
+    for( int z = 0; z < P.outputDiffDepth; z++ ) {
+        const int firstFilterLayer = z * P.strideDepth - P.paddingDepth;
+        const int lastFilterLayer = firstFilterLayer + P.filterDepth - 1;
+        if( firstFilterLayer <= layer && layer <= lastFilterLayer ) {
+            const int filtZ = layer - firstFilterLayer;
+            for( int y = 0; y < P.outputDiffHeight; y++ ) {
+                const int firstFilterRow = y * P.strideHeight - P.paddingHeight;
+                const int lastFilterRow = firstFilterRow + P.filterHeight - 1;
+                if( firstFilterRow <= row && row <= lastFilterRow ) {
+                    const int filtY = row - firstFilterRow;
+                    for( int x = 0; x < P.outputDiffWidth; x++ ) {
+                        int inputDiffTempOffset = inputDiffDataOffset;
+                        int filterOffset = ( y * P.outputDiffDepth * P.outputDiffWidth + x * P.outputDiffDepth + z ) * filtObjectSize + 
+                                filtY * P.filterWidth * P.filterDepth * P.inputDiffChannels + filtZ * P.inputDiffChannels;
+
+                        for( int filtC = 0; filtC < P.inputDiffChannels; filtC++ ) {
+                            int column = x * P.strideWidth - P.paddingWidth;
+                            for( int filtX = 0; filtX < P.filterWidth; filtX++ ) {
+                                if( 0 <= column && column < P.inputDiffWidth ) {
+                                    inputDiff[inputDiffTempOffset + column * P.inputDiffDepth * P.inputDiffChannels] += filt[filterOffset + filtX * P.filterDepth * P.inputDiffChannels];
+                                }
+                                column++;
+                            }
+                            inputDiffTempOffset += 1;
+                            filterOffset += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

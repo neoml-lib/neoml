@@ -1,0 +1,25 @@
+# BLD file syntax:
+#
+# #text                                     Comment
+# dsp;vc-project-path;config1;config2...    Build VC++ project
+# mak;makefile-path                         Build makefile
+# run;executable;arguments                  Run executable
+# runx;executable;arguments                 Run executable (absolute path)
+# cmd;cmd-file;arguments                    Run command script
+# bld;bld-file                              Run BLD file
+# set;var;value                             Set value of environment variable
+#
+# All paths (except runx) should be retative to BLD file
+# Evironment variables (%var%) are expanded
+# THIS_FOLDER evironment variable contains full name of BLD file folder
+
+set;ROOT;%THIS_FOLDER%
+set;FINEOBJ;%ROOT%\FineObjects
+set;COPYPDB;1
+
+alias;sln;vs14
+alias;vcproj;vsproj14
+
+bld;FineObjects\FineObjNoTest.bld
+bld;FineObjects\FineGTest.bld
+bld;NeoML\Build\NeoML.bld

@@ -1,0 +1,53 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+DEFINE_WRITEONLY_IMAGE(0, result);
+
+// Filter transform from NHWC -> Image(N/4 * H, C * W)
+void main()
+{
+	int x = ID_X;
+	int c = x / P.geoSize.x;
+	x -= c * P.geoSize.x;
+	int y = ID_Y;
+	int b4 = y / P.geoSize.y;
+	y -= b4 * P.geoSize.y;
+
+	if(c < P.channels && b4 < P.batchSize4) {
+		int sourcePos = ((b4 * 4 * P.geoSize.y + y) * P.geoSize.x + x) * P.channels + c;
+		int sourceStep = P.geoSize.y * P.geoSize.x * P.channels;
+		vec4 data;
+		int mod;
+		if(b4 == P.batchSize4 - 1 && (mod = P.batchSize - (P.batchSize4 - 1) * 4) != 4) {
+			switch(mod) {
+			case 1:
+				data = vec4(source[sourcePos], 0, 0, 0);
+				break;
+			case 2:
+				data = vec4(source[sourcePos], source[sourcePos + sourceStep], 0, 0);
+				break;
+			case 3:
+				data = vec4(source[sourcePos], source[sourcePos + sourceStep], source[sourcePos + 2 * sourceStep], 0);
+				break;
+			}
+		} else {
+			data = vec4(source[sourcePos], source[sourcePos + sourceStep],
+				source[sourcePos + 2 * sourceStep], source[sourcePos + 3 * sourceStep]);
+		}
+
+		TEXEL_SET(result, ID_X, ID_Y, data);
+	}
+}

@@ -1,0 +1,62 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+DEFINE_SAMPLER(0, left);
+layout(std430, binding=1) readonly buffer Right { float right[]; };
+layout(std430, binding=2) writeonly buffer Result { float result[]; };
+
+void main()
+{
+	int y4 = ID_X;
+	int x = ID_Y;
+
+	if( x >= P.width || y4 >= ( P.height + 3 ) / 4 ) {
+		return;
+	}
+
+	vec4 leftData = TEXEL_GET(left, y4, 0);
+
+	int rightPos = y4 * 4 * P.width + x;
+	vec4 rightData;
+
+	int rest = P.height - y4 * 4;
+	switch(rest) {
+	default:
+		rightData = vec4(right[rightPos], right[rightPos + P.width], right[rightPos + 2 * P.width], right[rightPos + 3 * P.width] );
+		break;
+	case 3:
+		rightData = vec4(right[rightPos], right[rightPos + P.width], right[rightPos + 2 * P.width], 0 );
+		break;
+	case 2:
+		rightData = vec4(right[rightPos], right[rightPos + P.width], 0, 0 );
+		break;
+	case 1:
+		rightData = vec4(right[rightPos], 0, 0, 0 );
+		break;
+	}
+
+	vec4 resultData = leftData * rightData;
+
+	result[rightPos] = resultData.x;
+	if(rest > 1) {
+		result[rightPos + P.width] = resultData.y;
+		if(rest > 2) {
+			result[rightPos + 2 * P.width] = resultData.z;
+			if(rest > 3) {
+				result[rightPos + 3 * P.width] = resultData.w;
+			}
+		}
+	}
+}

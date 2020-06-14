@@ -1,0 +1,51 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+layout(std430, binding=2) readonly buffer Filter { float flt[]; };
+layout(std430, binding=3) readonly buffer FreeTerm { float freeTerm[]; };
+layout(std430, binding=4) writeonly buffer Result { float result[]; };
+
+void main()
+{
+	int b = ID_Z;
+	int xy = ID_Y;
+	int c = ID_X;
+	if( b < P.batchSize && xy < P.width * P.height && c < P.channels ) {
+        const int sourceX0 = -P.padding.x + P.stride.x * ( xy % P.width );
+        
+        int sourceY = -P.padding.y + P.stride.y * ( xy / P.width );
+        int sourceGY = sourceY * P.inputWidth;
+        
+        int fltOffset = c;  
+        int sourceOffset = b * (P.inputWidth * P.inputHeight * P.channels);// + P.inputWidth * P.inputHeight * c;
+        int resultOffset = b * (P.width * P.height * P.channels) + xy * P.channels + c;
+        
+        float resultValue = P.isFreeTerm == 1 ? freeTerm[c] : 0.0;
+        for( int i = 0; i < P.filterHeight; i++ ) {
+            int sourceX = sourceX0;
+            for( int j = 0; j < P.filterWidth; j++ ) {
+            	float inputValue = ( 0 <= sourceX && sourceX < P.inputWidth && 0 <= sourceY && sourceY < P.inputHeight ) ? source[sourceOffset + ( sourceGY + sourceX ) * P.channels + c] : 0;
+                resultValue += inputValue * flt[fltOffset];
+                fltOffset += P.channels;
+                sourceX++;
+            }
+            sourceY++;
+            sourceGY += P.inputWidth;
+        }
+        
+        result[resultOffset] = resultValue;
+	}
+}

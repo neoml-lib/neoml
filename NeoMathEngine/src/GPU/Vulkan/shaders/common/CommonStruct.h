@@ -1,0 +1,2172 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+// !!!ATTENTION!!! This file is used for compiling both C/C++ code and shaders
+// The shaders code defines the _GLSL_ and _SHADER_NAME_ macros
+
+#ifndef _GLSL_
+#pragma once
+
+namespace NeoML {
+#endif
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Additional GLSL types
+#ifndef _GLSL_
+struct ivec2 { int x; int y; };
+struct ivec3 { int x; int y; int z; };
+struct ivec4 { int x; int y; int z; int w; };
+
+struct vec2 { float x; float y; };
+struct vec3 { float x; float y; float z; };
+struct vec4 { float x; float y; float z; float w; };
+#endif
+
+#define SAMPLER_MAX_COUNT 3
+#define IMAGE_MAX_COUNT 3
+
+#define PUSH_CONSTANT_SAMPLER_SIZE_OFFSET 0
+#define PUSH_CONSTANT_IMAGE_SIZE_OFFSET SAMPLER_MAX_COUNT * 8
+#define PUSH_CONSTANT_PARAM_OFFSET PUSH_CONSTANT_IMAGE_SIZE_OFFSET + IMAGE_MAX_COUNT * 8
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+#define IMAGE_BINDING_NUM_0	100
+#define IMAGE_BINDING_NUM(_num) (IMAGE_BINDING_NUM_0 + (_num))
+
+#define SAMPLER_BINDING_NUM_0	200
+#define SAMPLER_BINDING_NUM(_num) (SAMPLER_BINDING_NUM_0 + (_num))
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// IB-shader has an ImageBased version
+
+// The binding number for additional image parameters when the shader has no ImageBased version
+#define NON_IB_PARAM_BINDING(_binding)	((_binding) + 1000)
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Macros to define group size
+#ifdef _GLSL_
+
+#define uint32_t uint
+
+#define DEFINE_SHADER_1D(ShaderName)
+#define DEFINE_SHADER_2D(ShaderName)
+#define DEFINE_SHADER_3D(ShaderName)
+#define IB_DEFINE_SHADER_1D(ShaderName)
+#define IB_DEFINE_SHADER_2D(ShaderName)
+#define IB_DEFINE_SHADER_3D(ShaderName)
+#define IB_ONLY_DEFINE_SHADER_1D(ShaderName)
+#define IB_ONLY_DEFINE_SHADER_2D(ShaderName)
+#define IB_ONLY_DEFINE_SHADER_3D(ShaderName)
+
+#else
+// For C++ code, apart from the group size, we have also the IB shader indicator
+#define DEFINE_SHADER_1D(ShaderName)					\
+	const bool ShaderName##IsIB = false;				\
+	const uint32_t* const Shader_##ShaderName##_IB = 0;	\
+	const int ShaderName##Dimensions = 1;
+
+#define DEFINE_SHADER_2D(ShaderName)					\
+	const bool ShaderName##IsIB = false;				\
+	const uint32_t* const Shader_##ShaderName##_IB = 0;	\
+	const int ShaderName##Dimensions = 2;
+
+#define DEFINE_SHADER_3D(ShaderName)					\
+	const bool ShaderName##IsIB = false;				\
+	const uint32_t* const Shader_##ShaderName##_IB = 0;	\
+	const int ShaderName##Dimensions = 3;
+
+#define IB_DEFINE_SHADER_1D(ShaderName)		\
+	const bool ShaderName##IsIB = true;		\
+	const int ShaderName##Dimensions = 1;
+
+#define IB_DEFINE_SHADER_2D(ShaderName)		\
+	const bool ShaderName##IsIB = true;		\
+	const int ShaderName##Dimensions = 2;
+
+#define IB_DEFINE_SHADER_3D(ShaderName)		\
+	const bool ShaderName##IsIB = true;		\
+	const int ShaderName##Dimensions = 3;
+
+#define IB_ONLY_DEFINE_SHADER_1D(ShaderName)		\
+	const bool ShaderName##IsIB = true;				\
+	const uint32_t* const Shader_##ShaderName = 0;	\
+	const int ShaderName##Dimensions = 1;
+
+#define IB_ONLY_DEFINE_SHADER_2D(ShaderName)		\
+	const bool ShaderName##IsIB = true;				\
+	const uint32_t* const Shader_##ShaderName = 0;	\
+	const int ShaderName##Dimensions = 2;
+
+#define IB_ONLY_DEFINE_SHADER_3D(ShaderName)		\
+	const bool ShaderName##IsIB = true;				\
+	const uint32_t* const Shader_##ShaderName = 0;	\
+	const int ShaderName##Dimensions = 3;
+
+#endif
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Macro that defines the parameters structure name
+#define PARAM_STRUCT(ShaderName)	struct C##ShaderName##Param
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// FillScalar
+DEFINE_SHADER_1D(VectorFillScalar)
+
+PARAM_STRUCT(VectorFillScalar)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorToImage
+IB_DEFINE_SHADER_1D(VectorToImage)
+
+PARAM_STRUCT(VectorToImage)
+{
+	int batchSize;
+	int vectorSize;
+};
+
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorELU
+DEFINE_SHADER_1D(VectorELU)
+
+PARAM_STRUCT(VectorELU)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorELUDiff
+DEFINE_SHADER_1D(VectorELUDiff)
+
+PARAM_STRUCT(VectorELUDiff)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorELUDiffOp
+DEFINE_SHADER_1D(VectorELUDiffOp)
+
+PARAM_STRUCT(VectorELUDiffOp)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorReLU
+DEFINE_SHADER_1D(VectorReLU)
+
+PARAM_STRUCT(VectorReLU)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorReLU4
+DEFINE_SHADER_1D( VectorReLU4 )
+
+PARAM_STRUCT( VectorReLU4 )
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorReLUDiff
+DEFINE_SHADER_1D(VectorReLUDiff)
+
+PARAM_STRUCT(VectorReLUDiff)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorLeakyReLU
+DEFINE_SHADER_1D(VectorLeakyReLU)
+
+PARAM_STRUCT(VectorLeakyReLU)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorLeakyReLUDiff
+DEFINE_SHADER_1D(VectorLeakyReLUDiff)
+
+PARAM_STRUCT(VectorLeakyReLUDiff)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorHSwish
+DEFINE_SHADER_1D( VectorHSwish )
+
+PARAM_STRUCT( VectorHSwish )
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorHSwishDiff
+DEFINE_SHADER_1D( VectorHSwishDiff )
+
+PARAM_STRUCT( VectorHSwishDiff )
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorAddFloat4
+DEFINE_SHADER_1D( VectorAddFloat4 )
+
+PARAM_STRUCT( VectorAddFloat4 )
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorAddFloat1
+DEFINE_SHADER_1D( VectorAddFloat1 )
+
+PARAM_STRUCT( VectorAddFloat1 )
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorAddValue
+DEFINE_SHADER_1D( VectorAddValue )
+
+PARAM_STRUCT( VectorAddValue )
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorAddInt
+DEFINE_SHADER_1D(VectorAddInt)
+
+PARAM_STRUCT(VectorAddInt)
+{
+	int isSecondValue;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorSub
+DEFINE_SHADER_1D(VectorSub)
+
+PARAM_STRUCT(VectorSub)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorMultiplyAndAdd
+DEFINE_SHADER_1D(VectorMultiplyAndAdd)
+
+PARAM_STRUCT(VectorMultiplyAndAdd)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorMultiplyAndSub
+DEFINE_SHADER_1D(VectorMultiplyAndSub)
+
+PARAM_STRUCT(VectorMultiplyAndSub)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorMultiply
+DEFINE_SHADER_1D(VectorMultiply)
+
+PARAM_STRUCT(VectorMultiply)
+{
+	int isSecondValue;
+	int isNeg;
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorEltwiseDivide
+DEFINE_SHADER_1D(VectorEltwiseDivide)
+
+PARAM_STRUCT(VectorEltwiseDivide)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorEltwisePower
+DEFINE_SHADER_1D(VectorEltwisePower)
+
+PARAM_STRUCT(VectorEltwisePower)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorEltwiseMax
+DEFINE_SHADER_1D(VectorEltwiseMax)
+
+PARAM_STRUCT(VectorEltwiseMax)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorEltwiseMin
+DEFINE_SHADER_1D(VectorEltwiseMin)
+
+PARAM_STRUCT(VectorEltwiseMin)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorAbs
+DEFINE_SHADER_1D(VectorAbs)
+
+PARAM_STRUCT(VectorAbs)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorAbsDiff
+DEFINE_SHADER_1D(VectorAbsDiff)
+
+PARAM_STRUCT(VectorAbsDiff)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorHinge
+DEFINE_SHADER_1D(VectorHinge)
+
+PARAM_STRUCT(VectorHinge)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorHingeDiff
+DEFINE_SHADER_1D(VectorHingeDiff)
+
+PARAM_STRUCT(VectorHingeDiff)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorSquaredHinge
+DEFINE_SHADER_1D(VectorSquaredHinge)
+
+PARAM_STRUCT(VectorSquaredHinge)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorSquaredHingeDiff
+DEFINE_SHADER_1D(VectorSquaredHingeDiff)
+
+PARAM_STRUCT(VectorSquaredHingeDiff)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorHuber
+DEFINE_SHADER_1D(VectorHuber)
+
+PARAM_STRUCT(VectorHuber)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorHardTanh
+DEFINE_SHADER_1D(VectorHardTanh)
+
+PARAM_STRUCT(VectorHardTanh)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorHardTanhDiff
+DEFINE_SHADER_1D(VectorHardTanhDiff)
+
+PARAM_STRUCT(VectorHardTanhDiff)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorHardSigmoid
+DEFINE_SHADER_1D( VectorHardSigmoid )
+
+PARAM_STRUCT( VectorHardSigmoid )
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorHardSigmoidDiff
+DEFINE_SHADER_1D( VectorHardSigmoidDiff )
+
+PARAM_STRUCT( VectorHardSigmoidDiff )
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorHardSigmoidDiffOp
+DEFINE_SHADER_1D( VectorHardSigmoidDiffOp )
+
+PARAM_STRUCT( VectorHardSigmoidDiffOp )
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorExp
+DEFINE_SHADER_1D(VectorExp)
+
+PARAM_STRUCT(VectorExp)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorLog
+DEFINE_SHADER_1D(VectorLog)
+
+PARAM_STRUCT(VectorLog)
+{
+	int isNeg;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorBernulliKLDerivative
+DEFINE_SHADER_1D(VectorBernulliKLDerivative)
+
+PARAM_STRUCT(VectorBernulliKLDerivative)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorSqrt
+DEFINE_SHADER_1D(VectorSqrt)
+
+PARAM_STRUCT(VectorSqrt)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorInv
+DEFINE_SHADER_1D(VectorInv)
+
+PARAM_STRUCT(VectorInv)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorMinMax
+DEFINE_SHADER_1D(VectorMinMax)
+
+PARAM_STRUCT(VectorMinMax)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorSigmoid
+DEFINE_SHADER_1D(VectorSigmoid)
+
+PARAM_STRUCT(VectorSigmoid)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorSigmoidDiff
+DEFINE_SHADER_1D(VectorSigmoidDiff)
+
+PARAM_STRUCT(VectorSigmoidDiff)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorSigmoidDiffOp
+DEFINE_SHADER_1D(VectorSigmoidDiffOp)
+
+PARAM_STRUCT(VectorSigmoidDiffOp)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorTanh
+DEFINE_SHADER_1D(VectorTanh)
+
+PARAM_STRUCT(VectorTanh)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorTanhDiff
+DEFINE_SHADER_1D(VectorTanhDiff)
+
+PARAM_STRUCT(VectorTanhDiff)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorTanhDiffOp
+DEFINE_SHADER_1D(VectorTanhDiffOp)
+
+PARAM_STRUCT(VectorTanhDiffOp)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorPower
+DEFINE_SHADER_1D(VectorPower)
+
+PARAM_STRUCT(VectorPower)
+{
+	float exponent;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorPowerDiff
+DEFINE_SHADER_1D(VectorPowerDiff)
+
+PARAM_STRUCT(VectorPowerDiff)
+{
+	float exponent;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorL1DiffAdd
+DEFINE_SHADER_1D(VectorL1DiffAdd)
+
+PARAM_STRUCT(VectorL1DiffAdd)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorDotProduct
+DEFINE_SHADER_1D(VectorDotProduct)
+
+PARAM_STRUCT(VectorDotProduct)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorEltwiseLogSumExp
+DEFINE_SHADER_1D(VectorEltwiseLogSumExp)
+
+PARAM_STRUCT(VectorEltwiseLogSumExp)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// RowMultiplyMatrixByMatrix
+DEFINE_SHADER_1D(RowMultiplyMatrixByMatrix)
+
+PARAM_STRUCT(RowMultiplyMatrixByMatrix)
+{
+	int height;
+	int width;
+	int yStep;
+	int xStep;
+};
+
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorPowerDiffOp
+DEFINE_SHADER_1D(VectorPowerDiffOp)
+
+PARAM_STRUCT(VectorPowerDiffOp)
+{
+	float exponent;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Transpose
+DEFINE_SHADER_1D(Transpose)
+
+PARAM_STRUCT(Transpose)
+{
+	int height;
+	int medium;
+	int width;
+	int channels;
+	int batchSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobMaxPooling
+DEFINE_SHADER_3D(BlobMaxPooling)
+
+PARAM_STRUCT(BlobMaxPooling)
+{
+	ivec2 stride;
+	ivec2 filterData;
+
+	int batchSize;
+	int channels;
+	int height;
+	int width;
+
+	int inputHeight;
+	int inputWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobMeanPooling
+DEFINE_SHADER_3D(BlobMeanPooling)
+
+PARAM_STRUCT(BlobMeanPooling)
+{
+	ivec2 stride;
+	ivec2 filterData;
+
+	int batchSize;
+	int channels;
+	int height;
+	int width;
+
+	int inputHeight;
+	int inputWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Matrix2InterleavedAdreno
+IB_DEFINE_SHADER_2D( Matrix2InterleavedAdreno )
+
+PARAM_STRUCT( Matrix2InterleavedAdreno )
+{
+	ivec2 chunk;
+	int batchSize;
+	int height;
+	int width;
+	int rowSize;
+
+	int isTrans;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MultiplyMatrixInterleavedAdreno
+IB_DEFINE_SHADER_2D( MultiplyMatrixInterleavedAdreno )
+
+PARAM_STRUCT( MultiplyMatrixInterleavedAdreno )
+{
+	ivec2 chunkLeft;
+	ivec2 chunkRight;
+
+	int batchSize;
+	int height;
+	int medium4;
+	int width;
+
+	int toAdd;
+
+	int resultRowSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MultiplyMatrixInterleavedBoardersAdreno
+IB_DEFINE_SHADER_2D( MultiplyMatrixInterleavedBoardersAdreno )
+
+PARAM_STRUCT( MultiplyMatrixInterleavedBoardersAdreno )
+{
+	ivec2 chunkLeft;
+	ivec2 chunkRight;
+
+	int batchSize;
+	int height;
+	int medium4;
+	int width;
+
+	int toAdd;
+
+	int resultRowSize;
+
+	int startX;
+	int stopX;
+	int startY;
+	int stopY;
+};
+
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MultiplyMatrixByMatrix
+DEFINE_SHADER_3D(MultiplyMatrixByMatrix)
+
+PARAM_STRUCT(MultiplyMatrixByMatrix)
+{
+	int batchSize;
+	int firstHeight;
+	int firstWidth;
+	int firstRowSize;
+	int secondWidth;
+	int secondRowSize;
+	int resultRowSize;
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchMultiplyMatrixByMatrixBorders
+DEFINE_SHADER_2D(BatchMultiplyMatrixByMatrixBorders)
+
+PARAM_STRUCT(BatchMultiplyMatrixByMatrixBorders)
+{
+	int batchSize;
+	int firstHeight;
+	int firstWidth;
+	int firstRowSize;
+	int secondWidth;
+	int secondRowSize;
+	int resultRowSize;
+	int leftOffset;
+	int topOffset;
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchMultiplyMatrixByTransposedMatrix
+DEFINE_SHADER_3D(BatchMultiplyMatrixByTransposedMatrix)
+
+PARAM_STRUCT(BatchMultiplyMatrixByTransposedMatrix)
+{
+	int batchSize;
+	int firstHeight;
+	int firstWidth;
+	int firstRowSize;
+	int secondHeight;
+	int secondRowSize;
+	int resultRowSize;
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchMultiplyMatrixByTransposedMatrixBorders
+DEFINE_SHADER_2D(BatchMultiplyMatrixByTransposedMatrixBorders)
+
+PARAM_STRUCT(BatchMultiplyMatrixByTransposedMatrixBorders)
+{
+	int batchSize;
+	int firstHeight;
+	int firstWidth;
+	int firstRowSize;
+	int secondHeight;
+	int secondRowSize;
+	int resultRowSize;
+	int leftOffset;
+	int topOffset;
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchInitMultiplyMatrixByTransposedMatrixBorders
+DEFINE_SHADER_3D( BatchInitMultiplyMatrixByTransposedMatrixBorders )
+
+PARAM_STRUCT( BatchInitMultiplyMatrixByTransposedMatrixBorders )
+{
+	int batchSize;
+	int firstHeight;
+	int firstWidth;
+	int firstRowSize;
+	int secondHeight;
+	int secondRowSize;
+	int resultRowSize;
+	int leftOffset;
+	int topOffset;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchMultiplyTransposedMatrixByMatrix
+DEFINE_SHADER_3D(BatchMultiplyTransposedMatrixByMatrix)
+
+PARAM_STRUCT(BatchMultiplyTransposedMatrixByMatrix)
+{
+	int batchSize;
+	int firstHeight;
+	int firstWidth;
+	int firstRowSize;
+	int secondWidth;
+	int secondRowSize;
+	int resultRowSize;
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchMultiplyTransposedMatrixByMatrixBorders
+DEFINE_SHADER_2D(BatchMultiplyTransposedMatrixByMatrixBorders)
+
+PARAM_STRUCT(BatchMultiplyTransposedMatrixByMatrixBorders)
+{
+	int batchSize;
+	int firstHeight;
+	int firstWidth;
+	int firstRowSize;
+	int secondWidth;
+	int secondRowSize;
+	int resultRowSize;
+	int leftOffset;
+	int topOffset;
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchInitAddMultiplyMatrixByTransposedMatrix
+DEFINE_SHADER_3D(BatchInitAddMultiplyMatrixByTransposedMatrix)
+
+PARAM_STRUCT(BatchInitAddMultiplyMatrixByTransposedMatrix)
+{
+	int batchSize;
+	int firstHeight;
+	int firstWidth;
+	int firstRowSize;
+	int secondHeight;
+	int secondRowSize;
+	int resultRowSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MultiplyMatrixByDiagMatrixAdreno
+IB_DEFINE_SHADER_2D( MultiplyMatrixByDiagMatrixAdreno )
+
+PARAM_STRUCT( MultiplyMatrixByDiagMatrixAdreno )
+{
+	int batchSize;
+	int rightBatchSize;
+
+	int height;
+	int width;
+
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MultiplyMatrixByDiagMatrix
+DEFINE_SHADER_2D( MultiplyMatrixByDiagMatrix )
+
+PARAM_STRUCT( MultiplyMatrixByDiagMatrix )
+{
+	int batchSize;
+	int rightBatchSize;
+
+	int height;
+	int width;
+
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MultiplyDiagMatrixByMatrixAdreno
+IB_DEFINE_SHADER_2D( MultiplyDiagMatrixByMatrixAdreno )
+
+PARAM_STRUCT( MultiplyDiagMatrixByMatrixAdreno )
+{
+	int height;
+	int width;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MultiplyDiagMatrixByMatrix
+DEFINE_SHADER_2D( MultiplyDiagMatrixByMatrix )
+
+PARAM_STRUCT( MultiplyDiagMatrixByMatrix )
+{
+	int height;
+	int width;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MultiplyMatrixByDiagMatrix
+DEFINE_SHADER_2D(MultiplyDiagMatrixByMatrixAndAdd)
+
+PARAM_STRUCT(MultiplyDiagMatrixByMatrixAndAdd)
+{
+	int batchSize;
+	int firstSize;
+	int secondWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// AddVectorToMatrixRowsAdreno
+IB_DEFINE_SHADER_2D( AddVectorToMatrixRowsAdreno )
+
+PARAM_STRUCT( AddVectorToMatrixRowsAdreno )
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// SetVectorToMatrixRowsAdreno
+IB_DEFINE_SHADER_2D( SetVectorToMatrixRowsAdreno )
+
+PARAM_STRUCT( SetVectorToMatrixRowsAdreno )
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// SetVectorToMatrixRows
+DEFINE_SHADER_2D( SetVectorToMatrixRows )
+
+PARAM_STRUCT( SetVectorToMatrixRows )
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// SumMatrixRows
+DEFINE_SHADER_3D(SumMatrixRows)
+
+PARAM_STRUCT(SumMatrixRows)
+{
+	int width;
+	int height;
+	int batchSize;
+
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// PrepareFilter3x3ForConvolutionAdreno
+IB_DEFINE_SHADER_2D( PrepareFilter3x3ForConvolutionAdreno )
+
+PARAM_STRUCT( PrepareFilter3x3ForConvolutionAdreno )
+{
+	int batchSize;
+	int channels;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// PrepareBlobForConvolution
+DEFINE_SHADER_2D( PrepareBlobForConvolution )
+
+PARAM_STRUCT( PrepareBlobForConvolution )
+{
+	ivec2 geoSize;
+	int batchSize;
+	int channels;
+	int channels4;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// PrepareBlobForConvolutionAdreno
+IB_DEFINE_SHADER_2D( PrepareBlobForConvolutionAdreno )
+
+PARAM_STRUCT( PrepareBlobForConvolutionAdreno )
+{
+	ivec2 geoSize;
+	int batchSize;
+	int channels;
+	int channels4;
+
+	int channelGroupSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobConvolutionAdreno
+IB_DEFINE_SHADER_2D( BlobConvolutionAdreno )
+
+PARAM_STRUCT( BlobConvolutionAdreno )
+{
+	ivec2 padding;
+	ivec2 stride;
+	ivec2 dilation;
+	int isFreeTerm;
+
+	int width;
+	int height;
+	int batchSize;
+
+	int inputWidth;
+	int inputHeight;
+	int inputChannels4;
+
+	int filterWidth;
+	int filterHeight;
+	int filterCount;
+
+	int startChannel;
+
+	int inputChannelGroupSize;
+	int filterChannelGroupSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobConvolution
+IB_DEFINE_SHADER_2D( BlobConvolution )
+
+PARAM_STRUCT( BlobConvolution )
+{
+	ivec2 padding;
+	ivec2 stride;
+	ivec2 dilation;
+	int isFreeTerm;
+
+	int width;
+	int height;
+	int batchSize;
+
+	int inputWidth;
+	int inputHeight;
+	int inputChannels;
+
+	int filterWidth;
+	int filterHeight;
+	int filterCount;
+
+	int startChannel;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobConvolution8Adreno
+IB_DEFINE_SHADER_2D( BlobConvolution8Adreno )
+
+PARAM_STRUCT( BlobConvolution8Adreno )
+{
+	ivec2 padding;
+	ivec2 stride;
+	ivec2 dilation;
+	int isFreeTerm;
+
+	int width;
+	int height;
+	int batchSize;
+
+	int inputWidth;
+	int inputHeight;
+	int inputChannels4;
+
+	int filterWidth;
+	int filterHeight;
+	int filterCount;
+
+	int channels8;
+
+	int inputChannelGroupSize;
+	int filterChannelGroupSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobConvolution8
+IB_DEFINE_SHADER_2D( BlobConvolution8 )
+
+PARAM_STRUCT( BlobConvolution8 )
+{
+	ivec2 padding;
+	ivec2 stride;
+	ivec2 dilation;
+	int isFreeTerm;
+
+	int width;
+	int height;
+	int batchSize;
+
+	int inputWidth;
+	int inputHeight;
+	int inputChannels;
+
+	int filterWidth;
+	int filterHeight;
+	int filterCount;
+
+	int channels8;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobConvolution3x3s1d1
+DEFINE_SHADER_3D( BlobConvolution3x3s1d1 )
+
+PARAM_STRUCT( BlobConvolution3x3s1d1 )
+{
+	int inputWidth;
+	int inputHeight;
+	int inputChannels;
+	int batchSize;
+
+	int width;
+	int height;
+	int filterCount;
+	int isFreeTerm;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// PrepareBlobWithPaddingAdreno
+IB_DEFINE_SHADER_1D(PrepareBlobWithPaddingAdreno)
+
+PARAM_STRUCT(PrepareBlobWithPaddingAdreno)
+{
+	int channels;
+	int width;
+	int height;
+	int batchSize;
+
+	int paddingTop;
+	int paddingBottom;
+	int paddingLeft;
+	int paddingRight;
+
+	int channelGroupSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobConvolution3x3s1d1Adreno
+IB_DEFINE_SHADER_2D( BlobConvolution3x3s1d1Adreno )
+
+PARAM_STRUCT( BlobConvolution3x3s1d1Adreno )
+{
+	int inputWidth4;
+	int inputHeight;
+	int inputChannels;
+	int batchSize;
+
+	int width;
+	int height;
+	int filterCount;
+	int isFreeTerm;
+
+	int inputChannelGroupSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// PrepareBlobWithPaddingBuffers
+DEFINE_SHADER_1D(PrepareBlobWithPaddingBuffers)
+
+PARAM_STRUCT(PrepareBlobWithPaddingBuffers)
+{
+	int channels;
+	int width;
+	int height;
+	int batch;
+
+	int paddingTop;
+	int paddingBottom;
+	int paddingLeft;
+	int paddingRight;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// PrepareFilterForConvolutionBackwardAdreno
+IB_DEFINE_SHADER_2D( PrepareFilterForConvolutionBackwardAdreno )
+
+PARAM_STRUCT( PrepareFilterForConvolutionBackwardAdreno )
+{
+	ivec2 geoSize;
+	int channels;
+	int batchSize;
+	int batchSize4;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobConvolutionBackwardAdreno
+IB_DEFINE_SHADER_3D( BlobConvolutionBackwardAdreno )
+
+PARAM_STRUCT( BlobConvolutionBackwardAdreno )
+{
+	ivec2 padding;
+	ivec2 stride;
+	ivec2 dilation;
+	int isFreeTerm;
+
+	int width;
+	int height;
+	int batchSize;
+
+	int inputWidth;
+	int inputHeight;
+	int inputChannels;
+
+	int filterWidth;
+	int filterHeight;
+	int filterCount4;
+
+	int startChannel;
+
+	int outputDiffChannelGroupSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobConvolutionBackward
+DEFINE_SHADER_3D( BlobConvolutionBackward )
+
+PARAM_STRUCT( BlobConvolutionBackward )
+{
+	ivec2 padding;
+	ivec2 stride;
+	ivec2 dilation;
+	int isFreeTerm;
+
+	int width;
+	int height;
+	int batchSize;
+
+	int inputWidth;
+	int inputHeight;
+	int inputChannels;
+
+	int filterWidth;
+	int filterHeight;
+	int filterCount;
+
+	int startChannel;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Blob3dConvolution
+DEFINE_SHADER_3D(Blob3dConvolution)
+
+PARAM_STRUCT(Blob3dConvolution)
+{
+	int paddingWidth;
+	int paddingHeight;
+	int paddingDepth;
+	int strideWidth;
+	int strideHeight;
+	int strideDepth;
+	
+	int isFreeTerm;
+
+	int inputChannels;
+	int inputHeight;
+	int inputWidth;
+	int inputDepth;
+
+	int filterHeight;
+	int filterWidth;
+	int filterDepth;
+	int filterCount;
+
+	int height;
+	int width;
+	int depth;
+	int batchSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Blob3dConvolutionBackward
+DEFINE_SHADER_2D(Blob3dConvolutionBackward)
+
+PARAM_STRUCT(Blob3dConvolutionBackward)
+{
+	int paddingWidth;
+	int paddingHeight;
+	int paddingDepth;
+	int strideWidth;
+	int strideHeight;
+	int strideDepth;
+	
+	int inputDiffChannels;
+	int inputDiffHeight;
+	int inputDiffWidth;
+	int inputDiffDepth;
+
+	int filterHeight;
+	int filterWidth;
+	int filterDepth;
+
+	int outputDiffHeight;
+	int outputDiffWidth;
+	int outputDiffDepth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobChannelwiseConvolutionAdreno
+IB_DEFINE_SHADER_2D( BlobChannelwiseConvolutionAdreno )
+
+PARAM_STRUCT( BlobChannelwiseConvolutionAdreno )
+{
+	ivec2 padding;
+	ivec2 stride;
+	ivec2 dilation;
+	int isFreeTerm;
+
+	int channels;
+	int width;
+	int height;
+	int batchSize;
+
+	int inputWidth;
+	int inputHeight;
+
+	int filterWidth;
+	int filterHeight;
+
+	int inputChannelGroupSize;
+	int filterChannelGroupSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobChannelwiseConvolution
+DEFINE_SHADER_3D( BlobChannelwiseConvolution )
+
+PARAM_STRUCT( BlobChannelwiseConvolution )
+{
+	ivec2 padding;
+	ivec2 stride;
+	int isFreeTerm;
+
+	int channels;
+	int width;
+	int height;
+	int batchSize;
+
+	int inputWidth;
+	int inputHeight;
+
+	int filterWidth;
+	int filterHeight;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobChannelwiseConvolution3x3s1
+DEFINE_SHADER_3D( BlobChannelwiseConvolution3x3s1 )
+
+PARAM_STRUCT( BlobChannelwiseConvolution3x3s1 )
+{
+	ivec2 padding;
+	int isFreeTerm;
+
+	int channels;
+	int width;
+	int height;
+	int batchSize;
+
+	int inputWidth;
+	int inputHeight;
+
+	int filterWidth;
+	int filterHeight;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobChannelwiseConvolution3x3s2
+DEFINE_SHADER_3D( BlobChannelwiseConvolution3x3s2 )
+
+PARAM_STRUCT( BlobChannelwiseConvolution3x3s2 )
+{
+	ivec2 padding;
+	int isFreeTerm;
+
+	int channels;
+	int width;
+	int height;
+	int batchSize;
+
+	int inputWidth;
+	int inputHeight;
+
+	int filterWidth;
+	int filterHeight;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorSum
+DEFINE_SHADER_1D(VectorSum)
+
+PARAM_STRUCT(VectorSum)
+{
+	int toAdd;
+	int isNeg;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorEqual
+DEFINE_SHADER_1D(VectorEqual)
+
+PARAM_STRUCT(VectorEqual)
+{
+	int isSecondValue;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// SetVectorToMatrixElements
+DEFINE_SHADER_1D(SetVectorToMatrixElements)
+
+PARAM_STRUCT(SetVectorToMatrixElements)
+{
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// LookupAndSum
+DEFINE_SHADER_2D(LookupAndSum)
+
+PARAM_STRUCT(LookupAndSum)
+{
+	int batchSize;
+	int indexCount;
+	int vectorSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Upsampling2DForward
+DEFINE_SHADER_2D(Upsampling2DForward)
+
+PARAM_STRUCT(Upsampling2DForward)
+{
+	int heightCopyCount;
+	int widthCopyCount;
+	int pixelSize;
+	int batchSize;
+	int inputHeight;
+	int inputRowSize;
+	int resultHeight;
+	int resultRowSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Blob3dMaxPoolingNoIndices
+DEFINE_SHADER_3D(Blob3dMaxPoolingNoIndices)
+
+PARAM_STRUCT(Blob3dMaxPoolingNoIndices)
+{
+	int strideHeight;
+	int strideWidth;
+	int strideDepth;
+
+	int filterHeight;
+	int filterWidth;
+	int filterDepth;
+
+	int inputHeight;
+	int inputWidth;
+	int inputDepth;
+
+	int resultHeight;
+	int resultWidth;
+	int resultDepth;
+
+	int channels;
+	int batchSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Blob3dMeanPooling
+DEFINE_SHADER_3D(Blob3dMeanPooling)
+
+PARAM_STRUCT(Blob3dMeanPooling)
+{
+	int strideHeight;
+	int strideWidth;
+	int strideDepth;
+
+	int filterHeight;
+	int filterWidth;
+	int filterDepth;
+
+	int inputHeight;
+	int inputWidth;
+	int inputDepth;
+
+	int resultHeight;
+	int resultWidth;
+	int resultDepth;
+
+	int channels;
+	int batchSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobMaxOverTimePooling
+DEFINE_SHADER_2D(BlobMaxOverTimePoolingNoIndices)
+
+PARAM_STRUCT(BlobMaxOverTimePoolingNoIndices)
+{
+	int blobSize;
+	int batchWidth;
+	int objectSize;
+	int filterLen;
+	int strideLen;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// FindMaxValueInRows
+DEFINE_SHADER_2D(FindMaxValueInRows)
+
+PARAM_STRUCT(FindMaxValueInRows)
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// FindMaxValueInRowsNoIndices
+DEFINE_SHADER_2D(FindMaxValueInRowsNoIndices)
+
+PARAM_STRUCT(FindMaxValueInRowsNoIndices)
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// FindMaxValueInColumns
+DEFINE_SHADER_2D(FindMaxValueInColumns)
+
+PARAM_STRUCT(FindMaxValueInColumns)
+{
+	int batchSize;
+	int matrixHeight;
+	int matrixWidth;
+};
+
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// FindMaxValueInColumnsNoIndices
+DEFINE_SHADER_2D(FindMaxValueInColumnsNoIndices)
+
+PARAM_STRUCT(FindMaxValueInColumnsNoIndices)
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// FindMinValueInColumns
+DEFINE_SHADER_2D( FindMinValueInColumns )
+
+PARAM_STRUCT( FindMinValueInColumns )
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobGlobalMaxPooling
+DEFINE_SHADER_2D(BlobGlobalMaxPooling)
+
+PARAM_STRUCT(BlobGlobalMaxPooling)
+{
+	int maxCount;
+	int batchSize;
+	int channels;
+	int sourceObjectSize;
+	int resultObjectSize;
+	int poolSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// AddMatrixElementsToVector
+DEFINE_SHADER_1D(AddMatrixElementsToVector)
+
+PARAM_STRUCT(AddMatrixElementsToVector)
+{
+	int height;
+	int width;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// AddMatrixElementsToVectorEx
+DEFINE_SHADER_1D(AddMatrixElementsToVectorEx)
+
+PARAM_STRUCT(AddMatrixElementsToVectorEx)
+{
+	int vectorSize;
+	int width;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// AddVectorToMatrixColumnsInt
+DEFINE_SHADER_2D(AddVectorToMatrixColumnsInt)
+
+PARAM_STRUCT(AddVectorToMatrixColumnsInt)
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// AddVectorToMatrixColumnsFloatAdreno
+IB_DEFINE_SHADER_2D( AddVectorToMatrixColumnsFloatAdreno )
+
+PARAM_STRUCT( AddVectorToMatrixColumnsFloatAdreno )
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// AddVectorToMatrixColumnsFloatBifrost
+DEFINE_SHADER_2D( AddVectorToMatrixColumnsFloat )
+
+PARAM_STRUCT( AddVectorToMatrixColumnsFloat)
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchAddVectorToMatrixRows
+DEFINE_SHADER_3D(BatchAddVectorToMatrixRows)
+
+PARAM_STRUCT(BatchAddVectorToMatrixRows)
+{
+	int batchSize;
+	int matrixHeight;
+	int matrixWidth;
+};
+
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// EnumBinarizationInt
+DEFINE_SHADER_1D(EnumBinarizationInt)
+
+PARAM_STRUCT(EnumBinarizationInt)
+{
+	int batchSize;
+	int enumSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// EnumBinarizationFloat
+DEFINE_SHADER_1D(EnumBinarizationFloat)
+
+PARAM_STRUCT(EnumBinarizationFloat)
+{
+	int batchSize;
+	int enumSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobResizeImage
+DEFINE_SHADER_3D(BlobResizeImage)
+
+PARAM_STRUCT(BlobResizeImage)
+{
+	int batchSize;
+	int totalChannels;
+	int sourceHeight;
+	int sourceWidth;
+	int height;
+	int width;
+	int deltaLeft;
+	int deltaRight;
+	int deltaTop;
+	int deltaBottom;
+	float defaultValue;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MatrixLogSumExpByRows
+DEFINE_SHADER_2D(MatrixLogSumExpByRows)
+
+PARAM_STRUCT(MatrixLogSumExpByRows)
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MatrixLogSumExpByRows
+DEFINE_SHADER_2D(MatrixSoftmaxByRows)
+
+PARAM_STRUCT(MatrixSoftmaxByRows)
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MatrixSoftmaxByColumns
+DEFINE_SHADER_2D(MatrixSoftmaxByColumns)
+
+PARAM_STRUCT(MatrixSoftmaxByColumns)
+{
+	int matrixHeight;
+	int matrixWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorFillBernoulli
+DEFINE_SHADER_1D(VectorFillBernoulli)
+
+PARAM_STRUCT(VectorFillBernoulli)
+{
+	float value;
+	float p;
+	uint32_t threshold;
+	int seed;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobSpatialDropout
+DEFINE_SHADER_1D(BlobSpatialDropout)
+
+PARAM_STRUCT(BlobSpatialDropout)
+{
+	int inputObjectCount;
+	int inputObjectSize;
+	int maskObjectCount;
+	int maskObjectSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BuildIntegerHist
+DEFINE_SHADER_1D(BuildIntegerHist)
+
+PARAM_STRUCT(BuildIntegerHist)
+{
+	int numbersCount;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorFindMaxValueInSetNoIndices
+DEFINE_SHADER_1D( VectorFindMaxValueInSetNoIndices )
+
+PARAM_STRUCT( VectorFindMaxValueInSetNoIndices )
+{
+	int vectorSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorFindMaxValueInSet
+DEFINE_SHADER_1D(VectorFindMaxValueInSet)
+
+PARAM_STRUCT(VectorFindMaxValueInSet)
+{
+	int vectorSize;
+	int index;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MatrixSpreadRowsFloat
+DEFINE_SHADER_1D(MatrixSpreadRowsFloat)
+
+PARAM_STRUCT(MatrixSpreadRowsFloat)
+{
+	int height;
+	int width;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MatrixSpreadRowsFloatAdd
+DEFINE_SHADER_1D( MatrixSpreadRowsFloatAdd )
+
+PARAM_STRUCT( MatrixSpreadRowsFloatAdd )
+{
+	int height;
+	int width;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MatrixSpreadRowsInt
+DEFINE_SHADER_1D(MatrixSpreadRowsInt)
+
+PARAM_STRUCT(MatrixSpreadRowsInt)
+{
+	int height;
+	int width;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobGetSubSequence
+DEFINE_SHADER_3D(BlobGetSubSequence)
+
+PARAM_STRUCT(BlobGetSubSequence)
+{
+	int listSize;
+	int batchWidth;
+
+	int resultBatchLength;
+	int objectSize;
+
+	int startPos;
+	int isRev;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobGetSubSequenceNoIndices
+DEFINE_SHADER_3D(BlobGetSubSequenceNoIndices)
+
+PARAM_STRUCT(BlobGetSubSequenceNoIndices)
+{
+	int listSize;
+	int batchWidth;
+
+	int resultBatchLength;
+	int objectSize;
+
+	int startPos;
+	int isRev;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BitSetBinarization
+DEFINE_SHADER_1D(BitSetBinarization)
+
+PARAM_STRUCT(BitSetBinarization)
+{
+	int bitSetElementCount;
+	int outputVectorSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobConvertFromRLE
+DEFINE_SHADER_2D(BlobConvertFromRLE)
+
+PARAM_STRUCT(BlobConvertFromRLE)
+{
+	int batchSize;
+
+	int sourceHeight;
+	int sourceWidth;
+	int sourceObjectSize;
+
+	float stroke;
+	float nonStroke;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobSplitByDim
+DEFINE_SHADER_2D(BlobSplitByDim)
+
+PARAM_STRUCT(BlobSplitByDim)
+{
+	int height;
+	int width;
+	int wLen;
+	int wStart;
+	int heightNorm;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobMergeByDim
+DEFINE_SHADER_2D(BlobMergeByDim)
+
+PARAM_STRUCT(BlobMergeByDim)
+{
+	int height;
+	int width;
+	int wLen;
+	int wStart;
+	int heightNorm;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Reorg
+DEFINE_SHADER_2D( BlobReorgInt )
+
+PARAM_STRUCT( BlobReorgInt )
+{
+	int batchSize;
+	int height;
+	int width;
+	int channels;
+	int stride;
+	int outputChannels;
+	int isForward;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Reorg
+DEFINE_SHADER_2D( BlobReorgFloat )
+
+PARAM_STRUCT( BlobReorgFloat )
+{
+	int batchSize;
+	int height;
+	int width;
+	int channels;
+	int stride;
+	int outputChannels;
+	int isForward;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchVectorChannelCopyFloat
+DEFINE_SHADER_2D(VectorMultichannelLookupAndCopyFloat)
+
+PARAM_STRUCT(VectorMultichannelLookupAndCopyFloat)
+{
+	int batchSize;
+	int lookupIndex;
+	int inputChannelCount;
+	int outputChannelCount;
+	int vectorSize;
+	int outputChannel;	
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchVectorMultichannelCopyFloat
+DEFINE_SHADER_2D(VectorMultichannelCopyFloat)
+
+PARAM_STRUCT(VectorMultichannelCopyFloat)
+{
+	int batchSize;
+	int inputChannelCount;
+	int outputChannelCount;
+	int lookupCount;
+	int outputChannel;
+	int vectorSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchVectorChannelCopyInt
+DEFINE_SHADER_2D(VectorMultichannelLookupAndCopyInt)
+
+PARAM_STRUCT(VectorMultichannelLookupAndCopyInt)
+{
+	int batchSize;
+	int lookupIndex;
+	int inputChannelCount;
+	int outputChannelCount;
+	int vectorSize;
+	int outputChannel;	
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchVectorMultichannelCopyInt
+DEFINE_SHADER_2D(VectorMultichannelCopyInt)
+
+PARAM_STRUCT(VectorMultichannelCopyInt)
+{
+	int batchSize;
+	int inputChannelCount;
+	int outputChannelCount;
+	int lookupCount;
+	int outputChannel;
+	int vectorSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MultiplySparseMatrixByTransposedMatrix
+DEFINE_SHADER_2D( MultiplySparseMatrixByTransposedMatrix )
+
+PARAM_STRUCT( MultiplySparseMatrixByTransposedMatrix )
+{
+	int firstHeight;
+	int firstWidth;
+	int secondHeight;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// MultiplyTransposedMatrixBySparseMatrix
+DEFINE_SHADER_1D( MultiplyTransposedMatrixBySparseMatrix )
+
+PARAM_STRUCT( MultiplyTransposedMatrixBySparseMatrix )
+{
+	int firstHeight;
+	int firstWidth;
+	int secondWidth;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BlobTimeConvolutionPrepare
+DEFINE_SHADER_3D(BlobTimeConvolutionPrepare)
+
+PARAM_STRUCT(BlobTimeConvolutionPrepare)
+{
+	int sourceBatchLength;
+	int sourceBatchWidth;
+	int sourceObjectSize;
+
+	int resultBatchLength;
+	int resultBatchWidth;
+
+	int filterHeight;
+	int stride;
+	int padding;
+	int dilation;
+};
+
+
+/////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+// End of file
+#ifndef _GLSL_
+} // namespace NeoML
+#endif

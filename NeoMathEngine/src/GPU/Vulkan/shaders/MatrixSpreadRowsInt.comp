@@ -1,0 +1,36 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { int source[]; };
+layout(std430, binding=2) readonly buffer Indices { int indices[]; };
+layout(std430, binding=3) writeonly buffer Result { int result[]; };
+
+void main()
+{
+	if( ID_Y >= P.height || ID_X >= ( P.width + 7 ) / 8 || indices[ID_Y] < 0 ) {
+		return;
+	}
+
+	int y = ID_Y;
+	int xStart = ID_X * 8;
+	int xEnd = min(xStart + 8, P.width);
+
+	int sourceIndex = y * P.width;
+	int resultIndex = indices[y] * P.width;
+	
+	for( int x = xStart; x < xEnd; x++ ) {
+		result[resultIndex + x] = source[sourceIndex + x];
+	}
+}

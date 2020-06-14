@@ -1,0 +1,50 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+layout(std430, binding=2) writeonly buffer Result { float result[]; };
+
+void perform1(in int b, in int h, in int w, in int c)
+{
+	int inputHStart = h * P.stride.y;
+	int inputHEnd = min(inputHStart + P.filterData.y, P.inputHeight);
+	int inputWStart = w * P.stride.x;
+	int inputWEnd = min(inputWStart + P.filterData.x, P.inputWidth);
+
+	int inputLineStart = ((b * P.inputHeight + inputHStart) * P.inputWidth + inputWStart) * P.channels + c;
+	int inputLineStep = P.inputWidth * P.channels;
+
+	float res = source[inputLineStart];
+	for(int j = inputHStart; j < inputHEnd; ++j) {
+		int inputPos = inputLineStart;
+		for(int i = inputWStart; i < inputWEnd; ++i) {
+			if(source[inputPos] > res) {
+				res = source[inputPos];
+			}
+			inputPos += P.channels;
+		}
+		inputLineStart += inputLineStep;
+	}
+
+	result[(ID_Y * P.width + ID_X) * P.channels + ID_Z] = res;
+}
+
+void main()
+{
+	if(ID_Y < P.batchSize * P.height && ID_X < P.width && ID_Z < P.channels) {
+		int b = ID_Y / P.height;
+		perform1(b, ID_Y - b * P.height, ID_X, ID_Z);
+	}
+}

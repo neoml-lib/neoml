@@ -1,0 +1,45 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+layout(std430, binding=2) writeonly buffer Indices { float indices[]; };
+layout(std430, binding=3) writeonly buffer Result { float result[]; };
+
+void main()
+{
+    int seqPos = ID_Z;
+    int seqNum = ID_Y;
+    int i = ID_X;
+    
+    if( seqPos >= P.resultBatchLength || seqNum >= P.batchWidth * P.listSize || i >= ( P.objectSize + 15 ) / 16 ) {
+    	return;
+    }
+        
+    int sourceSeqPos = (P.isRev != 0) ? (P.startPos - seqPos) : (P.startPos + seqPos);
+    int sourceObjPos = sourceSeqPos * P.batchWidth * P.listSize + seqNum;
+    int sourceIndex = sourceObjPos * P.objectSize;
+    int resultObjPos = seqPos * P.batchWidth * P.listSize + seqNum;
+    int resultIndex = resultObjPos * P.objectSize;
+
+    int count = min( 16, P.objectSize - i * 16);
+	if( i == 0 && count > 0 ) {
+		indices[resultObjPos] = sourceObjPos;
+	}
+
+    for( int k = 0; k < count; k++ ) {
+        result[resultIndex + i * 16 + k] = source[sourceIndex + i * 16 + k];
+    }
+
+}

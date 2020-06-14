@@ -1,0 +1,98 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer OutputDiff { float outputDiff[]; };
+layout(std430, binding=2) readonly buffer FilterData { float filterData[]; };
+layout(std430, binding=3) readonly buffer FreeTerm { float freeTerm[]; };
+layout(std430, binding=4) writeonly buffer InputDiff { float inputDiff[]; };
+
+void perform1(in int b, in int h, in int w, in int c, in bool isProc)
+{
+	int filterCount4 = ( P.filterCount + 3 ) / 4;
+
+	int yStart = (P.padding.y + h - (1 + (P.filterHeight - 1) * P.dilation.y) + P.stride.y) / P.stride.y;
+	if(yStart < 0) {
+		yStart = 0;
+	}
+	int xStart = (P.padding.x + w - (1 + (P.filterWidth - 1) * P.dilation.x) + P.stride.x) / P.stride.x;
+	if(xStart < 0) {
+		xStart = 0;
+	}
+
+	vec4 acc = vec4(0);
+	int outputDiffOffset = b * P.width * P.height * P.filterCount;
+	for(int k = 0; k < filterCount4; ++k) {
+		for(int y = yStart; y < P.height; ++y) {
+			int yFilterDiff = h - (y * P.stride.y - P.padding.y);
+			if(yFilterDiff < 0) {
+				break; // end of loop: futher outputDiff positions do not affect the current inputDiff pos
+			}
+			int yFilterPos = yFilterDiff / P.dilation.y;
+			if(yFilterPos * P.dilation.y == yFilterDiff) {
+				for(int x = xStart; x < P.width; ++x) {
+					int xFilterDiff = w - (x * P.stride.x - P.padding.x);
+					if(xFilterDiff < 0) {
+						break; // end of loop: futher outputDiff positions do not affect the current inputDiff pos
+					}
+					int xFilterPos = xFilterDiff / P.dilation.x;
+					if(isProc && xFilterPos * P.dilation.x == xFilterDiff) {
+						int filterIndex = 4 * k * P.filterWidth * P.filterHeight * P.inputChannels +
+							yFilterPos * P.filterWidth * P.inputChannels + xFilterPos * P.inputChannels + c;
+						int filterStep = P.filterWidth * P.filterHeight * P.inputChannels;
+						int outputIndex = outputDiffOffset + y * P.width * P.filterCount + x * P.filterCount + 4 * k;
+						vec4 outputDiffVal;
+						vec4 fltVal;
+						switch( P.filterCount - 4 * k ) {
+						case 1:
+							outputDiffVal = vec4( outputDiff[outputIndex], 0, 0, 0 );
+							fltVal = vec4( filterData[filterIndex], 0, 0, 0 );
+							break;
+						case 2:
+							outputDiffVal = vec4( outputDiff[outputIndex], outputDiff[outputIndex + 1], 0, 0 );
+							fltVal = vec4( filterData[filterIndex], filterData[filterIndex + filterStep], 0, 0 );
+							break;
+						case 3:
+							outputDiffVal = vec4( outputDiff[outputIndex], outputDiff[outputIndex + 1], outputDiff[outputIndex + 2], 0 );
+							fltVal = vec4( filterData[filterIndex], filterData[filterIndex + filterStep], filterData[filterIndex + 2 * filterStep], 0 );
+							break;
+						default:
+							outputDiffVal = vec4( outputDiff[outputIndex], outputDiff[outputIndex + 1],
+								outputDiff[outputIndex + 2], outputDiff[outputIndex + 3] );
+							fltVal = vec4( filterData[filterIndex], filterData[filterIndex + filterStep],
+								filterData[filterIndex + 2 * filterStep], filterData[filterIndex + 3 * filterStep] );
+						}
+						MULT_ADD_OPER(acc, outputDiffVal, fltVal);
+					}
+				}
+			}
+		}
+	}
+	
+	if(isProc) {
+		float res = acc.x + acc.y + acc.z + acc.w;
+		if(P.isFreeTerm != 0) {
+			res += freeTerm[c];
+		}
+
+		inputDiff[(ID_Y * P.inputWidth + ID_X) * P.inputChannels + c] = res;
+	}
+}
+
+void main()
+{
+	bool isProc = ID_Y < P.batchSize * P.inputHeight && ID_X < P.inputWidth && ID_Z < P.inputChannels - P.startChannel;
+	int b = ID_Y / P.inputHeight;
+	perform1(b, ID_Y - b * P.inputHeight, ID_X, P.startChannel + ID_Z, isProc);
+}

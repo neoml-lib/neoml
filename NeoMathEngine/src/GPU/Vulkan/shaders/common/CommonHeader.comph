@@ -1,0 +1,68 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+#version 450
+
+/////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+#define MULT_ADD(a, b, c) fma((a), (b), (c))
+#define MULT_ADD_OPER(res, a, b)	(res) = MULT_ADD((a), (b), (res))
+
+/////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+#define ID_X	(int(gl_GlobalInvocationID.x))
+#define ID_Y	(int(gl_GlobalInvocationID.y))
+#define ID_Z	(int(gl_GlobalInvocationID.z))
+#define MAX_X (int(gl_WorkGroupSize.x) * int(gl_NumWorkGroups.x))
+#define MAX_Y (int(gl_WorkGroupSize.y) * int(gl_NumWorkGroups.y))
+#define MAX_Z (int(gl_WorkGroupSize.z) * int(gl_NumWorkGroups.z))
+#define ID_VEC (ID_Y * MAX_X + ID_X)
+#define MAX_VEC (MAX_X * MAX_Y)
+
+#define LOCAL_ID_X	(int(gl_LocalInvocationID.x))
+#define LOCAL_ID_Y	(int(gl_LocalInvocationID.y))
+#define LOCAL_ID_Z	(int(gl_LocalInvocationID.z))
+#define LOCAL_MAX_X (int(gl_WorkGroupSize.x))
+#define LOCAL_MAX_Y (int(gl_WorkGroupSize.y))
+#define LOCAL_MAX_Z (int(gl_WorkGroupSize.z))
+#define LOCAL_ID_POS ((LOCAL_ID_Z * LOCAL_MAX_Y + LOCAL_ID_Y) * LOCAL_MAX_X + LOCAL_ID_X)
+#define LOCAL_ID_VEC (LOCAL_ID_Y * LOCAL_MAX_X + LOCAL_ID_X)
+#define LOCAL_MAX_VEC (LOCAL_MAX_X * LOCAL_MAX_Y)
+
+/////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+// Access the image data
+#define DEFINE_WRITEONLY_IMAGE(_binding, name)	\
+	layout(rgba32f, binding=IMAGE_BINDING_NUM(_binding)) writeonly uniform image2D name
+#define DEFINE_SAMPLER(_binding, name)	\
+	layout(binding=SAMPLER_BINDING_NUM(_binding)) uniform sampler2D name
+#define TEXEL_GET(name, x, y) texelFetch((name), ivec2((x), (y)), 0)
+#define TEXEL_SET(name, x, y, val)	imageStore((name), ivec2((x), (y)), (val))
+
+/////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+#define FLT_MIN_LOG	-87.33654474f
+#define FLT_MAX_LOG	88.f
+#define FLT_MAX		3.402823466e+38f
+#define FLT_MIN		1.175494351e-38F        // min normalized positive value
+
+// The exponent with limitations to avoid NaN
+#define ExponentFunc(f) ((f < FLT_MIN_LOG) ? 0.f : ((f > FLT_MAX_LOG) ? FLT_MAX : exp(f)))
+
+// The basic loop for vector operations
+#define VECTOR_LOOP(indexName, baseVector)								\
+	int _posStart = ID_VEC * 4;											\
+	int _posEnd = min(_posStart + 4, int(baseVector.length()));			\
+	for(int indexName = _posStart; indexName < _posEnd; ++indexName)

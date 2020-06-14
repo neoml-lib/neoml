@@ -1,0 +1,22 @@
+SUBJECT:
+Build %BUILD_NAME% failed!
+TO:
+$$MailList.txt
+.
+BODY:
+This message was generated automatically by Build. Please do not reply.
+
+See attached logs for details.
+
+Errors:
+$$%ROOT%\Build\Logs\_ErrorsList.txt
+
+Warnings:
+$$%ROOT%\Build\Logs\_WarningsList.txt
+
+Logs:
+$$%ROOT%\Build\Logs\_LogFilesWithErrorsList.txt
+.
+ATTACH:
+$$%ROOT%\Build\Logs\_LogFilesWithErrorsList.txt
+.

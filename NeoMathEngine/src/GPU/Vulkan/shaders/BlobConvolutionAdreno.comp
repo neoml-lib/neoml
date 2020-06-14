@@ -1,0 +1,104 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+DEFINE_SAMPLER(0, source);
+DEFINE_SAMPLER(1, filterData);
+DEFINE_SAMPLER(2, freeTerm);
+layout(std430, binding=1) writeonly buffer Result { float result[]; };
+
+void perform1(in int b, in int h, in int w, in int c, in bool isProc)
+{
+	int inputHStart = h * P.stride.y - P.padding.y;
+	int inputHEnd = inputHStart + P.filterHeight * P.dilation.y;
+	int inputWStart = w * P.stride.x - P.padding.x;
+	int inputWEnd = inputWStart + P.filterWidth * P.dilation.x;
+
+	int inputYStart = 0;
+	int inputXStart = b * P.inputWidth;
+
+	int filterYStart = 0;
+	int filterXStart = c * P.filterWidth;
+	
+	vec4 acc = vec4(0);
+	for(int k = 0; k < P.inputChannels4; ++k) {
+		int filterY = filterYStart;
+		for(int j = inputHStart; j < inputHEnd; j += P.dilation.y) {
+			int filterX = filterXStart;
+			for(int i = inputWStart; i < inputWEnd; i += P.dilation.x) {
+				if(isProc && j >= 0 && j < P.inputHeight && i >= 0 && i < P.inputWidth) {
+					vec4 srcVal = TEXEL_GET(source, inputXStart + i, inputYStart + j);
+					vec4 fltVal = TEXEL_GET(filterData, filterX, filterY);
+					MULT_ADD_OPER(acc, srcVal, fltVal);
+				}
+				++filterX;
+			}
+			++filterY;
+		}
+	
+		if(k >= P.inputHeight * (P.inputChannelGroupSize - 1)) {
+			inputYStart = 0;
+			inputXStart += P.batchSize * P.inputWidth;
+		} else {
+			inputYStart += P.inputHeight;
+		}
+
+		if(k >= P.filterHeight * (P.filterChannelGroupSize - 1)) {
+			filterYStart = 0;
+			filterXStart += P.filterCount * P.filterWidth;
+		} else {
+			filterYStart += P.filterHeight;
+		}
+	}
+	
+	if(isProc) {
+		float res = acc.x + acc.y + acc.z + acc.w;
+		if(P.isFreeTerm != 0) {
+			int c4 = c / 4;
+			vec4 freeTerm4 = TEXEL_GET(freeTerm, c4, 0);
+			switch(c - c4 * 4) {
+			default:
+			case 0:
+				res += freeTerm4.x;
+				break;
+			case 1:
+				res += freeTerm4.y;
+				break;
+			case 2:
+				res += freeTerm4.z;
+				break;
+			case 3:
+				res += freeTerm4.w;
+				break;
+			}
+		}
+		
+		result[((b * P.height + h) * P.width + w) * P.filterCount + c] = res;
+	}
+}
+
+void main()
+{
+	int w = ID_X;
+	int b = w / P.width;
+	w -= b * P.width;
+	int c = ID_Y;
+	int channelCount = P.filterCount - P.startChannel;
+	int h = c / channelCount;
+	c -= h * channelCount;
+	c += P.startChannel;
+
+	bool isProc = b < P.batchSize && h < P.height;
+	perform1(b, h, w, c, isProc);
+}

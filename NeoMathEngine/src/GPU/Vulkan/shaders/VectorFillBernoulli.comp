@@ -1,0 +1,153 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) writeonly buffer Result { float result[]; };
+
+///////////////////////////////////////////////////////////
+// Random
+
+uvec2 key;
+uvec4 counter;
+const uint kPhiloxW32A = 0x9E3779B9;
+const uint kPhiloxW32B = 0xBB67AE85;
+const uint kPhiloxM4x32A = 0xD2511F53;
+const uint kPhiloxM4x32B = 0xCD9E8D57;
+
+void randomInit( in int seed )
+{
+	key.x = seed;
+	// Several random constants
+	key.y = seed ^ 0xBADF00D;
+	counter.z = seed ^ 0xBADFACE;
+	counter.w = seed ^ 0xBADBEEF;
+	counter.x = 0;
+	counter.y = 0;
+}
+
+void randomMultiplyHighLow( in uint x, in uint y, out uint resultLow,
+	out uint resultHigh )
+{
+	const uint last16 = 0xFFFF;
+	uint product = ( x & last16 ) * ( y & last16 );
+	resultLow = product & last16;
+	product >>= 16;
+	uint first = ( x >> 16 ) * ( y & last16 );
+	uint second = ( x & last16 ) * ( y >> 16 );
+	product += ( first & last16 ) + ( second & last16 );
+	resultLow += product << 16;
+	product >>= 16;
+	product += ( first >> 16 ) + ( second >> 16 ) + ( x >> 16 ) * ( y >> 16 );
+	resultHigh = product;
+}
+
+uvec4 randomComputeSingleRound( in uvec4 _counter, in uvec2 _key )
+{
+	uint firstLow;
+	uint firstHigh;
+	randomMultiplyHighLow( kPhiloxM4x32A, _counter.x, firstLow, firstHigh );
+
+	uint secondLow;
+	uint secondHigh;
+	randomMultiplyHighLow( kPhiloxM4x32B, _counter.z, secondLow, secondHigh );
+
+	uvec4 result;
+	result.x = secondHigh ^ _counter.y ^ _key.x;
+	result.y = secondLow;
+	result.z = firstHigh ^ _counter.w ^ _key.y;
+	result.w = firstLow;
+	return result;
+}
+
+void randomSkipOne()
+{
+	if( ++counter.x == 0 ) {
+		if( ++counter.y == 0 ) {
+			if( ++counter.z == 0 ) {
+				++counter.w;
+			}
+		}
+	}
+}
+
+void randomSkip( in uint count )
+{
+	counter.x += count;
+	if( counter.x < count ) {
+		if( ++counter.y == 0 ) {
+			if( ++counter.z == 0 ) {
+				++counter.w;
+			}
+		}
+	}
+}
+
+void randomRaiseKey( inout uvec2 _key )
+{
+	_key.x += kPhiloxW32A;
+	_key.y += kPhiloxW32B;
+}
+
+void randomNext( out uint generated[4] )
+{
+	uvec4 currentCounter = counter;
+	uvec2 currentKey = key;
+
+	currentCounter = randomComputeSingleRound( currentCounter, currentKey );
+	randomRaiseKey( currentKey );
+	currentCounter = randomComputeSingleRound( currentCounter, currentKey );
+	randomRaiseKey( currentKey );
+	currentCounter = randomComputeSingleRound( currentCounter, currentKey );
+	randomRaiseKey( currentKey );
+	currentCounter = randomComputeSingleRound( currentCounter, currentKey );
+	randomRaiseKey( currentKey );
+	currentCounter = randomComputeSingleRound( currentCounter, currentKey );
+	randomRaiseKey( currentKey );
+	currentCounter = randomComputeSingleRound( currentCounter, currentKey );
+	randomRaiseKey( currentKey );
+	currentCounter = randomComputeSingleRound( currentCounter, currentKey );
+	randomRaiseKey( currentKey );
+	currentCounter = randomComputeSingleRound( currentCounter, currentKey );
+	randomRaiseKey( currentKey );
+	currentCounter = randomComputeSingleRound( currentCounter, currentKey );
+	randomRaiseKey( currentKey );
+	currentCounter = randomComputeSingleRound( currentCounter, currentKey );
+	randomRaiseKey( currentKey );
+
+	randomSkipOne();
+
+	generated[0] = currentCounter.x;
+	generated[1] = currentCounter.y;
+	generated[2] = currentCounter.z;
+	generated[3] = currentCounter.w;
+}
+
+// End of Random
+///////////////////////////////////////////////////////////
+
+
+void main()
+{
+	randomInit( P.seed );
+	randomSkip( ID_X );
+	
+	uint generated[4];
+	randomNext( generated );
+
+	int j = 0;
+	VECTOR_LOOP(i, result) {
+		result[i] = generated[j] <= P.threshold ? P.value : 0;
+		j++;
+	}
+}

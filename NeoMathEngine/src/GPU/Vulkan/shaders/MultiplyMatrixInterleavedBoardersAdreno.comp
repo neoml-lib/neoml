@@ -1,0 +1,173 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+DEFINE_SAMPLER(0, left);
+DEFINE_SAMPLER(1, right);
+layout(std430, binding=1) buffer Result { float result[]; };
+
+#define ROW_MATRIX_MUL(i)								\
+	res[i].x = fma(leftRow.x, rightRow0.x, res[i].x);	\
+	res[i].x = fma(leftRow.y, rightRow1.x, res[i].x);	\
+	res[i].x = fma(leftRow.z, rightRow2.x, res[i].x);	\
+	res[i].x = fma(leftRow.w, rightRow3.x, res[i].x);	\
+	res[i].y = fma(leftRow.x, rightRow0.y, res[i].y);	\
+	res[i].y = fma(leftRow.y, rightRow1.y, res[i].y);	\
+	res[i].y = fma(leftRow.z, rightRow2.y, res[i].y);	\
+	res[i].y = fma(leftRow.w, rightRow3.y, res[i].y);	\
+	res[i].z = fma(leftRow.x, rightRow0.z, res[i].z);	\
+	res[i].z = fma(leftRow.y, rightRow1.z, res[i].z);	\
+	res[i].z = fma(leftRow.z, rightRow2.z, res[i].z);	\
+	res[i].z = fma(leftRow.w, rightRow3.z, res[i].z);	\
+	res[i].w = fma(leftRow.x, rightRow0.w, res[i].w);	\
+	res[i].w = fma(leftRow.y, rightRow1.w, res[i].w);	\
+	res[i].w = fma(leftRow.z, rightRow2.w, res[i].w);	\
+	res[i].w = fma(leftRow.w, rightRow3.w, res[i].w);
+
+ivec2 getImagePos(in int x, in int y, in ivec2 chunk)
+{
+	int xChunk = x / chunk.x;
+	int yChunk = y / chunk.y;
+
+	int posX = x + yChunk * chunk.x - xChunk * chunk.x;
+	int posY = y + xChunk * chunk.y - yChunk * chunk.y;
+
+	return ivec2(posX, posY);
+}
+
+void main()
+{
+	int height4 = (P.height + 3) / 4;
+	int width4 = (P.width + 3) / 4;
+
+	int y = ID_Y;
+	int b = y / (P.stopY - P.startY);
+	y -= b * (P.stopY - P.startY);
+	y += P.startY;
+	int x = ID_X + P.startX;
+
+	if(b >= P.batchSize || x >= P.stopX) {
+		return;
+	}
+
+	int leftPosXRaw = 0;
+	int leftPosYRaw = b * height4 + y;
+
+	int rightPosXRaw = x * 4;
+	int rightPosYRaw = b * P.medium4;
+
+	int resultPos = (b * P.height + y * 4) * P.resultRowSize + x * 4;
+
+	int restY = P.height - y * 4;
+	if(restY > 4) {
+		restY = 4;
+	}
+	int restX = P.width - x * 4;
+
+	/////////////////////////////////////////////////////
+	vec4 res[4];
+	if(P.toAdd != 0) {
+		int row = 0;
+		switch(restX) {
+		default:
+		case 4:
+			for(;row < restY; ++row) {
+				res[row] = vec4(result[resultPos + row * P.resultRowSize], result[resultPos + row * P.resultRowSize + 1],
+					result[resultPos + row * P.resultRowSize + 2], result[resultPos + row * P.resultRowSize + 3]);
+			}
+			break;
+		case 3:
+			for(;row < restY; ++row) {
+				res[row] = vec4(result[resultPos + row * P.resultRowSize], result[resultPos + row * P.resultRowSize + 1],
+					result[resultPos + row * P.resultRowSize + 2], 0);
+			}
+			break;
+		case 2:
+			for(;row < restY; ++row) {
+				res[row] = vec4(result[resultPos + row * P.resultRowSize], result[resultPos + row * P.resultRowSize + 1],
+					0, 0);
+			}
+			break;
+		case 1:
+			for(;row < restY; ++row) {
+				res[row] = vec4(result[resultPos + row * P.resultRowSize], 0, 0, 0);
+			}
+			break;
+		}
+		while(row < 4) {
+			res[row++] = vec4(0);
+		}
+	} else {
+		res[0] = vec4(0);
+		res[1] = vec4(0);
+		res[2] = vec4(0);
+		res[3] = vec4(0);
+	}
+
+	for(int i = 0; i < P.medium4; ++i) {
+		// Align the pos according to the chunk split of the matrix
+		ivec2 leftPos = getImagePos(leftPosXRaw, leftPosYRaw, P.chunkLeft);
+		ivec2 rightPos = getImagePos(rightPosXRaw, rightPosYRaw, P.chunkRight);
+
+		vec4 rightRow0 = TEXEL_GET(right, rightPos.x, rightPos.y);
+		vec4 rightRow1 = TEXEL_GET(right, rightPos.x + 1, rightPos.y);
+		vec4 rightRow2 = TEXEL_GET(right, rightPos.x + 2, rightPos.y);
+		vec4 rightRow3 = TEXEL_GET(right, rightPos.x + 3, rightPos.y);
+
+		vec4 leftRow;
+
+		leftRow = TEXEL_GET(left, leftPos.x, leftPos.y);
+		ROW_MATRIX_MUL(0);
+		leftRow = TEXEL_GET(left, leftPos.x + 1, leftPos.y);
+		ROW_MATRIX_MUL(1);
+		leftRow = TEXEL_GET(left, leftPos.x + 2, leftPos.y);
+		ROW_MATRIX_MUL(2);
+		leftRow = TEXEL_GET(left, leftPos.x + 3, leftPos.y);
+		ROW_MATRIX_MUL(3);
+
+		leftPosXRaw += 4;
+		++rightPosYRaw;
+	}
+
+	/////////////////////////////////////////////////////
+	switch(restX) {
+	default:
+	case 4:
+		for(int row = 0; row < restY; ++row) {
+			result[resultPos + row * P.resultRowSize] = res[row].x;
+			result[resultPos + row * P.resultRowSize + 1] = res[row].y;
+			result[resultPos + row * P.resultRowSize + 2] = res[row].z;
+			result[resultPos + row * P.resultRowSize + 3] = res[row].w;
+		}
+		break;
+	case 3:
+		for(int row = 0; row < restY; ++row) {
+			result[resultPos + row * P.resultRowSize] = res[row].x;
+			result[resultPos + row * P.resultRowSize + 1] = res[row].y;
+			result[resultPos + row * P.resultRowSize + 2] = res[row].z;
+		}
+		break;
+	case 2:
+		for(int row = 0; row < restY; ++row) {
+			result[resultPos + row * P.resultRowSize] = res[row].x;
+			result[resultPos + row * P.resultRowSize + 1] = res[row].y;
+		}
+		break;
+	case 1:
+		for(int row = 0; row < restY; ++row) {
+			result[resultPos + row * P.resultRowSize] = res[row].x;
+		}
+		break;
+	}
+}

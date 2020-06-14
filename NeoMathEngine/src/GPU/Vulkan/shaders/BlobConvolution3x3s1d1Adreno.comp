@@ -1,0 +1,160 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+DEFINE_SAMPLER(0, source);
+DEFINE_SAMPLER(1, flt);
+DEFINE_SAMPLER(2, freeTerm);
+layout(std430, binding=1) writeonly buffer Result { float result[]; };
+
+#define CONVOLUTION_1X3(res, row0, row1, filterRow)	\
+	MULT_ADD_OPER(res.x, row0.x, filterRow.x);		\
+	MULT_ADD_OPER(res.x, row0.y, filterRow.y);		\
+	MULT_ADD_OPER(res.x, row0.z, filterRow.z);		\
+	MULT_ADD_OPER(res.y, row0.y, filterRow.x);		\
+	MULT_ADD_OPER(res.y, row0.z, filterRow.y);		\
+	MULT_ADD_OPER(res.y, row0.w, filterRow.z);		\
+	MULT_ADD_OPER(res.z, row0.z, filterRow.x);		\
+	MULT_ADD_OPER(res.z, row0.w, filterRow.y);		\
+	MULT_ADD_OPER(res.z, row1.x, filterRow.z);		\
+	MULT_ADD_OPER(res.w, row0.w, filterRow.x);		\
+	MULT_ADD_OPER(res.w, row1.x, filterRow.y);		\
+	MULT_ADD_OPER(res.w, row1.y, filterRow.z)
+
+#define WRITE_LINE(VAR)											\
+	result[outputPos] = VAR.x;									\
+	if(restX > 1) {												\
+		result[outputPos + P.filterCount] = VAR.y;				\
+		if(restX > 2) {											\
+			result[outputPos + 2 * P.filterCount] = VAR.z;		\
+			if(restX > 3) {										\
+				result[outputPos + 3 * P.filterCount] = VAR.w;	\
+			}													\
+		}														\
+	}
+
+void main()
+{
+	int height3 = (P.height + 2) / 3;
+	int width4 = (P.width + 3) / 4;
+
+	int x = ID_X;
+	int b = x / width4;
+	x -= b * width4;
+	int y = ID_Y;
+	int c = y / height3;
+	y -= c * height3;
+
+	if(c >= P.filterCount || b >= P.batchSize) {
+		return;
+	}
+
+	int filterY = 0;
+
+	int inputYStart = y * 3;
+	int inputY = inputYStart;
+	int inputX = x + b * P.inputWidth4;
+
+	float initValue = 0.f;
+	if(P.isFreeTerm != 0) {
+		int c4 = c / 4;
+		vec4 freeTerm4 = TEXEL_GET(freeTerm, c4, 0);
+		switch(c - c4 * 4) {
+		default:
+		case 0:
+			initValue = freeTerm4.x;
+			break;
+		case 1:
+			initValue = freeTerm4.y;
+			break;
+		case 2:
+			initValue = freeTerm4.z;
+			break;
+		case 3:
+			initValue = freeTerm4.w;
+			break;
+		}
+	}
+	vec4 res0 = vec4(initValue);
+	vec4 res1 = vec4(initValue);
+	vec4 res2 = vec4(initValue);
+
+	for(int channel = 0; channel < P.inputChannels; ++channel) {
+		// read flt data
+		vec3 filterRow0 = TEXEL_GET(flt, c, filterY).xyz;
+		++filterY;
+		vec3 filterRow1 = TEXEL_GET(flt, c, filterY).xyz;
+		++filterY;
+		vec3 filterRow2 = TEXEL_GET(flt, c, filterY).xyz;
+		++filterY;
+
+		// read 5x6 tile to convolute it into 3x4 output tile
+		vec4 row0;
+		vec2 row1;
+
+		// input row #0
+		row0 = TEXEL_GET(source, inputX, inputY);
+		row1 = TEXEL_GET(source, inputX + 1, inputY).xy;
+		CONVOLUTION_1X3(res0, row0, row1, filterRow0);
+
+		// input row #1
+		row0 = TEXEL_GET(source, inputX, inputY + 1);
+		row1 = TEXEL_GET(source, inputX + 1, inputY + 1).xy;
+		CONVOLUTION_1X3(res0, row0, row1, filterRow1);
+		CONVOLUTION_1X3(res1, row0, row1, filterRow0);
+
+		// input row #2
+		row0 = TEXEL_GET(source, inputX, inputY + 2);
+		row1 = TEXEL_GET(source, inputX + 1, inputY + 2).xy;
+		CONVOLUTION_1X3(res0, row0, row1, filterRow2);
+		CONVOLUTION_1X3(res1, row0, row1, filterRow1);
+		CONVOLUTION_1X3(res2, row0, row1, filterRow0);
+
+		// input row #3
+		row0 = TEXEL_GET(source, inputX, inputY + 3);
+		row1 = TEXEL_GET(source, inputX + 1, inputY + 3).xy;
+		CONVOLUTION_1X3(res1, row0, row1, filterRow2);
+		CONVOLUTION_1X3(res2, row0, row1, filterRow1);
+
+		// input row #4
+		row0 = TEXEL_GET(source, inputX, inputY + 4);
+		row1 = TEXEL_GET(source, inputX + 1, inputY + 4).xy;
+		CONVOLUTION_1X3(res2, row0, row1, filterRow2);
+
+		if(inputY >= P.inputHeight * (P.inputChannelGroupSize - 1)) {
+			inputX += P.batchSize * P.inputWidth4;
+			inputY = inputYStart;
+		} else {
+			inputY += P.inputHeight;
+		}
+	}
+
+	// write output
+	int yStart = y * 3;
+	int xStart = x * 4;
+	int outputPos = ((b * P.height + yStart) * P.width + xStart) * P.filterCount + c;
+
+	int restX = P.width - xStart;
+	int restY = P.height - yStart;
+
+	WRITE_LINE(res0);
+	if(restY > 1) {
+		outputPos += P.width * P.filterCount;
+		WRITE_LINE(res1);
+		if(restY > 2) {
+			outputPos += P.width * P.filterCount;
+			WRITE_LINE(res2);
+		}
+	}
+}

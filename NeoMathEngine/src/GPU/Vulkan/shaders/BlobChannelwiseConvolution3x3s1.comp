@@ -1,0 +1,172 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+layout(std430, binding=2) readonly buffer Filter { float flt[]; };
+layout(std430, binding=3) readonly buffer FreeTerm { float freeTerm[]; };
+layout(std430, binding=4) writeonly buffer Result { float result[]; };
+
+
+float getFloat(int c, int index) {
+    return ( 0 <= c && c < P.channels ) ? source[index] : 0;
+}
+
+vec2 get2floats(int x, int y, int c, int index) {
+    return ( 0 <= x && x < P.inputWidth && 0 <= y && y < P.inputHeight ) ? 
+        vec2(getFloat(c, index), getFloat(c+1, index+1)) : vec2(0);
+}
+
+
+void set2floats(int x, int y, int c, int index, vec2 val) {
+    if( 0 <= x && x < P.width && 0 <= y && y < P.height ) {
+        if( c < P.channels ) {
+            result[index] = val.x;
+            if( c + 1 < P.channels ) {
+                result[index + 1] = val.y;
+            }
+        }
+    } 
+}
+
+
+
+void main() {
+    const int combineW = 2;
+    const int combineH = 2;
+
+    const int blocksInRow =  ( P.width + 1 ) / combineW;
+
+    int channelBlocksCount = ( P.height  + 1 ) / combineH  * blocksInRow;
+    
+    int b = ID_Z;
+    int g = ID_Y;
+    int c = ID_X * 2;
+    if( b < P.batchSize && g < channelBlocksCount && c < P.channels ) {
+        
+        int filterOffset = c;
+        int inputOffset = b * (P.inputWidth * P.inputHeight * P.channels) + c;
+
+        const int sourceX0 = -P.padding.x + ( g % blocksInRow ) * combineW;
+        int sourceY = -P.padding.y + ( g / blocksInRow ) * combineH;
+        int sourceGY = sourceY * P.inputWidth;
+
+        int resultOffset = b * (P.width * P.height * P.channels);
+        const int resultX = ( g % blocksInRow ) * combineW;
+        const int resultY = ( g / blocksInRow ) * combineH;
+        resultOffset += ( P.width * resultY + resultX ) * P.channels + c;
+
+        // READ FREETERM
+        vec2 initialValue = P.isFreeTerm == 1 ? vec2(freeTerm[c], freeTerm[c + 1]) : vec2(0.0);
+        vec2 acc0 = initialValue;
+        vec2 acc1 = initialValue;
+        vec2 acc2 = initialValue;
+        vec2 acc3 = initialValue;
+
+        // READ INPUT
+        vec2 values0 = get2floats(sourceX0, sourceY, c, inputOffset + ( sourceGY + sourceX0 ) * P.channels);
+        vec2 values1 = get2floats(sourceX0 + 1, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 1 ) * P.channels);
+        vec2 values2 = get2floats(sourceX0 + 2, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 2 ) * P.channels);
+        vec2 values3 = get2floats(sourceX0 + 3, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 3 ) * P.channels);
+        sourceY++;
+        sourceGY += P.inputWidth;
+
+        vec2 values4 = get2floats(sourceX0, sourceY, c, inputOffset + ( sourceGY + sourceX0 ) * P.channels);
+        vec2 values5 = get2floats(sourceX0 + 1, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 1 ) * P.channels);
+        vec2 values6 = get2floats(sourceX0 + 2, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 2 ) * P.channels);
+        vec2 values7 = get2floats(sourceX0 + 3, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 3 ) * P.channels);
+        sourceY++;
+        sourceGY += P.inputWidth;
+
+        vec2 values8 = get2floats(sourceX0, sourceY, c, inputOffset + ( sourceGY + sourceX0 ) * P.channels);
+        vec2 values9 = get2floats(sourceX0 + 1, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 1 ) * P.channels);
+        vec2 values10 = get2floats(sourceX0 + 2, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 2 ) * P.channels);
+        vec2 values11 = get2floats(sourceX0 + 3, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 3 ) * P.channels);
+        sourceY++;
+        sourceGY += P.inputWidth;
+
+        vec2 values12 = get2floats(sourceX0, sourceY, c, inputOffset + ( sourceGY + sourceX0 ) * P.channels);
+        vec2 values13 = get2floats(sourceX0 + 1, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 1 ) * P.channels);
+        vec2 values14 = get2floats(sourceX0 + 2, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 2 ) * P.channels);
+        vec2 values15 = get2floats(sourceX0 + 3, sourceY, c, inputOffset + ( sourceGY + sourceX0 + 3 ) * P.channels);
+
+        // READ FILTER
+        bool fits = ( c + 1 < P.channels );
+        vec2 w0 = vec2(flt[filterOffset], fits ? flt[filterOffset + 1] : 0);
+        filterOffset += P.channels;
+        vec2 w1 = vec2(flt[filterOffset], fits ? flt[filterOffset + 1] : 0);
+        filterOffset += P.channels;
+        vec2 w2 = vec2(flt[filterOffset], fits ? flt[filterOffset + 1] : 0);
+        filterOffset += P.channels;
+        vec2 w3 = vec2(flt[filterOffset], fits ? flt[filterOffset + 1] : 0);
+        filterOffset += P.channels;
+        vec2 w4 = vec2(flt[filterOffset], fits ? flt[filterOffset + 1] : 0);
+        filterOffset += P.channels;
+        vec2 w5 = vec2(flt[filterOffset], fits ? flt[filterOffset + 1] : 0);
+        filterOffset += P.channels;
+        vec2 w6 = vec2(flt[filterOffset], fits ? flt[filterOffset + 1] : 0);
+        filterOffset += P.channels;
+        vec2 w7 = vec2(flt[filterOffset], fits ? flt[filterOffset + 1] : 0);
+        filterOffset += P.channels;
+        vec2 w8 = vec2(flt[filterOffset], fits ? flt[filterOffset + 1] : 0);
+
+        // CALCULATIONS
+        acc0 = fma(values0, w0, acc0);
+        acc0 = fma(values1, w1, acc0);
+        acc0 = fma(values2, w2, acc0);
+        acc1 = fma(values1, w0, acc1);
+        acc1 = fma(values2, w1, acc1);
+        acc1 = fma(values3, w2, acc1);
+
+        acc0 = fma(values4, w3, acc0);
+        acc0 = fma(values5, w4, acc0);
+        acc0 = fma(values6, w5, acc0);
+        acc1 = fma(values5, w3, acc1);
+        acc1 = fma(values6, w4, acc1);
+        acc1 = fma(values7, w5, acc1);
+
+        acc0 = fma(values8, w6, acc0);
+        acc0 = fma(values9, w7, acc0);
+        acc0 = fma(values10, w8, acc0);
+        acc1 = fma(values9, w6, acc1);
+        acc1 = fma(values10, w7, acc1);
+        acc1 = fma(values11, w8, acc1);
+
+        acc2 = fma(values4, w0, acc2);
+        acc2 = fma(values5, w1, acc2);
+        acc2 = fma(values6, w2, acc2);
+        acc3 = fma(values5, w0, acc3);
+        acc3 = fma(values6, w1, acc3);
+        acc3 = fma(values7, w2, acc3);
+
+        acc2 = fma(values8, w3, acc2);
+        acc2 = fma(values9, w4, acc2);
+        acc2 = fma(values10, w5, acc2);
+        acc3 = fma(values9, w3, acc3);
+        acc3 = fma(values10, w4, acc3);
+        acc3 = fma(values11, w5, acc3);
+
+        acc2 = fma(values12, w6, acc2);
+        acc2 = fma(values13, w7, acc2);
+        acc2 = fma(values14, w8, acc2);
+        acc3 = fma(values13, w6, acc3);
+        acc3 = fma(values14, w7, acc3);
+        acc3 = fma(values15, w8, acc3);
+
+        set2floats( resultX, resultY, c, resultOffset , acc0 );
+        set2floats( resultX + 1, resultY, c, resultOffset + P.channels, acc1 );
+        set2floats( resultX, resultY + 1, c, resultOffset + P.width * P.channels, acc2 );
+        set2floats( resultX + 1, resultY + 1, c, resultOffset + P.width * P.channels + P.channels, acc3 );
+    }
+}

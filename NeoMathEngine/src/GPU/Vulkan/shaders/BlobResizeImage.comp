@@ -1,0 +1,48 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer From { float from[]; };
+layout(std430, binding=2) writeonly buffer To { float to[]; };
+
+const int BlobResizeImageCombine = 16;
+
+void main()
+{
+	int hw = ID_X * BlobResizeImageCombine;
+	int channel = ID_Y;
+	int num = ID_Z;
+
+	if( hw >= P.height * P.width || channel >= P.totalChannels || num >= P.batchSize ) {
+		return;
+	} 
+
+	int count = min(BlobResizeImageCombine, P.height * P.width - hw);
+
+	int fromDataOffset = num * P.sourceHeight * P.sourceWidth * P.totalChannels + channel;
+	int toDataOffset = num * P.height * P.width * P.totalChannels + channel;
+
+	for(int k = 0; k < count; ++k) {
+		int j = hw / P.width;
+		int i = hw % P.width;
+		int jFrom = j - P.deltaTop;
+		int iFrom = i - P.deltaLeft;
+		if(0 <= jFrom && jFrom < P.sourceHeight && 0 <= iFrom && iFrom < P.sourceWidth) {
+			to[toDataOffset + hw * P.totalChannels] = from[fromDataOffset + (jFrom * P.sourceWidth + iFrom) * P.totalChannels];
+		} else { 
+			to[toDataOffset + hw * P.totalChannels] = P.defaultValue;
+		}
+		hw += 1;
+	}
+}

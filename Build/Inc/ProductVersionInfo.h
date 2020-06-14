@@ -1,0 +1,117 @@
+#ifndef FineVerinfo_h
+#define FineVerinfo_h
+
+// Product version numbers
+#include <ProductBuildNumber.h>
+
+#ifdef RC_INVOKED
+#include <winresrc.h>
+#else
+#include <windows.h>
+#endif
+
+#if !defined( VERINFO_PRIVATE_BUILD )
+#	if defined( _DEBUG )
+#		define VERINFO_PRIVATE_BUILD "Debug build\0"
+#	elif !defined( _FINAL )
+#		define VERINFO_PRIVATE_BUILD "Release build\0"
+#	endif
+#endif
+
+#ifdef DEBUG
+#	define VERINFO_DEBUG_FLAG VS_FF_DEBUG
+#else
+#	define VERINFO_DEBUG_FLAG 0
+#endif
+
+#ifndef _FINAL
+#	define VERINFO_PRERELEASE_FLAG VS_FF_PRERELEASE
+#else
+#	define VERINFO_PRERELEASE_FLAG 0
+#endif
+
+#ifdef VERINFO_PRIVATE_BUILD
+#	define VERINFO_PRIVATE_BUILD_FLAG VS_FF_PRIVATEBUILD
+#else
+#	define VERINFO_PRIVATE_BUILD_FLAG 0
+#endif
+
+#ifdef VERINFO_SPECIAL_BUILD
+#	define VERINFO_SPECIAL_BUILD_FLAG VS_FF_SPECIALBUILD
+#else
+#	define VERINFO_SPECIAL_BUILD_FLAG 0
+#endif
+
+#ifdef VERINFO_PATH
+#	define VERINFO_PATCHED_FLAG VS_FF_PATCHED
+#else
+#	define VERINFO_PATCHED_FLAG 0
+#endif
+
+#if defined( VERINFO_SPECIAL_BUILD )
+#	define VERINFO_BUILD_DESCRIPTION " (special)"
+#elif defined( VERINFO_PRIVATE_BUILD )
+#	define VERINFO_BUILD_DESCRIPTION " (private)"
+#elif defined( VERINFO_PATCH )
+#	define VERINFO_BUILD_DESCRIPTION " (patch)"
+#elif defined( VERINFO_OFFICIAL_BUILD )
+#	define VERINFO_BUILD_DESCRIPTION
+#else
+#	define VERINFO_BUILD_DESCRIPTION " (unofficial)"
+#endif
+
+#ifdef VERINFO_PRIVATE_BUILD
+#	define VERINFO_PRIVATE_BUILD_LINE VALUE "PrivateBuild", VERINFO_PRIVATE_BUILD "\0"
+#else
+#	define VERINFO_PRIVATE_BUILD_LINE
+#endif
+
+#ifdef VERINFO_SPECIAL_BUILD
+#	define VERINFO_SPECIAL_BUILD_LINE VALUE "SpecialBuild", VERINFO_SPECIAL_BUILD "\0"
+#else
+#	define VERINFO_SPECIAL_BUILD_LINE
+#endif
+
+#define VERINFO_FILEFLAGS \
+	VERINFO_DEBUG_FLAG \
+	| VERINFO_PRERELEASE_FLAG \
+	| VERINFO_PRIVATE_BUILD_FLAG \
+	| VERINFO_SPECIAL_BUILD_FLAG \
+	| VERINFO_PATCHED_FLAG
+
+#define VERINFO_PRODUCT_VERSION_BINARY \
+	VERINFO_MAJOR_VERSION,\
+	VERINFO_MINOR_VERSION,\
+	VERINFO_MODIFICATION_NUMBER,\
+	VERINFO_BUILD_NUMBER
+
+// Values for block "StringFileInfo" of VERSIONINFO resource
+#ifndef VERINFO_COMPANY_NAME
+#define VERINFO_COMPANY_NAME "NeoML\0"
+#endif
+
+#ifndef VERINFO_LEGAL_COPYRIGHT
+#define VERINFO_LEGAL_COPYRIGHT "Copyright © 2016-2020 ABBYY Production LLC. Licensed under the Apache License, Version 2.0\0"
+#endif
+
+#ifndef VERINFO_LEGAL_TRADEMARKS
+#define VERINFO_LEGAL_TRADEMARKS "\0"
+#endif
+
+#ifndef VERINFO_PRODUCT_NAME
+#define VERINFO_PRODUCT_NAME "NeoML library\0"
+#endif
+
+// Value for key PRODUCTVERSION of VERSIONINFO resource
+#define VERINFO_PRODUCT_VERSION \
+	VERINFO_STR( VERINFO_MAJOR_VERSION ) "." \
+	VERINFO_STR( VERINFO_MINOR_VERSION ) "." \
+	VERINFO_STR( VERINFO_MODIFICATION_NUMBER ) "." \
+	VERINFO_STR( VERINFO_BUILD_NUMBER ) \
+	VERINFO_BUILD_DESCRIPTION "\0"
+
+// helper macroses
+#define VERINFO_STR( arg ) VERINFO_STR1( arg )
+#define VERINFO_STR1( arg ) #arg
+
+#endif

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="grid_divider_size">2dp</dimen>
+
+    <dimen name="grid_image_item_height">120dp</dimen>
+
+</resources>

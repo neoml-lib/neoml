@@ -1,0 +1,39 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer First { float first[]; };
+layout(std430, binding=2) writeonly buffer Result { float result[]; };
+
+void main()
+{
+	int totalHeight = P.height + P.paddingTop + P.paddingBottom;
+	int totalWidth = P.width + P.paddingLeft + P.paddingRight;
+	int resultPos = ID_VEC;
+	if(resultPos < int(result.length())) {
+		int x = ID_VEC;
+		int y = x / totalWidth;
+		x -= y * totalWidth;
+		int c = y / totalHeight;
+		y -= c * totalHeight;
+		int b = c / P.channels;
+		c -= b * P.channels;
+		int inputPos = ((b * P.height + y - P.paddingTop) * P.width + x - P.paddingLeft) * P.channels + c;
+		if(x < P.paddingLeft || x >= P.width + P.paddingLeft || y < P.paddingTop || y >= P.height + P.paddingTop) {
+			result[resultPos] = 0.f;
+		} else {
+			result[resultPos] = first[inputPos];
+		}
+	}
+}

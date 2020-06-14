@@ -1,0 +1,90 @@
+BUILD_PARALLELL_TASKS=4
+
+BUILD_SKIP_IF_NO_CHANGES = 1
+
+#BUILD_INCREASE_MODIFICATION = 1
+
+BUILD_SOURCES=D:\Sources
+
+BUILD_RESULTS=\\buildtech4\Results
+
+BUILD_USERNAME=buildtech
+
+#----------------------------------------------------------------------------------------
+
+_VS14=%ProgramFiles(x86)%\Microsoft Visual Studio 14.0
+_VC14=%_VS14%\VC
+
+_WINKIT=%ProgramFiles(x86)%\Windows Kits\8.1
+
+_ABBYY_UTILS=%ProgramFiles(x86)%\ABBYY Build Utilities
+_GIT=%ProgramFiles%\Git
+_SVN=%ProgramFiles%\TortoiseSVN
+_CMAKE=%ProgramFiles%\CMake
+_PYTHON=%ProgramFiles(x86)%\Python37
+
+BUILD_PLATFORM=Win32
+
+PATH=%SystemRoot%;%SystemRoot%\System32
+PATH=%PATH%;%_VC14%\bin
+PATH=%PATH%;%_VS14%\Common7\IDE
+PATH=%PATH%;%_WINKIT%\bin\x64
+PATH=%PATH%;%_ABBYY_UTILS%
+PATH=%PATH%;%_GIT%\bin
+PATH=%PATH%;%_SVN%\bin
+PATH=%PATH%;%_CMAKE%\bin
+PATH=%PATH%;%_PYTHON%
+PATH=%PATH%;%ProgramFiles(x86)%\MSBuild\14.0\Bin
+PATH=%PATH%;C:\ProgramData\Anaconda2;C:\ProgramData\Anaconda2\Library\mingw-w64\bin;C:\ProgramData\Anaconda2\Library\usr\bin;C:\ProgramData\Anaconda2\Library\bin;C:\ProgramData\Anaconda2\Scripts
+
+INCLUDE=%_VC14%\Include
+INCLUDE=%INCLUDE%;%_VC14%\atlmfc\include
+INCLUDE=%INCLUDE%;%ProgramFiles(x86)%\Windows Kits\10\Include\10.0.10240.0\ucrt
+INCLUDE=%INCLUDE%;%_WINKIT%\Include\um
+INCLUDE=%INCLUDE%;%_WINKIT%\Include\shared
+INCLUDE=%INCLUDE%;%_WINKIT%\Include\winrt
+
+LIB=%_VC14%\Lib
+LIB=%LIB%;%ProgramFiles(x86)%\Windows Kits\10\lib\10.0.10240.0\ucrt\x86
+LIB=%LIB%;%_VC14%\atlmfc\lib
+LIB=%LIB%;%_WINKIT%\lib\winv6.3\um\x86
+
+#----------------------------------------------------------------------------------------
+
+BUILD_PLATFORM.x86=Win32
+
+PATH.x86=%SystemRoot%;%SystemRoot%\System32
+PATH.x86=%PATH.x86%;%_VC14%\bin
+PATH.x86=%PATH.x86%;%_VS14%\Common7\IDE
+PATH.x86=%PATH.x86%;%_WINKIT%\bin\x64
+PATH.x86=%PATH.x86%;%_ABBYY_UTILS%
+PATH.x86=%PATH.x86%;%_GIT%\bin
+PATH.x86=%PATH.x86%;%_SVN%\bin
+PATH.x86=%PATH.x86%;%_CMAKE%\bin
+PATH.x86=%PATH.x86%;%_PYTHON%
+PATH.x86=%PATH.x86%;%ProgramFiles(x86)%\MSBuild\14.0\Bin
+
+LIB.x86=%_VC14%\Lib
+LIB.x86=%LIB.x86%;%ProgramFiles(x86)%\Windows Kits\10\lib\10.0.10240.0\ucrt\x86
+LIB.x86=%LIB.x86%;%_VC14%\atlmfc\lib
+LIB.x86=%LIB.x86%;%_WINKIT%\lib\winv6.3\um\x86
+
+#----------------------------------------------------------------------------------------
+
+BUILD_PLATFORM.x64=x64
+
+PATH.x64=%SystemRoot%;%SystemRoot%\System32
+PATH.x64=%PATH.x64%;%_VC14%\bin\amd64
+PATH.x64=%PATH.x64%;%_VS14%\Common7\IDE
+PATH.x64=%PATH.x64%;%_WINKIT%\bin\x64
+PATH.x64=%PATH.x64%;%_ABBYY_UTILS%
+PATH.x64=%PATH.x64%;%_GIT%\bin
+PATH.x64=%PATH.x64%;%_SVN%\bin
+PATH.x64=%PATH.x64%;%_CMAKE%\bin
+PATH.x64=%PATH.x64%;%_PYTHON%
+PATH.x64=%PATH.x64%;%ProgramFiles(x86)%\MSBuild\14.0\Bin\amd64
+
+LIB.x64=%_VC14%\Lib\amd64
+LIB.x64=%LIB.x64%;%ProgramFiles(x86)%\Windows Kits\10\lib\10.0.10240.0\ucrt\x64
+LIB.x64=%LIB.x64%;%_VC14%\atlmfc\lib\amd64
+LIB.x64=%LIB.x64%;%_WINKIT%\lib\winv6.3\um\x64

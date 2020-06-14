@@ -1,0 +1,52 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+DEFINE_WRITEONLY_IMAGE(0, result);
+
+void main()
+{
+	int b = ID_X / P.geoSize.x;
+	int x = ID_X - b * P.geoSize.x;
+	int c4 = ID_Y / P.geoSize.y;
+	int y = ID_Y - c4 * P.geoSize.y;
+	if(b < P.batchSize && c4 < P.channels4) {
+		int sourcePos = ((b * P.geoSize.y + y) * P.geoSize.x + x) * P.channels + c4 * 4;
+		vec4 data;
+		int mod;
+		if(c4 == P.channels4 - 1 && (mod = P.channels - (P.channels4 - 1) * 4) != 4) {
+			switch(mod) {
+			case 1:
+				data = vec4(source[sourcePos], 0, 0, 0);
+				break;
+			case 2:
+				data = vec4(source[sourcePos], source[sourcePos + 1], 0, 0);
+				break;
+			case 3:
+				data = vec4(source[sourcePos], source[sourcePos + 1], source[sourcePos + 2], 0);
+				break;
+			}
+		} else {
+			data = vec4(source[sourcePos], source[sourcePos + 1], source[sourcePos + 2], source[sourcePos + 3]);
+		}
+
+		int toX = ID_X;
+		int toY = ID_Y;
+		int channelGroup = c4 / P.channelGroupSize;
+		toX += channelGroup * P.geoSize.x * P.batchSize;
+		toY -= channelGroup * P.geoSize.y * P.channelGroupSize;
+		TEXEL_SET(result, toX, toY, data);
+	}
+}

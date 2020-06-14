@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">MLSample</string>
+    <string name="run">RUN</string>
+    <string name="uncategorized_type_text">Uncategorized</string>
+</resources>

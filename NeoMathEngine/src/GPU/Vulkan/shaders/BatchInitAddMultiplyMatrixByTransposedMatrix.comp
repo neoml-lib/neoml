@@ -1,0 +1,198 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Init { float init[]; };
+layout(std430, binding=2) readonly buffer First { float a[]; };
+layout(std430, binding=3) readonly buffer Second { float b[]; };
+layout(std430, binding=4) buffer Result { float result[]; };
+
+void computeMultiplyMatrixByTransposedMatrixFor4x4Block(int aOffset, int bOffset0, inout vec4 acc0, inout vec4 acc1, inout vec4 acc2, inout vec4 acc3 )
+{
+    int i = 0;
+    while( i <= P.firstWidth - 4 ) {
+        int bOffset = bOffset0;
+
+        vec4 b0 = vec4(b[bOffset], b[bOffset + 1], b[bOffset + 2], b[bOffset + 3]);
+        bOffset += P.secondRowSize;
+
+		vec4 a0 = vec4(a[aOffset], a[aOffset + 1], a[aOffset + 2], a[aOffset + 3]);
+        acc0.x = fma(a0.x, b0.x, acc0.x);
+        acc0.x = fma(a0.y, b0.y, acc0.x);
+        acc0.x = fma(a0.z, b0.z, acc0.x);
+        acc0.x = fma(a0.w, b0.w, acc0.x);
+
+		vec4 a1 = vec4(a[aOffset + P.firstRowSize], a[aOffset + P.firstRowSize + 1], a[aOffset + P.firstRowSize + 2], a[aOffset + P.firstRowSize + 3]);
+        acc1.x = fma(a1.x, b0.x, acc1.x);
+        acc1.x = fma(a1.y, b0.y, acc1.x);
+        acc1.x = fma(a1.z, b0.z, acc1.x);
+        acc1.x = fma(a1.w, b0.w, acc1.x);
+
+		vec4 a2 = vec4(a[aOffset + 2 * P.firstRowSize], a[aOffset + 2 * P.firstRowSize + 1], a[aOffset + 2 * P.firstRowSize + 2], a[aOffset + 2 * P.firstRowSize + 3]);
+        acc2.x = fma(a2.x, b0.x, acc2.x);
+        acc2.x = fma(a2.y, b0.y, acc2.x);
+        acc2.x = fma(a2.z, b0.z, acc2.x);
+        acc2.x = fma(a2.w, b0.w, acc2.x);
+
+		vec4 a3 = vec4(a[aOffset + 3 * P.firstRowSize], a[aOffset + 3 * P.firstRowSize + 1], a[aOffset + 3 * P.firstRowSize + 2], a[aOffset + 3 * P.firstRowSize + 3]);
+        acc3.x = fma(a3.x, b0.x, acc3.x);
+        acc3.x = fma(a3.y, b0.y, acc3.x);
+        acc3.x = fma(a3.z, b0.z, acc3.x);
+        acc3.x = fma(a3.w, b0.w, acc3.x);
+
+        b0 = vec4(b[bOffset], b[bOffset + 1], b[bOffset + 2], b[bOffset + 3]);
+        bOffset += P.secondRowSize;
+
+        acc0.y = fma(a0.x, b0.x, acc0.y);
+        acc0.y = fma(a0.y, b0.y, acc0.y);
+        acc0.y = fma(a0.z, b0.z, acc0.y);
+        acc0.y = fma(a0.w, b0.w, acc0.y);
+
+        acc1.y = fma(a1.x, b0.x, acc1.y);
+        acc1.y = fma(a1.y, b0.y, acc1.y);
+        acc1.y = fma(a1.z, b0.z, acc1.y);
+        acc1.y = fma(a1.w, b0.w, acc1.y);
+
+        acc2.y = fma(a2.x, b0.x, acc2.y);
+        acc2.y = fma(a2.y, b0.y, acc2.y);
+        acc2.y = fma(a2.z, b0.z, acc2.y);
+        acc2.y = fma(a2.w, b0.w, acc2.y);
+
+        acc3.y = fma(a3.x, b0.x, acc3.y);
+        acc3.y = fma(a3.y, b0.y, acc3.y);
+        acc3.y = fma(a3.z, b0.z, acc3.y);
+        acc3.y = fma(a3.w, b0.w, acc3.y);
+
+        b0 = vec4(b[bOffset], b[bOffset + 1], b[bOffset + 2], b[bOffset + 3]);
+        bOffset += P.secondRowSize;
+
+        acc0.z = fma(a0.x, b0.x, acc0.z);
+        acc0.z = fma(a0.y, b0.y, acc0.z);
+        acc0.z = fma(a0.z, b0.z, acc0.z);
+        acc0.z = fma(a0.w, b0.w, acc0.z);
+
+        acc1.z = fma(a1.x, b0.x, acc1.z);
+        acc1.z = fma(a1.y, b0.y, acc1.z);
+        acc1.z = fma(a1.z, b0.z, acc1.z);
+        acc1.z = fma(a1.w, b0.w, acc1.z);
+
+        acc2.z = fma(a2.x, b0.x, acc2.z);
+        acc2.z = fma(a2.y, b0.y, acc2.z);
+        acc2.z = fma(a2.z, b0.z, acc2.z);
+        acc2.z = fma(a2.w, b0.w, acc2.z);
+
+        acc3.z = fma(a3.x, b0.x, acc3.z);
+        acc3.z = fma(a3.y, b0.y, acc3.z);
+        acc3.z = fma(a3.z, b0.z, acc3.z);
+        acc3.z = fma(a3.w, b0.w, acc3.z);
+
+        b0 = vec4(b[bOffset], b[bOffset + 1], b[bOffset + 2], b[bOffset + 3]);
+
+        acc0.w = fma(a0.x, b0.x, acc0.w);
+        acc0.w = fma(a0.y, b0.y, acc0.w);
+        acc0.w = fma(a0.z, b0.z, acc0.w);
+        acc0.w = fma(a0.w, b0.w, acc0.w);
+
+        acc1.w = fma(a1.x, b0.x, acc1.w);
+        acc1.w = fma(a1.y, b0.y, acc1.w);
+        acc1.w = fma(a1.z, b0.z, acc1.w);
+        acc1.w = fma(a1.w, b0.w, acc1.w);
+
+        acc2.w = fma(a2.x, b0.x, acc2.w);
+        acc2.w = fma(a2.y, b0.y, acc2.w);
+        acc2.w = fma(a2.z, b0.z, acc2.w);
+        acc2.w = fma(a2.w, b0.w, acc2.w);
+
+        acc3.w = fma(a3.x, b0.x, acc3.w);
+        acc3.w = fma(a3.y, b0.y, acc3.w);
+        acc3.w = fma(a3.z, b0.z, acc3.w);
+        acc3.w = fma(a3.w, b0.w, acc3.w);
+
+        aOffset += 4;
+        bOffset0 += 4;
+        i += 4;
+    }
+
+    while( i < P.firstWidth ) {
+        float a0 = a[aOffset];
+        float a1 = a[aOffset + P.firstRowSize];
+        float a2 = a[aOffset + 2 * P.firstRowSize];
+        float a3 = a[aOffset + 3 * P.firstRowSize];
+
+        vec4 b0 = vec4(b[bOffset0], b[bOffset0 + P.secondRowSize], b[bOffset0 + 2 * P.secondRowSize], b[bOffset0 + 3 * P.secondRowSize]);
+        bOffset0 += 1;
+
+        acc0.x = fma(a0, b0.x, acc0.x);
+        acc0.y = fma(a0, b0.y, acc0.y);
+        acc0.z = fma(a0, b0.z, acc0.z);
+        acc0.w = fma(a0, b0.w, acc0.w);
+
+        acc1.x = fma(a1, b0.x, acc1.x);
+        acc1.y = fma(a1, b0.y, acc1.y);
+        acc1.z = fma(a1, b0.z, acc1.z);
+        acc1.w = fma(a1, b0.w, acc1.w);
+
+        acc2.x = fma(a2, b0.x, acc2.x);
+        acc2.y = fma(a2, b0.y, acc2.y);
+        acc2.z = fma(a2, b0.z, acc2.z);
+        acc2.w = fma(a2, b0.w, acc2.w);
+
+        acc3.x = fma(a3, b0.x, acc3.x);
+        acc3.y = fma(a3, b0.y, acc3.y);
+        acc3.z = fma(a3, b0.z, acc3.z);
+        acc3.w = fma(a3, b0.w, acc3.w);
+
+        aOffset += 1;
+        i++;
+    }
+}
+
+void main() {
+    if( ID_X < P.firstHeight / 4 && ID_Y < P.secondHeight / 4 && ID_Z < P.batchSize ) {
+        int x = ID_Y;
+        int y = ID_X;
+        int batch = ID_Z;
+        int aOffset = batch * P.firstRowSize * P.firstHeight + P.firstRowSize * y * 4;
+        int bOffset = batch * P.secondHeight * P.secondRowSize + P.secondRowSize * x * 4;
+        int resultOffset = batch * P.firstHeight * P.resultRowSize + y * 4 * P.resultRowSize + x * 4;
+		int initOffset = batch * P.secondHeight + x * 4;
+
+		vec4 acc0 = vec4(init[initOffset], init[initOffset + 1], init[initOffset + 2], init[initOffset + 3]);
+		vec4 acc1 = acc0;
+		vec4 acc2 = acc0;
+		vec4 acc3 = acc0;
+
+        computeMultiplyMatrixByTransposedMatrixFor4x4Block( aOffset, bOffset, acc0, acc1, acc2, acc3 );
+
+        result[resultOffset] = acc0.x;
+        result[resultOffset + 1] = acc0.y;
+        result[resultOffset + 2] = acc0.z;
+        result[resultOffset + 3] = acc0.w;
+        resultOffset += P.resultRowSize;
+        result[resultOffset] = acc1.x;
+        result[resultOffset + 1] = acc1.y;
+        result[resultOffset + 2] = acc1.z;
+        result[resultOffset + 3] = acc1.w;
+        resultOffset += P.resultRowSize;
+        result[resultOffset] = acc2.x;
+        result[resultOffset + 1] = acc2.y;
+        result[resultOffset + 2] = acc2.z;
+        result[resultOffset + 3] = acc2.w;
+        resultOffset += P.resultRowSize;
+        result[resultOffset] = acc3.x;
+        result[resultOffset + 1] = acc3.y;
+        result[resultOffset + 2] = acc3.z;
+        result[resultOffset + 3] = acc3.w;
+    }
+}

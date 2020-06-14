@@ -1,0 +1,97 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+DEFINE_SAMPLER(0, outputDiff);
+DEFINE_SAMPLER(1, filterData);
+DEFINE_SAMPLER(2, freeTerm);
+layout(std430, binding=1) writeonly buffer InputDiff { float inputDiff[]; };
+
+void perform1(in int b, in int h, in int w, in int c, in bool isProc)
+{
+	int yStart = (P.padding.y + h - (1 + (P.filterHeight - 1) * P.dilation.y) + P.stride.y) / P.stride.y;
+	if(yStart < 0) {
+		yStart = 0;
+	}
+	int xStart = (P.padding.x + w - (1 + (P.filterWidth - 1) * P.dilation.x) + P.stride.x) / P.stride.x;
+	if(xStart < 0) {
+		xStart = 0;
+	}
+
+	vec4 acc = vec4(0);
+	int outputDiffXShift = b * P.width;
+	int outputDiffYShift = 0;
+	for(int k = 0; k < P.filterCount4; ++k) {
+		for(int y = yStart; y < P.height; ++y) {
+			int yFilterDiff = h - (y * P.stride.y - P.padding.y);
+			if(yFilterDiff < 0) {
+				break; // end of loop: futher outputDiff positions do not affect the current inputDiff pos
+			}
+			int yFilterPos = yFilterDiff / P.dilation.y;
+			if(yFilterPos * P.dilation.y == yFilterDiff) {
+				for(int x = xStart; x < P.width; ++x) {
+					int xFilterDiff = w - (x * P.stride.x - P.padding.x);
+					if(xFilterDiff < 0) {
+						break; // end of loop: futher outputDiff positions do not affect the current inputDiff pos
+					}
+					int xFilterPos = xFilterDiff / P.dilation.x;
+					if(isProc && xFilterPos * P.dilation.x == xFilterDiff) {
+						vec4 outputDiffVal = TEXEL_GET(outputDiff, x + outputDiffXShift, y + outputDiffYShift);
+						vec4 fltVal =
+							TEXEL_GET(filterData, xFilterPos + c * P.filterWidth, yFilterPos + k * P.filterHeight);
+						MULT_ADD_OPER(acc, outputDiffVal, fltVal);
+					}
+				}
+			}
+		}
+		if(outputDiffYShift >= P.height * (P.outputDiffChannelGroupSize - 1)) {
+			outputDiffYShift = 0;
+			outputDiffXShift += P.batchSize * P.width;
+		} else {
+			outputDiffYShift += P.height;
+		}
+	}
+	
+	if(isProc) {
+		float res = acc.x + acc.y + acc.z + acc.w;
+		if(P.isFreeTerm != 0) {
+			int c4 = c / 4;
+			vec4 freeTermVal = TEXEL_GET(freeTerm, c4, 0);
+			switch(c - 4 * c4) {
+			default:
+			case 0:
+				res += freeTermVal.x;
+				break;
+			case 1:
+				res += freeTermVal.y;
+				break;
+			case 2:
+				res += freeTermVal.z;
+				break;
+			case 3:
+				res += freeTermVal.w;
+				break;
+			}
+		}
+
+		inputDiff[(ID_Y * P.inputWidth + ID_X) * P.inputChannels + c] = res;
+	}
+}
+
+void main()
+{
+	bool isProc = ID_Y < P.batchSize * P.inputHeight && ID_X < P.inputWidth && ID_Z < P.inputChannels - P.startChannel;
+	int b = ID_Y / P.inputHeight;
+	perform1(b, ID_Y - b * P.inputHeight, ID_X, P.startChannel + ID_Z, isProc);
+}

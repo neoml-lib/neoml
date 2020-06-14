@@ -1,0 +1,32 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+layout(std430, binding=2) readonly buffer Mask { float mask[]; };
+layout(std430, binding=3) writeonly buffer Result { float result[]; };
+
+void main()
+{
+	int obj = ID_Z;
+	int row = ID_Y;
+	int col = ID_X;
+	if( obj >= P.inputObjectCount || row >= P.inputObjectSize / P.maskObjectSize || col >= P.maskObjectSize ) {
+    	return;
+    }
+
+	int pack = obj % P.maskObjectCount;
+	int index = obj * P.inputObjectSize + row * P.maskObjectSize + col;
+	result[index] = source[index] * mask[P.maskObjectSize * pack + col];
+}

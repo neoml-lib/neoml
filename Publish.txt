@@ -1,0 +1,70 @@
+
+# Common files
+req;ss;/inc:CopyResults.mak,coffbase.Debug.txt,coffbase.Debug.x64.txt,coffbase.Release.txt,coffbase.Release.x64.txt,coffbase.Final.txt,coffbase.Final.x64.txt
+
+# FineObj
+req;ss;/inc:FineObjects\inc\*
+req;ss;/inc:FineObjects\src\*
+req;builded;/inc:FineObjects\Utils\*
+req;builded;/inc:FineObjects\lib\*
+req;ss;/inc:FineObjects\Res\*
+
+# FWL
+req;ss;/inc:NeoML\Inc\*
+req;ss;/inc:NeoML\Src\*
+req;ss;/inc:NeoML\Utils\CnnExporter\Inc\*
+req;ss;/inc:NeoML\Utils\CnnExporter\Src\*
+req;builded;/inc:NeoML\lib\*
+req;ss;/inc:History.txt
+
+# Build results
+req;builded;/inc:WinDebug\FineObjd.dll
+req;builded;/inc:WinDebug\FObjEventSrc.dll
+req;builded;/inc:WinDebug.x64\FineObjd.dll
+req;builded;/inc:WinDebug.x64\FObjEventSrc.dll
+
+req;builded;/inc:WinRelease\FineObj.dll
+req;builded;/inc:WinRelease\FObjEventSrc.dll
+req;builded;/inc:WinRelease.x64\FineObj.dll
+req;builded;/inc:WinRelease.x64\FObjEventSrc.dll
+
+req;builded;/inc:WinFinal\FineObj.dll
+req;builded;/inc:WinFinal\FObjEventSrc.dll
+req;builded;/inc:WinFinal.x64\FineObj.dll
+req;builded;/inc:WinFinal.x64\FObjEventSrc.dll
+
+# CRT
+req;data;/inc:WinDebug\msvcr110d.dll,WinDebug\msvcp110d.dll,WinDebug\vccorlib110.dll
+req;data;/inc:WinDebug\Data\*
+req;data;/inc:WinDebug.x64\msvcr110d.dll,WinDebug.x64\msvcp110d.dll,WinDebug.x64\vccorlib110.dll
+req;data;/inc:WinDebug.x64\Data\*
+req;data;/inc:WinRelease\msvcr110.dll,WinRelease\msvcp110.dll,WinRelease\vccorlib110.dll
+req;data;/inc:WinRelease\Data\*
+req;data;/inc:WinRelease.x64\msvcr110.dll,WinRelease.x64\msvcp110.dll,WinRelease.x64\vccorlib110.dll
+req;data;/inc:WinRelease.x64\Data\*
+req;data;/inc:WinFinal\msvcr110.dll,WinFinal\msvcp110.dll,WinFinal\vccorlib110.dll
+req;data;/inc:WinFinal\Data\*
+req;data;/inc:WinFinal.x64\msvcr110.dll,WinFinal.x64\msvcp110.dll,WinFinal.x64\vccorlib110.dll
+req;data;/inc:WinFinal.x64\Data\*
+
+aux;builded;/inc:WinDebug\*,WinDebug.x64\*,WinRelease\*,WinRelease.x64\*,WinFinal\*,WinFinal.x64\* /exc:*.log,*.txt /exc:WinDebug\Test\*,WinDebug.x64\Test\*,WinRelease\Test\*,WinRelease.x64\Test\* /recursive
+
+req;builded;/inc:X.Android.Debug\*
+req;builded;/inc:X.Android.Release\*
+req;builded;/inc:X.Android.Final\*
+
+req;builded;/inc:X.iOS.Debug\*
+req;builded;/inc:X.iOS.Release\*
+req;builded;/inc:X.iOS.Final\*
+
+req;builded;/inc:X.Linux.Debug\*
+req;builded;/inc:X.Linux.Release\*
+req;builded;/inc:X.Linux.Final\*
+
+req;builded;/inc:X.Darwin.Debug\*
+req;builded;/inc:X.Darwin.Release\*
+req;builded;/inc:X.Darwin.Final\*
+
+# Publisher files
+pub;ss;/inc:Publish.txt
+pub;ss;/inc:Distribution.xml

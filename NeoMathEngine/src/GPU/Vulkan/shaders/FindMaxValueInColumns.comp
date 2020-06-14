@@ -1,0 +1,41 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Matrix { float matrix[]; };
+layout(std430, binding=2) writeonly buffer Result { float result[]; };
+layout(std430, binding=3) writeonly buffer MaxIndices { int indices[]; };
+
+
+void main()
+{
+    int batchIndex = ID_Y;
+    int colIndex = ID_X;
+    if( colIndex < P.matrixWidth && batchIndex < P.batchSize ) {
+        int matrixOffset = batchIndex * P.matrixHeight * P.matrixWidth + colIndex;
+        float maxVal = matrix[matrixOffset];
+        int maxInd = 0;
+        matrixOffset += P.matrixWidth;
+        for( int i = 1; i < P.matrixHeight; i++ ) {
+            if( matrix[matrixOffset] > maxVal ) {
+                maxVal = matrix[matrixOffset];
+                maxInd = i;
+            }
+            matrixOffset += P.matrixWidth;
+        }
+
+        result[batchIndex * P.matrixWidth + colIndex] = maxVal;
+        indices[batchIndex * P.matrixWidth + colIndex] = maxInd;
+    }
+}

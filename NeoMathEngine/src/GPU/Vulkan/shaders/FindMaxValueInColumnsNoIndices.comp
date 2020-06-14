@@ -1,0 +1,61 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Matrix { float matrix[]; };
+layout(std430, binding=2) writeonly buffer Result { float result[]; };
+shared float bufferValues[gl_WorkGroupSize.x * gl_WorkGroupSize.y];
+
+
+void main()
+{
+    int bufferIndex = LOCAL_ID_Y * int(gl_WorkGroupSize.x) + LOCAL_ID_X;
+    bufferValues[bufferIndex] = -FLT_MAX;
+    
+    int row = ID_Y;
+    int column = ID_X;
+
+    if( row < P.matrixHeight && column < P.matrixWidth ) {
+		int matrixStart = row * P.matrixWidth + column;
+		int matrixEnd = P.matrixHeight * P.matrixWidth;
+
+		int matrixIndex = matrixStart;
+		while( matrixIndex < matrixEnd ) {
+			if( bufferValues[bufferIndex] < matrix[matrixIndex] ) {
+				bufferValues[bufferIndex] = matrix[matrixIndex];
+			}
+			matrixIndex += int(gl_WorkGroupSize.y) * P.matrixWidth;
+		}
+	}
+
+	barrier();
+
+	uint s = 1;
+	while( s * 2 < gl_WorkGroupSize.y ) {
+		s = s * 2;
+	}
+       
+	for( uint i = s; i >= 1; i = i >> 1 ) {
+		if( LOCAL_ID_Y < i && LOCAL_ID_Y + i < gl_WorkGroupSize.y ) {
+			if( bufferValues[bufferIndex] <= bufferValues[bufferIndex + i * gl_WorkGroupSize.x] ) {
+				bufferValues[bufferIndex] = bufferValues[bufferIndex + i * gl_WorkGroupSize.x];
+			}
+		}
+		barrier();
+	}
+
+    if( LOCAL_ID_Y == 0 && column < P.matrixWidth ) {
+        result[column] = bufferValues[bufferIndex];
+    }
+}

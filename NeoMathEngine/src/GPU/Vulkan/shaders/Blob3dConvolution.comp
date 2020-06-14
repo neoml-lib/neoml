@@ -1,0 +1,83 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+layout(std430, binding=2) readonly buffer Filter { float filt[]; };
+layout(std430, binding=3) readonly buffer FreeTerm { float freeTerm[]; };
+layout(std430, binding=4) writeonly buffer Result { float result[]; };
+
+void main()
+{
+    int x = ID_X;
+    int y = ID_Y;
+    int bcz = ID_Z;
+
+    if( x >= P.width || y >= P.height || bcz >= P.filterCount * P.batchSize * P.depth ) {
+    	return;
+	}
+
+    const int b = bcz / ( P.filterCount * P.depth );
+    const int cz = bcz - b * P.filterCount * P.depth;
+    const int c = cz / P.depth;
+    const int z = cz - c * P.depth;
+    int sourceOffset = b * P.inputHeight * P.inputWidth * P.inputDepth * P.inputChannels;
+    int resultOffset = b * P.height * P.width * P.depth * P.filterCount + y * P.width * P.depth * P.filterCount + x * P.depth * P.filterCount + z * P.filterCount + c;
+    int filterOffset = c * P.filterHeight * P.filterWidth * P.filterDepth * P.inputChannels;
+    const int inputDStart = z * P.strideDepth - P.paddingDepth;
+    const int inputDEnd = inputDStart + P.filterDepth;
+    const int inputHStart = y * P.strideHeight - P.paddingHeight;
+    const int inputHEnd = inputHStart + P.filterHeight;
+    const int inputWStart = x * P.strideWidth - P.paddingWidth;
+    const int inputWEnd = inputWStart + P.filterWidth;
+    float resultVal = P.isFreeTerm == 1 ? freeTerm[c] : 0.0;
+    for( int k = 0; k < P.inputChannels; k++) {
+        int filterY = 0;
+        for( int j = inputHStart; j < inputHEnd; j++ ) {
+            if( j < 0 || j >= P.inputHeight ) {
+                filterY++;
+                continue;
+            }
+            
+            int sourceHOffset = sourceOffset + j * P.inputWidth * P.inputDepth * P.inputChannels;
+            int filterHOffset = filterOffset + filterY * P.filterWidth * P.filterDepth * P.inputChannels;
+            int filterX = 0;
+            for( int i = inputWStart; i < inputWEnd; i++ ) {
+                if( i < 0 || i >= P.inputWidth ) {
+                    filterX++;
+                    continue;
+                }
+                
+                int sourceWOffset = sourceHOffset + i * P.inputDepth * P.inputChannels;
+                int filterWOffset = filterHOffset + filterX * P.filterDepth * P.inputChannels;
+                int filterZ = 0;
+                for( int l = inputDStart; l < inputDEnd; l++ ) {
+                    if( l < 0 || l >= P.inputDepth ) {
+                        filterZ++;
+                        continue;
+                    }
+                    const float srcVal = source[sourceWOffset + l * P.inputChannels];
+                    const float fltVal = filt[filterWOffset + filterZ * P.inputChannels];
+                    resultVal = fma(srcVal, fltVal, resultVal );
+                    filterZ++;
+                }
+                filterX++;
+            }
+            filterY++;
+        }
+        sourceOffset++;
+        filterOffset++;
+    }
+    result[resultOffset] = resultVal;
+}

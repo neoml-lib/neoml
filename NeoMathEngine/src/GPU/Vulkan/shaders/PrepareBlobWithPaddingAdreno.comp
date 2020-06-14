@@ -1,0 +1,80 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer First { float first[]; };
+DEFINE_WRITEONLY_IMAGE(0, result);
+
+void main()
+{
+	int totalHeight = P.height + P.paddingTop + P.paddingBottom;
+	int totalWidth = P.width + P.paddingLeft + P.paddingRight;
+	int totalWidth4 = totalWidth / 4;
+
+	int x4 = ID_VEC;
+	int b = x4 / totalWidth4;
+	x4 -= b * totalWidth4;
+	int y = b / P.batchSize;
+	b -= y * P.batchSize;
+	int c = y / totalHeight;
+	y -= c * totalHeight;
+
+	int x44 = x4 * 4;
+
+	if(c >= P.channels) {
+		return;
+	}
+
+	vec4 data;
+	if(y < P.paddingTop || y >= P.paddingTop + P.height) {
+		data = vec4(0);
+	} else {
+		int inputPos = ((b * P.height + y - P.paddingTop) * P.width + x44 - P.paddingLeft) * P.channels + c;
+		int x = x44;
+
+		if(x < P.paddingLeft || x >= P.paddingLeft + P.width) {
+			data.x = 0.f;
+		} else {
+			data.x = first[inputPos];
+		}
+
+		++x;
+		inputPos += P.channels;
+		if(x < P.paddingLeft || x >= P.paddingLeft + P.width) {
+			data.y = 0.f;
+		} else {
+			data.y = first[inputPos];
+		}
+
+		++x;
+		inputPos += P.channels;
+		if(x < P.paddingLeft || x >= P.paddingLeft + P.width) {
+			data.z = 0.f;
+		} else {
+			data.z = first[inputPos];
+		}
+
+		++x;
+		inputPos += P.channels;
+		if(x < P.paddingLeft || x >= P.paddingLeft + P.width) {
+			data.w = 0.f;
+		} else {
+			data.w = first[inputPos];
+		}
+	}
+
+	int groupNum = c / P.channelGroupSize;
+	c -= groupNum * P.channelGroupSize;
+	TEXEL_SET(result, (b + groupNum * P.batchSize) * totalWidth4 + x4, c * totalHeight + y, data);
+}

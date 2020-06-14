@@ -1,0 +1,54 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { float source[]; };
+layout(std430, binding=2) writeonly buffer Result { float result[]; };
+
+int repack( in int fromIndex, in int channels, in int height, in int width  ) {
+	int x = fromIndex % width;
+	fromIndex /= width;
+	int y = fromIndex % height;
+	fromIndex /= height;
+	int c = fromIndex % channels;
+	int b = fromIndex / channels;
+	return c + channels * ( x + width * ( y + height * b ) );
+}
+
+void main()
+{
+    int b = ID_X / P.height;
+	int h = ID_X - b * P.height;
+	int c = ID_Y / P.width;
+	int w = ID_Y - c * P.width;
+
+    if( b >= P.batchSize || c >= P.channels || h >= P.height || w >= P.width ) {
+    	return;
+	}
+
+	int inputIndex = w + P.width * ( h + P.height * ( c + P.channels * b ) );
+	inputIndex = repack( inputIndex, P.channels * P.stride * P.stride, P.height / P.stride, P.width / P.stride );
+	int offset = c / P.outputChannels;
+	int outputW = w * P.stride + offset % P.stride;
+	int outputH = h * P.stride + offset / P.stride;
+	int outputChannelId = c % P.outputChannels;
+	int outputIndex = outputW + P.width * P.stride * ( outputH + P.height * P.stride * ( outputChannelId + P.outputChannels * b ) );
+	outputIndex = repack( outputIndex, P.channels, P.height, P.width );
+	if( P.isForward == 1 ) {
+		result[inputIndex] = source[outputIndex];
+	} else {
+		result[outputIndex] = source[inputIndex];
+	}
+}
+

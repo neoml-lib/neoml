@@ -1,0 +1,56 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer First { float first[]; };
+layout(std430, binding=2) readonly buffer Second { float second[]; };
+layout(std430, binding=3) writeonly buffer Result { float result[]; };
+
+shared float partial[LOCAL_MAX_X * LOCAL_MAX_Y * LOCAL_MAX_Z];
+// The number of additions in the intermediate sum
+const int IntermediateSumStep = 32;
+
+void main()
+{
+	// x - the position in the partial sum
+	// y - the number of row or column in which the sum is calculated
+	// z - the batch number
+	const int MY_BASE_POS = (LOCAL_ID_Z * LOCAL_MAX_Y + LOCAL_ID_Y) * LOCAL_MAX_X;
+	const int MY_POS = MY_BASE_POS + LOCAL_ID_X;
+
+	partial[MY_POS] = 0;
+	int startIndexSecond = ID_Y * P.yStep;
+	int startIndex = ID_Z * P.height * P.width + startIndexSecond;
+	for(int i = ID_X; i < P.width; i += MAX_X) {
+		partial[MY_POS] += first[startIndex + i * P.xStep] * second[startIndexSecond + i * P.xStep];
+	}
+
+	barrier();
+
+	float sum = 0;
+	for(int i = LOCAL_ID_X; i < LOCAL_MAX_X; i += IntermediateSumStep) {
+		sum += partial[MY_BASE_POS + i];
+	}
+	partial[MY_POS] = sum;
+
+	barrier();
+
+	for(int i = 1; i < IntermediateSumStep && i < LOCAL_MAX_X; ++i) {
+		sum += partial[MY_BASE_POS + i];
+	}
+
+	if(LOCAL_ID_X == 0) {
+		result[(ID_Z * MAX_Y) + ID_Y] = sum;
+	}
+}
