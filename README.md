@@ -68,6 +68,8 @@ For best CPU performance on Windows, Linux and macOS we use [Intel MKL](https://
 
 When processing on a GPU, you can optionally use [CUDA](https://developer.nvidia.com/cuda-downloads) (version 10.2) on Windows and [Vulkan](https://vulkan.lunarg.com/sdk/home) (version 1.1.130 and later) on Android.
 
+We also use Google [Test](https://github.com/google/googletest) for testing and Google [Protocol Buffers](https://developers.google.com/protocol-buffers) for working with ONNX model format.
+
 ### Build fully functional C++ version
 
 See [here](NeoML/docs/en/Installation/cpp.md) for instructions on building the C++ library version for different platforms.
@@ -152,7 +154,7 @@ The math engine used for calculations is a separate module that implements the l
 
 This module has different implementations for different platforms. In particular, there is an implementation that uses a GPU for calculations.
 
-The math engine is also a set of C++ interfaced described [here](NeoML/docs/en/API/NN/MathEngine.md).
+The math engine is also a set of C++ interfaces described [here](NeoML/docs/en/API/NN/MathEngine.md).
 
 ### Java interface
 
