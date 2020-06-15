@@ -11,6 +11,7 @@
         - [Synchronizing with GPU](#synchronizing-with-gpu)
         - [Warmup](#warmup)
     - [Create and set up the IMathEngine object](#create-and-set-up-the-imathengine-object)
+        - [Exception handling](#exception-handling)
         - [Create the default math engine for CPU](#create-the-default-math-engine-for-cpu)
         - [Create the recommended math engine for GPU](#create-the-recommended-math-engine-for-gpu)
         - [Create a CPU math engine](#create-a-cpu-math-engine)
@@ -79,6 +80,39 @@ There are several ways to create or get the pointer to the created math engine.
 
 The default math engine will be deleted automatically on unloading the library. All other math engines should be deleted after use, but before that you need to free all memory used by the math engine, deleting all blobs created for this engine (note that blobs may be stored inside layer and network objects, so all those objects should be deleted as well).
 
+### Exception handling
+
+By default, when the exceptional situation occurs `NeoML` functions throw `std::logic_error` or `std::bad_alloc` in case of memory allocation failure.
+
+But this behavior can be changed by setting the exception handler.
+
+```c++
+// Exception handler interface
+// Use it to change the program's reaction to exceptions
+class NEOMATHENGINE_API IMathEngineExceptionHandler {
+public:
+	virtual ~IMathEngineExceptionHandler();
+	// An error during a method call
+	// The default action is to throw std::logic_error
+	virtual void OnAssert( const char* message, const char* file, int line, int errorCode ) = 0;
+
+	// Memory cannot be allocated on device
+	// The default action is to throw std::bad_alloc
+	virtual void OnMemoryError() = 0;
+};
+
+// Set exception handler interface for whole programm
+// Set this to null to use default exception handler
+// Non-default handler must be destroyed by the caller after use
+NEOMATHENGINE_API void SetMathEngineExceptionHandler( IMathEngineExceptionHandler* exceptionHandler );
+
+// Get current exception handler interface
+// Returns null if use default
+NEOMATHENGINE_API IMathEngineExceptionHandler* GetMathEngineExceptionHandler();
+```
+
+In order to use non-default exception handling it's recommended to set the exception handler before the creation of math engines.
+
 ### Create the default math engine for CPU
 
 ```c++
@@ -106,7 +140,7 @@ This math engine should be deleted after use.
 ### Create a CPU math engine
 
 ```c++
-IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit, IMathEngineExceptionHandler* exceptionHandler );
+IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit );
 ```
 
 Creates a math engine working on CPU, setting the memory limitation, the number of threads and the custom exception handler.
@@ -115,14 +149,13 @@ Creates a math engine working on CPU, setting the memory limitation, the number 
 
 * *threadCount* - the maximum number of threads in use.
 * *memoryLimit* - the memory limitation for the math engine. Set to `0` to use all available memory.
-* *exceptionHandler* - the exception handler. Set to `null` to handle the exceptions by standard means provided in the library.
 
 This math engine should be deleted after use.
 
 ### Create a GPU math engine
 
 ```c++
-IMathEngine* CreateGpuMathEngine( size_t memoryLimit, IMathEngineExceptionHandler* exceptionHandler );
+IMathEngine* CreateGpuMathEngine( size_t memoryLimit );
 ```
 
 Creates a math engine working on GPU, setting the memory limitation and the custom exception handler.
@@ -130,7 +163,6 @@ Creates a math engine working on GPU, setting the memory limitation and the cust
 #### Parameters
 
 * *memoryLimit* - the memory limitation for the math engine. Set to `0` to use all available memory.
-* *exceptionHandler* - the exception handler. Set to `null` to handle the exceptions by standard means provided in the library.
 
 This math engine should be deleted after use.
 
@@ -153,8 +185,7 @@ public:
 	// Create a math engine on the GPU with the specified index
 	// index can be from 0 to GetMathEngineCount() - 1.
 	// memoryLimit is the memory limitation; if the limit is exceeded IMathEngineExceptionHandler::OnMemoryError() will be thrown
-	// exceptionHandler will be used to handle exceptions. If set to 0 default handler will be used (see IMathEngineExceptionHandler)
-	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit, IMathEngineExceptionHandler* exceptionHandler ) const = 0;
+	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit ) const = 0;
 };
 ~~~
 
