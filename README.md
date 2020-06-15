@@ -68,7 +68,7 @@ For best CPU performance on Windows, Linux and macOS we use [Intel MKL](https://
 
 When processing on a GPU, you can optionally use [CUDA](https://developer.nvidia.com/cuda-downloads) (version 10.2) on Windows and [Vulkan](https://vulkan.lunarg.com/sdk/home) (version 1.1.130 and later) on Android.
 
-We also use Google [Test](#https://github.com/google/googletest) and [Protocol Buffers](#https://developers.google.com/protocol-buffers).
+We also use Google [Test](https://github.com/google/googletest) and [Protocol Buffers](https://developers.google.com/protocol-buffers).
 
 ### Build fully functional C++ version
 
