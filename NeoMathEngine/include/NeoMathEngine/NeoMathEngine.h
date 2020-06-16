@@ -835,7 +835,9 @@ public:
 	virtual void OnMemoryError() = 0;
 };
 
-// Set exception handler interface for whole programm.
+// Set exception handler interface for whole programm
+// Setting this to null means using default exception handling
+// Non-default handler must be destroyed by the caller after use
 NEOMATHENGINE_API void SetMathEngineExceptionHandler( IMathEngineExceptionHandler* exceptionHandler );
 
 // Get current exception handler interface
