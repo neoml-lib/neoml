@@ -1,7 +1,10 @@
 # CMake simple script to detect Intel(R) Math Kernel Library (MKL)
 # Note, MKLROOT environment variable is not set by installer, it should be set manually.
 #
-# The module provides imported target: MKL::Static
+# Options: 
+#   MKL_USE_STATIC_LIBS        Try to find static mkl libraries
+# 
+# The module provides imported interface target: MKL::Libs
 # Variables are defined by module:
 #   MKL_FOUND                  True/False
 #   MKL_INCLUDE_DIR            MKL include folder
@@ -13,7 +16,7 @@
 #
 #  find_package(MKL)
 #  add_executable(app main.cpp)
-#  target_link_libraries(app PRIVATE MKL::Static)
+#  target_link_libraries(app PRIVATE MKL::Libs)
 
 find_path(MKL_INCLUDE_DIR
     NAMES
@@ -37,7 +40,11 @@ else()
     set(MKL_LIB_SUFFIX "lp64")
 endif()
 
-# Note that we try to find static libs
+if(MKL_USE_STATIC_LIBS)
+    set(_MKL_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
+endif()
+
 find_library(MKL_CORE_LIB
     NAMES mkl_core
     PATHS
@@ -71,6 +78,10 @@ find_library(MKL_INTEL_LIB
         IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
 )
 
+if(MKL_USE_STATIC_LIBS)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${_MKL_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
+endif()
+
 set(MKL_FOUND TRUE)
 if(NOT MKL_INCLUDE_DIR)
     set(MKL_FOUND FALSE)
@@ -93,8 +104,8 @@ if(NOT MKL_INTEL_LIB)
 endif()
 
 if(MKL_FOUND)
-    add_library(MKL::Static IMPORTED INTERFACE)
-    target_include_directories(MKL::Static INTERFACE ${MKL_INCLUDE_DIR})
+    add_library(MKL::Libs IMPORTED INTERFACE)
+    target_include_directories(MKL::Libs INTERFACE ${MKL_INCLUDE_DIR})
     if(UNIX)
         set(MKL_LIBS ${MKL_INTEL_LIB} ${MKL_SEQUENTIAL_LIB} ${MKL_CORE_LIB})
         if(NOT APPLE)
@@ -102,9 +113,9 @@ if(MKL_FOUND)
             find_package(Threads REQUIRED)
             set(MKL_LIBS -Wl,--start-group ${MKL_LIBS} -Wl,--end-group Threads::Threads)
         endif()
-        target_link_libraries(MKL::Static INTERFACE ${MKL_LIBS} ${CMAKE_DL_LIBS})
+        target_link_libraries(MKL::Libs INTERFACE ${MKL_LIBS} ${CMAKE_DL_LIBS})
     else()
-        target_link_libraries(MKL::Static INTERFACE ${MKL_INTEL_LIB} ${MKL_SEQUENTIAL_LIB} ${MKL_CORE_LIB})
+        target_link_libraries(MKL::Libs INTERFACE ${MKL_INTEL_LIB} ${MKL_SEQUENTIAL_LIB} ${MKL_CORE_LIB})
     endif()
     
     if(NOT MKL_FIND_QUIETLY)
