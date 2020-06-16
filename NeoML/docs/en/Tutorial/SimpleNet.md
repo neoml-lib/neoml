@@ -86,7 +86,8 @@ fc3->Connect( *relu2 );
 net.AddLayer( *fc3 );
 
 // Cross-entropy loss function; this layer already calculates softmax 
-// on its inputs, so there is no need to add a softmax layer before it CPtr<CCrossEntropyLossLayer> loss = new CCrossEntropyLossLayer( mathEngine );
+// on its inputs, so there is no need to add a softmax layer before it 
+CPtr<CCrossEntropyLossLayer> loss = new CCrossEntropyLossLayer( mathEngine );
 loss->SetName( "loss" );
 loss->Connect( 0, *fc3 ); // first input: the network response
 loss->Connect( 1, *label ); // second input: the correct classes
