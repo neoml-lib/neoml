@@ -48,8 +48,8 @@ The full С++ library version has been tested on the platforms:
 |Target OS|Compiler|Architecture|
 |----------|----------|------------------------------|
 |Windows 7+ (CPU and GPU)|MSVC 2015+|x86, x86_64|
-|Ubuntu 14+ (CPU) |gcc 5.4+|x86_64|
-|MacOS 10.11+|Apple clang 11+|x86_64|
+|Ubuntu 14+ (CPU)|gcc 5.4+|x86_64|
+|MacOS 10.11+ (CPU)|Apple clang 11+|x86_64|
 |iOS 11+ (CPU, GPU)|Apple clang 11+|arm64-v8a, x86_64|
 |Android 5.0+ (CPU), Android 7.0+ (GPU)|clang 7+|armeabi-v7a, arm64-v8a, x86, x86_64|
 
