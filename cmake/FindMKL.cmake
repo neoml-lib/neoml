@@ -2,7 +2,7 @@
 # Note, MKLROOT environment variable is not set by installer, it should be set manually.
 #
 # Options: 
-#   MKL_USE_STATIC_LIBS        Try to find static mkl libraries
+#   MKL_USE_STATIC_LIBS        Find static mkl libraries if this variable is true, otherwise try to find shared libraries.
 # 
 # The module provides imported interface target: MKL::Libs
 # Variables are defined by module:
@@ -34,19 +34,39 @@ find_path(MKL_INCLUDE_DIR
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     set(MKL_LIBRARY_DIR_SUFFIX "ia32")
-    set(MKL_LIB_SUFFIX "c")
+    set(MKL_INTERFACE_TYPE "")
+    if(WIN32)
+        set(MKL_INTERFACE_TYPE "_c")
+    endif()
 else()
     set(MKL_LIBRARY_DIR_SUFFIX "intel64")
-    set(MKL_LIB_SUFFIX "lp64")
+    set(MKL_INTERFACE_TYPE "_lp64")
 endif()
 
-if(MKL_USE_STATIC_LIBS)
-    set(_MKL_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
+
+if(WIN32)
+    set(MKL_LIBRARY_PREFIX "")
+    if(MKL_USE_STATIC_LIBS)
+        set(MKL_LIBRARY_SUFFIX ".lib")
+    else()
+        set(MKL_LIBRARY_SUFFIX "_dll.lib")
+    endif()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(MKL_LIBRARY_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
+    if(MKL_USE_STATIC_LIBS)
+        set(MKL_LIBRARY_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+    else()
+        set(MKL_LIBRARY_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+    endif()
+else()
+    if(NOT MKL_FIND_QUIETLY)
+        message(WARNING "MKL: OS '${CMAKE_SYSTEM_NAME}' is not supported.")
+    endif()
 endif()
+
 
 find_library(MKL_CORE_LIB
-    NAMES mkl_core
+    NAMES ${MKL_LIBRARY_PREFIX}mkl_core${MKL_LIBRARY_SUFFIX}
     PATHS
         $ENV{MKLROOT}/lib
         /opt/intel/lib
@@ -57,7 +77,7 @@ find_library(MKL_CORE_LIB
 )
 
 find_library(MKL_SEQUENTIAL_LIB
-    NAMES mkl_sequential
+    NAMES ${MKL_LIBRARY_PREFIX}mkl_sequential${MKL_LIBRARY_SUFFIX}
     PATHS
         $ENV{MKLROOT}/lib
         /opt/intel/lib
@@ -68,7 +88,7 @@ find_library(MKL_SEQUENTIAL_LIB
 )
 
 find_library(MKL_INTEL_LIB
-    NAMES mkl_intel_${MKL_LIB_SUFFIX}
+    NAMES ${MKL_LIBRARY_PREFIX}mkl_intel${MKL_INTERFACE_TYPE}${MKL_LIBRARY_SUFFIX}
     PATHS
         $ENV{MKLROOT}/lib
         /opt/intel/lib
@@ -77,10 +97,6 @@ find_library(MKL_INTEL_LIB
         ${MKL_LIBRARY_DIR_SUFFIX}
         IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
 )
-
-if(MKL_USE_STATIC_LIBS)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ${_MKL_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
-endif()
 
 set(MKL_FOUND TRUE)
 if(NOT MKL_INCLUDE_DIR)
@@ -111,7 +127,9 @@ if(MKL_FOUND)
         if(NOT APPLE)
             set(THREADS_PREFER_PTHREAD_FLAG ON)
             find_package(Threads REQUIRED)
-            set(MKL_LIBS -Wl,--start-group ${MKL_LIBS} -Wl,--end-group Threads::Threads)
+            if(MKL_USE_STATIC_LIBS)
+                set(MKL_LIBS -Wl,--start-group ${MKL_LIBS} -Wl,--end-group Threads::Threads)
+            endif()
         endif()
         target_link_libraries(MKL::Libs INTERFACE ${MKL_LIBS} ${CMAKE_DL_LIBS})
     else()
