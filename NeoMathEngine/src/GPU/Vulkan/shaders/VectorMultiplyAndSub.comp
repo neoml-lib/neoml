@@ -21,6 +21,6 @@ layout(std430, binding=4) readonly buffer Mult { float mult[]; };
 void main()
 {
 	VECTOR_LOOP(i, result) {
-		result[i] = first[i] + second[i] * mult[0];
+		result[i] = first[i] - second[i] * mult[0];
 	}
 }
