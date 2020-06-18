@@ -25,12 +25,12 @@ limitations under the License.
 #include <MathEngineCommon.h>
 
 #include <sstream>
-#include <iostream>
+
 #if FINE_PLATFORM(FINE_LINUX)
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <semaphore.h>
-#endif
+#endif // FINE_PLATFORM(FINE_LINUX)
 
 namespace NeoML {
 
@@ -76,19 +76,16 @@ CCudaDevice::~CCudaDevice()
 
 #if FINE_PLATFORM(FINE_WINDOWS)
 
-typedef basic_string<wchar_t, char_traits<wchar_t>, CrtAllocator<wchar_t> > fstring;
-typedef basic_stringstream<wchar_t, char_traits<wchar_t>, CrtAllocator<wchar_t> > fstringstream;
-
-static fstring getCudaMutexName(int devNum, int slotNum)
+static std::string getCudaMutexName(int devNum, int slotNum)
 {
-	fstringstream ss;
-	ss << L"Global\\AbbyyNeoMLCudaDev" << devNum << L"_" << slotNum;
+	std::stringstream ss;
+	ss << "Global\\AbbyyNeoMLCudaDev" << devNum << "_" << slotNum;
 	return ss.str();
 }
 
 bool IsDeviceSlotFree( int deviceId, int slotIndex )
 {
-	HANDLE devHandle = ::OpenMutexW( SYNCHRONIZE, FALSE, getCudaMutexName(deviceId, slotIndex).c_str() );
+	HANDLE devHandle = ::OpenMutexA( SYNCHRONIZE, FALSE, getCudaMutexName(deviceId, slotIndex).c_str() );
 	if( devHandle != 0 ) {
 		::CloseHandle(devHandle);
 		return false;
@@ -98,7 +95,7 @@ bool IsDeviceSlotFree( int deviceId, int slotIndex )
 
 void* CaptureDeviceSlot( int deviceId, int slotIndex, bool reuse )
 {
-	void* handle = ::CreateMutexW( 0, FALSE, getCudaMutexName(deviceId, slotIndex).c_str() );
+	void* handle = ::CreateMutexA( 0, FALSE, getCudaMutexName(deviceId, slotIndex).c_str() );
 	if( handle != nullptr && GetLastError() == ERROR_ALREADY_EXISTS && !reuse ) {
 		// Reusing slots is not allowed.
 		ReleaseDeviceSlot( handle, deviceId, slotIndex );
@@ -116,19 +113,16 @@ void ReleaseDeviceSlot( void* slot, int /*deviceId*/, int /*slotIndex*/ )
 
 static const int semInitValue = 255;
 
-typedef basic_string<char, char_traits<char>, CrtAllocator<char> > fstring;
-typedef basic_stringstream<char, char_traits<char>, CrtAllocator<char> > fstringstream;
-
-static fstring getCudaMutexName(int devNum, int slotNum)
+static std::string getCudaMutexName(int devNum, int slotNum)
 {
-	fstringstream ss;
+	std::stringstream ss;
 	ss << "/AbbyyNeoMLCudaDev" << devNum << "_" << slotNum;
 	return ss.str();
 }
 
 bool IsDeviceSlotFree( int deviceId, int slotIndex )
 {
-	const fstring name = getCudaMutexName(deviceId, slotIndex);
+	const std::string name = getCudaMutexName(deviceId, slotIndex);
 	sem_t* semaphore = ::sem_open( name.c_str(), O_CREAT, 0666, semInitValue );
 	if( semaphore != nullptr ) {
 		// Checking its value.
