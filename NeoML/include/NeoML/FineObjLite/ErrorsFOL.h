@@ -59,6 +59,8 @@ inline void FineBreakPoint()
 {
 }
 
+#ifdef _DEBUG
+
 inline void FineDebugBreak()
 {
 #if FINE_PLATFORM( FINE_WINDOWS )
@@ -69,6 +71,12 @@ inline void FineDebugBreak()
 	#error Unknown platform!
 #endif
 }
+
+#else
+
+inline void FineDebugBreak() {}
+
+#endif // _DEBUG
 
 enum TInternalErrorType {
 	IET_Assert,
