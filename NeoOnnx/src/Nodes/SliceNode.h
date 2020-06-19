@@ -29,9 +29,9 @@ public:
 	CSliceNode( const onnx::NodeProto& slice, CMap<CString, CInputInfo>& nodeOutputs );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	void OnnxReshape() override;
+	void MarkTensorDims() override;
+	void AddLayers( CDnn& dnn ) override;
 
 private:
 	CArray<int> axes; // axes, along which slice will be made

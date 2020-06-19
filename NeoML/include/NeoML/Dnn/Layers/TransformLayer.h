@@ -27,7 +27,7 @@ class NEOML_API CTransformLayer : public CBaseLayer {
 public:
 	explicit CTransformLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The operation to be performed over the given dimension
 	enum TOperation {
@@ -66,9 +66,9 @@ public:
 protected:
 	~CTransformLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// Transformation parameters for all dimensions

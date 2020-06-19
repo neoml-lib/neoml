@@ -162,9 +162,9 @@ public:
 
 protected:
 	// Resets to the initial state
-	virtual void OnReset() override;
+	void OnReset() override;
 	// Prepares for the next training step
-	virtual void OnTrain() override;
+	void OnTrain() override;
 	// Updates the trainable weights of the layer
 	virtual void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
 		const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory ) override;
@@ -250,9 +250,9 @@ public:
 
 protected:
 	// Resets to the initial state
-	virtual void OnReset() override;
+	void OnReset() override;
 	// Prepares for the next training step
-	virtual void OnTrain() override;
+	void OnTrain() override;
 	// Updates the trainable weights of the layer
 	virtual void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
 		const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory ) override;

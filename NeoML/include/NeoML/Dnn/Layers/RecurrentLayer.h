@@ -28,7 +28,7 @@ public:
 
 	~CRecurrentLayer();
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Working with backward links
 	void AddBackLink(CBackLinkLayer& backLink);
@@ -50,10 +50,10 @@ public:
 	void SetRepeatCount(int count);
 
 protected:
-	virtual void OnDnnChanged( CDnn* old ) override;
-	virtual void RunInternalDnn() override;
-	virtual void RunInternalDnnBackward() override;
-	virtual void SetInternalDnnParams() override;
+	void OnDnnChanged( CDnn* old ) override;
+	void RunInternalDnn() override;
+	void RunInternalDnnBackward() override;
+	void SetInternalDnnParams() override;
 
 private:
 	// The backward links
@@ -65,7 +65,7 @@ private:
 	int repeatCount;
 
 	void getSequenceParams(int& batchWidth, int& sequenceLength);
-	virtual void serializationHook(CArchive& archive) override;
+	void serializationHook(CArchive& archive) override;
 };
 
 } // namespace NeoML

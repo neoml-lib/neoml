@@ -54,22 +54,22 @@ public:
 		double learningRate );
 
 	// IGradientBoostQSModel interface methods
-	virtual int GetClassCount() const override { return ensembles.Size() == 1 ? 2 : ensembles.Size(); };
-	virtual bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
-	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
+	int GetClassCount() const override { return ensembles.Size() == 1 ? 2 : ensembles.Size(); };
+	bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
+	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
 
 	// IGradientBoostQSModel interface methods
-	virtual bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const override;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
+	bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const override;
+	bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
 
 	// IRegressionModel interface methods
-	virtual double Predict( const CSparseFloatVector& data ) const override;
-	virtual double Predict( const CFloatVector& data ) const override;
-	virtual double Predict( const CSparseFloatVectorDesc& data ) const override;
+	double Predict( const CSparseFloatVector& data ) const override;
+	double Predict( const CFloatVector& data ) const override;
+	double Predict( const CSparseFloatVectorDesc& data ) const override;
 
 	// General methods
-	virtual double GetLearningRate() const override { return learningRate; };
-	virtual void Serialize( CArchive& archive ) override;
+	double GetLearningRate() const override { return learningRate; };
+	void Serialize( CArchive& archive ) override;
 
 private:
 	CPointerArray<CGradientBoostQSEnsemble> ensembles; // optimized trees ensembles, one ensemble per class

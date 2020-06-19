@@ -24,9 +24,9 @@ public:
 	CGraphInput( const onnx::ValueInfoProto& input, CMap<CString, CInputInfo>& nodeOutputs );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override {}
-	virtual void AddLayers( CDnn& dnn ) override;
+	void OnnxReshape() override;
+	void MarkTensorDims() override {}
+	void AddLayers( CDnn& dnn ) override;
 
 	const CString& Name() const { return name; }
 

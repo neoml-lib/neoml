@@ -40,11 +40,11 @@ public:
 	void SetNormalizationArea( TNormalizationArea newArea ) { area = newArea; }
 	TNormalizationArea GetNormalizationArea() const { return area; }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	TNormalizationArea area; // the normalization area

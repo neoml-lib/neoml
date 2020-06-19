@@ -28,10 +28,10 @@ class NEOML_API CBackLinkLayer : public CBaseLayer {
 public:
 	explicit CBackLinkLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
-	virtual void SetName(const char* _name) override;
-	virtual void Connect(int inputNumber, const char* input, int outputNumber) override;
+	void SetName(const char* _name) override;
+	void Connect(int inputNumber, const char* input, int outputNumber) override;
 	using CBaseLayer::Connect;
 
 	// Gets and sets blob dimensions for the backward link
@@ -42,7 +42,7 @@ public:
 	CCaptureSinkLayer* CaptureSink() { return captureSink; }
 	const CCaptureSinkLayer* CaptureSink() const { return captureSink; }
 	// Begin processing a new sequence
-	virtual void RestartSequence() override;
+	void RestartSequence() override;
 
 	// Saves or loads the link state
 	const CPtr<CDnnBlob>& GetState() const;
@@ -50,10 +50,10 @@ public:
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void OnDnnChanged( CDnn* ) override { RestartSequence(); }
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void OnDnnChanged( CDnn* ) override { RestartSequence(); }
 
 private:
 	// The description of the backward link blob
@@ -74,7 +74,7 @@ class NEOML_API CCaptureSinkLayer : public CBaseLayer {
 public:
 	explicit CCaptureSinkLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnCaptureSink", false ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Gets the reference to the blob
 	const CPtr<CDnnBlob>& GetBlob() const { return blob; }
@@ -87,9 +87,9 @@ public:
 	void ClearDiffBlob();
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	CPtr<CDnnBlob> blob;

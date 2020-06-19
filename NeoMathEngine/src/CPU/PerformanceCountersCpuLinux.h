@@ -40,9 +40,9 @@ namespace NeoML {
 class CPerformanceCountersCpuLinux : public IPerformanceCounters {
 public:
 	CPerformanceCountersCpuLinux();
-	virtual ~CPerformanceCountersCpuLinux() override;
+	~CPerformanceCountersCpuLinux() override;
 
-	virtual void Synchronise() override;
+	void Synchronise() override;
 
 private:
 	static const int MaxCounterCount = 32;

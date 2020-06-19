@@ -32,7 +32,7 @@ class NEOML_API CBinaryFocalLossLayer : public CLossLayer {
 public:
 	explicit CBinaryFocalLossLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	static const float DefaultFocalForceValue;
 

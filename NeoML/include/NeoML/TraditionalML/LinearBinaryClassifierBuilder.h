@@ -98,10 +98,10 @@ public:
 	void SetLog( CTextStream* newLog ) { log = newLog; }
 
 	// Trains a regression model
-	virtual CPtr<IRegressionModel> TrainRegression( const IRegressionProblem& problem ) override;
+	CPtr<IRegressionModel> TrainRegression( const IRegressionProblem& problem ) override;
 
 	// ITrainingModel interface methods:
-	virtual CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
+	CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
 
 private:
 	const CParams params; // classification parameters
