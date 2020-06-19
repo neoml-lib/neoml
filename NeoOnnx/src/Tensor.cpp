@@ -20,7 +20,7 @@ limitations under the License.
 #include "NodeAttributes.h"
 #include "TensorUtils.h"
 
-#include <proto/onnx.pb.h>
+#include <onnx.pb.h>
 
 #include <utility>
 

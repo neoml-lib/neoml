@@ -19,7 +19,7 @@ limitations under the License.
 #include "ReduceMeanNode.h"
 #include "NeoOnnxCheck.h"
 
-#include "proto/onnx.pb.h"
+#include "onnx.pb.h"
 
 namespace NeoOnnx {
 

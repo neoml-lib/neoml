@@ -61,7 +61,7 @@ target_sources(${PROJECT_NAME}
     ../include/NeoMathEngine/NeoMathEngine.h
 )
 
-add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+add_library(Neo::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 

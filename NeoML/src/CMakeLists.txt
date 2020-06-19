@@ -4,7 +4,7 @@ else()
     add_library(${PROJECT_NAME} STATIC common.cpp)
 endif()
 
-add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+add_library(Neo::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_sources( ${PROJECT_NAME} PRIVATE
     ArchiveFile.cpp
@@ -251,7 +251,7 @@ target_include_directories(${PROJECT_NAME}
 )
 
 if(USE_FINE_OBJECTS)
-    target_link_libraries(${PROJECT_NAME} PRIVATE FineObjects)
+    target_link_libraries(${PROJECT_NAME} PUBLIC FineObjects)
 
     set(MESSAGES_DIR ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.Messages)
     set(MESSAGES_SRC ${MESSAGES_DIR}/NeoMLMessages.cpp)
@@ -291,9 +291,6 @@ endif()
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 
 add_subdirectory(../../NeoMathEngine ${CMAKE_BINARY_DIR}/NeoMathEngine)
-if(NOT USE_FINE_OBJECTS)
-    add_subdirectory(../../NeoOnnx ${CMAKE_BINARY_DIR}/NeoOnnx)
-endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE BUILD_NEOML)
 if(NOT NeoML_BUILD_SHARED)
@@ -310,27 +307,3 @@ if(ANDROID)
 endif()
 
 configure_target(${PROJECT_NAME})
-
-# Install
-if(NeoML_INSTALL)
-    if(USE_FINE_OBJECTS)
-        fine_unexport_symbols(${PROJECT_NAME})
-        fine_install(TARGETS NeoML NeoMathEngine)
-    else()
-        install(
-            TARGETS NeoML FineObjLite NeoMathEngine
-            EXPORT NeoMLConfig 
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-            FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        )
-
-        install(DIRECTORY ../include/NeoML DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-        install(EXPORT NeoMLConfig
-            NAMESPACE NeoML::
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
-        )
-    endif()
-endif()
