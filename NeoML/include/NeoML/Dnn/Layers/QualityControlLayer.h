@@ -28,14 +28,14 @@ public:
 	virtual void SetReset( const bool value ) { needReset = value; }
 	virtual bool IsResetNeeded() const { return needReset; }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	CQualityControlLayer( IMathEngine& mathEngine, const char* name );
 	~CQualityControlLayer() {}
 
-	virtual void Reshape() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void BackwardOnce() override;
 
 	// User-implemented
 	virtual void OnReset() = 0;
@@ -46,7 +46,7 @@ private:
 	bool needReset;
 
 	// RunOnce may not be overloaded further. Use the RunOnceAfterReset() method
-	virtual void RunOnce() override;
+	void RunOnce() override;
 };
 
 } // namespace NeoML

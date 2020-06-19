@@ -44,34 +44,34 @@ public:
 	virtual ~CMetalMathEngine();
 
 	// IMathEngine interface methods
-	virtual TMathEngineType GetType() const override { return MET_Metal; }
-    virtual void SetReuseMemoryMode( bool enable ) override;
-	virtual CMemoryHandle HeapAlloc( size_t count ) override;
-	virtual void HeapFree( const CMemoryHandle& handle ) override;
-	virtual CMemoryHandle StackAlloc( size_t count ) override;
-	virtual void StackFree( const CMemoryHandle& handle ) override;
-	virtual size_t GetFreeMemorySize() const override;
-	virtual size_t GetPeakMemoryUsage() const override;
-	virtual void CleanUp() override;
-	virtual void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size ) override;
-	virtual void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
-	virtual void DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size ) override;
-	virtual void DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size ) override;
-	virtual CMemoryHandle CopyFrom( const CMemoryHandle& handle, size_t size ) override;
-	virtual void GetMathEngineInfo( CMathEngineInfo& info ) const override;
+	TMathEngineType GetType() const override { return MET_Metal; }
+    void SetReuseMemoryMode( bool enable ) override;
+	CMemoryHandle HeapAlloc( size_t count ) override;
+	void HeapFree( const CMemoryHandle& handle ) override;
+	CMemoryHandle StackAlloc( size_t count ) override;
+	void StackFree( const CMemoryHandle& handle ) override;
+	size_t GetFreeMemorySize() const override;
+	size_t GetPeakMemoryUsage() const override;
+	void CleanUp() override;
+	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size ) override;
+	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
+	void DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size ) override;
+	void DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size ) override;
+	CMemoryHandle CopyFrom( const CMemoryHandle& handle, size_t size ) override;
+	void GetMathEngineInfo( CMathEngineInfo& info ) const override;
 
 	// IVectorMathematicsEngine interface methods
-	virtual void VectorFill(const CFloatHandle& result, float value, int vectorSize) override;
-	virtual void VectorFill(const CIntHandle& result, int value, int vectorSize) override;
-	virtual void VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value) override;
-	virtual void VectorFill(const CIntHandle& result, int vectorSize, const CConstIntHandle& value) override;
-	virtual void VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed ) override;
-	virtual void FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold ) override;
-	virtual void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) override;
-	virtual void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) override;
-	virtual void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
-	virtual void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
-	virtual void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
+	void VectorFill(const CFloatHandle& result, float value, int vectorSize) override;
+	void VectorFill(const CIntHandle& result, int value, int vectorSize) override;
+	void VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value) override;
+	void VectorFill(const CIntHandle& result, int vectorSize, const CConstIntHandle& value) override;
+	void VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed ) override;
+	void FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold ) override;
+	void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) override;
+	void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) override;
+	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
+	void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
+	void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	virtual void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
 	virtual void VectorEqualValue( const CConstIntHandle& firstHandle,
@@ -104,18 +104,18 @@ public:
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorEltwiseMin(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
-	virtual void VectorAbs(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorAbs(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorAbsDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) override;
-	virtual void VectorHinge(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorHinge(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorHingeDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) override;
-	virtual void VectorSquaredHinge(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorSquaredHinge(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorSquaredHingeDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) override;
-	virtual void VectorHuber(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
-	virtual void VectorHuberDerivative(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
-	virtual void VectorHardTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorHuber(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorHuberDerivative(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorHardTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorHardTanhDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorHardTanhDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -128,10 +128,10 @@ public:
 	virtual void VectorHardSigmoidDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, 
 		const CConstFloatHandle& biasHandle ) override;
-	virtual void VectorExp(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorExp(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorLog( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		int vectorSize ) override;
-	virtual void VectorNegLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorNegLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorBernulliKLDerivative(const CConstFloatHandle& estimationHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& target) override;
 	virtual void VectorAdd(const CConstFloatHandle& firstHandle,
@@ -162,16 +162,16 @@ public:
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorEltwisePower(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
-	virtual void VectorSqrt(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
-	virtual void VectorInv(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorSqrt(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorInv(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
 		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle) override;
-	virtual void VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorSigmoidDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorSigmoidDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) override;
-	virtual void VectorTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorTanhDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) override;
 	virtual void VectorTanhDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -187,7 +187,7 @@ public:
 		const CConstFloatHandle& hubertThresholdHandle, const CConstFloatHandle& multHandle) override;
 	virtual void VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize,
 		const CFloatHandle& resultHandle) override;
-	virtual void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) override;
+	void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
 		int vectorSize) override;
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
@@ -237,7 +237,7 @@ public:
 		int matrixHeight, int matrixWidth) override;
 	virtual void MatrixLogSumExpByRows(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result,
 		int resultSize) override;
-	virtual void MatrixSoftmaxByRows(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result) override;
+	void MatrixSoftmaxByRows(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result) override;
 	virtual void MatrixSoftmaxDiffOpByRows(const CConstFloatHandle& first, const CConstFloatHandle& second,
 		int height, int width, const CFloatHandle& result) override;
 	virtual void MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result,
@@ -393,7 +393,7 @@ public:
 		int filterHeight, int filterWidth, int filterDepth,
 		int strideHeight, int strideWidth, int strideDepth,
 		const CBlobDesc& result ) override;
-	virtual void Blob3dMeanPooling( const C3dMeanPoolingDesc& desc, const CFloatHandle& source, const CFloatHandle& result ) override;
+	void Blob3dMeanPooling( const C3dMeanPoolingDesc& desc, const CFloatHandle& source, const CFloatHandle& result ) override;
 	virtual void Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& desc, const CFloatHandle& outputDiff,
 		const CFloatHandle& inputDiff ) override;
 	virtual CMaxPoolingDesc* InitMaxPooling( const CBlobDesc& source,
@@ -412,10 +412,10 @@ public:
 	virtual CMeanPoolingDesc* InitMeanPooling( const CBlobDesc& source,
 		int filterHeight, int filterWidth, int strideHeight, int strideWidth,
 		const CBlobDesc& result ) override;
-	virtual void BlobMeanPooling( const CMeanPoolingDesc& desc, const CFloatHandle& source, const CFloatHandle& result ) override;
+	void BlobMeanPooling( const CMeanPoolingDesc& desc, const CFloatHandle& source, const CFloatHandle& result ) override;
 	virtual void BlobMeanPoolingBackward( const CMeanPoolingDesc& desc, const CFloatHandle& outputDiff,
 		const CFloatHandle& inputDiff ) override;
-	virtual CGlobalMaxOverTimePoolingDesc* InitGlobalMaxOverTimePooling( const CBlobDesc& source, const CBlobDesc& result ) override;
+	CGlobalMaxOverTimePoolingDesc* InitGlobalMaxOverTimePooling( const CBlobDesc& source, const CBlobDesc& result ) override;
 	virtual void BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) override;
 	virtual void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
@@ -439,19 +439,19 @@ public:
 		const CBlobDesc& result, const CFloatHandle& resultData ) override;
 	virtual void Reorg( const CBlobDesc& source, const CIntHandle& sourceData, int stride, bool isForward,
 		const CBlobDesc& result, const CIntHandle& resultData ) override;
-	virtual void AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
-	virtual void AddWidthIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
-	virtual void AddHeightIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
-	virtual void AddHeightIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
+	void AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
+	void AddWidthIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
+	void AddHeightIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
+	void AddHeightIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
 	virtual CDropoutDesc* InitDropout( float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input,
 		const CBlobDesc& output, int seed ) override;
-	virtual void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) override;
-	virtual IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
+	void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) override;
+	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:
 	// IRawMemoryManager interface methods
-	virtual CMemoryHandle Alloc( size_t size ) override;
-	virtual void Free( const CMemoryHandle& handle ) override;
+	CMemoryHandle Alloc( size_t size ) override;
+	void Free( const CMemoryHandle& handle ) override;
 
 private:
 	// STL cannot be used here

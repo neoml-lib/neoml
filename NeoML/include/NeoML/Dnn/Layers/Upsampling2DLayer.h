@@ -27,7 +27,7 @@ class NEOML_API CUpsampling2DLayer : public CBaseLayer {
 public:
 	explicit CUpsampling2DLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	int GetHeightCopyCount() const { return heightCopyCount; }
 	void SetHeightCopyCount( int newHeightCopyCount );
@@ -36,9 +36,9 @@ public:
 	void SetWidthCopyCount( int newWidthCopyCount );
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// The number of vertical repetitions

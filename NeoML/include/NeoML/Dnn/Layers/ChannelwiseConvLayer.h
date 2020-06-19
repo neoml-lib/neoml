@@ -28,9 +28,9 @@ class NEOML_API CChannelwiseConvLayer : public CBaseConvLayer {
 public:
 	explicit CChannelwiseConvLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
-	virtual CPtr<CDnnBlob> GetFilterData() const override;
+	CPtr<CDnnBlob> GetFilterData() const override;
 
 	// Sets the blob with the filter coefficients.
 	// The BD_Height of the newFilter must be equal to the filter height.
@@ -38,16 +38,16 @@ public:
 	// The BD_Channels of the newFilter blob must be equal to the filter count (and to the BD_Channels of inputs).
 	// The other newFilter's dimensions must be equal to 1.
 	// If newFilter is null, the filter data will be reset.
-	virtual void SetFilterData( const CPtr<CDnnBlob>& newFilter ) override;
+	void SetFilterData( const CPtr<CDnnBlob>& newFilter ) override;
 
 protected:
 	virtual ~CChannelwiseConvLayer() { destroyConvDesc(); }
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
-	virtual bool IsFilterTransposed() const override { return true; }
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
+	bool IsFilterTransposed() const override { return true; }
 
 private:
 	// Convolution descriptor

@@ -45,7 +45,7 @@ class NEOML_API CCrfLayer : public CRecurrentLayer {
 public:
 	explicit CCrfLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The layer inputs and outputs
 	enum TInput {
@@ -93,7 +93,7 @@ class NEOML_API CCrfCalculationLayer : public CBaseLayer {
 public:
 	explicit CCrfCalculationLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The layer inputs and outputs
 	enum TInput {
@@ -112,10 +112,10 @@ public:
 	void SetPaddingClass(int _paddingClass) { paddingClass = _paddingClass; }
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	// The "zero" class (no label); reserved, currently not in use
@@ -147,7 +147,7 @@ class NEOML_API CCrfLossLayer : public CCompositeLayer {
 public:
 	explicit CCrfLossLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The layer inputs
 	enum TInput {
@@ -180,7 +180,7 @@ class NEOML_API CCrfInternalLossLayer : public CLossLayer {
 public:
 	explicit CCrfInternalLossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "FmlCnnCrfLossLayer", true ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
@@ -200,7 +200,7 @@ class NEOML_API CBestSequenceLayer : public CBaseLayer {
 public:
 	explicit CBestSequenceLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "FmlCnnBestSequenceLayer", false ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 	// The layer inputs
 	enum TIntput {
 		I_BestPrevClass = 0, // a placeholder for constructing the network
@@ -208,9 +208,9 @@ public:
 	};
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 //-----------------------------------------------------------------------------------------------

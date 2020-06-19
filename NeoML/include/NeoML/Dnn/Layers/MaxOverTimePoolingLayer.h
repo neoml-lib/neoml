@@ -29,7 +29,7 @@ class NEOML_API CMaxOverTimePoolingLayer : public CBaseLayer {
 public:
 	explicit CMaxOverTimePoolingLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The window length and stride. If the length is <=0, global max pooling is performed (over the whole dimension)
 	int GetFilterLength() const { return filterLength; }
@@ -41,9 +41,9 @@ protected:
 	virtual ~CMaxOverTimePoolingLayer() { destroyDescs(); }
 
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	CMaxOverTimePoolingDesc* desc;

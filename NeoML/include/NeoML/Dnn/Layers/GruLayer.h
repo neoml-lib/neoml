@@ -29,7 +29,7 @@ class NEOML_API CGruLayer : public CRecurrentLayer {
 public:
 	explicit CGruLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The hidden layer size
 	int GetHiddenSize() const { return mainLayer->GetNumberOfElements(); }

@@ -30,7 +30,7 @@ class NEOML_API CAccumulativeLookupLayer : public CBaseLayer {
 public:
 	explicit CAccumulativeLookupLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The size and number of vector representations
 	void SetDimension( const CLookupDimension& newDimension );
@@ -42,10 +42,10 @@ public:
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	CLookupDimension lookupDimension; // The size of representations table
