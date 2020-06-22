@@ -23,22 +23,25 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CShapeNode::CShapeNode( const onnx::NodeProto& shape, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& _mathEngine ) :
-	CNode( shape, nodeOutputs ),
+CShapeNode::CShapeNode( const onnx::NodeProto& shape, IMathEngine& _mathEngine ) :
+	CNode( shape ),
 	mathEngine( _mathEngine )
 {
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", shape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", shape );
 }
 
-void CShapeNode::OnnxReshape()
+void CShapeNode::CalcOutputShape()
 {
-	const CTensorShape& inputShape = InputTensor( 0 ).GetShape();
+	output[0].Shape = { InputTensor( 0 ).Shape.Size() };
+}
 
-	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateVector( mathEngine, CT_Int, inputShape.Size() );
-	outputBlob->CopyFrom( inputShape.GetPtr() );
+void CShapeNode::CalcOutputData()
+{
+	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
 
-	outputData.Add( CTensor( TT_ConstantTensor, { inputShape.Size() }, outputBlob ) );
+	output[0].Data = CDnnBlob::CreateVector( mathEngine, CT_Int, inputShape.Size() );
+	output[0].Data->CopyFrom( inputShape.GetPtr() );
 }
 
 } // namespace NeoOnnx

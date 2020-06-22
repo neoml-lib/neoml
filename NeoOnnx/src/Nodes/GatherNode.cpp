@@ -23,37 +23,42 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGatherNode::CGatherNode( const onnx::NodeProto& gather, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( gather, nodeOutputs )
+CGatherNode::CGatherNode( const onnx::NodeProto& gather ) :
+	CNode( gather )
 {
 	CheckOnnxProtocol( input.Size() == 2, "node must have 2 inputs", gather );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gather );
 }
 
-void CGatherNode::OnnxReshape()
+void CGatherNode::CalcOutputShape()
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_ConstantTensor, "non-constant input", onnxNode );
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetData()->GetDataType() == CT_Int, "non-integer input", onnxNode );
+	InputTensor( 1 ).Shape.CopyTo( output[0].Shape );
+}
+
+void CGatherNode::CalcOutputData()
+{
+	// TODO: add non-constant tensor support
+	CheckNeoOnnxSupport( InputTensor( 0 ).Data != nullptr, "non-constant input", onnxNode );
+	// TODO: add float tensor support
+	CheckNeoOnnxSupport( InputTensor( 0 ).Data->GetDataType() == CT_Int, "non-integer input", onnxNode );
 
 	CArray<int> data;
-	data.SetSize( InputTensor( 0 ).GetData()->GetDataSize() );
-	InputTensor( 0 ).GetData()->CopyTo( data.GetPtr() );
-	
-	CheckNeoOnnxSupport( InputTensor( 1 ).GetType() == TT_ConstantTensor, "non-constant indices", onnxNode );
-	CheckOnnxProtocol( InputTensor( 1 ).GetData()->GetDataType() == CT_Int, "indices must be integer", onnxNode );
+	data.SetSize( InputTensor( 0 ).Data->GetDataSize() );
+	InputTensor( 0 ).Data->CopyTo( data.GetPtr() );
+
+	CheckNeoOnnxSupport( InputTensor( 1 ).Data != nullptr, "non-constant indices", onnxNode );
+	CheckOnnxProtocol( InputTensor( 1 ).Data->GetDataType() == CT_Int, "indices must be integer", onnxNode );
 
 	CArray<int> indices;
-	indices.SetSize( InputTensor( 1 ).GetData()->GetDataSize() );
-	InputTensor( 1 ).GetData()->CopyTo( indices.GetPtr() );
+	indices.SetSize( InputTensor( 1 ).Data->GetDataSize() );
+	InputTensor( 1 ).Data->CopyTo( indices.GetPtr() );
 
-	CPtr<CDnnBlob> outputBlob = InputTensor( 1 ).GetData()->GetClone();
-	int* outputBuffer = outputBlob->GetBuffer<int>( 0, outputBlob->GetDataSize() );
+	output[0].Data = InputTensor( 1 ).Data->GetClone();
+	int* outputBuffer = output[0].Data->GetBuffer<int>( 0, output[0].Data->GetDataSize() );
 	for( int i = 0; i < indices.Size(); ++i ) {
 		outputBuffer[i] = data[indices[i]];
 	}
-	outputBlob->ReleaseBuffer( outputBuffer, true );
-	
-	outputData.Add( CTensor( TT_ConstantTensor, InputTensor( 1 ).GetShape(), outputBlob ) );
+	output[0].Data->ReleaseBuffer( outputBuffer, true );
 }
 
 } // namespace NeoOnnx

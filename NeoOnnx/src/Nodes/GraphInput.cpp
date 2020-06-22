@@ -24,23 +24,25 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGraphInput::CGraphInput( const onnx::ValueInfoProto& _input, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( onnx::NodeProto(), nodeOutputs ),
+CGraphInput::CGraphInput( const onnx::ValueInfoProto& _input ) :
+	CNode( 0, 1 ),
 	name( _input.name().c_str() ),
 	valueInfo( _input )
 {
-	nodeOutputs.Add( name, CInputInfo( this, 0 ) );
 }
 
-void CGraphInput::OnnxReshape()
+void CGraphInput::CalcOutputShape()
 {
-	CTensorShape shape;
-	shape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
+	CTensorShape& outputShape = output[0].Shape;
+	outputShape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
 	for( const onnx::TensorShapeProto_Dimension dim : valueInfo.type().tensor_type().shape().dim() ) {
-		shape.Add( static_cast<int>( dim.dim_value() ) );
+		outputShape.Add( static_cast<int>( dim.dim_value() ) );
 	}
+}
 
-	outputData.Add( CTensor( TT_DataTensor, shape ) );
+void CGraphInput::CalcOutputData()
+{
+	// The output[0].Data was already set to nullptr in default constructor.
 }
 
 void CGraphInput::AddLayers( CDnn& net )
@@ -52,17 +54,17 @@ void CGraphInput::AddLayers( CDnn& net )
 	CBlobDesc outputBlobDesc(
 		GetBlobType( static_cast<onnx::TensorProto_DataType>( valueInfo.type().tensor_type().elem_type() ) ) );
 
-	NeoOnnxCheck( outputData[0].GetTensorDim().Size() == outputData[0].GetShape().Size(),
+	NeoOnnxCheck( output[0].Dim.Size() == output[0].Shape.Size(),
 		"Graph input tensor's dimensions weren't marked with NeoML blob dimensions" );
-	for( int i = 0; i < outputData[0].GetTensorDim().Size(); ++i ) {
-		outputBlobDesc.SetDimSize( outputData[0].GetTensorDim()[i], outputData[0].GetShape()[i] );
+	for( int i = 0; i < output[0].Dim.Size(); ++i ) {
+		outputBlobDesc.SetDimSize( output[0].Dim[i], output[0].Shape[i] );
 	}
 	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( net.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );
 	source->SetBlob( inputBlob );
 
 	net.AddLayer( *source );
 
-	outputInfo.Add( COutputInfo( source, 0 ) );
+	neoMLInputInfo.Add( CNeoMLInputInfo( source, 0 ) );
 }
 
 } // namespace NeoOnnx

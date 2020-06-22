@@ -20,24 +20,24 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Loads the "dnn" network from a "fileName" ONNX file.
+// Loads network "dnn" from onnx file "fileName".
 //
-// For every uninitialized ONNX graph input there will be a CSourceLayer with the same name.
-// For every CSourceLayer an input blob of the given size will be allocated.
+// For every uninitialized onnx graph input there will be CSourceLayer with the same name.
+// For every CSourceLayer will be allocated input blob of the given size.
 // Inputs with initializers will be ignored (used for parameters calculation).
 //
-// For every ONNX graph output there will be a CSinkLayer with the same name.
+// For every onnx graph output there will be CSinkLayer with the same name.
 //
 // Throws std::logic_error if failed to load network.
 NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn );
 
-// Loads the "dnn" network from a buffer with ONNX data.
+// Loads network "dnn" from buffer with onnx data.
 //
-// For every uninitialized ONNX graph input there will be a CSourceLayer with the same name.
-// For every CSourceLayer an input blob of the given size will be allocated.
+// For every uninitialized onnx graph input there will be CSourceLayer with the same name.
+// For every CSourceLayer will be allocated input blob of the given size.
 // Inputs with initializers will be ignored (used for parameters calculation).
 //
-// For every ONNX graph output there will be a CSinkLayer with the same name.
+// For every onnx graph output there will be CSinkLayer with the same name.
 //
 // Throws std::logic_error if failed to load network.
 NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn );

@@ -21,10 +21,11 @@ namespace NeoOnnx {
 
 class CGraphInput : public CNode {
 public:
-	CGraphInput( const onnx::ValueInfoProto& input, CMap<CString, CInputInfo>& nodeOutputs );
+	CGraphInput( const onnx::ValueInfoProto& input );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override {}
 	virtual void AddLayers( CDnn& dnn ) override;
 

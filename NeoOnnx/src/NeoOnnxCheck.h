@@ -48,7 +48,7 @@ inline void NeoOnnxCheck( bool expr, const CString& what )
 // Adds node info to message 'what'
 inline CString GetMessageWithNodeInfo( const CString& what, const onnx::NodeProto& node )
 {
-	return CString( what ) + " at node " + node.op_type().c_str() + "(" + node.output( 0 ).c_str() + ")";
+	return what + " at node " + node.op_type().c_str() + "(" + node.output( 0 ).c_str() + ")";
 }
 
 // Throws std::logic_error if 'expr' is false

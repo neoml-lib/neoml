@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CClipNode : public CNode {
 public:
-	CClipNode( const onnx::NodeProto& clip, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CClipNode( const onnx::NodeProto& clip );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 

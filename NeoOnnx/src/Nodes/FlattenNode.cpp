@@ -22,42 +22,44 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( flatten, nodeOutputs ),
+CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten ) :
+	CNode( flatten ),
 	axis( attributes.GetOptionalInt( "axis", 1 ) )
 {
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", flatten );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", flatten );
 }
 
-void CFlattenNode::OnnxReshape()
+void CFlattenNode::CalcOutputShape()
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_DataTensor,
-		"constant input", onnxNode );
-
-	const CTensorShape& inputShape = InputTensor( 0 ).GetShape();
-	CTensorShape outputShape( { 1, 1 } );
+	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
+	CTensorShape& outputShape = output[0].Shape;
+	outputShape = { 1, 1 };
 
 	for( int dimIndex = 0; dimIndex < inputShape.Size(); ++dimIndex ) {
 		outputShape[dimIndex < axis ? 0 : 1] *= inputShape[dimIndex];
 	}
+}
 
-	outputData.Add( CTensor( TT_DataTensor, outputShape ) );
+void CFlattenNode::CalcOutputData()
+{
+	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The output[0].Data was already set to nullptr in default constructor.
 }
 
 void CFlattenNode::MarkTensorDims()
 {
-	const CTensorDim& inputDims = InputTensor( 0 ).GetTensorDim();
+	const CTensorDim& inputDims = InputTensor( 0 ).Dim;
 
 	if( !inputDims.IsEmpty() ) {
-		CheckNeoOnnxInternal( outputData[0].SetTensorDim( { inputDims[axis - 1], inputDims[axis] } ),
+		CheckNeoOnnxInternal( output[0].SetTensorDim( { inputDims[axis - 1], inputDims[axis] } ),
 			"marking output dimensions failed", onnxNode );
 	}
 }
 
 void CFlattenNode::AddLayers( CDnn& )
 {
-	outputInfo.Add( InputInfo( 0 ) );
+	neoMLInputInfo.Add( InputInfo( 0 ) );
 }
 
 } // namespace NeoOnnx

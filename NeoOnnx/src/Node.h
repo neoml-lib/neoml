@@ -28,18 +28,21 @@ class ValueInfoProto;
 
 namespace NeoOnnx {
 
-// Node in the ONNX calculation graph.
+// Node in the onnx calculation graph.
 class CNode {
 public:
 	virtual ~CNode() = default;
 
-	// Calculate output tensors shape and (if possible) data.
-	virtual void OnnxReshape() = 0;
+	// Calculate output tensors' shape based on inputs' tensors' shape.
+	virtual void CalcOutputShape() = 0;
 
-	// Marks ONNX tensors dimensions as blob dimensions from NeoML.
+	// Claculate output tensors' data if possible.
+	virtual void CalcOutputData() = 0;
+
+	// Marks onnx tensors' dimensions as blob dimensions from NeoML.
 	virtual void MarkTensorDims() = 0;
 
-	// Adds layers, representing this node, to the dnn (if such layers exist).
+	// Adds layers, representing this node, to the dnn (if needed).
 	virtual void AddLayers( CDnn& net ) = 0;
 
 	// Gets the number of outputs.
@@ -47,27 +50,33 @@ public:
 
 	// Information about input.
 	struct CInputInfo {
+		CInputInfo() : InputNode( nullptr ), OutputIndex( NotFound ) {}
 		CInputInfo( CNode* inputNode, int outputIndex ) : InputNode( inputNode ), OutputIndex( outputIndex ) {}
 
 		CNode* InputNode; // Node connected to this input.
-		const int OutputIndex; // Node's output number connected to this input.
+		int OutputIndex; // Node's output number connected to this input.
 	};
 	
 	// Gets data of index'th input.
 	const CTensor& InputTensor( int index ) const;
 	CTensor& InputTensor( int index );
 
-	// Fabric method. Creates CNode's derivative for given ONNX node.
-	static CNode* CreateNode( const onnx::NodeProto& onnxNode, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& mathEngine );
+	// Set index'th input of this node.
+	// inputInfo's content must be not null.
+	// Must be called once for every used input.
+	void SetInput( int index, const CInputInfo& inputInfo );
+
+	// Fabric method. Creates CNode's derivative for given onnx node.
+	static CNode* CreateNode( const onnx::NodeProto& onnxNode, IMathEngine& mathEngine );
 
 protected:
 	// Information about output.
-	struct COutputInfo {
-		// Constructor for ONNX node output, which doesn't with any NeoML layer's output.
-		COutputInfo() : Layer( nullptr ), OutputIndex( NotFound ) {}
+	struct CNeoMLInputInfo {
+		// Constructor for onnx node output, which doesn't with any NeoML layer's output.
+		CNeoMLInputInfo() : Layer( nullptr ), OutputIndex( NotFound ) {}
 
-		// Constructor for ONNX node output, matching it with layer's outputIndex'th output.
-		COutputInfo( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
+		// Constructor for onnx node output, matching it with layer's outputIndex'th output.
+		CNeoMLInputInfo( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
 			{ CheckNeoOnnxInternal( layer != nullptr, "non empty output info with layer == nullptr" ); }
 
 		const CBaseLayer* Layer; // Used NeoML layer (nullptr if there is no layer mapped with this output)
@@ -75,16 +84,17 @@ protected:
 	};
 
 	const CNodeAttributes attributes; // Attributes of this node.
-	const int onnxOutputCount;
-	CArray<CTensor> outputData; // Node outputs.
+	CArray<CTensor> output; // Node outputs.
 	CArray<CInputInfo> input; // Node inputs.
-	CArray<COutputInfo> outputInfo;
-	const onnx::NodeProto& onnxNode; // Reference to ONNX node. Used for diagnostics.
+	CArray<CNeoMLInputInfo> neoMLInputInfo;
+	const onnx::NodeProto onnxNode; // Reference to onnx node. Used for diagnostics.
 
-	CNode( const onnx::NodeProto& node, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CNode( const onnx::NodeProto& node );
+	// special constructor for initializers, graph inputs and graph outputs
+	CNode( int inputCount, int outputCount );
 
 	// Get info about output, connected to index'th input
-	const COutputInfo& InputInfo( int index ) const;
+	const CNeoMLInputInfo& InputInfo( int index ) const;
 	const CBaseLayer& InputLayer( int index ) const;
 	int InputLayerIndex( int index ) const;
 };

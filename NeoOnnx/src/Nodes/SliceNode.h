@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CSliceNode : public CNode {
 public:
-	CSliceNode( const onnx::NodeProto& slice, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CSliceNode( const onnx::NodeProto& slice );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 

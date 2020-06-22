@@ -24,12 +24,14 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-// Shape node in ONNX graph.
+// Shape node in onnx graph.
 class CShapeNode : public CNode {
 public:
-	CShapeNode( const onnx::NodeProto& shape, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& mathEngine );
+	CShapeNode( const onnx::NodeProto& shape, IMathEngine& mathEngine );
 
-	virtual void OnnxReshape() override;
+	// CNode methods' realizations.
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override {}
 	virtual void AddLayers( CDnn& ) override {}
 

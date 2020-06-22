@@ -47,62 +47,60 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CNode::CNode( const onnx::NodeProto& _onnxNode, CMap<CString, CInputInfo>& nodeOutputs ) :
+CNode::CNode( const onnx::NodeProto& _onnxNode ) :
 	attributes( _onnxNode ),
-	onnxOutputCount( _onnxNode.output_size() ),
 	onnxNode( _onnxNode )
 {
-	input.SetBufferSize( onnxNode.input_size() );
-	for( const std::string& inputName : onnxNode.input() ) {
-		if( inputName.size() > 0 ) {
-			input.Add( nodeOutputs.Get( inputName.data() ) );
-		} else {
-			input.Add( CInputInfo( nullptr, 0 ) );
-		}
-	}
+	input.SetSize( onnxNode.input_size() );
+	output.SetSize( _onnxNode.output_size() );
+}
 
-	// Adding this onnxNode's outputs to the map of onnxNode outputs.
-	for( int outputIndex = 0; outputIndex < onnxNode.output_size(); ++outputIndex ) {
-		nodeOutputs.Add( onnxNode.output( outputIndex ).c_str(), CInputInfo( this, outputIndex ) );
-	}
+CNode::CNode( int inputCount, int outputCount )
+{
+	input.SetSize( inputCount );
+	output.SetSize( outputCount );
 }
 
 int CNode::OutputCount() const
 {
-	return onnxOutputCount;
+	return output.Size();
 }
 
 const CTensor& CNode::InputTensor( int index ) const
 {
-	CheckNeoOnnxInternal( index >= 0 && index < input.Size(),
-		"attempt to access non-existing input" );
-	CheckNeoOnnxInternal( input[index].InputNode != nullptr,
-		"attempt to acces empty input" );
-	return input[index].InputNode->outputData[input[index].OutputIndex];
+	CheckNeoOnnxInternal( index >= 0 && index < input.Size(), "attempt to access non-existing input" );
+	CheckNeoOnnxInternal( input[index].InputNode != nullptr, "attempt to acces empty input" );
+	return input[index].InputNode->output[input[index].OutputIndex];
 }
 
 CTensor& CNode::InputTensor( int index )
 {
-	CheckNeoOnnxInternal( index >= 0 && index < input.Size(),
-		"attempt to access non-existing input" );
-	CheckNeoOnnxInternal( input[index].InputNode != nullptr,
-		"attempt to acces empty input" );
-	return input[index].InputNode->outputData[input[index].OutputIndex];
+	CheckNeoOnnxInternal( index >= 0 && index < input.Size(), "attempt to access non-existing input" );
+	CheckNeoOnnxInternal( input[index].InputNode != nullptr, "attempt to acces empty input" );
+	return input[index].InputNode->output[input[index].OutputIndex];
 }
 
-const CNode::COutputInfo& CNode::InputInfo( int index ) const
+void CNode::SetInput( int index, const CNode::CInputInfo& inputInfo )
 {
-	CheckNeoOnnxInternal( index >= 0 && index < input.Size(),
-		"attempt to access non-existing input" );
-	CheckNeoOnnxInternal( input[index].InputNode != nullptr,
-		"attempt to access empty input" );
+	CheckNeoOnnxInternal( index >= 0 && index < input.Size(), "attempt to set non-existing input" );
+	CheckNeoOnnxInternal( input[index].InputNode == nullptr && input[index].OutputIndex == NotFound,
+		"attempt to set already-defined input" );
+	CheckNeoOnnxInternal( inputInfo.InputNode != nullptr, "attempt to set an input to nullptr" );
+	CheckNeoOnnxInternal( inputInfo.OutputIndex >= 0, "attempt to set an input with incorrect index" );
+	input[index] = inputInfo;
+}
+
+const CNode::CNeoMLInputInfo& CNode::InputInfo( int index ) const
+{
+	CheckNeoOnnxInternal( index >= 0 && index < input.Size(), "attempt to access non-existing input" );
+	CheckNeoOnnxInternal( input[index].InputNode != nullptr, "attempt to acces empty input" );
 	const CNode& inputNode = *input[index].InputNode;
 	const int inputNodeOutputIndex = input[index].OutputIndex;
 
-	NeoAssert( inputNode.outputInfo.Size() == inputNode.outputData.Size() );
-	NeoAssert( inputNodeOutputIndex >= 0 && inputNodeOutputIndex < inputNode.outputData.Size() );
-	NeoAssert( inputNode.outputInfo[inputNodeOutputIndex].Layer != nullptr );
-	return inputNode.outputInfo[inputNodeOutputIndex];
+	NeoAssert( inputNode.neoMLInputInfo.Size() == inputNode.output.Size() );
+	NeoAssert( inputNodeOutputIndex >= 0 && inputNodeOutputIndex < inputNode.output.Size() );
+	NeoAssert( inputNode.neoMLInputInfo[inputNodeOutputIndex].Layer != nullptr );
+	return inputNode.neoMLInputInfo[inputNodeOutputIndex];
 }
 
 const CBaseLayer& CNode::InputLayer( int index ) const
@@ -115,50 +113,50 @@ int CNode::InputLayerIndex( int index ) const
 	return InputInfo( index ).OutputIndex;
 }
 
-CNode* CNode::CreateNode( const onnx::NodeProto& onnxNode, CMap<CString, CNode::CInputInfo>& nodeOutputs, IMathEngine& mathEngine )
+CNode* CNode::CreateNode( const onnx::NodeProto& onnxNode, IMathEngine& mathEngine )
 {
 	if( onnxNode.op_type() == "Add" ) {
-		return new CAddNode( onnxNode, nodeOutputs );
+		return new CAddNode( onnxNode );
 	} else if( onnxNode.op_type() == "AveragePool" ) {
-		return new CAveragePoolNode( onnxNode, nodeOutputs );
+		return new CAveragePoolNode( onnxNode );
 	} else if( onnxNode.op_type() == "BatchNormalization" ) {
-		return new CBatchNormalizationNode( onnxNode, nodeOutputs );
+		return new CBatchNormalizationNode( onnxNode );
 	} else if( onnxNode.op_type() == "Clip" ) {
-		return new CClipNode( onnxNode, nodeOutputs );
+		return new CClipNode( onnxNode );
 	} else if( onnxNode.op_type() == "Concat" ) {
-		return new CConcatNode( onnxNode, nodeOutputs );
+		return new CConcatNode( onnxNode );
 	} else if( onnxNode.op_type() == "Constant" ) {
-		return new CConstantNode( onnxNode, nodeOutputs, mathEngine );
+		return new CConstantNode( onnxNode, mathEngine );
 	} else if( onnxNode.op_type() == "ConstantOfShape" ) {
-		return new CConstantOfShapeNode( onnxNode, nodeOutputs );
+		return new CConstantOfShapeNode( onnxNode );
 	} else if( onnxNode.op_type() == "Conv" ) {
-		return new CConvNode( onnxNode, nodeOutputs );
+		return new CConvNode( onnxNode );
 	} else if( onnxNode.op_type() == "Flatten" ) {
-		return new CFlattenNode( onnxNode, nodeOutputs );
+		return new CFlattenNode( onnxNode );
 	} else if( onnxNode.op_type() == "Gather" ) {
-		return new CGatherNode( onnxNode, nodeOutputs );
+		return new CGatherNode( onnxNode );
 	} else if( onnxNode.op_type() == "Gemm" ) {
-		return new CGemmNode( onnxNode, nodeOutputs );
+		return new CGemmNode( onnxNode );
 	} else if( onnxNode.op_type() == "GlobalAveragePool" ) {
-		return new CGlobalAveragePoolNode( onnxNode, nodeOutputs );
+		return new CGlobalAveragePoolNode( onnxNode );
 	} else if( onnxNode.op_type() == "LSTM" ) {
-		return new CLstmNode( onnxNode, nodeOutputs );
+		return new CLstmNode( onnxNode );
 	} else if( onnxNode.op_type() == "MaxPool" ) {
-		return new CMaxPoolNode( onnxNode, nodeOutputs );
+		return new CMaxPoolNode( onnxNode );
 	} else if( onnxNode.op_type() == "ReduceMean" ) {
-		return new CReduceMeanNode( onnxNode, nodeOutputs );
+		return new CReduceMeanNode( onnxNode );
 	} else if( onnxNode.op_type() == "Relu" ) {
-		return new CReluNode( onnxNode, nodeOutputs );
+		return new CReluNode( onnxNode );
 	} else if( onnxNode.op_type() == "Shape" ) {
-		return new CShapeNode( onnxNode, nodeOutputs, mathEngine );
+		return new CShapeNode( onnxNode, mathEngine );
 	} else if( onnxNode.op_type() == "Slice" ) {
-		return new CSliceNode( onnxNode, nodeOutputs );
+		return new CSliceNode( onnxNode );
 	} else if( onnxNode.op_type() == "Squeeze" ) {
-		return new CSqueezeNode( onnxNode, nodeOutputs );
+		return new CSqueezeNode( onnxNode );
 	} else if( onnxNode.op_type() == "Tanh" ) {
-		return new CTanhNode( onnxNode, nodeOutputs );
+		return new CTanhNode( onnxNode );
 	} else if( onnxNode.op_type() == "Unsqueeze" ) {
-		return new CUnsqueezeNode( onnxNode, nodeOutputs );
+		return new CUnsqueezeNode( onnxNode );
 	}
 
 	CheckNeoOnnxSupport( false, CString( "operator " ) + onnxNode.op_type().c_str() );

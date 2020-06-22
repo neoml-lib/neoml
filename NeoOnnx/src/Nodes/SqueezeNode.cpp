@@ -23,8 +23,8 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CSqueezeNode::CSqueezeNode( const onnx::NodeProto& squeeze, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( squeeze, nodeOutputs )
+CSqueezeNode::CSqueezeNode( const onnx::NodeProto& squeeze ) :
+	CNode( squeeze )
 {
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", squeeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", squeeze );
@@ -32,12 +32,12 @@ CSqueezeNode::CSqueezeNode( const onnx::NodeProto& squeeze, CMap<CString, CInput
 	attributes.GetRequiredIntArray( "axes", axes );
 }
 
-void CSqueezeNode::OnnxReshape()
+void CSqueezeNode::CalcOutputShape()
 {
-	const CTensorShape& inputShape = InputTensor( 0 ).GetShape();
-
-	CTensorShape outputShape;
+	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
+	CTensorShape& outputShape = output[0].Shape;
 	outputShape.SetBufferSize( inputShape.Size() - axes.Size() );
+	
 	int axisIndex = 0;
 	for( int i = 0; i < inputShape.Size(); ++i ) {
 		if( axisIndex < axes.Size() && i == axes[axisIndex] ) {
@@ -47,18 +47,20 @@ void CSqueezeNode::OnnxReshape()
 			outputShape.Add( inputShape[i] );
 		}
 	}
+}
 
-	CDnnBlob* outputBlob = InputTensor( 0 ).GetType() == TT_ConstantTensor ? InputTensor( 0 ).GetData() : nullptr;
-	outputData.Add( CTensor( InputTensor( 0 ).GetType(), outputShape, outputBlob ) );
+void CSqueezeNode::CalcOutputData()
+{
+	output[0].Data = InputTensor( 0 ).Data;
 }
 
 void CSqueezeNode::MarkTensorDims()
 {
-	if( outputData[0].GetType() == TT_ConstantTensor ) {
+	if( output[0].Data != nullptr ) {
 		return;
 	}
 
-	const CTensorDim& inputDim = InputTensor( 0 ).GetTensorDim();
+	const CTensorDim& inputDim = InputTensor( 0 ).Dim;
 
 	CTensorDim outputDim;
 	int axisIndex = 0;
@@ -70,16 +72,16 @@ void CSqueezeNode::MarkTensorDims()
 		}
 	}
 
-	CheckNeoOnnxInternal( outputData[0].SetTensorDim( outputDim ), "marking output dimensions failed", onnxNode );
+	CheckNeoOnnxInternal( output[0].SetTensorDim( outputDim ), "marking output dimensions failed", onnxNode );
 }
 
 void CSqueezeNode::AddLayers( CDnn& )
 {
-	if( outputData[0].GetType() == TT_ConstantTensor ) {
+	if( output[0].Data != nullptr ) {
 		return;
 	}
 
-	outputInfo.Add( InputInfo( 0 ) );
+	neoMLInputInfo.Add( InputInfo( 0 ) );
 }
 
 } // namespace NeoOnnx

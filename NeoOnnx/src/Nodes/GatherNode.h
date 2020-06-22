@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CGatherNode : public CNode {
 public:
-	CGatherNode( const onnx::NodeProto& gather, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CGatherNode( const onnx::NodeProto& gather );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override {}
 	virtual void AddLayers( CDnn& ) override {}
 };

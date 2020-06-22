@@ -23,29 +23,33 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CReluNode::CReluNode( const onnx::NodeProto& relu, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( relu, nodeOutputs )
+CReluNode::CReluNode( const onnx::NodeProto& relu ) :
+	CNode( relu )
 {
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", relu );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", relu );
 }
 
-void CReluNode::OnnxReshape()
+void CReluNode::CalcOutputShape()
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_DataTensor, "constant input", onnxNode );
+	InputTensor( 0 ).Shape.CopyTo( output[0].Shape );
+}
 
-	outputData.Add( InputTensor( 0 ) );
+void CReluNode::CalcOutputData()
+{
+	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The output[0].Data was already set to nullptr in default constructor.
 }
 
 void CReluNode::MarkTensorDims()
 {
-	if( !InputTensor( 0 ).GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( outputData[0].SetTensorDim( InputTensor( 0 ).GetTensorDim() ),
+	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
+		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !outputData[0].GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( outputData[0].GetTensorDim() ),
+	if( !output[0].Dim.IsEmpty() ) {
+		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
@@ -59,7 +63,7 @@ void CReluNode::AddLayers( CDnn& dnn )
 	
 	dnn.AddLayer( *relu );
 
-	outputInfo.Add( COutputInfo( relu, 0 ) );
+	neoMLInputInfo.Add( CNeoMLInputInfo( relu, 0 ) );
 }
 
 } // namespace NeoOnnx

@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CConstantOfShapeNode : public CNode {
 public:
-	CConstantOfShapeNode( const onnx::NodeProto& constantOfShape, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CConstantOfShapeNode( const onnx::NodeProto& constantOfShape );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override {}
 	virtual void AddLayers( CDnn& ) override {}
 };

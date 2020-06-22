@@ -21,12 +21,13 @@ namespace NeoOnnx {
 
 class CGraphInitializer : public CNode {
 public:
-	CGraphInitializer( const onnx::TensorProto& initializer, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& mathEngine );
+	CGraphInitializer( const onnx::TensorProto& initializer, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override {}
-	virtual void AddLayers( CDnn& ) override { outputInfo.Add( COutputInfo() ); }
+	virtual void AddLayers( CDnn& ) override { neoMLInputInfo.Add( CNeoMLInputInfo() ); }
 
 private:
 	IMathEngine& mathEngine;

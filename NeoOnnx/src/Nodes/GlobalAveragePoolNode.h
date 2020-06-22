@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CGlobalAveragePoolNode : public CNode {
 public:
-	CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 

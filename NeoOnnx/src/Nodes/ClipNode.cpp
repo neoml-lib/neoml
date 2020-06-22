@@ -23,8 +23,8 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CClipNode::CClipNode( const onnx::NodeProto& clip, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( clip, nodeOutputs ),
+CClipNode::CClipNode( const onnx::NodeProto& clip ) :
+	CNode( clip ),
 	minValue( attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
 	maxValue( attributes.GetOptionalFloat( "max", FLT_MAX ) )
 {
@@ -32,23 +32,25 @@ CClipNode::CClipNode( const onnx::NodeProto& clip, CMap<CString, CInputInfo>& no
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", clip );
 }
 
-void CClipNode::OnnxReshape()
+void CClipNode::CalcOutputShape()
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_DataTensor, "constant input", onnxNode );
+	InputTensor( 0 ).Shape.CopyTo( output[0].Shape );
+}
 
-	outputData.Add( InputTensor( 0 ) );
+void CClipNode::CalcOutputData()
+{
+	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The output[0].Data was already set to nullptr in default constructor.
 }
 
 void CClipNode::MarkTensorDims()
 {
-	if( !InputTensor( 0 ).GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( outputData[0].SetTensorDim( InputTensor( 0 ).GetTensorDim() ),
-			"marking output dimensions failed", onnxNode );
+	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
+		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ), "marking output dimensions failed", onnxNode );
 	}
 
-	if( !outputData[0].GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( outputData[0].GetTensorDim() ),
-			"marking input dimensions failed", onnxNode );
+	if( !output[0].Dim.IsEmpty() ) {
+		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ), "marking input dimensions failed", onnxNode );
 	}
 }
 
@@ -66,7 +68,7 @@ void CClipNode::AddLayers( CDnn& dnn )
 	relu->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
 	dnn.AddLayer( *relu );
 
-	outputInfo.Add( COutputInfo( relu, 0 ) );
+	neoMLInputInfo.Add( CNeoMLInputInfo( relu, 0 ) );
 }
 
 } // namespace NeoOnnx

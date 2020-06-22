@@ -23,42 +23,40 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CConstantOfShapeNode::CConstantOfShapeNode( const onnx::NodeProto& constantOfShape, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( constantOfShape, nodeOutputs )
+CConstantOfShapeNode::CConstantOfShapeNode( const onnx::NodeProto& constantOfShape ) :
+	CNode( constantOfShape )
 {
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", constantOfShape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constantOfShape );
 }
 
-void CConstantOfShapeNode::OnnxReshape()
+void CConstantOfShapeNode::CalcOutputShape()
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_ConstantTensor,
-		"non-constant input tensor", onnxNode );
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetData()->GetDataType() == CT_Int,
-		"non-integer input tensor", onnxNode );
+	CheckNeoOnnxSupport( InputTensor( 0 ).Data != nullptr, "non-constant input tensor", onnxNode );
+	CheckNeoOnnxSupport( InputTensor( 0 ).Data->GetDataType() == CT_Int, "non-integer input tensor", onnxNode );
 
-	IMathEngine& mathEngine = InputTensor( 0 ).GetData()->GetMathEngine();
+	output[0].Shape.SetSize( InputTensor( 0 ).Data->GetDataSize() );
+	InputTensor( 0 ).Data->CopyTo( output[0].Shape.GetPtr() );
+}
+
+void CConstantOfShapeNode::CalcOutputData()
+{
+	IMathEngine& mathEngine = InputTensor( 0 ).Data->GetMathEngine();
 	CPtr<CDnnBlob> value = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	value->Clear();
 	attributes.GetOptionalTensor( "value", *value );
 
 	CBlobDesc outputBlobDesc( value->GetDataType() );
-	CTensorShape outputShape;
-	outputShape.SetSize( InputTensor( 0 ).GetData()->GetDataSize() );
-	InputTensor( 0 ).GetData()->CopyTo( outputShape.GetPtr() );
-
-	for( int dimIndex = 0; dimIndex < outputShape.Size(); ++dimIndex ) {
-		outputBlobDesc.SetDimSize( dimIndex, outputShape[dimIndex] );
+	for( int dimIndex = 0; dimIndex < output[0].Shape.Size(); ++dimIndex ) {
+		outputBlobDesc.SetDimSize( dimIndex, output[0].Shape[dimIndex] );
 	}
 
-	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( mathEngine, value->GetDataType(), outputBlobDesc );
-	if( outputBlob->GetDataType() == CT_Float ) {
-		outputBlob->Fill( value->GetData().GetValue() );
+	output[0].Data = CDnnBlob::CreateBlob( mathEngine, value->GetDataType(), outputBlobDesc );
+	if( output[0].Data->GetDataType() == CT_Float ) {
+		output[0].Data->Fill( value->GetData().GetValue() );
 	} else {
-		outputBlob->Fill<int>( value->GetData<int>().GetValue() );
+		output[0].Data->Fill<int>( value->GetData<int>().GetValue() );
 	}
-
-	outputData.Add( CTensor( TT_ConstantTensor, outputShape, outputBlob.Ptr() ) );
 }
 
 } // namespace NeoOnnx

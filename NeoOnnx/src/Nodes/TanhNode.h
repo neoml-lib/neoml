@@ -21,10 +21,11 @@ namespace NeoOnnx {
 
 class CTanhNode : public CNode {
 public:
-	explicit CTanhNode( const onnx::NodeProto& node, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CTanhNode( const onnx::NodeProto& node );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 };

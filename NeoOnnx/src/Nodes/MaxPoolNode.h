@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CMaxPoolNode : public CNode {
 public:
-	CMaxPoolNode( const onnx::NodeProto& maxPool, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CMaxPoolNode( const onnx::NodeProto& maxPool );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 

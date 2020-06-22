@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CLstmNode : public CNode {
 public:
-	CLstmNode( const onnx::NodeProto& lstm, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CLstmNode( const onnx::NodeProto& lstm );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 

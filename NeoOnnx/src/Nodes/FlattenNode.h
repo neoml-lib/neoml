@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CFlattenNode : public CNode {
 public:
-	CFlattenNode( const onnx::NodeProto& flatten, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CFlattenNode( const onnx::NodeProto& flatten );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 

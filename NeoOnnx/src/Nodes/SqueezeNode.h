@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CSqueezeNode : public CNode {
 public:
-	CSqueezeNode( const onnx::NodeProto& squeeze, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CSqueezeNode( const onnx::NodeProto& squeeze );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 

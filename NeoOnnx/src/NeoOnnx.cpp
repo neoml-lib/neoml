@@ -64,13 +64,14 @@ void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn )
 	onnx::ModelProto model;
 
 	std::string strBuffer( static_cast<const char*>( buffer ), bufferSize );
-	
-	if( !model.ParseFromString( strBuffer ) ) {
-		NeoOnnxCheck( false, "Failed to parse model from buffer" );
-	}
 
 	try {
+		if( !model.ParseFromString( strBuffer ) ) {
+			NeoOnnxCheck( false, "Failed to parse model from buffer" );
+		}
+
 		NeoOnnx::CDnnBuilder dnnBuilder;
+		CheckNeoOnnxSupport( model.ir_version() == 9, "NeoOnnx only supports 9th version" );
 		dnnBuilder.BuildDnn( model.graph(), dnn );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();

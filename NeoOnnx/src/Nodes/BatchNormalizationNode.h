@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CBatchNormalizationNode : public CNode {
 public:
-	CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CBatchNormalizationNode( const onnx::NodeProto& batchNormalization );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 

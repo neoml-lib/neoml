@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CReduceMeanNode : public CNode {
 public:
-	CReduceMeanNode( const onnx::NodeProto& reduceMean, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CReduceMeanNode( const onnx::NodeProto& reduceMean );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 

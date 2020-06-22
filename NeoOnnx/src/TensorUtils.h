@@ -21,7 +21,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Gets NeoML blob type from ONNX tensor's data type.
+// Gets NeoML blob type from onnx tensor's data type.
 inline TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
 {
 	switch( onnxDataType ) {

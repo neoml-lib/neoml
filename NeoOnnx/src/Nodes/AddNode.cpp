@@ -23,57 +23,55 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CAddNode::CAddNode( const onnx::NodeProto& add, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( add, nodeOutputs )
+CAddNode::CAddNode( const onnx::NodeProto& add ) :
+	CNode( add )
 {
 	CheckOnnxProtocol( input.Size() == 2, "node must have 2 inputs", add );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", add );
 }
 
-void CAddNode::OnnxReshape()
+void CAddNode::CalcOutputShape()
 {
-	CTensorShape outputShape;
-	TTensorType outputDataType = TT_ConstantTensor;
+	bool canBeCalculated = true;
 
-	for( int inputIndex = 0; inputIndex < 2; ++inputIndex ) {
-		const CTensor& inputTensor = InputTensor( inputIndex );
+	for( int inputIndex = 0; inputIndex < input.Size(); ++inputIndex ) {
+		canBeCalculated = canBeCalculated && ( InputTensor( inputIndex ).Data != nullptr );
+	}
+
+	if( canBeCalculated ) {
+		output[0].Data = InputTensor( 0 ).Data->GetCopy();
+		output[0].Data->Add( InputTensor( 1 ).Data );
+	}
+}
+
+void CAddNode::CalcOutputData()
+{
+	CTensorShape& outputShape = output[0].Shape;
+
+	for( int inputIndex = 0; inputIndex < input.Size(); ++inputIndex ) {
+		const CTensorShape& inputShape = InputTensor( inputIndex ).Shape;
 
 		if( outputShape.IsEmpty() ) {
-			inputTensor.GetShape().CopyTo( outputShape );
+			inputShape.CopyTo( outputShape );
 		} else {
 			// NeoML doesn't support numpy-style tensor broadcasting...
-			CheckNeoOnnxSupport( outputShape.Size() == inputTensor.GetShape().Size(),
-				"tensor broadcasting", onnxNode );
-			for( int i = 0; i < inputTensor.GetShape().Size(); ++i ) {
-				CheckNeoOnnxSupport( outputShape[i] == inputTensor.GetShape()[i],
-					"tensor broadcasting", onnxNode );
+			CheckNeoOnnxSupport( outputShape.Size() == inputShape.Size(), "tensor broadcasting", onnxNode );
+			for( int i = 0; i < inputShape.Size(); ++i ) {
+				CheckNeoOnnxSupport( outputShape[i] == inputShape[i], "tensor broadcasting", onnxNode );
 			}
 		}
-
-		if( inputTensor.GetType() == TT_DataTensor ) {
-			outputDataType = TT_DataTensor;
-		}
 	}
-
-	CPtr<CDnnBlob> outputBlob( nullptr );
-	if( outputDataType == TT_ConstantTensor ) {
-		// Precalculating the result.
-		outputBlob = InputTensor( 0 ).GetData()->GetCopy();
-		outputBlob->Add( InputTensor( 1 ).GetData() );
-	}
-	
-	outputData.Add( CTensor( outputDataType, outputShape, outputBlob ) );
 }
 
 void CAddNode::MarkTensorDims()
 {
-	if( !InputTensor( 0 ).GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( outputData[0].SetTensorDim( InputTensor( 0 ).GetTensorDim() ),
+	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
+		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !outputData[0].GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( outputData[0].GetTensorDim() ),
+	if( !output[0].Dim.IsEmpty() ) {
+		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ), 
 			"marking input dimensions failed", onnxNode );
 	}
 }
@@ -90,7 +88,7 @@ void CAddNode::AddLayers( CDnn& dnn )
 
 	dnn.AddLayer( *addLayer );
 
-	outputInfo.Add( COutputInfo( addLayer, 0 ) );
+	neoMLInputInfo.Add( CNeoMLInputInfo( addLayer, 0 ) );
 }
 
 } // namespace NeoOnnx

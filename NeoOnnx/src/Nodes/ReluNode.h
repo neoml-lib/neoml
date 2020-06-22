@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CReluNode : public CNode {
 public:
-	CReluNode( const onnx::NodeProto& relu, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CReluNode( const onnx::NodeProto& relu );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 };

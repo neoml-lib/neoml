@@ -40,7 +40,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/TanhNode.cpp
     Nodes/UnsqueezeNode.cpp
     NodeUtils.cpp
-    Tensor.cpp
 
     ${PROTO_HDRS}
     ../include/NeoOnnx/NeoOnnx.h

@@ -22,30 +22,34 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGlobalAveragePoolNode::CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( globalAveragePool, nodeOutputs )
+CGlobalAveragePoolNode::CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool ) :
+	CNode( globalAveragePool )
 {
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", globalAveragePool );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", globalAveragePool );
 }
 
-void CGlobalAveragePoolNode::OnnxReshape()
+void CGlobalAveragePoolNode::CalcOutputShape()
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_DataTensor, "constant input", onnxNode );
-	const CTensorShape& inputShape = InputTensor( 0 ).GetShape();
+	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
 	CheckOnnxProtocol( inputShape.Size() >= 2, "node's input must have at least 2 dimensions", onnxNode );
 
-	CTensorShape outputShape( { inputShape[0], inputShape[1] } );
-	outputData.Add( CTensor( TT_DataTensor, outputShape ) );
+	output[0].Shape = { inputShape[0], inputShape[1] };
+}
+
+void CGlobalAveragePoolNode::CalcOutputData()
+{
+	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The output[0].Data was already set to nullptr in default constructor.
 }
 
 void CGlobalAveragePoolNode::MarkTensorDims()
 {
-	const CTensorDim& inputDim = InputTensor( 0 ).GetTensorDim();
-	CheckNeoOnnxInternal( inputDim.Size() == InputTensor( 0 ).GetShape().Size(),
+	const CTensorDim& inputDim = InputTensor( 0 ).Dim;
+	CheckNeoOnnxInternal( inputDim.Size() == InputTensor( 0 ).Shape.Size(),
 		"input's dimensions must be marked", onnxNode );
 
-	CheckNeoOnnxInternal( outputData[0].SetTensorDim( { inputDim[0], inputDim[1] } ),
+	CheckNeoOnnxInternal( output[0].SetTensorDim( { inputDim[0], inputDim[1] } ),
 		"marking output dimensions failed", onnxNode );
 }
 
@@ -54,7 +58,7 @@ static const int pool2dDims = ( 1 << static_cast<int>( BD_Height ) ) | ( 1 << st
 void CGlobalAveragePoolNode::AddLayers( CDnn& dnn )
 {
 	int pooledDims = 0;
-	const CTensorDim& inputDim = InputTensor( 0 ).GetTensorDim();
+	const CTensorDim& inputDim = InputTensor( 0 ).Dim;
 
 	for( int dimIndex = 2; dimIndex < inputDim.Size(); ++dimIndex ) {
 		pooledDims |= ( 1 << static_cast<int>( inputDim[dimIndex] ) );
@@ -70,7 +74,7 @@ void CGlobalAveragePoolNode::add2dPoolingLayer( CDnn& dnn, int pooledDims )
 {
 	CPtr<CMeanPoolingLayer> poolingLayer = new CMeanPoolingLayer( dnn.GetMathEngine() );
 	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
-	const CTensorDim& inputDim = InputTensor( 0 ).GetTensorDim();
+	const CTensorDim& inputDim = InputTensor( 0 ).Dim;
 
 	// Making it global.
 	for( int dimIndex = 2; dimIndex < inputDim.Size(); ++dimIndex ) {
@@ -78,15 +82,15 @@ void CGlobalAveragePoolNode::add2dPoolingLayer( CDnn& dnn, int pooledDims )
 		const bool isDimPooled = ( ( ( 1 << static_cast<int>( dim ) ) & pooledDims ) != 0 );
 		switch( dim ) {
 			case BD_Height:
-				poolingLayer->SetFilterHeight( isDimPooled ? InputTensor( 0 ).GetShape()[dimIndex] : 1 );
+				poolingLayer->SetFilterHeight( isDimPooled ? InputTensor( 0 ).Shape[dimIndex] : 1 );
 				poolingLayer->SetStrideHeight( 1 );
 				break;
 			case BD_Width:
-				poolingLayer->SetFilterWidth( isDimPooled ? InputTensor( 0 ).GetShape()[dimIndex] : 1 );
+				poolingLayer->SetFilterWidth( isDimPooled ? InputTensor( 0 ).Shape[dimIndex] : 1 );
 				poolingLayer->SetStrideWidth( 1 );
 				break;
 			default:
-				CheckNeoOnnxInternal( false, "dimension " + Str( dim ) + " cannot be pooled",
+				CheckNeoOnnxInternal( false, "dimension " + Str( dim ) + " can not be pooled",
 					onnxNode );
 		}
 	}
@@ -94,7 +98,7 @@ void CGlobalAveragePoolNode::add2dPoolingLayer( CDnn& dnn, int pooledDims )
 	poolingLayer->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
 	dnn.AddLayer( *poolingLayer );
 
-	outputInfo.Add( COutputInfo( poolingLayer, 0 ) );
+	neoMLInputInfo.Add( CNeoMLInputInfo( poolingLayer, 0 ) );
 }
 
 } // namespace NeoOnnx

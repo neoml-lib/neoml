@@ -23,8 +23,8 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CUnsqueezeNode::CUnsqueezeNode( const onnx::NodeProto& unsqueeze, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( unsqueeze, nodeOutputs )
+CUnsqueezeNode::CUnsqueezeNode( const onnx::NodeProto& unsqueeze ) :
+	CNode( unsqueeze )
 {
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", unsqueeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", unsqueeze );
@@ -32,11 +32,11 @@ CUnsqueezeNode::CUnsqueezeNode( const onnx::NodeProto& unsqueeze, CMap<CString, 
 	attributes.GetRequiredIntArray( "axes", axes );
 }
 
-void CUnsqueezeNode::OnnxReshape()
+void CUnsqueezeNode::CalcOutputShape()
 {
-	const CTensorShape& inputShape = InputTensor( 0 ).GetShape();
+	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
 
-	CTensorShape outputShape;
+	CTensorShape& outputShape = output[0].Shape;
 	outputShape.SetSize( inputShape.Size() + axes.Size() );
 	int axisIndex = 0;
 	for( int i = 0; i < outputShape.Size(); ++i ) {
@@ -47,18 +47,20 @@ void CUnsqueezeNode::OnnxReshape()
 			outputShape[i] = inputShape[i - axisIndex];
 		}
 	}
+}
 
-	CDnnBlob* outputBlob = InputTensor( 0 ).GetType() == TT_ConstantTensor ? InputTensor( 0 ).GetData() : nullptr;
-	outputData.Add( CTensor( InputTensor( 0 ).GetType(), outputShape, outputBlob ) );
+void CUnsqueezeNode::CalcOutputData()
+{
+	output[0].Data = InputTensor( 0 ).Data;
 }
 
 void CUnsqueezeNode::MarkTensorDims()
 {
-	if( outputData[0].GetType() == TT_ConstantTensor ) {
+	if( output[0].Data != nullptr ) {
 		return;
 	}
 
-	const CTensorDim& outputDim = outputData[0].GetTensorDim();
+	const CTensorDim& outputDim = output[0].Dim;
 
 	if( outputDim.IsEmpty() ) {
 		return;
@@ -80,11 +82,11 @@ void CUnsqueezeNode::MarkTensorDims()
 
 void CUnsqueezeNode::AddLayers( CDnn& )
 {
-	if( outputData[0].GetType() == TT_ConstantTensor ) {
+	if( output[0].Data != nullptr ) {
 		return;
 	}
 
-	outputInfo.Add( InputInfo( 0 ) );
+	neoMLInputInfo.Add( InputInfo( 0 ) );
 }
 
 } // namespace NeoOnnx

@@ -25,6 +25,7 @@ namespace NeoOnnx {
 
 class CNodeAttributes {
 public:
+	CNodeAttributes() {}
 	explicit CNodeAttributes( const onnx::NodeProto& node );
 
 	int GetOptionalInt( const CString& name, int defaultValue ) const;

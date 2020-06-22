@@ -23,19 +23,25 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CConstantNode::CConstantNode( const onnx::NodeProto& constant, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& mathEngine ) :
-	CNode( constant, nodeOutputs ),
+CConstantNode::CConstantNode( const onnx::NodeProto& constant, IMathEngine& mathEngine ) :
+	CNode( constant ),
 	value( attributes.GetRequiredTensor( "value", mathEngine ) )
 {
 	CheckOnnxProtocol( input.Size() == 0, "node must have no inputs", constant );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constant );
 	
+	// TODO: add other values support?
 	CheckNeoOnnxSupport( value->GetDataSize() == 1, "'value' must be tensor of size 1", constant );
 }
 
-void CConstantNode::OnnxReshape()
+void CConstantNode::CalcOutputShape()
 {
-	outputData.Add( CTensor( TT_ConstantTensor, { 1 }, value ) );
+	output[0].Shape = { 1 };
+}
+
+void CConstantNode::CalcOutputData()
+{
+	output[0].Data = value;
 }
 
 } // namespace NeoOnnx

@@ -26,10 +26,11 @@ namespace NeoOnnx {
 
 class CAddNode : public CNode {
 public:
-	CAddNode( const onnx::NodeProto& add, CMap<CString, CInputInfo>& nodeOutputs );
+	explicit CAddNode( const onnx::NodeProto& add );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
+	virtual void CalcOutputShape() override;
+	virtual void CalcOutputData() override;
 	virtual void MarkTensorDims() override;
 	virtual void AddLayers( CDnn& dnn ) override;
 };

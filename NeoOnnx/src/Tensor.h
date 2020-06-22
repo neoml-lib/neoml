@@ -17,52 +17,81 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Forward declaration(s).
-class CGraph;
-
-// Type of data of node input in an ONNX graph.
-enum TTensorType {
-	TT_ConstantTensor, // tensor with values independent of graph inputs
-	TT_DataTensor, // tensor with values dependent on graph inputs
-
-	TT_Count
-};
-
-// Match between ONNX tensor axes and NeoML dimensions.
-typedef CFastArray<TBlobDim, 8> CTensorDim;
-
 // Tensor shape (in onnx notation).
 typedef CFastArray<int, 8> CTensorShape;
 
-// ONNX tensor.
-class CTensor {
-public:
-	explicit CTensor( TTensorType type, const CTensorShape& shape = {}, CDnnBlob* data = nullptr );
+// Match between onnx tensor axes and NeoML dimensions.
+typedef CFastArray<TBlobDim, 8> CTensorDim;
+
+// Tensor in onnx graph.
+struct CTensor {
+	// Shape in onnx. Has variable amount of dimensions.
+	CTensorShape Shape;
+
+	// NeoML dimensions of tensor.
+	CTensorDim Dim;
+
+	// Tensor data.
+	// nullptr if data can't be pre-calcualated (it depends on data, provided by user).
+	// It's stored in order of onnx dimensions (independent of its NeoML names).
+	CPtr<CDnnBlob> Data;
+
+	CTensor() : Data( nullptr ) {}
 	CTensor( const CTensor& other );
-	CTensor() = default;
-
-	// Type of node input.
-	TTensorType GetType() const { return type; }
-
-	// Shape of node input. Available only if data type is shape or tensor.
-	const CTensorShape& GetShape() const;
-
-	// Data of node input. Available only if data type in constant tensor.
-	const CDnnBlob* GetData() const;
-	CDnnBlob* GetData();
+	CTensor& operator=( const CTensor& other );
 
 	// Sets NeoML dimensions of the tensor.
 	// Returns true if there is no conflicts.
 	bool SetTensorDim( const CTensorDim& supposedDim );
-
-	// Gets NeoML dimensions of the tensor.
-	const CTensorDim& GetTensorDim() const { return tensorDim; }
-
-private:
-	TTensorType type; // tensor type.
-	CTensorShape shape; // tensor shape.
-	CTensorDim tensorDim; // tensor NeoML dimension.
-	CPtr<CDnnBlob> data; // tensor data (if can be calculated).
 };
+
+// --------------------------------------------------------------------------------------------------------------------
+
+inline CTensor::CTensor( const CTensor& other ) :
+	Data( other.Data )
+{
+	other.Shape.CopyTo( Shape );
+	other.Dim.CopyTo( Dim );
+}
+
+inline CTensor& CTensor::operator=( const CTensor &other )
+{
+	if( this != &other ) {
+		Data = other.Data;
+		other.Shape.CopyTo( Shape );
+		other.Dim.CopyTo( Dim );
+	}
+
+	return *this;
+}
+
+inline bool CTensor::SetTensorDim( const CTensorDim& supposedDim )
+{
+	if( Dim.IsEmpty() ) {
+		if( supposedDim.Size() == Shape.Size() ) {
+			// It's the first request for a match.
+			// And the number of dimensions is matching with the shape.
+			supposedDim.CopyTo( Dim );
+			return true;
+		}
+		// Dimensions number mismatch...
+		return false;
+	}
+
+	if( supposedDim.Size() != Dim.Size() ) {
+		// Dimensions number mismatch...
+		return false;
+	}
+
+	for( int dimIndex = 0; dimIndex < supposedDim.Size(); ++dimIndex ) {
+		if( Dim[dimIndex] != supposedDim[dimIndex] ) {
+			// Supposed dimensions doesn't match with previously set one.
+			return false;
+		}
+	}
+
+	// Number of dimensions and their values match.
+	return true;
+}
 
 } // namespace NeoOnnx
