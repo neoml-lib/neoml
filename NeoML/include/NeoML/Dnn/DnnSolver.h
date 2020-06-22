@@ -108,7 +108,7 @@ public:
 	void SetCompatibilityMode( bool compatibilityMode ) { isInCompatibilityMode = compatibilityMode; }
 
 protected:
-	virtual void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs, 
+	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs, 
 		const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory ) override;
 
 private:
