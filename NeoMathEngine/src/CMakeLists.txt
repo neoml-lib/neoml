@@ -337,7 +337,7 @@ endif()
 if(NOT ANDROID AND NOT IOS)
 
     if(USE_FINE_OBJECTS)
-        set(ENV{MKLROOT} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})
+        set(ENV{MKLROOT_FO} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})
     endif()
 
     set(MKL_USE_STATIC_LIBS ON)

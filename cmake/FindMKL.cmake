@@ -25,6 +25,7 @@ find_path(MKL_INCLUDE_DIR
         mkl_cblas.h
     PATHS
         $ENV{MKLROOT}
+        $ENV{MKLROOT_FO}
         /opt/intel
         /opt/intel/mkl
     PATH_SUFFIXES
