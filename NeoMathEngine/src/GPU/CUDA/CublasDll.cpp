@@ -26,12 +26,18 @@ namespace NeoML {
 
 // Macros for function loading
 #define LOAD_FUNC(Type, Var, NameStr) if((Var = (Type)CDll::GetProcAddress(NameStr)) == 0) return false
-#define LOAD_CUBLAS_FUNC(Name) LOAD_FUNC(CCublas::TCublas##Name, functions.##Name, "cublas" #Name)
+#define LOAD_CUBLAS_FUNC(Name) LOAD_FUNC(CCublas::TCublas##Name, functions.Name, "cublas" #Name)
 // For the functions with _v2 suffix, define a separate macro
-#define LOAD_CUBLAS_FUNCV2(Name) LOAD_FUNC(CCublas::TCublas##Name, functions.##Name, "cublas" #Name "_v2")
+#define LOAD_CUBLAS_FUNCV2(Name) LOAD_FUNC(CCublas::TCublas##Name, functions.Name, "cublas" #Name "_v2")
 
 // The library name
+#if FINE_PLATFORM(FINE_WINDOWS)
 static const char* cublasDllName = "cublas64_10.dll";
+#elif FINE_PLATFORM(FINE_LINUX)
+static const char* cublasDllName = "libcublas.so.10";
+#else
+#error "Platform is not supported!"
+#endif
 
 CCublasDll::CCublasDll()
 {
