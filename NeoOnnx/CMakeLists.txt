@@ -13,6 +13,6 @@ option(NeoOnnx_BUILD_SHARED "Build NeoOnnx as shared library." ON)
 
 add_subdirectory(src)
 
-if(NeoML_INSTALL AND NeoOnnx_BUILD)
+if(NeoML_INSTALL)
     install(DIRECTORY include/NeoOnnx DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif()

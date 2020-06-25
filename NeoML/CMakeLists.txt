@@ -38,6 +38,9 @@ option(NeoML_INSTALL "Install NeoML" ON)
 
 # Build NeoOnnx library
 option(NeoOnnx_BUILD "Build NeoOnnx" ON)
+if(USE_FINE_OBJECTS)
+    set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE) 
+endif()
 
 # Set cmake default variables and some usefull variables
 set_global_variables()
@@ -53,7 +56,7 @@ endif()
 add_subdirectory(src)
 
 # NeoOnnx
-if(NeoOnnx_BUILD AND NOT USE_FINE_OBJECTS)
+if(NeoOnnx_BUILD)
     add_subdirectory(../NeoOnnx ${CMAKE_BINARY_DIR}/NeoOnnx)
 endif()
 
