@@ -19,7 +19,7 @@ limitations under the License.
 
 #if FINE_PLATFORM( FINE_WINDOWS )
 #include <windows.h>
-#else
+#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <dlfcn.h>
 typedef int (*FARPROC)();
 #endif
@@ -54,10 +54,10 @@ inline bool CDll::Load( const char* fileName )
 {
 #if FINE_PLATFORM( FINE_WINDOWS )
 	handle = ::LoadLibraryExA( fileName, 0, LOAD_WITH_ALTERED_SEARCH_PATH );
-#elif FINE_PLATFORM( FINE_ANDROID )
+#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 	handle = ::dlopen( fileName, RTLD_LAZY | RTLD_GLOBAL );
 #else
-    #error "Platform isn't supported!"
+	#error "Platform is not supported!"
 #endif
 	return ( handle != nullptr );
 }
@@ -66,10 +66,10 @@ inline FARPROC CDll::GetProcAddress( const char* functionName ) const
 {
 #if FINE_PLATFORM( FINE_WINDOWS )
 	return ::GetProcAddress( static_cast<HMODULE>( handle ), functionName );
-#elif FINE_PLATFORM( FINE_ANDROID )
+#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 	return (FARPROC)(::dlsym( handle, functionName ));
 #else
-	#error "Platform isn't supported!"
+	#error "Platform is not supported!"
 #endif
 }
 
@@ -81,10 +81,10 @@ inline void CDll::Free()
 
 #if FINE_PLATFORM( FINE_WINDOWS )
 	::FreeLibrary( static_cast<HMODULE>( handle ) );
-#elif FINE_PLATFORM( FINE_ANDROID )
+#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 	::dlclose( handle );
 #else
-	#error "Platform isn't supported!"
+	#error "Platform is not supported!"
 #endif
 	handle = 0;
 }

@@ -26,10 +26,17 @@ namespace NeoML {
 
 // Macros to load functions
 #define LOAD_FUNC(Type, Var, NameStr) if((Var = (Type)CDll::GetProcAddress(NameStr)) == 0) return false
-#define LOAD_CUSPARSE_FUNC(Name) LOAD_FUNC(CCusparse::TCusparse##Name, functions.##Name, "cusparse" #Name)
+#define LOAD_CUSPARSE_FUNC(Name) LOAD_FUNC(CCusparse::TCusparse##Name, functions.Name, "cusparse" #Name)
 
 // The library name
+#if FINE_PLATFORM(FINE_WINDOWS)
 static const char* cusparseDllName = "cusparse64_10.dll";
+#elif FINE_PLATFORM(FINE_LINUX)
+static const char* cusparseDllName = "libcusparse.so.10";
+#else
+#error "Platform is not supported!"
+#endif
+
 
 CCusparseDll::CCusparseDll()
 {

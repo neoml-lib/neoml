@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <cuda_runtime.h>
+#include <cfloat>
 
 namespace NeoML {
 
