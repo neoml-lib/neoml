@@ -21,8 +21,8 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <CudaMathEngine.h>
-#include <Cublas.h>
-#include <Cusparse.h>
+#include <cublas.h>
+#include <cusparse.h>
 #include <MathEngineAllocator.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
@@ -30,7 +30,6 @@ limitations under the License.
 #include <MathEngineHostStackAllocator.h>
 #include <cuda_runtime.h>
 #include <string>
-#include <sstream>
 #include <vector>
 #include <CudaDevice.h>
 #include <cuda_runtime.h>
@@ -184,111 +183,6 @@ void CCudaMathEngine::generateAssert( IMathEngineExceptionHandler* exceptionHand
 void CCudaMathEngine::generateMemoryError( IMathEngineExceptionHandler* exceptionHandler )
 {
 	exceptionHandler->OnMemoryError();
-}
-
-typedef basic_string<wchar_t, char_traits<wchar_t>, CrtAllocator<wchar_t> > fstring;
-typedef basic_stringstream<wchar_t, char_traits<wchar_t>, CrtAllocator<wchar_t> > fstringstream;
-
-static fstring GetCudaMutexName(int devNum, int slotNum)
-{
-	fstringstream ss;
-	ss << L"Global\\AbbyyFmlCudaDev" << devNum << L"_" << slotNum;
-	return ss.str();
-}
-
-struct CCudaDevUsage {
-	int DevNum;
-	int Usage;
-};
-
-// Captures the CUDA device
-CCudaDevice* CCudaMathEngine::captureCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
-{
-	if( deviceNumber >= 0 ) {
-		return captureSpecifiedCudaDevice( deviceNumber, deviceMemoryLimit, true );
-	}
-
-	int deviceCount = 0;
-	ASSERT_ERROR_CODE( cudaGetDeviceCount( &deviceCount ) );
-
-	// Detect the devices and their processing load
-	vector<CCudaDevUsage> devs;
-	for( int i = 0; i < deviceCount; ++i ) {
-		cudaDeviceProp devProp;
-		ASSERT_ERROR_CODE( cudaGetDeviceProperties( &devProp, i ) );
-
-		CCudaDevUsage dev;
-		dev.DevNum = i;
-		dev.Usage = 0;
-		for( int j = 0; j < CUDA_DEV_SLOT_COUNT; ++j ) {
-			HANDLE devHandle = ::OpenMutexW( SYNCHRONIZE, FALSE, GetCudaMutexName(devProp.pciBusID, j).c_str() );
-			if( devHandle != 0 ) {
-				::CloseHandle(devHandle);
-				++dev.Usage;
-			}
-		}
-		devs.push_back(dev);
-	}
-	// Sort the devices in order of increasing load
-	std::sort( devs.begin(), devs.end(), []( const CCudaDevUsage& a, const CCudaDevUsage& b ) { return a.Usage > b.Usage; } );
-
-	for( int i = 0; i < devs.size(); ++i ) {
-		CCudaDevice* result = captureSpecifiedCudaDevice( devs[i].DevNum, deviceMemoryLimit, false );
-		if( result != 0 ) {
-			return result;
-		}
-	}
-
-	// Could not capture the least used device, capture any
-	for( int i = 0; i < devs.size(); ++i ) {
-		CCudaDevice* result = captureSpecifiedCudaDevice( devs[i].DevNum, deviceMemoryLimit, true );
-		if( result != 0 ) {
-			return result;
-		}
-	}
-
-	return 0;
-}
-
-CCudaDevice* CCudaMathEngine::captureSpecifiedCudaDevice( int deviceNumber, size_t deviceMemoryLimit, bool reuseDevice )
-{
-	CCudaDevice* result = new CCudaDevice( deviceNumber, deviceMemoryLimit );
-
-	cudaDeviceProp devProp;
-	ASSERT_ERROR_CODE( cudaGetDeviceProperties(&devProp, deviceNumber) );
-	size_t slotSize = devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT;
-	int slotCount = static_cast<int>( ( result->MemoryLimit + slotSize - 1 ) / slotSize );
-
-	int capturedSlotCount = 0;
-	for( int i = 0; capturedSlotCount < slotCount && i < CUDA_DEV_SLOT_COUNT; ++i ) {
-		result->Handles[i] = ::CreateMutexW( 0, FALSE, GetCudaMutexName(result->DeviceId, i).c_str() );
-		if( result->Handles[i] != 0 && GetLastError() == ERROR_ALREADY_EXISTS ) {
-			::CloseHandle( result->Handles[i] );
-			result->Handles[i] = 0;
-		} else if( result->Handles[i] != 0 ) {
-			++capturedSlotCount;
-		}
-	}
-
-	if( capturedSlotCount < slotCount && reuseDevice ) {
-		// Recapture slots
-		for( int i = 0; capturedSlotCount < slotCount && i < CUDA_DEV_SLOT_COUNT; ++i ) {
-			if( result->Handles[i] != 0 ) {
-				continue; // already taken
-			}
-			result->Handles[i] = ::CreateMutexW( 0, FALSE, GetCudaMutexName(result->DeviceId, i).c_str() );
-			if( result->Handles[i] != 0 ) {
-				++capturedSlotCount;
-			}
-		}
-	}
-
-	if( capturedSlotCount < slotCount ) {
-		delete result;
-		return 0;
-	}
-
-	return result;
 }
 
 void CCudaMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const

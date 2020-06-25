@@ -21,9 +21,10 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <RawMemoryManager.h>
-#include <Cusparse.h>
-#include <Cublas.h>
+#include <cusparse.h>
+#include <cublas.h>
 #include <mutex>
+#include <memory>
 #include <PerformanceCountersDefault.h>
 
 namespace NeoML {
@@ -42,7 +43,7 @@ class CMemoryPool;
 // CUDA math engine
 class CCudaMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, int deviceNumber, size_t memoryLimit );
+	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, std::unique_ptr<CCudaDevice>& device );
 	virtual ~CCudaMathEngine();
 
 	// IMathEngine interface methods
@@ -450,7 +451,7 @@ private:
 	const CCublas* cublas; // cublas library functions
 
 	mutable std::mutex mutex; // protects the data below
-	CCudaDevice* device; // the device descriptor
+	std::unique_ptr<CCudaDevice> device; // the device descriptor
 	cudaStream_t cudaStream; // the only stream
 	cublasHandle_t cublasHandle; // cublas library handle
 	cusparseHandle_t cusparseHandle; // cusparse library handle

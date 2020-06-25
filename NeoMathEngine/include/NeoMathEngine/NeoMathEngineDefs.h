@@ -26,25 +26,6 @@ limitations under the License.
 #define NEOML_USE_OWN_BLAS
 #endif
 
-#if FINE_PLATFORM( FINE_WINDOWS )
-//#define NEOML_USE_MKL
-//#define NEOML_USE_OMP
-#if FINE_ARCHITECTURE( FINE_X64 )
-//#define NEOML_USE_CUDA
-//#define NEOML_USE_VULKAN
-#endif // FINE_ARCHITECTURE( FINE_X64 )
-#endif // FINE_PLATFORM( FINE_WINDOWS )
-
-#if FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
-//#define NEOML_USE_MKL
-//#define NEOML_USE_OMP
-#endif
-
-#if FINE_PLATFORM( FINE_ANDROID )
-//#define NEOML_USE_VULKAN
-//#define NEOML_USE_OMP
-#endif
-
 #if FINE_PLATFORM( FINE_IOS )
 #define NEOML_USE_METAL
 #endif // FINE_PLATFORM( FINE_IOS )
@@ -76,7 +57,7 @@ limitations under the License.
 #ifndef CMAKE_INTDIR
 	#ifndef BUILD_NEOMATHENGINE
 		#pragma comment( lib, "NeoMathEngine" FME_LIB_VERSION_SUFFIX ".lib" )
-	#else // ifdef BUILD_ABBYYMATHENGINE
+	#else // ifdef BUILD_NEOMATHENGINE
 
 		#ifdef NEOML_USE_MKL
 
