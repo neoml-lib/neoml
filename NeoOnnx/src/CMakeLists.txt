@@ -88,7 +88,10 @@ set(Protobuf_USE_STATIC_LIBS ON)
 find_package(Protobuf REQUIRED)
 
 if(NOT Protobuf_PROTOC_EXECUTABLE)
-    find_program(Protobuf_PROTOC_EXECUTABLE protoc REQUIRED)
+    find_program(Protobuf_PROTOC_EXECUTABLE protoc)
+    if(NOT Protobuf_PROTOC_EXECUTABLE)
+        message(FATAL_ERROR "Protoc compiler wasn't found.")
+    endif()
 endif()
 message(STATUS "Found protoc compiler: ${Protobuf_PROTOC_EXECUTABLE}")
 
