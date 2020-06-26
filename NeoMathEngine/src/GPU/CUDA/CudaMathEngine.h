@@ -21,9 +21,10 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <RawMemoryManager.h>
-#include <Cusparse.h>
-#include <Cublas.h>
+#include <cusparse.h>
+#include <cublas.h>
 #include <mutex>
+#include <memory>
 #include <PerformanceCountersDefault.h>
 
 namespace NeoML {
@@ -450,7 +451,7 @@ private:
 	const CCublas* cublas; // cublas library functions
 
 	mutable std::mutex mutex; // protects the data below
-	CCudaDevice* device; // the device descriptor
+	std::unique_ptr<CCudaDevice> device; // the device descriptor
 	cudaStream_t cudaStream; // the only stream
 	cublasHandle_t cublasHandle; // cublas library handle
 	cusparseHandle_t cusparseHandle; // cusparse library handle
@@ -538,6 +539,15 @@ inline void CCudaMathEngine::VectorHardTanhDiffOp(const CConstFloatHandle& first
 
 inline void CCudaMathEngine::SumMatrixRows(int batchSize,
 	const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth)
+{
+	VectorFill(resultHandle, 0.f, batchSize * matrixWidth);
+	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
+}
+
+} // namespace NeoML
+
+#endif // NEOML_USE_CUDA
+ixWidth)
 {
 	VectorFill(resultHandle, 0.f, batchSize * matrixWidth);
 	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);

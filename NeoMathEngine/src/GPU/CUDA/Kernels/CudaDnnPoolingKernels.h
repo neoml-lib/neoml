@@ -18,6 +18,7 @@ limitations under the License.
 #include <CudaMathEngineDnnPoolings.h>
 #include <Kernels/CudaGrid.h>
 #include <Kernels/CudaReduce.h>
+#include <cfloat>
 
 namespace NeoML {
 
