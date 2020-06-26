@@ -23,11 +23,11 @@ namespace NeoML {
 // CEltwiseBaseLayer is the base class for layers performing elementwise operations
 class NEOML_API CEltwiseBaseLayer : public CBaseLayer {
 public:
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	explicit CEltwiseBaseLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnEltwiseBaseLayer", false ) {}
-	virtual void Reshape() override;
+	void Reshape() override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -38,11 +38,11 @@ class NEOML_API CEltwiseSumLayer : public CEltwiseBaseLayer {
 public:
 	explicit CEltwiseSumLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName( "CCnnEltwiseSumLayer" ); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -53,11 +53,11 @@ class NEOML_API CEltwiseMulLayer : public CEltwiseBaseLayer {
 public:
 	explicit CEltwiseMulLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName( "CCnnEltwiseMulLayer" ); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,12 +69,12 @@ class NEOML_API CEltwiseNegMulLayer : public CEltwiseBaseLayer {
 public:
 	explicit CEltwiseNegMulLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName( "CCnnEltwiseNegMulLayer" ); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	CPtr<CDnnBlob> oneVector;
@@ -89,15 +89,15 @@ class NEOML_API CEltwiseMaxLayer : public CEltwiseBaseLayer {
 public:
 	explicit CEltwiseMaxLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName("CCnnEltwiseMaxLayer"); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	CArray< CArray<CConstFloatHandle> > vectorsArray;
 	CArray< CArray<CFloatHandle> > diffVectorsArray;
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	CPtr<CDnnBlob> maxIndices; // the indices of the inputs that had the largest elements

@@ -38,7 +38,7 @@ public:
 	int GetPaddingDepth() const { return paddingDepth; }
 	void SetPaddingDepth(int _paddingDepth);
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	CBase3dConvLayer( IMathEngine& mathEngine, const char* name );
@@ -57,15 +57,15 @@ class NEOML_API C3dConvLayer : public CBase3dConvLayer {
 public:
 	explicit C3dConvLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~C3dConvLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	void calcOutputBlobSize(int& outputHeight, int& outputWidth, int& outputDepth) const;

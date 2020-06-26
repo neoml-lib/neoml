@@ -32,7 +32,7 @@ class NEOML_API CLstmLayer : public CRecurrentLayer {
 public:
 	explicit CLstmLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The hidden layer size
 	int GetHiddenSize() const { return inputHiddenLayer->GetNumberOfElements() / G_Count; }

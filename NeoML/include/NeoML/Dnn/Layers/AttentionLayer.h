@@ -51,7 +51,7 @@ class NEOML_API CAttentionDecoderLayer : public CCompositeLayer {
 public:
 	explicit CAttentionDecoderLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The layer inputs
 	enum TInput {
@@ -97,7 +97,7 @@ class NEOML_API CAttentionRecurrentLayer : public CRecurrentLayer {
 public:
 	explicit CAttentionRecurrentLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The layer inputs
 	enum TInput {
@@ -151,7 +151,7 @@ class NEOML_API CAttentionLayer : public CCompositeLayer {
 public:
 	explicit CAttentionLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The layer inputs
 	enum TInput {
@@ -189,13 +189,13 @@ class NEOML_API CAttentionWeightedSumLayer : public CBaseLayer {
 public:
 	explicit CAttentionWeightedSumLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 // The dot product of the input and output sequences
@@ -208,13 +208,13 @@ class NEOML_API CAttentionDotProductLayer : public CBaseLayer {
 public:
 	explicit CAttentionDotProductLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 // The sum of the input and output sequences
@@ -227,13 +227,13 @@ class NEOML_API CAttentionSumLayer : public CBaseLayer {
 public:
 	explicit CAttentionSumLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 } // namespace NeoML
