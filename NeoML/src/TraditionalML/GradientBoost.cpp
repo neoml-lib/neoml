@@ -268,11 +268,12 @@ CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
 		*logStream << "\nGradient boost training started:\n";
 	}
 
+	CPtr<const IProblem> notNullWeightsView = FINE_DEBUG_NEW CProblemNotNullWeightsView( &problem );
 	CPtr<const IMultivariateRegressionProblem> multivariate;
 	if( problem.GetClassCount() == 2 ) {
-		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverBinaryClassification( &problem );
+		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverBinaryClassification( notNullWeightsView.Ptr() );
 	} else {
-		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( &problem );
+		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( notNullWeightsView.Ptr() );
 	}
 	return train( multivariate, createClassificationLossFunction() ).Ptr();
 }

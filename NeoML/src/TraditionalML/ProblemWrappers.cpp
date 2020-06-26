@@ -200,6 +200,104 @@ CFloatVector CMultivariateRegressionOverBinaryClassification::GetValue( int inde
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
+// CProblemNotNullWeightsView 
+
+CProblemNotNullWeightsView::CProblemNotNullWeightsView( const IProblem* _inner ) :
+	inner( _inner )
+{
+	NeoAssert( inner != 0 );
+
+	int originalVectorCount = inner->GetVectorCount();
+	if( originalVectorCount > 0 ) {
+		// fill nullWeightElementsMap, and adjust local MatrixDesc
+		viewMatrixDesc = _inner->GetMatrix();
+		// we are going to remap some elements, so create our own arrays of pointers
+		viewMatrixDesc.PointerB = static_cast<int*>( 
+			ALLOCATE_MEMORY( CurrentMemoryManager, originalVectorCount * sizeof( int ) ) );
+		viewMatrixDesc.PointerE = static_cast<int*>( 
+			ALLOCATE_MEMORY( CurrentMemoryManager, originalVectorCount * sizeof( int ) ) );
+
+		int nullWeightElmentsCount = 0;
+		for( int i = 0; i < originalVectorCount - nullWeightElmentsCount; ) {
+			int iScanned = i + nullWeightElmentsCount;
+			if( _inner->GetVectorWeight( iScanned ) == 0 ) {
+				++nullWeightElmentsCount;
+			} else {
+				viewMatrixDesc.PointerB[i] = _inner->GetMatrix().PointerB[iScanned];
+				viewMatrixDesc.PointerE[i] = _inner->GetMatrix().PointerE[iScanned];
+				nullWeightElementsMap.Add( CIndexPair( { i, iScanned } ) );
+				++i;
+			}
+		}
+		viewMatrixDesc.Height -= nullWeightElmentsCount;
+	}
+}
+
+CProblemNotNullWeightsView::~CProblemNotNullWeightsView()
+{
+	if( inner->GetVectorCount() > 0 ) {
+		CurrentMemoryManager::Free( viewMatrixDesc.PointerB );
+		CurrentMemoryManager::Free( viewMatrixDesc.PointerE );
+	}
+}
+
+// Gets the number of classes
+int CProblemNotNullWeightsView::GetClassCount() const
+{
+	return inner->GetClassCount();
+}
+
+// Gets the number of features
+int CProblemNotNullWeightsView::GetFeatureCount() const
+{
+	return inner->GetFeatureCount();
+}
+
+// Indicates if the specified feature is discrete
+bool CProblemNotNullWeightsView::IsDiscreteFeature( int index ) const
+{
+	return inner->IsDiscreteFeature( calculateOriginalIndex( index ) );
+}
+
+// Gets the number of vectors in the data set
+int CProblemNotNullWeightsView::GetVectorCount() const
+{
+	return viewMatrixDesc.Height;
+}
+
+// The correct class number for a vector with a given index in [0, GetClassCount())
+int CProblemNotNullWeightsView::GetClass( int index ) const
+{
+	return inner->GetClass( calculateOriginalIndex( index ) );
+}
+
+// Gets all vectors from the data set as a matrix
+CSparseFloatMatrixDesc CProblemNotNullWeightsView::GetMatrix() const
+{
+	return viewMatrixDesc;
+}
+
+// Gets the vector weight
+double CProblemNotNullWeightsView::GetVectorWeight( int index ) const
+{
+	return inner->GetVectorWeight( calculateOriginalIndex( index ) );
+}
+
+// calculate the index as if we had the matrix without null weighted elements
+int CProblemNotNullWeightsView::calculateOriginalIndex( int viewedIndex ) const
+{
+	const int pos = nullWeightElementsMap.FindInsertionPoint<
+		AscendingByMember<CIndexPair, int, &CIndexPair::ViewedIndex> >( viewedIndex );
+	if( pos == 0 ) {
+		return viewedIndex;
+	} else {
+		const int originalIndexBase = nullWeightElementsMap[pos-1].OriginalIndex;
+		const int indexShift = viewedIndex - nullWeightElementsMap[pos-1].ViewedIndex;
+		return originalIndexBase + indexShift;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace NeoML
 

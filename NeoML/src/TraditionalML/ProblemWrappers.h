@@ -109,6 +109,60 @@ private:
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
+// A problem view without the elements with null weight
+// Can be used only with an asssumption that the original matrix won't be changed during this class usage
+
+class CProblemNotNullWeightsView : public IProblem {
+public:
+	explicit CProblemNotNullWeightsView( const IProblem* inner );
+	~CProblemNotNullWeightsView();
+
+	// The number of classes
+	int GetClassCount() const override;
+
+	// The number of features
+	int GetFeatureCount() const override;
+
+	// Indicates if the specified feature is discrete
+	bool IsDiscreteFeature( int index ) const override;
+
+	// The number of vectors
+	int GetVectorCount() const override;
+
+	// The correct class number for a vector with a given index in [0, GetClassCount())
+	int GetClass( int index ) const override;
+
+	// Gets all input vectors as a matrix
+	CSparseFloatMatrixDesc GetMatrix() const override;
+
+	// The vector weight
+	double GetVectorWeight( int index ) const override;
+
+	// forbid copy/move
+	CProblemNotNullWeightsView( const CProblemNotNullWeightsView& ) = delete;
+	CProblemNotNullWeightsView( CProblemNotNullWeightsView&& ) = delete;
+	CProblemNotNullWeightsView& operator=( CProblemNotNullWeightsView ) = delete;
+
+private:
+	// The inner problem
+	const CPtr<const IProblem> inner;
+	// The original matrix desc view over the elements with not null weight only
+	CSparseFloatMatrixDesc viewMatrixDesc;
+
+	// The pair of indices
+	struct CIndexPair {
+		int ViewedIndex;
+		int OriginalIndex;
+	};
+
+	// The array containing pairs of viewed and original indices
+	CArray<CIndexPair> nullWeightElementsMap;
+
+	// calculate the index as if we had the matrix without null weighted elements
+	int calculateOriginalIndex( int viewedIndex ) const;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace NeoML
 
