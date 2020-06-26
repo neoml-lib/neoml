@@ -27,16 +27,16 @@ class NEOML_API C3dTransposedConvLayer : public CBase3dConvLayer {
 public:
 	explicit C3dTransposedConvLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~C3dTransposedConvLayer() { destroyConvDesc(); }
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
-	virtual bool IsFilterTransposed() const override { return true; }
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
+	bool IsFilterTransposed() const override { return true; }
 
 private:
 	C3dConvolutionDesc* convDesc;

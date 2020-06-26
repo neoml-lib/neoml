@@ -28,13 +28,13 @@ class NEOML_API CSequenceSumLayer : public CBaseLayer {
 public:
 	explicit CSequenceSumLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnSequenceSumLayer", false ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 } // namespace NeoML

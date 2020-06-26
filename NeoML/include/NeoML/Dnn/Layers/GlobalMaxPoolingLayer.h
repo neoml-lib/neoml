@@ -29,7 +29,7 @@ class NEOML_API CGlobalMaxPoolingLayer : public CBaseLayer {
 public:
 	explicit CGlobalMaxPoolingLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	int GetMaxCount() const { return maxCount; }
 	void SetMaxCount(int _enumSize);
@@ -38,9 +38,9 @@ protected:
 	virtual ~CGlobalMaxPoolingLayer() { destroyDesc(); }
 
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	CGlobalMaxPoolingDesc* desc;

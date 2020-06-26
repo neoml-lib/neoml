@@ -29,7 +29,7 @@ class NEOML_API CCenterLossLayer : public CLossLayer {
 public:
 	explicit CCenterLossLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The number of classes
 	// The class labels will have to be in the range 0..numberOfClasses - 1

@@ -398,11 +398,11 @@ public:
 	bool IsLogging() const { return log != 0 && runNumber % logFrequency == 0; }
 
 	// Accessing the layers
-	virtual int GetLayerCount() const override { return layerMap.Size(); }
-	virtual void GetLayerList( CArray<const char*>& layerList ) const override;
-	virtual CPtr<CBaseLayer> GetLayer( const char* name ) override;
-	virtual CPtr<const CBaseLayer> GetLayer( const char* name ) const override;
-	virtual bool HasLayer( const char* name ) const override { return layerMap.Has( name ); }
+	int GetLayerCount() const override { return layerMap.Size(); }
+	void GetLayerList( CArray<const char*>& layerList ) const override;
+	CPtr<CBaseLayer> GetLayer( const char* name ) override;
+	CPtr<const CBaseLayer> GetLayer( const char* name ) const override;
+	bool HasLayer( const char* name ) const override { return layerMap.Has( name ); }
 
 	// Runs the network: all data from the input blobs is used
 	void RunOnce();
@@ -468,8 +468,8 @@ public:
 
 private:
 	// Adds or deletes a layer
-	virtual void AddLayerImpl(CBaseLayer& layer) override;
-	virtual void DeleteLayerImpl(CBaseLayer& layer) override;
+	void AddLayerImpl(CBaseLayer& layer) override;
+	void DeleteLayerImpl(CBaseLayer& layer) override;
 
 	CTextStream* log; // the logging stream
 	int logFrequency;	// the logging frequency
@@ -547,15 +547,15 @@ public:
 	// Gets the reference to the input blob
 	const CPtr<CDnnBlob>& GetBlob() const { return blob; }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	CPtr<CDnnBlob> blob;
 	// CBaseLayer class methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void AllocateOutputBlobs() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void AllocateOutputBlobs() override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -566,7 +566,7 @@ class NEOML_API CSinkLayer : public CBaseLayer {
 public:
 	explicit CSinkLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnSinkLayer", false ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Gets the reference to the output blob
 	// It is valid only after the RunOnce method called
@@ -576,9 +576,9 @@ public:
 protected:
 	CPtr<CDnnBlob> blob;
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -590,13 +590,13 @@ protected:
 
 	// Called once reshape is complete
 	virtual void OnReshaped() {}
-	virtual void AllocateOutputBlobs() override;
+	void AllocateOutputBlobs() override;
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 private:
 	// The Reshape method may not be overloaded
-	virtual void Reshape() override;
+	void Reshape() override;
 
 	// Indicates if the layer performs in-place processing (after the Reshape method call)
 	bool isInPlace;

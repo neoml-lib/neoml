@@ -24,9 +24,9 @@ public:
 	CGraphInitializer( const onnx::TensorProto& initializer, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override {}
-	virtual void AddLayers( CDnn& ) override { outputInfo.Add( COutputInfo() ); }
+	void OnnxReshape() override;
+	void MarkTensorDims() override {}
+	void AddLayers( CDnn& ) override { outputInfo.Add( COutputInfo() ); }
 
 private:
 	IMathEngine& mathEngine;

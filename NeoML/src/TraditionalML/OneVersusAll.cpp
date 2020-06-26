@@ -27,14 +27,14 @@ public:
 	COneVersusAllTrainingData( const IProblem* data, int baseClass );
 
 	// IProblem interface methods
-	virtual int GetClassCount() const override { return data->GetClassCount(); }
-	virtual int GetFeatureCount() const override { return data->GetFeatureCount(); }
-	virtual bool IsDiscreteFeature( int ) const override { return false; }
-	virtual int GetVectorCount() const override { return data->GetVectorCount(); }
-	virtual int GetClass( int index ) const override { return ( data->GetClass( index) == baseClass ) ? 0 : 1; }
-	virtual CSparseFloatMatrixDesc GetMatrix() const override { return data->GetMatrix(); }
-	virtual double GetVectorWeight( int index ) const override { return data->GetVectorWeight( index ); }
-	virtual int GetDiscretizationValue( int index ) const override { return data->GetDiscretizationValue( index ); }
+	int GetClassCount() const override { return data->GetClassCount(); }
+	int GetFeatureCount() const override { return data->GetFeatureCount(); }
+	bool IsDiscreteFeature( int ) const override { return false; }
+	int GetVectorCount() const override { return data->GetVectorCount(); }
+	int GetClass( int index ) const override { return ( data->GetClass( index) == baseClass ) ? 0 : 1; }
+	CSparseFloatMatrixDesc GetMatrix() const override { return data->GetMatrix(); }
+	double GetVectorWeight( int index ) const override { return data->GetVectorWeight( index ); }
+	int GetDiscretizationValue( int index ) const override { return data->GetDiscretizationValue( index ); }
 
 protected:
 	virtual ~COneVersusAllTrainingData() {} // delete prohibited

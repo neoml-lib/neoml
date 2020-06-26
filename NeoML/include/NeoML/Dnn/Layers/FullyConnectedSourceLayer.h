@@ -31,7 +31,7 @@ class NEOML_API CFullyConnectedSourceLayer : public CFullyConnectedLayer {
 public:
 	explicit CFullyConnectedSourceLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The number of vectors in the set on each iteration
 	int GetBatchSize() const { return batchSize; }
@@ -55,10 +55,10 @@ public:
 protected:
 	virtual ~CFullyConnectedSourceLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	CPtr<const IProblem> problem; // the current problem

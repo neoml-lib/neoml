@@ -35,7 +35,7 @@ public:
 	int GetStrideWidth() const { return strideWidth; }
 	void SetStrideWidth( int strideWidth );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	CPoolingLayer( IMathEngine& mathEngine, const char* name );
@@ -45,7 +45,7 @@ protected:
 	int strideHeight;	// the vertical filter stride
 	int strideWidth;	// the horizontal filter stride
 
-	virtual void Reshape() override;
+	void Reshape() override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,14 +56,14 @@ class NEOML_API CMaxPoolingLayer : public CPoolingLayer {
 public:
 	explicit CMaxPoolingLayer( IMathEngine& mathEngine ) : CPoolingLayer( mathEngine, "CCnnMaxPoolingLayer" ), desc( 0 ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~CMaxPoolingLayer() { destroyDesc(); }
 
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void Reshape() override;
 
 private:
 	CPtr<CDnnBlob> maxIndices; // contains the maximums' indices (for the backward pass)
@@ -81,14 +81,14 @@ class NEOML_API CMeanPoolingLayer : public CPoolingLayer {
 public:
 	explicit CMeanPoolingLayer( IMathEngine& mathEngine ) : CPoolingLayer( mathEngine, "CCnnMeanPoolingLayer" ), desc( 0 ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~CMeanPoolingLayer() { destroyDesc(); }
 
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void Reshape() override;
 
 private:
 	CMeanPoolingDesc* desc;
