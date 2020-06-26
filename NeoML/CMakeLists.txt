@@ -64,7 +64,7 @@ endif()
 if(NeoML_BUILD_TESTS AND NOT IS_SUBPROJECT)
     enable_testing()
     if(USE_FINE_OBJECTS)
-        add_subdirectory(../../NeoMLTest/test ${CMAKE_BINARY_DIR}/test)
+        add_subdirectory(${ROOT_PATH}/NeoMLTest/test ${CMAKE_BINARY_DIR}/test)
     endif()
 endif()
 
