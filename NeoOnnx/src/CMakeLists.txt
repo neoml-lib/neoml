@@ -4,7 +4,7 @@ else()
     add_library(${PROJECT_NAME} STATIC common.cpp)
 endif()
 
-add_library(Neo::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_sources( ${PROJECT_NAME} PRIVATE
     DnnBuilder.cpp

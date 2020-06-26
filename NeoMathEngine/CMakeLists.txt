@@ -22,10 +22,8 @@ endif()
 
 set(PROJECT_VERSION ${FINE_VERSION_MAJOR}.${FINE_VERSION_MINOR}.${FINE_VERSION_PATCH})
 
-get_directory_property(IS_SUBPROJECT PARENT_DIRECTORY)
-
 # Build NeoMathEngine tests
-option(NeoMathEngine_BUILD_TESTS "Build all of NeoMathEngine's tests." ON)
+option(NeoMathEngine_BUILD_TESTS "Build all of NeoMathEngine's tests." OFF)
 
 # Build NeoMathEngine as shared library
 option(NeoMathEngine_BUILD_SHARED "Build NeoMathEngine as shared library." ON)
@@ -40,7 +38,7 @@ endif()
 add_subdirectory(src)
 
 # Tests
-if(NeoMathEngine_BUILD_TESTS AND (NOT IS_SUBPROJECT OR USE_FINE_OBJECTS) AND NOT IOS AND NOT ANDROID)
+if(NeoMathEngine_BUILD_TESTS AND NOT IOS AND NOT ANDROID)
     enable_testing()
     add_subdirectory(test/FullTestDesktop)
 endif()
