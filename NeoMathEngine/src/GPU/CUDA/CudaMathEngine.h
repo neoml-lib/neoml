@@ -43,7 +43,7 @@ class CMemoryPool;
 // CUDA math engine
 class CCudaMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, int deviceNumber, size_t memoryLimit );
+	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, std::unique_ptr<CCudaDevice>& device );
 	~CCudaMathEngine() override;
 
 	// IMathEngine interface methods
@@ -539,15 +539,6 @@ inline void CCudaMathEngine::VectorHardTanhDiffOp(const CConstFloatHandle& first
 
 inline void CCudaMathEngine::SumMatrixRows(int batchSize,
 	const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth)
-{
-	VectorFill(resultHandle, 0.f, batchSize * matrixWidth);
-	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
-}
-
-} // namespace NeoML
-
-#endif // NEOML_USE_CUDA
-ixWidth)
 {
 	VectorFill(resultHandle, 0.f, batchSize * matrixWidth);
 	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
