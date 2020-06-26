@@ -27,7 +27,7 @@ class NEOML_API CBatchNormalizationLayer : public CBaseLayer {
 public:
 	explicit CBatchNormalizationLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Clears the statistics, keeping only the final parameters
 	// May help to reduce memory consumption (both at runtime and needed for serialization)
@@ -59,10 +59,10 @@ public:
 	void UseFinalParamsForInitialization( bool use ) { useFinalParamsForInitialization = use; }
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	bool isChannelBased;

@@ -27,20 +27,20 @@ public:
 	explicit CMultivariateRegressionOverUnivariate( const IRegressionProblem* inner );
 
 	// Gets the number of features
-	virtual int GetFeatureCount() const override;
+	int GetFeatureCount() const override;
 
 	// The number of vectors in the data set
-	virtual int GetVectorCount() const override;
+	int GetVectorCount() const override;
 
 	// Gets all vectors in the data set as a matrix
-	virtual CSparseFloatMatrixDesc GetMatrix() const override;
+	CSparseFloatMatrixDesc GetMatrix() const override;
 	// Gets the vector weight
-	virtual double GetVectorWeight( int index ) const override;
+	double GetVectorWeight( int index ) const override;
 
 	// Gets the length of the function value vector
-	virtual int GetValueSize() const override;
+	int GetValueSize() const override;
 	// Gets the function value for the vector
-	virtual CFloatVector GetValue( int index ) const override;
+	CFloatVector GetValue( int index ) const override;
 
 private:
 	// The inner regression problem
@@ -56,19 +56,19 @@ public:
 	explicit CMultivariateRegressionOverClassification( const IProblem* inner );
 
 	// Gets the number of features
-	virtual int GetFeatureCount() const override;
+	int GetFeatureCount() const override;
 
 	// The number of vectors in the data set
-	virtual int GetVectorCount() const override;
+	int GetVectorCount() const override;
 	// Gets all vectors in the data set as a matrix
-	virtual CSparseFloatMatrixDesc GetMatrix() const override;
+	CSparseFloatMatrixDesc GetMatrix() const override;
 	// Gets the vector weight
-	virtual double GetVectorWeight( int index ) const override;
+	double GetVectorWeight( int index ) const override;
 
 	// Gets the length of the function value vector
-	virtual int GetValueSize() const override;
+	int GetValueSize() const override;
 	// Gets the function value for the vector
-	virtual CFloatVector GetValue( int index ) const override;
+	CFloatVector GetValue( int index ) const override;
 
 private:
 	// The inner classification problem
@@ -87,19 +87,19 @@ public:
 	explicit CMultivariateRegressionOverBinaryClassification( const IProblem* inner );
 
 	// Gets the number of features
-	virtual int GetFeatureCount() const override;
+	int GetFeatureCount() const override;
 
 	// The number of vectors in the data set
-	virtual int GetVectorCount() const override;
+	int GetVectorCount() const override;
 	// Gets all vectors in the data set as a matrix
-	virtual CSparseFloatMatrixDesc GetMatrix() const override;
+	CSparseFloatMatrixDesc GetMatrix() const override;
 	// Gets the vector weight
-	virtual double GetVectorWeight( int index ) const override;
+	double GetVectorWeight( int index ) const override;
 
 	// Gets the length of the function value vector
-	virtual int GetValueSize() const override;
+	int GetValueSize() const override;
 	// Gets the function value for the vector
-	virtual CFloatVector GetValue( int index ) const override;
+	CFloatVector GetValue( int index ) const override;
 
 private:
 	// The inner classification problem

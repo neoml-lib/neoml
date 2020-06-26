@@ -38,28 +38,28 @@ public:
 		const CSparseFloatVectorDesc& desc );
 
 	// IModel interface methods
-	virtual int GetClassCount() const override { return ensembles.Size() == 1 ? 2 : ensembles.Size(); }
-	virtual bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
-	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
-	virtual void Serialize( CArchive& archive ) override;
+	int GetClassCount() const override { return ensembles.Size() == 1 ? 2 : ensembles.Size(); }
+	bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
+	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
+	void Serialize( CArchive& archive ) override;
 
 	// IGradientBoostModel inteface methods
-	virtual const CArray<CGradientBoostEnsemble>& GetEnsemble() const override { return ensembles; }
-	virtual double GetLearningRate() const override { return learningRate; }
-	virtual CGradientBoost::TLossFunction GetLossFunction() const override { return lossFunction; }
-	virtual bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const override;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
-	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
-	virtual void CutNumberOfTrees( int numberOfTrees ) override;
+	const CArray<CGradientBoostEnsemble>& GetEnsemble() const override { return ensembles; }
+	double GetLearningRate() const override { return learningRate; }
+	CGradientBoost::TLossFunction GetLossFunction() const override { return lossFunction; }
+	bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const override;
+	bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
+	void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
+	void CutNumberOfTrees( int numberOfTrees ) override;
 
 	// IRegressionModel interface methods
-	virtual double Predict( const CSparseFloatVector& data ) const override;
-	virtual double Predict( const CFloatVector& data ) const override;
-	virtual double Predict( const CSparseFloatVectorDesc& data ) const override;
+	double Predict( const CSparseFloatVector& data ) const override;
+	double Predict( const CFloatVector& data ) const override;
+	double Predict( const CSparseFloatVectorDesc& data ) const override;
 
 	// IMultivariateRegressionModel interface methods
-	virtual CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const override;
-	virtual CFloatVector MultivariatePredict( const CFloatVector& data ) const override;
+	CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const override;
+	CFloatVector MultivariatePredict( const CFloatVector& data ) const override;
 
 private:
 	CArray<CGradientBoostEnsemble> ensembles; // the models

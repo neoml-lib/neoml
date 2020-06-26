@@ -155,8 +155,8 @@ public:
 	CArchiveQsSerializer( CArchive& _archive, bool _noSimpleNodes ) : archive( _archive ), noSimpleNodes( _noSimpleNodes ) {}
 
 	// IQsSerializer interface methods
-	virtual void Read( int& featureIndex, float& value, bool& isQsLeaf ) override;
-	virtual void Write( int featureIndex, float value, bool isQsLeaf ) override;
+	void Read( int& featureIndex, float& value, bool& isQsLeaf ) override;
+	void Write( int featureIndex, float value, bool isQsLeaf ) override;
 
 private:
 	CArchive& archive; // the archive that is used
@@ -203,8 +203,8 @@ public:
 	CGBEnsembleQsSerializer( const IRegressionTreeModel* root, const CHashTable<const IRegressionTreeModel*>& qsLeaves );
 
 	// IQsSerializer interface methods
-	virtual void Read( int& featureIndex, float& value, bool& isQsLeaf ) override;
-	virtual void Write( int, float, bool ) override { NeoAssert( false ); } // we only need to read from a tree
+	void Read( int& featureIndex, float& value, bool& isQsLeaf ) override;
+	void Write( int, float, bool ) override { NeoAssert( false ); } // we only need to read from a tree
 
 private:
 	static const unsigned int S_NodeProcessed = 1;

@@ -24,7 +24,7 @@ namespace NeoML {
 // CBaseConvLayer is a base class for convolution layers
 class NEOML_API CBaseConvLayer : public CBaseLayer {
 public:
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Filter size
 	int GetFilterHeight() const { return filterHeight; }
@@ -105,7 +105,7 @@ protected:
 	const CPtr<CDnnBlob>& Filter() const { return paramBlobs[0]; }
 	const CPtr<CDnnBlob>& FreeTerms() const { return paramBlobs[1]; }	// free terms matrix
 
-	virtual void FilterLayerParams( float threshold ) override;
+	void FilterLayerParams( float threshold ) override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,15 +117,15 @@ class NEOML_API CConvLayer : public CBaseConvLayer {
 public:
 	explicit CConvLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~CConvLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	CConvolutionDesc* convDesc; // the convolution descriptor
@@ -147,10 +147,10 @@ class NEOML_API CRleConvLayer : public CBaseConvLayer {
 public:
 	explicit CRleConvLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
-	virtual void SetFilterData( const CPtr<CDnnBlob>& newFilter ) override;
-	virtual void SetFreeTermData( const CPtr<CDnnBlob>& newFreeTerm ) override;
+	void SetFilterData( const CPtr<CDnnBlob>& newFilter ) override;
+	void SetFreeTermData( const CPtr<CDnnBlob>& newFreeTerm ) override;
 
 	// The pixel value for strokes
 	float GetStrokeValue() const { return strokeValue; }
@@ -163,10 +163,10 @@ public:
 protected:
 	virtual ~CRleConvLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	float strokeValue;		// the pixel value for strokes
