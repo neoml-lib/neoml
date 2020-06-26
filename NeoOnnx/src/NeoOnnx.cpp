@@ -21,7 +21,7 @@ limitations under the License.
 #include "DnnBuilder.h"
 #include "NeoOnnxCheck.h"
 
-#include <proto/onnx.pb.h>
+#include <onnx.pb.h>
 
 #include <fstream>
 #include <iostream>
