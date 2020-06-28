@@ -31,13 +31,13 @@ class NEOML_API CDotProductLayer : public CBaseLayer {
 public:
 	explicit CDotProductLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 } // namespace NeoML

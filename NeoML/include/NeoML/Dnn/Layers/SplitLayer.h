@@ -31,10 +31,10 @@ public:
 	void SetOutputCounts3(int count0, int count1);
 	void SetOutputCounts4(int count0, int count1, int count2);
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void Serialize( CArchive& archive ) override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	const TBlobDim dimension;
@@ -51,7 +51,7 @@ class NEOML_API CSplitChannelsLayer : public CBaseSplitLayer {
 public:
 	explicit CSplitChannelsLayer( IMathEngine& mathEngine ) : CBaseSplitLayer( mathEngine, BD_Channels ) { SetName( "CCnnSplitChannelsLayer"); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +62,7 @@ class NEOML_API CSplitDepthLayer : public CBaseSplitLayer {
 public:
 	explicit CSplitDepthLayer( IMathEngine& mathEngine ) : CBaseSplitLayer( mathEngine, BD_Depth ) { SetName("CCnnSplitDepthLayer"); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,7 +73,7 @@ class NEOML_API CSplitWidthLayer : public CBaseSplitLayer {
 public:
 	explicit CSplitWidthLayer( IMathEngine& mathEngine ) : CBaseSplitLayer( mathEngine, BD_Width ) { SetName( "CCnnSplitWidthLayer" ); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -84,7 +84,7 @@ class NEOML_API CSplitHeightLayer : public CBaseSplitLayer {
 public:
 	explicit CSplitHeightLayer( IMathEngine& mathEngine ) : CBaseSplitLayer( mathEngine, BD_Height ) { SetName( "CCnnSplitHeightLayer" ); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -95,7 +95,7 @@ class NEOML_API CSplitBatchWidthLayer : public CBaseSplitLayer {
 public:
 	explicit CSplitBatchWidthLayer( IMathEngine& mathEngine ) : CBaseSplitLayer( mathEngine, BD_BatchWidth ) { SetName( "CCnnSplitBatchWidthLayer" ); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 };
 
 } // namespace NeoML

@@ -42,7 +42,7 @@ class NEOML_API CDnnXavierInitializer : public CDnnInitializer {
 public:
 	explicit CDnnXavierInitializer(CRandom& _random) : CDnnInitializer(_random) {}
 
-	virtual void InitializeLayerParams(CDnnBlob& blob, int inputCount) override;
+	void InitializeLayerParams(CDnnBlob& blob, int inputCount) override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -61,7 +61,7 @@ public:
 	float GetUpperBound() const { return upperBound; }
 	void SetUpperBound(float _upperBound) { upperBound = _upperBound; }
 
-	virtual void InitializeLayerParams(CDnnBlob& blob, int inputCount) override;
+	void InitializeLayerParams(CDnnBlob& blob, int inputCount) override;
 
 private:
 	float lowerBound;

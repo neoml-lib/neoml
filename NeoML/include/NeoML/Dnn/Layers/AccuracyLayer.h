@@ -31,12 +31,12 @@ class NEOML_API CAccuracyLayer : public CQualityControlLayer {
 public:
 	explicit CAccuracyLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void Reshape() override;
-	virtual void OnReset() override;
-	virtual void RunOnceAfterReset() override;
+	void Reshape() override;
+	void OnReset() override;
+	void RunOnceAfterReset() override;
 
 private:
 	// the number of iterations for which the error is accumulated
@@ -54,7 +54,7 @@ class NEOML_API CConfusionMatrixLayer : public CQualityControlLayer {
 public:
 	explicit CConfusionMatrixLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Accessing the matrix
 	const CVariableMatrix<float>& GetMatrix() const { return confusionMatrix; }
@@ -62,9 +62,9 @@ public:
 	void ResetMatrix() { confusionMatrix.Set( 0 ); }
 
 protected:
-	virtual void Reshape() override;
-	virtual void OnReset() override { confusionMatrix.Set( 0 ); }
-	virtual void RunOnceAfterReset() override;
+	void Reshape() override;
+	void OnReset() override { confusionMatrix.Set( 0 ); }
+	void RunOnceAfterReset() override;
 
 private:
 	// Confusion matrix

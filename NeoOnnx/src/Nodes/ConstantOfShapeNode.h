@@ -29,9 +29,9 @@ public:
 	CConstantOfShapeNode( const onnx::NodeProto& constantOfShape, CMap<CString, CInputInfo>& nodeOutputs );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override {}
-	virtual void AddLayers( CDnn& ) override {}
+	void OnnxReshape() override;
+	void MarkTensorDims() override {}
+	void AddLayers( CDnn& ) override {}
 };
 
 } // namespace NeoOnnx

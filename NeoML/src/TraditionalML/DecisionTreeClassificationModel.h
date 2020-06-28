@@ -26,15 +26,15 @@ public:
 	static CPtr<IModel> Create() { return FINE_DEBUG_NEW CDecisionTreeClassificationModel(); }
 
 	// IDecisionTreeModel interface methods
-	virtual int GetChildrenCount() const override;
-	virtual CPtr<IDecisionTreeModel> GetChild( int index ) const override;
-	virtual void GetNodeInfo( CDecisionTreeNodeInfo& result ) const override;
+	int GetChildrenCount() const override;
+	CPtr<IDecisionTreeModel> GetChild( int index ) const override;
+	void GetNodeInfo( CDecisionTreeNodeInfo& result ) const override;
 
 	// IModel interface methods
-	virtual int GetClassCount() const override;
-	virtual bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
-	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
-	virtual void Serialize( CArchive& archive ) override;
+	int GetClassCount() const override;
+	bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
+	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
+	void Serialize( CArchive& archive ) override;
 
 private:
 	bool classify( CDecisionTreeNodeBase* node, CClassificationResult& result ) const;

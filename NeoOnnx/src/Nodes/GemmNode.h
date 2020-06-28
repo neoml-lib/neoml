@@ -25,9 +25,9 @@ public:
 	CGemmNode( const onnx::NodeProto& node, CMap<CString, CInputInfo>& nodeOutputs );
 
 	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	void OnnxReshape() override;
+	void MarkTensorDims() override;
+	void AddLayers( CDnn& dnn ) override;
 
 private:
 	// In ONNX Gemm is implemented like

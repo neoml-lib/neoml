@@ -29,16 +29,16 @@ class NEOML_API CPrecisionRecallLayer : public CQualityControlLayer {
 public:
 	explicit CPrecisionRecallLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Retrieves the result over the last batch as a 4-number array:
 	// true positives, positives total, true negatives, negatives total
 	void GetLastResult( CArray<int>& results );
 
 protected:
-	virtual void Reshape() override;
-	virtual void OnReset() override;
-	virtual void RunOnceAfterReset() override;
+	void Reshape() override;
+	void OnReset() override;
+	void RunOnceAfterReset() override;
 
 private:
 	int positivesTotal;

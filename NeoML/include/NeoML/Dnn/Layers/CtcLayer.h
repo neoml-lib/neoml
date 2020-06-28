@@ -29,7 +29,7 @@ class NEOML_API CCtcLossLayer : public CBaseLayer {
 public:
 	explicit CCtcLossLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The layer may have 2 to 5 inputs
 	enum TInput {
@@ -78,9 +78,9 @@ public:
 	const CPtr<CDnnBlob> GetLastGradient() const { return lossGradient; }
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	CPtr<CDnnBlob> lossWeight; // scale multiplier for the loss function
@@ -190,12 +190,12 @@ public:
 
 	void GetBestSequence(int sequenceNumber, CArray<int>& bestLabelSequence) const;
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	int blankLabel; // the blank label

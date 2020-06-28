@@ -26,16 +26,16 @@ class NEOML_API CArgmaxLayer : public CBaseLayer {
 public:
 	explicit CArgmaxLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The dimension along which the maximum is to be found
 	void SetDimension(TBlobDim d);
 	TBlobDim GetDimension() const { return dimension; }
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	TBlobDim dimension;

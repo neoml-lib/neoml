@@ -28,6 +28,7 @@ find_path(MKL_INCLUDE_DIR
         /opt/intel
         /opt/intel/mkl
     PATH_SUFFIXES
+        mkl
         include
         IntelSWTools/compilers_and_libraries/windows/mkl/include
 )
@@ -119,6 +120,11 @@ if(NOT MKL_INTEL_LIB)
     message(STATUS "MKL_INTEL_LIB was not found!")
 endif()
 
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(MKL DEFAULT_MSG MKL_INCLUDE_DIR MKL_CORE_LIB MKL_SEQUENTIAL_LIB MKL_INTEL_LIB)
+
+mark_as_advanced(MKL_INCLUDE_DIR MKL_CORE_LIB MKL_SEQUENTIAL_LIB MKL_INTEL_LIB)
+
 if(MKL_FOUND)
     add_library(MKL::Libs IMPORTED INTERFACE)
     target_include_directories(MKL::Libs INTERFACE ${MKL_INCLUDE_DIR})
@@ -135,15 +141,5 @@ if(MKL_FOUND)
         target_link_libraries(MKL::Libs INTERFACE ${MKL_LIBS} ${CMAKE_DL_LIBS})
     else()
         target_link_libraries(MKL::Libs INTERFACE ${MKL_INTEL_LIB} ${MKL_SEQUENTIAL_LIB} ${MKL_CORE_LIB})
-    endif()
-    
-    if(NOT MKL_FIND_QUIETLY)
-        message(STATUS "Found Intel(R) MKL: TRUE")
-    endif()
-else()
-    if(MKL_FIND_REQUIRED)
-        message(SEND_ERROR "Found Intel(R) MKL could: FALSE")
-    else()
-        message(STATUS "Found Intel(R) MKL: FALSE")
     endif()
 endif()
