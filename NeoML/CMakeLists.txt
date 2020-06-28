@@ -76,7 +76,6 @@ if(NeoML_INSTALL)
     endif()
     
     if(USE_FINE_OBJECTS)
-        fine_unexport_symbols(${PROJECT_NAME})
         fine_install(TARGETS ${INSTALLED_TARGETS})
     else()
         install(
