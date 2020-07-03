@@ -251,7 +251,7 @@ target_include_directories(${PROJECT_NAME}
 )
 
 if(USE_FINE_OBJECTS)
-    target_link_libraries(${PROJECT_NAME} PUBLIC FineObjects)
+    target_link_libraries(${PROJECT_NAME} PRIVATE FineObjects)
 
     target_compile_definitions(${PROJECT_NAME} PUBLIC NEOML_USE_FINEOBJ)
 
