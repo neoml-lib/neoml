@@ -309,3 +309,7 @@ if(ANDROID)
 endif()
 
 configure_target(${PROJECT_NAME})
+
+if(USE_FINE_OBJECTS)
+    fine_unexport_symbols(${PROJECT_NAME})
+endif()
