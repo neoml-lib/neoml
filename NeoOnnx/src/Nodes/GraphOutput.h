@@ -26,7 +26,7 @@ public:
 	// CNode methods' realizations.
 	void CalcOutputShape() override {}
 	void CalcOutputData() override {}
-	void MarkTensorDims() override;
+	void MarkTensorDims() override {}
 	void AddLayers( CDnn& dnn ) override;
 
 	const CString& Name() const { return name; }

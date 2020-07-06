@@ -29,12 +29,6 @@ CGraphOutput::CGraphOutput( const onnx::ValueInfoProto& output ) :
 {
 }
 
-void CGraphOutput::MarkTensorDims()
-{
-	CheckNeoOnnxInternal( !InputTensor( 0 ).Dim.IsEmpty(),
-		"Graph output tensor's dimensions weren't marked with NeoML blob dimensions" );
-}
-
 void CGraphOutput::AddLayers( CDnn& dnn )
 {
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
