@@ -34,6 +34,16 @@ function(add_gtest_for_target TARGET_NAME MATH_ENGINE_TYPE WORKING_DIR)
                 )
             endif()
         endif()
+
+        if(TARGET NeoOnnx)
+            get_target_property(LIB_TYPE NeoOnnx TYPE)
+            if(LIB_TYPE STREQUAL "SHARED_LIBRARY")
+                add_custom_command(TARGET ${TARGET_NAME} POST_BUILD 
+                    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:NeoOnnx> $<TARGET_FILE_DIR:${TARGET_NAME}>
+                    COMMENT "Copy NeoOnnx to ${TARGET_NAME} binary dir to discover tests."
+                )
+            endif()
+        endif()
     endif()
 
     string(TOLOWER ${MATH_ENGINE_TYPE} TYPE)
