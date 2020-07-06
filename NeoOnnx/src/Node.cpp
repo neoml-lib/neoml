@@ -37,6 +37,7 @@ limitations under the License.
 #include "Nodes/ReluNode.h"
 #include "Nodes/ReshapeNode.h"
 #include "Nodes/ShapeNode.h"
+#include "Nodes/SigmoidNode.h"
 #include "Nodes/SliceNode.h"
 #include "Nodes/SqueezeNode.h"
 #include "Nodes/TanhNode.h"
@@ -83,6 +84,7 @@ REGISTER_NEOONNX_NODE( CReduceMeanNode, "ReduceMean" )
 REGISTER_NEOONNX_NODE( CReluNode, "Relu" )
 REGISTER_NEOONNX_NODE( CReshapeNode, "Reshape" )
 REGISTER_NEOONNX_NODE( CShapeNode, "Shape" )
+REGISTER_NEOONNX_NODE( CSigmoidNode, "Sigmoid" )
 REGISTER_NEOONNX_NODE( CSliceNode, "Slice" )
 REGISTER_NEOONNX_NODE( CSqueezeNode, "Squeeze" )
 REGISTER_NEOONNX_NODE( CTanhNode, "Tanh" )

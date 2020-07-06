@@ -33,6 +33,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ReluNode.cpp
     Nodes/ReshapeNode.cpp
     Nodes/ShapeNode.cpp
+    Nodes/SigmoidNode.cpp
     Nodes/SliceNode.cpp
     Nodes/SqueezeNode.cpp
     Nodes/TanhNode.cpp
@@ -67,6 +68,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ReluNode.h
     Nodes/ReshapeNode.h
     Nodes/ShapeNode.h
+    Nodes/SigmoidNode.h
     Nodes/SliceNode.h
     Nodes/SqueezeNode.h
     Nodes/TanhNode.h
