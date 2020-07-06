@@ -30,6 +30,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/MaxPoolNode.cpp
     Nodes/ReduceMeanNode.cpp
     Nodes/ReluNode.cpp
+    Nodes/ReshapeNode.cpp
     Nodes/ShapeNode.cpp
     Nodes/SliceNode.cpp
     Nodes/SqueezeNode.cpp
@@ -62,6 +63,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/MaxPoolNode.h
     Nodes/ReduceMeanNode.h
     Nodes/ReluNode.h
+    Nodes/ReshapeNode.h
     Nodes/ShapeNode.h
     Nodes/SliceNode.h
     Nodes/SqueezeNode.h

@@ -34,6 +34,7 @@ limitations under the License.
 #include "Nodes/MaxPoolNode.h"
 #include "Nodes/ReduceMeanNode.h"
 #include "Nodes/ReluNode.h"
+#include "Nodes/ReshapeNode.h"
 #include "Nodes/ShapeNode.h"
 #include "Nodes/SliceNode.h"
 #include "Nodes/SqueezeNode.h"
@@ -78,6 +79,7 @@ REGISTER_NEOONNX_NODE( CLstmNode, "LSTM" )
 REGISTER_NEOONNX_NODE( CMaxPoolNode, "MaxPool" )
 REGISTER_NEOONNX_NODE( CReduceMeanNode, "ReduceMean" )
 REGISTER_NEOONNX_NODE( CReluNode, "Relu" )
+REGISTER_NEOONNX_NODE( CReshapeNode, "Reshape" )
 REGISTER_NEOONNX_NODE( CShapeNode, "Shape" )
 REGISTER_NEOONNX_NODE( CSliceNode, "Slice" )
 REGISTER_NEOONNX_NODE( CSqueezeNode, "Squeeze" )
