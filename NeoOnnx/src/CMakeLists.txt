@@ -123,8 +123,15 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE BUILD_NEOONNX)
+
 if(NOT NeoOnnx_BUILD_SHARED)
     target_compile_definitions(${PROJECT_NAME} PUBLIC STATIC_NEOONNX)
+else()
+    if(LINUX OR ANDROID)
+        target_link_options(${PROJECT_NAME} PRIVATE -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/../NeoOnnx.version)
+    elseif(IOS OR DARWIN)
+    
+    endif()
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE protobuf::libprotobuf NeoML)
