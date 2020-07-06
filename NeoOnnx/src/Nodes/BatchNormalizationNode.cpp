@@ -29,10 +29,16 @@ CBatchNormalizationNode::CBatchNormalizationNode( const onnx::NodeProto& batchNo
 	eps( attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
 {
 	// Older versions of this operator have spatial flag which can lead to wrong calculation
-	CheckNeoOnnxSupport( opsetVersion >= 9 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", batchNormalization );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", batchNormalization );
+
+	CheckNeoOnnxSupport( opsetVersion > 7 || attributes.GetOptionalInt( "spatial", 1 ) == 1,
+		"non-spatial batch normalization is not supported", batchNormalization );
+
+	CheckNeoOnnxSupport( opsetVersion > 6 || attributes.GetOptionalInt( "is_test", 0 ) != 0,
+		"training batch normalization is not supported", batchNormalization );
 
 	CheckOnnxProtocol( input.Size() == 5 || input.Size() == 6, "node must have 5 or 6 inputs", onnxNode );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", onnxNode );
+	CheckNeoOnnxSupport( OutputCount() == 1, "node must have 1 output", onnxNode );
 }
 
 void CBatchNormalizationNode::CalcOutputShape()

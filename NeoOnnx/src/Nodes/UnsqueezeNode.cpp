@@ -27,7 +27,7 @@ CUnsqueezeNode::CUnsqueezeNode( const onnx::NodeProto& unsqueeze, int opsetVersi
 	CNode( unsqueeze, opsetVersion )
 {
 	// Newer versions have negative axes support
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "unsupported opset version", unsqueeze);
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", unsqueeze);
 
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", unsqueeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", unsqueeze );

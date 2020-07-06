@@ -29,7 +29,7 @@ CConstantOfShapeNode::CConstantOfShapeNode( const onnx::NodeProto& constantOfSha
 {
 	// This op was introduced in version 9
 	CheckOnnxProtocol( opsetVersion >= 9, "wrong opset version", constantOfShape );
-	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "unsupported opset version", constantOfShape );
+	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "opset version", constantOfShape );
 
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", constantOfShape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constantOfShape );

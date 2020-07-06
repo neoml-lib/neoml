@@ -29,7 +29,7 @@ CLstmNode::CLstmNode( const onnx::NodeProto& lstm, int opsetVersion, IMathEngine
 	hiddenSize( attributes.GetRequiredInt( "hidden_size" ) )
 {
 	// The differences between versions are in some flags and support (i.e. output_sequence)
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", lstm );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", lstm );
 
 	CheckOnnxProtocol( input.Size() >= 3 && input.Size() <= 8, "node must have from 3 upto 8 inputs", lstm );
 	CheckOnnxProtocol( OutputCount() >= 1 && OutputCount() <= 3, "node must have from 1 upto 3 outputs", lstm );

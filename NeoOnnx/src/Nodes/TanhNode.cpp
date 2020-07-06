@@ -27,7 +27,7 @@ CTanhNode::CTanhNode( const onnx::NodeProto& tanh, int opsetVersion, IMathEngine
 	CNode( tanh, opsetVersion )
 {
 	// The differences between versions are in supported data types and legacy optimization attributes
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", tanh );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", tanh );
 
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", tanh );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", tanh );

@@ -27,7 +27,7 @@ CSliceNode::CSliceNode( const onnx::NodeProto& slice, int opsetVersion, IMathEng
 	CNode( slice, opsetVersion )
 {
 	// Newer versions are using inputs instead of attributes
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "unsupported opset version", slice );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", slice );
 
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", slice );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", slice );

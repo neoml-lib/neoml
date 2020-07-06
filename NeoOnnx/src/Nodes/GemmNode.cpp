@@ -32,7 +32,7 @@ CGemmNode::CGemmNode( const onnx::NodeProto& gemm, int opsetVersion, IMathEngine
 	transB( attributes.GetOptionalInt( "transB", 0 ) )
 {
 	// Older versions have broadcast support
-	CheckNeoOnnxSupport( opsetVersion >= 7 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", gemm );
+	CheckNeoOnnxSupport( opsetVersion >= 7 && opsetVersion <= MaxOpsetVersion, "opset version", gemm );
 
 	CheckOnnxProtocol( input.Size() == 2 || input.Size() == 3, "node must have 2 or 3 inputs", gemm );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gemm );

@@ -28,7 +28,7 @@ CMaxPoolNode::CMaxPoolNode( const onnx::NodeProto& maxPool, int opsetVersion, IM
 	autoPad( attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
 	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc.
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", maxPool );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", maxPool );
 
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", maxPool );
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "node must have 1 or 2 outputs", maxPool );

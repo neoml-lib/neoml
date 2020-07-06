@@ -28,7 +28,7 @@ CConcatNode::CConcatNode( const onnx::NodeProto& concat, int opsetVersion, IMath
 	axis( attributes.GetRequiredInt( "axis" ) )
 {
 	// Older versions have "axis" attribute as optional, not as required
-	CheckNeoOnnxSupport( opsetVersion >= 4 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", concat );
+	CheckNeoOnnxSupport( opsetVersion >= 4 && opsetVersion <= MaxOpsetVersion, "opset version", concat );
 
 	CheckOnnxProtocol( input.Size() > 1, "node must have more than 1 inputs", concat );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", concat );

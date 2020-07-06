@@ -29,7 +29,7 @@ CAveragePoolNode::CAveragePoolNode( const onnx::NodeProto& averagePool, int opse
 {
 	// The differences between versions are in ceil mode, default strides and count include pad
 	// Default values are used, the rest is not supported by NeoOnnx
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", averagePool );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", averagePool );
 
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", averagePool );
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "node must have 1 or 2 outputs", averagePool );

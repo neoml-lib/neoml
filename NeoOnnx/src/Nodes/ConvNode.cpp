@@ -30,7 +30,7 @@ CConvNode::CConvNode( const onnx::NodeProto& conv, int opsetVersion, IMathEngine
 	autoPad( attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
 	// The differences between versions are in default values of some flags and supported data types
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", conv );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", conv );
 
 	CheckOnnxProtocol( input.Size() == 2 || input.Size() == 3, "node must have 2 or 3 inputs", conv );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", conv );

@@ -27,7 +27,7 @@ CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion, IM
 	axis( attributes.GetOptionalInt( "axis", 1 ) )
 {
 	// The differences between versions are in supported data types and negative axis index
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", flatten );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", flatten );
 	
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", flatten );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", flatten );

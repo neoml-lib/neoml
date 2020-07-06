@@ -28,7 +28,7 @@ CShapeNode::CShapeNode( const onnx::NodeProto& shape, int opsetVersion, IMathEng
 	mathEngine( _mathEngine )
 {
 	// This operator doesn't have multiple versions
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", shape );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", shape );
 
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", shape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", shape );

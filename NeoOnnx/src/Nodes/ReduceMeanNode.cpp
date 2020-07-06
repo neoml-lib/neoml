@@ -28,7 +28,7 @@ CReduceMeanNode::CReduceMeanNode( const onnx::NodeProto& reduceMean, int opsetVe
 	keepDims( attributes.GetOptionalInt( "keepdims", 1 ) )
 {
 	// The differences between versions are in negative indices support
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", reduceMean );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", reduceMean );
 
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", reduceMean );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", reduceMean );

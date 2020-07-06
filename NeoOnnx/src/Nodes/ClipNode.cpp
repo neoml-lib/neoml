@@ -29,7 +29,7 @@ CClipNode::CClipNode( const onnx::NodeProto& clip, int opsetVersion, IMathEngine
 	maxValue( attributes.GetOptionalFloat( "max", FLT_MAX ) )
 {
 	// Newer versions getting min and max values as inputs, not as attributes
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "unsupported opset version", clip );
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", clip );
 
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", clip );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", clip );
