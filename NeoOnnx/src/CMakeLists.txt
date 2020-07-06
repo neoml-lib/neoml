@@ -19,6 +19,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ConstantNode.cpp
     Nodes/ConstantOfShapeNode.cpp
     Nodes/ConvNode.cpp
+    Nodes/EluNode.cpp
     Nodes/FlattenNode.cpp
     Nodes/GatherNode.cpp
     Nodes/GemmNode.cpp
@@ -52,6 +53,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ConstantNode.h
     Nodes/ConstantOfShapeNode.h
     Nodes/ConvNode.h
+    Nodes/EluNode.h
     Nodes/FlattenNode.h
     Nodes/GatherNode.h
     Nodes/GemmNode.h

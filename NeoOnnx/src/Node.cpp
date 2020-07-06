@@ -26,6 +26,7 @@ limitations under the License.
 #include "Nodes/ConstantNode.h"
 #include "Nodes/ConstantOfShapeNode.h"
 #include "Nodes/ConvNode.h"
+#include "Nodes/EluNode.h"
 #include "Nodes/FlattenNode.h"
 #include "Nodes/GatherNode.h"
 #include "Nodes/GemmNode.h"
@@ -71,6 +72,7 @@ REGISTER_NEOONNX_NODE( CConcatNode, "Concat" )
 REGISTER_NEOONNX_NODE( CConstantNode, "Constant" )
 REGISTER_NEOONNX_NODE( CConstantOfShapeNode, "ConstantOfShape" )
 REGISTER_NEOONNX_NODE( CConvNode, "Conv" )
+REGISTER_NEOONNX_NODE( CEluNode, "Elu" )
 REGISTER_NEOONNX_NODE( CFlattenNode, "Flatten" )
 REGISTER_NEOONNX_NODE( CGatherNode, "Gather" )
 REGISTER_NEOONNX_NODE( CGemmNode, "Gemm" )
