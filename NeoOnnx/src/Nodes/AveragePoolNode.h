@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CAveragePoolNode : public CNode {
 public:
-	explicit CAveragePoolNode( const onnx::NodeProto& averagePool );
+	CAveragePoolNode( const onnx::NodeProto& averagePool, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

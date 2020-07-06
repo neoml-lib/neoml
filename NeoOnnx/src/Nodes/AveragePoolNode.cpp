@@ -23,10 +23,14 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CAveragePoolNode::CAveragePoolNode( const onnx::NodeProto& averagePool ) :
-	CNode( averagePool ),
+CAveragePoolNode::CAveragePoolNode( const onnx::NodeProto& averagePool, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
+	CNode( averagePool, opsetVersion ),
 	autoPad( attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
+	// The differences between versions are in ceil mode, default strides and count include pad
+	// Default values are used, the rest is not supported by NeoOnnx
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", averagePool );
+
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", averagePool );
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "node must have 1 or 2 outputs", averagePool );
 

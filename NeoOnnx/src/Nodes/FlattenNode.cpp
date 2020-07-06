@@ -22,10 +22,13 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten ) :
-	CNode( flatten ),
+CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
+	CNode( flatten, opsetVersion ),
 	axis( attributes.GetOptionalInt( "axis", 1 ) )
 {
+	// The differences between versions are in supported data types and negative axis index
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", flatten );
+	
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", flatten );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", flatten );
 }

@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CConstantNode : public CNode {
 public:
-	CConstantNode( const onnx::NodeProto& constant, IMathEngine& mathEngine );
+	CConstantNode( const onnx::NodeProto& constant, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

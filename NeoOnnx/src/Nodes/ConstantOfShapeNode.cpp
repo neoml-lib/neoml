@@ -23,9 +23,14 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CConstantOfShapeNode::CConstantOfShapeNode( const onnx::NodeProto& constantOfShape ) :
-	CNode( constantOfShape )
+CConstantOfShapeNode::CConstantOfShapeNode( const onnx::NodeProto& constantOfShape, int opsetVersion,
+		IMathEngine& /*mathEngine*/ ) :
+	CNode( constantOfShape, opsetVersion )
 {
+	// This op was introduced in version 9
+	CheckOnnxProtocol( opsetVersion >= 9, "wrong opset version", constantOfShape );
+	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "unsupported opset version", constantOfShape );
+
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", constantOfShape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constantOfShape );
 }

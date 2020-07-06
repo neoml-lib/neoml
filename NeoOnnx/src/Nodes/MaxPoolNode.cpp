@@ -23,10 +23,13 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CMaxPoolNode::CMaxPoolNode( const onnx::NodeProto& maxPool ) :
-	CNode( maxPool ),
+CMaxPoolNode::CMaxPoolNode( const onnx::NodeProto& maxPool, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
+	CNode( maxPool, opsetVersion ),
 	autoPad( attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
+	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc.
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", maxPool );
+
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", maxPool );
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "node must have 1 or 2 outputs", maxPool );
 

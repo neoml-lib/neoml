@@ -24,13 +24,16 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGemmNode::CGemmNode( const onnx::NodeProto& gemm ) :
-	CNode( gemm ),
+CGemmNode::CGemmNode( const onnx::NodeProto& gemm, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
+	CNode( gemm, opsetVersion ),
 	alpha( attributes.GetOptionalFloat( "alpha", 1.f ) ),
 	beta( attributes.GetOptionalFloat( "beta", 1.f ) ),
 	transA( attributes.GetOptionalInt( "transA", 0 ) ),
 	transB( attributes.GetOptionalInt( "transB", 0 ) )
 {
+	// Older versions have broadcast support
+	CheckNeoOnnxSupport( opsetVersion >= 7 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", gemm );
+
 	CheckOnnxProtocol( input.Size() == 2 || input.Size() == 3, "node must have 2 or 3 inputs", gemm );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gemm );
 

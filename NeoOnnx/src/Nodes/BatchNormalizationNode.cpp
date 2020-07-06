@@ -23,10 +23,14 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CBatchNormalizationNode::CBatchNormalizationNode( const onnx::NodeProto& batchNormalization ) :
-	CNode( batchNormalization ),
+CBatchNormalizationNode::CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, int opsetVersion,
+		IMathEngine& /*mathEngine*/ ) :
+	CNode( batchNormalization, opsetVersion ),
 	eps( attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
 {
+	// Older versions of this operator have spatial flag which can lead to wrong calculation
+	CheckNeoOnnxSupport( opsetVersion >= 9 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", batchNormalization );
+
 	CheckOnnxProtocol( input.Size() == 5 || input.Size() == 6, "node must have 5 or 6 inputs", onnxNode );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", onnxNode );
 }

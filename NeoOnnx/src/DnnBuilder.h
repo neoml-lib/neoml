@@ -29,7 +29,7 @@ public:
 
 	// Build dnn from graph.
 	// dnn must be empty.
-    void BuildDnn( const onnx::GraphProto& onnxGraph, CDnn& dnn );
+    void BuildDnn( const onnx::GraphProto& onnxGraph, int opsetVersion, CDnn& dnn );
 };
 
 } // namespace NeoOnnx

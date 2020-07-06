@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CConvNode : public CNode {
 public:
-	explicit CConvNode( const onnx::NodeProto& conv );
+	CConvNode( const onnx::NodeProto& conv, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

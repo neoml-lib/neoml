@@ -23,9 +23,12 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CReluNode::CReluNode( const onnx::NodeProto& relu ) :
-	CNode( relu )
+CReluNode::CReluNode( const onnx::NodeProto& relu, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
+	CNode( relu, opsetVersion )
 {
+	// The differences between versions are in legacy optimization flags
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", relu );
+
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", relu );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", relu );
 }

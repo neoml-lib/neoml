@@ -22,7 +22,7 @@ namespace NeoOnnx {
 // Gemm operation node.
 class CGemmNode : public CNode {
 public:
-	explicit CGemmNode( const onnx::NodeProto& node );
+	CGemmNode( const onnx::NodeProto& node, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

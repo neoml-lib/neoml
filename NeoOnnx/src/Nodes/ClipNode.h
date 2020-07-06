@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CClipNode : public CNode {
 public:
-	explicit CClipNode( const onnx::NodeProto& clip );
+	CClipNode( const onnx::NodeProto& clip, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

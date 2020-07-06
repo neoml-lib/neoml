@@ -47,7 +47,49 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CNode::CNode( const onnx::NodeProto& _onnxNode ) :
+static CMap<CString, TCreateNodeFunction>& getRegisteredNodes()
+{
+	static CMap<CString, TCreateNodeFunction> registeredNodes;
+	return registeredNodes;
+}
+
+void RegisterNode( const char* opName, TCreateNodeFunction function )
+{
+	NeoAssert( !getRegisteredNodes().Has( opName ) );
+	getRegisteredNodes().Add( opName, function );
+}
+
+namespace {
+
+// Register all nodes
+REGISTER_NEOONNX_NODE( CAddNode, "Add" )
+REGISTER_NEOONNX_NODE( CAveragePoolNode, "AveragePool" )
+REGISTER_NEOONNX_NODE( CBatchNormalizationNode, "BatchNormalization" )
+REGISTER_NEOONNX_NODE( CClipNode, "Clip" )
+REGISTER_NEOONNX_NODE( CConcatNode, "Concat" )
+REGISTER_NEOONNX_NODE( CConstantNode, "Constant" )
+REGISTER_NEOONNX_NODE( CConstantOfShapeNode, "ConstantOfShape" )
+REGISTER_NEOONNX_NODE( CConvNode, "Conv" )
+REGISTER_NEOONNX_NODE( CFlattenNode, "Flatten" )
+REGISTER_NEOONNX_NODE( CGatherNode, "Gather" )
+REGISTER_NEOONNX_NODE( CGemmNode, "Gemm" )
+REGISTER_NEOONNX_NODE( CGlobalAveragePoolNode, "GlobalAveragePool" )
+REGISTER_NEOONNX_NODE( CLstmNode, "LSTM" )
+REGISTER_NEOONNX_NODE( CMaxPoolNode, "MaxPool" )
+REGISTER_NEOONNX_NODE( CReduceMeanNode, "ReduceMean" )
+REGISTER_NEOONNX_NODE( CReluNode, "Relu" )
+REGISTER_NEOONNX_NODE( CShapeNode, "Shape" )
+REGISTER_NEOONNX_NODE( CSliceNode, "Slice" )
+REGISTER_NEOONNX_NODE( CSqueezeNode, "Squeeze" )
+REGISTER_NEOONNX_NODE( CTanhNode, "Tanh" )
+REGISTER_NEOONNX_NODE( CUnsqueezeNode, "Unsqueeze" )
+
+} // namespace
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CNode::CNode( const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
+	opsetVersion( _opsetVersion ),
 	attributes( _onnxNode ),
 	onnxNode( _onnxNode )
 {
@@ -55,7 +97,8 @@ CNode::CNode( const onnx::NodeProto& _onnxNode ) :
 	output.SetSize( _onnxNode.output_size() );
 }
 
-CNode::CNode( int inputCount, int outputCount )
+CNode::CNode( int inputCount, int outputCount ) :
+	opsetVersion( -1 )
 {
 	input.SetSize( inputCount );
 	output.SetSize( outputCount );
@@ -113,54 +156,11 @@ int CNode::InputLayerIndex( int index ) const
 	return InputInfo( index ).OutputIndex;
 }
 
-CNode* CNode::CreateNode( const onnx::NodeProto& onnxNode, IMathEngine& mathEngine )
+CNode* CNode::CreateNode( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine )
 {
-	if( onnxNode.op_type() == "Add" ) {
-		return new CAddNode( onnxNode );
-	} else if( onnxNode.op_type() == "AveragePool" ) {
-		return new CAveragePoolNode( onnxNode );
-	} else if( onnxNode.op_type() == "BatchNormalization" ) {
-		return new CBatchNormalizationNode( onnxNode );
-	} else if( onnxNode.op_type() == "Clip" ) {
-		return new CClipNode( onnxNode );
-	} else if( onnxNode.op_type() == "Concat" ) {
-		return new CConcatNode( onnxNode );
-	} else if( onnxNode.op_type() == "Constant" ) {
-		return new CConstantNode( onnxNode, mathEngine );
-	} else if( onnxNode.op_type() == "ConstantOfShape" ) {
-		return new CConstantOfShapeNode( onnxNode );
-	} else if( onnxNode.op_type() == "Conv" ) {
-		return new CConvNode( onnxNode );
-	} else if( onnxNode.op_type() == "Flatten" ) {
-		return new CFlattenNode( onnxNode );
-	} else if( onnxNode.op_type() == "Gather" ) {
-		return new CGatherNode( onnxNode );
-	} else if( onnxNode.op_type() == "Gemm" ) {
-		return new CGemmNode( onnxNode );
-	} else if( onnxNode.op_type() == "GlobalAveragePool" ) {
-		return new CGlobalAveragePoolNode( onnxNode );
-	} else if( onnxNode.op_type() == "LSTM" ) {
-		return new CLstmNode( onnxNode );
-	} else if( onnxNode.op_type() == "MaxPool" ) {
-		return new CMaxPoolNode( onnxNode );
-	} else if( onnxNode.op_type() == "ReduceMean" ) {
-		return new CReduceMeanNode( onnxNode );
-	} else if( onnxNode.op_type() == "Relu" ) {
-		return new CReluNode( onnxNode );
-	} else if( onnxNode.op_type() == "Shape" ) {
-		return new CShapeNode( onnxNode, mathEngine );
-	} else if( onnxNode.op_type() == "Slice" ) {
-		return new CSliceNode( onnxNode );
-	} else if( onnxNode.op_type() == "Squeeze" ) {
-		return new CSqueezeNode( onnxNode );
-	} else if( onnxNode.op_type() == "Tanh" ) {
-		return new CTanhNode( onnxNode );
-	} else if( onnxNode.op_type() == "Unsqueeze" ) {
-		return new CUnsqueezeNode( onnxNode );
-	}
-
-	CheckNeoOnnxSupport( false, CString( "operator " ) + onnxNode.op_type().c_str() );
-	return nullptr;
+	TMapPosition pos = getRegisteredNodes().GetFirstPosition( onnxNode.op_type() );
+	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
+	return getRegisteredNodes().GetValue( pos )( onnxNode, opsetVersion, mathEngine );
 }
 
 } // namespace NeoOnnx

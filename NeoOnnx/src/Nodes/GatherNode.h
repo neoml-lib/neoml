@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CGatherNode : public CNode {
 public:
-	explicit CGatherNode( const onnx::NodeProto& gather );
+	CGatherNode( const onnx::NodeProto& gather, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CSqueezeNode : public CNode {
 public:
-	explicit CSqueezeNode( const onnx::NodeProto& squeeze );
+	CSqueezeNode( const onnx::NodeProto& squeeze, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

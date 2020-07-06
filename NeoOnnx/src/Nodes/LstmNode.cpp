@@ -23,11 +23,14 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CLstmNode::CLstmNode( const onnx::NodeProto& lstm ) :
-	CNode( lstm ),
+CLstmNode::CLstmNode( const onnx::NodeProto& lstm, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
+	CNode( lstm, opsetVersion ),
 	direction( attributes.GetOptionalString( "direction", "forward" ) ),
 	hiddenSize( attributes.GetRequiredInt( "hidden_size" ) )
 {
+	// The differences between versions are in some flags and support (i.e. output_sequence)
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", lstm );
+
 	CheckOnnxProtocol( input.Size() >= 3 && input.Size() <= 8, "node must have from 3 upto 8 inputs", lstm );
 	CheckOnnxProtocol( OutputCount() >= 1 && OutputCount() <= 3, "node must have from 1 upto 3 outputs", lstm );
 

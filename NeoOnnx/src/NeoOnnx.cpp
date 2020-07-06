@@ -28,6 +28,20 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Gets opset version for a
+static int getOpsetVersion( const onnx::ModelProto& model )
+{
+	for( const auto& opset : model.opset_import() ) {
+		if( opset.domain().empty() ) {
+			return static_cast<int>( opset.version() );
+		}
+	}
+
+	CheckOnnxProtocol( false, "Can't determine opset version for a model" );
+
+	return -1;
+}
+
 void LoadFromOnnx( const char* fileName, CDnn& dnn )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -46,7 +60,7 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn )
 
 	try {
 		NeoOnnx::CDnnBuilder dnnBuilder;
-		dnnBuilder.BuildDnn( model.graph(), dnn );
+		dnnBuilder.BuildDnn( model.graph(), getOpsetVersion( model ), dnn );
 	} catch( ... ) {
 		input.close();
 		google::protobuf::ShutdownProtobufLibrary();
@@ -71,8 +85,7 @@ void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn )
 		}
 
 		NeoOnnx::CDnnBuilder dnnBuilder;
-		CheckNeoOnnxSupport( model.ir_version() == 9, "NeoOnnx only supports 9th version" );
-		dnnBuilder.BuildDnn( model.graph(), dnn );
+		dnnBuilder.BuildDnn( model.graph(), model.ir_version(), dnn );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;

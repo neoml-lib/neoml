@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CMaxPoolNode : public CNode {
 public:
-	explicit CMaxPoolNode( const onnx::NodeProto& maxPool );
+	CMaxPoolNode( const onnx::NodeProto& maxPool, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

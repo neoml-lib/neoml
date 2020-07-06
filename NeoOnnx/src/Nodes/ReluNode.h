@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CReluNode : public CNode {
 public:
-	explicit CReluNode( const onnx::NodeProto& relu );
+	CReluNode( const onnx::NodeProto& relu, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

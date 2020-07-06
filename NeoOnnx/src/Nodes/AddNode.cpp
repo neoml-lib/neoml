@@ -23,9 +23,13 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CAddNode::CAddNode( const onnx::NodeProto& add ) :
-	CNode( add )
+CAddNode::CAddNode( const onnx::NodeProto& add, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
+	CNode( add, opsetVersion )
 {
+	// The differences between versions are in broadcasting flags and support
+	// NeoOnnx doesn't support tensor broadcast anyway
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", add );
+
 	CheckOnnxProtocol( input.Size() == 2, "node must have 2 inputs", add );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", add );
 }

@@ -23,9 +23,12 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGatherNode::CGatherNode( const onnx::NodeProto& gather ) :
-	CNode( gather )
+CGatherNode::CGatherNode( const onnx::NodeProto& gather, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
+	CNode( gather, opsetVersion )
 {
+	// Newer versions support negative indices
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "unsupported opset version", gather );
+
 	CheckOnnxProtocol( input.Size() == 2, "node must have 2 inputs", gather );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gather );
 }

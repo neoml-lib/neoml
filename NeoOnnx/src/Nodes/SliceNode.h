@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CSliceNode : public CNode {
 public:
-	explicit CSliceNode( const onnx::NodeProto& slice );
+	CSliceNode( const onnx::NodeProto& slice, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

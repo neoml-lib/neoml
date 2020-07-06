@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CAddNode : public CNode {
 public:
-	explicit CAddNode( const onnx::NodeProto& add );
+	CAddNode( const onnx::NodeProto& add, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

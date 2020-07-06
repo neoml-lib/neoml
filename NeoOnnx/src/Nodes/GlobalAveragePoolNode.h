@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CGlobalAveragePoolNode : public CNode {
 public:
-	explicit CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool );
+	CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

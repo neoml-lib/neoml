@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CReduceMeanNode : public CNode {
 public:
-	explicit CReduceMeanNode( const onnx::NodeProto& reduceMean );
+	CReduceMeanNode( const onnx::NodeProto& reduceMean, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

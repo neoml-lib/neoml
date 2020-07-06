@@ -23,10 +23,13 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CReduceMeanNode::CReduceMeanNode( const onnx::NodeProto& reduceMean ) :
-	CNode( reduceMean ),
+CReduceMeanNode::CReduceMeanNode( const onnx::NodeProto& reduceMean, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
+	CNode( reduceMean, opsetVersion ),
 	keepDims( attributes.GetOptionalInt( "keepdims", 1 ) )
 {
+	// The differences between versions are in negative indices support
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", reduceMean );
+
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", reduceMean );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", reduceMean );
 

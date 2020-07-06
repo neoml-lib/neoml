@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CBatchNormalizationNode : public CNode {
 public:
-	explicit CBatchNormalizationNode( const onnx::NodeProto& batchNormalization );
+	CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

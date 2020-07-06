@@ -55,7 +55,7 @@ static bool isTopSorted( const onnx::GraphProto& onnxGraph )
 }
 
 // Build array of CNode's based on onnxGraph.
-static void buildNodes( const onnx::GraphProto& onnxGraph, IMathEngine& mathEngine, CPointerArray<CNode>& nodes )
+static void buildNodes( const onnx::GraphProto& onnxGraph, int opsetVersion, IMathEngine& mathEngine, CPointerArray<CNode>& nodes )
 {
 	nodes.Empty();
 	nodes.SetBufferSize( onnxGraph.input_size() + onnxGraph.initializer_size() + onnxGraph.node_size()
@@ -85,7 +85,7 @@ static void buildNodes( const onnx::GraphProto& onnxGraph, IMathEngine& mathEngi
 
 	// Add graph nodes.
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
-		nodes.Add( CNode::CreateNode( onnxNode, mathEngine ) );
+		nodes.Add( CNode::CreateNode( onnxNode, opsetVersion, mathEngine ) );
 		for( int inputIndex = 0; inputIndex < onnxNode.input_size(); ++inputIndex ) {
 			const std::string& inputName = onnxNode.input( inputIndex );
 			if( inputName.size() > 0 ) {
@@ -106,14 +106,17 @@ static void buildNodes( const onnx::GraphProto& onnxGraph, IMathEngine& mathEngi
 	}
 }
 
-void CDnnBuilder::BuildDnn( const onnx::GraphProto& onnxGraph, CDnn& dnn )
+void CDnnBuilder::BuildDnn( const onnx::GraphProto& onnxGraph, int opsetVersion, CDnn& dnn )
 {
+	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
+	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
+
 	CheckNeoOnnxInternal( dnn.GetLayerCount() == 0, "dnn must be empty" );
 	CheckNeoOnnxSupport( isTopSorted( onnxGraph ), "onnxGraph is not topologically sorted" );
 
 	// Step 1: creating nodes of the graph and connections between them.
 	CPointerArray<CNode> nodes;
-	buildNodes( onnxGraph, dnn.GetMathEngine(), nodes );
+	buildNodes( onnxGraph, opsetVersion, dnn.GetMathEngine(), nodes );
 
 	// Iterate over graph in top sorted order.
 	for( int nodeIndex = 0; nodeIndex < nodes.Size(); ++nodeIndex ) {

@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CConstantOfShapeNode : public CNode {
 public:
-	explicit CConstantOfShapeNode( const onnx::NodeProto& constantOfShape );
+	CConstantOfShapeNode( const onnx::NodeProto& constantOfShape, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

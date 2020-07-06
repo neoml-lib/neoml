@@ -28,6 +28,49 @@ class ValueInfoProto;
 
 namespace NeoOnnx {
 
+// Opset versioning support
+
+const int MaxOpsetVersion = 12;
+
+// The macros for the op name of an onnx node
+// If this macros is used when declaring a class, that class may be registered as a NeoOnnx node
+#define NEOONNX_NODE( className ) friend class CNodeClassRegistrar< className >;
+
+// Registers the class as a NeoOnnx node for op_type == opName
+#define REGISTER_NEOONNX_NODE( classType, opName ) \
+	static CNodeClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( opName );
+
+class CNode;
+
+typedef CNode* ( *TCreateNodeFunction )( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
+
+void RegisterNode( const char* opName, TCreateNodeFunction function );
+
+//---------------------------------------------------------------------------------------------------------------------
+
+template<class T>
+class CNodeClassRegistrar {
+public:
+	explicit CNodeClassRegistrar( const char* opName );
+
+private:
+	static CNode* createObject( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
+};
+
+template<class T>
+inline CNodeClassRegistrar<T>::CNodeClassRegistrar( const char* opName )
+{
+	RegisterNode( opName, createObject );
+}
+
+template<class T>
+inline CNode* CNodeClassRegistrar<T>::createObject( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine )
+{
+	return FINE_DEBUG_NEW T( onnxNode, opsetVersion, mathEngine );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 // Node in the onnx calculation graph.
 class CNode {
 public:
@@ -67,7 +110,7 @@ public:
 	void SetInput( int index, const CInputInfo& inputInfo );
 
 	// Fabric method. Creates CNode's derivative for given onnx node.
-	static CNode* CreateNode( const onnx::NodeProto& onnxNode, IMathEngine& mathEngine );
+	static CNode* CreateNode( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
 
 protected:
 	// Information about output.
@@ -83,13 +126,14 @@ protected:
 		const int OutputIndex; // NeoML layer's output index, mapped with this output
 	};
 
+	const int opsetVersion; // Opset version
 	const CNodeAttributes attributes; // Attributes of this node.
 	CArray<CTensor> output; // Node outputs.
 	CArray<CInputInfo> input; // Node inputs.
 	CArray<CNeoMLInputInfo> neoMLInputInfo;
 	const onnx::NodeProto onnxNode; // Reference to onnx node. Used for diagnostics.
 
-	explicit CNode( const onnx::NodeProto& node );
+	CNode( const onnx::NodeProto& node, int opsetVersion );
 	// special constructor for initializers, graph inputs and graph outputs
 	CNode( int inputCount, int outputCount );
 

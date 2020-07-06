@@ -22,9 +22,13 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGlobalAveragePoolNode::CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool ) :
-	CNode( globalAveragePool )
+CGlobalAveragePoolNode::CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool, int opsetVersion,
+		IMathEngine& /*mathEngine*/ ) :
+	CNode( globalAveragePool, opsetVersion )
 {
+	// This operator doesn't have multiple versions
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "unsupported opset version", globalAveragePool );
+
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", globalAveragePool );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", globalAveragePool );
 }

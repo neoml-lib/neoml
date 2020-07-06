@@ -23,9 +23,12 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CSqueezeNode::CSqueezeNode( const onnx::NodeProto& squeeze ) :
-	CNode( squeeze )
+CSqueezeNode::CSqueezeNode( const onnx::NodeProto& squeeze, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
+	CNode( squeeze, opsetVersion )
 {
+	// Newer versions have negiative axes support
+	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "unsupported opset version", squeeze );
+
 	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", squeeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", squeeze );
 

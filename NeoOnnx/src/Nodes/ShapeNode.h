@@ -27,7 +27,7 @@ namespace NeoOnnx {
 // Shape node in onnx graph.
 class CShapeNode : public CNode {
 public:
-	CShapeNode( const onnx::NodeProto& shape, IMathEngine& mathEngine );
+	CShapeNode( const onnx::NodeProto& shape, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;

@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 class CFlattenNode : public CNode {
 public:
-	explicit CFlattenNode( const onnx::NodeProto& flatten );
+	CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
 	void CalcOutputShape() override;
