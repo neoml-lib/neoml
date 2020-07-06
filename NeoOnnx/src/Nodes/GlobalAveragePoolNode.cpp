@@ -37,8 +37,9 @@ void CGlobalAveragePoolNode::CalcOutputShape()
 {
 	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
 	CheckOnnxProtocol( inputShape.Size() >= 2, "node's input must have at least 2 dimensions", onnxNode );
-
-	output[0].Shape = { inputShape[0], inputShape[1] };
+	output[0].Shape.Add( 1, inputShape.Size() );
+	output[0].Shape[0] = inputShape[0];
+	output[0].Shape[1] = inputShape[1];
 }
 
 void CGlobalAveragePoolNode::CalcOutputData()
@@ -49,12 +50,15 @@ void CGlobalAveragePoolNode::CalcOutputData()
 
 void CGlobalAveragePoolNode::MarkTensorDims()
 {
-	const CTensorDim& inputDim = InputTensor( 0 ).Dim;
-	CheckNeoOnnxInternal( inputDim.Size() == InputTensor( 0 ).Shape.Size(),
-		"input's dimensions must be marked", onnxNode );
+	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
+		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ),
+			"marking output dimensions failed", onnxNode );
+	}
 
-	CheckNeoOnnxInternal( output[0].SetTensorDim( { inputDim[0], inputDim[1] } ),
-		"marking output dimensions failed", onnxNode );
+	if( !output[0].Dim.IsEmpty() ) {
+		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ),
+			"marking input dimensions failed", onnxNode );
+	}
 }
 
 static const int pool2dDims = ( 1 << static_cast<int>( BD_Height ) ) | ( 1 << static_cast<int>( BD_Width ) );
