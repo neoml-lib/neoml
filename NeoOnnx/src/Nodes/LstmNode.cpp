@@ -70,7 +70,7 @@ void CLstmNode::CalcOutputShape()
 	const int sequenceLength = inputShape[0];
 	const int batchSize = inputShape[1];
 
-	output[0].Shape =  { sequenceLength, 1, batchSize, hiddenSize };
+	output[0].Shape = { sequenceLength, 1, batchSize, hiddenSize };
 }
 
 void CLstmNode::CalcOutputData()
