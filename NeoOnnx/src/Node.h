@@ -32,10 +32,6 @@ namespace NeoOnnx {
 
 const int MaxOpsetVersion = 12;
 
-// The macros for the op name of an onnx node
-// If this macros is used when declaring a class, that class may be registered as a NeoOnnx node
-#define NEOONNX_NODE( className ) friend class CNodeClassRegistrar< className >;
-
 // Registers the class as a NeoOnnx node for op_type == opName
 #define REGISTER_NEOONNX_NODE( classType, opName ) \
 	static CNodeClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( opName );
