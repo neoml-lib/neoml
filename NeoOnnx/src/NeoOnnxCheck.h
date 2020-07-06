@@ -18,7 +18,7 @@ limitations under the License.
 #include <exception>
 #include <string>
 
-#include "proto/onnx.pb.h"
+#include "onnx.pb.h"
 
 namespace NeoOnnx {
 

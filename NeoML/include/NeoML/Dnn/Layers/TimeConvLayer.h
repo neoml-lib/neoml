@@ -26,7 +26,7 @@ class NEOML_API CTimeConvLayer : public CBaseLayer {
 public:
 	explicit CTimeConvLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Layer parameters
 	// The number of filters for convolution
@@ -61,11 +61,11 @@ protected:
 	virtual ~CTimeConvLayer() { destroyDesc(); }
 
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
-	virtual void FilterLayerParams( float threshold ) override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
+	void FilterLayerParams( float threshold ) override;
 
 private:
 	CTimeConvolutionDesc* desc;

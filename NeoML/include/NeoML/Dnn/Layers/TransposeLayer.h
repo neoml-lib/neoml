@@ -26,16 +26,16 @@ class NEOML_API CTransposeLayer : public CBaseLayer {
 public:
 	explicit CTransposeLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Retrieves or sets the names of the dimensions to be transposed
 	void SetTransposedDimensions(TBlobDim d1, TBlobDim d2);
 	void GetTransposedDimensions(TBlobDim& d1, TBlobDim &d2) const;
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// The dimensions to be transposed

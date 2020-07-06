@@ -29,10 +29,10 @@ public:
 	explicit CLstmNode( const onnx::NodeProto& lstm );
 
 	// CNode methods' realizations.
-	virtual void CalcOutputShape() override;
-	virtual void CalcOutputData() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	void CalcOutputShape() override;
+	void CalcOutputData() override;
+	void MarkTensorDims() override;
+	void AddLayers( CDnn& dnn ) override;
 
 private:
 	const CString direction; // LSTM's direction ("forward", "backward" or "bidirectional").

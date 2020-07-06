@@ -19,7 +19,7 @@ limitations under the License.
 #include "MaxPoolNode.h"
 #include "NodeUtils.h"
 
-#include "proto/onnx.pb.h"
+#include "onnx.pb.h"
 
 namespace NeoOnnx {
 

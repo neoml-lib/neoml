@@ -3,6 +3,10 @@ cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 project(NeoMathEngine LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
+if(USE_FINE_OBJECTS)
+    file(TO_CMAKE_PATH $ENV{ROOT} ROOT_PATH)
+    list(APPEND CMAKE_MODULE_PATH ${ROOT_PATH}/FineObjects/Cmake)
+endif()
 
 if(NOT CMAKE_PROJECT_NAME STREQUAL "NeoML")
     include(Settings)
@@ -18,10 +22,8 @@ endif()
 
 set(PROJECT_VERSION ${FINE_VERSION_MAJOR}.${FINE_VERSION_MINOR}.${FINE_VERSION_PATCH})
 
-get_directory_property(IS_SUBPROJECT PARENT_DIRECTORY)
-
 # Build NeoMathEngine tests
-option(NeoMathEngine_BUILD_TESTS "Build all of NeoMathEngine's tests." ON)
+option(NeoMathEngine_BUILD_TESTS "Build all of NeoMathEngine's tests." OFF)
 
 # Build NeoMathEngine as shared library
 option(NeoMathEngine_BUILD_SHARED "Build NeoMathEngine as shared library." ON)
@@ -36,7 +38,7 @@ endif()
 add_subdirectory(src)
 
 # Tests
-if(NeoMathEngine_BUILD_TESTS AND (NOT IS_SUBPROJECT OR USE_FINE_OBJECTS) AND NOT IOS AND NOT ANDROID)
+if(NeoMathEngine_BUILD_TESTS AND NOT IOS AND NOT ANDROID)
     enable_testing()
     add_subdirectory(test/FullTestDesktop)
 endif()

@@ -29,10 +29,10 @@ public:
 	explicit CReduceMeanNode( const onnx::NodeProto& reduceMean );
 
 	// CNode methods' realizations.
-	virtual void CalcOutputShape() override;
-	virtual void CalcOutputData() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	void CalcOutputShape() override;
+	void CalcOutputData() override;
+	void MarkTensorDims() override;
+	void AddLayers( CDnn& dnn ) override;
 
 private:
 	const int keepDims; // keep reduced dimensions (of size 1) or remove them.

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,6 +42,17 @@ struct CCudaDevice : public CCrtAllocatedObject {
 	CCudaDevice( int deviceNumber, size_t memoryLimit );
 	~CCudaDevice();
 };
+
+// Checks if device slot is free.
+bool IsDeviceSlotFree( int deviceId, int slotIndex );
+
+// Captures slot and returns it's hadnle.
+// Handle must be released after work (ReleaseDeviceSlot).
+// Returns nullptr if slot is busy.
+void* CaptureDeviceSlot( int deviceId, int slotIndex, bool reuse );
+
+// Releases device slot.
+void ReleaseDeviceSlot( void* slot, int deviceId, int slotIndex );
 
 } // namespace NeoML
 

@@ -26,7 +26,7 @@ public:
 		CounterCount() = 1;
 	}
 
-	virtual void Synchronise() override
+	void Synchronise() override
 	{
 		auto cnow = std::chrono::steady_clock::now().time_since_epoch();
 		auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(cnow).count();

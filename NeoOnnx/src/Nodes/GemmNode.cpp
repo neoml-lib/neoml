@@ -20,7 +20,7 @@ limitations under the License.
 #include "FlattenNode.h"
 #include "NeoOnnxCheck.h"
 
-#include "proto/onnx.pb.h"
+#include "onnx.pb.h"
 
 namespace NeoOnnx {
 

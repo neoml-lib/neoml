@@ -29,10 +29,10 @@ public:
 	explicit CBatchNormalizationNode( const onnx::NodeProto& batchNormalization );
 
 	// CNode methods' realizations.
-	virtual void CalcOutputShape() override;
-	virtual void CalcOutputData() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	void CalcOutputShape() override;
+	void CalcOutputData() override;
+	void MarkTensorDims() override;
+	void AddLayers( CDnn& dnn ) override;
 
 private:
 	const float eps; // eps value used to prevent division by zero.

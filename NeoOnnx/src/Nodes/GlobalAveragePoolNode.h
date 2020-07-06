@@ -29,10 +29,10 @@ public:
 	explicit CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool );
 
 	// CNode methods' realizations.
-	virtual void CalcOutputShape() override;
-	virtual void CalcOutputData() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	void CalcOutputShape() override;
+	void CalcOutputData() override;
+	void MarkTensorDims() override;
+	void AddLayers( CDnn& dnn ) override;
 
 private:
 	void add2dPoolingLayer( CDnn& dnn, int pooledDims );

@@ -29,10 +29,10 @@ public:
 	CConstantNode( const onnx::NodeProto& constant, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
-	virtual void CalcOutputShape() override;
-	virtual void CalcOutputData() override;
-	virtual void MarkTensorDims() override {}
-	virtual void AddLayers( CDnn& ) override {}
+	void CalcOutputShape() override;
+	void CalcOutputData() override;
+	void MarkTensorDims() override {}
+	void AddLayers( CDnn& ) override {}
 
 private:
 	CPtr<CDnnBlob> value; // constant's value

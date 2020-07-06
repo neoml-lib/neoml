@@ -29,19 +29,19 @@ public:
 	static CPtr<IModel> Create() { return FINE_DEBUG_NEW CLinearBinaryModel(); }
 
 	// IModel interface methods
-	virtual int GetClassCount() const override { return 2; }
-	virtual bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
-	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
-	virtual void Serialize( CArchive& archive ) override;
+	int GetClassCount() const override { return 2; }
+	bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
+	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
+	void Serialize( CArchive& archive ) override;
 
 	// ILinearBinaryModel interface methods
-	virtual CFloatVector GetPlane() const override { return plane; }
-	virtual const CSigmoid& GetSigmoid() const override { return coefficients; }
+	CFloatVector GetPlane() const override { return plane; }
+	const CSigmoid& GetSigmoid() const override { return coefficients; }
 
 	// IRegressionModel interface methods
-	virtual double Predict( const CSparseFloatVector& data ) const override;
-	virtual double Predict( const CFloatVector& data ) const override;
-	virtual double Predict( const CSparseFloatVectorDesc& data ) const override;
+	double Predict( const CSparseFloatVector& data ) const override;
+	double Predict( const CFloatVector& data ) const override;
+	double Predict( const CSparseFloatVectorDesc& data ) const override;
 
 protected:
 	virtual ~CLinearBinaryModel() {} // delete prohibited

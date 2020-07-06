@@ -79,7 +79,7 @@ public:
 	// ITrainingModel interface methods:
 	// The resulting IModel is either a ILinearBinaryModel (if the KT_Linear kernel was used)
 	// or a ISvmBinaryModel (if some other kernel was used)
-	virtual CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
+	CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
 
 private:
 	const CParams params; // classification parameters

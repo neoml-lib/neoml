@@ -132,7 +132,7 @@ else()
 endif()
 
 # GPU specific source and settings
-if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
 
     include(CheckLanguage)
     check_language(CUDA)
@@ -192,6 +192,7 @@ if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                 GPU/CUDA/Kernels/CudaVectorMathKernels.h
         )
         target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/CUDA>)
+        target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>)
         source_group("GPU\\CUDA" REGULAR_EXPRESSION "GPU\/CUDA\/[A-Za-z0-9_]+\.(h|cpp|cu)")
         source_group("GPU\\CUDA\\Kernels" REGULAR_EXPRESSION "GPU\/CUDA\/Kernels\/.+")
     else()
@@ -324,7 +325,7 @@ endif()
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
     target_compile_options(${PROJECT_NAME} PRIVATE /arch:SSE2)
 elseif(LINUX OR DARWIN OR (ANDROID AND ANDROID_ABI MATCHES "^x86.*") OR (IOS_ARCH MATCHES "^x86.*"))
-    target_compile_options(${PROJECT_NAME} PRIVATE -msse2)
+    target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-msse2>)
 endif()
 
 # Arm neon
@@ -370,6 +371,9 @@ if(NeoMathEngine_INSTALL)
         if(WIN32 AND CMAKE_CUDA_COMPILER)
             file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Windows/redist/x64/*.dll)
             install(FILES ${CUDA_LIBS} DESTINATION ${FINE_ROOT}/Win${FINE_BUILD_TYPE}.x64)
+        elseif(LINUX AND CMAKE_CUDA_COMPILER)
+            file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Linux/redist/x64/*.so.10)
+            install(FILES ${CUDA_LIBS} DESTINATION ${FINE_ROOT}/X.${CMAKE_SYSTEM_NAME}.${FINE_BUILD_TYPE}/x86_64)
         endif()
     else()
 

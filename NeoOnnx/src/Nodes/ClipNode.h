@@ -29,10 +29,10 @@ public:
 	explicit CClipNode( const onnx::NodeProto& clip );
 
 	// CNode methods' realizations.
-	virtual void CalcOutputShape() override;
-	virtual void CalcOutputData() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	void CalcOutputShape() override;
+	void CalcOutputData() override;
+	void MarkTensorDims() override;
+	void AddLayers( CDnn& dnn ) override;
 
 private:
 	// Clip( x, minValue, maxValue ) = max( minValue, min( maxValue, x ) )

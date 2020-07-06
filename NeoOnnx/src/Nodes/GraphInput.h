@@ -24,10 +24,10 @@ public:
 	CGraphInput( const onnx::ValueInfoProto& input );
 
 	// CNode methods' realizations.
-	virtual void CalcOutputShape() override;
-	virtual void CalcOutputData() override;
-	virtual void MarkTensorDims() override {}
-	virtual void AddLayers( CDnn& dnn ) override;
+	void CalcOutputShape() override;
+	void CalcOutputData() override;
+	void MarkTensorDims() override {}
+	void AddLayers( CDnn& dnn ) override;
 
 	const CString& Name() const { return name; }
 

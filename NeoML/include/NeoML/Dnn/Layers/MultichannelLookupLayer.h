@@ -28,7 +28,7 @@ class NEOML_API CMultichannelLookupLayer : public CBaseLayer {
 public:
 	explicit CMultichannelLookupLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The dimensions of the embeddings
 	void SetDimensions(const CArray<CLookupDimension>&);
@@ -72,10 +72,10 @@ public:
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	// The size of stored vectors

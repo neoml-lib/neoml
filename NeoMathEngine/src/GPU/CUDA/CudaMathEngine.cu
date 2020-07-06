@@ -43,15 +43,15 @@ const int CudaMemoryAlignment = 4;
 
 //------------------------------------------------------------------------------------------------------------
 
-CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, int deviceNumber,
-		size_t memoryLimit ) :
+CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, std::unique_ptr<CCudaDevice>& _device ) :
 	cusparse( _cusparse ),
 	cublas( _cublas ),
-	device( captureCudaDevice( deviceNumber, memoryLimit ) ),
 	cudaStream( 0 ),
 	cublasHandle( 0 ),
 	cusparseHandle( 0 )
 {
+	device.swap( _device );
+
 	// CUDA
 	ASSERT_EXPR( device != 0 );
 	ASSERT_ERROR_CODE( cudaSetDevice( device->DeviceNumber ) );
@@ -91,7 +91,6 @@ CCudaMathEngine::~CCudaMathEngine()
 	cusparse->Destroy( cusparseHandle );
 	cublas->Destroy( cublasHandle );
 
-	delete device;
 	CDllLoader::Free(CDllLoader::CUDA_DLL);
 }
 

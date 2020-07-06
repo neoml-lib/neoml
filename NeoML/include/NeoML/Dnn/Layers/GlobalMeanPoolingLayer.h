@@ -26,13 +26,13 @@ class NEOML_API CGlobalMeanPoolingLayer : public CBaseLayer {
 public:
 	explicit CGlobalMeanPoolingLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	CPtr<CDnnBlob> coeff;

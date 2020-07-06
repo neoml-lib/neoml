@@ -24,10 +24,10 @@ public:
 	CGraphInitializer( const onnx::TensorProto& initializer, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
-	virtual void CalcOutputShape() override;
-	virtual void CalcOutputData() override;
-	virtual void MarkTensorDims() override {}
-	virtual void AddLayers( CDnn& ) override { neoMLInputInfo.Add( CNeoMLInputInfo() ); }
+	void CalcOutputShape() override;
+	void CalcOutputData() override;
+	void MarkTensorDims() override {}
+	void AddLayers( CDnn& ) override { neoMLInputInfo.Add( CNeoMLInputInfo() ); }
 
 private:
 	IMathEngine& mathEngine;

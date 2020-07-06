@@ -30,10 +30,10 @@ public:
 	CShapeNode( const onnx::NodeProto& shape, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
-	virtual void CalcOutputShape() override;
-	virtual void CalcOutputData() override;
-	virtual void MarkTensorDims() override {}
-	virtual void AddLayers( CDnn& ) override {}
+	void CalcOutputShape() override;
+	void CalcOutputData() override;
+	void MarkTensorDims() override {}
+	void AddLayers( CDnn& ) override {}
 
 private:
 	IMathEngine& mathEngine;
