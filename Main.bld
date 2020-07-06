@@ -22,4 +22,4 @@ alias;vcproj;vsproj14
 
 bld;FineObjects\FineObjNoTest.bld
 bld;FineObjects\FineGTest.bld
-bld;NeoML\Build\NeoML.bld
+bld;Build\NeoML.bld
