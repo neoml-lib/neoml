@@ -25,14 +25,21 @@ limitations under the License.
 namespace NeoML {
 
 // Macros to load functions
-#define LOAD_FUNC(Type, Var, NameStr) if((Var = (Type)CDll::GetProcAddress(NameStr)) == 0) return false
+#define LOAD_FUNC(Type, Var, NameStr) if((Var = (Type)CDll::GetProcAddress(NameStr)) == 0) { printf( #NameStr "\n" ); return false; }
 #define LOAD_CUSPARSE_FUNC(Name) LOAD_FUNC(CCusparse::TCusparse##Name, functions.Name, "cusparse" #Name)
 
 // The library name
+#ifndef NEOML_CUDA_VERSION
+#error "NEOML_CUDA_VERSION not set!"
+#endif
+
+#define STRINGIFY2(x) #x
+#define STRINGIFY(x) STRINGIFY2(x)
+
 #if FINE_PLATFORM(FINE_WINDOWS)
-static const char* cusparseDllName = "cusparse64_10.dll";
+static const char* cusparseDllName = "cusparse64_" STRINGIFY(NEOML_CUDA_VERSION) ".dll";
 #elif FINE_PLATFORM(FINE_LINUX)
-static const char* cusparseDllName = "libcusparse.so.10";
+static const char* cusparseDllName = "libcusparse.so." STRINGIFY(NEOML_CUDA_VERSION);
 #else
 #error "Platform is not supported!"
 #endif
@@ -78,12 +85,12 @@ bool CCusparseDll::loadFunctions()
 	LOAD_CUSPARSE_FUNC( Create );
 	LOAD_CUSPARSE_FUNC( Destroy );
 	LOAD_CUSPARSE_FUNC( SetStream );
-	LOAD_CUSPARSE_FUNC( CreateMatDescr );
-	LOAD_CUSPARSE_FUNC( DestroyMatDescr );
-	LOAD_CUSPARSE_FUNC( SetMatType );
-	LOAD_CUSPARSE_FUNC( SetMatIndexBase );
-	LOAD_CUSPARSE_FUNC( Scsrmm );
-	LOAD_CUSPARSE_FUNC( Scsrmm2 );
+	LOAD_CUSPARSE_FUNC( CreateCsr );
+	LOAD_CUSPARSE_FUNC( DestroySpMat );
+	LOAD_CUSPARSE_FUNC( CreateDnMat );
+	LOAD_CUSPARSE_FUNC( DestroyDnMat );
+	LOAD_CUSPARSE_FUNC( SpMM_bufferSize );
+	LOAD_CUSPARSE_FUNC( SpMM );
 	return true;
 }
 

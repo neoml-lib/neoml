@@ -34,22 +34,40 @@ void CCudaMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, i
 	CFloatHandleStackVar tResult( mathEngine(), firstHeight * secondHeight );
 	CFloatHandle tResultPtr = tResult.GetHandle();
 
-	cusparseMatDescr_t description = 0;
-	ASSERT_ERROR_CODE( cusparse->CreateMatDescr( &description ) );
-	ASSERT_ERROR_CODE( cusparse->SetMatType( description, CUSPARSE_MATRIX_TYPE_GENERAL ) );
-	ASSERT_ERROR_CODE( cusparse->SetMatIndexBase( description, CUSPARSE_INDEX_BASE_ZERO ) );
+	cusparseSpMatDescr_t firstCuDesc = 0;
+	int* firstRows = GetRaw( firstDesc.Rows );
+	int* firstColumns = GetRaw( firstDesc.Columns );
+	float* firstValues = GetRaw( firstDesc.Values );
 
-	const int* firstRows = GetRaw( firstDesc.Rows );
-	const float* firstValues = GetRaw( firstDesc.Values );
-	const int* firstColumns = GetRaw( firstDesc.Columns );
+	ASSERT_ERROR_CODE( cusparse->CreateCsr( &firstCuDesc, firstHeight, firstWidth, firstDesc.ElementCount,
+		firstRows, firstColumns, firstValues, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
+		CUDA_R_32F ) );
+
+	float* secondValues = const_cast<float*>( GetRaw( secondHandle ) );
+	cusparseDnMatDescr_t secondDesc = 0;
+	ASSERT_ERROR_CODE( cusparse->CreateDnMat( &secondDesc, firstWidth, secondHeight, firstWidth,
+		secondValues, CUDA_R_32F, CUSPARSE_ORDER_COL ) );
+	
+	cusparseDnMatDescr_t resultDesc = 0;
+	float* resultValues = GetRaw( tResultPtr );
+	ASSERT_ERROR_CODE( cusparse->CreateDnMat( &resultDesc, firstHeight, secondHeight, firstHeight,
+		resultValues, CUDA_R_32F, CUSPARSE_ORDER_COL ) );
+
 	float alpha = 1.0;
 	float beta = 0.0;
 
-	ASSERT_ERROR_CODE( cusparse->Scsrmm( cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, firstHeight, secondHeight, firstWidth,
-		firstDesc.ElementCount, &alpha, description, firstValues, firstRows, firstColumns, GetRaw( secondHandle ), firstWidth,
-		&beta, GetRaw( tResultPtr ), firstHeight ) );
+	size_t bufferSize = 0;
+	ASSERT_ERROR_CODE( cusparse->SpMM_bufferSize( cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+		CUSPARSE_OPERATION_TRANSPOSE, static_cast<void*>( &alpha ), firstCuDesc, secondDesc, static_cast<void*>( &beta ),
+		resultDesc, CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT, &bufferSize ) );
+	
+	CFloatHandleStackVar buffer( mathEngine(), bufferSize / sizeof( float ) );
+	ASSERT_ERROR_CODE( cusparse->SpMM( cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+		&alpha, firstCuDesc, secondDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT, GetRaw( buffer ) ) );
 
-	ASSERT_ERROR_CODE( cusparse->DestroyMatDescr( description ) );
+	ASSERT_ERROR_CODE( cusparse->DestroyDnMat( resultDesc ) );
+	ASSERT_ERROR_CODE( cusparse->DestroyDnMat( secondDesc ) );
+	ASSERT_ERROR_CODE( cusparse->DestroySpMat( firstCuDesc ) );
 
 	TransposeMatrix( 1, tResultPtr, secondHeight, 1, firstHeight, 1, resultHandle, static_cast<int>( tResult.Size() ) );
 }
@@ -68,23 +86,37 @@ void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHei
 	CFloatHandle tFirstPtr = tFirst.GetHandle();
 	TransposeMatrix( 1, first, firstHeight, 1, firstWidth, 1, tFirstPtr, static_cast<int>( tFirst.Size() ) );
 
-	cusparseMatDescr_t description = 0;
-	ASSERT_ERROR_CODE( cusparse->CreateMatDescr( &description ) );
-	ASSERT_ERROR_CODE( cusparse->SetMatType( description, CUSPARSE_MATRIX_TYPE_GENERAL ) );
-	ASSERT_ERROR_CODE( cusparse->SetMatIndexBase( description, CUSPARSE_INDEX_BASE_ZERO ) );
+	cusparseDnMatDescr_t tFirstDesc = 0;
+	void* firstValues = GetRaw( tFirst );
+	ASSERT_ERROR_CODE( cusparse->CreateDnMat( &tFirstDesc, firstHeight, firstWidth, firstHeight,
+		firstValues, CUDA_R_32F, CUSPARSE_ORDER_COL ) );
+	
+	cusparseSpMatDescr_t secondCuDesc = 0;
+	int* secondtRows = GetRaw( secondDesc.Rows );
+	int* secondColumns = GetRaw( secondDesc.Columns );
+	float* secondValues = GetRaw( secondDesc.Values );
+	ASSERT_ERROR_CODE( cusparse->CreateCsr( &secondCuDesc, firstHeight, secondWidth, secondDesc.ElementCount,
+		secondtRows, secondColumns, secondValues, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
+		CUDA_R_32F ) );
 
-	// Calculate T( T(B) * A ):
-	const int* secondRows = GetRaw( secondDesc.Rows );
-	const float* secondValues = GetRaw( secondDesc.Values );
-	const int* secondColumns = GetRaw( secondDesc.Columns );
+	cusparseDnMatDescr_t resultDesc = 0;
+	float* resultValues = GetRaw( resultHandle );
+	ASSERT_ERROR_CODE( cusparse->CreateDnMat( &resultDesc, secondWidth, firstWidth, secondWidth,
+		resultValues, CUDA_R_32F, CUSPARSE_ORDER_COL ) );
 	float alpha = 1.0;
 	float beta = 1.0;
 
-	ASSERT_ERROR_CODE( cusparse->Scsrmm2( cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-		firstHeight, firstWidth, secondWidth, secondDesc.ElementCount, &alpha, description, secondValues, secondRows,
-		secondColumns, GetRaw( tFirstPtr ), firstHeight, &beta, GetRaw( resultHandle ), secondWidth ) );
+	size_t bufferSize = 0;
+	ASSERT_ERROR_CODE( cusparse->SpMM_bufferSize( cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+		&alpha, secondCuDesc, tFirstDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT, &bufferSize ) );
 
-	ASSERT_ERROR_CODE( cusparse->DestroyMatDescr( description ) );
+	CFloatHandleStackVar buffer( mathEngine(), bufferSize / sizeof( float ) );
+	ASSERT_ERROR_CODE( cusparse->SpMM( cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+		&alpha, secondCuDesc, tFirstDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT, GetRaw( buffer ) ) );
+
+	ASSERT_ERROR_CODE( cusparse->DestroyDnMat( resultDesc ) );
+	ASSERT_ERROR_CODE( cusparse->DestroySpMat( secondCuDesc ) );
+	ASSERT_ERROR_CODE( cusparse->DestroyDnMat( tFirstDesc ) );
 }
 
 } // namespace NeoML

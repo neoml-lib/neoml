@@ -141,7 +141,11 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         # Using CUDA
         enable_language(CUDA)
         
-        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_CUDA)
+        # extracting major CUDA version
+        string(REPLACE "." ";" NEOML_CUDA_VERSION_LIST ${CMAKE_CUDA_COMPILER_VERSION})
+        list(GET NEOML_CUDA_VERSION_LIST 0 NEOML_CUDA_VERSION_MAJOR)
+
+        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_CUDA NEOML_CUDA_VERSION=${NEOML_CUDA_VERSION_MAJOR})
         target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-gencode arch=compute_50,code=sm_50>)
         
         target_sources(${PROJECT_NAME}

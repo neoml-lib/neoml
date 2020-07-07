@@ -31,10 +31,17 @@ namespace NeoML {
 #define LOAD_CUBLAS_FUNCV2(Name) LOAD_FUNC(CCublas::TCublas##Name, functions.Name, "cublas" #Name "_v2")
 
 // The library name
+#ifndef NEOML_CUDA_VERSION
+#error "NEOML_CUDA_VERSION not set!"
+#endif
+
+#define STRINGIFY2(x) #x
+#define STRINGIFY(x) STRINGIFY2(x)
+
 #if FINE_PLATFORM(FINE_WINDOWS)
-static const char* cublasDllName = "cublas64_10.dll";
+static const char* cublasDllName = "cublas64_" STRINGIFY(NEOML_CUDA_VERSION) ".dll";
 #elif FINE_PLATFORM(FINE_LINUX)
-static const char* cublasDllName = "libcublas.so.10";
+static const char* cublasDllName = "libcublas.so." STRINGIFY(NEOML_CUDA_VERSION);
 #else
 #error "Platform is not supported!"
 #endif

@@ -56,6 +56,14 @@ function(configure_target TARGET_NAME)
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-unknown-pragmas>
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-strict-overflow>
         )
+        # Disable some new warnings for gcc-9.0+
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0)
+            target_compile_options(${TARGET_NAME} PRIVATE
+                $<$<COMPILE_LANGUAGE:CXX>:-Wno-error=deprecated-copy>
+                $<$<COMPILE_LANGUAGE:CXX>:-Wno-error=cast-function-type>
+                $<$<COMPILE_LANGUAGE:CXX>:-Wno-error=array-bounds>
+            )
+        endif()
     endif()
     
     # No extensions use
