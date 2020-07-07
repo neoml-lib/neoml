@@ -31,6 +31,7 @@ limitations under the License.
 #include "Nodes/GatherNode.h"
 #include "Nodes/GemmNode.h"
 #include "Nodes/GlobalAveragePoolNode.h"
+#include "Nodes/LeakyReluNode.h"
 #include "Nodes/LstmNode.h"
 #include "Nodes/MaxPoolNode.h"
 #include "Nodes/ReduceMeanNode.h"
@@ -78,6 +79,7 @@ REGISTER_NEOONNX_NODE( CFlattenNode, "Flatten" )
 REGISTER_NEOONNX_NODE( CGatherNode, "Gather" )
 REGISTER_NEOONNX_NODE( CGemmNode, "Gemm" )
 REGISTER_NEOONNX_NODE( CGlobalAveragePoolNode, "GlobalAveragePool" )
+REGISTER_NEOONNX_NODE( CLeakyReluNode, "LeakyRelu" )
 REGISTER_NEOONNX_NODE( CLstmNode, "LSTM" )
 REGISTER_NEOONNX_NODE( CMaxPoolNode, "MaxPool" )
 REGISTER_NEOONNX_NODE( CReduceMeanNode, "ReduceMean" )
