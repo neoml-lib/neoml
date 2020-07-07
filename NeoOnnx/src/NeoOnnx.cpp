@@ -85,7 +85,7 @@ void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn )
 		}
 
 		NeoOnnx::CDnnBuilder dnnBuilder;
-		dnnBuilder.BuildDnn( model.graph(), model.ir_version(), dnn );
+		dnnBuilder.BuildDnn( model.graph(), getOpsetVersion( model ), dnn );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;
