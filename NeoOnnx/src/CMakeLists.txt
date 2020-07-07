@@ -123,14 +123,20 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE BUILD_NEOONNX)
-
 if(NOT NeoOnnx_BUILD_SHARED)
     target_compile_definitions(${PROJECT_NAME} PUBLIC STATIC_NEOONNX)
-else()
+endif()
+
+if(NeoOnnx_BUILD_SHARED AND NOT WIN32)
+    set(EXPORT_SYMBOLS _ZN7NeoOnnx12LoadFromOnnxEPKcRN5NeoML4CDnnE _ZN7NeoOnnx12LoadFromOnnxEPKviRN5NeoML4CDnnE)
     if(LINUX OR ANDROID)
-        target_link_options(${PROJECT_NAME} PRIVATE -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/../NeoOnnx.version)
-    elseif(IOS OR DARWIN)
-    
+	    set(EXPORT_SYMBOLS_STR "${EXPORT_SYMBOLS};")
+	    configure_file(../NeoOnnx.version.in NeoOnnx.version)
+	    target_link_options(${PROJECT_NAME} PRIVATE -Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/NeoOnnx.version)
+    elseif(DARWIN)
+            foreach(SYM ${EXPORT_SYMBOLS})
+                target_link_options(${PROJECT_NAME} PRIVATE -Wl,-exported-symbol,_${SYM})
+            endforeach() 
     endif()
 endif()
 
