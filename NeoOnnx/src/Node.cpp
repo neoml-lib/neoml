@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "Node.h"
 
+#include "Nodes/AbsNode.h"
 #include "Nodes/AddNode.h"
 #include "Nodes/AveragePoolNode.h"
 #include "Nodes/BatchNormalizationNode.h"
@@ -66,6 +67,7 @@ void RegisterNode( const char* opName, TCreateNodeFunction function )
 namespace {
 
 // Register all nodes
+REGISTER_NEOONNX_NODE( CAbsNode, "Abs" )
 REGISTER_NEOONNX_NODE( CAddNode, "Add" )
 REGISTER_NEOONNX_NODE( CAveragePoolNode, "AveragePool" )
 REGISTER_NEOONNX_NODE( CBatchNormalizationNode, "BatchNormalization" )

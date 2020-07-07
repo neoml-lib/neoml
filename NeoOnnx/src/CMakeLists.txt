@@ -11,6 +11,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnx.cpp
     Node.cpp
     NodeAttributes.cpp
+    Nodes/AbsNode.cpp
     Nodes/AddNode.cpp
     Nodes/AveragePoolNode.cpp
     Nodes/BatchNormalizationNode.cpp
@@ -47,6 +48,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnxCheck.h
     Node.h
     NodeAttributes.h
+    Nodes/AbsNode.h
     Nodes/AddNode.h
     Nodes/AveragePoolNode.h
     Nodes/BatchNormalizationNode.h
