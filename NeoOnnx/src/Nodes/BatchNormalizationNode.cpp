@@ -28,11 +28,7 @@ CBatchNormalizationNode::CBatchNormalizationNode( const onnx::NodeProto& batchNo
 	CNode( batchNormalization, opsetVersion ),
 	eps( attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
 {
-	// Older versions of this operator have spatial flag which can lead to wrong calculation
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", batchNormalization );
-
-	CheckNeoOnnxSupport( opsetVersion > 7 || attributes.GetOptionalInt( "spatial", 1 ) == 1,
-		"non-spatial batch normalization is not supported", batchNormalization );
 
 	CheckNeoOnnxSupport( opsetVersion > 6 || attributes.GetOptionalInt( "is_test", 0 ) != 0,
 		"training batch normalization is not supported", batchNormalization );
@@ -75,7 +71,12 @@ void CBatchNormalizationNode::AddLayers( CDnn& dnn )
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );
 	bnLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	bnLayer->SetChannelBased( true );
+	// Since v9 batch normalization is always spatial
+	// Before that spatial was set by a flag
+	if( opsetVersion >= 9 || attributes.GetOptionalInt( "spatial", 1 ) != 0 ) {
+		bnLayer->SetChannelBased( true );
+	}
+
 	bnLayer->SetFinalParams( calculateFinalParams() );
 
 	bnLayer->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
