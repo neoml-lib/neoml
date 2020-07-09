@@ -99,27 +99,6 @@ find_library(MKL_INTEL_LIB
         IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
 )
 
-set(MKL_FOUND TRUE)
-if(NOT MKL_INCLUDE_DIR)
-    set(MKL_FOUND FALSE)
-    message(STATUS "MKL_INCLUDE_DIR was not found!")
-endif()
-
-if(NOT MKL_CORE_LIB)
-    set(MKL_FOUND FALSE)
-    message(STATUS "MKL_CORE_LIB was not found!")
-endif()
-
-if(NOT MKL_SEQUENTIAL_LIB)
-    set(MKL_FOUND FALSE)
-    message(STATUS "MKL_SEQUENTIAL_LIB was not found!")
-endif()
-
-if(NOT MKL_INTEL_LIB)
-    set(MKL_FOUND FALSE)
-    message(STATUS "MKL_INTEL_LIB was not found!")
-endif()
-
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MKL DEFAULT_MSG MKL_INCLUDE_DIR MKL_CORE_LIB MKL_SEQUENTIAL_LIB MKL_INTEL_LIB)
 
