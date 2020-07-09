@@ -51,13 +51,13 @@ CMultivariateRegressionOverUnivariate::CMultivariateRegressionOverUnivariate(
 }
 
 // Gets the number of features
-int CMultivariateRegressionOverUnivariate::GetFeatureCount() const
+inline int CMultivariateRegressionOverUnivariate::GetFeatureCount() const
 {
 	return inner->GetFeatureCount();
 }
 
 // Gets the number of vectors in the data set
-int CMultivariateRegressionOverUnivariate::GetVectorCount() const
+inline int CMultivariateRegressionOverUnivariate::GetVectorCount() const
 {
 	return inner->GetVectorCount();
 }
@@ -69,13 +69,13 @@ CSparseFloatMatrixDesc CMultivariateRegressionOverUnivariate::GetMatrix() const
 }
 
 // Gets the vector weight
-double CMultivariateRegressionOverUnivariate::GetVectorWeight( int index ) const
+inline double CMultivariateRegressionOverUnivariate::GetVectorWeight( int index ) const
 {
 	return inner->GetVectorWeight( index );
 }
 
 // Gets the length of the function value vector
-int CMultivariateRegressionOverUnivariate::GetValueSize() const
+inline int CMultivariateRegressionOverUnivariate::GetValueSize() const
 {
 	return 1;
 }
@@ -108,31 +108,31 @@ CMultivariateRegressionOverClassification::CMultivariateRegressionOverClassifica
 }
 
 // Gets the number of features
-int CMultivariateRegressionOverClassification::GetFeatureCount() const
+inline int CMultivariateRegressionOverClassification::GetFeatureCount() const
 {
 	return inner->GetFeatureCount();
 }
 
 // Gets the number of vectors in the data set
-int CMultivariateRegressionOverClassification::GetVectorCount() const
+inline int CMultivariateRegressionOverClassification::GetVectorCount() const
 {
 	return inner->GetVectorCount();
 }
 
 // Gets all vectors from the data set as a matrix
-CSparseFloatMatrixDesc CMultivariateRegressionOverClassification::GetMatrix() const
+inline CSparseFloatMatrixDesc CMultivariateRegressionOverClassification::GetMatrix() const
 {
 	return inner->GetMatrix();
 }
 
 // Gets the vector weight
-double CMultivariateRegressionOverClassification::GetVectorWeight( int index ) const
+inline double CMultivariateRegressionOverClassification::GetVectorWeight( int index ) const
 {
 	return inner->GetVectorWeight( index );
 }
 
 // Gets the length of the function value vector
-int CMultivariateRegressionOverClassification::GetValueSize() const
+inline int CMultivariateRegressionOverClassification::GetValueSize() const
 {
 	return classValues.Size();
 }
@@ -162,31 +162,31 @@ CMultivariateRegressionOverBinaryClassification::CMultivariateRegressionOverBina
 }
 
 // Gets the number of features
-int CMultivariateRegressionOverBinaryClassification::GetFeatureCount() const
+inline int CMultivariateRegressionOverBinaryClassification::GetFeatureCount() const
 {
 	return inner->GetFeatureCount();
 }
 
 // Gets the number of vectors in the data set
-int CMultivariateRegressionOverBinaryClassification::GetVectorCount() const
+inline int CMultivariateRegressionOverBinaryClassification::GetVectorCount() const
 {
 	return inner->GetVectorCount();
 }
 
 // Gets all vectors from the data set as a matrix
-CSparseFloatMatrixDesc CMultivariateRegressionOverBinaryClassification::GetMatrix() const
+inline CSparseFloatMatrixDesc CMultivariateRegressionOverBinaryClassification::GetMatrix() const
 {
 	return inner->GetMatrix();
 }
 
 // Gets the vector weight
-double CMultivariateRegressionOverBinaryClassification::GetVectorWeight( int index ) const
+inline double CMultivariateRegressionOverBinaryClassification::GetVectorWeight( int index ) const
 {
 	return inner->GetVectorWeight( index );
 }
 
 // Gets the length of the function value vector
-int CMultivariateRegressionOverBinaryClassification::GetValueSize() const
+inline int CMultivariateRegressionOverBinaryClassification::GetValueSize() const
 {
 	return 1;
 }
@@ -242,43 +242,43 @@ CProblemNotNullWeightsView::~CProblemNotNullWeightsView()
 }
 
 // Gets the number of classes
-int CProblemNotNullWeightsView::GetClassCount() const
+inline int CProblemNotNullWeightsView::GetClassCount() const
 {
 	return inner->GetClassCount();
 }
 
 // Gets the number of features
-int CProblemNotNullWeightsView::GetFeatureCount() const
+inline int CProblemNotNullWeightsView::GetFeatureCount() const
 {
 	return inner->GetFeatureCount();
 }
 
 // Indicates if the specified feature is discrete
-bool CProblemNotNullWeightsView::IsDiscreteFeature( int index ) const
+inline bool CProblemNotNullWeightsView::IsDiscreteFeature( int index ) const
 {
-	return inner->IsDiscreteFeature( calculateOriginalIndex( index ) );
+	return inner->IsDiscreteFeature( index );
 }
 
 // Gets the number of vectors in the data set
-int CProblemNotNullWeightsView::GetVectorCount() const
+inline int CProblemNotNullWeightsView::GetVectorCount() const
 {
 	return viewMatrixDesc.Height;
 }
 
 // The correct class number for a vector with a given index in [0, GetClassCount())
-int CProblemNotNullWeightsView::GetClass( int index ) const
+inline int CProblemNotNullWeightsView::GetClass( int index ) const
 {
 	return inner->GetClass( calculateOriginalIndex( index ) );
 }
 
 // Gets all vectors from the data set as a matrix
-CSparseFloatMatrixDesc CProblemNotNullWeightsView::GetMatrix() const
+inline CSparseFloatMatrixDesc CProblemNotNullWeightsView::GetMatrix() const
 {
 	return viewMatrixDesc;
 }
 
 // Gets the vector weight
-double CProblemNotNullWeightsView::GetVectorWeight( int index ) const
+inline double CProblemNotNullWeightsView::GetVectorWeight( int index ) const
 {
 	return inner->GetVectorWeight( calculateOriginalIndex( index ) );
 }
