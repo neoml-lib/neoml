@@ -148,17 +148,9 @@ private:
 	const CPtr<const IProblem> inner;
 	// The original matrix desc view over the elements with not null weight only
 	CSparseFloatMatrixDesc viewMatrixDesc;
-
-	// The pair of indices
-	struct CIndexPair {
-		int ViewedIndex;
-		int OriginalIndex;
-	};
-
 	// The array containing pairs of viewed and original indices
-	CArray<CIndexPair> nullWeightElementsMap;
+	CArray<int> notNullWeightElementsIndices;
 
-	// calculate the index as if we had the matrix without null weighted elements
 	int calculateOriginalIndex( int viewedIndex ) const;
 };
 

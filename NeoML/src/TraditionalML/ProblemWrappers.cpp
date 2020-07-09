@@ -225,7 +225,7 @@ CProblemNotNullWeightsView::CProblemNotNullWeightsView( const IProblem* _inner )
 			} else {
 				viewMatrixDesc.PointerB[i] = _inner->GetMatrix().PointerB[iScanned];
 				viewMatrixDesc.PointerE[i] = _inner->GetMatrix().PointerE[iScanned];
-				nullWeightElementsMap.Add( CIndexPair( { i, iScanned } ) );
+				notNullWeightElementsIndices.Add( iScanned );
 				++i;
 			}
 		}
@@ -284,17 +284,9 @@ inline double CProblemNotNullWeightsView::GetVectorWeight( int index ) const
 }
 
 // calculate the index as if we had the matrix without null weighted elements
-int CProblemNotNullWeightsView::calculateOriginalIndex( int viewedIndex ) const
+inline int CProblemNotNullWeightsView::calculateOriginalIndex( int viewedIndex ) const
 {
-	const int pos = nullWeightElementsMap.FindInsertionPoint<
-		AscendingByMember<CIndexPair, int, &CIndexPair::ViewedIndex> >( viewedIndex );
-	if( pos == 0 ) {
-		return viewedIndex;
-	} else {
-		const int originalIndexBase = nullWeightElementsMap[pos-1].OriginalIndex;
-		const int indexShift = viewedIndex - nullWeightElementsMap[pos-1].ViewedIndex;
-		return originalIndexBase + indexShift;
-	}
+	return notNullWeightElementsIndices[viewedIndex];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
