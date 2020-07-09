@@ -1,0 +1,6 @@
+NEOONNX {
+  global:
+    @EXPORT_SYMBOLS_STR@
+  local:
+    *;
+};
