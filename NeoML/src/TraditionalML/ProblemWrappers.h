@@ -158,3 +158,5 @@ private:
 
 } // namespace NeoML
 
+#include <ProblemWrappers.inl>
+

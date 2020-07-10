@@ -123,6 +123,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/PlattScalling.cpp
     TraditionalML/ProblemWrappers.cpp
     TraditionalML/ProblemWrappers.h
+    TraditionalML/ProblemWrappers.inl
     TraditionalML/RegressionTreeModel.cpp
     TraditionalML/RegressionTreeModel.h
     TraditionalML/Score.cpp

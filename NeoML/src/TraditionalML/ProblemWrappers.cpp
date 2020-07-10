@@ -68,18 +68,6 @@ CSparseFloatMatrixDesc CMultivariateRegressionOverUnivariate::GetMatrix() const
 	return inner->GetMatrix();
 }
 
-// Gets the vector weight
-inline double CMultivariateRegressionOverUnivariate::GetVectorWeight( int index ) const
-{
-	return inner->GetVectorWeight( index );
-}
-
-// Gets the length of the function value vector
-inline int CMultivariateRegressionOverUnivariate::GetValueSize() const
-{
-	return 1;
-}
-
 // Gets the function value for the vector with the given index in the data set
 CFloatVector CMultivariateRegressionOverUnivariate::GetValue( int index ) const
 {
@@ -107,36 +95,6 @@ CMultivariateRegressionOverClassification::CMultivariateRegressionOverClassifica
 	}
 }
 
-// Gets the number of features
-inline int CMultivariateRegressionOverClassification::GetFeatureCount() const
-{
-	return inner->GetFeatureCount();
-}
-
-// Gets the number of vectors in the data set
-inline int CMultivariateRegressionOverClassification::GetVectorCount() const
-{
-	return inner->GetVectorCount();
-}
-
-// Gets all vectors from the data set as a matrix
-inline CSparseFloatMatrixDesc CMultivariateRegressionOverClassification::GetMatrix() const
-{
-	return inner->GetMatrix();
-}
-
-// Gets the vector weight
-inline double CMultivariateRegressionOverClassification::GetVectorWeight( int index ) const
-{
-	return inner->GetVectorWeight( index );
-}
-
-// Gets the length of the function value vector
-inline int CMultivariateRegressionOverClassification::GetValueSize() const
-{
-	return classValues.Size();
-}
-
 // Gets the function value for the vector with the given index in the data set
 CFloatVector CMultivariateRegressionOverClassification::GetValue( int index ) const
 {
@@ -161,36 +119,6 @@ CMultivariateRegressionOverBinaryClassification::CMultivariateRegressionOverBina
 	classValues[1].SetAt( 0, 1.f );
 }
 
-// Gets the number of features
-inline int CMultivariateRegressionOverBinaryClassification::GetFeatureCount() const
-{
-	return inner->GetFeatureCount();
-}
-
-// Gets the number of vectors in the data set
-inline int CMultivariateRegressionOverBinaryClassification::GetVectorCount() const
-{
-	return inner->GetVectorCount();
-}
-
-// Gets all vectors from the data set as a matrix
-inline CSparseFloatMatrixDesc CMultivariateRegressionOverBinaryClassification::GetMatrix() const
-{
-	return inner->GetMatrix();
-}
-
-// Gets the vector weight
-inline double CMultivariateRegressionOverBinaryClassification::GetVectorWeight( int index ) const
-{
-	return inner->GetVectorWeight( index );
-}
-
-// Gets the length of the function value vector
-inline int CMultivariateRegressionOverBinaryClassification::GetValueSize() const
-{
-	return 1;
-}
-
 // Gets the function value for the vector
 CFloatVector CMultivariateRegressionOverBinaryClassification::GetValue( int index ) const
 {
@@ -209,84 +137,46 @@ CProblemNotNullWeightsView::CProblemNotNullWeightsView( const IProblem* _inner )
 
 	int originalVectorCount = inner->GetVectorCount();
 	if( originalVectorCount > 0 ) {
-		// fill nullWeightElementsMap, and adjust local MatrixDesc
-		viewMatrixDesc = _inner->GetMatrix();
-		// we are going to remap some elements, so create our own arrays of pointers
-		viewMatrixDesc.PointerB = static_cast<int*>( 
-			ALLOCATE_MEMORY( CurrentMemoryManager, originalVectorCount * sizeof( int ) ) );
-		viewMatrixDesc.PointerE = static_cast<int*>( 
-			ALLOCATE_MEMORY( CurrentMemoryManager, originalVectorCount * sizeof( int ) ) );
-
-		int nullWeightElmentsCount = 0;
-		for( int i = 0; i < originalVectorCount - nullWeightElmentsCount; ) {
-			int iScanned = i + nullWeightElmentsCount;
+		int nullWeightElementsCount = 0;
+		for( int i = 0; i < originalVectorCount - nullWeightElementsCount; ) {
+			int iScanned = i + nullWeightElementsCount;
 			if( _inner->GetVectorWeight( iScanned ) == 0 ) {
-				++nullWeightElmentsCount;
+				++nullWeightElementsCount;
 			} else {
-				viewMatrixDesc.PointerB[i] = _inner->GetMatrix().PointerB[iScanned];
-				viewMatrixDesc.PointerE[i] = _inner->GetMatrix().PointerE[iScanned];
 				notNullWeightElementsIndices.Add( iScanned );
 				++i;
 			}
 		}
-		viewMatrixDesc.Height -= nullWeightElmentsCount;
+
+		// fill nullWeightElementsMap, and then adjust local MatrixDesc if needed
+		viewMatrixDesc = _inner->GetMatrix();
+		viewMatrixDesc.Height -= nullWeightElementsCount;
+		NeoAssert( viewMatrixDesc.Height == notNullWeightElementsIndices.Size() );
+
+		if( nullWeightElementsCount != 0 && viewMatrixDesc.Height > 0 ) {
+			// we are going to remap some elements, so let's create our own arrays of pointers
+			viewMatrixDesc.PointerB = static_cast<int*>(
+				ALLOCATE_MEMORY( CurrentMemoryManager, viewMatrixDesc.Height * sizeof( int ) ) );
+			viewMatrixDesc.PointerE = static_cast<int*>(
+				ALLOCATE_MEMORY( CurrentMemoryManager, viewMatrixDesc.Height * sizeof( int ) ) );
+
+			for( int i = 0; i < viewMatrixDesc.Height; ++i ) {
+				int originalIndex = notNullWeightElementsIndices[i];
+				viewMatrixDesc.PointerB[i] = _inner->GetMatrix().PointerB[originalIndex];
+				viewMatrixDesc.PointerE[i] = _inner->GetMatrix().PointerE[originalIndex];
+			}
+		}
 	}
 }
 
 CProblemNotNullWeightsView::~CProblemNotNullWeightsView()
 {
-	if( inner->GetVectorCount() > 0 ) {
+	if( GetVectorCount() > 0 && inner->GetVectorCount() != GetVectorCount() ) {
+		NeoAssert( GetVectorCount() != 0 );
+
 		CurrentMemoryManager::Free( viewMatrixDesc.PointerB );
 		CurrentMemoryManager::Free( viewMatrixDesc.PointerE );
 	}
-}
-
-// Gets the number of classes
-inline int CProblemNotNullWeightsView::GetClassCount() const
-{
-	return inner->GetClassCount();
-}
-
-// Gets the number of features
-inline int CProblemNotNullWeightsView::GetFeatureCount() const
-{
-	return inner->GetFeatureCount();
-}
-
-// Indicates if the specified feature is discrete
-inline bool CProblemNotNullWeightsView::IsDiscreteFeature( int index ) const
-{
-	return inner->IsDiscreteFeature( index );
-}
-
-// Gets the number of vectors in the data set
-inline int CProblemNotNullWeightsView::GetVectorCount() const
-{
-	return viewMatrixDesc.Height;
-}
-
-// The correct class number for a vector with a given index in [0, GetClassCount())
-inline int CProblemNotNullWeightsView::GetClass( int index ) const
-{
-	return inner->GetClass( calculateOriginalIndex( index ) );
-}
-
-// Gets all vectors from the data set as a matrix
-inline CSparseFloatMatrixDesc CProblemNotNullWeightsView::GetMatrix() const
-{
-	return viewMatrixDesc;
-}
-
-// Gets the vector weight
-inline double CProblemNotNullWeightsView::GetVectorWeight( int index ) const
-{
-	return inner->GetVectorWeight( calculateOriginalIndex( index ) );
-}
-
-// calculate the index as if we had the matrix without null weighted elements
-inline int CProblemNotNullWeightsView::calculateOriginalIndex( int viewedIndex ) const
-{
-	return notNullWeightElementsIndices[viewedIndex];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
