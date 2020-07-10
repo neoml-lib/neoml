@@ -131,47 +131,52 @@ CFloatVector CMultivariateRegressionOverBinaryClassification::GetValue( int inde
 // CProblemNotNullWeightsView 
 
 CProblemNotNullWeightsView::CProblemNotNullWeightsView( const IProblem* _inner ) :
-	inner( _inner )
+	inner( _inner ),
+	nullWeightElementsCount( 0 )
 {
 	NeoAssert( inner != 0 );
 
 	int originalVectorCount = inner->GetVectorCount();
 	if( originalVectorCount > 0 ) {
-		int nullWeightElementsCount = 0;
-		for( int i = 0; i < originalVectorCount - nullWeightElementsCount; ) {
-			int iScanned = i + nullWeightElementsCount;
-			if( _inner->GetVectorWeight( iScanned ) == 0 ) {
+		// first, calculate null weighted elements count
+		for( int i = 0; i < originalVectorCount; ++i ) {
+			if( _inner->GetVectorWeight( i ) == 0 ) {
 				++nullWeightElementsCount;
-			} else {
-				notNullWeightElementsIndices.Add( iScanned );
-				++i;
 			}
 		}
 
-		// fill nullWeightElementsMap, and then adjust local MatrixDesc if needed
+		// set Height for the local MatrixDesc, then adjust view pointers and fill nullWeightElementsMap if needed
 		viewMatrixDesc = _inner->GetMatrix();
 		viewMatrixDesc.Height -= nullWeightElementsCount;
-		NeoAssert( viewMatrixDesc.Height == notNullWeightElementsIndices.Size() );
-
-		if( nullWeightElementsCount != 0 && viewMatrixDesc.Height > 0 ) {
+		if( nullWeightElementsCount > 0 && viewMatrixDesc.Height > 0 ) {
 			// we are going to remap some elements, so let's create our own arrays of pointers
 			viewMatrixDesc.PointerB = static_cast<int*>(
 				ALLOCATE_MEMORY( CurrentMemoryManager, viewMatrixDesc.Height * sizeof( int ) ) );
 			viewMatrixDesc.PointerE = static_cast<int*>(
 				ALLOCATE_MEMORY( CurrentMemoryManager, viewMatrixDesc.Height * sizeof( int ) ) );
 
-			for( int i = 0; i < viewMatrixDesc.Height; ++i ) {
-				int originalIndex = notNullWeightElementsIndices[i];
-				viewMatrixDesc.PointerB[i] = _inner->GetMatrix().PointerB[originalIndex];
-				viewMatrixDesc.PointerE[i] = _inner->GetMatrix().PointerE[originalIndex];
+			nullWeightElementsCount = 0 ;
+			notNullWeightElementsIndices.SetBufferSize( viewMatrixDesc.Height );
+			for( int i = 0; i < originalVectorCount - nullWeightElementsCount; ) {
+				int iScanned = i + nullWeightElementsCount;
+				if( _inner->GetVectorWeight( iScanned ) == 0 ) {
+					++nullWeightElementsCount;
+				} else {
+					notNullWeightElementsIndices.Add( iScanned );
+					viewMatrixDesc.PointerB[i] = _inner->GetMatrix().PointerB[iScanned];
+					viewMatrixDesc.PointerE[i] = _inner->GetMatrix().PointerE[iScanned];
+					++i;
+				}
 			}
+
+			NeoAssert( viewMatrixDesc.Height == notNullWeightElementsIndices.Size() );
 		}
 	}
 }
 
 CProblemNotNullWeightsView::~CProblemNotNullWeightsView()
 {
-	if( GetVectorCount() > 0 && inner->GetVectorCount() != GetVectorCount() ) {
+	if( GetVectorCount() > 0 && nullWeightElementsCount > 0 ) {
 		NeoAssert( GetVectorCount() != 0 );
 
 		CurrentMemoryManager::Free( viewMatrixDesc.PointerB );

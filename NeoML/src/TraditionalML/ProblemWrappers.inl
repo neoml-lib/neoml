@@ -148,7 +148,7 @@ inline double CProblemNotNullWeightsView::GetVectorWeight( int index ) const
 // calculate the index as if we had the matrix without null weighted elements
 inline int CProblemNotNullWeightsView::calculateOriginalIndex( int viewedIndex ) const
 {
-	return notNullWeightElementsIndices[viewedIndex];
+	return nullWeightElementsCount == 0 ? viewedIndex : notNullWeightElementsIndices[viewedIndex];
 }
 
 } // namespace NeoML

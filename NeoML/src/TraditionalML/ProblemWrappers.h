@@ -150,6 +150,8 @@ private:
 	CSparseFloatMatrixDesc viewMatrixDesc;
 	// The array containing pairs of viewed and original indices
 	CArray<int> notNullWeightElementsIndices;
+	// Number of null weighted elements
+	int nullWeightElementsCount;
 
 	int calculateOriginalIndex( int viewedIndex ) const;
 };
