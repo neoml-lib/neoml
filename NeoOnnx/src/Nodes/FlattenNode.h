@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CFlattenNode : public CNode {
+class CFlattenNode : public COpNode {
 public:
 	CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion, IMathEngine& mathEngine );
 

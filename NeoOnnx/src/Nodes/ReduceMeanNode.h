@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CReduceMeanNode : public CNode {
+class CReduceMeanNode : public COpNode {
 public:
 	CReduceMeanNode( const onnx::NodeProto& reduceMean, int opsetVersion, IMathEngine& mathEngine );
 

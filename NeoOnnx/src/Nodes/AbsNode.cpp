@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CAbsNode::CAbsNode( const onnx::NodeProto& abs, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( abs, opsetVersion )
+	COpNode( abs, opsetVersion )
 {
 	// v1 - original
 	// v6 - removed legacy optimization attributes and added new data types support

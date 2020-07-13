@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CConcatNode::CConcatNode( const onnx::NodeProto& concat, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( concat, opsetVersion ),
+	COpNode( concat, opsetVersion ),
 	axis( attributes.GetRequiredInt( "axis" ) )
 {
 	// Older versions have "axis" attribute as optional, not as required

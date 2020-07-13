@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CConstantOfShapeNode : public CNode {
+class CConstantOfShapeNode : public COpNode {
 public:
 	CConstantOfShapeNode( const onnx::NodeProto& constantOfShape, int opsetVersion, IMathEngine& mathEngine );
 

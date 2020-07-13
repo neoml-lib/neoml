@@ -98,17 +98,7 @@ REGISTER_NEOONNX_NODE( CUnsqueezeNode, "Unsqueeze" )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CNode::CNode( const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
-	opsetVersion( _opsetVersion ),
-	attributes( _onnxNode ),
-	onnxNode( _onnxNode )
-{
-	input.SetSize( onnxNode.input_size() );
-	output.SetSize( _onnxNode.output_size() );
-}
-
-CNode::CNode( int inputCount, int outputCount ) :
-	opsetVersion( -1 )
+CNode::CNode( int inputCount, int outputCount )
 {
 	input.SetSize( inputCount );
 	output.SetSize( outputCount );
@@ -172,5 +162,18 @@ CNode* CNode::CreateNode( const onnx::NodeProto& onnxNode, int opsetVersion, IMa
 	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
 	return getRegisteredNodes().GetValue( pos )( onnxNode, opsetVersion, mathEngine );
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+COpNode::COpNode( const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
+	CNode( _onnxNode.input_size(), _onnxNode.output_size() ),
+	opsetVersion( _opsetVersion ),
+	attributes( _onnxNode ),
+	onnxNode( _onnxNode )
+{
+	input.SetSize( onnxNode.input_size() );
+	output.SetSize( _onnxNode.output_size() );
+}
+
 
 } // namespace NeoOnnx

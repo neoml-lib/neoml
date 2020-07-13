@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CBatchNormalizationNode : public CNode {
+class CBatchNormalizationNode : public COpNode {
 public:
 	CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, int opsetVersion, IMathEngine& mathEngine );
 

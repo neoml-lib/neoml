@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CGatherNode : public CNode {
+class CGatherNode : public COpNode {
 public:
 	CGatherNode( const onnx::NodeProto& gather, int opsetVersion, IMathEngine& mathEngine );
 

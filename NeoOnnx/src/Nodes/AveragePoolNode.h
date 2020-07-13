@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CAveragePoolNode : public CNode {
+class CAveragePoolNode : public COpNode {
 public:
 	CAveragePoolNode( const onnx::NodeProto& averagePool, int opsetVersion, IMathEngine& mathEngine );
 

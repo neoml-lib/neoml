@@ -25,7 +25,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CConvNode::CConvNode( const onnx::NodeProto& conv, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( conv, opsetVersion ),
+	COpNode( conv, opsetVersion ),
 	group( attributes.GetOptionalInt( "group", 1 ) ),
 	autoPad( attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {

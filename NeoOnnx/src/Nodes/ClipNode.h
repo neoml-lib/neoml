@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CClipNode : public CNode {
+class CClipNode : public COpNode {
 public:
 	CClipNode( const onnx::NodeProto& clip, int opsetVersion, IMathEngine& mathEngine );
 

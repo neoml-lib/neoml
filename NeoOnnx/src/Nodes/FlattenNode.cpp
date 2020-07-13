@@ -23,7 +23,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( flatten, opsetVersion ),
+	COpNode( flatten, opsetVersion ),
 	axis( attributes.GetOptionalInt( "axis", 1 ) )
 {
 	// The differences between versions are in supported data types and negative axis index

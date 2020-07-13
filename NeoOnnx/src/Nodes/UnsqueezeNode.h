@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CUnsqueezeNode : public CNode {
+class CUnsqueezeNode : public COpNode {
 public:
 	CUnsqueezeNode( const onnx::NodeProto& unsqueeze, int opsetVersion, IMathEngine& mathEngine );
 

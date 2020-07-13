@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CEluNode : public CNode {
+class CEluNode : public COpNode {
 public:
 	CEluNode( const onnx::NodeProto& elu, int opsetVersion, IMathEngine& mathEngine );
 

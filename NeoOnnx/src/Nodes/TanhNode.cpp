@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CTanhNode::CTanhNode( const onnx::NodeProto& tanh, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( tanh, opsetVersion )
+	COpNode( tanh, opsetVersion )
 {
 	// The differences between versions are in supported data types and legacy optimization attributes
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", tanh );

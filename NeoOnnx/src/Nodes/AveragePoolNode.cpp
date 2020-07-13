@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CAveragePoolNode::CAveragePoolNode( const onnx::NodeProto& averagePool, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( averagePool, opsetVersion ),
+	COpNode( averagePool, opsetVersion ),
 	autoPad( attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
 	// The differences between versions are in ceil mode, default strides and count include pad

@@ -25,7 +25,7 @@ namespace NeoOnnx {
 
 CConstantOfShapeNode::CConstantOfShapeNode( const onnx::NodeProto& constantOfShape, int opsetVersion,
 		IMathEngine& /*mathEngine*/ ) :
-	CNode( constantOfShape, opsetVersion )
+	COpNode( constantOfShape, opsetVersion )
 {
 	// This op was introduced in version 9
 	CheckOnnxProtocol( opsetVersion >= 9, "wrong opset version", constantOfShape );

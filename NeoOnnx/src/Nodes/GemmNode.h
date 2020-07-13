@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Gemm operation node.
-class CGemmNode : public CNode {
+class CGemmNode : public COpNode {
 public:
 	CGemmNode( const onnx::NodeProto& node, int opsetVersion, IMathEngine& mathEngine );
 

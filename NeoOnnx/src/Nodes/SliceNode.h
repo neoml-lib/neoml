@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CSliceNode : public CNode {
+class CSliceNode : public COpNode {
 public:
 	CSliceNode( const onnx::NodeProto& slice, int opsetVersion, IMathEngine& mathEngine );
 

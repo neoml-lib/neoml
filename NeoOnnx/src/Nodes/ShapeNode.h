@@ -25,7 +25,7 @@ class NodeProto;
 namespace NeoOnnx {
 
 // Shape node in onnx graph.
-class CShapeNode : public CNode {
+class CShapeNode : public COpNode {
 public:
 	CShapeNode( const onnx::NodeProto& shape, int opsetVersion, IMathEngine& mathEngine );
 

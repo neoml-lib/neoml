@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CGatherNode::CGatherNode( const onnx::NodeProto& gather, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( gather, opsetVersion )
+	COpNode( gather, opsetVersion )
 {
 	// Newer versions support negative indices
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", gather );

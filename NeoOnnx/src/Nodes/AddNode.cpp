@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CAddNode::CAddNode( const onnx::NodeProto& add, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( add, opsetVersion )
+	COpNode( add, opsetVersion )
 {
 	// The differences between versions are in broadcasting flags and support
 	// NeoOnnx doesn't support tensor broadcast anyway

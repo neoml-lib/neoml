@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CSigmoidNode : public CNode {
+class CSigmoidNode : public COpNode {
 public:
 	CSigmoidNode( const onnx::NodeProto& sigmoid, int opsetVersion, IMathEngine& mathEngine );
 

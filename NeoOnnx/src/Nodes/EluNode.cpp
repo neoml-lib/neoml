@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CEluNode::CEluNode( const onnx::NodeProto& elu, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( elu, opsetVersion )
+	COpNode( elu, opsetVersion )
 {
 	// The differences between versions are in legacy optimization flags
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", elu );

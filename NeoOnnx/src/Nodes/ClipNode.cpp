@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CClipNode::CClipNode( const onnx::NodeProto& clip, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( clip, opsetVersion ),
+	COpNode( clip, opsetVersion ),
 	minValue( attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
 	maxValue( attributes.GetOptionalFloat( "max", FLT_MAX ) )
 {

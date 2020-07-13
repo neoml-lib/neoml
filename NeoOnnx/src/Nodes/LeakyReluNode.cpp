@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CLeakyReluNode::CLeakyReluNode( const onnx::NodeProto& leakyRelu, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( leakyRelu, opsetVersion ),
+	COpNode( leakyRelu, opsetVersion ),
 	alpha( attributes.GetOptionalFloat( "alpha", 0.01f ) )
 {
 	// v1 - original ver.

@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CLstmNode::CLstmNode( const onnx::NodeProto& lstm, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( lstm, opsetVersion ),
+	COpNode( lstm, opsetVersion ),
 	direction( attributes.GetOptionalString( "direction", "forward" ) ),
 	hiddenSize( attributes.GetRequiredInt( "hidden_size" ) )
 {

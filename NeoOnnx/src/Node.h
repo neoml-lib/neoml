@@ -121,15 +121,10 @@ protected:
 		const CBaseLayer* Layer; // Used NeoML layer (nullptr if there is no layer mapped with this output)
 		const int OutputIndex; // NeoML layer's output index, mapped with this output
 	};
-
-	const int opsetVersion; // Opset version
-	const CNodeAttributes attributes; // Attributes of this node.
 	CArray<CTensor> output; // Node outputs.
 	CArray<CInputInfo> input; // Node inputs.
 	CArray<CNeoMLInputInfo> neoMLInputInfo;
-	const onnx::NodeProto onnxNode; // Reference to onnx node. Used for diagnostics.
 
-	CNode( const onnx::NodeProto& node, int opsetVersion );
 	// special constructor for initializers, graph inputs and graph outputs
 	CNode( int inputCount, int outputCount );
 
@@ -137,6 +132,18 @@ protected:
 	const CNeoMLInputInfo& InputInfo( int index ) const;
 	const CBaseLayer& InputLayer( int index ) const;
 	int InputLayerIndex( int index ) const;
+};
+
+class COpNode : public CNode {
+public:
+	~COpNode() override = default;
+
+protected:
+	COpNode( const onnx::NodeProto& node, int opsetVersion );
+
+	const int opsetVersion; // Opset version
+	const CNodeAttributes attributes; // Attributes of this node.
+	const onnx::NodeProto onnxNode; // Reference to onnx node. Used for diagnostics.
 };
 
 } // namespace NeoOnnx

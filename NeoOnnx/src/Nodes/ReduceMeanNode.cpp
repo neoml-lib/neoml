@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CReduceMeanNode::CReduceMeanNode( const onnx::NodeProto& reduceMean, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( reduceMean, opsetVersion ),
+	COpNode( reduceMean, opsetVersion ),
 	keepDims( attributes.GetOptionalInt( "keepdims", 1 ) )
 {
 	// The differences between versions are in negative indices support

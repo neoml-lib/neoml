@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CAddNode : public CNode {
+class CAddNode : public COpNode {
 public:
 	CAddNode( const onnx::NodeProto& add, int opsetVersion, IMathEngine& mathEngine );
 

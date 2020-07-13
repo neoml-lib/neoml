@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CReshapeNode::CReshapeNode( const onnx::NodeProto& reshape, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( reshape, opsetVersion ),
+	COpNode( reshape, opsetVersion ),
 	hasFixedShape( false ),
 	hasRemainder( false )
 {

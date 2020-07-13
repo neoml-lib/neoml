@@ -19,7 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-class CTanhNode : public CNode {
+class CTanhNode : public COpNode {
 public:
 	CTanhNode( const onnx::NodeProto& node, int opsetVersion, IMathEngine& mathEngine );
 

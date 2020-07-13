@@ -25,7 +25,7 @@ namespace NeoOnnx {
 
 CBatchNormalizationNode::CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, int opsetVersion,
 		IMathEngine& /*mathEngine*/ ) :
-	CNode( batchNormalization, opsetVersion ),
+	COpNode( batchNormalization, opsetVersion ),
 	eps( attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
 {
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", batchNormalization );

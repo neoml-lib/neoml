@@ -19,7 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-class CLeakyReluNode : public CNode {
+class CLeakyReluNode : public COpNode {
 public:
 	CLeakyReluNode( const onnx::NodeProto& node, int opsetVersion, IMathEngine& mathEngine );
 

@@ -25,7 +25,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CGemmNode::CGemmNode( const onnx::NodeProto& gemm, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( gemm, opsetVersion ),
+	COpNode( gemm, opsetVersion ),
 	alpha( attributes.GetOptionalFloat( "alpha", 1.f ) ),
 	beta( attributes.GetOptionalFloat( "beta", 1.f ) ),
 	transA( attributes.GetOptionalInt( "transA", 0 ) ),

@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CShapeNode::CShapeNode( const onnx::NodeProto& shape, int opsetVersion, IMathEngine& _mathEngine ) :
-	CNode( shape, opsetVersion ),
+	COpNode( shape, opsetVersion ),
 	mathEngine( _mathEngine )
 {
 	// This operator doesn't have multiple versions

@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CSliceNode::CSliceNode( const onnx::NodeProto& slice, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( slice, opsetVersion )
+	COpNode( slice, opsetVersion )
 {
 	// Newer versions are using inputs instead of attributes
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", slice );

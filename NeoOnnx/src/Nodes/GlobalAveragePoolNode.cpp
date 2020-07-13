@@ -24,7 +24,7 @@ namespace NeoOnnx {
 
 CGlobalAveragePoolNode::CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool, int opsetVersion,
 		IMathEngine& /*mathEngine*/ ) :
-	CNode( globalAveragePool, opsetVersion )
+	COpNode( globalAveragePool, opsetVersion )
 {
 	// This operator doesn't have multiple versions
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", globalAveragePool );

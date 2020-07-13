@@ -24,7 +24,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-class CMaxPoolNode : public CNode {
+class CMaxPoolNode : public COpNode {
 public:
 	CMaxPoolNode( const onnx::NodeProto& maxPool, int opsetVersion, IMathEngine& mathEngine );
 

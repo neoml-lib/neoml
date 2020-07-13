@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CConstantNode::CConstantNode( const onnx::NodeProto& constant, int opsetVersion, IMathEngine& mathEngine ) :
-	CNode( constant, opsetVersion ),
+	COpNode( constant, opsetVersion ),
 	value( attributes.GetRequiredTensor( "value", mathEngine ) )
 {
 	// Newer versions support values in sparse format

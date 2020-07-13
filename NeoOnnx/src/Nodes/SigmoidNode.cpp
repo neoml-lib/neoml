@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CSigmoidNode::CSigmoidNode( const onnx::NodeProto& sigmoid, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( sigmoid, opsetVersion )
+	COpNode( sigmoid, opsetVersion )
 {
 	// The differences between versions are in legacy optimization flags
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", sigmoid );

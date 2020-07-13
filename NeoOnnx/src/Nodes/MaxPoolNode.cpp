@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CMaxPoolNode::CMaxPoolNode( const onnx::NodeProto& maxPool, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	CNode( maxPool, opsetVersion ),
+	COpNode( maxPool, opsetVersion ),
 	autoPad( attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
 	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc.
