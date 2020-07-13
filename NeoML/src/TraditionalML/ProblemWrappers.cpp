@@ -50,24 +50,6 @@ CMultivariateRegressionOverUnivariate::CMultivariateRegressionOverUnivariate(
 	NeoAssert( inner != nullptr );
 }
 
-// Gets the number of features
-inline int CMultivariateRegressionOverUnivariate::GetFeatureCount() const
-{
-	return inner->GetFeatureCount();
-}
-
-// Gets the number of vectors in the data set
-inline int CMultivariateRegressionOverUnivariate::GetVectorCount() const
-{
-	return inner->GetVectorCount();
-}
-
-// Gets all vectors from the data set as a matrix
-CSparseFloatMatrixDesc CMultivariateRegressionOverUnivariate::GetMatrix() const
-{
-	return inner->GetMatrix();
-}
-
 // Gets the function value for the vector with the given index in the data set
 CFloatVector CMultivariateRegressionOverUnivariate::GetValue( int index ) const
 {
