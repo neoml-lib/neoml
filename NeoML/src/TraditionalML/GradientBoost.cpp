@@ -242,12 +242,12 @@ CPtr<IGradientBoostRegressionModel> CGradientBoost::TrainRegression(
 
 	CPtr<const IMultivariateRegressionProblem> multivariate =
 		dynamic_cast<const IMultivariateRegressionProblem*>( &problem );
-	if( multivariate == 0 ) {
+	if( multivariate == nullptr ) {
 		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate(
 			dynamic_cast<const IRegressionProblem*>( &problem ) );
 	}
 
-	return train( multivariate, createRegressionLossFunction() ).Ptr();
+	return train( multivariate, createLossFunction() ).Ptr();
 }
 
 CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem& problem )
@@ -259,7 +259,7 @@ CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem
 	CPtr<const IMultivariateRegressionProblem> multivariate =
 		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( &problem );
 
-	return train( multivariate, createRegressionLossFunction() ).Ptr();
+	return train( multivariate, createLossFunction() ).Ptr();
 }
 
 CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
@@ -275,7 +275,7 @@ CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
 		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( &problem );
 	}
 
-	return train( multivariate, createClassificationLossFunction() ).Ptr();
+	return train( multivariate, createLossFunction() ).Ptr();
 }
 
 // Trains a model
@@ -370,8 +370,8 @@ void CGradientBoost::destroyTreeBuilder()
 	fastHistProblem.Release();
 }
 
-// Creates a loss function for classification
-CPtr<IGradientBoostingLossFunction> CGradientBoost::createClassificationLossFunction() const
+// Creates a loss function based on CParam.LossFunction
+CPtr<IGradientBoostingLossFunction> CGradientBoost::createLossFunction() const
 {
 	switch( params.LossFunction ) {
 		case LF_Binomial:
@@ -387,20 +387,6 @@ CPtr<IGradientBoostingLossFunction> CGradientBoost::createClassificationLossFunc
 			return FINE_DEBUG_NEW CGradientBoostingSquareLoss();
 			break;
 		default:
-			NeoAssert( false );
-			return 0;
-	}
-}
-
-// Creates a loss function for regression
-CPtr<IGradientBoostingLossFunction> CGradientBoost::createRegressionLossFunction() const 
-{
-	switch( params.LossFunction ) {
-		case LF_L2:
-			return FINE_DEBUG_NEW CGradientBoostingSquareLoss();
-			break;
-		default:
-			// Other functions not supported
 			NeoAssert( false );
 			return 0;
 	}
