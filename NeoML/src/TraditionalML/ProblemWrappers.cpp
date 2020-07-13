@@ -47,7 +47,7 @@ CMultivariateRegressionOverUnivariate::CMultivariateRegressionOverUnivariate(
 		const IRegressionProblem* _inner ) :
 	inner( _inner )
 {
-	NeoAssert( inner != 0 );
+	NeoAssert( inner != nullptr );
 }
 
 // Gets the number of features
@@ -83,7 +83,7 @@ CMultivariateRegressionOverClassification::CMultivariateRegressionOverClassifica
 		const IProblem* _inner ) :
 	inner( _inner )
 {
-	NeoAssert( inner != 0 );
+	NeoAssert( inner != nullptr );
 
 	const int classCount = inner->GetClassCount();
 	classValues.SetBufferSize( classCount );
@@ -110,7 +110,7 @@ CMultivariateRegressionOverBinaryClassification::CMultivariateRegressionOverBina
 		const IProblem* _inner ) :
 	inner( _inner )
 {
-	NeoAssert( inner != 0 );
+	NeoAssert( inner != nullptr );
 	NeoAssert( inner->GetClassCount() == 2 );
 
 	classValues[0] = CFloatVector(1);
@@ -128,60 +128,69 @@ CFloatVector CMultivariateRegressionOverBinaryClassification::GetValue( int inde
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-// CProblemNotNullWeightsView 
+// CNotNullWeightsView 
 
-CProblemNotNullWeightsView::CProblemNotNullWeightsView( const IProblem* _inner ) :
-	inner( _inner ),
+template<class TProblem>
+CNotNullWeightsView<TProblem>::CNotNullWeightsView( const TProblem* problem ) :
 	nullWeightElementsCount( 0 )
 {
-	NeoAssert( inner != 0 );
+	NeoAssert( problem != nullptr );
 
-	int originalVectorCount = inner->GetVectorCount();
+	int originalVectorCount = problem->GetVectorCount();
 	if( originalVectorCount > 0 ) {
 		// first, calculate null weighted elements count
 		for( int i = 0; i < originalVectorCount; ++i ) {
-			if( _inner->GetVectorWeight( i ) == 0 ) {
+			if( problem->GetVectorWeight( i ) == 0 ) {
 				++nullWeightElementsCount;
 			}
 		}
 
 		// set Height for the local MatrixDesc, then adjust view pointers and fill nullWeightElementsMap if needed
-		viewMatrixDesc = _inner->GetMatrix();
-		viewMatrixDesc.Height -= nullWeightElementsCount;
-		if( nullWeightElementsCount > 0 && viewMatrixDesc.Height > 0 ) {
+		ViewMatrixDesc = problem->GetMatrix();
+		ViewMatrixDesc.Height -= nullWeightElementsCount;
+		if( nullWeightElementsCount > 0 && ViewMatrixDesc.Height > 0 ) {
 			// we are going to remap some elements, so let's create our own arrays of pointers
-			viewMatrixDesc.PointerB = static_cast<int*>(
-				ALLOCATE_MEMORY( CurrentMemoryManager, viewMatrixDesc.Height * sizeof( int ) ) );
-			viewMatrixDesc.PointerE = static_cast<int*>(
-				ALLOCATE_MEMORY( CurrentMemoryManager, viewMatrixDesc.Height * sizeof( int ) ) );
+			ViewMatrixDesc.PointerB = static_cast<int*>(
+				ALLOCATE_MEMORY( CurrentMemoryManager, ViewMatrixDesc.Height * sizeof( int ) ) );
+			ViewMatrixDesc.PointerE = static_cast<int*>(
+				ALLOCATE_MEMORY( CurrentMemoryManager, ViewMatrixDesc.Height * sizeof( int ) ) );
 
 			nullWeightElementsCount = 0 ;
-			notNullWeightElementsIndices.SetBufferSize( viewMatrixDesc.Height );
+			notNullWeightElementsIndices.SetBufferSize( ViewMatrixDesc.Height );
 			for( int i = 0; i < originalVectorCount - nullWeightElementsCount; ) {
 				int iScanned = i + nullWeightElementsCount;
-				if( _inner->GetVectorWeight( iScanned ) == 0 ) {
+				if( problem->GetVectorWeight( iScanned ) == 0 ) {
 					++nullWeightElementsCount;
 				} else {
 					notNullWeightElementsIndices.Add( iScanned );
-					viewMatrixDesc.PointerB[i] = _inner->GetMatrix().PointerB[iScanned];
-					viewMatrixDesc.PointerE[i] = _inner->GetMatrix().PointerE[iScanned];
+					ViewMatrixDesc.PointerB[i] = problem->GetMatrix().PointerB[iScanned];
+					ViewMatrixDesc.PointerE[i] = problem->GetMatrix().PointerE[iScanned];
 					++i;
 				}
 			}
 
-			NeoAssert( viewMatrixDesc.Height == notNullWeightElementsIndices.Size() );
+			NeoAssert( ViewMatrixDesc.Height == notNullWeightElementsIndices.Size() );
 		}
 	}
 }
 
-CProblemNotNullWeightsView::~CProblemNotNullWeightsView()
+template<class TProblem>
+CNotNullWeightsView<TProblem>::~CNotNullWeightsView()
 {
-	if( GetVectorCount() > 0 && nullWeightElementsCount > 0 ) {
-		NeoAssert( GetVectorCount() != 0 );
-
-		CurrentMemoryManager::Free( viewMatrixDesc.PointerB );
-		CurrentMemoryManager::Free( viewMatrixDesc.PointerE );
+	if( nullWeightElementsCount > 0 && ViewMatrixDesc.Height > 0 ) {
+		CurrentMemoryManager::Free( ViewMatrixDesc.PointerB );
+		CurrentMemoryManager::Free( ViewMatrixDesc.PointerE );
 	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// CMultivariateRegressionProblemNotNullWeightsView
+
+CMultivariateRegressionProblemNotNullWeightsView::CMultivariateRegressionProblemNotNullWeightsView( 
+	const IMultivariateRegressionProblem* _inner ) :
+	CNotNullWeightsView<IMultivariateRegressionProblem>( _inner ),
+	inner( _inner )
+{
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

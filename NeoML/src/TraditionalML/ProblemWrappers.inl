@@ -97,58 +97,49 @@ inline int CMultivariateRegressionOverBinaryClassification::GetValueSize() const
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-// CProblemNotNullWeightsView 
+// CMultivariateRegressionProblemNotNullWeightsView 
 
-// Gets the number of classes
-inline int CProblemNotNullWeightsView::GetClassCount() const
-{
-	return inner->GetClassCount();
-}
-
-// Gets the number of features
-inline int CProblemNotNullWeightsView::GetFeatureCount() const
+// The number of features
+inline int CMultivariateRegressionProblemNotNullWeightsView::GetFeatureCount() const
 {
 	return inner->GetFeatureCount();
 }
 
-// Indicates if the specified feature is discrete
-inline bool CProblemNotNullWeightsView::IsDiscreteFeature( int index ) const
+// The number of vectors in the input data set
+inline int CMultivariateRegressionProblemNotNullWeightsView::GetVectorCount() const
 {
-	return inner->IsDiscreteFeature( index );
+	return ViewMatrixDesc.Height;
 }
 
-// Gets the number of vectors in the data set
-inline int CProblemNotNullWeightsView::GetVectorCount() const
+// Gets all input vectors as a matrix
+inline CSparseFloatMatrixDesc CMultivariateRegressionProblemNotNullWeightsView::GetMatrix() const
 {
-	return viewMatrixDesc.Height;
+	return ViewMatrixDesc;
 }
 
-// The correct class number for a vector with a given index in [0, GetClassCount())
-inline int CProblemNotNullWeightsView::GetClass( int index ) const
+// The vector weight
+inline double CMultivariateRegressionProblemNotNullWeightsView::GetVectorWeight( int index ) const
 {
-	NeoPresume( index < viewMatrixDesc.Height );
+	NeoPresume( index < GetVectorCount() );
 
-	return inner->GetClass( calculateOriginalIndex( index ) );
+	return inner->GetVectorWeight( CalculateOriginalIndex( index ) );
 }
 
-// Gets all vectors from the data set as a matrix
-inline CSparseFloatMatrixDesc CProblemNotNullWeightsView::GetMatrix() const
+// The length of the function value vector
+inline int CMultivariateRegressionProblemNotNullWeightsView::GetValueSize() const
 {
-	return viewMatrixDesc;
+	return inner->GetValueSize();
 }
 
-// Gets the vector weight
-inline double CProblemNotNullWeightsView::GetVectorWeight( int index ) const
-{
-	NeoPresume( index < viewMatrixDesc.Height );
 
-	return inner->GetVectorWeight( calculateOriginalIndex( index ) );
+// The value of the function on the vector with the given index
+inline CFloatVector CMultivariateRegressionProblemNotNullWeightsView::GetValue( int index ) const
+{
+	NeoPresume( index < GetVectorCount() );
+
+	return inner->GetValue( CalculateOriginalIndex( index ) );
 }
 
-// calculate the index as if we had the matrix without null weighted elements
-inline int CProblemNotNullWeightsView::calculateOriginalIndex( int viewedIndex ) const
-{
-	return nullWeightElementsCount == 0 ? viewedIndex : notNullWeightElementsIndices[viewedIndex];
-}
+/////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace NeoML

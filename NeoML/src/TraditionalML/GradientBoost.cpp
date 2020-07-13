@@ -247,6 +247,7 @@ CPtr<IGradientBoostRegressionModel> CGradientBoost::TrainRegression(
 			dynamic_cast<const IRegressionProblem*>( &problem ) );
 	}
 
+	multivariate = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( multivariate );
 	return train( multivariate, createRegressionLossFunction() ).Ptr();
 }
 
@@ -257,8 +258,10 @@ CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem
 	}
 
 	CPtr<const IMultivariateRegressionProblem> multivariate =
-		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( dynamic_cast<const IRegressionProblem*>( &problem ) );
+		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( 
+			dynamic_cast<const IRegressionProblem*>( &problem ) );
 
+	multivariate = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( multivariate );
 	return train( multivariate, createRegressionLossFunction() ).Ptr();
 }
 
@@ -268,13 +271,14 @@ CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
 		*logStream << "\nGradient boost training started:\n";
 	}
 
-	CPtr<const IProblem> notNullWeightsView = FINE_DEBUG_NEW CProblemNotNullWeightsView( &problem );
 	CPtr<const IMultivariateRegressionProblem> multivariate;
 	if( problem.GetClassCount() == 2 ) {
-		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverBinaryClassification( notNullWeightsView.Ptr() );
+		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverBinaryClassification( &problem );
 	} else {
-		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( notNullWeightsView.Ptr() );
+		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( &problem );
 	}
+
+	multivariate = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( multivariate );
 	return train( multivariate, createClassificationLossFunction() ).Ptr();
 }
 
