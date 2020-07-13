@@ -257,8 +257,7 @@ CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem
 	}
 
 	CPtr<const IMultivariateRegressionProblem> multivariate =
-		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( 
-			dynamic_cast<const IRegressionProblem*>( &problem ) );
+		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( &problem );
 
 	return train( multivariate, createRegressionLossFunction() ).Ptr();
 }
