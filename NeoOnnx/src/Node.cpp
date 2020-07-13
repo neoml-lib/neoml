@@ -52,13 +52,13 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-static CMap<CString, TCreateNodeFunction>& getRegisteredNodes()
+static CMap<CString, TCreateOpNodeFunction>& getRegisteredNodes()
 {
-	static CMap<CString, TCreateNodeFunction> registeredNodes;
+	static CMap<CString, TCreateOpNodeFunction> registeredNodes;
 	return registeredNodes;
 }
 
-void RegisterNode( const char* opName, TCreateNodeFunction function )
+void RegisterNode( const char* opName, TCreateOpNodeFunction function )
 {
 	NeoAssert( !getRegisteredNodes().Has( opName ) );
 	getRegisteredNodes().Add( opName, function );
@@ -67,32 +67,32 @@ void RegisterNode( const char* opName, TCreateNodeFunction function )
 namespace {
 
 // Register all nodes
-REGISTER_NEOONNX_NODE( CAbsNode, "Abs" )
-REGISTER_NEOONNX_NODE( CAddNode, "Add" )
-REGISTER_NEOONNX_NODE( CAveragePoolNode, "AveragePool" )
-REGISTER_NEOONNX_NODE( CBatchNormalizationNode, "BatchNormalization" )
-REGISTER_NEOONNX_NODE( CClipNode, "Clip" )
-REGISTER_NEOONNX_NODE( CConcatNode, "Concat" )
-REGISTER_NEOONNX_NODE( CConstantNode, "Constant" )
-REGISTER_NEOONNX_NODE( CConstantOfShapeNode, "ConstantOfShape" )
-REGISTER_NEOONNX_NODE( CConvNode, "Conv" )
-REGISTER_NEOONNX_NODE( CEluNode, "Elu" )
-REGISTER_NEOONNX_NODE( CFlattenNode, "Flatten" )
-REGISTER_NEOONNX_NODE( CGatherNode, "Gather" )
-REGISTER_NEOONNX_NODE( CGemmNode, "Gemm" )
-REGISTER_NEOONNX_NODE( CGlobalAveragePoolNode, "GlobalAveragePool" )
-REGISTER_NEOONNX_NODE( CLeakyReluNode, "LeakyRelu" )
-REGISTER_NEOONNX_NODE( CLstmNode, "LSTM" )
-REGISTER_NEOONNX_NODE( CMaxPoolNode, "MaxPool" )
-REGISTER_NEOONNX_NODE( CReduceMeanNode, "ReduceMean" )
-REGISTER_NEOONNX_NODE( CReluNode, "Relu" )
-REGISTER_NEOONNX_NODE( CReshapeNode, "Reshape" )
-REGISTER_NEOONNX_NODE( CShapeNode, "Shape" )
-REGISTER_NEOONNX_NODE( CSigmoidNode, "Sigmoid" )
-REGISTER_NEOONNX_NODE( CSliceNode, "Slice" )
-REGISTER_NEOONNX_NODE( CSqueezeNode, "Squeeze" )
-REGISTER_NEOONNX_NODE( CTanhNode, "Tanh" )
-REGISTER_NEOONNX_NODE( CUnsqueezeNode, "Unsqueeze" )
+REGISTER_OP_NODE( CAbsNode, "Abs" )
+REGISTER_OP_NODE( CAddNode, "Add" )
+REGISTER_OP_NODE( CAveragePoolNode, "AveragePool" )
+REGISTER_OP_NODE( CBatchNormalizationNode, "BatchNormalization" )
+REGISTER_OP_NODE( CClipNode, "Clip" )
+REGISTER_OP_NODE( CConcatNode, "Concat" )
+REGISTER_OP_NODE( CConstantNode, "Constant" )
+REGISTER_OP_NODE( CConstantOfShapeNode, "ConstantOfShape" )
+REGISTER_OP_NODE( CConvNode, "Conv" )
+REGISTER_OP_NODE( CEluNode, "Elu" )
+REGISTER_OP_NODE( CFlattenNode, "Flatten" )
+REGISTER_OP_NODE( CGatherNode, "Gather" )
+REGISTER_OP_NODE( CGemmNode, "Gemm" )
+REGISTER_OP_NODE( CGlobalAveragePoolNode, "GlobalAveragePool" )
+REGISTER_OP_NODE( CLeakyReluNode, "LeakyRelu" )
+REGISTER_OP_NODE( CLstmNode, "LSTM" )
+REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
+REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
+REGISTER_OP_NODE( CReluNode, "Relu" )
+REGISTER_OP_NODE( CReshapeNode, "Reshape" )
+REGISTER_OP_NODE( CShapeNode, "Shape" )
+REGISTER_OP_NODE( CSigmoidNode, "Sigmoid" )
+REGISTER_OP_NODE( CSliceNode, "Slice" )
+REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
+REGISTER_OP_NODE( CTanhNode, "Tanh" )
+REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )
 
 } // namespace
 

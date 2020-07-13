@@ -98,14 +98,14 @@ protected:
 const int MaxOpsetVersion = 12;
 
 // Registers the class as a NeoOnnx node for op_type == opName
-#define REGISTER_NEOONNX_NODE( classType, opName ) \
+#define REGISTER_OP_NODE( classType, opName ) \
 	static CNodeClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( opName );
 
 class COpNode;
 
-typedef COpNode* ( *TCreateNodeFunction )( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
+typedef COpNode* ( *TCreateOpNodeFunction )( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
 
-void RegisterNode( const char* opName, TCreateNodeFunction function );
+void RegisterNode( const char* opName, TCreateOpNodeFunction function );
 
 //---------------------------------------------------------------------------------------------------------------------
 
