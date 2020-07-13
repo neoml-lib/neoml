@@ -116,7 +116,7 @@ template<class TProblem>
 class CNotNullWeightsView {
 public:
 	CNotNullWeightsView( const TProblem* problem );
-	~CNotNullWeightsView();
+	virtual ~CNotNullWeightsView();
 
 	// Calculates the index as if we had the matrix without null weighted elements
 	int CalculateOriginalIndex( int viewedIndex ) const;
@@ -151,6 +151,7 @@ class CMultivariateRegressionProblemNotNullWeightsView : public IMultivariateReg
 	private CNotNullWeightsView<IMultivariateRegressionProblem> {
 public:
 	explicit CMultivariateRegressionProblemNotNullWeightsView( const IMultivariateRegressionProblem* inner );
+	~CMultivariateRegressionProblemNotNullWeightsView() override = default;
 
 	// The number of features
 	int GetFeatureCount() const override;
