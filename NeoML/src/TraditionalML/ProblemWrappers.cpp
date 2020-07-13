@@ -169,7 +169,7 @@ CNotNullWeightsView<TProblem>::~CNotNullWeightsView()
 // CMultivariateRegressionProblemNotNullWeightsView
 
 CMultivariateRegressionProblemNotNullWeightsView::CMultivariateRegressionProblemNotNullWeightsView( 
-	const IMultivariateRegressionProblem* _inner ) :
+		const IMultivariateRegressionProblem* _inner ) :
 	CNotNullWeightsView<IMultivariateRegressionProblem>( _inner ),
 	inner( _inner )
 {

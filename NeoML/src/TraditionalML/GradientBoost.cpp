@@ -247,7 +247,6 @@ CPtr<IGradientBoostRegressionModel> CGradientBoost::TrainRegression(
 			dynamic_cast<const IRegressionProblem*>( &problem ) );
 	}
 
-	multivariate = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( multivariate );
 	return train( multivariate, createRegressionLossFunction() ).Ptr();
 }
 
@@ -261,7 +260,6 @@ CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem
 		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( 
 			dynamic_cast<const IRegressionProblem*>( &problem ) );
 
-	multivariate = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( multivariate );
 	return train( multivariate, createRegressionLossFunction() ).Ptr();
 }
 
@@ -278,16 +276,19 @@ CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
 		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( &problem );
 	}
 
-	multivariate = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( multivariate );
 	return train( multivariate, createClassificationLossFunction() ).Ptr();
 }
 
 // Trains a model
 CPtr<CGradientBoostModel> CGradientBoost::train(
-	const IMultivariateRegressionProblem* problem,
+	const IMultivariateRegressionProblem* _problem,
 	IGradientBoostingLossFunction* lossFunction )
 {
-	NeoAssert( problem != 0 && lossFunction != 0 );
+	NeoAssert( _problem != 0 && lossFunction != 0 );
+
+	// create view without null weights over original problem
+	CPtr<const IMultivariateRegressionProblem> problem = 
+		FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( problem );
 
 	CArray<CGradientBoostEnsemble> models; // the final models ensemble (ensembles are used for multi-class classification)
 	initialize( problem->GetValueSize(), problem->GetVectorCount(),
