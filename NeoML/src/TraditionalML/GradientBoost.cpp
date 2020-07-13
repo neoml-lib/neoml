@@ -236,7 +236,7 @@ CGradientBoost::~CGradientBoost()
 CPtr<IGradientBoostRegressionModel> CGradientBoost::TrainRegression(
 	const IBaseRegressionProblem& problem )
 {
-	if( logStream != 0 ) {
+	if( logStream != nullptr ) {
 		*logStream << "\nGradient boost regression training started:\n";
 	}
 
@@ -252,19 +252,19 @@ CPtr<IGradientBoostRegressionModel> CGradientBoost::TrainRegression(
 
 CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem& problem )
 {
-	if( logStream != 0 ) {
+	if( logStream != nullptr ) {
 		*logStream << "\nGradient boost regression training started:\n";
 	}
 
 	CPtr<const IMultivariateRegressionProblem> multivariate =
-		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( dynamic_cast<const IRegressionProblem*>( &problem ) );
+		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( &problem );
 
 	return train( multivariate, createRegressionLossFunction() ).Ptr();
 }
 
 CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
 {
-	if( logStream != 0 ) {
+	if( logStream != nullptr ) {
 		*logStream << "\nGradient boost training started:\n";
 	}
 
@@ -274,16 +274,20 @@ CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
 	} else {
 		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( &problem );
 	}
+
 	return train( multivariate, createClassificationLossFunction() ).Ptr();
 }
 
 // Trains a model
 CPtr<CGradientBoostModel> CGradientBoost::train(
-	const IMultivariateRegressionProblem* problem,
+	const IMultivariateRegressionProblem* _problem,
 	IGradientBoostingLossFunction* lossFunction )
 {
-	NeoAssert( problem != 0 && lossFunction != 0 );
+	NeoAssert( _problem != nullptr && lossFunction != nullptr );
 
+	// create view without null weights over original problem
+	CPtr<const IMultivariateRegressionProblem> problem = 
+		FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( _problem );
 	CArray<CGradientBoostEnsemble> models; // the final models ensemble (ensembles are used for multi-class classification)
 	initialize( problem->GetValueSize(), problem->GetVectorCount(),
 		problem->GetFeatureCount(), models );
@@ -294,7 +298,7 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 
 		// Every new tree is trained on a new problem
 		for( int i = 0; i < params.IterationsCount; i++ ) {
-			if( logStream != 0 ) {
+			if( logStream != nullptr ) {
 				*logStream << "\nBoost iteration " << i << ":\n";
 			}
 
@@ -448,17 +452,17 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 {
 	NeoAssert( !models.IsEmpty() );
 	NeoAssert( curModels.IsEmpty() );
-	NeoAssert( problem != 0 );
+	NeoAssert( problem != nullptr );
 
 	const int vectorCount = problem->GetVectorCount();
 	const int featureCount = problem->GetFeatureCount();
 
 	if( params.Subsample < 1.0 ) {
-		generateRandomArray( params.Random != 0 ? *params.Random : defaultRandom, vectorCount,
+		generateRandomArray( params.Random != nullptr ? *params.Random : defaultRandom, vectorCount,
 			max( static_cast<int>( vectorCount * params.Subsample ), 1 ), usedVectors );
 	}
 	if( params.Subfeature < 1.0 ) {
-		generateRandomArray( params.Random != 0 ? *params.Random : defaultRandom, featureCount,
+		generateRandomArray( params.Random != nullptr ? *params.Random : defaultRandom, featureCount,
 			max( static_cast<int>( featureCount * params.Subfeature ), 1 ), usedFeatures );
 		
 		if( featureNumbers.Size() != featureCount ) {
@@ -513,19 +517,19 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 
 	if( curStep == 0 || params.Subfeature != 1.0 || params.Subsample != 1.0 ) {
 		// The sub-problem data has changed, reload it
-		if( fullProblem != 0 ) {
+		if( fullProblem != nullptr ) {
 			fullProblem->Update();
 		}
 	}
 
 	for( int i = 0; i < gradients.Size(); i++ ) {
-		if( logStream != 0 ) {
+		if( logStream != nullptr ) {
 			*logStream << "GradientSum = " << gradientsSum[i]
 				<< " HessianSum = " << hessiansSum[i]
 				<< "\n";
 		}
 		CPtr<IRegressionModel> model;
-		if( fullTreeBuilder != 0 ) {
+		if( fullTreeBuilder != nullptr ) {
 			model = fullTreeBuilder->Build( *fullProblem, gradients[i], gradientsSum[i], hessians[i], hessiansSum[i], weights, weightsSum );
 		} else {
 			model = fastHistTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
