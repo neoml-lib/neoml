@@ -28,45 +28,6 @@ class ValueInfoProto;
 
 namespace NeoOnnx {
 
-// Opset versioning support
-
-const int MaxOpsetVersion = 12;
-
-// Registers the class as a NeoOnnx node for op_type == opName
-#define REGISTER_NEOONNX_NODE( classType, opName ) \
-	static CNodeClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( opName );
-
-class CNode;
-
-typedef CNode* ( *TCreateNodeFunction )( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
-
-void RegisterNode( const char* opName, TCreateNodeFunction function );
-
-//---------------------------------------------------------------------------------------------------------------------
-
-template<class T>
-class CNodeClassRegistrar {
-public:
-	explicit CNodeClassRegistrar( const char* opName );
-
-private:
-	static CNode* createObject( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
-};
-
-template<class T>
-inline CNodeClassRegistrar<T>::CNodeClassRegistrar( const char* opName )
-{
-	RegisterNode( opName, createObject );
-}
-
-template<class T>
-inline CNode* CNodeClassRegistrar<T>::createObject( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine )
-{
-	return FINE_DEBUG_NEW T( onnxNode, opsetVersion, mathEngine );
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
 // Node in the onnx calculation graph.
 class CNode {
 public:
@@ -105,9 +66,6 @@ public:
 	// Must be called once for every used input.
 	void SetInput( int index, const CInputInfo& inputInfo );
 
-	// Fabric method. Creates CNode's derivative for given onnx node.
-	static CNode* CreateNode( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
-
 protected:
 	// Information about output.
 	struct CNeoMLInputInfo {
@@ -134,9 +92,53 @@ protected:
 	int InputLayerIndex( int index ) const;
 };
 
+//--------------------------------------------------------------------------------------------------------------------
+// Opset versioning support
+
+const int MaxOpsetVersion = 12;
+
+// Registers the class as a NeoOnnx node for op_type == opName
+#define REGISTER_NEOONNX_NODE( classType, opName ) \
+	static CNodeClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( opName );
+
+class COpNode;
+
+typedef COpNode* ( *TCreateNodeFunction )( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
+
+void RegisterNode( const char* opName, TCreateNodeFunction function );
+
+//---------------------------------------------------------------------------------------------------------------------
+
+template<class T>
+class CNodeClassRegistrar {
+public:
+	explicit CNodeClassRegistrar( const char* opName );
+
+private:
+	static COpNode* createObject( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
+};
+
+template<class T>
+inline CNodeClassRegistrar<T>::CNodeClassRegistrar( const char* opName )
+{
+	RegisterNode( opName, createObject );
+}
+
+template<class T>
+inline COpNode* CNodeClassRegistrar<T>::createObject( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine )
+{
+	return FINE_DEBUG_NEW T( onnxNode, opsetVersion, mathEngine );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+// Operator node
+
 class COpNode : public CNode {
 public:
 	~COpNode() override = default;
+
+	// Fabric method. Creates CNode's derivative for given onnx node.
+	static COpNode* CreateOpNode( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
 
 protected:
 	COpNode( const onnx::NodeProto& node, int opsetVersion );

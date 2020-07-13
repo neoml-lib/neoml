@@ -156,13 +156,6 @@ int CNode::InputLayerIndex( int index ) const
 	return InputInfo( index ).OutputIndex;
 }
 
-CNode* CNode::CreateNode( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine )
-{
-	TMapPosition pos = getRegisteredNodes().GetFirstPosition( onnxNode.op_type() );
-	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
-	return getRegisteredNodes().GetValue( pos )( onnxNode, opsetVersion, mathEngine );
-}
-
 //---------------------------------------------------------------------------------------------------------------------
 
 COpNode::COpNode( const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
@@ -173,6 +166,13 @@ COpNode::COpNode( const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
 {
 	input.SetSize( onnxNode.input_size() );
 	output.SetSize( _onnxNode.output_size() );
+}
+
+COpNode* COpNode::CreateOpNode( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine )
+{
+	TMapPosition pos = getRegisteredNodes().GetFirstPosition( onnxNode.op_type() );
+	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
+	return getRegisteredNodes().GetValue( pos )( onnxNode, opsetVersion, mathEngine );
 }
 
 

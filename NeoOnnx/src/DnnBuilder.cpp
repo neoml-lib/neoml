@@ -85,7 +85,7 @@ static void buildNodes( const onnx::GraphProto& onnxGraph, int opsetVersion, IMa
 
 	// Add graph nodes.
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
-		nodes.Add( CNode::CreateNode( onnxNode, opsetVersion, mathEngine ) );
+		nodes.Add( COpNode::CreateOpNode( onnxNode, opsetVersion, mathEngine ) );
 		for( int inputIndex = 0; inputIndex < onnxNode.input_size(); ++inputIndex ) {
 			const std::string& inputName = onnxNode.input( inputIndex );
 			if( inputName.size() > 0 ) {
