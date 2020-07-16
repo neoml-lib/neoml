@@ -26,7 +26,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	explicit CEltwiseBaseLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnEltwiseBaseLayer", false ) {}
+	CEltwiseBaseLayer( IMathEngine& mathEngine, const char* name ) : CBaseLayer( mathEngine, name, false ) {}
 	void Reshape() override;
 };
 
@@ -36,7 +36,7 @@ protected:
 class NEOML_API CEltwiseSumLayer : public CEltwiseBaseLayer {
 	NEOML_DNN_LAYER( CEltwiseSumLayer )
 public:
-	explicit CEltwiseSumLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName( "CCnnEltwiseSumLayer" ); }
+	explicit CEltwiseSumLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine, "CCnnEltwiseSumLayer" ) {}
 
 	void Serialize( CArchive& archive ) override;
 
@@ -51,7 +51,7 @@ protected:
 class NEOML_API CEltwiseMulLayer : public CEltwiseBaseLayer {
 	NEOML_DNN_LAYER( CEltwiseMulLayer )
 public:
-	explicit CEltwiseMulLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName( "CCnnEltwiseMulLayer" ); }
+	explicit CEltwiseMulLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine, "CCnnEltwiseMulLayer" ) {}
 
 	void Serialize( CArchive& archive ) override;
 
@@ -67,7 +67,7 @@ protected:
 class NEOML_API CEltwiseNegMulLayer : public CEltwiseBaseLayer {
 	NEOML_DNN_LAYER( CEltwiseNegMulLayer )
 public:
-	explicit CEltwiseNegMulLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName( "CCnnEltwiseNegMulLayer" ); }
+	explicit CEltwiseNegMulLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine, "CCnnEltwiseNegMulLayer" ) {}
 
 	void Serialize( CArchive& archive ) override;
 
@@ -87,7 +87,7 @@ private:
 class NEOML_API CEltwiseMaxLayer : public CEltwiseBaseLayer {
 	NEOML_DNN_LAYER( CEltwiseMaxLayer )
 public:
-	explicit CEltwiseMaxLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName("CCnnEltwiseMaxLayer"); }
+	explicit CEltwiseMaxLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine, "CCnnEltwiseMaxLayer" ) {}
 
 	void Serialize( CArchive& archive ) override;
 
