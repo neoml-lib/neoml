@@ -465,17 +465,18 @@ void CGradientBoostFullTreeBuilder::mergeThreadResults()
 	for( int i = 0; i < curLevelStatistics.Size(); i++ ) {
 		float criterion = static_cast<float>( curLevelStatistics[i]->TotalStatistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor ) );
 		for( int j = 0; j < params.ThreadCount; j++ ) {
+			const CThreadStatistics& currThreadStatistics = curLevelStatistics[i]->ThreadStatistics[j];
 			// The check for equivalence has been added to have a determinate result
-			if( curLevelStatistics[i]->ThreadStatistics[j].FeatureIndex != NotFound ) {
-				if( curLevelStatistics[i]->ThreadStatistics[j].Criterion > criterion
-					|| ( curLevelStatistics[i]->ThreadStatistics[j].Criterion == criterion
-					&& curLevelStatistics[i]->ThreadStatistics[j].FeatureIndex < curLevelStatistics[i]->FeatureIndex ) )
+			if( currThreadStatistics.FeatureIndex != NotFound ) {
+				if( currThreadStatistics.Criterion > criterion
+					|| ( currThreadStatistics.Criterion == criterion
+						&& currThreadStatistics.FeatureIndex < curLevelStatistics[i]->FeatureIndex ) )
 				{
-					criterion = curLevelStatistics[i]->ThreadStatistics[j].Criterion;
-					curLevelStatistics[i]->FeatureIndex = curLevelStatistics[i]->ThreadStatistics[j].FeatureIndex;
-					curLevelStatistics[i]->Threshold = curLevelStatistics[i]->ThreadStatistics[j].Threshold;
-					curLevelStatistics[i]->LeftStatistics = curLevelStatistics[i]->ThreadStatistics[j].LeftStatistics;
-					curLevelStatistics[i]->RightStatistics = curLevelStatistics[i]->ThreadStatistics[j].RightStatistics;
+					criterion = currThreadStatistics.Criterion;
+					curLevelStatistics[i]->FeatureIndex = currThreadStatistics.FeatureIndex;
+					curLevelStatistics[i]->Threshold = currThreadStatistics.Threshold;
+					curLevelStatistics[i]->LeftStatistics = currThreadStatistics.LeftStatistics;
+					curLevelStatistics[i]->RightStatistics = currThreadStatistics.RightStatistics;
 				}
 			}
 		}
