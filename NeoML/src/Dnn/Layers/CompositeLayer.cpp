@@ -154,8 +154,8 @@ void CCompositeSinkLayer::Serialize( CArchive& archive )
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-CCompositeLayer::CCompositeLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnCompositeLayer", true ),
+CCompositeLayer::CCompositeLayer( IMathEngine& mathEngine, const char* name ) :
+	CBaseLayer( mathEngine, name == nullptr ? "CCnnCompositeLayer" : name, true ),
 	internalDnn( 0 ),
 	areInternalLogsEnabled( true )
 {

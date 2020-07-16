@@ -28,7 +28,7 @@ class CCompositeSinkLayer;
 class NEOML_API CCompositeLayer : public CBaseLayer, public CDnnLayerGraph {
 	NEOML_DNN_LAYER( CCompositeLayer )
 public:
-	explicit CCompositeLayer( IMathEngine& mathEngine );
+	explicit CCompositeLayer( IMathEngine& mathEngine, const char* name = nullptr );
 
 	void Serialize( CArchive& archive ) override;
 
