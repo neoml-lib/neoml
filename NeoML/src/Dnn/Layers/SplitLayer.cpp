@@ -21,8 +21,8 @@ limitations under the License.
 
 namespace NeoML {
 
-CBaseSplitLayer::CBaseSplitLayer( IMathEngine& mathEngine, TBlobDim _dimension ) :
-	CBaseLayer( mathEngine, "CCnnBaseSplitLayer", false ),
+CBaseSplitLayer::CBaseSplitLayer( IMathEngine& mathEngine, TBlobDim _dimension, const char* name ) :
+	CBaseLayer( mathEngine, name, false ),
 	dimension( _dimension )
 {
 }
