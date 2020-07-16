@@ -25,7 +25,7 @@ namespace NeoML {
 class NEOML_API CFullyConnectedLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CFullyConnectedLayer )
 public:
-	explicit CFullyConnectedLayer( IMathEngine& mathEngine );
+	explicit CFullyConnectedLayer( IMathEngine& mathEngine, const char* name = nullptr );
 
 	void Serialize( CArchive& archive ) override;
 
