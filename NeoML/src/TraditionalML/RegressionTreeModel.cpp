@@ -164,12 +164,12 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 #else
 	const int minSupportedVersion = 1;
 #endif
-	int version = archive.SerializeVersion( 1, minSupportedVersion );
+	int version = archive.SerializeVersion( 2, minSupportedVersion );
 
 	if( archive.IsStoring() ) {
 		unsigned int index = info.FeatureIndex == NotFound ? 0 : info.FeatureIndex + 1;
 		serializeCompact( archive, index );
-		archive << static_cast<float>( info.Value );
+		archive << info.Value;
 		if( info.Type == RTNT_Continuous ) {
 			NeoAssert( leftChild != 0 );
 			leftChild->Serialize( archive );
@@ -194,12 +194,17 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 			}
 #endif
 			case 1:
+			case 2:
 			{
 				unsigned int index = 0;
 				serializeCompact( archive, index );
-				float value = 0;
-				archive >> value;
-				info.Value = value;
+				if( version == 1 ) {
+					float value = 0;
+					archive >> value;
+					info.Value = value;
+				} else {
+					archive >> info.Value;
+				}
 				if( index > 0 ) {
 					info.Type = RTNT_Continuous;
 					info.FeatureIndex = index - 1;
