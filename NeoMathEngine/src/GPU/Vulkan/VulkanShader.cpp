@@ -126,10 +126,11 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		layoutInfo.setLayoutCount = 1;
 		layoutInfo.pSetLayouts = &shaders[id]->DescLayout;
+		VkPushConstantRange pushConstantRange;
 		if( paramSize > 0 || samplerCount > 0 || imageCount > 0 ) {
 			size_t pushConstantSize = PUSH_CONSTANT_PARAM_OFFSET + paramSize;
 			assert( pushConstantSize <= device.Properties.limits.maxPushConstantsSize );
-			VkPushConstantRange pushConstantRange = { VK_SHADER_STAGE_COMPUTE_BIT, 0, static_cast<uint32_t>( pushConstantSize ) };
+			pushConstantRange = { VK_SHADER_STAGE_COMPUTE_BIT, 0, static_cast<uint32_t>( pushConstantSize ) };
 			layoutInfo.pushConstantRangeCount = 1;
 			layoutInfo.pPushConstantRanges = &pushConstantRange;
 		}

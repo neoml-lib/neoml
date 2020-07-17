@@ -60,11 +60,9 @@ static inline void getDeviceInfo( const CVulkanDll& dll, int index, CMathEngineI
 bool LoadVulkanEngineInfo( CVulkanDll& dll, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result )
 {
 	for( int i = 0; i < static_cast<int>( dll.GetDevices().size() ); i++ ) {
-		CMathEngineInfo info;
-		getDeviceInfo( dll, i, info );
-		result.push_back( info );
+		result.emplace_back();
+		getDeviceInfo( dll, i, result.back() );
 	}
-
 	return !result.empty();
 }
 
@@ -83,8 +81,9 @@ inline int Ceil( int val, int discret )
 
 const int VulkanMemoryAlignment = 16;
 
-CVulkanMathEngine::CVulkanMathEngine( CVulkanDll& _dll, int _deviceNumber, size_t memoryLimit ) :
-	dll( _dll ),
+CVulkanMathEngine::CVulkanMathEngine( int _deviceNumber, size_t memoryLimit ) :
+	dllLoader( CDllLoader::VULKAN_DLL ),
+	dll( *CDllLoader::vulkanDll ),
 	deviceNumber( _deviceNumber ),
 	device( dll.CreateDevice( dll.GetDevices()[_deviceNumber] ) )
 {
@@ -96,8 +95,6 @@ CVulkanMathEngine::CVulkanMathEngine( CVulkanDll& _dll, int _deviceNumber, size_
 	deviceStackAllocator = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, VulkanMemoryAlignment ) );
 	hostStackAllocator = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( VulkanMemoryAlignment ) );
 	tmpImages.insert( tmpImages.end(), TVI_Count, 0 );
-
-	CDllLoader::Load(CDllLoader::VULKAN_DLL);
 }
 
 CVulkanMathEngine::~CVulkanMathEngine()
@@ -105,7 +102,6 @@ CVulkanMathEngine::~CVulkanMathEngine()
 	for( auto cur : tmpImages ) {
 		delete cur;
 	}
-	CDllLoader::Free(CDllLoader::VULKAN_DLL);
 }
 
 void CVulkanMathEngine::SetReuseMemoryMode( bool enable )

@@ -27,6 +27,7 @@ limitations under the License.
 #include <VulkanImage.h>
 #include <RawMemoryManager.h>
 #include <PerformanceCountersDefault.h>
+#include <DllLoader.h>
 
 namespace NeoML {
 
@@ -40,7 +41,6 @@ class CVulkanShaderLoader;
 class CDeviceStackAllocator;
 class CHostStackAllocator;
 class CVulkanImage;
-class CVulkanDll;
 class CMemoryPool;
 
 // Adds the information about available vulkan devices into the result array
@@ -52,7 +52,7 @@ bool LoadVulkanEngineInfo( CVulkanDll& dll, std::vector< CMathEngineInfo, CrtAll
 // The math engine on vulkan
 class CVulkanMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CVulkanMathEngine( CVulkanDll& dll, int deviceNumber, size_t memoryLimit );
+	CVulkanMathEngine( int deviceNumber, size_t memoryLimit );
 	~CVulkanMathEngine() override;
 
 	// IMathEngine interface methods
@@ -468,7 +468,8 @@ protected:
 	void Free( const CMemoryHandle& handle ) override;
 
 private:
-	CVulkanDll& dll; // vulkan dll wrapper
+	CDllLoader dllLoader; // vulkan dll wrapper
+	CVulkanDll& dll;
 
 	mutable std::mutex mutex; // protecting the data below from non-thread-safe use
 	int deviceNumber;
