@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
+#pragma once
+
 #include <common.h>
 #pragma hdrstop
 
@@ -26,7 +28,6 @@ limitations under the License.
 #endif
 
 #ifdef NEOML_USE_VULKAN
-#include <VulkanMathEngine.h>
 #include <VulkanDll.h>
 #endif
 
@@ -54,7 +55,7 @@ public:
 
 	static constexpr int ALL_DLL = VULKAN_DLL | CUDA_DLL;
 
-	CDllLoader() : loadedDlls( Load(ALL_DLL) ) {}
+	explicit CDllLoader( int dll = ALL_DLL ) : loadedDlls( Load( dll ) ) {}
 	~CDllLoader() { Free( loadedDlls ); }
 
 	bool IsLoaded( int dll ) const { return ( loadedDlls & dll ) != 0; }

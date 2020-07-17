@@ -233,7 +233,9 @@ elseif(IOS)
     if(NeoMathEngine_BUILD_SHARED)
         set_target_properties(${PROJECT_NAME} PROPERTIES RESOURCE ${METAL_LIB})
     endif()
-elseif(ANDROID)
+endif()
+
+if(WIN32 OR LINUX OR ANDROID)
     
     if(USE_FINE_OBJECTS)
         set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
@@ -260,7 +262,7 @@ elseif(ANDROID)
         # Using Vulkan
         target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_VULKAN)
         
-        target_include_directories(${PROJECT_NAME} 
+        target_include_directories(${PROJECT_NAME}
             PRIVATE 
                 GPU/Vulkan
                 ${Vulkan_INCLUDE_DIR}

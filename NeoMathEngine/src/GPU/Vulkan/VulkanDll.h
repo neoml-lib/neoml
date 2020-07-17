@@ -35,7 +35,9 @@ enum TVulkanDeviceType {
 	VDT_Regular,		// a regular device, use the default algorithms
 						// In particular, a pre-Bifrost Mali and all unknown devices will be detected as Regular
 	VDT_Adreno,			// Adreno mobile GPU
-	VDT_MaliBifrost		// Mali mobile GPU with Bifrost+ architecture
+	VDT_MaliBifrost,		// Mali mobile GPU with Bifrost+ architecture
+	VDT_Nvidia,			// Nvidia discrete device
+	VDT_Intel			// Intel integrated device
 };
 
 // The information about a vulkan device

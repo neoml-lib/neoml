@@ -89,6 +89,15 @@ static TVulkanDeviceType defineDeviceType( const VkPhysicalDeviceProperties& pro
 		return VDT_Adreno;
 	}
 
+	pos = name.find( "geforce" );
+	if (pos != std::string::npos) {
+		return VDT_Nvidia;
+	}
+
+	if(name.find( "intel" ) != std::string::npos ) {
+		return VDT_Intel;
+	}
+
 	return VDT_Regular;
 }
 
@@ -146,7 +155,11 @@ bool CVulkanDeviceImpl::CreateDevice( PFN_vkCreateDevice vkCreateDevice, PFN_vkG
 	}
 
 	Family = info.Family;
-	IsImageBased = ( info.Type != VDT_MaliBifrost );
+	if (info.Type == VDT_MaliBifrost || info.Type == VDT_Nvidia || info.Type != VDT_Intel) {
+		IsImageBased = false;
+	} else {
+		IsImageBased = true;
+	}
 	Type = info.Type;
 	MemoryProperties = info.MemoryProperties;
 	Properties = info.Properties;
