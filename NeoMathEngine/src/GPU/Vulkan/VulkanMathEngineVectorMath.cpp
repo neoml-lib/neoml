@@ -851,7 +851,7 @@ void CVulkanMathEngine::VectorFindMaxValueInSet( const CConstFloatHandle* vector
 
 	for( int i = 1; i < vectorCount; i++ ) {
 		CMemoryHandle bufs[3] = { vectors[i], resultHandle, indexHandle };
-		size_t sizes[3] = { vectorSize * sizeof( float ), vectorSize * sizeof( float ) };
+		size_t sizes[3] = { vectorSize * sizeof( float ), vectorSize * sizeof( float ), vectorSize * sizeof( int ) };
 
 		PARAM_STRUCT( VectorFindMaxValueInSet ) param = { vectorSize, i };
 
