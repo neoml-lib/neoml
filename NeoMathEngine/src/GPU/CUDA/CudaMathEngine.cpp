@@ -171,7 +171,7 @@ void CCudaMathEngine::Free( const CMemoryHandle& handle )
 	ASSERT_ERROR_CODE( cudaFree( GetRaw( CTypedMemoryHandle<char>( handle ) ) ) );
 }
 
-void CCudaMathEngine::generateAssert( IMathEngineExceptionHandler* exceptionHandler, const char* expr, const char* file, int line, int errorCode )
+void CCudaMathEngine::generateAssert( IMathEngineExceptionHandler* exceptionHandler, const char* expr, const wchar_t* file, int line, int errorCode )
 {
 	if( errorCode != 0 ) {
 		exceptionHandler->OnAssert( cudaGetErrorString( static_cast<cudaError_t>( errorCode ) ), file, line, errorCode );
