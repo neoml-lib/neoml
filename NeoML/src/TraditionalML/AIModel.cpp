@@ -67,7 +67,7 @@ CPtr<IObject> CreateModel( const char* modelName )
 	return registeredModels.GetValue( pos )();
 }
 
-const char* GetModelName( IObject* model )
+const char* GetModelName( const IObject* model )
 {
 	if( model == 0 ) {
 		return "";
