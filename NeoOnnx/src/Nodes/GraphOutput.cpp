@@ -23,18 +23,18 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGraphOutput::CGraphOutput( const onnx::ValueInfoProto& output ) :
-	CNode( 1, 0 ),
+CGraphOutput::CGraphOutput( int nodeIndex, const onnx::ValueInfoProto& output ) :
+	CNode( nodeIndex, 1, 0 ),
 	name( output.name().c_str() )
 {
 }
 
-void CGraphOutput::AddLayers( CDnn& dnn )
+void CGraphOutput::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
 	sink->SetName( name );
 
-	sink->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	sink->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 
 	dnn.AddLayer( *sink );
 }

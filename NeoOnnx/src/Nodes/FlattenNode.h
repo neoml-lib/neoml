@@ -26,13 +26,12 @@ namespace NeoOnnx {
 
 class CFlattenNode : public COpNode {
 public:
-	CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion, IMathEngine& mathEngine );
+	CFlattenNode( int nodeIndex, const onnx::NodeProto& flatten, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override;
-	void CalcOutputData() override;
-	void MarkTensorDims() override;
-	void AddLayers( CDnn& dnn ) override;
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override;
+	void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) override;
 
 private:
 	// Axis index.

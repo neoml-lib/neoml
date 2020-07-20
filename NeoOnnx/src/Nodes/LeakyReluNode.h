@@ -21,13 +21,12 @@ namespace NeoOnnx {
 
 class CLeakyReluNode : public COpNode {
 public:
-	CLeakyReluNode( const onnx::NodeProto& node, int opsetVersion, IMathEngine& mathEngine );
+	CLeakyReluNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override;
-	void CalcOutputData() override;
-	void MarkTensorDims() override;
-	void AddLayers( CDnn& dnn ) override;
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override;
+	void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) override;
 
 private:
 	float alpha; // Coefficient of leakage

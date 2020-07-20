@@ -23,24 +23,24 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CReduceMeanNode::CReduceMeanNode( const onnx::NodeProto& reduceMean, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( reduceMean, opsetVersion ),
+CReduceMeanNode::CReduceMeanNode( int nodeIndex, const onnx::NodeProto& reduceMean, int opsetVersion ) :
+	COpNode( nodeIndex, reduceMean, opsetVersion ),
 	keepDims( attributes.GetOptionalInt( "keepdims", 1 ) )
 {
 	// The differences between versions are in negative indices support
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", reduceMean );
 
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", reduceMean );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", reduceMean );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", reduceMean );
 
 	attributes.GetRequiredIntArray( "axes", axes );
 }
 
-void CReduceMeanNode::CalcOutputShape()
+void CReduceMeanNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "constant input", onnxNode );
-	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
-	CTensorShape& outputShape = output[0].Shape;
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "constant input", onnxNode );
+	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
+	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
 
 	int axisIndex = 0;
 	for( int i = 0; i < inputShape.Size(); ++i ) {
@@ -53,22 +53,20 @@ void CReduceMeanNode::CalcOutputShape()
 			outputShape.Add( inputShape[i] );
 		}
 	}
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CReduceMeanNode::CalcOutputData()
+void CReduceMeanNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CReduceMeanNode::MarkTensorDims()
-{
-	const CTensorDim& inputDim = InputTensor( 0 ).Dim;
-	CheckNeoOnnxInternal( inputDim.Size() == InputTensor( 0 ).Shape.Size(),
+	const CTensorDim& inputDim = InputDim( dims, 0 );
+	CheckNeoOnnxInternal( inputDim.Size() == InputTensor( tensors, 0 ).Shape.Size(),
 		"input's dimensions must be marked", onnxNode );
 
 	if( keepDims != 0 ) {
-		CheckNeoOnnxInternal( output[0].SetTensorDim( inputDim ), "marking output dimensions failed", onnxNode );
+		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, inputDim, OutputDim( dims, 0 ) ),
+			"marking output dimensions failed", onnxNode );
 		return;
 	}
 
@@ -82,43 +80,44 @@ void CReduceMeanNode::MarkTensorDims()
 		}
 	}
 
-	CheckNeoOnnxInternal( output[0].SetTensorDim( outputDim ), "marking output dimensions failed", onnxNode );
+	CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, outputDim, OutputDim( dims, 0 ) ),
+		"marking output dimensions failed", onnxNode );
 }
 
 static const int pool2dDims = ( 1 << static_cast<int>( BD_Height ) ) | ( 1 << static_cast<int>( BD_Width ) );
 
-void CReduceMeanNode::AddLayers( CDnn& dnn )
+void CReduceMeanNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	int pooledDims = 0;
 	CArray<int> axes;
 	attributes.GetRequiredIntArray( "axes", axes );
 
 	for( int axisIndex = 0; axisIndex < axes.Size(); ++axisIndex ) {
-		pooledDims |= ( 1 << static_cast<int>( InputTensor( 0 ).Dim[axes[axisIndex]] ) );
+		pooledDims |= ( 1 << static_cast<int>( ( InputDim( dims, 0 ) )[axes[axisIndex]] ) );
 	}
 
 	CheckNeoOnnxSupport( ( pooledDims | pool2dDims ) == pool2dDims,
 		"reduce over dimensions other than BD_Height and BD_Width", onnxNode );
 
-	add2dPoolingLayer( dnn, pooledDims );
+	add2dPoolingLayer( tensors, dims, mappings, dnn, pooledDims );
 }
 
-void CReduceMeanNode::add2dPoolingLayer( CDnn& dnn, int pooledDims )
+void CReduceMeanNode::add2dPoolingLayer( const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn, int pooledDims )
 {
 	CPtr<CMeanPoolingLayer> poolingLayer = new CMeanPoolingLayer( dnn.GetMathEngine() );
 	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
 	// Making it global.
 	for( int axisIndex = 0; axisIndex < axes.Size(); ++axisIndex ) {
-		TBlobDim dim = InputTensor( 0 ).Dim[axes[axisIndex]];
+		TBlobDim dim = ( InputDim( dims, 0 ) )[axes[axisIndex]];
 		const bool isDimPooled = ( ( ( 1 << static_cast<int>( dim ) ) & pooledDims ) != 0 );
 		switch( dim ) {
 			case BD_Height:
-				poolingLayer->SetFilterHeight( isDimPooled ? InputTensor( 0 ).Shape[axes[axisIndex]] : 1 );
+				poolingLayer->SetFilterHeight( isDimPooled ? InputTensor( tensors, 0 ).Shape[axes[axisIndex]] : 1 );
 				poolingLayer->SetStrideHeight( 1 );
 				break;
 			case BD_Width:
-				poolingLayer->SetFilterWidth( isDimPooled ? InputTensor( 0 ).Shape[axes[axisIndex]] : 1 );
+				poolingLayer->SetFilterWidth( isDimPooled ? InputTensor( tensors, 0 ).Shape[axes[axisIndex]] : 1 );
 				poolingLayer->SetStrideWidth( 1 );
 				break;
 			default:
@@ -127,10 +126,10 @@ void CReduceMeanNode::add2dPoolingLayer( CDnn& dnn, int pooledDims )
 		}
 	}
 
-	poolingLayer->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	poolingLayer->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	dnn.AddLayer( *poolingLayer );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( poolingLayer, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( poolingLayer, 0 );
 }
 
 } // namespace NeoOnnx

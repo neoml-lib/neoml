@@ -23,9 +23,8 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CBatchNormalizationNode::CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, int opsetVersion,
-		IMathEngine& /*mathEngine*/ ) :
-	COpNode( batchNormalization, opsetVersion ),
+CBatchNormalizationNode::CBatchNormalizationNode( int nodeIndex, const onnx::NodeProto& batchNormalization, int opsetVersion ) :
+	COpNode( nodeIndex, batchNormalization, opsetVersion ),
 	eps( attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
 {
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", batchNormalization );
@@ -33,39 +32,36 @@ CBatchNormalizationNode::CBatchNormalizationNode( const onnx::NodeProto& batchNo
 	CheckNeoOnnxSupport( opsetVersion > 6 || attributes.GetOptionalInt( "is_test", 0 ) != 0,
 		"training batch normalization is not supported", batchNormalization );
 
-	CheckOnnxProtocol( input.Size() == 5 || input.Size() == 6, "node must have 5 or 6 inputs", onnxNode );
+	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "node must have 5 or 6 inputs", onnxNode );
 	CheckNeoOnnxSupport( OutputCount() == 1, "node must have 1 output", onnxNode );
 }
 
-void CBatchNormalizationNode::CalcOutputShape()
+void CBatchNormalizationNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	InputTensor( 0 ).Shape.CopyTo( output[0].Shape );
+	InputTensor( tensors, 0 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CBatchNormalizationNode::CalcOutputData()
+void CBatchNormalizationNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CBatchNormalizationNode::MarkTensorDims()
-{
-	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ),
+	if( !InputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !output[0].Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ),
+	if( !OutputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CBatchNormalizationNode::AddLayers( CDnn& dnn )
+void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( InputTensor( 0 ).Dim[1] == BD_Channels,
+	CheckNeoOnnxInternal( ( InputDim( dims, 0 ) )[1] == BD_Channels,
 		"operation must be performed along input's BD_Channels", onnxNode );
-	CheckNeoOnnxInternal( output[0].Dim[1] == BD_Channels,
+	CheckNeoOnnxInternal( ( OutputDim( dims, 0 ) )[1] == BD_Channels,
 		"operation must be performed along output's BD_Channels", onnxNode );
 
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );
@@ -77,31 +73,31 @@ void CBatchNormalizationNode::AddLayers( CDnn& dnn )
 		bnLayer->SetChannelBased( true );
 	}
 
-	bnLayer->SetFinalParams( calculateFinalParams() );
+	bnLayer->SetFinalParams( calculateFinalParams( tensors ) );
 
-	bnLayer->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	bnLayer->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	dnn.AddLayer( *bnLayer );
 	
-	neoMLInputInfo.Add( CNeoMLInputInfo( bnLayer, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( bnLayer, 0 );
 }
 
-CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams()
+CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( const CGraphTensors& tensors )
 {
-	const int channels = InputTensor( 0 ).Shape[1];
+	const int channels = InputTensor( tensors, 0 ).Shape[1];
 
 	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
-		CheckNeoOnnxSupport( InputTensor( inputIndex ).Data != nullptr,
+		CheckNeoOnnxSupport( InputTensor( tensors, inputIndex ).Data != nullptr,
 			"non-constant weights", onnxNode );
-		CheckOnnxProtocol( InputTensor( inputIndex ).Shape.Size() == 1,
+		CheckOnnxProtocol( InputTensor( tensors, inputIndex ).Shape.Size() == 1,
 			"weights must be 1-dimensional", onnxNode );
-		CheckOnnxProtocol( InputTensor( inputIndex ).Shape[0] == channels,
+		CheckOnnxProtocol( InputTensor( tensors, inputIndex ).Shape[0] == channels,
 			"weights must have 'channels' length", onnxNode );
 	}
 
-	const CDnnBlob* scale = InputTensor( 1 ).Data;
-	const CDnnBlob* bias = InputTensor( 2 ).Data;
-	const CDnnBlob* mean = InputTensor( 3 ).Data;
-	const CDnnBlob* var = InputTensor( 4 ).Data;
+	const CDnnBlob* scale = InputTensor( tensors, 1 ).Data;
+	const CDnnBlob* bias = InputTensor( tensors, 2 ).Data;
+	const CDnnBlob* mean = InputTensor( tensors, 3 ).Data;
+	const CDnnBlob* var = InputTensor( tensors, 4 ).Data;
 
 	IMathEngine& mathEngine = scale->GetMathEngine();
 

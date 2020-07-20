@@ -22,13 +22,12 @@ namespace NeoOnnx {
 // Gemm operation node.
 class CGemmNode : public COpNode {
 public:
-	CGemmNode( const onnx::NodeProto& node, int opsetVersion, IMathEngine& mathEngine );
+	CGemmNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override;
-	void CalcOutputData() override;
-	void MarkTensorDims() override;
-	void AddLayers( CDnn& dnn ) override;
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override;
+	void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) override;
 
 private:
 	// In ONNX Gemm is implemented like
@@ -44,7 +43,7 @@ private:
 	const int transA;
 	const int transB;
 
-	CPtr<CDnnBlob> reorderWeightAfterFlatten( CDnnBlob* weight ) const;
+	CPtr<CDnnBlob> reorderWeightAfterFlatten( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CDnnBlob* weight ) const;
 };
 
 } // namespace NeoOnnx

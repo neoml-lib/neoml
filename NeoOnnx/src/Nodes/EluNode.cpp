@@ -23,50 +23,45 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CEluNode::CEluNode( const onnx::NodeProto& elu, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( elu, opsetVersion )
+CEluNode::CEluNode( int nodeIndex, const onnx::NodeProto& elu, int opsetVersion ) :
+	COpNode( nodeIndex, elu, opsetVersion )
 {
 	// The differences between versions are in legacy optimization flags
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", elu );
 
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", elu );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", elu );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", elu );
 }
 
-void CEluNode::CalcOutputShape()
+void CEluNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	InputTensor( 0 ).Shape.CopyTo( output[0].Shape );
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	InputTensor( tensors, 0 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
 }
 
-void CEluNode::CalcOutputData()
+void CEluNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CEluNode::MarkTensorDims()
-{
-	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ),
+	if( !InputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !output[0].Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ),
+	if( !OutputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CEluNode::AddLayers( CDnn& dnn )
+void CEluNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	CPtr<CELULayer> elu = new CELULayer( dnn.GetMathEngine() );
 	elu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	elu->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	elu->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	
 	dnn.AddLayer( *elu );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( elu, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( elu, 0 );
 }
 
 } // namespace NeoOnnx

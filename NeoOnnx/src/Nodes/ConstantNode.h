@@ -26,16 +26,12 @@ namespace NeoOnnx {
 
 class CConstantNode : public COpNode {
 public:
-	CConstantNode( const onnx::NodeProto& constant, int opsetVersion, IMathEngine& mathEngine );
+	CConstantNode( int nodeIndex, const onnx::NodeProto& constant, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override;
-	void CalcOutputData() override;
-	void MarkTensorDims() override {}
-	void AddLayers( CDnn& ) override {}
-
-private:
-	CPtr<CDnnBlob> value; // constant's value
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CGraphTensors&, CGraphDims& ) override {}
+	void AddLayers( const CGraph&, const CGraphTensors&, const CGraphDims&, CGraphMappings&, CDnn& ) override {}
 };
 
 } // namespace NeoOnnx

@@ -23,32 +23,32 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CReshapeNode::CReshapeNode( const onnx::NodeProto& reshape, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( reshape, opsetVersion ),
+CReshapeNode::CReshapeNode( int nodeIndex, const onnx::NodeProto& reshape, int opsetVersion ) :
+	COpNode( nodeIndex, reshape, opsetVersion ),
 	hasFixedShape( false ),
 	hasRemainder( false )
 {
 	// The differences between versions are in supported data types and legacy optimization attributes
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", reshape );
 
-	CheckOnnxProtocol( input.Size() == 2, "node must have 2 inputs", reshape );
+	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", reshape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", reshape );
 }
 
-void CReshapeNode::CalcOutputShape()
+void CReshapeNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "constant first input", onnxNode );
-	CheckNeoOnnxSupport( InputTensor( 1 ).Data != nullptr, "non-constant second input", onnxNode );
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "constant first input", onnxNode );
+	CheckNeoOnnxSupport( InputTensor( tensors, 1 ).Data != nullptr, "non-constant second input", onnxNode );
 
-	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
+	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
 
-	shape.SetSize( InputTensor( 1 ).Data->GetDataSize() );
-	InputTensor( 1 ).Data->CopyTo( shape.GetPtr() );
+	shape.SetSize( InputTensor( tensors, 1 ).Data->GetDataSize() );
+	InputTensor( tensors, 1 ).Data->CopyTo( shape.GetPtr() );
 
 	hasFixedShape = false;
 	hasRemainder = false;
 
-	CTensorShape& outputShape = output[0].Shape;
+	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
 	outputShape.SetSize( shape.Size() );
 
 	int remDim = -1;
@@ -86,19 +86,16 @@ void CReshapeNode::CalcOutputShape()
 	if( remDim != -1 ) {
 		outputShape[remDim] = static_cast<int>( rem );
 	}
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CReshapeNode::CalcOutputData()
-{
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CReshapeNode::AddLayers( CDnn& dnn )
+void CReshapeNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	if( !hasRemainder && !hasFixedShape ) {
 		// Strange case, reshape doesn't do anything...
-		neoMLInputInfo.Add( InputInfo( 0 ) );
+		OutputMapping( mappings, 0 ) = InputMapping( mappings, 0 );
 		return;
 	}
 
@@ -108,11 +105,11 @@ void CReshapeNode::AddLayers( CDnn& dnn )
 	// This layer can't broadcast dimensions
 	// Expecting at least one of dims to be marked
 	// And (if only input is marked) it must have at least the same amount of dimensions
-	CheckNeoOnnxInternal( output[0].Dim.Size() == shape.Size() || InputTensor( 0 ).Dim.Size() >= shape.Size(),
+	CheckNeoOnnxInternal( OutputDim( dims, 0 ).Size() == shape.Size() || InputDim( dims, 0 ).Size() >= shape.Size(),
 		"failed to calculate output blob dimensions", onnxNode );
 
 	// If both input and output dims were marked, output dims have higher priority
-	const CTensorDim& preferredDim = output[0].Dim.IsEmpty() ? InputTensor( 0 ).Dim : output[0].Dim;
+	const CTensorDim& preferredDim = OutputDim( dims, 0 ).IsEmpty() ? InputDim( dims, 0 ) : OutputDim( dims, 0 );
 
 	for( int i = 0; i < shape.Size(); ++i ) {
 		CTransformLayer::CDimensionRule rule;
@@ -135,11 +132,11 @@ void CReshapeNode::AddLayers( CDnn& dnn )
 		transform->SetDimensionRule( preferredDim[i], rule );
 	}
 
-	transform->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	transform->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	
 	dnn.AddLayer( *transform );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( transform, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( transform, 0 );
 }
 
 } // namespace NeoOnnx

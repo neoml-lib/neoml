@@ -23,50 +23,47 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CSigmoidNode::CSigmoidNode( const onnx::NodeProto& sigmoid, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( sigmoid, opsetVersion )
+CSigmoidNode::CSigmoidNode( int nodeIndex, const onnx::NodeProto& sigmoid, int opsetVersion ) :
+	COpNode( nodeIndex, sigmoid, opsetVersion )
 {
 	// The differences between versions are in legacy optimization flags
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", sigmoid );
 
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", sigmoid );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", sigmoid );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", sigmoid );
 }
 
-void CSigmoidNode::CalcOutputShape()
+void CSigmoidNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	InputTensor( 0 ).Shape.CopyTo( output[0].Shape );
+	InputTensor( tensors, 0 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CSigmoidNode::CalcOutputData()
+void CSigmoidNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CSigmoidNode::MarkTensorDims()
-{
-	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ),
+	if( !InputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !output[0].Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ),
+	if( !OutputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CSigmoidNode::AddLayers( CDnn& dnn )
+void CSigmoidNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	CPtr<CSigmoidLayer> sigmoid = new CSigmoidLayer( dnn.GetMathEngine() );
 	sigmoid->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	sigmoid->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	sigmoid->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	
 	dnn.AddLayer( *sigmoid );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( sigmoid, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( sigmoid, 0 );
 }
 
 } // namespace NeoOnnx

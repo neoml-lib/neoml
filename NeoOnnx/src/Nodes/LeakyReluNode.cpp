@@ -23,53 +23,50 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CLeakyReluNode::CLeakyReluNode( const onnx::NodeProto& leakyRelu, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( leakyRelu, opsetVersion ),
+CLeakyReluNode::CLeakyReluNode( int nodeIndex, const onnx::NodeProto& leakyRelu, int opsetVersion ) :
+	COpNode( nodeIndex, leakyRelu, opsetVersion ),
 	alpha( attributes.GetOptionalFloat( "alpha", 0.01f ) )
 {
 	// v1 - original ver.
 	// v6 - removed legacy optimization attribute
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", leakyRelu );
 
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", leakyRelu );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", leakyRelu );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", leakyRelu );
 }
 
-void CLeakyReluNode::CalcOutputShape()
+void CLeakyReluNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	InputTensor( 0 ).Shape.CopyTo( output[0].Shape );
+	InputTensor( tensors, 0 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CLeakyReluNode::CalcOutputData()
+void CLeakyReluNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CLeakyReluNode::MarkTensorDims()
-{
-	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ),
+	if( !InputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !output[0].Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ),
+	if( !OutputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CLeakyReluNode::AddLayers( CDnn& dnn )
+void CLeakyReluNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	CPtr<CLeakyReLULayer> leakyRelu = new CLeakyReLULayer( dnn.GetMathEngine() );
 	leakyRelu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	leakyRelu->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	leakyRelu->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	leakyRelu->SetAlpha( alpha );
 	
 	dnn.AddLayer( *leakyRelu );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( leakyRelu, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( leakyRelu, 0 );
 }
 
 } // namespace NeoOnnx

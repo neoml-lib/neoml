@@ -23,37 +23,33 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CAddNode::CAddNode( const onnx::NodeProto& add, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( add, opsetVersion )
+CAddNode::CAddNode( int nodeIndex, const onnx::NodeProto& add, int opsetVersion ) :
+	COpNode( nodeIndex, add, opsetVersion )
 {
 	// The differences between versions are in broadcasting flags and support
 	// NeoOnnx doesn't support tensor broadcast anyway
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", add );
 
-	CheckOnnxProtocol( input.Size() == 2, "node must have 2 inputs", add );
+	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", add );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", add );
 }
 
-void CAddNode::CalcOutputShape()
+void CAddNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
 	bool canBeCalculated = true;
 
-	for( int inputIndex = 0; inputIndex < input.Size(); ++inputIndex ) {
-		canBeCalculated = canBeCalculated && ( InputTensor( inputIndex ).Data != nullptr );
+	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+		canBeCalculated = canBeCalculated && ( InputTensor( tensors, inputIndex ).Data != nullptr );
 	}
 
 	if( canBeCalculated ) {
-		output[0].Data = InputTensor( 0 ).Data->GetCopy();
-		output[0].Data->Add( InputTensor( 1 ).Data );
+		OutputTensor( tensors, 0 ).Data = InputTensor( tensors, 0 ).Data->GetCopy();
+		OutputTensor( tensors, 0 ).Data->Add( InputTensor( tensors, 1 ).Data );
 	}
-}
 
-void CAddNode::CalcOutputData()
-{
-	CTensorShape& outputShape = output[0].Shape;
-
-	for( int inputIndex = 0; inputIndex < input.Size(); ++inputIndex ) {
-		const CTensorShape& inputShape = InputTensor( inputIndex ).Shape;
+	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
+	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+		const CTensorShape& inputShape = InputTensor( tensors, inputIndex ).Shape;
 
 		if( outputShape.IsEmpty() ) {
 			inputShape.CopyTo( outputShape );
@@ -67,32 +63,32 @@ void CAddNode::CalcOutputData()
 	}
 }
 
-void CAddNode::MarkTensorDims()
+void CAddNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ),
+	if( !InputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !output[0].Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ), 
+	if( !OutputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ), 
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CAddNode::AddLayers( CDnn& dnn )
+void CAddNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
 	CPtr<CEltwiseSumLayer> addLayer = new CEltwiseSumLayer( mathEngine );
 	addLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	addLayer->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
-	addLayer->Connect( 1, InputLayer( 1 ), InputLayerIndex( 1 ) );
+	addLayer->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
+	addLayer->Connect( 1, *InputMapping( mappings, 1 ).Layer, InputMapping( mappings, 1 ).OutputIndex );
 
 	dnn.AddLayer( *addLayer );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( addLayer, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( addLayer, 0 );
 }
 
 } // namespace NeoOnnx

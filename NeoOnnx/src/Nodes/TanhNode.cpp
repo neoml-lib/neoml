@@ -23,50 +23,47 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CTanhNode::CTanhNode( const onnx::NodeProto& tanh, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( tanh, opsetVersion )
+CTanhNode::CTanhNode( int nodeIndex, const onnx::NodeProto& tanh, int opsetVersion ) :
+	COpNode( nodeIndex, tanh, opsetVersion )
 {
 	// The differences between versions are in supported data types and legacy optimization attributes
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", tanh );
 
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", tanh );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", tanh );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", tanh );
 }
 
-void CTanhNode::CalcOutputShape()
+void CTanhNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	InputTensor( 0 ).Shape.CopyTo( output[0].Shape );
+	InputTensor( tensors, 0 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CTanhNode::CalcOutputData()
+void CTanhNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CTanhNode::MarkTensorDims()
-{
-	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ),
+	if( !InputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !output[0].Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ),
+	if( !OutputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CTanhNode::AddLayers( CDnn& dnn )
+void CTanhNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	CPtr<CTanhLayer> tanh = new CTanhLayer( dnn.GetMathEngine() );
 	tanh->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	tanh->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	tanh->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	
 	dnn.AddLayer( *tanh );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( tanh, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( tanh, 0 );
 }
 
 } // namespace NeoOnnx

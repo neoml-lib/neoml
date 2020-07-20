@@ -28,73 +28,91 @@ class ValueInfoProto;
 
 namespace NeoOnnx {
 
+// Node's outputs mapping with NeoML layers
+struct CNeoMLMapping {
+	// Constructor for onnx node output, which doesn't with any NeoML layer's output.
+	CNeoMLMapping() : Layer( nullptr ), OutputIndex( NotFound ) {}
+
+	// Constructor for onnx node output, matching it with layer's outputIndex'th output.
+	CNeoMLMapping( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
+		{ CheckNeoOnnxInternal( layer != nullptr, "non empty output info with layer == nullptr" ); }
+
+	CBaseLayer* Layer; // Used NeoML layer (nullptr if there is no layer mapped with this output)
+	int OutputIndex; // NeoML layer's output index, mapped with this output
+};
+
+//--------------------------------------------------------------------------------------------------------------------
+
+class CNode;
+
+typedef CPointerArray<CNode> CGraph;
+typedef CArray<CArray<CTensor>> CGraphTensors;
+typedef CArray<CArray<CTensorDim>> CGraphDims;
+typedef CArray<CArray<CNeoMLMapping>> CGraphMappings;
+
 // Node in the onnx calculation graph.
 class CNode {
 public:
 	virtual ~CNode() = default;
 
 	// Calculate output tensors' shape based on inputs' tensors' shape.
-	virtual void CalcOutputShape() = 0;
-
-	// Claculate output tensors' data if possible.
-	virtual void CalcOutputData() = 0;
+	virtual void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) = 0;
 
 	// Marks onnx tensors' dimensions as blob dimensions from NeoML.
-	virtual void MarkTensorDims() = 0;
+	virtual void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) = 0;
 
 	// Adds layers, representing this node, to the dnn (if needed).
-	virtual void AddLayers( CDnn& net ) = 0;
+	virtual void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) = 0;
+
+	// Gets the number of inputs.
+	int InputCount() const;
 
 	// Gets the number of outputs.
 	int OutputCount() const;
 
 	// Information about input.
 	struct CInputInfo {
-		CInputInfo() : InputNode( nullptr ), OutputIndex( NotFound ) {}
-		CInputInfo( CNode* inputNode, int outputIndex ) : InputNode( inputNode ), OutputIndex( outputIndex ) {}
+		CInputInfo() : NodeIndex( NotFound ), OutputIndex( NotFound ) {}
+		CInputInfo( int nodeIndex, int outputIndex ) : NodeIndex( nodeIndex ), OutputIndex( outputIndex ) {}
 
-		CNode* InputNode; // Node connected to this input.
+		int NodeIndex; // Node connected to this input.
 		int OutputIndex; // Node's output number connected to this input.
 	};
 	
-	// Gets data of index'th input.
-	const CTensor& InputTensor( int index ) const;
-	CTensor& InputTensor( int index );
-
 	// Set index'th input of this node.
 	// inputInfo's content must be not null.
 	// Must be called once for every used input.
 	void SetInput( int index, const CInputInfo& inputInfo );
 
+	const CInputInfo& GetInput( int index ) const;
+
+	// Different accessors
+	const CNode* InputNode( const CGraph& graph, int inputIndex ) const { return graph[inputs[inputIndex].NodeIndex]; }
+
+	const CTensor& InputTensor( const CGraphTensors& tensors, int inputIndex ) const { return tensors[inputs[inputIndex].NodeIndex][inputs[inputIndex].OutputIndex]; }
+	const CTensor& OutputTensor( const CGraphTensors& tensors, int outputIndex ) const { return tensors[nodeIndex][outputIndex]; }
+	CTensor& OutputTensor( CGraphTensors& tensors, int outputIndex ) const { return tensors[nodeIndex][outputIndex]; }
+
+	const CTensorDim& InputDim( const CGraphDims& dims, int inputIndex ) const { return dims[inputs[inputIndex].NodeIndex][inputs[inputIndex].OutputIndex]; }
+	CTensorDim& InputDim( CGraphDims& dims, int inputIndex ) const { return dims[inputs[inputIndex].NodeIndex][inputs[inputIndex].OutputIndex]; }
+	const CTensorDim& OutputDim( const CGraphDims& dims, int outputIndex ) const { return dims[nodeIndex][outputIndex]; }
+	CTensorDim& OutputDim( CGraphDims& dims, int outputIndex ) const { return dims[nodeIndex][outputIndex]; }
+
+	const CNeoMLMapping& InputMapping( const CGraphMappings& mappings, int inputIndex ) { return mappings[inputs[inputIndex].NodeIndex][inputs[inputIndex].OutputIndex]; }
+	const CNeoMLMapping& OutputMapping( const CGraphMappings& mappings, int outputIndex ) { return mappings[nodeIndex][outputIndex]; }
+	CNeoMLMapping& OutputMapping( CGraphMappings& mappings, int outputIndex ) { return mappings[nodeIndex][outputIndex]; }
+
 protected:
-	// Information about output.
-	struct CNeoMLInputInfo {
-		// Constructor for onnx node output, which doesn't with any NeoML layer's output.
-		CNeoMLInputInfo() : Layer( nullptr ), OutputIndex( NotFound ) {}
+	CNode( int nodeIndex, int inputCount, int outputCount );
 
-		// Constructor for onnx node output, matching it with layer's outputIndex'th output.
-		CNeoMLInputInfo( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
-			{ CheckNeoOnnxInternal( layer != nullptr, "non empty output info with layer == nullptr" ); }
-
-		const CBaseLayer* Layer; // Used NeoML layer (nullptr if there is no layer mapped with this output)
-		const int OutputIndex; // NeoML layer's output index, mapped with this output
-	};
-	CArray<CTensor> output; // Node outputs.
-	CArray<CInputInfo> input; // Node inputs.
-	CArray<CNeoMLInputInfo> neoMLInputInfo;
-
-	// special constructor for initializers, graph inputs and graph outputs
-	CNode( int inputCount, int outputCount );
-
-	// Get info about output, connected to index'th input
-	const CNeoMLInputInfo& InputInfo( int index ) const;
-	const CBaseLayer& InputLayer( int index ) const;
-	int InputLayerIndex( int index ) const;
+private:
+	int nodeIndex;
+	CArray<CInputInfo> inputs;
+	int outputCount;
 };
 
 //--------------------------------------------------------------------------------------------------------------------
 // Opset versioning support
-
 const int MaxOpsetVersion = 12;
 
 // Registers the class as a NeoOnnx node for op_type == opName
@@ -103,7 +121,7 @@ const int MaxOpsetVersion = 12;
 
 class COpNode;
 
-typedef COpNode* ( *TCreateOpNodeFunction )( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
+typedef COpNode* ( *TCreateOpNodeFunction )( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
 
 void RegisterNode( const char* opName, TCreateOpNodeFunction function );
 
@@ -115,7 +133,7 @@ public:
 	explicit CNodeClassRegistrar( const char* opName );
 
 private:
-	static COpNode* createObject( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
+	static COpNode* createObject( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
 };
 
 template<class T>
@@ -125,23 +143,22 @@ inline CNodeClassRegistrar<T>::CNodeClassRegistrar( const char* opName )
 }
 
 template<class T>
-inline COpNode* CNodeClassRegistrar<T>::createObject( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine )
+inline COpNode* CNodeClassRegistrar<T>::createObject( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion )
 {
-	return FINE_DEBUG_NEW T( onnxNode, opsetVersion, mathEngine );
+	return FINE_DEBUG_NEW T( nodeIndex, onnxNode, opsetVersion );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 // Operator node
-
 class COpNode : public CNode {
 public:
 	~COpNode() override = default;
 
 	// Fabric method. Creates CNode's derivative for given onnx node.
-	static COpNode* CreateOpNode( const onnx::NodeProto& onnxNode, int opsetVersion, IMathEngine& mathEngine );
+	static COpNode* CreateOpNode( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
 
 protected:
-	COpNode( const onnx::NodeProto& node, int opsetVersion );
+	COpNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 
 	const int opsetVersion; // Opset version
 	const CNodeAttributes attributes; // Attributes of this node.

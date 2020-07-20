@@ -23,28 +23,24 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CConstantNode::CConstantNode( const onnx::NodeProto& constant, int opsetVersion, IMathEngine& mathEngine ) :
-	COpNode( constant, opsetVersion ),
-	value( attributes.GetRequiredTensor( "value", mathEngine ) )
+CConstantNode::CConstantNode( int nodeIndex, const onnx::NodeProto& constant, int opsetVersion ) :
+	COpNode( nodeIndex, constant, opsetVersion )
 {
 	// Newer versions support values in sparse format
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", constant );
 
-	CheckOnnxProtocol( input.Size() == 0, "node must have no inputs", constant );
+	CheckOnnxProtocol( InputCount() == 0, "node must have no inputs", constant );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constant );
-	
+}
+
+void CConstantNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+{
+	CPtr<CDnnBlob> value = attributes.GetRequiredTensor( "value", mathEngine );
 	// TODO: add other values support?
-	CheckNeoOnnxSupport( value->GetDataSize() == 1, "'value' must be tensor of size 1", constant );
-}
+	CheckNeoOnnxSupport( value->GetDataSize() == 1, "'value' must be tensor of size 1", onnxNode );
 
-void CConstantNode::CalcOutputShape()
-{
-	output[0].Shape = { 1 };
-}
-
-void CConstantNode::CalcOutputData()
-{
-	output[0].Data = value;
+	OutputTensor( tensors, 0 ).Shape = { 1 };
+	OutputTensor( tensors, 0 ).Data = value;
 }
 
 } // namespace NeoOnnx

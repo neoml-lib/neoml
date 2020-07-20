@@ -24,47 +24,44 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGraphInput::CGraphInput( const onnx::ValueInfoProto& _input ) :
-	CNode( 0, 1 ),
+CGraphInput::CGraphInput( int nodeIndex, const onnx::ValueInfoProto& _input ) :
+	CNode( nodeIndex, 0, 1 ),
 	name( _input.name().c_str() ),
 	valueInfo( _input )
 {
 }
 
-void CGraphInput::CalcOutputShape()
+void CGraphInput::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	CTensorShape& outputShape = output[0].Shape;
+	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
 	outputShape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
 	for( const onnx::TensorShapeProto_Dimension dim : valueInfo.type().tensor_type().shape().dim() ) {
 		outputShape.Add( static_cast<int>( dim.dim_value() ) );
 	}
+
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CGraphInput::CalcOutputData()
+void CGraphInput::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CGraphInput::AddLayers( CDnn& net )
-{
-	CPtr<CSourceLayer> source = new CSourceLayer( net.GetMathEngine() );
+	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 	source->SetName( name );
 
 	CheckNeoOnnxSupport( valueInfo.type().has_tensor_type(), "Only tensors supported for graph input values" );
 	CBlobDesc outputBlobDesc(
 		GetBlobType( static_cast<onnx::TensorProto_DataType>( valueInfo.type().tensor_type().elem_type() ) ) );
 
-	NeoOnnxCheck( output[0].Dim.Size() == output[0].Shape.Size(),
+	NeoOnnxCheck( OutputDim( dims, 0 ).Size() == OutputTensor( tensors, 0 ).Shape.Size(),
 		"Graph input tensor's dimensions weren't marked with NeoML blob dimensions" );
-	for( int i = 0; i < output[0].Dim.Size(); ++i ) {
-		outputBlobDesc.SetDimSize( output[0].Dim[i], output[0].Shape[i] );
+	for( int i = 0; i < OutputDim( dims, 0 ).Size(); ++i ) {
+		outputBlobDesc.SetDimSize( OutputDim( dims, 0 )[i], OutputTensor( tensors, 0 ).Shape[i] );
 	}
-	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( net.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );
+	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );
 	source->SetBlob( inputBlob );
 
-	net.AddLayer( *source );
+	dnn.AddLayer( *source );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( source, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( source, 0 );
 }
 
 } // namespace NeoOnnx

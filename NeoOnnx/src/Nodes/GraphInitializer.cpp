@@ -23,37 +23,34 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGraphInitializer::CGraphInitializer( const onnx::TensorProto& _initializer, IMathEngine& _mathEngine ) :
-	CNode( 0, 1 ),
+CGraphInitializer::CGraphInitializer( int nodeIndex, const onnx::TensorProto& _initializer, IMathEngine& _mathEngine ) :
+	CNode( nodeIndex, 0, 1 ),
 	mathEngine( _mathEngine ),
 	initializer( _initializer )
 {
 	assert( initializer.dims_size() > 0 );
 }
 
-void CGraphInitializer::CalcOutputShape()
+void CGraphInitializer::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	CTensorShape& outputShape = output[0].Shape;
+	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
 	outputShape.SetBufferSize( initializer.dims_size() );
 
 	for( int dimIndex = 0; dimIndex < initializer.dims_size(); ++dimIndex ) {
 		outputShape.Add( static_cast<int>( initializer.dims( dimIndex ) ) );
 	}
-}
 
-void CGraphInitializer::CalcOutputData()
-{
 	CBlobDesc blobDesc;
 	blobDesc.SetDataType( GetBlobType( static_cast<onnx::TensorProto_DataType>( initializer.data_type() ) ) );
 	for( int dimIndex = 0; dimIndex < initializer.dims_size(); ++dimIndex ) {
-		blobDesc.SetDimSize( dimIndex, output[0].Shape[dimIndex] );
+		blobDesc.SetDimSize( dimIndex, OutputTensor( tensors, 0 ).Shape[dimIndex] );
 	}
 
-	output[0].Data = CDnnBlob::CreateBlob( mathEngine, blobDesc.GetDataType(), blobDesc );
+	OutputTensor( tensors, 0 ).Data = CDnnBlob::CreateBlob( mathEngine, blobDesc.GetDataType(), blobDesc );
 	if( blobDesc.GetDataType() == CT_Float ) {
-		LoadBlobData<float>( initializer, *output[0].Data );
+		LoadBlobData<float>( initializer, *OutputTensor( tensors, 0 ).Data );
 	} else {
-		LoadBlobData<int>( initializer, *output[0].Data );
+		LoadBlobData<int>( initializer, *OutputTensor( tensors, 0 ).Data );
 	}
 }
 

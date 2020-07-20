@@ -28,9 +28,6 @@ struct CTensor {
 	// Shape in onnx. Has variable amount of dimensions.
 	CTensorShape Shape;
 
-	// NeoML dimensions of tensor.
-	CTensorDim Dim;
-
 	// Tensor data.
 	// nullptr if data can't be pre-calcualated (it depends on data, provided by user).
 	// It's stored in order of onnx dimensions (independent of its NeoML names).
@@ -42,7 +39,7 @@ struct CTensor {
 
 	// Sets NeoML dimensions of the tensor.
 	// Returns true if there is no conflicts.
-	bool SetTensorDim( const CTensorDim& supposedDim );
+	bool SetTensorDim( const CTensorDim& newDim );
 };
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -51,7 +48,6 @@ inline CTensor::CTensor( const CTensor& other ) :
 	Data( other.Data )
 {
 	other.Shape.CopyTo( Shape );
-	other.Dim.CopyTo( Dim );
 }
 
 inline CTensor& CTensor::operator=( const CTensor &other )
@@ -59,32 +55,31 @@ inline CTensor& CTensor::operator=( const CTensor &other )
 	if( this != &other ) {
 		Data = other.Data;
 		other.Shape.CopyTo( Shape );
-		other.Dim.CopyTo( Dim );
 	}
 
 	return *this;
 }
 
-inline bool CTensor::SetTensorDim( const CTensorDim& supposedDim )
+inline bool SetTensorDim( const CTensorShape& shape, const CTensorDim& newDim, CTensorDim& dim )
 {
-	if( Dim.IsEmpty() ) {
-		if( supposedDim.Size() == Shape.Size() ) {
+	if( dim.IsEmpty() ) {
+		if( newDim.Size() == shape.Size() ) {
 			// It's the first request for a match.
 			// And the number of dimensions is matching with the shape.
-			supposedDim.CopyTo( Dim );
+			newDim.CopyTo( dim );
 			return true;
 		}
 		// Dimensions number mismatch...
 		return false;
 	}
 
-	if( supposedDim.Size() != Dim.Size() ) {
+	if( newDim.Size() != dim.Size() ) {
 		// Dimensions number mismatch...
 		return false;
 	}
 
-	for( int dimIndex = 0; dimIndex < supposedDim.Size(); ++dimIndex ) {
-		if( Dim[dimIndex] != supposedDim[dimIndex] ) {
+	for( int dimIndex = 0; dimIndex < newDim.Size(); ++dimIndex ) {
+		if( dim[dimIndex] != newDim[dimIndex] ) {
 			// Supposed dimensions doesn't match with previously set one.
 			return false;
 		}

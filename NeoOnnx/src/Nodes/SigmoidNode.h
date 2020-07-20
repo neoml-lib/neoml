@@ -26,13 +26,12 @@ namespace NeoOnnx {
 
 class CSigmoidNode : public COpNode {
 public:
-	CSigmoidNode( const onnx::NodeProto& sigmoid, int opsetVersion, IMathEngine& mathEngine );
+	CSigmoidNode( int nodeIndex, const onnx::NodeProto& sigmoid, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override;
-	void CalcOutputData() override;
-	void MarkTensorDims() override;
-	void AddLayers( CDnn& dnn ) override;
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override;
+	void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) override;
 };
 
 } // namespace NeoOnnx

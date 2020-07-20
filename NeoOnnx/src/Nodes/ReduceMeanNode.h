@@ -26,19 +26,18 @@ namespace NeoOnnx {
 
 class CReduceMeanNode : public COpNode {
 public:
-	CReduceMeanNode( const onnx::NodeProto& reduceMean, int opsetVersion, IMathEngine& mathEngine );
+	CReduceMeanNode( int nodeIndex, const onnx::NodeProto& reduceMean, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override;
-	void CalcOutputData() override;
-	void MarkTensorDims() override;
-	void AddLayers( CDnn& dnn ) override;
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override;
+	void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) override;
 
 private:
 	const int keepDims; // keep reduced dimensions (of size 1) or remove them.
 	CArray<int> axes; // reduced axes.
 
-	void add2dPoolingLayer( CDnn& dnn, int pooledDims );
+	void add2dPoolingLayer( const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn, int pooledDims );
 };
 
 } // namespace NeoOnnx

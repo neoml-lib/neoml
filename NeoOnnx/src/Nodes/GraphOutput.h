@@ -21,13 +21,12 @@ namespace NeoOnnx {
 
 class CGraphOutput : public CNode {
 public:
-	explicit CGraphOutput( const onnx::ValueInfoProto& output );
+	CGraphOutput( int nodeIndex, const onnx::ValueInfoProto& output );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override {}
-	void CalcOutputData() override {}
-	void MarkTensorDims() override {}
-	void AddLayers( CDnn& dnn ) override;
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override {}
+	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override {}
+	void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) override;
 
 	const CString& Name() const { return name; }
 

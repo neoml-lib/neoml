@@ -23,41 +23,38 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CClipNode::CClipNode( const onnx::NodeProto& clip, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( clip, opsetVersion ),
+CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion ) :
+	COpNode( nodeIndex, clip, opsetVersion ),
 	minValue( attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
 	maxValue( attributes.GetOptionalFloat( "max", FLT_MAX ) )
 {
 	// Newer versions getting min and max values as inputs, not as attributes
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", clip );
 
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", clip );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", clip );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", clip );
 }
 
-void CClipNode::CalcOutputShape()
+void CClipNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	InputTensor( 0 ).Shape.CopyTo( output[0].Shape );
+	InputTensor( tensors, 0 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CClipNode::CalcOutputData()
+void CClipNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CClipNode::MarkTensorDims()
-{
-	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ), "marking output dimensions failed", onnxNode );
+	if( !InputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ), "marking output dimensions failed", onnxNode );
 	}
 
-	if( !output[0].Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ), "marking input dimensions failed", onnxNode );
+	if( !OutputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ), "marking input dimensions failed", onnxNode );
 	}
 }
 
-void CClipNode::AddLayers( CDnn& dnn )
+void CClipNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	CheckNeoOnnxSupport( minValue == 0.f, "'min' value must be equal to 0", onnxNode );
 
@@ -68,10 +65,10 @@ void CClipNode::AddLayers( CDnn& dnn )
 		relu->SetUpperThreshold( maxValue );
 	}
 
-	relu->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	relu->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	dnn.AddLayer( *relu );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( relu, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( relu, 0 );
 }
 
 } // namespace NeoOnnx

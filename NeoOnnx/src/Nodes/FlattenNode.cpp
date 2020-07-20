@@ -22,47 +22,44 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( flatten, opsetVersion ),
+CFlattenNode::CFlattenNode( int nodeIndex, const onnx::NodeProto& flatten, int opsetVersion ) :
+	COpNode( nodeIndex, flatten, opsetVersion ),
 	axis( attributes.GetOptionalInt( "axis", 1 ) )
 {
 	// The differences between versions are in supported data types and negative axis index
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", flatten );
 	
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", flatten );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", flatten );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", flatten );
 }
 
-void CFlattenNode::CalcOutputShape()
+void CFlattenNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
-	CTensorShape& outputShape = output[0].Shape;
+	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
+	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
 	outputShape = { 1, 1 };
 
 	for( int dimIndex = 0; dimIndex < inputShape.Size(); ++dimIndex ) {
 		outputShape[dimIndex < axis ? 0 : 1] *= inputShape[dimIndex];
 	}
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CFlattenNode::CalcOutputData()
+void CFlattenNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CFlattenNode::MarkTensorDims()
-{
-	const CTensorDim& inputDims = InputTensor( 0 ).Dim;
+	const CTensorDim& inputDims = InputDim( dims, 0 );
 
 	if( !inputDims.IsEmpty() ) {
-		CheckNeoOnnxInternal( output[0].SetTensorDim( { inputDims[axis - 1], inputDims[axis] } ),
+		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, { inputDims[axis - 1], inputDims[axis] }, OutputDim( dims, 0 ) ),
 			"marking output dimensions failed", onnxNode );
 	}
 }
 
-void CFlattenNode::AddLayers( CDnn& )
+void CFlattenNode::AddLayers( const CGraph&, const CGraphTensors&, const CGraphDims&, CGraphMappings& mappings, CDnn& )
 {
-	neoMLInputInfo.Add( InputInfo( 0 ) );
+	OutputMapping( mappings, 0 ) = InputMapping( mappings, 0 );
 }
 
 } // namespace NeoOnnx

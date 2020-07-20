@@ -23,50 +23,47 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CReluNode::CReluNode( const onnx::NodeProto& relu, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( relu, opsetVersion )
+CReluNode::CReluNode( int nodeIndex, const onnx::NodeProto& relu, int opsetVersion ) :
+	COpNode( nodeIndex, relu, opsetVersion )
 {
 	// The differences between versions are in legacy optimization flags
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", relu );
 
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", relu );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", relu );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", relu );
 }
 
-void CReluNode::CalcOutputShape()
+void CReluNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	InputTensor( 0 ).Shape.CopyTo( output[0].Shape );
+	InputTensor( tensors, 0 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CReluNode::CalcOutputData()
+void CReluNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CReluNode::MarkTensorDims()
-{
-	if( !InputTensor( 0 ).Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( output[0].SetTensorDim( InputTensor( 0 ).Dim ),
+	if( !InputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !output[0].Dim.IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( output[0].Dim ),
+	if( !OutputDim( dims, 0 ).IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CReluNode::AddLayers( CDnn& dnn )
+void CReluNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	CPtr<CReLULayer> relu = new CReLULayer( dnn.GetMathEngine() );
 	relu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	relu->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	relu->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	
 	dnn.AddLayer( *relu );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( relu, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( relu, 0 );
 }
 
 } // namespace NeoOnnx

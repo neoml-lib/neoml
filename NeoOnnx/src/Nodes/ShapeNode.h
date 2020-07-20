@@ -27,16 +27,12 @@ namespace NeoOnnx {
 // Shape node in onnx graph.
 class CShapeNode : public COpNode {
 public:
-	CShapeNode( const onnx::NodeProto& shape, int opsetVersion, IMathEngine& mathEngine );
+	CShapeNode( int nodeIndex, const onnx::NodeProto& shape, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override;
-	void CalcOutputData() override;
-	void MarkTensorDims() override {}
-	void AddLayers( CDnn& ) override {}
-
-private:
-	IMathEngine& mathEngine;
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override {}
+	void AddLayers( const CGraph&, const CGraphTensors&, const CGraphDims&, CGraphMappings&, CDnn& ) override {}
 };
 
 } // namespace NeoOnnx

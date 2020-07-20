@@ -24,15 +24,15 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CConvNode::CConvNode( const onnx::NodeProto& conv, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( conv, opsetVersion ),
+CConvNode::CConvNode( int nodeIndex, const onnx::NodeProto& conv, int opsetVersion ) :
+	COpNode( nodeIndex, conv, opsetVersion ),
 	group( attributes.GetOptionalInt( "group", 1 ) ),
 	autoPad( attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
 	// The differences between versions are in default values of some flags and supported data types
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", conv );
 
-	CheckOnnxProtocol( input.Size() == 2 || input.Size() == 3, "node must have 2 or 3 inputs", conv );
+	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", conv );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", conv );
 
 	attributes.GetOptionalIntArray( "strides", strides );
@@ -40,10 +40,10 @@ CConvNode::CConvNode( const onnx::NodeProto& conv, int opsetVersion, IMathEngine
 	attributes.GetOptionalIntArray( "dilations", dilations );
 }
 
-void CConvNode::CalcOutputShape()
+void CConvNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
 	// Checking input
-	const CTensor& inputTensor = InputTensor( 0 );
+	const CTensor& inputTensor = InputTensor( tensors, 0 );
 	CheckNeoOnnxSupport( inputTensor.Shape.Size() > 2 && inputTensor.Shape.Size() <= 4,
 		"wrong input tensor's dimensions number", onnxNode );
 	const CTensorShape& inputShape = inputTensor.Shape;
@@ -66,7 +66,7 @@ void CConvNode::CalcOutputShape()
 		"grouped convolutiion (non-channelwise)", onnxNode );
 
 	// Checking weights
-	const CTensor& weight = InputTensor( 1 );
+	const CTensor& weight = InputTensor( tensors, 1 );
 	CheckNeoOnnxSupport( weight.Data != nullptr, "non-constant weights", onnxNode );
 	CheckOnnxProtocol( weight.Shape.Size() == convDims + 2,
 		"wrong weight tensor's dimensions number", onnxNode );
@@ -75,8 +75,8 @@ void CConvNode::CalcOutputShape()
 		"wrong weight tensor's size", onnxNode );
 
 	// Checking bias
-	if( input.Size() == 3 ) {
-		const CTensor& bias = InputTensor( 2 );
+	if( InputCount() == 3 ) {
+		const CTensor& bias = InputTensor( tensors, 2 );
 		CheckNeoOnnxSupport( bias.Data != nullptr, "non-constant bias", onnxNode );
 		CheckOnnxProtocol( bias.Shape.Size() == 1, "bias tensor must be 1-dimensional", onnxNode );
 		CheckOnnxProtocol( bias.Shape[0] == filterCount, "bias tensor's size mu be equal to filter count", onnxNode );
@@ -99,7 +99,7 @@ void CConvNode::CalcOutputShape()
 	}
 
 	// Calculating output shape.
-	CTensorShape& outputShape = output[0].Shape;
+	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
 	inputShape.CopyTo( outputShape );
 	if( group == 1 ) {
 		outputShape[1] = filterCount;
@@ -108,23 +108,20 @@ void CConvNode::CalcOutputShape()
 		outputShape[dimIndex + 2] = ( inputShape[dimIndex + 2] + pads[dimIndex] + pads[dimIndex + convDims]
 			- ( kernelShape[dimIndex] - 1 ) * dilations[dimIndex] - 1 ) / strides[dimIndex] + 1;
 	}
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CConvNode::CalcOutputData()
+void CConvNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
-}
-
-void CConvNode::MarkTensorDims()
-{
-	CheckNeoOnnxInternal( output[0].SetTensorDim( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } ),
+	CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, { BD_BatchWidth, BD_Channels, BD_Height, BD_Width }, OutputDim( dims, 0 ) ),
 		"marking output dimensions failed", onnxNode );
-	CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } ),
-		"marking input dimensions failed", onnxNode );
+	CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, { BD_BatchWidth, BD_Channels, BD_Height, BD_Width }, InputDim( dims, 0 ) ),
+		"marking output dimensions failed", onnxNode );
 }
 
-void CConvNode::AddLayers( CDnn& dnn )
+void CConvNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	CPtr<CBaseConvLayer> conv = nullptr;
 
@@ -133,23 +130,23 @@ void CConvNode::AddLayers( CDnn& dnn )
 	CPtr<CDnnBlob> filter;
 	CPtr<CDnnBlob> freeTerm;
 
-	const int filterCount = InputTensor( 1 ).Shape[0];
-	const int inputChannels = InputTensor( 0 ).Shape[1];
-	const int filterHeight = InputTensor( 1 ).Shape[2];
-	const int filterWidth = InputTensor( 1 ).Shape[3];
+	const int filterCount = InputTensor( tensors, 1 ).Shape[0];
+	const int inputChannels = InputTensor( tensors, 0 ).Shape[1];
+	const int filterHeight = InputTensor( tensors, 1 ).Shape[2];
+	const int filterWidth = InputTensor( tensors, 1 ).Shape[3];
 
 	if( group == 1 ) {
 		conv = new CConvLayer( mathEngine );
 		filter = CDnnBlob::Create2DImageBlob( mathEngine, CT_Float, 1,
 			filterCount, filterHeight, filterWidth, inputChannels );
-		mathEngine.TransposeMatrix( filterCount, InputTensor( 1 ).Data->GetData(), inputChannels, 1,
+		mathEngine.TransposeMatrix( filterCount, InputTensor( tensors, 1 ).Data->GetData(), inputChannels, 1,
 			filterHeight * filterWidth, 1, filter->GetData(), filter->GetDataSize() );
 	} else {
 		NeoAssert( filterCount == inputChannels );
 		NeoAssert( group == inputChannels );
 		conv = new CChannelwiseConvLayer( mathEngine );
 		filter = CDnnBlob::Create2DImageBlob( mathEngine, CT_Float, 1, 1, filterHeight, filterWidth, filterCount );
-		mathEngine.TransposeMatrix( 1, InputTensor( 1 ).Data->GetData(), filterCount, 1, filterHeight * filterWidth,
+		mathEngine.TransposeMatrix( 1, InputTensor( tensors, 1 ).Data->GetData(), filterCount, 1, filterHeight * filterWidth,
 			1, filter->GetData(), filter->GetDataSize() );
 	}
 	conv->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
@@ -163,11 +160,11 @@ void CConvNode::AddLayers( CDnn& dnn )
 	conv->SetStrideWidth( strides[1] );
 
 	// Getting kernel shape.
-	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
+	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
 	CTensorShape kernelShape;
 	kernelShape.SetBufferSize( inputShape.Size() );
 	for( int dimIndex = 2; dimIndex < inputShape.Size(); ++dimIndex ) {
-		kernelShape.Add( InputTensor( 1 ).Shape[dimIndex] );
+		kernelShape.Add( InputTensor( tensors, 1 ).Shape[dimIndex] );
 	}
 
 	conv->SetPaddingHeight( pads[0] );
@@ -177,18 +174,18 @@ void CConvNode::AddLayers( CDnn& dnn )
 	conv->SetDilationHeight( dilations[0] );
 	conv->SetDilationWidth( dilations[1] );
 
-	if( input.Size() == 3 ) {
+	if( InputCount() == 3 ) {
 		freeTerm = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 1, filterCount );
-		mathEngine.VectorCopy( freeTerm->GetData(), InputTensor( 2 ).Data->GetData(), filterCount );
+		mathEngine.VectorCopy( freeTerm->GetData(), InputTensor( tensors, 2 ).Data->GetData(), filterCount );
 	}
 	
 	conv->SetFilterData( filter );
 	conv->SetFreeTermData( freeTerm );
 
-	conv->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	conv->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	dnn.AddLayer( *conv );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( conv, 0 ) );
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( conv, 0 );
 }
 
 } // namespace NeoOnnx

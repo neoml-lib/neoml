@@ -26,18 +26,17 @@ namespace NeoOnnx {
 
 class CBatchNormalizationNode : public COpNode {
 public:
-	CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, int opsetVersion, IMathEngine& mathEngine );
+	CBatchNormalizationNode( int nodeIndex, const onnx::NodeProto& batchNormalization, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override;
-	void CalcOutputData() override;
-	void MarkTensorDims() override;
-	void AddLayers( CDnn& dnn ) override;
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override;
+	void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) override;
 
 private:
 	const float eps; // eps value used to prevent division by zero.
 
-	CPtr<CDnnBlob> calculateFinalParams();
+	CPtr<CDnnBlob> calculateFinalParams( const CGraphTensors& tensors );
 };
 
 } // namespace NeoOnnx

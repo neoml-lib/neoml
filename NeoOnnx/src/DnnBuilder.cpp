@@ -55,10 +55,10 @@ static bool isTopSorted( const onnx::GraphProto& onnxGraph )
 }
 
 // Build array of CNode's based on onnxGraph.
-static void buildNodes( const onnx::GraphProto& onnxGraph, int opsetVersion, IMathEngine& mathEngine, CPointerArray<CNode>& nodes )
+static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, IMathEngine& mathEngine, CGraph& graph )
 {
-	nodes.Empty();
-	nodes.SetBufferSize( onnxGraph.input_size() + onnxGraph.initializer_size() + onnxGraph.node_size()
+	graph.Empty();
+	graph.SetBufferSize( onnxGraph.input_size() + onnxGraph.initializer_size() + onnxGraph.node_size()
 		+ onnxGraph.output_size() );
 	CMap<CString, CNode::CInputInfo> nodeOutputs;
 
@@ -66,8 +66,8 @@ static void buildNodes( const onnx::GraphProto& onnxGraph, int opsetVersion, IMa
 	CHashTable<CString> initializers;
 	for( const onnx::TensorProto& onnxInitializer : onnxGraph.initializer() ) {
 		if( onnxInitializer.dims_size() > 0 ) {
-			nodes.Add( new CGraphInitializer( onnxInitializer, mathEngine ) );
-			nodeOutputs.Add( onnxInitializer.name().c_str(), CNode::CInputInfo( nodes.Last(), 0 ) );
+			graph.Add( new CGraphInitializer( graph.Size(), onnxInitializer, mathEngine ) );
+			nodeOutputs.Add( onnxInitializer.name().c_str(), CNode::CInputInfo( graph.Size() - 1, 0 ) );
 			initializers.Add( onnxInitializer.name().c_str() );
 		}
 	}
@@ -79,30 +79,30 @@ static void buildNodes( const onnx::GraphProto& onnxGraph, int opsetVersion, IMa
 			// In case of NeoML inputs like these won't be needed (all of weights must be calculated from initializers).
 			continue;
 		}
-		nodes.Add( new CGraphInput( onnxInput ) );
-		nodeOutputs.Add( onnxInput.name().c_str(), CNode::CInputInfo( nodes.Last(), 0 ) );
+		graph.Add( new CGraphInput( graph.Size(), onnxInput ) );
+		nodeOutputs.Add( onnxInput.name().c_str(), CNode::CInputInfo( graph.Size() - 1, 0 ) );
 	}
 
-	// Add graph nodes.
+	// Add graph graph.
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
-		nodes.Add( COpNode::CreateOpNode( onnxNode, opsetVersion, mathEngine ) );
+		graph.Add( COpNode::CreateOpNode( graph.Size(), onnxNode, opsetVersion ) );
 		for( int inputIndex = 0; inputIndex < onnxNode.input_size(); ++inputIndex ) {
 			const std::string& inputName = onnxNode.input( inputIndex );
 			if( inputName.size() > 0 ) {
-				nodes.Last()->SetInput( inputIndex, nodeOutputs.Get( inputName.data() ) );
+				graph.Last()->SetInput( inputIndex, nodeOutputs.Get( inputName.data() ) );
 			}
 		}
 
 		// Adding this onnxNode's outputs to the map of onnxNode outputs.
 		for( int outputIndex = 0; outputIndex < onnxNode.output_size(); ++outputIndex ) {
-			nodeOutputs.Add( onnxNode.output( outputIndex ).c_str(), CNode::CInputInfo( nodes.Last(), outputIndex ) );
+			nodeOutputs.Add( onnxNode.output( outputIndex ).c_str(), CNode::CInputInfo( graph.Size() - 1, outputIndex ) );
 		}
 	}
 
 	// Add graph outputs.
 	for( const onnx::ValueInfoProto& onnxOutput : onnxGraph.output() ) {
-		nodes.Add( new CGraphOutput( onnxOutput ) );
-		nodes.Last()->SetInput( 0, nodeOutputs.Get( onnxOutput.name().c_str() ) );
+		graph.Add( new CGraphOutput( graph.Size(), onnxOutput ) );
+		graph.Last()->SetInput( 0, nodeOutputs.Get( onnxOutput.name().c_str() ) );
 	}
 }
 
@@ -115,37 +115,43 @@ void CDnnBuilder::BuildDnn( const onnx::GraphProto& onnxGraph, int opsetVersion,
 	CheckNeoOnnxSupport( isTopSorted( onnxGraph ), "onnxGraph is not topologically sorted" );
 
 	// Step 1: creating nodes of the graph and connections between them.
-	CPointerArray<CNode> nodes;
-	buildNodes( onnxGraph, opsetVersion, dnn.GetMathEngine(), nodes );
+	CGraph graph;
+	buildGraph( onnxGraph, opsetVersion, dnn.GetMathEngine(), graph );
 
 	// Iterate over graph in top sorted order.
-	for( int nodeIndex = 0; nodeIndex < nodes.Size(); ++nodeIndex ) {
-		// Step 2: Calculate output tensors' shapes.
-		nodes[nodeIndex]->CalcOutputShape();
-
-		// Step 3: Calculate output tensors' data (if possible)
-		nodes[nodeIndex]->CalcOutputData();
+	CGraphTensors tensors;
+	tensors.SetSize( graph.Size() );
+	for( int nodeIndex = 0; nodeIndex < graph.Size(); ++nodeIndex ) {
+		// Step 2: Calculate output tensors' shapes and data.
+		tensors[nodeIndex].SetSize( graph[nodeIndex]->OutputCount() );
+		graph[nodeIndex]->CalcOutputTensors( tensors, dnn.GetMathEngine() );
 	}
 
-	// Step 4: Mark onnx tensors' dimensions with NeoML blob dimensions.
-	for( int nodeIndex = 0; nodeIndex < nodes.Size(); ++nodeIndex ) {
+	// Step 3: Mark onnx tensors' dimensions with NeoML blob dimensions.
+	CGraphDims dims;
+	dims.SetSize( graph.Size() );
+	for( int nodeIndex = 0; nodeIndex < graph.Size(); ++nodeIndex ) {
 		// Matching onnx tensors' dimensions with NeoML blob dimensions.
-		nodes[nodeIndex]->MarkTensorDims();
+		dims[nodeIndex].SetSize( graph[nodeIndex]->OutputCount() );
+		graph[nodeIndex]->MarkTensorDims( tensors, dims );
 	}
 
-	// Still step 4.
+	// Still step 3.
 	// Sometimes there are additional operations between graph inputs and
 	// nodes, whose operations can interpret tensor deimensions.
 	// E.g. input -> transpose -> conv.
 	// In that case input's dims will be still unmarked.
 	// That's why we call marking method one more time in reversed order.
-	for( int nodeIndex = nodes.Size() - 1; nodeIndex >= 0; --nodeIndex ) {
-		nodes[nodeIndex]->MarkTensorDims();
+	for( int nodeIndex = graph.Size() - 1; nodeIndex >= 0; --nodeIndex ) {
+		graph[nodeIndex]->MarkTensorDims( tensors, dims );
 	}
 
-	// Step 5: Adding layers to dnn.
-	for( int nodeIndex = 0; nodeIndex < nodes.Size(); ++nodeIndex ) {
-		nodes[nodeIndex]->AddLayers( dnn );
+	// Step 4: Adding layers to dnn.
+	CGraphMappings mappings;
+	mappings.SetSize( graph.Size() );
+	for( int nodeIndex = 0; nodeIndex < graph.Size(); ++nodeIndex ) {
+		mappings[nodeIndex].SetSize( graph[nodeIndex]->OutputCount() );
+		graph[nodeIndex]->AddLayers( graph, tensors, dims, mappings, dnn );
 	}
 }
 

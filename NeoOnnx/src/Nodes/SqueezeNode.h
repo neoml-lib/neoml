@@ -26,13 +26,12 @@ namespace NeoOnnx {
 
 class CSqueezeNode : public COpNode {
 public:
-	CSqueezeNode( const onnx::NodeProto& squeeze, int opsetVersion, IMathEngine& mathEngine );
+	CSqueezeNode( int nodeIndex, const onnx::NodeProto& squeeze, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override;
-	void CalcOutputData() override;
-	void MarkTensorDims() override;
-	void AddLayers( CDnn& dnn ) override;
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override;
+	void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) override;
 
 private:
 	CArray<int> axes; // removed axes.

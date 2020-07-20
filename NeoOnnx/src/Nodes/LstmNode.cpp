@@ -23,78 +23,75 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CLstmNode::CLstmNode( const onnx::NodeProto& lstm, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( lstm, opsetVersion ),
+CLstmNode::CLstmNode( int nodeIndex, const onnx::NodeProto& lstm, int opsetVersion ) :
+	COpNode( nodeIndex, lstm, opsetVersion ),
 	direction( attributes.GetOptionalString( "direction", "forward" ) ),
 	hiddenSize( attributes.GetRequiredInt( "hidden_size" ) )
 {
 	// The differences between versions are in some flags and support (i.e. output_sequence)
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", lstm );
 
-	CheckOnnxProtocol( input.Size() >= 3 && input.Size() <= 8, "node must have from 3 upto 8 inputs", lstm );
+	CheckOnnxProtocol( InputCount() >= 3 && InputCount() <= 8, "node must have from 3 upto 8 inputs", lstm );
 	CheckOnnxProtocol( OutputCount() >= 1 && OutputCount() <= 3, "node must have from 1 upto 3 outputs", lstm );
 
 	CheckNeoOnnxSupport( direction != "bidirectional", "bidirectional LSTM", lstm ); // TODO: add support of bidirectional LSTM
 }
 
-void CLstmNode::CalcOutputShape()
+void CLstmNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "constant input", onnxNode );
-	CheckNeoOnnxSupport( InputTensor( 1 ).Data != nullptr, "non-constant weight", onnxNode );
-	CheckNeoOnnxSupport( InputTensor( 2 ).Data != nullptr, "non-constant recurrent weight", onnxNode );
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "constant input", onnxNode );
+	CheckNeoOnnxSupport( InputTensor( tensors, 1 ).Data != nullptr, "non-constant weight", onnxNode );
+	CheckNeoOnnxSupport( InputTensor( tensors, 2 ).Data != nullptr, "non-constant recurrent weight", onnxNode );
 
-	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
+	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
 
 	CPtr<CDnnBlob> biasValue = nullptr;
-	if( input.Size() > 3 && input[3].InputNode != nullptr ) {
-		CTensor& bias = InputTensor( 3 );
+	if( InputCount() > 3 && GetInput( 3 ).NodeIndex != NotFound ) {
+		const CTensor& bias = InputTensor( tensors, 3 );
 		CheckNeoOnnxSupport( bias.Data != nullptr, "non-constant bias", onnxNode );
 	}
 
-	CheckNeoOnnxSupport( input.Size() <= 4 || input[4].InputNode == nullptr, "sequence lengths",
-		onnxNode ); // NeoML doesn't support sequence lengths
+	// NeoML doesn't support sequence lengths
+	CheckNeoOnnxSupport( InputCount() <= 4 || GetInput( 4 ).NodeIndex == NotFound, "sequence lengths", onnxNode );
 
-	if( input.Size() > 5 && input[5].InputNode != nullptr ) {
-		const CTensor& initialH = InputTensor( 5 );
+	if( InputCount() > 5 && GetInput( 5 ).NodeIndex != NotFound ) {
+		const CTensor& initialH = InputTensor( tensors, 5 );
 		CheckNeoOnnxSupport( initialH.Data != nullptr, "non-constant initial history", onnxNode );
 	}
 
-	if( input.Size() > 6 && input[6].InputNode != nullptr ) {
-		const CTensor& initialC = InputTensor( 6 );
+	if( InputCount() > 6 && GetInput( 6 ).NodeIndex != NotFound ) {
+		const CTensor& initialC = InputTensor( tensors, 6 );
 		CheckNeoOnnxSupport( initialC.Data != nullptr, "non-constant initial state", onnxNode );
 	}
 
-	CheckNeoOnnxSupport( input.Size() < 8 || input[7].InputNode == nullptr, "peepholes",
+	CheckNeoOnnxSupport( InputCount() < 8 || GetInput( 7 ).NodeIndex == NotFound, "peepholes",
 		onnxNode ); // NeoML doesn't support peepholes
 
 	const int sequenceLength = inputShape[0];
 	const int batchSize = inputShape[1];
 
-	output[0].Shape = { sequenceLength, 1, batchSize, hiddenSize };
+	OutputTensor( tensors, 0 ).Shape = { sequenceLength, 1, batchSize, hiddenSize };
+
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
 }
 
-void CLstmNode::CalcOutputData()
+void CLstmNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The output[0].Data was already set to nullptr in default constructor.
+	CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels },
+		OutputDim( dims, 0 ) ), "marking output dimensions failed", onnxNode );
+	CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, { BD_BatchLength, BD_BatchWidth, BD_Channels },
+		InputDim( dims, 0 ) ), "marking input dimensions failed", onnxNode );
 }
 
-void CLstmNode::MarkTensorDims()
-{
-	CheckNeoOnnxInternal( output[0].SetTensorDim( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } ),
-		"marking output dimensions failed", onnxNode );
-	CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( { BD_BatchLength, BD_BatchWidth, BD_Channels } ),
-		"marking input dimensions failed", onnxNode );
-}
-
-void CLstmNode::AddLayers( CDnn& dnn )
+void CLstmNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 	CPtr<CLstmLayer> lstmLayer = new CLstmLayer( mathEngine );
 	lstmLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	CPtr<CDnnBlob> weightMatrix = InputTensor( 1 ).Data->GetCopy();
-	CPtr<CDnnBlob> recurWeightMatrix = InputTensor( 2 ).Data->GetCopy();
+	CPtr<CDnnBlob> weightMatrix = InputTensor( tensors, 1 ).Data->GetCopy();
+	CPtr<CDnnBlob> recurWeightMatrix = InputTensor( tensors, 2 ).Data->GetCopy();
 
 	const int inputObjectSize = weightMatrix->DimSize( 1 );
 
@@ -114,23 +111,20 @@ void CLstmNode::AddLayers( CDnn& dnn )
 	lstmLayer->SetInputWeightsData( weightMatrix );
 	lstmLayer->SetRecurWeightsData( recurWeightMatrix );
 
-	if( input.Size() > 3 && input[3].InputNode != nullptr ) {
+	if( InputCount() > 3 && GetInput( 3 ).NodeIndex != NotFound ) {
 		CPtr<CDnnBlob> neoMLBias = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 1, 4 * hiddenSize );
-		mathEngine.VectorCopy( neoMLBias->GetData(), InputTensor( 3 ).Data->GetData(), 4 * hiddenSize );
+		mathEngine.VectorCopy( neoMLBias->GetData(), InputTensor( tensors, 3 ).Data->GetData(), 4 * hiddenSize );
 		neoMLBias = reorderGates( neoMLBias, BD_Channels );
 		lstmLayer->SetInputFreeTermData( neoMLBias );
 		lstmLayer->SetRecurFreeTermData( nullptr );
 	}
 
 	// TODO: Add support for other inputs.
-	lstmLayer->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	lstmLayer->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
 	dnn.AddLayer( *lstmLayer );
 
-	neoMLInputInfo.Add( CNeoMLInputInfo( lstmLayer, 0 ) );
-	for( int outputIndex = 1; outputIndex < OutputCount(); ++outputIndex ) {
-		// TODO: add support of other outputs
-		neoMLInputInfo.Add( CNeoMLInputInfo() );
-	}
+	OutputMapping( mappings, 0 ) = CNeoMLMapping( lstmLayer, 0 );
+	// TODO: add support of other outputs
 }
 
 CPtr<CDnnBlob> CLstmNode::reorderGates( CPtr<CDnnBlob> blob, TBlobDim dim )

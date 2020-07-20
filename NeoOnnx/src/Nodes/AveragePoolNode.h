@@ -26,13 +26,12 @@ namespace NeoOnnx {
 
 class CAveragePoolNode : public COpNode {
 public:
-	CAveragePoolNode( const onnx::NodeProto& averagePool, int opsetVersion, IMathEngine& mathEngine );
+	CAveragePoolNode( int nodeIndex, const onnx::NodeProto& averagePool, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputShape() override;
-	void CalcOutputData() override;
-	void MarkTensorDims() override;
-	void AddLayers( CDnn& dnn ) override;
+	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override;
+	void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) override;
 
 private:
 	const CString autoPad; // padding mode

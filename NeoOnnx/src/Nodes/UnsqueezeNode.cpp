@@ -23,23 +23,23 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CUnsqueezeNode::CUnsqueezeNode( const onnx::NodeProto& unsqueeze, int opsetVersion, IMathEngine& /*mathEngine*/ ) :
-	COpNode( unsqueeze, opsetVersion )
+CUnsqueezeNode::CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze, int opsetVersion ) :
+	COpNode( nodeIndex, unsqueeze, opsetVersion )
 {
 	// Newer versions have negative axes support
 	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", unsqueeze);
 
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", unsqueeze );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", unsqueeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", unsqueeze );
 
 	attributes.GetRequiredIntArray( "axes", axes );
 }
 
-void CUnsqueezeNode::CalcOutputShape()
+void CUnsqueezeNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	const CTensorShape& inputShape = InputTensor( 0 ).Shape;
+	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
 
-	CTensorShape& outputShape = output[0].Shape;
+	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
 	outputShape.SetSize( inputShape.Size() + axes.Size() );
 	int axisIndex = 0;
 	for( int i = 0; i < outputShape.Size(); ++i ) {
@@ -50,20 +50,17 @@ void CUnsqueezeNode::CalcOutputShape()
 			outputShape[i] = inputShape[i - axisIndex];
 		}
 	}
+
+	OutputTensor( tensors, 0 ).Data = InputTensor( tensors, 0 ).Data;
 }
 
-void CUnsqueezeNode::CalcOutputData()
+void CUnsqueezeNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
 {
-	output[0].Data = InputTensor( 0 ).Data;
-}
-
-void CUnsqueezeNode::MarkTensorDims()
-{
-	if( output[0].Data != nullptr ) {
+	if( OutputTensor( tensors, 0 ).Data != nullptr ) {
 		return;
 	}
 
-	const CTensorDim& outputDim = output[0].Dim;
+	const CTensorDim& outputDim = ( OutputDim( dims, 0 ) );
 
 	if( outputDim.IsEmpty() ) {
 		return;
@@ -79,17 +76,17 @@ void CUnsqueezeNode::MarkTensorDims()
 		}
 	}
 
-	CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( inputDim ),
+	CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, inputDim, InputDim( dims, 0 ) ),
 		"marking input dimensions failed", onnxNode );
 }
 
-void CUnsqueezeNode::AddLayers( CDnn& )
+void CUnsqueezeNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
 {
-	if( output[0].Data != nullptr ) {
+	if( OutputTensor( tensors, 0 ).Data != nullptr ) {
 		return;
 	}
 
-	neoMLInputInfo.Add( InputInfo( 0 ) );
+	OutputMapping( mappings, 0 ) = InputMapping( mappings, 0 );
 }
 
 } // namespace NeoOnnx

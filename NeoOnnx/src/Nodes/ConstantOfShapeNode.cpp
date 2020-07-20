@@ -23,44 +23,39 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CConstantOfShapeNode::CConstantOfShapeNode( const onnx::NodeProto& constantOfShape, int opsetVersion,
-		IMathEngine& /*mathEngine*/ ) :
-	COpNode( constantOfShape, opsetVersion )
+CConstantOfShapeNode::CConstantOfShapeNode( int nodeIndex, const onnx::NodeProto& constantOfShape, int opsetVersion ) :
+	COpNode( nodeIndex, constantOfShape, opsetVersion )
 {
 	// This op was introduced in version 9
 	CheckOnnxProtocol( opsetVersion >= 9, "wrong opset version", constantOfShape );
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "opset version", constantOfShape );
 
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", constantOfShape );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", constantOfShape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constantOfShape );
 }
 
-void CConstantOfShapeNode::CalcOutputShape()
+void CConstantOfShapeNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data != nullptr, "non-constant input tensor", onnxNode );
-	CheckNeoOnnxSupport( InputTensor( 0 ).Data->GetDataType() == CT_Int, "non-integer input tensor", onnxNode );
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data != nullptr, "non-constant input tensor", onnxNode );
+	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data->GetDataType() == CT_Int, "non-integer input tensor", onnxNode );
 
-	output[0].Shape.SetSize( InputTensor( 0 ).Data->GetDataSize() );
-	InputTensor( 0 ).Data->CopyTo( output[0].Shape.GetPtr() );
-}
+	OutputTensor( tensors, 0 ).Shape.SetSize( InputTensor( tensors, 0 ).Data->GetDataSize() );
+	InputTensor( tensors, 0 ).Data->CopyTo( OutputTensor( tensors, 0 ).Shape.GetPtr() );
 
-void CConstantOfShapeNode::CalcOutputData()
-{
-	IMathEngine& mathEngine = InputTensor( 0 ).Data->GetMathEngine();
 	CPtr<CDnnBlob> value = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	value->Clear();
 	attributes.GetOptionalTensor( "value", *value );
 
 	CBlobDesc outputBlobDesc( value->GetDataType() );
-	for( int dimIndex = 0; dimIndex < output[0].Shape.Size(); ++dimIndex ) {
-		outputBlobDesc.SetDimSize( dimIndex, output[0].Shape[dimIndex] );
+	for( int dimIndex = 0; dimIndex < OutputTensor( tensors, 0 ).Shape.Size(); ++dimIndex ) {
+		outputBlobDesc.SetDimSize( dimIndex, OutputTensor( tensors, 0 ).Shape[dimIndex] );
 	}
 
-	output[0].Data = CDnnBlob::CreateBlob( mathEngine, value->GetDataType(), outputBlobDesc );
-	if( output[0].Data->GetDataType() == CT_Float ) {
-		output[0].Data->Fill( value->GetData().GetValue() );
+	OutputTensor( tensors, 0 ).Data = CDnnBlob::CreateBlob( mathEngine, value->GetDataType(), outputBlobDesc );
+	if( OutputTensor( tensors, 0 ).Data->GetDataType() == CT_Float ) {
+		OutputTensor( tensors, 0 ).Data->Fill( value->GetData().GetValue() );
 	} else {
-		output[0].Data->Fill<int>( value->GetData<int>().GetValue() );
+		OutputTensor( tensors, 0 ).Data->Fill<int>( value->GetData<int>().GetValue() );
 	}
 }
 
