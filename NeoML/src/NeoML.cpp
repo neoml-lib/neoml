@@ -36,10 +36,10 @@ void CheckArchitecture( bool expression, const char* layerName, const char* mess
 }
 
 bool ThrowInternalError( TInternalErrorType errorType, const char* functionName,
-	const char* errorText, const char* fileName, int line, int errorCode )
+	const char* errorText, const wchar_t* fileName, int line, int errorCode )
 {
 	return GenerateInternalError( errorType, CUnicodeString( functionName, CP_UTF8 ),
-		CUnicodeString( errorText, CP_UTF8 ), CUnicodeString( fileName, CP_UTF8 ), line, errorCode );
+		CUnicodeString( errorText, CP_UTF8 ), fileName, line, errorCode );
 }
 
 #else
@@ -54,7 +54,7 @@ void CheckArchitecture( bool expression, const char* layerName, const char* mess
 }
 
 bool ThrowInternalError( TInternalErrorType errorType, const char* functionName,
-	const char* errorText, const char* fileName, int line, int errorCode )
+	const char* errorText, const wchar_t* fileName, int line, int errorCode )
 {
 	GenerateInternalError( errorType, functionName, errorText, fileName, line, errorCode );
 	return true;
@@ -68,7 +68,7 @@ bool ThrowInternalError( TInternalErrorType errorType, const char* functionName,
 class CMathEngineExceptionHandler : public IMathEngineExceptionHandler {
 public:
 	// IMathEngineExceptionHandler interface methods
-	virtual void OnAssert( const char* message, const char* file, int line, int errorCode )
+	void OnAssert( const char* message, const wchar_t* file, int line, int errorCode ) override
 	{
 #ifdef _DEBUG
 		FineDebugBreak();
@@ -80,7 +80,7 @@ public:
 #endif
 	}
 
-	virtual void OnMemoryError()
+	void OnMemoryError() override
 	{
 #ifdef NEOML_USE_FINEOBJ
 		throw FINE_DEBUG_NEW CMemoryException();

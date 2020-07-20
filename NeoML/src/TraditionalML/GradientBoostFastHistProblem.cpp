@@ -147,18 +147,20 @@ void CGradientBoostFastHistProblem::compressFeatureValues( int threadCount, int 
 
 	NEOML_OMP_FOR_NUM_THREADS( threadCount )
 	for( int i = 0; i < featureValues.Size(); i++ ) {
-		if( featureValues[i].Size() <= maxBins ) {
+		CArray<CFeatureValue>& currFeatureValues = featureValues[i];
+
+		if( currFeatureValues.Size() <= maxBins ) {
 			continue;
 		}
 
 		// Always keep the minimum and the maximum value for each feature
 		if( maxBins == 2 ) {
-			featureValues[i][1] = featureValues[i].Last();
-			featureValues[i].SetSize( 2 );
+			currFeatureValues[1] = currFeatureValues.Last();
+			currFeatureValues.SetSize( 2 );
 			continue;
 		}
 		// Always keep the minimum and the maximum value for each feature
-		const double weight = totalWeight - featureValues[i].First().Weight - featureValues[i].Last().Weight;
+		const double weight = totalWeight - currFeatureValues.First().Weight - currFeatureValues.Last().Weight;
 		const int n = maxBins - 2;
 		NeoAssert( n > 0 );
 		const double maxItemWeight = weight / n;
@@ -166,16 +168,16 @@ void CGradientBoostFastHistProblem::compressFeatureValues( int threadCount, int 
 		// Grouping the rest of the values by weight
 		int size = 1;
 		double sumWeight = 0;
-		for( int j = 1; j < featureValues[i].Size() - 1; j++ ) {
-			if( sumWeight + featureValues[i][j].Weight >= size * maxItemWeight ) {
-				featureValues[i][size] = featureValues[i][j];
+		for( int j = 1; j < currFeatureValues.Size() - 1; j++ ) {
+			if( sumWeight + currFeatureValues[j].Weight >= size * maxItemWeight ) {
+				currFeatureValues[size] = currFeatureValues[j];
 				size++;
 			}
-			sumWeight += featureValues[i][j].Weight;
+			sumWeight += currFeatureValues[j].Weight;
 		}
-		featureValues[i][size] = featureValues[i].Last();
+		currFeatureValues[size] = currFeatureValues.Last();
 		size++;
-		featureValues[i].SetSize( size );
+		currFeatureValues.SetSize( size );
 		NeoAssert( size <= maxBins );
 	}
 }
