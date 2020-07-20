@@ -408,12 +408,12 @@ void CVulkanMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 		}
 
 		if( channels8 > 0 ) {
-			blobConvolutionImpl8Adreno( desc, sourceData, filterData, freeTermData != 0, resultData, channels8,
+			blobConvolutionImpl8Adreno( desc, sourceData, filterData, freeTermData != nullptr, resultData, channels8,
 				sourceChannelGroupSize, filterChannelGroupSize );
 		}
 
 		if( ( totalChannels - channels8 * 8 ) != 0 ) {
-			blobConvolutionImpl1Adreno( desc, sourceData, filterData, freeTermData, resultData, channels8 * 8,
+			blobConvolutionImpl1Adreno( desc, sourceData, filterData, freeTermData != nullptr, resultData, channels8 * 8,
 				sourceChannelGroupSize, filterChannelGroupSize );
 		}
 	} else {
