@@ -23,7 +23,7 @@ limitations under the License.
 #define __merge__1( a, b )	__merge__2( a, b )
 #define __UNICODEFILE__	__merge__1( L, __FILE__ )
 
-inline void generateAssert( NeoML::IMathEngineExceptionHandler* exceptionHandler, const char* expr, const char* file, int line, int errorCode )
+inline void generateAssert( NeoML::IMathEngineExceptionHandler* exceptionHandler, const char* expr, const wchar_t* file, int line, int errorCode )
 {
 	exceptionHandler->OnAssert( expr, file, line, errorCode );
 }
@@ -39,7 +39,7 @@ inline void generateMemoryError( NeoML::IMathEngineExceptionHandler* exceptionHa
 		if(_err_ != 0) { \
 			NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
 			if( exceptionHandler != 0 ) { \
-				generateAssert( exceptionHandler, #expr, __FILE__, __LINE__, _err_ ); \
+				generateAssert( exceptionHandler, #expr, __UNICODEFILE__, __LINE__, _err_ ); \
 			} else { \
 				throw std::logic_error( #expr ); \
 			} \
@@ -51,7 +51,7 @@ inline void generateMemoryError( NeoML::IMathEngineExceptionHandler* exceptionHa
 		if(!(expr)) { \
 			NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
 			if( exceptionHandler != 0 ) { \
-				generateAssert( exceptionHandler, #expr, __FILE__, __LINE__, 0 ); \
+				generateAssert( exceptionHandler, #expr, __UNICODEFILE__, __LINE__, 0 ); \
 			} else { \
 				throw std::logic_error( #expr ); \
 			} \
