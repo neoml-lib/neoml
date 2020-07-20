@@ -319,8 +319,10 @@ bool CDnnModelWrapper::classify( CClassificationResult& result ) const
 		NeoAssert(resultBlob->GetObjectSize() == 1);
 
 		// Use a sigmoid function to estimate probabilities
-		result.Probabilities[0] = CClassificationProbability(1 / (1 + exp( resultBlob->GetData().GetValue() )));
-		result.Probabilities[1] = CClassificationProbability(1 - result.Probabilities[0].GetValue());
+		const float zeroClassProb = 1 / (1 + exp(resultBlob->GetData().GetValue()));
+		result.Probabilities[0] = CClassificationProbability(zeroClassProb);
+		result.Probabilities[1] = CClassificationProbability(1 - zeroClassProb);
+		result.PreferredClass = zeroClassProb >= 0.5f ? 0 : 1;
 	} else {
 		NeoAssert(resultBlob->GetObjectSize() == ClassCount);
 

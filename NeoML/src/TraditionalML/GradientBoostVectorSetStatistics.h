@@ -22,6 +22,7 @@ class CGradientBoostVectorSetStatistics {
 public:
 	CGradientBoostVectorSetStatistics();
 	explicit CGradientBoostVectorSetStatistics( const CGradientBoostVectorSetStatistics& other );
+	CGradientBoostVectorSetStatistics& operator=( const CGradientBoostVectorSetStatistics& other );
 
 	// Adds a vector
 	void Add( double gradient, double hessian, float weight );
@@ -64,6 +65,16 @@ inline CGradientBoostVectorSetStatistics::CGradientBoostVectorSetStatistics( con
 	totalHessian( other.totalHessian ),
 	totalWeight( other.totalWeight )
 {
+}
+
+inline CGradientBoostVectorSetStatistics& CGradientBoostVectorSetStatistics::operator=( const CGradientBoostVectorSetStatistics& other )
+{
+	if( &other != this ) {
+		totalGradient = other.totalGradient;
+		totalHessian = other.totalHessian;
+		totalWeight = other.totalWeight;
+	}
+	return *this;
 }
 
 inline void CGradientBoostVectorSetStatistics::Add( double gradient, double hessian, float weight )
