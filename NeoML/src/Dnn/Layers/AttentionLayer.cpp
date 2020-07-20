@@ -165,10 +165,9 @@ void CAttentionSumLayer::BackwardOnce()
 //---------------------------------------------------------------------------------------------------------------------
 
 CAttentionDecoderLayer::CAttentionDecoderLayer( IMathEngine& mathEngine ) :
-	CCompositeLayer( mathEngine ),
+	CCompositeLayer( mathEngine, "CCnnAttentionDecoderLayer" ),
 	score(AS_Additive)
 {
-	SetName( "CCnnAttentionDecoderLayer" );
 	buildLayer();
 }
 
@@ -282,11 +281,10 @@ void CAttentionDecoderLayer::buildLayer()
 const CString CAttentionRecurrentLayer::hiddenLayerName = "hiddenFullyConnectedLayer";
 
 CAttentionRecurrentLayer::CAttentionRecurrentLayer( IMathEngine& mathEngine ) :
-	CRecurrentLayer( mathEngine ),
+	CRecurrentLayer( mathEngine, "CCnnAttentionRecurrentLayer" ),
 	score( AS_Additive )
 {
 	buildLayer();
-	SetName( "CCnnAttentionRecurrentLayer" );
 }
 
 void CAttentionRecurrentLayer::SetAttentionScore( TAttentionScore newScore )
@@ -482,11 +480,10 @@ void CAttentionRecurrentLayer::buildLayer()
 //---------------------------------------------------------------------------------------------------------------------
 
 CAttentionLayer::CAttentionLayer( IMathEngine& mathEngine ) :
-	CCompositeLayer( mathEngine ),
+	CCompositeLayer( mathEngine, "CCnnAttentionLayer" ),
 	score(AS_Additive),
 	tanhFc(0)
 {
-	SetName( "CCnnAttentionLayer" );
 	buildLayer();
 }
 

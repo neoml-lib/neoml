@@ -256,9 +256,8 @@ void CCrfInternalLossLayer::Serialize( CArchive& archive )
 // CCrfLossLayer
 
 CCrfLossLayer::CCrfLossLayer( IMathEngine& mathEngine ) :
-	CCompositeLayer( mathEngine )
+	CCompositeLayer( mathEngine, "CCnnCrfLossLayer" )
 {
-	SetName("CCnnCrfLossLayer");
 	buildLayer();
 }
 
@@ -301,9 +300,8 @@ void CCrfLossLayer::Serialize( CArchive& archive )
 ///////////////////////////////////////////////////////////////////////////////////
 
 CCrfLayer::CCrfLayer( IMathEngine& mathEngine ) :
-	CRecurrentLayer( mathEngine )
+	CRecurrentLayer( mathEngine, "CCnnCrfLayer" )
 {
-	SetName("CCnnCrfLayer");
 	buildLayer(0.f);
 }
 

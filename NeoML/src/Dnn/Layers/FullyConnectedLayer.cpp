@@ -21,8 +21,8 @@ limitations under the License.
 
 namespace NeoML {
 
-CFullyConnectedLayer::CFullyConnectedLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnFullyConnectedLayer", true ),
+CFullyConnectedLayer::CFullyConnectedLayer( IMathEngine& mathEngine, const char* name ) :
+	CBaseLayer( mathEngine, name == nullptr ? "CCnnFullyConnectedLayer" : name, true ),
 	numberOfElements(0),
 	isZeroFreeTerm(false)
 {
