@@ -136,7 +136,7 @@ if( !( expr ) ) { \
 
 #define AssertFO( expr ) \
 if( !( expr ) ) { \
-FObj::GenerateInternalError( IET_Assert, "", "", __FILE__, __LINE__, 0 ); \
+	FObj::GenerateInternalError( IET_Assert, "", "", __UNICODEFILE__, __LINE__, 0 ); \
 }
 
 // PresumeFO is turned off for Release version
