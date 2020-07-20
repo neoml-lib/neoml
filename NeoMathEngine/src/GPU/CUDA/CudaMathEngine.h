@@ -460,7 +460,7 @@ private:
 	std::unique_ptr<CHostStackAllocator> hostStackRunTime; // regular memory stack allocator
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
-	void generateAssert( IMathEngineExceptionHandler* exceptionHandler, const char* expr, const char* file, int line, int errorCode );
+	void generateAssert( IMathEngineExceptionHandler* exceptionHandler, const char* expr, const wchar_t* file, int line, int errorCode );
 	void generateMemoryError( IMathEngineExceptionHandler* exceptionHandler );
 	CCudaDevice* captureCudaDevice( int deviceNumber, size_t memoryLimit );
 	CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t memoryLimit, bool reuseDevice );
