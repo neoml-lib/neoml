@@ -147,7 +147,7 @@ static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceM
 
 	int capturedSlotCount = 0;
 	for( int i = 0; capturedSlotCount < slotCount && i < CUDA_DEV_SLOT_COUNT; ++i ) {
-		result->Handles[i] = CaptureDeviceSlot(result->DeviceId, i, false);
+		result->Handles[i] = CaptureDeviceSlot(result->DeviceId, i);
 		if( result->Handles[i] != nullptr ) {
 			++capturedSlotCount;
 		}

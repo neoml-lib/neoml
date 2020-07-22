@@ -49,7 +49,7 @@ bool IsDeviceSlotFree( int deviceId, int slotIndex );
 // Captures slot and returns it's hadnle.
 // Handle must be released after work (ReleaseDeviceSlot).
 // Returns nullptr if slot is busy.
-void* CaptureDeviceSlot( int deviceId, int slotIndex, bool reuse );
+void* CaptureDeviceSlot( int deviceId, int slotIndex );
 
 // Releases device slot.
 void ReleaseDeviceSlot( void* slot, int deviceId, int slotIndex );
