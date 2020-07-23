@@ -20,6 +20,10 @@ limitations under the License.
 
 #include <mutex>
 
+#ifdef NEOML_USE_CUDA
+#include <GPU/CUDA/CudaDevice.h>
+#endif
+
 namespace NeoML {
 
 #ifdef NEOML_USE_CUDA
@@ -73,6 +77,7 @@ int CDllLoader::Load( int dll )
 			} else {
 				result |= CUDA_DLL;
 				cudaDllLinkCount++;
+				RegisterCudaDeviceHandler();
 			}
 		}
 #endif
@@ -101,6 +106,7 @@ void CDllLoader::Free( int dll )
 				cusparseDll = nullptr;
 				delete cublasDll;
 				cublasDll = nullptr;
+				UnregisterCudaDeviceHandler();
 			}
 		}
 #endif

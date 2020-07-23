@@ -79,6 +79,10 @@ CCudaDevice::~CCudaDevice()
 
 #if FINE_PLATFORM(FINE_WINDOWS)
 
+void RegisterCudaDeviceHandler() {}
+
+void UnregisterCudaDeviceHandler() {}
+
 static std::string getCudaMutexName(int devNum, int slotNum)
 {
 	std::stringstream ss;
@@ -125,30 +129,25 @@ static struct sigaction prevSigAbrtHandler;
 // Handler for signal
 static void sigHandler( int sigNum )
 {
-	// Destroying all of the semaphores.
+	// Destroying all of the semaphores
 	for( auto& sem : usedSems ) {
 		::sem_unlink( sem.c_str() );
 	}
+	usedSems.empty();
 
-	// Switching to previous handler.
+	// Switching to previous handler
 	::sigaction( SIGINT, &prevSigIntHandler, nullptr );
 	::sigaction( SIGABRT, &prevSigAbrtHandler, nullptr );
-	// Raising signal for previous handler.
+	// Raising signal for previous handler
 	::raise( sigNum );
 }
 
-// Register signal handler (if it wasn't set previously).
-static void registerSigIntHandler()
+// Register signal handler (if it wasn't set previously)
+void RegisterCudaDeviceHandler()
 {
-	// Duplication in order to avoid lock if already registered.
-	// We can do this because this flag can be set to true, but can't be set back to false.
-	if( isHandlerRegistered ) {
-		return;
-	}
-
 	std::lock_guard<std::mutex> lock( signalMutex );
 	if( isHandlerRegistered ) {
-		// Already registered.
+		// Already registered
 		return;
 	}
 
@@ -161,6 +160,21 @@ static void registerSigIntHandler()
 	ASSERT_ERROR_CODE( ::sigaction( SIGABRT, &sa, &prevSigAbrtHandler ) );
 
 	isHandlerRegistered = true;
+}
+
+// Unregister signal handler (if it was set previously)
+void UnregisterCudaDeviceHandler()
+{
+	std::lock_guard<std::mutex> lock( signalMutex );
+	if( !isHandlerRegistered ) {
+		// Already unregistered
+		return;
+	}
+
+	ASSERT_ERROR_CODE( ::sigaction( SIGINT, &prevSigIntHandler, nullptr ) );
+	ASSERT_ERROR_CODE( ::sigaction( SIGABRT, &prevSigAbrtHandler, nullptr ) );
+
+	isHandlerRegistered = false;
 }
 
 static std::string getCudaMutexName(int devNum, int slotNum)
@@ -184,7 +198,6 @@ static void removeAcquiredSem( const std::string& name )
 
 bool IsDeviceSlotFree( int deviceId, int slotIndex )
 {
-	registerSigIntHandler();
 	const std::string name = getCudaMutexName(deviceId, slotIndex);
 	sem_t* semaphore = ::sem_open( name.c_str(), O_CREAT, 0666, semInitValue );
 	if( semaphore != nullptr ) {
@@ -195,7 +208,7 @@ bool IsDeviceSlotFree( int deviceId, int slotIndex )
 		isFree = ( value == semInitValue );
 		::sem_close( semaphore );
 		if( isFree ) {
-			// Semaphore was free, removing it from the system.
+			// Semaphore was free, removing it from the system
 			::sem_unlink( name.c_str() );
 		}
 		return isFree;
@@ -205,7 +218,6 @@ bool IsDeviceSlotFree( int deviceId, int slotIndex )
 
 void* CaptureDeviceSlot( int deviceId, int slotIndex )
 {
-	registerSigIntHandler();
 	const std::string name = getCudaMutexName(deviceId, slotIndex);
 	sem_t* semaphore = ::sem_open( name.c_str(), O_CREAT, 0666, semInitValue );
 	if( semaphore != nullptr ) {
@@ -233,7 +245,8 @@ void ReleaseDeviceSlot( void* slot, int deviceId, int slotIndex )
 	ASSERT_EXPR( ::sem_getvalue( semaphore, &value ) == 0 );
 	::sem_close( semaphore );
 	if( value == semInitValue ) {
-		// That was last sem_close. Removing semaphore from the system.
+		// That was last sem_close
+		// Removing semaphore from the system
 		const std::string name = getCudaMutexName(deviceId, slotIndex);
 		::sem_unlink( name.c_str() );
 		removeAcquiredSem( name );

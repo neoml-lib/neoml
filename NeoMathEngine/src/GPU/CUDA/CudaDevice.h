@@ -43,16 +43,22 @@ struct CCudaDevice : public CCrtAllocatedObject {
 	~CCudaDevice();
 };
 
-// Checks if device slot is free.
+// Checks if device slot is free
 bool IsDeviceSlotFree( int deviceId, int slotIndex );
 
-// Captures slot and returns it's hadnle.
-// Handle must be released after work (ReleaseDeviceSlot).
-// Returns nullptr if slot is busy.
+// Captures slot and returns it's hadnle
+// Handle must be released after work (ReleaseDeviceSlot)
+// Returns nullptr if slot is busy
 void* CaptureDeviceSlot( int deviceId, int slotIndex );
 
-// Releases device slot.
+// Releases device slot
 void ReleaseDeviceSlot( void* slot, int deviceId, int slotIndex );
+
+// Registers special handlers for correct work with CUDA devices
+void RegisterCudaDeviceHandler();
+
+// Unregisters special handlers for correct work with CUDA devices
+void UnregisterCudaDeviceHandler();
 
 } // namespace NeoML
 
