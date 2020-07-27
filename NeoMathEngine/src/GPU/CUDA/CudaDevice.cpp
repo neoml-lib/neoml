@@ -24,6 +24,9 @@ limitations under the License.
 #include <MathEngineAllocator.h>
 #include <MathEngineCommon.h>
 
+#include <memory>
+#include <string>
+
 #if FINE_PLATFORM(FINE_LINUX)
 #include <unistd.h>
 #include <sys/types.h>
@@ -94,21 +97,21 @@ void* CaptureDeviceSlots( int deviceId, int slotCount )
 
 	for( int slotIndex = 0; slotIndex < CUDA_DEV_SLOT_COUNT; ++slotIndex ) {
 		void* handle = ::CreateMutexA( 0, FALSE, getCudaMutexName(deviceId, slotIndex).c_str() );
-		if( handle != nullptr && GetLastError() == ERROR_ALREADY_EXISTS ) {
-			// Reusing slots is not allowed.
-			::CloseHandle( handle );
-		}
 		if( handle != nullptr ) {
-			result->push_back( handle );
-			if( static_cast<int>( result->size() ) == slotCount ) {
-				return result.reelase();
+			if( GetLastError() == ERROR_ALREADY_EXISTS ) {
+				// Reusing slots is not allowed.
+				::CloseHandle( handle );
+			} else {
+				result->push_back( handle );
+				if( static_cast<int>( result->size() ) == slotCount ) {
+					return result.release();
+				}
 			}
 		}
 	}
 
-	ASSERT_EXPT( static_cast<int>( result->size() ) < slotCount );
 	for( size_t handleIndex = 0; handleIndex < result->size(); ++handleIndex ) {
-		::CloseHandle( ( *handles )[handleIndex] );
+		::CloseHandle( ( *result )[handleIndex] );
 	}
 	return nullptr;
 }
@@ -116,7 +119,7 @@ void* CaptureDeviceSlots( int deviceId, int slotCount )
 void ReleaseDeviceSlots( void* handle )
 {
 	CSlotsHandle* handles = static_cast<CSlotsHandle*>( handle );
-	for( size_t handleIndex = 0; handleIndex < static_cast<inresult->size(); ++handleIndex ) {
+	for( size_t handleIndex = 0; handleIndex < handles->size(); ++handleIndex ) {
 		::CloseHandle( ( *handles )[handleIndex] );
 	}
 	delete handles;
