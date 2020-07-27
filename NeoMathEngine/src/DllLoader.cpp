@@ -20,10 +20,6 @@ limitations under the License.
 
 #include <mutex>
 
-#ifdef NEOML_USE_CUDA
-#include <GPU/CUDA/CudaDevice.h>
-#endif
-
 namespace NeoML {
 
 #ifdef NEOML_USE_CUDA
