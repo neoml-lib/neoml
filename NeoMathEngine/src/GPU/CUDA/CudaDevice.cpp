@@ -297,6 +297,12 @@ bool CDeviceFile::IsSlotFree( int slotIndex )
 			// that pid was reused and the original process has already finished.
 			result = ( actualStartTime != storedStartTime );
 		}
+
+		if( result ) {
+			// Current entry contains pid and start time of finished process.
+			// Let's fill it with zeroes in order to avoid double check of these values.
+			ReleaseSlot( slotIndex );
+		}
 	} else {
 		// Slot is filled with zeroes. That means its free.
 		result = true;
