@@ -77,7 +77,6 @@ int CDllLoader::Load( int dll )
 			} else {
 				result |= CUDA_DLL;
 				cudaDllLinkCount++;
-				RegisterCudaDeviceHandler();
 			}
 		}
 #endif
@@ -106,7 +105,6 @@ void CDllLoader::Free( int dll )
 				cusparseDll = nullptr;
 				delete cublasDll;
 				cublasDll = nullptr;
-				UnregisterCudaDeviceHandler();
 			}
 		}
 #endif

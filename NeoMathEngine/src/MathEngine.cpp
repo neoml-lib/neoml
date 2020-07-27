@@ -138,27 +138,24 @@ struct CCudaDevUsage {
 
 static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
 {
-	CCudaDevice* result = new CCudaDevice( deviceNumber, deviceMemoryLimit );
-
 	cudaDeviceProp devProp;
 	ASSERT_ERROR_CODE( cudaGetDeviceProperties(&devProp, deviceNumber) );
+
+	if( deviceMemoryLimit <= 0 ) {
+		deviceMemoryLimit = devProp.totalGlobalMem;
+	} else if( deviceMemoryLimit > devProp.totalGlobalMem ) {
+		return nullptr;
+	}
+
 	size_t slotSize = devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT;
-	int slotCount = static_cast<int>( ( result->MemoryLimit + slotSize - 1 ) / slotSize );
+	int slotCount = static_cast<int>( ( deviceMemoryLimit + slotSize - 1 ) / slotSize );
+	void* handle = CaptureDeviceSlots( devProp.pciBusID, slotCount );
 
-	int capturedSlotCount = 0;
-	for( int i = 0; capturedSlotCount < slotCount && i < CUDA_DEV_SLOT_COUNT; ++i ) {
-		result->Handles[i] = CaptureDeviceSlot(result->DeviceId, i);
-		if( result->Handles[i] != nullptr ) {
-			++capturedSlotCount;
-		}
+	if( handle == nullptr ) {
+		return nullptr;
 	}
 
-	if( capturedSlotCount < slotCount ) {
-		delete result;
-		return 0;
-	}
-
-	return result;
+	return new CCudaDevice( deviceNumber, deviceMemoryLimit, handle );
 }
 
 // Captures the CUDA device
@@ -179,12 +176,7 @@ static CCudaDevice* captureCudaDevice( int deviceNumber, size_t deviceMemoryLimi
 
 		CCudaDevUsage dev;
 		dev.DevNum = i;
-		dev.Usage = 0;
-		for( int j = 0; j < CUDA_DEV_SLOT_COUNT; ++j ) {
-			if( !IsDeviceSlotFree( devProp.pciBusID, j ) ) {
-				++dev.Usage;
-			}
-		}
+		dev.Usage = GetDeviceUsage( devProp.pciBusID ) ;
 		devs.push_back(dev);
 	}
 	// Sort the devices in order of increasing load
