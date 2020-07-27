@@ -221,6 +221,7 @@ CDeviceFile::~CDeviceFile()
 	if( fd != -1 ) {
 		::flock( fd, LOCK_UN );
 		mutex.unlock();
+		::close( fd );
 	}
 }
 
