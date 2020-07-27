@@ -214,7 +214,7 @@ void CVulkanMathEngine::DataExchangeRaw( const CMemoryHandle& to, const void* fr
 
 		if( size <= VulkanMaxExchangeAsyncSize ) {
 			// We can write the data asynchronously
-			commandQueue->RunUpdateBuffer( vulkanMemory->Buffer, vulkanOffset, fromPtr, size );
+			commandQueue->RunUpdateBuffer( vulkanMemory->Buffer(), vulkanOffset, fromPtr, size );
 			break;
 		}
 
@@ -225,11 +225,27 @@ void CVulkanMathEngine::DataExchangeRaw( const CMemoryHandle& to, const void* fr
 			toCopy = VulkanExchangeBufferSize;
 		}
 
-		void* mappedData = 0;
-		vkSucceded( device->vkMapMemory( device->Handle, vulkanMemory->Memory, vulkanOffset, toCopy, 0, &mappedData ) );
-		memcpy( mappedData, fromPtr, toCopy );
-		device->vkUnmapMemory( device->Handle, vulkanMemory->Memory );
+		if( vulkanMemory->HostVisible() ) { 			
+			void* mappedData = nullptr;
+			vkSucceded( device->vkMapMemory( device->Handle, vulkanMemory->Memory(), vulkanOffset, toCopy, 0, &mappedData ) );
+			memcpy( mappedData, fromPtr, toCopy );
+			device->vkUnmapMemory( device->Handle, vulkanMemory->Memory() );
+		} else {
+			CVulkanMemory stagingMemory( *device, toCopy, VK_BUFFER_USAGE_TRANSFER_SRC_BIT );
+			
+			void* mappedData = nullptr;
+			vkSucceded( device->vkMapMemory( device->Handle, stagingMemory.Memory(), 0, toCopy, 0, &mappedData ) );
+			memcpy(mappedData, fromPtr, toCopy);
+			device->vkUnmapMemory(device->Handle, stagingMemory.Memory() );
 
+			VkBufferCopy copyRegion{};
+			copyRegion.srcOffset = 0;
+			copyRegion.dstOffset = vulkanOffset;
+			copyRegion.size = toCopy;
+
+			commandQueue->RunCopyBuffer( stagingMemory.Buffer(), vulkanMemory->Buffer(), copyRegion );
+			commandQueue->Wait();
+		}
 		size -= toCopy;
 		toPtr += toCopy;
 		fromPtr += toCopy;
@@ -255,10 +271,28 @@ void CVulkanMathEngine::DataExchangeRaw( void* to, const CMemoryHandle& from, si
 
 		commandQueue->Wait(); // wait for the data to be written into the exchange buffer
 
-		void* mappedData = 0;
-		vkSucceded( device->vkMapMemory( device->Handle, vulkanMemory->Memory, vulkanOffset, toCopy, 0, &mappedData ) );
-		memcpy( toPtr, mappedData, toCopy );
-		device->vkUnmapMemory( device->Handle, vulkanMemory->Memory );
+		if( vulkanMemory->HostVisible() ) {
+			void* mappedData = nullptr;
+			vkSucceded(device->vkMapMemory(device->Handle, vulkanMemory->Memory(), vulkanOffset, toCopy, 0, &mappedData));
+			memcpy(toPtr, mappedData, toCopy);
+			device->vkUnmapMemory(device->Handle, vulkanMemory->Memory() );
+		}
+		else {
+			CVulkanMemory stagingMemory( *device, toCopy, VK_BUFFER_USAGE_TRANSFER_DST_BIT );
+
+			VkBufferCopy copyRegion{};
+			copyRegion.srcOffset = vulkanOffset;
+			copyRegion.dstOffset = 0;
+			copyRegion.size = toCopy;
+
+			commandQueue->RunCopyBuffer( vulkanMemory->Buffer(), stagingMemory.Buffer(), copyRegion );
+			commandQueue->Wait();
+
+			void* mappedData = nullptr;
+			vkSucceded( device->vkMapMemory( device->Handle, stagingMemory.Memory(), 0, toCopy, 0, &mappedData ) );
+			memcpy( toPtr, mappedData, toCopy );
+			device->vkUnmapMemory(device->Handle, stagingMemory.Memory() );
+		}
 
 		size -= toCopy;
 		fromPtr += toCopy;
@@ -280,51 +314,23 @@ CMemoryHandle CVulkanMathEngine::CopyFrom( const CMemoryHandle& handle, size_t s
 	return result;
 }
 
+
 CMemoryHandle CVulkanMathEngine::Alloc( size_t size )
 {
-	std::unique_ptr<CVulkanMemory> vulkanMemory( new CVulkanMemory );
+	try {
+		VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | 
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT | 
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		VkMemoryPropertyFlags properties = device->Type != VDT_Nvidia ?
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : 
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		auto vulkanMemory = new CVulkanMemory( *device, size, usage, properties ); 
 
-	VkBufferCreateInfo createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	createInfo.size = size;
-	createInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	VkBuffer buffer = 0;
-	vkSucceded( device->vkCreateBuffer( device->Handle, &createInfo, 0, &buffer ) );
-
-	VkMemoryRequirements req = {};
-	device->vkGetBufferMemoryRequirements( device->Handle, buffer, &req );
-
-	VkMemoryAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = req.size;
-
-	// Look for the suitable index in memory
-	bool isFound = false;
-	const int flags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-
-	for( int i = 0; i < (int)device->MemoryProperties.memoryTypeCount; ++i ) {
-		if((req.memoryTypeBits & (1 << i)) != 0 &&
-			(int)(device->MemoryProperties.memoryTypes[i].propertyFlags & flags) == flags) {
-			allocInfo.memoryTypeIndex = i;
-			isFound = true;
-			break;
-		}
+		return CMemoryHandleInternal::CreateMemoryHandle( &mathEngine(), vulkanMemory );
 	}
-	assert(isFound);
-
-	VkDeviceMemory memory;
-	if( device->vkAllocateMemory( device->Handle, &allocInfo, 0, &memory ) != VK_SUCCESS ) {
-		device->vkDestroyBuffer( device->Handle, buffer, 0 );
+	catch( std::runtime_error& ) {
 		return CMemoryHandle();
 	}
-
-	vkSucceded( device->vkBindBufferMemory( device->Handle, buffer, memory, 0 ) );
-
-	vulkanMemory->Buffer = buffer;
-	vulkanMemory->Memory = memory;
-	return CMemoryHandleInternal::CreateMemoryHandle( &mathEngine(), vulkanMemory.release() );
 }
 
 void CVulkanMathEngine::Free( const CMemoryHandle& handle )
@@ -334,9 +340,7 @@ void CVulkanMathEngine::Free( const CMemoryHandle& handle )
 	// Make sure that the memory we are about to clean is not used
 	commandQueue->Wait();
 
-	CVulkanMemory* vulkanMemory = GetRawAllocation(handle);
-	device->vkFreeMemory( device->Handle, vulkanMemory->Memory, 0 );
-	device->vkDestroyBuffer( device->Handle, vulkanMemory->Buffer, 0 );
+	CVulkanMemory* vulkanMemory = GetRawAllocation( handle );
 	delete vulkanMemory;
 }
 

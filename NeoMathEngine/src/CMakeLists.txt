@@ -271,8 +271,11 @@ if(WIN32 OR LINUX OR ANDROID)
         target_sources(${PROJECT_NAME}
             PRIVATE
                 GPU/Vulkan/VulkanCommandQueue.cpp
+                GPU/Vulkan/VulkanCommandQueue.h
                 GPU/Vulkan/VulkanDll.cpp
+                GPU/Vulkan/VulkanDll.h
                 GPU/Vulkan/VulkanImage.cpp
+                GPU/Vulkan/VulkanImage.h
                 GPU/Vulkan/VulkanMathEngineBlas.cpp
                 GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
                 GPU/Vulkan/VulkanMathEngineDnn.cpp
@@ -280,6 +283,9 @@ if(WIN32 OR LINUX OR ANDROID)
                 GPU/Vulkan/VulkanMathEngine.cpp
                 GPU/Vulkan/VulkanMathEngineVectorMath.cpp
                 GPU/Vulkan/VulkanShader.cpp
+                GPU/Vulkan/VulkanShader.h
+                GPU/Vulkan/VulkanMemory.cpp
+                GPU/Vulkan/VulkanMemory.h
         )
         
         add_subdirectory(GPU/Vulkan/shaders)

@@ -92,7 +92,7 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 	// The zero binding always contains the parameters of the call
 	for( int i = 0; i < dataBufferCount; ++i ) {
 		VkDescriptorBufferInfo descBufferInfo = {};
-		descBufferInfo.buffer = GetRawAllocation( dataBuffers[i] )->Buffer;
+		descBufferInfo.buffer = GetRawAllocation( dataBuffers[i] )->Buffer();
 		descBufferInfo.offset = GetRawOffset( dataBuffers[i] );
 		descBufferInfo.range = dataSizes[i];
 

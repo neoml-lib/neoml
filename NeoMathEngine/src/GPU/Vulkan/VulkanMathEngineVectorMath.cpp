@@ -111,10 +111,10 @@ void CVulkanMathEngine::VectorFill( const CFloatHandle& result, float value, int
 	*((float*)(&data)) = value;
 	size_t size = vectorSize * sizeof( float );
 
-	CVulkanMemory* vulkanMemory = GetRawAllocation(result);
+	CVulkanMemory* vulkanMemory = GetRawAllocation( result );
 
 	std::lock_guard<std::mutex> lock( mutex );
-	commandQueue->RunFillBuffer( vulkanMemory->Buffer, GetRawOffset(result), size, data );
+	commandQueue->RunFillBuffer( vulkanMemory->Buffer(), GetRawOffset( result ), size, data );
 }
 
 void CVulkanMathEngine::VectorFill( const CIntHandle& result, int value, int vectorSize )
@@ -125,7 +125,7 @@ void CVulkanMathEngine::VectorFill( const CIntHandle& result, int value, int vec
 	CVulkanMemory* vulkanMemory = reinterpret_cast<CVulkanMemory*>( GetRawAllocation(result) );
 
 	std::lock_guard<std::mutex> lock( mutex );
-	commandQueue->RunFillBuffer( vulkanMemory->Buffer, GetRawOffset(result), size, data );
+	commandQueue->RunFillBuffer( vulkanMemory->Buffer(), GetRawOffset(result), size, data );
 }
 
 void CVulkanMathEngine::VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value)
@@ -140,7 +140,7 @@ void CVulkanMathEngine::VectorFill(const CFloatHandle& result, int vectorSize, c
 void CVulkanMathEngine::VectorFill(const CIntHandle& result, int vectorSize, const CConstIntHandle& value)
 {
 	CMemoryHandle bufs[2] = { value, result };
-	size_t sizes[2] = { sizeof(int), vectorSize * sizeof(int) };
+	size_t sizes[2] = { sizeof( int ), vectorSize * sizeof( int ) };
 
 	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorFillScalar, false, 0, 0, 2),
 		0, 0, 0, 0, 0, 0, bufs, sizes, 2, Ceil(vectorSize, VectorCombine) );
@@ -174,7 +174,7 @@ void CVulkanMathEngine::VectorCopy( const CFloatHandle& to, const CConstFloatHan
 	CVulkanMemory* vulkanMemoryTo = GetRawAllocation(to);
 
 	std::lock_guard<std::mutex> lock( mutex );
-	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer, vulkanMemoryTo->Buffer, region );
+	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer(), vulkanMemoryTo->Buffer(), region );
 }
 
 void CVulkanMathEngine::VectorCopy(const CIntHandle& to, const CConstIntHandle& from, int vectorSize)
@@ -188,7 +188,7 @@ void CVulkanMathEngine::VectorCopy(const CIntHandle& to, const CConstIntHandle& 
 	CVulkanMemory* vulkanMemoryTo = GetRawAllocation(to);
 
 	std::lock_guard<std::mutex> lock( mutex );
-	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer, vulkanMemoryTo->Buffer, region );
+	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer(), vulkanMemoryTo->Buffer(), region );
 }
 
 void CVulkanMathEngine::VectorELU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,

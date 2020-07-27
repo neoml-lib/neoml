@@ -155,7 +155,7 @@ bool CVulkanDeviceImpl::CreateDevice( PFN_vkCreateDevice vkCreateDevice, PFN_vkG
 	}
 
 	Family = info.Family;
-	if (info.Type == VDT_MaliBifrost || info.Type == VDT_Nvidia || info.Type != VDT_Intel) {
+	if (info.Type == VDT_MaliBifrost || info.Type == VDT_Nvidia || info.Type == VDT_Intel) {
 		IsImageBased = false;
 	} else {
 		IsImageBased = true;
