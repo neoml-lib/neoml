@@ -35,11 +35,10 @@ const int VulkanAdrenoRegularThreadCount1D = 64;
 const int VulkanAdrenoRegularThreadCount2D_X = 8;
 const int VulkanAdrenoRegularThreadCount2D_Y = 8;
 
-CVulkanShaderLoader::CVulkanShaderLoader( CVulkanDevice& vulkanDevice ) :
-	device( vulkanDevice )
-{
-	shaders.insert( shaders.begin(), SH_Count, 0 );
-}
+CVulkanShaderLoader::CVulkanShaderLoader( const CVulkanDevice& vulkanDevice ) :
+	device( vulkanDevice ),
+	shaders( SH_Count, nullptr)
+{}
 
 CVulkanShaderLoader::~CVulkanShaderLoader()
 {
@@ -49,16 +48,16 @@ CVulkanShaderLoader::~CVulkanShaderLoader()
 		}
 
 		if( shaders[i]->Module != VK_NULL_HANDLE ) {
-			device.vkDestroyShaderModule( device.Handle, shaders[i]->Module, 0 );
+			device.vkDestroyShaderModule( shaders[i]->Module, 0 );
 		}
 		if( shaders[i]->Pipeline != VK_NULL_HANDLE ) {
-			device.vkDestroyPipeline( device.Handle, shaders[i]->Pipeline, 0 );
+			device.vkDestroyPipeline( shaders[i]->Pipeline, 0 );
 		}
 		if( shaders[i]->Layout != VK_NULL_HANDLE ) {
-			device.vkDestroyPipelineLayout( device.Handle, shaders[i]->Layout, 0 );
+			device.vkDestroyPipelineLayout( shaders[i]->Layout, 0 );
 		}
 		if( shaders[i]->DescLayout != VK_NULL_HANDLE ) {
-			device.vkDestroyDescriptorSetLayout( device.Handle, shaders[i]->DescLayout, 0 );
+			device.vkDestroyDescriptorSetLayout( shaders[i]->DescLayout, 0 );
 		}
 
 		delete shaders[i];
@@ -77,14 +76,14 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 		// Create the shader data
 		shaders[id] = new CVulkanShaderData();
 
-		shaders[id]->IsImageBased = isIB && device.IsImageBased;
+		shaders[id]->IsImageBased = isIB && device.IsImageBased();
 
 		VkShaderModuleCreateInfo shaderInfo = {};
 		shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 		shaderInfo.pCode = code;
 		shaderInfo.codeSize = codeLen;
 
-		vkSucceded( device.vkCreateShaderModule( device.Handle, &shaderInfo, 0, &shaders[id]->Module ) );
+		vkSucceded( device.vkCreateShaderModule( &shaderInfo, 0, &shaders[id]->Module ) );
 
 		std::vector< VkDescriptorSetLayoutBinding, CrtAllocator<VkDescriptorSetLayoutBinding> > bindingInfo;
 
@@ -120,7 +119,7 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 		descInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		descInfo.bindingCount = static_cast<int>( bindingInfo.size() );
 		descInfo.pBindings = bindingInfo.data();
-		vkSucceded( device.vkCreateDescriptorSetLayout( device.Handle, &descInfo, 0, &shaders[id]->DescLayout ) );
+		vkSucceded( device.vkCreateDescriptorSetLayout( &descInfo, 0, &shaders[id]->DescLayout ) );
 
 		VkPipelineLayoutCreateInfo layoutInfo = {};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -135,7 +134,7 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 			layoutInfo.pPushConstantRanges = &pushConstantRange;
 		}
 
-		vkSucceded( device.vkCreatePipelineLayout( device.Handle, &layoutInfo, 0, &shaders[id]->Layout ) );
+		vkSucceded( device.vkCreatePipelineLayout( &layoutInfo, 0, &shaders[id]->Layout ) );
 
 		int threadGroupSizeX;
 		int threadGroupSizeY;
@@ -176,7 +175,7 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 		pipelineInfo.stage = pipelineShaderStageCreateInfo;
 		pipelineInfo.layout = shaders[id]->Layout;
-		vkSucceded( device.vkCreateComputePipelines( device.Handle, VK_NULL_HANDLE, 1, &pipelineInfo, 0, &shaders[id]->Pipeline ) );
+		vkSucceded( device.vkCreateComputePipelines( VK_NULL_HANDLE, 1, &pipelineInfo, 0, &shaders[id]->Pipeline ) );
 
 		shaders[id]->GroupSizeX = threadGroupSizeX;
 		shaders[id]->GroupSizeY = threadGroupSizeY;
@@ -195,7 +194,7 @@ void CVulkanShaderLoader::calculateThreadGroupSize(int dimensions,
 	switch( dimensions ) {
 		case 1: {
 			threadGroupSizeX = 
-				( device.Type == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount1D : VulkanAdrenoRegularThreadCount1D;
+				( device.Type() == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount1D : VulkanAdrenoRegularThreadCount1D;
 			threadGroupSizeY = 1;
 			threadGroupSizeZ = 1;
 			break;
@@ -203,9 +202,9 @@ void CVulkanShaderLoader::calculateThreadGroupSize(int dimensions,
 		case 2:
 		case 3: {
 			threadGroupSizeX = 
-				( device.Type == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount2D_X : VulkanAdrenoRegularThreadCount2D_X;
+				( device.Type() == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount2D_X : VulkanAdrenoRegularThreadCount2D_X;
 			threadGroupSizeY = 
-				( device.Type == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount2D_Y : VulkanAdrenoRegularThreadCount2D_Y;
+				( device.Type() == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount2D_Y : VulkanAdrenoRegularThreadCount2D_Y;
 			threadGroupSizeZ = 1;
 			break;
 		}

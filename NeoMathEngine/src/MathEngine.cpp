@@ -149,7 +149,14 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 #endif
 #ifdef NEOML_USE_VULKAN
 	case MET_Vulkan:
-		return new CVulkanMathEngine( index >= 0 ? info[index].Id : 0, memoryLimit );
+	{
+		const auto& deviceInfo = loader.vulkanDll->GetDevices()[index >= 0 ? info[index].Id : 0];
+		std::unique_ptr<const CVulkanDevice> device (loader.vulkanDll->CreateDevice( deviceInfo ) );
+		if( !device ) {
+			return nullptr;
+		}
+		return new CVulkanMathEngine( device, memoryLimit );
+	}
 #endif
 #ifdef NEOML_USE_METAL
 	case MET_Metal:

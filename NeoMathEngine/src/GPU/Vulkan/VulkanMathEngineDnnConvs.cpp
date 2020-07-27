@@ -53,15 +53,6 @@ namespace NeoML {
 #include <shaders/generated/BlobConvertFromRLE.h>
 #include <shaders/generated/BlobTimeConvolutionPrepare.h>
 
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
-
 //------------------------------------------------------------------------------------------------------------
 // RLE convolution
 
@@ -385,7 +376,7 @@ void CVulkanMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 		&& desc.StrideHeight == 1 && desc.StrideWidth == 1
 		&& desc.DilationHeight == 1 && desc.DilationWidth == 1 )
 	{
-		if( device->Type == VDT_Adreno ) {
+		if( device->Type() == VDT_Adreno ) {
 			blobConvolution3x3s1d1Adreno( desc, sourceData, filterData, freeTermData, resultData );
 			return;
 		} else {
@@ -397,7 +388,7 @@ void CVulkanMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 	int totalChannels = result.Depth() * result.Channels();
 	int channels8 = totalChannels / 8;
 
-	if( device->Type == VDT_Adreno ) {
+	if( device->Type() == VDT_Adreno ) {
 		int sourceChannelGroupSize = 0;
 		prepareBlobForConvolutionAdreno( source, sourceData, TVI_ConvSource, sourceChannelGroupSize );
 		int filterChannelGroupSize = 0;
@@ -451,7 +442,7 @@ void CVulkanMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDes
 	int inputChannels = inputDiff.Depth() * inputDiff.Channels();
 	int outputChannels4 = Ceil(filter.ObjectCount(), 4);
 
-	if( device->Type == VDT_Adreno ) {
+	if( device->Type() == VDT_Adreno ) {
 		int outputDiffChannelGroupSize = 0;
 		const CVulkanImage& imageOutputDiff =
 			prepareBlobForConvolutionAdreno( outputDiff, outputDiffData, TVI_ConvSource, outputDiffChannelGroupSize );
@@ -514,7 +505,7 @@ void CVulkanMathEngine::blobConvolution1x1s1Common( const CCommonConvolutionDesc
 		return;
 	}
 
-	if( device->Type != VDT_Adreno ) {
+	if( device->Type() != VDT_Adreno ) {
 		blobConvolution1x1s1( 1, *freeTermData, sourceData, source.BlobSize() / channels, channels, channels,
 			filterData, resultChannels, channels, resultData, resultChannels, result.BlobSize() );
 	} else {
@@ -528,7 +519,7 @@ void CVulkanMathEngine::blobConvolution1x1s1Common( const CCommonConvolutionDesc
 
 void CVulkanMathEngine::prepareBlobForConvolution( const CBlobDesc& blob, const CConstFloatHandle& blobData, CFloatHandleStackVar& result )
 {
-	ASSERT_EXPR( !device->IsImageBased );
+	ASSERT_EXPR( !device->IsImageBased() );
 
 	int totalChannels = blob.Depth() * blob.Channels();
 	int channels4 = Ceil( totalChannels, 4 );
@@ -547,8 +538,8 @@ void CVulkanMathEngine::prepareBlobForConvolution( const CBlobDesc& blob, const 
 const CVulkanImage& CVulkanMathEngine::prepareBlobForConvolutionAdreno( const CBlobDesc& blob,
 	const CConstFloatHandle& blobData, int imageId, int& channelGroupSize )
 {
-	ASSERT_EXPR( device->Type == VDT_Adreno );
-	ASSERT_EXPR( device->IsImageBased );
+	ASSERT_EXPR( device->Type() == VDT_Adreno );
+	ASSERT_EXPR( device->IsImageBased() );
 
 	int totalChannels = blob.Channels() * blob.Depth();
 	int channels4 = Ceil(totalChannels, 4);
@@ -578,8 +569,8 @@ void CVulkanMathEngine::blobConvolution3x3s1d1Adreno( const CCommonConvolutionDe
 	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
 	const CFloatHandle& resultData )
 {
-	ASSERT_EXPR( device->Type == VDT_Adreno );
-	ASSERT_EXPR( device->IsImageBased );
+	ASSERT_EXPR( device->Type() == VDT_Adreno );
+	ASSERT_EXPR( device->IsImageBased() );
 
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& filter = desc.Filter;
@@ -627,8 +618,8 @@ void CVulkanMathEngine::blobConvolution3x3s1d1Adreno( const CCommonConvolutionDe
 const CVulkanImage& CVulkanMathEngine::blobConvolution3x3s1d1PrepareFilterAdreno( const CBlobDesc& filter,
 	const CFloatHandle& filterData, int imageId )
 {
-	ASSERT_EXPR( device->Type == VDT_Adreno );
-	ASSERT_EXPR( device->IsImageBased );
+	ASSERT_EXPR( device->Type() == VDT_Adreno );
+	ASSERT_EXPR( device->IsImageBased() );
 
 	int channels = filter.Depth() * filter.Channels();
 	int fullHeight = channels * 3;
@@ -651,8 +642,8 @@ const CVulkanImage& CVulkanMathEngine::blobConvolution3x3s1d1PrepareSourceAdreno
 	const CFloatHandle& blobData, int paddingTop, int paddingBottom, int paddingLeft, int paddingRight,
 	int imageId, int& channelGroupSize )
 {
-	ASSERT_EXPR( device->Type == VDT_Adreno );
-	ASSERT_EXPR( device->IsImageBased );
+	ASSERT_EXPR( device->Type() == VDT_Adreno );
+	ASSERT_EXPR( device->IsImageBased() );
 
 	int totalWidth = blob.Width() + paddingLeft + paddingRight;
 
@@ -749,8 +740,8 @@ void CVulkanMathEngine::blobConvolutionImpl1Adreno( const CCommonConvolutionDesc
 	const CFloatHandle& /*sourceData*/, const CFloatHandle& /*filterData*/, bool isFreeTerm,
 	const CFloatHandle& resultData, int startChannel, int inputChannelGroupSize, int filterChannelGroupSize )
 {
-	ASSERT_EXPR( device->Type == VDT_Adreno );
-	ASSERT_EXPR( device->IsImageBased );
+	ASSERT_EXPR( device->Type() == VDT_Adreno );
+	ASSERT_EXPR( device->IsImageBased() );
 
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& filter = desc.Filter;
@@ -785,8 +776,8 @@ void CVulkanMathEngine::blobConvolutionImpl8Adreno( const CCommonConvolutionDesc
 	const CFloatHandle& /*sourceData*/, const CFloatHandle& /*filterData*/, bool isFreeTerm,
 	const CFloatHandle& resultData, int channels8, int inputChannelGroupSize, int filterChannelGroupSize )
 {
-	ASSERT_EXPR( device->Type == VDT_Adreno );
-	ASSERT_EXPR( device->IsImageBased );
+	ASSERT_EXPR( device->Type() == VDT_Adreno );
+	ASSERT_EXPR( device->IsImageBased() );
 
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& filter = desc.Filter;
@@ -868,8 +859,8 @@ void CVulkanMathEngine::blobConvolutionImpl8( const CCommonConvolutionDesc& desc
 const CVulkanImage& CVulkanMathEngine::blobConvolutionBackwardPrepareFilterAdreno( const CBlobDesc& blob,
 	const CFloatHandle& blobData, int imageId )
 {
-	ASSERT_EXPR( device->Type == VDT_Adreno );
-	ASSERT_EXPR( device->IsImageBased );
+	ASSERT_EXPR( device->Type() == VDT_Adreno );
+	ASSERT_EXPR( device->IsImageBased() );
 
 	int totalChannels = blob.Channels() * blob.Depth();
 	int batchSize4 = Ceil(blob.ObjectCount(), 4);
@@ -996,7 +987,7 @@ void CVulkanMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutio
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& result = desc.Result;
 
-	if( device->Type == VDT_Adreno ) {
+	if( device->Type() == VDT_Adreno ) {
 		int inputChannelGroupSize = 0;
 		const CVulkanImage& imageSource = prepareBlobForConvolutionAdreno(source, sourceData, TVI_ConvSource, inputChannelGroupSize);
 		int filterChannelGroupSize = 0;

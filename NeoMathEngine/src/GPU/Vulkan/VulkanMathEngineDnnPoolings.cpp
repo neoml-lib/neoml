@@ -25,6 +25,8 @@ limitations under the License.
 #include <VulkanShader.h>
 #include <MathEngineDnnPoolings.h>
 
+#include <limits>
+
 namespace NeoML {
 
 // Include the shader code
@@ -89,7 +91,7 @@ C3dMaxPoolingDesc* CVulkanMathEngine::Init3dMaxPooling( const CBlobDesc& source,
 }
 
 void CVulkanMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
-	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
+	const CIntHandle*, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -232,7 +234,7 @@ void CVulkanMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooli
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
 
-	VectorFill(resultData, -FLT_MAX, result.BlobSize());
+	VectorFill(resultData, -(std::numeric_limits<float>::max)(), result.BlobSize());
 	VectorFill(maxIndicesData, -1, result.BlobSize());
 
 	CMemoryHandle bufs[3] = { sourceData, maxIndicesData, resultData };

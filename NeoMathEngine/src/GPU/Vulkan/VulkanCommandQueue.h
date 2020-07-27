@@ -29,14 +29,14 @@ limitations under the License.
 namespace NeoML {
 
 struct CVulkanShaderData;
-struct CVulkanDevice;
+class CVulkanDevice;
 class CVulkanImage;
 
 // The maximum number of bytes that may be asynchronously copied to GPU memory
-static const size_t VulkanMaxUpdateBufferSize = 65536;
+constexpr size_t VulkanMaxUpdateBufferSize = 65536;
 
 // The number of descriptors in the pool
-static const int VulkanMaxDescriptorSetPerPool = 128;
+constexpr int VulkanMaxDescriptorSetPerPool = 128;
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -48,7 +48,7 @@ struct CCommand;
 // The resources are freed by calling CleanUp()
 class CVulkanCommandQueue : public CCrtAllocatedObject {
 public:
-	explicit CVulkanCommandQueue( CVulkanDevice& device );
+	explicit CVulkanCommandQueue( const CVulkanDevice& device );
 	~CVulkanCommandQueue();
 
 	// Add a shader to the compute queue
@@ -77,7 +77,7 @@ public:
 	void CleanUp();
 
 private:
-	CVulkanDevice& device; // the processing device
+	const CVulkanDevice& device; // the processing device
 	VkQueue queue; // the queue handle
 	VkCommandPool commandPool; // the command pool queue
 	std::vector< VkDescriptorPool, CrtAllocator<VkDescriptorPool> > descriptorPools; // the stack of pool descriptors

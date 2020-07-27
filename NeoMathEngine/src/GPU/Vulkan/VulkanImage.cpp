@@ -25,7 +25,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CVulkanImage::CVulkanImage( CVulkanDevice& vulkanDevice, int _width, int _height ) :
+CVulkanImage::CVulkanImage( const CVulkanDevice& vulkanDevice, int _width, int _height ) :
 	device( vulkanDevice ),
 	width( _width ),
 	height( _height ),
@@ -46,10 +46,10 @@ CVulkanImage::CVulkanImage( CVulkanDevice& vulkanDevice, int _width, int _height
 	imageInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	vkSucceded( device.vkCreateImage( device.Handle, &imageInfo, 0, &image ) );
+	vkSucceded( device.vkCreateImage( &imageInfo, 0, &image ) );
 
 	VkMemoryRequirements req = {};
-	device.vkGetImageMemoryRequirements( device.Handle, image, &req );
+	device.vkGetImageMemoryRequirements( image, &req );
 
 	VkMemoryAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -58,8 +58,8 @@ CVulkanImage::CVulkanImage( CVulkanDevice& vulkanDevice, int _width, int _height
 	// Look for the suitable index in the memory
 	bool isFound = false;
 	const int flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	for( int i = 0; i < (int)device.MemoryProperties.memoryTypeCount; ++i ) {
-		if( (req.memoryTypeBits & (1 << i)) != 0 && (int)(device.MemoryProperties.memoryTypes[i].propertyFlags & flags) == flags ) {
+	for( int i = 0; i < (int)device.MemoryProperties().memoryTypeCount; ++i ) {
+		if( (req.memoryTypeBits & (1 << i)) != 0 && (int)(device.MemoryProperties().memoryTypes[i].propertyFlags & flags) == flags ) {
 			allocInfo.memoryTypeIndex = i;
 			isFound = true;
 			break;
@@ -67,8 +67,8 @@ CVulkanImage::CVulkanImage( CVulkanDevice& vulkanDevice, int _width, int _height
 	}
 	assert(isFound);
 
-	vkSucceded( device.vkAllocateMemory( device.Handle, &allocInfo, 0, &imageMemory ) );
-	vkSucceded( device.vkBindImageMemory( device.Handle, image, imageMemory, 0 ) );
+	vkSucceded( device.vkAllocateMemory( &allocInfo, 0, &imageMemory ) );
+	vkSucceded( device.vkBindImageMemory( image, imageMemory, 0 ) );
 
 	VkImageViewCreateInfo imageViewInfo = {};
 	imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -82,7 +82,7 @@ CVulkanImage::CVulkanImage( CVulkanDevice& vulkanDevice, int _width, int _height
 	imageViewInfo.subresourceRange.levelCount = 1;
 	imageViewInfo.subresourceRange.baseArrayLayer = 0;
 	imageViewInfo.subresourceRange.layerCount = 1;
-	vkSucceded( device.vkCreateImageView( device.Handle, &imageViewInfo, 0, &imageView ) );
+	vkSucceded( device.vkCreateImageView( &imageViewInfo, 0, &imageView ) );
 
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -98,25 +98,25 @@ CVulkanImage::CVulkanImage( CVulkanDevice& vulkanDevice, int _width, int _height
 	samplerInfo.maxLod = 0.f;
 	samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 	samplerInfo.unnormalizedCoordinates = VK_FALSE;
-	vkSucceded( device.vkCreateSampler( device.Handle, &samplerInfo, 0, &sampler ) );
+	vkSucceded( device.vkCreateSampler( &samplerInfo, 0, &sampler ) );
 }
 
 CVulkanImage::~CVulkanImage()
 {
 	if( sampler != VK_NULL_HANDLE ) {
-		device.vkDestroySampler( device.Handle, sampler, 0 );
+		device.vkDestroySampler( sampler, 0 );
 	}
 
 	if( imageMemory != VK_NULL_HANDLE ) {
-		device.vkFreeMemory( device.Handle, imageMemory, 0 );
+		device.vkFreeMemory( imageMemory, 0 );
 	}
 
 	if( imageView != VK_NULL_HANDLE ) {
-		device.vkDestroyImageView( device.Handle, imageView, 0 );
+		device.vkDestroyImageView( imageView, 0 );
 	}
 
 	if( image != VK_NULL_HANDLE ) {
-		device.vkDestroyImage( device.Handle, image, 0 );
+		device.vkDestroyImage( image, 0 );
 	}
 }
 
@@ -154,7 +154,7 @@ void CVulkanImage::UpdateDescriptorSet( VkCommandBuffer, VkDescriptorSet desc, V
 	writeDesc.descriptorCount = 1;
 	writeDesc.descriptorType = isSampled ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	writeDesc.pImageInfo = &imageInfo;
-	device.vkUpdateDescriptorSets( device.Handle, 1, &writeDesc, 0, 0 );
+	device.vkUpdateDescriptorSets( 1, &writeDesc, 0, 0 );
 }
 
 const VkImage& CVulkanImage::GetVkImage() const

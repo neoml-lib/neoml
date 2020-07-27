@@ -34,7 +34,7 @@ namespace NeoML {
 struct CCommonConvolutionDesc;
 struct CInterleavedMatrixDesc;
 struct CVulkanShaderData;
-struct CVulkanDevice;
+class CVulkanDevice;
 struct CVulkanRleConvolutionDesc;
 class CVulkanCommandQueue;
 class CVulkanShaderLoader;
@@ -45,14 +45,14 @@ class CMemoryPool;
 
 // Adds the information about available vulkan devices into the result array
 // Returns true if at least one device has been added
-bool LoadVulkanEngineInfo( CVulkanDll& dll, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result );
+bool LoadVulkanEngineInfo( const CVulkanDll& dll, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result );
 
 //------------------------------------------------------------------------------------------------------------
 
 // The math engine on vulkan
 class CVulkanMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CVulkanMathEngine( int deviceNumber, size_t memoryLimit );
+	CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& device, size_t memoryLimit );
 	~CVulkanMathEngine() override;
 
 	// IMathEngine interface methods
@@ -469,11 +469,8 @@ protected:
 
 private:
 	CDllLoader dllLoader; // vulkan dll wrapper
-	CVulkanDll& dll;
-
 	mutable std::mutex mutex; // protecting the data below from non-thread-safe use
-	int deviceNumber;
-	std::unique_ptr<CVulkanDevice> device; // device descriptor
+	std::unique_ptr<const CVulkanDevice> device; // device descriptor
 	std::unique_ptr<CVulkanShaderLoader> shaderLoader; // shader loader
 	std::unique_ptr<CVulkanCommandQueue> commandQueue; // shader execution queue
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager

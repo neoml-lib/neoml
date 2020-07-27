@@ -19,7 +19,7 @@ limitations under the License.
 
 #if FINE_PLATFORM( FINE_WINDOWS )
 #include <windows.h>
-#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
+#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
 #include <dlfcn.h>
 typedef int (*FARPROC)();
 #endif
@@ -38,7 +38,7 @@ public:
 	bool Load( const char* fileName );
 
 	// Checks if the library is loaded
-	bool IsLoaded() const { return handle != 0; }
+	bool IsLoaded() const { return handle != nullptr; }
 
 	// Gets the function address in the library
 	FARPROC GetProcAddress( const char* functionName ) const;

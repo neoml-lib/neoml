@@ -25,7 +25,7 @@ limitations under the License.
 
 namespace NeoML {
 
-struct CVulkanDevice;
+class CVulkanDevice;
 
 // Temporary processing images (FRGBA32)
 enum TTmpVulkanImage {
@@ -49,7 +49,7 @@ enum TTmpVulkanImage {
 // The class implementing a Vulkan image (FRGBA32)
 class CVulkanImage : public CCrtAllocatedObject {
 public:
-	CVulkanImage( CVulkanDevice& device, int _width, int _height );
+	CVulkanImage( const CVulkanDevice& device, int _width, int _height );
 	~CVulkanImage();
 
 	// Checks if an image of newWidth x newHeight size will fit in this one
@@ -64,7 +64,7 @@ public:
 
 	const VkImage& GetVkImage() const; 
 private:
-	CVulkanDevice& device;
+	const CVulkanDevice& device;
 	const int width;
 	const int height;
 
