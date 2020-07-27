@@ -70,7 +70,7 @@ CCudaDevice::~CCudaDevice()
 
 #if FINE_PLATFORM(FINE_WINDOWS)
 
-static std::string getCudaMutexName(int devNum, int slotNum)
+static inline std::string getCudaMutexName(int devNum, int slotNum)
 {
 	return "Global\\AbbyyNeoMLCudaDev" + std::to_string( devNum ) + "_" + std::to_string( slotNum );
 }
@@ -174,7 +174,7 @@ static unsigned long long getProcessStartTime( int pid )
 	return parsed == 22 ? startTime : 0;
 }
 
-static std::string getCudaDeviceFileName( int devNum )
+static inline std::string getCudaDeviceFileName( int devNum )
 {
 	return "/var/lock/AbbyyNeoMLCudaDev" + std::to_string( devNum );
 }
