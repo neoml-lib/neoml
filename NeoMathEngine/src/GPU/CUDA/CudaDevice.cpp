@@ -263,11 +263,11 @@ bool CDeviceFile::Open()
 	if( fileLength != CUDA_DEV_SLOT_COUNT * slotEntrySize ) {
 		std::vector<char> buff( CUDA_DEV_SLOT_COUNT * slotEntrySize, 0 );
 		ASSERT_EXPR( ::lseek( localFd, 0, SEEK_SET ) == 0 );
-		::write( localFd, buff.data(), buff.size() );
+		ASSERT_EXPR( ::write( localFd, buff.data(), buff.size() ) == static_cast<int>( buff.size() ) );
 		// If original file is bigger than needed.
 		if( fileLength > static_cast<int64_t>( buff.size() ) ) {
 			ASSERT_EXPR( ::lseek( localFd, 0, SEEK_SET ) == 0 );
-			::ftruncate( localFd, buff.size() );
+			ASSERT_EXPR( ::ftruncate( localFd, buff.size() ) == 0 );
 		}
 	}
 
@@ -282,7 +282,7 @@ bool CDeviceFile::IsSlotFree( int slotIndex )
 
 	// Lets check slot content.
 	pid_t pid;
-	::read( fd, &pid, sizeof( pid ) );
+	ASSERT_EXPR( ::read( fd, &pid, sizeof( pid ) ) == sizeof( pid ) );
 	bool result = false;
 	if( pid != 0 ) {
 		// Slot is empty if such process doesn't exist.
@@ -292,7 +292,7 @@ bool CDeviceFile::IsSlotFree( int slotIndex )
 			// Let's check its start time.
 			unsigned long long actualStartTime = getProcessStartTime( pid );
 			unsigned long long storedStartTime = 0;
-			::read( fd, &storedStartTime, sizeof( storedStartTime ) );
+			ASSERT_EXPR( ::read( fd, &storedStartTime, sizeof( storedStartTime ) ) == sizeof( storedStartTime ) );
 			// The mismatch between actual and stored start times means
 			// that pid was reused and the original process has already finished.
 			result = ( actualStartTime != storedStartTime );
@@ -321,9 +321,9 @@ bool CDeviceFile::CaptureSlot( int slotIndex )
 	::lseek( fd, slotIndex * slotEntrySize, SEEK_SET );
 	// Write current pid and process start time.
 	pid_t pid = ::getpid();
-	::write( fd, &pid, sizeof( pid ) );
+	ASSERT_EXPR( ::write( fd, &pid, sizeof( pid ) ) == sizeof( pid ) );
 	int64_t startTime = getProcessStartTime( pid );
-	::write( fd, &startTime, sizeof( startTime ) );
+	ASSERT_EXPR( ::write( fd, &startTime, sizeof( startTime ) ) == sizeof( startTime ) );
 	return true;
 }
 
@@ -333,7 +333,7 @@ void CDeviceFile::ReleaseSlot( int slotIndex )
 	// Write zeroes over current slot entry.
 	::lseek( fd, slotIndex * slotEntrySize, SEEK_SET );
 	std::vector<char> buff( slotEntrySize, 0 );
-	::write( fd, buff.data(), buff.size() );
+	ASSERT_EXPR( ::write( fd, buff.data(), buff.size() ) == static_cast<int>( buff.size() ) );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
