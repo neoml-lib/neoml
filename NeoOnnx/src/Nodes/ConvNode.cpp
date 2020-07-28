@@ -159,14 +159,6 @@ void CConvNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, co
 	conv->SetStrideHeight( strides[0] );
 	conv->SetStrideWidth( strides[1] );
 
-	// Getting kernel shape.
-	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
-	CTensorShape kernelShape;
-	kernelShape.SetBufferSize( inputShape.Size() );
-	for( int dimIndex = 2; dimIndex < inputShape.Size(); ++dimIndex ) {
-		kernelShape.Add( InputTensor( tensors, 1 ).Shape[dimIndex] );
-	}
-
 	conv->SetPaddingHeight( pads[0] );
 	conv->SetPaddingWidth( pads[1] );
 
