@@ -181,6 +181,8 @@ static inline std::string getCudaDeviceFileName( int devNum )
 
 //---------------------------------------------------------------------------------------------------------------------
 // File, containing info about slot acquisition for a single device.
+// Its size is 12 * CUDA_DEV_SLOT_COUNT bytes.
+// When slot is captured its bytes contain process pid (4 bytes) and creation time (8 bytes).
 class CDeviceFile {
 public:
 	explicit CDeviceFile( int deviceNum );
@@ -207,7 +209,7 @@ public:
 private:
 	static const int slotEntrySize = 12; // pid (%d) + start time (%ull)
 	int device; // device Id
-	int fd; // file descriptor (-1 if closed)
+	int fd; // file descriptor (-1 if file isn't open)
 };
 
 //---------------------------------------------------------------------------------------------------------------------
