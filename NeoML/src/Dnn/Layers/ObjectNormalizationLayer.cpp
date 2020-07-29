@@ -22,7 +22,7 @@ limitations under the License.
 namespace NeoML {
 
 CObjectNormalizationLayer::CObjectNormalizationLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CObjectNormalizationLayer", true ),
+	CBaseInPlaceLayer( mathEngine, "CObjectNormalizationLayer", true ),
 	epsilon( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
 	invObjectSize( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
 {
@@ -35,7 +35,7 @@ static const int ObjectNormalizationLayerVersion = 2000;
 void CObjectNormalizationLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( ObjectNormalizationLayerVersion );
-	CBaseLayer::Serialize( archive );
+	CBaseInPlaceLayer::Serialize( archive );
 	
 	float epsilonValue = archive.IsStoring() ? GetEpsilon() : 0.f;
 	
@@ -99,7 +99,7 @@ CPtr<CDnnBlob> CObjectNormalizationLayer::GetBias() const
 	return Bias()->GetCopy();
 }
 
-void CObjectNormalizationLayer::Reshape()
+void CObjectNormalizationLayer::OnReshaped()
 {
 	CheckArchitecture( GetInputCount() == 1, GetName(), "layer must have exactly 1 input" );
 	CheckArchitecture( GetOutputCount() == 1, GetName(), "Source layer has more than 1 output" );
@@ -127,12 +127,18 @@ void CObjectNormalizationLayer::Reshape()
 
 	internalParams = CDnnBlob::CreateBlob( MathEngine(), CT_Float, internalParamDesc );
 
-	normalizedInput = ( !IsBackwardPerformed() && !IsLearningNeeded() ) ? nullptr
-		: CDnnBlob::CreateBlob( MathEngine(), CT_Float, inputDescs[0] );
+	normalizedInput = ( IsBackwardPerformed() || IsLearningPerformed() )
+		? CDnnBlob::CreateBlob( MathEngine(), CT_Float, inputDescs[0] ) : nullptr;
+
+	outputDiffBackup = ( IsBackwardPerformed() && IsLearningPerformed() )
+		? CDnnBlob::CreateBlob( MathEngine(), CT_Float, inputDescs[0] ) : nullptr;
 
 	if( IsBackwardPerformed() && GetDnn()->IsRecurrentMode() ) {
 		RegisterRuntimeBlob( internalParams );
 		RegisterRuntimeBlob( normalizedInput );
+		if( IsLearningPerformed() ) {
+			RegisterRuntimeBlob( outputDiffBackup );
+		}
 	}
 
 	invObjectSize->GetData().SetValue( 1.f / inputDescs[0].ObjectSize() );
@@ -142,7 +148,6 @@ void CObjectNormalizationLayer::Reshape()
 
 void CObjectNormalizationLayer::RunOnce()
 {
-	NeoAssert( internalParams->GetObjectSize() == inputBlobs[0]->GetObjectCount() );
 	calcMean();
 	calcVar();
 	normalizeInput();
@@ -223,27 +228,38 @@ void CObjectNormalizationLayer::BackwardOnce()
 	CConstFloatHandle scale = Scale()->GetData();
 	CConstFloatHandle invSqrtVar = internalParams->GetObjectData( IPN_InvSqrtVariance );
 
+	if( outputDiffBackup != nullptr ) {
+		MathEngine().VectorCopy( outputDiffBackup->GetData(), outputDiff, outputDiffBackup->GetDataSize() );
+	}
+
 	// Average is used multiple times in RunOnce.
 	// But it isn't used neither in BackwardOnce nor in LearnOnce.
 	// That's why it's possible to reuse it here as a buffer.
 	CFloatHandle inputMultiplier = internalParams->GetObjectData( IPN_NegAverage );
+	
+	// Buffer for next operations.
+	CFloatHandleStackVar buff( MathEngine(), dataSize );
 
-	// Use inputDiff temporarily as a buffer to calculate inputMultiplier.
-	MathEngine().VectorEltwiseMultiply( outputDiff, input, inputDiff, dataSize );
-	MathEngine().MultiplyMatrixByMatrix( 1, inputDiff, objectCount, objectSize, scale, 1, inputMultiplier, internalParams->GetObjectSize() );
-	MathEngine().VectorNegMultiply( inputMultiplier, inputMultiplier, objectCount, invObjectSize->GetData() );
-	// The value of inputMultiplier will be used later.
-	// Now it's allowed to overwrite values in inputDiff.
+	{
+		CFloatHandle outDiffMultipliedByInput = buff.GetHandle();
+		MathEngine().VectorEltwiseMultiply( outputDiff, input, outDiffMultipliedByInput, dataSize );
+		MathEngine().MultiplyMatrixByMatrix( 1, outDiffMultipliedByInput, objectCount, objectSize, scale, 1, inputMultiplier, internalParams->GetObjectSize() );
+		MathEngine().VectorNegMultiply( inputMultiplier, inputMultiplier, objectCount, invObjectSize->GetData() );
+		// The value of inputMultiplier will be used later.
+		// Now it's allowed to overwrite values in inputDiff.
+	}
 
-	CFloatHandleStackVar meanScaledOutDiff( MathEngine(), objectCount );
 	MathEngine().MultiplyMatrixByDiagMatrix( outputDiff, objectCount, objectSize, scale, inputDiff, inputDiffBlobs[0]->GetDataSize() );
-	MathEngine().SumMatrixColumns( meanScaledOutDiff, inputDiff, objectCount, objectSize );
-	MathEngine().VectorNegMultiply( meanScaledOutDiff, meanScaledOutDiff, objectCount, invObjectSize->GetData() );
-	MathEngine().AddVectorToMatrixColumns( inputDiff, inputDiff, objectCount, objectSize, meanScaledOutDiff );
+
+	{
+		CFloatHandle avgOfScaledOutDiff = buff.GetHandle();
+		MathEngine().SumMatrixColumns( avgOfScaledOutDiff, inputDiff, objectCount, objectSize );
+		MathEngine().VectorNegMultiply( avgOfScaledOutDiff, avgOfScaledOutDiff, objectCount, invObjectSize->GetData() );
+		MathEngine().AddVectorToMatrixColumns( inputDiff, inputDiff, objectCount, objectSize, avgOfScaledOutDiff );
+	}
 
 	// Now reuse inputMultiplier.
 	MathEngine().MultiplyDiagMatrixByMatrixAndAdd( 1, inputMultiplier, objectCount, input, objectSize, inputDiff );
-	
 	MathEngine().MultiplyDiagMatrixByMatrix( invSqrtVar, objectCount, inputDiff, objectSize, inputDiff, inputDiffBlobs[0]->GetDataSize() );
 }
 
@@ -253,12 +269,15 @@ void CObjectNormalizationLayer::LearnOnce()
 	const int objectSize = inputBlobs[0]->GetObjectSize();
 	const int dataSize = objectCount * objectSize;
 
-	CFloatHandleStackVar buff( MathEngine(), dataSize );
+	CFloatHandle outDiff = outputDiffBackup == nullptr ? outputDiffBlobs[0]->GetData() : outputDiffBackup->GetData();
 
-	MathEngine().VectorEltwiseMultiply( normalizedInput->GetData(), outputDiffBlobs[0]->GetData(), buff, dataSize );
-	MathEngine().SumMatrixRowsAdd( 1, ScaleDiff()->GetData(), buff, objectCount, objectSize );
+	MathEngine().SumMatrixRowsAdd( 1, BiasDiff()->GetData(), outDiff, objectCount, objectSize );
 
-	MathEngine().SumMatrixRowsAdd( 1, BiasDiff()->GetData(), outputDiffBlobs[0]->GetData(), objectCount, objectSize );
+	// If layer didn't call backward then we can rewrite outputDiffBlobs[0] because it isn't used at any other places.
+	// If layer called backward then we can rewrite outputDiffBackup because this call is the only place where its used.
+	// As a result, outDiff memory can be overwritten in any case.
+	MathEngine().VectorEltwiseMultiply( normalizedInput->GetData(), outDiff, outDiff, dataSize );
+	MathEngine().SumMatrixRowsAdd( 1, ScaleDiff()->GetData(), outDiff, objectCount, objectSize );
 }
 
 } // namespace NeoML

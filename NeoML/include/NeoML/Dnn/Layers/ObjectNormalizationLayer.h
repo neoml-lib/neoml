@@ -27,7 +27,7 @@ namespace NeoML {
 // The final formula is
 //  f(x) = (x - mean(x)) / sqrt(var(x) + eps) * scale + bias
 
-class NEOML_API CObjectNormalizationLayer : public CBaseLayer {
+class NEOML_API CObjectNormalizationLayer : public CBaseInPlaceLayer {
 	NEOML_DNN_LAYER( CObjectNormalizationLayer )
 public:
 	explicit CObjectNormalizationLayer( IMathEngine& mathEngine );
@@ -53,7 +53,7 @@ public:
 	void SetBias( const CPtr<CDnnBlob>& newBias );
 
 protected:
-	void Reshape() override;
+	void OnReshaped() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
@@ -81,6 +81,7 @@ private:
 
 	CPtr<CDnnBlob> internalParams;
 	CPtr<CDnnBlob> normalizedInput;
+	CPtr<CDnnBlob> outputDiffBackup;
 
 	void calcMean();
 	void calcVar();
