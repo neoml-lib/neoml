@@ -133,7 +133,7 @@ void CGpuMathEngineManager::GetMathEngineInfo( int index, CMathEngineInfo& resul
 
 struct CCudaDevUsage {
 	int DevNum;
-	int Usage;
+	size_t FreeMemory;
 };
 
 static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
@@ -176,11 +176,11 @@ static CCudaDevice* captureCudaDevice( int deviceNumber, size_t deviceMemoryLimi
 
 		CCudaDevUsage dev;
 		dev.DevNum = i;
-		dev.Usage = GetDeviceUsage( devProp.pciBusID ) ;
+		dev.FreeMemory = ( CUDA_DEV_SLOT_COUNT - GetDeviceUsage( devProp.pciBusID ) ) * ( devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT );
 		devs.push_back(dev);
 	}
-	// Sort the devices in order of increasing load
-	std::sort( devs.begin(), devs.end(), []( const CCudaDevUsage& a, const CCudaDevUsage& b ) { return a.Usage > b.Usage; } );
+	// Sort the devices in decreasing free memory
+	std::sort( devs.begin(), devs.end(), []( const CCudaDevUsage& a, const CCudaDevUsage& b ) { return a.FreeMemory > b.FreeMemory; } );
 
 	for( size_t i = 0; i < devs.size(); ++i ) {
 		CCudaDevice* result = captureSpecifiedCudaDevice( devs[i].DevNum, deviceMemoryLimit );
