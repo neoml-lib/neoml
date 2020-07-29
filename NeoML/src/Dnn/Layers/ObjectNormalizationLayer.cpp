@@ -170,7 +170,6 @@ void CObjectNormalizationLayer::calcVar()
 	const int objectSize = inputBlobs[0]->GetObjectSize();
 
 	CConstFloatHandle averageData = internalParams->GetObjectData( IPN_NegAverage );
-	CFloatHandle varianceData = internalParams->GetObjectData( IPN_Variance );
 	CFloatHandle invSqrtVarianceData = internalParams->GetObjectData( IPN_InvSqrtVariance );
 	CConstFloatHandle input = inputBlobs[0]->GetData();
 
@@ -178,11 +177,11 @@ void CObjectNormalizationLayer::calcVar()
 
 	MathEngine().AddVectorToMatrixColumns( input, temp, objectCount, objectSize, averageData );
 	MathEngine().VectorEltwiseMultiply( temp, temp, temp, temp.Size() );
-	MathEngine().SumMatrixColumns( varianceData, temp, objectCount, objectSize );
+	MathEngine().SumMatrixColumns( invSqrtVarianceData, temp, objectCount, objectSize );
 
 	// Normalize the variance and calculate the inverse to the standard deviation.
-	MathEngine().VectorMultiply( varianceData, varianceData, objectCount, invObjectSize->GetData() );
-	MathEngine().VectorAddValue( varianceData, invSqrtVarianceData, objectCount, epsilon->GetData() );
+	MathEngine().VectorMultiply( invSqrtVarianceData, invSqrtVarianceData, objectCount, invObjectSize->GetData() );
+	MathEngine().VectorAddValue( invSqrtVarianceData, invSqrtVarianceData, objectCount, epsilon->GetData() );
 	MathEngine().VectorSqrt( invSqrtVarianceData, invSqrtVarianceData, objectCount );
 	MathEngine().VectorInv( invSqrtVarianceData, invSqrtVarianceData, objectCount );
 }
