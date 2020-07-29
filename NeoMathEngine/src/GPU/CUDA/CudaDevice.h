@@ -20,13 +20,8 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
-#include <cuda_runtime.h>
 
 namespace NeoML {
-
-// The number of slots in the device memory
-// Memory may only be blocked by whole slots
-const int CUDA_DEV_SLOT_COUNT = 64;
 
 // CUDA device descriptor
 struct CCudaDevice : public CCrtAllocatedObject {
@@ -35,24 +30,23 @@ struct CCudaDevice : public CCrtAllocatedObject {
 	size_t MemoryLimit;
 	int SharedMemoryLimit;
 	int ThreadMaxCount;
-	dim3 ThreadMax3DCount;
+	unsigned int ThreadMax3DCountX;
+	unsigned int ThreadMax3DCountY;
+	unsigned int ThreadMax3DCountZ;
 	int WarpSize;
-	void* Handles[CUDA_DEV_SLOT_COUNT];
+	void* Handle;
 
-	CCudaDevice( int deviceNumber, size_t memoryLimit );
+	CCudaDevice() {}
 	~CCudaDevice();
+	CCudaDevice( const CCudaDevice& ) = delete;
+	CCudaDevice& operator=( const CCudaDevice& ) = delete;
 };
 
-// Checks if device slot is free.
-bool IsDeviceSlotFree( int deviceId, int slotIndex );
-
-// Captures slot and returns it's hadnle.
-// Handle must be released after work (ReleaseDeviceSlot).
-// Returns nullptr if slot is busy.
-void* CaptureDeviceSlot( int deviceId, int slotIndex, bool reuse );
-
-// Releases device slot.
-void ReleaseDeviceSlot( void* slot, int deviceId, int slotIndex );
+// Captures specified cuda deivice.
+// If deviceIndex is less than 0, tries to get some CUDA device (with focus on the free memory size)
+// If memoryLimit is 0, then creates device which consumes whole free space on the device
+// Device should be deleted after use
+CCudaDevice* CaptureCudaDevice( int deviceIndex, size_t memoryLimit );
 
 } // namespace NeoML
 
