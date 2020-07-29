@@ -58,6 +58,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/ModelWrapperLayer.cpp
     Dnn/Layers/MultichannleLookupLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
+    Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/PoolingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
     Dnn/Layers/QualityControlLayer.cpp
@@ -188,6 +189,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ModelWrapperLayer.h
     ../include/NeoML/Dnn/Layers/MultichannelLookupLayer.h
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
+    ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h
     ../include/NeoML/Dnn/Layers/QualityControlLayer.h

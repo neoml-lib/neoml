@@ -48,6 +48,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoML/Dnn/Layers/BatchNormalizationLayer.h>
+#include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
 #include <NeoML/Dnn/Layers/ImageResizeLayer.h>
 #include <NeoML/Dnn/Layers/BackLinkLayer.h>
