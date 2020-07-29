@@ -39,35 +39,6 @@ limitations under the License.
 
 namespace NeoML {
 
-CCudaDevice::CCudaDevice( int deviceNumber, size_t memoryLimit, void* handle ) :
-	DeviceNumber( deviceNumber ),
-	DeviceId( 0 ),
-	MemoryLimit( memoryLimit ),
-	SharedMemoryLimit( 48 * 1024 ),
-	ThreadMaxCount( 0 ),
-	ThreadMax3DCount( 0, 0, 0 ),
-	WarpSize( 0 ),
-	Handle( handle )
-{
-	ASSERT_EXPR( Handle != nullptr );
-
-	cudaDeviceProp devProp;
-	cudaGetDeviceProperties(&devProp, DeviceNumber);
-
-	DeviceId = devProp.pciBusID;
-
-	ThreadMaxCount = devProp.maxThreadsPerBlock;
-	ThreadMax3DCount.x = devProp.maxThreadsDim[0];
-	ThreadMax3DCount.y = devProp.maxThreadsDim[1];
-	ThreadMax3DCount.z = devProp.maxThreadsDim[2];
-	WarpSize = devProp.warpSize;
-}
-
-CCudaDevice::~CCudaDevice()
-{
-	ReleaseDeviceSlots( Handle );
-}
-
 #if FINE_PLATFORM(FINE_WINDOWS)
 
 static inline std::string getCudaMutexName(int devNum, int slotNum)
@@ -75,7 +46,7 @@ static inline std::string getCudaMutexName(int devNum, int slotNum)
 	return "Global\\AbbyyNeoMLCudaDev" + std::to_string( devNum ) + "_" + std::to_string( slotNum );
 }
 
-int GetDeviceUsage( int deviceId )
+static int getDeviceUsage( int deviceId )
 {
 	int result = 0;
 	for( int slotIndex = 0; slotIndex < CUDA_DEV_SLOT_COUNT; ++slotIndex ) {
@@ -90,7 +61,7 @@ int GetDeviceUsage( int deviceId )
 
 typedef std::vector<void*> CSlotsHandle;
 
-void* CaptureDeviceSlots( int deviceId, int slotCount )
+static void* captureDeviceSlots( int deviceId, int slotCount )
 {
 	std::unique_ptr<CSlotsHandle> result( new CSlotsHandle() );
 	result->reserve( slotCount );
@@ -116,7 +87,7 @@ void* CaptureDeviceSlots( int deviceId, int slotCount )
 	return nullptr;
 }
 
-void ReleaseDeviceSlots( void* handle )
+static void releaseDeviceSlots( void* handle )
 {
 	CSlotsHandle* handles = static_cast<CSlotsHandle*>( handle );
 	for( size_t handleIndex = 0; handleIndex < handles->size(); ++handleIndex ) {
@@ -341,7 +312,7 @@ void CDeviceFile::ReleaseSlot( int slotIndex )
 //---------------------------------------------------------------------------------------------------------------------
 // Functions from CudaDevice.h
 
-int GetDeviceUsage( int deviceId )
+static int getDeviceUsage( int deviceId )
 {
 	CDeviceFile file( deviceId );
 	if( !file.Open() ) {
@@ -359,7 +330,7 @@ int GetDeviceUsage( int deviceId )
 
 typedef std::vector<int64_t> CSlotsHandle;
 
-void* CaptureDeviceSlots( int deviceId, int slotCount )
+static void* captureDeviceSlots( int deviceId, int slotCount )
 {
 	CDeviceFile file( deviceId );
 	if( !file.Open() ) {
@@ -393,7 +364,7 @@ void* CaptureDeviceSlots( int deviceId, int slotCount )
 	return slots.release();
 }
 
-void ReleaseDeviceSlots( void* handle )
+static void releaseDeviceSlots( void* handle )
 {
 	CSlotsHandle* handles = static_cast<CSlotsHandle*>( handle );\
 
@@ -414,6 +385,95 @@ void ReleaseDeviceSlots( void* handle )
 #else
 #error "Platform is not supported!"
 #endif
+
+CCudaDevice::~CCudaDevice()
+{
+	if( Handle != nullptr ) {
+		releaseDeviceSlots( Handle );
+	}
+}
+
+struct CCudaDevUsage {
+	int DevNum;
+	size_t FreeMemory;
+};
+
+static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
+{
+	cudaDeviceProp devProp;
+	ASSERT_ERROR_CODE( cudaGetDeviceProperties(&devProp, deviceNumber) );
+
+	if( deviceMemoryLimit == 0 ) {
+		deviceMemoryLimit = devProp.totalGlobalMem;
+	} else if( deviceMemoryLimit > devProp.totalGlobalMem ) {
+		return nullptr;
+	}
+
+	size_t slotSize = devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT;
+	int slotCount = static_cast<int>( ( deviceMemoryLimit + slotSize - 1 ) / slotSize );
+	void* handle = captureDeviceSlots( devProp.pciBusID, slotCount );
+
+	if( handle == nullptr ) {
+		return nullptr;
+	}
+
+	std::unique_ptr<CCudaDevice> result;
+
+	try {
+		result.reset( new CCudaDevice() );
+	} catch( ... ) {
+		releaseDeviceSlots( handle );
+		throw;
+	}
+
+	result->DeviceNumber = deviceNumber;
+	result->DeviceId = devProp.pciBusID;
+	result->MemoryLimit = deviceMemoryLimit;
+	result->SharedMemoryLimit = 48 * 1024;
+	result->ThreadMaxCount = devProp.maxThreadsPerBlock;
+	result->ThreadMax3DCount.x = devProp.maxThreadsDim[0];
+	result->ThreadMax3DCount.y = devProp.maxThreadsDim[1];
+	result->ThreadMax3DCount.z = devProp.maxThreadsDim[2];
+	result->WarpSize = devProp.warpSize;
+	result->Handle = handle;
+
+	return result.release();
+}
+
+// Captures the CUDA device
+CCudaDevice* CaptureCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
+{
+	if( deviceNumber >= 0 ) {
+		return captureSpecifiedCudaDevice( deviceNumber, deviceMemoryLimit );
+	}
+
+	int deviceCount = 0;
+	ASSERT_ERROR_CODE( cudaGetDeviceCount( &deviceCount ) );
+
+	// Detect the devices and their processing load
+	vector<CCudaDevUsage> devs;
+	for( int i = 0; i < deviceCount; ++i ) {
+		cudaDeviceProp devProp;
+		ASSERT_ERROR_CODE( cudaGetDeviceProperties( &devProp, i ) );
+		const size_t slotSize = ( devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT );
+
+		CCudaDevUsage dev;
+		dev.DevNum = i;
+		dev.FreeMemory = ( CUDA_DEV_SLOT_COUNT - getDeviceUsage( devProp.pciBusID ) ) * slotSize;
+		devs.push_back(dev);
+	}
+	// Sort the devices in decreasing free memory
+	std::sort( devs.begin(), devs.end(), []( const CCudaDevUsage& a, const CCudaDevUsage& b ) { return a.FreeMemory > b.FreeMemory; } );
+
+	for( size_t i = 0; i < devs.size(); ++i ) {
+		CCudaDevice* result = captureSpecifiedCudaDevice( devs[i].DevNum, deviceMemoryLimit );
+		if( result != nullptr ) {
+			return result;
+		}
+	}
+
+	return nullptr;
+}
 
 } // namespace NeoML
 

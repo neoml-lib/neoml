@@ -39,23 +39,17 @@ struct CCudaDevice : public CCrtAllocatedObject {
 	int WarpSize;
 	void* Handle;
 
-	CCudaDevice( int deviceNumber, size_t memoryLimit, void* handle );
+	CCudaDevice() {}
 	~CCudaDevice();
-
 	CCudaDevice( const CCudaDevice& ) = delete;
 	CCudaDevice& operator=( const CCudaDevice& ) = delete;
 };
 
-// Returns the amount of captured slots on this device.
-int GetDeviceUsage( int deviceId );
-
-// Captures slots and returns it's hadnle.
-// Handle must be released after work (ReleaseDeviceSlots).
-// Returns nullptr if device is too busy.
-void* CaptureDeviceSlots( int deviceId, int slotCount );
-
-// Releases slots.
-void ReleaseDeviceSlots( void* handle );
+// Captures specified cuda deivice.
+// If deviceIndex is less than 0, tries to get some CUDA device (with focus on the free memory size)
+// If memoryLimit is 0, then creates device which consumes whole free space on the device
+// Device should be deleted after use
+CCudaDevice* CaptureCudaDevice( int deviceIndex, size_t memoryLimit );
 
 } // namespace NeoML
 

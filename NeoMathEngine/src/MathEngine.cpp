@@ -129,71 +129,6 @@ void CGpuMathEngineManager::GetMathEngineInfo( int index, CMathEngineInfo& resul
 	}
 }
 
-#ifdef NEOML_USE_CUDA
-
-struct CCudaDevUsage {
-	int DevNum;
-	size_t FreeMemory;
-};
-
-static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
-{
-	cudaDeviceProp devProp;
-	ASSERT_ERROR_CODE( cudaGetDeviceProperties(&devProp, deviceNumber) );
-
-	if( deviceMemoryLimit <= 0 ) {
-		deviceMemoryLimit = devProp.totalGlobalMem;
-	} else if( deviceMemoryLimit > devProp.totalGlobalMem ) {
-		return nullptr;
-	}
-
-	size_t slotSize = devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT;
-	int slotCount = static_cast<int>( ( deviceMemoryLimit + slotSize - 1 ) / slotSize );
-	void* handle = CaptureDeviceSlots( devProp.pciBusID, slotCount );
-
-	if( handle == nullptr ) {
-		return nullptr;
-	}
-
-	return new CCudaDevice( deviceNumber, deviceMemoryLimit, handle );
-}
-
-// Captures the CUDA device
-static CCudaDevice* captureCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
-{
-	if( deviceNumber >= 0 ) {
-		return captureSpecifiedCudaDevice( deviceNumber, deviceMemoryLimit );
-	}
-
-	int deviceCount = 0;
-	ASSERT_ERROR_CODE( cudaGetDeviceCount( &deviceCount ) );
-
-	// Detect the devices and their processing load
-	vector<CCudaDevUsage> devs;
-	for( int i = 0; i < deviceCount; ++i ) {
-		cudaDeviceProp devProp;
-		ASSERT_ERROR_CODE( cudaGetDeviceProperties( &devProp, i ) );
-
-		CCudaDevUsage dev;
-		dev.DevNum = i;
-		dev.FreeMemory = ( CUDA_DEV_SLOT_COUNT - GetDeviceUsage( devProp.pciBusID ) ) * ( devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT );
-		devs.push_back(dev);
-	}
-	// Sort the devices in decreasing free memory
-	std::sort( devs.begin(), devs.end(), []( const CCudaDevUsage& a, const CCudaDevUsage& b ) { return a.FreeMemory > b.FreeMemory; } );
-
-	for( size_t i = 0; i < devs.size(); ++i ) {
-		CCudaDevice* result = captureSpecifiedCudaDevice( devs[i].DevNum, deviceMemoryLimit );
-		if( result != nullptr ) {
-			return result;
-		}
-	}
-
-	return nullptr;
-}
-
-#endif // NEOML_USE_CUDA
-
 IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLimit ) const
 {
 	auto size = static_cast<int>(info.size());
@@ -204,7 +139,7 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 #ifdef NEOML_USE_CUDA
 	case MET_Cuda:
 	{
-		std::unique_ptr<CCudaDevice> device( captureCudaDevice( index >= 0 ? info[index].Id : -1, memoryLimit ) );
+		std::unique_ptr<CCudaDevice> device( CaptureCudaDevice( index >= 0 ? info[index].Id : -1, memoryLimit ) );
 		if( device == nullptr ) {
 			return nullptr;
 		}
