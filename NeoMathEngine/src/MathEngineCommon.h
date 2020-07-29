@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <cassert>
 #include <new>
+#include <stdexcept>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 #define __merge__2( a, b )	a##b
