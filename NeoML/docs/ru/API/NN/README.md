@@ -233,6 +233,7 @@ delete gpuMathEngine;
 - [CSoftmaxLayer](SoftmaxLayer.md) - вычисление функции `softmax`
 - [CDropoutLayer](DropoutLayer.md) - реализация `dropout`
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) - батч нормализация
+- [CObjectNormalizationLayer](ObjectNormalizationLayer.md) - нормализация по объектам
 - Поэлементные операции над блобами:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - поэлементная сумма блобов
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - поэлементное произведение блобов
