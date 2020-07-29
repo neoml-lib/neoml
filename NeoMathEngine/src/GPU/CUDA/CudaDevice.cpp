@@ -24,6 +24,8 @@ limitations under the License.
 #include <MathEngineAllocator.h>
 #include <MathEngineCommon.h>
 
+#include <cuda_runtime.h>
+
 #include <memory>
 #include <string>
 
@@ -38,6 +40,10 @@ limitations under the License.
 #endif // FINE_PLATFORM(FINE_LINUX)
 
 namespace NeoML {
+
+// The number of slots in the device memory
+// Memory may only be blocked by whole slots
+const int CUDA_DEV_SLOT_COUNT = 64;
 
 #if FINE_PLATFORM(FINE_WINDOWS)
 
@@ -431,9 +437,9 @@ static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceM
 	result->MemoryLimit = deviceMemoryLimit;
 	result->SharedMemoryLimit = 48 * 1024;
 	result->ThreadMaxCount = devProp.maxThreadsPerBlock;
-	result->ThreadMax3DCount.x = devProp.maxThreadsDim[0];
-	result->ThreadMax3DCount.y = devProp.maxThreadsDim[1];
-	result->ThreadMax3DCount.z = devProp.maxThreadsDim[2];
+	result->ThreadMax3DCountX = devProp.maxThreadsDim[0];
+	result->ThreadMax3DCountY = devProp.maxThreadsDim[1];
+	result->ThreadMax3DCountZ = devProp.maxThreadsDim[2];
 	result->WarpSize = devProp.warpSize;
 	result->Handle = handle;
 
