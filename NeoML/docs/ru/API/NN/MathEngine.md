@@ -96,7 +96,7 @@ public:
 	virtual ~IMathEngineExceptionHandler();
 	// Во время вызова метода произошла ошибка
 	// По умолчанию бросает std::logic_error
-	virtual void OnAssert( const char* message, const char* file, int line, int errorCode ) = 0;
+	virtual void OnAssert( const char* message, const wchar_t* file, int line, int errorCode ) = 0;
 
 	// Не удалось выделить память на устройстве
 	// По умолчанию бросает std::bad_alloc
