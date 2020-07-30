@@ -23,6 +23,7 @@ set(SHADER_SOURCES
     VectorHinge.comp 
     VectorHingeDiff.comp 
     SumMatrixRows.comp
+    SumMatrixColumns.comp
     VectorSquaredHinge.comp 
     VectorSquaredHingeDiff.comp 
     VectorHuber.comp 
