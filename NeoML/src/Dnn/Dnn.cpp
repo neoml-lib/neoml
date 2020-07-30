@@ -28,6 +28,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/PoolingLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoML/Dnn/Layers/BatchNormalizationLayer.h>
+#include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
 #include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
@@ -205,6 +206,7 @@ REGISTER_NEOML_LAYER( CHingeLossLayer, "FmlCnnHingeLossLayer" )
 REGISTER_NEOML_LAYER( CSquaredHingeLossLayer, "FmlCnnSquaredHingeLossLayer" )
 REGISTER_NEOML_LAYER( CProblemSourceLayer, "FmlCnnProblemSourceLayer" )
 REGISTER_NEOML_LAYER( CBatchNormalizationLayer, "FmlCnnBatchNormalizationLayer" )
+REGISTER_NEOML_LAYER( CObjectNormalizationLayer, "NeoMLDnnObjectNormalizationLayer" )
 REGISTER_NEOML_LAYER( CLinearLayer, "FmlCnnLinearLayer" )
 REGISTER_NEOML_LAYER( CDropoutLayer, "FmlCnnDropoutLayer" )
 REGISTER_NEOML_LAYER( CImageResizeLayer, "FmlCnnImageResizeLayer" )

@@ -235,6 +235,7 @@ delete gpuMathEngine;
 - [CSoftmaxLayer](SoftmaxLayer.md) calculates softmax function
 - [CDropoutLayer](DropoutLayer.md) implements random dropout
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) implements batch normalization
+- [CObjectNormalizationLayer](ObjectNormalizationLayer.md) implements normalization over the objects
 - Elementwise operations with data blobs:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - elementwise sum
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - elementwise product
