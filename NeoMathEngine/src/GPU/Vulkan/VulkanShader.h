@@ -102,6 +102,7 @@ enum TShader {
 	SH_SetVectorToMatrixRowsAdreno,
 	SH_SetVectorToMatrixRows,
 	SH_SumMatrixRows,
+	SH_SumMatrixColumns,
 	SH_Blob3dConvolution,
 	SH_Blob3dConvolutionBackward,
 	SH_BlobChannelwiseConvolutionAdreno,

@@ -38,6 +38,7 @@ namespace NeoML {
 #include <shaders/generated/SetVectorToMatrixRows.h>
 #include <shaders/generated/RowMultiplyMatrixByMatrix.h>
 #include <shaders/generated/SumMatrixRows.h>
+#include <shaders/generated/SumMatrixColumns.h>
 #include <shaders/generated/MultiplyMatrixByDiagMatrixAdreno.h>
 #include <shaders/generated/MultiplyMatrixByDiagMatrix.h>
 #include <shaders/generated/MultiplyDiagMatrixByMatrixAdreno.h>
@@ -658,7 +659,7 @@ void CVulkanMathEngine::SumMatrixRowsAdd( int batchSize, const CFloatHandle& res
 	size_t sizes[2] = { batchSize * matrixHeight * matrixWidth * sizeof(float),
 		batchSize * matrixWidth * sizeof(float) };
 
-	PARAM_STRUCT(SumMatrixRows) param = { matrixWidth, matrixHeight, batchSize, 0 };
+	PARAM_STRUCT(SumMatrixRows) param = { matrixWidth, matrixHeight, batchSize, 1 };
 
 	runShader(shaderLoader->GET_SHADER_DATA(SumMatrixRows, true, 0, 0, 2),
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, matrixWidth, 1, batchSize);
@@ -671,15 +672,22 @@ void CVulkanMathEngine::SumMatrixRows( int batchSize, const CFloatHandle& result
 	size_t sizes[2] = { batchSize * matrixHeight * matrixWidth * sizeof(float),
 		batchSize * matrixWidth * sizeof(float) };
 
-	PARAM_STRUCT(SumMatrixRows) param = { matrixWidth, matrixHeight, batchSize, 1 };
+	PARAM_STRUCT(SumMatrixRows) param = { matrixWidth, matrixHeight, batchSize, 0 };
 
 	runShader(shaderLoader->GET_SHADER_DATA(SumMatrixRows, true, 0, 0, 2),
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, matrixWidth, 1, batchSize);
 }
 
-void CVulkanMathEngine::SumMatrixColumns( const CFloatHandle&, const CConstFloatHandle&, int, int )
+void CVulkanMathEngine::SumMatrixColumns( const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
+	int matrixHeight, int matrixWidth )
 {
-	ASSERT_EXPR( false );
+	CMemoryHandle bufs[2] = { matrixHandle, resultHandle };
+	size_t sizes[2] = { matrixHeight * matrixWidth * sizeof(float), matrixHeight * sizeof(float) };
+
+	PARAM_STRUCT(SumMatrixColumns) param = { matrixWidth, matrixHeight };
+
+	runShader(shaderLoader->GET_SHADER_DATA(SumMatrixColumns, true, 0, 0, 2),
+		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, matrixHeight, 1, 1);
 }
 
 void CVulkanMathEngine::MatrixLogSumExpByRows( const CConstFloatHandle& matrix, int height, int width,
