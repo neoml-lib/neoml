@@ -216,7 +216,7 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 	ASSERT_EXPR(minZ > 0 && minY > 0 && minX > 0);
 	ASSERT_EXPR(batchSize > 0 && height > 0 && width > 0);
 
-	dim3 geom = device->ThreadMax3DCount;
+	dim3 geom( device->ThreadMax3DCountX, device->ThreadMax3DCountY, device->ThreadMax3DCountZ );
 	CudaFixGeom(minX, width, geom.x);
 	CudaFixGeom(minY, height, geom.y);
 	CudaFixGeom(minZ, batchSize, geom.z);
