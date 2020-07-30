@@ -72,7 +72,7 @@ private:
 
 	// Internal (untrainable) parameters
 	enum TInternalParamName {
-		IPN_NegAverage = 0, // the average across the objects multiplied by -1
+		IPN_NegMean = 0, // the average across the objects multiplied by -1
 		IPN_InvSqrtVariance, // 1 / sqrt(variance)
 
 		IPN_Count,
@@ -82,10 +82,11 @@ private:
 	CPtr<CDnnBlob> normalizedInput;
 	CPtr<CDnnBlob> outputDiffBackup;
 
-	void calcMean();
-	void calcVar();
-	void normalizeInput();
-	void applyScaleAndBias();
+	void runOnceImpl( const CFloatHandle& negMean, const CFloatHandle& invSqrtVar, const CFloatHandle& inputNorm );
+	void calcMean( const CFloatHandle& negMean );
+	void calcVar( const CConstFloatHandle& negMean, const CFloatHandle& invSqrtVar );
+	void normalizeInput( const CConstFloatHandle& negMean, const CConstFloatHandle& invSqrtVar, const CFloatHandle& inputNorm );
+	void applyScaleAndBias( const CConstFloatHandle& inputNorm );
 
 	// The pointer is valid only when the desired parameters are known: either set externally or are filled in on reshape
 	CPtr<CDnnBlob>& Scale() { return paramBlobs[PN_Scale]; }

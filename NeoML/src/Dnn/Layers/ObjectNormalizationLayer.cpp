@@ -115,28 +115,46 @@ void CObjectNormalizationLayer::OnReshaped()
 		Bias()->Clear();
 	}
 
-	CBlobDesc internalParamDesc;
-	internalParamDesc.SetDimSize( BD_BatchWidth, IPN_Count );
+	normalizedInput = nullptr;
+	if( IsBackwardPerformed() || IsLearningPerformed() ) {
+		// This value is used in both LearnOnce and BackwardOnce.
+		normalizedInput = CDnnBlob::CreateBlob( MathEngine(), CT_Float, inputDescs[0] );
 
-	if( IsBackwardPerformed() && GetDnn()->IsRecurrentMode() ) {
-		internalParamDesc.SetDimSize( BD_Channels, inputDescs[0].BatchWidth() * inputDescs[0].ListSize() );
-		internalParamDesc.SetDimSize( BD_BatchLength, inputDescs[0].BatchLength() );
-	} else {
-		internalParamDesc.SetDimSize( BD_Channels, inputDescs[0].ObjectCount() );
+		if( GetDnn()->IsRecurrentMode() ) {
+			RegisterRuntimeBlob( normalizedInput );
+		}
 	}
 
-	internalParams = CDnnBlob::CreateBlob( MathEngine(), CT_Float, internalParamDesc );
+	internalParams = nullptr;
+	if( IsBackwardPerformed() ) {
+		// This value is used only in BackwardOnce.
+		CBlobDesc internalParamDesc;
+		internalParamDesc.SetDimSize( BD_BatchWidth, IPN_Count );
 
-	normalizedInput = ( IsBackwardPerformed() || IsLearningPerformed() )
-		? CDnnBlob::CreateBlob( MathEngine(), CT_Float, inputDescs[0] ) : nullptr;
+		if( IsBackwardPerformed() && GetDnn()->IsRecurrentMode() ) {
+			internalParamDesc.SetDimSize( BD_Channels, inputDescs[0].BatchWidth() * inputDescs[0].ListSize() );
+			internalParamDesc.SetDimSize( BD_BatchLength, inputDescs[0].BatchLength() );
+		} else {
+			internalParamDesc.SetDimSize( BD_Channels, inputDescs[0].ObjectCount() );
+		}
 
-	outputDiffBackup = ( IsBackwardPerformed() && IsLearningPerformed() )
-		? CDnnBlob::CreateBlob( MathEngine(), CT_Float, inputDescs[0] ) : nullptr;
+		internalParams = CDnnBlob::CreateBlob( MathEngine(), CT_Float, internalParamDesc );
 
-	if( IsBackwardPerformed() && GetDnn()->IsRecurrentMode() ) {
-		RegisterRuntimeBlob( internalParams );
-		RegisterRuntimeBlob( normalizedInput );
-		if( IsLearningPerformed() ) {
+		if( GetDnn()->IsRecurrentMode() ) {
+			RegisterRuntimeBlob( internalParams );
+		}
+	}
+
+	outputDiffBackup = nullptr;
+	if( IsBackwardPerformed() && IsLearningPerformed() ) {
+		// This layer is in-place.
+		// That means, it's possible that inputDiffBlobs[0] == outputDiffBlobs[0].
+		// But both BackwardOnce and LearnOnce are using outputDiffBlobs[0].
+		// In that case we need to store values of outputDiffBlobs[0].
+		outputDiffBackup = ( IsBackwardPerformed() && IsLearningPerformed() )
+			? CDnnBlob::CreateBlob( MathEngine(), CT_Float, inputDescs[0] ) : nullptr;
+
+		if( GetDnn()->IsRecurrentMode() ) {
 			RegisterRuntimeBlob( outputDiffBackup );
 		}
 	}
@@ -148,70 +166,78 @@ void CObjectNormalizationLayer::OnReshaped()
 
 void CObjectNormalizationLayer::RunOnce()
 {
-	calcMean();
-	calcVar();
-	normalizeInput();
-	applyScaleAndBias();
+	const int objectCount = inputBlobs[0]->GetObjectCount();
+
+	if( internalParams == nullptr ) {
+		CFloatHandleStackVar meanAndVarBuff( MathEngine(), 2 * objectCount );
+		runOnceImpl( meanAndVarBuff.GetHandle(), meanAndVarBuff.GetHandle() + objectCount,
+			normalizedInput == nullptr ? outputBlobs[0]->GetData() : normalizedInput->GetData() );
+	} else {
+		runOnceImpl( internalParams->GetObjectData( IPN_NegMean ), internalParams->GetObjectData( IPN_InvSqrtVariance ),
+			normalizedInput == nullptr ? outputBlobs[0]->GetData() : normalizedInput->GetData() );
+	}
 }
 
-void CObjectNormalizationLayer::calcMean()
+void CObjectNormalizationLayer::runOnceImpl( const CFloatHandle& negMean, const CFloatHandle& invSqrtVar,
+	const CFloatHandle& inputNorm )
 {
-	CFloatHandle averageData = internalParams->GetObjectData( IPN_NegAverage );
+	calcMean( negMean );
+	calcVar( negMean, invSqrtVar );
+	normalizeInput( negMean, invSqrtVar, inputNorm );
+	applyScaleAndBias( inputNorm );
+}
 
-	MathEngine().SumMatrixColumns( averageData, inputBlobs[0]->GetData(),
+void CObjectNormalizationLayer::calcMean( const CFloatHandle& negMean )
+{
+	MathEngine().SumMatrixColumns( negMean, inputBlobs[0]->GetData(),
 		inputBlobs[0]->GetObjectCount(), inputBlobs[0]->GetObjectSize() );
-	MathEngine().VectorNegMultiply( averageData, averageData, internalParams->GetObjectSize(),
+	MathEngine().VectorNegMultiply( negMean, negMean, inputBlobs[0]->GetObjectCount(),
 		invObjectSize->GetData() );
 }
 
-void CObjectNormalizationLayer::calcVar()
+void CObjectNormalizationLayer::calcVar( const CConstFloatHandle& negMean, const CFloatHandle& invSqrtVar )
 {
 	const int objectCount = inputBlobs[0]->GetObjectCount();
 	const int objectSize = inputBlobs[0]->GetObjectSize();
 
-	CConstFloatHandle averageData = internalParams->GetObjectData( IPN_NegAverage );
-	CFloatHandle invSqrtVarianceData = internalParams->GetObjectData( IPN_InvSqrtVariance );
 	CConstFloatHandle input = inputBlobs[0]->GetData();
 
 	CFloatHandleStackVar temp( MathEngine(), inputBlobs[0]->GetDataSize() );
 
-	MathEngine().AddVectorToMatrixColumns( input, temp, objectCount, objectSize, averageData );
+	MathEngine().AddVectorToMatrixColumns( input, temp, objectCount, objectSize, negMean );
 	MathEngine().VectorEltwiseMultiply( temp, temp, temp, temp.Size() );
-	MathEngine().SumMatrixColumns( invSqrtVarianceData, temp, objectCount, objectSize );
+	MathEngine().SumMatrixColumns( invSqrtVar, temp, objectCount, objectSize );
 
 	// Normalize the variance and calculate the inverse to the standard deviation.
-	MathEngine().VectorMultiply( invSqrtVarianceData, invSqrtVarianceData, objectCount, invObjectSize->GetData() );
-	MathEngine().VectorAddValue( invSqrtVarianceData, invSqrtVarianceData, objectCount, epsilon->GetData() );
-	MathEngine().VectorSqrt( invSqrtVarianceData, invSqrtVarianceData, objectCount );
-	MathEngine().VectorInv( invSqrtVarianceData, invSqrtVarianceData, objectCount );
+	MathEngine().VectorMultiply( invSqrtVar, invSqrtVar, objectCount, invObjectSize->GetData() );
+	MathEngine().VectorAddValue( invSqrtVar, invSqrtVar, objectCount, epsilon->GetData() );
+	MathEngine().VectorSqrt( invSqrtVar, invSqrtVar, objectCount );
+	MathEngine().VectorInv( invSqrtVar, invSqrtVar, objectCount );
 }
 
-void CObjectNormalizationLayer::normalizeInput()
+void CObjectNormalizationLayer::normalizeInput( const CConstFloatHandle& negMean, const CConstFloatHandle& invSqrtVar,
+	const CFloatHandle& inputNorm )
 {
 	const int objectCount = inputBlobs[0]->GetObjectCount();
 	const int objectSize = inputBlobs[0]->GetObjectSize();
 
-	CConstFloatHandle average = internalParams->GetObjectData( IPN_NegAverage );
-	CConstFloatHandle invSqrtVarianceData = internalParams->GetObjectData( IPN_InvSqrtVariance );
 	CConstFloatHandle input = inputBlobs[0]->GetData();
-	CFloatHandle normalized = normalizedInput == nullptr ? outputBlobs[0]->GetData() : normalizedInput->GetData();
 	const int outSize = normalizedInput == nullptr ? outputBlobs[0]->GetDataSize() : normalizedInput->GetDataSize();
 
-	MathEngine().AddVectorToMatrixColumns( input, normalized, objectCount, objectSize, average );
-	MathEngine().MultiplyDiagMatrixByMatrix( invSqrtVarianceData, objectCount, normalized, objectSize, normalized, outSize );
+	MathEngine().AddVectorToMatrixColumns( input, inputNorm, objectCount, objectSize, negMean );
+	MathEngine().MultiplyDiagMatrixByMatrix( invSqrtVar, objectCount, inputNorm, objectSize, inputNorm, outSize );
 }
 
-void CObjectNormalizationLayer::applyScaleAndBias()
+void CObjectNormalizationLayer::applyScaleAndBias( const CConstFloatHandle& inputNorm )
 {
 	const int objectCount = inputBlobs[0]->GetObjectCount();
 	const int objectSize = inputBlobs[0]->GetObjectSize();
 
-	CConstFloatHandle input = normalizedInput == nullptr ? outputBlobs[0]->GetData() : normalizedInput->GetData();
 	CFloatHandle output = outputBlobs[0]->GetData();
 	CConstFloatHandle scale = Scale()->GetData();
 	CConstFloatHandle bias = Bias()->GetData();
 
-	MathEngine().MultiplyMatrixByDiagMatrix( input, objectCount, objectSize, scale, output, outputBlobs[0]->GetDataSize() );
+	MathEngine().MultiplyMatrixByDiagMatrix( inputNorm, objectCount, objectSize, scale, output, outputBlobs[0]->GetDataSize() );
 	MathEngine().AddVectorToMatrixRows( 1, output, output, objectCount, objectSize, bias );
 }
 
@@ -234,7 +260,7 @@ void CObjectNormalizationLayer::BackwardOnce()
 	// Average is used multiple times in RunOnce.
 	// But it isn't used neither in BackwardOnce nor in LearnOnce.
 	// That's why it's possible to reuse it here as a buffer.
-	CFloatHandle inputMultiplier = internalParams->GetObjectData( IPN_NegAverage );
+	CFloatHandle inputMultiplier = internalParams->GetObjectData( IPN_NegMean );
 	
 	// Buffer for next operations.
 	CFloatHandleStackVar buff( MathEngine(), dataSize );
