@@ -32,7 +32,7 @@ class NEOML_API CObjectNormalizationLayer : public CBaseInPlaceLayer {
 public:
 	explicit CObjectNormalizationLayer( IMathEngine& mathEngine );
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 	// Returns or sets epsilon, added to variance
 	// By default, epsilon is equal to 1e-5
