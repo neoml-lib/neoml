@@ -298,8 +298,8 @@ void CObjectNormalizationLayer::LearnOnce()
 
 	MathEngine().SumMatrixRowsAdd( 1, BiasDiff()->GetData(), outDiff, objectCount, objectSize );
 
-	// If layer didn't call backward then we can rewrite outputDiffBlobs[0] because it isn't used at any other places.
-	// If layer called backward then we can rewrite outputDiffBackup because this call is the only place where its used.
+	// If layer didn't call backward then we can rewrite outputDiffBlobs[0] because it isn't used elsewhere.
+	// If layer called backward then we can rewrite outputDiffBackup because this call is the only place where it's used.
 	// As a result, outDiff memory can be overwritten in any case.
 	MathEngine().VectorEltwiseMultiply( normalizedInput->GetData(), outDiff, outDiff, dataSize );
 	MathEngine().SumMatrixRowsAdd( 1, ScaleDiff()->GetData(), outDiff, objectCount, objectSize );
