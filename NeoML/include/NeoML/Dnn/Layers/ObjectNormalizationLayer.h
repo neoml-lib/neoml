@@ -22,7 +22,7 @@ namespace NeoML {
 
 // Normalizes data in each object (ObjectSize = BD_Height x BD_Width x BD_Depth x BD_Channels).
 // After that multiplies each object by scale and adds bias to the result.
-// Scale and bias are trainable vector of the ObjectSize length.
+// Scale and bias are trainable vectors of the ObjectSize length.
 
 // The final formula is
 //  f(x) = (x - mean(x)) / sqrt(var(x) + eps) * scale + bias
