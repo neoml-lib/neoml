@@ -72,7 +72,7 @@ private:
 
 	// Internal (untrainable) parameters
 	enum TInternalParamName {
-		IPN_NegMean = 0, // the average across the objects multiplied by -1
+		IPN_NegMean = 0, // the mean the of elements in each of object, multiplied by -1
 		IPN_InvSqrtVariance, // 1 / sqrt(variance)
 
 		IPN_Count,
