@@ -54,7 +54,7 @@ CPtr<CDnnBlob> GetBias() const;
 
 ## Входы
 
-На единственный вход подаётся блоб произвольного размера.
+На единственный вход подаётся блоб, содержащий `BatchLength * BatchWidth * ListSize` объектов размера `Height * Width * Depth * Channels`.
 
 ## Выходы
 

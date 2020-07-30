@@ -54,7 +54,7 @@ Gets the bias vector. It is a blob of any shape and of total size equal `Height 
 
 ## Inputs
 
-The single input accepts a blob of any size.
+The single input accepts a blob containing `BatchLength * BatchWidth * ListSize` objects of size `Height * Width * Depth * Channels`.
 
 ## Outputs
 
