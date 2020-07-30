@@ -42,6 +42,7 @@ function(add_gtest_for_target TARGET_NAME MATH_ENGINE_TYPE WORKING_DIR)
         TEST_LIST ${ENGINE_TYPE}_TESTS
         EXTRA_ARGS --MathEngine=${TYPE}
         WORKING_DIRECTORY ${WORKING_DIR}
+        DISCOVERY_TIMEOUT 60
     )
 endfunction()
 
