@@ -35,36 +35,36 @@ CAbsNode::CAbsNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion 
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", abs );
 }
 
-void CAbsNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CAbsNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
 	// tensor data is already nullptr after default constructor
-	InputTensor( tensors, 0 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
+	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 }
 
-void CAbsNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
+void CAbsNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( !InputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
+	if( !dims[Input[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !OutputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
+	if( !dims[Output[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CAbsNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CAbsNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CAbsLayer> abs = new CAbsLayer( dnn.GetMathEngine() );
 	abs->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	abs->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
+	abs->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	
 	dnn.AddLayer( *abs );
 
-	OutputMapping( mappings, 0 ) = CNeoMLMapping( abs, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( abs, 0 );
 }
 
 } // namespace NeoOnnx

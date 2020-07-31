@@ -99,36 +99,32 @@ REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )
 //---------------------------------------------------------------------------------------------------------------------
 
 CNode::CNode( int _nodeIndex, int inputCount, int _outputCount ) :
-	nodeIndex( _nodeIndex ),
-	outputCount( _outputCount )
+	nodeIndex( _nodeIndex )
 {
-	inputs.SetSize( inputCount );
+	Input.SetSize( inputCount );
+	Output.SetBufferSize( _outputCount );
+	for( int outputIndex = 0; outputIndex < _outputCount; ++outputIndex ) {
+		Output.Add( CLink( nodeIndex, outputIndex ) );
+	}
 }
 
 int CNode::InputCount() const
 {
-	return inputs.Size();
+	return Input.Size();
 }
 
 int CNode::OutputCount() const
 {
-	return outputCount;
+	return Output.Size();
 }
 
-void CNode::SetInput( int index, const CNode::CInputInfo& inputInfo )
+void CNode::Connect( int index, const CLink& inputInfo )
 {
 	CheckNeoOnnxInternal( index >= 0 && index < InputCount(), "attempt to set non-existing input" );
-	CheckNeoOnnxInternal( inputs[index].NodeIndex == NotFound && inputs[index].OutputIndex == NotFound,
+	CheckNeoOnnxInternal( Input[index].NodeIndex == NotFound && Input[index].OutputIndex == NotFound,
 		"attempt to set already-defined input" );
 	CheckNeoOnnxInternal( inputInfo.OutputIndex >= 0, "attempt to set an input with incorrect index" );
-	inputs[index] = inputInfo;
-}
-
-const CNode::CInputInfo& CNode::GetInput( int index ) const
-{
-	CheckNeoOnnxInternal( index >= 0 && index < InputCount(), "attempt to access non-existing input" );
-	// CheckNeoOnnxInternal( inputs[index].NodeIndex != NotFound, "attempt to acces empty input" );
-	return inputs[index];
+	Input[index] = inputInfo;
 }
 
 //---------------------------------------------------------------------------------------------------------------------

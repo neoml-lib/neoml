@@ -34,12 +34,12 @@ CConcatNode::CConcatNode( int nodeIndex, const onnx::NodeProto& concat, int opse
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", concat );
 }
 
-void CConcatNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CConcatNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
-		const CTensorShape& inputShape = InputTensor( tensors, inputIndex ).Shape;
+		const CTensorShape& inputShape = tensors[Input[inputIndex]].Shape;
 
 		if( outputShape.IsEmpty() ) {
 			inputShape.CopyTo( outputShape );
@@ -52,7 +52,7 @@ void CConcatNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEn
 	TBlobType outputBlobType = CT_Invalid;
 
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
-		const CTensor& input = InputTensor( tensors, inputIndex );
+		const CTensor& input = tensors[Input[inputIndex]];
 		if( input.Data == nullptr ) {
 			// Data can't be pre-calculated.
 			return;
@@ -71,47 +71,47 @@ void CConcatNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEn
 
 	// Allocating output blob.
 	CBlobDesc outputDesc( outputBlobType );
-	for( int dim = 0; dim < static_cast<int>( OutputTensor( tensors, 0 ).Shape.Size() ); ++dim ) {
-		outputDesc.SetDimSize( dim, OutputTensor( tensors, 0 ).Shape[dim] );
+	for( int dim = 0; dim < static_cast<int>( tensors[Output[0]].Shape.Size() ); ++dim ) {
+		outputDesc.SetDimSize( dim, tensors[Output[0]].Shape[dim] );
 	}
 
-	OutputTensor( tensors, 0 ).Data = CDnnBlob::CreateBlob( mathEngine, outputBlobType, outputDesc );
+	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, outputBlobType, outputDesc );
 
 	// Collecting input blobs for concatenation.
 	CObjectArray<CDnnBlob> inputBlobs;
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
-		inputBlobs.Add( InputTensor( tensors, inputIndex ).Data );
+		inputBlobs.Add( tensors[Input[inputIndex]].Data );
 	}
 
 	// Precalculation.Shape.size()
-	CDnnBlob::MergeByDim( mathEngine, static_cast<TBlobDim>( axis ), inputBlobs, OutputTensor( tensors, 0 ).Data );
+	CDnnBlob::MergeByDim( mathEngine, static_cast<TBlobDim>( axis ), inputBlobs, tensors[Output[0]].Data );
 }
 
-void CConcatNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
+void CConcatNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
-		if( !InputDim( dims, inputIndex ).IsEmpty() ) {
-			CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
+		if( !dims[Input[inputIndex]].IsEmpty() ) {
+			CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
 				"marking output dimensions failed", onnxNode );
 		}
 	}
 
-	if( !OutputDim( dims, 0 ).IsEmpty() ) {
+	if( !dims[Output[0]].IsEmpty() ) {
 		for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
-			CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, inputIndex ).Shape, OutputDim( dims, 0 ), InputDim( dims, inputIndex ) ),
+			CheckNeoOnnxInternal( SetTensorDim( tensors[Input[inputIndex]].Shape, dims[Output[0]], dims[Input[inputIndex]] ),
 				"marking input dimensions failed", onnxNode );
 		}
 	}
 }
 
-void CConcatNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CConcatNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	if( InputTensor( tensors, 0 ).Data != nullptr ) {
+	if( tensors[Input[0]].Data != nullptr ) {
 		return;
 	}
 
 	IMathEngine& mathEngine = dnn.GetMathEngine();
-	const TBlobDim concatDim = OutputDim( dims, 0 )[axis];
+	const TBlobDim concatDim = dims[Output[0]][axis];
 
 	CPtr<CBaseLayer> concatLayer;
 	switch( concatDim ) {
@@ -138,11 +138,11 @@ void CConcatNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, 
 	concatLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
-		concatLayer->Connect( inputIndex, *InputMapping( mappings, inputIndex ).Layer, InputMapping( mappings, inputIndex ).OutputIndex );
+		concatLayer->Connect( inputIndex, *neoMLLinks[Input[inputIndex]].Layer, neoMLLinks[Input[inputIndex]].OutputIndex );
 	}
 	dnn.AddLayer( *concatLayer );
 
-	OutputMapping( mappings, 0 ) = CNeoMLMapping( concatLayer, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( concatLayer, 0 );
 }
 
 } // namespace NeoOnnx

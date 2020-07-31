@@ -35,11 +35,11 @@ CUnsqueezeNode::CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze,
 	attributes.GetRequiredIntArray( "axes", axes );
 }
 
-void CUnsqueezeNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CUnsqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
+	const CTensorShape& inputShape = tensors[Input[0]].Shape;
 
-	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	outputShape.SetSize( inputShape.Size() + axes.Size() );
 	int axisIndex = 0;
 	for( int i = 0; i < outputShape.Size(); ++i ) {
@@ -51,16 +51,16 @@ void CUnsqueezeNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mat
 		}
 	}
 
-	OutputTensor( tensors, 0 ).Data = InputTensor( tensors, 0 ).Data;
+	tensors[Output[0]].Data = tensors[Input[0]].Data;
 }
 
-void CUnsqueezeNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
+void CUnsqueezeNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( OutputTensor( tensors, 0 ).Data != nullptr ) {
+	if( tensors[Output[0]].Data != nullptr ) {
 		return;
 	}
 
-	const CTensorDim& outputDim = ( OutputDim( dims, 0 ) );
+	const CTensorDim& outputDim = ( dims[Output[0]] );
 
 	if( outputDim.IsEmpty() ) {
 		return;
@@ -76,17 +76,17 @@ void CUnsqueezeNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& d
 		}
 	}
 
-	CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, inputDim, InputDim( dims, 0 ) ),
+	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, inputDim, dims[Input[0]] ),
 		"marking input dimensions failed", onnxNode );
 }
 
-void CUnsqueezeNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CUnsqueezeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	if( OutputTensor( tensors, 0 ).Data != nullptr ) {
+	if( tensors[Output[0]].Data != nullptr ) {
 		return;
 	}
 
-	OutputMapping( mappings, 0 ) = InputMapping( mappings, 0 );
+	neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
 }
 
 } // namespace NeoOnnx

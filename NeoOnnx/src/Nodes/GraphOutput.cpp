@@ -29,12 +29,12 @@ CGraphOutput::CGraphOutput( int nodeIndex, const onnx::ValueInfoProto& output ) 
 {
 }
 
-void CGraphOutput::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CGraphOutput::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
 	sink->SetName( name );
 
-	sink->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
+	sink->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 
 	dnn.AddLayer( *sink );
 }

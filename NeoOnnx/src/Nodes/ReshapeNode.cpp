@@ -35,20 +35,20 @@ CReshapeNode::CReshapeNode( int nodeIndex, const onnx::NodeProto& reshape, int o
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", reshape );
 }
 
-void CReshapeNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "constant first input", onnxNode );
-	CheckNeoOnnxSupport( InputTensor( tensors, 1 ).Data != nullptr, "non-constant second input", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant first input", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant second input", onnxNode );
 
-	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
+	const CTensorShape& inputShape = tensors[Input[0]].Shape;
 
-	shape.SetSize( InputTensor( tensors, 1 ).Data->GetDataSize() );
-	InputTensor( tensors, 1 ).Data->CopyTo( shape.GetPtr() );
+	shape.SetSize( tensors[Input[1]].Data->GetDataSize() );
+	tensors[Input[1]].Data->CopyTo( shape.GetPtr() );
 
 	hasFixedShape = false;
 	hasRemainder = false;
 
-	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	outputShape.SetSize( shape.Size() );
 
 	int remDim = -1;
@@ -87,15 +87,15 @@ void CReshapeNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathE
 		outputShape[remDim] = static_cast<int>( rem );
 	}
 
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
-void CReshapeNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CReshapeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	if( !hasRemainder && !hasFixedShape ) {
 		// Strange case, reshape doesn't do anything...
-		OutputMapping( mappings, 0 ) = InputMapping( mappings, 0 );
+		neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
 		return;
 	}
 
@@ -105,11 +105,11 @@ void CReshapeNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors,
 	// This layer can't broadcast dimensions
 	// Expecting at least one of dims to be marked
 	// And (if only input is marked) it must have at least the same amount of dimensions
-	CheckNeoOnnxInternal( OutputDim( dims, 0 ).Size() == shape.Size() || InputDim( dims, 0 ).Size() >= shape.Size(),
+	CheckNeoOnnxInternal( dims[Output[0]].Size() == shape.Size() || dims[Input[0]].Size() >= shape.Size(),
 		"failed to calculate output blob dimensions", onnxNode );
 
 	// If both input and output dims were marked, output dims have higher priority
-	const CTensorDim& preferredDim = OutputDim( dims, 0 ).IsEmpty() ? InputDim( dims, 0 ) : OutputDim( dims, 0 );
+	const CTensorDim& preferredDim = dims[Output[0]].IsEmpty() ? dims[Input[0]] : dims[Output[0]];
 
 	for( int i = 0; i < shape.Size(); ++i ) {
 		CTransformLayer::CDimensionRule rule;
@@ -132,11 +132,11 @@ void CReshapeNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors,
 		transform->SetDimensionRule( preferredDim[i], rule );
 	}
 
-	transform->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
+	transform->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	
 	dnn.AddLayer( *transform );
 
-	OutputMapping( mappings, 0 ) = CNeoMLMapping( transform, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( transform, 0 );
 }
 
 } // namespace NeoOnnx

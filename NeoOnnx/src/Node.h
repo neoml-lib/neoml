@@ -28,13 +28,13 @@ class ValueInfoProto;
 
 namespace NeoOnnx {
 
-// Node's outputs mapping with NeoML layers
-struct CNeoMLMapping {
+// Link to the OutputIndex'th output of the NeoML Layer.
+struct CNeoMLLink {
 	// Constructor for onnx node output, which doesn't with any NeoML layer's output.
-	CNeoMLMapping() : Layer( nullptr ), OutputIndex( NotFound ) {}
+	CNeoMLLink() : Layer( nullptr ), OutputIndex( NotFound ) {}
 
 	// Constructor for onnx node output, matching it with layer's outputIndex'th output.
-	CNeoMLMapping( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
+	CNeoMLLink( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
 		{ CheckNeoOnnxInternal( layer != nullptr, "non empty output info with layer == nullptr" ); }
 
 	CBaseLayer* Layer; // Used NeoML layer (nullptr if there is no layer mapped with this output)
@@ -43,12 +43,70 @@ struct CNeoMLMapping {
 
 //--------------------------------------------------------------------------------------------------------------------
 
+// Link to NodeIndex'th node OutputIndex'th output.
+struct CLink
+{
+	CLink() : NodeIndex( NotFound ), OutputIndex( NotFound ) {}
+	CLink( int nodeIndex, int outputIndex ) : NodeIndex( nodeIndex ), OutputIndex( outputIndex ) {}
+
+	int NodeIndex; // Node connected to this input.
+	int OutputIndex; // Node's output number connected to this input.
+};
+
 class CNode;
 
-typedef CPointerArray<CNode> CGraph;
-typedef CArray<CArray<CTensor>> CGraphTensors;
-typedef CArray<CArray<CTensorDim>> CGraphDims;
-typedef CArray<CArray<CNeoMLMapping>> CGraphMappings;
+class CGraph {
+public:
+	CNode* operator[]( int nodeIndex ) { return nodes[nodeIndex]; }
+	const CNode* operator[]( int nodeIndex ) const { return nodes[nodeIndex]; }
+	const CNode* operator[]( const CLink& link ) const { return nodes[link.NodeIndex]; }
+
+	void Add( CNode* newNode ) { nodes.Add( newNode ); }
+
+	int NodeCount() const { return nodes.Size(); }
+
+	void SetBufferSize( int nodeCount ) { nodes.SetBufferSize( nodeCount ); }
+
+private:
+	CPointerArray<CNode> nodes;
+};
+
+template<class T>
+class CGraphCache {
+public:
+	explicit CGraphCache( const CGraph& graph );
+
+	T& operator[]( const CLink& link );
+	const T& operator[]( const CLink& link ) const;
+
+private:
+	CArray<CArray<T>> cache;
+};
+
+template<class T>
+CGraphCache<T>::CGraphCache( const CGraph& graph )
+{
+	cache.SetSize( graph.NodeCount() );
+	for( int i = 0; i < graph.NodeCount(); ++i ) {
+		cache[i].SetSize( graph[i]->OutputCount() );
+	}
+}
+
+template<class T>
+T& CGraphCache<T>::operator[]( const CLink& link )
+{
+	return cache[link.NodeIndex][link.OutputIndex];
+}
+
+template<class T>
+const T& CGraphCache<T>::operator[]( const CLink& link ) const
+{
+	return cache[link.NodeIndex][link.OutputIndex];
+}
+
+typedef CGraphCache<CTensor> CTensorCache;
+typedef CGraphCache<CTensorDim> CDimCache;
+typedef CGraphCache<CNeoMLLink> CNeoMLLinkCache;
 
 // Node in the onnx calculation graph.
 class CNode {
@@ -56,59 +114,39 @@ public:
 	virtual ~CNode() = default;
 
 	// Calculate output tensors' shape based on inputs' tensors' shape.
-	virtual void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) = 0;
+	virtual void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) = 0;
 
 	// Marks onnx tensors' dimensions as blob dimensions from NeoML.
-	virtual void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) = 0;
+	virtual void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) = 0;
 
 	// Adds layers, representing this node, to the dnn (if needed).
-	virtual void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) = 0;
+	virtual void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) = 0;
 
 	// Gets the number of inputs.
 	int InputCount() const;
 
 	// Gets the number of outputs.
 	int OutputCount() const;
-
-	// Information about input.
-	struct CInputInfo {
-		CInputInfo() : NodeIndex( NotFound ), OutputIndex( NotFound ) {}
-		CInputInfo( int nodeIndex, int outputIndex ) : NodeIndex( nodeIndex ), OutputIndex( outputIndex ) {}
-
-		int NodeIndex; // Node connected to this input.
-		int OutputIndex; // Node's output number connected to this input.
-	};
 	
-	// Set index'th input of this node.
+	// Connects index'th input of this node with the link.
 	// inputInfo's content must be not null.
 	// Must be called once for every used input.
-	void SetInput( int index, const CInputInfo& inputInfo );
+	void Connect( int index, const CLink& link );
 
-	const CInputInfo& GetInput( int index ) const;
-
-	// Different accessors
-	const CNode* InputNode( const CGraph& graph, int inputIndex ) const { return graph[inputs[inputIndex].NodeIndex]; }
-
-	const CTensor& InputTensor( const CGraphTensors& tensors, int inputIndex ) const { return tensors[inputs[inputIndex].NodeIndex][inputs[inputIndex].OutputIndex]; }
-	const CTensor& OutputTensor( const CGraphTensors& tensors, int outputIndex ) const { return tensors[nodeIndex][outputIndex]; }
-	CTensor& OutputTensor( CGraphTensors& tensors, int outputIndex ) const { return tensors[nodeIndex][outputIndex]; }
-
-	const CTensorDim& InputDim( const CGraphDims& dims, int inputIndex ) const { return dims[inputs[inputIndex].NodeIndex][inputs[inputIndex].OutputIndex]; }
-	CTensorDim& InputDim( CGraphDims& dims, int inputIndex ) const { return dims[inputs[inputIndex].NodeIndex][inputs[inputIndex].OutputIndex]; }
-	const CTensorDim& OutputDim( const CGraphDims& dims, int outputIndex ) const { return dims[nodeIndex][outputIndex]; }
-	CTensorDim& OutputDim( CGraphDims& dims, int outputIndex ) const { return dims[nodeIndex][outputIndex]; }
-
-	const CNeoMLMapping& InputMapping( const CGraphMappings& mappings, int inputIndex ) { return mappings[inputs[inputIndex].NodeIndex][inputs[inputIndex].OutputIndex]; }
-	const CNeoMLMapping& OutputMapping( const CGraphMappings& mappings, int outputIndex ) { return mappings[nodeIndex][outputIndex]; }
-	CNeoMLMapping& OutputMapping( CGraphMappings& mappings, int outputIndex ) { return mappings[nodeIndex][outputIndex]; }
+	// Gets the link connected to the inputIndex'th input
+	const CLink& GetInput( int inputIndex ) const { return Input[inputIndex]; }
 
 protected:
 	CNode( int nodeIndex, int inputCount, int outputCount );
 
+	// Links connected to inputs of this node.
+	CArray<CLink> Input;
+
+	// Links to outputs of this node.
+	CArray<CLink> Output;
+
 private:
 	int nodeIndex;
-	CArray<CInputInfo> inputs;
-	int outputCount;
 };
 
 //--------------------------------------------------------------------------------------------------------------------

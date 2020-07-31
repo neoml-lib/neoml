@@ -31,9 +31,9 @@ CGraphInitializer::CGraphInitializer( int nodeIndex, const onnx::TensorProto& _i
 	assert( initializer.dims_size() > 0 );
 }
 
-void CGraphInitializer::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CGraphInitializer::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	outputShape.SetBufferSize( initializer.dims_size() );
 
 	for( int dimIndex = 0; dimIndex < initializer.dims_size(); ++dimIndex ) {
@@ -43,14 +43,14 @@ void CGraphInitializer::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& 
 	CBlobDesc blobDesc;
 	blobDesc.SetDataType( GetBlobType( static_cast<onnx::TensorProto_DataType>( initializer.data_type() ) ) );
 	for( int dimIndex = 0; dimIndex < initializer.dims_size(); ++dimIndex ) {
-		blobDesc.SetDimSize( dimIndex, OutputTensor( tensors, 0 ).Shape[dimIndex] );
+		blobDesc.SetDimSize( dimIndex, tensors[Output[0]].Shape[dimIndex] );
 	}
 
-	OutputTensor( tensors, 0 ).Data = CDnnBlob::CreateBlob( mathEngine, blobDesc.GetDataType(), blobDesc );
+	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, blobDesc.GetDataType(), blobDesc );
 	if( blobDesc.GetDataType() == CT_Float ) {
-		LoadBlobData<float>( initializer, *OutputTensor( tensors, 0 ).Data );
+		LoadBlobData<float>( initializer, *tensors[Output[0]].Data );
 	} else {
-		LoadBlobData<int>( initializer, *OutputTensor( tensors, 0 ).Data );
+		LoadBlobData<int>( initializer, *tensors[Output[0]].Data );
 	}
 }
 

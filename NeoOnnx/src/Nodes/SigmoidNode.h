@@ -29,9 +29,9 @@ public:
 	CSigmoidNode( int nodeIndex, const onnx::NodeProto& sigmoid, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
-	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override;
-	void AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn ) override;
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 };
 
 } // namespace NeoOnnx

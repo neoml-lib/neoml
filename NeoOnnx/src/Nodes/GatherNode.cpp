@@ -33,32 +33,32 @@ CGatherNode::CGatherNode( int nodeIndex, const onnx::NodeProto& gather, int opse
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gather );
 }
 
-void CGatherNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CGatherNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	InputTensor( tensors, 1 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
+	tensors[Input[1]].Shape.CopyTo( tensors[Output[0]].Shape );
 
 	// TODO: add non-constant tensor support
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data != nullptr, "non-constant input", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data != nullptr, "non-constant input", onnxNode );
 	// TODO: add float tensor support
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data->GetDataType() == CT_Int, "non-integer input", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data->GetDataType() == CT_Int, "non-integer input", onnxNode );
 
 	CArray<int> data;
-	data.SetSize( InputTensor( tensors, 0 ).Data->GetDataSize() );
-	InputTensor( tensors, 0 ).Data->CopyTo( data.GetPtr() );
+	data.SetSize( tensors[Input[0]].Data->GetDataSize() );
+	tensors[Input[0]].Data->CopyTo( data.GetPtr() );
 
-	CheckNeoOnnxSupport( InputTensor( tensors, 1 ).Data != nullptr, "non-constant indices", onnxNode );
-	CheckOnnxProtocol( InputTensor( tensors, 1 ).Data->GetDataType() == CT_Int, "indices must be integer", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant indices", onnxNode );
+	CheckOnnxProtocol( tensors[Input[1]].Data->GetDataType() == CT_Int, "indices must be integer", onnxNode );
 
 	CArray<int> indices;
-	indices.SetSize( InputTensor( tensors, 1 ).Data->GetDataSize() );
-	InputTensor( tensors, 1 ).Data->CopyTo( indices.GetPtr() );
+	indices.SetSize( tensors[Input[1]].Data->GetDataSize() );
+	tensors[Input[1]].Data->CopyTo( indices.GetPtr() );
 
-	OutputTensor( tensors, 0 ).Data = InputTensor( tensors, 1 ).Data->GetClone();
-	int* outputBuffer = OutputTensor( tensors, 0 ).Data->GetBuffer<int>( 0, OutputTensor( tensors, 0 ).Data->GetDataSize() );
+	tensors[Output[0]].Data = tensors[Input[1]].Data->GetClone();
+	int* outputBuffer = tensors[Output[0]].Data->GetBuffer<int>( 0, tensors[Output[0]].Data->GetDataSize() );
 	for( int i = 0; i < indices.Size(); ++i ) {
 		outputBuffer[i] = data[indices[i]];
 	}
-	OutputTensor( tensors, 0 ).Data->ReleaseBuffer( outputBuffer, true );
+	tensors[Output[0]].Data->ReleaseBuffer( outputBuffer, true );
 }
 
 } // namespace NeoOnnx

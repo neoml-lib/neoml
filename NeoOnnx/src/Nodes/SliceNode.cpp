@@ -41,11 +41,11 @@ CSliceNode::CSliceNode( int nodeIndex, const onnx::NodeProto& slice, int opsetVe
 	CheckNeoOnnxSupport( axes.Size() == 1, "axes.Size() > 1", slice );
 }
 
-void CSliceNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CSliceNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	const CTensor& inputTensor = InputTensor( tensors, 0 );
+	const CTensor& inputTensor = tensors[Input[0]];
 
-	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	inputTensor.Shape.CopyTo( outputShape );
 
 	if( starts[0] < 0 ) {
@@ -84,35 +84,35 @@ void CSliceNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEng
 	}
 
 	CDnnBlob::SplitByDim( mathEngine, static_cast<TBlobDim>( axes[0] ), inputTensor.Data, parts );
-	OutputTensor( tensors, 0 ).Data = parts[outputBlobIndex];
+	tensors[Output[0]].Data = parts[outputBlobIndex];
 }
 
-void CSliceNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
+void CSliceNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( OutputTensor( tensors, 0 ).Data != nullptr ) {
+	if( tensors[Output[0]].Data != nullptr ) {
 		return;
 	}
 
-	if( !InputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
+	if( !dims[Input[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !OutputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
+	if( !dims[Output[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
 			"marking inputTensor dimensions failed", onnxNode );
 	}
 }
 
-void CSliceNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CSliceNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	if( OutputTensor( tensors, 0 ).Data != nullptr ) {
+	if( tensors[Output[0]].Data != nullptr ) {
 		return;
 	}
 
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
-	const TBlobDim concatDim = ( OutputDim( dims, 0 ) )[axes[0]];
+	const TBlobDim concatDim = ( dims[Output[0]] )[axes[0]];
 
 	// TODO: add the rest dims support
 	CheckNeoOnnxSupport( concatDim == BD_BatchLength, "concat along dim other than BD_BatchLength", onnxNode );
@@ -120,11 +120,11 @@ void CSliceNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, c
 	subseq->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
 	if( starts[0] < 0 ) {
-		starts[0] += InputTensor( tensors, 0 ).Shape[axes[0]];
+		starts[0] += tensors[Input[0]].Shape[axes[0]];
 	}
 
 	if( ends[0] < 0 ) {
-		ends[0] += InputTensor( tensors, 0 ).Shape[axes[0]];
+		ends[0] += tensors[Input[0]].Shape[axes[0]];
 		if( starts[0] == ends[0] ) {
 			++ends[0];
 		}
@@ -133,11 +133,11 @@ void CSliceNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, c
 	subseq->SetStartPos( starts[0] );
 	subseq->SetLength( ends[0] - starts[0] );
 
-	subseq->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
+	subseq->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 
 	dnn.AddLayer( *subseq );
 
-	OutputMapping( mappings, 0 ) = CNeoMLMapping( subseq, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( subseq, 0 );
 }
 
 } // namespace NeoOnnx

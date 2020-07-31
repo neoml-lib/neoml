@@ -33,37 +33,37 @@ CReluNode::CReluNode( int nodeIndex, const onnx::NodeProto& relu, int opsetVersi
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", relu );
 }
 
-void CReluNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CReluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	InputTensor( tensors, 0 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
+	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
-void CReluNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
+void CReluNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( !InputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
+	if( !dims[Input[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !OutputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
+	if( !dims[Output[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CReluNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CReluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CReLULayer> relu = new CReLULayer( dnn.GetMathEngine() );
 	relu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	relu->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
+	relu->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	
 	dnn.AddLayer( *relu );
 
-	OutputMapping( mappings, 0 ) = CNeoMLMapping( relu, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( relu, 0 );
 }
 
 } // namespace NeoOnnx

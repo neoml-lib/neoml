@@ -41,10 +41,10 @@ CAveragePoolNode::CAveragePoolNode( int nodeIndex, const onnx::NodeProto& averag
 	CheckNeoOnnxSupport( kernelShape.Size() == 2, "non 2-dimensional max pooling", averagePool );
 }
 
-void CAveragePoolNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
 	// Checking input
-	const CTensor& inputTensor = InputTensor( tensors, 0 );
+	const CTensor& inputTensor = tensors[Input[0]];
 	CheckNeoOnnxSupport( inputTensor.Shape.Size() > 2 && inputTensor.Shape.Size() <= 4,
 		"wrong input tensor's dimensions number", onnxNode );
 	const CTensorShape& inputShape = inputTensor.Shape;
@@ -67,37 +67,37 @@ void CAveragePoolNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& m
 	}
 
 	// Calculating output shape.
-	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	inputShape.CopyTo( outputShape );
 	for( int dimIndex = 0; dimIndex < poolDims; ++dimIndex ) {
 		outputShape[dimIndex + 2] = ( inputShape[dimIndex + 2] + pads[dimIndex] + pads[dimIndex + poolDims]
 			- kernelShape[dimIndex] ) / strides[dimIndex] + 1;
 	}
 
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
-void CAveragePoolNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
+void CAveragePoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( !InputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
+	if( !dims[Input[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !OutputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
+	if( !dims[Output[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CAveragePoolNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CAveragePoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CMeanPoolingLayer> meanPooling = new CMeanPoolingLayer( dnn.GetMathEngine() );
 	meanPooling->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	CheckNeoOnnxSupport( ( InputDim( dims, 0 ) )[2] == BD_Height, "wrong pooling dimension", onnxNode );
-	CheckNeoOnnxSupport( ( InputDim( dims, 0 ) )[3] == BD_Width, "wrong pooling dimension", onnxNode );
+	CheckNeoOnnxSupport( ( dims[Input[0]] )[2] == BD_Height, "wrong pooling dimension", onnxNode );
+	CheckNeoOnnxSupport( ( dims[Input[0]] )[3] == BD_Width, "wrong pooling dimension", onnxNode );
 
 	meanPooling->SetFilterHeight( kernelShape[0] );
 	meanPooling->SetFilterWidth( kernelShape[1] );
@@ -105,10 +105,10 @@ void CAveragePoolNode::AddLayers( const CGraph& graph, const CGraphTensors& tens
 	meanPooling->SetStrideHeight( strides[0] );
 	meanPooling->SetStrideWidth( strides[1] );
 
-	meanPooling->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
+	meanPooling->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	dnn.AddLayer( *meanPooling );
 
-	OutputMapping( mappings, 0 ) = CNeoMLMapping( meanPooling, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( meanPooling, 0 );
 }
 
 } // namespace NeoOnnx

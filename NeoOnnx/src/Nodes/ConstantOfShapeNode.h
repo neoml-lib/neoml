@@ -29,9 +29,9 @@ public:
 	CConstantOfShapeNode( int nodeIndex, const onnx::NodeProto& constantOfShape, int opsetVersion );
 
 	// CNode methods' realizations.
-	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
-	void MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims ) override {}
-	void AddLayers( const CGraph&, const CGraphTensors&, const CGraphDims&, CGraphMappings&, CDnn& ) override {}
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) override {}
+	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache&, CDnn& ) override {}
 };
 
 } // namespace NeoOnnx

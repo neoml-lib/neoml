@@ -34,28 +34,28 @@ CConstantOfShapeNode::CConstantOfShapeNode( int nodeIndex, const onnx::NodeProto
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constantOfShape );
 }
 
-void CConstantOfShapeNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CConstantOfShapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data != nullptr, "non-constant input tensor", onnxNode );
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data->GetDataType() == CT_Int, "non-integer input tensor", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data != nullptr, "non-constant input tensor", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data->GetDataType() == CT_Int, "non-integer input tensor", onnxNode );
 
-	OutputTensor( tensors, 0 ).Shape.SetSize( InputTensor( tensors, 0 ).Data->GetDataSize() );
-	InputTensor( tensors, 0 ).Data->CopyTo( OutputTensor( tensors, 0 ).Shape.GetPtr() );
+	tensors[Output[0]].Shape.SetSize( tensors[Input[0]].Data->GetDataSize() );
+	tensors[Input[0]].Data->CopyTo( tensors[Output[0]].Shape.GetPtr() );
 
 	CPtr<CDnnBlob> value = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	value->Clear();
 	attributes.GetOptionalTensor( "value", *value );
 
 	CBlobDesc outputBlobDesc( value->GetDataType() );
-	for( int dimIndex = 0; dimIndex < OutputTensor( tensors, 0 ).Shape.Size(); ++dimIndex ) {
-		outputBlobDesc.SetDimSize( dimIndex, OutputTensor( tensors, 0 ).Shape[dimIndex] );
+	for( int dimIndex = 0; dimIndex < tensors[Output[0]].Shape.Size(); ++dimIndex ) {
+		outputBlobDesc.SetDimSize( dimIndex, tensors[Output[0]].Shape[dimIndex] );
 	}
 
-	OutputTensor( tensors, 0 ).Data = CDnnBlob::CreateBlob( mathEngine, value->GetDataType(), outputBlobDesc );
-	if( OutputTensor( tensors, 0 ).Data->GetDataType() == CT_Float ) {
-		OutputTensor( tensors, 0 ).Data->Fill( value->GetData().GetValue() );
+	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, value->GetDataType(), outputBlobDesc );
+	if( tensors[Output[0]].Data->GetDataType() == CT_Float ) {
+		tensors[Output[0]].Data->Fill( value->GetData().GetValue() );
 	} else {
-		OutputTensor( tensors, 0 ).Data->Fill<int>( value->GetData<int>().GetValue() );
+		tensors[Output[0]].Data->Fill<int>( value->GetData<int>().GetValue() );
 	}
 }
 

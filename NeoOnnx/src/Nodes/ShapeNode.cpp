@@ -33,12 +33,12 @@ CShapeNode::CShapeNode( int nodeIndex, const onnx::NodeProto& shape, int opsetVe
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", shape );
 }
 
-void CShapeNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CShapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
-	OutputTensor( tensors, 0 ).Shape = { inputShape.Size() };
-	OutputTensor( tensors, 0 ).Data = CDnnBlob::CreateVector( mathEngine, CT_Int, inputShape.Size() );
-	OutputTensor( tensors, 0 ).Data->CopyFrom( inputShape.GetPtr() );
+	const CTensorShape& inputShape = tensors[Input[0]].Shape;
+	tensors[Output[0]].Shape = { inputShape.Size() };
+	tensors[Output[0]].Data = CDnnBlob::CreateVector( mathEngine, CT_Int, inputShape.Size() );
+	tensors[Output[0]].Data->CopyFrom( inputShape.GetPtr() );
 }
 
 } // namespace NeoOnnx

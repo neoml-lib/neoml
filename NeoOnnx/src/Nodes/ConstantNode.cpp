@@ -33,14 +33,14 @@ CConstantNode::CConstantNode( int nodeIndex, const onnx::NodeProto& constant, in
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constant );
 }
 
-void CConstantNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CConstantNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
 	CPtr<CDnnBlob> value = attributes.GetRequiredTensor( "value", mathEngine );
 	// TODO: add other values support?
 	CheckNeoOnnxSupport( value->GetDataSize() == 1, "'value' must be tensor of size 1", onnxNode );
 
-	OutputTensor( tensors, 0 ).Shape = { 1 };
-	OutputTensor( tensors, 0 ).Data = value;
+	tensors[Output[0]].Shape = { 1 };
+	tensors[Output[0]].Data = value;
 }
 
 } // namespace NeoOnnx

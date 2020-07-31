@@ -36,32 +36,32 @@ CBatchNormalizationNode::CBatchNormalizationNode( int nodeIndex, const onnx::Nod
 	CheckNeoOnnxSupport( OutputCount() == 1, "node must have 1 output", onnxNode );
 }
 
-void CBatchNormalizationNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CBatchNormalizationNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	InputTensor( tensors, 0 ).Shape.CopyTo( OutputTensor( tensors, 0 ).Shape );
+	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
-void CBatchNormalizationNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
+void CBatchNormalizationNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( !InputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
+	if( !dims[Input[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !OutputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ),
+	if( !dims[Output[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( ( InputDim( dims, 0 ) )[1] == BD_Channels,
+	CheckNeoOnnxInternal( ( dims[Input[0]] )[1] == BD_Channels,
 		"operation must be performed along input's BD_Channels", onnxNode );
-	CheckNeoOnnxInternal( ( OutputDim( dims, 0 ) )[1] == BD_Channels,
+	CheckNeoOnnxInternal( ( dims[Output[0]] )[1] == BD_Channels,
 		"operation must be performed along output's BD_Channels", onnxNode );
 
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );
@@ -75,29 +75,29 @@ void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CGraphTensor
 
 	bnLayer->SetFinalParams( calculateFinalParams( tensors ) );
 
-	bnLayer->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
+	bnLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	dnn.AddLayer( *bnLayer );
 	
-	OutputMapping( mappings, 0 ) = CNeoMLMapping( bnLayer, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( bnLayer, 0 );
 }
 
-CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( const CGraphTensors& tensors )
+CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( const CTensorCache& tensors )
 {
-	const int channels = InputTensor( tensors, 0 ).Shape[1];
+	const int channels = tensors[Input[0]].Shape[1];
 
 	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
-		CheckNeoOnnxSupport( InputTensor( tensors, inputIndex ).Data != nullptr,
+		CheckNeoOnnxSupport( tensors[Input[inputIndex]].Data != nullptr,
 			"non-constant weights", onnxNode );
-		CheckOnnxProtocol( InputTensor( tensors, inputIndex ).Shape.Size() == 1,
+		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape.Size() == 1,
 			"weights must be 1-dimensional", onnxNode );
-		CheckOnnxProtocol( InputTensor( tensors, inputIndex ).Shape[0] == channels,
+		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape[0] == channels,
 			"weights must have 'channels' length", onnxNode );
 	}
 
-	const CDnnBlob* scale = InputTensor( tensors, 1 ).Data;
-	const CDnnBlob* bias = InputTensor( tensors, 2 ).Data;
-	const CDnnBlob* mean = InputTensor( tensors, 3 ).Data;
-	const CDnnBlob* var = InputTensor( tensors, 4 ).Data;
+	const CDnnBlob* scale = tensors[Input[1]].Data;
+	const CDnnBlob* bias = tensors[Input[2]].Data;
+	const CDnnBlob* mean = tensors[Input[3]].Data;
+	const CDnnBlob* var = tensors[Input[4]].Data;
 
 	IMathEngine& mathEngine = scale->GetMathEngine();
 

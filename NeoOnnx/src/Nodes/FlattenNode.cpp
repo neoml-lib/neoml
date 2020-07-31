@@ -33,33 +33,33 @@ CFlattenNode::CFlattenNode( int nodeIndex, const onnx::NodeProto& flatten, int o
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", flatten );
 }
 
-void CFlattenNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CFlattenNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	const CTensorShape& inputShape = InputTensor( tensors, 0 ).Shape;
-	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
+	const CTensorShape& inputShape = tensors[Input[0]].Shape;
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	outputShape = { 1, 1 };
 
 	for( int dimIndex = 0; dimIndex < inputShape.Size(); ++dimIndex ) {
 		outputShape[dimIndex < axis ? 0 : 1] *= inputShape[dimIndex];
 	}
 
-	CheckNeoOnnxSupport( InputTensor( tensors, 0 ).Data == nullptr, "output pre-calculation", onnxNode );
-	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
-void CFlattenNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
+void CFlattenNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	const CTensorDim& inputDims = InputDim( dims, 0 );
+	const CTensorDim& inputDims = dims[Input[0]];
 
 	if( !inputDims.IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, { inputDims[axis - 1], inputDims[axis] }, OutputDim( dims, 0 ) ),
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { inputDims[axis - 1], inputDims[axis] }, dims[Output[0]] ),
 			"marking output dimensions failed", onnxNode );
 	}
 }
 
-void CFlattenNode::AddLayers( const CGraph&, const CGraphTensors&, const CGraphDims&, CGraphMappings& mappings, CDnn& )
+void CFlattenNode::AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache& neoMLLinks, CDnn& )
 {
-	OutputMapping( mappings, 0 ) = InputMapping( mappings, 0 );
+	neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
 }
 
 } // namespace NeoOnnx

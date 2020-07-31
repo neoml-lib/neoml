@@ -24,9 +24,9 @@ public:
 	CGraphInitializer( int nodeIndex, const onnx::TensorProto& initializer, IMathEngine& mathEngine );
 
 	// CNode methods' realizations.
-	void CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine ) override;
-	void MarkTensorDims( const CGraphTensors&, CGraphDims& ) override {}
-	void AddLayers( const CGraph&, const CGraphTensors&, const CGraphDims&, CGraphMappings&, CDnn& ) override {}
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void MarkTensorDims( const CTensorCache&, CDimCache& ) override {}
+	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache&, CDnn& ) override {}
 
 private:
 	IMathEngine& mathEngine;

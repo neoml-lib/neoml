@@ -34,22 +34,22 @@ CAddNode::CAddNode( int nodeIndex, const onnx::NodeProto& add, int opsetVersion 
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", add );
 }
 
-void CAddNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CAddNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
 	bool canBeCalculated = true;
 
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
-		canBeCalculated = canBeCalculated && ( InputTensor( tensors, inputIndex ).Data != nullptr );
+		canBeCalculated = canBeCalculated && ( tensors[Input[inputIndex]].Data != nullptr );
 	}
 
 	if( canBeCalculated ) {
-		OutputTensor( tensors, 0 ).Data = InputTensor( tensors, 0 ).Data->GetCopy();
-		OutputTensor( tensors, 0 ).Data->Add( InputTensor( tensors, 1 ).Data );
+		tensors[Output[0]].Data = tensors[Input[0]].Data->GetCopy();
+		tensors[Output[0]].Data->Add( tensors[Input[1]].Data );
 	}
 
-	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
-		const CTensorShape& inputShape = InputTensor( tensors, inputIndex ).Shape;
+		const CTensorShape& inputShape = tensors[Input[inputIndex]].Shape;
 
 		if( outputShape.IsEmpty() ) {
 			inputShape.CopyTo( outputShape );
@@ -63,32 +63,32 @@ void CAddNode::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngin
 	}
 }
 
-void CAddNode::MarkTensorDims( const CGraphTensors& tensors, CGraphDims& dims )
+void CAddNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( !InputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( OutputTensor( tensors, 0 ).Shape, InputDim( dims, 0 ), OutputDim( dims, 0 ) ),
+	if( !dims[Input[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
 			"marking output dimensions failed", onnxNode );
 	}
 
-	if( !OutputDim( dims, 0 ).IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( InputTensor( tensors, 0 ).Shape, OutputDim( dims, 0 ), InputDim( dims, 0 ) ), 
+	if( !dims[Output[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ), 
 			"marking input dimensions failed", onnxNode );
 	}
 }
 
-void CAddNode::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CAddNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
 	CPtr<CEltwiseSumLayer> addLayer = new CEltwiseSumLayer( mathEngine );
 	addLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	addLayer->Connect( 0, *InputMapping( mappings, 0 ).Layer, InputMapping( mappings, 0 ).OutputIndex );
-	addLayer->Connect( 1, *InputMapping( mappings, 1 ).Layer, InputMapping( mappings, 1 ).OutputIndex );
+	addLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	addLayer->Connect( 1, *neoMLLinks[Input[1]].Layer, neoMLLinks[Input[1]].OutputIndex );
 
 	dnn.AddLayer( *addLayer );
 
-	OutputMapping( mappings, 0 ) = CNeoMLMapping( addLayer, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( addLayer, 0 );
 }
 
 } // namespace NeoOnnx

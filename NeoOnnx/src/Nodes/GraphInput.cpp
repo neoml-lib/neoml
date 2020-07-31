@@ -31,18 +31,18 @@ CGraphInput::CGraphInput( int nodeIndex, const onnx::ValueInfoProto& _input ) :
 {
 }
 
-void CGraphInput::CalcOutputTensors( CGraphTensors& tensors, IMathEngine& mathEngine )
+void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CTensorShape& outputShape = OutputTensor( tensors, 0 ).Shape;
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	outputShape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
 	for( const onnx::TensorShapeProto_Dimension dim : valueInfo.type().tensor_type().shape().dim() ) {
 		outputShape.Add( static_cast<int>( dim.dim_value() ) );
 	}
 
-	// The OutputTensor( tensors, 0 ).Data was already set to nullptr in default constructor.
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
-void CGraphInput::AddLayers( const CGraph& graph, const CGraphTensors& tensors, const CGraphDims& dims, CGraphMappings& mappings, CDnn& dnn )
+void CGraphInput::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 	source->SetName( name );
@@ -51,17 +51,17 @@ void CGraphInput::AddLayers( const CGraph& graph, const CGraphTensors& tensors, 
 	CBlobDesc outputBlobDesc(
 		GetBlobType( static_cast<onnx::TensorProto_DataType>( valueInfo.type().tensor_type().elem_type() ) ) );
 
-	NeoOnnxCheck( OutputDim( dims, 0 ).Size() == OutputTensor( tensors, 0 ).Shape.Size(),
+	NeoOnnxCheck( dims[Output[0]].Size() == tensors[Output[0]].Shape.Size(),
 		"Graph input tensor's dimensions weren't marked with NeoML blob dimensions" );
-	for( int i = 0; i < OutputDim( dims, 0 ).Size(); ++i ) {
-		outputBlobDesc.SetDimSize( OutputDim( dims, 0 )[i], OutputTensor( tensors, 0 ).Shape[i] );
+	for( int i = 0; i < dims[Output[0]].Size(); ++i ) {
+		outputBlobDesc.SetDimSize( dims[Output[0]][i], tensors[Output[0]].Shape[i] );
 	}
 	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );
 	source->SetBlob( inputBlob );
 
 	dnn.AddLayer( *source );
 
-	OutputMapping( mappings, 0 ) = CNeoMLMapping( source, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( source, 0 );
 }
 
 } // namespace NeoOnnx
