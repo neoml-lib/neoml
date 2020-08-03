@@ -45,7 +45,7 @@ void NEOML_API UnregisterLayerName( const std::type_info& typeInfo );
 template<class T>
 class CLayerClassRegistrar {
 public:
-	explicit CLayerClassRegistrar( const char* mainName, const char* additionalName );
+	CLayerClassRegistrar( const char* mainName, const char* additionalName );
 	~CLayerClassRegistrar();
 
 private:

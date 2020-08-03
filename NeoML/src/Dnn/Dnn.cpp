@@ -287,7 +287,9 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
 	isReuseMemoryMode( false )
 {
 	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
-	initializer = FINE_DEBUG_NEW CDnnXavierInitializer(random);
+	solver->SetDnn( this );
+
+	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
 }
 
 CDnn::~CDnn()
@@ -401,12 +403,21 @@ void CDnn::RequestReshape(bool forcedReshape)
 	}
 }
 
-void CDnn::SetSolver(CDnnSolver* _solver) 
+void CDnn::SetSolver( CDnnSolver* _solver )
 {
-	if(solver.Ptr() == _solver) {
+	if( solver.Ptr() == _solver ) {
 		return;
 	}
+
+	if( solver != nullptr ) {
+		solver->SetDnn( nullptr );
+	}
+
 	solver = _solver; 
+
+	if( _solver != nullptr ) {
+		_solver->SetDnn( this );
+	}
 }
 
 // Sets the network operation parameters
@@ -661,6 +672,8 @@ void CDnn::Serialize( CArchive& archive )
 			AddLayer( *layer );
 		}
 		archive >> isLearningEnabled;
+
+		rebuild();
 	} else {
 		NeoAssert( false );
 	}
