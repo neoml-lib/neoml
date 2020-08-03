@@ -102,6 +102,23 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+// The macros for the internal name of a NeoML solver
+// If this macros is used when declaring a class, that class may be registered as a NeoML solver
+#define NEOML_DNN_SOLVER( className ) friend class CSolverClassRegistrar< className >;
+
+// Registers the class as a NeoML solver
+#define REGISTER_NEOML_SOLVER( classType, name ) static CSolverClassRegistrar< classType > __merge__1( _RegisterSolver, __LINE__ )( name );
+
+typedef CPtr<CDnnSolver> ( *TCreateSolverFunction )( IMathEngine& mathEngine );
+
+void NEOML_API RegisterSolverName( const char* className, const std::type_info& typeInfo, TCreateSolverFunction function );
+
+void NEOML_API UnregisterSolverName( const std::type_info& typeInfo );
+
+void NEOML_API SerializeSolver( CArchive& archive, IMathEngine& mathEngine, CPtr<CDnnSolver>& solver);
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<class T>
 class CSolverClassRegistrar {
 public:
@@ -123,23 +140,6 @@ inline CSolverClassRegistrar<T>::~CSolverClassRegistrar()
 {
 	UnregisterSolverName( typeid( T ) );
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-// The macros for the internal name of a NeoML solver
-// If this macros is used when declaring a class, that class may be registered as a NeoML solver
-#define NEOML_DNN_SOLVER( className ) friend class CSolverClassRegistrar< className >;
-
-// Registers the class as a NeoML solver
-#define REGISTER_NEOML_SOLVER( classType, name ) static CSolverClassRegistrar< classType > __merge__1( _RegisterSolver, __LINE__ )( name );
-
-typedef CPtr<CDnnSolver> ( *TCreateSolverFunction )( IMathEngine& mathEngine );
-
-void NEOML_API RegisterSolverName( const char* className, const std::type_info& typeInfo, TCreateSolverFunction function );
-
-void NEOML_API UnregisterSolverName( const std::type_info& typeInfo );
-
-void NEOML_API SerializeSolver( CArchive& archive, IMathEngine& mathEngine, CPtr<CDnnSolver>& solver);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
