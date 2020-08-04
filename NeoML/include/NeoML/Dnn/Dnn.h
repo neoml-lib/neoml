@@ -134,6 +134,10 @@ public:
 	// Returns the total size of all output blobs together
 	virtual size_t GetOutputBlobsSize() const;
 
+	// Returns the total size of trainable parameters in this layer
+	// Returns the total size of trainable parameters of its internal layers, if layer is composite or recurrent
+	virtual size_t GetTrainableParametersSize() const;
+
 protected:
 	// A virtual method that creates output blobs using the input blobs
 	virtual void Reshape() = 0;
