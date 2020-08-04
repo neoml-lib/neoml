@@ -86,7 +86,6 @@ private:
 	struct CDiffBlobSum {
 		CDiffBlobSum() : Count( 0 ) {}
 
-		CString LayerName;
 		CObjectArray<CDnnBlob> Sum; // the blobs sums
 		int Count; // the number of terms in each sum
 	};

@@ -337,6 +337,7 @@ public:
 	virtual CPtr<CBaseLayer> GetLayer( const char* name ) = 0;
 	virtual CPtr<const CBaseLayer> GetLayer( const char* name ) const = 0;
 	virtual bool HasLayer( const char* name ) const = 0;
+	virtual CPtr<CBaseLayer> GetLayerById( const CString& layerId ) = 0;
 
 	void AddLayer(CBaseLayer& layer);
 	void DeleteLayer(const char* name);
@@ -405,6 +406,7 @@ public:
 	CPtr<CBaseLayer> GetLayer( const char* name ) override;
 	CPtr<const CBaseLayer> GetLayer( const char* name ) const override;
 	bool HasLayer( const char* name ) const override { return layerMap.Has( name ); }
+	CPtr<CBaseLayer> GetLayerById( const CString& layerId );
 
 	// Runs the network: all data from the input blobs is used
 	void RunOnce();
@@ -519,6 +521,7 @@ private:
 	void rebuild();
 	size_t getOutputBlobsSize() const;
 
+	friend class CDnnSolver;
 	friend class CBaseLayer;
 	friend class CCompositeLayer;
 	friend class CRecurrentLayer;

@@ -322,6 +322,40 @@ CPtr<const CBaseLayer> CDnn::GetLayer( const char* name ) const
 	return layerMap.Get( name );
 }
 
+static bool hasPrefix( const CString& fullString, const char* prefix )
+{
+	int i = 0;
+	while( prefix[i] != '\0' ) {
+		if( i == fullString.Length() || fullString[i] != prefix[i] ) {
+			return false;
+		}
+		++i;
+	}
+	return true;
+}
+
+CPtr<CBaseLayer> CDnn::GetLayerById( const CString& layerId )
+{
+	if( HasLayer( layerId ) ) {
+		return GetLayer( layerId );
+	}
+
+	for( int i = 0; i < layers.Size(); ++i ) {
+		if( hasPrefix( layerId, layers[i]->GetName() ) ) {
+			CCompositeLayer* composite = dynamic_cast<CCompositeLayer*>( layers[i].Ptr() );
+			if( composite != nullptr ) {
+				CPtr<CBaseLayer> layer = composite->GetLayerById( static_cast<const char*>( layerId )
+					+ strlen( layers[i]->GetName() ) );
+				if( layer != nullptr ) {
+					return layer;
+				}
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 void CDnn::AddLayerImpl( CBaseLayer& layer )
 {
 	CheckArchitecture( !layerMap.Has( layer.GetName() ), layer.GetName(), "layer already in this dnn" );

@@ -205,6 +205,11 @@ bool CCompositeLayer::HasLayer(const char* name) const
 	return layerMap.Has(name);
 }
 
+CPtr<CBaseLayer> CCompositeLayer::GetLayerById( const CString& layerId )
+{
+	return internalDnn->GetLayerById( layerId );
+}
+
 void CCompositeLayer::AddLayerImpl(CBaseLayer& layer)
 {
 	CheckArchitecture( !layerMap.Has(layer.GetName()), layer.GetName(), "Layer already in this composite layer" );
