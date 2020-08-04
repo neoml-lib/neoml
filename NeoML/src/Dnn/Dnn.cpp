@@ -421,7 +421,8 @@ void CDnn::SetSolver( CDnnSolver* _solver )
 }
 
 // Sets the network operation parameters
-void CDnn::setProcessingParams( bool _isRecurrentMode, int sequenceLength, bool _isReverseSequense, bool _isBackwardPerformed )
+void CDnn::setProcessingParams( bool _isRecurrentMode, int sequenceLength, bool _isReverseSequense,
+	bool _isBackwardPerformed, const CString& _netSolverId )
 {
 	isRecurrentMode = _isRecurrentMode;
 	maxSequenceLength = sequenceLength;
@@ -433,6 +434,7 @@ void CDnn::setProcessingParams( bool _isRecurrentMode, int sequenceLength, bool 
 		currentSequencePos = sequenceLength - 1;
 	}
 	isBackwardPerformed = _isBackwardPerformed;
+	netSolverId = _netSolverId;
 }
 
 void CDnn::runOnce(int curSequencePos)

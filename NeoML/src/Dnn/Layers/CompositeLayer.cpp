@@ -407,7 +407,7 @@ void CCompositeLayer::SetInternalDnnParams()
 
 	// Set the internal network parameters from the external network parameters
 	internalDnn->setProcessingParams(GetDnn()->IsRecurrentMode(), GetDnn()->GetMaxSequenceLength(), 
-		GetDnn()->IsReverseSequense(), GetDnn()->IsBackwardPerformed());
+		GetDnn()->IsReverseSequense(), GetDnn()->IsBackwardPerformed(), GetLayerId());
 	internalDnn->SetLog(GetDnn()->IsLogging() && areInternalLogsEnabled ? GetDnn()->GetLog() : 0);
 	internalDnn->SetLogFrequency(GetDnn()->GetLogFrequency());
 	internalDnn->RequestReshape(forcedReshape);

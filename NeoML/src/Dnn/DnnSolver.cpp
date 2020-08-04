@@ -123,9 +123,6 @@ CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
 
 void CDnnSolver::SetDnn( CDnn* newDnn )
 {
-	if( newDnn != nullptr ) {
-		NeoAssert( dnn == nullptr );
-	}
 	dnn = newDnn;
 }
 
@@ -134,13 +131,14 @@ void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& param
 {
 	NeoAssert( layer != 0 );
 
-	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer->GetName() );
+	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer->GetLayerId() );
 	++paramDiffBlobsSum.Count;
 
 	if( paramDiffBlobsSum.Count == 1 ) {
 		// The first term
 		NeoAssert( paramDiffBlobsSum.Sum.IsEmpty() );
 		paramDiffBlobs.CopyTo( paramDiffBlobsSum.Sum );
+		paramDiffBlobsSum.LayerName = layer->GetName();
 		return;
 	}
 
@@ -162,7 +160,7 @@ void CDnnSolver::Train()
 	for( TMapPosition pos = layerToParamDiffBlobsSum.GetFirstPosition(); pos != NotFound;
 		pos = layerToParamDiffBlobsSum.GetNextPosition( pos ) )
 	{
-		const CString& layerName = layerToParamDiffBlobsSum.GetKey( pos );
+		const CString& layerId = layerToParamDiffBlobsSum.GetKey( pos );
 		CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetValue( pos );
 		if( paramDiffBlobsSum.Sum.IsEmpty() ) {
 			continue;
@@ -182,8 +180,8 @@ void CDnnSolver::Train()
 		clipGradients( paramDiffBlobsSum.Sum );
 
 		// Train the layer based on the calculated diff data
-		CPtr<CBaseLayer> layer = dnn->GetLayer( layerName );
-		TrainLayer( layer, layer->paramBlobs, paramDiffBlobsSum.Sum, layerToGradientHistory.GetOrCreateValue( layerName ) );
+		CPtr<CBaseLayer> layer = dnn->GetLayer( paramDiffBlobsSum.LayerName );
+		TrainLayer( layer, layer->paramBlobs, paramDiffBlobsSum.Sum, layerToGradientHistory.GetOrCreateValue( layerId ) );
 
 		// Clear the diff data
 		paramDiffBlobsSum.Sum.Empty();
@@ -240,6 +238,7 @@ void CDnnSolver::Serialize( CArchive& archive )
 		{
 			archive << layerToParamDiffBlobsSum.GetKey( pos );
 			archive << layerToParamDiffBlobsSum.GetValue( pos ).Count;
+			archive << layerToParamDiffBlobsSum.GetValue( pos ).LayerName;
 			SerializeBlobs( mathEngine, archive, layerToParamDiffBlobsSum.GetValue( pos ).Sum );
 		}
 
@@ -257,18 +256,19 @@ void CDnnSolver::Serialize( CArchive& archive )
 		int size;
 		archive >> size;
 		for( int i = 0; i < size; ++i ) {
-			CString layerName;
-			archive >> layerName;
-			CDiffBlobSum& blobSum = layerToParamDiffBlobsSum.GetOrCreateValue( layerName );
+			CString layerId;
+			archive >> layerId;
+			CDiffBlobSum& blobSum = layerToParamDiffBlobsSum.GetOrCreateValue( layerId );
 			archive >> blobSum.Count;
+			archive >> blobSum.LayerName;
 			SerializeBlobs( mathEngine, archive, blobSum.Sum );
 		}
 
 		archive >> size;
 		for( int i = 0; i < size; ++i ) {
-			CString layerName;
-			archive >> layerName;
-			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetOrCreateValue( layerName ) );
+			CString layerId;
+			archive >> layerId;
+			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetOrCreateValue( layerId ) );
 		}
 		archive >> learningRate >> regularizationL1 >> regularizationL2 >> maxGradientNorm;
 	}

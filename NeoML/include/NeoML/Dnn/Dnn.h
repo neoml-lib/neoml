@@ -88,6 +88,8 @@ public:
 	const char* GetName() const { return name; }
 	virtual void SetName( const char* _name );
 
+	CString GetLayerId() const;
+
 	// Connects this layer's inputNumber input to the specified layer's outputNumber output
 	virtual void Connect( int inputNumber, const char* layer, int outputNumber = 0 );
 	void Connect( int inputNumber, const CBaseLayer& layer, int outputNumber = 0 ) { Connect(inputNumber, layer.GetName(), outputNumber); }
@@ -507,8 +509,10 @@ private:
 	bool autoRestartMode;
 	// The low memory use mode
 	bool isReuseMemoryMode;
+	// The id of the net for solver
+	CString netSolverId;
 
-	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed);
+	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed, const CString& solverId);
 	void runOnce(int curSequencePos);
 	void backwardRunAndLearnOnce(int curSequencePos);
 	void reshape();
