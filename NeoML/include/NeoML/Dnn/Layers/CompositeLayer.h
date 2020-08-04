@@ -60,6 +60,9 @@ public:
 	// Returns the total size of the output blobs
 	size_t GetOutputBlobsSize() const override;
 
+	// Returns the total size of trainable parameters
+	size_t GetTrainableParametersSize() const override;
+
 	// Starts processing a new sequence
 	void RestartSequence() override;
 

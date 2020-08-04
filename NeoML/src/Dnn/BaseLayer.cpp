@@ -215,6 +215,21 @@ size_t CBaseLayer::GetOutputBlobsSize() const
 	return result;
 }
 
+size_t CBaseLayer::GetTrainableParametersSize() const
+{
+	if( !isLearnable ) {
+		return 0;
+	}
+
+	size_t result = 0;
+	for( int i = 0; i < paramBlobs.Size(); i++ ) {
+		if( paramBlobs[i] != nullptr ) {
+			result += paramBlobs[i]->GetDataSize();
+		}
+	}
+	return result;
+}
+
 CDnnBlob* CBaseLayer::switchBlobToSequentialMode(CDnnBlob* blob, TBlobCacheType cacheType, bool storeParent)
 {
 	if( blob == 0 || blob->GetBatchLength() == 1 ) {
