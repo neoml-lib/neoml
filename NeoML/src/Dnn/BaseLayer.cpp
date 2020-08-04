@@ -196,7 +196,12 @@ void CBaseLayer::AllocateOutputBlobs()
 		if( outputBlobs[i] == 0 ) {
 			outputBlobs[i] = CDnnBlob::CreateBlob( MathEngine(), outputDescs[i].GetDataType(), outputDescs[i] );
 		} else {
-			NeoPresume( outputBlobs[i]->GetDesc().HasEqualDimensions( outputDescs[i] ) );
+			if( !outputBlobs[i]->GetDesc().HasEqualDimensions( outputDescs[i] ) ) {
+				// If this output can be connected to in-place transform. And on the second run outputBlob's shape can mismatch with outputDesc.
+				// That's why now reinterpret it (because this layer can depend on outputBlob's shape).
+				// After that transform will change it again.
+				outputBlobs[i]->ReinterpretDimensions( outputDescs[i] );
+			}
 		}
 	}
 }

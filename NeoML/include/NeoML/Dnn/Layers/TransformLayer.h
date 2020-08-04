@@ -22,7 +22,7 @@ namespace NeoML {
 
 // CTransformLayer implements a layer that changes the blob dimensions without shifting the data in memory
 // For example, you may double the height and halve the width
-class NEOML_API CTransformLayer : public CBaseLayer {
+class NEOML_API CTransformLayer : public CBaseInPlaceLayer {
 	NEOML_DNN_LAYER( CTransformLayer )
 public:
 	explicit CTransformLayer( IMathEngine& mathEngine );
@@ -66,13 +66,17 @@ public:
 protected:
 	~CTransformLayer();
 
-	void Reshape() override;
+	void OnReshaped() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
 
 private:
 	// Transformation parameters for all dimensions
 	CDimensionRule rules[BD_Count];
+
+	// Blob descs
+	CBlobDesc inputDesc;
+	CBlobDesc outputDesc;
 };
 
 } // namespace NeoML

@@ -258,7 +258,7 @@ void CObjectNormalizationLayer::BackwardOnce()
 	}
 
 	// Average is used multiple times in RunOnce.
-	// But it isn't used neither in BackwardOnce nor in LearnOnce.
+	// But it is used neither in BackwardOnce nor in LearnOnce.
 	// That's why it's possible to reuse it here as a buffer.
 	CFloatHandle inputMultiplier = internalParams->GetObjectData( IPN_NegMean );
 	
