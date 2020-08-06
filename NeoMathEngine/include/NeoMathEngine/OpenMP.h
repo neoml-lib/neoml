@@ -21,6 +21,8 @@ limitations under the License.
 #include <omp.h>
 #endif
 
+#include <cstdint>
+
 #ifdef NEOML_USE_OMP
 	#if defined( _MSC_VER ) 
 	#define NEOML_OMP(cond, x) __pragma(omp x if(cond))
