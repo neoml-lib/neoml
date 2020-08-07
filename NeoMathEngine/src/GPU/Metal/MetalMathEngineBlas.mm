@@ -657,7 +657,7 @@ void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle&
 }
 
 void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-    int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int resultBufferSize)
+    int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int /*resultBufferSize*/)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
