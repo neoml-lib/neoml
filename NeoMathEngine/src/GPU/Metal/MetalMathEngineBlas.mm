@@ -663,7 +663,7 @@ void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(int batchSize, const CCo
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-    C3DKernel kernel( "cubeKernelBatchMultiplyMatrixByTransposedMatrix", 1, 1, 1, batchSize, firstHeight, secondHeight );
+    C3DKernel kernel( *queue, "cubeKernelBatchMultiplyMatrixByTransposedMatrix", 1, 1, 1, batchSize, firstHeight, secondHeight );
     kernel.SetParam( batchSize, 0 );
     kernel.SetParam( firstHandle, 1 );
     kernel.SetParam( firstHeight, 2 );
