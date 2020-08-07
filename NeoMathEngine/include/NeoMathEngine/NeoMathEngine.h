@@ -405,6 +405,10 @@ public:
 	virtual void MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) = 0;
+	// Multiplies matrices from two batches, stored one after another in firstHandle, secondHandle parameters
+	virtual void MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle,
+		int resultBufferSize) = 0;
 
 	// Operations on sparse matrices
 

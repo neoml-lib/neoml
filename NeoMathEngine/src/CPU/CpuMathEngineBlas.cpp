@@ -706,6 +706,25 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& f
 	}
 }
 
+void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle,
+	int firstHeight, int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight,
+	const CFloatHandle& resultHandle, int resultBufferSize )
+{
+	ASSERT_EXPR( resultBufferSize >= batchSize * firstHeight * secondHeight );
+
+	CConstFloatHandle first = firstHandle;
+	CConstFloatHandle second = secondHandle;
+	CFloatHandle result = resultHandle;
+
+	for( int b = 0; b < batchSize; ++b ) {
+		MultiplyMatrixByTransposedMatrix( first, firstHeight, firstWidth, firstWidth, second, secondHeight,
+			firstWidth, result, secondHeight, firstHeight * secondHeight );
+		first += firstHeight * firstWidth;
+		second += firstWidth * secondHeight;
+		result += firstHeight * secondHeight;
+	}
+}
+
 void CCpuMathEngine::batchMultiplyTransposedMatrixByMatrix( int batchSize,
 	const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
 	const CConstFloatHandle& secondHandle, int secondWidth,

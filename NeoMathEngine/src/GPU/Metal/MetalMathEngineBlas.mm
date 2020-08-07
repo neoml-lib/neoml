@@ -656,6 +656,24 @@ void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle&
     }
 }
 
+void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+    int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int resultBufferSize)
+{
+    ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+    ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+    ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    C3DKernel kernel( "cubeKernelBatchMultiplyMatrixByTransposedMatrix", 1, 1, 1, batchSize, firstHeight, secondHeight );
+    kernel.SetParam( batchSize, 0 );
+    kernel.SetParam( firstHandle, 1 );
+    kernel.SetParam( firstHeight, 2 );
+    kernel.SetParam( firstWidth, 3 );
+    kernel.SetParam( secondHandle, 4 );
+    kernel.SetParam( secondHeight, 5 );
+    kernel.SetParam( resultHandle, 6 );
+    kernel.Run();
+}
+
 // result = first * T(second). The result size is firstHeight * secondHeight:
 void CMetalMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, int firstWidth, int secondHeight,
 	const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle )
