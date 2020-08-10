@@ -212,6 +212,18 @@ void CVulkanMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloa
 	}
 }
 
+void CVulkanMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
+{
+	if( device->Type == VDT_Adreno ) {
+		batchMultiplyMatrixByMatrixAdreno( false, 1, firstHandle, firstHeight, firstWidth, firstWidth, true,
+			secondHandle, firstHeight, secondWidth, secondWidth, false, resultHandle, secondWidth, resultBufferSize );
+	} else {
+		batchMultiplyTransposedMatrixByMatrix( false, 1, firstHandle, firstHeight, firstWidth, firstWidth,
+			secondHandle, secondWidth, secondWidth, resultHandle, secondWidth, resultBufferSize );
+	}
+}
+
 void CVulkanMathEngine::MultiplyDiagMatrixByMatrix( const CConstFloatHandle& firstHandle, int firstSize,
 	const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize )
 {

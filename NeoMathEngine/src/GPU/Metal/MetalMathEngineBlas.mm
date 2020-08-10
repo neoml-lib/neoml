@@ -809,6 +809,25 @@ void CMetalMathEngine::MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatH
     }
 }
 
+
+void CMetalMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+    const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int)
+{
+    ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+    ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+    ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    C3DKernel kernel( *queue, "cubeKernelBatchMultiplyTransposedMatrixByMatrix", 1, 1, 1, batchSize, firstWidth, secondWidth );
+    kernel.SetParam( batchSize, 0 );
+    kernel.SetParam( firstHandle, 1 );
+    kernel.SetParam( firstHeight, 2 );
+    kernel.SetParam( firstWidth, 3 );
+    kernel.SetParam( secondHandle, 4 );
+    kernel.SetParam( secondWidth, 5 );
+    kernel.SetParam( resultHandle, 6 );
+    kernel.Run();
+}
+
 void CMetalMathEngine::VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle, int vectorSize)
 {
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );

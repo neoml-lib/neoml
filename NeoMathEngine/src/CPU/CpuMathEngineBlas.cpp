@@ -661,6 +661,12 @@ void CCpuMathEngine::MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHan
 		resultHandle, resultRowSize, resultBufferSize );
 }
 
+void CCpuMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
+{
+	batchMultiplyTransposedMatrixByMatrix(batchSize, firstHandle, firstHeight, firstWidth, secondHandle, secondWidth, resultHandle, resultBufferSize);
+}
+
 void CCpuMathEngine::batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight,
 	const CFloatHandle& resultHandle, int resultBufferSize )
