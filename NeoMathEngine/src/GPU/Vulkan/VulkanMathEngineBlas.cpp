@@ -216,10 +216,10 @@ void CVulkanMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CC
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
 {
 	if( device->Type == VDT_Adreno ) {
-		batchMultiplyMatrixByMatrixAdreno( false, 1, firstHandle, firstHeight, firstWidth, firstWidth, true,
+		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle, firstHeight, firstWidth, firstWidth, true,
 			secondHandle, firstHeight, secondWidth, secondWidth, false, resultHandle, secondWidth, resultBufferSize );
 	} else {
-		batchMultiplyTransposedMatrixByMatrix( false, 1, firstHandle, firstHeight, firstWidth, firstWidth,
+		batchMultiplyTransposedMatrixByMatrix( false, batchSize, firstHandle, firstHeight, firstWidth, firstWidth,
 			secondHandle, secondWidth, secondWidth, resultHandle, secondWidth, resultBufferSize );
 	}
 }
