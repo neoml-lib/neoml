@@ -104,8 +104,6 @@ void CMultiheadSelfAttentionLayer::create()
 	NeoAssert( headCount > 0 );
 	NeoAssert( hiddenSize % headCount == 0 );
 
-	// dimension K
-	const int d_k = hiddenSize / headCount;
 	// scaling factor
 	const float multiplier = static_cast<float>( 1.0 / sqrt( 1.0 * hiddenSize ) );
 

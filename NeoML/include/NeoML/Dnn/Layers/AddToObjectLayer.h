@@ -37,7 +37,6 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
-	static const CClassRegistrar<CAddToObjectLayer> registrar;
 };
 
 } // namespace NeoML

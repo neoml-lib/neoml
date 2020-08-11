@@ -80,7 +80,6 @@ protected:
 	void Reshape() override;
 
 private:
-	static const CClassRegistrar<CMultiheadSelfAttentionLayer> registrar;
 	// The amount of heads
 	int headCount;
 	// The size of the trainable matrix
