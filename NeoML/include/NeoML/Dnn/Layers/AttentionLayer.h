@@ -139,13 +139,13 @@ private:
 
 // Attention is a layer that calculates the input and output sequences alignment
 // The layer inputs:
-// #0 - the transposed input sequence (BD_BatchLength <-> BD_ListSize)
-// #1 - the transposed input sequence (BD_BatchLength <-> BD_ListSize), after the fully-connected layer
-// #2 - the current state of the decoder
+// #0 - (V) the transposed input sequence (BD_BatchLength <-> BD_ListSize)
+// #1 - (K) the transposed input sequence (BD_BatchLength <-> BD_ListSize), after the fully-connected layer
+// #2 - (Q) the current state of the decoder
 // The layer outputs:
-// #0 - for AT_Hard: the input sequence element that aligns best with a given output sequence element
-//		for AT_Soft: the weighted total of the input sequence elements, 
+// #0 - the weighted total of the input sequence elements,
 //		weighted by the estimated alignment with a given output sequence element
+// DO NOT USE DIRECTLY (use CAttentionDecoderLayer or CMultiheadSelfAttentionLayer)
 class NEOML_API CAttentionLayer : public CCompositeLayer {
 	NEOML_DNN_LAYER( CAttentionLayer )
 public:

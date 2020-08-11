@@ -248,6 +248,8 @@ delete gpuMathEngine;
   - [CImageResizeLayer](ImageResizeLayer.md) changes the size of images in the blob
   - [CSubSequenceLayer](SubSequenceLayer.md) extracts subsequences
   - [CDotProductLayer](DotProductLayer.md) calculates the dot product of its inputs
+  - [CAddToObjectLayer](AddToObjectLayer.md) - adds the content of one input to each of the objects of the other
+  - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - mutiplication of two sets of matrices
   - Blob concatenation:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) concatenates along the Channels dimension
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) concatenates along the Depth dimension
