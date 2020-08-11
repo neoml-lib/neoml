@@ -18,8 +18,6 @@ limitations under the License.
 
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
 
-#define new FINE_DEBUG_NEW
-
 namespace NeoML {
 
 CMatrixMultiplicationLayer::CMatrixMultiplicationLayer( IMathEngine& mathEngine ) :

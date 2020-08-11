@@ -18,8 +18,6 @@ limitations under the License.
 
 #include <NeoML/Dnn/Layers/AddToObjectLayer.h>
 
-#define new FINE_DEBUG_NEW
-
 namespace NeoML {
 
 CAddToObjectLayer::CAddToObjectLayer( IMathEngine& mathEngine ) :

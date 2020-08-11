@@ -26,8 +26,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/TransposeLayer.h>
 #include <NeoML/Dnn/Layers/SoftmaxLayer.h>
 
-#define new FINE_DEBUG_NEW
-
 namespace NeoML {
 
 CMultiheadSelfAttentionLayer::CMultiheadSelfAttentionLayer( IMathEngine& mathEngine ) :
