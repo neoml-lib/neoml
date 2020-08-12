@@ -70,6 +70,20 @@ void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle&
 		GetRaw( resultHandle ), resultRowSize ) );
 }
 
+void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle,
+	int firstHeight, int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight,
+	const CFloatHandle& resultHandle, int resultBufferSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	ASSERT_ERROR_CODE( cublas->SgemmStridedBatched( cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, secondHeight,
+		firstHeight, firstWidth, CCudaConst::One, GetRaw( secondHandle ), firstWidth, firstWidth * secondHeight,
+		GetRaw( firstHandle ), firstWidth, firstHeight * firstWidth, CCudaConst::Zero, GetRaw( resultHandle ),
+		secondHeight, secondHeight * firstHeight, batchSize ) );
+}
+
 void CCudaMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
 	const CFloatHandle& resultHandle, int resultRowSize, int )
@@ -81,6 +95,19 @@ void CCudaMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatH
 	ASSERT_ERROR_CODE( cublas->Sgemm( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T, secondWidth, firstWidth, firstHeight,
 		CCudaConst::One, GetRaw( secondHandle ), secondRowSize, GetRaw( firstHandle ), firstRowSize, CCudaConst::One,
 		GetRaw( resultHandle ), resultRowSize ) );
+}
+
+void CCudaMathEngine::MultiplyTransposedMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	ASSERT_ERROR_CODE( cublas->SgemmStridedBatched( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T, secondWidth, firstWidth,
+		firstHeight, CCudaConst::One, GetRaw(secondHandle), secondWidth, firstHeight * secondWidth, GetRaw(firstHandle),
+		firstWidth, firstHeight * firstWidth, CCudaConst::Zero, GetRaw(resultHandle), secondWidth, firstWidth * secondWidth,
+		batchSize ) );
 }
 
 void CCudaMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
