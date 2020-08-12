@@ -435,7 +435,7 @@ inline void CLdGraph<Arc>::DetachArc( Arc* arc )
 	CLdGraphVertex* initial = vertices[arc->InitialCoord() - begin];
 	NeoPresume( initial != 0 );
 	int i = initial->OutgoingArcs.Find(arc);
-	NeoAssert( i != NOT_FOUND );
+	NeoAssert( i != NotFound );
 	initial->OutgoingArcs.DeleteAt(i);
 	// Delete the hanging node
 	if( initial->OutgoingArcs.Size() == 0
@@ -449,7 +449,7 @@ inline void CLdGraph<Arc>::DetachArc( Arc* arc )
 	CLdGraphVertex* final = vertices[arc->FinalCoord() - begin];
 	NeoPresume( final != 0 );
 	i = final->IncomingArcs.Find(arc);
-	NeoAssert( i != NOT_FOUND );
+	NeoAssert( i != NotFound );
 	final->IncomingArcs.DeleteAt(i);
 	// Delete the hanging node
 	if( final->IncomingArcs.Size() == 0
@@ -501,7 +501,7 @@ inline void CLdGraph<Arc>::tryDeleteHangingCoordLeft( CFastArray<int, 10>& coord
 			CLdGraphVertex* initialVertex = vertices[arc->InitialCoord() - begin];
 			NeoPresume( initialVertex != 0 );
 			int index = initialVertex->OutgoingArcs.Find(arc);
-			NeoAssert( index != NOT_FOUND );
+			NeoAssert( index != NotFound );
 			initialVertex->OutgoingArcs.DeleteAt(index);
 			
 			coordsToProcess.Add( arc->InitialCoord() );
@@ -534,7 +534,7 @@ inline void CLdGraph<Arc>::tryDeleteHangingCoordRight( CFastArray<int, 10>& coor
 			CLdGraphVertex* finalVertex = vertices[arc->FinalCoord() - begin];
 			NeoPresume( finalVertex != 0 );
 			int index = finalVertex->IncomingArcs.Find(arc);
-			NeoAssert( index != NOT_FOUND );
+			NeoAssert( index != NotFound );
 			finalVertex->IncomingArcs.DeleteAt(index);
 			
 			coordsToProcess.Add( arc->FinalCoord() );
