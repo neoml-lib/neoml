@@ -10,7 +10,7 @@
 
 <!-- /TOC -->
 
-The class implements a layer that multiplies matrices from two sets.
+This class implements a layer that performs matrix multiplication operation for its two inputs. It treats first three dimesions (`BatchLength * BatchWidth * ListSize`) as a matrix number, next three (`Height * Width * Depth`) as row number and last one (`Channels`) as a number of columns. So this layer implements a bunch of independent matrix multiplications.
 
 ## Settings
 
