@@ -246,6 +246,8 @@ delete gpuMathEngine;
   - [CImageResizeLayer](ImageResizeLayer.md) - изменение размера изображений в блобе
   - [CSubSequenceLayer](SubSequenceLayer.md) - выделение подпоследовательностей
   - [CDotProductLayer](DotProductLayer.md) - скалярное произведение объектов двух блобов
+  - [CAddToObjectLayer](AddToObjectLayer.md) - прибавление содержимого одного входа ко всем объектам другого
+  - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - перемножение двух наборов матриц
   - Объединение блобов:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) - объединение блобов по каналам
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) - объединение блобов по глубине

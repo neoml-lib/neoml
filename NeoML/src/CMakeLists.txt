@@ -27,6 +27,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/BackLinkLayer.cpp
     Dnn/Layers/BaseConvLayer.cpp
     Dnn/Layers/BatchNormalizationLayer.cpp
+    Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/BinaryCrossEntropyLayer.cpp
     Dnn/Layers/BinaryFocalLossLayer.cpp
     Dnn/Layers/CenterLossLayer.cpp
@@ -54,9 +55,11 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/ImageResizeLayer.cpp
     Dnn/Layers/LossLayer.cpp
     Dnn/Layers/LstmLayer.cpp
+    Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
     Dnn/Layers/MultichannleLookupLayer.cpp
+    Dnn/Layers/MultiheadAttentionLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/PoolingLayer.cpp
@@ -163,6 +166,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/AttentionLayer.h
     ../include/NeoML/Dnn/Layers/BackLinkLayer.h
     ../include/NeoML/Dnn/Layers/BatchNormalizationLayer.h
+    ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
     ../include/NeoML/Dnn/Layers/CenterLossLayer.h
     ../include/NeoML/Dnn/Layers/ChannelwiseConvLayer.h
@@ -185,9 +189,11 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ImageResizeLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
     ../include/NeoML/Dnn/Layers/LstmLayer.h
+    ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h
     ../include/NeoML/Dnn/Layers/ModelWrapperLayer.h
     ../include/NeoML/Dnn/Layers/MultichannelLookupLayer.h
+    ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h

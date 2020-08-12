@@ -49,6 +49,8 @@ void CAttentionWeightedSumLayer::Reshape()
 	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
 	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), GetName(), "Batch width mismatch" );
 	CheckArchitecture( inputDescs[0].ListSize() == inputDescs[1].ListSize(), GetName(), "List size mismatch" );
+	CheckArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(), GetName(),
+		"Layer must be used inside of recurrent decoder or inputDescs[1].BatchLength must be equal to 1" );
 
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDimSize(BD_BatchLength, inputDescs[1].BatchLength());
@@ -90,12 +92,11 @@ void CAttentionDotProductLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture( inputDescs.Size() == 2,
-		GetName(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
-	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(),
-		GetName(), "Batch width mismatch" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(),
-		GetName(), "Object size mismatch" );
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
+	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), GetName(), "Batch width mismatch" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "Object size mismatch" );
+	CheckArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(), GetName(),
+		"Layer must be used inside of recurrent decoder or inputDescs[1].BatchLength must be equal to 1" );
 
 	outputDescs[0] = inputDescs[1];
 	outputDescs[0].SetDimSize( BD_ListSize, inputDescs[0].ListSize() );
@@ -138,12 +139,11 @@ void CAttentionSumLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture( inputDescs.Size() == 2,
-		GetName(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
-	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(),
-		GetName(), "Batch width mismatch" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(),
-		GetName(), "Object size mismatch" );
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
+	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), GetName(), "Batch width mismatch" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "Object size mismatch" );
+	CheckArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(), GetName(),
+		"Layer must be used inside of recurrent decoder or inputDescs[1].BatchLength must be equal to 1" );
 
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDimSize(BD_BatchLength, inputDescs[1].BatchLength());
