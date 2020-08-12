@@ -64,7 +64,7 @@ limitations under the License.
 #endif
 
 #if !defined( FINEOBJ_VERSION )
-#include <FineObjLite.h>
+#include <NeoML/FineObjLite/FineObjLite.h>
 #endif
 
 #include <NeoML/NeoMLCommon.h>
