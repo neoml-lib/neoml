@@ -38,15 +38,15 @@ namespace NeoML {
 //  Attention(Q, K, V) = softmax( Q * K_t / sqrt(d_K) ) * V
 //  where d_k - dimension of k
 //  
-//  MultiHeadSelfAttention = dropout_if_needed(concat( head_1, ..., head_N )) * W_O
+//  MultiHeadAttention = dropout_if_needed(concat( head_1, ..., head_N )) * W_O
 //  where head_i = Attention( W_Q_i * X, W_K_i * X, W_V_i * X ) 
 //  W_* - trainable parameters and W_O is an additional trainable matrix of size (GetHiddenSize() x GetOutputSize())
 //
 // Result has size (1, BatchWidth, ListSize_Q, 1, 1, 1, GetOutputSize())
-class NEOML_API CMultiheadSelfAttentionLayer : public CCompositeLayer {
-	NEOML_DNN_LAYER( CMultiheadSelfAttentionLayer )
+class NEOML_API CMultiheadAttentionLayer : public CCompositeLayer {
+	NEOML_DNN_LAYER( CMultiheadAttentionLayer )
 public:
-	explicit CMultiheadSelfAttentionLayer( IMathEngine& mathEngine );
+	explicit CMultiheadAttentionLayer( IMathEngine& mathEngine );
 
 	// The number of heads in attention
 	// The GetHiddenSize() must be a multiple of this value

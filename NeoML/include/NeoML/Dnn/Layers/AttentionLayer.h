@@ -145,7 +145,7 @@ private:
 // The layer outputs:
 // #0 - the weighted total of the input sequence elements,
 //		weighted by the estimated alignment with a given output sequence element
-// DO NOT USE DIRECTLY (use CAttentionDecoderLayer or CMultiheadSelfAttentionLayer)
+// DO NOT USE DIRECTLY (use CAttentionDecoderLayer or CMultiheadAttentionLayer)
 class NEOML_API CAttentionLayer : public CCompositeLayer {
 	NEOML_DNN_LAYER( CAttentionLayer )
 public:

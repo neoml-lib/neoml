@@ -16,7 +16,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/MultiheadSelfAttentionLayer.h>
+#include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/AddToObjectLayer.h>
@@ -28,7 +28,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CMultiheadSelfAttentionLayer::CMultiheadSelfAttentionLayer( IMathEngine& mathEngine ) :
+CMultiheadAttentionLayer::CMultiheadAttentionLayer( IMathEngine& mathEngine ) :
 	CCompositeLayer( mathEngine ),
 	headCount( 1 ),
 	hiddenSize( 8 ),
@@ -38,7 +38,7 @@ CMultiheadSelfAttentionLayer::CMultiheadSelfAttentionLayer( IMathEngine& mathEng
 {
 }
 
-void CMultiheadSelfAttentionLayer::SetHeadCount( int _headCount )
+void CMultiheadAttentionLayer::SetHeadCount( int _headCount )
 {
 	NeoAssert( _headCount >= 1 );
 
@@ -46,7 +46,7 @@ void CMultiheadSelfAttentionLayer::SetHeadCount( int _headCount )
 	DeleteAllLayers();
 }
 
-void CMultiheadSelfAttentionLayer::SetHiddenSize( int _hiddenSize )
+void CMultiheadAttentionLayer::SetHiddenSize( int _hiddenSize )
 {
 	NeoAssert( _hiddenSize >= 1 );
 
@@ -54,30 +54,30 @@ void CMultiheadSelfAttentionLayer::SetHiddenSize( int _hiddenSize )
 	DeleteAllLayers();
 }
 
-void CMultiheadSelfAttentionLayer::SetDropoutRate( float _dropoutRate )
+void CMultiheadAttentionLayer::SetDropoutRate( float _dropoutRate )
 {
 	dropoutRate = _dropoutRate;
 	DeleteAllLayers();
 }
 
-void CMultiheadSelfAttentionLayer::SetUseMask( bool newValue )
+void CMultiheadAttentionLayer::SetUseMask( bool newValue )
 {
 	useMask = newValue;
 	DeleteAllLayers();
 }
 
-void CMultiheadSelfAttentionLayer::SetOutputSize( int _outputSize )
+void CMultiheadAttentionLayer::SetOutputSize( int _outputSize )
 {
 	NeoAssert( _outputSize > 0 );
 
 	outputSize = _outputSize;
 }
 
-static const int MultiheadSelfAttentionLayerVersion = 0;
+static const int MultiheadAttentionLayerVersion = 0;
 
-void CMultiheadSelfAttentionLayer::Serialize( CArchive& archive )
+void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( MultiheadSelfAttentionLayerVersion );
+	archive.SerializeVersion( MultiheadAttentionLayerVersion );
 	CCompositeLayer::Serialize( archive );
 	archive.Serialize( headCount );
 	archive.Serialize( hiddenSize );
@@ -86,7 +86,7 @@ void CMultiheadSelfAttentionLayer::Serialize( CArchive& archive )
 	archive.Serialize( outputSize );
 }
 
-void CMultiheadSelfAttentionLayer::Reshape()
+void CMultiheadAttentionLayer::Reshape()
 {
 	if( !HasLayer( "Q" ) ) {
 		create();
@@ -97,7 +97,7 @@ void CMultiheadSelfAttentionLayer::Reshape()
 
 // Creates layer with new parameters
 // Here and further blob sizes are shown as [BathcWidth, ListSize, Width, Channels]
-void CMultiheadSelfAttentionLayer::create()
+void CMultiheadAttentionLayer::create()
 {
 	NeoAssert( headCount > 0 );
 	NeoAssert( hiddenSize % headCount == 0 );
@@ -180,7 +180,7 @@ void CMultiheadSelfAttentionLayer::create()
 }
 
 // Multiplies input by trainable weights
-CBaseLayer* CMultiheadSelfAttentionLayer::multiplyInputByMatrixWeights( 
+CBaseLayer* CMultiheadAttentionLayer::multiplyInputByMatrixWeights( 
 	int size, const char* name, TInputs input )
 {
 	NeoAssert( size > 0 );
@@ -198,7 +198,7 @@ CBaseLayer* CMultiheadSelfAttentionLayer::multiplyInputByMatrixWeights(
 }
 
 // Multiplies by trainable weights
-CBaseLayer* CMultiheadSelfAttentionLayer::multiplyByMatrixWeights( CBaseLayer* input, 
+CBaseLayer* CMultiheadAttentionLayer::multiplyByMatrixWeights( CBaseLayer* input, 
 	int width, const char* name )
 {
 	NeoAssert( width >= 0 );
@@ -215,7 +215,7 @@ CBaseLayer* CMultiheadSelfAttentionLayer::multiplyByMatrixWeights( CBaseLayer* i
 }
 
 // [B, n_head, seq_Q, seq_to]
-CBaseLayer* CMultiheadSelfAttentionLayer::softmaxByChannels( CBaseLayer& input )
+CBaseLayer* CMultiheadAttentionLayer::softmaxByChannels( CBaseLayer& input )
 {
 	// input [B, n_head, seq_Q, seq_to]
 
@@ -255,7 +255,7 @@ CBaseLayer* CMultiheadSelfAttentionLayer::softmaxByChannels( CBaseLayer& input )
 }
 
 // Applies mask
-CBaseLayer* CMultiheadSelfAttentionLayer::applyMask( CBaseLayer* layer )
+CBaseLayer* CMultiheadAttentionLayer::applyMask( CBaseLayer* layer )
 {
 	NeoAssert( layer != 0 );
 
@@ -277,7 +277,7 @@ CBaseLayer* CMultiheadSelfAttentionLayer::applyMask( CBaseLayer* layer )
 }
 
 // [B, n_head, seq_Q, d_k]
-CBaseLayer* CMultiheadSelfAttentionLayer::prepareQ( CBaseLayer* input )
+CBaseLayer* CMultiheadAttentionLayer::prepareQ( CBaseLayer* input )
 {
 	NeoAssert( input != 0 );
 	
@@ -308,7 +308,7 @@ CBaseLayer* CMultiheadSelfAttentionLayer::prepareQ( CBaseLayer* input )
 }
 
 // [B, n_head, d_k, seq_to]
-CBaseLayer* CMultiheadSelfAttentionLayer::prepareK( CBaseLayer* input )
+CBaseLayer* CMultiheadAttentionLayer::prepareK( CBaseLayer* input )
 {
 	NeoAssert( input != 0 );
 	// input
@@ -338,7 +338,7 @@ CBaseLayer* CMultiheadSelfAttentionLayer::prepareK( CBaseLayer* input )
 }
 
 // [B, n_head, seq_to, d_k]
-CBaseLayer* CMultiheadSelfAttentionLayer::prepareV( CBaseLayer* input )
+CBaseLayer* CMultiheadAttentionLayer::prepareV( CBaseLayer* input )
 {
 	NeoAssert( input != 0 );
 
@@ -369,7 +369,7 @@ CBaseLayer* CMultiheadSelfAttentionLayer::prepareV( CBaseLayer* input )
 }
 
 // [B, seq_Q, 1, hidden_size]
-CBaseLayer* CMultiheadSelfAttentionLayer::prepareOutput( CBaseLayer* input )
+CBaseLayer* CMultiheadAttentionLayer::prepareOutput( CBaseLayer* input )
 {
 	NeoAssert( input != 0 );
 

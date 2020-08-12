@@ -72,7 +72,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ReorgLayer.h>
 #include <NeoML/Dnn/Layers/AddToObjectLayer.h>
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
-#include <NeoML/Dnn/Layers/MultiheadSelfAttentionLayer.h>
+#include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 
 namespace NeoML {
 
@@ -270,7 +270,7 @@ REGISTER_NEOML_LAYER( CAttentionDotProductLayer, "FmlCnnAttentionDotProductLayer
 REGISTER_NEOML_LAYER( CAttentionSumLayer, "FmlCnnAttentionSumLayer" )
 REGISTER_NEOML_LAYER( CAddToObjectLayer, "NeoMLDnnAddToObjectLayer" )
 REGISTER_NEOML_LAYER( CMatrixMultiplicationLayer, "NeoMLDnnMatrixMultiplicationLayer" )
-REGISTER_NEOML_LAYER( CMultiheadSelfAttentionLayer, "NeoMLDnnMultiheadSelfAttentionLayer" )
+REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer" )
 
 }
 
