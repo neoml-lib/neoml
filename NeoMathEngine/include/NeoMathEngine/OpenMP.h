@@ -22,7 +22,6 @@ limitations under the License.
 #endif
 
 #include <cstdint>
-#include <cassert>
 
 #ifdef NEOML_USE_OMP
 	#if defined( _MSC_VER ) 
