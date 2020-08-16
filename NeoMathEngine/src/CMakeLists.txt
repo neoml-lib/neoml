@@ -168,6 +168,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                 GPU/CUDA/CudaMathEngineVectorMath.cu
                 # Headers
                 GPU/CUDA/CublasDll.h
+                GPU/CUDA/CudaAssert.h
                 GPU/CUDA/CudaBlobDesc.h
                 GPU/CUDA/CudaCommon.h
                 GPU/CUDA/CudaDevice.h
