@@ -68,6 +68,10 @@ public:
 	float GetDropoutRate() const { return dropOutLayer == 0 ? 0.f : dropOutLayer->GetDropoutRate(); }
 	void SetDropoutRate(float newDropoutRate);
 
+	// Enables calculation of the O_BestPrevClass output
+	bool GetBestPrevClassEnabled() const;
+	void SetBestPrevClassEnabled( bool enabled );
+
 private:
 	CPtr<CFullyConnectedLayer> hiddenLayer;
 	CPtr<CDropoutLayer> dropOutLayer;
@@ -85,7 +89,7 @@ private:
 // #2 - the correct class for the given position
 //
 // The layer outputs: 
-// #0 - for each class contains the previous class in the optimal sequence according to Viterbi method (not during training)
+// #0 - for each class contains the previous class in the optimal sequence according to Viterbi method
 // #1 - the non-normalized logarithm of the probability of the optimal class sequence ending in the given position
 // #2 - the non-normalized logarithm of the probability of the correct class in the given position
 class NEOML_API CCrfCalculationLayer : public CBaseLayer {
@@ -111,6 +115,10 @@ public:
 	int GetPaddingClass() const { return paddingClass; }
 	void SetPaddingClass(int _paddingClass) { paddingClass = _paddingClass; }
 
+	// Enables calculation of the O_BestPrevClass output during training
+	bool GetBestPrevClassEnabled() const { return doCalculateBestPrevClass; }
+	void SetBestPrevClassEnabled( bool enabled ) { doCalculateBestPrevClass = enabled; }
+
 protected:
 	void Reshape() override;
 	void RunOnce() override;
@@ -128,6 +136,8 @@ private:
 	const CPtr<CDnnBlob>& Transitions() const { return paramBlobs[0]; }
 	mutable CPtr<CDnnBlob> prevLabels; // previous sequence labels
 	CPtr<CDnnBlob> tempSumBlob; // temporary blob with the sum of logarithms of all possible sequences probabilities
+	bool doCalculateBestPrevClass; // enables calculation of the O_BestPrevClass output during training
+	CPtr<CDnnBlob> discardedBestPrevClassMax; // buffer for discarded by-product max values of the O_BestPrevClass calculation during training
 	
 	CPtr<CDnnBlob> getPrevLabels() const;
 	void calcLabelProbability();
@@ -234,6 +244,16 @@ inline int CCrfLayer::GetPaddingClass() const
 inline void CCrfLayer::SetPaddingClass(int paddingClass) 
 { 
 	calculator->SetPaddingClass(paddingClass); 
+}
+
+inline bool CCrfLayer::GetBestPrevClassEnabled() const
+{
+	return calculator->GetBestPrevClassEnabled();
+}
+
+inline void CCrfLayer::SetBestPrevClassEnabled( bool enabled )
+{
+	calculator->SetBestPrevClassEnabled( enabled );
 }
 
 inline float CCrfLossLayer::GetLossWeight() const
