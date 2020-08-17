@@ -7,6 +7,7 @@
         - [The number of classes in the CRF](#the-number-of-classes-in-the-crf)
         - [Empty class](#empty-class)
         - [Variational dropout](#variational-dropout)
+        - [O_BestPrevClass output computation](#O_BestPrevClass-output-computation)
     - [Trainable parameters](#trainable-parameters)
     - [Inputs](#inputs)
     - [Outputs](#outputs)
@@ -36,6 +37,17 @@ Sets the number of the empty class used to fill the sequence end.
 ```c++
 void SetDropoutRate( float newDropoutRate );
 ```
+
+### O_BestPrevClass output computation
+
+```c++
+void SetBestPrevClassEnabled( bool enabled );
+```
+
+Enables computation of the first (`O_BestPrevClass`) output during training.
+This setting allows to connect the [CBestSequenceLayer](BestSequenceLayer.md) and get predictions for every batch during training.
+Disabled by default.
+During inference the output is always computed and this setting is ignored.
 
 ## Trainable parameters
 

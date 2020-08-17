@@ -11,6 +11,7 @@
 <!-- /TOC -->
 
 This class implements a layer that finds the optimal class sequence using the output of the [CCrfLayer](CrfLayer.md).
+To use it during training the [O_BestPrevClass output computation](CrfLayer.md#O_BestPrevClass-output-computation) must be enabled in the corresponding [CCrfLayer](CrfLayer.md).
 
 ## Settings
 

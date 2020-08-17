@@ -68,7 +68,7 @@ public:
 	float GetDropoutRate() const { return dropOutLayer == 0 ? 0.f : dropOutLayer->GetDropoutRate(); }
 	void SetDropoutRate(float newDropoutRate);
 
-	// Enables calculation of the O_BestPrevClass output
+	// Enables calculation of the O_BestPrevClass output during training. Disabled by default.
 	bool GetBestPrevClassEnabled() const;
 	void SetBestPrevClassEnabled( bool enabled );
 
