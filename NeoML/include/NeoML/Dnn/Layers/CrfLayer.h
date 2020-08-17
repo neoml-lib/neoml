@@ -89,7 +89,7 @@ private:
 // #2 - the correct class for the given position
 //
 // The layer outputs: 
-// #0 - for each class contains the previous class in the optimal sequence according to Viterbi method
+// #0 - for each class contains the previous class in the optimal sequence according to Viterbi method (optional during training, see SetBestPrevClassEnabled)
 // #1 - the non-normalized logarithm of the probability of the optimal class sequence ending in the given position
 // #2 - the non-normalized logarithm of the probability of the correct class in the given position
 class NEOML_API CCrfCalculationLayer : public CBaseLayer {
