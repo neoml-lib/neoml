@@ -70,7 +70,11 @@ void CMultichannelLookupLayer::SetEmbeddings( CPtr<CDnnBlob>& data, int i, bool 
 	if( data != 0 ) {
 		NeoAssert(data->GetObjectCount() == GetDimensions()[i].VectorCount);
 		NeoAssert(data->GetObjectSize() == GetDimensions()[i].VectorSize);
-		getParams()[i] = copy ? data->GetCopy() : data;
+		if( copy ) {
+			getParams()[i] = data->GetCopy();
+		} else {
+			getParams()[i] = data;
+		}
 	} else {
 		getParams()[i] = 0;
 	}
