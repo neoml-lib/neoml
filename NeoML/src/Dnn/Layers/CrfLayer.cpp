@@ -21,6 +21,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SubSequenceLayer.h>
 #include <NeoML/TraditionalML/VariableMatrix.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 
 namespace NeoML {
 

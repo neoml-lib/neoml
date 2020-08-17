@@ -26,6 +26,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/AttentionLayer.cpp
     Dnn/Layers/BackLinkLayer.cpp
     Dnn/Layers/BaseConvLayer.cpp
+    Dnn/Layers/BaseInPlaceLayer.cpp
     Dnn/Layers/BatchNormalizationLayer.cpp
     Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/BinaryCrossEntropyLayer.cpp
@@ -71,7 +72,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/RepeatSequenceLayer.cpp
     Dnn/Layers/RleConvLayer.cpp
     Dnn/Layers/SequenceSumLayer.cpp
+    Dnn/Layers/SinkLayer.cpp
     Dnn/Layers/SoftmaxLayer.cpp
+    Dnn/Layers/SourceLayer.cpp
     Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/SubSequenceLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
@@ -166,6 +169,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ArgmaxLayer.h
     ../include/NeoML/Dnn/Layers/AttentionLayer.h
     ../include/NeoML/Dnn/Layers/BackLinkLayer.h
+    ../include/NeoML/Dnn/Layers/BaseInPlaceLayer.h
     ../include/NeoML/Dnn/Layers/BatchNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
@@ -205,7 +209,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ReorgLayer.h
     ../include/NeoML/Dnn/Layers/RepeatSequenceLayer.h
     ../include/NeoML/Dnn/Layers/SequenceSumLayer.h
+    ../include/NeoML/Dnn/Layers/SinkLayer.h
     ../include/NeoML/Dnn/Layers/SoftmaxLayer.h
+    ../include/NeoML/Dnn/Layers/SourceLayer.h
     ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/SubSequenceLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h

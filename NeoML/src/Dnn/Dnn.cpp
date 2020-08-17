@@ -17,6 +17,9 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <NeoML/Dnn/Layers/SourceLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 #include <NeoML/Dnn/Layers/ConcatLayer.h>
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
