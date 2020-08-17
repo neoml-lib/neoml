@@ -28,7 +28,8 @@ static const char* DropOutName = "DropOut";
 
 CCrfCalculationLayer::CCrfCalculationLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CCnnCrfCalculationLayer", true ),
-	paddingClass( 0 )
+	paddingClass( 0 ),
+	doCalculateBestPrevClass( false )
 {
 	paramBlobs.SetSize(1);
 }
@@ -128,14 +129,16 @@ void CCrfCalculationLayer::RunOnce()
 	// Always clear tempSumBlob so it is not left uninitialized
 	tempSumBlob->Clear();
 
+	if( isFirstStep() || ( IsLearningPerformed() && !doCalculateBestPrevClass ) ) {
+		// We don't compute O_BestPrevClass output at the first step and also during training when not asked explicitly.
+		// Clear the O_BestPrevClass output so it is not left uninitialized.
+		outputBlobs[O_BestPrevClass]->Clear();
+	}
+
 	if( isFirstStep() ) {
 		// At the first step all we have to do is initialize the O_ClassSeqLogProb output with current element probabilities
 		MathEngine().VectorCopy( outputBlobs[O_ClassSeqLogProb]->GetData(), currentProbabilities,
 			outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
-		if( !IsLearningPerformed() ) {
-			// Clear the O_BestPrevClass output so it is not left uninitialized at the first step
-			outputBlobs[O_BestPrevClass]->Clear();
-		}
 	} else {
 		int batchWidth = inputBlobs[I_ClassLogProb]->GetBatchWidth();
 		int numberOfClasses = inputBlobs[I_ClassLogProb]->GetObjectSize();
@@ -162,6 +165,17 @@ void CCrfCalculationLayer::RunOnce()
 			// Algorithm forward pass (calculate the new alphas - the partial function values at this step):
 			MathEngine().MatrixLogSumExpByRows( tempSum, numberOfClasses  * batchWidth, numberOfClasses,
 				outputBlobs[O_ClassSeqLogProb]->GetData(), outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
+			// Calculate O_BestPrevClass output, if required
+			if( doCalculateBestPrevClass ) {
+				// Update the throw-away blob dimensions so it can contain the required data
+				if( discardedBestPrevClassMax == 0 || !discardedBestPrevClassMax->HasEqualDimensions( outputBlobs[O_ClassSeqLogProb] ) ) {
+					discardedBestPrevClassMax = outputBlobs[O_ClassSeqLogProb]->GetClone();
+				}
+				// Back-pointers for the Viterbi algorithm during training.
+				// We use a dummy blob for the by-product max values because during training O_ClassSeqLogProb must contain the result of log-sum-exp and not plain max values.
+				MathEngine().FindMaxValueInRows(tempSum, numberOfClasses * batchWidth, numberOfClasses, 
+					discardedBestPrevClassMax->GetData(), outputBlobs[O_BestPrevClass]->GetData<int>(), outputBlobs[O_BestPrevClass]->GetDataSize());
+			}
 		}
 		// Add unary estimates at current step (log sum exp will take place at the next step)
 		MathEngine().VectorAdd( currentProbabilities, outputBlobs[O_ClassSeqLogProb]->GetData(),
@@ -216,7 +230,7 @@ void CCrfCalculationLayer::LearnOnce()
 		outputDiffBlobs[O_LabelLogProb]->GetData(), outputDiffBlobs[O_LabelLogProb]->GetDataSize() );
 }
 
-static const int CrfCalculationLayerVersion = 2000;
+static const int CrfCalculationLayerVersion = 2001;
 
 void CCrfCalculationLayer::Serialize( CArchive& archive )
 {
@@ -224,6 +238,9 @@ void CCrfCalculationLayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 
 	archive.Serialize( paddingClass );
+	if( CrfCalculationLayerVersion >= 2001 ) {
+		archive.Serialize( doCalculateBestPrevClass );
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -406,17 +423,19 @@ void CBestSequenceLayer::Reshape()
 
 void CBestSequenceLayer::BackwardOnce()
 {
+	inputDiffBlobs[I_BestPrevClass]->Clear();
+	inputDiffBlobs[I_ClassSeqLogProb]->Clear();
 }
 
 void CBestSequenceLayer::RunOnce()
 {
-	int batchLength = inputBlobs[0]->GetBatchLength();
-	int batchWidth = inputBlobs[0]->GetBatchWidth();
-	int numberOfClasses = inputBlobs[0]->GetObjectSize();
+	int batchLength = inputBlobs[I_BestPrevClass]->GetBatchLength();
+	int batchWidth = inputBlobs[I_BestPrevClass]->GetBatchWidth();
+	int numberOfClasses = inputBlobs[I_BestPrevClass]->GetObjectSize();
 
 	CConstFloatHandle classSeqLogProbData = inputBlobs[I_ClassSeqLogProb]->GetData( {batchLength - 1} );
-	CFloatHandleVar maxProbabilities(MathEngine(), batchWidth);
-	CIntHandleVar bestLabelsHandle(MathEngine(), batchWidth);
+	CFloatHandleStackVar maxProbabilities(MathEngine(), batchWidth);
+	CIntHandleStackVar bestLabelsHandle(MathEngine(), batchWidth);
 	// Find the last labels of the best sequences
 	MathEngine().FindMaxValueInRows(classSeqLogProbData, batchWidth, numberOfClasses,
 		maxProbabilities.GetHandle(), bestLabelsHandle.GetHandle(), batchWidth);
