@@ -288,6 +288,7 @@ delete gpuMathEngine;
 - Working with discrete features:
   - [CMultichannelLookupLayer](DiscreteFeaturesLayers/MultichannelLookupLayer.md) - vector representation of discrete features
   - [CAccumulativeLookupLayer](DiscreteFeaturesLayers/AccumulativeLookupLayer.md) - the sum of vector representations of a discrete feature
+  - [CPositionalEmbeddingLayer](DiscreteFeaturesLayer/PositionalEmbeddingLayer.md) - the vector representations of a position in sequence
   - [CEnumBinarizationLayer](DiscreteFeaturesLayers/EnumBinarizationLayer.md) converts enumeration values to *one-hot encoding*
   - [CBitSetVectorizationLayer](DiscreteFeaturesLayers/BitSetVectorizationLayer.md) converts a *bitset* into a vector of ones and zeros
 - Recurrent layers:
