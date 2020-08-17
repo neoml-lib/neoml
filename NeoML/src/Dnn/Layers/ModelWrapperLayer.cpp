@@ -19,6 +19,8 @@ limitations under the License.
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <NeoML/Dnn/Layers/SourceLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 
 namespace NeoML {
 

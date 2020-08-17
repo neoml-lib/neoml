@@ -21,6 +21,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SubSequenceLayer.h>
 #include <NeoML/TraditionalML/VariableMatrix.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 
 namespace NeoML {
 
@@ -234,11 +235,11 @@ static const int CrfCalculationLayerVersion = 2001;
 
 void CCrfCalculationLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( CrfCalculationLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	int version = archive.SerializeVersion( CrfCalculationLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
 
 	archive.Serialize( paddingClass );
-	if( CrfCalculationLayerVersion >= 2001 ) {
+	if( version >= 2001 ) {
 		archive.Serialize( doCalculateBestPrevClass );
 	}
 }

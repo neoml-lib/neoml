@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,38 +17,29 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
-#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 
 namespace NeoML {
 
-// Implements the layer that calculates the softmax function. 
-// Note that if you are using cross-entropy loss function you may set softmax to be calculated there and will not need this layer.
-class NEOML_API CSoftmaxLayer : public CBaseInPlaceLayer {
-	NEOML_DNN_LAYER( CSoftmaxLayer )
+// The source layer that passes a data blob into the network. Can have exactly one output
+class NEOML_API CSourceLayer : public CBaseLayer {
+	NEOML_DNN_LAYER( CSourceLayer )
 public:
-	explicit CSoftmaxLayer( IMathEngine& mathEngine );
+	explicit CSourceLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnSourceLayer", false) {}
 
-	// The area (dimensions) over which the values are normalized
-	enum TNormalizationArea {
-		NA_ObjectSize = 0,
-		NA_BatchLength,
-		NA_ListSize,
-		NA_Channel,
-
-		NA_Count
-	};
-
-	void SetNormalizationArea( TNormalizationArea newArea ) { area = newArea; }
-	TNormalizationArea GetNormalizationArea() const { return area; }
+	// Sets the input data blob
+	void SetBlob( CDnnBlob* blob );
+	// Gets the reference to the input blob
+	const CPtr<CDnnBlob>& GetBlob() const { return blob; }
 
 	void Serialize( CArchive& archive ) override;
 
 protected:
+	CPtr<CDnnBlob> blob;
+	// CBaseLayer class methods
+	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
-
-private:
-	TNormalizationArea area; // the normalization area
+	void AllocateOutputBlobs() override;
 };
 
 } // namespace NeoML
