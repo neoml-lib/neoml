@@ -18,6 +18,7 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <CudaMathEngine.h>
+#include <CudaAssert.h>
 #include <CusparseFunctions.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
@@ -35,9 +36,9 @@ void CCudaMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, i
 	CFloatHandle tResultPtr = tResult.GetHandle();
 
 	cusparseMatDescr_t description = 0;
-	ASSERT_ERROR_CODE( cusparse->CreateMatDescr( &description ) );
-	ASSERT_ERROR_CODE( cusparse->SetMatType( description, CUSPARSE_MATRIX_TYPE_GENERAL ) );
-	ASSERT_ERROR_CODE( cusparse->SetMatIndexBase( description, CUSPARSE_INDEX_BASE_ZERO ) );
+	ASSERT_CUSPARSE( cusparse->CreateMatDescr( &description ) );
+	ASSERT_CUSPARSE( cusparse->SetMatType( description, CUSPARSE_MATRIX_TYPE_GENERAL ) );
+	ASSERT_CUSPARSE( cusparse->SetMatIndexBase( description, CUSPARSE_INDEX_BASE_ZERO ) );
 
 	const int* firstRows = GetRaw( firstDesc.Rows );
 	const float* firstValues = GetRaw( firstDesc.Values );
@@ -45,11 +46,11 @@ void CCudaMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, i
 	float alpha = 1.0;
 	float beta = 0.0;
 
-	ASSERT_ERROR_CODE( cusparse->Scsrmm( cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, firstHeight, secondHeight, firstWidth,
+	ASSERT_CUSPARSE( cusparse->Scsrmm( cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, firstHeight, secondHeight, firstWidth,
 		firstDesc.ElementCount, &alpha, description, firstValues, firstRows, firstColumns, GetRaw( secondHandle ), firstWidth,
 		&beta, GetRaw( tResultPtr ), firstHeight ) );
 
-	ASSERT_ERROR_CODE( cusparse->DestroyMatDescr( description ) );
+	ASSERT_CUSPARSE( cusparse->DestroyMatDescr( description ) );
 
 	TransposeMatrix( 1, tResultPtr, secondHeight, 1, firstHeight, 1, resultHandle, static_cast<int>( tResult.Size() ) );
 }
@@ -69,9 +70,9 @@ void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHei
 	TransposeMatrix( 1, first, firstHeight, 1, firstWidth, 1, tFirstPtr, static_cast<int>( tFirst.Size() ) );
 
 	cusparseMatDescr_t description = 0;
-	ASSERT_ERROR_CODE( cusparse->CreateMatDescr( &description ) );
-	ASSERT_ERROR_CODE( cusparse->SetMatType( description, CUSPARSE_MATRIX_TYPE_GENERAL ) );
-	ASSERT_ERROR_CODE( cusparse->SetMatIndexBase( description, CUSPARSE_INDEX_BASE_ZERO ) );
+	ASSERT_CUSPARSE( cusparse->CreateMatDescr( &description ) );
+	ASSERT_CUSPARSE( cusparse->SetMatType( description, CUSPARSE_MATRIX_TYPE_GENERAL ) );
+	ASSERT_CUSPARSE( cusparse->SetMatIndexBase( description, CUSPARSE_INDEX_BASE_ZERO ) );
 
 	// Calculate T( T(B) * A ):
 	const int* secondRows = GetRaw( secondDesc.Rows );
@@ -80,11 +81,11 @@ void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHei
 	float alpha = 1.0;
 	float beta = 1.0;
 
-	ASSERT_ERROR_CODE( cusparse->Scsrmm2( cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+	ASSERT_CUSPARSE( cusparse->Scsrmm2( cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
 		firstHeight, firstWidth, secondWidth, secondDesc.ElementCount, &alpha, description, secondValues, secondRows,
 		secondColumns, GetRaw( tFirstPtr ), firstHeight, &beta, GetRaw( resultHandle ), secondWidth ) );
 
-	ASSERT_ERROR_CODE( cusparse->DestroyMatDescr( description ) );
+	ASSERT_CUSPARSE( cusparse->DestroyMatDescr( description ) );
 }
 
 } // namespace NeoML

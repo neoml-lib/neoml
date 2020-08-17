@@ -29,20 +29,15 @@ CBaseSplitLayer::CBaseSplitLayer( IMathEngine& mathEngine, TBlobDim _dimension, 
 
 void CBaseSplitLayer::SetOutputCounts(const CArray<int>& _outputCounts)
 {
-	 _outputCounts.CopyTo(outputCounts);
-
-	 if(GetDnn() != 0) {
-		 GetDnn()->ForceRebuild();
-	 }
+	_outputCounts.CopyTo(outputCounts);
+	ForceReshape();
 }
 
 void CBaseSplitLayer::SetOutputCounts2(int count0)
 {
 	outputCounts.SetSize(1);
 	outputCounts[0] = count0;
-	if(GetDnn() != 0) {
-		GetDnn()->ForceRebuild();
-	}
+	ForceReshape();
 }
 
 void CBaseSplitLayer::SetOutputCounts3(int count0, int count1)
@@ -50,9 +45,7 @@ void CBaseSplitLayer::SetOutputCounts3(int count0, int count1)
 	outputCounts.SetSize(2);
 	outputCounts[0] = count0;
 	outputCounts[1] = count1;
-	if(GetDnn() != 0) {
-		GetDnn()->ForceRebuild();
-	}
+	ForceReshape();
 }
 
 void CBaseSplitLayer::SetOutputCounts4(int count0, int count1, int count2)
@@ -61,9 +54,7 @@ void CBaseSplitLayer::SetOutputCounts4(int count0, int count1, int count2)
 	outputCounts[0] = count0;
 	outputCounts[1] = count1;
 	outputCounts[2] = count2;
-	if(GetDnn() != 0) {
-		GetDnn()->ForceRebuild();
-	}
+	ForceReshape();
 }
 
 static const int BaseSplitLayerVersion = 2000;

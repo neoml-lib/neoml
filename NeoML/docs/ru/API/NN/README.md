@@ -286,6 +286,7 @@ delete gpuMathEngine;
 - Работа с дискретными признаками:
   - [CMultichannelLookupLayer](DiscreteFeaturesLayers/MultichannelLookupLayer.md) - векторные представления дискретных признаков
   - [CAccumulativeLookupLayer](DiscreteFeaturesLayers/AccumulativeLookupLayer.md) - сумма векторных представлений дискретного признака
+  - [CPositionalEmbeddingLayer](DiscreteFeaturesLayer/PositionalEmbeddingLayer.md) - векторные представления позиций в последовательности
   - [CEnumBinarizationLayer](DiscreteFeaturesLayers/EnumBinarizationLayer.md) - конвертация значений из перечисления в `one-hot encoding`
   - [CBitSetVectorizationLayer](DiscreteFeaturesLayers/BitSetVectorizationLayer.md) - конвертация `bitset`'ов в векторы из нулей и единиц
 - Рекуррентные слои:

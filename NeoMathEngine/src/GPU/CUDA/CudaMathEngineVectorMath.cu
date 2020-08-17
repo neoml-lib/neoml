@@ -18,6 +18,7 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <CudaMathEngine.h>
+#include <CudaAssert.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 
@@ -30,7 +31,7 @@ void CCudaMathEngine::VectorCopy(const CFloatHandle& first, const CConstFloatHan
 	ASSERT_EXPR(first.GetMathEngine() == this);
 	ASSERT_EXPR(second.GetMathEngine() == this);
 
-	ASSERT_ERROR_CODE(cudaMemcpy(GetRaw(first), GetRaw(second), vectorSize * sizeof(float), cudaMemcpyDeviceToDevice));
+	ASSERT_CUDA( cudaMemcpy(GetRaw(first), GetRaw(second), vectorSize * sizeof(float), cudaMemcpyDeviceToDevice));
 }
 
 void CCudaMathEngine::VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize)
@@ -38,7 +39,7 @@ void CCudaMathEngine::VectorCopy(const CIntHandle& first, const CConstIntHandle&
 	ASSERT_EXPR(first.GetMathEngine() == this);
 	ASSERT_EXPR(second.GetMathEngine() == this);
 
-	ASSERT_ERROR_CODE(cudaMemcpy(GetRaw(first), GetRaw(second), vectorSize * sizeof(int), cudaMemcpyDeviceToDevice));
+	ASSERT_CUDA( cudaMemcpy(GetRaw(first), GetRaw(second), vectorSize * sizeof(int), cudaMemcpyDeviceToDevice));
 }
 
 void CCudaMathEngine::VectorFill(const CFloatHandle& result, float value, int vectorSize)
