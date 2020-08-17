@@ -46,7 +46,11 @@ void CPositionalEmbeddingLayer::SetAddends( CDnnBlob* newAddends, bool copy )
 		if( paramBlobs[0] != nullptr && GetDnn() != nullptr ) {
 			NeoAssert( paramBlobs[0]->HasEqualDimensions( newAddends ) );
 		}
-		paramBlobs[0] = copy ? newAddends->GetCopy() : newAddends;
+		if( copy ) {
+			paramBlobs[0] = newAddends->GetCopy();
+		} else {
+			paramBlobs[0] = newAddends;
+		}
 	}
 }
 
