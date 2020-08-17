@@ -169,7 +169,7 @@ void CCrfCalculationLayer::RunOnce()
 			if( doCalculateBestPrevClass ) {
 				// Update the throw-away blob dimensions so it can contain the required data
 				if( discardedBestPrevClassMax == 0 || !discardedBestPrevClassMax->HasEqualDimensions( outputBlobs[O_ClassSeqLogProb] ) ) {
-					discardedBestPrevClassMax = CDnnBlob::CreateVector( MathEngine(), CT_Float, outputDescs[O_ClassSeqLogProb].BlobSize() );
+					discardedBestPrevClassMax = outputBlobs[O_ClassSeqLogProb]->GetClone();
 				}
 				// Back-pointers for the Viterbi algorithm during training.
 				// We use a dummy blob for the by-product max values because during training O_ClassSeqLogProb must contain the result of log-sum-exp and not plain max values.
