@@ -7,6 +7,7 @@
         - [Число классов в CRF](#число-классов-в-crf)
         - [Пустой класс](#пустой-класс)
         - [Variational dropout](#variational-dropout)
+        - [Вычисление выхода O_BestPrevClass](#вычисление-выхода-O_BestPrevClass)
     - [Обучаемые параметры](#обучаемые-параметры)
     - [Входы](#входы)
     - [Выходы](#выходы)
@@ -36,6 +37,17 @@ void SetPaddingClass( int paddingClass );
 ```c++
 void SetDropoutRate( float newDropoutRate );
 ```
+
+### Вычисление выхода O_BestPrevClass
+
+```c++
+void SetBestPrevClassEnabled( bool enabled );
+```
+
+Включение вычисления первого выхода (O_BestPrevClass), содержащего оптимальные последовательности классов, во время обучения.
+Позволяет подключить к `CCrfLayer` слой [CBestSequenceLayer](BestSequenceLayer.md) и получать предсказания на каждый батч прямо во время обучения.
+По-умолчанию выключено.
+Во время применения этот выход вычисляется в любом случае, а данная настройка игнорируется.
 
 ## Обучаемые параметры
 
