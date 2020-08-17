@@ -59,6 +59,23 @@ void CMultichannelLookupLayer::SetEmbeddings( const CPtr<CDnnBlob>& data, int i 
 	}
 }
 
+void CMultichannelLookupLayer::SetEmbeddings( CPtr<CDnnBlob>& data, int i, bool copy )
+{
+	NeoAssert( i >= 0 && i < dimensions.Size() );
+
+	if(getParams().Size() <= i) {
+		getParams().SetSize(GetDimensions().Size());
+	}
+
+	if( data != 0 ) {
+		NeoAssert(data->GetObjectCount() == GetDimensions()[i].VectorCount);
+		NeoAssert(data->GetObjectSize() == GetDimensions()[i].VectorSize);
+		getParams()[i] = copy ? data->GetCopy() : data;
+	} else {
+		getParams()[i] = 0;
+	}
+}
+
 void CMultichannelLookupLayer::SetUseFrameworkLearning(bool _useFrameworkLearning)
 {
 	if(_useFrameworkLearning && !useFrameworkLearning) {
