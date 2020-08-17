@@ -40,7 +40,7 @@ public:
 	// Copies embeddings from data
 	void SetEmbeddings( const CPtr<CDnnBlob>& data, int i );
 	// If copy is false, the function doesn't create additional copy but data will be changed during training
-	void SetEmbeddings( CPtr<CDnnBlob>& data, int i, bool copy = true );
+	void SetEmbeddings( CPtr<CDnnBlob>& data, int i, bool copy );
 
 	// Indicates that external training should be used
 	// The default value is false, which means "internal" training is performed: no regularization, etc.
