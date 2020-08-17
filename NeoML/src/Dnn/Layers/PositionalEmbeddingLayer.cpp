@@ -26,6 +26,30 @@ CPositionalEmbeddingLayer::CPositionalEmbeddingLayer( IMathEngine& mathEngine ) 
 {
 }
 
+CPtr<CDnnBlob> CPositionalEmbeddingLayer::GetAddends() const
+{
+	NeoAssert( type == PET_LearnableAddition );
+	if( paramBlobs.IsEmpty() || paramBlobs[0] == nullptr ) {
+		return nullptr;
+	}
+	return paramBlobs[0]->GetCopy();
+}
+
+void CPositionalEmbeddingLayer::SetAddends( CDnnBlob* newAddends, bool copy )
+{
+	NeoAssert( type == PET_LearnableAddition );
+	paramBlobs.SetSize( 1 );
+	if( newAddends == nullptr ) {
+		paramBlobs[0] = nullptr;
+		ForceReshape();
+	} else {
+		if( paramBlobs[0] != nullptr && GetDnn() != nullptr ) {
+			NeoAssert( paramBlobs[0]->HasEqualDimensions( newAddends ) );
+		}
+		paramBlobs[0] = copy ? newAddends->GetCopy() : newAddends;
+	}
+}
+
 void CPositionalEmbeddingLayer::Reshape()
 {
 	checkDimensions();
@@ -34,38 +58,34 @@ void CPositionalEmbeddingLayer::Reshape()
 	CBlobDesc paramsDesc = inputDesc;
 	paramsDesc.SetDimSize( BD_BatchWidth, 1 );
 
-	if( paramBlobs.IsEmpty() || !paramBlobs.First()->GetDesc().HasEqualDimensions( paramsDesc ) ) {
-		switch( type ) {
-			case PET_LearnableAddition:
-			{
-				paramBlobs.SetSize( 1 );
-				paramBlobs[0] = CDnnBlob::CreateBlob( MathEngine(), paramsDesc );
-
-				initializeLearnableAddition();
+	switch( type ) {
+		case PET_LearnableAddition:
+		{
+			if( paramBlobs.Size() == 1 && paramBlobs[0] != nullptr && paramBlobs[0]->GetDesc().HasEqualDimensions( paramsDesc ) ) {
 				break;
 			}
-			case PET_LearnableMultAddition:
-			{
-				paramBlobs.SetSize( 2 );
-				paramBlobs[0] = CDnnBlob::CreateBlob( MathEngine(), paramsDesc );
-				initializeLearnableAddition();
 
-				paramBlobs[1] = CDnnBlob::CreateBlob( MathEngine(), paramsDesc );
-				paramBlobs[1]->Fill( 1 );
-				break;
-			}
-			case PET_Transformers:
-			{
-				paramBlobs.SetSize( 1 );
-				paramBlobs[0] = CDnnBlob::CreateBlob( MathEngine(), paramsDesc );
+			paramBlobs.SetSize( 1 );
+			paramBlobs[0] = CDnnBlob::CreateBlob( MathEngine(), paramsDesc );
 
-				fillPositionalEmbedding( paramBlobs[0] );
-				break;
-			}
-			default:
-				break;
-
+			initializeLearnableAddition();
+			break;
 		}
+		case PET_Transformers:
+		{
+			if( paramBlobs.IsEmpty() && positionalEmbeddings != nullptr && positionalEmbeddings->GetDesc().HasEqualDimensions( paramsDesc ) ) {
+				break;
+			}
+
+			paramBlobs.Empty();
+			positionalEmbeddings = CDnnBlob::CreateBlob( MathEngine(), paramsDesc );
+
+			fillPositionalEmbedding( positionalEmbeddings );
+			break;
+		}
+		default:
+			break;
+
 	}
 
 	outputDescs.SetSize( 1 );
@@ -79,17 +99,12 @@ void CPositionalEmbeddingLayer::RunOnce()
 
 	switch( type ) {
 		case PET_LearnableAddition:
-		case PET_Transformers:
 			MathEngine().AddVectorToMatrixRows( 1, inputBlobs[0]->GetData(), outputBlobs[0]->GetData(),
 				objectsCount, objectSize, paramBlobs[0]->GetData() );
 			break;
-		case PET_LearnableMultAddition:
-			for( int i = 0; i < objectsCount; i++ ) {
-				MathEngine().VectorEltwiseMultiply( inputBlobs[0]->GetObjectData( i ),
-					paramBlobs[1]->GetData(), outputBlobs[0]->GetObjectData( i ), objectSize );
-			}
-			MathEngine().AddVectorToMatrixRows( 1, outputBlobs[0]->GetData(), outputBlobs[0]->GetData(),
-				objectsCount, objectSize, paramBlobs[0]->GetData() );
+		case PET_Transformers:
+			MathEngine().AddVectorToMatrixRows( 1, inputBlobs[0]->GetData(), outputBlobs[0]->GetData(),
+				objectsCount, objectSize, positionalEmbeddings->GetData() );
 			break;
 		default:
 			NeoAssert( false );
@@ -107,14 +122,6 @@ void CPositionalEmbeddingLayer::BackwardOnce()
 			MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 				objectsCount * objectSize );
 			break;
-		case PET_LearnableMultAddition:
-			MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
-				objectsCount * objectSize );
-			for( int i = 0; i < objectsCount; i++ ) {
-				MathEngine().VectorEltwiseMultiply( outputDiffBlobs[0]->GetObjectData( i ),
-					paramBlobs[1]->GetData(), inputDiffBlobs[0]->GetObjectData( i ), objectSize );
-			}
-			break;
 		default:
 			NeoAssert( false );
 	}
@@ -125,21 +132,10 @@ void CPositionalEmbeddingLayer::LearnOnce()
 	const int objectsCount = inputBlobs[0]->GetBatchWidth();
 	const int objectSize = inputBlobs[0]->GetDataSize() / objectsCount;
 
-	static_assert( PET_EnumCount == 3, "PET_EnumCount != 3" );
+	static_assert( PET_EnumCount == 2, "PET_EnumCount != 2" );
 	switch( type ) {
 		case PET_LearnableAddition:
-			for( int i = 0; i < objectsCount; i++ ) {
-				MathEngine().VectorAdd( outputDiffBlobs[0]->GetObjectData( i ),
-					paramDiffBlobs[0]->GetData(), paramDiffBlobs[0]->GetData(), objectSize );
-			}
-			break;
-		case PET_LearnableMultAddition:
-			for( int i = 0; i < objectsCount; i++ ) {
-				MathEngine().VectorEltwiseMultiplyAdd( outputDiffBlobs[0]->GetObjectData( i ),
-					inputBlobs[0]->GetObjectData( i ), paramDiffBlobs[1]->GetData(), objectSize );
-				MathEngine().VectorAdd( outputDiffBlobs[0]->GetObjectData( i ),
-					paramDiffBlobs[0]->GetData(), paramDiffBlobs[0]->GetData(), objectSize );
-			}
+			MathEngine().SumMatrixRowsAdd( 1, paramDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(), objectsCount, objectSize );
 			break;
 		case PET_Transformers:
 			break;
@@ -165,12 +161,13 @@ void CPositionalEmbeddingLayer::checkDimensions()
 
 	const CBlobDesc& inputDesc = inputDescs[0];
 
-	CheckArchitecture( inputDesc.BatchLength() == 1, GetName(), "CPositionalEmbeddingLayer wrong input BatchLength dimension" );
+	CheckArchitecture( inputDesc.GetDataType() == CT_Float, GetName(), "wrong input data type" );
+	CheckArchitecture( inputDesc.BatchLength() == 1, GetName(), "wrong input BatchLength dimension" );
 
 	if( type == PET_Transformers ) {
-		CheckArchitecture( inputDesc.Height() == 1, GetName(), "CPositionalEmbeddingLayer wrong input Height dimension" );
-		CheckArchitecture( inputDesc.Width() == 1, GetName(), "CPositionalEmbeddingLayer wrong input Width dimension" );
-		CheckArchitecture( inputDesc.Depth() == 1, GetName(), "CPositionalEmbeddingLayer wrong input Depth dimension" );
+		CheckArchitecture( inputDesc.Height() == 1, GetName(), "wrong input Height dimension" );
+		CheckArchitecture( inputDesc.Width() == 1, GetName(), "wrong input Width dimension" );
+		CheckArchitecture( inputDesc.Depth() == 1, GetName(), "wrong input Depth dimension" );
 	}
 }
 

@@ -6,6 +6,7 @@
     - [Settings](#settings)
         - [Vector types](#vector-types)
     - [Trainable parameters](#trainable-parameters)
+        - [Additive positional representations](#additive-positional-representations)
     - [Inputs](#inputs)
     - [Outputs](#outputs)
 
@@ -22,8 +23,6 @@ This class implements a layer that maps vectors with positions in sequence and t
 enum TPositionalEmbeddingType {
     // Learnable, addition-only Y = X + embedding
     PET_LearnableAddition = 0,
-    // Learnable, linear transform Y = a * X + b
-    PET_LearnableMultAddition,
     // Non-learnable (used in transformers). https://arxiv.org/abs/1807.03819
     // Additional restrictions on input size: Depth == Height == Width == 1
     PET_Transformers,
@@ -38,41 +37,18 @@ Vector types.
 
 ## Trainable parameters
 
-If `GetType() == PET_Transformers` then this layer doesn't have trainable parameters and the result is equal to:
+### Additive positional representations
 
 ```c++
-result[i][j][k] = input[i][j][k] + sin( j / pow( 10000, ( k / vectorSize ) ) )
+CPtr<CDnnBlob> GetAddends() const;
 ```
 
-where:
+Vector representations of positions in a sequence, added to input vectors. Trained if `GetType()` is `PET_LearnableAddition` or `PET_LearnableMultAddition`.
 
-- `i` is the index of sequence in batch (from `0` to `BatchWidth - 1`)
-- `j` is the position of vector in sequence (from `0` to `ListSize - 1`)
-- `vectorSize` is the vector length (`Height * Width * Depth * Channels`)
-- `k` is the index of the element in vector (from `0` to `vectorSize - 1`)
+Represented by a [blob](../DnnBlob.md) of the following dimensions:
 
-If `GetType() == PET_LearnableAddition` then this layer trains one set of vectors (`B`) and the result is equal to:
-
-```c++
-result[i][j] = input[i][j] + B[j]
-```
-
-where:
-
-- `i` is the index of sequence in batch (from `0` to `BatchWidth - 1`)
-- `j` is the position of vector in sequence (from `0` to `ListSize - 1`).
-
-If `GetType() == PET_LearnableMultAddition` then this layers trains two sets of vectors (`A` and `B`) and the result is equal to:
-
-```c++
-result[i][j] = ( input[i][j] * A[j] ) + B[j]
-```
-
-where:
-
-- `i` is the index of sequence in batch (from `0` to `BatchWidth - 1`)
-- `j` is the position of vector in sequence (from `0` to `ListSize - 1`)
-- `*` multiplication of two vectors element by element.
+- `BatchLength` and `BatchWidth` are equal to `1`
+- other dimensions are equal to the corresponding ones of the input blob.
 
 ## Inputs
 
@@ -87,3 +63,27 @@ The single input accepts a blob that contains a batch of sequences of vectors, o
 ## Outputs
 
 There is only one output, which returns a blob of the same size as the input blob.
+
+If `GetType() == PET_Transformers` then the result is equal to:
+
+```c++
+result[i][j][k] = input[i][j][k] + sin( j / pow( 10000, ( k / vectorSize ) ) )
+```
+
+where:
+
+- `i` is the index of sequence in batch (from `0` to `BatchWidth - 1`)
+- `j` is the position of vector in sequence (from `0` to `ListSize - 1`)
+- `vectorSize` is the vector length (`Height * Width * Depth * Channels`)
+- `k` is the index of the element in vector (from `0` to `vectorSize - 1`)
+
+If `GetType() == PET_LearnableAddition` then the result is equal to:
+
+```c++
+result[i][j] = input[i][j] + GetAddend()[j]
+```
+
+where:
+
+- `i` is the index of sequence in batch (from `0` to `BatchWidth - 1`)
+- `j` is the position of vector in sequence (from `0` to `ListSize - 1`).

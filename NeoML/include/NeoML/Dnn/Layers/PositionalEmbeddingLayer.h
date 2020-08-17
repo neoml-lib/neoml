@@ -29,9 +29,7 @@ public:
 	enum TPositionalEmbeddingType {
 		// Learnable, addition-only Y = X + embedding
 		PET_LearnableAddition = 0,
-		// Learnable, affine transform. Y = a * X + b
-		PET_LearnableMultAddition,
-		// Non-learnable (used in transformes). https://arxiv.org/abs/1807.03819
+		// Non-learnable (used in transformers). https://arxiv.org/abs/1807.03819
 		// Additional restriction: D = H = W = 1.
 		PET_Transformers,
 		
@@ -43,6 +41,11 @@ public:
 	TPositionalEmbeddingType GetType() const { return type; }
 	void SetType( TPositionalEmbeddingType newType ) { type = newType; }
 
+	// Additive positional embeddings
+	// Trained if GetType() is equal to PET_LearnableAddition
+	CPtr<CDnnBlob> GetAddends() const;
+	void SetAddends( CDnnBlob* newAddends, bool copy );
+
 protected:
 	void Reshape() override;
 	void RunOnce() override;
@@ -53,6 +56,9 @@ protected:
 private:
 	// Embedding type
 	TPositionalEmbeddingType type;
+
+	// Positional embeddings (if type == PET_Transformers)
+	CPtr<CDnnBlob> positionalEmbeddings;
 
 	void checkDimensions();
 	void initializeLearnableAddition();
