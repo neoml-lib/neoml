@@ -125,11 +125,17 @@ void CCrfCalculationLayer::RunOnce()
 {
 	// The unary estimates of the current elements (the fully-connected layer output)
 	CConstFloatHandle currentProbabilities = inputBlobs[I_ClassLogProb]->GetData();
+	// Always clear tempSumBlob so it is not left uninitialized
+	tempSumBlob->Clear();
 
 	if( isFirstStep() ) {
 		// At the first step all we have to do is initialize the O_ClassSeqLogProb output with current element probabilities
 		MathEngine().VectorCopy( outputBlobs[O_ClassSeqLogProb]->GetData(), currentProbabilities,
 			outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
+		if( !IsLearningPerformed() ) {
+			// Clear the O_BestPrevClass output so it is not left uninitialized at the first step
+			outputBlobs[O_BestPrevClass]->Clear();
+		}
 	} else {
 		int batchWidth = inputBlobs[I_ClassLogProb]->GetBatchWidth();
 		int numberOfClasses = inputBlobs[I_ClassLogProb]->GetObjectSize();
@@ -137,7 +143,6 @@ void CCrfCalculationLayer::RunOnce()
 		// The vector of partial function value at the previous step (alpha in the forward-backward algorithm, forward pass)
 		CConstFloatHandle sequenceProbabilities = inputBlobs[I_ClassSeqLogProb]->GetData();
 
-		tempSumBlob->Clear();
 		CFloatHandle tempSum = tempSumBlob->GetData();
 
 		// Replicate the transitions matrix batchWidth times (manual broadcast)
