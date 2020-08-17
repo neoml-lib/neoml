@@ -115,7 +115,7 @@ void CCrfCalculationLayer::calcLabelProbability()
 	}
 }
 
-// Checks if we are on the first (possibly the only) step
+// Checks if we are at the first (possibly the only) step
 bool CCrfCalculationLayer::isFirstStep() const
 {
 	return !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos();
@@ -127,21 +127,21 @@ void CCrfCalculationLayer::RunOnce()
 	CConstFloatHandle currentProbabilities = inputBlobs[I_ClassLogProb]->GetData();
 
 	if( isFirstStep() ) {
-		// On the first step all we have to do is initialize the O_ClassSeqLogProb output with current element probabilities
+		// At the first step all we have to do is initialize the O_ClassSeqLogProb output with current element probabilities
 		MathEngine().VectorCopy( outputBlobs[O_ClassSeqLogProb]->GetData(), currentProbabilities,
 			outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
 	} else {
 		int batchWidth = inputBlobs[I_ClassLogProb]->GetBatchWidth();
 		int numberOfClasses = inputBlobs[I_ClassLogProb]->GetObjectSize();
 
-		// The vector of partial function value on the previous step (alpha in the forward-backward algorithm, forward pass)
+		// The vector of partial function value at the previous step (alpha in the forward-backward algorithm, forward pass)
 		CConstFloatHandle sequenceProbabilities = inputBlobs[I_ClassSeqLogProb]->GetData();
 
 		tempSumBlob->Clear();
 		CFloatHandle tempSum = tempSumBlob->GetData();
 
 		// Replicate the transitions matrix batchWidth times (manual broadcast)
-		// Add the binary estimates of transition from any previous step to the current
+		// Add the binary estimates of transition from any previous step to the current one
 		MathEngine().AddVectorToMatrixRows(1, tempSum, tempSum, batchWidth,
 			numberOfClasses * numberOfClasses, Transitions()->GetData());
 		// Add the partial function values calculated above
@@ -154,11 +154,11 @@ void CCrfCalculationLayer::RunOnce()
 				outputBlobs[O_ClassSeqLogProb]->GetData(), outputBlobs[O_BestPrevClass]->GetData<int>(),
 				outputBlobs[O_ClassSeqLogProb]->GetDataSize());
 		} else {
-			// Algorithm forward pass (calculate the new alphas - the partial function values on this step):
+			// Algorithm forward pass (calculate the new alphas - the partial function values at this step):
 			MathEngine().MatrixLogSumExpByRows( tempSum, numberOfClasses  * batchWidth, numberOfClasses,
 				outputBlobs[O_ClassSeqLogProb]->GetData(), outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
 		}
-		// Add unary estimates at current step (log sum exp will take place on the next step)
+		// Add unary estimates at current step (log sum exp will take place at the next step)
 		MathEngine().VectorAdd( currentProbabilities, outputBlobs[O_ClassSeqLogProb]->GetData(),
 			outputBlobs[O_ClassSeqLogProb]->GetData(), outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
 	}
@@ -194,7 +194,7 @@ void CCrfCalculationLayer::BackwardOnce()
 void CCrfCalculationLayer::LearnOnce()
 {
 	if( isFirstStep() ) {
-		// On the first step there are no transitions, so nothing to learn
+		// At the first step there are no transitions, so nothing to learn
 		return;
 	}
 
