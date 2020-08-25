@@ -620,12 +620,6 @@ void CBaseLayer::SetName( const char* _name )
 	name = _name;
 }
 
-CString CBaseLayer::GetLayerId() const
-{
-	NeoAssert( dnn != nullptr );
-	return dnn->netSolverId + GetName();
-}
-
 void CBaseLayer::Connect( int inputNumber, const char* input, int outputNumber )
 {
 	if( inputNumber >= inputs.Size() ) {

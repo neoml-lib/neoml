@@ -157,7 +157,7 @@ void CRecurrentLayer::SetInternalDnnParams()
 	int sequenceLength;
 	getSequenceParams(batchWidth, sequenceLength);
 	if(!GetDnn()->IsRecurrentMode()) {
-		GetInternalDnn()->setProcessingParams(true, sequenceLength, isReverseSequense, GetDnn()->IsBackwardPerformed(), GetLayerId());
+		GetInternalDnn()->setProcessingParams(true, sequenceLength, isReverseSequense, GetDnn()->IsBackwardPerformed());
 	} else {
 		CheckArchitecture( repeatCount == 1,
 			GetName(), "repeat count should be 1 for internal recurrent layers" );

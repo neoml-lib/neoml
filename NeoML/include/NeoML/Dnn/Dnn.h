@@ -88,8 +88,6 @@ public:
 	const char* GetName() const { return name; }
 	virtual void SetName( const char* _name );
 
-	CString GetLayerId() const;
-
 	// Connects this layer's inputNumber input to the specified layer's outputNumber output
 	virtual void Connect( int inputNumber, const char* layer, int outputNumber = 0 );
 	void Connect( int inputNumber, const CBaseLayer& layer, int outputNumber = 0 ) { Connect(inputNumber, layer.GetName(), outputNumber); }
@@ -213,6 +211,13 @@ protected:
 	// The default implementation creates the outputBlobs array using the output descriptions
 	virtual void AllocateOutputBlobs();
 
+	// Unique identifire for a layer in whole net (including other composites/recurrents)
+	const CString& GetLayerId() const { return layerId; }
+
+	// Sets layer unique identifier
+	// Overridden in CCompositeLayer
+	virtual void SetLayerId( const CString& newLayerId ) { layerId = newLayerId; }
+
 private:
 	// The link between two layers, connecting one layer output to another layer input
 	struct CDnnLayerLink {
@@ -293,6 +298,9 @@ private:
 	// The number of graphs with which the layer is connected
 	int graphCount;
 
+	// Unique layer identifier
+	CString layerId;
+
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
 	CDnnBlob* switchBlobToSequentialMode(CDnnBlob* blob, TBlobCacheType cacheType, bool storeParent);
@@ -326,6 +334,7 @@ private:
 	friend class CDnn;
 	friend class CDnnLayerGraph;
 	friend class CDnnSolver;
+	friend class CCompositeLayer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -515,10 +524,8 @@ private:
 	bool autoRestartMode;
 	// The low memory use mode
 	bool isReuseMemoryMode;
-	// The id of the net for solver
-	CString netSolverId;
 
-	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed, const CString& solverId);
+	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed);
 	void runOnce(int curSequencePos);
 	void backwardRunAndLearnOnce(int curSequencePos);
 	void reshape();

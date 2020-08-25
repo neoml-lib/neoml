@@ -220,6 +220,9 @@ void CCompositeLayer::AddLayerImpl(CBaseLayer& layer)
 
 	if(internalDnn != 0) {
 		internalDnn->AddLayer(layer);
+		// CDnn::AddLayer will write layer.layerId to layer.name
+		// Let's rewrite it!
+		layer.SetLayerId(layerId + layer.GetName());
 	}
 }
 
@@ -262,6 +265,7 @@ void CCompositeLayer::createSources()
 		newSource->SetName(getSourceName(sources.Size()));
 		sources.Add(newSource);
 		internalDnn->AddLayer(*newSource);
+		newSource->SetLayerId(layerId + newSource->GetName());
 		// Set the ForceBackward flags as needed for the composite layer
 		newSource->SetBackwardForced(IsBackwardNeeded());
 	}
@@ -293,6 +297,7 @@ void CCompositeLayer::createSinks()
 		newSink->Connect(0, outputMappings[newSinkNumber].InternalLayerName, outputMappings[newSinkNumber].InternalLayerOutput); 
 		sinks.Add(newSink);
 		internalDnn->AddLayer(*newSink);
+		newSink->SetLayerId(layerId + newSink->GetName());
 	}
 }
 
@@ -392,6 +397,7 @@ void CCompositeLayer::OnDnnChanged( CDnn* )
 
 		for(int i = 0; i < layers.Size(); ++i) {
 			internalDnn->AddLayer(*layers[i]);
+			layers[i]->SetLayerId(layerId + layers[i]->GetName());
 		}
 	}
 }
@@ -412,7 +418,7 @@ void CCompositeLayer::SetInternalDnnParams()
 
 	// Set the internal network parameters from the external network parameters
 	internalDnn->setProcessingParams(GetDnn()->IsRecurrentMode(), GetDnn()->GetMaxSequenceLength(), 
-		GetDnn()->IsReverseSequense(), GetDnn()->IsBackwardPerformed(), GetLayerId());
+		GetDnn()->IsReverseSequense(), GetDnn()->IsBackwardPerformed());
 	internalDnn->SetLog(GetDnn()->IsLogging() && areInternalLogsEnabled ? GetDnn()->GetLog() : 0);
 	internalDnn->SetLogFrequency(GetDnn()->GetLogFrequency());
 	internalDnn->RequestReshape(forcedReshape);
@@ -450,6 +456,19 @@ size_t CCompositeLayer::GetTrainableParametersSize() const
 void CCompositeLayer::RestartSequence()
 {
 	internalDnn->RestartSequence();
+}
+
+void CCompositeLayer::SetLayerId( const CString& newLayerId )
+{
+	CBaseLayer::SetLayerId( newLayerId );
+
+	if( internalDnn == nullptr ) {
+		return;
+	}
+
+	for( int i = 0; i < internalDnn->layers.Size(); i++ ) {
+		internalDnn->layers[i]->SetLayerId( newLayerId + internalDnn->layers[i]->GetName() );
+	}
 }
 
 void CCompositeLayer::Reshape()
