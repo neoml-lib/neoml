@@ -56,7 +56,6 @@ public:
 	CPtr<CBaseLayer> GetLayer(const char* name) override;
 	CPtr<const CBaseLayer> GetLayer(const char* name) const override;
 	bool HasLayer(const char* name) const override;
-	CPtr<CBaseLayer> GetLayerById(const CString& layerId);
 
 	// Returns the total size of the output blobs
 	size_t GetOutputBlobsSize() const override;
