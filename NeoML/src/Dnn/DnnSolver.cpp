@@ -174,6 +174,7 @@ void CDnnSolver::Train()
 		clipGradients( paramDiffBlobsSum.Sum );
 
 		// Train the layer based on the calculated diff data
+		CheckArchitecture( layerToPtr.Has( layerId ), layerId, "Layer not found by solver" );
 		CBaseLayer* layer = layerToPtr.Get( layerId );
 		TrainLayer( layer, layer->paramBlobs, paramDiffBlobsSum.Sum, layerToGradientHistory.GetOrCreateValue( layerId ) );
 
@@ -221,7 +222,7 @@ void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 	}
 }
 
-static const int DnnSolverVersion = 1;
+static const int DnnSolverVersion = 0;
 
 void CDnnSolver::Serialize( CArchive& archive )
 {
@@ -280,7 +281,7 @@ CDnnSimpleGradientSolver::CDnnSimpleGradientSolver( IMathEngine& mathEngine ) :
 	SetL2Regularization(1e-4f);
 }
 
-static const int DnnSimpleGradientSolverVersion = 1;
+static const int DnnSimpleGradientSolverVersion = 0;
 
 void CDnnSimpleGradientSolver::Serialize( CArchive& archive )
 {
@@ -370,7 +371,7 @@ void CDnnAdaptiveGradientSolver::EnableAmsGrad( bool enable )
 	isAmsGradEnabled = enable;
 }
 
-static const int DnnAdaptiveGradientSolver = 1;
+static const int DnnAdaptiveGradientSolver = 0;
 
 void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive )
 {
@@ -520,7 +521,7 @@ void CDnnNesterovGradientSolver::EnableAmsGrad( bool enable )
 	isAmsGradEnabled = enable;
 }
 
-static const int DnnNesterovGradientSolverVersion = 1;
+static const int DnnNesterovGradientSolverVersion = 0;
 
 void CDnnNesterovGradientSolver::Serialize( CArchive& archive )
 {
