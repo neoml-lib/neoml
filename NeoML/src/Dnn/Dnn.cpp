@@ -332,18 +332,6 @@ CPtr<const CBaseLayer> CDnn::GetLayer( const char* name ) const
 	return layerMap.Get( name );
 }
 
-static bool hasPrefix( const CString& fullString, const char* prefix )
-{
-	int i = 0;
-	while( prefix[i] != '\0' ) {
-		if( i == fullString.Length() || fullString[i] != prefix[i] ) {
-			return false;
-		}
-		++i;
-	}
-	return true;
-}
-
 void CDnn::AddLayerImpl( CBaseLayer& layer )
 {
 	CheckArchitecture( !layerMap.Has( layer.GetName() ), layer.GetName(), "layer already in this dnn" );
@@ -688,8 +676,6 @@ void CDnn::Serialize( CArchive& archive )
 			AddLayer( *layer );
 		}
 		archive >> isLearningEnabled;
-
-		rebuild();
 	} else {
 		NeoAssert( false );
 	}
