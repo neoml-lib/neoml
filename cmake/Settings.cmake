@@ -31,15 +31,17 @@ macro(set_global_variables)
         endif()
     endif()
 
-    # parallel compilation on msvc
-    if(MSVC)
+    if(MSVC AND NOT USE_FINE_OBJECTS)
+        # parallel compilation on msvc when build is OSS
         add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/MP>)
     endif()
 
-    if(MSVC)
-        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/WX>)
-    elseif(NOT WIN32)
-        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Werror>)
+    if(WARNINGS_ARE_ERRORS)
+        if(MSVC)
+            add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/WX>)
+        elseif(NOT WIN32)
+            add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Werror>)
+        endif()
     endif()
 
 endmacro()
