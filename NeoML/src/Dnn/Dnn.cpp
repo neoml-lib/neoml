@@ -676,6 +676,8 @@ void CDnn::Serialize( CArchive& archive )
 			AddLayer( *layer );
 		}
 		archive >> isLearningEnabled;
+		// In order to avoid the CDnnSolver::Reset for the next solver
+		rebuild();
 	} else {
 		NeoAssert( false );
 	}
