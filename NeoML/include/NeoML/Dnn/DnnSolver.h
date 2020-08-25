@@ -48,9 +48,6 @@ public:
 	// Upper limit for gradient norm (if set to < 0, that means no limit)
 	float GetMaxGradientNorm() const { return maxGradientNorm; }
 	void SetMaxGradientNorm(float _maxGradientNorm) { maxGradientNorm = _maxGradientNorm; }
-	// Set pointer to trained neural network
-	// It's called automaticaly from CDnn::SetSolver
-	void SetDnn( CDnn* newDnn );
 
 	// Serialize to archive
 	virtual void Serialize( CArchive& archive );
@@ -75,7 +72,6 @@ protected:
 		const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& learningHistory ) = 0;
 
 private:
-	CDnn* dnn; // Optimized neural network
 	IMathEngine& mathEngine;
 	float learningRate;
 	float regularizationL2;
@@ -95,6 +91,8 @@ private:
 	// The buffers for storing gradients history and moment
 	// Used in the inheriting classes
 	CMap<CString, CObjectArray<CDnnBlob>> layerToGradientHistory;
+	// The pointers to the layers with corresponding id
+	CMap<CString, CBaseLayer*> layerToPtr;
 
 	// Clips gradients according to the settings
 	void clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs);

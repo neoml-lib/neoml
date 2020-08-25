@@ -37,6 +37,9 @@ limitations under the License.
 #include <NeoML/Dnn/DnnBlob.h>
 #include <NeoML/Dnn/DnnSparseMatrix.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <NeoML/Dnn/Layers/SourceLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 #include <NeoML/Dnn/Layers/ConcatLayer.h>
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
@@ -101,6 +104,10 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/RepeatSequenceLayer.h>
 #include <NeoML/Dnn/Layers/DotProductLayer.h>
 #include <NeoML/Dnn/Layers/CtcLayer.h>
+#include <NeoML/Dnn/Layers/AddToObjectLayer.h>
+#include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
+#include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
+#include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
 #include <NeoML/ArchiveFile.h>
 
 #ifndef NO_NEOML_NAMESPACE

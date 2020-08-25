@@ -136,6 +136,10 @@ public:
 	// Returns the total size of all output blobs together
 	virtual size_t GetOutputBlobsSize() const;
 
+	// Returns the total size of trainable parameters in this layer
+	// Returns the total size of trainable parameters of its internal layers, if layer is composite or recurrent
+	virtual size_t GetTrainableParametersSize() const;
+
 protected:
 	// A virtual method that creates output blobs using the input blobs
 	virtual void Reshape() = 0;
@@ -540,74 +544,6 @@ inline CArchive& operator>>( CArchive& archive, CDnn& dnn)
 }
 
 void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer );
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// The source layer that passes a data blob into the network. Can have exactly one output
-class NEOML_API CSourceLayer : public CBaseLayer {
-	NEOML_DNN_LAYER( CSourceLayer )
-public:
-	explicit CSourceLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnSourceLayer", false) {}
-
-	// Sets the input data blob
-	void SetBlob( CDnnBlob* blob );
-	// Gets the reference to the input blob
-	const CPtr<CDnnBlob>& GetBlob() const { return blob; }
-
-	void Serialize( CArchive& archive ) override;
-
-protected:
-	CPtr<CDnnBlob> blob;
-	// CBaseLayer class methods
-	void Reshape() override;
-	void RunOnce() override;
-	void BackwardOnce() override;
-	void AllocateOutputBlobs() override;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// The layer that is used to pass a data blob out of the network
-class NEOML_API CSinkLayer : public CBaseLayer {
-	NEOML_DNN_LAYER( CSinkLayer )
-public:
-	explicit CSinkLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnSinkLayer", false ) {}
-
-	void Serialize( CArchive& archive ) override;
-
-	// Gets the reference to the output blob
-	// It is valid only after the RunOnce method called
-	// After each call to RunOnce this blob contains the results
-	const CPtr<CDnnBlob>& GetBlob() const;
-
-protected:
-	CPtr<CDnnBlob> blob;
-
-	void Reshape() override;
-	void RunOnce() override;
-	void BackwardOnce() override;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-// CBaseInPlaceLayer is the base class for an in-place processing layer
-class NEOML_API CBaseInPlaceLayer : public CBaseLayer {
-protected:
-	CBaseInPlaceLayer(IMathEngine& mathEngine, const char* name, bool isLearnable = false) : CBaseLayer(mathEngine, name, isLearnable), isInPlace( false ) {};
-
-	// Called once reshape is complete
-	virtual void OnReshaped() {}
-	void AllocateOutputBlobs() override;
-
-	void Serialize( CArchive& archive ) override;
-
-private:
-	// The Reshape method may not be overloaded
-	void Reshape() final;
-
-	// Indicates if the layer performs in-place processing (after the Reshape method call)
-	bool isInPlace;
-};
 
 } // namespace NeoML
 

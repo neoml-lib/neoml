@@ -17,6 +17,9 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <NeoML/Dnn/Layers/SourceLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 #include <NeoML/Dnn/Layers/ConcatLayer.h>
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
@@ -26,6 +29,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/FullyConnectedSourceLayer.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/PoolingLayer.h>
+#include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoML/Dnn/Layers/BatchNormalizationLayer.h>
 #include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
@@ -70,6 +74,9 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/RepeatSequenceLayer.h>
 #include <NeoML/Dnn/Layers/DotProductLayer.h>
 #include <NeoML/Dnn/Layers/ReorgLayer.h>
+#include <NeoML/Dnn/Layers/AddToObjectLayer.h>
+#include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
+#include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 
 namespace NeoML {
 
@@ -265,6 +272,10 @@ REGISTER_NEOML_LAYER( CCompositeSinkLayer, "FmlCompositeCnnSinkLayer" )
 REGISTER_NEOML_LAYER( CAttentionWeightedSumLayer, "FmlCnnAttentionWeightedSumLayer" )
 REGISTER_NEOML_LAYER( CAttentionDotProductLayer, "FmlCnnAttentionDotProductLayer" )
 REGISTER_NEOML_LAYER( CAttentionSumLayer, "FmlCnnAttentionSumLayer" )
+REGISTER_NEOML_LAYER( CAddToObjectLayer, "NeoMLDnnAddToObjectLayer" )
+REGISTER_NEOML_LAYER( CMatrixMultiplicationLayer, "NeoMLDnnMatrixMultiplicationLayer" )
+REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer" )
+REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLayer" )
 
 }
 
@@ -287,7 +298,6 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
 	isReuseMemoryMode( false )
 {
 	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
-	solver->SetDnn( this );
 
 	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
 }
@@ -443,15 +453,7 @@ void CDnn::SetSolver( CDnnSolver* _solver )
 		return;
 	}
 
-	if( solver != nullptr ) {
-		solver->SetDnn( nullptr );
-	}
-
 	solver = _solver; 
-
-	if( _solver != nullptr ) {
-		_solver->SetDnn( this );
-	}
 }
 
 // Sets the network operation parameters

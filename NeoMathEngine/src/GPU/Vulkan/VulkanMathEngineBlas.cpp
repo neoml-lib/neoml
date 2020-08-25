@@ -148,6 +148,19 @@ void CVulkanMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandl
 	}
 }
 
+void CVulkanMathEngine::MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int resultBufferSize)
+{
+	if( device->Type == VDT_Adreno ) {
+		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle,
+			firstHeight, firstWidth, firstWidth, false, secondHandle, secondHeight, firstWidth,
+			firstWidth, true, resultHandle, secondHeight, resultBufferSize );
+	} else {
+		batchMultiplyMatrixByTransposedMatrix( false, batchSize, firstHandle, firstHeight, firstWidth, firstWidth,
+			secondHandle, secondHeight, firstWidth, resultHandle, secondHeight, resultBufferSize );
+	}
+}
+
 void CVulkanMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, int firstWidth, int secondHeight,
 	const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle )
 {
@@ -196,6 +209,18 @@ void CVulkanMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloa
 	} else {
 		batchMultiplyTransposedMatrixByMatrix( true, 1, firstHandle, firstHeight, firstWidth, firstRowSize,
 			secondHandle, secondWidth, secondRowSize, resultHandle, resultRowSize, resultBufferSize );
+	}
+}
+
+void CVulkanMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
+{
+	if( device->Type == VDT_Adreno ) {
+		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle, firstHeight, firstWidth, firstWidth, true,
+			secondHandle, firstHeight, secondWidth, secondWidth, false, resultHandle, secondWidth, resultBufferSize );
+	} else {
+		batchMultiplyTransposedMatrixByMatrix( false, batchSize, firstHandle, firstHeight, firstWidth, firstWidth,
+			secondHandle, secondWidth, secondWidth, resultHandle, secondWidth, resultBufferSize );
 	}
 }
 

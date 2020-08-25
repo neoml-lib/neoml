@@ -168,6 +168,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                 GPU/CUDA/CudaMathEngineVectorMath.cu
                 # Headers
                 GPU/CUDA/CublasDll.h
+                GPU/CUDA/CudaAssert.h
                 GPU/CUDA/CudaBlobDesc.h
                 GPU/CUDA/CudaCommon.h
                 GPU/CUDA/CudaDevice.h
@@ -354,6 +355,7 @@ if(WIN32)
         target_include_directories(${PROJECT_NAME} PRIVATE 
             $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../../Build/Inc ${FINE_ROOT}/FineObjects>>
         )
+        target_compile_definitions(${PROJECT_NAME} PUBLIC NEOMATHENGINE_USE_FINEOBJ)
     else()
         target_include_directories(${PROJECT_NAME} PRIVATE 
             $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../Build/Inc>>

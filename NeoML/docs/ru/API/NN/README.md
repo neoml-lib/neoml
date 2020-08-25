@@ -246,6 +246,8 @@ delete gpuMathEngine;
   - [CImageResizeLayer](ImageResizeLayer.md) - изменение размера изображений в блобе
   - [CSubSequenceLayer](SubSequenceLayer.md) - выделение подпоследовательностей
   - [CDotProductLayer](DotProductLayer.md) - скалярное произведение объектов двух блобов
+  - [CAddToObjectLayer](AddToObjectLayer.md) - прибавление содержимого одного входа ко всем объектам другого
+  - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - перемножение двух наборов матриц
   - Объединение блобов:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) - объединение блобов по каналам
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) - объединение блобов по глубине
@@ -284,6 +286,7 @@ delete gpuMathEngine;
 - Работа с дискретными признаками:
   - [CMultichannelLookupLayer](DiscreteFeaturesLayers/MultichannelLookupLayer.md) - векторные представления дискретных признаков
   - [CAccumulativeLookupLayer](DiscreteFeaturesLayers/AccumulativeLookupLayer.md) - сумма векторных представлений дискретного признака
+  - [CPositionalEmbeddingLayer](DiscreteFeaturesLayer/PositionalEmbeddingLayer.md) - векторные представления позиций в последовательности
   - [CEnumBinarizationLayer](DiscreteFeaturesLayers/EnumBinarizationLayer.md) - конвертация значений из перечисления в `one-hot encoding`
   - [CBitSetVectorizationLayer](DiscreteFeaturesLayers/BitSetVectorizationLayer.md) - конвертация `bitset`'ов в векторы из нулей и единиц
 - Рекуррентные слои:

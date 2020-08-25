@@ -248,6 +248,8 @@ delete gpuMathEngine;
   - [CImageResizeLayer](ImageResizeLayer.md) changes the size of images in the blob
   - [CSubSequenceLayer](SubSequenceLayer.md) extracts subsequences
   - [CDotProductLayer](DotProductLayer.md) calculates the dot product of its inputs
+  - [CAddToObjectLayer](AddToObjectLayer.md) - adds the content of one input to each of the objects of the other
+  - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - mutiplication of two sets of matrices
   - Blob concatenation:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) concatenates along the Channels dimension
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) concatenates along the Depth dimension
@@ -286,6 +288,7 @@ delete gpuMathEngine;
 - Working with discrete features:
   - [CMultichannelLookupLayer](DiscreteFeaturesLayers/MultichannelLookupLayer.md) - vector representation of discrete features
   - [CAccumulativeLookupLayer](DiscreteFeaturesLayers/AccumulativeLookupLayer.md) - the sum of vector representations of a discrete feature
+  - [CPositionalEmbeddingLayer](DiscreteFeaturesLayer/PositionalEmbeddingLayer.md) - the vector representations of a position in sequence
   - [CEnumBinarizationLayer](DiscreteFeaturesLayers/EnumBinarizationLayer.md) converts enumeration values to *one-hot encoding*
   - [CBitSetVectorizationLayer](DiscreteFeaturesLayers/BitSetVectorizationLayer.md) converts a *bitset* into a vector of ones and zeros
 - Recurrent layers:

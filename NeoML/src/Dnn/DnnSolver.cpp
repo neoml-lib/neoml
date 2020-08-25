@@ -112,20 +112,12 @@ REGISTER_NEOML_SOLVER( CDnnNesterovGradientSolver, "NeoMLDnnNesterovGradientSolv
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
-	dnn( nullptr ),
 	mathEngine( _mathEngine ),
 	learningRate( 0.01f ),
 	regularizationL2( 1e-4f ),
 	regularizationL1( 0.f ),
 	maxGradientNorm( -1.f )
 {
-}
-
-void CDnnSolver::SetDnn( CDnn* newDnn )
-{
-	if( newDnn == nullptr || newDnn->netSolverId == "" ) {
-		dnn = newDnn;
-	}
 }
 
 // Calculates the layer parameter gradients to then use them in Train method
@@ -135,6 +127,8 @@ void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& param
 
 	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer->GetLayerId() );
 	++paramDiffBlobsSum.Count;
+
+	layerToPtr.GetOrCreateValue( layer->GetLayerId() ) = layer;
 
 	if( paramDiffBlobsSum.Count == 1 ) {
 		// The first term
@@ -153,7 +147,6 @@ void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& param
 // and the history of previous modifications (moment, etc.)
 void CDnnSolver::Train()
 {
-	NeoAssert( dnn != nullptr );
 	OnTrain();
 
 	CFloatHandleStackVar oneDivEpoch( mathEngine );
@@ -181,8 +174,7 @@ void CDnnSolver::Train()
 		clipGradients( paramDiffBlobsSum.Sum );
 
 		// Train the layer based on the calculated diff data
-		CPtr<CBaseLayer> layer = dnn->GetLayerById( layerId );
-		NeoAssert( layer != nullptr );
+		CBaseLayer* layer = layerToPtr.Get( layerId );
 		TrainLayer( layer, layer->paramBlobs, paramDiffBlobsSum.Sum, layerToGradientHistory.GetOrCreateValue( layerId ) );
 
 		// Clear the diff data
@@ -195,6 +187,7 @@ void CDnnSolver::Reset()
 {
 	layerToParamDiffBlobsSum.DeleteAll();
 	layerToGradientHistory.DeleteAll();
+	layerToPtr.DeleteAll();
 	OnReset();
 }
 
@@ -254,6 +247,7 @@ void CDnnSolver::Serialize( CArchive& archive )
 	} else {
 		layerToParamDiffBlobsSum.DeleteAll();
 		layerToGradientHistory.DeleteAll();
+		layerToPtr.DeleteAll();
 		int size;
 		archive >> size;
 		for( int i = 0; i < size; ++i ) {

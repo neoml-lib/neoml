@@ -21,6 +21,7 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <CudaDevice.h>
+#include <CudaAssert.h>
 #include <MathEngineAllocator.h>
 #include <MathEngineCommon.h>
 
@@ -407,7 +408,7 @@ struct CCudaDevUsage {
 static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
 {
 	cudaDeviceProp devProp;
-	ASSERT_ERROR_CODE( cudaGetDeviceProperties(&devProp, deviceNumber) );
+	ASSERT_CUDA( cudaGetDeviceProperties(&devProp, deviceNumber) );
 
 	if( deviceMemoryLimit == 0 ) {
 		deviceMemoryLimit = devProp.totalGlobalMem;
@@ -454,13 +455,13 @@ CCudaDevice* CaptureCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
 	}
 
 	int deviceCount = 0;
-	ASSERT_ERROR_CODE( cudaGetDeviceCount( &deviceCount ) );
+	ASSERT_CUDA( cudaGetDeviceCount( &deviceCount ) );
 
 	// Detect the devices and their processing load
 	vector<CCudaDevUsage> devs;
 	for( int i = 0; i < deviceCount; ++i ) {
 		cudaDeviceProp devProp;
-		ASSERT_ERROR_CODE( cudaGetDeviceProperties( &devProp, i ) );
+		ASSERT_CUDA( cudaGetDeviceProperties( &devProp, i ) );
 		const size_t slotSize = ( devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT );
 
 		CCudaDevUsage dev;
