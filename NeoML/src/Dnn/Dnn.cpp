@@ -414,12 +414,11 @@ void CDnn::RequestReshape(bool forcedReshape)
 	}
 }
 
-void CDnn::SetSolver( CDnnSolver* _solver )
+void CDnn::SetSolver(CDnnSolver* _solver)
 {
-	if( solver.Ptr() == _solver ) {
+	if(solver.Ptr() == _solver) {
 		return;
 	}
-
 	solver = _solver; 
 }
 
