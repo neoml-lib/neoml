@@ -95,7 +95,7 @@ private:
 	// Clips gradients according to the settings
 	void clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs);
 
-	// Telling compiler that we intentionally using two-parameter Serialize instead of one in IObject
+	// Telling the compiler that we intentionally using two-parameter Serialize instead of one declared in IObject
 	using IObject::Serialize;
 };
 
