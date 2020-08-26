@@ -106,8 +106,6 @@ protected:
 	// Sets the internal network parameters
 	virtual void SetInternalDnnParams();
 
-	void SetLayerId( const CString& newLayerId ) override;
-
 private:
 	// Adds/deletes a layer
 	void AddLayerImpl(CBaseLayer& layer) override;

@@ -211,13 +211,6 @@ protected:
 	// The default implementation creates the outputBlobs array using the output descriptions
 	virtual void AllocateOutputBlobs();
 
-	// Unique identifire for a layer in whole net (including other composites/recurrents)
-	const CString& GetLayerId() const { return layerId; }
-
-	// Sets layer unique identifier
-	// Overridden in CCompositeLayer
-	virtual void SetLayerId( const CString& newLayerId ) { layerId = newLayerId; }
-
 private:
 	// The link between two layers, connecting one layer output to another layer input
 	struct CDnnLayerLink {
@@ -297,9 +290,6 @@ private:
 
 	// The number of graphs with which the layer is connected
 	int graphCount;
-
-	// Unique layer identifier
-	CString layerId;
 
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
@@ -480,6 +470,10 @@ public:
 	static const int ArchiveMinSupportedVersion = 1001;
 
 	void Serialize( CArchive& archive );
+
+	// Serializes network with data, required to resume training
+	// When loading from checkpoint creates new solver (old poiinters will point to an object, not used by this net anymore)
+	void SerializeCheckpoint( CArchive& archive );
 
 private:
 	// Adds or deletes a layer

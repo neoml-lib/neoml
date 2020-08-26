@@ -346,7 +346,6 @@ void CDnn::AddLayerImpl( CBaseLayer& layer )
 
 	// Set the layer network
 	layer.setDnn( this );
-	layer.SetLayerId( layer.GetName() );
 }
 
 void CDnn::ForceRebuild()
@@ -679,6 +678,19 @@ void CDnn::Serialize( CArchive& archive )
 		rebuild();
 	} else {
 		NeoAssert( false );
+	}
+}
+
+void CDnn::SerializeCheckpoint( CArchive& archive )
+{
+	Serialize( archive );
+	CPtr<CDnnSolver> solverPtr = nullptr;
+	if( archive.IsStoring() ) {
+		solverPtr = GetSolver();
+	}
+	SerializeSolver( archive, *this, solverPtr );
+	if( archive.IsLoading() ) {
+		SetSolver( solverPtr );
 	}
 }
 

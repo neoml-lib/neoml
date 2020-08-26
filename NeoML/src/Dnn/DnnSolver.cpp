@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoML/Dnn/DnnSolver.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/CompositeLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
@@ -82,19 +83,19 @@ static CString getSolverName( CDnnSolver* solver )
 	return getSolverNames().GetValue( pos );
 }
 
-void SerializeSolver( CArchive& archive, IMathEngine& mathEngine, CPtr<CDnnSolver>& solver )
+void SerializeSolver( CArchive& archive, CDnn& dnn, CPtr<CDnnSolver>& solver )
 {
 	if( archive.IsStoring() ) {
 		archive << getSolverName( solver );
 		if( solver != 0 ) {
-			solver->Serialize( archive );
+			solver->Serialize( archive, dnn );
 		}
 	} else if( archive.IsLoading() ) {
 		CString name;
 		archive >> name;
-		solver = createSolver( mathEngine, name );
+		solver = createSolver( dnn.GetMathEngine(), name );
 		if( solver != 0 ) {
-			solver->Serialize( archive );
+			solver->Serialize( archive, dnn );
 		}
 	} else {
 		NeoAssert( false );
@@ -107,6 +108,37 @@ namespace {
 REGISTER_NEOML_SOLVER( CDnnSimpleGradientSolver, "NeoMLDnnSimpleGradientSolver" )
 REGISTER_NEOML_SOLVER( CDnnAdaptiveGradientSolver, "NeoMLDnnAdaptiveGradientSolver" )
 REGISTER_NEOML_SOLVER( CDnnNesterovGradientSolver, "NeoMLDnnNesterovGradientSolver" )
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Utility functions for serialization
+
+void mapLayerIdToPtr( CDnnLayerGraph& dnn, CMap<CString, CBaseLayer*>& result, const CString& prefix = "" )
+{
+	CArray<const char*> layerNames;
+	dnn.GetLayerList( layerNames );
+	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
+		CPtr<CBaseLayer> layer = dnn.GetLayer( layerNames[layerIndex] );
+		result.Add( prefix + layer->GetName(), layer.Ptr() );
+		CCompositeLayer* compositePtr = dynamic_cast<CCompositeLayer*>( layer.Ptr() );
+		if( compositePtr != nullptr ) {
+			mapLayerIdToPtr( *compositePtr, result, prefix + compositePtr->GetName() );
+		}
+	}
+}
+
+void mapPtrToLayerId( CDnnLayerGraph& dnn, CMap<CBaseLayer*, CString>& result, const CString& prefix = "" )
+{
+	CArray<const char*> layerNames;
+	dnn.GetLayerList( layerNames );
+	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
+		CPtr<CBaseLayer> layer = dnn.GetLayer( layerNames[layerIndex] );
+		result.Add( layer.Ptr(), prefix + layer->GetName() );
+		CCompositeLayer* compositePtr = dynamic_cast<CCompositeLayer*>( layer.Ptr() );
+		if( compositePtr != nullptr ) {
+			mapPtrToLayerId( *compositePtr, result, prefix + compositePtr->GetName() );
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,10 +157,8 @@ void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& param
 {
 	NeoAssert( layer != 0 );
 
-	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer->GetLayerId() );
+	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer );
 	++paramDiffBlobsSum.Count;
-
-	layerToPtr.GetOrCreateValue( layer->GetLayerId() ) = layer;
 
 	if( paramDiffBlobsSum.Count == 1 ) {
 		// The first term
@@ -154,7 +184,7 @@ void CDnnSolver::Train()
 	for( TMapPosition pos = layerToParamDiffBlobsSum.GetFirstPosition(); pos != NotFound;
 		pos = layerToParamDiffBlobsSum.GetNextPosition( pos ) )
 	{
-		const CString& layerId = layerToParamDiffBlobsSum.GetKey( pos );
+		CBaseLayer* layer = layerToParamDiffBlobsSum.GetKey( pos );
 		CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetValue( pos );
 		if( paramDiffBlobsSum.Sum.IsEmpty() ) {
 			continue;
@@ -174,9 +204,7 @@ void CDnnSolver::Train()
 		clipGradients( paramDiffBlobsSum.Sum );
 
 		// Train the layer based on the calculated diff data
-		CheckArchitecture( layerToPtr.Has( layerId ), layerId, "Layer not found by solver" );
-		CBaseLayer* layer = layerToPtr.Get( layerId );
-		TrainLayer( layer, layer->paramBlobs, paramDiffBlobsSum.Sum, layerToGradientHistory.GetOrCreateValue( layerId ) );
+		TrainLayer( layer, layer->paramBlobs, paramDiffBlobsSum.Sum, layerToGradientHistory.GetOrCreateValue( layer ) );
 
 		// Clear the diff data
 		paramDiffBlobsSum.Sum.Empty();
@@ -188,7 +216,6 @@ void CDnnSolver::Reset()
 {
 	layerToParamDiffBlobsSum.DeleteAll();
 	layerToGradientHistory.DeleteAll();
-	layerToPtr.DeleteAll();
 	OnReset();
 }
 
@@ -224,15 +251,18 @@ void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 
 static const int DnnSolverVersion = 0;
 
-void CDnnSolver::Serialize( CArchive& archive )
+void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
 {
 	archive.SerializeVersion( DnnSolverVersion );
 	if( archive.IsStoring() ) {
+		CMap<CBaseLayer*, CString> ptrToLayerId;
+		mapPtrToLayerId( dnn, ptrToLayerId );
+
 		archive << layerToParamDiffBlobsSum.Size();
 		for( int pos = layerToParamDiffBlobsSum.GetFirstPosition(); pos != NotFound;
 			pos = layerToParamDiffBlobsSum.GetNextPosition( pos ) )
 		{
-			archive << layerToParamDiffBlobsSum.GetKey( pos );
+			archive << ptrToLayerId[layerToParamDiffBlobsSum.GetKey( pos )];
 			archive << layerToParamDiffBlobsSum.GetValue( pos ).Count;
 			SerializeBlobs( mathEngine, archive, layerToParamDiffBlobsSum.GetValue( pos ).Sum );
 		}
@@ -241,20 +271,23 @@ void CDnnSolver::Serialize( CArchive& archive )
 		for( int pos = layerToGradientHistory.GetFirstPosition(); pos != NotFound;
 			pos = layerToGradientHistory.GetNextPosition( pos ) )
 		{
-			archive << layerToGradientHistory.GetKey( pos );
+			archive << ptrToLayerId[layerToGradientHistory.GetKey( pos )];
 			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetValue( pos ) );
 		}
 		archive << learningRate << regularizationL1 << regularizationL2 << maxGradientNorm;
 	} else {
+		CMap<CString, CBaseLayer*> layerIdToPtr;
+		mapLayerIdToPtr( dnn, layerIdToPtr );
+
 		layerToParamDiffBlobsSum.DeleteAll();
 		layerToGradientHistory.DeleteAll();
-		layerToPtr.DeleteAll();
+
 		int size;
 		archive >> size;
 		for( int i = 0; i < size; ++i ) {
 			CString layerId;
 			archive >> layerId;
-			CDiffBlobSum& blobSum = layerToParamDiffBlobsSum.GetOrCreateValue( layerId );
+			CDiffBlobSum& blobSum = layerToParamDiffBlobsSum.GetOrCreateValue( layerIdToPtr[layerId] );
 			archive >> blobSum.Count;
 			SerializeBlobs( mathEngine, archive, blobSum.Sum );
 		}
@@ -263,7 +296,7 @@ void CDnnSolver::Serialize( CArchive& archive )
 		for( int i = 0; i < size; ++i ) {
 			CString layerId;
 			archive >> layerId;
-			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetOrCreateValue( layerId ) );
+			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetOrCreateValue( layerIdToPtr[layerId] ) );
 		}
 		archive >> learningRate >> regularizationL1 >> regularizationL2 >> maxGradientNorm;
 	}
@@ -283,10 +316,10 @@ CDnnSimpleGradientSolver::CDnnSimpleGradientSolver( IMathEngine& mathEngine ) :
 
 static const int DnnSimpleGradientSolverVersion = 0;
 
-void CDnnSimpleGradientSolver::Serialize( CArchive& archive )
+void CDnnSimpleGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 {
 	archive.SerializeVersion( DnnSimpleGradientSolverVersion );
-	CDnnSolver::Serialize( archive );
+	CDnnSolver::Serialize( archive, dnn );
 	archive.Serialize( momentDecayRate );
 	archive.Serialize( isInCompatibilityMode );
 }
@@ -373,10 +406,10 @@ void CDnnAdaptiveGradientSolver::EnableAmsGrad( bool enable )
 
 static const int DnnAdaptiveGradientSolver = 0;
 
-void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive )
+void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 {
 	archive.SerializeVersion( DnnAdaptiveGradientSolver );
-	CDnnSolver::Serialize( archive );
+	CDnnSolver::Serialize( archive, dnn );
 	archive.Serialize( momentDecayRate );
 	archive.Serialize( momentDecayRateN );
 	archive.Serialize( secondMomentDecayRate );
@@ -523,10 +556,10 @@ void CDnnNesterovGradientSolver::EnableAmsGrad( bool enable )
 
 static const int DnnNesterovGradientSolverVersion = 0;
 
-void CDnnNesterovGradientSolver::Serialize( CArchive& archive )
+void CDnnNesterovGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 {
 	archive.SerializeVersion( DnnNesterovGradientSolverVersion );
-	CDnnSolver::Serialize( archive );
+	CDnnSolver::Serialize( archive, dnn );
 	archive.Serialize( momentDecayRate );
 	archive.Serialize( secondMomentDecayRate );
 	archive.Serialize( secondMomentDecayRateN );

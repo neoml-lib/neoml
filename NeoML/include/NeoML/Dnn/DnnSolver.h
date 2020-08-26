@@ -50,7 +50,7 @@ public:
 	void SetMaxGradientNorm(float _maxGradientNorm) { maxGradientNorm = _maxGradientNorm; }
 
 	// Serialize to archive
-	virtual void Serialize( CArchive& archive );
+	virtual void Serialize( CArchive& archive, CDnn& dnn );
 
 protected:
 	explicit CDnnSolver( IMathEngine& mathEngine );
@@ -87,12 +87,10 @@ private:
 	};
 
 	// The buffers used to add up the gradients from several AddDiff calls
-	CMap<CString, CDiffBlobSum> layerToParamDiffBlobsSum;
+	CMap<CBaseLayer*, CDiffBlobSum> layerToParamDiffBlobsSum;
 	// The buffers for storing gradients history and moment
 	// Used in the inheriting classes
-	CMap<CString, CObjectArray<CDnnBlob>> layerToGradientHistory;
-	// The pointers to the layers with corresponding id
-	CMap<CString, CBaseLayer*> layerToPtr;
+	CMap<CBaseLayer*, CObjectArray<CDnnBlob>> layerToGradientHistory;
 
 	// Clips gradients according to the settings
 	void clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs);
@@ -113,7 +111,7 @@ void NEOML_API RegisterSolverName( const char* className, const std::type_info& 
 
 void NEOML_API UnregisterSolverName( const std::type_info& typeInfo );
 
-void NEOML_API SerializeSolver( CArchive& archive, IMathEngine& mathEngine, CPtr<CDnnSolver>& solver);
+void NEOML_API SerializeSolver( CArchive& archive, CDnn& dnn, CPtr<CDnnSolver>& solver);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -154,7 +152,7 @@ public:
 	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
 	void SetCompatibilityMode( bool compatibilityMode ) { isInCompatibilityMode = compatibilityMode; }
 
-	void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
 protected:
 	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs, 
@@ -210,7 +208,7 @@ public:
 	// Turns AMSGrad mode on. May be called only before training starts.
 	void EnableAmsGrad( bool enable );
 
-	void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
 protected:
 	// Resets to the initial state
@@ -301,7 +299,7 @@ public:
 	// Turns on AMSGrad mode. The algorithm is reset to initial state
 	void EnableAmsGrad( bool enable );
 
-	void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
 protected:
 	// Resets to the initial state
