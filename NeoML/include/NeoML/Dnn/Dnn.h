@@ -324,7 +324,6 @@ private:
 	friend class CDnn;
 	friend class CDnnLayerGraph;
 	friend class CDnnSolver;
-	friend class CCompositeLayer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -524,7 +523,6 @@ private:
 	void rebuild();
 	size_t getOutputBlobsSize() const;
 
-	friend class CDnnSolver;
 	friend class CBaseLayer;
 	friend class CCompositeLayer;
 	friend class CRecurrentLayer;

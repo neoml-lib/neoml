@@ -298,7 +298,6 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
 	isReuseMemoryMode( false )
 {
 	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
-
 	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
 }
 
@@ -422,8 +421,7 @@ void CDnn::SetSolver(CDnnSolver* _solver)
 }
 
 // Sets the network operation parameters
-void CDnn::setProcessingParams( bool _isRecurrentMode, int sequenceLength, bool _isReverseSequense,
-	bool _isBackwardPerformed )
+void CDnn::setProcessingParams( bool _isRecurrentMode, int sequenceLength, bool _isReverseSequense, bool _isBackwardPerformed )
 {
 	isRecurrentMode = _isRecurrentMode;
 	maxSequenceLength = sequenceLength;
