@@ -127,7 +127,7 @@ void mapLayerIdToPtr( CDnnLayerGraph& dnn, CMap<CString, CBaseLayer*>& result, c
 	}
 }
 
-void mapPtrToLayerId( CDnnLayerGraph& dnn, CMap<CBaseLayer*, CString>& result, const CString& prefix = "" )
+void mapLayerPtrToId( CDnnLayerGraph& dnn, CMap<CBaseLayer*, CString>& result, const CString& prefix = "" )
 {
 	CArray<const char*> layerNames;
 	dnn.GetLayerList( layerNames );
@@ -136,7 +136,7 @@ void mapPtrToLayerId( CDnnLayerGraph& dnn, CMap<CBaseLayer*, CString>& result, c
 		result.Add( layer.Ptr(), prefix + layer->GetName() );
 		CCompositeLayer* compositePtr = dynamic_cast<CCompositeLayer*>( layer.Ptr() );
 		if( compositePtr != nullptr ) {
-			mapPtrToLayerId( *compositePtr, result, prefix + compositePtr->GetName() );
+			mapLayerPtrToId( *compositePtr, result, prefix + compositePtr->GetName() );
 		}
 	}
 }
@@ -255,14 +255,14 @@ void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
 {
 	archive.SerializeVersion( DnnSolverVersion );
 	if( archive.IsStoring() ) {
-		CMap<CBaseLayer*, CString> ptrToLayerId;
-		mapPtrToLayerId( dnn, ptrToLayerId );
+		CMap<CBaseLayer*, CString> layerPtrToId;
+		mapLayerPtrToId( dnn, layerPtrToId );
 
 		archive << layerToParamDiffBlobsSum.Size();
 		for( int pos = layerToParamDiffBlobsSum.GetFirstPosition(); pos != NotFound;
 			pos = layerToParamDiffBlobsSum.GetNextPosition( pos ) )
 		{
-			archive << ptrToLayerId[layerToParamDiffBlobsSum.GetKey( pos )];
+			archive << layerPtrToId[layerToParamDiffBlobsSum.GetKey( pos )];
 			archive << layerToParamDiffBlobsSum.GetValue( pos ).Count;
 			SerializeBlobs( mathEngine, archive, layerToParamDiffBlobsSum.GetValue( pos ).Sum );
 		}
@@ -271,7 +271,7 @@ void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
 		for( int pos = layerToGradientHistory.GetFirstPosition(); pos != NotFound;
 			pos = layerToGradientHistory.GetNextPosition( pos ) )
 		{
-			archive << ptrToLayerId[layerToGradientHistory.GetKey( pos )];
+			archive << layerPtrToId[layerToGradientHistory.GetKey( pos )];
 			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetValue( pos ) );
 		}
 		archive << learningRate << regularizationL1 << regularizationL2 << maxGradientNorm;
