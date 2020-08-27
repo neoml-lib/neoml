@@ -298,7 +298,7 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
 	isReuseMemoryMode( false )
 {
 	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
-	initializer = FINE_DEBUG_NEW CDnnXavierInitializer(random);
+	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
 }
 
 CDnn::~CDnn()
@@ -412,7 +412,7 @@ void CDnn::RequestReshape(bool forcedReshape)
 	}
 }
 
-void CDnn::SetSolver(CDnnSolver* _solver) 
+void CDnn::SetSolver(CDnnSolver* _solver)
 {
 	if(solver.Ptr() == _solver) {
 		return;
@@ -672,8 +672,23 @@ void CDnn::Serialize( CArchive& archive )
 			AddLayer( *layer );
 		}
 		archive >> isLearningEnabled;
+		// In order to avoid the CDnnSolver::Reset for the next solver
+		rebuild();
 	} else {
 		NeoAssert( false );
+	}
+}
+
+void CDnn::SerializeCheckpoint( CArchive& archive )
+{
+	Serialize( archive );
+	CPtr<CDnnSolver> solverPtr = nullptr;
+	if( archive.IsStoring() ) {
+		solverPtr = GetSolver();
+	}
+	SerializeSolver( archive, *this, solverPtr );
+	if( archive.IsLoading() ) {
+		SetSolver( solverPtr );
 	}
 }
 
