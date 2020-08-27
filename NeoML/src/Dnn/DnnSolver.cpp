@@ -937,8 +937,8 @@ void CDnnLambGradientSolver::OnTrain()
 		totalGradientNorm = 1.0f;
 	} else {
 		totalGradientNorm = 0;
-		for( float norm : layersGradientNormSquare ) {
-			totalGradientNorm += norm;
+		for( int i = 0; i < layersGradientNormSquare.Size(); ++i ) {
+			totalGradientNorm += layersGradientNormSquare[i];
 		}
 		totalGradientNorm = sqrtf( totalGradientNorm );
 	}
