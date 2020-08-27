@@ -24,7 +24,7 @@ limitations under the License.
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
 #include <VulkanCommandQueue.h>
-#include <VulkanDll.h>
+#include <VulkanDevice.h>
 #include <VulkanShader.h>
 
 namespace NeoML {

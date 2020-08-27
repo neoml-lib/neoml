@@ -241,11 +241,7 @@ if(WIN32 OR LINUX OR ANDROID)
         set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
     endif()
     
-    find_path(Vulkan_INCLUDE_DIR
-        NAMES vulkan/vulkan.h
-        PATHS "$ENV{VULKAN_SDK}/Include"
-                "$ENV{VULKAN_SDK}/include"
-    )
+    find_package(Vulkan)
     
     find_program(GLSL_COMPILER 
         NAMES glslangValidator
@@ -253,7 +249,7 @@ if(WIN32 OR LINUX OR ANDROID)
                 "$ENV{VULKAN_SDK}/bin"
     )
     
-    if(Vulkan_INCLUDE_DIR AND GLSL_COMPILER)
+    if(Vulkan_FOUND AND GLSL_COMPILER)
         message(STATUS "Found Vulkan: TRUE")
 
         if(USE_FINE_OBJECTS AND CMAKE_HOST_SYSTEM_NAME MATCHES "Linux|Darwin")
@@ -270,10 +266,11 @@ if(WIN32 OR LINUX OR ANDROID)
         
         target_sources(${PROJECT_NAME}
             PRIVATE
+                GPU/Vulkan/VulkanCommon.h
                 GPU/Vulkan/VulkanCommandQueue.cpp
                 GPU/Vulkan/VulkanCommandQueue.h
-                GPU/Vulkan/VulkanDll.cpp
-                GPU/Vulkan/VulkanDll.h
+                GPU/Vulkan/VulkanDevice.cpp
+                GPU/Vulkan/VulkanDevice.h
                 GPU/Vulkan/VulkanImage.cpp
                 GPU/Vulkan/VulkanImage.h
                 GPU/Vulkan/VulkanMathEngineBlas.cpp
@@ -287,10 +284,13 @@ if(WIN32 OR LINUX OR ANDROID)
                 GPU/Vulkan/VulkanMemory.cpp
                 GPU/Vulkan/VulkanMemory.h
         )
+        target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
         
         add_subdirectory(GPU/Vulkan/shaders)
         
         add_dependencies(${PROJECT_NAME} VulkanShaders)
+
+        source_group("GPU\\Vulkan" REGULAR_EXPRESSION "GPU\/Vulkan\/[A-Za-z0-9_]+\.(h|cpp)")
     else()
         message(STATUS "Found Vulkan: FALSE")
     endif()

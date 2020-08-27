@@ -32,7 +32,6 @@ limitations under the License.
 
 #ifdef NEOML_USE_VULKAN
 #include <VulkanMathEngine.h>
-#include <VulkanDll.h>
 #endif
 
 #ifdef NEOML_USE_METAL
@@ -42,6 +41,7 @@ limitations under the License.
 #include <DllLoader.h>
 
 #include <vector>
+#include <memory>
 
 namespace NeoML {
 
@@ -82,15 +82,17 @@ public:
 private:
 	CDllLoader loader;
 	std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> > info;
+#ifdef NEOML_USE_VULKAN
+	std::shared_ptr<CVulkanInstance> vulkanInstance;
+#endif
 };
 
 CGpuMathEngineManager::CGpuMathEngineManager() :
 	loader()
 {
 #ifdef NEOML_USE_VULKAN
-	if( loader.IsLoaded( CDllLoader::VULKAN_DLL ) ) {
-		LoadVulkanEngineInfo( *CDllLoader::vulkanDll, info );
-	}
+	vulkanInstance = std::make_shared<CVulkanInstance>();
+	LoadVulkanEngineInfo( *vulkanInstance, info );
 #endif
 
 #ifdef NEOML_USE_CUDA
@@ -149,7 +151,7 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 #endif
 #ifdef NEOML_USE_VULKAN
 	case MET_Vulkan:
-		return new CVulkanMathEngine( index >= 0 ? info[index].Id : 0, memoryLimit );
+		return new CVulkanMathEngine( vulkanInstance, index >= 0 ? info[index].Id : 0, memoryLimit );
 #endif
 #ifdef NEOML_USE_METAL
 	case MET_Metal:

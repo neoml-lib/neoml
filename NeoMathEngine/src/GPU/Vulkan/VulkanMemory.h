@@ -20,7 +20,7 @@ limitations under the License.
 #ifdef NEOML_USE_VULKAN
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
-#include <VulkanDll.h>
+#include <VulkanDevice.h>
 
 #include <vulkan/vulkan.h>
 
@@ -51,8 +51,11 @@ private:
 	
 	void release() noexcept
 	{
-		device.vkDestroyBuffer( device.Handle, buffer, nullptr );
-		device.vkFreeMemory( device.Handle, memory, nullptr );
+		if( buffer ) {
+			vkDestroyBuffer(device, buffer, nullptr);
+			vkFreeMemory(device, memory, nullptr);
+			buffer = nullptr;
+		}
 	}
 };
 } // namespace NeoML

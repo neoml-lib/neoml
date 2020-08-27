@@ -27,7 +27,7 @@ limitations under the License.
 #include <MathEngineDeviceStackAllocator.h>
 #include <MathEngineHostStackAllocator.h>
 #include <MemoryHandleInternal.h>
-#include <VulkanDll.h>
+#include <VulkanDevice.h>
 #include <VulkanCommandQueue.h>
 #include <VulkanShader.h>
 
@@ -48,20 +48,21 @@ static const int VulkanMaxVectorXGroupCount = 8192;
 
 //------------------------------------------------------------------------------------------------------------
 
-static inline void getDeviceInfo( const CVulkanDll& dll, int index, CMathEngineInfo& info )
+static inline void getDeviceInfo( const CVulkanDeviceInfo& deviceInfo, int index, CMathEngineInfo& info )
 {
 	info.Type = MET_Vulkan;
 	::memset( info.Name, 0, sizeof( info.Name ) );
-	::strcpy( info.Name, dll.GetDevices()[index].Properties.deviceName );
+	::strcpy( info.Name, deviceInfo.Properties.deviceName );
 	info.Id = index;
-	info.AvailableMemory = dll.GetDevices()[index].AvailableMemory;
+	info.AvailableMemory = deviceInfo.AvailableMemory;
 }
 
-bool LoadVulkanEngineInfo( CVulkanDll& dll, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result )
+bool LoadVulkanEngineInfo(const CVulkanInstance& instance, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result )
 {
-	for( int i = 0; i < static_cast<int>( dll.GetDevices().size() ); i++ ) {
+	int i = 0;
+	for( const auto& deviceInfo: instance.GetDevices()) {
 		result.emplace_back();
-		getDeviceInfo( dll, i, result.back() );
+		getDeviceInfo( deviceInfo, i++, result.back() );
 	}
 	return !result.empty();
 }
@@ -81,20 +82,19 @@ inline int Ceil( int val, int discret )
 
 const int VulkanMemoryAlignment = 16;
 
-CVulkanMathEngine::CVulkanMathEngine( int _deviceNumber, size_t memoryLimit ) :
-	dllLoader( CDllLoader::VULKAN_DLL ),
-	dll( *CDllLoader::vulkanDll ),
+CVulkanMathEngine::CVulkanMathEngine( const std::shared_ptr<CVulkanInstance>& _instance,
+	int _deviceNumber, size_t memoryLimit ):
+	instance( _instance ),
 	deviceNumber( _deviceNumber ),
-	device( dll.CreateDevice( dll.GetDevices()[_deviceNumber] ) )
+	device( instance->GetDevices()[deviceNumber] )
 {
-	ASSERT_EXPR( device != 0 ); // failed to create the device
-	shaderLoader = std::unique_ptr<CVulkanShaderLoader>( new CVulkanShaderLoader( *device ) );
-	commandQueue = std::unique_ptr<CVulkanCommandQueue>( new CVulkanCommandQueue( *device ) );
-	memoryLimit = min( memoryLimit == 0 ? SIZE_MAX : memoryLimit, dll.GetDevices()[deviceNumber].AvailableMemory );
-	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( memoryLimit, this, false ) );
-	deviceStackAllocator = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, VulkanMemoryAlignment ) );
-	hostStackAllocator = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( VulkanMemoryAlignment ) );
-	tmpImages.insert( tmpImages.end(), TVI_Count, 0 );
+	shaderLoader = std::unique_ptr<CVulkanShaderLoader>(new CVulkanShaderLoader(device));
+	commandQueue = std::unique_ptr<CVulkanCommandQueue>(new CVulkanCommandQueue(device));
+	memoryLimit = min(memoryLimit == 0 ? SIZE_MAX : memoryLimit, instance->GetDevices()[deviceNumber].AvailableMemory);
+	memoryPool = std::unique_ptr<CMemoryPool>(new CMemoryPool(memoryLimit, this, false));
+	deviceStackAllocator = std::unique_ptr<CDeviceStackAllocator>(new CDeviceStackAllocator(*memoryPool, VulkanMemoryAlignment));
+	hostStackAllocator = std::unique_ptr<CHostStackAllocator>(new CHostStackAllocator(VulkanMemoryAlignment));
+	tmpImages.insert(tmpImages.end(), TVI_Count, 0);
 }
 
 CVulkanMathEngine::~CVulkanMathEngine()
@@ -227,16 +227,16 @@ void CVulkanMathEngine::DataExchangeRaw( const CMemoryHandle& to, const void* fr
 
 		if( vulkanMemory->HostVisible() ) { 			
 			void* mappedData = nullptr;
-			vkSucceded( device->vkMapMemory( device->Handle, vulkanMemory->Memory(), vulkanOffset, toCopy, 0, &mappedData ) );
+			vkSucceded( vkMapMemory( device, vulkanMemory->Memory(), vulkanOffset, toCopy, 0, &mappedData ) );
 			memcpy( mappedData, fromPtr, toCopy );
-			device->vkUnmapMemory( device->Handle, vulkanMemory->Memory() );
+			vkUnmapMemory( device, vulkanMemory->Memory() );
 		} else {
-			CVulkanMemory stagingMemory( *device, toCopy, VK_BUFFER_USAGE_TRANSFER_SRC_BIT );
+			CVulkanMemory stagingMemory( device, toCopy, VK_BUFFER_USAGE_TRANSFER_SRC_BIT );
 			
 			void* mappedData = nullptr;
-			vkSucceded( device->vkMapMemory( device->Handle, stagingMemory.Memory(), 0, toCopy, 0, &mappedData ) );
+			vkSucceded( vkMapMemory( device, stagingMemory.Memory(), 0, toCopy, 0, &mappedData ) );
 			memcpy(mappedData, fromPtr, toCopy);
-			device->vkUnmapMemory(device->Handle, stagingMemory.Memory() );
+			vkUnmapMemory(device, stagingMemory.Memory() );
 
 			VkBufferCopy copyRegion{};
 			copyRegion.srcOffset = 0;
@@ -255,7 +255,6 @@ void CVulkanMathEngine::DataExchangeRaw( const CMemoryHandle& to, const void* fr
 void CVulkanMathEngine::DataExchangeRaw( void* to, const CMemoryHandle& from, size_t size )
 {
 	ASSERT_EXPR( from.GetMathEngine() == this );
-
 	CTypedMemoryHandle<char> fromPtr( from );
 	char* toPtr = reinterpret_cast<char*>( to );
 
@@ -273,12 +272,12 @@ void CVulkanMathEngine::DataExchangeRaw( void* to, const CMemoryHandle& from, si
 
 		if( vulkanMemory->HostVisible() ) {
 			void* mappedData = nullptr;
-			vkSucceded(device->vkMapMemory(device->Handle, vulkanMemory->Memory(), vulkanOffset, toCopy, 0, &mappedData));
-			memcpy(toPtr, mappedData, toCopy);
-			device->vkUnmapMemory(device->Handle, vulkanMemory->Memory() );
+			vkSucceded( vkMapMemory(device, vulkanMemory->Memory(), vulkanOffset, toCopy, 0, &mappedData));
+			memcpy( toPtr, mappedData, toCopy);
+			vkUnmapMemory( device, vulkanMemory->Memory() );
 		}
 		else {
-			CVulkanMemory stagingMemory( *device, toCopy, VK_BUFFER_USAGE_TRANSFER_DST_BIT );
+			CVulkanMemory stagingMemory( device, toCopy, VK_BUFFER_USAGE_TRANSFER_DST_BIT );
 
 			VkBufferCopy copyRegion{};
 			copyRegion.srcOffset = vulkanOffset;
@@ -289,9 +288,9 @@ void CVulkanMathEngine::DataExchangeRaw( void* to, const CMemoryHandle& from, si
 			commandQueue->Wait();
 
 			void* mappedData = nullptr;
-			vkSucceded( device->vkMapMemory( device->Handle, stagingMemory.Memory(), 0, toCopy, 0, &mappedData ) );
+			vkSucceded( vkMapMemory( device, stagingMemory.Memory(), 0, toCopy, 0, &mappedData ) );
 			memcpy( toPtr, mappedData, toCopy );
-			device->vkUnmapMemory(device->Handle, stagingMemory.Memory() );
+			vkUnmapMemory(device, stagingMemory.Memory() );
 		}
 
 		size -= toCopy;
@@ -321,10 +320,10 @@ CMemoryHandle CVulkanMathEngine::Alloc( size_t size )
 		VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | 
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT | 
 			VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		VkMemoryPropertyFlags properties = device->Type != VDT_Nvidia ?
+		VkMemoryPropertyFlags properties = device.Type() != VDT_Nvidia ?
 			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : 
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-		auto vulkanMemory = new CVulkanMemory( *device, size, usage, properties ); 
+		auto vulkanMemory = new CVulkanMemory( device, size, usage, properties ); 
 
 		return CMemoryHandleInternal::CreateMemoryHandle( &mathEngine(), vulkanMemory );
 	}
@@ -346,7 +345,7 @@ void CVulkanMathEngine::Free( const CMemoryHandle& handle )
 
 void CVulkanMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 {
-	getDeviceInfo( dll, deviceNumber, info );
+	getDeviceInfo( instance->GetDevices()[deviceNumber], deviceNumber, info );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -358,21 +357,21 @@ int CVulkanMathEngine::getChannelGroupSize( int height, int channels ) const
 	assert(height > 0);
 	assert(channels > 0);
 
-	if( !device->IsImageBased ) {
+	if( !device.IsImageBased() ) {
 		return channels; // no images used, so no limitations on geometric size
 	}
 
-	if( height * channels <= static_cast<int>( device->Properties.limits.maxImageDimension2D ) ) {
+	if( height * channels <= static_cast<int>( device.Properties().limits.maxImageDimension2D ) ) {
 		return channels; // the image fits into the limitations
 	}
 
-	return device->Properties.limits.maxImageDimension2D / height;
+	return device.Properties().limits.maxImageDimension2D / height;
 }
 
 // Gets a temporary object with the given id and size
 const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId, int width, int height )
 {
-	assert( device->IsImageBased );
+	assert( device.IsImageBased() );
 
 	int newWidth = width;
 	int newHeight = height;
@@ -387,7 +386,7 @@ const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId, int
 		tmpImages[imageId] = 0;
 	}
 
-	CVulkanImage *image = new CVulkanImage( *device, newWidth, newHeight );
+	CVulkanImage *image = new CVulkanImage( device, newWidth, newHeight );
 	commandQueue->RunChangeLayoutForImage( image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL );
 	tmpImages[imageId] = image;
 
@@ -397,7 +396,7 @@ const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId, int
 
 const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId )
 {
-	assert( device->IsImageBased );
+	assert( device.IsImageBased() );
 	assert(tmpImages[imageId] != 0);
 	return tmpImages[imageId];
 }

@@ -25,16 +25,15 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
 #include <VulkanImage.h>
+#include <VulkanDevice.h>
 #include <RawMemoryManager.h>
 #include <PerformanceCountersDefault.h>
-#include <DllLoader.h>
 
 namespace NeoML {
 
 struct CCommonConvolutionDesc;
 struct CInterleavedMatrixDesc;
 struct CVulkanShaderData;
-struct CVulkanDevice;
 struct CVulkanRleConvolutionDesc;
 class CVulkanCommandQueue;
 class CVulkanShaderLoader;
@@ -45,14 +44,15 @@ class CMemoryPool;
 
 // Adds the information about available vulkan devices into the result array
 // Returns true if at least one device has been added
-bool LoadVulkanEngineInfo( CVulkanDll& dll, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result );
+bool LoadVulkanEngineInfo( const CVulkanInstance& instance, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result );
 
 //------------------------------------------------------------------------------------------------------------
 
 // The math engine on vulkan
 class CVulkanMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CVulkanMathEngine( int deviceNumber, size_t memoryLimit );
+	CVulkanMathEngine( const std::shared_ptr<CVulkanInstance>& instance, 
+		int deviceNumber, size_t memoryLimit );
 	~CVulkanMathEngine() override;
 
 	// IMathEngine interface methods
@@ -468,12 +468,11 @@ protected:
 	void Free( const CMemoryHandle& handle ) override;
 
 private:
-	CDllLoader dllLoader; // vulkan dll wrapper
-	CVulkanDll& dll;
+	std::shared_ptr<CVulkanInstance> instance;
 
 	mutable std::mutex mutex; // protecting the data below from non-thread-safe use
 	int deviceNumber;
-	std::unique_ptr<CVulkanDevice> device; // device descriptor
+	CVulkanDevice device; // device descriptor
 	std::unique_ptr<CVulkanShaderLoader> shaderLoader; // shader loader
 	std::unique_ptr<CVulkanCommandQueue> commandQueue; // shader execution queue
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager

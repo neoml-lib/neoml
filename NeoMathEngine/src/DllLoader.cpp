@@ -28,11 +28,6 @@ CCublasDll* CDllLoader::cublasDll = nullptr;
 int CDllLoader::cudaDllLinkCount = 0;
 #endif
 
-#ifdef NEOML_USE_VULKAN
-CVulkanDll* CDllLoader::vulkanDll = nullptr;
-int CDllLoader::vulkanDllLinkCount = 0;
-#endif
-
 static std::mutex mutex;
 
 int CDllLoader::Load( int dll )
@@ -40,21 +35,7 @@ int CDllLoader::Load( int dll )
 	int result = 0;
 	if( (dll & ALL_DLL) != 0 ) {
 		std::lock_guard<std::mutex> lock(mutex);
-#ifdef NEOML_USE_VULKAN
-		if( (dll & VULKAN_DLL) != 0 ) {
-			if( vulkanDll == nullptr ) {
-				vulkanDll = new CVulkanDll();
-			}
 
-			if( !vulkanDll->Load() ) {
-				delete vulkanDll;
-				vulkanDll = nullptr;
-			} else {
-				result |= VULKAN_DLL;
-				vulkanDllLinkCount++;
-			}
-		}
-#endif
 
 #ifdef NEOML_USE_CUDA
 		if( (dll & CUDA_DLL) != 0 ) {
@@ -84,15 +65,7 @@ void CDllLoader::Free( int dll )
 {
 	if( (dll & ALL_DLL) != 0 ) {
 		std::lock_guard<std::mutex> lock( mutex );
-#ifdef NEOML_USE_VULKAN
-		if( (dll & VULKAN_DLL) != 0 && vulkanDllLinkCount > 0 ) {
-			vulkanDllLinkCount--;
-			if( vulkanDllLinkCount <= 0 ) {
-				delete vulkanDll;
-				vulkanDll = nullptr;
-			}
-		}
-#endif
+
 #ifdef NEOML_USE_CUDA
 		if( (dll & CUDA_DLL) != 0 && cudaDllLinkCount > 0 ) {
 			cudaDllLinkCount--;

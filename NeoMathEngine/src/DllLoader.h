@@ -27,10 +27,6 @@ limitations under the License.
 #include <CusparseDll.h>
 #endif
 
-#ifdef NEOML_USE_VULKAN
-#include <VulkanDll.h>
-#endif
-
 namespace NeoML {
 
 // DLL loading control
@@ -45,15 +41,7 @@ public:
 	static constexpr int CUDA_DLL = 0x0;
 #endif
 
-#ifdef NEOML_USE_VULKAN
-	static CVulkanDll* vulkanDll;
-	static int vulkanDllLinkCount;
-	static constexpr int VULKAN_DLL = 0x2;
-#else
-	static constexpr int VULKAN_DLL = 0x0;
-#endif
-
-	static constexpr int ALL_DLL = VULKAN_DLL | CUDA_DLL;
+	static constexpr int ALL_DLL = CUDA_DLL;
 
 	explicit CDllLoader( int dll = ALL_DLL ) : loadedDlls( Load( dll ) ) {}
 	~CDllLoader() { Free( loadedDlls ); }

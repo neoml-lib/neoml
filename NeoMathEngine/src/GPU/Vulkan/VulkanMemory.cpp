@@ -19,7 +19,7 @@ limitations under the License.
 #ifdef NEOML_USE_VULKAN
 
 #include <VulkanMemory.h>
-#include <VulkanDll.h>
+#include <VulkanDevice.h>
 
 #include <stdexcept>
 
@@ -36,20 +36,20 @@ CVulkanMemory::CVulkanMemory( const CVulkanDevice& _device, std::size_t _size, V
 	bufferInfo.usage = _usage;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	if( device.vkCreateBuffer( device.Handle, &bufferInfo, nullptr, &buffer ) != VK_SUCCESS )
+	if( vkCreateBuffer( device, &bufferInfo, nullptr, &buffer ) != VK_SUCCESS )
 		throw std::runtime_error( "Failed to create buffer!" );
 
 	VkMemoryRequirements memRequirements;
-	device.vkGetBufferMemoryRequirements( device.Handle, buffer, &memRequirements );
+	vkGetBufferMemoryRequirements( device, buffer, &memRequirements );
 
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
 	
 	bool isFound = false;
-	for( uint32_t i = 0; i < device.MemoryProperties.memoryTypeCount; ++i ) {
+	for( uint32_t i = 0; i < device.MemoryProperties().memoryTypeCount; ++i ) {
 		if ((memRequirements.memoryTypeBits & (1u << i)) != 0 &&
-			(device.MemoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+			(device.MemoryProperties().memoryTypes[i].propertyFlags & properties) == properties) {
 			allocInfo.memoryTypeIndex = i;
 			isFound = true;
 			break;
@@ -57,16 +57,16 @@ CVulkanMemory::CVulkanMemory( const CVulkanDevice& _device, std::size_t _size, V
 	}
 	
 	if( !isFound ) {
-		device.vkDestroyBuffer( device.Handle, buffer, nullptr );
+		vkDestroyBuffer( device, buffer, nullptr );
 		throw std::runtime_error( "Failed to find suitable memory type!" );
 	}
 
-	if( ( device.vkAllocateMemory( device.Handle, &allocInfo, nullptr, &memory ) != VK_SUCCESS ) ) {
-		device.vkDestroyBuffer( device.Handle, buffer, nullptr );
+	if( ( vkAllocateMemory( device, &allocInfo, nullptr, &memory ) != VK_SUCCESS ) ) {
+		vkDestroyBuffer( device, buffer, nullptr );
 		throw std::runtime_error( "Failed to allocate memory!" );
 	}
 	
-	if( device.vkBindBufferMemory(device.Handle, buffer, memory, 0) != VK_SUCCESS ) {
+	if( vkBindBufferMemory(device, buffer, memory, 0) != VK_SUCCESS ) {
 		release();
 		throw std::runtime_error( "Failed to bind buffer to memory!" );
 	}

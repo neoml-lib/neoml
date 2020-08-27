@@ -23,7 +23,7 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <VulkanCommandQueue.h>
 #include <MemoryHandleInternal.h>
-#include <VulkanDll.h>
+#include <VulkanDevice.h>
 #include <VulkanShader.h>
 #include <VulkanImage.h>
 #include <shaders/common/CommonStruct.h>
@@ -53,17 +53,17 @@ CVulkanCommandQueue::CVulkanCommandQueue( CVulkanDevice& vulkanDevice ) :
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = device.Family;
-	vkSucceded( device.vkCreateCommandPool( device.Handle, &poolInfo, 0, &commandPool ) );
+	poolInfo.queueFamilyIndex = device.Family();
+	vkSucceded( vkCreateCommandPool( device, &poolInfo, 0, &commandPool ) );
 
-	device.vkGetDeviceQueue( device.Handle, device.Family, 0, &queue );
+	vkGetDeviceQueue( device, device.Family(), 0, &queue );
 }
 
 CVulkanCommandQueue::~CVulkanCommandQueue()
 {
 	CleanUp();
 
-	device.vkDestroyCommandPool( device.Handle, commandPool, 0 );
+	vkDestroyCommandPool( device, commandPool, 0 );
 
 	// The queue does not need to be closed with this API
 }
@@ -86,7 +86,7 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 	allocateInfo.descriptorPool = command->DescriptorPool;
 	allocateInfo.descriptorSetCount = 1;
 	allocateInfo.pSetLayouts = &shader.DescLayout;
-	vkSucceded( device.vkAllocateDescriptorSets( device.Handle, &allocateInfo, &(command->DescriptionSet) ) );
+	vkSucceded( vkAllocateDescriptorSets( device, &allocateInfo, &(command->DescriptionSet) ) );
 
 	// Set the buffers for desc
 	// The zero binding always contains the parameters of the call
@@ -103,7 +103,7 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 		writeDesc.descriptorCount = 1;
 		writeDesc.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		writeDesc.pBufferInfo = &descBufferInfo;
-		device.vkUpdateDescriptorSets( device.Handle, 1, &writeDesc, 0, 0 );
+		vkUpdateDescriptorSets( device, 1, &writeDesc, 0, 0 );
 	}
 
 	for( int i = 0; i < imageCount; ++i ) {
@@ -115,12 +115,12 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 	}
 
 	if( paramsSize > 0 ) {
-		device.vkCmdPushConstants( command->Buffer, shader.Layout, VK_SHADER_STAGE_COMPUTE_BIT, PUSH_CONSTANT_PARAM_OFFSET, paramsSize, paramsBuffer );
+		vkCmdPushConstants( command->Buffer, shader.Layout, VK_SHADER_STAGE_COMPUTE_BIT, PUSH_CONSTANT_PARAM_OFFSET, paramsSize, paramsBuffer );
 	}
-	device.vkCmdBindPipeline( command->Buffer, VK_PIPELINE_BIND_POINT_COMPUTE, shader.Pipeline );
-	device.vkCmdBindDescriptorSets( command->Buffer, VK_PIPELINE_BIND_POINT_COMPUTE, shader.Layout, 0, 1,
+	vkCmdBindPipeline( command->Buffer, VK_PIPELINE_BIND_POINT_COMPUTE, shader.Pipeline );
+	vkCmdBindDescriptorSets( command->Buffer, VK_PIPELINE_BIND_POINT_COMPUTE, shader.Layout, 0, 1,
 		&(command->DescriptionSet), 0, 0 );
-	device.vkCmdDispatch( command->Buffer, countX, countY, countZ );
+	vkCmdDispatch( command->Buffer, countX, countY, countZ );
 
 	submitCommand( command );
 }
@@ -132,7 +132,7 @@ void CVulkanCommandQueue::RunUpdateBuffer( VkBuffer buffer, VkDeviceSize offset,
 	CCommand* command = new CCommand();
 	command->Buffer = getCommandBuffer();
 
-	device.vkCmdUpdateBuffer( command->Buffer, buffer, offset, size, from );
+	vkCmdUpdateBuffer( command->Buffer, buffer, offset, size, from );
 
 	submitCommand( command );
 }
@@ -142,7 +142,7 @@ void CVulkanCommandQueue::RunFillBuffer( VkBuffer buffer, VkDeviceSize offset, V
 	CCommand* command = new CCommand();
 	command->Buffer = getCommandBuffer();
 
-	device.vkCmdFillBuffer( command->Buffer, buffer, offset, size, data );
+	vkCmdFillBuffer( command->Buffer, buffer, offset, size, data );
 
 	submitCommand( command );
 }
@@ -152,7 +152,7 @@ void CVulkanCommandQueue::RunCopyBuffer( VkBuffer from, VkBuffer to, const VkBuf
 	CCommand* command = new CCommand();
 	command->Buffer = getCommandBuffer();
 
-	device.vkCmdCopyBuffer( command->Buffer, from, to, 1, &info );
+	vkCmdCopyBuffer( command->Buffer, from, to, 1, &info );
 
 	submitCommand( command );
 }
@@ -160,13 +160,13 @@ void CVulkanCommandQueue::RunCopyBuffer( VkBuffer from, VkBuffer to, const VkBuf
 void CVulkanCommandQueue::Wait()
 {
 	// Wait until all commands complete
-	vkSucceded( device.vkQueueWaitIdle( queue ) );
+	vkSucceded( vkQueueWaitIdle( queue ) );
 
 	while( commands != 0 ) {
 		CCommand* toDestroy = commands;
 
 		if( toDestroy->DescriptorPool != VK_NULL_HANDLE && toDestroy->DescriptionSet != VK_NULL_HANDLE ) {
-			vkSucceded( device.vkFreeDescriptorSets( device.Handle, toDestroy->DescriptorPool, 1, &(toDestroy->DescriptionSet) ) );
+			vkSucceded( vkFreeDescriptorSets( device, toDestroy->DescriptorPool, 1, &(toDestroy->DescriptionSet) ) );
 		}
 
 		commands = commands->Next;
@@ -181,13 +181,13 @@ void CVulkanCommandQueue::CleanUp()
 	Wait();
 
 	if( commandBuffers.size() > 0 ) {
-		device.vkFreeCommandBuffers( device.Handle, commandPool, static_cast<int>( commandBuffers.size() ), commandBuffers.data() );
+		vkFreeCommandBuffers( device, commandPool, static_cast<int>( commandBuffers.size() ), commandBuffers.data() );
 		commandBuffers.clear();
 	}
 
 	if( descriptorPools.size() > 0 ) {
 		for( size_t i = 0; i < descriptorPools.size(); ++i ) {
-			device.vkDestroyDescriptorPool( device.Handle, descriptorPools[i], 0 );
+			vkDestroyDescriptorPool( device, descriptorPools[i], 0 );
 		}
 		descriptorPools.clear();
 	}
@@ -201,8 +201,8 @@ void CVulkanCommandQueue::RunChangeLayoutForImage( const CVulkanImage* nativeIma
 		VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 	info.oldLayout = oldLayout;
 	info.newLayout = newLayout;
-	info.srcQueueFamilyIndex = device.Family;
-	info.dstQueueFamilyIndex = device.Family;
+	info.srcQueueFamilyIndex = device.Family();
+	info.dstQueueFamilyIndex = device.Family();
 	info.image = nativeImage->GetVkImage();
 	info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	info.subresourceRange.baseMipLevel = 0;
@@ -211,14 +211,14 @@ void CVulkanCommandQueue::RunChangeLayoutForImage( const CVulkanImage* nativeIma
 	info.subresourceRange.layerCount = 1;
 
 	VkCommandBuffer cmdBuf = getCommandBuffer();
-	device.vkCmdPipelineBarrier( cmdBuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, 0, 0, 0, 1, &info );
-	vkSucceded( device.vkEndCommandBuffer( cmdBuf ) );
+	vkCmdPipelineBarrier( cmdBuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, 0, 0, 0, 1, &info );
+	vkSucceded( vkEndCommandBuffer( cmdBuf ) );
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &cmdBuf;
-	vkSucceded( device.vkQueueSubmit( queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+	vkSucceded( vkQueueSubmit( queue, 1, &submitInfo, VK_NULL_HANDLE ) );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -238,12 +238,12 @@ VkDescriptorPool CVulkanCommandQueue::getDescriptorPool()
 	VkDescriptorPoolSize descPoolSize[4] = { {}, {}, {}, {} };
 	descPoolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	descPoolSize[0].descriptorCount = VulkanMaxBindingCount * VulkanMaxDescriptorSetPerPool;
-	if( !device.IsImageBased ) {
+	if( !device.IsImageBased() ) {
 		descPoolSize[0].descriptorCount += VulkanMaxBindingCount * VulkanMaxDescriptorSetPerPool;
 	}
 	descPoolSize[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	descPoolSize[1].descriptorCount = VulkanMaxBindingCount * VulkanMaxDescriptorSetPerPool;
-	if( device.IsImageBased ) {
+	if( device.IsImageBased() ) {
 		descPoolSize[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		descPoolSize[2].descriptorCount = VulkanMaxBindingCount * VulkanMaxDescriptorSetPerPool;
 		descPoolSize[3].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -254,10 +254,10 @@ VkDescriptorPool CVulkanCommandQueue::getDescriptorPool()
 	descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	descPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	descPoolInfo.maxSets = VulkanMaxDescriptorSetPerPool;
-	descPoolInfo.poolSizeCount = device.IsImageBased ? 4 : 2;
+	descPoolInfo.poolSizeCount = device.IsImageBased() ? 4 : 2;
 	descPoolInfo.pPoolSizes = descPoolSize;
 
-	vkSucceded( device.vkCreateDescriptorPool( device.Handle, &descPoolInfo, 0, &descriptorPool ) );
+	vkSucceded( vkCreateDescriptorPool( device, &descPoolInfo, 0, &descriptorPool ) );
 
 	descriptorPools.push_back( descriptorPool );
 	descriptionSetCount++;
@@ -279,7 +279,7 @@ VkCommandBuffer CVulkanCommandQueue::getCommandBuffer()
 		cmdBufferInfo.commandPool = commandPool;
 		cmdBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		cmdBufferInfo.commandBufferCount = 1;
-		vkSucceded( device.vkAllocateCommandBuffers( device.Handle, &cmdBufferInfo, &result ) );
+		vkSucceded( vkAllocateCommandBuffers( device, &cmdBufferInfo, &result ) );
 		commandBuffers.push_back( result );
 		commandBufferCount++;
 	}
@@ -287,7 +287,7 @@ VkCommandBuffer CVulkanCommandQueue::getCommandBuffer()
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	vkSucceded( device.vkBeginCommandBuffer( result, &beginInfo ) );
+	vkSucceded( vkBeginCommandBuffer( result, &beginInfo ) );
 
 	return result;
 }
@@ -295,7 +295,7 @@ VkCommandBuffer CVulkanCommandQueue::getCommandBuffer()
 // Queues a command
 void CVulkanCommandQueue::submitCommand( CCommand* command )
 {
-	vkSucceded( device.vkEndCommandBuffer( command->Buffer ) );
+	vkSucceded( vkEndCommandBuffer( command->Buffer ) );
 
 	command->Next = commands;
 	commands = command;
@@ -305,7 +305,7 @@ void CVulkanCommandQueue::submitCommand( CCommand* command )
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &(command->Buffer);
 
-	vkSucceded( device.vkQueueSubmit( queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+	vkSucceded( vkQueueSubmit( queue, 1, &submitInfo, VK_NULL_HANDLE ) );
 }
 
 } // namespace NeoML
