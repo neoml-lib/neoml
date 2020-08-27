@@ -708,9 +708,9 @@ CDnnLambGradientSolver::CDnnLambGradientSolver( IMathEngine& mathEngine ) :
 	epsilon( 1e-6f ),
 	weightDecayClip( -1.f ),
 	useTrustRatio( true ),
-	totalGradientNorm( 1.0f ),
 	useNvLamb( false ),
-	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
+	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) ),
+	totalGradientNorm( 1.0f )
 {
 	SetLearningRate( 0.001f );
 }
