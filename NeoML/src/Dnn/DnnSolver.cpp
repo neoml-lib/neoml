@@ -909,7 +909,7 @@ void CDnnLambGradientSolver::getWeightDecayIndices( const CBaseLayer& layer, int
 
 // Calculate normalizing multiplier
 void CDnnLambGradientSolver::calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update,
-	CFloatHandle& multiplierVar ) const
+	const CFloatHandle& multiplierVar ) const
 {
 	float weightNorm = calcL2Norm( weights.GetData(), weights.GetDataSize() );
 	if( weightDecayClip > 0 ) {

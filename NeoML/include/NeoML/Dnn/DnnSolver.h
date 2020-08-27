@@ -509,7 +509,7 @@ private:
 	float calcL2Norm( const CConstFloatHandle& data, int dataSize ) const;
 	void getWeightDecayIndices( const CBaseLayer& layer, int paramsCount, CHashTable<int>& indexes ) const;
 
-	void calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update, CFloatHandle& multiplier ) const;
+	void calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update, const CFloatHandle& multiplier ) const;
 };
 
 } // namespace NeoML
