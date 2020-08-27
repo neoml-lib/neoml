@@ -708,9 +708,9 @@ CDnnLambGradientSolver::CDnnLambGradientSolver( IMathEngine& mathEngine ) :
 	epsilon( 1e-6f ),
 	weightDecayClip( -1.f ),
 	useTrustRatio( true ),
-	totalGradientNorm( 1.0f ),
 	useNvLamb( false ),
-	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
+	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) ),
+	totalGradientNorm( 1.0f )
 {
 	SetLearningRate( 0.001f );
 }
@@ -937,8 +937,8 @@ void CDnnLambGradientSolver::OnTrain()
 		totalGradientNorm = 1.0f;
 	} else {
 		totalGradientNorm = 0;
-		for( float norm : layersGradientNormSquare ) {
-			totalGradientNorm += norm;
+		for( int i = 0; i < layersGradientNormSquare.Size(); ++i ) {
+			totalGradientNorm += layersGradientNormSquare[i];
 		}
 		totalGradientNorm = sqrtf( totalGradientNorm );
 	}
