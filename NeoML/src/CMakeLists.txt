@@ -48,6 +48,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/FocalLossLayer.cpp
     Dnn/Layers/FullyConnectedLayer.cpp
     Dnn/Layers/FullyConnectedSourceLayer.cpp
+    Dnn/Layers/GELULayer.cpp
     Dnn/Layers/GlobalMaxPoolingLayer.cpp
     Dnn/Layers/GlobalMeanPoolingLayer.cpp
     Dnn/Layers/GruLayer.cpp
@@ -187,6 +188,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/FocalLossLayer.h
     ../include/NeoML/Dnn/Layers/FullyConnectedLayer.h
     ../include/NeoML/Dnn/Layers/FullyConnectedSourceLayer.h
+    ../include/NeoML/Dnn/Layers/GELULayer.h
     ../include/NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GruLayer.h

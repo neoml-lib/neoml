@@ -216,6 +216,8 @@ delete gpuMathEngine;
   - [CHardTanhLayer](ActivationLayers/HardTanhLayer.md) - функция активации `HardTanh`
   - [CHardSigmoidLayer](ActivationLayers/HardSigmoidLayer.md) - функция активации `HardSigmoid`
   - [CPowerLayer](ActivationLayers/PowerLayer.md) - функция активации `pow(x, exp)`
+  - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - функция активации `h-swish`
+  - [CGELULayer](ActivationLayers/GELULayer.md) - функция активации `x * sigmoid(1.702 * x)`
 - Свертки:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - двумерная свертка
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - свертка двумерных изображений в формате RLE
