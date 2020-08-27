@@ -18,9 +18,128 @@ limitations under the License.
 
 #include <NeoML/Dnn/DnnSolver.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/CompositeLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
+
+static CMap<CString, TCreateSolverFunction>& getRegisteredSolvers()
+{
+	static CMap<CString, TCreateSolverFunction> registeredSolvers;
+	return registeredSolvers;
+}
+
+// Class name hash to compare type_info
+struct CTypeInfoNameHash {
+	static int HashKey( const std::type_info* key )
+	{ 
+		return GetMBCStringHash( key->name() );
+	}
+
+	static bool IsEqual( const std::type_info* first, const std::type_info* second )
+	{
+		return ( ::strcmp( first->name(), second->name() ) == 0 );
+	}
+};
+
+static CMap<const std::type_info*, CString, CTypeInfoNameHash>& getSolverNames()
+{
+	static CMap<const std::type_info*, CString, CTypeInfoNameHash> solverNames;
+	return solverNames;
+}
+
+void RegisterSolverName( const char* className, const std::type_info& typeInfo, TCreateSolverFunction function )
+{
+	NeoAssert( !getRegisteredSolvers().Has( className ) );
+	getRegisteredSolvers().Add( className, function );
+	getSolverNames().Add( &typeInfo, className );
+}
+
+void UnregisterSolverName( const std::type_info& typeInfo )
+{
+	getRegisteredSolvers().Delete( getSolverNames().Get( &typeInfo ) );
+	getSolverNames().Delete( &typeInfo );
+}
+
+static CPtr<CDnnSolver> createSolver( IMathEngine& mathEngine, const CString& className )
+{
+	TMapPosition pos = getRegisteredSolvers().GetFirstPosition( className );
+	if( pos == NotFound ) {
+		return 0;
+	}
+	return getRegisteredSolvers().GetValue( pos )( mathEngine );
+}
+
+static CString getSolverName( CDnnSolver* solver )
+{
+	if( solver == 0 ) {
+		return CString();
+	}
+	const std::type_info& solverType = typeid( *solver );
+	TMapPosition pos = getSolverNames().GetFirstPosition( &solverType );
+	if( pos == NotFound ) {
+		return CString();
+	}
+	return getSolverNames().GetValue( pos );
+}
+
+void SerializeSolver( CArchive& archive, CDnn& dnn, CPtr<CDnnSolver>& solver )
+{
+	if( archive.IsStoring() ) {
+		archive << getSolverName( solver );
+		if( solver != 0 ) {
+			solver->Serialize( archive, dnn );
+		}
+	} else if( archive.IsLoading() ) {
+		CString name;
+		archive >> name;
+		solver = createSolver( dnn.GetMathEngine(), name );
+		if( solver != 0 ) {
+			solver->Serialize( archive, dnn );
+		}
+	} else {
+		NeoAssert( false );
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace {
+REGISTER_NEOML_SOLVER( CDnnSimpleGradientSolver, "NeoMLDnnSimpleGradientSolver" )
+REGISTER_NEOML_SOLVER( CDnnAdaptiveGradientSolver, "NeoMLDnnAdaptiveGradientSolver" )
+REGISTER_NEOML_SOLVER( CDnnNesterovGradientSolver, "NeoMLDnnNesterovGradientSolver" )
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Utility functions for serialization
+
+void mapLayerIdToPtr( CDnnLayerGraph& dnn, CMap<CString, CBaseLayer*>& result, const CString& prefix = "" )
+{
+	CArray<const char*> layerNames;
+	dnn.GetLayerList( layerNames );
+	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
+		CPtr<CBaseLayer> layer = dnn.GetLayer( layerNames[layerIndex] );
+		result.Add( prefix + layer->GetName(), layer.Ptr() );
+		CCompositeLayer* compositePtr = dynamic_cast<CCompositeLayer*>( layer.Ptr() );
+		if( compositePtr != nullptr ) {
+			mapLayerIdToPtr( *compositePtr, result, prefix + compositePtr->GetName() );
+		}
+	}
+}
+
+void mapLayerPtrToId( CDnnLayerGraph& dnn, CMap<CBaseLayer*, CString>& result, const CString& prefix = "" )
+{
+	CArray<const char*> layerNames;
+	dnn.GetLayerList( layerNames );
+	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
+		CPtr<CBaseLayer> layer = dnn.GetLayer( layerNames[layerIndex] );
+		result.Add( layer.Ptr(), prefix + layer->GetName() );
+		CCompositeLayer* compositePtr = dynamic_cast<CCompositeLayer*>( layer.Ptr() );
+		if( compositePtr != nullptr ) {
+			mapLayerPtrToId( *compositePtr, result, prefix + compositePtr->GetName() );
+		}
+	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -130,6 +249,59 @@ void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 	}
 }
 
+static const int DnnSolverVersion = 0;
+
+void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
+{
+	archive.SerializeVersion( DnnSolverVersion );
+	if( archive.IsStoring() ) {
+		CMap<CBaseLayer*, CString> layerPtrToId;
+		mapLayerPtrToId( dnn, layerPtrToId );
+
+		archive << layerToParamDiffBlobsSum.Size();
+		for( int pos = layerToParamDiffBlobsSum.GetFirstPosition(); pos != NotFound;
+			pos = layerToParamDiffBlobsSum.GetNextPosition( pos ) )
+		{
+			archive << layerPtrToId[layerToParamDiffBlobsSum.GetKey( pos )];
+			archive << layerToParamDiffBlobsSum.GetValue( pos ).Count;
+			SerializeBlobs( mathEngine, archive, layerToParamDiffBlobsSum.GetValue( pos ).Sum );
+		}
+
+		archive << layerToGradientHistory.Size();
+		for( int pos = layerToGradientHistory.GetFirstPosition(); pos != NotFound;
+			pos = layerToGradientHistory.GetNextPosition( pos ) )
+		{
+			archive << layerPtrToId[layerToGradientHistory.GetKey( pos )];
+			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetValue( pos ) );
+		}
+		archive << learningRate << regularizationL1 << regularizationL2 << maxGradientNorm;
+	} else {
+		CMap<CString, CBaseLayer*> layerIdToPtr;
+		mapLayerIdToPtr( dnn, layerIdToPtr );
+
+		layerToParamDiffBlobsSum.DeleteAll();
+		layerToGradientHistory.DeleteAll();
+
+		int size;
+		archive >> size;
+		for( int i = 0; i < size; ++i ) {
+			CString layerId;
+			archive >> layerId;
+			CDiffBlobSum& blobSum = layerToParamDiffBlobsSum.GetOrCreateValue( layerIdToPtr[layerId] );
+			archive >> blobSum.Count;
+			SerializeBlobs( mathEngine, archive, blobSum.Sum );
+		}
+
+		archive >> size;
+		for( int i = 0; i < size; ++i ) {
+			CString layerId;
+			archive >> layerId;
+			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetOrCreateValue( layerIdToPtr[layerId] ) );
+		}
+		archive >> learningRate >> regularizationL1 >> regularizationL2 >> maxGradientNorm;
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CDnnSimpleGradientSolver::CDnnSimpleGradientSolver( IMathEngine& mathEngine ) :
@@ -140,6 +312,16 @@ CDnnSimpleGradientSolver::CDnnSimpleGradientSolver( IMathEngine& mathEngine ) :
 {
 	SetLearningRate(0.01f);
 	SetL2Regularization(1e-4f);
+}
+
+static const int DnnSimpleGradientSolverVersion = 0;
+
+void CDnnSimpleGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
+{
+	archive.SerializeVersion( DnnSimpleGradientSolverVersion );
+	CDnnSolver::Serialize( archive, dnn );
+	archive.Serialize( momentDecayRate );
+	archive.Serialize( isInCompatibilityMode );
 }
 
 void CDnnSimpleGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
@@ -220,6 +402,21 @@ void CDnnAdaptiveGradientSolver::EnableAmsGrad( bool enable )
 {
 	Reset();
 	isAmsGradEnabled = enable;
+}
+
+static const int DnnAdaptiveGradientSolver = 0;
+
+void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
+{
+	archive.SerializeVersion( DnnAdaptiveGradientSolver );
+	CDnnSolver::Serialize( archive, dnn );
+	archive.Serialize( momentDecayRate );
+	archive.Serialize( momentDecayRateN );
+	archive.Serialize( secondMomentDecayRate );
+	archive.Serialize( secondMomentDecayRateN );
+	archive.Serialize( epsilon );
+	archive.Serialize( isAmsGradEnabled );
+	archive.Serialize( isInCompatibilityMode );
 }
 
 void CDnnAdaptiveGradientSolver::OnReset()
@@ -343,6 +540,7 @@ CDnnNesterovGradientSolver::CDnnNesterovGradientSolver( IMathEngine& mathEngine 
 	epsilon( 1e-6f ),
 	isAmsGradEnabled( false ),
 	trainCount( 0 ),
+	productMuT( 1.f ),
 	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
 {
 	SetLearningRate( 0.01f );
@@ -354,6 +552,21 @@ void CDnnNesterovGradientSolver::EnableAmsGrad( bool enable )
 {
 	Reset();
 	isAmsGradEnabled = enable;
+}
+
+static const int DnnNesterovGradientSolverVersion = 0;
+
+void CDnnNesterovGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
+{
+	archive.SerializeVersion( DnnNesterovGradientSolverVersion );
+	CDnnSolver::Serialize( archive, dnn );
+	archive.Serialize( momentDecayRate );
+	archive.Serialize( secondMomentDecayRate );
+	archive.Serialize( secondMomentDecayRateN );
+	archive.Serialize( epsilon );
+	archive.Serialize( isAmsGradEnabled );
+	archive.Serialize( trainCount );
+	archive.Serialize( productMuT );
 }
 
 void CDnnNesterovGradientSolver::OnReset()

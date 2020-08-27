@@ -49,6 +49,9 @@ public:
 	float GetMaxGradientNorm() const { return maxGradientNorm; }
 	void SetMaxGradientNorm(float _maxGradientNorm) { maxGradientNorm = _maxGradientNorm; }
 
+	// Serialize to archive
+	virtual void Serialize( CArchive& archive, CDnn& dnn );
+
 protected:
 	explicit CDnnSolver( IMathEngine& mathEngine );
 
@@ -61,7 +64,7 @@ protected:
 
 	// On each training step the method is called once, before the call to TrainLayer for all layers
 	virtual void OnTrain() {}
-	
+
 	// Modifies trainable parameters of a given layer, applying the paramDiffBlobs differences 
 	// and using the learningHistory stored history
 	// learningHistory may change during training
@@ -78,7 +81,7 @@ private:
 	// The blobs sum
 	struct CDiffBlobSum {
 		CDiffBlobSum() : Count( 0 ) {}
-		
+
 		CObjectArray<CDnnBlob> Sum; // the blobs sums
 		int Count; // the number of terms in each sum
 	};
@@ -91,12 +94,57 @@ private:
 
 	// Clips gradients according to the settings
 	void clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs);
+
+	// Telling the compiler that we intentionally using two-parameter Serialize instead of one declared in IObject
+	using IObject::Serialize;
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The macros for the internal name of a NeoML solver
+// If this macros is used when declaring a class, that class may be registered as a NeoML solver
+#define NEOML_DNN_SOLVER( className ) friend class CSolverClassRegistrar< className >;
+
+// Registers the class as a NeoML solver
+#define REGISTER_NEOML_SOLVER( classType, name ) static CSolverClassRegistrar< classType > __merge__1( _RegisterSolver, __LINE__ )( name );
+
+typedef CPtr<CDnnSolver> ( *TCreateSolverFunction )( IMathEngine& mathEngine );
+
+void NEOML_API RegisterSolverName( const char* className, const std::type_info& typeInfo, TCreateSolverFunction function );
+
+void NEOML_API UnregisterSolverName( const std::type_info& typeInfo );
+
+void NEOML_API SerializeSolver( CArchive& archive, CDnn& dnn, CPtr<CDnnSolver>& solver);
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class T>
+class CSolverClassRegistrar {
+public:
+	explicit CSolverClassRegistrar( const char* solverName );
+	~CSolverClassRegistrar();
+
+private:
+	static CPtr<CDnnSolver> createObject( IMathEngine& mathEngine ) { return FINE_DEBUG_NEW T( mathEngine ); }
+};
+
+template<class T>
+inline CSolverClassRegistrar<T>::CSolverClassRegistrar( const char* solverName )
+{
+	RegisterSolverName( solverName, typeid( T ), createObject );
+}
+
+template<class T>
+inline CSolverClassRegistrar<T>::~CSolverClassRegistrar()
+{
+	UnregisterSolverName( typeid( T ) );
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Stochastic gradient descent with moment
 class NEOML_API CDnnSimpleGradientSolver : public CDnnSolver {
+	NEOML_DNN_SOLVER( CDnnSimpleGradientSolver )
 public:
 	CDnnSimpleGradientSolver( IMathEngine& mathEngine );
 
@@ -106,6 +154,8 @@ public:
 
 	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
 	void SetCompatibilityMode( bool compatibilityMode ) { isInCompatibilityMode = compatibilityMode; }
+
+	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
 protected:
 	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs, 
@@ -136,6 +186,7 @@ private:
 
 // Stochastic gradient descent with moment and adapting stride for each coordinate
 class NEOML_API CDnnAdaptiveGradientSolver : public CDnnSolver {
+	NEOML_DNN_SOLVER( CDnnAdaptiveGradientSolver )
 public:
 	CDnnAdaptiveGradientSolver( IMathEngine& mathEngine );
 
@@ -159,6 +210,8 @@ public:
 	bool IsAmsGradEnabled() const { return isAmsGradEnabled; }
 	// Turns AMSGrad mode on. May be called only before training starts.
 	void EnableAmsGrad( bool enable );
+
+	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
 protected:
 	// Resets to the initial state
@@ -227,6 +280,7 @@ private:
 // The optimizer that uses Nesterov moment
 // http://cs229.stanford.edu/proj2015/054_report.pdf (Algo 8).
 class NEOML_API CDnnNesterovGradientSolver : public CDnnSolver {
+	NEOML_DNN_SOLVER( CDnnNesterovGradientSolver )
 public:
 	CDnnNesterovGradientSolver( IMathEngine& mathEngine );
 
@@ -247,6 +301,8 @@ public:
 	bool IsAmsGradEnabled() const { return isAmsGradEnabled; }
 	// Turns on AMSGrad mode. The algorithm is reset to initial state
 	void EnableAmsGrad( bool enable );
+
+	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
 protected:
 	// Resets to the initial state

@@ -45,7 +45,7 @@ void NEOML_API UnregisterLayerName( const std::type_info& typeInfo );
 template<class T>
 class CLayerClassRegistrar {
 public:
-	explicit CLayerClassRegistrar( const char* mainName, const char* additionalName );
+	CLayerClassRegistrar( const char* mainName, const char* additionalName );
 	~CLayerClassRegistrar();
 
 private:
@@ -469,6 +469,10 @@ public:
 	static const int ArchiveMinSupportedVersion = 1001;
 
 	void Serialize( CArchive& archive );
+
+	// Serializes network with data, required to resume training
+	// When loading from checkpoint creates new solver (old pointers will point to an object, not used by this net anymore)
+	void SerializeCheckpoint( CArchive& archive );
 
 private:
 	// Adds or deletes a layer
