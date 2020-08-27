@@ -90,11 +90,12 @@ The initializer is the same for all the network trainable weights, except for th
 
 ### Optimizers
 
-The optimizer sets the rules to update the weights during training. It is represented by the `CDnnSolver` that has 3 implementations:
+The optimizer sets the rules to update the weights during training. It is represented by the `CDnnSolver` that has 4 implementations:
 
 - `CDnnSimpleGradientSolver` - [gradient descent with momentum](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Momentum)
 - `CDnnAdaptiveGradientSolver` - gradient descent with adaptive momentum ([Adam](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam))
 - `CDnnNesterovGradientSolver` - Adam with Nesterov momentum ([Nadam](http://cs229.stanford.edu/proj2015/054_report.pdf))
+- `CDnnLambGradientSolver` - [LAMB](https://arxiv.org/pdf/1904.00962.pdf)
 
 To select the preferred optimizer, create an instance of one of these classes and pass it to the network using the [`CDnn::SetSolver`](Dnn.md#the-optimizer) method.
 

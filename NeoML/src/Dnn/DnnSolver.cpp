@@ -108,6 +108,7 @@ namespace {
 REGISTER_NEOML_SOLVER( CDnnSimpleGradientSolver, "NeoMLDnnSimpleGradientSolver" )
 REGISTER_NEOML_SOLVER( CDnnAdaptiveGradientSolver, "NeoMLDnnAdaptiveGradientSolver" )
 REGISTER_NEOML_SOLVER( CDnnNesterovGradientSolver, "NeoMLDnnNesterovGradientSolver" )
+REGISTER_NEOML_SOLVER( CDnnLambGradientSolver, "NeoMLDnnLambGradientSolver" )
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -696,6 +697,258 @@ void CDnnNesterovGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 		MathEngine().VectorMultiplyAndAdd( paramBlobs[i]->GetData(), temporaryBlob->GetData(),
 			paramBlobs[i]->GetData(), dataSize, tempVariables->GetData( {TV_RateVar} ) );
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+CDnnLambGradientSolver::CDnnLambGradientSolver( IMathEngine& mathEngine ) :
+	CDnnSolver( mathEngine ),
+	momentDecayRate( 0.9f ),
+	secondMomentDecayRate( 0.999f ),
+	epsilon( 1e-6f ),
+	weightDecayClip( -1.f ),
+	useTrustRatio( true ),
+	totalGradientNorm( 1.0f ),
+	useNvLamb( false ),
+	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
+{
+	SetLearningRate( 0.001f );
+}
+
+void CDnnLambGradientSolver::ExcludeWeightDecayLayer( const char* layerName, TExcludeLayerNameMatchType type,
+	int paramIndex )
+{
+	CExcludedLayer excludedLayer;
+	excludedLayer.LayerName = layerName;
+	excludedLayer.MatchType = type;
+	excludedLayer.ParamIndex = paramIndex;
+	excludedLayers.Add( excludedLayer );
+}
+
+static const int DnnLambGradientSolverVersion = 0;
+
+void CDnnLambGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
+{
+	archive.SerializeVersion( DnnLambGradientSolverVersion );
+	CDnnSolver::Serialize( archive, dnn );
+	archive.Serialize( momentDecayRate );
+	archive.Serialize( secondMomentDecayRate );
+	archive.Serialize( epsilon );
+	archive.Serialize( weightDecayClip );
+	archive.Serialize( useTrustRatio );
+	archive.Serialize( useNvLamb );
+	archive.Serialize( layersGradientNormSquare );
+
+	int excludedLayersCount = excludedLayers.Size();
+	archive.Serialize( excludedLayersCount );
+
+	if( archive.IsLoading() ) {
+		excludedLayers.SetSize( excludedLayersCount );
+	}
+
+	for( int i = 0; i < excludedLayers.Size(); ++i ) {
+		archive.Serialize( excludedLayers[i].LayerName );
+		int matchType = static_cast<int>( excludedLayers[i].MatchType );
+		archive.Serialize( matchType );
+		excludedLayers[i].MatchType = static_cast<TExcludeLayerNameMatchType>( matchType );
+		archive.Serialize( excludedLayers[i].ParamIndex );
+	}
+}
+
+void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
+	const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory )
+{
+	if( gradientHistory.IsEmpty() ) {
+		for( int j = 0; j < 2; j++ ) {
+			for( int i = 0; i < paramDiffBlobs.Size(); ++i ) {
+				CDnnBlob* blob = paramDiffBlobs[i]->GetClone();
+				blob->Clear();
+				gradientHistory.Add( blob );
+			}
+		}
+	}
+
+	const float rate = layer->GetBaseLearningRate() * GetLearningRate();
+	const float layerWeighDecay = GetL2Regularization() * layer->GetBaseL2RegularizationMult();
+	const float clipMultiplier = 1.0f / max( 1.0f, totalGradientNorm );
+
+	CFastArray<float, TV_Count> varValues;
+	varValues.SetSize( TV_Count );
+
+	varValues[TV_MomentDecayRateVar] = momentDecayRate;
+	varValues[TV_SecondMomentDecayRateVar] = secondMomentDecayRate;
+	varValues[TV_OpMomentDecayRateVar] = 1.f - momentDecayRate;
+	varValues[TV_OpSecondMomentDecayRateVar] = 1.f - secondMomentDecayRate;
+	varValues[TV_RateVar] = -rate;
+	varValues[TV_EpsilonVar] = epsilon;
+	varValues[TV_WeightDecayVar] = layerWeighDecay;
+	varValues[TV_ClipMultiplierVar] = clipMultiplier;
+	varValues[TV_LayerNormVar] = 0.f;
+	varValues[TV_TrustRatioVar] = 0.f;
+	varValues[TV_L2NormVar] = 0.f;
+
+	MathEngine().DataExchangeTyped( tempVariables->GetData(), varValues.GetPtr(), TV_Count );
+
+	// Getting parameters affected by weight decay
+	CHashTable<int> weightDecayParamIndexes;
+	getWeightDecayIndices( *layer, paramBlobs.Size(), weightDecayParamIndexes );
+
+	for( int i = 0; i < paramBlobs.Size(); ++i ) {
+		int dataSize = paramBlobs[i]->GetDataSize();
+		CDnnBlob* moment = gradientHistory[i];
+		CDnnBlob* secondMoment = gradientHistory[i + paramDiffBlobs.Size() * GHT_SecondMomentAverage];
+
+		if( tempBlob == 0 || tempBlob->GetDataSize() != paramDiffBlobs[i]->GetDataSize() ) {
+			tempBlob = CDnnBlob::CreateVector( MathEngine(), CT_Float, paramDiffBlobs[i]->GetDataSize() );
+		}
+
+		CPtr<CDnnBlob> paramDiffBlob = paramDiffBlobs[i];
+
+		if( useNvLamb ) {
+			MathEngine().VectorMultiply( paramDiffBlob->GetData(), paramDiffBlob->GetData(), dataSize,
+				tempVariables->GetData( { TV_ClipMultiplierVar } ) );
+		}
+
+		// Update the historical gradient
+		MathEngine().VectorMultiply( moment->GetData(), moment->GetData(), dataSize, 
+			tempVariables->GetData( { TV_MomentDecayRateVar } ) );
+		MathEngine().VectorMultiplyAndAdd( moment->GetData(), paramDiffBlob->GetData(),
+			moment->GetData(), dataSize, tempVariables->GetData( { TV_OpMomentDecayRateVar } ) );
+
+		// Calculate the historical average squared gradient
+		MathEngine().VectorEltwiseMultiply( paramDiffBlob->GetData(), paramDiffBlob->GetData(),
+			tempBlob->GetData(), dataSize );
+
+		// Add squared L2-norm for calculation of L2-norm of the whole mode
+		if( useNvLamb ) {
+			const float invSquareClipMultiplier = 1.0f / ( clipMultiplier * clipMultiplier );
+			MathEngine().VectorSum( tempBlob->GetData(), dataSize, tempVariables->GetData( { TV_LayerNormVar } ) );
+			layersGradientNormSquare.Add( invSquareClipMultiplier * tempVariables->GetData( { TV_LayerNormVar } ).GetValue() );
+		}
+
+		MathEngine().VectorMultiply( secondMoment->GetData(), secondMoment->GetData(), dataSize,
+			tempVariables->GetData( { TV_SecondMomentDecayRateVar } ) );
+		MathEngine().VectorMultiplyAndAdd( secondMoment->GetData(), tempBlob->GetData(),
+			secondMoment->GetData(), dataSize, tempVariables->GetData( { TV_OpSecondMomentDecayRateVar } ) );
+
+		// square root of the second moment
+		MathEngine().VectorSqrt( secondMoment->GetData(), tempBlob->GetData(), dataSize );
+
+		// add epsilon before division
+		MathEngine().VectorAddValue( tempBlob->GetData(), tempBlob->GetData(), dataSize,
+			tempVariables->GetData( { TV_EpsilonVar } ));
+
+		// divide historical gradient by the square root
+		MathEngine().VectorEltwiseDivide( moment->GetData(), tempBlob->GetData(),
+			tempBlob->GetData(), dataSize );
+
+		// weightDecay
+		if( weightDecayParamIndexes.Has( i ) && layerWeighDecay > 0 ) {
+			MathEngine().VectorMultiplyAndAdd( tempBlob->GetData(), paramBlobs[i]->GetData(),
+				tempBlob->GetData(), tempBlob->GetDataSize(), tempVariables->GetData( { TV_WeightDecayVar } ) );
+		}
+
+		if( useTrustRatio ) {
+			// apply normalizing multiplier
+			calcNormalizeMultiplier( *paramBlobs[i], *tempBlob, tempVariables->GetData( { TV_TrustRatioVar } ) );
+			MathEngine().VectorMultiply( tempBlob->GetData(),
+				tempBlob->GetData(), dataSize, tempVariables->GetData( { TV_TrustRatioVar } ) );
+		}
+
+		// adding gradient
+		MathEngine().VectorMultiplyAndAdd( paramBlobs[i]->GetData(), tempBlob->GetData(),
+			paramBlobs[i]->GetData(), dataSize, tempVariables->GetData( { TV_RateVar } ) );
+	}
+}
+
+// L2 norm of a vector
+float CDnnLambGradientSolver::calcL2Norm( const CConstFloatHandle& data, int dataSize ) const
+{
+	tempVariables->GetData( { TV_L2NormVar } ).SetValue( 0.f );
+	MathEngine().VectorDotProduct( data, data, dataSize, tempVariables->GetData( { TV_L2NormVar } ) );
+
+	const float result = tempVariables->GetData( { TV_L2NormVar } ).GetValue();
+	return static_cast<float>( sqrt( result ) );
+}
+
+// Parameter indices, used in weightDecay
+void CDnnLambGradientSolver::getWeightDecayIndices( const CBaseLayer& layer, int paramsCount,
+	CHashTable<int>& indexes ) const
+{
+	CHashTable<int> excludedIndexes;
+	const CString layerName = layer.GetName();
+	for( int i = 0; i < excludedLayers.Size(); i++ ) {
+		const CExcludedLayer& excludedLayer = excludedLayers[i];
+		switch( excludedLayer.MatchType ) {
+			case ELNMT_Exact:
+				if( excludedLayer.LayerName == layerName ) {
+					excludedIndexes.Add( excludedLayer.ParamIndex );
+				}
+				break;
+			case ELNMT_Include:
+				if( layerName.Find( excludedLayer.LayerName ) != NotFound ) {
+					excludedIndexes.Add( excludedLayer.ParamIndex );
+				}
+				break;
+			default:
+				break;
+
+		}
+	}
+
+	if( excludedIndexes.Has( -1 ) ) {
+		return;
+	}
+
+	for( int i = 0; i < paramsCount; i++ ) {
+		if( !excludedIndexes.Has( i ) ) {
+			indexes.Add( i );
+		}
+	}
+}
+
+// Calculate normalizing multiplier
+void CDnnLambGradientSolver::calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update,
+	const CFloatHandle& multiplierVar ) const
+{
+	float weightNorm = calcL2Norm( weights.GetData(), weights.GetDataSize() );
+	if( weightDecayClip > 0 ) {
+		weightNorm = min( weightNorm, weightDecayClip );
+	}
+
+	const float updateNorm = calcL2Norm( update.GetData(), update.GetDataSize() );
+
+	float multiplier = 0;
+	if( weightNorm > 0 && updateNorm > 0 ) {
+		multiplier = weightNorm / updateNorm;
+	} else {
+		multiplier = 1.0f;
+	}
+	multiplierVar.SetValue( multiplier );
+}
+
+void CDnnLambGradientSolver::OnTrain()
+{
+	if( !useNvLamb ) {
+		return;
+	}
+
+	if( layersGradientNormSquare.IsEmpty() ) {
+		totalGradientNorm = 1.0f;
+	} else {
+		totalGradientNorm = 0;
+		for( float norm : layersGradientNormSquare ) {
+			totalGradientNorm += norm;
+		}
+		totalGradientNorm = sqrtf( totalGradientNorm );
+	}
+
+	// Preventing division by zero
+	if( totalGradientNorm < epsilon ) {
+		totalGradientNorm = 1.0f;
+	}
+
+	layersGradientNormSquare.Empty();
 }
 
 } // namespace NeoML
