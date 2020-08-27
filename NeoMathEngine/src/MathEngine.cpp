@@ -38,8 +38,6 @@ limitations under the License.
 #include <MetalMathEngine.h>
 #endif
 
-#include <DllLoader.h>
-
 #include <vector>
 #include <memory>
 
