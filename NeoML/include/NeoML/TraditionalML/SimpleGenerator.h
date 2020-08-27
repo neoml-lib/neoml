@@ -36,6 +36,8 @@ limitations under the License.
 
 #pragma once
 
+#include <NeoML/NeoMLCommon.h>
+
 namespace NeoML {
 
 // Sorting mechanism for CSimpleGenerator::Element; by default uses Element::VariantQuality(),

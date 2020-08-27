@@ -19,6 +19,7 @@ limitations under the License.
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 
 namespace NeoML {
 
@@ -196,7 +197,12 @@ void CBaseLayer::AllocateOutputBlobs()
 		if( outputBlobs[i] == 0 ) {
 			outputBlobs[i] = CDnnBlob::CreateBlob( MathEngine(), outputDescs[i].GetDataType(), outputDescs[i] );
 		} else {
-			NeoPresume( outputBlobs[i]->GetDesc().HasEqualDimensions( outputDescs[i] ) );
+			if( !outputBlobs[i]->GetDesc().HasEqualDimensions( outputDescs[i] ) ) {
+				// If this output can be connected to in-place transform. And on the second run outputBlob's shape can mismatch with outputDesc.
+				// That's why now reinterpret it (because this layer can depend on outputBlob's shape).
+				// After that transform will change it again.
+				outputBlobs[i]->ReinterpretDimensions( outputDescs[i] );
+			}
 		}
 	}
 }
@@ -206,6 +212,21 @@ size_t CBaseLayer::GetOutputBlobsSize() const
 	size_t result = 0;
 	for( int i = 0; i < outputDescs.Size(); i++ ) {
 		result += outputDescs[i].BlobSize();
+	}
+	return result;
+}
+
+size_t CBaseLayer::GetTrainableParametersSize() const
+{
+	if( !isLearnable ) {
+		return 0;
+	}
+
+	size_t result = 0;
+	for( int i = 0; i < paramBlobs.Size(); i++ ) {
+		if( paramBlobs[i] != nullptr ) {
+			result += paramBlobs[i]->GetDataSize();
+		}
 	}
 	return result;
 }
@@ -695,135 +716,6 @@ void CBaseLayer::onOutputProcessed( int index )
 	if( outputProcessedCount[index] == outputs[index] ) {
 		outputBlobs[index] = 0;
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-void CSourceLayer::SetBlob( CDnnBlob* _blob )
-{
-	if( _blob == blob.Ptr() ) {
-		return;
-	}
-
-	blob = _blob;
-
-	if( !outputDescs.IsEmpty() ) {
-		if( blob->GetDataType() != outputDescs[0].GetDataType()
-			|| !blob->GetDesc().HasEqualDimensions( outputDescs[0] ) )
-		{
-			outputDescs[0] = blob->GetDesc();
-			ForceReshape();
-		}
-	}
-
-	if( !outputBlobs.IsEmpty() ) {
-		outputBlobs[0] = 0;
-	}
-}
-
-void CSourceLayer::Reshape()
-{
-	CheckOutputs();
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "Source layer has more than 1 output" );
-	CheckArchitecture( blob.Ptr() != 0, GetName(), "Source layer has null data blob" );
-	outputDescs[0] = blob->GetDesc();
-}
-
-void CSourceLayer::RunOnce()
-{
-	// No action: the data will be filled by the user
-}
-
-void CSourceLayer::BackwardOnce()
-{
-	// No action
-}
-
-void CSourceLayer::AllocateOutputBlobs()
-{
-	// The standard output blobs allocation does not work for us
-	outputBlobs[0] = blob;
-}
-
-static const int SourceLayerVersion = 2000;
-
-void CSourceLayer::Serialize( CArchive& archive )
-{
-	archive.SerializeVersion( SourceLayerVersion, CDnn::ArchiveMinSupportedVersion );
-	CBaseLayer::Serialize( archive );
-}
-
-////////////////////////////////////////////////////////////////////////////////
-const CPtr<CDnnBlob>& CSinkLayer::GetBlob() const 
-{ 
-	NeoAssert( inputBlobs.Size() > 0 ); 
-	return blob;
-}
-
-void CSinkLayer::Reshape()
-{
-	// No action: just pass the data to the user
-	CheckInputs();
-	if(blob == 0 || !blob->GetDesc().HasEqualDimensions(inputDescs[0])) {
-		blob = 0; // reset the link to the external blob with the results
-	}
-}
-
-void CSinkLayer::RunOnce()
-{
-	blob = inputBlobs[0];
-}
-
-void CSinkLayer::BackwardOnce()
-{
-	inputDiffBlobs[0]->Clear();
-}
-
-static const int SinkLayerVersion = 2000;
-
-void CSinkLayer::Serialize( CArchive& archive )
-{
-	archive.SerializeVersion( SinkLayerVersion, CDnn::ArchiveMinSupportedVersion );
-	CBaseLayer::Serialize( archive );
-
-	int temp = 0;
-	if( archive.IsStoring() ) {
-		archive << temp;
-	} else if( archive.IsLoading() ) {
-		archive >> temp;
-	} else {
-		NeoAssert( false );
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-void CBaseInPlaceLayer::Reshape()
-{
-	isInPlace = IsInPlaceProcessAvailable();
-	inputDescs.CopyTo( outputDescs );
-
-	OnReshaped();
-}
-
-void CBaseInPlaceLayer::AllocateOutputBlobs()
-{
-	if( !isInPlace ) {
-		CBaseLayer::AllocateOutputBlobs();
-		return;
-	}
-
-	if( !outputBlobs.IsEmpty() && outputBlobs[0] == 0 ) {
-		inputBlobs.CopyTo( outputBlobs );
-	}
-}
-
-static const int BaseInPlaceLayerVersion = 2000;
-
-void CBaseInPlaceLayer::Serialize( CArchive& archive )
-{
-	archive.SerializeVersion( BaseInPlaceLayerVersion, CDnn::ArchiveMinSupportedVersion );
-	CBaseLayer::Serialize( archive );
 }
 
 } // namespace NeoML

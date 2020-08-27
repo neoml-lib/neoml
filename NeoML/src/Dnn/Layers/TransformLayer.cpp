@@ -62,7 +62,7 @@ int CTransformLayer::CDimensionRule::Transform( int input ) const
 /////////////////////////////////////////////////////////////////////////////////////////
 
 CTransformLayer::CTransformLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnTransformLayer", false )
+	CBaseInPlaceLayer( mathEngine, "CCnnTransformLayer", false )
 {
 }
 
@@ -89,9 +89,13 @@ void CTransformLayer::SetDimensionRule( TBlobDim dim, TOperation op, int param )
 	ForceReshape();
 }
 
-void CTransformLayer::Reshape()
+void CTransformLayer::OnReshaped()
 {
 	CheckInput1();
+
+	CheckArchitecture( !GetDnn()->IsRecurrentMode(), GetName(), "can't be used inside of recurrent layers" );
+	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float || !IsBackwardPerformed(), GetName(),
+		"Integer blobs can't be backpropagated" );
 
 	outputDescs[0] = inputDescs[0];
 	// The first pass: calculate everything except O_Remainder
@@ -112,14 +116,21 @@ void CTransformLayer::Reshape()
 		outputDescs[0].SetDimSize(remainderDim, remainder);
 	}
 	NeoAssert(outputDescs[0].BlobSize() == inputDescs[0].BlobSize());
+
+	inputDesc = inputDescs[0];
+	outputDesc = outputDescs[0];
 }
 
-static const int TransformLayerVersion = 2000;
+static const int TransformLayerVersion = 2001;
 
 void CTransformLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( TransformLayerVersion, CDnn::ArchiveMinSupportedVersion );
-	CBaseLayer::Serialize( archive );
+	int version = archive.SerializeVersion( TransformLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	if( version > 2000 ) {
+		CBaseInPlaceLayer::Serialize( archive );
+	} else {
+		CBaseLayer::Serialize( archive );
+	}
 
 	if( archive.IsStoring() ) {
 		archive.WriteSmallValue( 0 );
@@ -138,21 +149,23 @@ void CTransformLayer::Serialize( CArchive& archive )
 
 void CTransformLayer::RunOnce()
 {
-	NeoAssert(outputBlobs[0]->GetDataSize() == inputBlobs[0]->GetDataSize());
-	if( inputBlobs[0]->GetDataType() == CT_Float ) {
-		MathEngine().VectorCopy(outputBlobs[0]->GetData(), inputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
+	if( inputBlobs[0]->GetDataType() == CT_Float && inputBlobs[0]->GetData() != outputBlobs[0]->GetData() ) {
+		MathEngine().VectorCopy( outputBlobs[0]->GetData(), inputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+	} else if( inputBlobs[0]->GetDataType() == CT_Int && inputBlobs[0]->GetData<int>() != outputBlobs[0]->GetData<int>() ) {
+		MathEngine().VectorCopy( outputBlobs[0]->GetData<int>(), inputBlobs[0]->GetData<int>(), outputBlobs[0]->GetDataSize() );
 	} else {
-		MathEngine().VectorCopy(outputBlobs[0]->GetData<int>(), inputBlobs[0]->GetData<int>(), outputBlobs[0]->GetDataSize());
+		outputBlobs[0]->ReinterpretDimensions( outputDesc );
 	}
 }
 
 void CTransformLayer::BackwardOnce()
 {
-	CheckArchitecture( inputDiffBlobs[0]->GetDataType() == CT_Float,
-		GetName(), "layer can backprop only float" );
-	NeoAssert(outputDiffBlobs[0]->GetDataSize() == inputDiffBlobs[0]->GetDataSize());
-	MathEngine().VectorCopy(inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
-		inputDiffBlobs[0]->GetDataSize());
+	if( inputDiffBlobs[0]->GetData() != outputDiffBlobs[0]->GetData() ) {
+		MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetDataSize() );
+	} else {
+		inputDiffBlobs[0]->ReinterpretDimensions( inputDesc );
+	}
 }
 
 

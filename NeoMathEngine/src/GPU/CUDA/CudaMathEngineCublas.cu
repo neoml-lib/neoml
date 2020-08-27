@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <CudaMathEngine.h>
 #include <CudaCommon.h>
+#include <CudaAssert.h>
 #include <CublasFunctions.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
@@ -34,7 +35,7 @@ void CCudaMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, con
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	ASSERT_ERROR_CODE( cublas->Sdot( cublasHandle, vectorSize, GetRaw( firstHandle ), 1,
+	ASSERT_CUBLAS( cublas->Sdot( cublasHandle, vectorSize, GetRaw( firstHandle ), 1,
 		GetRaw( secondHandle ), 1, GetRaw( resultHandle ) ) );
 }
 
@@ -52,9 +53,9 @@ void CCudaMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle
 	const float* mult = GetRaw( multHandle );
 
 	if( result != first ) {
-		ASSERT_ERROR_CODE( cudaMemcpy( result, first, vectorSize * sizeof( float ), cudaMemcpyDeviceToDevice ) );
+		ASSERT_CUDA( cudaMemcpy( result, first, vectorSize * sizeof( float ), cudaMemcpyDeviceToDevice ) );
 	}
-	ASSERT_ERROR_CODE( cublas->Saxpy( cublasHandle, vectorSize, mult, second, 1, result, 1 ) );
+	ASSERT_CUBLAS( cublas->Saxpy( cublasHandle, vectorSize, mult, second, 1, result, 1 ) );
 }
 
 void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle& firstHandle, int firstHeight,
@@ -65,9 +66,23 @@ void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle&
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	ASSERT_ERROR_CODE( cublas->Sgemm( cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, secondHeight, firstHeight, firstWidth,
+	ASSERT_CUBLAS( cublas->Sgemm( cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, secondHeight, firstHeight, firstWidth,
 		CCudaConst::One, GetRaw( secondHandle ), secondRowSize, GetRaw( firstHandle ), firstRowSize, CCudaConst::Zero,
 		GetRaw( resultHandle ), resultRowSize ) );
+}
+
+void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle,
+	int firstHeight, int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight,
+	const CFloatHandle& resultHandle, int resultBufferSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	ASSERT_CUBLAS( cublas->SgemmStridedBatched( cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, secondHeight,
+		firstHeight, firstWidth, CCudaConst::One, GetRaw( secondHandle ), firstWidth, firstWidth * secondHeight,
+		GetRaw( firstHandle ), firstWidth, firstHeight * firstWidth, CCudaConst::Zero, GetRaw( resultHandle ),
+		secondHeight, secondHeight * firstHeight, batchSize ) );
 }
 
 void CCudaMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle, int firstHeight,
@@ -78,9 +93,22 @@ void CCudaMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatH
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	ASSERT_ERROR_CODE( cublas->Sgemm( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T, secondWidth, firstWidth, firstHeight,
+	ASSERT_CUBLAS( cublas->Sgemm( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T, secondWidth, firstWidth, firstHeight,
 		CCudaConst::One, GetRaw( secondHandle ), secondRowSize, GetRaw( firstHandle ), firstRowSize, CCudaConst::One,
 		GetRaw( resultHandle ), resultRowSize ) );
+}
+
+void CCudaMathEngine::MultiplyTransposedMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	ASSERT_CUBLAS( cublas->SgemmStridedBatched( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T, secondWidth, firstWidth,
+		firstHeight, CCudaConst::One, GetRaw(secondHandle), secondWidth, firstHeight * secondWidth, GetRaw(firstHandle),
+		firstWidth, firstHeight * firstWidth, CCudaConst::Zero, GetRaw(resultHandle), secondWidth, firstWidth * secondWidth,
+		batchSize ) );
 }
 
 void CCudaMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
@@ -92,11 +120,11 @@ void CCudaMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHa
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
 	if( batchSize == 1 ) {
-		ASSERT_ERROR_CODE( cublas->Sgemm( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, secondWidth, firstHeight, firstWidth,
+		ASSERT_CUBLAS( cublas->Sgemm( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, secondWidth, firstHeight, firstWidth,
 			CCudaConst::One, GetRaw( secondHandle ), secondWidth, GetRaw( firstHandle ), firstWidth, CCudaConst::Zero,
 			GetRaw( resultHandle ), secondWidth ) );
 	} else {
-		ASSERT_ERROR_CODE( cublas->SgemmStridedBatched( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, secondWidth, firstHeight, firstWidth,
+		ASSERT_CUBLAS( cublas->SgemmStridedBatched( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, secondWidth, firstHeight, firstWidth,
 			CCudaConst::One, GetRaw( secondHandle ), secondWidth, firstWidth * secondWidth, GetRaw( firstHandle ), firstWidth,
 			firstHeight * firstWidth, CCudaConst::Zero, GetRaw( resultHandle ), secondWidth, secondWidth * firstHeight, batchSize ) );
 	}
@@ -107,7 +135,7 @@ void CCudaMathEngine::multiplyMatrixByTransposedMatrixAndAdd(const CConstFloatHa
 	const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 	const CFloatHandle& resultHandle, int resultRowSize)
 {
-	ASSERT_ERROR_CODE( cublas->Sgemm( cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, secondHeight, firstHeight, firstWidth,
+	ASSERT_CUBLAS( cublas->Sgemm( cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, secondHeight, firstHeight, firstWidth,
 		CCudaConst::One, GetRaw( secondHandle ), secondRowSize, GetRaw( firstHandle ), firstRowSize, CCudaConst::One,
 		GetRaw( resultHandle ), resultRowSize ) );
 }

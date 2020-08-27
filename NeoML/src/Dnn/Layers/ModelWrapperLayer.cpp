@@ -19,6 +19,8 @@ limitations under the License.
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <NeoML/Dnn/Layers/SourceLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 
 namespace NeoML {
 
@@ -319,8 +321,10 @@ bool CDnnModelWrapper::classify( CClassificationResult& result ) const
 		NeoAssert(resultBlob->GetObjectSize() == 1);
 
 		// Use a sigmoid function to estimate probabilities
-		result.Probabilities[0] = CClassificationProbability(1 / (1 + exp( resultBlob->GetData().GetValue() )));
-		result.Probabilities[1] = CClassificationProbability(1 - result.Probabilities[0].GetValue());
+		const double zeroClassProb = 1 / (1 + exp(resultBlob->GetData().GetValue()));
+		result.Probabilities[0] = CClassificationProbability(zeroClassProb);
+		result.Probabilities[1] = CClassificationProbability(1 - zeroClassProb);
+		result.PreferredClass = zeroClassProb >= 0.5 ? 0 : 1;
 	} else {
 		NeoAssert(resultBlob->GetObjectSize() == ClassCount);
 

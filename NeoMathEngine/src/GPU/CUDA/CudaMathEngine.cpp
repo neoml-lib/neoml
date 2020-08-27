@@ -32,7 +32,7 @@ limitations under the License.
 #include <string>
 #include <vector>
 #include <CudaDevice.h>
-#include <cuda_runtime.h>
+#include <CudaAssert.h>
 
 namespace NeoML {
 
@@ -132,13 +132,13 @@ void CCudaMathEngine::ReleaseBuffer( const CMemoryHandle& handle, void* ptr, boo
 void CCudaMathEngine::DataExchangeRaw(const CMemoryHandle& handle, const void* data, size_t size)
 {
 	ASSERT_EXPR(handle.GetMathEngine() == this);
-	ASSERT_ERROR_CODE(cudaMemcpy(GetRaw(handle), data, size, cudaMemcpyHostToDevice));
+	ASSERT_CUDA(cudaMemcpy(GetRaw(handle), data, size, cudaMemcpyHostToDevice));
 }
 
 void CCudaMathEngine::DataExchangeRaw(void* data, const CMemoryHandle& handle, size_t size)
 {
 	ASSERT_EXPR(handle.GetMathEngine() == this);
-	ASSERT_ERROR_CODE(cudaMemcpy(data, GetRaw(handle), size, cudaMemcpyDeviceToHost));
+	ASSERT_CUDA(cudaMemcpy(data, GetRaw(handle), size, cudaMemcpyDeviceToHost));
 }
 
 CMemoryHandle CCudaMathEngine::CopyFrom( const CMemoryHandle& handle, size_t size )
@@ -168,21 +168,7 @@ CMemoryHandle CCudaMathEngine::Alloc( size_t size )
 
 void CCudaMathEngine::Free( const CMemoryHandle& handle )
 {
-	ASSERT_ERROR_CODE( cudaFree( GetRaw( CTypedMemoryHandle<char>( handle ) ) ) );
-}
-
-void CCudaMathEngine::generateAssert( IMathEngineExceptionHandler* exceptionHandler, const char* expr, const char* file, int line, int errorCode )
-{
-	if( errorCode != 0 ) {
-		exceptionHandler->OnAssert( cudaGetErrorString( static_cast<cudaError_t>( errorCode ) ), file, line, errorCode );
-	} else {
-		exceptionHandler->OnAssert( expr, file, line, errorCode );
-	}
-}
-
-void CCudaMathEngine::generateMemoryError( IMathEngineExceptionHandler* exceptionHandler )
-{
-	exceptionHandler->OnMemoryError();
+	ASSERT_CUDA( cudaFree( GetRaw( CTypedMemoryHandle<char>( handle ) ) ) );
 }
 
 void CCudaMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const

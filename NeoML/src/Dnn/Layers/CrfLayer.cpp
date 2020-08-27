@@ -21,6 +21,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SubSequenceLayer.h>
 #include <NeoML/TraditionalML/VariableMatrix.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 
 namespace NeoML {
 
@@ -28,7 +29,8 @@ static const char* DropOutName = "DropOut";
 
 CCrfCalculationLayer::CCrfCalculationLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CCnnCrfCalculationLayer", true ),
-	paddingClass( 0 )
+	paddingClass( 0 ),
+	doCalculateBestPrevClass( false )
 {
 	paramBlobs.SetSize(1);
 }
@@ -115,7 +117,7 @@ void CCrfCalculationLayer::calcLabelProbability()
 	}
 }
 
-// Checks if we are on the first (possibly the only) step
+// Checks if we are at the first (possibly the only) step
 bool CCrfCalculationLayer::isFirstStep() const
 {
 	return !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos();
@@ -123,49 +125,62 @@ bool CCrfCalculationLayer::isFirstStep() const
 
 void CCrfCalculationLayer::RunOnce()
 {
-	int batchWidth = inputBlobs[I_ClassLogProb]->GetBatchWidth();
-	int numberOfClasses = inputBlobs[I_ClassLogProb]->GetObjectSize();
-
 	// The unary estimates of the current elements (the fully-connected layer output)
 	CConstFloatHandle currentProbabilities = inputBlobs[I_ClassLogProb]->GetData();
-	// The vector of partial function value on the previous step (alpha in the forward-backward algorithm, forward pass)
-	// Contains zeros for the first step
-	CConstFloatHandle sequenceProbabilities = inputBlobs[I_ClassSeqLogProb]->GetData();
+	// Always clear tempSumBlob so it is not left uninitialized
 	tempSumBlob->Clear();
-	CFloatHandle tempSum = tempSumBlob->GetData();
-	if( !isFirstStep() ) {
+
+	if( isFirstStep() || ( IsLearningPerformed() && !doCalculateBestPrevClass ) ) {
+		// We don't compute O_BestPrevClass output at the first step and also during training when not asked explicitly.
+		// Clear the O_BestPrevClass output so it is not left uninitialized.
+		outputBlobs[O_BestPrevClass]->Clear();
+	}
+
+	if( isFirstStep() ) {
+		// At the first step all we have to do is initialize the O_ClassSeqLogProb output with current element probabilities
+		MathEngine().VectorCopy( outputBlobs[O_ClassSeqLogProb]->GetData(), currentProbabilities,
+			outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
+	} else {
+		int batchWidth = inputBlobs[I_ClassLogProb]->GetBatchWidth();
+		int numberOfClasses = inputBlobs[I_ClassLogProb]->GetObjectSize();
+
+		// The vector of partial function value at the previous step (alpha in the forward-backward algorithm, forward pass)
+		CConstFloatHandle sequenceProbabilities = inputBlobs[I_ClassSeqLogProb]->GetData();
+
+		CFloatHandle tempSum = tempSumBlob->GetData();
+
 		// Replicate the transitions matrix batchWidth times (manual broadcast)
-		// Add the binary estimates of transition from any previous step to the current
-		// (adding by the previous steps, row by row)
+		// Add the binary estimates of transition from any previous step to the current one
 		MathEngine().AddVectorToMatrixRows(1, tempSum, tempSum, batchWidth,
 			numberOfClasses * numberOfClasses, Transitions()->GetData());
 		// Add the partial function values calculated above
-		// Adding row by row except for the first step when they are equal to 0
 		MathEngine().AddVectorToMatrixRows(batchWidth, tempSum, tempSum,
 			numberOfClasses, numberOfClasses, sequenceProbabilities);
-	}
 
-	if(!IsLearningPerformed()) {
-		// Add the estimates (logits) of the current element classes
-		MathEngine().AddVectorToMatrixColumns(tempSum, tempSum,
-			numberOfClasses * batchWidth, numberOfClasses, currentProbabilities);
-		// Viterbi algorithm
-		MathEngine().FindMaxValueInRows(tempSum, numberOfClasses * batchWidth, numberOfClasses, 
-			outputBlobs[O_ClassSeqLogProb]->GetData(), outputBlobs[O_BestPrevClass]->GetData<int>(),
-			outputBlobs[O_ClassSeqLogProb]->GetDataSize());
-	} else {
-		// Makes no sense to calculate log sum exp on the first step because all sequences are equally probable and have the same estimate
-		// So it would only add log(N) unnecessary loss
-		if( isFirstStep() ) {
-			MathEngine().VectorCopy( outputBlobs[O_ClassSeqLogProb]->GetData(), currentProbabilities,
-				outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
+		if(!IsLearningPerformed()) {
+			// Back-pointers for the Viterbi algorithm
+			MathEngine().FindMaxValueInRows(tempSum, numberOfClasses * batchWidth, numberOfClasses, 
+				outputBlobs[O_ClassSeqLogProb]->GetData(), outputBlobs[O_BestPrevClass]->GetData<int>(),
+				outputBlobs[O_ClassSeqLogProb]->GetDataSize());
 		} else {
-			// Algorithm forward pass (calculate the new alphas - the partial function values on this step):
+			// Algorithm forward pass (calculate the new alphas - the partial function values at this step):
 			MathEngine().MatrixLogSumExpByRows( tempSum, numberOfClasses  * batchWidth, numberOfClasses,
 				outputBlobs[O_ClassSeqLogProb]->GetData(), outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
-			MathEngine().VectorAdd( currentProbabilities, outputBlobs[O_ClassSeqLogProb]->GetData(),
-				outputBlobs[O_ClassSeqLogProb]->GetData(), outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
+			// Calculate O_BestPrevClass output, if required
+			if( doCalculateBestPrevClass ) {
+				// Update the throw-away blob dimensions so it can contain the required data
+				if( discardedBestPrevClassMax == 0 || !discardedBestPrevClassMax->HasEqualDimensions( outputBlobs[O_ClassSeqLogProb] ) ) {
+					discardedBestPrevClassMax = outputBlobs[O_ClassSeqLogProb]->GetClone();
+				}
+				// Back-pointers for the Viterbi algorithm during training.
+				// We use a dummy blob for the by-product max values because during training O_ClassSeqLogProb must contain the result of log-sum-exp and not plain max values.
+				MathEngine().FindMaxValueInRows(tempSum, numberOfClasses * batchWidth, numberOfClasses, 
+					discardedBestPrevClassMax->GetData(), outputBlobs[O_BestPrevClass]->GetData<int>(), outputBlobs[O_BestPrevClass]->GetDataSize());
+			}
 		}
+		// Add unary estimates at current step (log sum exp will take place at the next step)
+		MathEngine().VectorAdd( currentProbabilities, outputBlobs[O_ClassSeqLogProb]->GetData(),
+			outputBlobs[O_ClassSeqLogProb]->GetData(), outputBlobs[O_ClassSeqLogProb]->GetDataSize() );
 	}
 
 	// Calculate the correct class probability
@@ -178,44 +193,55 @@ void CCrfCalculationLayer::BackwardOnce()
 {
 	int numberOfClasses = inputBlobs[I_ClassLogProb]->GetObjectSize();
 	int batchWidth = inputBlobs[0]->GetBatchWidth();
+
 	// Input #0 is the fully-connected layer output (logarithm of the probability of each class in this position)
 	inputDiffBlobs[I_ClassLogProb]->CopyFrom(outputDiffBlobs[O_ClassSeqLogProb]);
 	MathEngine().AddVectorToMatrixElements(inputDiffBlobs[I_ClassLogProb]->GetData(), batchWidth, 
 		numberOfClasses, inputBlobs[I_Label]->GetData<int>(), outputDiffBlobs[O_LabelLogProb]->GetData());
-	// Input #1 contains the feedback from the output #1
-	CFloatHandle tempSum = tempSumBlob->GetData();
-	MathEngine().MatrixSoftmaxByRows(tempSum, numberOfClasses * batchWidth, numberOfClasses, tempSum);
-	MathEngine().MultiplyMatrixByMatrix(batchWidth,
-		outputDiffBlobs[O_ClassSeqLogProb]->GetData(), 1, numberOfClasses, 
-		tempSum, numberOfClasses,
-		inputDiffBlobs[I_ClassSeqLogProb]->GetData(), 
-		inputDiffBlobs[I_ClassSeqLogProb]->GetDataSize());
+
+	if( !isFirstStep() ) {
+		// Input #1 contains the feedback from the output #1
+		CFloatHandle tempSum = tempSumBlob->GetData();
+		MathEngine().MatrixSoftmaxByRows(tempSum, numberOfClasses * batchWidth, numberOfClasses, tempSum);
+		MathEngine().MultiplyMatrixByMatrix(batchWidth,
+			outputDiffBlobs[O_ClassSeqLogProb]->GetData(), 1, numberOfClasses, 
+			tempSum, numberOfClasses,
+			inputDiffBlobs[I_ClassSeqLogProb]->GetData(), 
+			inputDiffBlobs[I_ClassSeqLogProb]->GetDataSize());
+	}
 }
 
 void CCrfCalculationLayer::LearnOnce()
 {
+	if( isFirstStep() ) {
+		// At the first step there are no transitions, so nothing to learn
+		return;
+	}
+
 	int numberOfClasses = inputBlobs[I_ClassLogProb]->GetObjectSize();
 	int batchWidth = inputBlobs[I_ClassLogProb]->GetBatchWidth();
+
 	// Output #1 contains sequence probabilities
 	MathEngine().MultiplyDiagMatrixByMatrixAndAdd(batchWidth,
 		outputDiffBlobs[O_ClassSeqLogProb]->GetData(),
 		numberOfClasses, tempSumBlob->GetData(), numberOfClasses, TransitionsDiff()->GetData());
 	// Output #2 contains the correct class probability
-	if( !isFirstStep() ) {
-		MathEngine().AddVectorToMatrixElements( TransitionsDiff()->GetData(), numberOfClasses,
-			numberOfClasses, inputBlobs[I_Label]->GetData<int>(), getPrevLabels()->GetData<int>(),
-			outputDiffBlobs[O_LabelLogProb]->GetData(), outputDiffBlobs[O_LabelLogProb]->GetDataSize() );
-	}
+	MathEngine().AddVectorToMatrixElements( TransitionsDiff()->GetData(), numberOfClasses,
+		numberOfClasses, inputBlobs[I_Label]->GetData<int>(), getPrevLabels()->GetData<int>(),
+		outputDiffBlobs[O_LabelLogProb]->GetData(), outputDiffBlobs[O_LabelLogProb]->GetDataSize() );
 }
 
-static const int CrfCalculationLayerVersion = 2000;
+static const int CrfCalculationLayerVersion = 2001;
 
 void CCrfCalculationLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( CrfCalculationLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	int version = archive.SerializeVersion( CrfCalculationLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
 
 	archive.Serialize( paddingClass );
+	if( version >= 2001 ) {
+		archive.Serialize( doCalculateBestPrevClass );
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -256,9 +282,8 @@ void CCrfInternalLossLayer::Serialize( CArchive& archive )
 // CCrfLossLayer
 
 CCrfLossLayer::CCrfLossLayer( IMathEngine& mathEngine ) :
-	CCompositeLayer( mathEngine )
+	CCompositeLayer( mathEngine, "CCnnCrfLossLayer" )
 {
-	SetName("CCnnCrfLossLayer");
 	buildLayer();
 }
 
@@ -301,9 +326,8 @@ void CCrfLossLayer::Serialize( CArchive& archive )
 ///////////////////////////////////////////////////////////////////////////////////
 
 CCrfLayer::CCrfLayer( IMathEngine& mathEngine ) :
-	CRecurrentLayer( mathEngine )
+	CRecurrentLayer( mathEngine, "CCnnCrfLayer" )
 {
-	SetName("CCnnCrfLayer");
 	buildLayer(0.f);
 }
 
@@ -400,18 +424,19 @@ void CBestSequenceLayer::Reshape()
 
 void CBestSequenceLayer::BackwardOnce()
 {
+	inputDiffBlobs[I_BestPrevClass]->Clear();
+	inputDiffBlobs[I_ClassSeqLogProb]->Clear();
 }
 
 void CBestSequenceLayer::RunOnce()
 {
-	int batchLength = inputBlobs[0]->GetBatchLength();
-	int batchWidth = inputBlobs[0]->GetBatchWidth();
-	int numberOfClasses = inputBlobs[0]->GetObjectSize();
+	int batchLength = inputBlobs[I_BestPrevClass]->GetBatchLength();
+	int batchWidth = inputBlobs[I_BestPrevClass]->GetBatchWidth();
+	int numberOfClasses = inputBlobs[I_BestPrevClass]->GetObjectSize();
 
-	CPtr<CDnnBlob> bestPrevClassBlob = CDnnBlob::CreateWindowBlob(inputBlobs[I_BestPrevClass], 1);
 	CConstFloatHandle classSeqLogProbData = inputBlobs[I_ClassSeqLogProb]->GetData( {batchLength - 1} );
-	CFloatHandleVar maxProbabilities(MathEngine(), batchWidth);
-	CIntHandleVar bestLabelsHandle(MathEngine(), batchWidth);
+	CFloatHandleStackVar maxProbabilities(MathEngine(), batchWidth);
+	CIntHandleStackVar bestLabelsHandle(MathEngine(), batchWidth);
 	// Find the last labels of the best sequences
 	MathEngine().FindMaxValueInRows(classSeqLogProbData, batchWidth, numberOfClasses,
 		maxProbabilities.GetHandle(), bestLabelsHandle.GetHandle(), batchWidth);
@@ -419,12 +444,16 @@ void CBestSequenceLayer::RunOnce()
 	CVariableMatrix<int> bestLabels(batchLength, batchWidth);
 	MathEngine().DataExchangeTyped<int>(bestLabels.Column(batchLength - 1), 
 		bestLabelsHandle.GetHandle(), batchWidth);
-	CVariableMatrix<int> bestPrevLabels(batchLength * batchWidth, numberOfClasses);
-	inputBlobs[I_BestPrevClass]->CopyTo(bestPrevLabels.Column(0), bestPrevLabels.DataSize());
-	for(int i = batchLength - 1; i >= 1; i--) {
-		// Get the best labels from the previous sequence elements
-		for(int j = 0; j < batchWidth; j++) {
-			bestLabels(i - 1, j) = bestPrevLabels(i * batchWidth + j, bestLabels(i, j));
+
+	if( batchLength > 1 ) {
+		// Viterbi backward pass using back-pointers stored in I_BestPrevClass
+		CVariableMatrix<int> bestPrevLabels(batchLength * batchWidth, numberOfClasses);
+		inputBlobs[I_BestPrevClass]->CopyTo(bestPrevLabels.Column(0), bestPrevLabels.DataSize());
+		for(int i = batchLength - 1; i >= 1; i--) {
+			// Get the best labels from the previous sequence elements
+			for(int j = 0; j < batchWidth; j++) {
+				bestLabels(i - 1, j) = bestPrevLabels(i * batchWidth + j, bestLabels(i, j));
+			}
 		}
 	}
 	outputBlobs[0]->CopyFrom<int>(bestLabels.Column(0));

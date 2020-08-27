@@ -119,7 +119,13 @@ bool COneVersusAllModel::Classify( const CFloatVector& data, CClassificationResu
 
 void COneVersusAllModel::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( 1, 1 );
+#ifdef NEOML_USE_FINEOBJ
+	const int minSupportedVersion = 0;
+#else
+	const int minSupportedVersion = 1;
+#endif
+
+	int version = archive.SerializeVersion( 1, minSupportedVersion );
 
 	if( archive.IsStoring() ) {
 		archive << classifiers.Size();
@@ -131,10 +137,18 @@ void COneVersusAllModel::Serialize( CArchive& archive )
 		int size = 0;
 		archive >> size;
 		classifiers.SetSize( size );
-		for( int i = 0; i < classifiers.Size(); i++ ) {
-			CString name;
-			archive >> name;
-			classifiers[i] = CreateModel<IModel>( name );
+		for( int i = 0; i < classifiers.Size(); ++i ) {
+#ifdef NEOML_USE_FINEOBJ
+			if( version == 0 ) {
+				CUnicodeString name = archive.ReadExternalName();
+				classifiers[i] = CreateModel<IModel>( name.CreateString() );
+			}
+#endif
+			if( version == 1 ) {
+				CString name;
+				archive >> name;
+				classifiers[i] = CreateModel<IModel>( name );
+			}
 			classifiers[i]->Serialize( archive );
 		}
 	} else {

@@ -94,7 +94,7 @@ public:
 	virtual ~IMathEngineExceptionHandler();
 	// An error during a method call
 	// The default action is to throw std::logic_error
-	virtual void OnAssert( const char* message, const char* file, int line, int errorCode ) = 0;
+	virtual void OnAssert( const char* message, const wchar_t* file, int line, int errorCode ) = 0;
 
 	// Memory cannot be allocated on device
 	// The default action is to throw std::bad_alloc

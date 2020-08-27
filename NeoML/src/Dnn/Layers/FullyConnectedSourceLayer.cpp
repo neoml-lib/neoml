@@ -22,7 +22,7 @@ limitations under the License.
 namespace NeoML {
 
 CFullyConnectedSourceLayer::CFullyConnectedSourceLayer( IMathEngine& mathEngine ) :
-	CFullyConnectedLayer( mathEngine ),
+	CFullyConnectedLayer( mathEngine, "CCnnFullyConnectedSourceLayer" ),
 	problem( nullptr ),
 	batchData( 0 ),
 	batchSize( 1 ),
@@ -33,7 +33,6 @@ CFullyConnectedSourceLayer::CFullyConnectedSourceLayer( IMathEngine& mathEngine 
 	firstVectorInBatchIndex( NotFound ),
 	labelType( CT_Float )
 {
-	SetName( "CCnnFullyConnectedSourceLayer" );
 }
 
 void CFullyConnectedSourceLayer::SetBatchSize( int newBatchSize )

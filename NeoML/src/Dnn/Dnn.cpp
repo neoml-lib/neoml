@@ -17,6 +17,9 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <NeoML/Dnn/Layers/SourceLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 #include <NeoML/Dnn/Layers/ConcatLayer.h>
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
@@ -26,8 +29,10 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/FullyConnectedSourceLayer.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/PoolingLayer.h>
+#include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoML/Dnn/Layers/BatchNormalizationLayer.h>
+#include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
 #include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
@@ -69,6 +74,9 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/RepeatSequenceLayer.h>
 #include <NeoML/Dnn/Layers/DotProductLayer.h>
 #include <NeoML/Dnn/Layers/ReorgLayer.h>
+#include <NeoML/Dnn/Layers/AddToObjectLayer.h>
+#include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
+#include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 
 namespace NeoML {
 
@@ -205,6 +213,7 @@ REGISTER_NEOML_LAYER( CHingeLossLayer, "FmlCnnHingeLossLayer" )
 REGISTER_NEOML_LAYER( CSquaredHingeLossLayer, "FmlCnnSquaredHingeLossLayer" )
 REGISTER_NEOML_LAYER( CProblemSourceLayer, "FmlCnnProblemSourceLayer" )
 REGISTER_NEOML_LAYER( CBatchNormalizationLayer, "FmlCnnBatchNormalizationLayer" )
+REGISTER_NEOML_LAYER( CObjectNormalizationLayer, "NeoMLDnnObjectNormalizationLayer" )
 REGISTER_NEOML_LAYER( CLinearLayer, "FmlCnnLinearLayer" )
 REGISTER_NEOML_LAYER( CDropoutLayer, "FmlCnnDropoutLayer" )
 REGISTER_NEOML_LAYER( CImageResizeLayer, "FmlCnnImageResizeLayer" )
@@ -263,6 +272,10 @@ REGISTER_NEOML_LAYER( CCompositeSinkLayer, "FmlCompositeCnnSinkLayer" )
 REGISTER_NEOML_LAYER( CAttentionWeightedSumLayer, "FmlCnnAttentionWeightedSumLayer" )
 REGISTER_NEOML_LAYER( CAttentionDotProductLayer, "FmlCnnAttentionDotProductLayer" )
 REGISTER_NEOML_LAYER( CAttentionSumLayer, "FmlCnnAttentionSumLayer" )
+REGISTER_NEOML_LAYER( CAddToObjectLayer, "NeoMLDnnAddToObjectLayer" )
+REGISTER_NEOML_LAYER( CMatrixMultiplicationLayer, "NeoMLDnnMatrixMultiplicationLayer" )
+REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer" )
+REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLayer" )
 
 }
 
@@ -285,7 +298,7 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
 	isReuseMemoryMode( false )
 {
 	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
-	initializer = FINE_DEBUG_NEW CDnnXavierInitializer(random);
+	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
 }
 
 CDnn::~CDnn()
@@ -399,7 +412,7 @@ void CDnn::RequestReshape(bool forcedReshape)
 	}
 }
 
-void CDnn::SetSolver(CDnnSolver* _solver) 
+void CDnn::SetSolver(CDnnSolver* _solver)
 {
 	if(solver.Ptr() == _solver) {
 		return;
@@ -659,8 +672,23 @@ void CDnn::Serialize( CArchive& archive )
 			AddLayer( *layer );
 		}
 		archive >> isLearningEnabled;
+		// In order to avoid the CDnnSolver::Reset for the next solver
+		rebuild();
 	} else {
 		NeoAssert( false );
+	}
+}
+
+void CDnn::SerializeCheckpoint( CArchive& archive )
+{
+	Serialize( archive );
+	CPtr<CDnnSolver> solverPtr = nullptr;
+	if( archive.IsStoring() ) {
+		solverPtr = GetSolver();
+	}
+	SerializeSolver( archive, *this, solverPtr );
+	if( archive.IsLoading() ) {
+		SetSolver( solverPtr );
 	}
 }
 

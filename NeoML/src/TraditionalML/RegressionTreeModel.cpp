@@ -159,12 +159,17 @@ double CRegressionTreeModel::Predict( const CSparseFloatVectorDesc& data ) const
 
 void CRegressionTreeModel::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( 1, 1 );
+#ifdef NEOML_USE_FINEOBJ
+	const int minSupportedVersion = 0;
+#else
+	const int minSupportedVersion = 1;
+#endif
+	int version = archive.SerializeVersion( 2, minSupportedVersion );
 
 	if( archive.IsStoring() ) {
 		unsigned int index = info.FeatureIndex == NotFound ? 0 : info.FeatureIndex + 1;
 		serializeCompact( archive, index );
-		archive << static_cast<float>( info.Value );
+		archive << info.Value;
 		if( info.Type == RTNT_Continuous ) {
 			NeoAssert( leftChild != 0 );
 			leftChild->Serialize( archive );
@@ -172,21 +177,49 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 			rightChild->Serialize( archive );
 		}
 	} else if( archive.IsLoading() ) {
-		unsigned int index = 0;
-		serializeCompact( archive, index );
-		float value = 0;
-		archive >> value;
-		info.Value = value;
-		if( index > 0 ) {
-			info.Type = RTNT_Continuous;
-			info.FeatureIndex = index - 1;
-			leftChild = FINE_DEBUG_NEW CRegressionTreeModel();
-			leftChild->Serialize( archive );
-			rightChild = FINE_DEBUG_NEW CRegressionTreeModel();
-			rightChild->Serialize( archive );
-		} else {
-			info.Type = RTNT_Const;
-			info.FeatureIndex = NotFound;
+		switch( version ) {
+#ifdef NEOML_USE_FINEOBJ
+			case 0:
+			{
+				archive >> info;
+				if( info.Type == RTNT_Continuous ) {
+					CUnicodeString name = archive.ReadExternalName();
+					leftChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					leftChild->Serialize( archive );
+					name = archive.ReadExternalName();
+					rightChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					rightChild->Serialize( archive );
+				}
+				break;
+			}
+#endif
+			case 1:
+			case 2:
+			{
+				unsigned int index = 0;
+				serializeCompact( archive, index );
+				if( version == 1 ) {
+					float value = 0;
+					archive >> value;
+					info.Value = value;
+				} else {
+					archive >> info.Value;
+				}
+				if( index > 0 ) {
+					info.Type = RTNT_Continuous;
+					info.FeatureIndex = index - 1;
+					leftChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					leftChild->Serialize( archive );
+					rightChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					rightChild->Serialize( archive );
+				} else {
+					info.Type = RTNT_Const;
+					info.FeatureIndex = NotFound;
+				}
+				break;
+			}
+			default:
+				NeoAssert( false );
 		}
 	} else {
 		NeoAssert( false );

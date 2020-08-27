@@ -173,8 +173,7 @@ private:
 		IGradientBoostingLossFunction* lossFunction );
 	void createTreeBuilder( const IMultivariateRegressionProblem* problem );
 	void destroyTreeBuilder();
-	CPtr<IGradientBoostingLossFunction> createClassificationLossFunction() const;
-	CPtr<IGradientBoostingLossFunction> createRegressionLossFunction() const;
+	CPtr<IGradientBoostingLossFunction> createLossFunction() const;
 	void initialize( int modelCount, int vectorCount, int featureCount, CArray<CGradientBoostEnsemble>& models );
 	void executeStep( IGradientBoostingLossFunction& lossFunction,
 		const IMultivariateRegressionProblem* problem, const CArray<CGradientBoostEnsemble>& models,
