@@ -375,6 +375,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Lamb optimizer.
+// https://arxiv.org/pdf/1904.00962.pdf
 // Basic differences compared to Adam:
 // 1) It doesn't use debiasing ( 1/(1 - beta^N)) for compensation of lack of history
 //	Instead use warmup stage - linear increase of learning rate up to required value
