@@ -217,6 +217,8 @@ delete gpuMathEngine;
   - [CHardTanhLayer](ActivationLayers/HardTanhLayer.md) - `HardTanh` activation function
   - [CHardSigmoidLayer](ActivationLayers/HardSigmoidLayer.md) - `HardSigmoid` activation function
   - [CPowerLayer](ActivationLayers/PowerLayer.md) - `pow(x, exp)` activation function
+  - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - `h-swish` activation function
+  - [CGELULayer](ActivationLayers/GELULayer.md) - `x * sigmoid(1.702 * x)` activation function
 - Convolution layers:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - 2-dimensional convolution
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - convolution for 2-dimensional images in RLE format

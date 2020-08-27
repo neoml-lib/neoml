@@ -35,6 +35,7 @@ enum TActivationFunction {
 	AF_HardSigmoid,
 	AF_Power,
 	AF_HSwish,
+	AF_GELU,
 
 	AF_Count
 };
