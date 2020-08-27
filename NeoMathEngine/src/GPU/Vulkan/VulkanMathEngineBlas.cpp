@@ -151,7 +151,7 @@ void CVulkanMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandl
 void CVulkanMathEngine::MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int resultBufferSize)
 {
-	if( device->Type == VDT_Adreno ) {
+	if( device.Type() == VDT_Adreno ) {
 		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle,
 			firstHeight, firstWidth, firstWidth, false, secondHandle, secondHeight, firstWidth,
 			firstWidth, true, resultHandle, secondHeight, resultBufferSize );
@@ -215,7 +215,7 @@ void CVulkanMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloa
 void CVulkanMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
 {
-	if( device->Type == VDT_Adreno ) {
+	if( device.Type() == VDT_Adreno ) {
 		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle, firstHeight, firstWidth, firstWidth, true,
 			secondHandle, firstHeight, secondWidth, secondWidth, false, resultHandle, secondWidth, resultBufferSize );
 	} else {
