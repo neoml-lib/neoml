@@ -20,43 +20,34 @@ limitations under the License.
 #ifdef NEOML_USE_VULKAN
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
-#include <VulkanDevice.h>
+#include <VulkanCommon.h>
 
 #include <vulkan/vulkan.h>
 
 namespace NeoML {
 
-class CVulkanMemory : public CCrtAllocatedObject {
+class CVulkanDevice;
+
+class CVulkanMemory: public CCrtAllocatedObject {
 public:
-	explicit CVulkanMemory( const CVulkanDevice& _device, std::size_t _size,
-		VkBufferUsageFlags _usage,
-		VkMemoryPropertyFlags _properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT );
-	
-	~CVulkanMemory() noexcept { release(); }
+	explicit CVulkanMemory( const CVulkanDevice& device, std::size_t size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT );
 	
 	CVulkanMemory( const CVulkanMemory& ) = delete;
 	CVulkanMemory& operator=( const CVulkanMemory& ) = delete;
 
-	bool HostVisible() const { return (properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0; }
+	bool HostVisible() const { return ( properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) != 0; }
 
 	VkBuffer Buffer() const { return buffer; }
 
 	VkDeviceMemory Memory() const { return memory; }
 	
 private:
-	VkBuffer buffer;
-	VkDeviceMemory memory;
-	VkMemoryPropertyFlags properties;
 	const CVulkanDevice& device;
-	
-	void release() noexcept
-	{
-		if( buffer ) {
-			vkDestroyBuffer(device, buffer, nullptr);
-			vkFreeMemory(device, memory, nullptr);
-			buffer = nullptr;
-		}
-	}
+	CDeviceResource<VkBuffer, vkDestroyBuffer> buffer;
+	CDeviceResource<VkDeviceMemory, vkFreeMemory> memory;
+	VkMemoryPropertyFlags properties;
 };
 } // namespace NeoML
 

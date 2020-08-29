@@ -24,11 +24,8 @@ limitations under the License.
 #include <stdexcept>
 
 namespace NeoML {
-	
-CVulkanMemory::CVulkanMemory( const CVulkanDevice& _device, std::size_t _size, VkBufferUsageFlags _usage,
-	VkMemoryPropertyFlags _properties ) :
-	properties( _properties ),
-	device( _device )
+
+static inline VkBuffer makeBuffer( VkDevice device, std::size_t _size, VkBufferUsageFlags _usage )
 {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -36,40 +33,47 @@ CVulkanMemory::CVulkanMemory( const CVulkanDevice& _device, std::size_t _size, V
 	bufferInfo.usage = _usage;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	if( vkCreateBuffer( device, &bufferInfo, nullptr, &buffer ) != VK_SUCCESS )
-		throw std::runtime_error( "Failed to create buffer!" );
+	VkBuffer result;
+	VkCheck( vkCreateBuffer( device, &bufferInfo, nullptr, &result ) );
+	return result;
+}
 
+static inline VkDeviceMemory allocMemory( const CVulkanDevice& device, VkBuffer buffer, VkMemoryPropertyFlags properties )
+{
 	VkMemoryRequirements memRequirements;
 	vkGetBufferMemoryRequirements( device, buffer, &memRequirements );
 
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	
+
 	bool isFound = false;
 	for( uint32_t i = 0; i < device.MemoryProperties().memoryTypeCount; ++i ) {
-		if ((memRequirements.memoryTypeBits & (1u << i)) != 0 &&
-			(device.MemoryProperties().memoryTypes[i].propertyFlags & properties) == properties) {
+		if( ( memRequirements.memoryTypeBits & (1u << i) ) != 0 &&
+			( device.MemoryProperties().memoryTypes[i].propertyFlags & properties ) == properties ) {
 			allocInfo.memoryTypeIndex = i;
 			isFound = true;
 			break;
 		}
 	}
-	
+
 	if( !isFound ) {
-		vkDestroyBuffer( device, buffer, nullptr );
 		throw std::runtime_error( "Failed to find suitable memory type!" );
 	}
 
-	if( ( vkAllocateMemory( device, &allocInfo, nullptr, &memory ) != VK_SUCCESS ) ) {
-		vkDestroyBuffer( device, buffer, nullptr );
-		throw std::runtime_error( "Failed to allocate memory!" );
-	}
-	
-	if( vkBindBufferMemory(device, buffer, memory, 0) != VK_SUCCESS ) {
-		release();
-		throw std::runtime_error( "Failed to bind buffer to memory!" );
-	}
+	VkDeviceMemory result;
+	VkCheck( vkAllocateMemory( device, &allocInfo, nullptr, &result ) );
+	return result;
+}
+
+CVulkanMemory::CVulkanMemory( const CVulkanDevice& _device, std::size_t _size, VkBufferUsageFlags _usage,
+	VkMemoryPropertyFlags _properties ) :
+	device( _device ),
+	buffer( makeBuffer( device, _size, _usage ), device ),
+	memory( allocMemory( device, buffer, _properties), device ),
+	properties( _properties )
+{
+	VkCheck( vkBindBufferMemory( device, buffer, memory, 0 ) );
 }
 	
 } // namespace NeoML

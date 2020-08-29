@@ -111,7 +111,7 @@ static inline VkDevice makeVulkanDevice( const CVulkanDeviceInfo& info )
 }
 
 CVulkanDevice::CVulkanDevice( const CVulkanDeviceInfo& info_ ):
-	Base( makeVulkanDevice( info_ ) ),
+	CResourceType( makeVulkanDevice( info_ ) ),
 	info( info_)
 {
 }
@@ -127,7 +127,7 @@ static inline VkInstance makeVulkanInstance( const VkInstanceCreateInfo& info )
 }
 
 CVulkanInstance::CVulkanInstance():
-	Base( makeVulkanInstance( instanceCreateInfo ) )
+	CResourceType( makeVulkanInstance( instanceCreateInfo ) )
 {
 	if( !enumDevices() ) {
 		throw std::runtime_error( "Failed to get info about devices!" );

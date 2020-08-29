@@ -219,7 +219,6 @@ inline CVulkanShaderData::CVulkanShaderData() :
 
 //------------------------------------------------------------------------------------------------------------
 
-class CVulkanDll;
 
 // The shader loader
 class CVulkanShaderLoader : public CCrtAllocatedObject {
