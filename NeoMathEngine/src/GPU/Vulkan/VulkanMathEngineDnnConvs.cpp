@@ -72,7 +72,7 @@ struct CVulkanRleConvolutionDesc : public CRleConvolutionDesc {
 	CConvolutionDesc* ConvDesc;
 
 	CVulkanRleConvolutionDesc() : ConvDesc( 0 ) {}
-	virtual ~CVulkanRleConvolutionDesc();
+	~CVulkanRleConvolutionDesc() override;
 };
 
 CVulkanRleConvolutionDesc::~CVulkanRleConvolutionDesc()

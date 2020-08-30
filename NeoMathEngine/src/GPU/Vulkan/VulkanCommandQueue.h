@@ -40,7 +40,18 @@ static const int VulkanMaxDescriptorSetPerPool = 128;
 
 //------------------------------------------------------------------------------------------------------------
 
-struct CCommand;
+// A command in the queue
+struct CCommand {
+	VkCommandBuffer Buffer;
+	VkDescriptorPool DescriptorPool; // only for shaders
+	VkDescriptorSet DescriptionSet; // only for shaders
+
+	CCommand( VkCommandBuffer buffer, VkDescriptorPool descPool = nullptr, VkDescriptorSet descSet = nullptr ): 
+		Buffer( buffer ), 
+		DescriptorPool( descPool ),
+		DescriptionSet( descSet ) 
+	{}
+};
 
 // The shader execution mechanism
 // The executing resources are distributed on the stack allocator principle 
@@ -84,11 +95,11 @@ private:
 	int descriptionSetCount; // the number of used pool descriptors
 	std::vector< VkCommandBuffer, CrtAllocator<VkCommandBuffer> > commandBuffers; // the stack of command buffers
 	int commandBufferCount; // the number of command buffers in use
-	CCommand* commands; // the list of commands to be executed
+	std::vector<CCommand, CrtAllocator<CCommand>> commands; // the list of commands to be executed
 
 	VkDescriptorPool getDescriptorPool();
 	VkCommandBuffer getCommandBuffer();
-	void submitCommand( CCommand* command );
+	void submitCommand( CCommand& command );
 };
 
 } // namespace NeoML

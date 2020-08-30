@@ -165,7 +165,7 @@ void CVulkanMathEngine::CleanUp()
 	commandQueue->CleanUp();
 	for( auto& cur : tmpImages ) {
 		delete cur;
-		cur = 0;
+		cur = nullptr;
 	}
 	memoryPool->CleanUp();
 }

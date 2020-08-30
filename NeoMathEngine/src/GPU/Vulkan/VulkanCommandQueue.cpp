@@ -30,16 +30,6 @@ limitations under the License.
 
 namespace NeoML {
 
-// A command in the queue
-struct CCommand : public CCrtAllocatedObject {
-	VkCommandBuffer Buffer;
-	VkDescriptorPool DescriptorPool; // only for shaders
-	VkDescriptorSet DescriptionSet; // only for shaders
-	CCommand* Next;
-
-	CCommand() : Buffer( 0 ), DescriptorPool( 0 ), DescriptionSet( 0 ), Next( 0 ) {}
-};
-
 //------------------------------------------------------------------------------------------------------------
 
 CVulkanCommandQueue::CVulkanCommandQueue( CVulkanDevice& vulkanDevice ) :
@@ -47,8 +37,7 @@ CVulkanCommandQueue::CVulkanCommandQueue( CVulkanDevice& vulkanDevice ) :
 	queue( VK_NULL_HANDLE ),
 	commandPool( VK_NULL_HANDLE ),
 	descriptionSetCount( 0 ),
-	commandBufferCount( 0 ),
-	commands( 0 )
+	commandBufferCount( 0 )
 {
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -76,17 +65,16 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 	assert( samplerCount <= VulkanMaxBindingCount );
 	assert( dataBufferCount <= VulkanMaxBindingCount );
 
-	CCommand* command = new CCommand();
-	command->Buffer = getCommandBuffer();
-	command->DescriptorPool = getDescriptorPool();
+	commands.emplace_back( getCommandBuffer(), getDescriptorPool(), nullptr );
+	auto& command = commands.back();
 
 	// Allocate descriptors
 	VkDescriptorSetAllocateInfo allocateInfo = {};
 	allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocateInfo.descriptorPool = command->DescriptorPool;
+	allocateInfo.descriptorPool = command.DescriptorPool;
 	allocateInfo.descriptorSetCount = 1;
 	allocateInfo.pSetLayouts = &shader.DescLayout;
-	vkSucceded( vkAllocateDescriptorSets( device, &allocateInfo, &(command->DescriptionSet) ) );
+	vkSucceded( vkAllocateDescriptorSets( device, &allocateInfo, &(command.DescriptionSet) ) );
 
 	// Set the buffers for desc
 	// The zero binding always contains the parameters of the call
@@ -98,7 +86,7 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 
 		VkWriteDescriptorSet writeDesc = {};
 		writeDesc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeDesc.dstSet = command->DescriptionSet;
+		writeDesc.dstSet = command.DescriptionSet;
 		writeDesc.dstBinding = i + 1;
 		writeDesc.descriptorCount = 1;
 		writeDesc.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -107,20 +95,20 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 	}
 
 	for( int i = 0; i < imageCount; ++i ) {
-		images[i]->UpdateDescriptorSet( command->Buffer, command->DescriptionSet, shader.Layout, i, false );
+		images[i]->UpdateDescriptorSet( command.Buffer, command.DescriptionSet, shader.Layout, i, false );
 	}
 
 	for( int i = 0; i < samplerCount; ++i ) {
-		samplers[i]->UpdateDescriptorSet( command->Buffer, command->DescriptionSet, shader.Layout, i, true );
+		samplers[i]->UpdateDescriptorSet( command.Buffer, command.DescriptionSet, shader.Layout, i, true );
 	}
 
 	if( paramsSize > 0 ) {
-		vkCmdPushConstants( command->Buffer, shader.Layout, VK_SHADER_STAGE_COMPUTE_BIT, PUSH_CONSTANT_PARAM_OFFSET, paramsSize, paramsBuffer );
+		vkCmdPushConstants( command.Buffer, shader.Layout, VK_SHADER_STAGE_COMPUTE_BIT, PUSH_CONSTANT_PARAM_OFFSET, paramsSize, paramsBuffer );
 	}
-	vkCmdBindPipeline( command->Buffer, VK_PIPELINE_BIND_POINT_COMPUTE, shader.Pipeline );
-	vkCmdBindDescriptorSets( command->Buffer, VK_PIPELINE_BIND_POINT_COMPUTE, shader.Layout, 0, 1,
-		&(command->DescriptionSet), 0, 0 );
-	vkCmdDispatch( command->Buffer, countX, countY, countZ );
+	vkCmdBindPipeline( command.Buffer, VK_PIPELINE_BIND_POINT_COMPUTE, shader.Pipeline );
+	vkCmdBindDescriptorSets( command.Buffer, VK_PIPELINE_BIND_POINT_COMPUTE, shader.Layout, 0, 1,
+		&(command.DescriptionSet), 0, 0 );
+	vkCmdDispatch( command.Buffer, countX, countY, countZ );
 
 	submitCommand( command );
 }
@@ -129,30 +117,30 @@ void CVulkanCommandQueue::RunUpdateBuffer( VkBuffer buffer, VkDeviceSize offset,
 {
 	assert( size <= VulkanMaxUpdateBufferSize );
 
-	CCommand* command = new CCommand();
-	command->Buffer = getCommandBuffer();
+	commands.emplace_back( getCommandBuffer() );
+	auto& command = commands.back();
 
-	vkCmdUpdateBuffer( command->Buffer, buffer, offset, size, from );
+	vkCmdUpdateBuffer( command.Buffer, buffer, offset, size, from );
 
 	submitCommand( command );
 }
 
 void CVulkanCommandQueue::RunFillBuffer( VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, int data )
 {
-	CCommand* command = new CCommand();
-	command->Buffer = getCommandBuffer();
+	commands.emplace_back( getCommandBuffer() );
+	auto& command = commands.back();
 
-	vkCmdFillBuffer( command->Buffer, buffer, offset, size, data );
+	vkCmdFillBuffer( command.Buffer, buffer, offset, size, data );
 
 	submitCommand( command );
 }
 
 void CVulkanCommandQueue::RunCopyBuffer( VkBuffer from, VkBuffer to, const VkBufferCopy& info )
 {
-	CCommand* command = new CCommand();
-	command->Buffer = getCommandBuffer();
+	commands.emplace_back( getCommandBuffer() );
+	auto& command = commands.back();
 
-	vkCmdCopyBuffer( command->Buffer, from, to, 1, &info );
+	vkCmdCopyBuffer( command.Buffer, from, to, 1, &info );
 
 	submitCommand( command );
 }
@@ -162,16 +150,12 @@ void CVulkanCommandQueue::Wait()
 	// Wait until all commands complete
 	vkSucceded( vkQueueWaitIdle( queue ) );
 
-	while( commands != 0 ) {
-		CCommand* toDestroy = commands;
-
-		if( toDestroy->DescriptorPool != VK_NULL_HANDLE && toDestroy->DescriptionSet != VK_NULL_HANDLE ) {
-			vkSucceded( vkFreeDescriptorSets( device, toDestroy->DescriptorPool, 1, &(toDestroy->DescriptionSet) ) );
+	for( auto& cmd: commands ) {
+		if( cmd.DescriptorPool != nullptr && cmd.DescriptionSet != nullptr ) {
+			vkSucceded( vkFreeDescriptorSets( device, cmd.DescriptorPool, 1, &( cmd.DescriptionSet ) ) );
 		}
-
-		commands = commands->Next;
-		delete toDestroy;
 	}
+	commands.clear();
 	commandBufferCount = 0;
 	descriptionSetCount = 0;
 }
@@ -293,17 +277,14 @@ VkCommandBuffer CVulkanCommandQueue::getCommandBuffer()
 }
 
 // Queues a command
-void CVulkanCommandQueue::submitCommand( CCommand* command )
+void CVulkanCommandQueue::submitCommand( CCommand& command )
 {
-	vkSucceded( vkEndCommandBuffer( command->Buffer ) );
-
-	command->Next = commands;
-	commands = command;
+	vkSucceded( vkEndCommandBuffer( command.Buffer ) );
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &(command->Buffer);
+	submitInfo.pCommandBuffers = &( command.Buffer );
 
 	vkSucceded( vkQueueSubmit( queue, 1, &submitInfo, VK_NULL_HANDLE ) );
 }
