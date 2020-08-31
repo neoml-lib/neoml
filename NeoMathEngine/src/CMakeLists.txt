@@ -145,10 +145,6 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         if(WIN32)
             set(CMAKE_CUDA_COMPILER "${CMAKE_CUDA_COMPILER}.exe")
         endif()
-
-        if(NOT EXISTS ${CMAKE_CUDA_COMPILER})
-            message(FATAL_ERROR "CUDA not found at $ENV{ROOT}/ThirdParty/CUDA")
-        endif()
     endif() # USE_FINE_OBJECTS
 
     include(CheckLanguage)
