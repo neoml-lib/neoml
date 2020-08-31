@@ -141,31 +141,20 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         file(TO_CMAKE_PATH "${CUDA_TOOLKIT_ROOT_DIR}" CUDA_TOOLKIT_ROOT_DIR)
 
         set(CMAKE_CUDA_COMPILER ${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc)
+
         if(WIN32)
             set(CMAKE_CUDA_COMPILER "${CMAKE_CUDA_COMPILER}.exe")
-            # set(CUDA_TOOLKIT_ROOT_DIR "${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/")
-        elseif(LINUX)
-            # set(CUDA_TOOLKIT_ROOT_DIR "${CUDA_TOOLKIT_ROOT_DIR}/lib64/")
-        else()
-            message(FATAL_ERROR "Platform not supported")
         endif()
+
         if(NOT EXISTS ${CMAKE_CUDA_COMPILER})
             message(FATAL_ERROR "CUDA not found at $ENV{ROOT}/ThirdParty/CUDA")
         endif()
-        set(ENV{CUDA_PATH} ${CUDA_TOOLKIT_ROOT_DIR})
-
-    else() # NOT USE_FINE_OBJECTS
-
-        include(CheckLanguage)
-        check_language(CUDA)
-
     endif() # USE_FINE_OBJECTS
 
-    # include(CheckLanguage)
-    # check_language(CUDA)
+    include(CheckLanguage)
+    check_language(CUDA)
 
     if(CMAKE_CUDA_COMPILER)
-        message(STATUS $ENV{CUDA_PATH})
         enable_language(CUDA)
         
         target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_CUDA)
