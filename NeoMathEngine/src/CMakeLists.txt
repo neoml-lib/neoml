@@ -135,7 +135,6 @@ endif()
 if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
 
     if(USE_FINE_OBJECTS)
-
         # The CUDA must exist at $ENV{ROOT}/ThirdParty
         set(CUDA_TOOLKIT_ROOT_DIR $ENV{ROOT}/ThirdParty/CUDA/${CMAKE_SYSTEM_NAME}/nvcc)
         file(TO_CMAKE_PATH "${CUDA_TOOLKIT_ROOT_DIR}" CUDA_TOOLKIT_ROOT_DIR)
@@ -151,6 +150,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     check_language(CUDA)
 
     if(CMAKE_CUDA_COMPILER)
+        # Using CUDA
         enable_language(CUDA)
         
         target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_CUDA)
