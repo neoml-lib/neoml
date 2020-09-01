@@ -134,9 +134,21 @@ endif()
 # GPU specific source and settings
 if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
 
+    if(USE_FINE_OBJECTS)
+        # The CUDA must exist at $ENV{ROOT}/ThirdParty
+        set(CUDA_TOOLKIT_ROOT_DIR $ENV{ROOT}/ThirdParty/CUDA/${CMAKE_SYSTEM_NAME}/nvcc)
+        file(TO_CMAKE_PATH "${CUDA_TOOLKIT_ROOT_DIR}" CUDA_TOOLKIT_ROOT_DIR)
+
+        set(CMAKE_CUDA_COMPILER ${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc)
+
+        if(WIN32)
+            set(CMAKE_CUDA_COMPILER "${CMAKE_CUDA_COMPILER}.exe")
+        endif()
+    endif() # USE_FINE_OBJECTS
+
     include(CheckLanguage)
     check_language(CUDA)
-    
+
     if(CMAKE_CUDA_COMPILER)
         # Using CUDA
         enable_language(CUDA)
