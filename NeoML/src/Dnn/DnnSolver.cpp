@@ -147,7 +147,7 @@ void mapLayerPtrToId( CDnnLayerGraph& dnn, CMap<CBaseLayer*, CString>& result, c
 CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
 	mathEngine( _mathEngine ),
 	learningRate( 0.01f ),
-	regularizationL2( 1e-4f ),
+	regularizationL2( 0.f ),
 	regularizationL1( 0.f ),
 	maxGradientNorm( -1.f )
 {
@@ -311,8 +311,6 @@ CDnnSimpleGradientSolver::CDnnSimpleGradientSolver( IMathEngine& mathEngine ) :
 	isInCompatibilityMode( false ),
 	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
 {
-	SetLearningRate(0.01f);
-	SetL2Regularization(1e-4f);
 }
 
 static const int DnnSimpleGradientSolverVersion = 0;
@@ -394,8 +392,6 @@ CDnnAdaptiveGradientSolver::CDnnAdaptiveGradientSolver( IMathEngine& mathEngine 
 	isInCompatibilityMode( false ),
 	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
 {
-	SetLearningRate(0.01f);
-	SetL2Regularization(1e-6f);
 }
 
 // Turns on the AMSGrad mode; you can call this method only before training
@@ -544,8 +540,6 @@ CDnnNesterovGradientSolver::CDnnNesterovGradientSolver( IMathEngine& mathEngine 
 	productMuT( 1.f ),
 	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
 {
-	SetLearningRate( 0.01f );
-	SetL2Regularization( 1e-6f );
 }
 
 // Turns on the AMSGrad mode. The solver will be reset to initial state
@@ -712,7 +706,6 @@ CDnnLambGradientSolver::CDnnLambGradientSolver( IMathEngine& mathEngine ) :
 	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) ),
 	totalGradientNorm( 1.0f )
 {
-	SetLearningRate( 0.001f );
 }
 
 void CDnnLambGradientSolver::ExcludeWeightDecayLayer( const char* layerName, TExcludeLayerNameMatchType type,
