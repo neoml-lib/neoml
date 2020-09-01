@@ -23,9 +23,9 @@ limitations under the License.
 
 namespace NeoML {
 
-static CMap<CString, TCreateSolverFunction>& getRegisteredSolvers()
+static CMap<CString, TCreateSolverFunction, CDefaultHash<CString>, RuntimeHeap>& getRegisteredSolvers()
 {
-	static CMap<CString, TCreateSolverFunction> registeredSolvers;
+	static CMap<CString, TCreateSolverFunction, CDefaultHash<CString>, RuntimeHeap> registeredSolvers;
 	return registeredSolvers;
 }
 
@@ -42,9 +42,9 @@ struct CTypeInfoNameHash {
 	}
 };
 
-static CMap<const std::type_info*, CString, CTypeInfoNameHash>& getSolverNames()
+static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap>& getSolverNames()
 {
-	static CMap<const std::type_info*, CString, CTypeInfoNameHash> solverNames;
+	static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap> solverNames;
 	return solverNames;
 }
 
