@@ -84,9 +84,9 @@ namespace NeoML {
 // The minimum size of temporary data blobs to start reusing memory
 static const size_t MinReuseMemoryModeNetSize = 4 * 1024 * 1024;
 
-static CMap<CString, TCreateLayerFunction>& getRegisteredLayers()
+static CMap<CString, TCreateLayerFunction, CDefaultHash<CString>, RuntimeHeap>& getRegisteredLayers()
 {
-	static CMap<CString, TCreateLayerFunction> registeredLayers;
+	static CMap<CString, TCreateLayerFunction, CDefaultHash<CString>, RuntimeHeap> registeredLayers;
 	return registeredLayers;
 }
 
@@ -104,9 +104,9 @@ struct CTypeInfoNameHash {
 	}
 };
 
-static CMap<const std::type_info*, CString, CTypeInfoNameHash>& getLayerNames()
+static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap>& getLayerNames()
 {
-	static CMap<const std::type_info*, CString, CTypeInfoNameHash> layerNames;
+	static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap> layerNames;
 	return layerNames;
 }
 
