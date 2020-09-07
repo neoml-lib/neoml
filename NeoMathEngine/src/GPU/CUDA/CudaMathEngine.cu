@@ -22,6 +22,8 @@ limitations under the License.
 #include <CudaCommon.h>
 #include <CublasFunctions.h>
 #include <CusparseFunctions.h>
+#include <CudaDevice.h>
+#include <CudaAssert.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineDeviceStackAllocator.h>
@@ -29,7 +31,6 @@ limitations under the License.
 #include <math.h>
 #include <float.h>
 #include <cuda_runtime.h>
-#include <CudaDevice.h>
 
 namespace NeoML {
 
@@ -54,24 +55,24 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 
 	// CUDA
 	ASSERT_EXPR( device != 0 );
-	ASSERT_ERROR_CODE( cudaSetDevice( device->DeviceNumber ) );
+	ASSERT_CUDA( cudaSetDevice( device->DeviceNumber ) );
 
 	// CUDA stream.
-	ASSERT_ERROR_CODE( cudaStreamCreate( &cudaStream ) );
+	ASSERT_CUDA( cudaStreamCreate( &cudaStream ) );
 
 	// Cublas.
-	ASSERT_ERROR_CODE( cublas->Create( &cublasHandle ) );
-	ASSERT_ERROR_CODE( cublas->SetAtomicsMode( cublasHandle, CUBLAS_ATOMICS_ALLOWED ) );
-	ASSERT_ERROR_CODE( cublas->SetPointerMode( cublasHandle, CUBLAS_POINTER_MODE_DEVICE ) );
-	ASSERT_ERROR_CODE( cublas->SetStream( cublasHandle, cudaStream ) );
+	ASSERT_CUBLAS( cublas->Create( &cublasHandle ) );
+	ASSERT_CUBLAS( cublas->SetAtomicsMode( cublasHandle, CUBLAS_ATOMICS_ALLOWED ) );
+	ASSERT_CUBLAS( cublas->SetPointerMode( cublasHandle, CUBLAS_POINTER_MODE_DEVICE ) );
+	ASSERT_CUBLAS( cublas->SetStream( cublasHandle, cudaStream ) );
 
 	// Cusparse.
-	ASSERT_ERROR_CODE( cusparse->Create( &cusparseHandle ) );
-	ASSERT_ERROR_CODE( cusparse->SetStream( cusparseHandle, cudaStream ) );
+	ASSERT_CUSPARSE( cusparse->Create( &cusparseHandle ) );
+	ASSERT_CUSPARSE( cusparse->SetStream( cusparseHandle, cudaStream ) );
 
 	// Constants
-	ASSERT_ERROR_CODE( cudaGetSymbolAddress((void**)&CCudaConst::Zero, ZeroDev) );
-	ASSERT_ERROR_CODE( cudaGetSymbolAddress((void**)&CCudaConst::One, OneDev) );
+	ASSERT_CUDA( cudaGetSymbolAddress((void**)&CCudaConst::Zero, ZeroDev) );
+	ASSERT_CUDA( cudaGetSymbolAddress((void**)&CCudaConst::One, OneDev) );
 
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( device->MemoryLimit, this, true ) );
 	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
@@ -216,7 +217,7 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 	ASSERT_EXPR(minZ > 0 && minY > 0 && minX > 0);
 	ASSERT_EXPR(batchSize > 0 && height > 0 && width > 0);
 
-	dim3 geom = device->ThreadMax3DCount;
+	dim3 geom( device->ThreadMax3DCountX, device->ThreadMax3DCountY, device->ThreadMax3DCountZ );
 	CudaFixGeom(minX, width, geom.x);
 	CudaFixGeom(minY, height, geom.y);
 	CudaFixGeom(minZ, batchSize, geom.z);

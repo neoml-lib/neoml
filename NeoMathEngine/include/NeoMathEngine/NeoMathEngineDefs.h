@@ -54,7 +54,7 @@ limitations under the License.
 #include <climits>
 #include <cstddef>
 
-#ifndef CMAKE_INTDIR
+#if defined( FINEOBJ_VERSION ) && !defined( CMAKE_INTDIR )
 	#ifndef BUILD_NEOMATHENGINE
 		#pragma comment( lib, "NeoMathEngine" FME_LIB_VERSION_SUFFIX ".lib" )
 	#else // ifdef BUILD_NEOMATHENGINE
@@ -77,7 +77,7 @@ limitations under the License.
 		#endif
 
 	#endif // BUILD_NEOMATHENGINE
-#endif // CMAKE_INTDIR
+#endif // FINEOBJ_VERSION && !CMAKE_INTDIR
 
 #endif // FINE_PLATFORM( FINE_WINDOWS )
 

@@ -22,12 +22,11 @@ limitations under the License.
 
 namespace NeoML {
 
-CRecurrentLayer::CRecurrentLayer( IMathEngine& mathEngine ) :
-	CCompositeLayer( mathEngine ),
+CRecurrentLayer::CRecurrentLayer( IMathEngine& mathEngine, const char* name ) :
+	CCompositeLayer( mathEngine, name == nullptr ? "CCnnRecurrentLayer" : name ),
 	isReverseSequense(false),
 	repeatCount(1)
 {
-	SetName("CCnnRecurrentLayer");
 }
 
 CRecurrentLayer::~CRecurrentLayer()

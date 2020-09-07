@@ -43,6 +43,7 @@ struct CCusparse {
 	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseSpMM ) ( cusparseHandle_t handle, cusparseOperation_t opA,
 		cusparseOperation_t opB, const void* alpha, cusparseSpMatDescr_t matA, cusparseDnMatDescr_t matB, const void* beta,
 		cusparseDnMatDescr_t matC, cudaDataType computeType, cusparseSpMMAlg_t alg, void* externalBuffer );
+	typedef const char*( CUSPARSEAPI *TCusparseGetErrorString ) ( cusparseStatus_t status );
 
 	TCusparseCreate Create;
 	TCusparseDestroy Destroy;
@@ -53,6 +54,7 @@ struct CCusparse {
 	TCusparseDestroyDnMat DestroyDnMat;
 	TCusparseSpMM_bufferSize SpMM_bufferSize;
 	TCusparseSpMM SpMM;
+	TCusparseGetErrorString GetErrorString;
 };
 
 } // namespace NeoML

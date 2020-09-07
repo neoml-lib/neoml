@@ -25,9 +25,8 @@ limitations under the License.
 namespace NeoML {
 
 CGruLayer::CGruLayer( IMathEngine& mathEngine ) :
-	CRecurrentLayer( mathEngine )
+	CRecurrentLayer( mathEngine, "CCnnGruLayer" )
 {
-	SetName("CCnnGruLayer");
 	buildLayer();
 }
 

@@ -18,21 +18,6 @@
 #  add_executable(app main.cpp)
 #  target_link_libraries(app PRIVATE MKL::Libs)
 
-find_path(MKL_INCLUDE_DIR
-    NAMES
-        mkl.h
-        mkl_blas.h
-        mkl_cblas.h
-    PATHS
-        $ENV{MKLROOT}
-        /opt/intel
-        /opt/intel/mkl
-    PATH_SUFFIXES
-        mkl
-        include
-        IntelSWTools/compilers_and_libraries/windows/mkl/include
-)
-
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     set(MKL_LIBRARY_DIR_SUFFIX "ia32")
     set(MKL_INTERFACE_TYPE "")
@@ -43,7 +28,6 @@ else()
     set(MKL_LIBRARY_DIR_SUFFIX "intel64")
     set(MKL_INTERFACE_TYPE "_lp64")
 endif()
-
 
 if(WIN32)
     set(MKL_LIBRARY_PREFIX "")
@@ -65,60 +49,75 @@ else()
     endif()
 endif()
 
+if(USE_FINE_OBJECTS)
 
-find_library(MKL_CORE_LIB
-    NAMES ${MKL_LIBRARY_PREFIX}mkl_core${MKL_LIBRARY_SUFFIX}
-    PATHS
-        $ENV{MKLROOT}/lib
-        /opt/intel/lib
-        /opt/intel/mkl/lib
-    PATH_SUFFIXES 
-        ${MKL_LIBRARY_DIR_SUFFIX}
-        IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
-)
+    # The only MKL we can use is the one located in $ENV{ROOT}/ThirdParty
 
-find_library(MKL_SEQUENTIAL_LIB
-    NAMES ${MKL_LIBRARY_PREFIX}mkl_sequential${MKL_LIBRARY_SUFFIX}
-    PATHS
-        $ENV{MKLROOT}/lib
-        /opt/intel/lib
-        /opt/intel/mkl/lib
-    PATH_SUFFIXES 
-        ${MKL_LIBRARY_DIR_SUFFIX}
-        IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
-)
+    function(set_if_exist VAR_NAME VAR_VAL)
+        if(EXISTS ${VAR_VAL})
+            set(${VAR_NAME} ${VAR_VAL} PARENT_SCOPE)
+        endif()
+    endfunction()
 
-find_library(MKL_INTEL_LIB
-    NAMES ${MKL_LIBRARY_PREFIX}mkl_intel${MKL_INTERFACE_TYPE}${MKL_LIBRARY_SUFFIX}
-    PATHS
-        $ENV{MKLROOT}/lib
-        /opt/intel/lib
-        /opt/intel/mkl/lib
-    PATH_SUFFIXES 
-        ${MKL_LIBRARY_DIR_SUFFIX}
-        IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
-)
+    # additional helper variable (not exported by this script)
+    set(MKL_LIB_DIR_Private $ENV{ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME}/lib/${MKL_LIBRARY_DIR_SUFFIX}/)
+    
+    set_if_exist(MKL_INCLUDE_DIR $ENV{ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME}/include)
+    set_if_exist(MKL_CORE_LIB ${MKL_LIB_DIR_Private}/${MKL_LIBRARY_PREFIX}mkl_core${MKL_LIBRARY_SUFFIX})
+    set_if_exist(MKL_SEQUENTIAL_LIB ${MKL_LIB_DIR_Private}/${MKL_LIBRARY_PREFIX}mkl_sequential${MKL_LIBRARY_SUFFIX})
+    set_if_exist(MKL_INTEL_LIB ${MKL_LIB_DIR_Private}/${MKL_LIBRARY_PREFIX}mkl_intel${MKL_INTERFACE_TYPE}${MKL_LIBRARY_SUFFIX})
 
-set(MKL_FOUND TRUE)
-if(NOT MKL_INCLUDE_DIR)
-    set(MKL_FOUND FALSE)
-    message(STATUS "MKL_INCLUDE_DIR was not found!")
-endif()
+else() # NOT USE_FINE_OBJECTS
 
-if(NOT MKL_CORE_LIB)
-    set(MKL_FOUND FALSE)
-    message(STATUS "MKL_CORE_LIB was not found!")
-endif()
+    find_path(MKL_INCLUDE_DIR
+        NAMES
+            mkl.h
+            mkl_blas.h
+            mkl_cblas.h
+        PATHS
+            $ENV{MKLROOT}
+            /opt/intel
+            /opt/intel/mkl
+        PATH_SUFFIXES
+            mkl
+            include
+            IntelSWTools/compilers_and_libraries/windows/mkl/include
+    )
 
-if(NOT MKL_SEQUENTIAL_LIB)
-    set(MKL_FOUND FALSE)
-    message(STATUS "MKL_SEQUENTIAL_LIB was not found!")
-endif()
+    find_library(MKL_CORE_LIB
+        NAMES ${MKL_LIBRARY_PREFIX}mkl_core${MKL_LIBRARY_SUFFIX}
+        PATHS
+            $ENV{MKLROOT}/lib
+            /opt/intel/lib
+            /opt/intel/mkl/lib
+        PATH_SUFFIXES 
+            ${MKL_LIBRARY_DIR_SUFFIX}
+            IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
+    )
 
-if(NOT MKL_INTEL_LIB)
-    set(MKL_FOUND FALSE)
-    message(STATUS "MKL_INTEL_LIB was not found!")
-endif()
+    find_library(MKL_SEQUENTIAL_LIB
+        NAMES ${MKL_LIBRARY_PREFIX}mkl_sequential${MKL_LIBRARY_SUFFIX}
+        PATHS
+            $ENV{MKLROOT}/lib
+            /opt/intel/lib
+            /opt/intel/mkl/lib
+        PATH_SUFFIXES 
+            ${MKL_LIBRARY_DIR_SUFFIX}
+            IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
+    )
+
+    find_library(MKL_INTEL_LIB
+        NAMES ${MKL_LIBRARY_PREFIX}mkl_intel${MKL_INTERFACE_TYPE}${MKL_LIBRARY_SUFFIX}
+        PATHS
+            $ENV{MKLROOT}/lib
+            /opt/intel/lib
+            /opt/intel/mkl/lib
+        PATH_SUFFIXES 
+            ${MKL_LIBRARY_DIR_SUFFIX}
+            IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
+    )
+
+endif() # USE_FINE_OBJECTS
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MKL DEFAULT_MSG MKL_INCLUDE_DIR MKL_CORE_LIB MKL_SEQUENTIAL_LIB MKL_INTEL_LIB)

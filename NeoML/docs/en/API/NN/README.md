@@ -90,11 +90,12 @@ The initializer is the same for all the network trainable weights, except for th
 
 ### Optimizers
 
-The optimizer sets the rules to update the weights during training. It is represented by the `CDnnSolver` that has 3 implementations:
+The optimizer sets the rules to update the weights during training. It is represented by the `CDnnSolver` that has 4 implementations:
 
 - `CDnnSimpleGradientSolver` - [gradient descent with momentum](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Momentum)
 - `CDnnAdaptiveGradientSolver` - gradient descent with adaptive momentum ([Adam](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam))
 - `CDnnNesterovGradientSolver` - Adam with Nesterov momentum ([Nadam](http://cs229.stanford.edu/proj2015/054_report.pdf))
+- `CDnnLambGradientSolver` - [LAMB](https://arxiv.org/pdf/1904.00962.pdf)
 
 To select the preferred optimizer, create an instance of one of these classes and pass it to the network using the [`CDnn::SetSolver`](Dnn.md#the-optimizer) method.
 
@@ -217,6 +218,8 @@ delete gpuMathEngine;
   - [CHardTanhLayer](ActivationLayers/HardTanhLayer.md) - `HardTanh` activation function
   - [CHardSigmoidLayer](ActivationLayers/HardSigmoidLayer.md) - `HardSigmoid` activation function
   - [CPowerLayer](ActivationLayers/PowerLayer.md) - `pow(x, exp)` activation function
+  - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - `h-swish` activation function
+  - [CGELULayer](ActivationLayers/GELULayer.md) - `x * sigmoid(1.702 * x)` activation function
 - Convolution layers:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - 2-dimensional convolution
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - convolution for 2-dimensional images in RLE format
@@ -235,6 +238,7 @@ delete gpuMathEngine;
 - [CSoftmaxLayer](SoftmaxLayer.md) calculates softmax function
 - [CDropoutLayer](DropoutLayer.md) implements random dropout
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) implements batch normalization
+- [CObjectNormalizationLayer](ObjectNormalizationLayer.md) implements normalization over the objects
 - Elementwise operations with data blobs:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - elementwise sum
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - elementwise product
@@ -247,6 +251,8 @@ delete gpuMathEngine;
   - [CImageResizeLayer](ImageResizeLayer.md) changes the size of images in the blob
   - [CSubSequenceLayer](SubSequenceLayer.md) extracts subsequences
   - [CDotProductLayer](DotProductLayer.md) calculates the dot product of its inputs
+  - [CAddToObjectLayer](AddToObjectLayer.md) - adds the content of one input to each of the objects of the other
+  - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - mutiplication of two sets of matrices
   - Blob concatenation:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) concatenates along the Channels dimension
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) concatenates along the Depth dimension
@@ -285,6 +291,7 @@ delete gpuMathEngine;
 - Working with discrete features:
   - [CMultichannelLookupLayer](DiscreteFeaturesLayers/MultichannelLookupLayer.md) - vector representation of discrete features
   - [CAccumulativeLookupLayer](DiscreteFeaturesLayers/AccumulativeLookupLayer.md) - the sum of vector representations of a discrete feature
+  - [CPositionalEmbeddingLayer](DiscreteFeaturesLayer/PositionalEmbeddingLayer.md) - the vector representations of a position in sequence
   - [CEnumBinarizationLayer](DiscreteFeaturesLayers/EnumBinarizationLayer.md) converts enumeration values to *one-hot encoding*
   - [CBitSetVectorizationLayer](DiscreteFeaturesLayers/BitSetVectorizationLayer.md) converts a *bitset* into a vector of ones and zeros
 - Recurrent layers:

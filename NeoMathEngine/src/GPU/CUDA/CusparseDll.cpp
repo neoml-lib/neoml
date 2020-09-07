@@ -91,6 +91,7 @@ bool CCusparseDll::loadFunctions()
 	LOAD_CUSPARSE_FUNC( DestroyDnMat );
 	LOAD_CUSPARSE_FUNC( SpMM_bufferSize );
 	LOAD_CUSPARSE_FUNC( SpMM );
+	LOAD_CUSPARSE_FUNC( GetErrorString );
 	return true;
 }
 
