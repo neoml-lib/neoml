@@ -84,4 +84,23 @@ inline void CTestParams::GetArray<CInterval>( const std::string& key, std::vecto
 	}
 }
 
+template<>
+inline void CTestParams::GetArray<int>( const std::string& key, std::vector<int>& value ) const
+{
+	value.clear();
+	std::string valueString = flags.find( key )->second;
+	const char* valueStringPtr = valueString.c_str();
+	const char* leftBracketPtr = strchr( valueStringPtr, '{' );
+	const char* rightBracketPtr = strrchr( valueStringPtr, '}' );
+
+	std::vector<std::string> arrayStrings;
+	splitStringsByDelimiter( arrayStrings, std::string( leftBracketPtr + 1, static_cast<int>( rightBracketPtr - leftBracketPtr - 1 ) ), "," );
+	value.reserve( arrayStrings.size() );
+	for( size_t i = 0; i < arrayStrings.size(); ++i ) {
+		int currentValue;
+		ASSERT_TRUE( Value( arrayStrings[i], currentValue ) );
+		value.push_back( currentValue );
+	}
+}
+
 } // namespace NeoMLTest

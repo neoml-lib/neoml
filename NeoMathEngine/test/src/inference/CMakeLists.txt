@@ -11,6 +11,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dMeanPoolingTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobChannelwiseConvolutionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobConvolutionTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobConvolutionPerformanceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobGetSubSequenceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobGlobalMaxOverTimePoolingTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobGlobalMaxPoolingTest.cpp
