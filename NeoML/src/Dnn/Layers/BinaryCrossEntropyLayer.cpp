@@ -36,6 +36,12 @@ float CBinaryCrossEntropyLossLayer::GetPositiveWeight() const
 	return positiveWeightMinusOneValue + 1;
 }
 
+void CBinaryCrossEntropyLossLayer::Reshape()
+{
+	CLossLayer::Reshape();
+	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
+}
+
 void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
 	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
