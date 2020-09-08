@@ -86,6 +86,7 @@ bool CCublasDll::loadFunctions()
 	LOAD_CUBLAS_FUNCV2( Create );
 	LOAD_CUBLAS_FUNCV2( Destroy );
 	LOAD_CUBLAS_FUNCV2( SetStream );
+	LOAD_CUBLAS_FUNCV2( SetWorkspace );
 	LOAD_CUBLAS_FUNCV2( SetPointerMode );
 	LOAD_CUBLAS_FUNC( SetAtomicsMode );
 	LOAD_CUBLAS_FUNCV2( SetPointerMode );

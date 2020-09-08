@@ -29,6 +29,7 @@ struct CCublas {
 	typedef cublasStatus_t( CUBLASWINAPI *TCublasCreate ) ( cublasHandle_t *handle );
 	typedef cublasStatus_t( CUBLASWINAPI *TCublasDestroy ) ( cublasHandle_t handle );
 	typedef cublasStatus_t( CUBLASWINAPI *TCublasSetStream ) ( cublasHandle_t handle, cudaStream_t streamId );
+	typedef cublasStatus_t( CUBLASWINAPI *TCublasSetWorkspace ) ( cublasHandle_t handle, void* workspace, size_t workspaceSizeInBytes );
 	typedef cublasStatus_t( CUBLASWINAPI *TCublasSetPointerMode ) ( cublasHandle_t handle, cublasPointerMode_t mode );
 	typedef cublasStatus_t( CUBLASWINAPI *TCublasSetAtomicsMode ) ( cublasHandle_t handle, cublasAtomicsMode_t mode );
 	typedef cublasStatus_t( CUBLASWINAPI *TCublasSdot ) ( cublasHandle_t handle, int n, const float *x, int incx,
@@ -46,6 +47,7 @@ struct CCublas {
 	TCublasCreate Create;
 	TCublasDestroy Destroy;
 	TCublasSetStream SetStream;
+	TCublasSetWorkspace SetWorkspace;
 	TCublasSetPointerMode SetPointerMode;
 	TCublasSetAtomicsMode SetAtomicsMode;
 	TCublasSdot Sdot;

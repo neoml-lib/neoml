@@ -463,6 +463,7 @@ private:
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
 	std::unique_ptr<CDeviceStackAllocator> deviceStackRunTime; // GPU memory stack allocator
 	std::unique_ptr<CHostStackAllocator> hostStackRunTime; // regular memory stack allocator
+	CMemoryHandle cublasWorkspace;
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 	CCudaDevice* captureCudaDevice( int deviceNumber, size_t memoryLimit );

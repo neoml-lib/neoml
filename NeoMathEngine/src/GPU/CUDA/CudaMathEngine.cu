@@ -53,6 +53,8 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 {
 	device.swap( _device );
 
+	CDllLoader::Load( CDllLoader::CUDA_DLL );
+
 	// CUDA
 	ASSERT_EXPR( device != 0 );
 	ASSERT_CUDA( cudaSetDevice( device->DeviceNumber ) );
@@ -78,19 +80,24 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
 	hostStackRunTime = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( CudaMemoryAlignment ) );
 
-	CDllLoader::Load(CDllLoader::CUDA_DLL);
+	// Setting workspace for cublas
+	size_t workspaceSize = 4 * 1024 * 1024; // equal to workspace size for default stream in CUBLAS
+	cublasWorkspace = memoryPool->Alloc( workspaceSize );
+	ASSERT_CUBLAS( cublas->SetWorkspace( cublasHandle, GetRaw( cublasWorkspace ), workspaceSize ) );
 }
 
 CCudaMathEngine::~CCudaMathEngine()
 {
+	memoryPool->Free( cublasWorkspace );
+
 	hostStackRunTime.reset();
 	deviceStackRunTime.reset();
 	memoryPool.reset();
 
-	cudaStreamDestroy( cudaStream );
-
 	cusparse->Destroy( cusparseHandle );
 	cublas->Destroy( cublasHandle );
+
+	cudaStreamDestroy( cudaStream );
 
 	CDllLoader::Free(CDllLoader::CUDA_DLL);
 }
