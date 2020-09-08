@@ -18,6 +18,8 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <CudaMathEngine.h>
+#include <CudaDevice.h>
+#include <CudaCommon.h>
 #include <CudaMathEngineDnnConvs.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
@@ -36,13 +38,14 @@ void CCudaMathEngine::blobConvertFromRle( const CCudaRleConvolutionDesc& desc, c
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	ASSERT_EXPR( source.Depth() == 1 );
 	ASSERT_EXPR( source.Channels() == 1 );
+	CUDA_SET_DEVICE( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount; 
 
 	getCudaTaskGrid2D(blockCount, threadCount, source.ObjectCount(), source.Height());
 
-	BlobConvertFromRleKernel<<<blockCount, threadCount, 0, cudaStream>>>( convDesc, desc.StrokeValue, desc.NonStrokeValue,
+	BlobConvertFromRleKernel<<<blockCount, threadCount>>>( convDesc, desc.StrokeValue, desc.NonStrokeValue,
 		GetRaw( sourceData ), source.ObjectSize() * sizeof(float), GetRaw( resultData ) );
 }
 

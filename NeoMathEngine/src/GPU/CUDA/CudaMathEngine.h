@@ -457,7 +457,6 @@ private:
 
 	mutable std::mutex mutex; // protects the data below
 	std::unique_ptr<CCudaDevice> device; // the device descriptor
-	cudaStream_t cudaStream; // the only stream
 	cublasHandle_t cublasHandle; // cublas library handle
 	cusparseHandle_t cusparseHandle; // cusparse library handle
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager

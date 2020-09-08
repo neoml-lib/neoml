@@ -19,6 +19,9 @@ limitations under the License.
 
 #include <CudaMathEngine.h>
 #include <CudaMathEngineDnnConvs.h>
+#include <CudaCommon.h>
+#include <CudaDevice.h>
+#include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
 
 #include <Kernels/CudaDnnConvKernels.h>
@@ -61,6 +64,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
 	const CFloatHandle& resultData )
 {
+	CUDA_SET_DEVICE( device->DeviceNumber );
 	const CCudaConvolutionDescInternal& desc = static_cast<const CCudaConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& source = desc.Source;
 	const CCudaBlobDesc& filter = desc.Filter;
@@ -77,7 +81,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 		int widthNorm = ( desc.Result.Width() + 7 ) / 8;
 		getCudaTaskGrid3DMinZYX( 1, 1, 1024, blockCount, threadCount, result.ObjectCount() * result.Height(), widthNorm,
 			filter.ObjectCount(), 512 );
-		Conv3x3s1d1Kernel1x8<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( sourceData ), GetRaw( filterData ),
+		Conv3x3s1d1Kernel1x8<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), GetRaw( filterData ),
 			freeTermData == 0 ? 0 : GetRaw( *freeTermData ), GetRaw( resultData ), widthNorm );
 		return;
 	}
@@ -122,7 +126,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 			dim3 blockCount;
 			dim3 threadCount;
 			getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, tempMatrixWidth );
-			BuildTempMatrixKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( sourceData ) + b * source.ObjectSize(),
+			BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ) + b * source.ObjectSize(),
 				tempMatrixHeightIndex, curTempMatrixHeight, GetRaw( tempMatrix.GetHandle() ) );
 
 			MultiplyMatrixByTransposedMatrix( tempMatrix, curTempMatrixHeight, filter.ObjectSize(), filter.ObjectSize(),
@@ -145,6 +149,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiff,
 	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff )
 {
+	CUDA_SET_DEVICE( device->DeviceNumber );
 	const CCudaConvolutionDescInternal& desc = static_cast<const CCudaConvolutionDesc&>( convDesc ).Internal;
 	const int filterCount = desc.Filter.ObjectCount();
 	const int filterObjectSize = desc.Filter.ObjectSize();
@@ -191,7 +196,7 @@ void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc,
 	dim3 threadCount;
 	int widthNorm = ( matrixWidth + BuildInputFromTempMatrixCombine - 1 ) / BuildInputFromTempMatrixCombine;
 	getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm );
-	BuildInputFromTempMatrixKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( tempMatrix.GetHandle() ),
+	BuildInputFromTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( tempMatrix.GetHandle() ),
 		matrixHeight, matrixWidth, GetRaw( inputDiff ), operation, widthNorm );
 }
 
@@ -199,6 +204,7 @@ void CCudaMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc,
 	const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 	const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
+	CUDA_SET_DEVICE( device->DeviceNumber );
 	const CCudaConvolutionDescInternal& desc = static_cast<const CCudaConvolutionDesc&>( convDesc ).Internal;
 
 	if( freeTermDiff != 0 ) {
@@ -222,7 +228,7 @@ void CCudaMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc,
 		dim3 threadCount;
 		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
 		getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm, 512 );
-		BuildTempMatrixKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( input ), matrixHeight,
+		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( input ), matrixHeight,
 			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm );
 	}
 

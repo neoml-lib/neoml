@@ -20,6 +20,7 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
+#include <CudaAssert.h>
 #include <cuda_runtime.h>
 #include <cfloat>
 
@@ -89,6 +90,17 @@ struct CCudaRleImage {
 	CCudaRleStroke Stub;
 	CCudaRleStroke Lines[1];
 };
+
+//------------------------------------------------------------------------------------------------------------
+
+// Setting device
+#define CUDA_SET_DEVICE( deviceNum ) \
+	const int __devNum = ( deviceNum ); \
+	int __currDev = -1; \
+	ASSERT_CUDA( cudaGetDevice( &__currDev ) ); \
+	if( __currDev != __devNum ) { \
+		ASSERT_CUDA( cudaSetDevice( __devNum ) ); \
+	}
 
 } // namespace NeoML
 
