@@ -61,7 +61,7 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 	const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle* freeTerm,
 	const CFloatHandle& result )
 {
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 
 	if( freeTerm != 0 ) {
@@ -124,7 +124,7 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& outputDiff,
 	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff )
 {
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 	const int filterCount = desc.Filter.ObjectCount();
 	const int filterObjectSize = desc.Filter.ObjectSize();
@@ -177,7 +177,7 @@ void CCudaMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convD
 	const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 	const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 
 	if( freeTermDiff != 0 ) {

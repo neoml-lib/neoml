@@ -69,7 +69,7 @@ void CCudaMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionD
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData == 0 || freeTermData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 
@@ -90,7 +90,7 @@ void CCudaMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConv
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
@@ -111,7 +111,7 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermDiffData == 0 || freeTermDiffData->GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& outputDiff = desc.Result;

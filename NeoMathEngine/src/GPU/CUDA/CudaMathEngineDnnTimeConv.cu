@@ -31,7 +31,7 @@ namespace NeoML {
 void CCudaMathEngine::blobTimeConvolutionPrepare( const CCudaTimeConvolutionDescInternal& desc, float* data, const CFloatHandle& sourceData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaBlobDesc& filter = desc.Filter;
 	const CCudaBlobDesc& result = desc.Result;
@@ -126,7 +126,7 @@ void CCudaMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& c
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaTimeConvolutionDescInternal& desc = static_cast<const CCudaTimeConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
@@ -174,7 +174,7 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermDiffData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaTimeConvolutionDescInternal& desc = static_cast<const CCudaTimeConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& filterDiff = desc.Filter;

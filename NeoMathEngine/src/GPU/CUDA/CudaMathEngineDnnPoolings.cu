@@ -51,7 +51,7 @@ void CCudaMathEngine::BlobMaxPooling(const CMaxPoolingDesc& poolingDesc, const C
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMaxPoolingDescInternal& desc = static_cast<const CCudaMaxPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& result = desc.Result;
@@ -75,7 +75,7 @@ void CCudaMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc& poolingDesc
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMaxPoolingDescInternal& desc = static_cast<const CCudaMaxPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
@@ -115,7 +115,7 @@ void CCudaMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc,
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMeanPoolingDescInternal& desc = static_cast<const CCudaMeanPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& result = desc.Result;
@@ -135,7 +135,7 @@ void CCudaMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDe
 {
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMeanPoolingDescInternal& desc = static_cast<const CCudaMeanPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& outputDiff = desc.Result;
@@ -167,7 +167,7 @@ void CCudaMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePool
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaGlobalMaxOverTimePoolingDescInternal& desc = static_cast<const CCudaGlobalMaxOverTimePoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& source = desc.Source;
@@ -192,7 +192,7 @@ void CCudaMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOver
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaGlobalMaxOverTimePoolingDescInternal& desc = static_cast<const CCudaGlobalMaxOverTimePoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& source = desc.Source;
@@ -222,7 +222,7 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaGlobalMaxPoolingDescInternal& desc = static_cast<const CCudaGlobalMaxPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& source = desc.Source;
@@ -258,7 +258,7 @@ void CCudaMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc&
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaGlobalMaxPoolingDescInternal& desc = static_cast<const CCudaGlobalMaxPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
@@ -301,7 +301,7 @@ void CCudaMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, co
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->IsNull() || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCuda3dMaxPoolingDescInternal& desc = static_cast<const CCuda3dMaxPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& result = desc.Result;
@@ -321,7 +321,7 @@ void CCudaMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& pooling
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCuda3dMaxPoolingDescInternal& desc = static_cast<const CCuda3dMaxPoolingDesc&>( poolingDesc ).Internal;
 	VectorFill( inputDiffData, 0, desc.Source.BlobSize() );
@@ -359,7 +359,7 @@ void CCudaMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, 
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCuda3dMeanPoolingDescInternal& desc = static_cast<const CCuda3dMeanPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& result = desc.Result;
@@ -377,7 +377,7 @@ void CCudaMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& pooli
 {
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCuda3dMeanPoolingDescInternal& desc = static_cast<const CCuda3dMeanPoolingDesc&>( poolingDesc ).Internal;
 
@@ -417,7 +417,7 @@ void CCudaMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poo
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMaxOverTimePoolingDescInternal& desc = static_cast<const CCudaMaxOverTimePoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& result = desc.Result;
@@ -447,7 +447,7 @@ void CCudaMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingD
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMaxOverTimePoolingDescInternal& desc = static_cast<const CCudaMaxOverTimePoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;

@@ -38,7 +38,7 @@ void CCudaMathEngine::blobConvertFromRle( const CCudaRleConvolutionDesc& desc, c
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	ASSERT_EXPR( source.Depth() == 1 );
 	ASSERT_EXPR( source.Channels() == 1 );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount; 

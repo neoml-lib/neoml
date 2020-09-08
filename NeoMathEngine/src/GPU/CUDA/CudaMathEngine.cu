@@ -54,7 +54,7 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 
 	// CUDA
 	ASSERT_EXPR( device != 0 );
-	ASSERT_CUDA( cudaSetDevice( device->DeviceNumber ) );
+	SetCudaDevice( device->DeviceNumber );
 
 	// Cublas.
 	ASSERT_CUBLAS( cublas->Create( &cublasHandle ) );

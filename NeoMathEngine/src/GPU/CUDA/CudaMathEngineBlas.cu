@@ -31,7 +31,7 @@ void CCudaMathEngine::SetVectorToMatrixRows(const CFloatHandle& resultHandle,
 {
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -47,7 +47,7 @@ void CCudaMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrix, int 
 	ASSERT_EXPR( matrix.GetMathEngine() == this );
 	ASSERT_EXPR( indices.GetMathEngine() == this );
 	ASSERT_EXPR( vector.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -65,7 +65,7 @@ void CCudaMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrixHandle
 	ASSERT_EXPR( rowIndicesHandle.GetMathEngine() == this );
 	ASSERT_EXPR( columnIndicesHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -85,7 +85,7 @@ void CCudaMathEngine::SetVectorToMatrixElements(
 	ASSERT_EXPR( rowIndicesHandle.GetMathEngine() == this );
 	ASSERT_EXPR( columnIndicesHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -104,7 +104,7 @@ void CCudaMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle&
 	ASSERT_EXPR( matrix.GetMathEngine() == this );
 	ASSERT_EXPR( indices.GetMathEngine() == this );
 	ASSERT_EXPR( vector.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -123,7 +123,7 @@ void CCudaMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle&
 	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
 	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
 	ASSERT_EXPR( vector.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -140,7 +140,7 @@ void CCudaMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix,
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	ASSERT_EXPR( indices.GetMathEngine() == this );
 	ASSERT_EXPR(vectorSize >= height);
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -158,7 +158,7 @@ void CCudaMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix,
 	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
 	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -174,7 +174,7 @@ void CCudaMathEngine::AddMatrixElementsToMatrix(const CConstFloatHandle& matrix,
 	ASSERT_EXPR( matrix.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	ASSERT_EXPR( indices.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -191,7 +191,7 @@ void CCudaMathEngine::AddVectorToMatrixRows(int batchSize,
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int widthNorm = (matrixWidth + BatchAddVectorToMatrixRowsCombine - 1) /
 		BatchAddVectorToMatrixRowsCombine;
@@ -212,7 +212,7 @@ void CCudaMathEngine::AddVectorToMatrixColumns( const CConstFloatHandle& matrixH
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -228,7 +228,7 @@ void CCudaMathEngine::AddVectorToMatrixColumns( const CConstIntHandle& matrixHan
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -244,7 +244,7 @@ void CCudaMathEngine::SubVectorFromMatrixColumns(const CConstFloatHandle& matrix
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -260,7 +260,7 @@ void CCudaMathEngine::SumMatrixRowsAdd(
 {
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const int height = ( matrixHeight + SumMatrixRowsAddCombineCount - 1 ) / SumMatrixRowsAddCombineCount;
 
@@ -287,7 +287,7 @@ void CCudaMathEngine::MatrixLogSumExpByRows(const CConstFloatHandle& matrix, int
 	ASSERT_EXPR( matrix.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	ASSERT_EXPR(resultSize >= height);
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int widthNorm = (width + MatrixLogSumExpByRowsCombine - 1) / MatrixLogSumExpByRowsCombine;
 	widthNorm = alignXSizeForWarp(widthNorm);
@@ -306,7 +306,7 @@ void CCudaMathEngine::MatrixSoftmaxByRows(const CConstFloatHandle& matrix, int h
 {
 	ASSERT_EXPR( matrix.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int widthNorm = (width + MatrixSoftmaxByRowsCombine - 1) / MatrixSoftmaxByRowsCombine;
 	widthNorm = alignXSizeForWarp(widthNorm);
@@ -327,7 +327,7 @@ void CCudaMathEngine::MatrixSoftmaxDiffOpByRows(const CConstFloatHandle& first, 
 	ASSERT_EXPR( first.GetMathEngine() == this );
 	ASSERT_EXPR( second.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int widthNorm = (width + MatrixSoftmaxDiffOpByRowsCombine - 1) / MatrixSoftmaxDiffOpByRowsCombine;
 	widthNorm = alignXSizeForWarp(widthNorm);
@@ -348,7 +348,7 @@ void CCudaMathEngine::MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, 
 	ASSERT_EXPR( matrix.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	ASSERT_EXPR(resultSize >= width);
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int heightNorm = (height + MatrixLogSumExpByColumnsCombine - 1) / MatrixLogSumExpByColumnsCombine;
 	heightNorm = alignXSizeForWarp(heightNorm);
@@ -369,7 +369,7 @@ void CCudaMathEngine::MatrixSoftmaxByColumns(const CConstFloatHandle& matrix, in
 {
 	ASSERT_EXPR( matrix.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int heightNorm = (height + MatrixSoftmaxByColumnsCombine - 1) / MatrixSoftmaxByColumnsCombine;
 	heightNorm = alignXSizeForWarp(heightNorm);
@@ -390,7 +390,7 @@ void CCudaMathEngine::MatrixSoftmaxDiffOpByColumns(const CConstFloatHandle& firs
 	ASSERT_EXPR( first.GetMathEngine() == this );
 	ASSERT_EXPR( second.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int heightNorm = (height + MatrixSoftmaxDiffOpByColumnsCombine - 1) / MatrixSoftmaxDiffOpByColumnsCombine;
 	heightNorm = alignXSizeForWarp(heightNorm);
@@ -411,7 +411,7 @@ void CCudaMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle, 
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR(vectorSize >= matrixHeight);
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int widthNorm = (matrixWidth + FindMaxValueInRowsCombine - 1) / FindMaxValueInRowsCombine;
 	widthNorm = alignXSizeForWarp(widthNorm);
@@ -432,7 +432,7 @@ void CCudaMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle, 
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR(vectorSize >= matrixHeight);
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int widthNorm = (matrixWidth + FindMaxValueInRowsCombine - 1) / FindMaxValueInRowsCombine;
 	widthNorm = alignXSizeForWarp(widthNorm);
@@ -454,7 +454,7 @@ void CCudaMathEngine::FindMaxValueInColumns( int batchSize, const CConstFloatHan
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
 	ASSERT_EXPR( vectorSize >= batchSize * matrixWidth );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int heightNorm = ( matrixHeight + FindMaxValueInColumnsCombine - 1 ) / FindMaxValueInColumnsCombine;
 	heightNorm = alignXSizeForWarp( heightNorm );
@@ -473,7 +473,7 @@ void CCudaMathEngine::FindMaxValueInColumns( int batchSize, const CConstFloatHan
 void CCudaMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
 	const CFloatHandle& resultHandle, const CIntHandle& columnIndices )
 {
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 	// Initialize using the first row data
 	VectorCopy( resultHandle, matrixHandle, matrixWidth );
 	VectorFill( columnIndices, 0, matrixWidth );
@@ -539,7 +539,7 @@ void CCudaMathEngine::BitSetBinarization(int batchSize, int bitSetSize,
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -553,7 +553,7 @@ void CCudaMathEngine::MultiplyLookupMatrixByLookupVector(int batchSize, const CL
 	const CLookupVector& vector, const CFloatHandle& resultHandle, int resultSize)
 {
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	ASSERT_EXPR(matrix.Width() == vector.VectorSize());
 	ASSERT_EXPR(resultSize >= batchSize * matrix.Height());
@@ -605,7 +605,7 @@ void CCudaMathEngine::MultiplyVectorByTransposedLookupVectorAndAddToTable(int ba
 	ASSERT_EXPR( indexHandle.GetMathEngine() == this );
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR(vectorSize == second.VectorSize());
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int vectorSizeNorm = (vectorSize + MultiplyVectorByTransposedLookupVectorAndAddToTableCombine - 1) /
 		MultiplyVectorByTransposedLookupVectorAndAddToTableCombine;
@@ -626,7 +626,7 @@ void CCudaMathEngine::MultiplyDiagMatrixByMatrix(const CConstFloatHandle& firstH
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -644,7 +644,7 @@ void CCudaMathEngine::Multiply1DiagMatrixByMatrix(int batchSize, const CConstFlo
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -664,7 +664,7 @@ void CCudaMathEngine::MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstH
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -699,7 +699,7 @@ void CCudaMathEngine::MultiplyDiagMatrixByMatrixAndAdd( int batchSize, const CCo
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int batchSizeNorm = ( batchSize + MultiplyDiagMatrixByMatrixAndSumCombine - 1 )
 		/ MultiplyDiagMatrixByMatrixAndSumCombine;
@@ -723,7 +723,7 @@ void CCudaMathEngine::RowMultiplyMatrixByMatrix( const CConstFloatHandle& firstH
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	VectorFill( resultHandle, 0, height );
 	int widthNorm = ( width + RowMultiplyMatrixByMatrixCombine - 1 ) / RowMultiplyMatrixByMatrixCombine;
@@ -756,7 +756,7 @@ void CCudaMathEngine::MatrixSpreadRowsAdd(const CConstFloatHandle& sourceHandle,
 	ASSERT_EXPR( indexHandle.GetMathEngine() == this );
 	ASSERT_EXPR( sourceHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int widthNorm = (width + MatrixSpreadRowsCombine - 1) / MatrixSpreadRowsCombine;
 
@@ -788,7 +788,7 @@ void CCudaMathEngine::LookupAndSum( const CConstIntHandle& indicesHandle, int ba
 	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
 	ASSERT_EXPR( tableHandle.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount, threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, batchSize, vectorSize );
@@ -803,7 +803,7 @@ void CCudaMathEngine::LookupAndAddToTable( const CConstIntHandle& indicesHandle,
 	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
 	ASSERT_EXPR( tableHandle.GetMathEngine() == this );
 	ASSERT_EXPR( additionsHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	VectorFill( tableHandle, 0.f, vectorSize * vectorCount );
 
@@ -819,7 +819,7 @@ void CCudaMathEngine::EnumBinarization(int batchSize,
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -834,7 +834,7 @@ void CCudaMathEngine::EnumBinarization(int batchSize,
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -850,7 +850,7 @@ void CCudaMathEngine::transposeMatrixImpl(int batchSize, const CTypedMemoryHandl
 {
 	int size = batchSize * height * medium * width * channels;
 	ASSERT_EXPR(resultBufferSize >= size);
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
 	int threadCount;
@@ -864,7 +864,7 @@ void CCudaMathEngine::sumMatrixColumnsKernelFunc(const CFloatHandle& resultHandl
 	int matrixHeight, int matrixWidth, bool isNeg)
 {
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int widthNorm = (matrixWidth + SumMatrixColumnsCombine - 1) / SumMatrixColumnsCombine;
 	dim3 blockCount;
@@ -895,7 +895,7 @@ void CCudaMathEngine::multiplyVectorByLookupMatrixImpl(int batchSize, const CLoo
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR(resultSize >= batchSize * matrix.Width());
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	int heightNorm = (matrix.Height() + MultiplyTransposedLookupMatrixByVectorCombine - 1) /
 		MultiplyTransposedLookupMatrixByVectorCombine;
@@ -922,7 +922,7 @@ template<class T>
 void CCudaMathEngine::matrixSpreadRowsImpl(const T* source, int height, int width,
 	CTypedMemoryHandle<T> result, int resultHeight, const int* index, const CTypedMemoryHandle<const T>& fillValue)
 {
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 	if(fillValue.IsNull()) {
 		VectorFill( result, 0, resultHeight * width);
 	} else {
@@ -945,7 +945,7 @@ void CCudaMathEngine::vectorMultichannelLookupAndCopy(int batchSize, int channel
 	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 	const CFloatHandle& outputHandle, int outputChannelsCount)
 {
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 	int batchNorm = (batchSize + BatchVectorLookupAndCopyCombineBatch - 1) / BatchVectorLookupAndCopyCombineBatch;
 
 	int outputChannel = 0;
@@ -974,7 +974,7 @@ void CCudaMathEngine::vectorMultichannelLookupAndAddToTable(int batchSize, int c
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 	const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
 {
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 	int batchNorm = (batchSize + BatchVectorLookupAndAddToTableCombine - 1) / BatchVectorLookupAndAddToTableCombine;
 
 	float mult = multHandle.GetValue();

@@ -32,7 +32,7 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHand
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
 	ASSERT_EXPR( outputData.GetMathEngine() == this );
-	CUDA_SET_DEVICE( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CMathEngineDropoutDesc& desc = static_cast<const CMathEngineDropoutDesc&>( dropoutDesc );
 	const CBlobDesc& input = desc.Input;
