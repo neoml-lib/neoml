@@ -93,14 +93,6 @@ struct CCudaRleImage {
 //------------------------------------------------------------------------------------------------------------
 
 // Setting device
-/* #define SetCudaDevice( deviceNum ) \
-	const int __devNum = ( deviceNum ); \
-	int __currDev = -1; \
-	ASSERT_CUDA( cudaGetDevice( &__currDev ) ); \
-	if( __currDev != __devNum ) { \
-		ASSERT_CUDA( cudaSetDevice( __devNum ) ); \
-	} */
-
 void SetCudaDevice( int deviceNum );
 
 } // namespace NeoML
