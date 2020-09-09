@@ -32,6 +32,8 @@ enum TActivationFunction {
 	AF_HardTanh,
 	AF_HardSigmoid,
 	AF_Power,
+	AF_HSwish,
+	AF_GELU,
 
 	AF_Count
 };
@@ -49,4 +51,6 @@ enum TActivationFunction {
 `AF_HardTanh` | [CHardTanhLayer](HardTanhLayer.md) | функция активации `HardTanh`
 `AF_HardSigmoid` | [CHardSigmoidLayer](HardSigmoidLayer.md) | функция активации `HardSigmoid`
 `AF_Power` | [CPowerLayer](PowerLayer.md) | функция активации `pow(x, exp)`
+`AF_HSwish` | [CHSwishLayer](HSwishLayer.md) | функция активации `h-swish`
+`AF_GELU` | [CGELULayer](GELULayer.md) | функция активации `x * sigmoid(1.702 * x)`
 `AF_Count` | | Вспомогательная константа, равная числу поддержанных функций активации.

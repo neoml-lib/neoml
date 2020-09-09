@@ -59,7 +59,7 @@ CFunctionParam IFunctionEvaluation::Evaluate( const CFunctionParamVector& params
 	packedParams.Add( params );
 
 	Evaluate( packedParams, results );
-	NeoPresume( results.IsEmpty() );
+	NeoPresume( !results.IsEmpty() );
 
 	return results[0];
 }

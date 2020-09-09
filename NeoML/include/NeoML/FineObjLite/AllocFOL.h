@@ -51,4 +51,23 @@ inline void CurrentMemoryManager::Free( void* ptr )
 	::operator delete( ptr );
 }
 
+//-----------------------------------------------------------------------------------------------
+
+// Working with memory via malloc/free
+class RuntimeHeap {
+public:
+	static void* Alloc( size_t size );
+	static void Free( void* ptr );
+};
+
+inline void* RuntimeHeap::Alloc( size_t size )
+{
+	return ::malloc( size );
+}
+
+inline void RuntimeHeap::Free( void* ptr )
+{
+	::free( ptr );
+}
+
 } // namespace FObj

@@ -87,11 +87,12 @@
 
 ### Методы оптимизации
 
-Методы оптимизации задают правила обновления весов во время обучения. За это отвечает специальный класс `CDnnSolver`, который имеет 3 реализации:
+Методы оптимизации задают правила обновления весов во время обучения. За это отвечает специальный класс `CDnnSolver`, который имеет 4 реализации:
 
 - `CDnnSimpleGradientSolver` - градиентный спуск с моментом (см. [SGD](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Momentum))
 - `CDnnAdaptiveGradientSolver` - градиентный спуск с адаптивным моментом (см. [Adam](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam))
-- `CDnnNesterovGradientSolver` - Adam с моментом Нестерова (см. [Nadam](http://cs229.stanford.edu/proj2015/054_report.pdf)).
+- `CDnnNesterovGradientSolver` - Adam с моментом Нестерова (см. [Nadam](http://cs229.stanford.edu/proj2015/054_report.pdf))
+- `CDnnLambGradientSolver` - [LAMB](https://arxiv.org/pdf/1904.00962.pdf).
 
 Для задания метода оптимизации необходимо создать объект нужного класса и передать его в сеть при помощи метода [`CDnn::SetSolver`](Dnn.md#solver).
 
@@ -215,6 +216,8 @@ delete gpuMathEngine;
   - [CHardTanhLayer](ActivationLayers/HardTanhLayer.md) - функция активации `HardTanh`
   - [CHardSigmoidLayer](ActivationLayers/HardSigmoidLayer.md) - функция активации `HardSigmoid`
   - [CPowerLayer](ActivationLayers/PowerLayer.md) - функция активации `pow(x, exp)`
+  - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - функция активации `h-swish`
+  - [CGELULayer](ActivationLayers/GELULayer.md) - функция активации `x * sigmoid(1.702 * x)`
 - Свертки:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - двумерная свертка
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - свертка двумерных изображений в формате RLE
