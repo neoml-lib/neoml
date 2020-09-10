@@ -95,6 +95,54 @@ static void testCublas( IMathEngine& mathEngine, int runCount )
 	}
 }
 
+static void testCusparse( IMathEngine& mathEngine, int runCount )
+{
+	try {
+		CRandom random( 0x1984 );
+
+		const int firstHeight = 10240;
+		const int firstWidth = 5120;
+		const int secondHeight = 3072;
+
+		std::vector<int> rows, columns;
+		std::vector<float> values;
+		rows.push_back( 0 );
+		for( int i = 0; i < firstHeight; i++ ) {
+			int elementsInRow = 0;
+			for( int j = 0; j < firstWidth; j++ ) {
+				if( random.UniformInt( 0, 1 ) ) {
+					float value = static_cast<float>( random.Uniform( -2., 1. ) );
+					columns.push_back( j );
+					values.push_back( value );
+					elementsInRow++;
+				}
+			}
+			rows.push_back( elementsInRow );
+		}
+
+		CFloatBlob second( mathEngine, 1, secondHeight, firstWidth, 1 );
+		CFloatBlob result( mathEngine, 1, firstHeight, secondHeight, 1 );
+
+		{
+			// Filling with data
+			CREATE_FILL_FLOAT_ARRAY( secondData, -1.f, 2.f, second.GetDataSize(), random );
+			second.CopyFrom( secondData.data() );
+		}
+
+		for( int run = 1; run <= runCount; ++run ) {
+			mathEngine.MultiplySparseMatrixByTransposedMatrix( firstHeight, firstWidth, secondHeight,
+				GetSparseMatrix( MathEngine(), rows, columns, values ), second.GetData(), result.GetData() );
+
+			if( run % 10 == 0 ) {
+				std::vector<float> resultData( result.GetDataSize() );
+				result.CopyTo( resultData.data() );
+			}
+		}
+	} catch( std::exception& ex ) {
+		addToLog( ex.what() );
+	}
+}
+
 static void testKernel( IMathEngine& mathEngine, int runCount )
 {
 	try {
@@ -196,6 +244,13 @@ TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadMultiMathEngineCublas
 	}
 }
 
+TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadMultiMathEngineCusparse )
+{
+	if( !multiThreadMultiMETest( testCusparse ) ) {
+		FAIL();
+	}
+}
+
 TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadMultiMathEngineMemeFunc )
 {
 	if( !multiThreadMultiMETest( testMemeFunc ) ) {
@@ -240,6 +295,13 @@ static bool multiThreadSingleMETest( TTestFunc func )
 TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadSingleMathEngineCublas )
 {
 	if( !multiThreadSingleMETest( testCublas ) ) {
+		FAIL();
+	}
+}
+
+TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadSingleMathEngineCusparse )
+{
+	if( !multiThreadSingleMETest( testCusparse ) ) {
 		FAIL();
 	}
 }
@@ -294,6 +356,13 @@ TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleThreadMultiMathEngineCubla
 	}
 }
 
+TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleThreadMultiMathEngineCusparse )
+{
+	if( !singleThreadMultiMathEngineTest( testCusparse ) ) {
+		FAIL();
+	}
+}
+
 TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleThreadMultiMathEngineMemeFunc )
 {
 	if( !singleThreadMultiMathEngineTest( testMemeFunc ) ) {
@@ -340,6 +409,13 @@ static bool singleDeviceMultiThreadMultiMETest( TTestFunc func )
 TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleDeviceMultiThreadMultiMathEngineCublas )
 {
 	if( !singleDeviceMultiThreadMultiMETest( testCublas ) ) {
+		FAIL();
+	}
+}
+
+TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleDeviceMultiThreadMultiMathEngineCusparse )
+{
+	if( !singleDeviceMultiThreadMultiMETest( testCusparse ) ) {
 		FAIL();
 	}
 }
