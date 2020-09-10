@@ -21,6 +21,8 @@ limitations under the License.
 #include <CudaMathEngineDnnConvs.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <CudaDevice.h>
+#include <CudaCommon.h>
 
 #include <Kernels/CudaDnnTimeConvKernels.h>
 
@@ -29,6 +31,7 @@ namespace NeoML {
 void CCudaMathEngine::blobTimeConvolutionPrepare( const CCudaTimeConvolutionDescInternal& desc, float* data, const CFloatHandle& sourceData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaBlobDesc& filter = desc.Filter;
 	const CCudaBlobDesc& result = desc.Result;
@@ -40,7 +43,7 @@ void CCudaMathEngine::blobTimeConvolutionPrepare( const CCudaTimeConvolutionDesc
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid3DMinZYX(1, 1, 512, blockCount, threadCount, filter.Height(), result.BatchLength(), xSizeNorm);
-	BlobTimeConvolutionPrepareKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( sourceData ), xSizeNorm, data );
+	BlobTimeConvolutionPrepareKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), xSizeNorm, data );
 }
 
 CTimeConvolutionDesc* CCudaMathEngine::InitTimeConvolution( const CBlobDesc& source,
@@ -123,6 +126,7 @@ void CCudaMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& c
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaTimeConvolutionDescInternal& desc = static_cast<const CCudaTimeConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
@@ -158,7 +162,7 @@ void CCudaMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& c
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid2DMinYX(1, 512, blockCount, threadCount, inputDiff.ObjectCount(), xSizeNorm);
-		BlobTimeConvolutionBackwardUnpackKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( outputDiffData ),
+		BlobTimeConvolutionBackwardUnpackKernel<<<blockCount, threadCount>>>( desc, GetRaw( outputDiffData ),
 			GetRaw( filterData ), GetRaw( inputDiffData ), xSizeNorm, combineCount, GetRaw( targetData ) );
 	}
 }
@@ -170,6 +174,7 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermDiffData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaTimeConvolutionDescInternal& desc = static_cast<const CCudaTimeConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& filterDiff = desc.Filter;
@@ -179,7 +184,7 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 	int blockCount;
 	int threadCount;
 	getCudaTaskGrid( blockCount, threadCount, desc.Filter.BlobSize() );
-	blobTimeConvolutionLearnFilterKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( inputData ),
+	blobTimeConvolutionLearnFilterKernel<<<blockCount, threadCount>>>( desc, GetRaw( inputData ),
 		GetRaw( outputDiffData ), GetRaw( filterDiffData ) );
 
 	// Train the free term
