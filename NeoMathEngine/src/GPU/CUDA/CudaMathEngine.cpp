@@ -33,6 +33,7 @@ limitations under the License.
 #include <vector>
 #include <CudaDevice.h>
 #include <CudaAssert.h>
+#include <CudaCommon.h>
 
 namespace NeoML {
 
@@ -157,7 +158,7 @@ CMemoryHandle CCudaMathEngine::CopyFrom( const CMemoryHandle& handle, size_t siz
 
 CMemoryHandle CCudaMathEngine::Alloc( size_t size )
 {
-	cudaSetDevice( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 	void* ptr;
 	cudaError_t mallocError = cudaMalloc(&ptr, size);
 	if( mallocError != 0 ) {

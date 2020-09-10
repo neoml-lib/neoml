@@ -90,6 +90,11 @@ struct CCudaRleImage {
 	CCudaRleStroke Lines[1];
 };
 
+//------------------------------------------------------------------------------------------------------------
+
+// Setting device
+void SetCudaDevice( int deviceNum );
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA

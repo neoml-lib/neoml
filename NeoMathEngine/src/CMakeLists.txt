@@ -161,6 +161,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         target_sources(${PROJECT_NAME}
             PRIVATE
                 GPU/CUDA/CublasDll.cpp
+                GPU/CUDA/CudaCommon.cpp
                 GPU/CUDA/CudaDevice.cpp
                 GPU/CUDA/CudaMathEngine.cpp
                 GPU/CUDA/CusparseDll.cpp
