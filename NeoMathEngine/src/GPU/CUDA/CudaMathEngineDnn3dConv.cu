@@ -19,7 +19,10 @@ limitations under the License.
 
 #include <CudaMathEngine.h>
 #include <CudaMathEngineDnnConvs.h>
+#include <CudaCommon.h>
+#include <CudaDevice.h>
 #include <MemoryHandleInternal.h>
+#include <MathEngineCommon.h>
 
 #include <Kernels/CudaDnn3dConvKernels.h>
 
@@ -58,6 +61,7 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 	const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle* freeTerm,
 	const CFloatHandle& result )
 {
+	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 
 	if( freeTerm != 0 ) {
@@ -97,7 +101,7 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 		dim3 threadCount;
 		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
 		getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm );
-		BuildTempMatrixKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( source ), matrixHeight,
+		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( source ), matrixHeight,
 			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm );
 	}
 	
@@ -120,6 +124,7 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& outputDiff,
 	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff )
 {
+	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 	const int filterCount = desc.Filter.ObjectCount();
 	const int filterObjectSize = desc.Filter.ObjectSize();
@@ -164,7 +169,7 @@ void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convD
 	dim3 threadCount;
 	int widthNorm = ( matrixWidth + BuildInputFromTempMatrixCombine - 1 ) / BuildInputFromTempMatrixCombine;
 	getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm );
-	BuildInputFromTempMatrixKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( tempMatrix.GetHandle() ),
+	BuildInputFromTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( tempMatrix.GetHandle() ),
 		matrixHeight, matrixWidth, GetRaw( inputDiff ), operation, widthNorm );
 }
 
@@ -172,6 +177,7 @@ void CCudaMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convD
 	const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 	const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
+	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 
 	if( freeTermDiff != 0 ) {
@@ -196,7 +202,7 @@ void CCudaMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convD
 		dim3 threadCount;
 		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
 		getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm );
-		BuildTempMatrixKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( input ), matrixHeight,
+		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( input ), matrixHeight,
 			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm );
 	}
 	
