@@ -49,7 +49,7 @@ public:
 	// The correct class in case of binary classification: +1 or -1
 	double GetBinaryClass( int index ) const { return ( GetClass( index ) != 0 ) ? 1. : -1; }
 
-	// Gets all input vectors as a matrix
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
 	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
 
 	// The vector weight
@@ -72,7 +72,7 @@ public:
 	// The number of vectors in the input data set
 	virtual int GetVectorCount() const = 0;
 
-	// Gets all input vectors as a matrix
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
 	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
 
 	// The vector weight
