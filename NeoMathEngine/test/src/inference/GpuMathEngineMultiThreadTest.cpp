@@ -433,3 +433,110 @@ TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleDeviceMultiThreadMultiMath
 		FAIL();
 	}
 }
+
+static std::mutex createMathEngineMutex;
+
+static void createMathEngineAndRunTest( TTestFunc func )
+{
+	try {
+		std::unique_ptr<IMathEngine> mathEngine;
+		{
+			std::lock_guard<std::mutex> lock( createMathEngineMutex );
+			mathEngine.reset( CreateGpuMathEngine( 0 ) );
+		}
+		if( mathEngine == nullptr ) {
+			addToLog( "failed to create math engine" );
+			return;
+		}
+
+		func( *mathEngine, 1000 );
+	} catch( std::exception& ex ) {
+		addToLog( ex.what() );
+	}
+}
+
+static bool multiThreadCreateMETest( TTestFunc func )
+{
+	clearLog();
+
+	try {
+		std::thread firstThread( createMathEngineAndRunTest, func );
+		std::thread secondThread( createMathEngineAndRunTest, func );
+		firstThread.join();
+		secondThread.join();
+	} catch( std::exception& ex ) {
+		addToLog( ex.what() );
+	}
+
+	if( !isLogEmpty() ) {
+		printLog();
+		return false;
+	}
+
+	return true;
+}
+
+TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadCreateMathEngineCublas )
+{
+	if( !multiThreadCreateMETest( testCublas ) ) {
+		FAIL();
+	}
+}
+
+TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadCreateMathEngineCusparse )
+{
+	if( !multiThreadCreateMETest( testCusparse ) ) {
+		FAIL();
+	}
+}
+
+TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadCreateMathEngineMemeFunc )
+{
+	if( !multiThreadCreateMETest( testMemeFunc ) ) {
+		FAIL();
+	}
+}
+
+TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadCreateMathEngineKernel )
+{
+	if( !multiThreadCreateMETest( testKernel ) ) {
+		FAIL();
+	}
+}
+
+void createALotOfMathEngines( int runCount )
+{
+	try {
+		for( int run = 0; run < runCount; ++run ) {
+			std::unique_ptr<IMathEngine> mathEngine( CreateGpuMathEngine( 0 ) );
+			if( mathEngine == nullptr ) {
+				addToLog( "failed to create math engine" );
+				continue;
+			}
+			CFloatBlob blob( *mathEngine, 1, 2, 3, 4 );
+			std::vector<float> data( blob.GetDataSize(), 2.f );
+			blob.CopyFrom( data.data() );
+		}
+	} catch( std::exception& ex ) {
+		addToLog( ex.what() );
+	}
+}
+
+TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadMathEngineCreation )
+{
+	clearLog();
+
+	try {
+		std::thread firstThread( createALotOfMathEngines, 1000 );
+		std::thread secondThread( createALotOfMathEngines, 1000 );
+		firstThread.join();
+		secondThread.join();
+	} catch( std::exception& ex ) {
+		addToLog( ex.what() );
+	}
+
+	if( !isLogEmpty() ) {
+		printLog();
+		FAIL();
+	}
+}
