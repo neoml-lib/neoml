@@ -19,6 +19,8 @@ limitations under the License.
 
 #include <CudaMathEngine.h>
 #include <CudaAssert.h>
+#include <CudaDevice.h>
+#include <CudaCommon.h>
 #include <CusparseFunctions.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
@@ -31,6 +33,7 @@ void CCudaMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, i
 {
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	CFloatHandleStackVar tResult( mathEngine(), firstHeight * secondHeight );
 	CFloatHandle tResultPtr = tResult.GetHandle();
@@ -61,6 +64,7 @@ void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHei
 {
 	ASSERT_EXPR( first.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	// C = A * B = T( T(B) * A )
 
