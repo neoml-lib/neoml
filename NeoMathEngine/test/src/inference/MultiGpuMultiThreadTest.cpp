@@ -85,6 +85,8 @@ static void testKernel( IMathEngine& mathEngine, int runCount ); // One custom C
 static void testMemoryFunctions( IMathEngine& mathEngine, int runCount ); // copying to/from GPU (and between different memory regions on GPU)
 
 class CMultiGpuMultiThreadTest : public CTestFixture, public ::testing::WithParamInterface<std::tuple<TTestMechanism, TTestedFunction, bool>> {
+protected:
+	void SetUp() override { clearLog(); }
 };
 
 std::string getTestMechanismName( const TTestMechanism& testMechanism )
@@ -298,8 +300,6 @@ static const size_t memoryRequiredForTests = 512 * 1024 * 1024;
 
 static bool multiThreadMultiMETest( TTestedFunction func, bool useSingleDevice )
 {
-	clearLog();
-
 	try {
 		std::unique_ptr<IMathEngine> firstME;
 		std::unique_ptr<IMathEngine> secondME;
@@ -335,8 +335,6 @@ static bool multiThreadMultiMETest( TTestedFunction func, bool useSingleDevice )
 
 static bool multiThreadSingleMETest( TTestedFunction func, bool /*useSingleDevice*/ )
 {
-	clearLog();
-
 	try {
 		std::unique_ptr<IMathEngine> firstME( CreateGpuMathEngine( 0 ) );
 
@@ -362,8 +360,6 @@ static bool multiThreadSingleMETest( TTestedFunction func, bool /*useSingleDevic
 
 static bool singleThreadMultiMathEngineTest( TTestedFunction func, bool useSingleDevice )
 {
-	clearLog();
-
 	try {
 		std::unique_ptr<IMathEngine> firstME;
 		std::unique_ptr<IMathEngine> secondME;
@@ -424,8 +420,6 @@ static void createMathEngineAndRunTest( TTestedFunction func, bool useSingleDevi
 
 static bool multiThreadCreateMETest( TTestedFunction func, bool useSingleDevice )
 {
-	clearLog();
-
 	try {
 		std::thread firstThread( createMathEngineAndRunTest, func, useSingleDevice );
 		std::thread secondThread( createMathEngineAndRunTest, func, useSingleDevice );
