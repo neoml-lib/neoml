@@ -24,10 +24,9 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-class CGpuMathEngineMultiThreadTest : public CTestFixture {
-};
-
-static const size_t testCublasMemorySize = 512 * 1024 * 1024;
+// Test log
+// Used in order to avoid troubles with exception while using threads
+// Empty log means test success
 
 static std::mutex testLogMutex;
 static std::vector<std::string> testLog;
@@ -58,7 +57,93 @@ static void printLog()
 	}
 }
 
-typedef void( *TTestFunc ) ( IMathEngine& mathEngine, int runCount );
+// Function to test
+// Run runCount times some function of mathEngine
+typedef void( *TTestedFunction ) ( IMathEngine& mathEngine, int runCount );
+
+// Test mechanism
+// Determines used number of devices/threads used in test
+// Returns true if test was passed
+typedef bool( *TTestMechanism ) ( TTestedFunction function, bool useSingleDevice );
+
+// Forward-declarations (bodies are located at the end of the file
+
+// TTestMechanism
+// Creates 2 mathEngines and passes them to 2 separate threads for testing
+static bool multiThreadMultiMETest( TTestedFunction func, bool useSingleDevice );
+// Creates one mathEngine and passes it to 2 separate threads for testing
+static bool multiThreadSingleMETest( TTestedFunction func, bool /* useSingleDevice */ );
+// Creates 2 mathEngines and uses them in tests (no threads created)
+static bool singleThreadMultiMathEngineTest( TTestedFunction func, bool useSingleDevice );
+// Starts 2 threads. Each thread creates its mathEngine and tests it
+static bool multiThreadCreateMETest( TTestedFunction func, bool useSingleDevice );
+
+// TTestedFunction
+static void testCublas( IMathEngine& mathEngine, int runCount ); // One cublas function
+static void testCusparse( IMathEngine& mathEngine, int runCount ); // One cusparse function
+static void testKernel( IMathEngine& mathEngine, int runCount ); // One custom CUDA kernel
+static void testMemoryFunctions( IMathEngine& mathEngine, int runCount ); // copying to/from GPU (and between different memory regions on GPU)
+
+class CMultiGpuMultiThreadTest : public CTestFixture, public ::testing::WithParamInterface<std::tuple<TTestMechanism, TTestedFunction, bool>> {
+};
+
+std::string getTestMechanismName( const TTestMechanism& testMechanism )
+{
+	if( testMechanism == multiThreadMultiMETest ) {
+		return "multiThreadMultiMETest";
+	} else if( testMechanism == multiThreadCreateMETest ) {
+		return "multiThreadCreateMETest";
+	} else if( testMechanism == singleThreadMultiMathEngineTest ) {
+		return "singleThreadMultiMathEngineTest";
+	} else if( testMechanism == multiThreadCreateMETest ) {
+		return "multiThreadCreateMETest";
+	}
+	return "UNKNOWN_TEST_MECH";
+}
+
+std::string getTestedFunctionName( const TTestedFunction& testedFunction )
+{
+	if( testedFunction == testCublas ) {
+		return "testCublas";
+	} else if( testedFunction == testCusparse ) {
+		return "testCusparse";
+	} else if( testedFunction == testKernel ) {
+		return "testKernel";
+	} else if( testedFunction == testMemoryFunctions ) {
+		return "testMemoryFunctions";
+	}
+	return "UNKNOWN_TESTED_FUNCTION";
+}
+
+TEST_P( CMultiGpuMultiThreadTest, Run )
+{
+	TTestMechanism testMechanism = std::get<0>( GetParam() );
+	TTestedFunction testedFunction = std::get<1>( GetParam() );
+	bool useSingleDevice = std::get<2>( GetParam() );
+
+	// There is no simple way to overload << operator when working with tuples
+	GTEST_LOG_( INFO ) << getTestMechanismName( testMechanism ) << "(" << getTestedFunctionName( testedFunction )
+		<< ", " << std::boolalpha << useSingleDevice << std::noboolalpha << ")" << std::endl;
+
+	if( !testMechanism( testedFunction, useSingleDevice ) ) {
+		FAIL();
+	}
+}
+
+INSTANTIATE_TEST_CASE_P( CMultiGpuMultiThreadTestInstantiation0, CMultiGpuMultiThreadTest,
+	::testing::Combine(
+		::testing::Values( multiThreadMultiMETest, singleThreadMultiMathEngineTest, multiThreadCreateMETest ),
+		::testing::Values( testCublas, testCusparse, testKernel, testMemoryFunctions ),
+		::testing::Values( true, false )
+	) );
+
+// This test mechanism ignores last bool
+INSTANTIATE_TEST_CASE_P( CMultiGpuMultiThreadTestInstantiation1, CMultiGpuMultiThreadTest,
+	::testing::Combine(
+		::testing::Values( multiThreadSingleMETest ),
+		::testing::Values( testCublas, testCusparse, testKernel, testMemoryFunctions ),
+		::testing::Values( true )
+	) );
 
 static void testCublas( IMathEngine& mathEngine, int runCount )
 {
@@ -100,8 +185,8 @@ static void testCusparse( IMathEngine& mathEngine, int runCount )
 	try {
 		CRandom random( 0x1984 );
 
-		const int firstHeight = 10240;
-		const int firstWidth = 5120;
+		const int firstHeight = 5120;
+		const int firstWidth = 4096;
 		const int secondHeight = 3072;
 
 		std::vector<int> rows, columns;
@@ -176,7 +261,7 @@ static void testKernel( IMathEngine& mathEngine, int runCount )
 	}
 }
 
-static void testMemeFunc( IMathEngine& mathEngine, int runCount )
+static void testMemoryFunctions( IMathEngine& mathEngine, int runCount )
 {
 	try {
 		CRandom random( 0x1984 );
@@ -209,19 +294,30 @@ static void testMemeFunc( IMathEngine& mathEngine, int runCount )
 	}
 }
 
-static bool multiThreadMultiMETest( TTestFunc func )
+static const size_t memoryRequiredForTests = 512 * 1024 * 1024;
+
+static bool multiThreadMultiMETest( TTestedFunction func, bool useSingleDevice )
 {
 	clearLog();
 
 	try {
-		std::unique_ptr<IMathEngine> firstME( CreateGpuMathEngine( 0 ) );
-		std::unique_ptr<IMathEngine> secondME( CreateGpuMathEngine( 0 ) );
+		std::unique_ptr<IMathEngine> firstME;
+		std::unique_ptr<IMathEngine> secondME;
+
+		if( useSingleDevice ) {
+			std::unique_ptr<IGpuMathEngineManager> gpuManager( CreateGpuMathEngineManager() );
+			firstME.reset( gpuManager->CreateMathEngine( 0, memoryRequiredForTests ) );
+			secondME.reset( gpuManager->CreateMathEngine( 0, memoryRequiredForTests ) );
+		} else {
+			firstME.reset( CreateGpuMathEngine( 0 ) );
+			secondME.reset( CreateGpuMathEngine( 0 ) );
+		}
 
 		if( firstME == nullptr || secondME == nullptr ) {
 			addToLog( "Failed to create 2 GPU math engines" );
 		} else {
-			std::thread firstThread( func, std::ref( *firstME ), 1000 );
-			std::thread secondThread( func, std::ref( *secondME ), 1000 );
+			std::thread firstThread( func, std::ref( *firstME ), 200 );
+			std::thread secondThread( func, std::ref( *secondME ), 200 );
 			firstThread.join();
 			secondThread.join();
 		}
@@ -237,35 +333,7 @@ static bool multiThreadMultiMETest( TTestFunc func )
 	return true;
 }
 
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadMultiMathEngineCublas )
-{
-	if( !multiThreadMultiMETest( testCublas ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadMultiMathEngineCusparse )
-{
-	if( !multiThreadMultiMETest( testCusparse ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadMultiMathEngineMemeFunc )
-{
-	if( !multiThreadMultiMETest( testMemeFunc ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadMultiMathEngineKernel )
-{
-	if( !multiThreadMultiMETest( testKernel ) ) {
-		FAIL();
-	}
-}
-
-static bool multiThreadSingleMETest( TTestFunc func )
+static bool multiThreadSingleMETest( TTestedFunction func, bool /*useSingleDevice*/ )
 {
 	clearLog();
 
@@ -275,8 +343,8 @@ static bool multiThreadSingleMETest( TTestFunc func )
 		if( firstME == nullptr ) {
 			addToLog( "Failed to create math engine" );
 		} else {
-			std::thread firstThread( func, std::ref( *firstME ), 1000 );
-			std::thread secondThread( func, std::ref( *firstME ), 1000 );
+			std::thread firstThread( func, std::ref( *firstME ), 200 );
+			std::thread secondThread( func, std::ref( *firstME ), 200 );
 			firstThread.join();
 			secondThread.join();
 		}
@@ -292,41 +360,22 @@ static bool multiThreadSingleMETest( TTestFunc func )
 	return true;
 }
 
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadSingleMathEngineCublas )
-{
-	if( !multiThreadSingleMETest( testCublas ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadSingleMathEngineCusparse )
-{
-	if( !multiThreadSingleMETest( testCusparse ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadSingleMathEngineMemeFunc )
-{
-	if( !multiThreadSingleMETest( testMemeFunc ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadSingleMathEngineKernel )
-{
-	if( !multiThreadSingleMETest( testKernel ) ) {
-		FAIL();
-	}
-}
-
-static bool singleThreadMultiMathEngineTest( TTestFunc func )
+static bool singleThreadMultiMathEngineTest( TTestedFunction func, bool useSingleDevice )
 {
 	clearLog();
 
 	try {
-		std::unique_ptr<IMathEngine> firstME( CreateGpuMathEngine( 0 ) );
-		std::unique_ptr<IMathEngine> secondME( CreateGpuMathEngine( 0 ) );
+		std::unique_ptr<IMathEngine> firstME;
+		std::unique_ptr<IMathEngine> secondME;
+
+		if( useSingleDevice ) {
+			std::unique_ptr<IGpuMathEngineManager> gpuManager( CreateGpuMathEngineManager() );
+			firstME.reset( gpuManager->CreateMathEngine( 0, memoryRequiredForTests ) );
+			secondME.reset( gpuManager->CreateMathEngine( 0, memoryRequiredForTests ) );
+		} else {
+			firstME.reset( CreateGpuMathEngine( 0 ) );
+			secondME.reset( CreateGpuMathEngine( 0 ) );
+		}
 
 		if( firstME == nullptr || secondME == nullptr ) {
 			addToLog( "Failed to create 2 GPU math engines" );
@@ -334,8 +383,8 @@ static bool singleThreadMultiMathEngineTest( TTestFunc func )
 
 		// Checking switching between two mathEngines
 		for( int iter = 0; iter < 10; ++iter ) {
-			func( *firstME, 100 );
-			func( *secondME, 100 );
+			func( *firstME, 10 );
+			func( *secondME, 10 );
 		}
 	} catch( std::exception& ex ) {
 		addToLog( ex.what() );
@@ -349,119 +398,37 @@ static bool singleThreadMultiMathEngineTest( TTestFunc func )
 	return true;
 }
 
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleThreadMultiMathEngineCublas )
-{
-	if( !singleThreadMultiMathEngineTest( testCublas ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleThreadMultiMathEngineCusparse )
-{
-	if( !singleThreadMultiMathEngineTest( testCusparse ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleThreadMultiMathEngineMemeFunc )
-{
-	if( !singleThreadMultiMathEngineTest( testMemeFunc ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleThreadMultiMathEngineKernel )
-{
-	if( !singleThreadMultiMathEngineTest( testKernel ) ) {
-		FAIL();
-	}
-}
-
-static bool singleDeviceMultiThreadMultiMETest( TTestFunc func )
-{
-	clearLog();
-
-	try {
-		std::unique_ptr<IGpuMathEngineManager> gpuManager( CreateGpuMathEngineManager() );
-		std::unique_ptr<IMathEngine> firstME( gpuManager->CreateMathEngine( 0, testCublasMemorySize ) );
-		std::unique_ptr<IMathEngine> secondME( gpuManager->CreateMathEngine( 0, testCublasMemorySize ) );
-
-		if( firstME == nullptr || secondME == nullptr ) {
-			addToLog( "Failed to create 2 math engines on device #0" );
-		} else {
-			std::thread firstThread( func, std::ref( *firstME ), 1000 );
-			std::thread secondThread( func, std::ref( *secondME ), 1000 );
-			firstThread.join();
-			secondThread.join();
-		}
-	} catch( std::exception& ex ) {
-		addToLog( ex.what() );
-	}
-
-	if( !isLogEmpty() ) {
-		printLog();
-		return false;
-	}
-
-	return true;
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleDeviceMultiThreadMultiMathEngineCublas )
-{
-	if( !singleDeviceMultiThreadMultiMETest( testCublas ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleDeviceMultiThreadMultiMathEngineCusparse )
-{
-	if( !singleDeviceMultiThreadMultiMETest( testCusparse ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleDeviceMultiThreadMultiMathEngineMemeFunc )
-{
-	if( !singleDeviceMultiThreadMultiMETest( testMemeFunc ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_SingleDeviceMultiThreadMultiMathEngineKernel )
-{
-	if( !singleDeviceMultiThreadMultiMETest( testKernel ) ) {
-		FAIL();
-	}
-}
-
-static std::mutex createMathEngineMutex;
-
-static void createMathEngineAndRunTest( TTestFunc func )
+static void createMathEngineAndRunTest( TTestedFunction func, bool useSingleDevice )
 {
 	try {
 		std::unique_ptr<IMathEngine> mathEngine;
-		{
-			std::lock_guard<std::mutex> lock( createMathEngineMutex );
+
+		if( useSingleDevice ) {
+			std::unique_ptr<IGpuMathEngineManager> gpuManager( CreateGpuMathEngineManager() );
+			// both threads will create GPU on device #0
+			mathEngine.reset( gpuManager->CreateMathEngine( 0, memoryRequiredForTests ) );
+		} else {
 			mathEngine.reset( CreateGpuMathEngine( 0 ) );
 		}
+
 		if( mathEngine == nullptr ) {
 			addToLog( "failed to create math engine" );
 			return;
 		}
 
-		func( *mathEngine, 1000 );
+		func( *mathEngine, 200 );
 	} catch( std::exception& ex ) {
 		addToLog( ex.what() );
 	}
 }
 
-static bool multiThreadCreateMETest( TTestFunc func )
+static bool multiThreadCreateMETest( TTestedFunction func, bool useSingleDevice )
 {
 	clearLog();
 
 	try {
-		std::thread firstThread( createMathEngineAndRunTest, func );
-		std::thread secondThread( createMathEngineAndRunTest, func );
+		std::thread firstThread( createMathEngineAndRunTest, func, useSingleDevice );
+		std::thread secondThread( createMathEngineAndRunTest, func, useSingleDevice );
 		firstThread.join();
 		secondThread.join();
 	} catch( std::exception& ex ) {
@@ -474,69 +441,4 @@ static bool multiThreadCreateMETest( TTestFunc func )
 	}
 
 	return true;
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadCreateMathEngineCublas )
-{
-	if( !multiThreadCreateMETest( testCublas ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadCreateMathEngineCusparse )
-{
-	if( !multiThreadCreateMETest( testCusparse ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadCreateMathEngineMemeFunc )
-{
-	if( !multiThreadCreateMETest( testMemeFunc ) ) {
-		FAIL();
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadCreateMathEngineKernel )
-{
-	if( !multiThreadCreateMETest( testKernel ) ) {
-		FAIL();
-	}
-}
-
-void createALotOfMathEngines( int runCount )
-{
-	try {
-		for( int run = 0; run < runCount; ++run ) {
-			std::unique_ptr<IMathEngine> mathEngine( CreateGpuMathEngine( 0 ) );
-			if( mathEngine == nullptr ) {
-				addToLog( "failed to create math engine" );
-				continue;
-			}
-			CFloatBlob blob( *mathEngine, 1, 2, 3, 4 );
-			std::vector<float> data( blob.GetDataSize(), 2.f );
-			blob.CopyFrom( data.data() );
-		}
-	} catch( std::exception& ex ) {
-		addToLog( ex.what() );
-	}
-}
-
-TEST_F( CGpuMathEngineMultiThreadTest, DISABLED_MultiThreadMathEngineCreation )
-{
-	clearLog();
-
-	try {
-		std::thread firstThread( createALotOfMathEngines, 1000 );
-		std::thread secondThread( createALotOfMathEngines, 1000 );
-		firstThread.join();
-		secondThread.join();
-	} catch( std::exception& ex ) {
-		addToLog( ex.what() );
-	}
-
-	if( !isLogEmpty() ) {
-		printLog();
-		FAIL();
-	}
 }
