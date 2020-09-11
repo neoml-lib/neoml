@@ -67,7 +67,7 @@ void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle&
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
 	ASSERT_CUBLAS( cublas->Sgemm( cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, secondHeight, firstHeight, firstWidth,
-		CCudaConst::One, GetRaw( secondHandle ), secondRowSize, GetRaw( firstHandle ), firstRowSize, CCudaConst::Zero,
+		cudaConstOne, GetRaw( secondHandle ), secondRowSize, GetRaw( firstHandle ), firstRowSize, cudaConstZero,
 		GetRaw( resultHandle ), resultRowSize ) );
 }
 
@@ -80,8 +80,8 @@ void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CCo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
 	ASSERT_CUBLAS( cublas->SgemmStridedBatched( cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, secondHeight,
-		firstHeight, firstWidth, CCudaConst::One, GetRaw( secondHandle ), firstWidth, firstWidth * secondHeight,
-		GetRaw( firstHandle ), firstWidth, firstHeight * firstWidth, CCudaConst::Zero, GetRaw( resultHandle ),
+		firstHeight, firstWidth, cudaConstOne, GetRaw( secondHandle ), firstWidth, firstWidth * secondHeight,
+		GetRaw( firstHandle ), firstWidth, firstHeight * firstWidth, cudaConstZero, GetRaw( resultHandle ),
 		secondHeight, secondHeight * firstHeight, batchSize ) );
 }
 
@@ -94,7 +94,7 @@ void CCudaMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatH
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
 	ASSERT_CUBLAS( cublas->Sgemm( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T, secondWidth, firstWidth, firstHeight,
-		CCudaConst::One, GetRaw( secondHandle ), secondRowSize, GetRaw( firstHandle ), firstRowSize, CCudaConst::One,
+		cudaConstOne, GetRaw( secondHandle ), secondRowSize, GetRaw( firstHandle ), firstRowSize, cudaConstOne,
 		GetRaw( resultHandle ), resultRowSize ) );
 }
 
@@ -106,8 +106,8 @@ void CCudaMathEngine::MultiplyTransposedMatrixByMatrix( int batchSize, const CCo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
 	ASSERT_CUBLAS( cublas->SgemmStridedBatched( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_T, secondWidth, firstWidth,
-		firstHeight, CCudaConst::One, GetRaw(secondHandle), secondWidth, firstHeight * secondWidth, GetRaw(firstHandle),
-		firstWidth, firstHeight * firstWidth, CCudaConst::Zero, GetRaw(resultHandle), secondWidth, firstWidth * secondWidth,
+		firstHeight, cudaConstOne, GetRaw(secondHandle), secondWidth, firstHeight * secondWidth, GetRaw(firstHandle),
+		firstWidth, firstHeight * firstWidth, cudaConstZero, GetRaw(resultHandle), secondWidth, firstWidth * secondWidth,
 		batchSize ) );
 }
 
@@ -121,12 +121,12 @@ void CCudaMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHa
 
 	if( batchSize == 1 ) {
 		ASSERT_CUBLAS( cublas->Sgemm( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, secondWidth, firstHeight, firstWidth,
-			CCudaConst::One, GetRaw( secondHandle ), secondWidth, GetRaw( firstHandle ), firstWidth, CCudaConst::Zero,
+			cudaConstOne, GetRaw( secondHandle ), secondWidth, GetRaw( firstHandle ), firstWidth, cudaConstZero,
 			GetRaw( resultHandle ), secondWidth ) );
 	} else {
 		ASSERT_CUBLAS( cublas->SgemmStridedBatched( cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, secondWidth, firstHeight, firstWidth,
-			CCudaConst::One, GetRaw( secondHandle ), secondWidth, firstWidth * secondWidth, GetRaw( firstHandle ), firstWidth,
-			firstHeight * firstWidth, CCudaConst::Zero, GetRaw( resultHandle ), secondWidth, secondWidth * firstHeight, batchSize ) );
+			cudaConstOne, GetRaw( secondHandle ), secondWidth, firstWidth * secondWidth, GetRaw( firstHandle ), firstWidth,
+			firstHeight * firstWidth, cudaConstZero, GetRaw( resultHandle ), secondWidth, secondWidth * firstHeight, batchSize ) );
 	}
 }
 
@@ -136,7 +136,7 @@ void CCudaMathEngine::multiplyMatrixByTransposedMatrixAndAdd(const CConstFloatHa
 	const CFloatHandle& resultHandle, int resultRowSize)
 {
 	ASSERT_CUBLAS( cublas->Sgemm( cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N, secondHeight, firstHeight, firstWidth,
-		CCudaConst::One, GetRaw( secondHandle ), secondRowSize, GetRaw( firstHandle ), firstRowSize, CCudaConst::One,
+		cudaConstOne, GetRaw( secondHandle ), secondRowSize, GetRaw( firstHandle ), firstRowSize, cudaConstOne,
 		GetRaw( resultHandle ), resultRowSize ) );
 }
 

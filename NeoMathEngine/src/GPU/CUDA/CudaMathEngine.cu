@@ -37,9 +37,6 @@ namespace NeoML {
 static __constant__ const float ZeroDev = 0;
 static __constant__ const float OneDev = 1;
 
-const float* CCudaConst::Zero;
-const float* CCudaConst::One;
-
 const int CudaMemoryAlignment = 4;
 
 //------------------------------------------------------------------------------------------------------------
@@ -65,8 +62,8 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 	ASSERT_CUSPARSE( cusparse->Create( &cusparseHandle ) );
 
 	// Constants
-	ASSERT_CUDA( cudaGetSymbolAddress((void**)&CCudaConst::Zero, ZeroDev) );
-	ASSERT_CUDA( cudaGetSymbolAddress((void**)&CCudaConst::One, OneDev) );
+	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstZero, ZeroDev) );
+	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstOne, OneDev) );
 
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( device->MemoryLimit, this, true ) );
 	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
