@@ -26,15 +26,6 @@ limitations under the License.
 
 namespace NeoML {
 
-// Constants
-class CCudaConst : public CCrtAllocatedObject {
-public:
-	static const float* Zero;
-	static const float* One;
-};
-
-//------------------------------------------------------------------------------------------------------------
-
 struct CCudaVectorArray {
 	static const int MaxSize = 16;
 	float* Vectors[MaxSize];
