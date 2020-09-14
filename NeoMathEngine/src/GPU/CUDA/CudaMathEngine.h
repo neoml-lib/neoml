@@ -455,6 +455,9 @@ private:
 	const CCusparse* cusparse; // cusparse library functions
 	const CCublas* cublas; // cublas library functions
 
+	const float* cudaConstZero; // pointer to __constant__ == 0.f
+	const float* cudaConstOne; // pointer to __constant__ == 1.f
+
 	mutable std::mutex mutex; // protects the data below
 	std::unique_ptr<CCudaDevice> device; // the device descriptor
 	cublasHandle_t cublasHandle; // cublas library handle
