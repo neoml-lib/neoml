@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
@@ -34,6 +35,7 @@ enum TActivationFunction {
 	AF_HardSigmoid,
 	AF_Power,
 	AF_HSwish,
+	AF_GELU,
 
 	AF_Count
 };

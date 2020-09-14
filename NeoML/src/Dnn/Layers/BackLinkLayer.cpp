@@ -30,8 +30,7 @@ CBackLinkLayer::CBackLinkLayer( IMathEngine& mathEngine ) :
 	captureSink = FINE_DEBUG_NEW CCaptureSinkLayer( mathEngine );
 	CString captureSinkName = GetName() + CString( BackLinkSinkNamePostfix );
 	captureSink->SetName(captureSinkName);
-
-	RestartSequence();
+	isProcessingFirstPosition = true;
 }
 
 void CBackLinkLayer::SetName(const char* _name)

@@ -33,6 +33,8 @@ enum TActivationFunction {
 	AF_HardTanh,
 	AF_HardSigmoid,
 	AF_Power,
+	AF_HSwish,
+	AF_GELU,
 
 	AF_Count
 };
@@ -50,4 +52,6 @@ TActivationFunction constant | Class name | Activation function
 `AF_HardTanh` | [CHardTanhLayer](HardTanhLayer.md) | `HardTanh` activation function
 `AF_HardSigmoid` | [CHardSigmoidLayer](HardSigmoidLayer.md) | `HardSigmoid` activation function
 `AF_Power` | [CPowerLayer](PowerLayer.md) | `pow(x, exp)` activation function
+`AF_HSwish` | [CHSwishLayer](HSwishLayer.md) | `h-swish` activation function
+`AF_GELU` | [CGELULayer](GELULayer.md) | `x * sigmoid(1.702 * x)` activation function
 `AF_Count` | | This is an auxiliary constant: it contains the number of supported activation functions.

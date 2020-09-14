@@ -285,6 +285,9 @@ public:
 	void MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) override;
+	void MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle,
+		int firstHeight, int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight,
+		const CFloatHandle& resultHandle, int resultBufferSize ) override;
 	void MultiplySparseMatrixByTransposedMatrix( int firstHeight, int firstWidth, int secondHeight,
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) override;
 	void MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
@@ -292,6 +295,8 @@ public:
 	void MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, int firstRowSize,
 		const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) override;
+	void MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize) override;
 	void MultiplyDiagMatrixByMatrix(const CConstFloatHandle& firstHandle, int firstSize,
 		const CConstFloatHandle& secondHandle, int secondWidth,
 		const CFloatHandle& resultHandle, int resultBufferSize) override;
@@ -450,9 +455,11 @@ private:
 	const CCusparse* cusparse; // cusparse library functions
 	const CCublas* cublas; // cublas library functions
 
+	const float* cudaConstZero; // pointer to __constant__ == 0.f
+	const float* cudaConstOne; // pointer to __constant__ == 1.f
+
 	mutable std::mutex mutex; // protects the data below
 	std::unique_ptr<CCudaDevice> device; // the device descriptor
-	cudaStream_t cudaStream; // the only stream
 	cublasHandle_t cublasHandle; // cublas library handle
 	cusparseHandle_t cusparseHandle; // cusparse library handle
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
@@ -460,8 +467,6 @@ private:
 	std::unique_ptr<CHostStackAllocator> hostStackRunTime; // regular memory stack allocator
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
-	void generateAssert( IMathEngineExceptionHandler* exceptionHandler, const char* expr, const char* file, int line, int errorCode );
-	void generateMemoryError( IMathEngineExceptionHandler* exceptionHandler );
 	CCudaDevice* captureCudaDevice( int deviceNumber, size_t memoryLimit );
 	CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t memoryLimit, bool reuseDevice );
 

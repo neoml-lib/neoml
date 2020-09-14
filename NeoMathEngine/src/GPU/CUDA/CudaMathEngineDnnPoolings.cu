@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <CudaMathEngine.h>
 #include <CudaDevice.h>
+#include <CudaCommon.h>
 #include <CudaMathEngineDnnPoolings.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
@@ -50,6 +51,7 @@ void CCudaMathEngine::BlobMaxPooling(const CMaxPoolingDesc& poolingDesc, const C
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMaxPoolingDescInternal& desc = static_cast<const CCudaMaxPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& result = desc.Result;
@@ -64,7 +66,7 @@ void CCudaMathEngine::BlobMaxPooling(const CMaxPoolingDesc& poolingDesc, const C
 	getCudaTaskGrid3DMinZYX(1, 1, 32, blockCount, threadCount,
 		result.ObjectCount(), result.Height() * result.Width(), result.Depth() * result.Channels());
 
-	BlobMaxPoolingKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw(sourceData), maxIndexPtr, GetRaw(resultData));
+	BlobMaxPoolingKernel<<<blockCount, threadCount>>>( desc, GetRaw(sourceData), maxIndexPtr, GetRaw(resultData));
 }
 
 void CCudaMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc& poolingDesc, const CFloatHandle& outputDiffData,
@@ -73,6 +75,7 @@ void CCudaMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc& poolingDesc
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMaxPoolingDescInternal& desc = static_cast<const CCudaMaxPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
@@ -90,7 +93,7 @@ void CCudaMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc& poolingDesc
 
 	getCudaTaskGrid3DMinZYX(1, 1, 32, blockCount, threadCount, batchNorm, outputDiff.Height() * outputDiff.Width(), totalChannels);
 
-	BlobMaxPoolingBackwardKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, isAtomic, 
+	BlobMaxPoolingBackwardKernel<<<blockCount, threadCount>>>( desc, isAtomic, 
 		GetRaw(outputDiffData), GetRaw(maxIndicesData), GetRaw(inputDiffData), batchNorm );
 }
 
@@ -112,6 +115,7 @@ void CCudaMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc,
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMeanPoolingDescInternal& desc = static_cast<const CCudaMeanPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& result = desc.Result;
@@ -123,7 +127,7 @@ void CCudaMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc,
 
 	getCudaTaskGrid3DMinZYX(1, 1, 32, blockCount, threadCount,
 		result.ObjectCount(), result.Height() * result.Width(), totalChannels);
-	BlobMeanPoolingKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw(sourceData), GetRaw(resultData) );
+	BlobMeanPoolingKernel<<<blockCount, threadCount>>>( desc, GetRaw(sourceData), GetRaw(resultData) );
 }
 
 void CCudaMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDesc, const CFloatHandle& outputDiffData,
@@ -131,6 +135,7 @@ void CCudaMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDe
 {
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMeanPoolingDescInternal& desc = static_cast<const CCudaMeanPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& outputDiff = desc.Result;
@@ -144,7 +149,7 @@ void CCudaMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDe
 	getCudaTaskGrid3D( blockCount, threadCount, outputDiff.ObjectCount(), outputDiff.Height() * outputDiff.Width(),
 		outputDiff.Depth() * outputDiff.Channels() );
 
-	BlobMeanPoolingBackwardKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw(outputDiffData),
+	BlobMeanPoolingBackwardKernel<<<blockCount, threadCount>>>( desc, GetRaw(outputDiffData),
 		GetRaw(inputDiffData), isAtomic );
 }
 
@@ -162,6 +167,7 @@ void CCudaMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePool
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaGlobalMaxOverTimePoolingDescInternal& desc = static_cast<const CCudaGlobalMaxOverTimePoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& source = desc.Source;
@@ -174,9 +180,9 @@ void CCudaMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePool
 	getCudaTaskGrid(blockCount, threadCount, objectSize);
 
 	if( maxIndicesData == 0 ) {
-		BlobGlobalMaxOverTimePoolingKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw(sourceData), GetRaw(resultData) );
+		BlobGlobalMaxOverTimePoolingKernel<<<blockCount, threadCount>>>( desc, GetRaw(sourceData), GetRaw(resultData) );
 	} else {
-		BlobGlobalMaxOverTimePoolingWithIndexKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw(sourceData), GetRaw(*maxIndicesData), GetRaw(resultData) );
+		BlobGlobalMaxOverTimePoolingWithIndexKernel<<<blockCount, threadCount>>>( desc, GetRaw(sourceData), GetRaw(*maxIndicesData), GetRaw(resultData) );
 	}
 }
 
@@ -186,6 +192,7 @@ void CCudaMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOver
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaGlobalMaxOverTimePoolingDescInternal& desc = static_cast<const CCudaGlobalMaxOverTimePoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& source = desc.Source;
@@ -197,7 +204,7 @@ void CCudaMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOver
 	int threadCount;
 	getCudaTaskGrid(blockCount, threadCount, source.BlobSize());
 
-	BlobGlobalMaxOverTimePoolingBackwardKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw(sourceData), GetRaw(maxIndicesData), GetRaw(resultData) );
+	BlobGlobalMaxOverTimePoolingBackwardKernel<<<blockCount, threadCount>>>( desc, GetRaw(sourceData), GetRaw(maxIndicesData), GetRaw(resultData) );
 }
 
 CGlobalMaxPoolingDesc* CCudaMathEngine::InitGlobalMaxPooling( const CBlobDesc& source, const CBlobDesc& maxIndices, const CBlobDesc& result )
@@ -215,6 +222,7 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaGlobalMaxPoolingDescInternal& desc = static_cast<const CCudaGlobalMaxPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& source = desc.Source;
@@ -240,7 +248,7 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 	blockCount.x = 1;
 
 	int sharedSize = threadCount.y * threadCount.x * sharedMemoryPerThread;
-	BlobGlobalMaxPoolingKernel<<<blockCount, threadCount, sharedSize, cudaStream>>>( desc, GetRaw( sourceData ),
+	BlobGlobalMaxPoolingKernel<<<blockCount, threadCount, sharedSize>>>( desc, GetRaw( sourceData ),
 		GetRaw( maxIndicesData ), GetRaw( resultData ), poolSize, maxCount, poolSizeNorm );
 }
 
@@ -250,6 +258,7 @@ void CCudaMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc&
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaGlobalMaxPoolingDescInternal& desc = static_cast<const CCudaGlobalMaxPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
@@ -265,7 +274,7 @@ void CCudaMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc&
 	int threadCount;
 	getCudaTaskGrid(blockCount, threadCount, fullSize, BlobGlobalMaxPoolingBackwardCombine);
 
-	BlobGlobalMaxPoolingBackwardKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( outputDiffData ),
+	BlobGlobalMaxPoolingBackwardKernel<<<blockCount, threadCount>>>( desc, GetRaw( outputDiffData ),
 		GetRaw( maxIndicesData ), GetRaw( inputDiffData ), poolSize, maxCount, fullSize );
 }
 
@@ -292,6 +301,7 @@ void CCudaMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, co
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->IsNull() || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCuda3dMaxPoolingDescInternal& desc = static_cast<const CCuda3dMaxPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& result = desc.Result;
@@ -301,7 +311,7 @@ void CCudaMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, co
 	getCudaTaskGrid3DMinZYX(1, 1, 32, blockCount, threadCount, result.ObjectCount(),
 		result.Depth() * result.Height() * result.Width(), result.Channels());
 
-	Blob3dMaxPoolingKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( sourceData ),
+	Blob3dMaxPoolingKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ),
 		maxIndicesData == 0 ? 0 : GetRaw( *maxIndicesData ), GetRaw( resultData ) );
 }
 
@@ -311,6 +321,7 @@ void CCudaMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& pooling
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCuda3dMaxPoolingDescInternal& desc = static_cast<const CCuda3dMaxPoolingDesc&>( poolingDesc ).Internal;
 	VectorFill( inputDiffData, 0, desc.Source.BlobSize() );
@@ -322,7 +333,7 @@ void CCudaMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& pooling
 	getCudaTaskGrid3DMinZYX(1, 1, 32, blockCount, threadCount, desc.Result.ObjectCount(),
 		desc.Result.Depth() * desc.Result.Height() * desc.Result.Width(), desc.Result.Channels());
 
-	Blob3dMaxPoolingBackwardKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( outputDiffData ),
+	Blob3dMaxPoolingBackwardKernel<<<blockCount, threadCount>>>( desc, GetRaw( outputDiffData ),
 		GetRaw( maxIndicesData ), GetRaw( inputDiffData ), isAtomic );
 }
 
@@ -348,6 +359,7 @@ void CCudaMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, 
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCuda3dMeanPoolingDescInternal& desc = static_cast<const CCuda3dMeanPoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& result = desc.Result;
@@ -357,7 +369,7 @@ void CCudaMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, 
 	getCudaTaskGrid3DMinZYX(1, 1, 32, blockCount, threadCount, result.ObjectCount(),
 		result.Depth() * result.Height() * result.Width(), result.Channels());
 
-	Blob3dMeanPoolingKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( sourceData ), GetRaw( resultData ) );
+	Blob3dMeanPoolingKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), GetRaw( resultData ) );
 }
 
 void CCudaMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& poolingDesc,
@@ -365,6 +377,7 @@ void CCudaMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& pooli
 {
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCuda3dMeanPoolingDescInternal& desc = static_cast<const CCuda3dMeanPoolingDesc&>( poolingDesc ).Internal;
 
@@ -383,7 +396,7 @@ void CCudaMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& pooli
 	getCudaTaskGrid3DMinZYX(1, 1, 32, blockCount, threadCount, outputDiff.ObjectCount(),
 		outputDiff.Depth() * outputDiff.Height() * outputDiff.Width(), outputDiff.Channels());
 
-	Blob3dMeanPoolingBackwardKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( outputDiffData ),
+	Blob3dMeanPoolingBackwardKernel<<<blockCount, threadCount>>>( desc, GetRaw( outputDiffData ),
 		GetRaw( inputDiffData ), isAtomic );
 }
 
@@ -404,6 +417,7 @@ void CCudaMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poo
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMaxOverTimePoolingDescInternal& desc = static_cast<const CCudaMaxOverTimePoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& result = desc.Result;
@@ -419,10 +433,10 @@ void CCudaMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poo
 	int sharedSize = threadCount.x * threadCount.y * threadCount.z;
 
 	if( maxIndicesData != 0 ) {
-		BlobMaxOverTimePoolingKernel<<<blockCount, threadCount, sharedSize * sizeof(CValueWithIndex), cudaStream>>>( desc,
+		BlobMaxOverTimePoolingKernel<<<blockCount, threadCount, sharedSize * sizeof(CValueWithIndex)>>>( desc,
 			GetRaw( sourceData ), GetRaw( *maxIndicesData ), GetRaw( resultData ) );
 	} else {
-		BlobMaxOverTimePoolingKernel<<<blockCount, threadCount, sharedSize * sizeof(float), cudaStream>>>( desc,
+		BlobMaxOverTimePoolingKernel<<<blockCount, threadCount, sharedSize * sizeof(float)>>>( desc,
 			GetRaw( sourceData ), GetRaw( resultData ) );
 	}
 }
@@ -433,6 +447,7 @@ void CCudaMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingD
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMaxOverTimePoolingDescInternal& desc = static_cast<const CCudaMaxOverTimePoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
@@ -448,11 +463,11 @@ void CCudaMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingD
 	if( desc.StrideLen >= desc.FilterLen ) {
 		// The pooling areas do not intersect, no need to add
 		CStoreSet store;
-		BlobMaxOverTimePoolingBackwardKernel<<<blockCount, threadCount, 0, cudaStream>>>(store, desc, GetRaw( outputDiffData ),
+		BlobMaxOverTimePoolingBackwardKernel<<<blockCount, threadCount>>>(store, desc, GetRaw( outputDiffData ),
 			GetRaw( maxIndicesData ), GetRaw( inputDiffData ) );
 	} else {
 		CStoreAtomicAdd store;
-		BlobMaxOverTimePoolingBackwardKernel<<<blockCount, threadCount, 0, cudaStream>>>(store, desc, GetRaw( outputDiffData ),
+		BlobMaxOverTimePoolingBackwardKernel<<<blockCount, threadCount>>>(store, desc, GetRaw( outputDiffData ),
 			GetRaw( maxIndicesData ), GetRaw( inputDiffData ));
 	}
 }

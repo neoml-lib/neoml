@@ -18,13 +18,14 @@ limitations under the License.
 
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
+#include <NeoML/Dnn/Layers/GELULayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
 CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunction type )
 {
-	static_assert( AF_Count == 11, "AF_Count != 10" );
+	static_assert( AF_Count == 12, "AF_Count != 12" );
 	switch( type ) {
 		case AF_Linear:
 			return FINE_DEBUG_NEW CLinearLayer( mathEngine );
@@ -48,6 +49,8 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunc
 			return FINE_DEBUG_NEW CPowerLayer( mathEngine );
 		case AF_HSwish:
 			return FINE_DEBUG_NEW CHSwishLayer( mathEngine );
+		case AF_GELU:
+			return FINE_DEBUG_NEW CGELULayer( mathEngine );
 		default:
 			NeoAssert( false );
 	}

@@ -29,15 +29,19 @@ CQualityControlLayer::CQualityControlLayer( IMathEngine& mathEngine, const char*
 void CQualityControlLayer::Reshape()
 {
 	CheckInputs();
-	NeoAssert( inputDescs.Size() == 2 );
-	NeoAssert( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount() );
-	NeoAssert( inputDescs[0].ObjectSize() >= 1 );
-	NeoAssert( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize() );
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "layer expects 2 inputs" );
+	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetName(),
+		"Object count mismatch between inputs" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(),
+		"Object size mismatch between inputs" );
+	CheckArchitecture( !outputDescs.IsEmpty(), GetName(), "There is nothing connected to this layer's output" );
 }
 
 void CQualityControlLayer::BackwardOnce()
 {
-	NeoAssert( false );
+	// This layer is usually placed after some learnable layers.
+	// In order to learn those layers are requiring for gradient from all succeeding layers (including this one).
+	inputDiffBlobs[0]->Clear();
 }
 
 void CQualityControlLayer::RunOnce()

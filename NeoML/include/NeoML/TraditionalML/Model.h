@@ -110,7 +110,7 @@ inline CModelClassRegistrar<T>::~CModelClassRegistrar()
 #define DECLARE_NEOML_MODEL_NAME( var, modelName ) const char* const var = modelName ;
 
 // Retrieves the model name
-NEOML_API const char* GetModelName( IObject* model );
+NEOML_API const char* GetModelName( const IObject* model );
 
 // Creates a registered model with a given name
 NEOML_API CPtr<IObject> CreateModel( const char* modelName );
