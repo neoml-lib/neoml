@@ -169,7 +169,7 @@ CMemoryHandle CCudaMathEngine::Alloc( size_t size )
 
 void CCudaMathEngine::Free( const CMemoryHandle& handle )
 {
-	ASSERT_CUDA( cudaFree( GetRaw( CTypedMemoryHandle<char>( handle ) ) ) );
+	cudaFree( GetRaw( CTypedMemoryHandle<char>( handle ) ) );
 }
 
 void CCudaMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
