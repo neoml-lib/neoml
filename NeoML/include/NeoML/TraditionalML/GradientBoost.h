@@ -133,8 +133,8 @@ public:
 	// ITrainingModel interface methods:
 	virtual CPtr<IModel> Train( const IProblem& problem );
 
-	// Returns the last loss values for each class
-	const CArray<double>& GetLastLossValues() const { return lossValues; }
+	// Returns the last loss mean
+	double GetLastLossMean() const { return loss; }
 
 private:
 	// A cache element that contains the ensemble predictions for a vector on a given step
@@ -159,7 +159,7 @@ private:
 	CArray< CArray<double> > answers; // the correct answers for the vectors used on each step
 	CArray< CArray<double> > gradients; // the gradients on each step
 	CArray< CArray<double> > hessians; // the hessians on each step
-	CArray<double> lossValues; // the last loss values for each class
+	double loss; // the last loss mean
 	// The vectors used on each step
 	// Contains the mapping of the index in the truncated training set for the given step to the index in the full set
 	// The array length is N * CParams::Subsample, where N is the original training set length

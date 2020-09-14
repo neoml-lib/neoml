@@ -49,9 +49,8 @@ public:
 	virtual void CalcGradientAndHessian( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
 		CArray< CArray<double> >& gradient, CArray< CArray<double> >& hessian ) const = 0;
 
-	// Calculates loss values
-	virtual void CalcLossValues( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
-		CArray<double>& lossValues ) const = 0;
+	// Calculates loss
+	virtual double CalcLossMean( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers ) const = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -63,8 +62,7 @@ public:
 	void CalcGradientAndHessian( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
 		CArray< CArray<double> >& gradient, CArray< CArray<double> >& hessian ) const override;
 
-	void CalcLossValues( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
-		CArray<double>& lossValues ) const override;
+	double CalcLossMean( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers ) const override;
 };
 
 void CGradientBoostingBinomialLossFunction::CalcGradientAndHessian( const CArray< CArray<double> >& predicts,
@@ -86,19 +84,22 @@ void CGradientBoostingBinomialLossFunction::CalcGradientAndHessian( const CArray
 	}
 }
 
-void CGradientBoostingBinomialLossFunction::CalcLossValues( const CArray< CArray<double> >& predicts,
-	const CArray< CArray<double> >& answers, CArray<double>& lossValues ) const
+double CGradientBoostingBinomialLossFunction::CalcLossMean( const CArray< CArray<double> >& predicts,
+	const CArray< CArray<double> >& answers ) const
 {
 	NeoAssert( predicts.Size() == answers.Size() );
 
-	lossValues.SetSize( predicts.Size() );
+	double overallSum = 0;
+	auto getMean = []( double sum, int n ) { return n != 0 ? sum / static_cast<double>( n ) : 0; };
 	for( int i = 0; i < predicts.Size(); ++i ) {
 		double sum = 0;
 		for( int j = 0; j < predicts[i].Size(); ++j ) {
 			sum += log( 1 + exp( min( -predicts[i][j], MaxExpArgument ) ) ) - predicts[i][j] * answers[i][j]; 
 		}
-		lossValues[i] = sum / static_cast<double>( predicts[i].Size() );
+		overallSum += getMean( sum, predicts[i].Size() );
 	}
+
+	return getMean( overallSum, predicts.Size() );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -110,8 +111,7 @@ public:
 	void CalcGradientAndHessian( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
 		CArray< CArray<double> >& gradient, CArray< CArray<double> >& hessian ) const override;
 
-	void CalcLossValues( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
-		CArray<double>& lossValues ) const override;
+	double CalcLossMean( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers ) const override;
 };
 
 void CGradientBoostingExponentialLossFunction::CalcGradientAndHessian( const CArray< CArray<double> >& predicts,
@@ -134,19 +134,22 @@ void CGradientBoostingExponentialLossFunction::CalcGradientAndHessian( const CAr
 	}
 }
 
-void CGradientBoostingExponentialLossFunction::CalcLossValues( const CArray< CArray<double> >& predicts,
-	const CArray< CArray<double> >& answers, CArray<double>& lossValues ) const
+double CGradientBoostingExponentialLossFunction::CalcLossMean( const CArray< CArray<double> >& predicts,
+	const CArray< CArray<double> >& answers ) const
 {
 	NeoAssert( predicts.Size() == answers.Size() );
 
-	lossValues.SetSize( predicts.Size() );
+	double overallSum = 0;
+	auto getMean = []( double sum, int n ) { return n != 0 ? sum / static_cast<double>( n ) : 0; };
 	for( int i = 0; i < predicts.Size(); ++i ) {
 		double sum = 0;
 		for( int j = 0; j < predicts[i].Size(); ++j ) {
 			sum += exp( min( ( 1.0 - 2.0 * answers[i][j] ) * predicts[i][j], MaxExpArgument ) );
 		}
-		lossValues[i] = sum / static_cast<double>( predicts[i].Size() );
+		overallSum += getMean( sum, predicts[i].Size() );
 	}
+
+	return getMean( overallSum, predicts.Size() );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -158,8 +161,7 @@ public:
 	void CalcGradientAndHessian( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
 		CArray< CArray<double> >& gradient, CArray< CArray<double> >& hessian ) const override;
 
-	void CalcLossValues( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
-		CArray<double>& lossValues ) const override;
+	double CalcLossMean( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers ) const override;
 };
 
 void CGradientBoostingSquaredHinge::CalcGradientAndHessian( const CArray< CArray<double> >& predicts,
@@ -187,20 +189,23 @@ void CGradientBoostingSquaredHinge::CalcGradientAndHessian( const CArray< CArray
 	}
 }
 
-void CGradientBoostingSquaredHinge::CalcLossValues( const CArray< CArray<double> >& predicts,
-	const CArray< CArray<double> >& answers, CArray<double>& lossValues ) const
+double CGradientBoostingSquaredHinge::CalcLossMean( const CArray< CArray<double> >& predicts,
+	const CArray< CArray<double> >& answers ) const
 {
 	NeoAssert( predicts.Size() == answers.Size() );
 
-	lossValues.SetSize( predicts.Size() );
+	double overallSum = 0;
+	auto getMean = []( double sum, int n ) { return n != 0 ? sum / static_cast<double>( n ) : 0; };
 	for( int i = 0; i < predicts.Size(); ++i ) {
 		double sum = 0;
 		for( int j = 0; j < predicts[i].Size(); ++j ) {
 			const double base = max( 0.0, 1.0 - ( 2.0 * answers[i][j] - 1.0 ) * predicts[i][j] );
 			sum += base * base;
 		}
-		lossValues[i] = sum / static_cast<double>( predicts[i].Size() );
+		overallSum += getMean( sum, predicts[i].Size() );
 	}
+
+	return getMean( overallSum, predicts.Size() );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -212,8 +217,7 @@ public:
 	void CalcGradientAndHessian( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
 		CArray< CArray<double> >& gradient, CArray< CArray<double> >& hessian ) const override;
 
-	void CalcLossValues( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
-		CArray<double>& lossValues ) const override;
+	double CalcLossMean( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers ) const override;
 };
 
 void CGradientBoostingSquareLoss::CalcGradientAndHessian( const CArray< CArray<double> >& predicts,
@@ -234,20 +238,23 @@ void CGradientBoostingSquareLoss::CalcGradientAndHessian( const CArray< CArray<d
 	}
 }
 
-void CGradientBoostingSquareLoss::CalcLossValues( const CArray< CArray<double> >& predicts,
-	const CArray< CArray<double> >& answers, CArray<double>& lossValues ) const
+double CGradientBoostingSquareLoss::CalcLossMean( const CArray< CArray<double> >& predicts,
+	const CArray< CArray<double> >& answers ) const
 {
 	NeoAssert( predicts.Size() == answers.Size() );
 
-	lossValues.SetSize( predicts.Size() );
+	double overallSum = 0;
+	auto getMean = []( double sum, int n ) { return n != 0 ? sum / static_cast<double>( n ) : 0; };
 	for( int i = 0; i < predicts.Size(); ++i ) {
 		double sum = 0;
 		for( int j = 0; j < predicts[i].Size(); ++j ) {
 			const double diff = answers[i][j] - predicts[i][j];
 			sum += diff * diff / 2.0;
 		}
-		lossValues[i] = sum / static_cast<double>( predicts[i].Size() );
+		overallSum += getMean( sum, predicts[i].Size() );
 	}
+
+	return getMean( overallSum, predicts.Size() );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -395,7 +402,7 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 	destroyTreeBuilder();
 
 	// Calculate the last loss values
-	lossFunction->CalcLossValues( predicts, answers, lossValues );
+	loss = lossFunction->CalcLossMean( predicts, answers );
 
 	return FINE_DEBUG_NEW CGradientBoostModel( models, params.LearningRate, params.LossFunction );
 }
