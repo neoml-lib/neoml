@@ -16,97 +16,15 @@ limitations under the License.
 #pragma once
 
 #include "NodeAttributes.h"
-#include "Tensor.h"
+#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 // Forward declaration(s).
 namespace onnx {
 class NodeProto;
-class TensorProto;
-class ValueInfoProto;
 } // namespace onnx;
 
 namespace NeoOnnx {
-
-// Link to the OutputIndex'th output of the NeoML Layer.
-struct CNeoMLLink {
-	// Constructor for onnx node output, which doesn't with any NeoML layer's output.
-	CNeoMLLink() : Layer( nullptr ), OutputIndex( NotFound ) {}
-
-	// Constructor for onnx node output, matching it with layer's outputIndex'th output.
-	CNeoMLLink( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
-		{ CheckNeoOnnxInternal( layer != nullptr, "non empty output info with layer == nullptr" ); }
-
-	CBaseLayer* Layer; // Used NeoML layer (nullptr if there is no layer mapped with this output)
-	int OutputIndex; // NeoML layer's output index, mapped with this output
-};
-
-//--------------------------------------------------------------------------------------------------------------------
-
-// Link to NodeIndex'th node OutputIndex'th output.
-struct CLink
-{
-	CLink() : NodeIndex( NotFound ), OutputIndex( NotFound ) {}
-	CLink( int nodeIndex, int outputIndex ) : NodeIndex( nodeIndex ), OutputIndex( outputIndex ) {}
-
-	int NodeIndex; // Node connected to this input.
-	int OutputIndex; // Node's output number connected to this input.
-};
-
-class CNode;
-
-class CGraph {
-public:
-	CNode* operator[]( int nodeIndex ) { return nodes[nodeIndex]; }
-	const CNode* operator[]( int nodeIndex ) const { return nodes[nodeIndex]; }
-	const CNode* operator[]( const CLink& link ) const { return nodes[link.NodeIndex]; }
-
-	void Add( CNode* newNode ) { nodes.Add( newNode ); }
-
-	int NodeCount() const { return nodes.Size(); }
-
-	void SetBufferSize( int nodeCount ) { nodes.SetBufferSize( nodeCount ); }
-
-private:
-	CPointerArray<CNode> nodes;
-};
-
-template<class T>
-class CGraphCache {
-public:
-	explicit CGraphCache( const CGraph& graph );
-
-	T& operator[]( const CLink& link );
-	const T& operator[]( const CLink& link ) const;
-
-private:
-	CArray<CArray<T>> cache;
-};
-
-template<class T>
-CGraphCache<T>::CGraphCache( const CGraph& graph )
-{
-	cache.SetSize( graph.NodeCount() );
-	for( int i = 0; i < graph.NodeCount(); ++i ) {
-		cache[i].SetSize( graph[i]->OutputCount() );
-	}
-}
-
-template<class T>
-T& CGraphCache<T>::operator[]( const CLink& link )
-{
-	return cache[link.NodeIndex][link.OutputIndex];
-}
-
-template<class T>
-const T& CGraphCache<T>::operator[]( const CLink& link ) const
-{
-	return cache[link.NodeIndex][link.OutputIndex];
-}
-
-typedef CGraphCache<CTensor> CTensorCache;
-typedef CGraphCache<CTensorDim> CDimCache;
-typedef CGraphCache<CNeoMLLink> CNeoMLLinkCache;
 
 // Node in the onnx calculation graph.
 class CNode {
@@ -120,7 +38,8 @@ public:
 	virtual void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) = 0;
 
 	// Adds layers, representing this node, to the dnn (if needed).
-	virtual void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) = 0;
+	virtual void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) = 0;
 
 	// Gets the number of inputs.
 	int InputCount() const;

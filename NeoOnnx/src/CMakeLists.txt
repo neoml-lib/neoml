@@ -45,6 +45,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
     DnnBuilder.h
+    Graph.h
+    GraphCache.h
+    NeoMLLink.h
     NeoOnnxCheck.h
     Node.h
     NodeAttributes.h
