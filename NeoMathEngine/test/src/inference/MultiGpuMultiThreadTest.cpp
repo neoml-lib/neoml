@@ -117,7 +117,7 @@ std::string getTestedFunctionName( const TTestedFunction& testedFunction )
 	return "UNKNOWN_TESTED_FUNCTION";
 }
 
-TEST_P( CMultiGpuMultiThreadTest, Run )
+TEST_P( CMultiGpuMultiThreadTest, DISABLED_Run )
 {
 	TTestMechanism testMechanism = std::get<0>( GetParam() );
 	TTestedFunction testedFunction = std::get<1>( GetParam() );
