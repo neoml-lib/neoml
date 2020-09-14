@@ -183,6 +183,7 @@ private:
 		const IMultivariateRegressionProblem* problem, const CArray<CGradientBoostEnsemble>& models,
 		CObjectArray<IRegressionModel>& curModels );
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
+	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
 };
 
 //------------------------------------------------------------------------------------------------------------

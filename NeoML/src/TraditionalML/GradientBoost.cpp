@@ -402,6 +402,7 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 	destroyTreeBuilder();
 
 	// Calculate the last loss values
+	buildFullPredictions( *problem, models );
 	loss = lossFunction->CalcLossMean( predicts, answers );
 
 	return FINE_DEBUG_NEW CGradientBoostModel( models, params.LearningRate, params.LossFunction );
@@ -635,6 +636,42 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 						params.LearningRate, vector );
 					predictCache[j][usedVector].Step = curStep;
 					predicts[j][index] = predictCache[j][usedVector].Value;
+					answers[j][index] = value[j];
+				}
+				index++;
+			}
+		}
+	}
+}
+
+// Fills the prediction cache with the values of the full problem
+void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models )
+{
+	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	NeoAssert( matrix.Height == problem.GetVectorCount() );
+	NeoAssert( matrix.Width == problem.GetFeatureCount() );
+
+	for( int i = 0; i < predicts.Size(); i++ ) {
+		predicts[i].SetSize( problem.GetVectorCount() );
+		answers[i].SetSize( problem.GetVectorCount());
+	}
+
+	int step = models[0].Size();
+	NEOML_OMP_NUM_THREADS( params.ThreadCount )
+	{
+		int index = 0;
+		int count = 0;
+		if( OmpGetTaskIndexAndCount( problem.GetVectorCount(), index, count ) ) {
+			for( int i = 0; i < count; i++ ) {
+				const CFloatVector value = problem.GetValue( index );
+				CSparseFloatVectorDesc vector;
+				matrix.GetRow( index, vector );
+
+				for( int j = 0; j < models.Size(); j++ ) {
+					predictCache[j][index].Value += CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
+						params.LearningRate, vector );
+					predictCache[j][index].Step = step;
+					predicts[j][index] = predictCache[j][index].Value;
 					answers[j][index] = value[j];
 				}
 				index++;
