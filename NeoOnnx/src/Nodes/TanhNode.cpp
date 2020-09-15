@@ -27,7 +27,7 @@ CTanhNode::CTanhNode( int nodeIndex, const onnx::NodeProto& tanh, int opsetVersi
 	COpNode( nodeIndex, tanh, opsetVersion )
 {
 	// The differences between versions are in supported data types and legacy optimization attributes
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", tanh );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", tanh );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", tanh );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", tanh );
@@ -37,7 +37,7 @@ void CTanhNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
@@ -45,12 +45,12 @@ void CTanhNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", onnxNode );
+			"marking input dimensions failed", OnnxNode );
 	}
 }
 

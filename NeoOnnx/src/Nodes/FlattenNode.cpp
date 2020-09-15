@@ -24,10 +24,10 @@ namespace NeoOnnx {
 
 CFlattenNode::CFlattenNode( int nodeIndex, const onnx::NodeProto& flatten, int opsetVersion ) :
 	COpNode( nodeIndex, flatten, opsetVersion ),
-	axis( attributes.GetOptionalInt( "axis", 1 ) )
+	axis( Attributes.GetOptionalInt( "axis", 1 ) )
 {
 	// The differences between versions are in supported data types and negative axis index
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", flatten );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", flatten );
 	
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", flatten );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", flatten );
@@ -43,7 +43,7 @@ void CFlattenNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 		outputShape[dimIndex < axis ? 0 : 1] *= inputShape[dimIndex];
 	}
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
@@ -53,7 +53,7 @@ void CFlattenNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims 
 
 	if( !inputDims.IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { inputDims[axis - 1], inputDims[axis] }, dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 }
 

@@ -27,7 +27,7 @@ CGatherNode::CGatherNode( int nodeIndex, const onnx::NodeProto& gather, int opse
 	COpNode( nodeIndex, gather, opsetVersion )
 {
 	// Newer versions support negative indices
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", gather );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", gather );
 
 	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", gather );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gather );
@@ -38,16 +38,16 @@ void CGatherNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 	tensors[Input[1]].Shape.CopyTo( tensors[Output[0]].Shape );
 
 	// TODO: add non-constant tensor support
-	CheckNeoOnnxSupport( tensors[Input[0]].Data != nullptr, "non-constant input", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data != nullptr, "non-constant input", OnnxNode );
 	// TODO: add float tensor support
-	CheckNeoOnnxSupport( tensors[Input[0]].Data->GetDataType() == CT_Int, "non-integer input", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data->GetDataType() == CT_Int, "non-integer input", OnnxNode );
 
 	CArray<int> data;
 	data.SetSize( tensors[Input[0]].Data->GetDataSize() );
 	tensors[Input[0]].Data->CopyTo( data.GetPtr() );
 
-	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant indices", onnxNode );
-	CheckOnnxProtocol( tensors[Input[1]].Data->GetDataType() == CT_Int, "indices must be integer", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant indices", OnnxNode );
+	CheckOnnxProtocol( tensors[Input[1]].Data->GetDataType() == CT_Int, "indices must be integer", OnnxNode );
 
 	CArray<int> indices;
 	indices.SetSize( tensors[Input[1]].Data->GetDataSize() );

@@ -131,9 +131,9 @@ void CNode::Connect( int index, const CLink& inputInfo )
 
 COpNode::COpNode( int nodeIndex, const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
 	CNode( nodeIndex, _onnxNode.input_size(), _onnxNode.output_size() ),
-	opsetVersion( _opsetVersion ),
-	attributes( _onnxNode ),
-	onnxNode( _onnxNode )
+	OpsetVersion( _opsetVersion ),
+	Attributes( _onnxNode ),
+	OnnxNode( _onnxNode )
 {
 }
 

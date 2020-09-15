@@ -27,12 +27,12 @@ CUnsqueezeNode::CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze,
 	COpNode( nodeIndex, unsqueeze, opsetVersion )
 {
 	// Newer versions have negative axes support
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", unsqueeze);
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", unsqueeze);
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", unsqueeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", unsqueeze );
 
-	attributes.GetRequiredIntArray( "axes", axes );
+	Attributes.GetRequiredIntArray( "axes", axes );
 }
 
 void CUnsqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
@@ -77,7 +77,7 @@ void CUnsqueezeNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dim
 	}
 
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, inputDim, dims[Input[0]] ),
-		"marking input dimensions failed", onnxNode );
+		"marking input dimensions failed", OnnxNode );
 }
 
 void CUnsqueezeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )

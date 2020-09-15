@@ -27,7 +27,7 @@ CShapeNode::CShapeNode( int nodeIndex, const onnx::NodeProto& shape, int opsetVe
 	COpNode( nodeIndex, shape, opsetVersion )
 {
 	// This operator doesn't have multiple versions
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", shape );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", shape );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", shape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", shape );

@@ -27,12 +27,12 @@ CSqueezeNode::CSqueezeNode( int nodeIndex, const onnx::NodeProto& squeeze, int o
 	COpNode( nodeIndex, squeeze, opsetVersion )
 {
 	// Newer versions have negiative axes support
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", squeeze );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", squeeze );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", squeeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", squeeze );
 
-	attributes.GetRequiredIntArray( "axes", axes );
+	Attributes.GetRequiredIntArray( "axes", axes );
 }
 
 void CSqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
@@ -44,7 +44,7 @@ void CSqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	int axisIndex = 0;
 	for( int i = 0; i < inputShape.Size(); ++i ) {
 		if( axisIndex < axes.Size() && i == axes[axisIndex] ) {
-			CheckOnnxProtocol( inputShape[i] == 1, "squeezed dimensions must be of length 1", onnxNode );
+			CheckOnnxProtocol( inputShape[i] == 1, "squeezed dimensions must be of length 1", OnnxNode );
 			++axisIndex;
 		} else {
 			outputShape.Add( inputShape[i] );
@@ -72,7 +72,7 @@ void CSqueezeNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims 
 		}
 	}
 
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, outputDim, dims[Output[0]] ), "marking output dimensions failed", onnxNode );
+	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, outputDim, dims[Output[0]] ), "marking output dimensions failed", OnnxNode );
 }
 
 void CSqueezeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )

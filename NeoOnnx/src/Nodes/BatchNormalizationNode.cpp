@@ -25,22 +25,22 @@ namespace NeoOnnx {
 
 CBatchNormalizationNode::CBatchNormalizationNode( int nodeIndex, const onnx::NodeProto& batchNormalization, int opsetVersion ) :
 	COpNode( nodeIndex, batchNormalization, opsetVersion ),
-	eps( attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
+	eps( Attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
 {
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", batchNormalization );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", batchNormalization );
 
-	CheckNeoOnnxSupport( opsetVersion > 6 || attributes.GetOptionalInt( "is_test", 0 ) != 0,
+	CheckNeoOnnxSupport( OpsetVersion > 6 || Attributes.GetOptionalInt( "is_test", 0 ) != 0,
 		"training batch normalization is not supported", batchNormalization );
 
-	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "node must have 5 or 6 inputs", onnxNode );
-	CheckNeoOnnxSupport( OutputCount() == 1, "node must have 1 output", onnxNode );
+	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "node must have 5 or 6 inputs", OnnxNode );
+	CheckNeoOnnxSupport( OutputCount() == 1, "node must have 1 output", OnnxNode );
 }
 
 void CBatchNormalizationNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
@@ -48,28 +48,28 @@ void CBatchNormalizationNode::MarkTensorDims( const CTensorCache& tensors, CDimC
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", onnxNode );
+			"marking input dimensions failed", OnnxNode );
 	}
 }
 
 void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CheckNeoOnnxInternal( ( dims[Input[0]] )[1] == BD_Channels,
-		"operation must be performed along input's BD_Channels", onnxNode );
+		"operation must be performed along input's BD_Channels", OnnxNode );
 	CheckNeoOnnxInternal( ( dims[Output[0]] )[1] == BD_Channels,
-		"operation must be performed along output's BD_Channels", onnxNode );
+		"operation must be performed along output's BD_Channels", OnnxNode );
 
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );
 	bnLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
 	// Since v9 batch normalization is always spatial
 	// Before that spatial was set by a flag
-	if( opsetVersion >= 9 || attributes.GetOptionalInt( "spatial", 1 ) != 0 ) {
+	if( OpsetVersion >= 9 || Attributes.GetOptionalInt( "spatial", 1 ) != 0 ) {
 		bnLayer->SetChannelBased( true );
 	}
 
@@ -87,11 +87,11 @@ CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( const CTensorCache
 
 	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
 		CheckNeoOnnxSupport( tensors[Input[inputIndex]].Data != nullptr,
-			"non-constant weights", onnxNode );
+			"non-constant weights", OnnxNode );
 		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape.Size() == 1,
-			"weights must be 1-dimensional", onnxNode );
+			"weights must be 1-dimensional", OnnxNode );
 		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape[0] == channels,
-			"weights must have 'channels' length", onnxNode );
+			"weights must have 'channels' length", OnnxNode );
 	}
 
 	const CDnnBlob* scale = tensors[Input[1]].Data;

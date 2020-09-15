@@ -25,11 +25,11 @@ namespace NeoOnnx {
 
 CLeakyReluNode::CLeakyReluNode( int nodeIndex, const onnx::NodeProto& leakyRelu, int opsetVersion ) :
 	COpNode( nodeIndex, leakyRelu, opsetVersion ),
-	alpha( attributes.GetOptionalFloat( "alpha", 0.01f ) )
+	alpha( Attributes.GetOptionalFloat( "alpha", 0.01f ) )
 {
 	// v1 - original ver.
 	// v6 - removed legacy optimization attribute
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", leakyRelu );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", leakyRelu );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", leakyRelu );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", leakyRelu );
@@ -39,7 +39,7 @@ void CLeakyReluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& math
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
@@ -47,12 +47,12 @@ void CLeakyReluNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dim
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", onnxNode );
+			"marking input dimensions failed", OnnxNode );
 	}
 }
 

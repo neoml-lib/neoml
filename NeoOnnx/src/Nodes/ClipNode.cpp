@@ -25,11 +25,11 @@ namespace NeoOnnx {
 
 CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion ) :
 	COpNode( nodeIndex, clip, opsetVersion ),
-	minValue( attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
-	maxValue( attributes.GetOptionalFloat( "max", FLT_MAX ) )
+	minValue( Attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
+	maxValue( Attributes.GetOptionalFloat( "max", FLT_MAX ) )
 {
 	// Newer versions getting min and max values as inputs, not as attributes
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", clip );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", clip );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", clip );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", clip );
@@ -39,7 +39,7 @@ void CClipNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
@@ -47,18 +47,18 @@ void CClipNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", onnxNode );
+			"marking input dimensions failed", OnnxNode );
 	}
 }
 
 void CClipNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( minValue == 0.f, "'min' value must be equal to 0", onnxNode );
+	CheckNeoOnnxSupport( minValue == 0.f, "'min' value must be equal to 0", OnnxNode );
 
 	CPtr<CReLULayer> relu = new CReLULayer( dnn.GetMathEngine() );
 	relu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

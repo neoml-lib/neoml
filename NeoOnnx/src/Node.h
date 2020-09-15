@@ -117,9 +117,9 @@ public:
 protected:
 	COpNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 
-	const int opsetVersion; // Opset version
-	const CNodeAttributes attributes; // Attributes of this node.
-	const onnx::NodeProto onnxNode; // Reference to onnx node. Used for diagnostics.
+	const int OpsetVersion; // Opset version
+	const CNodeAttributes Attributes; // Attributes of this node.
+	const onnx::NodeProto OnnxNode; // Reference to onnx node. Used for diagnostics.
 };
 
 } // namespace NeoOnnx

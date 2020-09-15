@@ -27,14 +27,14 @@ CSliceNode::CSliceNode( int nodeIndex, const onnx::NodeProto& slice, int opsetVe
 	COpNode( nodeIndex, slice, opsetVersion )
 {
 	// Newer versions are using inputs instead of attributes
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= 10, "opset version", slice );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", slice );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", slice );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", slice );
 
-	attributes.GetRequiredIntArray( "starts", starts );
-	attributes.GetRequiredIntArray( "ends", ends );
-	attributes.GetRequiredIntArray( "axes", axes );
+	Attributes.GetRequiredIntArray( "starts", starts );
+	Attributes.GetRequiredIntArray( "ends", ends );
+	Attributes.GetRequiredIntArray( "axes", axes );
 	// TODO: Add support for multi-axes slice.
 	CheckNeoOnnxSupport( starts.Size() == 1, "starts.Size() > 1", slice );
 	CheckNeoOnnxSupport( ends.Size() == 1, "ends.Size() > 1", slice );
@@ -95,12 +95,12 @@ void CSliceNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking inputTensor dimensions failed", onnxNode );
+			"marking inputTensor dimensions failed", OnnxNode );
 	}
 }
 
@@ -115,7 +115,7 @@ void CSliceNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, co
 	const TBlobDim concatDim = ( dims[Output[0]] )[axes[0]];
 
 	// TODO: add the rest dims support
-	CheckNeoOnnxSupport( concatDim == BD_BatchLength, "concat along dim other than BD_BatchLength", onnxNode );
+	CheckNeoOnnxSupport( concatDim == BD_BatchLength, "concat along dim other than BD_BatchLength", OnnxNode );
 	CPtr<CSubSequenceLayer> subseq = new CSubSequenceLayer( mathEngine );
 	subseq->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 

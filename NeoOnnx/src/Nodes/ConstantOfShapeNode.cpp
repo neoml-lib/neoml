@@ -27,8 +27,8 @@ CConstantOfShapeNode::CConstantOfShapeNode( int nodeIndex, const onnx::NodeProto
 	COpNode( nodeIndex, constantOfShape, opsetVersion )
 {
 	// This op was introduced in version 9
-	CheckOnnxProtocol( opsetVersion >= 9, "wrong opset version", constantOfShape );
-	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "opset version", constantOfShape );
+	CheckOnnxProtocol( OpsetVersion >= 9, "wrong opset version", constantOfShape );
+	CheckNeoOnnxSupport( OpsetVersion <= MaxOpsetVersion, "opset version", constantOfShape );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", constantOfShape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constantOfShape );
@@ -36,15 +36,15 @@ CConstantOfShapeNode::CConstantOfShapeNode( int nodeIndex, const onnx::NodeProto
 
 void CConstantOfShapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data != nullptr, "non-constant input tensor", onnxNode );
-	CheckNeoOnnxSupport( tensors[Input[0]].Data->GetDataType() == CT_Int, "non-integer input tensor", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data != nullptr, "non-constant input tensor", OnnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data->GetDataType() == CT_Int, "non-integer input tensor", OnnxNode );
 
 	tensors[Output[0]].Shape.SetSize( tensors[Input[0]].Data->GetDataSize() );
 	tensors[Input[0]].Data->CopyTo( tensors[Output[0]].Shape.GetPtr() );
 
 	CPtr<CDnnBlob> value = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	value->Clear();
-	attributes.GetOptionalTensor( "value", *value );
+	Attributes.GetOptionalTensor( "value", *value );
 
 	CBlobDesc outputBlobDesc( value->GetDataType() );
 	for( int dimIndex = 0; dimIndex < tensors[Output[0]].Shape.Size(); ++dimIndex ) {

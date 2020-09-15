@@ -25,11 +25,11 @@ namespace NeoOnnx {
 
 CLstmNode::CLstmNode( int nodeIndex, const onnx::NodeProto& lstm, int opsetVersion ) :
 	COpNode( nodeIndex, lstm, opsetVersion ),
-	direction( attributes.GetOptionalString( "direction", "forward" ) ),
-	hiddenSize( attributes.GetRequiredInt( "hidden_size" ) )
+	direction( Attributes.GetOptionalString( "direction", "forward" ) ),
+	hiddenSize( Attributes.GetRequiredInt( "hidden_size" ) )
 {
 	// The differences between versions are in some flags and support (i.e. output_sequence)
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", lstm );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", lstm );
 
 	CheckOnnxProtocol( InputCount() >= 3 && InputCount() <= 8, "node must have from 3 upto 8 inputs", lstm );
 	CheckOnnxProtocol( OutputCount() >= 1 && OutputCount() <= 3, "node must have from 1 upto 3 outputs", lstm );
@@ -39,49 +39,49 @@ CLstmNode::CLstmNode( int nodeIndex, const onnx::NodeProto& lstm, int opsetVersi
 
 void CLstmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", onnxNode );
-	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant weight", onnxNode );
-	CheckNeoOnnxSupport( tensors[Input[2]].Data != nullptr, "non-constant recurrent weight", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", OnnxNode );
+	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant weight", OnnxNode );
+	CheckNeoOnnxSupport( tensors[Input[2]].Data != nullptr, "non-constant recurrent weight", OnnxNode );
 
 	const CTensorShape& inputShape = tensors[Input[0]].Shape;
 
 	CPtr<CDnnBlob> biasValue = nullptr;
 	if( InputCount() > 3 && Input[3].NodeIndex != NotFound ) {
 		const CTensor& bias = tensors[Input[3]];
-		CheckNeoOnnxSupport( bias.Data != nullptr, "non-constant bias", onnxNode );
+		CheckNeoOnnxSupport( bias.Data != nullptr, "non-constant bias", OnnxNode );
 	}
 
 	// NeoML doesn't support sequence lengths
-	CheckNeoOnnxSupport( InputCount() <= 4 || Input[4].NodeIndex == NotFound, "sequence lengths", onnxNode );
+	CheckNeoOnnxSupport( InputCount() <= 4 || Input[4].NodeIndex == NotFound, "sequence lengths", OnnxNode );
 
 	if( InputCount() > 5 && Input[5].NodeIndex != NotFound ) {
 		const CTensor& initialH = tensors[Input[5]];
-		CheckNeoOnnxSupport( initialH.Data != nullptr, "non-constant initial history", onnxNode );
+		CheckNeoOnnxSupport( initialH.Data != nullptr, "non-constant initial history", OnnxNode );
 	}
 
 	if( InputCount() > 6 && Input[6].NodeIndex != NotFound ) {
 		const CTensor& initialC = tensors[Input[6]];
-		CheckNeoOnnxSupport( initialC.Data != nullptr, "non-constant initial state", onnxNode );
+		CheckNeoOnnxSupport( initialC.Data != nullptr, "non-constant initial state", OnnxNode );
 	}
 
 	CheckNeoOnnxSupport( InputCount() < 8 || Input[7].NodeIndex == NotFound, "peepholes",
-		onnxNode ); // NeoML doesn't support peepholes
+		OnnxNode ); // NeoML doesn't support peepholes
 
 	const int sequenceLength = inputShape[0];
 	const int batchSize = inputShape[1];
 
 	tensors[Output[0]].Shape = { sequenceLength, 1, batchSize, hiddenSize };
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
 void CLstmNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels },
-		dims[Output[0]] ), "marking output dimensions failed", onnxNode );
+		dims[Output[0]] ), "marking output dimensions failed", OnnxNode );
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, { BD_BatchLength, BD_BatchWidth, BD_Channels },
-		dims[Input[0]] ), "marking input dimensions failed", onnxNode );
+		dims[Input[0]] ), "marking input dimensions failed", OnnxNode );
 }
 
 void CLstmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )

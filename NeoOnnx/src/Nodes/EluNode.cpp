@@ -27,7 +27,7 @@ CEluNode::CEluNode( int nodeIndex, const onnx::NodeProto& elu, int opsetVersion 
 	COpNode( nodeIndex, elu, opsetVersion )
 {
 	// The differences between versions are in legacy optimization flags
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", elu );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", elu );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", elu );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", elu );
@@ -35,7 +35,7 @@ CEluNode::CEluNode( int nodeIndex, const onnx::NodeProto& elu, int opsetVersion 
 
 void CEluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 }
 
@@ -43,12 +43,12 @@ void CEluNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", onnxNode );
+			"marking input dimensions failed", OnnxNode );
 	}
 }
 

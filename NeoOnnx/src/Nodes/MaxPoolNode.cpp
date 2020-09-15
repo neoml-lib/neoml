@@ -25,17 +25,17 @@ namespace NeoOnnx {
 
 CMaxPoolNode::CMaxPoolNode( int nodeIndex, const onnx::NodeProto& maxPool, int opsetVersion ) :
 	COpNode( nodeIndex, maxPool, opsetVersion ),
-	autoPad( attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
+	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
 	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc.
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", maxPool );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", maxPool );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", maxPool );
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "node must have 1 or 2 outputs", maxPool );
 
-	attributes.GetRequiredIntArray( "kernel_shape", kernelShape );
-	attributes.GetOptionalIntArray( "strides", strides );
-	attributes.GetOptionalIntArray( "pads", pads );
+	Attributes.GetRequiredIntArray( "kernel_shape", kernelShape );
+	Attributes.GetOptionalIntArray( "strides", strides );
+	Attributes.GetOptionalIntArray( "pads", pads );
 
 	CheckNeoOnnxSupport( kernelShape.Size() == 2, "non 2-dimensional max pooling", maxPool );
 }
@@ -45,7 +45,7 @@ void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	// Checking input
 	const CTensor& inputTensor = tensors[Input[0]];
 	CheckNeoOnnxSupport( inputTensor.Shape.Size() > 2 && inputTensor.Shape.Size() <= 4,
-		"wrong input tensor's dimensions number", onnxNode );
+		"wrong input tensor's dimensions number", OnnxNode );
 	const CTensorShape& inputShape = inputTensor.Shape;
 	const int poolDims = static_cast<int>( inputShape.Size() ) - 2;
 
@@ -62,7 +62,7 @@ void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	}
 
 	for( int padIndex = 0; padIndex < pads.Size(); ++padIndex ) {
-		CheckNeoOnnxSupport( pads[padIndex] == 0, "max pooling with padding", onnxNode );
+		CheckNeoOnnxSupport( pads[padIndex] == 0, "max pooling with padding", OnnxNode );
 	}
 
 	// Calculating output shape.
@@ -73,7 +73,7 @@ void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 			- kernelShape[dimIndex] ) / strides[dimIndex] + 1;
 	}
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
@@ -81,12 +81,12 @@ void CMaxPoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims 
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", onnxNode );
+			"marking input dimensions failed", OnnxNode );
 	}
 }
 
@@ -95,8 +95,8 @@ void CMaxPoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, 
 	CPtr<CMaxPoolingLayer> maxPooling = new CMaxPoolingLayer( dnn.GetMathEngine() );
 	maxPooling->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	CheckNeoOnnxSupport( ( dims[Input[0]] )[2] == BD_Height, "wrong pooling dimension", onnxNode );
-	CheckNeoOnnxSupport( ( dims[Input[0]] )[3] == BD_Width, "wrong pooling dimension", onnxNode );
+	CheckNeoOnnxSupport( ( dims[Input[0]] )[2] == BD_Height, "wrong pooling dimension", OnnxNode );
+	CheckNeoOnnxSupport( ( dims[Input[0]] )[3] == BD_Width, "wrong pooling dimension", OnnxNode );
 
 	maxPooling->SetFilterHeight( kernelShape[0] );
 	maxPooling->SetFilterWidth( kernelShape[1] );

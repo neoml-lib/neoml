@@ -29,7 +29,7 @@ CAbsNode::CAbsNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion 
 	// v1 - original
 	// v6 - removed legacy optimization attributes and added new data types support
 	// v13 - added new data types support
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", abs );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", abs );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", abs );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", abs );
@@ -37,7 +37,7 @@ CAbsNode::CAbsNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion 
 
 void CAbsNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// tensor data is already nullptr after default constructor
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 }
@@ -46,12 +46,12 @@ void CAbsNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", onnxNode );
+			"marking input dimensions failed", OnnxNode );
 	}
 }
 

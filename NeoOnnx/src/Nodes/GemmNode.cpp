@@ -26,13 +26,13 @@ namespace NeoOnnx {
 
 CGemmNode::CGemmNode( int nodeIndex, const onnx::NodeProto& gemm, int opsetVersion ) :
 	COpNode( nodeIndex, gemm, opsetVersion ),
-	alpha( attributes.GetOptionalFloat( "alpha", 1.f ) ),
-	beta( attributes.GetOptionalFloat( "beta", 1.f ) ),
-	transA( attributes.GetOptionalInt( "transA", 0 ) ),
-	transB( attributes.GetOptionalInt( "transB", 0 ) )
+	alpha( Attributes.GetOptionalFloat( "alpha", 1.f ) ),
+	beta( Attributes.GetOptionalFloat( "beta", 1.f ) ),
+	transA( Attributes.GetOptionalInt( "transA", 0 ) ),
+	transB( Attributes.GetOptionalInt( "transB", 0 ) )
 {
 	// Older versions have broadcast support
-	CheckNeoOnnxSupport( opsetVersion >= 7 && opsetVersion <= MaxOpsetVersion, "opset version", gemm );
+	CheckNeoOnnxSupport( OpsetVersion >= 7 && OpsetVersion <= MaxOpsetVersion, "opset version", gemm );
 
 	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", gemm );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gemm );
@@ -45,28 +45,28 @@ CGemmNode::CGemmNode( int nodeIndex, const onnx::NodeProto& gemm, int opsetVersi
 
 void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", OnnxNode );
 	const CTensorShape& inputShape = tensors[Input[0]].Shape;
-	CheckOnnxProtocol( inputShape.Size() == 2, "input must be 2-dimensional", onnxNode );
+	CheckOnnxProtocol( inputShape.Size() == 2, "input must be 2-dimensional", OnnxNode );
 	const int batchSize = inputShape[transA == 0 ? 0 : 1];
 	const int inputObjectSize = inputShape[transA == 0 ? 1 : 0];
 
-	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant weights", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant weights", OnnxNode );
 	const CTensorShape& matrixShape = tensors[Input[1]].Shape;
-	CheckOnnxProtocol( matrixShape.Size() == 2, "weights must be 2-dimensional", onnxNode );
-	CheckOnnxProtocol( matrixShape[transB == 0 ? 0 : 1] == inputObjectSize, "wrong weight size", onnxNode );
+	CheckOnnxProtocol( matrixShape.Size() == 2, "weights must be 2-dimensional", OnnxNode );
+	CheckOnnxProtocol( matrixShape[transB == 0 ? 0 : 1] == inputObjectSize, "wrong weight size", OnnxNode );
 	const int numberOfElements = matrixShape[transB == 0 ? 1 : 0];
 
 	if( InputCount() == 3 ) {
-		CheckNeoOnnxSupport( tensors[Input[2]].Data != nullptr, "non-constant bias", onnxNode );
+		CheckNeoOnnxSupport( tensors[Input[2]].Data != nullptr, "non-constant bias", OnnxNode );
 		const CTensorShape& biasShape = tensors[Input[2]].Shape;
-		CheckOnnxProtocol( biasShape.Size() == 1, "bias must be 1-dimensional", onnxNode );
-		CheckOnnxProtocol( biasShape[0] == numberOfElements, "wrong bias size", onnxNode );
+		CheckOnnxProtocol( biasShape.Size() == 1, "bias must be 1-dimensional", OnnxNode );
+		CheckOnnxProtocol( biasShape[0] == numberOfElements, "wrong bias size", OnnxNode );
 	}
 
 	tensors[Output[0]].Shape = { batchSize, numberOfElements };
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
@@ -74,9 +74,9 @@ void CGemmNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	// Gemm operator in onnx always works with 2-dimensional tensors.
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Output[0]] ),
-		"marking output dimensions failed", onnxNode );
+		"marking output dimensions failed", OnnxNode );
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Input[0]] ),
-		"marking input dimensions failed", onnxNode );
+		"marking input dimensions failed", OnnxNode );
 }
 
 void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )

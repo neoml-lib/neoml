@@ -26,7 +26,7 @@ CGlobalAveragePoolNode::CGlobalAveragePoolNode( int nodeIndex, const onnx::NodeP
 	COpNode( nodeIndex, globalAveragePool, opsetVersion )
 {
 	// This operator doesn't have multiple versions
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", globalAveragePool );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", globalAveragePool );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", globalAveragePool );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", globalAveragePool );
@@ -35,12 +35,12 @@ CGlobalAveragePoolNode::CGlobalAveragePoolNode( int nodeIndex, const onnx::NodeP
 void CGlobalAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
 	const CTensorShape& inputShape = tensors[Input[0]].Shape;
-	CheckOnnxProtocol( inputShape.Size() >= 2, "node's input must have at least 2 dimensions", onnxNode );
+	CheckOnnxProtocol( inputShape.Size() >= 2, "node's input must have at least 2 dimensions", OnnxNode );
 	tensors[Output[0]].Shape.Add( 1, inputShape.Size() );
 	tensors[Output[0]].Shape[0] = inputShape[0];
 	tensors[Output[0]].Shape[1] = inputShape[1];
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
@@ -48,12 +48,12 @@ void CGlobalAveragePoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCa
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", onnxNode );
+			"marking input dimensions failed", OnnxNode );
 	}
 }
 
@@ -69,7 +69,7 @@ void CGlobalAveragePoolNode::AddLayers( const CGraph& graph, const CTensorCache&
 	}
 
 	CheckNeoOnnxSupport( ( pooledDims | pool2dDims ) == pool2dDims,
-		"reduce over dimensions other than BD_Height and BD_Width", onnxNode );
+		"reduce over dimensions other than BD_Height and BD_Width", OnnxNode );
 
 	add2dPoolingLayer( tensors, dims, neoMLLinks, dnn, pooledDims );
 }
@@ -95,7 +95,7 @@ void CGlobalAveragePoolNode::add2dPoolingLayer( const CTensorCache& tensors, con
 				break;
 			default:
 				CheckNeoOnnxInternal( false, "dimension " + Str( dim ) + " can not be pooled",
-					onnxNode );
+					OnnxNode );
 		}
 	}
 

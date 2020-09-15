@@ -25,10 +25,10 @@ namespace NeoOnnx {
 
 CConcatNode::CConcatNode( int nodeIndex, const onnx::NodeProto& concat, int opsetVersion ) :
 	COpNode( nodeIndex, concat, opsetVersion ),
-	axis( attributes.GetRequiredInt( "axis" ) )
+	axis( Attributes.GetRequiredInt( "axis" ) )
 {
 	// Older versions have "axis" attribute as optional, not as required
-	CheckNeoOnnxSupport( opsetVersion >= 4 && opsetVersion <= MaxOpsetVersion, "opset version", concat );
+	CheckNeoOnnxSupport( OpsetVersion >= 4 && OpsetVersion <= MaxOpsetVersion, "opset version", concat );
 
 	CheckOnnxProtocol( InputCount() > 1, "node must have more than 1 inputs", concat );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", concat );
@@ -44,7 +44,7 @@ void CConcatNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 		if( outputShape.IsEmpty() ) {
 			inputShape.CopyTo( outputShape );
 		} else {
-			CheckOnnxProtocol( axis < inputShape.Size(),"'axis' must be less than input's dimensions count", onnxNode );
+			CheckOnnxProtocol( axis < inputShape.Size(),"'axis' must be less than input's dimensions count", OnnxNode );
 			outputShape[axis] += inputShape[axis];
 		}
 	}
@@ -59,7 +59,7 @@ void CConcatNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 		}
 
 		CheckOnnxProtocol( outputBlobType == CT_Invalid || outputBlobType == input.Data->GetDataType(),
-			"inputs with different data types", onnxNode );
+			"inputs with different data types", OnnxNode );
 		outputBlobType = input.Data->GetDataType();
 	}
 
@@ -92,14 +92,14 @@ void CConcatNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 		if( !dims[Input[inputIndex]].IsEmpty() ) {
 			CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-				"marking output dimensions failed", onnxNode );
+				"marking output dimensions failed", OnnxNode );
 		}
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 			CheckNeoOnnxInternal( SetTensorDim( tensors[Input[inputIndex]].Shape, dims[Output[0]], dims[Input[inputIndex]] ),
-				"marking input dimensions failed", onnxNode );
+				"marking input dimensions failed", OnnxNode );
 		}
 	}
 }

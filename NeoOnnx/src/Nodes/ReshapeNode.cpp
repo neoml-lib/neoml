@@ -29,7 +29,7 @@ CReshapeNode::CReshapeNode( int nodeIndex, const onnx::NodeProto& reshape, int o
 	hasRemainder( false )
 {
 	// The differences between versions are in supported data types and legacy optimization attributes
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", reshape );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", reshape );
 
 	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", reshape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", reshape );
@@ -37,8 +37,8 @@ CReshapeNode::CReshapeNode( int nodeIndex, const onnx::NodeProto& reshape, int o
 
 void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant first input", onnxNode );
-	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant second input", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant first input", OnnxNode );
+	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant second input", OnnxNode );
 
 	const CTensorShape& inputShape = tensors[Input[0]].Shape;
 
@@ -62,21 +62,21 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 		switch( shape[i] ) {
 			case 0:
 				// Don't change dim size
-				CheckOnnxProtocol( rem % inputShape[i] == 0, "input's elements count isn't divisible by shape", onnxNode );
+				CheckOnnxProtocol( rem % inputShape[i] == 0, "input's elements count isn't divisible by shape", OnnxNode );
 				rem /= inputShape[i];
 				outputShape[i] = inputShape[i];
 				break;
 			case -1:
 				// Remainder dim
-				CheckOnnxProtocol( remDim == -1, "only one dimension can be -1", onnxNode );
+				CheckOnnxProtocol( remDim == -1, "only one dimension can be -1", OnnxNode );
 				outputShape[i] = 1;
 				remDim = i;
 				hasRemainder = true;
 				break;
 			default:
 				// Fixed dim size
-				CheckOnnxProtocol( shape[i] > 0, "negative shape value", onnxNode );
-				CheckOnnxProtocol( rem % shape[i] == 0, "input's elements count isn't divisible by shape", onnxNode );
+				CheckOnnxProtocol( shape[i] > 0, "negative shape value", OnnxNode );
+				CheckOnnxProtocol( rem % shape[i] == 0, "input's elements count isn't divisible by shape", OnnxNode );
 				rem /= shape[i];
 				outputShape[i] = shape[i];
 				hasFixedShape = true;
@@ -87,7 +87,7 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 		outputShape[remDim] = static_cast<int>( rem );
 	}
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
@@ -106,7 +106,7 @@ void CReshapeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, 
 	// Expecting at least one of dims to be marked
 	// And (if only input is marked) it must have at least the same amount of dimensions
 	CheckNeoOnnxInternal( dims[Output[0]].Size() == shape.Size() || dims[Input[0]].Size() >= shape.Size(),
-		"failed to calculate output blob dimensions", onnxNode );
+		"failed to calculate output blob dimensions", OnnxNode );
 
 	// If both input and output dims were marked, output dims have higher priority
 	const CTensorDim& preferredDim = dims[Output[0]].IsEmpty() ? dims[Input[0]] : dims[Output[0]];

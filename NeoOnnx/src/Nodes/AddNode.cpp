@@ -28,7 +28,7 @@ CAddNode::CAddNode( int nodeIndex, const onnx::NodeProto& add, int opsetVersion 
 {
 	// The differences between versions are in broadcasting flags and support
 	// NeoOnnx doesn't support tensor broadcast anyway
-	CheckNeoOnnxSupport( opsetVersion >= 1 && opsetVersion <= MaxOpsetVersion, "opset version", add );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", add );
 
 	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", add );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", add );
@@ -55,9 +55,9 @@ void CAddNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine
 			inputShape.CopyTo( outputShape );
 		} else {
 			// NeoML doesn't support numpy-style tensor broadcasting...
-			CheckNeoOnnxSupport( outputShape.Size() == inputShape.Size(), "tensor broadcasting", onnxNode );
+			CheckNeoOnnxSupport( outputShape.Size() == inputShape.Size(), "tensor broadcasting", OnnxNode );
 			for( int i = 0; i < inputShape.Size(); ++i ) {
-				CheckNeoOnnxSupport( outputShape[i] == inputShape[i], "tensor broadcasting", onnxNode );
+				CheckNeoOnnxSupport( outputShape[i] == inputShape[i], "tensor broadcasting", OnnxNode );
 			}
 		}
 	}
@@ -67,12 +67,12 @@ void CAddNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", onnxNode );
+			"marking output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ), 
-			"marking input dimensions failed", onnxNode );
+			"marking input dimensions failed", OnnxNode );
 	}
 }
 
