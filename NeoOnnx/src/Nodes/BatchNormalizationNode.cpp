@@ -81,6 +81,8 @@ void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CTensorCache
 	neoMLLinks[Output[0]] = CNeoMLLink( bnLayer, 0 );
 }
 
+// Calculate final params blob based on onnx node's inputs
+// This format can is compatible with NeoML::CBatchNormalizationLayer
 CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( const CTensorCache& tensors )
 {
 	const int channels = tensors[Input[0]].Shape[1];

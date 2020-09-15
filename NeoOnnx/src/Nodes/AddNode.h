@@ -17,11 +17,6 @@ limitations under the License.
 
 #include "../Node.h"
 
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
-
 namespace NeoOnnx {
 
 class CAddNode : public COpNode {
@@ -31,7 +26,8 @@ public:
 	// CNode methods' realizations.
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
 	void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 };
 
 } // namespace NeoOnnx

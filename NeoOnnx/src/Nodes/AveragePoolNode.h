@@ -15,12 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include "Node.h"
-
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
+#include "../Node.h"
 
 namespace NeoOnnx {
 
@@ -31,13 +26,14 @@ public:
 	// CNode methods' realizations.
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
 	void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
 	const CString autoPad; // padding mode
 	CFastArray<int, 8> kernelShape; // shape of pool kernel
 	CFastArray<int, 8> strides; // kernel strides
-	CFastArray<int, 8> pads; // convolution paddings
+	CFastArray<int, 8> pads; // pool paddings
 };
 
 } // namespace NeoOnnx

@@ -17,11 +17,6 @@ limitations under the License.
 
 #include "../Node.h"
 
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
-
 namespace NeoOnnx {
 
 class CGatherNode : public COpNode {

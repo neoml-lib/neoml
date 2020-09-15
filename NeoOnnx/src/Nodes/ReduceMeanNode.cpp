@@ -102,7 +102,9 @@ void CReduceMeanNode::AddLayers( const CGraph& graph, const CTensorCache& tensor
 	add2dPoolingLayer( tensors, dims, neoMLLinks, dnn, pooledDims );
 }
 
-void CReduceMeanNode::add2dPoolingLayer( const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn, int pooledDims )
+// Adds 2-dimensional mean pooling layer to dnn
+void CReduceMeanNode::add2dPoolingLayer( const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn, int pooledDims )
 {
 	CPtr<CMeanPoolingLayer> poolingLayer = new CMeanPoolingLayer( dnn.GetMathEngine() );
 	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

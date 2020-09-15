@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include "Node.h"
+#include "../Node.h"
 
 namespace NeoOnnx {
 

@@ -27,7 +27,8 @@ public:
 	// CNode methods' realizations.
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
 	void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
 	// In ONNX Gemm is implemented like
