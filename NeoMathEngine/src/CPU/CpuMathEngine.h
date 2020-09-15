@@ -520,13 +520,16 @@ private:
 		int inputBatch, int outputRowStart, int outputRowCount, const CFloatHandle& tempBlob );
 	void transposeResult( const CCpuConvolutionDesc& desc, const CConstFloatHandle& outputTransposedData,
 		int batch, int resultStart, int resultCount, const CFloatHandle& result );
-	void fillTempData( const CFloatHandle& sourceData, const CFloatHandle& filterData, const CCpuConvolutionDesc& desc, int start, int count );
+	void fillTempData( const CFloatHandle& sourceData, const CFloatHandle& filterData, const CCpuConvolutionDesc& desc, int start, int count, int alignedTempMatrixRowSize );
 	void blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc,
 		const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTerm,
 		const CFloatHandle& resultData );
 	void blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc,
 		const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTerm,
 		const CFloatHandle& resultData );
+	void MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc,
+								  const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTerm,
+								  const CFloatHandle& resultData );
 	void backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
 		const CFloatHandle* freeTerm, const CFloatHandle& output );
 	void backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
