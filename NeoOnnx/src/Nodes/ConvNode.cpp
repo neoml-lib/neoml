@@ -121,7 +121,8 @@ void CConvNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 		dims[Input[0]] ), "marking output dimensions failed", OnnxNode );
 }
 
-void CConvNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CConvNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CBaseConvLayer> conv = nullptr;
 

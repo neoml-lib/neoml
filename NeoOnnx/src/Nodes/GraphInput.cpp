@@ -42,7 +42,8 @@ void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
-void CGraphInput::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CGraphInput::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 	source->SetName( name );

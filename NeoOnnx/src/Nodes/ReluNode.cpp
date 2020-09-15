@@ -54,7 +54,8 @@ void CReluNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CReluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CReluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CReLULayer> relu = new CReLULayer( dnn.GetMathEngine() );
 	relu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

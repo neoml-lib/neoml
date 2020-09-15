@@ -72,10 +72,12 @@ void CSqueezeNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims 
 		}
 	}
 
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, outputDim, dims[Output[0]] ), "marking output dimensions failed", OnnxNode );
+	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, outputDim, dims[Output[0]] ),
+		"marking output dimensions failed", OnnxNode );
 }
 
-void CSqueezeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CSqueezeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	if( tensors[Output[0]].Data != nullptr ) {
 		return;

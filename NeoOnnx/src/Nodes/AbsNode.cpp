@@ -55,7 +55,8 @@ void CAbsNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CAbsNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CAbsNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CAbsLayer> abs = new CAbsLayer( dnn.GetMathEngine() );
 	abs->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

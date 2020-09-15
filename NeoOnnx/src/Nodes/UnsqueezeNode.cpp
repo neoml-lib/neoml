@@ -80,7 +80,8 @@ void CUnsqueezeNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dim
 		"marking input dimensions failed", OnnxNode );
 }
 
-void CUnsqueezeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CUnsqueezeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	if( tensors[Output[0]].Data != nullptr ) {
 		return;

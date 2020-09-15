@@ -90,7 +90,8 @@ void CMaxPoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims 
 	}
 }
 
-void CMaxPoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CMaxPoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CMaxPoolingLayer> maxPooling = new CMaxPoolingLayer( dnn.GetMathEngine() );
 	maxPooling->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

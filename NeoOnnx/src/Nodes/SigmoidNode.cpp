@@ -54,7 +54,8 @@ void CSigmoidNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims 
 	}
 }
 
-void CSigmoidNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CSigmoidNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CSigmoidLayer> sigmoid = new CSigmoidLayer( dnn.GetMathEngine() );
 	sigmoid->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

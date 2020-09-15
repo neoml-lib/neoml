@@ -57,7 +57,8 @@ void CBatchNormalizationNode::MarkTensorDims( const CTensorCache& tensors, CDimC
 	}
 }
 
-void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CheckNeoOnnxInternal( ( dims[Input[0]] )[1] == BD_Channels,
 		"operation must be performed along input's BD_Channels", OnnxNode );

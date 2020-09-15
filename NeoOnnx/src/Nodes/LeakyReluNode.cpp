@@ -56,7 +56,8 @@ void CLeakyReluNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dim
 	}
 }
 
-void CLeakyReluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CLeakyReluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CLeakyReLULayer> leakyRelu = new CLeakyReLULayer( dnn.GetMathEngine() );
 	leakyRelu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

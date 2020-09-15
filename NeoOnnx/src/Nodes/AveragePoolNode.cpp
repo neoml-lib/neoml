@@ -91,7 +91,8 @@ void CAveragePoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& d
 	}
 }
 
-void CAveragePoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CAveragePoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CMeanPoolingLayer> meanPooling = new CMeanPoolingLayer( dnn.GetMathEngine() );
 	meanPooling->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

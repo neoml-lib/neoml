@@ -104,7 +104,8 @@ void CSliceNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CSliceNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CSliceNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	if( tensors[Output[0]].Data != nullptr ) {
 		return;

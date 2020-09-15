@@ -57,7 +57,8 @@ void CFlattenNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims 
 	}
 }
 
-void CFlattenNode::AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache& neoMLLinks, CDnn& )
+void CFlattenNode::AddLayers( const CGraph&, const CTensorCache&, const CDimCache&,
+	CNeoMLLinkCache& neoMLLinks, CDnn& )
 {
 	neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
 }

@@ -54,7 +54,8 @@ void CTanhNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CTanhNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CTanhNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CTanhLayer> tanh = new CTanhLayer( dnn.GetMathEngine() );
 	tanh->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

@@ -91,7 +91,8 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
 }
 
-void CReshapeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CReshapeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	if( !hasRemainder && !hasFixedShape ) {
 		// Strange case, reshape doesn't do anything...

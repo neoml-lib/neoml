@@ -52,7 +52,8 @@ void CEluNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CEluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CEluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CELULayer> elu = new CELULayer( dnn.GetMathEngine() );
 	elu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

@@ -79,7 +79,8 @@ void CGemmNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 		"marking input dimensions failed", OnnxNode );
 }
 
-void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( dnn.GetMathEngine() );
 	fc->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );

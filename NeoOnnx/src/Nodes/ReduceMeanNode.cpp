@@ -86,7 +86,8 @@ void CReduceMeanNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& di
 
 static const int pool2dDims = ( 1 << static_cast<int>( BD_Height ) ) | ( 1 << static_cast<int>( BD_Width ) );
 
-void CReduceMeanNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CReduceMeanNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	int pooledDims = 0;
 	CArray<int> axes;

@@ -59,7 +59,8 @@ void CGlobalAveragePoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCa
 
 static const int pool2dDims = ( 1 << static_cast<int>( BD_Height ) ) | ( 1 << static_cast<int>( BD_Width ) );
 
-void CGlobalAveragePoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CGlobalAveragePoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	int pooledDims = 0;
 	const CTensorDim& inputDim = dims[Input[0]];
@@ -74,7 +75,9 @@ void CGlobalAveragePoolNode::AddLayers( const CGraph& graph, const CTensorCache&
 	add2dPoolingLayer( tensors, dims, neoMLLinks, dnn, pooledDims );
 }
 
-void CGlobalAveragePoolNode::add2dPoolingLayer( const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn, int pooledDims )
+// Adds 2-dimensional mean pooling layer to dnn
+void CGlobalAveragePoolNode::add2dPoolingLayer( const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks,
+	CDnn& dnn, int pooledDims )
 {
 	CPtr<CMeanPoolingLayer> poolingLayer = new CMeanPoolingLayer( dnn.GetMathEngine() );
 	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
