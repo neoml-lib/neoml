@@ -591,7 +591,6 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 	FixFilter.Stop();
 
 	const int SrcLineStride = SW * C;
-	const int DstLineStride = RW * FC;
 	// Number of steps for each side of image, where filter is applied partially
 	const int PartialStepCountBefore = std::ceil( static_cast<float>( D )/ S );
 	const int PartialStepCountAfter = std::ceil( ( S * ( std::ceil( static_cast<float>( SW ) / S ) - 1 ) - SW + D + 1 ) / S );
@@ -652,117 +651,55 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 		}
 	};
 
-	enum class TFilterCutCase {
-		CutLeft,
-		CutTop,
-		CutRight,
-		CutBottom
-	};
-
 	// Choose proper pixels in source and filter:
 	// 0  1  2
 	// 3  4  5
 	// 6  7  8
-	const int SrcYStep = D * SrcLineStride;
-	const int SrcXStep  = D * C;
+	const int SrcYDilation = D * SrcLineStride;
+	const int SrcXDilation  = D * C;
+	const int SrcXWindowSize = FW * SrcXDilation;
 	// Offset is relative to central pixel
 	const vector<int> SrcPixelOffset[8] = {
-		{ 0, SrcXStep, SrcYStep, SrcYStep + SrcXStep }, // 4 5 7 8
-		{ -SrcXStep, 0, SrcXStep, SrcYStep - SrcXStep, SrcYStep, SrcYStep + SrcXStep }, // 3 4 5 6 7 8
-		{ -SrcXStep, 0, SrcYStep - SrcXStep, SrcYStep }, // 3 4 6 7
-		{ -SrcYStep - SrcXStep, -SrcYStep, -SrcXStep, 0, SrcYStep - SrcXStep, SrcYStep }, // 0 1 3 4 6 7
-		{ -SrcYStep - SrcXStep, -SrcYStep, -SrcXStep, 0 }, // 0 1 3 4
-		{ -SrcYStep - SrcXStep, -SrcYStep, -SrcYStep + SrcXStep, -SrcXStep, 0, SrcXStep }, // 0 1 2 3 4 5
-		{ -SrcYStep, -SrcYStep + SrcXStep, 0, SrcXStep }, // 1 2 4 5
-		{ -SrcYStep, -SrcYStep + SrcXStep, 0, SrcXStep, SrcYStep, SrcYStep + SrcXStep } // 1 2 4 5 7 8
+		{ 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 4 5 7 8
+		{ -SrcXDilation, 0, SrcXDilation, SrcYDilation - SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 3 4 5 6 7 8
+		{ -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 3 4 6 7
+		{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 0 1 3 4 6 7
+		{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcXDilation, 0 }, // 0 1 3 4
+		{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcYDilation + SrcXDilation, -SrcXDilation, 0, SrcXDilation }, // 0 1 2 3 4 5
+		{ -SrcYDilation, -SrcYDilation + SrcXDilation, 0, SrcXDilation }, // 1 2 4 5
+		{ -SrcYDilation, -SrcYDilation + SrcXDilation, 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation } // 1 2 4 5 7 8
 	};
 	// Offset is relative to top left pixel
-	const vector<int> FltPixelOffset[8] = {
-		{ 4 * C * FC, 5 * C * FC, 7 * C * FC, 8 * C * FC }, // 4 5 7 8
-		{ 3 * C * FC, 4 * C * FC, 5 * C * FC, 6 * C * FC, 7 * C * FC, 8 * C * FC }, // 3 4 5 6 7 8
-		{ 3 * C * FC, 4 * C * FC, 6 * C * FC, 7 * C * FC }, // 3 4 6 7
-		{ 0 * C * FC, 1 * C * FC, 3 * C * FC, 4 * C * FC, 6 * C * FC, 7 * C * FC }, // 0 1 3 4 6 7
-		{ 0 * C * FC, 1 * C * FC, 3 * C * FC, 4 * C * FC }, // 0 1 3 4
-		{ 0 * C * FC, 1 * C * FC, 2 * C * FC, 3 * C * FC, 4 * C * FC, 5 * C * FC }, // 0 1 2 3 4 5
-		{ 1 * C * FC, 2 * C * FC, 4 * C * FC, 5 * C * FC }, // 1 2 4 5
-		{ 1 * C * FC, 2 * C * FC, 4 * C * FC, 5 * C * FC, 7 * C * FC, 8 * C * FC } // 1 2 4 5 7 8
+	const vector<const float*> FltPixels[8] = {
+		{ flt + 4 * C * FC, flt + 5 * C * FC, flt + 7 * C * FC, flt + 8 * C * FC }, // 4 5 7 8
+		{ flt + 3 * C * FC, flt + 4 * C * FC, flt + 5 * C * FC, flt + 6 * C * FC, flt + 7 * C * FC, flt + 8 * C * FC }, // 3 4 5 6 7 8
+		{ flt + 3 * C * FC, flt + 4 * C * FC, flt + 6 * C * FC, flt + 7 * C * FC }, // 3 4 6 7
+		{ flt + 0 * C * FC, flt + 1 * C * FC, flt + 3 * C * FC, flt + 4 * C * FC, flt + 6 * C * FC, flt + 7 * C * FC }, // 0 1 3 4 6 7
+		{ flt + 0 * C * FC, flt + 1 * C * FC, flt + 3 * C * FC, flt + 4 * C * FC }, // 0 1 3 4
+		{ flt + 0 * C * FC, flt + 1 * C * FC, flt + 2 * C * FC, flt + 3 * C * FC, flt + 4 * C * FC, flt + 5 * C * FC }, // 0 1 2 3 4 5
+		{ flt + 1 * C * FC, flt + 2 * C * FC, flt + 4 * C * FC, flt + 5 * C * FC }, // 1 2 4 5
+		{ flt + 1 * C * FC, flt + 2 * C * FC, flt + 4 * C * FC, flt + 5 * C * FC, flt + 7 * C * FC, flt + 8 * C * FC } // 1 2 4 5 7 8
 	};
-	auto ApplyPartitialFilter3x3_24ch = [&]( int rx, int ry, TFilterCutCase filterCutCase ) {
-		// Choose proper pixels in source and filter:
-		// 0  1  2
-		// 3  4  5
-		// 6  7  8
-		const std::vector<int>* SrcOffset;
-		const std::vector<int>* FltOffset;
-		switch ( filterCutCase ) {
-		case TFilterCutCase::CutLeft:
-			// 1 2 4 5 7 8
-			SrcOffset = &SrcPixelOffset[7];
-			FltOffset = &FltPixelOffset[7];
-			break;
-		case TFilterCutCase::CutTop:
-			if( rx >= PartialStepCountBefore ) {
-				if ( rx < RW - PartialStepCountAfter ) {
-					// 3 4 5 6 7 8
-					SrcOffset = &SrcPixelOffset[1];
-					FltOffset = &FltPixelOffset[1];
-				} else {
-					// 3 4 6 7
-					SrcOffset = &SrcPixelOffset[2];
-					FltOffset = &FltPixelOffset[2];
-				}
-			} else {
-				// 4 5 7 8
-				SrcOffset = &SrcPixelOffset[0];
-				FltOffset = &FltPixelOffset[0];
-			}
-			break;
-		case TFilterCutCase::CutRight:
-			// 0 1 3 4 6 7
-			SrcOffset = &SrcPixelOffset[3];
-			FltOffset = &FltPixelOffset[3];
-			break;
-		case TFilterCutCase::CutBottom:
-			if( rx >= PartialStepCountBefore ) {
-				if ( rx < RW - PartialStepCountAfter ) {
-					// 0 1 2 3 4 5
-					SrcOffset = &SrcPixelOffset[5];
-					FltOffset = &FltPixelOffset[5];
-				} else {
-					// 0 1 3 4
-					SrcOffset = &SrcPixelOffset[4];
-					FltOffset = &FltPixelOffset[4];
-				}
-			} else {
-				// 1 2 4 5
-				SrcOffset = &SrcPixelOffset[6];
-				FltOffset = &FltPixelOffset[6];
-			}
-			break;
 
-		}
-		const float* centralSrcPtr =  src + ry * S * SrcLineStride + rx * S * C;
-		float* dstPtr = dst + ry * DstLineStride + rx * FC;
-		for( size_t i = 0; i < SrcOffset->size(); i++ ) {
-			const float* srcPtr = centralSrcPtr + SrcOffset->at( i );
-			const float* fltPtr = flt + FltOffset->at( i );
-			ProcessChannels( srcPtr, fltPtr, dstPtr );
+	auto ApplyPartitialFilter3x3_24ch = [&]( const float* srcPtr, const vector<const float*>& fltPixels, float* dstPtr,
+			const vector<int>& srcPixelOffset  ) {
+		auto srcIt = srcPixelOffset.cbegin();
+		auto fltIt = fltPixels.cbegin();
+		for( ; srcIt != srcPixelOffset.cend(); srcIt++, fltIt++ ) {
+			ProcessChannels( srcPtr + *srcIt, *fltIt, dstPtr );
 		}
 	};
 
-	auto ApplyWholeFilter3x3_24ch = [&]( int rx, int ry ) {
-		const float* fltPtr = flt;
-		const float* srcPtr = src + ( ry * S - D ) * SrcLineStride + ( rx * S - D ) * C;
-		float* dstPtr = dst + ry * DstLineStride + rx * FC;
+	auto ApplyWholeFilter3x3_24ch = [&]( const float* srcPtr, const float* fltPtr, float* dstPtr  ) {
 		for( int fy = 0; fy < FH; fy++ ) {
 			for( int fx = 0; fx < FW; fx++ ) {
 				ProcessChannels( srcPtr, fltPtr, dstPtr );
 				// Move to next pixel in source image on the SAME line
-				srcPtr += SrcXStep;
+				srcPtr += SrcXDilation;
 				fltPtr += C * FC;
 			}
 			// Move to next pixel in source image on the NEXT line
-			srcPtr += D * SrcLineStride - FW * SrcXStep;
+			srcPtr += SrcYDilation - SrcXWindowSize;
 		}
 	};
 
@@ -774,41 +711,94 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 	}
 	FreeTerm.Stop();
 
+	const int SrcYStep = S * SrcLineStride;
+	const int SrcXStep = S * C;
+
 	// Iterate through result, left->right, top->bottom
 	// Top edge ( cut top part of filter )
-	Cut.Start();
+	const float* fltPtr = flt;
+	float* dstPtr = dst;
+
 	for( int ry = 0; ry < PartialStepCountBefore; ry++ ) {
-		for( int rx = 0; rx < RW; rx++ ) {
-			ApplyPartitialFilter3x3_24ch( rx, ry, TFilterCutCase::CutTop );
-		}
-	}
-	Cut.Stop();
-	for( int ry = PartialStepCountBefore; ry < RH - PartialStepCountAfter; ry++ ) {
-		// Middle part of image ( whole fiter )
-		Cut.Start();
+		// Top part of image
+		const float* srcPtr =  src + ry * SrcYStep;
+
+		// Partial applying filter
 		for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
-			ApplyPartitialFilter3x3_24ch( rx, ry, TFilterCutCase::CutLeft );
+			// Top left corner, // 4 5 7 8
+			ApplyPartitialFilter3x3_24ch( srcPtr, FltPixels[0], dstPtr, SrcPixelOffset[0] );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
 		}
-		Cut.Stop();
-		Full.Start();
 		for( int rx = PartialStepCountBefore; rx < RW - PartialStepCountAfter; rx++ ) {
-			ApplyWholeFilter3x3_24ch( rx, ry );
+			// Top edge, 3 4 5 6 7 8
+			ApplyPartitialFilter3x3_24ch( srcPtr, FltPixels[1], dstPtr, SrcPixelOffset[1] );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
 		}
-		Full.Stop();
-		Cut.Start();
 		for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
-			ApplyPartitialFilter3x3_24ch( rx, ry, TFilterCutCase::CutRight );
+			// Top right corner, 3 4 6 7
+			ApplyPartitialFilter3x3_24ch( srcPtr, FltPixels[2], dstPtr, SrcPixelOffset[2] );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
 		}
-		Cut.Stop();
 	}
-	Cut.Start();
+
+	for( int ry = PartialStepCountBefore; ry < RH - PartialStepCountAfter; ry++ ) {
+		// Middle part of image
+		const float* srcPtr =  src + ry * SrcYStep;
+
+		// Partial applying filter
+		for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
+			// Top left corner, // 4 5 7 8
+			ApplyPartitialFilter3x3_24ch( srcPtr, FltPixels[7], dstPtr, SrcPixelOffset[7] );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
+		}
+
+		// Move to the top left pixel of window from central one
+		srcPtr -= ( SrcYDilation + SrcXDilation);
+		for( int rx = PartialStepCountBefore; rx < RW - PartialStepCountAfter; rx++ ) {
+			// Top edge, 3 4 5 6 7 8
+			ApplyWholeFilter3x3_24ch( srcPtr, fltPtr, dstPtr );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
+		}
+
+		// Move back to the central pixel again
+		srcPtr += ( SrcYDilation + SrcXDilation);
+		for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
+			// Top right corner, 3 4 6 7
+			ApplyPartitialFilter3x3_24ch( srcPtr, FltPixels[3], dstPtr, SrcPixelOffset[3] );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
+		}
+	}
+
 	for( int ry = RH - PartialStepCountAfter; ry < RH; ry++ ) {
-		// Bottom part of image ( whole fiter )
-		for( int rx = 0; rx < RW; rx++ ) {
-			ApplyPartitialFilter3x3_24ch( rx, ry, TFilterCutCase::CutBottom );
+		// Bottom part of image
+		const float* srcPtr =  src + ry * SrcYStep;
+
+		// Partial applying filter
+		for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
+			// Top left corner, // 4 5 7 8
+			ApplyPartitialFilter3x3_24ch( srcPtr, FltPixels[6], dstPtr, SrcPixelOffset[6] );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
+		}
+		for( int rx = PartialStepCountBefore; rx < RW - PartialStepCountAfter; rx++ ) {
+			// Top edge, 3 4 5 6 7 8
+			ApplyPartitialFilter3x3_24ch( srcPtr, FltPixels[5], dstPtr, SrcPixelOffset[5] );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
+		}
+		for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
+			// Top right corner, 3 4 6 7
+			ApplyPartitialFilter3x3_24ch( srcPtr, FltPixels[4], dstPtr, SrcPixelOffset[4] );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
 		}
 	}
-	Cut.Stop();
 
 	CAlgoInfo::AddFastAlgo( { {full.GetTimeInMs(), Cut.GetTimeInMs(), Full.GetTimeInMs(), FixFilter.GetTimeInMs(), FreeTerm.GetTimeInMs()},
 		{ SW, S, D } } );
