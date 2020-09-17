@@ -743,7 +743,6 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 		}
 		const float* centralSrcPtr =  src + ry * S * SrcLineStride + rx * S * C;
 		float* dstPtr = dst + ry * DstLineStride + rx * FC;
-		NeoML::vectorFill( dstPtr, 0.0, FC );
 		for( size_t i = 0; i < SrcOffset->size(); i++ ) {
 			const float* srcPtr = centralSrcPtr + SrcOffset->at( i );
 			const float* fltPtr = flt + FltOffset->at( i );
@@ -755,7 +754,6 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 		const float* fltPtr = flt;
 		const float* srcPtr = src + ( ry * S - D ) * SrcLineStride + ( rx * S - D ) * C;
 		float* dstPtr = dst + ry * DstLineStride + rx * FC;
-		NeoML::vectorFill( dstPtr, 0.0, FC );
 		for( int fy = 0; fy < FH; fy++ ) {
 			for( int fx = 0; fx < FW; fx++ ) {
 				ProcessChannels( srcPtr, fltPtr, dstPtr );
@@ -767,6 +765,14 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 			srcPtr += D * SrcLineStride - FW * SrcXStep;
 		}
 	};
+
+	FreeTerm.Start();
+	if( freeTermData != 0 ) {
+		setVectorToMatrixRows( resultData, desc.Result.Height() * desc.Result.Width(), desc.Result.Channels(), *freeTermData );
+	} else {
+		NeoML::vectorFill( dst, 0.0, desc.Result.BlobSize() );
+	}
+	FreeTerm.Stop();
 
 	// Iterate through result, left->right, top->bottom
 	// Top edge ( cut top part of filter )
@@ -804,14 +810,6 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 	}
 	Cut.Stop();
 
-	FreeTerm.Start();
-	if( freeTermData != 0 ) {
-		CFloatHandle resultDataPtr = resultData;
-		const int size = desc.Result.ObjectCount() * desc.Result.Width() * desc.Result.Height();
-		const int filterObjectCount = desc.Filter.ObjectCount();
-		addVectorToMatrixRows( resultDataPtr, resultDataPtr, size, filterObjectCount, filterObjectCount, filterObjectCount, *freeTermData );
-	}
-	FreeTerm.Stop();
 	CAlgoInfo::AddFastAlgo( { {full.GetTimeInMs(), Cut.GetTimeInMs(), Full.GetTimeInMs(), FixFilter.GetTimeInMs(), FreeTerm.GetTimeInMs()},
 		{ SW, S, D } } );
 }
