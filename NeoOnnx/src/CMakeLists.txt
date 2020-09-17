@@ -7,7 +7,6 @@ endif()
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_sources( ${PROJECT_NAME} PRIVATE
-    DnnBuilder.cpp
     NeoOnnx.cpp
     Node.cpp
     NodeAttributes.cpp
@@ -44,7 +43,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
 
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
-    DnnBuilder.h
     Graph.h
     GraphCache.h
     NeoMLLink.h

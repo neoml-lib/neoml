@@ -18,8 +18,11 @@ limitations under the License.
 
 #include <NeoOnnx/NeoOnnx.h>
 
-#include "DnnBuilder.h"
 #include "NeoOnnxCheck.h"
+#include "Node.h"
+#include "Nodes/GraphInitializer.h"
+#include "Nodes/GraphInput.h"
+#include "Nodes/GraphOutput.h"
 
 #include <onnx.pb.h>
 
@@ -28,11 +31,11 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Gets opset version for a
+// Gets opset version from ModelProto
 static int getOpsetVersion( const onnx::ModelProto& model )
 {
 	for( const auto& opset : model.opset_import() ) {
-		if( opset.domain().empty() ) {
+		if( opset.domain().empty() ) { // Default onnx opset
 			return static_cast<int>( opset.version() );
 		}
 	}
@@ -40,6 +43,145 @@ static int getOpsetVersion( const onnx::ModelProto& model )
 	CheckOnnxProtocol( false, "Can't determine opset version for a model" );
 
 	return -1;
+}
+
+// Checks if onnx graph's nodes are already in topologically sorted order
+static bool isTopSorted( const onnx::GraphProto& onnxGraph )
+{
+	std::unordered_set<std::string> visited;
+
+	for( const onnx::ValueInfoProto& input : onnxGraph.input() ) {
+		visited.insert( input.name() );
+	}
+
+	for( const onnx::TensorProto& initializer : onnxGraph.initializer() ) {
+		visited.insert( initializer.name() );
+	}
+
+	for( const onnx::NodeProto& node : onnxGraph.node() ) {
+		for( const std::string& nodeInput : node.input() ) {
+			if( nodeInput.size() > 0 && visited.find( nodeInput ) == visited.end() ) {
+				return false;
+			}
+		}
+
+		for( const std::string& nodeOutput : node.output() ) {
+			visited.insert( nodeOutput );
+		}
+	}
+
+	return true;
+}
+
+// Buildы array of CNode's based on onnxGraph
+static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, IMathEngine& mathEngine, CGraph& graph )
+{
+	graph.SetBufferSize( onnxGraph.input_size() + onnxGraph.initializer_size() + onnxGraph.node_size()
+		+ onnxGraph.output_size() );
+	CMap<CString, CLink> nodeOutputs;
+
+	// Add graph initializers
+	CHashTable<CString> initializers;
+	for( const onnx::TensorProto& onnxInitializer : onnxGraph.initializer() ) {
+		if( onnxInitializer.dims_size() > 0 ) {
+			graph.Add( new CGraphInitializer( graph.NodeCount(), onnxInitializer, mathEngine ) );
+			nodeOutputs.Add( onnxInitializer.name().c_str(), CLink( graph.NodeCount() - 1, 0 ) );
+			initializers.Add( onnxInitializer.name().c_str() );
+		}
+	}
+
+	// Add graph inputs
+	for( const onnx::ValueInfoProto& onnxInput : onnxGraph.input() ) {
+		if( initializers.Has( onnxInput.name().c_str() ) ) {
+			// Networks from PyTorch can have separate inputs for every initializer (every weight/filter etc.)
+			// In case of NeoML inputs like these won't be needed (all of weights must be calculated from initializers)
+			continue;
+		}
+		graph.Add( new CGraphInput( graph.NodeCount(), onnxInput ) );
+		nodeOutputs.Add( onnxInput.name().c_str(), CLink( graph.NodeCount() - 1, 0 ) );
+	}
+
+	// Add graph graph
+	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
+		graph.Add( COpNode::CreateOpNode( graph.NodeCount(), onnxNode, opsetVersion ) );
+		for( int inputIndex = 0; inputIndex < onnxNode.input_size(); ++inputIndex ) {
+			const std::string& inputName = onnxNode.input( inputIndex );
+			if( inputName.size() > 0 ) {
+				graph[graph.NodeCount() - 1]->Connect( inputIndex, nodeOutputs.Get( inputName.data() ) );
+			}
+		}
+
+		// Adding this onnxNode's outputs to the map of onnxNode outputs
+		for( int outputIndex = 0; outputIndex < onnxNode.output_size(); ++outputIndex ) {
+			nodeOutputs.Add( onnxNode.output( outputIndex ).c_str(), CLink( graph.NodeCount() - 1, outputIndex ) );
+		}
+	}
+
+	// Add graph outputs
+	for( const onnx::ValueInfoProto& onnxOutput : onnxGraph.output() ) {
+		graph.Add( new CGraphOutput( graph.NodeCount(), onnxOutput ) );
+		graph[graph.NodeCount() - 1]->Connect( 0, nodeOutputs.Get( onnxOutput.name().c_str() ) );
+	}
+}
+
+// Calculates tensor shape and (if possible) data for every node output
+static void calcGraphTensors( CGraph& graph, IMathEngine& mathEngine, CTensorCache& tensors )
+{
+	// Iterate over graph in top sorted order
+	for( int nodeIndex = 0; nodeIndex < graph.NodeCount(); ++nodeIndex ) {
+		graph[nodeIndex]->CalcOutputTensors( tensors, mathEngine );
+	}
+}
+
+// Marks tensor dimensions (which are unnamed) with NeoML blob dimensions
+static void markTensorsDimensions( CGraph& graph, const CTensorCache& tensors, CDimCache& dims )
+{
+	for( int nodeIndex = 0; nodeIndex < graph.NodeCount(); ++nodeIndex ) {
+		graph[nodeIndex]->MarkTensorDims( tensors, dims );
+	}
+
+	// Sometimes there are additional operators between graph inputs and
+	// nodes, whose operations can interpret tensor deimensions
+	// E.g. input -> transpose -> conv
+	// In that case input's dims will be still unmarked
+	// That's why we call marking method one more time in reversed order
+	for( int nodeIndex = graph.NodeCount() - 1; nodeIndex >= 0; --nodeIndex ) {
+		graph[nodeIndex]->MarkTensorDims( tensors, dims );
+	}
+}
+
+// Adds layers to dnn based on graph, tensors and marked dimensions
+static void addLayersToDnn( CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CDnn& dnn )
+{
+	CNeoMLLinkCache neoMLLinks( graph );
+	for( int nodeIndex = 0; nodeIndex < graph.NodeCount(); ++nodeIndex ) {
+		graph[nodeIndex]->AddLayers( graph, tensors, dims, neoMLLinks, dnn );
+	}
+}
+
+// Builds dnn based on GraphProto
+static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion, CDnn& dnn )
+{
+	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
+	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
+
+	CheckNeoOnnxInternal( dnn.GetLayerCount() == 0, "dnn must be empty" );
+	CheckNeoOnnxSupport( isTopSorted( onnxGraph ), "onnxGraph is not topologically sorted" );
+
+	// Step 1: creating nodes of the graph and connections between them
+	CGraph graph;
+	buildGraph( onnxGraph, opsetVersion, dnn.GetMathEngine(), graph );
+
+	// Step 2: calculating tensor shape and data for every node output in graph
+	CTensorCache tensors( graph );
+	calcGraphTensors( graph, dnn.GetMathEngine(), tensors );
+
+	// Step 3: Mark onnx tensors' dimensions with NeoML blob dimensions
+	CDimCache dims( graph );
+	markTensorsDimensions( graph, tensors, dims );
+
+	// Step 4: Adding layers to dnn
+	addLayersToDnn( graph, tensors, dims, dnn );
 }
 
 void LoadFromOnnx( const char* fileName, CDnn& dnn )
@@ -53,14 +195,12 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn )
 		NeoOnnxCheck( false, CString( "Failed to open file " ) + fileName );
 	}
 
-	if( !model.ParseFromIstream( &input ) ) {
-		input.close();
-		NeoOnnxCheck( false, CString( "Failed to parse model from file " ) + fileName );
-	}
-
 	try {
-		NeoOnnx::CDnnBuilder dnnBuilder;
-		dnnBuilder.BuildDnn( model.graph(), getOpsetVersion( model ), dnn );
+		if( !model.ParseFromIstream( &input ) ) {
+			NeoOnnxCheck( false, CString( "Failed to parse model from file " ) + fileName );
+		}
+
+		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn );
 	} catch( ... ) {
 		input.close();
 		google::protobuf::ShutdownProtobufLibrary();
@@ -84,8 +224,7 @@ void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn )
 			NeoOnnxCheck( false, "Failed to parse model from buffer" );
 		}
 
-		NeoOnnx::CDnnBuilder dnnBuilder;
-		dnnBuilder.BuildDnn( model.graph(), getOpsetVersion( model ), dnn );
+		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;
