@@ -21,6 +21,7 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <MathEngineDnnConv.h>
+#include <CpuMathEnginePrivate.h>
 
 namespace NeoML {
 
@@ -86,10 +87,10 @@ void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, 
 		CConstFloatHandle inputPtr = sourceData + inputRowStart * inputRowSize;
 		CConstFloatHandle filterPtr = filterData + filterRowStart * filter.Channels();
 
-		multiplyMatrixByTransposedMatrix( inputPtr,
+		multiplyMatrixByTransposedMatrix( GetRaw( inputPtr ),
 			source.BatchWidth(), inputObjectSize, inputObjectSize,
-			filterPtr, filter.BatchWidth(), filterDataSize,
-			outputPtr, outputObjectSize, outputObjectSize * source.BatchWidth() );
+			GetRaw( filterPtr ), filter.BatchWidth(), filterDataSize,
+			GetRaw( outputPtr ), outputObjectSize, outputObjectSize * source.BatchWidth() );
 
 		float* outputRawPtr = GetRaw( outputPtr );
 		const float* inputRawPtr = GetRaw( inputPtr );
@@ -130,8 +131,8 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int inSeqNum = 0; inSeqNum < inputDiff.BatchLength(); ++inSeqNum ) {
-		CFloatHandle inputDiffDataPtr = inputDiffData + inSeqNum * inputRowSize;
-		vectorFill( inputDiffDataPtr, 0, inputObjectSize * inputDiff.BatchWidth() );
+		float* inputDiffDataPtr = GetRaw( inputDiffData ) + inSeqNum * inputRowSize;
+		vectorFill0( inputDiffDataPtr, inputObjectSize * inputDiff.BatchWidth() );
 
 		for( int filterRow = 0; filterRow < filter.Height(); filterRow++ ) {
 			int inSeqNumFirst = inSeqNum - filterRow * desc.Dilation;
@@ -146,8 +147,8 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 				continue;
 			}
 
-			CConstFloatHandle outputDiffPtr = outputDiffData + outSeqNum * outputRowSize;
-			CConstFloatHandle filterPtr = filterData + filterRow * filter.Channels();
+			const float* outputDiffPtr = GetRaw( outputDiffData ) + outSeqNum * outputRowSize;
+			const float* filterPtr = GetRaw( filterData ) + filterRow * filter.Channels();
 
 			multiplyMatrixByMatrixAndAdd( outputDiffPtr,
 				outputDiff.BatchWidth(), outputObjectSize, outputObjectSize,
@@ -180,7 +181,7 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int outSeqNum = 0; outSeqNum < outputDiff.BatchLength(); ++outSeqNum ) {
-		CConstFloatHandle outputDiffPtr = outputDiffData +
+		const float* outputDiffPtr = GetRaw( outputDiffData ) +
 			outSeqNum * outputDiff.BatchWidth() * outputDiff.ObjectSize();
 
 		for( int filterRow = 0; filterRow < filterDiff.Height(); ++filterRow ) {
@@ -189,8 +190,8 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 				continue; // padding or went out of the input bounds
 			}
 
-			CConstFloatHandle inputPtr = inputData + inSeqNum * input.BatchWidth() * filterDiff.Channels();
-			CFloatHandle filterDiffPtr = ompReduction.GetPrivate().Data + filterRow * filterDiff.Channels();
+			const float* inputPtr = GetRaw( inputData ) + inSeqNum * input.BatchWidth() * filterDiff.Channels();
+			float* filterDiffPtr = GetRaw( ompReduction.GetPrivate().Data ) + filterRow * filterDiff.Channels();
 
 			multiplyTransposedMatrixByMatrixAndAdd( outputDiffPtr,
 				outputDiff.BatchWidth(), filterDiff.BatchWidth(), filterDiff.BatchWidth(),

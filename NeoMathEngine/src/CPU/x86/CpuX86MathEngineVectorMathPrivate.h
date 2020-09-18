@@ -106,6 +106,75 @@ inline void vectorFill( float* result, float value, int vectorSize )
 	}
 }
 
+inline void vectorFill0( float* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	__m128 valueSse = _mm_setzero_ps();
+
+	while( sseSize >= 4 ) {
+		_mm_storeu_ps(result, valueSse);
+		result += 4;
+		_mm_storeu_ps(result, valueSse);
+		result += 4;
+		_mm_storeu_ps(result, valueSse);
+		result += 4;
+		_mm_storeu_ps(result, valueSse);
+		result += 4;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_storeu_ps(result, valueSse);
+		result += 4;
+		sseSize--;
+	}
+}
+
+inline void vectorEltwiseMax( const float* first, const float* second, float* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	while( sseSize >= 4 ) {
+		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		first += 4;
+		second += 4;
+		result += 4;
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		first += 4;
+		second += 4;
+		result += 4;
+		sseSize--;
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = max(*first, *second);
+		first++;
+		second++;
+	}
+}
+
 //------------------------------------------------------------------------------------------------------------
 
 inline void vectorAdd(const float* first, const float* second, float* result, int vectorSize)

@@ -27,6 +27,7 @@ limitations under the License.
 #include <CpuMathEngineOmp.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <CpuMathEnginePrivate.h>
 
 #ifdef NEOML_USE_NEON
 #include <CpuArm.h>
@@ -59,6 +60,49 @@ static inline void alignedVectorAdd( const CFloatHandle& firstHandle, const CCon
 		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
+	}
+#else
+#error Unsupported arch!
+#endif
+}
+
+static inline void alignedVectorAdd( float* first, const float* second, int vectorSize )
+{
+#ifdef NEOML_USE_NEON
+	float* first = reinterpret_cast<float*>( GetRaw( firstHandle ) );
+	const float* second = reinterpret_cast<const float*>( GetRaw( secondHandle ) );
+
+	vectorSize /= 4;
+	for( int i = 0; i < vectorSize; ++i ) {
+		StoreNeon4( vaddq_f32( LoadNeon4(first), LoadNeon4(second) ), first );
+		first += 4;
+		second += 4;
+	}
+#elif (defined NEOML_USE_SSE )
+
+	int sseSize = vectorSize / 4;
+	while( sseSize >= 4 ) {
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		sseSize--;
 	}
 #else
 #error Unsupported arch!
@@ -294,7 +338,9 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 
 	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
 
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	float* resultDataPtr = GetRaw( resultData );
+
+	//NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < objectCount; ++b ) {
 		const CRleImage* inputImage = reinterpret_cast<CRleImage*>( GetRaw( sourceData + source.ObjectSize() * b ) );
 		int imageStartPos = ( source.Width() - inputImage->Width ) / 2;
@@ -323,23 +369,23 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 			}
 			int jCount = lastJFilter - firstJFilter;
 
-			CFloatHandle outputObj = resultData + b * result.ObjectSize();
+			float* outputObj = resultDataPtr + b * result.ObjectSize();
 
 			if( lastJFilter > lastJInit ) {
 				// Initialize the output little by little so that the cache does not overflow
-				vectorFill( outputObj + lastJInit * outputRowSize, 0, outputRowSize * ( lastJFilter - lastJInit ) );
+				NeoML::vectorFill0( outputObj + lastJInit * outputRowSize, outputRowSize * ( lastJFilter - lastJInit ) );
 				lastJInit = lastJFilter;
 			}
 
 			// Traverse all filters that have this row
-			CFloatHandle output = outputObj + firstJFilter * outputRowSize;
+			float* output = outputObj + firstJFilter * outputRowSize;
 			int filterLineNumber = max( 0, lineNumber - firstJFilter * strideHeight );
-			CConstFloatHandle filterConvData = desc.FilterConv.GetHandle() + ( filterHeight - filterLineNumber - 1 ) * filterCount;
+			const float* filterConvData = GetRaw( desc.FilterConv.GetHandle() ) + ( filterHeight - filterLineNumber - 1 ) * filterCount;
 
 			for( int i = 0; i < outputWidth; ++i ) {
 				int index = ( ( int ) ( line >> ( i * strideWidth ) ) & filterLineMask );
-				CConstFloatHandle curFilterConvData = filterConvData + index * filterConvStep;
-				CFloatHandle curOutput = output;
+				const float* curFilterConvData = filterConvData + index * filterConvStep;
+				float* curOutput = output;
 				for( int j = 0; j < jCount; ++j ) {
 					alignedVectorAdd( curOutput, curFilterConvData, filterCount );
 					curFilterConvData += strideHeight * filterCount;

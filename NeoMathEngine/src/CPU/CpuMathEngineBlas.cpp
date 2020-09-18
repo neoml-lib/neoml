@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
+#include <CpuMathEnginePrivate.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <math.h>
@@ -59,17 +60,6 @@ void CCpuMathEngine::SetVectorToMatrixRows( const CFloatHandle& resultHandle,
 	}
 }
 
-void CCpuMathEngine::setVectorToMatrixRows(const CFloatHandle& resultHandle,
-	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle)
-{
-	CFloatHandle result = resultHandle;
-
-	for(int i = 0; i < matrixHeight; i++) {
-		vectorCopy( result, vectorHandle, matrixWidth );
-		result += matrixWidth;
-	}
-}
-
 void CCpuMathEngine::AddVectorToMatrixColumns(const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle)
 {
@@ -101,9 +91,9 @@ void CCpuMathEngine::AddVectorToMatrixRows( int batchSize, const CConstFloatHand
 		int widthCount;
 		if( OmpGetTaskIndexAndCount3D(batchSize, 1, matrixHeight, 1, matrixWidth, 1, batchStart, batchCount, heightStart, heightCount, widthStart, widthCount) ) {
 			const int offset = batchStart * matrixSize + heightStart * matrixWidth + widthStart;
-			CFloatHandle outputData = resultHandle + offset;
-			CConstFloatHandle inputData = matrixHandle + offset;
-			CConstFloatHandle vectorData = vectorHandle + batchStart* matrixWidth + widthStart;
+			float* outputData = GetRaw( resultHandle ) + offset;
+			const float* inputData = GetRaw( matrixHandle ) + offset;
+			const float* vectorData = GetRaw( vectorHandle ) + batchStart* matrixWidth + widthStart;
 
 			for( int i = 0; i < batchCount; ++i ) {
 				addVectorToMatrixRows(inputData, outputData, heightCount, widthCount,
@@ -222,20 +212,20 @@ void CCpuMathEngine::SumMatrixRowsAdd(int batchSize,
 	}
 }
 
-void CCpuMathEngine::findMaxValueInColumns(const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
-	int matrixHeight, int matrixWidth)
+void CCpuMathEngine::findMaxValueInColumns( float* resultHandle, const float* matrixHandle,
+	int matrixHeight, int matrixWidth )
 {
 	if(matrixHeight == 1) {
-		VectorCopy(resultHandle, matrixHandle, matrixWidth);
+		dataCopy(resultHandle, matrixHandle, matrixWidth);
 		return;
 	}
 
-	CConstFloatHandle nextRow = matrixHandle + matrixWidth;
-	VectorEltwiseMax(matrixHandle, nextRow, resultHandle, matrixWidth);
+	const float* nextRow = matrixHandle + matrixWidth;
+	vectorEltwiseMax( matrixHandle, nextRow, resultHandle, matrixWidth );
 
 	for(int i = 2; i < matrixHeight; ++i) {
 		nextRow += matrixWidth;
-		VectorEltwiseMax(resultHandle, nextRow, resultHandle, matrixWidth);
+		vectorEltwiseMax( resultHandle, nextRow, resultHandle, matrixWidth );
 	}
 }
 
@@ -567,15 +557,11 @@ void CCpuMathEngine::LookupAndAddToTable(const CConstIntHandle& indicesHandle, i
 	}
 }
 
-void CCpuMathEngine::findMaxValueInColumns( const CFloatHandle& resultHandle, const CIntHandle& rowIndicesHandle,
-	const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth )
+void CCpuMathEngine::findMaxValueInColumns( float* result, int* rowIndices,
+	const float* matrix, int matrixHeight, int matrixWidth )
 {
-	const float* matrix = GetRaw( matrixHandle );
-	float* result = GetRaw( resultHandle );
-	int* rowIndices = GetRaw( rowIndicesHandle );
-
 	// Copy the first row
-	VectorCopy( resultHandle, matrixHandle, matrixWidth );
+	vectorCopy( result, matrix, matrixWidth );
 	memset( rowIndices, 0, matrixWidth * sizeof( *rowIndices ) );
 	matrix += matrixWidth;
 	// Process the rest
@@ -643,8 +629,8 @@ void CCpuMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHan
 	CFloatHandle result = resultHandle;
 
 	for( int b = 0; b < batchSize; ++b ) {
-		multiplyMatrixByMatrix( first, firstHeight, firstWidth, firstWidth, second, secondWidth, secondWidth, result,
-			secondWidth, firstHeight * secondWidth );
+		multiplyMatrixByMatrix( GetRaw( first ), firstHeight, firstWidth, firstWidth, GetRaw( second ), 
+			secondWidth, secondWidth, GetRaw( result ), secondWidth, firstHeight * secondWidth );
 		first += firstHeight * firstWidth;
 		second += firstWidth * secondWidth;
 		result += firstHeight * secondWidth;
@@ -656,15 +642,16 @@ void CCpuMathEngine::MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHan
 	const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
 	const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize)
 {
-	multiplyTransposedMatrixByMatrixAndAdd( firstHandle,
-		firstHeight, firstWidth, firstRowSize, secondHandle, secondWidth, secondRowSize,
-		resultHandle, resultRowSize, resultBufferSize );
+	multiplyTransposedMatrixByMatrixAndAdd( GetRaw( firstHandle ),
+		firstHeight, firstWidth, firstRowSize, GetRaw( secondHandle ), secondWidth, secondRowSize,
+		GetRaw( resultHandle ), resultRowSize, resultBufferSize );
 }
 
 void CCpuMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
 {
-	batchMultiplyTransposedMatrixByMatrix(batchSize, firstHandle, firstHeight, firstWidth, secondHandle, secondWidth, resultHandle, resultBufferSize);
+	batchMultiplyTransposedMatrixByMatrix(batchSize, GetRaw( firstHandle ), firstHeight, firstWidth,
+		GetRaw( secondHandle ), secondWidth, GetRaw( resultHandle ), resultBufferSize);
 }
 
 void CCpuMathEngine::batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
@@ -701,9 +688,9 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& f
 		if( OmpGetTaskIndexAndCount2D( firstHeight, 1, secondHeight, floatAlignment,
 			firstHeightStart, firstHeightCount, secondHeightStart, secondHeightCount ) )
 		{
-			CConstFloatHandle firstData = firstHandle + firstHeightStart * firstWidth;
-			CFloatHandle resultData = resultHandle + firstHeightStart * secondHeight + secondHeightStart;
-			CConstFloatHandle secondData = secondHandle + secondHeightStart * firstWidth;
+			const float* firstData = GetRaw( firstHandle + firstHeightStart * firstWidth );
+			float* resultData = GetRaw( resultHandle + firstHeightStart * secondHeight + secondHeightStart );
+			const float* secondData = GetRaw( secondHandle + secondHeightStart * firstWidth );
 
 			multiplyMatrixByTransposedMatrix( firstData, firstHeightCount, firstWidth, firstRowSize,
 				secondData, secondHeightCount, secondRowSize,
@@ -732,16 +719,12 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CCon
 }
 
 void CCpuMathEngine::batchMultiplyTransposedMatrixByMatrix( int batchSize,
-	const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-	const CConstFloatHandle& secondHandle, int secondWidth,
-	const CFloatHandle& resultHandle, int resultBufferSize )
+	const float* first, int firstHeight, int firstWidth,
+	const float* second, int secondWidth,
+	float* result, int resultBufferSize )
 {
 	ASSERT_EXPR( resultBufferSize >= batchSize * firstWidth * secondWidth );
-
-	CConstFloatHandle first = firstHandle;
-	CConstFloatHandle second = secondHandle;
-	CFloatHandle result = resultHandle;
-
+	
 	for( int b = 0; b < batchSize; ++b ) {
 		multiplyTransposedMatrixByMatrix( first, firstHeight, firstWidth, second, secondWidth,
 			result, firstWidth * secondWidth );
@@ -983,7 +966,7 @@ void CCpuMathEngine::MatrixLogSumExpByColumns( const CConstFloatHandle& matrixHa
 	CFloatHandleStackVar tempVec( mathEngine(), width );
 
 	// Find maximum in each column
-	findMaxValueInColumns( resultHandle, matrixHandle, height, width );
+	findMaxValueInColumns( GetRaw( resultHandle ), GetRaw( matrixHandle ), height, width );
 
 	// Subtract the maximum and save the result to a temporary variable
 	subVectorFromMatrixRows( this, matrixHandle, temp, height, width, resultHandle );
@@ -1007,7 +990,7 @@ void CCpuMathEngine::MatrixSoftmaxByColumns( const CConstFloatHandle& matrix, in
 	CFloatHandleStackVar temp( mathEngine(), width );
 
 	// Find maximum in each column
-	findMaxValueInColumns( temp, matrix, height, width );
+	findMaxValueInColumns( GetRaw( temp.GetHandle() ), GetRaw( matrix ), height, width );
 
 	// Subtract the maximum and save the result to a temporary variable
 	subVectorFromMatrixRows( this, matrix, result, height, width, temp );
