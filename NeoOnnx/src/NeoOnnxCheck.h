@@ -64,7 +64,7 @@ inline void CheckOnnxProtocol( bool expr, const CString& what, const onnx::NodeP
 }
 
 // Throws std::logic_error if 'expr' is false
-// Used for checking if graph and nodes have something which is not supported by NeoOnnx
+// Used for checking if graph and nodes have something which is valid ONNX but is not supported by NeoOnnx
 inline void CheckNeoOnnxSupport( bool expr, const CString& what ) 
 {
 	NeoOnnxCheck( expr, CString( "Not supported by NeoOnnx: " ) + what );

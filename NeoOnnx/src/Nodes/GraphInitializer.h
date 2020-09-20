@@ -23,7 +23,7 @@ class CGraphInitializer : public CNode {
 public:
 	CGraphInitializer( int nodeIndex, const onnx::TensorProto& initializer, IMathEngine& mathEngine );
 
-	// CNode methods' realizations.
+	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
 	void MarkTensorDims( const CTensorCache&, CDimCache& ) override {}
 	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache&, CDnn& ) override {}

@@ -23,7 +23,7 @@ class CReduceMeanNode : public COpNode {
 public:
 	CReduceMeanNode( int nodeIndex, const onnx::NodeProto& reduceMean, int opsetVersion );
 
-	// CNode methods' realizations.
+	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
 	void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
 	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,

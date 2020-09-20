@@ -23,7 +23,7 @@ class CBatchNormalizationNode : public COpNode {
 public:
 	CBatchNormalizationNode( int nodeIndex, const onnx::NodeProto& batchNormalization, int opsetVersion );
 
-	// CNode methods' realizations.
+	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
 	void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
 	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,

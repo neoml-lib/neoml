@@ -40,7 +40,7 @@ CGemmNode::CGemmNode( int nodeIndex, const onnx::NodeProto& gemm, int opsetVersi
 	CheckNeoOnnxSupport( alpha == 1.0f, "alpha != 1", gemm ); // TODO: add "alpha != 1.0" support.
 	CheckNeoOnnxSupport( beta == 1.0f, "beta != 1", gemm ); // TODO: add "beta != 1.0" support.
 	CheckNeoOnnxSupport( transA == 0, "transA != 0", gemm ); // TODO: add "TransA != 0" support.
-	CheckNeoOnnxSupport( transB != 0, "transB == 0", gemm ); // TODO: add "TransB != 0" support.
+	CheckNeoOnnxSupport( transB != 0, "transB == 0", gemm ); // TODO: add "TransB == 0" support.
 }
 
 void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )

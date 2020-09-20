@@ -23,7 +23,7 @@ class CConstantNode : public COpNode {
 public:
 	CConstantNode( int nodeIndex, const onnx::NodeProto& constant, int opsetVersion );
 
-	// CNode methods' realizations.
+	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
 	void MarkTensorDims( const CTensorCache&, CDimCache& ) override {}
 	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&,

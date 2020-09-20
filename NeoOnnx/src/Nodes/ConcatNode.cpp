@@ -134,7 +134,7 @@ void CConcatNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, c
 		case BD_BatchLength:
 		case BD_ListSize:
 		default:
-			NeoAssert( false ); // not supported by NeoML.
+			CheckNeoOnnxSupport( false, "unsupported Concat dimension", OnnxNode );
 	}
 	concatLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 

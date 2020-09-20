@@ -17,20 +17,21 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Tensor shape (in onnx notation).
+// Tensor shape (in onnx notation)
 typedef CFastArray<int, 8> CTensorShape;
 
-// Match between onnx tensor axes and NeoML dimensions.
+// Match between onnx tensor axes and NeoML dimensions
 typedef CFastArray<TBlobDim, 8> CTensorDim;
 
-// Tensor in onnx graph.
+// Tensor in onnx graph
 struct CTensor {
-	// Shape in onnx. Has variable amount of dimensions.
+	// Shape in onnx
+	// Has variable amount of dimensions
 	CTensorShape Shape;
 
-	// Tensor data.
-	// nullptr if data can't be pre-calcualated (it depends on data, provided by user).
-	// It's stored in order of onnx dimensions (independent of its NeoML names).
+	// Tensor data
+	// nullptr if data can't be pre-calcualated (it depends on data, provided by user)
+	// It's stored in order of onnx dimensions (independent of its NeoML names)
 	CPtr<CDnnBlob> Data;
 
 	CTensor() : Data( nullptr ) {}
@@ -64,28 +65,28 @@ inline bool SetTensorDim( const CTensorShape& shape, const CTensorDim& newDim, C
 {
 	if( dim.IsEmpty() ) {
 		if( newDim.Size() == shape.Size() ) {
-			// It's the first request for a match.
-			// And the number of dimensions is matching with the shape.
+			// It's the first request for a match
+			// And the number of dimensions is matching with the shape
 			newDim.CopyTo( dim );
 			return true;
 		}
-		// Dimensions number mismatch...
+		// Dimensions number mismatch
 		return false;
 	}
 
 	if( newDim.Size() != dim.Size() ) {
-		// Dimensions number mismatch...
+		// Dimensions number mismatch
 		return false;
 	}
 
 	for( int dimIndex = 0; dimIndex < newDim.Size(); ++dimIndex ) {
 		if( dim[dimIndex] != newDim[dimIndex] ) {
-			// Supposed dimensions doesn't match with previously set one.
+			// Supposed dimensions doesn't match with previously set one
 			return false;
 		}
 	}
 
-	// Number of dimensions and their values match.
+	// Number of dimensions and their values match
 	return true;
 }
 
