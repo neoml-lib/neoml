@@ -104,6 +104,39 @@ void CSliceNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
+void CSliceNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+{
+	if( tensors[Output[0]].Data != nullptr ) {
+		return;
+	}
+
+	IMathEngine& mathEngine = dnn.GetMathEngine();
+
+	const TBlobDim splitDim = ( dims[Output[0]] )[axes[0]];
+	// There is no layer in NeoML to split along BD_ListSize
+	CheckNeoOnnxSupport( splitDim != BD_ListSize, "slice along BD_ListSize", OnnxNode );
+
+	const int splitDimSize = tensors[Input[0]].Shape[axes[0]];
+
+	if( starts[0] < 0 ) {
+		starts[0] += splitDimSize;
+	}
+
+	if( ends[0] < 0 ) {
+		ends[0] += splitDimSize;
+		if( starts[0] == ends[0] ) {
+			++ends[0];
+		}
+	}
+
+	if( splitDim == BD_BatchLength ) {
+		addSubSequenceLayer( starts[0], ends[0], dnn, neoMLLinks );
+	} else {
+		addSplitLayer( splitDim, starts[0], ends[0], splitDimSize, dnn, neoMLLinks );
+	}
+}
+
 // Adds CSubSequeceLayer to the dnn
 void CSliceNode::addSubSequenceLayer( int start, int end, CDnn& dnn, CNeoMLLinkCache& neoMLLinks )
 {
@@ -156,7 +189,7 @@ void CSliceNode::addSplitLayer( TBlobDim splitDim, int start, int end, int dimSi
 
 	int actualOutputIndex = 0; // Split layer's output containing slice operator result
 	CArray<int> outputCounts;
-	
+
 	if( start != 0 ) {
 		actualOutputIndex = 1; // Required slice is not in the #0 output of split layer
 		outputCounts.Add( start );
@@ -174,39 +207,6 @@ void CSliceNode::addSplitLayer( TBlobDim splitDim, int start, int end, int dimSi
 	}
 	if( end != dimSize ) {
 		addSinkLayer( *split, actualOutputIndex + 1, dnn ); // Sink layer for the last output
-	}
-}
-
-void CSliceNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
-	if( tensors[Output[0]].Data != nullptr ) {
-		return;
-	}
-
-	IMathEngine& mathEngine = dnn.GetMathEngine();
-
-	const TBlobDim splitDim = ( dims[Output[0]] )[axes[0]];
-	// There is no layer in NeoML to split along BD_ListSize
-	CheckNeoOnnxSupport( splitDim != BD_ListSize, "slice along BD_ListSize", OnnxNode );
-
-	const int splitDimSize = tensors[Input[0]].Shape[axes[0]];
-
-	if( starts[0] < 0 ) {
-		starts[0] += splitDimSize;
-	}
-
-	if( ends[0] < 0 ) {
-		ends[0] += splitDimSize;
-		if( starts[0] == ends[0] ) {
-			++ends[0];
-		}
-	}
-
-	if( splitDim == BD_BatchLength ) {
-		addSubSequenceLayer( starts[0], ends[0], dnn, neoMLLinks );
-	} else {
-		addSplitLayer( splitDim, starts[0], ends[0], splitDimSize, dnn, neoMLLinks );
 	}
 }
 
