@@ -37,10 +37,10 @@ CGemmNode::CGemmNode( int nodeIndex, const onnx::NodeProto& gemm, int opsetVersi
 	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", gemm );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gemm );
 
-	CheckNeoOnnxSupport( alpha == 1.0f, "alpha != 1", gemm ); // TODO: add "alpha != 1.0" support.
-	CheckNeoOnnxSupport( beta == 1.0f, "beta != 1", gemm ); // TODO: add "beta != 1.0" support.
-	CheckNeoOnnxSupport( transA == 0, "transA != 0", gemm ); // TODO: add "TransA != 0" support.
-	CheckNeoOnnxSupport( transB != 0, "transB == 0", gemm ); // TODO: add "TransB == 0" support.
+	CheckNeoOnnxSupport( alpha == 1.0f, "alpha != 1", gemm );
+	CheckNeoOnnxSupport( beta == 1.0f, "beta != 1", gemm );
+	CheckNeoOnnxSupport( transA == 0, "transA != 0", gemm );
+	CheckNeoOnnxSupport( transB != 0, "transB == 0", gemm );
 }
 
 void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
@@ -67,12 +67,12 @@ void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 	tensors[Output[0]].Shape = { batchSize, numberOfElements };
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CGemmNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	// Gemm operator in onnx always works with 2-dimensional tensors.
+	// Gemm operator in onnx always works with 2-dimensional tensors
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Output[0]] ),
 		"marking output dimensions failed", OnnxNode );
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Input[0]] ),
@@ -96,7 +96,7 @@ void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 	weightDesc.SetDimSize( BD_Channels, weight->GetDesc().DimSize( 1 ) );
 	weight->ReinterpretDimensions( weightDesc );
 
-	// If there is a 'Flatten' node before this, we need to reorder weights.
+	// If there is a 'Flatten' node before this we have to reorder weights
 	weight = reorderWeightAfterFlatten( graph, tensors, dims, weight );
 
 	fc->SetWeightsData( weight );
@@ -113,8 +113,9 @@ void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 	neoMLLinks[Output[0]] = CNeoMLLink( fc, 0 );
 }
 
-// Reorders weight matrix if this 'Gemm' is located after 'Flatten'.
-CPtr<CDnnBlob> CGemmNode::reorderWeightAfterFlatten( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CDnnBlob* weight ) const
+// Reorders weight matrix if this 'Gemm' is located after 'Flatten'
+CPtr<CDnnBlob> CGemmNode::reorderWeightAfterFlatten( const CGraph& graph, const CTensorCache& tensors,
+	const CDimCache& dims, CDnnBlob* weight ) const
 {
 	const CNode* flatten = graph[Input[0]];
 

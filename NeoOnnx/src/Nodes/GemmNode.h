@@ -19,7 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Gemm operation node.
+// Gemm operation node
 class CGemmNode : public COpNode {
 public:
 	CGemmNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
@@ -36,15 +36,16 @@ private:
 	// where
 	//     A' is equal to A if transA == 0 or transpose(A) otherwise
 	//     B' is equal to B if transB == 0 or transpose(B) otherwise
-	//     C is optional matrix.
+	//     C is optional matrix
 
-	// Fields for corresponding values.
+	// Fields for corresponding values
 	const float alpha;
 	const float beta;
 	const int transA;
 	const int transB;
 
-	CPtr<CDnnBlob> reorderWeightAfterFlatten( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims, CDnnBlob* weight ) const;
+	CPtr<CDnnBlob> reorderWeightAfterFlatten( const CGraph& graph, const CTensorCache& tensors,
+		const CDimCache& dims, CDnnBlob* weight ) const;
 };
 
 } // namespace NeoOnnx
