@@ -82,7 +82,6 @@ void CConvNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 		CalculatePadding( autoPad, inputShape, kernelShape, pads );
 	}
 
-	// Calculating output shape.
 	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	inputShape.CopyTo( outputShape );
 	if( group == 1 ) {
