@@ -23,15 +23,15 @@ class CLstmNode : public COpNode {
 public:
 	CLstmNode( int nodeIndex, const onnx::NodeProto& lstm, int opsetVersion );
 
-	// CNode methods' realizations.
+	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
 	void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
 	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	const CString direction; // LSTM's direction ("forward", "backward" or "bidirectional").
-	const int hiddenSize; // Size of hidden state vector.
+	const CString direction; // LSTM's direction ("forward", "backward" or "bidirectional")
+	const int hiddenSize; // Size of hidden state vector
 
 	CPtr<CDnnBlob> reorderGates( CPtr<CDnnBlob> weights, TBlobDim dim );
 };
