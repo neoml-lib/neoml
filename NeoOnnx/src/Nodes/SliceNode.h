@@ -33,6 +33,9 @@ private:
 	CArray<int> axes; // axes, along which slice will be made
 	CArray<int> starts; // first coordinate to include in slice along axis, specified in "axes"
 	CArray<int> ends; // first coordinate to exclude from slice along axis, specified in "axes"
+
+	void addSubSequenceLayer( int start, int end, CDnn& dnn, CNeoMLLinkCache& neoMLLinks );
+	void addSplitLayer( TBlobDim splitDim, int start, int end, int dimSize, CDnn& dnn, CNeoMLLinkCache& neoMLLinks );
 };
 
 } // namespace NeoOnnx

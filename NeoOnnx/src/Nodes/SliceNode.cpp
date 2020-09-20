@@ -35,10 +35,10 @@ CSliceNode::CSliceNode( int nodeIndex, const onnx::NodeProto& slice, int opsetVe
 	Attributes.GetRequiredIntArray( "starts", starts );
 	Attributes.GetRequiredIntArray( "ends", ends );
 	Attributes.GetRequiredIntArray( "axes", axes );
-	// TODO: Add support for multi-axes slice.
-	CheckNeoOnnxSupport( starts.Size() == 1, "starts.Size() > 1", slice );
-	CheckNeoOnnxSupport( ends.Size() == 1, "ends.Size() > 1", slice );
-	CheckNeoOnnxSupport( axes.Size() == 1, "axes.Size() > 1", slice );
+
+	CheckNeoOnnxSupport( starts.Size() == 1, "slice along multiple axes", slice );
+	CheckNeoOnnxSupport( ends.Size() == 1, "slice along multiple axes", slice );
+	CheckNeoOnnxSupport( axes.Size() == 1, "slice along multiple axes", slice );
 }
 
 void CSliceNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
@@ -83,7 +83,7 @@ void CSliceNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngi
 		parts.Add( CDnnBlob::CreateBlob( mathEngine, outputBlobType, desc ) );
 	}
 
-	CDnnBlob::SplitByDim( mathEngine, static_cast<TBlobDim>( axes[0] ), inputTensor.Data, parts );
+	CDnnBlob::SplitByDim( mathEngine, static_cast< TBlobDim >( axes[0] ), inputTensor.Data, parts );
 	tensors[Output[0]].Data = parts[outputBlobIndex];
 }
 
@@ -104,6 +104,79 @@ void CSliceNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
+// Adds CSubSequeceLayer to the dnn
+void CSliceNode::addSubSequenceLayer( int start, int end, CDnn& dnn, CNeoMLLinkCache& neoMLLinks )
+{
+	CPtr<CSubSequenceLayer> subseq = new CSubSequenceLayer( dnn.GetMathEngine() );
+	subseq->SetStartPos( start );
+	subseq->SetLength( end - start );
+
+	subseq->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	subseq->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	dnn.AddLayer( *subseq );
+	neoMLLinks[Output[0]] = CNeoMLLink( subseq, 0 );
+}
+
+// Adds sink layer for index'th output of inputLayer
+static void addSinkLayer( CBaseLayer& inputLayer, int index, CDnn& dnn )
+{
+	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
+	sink->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	sink->Connect( 0, inputLayer, index );
+	dnn.AddLayer( *sink );
+}
+
+// Adds split layer along splitDim to the dnn
+// Also adds sink layers to split outputs which won't be used later
+void CSliceNode::addSplitLayer( TBlobDim splitDim, int start, int end, int dimSize,
+	CDnn& dnn, CNeoMLLinkCache& neoMLLinks )
+{
+	IMathEngine& mathEngine = dnn.GetMathEngine();
+
+	CPtr<CBaseSplitLayer> split;
+	switch( splitDim ) {
+		case BD_BatchWidth:
+			split = new CSplitBatchWidthLayer( dnn.GetMathEngine() );
+			break;
+		case BD_Height:
+			split = new CSplitHeightLayer( dnn.GetMathEngine() );
+			break;
+		case BD_Width:
+			split = new CSplitWidthLayer( dnn.GetMathEngine() );
+			break;
+		case BD_Depth:
+			split = new CSplitDepthLayer( dnn.GetMathEngine() );
+			break;
+		case BD_Channels:
+			split = new CSplitChannelsLayer( dnn.GetMathEngine() );
+			break;
+		default:
+			CheckNeoOnnxInternal( false, "unknown split dimension", OnnxNode );
+	}
+
+	int actualOutputIndex = 0; // Split layer's output containing slice operator result
+	CArray<int> outputCounts;
+	
+	if( start != 0 ) {
+		actualOutputIndex = 1; // Required slice is not in the #0 output of split layer
+		outputCounts.Add( start );
+	}
+
+	outputCounts.Add( end - start );
+	split->SetOutputCounts( outputCounts );
+	split->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	split->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	dnn.AddLayer( *split );
+	neoMLLinks[Output[0]] = CNeoMLLink( split, actualOutputIndex );
+
+	if( actualOutputIndex == 1 ) {
+		addSinkLayer( *split, 0, dnn ); // Sink layer for the first output
+	}
+	if( end != dimSize ) {
+		addSinkLayer( *split, actualOutputIndex + 1, dnn ); // Sink layer for the last output
+	}
+}
+
 void CSliceNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
@@ -113,32 +186,28 @@ void CSliceNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, co
 
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
-	const TBlobDim concatDim = ( dims[Output[0]] )[axes[0]];
+	const TBlobDim splitDim = ( dims[Output[0]] )[axes[0]];
+	// There is no layer in NeoML to split along BD_ListSize
+	CheckNeoOnnxSupport( splitDim != BD_ListSize, "slice along BD_ListSize", OnnxNode );
 
-	// TODO: add the rest dims support
-	CheckNeoOnnxSupport( concatDim == BD_BatchLength, "concat along dim other than BD_BatchLength", OnnxNode );
-	CPtr<CSubSequenceLayer> subseq = new CSubSequenceLayer( mathEngine );
-	subseq->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	const int splitDimSize = tensors[Input[0]].Shape[axes[0]];
 
 	if( starts[0] < 0 ) {
-		starts[0] += tensors[Input[0]].Shape[axes[0]];
+		starts[0] += splitDimSize;
 	}
 
 	if( ends[0] < 0 ) {
-		ends[0] += tensors[Input[0]].Shape[axes[0]];
+		ends[0] += splitDimSize;
 		if( starts[0] == ends[0] ) {
 			++ends[0];
 		}
 	}
 
-	subseq->SetStartPos( starts[0] );
-	subseq->SetLength( ends[0] - starts[0] );
-
-	subseq->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
-
-	dnn.AddLayer( *subseq );
-
-	neoMLLinks[Output[0]] = CNeoMLLink( subseq, 0 );
+	if( splitDim == BD_BatchLength ) {
+		addSubSequenceLayer( starts[0], ends[0], dnn, neoMLLinks );
+	} else {
+		addSplitLayer( splitDim, starts[0], ends[0], splitDimSize, dnn, neoMLLinks );
+	}
 }
 
 } // namespace NeoOnnx
