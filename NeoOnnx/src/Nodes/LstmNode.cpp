@@ -62,8 +62,7 @@ void CLstmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 		CheckNeoOnnxSupport( initialC.Data != nullptr, "non-constant initial state", OnnxNode );
 	}
 
-	CheckNeoOnnxSupport( InputCount() < 8 || Input[7].NodeIndex == NotFound, "peepholes",
-		OnnxNode ); // NeoML doesn't support peepholes
+	CheckNeoOnnxSupport( InputCount() < 8 || Input[7].NodeIndex == NotFound, "peepholes", OnnxNode );
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 
 	const int sequenceLength = inputShape[0];
@@ -105,9 +104,7 @@ void CLstmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 	lstmLayer->SetRecurWeightsData( recurWeightMatrix );
 
 	if( InputCount() > 3 && Input[3].NodeIndex != NotFound ) {
-		CPtr<CDnnBlob> neoMLBias = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 1, 4 * hiddenSize );
-		mathEngine.VectorCopy( neoMLBias->GetData(), tensors[Input[3]].Data->GetData(), 4 * hiddenSize );
-		neoMLBias = reorderGates( neoMLBias, BD_Channels );
+		CPtr<CDnnBlob> neoMLBias = reorderGates( tensors[Input[3]].Data, BD_Channels );
 		lstmLayer->SetInputFreeTermData( neoMLBias );
 		lstmLayer->SetRecurFreeTermData( nullptr );
 	}
