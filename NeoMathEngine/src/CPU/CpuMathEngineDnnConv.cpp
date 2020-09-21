@@ -601,39 +601,60 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 	const float* src = GetRaw( sourceData );
 	float* dst = GetRaw( resultData );
 
-	auto ProcessChannelsAVX2 = [&]( const float* srcPtr, const float* fltPtr, float* dstPtr ) {
+	ASSERT_EXPR( reinterpret_cast<unsigned long>(src) % 32 == 0 );
+	ASSERT_EXPR( reinterpret_cast<unsigned long>(dst) % 32 == 0 );
+	ASSERT_EXPR( reinterpret_cast<unsigned long>(flt) % 32 == 0 );
+
+
+	auto ProcessChannels_avx2 = []( const float* srcPtr, const float* fltPtr, __m128& res ) {
 		// Load 24 channels for one pixel ( we will reuse this data several times for each filter )
-		// TODO!!!!!! ALIGN SOURCE
-		__m256 s0 = _mm256_load_ps ( srcPtr );
-		__m256 s1 = _mm256_load_ps ( srcPtr + 8 );
-		__m256 s2 = _mm256_load_ps ( srcPtr + 16 );
+		__m256 s0 = _mm256_loadu_ps( srcPtr );
+		__m256 s1 = _mm256_loadu_ps( srcPtr + 8 );
+		__m256 s2 = _mm256_loadu_ps( srcPtr + 16 );
 
-		for( int f = 0; f < FC; f++ ) {
-			//_mm_prefetch( dstPtr, _MM_HINT_ET0 );
+		// Load 24 channels for f-th channnel
+		__m256 f00 = _mm256_loadu_ps( fltPtr );
+		__m256 f01 = _mm256_loadu_ps( fltPtr + 8 );
+		__m256 f02 = _mm256_loadu_ps( fltPtr + 16 );
+		__m256 f10 = _mm256_loadu_ps( fltPtr + 24 );
+		__m256 f11 = _mm256_loadu_ps( fltPtr + 32 );
+		__m256 f12 = _mm256_loadu_ps( fltPtr + 40 );
+		__m256 f20 = _mm256_loadu_ps( fltPtr + 48 );
+		__m256 f21 = _mm256_loadu_ps( fltPtr + 56 );
+		__m256 f22 = _mm256_loadu_ps( fltPtr + 64 );
+		__m256 f30 = _mm256_loadu_ps( fltPtr + 72 );
+		__m256 f31 = _mm256_loadu_ps( fltPtr + 80 );
+		__m256 f32 = _mm256_loadu_ps( fltPtr + 88 );
 
-			// Load 24 channels for f-th channnel
-			__m256 f0 = _mm256_load_ps ( fltPtr );
-			__m256 r0 = _mm256_dp_ps ( s0, f0, 0xf1 );
-			__m256 f1 = _mm256_load_ps ( fltPtr + 8 );
-			__m256 r1 = _mm256_dp_ps ( s1, f1, 0xf1 );
-			__m256 f2 = _mm256_load_ps ( fltPtr + 16 );
-			__m256 r2 = _mm256_dp_ps ( s2, f2, 0xf1 );
+		__m256 r00 = _mm256_dp_ps ( s0, f00, 0xf1 );
+		__m256 r01 = _mm256_dp_ps ( s1, f01, 0xf1 );
+		__m256 r02 = _mm256_dp_ps ( s2, f02, 0xf1 );
+		__m256 r10 = _mm256_dp_ps ( s0, f10, 0xf2 );
+		__m256 r11 = _mm256_dp_ps ( s1, f11, 0xf2 );
+		__m256 r12 = _mm256_dp_ps ( s2, f12, 0xf2 );
+		__m256 r20 = _mm256_dp_ps ( s0, f20, 0xf4 );
+		__m256 r21 = _mm256_dp_ps ( s1, f21, 0xf4 );
+		__m256 r22 = _mm256_dp_ps ( s2, f22, 0xf4 );
+		__m256 r30 = _mm256_dp_ps ( s0, f30, 0xf8 );
+		__m256 r31 = _mm256_dp_ps ( s1, f31, 0xf8 );
+		__m256 r32 = _mm256_dp_ps ( s2, f32, 0xf8 );
 
-			r0 = _mm256_add_ps( r0, r1 );
-			r0 = _mm256_add_ps( r0, r2 );
-			__m128 low = _mm256_extractf128_ps ( r0, 0 );
-			__m128 high = _mm256_extractf128_ps ( r0, 1 );
-			__m128 res = _mm_load_ss( dstPtr );
+		r00 = _mm256_add_ps( r00, r01 );
+		r10 = _mm256_add_ps( r10, r11 );
+		r20 = _mm256_add_ps( r20, r21 );
+		r30 = _mm256_add_ps( r30, r31 );
+		r00 = _mm256_add_ps( r00, r02 );
+		r10 = _mm256_add_ps( r10, r12 );
+		r20 = _mm256_add_ps( r20, r22 );
+		r30 = _mm256_add_ps( r30, r32 );
 
-			res = _mm_add_ps( res, low );
-			res = _mm_add_ps( res, high );
-
-			// Move to next channel
-			fltPtr += 24;
-
-			// Store result of convolution for (fx,fy) pixel of f-th channel
-			_mm_store_ss( dstPtr++, res );
-		}
+		__m256 r0 = _mm256_add_ps( r00, r10 );
+		__m256 r1 = _mm256_add_ps( r20, r30 );
+		r0 = _mm256_add_ps( r0, r1 );
+		__m128 low = _mm256_extractf128_ps ( r0, 0 );
+		__m128 high = _mm256_extractf128_ps ( r0, 1 );
+		res = _mm_add_ps( res, low );
+		res = _mm_add_ps( res, high );
 	};
 
 	auto ProcessChannels = []( const float* srcPtr, const float* fltPtr, __m128& res ) {
