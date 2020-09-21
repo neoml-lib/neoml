@@ -25,6 +25,14 @@ class NodeProto;
 
 namespace NeoOnnx {
 
+// Pooling type
+enum TPoolingType {
+	PT_Max, // Max pooling
+	PT_Mean, // Mean pooling
+
+	PT_Count
+};
+
 // Calculates the padding of the operation with 'attributes' for the last 'kernelShape.Size()' dimensions of the 'inputShape'
 void CalculatePadding( const CString& autoPad, const CTensorShape& inputShape,
 	const CTensorShape& kernelShape, CFastArray<int, 8>& pads, const onnx::NodeProto& onnxNode );
