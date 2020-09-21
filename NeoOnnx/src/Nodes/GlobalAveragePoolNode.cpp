@@ -41,7 +41,6 @@ void CGlobalAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngi
 	tensors[Output[0]].Shape[1] = inputShape[1];
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CGlobalAveragePoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )

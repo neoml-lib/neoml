@@ -38,8 +38,6 @@ void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 	for( const onnx::TensorShapeProto_Dimension dim : valueInfo.type().tensor_type().shape().dim() ) {
 		outputShape.Add( static_cast<int>( dim.dim_value() ) );
 	}
-
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CGraphInput::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,

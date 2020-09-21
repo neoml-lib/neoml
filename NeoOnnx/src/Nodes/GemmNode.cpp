@@ -68,7 +68,6 @@ void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 	tensors[Output[0]].Shape = { batchSize, numberOfElements };
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CGemmNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )

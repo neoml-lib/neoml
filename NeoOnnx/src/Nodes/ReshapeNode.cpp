@@ -88,7 +88,6 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	}
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CReshapeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,

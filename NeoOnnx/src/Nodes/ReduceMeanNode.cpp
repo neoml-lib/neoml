@@ -55,7 +55,6 @@ void CReduceMeanNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mat
 	}
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CReduceMeanNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )

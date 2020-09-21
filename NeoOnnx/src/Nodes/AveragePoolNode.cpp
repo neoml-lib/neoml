@@ -75,7 +75,6 @@ void CAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& ma
 	}
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CAveragePoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
