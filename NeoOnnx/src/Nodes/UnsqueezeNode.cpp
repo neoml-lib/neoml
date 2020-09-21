@@ -60,7 +60,7 @@ void CUnsqueezeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& di
 		return;
 	}
 
-	const CTensorDim& outputDim = ( dims[Output[0]] );
+	const CTensorDim& outputDim = dims[Output[0]];
 
 	if( outputDim.IsEmpty() ) {
 		return;

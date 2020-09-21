@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include "../Node.h"
+#include "../NodeUtils.h"
 
 namespace NeoOnnx {
 
@@ -25,23 +26,15 @@ public:
 	CGlobalPoolNodeBase( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
 
 protected:
-	// Pooling type
-	enum TPoolType {
-		PT_Max,
-		PT_Mean,
-
-		PT_Count
-	};
-
 	// Adds global pooling layer
-	void AddPoolingLayer( TPoolType poolType, const CTensorDim& dimsToPool, const CTensorShape& inputShape,
+	void AddPoolingLayer( TPoolingType poolingType, const CTensorDim& dimsToPool, const CTensorShape& inputShape,
 		const CTensorDim& inputDim, CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
 
 private:
-	void addGlobalPoolingLayer( TPoolType poolType, CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
-	void add2dPoolingLayer( TPoolType poolType, const CTensorShape& inputShape, const CTensorDim& inputDim, int pooledDims,
+	void addGlobalPoolingLayer( TPoolingType poolingType, CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
+	void add2dPoolingLayer( TPoolingType poolingType, const CTensorShape& inputShape, const CTensorDim& inputDim, int pooledDims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
-	void add3dPoolingLayer( TPoolType poolType, const CTensorShape& inputShape, const CTensorDim& inputDim, int pooledDims,
+	void add3dPoolingLayer( TPoolingType poolingType, const CTensorShape& inputShape, const CTensorDim& inputDim, int pooledDims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
 };
 

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,31 +16,32 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
-#include "MaxPoolNode.h"
+#include "PoolNode.h"
 #include "NodeUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CMaxPoolNode::CMaxPoolNode( int nodeIndex, const onnx::NodeProto& maxPool, int opsetVersion ) :
-	COpNode( nodeIndex, maxPool, opsetVersion ),
+CPoolNodeBase::CPoolNodeBase( TPoolingType _poolingType, int nodeIndex, const onnx::NodeProto& poolNode, int opsetVersion ) :
+	COpNode( nodeIndex, poolNode, opsetVersion ),
+	poolingType( _poolingType ),
 	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
-	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", maxPool );
+	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc)
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", poolNode );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", maxPool );
-	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "node must have 1 or 2 outputs", maxPool );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", poolNode );
+	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "node must have 1 or 2 outputs", poolNode );
 
 	Attributes.GetRequiredIntArray( "kernel_shape", kernelShape );
 	Attributes.GetOptionalIntArray( "strides", strides );
 	Attributes.GetOptionalIntArray( "pads", pads );
 
-	CheckNeoOnnxSupport( kernelShape.Size() == 2, "non 2-dimensional max pooling", maxPool );
+	CheckNeoOnnxSupport( kernelShape.Size() == 2, "non 2-dimensional max pooling", poolNode );
 }
 
-void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CPoolNodeBase::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
 	// Check input
 	const CTensor& inputTensor = tensors[Input[0]];
@@ -76,7 +77,7 @@ void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CMaxPoolNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CPoolNodeBase::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
@@ -89,25 +90,36 @@ void CMaxPoolNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims
 	}
 }
 
-void CMaxPoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CPoolNodeBase::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CPtr<CMaxPoolingLayer> maxPooling = new CMaxPoolingLayer( dnn.GetMathEngine() );
-	maxPooling->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	CPtr<CPoolingLayer> pooling;
+	static_assert( PT_Count == 2, "PT_Count != 2" );
+	switch( poolingType ) {
+		case PT_Max:
+			pooling = new CMaxPoolingLayer( dnn.GetMathEngine() );
+			break;
+		case PT_Mean:
+			pooling = new CMeanPoolingLayer( dnn.GetMathEngine() );
+			break;
+		default:
+			CheckNeoOnnxInternal( false, "unknown pool type", OnnxNode );
+	}
+	pooling->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	CheckNeoOnnxSupport( ( dims[Input[0]] )[2] == BD_Height, "wrong pooling dimension", OnnxNode );
-	CheckNeoOnnxSupport( ( dims[Input[0]] )[3] == BD_Width, "wrong pooling dimension", OnnxNode );
+	CheckNeoOnnxSupport( dims[Input[0]][2] == BD_Height, "wrong pooling dimension", OnnxNode );
+	CheckNeoOnnxSupport( dims[Input[0]][3] == BD_Width, "wrong pooling dimension", OnnxNode );
 
-	maxPooling->SetFilterHeight( kernelShape[0] );
-	maxPooling->SetFilterWidth( kernelShape[1] );
+	pooling->SetFilterHeight( kernelShape[0] );
+	pooling->SetFilterWidth( kernelShape[1] );
 
-	maxPooling->SetStrideHeight( strides[0] );
-	maxPooling->SetStrideWidth( strides[1] );
+	pooling->SetStrideHeight( strides[0] );
+	pooling->SetStrideWidth( strides[1] );
 
-	maxPooling->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
-	dnn.AddLayer( *maxPooling );
+	pooling->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	dnn.AddLayer( *pooling );
 
-	neoMLLinks[Output[0]] = CNeoMLLink( maxPooling, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( pooling, 0 );
 }
 
 } // namespace NeoOnnx

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,12 +16,13 @@ limitations under the License.
 #pragma once
 
 #include "../Node.h"
+#include "../NodeUtils.h"
 
 namespace NeoOnnx {
 
-class CMaxPoolNode : public COpNode {
+class CPoolNodeBase : public COpNode {
 public:
-	CMaxPoolNode( int nodeIndex, const onnx::NodeProto& maxPool, int opsetVersion );
+	CPoolNodeBase( TPoolingType poolingType, int nodeIndex, const onnx::NodeProto& pool, int opsetVersion );
 
 	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
@@ -30,10 +31,23 @@ public:
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
+	TPoolingType poolingType; // pooling type
 	const CString autoPad; // padding mode
 	CFastArray<int, 8> kernelShape; // shape of pool kernel
 	CFastArray<int, 8> strides; // kernel strides
 	CFastArray<int, 8> pads; // convolution paddings
+};
+
+class CMaxPoolNode : public CPoolNodeBase {
+public:
+	CMaxPoolNode( int nodeIndex, const onnx::NodeProto& maxPool, int opsetVersion ) :
+		CPoolNodeBase( PT_Max, nodeIndex, maxPool, opsetVersion ) {}
+};
+
+class CAveragePoolNode : public CPoolNodeBase {
+public:
+	CAveragePoolNode( int nodeIndex, const onnx::NodeProto& averagePool, int opsetVersion ) :
+		CPoolNodeBase( PT_Mean, nodeIndex, averagePool, opsetVersion ) {}
 };
 
 } // namespace NeoOnnx

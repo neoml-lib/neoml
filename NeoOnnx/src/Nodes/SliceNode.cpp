@@ -113,7 +113,7 @@ void CSliceNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, co
 
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
-	const TBlobDim splitDim = ( dims[Output[0]] )[axes[0]];
+	const TBlobDim splitDim = dims[Output[0]][axes[0]];
 	// There is no layer in NeoML to split along BD_ListSize
 	CheckNeoOnnxSupport( splitDim != BD_ListSize, "slice along BD_ListSize", OnnxNode );
 

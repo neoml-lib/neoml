@@ -30,7 +30,7 @@ static const int pool2dDims = ( 1 << static_cast<int>( BD_Height ) ) | ( 1 << st
 static const int pool3dDims = pool2dDims | ( 1 << static_cast<int>( BD_Depth ) );
 static const int globalPoolDims = pool3dDims;
 
-void CGlobalPoolNodeBase::AddPoolingLayer( TPoolType poolType, const CTensorDim& dimsToPool, const CTensorShape& inputShape,
+void CGlobalPoolNodeBase::AddPoolingLayer( TPoolingType poolingType, const CTensorDim& dimsToPool, const CTensorShape& inputShape,
 	const CTensorDim& inputDim, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	// Blob dimensions which must be pooled
@@ -49,21 +49,21 @@ void CGlobalPoolNodeBase::AddPoolingLayer( TPoolType poolType, const CTensorDim&
 
 	// Use global pooling layer if possible
 	if( ( globalPoolDims & requiredPoolDims ) == requiredPoolDims && ( globalPoolDims & possiblePoolDims ) == globalPoolDims ) {
-		addGlobalPoolingLayer( poolType, neoMLLinks, dnn );
+		addGlobalPoolingLayer( poolingType, neoMLLinks, dnn );
 	} else if( ( pool2dDims & requiredPoolDims ) == requiredPoolDims ) {
-		add2dPoolingLayer( poolType, inputShape, inputDim, requiredPoolDims, neoMLLinks, dnn );
+		add2dPoolingLayer( poolingType, inputShape, inputDim, requiredPoolDims, neoMLLinks, dnn );
 	} else if( ( pool3dDims & requiredPoolDims ) == requiredPoolDims ) {
-		add3dPoolingLayer( poolType, inputShape, inputDim, requiredPoolDims, neoMLLinks, dnn );
+		add3dPoolingLayer( poolingType, inputShape, inputDim, requiredPoolDims, neoMLLinks, dnn );
 	} else {
 		CheckNeoOnnxSupport( false, "Pool dimensions are not supported", OnnxNode );
 	}
 }
 
-void CGlobalPoolNodeBase::addGlobalPoolingLayer( TPoolType poolType, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CGlobalPoolNodeBase::addGlobalPoolingLayer( TPoolingType poolingType, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CBaseLayer> poolingLayer;
 	static_assert( PT_Count == 2, "PT_Count != 2" );
-	switch( poolType ) {
+	switch( poolingType ) {
 		case PT_Max:
 			poolingLayer = new CGlobalMaxPoolingLayer( dnn.GetMathEngine() );
 			break;
@@ -80,12 +80,12 @@ void CGlobalPoolNodeBase::addGlobalPoolingLayer( TPoolType poolType, CNeoMLLinkC
 	neoMLLinks[Output[0]] = CNeoMLLink( poolingLayer, 0 );
 }
 
-void CGlobalPoolNodeBase::add2dPoolingLayer( TPoolType poolType, const CTensorShape& inputShape, const CTensorDim& inputDim,
+void CGlobalPoolNodeBase::add2dPoolingLayer( TPoolingType poolingType, const CTensorShape& inputShape, const CTensorDim& inputDim,
 	int pooledDims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CPoolingLayer> poolingLayer;
 	static_assert( PT_Count == 2, "PT_Count != 2" );
-	switch( poolType ) {
+	switch( poolingType ) {
 		case PT_Max:
 			poolingLayer = new CMaxPoolingLayer( dnn.GetMathEngine() );
 			break;
@@ -119,12 +119,12 @@ void CGlobalPoolNodeBase::add2dPoolingLayer( TPoolType poolType, const CTensorSh
 	neoMLLinks[Output[0]] = CNeoMLLink( poolingLayer, 0 );
 }
 
-void CGlobalPoolNodeBase::add3dPoolingLayer( TPoolType poolType, const CTensorShape& inputShape, const CTensorDim& inputDim,
+void CGlobalPoolNodeBase::add3dPoolingLayer( TPoolingType poolingType, const CTensorShape& inputShape, const CTensorDim& inputDim,
 	int pooledDims, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<C3dPoolingLayer> poolingLayer;
 	static_assert( PT_Count == 2, "PT_Count != 2" );
-	switch( poolType ) {
+	switch( poolingType ) {
 		case PT_Max:
 			poolingLayer = new C3dMaxPoolingLayer( dnn.GetMathEngine() );
 			break;

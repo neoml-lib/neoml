@@ -59,9 +59,9 @@ void CBatchNormalizationNode::LabelTensorDims( const CTensorCache& tensors, CDim
 void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( ( dims[Input[0]] )[1] == BD_Channels,
+	CheckNeoOnnxInternal( dims[Input[0]][1] == BD_Channels,
 		"operation must be performed along input's BD_Channels", OnnxNode );
-	CheckNeoOnnxInternal( ( dims[Output[0]] )[1] == BD_Channels,
+	CheckNeoOnnxInternal( dims[Output[0]][1] == BD_Channels,
 		"operation must be performed along output's BD_Channels", OnnxNode );
 
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );
