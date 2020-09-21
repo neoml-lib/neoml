@@ -72,6 +72,14 @@ public:
 	bool GetBestPrevClassEnabled() const;
 	void SetBestPrevClassEnabled( bool enabled );
 
+	// Trainable parameters
+	CPtr<CDnnBlob> GetHiddenWeights() const;
+	void SetHiddenWeights( const CPtr<CDnnBlob>& newWeights );
+	CPtr<CDnnBlob> GetFreeTerms() const;
+	void SetFreeTerms( const CPtr<CDnnBlob>& newWeights );
+	CPtr<CDnnBlob> GetTransitions() const;
+	void SetTransitions( const CPtr<CDnnBlob>& newWeights );
+
 private:
 	CPtr<CFullyConnectedLayer> hiddenLayer;
 	CPtr<CDropoutLayer> dropOutLayer;
@@ -118,6 +126,10 @@ public:
 	// Enables calculation of the O_BestPrevClass output during training
 	bool GetBestPrevClassEnabled() const { return doCalculateBestPrevClass; }
 	void SetBestPrevClassEnabled( bool enabled ) { doCalculateBestPrevClass = enabled; }
+
+	// Trainable parameters
+	CPtr<CDnnBlob> GetTransitions() const;
+	void SetTransitions( const CPtr<CDnnBlob>& newWeights );
 
 protected:
 	void Reshape() override;
