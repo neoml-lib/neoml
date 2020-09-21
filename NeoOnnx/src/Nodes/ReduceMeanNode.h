@@ -15,11 +15,11 @@ limitations under the License.
 
 #pragma once
 
-#include "../Node.h"
+#include "GlobalPoolNodeBase.h"
 
 namespace NeoOnnx {
 
-class CReduceMeanNode : public COpNode {
+class CReduceMeanNode : public CGlobalPoolNodeBase {
 public:
 	CReduceMeanNode( int nodeIndex, const onnx::NodeProto& reduceMean, int opsetVersion );
 
@@ -32,9 +32,6 @@ public:
 private:
 	const int keepDims; // keep reduced dimensions (of size 1) or remove them
 	CArray<int> axes; // reduced axes
-
-	void add2dPoolingLayer( const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks,
-		CDnn& dnn, int pooledDims );
 };
 
 } // namespace NeoOnnx

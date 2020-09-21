@@ -15,11 +15,11 @@ limitations under the License.
 
 #pragma once
 
-#include "../Node.h"
+#include "GlobalPoolNodeBase.h"
 
 namespace NeoOnnx {
 
-class CGlobalAveragePoolNode : public COpNode {
+class CGlobalAveragePoolNode : public CGlobalPoolNodeBase {
 public:
 	CGlobalAveragePoolNode( int nodeIndex, const onnx::NodeProto& globalAveragePool, int opsetVersion );
 
@@ -28,10 +28,6 @@ public:
 	void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
 	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
-
-private:
-	void add2dPoolingLayer( const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks,
-		CDnn& dnn, int pooledDims );
 };
 
 } // namespace NeoOnnx

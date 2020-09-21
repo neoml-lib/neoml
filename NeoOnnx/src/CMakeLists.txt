@@ -24,6 +24,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/GatherNode.cpp
     Nodes/GemmNode.cpp
     Nodes/GlobalAveragePoolNode.cpp
+    Nodes/GlobalPoolNodeBase.cpp
     Nodes/GraphInput.cpp
     Nodes/GraphInitializer.cpp
     Nodes/GraphOutput.cpp
@@ -63,6 +64,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/GatherNode.h
     Nodes/GemmNode.h
     Nodes/GlobalAveragePoolNode.h
+    Nodes/GlobalPoolNodeBase.h
     Nodes/GraphInput.h
     Nodes/GraphInitializer.h
     Nodes/GraphOutput.h

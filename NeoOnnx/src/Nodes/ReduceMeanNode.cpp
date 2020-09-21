@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CReduceMeanNode::CReduceMeanNode( int nodeIndex, const onnx::NodeProto& reduceMean, int opsetVersion ) :
-	COpNode( nodeIndex, reduceMean, opsetVersion ),
+	CGlobalPoolNodeBase( nodeIndex, reduceMean, opsetVersion ),
 	keepDims( Attributes.GetOptionalInt( "keepdims", 1 ) )
 {
 	// The differences between versions are in negative indices support
@@ -84,55 +84,16 @@ void CReduceMeanNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& di
 		"marking output dimensions failed", OnnxNode );
 }
 
-static const int pool2dDims = ( 1 << static_cast<int>( BD_Height ) ) | ( 1 << static_cast<int>( BD_Width ) );
-
 void CReduceMeanNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	int pooledDims = 0;
-	CArray<int> axes;
-	Attributes.GetRequiredIntArray( "axes", axes );
-
+	CTensorDim dimsToPool;
+	const CTensorDim& inputDim = dims[Input[0]];
 	for( int axisIndex = 0; axisIndex < axes.Size(); ++axisIndex ) {
-		pooledDims |= ( 1 << static_cast<int>( ( dims[Input[0]] )[axes[axisIndex]] ) );
+		dimsToPool.Add( inputDim[axes[axisIndex]] );
 	}
 
-	CheckNeoOnnxSupport( ( pooledDims | pool2dDims ) == pool2dDims,
-		"reduce over dimensions other than BD_Height and BD_Width", OnnxNode );
-
-	add2dPoolingLayer( tensors, dims, neoMLLinks, dnn, pooledDims );
-}
-
-// Adds 2-dimensional mean pooling layer to dnn
-void CReduceMeanNode::add2dPoolingLayer( const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn, int pooledDims )
-{
-	CPtr<CMeanPoolingLayer> poolingLayer = new CMeanPoolingLayer( dnn.GetMathEngine() );
-	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
-
-	// Making it global
-	for( int axisIndex = 0; axisIndex < axes.Size(); ++axisIndex ) {
-		TBlobDim dim = ( dims[Input[0]] )[axes[axisIndex]];
-		const bool isDimPooled = ( ( ( 1 << static_cast<int>( dim ) ) & pooledDims ) != 0 );
-		switch( dim ) {
-			case BD_Height:
-				poolingLayer->SetFilterHeight( isDimPooled ? tensors[Input[0]].Shape[axes[axisIndex]] : 1 );
-				poolingLayer->SetStrideHeight( 1 );
-				break;
-			case BD_Width:
-				poolingLayer->SetFilterWidth( isDimPooled ? tensors[Input[0]].Shape[axes[axisIndex]] : 1 );
-				poolingLayer->SetStrideWidth( 1 );
-				break;
-			default:
-				CheckNeoOnnxInternal( false, CString( "dimension " ) + Str( dim ) + " can not be pooled",
-					OnnxNode );
-		}
-	}
-
-	poolingLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
-	dnn.AddLayer( *poolingLayer );
-
-	neoMLLinks[Output[0]] = CNeoMLLink( poolingLayer, 0 );
+	AddPoolingLayer( PT_Mean, dimsToPool, tensors[Input[0]].Shape, inputDim, neoMLLinks, dnn );
 }
 
 } // namespace NeoOnnx
