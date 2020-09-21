@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include "GlobalPoolNodeBase.h"
-// #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
