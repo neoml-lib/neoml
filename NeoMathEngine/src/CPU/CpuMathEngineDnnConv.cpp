@@ -577,17 +577,33 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 //	CFloatHandleStackVar Result( mathEngine(), RH * RW * FC );
 
 	{
-		// Rearrange filter data. First place all channels for first pixel for first four filters,
-		// next place all channels for first pixel for second four filters etc.
-		// First we place all channels for first pixel for first four filters, next all channels for second pixel for first four filters etc.
+		// Rearrange filter data.
+		// Initial packing:
+		// Filter[0] Pixel[0] Channel[0-23]
+		// Filter[0] Pixel[1] Channel[0-23]
+		// ...
+		// Filter[0] Pixel[8] Channel[0-23]
+		// Filter[1] Pixel[0] Channel[0-23]
+		// ...
+		// Filter[23] Pixel[8] Channel[0-23]
+		// Result packing:
+		// Pixel[0] Channel[0] Filter[0-23]
+		// Pixel[0] Channel[1] Filter[0-23]
+		// ...
+		// Pixel[0] Channel[23] Filter[0-23]
+		// Pixel[1] Channel[0] Filter[0-23]
+		// ...
+		// Pixel[8] Channel[23] Filter[0-23]
+
 		float* dstFilter = flt;
-		for( int f = 0; f < FC; f += 4 ) {
-			for( int p = 0; p < FW * FH; p++ ) {
-				const float* srcFilter = GetRaw(filterData ) + f * FW * FH * C + p * C;
-				for( int i = 0; i < 4; i++ ) {
-					dataCopy( dstFilter, srcFilter, C );
-					dstFilter += C;
-					srcFilter += C * FW * FH;
+		for( int y = 0; y < FH; y++ ) {
+			for( int x = 0; x < FW; x++ ) {
+				for( int c = 0; c < C; c++ ) {
+					const float* srcFilter = GetRaw(filterData ) + ( x + y * FW ) * C + c;
+					for( int f = 0; f < FC; f++ ) {
+						*dstFilter++ = *srcFilter;
+						srcFilter += FW * FH * C;
+					}
 				}
 			}
 		}
@@ -657,85 +673,41 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 		res = _mm_add_ps( res, high );
 	};
 
-	auto ProcessChannels = []( const float* srcPtr, const float* fltPtr, __m128& res ) {
-		// Load 24 channels for one pixel ( we will reuse this data several times for each filter )
-		__m128 s0 = _mm_loadu_ps( srcPtr );
-		__m128 s1 = _mm_loadu_ps( srcPtr + 4 );
-		__m128 s2 = _mm_loadu_ps( srcPtr + 8 );
-		__m128 s3 = _mm_loadu_ps( srcPtr + 12 );
-		__m128 s4 = _mm_loadu_ps( srcPtr + 16 );
-		__m128 s5 = _mm_loadu_ps( srcPtr + 20 );
+	auto ProcessChannels = []( const float* srcPtr, const float* fltPtr,
+			__m128& r0, __m128& r1, __m128& r2, __m128& r3, __m128& r4, __m128& r5 ) {
 
-		auto ProcessNextFilter = [&]()->__m128 {
-				// Load 24 channels for f-th channnel
-				__m128 f0 = _mm_loadu_ps( fltPtr );
-				__m128 f1 = _mm_loadu_ps( fltPtr + 4 );
-				__m128 f2 = _mm_loadu_ps( fltPtr + 8 );
-				__m128 f3 = _mm_loadu_ps( fltPtr + 12 );
-				__m128 f4 = _mm_loadu_ps( fltPtr + 16 );
-				__m128 f5 = _mm_loadu_ps( fltPtr + 20 );
+		auto Process = [&]( __m128 s0 ) {
+			__m128 f0 = _mm_loadu_ps( fltPtr );
+			__m128 f1 = _mm_loadu_ps( fltPtr + 4 );
+			__m128 f2 = _mm_loadu_ps( fltPtr + 8 );
+			__m128 f3 = _mm_loadu_ps( fltPtr + 12 );
+			__m128 f4 = _mm_loadu_ps( fltPtr + 16 );
+			__m128 f5 = _mm_loadu_ps( fltPtr + 20 );
 
-				__m128 r0 = _mm_mul_ps ( s0, f0 );
-				__m128 r1 = _mm_mul_ps ( s1, f1 );
-				__m128 r2 = _mm_mul_ps ( s2, f2 );
-				__m128 r3 = _mm_mul_ps ( s3, f3 );
-				__m128 r4 = _mm_mul_ps ( s4, f4 );
-				__m128 r5 = _mm_mul_ps ( s5, f5 );
+			__m128 m0 = _mm_mul_ps( f0, s0 );
+			__m128 m1 = _mm_mul_ps( f1, s0 );
+			__m128 m2 = _mm_mul_ps( f2, s0 );
+			__m128 m3 = _mm_mul_ps( f3, s0 );
+			__m128 m4 = _mm_mul_ps( f4, s0 );
+			__m128 m5 = _mm_mul_ps( f5, s0 );
 
-				// Move to next channel
-				fltPtr += C;
+			r0 = _mm_add_ps( r0, m0 );
+			r1 = _mm_add_ps( r1, m1 );
+			r2 = _mm_add_ps( r2, m2 );
+			r3 = _mm_add_ps( r3, m3 );
+			r4 = _mm_add_ps( r4, m4 );
+			r5 = _mm_add_ps( r5, m5 );
 
-				r0 = _mm_add_ps( r0, r1 );
-				r2 = _mm_add_ps( r2, r3 );
-				r4 = _mm_add_ps( r4, r5 );
-
-				r0 = _mm_add_ps( r0, r2 );
-				r0 = _mm_add_ps( r0, r4 );
-				return r0;
+			fltPtr += FC;
 		};
 
-		__m128 r0 = ProcessNextFilter();
-
-		// Horizontal summ
-		// 1. Move high two floats to low part of xmm
-		__m128 t0 = _mm_shuffle_ps( r0, r0, 0x0E );
-		__m128 mask = _mm_castsi128_ps(_mm_set_epi32( 0, 0, 0, -1 ) );
-		r0 = _mm_add_ps( r0, t0 );
-		// 2. Move second float to first position
-		t0 = _mm_shuffle_ps( r0, r0, 0x1 );
-		r0 = _mm_add_ps( r0, t0 );
-		r0 = _mm_and_ps( r0, mask );
-		res = _mm_add_ps( r0, res );
-
-		r0 = ProcessNextFilter();
-
-		t0 = _mm_shuffle_ps( r0, r0, 0x0E );
-		mask = _mm_castsi128_ps(_mm_set_epi32( 0, 0, -1, 0 ) );
-		r0 = _mm_add_ps( r0, t0 );
-		t0 = _mm_shuffle_ps( r0, r0, 0x0 );
-		r0 = _mm_add_ps( r0, t0 );
-		r0 = _mm_and_ps( r0, mask );
-		res = _mm_add_ps( r0, res );
-
-		r0 = ProcessNextFilter();
-
-		t0 = _mm_shuffle_ps( r0, r0, 0x40 );
-		mask = _mm_castsi128_ps(_mm_set_epi32( 0, -1, 0, 0 ) );
-		r0 = _mm_add_ps( r0, t0 );
-		t0 = _mm_shuffle_ps( r0, r0, 0x30 );
-		r0 = _mm_add_ps( r0, t0 );
-		r0 = _mm_and_ps( r0, mask );
-		res = _mm_add_ps( r0, res );
-
-		r0 = ProcessNextFilter();
-
-		t0 = _mm_shuffle_ps( r0, r0, 0x40 );
-		mask = _mm_castsi128_ps(_mm_set_epi32( -1, 0, 0, 0 ) );
-		r0 = _mm_add_ps( r0, t0 );
-		t0 = _mm_shuffle_ps( r0, r0, 0x80 );
-		r0 = _mm_add_ps( r0, t0 );
-		r0 = _mm_and_ps( r0, mask );
-		res = _mm_add_ps( r0, res );
+		for( int c = 0; c < C; c +=4 ) {
+			__m128 s = _mm_loadu_ps( srcPtr + c );
+			Process( _mm_shuffle_ps( s, s, 0x00 ) );
+			Process( _mm_shuffle_ps( s, s, 0x55 ) );
+			Process( _mm_shuffle_ps( s, s, 0xaa ) );
+			Process( _mm_shuffle_ps( s, s, 0xff ) );
+		}
 	};
 
 
@@ -758,54 +730,68 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 		{ -SrcYDilation, -SrcYDilation + SrcXDilation, 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation } // 1 2 4 5 7 8
 	};
 	// Offset is relative to top left pixel
-	const int FCStep = 4;
 	const vector<int> FltPixels[8] = {
-		{ 4 * C * FCStep, 5 * C * FCStep, 7 * C * FCStep, 8 * C * FCStep }, // 4 5 7 8
-		{ 3 * C * FCStep, 4 * C * FCStep, 5 * C * FCStep, 6 * C * FCStep, 7 * C * FCStep, 8 * C * FCStep }, // 3 4 5 6 7 8
-		{ 3 * C * FCStep, 4 * C * FCStep, 6 * C * FCStep, 7 * C * FCStep }, // 3 4 6 7
-		{ 0 * C * FCStep, 1 * C * FCStep, 3 * C * FCStep, 4 * C * FCStep, 6 * C * FCStep, 7 * C * FCStep }, // 0 1 3 4 6 7
-		{ 0 * C * FCStep, 1 * C * FCStep, 3 * C * FCStep, 4 * C * FCStep }, // 0 1 3 4
-		{ 0 * C * FCStep, 1 * C * FCStep, 2 * C * FCStep, 3 * C * FCStep, 4 * C * FCStep, 5 * C * FCStep }, // 0 1 2 3 4 5
-		{ 1 * C * FCStep, 2 * C * FCStep, 4 * C * FCStep, 5 * C * FCStep }, // 1 2 4 5
-		{ 1 * C * FCStep, 2 * C * FCStep, 4 * C * FCStep, 5 * C * FCStep, 7 * C * FCStep, 8 * C * FCStep } // 1 2 4 5 7 8
+		{ 4 * C * FC, 5 * C * FC, 7 * C * FC, 8 * C * FC }, // 4 5 7 8
+		{ 3 * C * FC, 4 * C * FC, 5 * C * FC, 6 * C * FC, 7 * C * FC, 8 * C * FC }, // 3 4 5 6 7 8
+		{ 3 * C * FC, 4 * C * FC, 6 * C * FC, 7 * C * FC }, // 3 4 6 7
+		{ 0 * C * FC, 1 * C * FC, 3 * C * FC, 4 * C * FC, 6 * C * FC, 7 * C * FC }, // 0 1 3 4 6 7
+		{ 0 * C * FC, 1 * C * FC, 3 * C * FC, 4 * C * FC }, // 0 1 3 4
+		{ 0 * C * FC, 1 * C * FC, 2 * C * FC, 3 * C * FC, 4 * C * FC, 5 * C * FC }, // 0 1 2 3 4 5
+		{ 1 * C * FC, 2 * C * FC, 4 * C * FC, 5 * C * FC }, // 1 2 4 5
+		{ 1 * C * FC, 2 * C * FC, 4 * C * FC, 5 * C * FC, 7 * C * FC, 8 * C * FC } // 1 2 4 5 7 8
 	};
 
 	auto ApplyPartitialFilter3x3_24ch = [&]( const float* srcPtr, const vector<int>& srcPixelOffset,
 			const float* fltPtr, const vector<int>& fltPixels, float* dstPtr ) {
-		for( int fc = 0; fc < FC; fc += FCStep ) {
-			auto srcIt = srcPixelOffset.cbegin();
-			auto fltIt = fltPixels.cbegin();
-			__m128 res = _mm_load_ps( dstPtr );
-			for( ; srcIt != srcPixelOffset.cend(); srcIt++, fltIt++ ) {
-				ProcessChannels( srcPtr + *srcIt, fltPtr + *fltIt , res );
-			}
-			fltPtr += FCStep * C * FH * FW;
-			_mm_store_ps( dstPtr, res );
-			dstPtr += FCStep;
+
+		__m128 r0 = _mm_load_ps( dstPtr );
+		__m128 r1 = _mm_load_ps( dstPtr + 4 );
+		__m128 r2 = _mm_load_ps( dstPtr + 8 );
+		__m128 r3 = _mm_load_ps( dstPtr + 12 );
+		__m128 r4 = _mm_load_ps( dstPtr + 16 );
+		__m128 r5 = _mm_load_ps( dstPtr + 20 );
+
+		auto srcIt = srcPixelOffset.cbegin();
+		auto fltIt = fltPixels.cbegin();
+		for( ; srcIt != srcPixelOffset.cend(); srcIt++, fltIt++ ) {
+			ProcessChannels( srcPtr + *srcIt, fltPtr + *fltIt , r0, r1, r2, r3, r4, r5  );
 		}
+
+		// Store result of convolution for (fx,fy) pixel of f-th channel
+		_mm_store_ps( dstPtr, r0 );
+		_mm_store_ps( dstPtr + 4, r1 );
+		_mm_store_ps( dstPtr + 8, r2 );
+		_mm_store_ps( dstPtr + 12, r3 );
+		_mm_store_ps( dstPtr + 16, r4 );
+		_mm_store_ps( dstPtr + 20, r5 );
 	};
 
 	auto ApplyWholeFilter3x3_24ch = [&]( const float* srcPtr, const float* fltPtr, float* dstPtr  ) {
 
-		const float* tempSrcPtr;
+		__m128 r0 = _mm_load_ps( dstPtr );
+		__m128 r1 = _mm_load_ps( dstPtr + 4 );
+		__m128 r2 = _mm_load_ps( dstPtr + 8 );
+		__m128 r3 = _mm_load_ps( dstPtr + 12 );
+		__m128 r4 = _mm_load_ps( dstPtr + 16 );
+		__m128 r5 = _mm_load_ps( dstPtr + 20 );
 
-		for( int fc = 0; fc < FC; fc += FCStep ) {
-			tempSrcPtr = srcPtr;
-			__m128 res = _mm_load_ps( dstPtr );
 			for( int fy = 0; fy < FH; fy++ ) {
 				for( int fx = 0; fx < FW; fx++ ) {
-					ProcessChannels( tempSrcPtr, fltPtr, res );
+					ProcessChannels( srcPtr, fltPtr, r0, r1, r2, r3, r4, r5 );
 					// Move to next pixel in source image on the SAME line
-					tempSrcPtr += SrcXDilation;
-					fltPtr += C * FCStep;
+					srcPtr += SrcXDilation;
+					fltPtr += C * FC;
 				}
 				// Move to next pixel in source image on the NEXT line
-				tempSrcPtr += SrcYDilation - SrcXWindowSize;
+				srcPtr += SrcYDilation - SrcXWindowSize;
 			}
 			// Store result of convolution for (fx,fy) pixel of f-th channel
-			_mm_store_ps( dstPtr, res );
-			dstPtr += FCStep;
-		}
+			_mm_store_ps( dstPtr, r0 );
+			_mm_store_ps( dstPtr + 4, r1 );
+			_mm_store_ps( dstPtr + 8, r2 );
+			_mm_store_ps( dstPtr + 12, r3 );
+			_mm_store_ps( dstPtr + 16, r4 );
+			_mm_store_ps( dstPtr + 20, r5 );
 	};
 
 	if( freeTermData != 0 ) {
