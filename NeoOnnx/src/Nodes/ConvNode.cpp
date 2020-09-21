@@ -109,16 +109,16 @@ void CConvNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	if( tensors[Input[1]].Shape.Size() == 4 ) {
-		add2DConvLayer( graph, tensors, dims, neoMLLinks, dnn );
+		add2dConvLayer( graph, tensors, dims, neoMLLinks, dnn );
 	} else if( tensors[Input[1]].Shape.Size() == 5 ) {
-		add3DConvLayer( graph, tensors, dims, neoMLLinks, dnn );
+		add3dConvLayer( graph, tensors, dims, neoMLLinks, dnn );
 	} else {
 		CheckNeoOnnxSupport( false, "wrong dimensions count in Conv op", OnnxNode );
 	}
 }
 
 // Adds 2-dimensional convolution
-void CConvNode::add2DConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CConvNode::add2dConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CBaseConvLayer> conv = nullptr;
@@ -166,7 +166,7 @@ void CConvNode::add2DConvLayer( const CGraph& graph, const CTensorCache& tensors
 }
 
 // Adds 3-dimensional convolution
-void CConvNode::add3DConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CConvNode::add3dConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	IMathEngine& mathEngine = dnn.GetMathEngine();

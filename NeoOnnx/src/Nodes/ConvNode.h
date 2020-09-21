@@ -36,9 +36,9 @@ private:
 	CFastArray<int, 8> pads; // convolution paddings
 	CFastArray<int, 8> dilations; // convolution dilations
 
-	void add2DConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	void add2dConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
-	void add3DConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	void add3dConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
 };
 
