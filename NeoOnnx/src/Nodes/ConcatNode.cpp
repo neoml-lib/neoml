@@ -50,56 +50,51 @@ void CConcatNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 	}
 
 	TBlobType outputBlobType = CT_Invalid;
-
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 		const CTensor& input = tensors[Input[inputIndex]];
 		if( input.Data == nullptr ) {
 			// Data can't be pre-calculated
 			return;
 		}
-
 		CheckOnnxProtocol( outputBlobType == CT_Invalid || outputBlobType == input.Data->GetDataType(),
 			"inputs with different data types", OnnxNode );
 		outputBlobType = input.Data->GetDataType();
 	}
-
 	if( outputBlobType == CT_Invalid ) {
 		outputBlobType = CT_Float;
 	}
 
-	// Precalculating node's output
-
-	// Allocating output blob
+	// Precalculate node's output
+	// Allocate output blob
 	CBlobDesc outputDesc( outputBlobType );
 	for( int dim = 0; dim < static_cast<int>( tensors[Output[0]].Shape.Size() ); ++dim ) {
 		outputDesc.SetDimSize( dim, tensors[Output[0]].Shape[dim] );
 	}
-
 	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, outputBlobType, outputDesc );
 
-	// Collecting input blobs for concatenation
+	// Collect input blobs for concatenation
 	CObjectArray<CDnnBlob> inputBlobs;
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 		inputBlobs.Add( tensors[Input[inputIndex]].Data );
 	}
 
-	// Precalculation.Shape.size()
+	// Precalculation
 	CDnnBlob::MergeByDim( mathEngine, static_cast<TBlobDim>( axis ), inputBlobs, tensors[Output[0]].Data );
 }
 
-void CConcatNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CConcatNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 		if( !dims[Input[inputIndex]].IsEmpty() ) {
 			CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-				"marking output dimensions failed", OnnxNode );
+				"labeling output dimensions failed", OnnxNode );
 		}
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 			CheckNeoOnnxInternal( SetTensorDim( tensors[Input[inputIndex]].Shape, dims[Output[0]], dims[Input[inputIndex]] ),
-				"marking input dimensions failed", OnnxNode );
+				"labeling input dimensions failed", OnnxNode );
 		}
 	}
 }

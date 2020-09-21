@@ -21,12 +21,13 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Cache of data associated with every output of every output in graph
+// Cache of data associated with every node output in graph
 template<class T>
 class CGraphCache {
 public:
 	explicit CGraphCache( const CGraph& graph );
 
+	// Returns the data associated with link.OutputIndex'th output of link.NodeIndex'th node
 	T& operator[]( const CLink& link );
 	const T& operator[]( const CLink& link ) const;
 
@@ -55,6 +56,7 @@ const T& CGraphCache<T>::operator[]( const CLink& link ) const
 	return cache[link.NodeIndex][link.OutputIndex];
 }
 
+// Iinstantiations used in NeoOnnx
 typedef CGraphCache<CTensor> CTensorCache;
 typedef CGraphCache<CTensorDim> CDimCache;
 typedef CGraphCache<CNeoMLLink> CNeoMLLinkCache;

@@ -43,16 +43,16 @@ void CBatchNormalizationNode::CalcOutputTensors( CTensorCache& tensors, IMathEng
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CBatchNormalizationNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CBatchNormalizationNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", OnnxNode );
+			"labeling output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", OnnxNode );
+			"labeling input dimensions failed", OnnxNode );
 	}
 }
 
@@ -81,19 +81,16 @@ void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CTensorCache
 	neoMLLinks[Output[0]] = CNeoMLLink( bnLayer, 0 );
 }
 
-// Calculate final params blob based on onnx node's inputs
+// Calculates final params blob based on onnx node's inputs
 // This format can is compatible with NeoML::CBatchNormalizationLayer
 CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( const CTensorCache& tensors )
 {
 	const int channels = tensors[Input[0]].Shape[1];
 
 	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
-		CheckNeoOnnxSupport( tensors[Input[inputIndex]].Data != nullptr,
-			"non-constant weights", OnnxNode );
-		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape.Size() == 1,
-			"weights must be 1-dimensional", OnnxNode );
-		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape[0] == channels,
-			"weights must have 'channels' length", OnnxNode );
+		CheckNeoOnnxSupport( tensors[Input[inputIndex]].Data != nullptr, "non-constant weights", OnnxNode );
+		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape.Size() == 1, "weights must be 1-dimensional", OnnxNode );
+		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape[0] == channels, "weights must have 'channels' length", OnnxNode );
 	}
 
 	const CDnnBlob* scale = tensors[Input[1]].Data;

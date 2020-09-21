@@ -37,9 +37,7 @@ void CGatherNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 {
 	tensors[Input[1]].Shape.CopyTo( tensors[Output[0]].Shape );
 
-	// TODO: add non-constant tensor support
 	CheckNeoOnnxSupport( tensors[Input[0]].Data != nullptr, "non-constant input", OnnxNode );
-	// TODO: add float tensor support
 	CheckNeoOnnxSupport( tensors[Input[0]].Data->GetDataType() == CT_Int, "non-integer input", OnnxNode );
 
 	CArray<int> data;

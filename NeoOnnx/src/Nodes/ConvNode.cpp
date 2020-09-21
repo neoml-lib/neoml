@@ -58,7 +58,7 @@ void CConvNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 		dilations.Add( 1, convDims );
 	}
 
-	// Checking groups, NeoML supports only 2D, 3D and Channelwise2D convolutions
+	// Check groups (NeoML supports only 2D, 3D and Channelwise2D convolutions)
 	CheckNeoOnnxSupport( group == 1 || ( group == inputShape[1] && convDims < 3 ),
 		"grouped convolutiion (non-channelwise)", OnnxNode );
 	const CTensor& weight = tensors[Input[1]];
@@ -94,15 +94,15 @@ void CConvNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CConvNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CConvNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	CTensorDim tensorDims( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
-	tensorDims.SetSize( tensors[Output[0]].Shape.Size() ); // Deleting last unused dimensions
+	tensorDims.SetSize( tensors[Output[0]].Shape.Size() ); // Delete last unused dimensions
 
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, tensorDims, dims[Output[0]] ),
-		"marking output dimensions failed", OnnxNode );
+		"labeling output dimensions failed", OnnxNode );
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, tensorDims, dims[Input[0]] ),
-		"marking output dimensions failed", OnnxNode );
+		"labeling output dimensions failed", OnnxNode );
 }
 
 void CConvNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,

@@ -57,7 +57,7 @@ void CReduceMeanNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mat
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CReduceMeanNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CReduceMeanNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	const CTensorDim& inputDim = dims[Input[0]];
 	CheckNeoOnnxInternal( inputDim.Size() == tensors[Input[0]].Shape.Size(),
@@ -65,7 +65,7 @@ void CReduceMeanNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& di
 
 	if( keepDims != 0 ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, inputDim, dims[Output[0]] ),
-			"marking output dimensions failed", OnnxNode );
+			"labeling output dimensions failed", OnnxNode );
 		return;
 	}
 
@@ -80,7 +80,7 @@ void CReduceMeanNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& di
 	}
 
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, outputDim, dims[Output[0]] ),
-		"marking output dimensions failed", OnnxNode );
+		"labeling output dimensions failed", OnnxNode );
 }
 
 void CReduceMeanNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,

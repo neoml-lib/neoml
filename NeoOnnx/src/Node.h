@@ -31,13 +31,13 @@ class CNode {
 public:
 	virtual ~CNode() = default;
 
-	// Calculate output tensors' shape based on inputs' tensors' shape
+	// Calculates output tensors' shape based on inputs' tensors' shape
 	virtual void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) = 0;
 
-	// Marks onnx tensors' dimensions as blob dimensions from NeoML
-	virtual void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) = 0;
+	// Labels onnx tensors' dimensions as NeoML blob dimensions
+	virtual void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) = 0;
 
-	// Adds layers, representing this node, to the dnn (if needed)
+	// Creates corresponding NeoML layers and adds them to the dnn (if needed)
 	virtual void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) = 0;
 

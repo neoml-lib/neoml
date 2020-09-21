@@ -25,7 +25,7 @@ public:
 
 	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void MarkTensorDims( const CTensorCache&, CDimCache& ) override {}
+	void LabelTensorDims( const CTensorCache&, CDimCache& ) override {}
 	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache&, CDnn& ) override {}
 
 private:

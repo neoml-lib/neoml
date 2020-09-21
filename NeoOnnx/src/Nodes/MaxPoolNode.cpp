@@ -42,14 +42,14 @@ CMaxPoolNode::CMaxPoolNode( int nodeIndex, const onnx::NodeProto& maxPool, int o
 
 void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	// Checking input
+	// Check input
 	const CTensor& inputTensor = tensors[Input[0]];
 	CheckNeoOnnxSupport( inputTensor.Shape.Size() > 2 && inputTensor.Shape.Size() <= 4,
 		"wrong input tensor's dimensions number", OnnxNode );
 	const CTensorShape& inputShape = inputTensor.Shape;
 	const int poolDims = static_cast<int>( inputShape.Size() ) - 2;
 
-	// Initializing strides, pads and dilations (if not given)
+	// Initialize strides, pads and dilations (if not given)
 	if( strides.IsEmpty() ) {
 		strides.Add( 1, poolDims );
 	}
@@ -65,7 +65,7 @@ void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 		CheckNeoOnnxSupport( pads[padIndex] == 0, "max pooling with padding", OnnxNode );
 	}
 
-	// Calculating output shape
+	// Calculate output shape
 	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	inputShape.CopyTo( outputShape );
 	for( int dimIndex = 0; dimIndex < poolDims; ++dimIndex ) {
@@ -76,16 +76,16 @@ void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CMaxPoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CMaxPoolNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", OnnxNode );
+			"labeling output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", OnnxNode );
+			"labeling input dimensions failed", OnnxNode );
 	}
 }
 

@@ -38,20 +38,19 @@ CAbsNode::CAbsNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion 
 void CAbsNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// tensor data is already nullptr after default constructor
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 }
 
-void CAbsNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CAbsNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", OnnxNode );
+			"labeling output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", OnnxNode );
+			"labeling input dimensions failed", OnnxNode );
 	}
 }
 

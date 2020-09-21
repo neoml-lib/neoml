@@ -103,7 +103,7 @@ void CReshapeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, 
 	transform->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
 	// This layer can't broadcast dimensions
-	// Expecting at least one of dims to be marked
+	// Expects at least one of dims to be marked
 	// And (if only input is marked) it must have at least the same amount of dimensions
 	CheckNeoOnnxInternal( dims[Output[0]].Size() == shape.Size() || dims[Input[0]].Size() >= shape.Size(),
 		"failed to calculate output blob dimensions", OnnxNode );

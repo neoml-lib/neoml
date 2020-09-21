@@ -66,7 +66,7 @@ inline bool SetTensorDim( const CTensorShape& shape, const CTensorDim& newDim, C
 	if( dim.IsEmpty() ) {
 		if( newDim.Size() == shape.Size() ) {
 			// It's the first request for a match
-			// And the number of dimensions is matching with the shape
+			// And the number of dimensions mathes with the shape
 			newDim.CopyTo( dim );
 			return true;
 		}

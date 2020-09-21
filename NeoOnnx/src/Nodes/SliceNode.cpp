@@ -87,7 +87,7 @@ void CSliceNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngi
 	tensors[Output[0]].Data = parts[outputBlobIndex];
 }
 
-void CSliceNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CSliceNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( tensors[Output[0]].Data != nullptr ) {
 		return;
@@ -95,7 +95,7 @@ void CSliceNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
 
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", OnnxNode );
+			"labeling output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {

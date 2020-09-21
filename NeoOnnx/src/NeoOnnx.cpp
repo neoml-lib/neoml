@@ -73,7 +73,7 @@ static bool isTopSorted( const onnx::GraphProto& onnxGraph )
 	return true;
 }
 
-// Buildы array of CNode's based on onnxGraph
+// Builds array of CNode's based on onnxGraph
 static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, IMathEngine& mathEngine, CGraph& graph )
 {
 	graph.SetBufferSize( onnxGraph.input_size() + onnxGraph.initializer_size() + onnxGraph.node_size()
@@ -101,7 +101,7 @@ static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, IMa
 		nodeOutputs.Add( onnxInput.name().c_str(), CLink( graph.NodeCount() - 1, 0 ) );
 	}
 
-	// Add graph graph
+	// Add onnx graph's nodes
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
 		graph.Add( COpNode::CreateOpNode( graph.NodeCount(), onnxNode, opsetVersion ) );
 		for( int inputIndex = 0; inputIndex < onnxNode.input_size(); ++inputIndex ) {
@@ -111,7 +111,7 @@ static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, IMa
 			}
 		}
 
-		// Adding this onnxNode's outputs to the map of onnxNode outputs
+		// Add this onnxNode's outputs to the map of onnxNode outputs
 		for( int outputIndex = 0; outputIndex < onnxNode.output_size(); ++outputIndex ) {
 			nodeOutputs.Add( onnxNode.output( outputIndex ).c_str(), CLink( graph.NodeCount() - 1, outputIndex ) );
 		}
@@ -133,20 +133,20 @@ static void calcGraphTensors( CGraph& graph, IMathEngine& mathEngine, CTensorCac
 	}
 }
 
-// Marks tensor dimensions (which are unnamed) with NeoML blob dimensions
-static void markTensorsDimensions( CGraph& graph, const CTensorCache& tensors, CDimCache& dims )
+// Labels tensor dimensions (which are unnamed) with NeoML blob dimensions
+static void labelTensorsDimensions( CGraph& graph, const CTensorCache& tensors, CDimCache& dims )
 {
 	for( int nodeIndex = 0; nodeIndex < graph.NodeCount(); ++nodeIndex ) {
-		graph[nodeIndex]->MarkTensorDims( tensors, dims );
+		graph[nodeIndex]->LabelTensorDims( tensors, dims );
 	}
 
 	// Sometimes there are additional operators between graph inputs and
 	// nodes, whose operations can interpret tensor deimensions
 	// E.g. input -> transpose -> conv
 	// In that case input's dims will be still unmarked
-	// That's why we call marking method one more time in reversed order
+	// That's why we call labeling method one more time in reversed order
 	for( int nodeIndex = graph.NodeCount() - 1; nodeIndex >= 0; --nodeIndex ) {
-		graph[nodeIndex]->MarkTensorDims( tensors, dims );
+		graph[nodeIndex]->LabelTensorDims( tensors, dims );
 	}
 }
 
@@ -166,21 +166,22 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
 
 	CheckNeoOnnxInternal( dnn.GetLayerCount() == 0, "dnn must be empty" );
+	// We've never met an onnx graph which is not topologically sorted
 	CheckNeoOnnxSupport( isTopSorted( onnxGraph ), "onnxGraph is not topologically sorted" );
 
-	// Step 1: creating nodes of the graph and connections between them
+	// Step 1: create graph nodes and connect them
 	CGraph graph;
 	buildGraph( onnxGraph, opsetVersion, dnn.GetMathEngine(), graph );
 
-	// Step 2: calculating tensor shape and data for every node output in graph
+	// Step 2: calculate tensor shape and data for every node output in graph
 	CTensorCache tensors( graph );
 	calcGraphTensors( graph, dnn.GetMathEngine(), tensors );
 
-	// Step 3: Mark onnx tensors' dimensions with NeoML blob dimensions
+	// Step 3: label onnx tensors dimensions with NeoML blob dimensions
 	CDimCache dims( graph );
-	markTensorsDimensions( graph, tensors, dims );
+	labelTensorsDimensions( graph, tensors, dims );
 
-	// Step 4: Adding layers to dnn
+	// Step 4: add layers to dnn
 	addLayersToDnn( graph, tensors, dims, dnn );
 }
 

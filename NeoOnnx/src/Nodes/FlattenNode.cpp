@@ -46,13 +46,13 @@ void CFlattenNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CFlattenNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CFlattenNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	const CTensorDim& inputDims = dims[Input[0]];
 
 	if( !inputDims.IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { inputDims[axis - 1], inputDims[axis] }, dims[Output[0]] ),
-			"marking output dimensions failed", OnnxNode );
+			"labeling output dimensions failed", OnnxNode );
 	}
 }
 

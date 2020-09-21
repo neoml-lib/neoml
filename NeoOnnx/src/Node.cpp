@@ -60,7 +60,7 @@ static CMap<CString, TCreateOpNodeFunction>& getRegisteredNodes()
 
 void RegisterNode( const char* opName, TCreateOpNodeFunction function )
 {
-	CheckNeoOnnxInternal( !getRegisteredNodes().Has( opName ), "Double-registering node op: " + CString( opName ) );
+	CheckNeoOnnxInternal( !getRegisteredNodes().Has( opName ), "Double-register node op: " + CString( opName ) );
 	getRegisteredNodes().Add( opName, function );
 }
 
@@ -120,10 +120,10 @@ int CNode::OutputCount() const
 
 void CNode::Connect( int index, const CLink& inputInfo )
 {
-	CheckNeoOnnxInternal( index >= 0 && index < InputCount(), "attempt to set non-existing input" );
+	CheckNeoOnnxInternal( index >= 0 && index < InputCount(), "attempt to connect non-existing input" );
 	CheckNeoOnnxInternal( Input[index].NodeIndex == NotFound && Input[index].OutputIndex == NotFound,
-		"attempt to set already-defined input" );
-	CheckNeoOnnxInternal( inputInfo.OutputIndex >= 0, "attempt to set an input with incorrect index" );
+		"attempt to connect already-connected input" );
+	CheckNeoOnnxInternal( inputInfo.OutputIndex >= 0, "attempt to connect an input with incorrect index" );
 	Input[index] = inputInfo;
 }
 

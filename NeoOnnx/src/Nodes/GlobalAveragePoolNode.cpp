@@ -43,16 +43,16 @@ void CGlobalAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngi
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CGlobalAveragePoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CGlobalAveragePoolNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", OnnxNode );
+			"labeling output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", OnnxNode );
+			"labeling input dimensions failed", OnnxNode );
 	}
 }
 

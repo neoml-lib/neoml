@@ -98,7 +98,7 @@ void CGlobalPoolNodeBase::add2dPoolingLayer( TPoolType poolType, const CTensorSh
 
 	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	// Making it global
+	// Make it global
 	for( int dimIndex = 0; dimIndex < inputDim.Size(); ++dimIndex ) {
 		const bool isDimPooled = ( ( ( 1 << static_cast<int>( inputDim[dimIndex] ) ) & pooledDims ) != 0 );
 		switch( inputDim[dimIndex] ) {
@@ -110,7 +110,7 @@ void CGlobalPoolNodeBase::add2dPoolingLayer( TPoolType poolType, const CTensorSh
 				poolingLayer->SetFilterWidth( isDimPooled ? inputShape[dimIndex] : 1 );
 				poolingLayer->SetStrideWidth( 1 );
 				break;
-			// ignoring the rest of the dimensions
+			// Ignore the rest of the dimensions
 		}
 	}
 
@@ -137,7 +137,7 @@ void CGlobalPoolNodeBase::add3dPoolingLayer( TPoolType poolType, const CTensorSh
 
 	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	// Making it global
+	// Make it global
 	for( int dimIndex = 0; dimIndex < inputDim.Size(); ++dimIndex ) {
 		const bool isDimPooled = ( ( ( 1 << static_cast<int>( inputDim[dimIndex] ) ) & pooledDims ) != 0 );
 		switch( inputDim[dimIndex] ) {
@@ -153,7 +153,7 @@ void CGlobalPoolNodeBase::add3dPoolingLayer( TPoolType poolType, const CTensorSh
 				poolingLayer->SetFilterDepth( isDimPooled ? inputShape[dimIndex] : 1 );
 				poolingLayer->SetStrideDepth( 1 );
 				break;
-			// ignoring the rest of the dimensions
+			// Ignore the rest of the dimensions
 		}
 	}
 

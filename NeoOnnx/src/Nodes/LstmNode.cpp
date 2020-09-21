@@ -71,12 +71,12 @@ void CLstmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 	tensors[Output[0]].Shape = { sequenceLength, 1, batchSize, hiddenSize };
 }
 
-void CLstmNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CLstmNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels },
-		dims[Output[0]] ), "marking output dimensions failed", OnnxNode );
+		dims[Output[0]] ), "labeling output dimensions failed", OnnxNode );
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, { BD_BatchLength, BD_BatchWidth, BD_Channels },
-		dims[Input[0]] ), "marking input dimensions failed", OnnxNode );
+		dims[Input[0]] ), "labeling input dimensions failed", OnnxNode );
 }
 
 void CLstmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
@@ -121,7 +121,7 @@ void CLstmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 	neoMLLinks[Output[0]] = CNeoMLLink( lstmLayer, 0 );
 }
 
-// Converts lstm weights from ONNX format to NeoML
+// Converts lstm weights from onnx format to NeoML
 // because gate weights in onnx and NeoML are oredered differently
 CPtr<CDnnBlob> CLstmNode::reorderGates( CPtr<CDnnBlob> blob, TBlobDim dim )
 {

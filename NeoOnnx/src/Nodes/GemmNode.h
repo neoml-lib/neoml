@@ -26,19 +26,19 @@ public:
 
 	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
 	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	// In ONNX Gemm is implemented like
+	// In onnx Gemm is implemented like
 	//     Y = alpha * A' * B' + beta * C
 	// where
 	//     A' is equal to A if transA == 0 or transpose(A) otherwise
 	//     B' is equal to B if transB == 0 or transpose(B) otherwise
 	//     C is optional matrix
 
-	// Fields for corresponding values
+	// Values from formula above
 	const float alpha;
 	const float beta;
 	const int transA;

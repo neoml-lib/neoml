@@ -70,13 +70,13 @@ void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CGemmNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CGemmNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	// Gemm operator in onnx always works with 2-dimensional tensors
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Output[0]] ),
-		"marking output dimensions failed", OnnxNode );
+		"labeling output dimensions failed", OnnxNode );
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Input[0]] ),
-		"marking input dimensions failed", OnnxNode );
+		"labeling input dimensions failed", OnnxNode );
 }
 
 void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,

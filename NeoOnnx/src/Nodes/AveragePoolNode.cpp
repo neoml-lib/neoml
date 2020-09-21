@@ -27,8 +27,8 @@ CAveragePoolNode::CAveragePoolNode( int nodeIndex, const onnx::NodeProto& averag
 	COpNode( nodeIndex, averagePool, opsetVersion ),
 	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
-	// The differences between versions are in ceil mode, default strides and count include pad
-	// Default values are used, the rest is not supported by NeoOnnx
+	// The differences between versions are in ceil mode, default strides and "count include pad" flag
+	// NeoOnnx supports default values of all of these flags that's why there's no version restrictions
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", averagePool );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", averagePool );
@@ -43,14 +43,14 @@ CAveragePoolNode::CAveragePoolNode( int nodeIndex, const onnx::NodeProto& averag
 
 void CAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	// Checking input
+	// Check input
 	const CTensor& inputTensor = tensors[Input[0]];
 	CheckNeoOnnxSupport( inputTensor.Shape.Size() > 2 && inputTensor.Shape.Size() <= 4,
 		"wrong input tensor's dimensions number", OnnxNode );
 	const CTensorShape& inputShape = inputTensor.Shape;
 	const int poolDims = static_cast<int>( inputShape.Size() ) - 2;
 
-	// Initializing strides, pads and dilations (if not given)
+	// Initialize strides, pads and dilations (if not given)
 	if( strides.IsEmpty() ) {
 		strides.Add( 1, poolDims );
 	}
@@ -66,7 +66,7 @@ void CAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& ma
 		CheckNeoOnnxSupport( pads[padIndex] == 0, "average pooling with padding", OnnxNode );
 	}
 
-	// Calculating output shape
+	// Calculate output shape
 	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	inputShape.CopyTo( outputShape );
 	for( int dimIndex = 0; dimIndex < poolDims; ++dimIndex ) {
@@ -77,16 +77,16 @@ void CAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& ma
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CAveragePoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CAveragePoolNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", OnnxNode );
+			"labeling output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", OnnxNode );
+			"labeling input dimensions failed", OnnxNode );
 	}
 }
 

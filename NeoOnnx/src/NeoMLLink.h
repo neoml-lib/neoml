@@ -21,12 +21,9 @@ namespace NeoOnnx {
 
 // Link to the OutputIndex'th output of the NeoML Layer
 struct CNeoMLLink {
-	// Constructor for onnx node output, which doesn't with any NeoML layer's output
-	CNeoMLLink() : Layer( nullptr ), OutputIndex( NotFound ) {}
-
-	// Constructor for onnx node output, matching it with layer's outputIndex'th output
 	CNeoMLLink( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
-	{ CheckNeoOnnxInternal( layer != nullptr, "non empty output info with layer == nullptr" ); }
+		{ CheckNeoOnnxInternal( layer != nullptr, "non empty output info with layer == nullptr" ); }
+	CNeoMLLink() : Layer( nullptr ), OutputIndex( NotFound ) {}
 
 	CBaseLayer* Layer; // Used NeoML layer (nullptr if there is no layer mapped with this output)
 	int OutputIndex; // NeoML layer's output index, mapped with this output

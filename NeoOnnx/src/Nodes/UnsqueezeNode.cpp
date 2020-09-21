@@ -54,7 +54,7 @@ void CUnsqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& math
 	tensors[Output[0]].Data = tensors[Input[0]].Data;
 }
 
-void CUnsqueezeNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CUnsqueezeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( tensors[Output[0]].Data != nullptr ) {
 		return;
@@ -77,7 +77,7 @@ void CUnsqueezeNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dim
 	}
 
 	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, inputDim, dims[Input[0]] ),
-		"marking input dimensions failed", OnnxNode );
+		"labeling input dimensions failed", OnnxNode );
 }
 
 void CUnsqueezeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,

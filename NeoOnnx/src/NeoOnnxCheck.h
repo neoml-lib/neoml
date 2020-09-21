@@ -52,10 +52,10 @@ inline CString GetMessageWithNodeInfo( const CString& what, const onnx::NodeProt
 }
 
 // Throws std::logic_error if 'expr' is false
-// Used for checking if graph and nodes stick to the ONNX protocol
+// Checks if graph or nodes are sticking to the onnx protocol
 inline void CheckOnnxProtocol( bool expr, const CString& what )
 {
-	NeoOnnxCheck( expr, CString( "ONNX protocol violation: " ) + what );
+	NeoOnnxCheck( expr, CString( "onnx protocol violation: " ) + what );
 }
 
 inline void CheckOnnxProtocol( bool expr, const CString& what, const onnx::NodeProto& node )
@@ -64,7 +64,7 @@ inline void CheckOnnxProtocol( bool expr, const CString& what, const onnx::NodeP
 }
 
 // Throws std::logic_error if 'expr' is false
-// Used for checking if graph and nodes have something which is valid ONNX but is not supported by NeoOnnx
+// Checks if there is something which is a valid onnx but is not supported by NeoOnnx
 inline void CheckNeoOnnxSupport( bool expr, const CString& what ) 
 {
 	NeoOnnxCheck( expr, CString( "Not supported by NeoOnnx: " ) + what );
@@ -76,7 +76,7 @@ inline void CheckNeoOnnxSupport( bool expr, const CString& what, const onnx::Nod
 }
 
 // Throws std::logic_error if 'expr' is false
-// Used for checking if something goes wrong during NeoOnnx work
+// Checks if something goes wrong inside of NeoOnnx
 inline void CheckNeoOnnxInternal( bool expr, const CString& what )
 {
 	NeoOnnxCheck( expr, CString( "NeoOnnx internal error: " ) + what );

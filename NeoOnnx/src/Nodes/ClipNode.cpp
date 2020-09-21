@@ -28,7 +28,7 @@ CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersi
 	minValue( Attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
 	maxValue( Attributes.GetOptionalFloat( "max", FLT_MAX ) )
 {
-	// Newer versions getting min and max values as inputs, not as attributes
+	// Newer versions are getting min and max values from node inputs instead of node attributes
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", clip );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", clip );
@@ -42,16 +42,16 @@ void CClipNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CClipNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CClipNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"marking output dimensions failed", OnnxNode );
+			"labeling output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"marking input dimensions failed", OnnxNode );
+			"labeling input dimensions failed", OnnxNode );
 	}
 }
 
