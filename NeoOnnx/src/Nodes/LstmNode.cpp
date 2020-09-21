@@ -108,7 +108,9 @@ void CLstmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 	lstmLayer->SetRecurWeightsData( recurWeightMatrix );
 
 	if( InputCount() > 3 && Input[3].NodeIndex != NotFound ) {
-		CPtr<CDnnBlob> neoMLBias = reorderGates( tensors[Input[3]].Data, BD_Channels );
+		CPtr<CDnnBlob> neoMLBias = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 1, 4 * hiddenSize );
+		mathEngine.VectorCopy( neoMLBias->GetData(), tensors[Input[3]].Data->GetData(), 4 * hiddenSize );
+		neoMLBias = reorderGates( neoMLBias, BD_Channels );
 		neoMLBias = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, neoMLBias );
 		lstmLayer->SetInputFreeTermData( neoMLBias );
 		lstmLayer->SetRecurFreeTermData( nullptr );
