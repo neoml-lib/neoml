@@ -55,7 +55,7 @@ void CReduceMeanNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mat
 	}
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CReduceMeanNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
@@ -110,7 +110,7 @@ void CReduceMeanNode::add2dPoolingLayer( const CTensorCache& tensors, const CDim
 	CPtr<CMeanPoolingLayer> poolingLayer = new CMeanPoolingLayer( dnn.GetMathEngine() );
 	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	// Making it global.
+	// Making it global
 	for( int axisIndex = 0; axisIndex < axes.Size(); ++axisIndex ) {
 		TBlobDim dim = ( dims[Input[0]] )[axes[axisIndex]];
 		const bool isDimPooled = ( ( ( 1 << static_cast<int>( dim ) ) & pooledDims ) != 0 );

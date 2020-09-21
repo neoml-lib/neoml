@@ -54,7 +54,7 @@ void CAddNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine
 		if( outputShape.IsEmpty() ) {
 			inputShape.CopyTo( outputShape );
 		} else {
-			// NeoML doesn't support numpy-style tensor broadcasting...
+			// NeoML doesn't support numpy-style tensor broadcasting
 			CheckNeoOnnxSupport( outputShape.Size() == inputShape.Size(), "tensor broadcasting", OnnxNode );
 			for( int i = 0; i < inputShape.Size(); ++i ) {
 				CheckNeoOnnxSupport( outputShape[i] == inputShape[i], "tensor broadcasting", OnnxNode );

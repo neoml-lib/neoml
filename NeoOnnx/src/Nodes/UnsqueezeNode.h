@@ -30,7 +30,7 @@ public:
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	CArray<int> axes; // added axes.
+	CArray<int> axes; // added axes
 };
 
 } // namespace NeoOnnx

@@ -30,8 +30,8 @@ public:
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	const int keepDims; // keep reduced dimensions (of size 1) or remove them.
-	CArray<int> axes; // reduced axes.
+	const int keepDims; // keep reduced dimensions (of size 1) or remove them
+	CArray<int> axes; // reduced axes
 
 	void add2dPoolingLayer( const CTensorCache& tensors, const CDimCache& dims, CNeoMLLinkCache& neoMLLinks,
 		CDnn& dnn, int pooledDims );

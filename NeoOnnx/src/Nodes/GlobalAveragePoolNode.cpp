@@ -41,7 +41,7 @@ void CGlobalAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngi
 	tensors[Output[0]].Shape[1] = inputShape[1];
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CGlobalAveragePoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
@@ -83,7 +83,7 @@ void CGlobalAveragePoolNode::add2dPoolingLayer( const CTensorCache& tensors, con
 	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 	const CTensorDim& inputDim = dims[Input[0]];
 
-	// Making it global.
+	// Making it global
 	for( int dimIndex = 2; dimIndex < inputDim.Size(); ++dimIndex ) {
 		TBlobDim dim = inputDim[dimIndex];
 		const bool isDimPooled = ( ( ( 1 << static_cast<int>( dim ) ) & pooledDims ) != 0 );

@@ -19,7 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Shape node in onnx graph.
+// Shape node in onnx graph
 class CShapeNode : public COpNode {
 public:
 	CShapeNode( int nodeIndex, const onnx::NodeProto& shape, int opsetVersion );

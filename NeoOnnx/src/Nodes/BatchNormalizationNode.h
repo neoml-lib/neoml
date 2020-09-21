@@ -30,7 +30,7 @@ public:
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	const float eps; // eps value used to prevent division by zero.
+	const float eps; // eps value used to prevent division by zero
 
 	CPtr<CDnnBlob> calculateFinalParams( const CTensorCache& tensors );
 };

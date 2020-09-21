@@ -54,7 +54,7 @@ void CConcatNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 		const CTensor& input = tensors[Input[inputIndex]];
 		if( input.Data == nullptr ) {
-			// Data can't be pre-calculated.
+			// Data can't be pre-calculated
 			return;
 		}
 
@@ -67,9 +67,9 @@ void CConcatNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 		outputBlobType = CT_Float;
 	}
 
-	// Precalculating node's output.
+	// Precalculating node's output
 
-	// Allocating output blob.
+	// Allocating output blob
 	CBlobDesc outputDesc( outputBlobType );
 	for( int dim = 0; dim < static_cast<int>( tensors[Output[0]].Shape.Size() ); ++dim ) {
 		outputDesc.SetDimSize( dim, tensors[Output[0]].Shape[dim] );
@@ -77,7 +77,7 @@ void CConcatNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 
 	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, outputBlobType, outputDesc );
 
-	// Collecting input blobs for concatenation.
+	// Collecting input blobs for concatenation
 	CObjectArray<CDnnBlob> inputBlobs;
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 		inputBlobs.Add( tensors[Input[inputIndex]].Data );

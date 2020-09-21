@@ -41,7 +41,7 @@ void CBatchNormalizationNode::CalcOutputTensors( CTensorCache& tensors, IMathEng
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CBatchNormalizationNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )
@@ -104,7 +104,7 @@ CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( const CTensorCache
 
 	IMathEngine& mathEngine = scale->GetMathEngine();
 
-	// Calculating final params.
+	// Calculating final params
 	CPtr<CDnnBlob> finalParams = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 2, channels );
 	CFloatHandle gamma = finalParams->GetObjectData( 0 );
 

@@ -144,5 +144,4 @@ COpNode* COpNode::CreateOpNode( int nodeIndex, const onnx::NodeProto& onnxNode, 
 	return getRegisteredNodes().GetValue( pos )( nodeIndex, onnxNode, opsetVersion );
 }
 
-
 } // namespace NeoOnnx

@@ -17,18 +17,20 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Link to NodeIndex'th node OutputIndex'th output.
+// Forward declaration(s)
+class CNode;
+
+// Link to NodeIndex'th node OutputIndex'th output
 struct CLink
 {
 	CLink() : NodeIndex( NotFound ), OutputIndex( NotFound ) {}
 	CLink( int nodeIndex, int outputIndex ) : NodeIndex( nodeIndex ), OutputIndex( outputIndex ) {}
 
-	int NodeIndex; // Node connected to this input.
-	int OutputIndex; // Node's output number connected to this input.
+	int NodeIndex; // Node connected to this input
+	int OutputIndex; // Node's output number connected to this input
 };
 
-class CNode;
-
+// Graph represented as an array of CNodes in topological order
 class CGraph {
 public:
 	CNode* operator[]( int nodeIndex ) { return nodes[nodeIndex]; }

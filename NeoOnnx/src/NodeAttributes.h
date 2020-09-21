@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-// Forward declaration(s).
+// Forward declaration(s)
 namespace onnx {
 class NodeProto;
 class AttributeProto;

@@ -30,7 +30,7 @@ void CalculatePadding( const CString& autoPad, const CTensorShape& inputShape,
 	const CTensorShape& kernelShape, CFastArray<int, 8>& pads, const onnx::NodeProto& onnxNode );
 
 // Repacks weights from channel-frst to channel-last if node if flatten operator
-// Required for Gemm, LSTM etc.
+// Required for Gemm, LSTM etc
 // Returns the pointer to the same blob if repack isn't needed
 CPtr<CDnnBlob> RepackWeightIfFlattened( const CNode* node, const CTensorCache& tensors, const CDimCache& dims, CDnnBlob* weight );
 

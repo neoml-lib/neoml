@@ -38,8 +38,8 @@ struct CTensor {
 	CTensor( const CTensor& other );
 	CTensor& operator=( const CTensor& other );
 
-	// Sets NeoML dimensions of the tensor.
-	// Returns true if there is no conflicts.
+	// Sets NeoML dimensions of the tensor
+	// Returns true if there is no conflicts
 	bool SetTensorDim( const CTensorDim& newDim );
 };
 

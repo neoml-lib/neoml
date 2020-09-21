@@ -34,7 +34,7 @@ void CalculatePadding( const CString& autoPad, const CTensorShape& inputShape,
 	for( int padDimIndex = 0; padDimIndex < padDims; ++padDimIndex ) {
 		const int totalPadSize = inputShape[padDimIndex + skipDims] + kernelShape[padDimIndex] - 1;
 		if( totalPadSize % 2 == 1 ) {
-			// This case can be supported in NeoML only if mode is SAME_LOWER.
+			// This case can be supported in NeoML only if mode is SAME_LOWER
 			CheckNeoOnnxSupport( autoPad == "SAME_LOWER", "SAME_UPPER padding", onnxNode );
 		}
 		pads[padDimIndex] = ( totalPadSize + 1 ) / 2;

@@ -19,37 +19,37 @@ limitations under the License.
 #include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
-// Forward declaration(s).
+// Forward declaration(s)
 namespace onnx {
 class NodeProto;
-} // namespace onnx;
+} // namespace onnx
 
 namespace NeoOnnx {
 
-// Node in the onnx calculation graph.
+// Node in the onnx calculation graph
 class CNode {
 public:
 	virtual ~CNode() = default;
 
-	// Calculate output tensors' shape based on inputs' tensors' shape.
+	// Calculate output tensors' shape based on inputs' tensors' shape
 	virtual void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) = 0;
 
-	// Marks onnx tensors' dimensions as blob dimensions from NeoML.
+	// Marks onnx tensors' dimensions as blob dimensions from NeoML
 	virtual void MarkTensorDims( const CTensorCache& tensors, CDimCache& dims ) = 0;
 
-	// Adds layers, representing this node, to the dnn (if needed).
+	// Adds layers, representing this node, to the dnn (if needed)
 	virtual void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) = 0;
 
-	// Gets the number of inputs.
+	// Gets the number of inputs
 	int InputCount() const;
 
-	// Gets the number of outputs.
+	// Gets the number of outputs
 	int OutputCount() const;
 	
-	// Connects index'th input of this node with the link.
-	// inputInfo's content must be not null.
-	// Must be called once for every used input.
+	// Connects index'th input of this node with the link
+	// inputInfo's content must be not null
+	// Must be called once for every used input
 	void Connect( int index, const CLink& link );
 
 	// Gets the link connected to the inputIndex'th input
@@ -58,10 +58,10 @@ public:
 protected:
 	CNode( int nodeIndex, int inputCount, int outputCount );
 
-	// Links connected to inputs of this node.
+	// Links connected to inputs of this node
 	CArray<CLink> Input;
 
-	// Links to outputs of this node.
+	// Links to outputs of this node
 	CArray<CLink> Output;
 
 private:
@@ -111,15 +111,15 @@ class COpNode : public CNode {
 public:
 	~COpNode() override = default;
 
-	// Fabric method. Creates CNode's derivative for given onnx node.
+	// Fabric method. Creates CNode's derivative for given onnx node
 	static COpNode* CreateOpNode( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
 
 protected:
 	COpNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 
 	const int OpsetVersion; // Opset version
-	const CNodeAttributes Attributes; // Attributes of this node.
-	const onnx::NodeProto OnnxNode; // Reference to onnx node. Used for diagnostics.
+	const CNodeAttributes Attributes; // Attributes of this node
+	const onnx::NodeProto OnnxNode; // Reference to onnx node. Used for diagnostics
 };
 
 } // namespace NeoOnnx

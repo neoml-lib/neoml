@@ -19,12 +19,12 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Link to the OutputIndex'th output of the NeoML Layer.
+// Link to the OutputIndex'th output of the NeoML Layer
 struct CNeoMLLink {
-	// Constructor for onnx node output, which doesn't with any NeoML layer's output.
+	// Constructor for onnx node output, which doesn't with any NeoML layer's output
 	CNeoMLLink() : Layer( nullptr ), OutputIndex( NotFound ) {}
 
-	// Constructor for onnx node output, matching it with layer's outputIndex'th output.
+	// Constructor for onnx node output, matching it with layer's outputIndex'th output
 	CNeoMLLink( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
 	{ CheckNeoOnnxInternal( layer != nullptr, "non empty output info with layer == nullptr" ); }
 

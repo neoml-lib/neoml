@@ -50,7 +50,7 @@ void CAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& ma
 	const CTensorShape& inputShape = inputTensor.Shape;
 	const int poolDims = static_cast<int>( inputShape.Size() ) - 2;
 
-	// Initializing strides, pads and dilations (if not given).
+	// Initializing strides, pads and dilations (if not given)
 	if( strides.IsEmpty() ) {
 		strides.Add( 1, poolDims );
 	}
@@ -66,7 +66,7 @@ void CAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& ma
 		CheckNeoOnnxSupport( pads[padIndex] == 0, "average pooling with padding", OnnxNode );
 	}
 
-	// Calculating output shape.
+	// Calculating output shape
 	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	inputShape.CopyTo( outputShape );
 	for( int dimIndex = 0; dimIndex < poolDims; ++dimIndex ) {
@@ -75,7 +75,7 @@ void CAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& ma
 	}
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CAveragePoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )

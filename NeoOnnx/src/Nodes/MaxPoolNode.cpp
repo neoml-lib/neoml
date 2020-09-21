@@ -27,7 +27,7 @@ CMaxPoolNode::CMaxPoolNode( int nodeIndex, const onnx::NodeProto& maxPool, int o
 	COpNode( nodeIndex, maxPool, opsetVersion ),
 	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
-	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc.
+	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", maxPool );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", maxPool );
@@ -49,7 +49,7 @@ void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	const CTensorShape& inputShape = inputTensor.Shape;
 	const int poolDims = static_cast<int>( inputShape.Size() ) - 2;
 
-	// Initializing strides, pads and dilations (if not given).
+	// Initializing strides, pads and dilations (if not given)
 	if( strides.IsEmpty() ) {
 		strides.Add( 1, poolDims );
 	}
@@ -65,7 +65,7 @@ void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 		CheckNeoOnnxSupport( pads[padIndex] == 0, "max pooling with padding", OnnxNode );
 	}
 
-	// Calculating output shape.
+	// Calculating output shape
 	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	inputShape.CopyTo( outputShape );
 	for( int dimIndex = 0; dimIndex < poolDims; ++dimIndex ) {
@@ -74,7 +74,7 @@ void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	}
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	// The tensors[Output[0]].Data was already set to nullptr in default constructor.
+	// The tensors[Output[0]].Data was already set to nullptr in default constructor
 }
 
 void CMaxPoolNode::MarkTensorDims( const CTensorCache& tensors, CDimCache& dims )

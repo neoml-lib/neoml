@@ -22,7 +22,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Gets NeoML blob type from onnx tensor's data type.
+// Gets NeoML blob type from onnx tensor's data type
 inline TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
 {
 	switch( onnxDataType ) {
@@ -59,7 +59,7 @@ inline void LoadFromRawData( const std::string& rawSrc, TDst* dest )
 	}
 }
 
-// Loads NeoML's blob data (of type T) from onnx::TensorProto.
+// Loads NeoML's blob data (of type T) from onnx::TensorProto
 template<class T>
 inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 {
