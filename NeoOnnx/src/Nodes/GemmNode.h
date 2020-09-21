@@ -43,9 +43,6 @@ private:
 	const float beta;
 	const int transA;
 	const int transB;
-
-	CPtr<CDnnBlob> reorderWeightAfterFlatten( const CGraph& graph, const CTensorCache& tensors,
-		const CDimCache& dims, CDnnBlob* weight ) const;
 };
 
 } // namespace NeoOnnx

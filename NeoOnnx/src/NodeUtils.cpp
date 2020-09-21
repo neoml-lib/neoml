@@ -17,6 +17,8 @@ limitations under the License.
 #pragma hdrstop
 
 #include "NodeUtils.h"
+#include "Node.h"
+#include "Nodes/FlattenNode.h"
 
 namespace NeoOnnx {
 
@@ -36,6 +38,39 @@ void CalculatePadding( const CString& autoPad, const CTensorShape& inputShape,
 		pads[padDimIndex] = ( totalPadSize + 1 ) / 2;
 		pads[padDims + padDimIndex] = ( totalPadSize + 1 ) / 2;
 	}
+}
+
+CPtr<CDnnBlob> RepackWeightIfFlattened( const CNode* node, const CTensorCache& tensors, const CDimCache& dims, CDnnBlob* weight )
+{
+	if( dynamic_cast<const CFlattenNode*>( node ) == nullptr ) {
+		return weight;
+	}
+
+	const CTensorShape& shape = tensors[node->GetInput( 0 )].Shape;
+	const CTensorDim& dim = dims[node->GetInput( 0 )];
+
+	CBlobDesc newWeightDesc( CT_Float );
+	for( int dimIndex = 0; dimIndex < shape.Size(); ++dimIndex ) {
+		newWeightDesc.SetDimSize( dim[dimIndex], shape[dimIndex] );
+	}
+
+	const int hw = newWeightDesc.Height() * newWeightDesc.Width();
+	const int depth = newWeightDesc.Depth();
+	const int channels = newWeightDesc.Channels();
+
+	if( ( hw == 1 && depth == 1 )
+		|| ( hw == 1 && channels == 1 )
+		|| ( depth == 1 && channels == 1 ) )
+	{
+		return weight;
+	}
+
+	// Weights needs conversion from CHW to HWC
+	IMathEngine& mathEngine = weight->GetMathEngine();
+	CPtr<CDnnBlob> newWeight = weight->GetClone();
+	mathEngine.TransposeMatrix( weight->GetObjectCount(), weight->GetData(), newWeightDesc.Channels(), newWeightDesc.Depth(),
+		newWeightDesc.Height() * newWeightDesc.Width(), 1, newWeight->GetData(), newWeight->GetDataSize() );
+	return newWeight;
 }
 
 } // namespace NeoOnnx

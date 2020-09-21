@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "LstmNode.h"
 #include "NeoOnnxCheck.h"
+#include "NodeUtils.h"
 
 #include "onnx.pb.h"
 
@@ -99,12 +100,16 @@ void CLstmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 
 	lstmLayer->SetHiddenSize( hiddenSize );
 	weightMatrix = reorderGates( weightMatrix, BD_BatchWidth );
+	weightMatrix = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, weightMatrix );
 	recurWeightMatrix = reorderGates( recurWeightMatrix, BD_BatchWidth );
+	recurWeightMatrix = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, recurWeightMatrix );
+
 	lstmLayer->SetInputWeightsData( weightMatrix );
 	lstmLayer->SetRecurWeightsData( recurWeightMatrix );
 
 	if( InputCount() > 3 && Input[3].NodeIndex != NotFound ) {
 		CPtr<CDnnBlob> neoMLBias = reorderGates( tensors[Input[3]].Data, BD_Channels );
+		neoMLBias = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, neoMLBias );
 		lstmLayer->SetInputFreeTermData( neoMLBias );
 		lstmLayer->SetRecurFreeTermData( nullptr );
 	}

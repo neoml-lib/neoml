@@ -19,6 +19,7 @@ limitations under the License.
 #include "GemmNode.h"
 #include "FlattenNode.h"
 #include "NeoOnnxCheck.h"
+#include "NodeUtils.h"
 
 #include "onnx.pb.h"
 
@@ -97,7 +98,7 @@ void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 	weight->ReinterpretDimensions( weightDesc );
 
 	// If there is a 'Flatten' node before this we have to reorder weights
-	weight = reorderWeightAfterFlatten( graph, tensors, dims, weight );
+	weight = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, weight );
 
 	fc->SetWeightsData( weight );
 
@@ -111,38 +112,6 @@ void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 	dnn.AddLayer( *fc );
 
 	neoMLLinks[Output[0]] = CNeoMLLink( fc, 0 );
-}
-
-// Reorders weight matrix if this 'Gemm' is located after 'Flatten'
-CPtr<CDnnBlob> CGemmNode::reorderWeightAfterFlatten( const CGraph& graph, const CTensorCache& tensors,
-	const CDimCache& dims, CDnnBlob* weight ) const
-{
-	const CNode* flatten = graph[Input[0]];
-
-	if( dynamic_cast<const CFlattenNode*>( flatten ) == nullptr ) {
-		return weight;
-	}
-
-	const CTensorShape& flattenInputShape = tensors[flatten->GetInput( 0 )].Shape;
-	const CTensorDim& flattenInputDim = dims[flatten->GetInput( 0 )];
-
-	CBlobDesc newWeightDesc( CT_Float );
-	for( int dimIndex = 0; dimIndex < flattenInputShape.Size(); ++dimIndex ) {
-		newWeightDesc.SetDimSize( flattenInputDim[dimIndex], flattenInputShape[dimIndex] );
-	}
-
-	if( ( newWeightDesc.Height() == 1 && newWeightDesc.Width() == 1 )
-		|| ( newWeightDesc.Channels() == 1 && newWeightDesc.Depth() == 1 ) )
-	{
-		return weight;
-	}
-
-	// Weights needs conversion from CHW to HWC
-	IMathEngine& mathEngine = weight->GetMathEngine();
-	CPtr<CDnnBlob> newWeight = weight->GetClone();
-	mathEngine.TransposeMatrix( weight->GetObjectCount(), weight->GetData(), newWeightDesc.Channels(), newWeightDesc.Depth(),
-		newWeightDesc.Height() * newWeightDesc.Width(), 1, newWeight->GetData(), newWeight->GetDataSize() );
-	return newWeight;
 }
 
 } // namespace NeoOnnx
