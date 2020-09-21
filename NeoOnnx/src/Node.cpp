@@ -20,7 +20,6 @@ limitations under the License.
 
 #include "Nodes/AbsNode.h"
 #include "Nodes/AddNode.h"
-#include "Nodes/AveragePoolNode.h"
 #include "Nodes/BatchNormalizationNode.h"
 #include "Nodes/ClipNode.h"
 #include "Nodes/ConcatNode.h"
@@ -34,7 +33,7 @@ limitations under the License.
 #include "Nodes/GlobalAveragePoolNode.h"
 #include "Nodes/LeakyReluNode.h"
 #include "Nodes/LstmNode.h"
-#include "Nodes/MaxPoolNode.h"
+#include "Nodes/PoolNode.h"
 #include "Nodes/ReduceMeanNode.h"
 #include "Nodes/ReluNode.h"
 #include "Nodes/ReshapeNode.h"
@@ -52,17 +51,51 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Registers the class as a NeoOnnx node for op_type == opName
+#define REGISTER_OP_NODE( classType, opName ) \
+	static CNodeClassRegistrar< classType > __merge__1( _RegisterOpNode, __LINE__ )( opName );
+
+typedef COpNode* ( *TCreateOpNodeFunction )( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
+
+// Returns reference to the map containing info about registered nodes
 static CMap<CString, TCreateOpNodeFunction>& getRegisteredNodes()
 {
 	static CMap<CString, TCreateOpNodeFunction> registeredNodes;
 	return registeredNodes;
 }
 
-void RegisterNode( const char* opName, TCreateOpNodeFunction function )
+// Registers function as a way to create operator node for NodeProto::op_type == opName
+void registerNode( const char* opName, TCreateOpNodeFunction function )
 {
 	CheckNeoOnnxInternal( !getRegisteredNodes().Has( opName ), "Double-register node op: " + CString( opName ) );
 	getRegisteredNodes().Add( opName, function );
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+// Class registers class T as an operator node
+// Without this registration class will be inaccessible from COpNode::CreateOpNode
+template<class T>
+class CNodeClassRegistrar {
+public:
+	explicit CNodeClassRegistrar( const char* opName );
+
+private:
+	static COpNode* createObject( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
+};
+
+template<class T>
+inline CNodeClassRegistrar<T>::CNodeClassRegistrar( const char* opName )
+{
+	registerNode( opName, createObject );
+}
+
+template<class T>
+inline COpNode* CNodeClassRegistrar<T>::createObject( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion )
+{
+	return FINE_DEBUG_NEW T( nodeIndex, onnxNode, opsetVersion );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 namespace {
 

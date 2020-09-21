@@ -23,11 +23,13 @@ class AttributeProto;
 
 namespace NeoOnnx {
 
-class CNodeAttributes {
+// Onnx operator node attributes
+class COpNodeAttributes {
 public:
-	CNodeAttributes() {}
-	explicit CNodeAttributes( const onnx::NodeProto& node );
+	explicit COpNodeAttributes( const onnx::NodeProto& node );
 
+	// Getters for optional attributes
+	// Returns default values (or empty arrays) if attribute is missing
 	int GetOptionalInt( const CString& name, int defaultValue ) const;
 	float GetOptionalFloat( const CString& name, float defaultValue ) const;
 	void GetOptionalIntArray( const CString& name, CArray<int>& value ) const;
@@ -35,6 +37,8 @@ public:
 	CString GetOptionalString( const CString& name, const CString& defaultValue ) const;
 	CPtr<CDnnBlob> GetOptionalTensor( const CString& name, CDnnBlob& defaultValue ) const;
 
+	// Getters for required attributes
+	// CheckOnnxProtocol( false ) if required attribute is missing
 	int GetRequiredInt( const CString& name ) const;
 	float GetRequiredFloat( const CString& name ) const;
 	void GetRequiredIntArray( const CString& name, CArray<int>& value ) const;
@@ -44,7 +48,8 @@ public:
 	CPtr<CDnnBlob> GetRequiredTensor( const CString& name, IMathEngine& mathEngine ) const;
 
 private:
-	CMap<CString, const onnx::AttributeProto*> attributes;
+	const onnx::NodeProto& onnxNode; // reference to the node for error handling
+	CMap<CString, const onnx::AttributeProto*> attributes; // mapping between attribute keys and values
 };
 
 } // namespace NeoOnnx

@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include "NodeAttributes.h"
+#include "OpNodeAttributes.h"
 #include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
@@ -72,39 +72,6 @@ private:
 // Opset versioning support
 const int MaxOpsetVersion = 12;
 
-// Registers the class as a NeoOnnx node for op_type == opName
-#define REGISTER_OP_NODE( classType, opName ) \
-	static CNodeClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( opName );
-
-class COpNode;
-
-typedef COpNode* ( *TCreateOpNodeFunction )( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
-
-void RegisterNode( const char* opName, TCreateOpNodeFunction function );
-
-//---------------------------------------------------------------------------------------------------------------------
-
-template<class T>
-class CNodeClassRegistrar {
-public:
-	explicit CNodeClassRegistrar( const char* opName );
-
-private:
-	static COpNode* createObject( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
-};
-
-template<class T>
-inline CNodeClassRegistrar<T>::CNodeClassRegistrar( const char* opName )
-{
-	RegisterNode( opName, createObject );
-}
-
-template<class T>
-inline COpNode* CNodeClassRegistrar<T>::createObject( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion )
-{
-	return FINE_DEBUG_NEW T( nodeIndex, onnxNode, opsetVersion );
-}
-
 //---------------------------------------------------------------------------------------------------------------------
 // Operator node
 class COpNode : public CNode {
@@ -118,7 +85,7 @@ protected:
 	COpNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 
 	const int OpsetVersion; // Opset version
-	const CNodeAttributes Attributes; // Attributes of this node
+	const COpNodeAttributes Attributes; // Attributes of this node
 	const onnx::NodeProto OnnxNode; // Reference to onnx node. Used for diagnostics
 };
 
