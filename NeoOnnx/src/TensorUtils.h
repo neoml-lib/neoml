@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoML.h>
+#include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
@@ -44,7 +45,7 @@ inline TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
 		case onnx::TensorProto::COMPLEX128:
 		case onnx::TensorProto::UNDEFINED:
 		default:
-			NeoAssert( false );
+			CheckNeoOnnxInternal( false, "tensor type is not supported" );
 	}
 	return CT_Invalid;
 }
@@ -123,7 +124,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 		case onnx::TensorProto::COMPLEX128:
 		case onnx::TensorProto::UNDEFINED:
 		default:
-			NeoAssert( false );
+			CheckNeoOnnxInternal( false, "tensor type is not supported" );
 	}
 	dest.ReleaseBuffer( buffer, true );
 }

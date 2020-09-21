@@ -60,7 +60,7 @@ static CMap<CString, TCreateOpNodeFunction>& getRegisteredNodes()
 
 void RegisterNode( const char* opName, TCreateOpNodeFunction function )
 {
-	NeoAssert( !getRegisteredNodes().Has( opName ) );
+	CheckNeoOnnxInternal( !getRegisteredNodes().Has( opName ), "Double-registering node op: " + CString( opName ) );
 	getRegisteredNodes().Add( opName, function );
 }
 

@@ -58,7 +58,7 @@ void CMaxPoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	}
 
 	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
-		CalculatePadding( autoPad, inputShape, kernelShape, pads );
+		CalculatePadding( autoPad, inputShape, kernelShape, pads, OnnxNode );
 	}
 
 	for( int padIndex = 0; padIndex < pads.Size(); ++padIndex ) {

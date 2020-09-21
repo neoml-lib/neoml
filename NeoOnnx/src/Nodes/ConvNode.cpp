@@ -79,7 +79,7 @@ void CConvNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngin
 		kernelShape.Add( weight.Shape[dimIndex] );
 	}
 	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
-		CalculatePadding( autoPad, inputShape, kernelShape, pads );
+		CalculatePadding( autoPad, inputShape, kernelShape, pads, OnnxNode );
 	}
 
 	CTensorShape& outputShape = tensors[Output[0]].Shape;
