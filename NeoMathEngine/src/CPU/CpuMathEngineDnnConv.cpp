@@ -610,6 +610,7 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 		}
 	}
 	t4.Stop();
+
 	const int SrcLineStride = SW * C;
 	// Number of steps for each side of image, where filter is applied partially
 	const int PartialStepCountBefore = std::ceil( static_cast<float>( D )/ S );
@@ -814,12 +815,16 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 			_mm_store_ps( dstPtr + 20, r5 );
 	};
 
+	const __m256 ft0 = freeTermData != 0 ? _mm256_loadu_ps( GetRaw( *freeTermData ) ) : _mm256_setzero_ps();
+	const __m256 ft1 = freeTermData != 0 ? _mm256_loadu_ps( GetRaw( *freeTermData ) + 8) : _mm256_setzero_ps();
+	const __m256 ft2 = freeTermData != 0 ? _mm256_loadu_ps( GetRaw( *freeTermData ) + 16 ) : _mm256_setzero_ps();
+
 	auto ApplyPartitialFilter3x3_24ch = [&]( const float* srcPtr, const vector<int>& srcPixelOffset,
 			const float* fltPtr, const vector<int>& fltPixels, float* dstPtr ) {
 
-		__m256 r0 = _mm256_loadu_ps( dstPtr );
-		__m256 r1 = _mm256_loadu_ps( dstPtr + 8 );
-		__m256 r2 = _mm256_loadu_ps( dstPtr + 16 );
+		__m256 r0 = ft0;
+		__m256 r1 = ft1;
+		__m256 r2 = ft2;
 
 		auto srcIt = srcPixelOffset.cbegin();
 		auto fltIt = fltPixels.cbegin();
@@ -836,12 +841,12 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 	auto ApplyPartitialFilter3x3_24ch_x2 = [&]( const float* srcPtr, const vector<int>& srcPixelOffset,
 			const float* fltPtr, const vector<int>& fltPixels, float* dstPtr ) {
 
-		__m256 r00 = _mm256_loadu_ps( dstPtr );
-		__m256 r01 = _mm256_loadu_ps( dstPtr + 8 );
-		__m256 r02 = _mm256_loadu_ps( dstPtr + 16 );
-		__m256 r10 = _mm256_loadu_ps( dstPtr + 24 );
-		__m256 r11 = _mm256_loadu_ps( dstPtr + 32 );
-		__m256 r12 = _mm256_loadu_ps( dstPtr + 40 );
+		__m256 r00 = ft0;
+		__m256 r01 = ft1;
+		__m256 r02 = ft2;
+		__m256 r10 = ft0;
+		__m256 r11 = ft1;
+		__m256 r12 = ft2;
 
 		auto srcIt = srcPixelOffset.cbegin();
 		auto fltIt = fltPixels.cbegin();
@@ -860,9 +865,9 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 
 	auto ApplyWholeFilter3x3_24ch = [&]( const float* srcPtr, const float* fltPtr, float* dstPtr  ) {
 
-		__m256 r0 = _mm256_loadu_ps( dstPtr );
-		__m256 r1 = _mm256_loadu_ps( dstPtr + 8 );
-		__m256 r2 = _mm256_loadu_ps( dstPtr + 16 );
+		__m256 r0 = ft0;
+		__m256 r1 = ft1;
+		__m256 r2 = ft2;
 
 			for( int fy = 0; fy < FH; fy++ ) {
 				for( int fx = 0; fx < FW; fx++ ) {
@@ -882,12 +887,12 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 
 	auto ApplyWholeFilter3x3_24ch_x2 = [&]( const float* srcPtr, const float* fltPtr, float* dstPtr  ) {
 
-		__m256 r00 = _mm256_loadu_ps( dstPtr );
-		__m256 r01 = _mm256_loadu_ps( dstPtr + 8 );
-		__m256 r02 = _mm256_loadu_ps( dstPtr + 16 );
-		__m256 r10 = _mm256_loadu_ps( dstPtr + 24 );
-		__m256 r11 = _mm256_loadu_ps( dstPtr + 32 );
-		__m256 r12 = _mm256_loadu_ps( dstPtr + 40 );
+		__m256 r00 = ft0;
+		__m256 r01 = ft1;
+		__m256 r02 = ft2;
+		__m256 r10 = ft0;
+		__m256 r11 = ft1;
+		__m256 r12 = ft2;
 
 			for( int fy = 0; fy < FH; fy++ ) {
 				for( int fx = 0; fx < FW; fx++ ) {
@@ -908,20 +913,13 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 			_mm256_storeu_ps( dstPtr + 40, r12 );
 	};
 
-	t5.Start();
-	if( freeTermData != 0 ) {
-		setVectorToMatrixRows( resultData, desc.Result.Height() * desc.Result.Width(), desc.Result.Channels(), *freeTermData );
-	} else {
-		NeoML::vectorFill( dst, 0.0, desc.Result.BlobSize() );
-	}
-	t5.Stop();
-
 	// Iterate through result, left->right, top->bottom
 	// Top edge ( cut top part of filter )
 	const float* fltPtr = flt;
 	float* dstPtr = dst;
 	// We process all central pixels be pairs. In case the total count of central pixels is odd we will process last one separately.
 	bool ProcessLastOddFilter = ( RW - PartialStepCountAfter - PartialStepCountBefore ) % 2 != 0;
+
 	t1.Start();
 	for( int ry = 0; ry < PartialStepCountBefore; ry++ ) {
 		// Top part of image
@@ -1024,7 +1022,7 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 	t3.Stop();
 	full.Stop();
 
-	CAlgoInfo::AddFastAlgo( { { full, t1, t2, t3, t5 },
+	CAlgoInfo::AddFastAlgo( { { full, t1, t2, t3 },
 		{ SW, S, D } } );
 }
 
