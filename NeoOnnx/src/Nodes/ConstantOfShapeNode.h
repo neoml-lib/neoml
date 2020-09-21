@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// ConstantOfShape operator graph node
 class CConstantOfShapeNode : public COpNode {
 public:
 	CConstantOfShapeNode( int nodeIndex, const onnx::NodeProto& constantOfShape, int opsetVersion );

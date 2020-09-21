@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Clip operator graph node
 class CClipNode : public COpNode {
 public:
 	CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion );

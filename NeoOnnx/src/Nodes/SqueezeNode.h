@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Squeeze operator graph node
 class CSqueezeNode : public COpNode {
 public:
 	CSqueezeNode( int nodeIndex, const onnx::NodeProto& squeeze, int opsetVersion );

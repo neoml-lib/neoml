@@ -83,7 +83,7 @@ void CSliceNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngi
 		parts.Add( CDnnBlob::CreateBlob( mathEngine, outputBlobType, desc ) );
 	}
 
-	CDnnBlob::SplitByDim( mathEngine, static_cast< TBlobDim >( axes[0] ), inputTensor.Data, parts );
+	CDnnBlob::SplitByDim( mathEngine, static_cast<TBlobDim>( axes[0] ), inputTensor.Data, parts );
 	tensors[Output[0]].Data = parts[outputBlobIndex];
 }
 

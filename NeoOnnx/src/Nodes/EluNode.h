@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Elu operator graph node
 class CEluNode : public COpNode {
 public:
 	CEluNode( int nodeIndex, const onnx::NodeProto& elu, int opsetVersion );

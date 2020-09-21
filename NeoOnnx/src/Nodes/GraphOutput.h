@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Graph output node
 class CGraphOutput : public CNode {
 public:
 	CGraphOutput( int nodeIndex, const onnx::ValueInfoProto& output );
@@ -32,7 +33,7 @@ public:
 	const CString& Name() const { return name; }
 
 private:
-	const CString name;
+	const CString name; // Graph output name
 };
 
 } // namespace NeoOnnx

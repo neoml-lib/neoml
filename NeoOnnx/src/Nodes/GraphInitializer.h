@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Graph initializer node
 class CGraphInitializer : public CNode {
 public:
 	CGraphInitializer( int nodeIndex, const onnx::TensorProto& initializer, IMathEngine& mathEngine );
@@ -29,8 +30,8 @@ public:
 	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache&, CDnn& ) override {}
 
 private:
-	IMathEngine& mathEngine;
-	const onnx::TensorProto& initializer;
+	IMathEngine& mathEngine; // mathEngine
+	const onnx::TensorProto& initializer; // graph initializer info from onnx
 };
 
 } // namespace NeoOnnx

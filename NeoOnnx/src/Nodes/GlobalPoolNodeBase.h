@@ -20,13 +20,13 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Global
+// Base class for global pool nodes
 class CGlobalPoolNodeBase : public COpNode {
 public:
 	CGlobalPoolNodeBase( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
 
 protected:
-	// Adds global pooling layer
+	// Adds global pooling layer to the dnn
 	void AddPoolingLayer( TPoolingType poolingType, const CTensorDim& dimsToPool, const CTensorShape& inputShape,
 		const CTensorDim& inputDim, CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
 

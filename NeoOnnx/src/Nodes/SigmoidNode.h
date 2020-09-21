@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Sigmoid operator graph node
 class CSigmoidNode : public COpNode {
 public:
 	CSigmoidNode( int nodeIndex, const onnx::NodeProto& sigmoid, int opsetVersion );

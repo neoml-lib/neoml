@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Graph input node
 class CGraphInput : public CNode {
 public:
 	CGraphInput( int nodeIndex, const onnx::ValueInfoProto& input );
@@ -32,8 +33,8 @@ public:
 	const CString& Name() const { return name; }
 
 private:
-	const CString name;
-	const onnx::ValueInfoProto& valueInfo;
+	const CString name; // Graph input name
+	const onnx::ValueInfoProto& valueInfo; // Input information from onnx
 };
 
 } // namespace NeoOnnx

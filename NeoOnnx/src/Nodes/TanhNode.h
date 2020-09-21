@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Tanh operator graph node
 class CTanhNode : public COpNode {
 public:
 	CTanhNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );

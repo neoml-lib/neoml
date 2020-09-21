@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Lstm operator graph node
 class CLstmNode : public COpNode {
 public:
 	CLstmNode( int nodeIndex, const onnx::NodeProto& lstm, int opsetVersion );

@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Relu operator graph node
 class CReluNode : public COpNode {
 public:
 	CReluNode( int nodeIndex, const onnx::NodeProto& relu, int opsetVersion );

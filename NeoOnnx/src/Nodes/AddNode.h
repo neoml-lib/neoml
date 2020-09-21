@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Add operator graph node
 class CAddNode : public COpNode {
 public:
 	CAddNode( int nodeIndex, const onnx::NodeProto& add, int opsetVersion );

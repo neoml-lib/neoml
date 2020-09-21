@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Concat operator graph node
 class CConcatNode : public COpNode {
 public:
 	CConcatNode( int nodeIndex, const onnx::NodeProto& concat, int opsetVersion );

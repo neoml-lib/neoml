@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Abs operator graph node
 class CAbsNode : public COpNode {
 public:
 	CAbsNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion );

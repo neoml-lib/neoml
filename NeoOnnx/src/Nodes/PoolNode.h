@@ -20,6 +20,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Base class for non-global Pool operator nodes
 class CPoolNodeBase : public COpNode {
 public:
 	CPoolNodeBase( TPoolingType poolingType, int nodeIndex, const onnx::NodeProto& pool, int opsetVersion );
@@ -38,12 +39,14 @@ private:
 	CFastArray<int, 8> pads; // convolution paddings
 };
 
+// MaxPool operator node
 class CMaxPoolNode : public CPoolNodeBase {
 public:
 	CMaxPoolNode( int nodeIndex, const onnx::NodeProto& maxPool, int opsetVersion ) :
 		CPoolNodeBase( PT_Max, nodeIndex, maxPool, opsetVersion ) {}
 };
 
+// AveragePool operator node
 class CAveragePoolNode : public CPoolNodeBase {
 public:
 	CAveragePoolNode( int nodeIndex, const onnx::NodeProto& averagePool, int opsetVersion ) :

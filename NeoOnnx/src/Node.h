@@ -26,7 +26,7 @@ class NodeProto;
 
 namespace NeoOnnx {
 
-// Node in the onnx calculation graph
+// Node in the NeoOnnx graph
 class CNode {
 public:
 	virtual ~CNode() = default;
@@ -86,7 +86,7 @@ protected:
 
 	const int OpsetVersion; // Opset version
 	const COpNodeAttributes Attributes; // Attributes of this node
-	const onnx::NodeProto OnnxNode; // Reference to onnx node. Used for diagnostics
+	const onnx::NodeProto OnnxNode; // Reference to onnx node (used for diagnostics)
 };
 
 } // namespace NeoOnnx

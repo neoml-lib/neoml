@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Conv operator graph node
 class CConvNode : public COpNode {
 public:
 	CConvNode( int nodeIndex, const onnx::NodeProto& conv, int opsetVersion );

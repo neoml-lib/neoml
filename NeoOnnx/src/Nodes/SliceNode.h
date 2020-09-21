@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Slice operator graph node
 class CSliceNode : public COpNode {
 public:
 	CSliceNode( int nodeIndex, const onnx::NodeProto& slice, int opsetVersion );

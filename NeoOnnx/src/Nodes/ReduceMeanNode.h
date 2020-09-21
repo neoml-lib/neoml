@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// ReduceMean operator graph node
 class CReduceMeanNode : public CGlobalPoolNodeBase {
 public:
 	CReduceMeanNode( int nodeIndex, const onnx::NodeProto& reduceMean, int opsetVersion );

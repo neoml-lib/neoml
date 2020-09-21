@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// GlobalAveragePool operator graph node
 class CGlobalAveragePoolNode : public CGlobalPoolNodeBase {
 public:
 	CGlobalAveragePoolNode( int nodeIndex, const onnx::NodeProto& globalAveragePool, int opsetVersion );

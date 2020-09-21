@@ -36,6 +36,8 @@ inline TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
 		case onnx::TensorProto::UINT16:
 		case onnx::TensorProto::INT32:
 		case onnx::TensorProto::UINT32:
+		// Sometimes Constant operator's value is stored in int64 (even if it can be stored in 32-bit integer)
+		// That's why we allow here to use int64 and will cast it later to 32-bit
 		case onnx::TensorProto::INT64:
 		case onnx::TensorProto::UINT64:
 			return CT_Int;
@@ -50,6 +52,7 @@ inline TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
 	return CT_Invalid;
 }
 
+// Loads data from raw bytes as an array of TSrc and stores it as an array of TDst (via static_cast)
 template<class TSrc, class TDst>
 inline void LoadFromRawData( const std::string& rawSrc, TDst* dest )
 {
@@ -72,7 +75,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				LoadFromRawData<float, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.float_data_size(); ++valueIndex ) {
-					buffer[valueIndex] = static_cast< T >( src.float_data( valueIndex ) );
+					buffer[valueIndex] = static_cast<T>( src.float_data( valueIndex ) );
 				}
 			}
 			break;
@@ -81,7 +84,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				LoadFromRawData<int, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.double_data_size(); ++valueIndex ) {
-					buffer[valueIndex] = static_cast< T >( src.double_data( valueIndex ) );
+					buffer[valueIndex] = static_cast<T>( src.double_data( valueIndex ) );
 				}
 			}
 			break;
@@ -95,7 +98,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				LoadFromRawData<int, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.int32_data_size(); ++valueIndex ) {
-					buffer[valueIndex] = static_cast< T >( src.int32_data( valueIndex ) );
+					buffer[valueIndex] = static_cast<T>( src.int32_data( valueIndex ) );
 				}
 			}
 			break;
@@ -105,7 +108,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				LoadFromRawData<uint64_t, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.uint64_data_size(); ++valueIndex ) {
-					buffer[valueIndex] = static_cast< T >( src.uint64_data( valueIndex ) );
+					buffer[valueIndex] = static_cast<T>( src.uint64_data( valueIndex ) );
 				}
 			}
 			break;
@@ -114,7 +117,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				LoadFromRawData<int64_t, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.int64_data_size(); ++valueIndex ) {
-					buffer[valueIndex] = static_cast< T >( src.int64_data( valueIndex ) );
+					buffer[valueIndex] = static_cast<T>( src.int64_data( valueIndex ) );
 				}
 			}
 			break;

@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Unsqueeze operator graph node
 class CUnsqueezeNode : public COpNode {
 public:
 	CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze, int opsetVersion );

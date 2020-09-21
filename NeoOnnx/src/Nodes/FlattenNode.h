@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Flatten operator graph node
 class CFlattenNode : public COpNode {
 public:
 	CFlattenNode( int nodeIndex, const onnx::NodeProto& flatten, int opsetVersion );

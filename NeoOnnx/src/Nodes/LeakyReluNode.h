@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// LeakyRelu operator graph node
 class CLeakyReluNode : public COpNode {
 public:
 	CLeakyReluNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );

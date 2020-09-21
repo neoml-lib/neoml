@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Gather operator graph node
 class CGatherNode : public COpNode {
 public:
 	CGatherNode( int nodeIndex, const onnx::NodeProto& gather, int opsetVersion );

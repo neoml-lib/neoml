@@ -19,6 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Constant operator graph node
 class CConstantNode : public COpNode {
 public:
 	CConstantNode( int nodeIndex, const onnx::NodeProto& constant, int opsetVersion );
