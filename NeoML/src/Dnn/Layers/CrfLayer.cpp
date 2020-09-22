@@ -231,6 +231,26 @@ void CCrfCalculationLayer::LearnOnce()
 		outputDiffBlobs[O_LabelLogProb]->GetData(), outputDiffBlobs[O_LabelLogProb]->GetDataSize() );
 }
 
+CPtr<CDnnBlob> CCrfCalculationLayer::GetTransitions() const
+{
+	if( Transitions() == nullptr ) {
+		return nullptr;
+	}
+	return Transitions()->GetCopy();
+}
+
+void CCrfCalculationLayer::SetTransitions( const CPtr<CDnnBlob>& newWeights )
+{
+	if( newWeights == nullptr ) {
+		NeoAssert( Transitions() == nullptr || GetDnn() == nullptr );
+		Transitions() = nullptr;
+	} else if( Transitions() != nullptr && GetDnn() != nullptr ) {
+		Transitions()->CopyFrom( newWeights );
+	} else {
+		Transitions() = newWeights->GetCopy();
+	}
+}
+
 static const int CrfCalculationLayerVersion = 2001;
 
 void CCrfCalculationLayer::Serialize( CArchive& archive )
@@ -388,6 +408,36 @@ void CCrfLayer::SetDropoutRate(float newDropoutRate)
 	} else if(dropOutLayer != 0) {
 		dropOutLayer->SetDropoutRate(newDropoutRate);
 	}
+}
+
+CPtr<CDnnBlob> CCrfLayer::GetHiddenWeights() const
+{
+	return hiddenLayer->GetWeightsData();
+}
+
+void CCrfLayer::SetHiddenWeights( const CPtr<CDnnBlob>& newWeights )
+{
+	hiddenLayer->SetWeightsData( newWeights );
+}
+
+CPtr<CDnnBlob> CCrfLayer::GetFreeTerms() const
+{
+	return hiddenLayer->GetFreeTermData();
+}
+
+void CCrfLayer::SetFreeTerms( const CPtr<CDnnBlob>& newWeights )
+{
+	hiddenLayer->SetFreeTermData( newWeights );
+}
+
+CPtr<CDnnBlob> CCrfLayer::GetTransitions() const
+{
+	return calculator->GetTransitions();
+}
+
+void CCrfLayer::SetTransitions( const CPtr<CDnnBlob>& newWeights )
+{
+	calculator->SetTransitions( newWeights );
 }
 
 static const int CrfLayerVersion = 2000;
