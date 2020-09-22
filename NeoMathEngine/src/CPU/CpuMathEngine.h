@@ -520,13 +520,11 @@ private:
 		int inputBatch, int outputRowStart, int outputRowCount, float* tempBlob );
 	void transposeResult( const CCpuConvolutionDesc& desc, const float* outputTransposedData,
 		int batch, int resultStart, int resultCount, float* result );
-	void fillTempDataPadding0Dilation1( const float* sourceData, float* tempData, const CCpuConvolutionDesc& desc, int start, int count );
 	void fillTempData( const float* sourceData, float* filterData, const CCpuConvolutionDesc& desc, int start, int count );
 	void blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc, const float* sourceData,
 		const float* filterData, const CFloatHandle* freeTermData, float* resultData );
-	void blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc,
-		const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTerm,
-		const CFloatHandle& resultData );
+	void blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc, const float* sourceData,
+		const float* filterData, const CFloatHandle* freeTermData, float* resultData );
 	void backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
 		const CFloatHandle* freeTerm, const CFloatHandle& output );
 	void backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,

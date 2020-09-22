@@ -215,15 +215,15 @@ void CCpuMathEngine::SumMatrixRowsAdd(int batchSize,
 void CCpuMathEngine::findMaxValueInColumns( float* resultHandle, const float* matrixHandle,
 	int matrixHeight, int matrixWidth )
 {
-	if(matrixHeight == 1) {
-		dataCopy(resultHandle, matrixHandle, matrixWidth);
+	if( matrixHeight == 1 ) {
+		dataCopy( resultHandle, matrixHandle, matrixWidth );
 		return;
 	}
 
 	const float* nextRow = matrixHandle + matrixWidth;
 	vectorEltwiseMax( matrixHandle, nextRow, resultHandle, matrixWidth );
 
-	for(int i = 2; i < matrixHeight; ++i) {
+	for( int i = 2; i < matrixHeight; ++i ) {
 		nextRow += matrixWidth;
 		vectorEltwiseMax( resultHandle, nextRow, resultHandle, matrixWidth );
 	}

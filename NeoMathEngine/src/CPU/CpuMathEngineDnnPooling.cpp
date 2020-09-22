@@ -81,22 +81,6 @@ void CCpuMathEngine::blobMaxPoolingWithIndices( const CCommonMaxPoolingDesc& des
 	}
 }
 
-static inline void findMaxValueInColumns( float* resultHandle, const float* matrixHandle, int matrixHeight, int matrixWidth)
-{
-	if( matrixHeight == 1 ) {
-		dataCopy( resultHandle, matrixHandle, matrixWidth );
-		return;
-	}
-
-	const float* nextRow = matrixHandle + matrixWidth;
-	vectorEltwiseMax(matrixHandle, nextRow, resultHandle, matrixWidth);
-
-	for( int i = 2; i < matrixHeight; ++i ) {
-		nextRow += matrixWidth;
-		vectorEltwiseMax(resultHandle, nextRow, resultHandle, matrixWidth);
-	}
-}
-
 void CCpuMathEngine::blobMaxPoolingWithoutIndices( const CCommonMaxPoolingDesc& desc,
 	const float* sourceData, float* resultData )
 {
@@ -116,12 +100,12 @@ void CCpuMathEngine::blobMaxPoolingWithoutIndices( const CCommonMaxPoolingDesc& 
 		for( int j = 0; j < result.Height(); j++ ) {
 			// Calculate maximums in columns over a strip of the window height
 			const float* currentStripStart = inputPtr + inputRowSize * desc.StrideHeight * j;
-			NeoML::findMaxValueInColumns( bufferPtr, currentStripStart,
+			findMaxValueInColumns( bufferPtr, currentStripStart,
 				desc.FilterHeight, inputRowSize );
 			// Calculate maximum over the window
 			const float* currentbufferStart = bufferPtr;
 			for( int k = 0; k < result.Width(); k++ ) {
-				NeoML::findMaxValueInColumns( outputPtr, currentbufferStart, desc.FilterWidth, channels );
+				findMaxValueInColumns( outputPtr, currentbufferStart, desc.FilterWidth, channels );
 				currentbufferStart += windowStep;
 				outputPtr += channels;
 			}
