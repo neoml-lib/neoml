@@ -132,6 +132,10 @@ inline void vectorFill0( float* result, int vectorSize )
 		result += 4;
 		sseSize--;
 	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = 0;
+	}
 }
 
 inline void vectorEltwiseMax( const float* first, const float* second, float* result, int vectorSize )

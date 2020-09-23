@@ -72,6 +72,7 @@ void CCpuMathEngine::blobMaxPoolingWithIndices( const CCommonMaxPoolingDesc& des
 					// Calculate the maximum element's index. It is the sum of the current strip offset, 
 					// the number of the row in the strip, the window offset and the number of the column in the window
 					*maxIndicesPtr = ( currentStripRow + rowIndexBuffer[windowIndex] ) * inputRowSize + currentWindowColumn + windowIndex;
+					++maxIndicesPtr;
 				}
 				currentbufferStart += windowStep;
 				currentWindowColumn += windowStep;
