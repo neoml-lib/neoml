@@ -59,7 +59,6 @@ void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, 
 
 	const float* sourceDataRaw = GetRaw( sourceData );
 	const float* filterDataRaw = GetRaw( filterData );
-	const float* freeTermDataRaw = GetRaw( freeTermData );
 	float* resultDataRaw = GetRaw( resultData );
 
 	const CCommonTimeConvolutionDesc& desc = static_cast<const CCommonTimeConvolutionDesc&>( convDesc );
