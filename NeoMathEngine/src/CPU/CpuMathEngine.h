@@ -459,7 +459,7 @@ private:
 	void blob3dConvolutionBackward( const CCommon3dConvolutionDesc& desc, const float* sourceData,
 		const CFloatHandle& filterData, const CFloatHandle* freeTermData, float* resultData );
 	void blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& desc,
-		const float* inputData, const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData,
+		const float* inputData, const float* outputDiffData, const CFloatHandle& filterDiffData,
 		const CFloatHandle* freeTermDiffData, bool isFreeTermDiffFromInput );
 	void blob3dConvolutionPrepareInput( const CCommon3dConvolutionDesc& desc, float* inputPreparedData,
 		const float* inputBlobData, int inputObject, int outputHeight, int outputWidthExStart, int outputWidthExCount );
@@ -509,9 +509,9 @@ private:
 	template<class T>
 	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 
-	template<class T>
-	void transposeMatrixImpl( int batchSize, const CTypedMemoryHandle<const T>& firstHandle,
-		int height, int medium, int width, int channels, const CTypedMemoryHandle<T>& resultHandle, int resultBufferSize );
+	template<typename T>
+	void transposeMatrixImpl( int batchSize, const T* firstHandle,
+		int height, int medium, int width, int channels, T* resultHandle, int resultBufferSize );
 	void createDilationTemporaryBlob( const CCpuConvolutionDesc& desc, const float* inputBlob, int inputBatch,
 		int outputColumnStart, int outputColumnCount, float* temporaryBlob );
 	template<class TConvolutionDesc>

@@ -45,7 +45,133 @@ static void subVectorFromMatrixRows(CCpuMathEngine* engine, const CConstFloatHan
 		matrix += matrixWidth;
 		result += matrixWidth;
 	}
+}
 
+static inline void batchTransposePlainMatrix( int batchSize, const float* first,
+	int height, int width, float* result, int )
+{
+	int objectSize = height * width;
+	int firstRowSize = width;
+	int resultRowSize = height;
+
+	int height4 = GetCount4( height );
+	int width4 = GetCount4( width );
+
+	CMatrixBlock4x4 block;
+
+	for( int b = 0; b < batchSize; ++b ) {
+		const float* firstStart = first;
+		float* resultStart = result;
+		for( int j = 0; j < height4; ++j ) {
+			const float* firstData = firstStart;
+			float* resultData = resultStart;
+			for( int i = 0; i < width4; ++i ) {
+				block.Load4x4( firstData, firstRowSize );
+				block.Transpose();
+				block.Store4x4( resultData, resultRowSize );
+
+				firstData += 4;
+				resultData += resultRowSize * 4;
+			}
+
+			if( width > 0 ) {
+				block.Load4xX( firstData, width, firstRowSize );
+				block.Transpose();
+				block.StoreYx4( resultData, width, resultRowSize );
+			}
+
+			firstStart += firstRowSize * 4;
+			resultStart += 4;
+		}
+
+		if( height > 0 ) {
+			const float* firstData = firstStart;
+			float* resultData = resultStart;
+			for( int i = 0; i < width4; ++i ) {
+				block.LoadYx4( firstData, height, firstRowSize );
+				block.Transpose();
+				block.Store4xX( resultData, height, resultRowSize );
+
+				firstData += 4;
+				resultData += resultRowSize * 4;
+			}
+
+			if( width > 0 ) {
+				block.LoadYxX( firstData, height, width, firstRowSize );
+				block.Transpose();
+				block.StoreYxX( resultData, width, height, resultRowSize );
+			}
+
+			firstStart += firstRowSize * 4;
+			resultStart += 4;
+		}
+
+		first += objectSize;
+		result += objectSize;
+	}
+}
+
+template<class T>
+void CCpuMathEngine::transposeMatrixImpl( int batchSize, const T* first,
+	int height, int medium, int width, int channels, T* result, int resultBufferSize )
+{
+	if( medium == 1 && channels == 1 ) {
+		static_assert( sizeof(float) == sizeof(T), "Size of float isn't equal to size of T." );
+		batchTransposePlainMatrix( batchSize, reinterpret_cast<const float*>( first ),
+			height, width, reinterpret_cast<float*>( result ), resultBufferSize );
+		return;
+	}
+
+	int objectSize = height * width * medium * channels;
+	ASSERT_EXPR( resultBufferSize >= batchSize * objectSize );
+
+	int resultRowSize = height * medium * channels;
+
+	for( int b = 0; b < batchSize; ++b ) {
+		T* resultColumnStart = result;
+		for( int j = 0; j < height; ++j ) {
+			T* resultMediumStart = resultColumnStart;
+			for( int m = 0; m < medium; ++m ) {
+				T* resultItem = resultMediumStart;
+				for( int i = 0; i < width; ++i ) {
+					dataCopy( resultItem, first, channels );
+					resultItem += resultRowSize;
+					first += channels;
+				}
+				resultMediumStart += channels * height;
+			}
+			resultColumnStart += channels;
+		}
+		result += objectSize;
+	}
+}
+
+void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& firstHandle,
+	int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int resultBufferSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	transposeMatrixImpl( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ), resultBufferSize );
+}
+
+void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firstHandle,
+	int height, int medium, int width, int channels, const CIntHandle& resultHandle, int resultBufferSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	transposeMatrixImpl( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ), resultBufferSize );
+}
+
+void CCpuMathEngine::addVectorToMatrixRows( const float* matrix, float* result,
+	int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector)
+{
+	for(int i = 0; i < matrixHeight; i++) {
+		vectorAdd( matrix, vector, result, matrixWidth );
+		matrix += matrixRowSize;
+		result += resultRowSize;
+	}
 }
 
 void CCpuMathEngine::SetVectorToMatrixRows( const CFloatHandle& resultHandle,
@@ -59,7 +185,6 @@ void CCpuMathEngine::SetVectorToMatrixRows( const CFloatHandle& resultHandle,
 		VectorCopy( result + i * matrixWidth, vectorHandle, matrixWidth );
 	}
 }
-
 
 void CCpuMathEngine::setVectorToMatrixRows( float* result,
 	int matrixHeight, int matrixWidth, const float* vector)

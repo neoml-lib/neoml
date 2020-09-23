@@ -39,6 +39,14 @@ namespace NeoML {
 #define FLT_MIN_LOG -87.33654474f
 #define FLT_MAX_LOG 88.f
 
+// Split the vector length into registers of 4 elements each + the remainder
+inline int GetCount4(int& size)
+{
+	int ret = size / 4;
+	size %= 4;
+	return ret;
+}
+
 // Exponent with limitations to avoid NaN
 inline float ExponentFunc(float f)
 {
