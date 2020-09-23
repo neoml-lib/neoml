@@ -46,6 +46,7 @@ void CCpuMathEngine::blobMaxPoolingWithIndices( const CCommonMaxPoolingDesc& des
 	const int windowStep = desc.StrideWidth * channels;
 
 	CFloatHandleStackVar buffer( *this, inputRowSize );
+	float* bufferRaw = GetRaw( buffer.GetHandle() );
 	CIntHandleStackVar rowIndexBlob( *this, inputRowSize );
 	int* rowIndexBuffer = GetRaw( rowIndexBlob.GetHandle() );
 	CIntHandleStackVar columnIndexBlob( *this, channels );
@@ -59,10 +60,10 @@ void CCpuMathEngine::blobMaxPoolingWithIndices( const CCommonMaxPoolingDesc& des
 			// Calculate maximums in columns over a strip of the window height
 			int currentStripRow = desc.StrideHeight * j;
 			const float* currentStripStart = inputPtr + currentStripRow * inputRowSize;
-			findMaxValueInColumns( GetRaw( buffer.GetHandle() ), rowIndexBuffer, currentStripStart,
+			findMaxValueInColumns( bufferRaw, rowIndexBuffer, currentStripStart,
 				desc.FilterHeight, inputRowSize );
 			// Calculate maximum over each window
-			const float* currentbufferStart = GetRaw( buffer.GetHandle() );
+			const float* currentbufferStart = bufferRaw;
 			int currentWindowColumn = 0;
 			for( int k = 0; k < result.Width(); k++ ) {
 				findMaxValueInColumns( outputPtr, columnIndexBuffer, currentbufferStart,
@@ -121,12 +122,16 @@ void CCpuMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const C
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 
+	const float* sourceDataRaw = GetRaw( sourceData );
+	int* maxIndicesDataRaw = maxIndicesData == nullptr ? nullptr : GetRaw( *maxIndicesData );
+	float* resultDataRaw = GetRaw( resultData );
+
 	const CCommonMaxPoolingDesc& desc = static_cast<const CCommonMaxPoolingDesc&>( poolingDesc );
 
-	if( maxIndicesData != 0 ) {
-		blobMaxPoolingWithIndices( desc, GetRaw( sourceData ), GetRaw( *maxIndicesData ), GetRaw( resultData ) );
+	if( maxIndicesData != nullptr ) {
+		blobMaxPoolingWithIndices( desc, sourceDataRaw, maxIndicesDataRaw, resultDataRaw );
 	} else {
-		blobMaxPoolingWithoutIndices( desc, GetRaw( sourceData ), GetRaw( resultData ) );
+		blobMaxPoolingWithoutIndices( desc, sourceDataRaw, resultDataRaw );
 	}
 }
 
@@ -258,13 +263,17 @@ void CCpuMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePooli
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 
+	const float* sourceDataRaw = GetRaw( sourceData );
+	int* maxIndicesDataRaw = maxIndicesData == nullptr ? nullptr : GetRaw( *maxIndicesData );
+	float* resultDataRaw = GetRaw( resultData );
+
 	const CCommonGlobalMaxOverTimePoolingDesc& desc = static_cast<const CCommonGlobalMaxOverTimePoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
 
 	if( maxIndicesData != 0 ) {
-		findMaxValueInColumns( GetRaw( resultData ), GetRaw( *maxIndicesData ), GetRaw( sourceData ), source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
+		findMaxValueInColumns( resultDataRaw, maxIndicesDataRaw, sourceDataRaw, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
 	} else {
-		findMaxValueInColumns( GetRaw( resultData ), GetRaw( sourceData ), source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
+		findMaxValueInColumns( resultDataRaw, sourceDataRaw, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
 	}
 }
 
@@ -284,7 +293,7 @@ void CCpuMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverT
 	const float* outputPtr = GetRaw( sourceData );
 	float* inputPtr = GetRaw( resultData );
 
-	VectorFill( resultData, 0, result.BlobSize() );
+	vectorFill0( inputPtr, result.BlobSize() );
 
 	for( int i = 0; i < objectSize; ++i ) {
 		inputPtr[i + objectSize * *maxIndicesPtr++] = *outputPtr++;
@@ -310,18 +319,19 @@ void CCpuMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& 
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
 
+	const float* outputDiffPtr = GetRaw( outputDiffData );
+	const int* maxIndexPtr = GetRaw( maxIndicesData );
+	float* inputDiffPtr = GetRaw( inputDiffData );
+
 	const CCommonGlobalMaxPoolingDesc& desc = static_cast<const CCommonGlobalMaxPoolingDesc&>( poolingDesc );
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
 
-	VectorFill( inputDiffData, 0, inputDiff.BlobSize() );
+	vectorFill0( inputDiffPtr, inputDiff.BlobSize() );
 
 	int poolSize = inputDiff.Height() * inputDiff.Width() * inputDiff.Depth();
 	int maxCount = outputDiff.Height() * outputDiff.Width() * outputDiff.Depth();
 
-	const float* outputDiffPtr = GetRaw( outputDiffData );
-	const int* maxIndexPtr = GetRaw( maxIndicesData );
-	float* inputDiffPtr = GetRaw( inputDiffData );
 	int objectSize = poolSize * inputDiff.Channels();
 
 	for( int b = 0; b < inputDiff.ObjectCount(); ++b ) {
@@ -361,14 +371,15 @@ void CCpuMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& poolingD
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
 
+	const float* outputDiffPtr = GetRaw( outputDiffData );
+	float* inputDiffPtr = GetRaw( inputDiffData );
+	const int* indexPtr = GetRaw( maxIndicesData );
+
 	const CCommon3dMaxPoolingDesc& desc = static_cast<const CCommon3dMaxPoolingDesc&>( poolingDesc );
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
 
-	VectorFill( inputDiffData, 0, inputDiff.BlobSize() );
-	const float* outputDiffPtr = GetRaw( outputDiffData );
-	float* inputDiffPtr = GetRaw( inputDiffData );
-	const int* indexPtr = GetRaw( maxIndicesData );
+	vectorFill0( inputDiffPtr, inputDiff.BlobSize() );
 
 	int inputObjectSize = inputDiff.ObjectSize();
 	int outputGeomSize = outputDiff.GeometricalSize();
@@ -418,17 +429,17 @@ void CCpuMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDe
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
 
+	const float* outputDiffDataPtr = GetRaw( outputDiffData );
+	const int* indexDataPtr = GetRaw( maxIndicesData );
+	float* inputDiffPtr = GetRaw( inputDiffData );
+
 	const CCommonMaxOverTimePoolingDesc& desc = static_cast<const CCommonMaxOverTimePoolingDesc&>( poolingDesc );
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
 
 	int seqElemSize = inputDiff.ObjectSize() * inputDiff.BatchWidth();
 
-	VectorFill( inputDiffData, 0, inputDiff.BlobSize() );
-
-	const float* outputDiffDataPtr = GetRaw( outputDiffData );
-	const int* indexDataPtr = GetRaw( maxIndicesData );
-	float* inputDiffPtr = GetRaw( inputDiffData );
+	vectorFill0( inputDiffPtr, inputDiff.BlobSize() );
 
 	for( int l = 0; l < outputDiff.BatchLength(); ++l ) {
 		for( int i = 0; i < seqElemSize; ++i ) {

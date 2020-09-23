@@ -407,7 +407,7 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
 	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 
-	if( freeTermDiffData != 0 ) {
+	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, desc.Filter.ObjectCount() ) );
 		freeTermDiffReduction.reset( new COmpReduction<COmpReduction1DData>( curThreadCount, *freeTermDiffItem ) );
 	}
@@ -425,6 +425,10 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 		int imageStartPos = ( input.Width() - inputImage->Width ) / 2;
 		int imageStartLine = ( input.Height() - inputImage->Height ) / 2;
 		int imageStopLine = imageStartLine + inputImage->Height;
+
+		float* filterDiffReductionPrivatePtr = GetRaw( filterDiffReduction.GetPrivate().Data );
+		float* freeTermDiffReductionPrivatePtr = freeTermDiffData == nullptr ? nullptr :
+			GetRaw( freeTermDiffReduction->GetPrivate().Data );
 
 		const CRleStroke* inputDataPtr = inputImage->Lines;
 		const float* outputDiffDataPtr = outputDiffDataRaw + outputDiff.ObjectSize() * b;
@@ -454,7 +458,7 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 				for( int outRow = firstJFilter; outRow < lastJFilter; ++outRow ) {
 					// The index of the filter row that goes over the current input row
 					const int filterRow = lineNumber - strideHeight * outRow;
-					float* currFilterDiff = GetRaw( filterDiffReduction.GetPrivate().Data ) + filterRow * filterWidth * filterCount;
+					float* currFilterDiff = filterDiffReductionPrivatePtr + filterRow * filterWidth * filterCount;
 					for( int filterCol = 0; filterCol < filterWidth; ++filterCol ) {
 						float* mult = multsPtr + OmpGetThreadNum();
 						*mult = ( ( ( 1ULL << filterCol ) & line ) != 0 ) ? strokeValue : nonStrokeValue;
@@ -467,11 +471,11 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 			}
 		}
 
-		if( freeTermDiffData != 0 ) {
+		if( freeTermDiffData != nullptr ) {
 			// Calculate diff separately for the free terms
 			for( int j = 0; j < outputDiff.Height(); ++j ) {
 				for( int k = 0; k < outputDiff.Width(); ++k ) {
-					alignedVectorAdd( GetRaw( freeTermDiffReduction->GetPrivate().Data ), outputDiffDataPtr, filterCount );
+					alignedVectorAdd( freeTermDiffReductionPrivatePtr, outputDiffDataPtr, filterCount );
 					outputDiffDataPtr += filterCount;
 				}
 			}

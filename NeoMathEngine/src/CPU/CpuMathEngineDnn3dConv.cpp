@@ -30,6 +30,8 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 	const float* outputDiffData, const float* filterData, const CFloatHandle* freeTermData,
 	float* inputDiffData )
 {
+	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
 
@@ -61,12 +63,12 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 			float* resultData = resultBlobData + batchStart * resultBlob.ObjectSize();
 			float* inputDiffDataPtr = inputDiffData + batchStart * inputDiff.ObjectSize();
 
-			if( freeTermData != 0 ) {
+			if( freeTermData != nullptr ) {
 				setVectorToMatrixRows( inputDiffDataPtr, batchCount * inputDiff.GeometricalSize(),
-					inputDiff.Channels(), GetRaw( *freeTermData ) );
+					inputDiff.Channels(), freeTermDataRaw );
 			}
 
-			if( isRepackNeeded || freeTermData == 0 ) {
+			if( isRepackNeeded || freeTermData == nullptr ) {
 				multiplyMatrixByMatrix( outputDiffData + batchStart * outputDiff.ObjectSize(),
 					batchCount * outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
 					filterData, resultBlob.Channels(), resultBlob.Channels(),
@@ -84,8 +86,8 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 				int inputRowSize = inputColSize * inputDiff.Width();
 				int inputObjSize = inputRowSize * inputDiff.Height();
 
-				if( freeTermData == 0 ) {
-					vectorFill( inputDiffDataPtr, 0, inputObjSize * batchCount );
+				if( freeTermData == nullptr ) {
+					vectorFill0( inputDiffDataPtr, inputObjSize * batchCount );
 				}
 
 				for( int b = 0; b < batchCount; ++b ) {
@@ -134,16 +136,16 @@ void CCpuMathEngine::blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionD
 		inputBlobData = inputBlobHolder.GetHandle();
 
 		// Repack the input
-		CConstFloatHandle inputDataPtr = inputData;
-		CFloatHandle inputBlobDataPtr = inputBlobData;
+		const float* inputDataPtr = GetRaw( inputData );
+		float* inputBlobDataPtr = GetRaw( inputBlobData );
 		for( int b = 0; b < inputBlob.ObjectCount(); ++b ) {
-			CConstFloatHandle inputRowData = inputDataPtr;
+			const float* inputRowData = inputDataPtr;
 			for( int j = 0; j < inputBlob.Height(); ++j ) {
-				CConstFloatHandle inputColData = inputRowData;
+				const float* inputColData = inputRowData;
 				for( int i = 0; i < inputBlob.Width(); ++i ) {
-					CConstFloatHandle inputPixelData = inputColData;
+					const float* inputPixelData = inputColData;
 					for( int k = 0; k < inputBlob.Depth(); ++k ) {
-						vectorCopy( GetRaw( inputBlobDataPtr ), GetRaw( inputPixelData ), input.Channels() );
+						vectorCopy( inputBlobDataPtr, inputPixelData, input.Channels() );
 						inputBlobDataPtr += input.Channels();
 						inputPixelData += input.Channels() * desc.StrideDepth;
 					}
@@ -285,6 +287,8 @@ void CCpuMathEngine::blob3dConvolutionPrepareInput( const CCommon3dConvolutionDe
 void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, const float* sourceData,
 	const float* filterData, const CFloatHandle* freeTermData, float* resultData )
 {
+	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
 	const CBlobDesc& filter = desc.Filter;
@@ -331,9 +335,9 @@ void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, co
 					preparedWidth * source.Channels(), filterData, filter.BatchWidth(), preparedWidth * source.Channels(),
 					outputTemp, filter.BatchWidth(), outputCount * result.Height() * result.Channels() );
 
-				if( freeTermData != 0 ) {
+				if( freeTermData != nullptr ) {
 					addVectorToMatrixRows( outputTemp, outputTemp, outputTempGeometricalSize, result.Channels(),
-						result.Channels(), result.Channels(), GetRaw( *freeTermData ) );
+						result.Channels(), result.Channels(), freeTermDataRaw );
 				}
 
 				// Transpose outputTemp to a part of result
@@ -377,6 +381,8 @@ void CCpuMathEngine::sumMatrixRowsAdd( float* result, const float* matrix,
 void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& desc, const float* sourceData,
 	const CFloatHandle& filterData, const CFloatHandle* freeTermData, float* resultData )
 {
+	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+
 	const CBlobDesc& source = desc.Result;
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& result = desc.Source;
@@ -440,9 +446,9 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 				float* outputData = resultData + step * outputRowSize;
 
 				// Set the free term
-				if( freeTermData != 0 ) {
+				if( freeTermData != nullptr ) {
 					setVectorToMatrixRows( outputData, result.Width() * result.Depth(),
-						result.Channels(), GetRaw( *freeTermData ) );
+						result.Channels(), freeTermDataRaw );
 				}
 
 				int batch = step / result.Height();
@@ -533,7 +539,6 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
 
 	COmpPrivate1DData inputPreparedTemp( curThreadCount, mathEngine(), inputPreparedTempSize );
-	float* inputPreparedDataPtr = GetRaw( inputPreparedTemp.GetPrivateData() );
 	COmpPrivate1DData outputTemp( curThreadCount, mathEngine(), outputTempSize );
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffData, desc.Filter.BlobSize() );
 	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
@@ -541,7 +546,7 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
 	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 	
-	if( freeTermDiffData != 0 ) {
+	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, freeTermDiffSize ) );
 		freeTermDiffReduction.reset( new COmpReduction<COmpReduction1DData>( curThreadCount, *freeTermDiffItem ) );
 	}
@@ -549,6 +554,8 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 		for( int b = 0; b < objectCount; ++b ) {
 			CConstFloatHandle outputDiffDataPtr = outputDiffData + b * outputDiff.ObjectSize();
+			float* inputPreparedDataPtr = GetRaw( inputPreparedTemp.GetPrivateData() );
+			float* filterDiffReductionDataPtr = GetRaw( filterDiffReduction.GetPrivate().Data );
 
 			blob3dConvolutionPrepareInput( desc, inputPreparedDataPtr, inputData, b,
 				outputDiff.Height(), 0, outputDiff.Width() * outputDiff.Depth() );
@@ -561,15 +568,16 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 			multiplyTransposedMatrixByMatrixAndAdd( GetRaw( outputTemp.GetPrivateData() ),
 				outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
 				inputPreparedDataPtr, filterDiff.GeometricalSize() * input.Channels(), filterDiff.GeometricalSize() * input.Channels(),
-				GetRaw( filterDiffReduction.GetPrivate().Data ), filterDiff.GeometricalSize() * input.Channels(), filterDiffReduction.GetPrivate().Size );
+				filterDiffReductionDataPtr, filterDiff.GeometricalSize() * input.Channels(), filterDiffReduction.GetPrivate().Size );
 
-			if( freeTermDiffData != 0 ) {
+			if( freeTermDiffData != nullptr ) {
 				// Free term diff
+				float* freeTermDiffReductionDataPtr = GetRaw( freeTermDiffReduction->GetPrivate().Data );
 				if( isFreeTermDiffFromInput ) {
-					sumMatrixRowsAdd( GetRaw( freeTermDiffReduction->GetPrivate().Data ),
+					sumMatrixRowsAdd( freeTermDiffReductionDataPtr,
 						inputData + b * input.ObjectSize(), input.GeometricalSize(), input.Channels() );
 				} else {
-					sumMatrixRowsAdd( GetRaw( freeTermDiffReduction->GetPrivate().Data ),
+					sumMatrixRowsAdd( freeTermDiffReductionDataPtr,
 						GetRaw( outputDiffDataPtr ), outputDiff.GeometricalSize(), outputDiff.Channels() );
 				}
 			}
@@ -599,13 +607,18 @@ void CCpuMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, cons
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData == 0 || freeTermData->GetMathEngine() == this );
 
+	const float* sourceDataRaw = GetRaw( sourceData );
+	const float* filterDataRaw = GetRaw( filterData );
+	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+	float* resultDataRaw = GetRaw( resultData );
+
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
 
 	if( desc.PaddingHeight == 0 && desc.PaddingWidth == 0 && desc.PaddingDepth == 0 && desc.Filter.ObjectSize() == desc.Filter.Channels() ) {
 		blob3dConvolution1x1x1( desc.Source, desc.Filter, desc.Result, desc.StrideHeight, desc.StrideWidth, desc.StrideDepth,
-			GetRaw( sourceData ), GetRaw( filterData ), freeTermData != 0 ? GetRaw( *freeTermData ) : 0, GetRaw( resultData ) );
+			sourceDataRaw, filterDataRaw, freeTermDataRaw, resultDataRaw );
 	} else {
-		blob3dConvolution( desc, GetRaw( sourceData ), GetRaw( filterData ), freeTermData, GetRaw( resultData ) );
+		blob3dConvolution( desc, sourceDataRaw, filterDataRaw, freeTermData, resultDataRaw );
 	}
 }
 
@@ -617,12 +630,16 @@ void CCpuMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDe
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData == 0 || freeTermData->GetMathEngine() == this );
 
+	const float* sourceDataRaw = GetRaw( sourceData );
+	const float* filterDataRaw = GetRaw( filterData );
+	float* resultDataRaw = GetRaw( resultData );
+
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
 
 	if( desc.PaddingHeight == 0 && desc.PaddingWidth == 0 && desc.PaddingDepth == 0 && desc.Filter.ObjectSize() == desc.Filter.Channels() ) {
-		blob3dConvolution1x1x1Backward( desc, GetRaw( sourceData ), GetRaw( filterData ), freeTermData, GetRaw( resultData ) );
+		blob3dConvolution1x1x1Backward( desc, sourceDataRaw, filterDataRaw, freeTermData, resultDataRaw );
 	} else {
-		blob3dConvolutionBackward( desc, GetRaw( sourceData ), filterData, freeTermData, GetRaw( resultData ) );
+		blob3dConvolutionBackward( desc, sourceDataRaw, filterData, freeTermData, resultDataRaw );
 	}
 }
 
