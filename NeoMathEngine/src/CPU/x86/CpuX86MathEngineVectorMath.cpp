@@ -49,13 +49,6 @@ void CCpuMathEngine::VectorFill( const CFloatHandle& result, float value, int ve
 	vectorFill( GetRaw( result ), value, vectorSize );
 }
 
-void CCpuMathEngine::vectorFill( float* result, float value, int vectorSize )
-{
-	static_assert( sizeof( float ) == sizeof( unsigned int ), "Size of float isn't equal to size of unsigned int." );
-
-	NeoML::vectorFill( result, value, vectorSize );
-}
-
 void CCpuMathEngine::VectorFill( const CIntHandle& resultHandle, int value, int vectorSize )
 {
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
@@ -577,22 +570,7 @@ void CCpuMathEngine::VectorEltwiseMax(const CConstFloatHandle& firstHandle,
 	const float* second = GetRaw(secondHandle);
 	float* result = GetRaw(resultHandle);
 
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	for(int i = 0; i < sseSize; ++i) {
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result++ = max(*first, *second);
-		first++;
-		second++;
-	}
+	vectorEltwiseMax( first, second, result, vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseMin(const CConstFloatHandle& firstHandle,

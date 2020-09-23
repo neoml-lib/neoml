@@ -60,6 +60,16 @@ void CCpuMathEngine::SetVectorToMatrixRows( const CFloatHandle& resultHandle,
 	}
 }
 
+
+void CCpuMathEngine::setVectorToMatrixRows( float* result,
+	int matrixHeight, int matrixWidth, const float* vector)
+{
+	for(int i = 0; i < matrixHeight; i++) {
+		dataCopy( result, vector, matrixWidth );
+		result += matrixWidth;
+	}
+}
+
 void CCpuMathEngine::AddVectorToMatrixColumns(const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle)
 {

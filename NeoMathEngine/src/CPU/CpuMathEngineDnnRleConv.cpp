@@ -83,7 +83,7 @@ static inline void alignedVectorMultiplyAndAdd( const float* first, const float*
 	int sseSize = vectorSize / 4;
 #ifdef NEOML_USE_NEON
 	for(int i = 0; i < sseSize; ++i) {
-		StoreNeon4( vmlaq_n_f32(LoadNeon4(first), LoadNeon4(second), mult), result );
+		StoreNeon4( vmlaq_n_f32(LoadNeon4(first), LoadNeon4(second), *mult), result );
 		first += 4;
 		second += 4;
 		result += 4;

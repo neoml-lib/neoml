@@ -163,15 +163,6 @@ void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firs
 	transposeMatrixImpl( batchSize, firstHandle, height, medium, width, channels, resultHandle, resultBufferSize );
 }
 
-void CCpuMathEngine::setVectorToMatrixRows( float* result,
-	int matrixHeight, int matrixWidth, const float* vector)
-{
-	for(int i = 0; i < matrixHeight; i++) {
-		dataCopy( result, vector, matrixWidth );
-		result += matrixWidth;
-	}
-}
-
 void CCpuMathEngine::addVectorToMatrixRows( const float* matrix, float* result,
 	int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector)
 {

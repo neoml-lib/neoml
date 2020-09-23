@@ -102,6 +102,34 @@ inline void vectorFill( float* result, float value, int vectorSize )
 
 //------------------------------------------------------------------------------------------------------------
 
+inline void vectorFill0( float* result, int vectorSize )
+{
+	vectorFill( result, 0, vectorSize );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorEltwiseMax( const float* first, const float* second, float* result, int vectorSize )
+{
+	int count = GetCount4(vectorSize);
+
+	for( int i = 0; i < count; ++i ) {
+		float32x4_t res = vmaxq_f32(LoadNeon4(first), LoadNeon4(second));
+		StoreNeon4(res, result);
+
+		first += 4;
+		second += 4;
+		result += 4;
+	}
+
+	if( vectorSize > 0 ) {
+		float32x4_t res = vmaxq_f32(LoadNeon(first, vectorSize), LoadNeon(second, vectorSize));
+		StoreNeon(res, result, vectorSize);
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 inline void vectorAdd( const float* first, const float* second, float* result, int vectorSize )
 {
 	int coord = 0;

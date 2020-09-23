@@ -320,7 +320,6 @@ static inline void calcPaddings( const CCpuConvolutionDesc& desc, int width, int
 
 void CCpuMathEngine::fillTempData( const float* sourceData, float* tempData, const CCpuConvolutionDesc& desc, int start, int count )
 {
-	//printf( "\n\n\t\t\tCOMMON FUNC\n\n" );
 	const int channelsCount = desc.Filter.Depth() * desc.Filter.Channels();
 	const int filterLineSize = desc.Filter.Width() * channelsCount;
 	const int resultG = desc.Result.Width() * desc.Result.Height();
