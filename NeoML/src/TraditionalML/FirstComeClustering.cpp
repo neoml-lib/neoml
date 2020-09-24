@@ -136,7 +136,7 @@ void CFirstComeClustering::processVector( const CSparseFloatMatrixDesc& matrix, 
 void CFirstComeClustering::deleteTinyClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
 	CObjectArray<CCommonCluster>& clusters )
 {
-	int threshold = Round( init.MinClusterSizeRatio * matrix.Width );
+	int threshold = Round( init.MinClusterSizeRatio * matrix.Height );
 
 	NeoAssert( threshold <= matrix.Height ); // a cluster may not have more than the total number of elements
 
