@@ -123,7 +123,7 @@ void CCpuMathEngine::transposeMatrixImpl( int batchSize, const T* first,
 	}
 
 	int objectSize = height * width * medium * channels;
-	ASSERT_EXPR( resultBufferSize >= batchSize * objectSize );
+	assert( resultBufferSize >= batchSize * objectSize );
 
 	int resultRowSize = height * medium * channels;
 
@@ -858,7 +858,7 @@ void CCpuMathEngine::batchMultiplyTransposedMatrixByMatrix( int batchSize,
 	const float* second, int secondWidth,
 	float* result, int resultBufferSize )
 {
-	ASSERT_EXPR( resultBufferSize >= batchSize * firstWidth * secondWidth );
+	assert( resultBufferSize >= batchSize * firstWidth * secondWidth );
 	
 	for( int b = 0; b < batchSize; ++b ) {
 		multiplyTransposedMatrixByMatrix( first, firstHeight, firstWidth, second, secondWidth,

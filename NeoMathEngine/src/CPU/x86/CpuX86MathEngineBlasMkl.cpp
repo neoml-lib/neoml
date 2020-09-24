@@ -48,10 +48,10 @@ void CCpuMathEngine::multiplyMatrixByMatrix( const float* first, int firstHeight
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
 	float* result, int resultRowSize, int resultBufferSize )
 {
-	ASSERT_EXPR( firstWidth <= firstRowSize );
-	ASSERT_EXPR( secondWidth <= secondRowSize );
-	ASSERT_EXPR( secondWidth <= resultRowSize );
-	ASSERT_EXPR( firstHeight * resultRowSize <= resultBufferSize );
+	assert( firstWidth <= firstRowSize );
+	assert( secondWidth <= secondRowSize );
+	assert( secondWidth <= resultRowSize );
+	assert( firstHeight * resultRowSize <= resultBufferSize );
 
 #ifdef NEOML_USE_MKL
 	cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasNoTrans, firstHeight, secondWidth, firstWidth,
@@ -67,9 +67,9 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int first
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
 	float* result, int resultRowSize, int resultBufferSize )
 {
-	ASSERT_EXPR( firstWidth <= firstRowSize );
-	ASSERT_EXPR( secondWidth <= resultRowSize );
-	ASSERT_EXPR( firstHeight * resultRowSize <= resultBufferSize);
+	assert( firstWidth <= firstRowSize );
+	assert( secondWidth <= resultRowSize );
+	assert( firstHeight * resultRowSize <= resultBufferSize);
 
 #ifdef NEOML_USE_MKL
 	cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasNoTrans, firstHeight, secondWidth, firstWidth,
@@ -84,9 +84,9 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int fi
 	int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
 	float* result, int resultRowSize, int resultBufferSize)
 {
-	ASSERT_EXPR(firstWidth <= firstRowSize);
-	ASSERT_EXPR(firstWidth <= secondRowSize);
-	ASSERT_EXPR((firstHeight - 1) * resultRowSize + secondHeight <= resultBufferSize);
+	assert(firstWidth <= firstRowSize);
+	assert(firstWidth <= secondRowSize);
+	assert((firstHeight - 1) * resultRowSize + secondHeight <= resultBufferSize);
 
 #ifdef NEOML_USE_MKL
 	cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, firstHeight, secondHeight, firstWidth,
@@ -206,7 +206,7 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int fi
 	int firstWidth, const float* second, int secondWidth,
 	float* result, int resultBufferSize)
 {
-	ASSERT_EXPR(firstWidth * secondWidth <= resultBufferSize);
+	assert(firstWidth * secondWidth <= resultBufferSize);
 #ifdef NEOML_USE_MKL
 	cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, firstWidth, secondWidth, firstHeight,
 		1, first, firstWidth, second, secondWidth, 0, result, secondWidth);
@@ -225,10 +225,10 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd(const float* first,
 	const float* second, int secondWidth, int secondRowSize,
 	float* result, int resultRowSize, int resultBufferSize)
 {
-	ASSERT_EXPR(firstWidth <= firstRowSize);
-	ASSERT_EXPR(secondWidth <= secondRowSize);
-	ASSERT_EXPR(secondWidth <= resultRowSize);
-	ASSERT_EXPR((firstWidth - 1) * resultRowSize + secondWidth <= resultBufferSize);
+	assert(firstWidth <= firstRowSize);
+	assert(secondWidth <= secondRowSize);
+	assert(secondWidth <= resultRowSize);
+	assert((firstWidth - 1) * resultRowSize + secondWidth <= resultBufferSize);
 #ifdef NEOML_USE_MKL
 	cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, firstWidth, secondWidth, firstHeight,
 		1, first, firstRowSize, second, secondRowSize, 1, result, resultRowSize);

@@ -19,109 +19,13 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
-#ifdef NEOML_USE_SSE
-#include <CpuX86.h>
-#endif
-
 #include <CpuMathEngine.h>
 #include <CpuMathEnginePrivate.h>
 #include <CpuMathEngineOmp.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 
-#ifdef NEOML_USE_NEON
-#include <CpuArm.h>
-#endif
-
 namespace NeoML {
-
-// first += second
-// Only for aligned vectors with the length a multiple of 4
-static inline void alignedVectorAdd( float* first, const float* second, int vectorSize )
-{
-	int sseSize = vectorSize / 4;
-#ifdef NEOML_USE_NEON
-	for( int i = 0; i < sseSize; ++i ) {
-		StoreNeon4( vaddq_f32( LoadNeon4(first), LoadNeon4(second) ), first );
-		first += 4;
-		second += 4;
-	}
-#elif (defined NEOML_USE_SSE )
-	while( sseSize >= 4 ) {
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
-		first += 4;
-		second += 4;
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
-		first += 4;
-		second += 4;
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
-		first += 4;
-		second += 4;
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
-		first += 4;
-		second += 4;
-
-		sseSize -= 4;
-	}
-
-	while( sseSize > 0 ) {
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
-		first += 4;
-		second += 4;
-		sseSize--;
-	}
-#else
-#error Unsupported arch!
-#endif
-}
-
-// result = first + mult * second
-// Only for aligned vectors with the length a multiple of 4
-static inline void alignedVectorMultiplyAndAdd( const float* first, const float* second,
-	float* result, int vectorSize, const float* mult )
-{
-	int sseSize = vectorSize / 4;
-#ifdef NEOML_USE_NEON
-	for(int i = 0; i < sseSize; ++i) {
-		StoreNeon4( vmlaq_n_f32(LoadNeon4(first), LoadNeon4(second), *mult), result );
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-#elif (defined NEOML_USE_SSE)
-	__m128 multSse = _mm_set_ps1( *mult );
-	while( sseSize >= 4 ) {
-		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
-		first += 4;
-		second += 4;
-		result += 4;
-		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
-		first += 4;
-		second += 4;
-		result += 4;
-		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
-		first += 4;
-		second += 4;
-		result += 4;
-		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
-		first += 4;
-		second += 4;
-		result += 4;
-
-		sseSize -= 4;
-	}
-
-	while( sseSize > 0 ) {
-		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
-		first += 4;
-		second += 4;
-		result += 4;
-		sseSize--;
-	}
-#else
-#error Unsupported arch!
-#endif
-}
 
 // Finds the index of lowest nonzero bit
 static inline unsigned long leastSignificantBitIndex( int x )

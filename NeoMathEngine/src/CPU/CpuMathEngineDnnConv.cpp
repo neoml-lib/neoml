@@ -624,9 +624,9 @@ void CCpuMathEngine::backwardDilationConvolutionAddFilterToOutput( const CCpuCon
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& output = desc.Source;
 
-	ASSERT_EXPR( desc.DilationHeight >= 1 );
-	ASSERT_EXPR( desc.DilationWidth >= 1 );
-	ASSERT_EXPR( desc.DilationHeight + desc.DilationWidth > 2 );
+	assert( desc.DilationHeight >= 1 );
+	assert( desc.DilationWidth >= 1 );
+	assert( desc.DilationHeight + desc.DilationWidth > 2 );
 
 	const int vectorSize = output.Depth() * output.Channels();
 	int startRow;
@@ -780,12 +780,12 @@ void CCpuMathEngine::fillTempBlobsForLearnAlgo2( const CCpuConvolutionDesc& desc
 void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& desc, const CFloatHandle& outputDiffData,
 	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
 {
-	ASSERT_EXPR( desc.StrideHeight == 1 );
-	ASSERT_EXPR( desc.StrideWidth == 1 );
-	ASSERT_EXPR( desc.PaddingHeight == 0 );
-	ASSERT_EXPR( desc.PaddingWidth == 0 );
-	ASSERT_EXPR( desc.DilationHeight == 1 );
-	ASSERT_EXPR( desc.DilationWidth == 1 );
+	assert( desc.StrideHeight == 1 );
+	assert( desc.StrideWidth == 1 );
+	assert( desc.PaddingHeight == 0 );
+	assert( desc.PaddingWidth == 0 );
+	assert( desc.DilationHeight == 1 );
+	assert( desc.DilationWidth == 1 );
 
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& inputDiff = desc.Source;
@@ -887,8 +887,8 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 	const CBlobDesc& filterDiff = desc.Filter;
 	const CBlobDesc& outputDiff = desc.Result;
 	
-	ASSERT_EXPR( filterDiff.Depth() == input.Depth() );
-	ASSERT_EXPR( filterDiff.Channels() == input.Channels() );
+	assert( filterDiff.Depth() == input.Depth() );
+	assert( filterDiff.Channels() == input.Channels() );
 
 	const int objectCount = outputDiff.ObjectCount();
 	const int freeTermDiffSize = isFreeTermDiffFromInput ? filterDiff.Channels() : filterDiff.ObjectCount();
@@ -977,12 +977,12 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 	const CBlobDesc& outputDiff = desc.Result;
 	const CBlobDesc& filterDiff = desc.Filter;
 
-	ASSERT_EXPR( desc.StrideHeight == 1 );
-	ASSERT_EXPR( desc.StrideWidth == 1 );
-	ASSERT_EXPR( desc.PaddingHeight == 0 );
-	ASSERT_EXPR( desc.PaddingWidth == 0 );
-	ASSERT_EXPR( desc.DilationHeight == 1 );
-	ASSERT_EXPR( desc.DilationWidth == 1 );
+	assert( desc.StrideHeight == 1 );
+	assert( desc.StrideWidth == 1 );
+	assert( desc.PaddingHeight == 0 );
+	assert( desc.PaddingWidth == 0 );
+	assert( desc.DilationHeight == 1 );
+	assert( desc.DilationWidth == 1 );
 
 	CBlobDesc tempBlobDesc( CT_Float );
 	createTempBlobsLearnAlgo2( outputDiff, filterDiff, tempBlobDesc );

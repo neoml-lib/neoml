@@ -149,10 +149,15 @@ inline void dataCopy(float* dst, const float* src, int vectorSize)
 {
 	int count = GetCount4(vectorSize);
 
-	for(int i = 0; i < count; ++i) {
+	for( ; count >= 4; count -= 4, src += 16, dst += 16 ) {
+		StoreNeon4( LoadNeon4( src + 4 * 0 ), dst + 4 * 0);
+		StoreNeon4( LoadNeon4( src + 4 * 1 ), dst + 4 * 1);
+		StoreNeon4( LoadNeon4( src + 4 * 2 ), dst + 4 * 2);
+		StoreNeon4( LoadNeon4( src + 4 * 3 ), dst + 4 * 3);
+	}
+
+	for( ; count > 0; --count, src += 4, dst += 4 ) {
 		StoreNeon4(LoadNeon4(src), dst);
-		src += 4;
-		dst += 4;
 	}
 
 	for(int i = 0; i < vectorSize; ++i) {
@@ -164,10 +169,15 @@ inline void dataCopy(int* dst, const int* src, int vectorSize)
 {
 	int count = GetCount4(vectorSize);
 
-	for(int i = 0; i < count; ++i) {
+	for( ; count >= 4; count -= 4, src += 16, dst += 16 ) {
+		StoreIntNeon4( LoadIntNeon4( src + 4 * 0 ), dst + 4 * 0);
+		StoreIntNeon4( LoadIntNeon4( src + 4 * 1 ), dst + 4 * 1);
+		StoreIntNeon4( LoadIntNeon4( src + 4 * 2 ), dst + 4 * 2);
+		StoreIntNeon4( LoadIntNeon4( src + 4 * 3 ), dst + 4 * 3);
+	}
+
+	for( ; count > 0; --count, src += 4, dst += 4 ) {
 		StoreIntNeon4(LoadIntNeon4(src), dst);
-		src += 4;
-		dst += 4;
 	}
 
 	for(int i = 0; i < vectorSize; ++i) {

@@ -222,6 +222,71 @@ inline void vectorAdd(const float* first, const float* second, float* result, in
 
 //------------------------------------------------------------------------------------------------------------
 
+inline void alignedVectorAdd( float* first, const float* second, int vectorSize )
+{
+	int sseSize = vectorSize / 4;
+	while( sseSize >= 4 ) {
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		sseSize--;
+	}
+}
+
+inline void alignedVectorMultiplyAndAdd( const float* first, const float* second,
+	float* result, int vectorSize, const float* mult )
+{
+	int sseSize = vectorSize / 4;
+	__m128 multSse = _mm_set_ps1( *mult );
+	while( sseSize >= 4 ) {
+		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
+		first += 4;
+		second += 4;
+		result += 4;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
+		first += 4;
+		second += 4;
+		result += 4;
+		sseSize--;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
 {
 	int sseSize;

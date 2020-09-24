@@ -52,18 +52,7 @@ void CCpuMathEngine::VectorFill(const CIntHandle& result, int value, int vectorS
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
 
-	int count = GetCount4(vectorSize);
-	int* res = GetRaw(result);
-
-	int32x4_t val = vdupq_n_s32(value);
-	for(int i = 0; i < count; ++i) {
-		StoreIntNeon4(val, res);
-		res += 4;
-	}
-
-	for(int i = 0; i < vectorSize; ++i) {
-		*res++ = value;
-	}
+	vectorFill( GetRaw( result ), value, vectorSize );
 }
 
 void CCpuMathEngine::VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize,

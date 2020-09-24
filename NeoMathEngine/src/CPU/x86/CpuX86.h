@@ -374,6 +374,23 @@ inline void dataCopy(int* dst, const int* src, int vectorSize)
 	int nonSseSize;
 	checkSse2(vectorSize, sseSize, nonSseSize);
 
+	while( sseSize >= 4 ) {
+		_mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((__m128i*)src));
+		dst += 4;
+		src += 4;
+		_mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((__m128i*)src));
+		dst += 4;
+		src += 4;
+		_mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((__m128i*)src));
+		dst += 4;
+		src += 4;
+		_mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((__m128i*)src));
+		dst += 4;
+		src += 4;
+
+		sseSize -= 4;
+	}
+
 	for(int i = 0; i < sseSize; ++i) {
 		_mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((const __m128i*)src));
 		dst += 4;
