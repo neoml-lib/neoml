@@ -41,7 +41,7 @@ CPoolNodeBase::CPoolNodeBase( TPoolingType _poolingType, int nodeIndex, const on
 	CheckNeoOnnxSupport( kernelShape.Size() == 2, "non 2-dimensional max pooling", poolNode );
 }
 
-void CPoolNodeBase::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CPoolNodeBase::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	// Check input
 	const CTensor& inputTensor = tensors[Input[0]];
@@ -90,7 +90,7 @@ void CPoolNodeBase::LabelTensorDims( const CTensorCache& tensors, CDimCache& dim
 	}
 }
 
-void CPoolNodeBase::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CPoolNodeBase::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CPoolingLayer> pooling;

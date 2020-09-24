@@ -44,7 +44,7 @@ CGemmNode::CGemmNode( int nodeIndex, const onnx::NodeProto& gemm, int opsetVersi
 	CheckNeoOnnxSupport( transB != 0, "transB == 0", gemm );
 }
 
-void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", OnnxNode );
 	const CTensorShape& inputShape = tensors[Input[0]].Shape;

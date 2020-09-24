@@ -36,7 +36,7 @@ CBatchNormalizationNode::CBatchNormalizationNode( int nodeIndex, const onnx::Nod
 	CheckNeoOnnxSupport( OutputCount() == 1, "node must have 1 output", OnnxNode );
 }
 
-void CBatchNormalizationNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CBatchNormalizationNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
@@ -56,7 +56,7 @@ void CBatchNormalizationNode::LabelTensorDims( const CTensorCache& tensors, CDim
 	}
 }
 
-void CBatchNormalizationNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CBatchNormalizationNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CheckNeoOnnxInternal( dims[Input[0]][1] == BD_Channels,

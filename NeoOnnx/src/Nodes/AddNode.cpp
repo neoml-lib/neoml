@@ -34,7 +34,7 @@ CAddNode::CAddNode( int nodeIndex, const onnx::NodeProto& add, int opsetVersion 
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", add );
 }
 
-void CAddNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CAddNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	bool canBeCalculated = true;
 
@@ -76,7 +76,7 @@ void CAddNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CAddNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CAddNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	IMathEngine& mathEngine = dnn.GetMathEngine();

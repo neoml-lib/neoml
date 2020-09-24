@@ -38,7 +38,7 @@ CLstmNode::CLstmNode( int nodeIndex, const onnx::NodeProto& lstm, int opsetVersi
 	CheckNeoOnnxSupport( direction != "bidirectional", "bidirectional LSTM", lstm );
 }
 
-void CLstmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CLstmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", OnnxNode );
 	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant weight", OnnxNode );

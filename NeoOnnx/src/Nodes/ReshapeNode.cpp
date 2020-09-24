@@ -35,7 +35,7 @@ CReshapeNode::CReshapeNode( int nodeIndex, const onnx::NodeProto& reshape, int o
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", reshape );
 }
 
-void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant first input", OnnxNode );
 	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant second input", OnnxNode );
@@ -90,7 +90,7 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEn
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CReshapeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CReshapeNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	if( !hasRemainder && !hasFixedShape ) {

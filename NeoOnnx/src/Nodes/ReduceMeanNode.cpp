@@ -36,7 +36,7 @@ CReduceMeanNode::CReduceMeanNode( int nodeIndex, const onnx::NodeProto& reduceMe
 	Attributes.GetRequiredIntArray( "axes", axes );
 }
 
-void CReduceMeanNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CReduceMeanNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", OnnxNode );
 	const CTensorShape& inputShape = tensors[Input[0]].Shape;
@@ -83,7 +83,7 @@ void CReduceMeanNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& d
 		"labeling output dimensions failed", OnnxNode );
 }
 
-void CReduceMeanNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CReduceMeanNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CTensorDim dimsToPool;

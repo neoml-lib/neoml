@@ -33,7 +33,7 @@ CTanhNode::CTanhNode( int nodeIndex, const onnx::NodeProto& tanh, int opsetVersi
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", tanh );
 }
 
-void CTanhNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CTanhNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
@@ -53,7 +53,7 @@ void CTanhNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CTanhNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CTanhNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CTanhLayer> tanh = new CTanhLayer( dnn.GetMathEngine() );

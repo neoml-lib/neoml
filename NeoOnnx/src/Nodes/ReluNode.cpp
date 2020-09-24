@@ -33,7 +33,7 @@ CReluNode::CReluNode( int nodeIndex, const onnx::NodeProto& relu, int opsetVersi
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", relu );
 }
 
-void CReluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CReluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
@@ -53,7 +53,7 @@ void CReluNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CReluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CReluNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CReLULayer> relu = new CReLULayer( dnn.GetMathEngine() );

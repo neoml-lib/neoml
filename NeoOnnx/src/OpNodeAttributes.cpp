@@ -50,19 +50,20 @@ void extractValue<int>( const onnx::AttributeProto& attribute, int& value, const
 template<>
 void extractValue<float>( const onnx::AttributeProto& attribute, float& value, const onnx::NodeProto& onnxNode )
 {
-	CheckOnnxProtocol( attribute.has_f(), CString( "attribute " ) + attribute.name().c_str() + " is not a float" );
+	CheckOnnxProtocol( attribute.has_f(), CString( "attribute " ) + attribute.name().c_str() + " is not a float", onnxNode );
 	value = static_cast<float>( attribute.f() );
 }
 
 template<>
 void extractValue<CString>( const onnx::AttributeProto& attribute, CString& value, const onnx::NodeProto& onnxNode )
 {
-	CheckOnnxProtocol( attribute.has_s(), CString( "attribute " ) + attribute.name().c_str() + " is not a string" );
+	CheckOnnxProtocol( attribute.has_s(), CString( "attribute " ) + attribute.name().c_str() + " is not a string", onnxNode );
 	value = attribute.s().c_str();
 }
 
 template<>
-void extractValue<CArray<int>>( const onnx::AttributeProto& attribute, CArray<int>& value, const onnx::NodeProto& onnxNode )
+void extractValue<CArray<int>>( const onnx::AttributeProto& attribute, CArray<int>& value,
+	const onnx::NodeProto& /* onnxNode */ )
 {
 	value.Empty();
 	value.SetBufferSize( attribute.ints_size() );
@@ -73,7 +74,7 @@ void extractValue<CArray<int>>( const onnx::AttributeProto& attribute, CArray<in
 
 template<>
 void extractValue<CArray<int64_t>>( const onnx::AttributeProto& attribute, CArray<int64_t>& value,
-	const onnx::NodeProto& onnxNode )
+	const onnx::NodeProto& /* onnxNode */ )
 {
 	value.Empty();
 	value.SetBufferSize( attribute.ints_size() );
@@ -84,7 +85,7 @@ void extractValue<CArray<int64_t>>( const onnx::AttributeProto& attribute, CArra
 
 template<>
 void extractValue<CFastArray<int, 8>>( const onnx::AttributeProto& attribute, CFastArray<int, 8>& value,
-	const onnx::NodeProto& onnxNode )
+	const onnx::NodeProto& /* onnxNode */ )
 {
 	for( int64_t element : attribute.ints() ) {
 		value.Add( static_cast<int>( element ) );
@@ -95,7 +96,7 @@ template<>
 void extractValue<CPtr<CDnnBlob>>( const onnx::AttributeProto& attribute, CPtr<CDnnBlob>& value,
 	const onnx::NodeProto& onnxNode )
 {
-	CheckOnnxProtocol( attribute.has_t(), CString( "attribute " ) + attribute.name().c_str() + " is not a tensor" );
+	CheckOnnxProtocol( attribute.has_t(), CString( "attribute " ) + attribute.name().c_str() + " is not a tensor", onnxNode );
 	TBlobType resultDataType = GetBlobType( static_cast<onnx::TensorProto_DataType>( attribute.t().data_type() ) );
 	value = CDnnBlob::CreateVector( value->GetMathEngine(), resultDataType, 1 );
 	if( resultDataType == CT_Float ) {

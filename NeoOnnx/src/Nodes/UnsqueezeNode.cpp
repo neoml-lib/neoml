@@ -35,7 +35,7 @@ CUnsqueezeNode::CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze,
 	Attributes.GetRequiredIntArray( "axes", axes );
 }
 
-void CUnsqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CUnsqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	const CTensorShape& inputShape = tensors[Input[0]].Shape;
 
@@ -80,8 +80,8 @@ void CUnsqueezeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& di
 		"labeling input dimensions failed", OnnxNode );
 }
 
-void CUnsqueezeNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CUnsqueezeNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
+	CNeoMLLinkCache& neoMLLinks, CDnn& /* dnn */ )
 {
 	if( tensors[Output[0]].Data != nullptr ) {
 		return;

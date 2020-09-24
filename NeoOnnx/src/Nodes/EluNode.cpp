@@ -33,7 +33,7 @@ CEluNode::CEluNode( int nodeIndex, const onnx::NodeProto& elu, int opsetVersion 
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", elu );
 }
 
-void CEluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CEluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
@@ -52,7 +52,7 @@ void CEluNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CEluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CEluNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CELULayer> elu = new CELULayer( dnn.GetMathEngine() );

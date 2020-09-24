@@ -40,7 +40,7 @@ CConvNode::CConvNode( int nodeIndex, const onnx::NodeProto& conv, int opsetVersi
 	Attributes.GetOptionalIntArray( "dilations", dilations );
 }
 
-void CConvNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CConvNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	const CTensor& inputTensor = tensors[Input[0]];
 	CheckNeoOnnxSupport( inputTensor.Shape.Size() > 2 && inputTensor.Shape.Size() <= 5,
@@ -105,21 +105,20 @@ void CConvNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 		"labeling output dimensions failed", OnnxNode );
 }
 
-void CConvNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CConvNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	if( tensors[Input[1]].Shape.Size() == 4 ) {
-		add2dConvLayer( graph, tensors, dims, neoMLLinks, dnn );
+		add2dConvLayer( tensors, neoMLLinks, dnn );
 	} else if( tensors[Input[1]].Shape.Size() == 5 ) {
-		add3dConvLayer( graph, tensors, dims, neoMLLinks, dnn );
+		add3dConvLayer( tensors, neoMLLinks, dnn );
 	} else {
 		CheckNeoOnnxSupport( false, "wrong dimensions count in Conv op", OnnxNode );
 	}
 }
 
 // Adds 2-dimensional convolution
-void CConvNode::add2dConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CConvNode::add2dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CBaseConvLayer> conv = nullptr;
 	IMathEngine& mathEngine = dnn.GetMathEngine();
@@ -166,8 +165,7 @@ void CConvNode::add2dConvLayer( const CGraph& graph, const CTensorCache& tensors
 }
 
 // Adds 3-dimensional convolution
-void CConvNode::add3dConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CConvNode::add3dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 	const int filterCount = tensors[Input[1]].Shape[0];

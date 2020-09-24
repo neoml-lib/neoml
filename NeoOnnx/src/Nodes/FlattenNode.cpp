@@ -33,7 +33,7 @@ CFlattenNode::CFlattenNode( int nodeIndex, const onnx::NodeProto& flatten, int o
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", flatten );
 }
 
-void CFlattenNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CFlattenNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	const CTensorShape& inputShape = tensors[Input[0]].Shape;
 	CTensorShape& outputShape = tensors[Output[0]].Shape;

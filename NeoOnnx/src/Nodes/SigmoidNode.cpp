@@ -33,7 +33,7 @@ CSigmoidNode::CSigmoidNode( int nodeIndex, const onnx::NodeProto& sigmoid, int o
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", sigmoid );
 }
 
-void CSigmoidNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CSigmoidNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
@@ -53,7 +53,7 @@ void CSigmoidNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims
 	}
 }
 
-void CSigmoidNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CSigmoidNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CSigmoidLayer> sigmoid = new CSigmoidLayer( dnn.GetMathEngine() );

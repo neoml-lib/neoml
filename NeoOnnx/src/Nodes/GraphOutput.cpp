@@ -29,7 +29,7 @@ CGraphOutput::CGraphOutput( int nodeIndex, const onnx::ValueInfoProto& output ) 
 {
 }
 
-void CGraphOutput::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CGraphOutput::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );

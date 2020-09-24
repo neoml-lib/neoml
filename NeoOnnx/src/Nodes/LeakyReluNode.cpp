@@ -35,7 +35,7 @@ CLeakyReluNode::CLeakyReluNode( int nodeIndex, const onnx::NodeProto& leakyRelu,
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", leakyRelu );
 }
 
-void CLeakyReluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CLeakyReluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
@@ -55,7 +55,7 @@ void CLeakyReluNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& di
 	}
 }
 
-void CLeakyReluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CLeakyReluNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CLeakyReLULayer> leakyRelu = new CLeakyReLULayer( dnn.GetMathEngine() );

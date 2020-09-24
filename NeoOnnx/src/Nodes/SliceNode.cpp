@@ -104,14 +104,12 @@ void CSliceNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CSliceNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CSliceNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	if( tensors[Output[0]].Data != nullptr ) {
 		return;
 	}
-
-	IMathEngine& mathEngine = dnn.GetMathEngine();
 
 	const TBlobDim splitDim = dims[Output[0]][axes[0]];
 	// There is no layer in NeoML to split along BD_ListSize
@@ -161,11 +159,8 @@ static void addSinkLayer( CBaseLayer& inputLayer, int index, CDnn& dnn )
 
 // Adds split layer along splitDim to the dnn
 // Also adds sink layers to split outputs which won't be used later
-void CSliceNode::addSplitLayer( TBlobDim splitDim, int start, int end, int dimSize,
-	CDnn& dnn, CNeoMLLinkCache& neoMLLinks )
+void CSliceNode::addSplitLayer( TBlobDim splitDim, int start, int end, int dimSize, CDnn& dnn, CNeoMLLinkCache& neoMLLinks )
 {
-	IMathEngine& mathEngine = dnn.GetMathEngine();
-
 	CPtr<CBaseSplitLayer> split;
 	switch( splitDim ) {
 		case BD_BatchWidth:

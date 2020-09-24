@@ -31,7 +31,7 @@ CGraphInput::CGraphInput( int nodeIndex, const onnx::ValueInfoProto& _input ) :
 {
 }
 
-void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	outputShape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
@@ -40,7 +40,7 @@ void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEng
 	}
 }
 
-void CGraphInput::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CGraphInput::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );

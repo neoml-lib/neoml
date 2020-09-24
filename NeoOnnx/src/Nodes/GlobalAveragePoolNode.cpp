@@ -32,7 +32,7 @@ CGlobalAveragePoolNode::CGlobalAveragePoolNode( int nodeIndex, const onnx::NodeP
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", globalAveragePool );
 }
 
-void CGlobalAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CGlobalAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	const CTensorShape& inputShape = tensors[Input[0]].Shape;
 	CheckOnnxProtocol( inputShape.Size() >= 2, "node's input must have at least 2 dimensions", OnnxNode );
@@ -56,7 +56,7 @@ void CGlobalAveragePoolNode::LabelTensorDims( const CTensorCache& tensors, CDimC
 	}
 }
 
-void CGlobalAveragePoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CGlobalAveragePoolNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CTensorDim dimsToPool;

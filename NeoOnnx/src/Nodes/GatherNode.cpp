@@ -33,7 +33,7 @@ CGatherNode::CGatherNode( int nodeIndex, const onnx::NodeProto& gather, int opse
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gather );
 }
 
-void CGatherNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CGatherNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	tensors[Input[1]].Shape.CopyTo( tensors[Output[0]].Shape );
 
