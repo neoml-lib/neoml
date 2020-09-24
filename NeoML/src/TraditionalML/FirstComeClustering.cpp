@@ -138,8 +138,6 @@ void CFirstComeClustering::deleteTinyClusters( const CSparseFloatMatrixDesc& mat
 {
 	int threshold = Round( init.MinClusterSizeRatio * matrix.Height );
 
-	NeoAssert( threshold <= matrix.Height ); // a cluster may not have more than the total number of elements
-
 	for( int cluster = clusters.Size() - 1; cluster >= 0; cluster-- ) {
 
 		if( clusters[cluster]->GetElementsCount() >= threshold ) {
