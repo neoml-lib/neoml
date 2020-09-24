@@ -76,7 +76,7 @@ static bool isTopSorted( const onnx::GraphProto& onnxGraph )
 }
 
 // Builds array of CNode's based on onnxGraph
-static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, IMathEngine& mathEngine, CGraph& graph )
+static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, CGraph& graph )
 {
 	graph.SetBufferSize( onnxGraph.input_size() + onnxGraph.initializer_size() + onnxGraph.node_size()
 		+ onnxGraph.output_size() );
@@ -86,7 +86,7 @@ static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, IMa
 	CHashTable<CString> initializers;
 	for( const onnx::TensorProto& onnxInitializer : onnxGraph.initializer() ) {
 		if( onnxInitializer.dims_size() > 0 ) {
-			graph.Add( new CGraphInitializer( graph.NodeCount(), onnxInitializer, mathEngine ) );
+			graph.Add( new CGraphInitializer( graph.NodeCount(), onnxInitializer ) );
 			nodeOutputs.Add( onnxInitializer.name().c_str(), CLink( graph.NodeCount() - 1, 0 ) );
 			initializers.Add( onnxInitializer.name().c_str() );
 		}
@@ -173,7 +173,7 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 
 	// Step 1: create graph nodes and connect them
 	CGraph graph;
-	buildGraph( onnxGraph, opsetVersion, dnn.GetMathEngine(), graph );
+	buildGraph( onnxGraph, opsetVersion, graph );
 
 	// Step 2: calculate tensor shape and data for every node output in graph
 	CTensorCache tensors( graph );

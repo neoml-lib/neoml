@@ -22,7 +22,7 @@ namespace NeoOnnx {
 // Graph initializer node
 class CGraphInitializer : public CNode {
 public:
-	CGraphInitializer( int nodeIndex, const onnx::TensorProto& initializer, IMathEngine& mathEngine );
+	CGraphInitializer( int nodeIndex, const onnx::TensorProto& initializer );
 
 	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
@@ -30,7 +30,6 @@ public:
 	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache&, CDnn& ) override {}
 
 private:
-	IMathEngine& mathEngine; // mathEngine
 	const onnx::TensorProto& initializer; // graph initializer info from onnx
 };
 

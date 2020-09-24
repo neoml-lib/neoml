@@ -24,9 +24,8 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGraphInitializer::CGraphInitializer( int nodeIndex, const onnx::TensorProto& _initializer, IMathEngine& _mathEngine ) :
+CGraphInitializer::CGraphInitializer( int nodeIndex, const onnx::TensorProto& _initializer ) :
 	CNode( nodeIndex, 0, 1 ),
-	mathEngine( _mathEngine ),
 	initializer( _initializer )
 {
 	assert( initializer.dims_size() > 0 );
