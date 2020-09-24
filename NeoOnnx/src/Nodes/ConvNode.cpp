@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include "ConvNode.h"
+#include "GraphCache.h"
 #include "NodeUtils.h"
 #include "NeoOnnxCheck.h"
 

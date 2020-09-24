@@ -15,9 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include "Node.h"
 #include "Graph.h"
-#include "NeoMLLink.h"
-#include "Tensor.h"
 
 namespace NeoOnnx {
 
@@ -55,10 +54,5 @@ const T& CGraphCache<T>::operator[]( const CLink& link ) const
 {
 	return cache[link.NodeIndex][link.OutputIndex];
 }
-
-// Iinstantiations used in NeoOnnx
-typedef CGraphCache<CTensor> CTensorCache;
-typedef CGraphCache<CTensorDim> CDimCache;
-typedef CGraphCache<CNeoMLLink> CNeoMLLinkCache;
 
 } // namespace NeoOnnx

@@ -17,7 +17,8 @@ limitations under the License.
 #pragma hdrstop
 
 #include "GraphInitializer.h"
-#include "../TensorUtils.h"
+#include "GraphCache.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 

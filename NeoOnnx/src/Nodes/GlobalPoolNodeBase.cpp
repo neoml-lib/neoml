@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include "GlobalPoolNodeBase.h"
+#include "GraphCache.h"
 
 #include "onnx.pb.h"
 
@@ -110,7 +111,8 @@ void CGlobalPoolNodeBase::add2dPoolingLayer( TPoolingType poolingType, const CTe
 				poolingLayer->SetFilterWidth( isDimPooled ? inputShape[dimIndex] : 1 );
 				poolingLayer->SetStrideWidth( 1 );
 				break;
-			// Ignore the rest of the dimensions
+			default:
+				CheckNeoOnnxInternal( !isDimPooled, "wrong pooling dimension", OnnxNode );
 		}
 	}
 
@@ -153,7 +155,8 @@ void CGlobalPoolNodeBase::add3dPoolingLayer( TPoolingType poolingType, const CTe
 				poolingLayer->SetFilterDepth( isDimPooled ? inputShape[dimIndex] : 1 );
 				poolingLayer->SetStrideDepth( 1 );
 				break;
-			// Ignore the rest of the dimensions
+			default:
+				CheckNeoOnnxInternal( !isDimPooled, "wrong pooling dimension", OnnxNode );
 		}
 	}
 

@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include "FlattenNode.h"
+#include "GraphCache.h"
 
 #include "onnx.pb.h"
 

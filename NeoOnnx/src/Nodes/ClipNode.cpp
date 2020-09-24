@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include "ClipNode.h"
+#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
@@ -35,7 +36,7 @@ CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersi
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", clip );
 }
 
-void CClipNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CClipNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 

@@ -17,6 +17,12 @@ limitations under the License.
 #pragma hdrstop
 
 #include "Node.h"
+#include "Graph.h"
+#include "NeoOnnxCheck.h"
+
+#include "onnx.pb.h"
+
+#include <string>
 
 #include "Nodes/AbsNode.h"
 #include "Nodes/AddNode.h"
@@ -43,11 +49,6 @@ limitations under the License.
 #include "Nodes/SqueezeNode.h"
 #include "Nodes/TanhNode.h"
 #include "Nodes/UnsqueezeNode.h"
-#include "NeoOnnxCheck.h"
-
-#include "onnx.pb.h"
-
-#include <string>
 
 namespace NeoOnnx {
 

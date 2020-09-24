@@ -16,7 +16,8 @@ limitations under the License.
 #pragma once
 
 #include "OpNodeAttributes.h"
-#include "GraphCache.h"
+#include "Tensor.h"
+#include "NeoMLLink.h"
 #include "NeoOnnxCheck.h"
 
 // Forward declaration(s)
@@ -25,6 +26,16 @@ class NodeProto;
 } // namespace onnx
 
 namespace NeoOnnx {
+
+// Forward declaration(s)
+struct CLink;
+class CGraph;
+template<class T> class CGraphCache;
+
+// Instantiations used in NeoOnnx
+typedef CGraphCache<CTensor> CTensorCache;
+typedef CGraphCache<CTensorDim> CDimCache;
+typedef CGraphCache<CNeoMLLink> CNeoMLLinkCache;
 
 // Node in the NeoOnnx graph
 class CNode {
