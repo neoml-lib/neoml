@@ -54,6 +54,11 @@ public:
 			timer.count += count;
 		}
 	}
+	void Clear() {
+		 timeDelay = nanoseconds::zero();
+		 count = 0;
+		 isStarted = false;
+	}
 
 	void Start() {
 		//assert( !isStarted );
@@ -781,6 +786,7 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 	const int SrcYDilation = D * SrcLineStride;
 	const int SrcXDilation  = D * C;
 	const int SrcXWindowSize = FW * SrcXDilation;
+	const int DstYDilation = RW * FC;
 	// Offset is relative to central pixel
 	const vector<int> SrcPixelOffset[8] = {
 		{ 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 4 5 7 8
@@ -1020,134 +1026,146 @@ void CCpuMathEngine::MegaFastConvolutionAlgo( const CCpuConvolutionDesc& desc, c
 			_mm256_storeu_ps( dstPtr + 64, r22 );
 	};
 
-	// Iterate through result, left->right, top->bottom
-	// Top edge ( cut top part of filter )
-	const float* fltPtr = flt;
-	float* dstPtr = dst;
-	// We process all central pixels be pairs. In case the total count of central pixels is odd we will process last one separately.
-	bool ProcessLastOnePixel = ( RW - PartialStepCountAfter - PartialStepCountBefore ) % 3 == 1;
-	bool ProcessLastTwoPixels = ( RW - PartialStepCountAfter - PartialStepCountBefore ) % 3 == 2;
+	const int curThreadCount = IsOmpRelevant( desc.Result.Height(), static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
 
-	t1.Start();
-	for( int ry = 0; ry < PartialStepCountBefore; ry++ ) {
-		// Top part of image
-		const float* srcPtr =  src + ry * SrcYStep;
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int yStart;
+		int yCount;
+		if( OmpGetTaskIndexAndCount( RH, yStart, yCount ) ) {
 
-		// Partial applying filter
-		for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
-			// Top left corner, // 4 5 7 8
-			ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[0], fltPtr, FltPixels[0], dstPtr );
-			srcPtr += SrcXStep;
-			dstPtr += FC;
-		}
-		for( int rx = PartialStepCountBefore; rx <= RW - PartialStepCountAfter - 3; rx += 3 ) {
-			// Top edge, 3 4 5 6 7 8
-			ApplyPartitialFilter3x3_24ch_x3( srcPtr, SrcPixelOffset[1], fltPtr, FltPixels[1], dstPtr );
-			srcPtr += 3 * SrcXStep;
-			dstPtr += 3 * FC;
-		}
-		if( ProcessLastTwoPixels ) {
-			ApplyPartitialFilter3x3_24ch_x2( srcPtr, SrcPixelOffset[1], fltPtr, FltPixels[1], dstPtr );
-			srcPtr += 2 * SrcXStep;
-			dstPtr += 2 * FC;
-		}
-		if( ProcessLastOnePixel ) {
-			ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[1], fltPtr, FltPixels[1], dstPtr );
-			srcPtr += SrcXStep;
-			dstPtr += FC;
-		}
+			// Iterate through result, left->right, top->bottom
+			// Top edge ( cut top part of filter )
+			const float* fltPtr = flt;
+			float* dstPtr = dst + yStart * DstYDilation;
+			const int currentRH = min( RH, yStart + yCount );
+			int ry = yStart;
 
-		for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
-			// Top right corner, 3 4 6 7
-			ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[2], fltPtr, FltPixels[2], dstPtr );
-			srcPtr += SrcXStep;
-			dstPtr += FC;
+			// We process all central pixels be pairs. In case the total count of central pixels is odd we will process last one separately.
+			bool ProcessLastOnePixel = ( RW - PartialStepCountAfter - PartialStepCountBefore ) % 3 == 1;
+			bool ProcessLastTwoPixels = ( RW - PartialStepCountAfter - PartialStepCountBefore ) % 3 == 2;
+
+			t1.Start();
+			for( ; ry < min( PartialStepCountBefore, currentRH ); ry++ ) {
+				// Top part of image
+				const float* srcPtr =  src + ry * SrcYStep;
+
+				// Partial applying filter
+				for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
+					// Top left corner, // 4 5 7 8
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[0], fltPtr, FltPixels[0], dstPtr );
+					srcPtr += SrcXStep;
+					dstPtr += FC;
+				}
+				for( int rx = PartialStepCountBefore; rx <= RW - PartialStepCountAfter - 3; rx += 3 ) {
+					// Top edge, 3 4 5 6 7 8
+					ApplyPartitialFilter3x3_24ch_x3( srcPtr, SrcPixelOffset[1], fltPtr, FltPixels[1], dstPtr );
+					srcPtr += 3 * SrcXStep;
+					dstPtr += 3 * FC;
+				}
+				if( ProcessLastTwoPixels ) {
+					ApplyPartitialFilter3x3_24ch_x2( srcPtr, SrcPixelOffset[1], fltPtr, FltPixels[1], dstPtr );
+					srcPtr += 2 * SrcXStep;
+					dstPtr += 2 * FC;
+				}
+				if( ProcessLastOnePixel ) {
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[1], fltPtr, FltPixels[1], dstPtr );
+					srcPtr += SrcXStep;
+					dstPtr += FC;
+				}
+
+				for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
+					// Top right corner, 3 4 6 7
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[2], fltPtr, FltPixels[2], dstPtr );
+					srcPtr += SrcXStep;
+					dstPtr += FC;
+				}
+			}
+			t1.Stop();
+			t2.Start();
+			for( ; ry < min( RH - PartialStepCountAfter, currentRH ); ry++ ) {
+				// Middle part of image
+				const float* srcPtr =  src + ry * SrcYStep;
+
+				// Partial applying filter
+				for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
+					// Top left corner, // 4 5 7 8
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[7], fltPtr, FltPixels[7], dstPtr );
+					srcPtr += SrcXStep;
+					dstPtr += FC;
+				}
+
+
+				// Move to the top left pixel of window from central one
+				srcPtr -= ( SrcYDilation + SrcXDilation);
+				for( int rx = PartialStepCountBefore; rx <= RW - PartialStepCountAfter - 3; rx += 3 ) {
+					// Top edge, 3 4 5 6 7 8
+					ApplyWholeFilter3x3_24ch_x3( srcPtr, fltPtr, dstPtr );
+					srcPtr += 3 * SrcXStep;
+					dstPtr += 3 * FC;
+				}
+				if( ProcessLastTwoPixels ) {
+					ApplyWholeFilter3x3_24ch_x2( srcPtr, fltPtr, dstPtr );
+					srcPtr += 2 * SrcXStep;
+					dstPtr += 2 * FC;
+				}
+				if( ProcessLastOnePixel ) {
+					ApplyWholeFilter3x3_24ch( srcPtr, fltPtr, dstPtr );
+					srcPtr += SrcXStep;
+					dstPtr += FC;
+				}
+
+
+				// Move back to the central pixel again
+				srcPtr += ( SrcYDilation + SrcXDilation);
+				for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
+					// Top right corner, 3 4 6 7
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[3], fltPtr, FltPixels[3], dstPtr );
+					srcPtr += SrcXStep;
+					dstPtr += FC;
+				}
+			}
+			t2.Stop();
+			t3.Start();
+			for( ; ry < min( RH, currentRH ); ry++ ) {
+				// Bottom part of image
+				const float* srcPtr =  src + ry * SrcYStep;
+
+				// Partial applying filter
+				for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
+					// Top left corner, // 4 5 7 8
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[6], fltPtr, FltPixels[6], dstPtr );
+					srcPtr += SrcXStep;
+					dstPtr += FC;
+				}
+				for( int rx = PartialStepCountBefore; rx <= RW - PartialStepCountAfter - 3; rx += 3 ) {
+					// Top edge, 3 4 5 6 7 8
+					ApplyPartitialFilter3x3_24ch_x3( srcPtr, SrcPixelOffset[5], fltPtr, FltPixels[5], dstPtr );
+					srcPtr += 3 * SrcXStep;
+					dstPtr += 3 * FC;
+				}
+				if( ProcessLastTwoPixels ) {
+					ApplyPartitialFilter3x3_24ch_x2( srcPtr, SrcPixelOffset[5], fltPtr, FltPixels[5], dstPtr );
+					srcPtr += 2 * SrcXStep;
+					dstPtr += 2 * FC;
+				}
+				if( ProcessLastOnePixel ) {
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[5], fltPtr, FltPixels[5], dstPtr );
+					srcPtr += SrcXStep;
+					dstPtr += FC;
+				}
+
+				for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
+					// Top right corner, 3 4 6 7
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[4], fltPtr, FltPixels[4], dstPtr );
+					srcPtr += SrcXStep;
+					dstPtr += FC;
+				}
+			}
+			t3.Stop();
+			full.Stop();
 		}
 	}
-	t1.Stop();
-	t2.Start();
-	for( int ry = PartialStepCountBefore; ry < RH - PartialStepCountAfter; ry++ ) {
-		// Middle part of image
-		const float* srcPtr =  src + ry * SrcYStep;
-
-		// Partial applying filter
-		for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
-			// Top left corner, // 4 5 7 8
-			ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[7], fltPtr, FltPixels[7], dstPtr );
-			srcPtr += SrcXStep;
-			dstPtr += FC;
-		}
-
-
-		// Move to the top left pixel of window from central one
-		srcPtr -= ( SrcYDilation + SrcXDilation);
-		for( int rx = PartialStepCountBefore; rx <= RW - PartialStepCountAfter - 3; rx += 3 ) {
-			// Top edge, 3 4 5 6 7 8
-			ApplyWholeFilter3x3_24ch_x3( srcPtr, fltPtr, dstPtr );
-			srcPtr += 3 * SrcXStep;
-			dstPtr += 3 * FC;
-		}
-		if( ProcessLastTwoPixels ) {
-			ApplyWholeFilter3x3_24ch_x2( srcPtr, fltPtr, dstPtr );
-			srcPtr += 2 * SrcXStep;
-			dstPtr += 2 * FC;
-		}
-		if( ProcessLastOnePixel ) {
-			ApplyWholeFilter3x3_24ch( srcPtr, fltPtr, dstPtr );
-			srcPtr += SrcXStep;
-			dstPtr += FC;
-		}
-
-
-		// Move back to the central pixel again
-		srcPtr += ( SrcYDilation + SrcXDilation);
-		for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
-			// Top right corner, 3 4 6 7
-			ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[3], fltPtr, FltPixels[3], dstPtr );
-			srcPtr += SrcXStep;
-			dstPtr += FC;
-		}
-	}
-	t2.Stop();
-	t3.Start();
-	for( int ry = RH - PartialStepCountAfter; ry < RH; ry++ ) {
-		// Bottom part of image
-		const float* srcPtr =  src + ry * SrcYStep;
-
-		// Partial applying filter
-		for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
-			// Top left corner, // 4 5 7 8
-			ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[6], fltPtr, FltPixels[6], dstPtr );
-			srcPtr += SrcXStep;
-			dstPtr += FC;
-		}
-		for( int rx = PartialStepCountBefore; rx <= RW - PartialStepCountAfter - 3; rx += 3 ) {
-			// Top edge, 3 4 5 6 7 8
-			ApplyPartitialFilter3x3_24ch_x3( srcPtr, SrcPixelOffset[5], fltPtr, FltPixels[5], dstPtr );
-			srcPtr += 3 * SrcXStep;
-			dstPtr += 3 * FC;
-		}
-		if( ProcessLastTwoPixels ) {
-			ApplyPartitialFilter3x3_24ch_x2( srcPtr, SrcPixelOffset[5], fltPtr, FltPixels[5], dstPtr );
-			srcPtr += 2 * SrcXStep;
-			dstPtr += 2 * FC;
-		}
-		if( ProcessLastOnePixel ) {
-			ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[5], fltPtr, FltPixels[5], dstPtr );
-			srcPtr += SrcXStep;
-			dstPtr += FC;
-		}
-
-		for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
-			// Top right corner, 3 4 6 7
-			ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[4], fltPtr, FltPixels[4], dstPtr );
-			srcPtr += SrcXStep;
-			dstPtr += FC;
-		}
-	}
-	t3.Stop();
-	full.Stop();
-
 	CAlgoInfo::AddFastAlgo( { { full, t1, t2, t3 },
 		{ SW, S, D } } );
 }
