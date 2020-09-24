@@ -16,33 +16,33 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
-#include "ClipNode.h"
+#include "LeakyReluNode.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion ) :
-	COpNode( nodeIndex, clip, opsetVersion ),
-	minValue( Attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
-	maxValue( Attributes.GetOptionalFloat( "max", FLT_MAX ) )
+CLeakyReluNode::CLeakyReluNode( int nodeIndex, const onnx::NodeProto& leakyRelu, int opsetVersion ) :
+	COpNode( nodeIndex, leakyRelu, opsetVersion ),
+	alpha( Attributes.GetOptionalFloat( "alpha", 0.01f ) )
 {
-	// Newer versions are getting min and max values from node inputs instead of node attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", clip );
+	// v1 - original ver
+	// v6 - removed legacy optimization attribute
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", leakyRelu );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", clip );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", clip );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", leakyRelu );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", leakyRelu );
 }
 
-void CClipNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CLeakyReluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CClipNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CLeakyReluNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
@@ -55,22 +55,18 @@ void CClipNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CClipNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CLeakyReluNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( minValue == 0.f, "'min' value must be equal to 0", OnnxNode );
+	CPtr<CLeakyReLULayer> leakyRelu = new CLeakyReLULayer( dnn.GetMathEngine() );
+	leakyRelu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	CPtr<CReLULayer> relu = new CReLULayer( dnn.GetMathEngine() );
-	relu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	leakyRelu->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	leakyRelu->SetAlpha( alpha );
+	
+	dnn.AddLayer( *leakyRelu );
 
-	if( maxValue < FLT_MAX ) {
-		relu->SetUpperThreshold( maxValue );
-	}
-
-	relu->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
-	dnn.AddLayer( *relu );
-
-	neoMLLinks[Output[0]] = CNeoMLLink( relu, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( leakyRelu, 0 );
 }
 
 } // namespace NeoOnnx

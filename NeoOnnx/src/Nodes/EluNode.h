@@ -15,21 +15,20 @@ limitations under the License.
 
 #pragma once
 
-// Forward declaration(s).
-namespace onnx {
-class GraphProto;
-} // namespace onnx
+#include "../Node.h"
 
 namespace NeoOnnx {
 
-// Mechanism for building NeoML::CDnn based on onnx::GraphProto.
-class CDnnBuilder {
+// Elu operator graph node
+class CEluNode : public COpNode {
 public:
-    CDnnBuilder() {}
+	CEluNode( int nodeIndex, const onnx::NodeProto& elu, int opsetVersion );
 
-	// Build dnn from graph.
-	// dnn must be empty.
-    void BuildDnn( const onnx::GraphProto& onnxGraph, CDnn& dnn );
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 };
 
 } // namespace NeoOnnx

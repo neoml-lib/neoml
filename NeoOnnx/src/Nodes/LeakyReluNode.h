@@ -19,10 +19,10 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Unsqueeze operator graph node
-class CUnsqueezeNode : public COpNode {
+// LeakyRelu operator graph node
+class CLeakyReluNode : public COpNode {
 public:
-	CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze, int opsetVersion );
+	CLeakyReluNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 
 	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
@@ -31,7 +31,7 @@ public:
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	CArray<int> axes; // added axes
+	float alpha; // Coefficient of leakage
 };
 
 } // namespace NeoOnnx

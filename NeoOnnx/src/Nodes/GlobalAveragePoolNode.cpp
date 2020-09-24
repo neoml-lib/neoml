@@ -22,79 +22,51 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGlobalAveragePoolNode::CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( globalAveragePool, nodeOutputs )
+CGlobalAveragePoolNode::CGlobalAveragePoolNode( int nodeIndex, const onnx::NodeProto& globalAveragePool, int opsetVersion ) :
+	CGlobalPoolNodeBase( nodeIndex, globalAveragePool, opsetVersion )
 {
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", globalAveragePool );
+	// This operator doesn't have multiple versions
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", globalAveragePool );
+
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", globalAveragePool );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", globalAveragePool );
 }
 
-void CGlobalAveragePoolNode::OnnxReshape()
+void CGlobalAveragePoolNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_DataTensor, "constant input", onnxNode );
-	const CTensorShape& inputShape = InputTensor( 0 ).GetShape();
-	CheckOnnxProtocol( inputShape.Size() >= 2, "node's input must have at least 2 dimensions", onnxNode );
+	const CTensorShape& inputShape = tensors[Input[0]].Shape;
+	CheckOnnxProtocol( inputShape.Size() >= 2, "node's input must have at least 2 dimensions", OnnxNode );
+	tensors[Output[0]].Shape.Add( 1, inputShape.Size() );
+	tensors[Output[0]].Shape[0] = inputShape[0];
+	tensors[Output[0]].Shape[1] = inputShape[1];
 
-	CTensorShape outputShape( { inputShape[0], inputShape[1] } );
-	outputData.Add( CTensor( TT_DataTensor, outputShape ) );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CGlobalAveragePoolNode::MarkTensorDims()
+void CGlobalAveragePoolNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	const CTensorDim& inputDim = InputTensor( 0 ).GetTensorDim();
-	CheckNeoOnnxInternal( inputDim.Size() == InputTensor( 0 ).GetShape().Size(),
-		"input's dimensions must be marked", onnxNode );
-
-	CheckNeoOnnxInternal( outputData[0].SetTensorDim( { inputDim[0], inputDim[1] } ),
-		"marking output dimensions failed", onnxNode );
-}
-
-static const int pool2dDims = ( 1 << static_cast<int>( BD_Height ) ) | ( 1 << static_cast<int>( BD_Width ) );
-
-void CGlobalAveragePoolNode::AddLayers( CDnn& dnn )
-{
-	int pooledDims = 0;
-	const CTensorDim& inputDim = InputTensor( 0 ).GetTensorDim();
-
-	for( int dimIndex = 2; dimIndex < inputDim.Size(); ++dimIndex ) {
-		pooledDims |= ( 1 << static_cast<int>( inputDim[dimIndex] ) );
+	if( !dims[Input[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
+			"labeling output dimensions failed", OnnxNode );
 	}
 
-	CheckNeoOnnxSupport( ( pooledDims | pool2dDims ) == pool2dDims,
-		"reduce over dimensions other than BD_Height and BD_Width", onnxNode );
-
-	add2dPoolingLayer( dnn, pooledDims );
+	if( !dims[Output[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
+			"labeling input dimensions failed", OnnxNode );
+	}
 }
 
-void CGlobalAveragePoolNode::add2dPoolingLayer( CDnn& dnn, int pooledDims )
+void CGlobalAveragePoolNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CPtr<CMeanPoolingLayer> poolingLayer = new CMeanPoolingLayer( dnn.GetMathEngine() );
-	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
-	const CTensorDim& inputDim = InputTensor( 0 ).GetTensorDim();
+	CTensorDim dimsToPool;
+	const CTensorDim& inputDim = dims[Input[0]];
 
-	// Making it global.
 	for( int dimIndex = 2; dimIndex < inputDim.Size(); ++dimIndex ) {
-		TBlobDim dim = inputDim[dimIndex];
-		const bool isDimPooled = ( ( ( 1 << static_cast<int>( dim ) ) & pooledDims ) != 0 );
-		switch( dim ) {
-			case BD_Height:
-				poolingLayer->SetFilterHeight( isDimPooled ? InputTensor( 0 ).GetShape()[dimIndex] : 1 );
-				poolingLayer->SetStrideHeight( 1 );
-				break;
-			case BD_Width:
-				poolingLayer->SetFilterWidth( isDimPooled ? InputTensor( 0 ).GetShape()[dimIndex] : 1 );
-				poolingLayer->SetStrideWidth( 1 );
-				break;
-			default:
-				CheckNeoOnnxInternal( false, "dimension " + Str( dim ) + " cannot be pooled",
-					onnxNode );
-		}
+		dimsToPool.Add( inputDim[dimIndex] );
 	}
 
-	poolingLayer->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
-	dnn.AddLayer( *poolingLayer );
-
-	outputInfo.Add( COutputInfo( poolingLayer, 0 ) );
+	AddPoolingLayer( PT_Mean, dimsToPool, tensors[Input[0]].Shape, dims[Input[0]], neoMLLinks, dnn );
 }
 
 } // namespace NeoOnnx

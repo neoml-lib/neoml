@@ -17,21 +17,18 @@ limitations under the License.
 
 #include "../Node.h"
 
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
-
 namespace NeoOnnx {
 
-class CConvNode : public CNode {
+// Conv operator graph node
+class CConvNode : public COpNode {
 public:
-	CConvNode( const onnx::NodeProto& conv, CMap<CString, CInputInfo>& nodeOutputs );
+	CConvNode( int nodeIndex, const onnx::NodeProto& conv, int opsetVersion );
 
-	// CNode methods' realizations.
-	void OnnxReshape() override;
-	void MarkTensorDims() override;
-	void AddLayers( CDnn& dnn ) override;
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
 	const int group; // groups count
@@ -39,6 +36,11 @@ private:
 	CFastArray<int, 8> strides; // kernel strides
 	CFastArray<int, 8> pads; // convolution paddings
 	CFastArray<int, 8> dilations; // convolution dilations
+
+	void add2dConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
+	void add3dConvLayer( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
 };
 
 } // namespace NeoOnnx

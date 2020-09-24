@@ -16,31 +16,32 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
-#include "TanhNode.h"
+#include "AbsNode.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CTanhNode::CTanhNode( int nodeIndex, const onnx::NodeProto& tanh, int opsetVersion ) :
-	COpNode( nodeIndex, tanh, opsetVersion )
+CAbsNode::CAbsNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion ) :
+	COpNode( nodeIndex, abs, opsetVersion )
 {
-	// The differences between versions are in supported data types and legacy optimization attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", tanh );
+	// v1 - original
+	// v6 - removed legacy optimization attributes and added new data types support
+	// v13 - added new data types support
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", abs );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", tanh );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", tanh );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", abs );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", abs );
 }
 
-void CTanhNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CAbsNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
-
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
+	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 }
 
-void CTanhNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CAbsNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
@@ -53,17 +54,17 @@ void CTanhNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CTanhNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CAbsNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CPtr<CTanhLayer> tanh = new CTanhLayer( dnn.GetMathEngine() );
-	tanh->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	CPtr<CAbsLayer> abs = new CAbsLayer( dnn.GetMathEngine() );
+	abs->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	tanh->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	abs->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	
-	dnn.AddLayer( *tanh );
+	dnn.AddLayer( *abs );
 
-	neoMLLinks[Output[0]] = CNeoMLLink( tanh, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( abs, 0 );
 }
 
 } // namespace NeoOnnx

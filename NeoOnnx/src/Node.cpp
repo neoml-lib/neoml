@@ -18,23 +18,27 @@ limitations under the License.
 
 #include "Node.h"
 
+#include "Nodes/AbsNode.h"
 #include "Nodes/AddNode.h"
-#include "Nodes/AveragePoolNode.h"
 #include "Nodes/BatchNormalizationNode.h"
 #include "Nodes/ClipNode.h"
 #include "Nodes/ConcatNode.h"
 #include "Nodes/ConstantNode.h"
 #include "Nodes/ConstantOfShapeNode.h"
 #include "Nodes/ConvNode.h"
+#include "Nodes/EluNode.h"
 #include "Nodes/FlattenNode.h"
 #include "Nodes/GatherNode.h"
 #include "Nodes/GemmNode.h"
 #include "Nodes/GlobalAveragePoolNode.h"
+#include "Nodes/LeakyReluNode.h"
 #include "Nodes/LstmNode.h"
-#include "Nodes/MaxPoolNode.h"
+#include "Nodes/PoolNode.h"
 #include "Nodes/ReduceMeanNode.h"
 #include "Nodes/ReluNode.h"
+#include "Nodes/ReshapeNode.h"
 #include "Nodes/ShapeNode.h"
+#include "Nodes/SigmoidNode.h"
 #include "Nodes/SliceNode.h"
 #include "Nodes/SqueezeNode.h"
 #include "Nodes/TanhNode.h"
@@ -47,122 +51,130 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CNode::CNode( const onnx::NodeProto& _onnxNode, CMap<CString, CInputInfo>& nodeOutputs ) :
-	attributes( _onnxNode ),
-	onnxOutputCount( _onnxNode.output_size() ),
-	onnxNode( _onnxNode )
-{
-	input.SetBufferSize( onnxNode.input_size() );
-	for( const std::string& inputName : onnxNode.input() ) {
-		if( inputName.size() > 0 ) {
-			input.Add( nodeOutputs.Get( inputName.data() ) );
-		} else {
-			input.Add( CInputInfo( nullptr, 0 ) );
-		}
-	}
+// Registers the class as a NeoOnnx node for op_type == opName
+#define REGISTER_OP_NODE( classType, opName ) \
+	static CNodeClassRegistrar< classType > __merge__1( _RegisterOpNode, __LINE__ )( opName );
 
-	// Adding this onnxNode's outputs to the map of onnxNode outputs.
-	for( int outputIndex = 0; outputIndex < onnxNode.output_size(); ++outputIndex ) {
-		nodeOutputs.Add( onnxNode.output( outputIndex ).c_str(), CInputInfo( this, outputIndex ) );
+typedef COpNode* ( *TCreateOpNodeFunction )( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
+
+// Returns reference to the map containing info about registered nodes
+static CMap<CString, TCreateOpNodeFunction>& getRegisteredNodes()
+{
+	static CMap<CString, TCreateOpNodeFunction> registeredNodes;
+	return registeredNodes;
+}
+
+// Registers function as a way to create operator node for NodeProto::op_type == opName
+void registerNode( const char* opName, TCreateOpNodeFunction function )
+{
+	CheckNeoOnnxInternal( !getRegisteredNodes().Has( opName ), "Double-register node op: " + CString( opName ) );
+	getRegisteredNodes().Add( opName, function );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+// Class registers class T as an operator node
+// Without this registration class will be inaccessible from COpNode::CreateOpNode
+template<class T>
+class CNodeClassRegistrar {
+public:
+	explicit CNodeClassRegistrar( const char* opName );
+
+private:
+	static COpNode* createObject( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
+};
+
+template<class T>
+inline CNodeClassRegistrar<T>::CNodeClassRegistrar( const char* opName )
+{
+	registerNode( opName, createObject );
+}
+
+template<class T>
+inline COpNode* CNodeClassRegistrar<T>::createObject( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion )
+{
+	return FINE_DEBUG_NEW T( nodeIndex, onnxNode, opsetVersion );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+// Register all nodes
+REGISTER_OP_NODE( CAbsNode, "Abs" )
+REGISTER_OP_NODE( CAddNode, "Add" )
+REGISTER_OP_NODE( CAveragePoolNode, "AveragePool" )
+REGISTER_OP_NODE( CBatchNormalizationNode, "BatchNormalization" )
+REGISTER_OP_NODE( CClipNode, "Clip" )
+REGISTER_OP_NODE( CConcatNode, "Concat" )
+REGISTER_OP_NODE( CConstantNode, "Constant" )
+REGISTER_OP_NODE( CConstantOfShapeNode, "ConstantOfShape" )
+REGISTER_OP_NODE( CConvNode, "Conv" )
+REGISTER_OP_NODE( CEluNode, "Elu" )
+REGISTER_OP_NODE( CFlattenNode, "Flatten" )
+REGISTER_OP_NODE( CGatherNode, "Gather" )
+REGISTER_OP_NODE( CGemmNode, "Gemm" )
+REGISTER_OP_NODE( CGlobalAveragePoolNode, "GlobalAveragePool" )
+REGISTER_OP_NODE( CLeakyReluNode, "LeakyRelu" )
+REGISTER_OP_NODE( CLstmNode, "LSTM" )
+REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
+REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
+REGISTER_OP_NODE( CReluNode, "Relu" )
+REGISTER_OP_NODE( CReshapeNode, "Reshape" )
+REGISTER_OP_NODE( CShapeNode, "Shape" )
+REGISTER_OP_NODE( CSigmoidNode, "Sigmoid" )
+REGISTER_OP_NODE( CSliceNode, "Slice" )
+REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
+REGISTER_OP_NODE( CTanhNode, "Tanh" )
+REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )
+
+} // namespace
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CNode::CNode( int _nodeIndex, int inputCount, int _outputCount ) :
+	nodeIndex( _nodeIndex )
+{
+	Input.SetSize( inputCount );
+	Output.SetBufferSize( _outputCount );
+	for( int outputIndex = 0; outputIndex < _outputCount; ++outputIndex ) {
+		Output.Add( CLink( nodeIndex, outputIndex ) );
 	}
+}
+
+int CNode::InputCount() const
+{
+	return Input.Size();
 }
 
 int CNode::OutputCount() const
 {
-	return onnxOutputCount;
+	return Output.Size();
 }
 
-const CTensor& CNode::InputTensor( int index ) const
+void CNode::Connect( int index, const CLink& inputInfo )
 {
-	CheckNeoOnnxInternal( index >= 0 && index < input.Size(),
-		"attempt to access non-existing input" );
-	CheckNeoOnnxInternal( input[index].InputNode != nullptr,
-		"attempt to acces empty input" );
-	return input[index].InputNode->outputData[input[index].OutputIndex];
+	CheckNeoOnnxInternal( index >= 0 && index < InputCount(), "attempt to connect non-existing input" );
+	CheckNeoOnnxInternal( Input[index].NodeIndex == NotFound && Input[index].OutputIndex == NotFound,
+		"attempt to connect already-connected input" );
+	CheckNeoOnnxInternal( inputInfo.OutputIndex >= 0, "attempt to connect an input with incorrect index" );
+	Input[index] = inputInfo;
 }
 
-CTensor& CNode::InputTensor( int index )
+//---------------------------------------------------------------------------------------------------------------------
+
+COpNode::COpNode( int nodeIndex, const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
+	CNode( nodeIndex, _onnxNode.input_size(), _onnxNode.output_size() ),
+	OpsetVersion( _opsetVersion ),
+	Attributes( _onnxNode ),
+	OnnxNode( _onnxNode )
 {
-	CheckNeoOnnxInternal( index >= 0 && index < input.Size(),
-		"attempt to access non-existing input" );
-	CheckNeoOnnxInternal( input[index].InputNode != nullptr,
-		"attempt to acces empty input" );
-	return input[index].InputNode->outputData[input[index].OutputIndex];
 }
 
-const CNode::COutputInfo& CNode::InputInfo( int index ) const
+COpNode* COpNode::CreateOpNode( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion )
 {
-	CheckNeoOnnxInternal( index >= 0 && index < input.Size(),
-		"attempt to access non-existing input" );
-	CheckNeoOnnxInternal( input[index].InputNode != nullptr,
-		"attempt to access empty input" );
-	const CNode& inputNode = *input[index].InputNode;
-	const int inputNodeOutputIndex = input[index].OutputIndex;
-
-	NeoAssert( inputNode.outputInfo.Size() == inputNode.outputData.Size() );
-	NeoAssert( inputNodeOutputIndex >= 0 && inputNodeOutputIndex < inputNode.outputData.Size() );
-	NeoAssert( inputNode.outputInfo[inputNodeOutputIndex].Layer != nullptr );
-	return inputNode.outputInfo[inputNodeOutputIndex];
-}
-
-const CBaseLayer& CNode::InputLayer( int index ) const
-{
-	return *InputInfo( index ).Layer;
-}
-
-int CNode::InputLayerIndex( int index ) const
-{
-	return InputInfo( index ).OutputIndex;
-}
-
-CNode* CNode::CreateNode( const onnx::NodeProto& onnxNode, CMap<CString, CNode::CInputInfo>& nodeOutputs, IMathEngine& mathEngine )
-{
-	if( onnxNode.op_type() == "Add" ) {
-		return new CAddNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "AveragePool" ) {
-		return new CAveragePoolNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "BatchNormalization" ) {
-		return new CBatchNormalizationNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Clip" ) {
-		return new CClipNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Concat" ) {
-		return new CConcatNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Constant" ) {
-		return new CConstantNode( onnxNode, nodeOutputs, mathEngine );
-	} else if( onnxNode.op_type() == "ConstantOfShape" ) {
-		return new CConstantOfShapeNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Conv" ) {
-		return new CConvNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Flatten" ) {
-		return new CFlattenNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Gather" ) {
-		return new CGatherNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Gemm" ) {
-		return new CGemmNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "GlobalAveragePool" ) {
-		return new CGlobalAveragePoolNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "LSTM" ) {
-		return new CLstmNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "MaxPool" ) {
-		return new CMaxPoolNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "ReduceMean" ) {
-		return new CReduceMeanNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Relu" ) {
-		return new CReluNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Shape" ) {
-		return new CShapeNode( onnxNode, nodeOutputs, mathEngine );
-	} else if( onnxNode.op_type() == "Slice" ) {
-		return new CSliceNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Squeeze" ) {
-		return new CSqueezeNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Tanh" ) {
-		return new CTanhNode( onnxNode, nodeOutputs );
-	} else if( onnxNode.op_type() == "Unsqueeze" ) {
-		return new CUnsqueezeNode( onnxNode, nodeOutputs );
-	}
-
-	CheckNeoOnnxSupport( false, CString( "operator " ) + onnxNode.op_type().c_str() );
-	return nullptr;
+	TMapPosition pos = getRegisteredNodes().GetFirstPosition( onnxNode.op_type() );
+	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
+	return getRegisteredNodes().GetValue( pos )( nodeIndex, onnxNode, opsetVersion );
 }
 
 } // namespace NeoOnnx

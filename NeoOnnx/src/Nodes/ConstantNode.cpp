@@ -23,19 +23,23 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CConstantNode::CConstantNode( const onnx::NodeProto& constant, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& mathEngine ) :
-	CNode( constant, nodeOutputs ),
-	value( attributes.GetRequiredTensor( "value", mathEngine ) )
+CConstantNode::CConstantNode( int nodeIndex, const onnx::NodeProto& constant, int opsetVersion ) :
+	COpNode( nodeIndex, constant, opsetVersion )
 {
-	CheckOnnxProtocol( input.Size() == 0, "node must have no inputs", constant );
+	// Newer versions support values in sparse format
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", constant );
+
+	CheckOnnxProtocol( InputCount() == 0, "node must have no inputs", constant );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constant );
-	
-	CheckNeoOnnxSupport( value->GetDataSize() == 1, "'value' must be tensor of size 1", constant );
 }
 
-void CConstantNode::OnnxReshape()
+void CConstantNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	outputData.Add( CTensor( TT_ConstantTensor, { 1 }, value ) );
+	CPtr<CDnnBlob> value = Attributes.GetRequiredTensor( "value", mathEngine );
+	CheckNeoOnnxSupport( value->GetDataSize() == 1, "'value' must be tensor of size 1", OnnxNode );
+
+	tensors[Output[0]].Shape = { 1 };
+	tensors[Output[0]].Data = value;
 }
 
 } // namespace NeoOnnx

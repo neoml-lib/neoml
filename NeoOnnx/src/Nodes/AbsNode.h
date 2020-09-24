@@ -19,19 +19,16 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Unsqueeze operator graph node
-class CUnsqueezeNode : public COpNode {
+// Abs operator graph node
+class CAbsNode : public COpNode {
 public:
-	CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze, int opsetVersion );
+	CAbsNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion );
 
 	// CNode methods' realizations
 	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
 	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
 	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
-
-private:
-	CArray<int> axes; // added axes
 };
 
 } // namespace NeoOnnx

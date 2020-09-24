@@ -16,33 +16,31 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
-#include "ClipNode.h"
+#include "SigmoidNode.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion ) :
-	COpNode( nodeIndex, clip, opsetVersion ),
-	minValue( Attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
-	maxValue( Attributes.GetOptionalFloat( "max", FLT_MAX ) )
+CSigmoidNode::CSigmoidNode( int nodeIndex, const onnx::NodeProto& sigmoid, int opsetVersion ) :
+	COpNode( nodeIndex, sigmoid, opsetVersion )
 {
-	// Newer versions are getting min and max values from node inputs instead of node attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", clip );
+	// The differences between versions are in legacy optimization flags
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", sigmoid );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", clip );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", clip );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", sigmoid );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", sigmoid );
 }
 
-void CClipNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CSigmoidNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CClipNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CSigmoidNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
@@ -55,22 +53,17 @@ void CClipNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CClipNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CSigmoidNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( minValue == 0.f, "'min' value must be equal to 0", OnnxNode );
+	CPtr<CSigmoidLayer> sigmoid = new CSigmoidLayer( dnn.GetMathEngine() );
+	sigmoid->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	CPtr<CReLULayer> relu = new CReLULayer( dnn.GetMathEngine() );
-	relu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	sigmoid->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	
+	dnn.AddLayer( *sigmoid );
 
-	if( maxValue < FLT_MAX ) {
-		relu->SetUpperThreshold( maxValue );
-	}
-
-	relu->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
-	dnn.AddLayer( *relu );
-
-	neoMLLinks[Output[0]] = CNeoMLLink( relu, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( sigmoid, 0 );
 }
 
 } // namespace NeoOnnx

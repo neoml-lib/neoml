@@ -15,23 +15,18 @@ limitations under the License.
 
 #pragma once
 
-#include "../Node.h"
+#include "NeoOnnxCheck.h"
 
 namespace NeoOnnx {
 
-// Unsqueeze operator graph node
-class CUnsqueezeNode : public COpNode {
-public:
-	CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze, int opsetVersion );
+// Link to the OutputIndex'th output of the NeoML Layer
+struct CNeoMLLink {
+	CNeoMLLink( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
+		{ CheckNeoOnnxInternal( layer != nullptr, "non empty output info with layer == nullptr" ); }
+	CNeoMLLink() : Layer( nullptr ), OutputIndex( NotFound ) {}
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
-
-private:
-	CArray<int> axes; // added axes
+	CBaseLayer* Layer; // Used NeoML layer (nullptr if there is no layer mapped with this output)
+	int OutputIndex; // NeoML layer's output index, mapped with this output
 };
 
 } // namespace NeoOnnx

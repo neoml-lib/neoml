@@ -15,78 +15,78 @@ limitations under the License.
 
 #pragma once
 
-#include "NodeAttributes.h"
-#include "Tensor.h"
+#include "OpNodeAttributes.h"
+#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
-// Forward declaration(s).
+// Forward declaration(s)
 namespace onnx {
 class NodeProto;
-class TensorProto;
-class ValueInfoProto;
-} // namespace onnx;
+} // namespace onnx
 
 namespace NeoOnnx {
 
-// Node in the ONNX calculation graph.
+// Node in the NeoOnnx graph
 class CNode {
 public:
 	virtual ~CNode() = default;
 
-	// Calculate output tensors shape and (if possible) data.
-	virtual void OnnxReshape() = 0;
+	// Calculates output tensors' shape based on inputs' tensors' shape
+	virtual void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) = 0;
 
-	// Marks ONNX tensors dimensions as blob dimensions from NeoML.
-	virtual void MarkTensorDims() = 0;
+	// Labels onnx tensors' dimensions as NeoML blob dimensions
+	virtual void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) = 0;
 
-	// Adds layers, representing this node, to the dnn (if such layers exist).
-	virtual void AddLayers( CDnn& net ) = 0;
+	// Creates corresponding NeoML layers and adds them to the dnn (if needed)
+	virtual void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) = 0;
 
-	// Gets the number of outputs.
+	// Gets the number of inputs
+	int InputCount() const;
+
+	// Gets the number of outputs
 	int OutputCount() const;
-
-	// Information about input.
-	struct CInputInfo {
-		CInputInfo( CNode* inputNode, int outputIndex ) : InputNode( inputNode ), OutputIndex( outputIndex ) {}
-
-		CNode* InputNode; // Node connected to this input.
-		const int OutputIndex; // Node's output number connected to this input.
-	};
 	
-	// Gets data of index'th input.
-	const CTensor& InputTensor( int index ) const;
-	CTensor& InputTensor( int index );
+	// Connects index'th input of this node with the link
+	// inputInfo's content must be not null
+	// Must be called once for every used input
+	void Connect( int index, const CLink& link );
 
-	// Fabric method. Creates CNode's derivative for given ONNX node.
-	static CNode* CreateNode( const onnx::NodeProto& onnxNode, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& mathEngine );
+	// Gets the link connected to the inputIndex'th input
+	const CLink& GetInput( int inputIndex ) const { return Input[inputIndex]; }
 
 protected:
-	// Information about output.
-	struct COutputInfo {
-		// Constructor for ONNX node output, which doesn't with any NeoML layer's output.
-		COutputInfo() : Layer( nullptr ), OutputIndex( NotFound ) {}
+	CNode( int nodeIndex, int inputCount, int outputCount );
 
-		// Constructor for ONNX node output, matching it with layer's outputIndex'th output.
-		COutputInfo( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex )
-			{ CheckNeoOnnxInternal( layer != nullptr, "non empty output info with layer == nullptr" ); }
+	// Links connected to inputs of this node
+	CArray<CLink> Input;
 
-		const CBaseLayer* Layer; // Used NeoML layer (nullptr if there is no layer mapped with this output)
-		const int OutputIndex; // NeoML layer's output index, mapped with this output
-	};
+	// Links to outputs of this node
+	CArray<CLink> Output;
 
-	const CNodeAttributes attributes; // Attributes of this node.
-	const int onnxOutputCount;
-	CArray<CTensor> outputData; // Node outputs.
-	CArray<CInputInfo> input; // Node inputs.
-	CArray<COutputInfo> outputInfo;
-	const onnx::NodeProto& onnxNode; // Reference to ONNX node. Used for diagnostics.
+private:
+	int nodeIndex;
+};
 
-	CNode( const onnx::NodeProto& node, CMap<CString, CInputInfo>& nodeOutputs );
+//--------------------------------------------------------------------------------------------------------------------
+// Opset versioning support
+const int MaxOpsetVersion = 12;
 
-	// Get info about output, connected to index'th input
-	const COutputInfo& InputInfo( int index ) const;
-	const CBaseLayer& InputLayer( int index ) const;
-	int InputLayerIndex( int index ) const;
+//---------------------------------------------------------------------------------------------------------------------
+// Operator node
+class COpNode : public CNode {
+public:
+	~COpNode() override = default;
+
+	// Fabric method. Creates CNode's derivative for given onnx node
+	static COpNode* CreateOpNode( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
+
+protected:
+	COpNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
+
+	const int OpsetVersion; // Opset version
+	const COpNodeAttributes Attributes; // Attributes of this node
+	const onnx::NodeProto OnnxNode; // Reference to onnx node (used for diagnostics)
 };
 
 } // namespace NeoOnnx

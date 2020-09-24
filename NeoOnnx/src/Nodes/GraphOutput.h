@@ -15,23 +15,25 @@ limitations under the License.
 
 #pragma once
 
-#include "Node.h"
+#include "../Node.h"
 
 namespace NeoOnnx {
 
+// Graph output node
 class CGraphOutput : public CNode {
 public:
-	explicit CGraphOutput( const onnx::ValueInfoProto& output, CMap<CString, CInputInfo>& nodeOutputs );
+	CGraphOutput( int nodeIndex, const onnx::ValueInfoProto& output );
 
-	// CNode methods' realizations.
-	void OnnxReshape() override {}
-	void MarkTensorDims() override;
-	void AddLayers( CDnn& dnn ) override;
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override {}
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override {}
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 	const CString& Name() const { return name; }
 
 private:
-	const CString name;
+	const CString name; // Graph output name
 };
 
 } // namespace NeoOnnx

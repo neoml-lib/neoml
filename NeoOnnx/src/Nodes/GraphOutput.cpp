@@ -23,25 +23,19 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGraphOutput::CGraphOutput( const onnx::ValueInfoProto& output, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( onnx::NodeProto(), nodeOutputs ),
+CGraphOutput::CGraphOutput( int nodeIndex, const onnx::ValueInfoProto& output ) :
+	CNode( nodeIndex, 1, 0 ),
 	name( output.name().c_str() )
 {
-	input.Add( nodeOutputs.Get( output.name().c_str() ) );
 }
 
-void CGraphOutput::MarkTensorDims()
-{
-	CheckNeoOnnxInternal( !InputTensor( 0 ).GetTensorDim().IsEmpty(),
-		"Graph output tensor's dimensions weren't marked with NeoML blob dimensions" );
-}
-
-void CGraphOutput::AddLayers( CDnn& dnn )
+void CGraphOutput::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
 	sink->SetName( name );
 
-	sink->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	sink->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 
 	dnn.AddLayer( *sink );
 }

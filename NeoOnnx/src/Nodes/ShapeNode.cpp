@@ -23,22 +23,22 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CShapeNode::CShapeNode( const onnx::NodeProto& shape, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& _mathEngine ) :
-	CNode( shape, nodeOutputs ),
-	mathEngine( _mathEngine )
+CShapeNode::CShapeNode( int nodeIndex, const onnx::NodeProto& shape, int opsetVersion ) :
+	COpNode( nodeIndex, shape, opsetVersion )
 {
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", shape );
+	// This operator doesn't have multiple versions
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", shape );
+
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", shape );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", shape );
 }
 
-void CShapeNode::OnnxReshape()
+void CShapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	const CTensorShape& inputShape = InputTensor( 0 ).GetShape();
-
-	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateVector( mathEngine, CT_Int, inputShape.Size() );
-	outputBlob->CopyFrom( inputShape.GetPtr() );
-
-	outputData.Add( CTensor( TT_ConstantTensor, { inputShape.Size() }, outputBlob ) );
+	const CTensorShape& inputShape = tensors[Input[0]].Shape;
+	tensors[Output[0]].Shape = { inputShape.Size() };
+	tensors[Output[0]].Data = CDnnBlob::CreateVector( mathEngine, CT_Int, inputShape.Size() );
+	tensors[Output[0]].Data->CopyFrom( inputShape.GetPtr() );
 }
 
 } // namespace NeoOnnx
