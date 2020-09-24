@@ -16,7 +16,7 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
-#include "ReluNode.h"
+#include "EluNode.h"
 #include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
@@ -24,24 +24,23 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CReluNode::CReluNode( int nodeIndex, const onnx::NodeProto& relu, int opsetVersion ) :
-	COpNode( nodeIndex, relu, opsetVersion )
+CEluNode::CEluNode( int nodeIndex, const onnx::NodeProto& elu, int opsetVersion ) :
+	COpNode( nodeIndex, elu, opsetVersion )
 {
 	// The differences between versions are in legacy optimization flags
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", relu );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", elu );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", relu );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", relu );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", elu );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", elu );
 }
 
-void CReluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CEluNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
-	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
-
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
+	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 }
 
-void CReluNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CEluNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
@@ -54,17 +53,17 @@ void CReluNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CReluNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
+void CEluNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CPtr<CReLULayer> relu = new CReLULayer( dnn.GetMathEngine() );
-	relu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	CPtr<CELULayer> elu = new CELULayer( dnn.GetMathEngine() );
+	elu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	relu->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	elu->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	
-	dnn.AddLayer( *relu );
+	dnn.AddLayer( *elu );
 
-	neoMLLinks[Output[0]] = CNeoMLLink( relu, 0 );
+	neoMLLinks[Output[0]] = CNeoMLLink( elu, 0 );
 }
 
 } // namespace NeoOnnx
