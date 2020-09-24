@@ -213,6 +213,10 @@ void CCpuMathEngine::AddVectorToMatrixColumns(const CConstFloatHandle& matrixHan
 void CCpuMathEngine::AddVectorToMatrixRows( int batchSize, const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle )
 {
+	float* result = GetRaw( resultHandle );
+	const float* matrix = GetRaw( matrixHandle );
+	const float* vector = GetRaw( vectorHandle );
+
 	const int matrixSize = matrixHeight * matrixWidth;
 	const int tasks = batchSize * matrixSize;
 	const int curThreadCount = IsOmpRelevant(tasks, tasks) ? threadCount : 1;
@@ -226,9 +230,9 @@ void CCpuMathEngine::AddVectorToMatrixRows( int batchSize, const CConstFloatHand
 		int widthCount;
 		if( OmpGetTaskIndexAndCount3D(batchSize, 1, matrixHeight, 1, matrixWidth, 1, batchStart, batchCount, heightStart, heightCount, widthStart, widthCount) ) {
 			const int offset = batchStart * matrixSize + heightStart * matrixWidth + widthStart;
-			float* outputData = GetRaw( resultHandle ) + offset;
-			const float* inputData = GetRaw( matrixHandle ) + offset;
-			const float* vectorData = GetRaw( vectorHandle ) + batchStart* matrixWidth + widthStart;
+			float* outputData = result + offset;
+			const float* inputData = matrix + offset;
+			const float* vectorData = vector + batchStart* matrixWidth + widthStart;
 
 			for( int i = 0; i < batchCount; ++i ) {
 				addVectorToMatrixRows(inputData, outputData, heightCount, widthCount,
@@ -290,7 +294,7 @@ void CCpuMathEngine::SubVectorFromMatrixColumns(const CConstFloatHandle& matrixH
 {
 	CConstFloatHandle matrix = matrixHandle;
 	CFloatHandle result = resultHandle;
-	const float* vector = GetRaw(vectorHandle);
+	const float* vector = GetRaw( vectorHandle );
 
 	for(int i = 0; i < matrixHeight; ++i) {
 		float value = -(*vector++);
@@ -500,7 +504,7 @@ void CCpuMathEngine::EnumBinarization(int batchSize,
 	for(int i = 0; i < batchSize; ++i) {
 		int enumValue = (int)(*input++);
 		if(enumValue >= 0) {
-			ASSERT_EXPR(enumValue < enumSize);
+			assert(enumValue < enumSize);
 			result[enumValue] = 1;
 		}
 		result += enumSize;
@@ -759,13 +763,13 @@ void CCpuMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHan
 {
 	ASSERT_EXPR( resultBufferSize >= batchSize * firstHeight * secondWidth );
 
-	CConstFloatHandle first = firstHandle;
-	CConstFloatHandle second = secondHandle;
-	CFloatHandle result = resultHandle;
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
 
 	for( int b = 0; b < batchSize; ++b ) {
-		multiplyMatrixByMatrix( GetRaw( first ), firstHeight, firstWidth, firstWidth, GetRaw( second ), 
-			secondWidth, secondWidth, GetRaw( result ), secondWidth, firstHeight * secondWidth );
+		multiplyMatrixByMatrix( first, firstHeight, firstWidth, firstWidth, second, 
+			secondWidth, secondWidth, result, secondWidth, firstHeight * secondWidth );
 		first += firstHeight * firstWidth;
 		second += firstWidth * secondWidth;
 		result += firstHeight * secondWidth;
@@ -812,6 +816,10 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& f
 	int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 	const CFloatHandle& resultHandle, int resultRowSize, int)
 {
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
+
 	const int curThreadCount = IsOmpRelevant( firstHeight * secondHeight, firstWidth * firstHeight * secondHeight )
 		? threadCount : 1;
 	NEOML_OMP_NUM_THREADS( curThreadCount )
@@ -823,9 +831,9 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& f
 		if( OmpGetTaskIndexAndCount2D( firstHeight, 1, secondHeight, floatAlignment,
 			firstHeightStart, firstHeightCount, secondHeightStart, secondHeightCount ) )
 		{
-			const float* firstData = GetRaw( firstHandle + firstHeightStart * firstWidth );
-			float* resultData = GetRaw( resultHandle + firstHeightStart * secondHeight + secondHeightStart );
-			const float* secondData = GetRaw( secondHandle + secondHeightStart * firstWidth );
+			const float* firstData = first + firstHeightStart * firstWidth;
+			float* resultData = result + firstHeightStart * secondHeight + secondHeightStart;
+			const float* secondData = second + secondHeightStart * firstWidth;
 
 			multiplyMatrixByTransposedMatrix( firstData, firstHeightCount, firstWidth, firstRowSize,
 				secondData, secondHeightCount, secondRowSize,
