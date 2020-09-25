@@ -34,12 +34,11 @@ namespace NeoML {
 
 void CCpuMathEngine::multiplyMatrixByMatrix(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, int resultBufferSize)
+	float* result, int resultRowSize)
 {
-	ASSERT_EXPR(firstWidth <= firstRowSize);
-	ASSERT_EXPR(secondWidth <= secondRowSize);
-	ASSERT_EXPR(secondWidth <= resultRowSize);
-	ASSERT_EXPR((firstHeight - 1) * resultRowSize + secondWidth <= resultBufferSize);
+	assert(firstWidth <= firstRowSize);
+	assert(secondWidth <= secondRowSize);
+	assert(secondWidth <= resultRowSize);
 
 	nullify(result, firstHeight, secondWidth, resultRowSize);
 	MultiplyMatrix<false, false, CTmpMemoryHandler>(this, CpuInfo, first, firstRowSize, second, secondRowSize,
@@ -48,11 +47,10 @@ void CCpuMathEngine::multiplyMatrixByMatrix(const float* first, int firstHeight,
 
 void CCpuMathEngine::multiplyMatrixByMatrixAndAdd(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, int resultBufferSize)
+	float* result, int resultRowSize)
 {
-	ASSERT_EXPR(firstWidth <= firstRowSize);
-	ASSERT_EXPR(secondWidth <= resultRowSize);
-	ASSERT_EXPR((firstHeight - 1) * resultRowSize + secondWidth <= resultBufferSize);
+	assert(firstWidth <= firstRowSize);
+	assert(secondWidth <= resultRowSize);
 
 	MultiplyMatrix<false, false, CTmpMemoryHandler>(this, CpuInfo, first, firstRowSize, second, secondRowSize,
 		result, resultRowSize, firstHeight, secondWidth, firstWidth);
@@ -60,12 +58,11 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd(const float* first, int firstH
 
 void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-	float* result, int resultRowSize, int resultBufferSize)
+	float* result, int resultRowSize)
 {
-	ASSERT_EXPR(firstWidth <= firstRowSize);
-	ASSERT_EXPR(firstWidth <= secondRowSize);
-	ASSERT_EXPR(secondHeight <= resultRowSize);
-	ASSERT_EXPR((firstHeight - 1) * resultRowSize + secondHeight <= resultBufferSize);
+	assert(firstWidth <= firstRowSize);
+	assert(firstWidth <= secondRowSize);
+	assert(secondHeight <= resultRowSize);
 
 	nullify(result, firstHeight, secondHeight, resultRowSize);
 	MultiplyMatrix<false, true, CTmpMemoryHandler>(this, CpuInfo, first, firstRowSize, second, secondRowSize,
@@ -81,10 +78,8 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrixAndAdd( const float* first,
 
 void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int firstHeight,
 	int firstWidth, const float* second, int secondWidth,
-	float* result, int resultBufferSize)
+	float* result)
 {
-	ASSERT_EXPR((firstWidth - 1) * secondWidth + secondWidth <= resultBufferSize);
-
 	auto firstRowSize = firstWidth;
 	auto secondRowSize = secondWidth;
 	auto resultRowSize = secondWidth;
@@ -95,12 +90,11 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int fi
 
 void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, int resultBufferSize)
+	float* result, int resultRowSize)
 {
-	ASSERT_EXPR(firstWidth <= firstRowSize);
-	ASSERT_EXPR(secondWidth <= secondRowSize);
-	ASSERT_EXPR(secondWidth <= resultRowSize);
-	ASSERT_EXPR((firstWidth - 1) * resultRowSize + secondWidth <= resultBufferSize);
+	assert(firstWidth <= firstRowSize);
+	assert(secondWidth <= secondRowSize);
+	assert(secondWidth <= resultRowSize);
 
 	MultiplyMatrix<true, false, CTmpMemoryHandler>(this, CpuInfo, first, firstRowSize, second, secondRowSize,
 		result, resultRowSize, firstWidth, secondWidth, firstHeight);
