@@ -48,7 +48,7 @@ static void subVectorFromMatrixRows(CCpuMathEngine* engine, const CConstFloatHan
 }
 
 static inline void batchTransposePlainMatrix( int batchSize, const float* first,
-	int height, int width, float* result, int )
+	int height, int width, float* result )
 {
 	int objectSize = height * width;
 	int firstRowSize = width;
@@ -113,17 +113,16 @@ static inline void batchTransposePlainMatrix( int batchSize, const float* first,
 
 template<class T>
 inline void CCpuMathEngine::transposeMatrixImpl( int batchSize, const T* first,
-	int height, int medium, int width, int channels, T* result, int resultBufferSize )
+	int height, int medium, int width, int channels, T* result )
 {
 	if( medium == 1 && channels == 1 ) {
 		static_assert( sizeof(float) == sizeof(T), "Size of float isn't equal to size of T." );
 		batchTransposePlainMatrix( batchSize, reinterpret_cast<const float*>( first ),
-			height, width, reinterpret_cast<float*>( result ), resultBufferSize );
+			height, width, reinterpret_cast<float*>( result ) );
 		return;
 	}
 
 	int objectSize = height * width * medium * channels;
-	assert( resultBufferSize >= batchSize * objectSize );
 
 	int resultRowSize = height * medium * channels;
 
@@ -147,33 +146,33 @@ inline void CCpuMathEngine::transposeMatrixImpl( int batchSize, const T* first,
 }
 
 void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& firstHandle,
-	int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int resultBufferSize )
+	int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ), resultBufferSize );
+	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ) );
 }
 
 void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firstHandle,
-	int height, int medium, int width, int channels, const CIntHandle& resultHandle, int resultBufferSize )
+	int height, int medium, int width, int channels, const CIntHandle& resultHandle, int )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ), resultBufferSize );
+	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ) );
 }
 
 void CCpuMathEngine::transposeMatrix( int batchSize, const float* firstHandle,
-	int height, int medium, int width, int channels, float* resultHandle, int resultBufferSize )
+	int height, int medium, int width, int channels, float* resultHandle )
 {
-	transposeMatrixImpl( batchSize, firstHandle, height, medium, width, channels, resultHandle, resultBufferSize );
+	transposeMatrixImpl( batchSize, firstHandle, height, medium, width, channels, resultHandle );
 }
 
 void CCpuMathEngine::transposeMatrix( int batchSize, const int* firstHandle,
-	int height, int medium, int width, int channels, int* resultHandle, int resultBufferSize )
+	int height, int medium, int width, int channels, int* resultHandle )
 {
-	transposeMatrixImpl( batchSize, firstHandle, height, medium, width, channels, resultHandle, resultBufferSize );
+	transposeMatrixImpl( batchSize, firstHandle, height, medium, width, channels, resultHandle );
 }
 
 void CCpuMathEngine::addVectorToMatrixRows( const float* matrix, float* result,
@@ -781,7 +780,7 @@ void CCpuMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHan
 
 	for( int b = 0; b < batchSize; ++b ) {
 		multiplyMatrixByMatrix( first, firstHeight, firstWidth, firstWidth, second, 
-			secondWidth, secondWidth, result, secondWidth, firstHeight * secondWidth );
+			secondWidth, secondWidth, result, secondWidth );
 		first += firstHeight * firstWidth;
 		second += firstWidth * secondWidth;
 		result += firstHeight * secondWidth;
@@ -793,9 +792,11 @@ void CCpuMathEngine::MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHan
 	const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
 	const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize)
 {
+	ASSERT_EXPR((firstWidth - 1) * resultRowSize + secondWidth <= resultBufferSize);
+
 	multiplyTransposedMatrixByMatrixAndAdd( GetRaw( firstHandle ),
 		firstHeight, firstWidth, firstRowSize, GetRaw( secondHandle ), secondWidth, secondRowSize,
-		GetRaw( resultHandle ), resultRowSize, resultBufferSize );
+		GetRaw( resultHandle ), resultRowSize );
 }
 
 void CCpuMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
@@ -809,10 +810,8 @@ void CCpuMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CCons
 
 void CCpuMathEngine::batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight,
-	const CFloatHandle& resultHandle, int resultBufferSize )
+	const CFloatHandle& resultHandle )
 {
-	ASSERT_EXPR( resultBufferSize >= batchSize * firstHeight * secondHeight );
-
 	CConstFloatHandle first = firstHandle;
 	CConstFloatHandle second = secondHandle;
 	CFloatHandle result = resultHandle;
@@ -851,7 +850,7 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& f
 
 			multiplyMatrixByTransposedMatrix( firstData, firstHeightCount, firstWidth, firstRowSize,
 				secondData, secondHeightCount, secondRowSize,
-				resultData, resultRowSize, resultRowSize * firstHeight );
+				resultData, resultRowSize );
 		}
 	}
 }
@@ -882,7 +881,7 @@ void CCpuMathEngine::batchMultiplyTransposedMatrixByMatrix( int batchSize,
 {
 	for( int b = 0; b < batchSize; ++b ) {
 		multiplyTransposedMatrixByMatrix( first, firstHeight, firstWidth, second, secondWidth,
-			result, firstWidth * secondWidth );
+			result );
 
 		first += firstHeight * firstWidth;
 		second += firstHeight * secondWidth;

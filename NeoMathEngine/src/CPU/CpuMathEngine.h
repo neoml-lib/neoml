@@ -476,22 +476,21 @@ private:
 		int matrixHeight, int matrixWidth);
 	void multiplyMatrixByMatrix( const float* firstHandle, int firstHeight,
 		int firstWidth, int firstRowSize, const float* secondHandle, int secondWidth, int secondRowSize,
-		float* resultHandle, int resultRowSize, int resultBufferSize );
+		float* resultHandle, int resultRowSize );
 	void multiplyMatrixByMatrixAndAdd( const float* first, int firstHeight,
 		int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-		float* result, int resultRowSize, int resultBufferSize );
+		float* result, int resultRowSize );
 	void multiplyTransposedMatrixByMatrix( const float* first, int firstHeight, int firstWidth,
-		const float* second, int secondWidth, float* result, int resultBufferSize );
+		const float* second, int secondWidth, float* result );
 	void batchMultiplyTransposedMatrixByMatrix( int batchSize, const float* first, int firstHeight, int firstWidth, 
 		const float* second, int secondWidth, float* result );
 	void multiplyTransposedMatrixByMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
-		const float* second, int secondWidth, int secondRowSize,
-		float* result, int resultRowSize, int resultBufferSize );
+		const float* second, int secondWidth, int secondRowSize, float* result, int resultRowSize );
 	void multiplyMatrixByTransposedMatrix( const float* first, int firstHeight,
 		int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-		float* result, int resultRowSize, int resultBufferSize );
+		float* result, int resultRowSize );
 	void batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int resultBufferSize );
+		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle );
 	void multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
 		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize );
 
@@ -511,11 +510,11 @@ private:
 
 	template<typename T>
 	void transposeMatrixImpl( int batchSize, const T* firstHandle,
-		int height, int medium, int width, int channels, T* resultHandle, int resultBufferSize );
+		int height, int medium, int width, int channels, T* resultHandle );
 	void transposeMatrix(int batchSize, const float* firstHandle,
-		int height, int medium, int width, int channels, float* resultHandle, int resultBufferSize);
+		int height, int medium, int width, int channels, float* resultHandle);
 	void transposeMatrix(int batchSize, const int* firstHandle,
-		int height, int medium, int width, int channels, int* resultHandle, int resultBufferSize);
+		int height, int medium, int width, int channels, int* resultHandle);
 	void createDilationTemporaryBlob( const CCpuConvolutionDesc& desc, const float* inputBlob, int inputBatch,
 		int outputColumnStart, int outputColumnCount, float* temporaryBlob );
 	template<class TConvolutionDesc>

@@ -411,7 +411,7 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 
 				multiplyMatrixByTransposedMatrix( tempDataPtr, size, filterObjectSize,
 					filterObjectSize, filterData, filterObjectCount, filterObjectSize, resultDataPtr,
-					filterObjectCount, resultItemCount * filterObjectCount );
+					filterObjectCount );
 
 				if( freeTermData != nullptr ) {
 					addVectorToMatrixRows( resultDataPtr, resultDataPtr, size, filterObjectCount, filterObjectCount, 
@@ -485,7 +485,7 @@ void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& des
 				} else {
 					multiplyMatrixByTransposedMatrix( tempBlobPtr, result.Height() * resultCount, filter.ObjectSize(),
 						filter.ObjectSize(), filterData, filter.BatchWidth(), filter.ObjectSize(), outputTransposedPtr,
-						filter.BatchWidth(), resultCount * outputTransposedDataRowSize );
+						filter.BatchWidth() );
 				}
 
 				// Transpose the result
@@ -694,6 +694,8 @@ void CCpuMathEngine::backwardDilationConvolutionAddFilterToOutput( const CCpuCon
 void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& desc, const CFloatHandle& sourceData,
 	const CFloatHandle& filterData, const CFloatHandle* freeTerm, const CFloatHandle& resultData )
 {
+	const float* sourceDataRaw = GetRaw( sourceData );
+
 	const CBlobDesc& source = desc.Result;
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& result = desc.Source;
@@ -704,6 +706,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 	const int filterForwardChannelsCount = filter.BatchWidth();
 	const int filterForwardDataSize = filterForwardGeometricalSize * filterForwardChannelsCount;
 	CFloatHandleVar filterForward( mathEngine(), filterForwardDataSize );
+	float* filterForwardRaw = GetRaw( filterForward.GetHandle() );
 
 	TransposeMatrix( 1, filterData, filter.BatchWidth(), 1, filter.ObjectSize(), 1, filterForward.GetHandle(),
 		filterForwardDataSize );
@@ -713,6 +716,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 	const int tempWidth = filterForwardGeometricalSize;
 	const int tempDataSize = tempHeight * tempWidth;
 	CFloatHandleVar temp( mathEngine(), tempDataSize );
+	float* tempRaw = GetRaw( temp.GetHandle() );
 
 	const int curThreadCount = IsOmpRelevant( result.ObjectCount() * result.Height(),
 		static_cast<int64_t>( source.BlobSize() ) * filter.BlobSize() ) ? threadCount : 1;
@@ -723,10 +727,10 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 		int inputStart;
 		int inputCount;
 		if( OmpGetTaskIndexAndCount( tempHeight, inputStart, inputCount ) ) {
-			multiplyMatrixByTransposedMatrix( GetRaw( sourceData + inputStart * filterForwardChannelsCount ),
+			multiplyMatrixByTransposedMatrix( sourceDataRaw + inputStart * filterForwardChannelsCount,
 				inputCount, filterForwardChannelsCount, filterForwardChannelsCount,
-				GetRaw( filterForward.GetHandle() ), filterForwardGeometricalSize, filterForwardChannelsCount,
-				GetRaw( temp.GetHandle() + inputStart * tempWidth ), filterForwardGeometricalSize, inputCount * tempWidth );
+				filterForwardRaw, filterForwardGeometricalSize, filterForwardChannelsCount,
+				tempRaw + inputStart * tempWidth, filterForwardGeometricalSize );
 		}
 
 		if( curThreadCount > 1 ) {
@@ -926,13 +930,13 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 
 		transposeMatrix( 1, outputDiffDataRaw + b * outputDiff.ObjectSize(),
 			outputDiff.Height(), 1, outputDiff.Width(), outputDiff.Depth() * outputDiff.Channels(),
-			outputDiffTransDataRaw, outputDiffTrans.GetDataSize() );
+			outputDiffTransDataRaw );
 
 		// Calculate diffs
 		multiplyTransposedMatrixByMatrix( GetRaw( outputDiffTrans.GetPrivateData() ),
 			outputDiffTrans.GetHeight(), outputDiffTrans.GetWidth(),
 			tempBlobHolderDataRaw, tempBlobHolder.GetWidth(),
-			outputTempDataRaw, outputTemp.GetDataSize() );
+			outputTempDataRaw );
 
 		vectorAdd( filterDiffReductionDataRaw, outputTempDataRaw,
 			filterDiffReductionDataRaw, filterDiff.BlobSize() );
@@ -1019,11 +1023,7 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 					inputMatrix,
 					input.Depth() * input.Channels(),
 					input.Depth() * input.Channels(),
-					filterMatrix, filterDiff.ObjectSize(),
-					filterDiff.ObjectSize() * (filterDiff.BatchWidth() - 1)
-						+ (filterDiff.Height() - h) * filterDiff.Width() *
-							filterDiff.Depth() * filterDiff.Channels()
-							- w * filterDiff.Depth() * filterDiff.Channels());
+					filterMatrix, filterDiff.ObjectSize() );
 			}
 		}
 
@@ -1135,11 +1135,12 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 	// Transpose the: HWC -> CHW
 	CFloatHandleStackVar filterTransposed( mathEngine(), filter.BlobSize() );
 	float* filterTransposedRaw = GetRaw( filterTransposed.GetHandle() );
-	transposeMatrix(1, filterDataRaw, filterGeo, 1, filter.Channels(), 1, filterTransposedRaw, filterTransposed.Size());
+	transposeMatrix(1, filterDataRaw, filterGeo, 1, filter.Channels(), 1, filterTransposedRaw);
 
 	const int curThreadCount = IsOmpRelevant( input.BatchWidth() ) ? threadCount : 1;
 
-	COmpPrivate2DData inputRepacked( curThreadCount, mathEngine(), input.Height() * input.Width(), input.Channels() );
+	const int inputRepackedWidth = input.Channels();
+	COmpPrivate2DData inputRepacked( curThreadCount, mathEngine(), input.Height() * input.Width(), inputRepackedWidth );
 	COmpPrivate1DData temp( curThreadCount, mathEngine(), inputGeo * filterGeo * input.Channels() );
 	COmpPrivate2DData outputRepacked( curThreadCount, mathEngine(), output.Height() * output.Width(), output.Channels() );
 
@@ -1149,12 +1150,13 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 		float* outputRepackedDataRaw = GetRaw( outputRepacked.GetPrivateData() );
 		// Repack HWC -> CHW
 		transposeMatrix( 1, inputDiffDataRaw + batchIndex * inputBatch,
-			inputGeo, 1, input.Channels(), 1, inputRepackedDataRaw, inputRepacked.GetDataSize() );
+			inputGeo, 1, input.Channels(), 1, inputRepackedDataRaw );
 
 		// Multiply the inputRepacked and filter matrices
-		batchMultiplyMatrixByTransposedMatrix( inputRepacked.GetWidth(),
+		assert( temp.GetDataSize() >= inputRepackedWidth * inputGeo );
+		batchMultiplyMatrixByTransposedMatrix( inputRepackedWidth,
 			inputRepacked.GetPrivateData(), inputGeo, 1,
-			filterTransposed, filterGeo, temp.GetPrivateData(), temp.GetDataSize() );
+			filterTransposed, filterGeo, temp.GetPrivateData() );
 
 		// Add the subvectors from the resulting matrix to the required positions in outputRepacked
 		for( int step = 0; step < output.Height() * output.Channels(); ++step ) {
@@ -1212,7 +1214,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 		// Repack CHW -> HWC
 		transposeMatrix( 1, outputRepackedDataRaw,
 			outputRepacked.GetWidth(), 1, outputRepacked.GetHeight(), 1,
-			outputDiffDataRaw + batchIndex * outputBatch, outputBatch );
+			outputDiffDataRaw + batchIndex * outputBatch );
 	}
 }
 
@@ -1246,7 +1248,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 	filterDiffTransposed.SetDimSize(BD_Height, filterDiff.Height());
 	filterDiffTransposed.SetDimSize(BD_Width, filterDiff.Width());
 	transposeMatrix( 1, filterDiffDataRaw, filterDiff.Height() * filterDiff.Width(), 1, filterDiff.Channels(), 1,
-		filterDiffTransposedRaw, filterDiffTransposed.BlobSize() );
+		filterDiffTransposedRaw );
 
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffTransposedHolder.GetHandle(), filterDiffTransposed.BlobSize() );
 	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
@@ -1276,16 +1278,16 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 				createTemporaryBlob( desc, inputDataRaw, batchIndex, 0, outputDiff.Width(), tempBlobDataRaw );
 				// Repack HWC -> CHW
 				transposeMatrix( 1, tempBlobDataRaw, tempBlob.GetHeight(), 1, tempBlob.GetWidth(), 1,
-					tempBlobRepackedDataRaw, tempBlobRepacked.GetDataSize() );
+					tempBlobRepackedDataRaw );
 
 				// Transpose the output blob HWC -> WHC
 				transposeMatrix( 1, outputDiffDataRaw + batchIndex * outputDiff.ObjectSize(),
 					outputDiff.Height(), 1, outputDiff.Width(), outputDiff.Channels(),
-					outputDiffTransDataRaw, outputDiffTrans.GetDataSize() );
+					outputDiffTransDataRaw );
 				// Repack HWC -> CHW
 				transposeMatrix( 1, outputDiffTransDataRaw,
 					outputDiffTrans.GetHeight(), 1, outputDiffTrans.GetWidth(), 1,
-					outputDiffTransRepackedDataRaw, outputDiffTransRepacked.GetDataSize() );
+					outputDiffTransRepackedDataRaw );
 
 				// Multiply matrices
 				batchMultiplyTransposedMatrixByMatrix( outputDiffTransRepacked.GetWidth(),

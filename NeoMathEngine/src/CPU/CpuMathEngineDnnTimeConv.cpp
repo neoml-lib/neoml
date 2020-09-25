@@ -94,7 +94,7 @@ void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, 
 		multiplyMatrixByTransposedMatrix( inputPtr,
 			source.BatchWidth(), inputObjectSize, inputObjectSize,
 			filterPtr, filter.BatchWidth(), filterDataSize,
-			outputPtr, outputObjectSize, outputObjectSize * source.BatchWidth() );
+			outputPtr, outputObjectSize );
 
 		for( int i = 1; i < filterRowCount; ++i ) {
 			inputPtr += inputRowSize * desc.Dilation;
@@ -157,7 +157,7 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 			multiplyMatrixByMatrixAndAdd( outputDiffPtr,
 				outputDiff.BatchWidth(), outputObjectSize, outputObjectSize,
 				filterPtr, filter.Channels(), filterDataSize,
-				inputDiffDataPtr, inputObjectSize, inputObjectSize * inputDiff.BatchWidth() );
+				inputDiffDataPtr, inputObjectSize );
 		}
 	}
 }
@@ -204,7 +204,7 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 			multiplyTransposedMatrixByMatrixAndAdd( outputDiffPtr,
 				outputDiff.BatchWidth(), filterDiff.BatchWidth(), filterDiff.BatchWidth(),
 				inputPtr, filterDiff.Channels(), filterDiff.Channels(),
-				filterDiffPtr, filterDataSize, filterDiff.BlobSize() - filterRow * filterDiff.Channels() );
+				filterDiffPtr, filterDataSize );
 		}
 	}
 
