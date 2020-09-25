@@ -51,8 +51,9 @@ Each input accepts a blob with `float` or `int` data that contains the feature v
 - `Channels` is the dimension along which the feature values for different sets are stored; so it should not be smaller than the number of feature sets.
 
 ## Outputs
-The number of outputs is equals to the number of inputs.
+
+The number of outputs is equal to the number of inputs.
 Each output contains a blob with the results, of the dimensions:
 
-- `BatchLength`, `BatchWidth`, `ListSize`, `Height`, `Width`, `Depth` are equal to these dimensions for the input
-- `Channels` is equal to the sum of the vector lengths of all sets and the additional channels (if the input `Channels` is more than the number of tables).
+- `BatchLength`, `BatchWidth`, `ListSize`, `Height`, `Width`, `Depth` are equal to these dimensions for the corresponding input
+- `Channels` is equal to the sum of the vector lengths of all sets and the additional channels (if the corresponding input `Channels` is more than the number of tables).
