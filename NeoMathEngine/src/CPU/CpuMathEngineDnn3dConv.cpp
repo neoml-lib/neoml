@@ -561,7 +561,7 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 			blob3dConvolutionPrepareInput( desc, inputPreparedDataPtr, inputData, b,
 				outputDiff.Height(), 0, outputDiff.Width() * outputDiff.Depth() );
 
-			transposeMatrixImpl( 1, outputDiffDataPtr,
+			transposeMatrix( 1, outputDiffDataPtr,
 				outputDiff.Height(), 1, outputDiff.Width() * outputDiff.Depth(),
 				outputDiff.Channels(), outputTempDataPtr, outputTempSize );
 

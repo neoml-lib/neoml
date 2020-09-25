@@ -112,7 +112,7 @@ static inline void batchTransposePlainMatrix( int batchSize, const float* first,
 }
 
 template<class T>
-void CCpuMathEngine::transposeMatrixImpl( int batchSize, const T* first,
+inline void CCpuMathEngine::transposeMatrixImpl( int batchSize, const T* first,
 	int height, int medium, int width, int channels, T* result, int resultBufferSize )
 {
 	if( medium == 1 && channels == 1 ) {
@@ -152,7 +152,7 @@ void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& fi
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	transposeMatrixImpl( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ), resultBufferSize );
+	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ), resultBufferSize );
 }
 
 void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firstHandle,
@@ -161,7 +161,19 @@ void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firs
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	transposeMatrixImpl( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ), resultBufferSize );
+	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ), resultBufferSize );
+}
+
+void CCpuMathEngine::transposeMatrix( int batchSize, const float* firstHandle,
+	int height, int medium, int width, int channels, float* resultHandle, int resultBufferSize )
+{
+	transposeMatrixImpl( batchSize, firstHandle, height, medium, width, channels, resultHandle, resultBufferSize );
+}
+
+void CCpuMathEngine::transposeMatrix( int batchSize, const int* firstHandle,
+	int height, int medium, int width, int channels, int* resultHandle, int resultBufferSize )
+{
+	transposeMatrixImpl( batchSize, firstHandle, height, medium, width, channels, resultHandle, resultBufferSize );
 }
 
 void CCpuMathEngine::addVectorToMatrixRows( const float* matrix, float* result,
@@ -789,8 +801,10 @@ void CCpuMathEngine::MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHan
 void CCpuMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
 {
-	batchMultiplyTransposedMatrixByMatrix(batchSize, GetRaw( firstHandle ), firstHeight, firstWidth,
-		GetRaw( secondHandle ), secondWidth, GetRaw( resultHandle ), resultBufferSize);
+	ASSERT_EXPR( resultBufferSize >= batchSize * firstWidth * secondWidth );
+	
+	batchMultiplyTransposedMatrixByMatrix( batchSize, GetRaw( firstHandle ), firstHeight, firstWidth,
+		GetRaw( secondHandle ), secondWidth, GetRaw( resultHandle ) );
 }
 
 void CCpuMathEngine::batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
@@ -864,10 +878,8 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CCon
 void CCpuMathEngine::batchMultiplyTransposedMatrixByMatrix( int batchSize,
 	const float* first, int firstHeight, int firstWidth,
 	const float* second, int secondWidth,
-	float* result, int resultBufferSize )
+	float* result )
 {
-	assert( resultBufferSize >= batchSize * firstWidth * secondWidth );
-	
 	for( int b = 0; b < batchSize; ++b ) {
 		multiplyTransposedMatrixByMatrix( first, firstHeight, firstWidth, second, secondWidth,
 			result, firstWidth * secondWidth );

@@ -483,7 +483,7 @@ private:
 	void multiplyTransposedMatrixByMatrix( const float* first, int firstHeight, int firstWidth,
 		const float* second, int secondWidth, float* result, int resultBufferSize );
 	void batchMultiplyTransposedMatrixByMatrix( int batchSize, const float* first, int firstHeight, int firstWidth, 
-		const float* second, int secondWidth, float* result, int resultBufferSize );
+		const float* second, int secondWidth, float* result );
 	void multiplyTransposedMatrixByMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
 		const float* second, int secondWidth, int secondRowSize,
 		float* result, int resultRowSize, int resultBufferSize );
@@ -512,6 +512,10 @@ private:
 	template<typename T>
 	void transposeMatrixImpl( int batchSize, const T* firstHandle,
 		int height, int medium, int width, int channels, T* resultHandle, int resultBufferSize );
+	void transposeMatrix(int batchSize, const float* firstHandle,
+		int height, int medium, int width, int channels, float* resultHandle, int resultBufferSize);
+	void transposeMatrix(int batchSize, const int* firstHandle,
+		int height, int medium, int width, int channels, int* resultHandle, int resultBufferSize);
 	void createDilationTemporaryBlob( const CCpuConvolutionDesc& desc, const float* inputBlob, int inputBatch,
 		int outputColumnStart, int outputColumnCount, float* temporaryBlob );
 	template<class TConvolutionDesc>

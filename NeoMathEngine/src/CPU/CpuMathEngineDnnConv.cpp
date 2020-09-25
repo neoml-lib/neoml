@@ -924,7 +924,7 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 			createTemporaryBlob( desc, inputDataRaw, b, 0, outputDiff.Width(), tempBlobHolderDataRaw );
 		}
 
-		transposeMatrixImpl( 1, outputDiffDataRaw + b * outputDiff.ObjectSize(),
+		transposeMatrix( 1, outputDiffDataRaw + b * outputDiff.ObjectSize(),
 			outputDiff.Height(), 1, outputDiff.Width(), outputDiff.Depth() * outputDiff.Channels(),
 			outputDiffTransDataRaw, outputDiffTrans.GetDataSize() );
 
@@ -1135,7 +1135,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 	// Transpose the: HWC -> CHW
 	CFloatHandleStackVar filterTransposed( mathEngine(), filter.BlobSize() );
 	float* filterTransposedRaw = GetRaw( filterTransposed.GetHandle() );
-	transposeMatrixImpl(1, filterDataRaw, filterGeo, 1, filter.Channels(), 1, filterTransposedRaw, filterTransposed.Size());
+	transposeMatrix(1, filterDataRaw, filterGeo, 1, filter.Channels(), 1, filterTransposedRaw, filterTransposed.Size());
 
 	const int curThreadCount = IsOmpRelevant( input.BatchWidth() ) ? threadCount : 1;
 
@@ -1148,7 +1148,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 		float* inputRepackedDataRaw = GetRaw( inputRepacked.GetPrivateData() );
 		float* outputRepackedDataRaw = GetRaw( outputRepacked.GetPrivateData() );
 		// Repack HWC -> CHW
-		transposeMatrixImpl( 1, inputDiffDataRaw + batchIndex * inputBatch,
+		transposeMatrix( 1, inputDiffDataRaw + batchIndex * inputBatch,
 			inputGeo, 1, input.Channels(), 1, inputRepackedDataRaw, inputRepacked.GetDataSize() );
 
 		// Multiply the inputRepacked and filter matrices
@@ -1210,7 +1210,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 		}
 
 		// Repack CHW -> HWC
-		transposeMatrixImpl( 1, outputRepackedDataRaw,
+		transposeMatrix( 1, outputRepackedDataRaw,
 			outputRepacked.GetWidth(), 1, outputRepacked.GetHeight(), 1,
 			outputDiffDataRaw + batchIndex * outputBatch, outputBatch );
 	}
@@ -1245,7 +1245,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 	filterDiffTransposed.SetDimSize(BD_BatchWidth, filterDiff.Channels());
 	filterDiffTransposed.SetDimSize(BD_Height, filterDiff.Height());
 	filterDiffTransposed.SetDimSize(BD_Width, filterDiff.Width());
-	transposeMatrixImpl( 1, filterDiffDataRaw, filterDiff.Height() * filterDiff.Width(), 1, filterDiff.Channels(), 1,
+	transposeMatrix( 1, filterDiffDataRaw, filterDiff.Height() * filterDiff.Width(), 1, filterDiff.Channels(), 1,
 		filterDiffTransposedRaw, filterDiffTransposed.BlobSize() );
 
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffTransposedHolder.GetHandle(), filterDiffTransposed.BlobSize() );
@@ -1275,15 +1275,15 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 				// Filling the matrix from the windows
 				createTemporaryBlob( desc, inputDataRaw, batchIndex, 0, outputDiff.Width(), tempBlobDataRaw );
 				// Repack HWC -> CHW
-				transposeMatrixImpl( 1, tempBlobDataRaw, tempBlob.GetHeight(), 1, tempBlob.GetWidth(), 1,
+				transposeMatrix( 1, tempBlobDataRaw, tempBlob.GetHeight(), 1, tempBlob.GetWidth(), 1,
 					tempBlobRepackedDataRaw, tempBlobRepacked.GetDataSize() );
 
 				// Transpose the output blob HWC -> WHC
-				transposeMatrixImpl( 1, outputDiffDataRaw + batchIndex * outputDiff.ObjectSize(),
+				transposeMatrix( 1, outputDiffDataRaw + batchIndex * outputDiff.ObjectSize(),
 					outputDiff.Height(), 1, outputDiff.Width(), outputDiff.Channels(),
 					outputDiffTransDataRaw, outputDiffTrans.GetDataSize() );
 				// Repack HWC -> CHW
-				transposeMatrixImpl( 1, outputDiffTransDataRaw,
+				transposeMatrix( 1, outputDiffTransDataRaw,
 					outputDiffTrans.GetHeight(), 1, outputDiffTrans.GetWidth(), 1,
 					outputDiffTransRepackedDataRaw, outputDiffTransRepacked.GetDataSize() );
 
@@ -1292,7 +1292,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 					outputDiffTransRepackedDataRaw,
 					outputDiffTransRepacked.GetHeight(), 1,
 					tempBlobRepackedDataRaw, filterDiff.Height() * filterDiff.Width(),
-					filterTempDataRaw, filterTemp.GetDataSize() );
+					filterTempDataRaw );
 
 				// Update the accumulator
 				vectorAdd( filterDiffReductionDataRaw, filterTempDataRaw,
