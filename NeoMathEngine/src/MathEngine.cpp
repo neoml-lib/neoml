@@ -131,6 +131,7 @@ void CGpuMathEngineManager::GetMathEngineInfo( int index, CMathEngineInfo& resul
 
 IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLimit, int flags ) const
 {
+	(void)flags; // Avoiding unused variable warning when NEOML_USE_CUDA is not defined
 	auto size = static_cast<int>(info.size());
 	if( size == 0 || index >= size ) {
 		return nullptr;
