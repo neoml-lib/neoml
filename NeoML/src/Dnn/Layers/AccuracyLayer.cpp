@@ -130,18 +130,17 @@ void CConfusionMatrixLayer::Reshape()
 	NeoAssert( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount() );
 	NeoAssert( inputDescs[0].ObjectSize() >= 1 );
 	NeoAssert( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize() );
-	confusionMatrix.Reset();
+
 	const int classCount = inputDescs[0].Channels();
-	confusionMatrix.SetSize( classCount, classCount );
+	if( confusionMatrix.SizeX() != classCount ) {
+		confusionMatrix.Reset();
+		confusionMatrix.SetSize( classCount, classCount );
+		confusionMatrix.Set( 0.f );
+	}
+
 	outputDescs[0] = CBlobDesc( CT_Float );
 	outputDescs[0].SetDimSize( BD_Height, classCount );
 	outputDescs[0].SetDimSize( BD_Width, classCount );
-	// Set to 0
-	for( int i = 0; i < classCount; i++ ) {
-		for( int j = 0; j < classCount; j++ ) {
-			confusionMatrix( i, j ) = 0;
-		}
-	}
 }
 
 void CConfusionMatrixLayer::RunOnceAfterReset()

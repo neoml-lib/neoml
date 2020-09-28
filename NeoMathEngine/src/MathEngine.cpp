@@ -74,9 +74,9 @@ public:
 	CGpuMathEngineManager();
 
 	// IGpuMathEngineManager interface methods
-	virtual int GetMathEngineCount() const { return static_cast<int>( info.size() ); }
-	virtual void GetMathEngineInfo( int index, CMathEngineInfo& info ) const;
-	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit ) const;
+	int GetMathEngineCount() const override { return static_cast<int>( info.size() ); }
+	void GetMathEngineInfo( int index, CMathEngineInfo& info ) const override;
+	IMathEngine* CreateMathEngine( int index, size_t memoryLimit, int flags = 0 ) const override;
 
 private:
 	CDllLoader loader;
@@ -129,80 +129,7 @@ void CGpuMathEngineManager::GetMathEngineInfo( int index, CMathEngineInfo& resul
 	}
 }
 
-#ifdef NEOML_USE_CUDA
-
-struct CCudaDevUsage {
-	int DevNum;
-	int Usage;
-};
-
-static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
-{
-	CCudaDevice* result = new CCudaDevice( deviceNumber, deviceMemoryLimit );
-
-	cudaDeviceProp devProp;
-	ASSERT_ERROR_CODE( cudaGetDeviceProperties(&devProp, deviceNumber) );
-	size_t slotSize = devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT;
-	int slotCount = static_cast<int>( ( result->MemoryLimit + slotSize - 1 ) / slotSize );
-
-	int capturedSlotCount = 0;
-	for( int i = 0; capturedSlotCount < slotCount && i < CUDA_DEV_SLOT_COUNT; ++i ) {
-		result->Handles[i] = CaptureDeviceSlot(result->DeviceId, i, false);
-		if( result->Handles[i] != nullptr ) {
-			++capturedSlotCount;
-		}
-	}
-
-	if( capturedSlotCount < slotCount ) {
-		delete result;
-		return 0;
-	}
-
-	return result;
-}
-
-// Captures the CUDA device
-static CCudaDevice* captureCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
-{
-	if( deviceNumber >= 0 ) {
-		return captureSpecifiedCudaDevice( deviceNumber, deviceMemoryLimit );
-	}
-
-	int deviceCount = 0;
-	ASSERT_ERROR_CODE( cudaGetDeviceCount( &deviceCount ) );
-
-	// Detect the devices and their processing load
-	vector<CCudaDevUsage> devs;
-	for( int i = 0; i < deviceCount; ++i ) {
-		cudaDeviceProp devProp;
-		ASSERT_ERROR_CODE( cudaGetDeviceProperties( &devProp, i ) );
-
-		CCudaDevUsage dev;
-		dev.DevNum = i;
-		dev.Usage = 0;
-		for( int j = 0; j < CUDA_DEV_SLOT_COUNT; ++j ) {
-			if( !IsDeviceSlotFree( devProp.pciBusID, j ) ) {
-				++dev.Usage;
-			}
-		}
-		devs.push_back(dev);
-	}
-	// Sort the devices in order of increasing load
-	std::sort( devs.begin(), devs.end(), []( const CCudaDevUsage& a, const CCudaDevUsage& b ) { return a.Usage > b.Usage; } );
-
-	for( size_t i = 0; i < devs.size(); ++i ) {
-		CCudaDevice* result = captureSpecifiedCudaDevice( devs[i].DevNum, deviceMemoryLimit );
-		if( result != nullptr ) {
-			return result;
-		}
-	}
-
-	return nullptr;
-}
-
-#endif // NEOML_USE_CUDA
-
-IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLimit ) const
+IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLimit, int flags ) const
 {
 	auto size = static_cast<int>(info.size());
 	if( size == 0 || index >= size ) {
@@ -212,11 +139,11 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 #ifdef NEOML_USE_CUDA
 	case MET_Cuda:
 	{
-		std::unique_ptr<CCudaDevice> device( captureCudaDevice( index >= 0 ? info[index].Id : -1, memoryLimit ) );
+		std::unique_ptr<CCudaDevice> device( CaptureCudaDevice( index >= 0 ? info[index].Id : -1, memoryLimit ) );
 		if( device == nullptr ) {
 			return nullptr;
 		}
-		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(), device );
+		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(), device, flags );
 	}
 #endif
 #ifdef NEOML_USE_VULKAN
@@ -253,10 +180,10 @@ IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit )
 	return new CCpuMathEngine( threadCount, memoryLimit );
 }
 
-IMathEngine* CreateGpuMathEngine( size_t memoryLimit )
+IMathEngine* CreateGpuMathEngine( size_t memoryLimit, int flags )
 {
 	CGpuMathEngineManager manager;
-	return manager.CreateMathEngine(-1, memoryLimit);
+	return manager.CreateMathEngine(-1, memoryLimit, flags);
 }
 
 IGpuMathEngineManager* CreateGpuMathEngineManager()

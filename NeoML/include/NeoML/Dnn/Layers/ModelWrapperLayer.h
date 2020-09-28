@@ -23,6 +23,8 @@ limitations under the License.
 
 namespace NeoML {
 
+class CSourceLayer;
+class CSinkLayer;
 class CDnnTrainingModelWrapper;
 
 // CProblemSourceLayer is a wrapper over the IProblem interface. 

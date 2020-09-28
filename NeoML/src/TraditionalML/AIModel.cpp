@@ -22,8 +22,8 @@ limitations under the License.
 
 namespace NeoML {
 
-static CMap<CString, TCreateModelFunction> registeredModels;
-static CMap<const std::type_info*, CString> modelNames;
+static CMap<CString, TCreateModelFunction, CDefaultHash<CString>, RuntimeHeap> registeredModels;
+static CMap<const std::type_info*, CString, CDefaultHash<const std::type_info*>, RuntimeHeap> modelNames;
 
 IModel::~IModel()
 {
@@ -67,7 +67,7 @@ CPtr<IObject> CreateModel( const char* modelName )
 	return registeredModels.GetValue( pos )();
 }
 
-const char* GetModelName( IObject* model )
+const char* GetModelName( const IObject* model )
 {
 	if( model == 0 ) {
 		return "";

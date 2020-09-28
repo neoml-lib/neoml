@@ -58,12 +58,12 @@ void CCpuMathEngine::blob3dConvolution1x1x1(  const CBlobDesc& source, const CBl
 						NeoML::setVectorToMatrixRows(outputDataPtr, geomCount, newChannels, freeTermData);
 					} else {
 						NeoML::vectorFill(outputDataPtr, 0, geomCount * newChannels);
-	}
+					}
 					multiplyMatrixByTransposedMatrixAndAdd(sourceData + geomStart * channels,
 						geomCount, channels, channels,
 						filterData, newChannels, channels,
 						outputDataPtr, newChannels);
-	}
+				}
 			}
 		} else {
 			// The second matrix split into rows

@@ -154,8 +154,8 @@ void CCompositeSinkLayer::Serialize( CArchive& archive )
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-CCompositeLayer::CCompositeLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnCompositeLayer", true ),
+CCompositeLayer::CCompositeLayer( IMathEngine& mathEngine, const char* name ) :
+	CBaseLayer( mathEngine, name == nullptr ? "CCnnCompositeLayer" : name, true ),
 	internalDnn( 0 ),
 	areInternalLogsEnabled( true )
 {
@@ -425,6 +425,19 @@ size_t CCompositeLayer::GetOutputBlobsSize() const
 	size_t result = 0;
 	for( int i = 0; i < internalDnn->layers.Size(); i++ ) {
 		result += internalDnn->layers[i]->GetOutputBlobsSize();
+	}
+	return result;
+}
+
+size_t CCompositeLayer::GetTrainableParametersSize() const
+{
+	if( !IsLearnable() ) {
+		return 0;
+	}
+
+	size_t result = 0;
+	for( int i = 0; i < internalDnn->layers.Size(); i++ ) {
+		result += internalDnn->layers[i]->GetTrainableParametersSize();
 	}
 	return result;
 }

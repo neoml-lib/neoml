@@ -32,7 +32,7 @@ __global__ void BlobConvertFromRleKernel( const CCudaConvolutionDescInternal con
 		return;
 	}
 	const CCudaRleImage* __restrict__ image = reinterpret_cast<const CCudaRleImage*>(
-		(const char* __restrict__)sourceData + num * objectSize);
+		(const char*)sourceData + num * objectSize);
 	float* output = GetBlobPtr(source, resultData, num, line, 0, 0);
 
 	int imageStart = (source.Height() - image->Height) / 2;

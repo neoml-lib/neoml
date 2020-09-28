@@ -106,6 +106,79 @@ inline void vectorFill( float* result, float value, int vectorSize )
 	}
 }
 
+inline void vectorFill0( float* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	__m128 valueSse = _mm_setzero_ps();
+
+	while( sseSize >= 4 ) {
+		_mm_storeu_ps(result, valueSse);
+		result += 4;
+		_mm_storeu_ps(result, valueSse);
+		result += 4;
+		_mm_storeu_ps(result, valueSse);
+		result += 4;
+		_mm_storeu_ps(result, valueSse);
+		result += 4;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_storeu_ps(result, valueSse);
+		result += 4;
+		sseSize--;
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = 0;
+	}
+}
+
+inline void vectorEltwiseMax( const float* first, const float* second, float* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	while( sseSize >= 4 ) {
+		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		first += 4;
+		second += 4;
+		result += 4;
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		first += 4;
+		second += 4;
+		result += 4;
+		sseSize--;
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = max(*first, *second);
+		first++;
+		second++;
+	}
+}
+
 //------------------------------------------------------------------------------------------------------------
 
 inline void vectorAdd(const float* first, const float* second, float* result, int vectorSize)
@@ -144,6 +217,71 @@ inline void vectorAdd(const float* first, const float* second, float* result, in
 
 	for( int i = 0; i < nonSseSize; ++i ) {
 		result[i] = first[i] + second[i];
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+inline void alignedVectorAdd( float* first, const float* second, int vectorSize )
+{
+	int sseSize = vectorSize / 4;
+	while( sseSize >= 4 ) {
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		first += 4;
+		second += 4;
+		sseSize--;
+	}
+}
+
+inline void alignedVectorMultiplyAndAdd( const float* first, const float* second,
+	float* result, int vectorSize, const float* mult )
+{
+	int sseSize = vectorSize / 4;
+	__m128 multSse = _mm_set_ps1( *mult );
+	while( sseSize >= 4 ) {
+		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
+		first += 4;
+		second += 4;
+		result += 4;
+		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
+		first += 4;
+		second += 4;
+		result += 4;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_store_ps( result, _mm_add_ps( _mm_load_ps( first ), _mm_mul_ps( _mm_load_ps( second ), multSse ) ) );
+		first += 4;
+		second += 4;
+		result += 4;
+		sseSize--;
 	}
 }
 

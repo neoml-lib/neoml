@@ -65,7 +65,13 @@ struct CDecisionTreeDiscreteNodeInfo : public CDecisionTreeNodeInfoBase {
 
 inline void CDecisionTreeDiscreteNodeInfo::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( 1, 1 );
+#ifdef NEOML_USE_FINEOBJ
+	const int minSupportedVersion = 0;
+#else
+	const int minSupportedVersion = 1;
+#endif
+
+	int version = archive.SerializeVersion( 1, minSupportedVersion );
 
 	if( archive.IsStoring() ) {
 		archive << FeatureIndex;
@@ -85,9 +91,18 @@ inline void CDecisionTreeDiscreteNodeInfo::Serialize( CArchive& archive )
 		archive >> size;
 		Children.SetSize( size );
 		for( int i = 0; i < Children.Size(); i++ ) {
-			CString modelName;
-			archive >> modelName;
-			Children[i] = CreateModel<CDecisionTreeNodeBase>( modelName );
+#ifdef NEOML_USE_FINEOBJ
+			if( version == 0 ) {
+				CUnicodeString modelName = archive.ReadExternalName();
+				Children[i] = CreateModel<CDecisionTreeNodeBase>( modelName.CreateString() );
+			}
+#endif
+			if( version == 1 ) {
+				CString modelName;
+				archive >> modelName;
+				Children[i] = CreateModel<CDecisionTreeNodeBase>( modelName );
+			}
+
 			Children[i]->Serialize( archive );
 		}
 	} else {
@@ -129,7 +144,13 @@ struct CDecisionTreeContinuousNodeInfo : public CDecisionTreeNodeInfoBase {
 
 inline void CDecisionTreeContinuousNodeInfo::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( 1 );
+#ifdef NEOML_USE_FINEOBJ
+	const int minSupportedVersion = 0;
+#else
+	const int minSupportedVersion = 1;
+#endif
+
+	int version = archive.SerializeVersion( 1, minSupportedVersion );
 
 	if( archive.IsStoring() ) {
 		archive << FeatureIndex;
@@ -141,13 +162,25 @@ inline void CDecisionTreeContinuousNodeInfo::Serialize( CArchive& archive )
 	} else if( archive.IsLoading() ) {
 		archive >> FeatureIndex;
 		archive >> Threshold;
-		CString name;
-		archive >> name;
-		Child1 = CreateModel<CDecisionTreeNodeBase>( name );
-		Child1->Serialize( archive );
-		archive >> name;
-		Child2 = CreateModel<CDecisionTreeNodeBase>( name );
-		Child2->Serialize( archive );
+#ifdef NEOML_USE_FINEOBJ
+		if( version == 0 ) {
+			CUnicodeString name = archive.ReadExternalName();
+			Child1 = CreateModel<CDecisionTreeNodeBase>( name.CreateString() );
+			Child1->Serialize( archive );
+			name = archive.ReadExternalName();
+			Child2 = CreateModel<CDecisionTreeNodeBase>( name.CreateString() );
+			Child2->Serialize( archive );
+		}
+#endif
+		if( version == 1 ) {
+			CString name;
+			archive >> name;
+			Child1 = CreateModel<CDecisionTreeNodeBase>( name );
+			Child1->Serialize( archive );
+			archive >> name;
+			Child2 = CreateModel<CDecisionTreeNodeBase>( name );
+			Child2->Serialize( archive );
+		}
 	} else {
 		NeoAssert( false );
 	}

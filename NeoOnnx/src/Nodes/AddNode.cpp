@@ -17,80 +17,80 @@ limitations under the License.
 #pragma hdrstop
 
 #include "AddNode.h"
+#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CAddNode::CAddNode( const onnx::NodeProto& add, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( add, nodeOutputs )
+CAddNode::CAddNode( int nodeIndex, const onnx::NodeProto& add, int opsetVersion ) :
+	COpNode( nodeIndex, add, opsetVersion )
 {
-	CheckOnnxProtocol( input.Size() == 2, "node must have 2 inputs", add );
+	// The differences between versions are in broadcasting flags and support
+	// NeoOnnx doesn't support tensor broadcast anyway
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", add );
+
+	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", add );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", add );
 }
 
-void CAddNode::OnnxReshape()
+void CAddNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
-	CTensorShape outputShape;
-	TTensorType outputDataType = TT_ConstantTensor;
+	bool canBeCalculated = true;
 
-	for( int inputIndex = 0; inputIndex < 2; ++inputIndex ) {
-		const CTensor& inputTensor = InputTensor( inputIndex );
+	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+		canBeCalculated = canBeCalculated && ( tensors[Input[inputIndex]].Data != nullptr );
+	}
+
+	if( canBeCalculated ) {
+		tensors[Output[0]].Data = tensors[Input[0]].Data->GetCopy();
+		tensors[Output[0]].Data->Add( tensors[Input[1]].Data );
+	}
+
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
+	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+		const CTensorShape& inputShape = tensors[Input[inputIndex]].Shape;
 
 		if( outputShape.IsEmpty() ) {
-			inputTensor.GetShape().CopyTo( outputShape );
+			inputShape.CopyTo( outputShape );
 		} else {
-			// NeoML doesn't support numpy-style tensor broadcasting...
-			CheckNeoOnnxSupport( outputShape.Size() == inputTensor.GetShape().Size(),
-				"tensor broadcasting", onnxNode );
-			for( int i = 0; i < inputTensor.GetShape().Size(); ++i ) {
-				CheckNeoOnnxSupport( outputShape[i] == inputTensor.GetShape()[i],
-					"tensor broadcasting", onnxNode );
+			// NeoML doesn't support numpy-style tensor broadcasting
+			CheckNeoOnnxSupport( outputShape.Size() == inputShape.Size(), "tensor broadcasting", OnnxNode );
+			for( int i = 0; i < inputShape.Size(); ++i ) {
+				CheckNeoOnnxSupport( outputShape[i] == inputShape[i], "tensor broadcasting", OnnxNode );
 			}
 		}
-
-		if( inputTensor.GetType() == TT_DataTensor ) {
-			outputDataType = TT_DataTensor;
-		}
 	}
-
-	CPtr<CDnnBlob> outputBlob( nullptr );
-	if( outputDataType == TT_ConstantTensor ) {
-		// Precalculating the result.
-		outputBlob = InputTensor( 0 ).GetData()->GetCopy();
-		outputBlob->Add( InputTensor( 1 ).GetData() );
-	}
-	
-	outputData.Add( CTensor( outputDataType, outputShape, outputBlob ) );
 }
 
-void CAddNode::MarkTensorDims()
+void CAddNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( !InputTensor( 0 ).GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( outputData[0].SetTensorDim( InputTensor( 0 ).GetTensorDim() ),
-			"marking output dimensions failed", onnxNode );
+	if( !dims[Input[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
+			"labeling output dimensions failed", OnnxNode );
 	}
 
-	if( !outputData[0].GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( outputData[0].GetTensorDim() ),
-			"marking input dimensions failed", onnxNode );
+	if( !dims[Output[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ), 
+			"labeling input dimensions failed", OnnxNode );
 	}
 }
 
-void CAddNode::AddLayers( CDnn& dnn )
+void CAddNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
 	CPtr<CEltwiseSumLayer> addLayer = new CEltwiseSumLayer( mathEngine );
 	addLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	addLayer->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
-	addLayer->Connect( 1, InputLayer( 1 ), InputLayerIndex( 1 ) );
+	addLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	addLayer->Connect( 1, *neoMLLinks[Input[1]].Layer, neoMLLinks[Input[1]].OutputIndex );
 
 	dnn.AddLayer( *addLayer );
 
-	outputInfo.Add( COutputInfo( addLayer, 0 ) );
+	neoMLLinks[Output[0]] = CNeoMLLink( addLayer, 0 );
 }
 
 } // namespace NeoOnnx
