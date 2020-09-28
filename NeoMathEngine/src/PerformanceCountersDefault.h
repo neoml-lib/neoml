@@ -21,7 +21,7 @@ namespace NeoML {
 
 class CPerformanceCountersDefault : public IPerformanceCounters {
 public:
-	CPerformanceCountersDefault() : IPerformanceCounters( &counter ), old( 0 )
+	CPerformanceCountersDefault() : IPerformanceCounters( &counter )
 	{
 		counter.Name = "time ms";
 		CounterCount() = 1;
