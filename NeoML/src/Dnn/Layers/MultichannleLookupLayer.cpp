@@ -59,6 +59,27 @@ void CMultichannelLookupLayer::SetEmbeddings( const CPtr<CDnnBlob>& data, int i 
 	}
 }
 
+void CMultichannelLookupLayer::SetEmbeddings( CPtr<CDnnBlob>& data, int i, bool copy )
+{
+	NeoAssert( i >= 0 && i < dimensions.Size() );
+
+	if(getParams().Size() <= i) {
+		getParams().SetSize(GetDimensions().Size());
+	}
+
+	if( data != 0 ) {
+		NeoAssert(data->GetObjectCount() == GetDimensions()[i].VectorCount);
+		NeoAssert(data->GetObjectSize() == GetDimensions()[i].VectorSize);
+		if( copy ) {
+			getParams()[i] = data->GetCopy();
+		} else {
+			getParams()[i] = data;
+		}
+	} else {
+		getParams()[i] = 0;
+	}
+}
+
 void CMultichannelLookupLayer::SetUseFrameworkLearning(bool _useFrameworkLearning)
 {
 	if(_useFrameworkLearning && !useFrameworkLearning) {
@@ -105,9 +126,10 @@ void CMultichannelLookupLayer::Initialize(CDnnInitializer* init)
 
 	for(int i = 0; i < getParams().Size(); i++) {
 		if(getParams()[i] == 0) {
-			getParams()[i] = CDnnBlob::CreateDataBlob(MathEngine(), CT_Float, 1, GetDimensions()[i].VectorCount, GetDimensions()[i].VectorSize);
+			getParams()[i] = CDnnBlob::CreateDataBlob(MathEngine(), CT_Float, 1,
+				GetDimensions()[i].VectorCount, GetDimensions()[i].VectorSize);
 			if(init != 0) {
-				init->InitializeLayerParams(*getParams()[i], 1);
+				init->InitializeLayerParams(*getParams()[i], GetDimensions()[i].VectorSize );
 			} else {
 				getParams()[i]->Clear();
 			}
@@ -119,23 +141,32 @@ void CMultichannelLookupLayer::Reshape()
 {
 	// Check the input blob parameters
 	CheckInputs();
-	CheckArchitecture(inputDescs[0].Channels() >= GetDimensions().Size(),
-		GetName(), "MultichannelLookup layer must have input with more channels");
+
+	for( int i = 0; i < inputDescs.Size(); i++ ) {
+		CheckArchitecture( inputDescs[i].Channels() >= GetDimensions().Size(),
+			GetName(), "MultichannelLookup layer must have input with more channels" );
+	}
 
 	Initialize(GetDnn()->GetInitializer());
 	NeoAssert(getParams().Size() == GetDimensions().Size());
 
-	int outputChannels = inputDescs[0].Channels() - GetDimensions().Size();
-	for (int i = 0; i < getParams().Size(); i++) {
-		NeoAssert(getParams()[i] != 0);
-		NeoAssert(getParams()[i]->GetObjectCount() == GetDimensions()[i].VectorCount);
-		NeoAssert(getParams()[i]->GetObjectSize() == GetDimensions()[i].VectorSize);
-
-		outputChannels += GetDimensions()[i].VectorSize;
+	int outputChannelsFromTableCount = 0;
+	for( int j = 0; j < getParams().Size(); j++ ) {
+		NeoAssert( getParams()[j] != 0 );
+		NeoAssert( getParams()[j]->GetObjectCount() == GetDimensions()[j].VectorCount );
+		NeoAssert( getParams()[j]->GetObjectSize() == GetDimensions()[j].VectorSize );
+		outputChannelsFromTableCount += GetDimensions()[j].VectorSize;
 	}
-	outputDescs[0] = inputDescs[0];
-	outputDescs[0].SetDataType( CT_Float );
-	outputDescs[0].SetDimSize( BD_Channels, outputChannels );
+	
+	outputDescs.SetSize( inputDescs.Size() );
+	for( int i = 0; i < inputDescs.Size(); i++ ) {
+		outputDescs[i] = inputDescs[i];
+		outputDescs[i].SetDataType( CT_Float );
+		
+		const int outputChannels = inputDescs[i].Channels() - GetDimensions().Size() +
+			outputChannelsFromTableCount;
+		outputDescs[i].SetDimSize( BD_Channels, outputChannels );
+	}
 }
 
 void CMultichannelLookupLayer::RunOnce()
@@ -144,17 +175,22 @@ void CMultichannelLookupLayer::RunOnce()
 	for (int i = 0; i < getParams().Size(); i++) {
 		lookupTables.Add(getParams()[i]->GetData());
 	}
-	// Fill in the output blob with the vector representations from the embeddings
-	if(inputBlobs[0]->GetDataType() == CT_Float) {
-		MathEngine().VectorMultichannelLookupAndCopy(inputBlobs[0]->GetObjectCount() * inputBlobs[0]->GetGeometricalSize(),
-			inputBlobs[0]->GetChannelsCount(), inputBlobs[0]->GetData(),
-			lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
-			outputBlobs[0]->GetData(), outputBlobs[0]->GetChannelsCount());
-	} else {
-		MathEngine().VectorMultichannelLookupAndCopy(inputBlobs[0]->GetObjectCount() * inputBlobs[0]->GetGeometricalSize(),
-			inputBlobs[0]->GetChannelsCount(), inputBlobs[0]->GetData<int>(),
-			lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
-			outputBlobs[0]->GetData(), outputBlobs[0]->GetChannelsCount());
+
+	for( int i = 0; i < inputBlobs.Size(); i++ ) {
+		// Fill in the output blob with the vector representations from the embeddings
+		if( inputBlobs[i]->GetDataType() == CT_Float ) {
+			MathEngine().VectorMultichannelLookupAndCopy( 
+				inputBlobs[i]->GetObjectCount() * inputBlobs[i]->GetGeometricalSize(),
+				inputBlobs[i]->GetChannelsCount(), inputBlobs[i]->GetData(),
+				lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
+				outputBlobs[i]->GetData(), outputBlobs[i]->GetChannelsCount() );
+		} else {
+			MathEngine().VectorMultichannelLookupAndCopy( 
+				inputBlobs[i]->GetObjectCount() * inputBlobs[i]->GetGeometricalSize(),
+				inputBlobs[i]->GetChannelsCount(), inputBlobs[i]->GetData<int>(),
+				lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
+				outputBlobs[i]->GetData(), outputBlobs[i]->GetChannelsCount() );
+		}
 	}
 }
 
@@ -169,44 +205,52 @@ void CMultichannelLookupLayer::LearnOnce()
 	CFloatHandleStackVar learningRate( MathEngine() );
 
 	if(useFrameworkLearning) {
-		CArray<CFloatHandle> lookupTables;
-		for(int i = 0; i < getParams().Size(); i++) {
-			lookupTables.Add(paramDiffBlobs[i]->GetData());
-		}
-
 		learningRate.SetValue( 1 );
 
-		if(inputBlobs[0]->GetDataType() == CT_Float) {
-			MathEngine().VectorMultichannelLookupAndAddToTable(inputBlobs[0]->GetObjectCount() * inputBlobs[0]->GetGeometricalSize(),
-				inputBlobs[0]->GetChannelsCount(), inputBlobs[0]->GetData(),
-				lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
-				learningRate, outputDiffBlobs[0]->GetData(), outputBlobs[0]->GetChannelsCount());
-		} else {
-			MathEngine().VectorMultichannelLookupAndAddToTable(inputBlobs[0]->GetObjectCount() * inputBlobs[0]->GetGeometricalSize(),
-				inputBlobs[0]->GetChannelsCount(), inputBlobs[0]->GetData<int>(),
-				lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
-				learningRate, outputDiffBlobs[0]->GetData(), outputBlobs[0]->GetChannelsCount());
+		CArray<CFloatHandle> lookupTables;
+		for( int j = 0; j < getParams().Size(); j++ ) {
+			lookupTables.Add( paramDiffBlobs[j]->GetData() );
+		}
+
+		for( int i = 0; i < inputBlobs.Size(); i++ ) {
+			if( inputBlobs[i]->GetDataType() == CT_Float ) {
+				MathEngine().VectorMultichannelLookupAndAddToTable( 
+					inputBlobs[i]->GetObjectCount() * inputBlobs[i]->GetGeometricalSize(),
+					inputBlobs[i]->GetChannelsCount(), inputBlobs[i]->GetData(),
+					lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
+					learningRate, outputDiffBlobs[i]->GetData(), outputBlobs[i]->GetChannelsCount() );
+			} else {
+				MathEngine().VectorMultichannelLookupAndAddToTable( 
+					inputBlobs[i]->GetObjectCount() * inputBlobs[i]->GetGeometricalSize(),
+					inputBlobs[i]->GetChannelsCount(), inputBlobs[i]->GetData<int>(),
+					lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
+					learningRate, outputDiffBlobs[i]->GetData(), outputBlobs[i]->GetChannelsCount() );
+			}
 		}
 	} else {
+		const float rate = GetDnn()->GetSolver()->GetLearningRate() * GetBaseLearningRate();
+		learningRate.SetValue( -rate );
+
 		CArray<CFloatHandle> lookupTables;
-		for(int i = 0; i < getParams().Size(); i++) {
-			lookupTables.Add(getParams()[i]->GetData());
+		for( int j = 0; j < getParams().Size(); j++ ) {
+			lookupTables.Add( getParams()[j]->GetData() );
 		}
 
-		float rate = GetDnn()->GetSolver()->GetLearningRate() * GetBaseLearningRate();
-		learningRate.SetValue(-rate);
-
-		// Add to paramDiffs the diffs for the embeddings used when learning
-		if(inputBlobs[0]->GetDataType() == CT_Float) {
-			MathEngine().VectorMultichannelLookupAndAddToTable(inputBlobs[0]->GetObjectCount() * inputBlobs[0]->GetGeometricalSize(),
-				inputBlobs[0]->GetChannelsCount(), inputBlobs[0]->GetData(),
-				lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
-				learningRate, outputDiffBlobs[0]->GetData(), outputBlobs[0]->GetChannelsCount());
-		} else {
-			MathEngine().VectorMultichannelLookupAndAddToTable(inputBlobs[0]->GetObjectCount() * inputBlobs[0]->GetGeometricalSize(),
-				inputBlobs[0]->GetChannelsCount(), inputBlobs[0]->GetData<int>(),
-				lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
-				learningRate, outputDiffBlobs[0]->GetData(), outputBlobs[0]->GetChannelsCount());
+		for( int i = 0; i < inputBlobs.Size(); i++ ) {
+			// Add to paramDiffs the diffs for the embeddings used when learning
+			if( inputBlobs[i]->GetDataType() == CT_Float ) {
+				MathEngine().VectorMultichannelLookupAndAddToTable( 
+					inputBlobs[i]->GetObjectCount() * inputBlobs[i]->GetGeometricalSize(),
+					inputBlobs[i]->GetChannelsCount(), inputBlobs[i]->GetData(),
+					lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
+					learningRate, outputDiffBlobs[i]->GetData(), outputBlobs[i]->GetChannelsCount() );
+			} else {
+				MathEngine().VectorMultichannelLookupAndAddToTable(
+					inputBlobs[i]->GetObjectCount() * inputBlobs[i]->GetGeometricalSize(),
+					inputBlobs[i]->GetChannelsCount(), inputBlobs[i]->GetData<int>(),
+					lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
+					learningRate, outputDiffBlobs[i]->GetData(), outputBlobs[i]->GetChannelsCount() );
+			}
 		}
 	}
 }

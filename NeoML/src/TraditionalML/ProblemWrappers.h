@@ -109,6 +109,76 @@ private:
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
+// A not null elements view mechanism
+// On initialize calculates not null indices and remaps pointers to sparse matrix vectors
+
+template<class TProblem>
+class CNotNullWeightsView {
+public:
+	CNotNullWeightsView( const TProblem* problem );
+	virtual ~CNotNullWeightsView();
+
+	// Calculates the index as if we had the matrix without null weighted elements
+	int CalculateOriginalIndex( int viewedIndex ) const;
+
+	// forbid copy/move
+	CNotNullWeightsView( const CNotNullWeightsView& ) = delete;
+	CNotNullWeightsView( CNotNullWeightsView&& ) = delete;
+	CNotNullWeightsView& operator=( CNotNullWeightsView ) = delete;
+
+protected:
+	// The original matrix desc view over the elements with not null weight only
+	CSparseFloatMatrixDesc ViewMatrixDesc;
+
+private:
+	// The array containing pairs of viewed and original indices
+	CArray<int> notNullWeightElementsIndices;
+	// Number of null weighted elements
+	int nullWeightElementsCount;
+};
+
+template<class TProblem>
+inline int CNotNullWeightsView<TProblem>::CalculateOriginalIndex( int viewedIndex ) const
+{
+	return nullWeightElementsCount == 0 ? viewedIndex : notNullWeightElementsIndices[viewedIndex];
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// An IMultivatiateRegressionProblem view without the elements with null weight
+// Can be used only with an asssumption that the original matrix won't be changed during this class usage
+
+class CMultivariateRegressionProblemNotNullWeightsView : public IMultivariateRegressionProblem,
+	private CNotNullWeightsView<IMultivariateRegressionProblem> {
+public:
+	explicit CMultivariateRegressionProblemNotNullWeightsView( const IMultivariateRegressionProblem* inner );
+	~CMultivariateRegressionProblemNotNullWeightsView() override = default;
+
+	// The number of features
+	int GetFeatureCount() const override;
+
+	// The number of vectors in the input data set
+	int GetVectorCount() const override;
+
+	// Gets all input vectors as a matrix
+	CSparseFloatMatrixDesc GetMatrix() const override;
+
+	// The vector weight
+	double GetVectorWeight( int index ) const override;
+
+	// The length of the function value vector
+	int GetValueSize() const override;
+
+	// The value of the function on the input vector with the given index
+	CFloatVector GetValue( int index ) const override;
+
+private:
+	// The inner problem
+	const CPtr<const IMultivariateRegressionProblem> inner;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace NeoML
+
+#include <ProblemWrappers.inl>
 

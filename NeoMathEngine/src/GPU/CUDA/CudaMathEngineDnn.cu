@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <CudaMathEngine.h>
 #include <CudaCommon.h>
+#include <CudaDevice.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 
@@ -31,6 +32,7 @@ void CCudaMathEngine::blobMergeByDimCuda( int dimNum, const CBlobDesc* from, con
 {
 	ASSERT_EXPR(fromCount <= MaxBlobDescs);
 	ASSERT_EXPR(0 <= dimNum && dimNum < CBlobDesc::MaxDimensions);
+	SetCudaDevice( device->DeviceNumber );
 
 	int s[CBlobDesc::MaxDimensions];
 	CCudaBlobDescArray<T> fromArr;
@@ -55,7 +57,7 @@ void CCudaMathEngine::blobMergeByDimCuda( int dimNum, const CBlobDesc* from, con
 	dim3 threadCount;
 	getCudaTaskGrid2D(blockCount, threadCount, heightNorm, width);
 
-	BlobMergeByDimKernel<<<blockCount, threadCount, 0, cudaStream>>>(height, width, fromArr, to, GetRaw(toData), heightNorm);
+	BlobMergeByDimKernel<<<blockCount, threadCount>>>(height, width, fromArr, to, GetRaw(toData), heightNorm);
 }
 
 template<class T>
@@ -84,6 +86,7 @@ void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, cons
 {
 	ASSERT_EXPR(toCount <= MaxBlobDescs);
 	ASSERT_EXPR(0 <= dimNum && dimNum < CBlobDesc::MaxDimensions);
+	SetCudaDevice( device->DeviceNumber );
 
 	CCudaBlobDescArray<T> toArr;
 	toArr.Count = toCount;
@@ -110,7 +113,7 @@ void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, cons
 	dim3 threadCount;
 	getCudaTaskGrid2D(blockCount, threadCount, heightNorm, width);
 
-	BlobSplitByDimKernel<<<blockCount, threadCount, 0, cudaStream>>>(height, width, from, GetRaw(fromData), toArr, heightNorm);
+	BlobSplitByDimKernel<<<blockCount, threadCount>>>(height, width, from, GetRaw(fromData), toArr, heightNorm);
 }
 
 template<class T>
@@ -163,11 +166,12 @@ void CCudaMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle
 {
 	ASSERT_EXPR( fromData.GetMathEngine() == this );
 	ASSERT_EXPR( toData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid3D( blockCount, threadCount, to.ObjectCount(), to.Height() * to.Width(), to.Channels() * to.Depth() );
-	BlobResizeImageKernel<<<blockCount, threadCount, 0, cudaStream>>>( from, GetRaw(fromData), deltaLeft, deltaTop, defaultValue, to,
+	BlobResizeImageKernel<<<blockCount, threadCount>>>( from, GetRaw(fromData), deltaLeft, deltaTop, defaultValue, to,
 		GetRaw(toData) );
 }
 
@@ -177,6 +181,7 @@ void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHan
 	ASSERT_EXPR( fromData.GetMathEngine() == this );
 	ASSERT_EXPR( indexHandle.IsNull() || indexHandle.GetMathEngine() == this );
 	ASSERT_EXPR( toData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int objectSize = from.ObjectSize() * from.ListSize();
 	int objectSizeNorm = (objectSize + BlobGetSubSequenceCombine - 1) / BlobGetSubSequenceCombine;
@@ -186,7 +191,7 @@ void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHan
 
 	getCudaTaskGrid3D(blockCount, threadCount, to.BatchLength(), to.BatchWidth(), objectSizeNorm);
 
-	BlobGetSubSequenceKernel<<<blockCount, threadCount, 0, cudaStream>>>(from, GetRaw(fromData), GetRaw(indexHandle),
+	BlobGetSubSequenceKernel<<<blockCount, threadCount>>>(from, GetRaw(fromData), GetRaw(indexHandle),
 		to, GetRaw( toData ), startPos, isRev, objectSizeNorm);
 }
 
@@ -203,6 +208,7 @@ void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatH
 	ASSERT_EXPR(input.Depth() == result.Depth());
 	ASSERT_EXPR(input.Height() * heightCopyCount == result.Height());
 	ASSERT_EXPR(input.Width() * widthCopyCount == result.Width());
+	SetCudaDevice( device->DeviceNumber );
 
 	// This is how the algorithm works
 	// The input blob can be considered as batchSize matrices of inputHeight x inputRowSize size each
@@ -216,7 +222,7 @@ void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatH
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, resultHeight, resultRowSize );
-	Upsampling2DForwardKernel<<<blockCount, threadCount, 0, cudaStream>>>(
+	Upsampling2DForwardKernel<<<blockCount, threadCount>>>(
 		heightCopyCount, widthCopyCount, pixelSize,
 		input.ObjectCount(), inputHeight, inputRowSize, GetRaw( inputData ),
 		resultHeight, resultRowSize, GetRaw( resultData ) );
@@ -235,6 +241,7 @@ void CCudaMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CFloat
 	ASSERT_EXPR(input.Depth() == result.Depth());
 	ASSERT_EXPR(result.Height() * heightCopyCount == input.Height());
 	ASSERT_EXPR(result.Width() * widthCopyCount == input.Width());
+	SetCudaDevice( device->DeviceNumber );
 
 	// Fill the resulting blob with zeros
 	VectorFill( resultData, 0, result.BlobSize() );
@@ -252,7 +259,7 @@ void CCudaMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CFloat
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, inputHeight, inputRowSize );
-	Upsampling2DBackwardKernel<<<blockCount, threadCount, 0, cudaStream>>>(
+	Upsampling2DBackwardKernel<<<blockCount, threadCount>>>(
 		heightCopyCount, widthCopyCount, pixelSize,
 		input.ObjectCount(), inputHeight, inputRowSize, GetRaw( inputData ),
 		resultHeight, resultRowSize, GetRaw( resultData ) );
@@ -263,6 +270,7 @@ void CCudaMathEngine::BuildIntegerHist( const CConstIntHandle& numbersHandle, in
 {
 	ASSERT_EXPR( numbersHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	VectorFill( resultHandle, 0, maxNumber );
 
@@ -270,7 +278,7 @@ void CCudaMathEngine::BuildIntegerHist( const CConstIntHandle& numbersHandle, in
 	int threadCount;
 	getCudaTaskGrid( blockCount, threadCount, numbersCount );
 
-	BuildIntegerHistKernel<<<blockCount, threadCount, 0, cudaStream>>>( GetRaw( numbersHandle ),
+	BuildIntegerHistKernel<<<blockCount, threadCount>>>( GetRaw( numbersHandle ),
 		numbersCount, GetRaw( resultHandle ) );
 }
 
@@ -282,6 +290,7 @@ void CCudaMathEngine::MatrixRowsToVectorSquaredL2Distance( const CConstFloatHand
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	VectorFill( resultHandle, 0.f, matrixHeight );
 
@@ -292,7 +301,7 @@ void CCudaMathEngine::MatrixRowsToVectorSquaredL2Distance( const CConstFloatHand
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, normalizedWidth );
 
-	MatrixRowsToVectorSquaredL2DistanceKernel<<<blockCount, threadCount, 0, cudaStream>>>( GetRaw( matrixHandle ),
+	MatrixRowsToVectorSquaredL2DistanceKernel<<<blockCount, threadCount>>>( GetRaw( matrixHandle ),
 		matrixHeight, matrixWidth, GetRaw( vectorHandle ), GetRaw( resultHandle ), normalizedWidth );
 }
 
@@ -301,15 +310,16 @@ void CCudaMathEngine::Reorg( const CBlobDesc& source, const CFloatHandle& source
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, source.BlobSize() );
 	if( !isForward ) {
-		ReorgKernel<<<blockCount, threadCount, 0, cudaStream>>>( GetRaw( sourceData ), result.Width(), result.Height(),
+		ReorgKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), result.Width(), result.Height(),
 			result.Channels(), result.ObjectCount(), stride, isForward, GetRaw( resultData ) );
 	} else { 
-		ReorgKernel<<<blockCount, threadCount, 0, cudaStream>>>( GetRaw( sourceData ), source.Width(), source.Height(),
+		ReorgKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), source.Width(), source.Height(),
 			source.Channels(), source.ObjectCount(), stride, isForward, GetRaw( resultData ) );
 	}
 }
@@ -319,15 +329,16 @@ void CCudaMathEngine::Reorg( const CBlobDesc& source, const CIntHandle& sourceDa
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, source.BlobSize() );
 	if( !isForward ) {
-		ReorgKernel<<<blockCount, threadCount, 0, cudaStream>>>( GetRaw( sourceData ), result.Width(), result.Height(),
+		ReorgKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), result.Width(), result.Height(),
 			result.Channels(), result.ObjectCount(), stride, isForward, GetRaw( resultData ) );
 	} else { 
-		ReorgKernel<<<blockCount, threadCount, 0, cudaStream>>>( GetRaw( sourceData ), source.Width(), source.Height(),
+		ReorgKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), source.Width(), source.Height(),
 			source.Channels(), source.ObjectCount(), stride, isForward, GetRaw( resultData ) );
 	}
 }
@@ -336,12 +347,13 @@ void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CFloatHandle
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, source.BlobSize() );
 
-	AddWidthIndexKernel<<<blockCount, threadCount, 0, cudaStream>>>(
+	AddWidthIndexKernel<<<blockCount, threadCount>>>(
 		GetRaw( sourceData ), source.Width(), source.Height(),
 		source.Channels(), source.ObjectCount(), isForward, GetRaw( resultData ) );
 }
@@ -350,6 +362,7 @@ void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CIntHandle& 
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -364,12 +377,13 @@ void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CFloatHandl
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, source.BlobSize() );
 
-	AddHeightIndexKernel<<<blockCount, threadCount, 0, cudaStream>>>(
+	AddHeightIndexKernel<<<blockCount, threadCount>>>(
 		GetRaw(sourceData), source.Width(), source.Height(),
 		source.Channels(), source.ObjectCount(), isForward, GetRaw(resultData) );
 }
@@ -379,6 +393,7 @@ void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CIntHandle&
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;

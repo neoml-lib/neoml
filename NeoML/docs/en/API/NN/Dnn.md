@@ -128,6 +128,14 @@ void Serialize( CArchive& archive );
 
 Serializes the network. If the archive is open for writing, the network will be written into the archive. If it is open for reading, the network layers will be deleted and the new network will be read from the archive.
 
+```c++
+void SerializeCheckpoint( CArchive& archive );
+```
+
+Serializes the network and additional data, required to resume training from this point (gradient history etc.).
+
+When loading it creates a new optimizer, which can be retrieved by `CDnn::GetSolver` method.
+
 ## Logging
 
 ```c++

@@ -84,6 +84,7 @@ bool CCusparseDll::loadFunctions()
 	LOAD_CUSPARSE_FUNC( SetMatIndexBase );
 	LOAD_CUSPARSE_FUNC( Scsrmm );
 	LOAD_CUSPARSE_FUNC( Scsrmm2 );
+	LOAD_CUSPARSE_FUNC( GetErrorString );
 	return true;
 }
 

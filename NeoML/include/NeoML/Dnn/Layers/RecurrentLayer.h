@@ -24,7 +24,7 @@ namespace NeoML {
 class NEOML_API CRecurrentLayer : public CCompositeLayer {
 	NEOML_DNN_LAYER( CRecurrentLayer )
 public:
-	explicit CRecurrentLayer( IMathEngine& mathEngine );
+	explicit CRecurrentLayer( IMathEngine& mathEngine, const char* name = nullptr );
 
 	~CRecurrentLayer();
 

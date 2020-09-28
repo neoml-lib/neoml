@@ -15,21 +15,26 @@ limitations under the License.
 
 #pragma once
 
-// Forward declaration(s).
-namespace onnx {
-class GraphProto;
-} // namespace onnx
+#include "../Node.h"
 
 namespace NeoOnnx {
 
-// Mechanism for building NeoML::CDnn based on onnx::GraphProto.
-class CDnnBuilder {
+// Reshape operator graph node
+class CReshapeNode : public COpNode {
 public:
-    CDnnBuilder() {}
+	CReshapeNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 
-	// Build dnn from graph.
-	// dnn must be empty.
-    void BuildDnn( const onnx::GraphProto& onnxGraph, CDnn& dnn );
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& /* tensors */, CDimCache& /* dims */ ) override {}
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+
+private:
+	bool hasFixedShape; // Does this op has fixed shape for any of dimensions (shape[i] > 0)
+	bool hasRemainder; // Does this op has a remainder dimension (shape[i] == -1)
+
+	CArray<int> shape; // Shape input value
 };
 
 } // namespace NeoOnnx

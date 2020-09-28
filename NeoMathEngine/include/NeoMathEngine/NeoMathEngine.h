@@ -405,6 +405,10 @@ public:
 	virtual void MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) = 0;
+	// Multiplies matrices from two batches, stored one after another in firstHandle, secondHandle parameters
+	virtual void MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle,
+		int resultBufferSize) = 0;
 
 	// Operations on sparse matrices
 
@@ -421,6 +425,10 @@ public:
 	virtual void MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, int firstRowSize,
 		const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) = 0;
+
+	// result[i] = first[i](T) * second[i] for i in [0, batchSize)
+	virtual void MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize) = 0;
 
 	virtual void MultiplyDiagMatrixByMatrix(const CConstFloatHandle& firstHandle, int firstSize,
 		const CConstFloatHandle& secondHandle, int secondWidth,
@@ -828,7 +836,7 @@ public:
 	virtual ~IMathEngineExceptionHandler();
 	// An error during a method call
 	// The default action is to throw std::logic_error
-	virtual void OnAssert( const char* message, const char* file, int line, int errorCode ) = 0;
+	virtual void OnAssert( const char* message, const wchar_t* file, int line, int errorCode ) = 0;
 
 	// Memory cannot be allocated on device
 	// The default action is to throw std::bad_alloc

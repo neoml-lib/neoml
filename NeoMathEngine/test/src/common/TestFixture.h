@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <cmath>
 #include <algorithm>
+#include <cassert>
 
 using namespace NeoML;
 

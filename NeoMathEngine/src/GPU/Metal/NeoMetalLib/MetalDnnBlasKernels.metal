@@ -1010,6 +1010,33 @@ kernel void matrixKernelMultiplyMatrixByTransposedMatrixAndAddThread4x4Borders( 
     result[resultIndex] += res;
 }
 
+kernel void cubeKernelBatchMultiplyMatrixByTransposedMatrix( constant int* batchSize [[buffer(0)]],
+                                                             constant float* first [[buffer(1)]],
+                                                             constant int* firstHeight [[buffer(2)]],
+                                                             constant int* firstWidth [[buffer(3)]],
+                                                             constant float* second [[buffer(4)]],
+                                                             constant int* secondHeight [[buffer(5)]],
+                                                             device float* result [[buffer(6)]],
+                                                             uint3 thread_position_in_grid [[ thread_position_in_grid ]] )
+{
+    C3DPosition pos( thread_position_in_grid );
+    int batchIndex;
+    int heightIndex;
+    int widthIndex;
+    if( pos.GetMetalTaskIndex3D( *batchSize, *firstHeight, *secondHeight, batchIndex, heightIndex, widthIndex ) ) {
+        int resultIndex = batchIndex * *firstHeight * *secondHeight + heightIndex * *secondHeight + widthIndex;
+        float res = 0;
+        first += batchIndex * *firstHeight * *firstWidth + heightIndex * *firstWidth;
+        second += batchIndex * *firstWidth * *secondHeight + widthIndex * *firstWidth;
+        for( int i = 0; i < *firstWidth; i++ ) {
+            res += *first * *second;
+            first += 1;
+            second += 1;
+        }
+        result[resultIndex] = res;
+    }
+}
+
 // Matrix product with a kernel
 // Each thread calculates 16 elements (a 4*4 block) of the result
 kernel void matrixKernelMultiplyMatrixByMatrixThread4x4( constant float* first [[buffer(0)]],
@@ -1430,6 +1457,33 @@ kernel void matrixKernelMultiplyTransposedMatrixByMatrixAndAddThread4x4Borders( 
         second += secondWidth;
     }
     result[resultIndex] += res;
+}
+
+kernel void cubeKernelBatchMultiplyTransposedMatrixByMatrix( constant int* batchSize [[buffer(0)]],
+                                                             constant float* first [[buffer(1)]],
+                                                             constant int* firstHeight [[buffer(2)]],
+                                                             constant int* firstWidth [[buffer(3)]],
+                                                             constant float* second [[buffer(4)]],
+                                                             constant int* secondWidth [[buffer(5)]],
+                                                             device float* result [[buffer(6)]],
+                                                             uint3 thread_position_in_grid [[ thread_position_in_grid ]] )
+{
+    C3DPosition pos( thread_position_in_grid );
+    int batchIndex;
+    int heightIndex;
+    int widthIndex;
+    if( pos.GetMetalTaskIndex3D( *batchSize, *firstWidth, *secondWidth, batchIndex, heightIndex, widthIndex ) ) {
+        int resultIndex = batchIndex * *firstWidth * *secondWidth + heightIndex * *secondWidth + widthIndex;
+        float res = 0;
+        first += batchIndex * *firstHeight * *firstWidth + heightIndex;
+        second += batchIndex * *firstHeight * *secondWidth + widthIndex;
+        for( int i = 0; i < *firstHeight; i++ ) {
+            res += *first * *second;
+            first += *firstWidth;
+            second += *secondWidth;
+        }
+        result[resultIndex] = res;
+    }
 }
 
 kernel void matrixKernelMultiplyDiagMatrixByMatrix( constant float* first [[buffer(0)]],

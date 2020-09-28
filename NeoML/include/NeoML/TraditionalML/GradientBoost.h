@@ -133,6 +133,9 @@ public:
 	// ITrainingModel interface methods:
 	virtual CPtr<IModel> Train( const IProblem& problem );
 
+	// Returns the last loss mean
+	double GetLastLossMean() const { return loss; }
+
 private:
 	// A cache element that contains the ensemble predictions for a vector on a given step
 	struct CPredictionCacheItem {
@@ -156,6 +159,7 @@ private:
 	CArray< CArray<double> > answers; // the correct answers for the vectors used on each step
 	CArray< CArray<double> > gradients; // the gradients on each step
 	CArray< CArray<double> > hessians; // the hessians on each step
+	double loss; // the last loss mean
 	// The vectors used on each step
 	// Contains the mapping of the index in the truncated training set for the given step to the index in the full set
 	// The array length is N * CParams::Subsample, where N is the original training set length
@@ -173,13 +177,13 @@ private:
 		IGradientBoostingLossFunction* lossFunction );
 	void createTreeBuilder( const IMultivariateRegressionProblem* problem );
 	void destroyTreeBuilder();
-	CPtr<IGradientBoostingLossFunction> createClassificationLossFunction() const;
-	CPtr<IGradientBoostingLossFunction> createRegressionLossFunction() const;
+	CPtr<IGradientBoostingLossFunction> createLossFunction() const;
 	void initialize( int modelCount, int vectorCount, int featureCount, CArray<CGradientBoostEnsemble>& models );
 	void executeStep( IGradientBoostingLossFunction& lossFunction,
 		const IMultivariateRegressionProblem* problem, const CArray<CGradientBoostEnsemble>& models,
 		CObjectArray<IRegressionModel>& curModels );
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
+	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
 };
 
 //------------------------------------------------------------------------------------------------------------

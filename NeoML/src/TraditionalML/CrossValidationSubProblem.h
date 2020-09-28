@@ -35,7 +35,7 @@ public:
 	virtual bool IsDiscreteFeature( int index ) const { return problem->IsDiscreteFeature( index ); }
 	virtual int GetVectorCount() const { return vectorsCount; }
 	virtual int GetClass( int index ) const { return problem->GetClass( translateIndex( index ) ); }
-	virtual CSparseFloatMatrixDesc GetMatrix() const { return problem->GetMatrix(); }
+	virtual CSparseFloatMatrixDesc GetMatrix() const { return matrix; }
 	virtual double GetVectorWeight( int index ) const { return problem->GetVectorWeight( translateIndex( index ) ); }
 	virtual int GetDiscretizationValue( int index ) const { return problem->GetDiscretizationValue( index ); }
 

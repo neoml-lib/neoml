@@ -28,7 +28,7 @@ class CCompositeSinkLayer;
 class NEOML_API CCompositeLayer : public CBaseLayer, public CDnnLayerGraph {
 	NEOML_DNN_LAYER( CCompositeLayer )
 public:
-	explicit CCompositeLayer( IMathEngine& mathEngine );
+	explicit CCompositeLayer( IMathEngine& mathEngine, const char* name = nullptr );
 
 	void Serialize( CArchive& archive ) override;
 
@@ -59,6 +59,9 @@ public:
 
 	// Returns the total size of the output blobs
 	size_t GetOutputBlobsSize() const override;
+
+	// Returns the total size of trainable parameters
+	size_t GetTrainableParametersSize() const override;
 
 	// Starts processing a new sequence
 	void RestartSequence() override;

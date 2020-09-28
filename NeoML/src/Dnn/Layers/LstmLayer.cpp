@@ -34,11 +34,10 @@ static const char* inputHiddenLayerName = "InputHidden";
 static const char* recurHiddenLayerName = "RecurHidden";
 
 CLstmLayer::CLstmLayer( IMathEngine& mathEngine ) :
-	CRecurrentLayer( mathEngine ),
+	CRecurrentLayer( mathEngine, "CCnnLstmLayer" ),
 	recurrentActivation( AF_Sigmoid ),
 	isInCompatibilityMode( false )
 {
-	SetName( "CCnnLstmLayer" );
 	buildLayer(0);
 }
 

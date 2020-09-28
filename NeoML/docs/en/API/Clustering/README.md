@@ -53,7 +53,7 @@ public:
 	// Gets the vector with the given index
 	virtual CSparseFloatVectorDesc GetVector( int index ) const = 0;
 
-	// Gets the whole vector set as a matrix
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
 	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
 
 	// Gets the vector weight

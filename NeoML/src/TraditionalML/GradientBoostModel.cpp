@@ -94,7 +94,12 @@ bool CGradientBoostModel::Classify( const CFloatVector& data, CClassificationRes
 
 void CGradientBoostModel::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( 2, 2 );
+#ifdef NEOML_USE_FINEOBJ
+	const int minSupportedVersion = 0;
+#else
+	const int minSupportedVersion = 2;
+#endif
+	int version = archive.SerializeVersion( 2, minSupportedVersion );
 
 	if( archive.IsStoring() ) {
 		archive << ensembles.Size();
@@ -108,6 +113,7 @@ void CGradientBoostModel::Serialize( CArchive& archive )
 			}
 		}
 		archive << learningRate;
+		archive.SerializeEnum( lossFunction );
 	} else if( archive.IsLoading() ) {
 		int size = 0;
 		archive >> size;
@@ -117,18 +123,28 @@ void CGradientBoostModel::Serialize( CArchive& archive )
 			archive >> size;
 			ensemble.SetSize( size );
 			for( int j = 0; j < ensemble.Size(); j++ ) {
-				CString modelName;
-				archive >> modelName;
-				ensemble[j] = CreateModel<IRegressionModel>( modelName );
+#ifdef NEOML_USE_FINEOBJ
+				if( version < 2 ) {
+					CUnicodeString modelName = archive.ReadExternalName();
+					ensemble[j] = CreateModel<IRegressionModel>( modelName.CreateString() );
+				}	
+#endif
+				if( version >= 2 ) {
+					CString modelName;
+					archive >> modelName;
+					ensemble[j] = CreateModel<IRegressionModel>( modelName );
+				}
+
 				ensemble[j]->Serialize( archive );
 			}
 		}
 		archive >> learningRate;
+		if( version > 0 ) {
+			archive.SerializeEnum( lossFunction );
+		}
 	} else {
 		NeoAssert( false );
 	}
-
-	archive.SerializeEnum( lossFunction );
 }
 
 bool CGradientBoostModel::ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const

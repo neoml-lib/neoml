@@ -7,63 +7,73 @@ endif()
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_sources( ${PROJECT_NAME} PRIVATE
-    DnnBuilder.cpp
     NeoOnnx.cpp
     Node.cpp
-    NodeAttributes.cpp
+    OpNodeAttributes.cpp
+    Nodes/AbsNode.cpp
     Nodes/AddNode.cpp
-    Nodes/AveragePoolNode.cpp
     Nodes/BatchNormalizationNode.cpp
     Nodes/ClipNode.cpp
     Nodes/ConcatNode.cpp
     Nodes/ConstantNode.cpp
     Nodes/ConstantOfShapeNode.cpp
     Nodes/ConvNode.cpp
+    Nodes/EluNode.cpp
     Nodes/FlattenNode.cpp
     Nodes/GatherNode.cpp
     Nodes/GemmNode.cpp
     Nodes/GlobalAveragePoolNode.cpp
+    Nodes/GlobalPoolNodeBase.cpp
     Nodes/GraphInput.cpp
     Nodes/GraphInitializer.cpp
     Nodes/GraphOutput.cpp
+    Nodes/LeakyReluNode.cpp
     Nodes/LstmNode.cpp
-    Nodes/MaxPoolNode.cpp
+    Nodes/PoolNode.cpp
     Nodes/ReduceMeanNode.cpp
     Nodes/ReluNode.cpp
+    Nodes/ReshapeNode.cpp
     Nodes/ShapeNode.cpp
+    Nodes/SigmoidNode.cpp
     Nodes/SliceNode.cpp
     Nodes/SqueezeNode.cpp
     Nodes/TanhNode.cpp
     Nodes/UnsqueezeNode.cpp
     NodeUtils.cpp
-    Tensor.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
-    DnnBuilder.h
+    Graph.h
+    GraphCache.h
+    NeoMLLink.h
     NeoOnnxCheck.h
     Node.h
-    NodeAttributes.h
+    OpNodeAttributes.h
+    Nodes/AbsNode.h
     Nodes/AddNode.h
-    Nodes/AveragePoolNode.h
     Nodes/BatchNormalizationNode.h
     Nodes/ClipNode.h
     Nodes/ConcatNode.h
     Nodes/ConstantNode.h
     Nodes/ConstantOfShapeNode.h
     Nodes/ConvNode.h
+    Nodes/EluNode.h
     Nodes/FlattenNode.h
     Nodes/GatherNode.h
     Nodes/GemmNode.h
     Nodes/GlobalAveragePoolNode.h
+    Nodes/GlobalPoolNodeBase.h
     Nodes/GraphInput.h
     Nodes/GraphInitializer.h
     Nodes/GraphOutput.h
+    Nodes/LeakyReluNode.h
     Nodes/LstmNode.h
-    Nodes/MaxPoolNode.h
+    Nodes/PoolNode.h
     Nodes/ReduceMeanNode.h
     Nodes/ReluNode.h
+    Nodes/ReshapeNode.h
     Nodes/ShapeNode.h
+    Nodes/SigmoidNode.h
     Nodes/SliceNode.h
     Nodes/SqueezeNode.h
     Nodes/TanhNode.h

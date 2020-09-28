@@ -49,6 +49,9 @@ public:
 	float GetMaxGradientNorm() const { return maxGradientNorm; }
 	void SetMaxGradientNorm(float _maxGradientNorm) { maxGradientNorm = _maxGradientNorm; }
 
+	// Serialize to archive
+	virtual void Serialize( CArchive& archive, CDnn& dnn );
+
 protected:
 	explicit CDnnSolver( IMathEngine& mathEngine );
 
@@ -61,7 +64,7 @@ protected:
 
 	// On each training step the method is called once, before the call to TrainLayer for all layers
 	virtual void OnTrain() {}
-	
+
 	// Modifies trainable parameters of a given layer, applying the paramDiffBlobs differences 
 	// and using the learningHistory stored history
 	// learningHistory may change during training
@@ -78,7 +81,7 @@ private:
 	// The blobs sum
 	struct CDiffBlobSum {
 		CDiffBlobSum() : Count( 0 ) {}
-		
+
 		CObjectArray<CDnnBlob> Sum; // the blobs sums
 		int Count; // the number of terms in each sum
 	};
@@ -91,12 +94,57 @@ private:
 
 	// Clips gradients according to the settings
 	void clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs);
+
+	// Telling the compiler that we intentionally using two-parameter Serialize instead of one declared in IObject
+	using IObject::Serialize;
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The macros for the internal name of a NeoML solver
+// If this macros is used when declaring a class, that class may be registered as a NeoML solver
+#define NEOML_DNN_SOLVER( className ) friend class CSolverClassRegistrar< className >;
+
+// Registers the class as a NeoML solver
+#define REGISTER_NEOML_SOLVER( classType, name ) static CSolverClassRegistrar< classType > __merge__1( _RegisterSolver, __LINE__ )( name );
+
+typedef CPtr<CDnnSolver> ( *TCreateSolverFunction )( IMathEngine& mathEngine );
+
+void NEOML_API RegisterSolverName( const char* className, const std::type_info& typeInfo, TCreateSolverFunction function );
+
+void NEOML_API UnregisterSolverName( const std::type_info& typeInfo );
+
+void NEOML_API SerializeSolver( CArchive& archive, CDnn& dnn, CPtr<CDnnSolver>& solver);
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class T>
+class CSolverClassRegistrar {
+public:
+	explicit CSolverClassRegistrar( const char* solverName );
+	~CSolverClassRegistrar();
+
+private:
+	static CPtr<CDnnSolver> createObject( IMathEngine& mathEngine ) { return FINE_DEBUG_NEW T( mathEngine ); }
+};
+
+template<class T>
+inline CSolverClassRegistrar<T>::CSolverClassRegistrar( const char* solverName )
+{
+	RegisterSolverName( solverName, typeid( T ), createObject );
+}
+
+template<class T>
+inline CSolverClassRegistrar<T>::~CSolverClassRegistrar()
+{
+	UnregisterSolverName( typeid( T ) );
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Stochastic gradient descent with moment
 class NEOML_API CDnnSimpleGradientSolver : public CDnnSolver {
+	NEOML_DNN_SOLVER( CDnnSimpleGradientSolver )
 public:
 	CDnnSimpleGradientSolver( IMathEngine& mathEngine );
 
@@ -106,6 +154,8 @@ public:
 
 	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
 	void SetCompatibilityMode( bool compatibilityMode ) { isInCompatibilityMode = compatibilityMode; }
+
+	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
 protected:
 	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs, 
@@ -136,6 +186,7 @@ private:
 
 // Stochastic gradient descent with moment and adapting stride for each coordinate
 class NEOML_API CDnnAdaptiveGradientSolver : public CDnnSolver {
+	NEOML_DNN_SOLVER( CDnnAdaptiveGradientSolver )
 public:
 	CDnnAdaptiveGradientSolver( IMathEngine& mathEngine );
 
@@ -159,6 +210,8 @@ public:
 	bool IsAmsGradEnabled() const { return isAmsGradEnabled; }
 	// Turns AMSGrad mode on. May be called only before training starts.
 	void EnableAmsGrad( bool enable );
+
+	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
 protected:
 	// Resets to the initial state
@@ -227,8 +280,9 @@ private:
 // The optimizer that uses Nesterov moment
 // http://cs229.stanford.edu/proj2015/054_report.pdf (Algo 8).
 class NEOML_API CDnnNesterovGradientSolver : public CDnnSolver {
+	NEOML_DNN_SOLVER( CDnnNesterovGradientSolver )
 public:
-	CDnnNesterovGradientSolver( IMathEngine& mathEngine );
+	explicit CDnnNesterovGradientSolver( IMathEngine& mathEngine );
 
 	// Retrieves and sets the moment decay rate (moment is a weighted sum of previous gradients)
 	float GetMomentDecayRate() const { return momentDecayRate; }
@@ -247,6 +301,8 @@ public:
 	bool IsAmsGradEnabled() const { return isAmsGradEnabled; }
 	// Turns on AMSGrad mode. The algorithm is reset to initial state
 	void EnableAmsGrad( bool enable );
+
+	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
 protected:
 	// Resets to the initial state
@@ -314,6 +370,146 @@ private:
 	// m with a stroke (from the paper referred to)
 	// It is a weighted sum of the gradient and the first moment
 	CPtr<CDnnBlob> mBarBlob;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Lamb optimizer.
+// https://arxiv.org/pdf/1904.00962.pdf
+// Basic differences compared to Adam:
+// 1) It doesn't use debiasing ( 1/(1 - beta^N)) for compensation of lack of history
+//	Instead use warmup stage - linear increase of learning rate up to required value
+// 2) It uses trustRatio multiplier - ratio between weights' norm and update vector's norm.
+//	The idea is when update is huge (in comparison with weights), it slows down training speed
+//	and as a result makes it more stable.
+// 3) It uses non-modified L2-regularization (aka weight decay)
+class NEOML_API CDnnLambGradientSolver : public CDnnSolver {
+	NEOML_DNN_SOLVER( CDnnLambGradientSolver )
+public:
+	explicit CDnnLambGradientSolver( IMathEngine& mathEngine );
+
+	// Match type used when checking if layer is excluded from weightDecay
+	enum TExcludeLayerNameMatchType {
+		// Exact match with given string
+		ELNMT_Exact,
+		// If layer's name contains given string
+		ELNMT_Include
+	};
+
+	// Exclude layer from weightDecay optimization
+	// layerName - layer name (or substring if ELMNT_Include is used)
+	// type - match type
+	// paramIndex - index of optimized layer parameter to exclude (NotFound means all layer parameters)
+	void ExcludeWeightDecayLayer( const char* layerName, TExcludeLayerNameMatchType type = ELNMT_Exact,
+		int paramIndex = NotFound );
+
+	// Gets/set moment decay rate (weighted sum of previous gradients)
+	// By default is equal to 0.9 
+	float GetMomentDecayRate() const { return momentDecayRate; }
+	void SetMomentDecayRate( float decayRate ) { momentDecayRate = decayRate; }
+	// Gets/set second moment decay rate (weighted sum of squares of previous gradients)
+	// By default is equal to 0.999
+	float GetSecondMomentDecayRate() const { return secondMomentDecayRate; }
+	void SetSecondMomentDecayRate( float decayRate ) { secondMomentDecayRate = decayRate; }
+
+	// Gets/sets epsilon uwhich is sed to avoid division by zero during calculation
+	// By default is equal to 1e-6
+	float GetEpsilon() const { return epsilon; }
+	void SetEpsilon( float newEpsilon ) { epsilon = newEpsilon; }
+
+	// Max value for weight norm during WeightDecay
+	// Negative value means no clip
+	// By default is equal to -1
+	float GetWeightDecayClip() { return weightDecayClip; }
+	void SetWeightDecayClip( float value ) { weightDecayClip = value; }
+
+	// Use normalizing multipier
+	// By default is true.
+	bool UseTrustRatio() const { return useTrustRatio; }
+	void SetUseTrustRatio( bool value ) { useTrustRatio = value; }
+
+	// Use NVLamb modification
+	// https://medium.com/nvidia-ai/a-guide-to-optimizer-implementation-for-bert-at-scale-8338cc7f45fd
+	// By default is false
+	// The key difference is that gradient is normalized in the next way:
+	//	g_i_j(n) = g_i_j(n) * 1.0 / max( 1.0, L2_norm(g(n-1)) )
+	// where L2_norm(g) - L2 norm of the gradient of all the layers in the model
+	// g(n-1) - is used because of NeoML API restrictions
+	bool GetUseNVLamb() const { return useNvLamb; }
+	void SetUseNVLamb( bool value ) { useNvLamb = value; }
+
+	void Serialize( CArchive& archive, CDnn& dnn ) override;
+
+protected:
+	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
+		const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory ) override;
+
+	void OnTrain() override;
+
+private:
+	// The gradientHistory array stores the previous values of gradients of different types
+	enum TGradientHistoryType {
+		// First moment (moving mean)
+		GHT_FirstMomentAverage,
+		// Second moment (moving mean)
+		GHT_SecondMomentAverage,
+	};
+
+	// Moment decay rate
+	float momentDecayRate;
+	// Second moment decay rate
+	float secondMomentDecayRate;
+	// The initial correction so there would be no division by zero:
+	float epsilon;
+	// Max weight norm during WeightDecay
+	float weightDecayClip;
+	// Is LAMB normalization used
+	bool useTrustRatio;
+	// Is NVLamb modification used
+	bool useNvLamb;
+
+	enum TTempVariable {
+		TV_MomentDecayRateVar,
+		TV_SecondMomentDecayRateVar,
+		TV_OpMomentDecayRateVar,
+		TV_OpSecondMomentDecayRateVar,
+		TV_RateVar,
+		TV_EpsilonVar,
+		TV_WeightDecayVar,
+		TV_ClipMultiplierVar,
+		TV_LayerNormVar,
+		TV_TrustRatioVar,
+		TV_L2NormVar,
+
+		TV_Count
+	};
+
+	CPtr<CDnnBlob> tempVariables;
+
+	CPtr<CDnnBlob> tempBlob;
+
+	CArray<float> layersGradientNormSquare;
+	float totalGradientNorm;
+
+	// Layer excluded from optimization
+	struct CExcludedLayer {
+		// Layer name (or substring)
+		CString LayerName;
+		// Match type (exact or substring)
+		TExcludeLayerNameMatchType MatchType;
+		// Parameter number
+		// -1 if all parameters
+		int ParamIndex;
+
+		CExcludedLayer() : MatchType( ELNMT_Exact ), ParamIndex( NotFound ) {}
+	};
+	// Layers excluded from weight decay
+	CArray<CExcludedLayer> excludedLayers;
+
+	float calcL2Norm( const CConstFloatHandle& data, int dataSize ) const;
+	void getWeightDecayIndices( const CBaseLayer& layer, int paramsCount, CHashTable<int>& indexes ) const;
+
+	void calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update, const CFloatHandle& multiplier ) const;
 };
 
 } // namespace NeoML

@@ -21,6 +21,8 @@ limitations under the License.
 #include <CudaMathEngineDnnConvs.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <CudaCommon.h>
+#include <CudaDevice.h>
 
 #include <Kernels/CudaDnnChannelwiseConvKernels.h>
 
@@ -67,6 +69,7 @@ void CCudaMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionD
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData == 0 || freeTermData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 
@@ -77,7 +80,7 @@ void CCudaMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionD
 
 	getCudaTaskGrid2D( blockCount, threadCount, result.ObjectCount() * result.Height(), result.Width() * result.Channels() );
 
-	BlobChannelwiseConvolutionKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( sourceData ), GetRaw( filterData ),
+	BlobChannelwiseConvolutionKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), GetRaw( filterData ),
 		freeTermData == 0 ? 0 : GetRaw( *freeTermData ), GetRaw( resultData ) );
 }
 
@@ -87,6 +90,7 @@ void CCudaMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConv
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
@@ -96,7 +100,7 @@ void CCudaMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConv
 
 	getCudaTaskGrid2D( blockCount, threadCount, inputDiff.ObjectCount() * inputDiff.Height(), inputDiff.Width() * inputDiff.Channels() );
 
-	BlobChannelwiseConvolutionBackwardKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( sourceData ), GetRaw( filterData ), GetRaw( resultData ) );
+	BlobChannelwiseConvolutionBackwardKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), GetRaw( filterData ), GetRaw( resultData ) );
 }
 
 void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc,
@@ -107,6 +111,7 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermDiffData == 0 || freeTermDiffData->GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& outputDiff = desc.Result;
@@ -123,7 +128,7 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 
 	getCudaTaskGrid2D( blockCount, threadCount, filterDiff.Height() * filterDiff.Width(), filterDiff.Channels() );
 
-	BlobChannelwiseConvolutionLearnAddKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw(inputData), GetRaw(outputDiffData), GetRaw(filterDiffData) );
+	BlobChannelwiseConvolutionLearnAddKernel<<<blockCount, threadCount>>>( desc, GetRaw(inputData), GetRaw(outputDiffData), GetRaw(filterDiffData) );
 }
 
 } // namespace NeoML
