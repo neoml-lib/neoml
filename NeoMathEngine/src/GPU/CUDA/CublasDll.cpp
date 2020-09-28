@@ -79,9 +79,9 @@ bool CCublasDll::loadFunctions()
 	LOAD_CUBLAS_FUNCV2( Create );
 	LOAD_CUBLAS_FUNCV2( Destroy );
 	LOAD_CUBLAS_FUNCV2( SetStream );
+	LOAD_CUBLAS_FUNC( SetMathMode );
 	LOAD_CUBLAS_FUNCV2( SetPointerMode );
 	LOAD_CUBLAS_FUNC( SetAtomicsMode );
-	LOAD_CUBLAS_FUNCV2( SetPointerMode );
 	LOAD_CUBLAS_FUNCV2( Sdot );
 	LOAD_CUBLAS_FUNCV2( Saxpy );
 	LOAD_CUBLAS_FUNCV2( Sgemm );

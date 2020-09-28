@@ -768,7 +768,7 @@ struct CMathEngineInfo {
 };
 
 // CMathEngine class implements an engine to perform calculations on data specified by CMemoryHandle (CFloatHandle)
-class NEOMATHENGINE_API IMathEngine :  public IDnnEngine {
+class NEOMATHENGINE_API IMathEngine : public IDnnEngine {
 public:
 	virtual ~IMathEngine();
 	// Gets the device type
@@ -859,13 +859,20 @@ NEOMATHENGINE_API IMathEngineExceptionHandler* GetMathEngineExceptionHandler();
 // This math engine should be destroyed using the standard delete operator after use
 NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit );
 
+// Gpu math engine flags
+
+// Use tensor cores in cublas (if possible)
+// If GPU supports tensor cores this flag leads to faster but less precise GEMM operations
+// Works only if MET_Cuda and device is Titan V, geforce 16** or newer
+const int GpuMathEngineCublasUseTensorCoresFlag = 1;
+
 // Creates a math engine that uses the recommended GPU for calculations
 // Returns null if no GPUs are available
 // You should call SetMathEngineExceptionHandler() before this call
 // memoryLimit is the limit to memory used for processing (set to 0 to have no limitation); 
 // if the limit is exceeded IMathEngineExceptionHandler::OnMemoryError() will be called
 // This math engine should be destroyed using the standard delete operator after use
-NEOMATHENGINE_API IMathEngine* CreateGpuMathEngine( size_t memoryLimit );
+NEOMATHENGINE_API IMathEngine* CreateGpuMathEngine( size_t memoryLimit, int flags = 0 );
 
 // The GPU manager interface
 // Allows you to access the information about all available GPUs
@@ -882,7 +889,7 @@ public:
 	// index is the number of the GPU in the list of all available devices (may be from 0 to GetMathEngineCount() - 1)
 	// memoryLimit is the limit to memory used for processing (set to 0 to have no limitation); 
 	// if the limit is exceeded IMathEngineExceptionHandler::OnMemoryError() will be called
-	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit ) const = 0;
+	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit, int flags = 0 ) const = 0;
 };
 
 // Creates a GPU manager
