@@ -128,7 +128,7 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 		VkPushConstantRange pushConstantRange;
 		if( paramSize > 0 || samplerCount > 0 || imageCount > 0 ) {
 			size_t pushConstantSize = PUSH_CONSTANT_PARAM_OFFSET + paramSize;
-			assert( pushConstantSize <= device.Properties().limits.maxPushConstantsSize );
+			assert( pushConstantSize <= device.Properties.limits.maxPushConstantsSize );
 			pushConstantRange = { VK_SHADER_STAGE_COMPUTE_BIT, 0, static_cast<uint32_t>( pushConstantSize ) };
 			layoutInfo.pushConstantRangeCount = 1;
 			layoutInfo.pPushConstantRanges = &pushConstantRange;

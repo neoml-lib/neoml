@@ -352,7 +352,7 @@ int CVulkanMathEngine::getChannelGroupSize( int height, int channels ) const
 // Gets a temporary object with the given id and size
 const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId, int width, int height )
 {
-	assert( device->IsImageBased() );
+	assert( device->IsImageBased );
 
 	int newWidth = width;
 	int newHeight = height;
@@ -377,7 +377,7 @@ const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId, int
 
 const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId )
 {
-	assert( device->IsImageBased() );
+	assert( device->IsImageBased );
 	assert(tmpImages[imageId] != 0);
 	return tmpImages[imageId];
 }
