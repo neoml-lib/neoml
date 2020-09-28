@@ -34,7 +34,7 @@ namespace NeoML {
 struct CCommonConvolutionDesc;
 struct CInterleavedMatrixDesc;
 struct CVulkanShaderData;
-class CVulkanDevice;
+struct CVulkanDevice;
 struct CVulkanRleConvolutionDesc;
 class CVulkanCommandQueue;
 class CVulkanShaderLoader;

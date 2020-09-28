@@ -58,8 +58,8 @@ CVulkanImage::CVulkanImage( const CVulkanDevice& vulkanDevice, int _width, int _
 	// Look for the suitable index in the memory
 	bool isFound = false;
 	const int flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	for( int i = 0; i < (int)device.MemoryProperties().memoryTypeCount; ++i ) {
-		if( (req.memoryTypeBits & (1 << i)) != 0 && (int)(device.MemoryProperties().memoryTypes[i].propertyFlags & flags) == flags ) {
+	for( int i = 0; i < (int)device.MemoryProperties.memoryTypeCount; ++i ) {
+		if( (req.memoryTypeBits & (1 << i)) != 0 && (int)(device.MemoryProperties.memoryTypes[i].propertyFlags & flags) == flags ) {
 			allocInfo.memoryTypeIndex = i;
 			isFound = true;
 			break;

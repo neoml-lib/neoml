@@ -76,7 +76,7 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 		// Create the shader data
 		shaders[id] = new CVulkanShaderData();
 
-		shaders[id]->IsImageBased = isIB && device.IsImageBased();
+		shaders[id]->IsImageBased = isIB && device.IsImageBased;
 
 		VkShaderModuleCreateInfo shaderInfo = {};
 		shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -194,7 +194,7 @@ void CVulkanShaderLoader::calculateThreadGroupSize(int dimensions,
 	switch( dimensions ) {
 		case 1: {
 			threadGroupSizeX = 
-				( device.Type() == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount1D : VulkanAdrenoRegularThreadCount1D;
+				( device.Type == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount1D : VulkanAdrenoRegularThreadCount1D;
 			threadGroupSizeY = 1;
 			threadGroupSizeZ = 1;
 			break;
@@ -202,9 +202,9 @@ void CVulkanShaderLoader::calculateThreadGroupSize(int dimensions,
 		case 2:
 		case 3: {
 			threadGroupSizeX = 
-				( device.Type() == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount2D_X : VulkanAdrenoRegularThreadCount2D_X;
+				( device.Type == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount2D_X : VulkanAdrenoRegularThreadCount2D_X;
 			threadGroupSizeY = 
-				( device.Type() == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount2D_Y : VulkanAdrenoRegularThreadCount2D_Y;
+				( device.Type == VDT_MaliBifrost ) ? VulkanMaliBifrostThreadCount2D_Y : VulkanAdrenoRegularThreadCount2D_Y;
 			threadGroupSizeZ = 1;
 			break;
 		}

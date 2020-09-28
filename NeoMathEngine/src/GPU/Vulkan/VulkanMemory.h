@@ -28,7 +28,7 @@ namespace NeoML {
 
 class CVulkanMemory : public CCrtAllocatedObject {
 public:
-	explicit CVulkanMemory( const CVulkanDevice& _device, std::size_t _size,
+	CVulkanMemory( const CVulkanDevice& _device, std::size_t _size,
 		VkBufferUsageFlags _usage,
 		VkMemoryPropertyFlags _properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT );
 	

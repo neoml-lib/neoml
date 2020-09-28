@@ -78,7 +78,7 @@ CVulkanMathEngine::CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& _dev
 	ASSERT_EXPR( device != 0 ); // failed to create the device
 	shaderLoader = std::unique_ptr<CVulkanShaderLoader>( new CVulkanShaderLoader( *device ) );
 	commandQueue = std::unique_ptr<CVulkanCommandQueue>( new CVulkanCommandQueue( *device ) );
-	memoryLimit = min( memoryLimit == 0 ? SIZE_MAX : memoryLimit, device->AvailableMemory() );
+	memoryLimit = min( memoryLimit == 0 ? SIZE_MAX : memoryLimit, device->AvailableMemory );
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( memoryLimit, this, false ) );
 	deviceStackAllocator = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, VulkanMemoryAlignment ) );
 	hostStackAllocator = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( VulkanMemoryAlignment ) );
@@ -304,7 +304,7 @@ CMemoryHandle CVulkanMathEngine::Alloc( size_t size )
 	VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | 
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT | 
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	VkMemoryPropertyFlags properties = device->Type() != VDT_Nvidia ?
+	VkMemoryPropertyFlags properties = device->Type != VDT_Nvidia ?
 		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : 
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	
@@ -338,15 +338,15 @@ int CVulkanMathEngine::getChannelGroupSize( int height, int channels ) const
 	assert(height > 0);
 	assert(channels > 0);
 
-	if( !device->IsImageBased() ) {
+	if( !device->IsImageBased ) {
 		return channels; // no images used, so no limitations on geometric size
 	}
 
-	if( height * channels <= static_cast<int>( device->Properties().limits.maxImageDimension2D ) ) {
+	if( height * channels <= static_cast<int>( device->Properties.limits.maxImageDimension2D ) ) {
 		return channels; // the image fits into the limitations
 	}
 
-	return device->Properties().limits.maxImageDimension2D / height;
+	return device->Properties.limits.maxImageDimension2D / height;
 }
 
 // Gets a temporary object with the given id and size

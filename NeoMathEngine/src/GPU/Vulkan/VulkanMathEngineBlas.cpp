@@ -113,7 +113,7 @@ void CVulkanMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandl
 	int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 	const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize )
 {
-	if( device->Type() == VDT_Adreno ) {
+	if( device->Type == VDT_Adreno ) {
 		batchMultiplyMatrixByMatrixAdreno( false, 1, firstHandle,
 			firstHeight, firstWidth, firstRowSize, false, secondHandle, secondHeight, firstWidth,
 			secondRowSize, true, resultHandle, resultRowSize, resultBufferSize );
@@ -126,7 +126,7 @@ void CVulkanMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandl
 void CVulkanMathEngine::MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int resultBufferSize)
 {
-	if( device->Type() == VDT_Adreno ) {
+	if( device->Type == VDT_Adreno ) {
 		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle,
 			firstHeight, firstWidth, firstWidth, false, secondHandle, secondHeight, firstWidth,
 			firstWidth, true, resultHandle, secondHeight, resultBufferSize );
@@ -178,7 +178,7 @@ void CVulkanMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloa
 	int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
 	const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize )
 {
-	if( device->Type() == VDT_Adreno ) {
+	if( device->Type == VDT_Adreno ) {
 		batchMultiplyMatrixByMatrixAdreno( true, 1, firstHandle, firstHeight, firstWidth, firstRowSize, true,
 			secondHandle, firstHeight, secondWidth, secondRowSize, false, resultHandle, resultRowSize, resultBufferSize );
 	} else {
@@ -190,7 +190,7 @@ void CVulkanMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloa
 void CVulkanMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
 {
-	if( device->Type() == VDT_Adreno ) {
+	if( device->Type == VDT_Adreno ) {
 		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle, firstHeight, firstWidth, firstWidth, true,
 			secondHandle, firstHeight, secondWidth, secondWidth, false, resultHandle, secondWidth, resultBufferSize );
 	} else {
@@ -204,7 +204,7 @@ void CVulkanMathEngine::MultiplyDiagMatrixByMatrix( const CConstFloatHandle& fir
 {
 	ASSERT_EXPR( resultBufferSize >= firstSize * secondWidth );
 
-	if( device->Type() == VDT_Adreno ) {
+	if( device->Type == VDT_Adreno ) {
 		const CVulkanImage* samplers[] = { &batchVectorToImage( 1, firstHandle, firstSize, TVI_MatrixLeft ) };
 
 		CMemoryHandle bufs[2] = { secondHandle, resultHandle };
@@ -235,7 +235,7 @@ void CVulkanMathEngine::Multiply1DiagMatrixByMatrix( int, const CConstFloatHandl
 void CVulkanMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize )
 {
-	if( device->Type() == VDT_Adreno ) {
+	if( device->Type == VDT_Adreno ) {
 		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle, firstHeight, firstWidth, firstWidth, false,
 			secondHandle, firstWidth, secondWidth, secondWidth, false,
 			resultHandle, secondWidth, resultBufferSize );
@@ -279,7 +279,7 @@ void CVulkanMathEngine::AddVectorToMatrixRows( int batchSize,
 void CVulkanMathEngine::AddVectorToMatrixColumns( const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle )
 {
-	if( device->Type() == VDT_Adreno ) {
+	if( device->Type == VDT_Adreno ) {
 		const CVulkanImage* samplers[] = { &batchVectorToImage( 1, vectorHandle, matrixHeight, TVI_FreeTerm ) };
 
 		CMemoryHandle bufs[2] = { matrixHandle, resultHandle };
@@ -325,7 +325,7 @@ void CVulkanMathEngine::SubVectorFromMatrixColumns( const CConstFloatHandle&, co
 void CVulkanMathEngine::SetVectorToMatrixRows( const CFloatHandle& resultHandle, int matrixHeight,
 	int matrixWidth, const CConstFloatHandle& vectorHandle )
 {
-	if( device->Type() == VDT_Adreno ) {
+	if( device->Type == VDT_Adreno ) {
 		const CVulkanImage* samplers[] = { &batchVectorToImage( 1, vectorHandle, matrixWidth, TVI_FreeTerm ) };
 
 		CMemoryHandle bufs[1] = { resultHandle };
@@ -752,7 +752,7 @@ void CVulkanMathEngine::MultiplyMatrixByDiagMatrix( const CConstFloatHandle& fir
 
 	ASSERT_EXPR( resultBufferSize >= matrixSize );
 
-	if( device->Type() == VDT_Adreno ) {
+	if( device->Type == VDT_Adreno ) {
 		const CVulkanImage* samplers[] =
 		{ &batchVectorToImage( secondBatchSize, secondHandle, firstWidth, TVI_DiagMatrix ) };
 
@@ -918,8 +918,8 @@ struct CInterleavedMatrixDesc {
 void CVulkanMathEngine::matrixToInterleavedAdreno( int batchSize, CConstFloatHandle from, int height, int width, int rowSize,
 	bool isTrans, int imageId, CInterleavedMatrixDesc& result )
 {
-	ASSERT_EXPR( device->Type() == VDT_Adreno );
-	ASSERT_EXPR( device->IsImageBased() );
+	ASSERT_EXPR( device->Type == VDT_Adreno );
+	ASSERT_EXPR( device->IsImageBased );
 
 	int resHeight4 = Ceil((isTrans ? width : height), 4);
 	int resWidth4 = Ceil((isTrans ? height : width), 4);
@@ -931,7 +931,7 @@ void CVulkanMathEngine::matrixToInterleavedAdreno( int batchSize, CConstFloatHan
 	int chunkY = imageHeight;
 	int chunkX = imageWidth;
 
-	int maxImageDimension2D = device->Properties().limits.maxImageDimension2D;
+	int maxImageDimension2D = device->Properties.limits.maxImageDimension2D;
 	if( imageHeight > maxImageDimension2D ) {
 		// The matrix is too high
 		int chunkCount = Ceil(imageHeight, maxImageDimension2D);
@@ -964,8 +964,8 @@ void CVulkanMathEngine::batchMultiplyMatrixByMatrixAdreno( bool toAdd, int batch
 	const CConstFloatHandle& secondHandle, int secondHeight, int secondWidth, int secondRowSize,
 	bool isSecondTrans, const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize )
 {
-	ASSERT_EXPR( device->Type() == VDT_Adreno );
-	ASSERT_EXPR( device->IsImageBased() );
+	ASSERT_EXPR( device->Type == VDT_Adreno );
+	ASSERT_EXPR( device->IsImageBased );
 
 	ASSERT_EXPR(firstWidth<= firstRowSize);
 	ASSERT_EXPR(secondWidth<= secondRowSize);

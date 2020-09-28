@@ -25,7 +25,7 @@ limitations under the License.
 
 namespace NeoML {
 
-class CVulkanDevice;
+struct CVulkanDevice;
 
 // Temporary processing images (FRGBA32)
 enum TTmpVulkanImage {

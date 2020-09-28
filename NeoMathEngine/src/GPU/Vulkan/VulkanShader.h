@@ -29,7 +29,7 @@ namespace NeoML {
 // The maximum number of bindings per shader
 constexpr int VulkanMaxBindingCount = 8;
 
-class CVulkanDevice;
+struct CVulkanDevice;
 
 // All available shaders
 enum TShader {

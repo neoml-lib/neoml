@@ -23,12 +23,13 @@ limitations under the License.
 #include <functional>
 #include <vulkan/vulkan.h>
 #include <MathEngineDll.h>
+#include <MathEngineCommon.h>
 #include <MathEngineAllocator.h>
 
 namespace NeoML {
 
 // The macro checks if a vulkanAPI function call was successful
-#define vkSucceded( functionCall ) { VkResult temp = functionCall; temp; assert( temp == VK_SUCCESS ); }
+#define vkSucceded( error ) ASSERT_ERROR_CODE( error )
 
 // Vulkan device type
 enum TVulkanDeviceType {
@@ -75,31 +76,14 @@ private:
 
 
 // Vulkan device
-class CVulkanDevice
+struct CVulkanDevice
 {
-public:
-	friend class CVulkanDll;
-
-	CVulkanDevice( const CVulkanDevice& ) = delete;
-	CVulkanDevice& operator=( const CVulkanDevice& ) = delete;
-
-	~CVulkanDevice() noexcept;
-
-	const CVulkanDeviceInfo& Info() const { return info; }
-
-	int Family() const { return info.Family; }
-
-	bool IsImageBased() const;
-
-	TVulkanDeviceType Type() const { return info.Type; }
-
-	VkPhysicalDeviceMemoryProperties MemoryProperties() const { return info.MemoryProperties; }
-
-	VkPhysicalDeviceProperties Properties() const { return info.Properties; }
-
-	std::size_t AvailableMemory() const { return info.AvailableMemory; }
-
-	operator VkDevice() const { return device; }
+	int Family;
+	bool IsImageBased;
+	TVulkanDeviceType Type;
+	VkPhysicalDeviceMemoryProperties MemoryProperties;
+	VkPhysicalDeviceProperties Properties;
+	std::size_t AvailableMemory;
 
 	// The functions loaded for this device
 	DeviceFunction<PFN_vkGetDeviceQueue> vkGetDeviceQueue;
@@ -152,13 +136,29 @@ public:
 	DeviceFunction<PFN_vkDestroyShaderModule> vkDestroyShaderModule;
 	PFN_vkCmdPushConstants vkCmdPushConstants;
 	PFN_vkQueueWaitIdle vkQueueWaitIdle;
+	
+	friend class CVulkanDll;
+
+	CVulkanDevice( const CVulkanDevice& ) = delete;
+	CVulkanDevice& operator=( const CVulkanDevice& ) = delete;
+
+	~CVulkanDevice() noexcept;
+
+	const CVulkanDeviceInfo& Info() const { return info; }
 
 private:
 	VkDevice device;
-	const CVulkanDeviceInfo& info;
 	PFN_vkDestroyDevice vkDestroyDevice;
+	const CVulkanDeviceInfo& info;
 
 	CVulkanDevice( VkDevice device_, const CVulkanDeviceInfo& info_ ) :
+		Family( info_.Family ),
+		IsImageBased( ( info_.Type == VDT_MaliBifrost || info_.Type == VDT_Nvidia || info_.Type == VDT_Intel ) ? 
+			false : true ),
+		Type( info_.Type ),
+		MemoryProperties( info_.MemoryProperties ),
+		Properties( info_.Properties ),
+		AvailableMemory( info_.AvailableMemory ),
 		vkBeginCommandBuffer( nullptr ),
 		vkEndCommandBuffer( nullptr ),
 		vkQueueSubmit( nullptr ),
@@ -171,8 +171,8 @@ private:
 		vkCmdDispatch( nullptr ),
 		vkCmdPushConstants( nullptr ),
 		vkQueueWaitIdle( nullptr ),
+		device(device_),
 		vkDestroyDevice( nullptr ),
-		device( device_ ),
 		info( info_ )
 	{}
 };
@@ -183,14 +183,6 @@ inline CVulkanDevice::~CVulkanDevice() noexcept
 		vkDestroyDevice( device, 0 );
 		device = nullptr;
 	}
-}
-
-inline bool CVulkanDevice::IsImageBased() const
-{
-	if( info.Type == VDT_MaliBifrost || info.Type == VDT_Nvidia || info.Type == VDT_Intel ) {
-		return false;
-	}
-	return true;
 }
 
 //------------------------------------------------------------------------------------------------------------

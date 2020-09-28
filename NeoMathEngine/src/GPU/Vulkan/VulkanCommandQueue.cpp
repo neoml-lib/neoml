@@ -56,10 +56,10 @@ CVulkanCommandQueue::CVulkanCommandQueue( const CVulkanDevice& vulkanDevice ) :
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = device.Family();
+	poolInfo.queueFamilyIndex = device.Family;
 	vkSucceded( device.vkCreateCommandPool( &poolInfo, 0, &commandPool ) );
 
-	device.vkGetDeviceQueue( device.Family(), 0, &queue );
+	device.vkGetDeviceQueue( device.Family, 0, &queue );
 }
 
 CVulkanCommandQueue::~CVulkanCommandQueue()
@@ -163,7 +163,7 @@ void CVulkanCommandQueue::RunCopyBuffer( VkBuffer from, VkBuffer to, const VkBuf
 void CVulkanCommandQueue::Wait()
 {
 	// Wait until all commands complete
-	ASSERT_ERROR_CODE( device.vkQueueWaitIdle( queue ) );
+	vkSucceded( device.vkQueueWaitIdle( queue ) );
 
 	while( commands != 0 ) {
 		CCommand* toDestroy = commands;
@@ -204,8 +204,8 @@ void CVulkanCommandQueue::RunChangeLayoutForImage( const CVulkanImage* nativeIma
 		VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 	info.oldLayout = oldLayout;
 	info.newLayout = newLayout;
-	info.srcQueueFamilyIndex = device.Family();
-	info.dstQueueFamilyIndex = device.Family();
+	info.srcQueueFamilyIndex = device.Family;
+	info.dstQueueFamilyIndex = device.Family;
 	info.image = nativeImage->GetVkImage();
 	info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	info.subresourceRange.baseMipLevel = 0;
@@ -241,12 +241,12 @@ VkDescriptorPool CVulkanCommandQueue::getDescriptorPool()
 	VkDescriptorPoolSize descPoolSize[4] = { {}, {}, {}, {} };
 	descPoolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	descPoolSize[0].descriptorCount = VulkanMaxBindingCount * VulkanMaxDescriptorSetPerPool;
-	if( !device.IsImageBased() ) {
+	if( !device.IsImageBased ) {
 		descPoolSize[0].descriptorCount += VulkanMaxBindingCount * VulkanMaxDescriptorSetPerPool;
 	}
 	descPoolSize[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	descPoolSize[1].descriptorCount = VulkanMaxBindingCount * VulkanMaxDescriptorSetPerPool;
-	if( device.IsImageBased() ) {
+	if( device.IsImageBased ) {
 		descPoolSize[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		descPoolSize[2].descriptorCount = VulkanMaxBindingCount * VulkanMaxDescriptorSetPerPool;
 		descPoolSize[3].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -257,7 +257,7 @@ VkDescriptorPool CVulkanCommandQueue::getDescriptorPool()
 	descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	descPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	descPoolInfo.maxSets = VulkanMaxDescriptorSetPerPool;
-	descPoolInfo.poolSizeCount = device.IsImageBased() ? 4 : 2;
+	descPoolInfo.poolSizeCount = device.IsImageBased ? 4 : 2;
 	descPoolInfo.pPoolSizes = descPoolSize;
 
 	vkSucceded( device.vkCreateDescriptorPool( &descPoolInfo, 0, &descriptorPool ) );

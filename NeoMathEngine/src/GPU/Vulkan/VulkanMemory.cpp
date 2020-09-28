@@ -50,9 +50,9 @@ CVulkanMemory::CVulkanMemory( const CVulkanDevice& _device, std::size_t _size, V
 	allocInfo.allocationSize = memRequirements.size;
 	
 	bool isFound = false;
-	for( uint32_t i = 0; i < device.MemoryProperties().memoryTypeCount; ++i ) {
+	for( uint32_t i = 0; i < device.MemoryProperties.memoryTypeCount; ++i ) {
 		if ( ( memRequirements.memoryTypeBits & (1u << i) ) != 0 &&
-			( device.MemoryProperties().memoryTypes[i].propertyFlags & properties ) == properties ) {
+			( device.MemoryProperties.memoryTypes[i].propertyFlags & properties ) == properties ) {
 			allocInfo.memoryTypeIndex = i;
 			isFound = true;
 			break;

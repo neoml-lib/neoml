@@ -29,7 +29,7 @@ limitations under the License.
 namespace NeoML {
 
 struct CVulkanShaderData;
-class CVulkanDevice;
+struct CVulkanDevice;
 class CVulkanImage;
 
 // The maximum number of bytes that may be asynchronously copied to GPU memory
