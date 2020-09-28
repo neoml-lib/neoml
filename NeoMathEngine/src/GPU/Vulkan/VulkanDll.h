@@ -20,7 +20,6 @@ limitations under the License.
 #ifdef NEOML_USE_VULKAN
 
 #include <vector>
-#include <functional>
 #include <vulkan/vulkan.h>
 #include <MathEngineDll.h>
 #include <MathEngineCommon.h>
