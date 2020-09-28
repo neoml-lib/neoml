@@ -91,10 +91,11 @@ C3dMaxPoolingDesc* CVulkanMathEngine::Init3dMaxPooling( const CBlobDesc& source,
 }
 
 void CVulkanMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
-	const CIntHandle*, const CFloatHandle& resultData )
+	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( maxIndicesData == nullptr );
 
 	const CCommon3dMaxPoolingDesc& desc = static_cast<const CCommon3dMaxPoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
