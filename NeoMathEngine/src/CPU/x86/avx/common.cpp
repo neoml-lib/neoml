@@ -13,25 +13,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-// These functions only use raw pointers, do not contain any omp sections inside and perform no checks
-
-#pragma once
-
-#include <NeoMathEngine/NeoMathEngineDefs.h>
-
-#if defined(NEOML_USE_SSE)
-
-#include <CpuX86.h>
-#include <CpuX86MathEngineVectorMathPrivate.h>
-#include <AvxDll.h>
-
-#elif defined(NEOML_USE_NEON)
-
-#include <CpuArm.h>
-#include <CpuArmMathEngineVectorMathPrivate.h>
-
-#else
-
-#error "Platform isn't supported!"
-
-#endif
+#include <common.h>
+#pragma hdrstop
