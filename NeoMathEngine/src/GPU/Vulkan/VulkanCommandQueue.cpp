@@ -163,7 +163,7 @@ void CVulkanCommandQueue::RunCopyBuffer( VkBuffer from, VkBuffer to, const VkBuf
 void CVulkanCommandQueue::Wait()
 {
 	// Wait until all commands complete
-	vkSucceded( device.vkQueueWaitIdle( queue ) );
+	ASSERT_ERROR_CODE( device.vkQueueWaitIdle( queue ) );
 
 	while( commands != 0 ) {
 		CCommand* toDestroy = commands;

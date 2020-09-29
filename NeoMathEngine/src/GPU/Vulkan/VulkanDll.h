@@ -28,7 +28,7 @@ limitations under the License.
 namespace NeoML {
 
 // The macro checks if a vulkanAPI function call was successful
-#define vkSucceded( error ) ASSERT_ERROR_CODE( error )
+#define vkSucceded( functionCall ) { VkResult temp = functionCall; temp; assert( temp == VK_SUCCESS ); }
 
 // Vulkan device type
 enum TVulkanDeviceType {
