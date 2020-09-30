@@ -17,125 +17,101 @@ limitations under the License.
 #pragma hdrstop
 
 #include "GemmNode.h"
+#include "GraphCache.h"
 #include "FlattenNode.h"
 #include "NeoOnnxCheck.h"
+#include "NodeUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CGemmNode::CGemmNode( const onnx::NodeProto& gemm, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( gemm, nodeOutputs ),
-	alpha( attributes.GetOptionalFloat( "alpha", 1.f ) ),
-	beta( attributes.GetOptionalFloat( "beta", 1.f ) ),
-	transA( attributes.GetOptionalInt( "transA", 0 ) ),
-	transB( attributes.GetOptionalInt( "transB", 0 ) )
+CGemmNode::CGemmNode( int nodeIndex, const onnx::NodeProto& gemm, int opsetVersion ) :
+	COpNode( nodeIndex, gemm, opsetVersion ),
+	alpha( Attributes.GetOptionalFloat( "alpha", 1.f ) ),
+	beta( Attributes.GetOptionalFloat( "beta", 1.f ) ),
+	transA( Attributes.GetOptionalInt( "transA", 0 ) ),
+	transB( Attributes.GetOptionalInt( "transB", 0 ) )
 {
-	CheckOnnxProtocol( input.Size() == 2 || input.Size() == 3, "node must have 2 or 3 inputs", gemm );
+	// Older versions have broadcast support
+	CheckNeoOnnxSupport( OpsetVersion >= 7 && OpsetVersion <= MaxOpsetVersion, "opset version", gemm );
+
+	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", gemm );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gemm );
 
-	CheckNeoOnnxSupport( alpha == 1.0f, "alpha != 1", gemm ); 
-	CheckNeoOnnxSupport( beta == 1.0f, "beta != 1", gemm ); 
+	CheckNeoOnnxSupport( alpha == 1.0f, "alpha != 1", gemm );
+	CheckNeoOnnxSupport( beta == 1.0f, "beta != 1", gemm );
 	CheckNeoOnnxSupport( transA == 0, "transA != 0", gemm );
 	CheckNeoOnnxSupport( transB != 0, "transB == 0", gemm );
 }
 
-void CGemmNode::OnnxReshape()
+void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_DataTensor, "constant input", onnxNode );
-	const CTensorShape& inputShape = InputTensor( 0 ).GetShape();
-	CheckOnnxProtocol( inputShape.Size() == 2, "input must be 2-dimensional", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", OnnxNode );
+	const CTensorShape& inputShape = tensors[Input[0]].Shape;
+	CheckOnnxProtocol( inputShape.Size() == 2, "input must be 2-dimensional", OnnxNode );
 	const int batchSize = inputShape[transA == 0 ? 0 : 1];
 	const int inputObjectSize = inputShape[transA == 0 ? 1 : 0];
 
-	CheckNeoOnnxSupport( InputTensor( 1 ).GetType() == TT_ConstantTensor, "non-constant weights", onnxNode );
-	const CTensorShape& matrixShape = InputTensor( 1 ).GetShape();
-	CheckOnnxProtocol( matrixShape.Size() == 2, "weights must be 2-dimensional", onnxNode );
-	CheckOnnxProtocol( matrixShape[transB == 0 ? 0 : 1] == inputObjectSize, "wrong weight size", onnxNode );
+	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant weights", OnnxNode );
+	const CTensorShape& matrixShape = tensors[Input[1]].Shape;
+	CheckOnnxProtocol( matrixShape.Size() == 2, "weights must be 2-dimensional", OnnxNode );
+	CheckOnnxProtocol( matrixShape[transB == 0 ? 0 : 1] == inputObjectSize, "wrong weight size", OnnxNode );
 	const int numberOfElements = matrixShape[transB == 0 ? 1 : 0];
 
-	if( input.Size() == 3 ) {
-		CheckNeoOnnxSupport( InputTensor( 2 ).GetType() == TT_ConstantTensor, "non-constant bias", onnxNode );
-		const CTensorShape& biasShape = InputTensor( 2 ).GetShape();
-		CheckOnnxProtocol( biasShape.Size() == 1, "bias must be 1-dimensional", onnxNode );
-		CheckOnnxProtocol( biasShape[0] == numberOfElements, "wrong bias size", onnxNode );
+	if( InputCount() == 3 ) {
+		CheckNeoOnnxSupport( tensors[Input[2]].Data != nullptr, "non-constant bias", OnnxNode );
+		const CTensorShape& biasShape = tensors[Input[2]].Shape;
+		CheckOnnxProtocol( biasShape.Size() == 1, "bias must be 1-dimensional", OnnxNode );
+		CheckOnnxProtocol( biasShape[0] == numberOfElements, "wrong bias size", OnnxNode );
 	}
 
-	CTensorShape outputShape( { batchSize, numberOfElements } );
-	outputData.Add( CTensor( TT_DataTensor, outputShape ) );
+	tensors[Output[0]].Shape = { batchSize, numberOfElements };
+
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CGemmNode::MarkTensorDims()
+void CGemmNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	// Gemm operator in ONNX always works with 2-dimensional tensors.
-	CheckNeoOnnxInternal( outputData[0].SetTensorDim( { BD_BatchWidth, BD_Channels } ),
-		"marking output dimensions failed", onnxNode );
-	CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( { BD_BatchWidth, BD_Channels } ),
-		"marking input dimensions failed", onnxNode );
+	// Gemm operator in onnx always works with 2-dimensional tensors
+	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Output[0]] ),
+		"labeling output dimensions failed", OnnxNode );
+	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Input[0]] ),
+		"labeling input dimensions failed", OnnxNode );
 }
 
-void CGemmNode::AddLayers( CDnn& net )
+void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( net.GetMathEngine() );
-	fc->SetName( "NeoMLLayer" + Str( net.GetLayerCount() ) );
+	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( dnn.GetMathEngine() );
+	fc->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	const CTensorShape& matrixShape = InputTensor( 1 ).GetShape();
+	const CTensorShape& matrixShape = tensors[Input[1]].Shape;
 	const int numberOfElements = matrixShape[transB == 0 ? 1 : 0];
 
 	fc->SetNumberOfElements( numberOfElements );
 
-	CPtr<CDnnBlob> weight = InputTensor( 1 ).GetData()->GetCopy();
+	CPtr<CDnnBlob> weight = tensors[Input[1]].Data->GetCopy();
 	CBlobDesc weightDesc( CT_Float );
 	weightDesc.SetDimSize( BD_BatchWidth, weight->GetDesc().DimSize( 0 ) );
 	weightDesc.SetDimSize( BD_Channels, weight->GetDesc().DimSize( 1 ) );
 	weight->ReinterpretDimensions( weightDesc );
 
-	// If there is a 'Flatten' node before this, we need to reorder weights.
-	weight = reorderWeightAfterFlatten( weight );
+	// If there is a 'Flatten' node before this we have to reorder weights
+	weight = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, weight );
 
 	fc->SetWeightsData( weight );
 
-	if( input.Size() > 2 ) {
-		fc->SetFreeTermData( InputTensor( 2 ).GetData() );
+	if( InputCount() > 2 ) {
+		fc->SetFreeTermData( tensors[Input[2]].Data );
 	} else {
 		fc->SetZeroFreeTerm( true );
 	}
 
-	fc->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
-	net.AddLayer( *fc );
+	fc->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	dnn.AddLayer( *fc );
 
-	outputInfo.Add( COutputInfo( fc, 0 ) );
-}
-
-// Reorders weight matrix if this 'Gemm' is located after 'Flatten'.
-CPtr<CDnnBlob> CGemmNode::reorderWeightAfterFlatten( CDnnBlob* weight ) const
-{
-	const CFlattenNode* flatten = dynamic_cast<CFlattenNode*>( input[0].InputNode );
-	
-	if( flatten == nullptr ) {
-		return weight;
-	}
-
-	const CTensorShape& flattenInputShape = flatten->InputTensor( 0 ).GetShape();
-	const CTensorDim& flattenInputDim = flatten->InputTensor( 0 ).GetTensorDim();
-
-	CBlobDesc newWeightDesc( CT_Float );
-	for( int dimIndex = 0; dimIndex < flattenInputShape.Size(); ++dimIndex ) {
-		newWeightDesc.SetDimSize( flattenInputDim[dimIndex], flattenInputShape[dimIndex] );
-	}
-
-	if( ( newWeightDesc.Height() == 1 && newWeightDesc.Width() == 1 )
-		|| ( newWeightDesc.Channels() == 1 && newWeightDesc.Depth() == 1 ) )
-	{
-		return weight;
-	}
-
-	// Weights need conversion from CHW to HWC
-	IMathEngine& mathEngine = weight->GetMathEngine();
-	CPtr<CDnnBlob> newWeight = weight->GetClone();
-	mathEngine.TransposeMatrix( weight->GetObjectCount(), weight->GetData(), newWeightDesc.Channels(), newWeightDesc.Depth(),
-		newWeightDesc.Height() * newWeightDesc.Width(), 1, newWeight->GetData(), newWeight->GetDataSize() );
-	return newWeight;
+	neoMLLinks[Output[0]] = CNeoMLLink( fc, 0 );
 }
 
 } // namespace NeoOnnx

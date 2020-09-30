@@ -41,7 +41,7 @@ const int CudaMemoryAlignment = 4;
 
 //------------------------------------------------------------------------------------------------------------
 
-CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, std::unique_ptr<CCudaDevice>& _device ) :
+CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, std::unique_ptr<CCudaDevice>& _device, int flags ) :
 	cusparse( _cusparse ),
 	cublas( _cublas ),
 	cublasHandle( 0 ),
@@ -55,6 +55,8 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 
 	// Cublas.
 	ASSERT_CUBLAS( cublas->Create( &cublasHandle ) );
+	cublasMath_t cublasMath = ( flags & GpuMathEngineCublasUseTensorCoresFlag ) == 0 ? CUBLAS_DEFAULT_MATH : CUBLAS_TENSOR_OP_MATH;
+	ASSERT_CUBLAS( cublas->SetMathMode( cublasHandle, cublasMath ) );
 	ASSERT_CUBLAS( cublas->SetAtomicsMode( cublasHandle, CUBLAS_ATOMICS_ALLOWED ) );
 	ASSERT_CUBLAS( cublas->SetPointerMode( cublasHandle, CUBLAS_POINTER_MODE_DEVICE ) );
 
