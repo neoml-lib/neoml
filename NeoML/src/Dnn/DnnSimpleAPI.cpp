@@ -196,12 +196,16 @@ CLayerWrapper<CCenterLossLayer> CenterLoss(
 
 CLayerWrapper<CMultiHingeLossLayer> MultiHingeLoss( float lossWeight )
 {
-	return CLayerWrapper<CMultiHingeLossLayer>( "MultiHingeLoss" );
+	return CLayerWrapper<CMultiHingeLossLayer>( "MultiHingeLoss", [=]( CMultiHingeLossLayer* result ) {
+		result->SetLossWeight( lossWeight );
+	} );
 }
 
 CLayerWrapper<CMultiSquaredHingeLossLayer> MultiSquaredHingeLoss( float lossWeight )
 {
-	return CLayerWrapper<CMultiSquaredHingeLossLayer>( "MultiSquaredHingeLoss" );
+	return CLayerWrapper<CMultiSquaredHingeLossLayer>( "MultiSquaredHingeLoss", [=]( CMultiSquaredHingeLossLayer* result ) {
+		result->SetLossWeight( lossWeight );
+	} );
 }
 
 CLayerWrapper<CPositionalEmbeddingLayer> PositionalEmbedding(

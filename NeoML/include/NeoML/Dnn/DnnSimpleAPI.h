@@ -104,7 +104,7 @@ public:
 
 	// Is this layer optional, i.e. created by CLayerOutout() default constructor.
 	bool IsOptional() const { return Layer == 0 && OutputNumber == -1; }
-	// Check if the layer output is valid.
+	// Is the layer output valid?
 	bool IsValid() const { return Layer != 0 && OutputNumber >= 0 && Layer->GetDnn() != 0; }
 };
 
@@ -119,7 +119,7 @@ public:
 	CLayerWrapper( const CLayerWrapper<T>& other ) :
 		prefix( other.prefix ), initFunc( other.initFunc ) {}
 
-	// Connect inputs to the layer and change layer name.
+	// Connects inputs to the layer and changes layer name.
 	T* operator()( const char* name, const CLayerOutput& layer1,
 		const CLayerOutput& layer2 = CLayerOutput(),
 		const CLayerOutput& layer3 = CLayerOutput(),
@@ -127,7 +127,7 @@ public:
 		const CLayerOutput& layer5 = CLayerOutput(),
 		const CLayerOutput& layer6 = CLayerOutput() );
 
-	// Connect inputs to the layer.
+	// Connects inputs to the layer.
 	T* operator()( const CLayerOutput& layer1,
 		const CLayerOutput& layer2 = CLayerOutput(),
 		const CLayerOutput& layer3 = CLayerOutput(),
@@ -277,9 +277,9 @@ Example 2:
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
-// Create CSourceLayer with name
+// Creates CSourceLayer with name
 NEOML_API CBaseLayer* Source( CDnn& network, const char* name );
-// Create CSinkLayer with name
+// Creates CSinkLayer with name
 NEOML_API CSinkLayer* Sink( const CLayerOutput& layer, const char* name );
 
 NEOML_API CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,
@@ -517,6 +517,6 @@ NEOML_API CLayerWrapper<CReorgLayer> Reorg();
 NEOML_API CLayerWrapper<CRepeatSequenceLayer> RepeatSequence( int repeatCount );
 NEOML_API CLayerWrapper<CSequenceSumLayer> SequenceSum();
 
-//////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
 } // namespace SimpleAPI 
 } // namespace NeoML
