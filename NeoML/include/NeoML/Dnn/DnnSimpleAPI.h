@@ -290,7 +290,7 @@ NEOML_API CLayerWrapper<CReLULayer> Relu();
 NEOML_API CLayerWrapper<CGELULayer> Gelu();
 NEOML_API CLayerWrapper<CLinearLayer> Linear( float multiplier, float freeTerm );
 NEOML_API CLayerWrapper<CELULayer> Elu( float alpha = 0.01f );
-NEOML_API CLayerWrapper<CLeakyReLULayer> LeakyRelu( float = 0.01f );
+NEOML_API CLayerWrapper<CLeakyReLULayer> LeakyRelu( float alpha = 0.01f );
 NEOML_API CLayerWrapper<CAbsLayer> Abs();
 NEOML_API CLayerWrapper<CSigmoidLayer> Sigmoid();
 NEOML_API CLayerWrapper<CTanhLayer> Tanh();
@@ -325,7 +325,7 @@ NEOML_API CLayerWrapper<CSoftmaxLayer> Softmax(
 	CSoftmaxLayer::TNormalizationArea normalizationArea );
 NEOML_API CLayerWrapper<CAddToObjectLayer> AddToObject();
 
-// Special values for parameters in Reshape
+// Special values for parameters in Transform
 enum TTransformRule {
 	TR_Remainder = -1, // Shape inference, only one layer should have this value.
 	TR_Same = -2 // Rest dimension the same.
@@ -369,7 +369,7 @@ NEOML_API CLayerWrapper<CGruLayer> Gru( int hiddenSize );
 NEOML_API CLayerWrapper<CSubSequenceLayer> SubSequence(
 	int startPos, int length );
 // CSubSequenceLayer with SetReverse()
-NEOML_API CLayerWrapper<CSubSequenceLayer> Reverse();
+NEOML_API CLayerWrapper<CSubSequenceLayer> ReverseSubSequence();
 
 NEOML_API CLayerWrapper<CArgmaxLayer> Argmax( TBlobDim dim );
 
@@ -394,11 +394,15 @@ struct NEOML_API CConvAxisParams {
 	}
 };
 
-
 NEOML_API CLayerWrapper<CConvLayer> Conv( int filterCount,
 	const CConvAxisParams& heightParams, const CConvAxisParams& widthParams,
 	bool isZeroFreeTerm = false );
 
+// Convolution along width dimension, i.e:
+//	filter height = 1
+//	stride height = 1
+//	dilation height = 1
+//	padding height = 0
 inline CLayerWrapper<CConvLayer> ConvByWidth( int filterCount,
 	int size, int padding = 0, int stride = 1, int dilation = 1,
 	bool isZeroFreeTerm = false )
@@ -407,6 +411,11 @@ inline CLayerWrapper<CConvLayer> ConvByWidth( int filterCount,
 		CConvAxisParams( size, padding, stride, dilation ), isZeroFreeTerm );
 }
 
+// Convolution along height dimension, i.e:
+//	filter width = 1
+//	stride width = 1
+//	dilation width = 1
+//	padding width = 0
 inline CLayerWrapper<CConvLayer> ConvByHeight( int filterCount,
 	int size, int padding = 0, int stride = 1, int dilation = 1,
 	bool isZeroFreeTerm = false )
@@ -422,7 +431,8 @@ NEOML_API CLayerWrapper<CChannelwiseConvLayer> ChannelwiseConv( int filterCount,
 inline CLayerWrapper<CTimeConvLayer> TimeConv( int filterCount,
 	int size, int padding = 0, int stride = 1, int dilation = 1 );
 
-// N.B. Layer has not dilation in depthParams!
+// N.B. Layer does not support dilation! 
+// The Dilation parameter in the CConvAxisParams will be ignored.
 NEOML_API CLayerWrapper<C3dConvLayer> Conv3d( int filterCount,
 	const CConvAxisParams& heightParams,
 	const CConvAxisParams& widthParams,

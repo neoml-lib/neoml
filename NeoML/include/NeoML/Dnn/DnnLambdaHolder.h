@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include <NeoML/NeoMLDefs.h>
+
 namespace NeoML {
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -28,9 +30,9 @@ class CLambdaHolderBase {};
 template<typename Out, typename ...In>
 class CLambdaHolderBase<Out( In... )> : public virtual IObject {
 public:
-	// Execute lambda
+	// Executes lambda.
 	virtual void Execute( In... arguments ) = 0;
-	// Copy lambda
+	// Copies lambda.
 	virtual CPtr<CLambdaHolderBase<Out( In... )>> Copy() = 0;
 };
 
@@ -56,7 +58,7 @@ private:
 template<typename T>
 class CLambda {};
 
-// Type that catpures lambda
+// Type that captures lambda.
 template<typename Out, typename ...In>
 class CLambda<Out( In... )> {
 public:
@@ -73,7 +75,7 @@ public:
 		}
 	}
 
-	// Is undefined lambda?
+	// Is lambda undefined?
 	bool IsEmpty() const { return lambda == nullptr; }
 
 private:

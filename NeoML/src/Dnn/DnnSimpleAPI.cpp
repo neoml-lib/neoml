@@ -239,16 +239,21 @@ static void applyTransformRule( CTransformLayer* transformLayer, TBlobDim dim, i
 	}
 }
 
+static bool isTransformParamCorrect( int param )
+{
+	return param > 0 || param == TR_Remainder || param == TR_Same;
+}
+
 CLayerWrapper<CTransformLayer> Transform( int batchLength, int batchWidth,
 	int listSize, int height, int width, int depth, int channel )
 {
-	NeoAssert( batchLength != 0 && batchLength >= -2 );
-	NeoAssert( batchWidth != 0 && batchWidth >= -2 );
-	NeoAssert( listSize != 0 && listSize >= -2 );
-	NeoAssert( width != 0 && width >= -2 );
-	NeoAssert( height != 0 && height >= -2 );
-	NeoAssert( depth != 0 && depth >= -2 );
-	NeoAssert( channel != 0 && channel >= -2 );
+	NeoAssert( isTransformParamCorrect( batchLength ) );
+	NeoAssert( isTransformParamCorrect( batchWidth ) );
+	NeoAssert( isTransformParamCorrect( listSize ) );
+	NeoAssert( isTransformParamCorrect( width ) );
+	NeoAssert( isTransformParamCorrect( height ) );
+	NeoAssert( isTransformParamCorrect( depth ) );
+	NeoAssert( isTransformParamCorrect( channel ) );
 
 	return CLayerWrapper<CTransformLayer>( "Transform", [=]( CTransformLayer* result ) {
 		const CTransformLayer::CDimensionRule sameRule(
@@ -388,9 +393,9 @@ CLayerWrapper<CSubSequenceLayer> SubSequence( int startPos, int length )
 	} };
 }
 
-CLayerWrapper<CSubSequenceLayer> Reverse()
+CLayerWrapper<CSubSequenceLayer> ReverseSubSequence()
 {
-	return CLayerWrapper<CSubSequenceLayer>( "Reverse", [=]( CSubSequenceLayer* result ) {
+	return CLayerWrapper<CSubSequenceLayer>( "ReverseSubSequence", [=]( CSubSequenceLayer* result ) {
 		result->SetReverse();
 	} );
 }
