@@ -237,7 +237,6 @@ static bool isTransformParamCorrect( int param )
 static void applyTransformRule( CTransformLayer* transformLayer, TBlobDim dim, int value )
 {
 	NeoAssert( transformLayer != 0 );
-	NeoAssert( isTransformParamCorrect( value ) );
 
 	if( value == TransformInferenceSame ) {
 		transformLayer->SetDimensionRule( dim, CTransformLayer::O_Multiply, 1 );
