@@ -240,8 +240,8 @@ Example 0:
 
 	CDnn net{ rnd, engine };
 
-	auto x = Source( net, "Input0" );
-	auto labels = Source( net, "Labels" );
+	CBaseLayer* x = Source( net, "Input0" );
+	CBaseLayer* labels = Source( net, "Labels" );
 
 	x = FullyConnected( 100 )( x );
 	x = Relu() ( x );
@@ -255,10 +255,10 @@ Example 2:
 
 	CDnn net{ rnd, engine };
 
-	auto x = Source( net, "Input0" );
-	auto y = Source( net, "Input1" );
-	auto labels = Source( net, "Labels" );
-	auto weights = Source( net, "Weightss" );
+	CBaseLayer* x = Source( net, "Input0" );
+	CBaseLayer* y = Source( net, "Input1" );
+	CBaseLayer* labels = Source( net, "Labels" );
+	CBaseLayer* weights = Source( net, "Weightss" );
 
 	auto fc = FullyConnected( 100 );
 
