@@ -272,8 +272,8 @@ CSparseFloatVector& CSparseFloatVector::operator += ( const CSparseFloatVector& 
 			newBody->Desc.Values[k] = desc.Values[i];
 			i++;
 		} else {
-			newBody->Desc.Indexes[k] = desc.Indexes[j];
-			newBody->Desc.Values[k] = desc.Values[j];
+			newBody->Desc.Indexes[k] = otherDesc.Indexes[j];
+			newBody->Desc.Values[k] = otherDesc.Values[j];
 			j++;
 		}
 		k++;
@@ -287,8 +287,8 @@ CSparseFloatVector& CSparseFloatVector::operator += ( const CSparseFloatVector& 
 	}
 
 	while( j < otherSize ) {
-		newBody->Desc.Indexes[k] = desc.Indexes[j];
-		newBody->Desc.Values[k] = desc.Values[j];
+		newBody->Desc.Indexes[k] = otherDesc.Indexes[j];
+		newBody->Desc.Values[k] = otherDesc.Values[j];
 		j++;
 		k++;
 	}

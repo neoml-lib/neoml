@@ -17,41 +17,41 @@ limitations under the License.
 #pragma hdrstop
 
 #include "GraphInitializer.h"
-#include "../TensorUtils.h"
+#include "GraphCache.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CGraphInitializer::CGraphInitializer( const onnx::TensorProto& _initializer, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& _mathEngine ) :
-	CNode( onnx::NodeProto(), nodeOutputs ),
-	mathEngine( _mathEngine ),
+CGraphInitializer::CGraphInitializer( int nodeIndex, const onnx::TensorProto& _initializer ) :
+	CNode( nodeIndex, 0, 1 ),
 	initializer( _initializer )
 {
 	assert( initializer.dims_size() > 0 );
-	nodeOutputs.Add( initializer.name().c_str(), CInputInfo( this, 0 ) );
 }
 
-void CGraphInitializer::OnnxReshape()
+void CGraphInitializer::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CTensorShape shape;
-	shape.SetBufferSize( initializer.dims_size() );
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
+	outputShape.SetBufferSize( initializer.dims_size() );
+
+	for( int dimIndex = 0; dimIndex < initializer.dims_size(); ++dimIndex ) {
+		outputShape.Add( static_cast<int>( initializer.dims( dimIndex ) ) );
+	}
 
 	CBlobDesc blobDesc;
 	blobDesc.SetDataType( GetBlobType( static_cast<onnx::TensorProto_DataType>( initializer.data_type() ) ) );
 	for( int dimIndex = 0; dimIndex < initializer.dims_size(); ++dimIndex ) {
-		shape.Add( static_cast<int>( initializer.dims( dimIndex ) ) );
-		blobDesc.SetDimSize( dimIndex, shape.Last() );
+		blobDesc.SetDimSize( dimIndex, tensors[Output[0]].Shape[dimIndex] );
 	}
 
-	CPtr<CDnnBlob> blob = CDnnBlob::CreateBlob( mathEngine, blobDesc.GetDataType(), blobDesc );
+	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, blobDesc.GetDataType(), blobDesc );
 	if( blobDesc.GetDataType() == CT_Float ) {
-		LoadBlobData<float>( initializer, *blob );
+		LoadBlobData<float>( initializer, *tensors[Output[0]].Data );
 	} else {
-		LoadBlobData<int>( initializer, *blob );
+		LoadBlobData<int>( initializer, *tensors[Output[0]].Data );
 	}
-
-	outputData.Add( CTensor( TT_ConstantTensor, shape, blob ) );
 }
 
 } // namespace NeoOnnx

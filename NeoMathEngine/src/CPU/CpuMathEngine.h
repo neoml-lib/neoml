@@ -450,49 +450,47 @@ private:
 	void blob3dConvolution1x1x1( const CBlobDesc& source, const CBlobDesc& filter, const CBlobDesc& result,
 		int strideHeight, int strideWidth, int strideDepth,
 		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData );
-	void blob3dConvolution1x1x1Backward( const CCommon3dConvolutionDesc& desc, const CFloatHandle& outputDiffData,
-		const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& inputDiffData );
+	void blob3dConvolution1x1x1Backward( const CCommon3dConvolutionDesc& desc, const float* outputDiffData,
+		const float* filterData, const CFloatHandle* freeTermData, float* inputDiffData );
 	void blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionDesc& desc, const CFloatHandle& inputData,
 		const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData );
-	void blob3dConvolution( const CCommon3dConvolutionDesc& desc, const CFloatHandle& sourceData,
-		const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData );
-	void blob3dConvolutionBackward( const CCommon3dConvolutionDesc& desc, const CFloatHandle& sourceData,
-		const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData );
+	void blob3dConvolution( const CCommon3dConvolutionDesc& desc, const float* sourceData,
+		const float* filterData, const CFloatHandle* freeTermData, float* resultData );
+	void blob3dConvolutionBackward( const CCommon3dConvolutionDesc& desc, const float* sourceData,
+		const CFloatHandle& filterData, const CFloatHandle* freeTermData, float* resultData );
 	void blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& desc,
-		const CFloatHandle& inputData, const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData,
+		const float* inputData, const float* outputDiffData, const CFloatHandle& filterDiffData,
 		const CFloatHandle* freeTermDiffData, bool isFreeTermDiffFromInput );
-	void blob3dConvolutionPrepareInput( const CCommon3dConvolutionDesc& desc, const CFloatHandle& inputPreparedData,
-		const CFloatHandle& inputBlobData, int inputObject, int outputHeight, int outputWidthExStart, int outputWidthExCount );
+	void blob3dConvolutionPrepareInput( const CCommon3dConvolutionDesc& desc, float* inputPreparedData,
+		const float* inputBlobData, int inputObject, int outputHeight, int outputWidthExStart, int outputWidthExCount );
 
-	void vectorCopy(const CFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize);
-	void vectorFill( const CFloatHandle& result, float value, int vectorSize );
-	void setVectorToMatrixRows( const CFloatHandle& resultHandle, int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle );
-	void addVectorToMatrixRows( const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
-		int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const CConstFloatHandle& vectorHandle );
-	void addMatrixToMatrix( const CFloatHandle& firstHandle, int height,
-		int width, int firstRowSize, const CConstFloatHandle& secondHandle, int secondRowSize );
-	void sumMatrixRowsAdd( const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
+	void vectorCopy( float* first, const float* second, int vectorSize);
+	void setVectorToMatrixRows( float* result, int matrixHeight, int matrixWidth, const float* vector );
+	void addVectorToMatrixRows( const float* matrix, float* result,
+		int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector );
+	void addMatrixToMatrix( float* first, int height,
+		int width, int firstRowSize, const float* second, int secondRowSize );
+	void sumMatrixRowsAdd( float* result, const float* matrix,
 		int matrixHeight, int matrixWidth );
 	void sumMatrixColumnsAdd(const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 		int matrixHeight, int matrixWidth);
-	void multiplyMatrixByMatrix( const CConstFloatHandle& firstHandle, int firstHeight,
-		int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize );
-	void multiplyMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle, int firstHeight,
-		int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize );
-	void multiplyTransposedMatrixByMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize );
-	void batchMultiplyTransposedMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, 
-		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize );
-	void multiplyTransposedMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, int firstRowSize,
-		const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize );
-	void multiplyMatrixByTransposedMatrix( const CConstFloatHandle& firstHandle, int firstHeight,
-		int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize );
+	void multiplyMatrixByMatrix( const float* firstHandle, int firstHeight,
+		int firstWidth, int firstRowSize, const float* secondHandle, int secondWidth, int secondRowSize,
+		float* resultHandle, int resultRowSize );
+	void multiplyMatrixByMatrixAndAdd( const float* first, int firstHeight,
+		int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
+		float* result, int resultRowSize );
+	void multiplyTransposedMatrixByMatrix( const float* first, int firstHeight, int firstWidth,
+		const float* second, int secondWidth, float* result );
+	void batchMultiplyTransposedMatrixByMatrix( int batchSize, const float* first, int firstHeight, int firstWidth, 
+		const float* second, int secondWidth, float* result );
+	void multiplyTransposedMatrixByMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
+		const float* second, int secondWidth, int secondRowSize, float* result, int resultRowSize );
+	void multiplyMatrixByTransposedMatrix( const float* first, int firstHeight,
+		int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
+		float* result, int resultRowSize );
 	void batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int resultBufferSize );
+		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle );
 	void multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
 		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize );
 
@@ -510,23 +508,25 @@ private:
 	template<class T>
 	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 
-	template<class T>
-	void transposeMatrixImpl( int batchSize, const CTypedMemoryHandle<const T>& firstHandle,
-		int height, int medium, int width, int channels, const CTypedMemoryHandle<T>& resultHandle, int resultBufferSize );
-	void createDilationTemporaryBlob( const CCpuConvolutionDesc& desc, const CFloatHandle& inputBlob, int inputBatch,
-		int outputColumnStart, int outputColumnCount, const CFloatHandle& temporaryBlob );
+	template<typename T>
+	void transposeMatrixImpl( int batchSize, const T* firstHandle,
+		int height, int medium, int width, int channels, T* resultHandle );
+	void transposeMatrix(int batchSize, const float* firstHandle,
+		int height, int medium, int width, int channels, float* resultHandle);
+	void transposeMatrix(int batchSize, const int* firstHandle,
+		int height, int medium, int width, int channels, int* resultHandle);
+	void createDilationTemporaryBlob( const CCpuConvolutionDesc& desc, const float* inputBlob, int inputBatch,
+		int outputColumnStart, int outputColumnCount, float* temporaryBlob );
 	template<class TConvolutionDesc>
-	void createTemporaryBlob( const TConvolutionDesc& desc, const CFloatHandle& inputData,
-		int inputBatch, int outputRowStart, int outputRowCount, const CFloatHandle& tempBlob );
-	void transposeResult( const CCpuConvolutionDesc& desc, const CConstFloatHandle& outputTransposedData,
-		int batch, int resultStart, int resultCount, const CFloatHandle& result );
-	void fillTempData( const CFloatHandle& sourceData, const CFloatHandle& filterData, const CCpuConvolutionDesc& desc, int start, int count );
-	void blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc,
-		const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTerm,
-		const CFloatHandle& resultData );
-	void blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc,
-		const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTerm,
-		const CFloatHandle& resultData );
+	void createTemporaryBlob( const TConvolutionDesc& desc, const float* inputData,
+		int inputBatch, int outputRowStart, int outputRowCount, float* tempBlob );
+	void transposeResult( const CCpuConvolutionDesc& desc, const float* outputTransposedData,
+		int batch, int resultStart, int resultCount, float* result );
+	void fillTempData( const float* sourceData, float* filterData, const CCpuConvolutionDesc& desc, int start, int count );
+	void blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc, const float* sourceData,
+		const float* filterData, const CFloatHandle* freeTermData, float* resultData );
+	void blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc, const float* sourceData,
+		const float* filterData, const CFloatHandle* freeTermData, float* resultData );
 	void backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
 		const CFloatHandle* freeTerm, const CFloatHandle& output );
 	void backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
@@ -549,13 +549,13 @@ private:
 	void blobChannelwiseConvolutionFilter3x3Padding1Stride2( const CCommonChannelwiseConvolutionDesc& desc, const float* source,
 		const float* filter, const float* freeTerm, float* result );
 
-	void findMaxValueInColumns(const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
+	void findMaxValueInColumns( float* result, const float* matrixHandle,
 		int matrixHeight, int matrixWidth);
-	void findMaxValueInColumns(const CFloatHandle& resultHandle, const CIntHandle& rowIndices,
-		const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth);
-	void blobMaxPoolingWithIndices(const CCommonMaxPoolingDesc& desc, const CFloatHandle& sourceData,
-		const CIntHandle& maxIndicesData, const CFloatHandle& resultData);
-	void blobMaxPoolingWithoutIndices(const CCommonMaxPoolingDesc& desc, const CFloatHandle& sourceData, const CFloatHandle& resultData);
+	void findMaxValueInColumns( float* resultHandle, int* rowIndices,
+		const float* matrixHandle, int matrixHeight, int matrixWidth);
+	void blobMaxPoolingWithIndices(const CCommonMaxPoolingDesc& desc, const float* sourceData,
+		int* maxIndicesData, float* resultData);
+	void blobMaxPoolingWithoutIndices(const CCommonMaxPoolingDesc& desc, const float* sourceData, float* resultData);
 };
 
 inline void CCpuMathEngine::VectorReLUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
