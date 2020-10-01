@@ -229,23 +229,23 @@ CLayerWrapper<CAddToObjectLayer> AddToObject()
 	return CLayerWrapper<CAddToObjectLayer>( "AddToObject" );
 }
 
+static bool isTransformParamCorrect( int param )
+{
+	return param > 0 || param == TransformInferenceRemainder || param == TransformInferenceSame;
+}
+
 static void applyTransformRule( CTransformLayer* transformLayer, TBlobDim dim, int value )
 {
-	assert( transformLayer != 0 );
-	assert( value > 0 || value == TR_Remainder || value == TR_Same );
+	NeoAssert( transformLayer != 0 );
+	NeoAssert( isTransformParamCorrect( value ) );
 
-	if( value == TR_Same ) {
+	if( value == TransformInferenceSame ) {
 		transformLayer->SetDimensionRule( dim, CTransformLayer::O_Multiply, 1 );
-	} else if( value == TR_Remainder ) {
+	} else if( value == TransformInferenceRemainder ) {
 		transformLayer->SetDimensionRule( dim, CTransformLayer::O_Remainder, 0 );
 	} else {
 		transformLayer->SetDimensionRule( dim, CTransformLayer::O_SetSize, value );
 	}
-}
-
-static bool isTransformParamCorrect( int param )
-{
-	return param > 0 || param == TR_Remainder || param == TR_Same;
 }
 
 CLayerWrapper<CTransformLayer> Transform( int batchLength, int batchWidth,
@@ -260,11 +260,6 @@ CLayerWrapper<CTransformLayer> Transform( int batchLength, int batchWidth,
 	NeoAssert( isTransformParamCorrect( channel ) );
 
 	return CLayerWrapper<CTransformLayer>( "Transform", [=]( CTransformLayer* result ) {
-		const CTransformLayer::CDimensionRule sameRule(
-			CTransformLayer::O_Multiply, 1 );
-		const CTransformLayer::CDimensionRule remainderRule(
-			CTransformLayer::O_Remainder, 0 );
-
 		applyTransformRule( result, BD_BatchLength, batchLength );
 		applyTransformRule( result, BD_BatchWidth, batchWidth );
 		applyTransformRule( result, BD_ListSize, listSize );
@@ -397,7 +392,7 @@ CLayerWrapper<CSubSequenceLayer> SubSequence( int startPos, int length )
 	} };
 }
 
-CLayerWrapper<CSubSequenceLayer> ReverseSubSequence()
+CLayerWrapper<CSubSequenceLayer> ReverseSequence()
 {
 	return CLayerWrapper<CSubSequenceLayer>( "ReverseSubSequence", [=]( CSubSequenceLayer* result ) {
 		result->SetReverse();
@@ -603,12 +598,10 @@ CLayerWrapper<C3dConvLayer> Conv3d( int filterCount,
 		result->SetFilterHeight( heightParams.Size );
 		result->SetPaddingHeight( heightParams.Padding );
 		result->SetStrideWidth( heightParams.Stride );
-		result->SetDilationHeight( heightParams.Dilation );
 
 		result->SetFilterWidth( widthParams.Size );
 		result->SetPaddingWidth( widthParams.Padding );
 		result->SetStrideHeight( widthParams.Stride );
-		result->SetDilationWidth( widthParams.Dilation );
 
 		result->SetFilterDepth( depthParams.Size );
 		result->SetPaddingDepth( depthParams.Padding );

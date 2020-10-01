@@ -325,11 +325,12 @@ NEOML_API CLayerWrapper<CSoftmaxLayer> Softmax(
 	CSoftmaxLayer::TNormalizationArea normalizationArea );
 NEOML_API CLayerWrapper<CAddToObjectLayer> AddToObject();
 
-// Special values for parameters in Transform
-enum TTransformRule {
-	TR_Remainder = -1, // Shape inference, only one layer should have this value.
-	TR_Same = -2 // Rest dimension the same.
-};
+// Special values for parameters in Transform:
+
+// Shape inference, only one layer should have this value.
+const int TransformInferenceRemainder = -1;
+// Rest dimension the same.
+const int TransformInferenceSame = -2;
 
 NEOML_API CLayerWrapper<CTransformLayer> Transform( int batchLength,
 	int batchWidth, int listSize, int height, int width, int depth, int channel );
@@ -369,7 +370,7 @@ NEOML_API CLayerWrapper<CGruLayer> Gru( int hiddenSize );
 NEOML_API CLayerWrapper<CSubSequenceLayer> SubSequence(
 	int startPos, int length );
 // CSubSequenceLayer with SetReverse()
-NEOML_API CLayerWrapper<CSubSequenceLayer> ReverseSubSequence();
+NEOML_API CLayerWrapper<CSubSequenceLayer> ReverseSequence();
 
 NEOML_API CLayerWrapper<CArgmaxLayer> Argmax( TBlobDim dim );
 
