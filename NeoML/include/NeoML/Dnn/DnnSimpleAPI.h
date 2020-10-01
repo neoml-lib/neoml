@@ -278,7 +278,7 @@ Example 2:
 //////////////////////////////////////////////////////////////////////////////////////////
 
 // Creates CSourceLayer with name
-NEOML_API CBaseLayer* Source( CDnn& network, const char* name );
+NEOML_API CSourceLayer* Source( CDnn& network, const char* name );
 // Creates CSinkLayer with name
 NEOML_API CSinkLayer* Sink( const CLayerOutput& layer, const char* name );
 

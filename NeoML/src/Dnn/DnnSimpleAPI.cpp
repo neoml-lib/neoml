@@ -22,7 +22,7 @@ namespace NeoML {
 namespace SimpleAPI {
 //////////////////////////////////////////////////////////////////////////////////////////
 
-CBaseLayer* Source( CDnn& network, const char* name )
+CSourceLayer* Source( CDnn& network, const char* name )
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( network.GetMathEngine() );
 	source->SetName( name );
