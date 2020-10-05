@@ -23,8 +23,6 @@ limitations under the License.
 
 #include <CpuMathEngine.h>
 #include <MathEngineDnnConv.h>
-//#include <float.h>
-//#include <CpuMathEngineOmp.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
 
@@ -72,7 +70,7 @@ inline void Process_avx_x2( __m256& r00, __m256& r01, __m256& r02,
 }
 
 extern "C"
-NEOMATHENGINE_API void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc& desc, const CFloatHandle& sourceData,
+FME_DLL_EXPORT void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc& desc, const CFloatHandle& sourceData,
 	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
 {
 	// const int SH = desc.Source.Height(); //1024;
@@ -81,7 +79,7 @@ NEOMATHENGINE_API void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngin
 	const int S = desc.StrideWidth; //1;
 	const int D = desc.DilationWidth;
 	// const int P = D;
-	const int FC = 24;
+	static constexpr int FC = 24;
 	const int FH = 3;
 	const int FW = 3;
 	const int RH = desc.Result.Height(); //SH / S;
@@ -131,8 +129,8 @@ NEOMATHENGINE_API void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngin
 
 	const int SrcLineStride = SW * C;
 	// Number of steps for each side of image, where filter is applied partially
-	const int PartialStepCountBefore = std::ceil( static_cast<float>( D )/ S );
-	const int PartialStepCountAfter = std::ceil( ( S * ( std::ceil( static_cast<float>( SW ) / S ) - 1 ) - SW + D + 1 ) / S );
+	const int PartialStepCountBefore = static_cast<const int>( std::ceil( static_cast<float>( D )/ S ) );
+	const int PartialStepCountAfter = static_cast<const int>( std::ceil( ( S * ( std::ceil( static_cast<float>( SW ) / S ) - 1 ) - SW + D + 1 ) / S ) );
 
 	const float* src = GetRaw( sourceData );
 	float* dst = GetRaw( resultData );
@@ -141,7 +139,7 @@ NEOMATHENGINE_API void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngin
 	const int SrcXStep = S * C;
 
 
-	auto ProcessChannels_avx = []( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 ) {
+	auto ProcessChannels_avx = [&]( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 ) {
 
 		for( int c = 0; c < C; c += 4 ) {
 			__m128 s = _mm_loadu_ps( srcPtr + c );

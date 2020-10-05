@@ -55,5 +55,6 @@ private:
 	CAvxDll& operator=( CAvxDll&& ) = delete;
 
 	void loadFunction( TFunctionPointers functionType, const char* functionName );
+	static bool isAvxAvailable();
 };
 }

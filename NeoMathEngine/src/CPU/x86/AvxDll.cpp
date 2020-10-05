@@ -16,15 +16,22 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
+#include <cpuid.h>
+#endif
+#if FINE_PLATFORM( FINE_WINDOWS )
+#include <intrin.h>
+#endif
+
 #include <AvxDll.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
 
 namespace NeoML {
 
-CAvxDll::CAvxDll() : isLoaded( false )
+CAvxDll::CAvxDll() : isLoaded( false ), functionAdresses{}
 {
-	if( !Load( libName ) ) {
+	if( !isAvxAvailable() || !Load( libName ) ) {
 		return;
 	}
 
@@ -64,10 +71,28 @@ void CAvxDll::CallBlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, in
 	ASSERT_EXPR( desc.Filter.Width() == 3 );
 	ASSERT_EXPR( desc.Filter.Height() == 3 );
 
-	ASSERT_EXPR( reinterpret_cast<unsigned long>( GetRaw( sourceData ) ) % 32 == 0 );
-	ASSERT_EXPR( reinterpret_cast<unsigned long>(  GetRaw( resultData )  ) % 32 == 0 );
+	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( GetRaw( sourceData ) ) % 32 == 0 );
+	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>(  GetRaw( resultData )  ) % 32 == 0 );
 
 	func( mathEngine, threadCount, desc, sourceData, filterData, freeTermData, resultData );
 }
 
+bool CAvxDll::isAvxAvailable()
+{
+	// Check for AVX
+	#if FINE_PLATFORM(FINE_WINDOWS)
+	int cpuId[4] = { 0, 0, 0, 0 };
+	__cpuid( cpuId, 1 );
+	#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+	unsigned int cpuId[4] = { 0, 0, 0, 0 };
+	__get_cpuid( 1, cpuId, cpuId + 1, cpuId + 2, cpuId + 3 );
+	#elif FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
+	unsigned int cpuId[4] = { 0, 0, 0, 0 };
+	#else
+	#error "Platform isn't supported!"
+	#endif
+
+	return ( cpuId[2] & 0x10000000 ) != 0;
+
+}
 }

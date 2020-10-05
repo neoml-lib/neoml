@@ -27,7 +27,7 @@ target_compile_definitions(${PROJECT_NAME}
 		"$<$<CONFIG:Debug>:_DEBUG>"
 		"$<$<CONFIG:Release>:_FINAL>"
 	PRIVATE
-		BUILD_NEOMATHENGINE
+		STATIC_NEOMATHENGINE
 )
 
 # OpenMP
@@ -52,8 +52,8 @@ if(NOT IOS)
 endif()
 
 # AVX
-if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-    target_compile_options(${PROJECT_NAME} PRIVATE /arch:SSE2)
+if(WIN32)
+    target_compile_options(${PROJECT_NAME} PRIVATE /arch:AVX)
 elseif(LINUX OR DARWIN OR (ANDROID AND ANDROID_ABI MATCHES "^x86.*") OR (IOS_ARCH MATCHES "^x86.*"))
     target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-mavx -mfma>)
 endif()

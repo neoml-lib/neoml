@@ -26,11 +26,9 @@ limitations under the License.
 
 using namespace std::chrono;
 #include <CpuMathEngine.h>
-#include <float.h>
 #include <CpuMathEngineOmp.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
-#include <MathEngineDnnConv.h>
 #include <CpuMathEnginePrivate.h>
 
 class CTimer {
@@ -74,7 +72,7 @@ public:
 
 	float GetTimeInMs() const {
 		auto currentTime = isStarted ? high_resolution_clock::now() - startTime : timeDelay;
-		return currentTime.count() / 1e6;
+		return currentTime.count() / 1e6f;
 	}
 
 	static string PrintTimers() {
@@ -104,7 +102,7 @@ private:
 	};
 
 	std::string name;
-	system_clock::time_point startTime;
+	steady_clock::time_point startTime;
 	nanoseconds timeDelay;
 	int64_t count;
 	bool isStarted;
@@ -115,8 +113,10 @@ private:
 std::map<std::string, CTimer::CTimerStruct> CTimer::Timers;
 std::mutex CTimer::TimersGuard;
 
-NEOMATHENGINE_API std::string PrintTimers() {
-	return CTimer::PrintTimers();
+NEOMATHENGINE_API const std::string& PrintTimers() {
+	static string str;
+	str = CTimer::PrintTimers();
+	return str;
 }
 
 class CAlgoInfo {
@@ -181,8 +181,10 @@ std::list<CAlgoInfo::CInfo> CAlgoInfo::FastAlgoInfo;
 std::list<CAlgoInfo::CInfo> CAlgoInfo::Algo0Info;
 std::mutex CAlgoInfo::AlgoInfoGuard;
 
-NEOMATHENGINE_API std::string PrintAlgoInfo() {
-	return CAlgoInfo::PrintAlgoInfo();
+NEOMATHENGINE_API const std::string& PrintAlgoInfo() {
+	static string str;
+	str = CAlgoInfo::PrintAlgoInfo();
+	return str;
 }
 
 
@@ -703,11 +705,11 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 					blobConvolutionForwardAlgo0( desc, source, filter, freeTerm, result );
 				}
 				t0.Stop();
-				CAlgoInfo::AddAlgo0VsFastAlgoInfo( { { t0, t1 }, { desc.Source.Width(), desc.DilationWidth, desc.StrideWidth } } );
+				CAlgoInfo::AddAlgo0VsFastAlgoInfo( { { t0, t1 }, { desc.Source.Width(), desc.DilationWidth, desc.StrideWidth, threadCount } } );
 				float* f1 = GetRaw( R.GetHandle() );
 				float* f2 = GetRaw( result);
 				for( int i = 0; i < desc.Result.Width() * desc.Result.Height() * desc.Filter.ObjectCount(); i++ ) {
-					const float e = 1e-4;
+					const float e = 1e-4f;
 					const float sub = *f1++ - *f2++;
 					ASSERT_EXPR( sub > -e && sub < e );
 				}
