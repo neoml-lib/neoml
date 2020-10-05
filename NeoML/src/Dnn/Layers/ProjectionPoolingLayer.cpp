@@ -22,7 +22,7 @@ namespace NeoML {
 
 CProjectionPoolingLayer::CProjectionPoolingLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CProjectionPoolingLayer", false ),
-	direction( D_ByRows ),
+	dimension( BD_Width ),
 	shouldRestoreOriginalImageSize( false ),
 	desc( nullptr )
 {
@@ -33,13 +33,59 @@ CProjectionPoolingLayer::~CProjectionPoolingLayer()
 	destroyDesc();
 }
 
-static const int currentVersion = 0;
+void CProjectionPoolingLayer::SetDimenion( TBlobDim _dimension )
+{
+	if( dimension == _dimension ) {
+		return;
+	}
+
+	dimension = _dimension;
+	ForceReshape();
+}
+
+void CProjectionPoolingLayer::SetRestoreOriginalImageSize( bool flag )
+{
+	if( shouldRestoreOriginalImageSize == flag ) {
+		return;
+	}
+
+	shouldRestoreOriginalImageSize = flag;
+	ForceReshape();
+}
+
+static const int currentVersion = 1;
 
 void CProjectionPoolingLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( currentVersion );
+	const int version = archive.SerializeVersion( currentVersion );
 	CBaseLayer::Serialize( archive );
-	archive.SerializeEnum( direction );
+
+	if( version < 1 ) {
+		// (legacy) Projection direction
+		enum TDirection {
+			D_ByRows, // Along BD_Width
+			D_ByColumns, // Along BD_Height
+			D_EnumSize
+		};
+
+		TDirection direction;
+		archive.SerializeEnum( direction );
+
+		switch( direction ) {
+			case D_ByRows:
+				dimension = BD_Width;
+				break;
+			case D_ByColumns:
+				dimension = BD_Height;
+				break;
+			default:
+				NeoAssert( false );
+		}
+	} else {
+		int intDimension = static_cast<int>( dimension );
+		archive.Serialize( intDimension );
+		dimension = static_cast<TBlobDim>( intDimension );
+	}
 	archive.Serialize( shouldRestoreOriginalImageSize );
 }
 
@@ -53,15 +99,14 @@ void CProjectionPoolingLayer::Reshape()
 		"Bad input blob dimensions" );
 
 	outputDescs[0] = inputDescs[0];
-	const TBlobDim dimensionToSqueeze = direction == D_ByRows ? BD_Width : BD_Height;
 	if( shouldRestoreOriginalImageSize ) {
 		CBlobDesc projectionResultBlobDesc = inputDescs[0];
-		projectionResultBlobDesc.SetDimSize( dimensionToSqueeze, 1 );
+		projectionResultBlobDesc.SetDimSize( dimension, 1 );
 		projectionResultBlob = CDnnBlob::CreateBlob( MathEngine(), projectionResultBlobDesc );
 
 		RegisterRuntimeBlob( projectionResultBlob );
 	} else {
-		outputDescs[0].SetDimSize( dimensionToSqueeze, 1 );
+		outputDescs[0].SetDimSize( dimension, 1 );
 	}
 
 	destroyDesc();
@@ -70,7 +115,7 @@ void CProjectionPoolingLayer::Reshape()
 void CProjectionPoolingLayer::RunOnce()
 {
 	const CBlobDesc& inputDesc = inputBlobs[0]->GetDesc();
-	initDesc();
+	initDesc( inputDesc );
 
 	if( shouldRestoreOriginalImageSize ) {
 		NeoAssert( projectionResultBlob != nullptr );
@@ -78,13 +123,22 @@ void CProjectionPoolingLayer::RunOnce()
 		MathEngine().BlobMeanPooling( *desc, inputBlobs[0]->GetData(), projectionResultBlob->GetData() );
 		// Broadcatst pooling result along whole result blob
 		outputBlobs[0]->Clear();
-		if( direction == D_ByRows ) {
-			MathEngine().AddVectorToMatrixRows( inputDesc.BatchWidth() * inputDesc.Height(), outputBlobs[0]->GetData(),
-				outputBlobs[0]->GetData(), inputDesc.Width(), inputDesc.Channels(), projectionResultBlob->GetData() );
-		} else {
-			MathEngine().AddVectorToMatrixRows( inputDesc.BatchWidth(), outputBlobs[0]->GetData(), outputBlobs[0]->GetData(),
-				inputDesc.Height(), inputDesc.Width() * inputDesc.Channels(),  projectionResultBlob->GetData() );
+
+		int batchSize = 1;
+		int matrixHeight = 1;
+		int matrixWidth = 1;
+		for( TBlobDim d = TBlobDim( 0 ); d < BD_Count; ++d ) {
+			if( d < dimension ) {
+				batchSize *= inputDesc.DimSize( d );
+			} else if( d == dimension ) {
+				matrixHeight *= inputDesc.DimSize( d );
+			} else {
+				matrixWidth *= inputDesc.DimSize( d );
+			}
 		}
+
+		MathEngine().AddVectorToMatrixRows( batchSize, outputBlobs[0]->GetData(), outputBlobs[0]->GetData(),
+			matrixHeight, matrixWidth, projectionResultBlob->GetData() );
 	} else {
 		// Calculate pooling result straight into the output blob
 		MathEngine().BlobMeanPooling( *desc, inputBlobs[0]->GetData(), outputBlobs[0]->GetData() );
@@ -98,13 +152,21 @@ void CProjectionPoolingLayer::BackwardOnce()
 	if( shouldRestoreOriginalImageSize ) {
 		NeoAssert( projectionResultBlob != nullptr );
 		// Sum output diff's into the temporary blob
-		if( direction == D_ByRows ) {
-			MathEngine().SumMatrixRows( outputDesc.BatchWidth() * outputDesc.Height(),
-				projectionResultBlob->GetData(), outputDiffBlobs[0]->GetData(), outputDesc.Width(), outputDesc.Channels() );
-		} else {
-			MathEngine().SumMatrixRows( outputDesc.BatchWidth(), projectionResultBlob->GetData(),
-				outputDiffBlobs[0]->GetData(), outputDesc.Height(), outputDesc.Width() * outputDesc.Channels() );
+		int batchSize = 1;
+		int matrixHeight = 1;
+		int matrixWidth = 1;
+		for( TBlobDim d = TBlobDim( 0 ); d < BD_Count; ++d ) {
+			if( d < dimension ) {
+				batchSize *= outputDesc.DimSize( d );
+			} else if( d == dimension ) {
+				matrixHeight *= outputDesc.DimSize( d );
+			} else {
+				matrixWidth *= outputDesc.DimSize( d );
+			}
 		}
+		MathEngine().SumMatrixRows( batchSize, projectionResultBlob->GetData(),
+			outputDiffBlobs[0]->GetData(), matrixHeight, matrixWidth );
+
 		// Calculate backprop of pooling
 		MathEngine().BlobMeanPoolingBackward( *desc, projectionResultBlob->GetData(), inputDiffBlobs[0]->GetData() );
 	} else {
@@ -113,18 +175,35 @@ void CProjectionPoolingLayer::BackwardOnce()
 	}
 }
 
-void CProjectionPoolingLayer::initDesc()
+void CProjectionPoolingLayer::initDesc( const CBlobDesc& inputDesc )
 {
 	if( desc == nullptr ) {
 		CDnnBlob* resultBlob = shouldRestoreOriginalImageSize ? projectionResultBlob : outputBlobs[0];
 
-		if( direction == D_ByRows ) {
-			desc = MathEngine().InitMeanPooling( inputBlobs[0]->GetDesc(), 1, inputBlobs[0]->GetWidth(),
-				1, inputBlobs[0]->GetWidth(), resultBlob->GetDesc() );
-		} else {
-			desc = MathEngine().InitMeanPooling( inputBlobs[0]->GetDesc(), inputBlobs[0]->GetHeight(), 1,
-				inputBlobs[0]->GetHeight(), 1, resultBlob->GetDesc() );
+		// Emulating mean pooling along given dimension by 2dPooling with projection dimension as height
+		// Every dimension before projection dimension is interpreted as batchWidth
+		// Every dimension after projection dimension is interpreted as channels
+		int poolBatchSize = 1;
+		int poolHeight = 1;
+		int poolChannels = 1;
+
+		for( TBlobDim d = TBlobDim( 0 ); d < BD_Count; ++d ) {
+			if( d < dimension ) {
+				poolBatchSize *= inputDesc.DimSize( d );
+			} else if( d == dimension ) {
+				poolHeight *= inputDesc.DimSize( d );
+			} else {
+				poolChannels *= inputDesc.DimSize( d );
+			}
 		}
+
+		CBlobDesc poolOutputDesc( CT_Float );
+		poolOutputDesc.SetDimSize( BD_BatchWidth, poolBatchSize );
+		poolOutputDesc.SetDimSize( BD_Channels, poolChannels );
+		CBlobDesc poolInputDesc( poolOutputDesc );
+		poolInputDesc.SetDimSize( BD_Height, poolHeight );
+
+		desc = MathEngine().InitMeanPooling( poolInputDesc, poolHeight, 1, poolHeight, 1, poolOutputDesc );
 	}
 }
 

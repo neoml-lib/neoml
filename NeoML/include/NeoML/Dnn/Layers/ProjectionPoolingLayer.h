@@ -25,30 +25,21 @@ limitations under the License.
 
 namespace NeoML {
 
-// CProjectionPoolingLayer implements a layer that calculating average along height or width
+// CProjectionPoolingLayer implements a layer that calculating average along one of the blob axis
 class NEOML_API CProjectionPoolingLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CProjectionPoolingLayer )
 public:
-	// Projection direction
-	enum TDirection {
-		// Along BD_Width
-		D_ByRows,
-		// Along BD_Height
-		D_ByColumns,
-
-		D_EnumSize
-	};
 
 	explicit CProjectionPoolingLayer( IMathEngine& mathEngine );
 	virtual ~CProjectionPoolingLayer();
 
-	// Projection direction
-	// D_ByRows by default
-	TDirection GetDirection() const { return direction; }
-	void SetDirection( TDirection _direction ) { direction = _direction; }
+	// Projection dimension
+	// BD_Width by default
+	TBlobDim GetDimension() const { return dimension; }
+	void SetDimenion( TBlobDim _dimension );
 
 	bool ShouldRestoreOriginalImageSize() const { return shouldRestoreOriginalImageSize; }
-	void SetRestoreOriginalImageSize( bool flag ) { shouldRestoreOriginalImageSize = flag; }
+	void SetRestoreOriginalImageSize( bool flag );
 
 protected:
 	// CBaseLayer methods
@@ -58,8 +49,8 @@ protected:
 	void BackwardOnce() override;
 
 private:
-	// Projection direction
-	TDirection direction;
+	// Projection dimension
+	TBlobDim dimension;
 	// Does layer preserve input blob's shape?
 	// If true output blob will be of same dimension as input and pool result will be broadcasted along whole pooled dimension
 	// If false pooled dimension of the output blob will be equal to 1
@@ -72,7 +63,7 @@ private:
 	// Pooling descriptor
 	CMeanPoolingDesc* desc;
 
-	void initDesc();
+	void initDesc( const CBlobDesc& inputDesc );
 	void destroyDesc();
 };
 
