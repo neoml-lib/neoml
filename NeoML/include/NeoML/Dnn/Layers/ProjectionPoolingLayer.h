@@ -31,9 +31,9 @@ class NEOML_API CProjectionPoolingLayer : public CBaseLayer {
 public:
 	// Projection direction
 	enum TDirection {
-		// Along BD_Height
-		D_ByRows,
 		// Along BD_Width
+		D_ByRows,
+		// Along BD_Height
 		D_ByColumns,
 
 		D_EnumSize
@@ -41,6 +41,7 @@ public:
 
 public:
 	explicit CProjectionPoolingLayer( IMathEngine& mathEngine );
+	virtual ~CProjectionPoolingLayer();
 
 	// Projection direction
 	TDirection GetDirection() const { return direction; }
