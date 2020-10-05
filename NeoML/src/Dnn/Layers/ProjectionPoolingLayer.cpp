@@ -28,6 +28,11 @@ CProjectionPoolingLayer::CProjectionPoolingLayer( IMathEngine& mathEngine ) :
 {
 }
 
+CProjectionPoolingLayer::~CProjectionPoolingLayer()
+{
+	destroyDesc();
+}
+
 static const int currentVersion = 0;
 
 void CProjectionPoolingLayer::Serialize( CArchive& archive )
