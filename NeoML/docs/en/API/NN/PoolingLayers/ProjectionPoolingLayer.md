@@ -4,7 +4,7 @@
 
 - [CProjectionPoolingLayer Class](#cprojectionpoolinglayer-class)
     - [Settings](#settings)
-        - [Projection direction](#projection-direction)
+        - [Projection dimension](#projection-dimension)
         - [Filter stride](#restore-original-image-size)
     - [Trainable parameters](#trainable-parameters)
     - [Inputs](#inputs)
@@ -12,28 +12,18 @@
 
 <!-- /TOC -->
 
-This class implements a layer which performs mean pooling over blob height or width.
+This class implements a layer which performs mean pooling over one of the blob dimension.
 
 ## Settings
 
-### Projection direction
+### Projection dimension
 
 ```c++
-// Projection direction
-enum TDirection {
-    // Along BD_Width
-    D_ByRows,
-    // Along BD_Height
-    D_ByColumns,
-
-    D_EnumSize
-};
-
-// Projection direction
-void SetDirection( TDirection _direction );
+// Projection dimension
+void SetDimenion( TBlobDim dimension );
 ```
 
-The default value is `D_ByRows`.
+The default value is `BD_Width`.
 
 ### Restore original image size
 
@@ -60,12 +50,8 @@ The single input accepts a [blob](../DnnBlob.md) of the following dimensions:
 
 ## Outputs
 
-The single output contains a blob of the dimensions:
+The single output contains a blob with the results.
 
-- `BatchLength` is equal to the input `BatchLength`.
-- `BatchWidth` is equal to the input `BatchWidth`.
-- `ListSize` is equal to the input `ListSize`.
-- `Height` is equal to `1` if `RestoreOriginalImageSize` is `false` and the projection is `D_ByColumns`. Equals to `Height` otherwise.
-- `Width` is equal to `1` if `RestoreOriginalImageSize` is `false` and the projection is `D_ByRows`. Equals to `Width` otherwise.
-- `Depth` is equal to the input `Depth`.
-- `Channels` is equal to the input `Channels`.
+If `GetRestoreOriginalImageSize` is `true` then output is of the same size as input.
+
+If `GetRestoreOriginalImageSize` is `false` then the projection dimension of output size is equal to `1` and the rest of the dimensions are equal to the ones of the input.
