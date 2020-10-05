@@ -67,6 +67,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/PoolingLayer.cpp
     Dnn/Layers/PositionalEmbeddingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
+    Dnn/Layers/ProjectionPoolingLayer.cpp
     Dnn/Layers/QualityControlLayer.cpp
     Dnn/Layers/RecurrentLayer.cpp
     Dnn/Layers/ReorgLayer.cpp
@@ -206,6 +207,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h
+    ../include/NeoML/Dnn/Layers/ProjectionPoolingLayer.h
     ../include/NeoML/Dnn/Layers/QualityControlLayer.h
     ../include/NeoML/Dnn/Layers/RecurrentLayer.h
     ../include/NeoML/Dnn/Layers/ReorgLayer.h
