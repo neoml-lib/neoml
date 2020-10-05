@@ -178,8 +178,6 @@ void CProjectionPoolingLayer::BackwardOnce()
 void CProjectionPoolingLayer::initDesc( const CBlobDesc& inputDesc )
 {
 	if( desc == nullptr ) {
-		CDnnBlob* resultBlob = restoreOriginalImageSize ? projectionResultBlob : outputBlobs[0];
-
 		// Emulating mean pooling along given dimension by 2dPooling with projection dimension as height
 		// Every dimension before projection dimension is interpreted as batchWidth
 		// Every dimension after projection dimension is interpreted as channels

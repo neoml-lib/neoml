@@ -12,7 +12,7 @@
 
 <!-- /TOC -->
 
-This class implements a layer which performs mean pooling over one of the blob dimension.
+This class implements a layer which performs mean pooling over one of the blob dimensions.
 
 ## Settings
 
@@ -31,8 +31,8 @@ The default value is `BD_Width`.
 void SetRestoreOriginalImageSize( bool flag );
 ```
 
-If `true` then output blob will be of the same size as input blob, and mean values will be broadcasted along pooling direction.
-If `false` then output blob size along pooling direction will be `1`.
+If `true` then output blob will be of the same size as input blob, and mean values will be broadcasted along pooling dimension.
+If `false` then output blob size along pooling dimension will be `1`.
 The default value is `false`.
 
 ## Trainable parameters
