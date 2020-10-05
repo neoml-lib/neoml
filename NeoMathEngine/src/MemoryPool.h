@@ -76,7 +76,7 @@ private:
 		CMemoryBufferPool* pool;
 
 		CUsedInfo() :
-			size( 0 ), pool( 0 ) {}
+			size( 0 ), buffer( nullptr), pool( 0 ) {}
 		CUsedInfo(size_t _size, CMemoryBuffer* _buffer, CMemoryBufferPool* _pool) :
 			size(_size), buffer(_buffer), pool(_pool) {}
 	};

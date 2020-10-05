@@ -53,15 +53,6 @@ namespace NeoML {
 #include <shaders/generated/BlobConvertFromRLE.h>
 #include <shaders/generated/BlobTimeConvolutionPrepare.h>
 
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
-
 //------------------------------------------------------------------------------------------------------------
 // RLE convolution
 
@@ -408,12 +399,12 @@ void CVulkanMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 		}
 
 		if( channels8 > 0 ) {
-			blobConvolutionImpl8Adreno( desc, sourceData, filterData, freeTermData != 0, resultData, channels8,
+			blobConvolutionImpl8Adreno( desc, sourceData, filterData, freeTermData != nullptr, resultData, channels8,
 				sourceChannelGroupSize, filterChannelGroupSize );
 		}
 
 		if( ( totalChannels - channels8 * 8 ) != 0 ) {
-			blobConvolutionImpl1Adreno( desc, sourceData, filterData, freeTermData, resultData, channels8 * 8,
+			blobConvolutionImpl1Adreno( desc, sourceData, filterData, freeTermData != nullptr, resultData, channels8 * 8,
 				sourceChannelGroupSize, filterChannelGroupSize );
 		}
 	} else {

@@ -21,11 +21,14 @@ limitations under the License.
 #ifdef NEOML_USE_VULKAN
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
-#include <VulkanCommandQueue.h>
 #include <MemoryHandleInternal.h>
+#include <MathEngineCommon.h>
+
+#include <VulkanCommandQueue.h>
 #include <VulkanDll.h>
 #include <VulkanShader.h>
 #include <VulkanImage.h>
+
 #include <shaders/common/CommonStruct.h>
 
 namespace NeoML {
@@ -42,7 +45,7 @@ struct CCommand : public CCrtAllocatedObject {
 
 //------------------------------------------------------------------------------------------------------------
 
-CVulkanCommandQueue::CVulkanCommandQueue( CVulkanDevice& vulkanDevice ) :
+CVulkanCommandQueue::CVulkanCommandQueue( const CVulkanDevice& vulkanDevice ) :
 	device( vulkanDevice ),
 	queue( VK_NULL_HANDLE ),
 	commandPool( VK_NULL_HANDLE ),
@@ -54,16 +57,16 @@ CVulkanCommandQueue::CVulkanCommandQueue( CVulkanDevice& vulkanDevice ) :
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	poolInfo.queueFamilyIndex = device.Family;
-	vkSucceded( device.vkCreateCommandPool( device.Handle, &poolInfo, 0, &commandPool ) );
+	vkSucceded( device.vkCreateCommandPool( &poolInfo, 0, &commandPool ) );
 
-	device.vkGetDeviceQueue( device.Handle, device.Family, 0, &queue );
+	device.vkGetDeviceQueue( device.Family, 0, &queue );
 }
 
 CVulkanCommandQueue::~CVulkanCommandQueue()
 {
 	CleanUp();
 
-	device.vkDestroyCommandPool( device.Handle, commandPool, 0 );
+	device.vkDestroyCommandPool( commandPool, 0 );
 
 	// The queue does not need to be closed with this API
 }
@@ -86,13 +89,13 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 	allocateInfo.descriptorPool = command->DescriptorPool;
 	allocateInfo.descriptorSetCount = 1;
 	allocateInfo.pSetLayouts = &shader.DescLayout;
-	vkSucceded( device.vkAllocateDescriptorSets( device.Handle, &allocateInfo, &(command->DescriptionSet) ) );
+	vkSucceded( device.vkAllocateDescriptorSets( &allocateInfo, &(command->DescriptionSet) ) );
 
 	// Set the buffers for desc
 	// The zero binding always contains the parameters of the call
 	for( int i = 0; i < dataBufferCount; ++i ) {
 		VkDescriptorBufferInfo descBufferInfo = {};
-		descBufferInfo.buffer = GetRawAllocation( dataBuffers[i] )->Buffer;
+		descBufferInfo.buffer = GetRawAllocation( dataBuffers[i] )->Buffer();
 		descBufferInfo.offset = GetRawOffset( dataBuffers[i] );
 		descBufferInfo.range = dataSizes[i];
 
@@ -103,7 +106,7 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 		writeDesc.descriptorCount = 1;
 		writeDesc.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		writeDesc.pBufferInfo = &descBufferInfo;
-		device.vkUpdateDescriptorSets( device.Handle, 1, &writeDesc, 0, 0 );
+		device.vkUpdateDescriptorSets( 1, &writeDesc, 0, 0 );
 	}
 
 	for( int i = 0; i < imageCount; ++i ) {
@@ -160,13 +163,13 @@ void CVulkanCommandQueue::RunCopyBuffer( VkBuffer from, VkBuffer to, const VkBuf
 void CVulkanCommandQueue::Wait()
 {
 	// Wait until all commands complete
-	vkSucceded( device.vkQueueWaitIdle( queue ) );
+	ASSERT_ERROR_CODE( device.vkQueueWaitIdle( queue ) );
 
 	while( commands != 0 ) {
 		CCommand* toDestroy = commands;
 
 		if( toDestroy->DescriptorPool != VK_NULL_HANDLE && toDestroy->DescriptionSet != VK_NULL_HANDLE ) {
-			vkSucceded( device.vkFreeDescriptorSets( device.Handle, toDestroy->DescriptorPool, 1, &(toDestroy->DescriptionSet) ) );
+			vkSucceded( device.vkFreeDescriptorSets( toDestroy->DescriptorPool, 1, &(toDestroy->DescriptionSet) ) );
 		}
 
 		commands = commands->Next;
@@ -181,13 +184,13 @@ void CVulkanCommandQueue::CleanUp()
 	Wait();
 
 	if( commandBuffers.size() > 0 ) {
-		device.vkFreeCommandBuffers( device.Handle, commandPool, static_cast<int>( commandBuffers.size() ), commandBuffers.data() );
+		device.vkFreeCommandBuffers( commandPool, static_cast<int>( commandBuffers.size() ), commandBuffers.data() );
 		commandBuffers.clear();
 	}
 
 	if( descriptorPools.size() > 0 ) {
 		for( size_t i = 0; i < descriptorPools.size(); ++i ) {
-			device.vkDestroyDescriptorPool( device.Handle, descriptorPools[i], 0 );
+			device.vkDestroyDescriptorPool( descriptorPools[i], 0 );
 		}
 		descriptorPools.clear();
 	}
@@ -257,7 +260,7 @@ VkDescriptorPool CVulkanCommandQueue::getDescriptorPool()
 	descPoolInfo.poolSizeCount = device.IsImageBased ? 4 : 2;
 	descPoolInfo.pPoolSizes = descPoolSize;
 
-	vkSucceded( device.vkCreateDescriptorPool( device.Handle, &descPoolInfo, 0, &descriptorPool ) );
+	vkSucceded( device.vkCreateDescriptorPool( &descPoolInfo, 0, &descriptorPool ) );
 
 	descriptorPools.push_back( descriptorPool );
 	descriptionSetCount++;
@@ -279,7 +282,7 @@ VkCommandBuffer CVulkanCommandQueue::getCommandBuffer()
 		cmdBufferInfo.commandPool = commandPool;
 		cmdBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		cmdBufferInfo.commandBufferCount = 1;
-		vkSucceded( device.vkAllocateCommandBuffers( device.Handle, &cmdBufferInfo, &result ) );
+		vkSucceded( device.vkAllocateCommandBuffers( &cmdBufferInfo, &result ) );
 		commandBuffers.push_back( result );
 		commandBufferCount++;
 	}
