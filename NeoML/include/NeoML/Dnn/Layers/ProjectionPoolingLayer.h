@@ -39,11 +39,11 @@ public:
 		D_EnumSize
 	};
 
-public:
 	explicit CProjectionPoolingLayer( IMathEngine& mathEngine );
 	virtual ~CProjectionPoolingLayer();
 
 	// Projection direction
+	// D_ByRows by default
 	TDirection GetDirection() const { return direction; }
 	void SetDirection( TDirection _direction ) { direction = _direction; }
 
