@@ -75,9 +75,9 @@ public:
 	CGpuMathEngineManager();
 
 	// IGpuMathEngineManager interface methods
-	virtual int GetMathEngineCount() const { return static_cast<int>( info.size() ); }
-	virtual void GetMathEngineInfo( int index, CMathEngineInfo& info ) const;
-	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit ) const;
+	int GetMathEngineCount() const override { return static_cast<int>( info.size() ); }
+	void GetMathEngineInfo( int index, CMathEngineInfo& info ) const override;
+	IMathEngine* CreateMathEngine( int index, size_t memoryLimit, int flags = 0 ) const override;
 
 private:
 	CDllLoader loader;
@@ -130,8 +130,9 @@ void CGpuMathEngineManager::GetMathEngineInfo( int index, CMathEngineInfo& resul
 	}
 }
 
-IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLimit ) const
+IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLimit, int flags ) const
 {
+	(void)flags; // Avoiding unused variable warning when NEOML_USE_CUDA is not defined
 	auto size = static_cast<int>(info.size());
 	if( size == 0 || index >= size ) {
 		return nullptr;
@@ -144,7 +145,7 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 		if( device == nullptr ) {
 			return nullptr;
 		}
-		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(), device );
+		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(), device, flags );
 	}
 #endif
 #ifdef NEOML_USE_VULKAN
@@ -188,10 +189,10 @@ IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit )
 	return new CCpuMathEngine( threadCount, memoryLimit );
 }
 
-IMathEngine* CreateGpuMathEngine( size_t memoryLimit )
+IMathEngine* CreateGpuMathEngine( size_t memoryLimit, int flags )
 {
 	CGpuMathEngineManager manager;
-	return manager.CreateMathEngine(-1, memoryLimit);
+	return manager.CreateMathEngine(-1, memoryLimit, flags);
 }
 
 IGpuMathEngineManager* CreateGpuMathEngineManager()
