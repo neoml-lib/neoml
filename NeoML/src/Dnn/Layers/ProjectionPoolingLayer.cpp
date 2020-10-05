@@ -68,7 +68,7 @@ void CProjectionPoolingLayer::Serialize( CArchive& archive )
 			D_EnumSize
 		};
 
-		TDirection direction;
+		TDirection direction = D_ByRows;
 		archive.SerializeEnum( direction );
 
 		switch( direction ) {
