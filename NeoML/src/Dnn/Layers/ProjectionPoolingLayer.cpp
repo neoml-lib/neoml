@@ -32,7 +32,7 @@ static const int currentVersion = 0;
 
 void CProjectionPoolingLayer::Serialize( CArchive& archive )
 {
-	const int version = archive.SerializeVersion( currentVersion );
+	archive.SerializeVersion( currentVersion );
 	CBaseLayer::Serialize( archive );
 	archive.SerializeEnum( direction );
 	archive.Serialize( shouldRestoreOriginalImageSize );
@@ -65,7 +65,6 @@ void CProjectionPoolingLayer::Reshape()
 void CProjectionPoolingLayer::RunOnce()
 {
 	const CBlobDesc& inputDesc = inputBlobs[0]->GetDesc();
-	const CBlobDesc& outputDesc = outputBlobs[0]->GetDesc();
 	initDesc();
 
 	if( shouldRestoreOriginalImageSize ) {
@@ -90,7 +89,6 @@ void CProjectionPoolingLayer::RunOnce()
 void CProjectionPoolingLayer::BackwardOnce()
 {
 	const CBlobDesc& outputDesc = outputDiffBlobs[0]->GetDesc();
-	const CBlobDesc& inputDesc = inputDiffBlobs[0]->GetDesc();
 
 	if( shouldRestoreOriginalImageSize ) {
 		NeoAssert( projectionResultBlob != nullptr );
