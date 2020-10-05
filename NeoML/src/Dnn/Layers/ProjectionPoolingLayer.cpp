@@ -23,7 +23,7 @@ namespace NeoML {
 CProjectionPoolingLayer::CProjectionPoolingLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CProjectionPoolingLayer", false ),
 	dimension( BD_Width ),
-	shouldRestoreOriginalImageSize( false ),
+	restoreOriginalImageSize( false ),
 	desc( nullptr )
 {
 }
@@ -45,11 +45,11 @@ void CProjectionPoolingLayer::SetDimenion( TBlobDim _dimension )
 
 void CProjectionPoolingLayer::SetRestoreOriginalImageSize( bool flag )
 {
-	if( shouldRestoreOriginalImageSize == flag ) {
+	if( restoreOriginalImageSize == flag ) {
 		return;
 	}
 
-	shouldRestoreOriginalImageSize = flag;
+	restoreOriginalImageSize = flag;
 	ForceReshape();
 }
 
@@ -86,7 +86,7 @@ void CProjectionPoolingLayer::Serialize( CArchive& archive )
 		archive.Serialize( intDimension );
 		dimension = static_cast<TBlobDim>( intDimension );
 	}
-	archive.Serialize( shouldRestoreOriginalImageSize );
+	archive.Serialize( restoreOriginalImageSize );
 }
 
 void CProjectionPoolingLayer::Reshape()
@@ -99,7 +99,7 @@ void CProjectionPoolingLayer::Reshape()
 		"Bad input blob dimensions" );
 
 	outputDescs[0] = inputDescs[0];
-	if( shouldRestoreOriginalImageSize ) {
+	if( restoreOriginalImageSize ) {
 		CBlobDesc projectionResultBlobDesc = inputDescs[0];
 		projectionResultBlobDesc.SetDimSize( dimension, 1 );
 		projectionResultBlob = CDnnBlob::CreateBlob( MathEngine(), projectionResultBlobDesc );
@@ -117,7 +117,7 @@ void CProjectionPoolingLayer::RunOnce()
 	const CBlobDesc& inputDesc = inputBlobs[0]->GetDesc();
 	initDesc( inputDesc );
 
-	if( shouldRestoreOriginalImageSize ) {
+	if( restoreOriginalImageSize ) {
 		NeoAssert( projectionResultBlob != nullptr );
 		// Calculate pooling result into the temporary blob
 		MathEngine().BlobMeanPooling( *desc, inputBlobs[0]->GetData(), projectionResultBlob->GetData() );
@@ -149,7 +149,7 @@ void CProjectionPoolingLayer::BackwardOnce()
 {
 	const CBlobDesc& outputDesc = outputDiffBlobs[0]->GetDesc();
 
-	if( shouldRestoreOriginalImageSize ) {
+	if( restoreOriginalImageSize ) {
 		NeoAssert( projectionResultBlob != nullptr );
 		// Sum output diff's into the temporary blob
 		int batchSize = 1;
@@ -178,7 +178,7 @@ void CProjectionPoolingLayer::BackwardOnce()
 void CProjectionPoolingLayer::initDesc( const CBlobDesc& inputDesc )
 {
 	if( desc == nullptr ) {
-		CDnnBlob* resultBlob = shouldRestoreOriginalImageSize ? projectionResultBlob : outputBlobs[0];
+		CDnnBlob* resultBlob = restoreOriginalImageSize ? projectionResultBlob : outputBlobs[0];
 
 		// Emulating mean pooling along given dimension by 2dPooling with projection dimension as height
 		// Every dimension before projection dimension is interpreted as batchWidth

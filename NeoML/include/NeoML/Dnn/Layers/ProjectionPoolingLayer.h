@@ -12,11 +12,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
-// OCR Technology © 2020 ABBYY Production LLC.
-// Автор:		Атрощенко Михаил
-// Система: 	FineMachineLearningExt
-// Описание:	Слой, осуществляющий проецирование методом усреднения по строкам/столбцам.
-//				Подробнее см. статью Deep splitting and merging for table structure decomposition.
 
 #pragma once
 
@@ -36,9 +31,12 @@ public:
 	// Projection dimension
 	// BD_Width by default
 	TBlobDim GetDimension() const { return dimension; }
-	void SetDimenion( TBlobDim _dimension );
+	void SetDimenion( TBlobDim dimension );
 
-	bool ShouldRestoreOriginalImageSize() const { return shouldRestoreOriginalImageSize; }
+	// If true then output size is equal to the input size and pooling result is broadcasted along the projection dimension
+	// Otherwise projection dimension of the output is equal to 1 and other dimensions are equal to ones of the input
+	// false by default
+	bool GetRestoreOriginalImageSize() const { return restoreOriginalImageSize; }
 	void SetRestoreOriginalImageSize( bool flag );
 
 protected:
@@ -52,10 +50,7 @@ private:
 	// Projection dimension
 	TBlobDim dimension;
 	// Does layer preserve input blob's shape?
-	// If true output blob will be of same dimension as input and pool result will be broadcasted along whole pooled dimension
-	// If false pooled dimension of the output blob will be equal to 1
-	// False by default
-	bool shouldRestoreOriginalImageSize;
+	bool restoreOriginalImageSize;
 
 	// Temporary blob for pool results
 	CPtr<CDnnBlob> projectionResultBlob;
