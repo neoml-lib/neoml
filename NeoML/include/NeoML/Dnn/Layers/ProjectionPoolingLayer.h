@@ -25,7 +25,7 @@ class NEOML_API CProjectionPoolingLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CProjectionPoolingLayer )
 public:
 	explicit CProjectionPoolingLayer( IMathEngine& mathEngine );
-	virtual ~CProjectionPoolingLayer();
+	~CProjectionPoolingLayer() override;
 
 	// Projection dimension
 	// BD_Width by default
