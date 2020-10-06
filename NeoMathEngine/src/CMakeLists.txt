@@ -335,25 +335,7 @@ endif()
 
 
 # OpenMP
-if(NOT IOS)
-    find_package(OpenMP REQUIRED)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC NEOML_USE_OMP)
-    string(REPLACE " " ";" OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS})
-    target_compile_options(${PROJECT_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)
-    target_include_directories(${PROJECT_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_INCLUDE_DIRS}>)
-    if(OpenMP_CXX_LIBRARIES)
-        if(ANDROID)
-            get_filename_component(OMP_SUFFIX ${OpenMP_omp_LIBRARY} EXT)
-            if(OMP_SUFFIX STREQUAL ".so")
-                target_link_libraries(${PROJECT_NAME} PUBLIC -fopenmp -static-openmp)
-            else()
-                target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-            endif()
-        else()
-            target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-        endif()
-    endif()
-endif()
+link_openmp()
 
 # SSE2
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
