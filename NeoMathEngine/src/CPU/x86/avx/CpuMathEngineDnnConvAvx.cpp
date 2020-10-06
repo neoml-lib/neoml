@@ -70,8 +70,8 @@ inline void Process_avx_x2( __m256& r00, __m256& r01, __m256& r02,
 }
 
 extern "C"
-FME_DLL_EXPORT void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc& desc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
+FME_DLL_EXPORT void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc& desc, const float* sourceData,
+	const float* filterData, const float* freeTermData, float* resultData )
 {
 	// const int SH = desc.Source.Height(); //1024;
 	const int SW = desc.Source.Width(); //1024;
@@ -117,7 +117,7 @@ FME_DLL_EXPORT void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, 
 		for( int y = 0; y < FH; y++ ) {
 			for( int x = 0; x < FW; x++ ) {
 				for( int c = 0; c < C; c++ ) {
-					const float* srcFilter = GetRaw(filterData ) + ( x + y * FW ) * C + c;
+					const float* srcFilter = filterData + ( x + y * FW ) * C + c;
 					for( int f = 0; f < FC; f++ ) {
 						*dstFilter++ = *srcFilter;
 						srcFilter += FW * FH * C;
@@ -132,8 +132,8 @@ FME_DLL_EXPORT void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, 
 	const int PartialStepCountBefore = static_cast<const int>( std::ceil( static_cast<float>( D )/ S ) );
 	const int PartialStepCountAfter = static_cast<const int>( std::ceil( ( S * ( std::ceil( static_cast<float>( SW ) / S ) - 1 ) - SW + D + 1 ) / S ) );
 
-	const float* src = GetRaw( sourceData );
-	float* dst = GetRaw( resultData );
+	const float* src = sourceData;
+	float* dst = resultData;
 
 	const int SrcYStep = S * SrcLineStride;
 	const int SrcXStep = S * C;
@@ -229,9 +229,9 @@ FME_DLL_EXPORT void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, 
 		{ 1 * C * FC, 2 * C * FC, 4 * C * FC, 5 * C * FC, 7 * C * FC, 8 * C * FC } // 1 2 4 5 7 8
 	};
 
-		const __m256 ft0 = freeTermData != 0 ? _mm256_loadu_ps( GetRaw( *freeTermData ) ) : _mm256_setzero_ps();
-	const __m256 ft1 = freeTermData != 0 ? _mm256_loadu_ps( GetRaw( *freeTermData ) + 8) : _mm256_setzero_ps();
-	const __m256 ft2 = freeTermData != 0 ? _mm256_loadu_ps( GetRaw( *freeTermData ) + 16 ) : _mm256_setzero_ps();
+		const __m256 ft0 = freeTermData != 0 ? _mm256_loadu_ps( freeTermData ) : _mm256_setzero_ps();
+	const __m256 ft1 = freeTermData != 0 ? _mm256_loadu_ps( freeTermData + 8) : _mm256_setzero_ps();
+	const __m256 ft2 = freeTermData != 0 ? _mm256_loadu_ps( freeTermData + 16 ) : _mm256_setzero_ps();
 
 	auto ApplyPartitialFilter3x3_24ch = [&]( const float* srcPtr, const vector<int>& srcPixelOffset,
 			const float* fltPtr, const vector<int>& fltPixels, float* dstPtr ) {

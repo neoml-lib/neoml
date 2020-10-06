@@ -16,177 +16,13 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <chrono>
-#include <map>
-#include <vector>
-#include <sstream>
-#include <iomanip>
-#include <list>
-#include <mutex>
-
-using namespace std::chrono;
 #include <CpuMathEngine.h>
+#include <float.h>
 #include <CpuMathEngineOmp.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
+#include <MathEngineDnnConv.h>
 #include <CpuMathEnginePrivate.h>
-
-class CTimer {
-public:
-	CTimer( bool start = false ) : CTimer( "", start ) {}
-
-	CTimer( const char* _name, bool start = false ) : name( _name ), timeDelay( 0 ), count(0), isStarted( false ) {
-		if( start ) {
-			Start();
-		}
-	}
-	~CTimer() {
-		if( isStarted ) {
-			Stop();
-		}
-		if( !name.empty() ) {
-			const std::lock_guard<std::mutex> lock( TimersGuard );
-			auto& timer = Timers[name];
-			timer.delay += timeDelay;
-			timer.count += count;
-		}
-	}
-	void Clear() {
-		 timeDelay = nanoseconds::zero();
-		 count = 0;
-		 isStarted = false;
-	}
-
-	void Start() {
-		//assert( !isStarted );
-		startTime = high_resolution_clock::now();
-		isStarted = true;
-	}
-	void Stop() {
-		//assert( isStarted );
-		auto stopTime = high_resolution_clock::now();
-		timeDelay += duration_cast<nanoseconds>( stopTime - startTime );
-		count++;
-		isStarted = false;
-	}
-
-	float GetTimeInMs() const {
-		auto currentTime = isStarted ? high_resolution_clock::now() - startTime : timeDelay;
-		return currentTime.count() / 1e6f;
-	}
-
-	static string PrintTimers() {
-		using namespace std;
-		const std::lock_guard<std::mutex> lock( TimersGuard );
-		stringstream ss;
-		ss << endl << "_tmrs_;Timer name;Total, ms;Avrg, ms;Count" << endl;
-
-		for( auto& timer : Timers ) {
-			auto& timerStruct = timer.second;
-			ss << "_tmrs_;"
-			   << timer.first << ";"
-			   << timerStruct.delay.count() / 1000000 << ";"
-			   << setprecision(3) << timerStruct.delay.count() / 1e6 / timerStruct.count << ";" << fixed
-			   << timerStruct.count << endl;
-		}
-		Timers.clear();
-		return ss.str();
-	}
-
-private:
-	struct CTimerStruct {
-		CTimerStruct() : delay( 0 ), count ( 0 ) {}
-
-		nanoseconds delay;
-		int64_t count;
-	};
-
-	std::string name;
-	steady_clock::time_point startTime;
-	nanoseconds timeDelay;
-	int64_t count;
-	bool isStarted;
-	static std::map<std::string, CTimerStruct> Timers;
-	static std::mutex TimersGuard;
-};
-
-std::map<std::string, CTimer::CTimerStruct> CTimer::Timers;
-std::mutex CTimer::TimersGuard;
-
-NEOMATHENGINE_API const std::string& PrintTimers() {
-	static string str;
-	str = CTimer::PrintTimers();
-	return str;
-}
-
-class CAlgoInfo {
-public:
-
-	struct CInfo {
-		std::vector<CTimer> Timers;
-		std::vector<int> Dimentions;
-	};
-
-
-	static void AddFastAlgo( CInfo&& fastAlgoInfo ) {
-		const std::lock_guard<std::mutex> lock( AlgoInfoGuard );
-		FastAlgoInfo.push_back( fastAlgoInfo );
-	}
-
-	static void AddAlgo0Info( CInfo&& algo0Info ) {
-		return;
-		const std::lock_guard<std::mutex> lock( AlgoInfoGuard );
-		Algo0Info.push_back( algo0Info );
-	}
-
-	static void AddAlgo0VsFastAlgoInfo( CInfo&& algo0VsFastAlgoInfo ) {
-		const std::lock_guard<std::mutex> lock( AlgoInfoGuard );
-		Algo0VsFastAlgoInfo.push_back( algo0VsFastAlgoInfo );
-	}
-
-	static std::string PrintAlgoInfo() {
-		const std::lock_guard<std::mutex> lock( AlgoInfoGuard );
-
-		using namespace std;
-		stringstream ss;
-
-		printInfo( ss, Algo0VsFastAlgoInfo, "Algo0;FastAlgo;SW;D;S", "_info_a0vsfa" );
-		printInfo( ss, FastAlgoInfo, "full;t1;t2;t3", "_info_fastAlgo" );
-		printInfo( ss, Algo0Info, "full;t0;t1;t2", "_info_algo0" );
-
-		return ss.str();
-
-	}
-private:
-	static void printInfo( stringstream& ss, const std::list<CInfo>& info, const char* head, const char* tag ) {
-			ss << endl <<  tag << head << endl;
-			for( auto& i : info ) {
-				ss << tag << ";";
-				for( auto& t: i.Timers ) {
-					ss << t.GetTimeInMs() << ";";
-				}
-				for( auto& d: i.Dimentions ) {
-					ss << d << ";";
-				}
-				ss << endl;
-			}
-	}
-	static std::list<CInfo> Algo0VsFastAlgoInfo;
-	static std::list<CInfo> FastAlgoInfo;
-	static std::list<CInfo> Algo0Info;
-	static std::mutex AlgoInfoGuard;
-};
-std::list<CAlgoInfo::CInfo> CAlgoInfo::Algo0VsFastAlgoInfo;
-std::list<CAlgoInfo::CInfo> CAlgoInfo::FastAlgoInfo;
-std::list<CAlgoInfo::CInfo> CAlgoInfo::Algo0Info;
-std::mutex CAlgoInfo::AlgoInfoGuard;
-
-NEOMATHENGINE_API const std::string& PrintAlgoInfo() {
-	static string str;
-	str = CAlgoInfo::PrintAlgoInfo();
-	return str;
-}
-
 
 namespace NeoML {
 
@@ -196,7 +32,7 @@ enum TConvAlgo {
 	CA_1,		// use a temporary matrix to store the data in another order
 	CA_2,		// work with the data directly (only for stride = 1 and padding = 0)
 				// most efficient when the image is large and especially when it has many channels
-
+				
 	CA_1x1		// for convolution with a 1*1 filter, no padding and dilation (both 2D and 3D)
 };
 
@@ -228,7 +64,7 @@ inline TConvAlgo CCpuConvolutionDesc::getActualForwardAlgo() const
 	{
 		return CA_1x1;
 	}
-
+	
 	if( DilationHeight == 1 && DilationWidth == 1 && StrideHeight == 1 && StrideWidth == 1 ) {
 		if( PaddingHeight > 0 || PaddingWidth > 0 ) {
 			if( ( Source.Height() >= 64 && Source.Width() >= 64 && Source.Depth() * Source.Channels() >= 8 ) ||
@@ -328,7 +164,7 @@ void CCpuMathEngine::createDilationTemporaryBlob( const CCpuConvolutionDesc& des
 				// The current row is all padding
 				continue;
 			}
-
+			
 			float* tempRow = tempBlobPtr + ( ( outputColumn - outputColumnStart ) * output.Height() + outputRow )
 				* filter.Height() * filter.Width() * vectorSize;
 
@@ -431,12 +267,12 @@ void CCpuMathEngine::createTemporaryBlob( const TConvolutionDesc& desc, const fl
 			}
 			// The paddingBottom now has only the bottom padding rows that are in the filter area
 
-			// Copy the rows that are in filter area
+			// Copy the rows that are in filter area 
 			// If strideHeight <= filterHeight the intersection has already been copied above
 			// and we only need to copy additional strideHeight lower rows
-			// If strideHeight > filterHeight the rows to be ignored have been skipped already
+			// If strideHeight > filterHeight the rows to be ignored have been skipped already 
 			// and we need to copy filterHeight lower rows
-			// The intersection with the bottom padding does not need copying
+			// The intersection with the bottom padding does not need copying 
 			// because we've already filled temporaryBlob with the padding value
 			for(int l = 0; l < min(desc.StrideHeight, filter.Height()) - paddingBottom; l++) {
 				dataCopy(tempBlobPtr + paddingLeft, currentWindowStart + paddingLeft,
@@ -445,7 +281,7 @@ void CCpuMathEngine::createTemporaryBlob( const TConvolutionDesc& desc, const fl
 				tempBlobPtr += windowRowSize;
 			}
 
-			// temporaryBlob already filled with the padding value, so we only need to
+			// temporaryBlob already filled with the padding value, so we only need to 
 			// offset the pointer by the number of bottom padding elements that fit into the filter area
 			tempBlobPtr += paddingBottom * windowRowSize;
 		}
@@ -548,11 +384,6 @@ inline int ceilTo( int val, int discret )
 void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc, const float* sourceData,
 	const float* filterData, const CFloatHandle* freeTermData, float* resultData )
 {
-	CTimer t0;
-	CTimer t1;
-	CTimer t2;
-	CTimer full;
-	full.Start();
 	const int resultItemCount = desc.Result.ObjectCount() * desc.Result.Width() * desc.Result.Height();
 	const int curThreadCount = IsOmpRelevant( resultItemCount, static_cast< int64_t >( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
 	const int cacheItemCount = max( 1, min( ceilTo( BlobConvolutionCacheSize / desc.Filter.ObjectSize(), 16 ), resultItemCount / curThreadCount ) );
@@ -574,32 +405,23 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 			while( index < count ) {
 				const int size = min( count - index, cacheItemCount );
 
-				t0.Start();
 				fillTempData( sourceData, tempDataPtr, desc, start + index, size );
-				t0.Stop();
 
 				float* resultDataPtr = resultData + ( start + index ) * filterObjectCount;
 
-				t1.Start();
 				multiplyMatrixByTransposedMatrix( tempDataPtr, size, filterObjectSize,
 					filterObjectSize, filterData, filterObjectCount, filterObjectSize, resultDataPtr,
 					filterObjectCount );
 
-				t1.Stop();
 				if( freeTermData != nullptr ) {
-					t2.Start();
 					addVectorToMatrixRows( resultDataPtr, resultDataPtr, size, filterObjectCount, filterObjectCount, 
 						filterObjectCount, GetRaw( *freeTermData ) );
-					t2.Stop();
 				}
 
 				index += size;
 			}
 		}
 	}
-	full.Stop();
-	CAlgoInfo::AddAlgo0Info( { { full, t0, t1, t2 },
-		{ desc.Source.Height(), desc.Source.Width(), desc.Filter.Height(), desc.Filter.Width(), desc.DilationHeight, desc.StrideHeight, desc.Filter.Channels(), desc.Filter.ObjectCount() } } );
 }
 
 void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc, const float* sourceData,
@@ -694,41 +516,17 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 				static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
 			const int64_t algo1DataSize = static_cast<int64_t>( desc.Result.Width() ) * desc.Result.Height() * desc.Filter.ObjectSize() + desc.Result.ObjectSize();
 
-			CTimer t0;
-			CTimer t1;
-
-			if( ( desc.Filter.Channels() == 24 ) &&
+			if( CAvxDll::GetInstance().IsAvailable() &&
+				( desc.Filter.Channels() == 24 ) &&
 				( desc.Filter.ObjectCount() == 24 ) &&
 				( desc.Filter.Width() == 3 ) &&
-				( desc.Filter.Height() == 3 ) &&
-				CAvxDll::GetInstance().IsAvailable() ) {
-				CFloatHandleStackVar R( mathEngine(), desc.Result.Width() * desc.Result.Height() * desc.Filter.ObjectCount() );
-
-				t1.Start();
-				CAvxDll::GetInstance().CallBlobConvolution_avx_f9x9_c24_fc24( mathEngine(), threadCount, desc, source, filter, freeTerm, R.GetHandle() );
-				t1.Stop();
-				t0.Start();
-				if( min( desc.Result.ObjectCount(), algo1ThreadCount ) * algo1DataSize <= algo0ThreadCount * BlobConvolutionCacheSize ) {
-					blobConvolutionForwardAlgo1( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
-				} else {
-					blobConvolutionForwardAlgo0( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
-				}
-				t0.Stop();
-				CAlgoInfo::AddAlgo0VsFastAlgoInfo( { { t0, t1 }, { desc.Source.Width(), desc.DilationWidth, desc.StrideWidth, threadCount } } );
-				float* f1 = GetRaw( R.GetHandle() );
-				float* f2 = GetRaw( result );
-				for( int i = 0; i < desc.Result.Width() * desc.Result.Height() * desc.Filter.ObjectCount(); i++ ) {
-					const float e = 1e-4f;
-					const float sub = *f1++ - *f2++;
-					ASSERT_EXPR( sub > -e && sub < e );
-				}
+				( desc.Filter.Height() == 3 ) ) {
+				CAvxDll::GetInstance().CallBlobConvolution_avx_f9x9_c24_fc24( mathEngine(), threadCount, desc, sourceRaw, filterRaw, freeTermRaw, resultRaw );
+			} else if( min( desc.Result.ObjectCount(), algo1ThreadCount ) * algo1DataSize <= algo0ThreadCount * BlobConvolutionCacheSize ) {
+				blobConvolutionForwardAlgo1( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
 			} else {
-				if( min( desc.Result.ObjectCount(), algo1ThreadCount ) * algo1DataSize <= algo0ThreadCount * BlobConvolutionCacheSize ) {
-					blobConvolutionForwardAlgo1( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
-				} else {
-					blobConvolutionForwardAlgo0( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
+				blobConvolutionForwardAlgo0( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
 			}
-		}
 			break;
 		}
 		case CA_1x1:
@@ -1098,7 +896,7 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 	const CBlobDesc& input = desc.Source;
 	const CBlobDesc& filterDiff = desc.Filter;
 	const CBlobDesc& outputDiff = desc.Result;
-
+	
 	assert( filterDiff.Depth() == input.Depth() );
 	assert( filterDiff.Channels() == input.Channels() );
 
@@ -1298,7 +1096,7 @@ void CCpuMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc, 
 //------------------------------------------------------------------------------------------------------------
 
 CChannelwiseConvolutionDesc* CCpuMathEngine::InitBlobChannelwiseConvolution( const CBlobDesc& source,
-	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
+	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, 
 	const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& result )
 {
 	ASSERT_EXPR(source.Depth() == 1);

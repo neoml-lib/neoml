@@ -28,8 +28,8 @@ public:
 
 	bool IsAvailable() const { return isLoaded; }
 
-	void CallBlobConvolution_avx_f9x9_c24_fc24( IMathEngine& engine, int threadNum, const CCommonConvolutionDesc& desc, const CFloatHandle& sourceData,
-		const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData ) const;
+	void CallBlobConvolution_avx_f9x9_c24_fc24( IMathEngine& engine, int threadNum, const CCommonConvolutionDesc& desc, const float* sourceData,
+		const float* filterData, const float* freeTermData, float* resultData ) const;
 private:
 	enum class TFunctionPointers {
 		BlobConvolution_avx_f9x9_c24_fc24,

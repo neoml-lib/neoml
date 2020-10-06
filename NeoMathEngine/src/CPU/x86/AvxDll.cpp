@@ -55,9 +55,9 @@ void CAvxDll::loadFunction( TFunctionPointers functionType, const char* function
 }
 
 void CAvxDll::CallBlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc& desc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData ) const
+	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) const
 {
-	typedef void ( *FuncType )( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc&, const CFloatHandle&, const CFloatHandle&, const CFloatHandle*, const CFloatHandle& );
+	typedef void ( *FuncType )( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc&, const float*, const float*, const float*, float* );
 	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::BlobConvolution_avx_f9x9_c24_fc24 ) ) );
 
 	ASSERT_EXPR( func != nullptr );
@@ -66,13 +66,12 @@ void CAvxDll::CallBlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, in
 	ASSERT_EXPR( desc.Filter.ObjectCount() == 24 );
 	ASSERT_EXPR( desc.PaddingWidth == desc.PaddingHeight );
 	ASSERT_EXPR( desc.DilationWidth == desc.DilationHeight );
-	ASSERT_EXPR( desc.PaddingWidth == desc.DilationHeight );
 	ASSERT_EXPR( desc.StrideWidth == desc.StrideHeight );
 	ASSERT_EXPR( desc.Filter.Width() == 3 );
 	ASSERT_EXPR( desc.Filter.Height() == 3 );
 
-	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( GetRaw( sourceData ) ) % 32 == 0 );
-	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>(  GetRaw( resultData )  ) % 32 == 0 );
+	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( sourceData ) % 32 == 0 );
+	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>(  resultData  ) % 32 == 0 );
 
 	func( mathEngine, threadCount, desc, sourceData, filterData, freeTermData, resultData );
 }
@@ -81,6 +80,13 @@ bool CAvxDll::isAvxAvailable()
 {
 	// Check for AVX
 	#if FINE_PLATFORM(FINE_WINDOWS)
+	
+	#if _MSC_VER < 1900
+	// VS 2015 compiles code which doesn't use all ymm registers. It brings to decrease performance compared to MKL.
+	// Therefore we just disable AVX convolution  enhancement in VS2015.
+	return false;
+	#endif
+	
 	int cpuId[4] = { 0, 0, 0, 0 };
 	__cpuid( cpuId, 1 );
 	#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
