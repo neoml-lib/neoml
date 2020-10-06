@@ -308,7 +308,7 @@ bool CVulkanDll::enumDevices()
 					vkGetPhysicalDeviceMemoryProperties( physicalDevices[i], &info.MemoryProperties );
 					for( int h = 0; h < static_cast<int>( info.MemoryProperties.memoryHeapCount ); ++h ) {
 						if( ( info.MemoryProperties.memoryHeaps[h].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT ) != 0 ) {
-							info.AvailableMemory += info.MemoryProperties.memoryHeaps[h].size;
+							info.AvailableMemory += static_cast<size_t>( info.MemoryProperties.memoryHeaps[h].size );
 						}
 					}
 
