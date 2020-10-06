@@ -87,12 +87,6 @@ private:
 CGpuMathEngineManager::CGpuMathEngineManager() :
 	loader()
 {
-#ifdef NEOML_USE_VULKAN
-	if( loader.IsLoaded( CDllLoader::VULKAN_DLL ) ) {
-		LoadVulkanEngineInfo( *CDllLoader::vulkanDll, info );
-	}
-#endif
-
 #ifdef NEOML_USE_CUDA
 	if( loader.IsLoaded( CDllLoader::CUDA_DLL ) ) {
 		int deviceCount = 0;
@@ -110,6 +104,12 @@ CGpuMathEngineManager::CGpuMathEngineManager() :
 				}
 			}
 		}
+	}
+#endif
+
+#ifdef NEOML_USE_VULKAN
+	if (loader.IsLoaded(CDllLoader::VULKAN_DLL)) {
+		LoadVulkanEngineInfo(*CDllLoader::vulkanDll, info);
 	}
 #endif
 
