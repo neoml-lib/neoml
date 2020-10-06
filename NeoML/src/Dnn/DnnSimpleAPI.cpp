@@ -19,7 +19,6 @@ limitations under the License.
 #include <NeoML/Dnn/DnnSimpleAPI.h>
 
 namespace NeoML {
-namespace SimpleAPI {
 //////////////////////////////////////////////////////////////////////////////////////////
 
 CSourceLayer* Source( CDnn& network, const char* name )
@@ -777,5 +776,4 @@ CLayerWrapper<CSequenceSumLayer> SequenceSum()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-} // namespace SimpleAPI 
 } // namespace NeoML

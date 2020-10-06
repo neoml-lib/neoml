@@ -76,7 +76,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/Upsampling2DLayer.h>
 
 namespace NeoML {
-namespace SimpleAPI {
 
 // Layer output.
 class NEOML_API CLayerOutput {
@@ -519,5 +518,4 @@ NEOML_API CLayerWrapper<CRepeatSequenceLayer> RepeatSequence( int repeatCount );
 NEOML_API CLayerWrapper<CSequenceSumLayer> SequenceSum();
 
 /////////////////////////////////////////////////////////////////////////////////////////
-} // namespace SimpleAPI 
 } // namespace NeoML
