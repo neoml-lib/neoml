@@ -43,7 +43,7 @@ class CMemoryPool;
 // CUDA math engine
 class CCudaMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, std::unique_ptr<CCudaDevice>& device );
+	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, std::unique_ptr<CCudaDevice>& device, int flags = 0 );
 	~CCudaMathEngine() override;
 
 	// IMathEngine interface methods
@@ -455,9 +455,11 @@ private:
 	const CCusparse* cusparse; // cusparse library functions
 	const CCublas* cublas; // cublas library functions
 
+	const float* cudaConstZero; // pointer to __constant__ == 0.f
+	const float* cudaConstOne; // pointer to __constant__ == 1.f
+
 	mutable std::mutex mutex; // protects the data below
 	std::unique_ptr<CCudaDevice> device; // the device descriptor
-	cudaStream_t cudaStream; // the only stream
 	cublasHandle_t cublasHandle; // cublas library handle
 	cusparseHandle_t cusparseHandle; // cusparse library handle
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager

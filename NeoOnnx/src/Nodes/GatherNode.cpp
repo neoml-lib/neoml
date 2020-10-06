@@ -17,43 +17,47 @@ limitations under the License.
 #pragma hdrstop
 
 #include "GatherNode.h"
+#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CGatherNode::CGatherNode( const onnx::NodeProto& gather, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( gather, nodeOutputs )
+CGatherNode::CGatherNode( int nodeIndex, const onnx::NodeProto& gather, int opsetVersion ) :
+	COpNode( nodeIndex, gather, opsetVersion )
 {
-	CheckOnnxProtocol( input.Size() == 2, "node must have 2 inputs", gather );
+	// Newer versions support negative indices
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", gather );
+
+	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", gather );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gather );
 }
 
-void CGatherNode::OnnxReshape()
+void CGatherNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_ConstantTensor, "non-constant input", onnxNode );
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetData()->GetDataType() == CT_Int, "non-integer input", onnxNode );
+	tensors[Input[1]].Shape.CopyTo( tensors[Output[0]].Shape );
+
+	CheckNeoOnnxSupport( tensors[Input[0]].Data != nullptr, "non-constant input", OnnxNode );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data->GetDataType() == CT_Int, "non-integer input", OnnxNode );
 
 	CArray<int> data;
-	data.SetSize( InputTensor( 0 ).GetData()->GetDataSize() );
-	InputTensor( 0 ).GetData()->CopyTo( data.GetPtr() );
-	
-	CheckNeoOnnxSupport( InputTensor( 1 ).GetType() == TT_ConstantTensor, "non-constant indices", onnxNode );
-	CheckOnnxProtocol( InputTensor( 1 ).GetData()->GetDataType() == CT_Int, "indices must be integer", onnxNode );
+	data.SetSize( tensors[Input[0]].Data->GetDataSize() );
+	tensors[Input[0]].Data->CopyTo( data.GetPtr() );
+
+	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant indices", OnnxNode );
+	CheckOnnxProtocol( tensors[Input[1]].Data->GetDataType() == CT_Int, "indices must be integer", OnnxNode );
 
 	CArray<int> indices;
-	indices.SetSize( InputTensor( 1 ).GetData()->GetDataSize() );
-	InputTensor( 1 ).GetData()->CopyTo( indices.GetPtr() );
+	indices.SetSize( tensors[Input[1]].Data->GetDataSize() );
+	tensors[Input[1]].Data->CopyTo( indices.GetPtr() );
 
-	CPtr<CDnnBlob> outputBlob = InputTensor( 1 ).GetData()->GetClone();
-	int* outputBuffer = outputBlob->GetBuffer<int>( 0, outputBlob->GetDataSize() );
+	tensors[Output[0]].Data = tensors[Input[1]].Data->GetClone();
+	int* outputBuffer = tensors[Output[0]].Data->GetBuffer<int>( 0, tensors[Output[0]].Data->GetDataSize() );
 	for( int i = 0; i < indices.Size(); ++i ) {
 		outputBuffer[i] = data[indices[i]];
 	}
-	outputBlob->ReleaseBuffer( outputBuffer, true );
-	
-	outputData.Add( CTensor( TT_ConstantTensor, InputTensor( 1 ).GetShape(), outputBlob ) );
+	tensors[Output[0]].Data->ReleaseBuffer( outputBuffer, true );
 }
 
 } // namespace NeoOnnx

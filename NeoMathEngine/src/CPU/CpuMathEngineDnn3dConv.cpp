@@ -27,16 +27,18 @@ limitations under the License.
 namespace NeoML {
 
 void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionDesc& desc,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
-	const CFloatHandle& inputDiffData )
+	const float* outputDiffData, const float* filterData, const CFloatHandle* freeTermData,
+	float* inputDiffData )
 {
+	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
 
 	bool isRepackNeeded = desc.StrideHeight > 1 || desc.StrideWidth > 1 || desc.StrideDepth > 1;
 
 	CBlobDesc resultBlob = inputDiff;
-	CFloatHandle resultBlobData = inputDiffData;
+	float* resultBlobData = inputDiffData;
 	int resultBlobHolderSize = 0;
 	if( isRepackNeeded ) {
 		resultBlob = outputDiff;
@@ -47,7 +49,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 	CFloatHandleVar resultBlobHolder( mathEngine(), resultBlobHolderSize );
 
 	if( isRepackNeeded ) {
-		resultBlobData = resultBlobHolder.GetHandle();
+		resultBlobData = GetRaw( resultBlobHolder.GetHandle() );
 	}
 
 	int objectCount = outputDiff.ObjectCount();
@@ -58,24 +60,24 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 		int batchStart;
 		int batchCount;
 		if( OmpGetTaskIndexAndCount( objectCount, batchStart, batchCount ) ) {
-			CFloatHandle resultData = resultBlobData + batchStart * resultBlob.ObjectSize();
-			CFloatHandle inputDiffDataPtr = inputDiffData + batchStart * inputDiff.ObjectSize();
+			float* resultData = resultBlobData + batchStart * resultBlob.ObjectSize();
+			float* inputDiffDataPtr = inputDiffData + batchStart * inputDiff.ObjectSize();
 
-			if( freeTermData != 0 ) {
+			if( freeTermData != nullptr ) {
 				setVectorToMatrixRows( inputDiffDataPtr, batchCount * inputDiff.GeometricalSize(),
-					inputDiff.Channels(), *freeTermData );
+					inputDiff.Channels(), freeTermDataRaw );
 			}
 
-			if( isRepackNeeded || freeTermData == 0 ) {
+			if( isRepackNeeded || freeTermData == nullptr ) {
 				multiplyMatrixByMatrix( outputDiffData + batchStart * outputDiff.ObjectSize(),
 					batchCount * outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
 					filterData, resultBlob.Channels(), resultBlob.Channels(),
-					resultData, resultBlob.Channels(), batchCount * resultBlob.ObjectSize() );
+					resultData, resultBlob.Channels() );
 			} else {
 				multiplyMatrixByMatrixAndAdd( outputDiffData + batchStart * outputDiff.ObjectSize(),
 					batchCount * outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
 					filterData, resultBlob.Channels(), resultBlob.Channels(),
-					resultData, resultBlob.Channels(), batchCount * resultBlob.ObjectSize() );
+					resultData, resultBlob.Channels() );
 			}
 
 			if( isRepackNeeded ) {
@@ -84,18 +86,18 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 				int inputRowSize = inputColSize * inputDiff.Width();
 				int inputObjSize = inputRowSize * inputDiff.Height();
 
-				if( freeTermData == 0 ) {
-					vectorFill( inputDiffDataPtr, 0, inputObjSize * batchCount );
+				if( freeTermData == nullptr ) {
+					vectorFill0( inputDiffDataPtr, inputObjSize * batchCount );
 				}
 
 				for( int b = 0; b < batchCount; ++b ) {
-					CFloatHandle inputDiffRow = inputDiffDataPtr;
+					float* inputDiffRow = inputDiffDataPtr;
 					for( int j = 0; j < resultBlob.Height(); ++j ) {
-						CFloatHandle inputDiffCol = inputDiffRow;
+						float* inputDiffCol = inputDiffRow;
 						for( int i = 0; i < resultBlob.Width(); ++i ) {
-							float* inputDiffPixel = GetRaw( inputDiffCol );
+							float* inputDiffPixel = inputDiffCol;
 							for( int k = 0; k < resultBlob.Depth(); ++k ) {
-								NeoML::vectorAdd( inputDiffPixel, GetRaw(resultData), inputDiffPixel, inputDiff.Channels() );
+								NeoML::vectorAdd( inputDiffPixel, resultData, inputDiffPixel, inputDiff.Channels() );
 								inputDiffPixel += inputDiff.Channels() * desc.StrideDepth;
 								resultData += inputDiff.Channels();
 							}
@@ -134,14 +136,14 @@ void CCpuMathEngine::blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionD
 		inputBlobData = inputBlobHolder.GetHandle();
 
 		// Repack the input
-		CConstFloatHandle inputDataPtr = inputData;
-		CFloatHandle inputBlobDataPtr = inputBlobData;
+		const float* inputDataPtr = GetRaw( inputData );
+		float* inputBlobDataPtr = GetRaw( inputBlobData );
 		for( int b = 0; b < inputBlob.ObjectCount(); ++b ) {
-			CConstFloatHandle inputRowData = inputDataPtr;
+			const float* inputRowData = inputDataPtr;
 			for( int j = 0; j < inputBlob.Height(); ++j ) {
-				CConstFloatHandle inputColData = inputRowData;
+				const float* inputColData = inputRowData;
 				for( int i = 0; i < inputBlob.Width(); ++i ) {
-					CConstFloatHandle inputPixelData = inputColData;
+					const float* inputPixelData = inputColData;
 					for( int k = 0; k < inputBlob.Depth(); ++k ) {
 						vectorCopy( inputBlobDataPtr, inputPixelData, input.Channels() );
 						inputBlobDataPtr += input.Channels();
@@ -170,8 +172,8 @@ void CCpuMathEngine::blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionD
 	}
 }
 
-void CCpuMathEngine::blob3dConvolutionPrepareInput( const CCommon3dConvolutionDesc& desc, const CFloatHandle& inputPreparedData,
-	const CFloatHandle& inputBlobData, int inputObject, int outputHeight, int outputWidthExStart, int outputWidthExCount )
+void CCpuMathEngine::blob3dConvolutionPrepareInput( const CCommon3dConvolutionDesc& desc, float* inputPreparedData,
+	const float* inputBlobData, int inputObject, int outputHeight, int outputWidthExStart, int outputWidthExCount )
 {
 	const CBlobDesc& inputBlob = desc.Source;
 	const CBlobDesc& outputBlob = desc.Result;
@@ -182,8 +184,8 @@ void CCpuMathEngine::blob3dConvolutionPrepareInput( const CCommon3dConvolutionDe
 	int filterDepthSize = filterBlob.Depth() * inputBlob.Channels();
 	int filterRowSize = filterBlob.Width() * filterDepthSize;
 
-	CConstFloatHandle input = inputBlobData + inputObject * inputBlob.ObjectSize();
-	CFloatHandle inputPrepared = inputPreparedData;
+	const float* input = inputBlobData + inputObject * inputBlob.ObjectSize();
+	float* inputPrepared = inputPreparedData;
 
 	for( int wEx = outputWidthExStart; wEx < outputWidthExStart + outputWidthExCount; ++wEx ) {
 		int outputK = wEx % outputBlob.Depth();
@@ -282,9 +284,11 @@ void CCpuMathEngine::blob3dConvolutionPrepareInput( const CCommon3dConvolutionDe
 	}
 }
 
-void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
+void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, const float* sourceData,
+	const float* filterData, const CFloatHandle* freeTermData, float* resultData )
 {
+	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
 	const CBlobDesc& filter = desc.Filter;
@@ -299,9 +303,11 @@ void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, co
 
 	const int inputPreparedObjectSize = result.Width() * result.Depth() * result.Height() * preparedWidth * source.Channels();
 	CFloatHandleStackVar inputPreparedData( mathEngine(), tempObjectCount * inputPreparedObjectSize );
+	float* inputPreparedDataPtr = GetRaw( inputPreparedData.GetHandle() );
 
 	const int outputTempObjectSize = result.Width() * result.Depth() * result.Height() * result.Channels();
 	CFloatHandleStackVar outputTempData( mathEngine(), tempObjectCount * outputTempObjectSize );
+	float* outputTempDataPtr = GetRaw( outputTempData.GetHandle() );
 
 	NEOML_OMP_NUM_THREADS( curThreadCount )
 	{
@@ -317,9 +323,9 @@ void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, co
 			const int outputTempGeometricalSize = outputCount * result.Height();
 			const int tempObjectIndex = source.ObjectCount() <= tempObjectCount ? batchStart : OmpGetThreadNum();
 
-			CFloatHandle inputPrepared = inputPreparedData.GetHandle() + tempObjectIndex * inputPreparedObjectSize
+			float* inputPrepared = inputPreparedDataPtr + tempObjectIndex * inputPreparedObjectSize
 				+ outputStart * result.Height() * preparedWidth * source.Channels();
-			CFloatHandle outputTemp = outputTempData.GetHandle() + tempObjectIndex * outputTempObjectSize
+			float* outputTemp = outputTempDataPtr + tempObjectIndex * outputTempObjectSize
 				+ outputStart * result.Height() * result.Channels();
 
 			for( int b = batchStart; b < batchStart + batchCount; ++b ) {
@@ -327,20 +333,19 @@ void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, co
 
 				multiplyMatrixByTransposedMatrix( inputPrepared, workingPreparedHeight, preparedWidth * source.Channels(),
 					preparedWidth * source.Channels(), filterData, filter.BatchWidth(), preparedWidth * source.Channels(),
-					outputTemp, filter.BatchWidth(), outputCount * result.Height() * result.Channels() );
+					outputTemp, filter.BatchWidth() );
 
-				if( freeTermData != 0 ) {
+				if( freeTermData != nullptr ) {
 					addVectorToMatrixRows( outputTemp, outputTemp, outputTempGeometricalSize, result.Channels(),
-						result.Channels(), result.Channels(), *freeTermData );
+						result.Channels(), result.Channels(), freeTermDataRaw );
 				}
 
 				// Transpose outputTemp to a part of result
-				CConstFloatHandle tempData = outputTemp;
-				CFloatHandle outputDataPtr = resultData
-					+ b * result.ObjectSize() + outputStart * result.Channels();
+				const float* tempData = outputTemp;
+				float* outputDataPtr = resultData + b * result.ObjectSize() + outputStart * result.Channels();
 				int outputRowSize = result.Width() * result.Depth() * result.Channels();
 				for( int tj = 0; tj < outputCount; ++tj ) {
-					CFloatHandle outputRowData = outputDataPtr;
+					float* outputRowData = outputDataPtr;
 					for( int ti = 0; ti < result.Height(); ++ti ) {
 						vectorCopy( outputRowData, tempData, result.Channels() );
 						tempData += result.Channels();
@@ -353,12 +358,9 @@ void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, co
 	}
 }
 
-void CCpuMathEngine::addMatrixToMatrix( const CFloatHandle& firstHandle, int height,
-	int width, int firstRowSize, const CConstFloatHandle& secondHandle, int secondRowSize )
+void CCpuMathEngine::addMatrixToMatrix( float* first, int height,
+	int width, int firstRowSize, const float* second, int secondRowSize )
 {
-	float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-
 	for( int j = 0; j < height; ++j ) {
 		vectorAdd( first, second, first, width );
 		first += firstRowSize;
@@ -366,12 +368,9 @@ void CCpuMathEngine::addMatrixToMatrix( const CFloatHandle& firstHandle, int hei
 	}
 }
 
-void CCpuMathEngine::sumMatrixRowsAdd( const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
+void CCpuMathEngine::sumMatrixRowsAdd( float* result, const float* matrix,
 	int matrixHeight, int matrixWidth )
 {
-	const float* matrix = GetRaw(matrixHandle);
-	float* result = GetRaw(resultHandle);
-
 	for( int i = 0; i < matrixHeight; i++ ) {
 		vectorAdd(result, matrix, result, matrixWidth);
 		matrix += matrixWidth;
@@ -379,9 +378,11 @@ void CCpuMathEngine::sumMatrixRowsAdd( const CFloatHandle& resultHandle, const C
 	result += matrixWidth;
 }
 
-void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& desc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
+void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& desc, const float* sourceData,
+	const CFloatHandle& filterData, const CFloatHandle* freeTermData, float* resultData )
 {
+	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+
 	const CBlobDesc& source = desc.Result;
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& result = desc.Source;
@@ -394,6 +395,7 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 	CFloatHandleVar filterForward( mathEngine(), filterForwardDataSize );
 	TransposeMatrix( 1, filterData, filter.BatchWidth(), 1, filter.ObjectSize(), 1, filterForward.GetHandle(),
 		filterForwardDataSize );
+	float* filterForwardPtr = GetRaw( filterForward.GetHandle() );
 
 	int inputGeo = source.GeometricalSize();
 	// The number of rows in the output
@@ -406,6 +408,7 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 	const int tempDataSize = source.ObjectCount() * inputGeo * filterForwardGeometricalSize;
 	const int tempWidth = filterForwardGeometricalSize;
 	CFloatHandleVar temp( mathEngine(), tempDataSize );
+	float* tempPtr = GetRaw( temp.GetHandle() );
 
 	const int curThreadCount = IsOmpRelevant( outputLineY, static_cast<int64_t>( source.BlobSize() ) * filter.BlobSize() )
 		? threadCount : 1;
@@ -418,8 +421,8 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 		if( OmpGetTaskIndexAndCount( source.ObjectCount() * inputGeo, inputStart, inputCount ) ) {
 			multiplyMatrixByTransposedMatrix( sourceData + inputStart * filterForwardChannelsCount,
 				inputCount, filterForwardChannelsCount, filterForwardChannelsCount,
-				filterForward.GetHandle(), filterForwardGeometricalSize, filterForwardChannelsCount,
-				temp.GetHandle() + inputStart * tempWidth, filterForwardGeometricalSize, inputCount * tempWidth );
+				filterForwardPtr, filterForwardGeometricalSize, filterForwardChannelsCount,
+				tempPtr + inputStart * tempWidth, filterForwardGeometricalSize );
 		}
 
 		do {
@@ -440,12 +443,12 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 
 			int outputLineEnd = outputLineStart + outputLineCount;
 			for( int step = outputLineStart; step < outputLineEnd; ++step ) {
-				CFloatHandle outputData = resultData + step * outputRowSize;
+				float* outputData = resultData + step * outputRowSize;
 
 				// Set the free term
-				if( freeTermData != 0 ) {
+				if( freeTermData != nullptr ) {
 					setVectorToMatrixRows( outputData, result.Width() * result.Depth(),
-						result.Channels(), *freeTermData );
+						result.Channels(), freeTermDataRaw );
 				}
 
 				int batch = step / result.Height();
@@ -469,7 +472,7 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 					filterRow -= desc.StrideHeight, ++inputRow ) {
 
 					// temp stores the rows of filter multiplied by input; add them to the output rows in correct positions
-					CConstFloatHandle tempRowData = temp.GetHandle() + ( ( batch * source.Height() + inputRow )
+					const float* tempRowData = tempPtr + ( ( batch * source.Height() + inputRow )
 						* source.Width() * source.Depth() * filter.Height() + filterRow )
 						* filter.Width() * filter.Depth() * filter.Channels();
 
@@ -486,8 +489,8 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 						}
 
 						// The start of the place in the output where to copy
-						CFloatHandle outputLine = outputData + xStart * outputZSize;
-						CConstFloatHandle tempData = tempRowData + inputX * source.Depth() *  filter.ObjectSize()
+						float* outputLine = outputData + xStart * outputZSize;
+						const float* tempData = tempRowData + inputX * source.Depth() *  filter.ObjectSize()
 							+ xTempDataShift * filter.Depth() * filter.Channels();
 
 						for( int z = -desc.PaddingDepth;
@@ -507,7 +510,7 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 							assert( toCopy > 0 );
 
 							toCopy *= filter.Channels();
-							CFloatHandle outputVec = outputLine + pos * filter.Channels();
+							float* outputVec = outputLine + pos * filter.Channels();
 							addMatrixToMatrix( outputVec, xEnd - xStart, toCopy, outputZSize,
 								tempData + tempDataShift, filter.Depth() * filter.Channels() );
 
@@ -520,8 +523,8 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 	}
 }
 
-void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& desc, const CFloatHandle& inputData,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData,
+void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& desc, const float* inputData,
+	const float* outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData,
 	bool isFreeTermDiffFromInput )
 {
 	const CBlobDesc& input = desc.Source;
@@ -543,35 +546,39 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
 	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 	
-	if( freeTermDiffData != 0 ) {
+	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, freeTermDiffSize ) );
 		freeTermDiffReduction.reset( new COmpReduction<COmpReduction1DData>( curThreadCount, *freeTermDiffItem ) );
 	}
 
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 		for( int b = 0; b < objectCount; ++b ) {
-			CConstFloatHandle outputDiffDataPtr = outputDiffData + b * outputDiff.ObjectSize();
+			const float* outputDiffDataPtr = outputDiffData + b * outputDiff.ObjectSize();
+			float* inputPreparedDataPtr = GetRaw( inputPreparedTemp.GetPrivateData() );
+			float* filterDiffReductionDataPtr = GetRaw( filterDiffReduction.GetPrivate().Data );
+			float* outputTempDataPtr = GetRaw( outputTemp.GetPrivateData() );
 
-			blob3dConvolutionPrepareInput( desc, inputPreparedTemp.GetPrivateData(), inputData, b,
+			blob3dConvolutionPrepareInput( desc, inputPreparedDataPtr, inputData, b,
 				outputDiff.Height(), 0, outputDiff.Width() * outputDiff.Depth() );
 
-			transposeMatrixImpl( 1, outputDiffDataPtr,
+			transposeMatrix( 1, outputDiffDataPtr,
 				outputDiff.Height(), 1, outputDiff.Width() * outputDiff.Depth(),
-				outputDiff.Channels(), outputTemp.GetPrivateData(), outputTempSize );
+				outputDiff.Channels(), outputTempDataPtr );
 
 			// Filter diff
-			multiplyTransposedMatrixByMatrixAndAdd( outputTemp.GetPrivateData(),
+			multiplyTransposedMatrixByMatrixAndAdd( outputTempDataPtr,
 				outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
-				inputPreparedTemp.GetPrivateData(), filterDiff.GeometricalSize() * input.Channels(), filterDiff.GeometricalSize() * input.Channels(),
-				filterDiffReduction.GetPrivate().Data, filterDiff.GeometricalSize() * input.Channels(), filterDiffReduction.GetPrivate().Size );
+				inputPreparedDataPtr, filterDiff.GeometricalSize() * input.Channels(), filterDiff.GeometricalSize() * input.Channels(),
+				filterDiffReductionDataPtr, filterDiff.GeometricalSize() * input.Channels() );
 
-			if( freeTermDiffData != 0 ) {
+			if( freeTermDiffData != nullptr ) {
 				// Free term diff
+				float* freeTermDiffReductionDataPtr = GetRaw( freeTermDiffReduction->GetPrivate().Data );
 				if( isFreeTermDiffFromInput ) {
-					sumMatrixRowsAdd( freeTermDiffReduction->GetPrivate().Data,
+					sumMatrixRowsAdd( freeTermDiffReductionDataPtr,
 						inputData + b * input.ObjectSize(), input.GeometricalSize(), input.Channels() );
 				} else {
-					sumMatrixRowsAdd( freeTermDiffReduction->GetPrivate().Data,
+					sumMatrixRowsAdd( freeTermDiffReductionDataPtr,
 						outputDiffDataPtr, outputDiff.GeometricalSize(), outputDiff.Channels() );
 				}
 			}
@@ -601,13 +608,18 @@ void CCpuMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, cons
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData == 0 || freeTermData->GetMathEngine() == this );
 
+	const float* sourceDataRaw = GetRaw( sourceData );
+	const float* filterDataRaw = GetRaw( filterData );
+	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+	float* resultDataRaw = GetRaw( resultData );
+
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
 
 	if( desc.PaddingHeight == 0 && desc.PaddingWidth == 0 && desc.PaddingDepth == 0 && desc.Filter.ObjectSize() == desc.Filter.Channels() ) {
 		blob3dConvolution1x1x1( desc.Source, desc.Filter, desc.Result, desc.StrideHeight, desc.StrideWidth, desc.StrideDepth,
-			GetRaw( sourceData ), GetRaw( filterData ), freeTermData != 0 ? GetRaw( *freeTermData ) : 0, GetRaw( resultData ) );
+			sourceDataRaw, filterDataRaw, freeTermDataRaw, resultDataRaw );
 	} else {
-		blob3dConvolution( desc, sourceData, filterData, freeTermData, resultData );
+		blob3dConvolution( desc, sourceDataRaw, filterDataRaw, freeTermData, resultDataRaw );
 	}
 }
 
@@ -619,12 +631,16 @@ void CCpuMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDe
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData == 0 || freeTermData->GetMathEngine() == this );
 
+	const float* sourceDataRaw = GetRaw( sourceData );
+	const float* filterDataRaw = GetRaw( filterData );
+	float* resultDataRaw = GetRaw( resultData );
+
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
 
 	if( desc.PaddingHeight == 0 && desc.PaddingWidth == 0 && desc.PaddingDepth == 0 && desc.Filter.ObjectSize() == desc.Filter.Channels() ) {
-		blob3dConvolution1x1x1Backward( desc, sourceData, filterData, freeTermData, resultData );
+		blob3dConvolution1x1x1Backward( desc, sourceDataRaw, filterDataRaw, freeTermData, resultDataRaw );
 	} else {
-		blob3dConvolutionBackward( desc, sourceData, filterData, freeTermData, resultData );
+		blob3dConvolutionBackward( desc, sourceDataRaw, filterData, freeTermData, resultDataRaw );
 	}
 }
 
@@ -641,7 +657,7 @@ void CCpuMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convDe
 	if( desc.PaddingHeight == 0 && desc.PaddingWidth == 0 && desc.PaddingDepth == 0 && desc.Filter.ObjectSize() == desc.Filter.Channels() ) {
 		blob3dConvolution1x1x1LearnAdd( desc, inputData, outputDiffData, filterDiffData, freeTermDiffData );
 	} else {
-		blob3dConvolutionLearnAdd( desc, inputData, outputDiffData, filterDiffData, freeTermDiffData, isFreeTermDiffFromInput );
+		blob3dConvolutionLearnAdd( desc, GetRaw( inputData ), GetRaw( outputDiffData ), filterDiffData, freeTermDiffData, isFreeTermDiffFromInput );
 	}
 }
 

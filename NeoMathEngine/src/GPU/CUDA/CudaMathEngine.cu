@@ -37,17 +37,13 @@ namespace NeoML {
 static __constant__ const float ZeroDev = 0;
 static __constant__ const float OneDev = 1;
 
-const float* CCudaConst::Zero;
-const float* CCudaConst::One;
-
 const int CudaMemoryAlignment = 4;
 
 //------------------------------------------------------------------------------------------------------------
 
-CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, std::unique_ptr<CCudaDevice>& _device ) :
+CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, std::unique_ptr<CCudaDevice>& _device, int flags ) :
 	cusparse( _cusparse ),
 	cublas( _cublas ),
-	cudaStream( 0 ),
 	cublasHandle( 0 ),
 	cusparseHandle( 0 )
 {
@@ -55,24 +51,21 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 
 	// CUDA
 	ASSERT_EXPR( device != 0 );
-	ASSERT_CUDA( cudaSetDevice( device->DeviceNumber ) );
-
-	// CUDA stream.
-	ASSERT_CUDA( cudaStreamCreate( &cudaStream ) );
+	SetCudaDevice( device->DeviceNumber );
 
 	// Cublas.
 	ASSERT_CUBLAS( cublas->Create( &cublasHandle ) );
+	cublasMath_t cublasMath = ( flags & GpuMathEngineCublasUseTensorCoresFlag ) == 0 ? CUBLAS_DEFAULT_MATH : CUBLAS_TENSOR_OP_MATH;
+	ASSERT_CUBLAS( cublas->SetMathMode( cublasHandle, cublasMath ) );
 	ASSERT_CUBLAS( cublas->SetAtomicsMode( cublasHandle, CUBLAS_ATOMICS_ALLOWED ) );
 	ASSERT_CUBLAS( cublas->SetPointerMode( cublasHandle, CUBLAS_POINTER_MODE_DEVICE ) );
-	ASSERT_CUBLAS( cublas->SetStream( cublasHandle, cudaStream ) );
 
 	// Cusparse.
 	ASSERT_CUSPARSE( cusparse->Create( &cusparseHandle ) );
-	ASSERT_CUSPARSE( cusparse->SetStream( cusparseHandle, cudaStream ) );
 
 	// Constants
-	ASSERT_CUDA( cudaGetSymbolAddress((void**)&CCudaConst::Zero, ZeroDev) );
-	ASSERT_CUDA( cudaGetSymbolAddress((void**)&CCudaConst::One, OneDev) );
+	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstZero, ZeroDev) );
+	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstOne, OneDev) );
 
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( device->MemoryLimit, this, true ) );
 	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
@@ -86,8 +79,6 @@ CCudaMathEngine::~CCudaMathEngine()
 	hostStackRunTime.reset();
 	deviceStackRunTime.reset();
 	memoryPool.reset();
-
-	cudaStreamDestroy( cudaStream );
 
 	cusparse->Destroy( cusparseHandle );
 	cublas->Destroy( cublasHandle );

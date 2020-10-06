@@ -36,50 +36,23 @@ void CCpuMathEngine::VectorCopy(const CIntHandle& firstHandle, const CConstIntHa
 	dataCopy(GetRaw(firstHandle), GetRaw(secondHandle), vectorSize);
 }
 
-void CCpuMathEngine::vectorCopy(const CFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize)
+void CCpuMathEngine::vectorCopy(float* first, const float* second, int vectorSize)
 {
-	dataCopy(GetRaw(firstHandle), GetRaw(secondHandle), vectorSize);
+	dataCopy(first, second, vectorSize);
 }
 
 void CCpuMathEngine::VectorFill(const CFloatHandle& result, float value, int vectorSize)
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
 
-	vectorFill( result, value, vectorSize );
-}
-
-void CCpuMathEngine::vectorFill(const CFloatHandle& result, float value, int vectorSize)
-{
-	int count = GetCount4(vectorSize);
-	float* res = GetRaw(result);
-
-	float32x4_t val = vdupq_n_f32(value);
-	for(int i = 0; i < count; ++i) {
-		StoreNeon4(val, res);
-		res += 4;
-	}
-
-	for(int i = 0; i < vectorSize; ++i) {
-		*res++ = value;
-	}
+	vectorFill( GetRaw( result ), value, vectorSize );
 }
 
 void CCpuMathEngine::VectorFill(const CIntHandle& result, int value, int vectorSize)
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
 
-	int count = GetCount4(vectorSize);
-	int* res = GetRaw(result);
-
-	int32x4_t val = vdupq_n_s32(value);
-	for(int i = 0; i < count; ++i) {
-		StoreIntNeon4(val, res);
-		res += 4;
-	}
-
-	for(int i = 0; i < vectorSize; ++i) {
-		*res++ = value;
-	}
+	vectorFill( GetRaw( result ), value, vectorSize );
 }
 
 void CCpuMathEngine::VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize,
@@ -145,21 +118,8 @@ void CCpuMathEngine::VectorEltwiseMax(const CConstFloatHandle& firstHandle, cons
 	const float* first = GetRaw(firstHandle);
 	const float* second = GetRaw(secondHandle);
 	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
 
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vmaxq_f32(LoadNeon4(first), LoadNeon4(second));
-		StoreNeon4(res, result);
-
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vmaxq_f32(LoadNeon(first, vectorSize), LoadNeon(second, vectorSize));
-		StoreNeon(res, result, vectorSize);
-	}
+	vectorEltwiseMax( first, second, result, vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseMin(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

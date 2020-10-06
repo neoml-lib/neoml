@@ -25,6 +25,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobTimeConvolutionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DropoutTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/EnumBinarizationTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiGpuMultiThreadTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMaxValueInColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMaxValueInRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LookupAndSumTest.cpp

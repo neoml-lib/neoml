@@ -37,67 +37,51 @@ namespace NeoML {
 #include <shaders/generated/VectorToImage.h>
 
 // The maximum number of bytes that may be asynchronously copied into GPU
-static const size_t VulkanMaxExchangeAsyncSize = 65536;
+constexpr size_t VulkanMaxExchangeAsyncSize = 65536;
 
 // The size of the buffer for data exchange
-static const size_t VulkanExchangeBufferSize = 4 * 1024 * 1024; // 4 MB
+constexpr size_t VulkanExchangeBufferSize = 4 * 1024 * 1024; // 4 MB
 
 // The maximum number of groups over the X dimension when working with a 1D (vector) shader
 // With larger sizes, the shader data will be represented in two dimensions
-static const int VulkanMaxVectorXGroupCount = 8192;
+constexpr int VulkanMaxVectorXGroupCount = 8192;
 
 //------------------------------------------------------------------------------------------------------------
 
-static inline void getDeviceInfo( const CVulkanDll& dll, int index, CMathEngineInfo& info )
+static inline void getDeviceInfo( const CVulkanDeviceInfo& deviceInfo, CMathEngineInfo& info )
 {
 	info.Type = MET_Vulkan;
 	::memset( info.Name, 0, sizeof( info.Name ) );
-	::strcpy( info.Name, dll.GetDevices()[index].Properties.deviceName );
-	info.Id = index;
-	info.AvailableMemory = dll.GetDevices()[index].AvailableMemory;
+	::strcpy( info.Name, deviceInfo.Properties.deviceName );
+	info.Id = deviceInfo.DeviceID;
+	info.AvailableMemory = deviceInfo.AvailableMemory;
 }
 
-bool LoadVulkanEngineInfo( CVulkanDll& dll, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result )
+bool LoadVulkanEngineInfo( const CVulkanDll& dll, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result )
 {
-	for( int i = 0; i < static_cast<int>( dll.GetDevices().size() ); i++ ) {
-		CMathEngineInfo info;
-		getDeviceInfo( dll, i, info );
-		result.push_back( info );
+	for( const auto& deviceInfo : dll.GetDevices() ) {
+		result.emplace_back();
+		getDeviceInfo( deviceInfo, result.back() );
 	}
-
 	return !result.empty();
 }
 
 //------------------------------------------------------------------------------------------------------------
 
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
+constexpr int VulkanMemoryAlignment = 16;
 
-//------------------------------------------------------------------------------------------------------------
-
-const int VulkanMemoryAlignment = 16;
-
-CVulkanMathEngine::CVulkanMathEngine( CVulkanDll& _dll, int _deviceNumber, size_t memoryLimit ) :
-	dll( _dll ),
-	deviceNumber( _deviceNumber ),
-	device( dll.CreateDevice( dll.GetDevices()[_deviceNumber] ) )
+CVulkanMathEngine::CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& _device, size_t memoryLimit ) :
+	dllLoader( CDllLoader::VULKAN_DLL ),
+	device( std::move( _device ) ),
+	tmpImages( TVI_Count, nullptr )
 {
 	ASSERT_EXPR( device != 0 ); // failed to create the device
 	shaderLoader = std::unique_ptr<CVulkanShaderLoader>( new CVulkanShaderLoader( *device ) );
 	commandQueue = std::unique_ptr<CVulkanCommandQueue>( new CVulkanCommandQueue( *device ) );
-	memoryLimit = min( memoryLimit == 0 ? SIZE_MAX : memoryLimit, dll.GetDevices()[deviceNumber].AvailableMemory );
+	memoryLimit = min( memoryLimit == 0 ? SIZE_MAX : memoryLimit, device->AvailableMemory );
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( memoryLimit, this, false ) );
 	deviceStackAllocator = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, VulkanMemoryAlignment ) );
 	hostStackAllocator = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( VulkanMemoryAlignment ) );
-	tmpImages.insert( tmpImages.end(), TVI_Count, 0 );
-
-	CDllLoader::Load(CDllLoader::VULKAN_DLL);
 }
 
 CVulkanMathEngine::~CVulkanMathEngine()
@@ -105,7 +89,6 @@ CVulkanMathEngine::~CVulkanMathEngine()
 	for( auto cur : tmpImages ) {
 		delete cur;
 	}
-	CDllLoader::Free(CDllLoader::VULKAN_DLL);
 }
 
 void CVulkanMathEngine::SetReuseMemoryMode( bool enable )
@@ -218,7 +201,7 @@ void CVulkanMathEngine::DataExchangeRaw( const CMemoryHandle& to, const void* fr
 
 		if( size <= VulkanMaxExchangeAsyncSize ) {
 			// We can write the data asynchronously
-			commandQueue->RunUpdateBuffer( vulkanMemory->Buffer, vulkanOffset, fromPtr, size );
+			commandQueue->RunUpdateBuffer( vulkanMemory->Buffer(), vulkanOffset, fromPtr, size );
 			break;
 		}
 
@@ -229,11 +212,27 @@ void CVulkanMathEngine::DataExchangeRaw( const CMemoryHandle& to, const void* fr
 			toCopy = VulkanExchangeBufferSize;
 		}
 
-		void* mappedData = 0;
-		vkSucceded( device->vkMapMemory( device->Handle, vulkanMemory->Memory, vulkanOffset, toCopy, 0, &mappedData ) );
-		memcpy( mappedData, fromPtr, toCopy );
-		device->vkUnmapMemory( device->Handle, vulkanMemory->Memory );
+		if( vulkanMemory->HostVisible() ) { 			
+			void* mappedData = nullptr;
+			vkSucceded( device->vkMapMemory( vulkanMemory->Memory(), vulkanOffset, toCopy, 0, &mappedData ) );
+			memcpy( mappedData, fromPtr, toCopy );
+			device->vkUnmapMemory( vulkanMemory->Memory() );
+		} else {
+			CVulkanMemory stagingMemory( *device, toCopy, VK_BUFFER_USAGE_TRANSFER_SRC_BIT );
+			
+			void* mappedData = nullptr;
+			vkSucceded( device->vkMapMemory( stagingMemory.Memory(), 0, toCopy, 0, &mappedData ) );
+			memcpy( mappedData, fromPtr, toCopy );
+			device->vkUnmapMemory( stagingMemory.Memory() );
 
+			VkBufferCopy copyRegion{};
+			copyRegion.srcOffset = 0;
+			copyRegion.dstOffset = vulkanOffset;
+			copyRegion.size = toCopy;
+
+			commandQueue->RunCopyBuffer( stagingMemory.Buffer(), vulkanMemory->Buffer(), copyRegion );
+			commandQueue->Wait();
+		}
 		size -= toCopy;
 		toPtr += toCopy;
 		fromPtr += toCopy;
@@ -259,11 +258,27 @@ void CVulkanMathEngine::DataExchangeRaw( void* to, const CMemoryHandle& from, si
 
 		commandQueue->Wait(); // wait for the data to be written into the exchange buffer
 
-		void* mappedData = 0;
-		vkSucceded( device->vkMapMemory( device->Handle, vulkanMemory->Memory, vulkanOffset, toCopy, 0, &mappedData ) );
-		memcpy( toPtr, mappedData, toCopy );
-		device->vkUnmapMemory( device->Handle, vulkanMemory->Memory );
+		if( vulkanMemory->HostVisible() ) {
+			void* mappedData = nullptr;
+			vkSucceded( device->vkMapMemory( vulkanMemory->Memory(), vulkanOffset, toCopy, 0, &mappedData ) );
+			memcpy( toPtr, mappedData, toCopy );
+			device->vkUnmapMemory( vulkanMemory->Memory() );
+		} else {
+			CVulkanMemory stagingMemory( *device, toCopy, VK_BUFFER_USAGE_TRANSFER_DST_BIT );
 
+			VkBufferCopy copyRegion{};
+			copyRegion.srcOffset = vulkanOffset;
+			copyRegion.dstOffset = 0;
+			copyRegion.size = toCopy;
+
+			commandQueue->RunCopyBuffer( vulkanMemory->Buffer(), stagingMemory.Buffer(), copyRegion );
+			commandQueue->Wait();
+
+			void* mappedData = nullptr;
+			vkSucceded( device->vkMapMemory( stagingMemory.Memory(), 0, toCopy, 0, &mappedData ) );
+			memcpy( toPtr, mappedData, toCopy );
+			device->vkUnmapMemory( stagingMemory.Memory() );
+		}
 		size -= toCopy;
 		fromPtr += toCopy;
 		toPtr += toCopy;
@@ -286,49 +301,16 @@ CMemoryHandle CVulkanMathEngine::CopyFrom( const CMemoryHandle& handle, size_t s
 
 CMemoryHandle CVulkanMathEngine::Alloc( size_t size )
 {
-	std::unique_ptr<CVulkanMemory> vulkanMemory( new CVulkanMemory );
+	VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | 
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT | 
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	VkMemoryPropertyFlags properties = device->Type != VDT_Nvidia ?
+		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : 
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	
+	auto vulkanMemory = new CVulkanMemory( *device, size, usage, properties );
 
-	VkBufferCreateInfo createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	createInfo.size = size;
-	createInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	VkBuffer buffer = 0;
-	vkSucceded( device->vkCreateBuffer( device->Handle, &createInfo, 0, &buffer ) );
-
-	VkMemoryRequirements req = {};
-	device->vkGetBufferMemoryRequirements( device->Handle, buffer, &req );
-
-	VkMemoryAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = req.size;
-
-	// Look for the suitable index in memory
-	bool isFound = false;
-	const int flags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-
-	for( int i = 0; i < (int)device->MemoryProperties.memoryTypeCount; ++i ) {
-		if((req.memoryTypeBits & (1 << i)) != 0 &&
-			(int)(device->MemoryProperties.memoryTypes[i].propertyFlags & flags) == flags) {
-			allocInfo.memoryTypeIndex = i;
-			isFound = true;
-			break;
-		}
-	}
-	assert(isFound);
-
-	VkDeviceMemory memory;
-	if( device->vkAllocateMemory( device->Handle, &allocInfo, 0, &memory ) != VK_SUCCESS ) {
-		device->vkDestroyBuffer( device->Handle, buffer, 0 );
-		return CMemoryHandle();
-	}
-
-	vkSucceded( device->vkBindBufferMemory( device->Handle, buffer, memory, 0 ) );
-
-	vulkanMemory->Buffer = buffer;
-	vulkanMemory->Memory = memory;
-	return CMemoryHandleInternal::CreateMemoryHandle( &mathEngine(), vulkanMemory.release() );
+	return CMemoryHandleInternal::CreateMemoryHandle( &mathEngine(), vulkanMemory );
 }
 
 void CVulkanMathEngine::Free( const CMemoryHandle& handle )
@@ -338,15 +320,13 @@ void CVulkanMathEngine::Free( const CMemoryHandle& handle )
 	// Make sure that the memory we are about to clean is not used
 	commandQueue->Wait();
 
-	CVulkanMemory* vulkanMemory = GetRawAllocation(handle);
-	device->vkFreeMemory( device->Handle, vulkanMemory->Memory, 0 );
-	device->vkDestroyBuffer( device->Handle, vulkanMemory->Buffer, 0 );
+	CVulkanMemory* vulkanMemory = GetRawAllocation( handle );
 	delete vulkanMemory;
 }
 
 void CVulkanMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 {
-	getDeviceInfo( dll, deviceNumber, info );
+	getDeviceInfo( device->Info(), info );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -434,11 +414,11 @@ const CVulkanImage& CVulkanMathEngine::batchVectorToImage( int batchSize, const 
 	const CVulkanImage* images[] = { getTmpImage((TTmpVulkanImage)imageId, size4, batchSize) };
 
 	CMemoryHandle bufs[1] = { vector };
-	size_t sizes[1] = { batchSize * size * sizeof(float) };
+	size_t sizes[1] = { static_cast<size_t>( batchSize ) * size * sizeof( float ) };
 
 	PARAM_STRUCT(VectorToImage) param = { batchSize, size };
 
-	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorToImage, true, 1, 0, 1),
+	runVectorShader( shaderLoader->GET_SHADER_DATA( VectorToImage, true, 1, 0, 1 ),
 		&param, sizeof(param), images, 1, 0, 0, bufs, sizes, 1, size4 * batchSize );
 
 	return *images[0];

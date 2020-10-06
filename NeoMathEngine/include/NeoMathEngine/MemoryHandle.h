@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 #include <cstddef>
+#include <type_traits>
 
 namespace NeoML {
 
@@ -72,7 +73,7 @@ protected:
 template <class T>
 class CTypedMemoryHandle : public CMemoryHandle {
 public:
-	explicit CTypedMemoryHandle() : CMemoryHandle() {}
+	CTypedMemoryHandle() = default;
 	explicit CTypedMemoryHandle( const CMemoryHandle& other ) : CMemoryHandle( other ) {}
 
 	void SetValueAt( int index, T value ) const;
@@ -80,9 +81,10 @@ public:
 	void SetValue( T value ) const;
 	T GetValue() const;
 
-	operator CTypedMemoryHandle<const T>() const
+	template<typename U = T, typename std::enable_if<std::is_same<U, T>::value && !std::is_const<U>::value, int>::type = 0>
+	operator CTypedMemoryHandle<const U>() const
 	{
-		return CTypedMemoryHandle<const T>( *this );
+		return CTypedMemoryHandle<const U>( *this );
 	}
 
 	CTypedMemoryHandle& operator+=( ptrdiff_t shift )

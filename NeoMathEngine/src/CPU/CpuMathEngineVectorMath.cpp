@@ -45,7 +45,7 @@ void CCpuMathEngine::VectorCopy(const CFloatHandle& firstHandle, const CConstFlo
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 
-	vectorCopy( firstHandle, secondHandle, vectorSize );
+	vectorCopy( GetRaw( firstHandle ), GetRaw( secondHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

@@ -20,6 +20,7 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <MathEngineDnnPoolings.h>
+#include <CpuMathEnginePrivate.h>
 
 namespace NeoML {
 
@@ -34,8 +35,8 @@ CMaxPoolingDesc* CCpuMathEngine::InitMaxPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CCpuMathEngine::blobMaxPoolingWithIndices( const CCommonMaxPoolingDesc& desc, const CFloatHandle& sourceData,
-	const CIntHandle& maxIndicesData, const CFloatHandle& resultData )
+void CCpuMathEngine::blobMaxPoolingWithIndices( const CCommonMaxPoolingDesc& desc, const float* sourceData,
+	int* maxIndicesData, float* resultData )
 {
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
@@ -45,33 +46,34 @@ void CCpuMathEngine::blobMaxPoolingWithIndices( const CCommonMaxPoolingDesc& des
 	const int windowStep = desc.StrideWidth * channels;
 
 	CFloatHandleStackVar buffer( *this, inputRowSize );
+	float* bufferRaw = GetRaw( buffer.GetHandle() );
 	CIntHandleStackVar rowIndexBlob( *this, inputRowSize );
-	CIntHandle rowIndexBuffer = rowIndexBlob.GetHandle();
+	int* rowIndexBuffer = GetRaw( rowIndexBlob.GetHandle() );
 	CIntHandleStackVar columnIndexBlob( *this, channels );
-	CIntHandle columnIndexBuffer = columnIndexBlob.GetHandle();
+	int* columnIndexBuffer = GetRaw( columnIndexBlob.GetHandle() );
 
 	for( int i = 0; i < source.ObjectCount(); i++ ) {
-		CConstFloatHandle inputPtr = sourceData + i * source.ObjectSize();
-		CFloatHandle outputPtr = resultData + i * result.ObjectSize();
-		CIntHandle maxIndicesPtr = maxIndicesData + i * result.ObjectSize();
+		const float* inputPtr = sourceData + i * source.ObjectSize();
+		float* outputPtr = resultData + i * result.ObjectSize();
+		int* maxIndicesPtr = maxIndicesData + i * result.ObjectSize();
 		for( int j = 0; j < result.Height(); j++ ) {
 			// Calculate maximums in columns over a strip of the window height
 			int currentStripRow = desc.StrideHeight * j;
-			CConstFloatHandle currentStripStart = inputPtr + currentStripRow * inputRowSize;
-			findMaxValueInColumns( buffer.GetHandle(), rowIndexBuffer, currentStripStart,
+			const float* currentStripStart = inputPtr + currentStripRow * inputRowSize;
+			findMaxValueInColumns( bufferRaw, rowIndexBuffer, currentStripStart,
 				desc.FilterHeight, inputRowSize );
 			// Calculate maximum over each window
-			CConstFloatHandle currentbufferStart = buffer.GetHandle();
+			const float* currentbufferStart = bufferRaw;
 			int currentWindowColumn = 0;
 			for( int k = 0; k < result.Width(); k++ ) {
 				findMaxValueInColumns( outputPtr, columnIndexBuffer, currentbufferStart,
 					desc.FilterWidth, channels );
 				for( int l = 0; l < channels; l++ ) {
-					int windowIndex = columnIndexBuffer.GetValueAt( l ) * channels + l;
+					int windowIndex = columnIndexBuffer[l] * channels + l;
 					// Calculate the maximum element's index. It is the sum of the current strip offset, 
 					// the number of the row in the strip, the window offset and the number of the column in the window
-					maxIndicesPtr.SetValue( ( currentStripRow + rowIndexBuffer.GetValueAt( windowIndex ) ) * inputRowSize + currentWindowColumn + windowIndex );
-					maxIndicesPtr++;
+					*maxIndicesPtr = ( currentStripRow + rowIndexBuffer[windowIndex] ) * inputRowSize + currentWindowColumn + windowIndex;
+					++maxIndicesPtr;
 				}
 				currentbufferStart += windowStep;
 				currentWindowColumn += windowStep;
@@ -82,7 +84,7 @@ void CCpuMathEngine::blobMaxPoolingWithIndices( const CCommonMaxPoolingDesc& des
 }
 
 void CCpuMathEngine::blobMaxPoolingWithoutIndices( const CCommonMaxPoolingDesc& desc,
-	const CFloatHandle& sourceData, const CFloatHandle& resultData )
+	const float* sourceData, float* resultData )
 {
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
@@ -92,16 +94,18 @@ void CCpuMathEngine::blobMaxPoolingWithoutIndices( const CCommonMaxPoolingDesc& 
 	const int windowStep = desc.StrideWidth * channels;
 	CFloatHandleStackVar buffer( *this, inputRowSize );
 
+	float* bufferPtr = GetRaw( buffer.GetHandle() );
+
 	for( int i = 0; i < source.ObjectCount(); i++ ) {
-		CConstFloatHandle inputPtr = sourceData + i * source.ObjectSize();
-		CFloatHandle outputPtr = resultData + i * result.ObjectSize();
+		const float* inputPtr = sourceData + i * source.ObjectSize();
+		float* outputPtr = resultData + i * result.ObjectSize();
 		for( int j = 0; j < result.Height(); j++ ) {
 			// Calculate maximums in columns over a strip of the window height
-			CConstFloatHandle currentStripStart = inputPtr + inputRowSize * desc.StrideHeight * j;
-			findMaxValueInColumns( buffer, currentStripStart,
+			const float* currentStripStart = inputPtr + inputRowSize * desc.StrideHeight * j;
+			findMaxValueInColumns( bufferPtr, currentStripStart,
 				desc.FilterHeight, inputRowSize );
 			// Calculate maximum over the window
-			CConstFloatHandle currentbufferStart = buffer;
+			const float* currentbufferStart = bufferPtr;
 			for( int k = 0; k < result.Width(); k++ ) {
 				findMaxValueInColumns( outputPtr, currentbufferStart, desc.FilterWidth, channels );
 				currentbufferStart += windowStep;
@@ -118,12 +122,16 @@ void CCpuMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const C
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 
+	const float* sourceDataRaw = GetRaw( sourceData );
+	int* maxIndicesDataRaw = maxIndicesData == nullptr ? nullptr : GetRaw( *maxIndicesData );
+	float* resultDataRaw = GetRaw( resultData );
+
 	const CCommonMaxPoolingDesc& desc = static_cast<const CCommonMaxPoolingDesc&>( poolingDesc );
 
-	if( maxIndicesData != 0 ) {
-		blobMaxPoolingWithIndices( desc, sourceData, *maxIndicesData, resultData );
+	if( maxIndicesData != nullptr ) {
+		blobMaxPoolingWithIndices( desc, sourceDataRaw, maxIndicesDataRaw, resultDataRaw );
 	} else {
-		blobMaxPoolingWithoutIndices( desc, sourceData, resultData );
+		blobMaxPoolingWithoutIndices( desc, sourceDataRaw, resultDataRaw );
 	}
 }
 
@@ -255,13 +263,17 @@ void CCpuMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePooli
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 
+	const float* sourceDataRaw = GetRaw( sourceData );
+	int* maxIndicesDataRaw = maxIndicesData == nullptr ? nullptr : GetRaw( *maxIndicesData );
+	float* resultDataRaw = GetRaw( resultData );
+
 	const CCommonGlobalMaxOverTimePoolingDesc& desc = static_cast<const CCommonGlobalMaxOverTimePoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
 
 	if( maxIndicesData != 0 ) {
-		findMaxValueInColumns( resultData, *maxIndicesData, sourceData, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
+		findMaxValueInColumns( resultDataRaw, maxIndicesDataRaw, sourceDataRaw, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
 	} else {
-		findMaxValueInColumns( resultData, sourceData, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
+		findMaxValueInColumns( resultDataRaw, sourceDataRaw, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
 	}
 }
 
@@ -281,7 +293,7 @@ void CCpuMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverT
 	const float* outputPtr = GetRaw( sourceData );
 	float* inputPtr = GetRaw( resultData );
 
-	VectorFill( resultData, 0, result.BlobSize() );
+	vectorFill0( inputPtr, result.BlobSize() );
 
 	for( int i = 0; i < objectSize; ++i ) {
 		inputPtr[i + objectSize * *maxIndicesPtr++] = *outputPtr++;
@@ -307,18 +319,19 @@ void CCpuMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& 
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
 
+	const float* outputDiffPtr = GetRaw( outputDiffData );
+	const int* maxIndexPtr = GetRaw( maxIndicesData );
+	float* inputDiffPtr = GetRaw( inputDiffData );
+
 	const CCommonGlobalMaxPoolingDesc& desc = static_cast<const CCommonGlobalMaxPoolingDesc&>( poolingDesc );
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
 
-	VectorFill( inputDiffData, 0, inputDiff.BlobSize() );
+	vectorFill0( inputDiffPtr, inputDiff.BlobSize() );
 
 	int poolSize = inputDiff.Height() * inputDiff.Width() * inputDiff.Depth();
 	int maxCount = outputDiff.Height() * outputDiff.Width() * outputDiff.Depth();
 
-	const float* outputDiffPtr = GetRaw( outputDiffData );
-	const int* maxIndexPtr = GetRaw( maxIndicesData );
-	float* inputDiffPtr = GetRaw( inputDiffData );
 	int objectSize = poolSize * inputDiff.Channels();
 
 	for( int b = 0; b < inputDiff.ObjectCount(); ++b ) {
@@ -358,14 +371,15 @@ void CCpuMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& poolingD
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
 
+	const float* outputDiffPtr = GetRaw( outputDiffData );
+	float* inputDiffPtr = GetRaw( inputDiffData );
+	const int* indexPtr = GetRaw( maxIndicesData );
+
 	const CCommon3dMaxPoolingDesc& desc = static_cast<const CCommon3dMaxPoolingDesc&>( poolingDesc );
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
 
-	VectorFill( inputDiffData, 0, inputDiff.BlobSize() );
-	const float* outputDiffPtr = GetRaw( outputDiffData );
-	float* inputDiffPtr = GetRaw( inputDiffData );
-	const int* indexPtr = GetRaw( maxIndicesData );
+	vectorFill0( inputDiffPtr, inputDiff.BlobSize() );
 
 	int inputObjectSize = inputDiff.ObjectSize();
 	int outputGeomSize = outputDiff.GeometricalSize();
@@ -415,17 +429,17 @@ void CCpuMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDe
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
 
+	const float* outputDiffDataPtr = GetRaw( outputDiffData );
+	const int* indexDataPtr = GetRaw( maxIndicesData );
+	float* inputDiffPtr = GetRaw( inputDiffData );
+
 	const CCommonMaxOverTimePoolingDesc& desc = static_cast<const CCommonMaxOverTimePoolingDesc&>( poolingDesc );
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
 
 	int seqElemSize = inputDiff.ObjectSize() * inputDiff.BatchWidth();
 
-	VectorFill( inputDiffData, 0, inputDiff.BlobSize() );
-
-	const float* outputDiffDataPtr = GetRaw( outputDiffData );
-	const int* indexDataPtr = GetRaw( maxIndicesData );
-	float* inputDiffPtr = GetRaw( inputDiffData );
+	vectorFill0( inputDiffPtr, inputDiff.BlobSize() );
 
 	for( int l = 0; l < outputDiff.BatchLength(); ++l ) {
 		for( int i = 0; i < seqElemSize; ++i ) {

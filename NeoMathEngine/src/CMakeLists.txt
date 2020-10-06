@@ -1,4 +1,4 @@
-if(NeoMathEngine_BUILD_SHARED)
+﻿if(NeoMathEngine_BUILD_SHARED)
     add_library(${PROJECT_NAME} SHARED common.cpp)
 else()
     add_library(${PROJECT_NAME} STATIC common.cpp)
@@ -126,7 +126,9 @@ else()
         CPU/x86/CpuX86MathEngineVectorMathMkl.cpp
         CPU/x86/CpuX86MathEngineDnn3dConv.cpp
         CPU/x86/CpuX86.h
-		CPU/x86/AvxDll.cpp
+        CPU/x86/CpuX86MathEngineBlasPrivate.h
+        CPU/x86/CpuX86MathEngineVectorMathPrivate.h
+        CPU/x86/AvxDll.cpp
 		CPU/x86/AvxDll.h
     )
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
@@ -164,6 +166,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         target_sources(${PROJECT_NAME}
             PRIVATE
                 GPU/CUDA/CublasDll.cpp
+                GPU/CUDA/CudaCommon.cpp
                 GPU/CUDA/CudaDevice.cpp
                 GPU/CUDA/CudaMathEngine.cpp
                 GPU/CUDA/CusparseDll.cpp
@@ -248,58 +251,71 @@ elseif(IOS)
     if(NeoMathEngine_BUILD_SHARED)
         set_target_properties(${PROJECT_NAME} PROPERTIES RESOURCE ${METAL_LIB})
     endif()
-elseif(ANDROID)
-    
-    if(USE_FINE_OBJECTS)
-        set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
-    endif()
-    
-    find_path(Vulkan_INCLUDE_DIR
-        NAMES vulkan/vulkan.h
-        PATHS "$ENV{VULKAN_SDK}/Include"
-                "$ENV{VULKAN_SDK}/include"
-    )
-    
-    find_program(GLSL_COMPILER 
-        NAMES glslangValidator
-        PATHS "$ENV{VULKAN_SDK}/Bin"
-                "$ENV{VULKAN_SDK}/bin"
-    )
-    
-    if(Vulkan_INCLUDE_DIR AND GLSL_COMPILER)
-        message(STATUS "Found Vulkan: TRUE")
+endif()
 
-        if(USE_FINE_OBJECTS AND CMAKE_HOST_SYSTEM_NAME MATCHES "Linux|Darwin")
-            execute_process(COMMAND chmod +x ${GLSL_COMPILER})
+if(NeoMathEngine_ENABLE_VULKAN)
+    if(WIN32 OR ANDROID)
+        
+        if(USE_FINE_OBJECTS)
+            set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
         endif()
-        # Using Vulkan
-        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_VULKAN)
         
-        target_include_directories(${PROJECT_NAME} 
-            PRIVATE 
-                GPU/Vulkan
-                ${Vulkan_INCLUDE_DIR}
+        find_path(Vulkan_INCLUDE_DIR
+            NAMES vulkan/vulkan.h
+            PATHS "$ENV{VULKAN_SDK}/Include"
+                    "$ENV{VULKAN_SDK}/include"
         )
         
-        target_sources(${PROJECT_NAME}
-            PRIVATE
-                GPU/Vulkan/VulkanCommandQueue.cpp
-                GPU/Vulkan/VulkanDll.cpp
-                GPU/Vulkan/VulkanImage.cpp
-                GPU/Vulkan/VulkanMathEngineBlas.cpp
-                GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
-                GPU/Vulkan/VulkanMathEngineDnn.cpp
-                GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
-                GPU/Vulkan/VulkanMathEngine.cpp
-                GPU/Vulkan/VulkanMathEngineVectorMath.cpp
-                GPU/Vulkan/VulkanShader.cpp
+        find_program(GLSL_COMPILER 
+            NAMES glslangValidator
+            PATHS "$ENV{VULKAN_SDK}/Bin"
+                    "$ENV{VULKAN_SDK}/bin"
         )
         
-        add_subdirectory(GPU/Vulkan/shaders)
-        
-        add_dependencies(${PROJECT_NAME} VulkanShaders)
-    else()
-        message(STATUS "Found Vulkan: FALSE")
+        if(Vulkan_INCLUDE_DIR AND GLSL_COMPILER)
+            message(STATUS "Found Vulkan: TRUE")
+
+            if(USE_FINE_OBJECTS AND CMAKE_HOST_SYSTEM_NAME MATCHES "Linux|Darwin")
+                execute_process(COMMAND chmod +x ${GLSL_COMPILER})
+            endif()
+            # Using Vulkan
+            target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_VULKAN VK_NO_PROTOTYPES)
+            
+            target_include_directories(${PROJECT_NAME}
+                PRIVATE 
+                    GPU/Vulkan
+                    ${Vulkan_INCLUDE_DIR}
+            )
+            
+            target_sources(${PROJECT_NAME}
+                PRIVATE
+                    GPU/Vulkan/VulkanCommandQueue.cpp
+                    GPU/Vulkan/VulkanCommandQueue.h
+                    GPU/Vulkan/VulkanDll.cpp
+                    GPU/Vulkan/VulkanDll.h
+                    GPU/Vulkan/VulkanImage.cpp
+                    GPU/Vulkan/VulkanImage.h
+                    GPU/Vulkan/VulkanMathEngineBlas.cpp
+                    GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
+                    GPU/Vulkan/VulkanMathEngineDnn.cpp
+                    GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
+                    GPU/Vulkan/VulkanMathEngine.cpp
+                    GPU/Vulkan/VulkanMathEngine.h
+                    GPU/Vulkan/VulkanMathEngineVectorMath.cpp
+                    GPU/Vulkan/VulkanShader.cpp
+                    GPU/Vulkan/VulkanShader.h
+                    GPU/Vulkan/VulkanMemory.cpp
+                    GPU/Vulkan/VulkanMemory.h
+                    GPU/Vulkan/shaders/common/CommonStruct.h
+            )
+            source_group("GPU\\Vulkan" REGULAR_EXPRESSION "GPU\/Vulkan\/[A-Za-z0-9_]+\.(h|cpp)")
+            
+            add_subdirectory(GPU/Vulkan/shaders)
+            
+            add_dependencies(${PROJECT_NAME} VulkanShaders)
+        else()
+            message(STATUS "Found Vulkan: FALSE")
+        endif()
     endif()
 endif()
 
