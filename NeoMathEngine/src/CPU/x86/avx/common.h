@@ -13,25 +13,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-// These functions only use raw pointers, do not contain any omp sections inside and perform no checks
-
 #pragma once
 
-#include <NeoMathEngine/NeoMathEngineDefs.h>
+#define _CRT_SECURE_NO_WARNINGS
 
-#if defined(NEOML_USE_SSE)
+#include <cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <algorithm>
+#include <cassert>
+#include <vector>
 
-#include <CpuX86.h>
-#include <CpuX86MathEngineVectorMathPrivate.h>
-#include <AvxDll.h>
-
-#elif defined(NEOML_USE_NEON)
-
-#include <CpuArm.h>
-#include <CpuArmMathEngineVectorMathPrivate.h>
-
-#else
-
-#error "Platform isn't supported!"
-
+#include <NeoMathEngine/Platforms.h>
+#if FINE_PLATFORM( FINE_WINDOWS )
+#include <windows.h>
 #endif
+
+using namespace std;

@@ -128,9 +128,12 @@ else()
         CPU/x86/CpuX86.h
         CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
+        CPU/x86/AvxDll.cpp
+		CPU/x86/AvxDll.h
     )
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
 endif()
 
 # GPU specific source and settings
@@ -332,25 +335,7 @@ endif()
 
 
 # OpenMP
-if(NOT IOS)
-    find_package(OpenMP REQUIRED)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC NEOML_USE_OMP)
-    string(REPLACE " " ";" OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS})
-    target_compile_options(${PROJECT_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)
-    target_include_directories(${PROJECT_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_INCLUDE_DIRS}>)
-    if(OpenMP_CXX_LIBRARIES)
-        if(ANDROID)
-            get_filename_component(OMP_SUFFIX ${OpenMP_omp_LIBRARY} EXT)
-            if(OMP_SUFFIX STREQUAL ".so")
-                target_link_libraries(${PROJECT_NAME} PUBLIC -fopenmp -static-openmp)
-            else()
-                target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-            endif()
-        else()
-            target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-        endif()
-    endif()
-endif()
+link_openmp()
 
 # SSE2
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
