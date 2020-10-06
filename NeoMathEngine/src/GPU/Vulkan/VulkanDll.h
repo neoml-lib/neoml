@@ -56,9 +56,9 @@ template <typename T>
 struct DeviceFunction;
 
 template <typename R, typename... Args>
-struct DeviceFunction<R(*)(VkDevice, Args...)>
+struct DeviceFunction<R(VKAPI_PTR*)(VkDevice, Args...)>
 {
-	using PointerType = R(*)( VkDevice, Args... );
+	using PointerType = R(VKAPI_PTR*)( VkDevice, Args... );
 
 	DeviceFunction(): DeviceFunction( nullptr, nullptr ) {}
 	DeviceFunction( VkDevice device_, PointerType ptr_ ) :
