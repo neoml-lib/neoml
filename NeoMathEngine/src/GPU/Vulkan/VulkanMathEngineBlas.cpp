@@ -83,31 +83,6 @@ namespace NeoML {
 
 //------------------------------------------------------------------------------------------------------------
 
-inline int Floor( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return val / discret;
-	}
-	return ( val - discret + 1 ) / discret;
-}
-
-inline int FloorTo( int val, int discret )
-{
-	return Floor( val, discret ) * discret;
-}
-
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
-
-//------------------------------------------------------------------------------------------------------------
-
 void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& firstHandle,
 	int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int /*resultBufferSize*/ )
 {

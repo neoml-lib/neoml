@@ -94,4 +94,4 @@ void CGELULayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData(), blobSize );
 }
 
-} // namespace FML
+} // namespace NeoML

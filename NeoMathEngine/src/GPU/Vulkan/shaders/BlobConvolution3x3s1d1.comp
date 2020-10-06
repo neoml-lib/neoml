@@ -64,14 +64,14 @@ void main()
 	int xStart = x * 4;
 	int inputYStart = yStart;
 	int inputXStart = xStart;
-	int inputPos = (b * P.inputHeight + inputYStart) * P.inputWidth + inputXStart;
+	int inputPos = (b * P.inputHeight * P.inputChannels + inputYStart) * P.inputWidth + inputXStart;
 
 	float initValue = (P.isFreeTerm != 0) ? freeTerm[c] : 0.;
 	vec4 res0 = vec4(initValue);
 	vec4 res1 = vec4(initValue);
 	vec4 res2 = vec4(initValue);
 
-	for(int channel = 0; channel < P.inputChannels; ++channel) {
+	for (int channel = 0; channel < P.inputChannels; ++channel) {
 		// read flt data
 		vec3 filterRow0 = vec3(flt[filterPos], flt[filterPos + 1], flt[filterPos + 2]);
 		filterPos += 3;

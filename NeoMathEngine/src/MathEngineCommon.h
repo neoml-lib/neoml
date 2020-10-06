@@ -68,3 +68,30 @@ inline void generateMemoryError( NeoML::IMathEngineExceptionHandler* exceptionHa
 			throw std::bad_alloc(); \
 		} \
 	} while(0)
+
+namespace NeoML {
+
+inline int Ceil( int val, int discret )
+{
+	assert( discret > 0 );
+	if( val > 0 ) {
+		return ( val + discret - 1 ) / discret;
+	}
+	return val / discret;
+}
+
+inline int Floor( int val, int discret )
+{
+	assert( discret > 0 );
+	if( val > 0 ) {
+		return val / discret;
+	}
+	return ( val - discret + 1 ) / discret;
+}
+
+inline int FloorTo( int val, int discret )
+{
+	return Floor( val, discret ) * discret;
+}
+
+}

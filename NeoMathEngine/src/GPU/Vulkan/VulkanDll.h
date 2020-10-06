@@ -22,6 +22,7 @@ limitations under the License.
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <MathEngineDll.h>
+#include <MathEngineCommon.h>
 #include <MathEngineAllocator.h>
 
 namespace NeoML {
@@ -35,12 +36,15 @@ enum TVulkanDeviceType {
 	VDT_Regular,		// a regular device, use the default algorithms
 						// In particular, a pre-Bifrost Mali and all unknown devices will be detected as Regular
 	VDT_Adreno,			// Adreno mobile GPU
-	VDT_MaliBifrost		// Mali mobile GPU with Bifrost+ architecture
+	VDT_MaliBifrost,	// Mali mobile GPU with Bifrost+ architecture
+	VDT_Nvidia,			// Nvidia discrete device
+	VDT_Intel			// Intel integrated device
 };
 
 // The information about a vulkan device
 struct CVulkanDeviceInfo {
 	TVulkanDeviceType Type;
+	int DeviceID;
 	int Family;
 	size_t AvailableMemory;
 	VkPhysicalDevice PhysicalDevice;
@@ -48,72 +52,137 @@ struct CVulkanDeviceInfo {
 	VkPhysicalDeviceProperties Properties;
 };
 
-//------------------------------------------------------------------------------------------------------------
+template <typename T>
+struct DeviceFunction;
+
+template <typename R, typename... Args>
+struct DeviceFunction<R(VKAPI_PTR*)(VkDevice, Args...)>
+{
+	using PointerType = R(VKAPI_PTR*)( VkDevice, Args... );
+
+	DeviceFunction(): DeviceFunction( nullptr, nullptr ) {}
+	DeviceFunction( VkDevice device_, PointerType ptr_ ) :
+		device( device_ ),
+		ptr( ptr_ )
+	{}
+
+	R operator()( Args... args ) const { return ptr( device, args... ); }
+
+private:
+	VkDevice device;
+	PointerType ptr;
+};
+
 
 // Vulkan device
-struct CVulkanDevice {
-	virtual ~CVulkanDevice() {}
-
-	VkDevice Handle;
+struct CVulkanDevice
+{
 	int Family;
 	bool IsImageBased;
 	TVulkanDeviceType Type;
 	VkPhysicalDeviceMemoryProperties MemoryProperties;
 	VkPhysicalDeviceProperties Properties;
+	std::size_t AvailableMemory;
 
 	// The functions loaded for this device
-	PFN_vkDestroyDevice vkDestroyDevice;
-	PFN_vkGetDeviceQueue vkGetDeviceQueue;
-	PFN_vkCreateBuffer vkCreateBuffer;
-	PFN_vkCreateImage vkCreateImage;
-	PFN_vkCreateImageView vkCreateImageView;
-	PFN_vkCreateSampler vkCreateSampler;
-	PFN_vkDestroyBuffer vkDestroyBuffer;
-	PFN_vkDestroyImage vkDestroyImage;
-	PFN_vkDestroyImageView vkDestroyImageView;
-	PFN_vkDestroySampler vkDestroySampler;
-	PFN_vkGetBufferMemoryRequirements vkGetBufferMemoryRequirements;
-	PFN_vkGetImageMemoryRequirements vkGetImageMemoryRequirements;
-	PFN_vkAllocateMemory vkAllocateMemory;
-	PFN_vkFreeMemory vkFreeMemory;
-	PFN_vkBindBufferMemory vkBindBufferMemory;
-	PFN_vkBindImageMemory vkBindImageMemory;
-	PFN_vkCreateCommandPool vkCreateCommandPool;
-	PFN_vkDestroyCommandPool vkDestroyCommandPool;
-	PFN_vkCreateComputePipelines vkCreateComputePipelines;
-	PFN_vkDestroyPipeline vkDestroyPipeline;
-	PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers;
-	PFN_vkFreeCommandBuffers vkFreeCommandBuffers;
-	PFN_vkCreateFence vkCreateFence;
-	PFN_vkDestroyFence vkDestroyFence;
+	DeviceFunction<PFN_vkGetDeviceQueue> vkGetDeviceQueue;
+	DeviceFunction<PFN_vkCreateBuffer> vkCreateBuffer;
+	DeviceFunction<PFN_vkCreateImage> vkCreateImage;
+	DeviceFunction<PFN_vkCreateImageView> vkCreateImageView;
+	DeviceFunction<PFN_vkCreateSampler> vkCreateSampler;
+	DeviceFunction<PFN_vkDestroyBuffer> vkDestroyBuffer;
+	DeviceFunction<PFN_vkDestroyImage> vkDestroyImage;
+	DeviceFunction<PFN_vkDestroyImageView> vkDestroyImageView;
+	DeviceFunction<PFN_vkDestroySampler> vkDestroySampler;
+	DeviceFunction<PFN_vkGetBufferMemoryRequirements> vkGetBufferMemoryRequirements;
+	DeviceFunction<PFN_vkGetImageMemoryRequirements> vkGetImageMemoryRequirements;
+	DeviceFunction<PFN_vkAllocateMemory> vkAllocateMemory;
+	DeviceFunction<PFN_vkFreeMemory> vkFreeMemory;
+	DeviceFunction<PFN_vkBindBufferMemory> vkBindBufferMemory;
+	DeviceFunction<PFN_vkBindImageMemory> vkBindImageMemory;
+	DeviceFunction<PFN_vkCreateCommandPool> vkCreateCommandPool;
+	DeviceFunction<PFN_vkDestroyCommandPool> vkDestroyCommandPool;
+	DeviceFunction<PFN_vkCreateComputePipelines> vkCreateComputePipelines;
+	DeviceFunction<PFN_vkDestroyPipeline> vkDestroyPipeline;
+	DeviceFunction<PFN_vkAllocateCommandBuffers> vkAllocateCommandBuffers;
+	DeviceFunction<PFN_vkFreeCommandBuffers> vkFreeCommandBuffers;
+	DeviceFunction<PFN_vkCreateFence> vkCreateFence;
+	DeviceFunction<PFN_vkDestroyFence> vkDestroyFence;
 	PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
 	PFN_vkEndCommandBuffer vkEndCommandBuffer;
 	PFN_vkQueueSubmit vkQueueSubmit;
-	PFN_vkWaitForFences vkWaitForFences;
+	DeviceFunction<PFN_vkWaitForFences> vkWaitForFences;
 	PFN_vkCmdPipelineBarrier vkCmdPipelineBarrier;
 	PFN_vkCmdCopyBuffer vkCmdCopyBuffer;
-	PFN_vkResetFences vkResetFences;
+	DeviceFunction<PFN_vkResetFences> vkResetFences;
 	PFN_vkCmdUpdateBuffer vkCmdUpdateBuffer;
-	PFN_vkMapMemory vkMapMemory;
-	PFN_vkUnmapMemory vkUnmapMemory;
+	DeviceFunction<PFN_vkMapMemory> vkMapMemory;
+	DeviceFunction<PFN_vkUnmapMemory> vkUnmapMemory;
 	PFN_vkCmdFillBuffer	vkCmdFillBuffer;
-	PFN_vkCreateDescriptorPool vkCreateDescriptorPool;
-	PFN_vkDestroyDescriptorPool vkDestroyDescriptorPool;
+	DeviceFunction<PFN_vkCreateDescriptorPool> vkCreateDescriptorPool;
+	DeviceFunction<PFN_vkDestroyDescriptorPool> vkDestroyDescriptorPool;
 	PFN_vkCmdBindPipeline vkCmdBindPipeline;
 	PFN_vkCmdBindDescriptorSets vkCmdBindDescriptorSets;
 	PFN_vkCmdDispatch vkCmdDispatch;
-	PFN_vkAllocateDescriptorSets vkAllocateDescriptorSets;
-	PFN_vkFreeDescriptorSets vkFreeDescriptorSets;
-	PFN_vkCreateDescriptorSetLayout vkCreateDescriptorSetLayout;
-	PFN_vkDestroyDescriptorSetLayout vkDestroyDescriptorSetLayout;
-	PFN_vkUpdateDescriptorSets vkUpdateDescriptorSets;
-	PFN_vkCreatePipelineLayout vkCreatePipelineLayout;
-	PFN_vkDestroyPipelineLayout vkDestroyPipelineLayout;
-	PFN_vkCreateShaderModule vkCreateShaderModule;
-	PFN_vkDestroyShaderModule vkDestroyShaderModule;
+	DeviceFunction<PFN_vkAllocateDescriptorSets> vkAllocateDescriptorSets;
+	DeviceFunction<PFN_vkFreeDescriptorSets> vkFreeDescriptorSets;
+	DeviceFunction<PFN_vkCreateDescriptorSetLayout> vkCreateDescriptorSetLayout;
+	DeviceFunction<PFN_vkDestroyDescriptorSetLayout> vkDestroyDescriptorSetLayout;
+	DeviceFunction<PFN_vkUpdateDescriptorSets> vkUpdateDescriptorSets;
+	DeviceFunction<PFN_vkCreatePipelineLayout> vkCreatePipelineLayout;
+	DeviceFunction<PFN_vkDestroyPipelineLayout> vkDestroyPipelineLayout;
+	DeviceFunction<PFN_vkCreateShaderModule> vkCreateShaderModule;
+	DeviceFunction<PFN_vkDestroyShaderModule> vkDestroyShaderModule;
 	PFN_vkCmdPushConstants vkCmdPushConstants;
 	PFN_vkQueueWaitIdle vkQueueWaitIdle;
+	
+	friend class CVulkanDll;
+
+	CVulkanDevice( const CVulkanDevice& ) = delete;
+	CVulkanDevice& operator=( const CVulkanDevice& ) = delete;
+
+	~CVulkanDevice() noexcept;
+
+	const CVulkanDeviceInfo& Info() const { return info; }
+
+private:
+	VkDevice device;
+	PFN_vkDestroyDevice vkDestroyDevice;
+	const CVulkanDeviceInfo& info;
+
+	CVulkanDevice( VkDevice device_, const CVulkanDeviceInfo& info_ ) :
+		Family( info_.Family ),
+		IsImageBased( ( info_.Type == VDT_MaliBifrost || info_.Type == VDT_Nvidia || info_.Type == VDT_Intel ) ? 
+			false : true ),
+		Type( info_.Type ),
+		MemoryProperties( info_.MemoryProperties ),
+		Properties( info_.Properties ),
+		AvailableMemory( info_.AvailableMemory ),
+		vkBeginCommandBuffer( nullptr ),
+		vkEndCommandBuffer( nullptr ),
+		vkQueueSubmit( nullptr ),
+		vkCmdPipelineBarrier( nullptr ),
+		vkCmdCopyBuffer( nullptr ),
+		vkCmdUpdateBuffer( nullptr ),
+		vkCmdFillBuffer( nullptr ),
+		vkCmdBindPipeline( nullptr ),
+		vkCmdBindDescriptorSets( nullptr ),
+		vkCmdDispatch( nullptr ),
+		vkCmdPushConstants( nullptr ),
+		vkQueueWaitIdle( nullptr ),
+		device(device_),
+		vkDestroyDevice( nullptr ),
+		info( info_ )
+	{}
 };
+
+inline CVulkanDevice::~CVulkanDevice() noexcept
+{
+	if( device != nullptr ) {
+		vkDestroyDevice( device, 0 );
+		device = nullptr;
+	}
+}
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -133,7 +202,7 @@ public:
 	const std::vector< CVulkanDeviceInfo, CrtAllocator<CVulkanDeviceInfo> >& GetDevices() const { return devices; }
 
 	// Creates a device
-	CVulkanDevice* CreateDevice( const CVulkanDeviceInfo& info ) const;
+	const CVulkanDevice* CreateDevice(const CVulkanDeviceInfo& info) const;
 
 	// Unloads the library
 	void Free();
