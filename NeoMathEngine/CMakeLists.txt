@@ -28,6 +28,9 @@ option(NeoMathEngine_BUILD_TESTS "Build all of NeoMathEngine's tests." OFF)
 # Build NeoMathEngine as shared library
 option(NeoMathEngine_BUILD_SHARED "Build NeoMathEngine as shared library." ON)
 
+# Enable to build vulkan backend
+option(NeoMathEngine_ENABLE_VULKAN "Enable to build vulkan backend" ON)
+
 # Install NeoMathEngine
 if(DEFINED NeoML_INSTALL)
     option(NeoMathEngine_INSTALL "Install NeoMathEngine." ${NeoML_INSTALL})

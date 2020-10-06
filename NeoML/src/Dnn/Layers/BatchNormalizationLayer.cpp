@@ -175,7 +175,7 @@ void CBatchNormalizationLayer::Reshape()
 	MathEngine().VectorEltwiseMultiply(slowConvergenceRate->GetData(), varianceNorm->GetData(), varianceMult->GetData(), 1);
 	
 	normalized  = 0;
-	if(IsBackwardPerformed()) {
+	if( IsLearningPerformed() ) {
 		normalized = CDnnBlob::CreateBlob( MathEngine(), inputDescs[0] );
 		RegisterRuntimeBlob(normalized);
 	}

@@ -233,6 +233,7 @@ delete gpuMathEngine;
   - [C3dMeanPoolingLayer](PoolingLayers/3dMeanPoolingLayer.md) - трехмерный `Mean Pooling`
   - [CGlobalMaxPoolingLayer](PoolingLayers/GlobalMaxPoolingLayer.md) - `Max Pooling` над объектами целиком
   - [CMaxOverTimePoolingLayer](PoolingLayers/MaxOverTimePoolingLayer.md) - `Max Pooling` над последовательностями "по времени"
+  - [CProjectionPoolingLayer](PoolingLayers/ProjectionPoolingLayer.md) - `Mean Pooling` вдоль одной из размерностей блоба
 - [CSoftmaxLayer](SoftmaxLayer.md) - вычисление функции `softmax`
 - [CDropoutLayer](DropoutLayer.md) - реализация `dropout`
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) - батч нормализация
