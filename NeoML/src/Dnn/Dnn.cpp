@@ -78,6 +78,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
 #include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/GELULayer.h>
+#include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
 
 namespace NeoML {
 
@@ -278,6 +279,7 @@ REGISTER_NEOML_LAYER( CMatrixMultiplicationLayer, "NeoMLDnnMatrixMultiplicationL
 REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer" )
 REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLayer" )
 REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
+REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClass" )
 
 }
 
@@ -292,10 +294,10 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
 	isRebuildNeeded( false ),
 	isBackwardPerformed( false ),
 	isLearningEnabled( true ),
-	isRecurrentMode( false ),	
+	isRecurrentMode( false ),
 	maxSequenceLength( 1 ),
-	currentSequencePos( 0 ),	
-	isReverseSequense( false ),	
+	currentSequencePos( 0 ),
+	isReverseSequense( false ),
 	autoRestartMode( true ),
 	isReuseMemoryMode( false )
 {
