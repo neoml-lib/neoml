@@ -19,17 +19,7 @@ limitations under the License.
 
 #ifdef NEOML_USE_VULKAN
 
-#include <NeoMathEngine/CrtAllocatedObject.h>
-#include <vulkan/vulkan.h>
-
-namespace NeoML {
-
-struct CVulkanMemory : public CCrtAllocatedObject {
-	VkBuffer Buffer;
-	VkDeviceMemory Memory;
-};
-
-} // namespace NeoML
+#include <VulkanMemory.h>
 
 #endif
 

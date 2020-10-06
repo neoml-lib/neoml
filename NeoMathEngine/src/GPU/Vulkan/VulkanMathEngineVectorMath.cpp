@@ -92,29 +92,20 @@ namespace NeoML {
 //------------------------------------------------------------------------------------------------------------
 
 // The number of combined operations
-static const int VectorCombine = 4;
-
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
+constexpr int VectorCombine = 4;
 
 void CVulkanMathEngine::VectorFill( const CFloatHandle& result, float value, int vectorSize )
 {
-	assert(sizeof(float) == sizeof(uint32_t));
+	static_assert(sizeof(float) == sizeof(uint32_t), "");
 
 	uint32_t data = 0;
 	*((float*)(&data)) = value;
 	size_t size = vectorSize * sizeof( float );
 
-	CVulkanMemory* vulkanMemory = GetRawAllocation(result);
+	CVulkanMemory* vulkanMemory = GetRawAllocation( result );
 
 	std::lock_guard<std::mutex> lock( mutex );
-	commandQueue->RunFillBuffer( vulkanMemory->Buffer, GetRawOffset(result), size, data );
+	commandQueue->RunFillBuffer( vulkanMemory->Buffer(), GetRawOffset( result ), size, data );
 }
 
 void CVulkanMathEngine::VectorFill( const CIntHandle& result, int value, int vectorSize )
@@ -122,10 +113,10 @@ void CVulkanMathEngine::VectorFill( const CIntHandle& result, int value, int vec
 	uint32_t data = value;
 	size_t size = vectorSize * sizeof( int );
 
-	CVulkanMemory* vulkanMemory = reinterpret_cast<CVulkanMemory*>( GetRawAllocation(result) );
+	CVulkanMemory* vulkanMemory = GetRawAllocation( result );
 
 	std::lock_guard<std::mutex> lock( mutex );
-	commandQueue->RunFillBuffer( vulkanMemory->Buffer, GetRawOffset(result), size, data );
+	commandQueue->RunFillBuffer( vulkanMemory->Buffer(), GetRawOffset(result), size, data );
 }
 
 void CVulkanMathEngine::VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value)
@@ -140,7 +131,7 @@ void CVulkanMathEngine::VectorFill(const CFloatHandle& result, int vectorSize, c
 void CVulkanMathEngine::VectorFill(const CIntHandle& result, int vectorSize, const CConstIntHandle& value)
 {
 	CMemoryHandle bufs[2] = { value, result };
-	size_t sizes[2] = { sizeof(int), vectorSize * sizeof(int) };
+	size_t sizes[2] = { sizeof( int ), vectorSize * sizeof( int ) };
 
 	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorFillScalar, false, 0, 0, 2),
 		0, 0, 0, 0, 0, 0, bufs, sizes, 2, Ceil(vectorSize, VectorCombine) );
@@ -174,7 +165,7 @@ void CVulkanMathEngine::VectorCopy( const CFloatHandle& to, const CConstFloatHan
 	CVulkanMemory* vulkanMemoryTo = GetRawAllocation(to);
 
 	std::lock_guard<std::mutex> lock( mutex );
-	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer, vulkanMemoryTo->Buffer, region );
+	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer(), vulkanMemoryTo->Buffer(), region );
 }
 
 void CVulkanMathEngine::VectorCopy(const CIntHandle& to, const CConstIntHandle& from, int vectorSize)
@@ -188,7 +179,7 @@ void CVulkanMathEngine::VectorCopy(const CIntHandle& to, const CConstIntHandle& 
 	CVulkanMemory* vulkanMemoryTo = GetRawAllocation(to);
 
 	std::lock_guard<std::mutex> lock( mutex );
-	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer, vulkanMemoryTo->Buffer, region );
+	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer(), vulkanMemoryTo->Buffer(), region );
 }
 
 void CVulkanMathEngine::VectorELU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
@@ -851,7 +842,7 @@ void CVulkanMathEngine::VectorFindMaxValueInSet( const CConstFloatHandle* vector
 
 	for( int i = 1; i < vectorCount; i++ ) {
 		CMemoryHandle bufs[3] = { vectors[i], resultHandle, indexHandle };
-		size_t sizes[3] = { vectorSize * sizeof( float ), vectorSize * sizeof( float ) };
+		size_t sizes[3] = { vectorSize * sizeof( float ), vectorSize * sizeof( float ), vectorSize * sizeof( int ) };
 
 		PARAM_STRUCT( VectorFindMaxValueInSet ) param = { vectorSize, i };
 
