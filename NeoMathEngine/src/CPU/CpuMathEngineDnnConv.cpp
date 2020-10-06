@@ -520,8 +520,9 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 				( desc.Filter.Channels() == 24 ) &&
 				( desc.Filter.ObjectCount() == 24 ) &&
 				( desc.Filter.Width() == 3 ) &&
-				( desc.Filter.Height() == 3 ) ) {
-				CAvxDll::GetInstance().CallBlobConvolution_avx_f9x9_c24_fc24( mathEngine(), threadCount, desc, sourceRaw, filterRaw, freeTermRaw, resultRaw );
+				( desc.Filter.Height() == 3 ) &&
+				( desc.PaddingWidth == desc.DilationWidth ) ) {
+				CAvxDll::GetInstance().CallBlobConvolution_avx_f3x3_c24_fc24( mathEngine(), threadCount, desc, sourceRaw, filterRaw, freeTermRaw, resultRaw );
 			} else if( min( desc.Result.ObjectCount(), algo1ThreadCount ) * algo1DataSize <= algo0ThreadCount * BlobConvolutionCacheSize ) {
 				blobConvolutionForwardAlgo1( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
 			} else {

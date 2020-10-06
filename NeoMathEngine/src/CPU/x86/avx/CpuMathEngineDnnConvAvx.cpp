@@ -70,25 +70,21 @@ inline void Process_avx_x2( __m256& r00, __m256& r01, __m256& r02,
 }
 
 extern "C"
-FME_DLL_EXPORT void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc& desc, const float* sourceData,
+FME_DLL_EXPORT void BlobConvolution_avx_f3x3_c24_fc24( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc& desc, const float* sourceData,
 	const float* filterData, const float* freeTermData, float* resultData )
 {
-	// const int SH = desc.Source.Height(); //1024;
-	const int SW = desc.Source.Width(); //1024;
-	const int C = 24;
-	const int S = desc.StrideWidth; //1;
+	const int SW = desc.Source.Width();
+	static constexpr int C = 24; // Channel count
+	const int S = desc.StrideWidth;
 	const int D = desc.DilationWidth;
-	// const int P = D;
-	static constexpr int FC = 24;
-	const int FH = 3;
-	const int FW = 3;
-	const int RH = desc.Result.Height(); //SH / S;
-	const int RW = desc.Result.Width(); //SW / S;
+	static constexpr int FC = 24; // Filter count
+	static constexpr int FH = 3; // Filter height
+	static constexpr int FW = 3; // Filter width
+	const int RH = desc.Result.Height();
+	const int RW = desc.Result.Width();
 
-//	CFloatHandleStackVar Source( mathEngine(), SH * SW * C );
-	// Add align padding
+	// Create temporary filter for convolution, data will be aligned.
 	size_t filterBufferSize = FH * FW * C * FC + 4;
-
 	CFloatHandleStackVar Filter( mathEngine, filterBufferSize );
 	void* alignedFltPtr = GetRaw( Filter.GetHandle() );
 	std::align( 16, FH * FW * C * FC, alignedFltPtr, filterBufferSize );
@@ -104,6 +100,7 @@ FME_DLL_EXPORT void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, 
 		// Filter[1] Pixel[0] Channel[0-23]
 		// ...
 		// Filter[23] Pixel[8] Channel[0-23]
+		//
 		// Result packing:
 		// Pixel[0] Channel[0] Filter[0-23]
 		// Pixel[0] Channel[1] Filter[0-23]
@@ -229,7 +226,7 @@ FME_DLL_EXPORT void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, 
 		{ 1 * C * FC, 2 * C * FC, 4 * C * FC, 5 * C * FC, 7 * C * FC, 8 * C * FC } // 1 2 4 5 7 8
 	};
 
-		const __m256 ft0 = freeTermData != 0 ? _mm256_loadu_ps( freeTermData ) : _mm256_setzero_ps();
+	const __m256 ft0 = freeTermData != 0 ? _mm256_loadu_ps( freeTermData ) : _mm256_setzero_ps();
 	const __m256 ft1 = freeTermData != 0 ? _mm256_loadu_ps( freeTermData + 8) : _mm256_setzero_ps();
 	const __m256 ft2 = freeTermData != 0 ? _mm256_loadu_ps( freeTermData + 16 ) : _mm256_setzero_ps();
 
@@ -407,7 +404,7 @@ FME_DLL_EXPORT void BlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, 
 			const int currentRH = min( RH, yStart + yCount );
 			int ry = yStart;
 
-			// We process all central pixels be pairs. In case the total count of central pixels is odd we will process last one separately.
+			// We process all central pixels by groups for increasing performance.
 			bool ProcessLastOnePixel = ( RW - PartialStepCountAfter - PartialStepCountBefore ) % 3 == 1;
 			bool ProcessLastTwoPixels = ( RW - PartialStepCountAfter - PartialStepCountBefore ) % 3 == 2;
 

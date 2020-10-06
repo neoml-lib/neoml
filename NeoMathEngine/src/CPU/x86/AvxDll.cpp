@@ -35,7 +35,7 @@ CAvxDll::CAvxDll() : isLoaded( false ), functionAdresses{}
 		return;
 	}
 
-	loadFunction( TFunctionPointers::BlobConvolution_avx_f9x9_c24_fc24, "BlobConvolution_avx_f9x9_c24_fc24" );
+	loadFunction( TFunctionPointers::BlobConvolution_avx_f3x3_c24_fc24, "BlobConvolution_avx_f3x3_c24_fc24" );
 
 	isLoaded = true;
 }
@@ -54,11 +54,11 @@ void CAvxDll::loadFunction( TFunctionPointers functionType, const char* function
 	functionAdresses[static_cast<size_t>(functionType)] = functionAdress;
 }
 
-void CAvxDll::CallBlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc& desc,
+void CAvxDll::CallBlobConvolution_avx_f3x3_c24_fc24( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc& desc,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) const
 {
 	typedef void ( *FuncType )( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc&, const float*, const float*, const float*, float* );
-	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::BlobConvolution_avx_f9x9_c24_fc24 ) ) );
+	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::BlobConvolution_avx_f3x3_c24_fc24 ) ) );
 
 	ASSERT_EXPR( func != nullptr );
 
@@ -66,6 +66,7 @@ void CAvxDll::CallBlobConvolution_avx_f9x9_c24_fc24( IMathEngine& mathEngine, in
 	ASSERT_EXPR( desc.Filter.ObjectCount() == 24 );
 	ASSERT_EXPR( desc.PaddingWidth == desc.PaddingHeight );
 	ASSERT_EXPR( desc.DilationWidth == desc.DilationHeight );
+	ASSERT_EXPR( desc.PaddingWidth == desc.DilationWidth );
 	ASSERT_EXPR( desc.StrideWidth == desc.StrideHeight );
 	ASSERT_EXPR( desc.Filter.Width() == 3 );
 	ASSERT_EXPR( desc.Filter.Height() == 3 );
