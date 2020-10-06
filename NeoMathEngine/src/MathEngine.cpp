@@ -19,6 +19,7 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
 #include <CpuMathEngine.h>
+#include <DllLoader.h>
 
 #ifdef NEOML_USE_CUDA
 #include <cuda_runtime.h>
@@ -149,7 +150,14 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 #endif
 #ifdef NEOML_USE_VULKAN
 	case MET_Vulkan:
-		return new CVulkanMathEngine( *CDllLoader::vulkanDll, index >= 0 ? info[index].Id : 0, memoryLimit );
+	{
+		const auto& deviceInfo = loader.vulkanDll->GetDevices()[index >= 0 ? info[index].Id : 0];
+		std::unique_ptr<const CVulkanDevice> device (loader.vulkanDll->CreateDevice( deviceInfo ) );
+		if( !device ) {
+			return nullptr;
+		}
+		return new CVulkanMathEngine( device, memoryLimit );
+	}
 #endif
 #ifdef NEOML_USE_METAL
 	case MET_Metal:

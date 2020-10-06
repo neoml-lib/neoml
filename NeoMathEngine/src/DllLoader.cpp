@@ -83,7 +83,7 @@ int CDllLoader::Load( int dll )
 void CDllLoader::Free( int dll )
 {
 	if( (dll & ALL_DLL) != 0 ) {
-		std::lock_guard<std::mutex> lock(mutex);
+		std::lock_guard<std::mutex> lock( mutex );
 #ifdef NEOML_USE_VULKAN
 		if( (dll & VULKAN_DLL) != 0 && vulkanDllLinkCount > 0 ) {
 			vulkanDllLinkCount--;

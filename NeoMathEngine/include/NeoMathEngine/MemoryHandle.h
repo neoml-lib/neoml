@@ -73,7 +73,7 @@ protected:
 template <class T>
 class CTypedMemoryHandle : public CMemoryHandle {
 public:
-	explicit CTypedMemoryHandle() : CMemoryHandle() {}
+	CTypedMemoryHandle() = default;
 	explicit CTypedMemoryHandle( const CMemoryHandle& other ) : CMemoryHandle( other ) {}
 
 	void SetValueAt( int index, T value ) const;

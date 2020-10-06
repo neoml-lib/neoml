@@ -39,18 +39,10 @@ namespace NeoML {
 #include <shaders/generated/BlobReorgFloat.h>
 #include <shaders/generated/BlobReorgInt.h>
 
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
 
 //------------------------------------------------------------------------------------------------------------
 
-static const int FloatDescArrayMaxBlobs = 32;
+constexpr int FloatDescArrayMaxBlobs = 32;
 
 struct CFloatDescArray {
 	int Count;
