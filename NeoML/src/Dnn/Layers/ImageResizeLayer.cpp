@@ -115,4 +115,16 @@ void CImageResizeLayer::BackwardOnce()
 		-deltaLeft, -deltaRight, -deltaTop, -deltaBottom, 0.f, inputDiffBlobs[0]->GetDesc(), inputDiffBlobs[0]->GetData() );
 }
 
+CLayerWrapper<CImageResizeLayer> ImageResize( int deltaLeft, int deltaRight, int deltaTop,
+	int deltaBottom, float defaultValue )
+{
+	return CLayerWrapper<CImageResizeLayer>( "ImageResize", [=]( CImageResizeLayer* result ) {
+		result->SetDelta( CImageResizeLayer::IS_Left, deltaLeft );
+		result->SetDelta( CImageResizeLayer::IS_Right, deltaRight );
+		result->SetDelta( CImageResizeLayer::IS_Bottom, deltaBottom );
+		result->SetDelta( CImageResizeLayer::IS_Top, deltaTop );
+		result->SetDefalutValue( defaultValue );
+	} );
+}
+
 } // namespace NeoML

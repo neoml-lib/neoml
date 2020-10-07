@@ -64,4 +64,6 @@ private:
 	void buildLayer();
 };
 
+NEOML_API CLayerWrapper<CGruLayer> Gru( int hiddenSize );
+
 } // namespace NeoML

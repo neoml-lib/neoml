@@ -137,4 +137,14 @@ void CCenterLossLayer::updateCenters(const CFloatHandle& tempDiffHandle)
 		classCentersBlob->GetDataSize() );
 }
 
+CLayerWrapper<CCenterLossLayer> CenterLoss(
+	int numberOfClasses, float classCentersConvergenceRate, float lossWeight )
+{
+	return CLayerWrapper<CCenterLossLayer>( "CenterLoss", [=]( CCenterLossLayer* result ) {
+		result->SetNumberOfClasses( numberOfClasses );
+		result->SetClassCentersConvergenceRate( classCentersConvergenceRate );
+		result->SetLossWeight( lossWeight );
+	} );
+}
+
 } // namespace NeoML

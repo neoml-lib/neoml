@@ -309,4 +309,15 @@ bool CFullyConnectedSourceLayer::isBatchLoaded( int index ) const
 	return ( batchFirstLoadedIndex <= index && index <= batchLastLoadedIndex );
 }
 
+CLayerWrapper<CFullyConnectedSourceLayer> FullyConnectedSource( TBlobType labelType,
+	int batchSize, int maxBatchCount, IProblem* problem )
+{
+	return CLayerWrapper<CFullyConnectedSourceLayer>( "FullyConnectedSource", [=, &problem]( CFullyConnectedSourceLayer* result ) {
+		result->SetLabelType( labelType );
+		result->SetBatchSize( batchSize );
+		result->SetMaxBatchCount( maxBatchCount );
+		result->SetProblem( problem );
+	} );
+}
+
 } // namespace NeoML

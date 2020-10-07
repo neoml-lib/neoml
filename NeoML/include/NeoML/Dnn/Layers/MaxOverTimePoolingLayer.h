@@ -56,4 +56,7 @@ private:
 	void destroyDescs();
 };
 
+NEOML_API CLayerWrapper<CMaxOverTimePoolingLayer> MaxOverTimePooling(
+	int filterLength, int strideLength );
+
 } // namespace NeoML

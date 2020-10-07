@@ -112,4 +112,12 @@ void CSoftmaxLayer::Serialize( CArchive& archive )
 	}
 }
 
+CLayerWrapper<CSoftmaxLayer> Softmax(
+	CSoftmaxLayer::TNormalizationArea normalizationArea )
+{
+	return CLayerWrapper<CSoftmaxLayer>( "Softmax", [=]( CSoftmaxLayer* result ) {
+		result->SetNormalizationArea( normalizationArea );
+	} );
+}
+
 } // namespace NeoML

@@ -56,6 +56,8 @@ protected:
 		int vectorSize ) override;
 };
 
+NEOML_API CLayerWrapper<CMultiHingeLossLayer> MultiHingeLoss( float lossWeight = 1.0f );
+
 ///////////////////////////////////////////////////////////////////////////////////
 
 // CMultiSquaredHingeLossLayer
@@ -71,5 +73,8 @@ protected:
 	virtual void CalculateEltwiseLossDiff( const CFloatHandle& first, const CFloatHandle& second, const CFloatHandle& result,
 		int vectorSize ) override;
 };
+
+NEOML_API CLayerWrapper<CMultiSquaredHingeLossLayer> MultiSquaredHingeLoss(
+	float lossWeight = 1.0f );
 
 } // namespace NeoML

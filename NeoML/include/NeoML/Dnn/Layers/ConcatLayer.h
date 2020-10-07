@@ -46,6 +46,8 @@ public:
 	void Serialize( CArchive& archive ) override;
 };
 
+NEOML_API CLayerWrapper<CConcatChannelsLayer> ConcatChannels();
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // CConcatDepthLayer implements a layer that concatenates several blobs into one along the Depth dimension
@@ -56,6 +58,8 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 };
+
+NEOML_API CLayerWrapper<CConcatDepthLayer> ConcatDepth();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -68,6 +72,8 @@ public:
 	void Serialize( CArchive& archive ) override;
 };
 
+NEOML_API CLayerWrapper<CConcatWidthLayer> ConcatWidth();
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // CConcatHeightLayer implements a layer that concatenates several blobs into one along the Height dimension (i.e. vertically)
@@ -78,6 +84,8 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 };
+
+NEOML_API CLayerWrapper<CConcatHeightLayer> ConcatHeight();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -90,6 +98,8 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 };
+
+NEOML_API CLayerWrapper<CConcatBatchWidthLayer> ConcatBatchWidth();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -108,5 +118,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CConcatObjectLayer> ConcatObject();
 
 } // namespace NeoML

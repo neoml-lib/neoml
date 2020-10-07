@@ -48,6 +48,13 @@ void CHingeLossLayer::Serialize( CArchive& archive )
 	CLossLayer::Serialize( archive );
 }
 
+CLayerWrapper<CHingeLossLayer> HingeLoss( float lossWeight )
+{
+	return CLayerWrapper<CHingeLossLayer>( "HingeLoss", [=]( CHingeLossLayer* result ) {
+		result->SetLossWeight( lossWeight );
+	} );
+}
+
 ///////////////////////////////////////////////////////////////////////////////////
 // CSquaredHingeLossLayer
 void CSquaredHingeLossLayer::BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize,
@@ -73,6 +80,13 @@ void CSquaredHingeLossLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( SquaredHingeLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CLossLayer::Serialize( archive );
+}
+
+CLayerWrapper<CSquaredHingeLossLayer> SquaredHingeLoss( float lossWeight )
+{
+	return CLayerWrapper<CSquaredHingeLossLayer>( "SquaredHingeLoss", [=]( CSquaredHingeLossLayer* result ) {
+		result->SetLossWeight( lossWeight );
+	} );
 }
 
 } // namespace NeoML

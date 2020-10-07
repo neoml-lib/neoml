@@ -125,4 +125,14 @@ void CDropoutLayer::destroyDropoutDesc()
 	}
 }
 
+CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,
+	bool isSpatial, bool isBatchwise )
+{
+	return CLayerWrapper<CDropoutLayer>( "Dropout", [=]( CDropoutLayer* result ) {
+		result->SetSpatial( isSpatial );
+		result->SetBatchwise( isBatchwise );
+		result->SetDropoutRate( dropoutRate );
+	} );
+}
+
 } // namespace NeoML

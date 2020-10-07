@@ -62,4 +62,11 @@ void CTransposeLayer::BackwardOnce()
 	inputDiffBlobs[0]->TransposeFrom(outputDiffBlobs[0], d1, d2);
 }
 
+CLayerWrapper<CTransposeLayer> Transpose( TBlobDim d1, TBlobDim d2 )
+{
+	return CLayerWrapper<CTransposeLayer>( "Transpose", [=]( CTransposeLayer* result ) {
+		result->SetTransposedDimensions( d1, d2 );
+	} );
+}
+
 } // namespace NeoML

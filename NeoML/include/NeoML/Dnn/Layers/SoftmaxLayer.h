@@ -51,4 +51,7 @@ private:
 	TNormalizationArea area; // the normalization area
 };
 
+NEOML_API CLayerWrapper<CSoftmaxLayer> Softmax(
+	CSoftmaxLayer::TNormalizationArea normalizationArea );
+
 } // namespace NeoML

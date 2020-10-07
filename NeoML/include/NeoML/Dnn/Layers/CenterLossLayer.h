@@ -69,4 +69,7 @@ private:
 	void updateCenters(const CFloatHandle& tempDiffHandle);
 };
 
+NEOML_API CLayerWrapper<CCenterLossLayer> CenterLoss( int numberOfClasses,
+	float classCentersConvergenceRate, float lossWeight = 1.0f );
+
 } // namespace NeoML

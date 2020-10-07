@@ -136,6 +136,9 @@ private:
 		CDnnBlob* targetBlob, CDnnBlob* targetBlobWindow );
 };
 
+NEOML_API CLayerWrapper<CCtcLossLayer> CtcLoss( int blankLabel, bool allowBlankLabelSkip,
+	float lossWeight = 1.0f );
+
 ///////////////////////////////////////////////////////////////////////////////////
 // The layer that builds a linear division graph (LDG) on the sequence recognition results
 

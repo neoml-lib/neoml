@@ -74,4 +74,12 @@ void CSourceLayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 }
 
+CSourceLayer* Source( CDnn& network, const char* name )
+{
+	CPtr<CSourceLayer> source = new CSourceLayer( network.GetMathEngine() );
+	source->SetName( name );
+	network.AddLayer( *source );
+	return source;
+}
+
 } // namespace NeoML

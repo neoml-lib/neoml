@@ -80,5 +80,15 @@ private:
 	CBlobDesc outputDesc;
 };
 
+// Special values for parameters in Transform:
+
+// Shape inference, only one layer should have this value.
+const int TransformInferenceRemainder = -1;
+// Rest dimension the same.
+const int TransformInferenceSame = -2;
+
+NEOML_API CLayerWrapper<CTransformLayer> Transform( int batchLength,
+	int batchWidth, int listSize, int height, int width, int depth, int channel );
+
 } // namespace NeoML
 

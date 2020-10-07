@@ -64,4 +64,9 @@ void CDotProductLayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 }
 
+CLayerWrapper<CDotProductLayer> DotProduct()
+{
+	return CLayerWrapper<CDotProductLayer>( "DotProduct" );
+}
+
 } // namespace NeoML

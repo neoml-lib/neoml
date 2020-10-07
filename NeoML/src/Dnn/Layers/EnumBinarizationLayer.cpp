@@ -72,6 +72,13 @@ void CEnumBinarizationLayer::BackwardOnce()
 {
 }
 
+CLayerWrapper<CEnumBinarizationLayer> EnumBinarization( int enumSize )
+{
+	return CLayerWrapper<CEnumBinarizationLayer>( "EnumBinarization", [=]( CEnumBinarizationLayer* result ) {
+		result->SetEnumSize( enumSize );
+	} );
+}
+
 //-------------------------------------------------------------------------------------------------
 
 CBitSetVectorizationLayer::CBitSetVectorizationLayer( IMathEngine& mathEngine ) :

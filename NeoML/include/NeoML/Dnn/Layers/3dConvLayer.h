@@ -75,4 +75,12 @@ private:
 	void destroyConvDesc();
 };
 
+// N.B. Layer does not support dilation! 
+// The Dilation parameter in the CConvAxisParams will be ignored.
+CLayerWrapper<C3dConvLayer> Conv3d( int filterCount,
+	const CConvAxisParams& heightParams,
+	const CConvAxisParams& widthParams,
+	const CConvAxisParams& depthParams,
+	bool isZeroFreeTerm = false );
+
 } // namespace NeoML

@@ -78,4 +78,7 @@ private:
 	bool isZeroFreeTerm; // indicates if the free term should be set to zero
 };
 
+NEOML_API CLayerWrapper<CFullyConnectedLayer> FullyConnected(
+	int numberOfElements, bool zeroFreeTerm = false );
+
 } // namespace NeoML

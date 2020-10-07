@@ -106,4 +106,19 @@ void CSubSequenceLayer::BackwardOnce()
 		indices->GetData<int>(), CConstFloatHandle() );
 }
 
+CLayerWrapper<CSubSequenceLayer> SubSequence( int startPos, int length )
+{
+	return CLayerWrapper<CSubSequenceLayer>{ "SubSequence", [=]( CSubSequenceLayer* result ) {
+		result->SetStartPos( startPos );
+		result->SetLength( length );
+	} };
+}
+
+CLayerWrapper<CSubSequenceLayer> ReverseSequence()
+{
+	return CLayerWrapper<CSubSequenceLayer>( "ReverseSubSequence", [=]( CSubSequenceLayer* result ) {
+		result->SetReverse();
+	} );
+}
+
 } // namespace NeoML

@@ -104,6 +104,11 @@ void CAccuracyLayer::RunOnceAfterReset()
 	outputBlobs[0]->GetData().SetValue( static_cast<float>( collectedAccuracy ) / ++iterationsCount );
 }
 
+CLayerWrapper<CAccuracyLayer> Accuracy()
+{
+	return CLayerWrapper<CAccuracyLayer>( "Accuracy" );
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 
 CConfusionMatrixLayer::CConfusionMatrixLayer( IMathEngine& mathEngine ) :
@@ -200,6 +205,11 @@ void CConfusionMatrixLayer::RunOnceAfterReset()
 	}
 	// Copy into the output
 	outputBlobs[0]->CopyFrom( outputData.GetPtr() );
+}
+
+CLayerWrapper<CConfusionMatrixLayer> ConfusionMatrix()
+{
+	return CLayerWrapper<CConfusionMatrixLayer>( "ConfusionMatrix" );
 }
 
 } // namespace NeoML

@@ -96,4 +96,7 @@ private:
 	void setWeightsData(const CPtr<CDnnBlob>& newWeigths);
 };
 
+NEOML_API CLayerWrapper<CLstmLayer> Lstm(
+	int hiddenSize, float dropoutRate, bool isInCompatibilityMode = false );
+
 } // namespace NeoML

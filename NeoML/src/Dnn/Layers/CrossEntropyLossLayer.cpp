@@ -151,4 +151,13 @@ void CCrossEntropyLossLayer::Serialize( CArchive& archive )
 	archive.Serialize( isSoftmaxApplied );
 }
 
+CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
+	bool isSoftmaxApplied, float lossWeight )
+{
+	return CLayerWrapper<CCrossEntropyLossLayer>( "CrossEntropyLoss", [=]( CCrossEntropyLossLayer* result ) {
+		result->SetApplySoftmax( isSoftmaxApplied );
+		result->SetLossWeight( lossWeight );
+	} );
+}
+
 } // namespace NeoML

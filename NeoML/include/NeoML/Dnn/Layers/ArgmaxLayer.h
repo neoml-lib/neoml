@@ -41,4 +41,6 @@ private:
 	TBlobDim dimension;
 };
 
+NEOML_API CLayerWrapper<CArgmaxLayer> Argmax( TBlobDim dim );
+
 } // namespace NeoML

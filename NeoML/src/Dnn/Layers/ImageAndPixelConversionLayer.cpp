@@ -198,6 +198,14 @@ void CPixelToImageLayer::SetImageWidth( int newWidth )
 	imageWidth = newWidth;
 }
 
+CLayerWrapper<CPixelToImageLayer> PixelToImage( int imageHeight, int imageWidth )
+{
+	return CLayerWrapper<CPixelToImageLayer>( "PixelToImage", [=]( CPixelToImageLayer* result ) {
+		result->SetImageHeight( imageHeight );
+		result->SetImageWidth( imageWidth );
+	} );
+}
+
 // ====================================================================================================================
 
 CImageToPixelLayer::CImageToPixelLayer( IMathEngine& mathEngine ) :
@@ -281,6 +289,11 @@ void CImageToPixelLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( ImageToPixelLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
+}
+
+CLayerWrapper<CImageToPixelLayer> ImageToPixel()
+{
+	return CLayerWrapper<CImageToPixelLayer>( "ImageToPixel" );
 }
 
 } // namespace NeoML

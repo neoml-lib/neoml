@@ -148,4 +148,28 @@ void CConvLayer::Serialize( CArchive& archive )
 	CBaseConvLayer::Serialize( archive );
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+
+CLayerWrapper<CConvLayer> Conv( int filterCount,
+	const CConvAxisParams& heightParams, const CConvAxisParams& widthParams,
+	bool isZeroFreeTerm )
+{
+	return CLayerWrapper<CConvLayer>( "Conv", [=]( CConvLayer* result ) {
+
+		result->SetFilterCount( filterCount );
+
+		result->SetFilterHeight( heightParams.FilterSize );
+		result->SetPaddingHeight( heightParams.Padding );
+		result->SetStrideWidth( heightParams.Stride );
+		result->SetDilationHeight( heightParams.Dilation );
+
+		result->SetFilterWidth( widthParams.FilterSize );
+		result->SetPaddingWidth( widthParams.Padding );
+		result->SetStrideHeight( widthParams.Stride );
+		result->SetDilationWidth( widthParams.Dilation );
+
+		result->SetZeroFreeTerm( isZeroFreeTerm );
+	} );
+}
+
 } // namespace NeoML

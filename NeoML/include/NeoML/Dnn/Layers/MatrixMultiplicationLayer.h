@@ -40,4 +40,6 @@ protected:
 	void BackwardOnce() override;
 };
 
+NEOML_API CLayerWrapper<CMatrixMultiplicationLayer> MatrixMultiplication();
+
 } // namespace NeoML

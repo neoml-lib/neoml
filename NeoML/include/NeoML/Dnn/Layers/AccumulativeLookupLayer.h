@@ -51,4 +51,7 @@ private:
 	CLookupDimension lookupDimension; // The size of representations table
 };
 
+NEOML_API CLayerWrapper<CAccumulativeLookupLayer> AccumulativeLookup(
+	int count, int size );
+
 } // namespace NeoML

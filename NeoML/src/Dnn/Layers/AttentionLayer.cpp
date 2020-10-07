@@ -276,6 +276,17 @@ void CAttentionDecoderLayer::buildLayer()
 	SetOutputMapping(*recurrentLayer);
 }
 
+CLayerWrapper<CAttentionDecoderLayer> AttentionDecoder(
+	TAttentionScore score, int outObjectSize, int outSeqLen, int hiddenSize )
+{
+	return CLayerWrapper<CAttentionDecoderLayer>( "AttentionDecoder", [=]( CAttentionDecoderLayer* result ) {
+		result->SetAttentionScore( score );
+		result->SetOutputObjectSize( outObjectSize );
+		result->SetOutputSequenceLen( outSeqLen );
+		result->SetHiddenLayerSize( hiddenSize );
+	} );
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 
 const CString CAttentionRecurrentLayer::hiddenLayerName = "hiddenFullyConnectedLayer";

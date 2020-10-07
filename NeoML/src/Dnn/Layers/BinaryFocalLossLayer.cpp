@@ -107,4 +107,12 @@ void CBinaryFocalLossLayer::calculateGradient( CFloatHandle onesVector, CFloatHa
 	MathEngine().VectorEltwiseMultiply( tempVector, labels, lossGradient, batchSize );
 }
 
+CLayerWrapper<CBinaryFocalLossLayer> BinaryFocalLoss( float focalForce, float lossWeight )
+{
+	return CLayerWrapper<CBinaryFocalLossLayer>( "BinaryFocalLoss", [=]( CBinaryFocalLossLayer* result ) {
+		result->SetFocalForce( focalForce );
+		result->SetLossWeight( lossWeight );
+	} );
+}
+
 }

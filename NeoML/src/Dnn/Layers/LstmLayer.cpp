@@ -367,4 +367,14 @@ void CLstmLayer::setWeightsData( const CPtr<CDnnBlob>& newWeights )
 	SetRecurWeightsData( splitWeights[1] );
 }
 
+CLayerWrapper<CLstmLayer> Lstm(
+	int hiddenSize, float dropoutRate, bool isInCompatibilityMode )
+{
+	return CLayerWrapper<CLstmLayer>( "", [=]( CLstmLayer* result ) {
+		result->SetHiddenSize( hiddenSize );
+		result->SetDropoutRate( dropoutRate );
+		result->SetCompatibilityMode( isInCompatibilityMode );
+	} );
+}
+
 } // namespace NeoML

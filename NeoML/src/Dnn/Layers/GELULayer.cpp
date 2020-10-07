@@ -94,4 +94,9 @@ void CGELULayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData(), blobSize );
 }
 
+CLayerWrapper<CGELULayer> Gelu()
+{
+	return CLayerWrapper<CGELULayer>( "Gelu" );
+}
+
 } // namespace NeoML

@@ -16,7 +16,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/DnnInitializer.cpp
     Dnn/DnnSolver.cpp
     Dnn/DnnSparseMatrix.cpp
-    Dnn/DnnSimpleAPI.cpp
     Dnn/Layers/3dConvLayer.cpp
     Dnn/Layers/3dPoolingLayer.cpp
     Dnn/Layers/3dTransposedConvLayer.cpp
@@ -164,7 +163,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
     ../include/NeoML/Dnn/DnnLambdaHolder.h
-    ../include/NeoML/Dnn/DnnSimpleAPI.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h

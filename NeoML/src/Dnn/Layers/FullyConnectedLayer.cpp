@@ -236,4 +236,12 @@ void CFullyConnectedLayer::Serialize( CArchive& archive )
 	}
 }
 
+CLayerWrapper<CFullyConnectedLayer> FullyConnected( int numberOfElements, bool zeroFreeTerm )
+{
+	return CLayerWrapper<CFullyConnectedLayer>( "FullyConnected", [=]( CFullyConnectedLayer* result ) {
+		result->SetNumberOfElements( numberOfElements );
+		result->SetZeroFreeTerm( zeroFreeTerm );
+	} );
+}
+
 } // namespace NeoML

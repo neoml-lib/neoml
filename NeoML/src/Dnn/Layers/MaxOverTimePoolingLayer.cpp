@@ -144,4 +144,13 @@ void CMaxOverTimePoolingLayer::destroyDescs()
 	}
 }
 
+CLayerWrapper<CMaxOverTimePoolingLayer> MaxOverTimePooling(
+	int filterLength, int strideLength )
+{
+	return CLayerWrapper<CMaxOverTimePoolingLayer>( "MaxOverTimePooling", [=]( CMaxOverTimePoolingLayer* result ) {
+		result->SetFilterLength( filterLength );
+		result->SetStrideLength( strideLength );
+	} );
+}
+
 } // namespace NeoML

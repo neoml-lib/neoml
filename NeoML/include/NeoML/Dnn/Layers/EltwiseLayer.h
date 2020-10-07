@@ -45,6 +45,8 @@ protected:
 	void BackwardOnce() override;
 };
 
+NEOML_API CLayerWrapper<CEltwiseSumLayer> Sum();
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // CEltwiseMulLayer implements a layer that multiplies its inputs element by element
@@ -59,6 +61,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CEltwiseMulLayer> Mul();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -81,6 +85,8 @@ private:
 	CPtr<CDnnBlob> negInputBlob;
 };
 
+NEOML_API CLayerWrapper<CEltwiseNegMulLayer> NegMul();
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // CEltwiseMaxLayer implements a layer that finds the maximum among the elements that are at the same position in all input blobs
@@ -102,5 +108,7 @@ protected:
 private:
 	CPtr<CDnnBlob> maxIndices; // the indices of the inputs that had the largest elements
 };
+
+NEOML_API CLayerWrapper<CEltwiseMaxLayer> Max();
 
 } // namespace NeoML

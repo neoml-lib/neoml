@@ -57,4 +57,8 @@ private:
 	void destroyConvDesc();
 };
 
+NEOML_API CLayerWrapper<CChannelwiseConvLayer> ChannelwiseConv( int filterCount,
+	const CConvAxisParams& heightParams, const CConvAxisParams& widthParams,
+	bool isZeroFreeTerm = false );
+
 } // namespace NeoML

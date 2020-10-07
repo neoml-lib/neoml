@@ -135,6 +135,13 @@ void CMultiHingeLossLayer::Serialize( CArchive& archive )
 	CBaseMultiHingeLossLayer::Serialize( archive );
 }
 
+CLayerWrapper<CMultiHingeLossLayer> MultiHingeLoss( float lossWeight )
+{
+	return CLayerWrapper<CMultiHingeLossLayer>( "MultiHingeLoss", [=]( CMultiHingeLossLayer* result ) {
+		result->SetLossWeight( lossWeight );
+	} );
+}
+
 // ====================================================================================================================
 
 void CMultiSquaredHingeLossLayer::CalculateEltwiseLoss(const CFloatHandle& first, const CFloatHandle& result,
@@ -155,6 +162,13 @@ void CMultiSquaredHingeLossLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( MultiSquaredHingeLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseMultiHingeLossLayer::Serialize( archive );
+}
+
+CLayerWrapper<CMultiSquaredHingeLossLayer> MultiSquaredHingeLoss( float lossWeight )
+{
+	return CLayerWrapper<CMultiSquaredHingeLossLayer>( "MultiSquaredHingeLoss", [=]( CMultiSquaredHingeLossLayer* result ) {
+		result->SetLossWeight( lossWeight );
+	} );
 }
 
 } // namespace NeoML

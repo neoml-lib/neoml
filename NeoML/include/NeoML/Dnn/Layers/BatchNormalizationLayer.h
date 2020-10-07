@@ -120,4 +120,7 @@ private:
 	void initializeFromFinalParams();
 };
 
+NEOML_API CLayerWrapper<CBatchNormalizationLayer> BatchNormalization(
+	bool isChannelBased, bool isZeroFreeTerm = false, float slowConvergenceRate = 1.0f );
+
 } // namespace NeoML

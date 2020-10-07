@@ -55,4 +55,10 @@ private:
 	void getSequenceInfo(int& sequenceStart, int& subSequenceLength) const;
 };
 
+NEOML_API CLayerWrapper<CSubSequenceLayer> SubSequence(
+	int startPos, int length );
+// CSubSequenceLayer with SetReverse()
+NEOML_API CLayerWrapper<CSubSequenceLayer> ReverseSequence();
+
+
 } // namespace NeoML

@@ -42,4 +42,7 @@ protected:
 	void AllocateOutputBlobs() override;
 };
 
+// Creates CSourceLayer with name
+NEOML_API CSourceLayer* Source( CDnn& network, const char* name );
+
 } // namespace NeoML
