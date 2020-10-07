@@ -236,11 +236,11 @@ void CFullyConnectedLayer::Serialize( CArchive& archive )
 	}
 }
 
-CLayerWrapper<CFullyConnectedLayer> FullyConnected( int numberOfElements, bool zeroFreeTerm )
+CLayerWrapper<CFullyConnectedLayer> FullyConnected( int numberOfElements, bool isZeroFreeTerm )
 {
 	return CLayerWrapper<CFullyConnectedLayer>( "FullyConnected", [=]( CFullyConnectedLayer* result ) {
 		result->SetNumberOfElements( numberOfElements );
-		result->SetZeroFreeTerm( zeroFreeTerm );
+		result->SetZeroFreeTerm( isZeroFreeTerm );
 	} );
 }
 

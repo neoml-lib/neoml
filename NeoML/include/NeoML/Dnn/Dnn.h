@@ -572,48 +572,5 @@ void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-Simple API for create neural networks.
-
-Example 0:
-
-CDnn net{ rnd, engine };
-
-CBaseLayer* x = Source( net, "Input0" );
-CBaseLayer* labels = Source( net, "Labels" );
-
-x = FullyConnected( 100 )( x );
-x = Relu() ( x );
-x = FullyConnected( 200 )( x );
-x = Gelu()( x );
-x = Dropout( 0.5f )( x );
-x = FullyConnected( 1 )( x );
-BinaryCrossEntropyLoss()( x, labels );
-
-Example 2:
-
-CDnn net{ rnd, engine };
-
-CBaseLayer* x = Source( net, "Input0" );
-CBaseLayer* y = Source( net, "Input1" );
-CBaseLayer* labels = Source( net, "Labels" );
-CBaseLayer* weights = Source( net, "Weightss" );
-
-auto fc = FullyConnected( 100 );
-
-x = fc( x ); // 1.
-y = fc( y ); // 2. Share weights with 1.
-x = Concat() ( x, y );
-x = Relu() ( x );
-x = fc( x );
-x = Gelu()( x );
-x = Dropout( 0.5f )( x );
-x = FullyConnected( 1 )( x );
-BinaryCrossEntropyLoss( 2.0f )( x, labels, weights );
-
-*/
-
-//////////////////////////////////////////////////////////////////////////////////////////
-
 #include <NeoML/Dnn/Dnn.inl>
 
