@@ -15,18 +15,22 @@ limitations under the License.
 
 #pragma once
 
-#define _CRT_SECURE_NO_WARNINGS
-
-#include <cstring>
-#include <cstdio>
-#include <cstdlib>
-#include <algorithm>
-#include <cassert>
+#include <cmath>
+#include <memory>
 #include <vector>
+#include <algorithm>
 
 #include <NeoMathEngine/Platforms.h>
-#if FINE_PLATFORM( FINE_WINDOWS )
-#include <windows.h>
-#endif
+#include <NeoMathEngine/OpenMP.h>
 
+#include <immintrin.h>
+
+#if FINE_PLATFORM( FINE_WINDOWS )
+#define FME_DLL_EXPORT __declspec( dllexport )
+#elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
+#define FME_DLL_EXPORT __attribute__((visibility("default")))
+#else
+#error "Platform isn't supported!"
+
+#endif
 using namespace std;

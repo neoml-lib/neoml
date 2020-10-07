@@ -16,16 +16,6 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <cmath>
-
-#include <immintrin.h>
-#include <NeoMathEngine/NeoMathEngine.h>
-
-#include <CpuMathEngine.h>
-#include <MathEngineDnnConv.h>
-#include <MathEngineCommon.h>
-#include <MemoryHandleInternal.h>
-
 namespace NeoML {
 
 template<int imm8, int FC>
@@ -70,55 +60,54 @@ inline void Process_avx_x2( __m256& r00, __m256& r01, __m256& r02,
 }
 
 extern "C"
-FME_DLL_EXPORT void BlobConvolution_avx_f3x3_c24_fc24( IMathEngine& mathEngine, int threadCount, const CCommonConvolutionDesc& desc, const float* sourceData,
-	const float* filterData, const float* freeTermData, float* resultData )
+FME_DLL_EXPORT void BlobConvolution_f3x3_c24_fc24( int sourceWidth, int resultHeight, int resultWidth, int stride, int dilation,
+	int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
 {
-	const int SW = desc.Source.Width();
+	const int SW = sourceWidth;
 	static constexpr int C = 24; // Channel count
-	const int S = desc.StrideWidth;
-	const int D = desc.DilationWidth;
+	const int S = stride;
+	const int D = dilation;
 	static constexpr int FC = 24; // Filter count
 	static constexpr int FH = 3; // Filter height
 	static constexpr int FW = 3; // Filter width
-	const int RH = desc.Result.Height();
-	const int RW = desc.Result.Width();
+	const int RH = resultHeight;
+	const int RW = resultWidth;
 
 	// Create temporary filter for convolution, data will be aligned.
-	size_t filterBufferSize = FH * FW * C * FC + 4;
-	CFloatHandleStackVar Filter( mathEngine, filterBufferSize );
-	void* alignedFltPtr = GetRaw( Filter.GetHandle() );
+	constexpr size_t FilterBufferSize = FH * FW * C * FC + 16;
+	size_t filterBufferSize = FilterBufferSize;
+	float Filter[FilterBufferSize];
+	void* alignedFltPtr = Filter;
 	std::align( 16, FH * FW * C * FC, alignedFltPtr, filterBufferSize );
 	float* flt = static_cast<float*>( alignedFltPtr );
 
-	{
-		// Rearrange filter data.
-		// Initial packing:
-		// Filter[0] Pixel[0] Channel[0-23]
-		// Filter[0] Pixel[1] Channel[0-23]
-		// ...
-		// Filter[0] Pixel[8] Channel[0-23]
-		// Filter[1] Pixel[0] Channel[0-23]
-		// ...
-		// Filter[23] Pixel[8] Channel[0-23]
-		//
-		// Result packing:
-		// Pixel[0] Channel[0] Filter[0-23]
-		// Pixel[0] Channel[1] Filter[0-23]
-		// ...
-		// Pixel[0] Channel[23] Filter[0-23]
-		// Pixel[1] Channel[0] Filter[0-23]
-		// ...
-		// Pixel[8] Channel[23] Filter[0-23]
+	// Rearrange filter data.
+	// Initial packing:
+	// Filter[0] Pixel[0] Channel[0-23]
+	// Filter[0] Pixel[1] Channel[0-23]
+	// ...
+	// Filter[0] Pixel[8] Channel[0-23]
+	// Filter[1] Pixel[0] Channel[0-23]
+	// ...
+	// Filter[23] Pixel[8] Channel[0-23]
+	//
+	// Result packing:
+	// Pixel[0] Channel[0] Filter[0-23]
+	// Pixel[0] Channel[1] Filter[0-23]
+	// ...
+	// Pixel[0] Channel[23] Filter[0-23]
+	// Pixel[1] Channel[0] Filter[0-23]
+	// ...
+	// Pixel[8] Channel[23] Filter[0-23]
 
-		float* dstFilter = flt;
-		for( int y = 0; y < FH; y++ ) {
-			for( int x = 0; x < FW; x++ ) {
-				for( int c = 0; c < C; c++ ) {
-					const float* srcFilter = filterData + ( x + y * FW ) * C + c;
-					for( int f = 0; f < FC; f++ ) {
-						*dstFilter++ = *srcFilter;
-						srcFilter += FW * FH * C;
-					}
+	float* dstFilter = flt;
+	for( int y = 0; y < FH; y++ ) {
+		for( int x = 0; x < FW; x++ ) {
+			for( int c = 0; c < C; c++ ) {
+				const float* srcFilter = filterData + ( x + y * FW ) * C + c;
+				for( int f = 0; f < FC; f++ ) {
+					*dstFilter++ = *srcFilter;
+					srcFilter += FW * FH * C;
 				}
 			}
 		}
@@ -389,7 +378,7 @@ FME_DLL_EXPORT void BlobConvolution_avx_f3x3_c24_fc24( IMathEngine& mathEngine, 
 			_mm256_storeu_ps( dstPtr + 64, r22 );
 	};
 
-	const int curThreadCount = IsOmpRelevant( desc.Result.Height(), static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
+	const int curThreadCount = IsOmpRelevant( RH, RH * RW * FC * FW * FH * C ) ? threadCount : 1;
 
 	NEOML_OMP_NUM_THREADS( curThreadCount )
 	{

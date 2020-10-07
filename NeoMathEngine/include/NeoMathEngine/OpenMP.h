@@ -15,8 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoMathEngine/NeoMathEngineDefs.h>
-
 #ifdef NEOML_USE_OMP
 #include <omp.h>
 #endif
