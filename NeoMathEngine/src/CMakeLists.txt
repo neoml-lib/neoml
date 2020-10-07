@@ -129,7 +129,7 @@ else()
         CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
         CPU/x86/AvxDll.cpp
-		CPU/x86/AvxDll.h
+        CPU/x86/AvxDll.h
     )
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)

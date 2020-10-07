@@ -7,6 +7,8 @@ target_sources(${PROJECT_NAME}
 
     # Sources
     ./CpuMathEngineDnnConvAvx.cpp
+	# Headers
+	./common.h
 )
 
 string(TOUPPER ${CMAKE_SYSTEM_NAME} UPPERCASE_CMAKE_SYSTEM_NAME)
@@ -14,10 +16,8 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC _${UPPERCASE_CMAKE_SYSTEM_NAME
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../../../include>
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../../CPU>
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../..>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
 # Add some definitions
@@ -26,8 +26,6 @@ target_compile_definitions(${PROJECT_NAME}
 		"$<$<OR:$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:_RELEASE>"
 		"$<$<CONFIG:Debug>:_DEBUG>"
 		"$<$<CONFIG:Release>:_FINAL>"
-	PRIVATE
-		STATIC_NEOMATHENGINE
 )
 
 # OpenMP
@@ -36,7 +34,7 @@ link_openmp()
 # AVX
 if(WIN32)
     target_compile_options(${PROJECT_NAME} PRIVATE /arch:AVX)
-elseif(LINUX OR DARWIN OR (ANDROID AND ANDROID_ABI MATCHES "^x86.*") OR (IOS_ARCH MATCHES "^x86.*"))
+elseif(LINUX OR DARWIN )
     target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-mavx -mfma>)
 endif()
 

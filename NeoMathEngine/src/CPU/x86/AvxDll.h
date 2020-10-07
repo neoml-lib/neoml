@@ -23,8 +23,13 @@ limitations under the License.
 namespace NeoML {
 
 // Class support dynamic library which is compiled with AVX for performance increasing.
-class CAvxDll : protected CDll {
+class CAvxDll : public CDll {
 public:
+	CAvxDll( const CAvxDll& ) = delete;
+	CAvxDll& operator=( const CAvxDll& ) = delete;
+	CAvxDll( CAvxDll&& ) = delete;
+	CAvxDll& operator=( CAvxDll&& ) = delete;
+
 	static CAvxDll& GetInstance();
 
 	// Returns false if avx instruction isn't available or library wasn't loaded.
@@ -34,11 +39,11 @@ public:
 	// Filter size: 3x3
 	// Filter count: 24
 	// Channel size: 24
-	void CallBlobConvolution_avx_f3x3_c24_fc24( IMathEngine& engine, int threadNum, const CCommonConvolutionDesc& desc, const float* sourceData,
+	void CallBlobConvolution_f3x3_c24_fc24( int threadNum, const CCommonConvolutionDesc& desc, const float* sourceData,
 		const float* filterData, const float* freeTermData, float* resultData ) const;
 private:
 	enum class TFunctionPointers {
-		BlobConvolution_avx_f3x3_c24_fc24,
+		BlobConvolution_f3x3_c24_fc24,
 
 		Count
 	};
@@ -46,6 +51,8 @@ private:
 	constexpr static char const* libName = "NeoMathEngineAvx.dll";
 #elif FINE_PLATFORM( FINE_LINUX )
 	constexpr static char const* libName = "libNeoMathEngineAvx.so";
+#elif FINE_PLATFORM( FINE_DARWIN )
+	constexpr static char const* libName = "libNeoMathEngineAvx.dylib";
 #else
 	#error "Platform is not supported!"
 #endif
@@ -54,11 +61,7 @@ private:
 	std::array<void*, static_cast<size_t>( TFunctionPointers::Count )> functionAdresses;
 
 	CAvxDll();
-	virtual ~CAvxDll() {}
-	CAvxDll( const CAvxDll& ) = delete;
-	CAvxDll& operator=( const CAvxDll& ) = delete;
-	CAvxDll( CAvxDll&& ) = delete;
-	CAvxDll& operator=( CAvxDll&& ) = delete;
+	~CAvxDll() = default;
 
 	void loadFunction( TFunctionPointers functionType, const char* functionName );
 	static bool isAvxAvailable();
