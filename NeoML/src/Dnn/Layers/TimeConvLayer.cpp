@@ -206,4 +206,16 @@ void CTimeConvLayer::destroyDesc()
 	}
 }
 
+CLayerWrapper<CTimeConvLayer> TimeConv( int filterCount, int filterSize, int padding,
+	int stride, int dilation )
+{
+	return CLayerWrapper<CTimeConvLayer>( "ChannelwiseConv", [=]( CTimeConvLayer* result ) {
+		result->SetFilterCount( filterCount );
+		result->SetFilterSize( filterSize );
+		result->SetPadding( padding );
+		result->SetStride( stride );
+		result->SetDilation( dilation );
+	} );
+}
+
 } // namespace NeoML

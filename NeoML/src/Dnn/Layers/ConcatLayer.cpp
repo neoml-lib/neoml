@@ -77,6 +77,11 @@ void CConcatChannelsLayer::Serialize( CArchive& archive )
 	CBaseConcatLayer::Serialize( archive );
 }
 
+CLayerWrapper<CConcatChannelsLayer> ConcatChannels()
+{
+	return CLayerWrapper<CConcatChannelsLayer>( "ConcatChannels" );
+}
+
 // ====================================================================================================================
 
 static const int ConcatDepthLayerVersion = 2000;
@@ -87,6 +92,12 @@ void CConcatDepthLayer::Serialize( CArchive& archive )
 	CBaseConcatLayer::Serialize( archive );
 }
 
+CLayerWrapper<CConcatDepthLayer> ConcatDepth()
+{
+	return CLayerWrapper<CConcatDepthLayer>( "ConcatDepth" );
+}
+
+
 // ====================================================================================================================
 
 static const int ConcatWidthLayerVersion = 2000;
@@ -95,6 +106,11 @@ void CConcatWidthLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( ConcatWidthLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseConcatLayer::Serialize( archive );
+}
+
+CLayerWrapper<CConcatWidthLayer> ConcatWidth()
+{
+	return CLayerWrapper<CConcatWidthLayer>( "ConcatWidth" );
 }
 
 // ====================================================================================================================
@@ -107,6 +123,11 @@ void CConcatHeightLayer::Serialize( CArchive& archive )
 	CBaseConcatLayer::Serialize( archive );
 }
 
+CLayerWrapper<CConcatHeightLayer> ConcatHeight()
+{
+	return CLayerWrapper<CConcatHeightLayer>( "ConcatHeight" );
+}
+
 // ====================================================================================================================
 
 static const int ConcatBatchWidthLayerVersion = 2000;
@@ -117,6 +138,11 @@ void CConcatBatchWidthLayer::Serialize( CArchive& archive )
 	CBaseConcatLayer::Serialize( archive );
 }
 
+CLayerWrapper<CConcatBatchWidthLayer> ConcatBatchWidth()
+{
+	return CLayerWrapper<CConcatBatchWidthLayer>( "ConcatBatchWidth" );
+}
+
 // ====================================================================================================================
 
 static const int ConcatObjectLayerVersion = 2000;
@@ -125,6 +151,12 @@ void CConcatObjectLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( ConcatObjectLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
+}
+
+
+CLayerWrapper<CConcatObjectLayer> ConcatObject()
+{
+	return CLayerWrapper<CConcatObjectLayer>( "ConcatObject" );
 }
 
 } // namespace NeoML

@@ -37,4 +37,6 @@ protected:
 	void BackwardOnce() override;
 };
 
+NEOML_API CLayerWrapper<CSequenceSumLayer> SequenceSum();
+
 } // namespace NeoML

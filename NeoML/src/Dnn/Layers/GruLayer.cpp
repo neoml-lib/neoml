@@ -142,4 +142,11 @@ void CGruLayer::Serialize( CArchive& archive )
 	}
 }
 
+CLayerWrapper<CGruLayer> Gru( int hiddenSize )
+{
+	return CLayerWrapper<CGruLayer>( "Gru", [=]( CGruLayer* result ) {
+		result->SetHiddenSize( hiddenSize );
+	} );
+}
+
 } // namespace NeoML

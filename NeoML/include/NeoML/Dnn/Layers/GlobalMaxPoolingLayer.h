@@ -53,4 +53,6 @@ private:
 	void destroyDesc();
 };
 
+NEOML_API CLayerWrapper<CGlobalMaxPoolingLayer> GlobalMaxPooling( int maxCount );
+
 } // namespace NeoML

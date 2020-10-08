@@ -204,4 +204,28 @@ void C3dConvLayer::Serialize( CArchive& archive )
 	}
 }
 
+CLayerWrapper<C3dConvLayer> Conv3d( int filterCount,
+	const CConvAxisParams& heightParams, const CConvAxisParams& widthParams,
+	const CConvAxisParams& depthParams, bool isZeroFreeTerm )
+{
+	return CLayerWrapper<C3dConvLayer>( "Conv3d", [=]( C3dConvLayer* result ) {
+		result->SetFilterCount( filterCount );
+
+		result->SetFilterHeight( heightParams.FilterSize );
+		result->SetPaddingHeight( heightParams.Padding );
+		result->SetStrideWidth( heightParams.Stride );
+
+		result->SetFilterWidth( widthParams.FilterSize );
+		result->SetPaddingWidth( widthParams.Padding );
+		result->SetStrideHeight( widthParams.Stride );
+
+		result->SetFilterDepth( depthParams.FilterSize );
+		result->SetPaddingDepth( depthParams.Padding );
+		result->SetStrideDepth( depthParams.Stride );
+		// layer has no dilation
+
+		result->SetZeroFreeTerm( isZeroFreeTerm );
+	} );
+}
+
 } // namespace NeoML

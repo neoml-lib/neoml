@@ -42,4 +42,6 @@ private:
 	int repeatCount;
 };
 
+NEOML_API CLayerWrapper<CRepeatSequenceLayer> RepeatSequence( int repeatCount );
+
 } // namespace NeoML

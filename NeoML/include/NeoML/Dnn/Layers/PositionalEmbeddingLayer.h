@@ -67,4 +67,7 @@ private:
 	void fillPositionalEmbedding( CDnnBlob* blob );
 };
 
+NEOML_API CLayerWrapper<CPositionalEmbeddingLayer> PositionalEmbedding(
+	CPositionalEmbeddingLayer::TPositionalEmbeddingType type );
+
 } // namespace NeoML

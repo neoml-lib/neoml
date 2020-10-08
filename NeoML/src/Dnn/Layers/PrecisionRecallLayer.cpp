@@ -107,4 +107,9 @@ void CPrecisionRecallLayer::Serialize( CArchive& archive )
 	CQualityControlLayer::Serialize( archive );
 }
 
+CLayerWrapper<CPrecisionRecallLayer> PrecisionRecall()
+{
+	return CLayerWrapper<CPrecisionRecallLayer>( "PrecisionRecall" );
+}
+
 } // namespace NeoML

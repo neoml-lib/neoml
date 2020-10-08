@@ -492,4 +492,14 @@ void CBatchNormalizationLayer::Serialize( CArchive& archive )
 	}
 }
 
+CLayerWrapper<CBatchNormalizationLayer> BatchNormalization(
+	bool isChannelBased, bool isZeroFreeTerm, float slowConvergenceRate )
+{
+	return CLayerWrapper<CBatchNormalizationLayer>( "BatchNormalization", [=]( CBatchNormalizationLayer* result ) {
+		result->SetChannelBased( isChannelBased );
+		result->SetZeroFreeTerm( isZeroFreeTerm );
+		result->SetSlowConvergenceRate( slowConvergenceRate );
+	} );
+}
+
 } // namespace NeoML

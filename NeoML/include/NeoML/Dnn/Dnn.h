@@ -23,6 +23,7 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/DnnBlob.h>
 #include <stdint.h>
+#include <NeoML/Dnn/DnnLambdaHolder.h>
 
 namespace NeoML {
 
@@ -66,6 +67,38 @@ inline CLayerClassRegistrar<T>::~CLayerClassRegistrar()
 
 class CDnn;
 class CDnnLayerGraph;
+class CBaseLayer;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The link between two layers, connecting one layer output to another layer input
+struct CDnnLayerLink {
+	// the pointer to the linked layer
+	CBaseLayer* Layer;
+	// the number of the output to which the connection leads
+	int OutputNumber;
+
+	// Default value for optional inputs.
+	CDnnLayerLink() : Layer( 0 ), OutputNumber( -1 ) {}
+	CDnnLayerLink( const CDnnLayerLink& other ) :
+		Layer( other.Layer ), OutputNumber( other.OutputNumber ) {}
+	CDnnLayerLink( CBaseLayer* layer, int outputNumber ) :
+		Layer( layer ),
+		OutputNumber( outputNumber )
+	{
+		NeoAssert( Layer != 0 );
+		NeoAssert( OutputNumber >= 0 );
+	}
+
+	// Converting constructor
+	CDnnLayerLink( CBaseLayer* layer ) :
+		Layer( layer ), OutputNumber( 0 ) {}
+
+	// Is this layer optional, i.e. created by CLayerOutout() default constructor.
+	bool IsOptional() const { return Layer == 0 && OutputNumber == -1; }
+	// Is the layer output valid?
+	bool IsValid() const { return Layer != 0 && OutputNumber >= 0; }
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -212,13 +245,6 @@ protected:
 	virtual void AllocateOutputBlobs();
 
 private:
-	// The link between two layers, connecting one layer output to another layer input
-	struct CDnnLayerLink {
-		// Output and input links
-		CBaseLayer* Layer; // the pointer to the linked layer
-		int OutputNumber;	// the number of the output to which the connection leads
-	};
-
 	// Describes an input connection
 	struct CInputInfo {
 		CString Name; // the name of the layer that is connected to the input
@@ -544,4 +570,7 @@ void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<
 
 } // namespace NeoML
 
+//////////////////////////////////////////////////////////////////////////////////////////
+
 #include <NeoML/Dnn/Dnn.inl>
+

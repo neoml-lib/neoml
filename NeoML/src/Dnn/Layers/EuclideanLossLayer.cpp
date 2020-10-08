@@ -49,4 +49,11 @@ void CEuclideanLossLayer::Serialize( CArchive& archive )
 	CLossLayer::Serialize( archive );
 }
 
+CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight )
+{
+	return CLayerWrapper<CEuclideanLossLayer>( "EuclideanLoss", [=]( CEuclideanLossLayer* result ) {
+		result->SetLossWeight( lossWeight );
+	} );
+}
+
 }

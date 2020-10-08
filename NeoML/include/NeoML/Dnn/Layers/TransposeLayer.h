@@ -55,4 +55,6 @@ inline void CTransposeLayer::GetTransposedDimensions(TBlobDim& _d1, TBlobDim& _d
 	_d2 = d2;
 }
 
+NEOML_API CLayerWrapper<CTransposeLayer> Transpose( TBlobDim d1, TBlobDim d2 );
+
 } // namespace NeoML

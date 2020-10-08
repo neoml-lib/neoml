@@ -47,4 +47,6 @@ private:
 	int negativesCorrect;
 };
 
+NEOML_API CLayerWrapper<CPrecisionRecallLayer> PrecisionRecall();
+
 } // namespace NeoML

@@ -56,4 +56,7 @@ private:
 		CFloatHandle sigmoidMinusOneVector, CConstFloatHandle labels, int batchSize, CFloatHandle lossGradient );
 };
 
+NEOML_API CLayerWrapper<CBinaryFocalLossLayer> BinaryFocalLoss(
+	float focalForce, float lossWeight = 1.0f );
+
 } // namespace NeoML

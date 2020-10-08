@@ -160,6 +160,9 @@ private:
 	bool isSoftmaxApplied;
 };
 
+NEOML_API CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
+	bool isSoftmaxApplied = true, float lossWeight = 1.0f );
+
 ///////////////////////////////////////////////////////////////////////////////////
 
 // CBinaryCrossEntropyLossLayer is a binary variant of cross-entropy
@@ -189,6 +192,9 @@ private:
 	void calculateStableSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) const;
 };
 
+NEOML_API CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(
+	float positiveWeight = 1.0f, float lossWeight = 1.0f );
+
 ///////////////////////////////////////////////////////////////////////////////////
 
 // CEuclideanLossLayer implements a layer that calculates the loss function 
@@ -207,6 +213,8 @@ protected:
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
 
+NEOML_API CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight = 1.0f );
+
 ///////////////////////////////////////////////////////////////////////////////////
 
 // CHingeLossLayer implements a layer that estimates the loss value as max(0, 1 - result * standard)
@@ -223,6 +231,8 @@ protected:
 	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
+
+NEOML_API CLayerWrapper<CHingeLossLayer> HingeLoss( float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -241,5 +251,8 @@ protected:
 	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
+
+NEOML_API CLayerWrapper<CSquaredHingeLossLayer> SquaredHingeLoss(
+	float lossWeight = 1.0f );
 
 } // namespace NeoML

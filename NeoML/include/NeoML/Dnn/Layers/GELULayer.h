@@ -40,4 +40,6 @@ private:
 	CFloatHandleVar multiplierVar;
 };
 
+NEOML_API CLayerWrapper<CGELULayer> Gelu();
+
 } // namespace NeoML

@@ -76,4 +76,11 @@ void CArgmaxLayer::BackwardOnce()
 {
 }
 
+CLayerWrapper<CArgmaxLayer> Argmax( TBlobDim dim )
+{
+	return CLayerWrapper<CArgmaxLayer>( "Argmax", [=]( CArgmaxLayer* result ) {
+		result->SetDimension( dim );
+	} );
+}
+
 } // namespace NeoML

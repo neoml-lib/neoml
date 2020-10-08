@@ -100,4 +100,11 @@ void CGlobalMaxPoolingLayer::destroyDesc()
 	}
 }
 
+CLayerWrapper<CGlobalMaxPoolingLayer> GlobalMaxPooling( int maxCount )
+{
+	return CLayerWrapper<CGlobalMaxPoolingLayer>( "", [=]( CGlobalMaxPoolingLayer* result ) {
+		result->SetMaxCount( maxCount );
+	} );
+}
+
 } // namespace NeoML

@@ -358,4 +358,23 @@ void CMultichannelLookupLayer::Word2VecStep( IMathEngine& mathEngine, int batchS
 	mathEngine.MatrixSpreadRowsAdd(diff, batchSize, vectorLen, word2vec, wordCount, wordMatrix);
 }
 
+CLayerWrapper<CMultichannelLookupLayer> MultichannelLookup(
+	const CArray<CLookupDimension>& lookupDimensions, bool useFrameworkLearning )
+{
+	return CLayerWrapper<CMultichannelLookupLayer>( "MultichannelLookupLayer", [=, &lookupDimensions]( CMultichannelLookupLayer* result ) {
+		result->SetDimensions( lookupDimensions );
+		result->SetUseFrameworkLearning( useFrameworkLearning );
+	} );
+}
+
+CLayerWrapper<CMultichannelLookupLayer> Embeddings( int count, int size )
+{
+	return CLayerWrapper<CMultichannelLookupLayer>( "MultichannelLookupLayer", [=]( CMultichannelLookupLayer* result ) {
+		CArray<CLookupDimension> lookupDimensions;
+		lookupDimensions.Add( CLookupDimension( count, size ) );
+		result->SetDimensions( lookupDimensions );
+		result->SetUseFrameworkLearning( true );
+	} );
+}
+
 }

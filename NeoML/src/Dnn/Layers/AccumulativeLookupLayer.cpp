@@ -96,4 +96,12 @@ void CAccumulativeLookupLayer::Serialize( CArchive& archive )
 	archive.Serialize( lookupDimension.VectorSize );
 }
 
+NEOML_API CLayerWrapper<NeoML::CAccumulativeLookupLayer> AccumulativeLookup(
+	int count, int size )
+{
+	return CLayerWrapper<CAccumulativeLookupLayer>( "AccumulativeLookup", [=]( CAccumulativeLookupLayer* result ) {
+		return result->SetDimension( CLookupDimension( count, size ) );
+	} );
+}
+
 } // namespace NeoML

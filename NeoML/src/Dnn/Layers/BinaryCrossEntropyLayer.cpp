@@ -173,4 +173,13 @@ void CBinaryCrossEntropyLossLayer::Serialize( CArchive& archive )
 	archive.Serialize( positiveWeightMinusOneValue );
 }
 
+CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(
+	float positiveWeight, float lossWeight )
+{
+	return CLayerWrapper<CBinaryCrossEntropyLossLayer>( "BinaryCrossEntropyLoss", [=]( CBinaryCrossEntropyLossLayer* result ) {
+		result->SetPositiveWeight( positiveWeight );
+		result->SetLossWeight( lossWeight );
+	} );
+}
+
 } // namespace NeoML

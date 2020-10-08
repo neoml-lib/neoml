@@ -550,6 +550,15 @@ void CCtcLossLayer::Serialize( CArchive& archive )
 	}
 }
 
+CLayerWrapper<CCtcLossLayer> CtcLoss( int blankLabel, bool allowBlankLabelSkip,
+	float lossWeight )
+{
+	return CLayerWrapper<CCtcLossLayer>( "CtcLoss", [=]( CCtcLossLayer* result ) {
+		result->SetBlankLabel( blankLabel );
+		result->SetAllowBlankLabelSkips( allowBlankLabelSkip );
+		result->SetLossWeight( lossWeight );
+	} );
+}
 
 ///////////////////////////////////////////////////////////////////////////////////
 // CCtcDecodingLayer

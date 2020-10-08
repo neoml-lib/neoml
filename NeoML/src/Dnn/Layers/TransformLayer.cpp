@@ -168,5 +168,44 @@ void CTransformLayer::BackwardOnce()
 	}
 }
 
+static bool isTransformParamCorrect( int param )
+{
+	return param > 0 || param == TransformInferenceRemainder || param == TransformInferenceSame;
+}
+
+static void applyTransformRule( CTransformLayer* transformLayer, TBlobDim dim, int value )
+{
+	NeoAssert( transformLayer != 0 );
+
+	if( value == TransformInferenceSame ) {
+		transformLayer->SetDimensionRule( dim, CTransformLayer::O_Multiply, 1 );
+	} else if( value == TransformInferenceRemainder ) {
+		transformLayer->SetDimensionRule( dim, CTransformLayer::O_Remainder, 0 );
+	} else {
+		transformLayer->SetDimensionRule( dim, CTransformLayer::O_SetSize, value );
+	}
+}
+
+CLayerWrapper<CTransformLayer> Transform( int batchLength, int batchWidth,
+	int listSize, int height, int width, int depth, int channel )
+{
+	NeoAssert( isTransformParamCorrect( batchLength ) );
+	NeoAssert( isTransformParamCorrect( batchWidth ) );
+	NeoAssert( isTransformParamCorrect( listSize ) );
+	NeoAssert( isTransformParamCorrect( width ) );
+	NeoAssert( isTransformParamCorrect( height ) );
+	NeoAssert( isTransformParamCorrect( depth ) );
+	NeoAssert( isTransformParamCorrect( channel ) );
+
+	return CLayerWrapper<CTransformLayer>( "Transform", [=]( CTransformLayer* result ) {
+		applyTransformRule( result, BD_BatchLength, batchLength );
+		applyTransformRule( result, BD_BatchWidth, batchWidth );
+		applyTransformRule( result, BD_ListSize, listSize );
+		applyTransformRule( result, BD_Height, height );
+		applyTransformRule( result, BD_Width, width );
+		applyTransformRule( result, BD_Depth, depth );
+		applyTransformRule( result, BD_Channels, channel );
+	} );
+}
 
 } // namespace NeoML

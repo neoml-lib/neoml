@@ -62,4 +62,19 @@ void CSinkLayer::Serialize( CArchive& archive )
 	}
 }
 
+CSinkLayer* Sink( const CDnnLayerLink& layer, const char* name )
+{
+	NeoAssert( layer.IsValid() );
+
+	CDnn* network = layer.Layer->GetDnn();
+
+	CPtr<CSinkLayer> sink = new CSinkLayer( network->GetMathEngine() );
+	sink->SetName( name );
+
+	network->AddLayer( *sink );
+	sink->Connect( 0, *layer.Layer, layer.OutputNumber );
+
+	return sink;
+}
+
 } // namespace NeoML

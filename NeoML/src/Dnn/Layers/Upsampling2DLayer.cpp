@@ -87,4 +87,12 @@ void CUpsampling2DLayer::Serialize( CArchive& archive )
 	archive.Serialize( widthCopyCount );
 }
 
+CLayerWrapper<CUpsampling2DLayer> Upsampling2d( int heightCopyCount, int widthCopyCount )
+{
+	return CLayerWrapper<CUpsampling2DLayer>( "Upsampling2d", [=]( CUpsampling2DLayer* result ) {
+		result->SetHeightCopyCount( heightCopyCount );
+		result->SetWidthCopyCount( widthCopyCount );
+	} );
+}
+
 } // namespace NeoML

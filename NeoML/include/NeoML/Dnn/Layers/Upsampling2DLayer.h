@@ -47,4 +47,7 @@ private:
 	int widthCopyCount;
 };
 
+NEOML_API CLayerWrapper<CUpsampling2DLayer> Upsampling2d( int heightCopyCount,
+	int widthCopyCount );
+
 } // namespace NeoML

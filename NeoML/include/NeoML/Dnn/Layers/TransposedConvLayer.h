@@ -46,4 +46,8 @@ private:
 	void calcOutputBlobSize( int& outputHeight, int& outputWidth ) const;
 };
 
+NEOML_API CLayerWrapper<CTransposedConvLayer> TransposedConv( int filterCount,
+	const CConvAxisParams& heightParams, const CConvAxisParams& widthParams,
+	bool isZeroFreeTerm = false );
+
 } // namespace NeoML

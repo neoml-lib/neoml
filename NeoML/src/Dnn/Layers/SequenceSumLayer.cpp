@@ -52,4 +52,9 @@ void CSequenceSumLayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 }
 
+CLayerWrapper<CSequenceSumLayer> SequenceSum()
+{
+	return CLayerWrapper<CSequenceSumLayer>( "SequenceSum" );
+}
+
 } // namespace NeoML

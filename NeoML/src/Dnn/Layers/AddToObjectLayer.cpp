@@ -69,4 +69,9 @@ void CAddToObjectLayer::BackwardOnce()
 		outputDiffBlobs[0]->GetObjectCount(), outputDiffBlobs[0]->GetObjectSize() );
 }
 
+CLayerWrapper<CAddToObjectLayer> AddToObject()
+{
+	return CLayerWrapper<CAddToObjectLayer>( "AddToObject" );
+}
+
 } // namespace NeoML

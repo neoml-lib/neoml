@@ -108,6 +108,26 @@ void CSplitChannelsLayer::Serialize( CArchive& archive )
 	CBaseSplitLayer::Serialize( archive );
 }
 
+CLayerWrapper<CSplitChannelsLayer> SplitChannels( const CArray<int>& outputCounts )
+{
+	return CLayerWrapper<CSplitChannelsLayer>( "SplitChannels", [&outputCounts]( CSplitChannelsLayer* result ) {
+		result->SetOutputCounts( outputCounts );
+	} );
+}
+
+CLayerWrapper<CSplitChannelsLayer> SplitChannels( int output0, int output1, int output2 )
+{
+	return CLayerWrapper<CSplitChannelsLayer>( "SplitChannels", [=]( CSplitChannelsLayer* result ) {
+		if( output1 == 0 ) {
+			result->SetOutputCounts2( output0 );
+		} else if( output2 == 0 ) {
+			result->SetOutputCounts3( output0, output1 );
+		} else {
+			result->SetOutputCounts4( output0, output1, output2 );
+		}
+	} );
+}
+
 // ====================================================================================================================
 
 static const int SplitDepthLayerVersion = 2000;
@@ -116,6 +136,26 @@ void CSplitDepthLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( SplitDepthLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseSplitLayer::Serialize( archive );
+}
+
+CLayerWrapper<CSplitDepthLayer> SplitDepth( const CArray<int>& outputCounts )
+{
+	return CLayerWrapper<CSplitDepthLayer>( "SplitDepth", [&outputCounts]( CSplitDepthLayer* result ) {
+		result->SetOutputCounts( outputCounts );
+	} );
+}
+
+CLayerWrapper<CSplitDepthLayer> SplitDepth( int output0, int output1, int output2 )
+{
+	return CLayerWrapper<CSplitDepthLayer>( "SplitDepth", [=]( CSplitDepthLayer* result ) {
+		if( output1 == 0 ) {
+			result->SetOutputCounts2( output0 );
+		} else if( output2 == 0 ) {
+			result->SetOutputCounts3( output0, output1 );
+		} else {
+			result->SetOutputCounts4( output0, output1, output2 );
+		}
+	} );
 }
 
 // ====================================================================================================================
@@ -128,6 +168,26 @@ void CSplitWidthLayer::Serialize( CArchive& archive )
 	CBaseSplitLayer::Serialize( archive );
 }
 
+CLayerWrapper<CSplitWidthLayer> SplitWidth( const CArray<int>& outputCounts )
+{
+	return CLayerWrapper<CSplitWidthLayer>( "SplitWidth", [&outputCounts]( CSplitWidthLayer* result ) {
+		result->SetOutputCounts( outputCounts );
+	} );
+}
+
+CLayerWrapper<CSplitWidthLayer> SplitWidth( int output0, int output1, int output2 )
+{
+	return CLayerWrapper<CSplitWidthLayer>( "SplitWidth", [=]( CSplitWidthLayer* result ) {
+		if( output1 == 0 ) {
+			result->SetOutputCounts2( output0 );
+		} else if( output2 == 0 ) {
+			result->SetOutputCounts3( output0, output1 );
+		} else {
+			result->SetOutputCounts4( output0, output1, output2 );
+		}
+	} );
+}
+
 // ====================================================================================================================
 
 static const int SplitHeightLayerVersion = 2000;
@@ -138,6 +198,26 @@ void CSplitHeightLayer::Serialize( CArchive& archive )
 	CBaseSplitLayer::Serialize( archive );
 }
 
+CLayerWrapper<CSplitHeightLayer> SplitHeight( const CArray<int>& outputCounts )
+{
+	return CLayerWrapper<CSplitHeightLayer>( "SplitHeight", [&outputCounts]( CSplitHeightLayer* result ) {
+		result->SetOutputCounts( outputCounts );
+	} );
+}
+
+CLayerWrapper<CSplitHeightLayer> SplitHeight( int output0, int output1, int output2 )
+{
+	return CLayerWrapper<CSplitHeightLayer>( "SplitHeight", [=]( CSplitHeightLayer* result ) {
+		if( output1 == 0 ) {
+			result->SetOutputCounts2( output0 );
+		} else if( output2 == 0 ) {
+			result->SetOutputCounts3( output0, output1 );
+		} else {
+			result->SetOutputCounts4( output0, output1, output2 );
+		}
+	} );
+}
+
 // ====================================================================================================================
 
 static const int SplitBatchWidthLayerVersion = 2000;
@@ -146,6 +226,26 @@ void CSplitBatchWidthLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( SplitBatchWidthLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseSplitLayer::Serialize( archive );
+}
+
+CLayerWrapper<CSplitBatchWidthLayer> SplitBatchWidth( const CArray<int>& outputCounts )
+{
+	return CLayerWrapper<CSplitBatchWidthLayer>( "SplitBatchWidth", [&outputCounts]( CSplitBatchWidthLayer* result ) {
+		result->SetOutputCounts( outputCounts );
+	} );
+}
+
+CLayerWrapper<CSplitBatchWidthLayer> SplitBatchWidth( int output0, int output1, int output2 )
+{
+	return CLayerWrapper<CSplitBatchWidthLayer>( "SplitBatchWidth", [=]( CSplitBatchWidthLayer* result ) {
+		if( output1 == 0 ) {
+			result->SetOutputCounts2( output0 );
+		} else if( output2 == 0 ) {
+			result->SetOutputCounts3( output0, output1 );
+		} else {
+			result->SetOutputCounts4( output0, output1, output2 );
+		}
+	} );
 }
 
 } // namespace NeoML

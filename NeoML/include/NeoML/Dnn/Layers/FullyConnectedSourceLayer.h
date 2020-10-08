@@ -77,4 +77,7 @@ private:
 	bool isBatchLoaded( int index ) const;
 };
 
+NEOML_API CLayerWrapper<CFullyConnectedSourceLayer> FullyConnectedSource(
+	TBlobType labelType, int batchSize, int maxBatchCount, IProblem* problem );
+
 } // namespace NeoML

@@ -100,4 +100,7 @@ private:
 	const CPtr<CDnnBlob>& Bias() const { return paramBlobs[PN_Bias]; }
 };
 
+NEOML_API CLayerWrapper<CObjectNormalizationLayer> ObjectNormalization(
+	float epsilon = 1e-5f );
+
 } // namespace NeoML

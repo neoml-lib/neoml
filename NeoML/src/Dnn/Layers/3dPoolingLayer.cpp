@@ -156,6 +156,19 @@ void C3dMaxPoolingLayer::destroyDesc()
 	}
 }
 
+CLayerWrapper<C3dMaxPoolingLayer> Pooling3dMax( int filterHeight, int filterWidth, int filterDepth,
+	int strideHeight, int strideWidth, int strideDepth )
+{
+	return CLayerWrapper<C3dMaxPoolingLayer>( "Pooling3D", [=]( C3dMaxPoolingLayer* result ) {
+		result->SetFilterHeight( filterHeight );
+		result->SetFilterWidth( filterWidth );
+		result->SetFilterDepth( filterDepth );
+		result->SetStrideHeight( strideHeight );
+		result->SetStrideWidth( strideWidth );
+		result->SetStrideDepth( strideDepth );
+	} );
+}
+
 //////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////
 
@@ -201,6 +214,19 @@ void C3dMeanPoolingLayer::destroyDesc()
 		delete desc;
 		desc = 0;
 	}
+}
+
+CLayerWrapper<C3dMeanPoolingLayer> Pooling3dMean( int filterHeight, int filterWidth, int filterDepth,
+	int strideHeight, int strideWidth, int strideDepth )
+{
+	return CLayerWrapper<C3dMeanPoolingLayer>( "Pooling3dMean", [=]( C3dMeanPoolingLayer* result ) {
+		result->SetFilterHeight( filterHeight );
+		result->SetFilterWidth( filterWidth );
+		result->SetFilterDepth( filterDepth );
+		result->SetStrideHeight( strideHeight );
+		result->SetStrideWidth( strideWidth );
+		result->SetStrideDepth( strideDepth );
+	} );
 }
 
 } // namespace NeoML

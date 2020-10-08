@@ -82,6 +82,9 @@ private:
 	void buildLayer();
 };
 
+NEOML_API CLayerWrapper<CAttentionDecoderLayer> AttentionDecoder(
+	TAttentionScore score, int outObjectSize, int outSeqLen, int hiddenSize );
+
 ///////////////////////////////////////////////////////////////////////////////////
 // AttentionRecurrentLayer is the internal recurrent layer that converts the input sequence into the output
 // The layer inputs: 
