@@ -182,13 +182,9 @@ private:
 
 // Convolution parameters along one of the axes.
 struct NEOML_API CConvAxisParams {
-	// FilterSize
 	int FilterSize;
-	// Padding
 	int Padding;
-	// Stride
 	int Stride;
-	// Dilation
 	int Dilation;
 
 	CConvAxisParams() : FilterSize( 1 ), Padding( 0 ), Stride( 1 ), Dilation( 1 ) {}
