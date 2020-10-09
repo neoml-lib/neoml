@@ -27,11 +27,17 @@ FME_DLL_EXPORT bool IsBlobConvolutionAvailable( int C, int FC, int FH, int FW )
 }
 
 extern "C"
-FME_DLL_EXPORT bool BlobConvolution_f3x3_c24_fc24_new( int C, int FC, int FH, int FW, int threadCount,
+FME_DLL_EXPORT bool ProcessBlobConvolution( int C, int FC, int FH, int FW, int threadCount,
 	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
 {
+	// Data should be alligned
+	if( ( reinterpret_cast<std::uintptr_t>( sourceData ) % 32 != 0 ) ||
+		( reinterpret_cast<std::uintptr_t>( resultData ) % 32 != 0 ) ) {
+		return false;
+	}
+
 	auto blobConvolutionInst = CBlobConvolutionFabric::GetProperInstance( C, FC, FH, FW,
 		sourceHeight, sourceWidth, strideHeight, strideWidth,
 		dilationHeight, dilationWidth, resultHeight, resultWidth,

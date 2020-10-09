@@ -35,6 +35,8 @@ CAvxDll::CAvxDll() : isLoaded( false ), functionAdresses{}
 		return;
 	}
 
+	loadFunction( TFunctionPointers::IsBlobConvolutionAvailable, "IsBlobConvolutionAvailable" );
+	loadFunction( TFunctionPointers::ProcessBlobConvolution, "ProcessBlobConvolution" );
 	loadFunction( TFunctionPointers::BlobConvolution_f3x3_c24_fc24, "BlobConvolution_f3x3_c24_fc24" );
 
 	isLoaded = true;
@@ -54,6 +56,32 @@ void CAvxDll::loadFunction( TFunctionPointers functionType, const char* function
 	functionAdresses[static_cast<size_t>(functionType)] = functionAdress;
 }
 
+bool CAvxDll::IsBlobConvolutionAvailable( const CCommonConvolutionDesc& desc ) const
+{
+	typedef bool ( *FuncType )( int C, int FC, int FH, int FW );
+	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::IsBlobConvolutionAvailable ) ) );
+	return isLoaded && func( desc.Filter.Channels(), desc.Filter.BatchWidth(), desc.Filter.Height(), desc.Filter.Width() );
+}
+
+void CAvxDll::ProcessBlobConvolution( int threadCount, const CCommonConvolutionDesc& desc, const float* sourceData,
+	const float* filterData, const float* freeTermData, float* resultData ) const
+{
+	typedef bool ( *FuncType )( int C, int FC, int FH, int FW, int threadCount,
+		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
+		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData );
+	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::ProcessBlobConvolution ) ) );
+	
+	// Data should be alligned
+	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( sourceData ) % 32 == 0 );
+	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( resultData ) % 32 == 0 );
+
+	ASSERT_EXPR( func( desc.Filter.Channels(), desc.Filter.BatchWidth(), desc.Filter.Height(), desc.Filter.Width(), threadCount,
+		desc.Source.Height(), desc.Source.Width(), desc.StrideHeight, desc.StrideWidth,
+		desc.DilationHeight, desc.DilationWidth, desc.Result.Height(), desc.Result.Width(),
+		sourceData, filterData, freeTermData, resultData ) );
+}
+
 void CAvxDll::CallBlobConvolution_f3x3_c24_fc24( int threadCount, const CCommonConvolutionDesc& desc,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) const
 {
@@ -62,15 +90,7 @@ void CAvxDll::CallBlobConvolution_f3x3_c24_fc24( int threadCount, const CCommonC
 
 	ASSERT_EXPR( func != nullptr );
 
-	ASSERT_EXPR( desc.Filter.Channels() == 24 );
-	ASSERT_EXPR( desc.Filter.ObjectCount() == 24 );
-	ASSERT_EXPR( desc.PaddingWidth == desc.PaddingHeight );
-	ASSERT_EXPR( desc.DilationWidth == desc.DilationHeight );
-	ASSERT_EXPR( desc.PaddingWidth == desc.DilationWidth );
-	ASSERT_EXPR( desc.StrideWidth == desc.StrideHeight );
-	ASSERT_EXPR( desc.Filter.Width() == 3 );
-	ASSERT_EXPR( desc.Filter.Height() == 3 );
-
+	// Data should be alligned
 	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( sourceData ) % 32 == 0 );
 	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>(  resultData  ) % 32 == 0 );
 

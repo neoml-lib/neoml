@@ -62,7 +62,7 @@ private:
 
 	// Filter should be alligned to 16 bytes
 	static constexpr size_t FileterSize = FW * FH * FC * C ;
-	static constexpr size_t FilterAlignment = 16;
+	static constexpr size_t FilterAlignment = 32;
 	float Filter[FileterSize + FilterAlignment];
 
 	// Choose proper pixels in source and filter:
@@ -242,8 +242,6 @@ inline void CBlobConvolution<C, FC, FH, FW>::partialBatchProcessLoop( int& rx, i
 		srcPtr += BatchProcessSize * SrcXStep;
 		dstPtr += BatchProcessSize * FC;
 	}
-	// Roll back counter
-	rx -= BatchProcessSize - 1;
 }
 
 template<int C, int FC, int FH, int FW>
@@ -265,8 +263,6 @@ inline void CBlobConvolution<C, FC, FH, FW>::wholeBatchProcessLoop( int& rx, int
 		srcPtr += BatchProcessSize * SrcXStep;
 		dstPtr += BatchProcessSize * FC;
 	}
-	// Roll back counter
-	rx -= BatchProcessSize - 1;
 }
 
 template<int C, int FC, int FH, int FW>
