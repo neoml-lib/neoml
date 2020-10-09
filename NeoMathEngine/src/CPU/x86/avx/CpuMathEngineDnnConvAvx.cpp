@@ -16,7 +16,33 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <CpuMathEngineDnnConvAvx.h>
+
 namespace NeoML {
+
+extern "C"
+FME_DLL_EXPORT bool IsBlobConvolutionAvailable( int C, int FC, int FH, int FW )
+{
+	return CBlobConvolutionFabric::IsBlobConvolutionAvailable( C, FC, FH, FW );
+}
+
+extern "C"
+FME_DLL_EXPORT bool BlobConvolution_f3x3_c24_fc24_new( int C, int FC, int FH, int FW, int threadCount,
+	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
+	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
+{
+	auto blobConvolutionInst = CBlobConvolutionFabric::GetProperInstance( C, FC, FH, FW,
+		sourceHeight, sourceWidth, strideHeight, strideWidth,
+		dilationHeight, dilationWidth, resultHeight, resultWidth,
+		sourceData, filterData, freeTermData, resultData );
+
+	if( blobConvolutionInst != nullptr ) {
+		blobConvolutionInst->ProcessConvolution( threadCount );
+		return true;
+	}
+	return false;
+}
 
 template<int imm8, int FC>
 inline void Process_avx( __m256& r0, __m256& r1, __m256& r2,
@@ -193,7 +219,7 @@ FME_DLL_EXPORT void BlobConvolution_f3x3_c24_fc24( int sourceWidth, int resultHe
 	const int SrcXWindowSize = FW * SrcXDilation;
 	const int DstYDilation = RW * FC;
 	// Offset is relative to central pixel
-	const vector<int> SrcPixelOffset[8] = {
+	const vector<int> SrcPixelsOffset[8] = {
 		{ 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 4 5 7 8
 		{ -SrcXDilation, 0, SrcXDilation, SrcYDilation - SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 3 4 5 6 7 8
 		{ -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 3 4 6 7
@@ -204,7 +230,7 @@ FME_DLL_EXPORT void BlobConvolution_f3x3_c24_fc24( int sourceWidth, int resultHe
 		{ -SrcYDilation, -SrcYDilation + SrcXDilation, 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation } // 1 2 4 5 7 8
 	};
 	// Offset is relative to top left pixel
-	const vector<int> FltPixels[8] = {
+	const vector<int> FltPixelsOffset[8] = {
 		{ 4 * C * FC, 5 * C * FC, 7 * C * FC, 8 * C * FC }, // 4 5 7 8
 		{ 3 * C * FC, 4 * C * FC, 5 * C * FC, 6 * C * FC, 7 * C * FC, 8 * C * FC }, // 3 4 5 6 7 8
 		{ 3 * C * FC, 4 * C * FC, 6 * C * FC, 7 * C * FC }, // 3 4 6 7
@@ -404,30 +430,30 @@ FME_DLL_EXPORT void BlobConvolution_f3x3_c24_fc24( int sourceWidth, int resultHe
 				// Partial applying filter
 				for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
 					// Top left corner, // 4 5 7 8
-					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[0], fltPtr, FltPixels[0], dstPtr );
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelsOffset[0], fltPtr, FltPixelsOffset[0], dstPtr );
 					srcPtr += SrcXStep;
 					dstPtr += FC;
 				}
 				for( int rx = PartialStepCountBefore; rx <= RW - PartialStepCountAfter - 3; rx += 3 ) {
 					// Top edge, 3 4 5 6 7 8
-					ApplyPartitialFilter3x3_24ch_x3( srcPtr, SrcPixelOffset[1], fltPtr, FltPixels[1], dstPtr );
+					ApplyPartitialFilter3x3_24ch_x3( srcPtr, SrcPixelsOffset[1], fltPtr, FltPixelsOffset[1], dstPtr );
 					srcPtr += 3 * SrcXStep;
 					dstPtr += 3 * FC;
 				}
 				if( ProcessLastTwoPixels ) {
-					ApplyPartitialFilter3x3_24ch_x2( srcPtr, SrcPixelOffset[1], fltPtr, FltPixels[1], dstPtr );
+					ApplyPartitialFilter3x3_24ch_x2( srcPtr, SrcPixelsOffset[1], fltPtr, FltPixelsOffset[1], dstPtr );
 					srcPtr += 2 * SrcXStep;
 					dstPtr += 2 * FC;
 				}
 				if( ProcessLastOnePixel ) {
-					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[1], fltPtr, FltPixels[1], dstPtr );
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelsOffset[1], fltPtr, FltPixelsOffset[1], dstPtr );
 					srcPtr += SrcXStep;
 					dstPtr += FC;
 				}
 
 				for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
 					// Top right corner, 3 4 6 7
-					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[2], fltPtr, FltPixels[2], dstPtr );
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelsOffset[2], fltPtr, FltPixelsOffset[2], dstPtr );
 					srcPtr += SrcXStep;
 					dstPtr += FC;
 				}
@@ -440,7 +466,7 @@ FME_DLL_EXPORT void BlobConvolution_f3x3_c24_fc24( int sourceWidth, int resultHe
 				// Partial applying filter
 				for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
 					// Top left corner, // 4 5 7 8
-					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[7], fltPtr, FltPixels[7], dstPtr );
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelsOffset[7], fltPtr, FltPixelsOffset[7], dstPtr );
 					srcPtr += SrcXStep;
 					dstPtr += FC;
 				}
@@ -470,7 +496,7 @@ FME_DLL_EXPORT void BlobConvolution_f3x3_c24_fc24( int sourceWidth, int resultHe
 				srcPtr += ( SrcYDilation + SrcXDilation);
 				for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
 					// Top right corner, 3 4 6 7
-					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[3], fltPtr, FltPixels[3], dstPtr );
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelsOffset[3], fltPtr, FltPixelsOffset[3], dstPtr );
 					srcPtr += SrcXStep;
 					dstPtr += FC;
 				}
@@ -483,30 +509,30 @@ FME_DLL_EXPORT void BlobConvolution_f3x3_c24_fc24( int sourceWidth, int resultHe
 				// Partial applying filter
 				for( int rx = 0; rx < PartialStepCountBefore; rx++ ) {
 					// Top left corner, // 4 5 7 8
-					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[6], fltPtr, FltPixels[6], dstPtr );
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelsOffset[6], fltPtr, FltPixelsOffset[6], dstPtr );
 					srcPtr += SrcXStep;
 					dstPtr += FC;
 				}
 				for( int rx = PartialStepCountBefore; rx <= RW - PartialStepCountAfter - 3; rx += 3 ) {
 					// Top edge, 3 4 5 6 7 8
-					ApplyPartitialFilter3x3_24ch_x3( srcPtr, SrcPixelOffset[5], fltPtr, FltPixels[5], dstPtr );
+					ApplyPartitialFilter3x3_24ch_x3( srcPtr, SrcPixelsOffset[5], fltPtr, FltPixelsOffset[5], dstPtr );
 					srcPtr += 3 * SrcXStep;
 					dstPtr += 3 * FC;
 				}
 				if( ProcessLastTwoPixels ) {
-					ApplyPartitialFilter3x3_24ch_x2( srcPtr, SrcPixelOffset[5], fltPtr, FltPixels[5], dstPtr );
+					ApplyPartitialFilter3x3_24ch_x2( srcPtr, SrcPixelsOffset[5], fltPtr, FltPixelsOffset[5], dstPtr );
 					srcPtr += 2 * SrcXStep;
 					dstPtr += 2 * FC;
 				}
 				if( ProcessLastOnePixel ) {
-					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[5], fltPtr, FltPixels[5], dstPtr );
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelsOffset[5], fltPtr, FltPixelsOffset[5], dstPtr );
 					srcPtr += SrcXStep;
 					dstPtr += FC;
 				}
 
 				for( int rx = RW - PartialStepCountAfter; rx < RW; rx++ ) {
 					// Top right corner, 3 4 6 7
-					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelOffset[4], fltPtr, FltPixels[4], dstPtr );
+					ApplyPartitialFilter3x3_24ch( srcPtr, SrcPixelsOffset[4], fltPtr, FltPixelsOffset[4], dstPtr );
 					srcPtr += SrcXStep;
 					dstPtr += FC;
 				}

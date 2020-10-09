@@ -9,6 +9,8 @@ target_sources(${PROJECT_NAME}
     ./CpuMathEngineDnnConvAvx.cpp
 	# Headers
 	./common.h
+	./CpuMathEngineDnnConvAvx.h
+	./CpuMathEngineDnnConvAvxImpl.h
 )
 
 string(TOUPPER ${CMAKE_SYSTEM_NAME} UPPERCASE_CMAKE_SYSTEM_NAME)
