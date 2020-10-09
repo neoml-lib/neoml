@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright ï¿½ 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,10 +35,11 @@ public:
 	void ProcessConvolution( int threadCount ) override;
 
 private:
-	static constexpr int C = C;
-	static constexpr int FC = FC;
-	static constexpr int FH = FH;
-	static constexpr int FW = FW;
+	// Create this variables in order to use them in class specialization
+	static constexpr int C_ = C;
+	static constexpr int FC_ = FC;
+	static constexpr int FH_ = FH;
+	static constexpr int FW_ = FW;
 
 	const int SrcH;
 	const int SrcW;
@@ -85,18 +86,18 @@ private:
 	void wholeBatchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr );
 	void wholeSingleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr );
 
+	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
+		__m256& r00, __m256& r01, __m256& r02,
+		__m256& r10, __m256& r11, __m256& r12,
+		__m256& r20, __m256& r21, __m256& r22 );
+	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
+
 	void partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
 		const float* fltPtr, const vector<int>& fltPixelsOffset, float* dstPtr );
 	void partialSingleProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
 		const float* fltPtr, const std::vector<int>& fltPixelsOffset, float* dstPtr );
 	void wholeBatchProcess( const float* srcPtr, const float* fltPtr, float* dstPtr );
 	void wholeSingleProcess( const float* srcPtr, const float* fltPtr, float* dstPtr );
-
-	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
-		__m256& r00, __m256& r01, __m256& r02,
-		__m256& r10, __m256& r11, __m256& r12,
-		__m256& r20, __m256& r21, __m256& r22 );
-	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
 
 	const float* rearrangeFileter( const float* filterData );
 	const std::array<std::vector<int>, 8> fillSrcPixelOffset();
