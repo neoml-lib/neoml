@@ -152,7 +152,7 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 	case MET_Vulkan:
 	{
 		const auto& deviceInfo = loader.vulkanDll->GetDevices()[index >= 0 ? info[index].Id : 0];
-		std::unique_ptr<const CVulkanDevice> device (loader.vulkanDll->CreateDevice( deviceInfo ) );
+		std::unique_ptr<const CVulkanDevice> device( loader.vulkanDll->CreateDevice( deviceInfo ) );
 		if( !device ) {
 			return nullptr;
 		}
