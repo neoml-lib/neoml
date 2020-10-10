@@ -22,136 +22,136 @@ limitations under the License.
 
 namespace NeoMLTest {
 
-static IMathEngine* mathEngine = nullptr;
-static CString testDir;
-static void* platformEnv = nullptr;
+namespace {
 
-template <typename T, std::size_t N>
-bool StartsWith( const T* str, const T(&prefix)[N] )
-{
-	size_t i = 0;
-	for( ; i < N && *str != '\0'; ++i, ++str ) {
-		if( *str != prefix[i] ) {
-			return false;
+	IMathEngine* mathEngine = nullptr;
+	CString testDir;
+	void* platformEnv = nullptr;
+
+	template <typename T, std::size_t N>
+	bool StartsWith( const T* str, const T(&prefix)[N] )
+	{
+		size_t i = 0;
+		for( ; i < N && *str != '\0'; ++i, ++str ) {
+			if( *str != prefix[i] ) {
+				return false;
+			}
 		}
+		return i == N;
 	}
-	return i == N;
-}
 
-template <typename T, std::size_t N>
-bool Equal( const T* one, const T(&two)[N] )
-{
-	return StartsWith( one, two ) && one[N] == '\0';
-}
+	template <typename T, std::size_t N>
+	bool Equal( const T* one, const T(&two)[N] )
+	{
+		return StartsWith( one, two ) && one[N] == '\0';
+	}
 
-
-
-template <typename T, std::size_t N>
-const T* ArgValue(int argc, T* argv[], const T(&argument)[N])
-{
-	for( int i = 0; i < argc; ++i ) {
-		if( StartsWith( argv[i], argument ) ) {
-			return argv[i] + N;
+	template <typename T, std::size_t N>
+	const T* ArgValue( int argc, T* argv[], const T(&argument)[N] )
+	{
+		for( int i = 0; i < argc; ++i ) {
+			if( StartsWith( argv[i], argument ) ) {
+				return argv[i] + N;
+			}
 		}
+		return nullptr;
 	}
-	return nullptr;
-}
 
-template <typename Ch>
-struct Arg {
-	static constexpr Ch TestDataPath[] = { '-','-','T','e','s','t','D','a','t','a','P','a','t','h','=' };
-	static constexpr Ch MathEngine[] = { '-','-','M','a','t','h','E','n','g','i','n','e','=' };
-	static constexpr Ch ThreadCount[] = { '-','-','T','h','r','e','a','d','C','o','u','n','t','=' };
-};
+	template <typename Ch>
+	struct Arg {
+		static constexpr Ch TestDataPath[] = { '-','-','T','e','s','t','D','a','t','a','P','a','t','h','=' };
+		static constexpr Ch MathEngine[] = { '-','-','M','a','t','h','E','n','g','i','n','e','=' };
+		static constexpr Ch ThreadCount[] = { '-','-','T','h','r','e','a','d','C','o','u','n','t','=' };
+	};
 
-template <typename Ch>
-struct Value {
-	static constexpr Ch Cpu[] = { 'c', 'p', 'u' };
-	static constexpr Ch Cuda[] = { 'c','u','d','a' };
-	static constexpr Ch Vulkan[] = { 'v','u','l','k','a','n' };
-	static constexpr Ch Metal[] = { 'm','e','t','a','l' };
-};
+	template <typename Ch>
+	struct Value {
+		static constexpr Ch Cpu[] = { 'c', 'p', 'u' };
+		static constexpr Ch Cuda[] = { 'c','u','d','a' };
+		static constexpr Ch Vulkan[] = { 'v','u','l','k','a','n' };
+		static constexpr Ch Metal[] = { 'm','e','t','a','l' };
+	};
 
-template <typename T>
-TMathEngineType GetMathEngineType( int argc, T* argv[] )
-{
-	auto value = ArgValue( argc, argv, Arg<T>::MathEngine );
-	if( !value ) {
+	template <typename T>
+	TMathEngineType GetMathEngineType( int argc, T* argv[] )
+	{
+		auto value = ArgValue( argc, argv, Arg<T>::MathEngine );
+		if( !value ) {
+			return MET_Undefined;
+		}
+
+		if( Equal( value, Value<T>::Cpu ) ) {
+			return MET_Cpu;
+		} else if( Equal( value, Value<T>::Metal ) ) {
+			return MET_Metal;
+		} else if( Equal( value, Value<T>::Cuda ) ) {
+			return MET_Cuda;
+		} else if( Equal( value, Value<T>::Vulkan ) ) {
+			return MET_Vulkan;
+		}
 		return MET_Undefined;
 	}
-	
-	if( Equal( value, Value<T>::Cpu ) ) {
-		return MET_Cpu;
-	} else if( Equal( value, Value<T>::Metal ) ) {
-		return MET_Metal;
-	} else if( Equal( value, Value<T>::Cuda ) ) {
-		return MET_Cuda;
-	} else if( Equal( value, Value<T>::Vulkan ) ) {
-		return MET_Vulkan;
-	}
-	return MET_Undefined;
-}
 
-static inline const char* toString( TMathEngineType type )
-{
-	if (type == MET_Cpu) {
-		return "Cpu";
-	} else if (type == MET_Cuda) {
-		return "Cuda";
-	} else if( type == MET_Vulkan ) {
-		return "Vulkan";
-	} else if (type == MET_Metal) {
-		return "Metal";
+	inline const char* toString( TMathEngineType type )
+	{
+		if( type == MET_Cpu ) {
+			return "Cpu";
+		} else if( type == MET_Cuda ) {
+			return "Cuda";
+		} else if( type == MET_Vulkan ) {
+			return "Vulkan";
+		} else if( type == MET_Metal ) {
+			return "Metal";
+		}
+		return "";
 	}
-	return "";
-}
 
 #ifdef NEOML_USE_FINEOBJ
 
-inline void InitTestDataPath( int argc, wchar_t* argv[] )
-{
-	auto value = ArgValue( argc, argv, Arg<wchar_t>::TestDataPath );
-	if( value ) {
-		testDir = CString( value, CP_UTF8 );
+	inline void InitTestDataPath( int argc, wchar_t* argv[] )
+	{
+		auto value = ArgValue( argc, argv, Arg<wchar_t>::TestDataPath );
+		if( value ) {
+			testDir = CString( value, CP_UTF8 );
+		}
 	}
-}
 
-inline int GetThreadCount( int argc, wchar_t* argv[] )
-{
-	auto value = ArgValue( argc, argv, Arg<wchar_t>::ThreadCount );
-	int res = 0;
-	if( value && FObj::Value( value, res ) ) {
-		return res;
+	inline int GetThreadCount( int argc, wchar_t* argv[] )
+	{
+		auto value = ArgValue( argc, argv, Arg<wchar_t>::ThreadCount );
+		int res = 0;
+		if( value && FObj::Value( value, res ) ) {
+			return res;
+		}
+		return 0;
 	}
-	return 0;
-}
 
 #else // NEOML_USE_FINEOBJ
 
-inline void InitTestDataPath(int argc, char* argv[])
-{
-	auto value = ArgValue(argc, argv, Arg<char>::TestDataPath);
-	if( value ) {
-		testDir = CString( value, CP_UTF8 );
+	inline void InitTestDataPath( int argc, char* argv[] )
+	{
+		auto value = ArgValue( argc, argv, Arg<char>::TestDataPath );
+		if( value ) {
+			testDir = CString( value, CP_UTF8 );
+		}
 	}
-}
 
-inline int GetThreadCount( int argc, char* argv[] )
-{
-	auto value = ArgValue( argc, argv, Arg<char>::ThreadCount );
-	if( value ) {
-		try {
-			return std::stoi( value );
+	inline int GetThreadCount( int argc, char* argv[] )
+	{
+		auto value = ArgValue( argc, argv, Arg<char>::ThreadCount );
+		if( value ) {
+			try {
+				return std::stoi( value );
+			}
+			catch( std::exception& ) {
+				return 0;
+			}
 		}
-		catch( std::exception& ) {
-			return 0;
-		}
+		return 0;
 	}
-	return 0;
-}
 
 #endif // NEOML_USE_FINEOBJ
-
+}
 
 #ifdef NEOML_USE_FINEOBJ
 int RunTests( int argc, wchar_t* argv[] )
