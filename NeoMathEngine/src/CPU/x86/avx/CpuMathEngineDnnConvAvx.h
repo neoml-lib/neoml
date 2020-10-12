@@ -96,6 +96,10 @@ private:
 		__m256& r10, __m256& r11, __m256& r12,
 		__m256& r20, __m256& r21, __m256& r22 );
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
+	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
+		__m256& r0, __m256& r1, __m256& r2,	__m256& r3, __m256& r4, __m256& r5,
+		__m256& r6, __m256& r7, __m256& r8,	__m256& r9, __m256& r10, __m256& r11 );
+	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0 );
 
 	void partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
 		const float* fltPtr, const vector<int>& fltPixelsOffset, float* dstPtr );
@@ -111,6 +115,7 @@ private:
 
 	// Circular rotation of three ymm registers to the left, step equals to six floats.
 	static void RotateLeft6( __m256& y0, __m256& y1, __m256& y2 );
+	static void RotateLeft2( __m256& y );
 
 };
 
@@ -126,7 +131,8 @@ public:
 bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int C, int FC, int FH, int FW )
 {
 	if( ( C == 24 && FC == 24 && FH == 3 && FW == 3 ) ||
-		( C == 18 && FC == 18 && FH == 3 && FW == 3 ) ){
+		( C == 18 && FC == 18 && FH == 3 && FW == 3 ) ||
+		( C == 18 && FC == 6 && FH == 3 && FW == 3 ) ){
 		return true;
 	}
 	return false;
@@ -144,6 +150,11 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 			sourceData, filterData, freeTermData, resultData ) );
 	} else if( C == 18 && FC == 18 && FH == 3 && FW == 3 ) {
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18, 18, 3, 3>(
+			sourceHeight, sourceWidth, strideHeight, strideWidth,
+			dilationHeight, dilationWidth, resultHeight, resultWidth,
+			sourceData, filterData, freeTermData, resultData ) );
+	} else if( C == 18 && FC == 6 && FH == 3 && FW == 3 ) {
+		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18, 6, 3, 3>(
 			sourceHeight, sourceWidth, strideHeight, strideWidth,
 			dilationHeight, dilationWidth, resultHeight, resultWidth,
 			sourceData, filterData, freeTermData, resultData ) );
@@ -429,6 +440,23 @@ inline void CBlobConvolution<C, FC, FH, FW>::RotateLeft6( __m256& y0, __m256& y1
 	// before: 7 8 5 1|2 3 0 1
 	// after:      7 8 0 1
 	y1 = _mm256_blend_ps( yt2, yt0, 0xf0 );
+}
+
+template<int C, int FC, int FH, int FW>
+inline void CBlobConvolution<C, FC, FH, FW>::RotateLeft2( __m256& y )
+{
+	// 0 1 2 0
+	// 1 2 0 1
+	// 2 0 1 2
+	// before: 0 1 2 0
+	// after:  2 0 0 1
+	__m256 yt = _mm256_permute2f128_ps( y, y, _MM_SHUFFLE( 0, 0, 0, 1 ) );
+	// before: 0 1 2 0|2 0 0 1
+	// after:      1 2 0 0
+	y = _mm256_shuffle_ps( y, yt, _MM_SHUFFLE( 1, 0, 3, 2 ) );
+	// before:  1 2 0 0|2 0 0 1
+	// after:      1 2 0 1
+	y = _mm256_blend_ps( y, yt, 0xf0 );
 }
 
 } // namespace NeoML

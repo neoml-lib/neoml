@@ -427,4 +427,190 @@ inline void CBlobConvolution<18, 18, 3, 3>::wholeSingleProcess( const float* src
 	_mm256_maskstore_ps( dstPtr + 16, _mm256_set_epi32( 0, 0, 0, 0, 0, 0, -1, -1 ), r2 );
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Channels: 18
+// Channel count: 6
+// Filter height: 3
+// Filter width: 3
+
+template<>
+constexpr int CBlobConvolution<18, 6, 3, 3>::getBatchProcessSize()
+{
+	return 16;
+}
+
+template<>
+inline void CBlobConvolution<18, 6, 3, 3>::batchProcessChannels( const float* srcPtr, const float* fltPtr,
+	__m256& r0, __m256& r1, __m256& r2,	__m256& r3, __m256& r4, __m256& r5,
+	__m256& r6, __m256& r7, __m256& r8,	__m256& r9, __m256& r10, __m256& r11 )
+{
+	auto ProcessNext = [&]( __m256& f0, __m256& r00, __m256& r01, __m256& r02, const int idx )
+	{
+		__m256 s0 = _mm256_broadcast_ss( srcPtr + idx * SrcXStep );
+		__m256 s1 = _mm256_broadcast_ss( srcPtr + ( idx + 1 ) * SrcXStep );
+		s0 = _mm256_blend_ps( s0, s1, 0xc0 );
+		r00 = _mm256_fmadd_ps( f0, s0, r00 );
+
+		s0 = _mm256_broadcast_ss( srcPtr + ( idx + 2 ) * SrcXStep );
+		s1 = _mm256_blend_ps( s1, s0, 0xf0 );
+		RotateLeft2( f0 );
+		r01 = _mm256_fmadd_ps( f0, s1, r01 );
+
+		s1 = _mm256_broadcast_ss( srcPtr + ( idx + 3 ) * SrcXStep );
+		s1 = _mm256_blend_ps( s1, s0, 0x03 );
+		RotateLeft2( f0 );
+		r02 = _mm256_fmadd_ps( f0, s1, r02 );
+		if( idx != 12 ) {
+			RotateLeft2( f0 );
+		}
+	};
+
+	for( int c = 0; c < C_; c++ ) {
+		__m256 f0 = _mm256_loadu_ps( fltPtr );
+		ProcessNext( f0, r0, r1, r2, 0 );
+		ProcessNext( f0, r3, r4, r5, 4 );
+		ProcessNext( f0, r6, r7, r8, 8 );
+		ProcessNext( f0, r9, r10, r11, 12 );
+		srcPtr++;
+		fltPtr += FCm8;
+	}
+}
+
+template<>
+inline void CBlobConvolution<18, 6, 3, 3>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
+	__m256& r0 )
+{
+	auto ProcessNext = [&]( __m128 st0_m128 )
+	{
+		__m256 st0 = _mm256_set_m128( st0_m128, st0_m128 );
+
+		__m256 f0 = _mm256_loadu_ps( fltPtr );
+
+		r0 = _mm256_fmadd_ps( f0, st0, r0 );
+
+		fltPtr += FCm8;
+	};
+
+	constexpr int Cm8 = C_ / 8 * 8;
+	int c = 0;
+	for( ; c < Cm8; c += 4 ) {
+		__m128 s = _mm_loadu_ps( srcPtr + c );
+		ProcessNext( _mm_permute_ps( s, 0x00 ) );
+		ProcessNext( _mm_permute_ps( s, 0x55 ) );
+		ProcessNext( _mm_permute_ps( s, 0xaa ) );
+		ProcessNext( _mm_permute_ps( s, 0xff ) );
+	}
+	__m128 s = _mm_loadu_ps( srcPtr + c );
+	ProcessNext( _mm_permute_ps( s, 0x00 ) );
+	ProcessNext( _mm_permute_ps( s, 0x55 ) );
+}
+
+template<>
+inline void CBlobConvolution<18, 6, 3, 3>::partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
+	const float* fltPtr, const vector<int>& fltPixelsOffset, float* dstPtr )
+{
+	__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
+
+	__m256 r0 = ft0; __m256 r3 = ft0; __m256 r6 = ft0; __m256 r9 = ft0;
+	RotateLeft2( ft0 );
+	__m256 r1 = ft0; __m256 r4 = ft0; __m256 r7 = ft0; __m256 r10 = ft0;
+	RotateLeft2( ft0 );
+	__m256 r2 = ft0; __m256 r5 = ft0; __m256 r8 = ft0; __m256 r11 = ft0;
+
+	auto srcIt = srcPixelsOffset.cbegin();
+	auto fltIt = fltPixelsOffset.cbegin();
+	for( ; srcIt != srcPixelsOffset.cend(); srcIt++, fltIt++ ) {
+		batchProcessChannels( srcPtr + *srcIt, fltPtr + *fltIt,
+			r0, r1, r2, r3, r4, r5,
+			r6, r7, r8, r9, r10, r11 );
+	}
+
+	// Store result of convolution for (fx,fy) pixel of f-th channel
+	_mm256_storeu_ps( dstPtr, r0 );
+	_mm256_storeu_ps( dstPtr + 8, r1 );
+	_mm256_storeu_ps( dstPtr + 16, r2 );
+	_mm256_storeu_ps( dstPtr + 24, r3 );
+	_mm256_storeu_ps( dstPtr + 32, r4 );
+	_mm256_storeu_ps( dstPtr + 40, r5 );
+	_mm256_storeu_ps( dstPtr + 48, r6 );
+	_mm256_storeu_ps( dstPtr + 56, r7 );
+	_mm256_storeu_ps( dstPtr + 64, r8 );
+	_mm256_storeu_ps( dstPtr + 72, r9 );
+	_mm256_storeu_ps( dstPtr + 80, r10 );
+	_mm256_storeu_ps( dstPtr + 88, r11 );
+}
+
+template<>
+inline void CBlobConvolution<18, 6, 3, 3>::partialSingleProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
+	const float* fltPtr, const std::vector<int>& fltPixelsOffset, float* dstPtr )
+{
+	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
+
+	auto srcIt = srcPixelsOffset.cbegin();
+	auto fltIt = fltPixelsOffset.cbegin();
+	for( ; srcIt != srcPixelsOffset.cend(); srcIt++, fltIt++ ) {
+		singleProcessChannels( srcPtr + *srcIt, fltPtr + *fltIt, r0 );
+	}
+
+	// Store result of convolution for (fx,fy) pixel of f-th channel
+	_mm256_maskstore_ps( dstPtr, _mm256_set_epi32( 0, 0, -1, -1, -1, -1, -1, -1 ), r0 );
+}
+
+template<>
+inline void CBlobConvolution<18, 6, 3, 3>::wholeBatchProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
+{
+	__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
+
+	__m256 r0 = ft0; __m256 r3 = ft0; __m256 r6 = ft0; __m256 r9 = ft0;
+	RotateLeft2( ft0 );
+	__m256 r1 = ft0; __m256 r4 = ft0; __m256 r7 = ft0; __m256 r10 = ft0;
+	RotateLeft2( ft0 );
+	__m256 r2 = ft0; __m256 r5 = ft0; __m256 r8 = ft0; __m256 r11 = ft0;
+
+	for( int fy = 0; fy < FH_; fy++ ) {
+		for( int fx = 0; fx < FW_; fx++ ) {
+			batchProcessChannels( srcPtr, fltPtr, 
+				r0, r1, r2, r3, r4, r5,
+				r6, r7, r8, r9, r10, r11);
+			// Move to next pixel in source image on the SAME line
+			srcPtr += SrcXDilation;
+			fltPtr += C_ * FCm8;
+		}
+		// Move to next pixel in source image on the NEXT line
+		srcPtr += SrcYDilation - SrcXWindowSize;
+	}
+	// Store result of convolution for (fx,fy) pixel of f-th channel
+	_mm256_storeu_ps( dstPtr, r0 );
+	_mm256_storeu_ps( dstPtr + 8, r1 );
+	_mm256_storeu_ps( dstPtr + 16, r2 );
+	_mm256_storeu_ps( dstPtr + 24, r3 );
+	_mm256_storeu_ps( dstPtr + 32, r4 );
+	_mm256_storeu_ps( dstPtr + 40, r5 );
+	_mm256_storeu_ps( dstPtr + 48, r6 );
+	_mm256_storeu_ps( dstPtr + 56, r7 );
+	_mm256_storeu_ps( dstPtr + 64, r8 );
+	_mm256_storeu_ps( dstPtr + 72, r9 );
+	_mm256_storeu_ps( dstPtr + 80, r10 );
+	_mm256_storeu_ps( dstPtr + 88, r11 );
+}
+
+template<>
+inline void CBlobConvolution<18, 6, 3, 3>::wholeSingleProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
+{
+	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
+
+	for( int fy = 0; fy < FH_; fy++ ) {
+		for( int fx = 0; fx < FW_; fx++ ) {
+			singleProcessChannels( srcPtr, fltPtr, r0 );
+			// Move to next pixel in source image on the SAME line
+			srcPtr += SrcXDilation;
+			fltPtr += C_ * FCm8;
+		}
+		// Move to next pixel in source image on the NEXT line
+		srcPtr += SrcYDilation - SrcXWindowSize;
+	}
+	// Store result of convolution for (fx,fy) pixel of f-th channel
+	_mm256_maskstore_ps( dstPtr, _mm256_set_epi32( 0, 0, -1, -1, -1, -1, -1, -1 ), r0 );
+}
+
 } // namespace NeoML
