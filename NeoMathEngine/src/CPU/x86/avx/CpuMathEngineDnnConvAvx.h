@@ -60,11 +60,16 @@ private:
 	const int SrcXDilation;
 	const int SrcYDilation;
 	const int SrcXWindowSize;
-
+	
+	// For some cases we will use FC, rounded up to nearest integer multiple of 8
+	static constexpr int FCm8 = ( FC + 8 - 1 ) / 8 * 8;
 	// Filter should be alligned to 16 bytes
-	static constexpr size_t FileterSize = FW * FH * FC * C ;
-	static constexpr size_t FilterAlignment = 32;
-	float Filter[FileterSize + FilterAlignment];
+	static constexpr size_t FileterSize = FW * FH * FCm8 * C ;
+	static constexpr size_t AvxAlignment = 32;
+	float Filter[FileterSize + AvxAlignment];
+
+	// Free term should be alligned to 16 bytes
+	float FreeTerm[FCm8 + AvxAlignment];
 
 	// Choose proper pixels in source and filter:
 	// 0  1  2
@@ -100,8 +105,12 @@ private:
 	void wholeSingleProcess( const float* srcPtr, const float* fltPtr, float* dstPtr );
 
 	const float* rearrangeFileter( const float* filterData );
+	const float* rearrangeFreeTerm( const float* freeTermData );
 	const std::array<std::vector<int>, 8> fillSrcPixelOffset();
 	const std::array<std::vector<int>, 8>  fillFltPixelOffset();
+
+	// Circular rotation of three ymm registers to the left, step equals to six floats.
+	static void RotateLeft6( __m256& y0, __m256& y1, __m256& y2 );
 
 };
 
@@ -116,7 +125,8 @@ public:
 
 bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int C, int FC, int FH, int FW )
 {
-	if( C == 24 && FC == 24 && FH == 3 && FW == 3 ) {
+	if( ( C == 24 && FC == 24 && FH == 3 && FW == 3 ) ||
+		( C == 18 && FC == 18 && FH == 3 && FW == 3 ) ){
 		return true;
 	}
 	return false;
@@ -129,6 +139,11 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 {
 	if( C == 24 && FC == 24 && FH == 3 && FW == 3 ) {
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24, 24, 3, 3>(
+			sourceHeight, sourceWidth, strideHeight, strideWidth,
+			dilationHeight, dilationWidth, resultHeight, resultWidth,
+			sourceData, filterData, freeTermData, resultData ) );
+	} else if( C == 18 && FC == 18 && FH == 3 && FW == 3 ) {
+		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18, 18, 3, 3>(
 			sourceHeight, sourceWidth, strideHeight, strideWidth,
 			dilationHeight, dilationWidth, resultHeight, resultWidth,
 			sourceData, filterData, freeTermData, resultData ) );
@@ -150,7 +165,7 @@ CBlobConvolution<C, FC, FH, FW>::CBlobConvolution( int sourceHeight, int sourceW
 	RW( resultWidth ),
 	src( sourceData ),
 	flt( rearrangeFileter( filterData ) ),
-	freeTerm( freeTermData ),
+	freeTerm( rearrangeFreeTerm( freeTermData ) ),
 	dst( resultData ),
 	SrcXStep( SW * C ),
 	SrcLineStride( SrcW* C ),
@@ -276,14 +291,12 @@ inline void CBlobConvolution<C, FC, FH, FW>::wholeSingleProcessLoop( int& rx, in
 	}
 }
 
-
-
 template<int C, int FC, int FH, int FW>
 const float* CBlobConvolution<C, FC, FH, FW>::rearrangeFileter( const float* filterData )
 {
-	size_t filterBufferSize = FileterSize + FilterAlignment;
+	size_t filterBufferSize = FileterSize + AvxAlignment;
 	void* alignedFltPtr = const_cast<float*>( Filter );
-	std::align( FilterAlignment, FileterSize, alignedFltPtr, filterBufferSize );
+	std::align( AvxAlignment, FileterSize, alignedFltPtr, filterBufferSize );
 
 	// Rearrange filter data.
 	// Initial packing:
@@ -295,7 +308,7 @@ const float* CBlobConvolution<C, FC, FH, FW>::rearrangeFileter( const float* fil
 	// ...
 	// Filter[23] Pixel[8] Channel[0-23]
 	//
-	// Result packing:
+	// 1. Result packing for case when FC == FCm8 (for example: 24):
 	// Pixel[0] Channel[0] Filter[0-23]
 	// Pixel[0] Channel[1] Filter[0-23]
 	// ...
@@ -303,6 +316,17 @@ const float* CBlobConvolution<C, FC, FH, FW>::rearrangeFileter( const float* fil
 	// Pixel[1] Channel[0] Filter[0-23]
 	// ...
 	// Pixel[8] Channel[23] Filter[0-23]
+	//
+	// 2. Result packing for case when FC != FCm8 (for example: 18):
+	// Pixel[0] Channel[0] Filter[0-17] Filter[0-5]
+	// Pixel[0] Channel[1] Filter[0-23] Filter[0-5]
+	// ...
+	// Pixel[0] Channel[23] Filter[0-23] Filter[0-5]
+	// Pixel[1] Channel[0] Filter[0-23] Filter[0-5]
+	// ...
+	// Pixel[8] Channel[23] Filter[0-23] Filter[0-5]
+
+
 
 	float* dstFilter = static_cast<float*>( alignedFltPtr );
 	for( int y = 0; y < FH; y++ ) {
@@ -313,11 +337,38 @@ const float* CBlobConvolution<C, FC, FH, FW>::rearrangeFileter( const float* fil
 					*dstFilter++ = *srcFilter;
 					srcFilter += FW * FH * C;
 				}
+				if( FCm8 != FC ) {
+					srcFilter = filterData + ( x + y * FW ) * C + c;
+					for( int f = 0; f < FCm8 - FC; f++ ) {
+						*dstFilter++ = *srcFilter;
+						srcFilter += FW * FH * C;
+					}
+				}
 			}
 		}
 	}
 
 	return static_cast<float*>( alignedFltPtr );
+}
+
+template<int C, int FC, int FH, int FW>
+const float* CBlobConvolution<C, FC, FH, FW>::rearrangeFreeTerm( const float* freeTermData )
+{
+	size_t freeTermBufferSize = FCm8 + AvxAlignment;
+	void* alignedFreeTermPtr = const_cast<float*>( FreeTerm );
+	std::align( AvxAlignment, FCm8, alignedFreeTermPtr, freeTermBufferSize );
+	float* dstFreeTerm = static_cast<float*>( alignedFreeTermPtr );
+
+	for( int f = 0; f < FC; f++ ) {
+		*dstFreeTerm++ = *freeTermData++;
+	}
+	if( FC != FCm8 ) {
+		freeTermData -= FC;
+		for( int f = 0; f < FC; f++ ) {
+			*dstFreeTerm++ = *freeTermData++;
+		}
+	}
+	return static_cast<float*>( alignedFreeTermPtr );
 }
 
 template<int C, int FC, int FH, int FW>
@@ -342,15 +393,42 @@ template<int C, int FC, int FH, int FW>
 const std::array<std::vector<int>, 8>  CBlobConvolution<C, FC, FH, FW>::fillFltPixelOffset()
 {
 	return {
-		std::vector<int>{ 4 * C * FC, 5 * C * FC, 7 * C * FC, 8 * C * FC }, // 4 5 7 8
-		std::vector<int>{ 3 * C * FC, 4 * C * FC, 5 * C * FC, 6 * C * FC, 7 * C * FC, 8 * C * FC }, // 3 4 5 6 7 8
-		std::vector<int>{ 3 * C * FC, 4 * C * FC, 6 * C * FC, 7 * C * FC }, // 3 4 6 7
-		std::vector<int>{ 0 * C * FC, 1 * C * FC, 3 * C * FC, 4 * C * FC, 6 * C * FC, 7 * C * FC }, // 0 1 3 4 6 7
-		std::vector<int>{ 0 * C * FC, 1 * C * FC, 3 * C * FC, 4 * C * FC }, // 0 1 3 4
-		std::vector<int>{ 0 * C * FC, 1 * C * FC, 2 * C * FC, 3 * C * FC, 4 * C * FC, 5 * C * FC }, // 0 1 2 3 4 5
-		std::vector<int>{ 1 * C * FC, 2 * C * FC, 4 * C * FC, 5 * C * FC }, // 1 2 4 5
-		std::vector<int>{ 1 * C * FC, 2 * C * FC, 4 * C * FC, 5 * C * FC, 7 * C * FC, 8 * C * FC } // 1 2 4 5 7 8
+		std::vector<int>{ 4 * C * FCm8, 5 * C * FCm8, 7 * C * FCm8, 8 * C * FCm8 }, // 4 5 7 8
+		std::vector<int>{ 3 * C * FCm8, 4 * C * FCm8, 5 * C * FCm8, 6 * C * FCm8, 7 * C * FCm8, 8 * C * FCm8 }, // 3 4 5 6 7 8
+		std::vector<int>{ 3 * C * FCm8, 4 * C * FCm8, 6 * C * FCm8, 7 * C * FCm8 }, // 3 4 6 7
+		std::vector<int>{ 0 * C * FCm8, 1 * C * FCm8, 3 * C * FCm8, 4 * C * FCm8, 6 * C * FCm8, 7 * C * FCm8 }, // 0 1 3 4 6 7
+		std::vector<int>{ 0 * C * FCm8, 1 * C * FCm8, 3 * C * FCm8, 4 * C * FCm8 }, // 0 1 3 4
+		std::vector<int>{ 0 * C * FCm8, 1 * C * FCm8, 2 * C * FCm8, 3 * C * FCm8, 4 * C * FCm8, 5 * C * FCm8 }, // 0 1 2 3 4 5
+		std::vector<int>{ 1 * C * FCm8, 2 * C * FCm8, 4 * C * FCm8, 5 * C * FCm8 }, // 1 2 4 5
+		std::vector<int>{ 1 * C * FCm8, 2 * C * FCm8, 4 * C * FCm8, 5 * C * FCm8, 7 * C * FCm8, 8 * C * FCm8 } // 1 2 4 5 7 8
 	};
+}
+
+template<int C, int FC, int FH, int FW>
+inline void CBlobConvolution<C, FC, FH, FW>::RotateLeft6( __m256& y0, __m256& y1, __m256& y2 )
+{   //   y0        y1        y2
+	// 0 1 2 3 - 4 5 6 7 - 8 0 1 2
+	// 3 4 5 6 - 7 8 0 1 - 2 3 4 5
+	// 6 7 8 0 - 1 2 3 4 - 5 6 7 8
+
+	// before: 0 1 2 3
+	// after:  2 3 0 1
+	__m256 yt0 = _mm256_permute2f128_ps( y0, y0, _MM_SHUFFLE( 0, 0, 0, 1 ) );
+	// before: 4 5 6 7
+	// after:  6 7 4 5
+	__m256 yt1 = _mm256_permute2f128_ps( y1, y1, _MM_SHUFFLE( 0, 0, 0, 1 ) );
+	// before: 6 7 4 5|8 0 1 2
+	// after:      7 8 5 1
+	__m256 yt2 = _mm256_shuffle_ps( yt1, y2, _MM_SHUFFLE( 1, 0, 3, 2 ) );
+	// before: 2 3 0 1|6 7 4 5
+	// after:      2 3 4 5
+	y2 = _mm256_blend_ps( yt0, yt1, 0xf0 );
+	// before: 2 3 4 5|4 5 6 7
+	// after:      3 4 5 6
+	y0 = _mm256_shuffle_ps( y2, y1, _MM_SHUFFLE( 1, 0, 3, 2 ) );
+	// before: 7 8 5 1|2 3 0 1
+	// after:      7 8 0 1
+	y1 = _mm256_blend_ps( yt2, yt0, 0xf0 );
 }
 
 } // namespace NeoML
