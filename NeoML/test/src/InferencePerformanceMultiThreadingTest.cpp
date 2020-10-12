@@ -7,6 +7,9 @@
 #include <sys/kdebug_signpost.h>
 #endif
 
+#include <thread>
+#include <future>
+
 namespace NeoMLTest {
     
 enum TTimeType {
@@ -63,9 +66,9 @@ public:
 	static void LoadCnn( const CDnnInferencePerformanceTestParam& param, CDnn& cnn );
 	static CPtr<CDnnBlob> LoadBlob( const CString& fileName );
 
-	static void TestRunOnce( CDnn& cnn, const CDnnInferencePerformanceTestParam& param );
+	static void TestRunOnce( const CDnnInferencePerformanceTestParam& param );
 
-	CRandom& GetRandom() { return random; }
+	static CRandom& GetRandom() { return random; }
 
 private:
 	static CRandom random;
@@ -100,8 +103,12 @@ CPtr<CDnnBlob> CDnnInferencePerformanceTest::LoadBlob( const CString& fileName )
 	return blob;
 }
 
-void CDnnInferencePerformanceTest::TestRunOnce( CDnn& cnn, const CDnnInferencePerformanceTestParam& param )
+void CDnnInferencePerformanceTest::TestRunOnce( const CDnnInferencePerformanceTestParam& param )
 {
+	CDnn cnn( GetRandom(), MathEngine() );
+	
+	LoadCnn( param, cnn );
+
 	// Первый проход не показательный.
 	cnn.RunOnce();
 
@@ -134,7 +141,7 @@ void CDnnInferencePerformanceTest::TestRunOnce( CDnn& cnn, const CDnnInferencePe
 		GTEST_LOG_(INFO) << param.Name << " " << counter.Name << ": " << (useavg ? counter.Value / param.RunCount : counter.Value);
 	}
 	delete counters;
-
+	
 	// Проверка правильности результата:
 	CArray<float> expectedDataFloat;
 	CArray<int> expectedDataInt;
@@ -179,15 +186,27 @@ using namespace NeoMLTest;
 
 //------------------------------------------------------------------------------------------------------------
 
-TEST_P( CDnnInferencePerformanceTest, Test )
+TEST_P(CDnnInferencePerformanceTest, Test)
 {
-	CDnnInferencePerformanceTestParam param = GetParam();
+	const auto& param = GetParam();
+	
+	const int threadCount = 2;
 
-	CDnn cnn( GetRandom(), MathEngine() );
+	std::vector<std::future<decltype( TestRunOnce( param ) )>> results;
+	results.reserve( threadCount );
 
-	LoadCnn( param, cnn );
-
-	TestRunOnce( cnn, param );
+	for( int i = 0; i < threadCount; ++i ) {
+		results.push_back( std::async( std::launch::async, TestRunOnce, std::ref( param ) ) );
+	}	
+	
+	try {
+		for( auto& result : results ) {
+			result.get();
+		}
+	} catch( std::exception& e ) {
+		GTEST_LOG_( ERROR ) << e.what();
+		throw;
+	}
 
 	MathEngine().CleanUp();
 }
