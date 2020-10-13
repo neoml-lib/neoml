@@ -90,7 +90,7 @@ private:
 	// Number of pixels processed with partialBatchProcess() function
 	const int BatchProcessSize;
 
-	static constexpr int getBatchProcessSize();
+	int getBatchProcessSize();
 
 	template<int idx>
 	void partialBatchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr );
@@ -104,9 +104,6 @@ private:
 		__m256& r10, __m256& r11, __m256& r12,
 		__m256& r20, __m256& r21, __m256& r22 );
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
-	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
-		__m256& r0, __m256& r1, __m256& r2,	__m256& r3, __m256& r4, __m256& r5,
-		__m256& r6, __m256& r7, __m256& r8,	__m256& r9, __m256& r10, __m256& r11 );
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0 );
 
 	void partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
@@ -144,7 +141,7 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FC, int C, int FH, 
 		return false;
 	}
 
-	if( ( FC == 24 && C % 24 == 0  ) ||
+	if( ( FC == 24 && C % 8 == 0  ) ||
 		FC == 18 ||
 		FC == 6 ) {
 		return true;
