@@ -208,4 +208,26 @@ void CMaxPoolingLayer::Serialize( CArchive& archive )
 	CPoolingLayer::Serialize( archive );
 }
 
+CLayerWrapper<CMaxPoolingLayer> MaxPooling(
+	int filterHeight, int filterWidth, int strideHeight, int strideWidth )
+{
+	return CLayerWrapper<CMaxPoolingLayer>( "MaxPooling", [=]( CMaxPoolingLayer* result ) {
+		result->SetFilterHeight( filterHeight );
+		result->SetFilterWidth( filterWidth );
+		result->SetStrideHeight( strideHeight );
+		result->SetStrideWidth( strideWidth );
+	} );
+}
+
+CLayerWrapper<CMeanPoolingLayer> MeanPooling(
+	int filterHeight, int filterWidth, int strideHeight, int strideWidth )
+{
+	return CLayerWrapper<CMeanPoolingLayer>( "MeanPooling", [=]( CMeanPoolingLayer* result ) {
+		result->SetFilterHeight( filterHeight );
+		result->SetFilterWidth( filterWidth );
+		result->SetStrideHeight( strideHeight );
+		result->SetStrideWidth( strideWidth );
+	} );
+}
+
 } // namespace NeoML
