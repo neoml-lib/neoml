@@ -87,17 +87,16 @@ private:
 	const std::array<std::vector<int>, 8> SrcPixelsOffset;
 	// Offset is relative to top left pixel
 	const std::array<std::vector<int>, 8>  FltPixelsOffset;
-	// Number of pixels processed with partialBatchProcess() function
+	// Number of pixels processed with batchProcess() function
 	const int BatchProcessSize;
 
 	int getBatchProcessSize();
 
-	template<int idx>
-	void partialBatchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr );
-	template<int idx>
-	void partialSingleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr );
-	void wholeBatchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr );
-	void wholeSingleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr );
+	// Process group of result pixels.
+	// For whole windows parameter must be set to -1.
+	// Process convolution for multiple result pixels ( number of pixels is defined by 'BatchProcessSize' member ).
+	void batchProcessLoop( int& rx, int rxEnd, const float*& srcPtr, float*& dstPtr, int windowIndex = -1 );
+	void singleProcessLoop( int& rx, int rxEnd, const float*& srcPtr, float*& dstPtr, int windowIndex = -1 );
 
 	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
 		__m256& r00, __m256& r01, __m256& r02,
@@ -106,12 +105,11 @@ private:
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0 );
 
-	void partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
-		const float* fltPtr, const vector<int>& fltPixelsOffset, float* dstPtr );
-	void partialSingleProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
-		const float* fltPtr, const std::vector<int>& fltPixelsOffset, float* dstPtr );
-	void wholeBatchProcess( const float* srcPtr, const float* fltPtr, float* dstPtr );
-	void wholeSingleProcess( const float* srcPtr, const float* fltPtr, float* dstPtr );
+	
+	// Process convolution for multiple result pixels ( number of pixels is defined by 'BatchProcessSize' member ).
+	void batchProcess( const float* srcPtr, float* dstPtr, int windowIndex = -1 );
+	// Process convolution for single result pixel.
+	void singleProcess( const float* srcPtr, float* dstPtr, int windowIndex = -1 );
 
 	const float* rearrangeFileter( const float* filterData );
 	const float* rearrangeFreeTerm( const float* freeTermData );
@@ -233,7 +231,6 @@ void CBlobConvolution<FC>::ProcessConvolution( int threadCount )
 
 			// Iterate through result, left->right, top->bottom
 			// Top edge ( cut top part of filter )
-			const float* fltPtr = flt;
 			float* dstPtr = dst + yStart * DstYDilation;
 			const int currentRH = min( RH, yStart + yCount );
 			int ry = yStart;
@@ -244,10 +241,10 @@ void CBlobConvolution<FC>::ProcessConvolution( int threadCount )
 				const float* srcPtr = src + ry * SrcYStep;
 				int rx = 0;
 
-				partialSingleProcessLoop<0>( rx, PartialStepCountBeforeX, srcPtr, dstPtr );
-				partialBatchProcessLoop<1>( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr );
-				partialSingleProcessLoop<1>( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr );
-				partialSingleProcessLoop<2>( rx, RW, srcPtr, dstPtr );
+				singleProcessLoop( rx, PartialStepCountBeforeX, srcPtr, dstPtr, 0 );
+				batchProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr, 1 );
+				singleProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr, 1 );
+				singleProcessLoop( rx, RW, srcPtr, dstPtr, 2 );
 			}
 
 			for( ; ry < min( RH - PartialStepCountAfterY, currentRH ); ry++ ) {
@@ -255,16 +252,16 @@ void CBlobConvolution<FC>::ProcessConvolution( int threadCount )
 				const float* srcPtr = src + ry * SrcYStep;
 				int rx = 0;
 
-				partialSingleProcessLoop<7>( rx, PartialStepCountBeforeX, srcPtr, dstPtr );
+				singleProcessLoop( rx, PartialStepCountBeforeX, srcPtr, dstPtr, 7 );
 
 				// Move to the top left pixel of window from central one
 				srcPtr -= ( SrcYDilation + SrcXDilation );
-				wholeBatchProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr );
-				wholeSingleProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr );
+				batchProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr );
+				singleProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr );
 
 				// Move back to the central pixel again
 				srcPtr += ( SrcYDilation + SrcXDilation );
-				partialSingleProcessLoop<3>( rx, RW, srcPtr, dstPtr );
+				singleProcessLoop( rx, RW, srcPtr, dstPtr, 3 );
 			}
 
 			for( ; ry < min( RH, currentRH ); ry++ ) {
@@ -272,52 +269,30 @@ void CBlobConvolution<FC>::ProcessConvolution( int threadCount )
 				const float* srcPtr = src + ry * SrcYStep;
 				int rx = 0;
 
-				partialSingleProcessLoop<6>( rx, PartialStepCountBeforeX, srcPtr, dstPtr );
-				partialBatchProcessLoop<5>( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr );
-				partialSingleProcessLoop<5>( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr );
-				partialSingleProcessLoop<4>( rx, RW, srcPtr, dstPtr );
+				singleProcessLoop( rx, PartialStepCountBeforeX, srcPtr, dstPtr, 6 );
+				batchProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr, 5 );
+				singleProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr, 5 );
+				singleProcessLoop( rx, RW, srcPtr, dstPtr, 4 );
 			}
 		}
 	}
 }
 
 template<int FC>
-template<int idx>
-inline void CBlobConvolution<FC>::partialBatchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
+inline void CBlobConvolution<FC>::batchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr, int windowIndex )
 {
 	for( ; rx <= rxEnd - BatchProcessSize; rx += BatchProcessSize ) {
-		partialBatchProcess( srcPtr, SrcPixelsOffset[idx], flt, FltPixelsOffset[idx], dstPtr );
+		batchProcess( srcPtr, dstPtr, windowIndex );
 		srcPtr += BatchProcessSize * SrcXStep;
 		dstPtr += BatchProcessSize * FC;
 	}
 }
 
 template<int FC>
-template<int idx>
-inline void CBlobConvolution<FC>::partialSingleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
+inline void CBlobConvolution<FC>::singleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr, int windowIndex )
 {
 	for( ; rx < rxEnd; rx++ ) {
-		partialSingleProcess( srcPtr, SrcPixelsOffset[idx], flt, FltPixelsOffset[idx], dstPtr );
-		srcPtr += SrcXStep;
-		dstPtr += FC;
-	}
-}
-
-template<int FC>
-inline void CBlobConvolution<FC>::wholeBatchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
-{
-	for( ; rx <= rxEnd - BatchProcessSize; rx += BatchProcessSize ) {
-		wholeBatchProcess( srcPtr, flt, dstPtr );
-		srcPtr += BatchProcessSize * SrcXStep;
-		dstPtr += BatchProcessSize * FC;
-	}
-}
-
-template<int FC>
-inline void CBlobConvolution<FC>::wholeSingleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
-{
-	for( ; rx < rxEnd; rx++ ) {
-		wholeSingleProcess( srcPtr, flt, dstPtr );
+		singleProcess( srcPtr, dstPtr, windowIndex );
 		srcPtr += SrcXStep;
 		dstPtr += FC;
 	}
