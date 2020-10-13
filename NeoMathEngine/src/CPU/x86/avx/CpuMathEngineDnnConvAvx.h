@@ -22,12 +22,20 @@ class CBlobConvolutionBase {
 public:
 	virtual ~CBlobConvolutionBase() = default;
 	virtual void ProcessConvolution( int threadCount ) = 0;
+
+	// We should specify maximum available value of C, FC, FH and FW in order to allocate Filter and FreeTerm variables on stack.
+	static constexpr int Cmax = 24;
+	static constexpr int FCmax = 24;
+	static constexpr int FHmax = 3;
+	static constexpr int FWmax = 3;
 };
 
-template<int C, int FC, int FH, int FW>
+template<int FC>
 class CBlobConvolution : public CBlobConvolutionBase {
 public:
-	CBlobConvolution( int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+	CBlobConvolution(
+		int channelCount, int filterHeight, int filterWidth,
+		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
 		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData );
 	~CBlobConvolution() override = default;
@@ -36,11 +44,11 @@ public:
 
 private:
 	// Create this variables in order to use them in class specialization
-	static constexpr int C_ = C;
 	static constexpr int FC_ = FC;
-	static constexpr int FH_ = FH;
-	static constexpr int FW_ = FW;
 
+	const int C;
+	const int FH;
+	const int FW;
 	const int SrcH;
 	const int SrcW;
 	const int SH;
@@ -64,7 +72,7 @@ private:
 	// For some cases we will use FC, rounded up to nearest integer multiple of 8
 	static constexpr int FCm8 = ( FC + 8 - 1 ) / 8 * 8;
 	// Filter should be alligned to 16 bytes
-	static constexpr size_t FileterSize = FW * FH * FCm8 * C ;
+	static constexpr size_t FileterSize = FWmax * FHmax * FCmax * Cmax ;
 	static constexpr size_t AvxAlignment = 32;
 	float Filter[FileterSize + AvxAlignment];
 
@@ -121,51 +129,67 @@ private:
 
 class CBlobConvolutionFabric {
 public:
-	static bool IsBlobConvolutionAvailable( int C, int FC, int FH, int FW );
-	static std::unique_ptr<CBlobConvolutionBase> GetProperInstance( int C, int FC, int FH, int FW,
+	static bool IsBlobConvolutionAvailable( int FC, int C, int FH, int FW );
+	static std::unique_ptr<CBlobConvolutionBase> GetProperInstance( int FC,
+		int channelCount, int filterHeight, int filterWidth,
 		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
 		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData );
 };
 
-bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int C, int FC, int FH, int FW )
+bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FC, int C, int FH, int FW )
 {
-	if( ( C == 24 && FC == 24 && FH == 3 && FW == 3 ) ||
-		( C == 18 && FC == 18 && FH == 3 && FW == 3 ) ||
-		( C == 18 && FC == 6 && FH == 3 && FW == 3 ) ){
+	if( FC * C * FH * FW > 
+		CBlobConvolutionBase::FCmax * CBlobConvolutionBase::Cmax * CBlobConvolutionBase::FHmax * CBlobConvolutionBase::FWmax ) {
+		return false;
+	}
+
+	if( ( FC == 24 && C % 24 == 0  ) ||
+		FC == 18 ||
+		FC == 6 ) {
 		return true;
 	}
 	return false;
 }
 
-std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance( int C, int FC, int FH, int FW,
+std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance( int FC,
+	int channelCount, int filterHeight, int filterWidth, 
 	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
 {
-	if( C == 24 && FC == 24 && FH == 3 && FW == 3 ) {
-		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24, 24, 3, 3>(
-			sourceHeight, sourceWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth,
-			sourceData, filterData, freeTermData, resultData ) );
-	} else if( C == 18 && FC == 18 && FH == 3 && FW == 3 ) {
-		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18, 18, 3, 3>(
-			sourceHeight, sourceWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth,
-			sourceData, filterData, freeTermData, resultData ) );
-	} else if( C == 18 && FC == 6 && FH == 3 && FW == 3 ) {
-		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18, 6, 3, 3>(
-			sourceHeight, sourceWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth,
-			sourceData, filterData, freeTermData, resultData ) );
+	switch( FC ) {
+		case 24:
+			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24>(
+				channelCount, filterHeight, filterWidth,
+				sourceHeight, sourceWidth, strideHeight, strideWidth,
+				dilationHeight, dilationWidth, resultHeight, resultWidth,
+				sourceData, filterData, freeTermData, resultData ) );
+		case 18:
+			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18>(
+				channelCount, filterHeight, filterWidth,
+				sourceHeight, sourceWidth, strideHeight, strideWidth,
+				dilationHeight, dilationWidth, resultHeight, resultWidth,
+				sourceData, filterData, freeTermData, resultData ) );
+		case 6:
+			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<6>(
+				channelCount, filterHeight, filterWidth,
+				sourceHeight, sourceWidth, strideHeight, strideWidth,
+				dilationHeight, dilationWidth, resultHeight, resultWidth,
+				sourceData, filterData, freeTermData, resultData ) );
+		default:
+			return nullptr;
 	}
-	return nullptr;
 }
 
-template<int C, int FC, int FH, int FW>
-CBlobConvolution<C, FC, FH, FW>::CBlobConvolution( int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+template<int FC>
+CBlobConvolution<FC>::CBlobConvolution( int channelCount, int filterHeight, int filterWidth, 
+	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) :
+	C( channelCount ),
+	FH( filterHeight ),
+	FW( filterWidth ),
 	SrcH( sourceHeight ),
 	SrcW( sourceWidth ),
 	SH( strideHeight ),
@@ -190,8 +214,8 @@ CBlobConvolution<C, FC, FH, FW>::CBlobConvolution( int sourceHeight, int sourceW
 
 }
 
-template<int C, int FC, int FH, int FW>
-void CBlobConvolution<C, FC, FH, FW>::ProcessConvolution( int threadCount )
+template<int FC>
+void CBlobConvolution<FC>::ProcessConvolution( int threadCount )
 {
 	const int curThreadCount = IsOmpRelevant( RH, RH * RW * FC * FW * FH * C ) ? threadCount : 1;
 
@@ -260,9 +284,9 @@ void CBlobConvolution<C, FC, FH, FW>::ProcessConvolution( int threadCount )
 	}
 }
 
-template<int C, int FC, int FH, int FW>
+template<int FC>
 template<int idx>
-inline void CBlobConvolution<C, FC, FH, FW>::partialBatchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
+inline void CBlobConvolution<FC>::partialBatchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
 {
 	for( ; rx <= rxEnd - BatchProcessSize; rx += BatchProcessSize ) {
 		partialBatchProcess( srcPtr, SrcPixelsOffset[idx], flt, FltPixelsOffset[idx], dstPtr );
@@ -271,9 +295,9 @@ inline void CBlobConvolution<C, FC, FH, FW>::partialBatchProcessLoop( int& rx, i
 	}
 }
 
-template<int C, int FC, int FH, int FW>
+template<int FC>
 template<int idx>
-inline void CBlobConvolution<C, FC, FH, FW>::partialSingleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
+inline void CBlobConvolution<FC>::partialSingleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
 {
 	for( ; rx < rxEnd; rx++ ) {
 		partialSingleProcess( srcPtr, SrcPixelsOffset[idx], flt, FltPixelsOffset[idx], dstPtr );
@@ -282,8 +306,8 @@ inline void CBlobConvolution<C, FC, FH, FW>::partialSingleProcessLoop( int& rx, 
 	}
 }
 
-template<int C, int FC, int FH, int FW>
-inline void CBlobConvolution<C, FC, FH, FW>::wholeBatchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
+template<int FC>
+inline void CBlobConvolution<FC>::wholeBatchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
 {
 	for( ; rx <= rxEnd - BatchProcessSize; rx += BatchProcessSize ) {
 		wholeBatchProcess( srcPtr, flt, dstPtr );
@@ -292,8 +316,8 @@ inline void CBlobConvolution<C, FC, FH, FW>::wholeBatchProcessLoop( int& rx, int
 	}
 }
 
-template<int C, int FC, int FH, int FW>
-inline void CBlobConvolution<C, FC, FH, FW>::wholeSingleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
+template<int FC>
+inline void CBlobConvolution<FC>::wholeSingleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr )
 {
 	for( ; rx < rxEnd; rx++ ) {
 		wholeSingleProcess( srcPtr, flt, dstPtr );
@@ -302,8 +326,8 @@ inline void CBlobConvolution<C, FC, FH, FW>::wholeSingleProcessLoop( int& rx, in
 	}
 }
 
-template<int C, int FC, int FH, int FW>
-const float* CBlobConvolution<C, FC, FH, FW>::rearrangeFileter( const float* filterData )
+template<int FC>
+const float* CBlobConvolution<FC>::rearrangeFileter( const float* filterData )
 {
 	size_t filterBufferSize = FileterSize + AvxAlignment;
 	void* alignedFltPtr = const_cast<float*>( Filter );
@@ -362,8 +386,8 @@ const float* CBlobConvolution<C, FC, FH, FW>::rearrangeFileter( const float* fil
 	return static_cast<float*>( alignedFltPtr );
 }
 
-template<int C, int FC, int FH, int FW>
-const float* CBlobConvolution<C, FC, FH, FW>::rearrangeFreeTerm( const float* freeTermData )
+template<int FC>
+const float* CBlobConvolution<FC>::rearrangeFreeTerm( const float* freeTermData )
 {
 	size_t freeTermBufferSize = FCm8 + AvxAlignment;
 	void* alignedFreeTermPtr = const_cast<float*>( FreeTerm );
@@ -382,8 +406,8 @@ const float* CBlobConvolution<C, FC, FH, FW>::rearrangeFreeTerm( const float* fr
 	return static_cast<float*>( alignedFreeTermPtr );
 }
 
-template<int C, int FC, int FH, int FW>
-const std::array<std::vector<int>, 8> CBlobConvolution<C, FC, FH, FW>::fillSrcPixelOffset()
+template<int FC>
+const std::array<std::vector<int>, 8> CBlobConvolution<FC>::fillSrcPixelOffset()
 {
 	const int SrcLineStride = SrcW * C;
 	const int SrcYDilation = DH * SrcLineStride;
@@ -400,8 +424,8 @@ const std::array<std::vector<int>, 8> CBlobConvolution<C, FC, FH, FW>::fillSrcPi
 	};
 }
 
-template<int C, int FC, int FH, int FW>
-const std::array<std::vector<int>, 8>  CBlobConvolution<C, FC, FH, FW>::fillFltPixelOffset()
+template<int FC>
+const std::array<std::vector<int>, 8>  CBlobConvolution<FC>::fillFltPixelOffset()
 {
 	return {
 		std::vector<int>{ 4 * C * FCm8, 5 * C * FCm8, 7 * C * FCm8, 8 * C * FCm8 }, // 4 5 7 8
@@ -415,8 +439,8 @@ const std::array<std::vector<int>, 8>  CBlobConvolution<C, FC, FH, FW>::fillFltP
 	};
 }
 
-template<int C, int FC, int FH, int FW>
-inline void CBlobConvolution<C, FC, FH, FW>::RotateLeft6( __m256& y0, __m256& y1, __m256& y2 )
+template<int FC>
+inline void CBlobConvolution<FC>::RotateLeft6( __m256& y0, __m256& y1, __m256& y2 )
 {   //   y0        y1        y2
 	// 0 1 2 3 - 4 5 6 7 - 8 0 1 2
 	// 3 4 5 6 - 7 8 0 1 - 2 3 4 5
@@ -442,8 +466,8 @@ inline void CBlobConvolution<C, FC, FH, FW>::RotateLeft6( __m256& y0, __m256& y1
 	y1 = _mm256_blend_ps( yt2, yt0, 0xf0 );
 }
 
-template<int C, int FC, int FH, int FW>
-inline void CBlobConvolution<C, FC, FH, FW>::RotateLeft2( __m256& y )
+template<int FC>
+inline void CBlobConvolution<FC>::RotateLeft2( __m256& y )
 {
 	// 0 1 2 0
 	// 1 2 0 1

@@ -18,19 +18,16 @@ limitations under the License.
 namespace NeoML {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Channels: 24
 // Channel count: 24
-// Filter height: 3
-// Filter width: 3
 
 template<>
-constexpr int CBlobConvolution<24, 24, 3, 3>::getBatchProcessSize()
+constexpr int CBlobConvolution<24>::getBatchProcessSize()
 {
 	return 3;
 }
 
 template<>
-inline void CBlobConvolution<24, 24, 3, 3>::batchProcessChannels( const float* srcPtr, const float* fltPtr,
+inline void CBlobConvolution<24>::batchProcessChannels( const float* srcPtr, const float* fltPtr,
 	__m256& r00, __m256& r01, __m256& r02,
 	__m256& r10, __m256& r11, __m256& r12,
 	__m256& r20, __m256& r21, __m256& r22 )
@@ -57,13 +54,13 @@ inline void CBlobConvolution<24, 24, 3, 3>::batchProcessChannels( const float* s
 		srcPtr++;
 	};
 
-	for( int c = 0; c < C_; c++ ) {
+	for( int c = 0; c < C; c++ ) {
 		ProcessNext();
 	}
 }
 
 template<>
-inline void CBlobConvolution<24, 24, 3, 3>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
+inline void CBlobConvolution<24>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
 	__m256& r0, __m256& r1, __m256& r2 )
 {
 	auto ProcessNext = [&]( __m128 st0_m128 )
@@ -81,7 +78,7 @@ inline void CBlobConvolution<24, 24, 3, 3>::singleProcessChannels( const float* 
 		fltPtr += FCm8;
 	};
 
-	for( int c = 0; c < C_; c += 4 ) {
+	for( int c = 0; c < C; c += 4 ) {
 		__m128 s = _mm_loadu_ps( srcPtr + c );
 		ProcessNext( _mm_permute_ps( s, 0x00 ) );
 		ProcessNext( _mm_permute_ps( s, 0x55 ) );
@@ -91,7 +88,7 @@ inline void CBlobConvolution<24, 24, 3, 3>::singleProcessChannels( const float* 
 }
 
 template<>
-inline void CBlobConvolution<24, 24, 3, 3>::partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
+inline void CBlobConvolution<24>::partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
 	const float* fltPtr, const vector<int>& fltPixelsOffset, float* dstPtr )
 {
 	const __m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
@@ -127,7 +124,7 @@ inline void CBlobConvolution<24, 24, 3, 3>::partialBatchProcess( const float* sr
 }
 
 template<>
-inline void CBlobConvolution<24, 24, 3, 3>::partialSingleProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
+inline void CBlobConvolution<24>::partialSingleProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
 	const float* fltPtr, const std::vector<int>& fltPixelsOffset, float* dstPtr )
 {
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
@@ -147,7 +144,7 @@ inline void CBlobConvolution<24, 24, 3, 3>::partialSingleProcess( const float* s
 }
 
 template<>
-inline void CBlobConvolution<24, 24, 3, 3>::wholeBatchProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
+inline void CBlobConvolution<24>::wholeBatchProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
 {
 	const __m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 	const __m256 ft1 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 8 ) : _mm256_setzero_ps();
@@ -163,12 +160,12 @@ inline void CBlobConvolution<24, 24, 3, 3>::wholeBatchProcess( const float* srcP
 	__m256 r21 = ft1;
 	__m256 r22 = ft2;
 
-	for( int fy = 0; fy < FH_; fy++ ) {
-		for( int fx = 0; fx < FW_; fx++ ) {
+	for( int fy = 0; fy < FH; fy++ ) {
+		for( int fx = 0; fx < FW; fx++ ) {
 			batchProcessChannels( srcPtr, fltPtr, r00, r01, r02, r10, r11, r12, r20, r21, r22 );
 			// Move to next pixel in source image on the SAME line
 			srcPtr += SrcXDilation;
-			fltPtr += C_ * FCm8;
+			fltPtr += C * FCm8;
 		}
 		// Move to next pixel in source image on the NEXT line
 		srcPtr += SrcYDilation - SrcXWindowSize;
@@ -186,18 +183,18 @@ inline void CBlobConvolution<24, 24, 3, 3>::wholeBatchProcess( const float* srcP
 }
 
 template<>
-inline void CBlobConvolution<24, 24, 3, 3>::wholeSingleProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
+inline void CBlobConvolution<24>::wholeSingleProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
 {
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 	__m256 r1 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 8 ) : _mm256_setzero_ps();
 	__m256 r2 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 16 ) : _mm256_setzero_ps();
 
-	for( int fy = 0; fy < FH_; fy++ ) {
-		for( int fx = 0; fx < FW_; fx++ ) {
+	for( int fy = 0; fy < FH; fy++ ) {
+		for( int fx = 0; fx < FW; fx++ ) {
 			singleProcessChannels( srcPtr, fltPtr, r0, r1, r2 );
 			// Move to next pixel in source image on the SAME line
 			srcPtr += SrcXDilation;
-			fltPtr += C_ * FCm8;
+			fltPtr += C * FCm8;
 		}
 		// Move to next pixel in source image on the NEXT line
 		srcPtr += SrcYDilation - SrcXWindowSize;
@@ -209,19 +206,16 @@ inline void CBlobConvolution<24, 24, 3, 3>::wholeSingleProcess( const float* src
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Channels: 18
 // Channel count: 18
-// Filter height: 3
-// Filter width: 3
 
 template<>
-constexpr int CBlobConvolution<18, 18, 3, 3>::getBatchProcessSize()
+constexpr int CBlobConvolution<18>::getBatchProcessSize()
 {
 	return 4;
 }
 
 template<>
-inline void CBlobConvolution<18, 18, 3, 3>::batchProcessChannels( const float* srcPtr, const float* fltPtr,
+inline void CBlobConvolution<18>::batchProcessChannels( const float* srcPtr, const float* fltPtr,
 	__m256& r00, __m256& r01, __m256& r02,
 	__m256& r10, __m256& r11, __m256& r12,
 	__m256& r20, __m256& r21, __m256& r22 )
@@ -267,13 +261,13 @@ inline void CBlobConvolution<18, 18, 3, 3>::batchProcessChannels( const float* s
 		srcPtr++;
 	};
 
-	for( int c = 0; c < C_; c++ ) {
+	for( int c = 0; c < C; c++ ) {
 		ProcessNext();
 	}
 }
 
 template<>
-inline void CBlobConvolution<18, 18, 3, 3>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
+inline void CBlobConvolution<18>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
 	__m256& r0, __m256& r1, __m256& r2 )
 {
 	auto ProcessNext = [&]( __m128 st0_m128 )
@@ -291,22 +285,36 @@ inline void CBlobConvolution<18, 18, 3, 3>::singleProcessChannels( const float* 
 		fltPtr += FCm8;
 	};
 
-	constexpr int Cm8 = C_ / 8 * 8;
+	const int Cm4 = C / 4 * 4;
 	int c = 0;
-	for( ; c < Cm8; c += 4 ) {
+	for( ; c < Cm4; c += 4 ) {
 		__m128 s = _mm_loadu_ps( srcPtr + c );
 		ProcessNext( _mm_permute_ps( s, 0x00 ) );
 		ProcessNext( _mm_permute_ps( s, 0x55 ) );
 		ProcessNext( _mm_permute_ps( s, 0xaa ) );
 		ProcessNext( _mm_permute_ps( s, 0xff ) );
 	}
-	__m128 s = _mm_loadu_ps( srcPtr + c );
-	ProcessNext( _mm_permute_ps( s, 0x00 ) );
-	ProcessNext( _mm_permute_ps( s, 0x55 ) );
+	if( Cm4 != C ) {
+		__m128 s = _mm_loadu_ps( srcPtr + c );
+		switch( C - Cm4 ) {
+			case 3:
+				ProcessNext( _mm_permute_ps( s, 0x00 ) );
+				ProcessNext( _mm_permute_ps( s, 0x55 ) );
+				ProcessNext( _mm_permute_ps( s, 0xaa ) );
+				break;
+			case 2:
+				ProcessNext( _mm_permute_ps( s, 0x00 ) );
+				ProcessNext( _mm_permute_ps( s, 0x55 ) );
+				break;
+			case 1:
+				ProcessNext( _mm_permute_ps( s, 0x00 ) );
+				break;
+		}
+	}
 }
 
 template<>
-inline void CBlobConvolution<18, 18, 3, 3>::partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
+inline void CBlobConvolution<18>::partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
 	const float* fltPtr, const vector<int>& fltPixelsOffset, float* dstPtr )
 {
 	__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
@@ -344,7 +352,7 @@ inline void CBlobConvolution<18, 18, 3, 3>::partialBatchProcess( const float* sr
 }
 
 template<>
-inline void CBlobConvolution<18, 18, 3, 3>::partialSingleProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
+inline void CBlobConvolution<18>::partialSingleProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
 	const float* fltPtr, const std::vector<int>& fltPixelsOffset, float* dstPtr )
 {
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
@@ -364,7 +372,7 @@ inline void CBlobConvolution<18, 18, 3, 3>::partialSingleProcess( const float* s
 }
 
 template<>
-inline void CBlobConvolution<18, 18, 3, 3>::wholeBatchProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
+inline void CBlobConvolution<18>::wholeBatchProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
 {
 	__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 	__m256 ft1 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 8 ) : _mm256_setzero_ps();
@@ -382,12 +390,12 @@ inline void CBlobConvolution<18, 18, 3, 3>::wholeBatchProcess( const float* srcP
 	__m256 r21 = ft1;
 	__m256 r22 = ft2;
 
-	for( int fy = 0; fy < FH_; fy++ ) {
-		for( int fx = 0; fx < FW_; fx++ ) {
+	for( int fy = 0; fy < FH; fy++ ) {
+		for( int fx = 0; fx < FW; fx++ ) {
 			batchProcessChannels( srcPtr, fltPtr, r00, r01, r02, r10, r11, r12, r20, r21, r22 );
 			// Move to next pixel in source image on the SAME line
 			srcPtr += SrcXDilation;
-			fltPtr += C_ * FCm8;
+			fltPtr += C * FCm8;
 		}
 		// Move to next pixel in source image on the NEXT line
 		srcPtr += SrcYDilation - SrcXWindowSize;
@@ -405,18 +413,18 @@ inline void CBlobConvolution<18, 18, 3, 3>::wholeBatchProcess( const float* srcP
 }
 
 template<>
-inline void CBlobConvolution<18, 18, 3, 3>::wholeSingleProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
+inline void CBlobConvolution<18>::wholeSingleProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
 {
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 	__m256 r1 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 8 ) : _mm256_setzero_ps();
 	__m256 r2 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 16 ) : _mm256_setzero_ps();
 
-	for( int fy = 0; fy < FH_; fy++ ) {
-		for( int fx = 0; fx < FW_; fx++ ) {
+	for( int fy = 0; fy < FH; fy++ ) {
+		for( int fx = 0; fx < FW; fx++ ) {
 			singleProcessChannels( srcPtr, fltPtr, r0, r1, r2 );
 			// Move to next pixel in source image on the SAME line
 			srcPtr += SrcXDilation;
-			fltPtr += C_ * FCm8;
+			fltPtr += C * FCm8;
 		}
 		// Move to next pixel in source image on the NEXT line
 		srcPtr += SrcYDilation - SrcXWindowSize;
@@ -428,19 +436,16 @@ inline void CBlobConvolution<18, 18, 3, 3>::wholeSingleProcess( const float* src
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Channels: 18
 // Channel count: 6
-// Filter height: 3
-// Filter width: 3
 
 template<>
-constexpr int CBlobConvolution<18, 6, 3, 3>::getBatchProcessSize()
+constexpr int CBlobConvolution<6>::getBatchProcessSize()
 {
 	return 16;
 }
 
 template<>
-inline void CBlobConvolution<18, 6, 3, 3>::batchProcessChannels( const float* srcPtr, const float* fltPtr,
+inline void CBlobConvolution<6>::batchProcessChannels( const float* srcPtr, const float* fltPtr,
 	__m256& r0, __m256& r1, __m256& r2,	__m256& r3, __m256& r4, __m256& r5,
 	__m256& r6, __m256& r7, __m256& r8,	__m256& r9, __m256& r10, __m256& r11 )
 {
@@ -465,7 +470,7 @@ inline void CBlobConvolution<18, 6, 3, 3>::batchProcessChannels( const float* sr
 		}
 	};
 
-	for( int c = 0; c < C_; c++ ) {
+	for( int c = 0; c < C; c++ ) {
 		__m256 f0 = _mm256_loadu_ps( fltPtr );
 		ProcessNext( f0, r0, r1, r2, 0 );
 		ProcessNext( f0, r3, r4, r5, 4 );
@@ -477,7 +482,7 @@ inline void CBlobConvolution<18, 6, 3, 3>::batchProcessChannels( const float* sr
 }
 
 template<>
-inline void CBlobConvolution<18, 6, 3, 3>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
+inline void CBlobConvolution<6>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
 	__m256& r0 )
 {
 	auto ProcessNext = [&]( __m128 st0_m128 )
@@ -491,22 +496,36 @@ inline void CBlobConvolution<18, 6, 3, 3>::singleProcessChannels( const float* s
 		fltPtr += FCm8;
 	};
 
-	constexpr int Cm8 = C_ / 8 * 8;
+	const int Cm4 = C / 4 * 4;
 	int c = 0;
-	for( ; c < Cm8; c += 4 ) {
+	for( ; c < Cm4; c += 4 ) {
 		__m128 s = _mm_loadu_ps( srcPtr + c );
 		ProcessNext( _mm_permute_ps( s, 0x00 ) );
 		ProcessNext( _mm_permute_ps( s, 0x55 ) );
 		ProcessNext( _mm_permute_ps( s, 0xaa ) );
 		ProcessNext( _mm_permute_ps( s, 0xff ) );
 	}
-	__m128 s = _mm_loadu_ps( srcPtr + c );
-	ProcessNext( _mm_permute_ps( s, 0x00 ) );
-	ProcessNext( _mm_permute_ps( s, 0x55 ) );
+	if( Cm4 != C ) {
+		__m128 s = _mm_loadu_ps( srcPtr + c );
+		switch( C - Cm4 ) {
+			case 3:
+				ProcessNext( _mm_permute_ps( s, 0x00 ) );
+				ProcessNext( _mm_permute_ps( s, 0x55 ) );
+				ProcessNext( _mm_permute_ps( s, 0xaa ) );
+				break;
+			case 2:
+				ProcessNext( _mm_permute_ps( s, 0x00 ) );
+				ProcessNext( _mm_permute_ps( s, 0x55 ) );
+				break;
+			case 1:
+				ProcessNext( _mm_permute_ps( s, 0x00 ) );
+				break;
+		}
+	}
 }
 
 template<>
-inline void CBlobConvolution<18, 6, 3, 3>::partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
+inline void CBlobConvolution<6>::partialBatchProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
 	const float* fltPtr, const vector<int>& fltPixelsOffset, float* dstPtr )
 {
 	__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
@@ -541,7 +560,7 @@ inline void CBlobConvolution<18, 6, 3, 3>::partialBatchProcess( const float* src
 }
 
 template<>
-inline void CBlobConvolution<18, 6, 3, 3>::partialSingleProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
+inline void CBlobConvolution<6>::partialSingleProcess( const float* srcPtr, const std::vector<int>& srcPixelsOffset,
 	const float* fltPtr, const std::vector<int>& fltPixelsOffset, float* dstPtr )
 {
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
@@ -557,7 +576,7 @@ inline void CBlobConvolution<18, 6, 3, 3>::partialSingleProcess( const float* sr
 }
 
 template<>
-inline void CBlobConvolution<18, 6, 3, 3>::wholeBatchProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
+inline void CBlobConvolution<6>::wholeBatchProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
 {
 	__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 
@@ -567,14 +586,14 @@ inline void CBlobConvolution<18, 6, 3, 3>::wholeBatchProcess( const float* srcPt
 	RotateLeft2( ft0 );
 	__m256 r2 = ft0; __m256 r5 = ft0; __m256 r8 = ft0; __m256 r11 = ft0;
 
-	for( int fy = 0; fy < FH_; fy++ ) {
-		for( int fx = 0; fx < FW_; fx++ ) {
+	for( int fy = 0; fy < FH; fy++ ) {
+		for( int fx = 0; fx < FW; fx++ ) {
 			batchProcessChannels( srcPtr, fltPtr, 
 				r0, r1, r2, r3, r4, r5,
 				r6, r7, r8, r9, r10, r11);
 			// Move to next pixel in source image on the SAME line
 			srcPtr += SrcXDilation;
-			fltPtr += C_ * FCm8;
+			fltPtr += C * FCm8;
 		}
 		// Move to next pixel in source image on the NEXT line
 		srcPtr += SrcYDilation - SrcXWindowSize;
@@ -595,16 +614,16 @@ inline void CBlobConvolution<18, 6, 3, 3>::wholeBatchProcess( const float* srcPt
 }
 
 template<>
-inline void CBlobConvolution<18, 6, 3, 3>::wholeSingleProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
+inline void CBlobConvolution<6>::wholeSingleProcess( const float* srcPtr, const float* fltPtr, float* dstPtr )
 {
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 
-	for( int fy = 0; fy < FH_; fy++ ) {
-		for( int fx = 0; fx < FW_; fx++ ) {
+	for( int fy = 0; fy < FH; fy++ ) {
+		for( int fx = 0; fx < FW; fx++ ) {
 			singleProcessChannels( srcPtr, fltPtr, r0 );
 			// Move to next pixel in source image on the SAME line
 			srcPtr += SrcXDilation;
-			fltPtr += C_ * FCm8;
+			fltPtr += C * FCm8;
 		}
 		// Move to next pixel in source image on the NEXT line
 		srcPtr += SrcYDilation - SrcXWindowSize;

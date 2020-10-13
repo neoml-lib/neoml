@@ -36,15 +36,10 @@ public:
 	void ProcessBlobConvolution( int threadNum, const CCommonConvolutionDesc& desc, const float* sourceData,
 		const float* filterData, const float* freeTermData, float* resultData ) const;
 
-	// Returns false if avx instruction isn't available or library wasn't loaded.
-	bool IsAvailable() const { return isLoaded; }
-	void CallBlobConvolution_f3x3_c24_fc24( int threadNum, const CCommonConvolutionDesc& desc, const float* sourceData,
-		const float* filterData, const float* freeTermData, float* resultData ) const;
 private:
 	enum class TFunctionPointers {
 		IsBlobConvolutionAvailable,
 		ProcessBlobConvolution,
-		BlobConvolution_f3x3_c24_fc24,
 
 		Count
 	};
