@@ -132,7 +132,7 @@ namespace {
 	{
 		auto value = ArgValue( argc, argv, Arg<char>::TestDataPath );
 		if( value ) {
-			testDir = FObj::CString( value, FObj::CP_UTF8 );
+			testDir = FObj::CString( value );
 		}
 	}
 
