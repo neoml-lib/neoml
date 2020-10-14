@@ -1,3 +1,18 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
 #include <common.h>
 #pragma hdrstop
 
@@ -21,6 +36,7 @@ enum TTimeType {
 // Параметры теста.
 struct CDnnInferencePerformanceTestParam {
 	int RunCount;
+	int ThreadCount;
 	TTimeType TimeType;
 	CString Name;
 	CArray<CString> Sources;
@@ -28,6 +44,7 @@ struct CDnnInferencePerformanceTestParam {
 
 	CDnnInferencePerformanceTestParam( const CDnnInferencePerformanceTestParam& other ) :
 		RunCount( other.RunCount ),
+		ThreadCount( other.ThreadCount ),
 		TimeType( other.TimeType ),
 		Name( other.Name )
 	{
@@ -35,8 +52,9 @@ struct CDnnInferencePerformanceTestParam {
 		other.Sinks.CopyTo( Sinks );
 	}
 
-	CDnnInferencePerformanceTestParam( int runCount, TTimeType timeType, const CString& name, std::initializer_list<CString> sources, std::initializer_list<CString> sinks ) :
+	CDnnInferencePerformanceTestParam( int runCount, int threadCount, TTimeType timeType, const CString& name, std::initializer_list<CString> sources, std::initializer_list<CString> sinks ) :
 		RunCount( runCount ),
+		ThreadCount( threadCount ),
 		TimeType( timeType ),
 		Name( name )
 	{
@@ -58,15 +76,17 @@ struct CDnnInferencePerformanceTestParam {
 	return os << params.Name;
 }
 
+using ResultType = std::unique_ptr<IPerformanceCounters>;
+
 class CDnnInferencePerformanceTest : public CNeoMLTestFixture, public ::testing::WithParamInterface<CDnnInferencePerformanceTestParam> {
 public:
 	static bool InitTestFixture() { return true; }
 	static void DeinitTestFixture();
 
 	static void LoadCnn( const CDnnInferencePerformanceTestParam& param, CDnn& cnn );
-	static CPtr<CDnnBlob> LoadBlob( const CString& fileName );
+	static CPtr<CDnnBlob> LoadBlob( const CString& fileName, IMathEngine& mathEngine );
 
-	static void TestRunOnce( const CDnnInferencePerformanceTestParam& param );
+	static ResultType Run( const CDnnInferencePerformanceTestParam& param, IMathEngine& mathEngine );
 
 	static CRandom& GetRandom() { return random; }
 
@@ -90,26 +110,42 @@ void CDnnInferencePerformanceTest::LoadCnn( const CDnnInferencePerformanceTestPa
 
 	for( int i = 0; i < param.Sources.Size(); i++ ) {
 		CPtr<CSourceLayer> sourceLayer = CheckCast<CSourceLayer>( cnn.GetLayer( param.Sources[i] ) );
-		sourceLayer->SetBlob( LoadBlob( param.Name + "." + param.Sources[i] + ".input" ) );
+		sourceLayer->SetBlob( LoadBlob( param.Name + "." + param.Sources[i] + ".input", cnn.GetMathEngine() ) );
 	}
 }
 
-CPtr<CDnnBlob> CDnnInferencePerformanceTest::LoadBlob( const CString& fileName )
+CPtr<CDnnBlob> CDnnInferencePerformanceTest::LoadBlob( const CString& fileName, IMathEngine& mathEngine )
 {
 	CArchiveFile file( GetTestDataFilePath( "data", fileName ), CArchive::load, GetPlatformEnv() );
 	CArchive archive( &file, CArchive::SD_Loading );
-	CPtr<CDnnBlob> blob = new CDnnBlob( MathEngine() );
+	CPtr<CDnnBlob> blob = new CDnnBlob( mathEngine );
 	blob->Serialize( archive );
 	return blob;
 }
 
-void CDnnInferencePerformanceTest::TestRunOnce( const CDnnInferencePerformanceTestParam& param )
+template <typename T>
+static void checkResults( const CPtr<CDnnBlob>& actualBlob, const CPtr<CDnnBlob>& expectedBlob )
 {
-	CDnn cnn( GetRandom(), MathEngine() );
+	CArray<T> expectedData;
+	CArray<T> actualData;
+	expectedData.SetSize( expectedBlob->GetDataSize() );
+	actualData.SetSize( actualBlob->GetDataSize() );
+	expectedBlob->CopyTo( expectedData.GetPtr() );
+	actualBlob->CopyTo( actualData.GetPtr() );
+
+	ASSERT_EQ( expectedData.Size(), actualData.Size() );
+	for( int i = 0; i < expectedData.Size(); i++ ) {
+		ASSERT_NEAR( expectedData[i], actualData[i], 1E-2 ) << i;
+	}
+}
+
+ResultType CDnnInferencePerformanceTest::Run( 
+	const CDnnInferencePerformanceTestParam& param, IMathEngine& mathEngine )
+{
+	CDnn cnn( GetRandom(), mathEngine );
 	
 	LoadCnn( param, cnn );
 
-	// Первый проход не показательный.
 	cnn.RunOnce();
 
 	CObjectArray<CSinkLayer> sinkLayers;
@@ -121,62 +157,33 @@ void CDnnInferencePerformanceTest::TestRunOnce( const CDnnInferencePerformanceTe
 		sinkBlobData[i].SetSize( sinkBlob->GetDataSize() );
 	}
 
-	// Замеры скорости:
-	auto counters = cnn.GetMathEngine().CreatePerformanceCounters();
+	std::unique_ptr<IPerformanceCounters> counters( mathEngine.CreatePerformanceCounters() );
 	counters->Synchronise();
 
 	for( int run = 0; run < param.RunCount; ++run ) {
 		cnn.RunOnce();
 
-		// вызовем sync (чтобы правильно измерить время)
 		for( int i = 0; i < param.Sinks.Size(); i++ ) {
 			CPtr<CDnnBlob> sinkBlob = sinkLayers[i]->GetBlob();
 			sinkBlob->CopyTo( sinkBlobData[i].GetPtr() );
 		}
 	}
 	counters->Synchronise();
-	bool useavg = (param.TimeType == TT_Average);
-	GTEST_LOG_(INFO) << param.Name << " peak memory usage: " << ( MathEngine().GetPeakMemoryUsage() / 1024) << " Kb";
-	for( const auto& counter : *counters ) {
-		GTEST_LOG_(INFO) << param.Name << " " << counter.Name << ": " << (useavg ? counter.Value / param.RunCount : counter.Value);
-	}
-	delete counters;
 	
-	// Проверка правильности результата:
-	CArray<float> expectedDataFloat;
-	CArray<int> expectedDataInt;
-	CArray<float> actualDataFloat;
-	CArray<int> actualDataInt;
+	// Check results
 	for( int i = 0; i < param.Sinks.Size(); i++ ) {
-		CPtr<CDnnBlob> expectedBlob = LoadBlob( param.Name + "." + param.Sinks[i] + ".output" );
+		CPtr<CDnnBlob> expectedBlob = LoadBlob( param.Name + "." + param.Sinks[i] + ".output", cnn.GetMathEngine() );
 		CPtr<CDnnBlob> actualBlob = sinkLayers[i]->GetBlob();
 
 		if( expectedBlob->GetDataType() == CT_Float ) {
-			expectedDataFloat.SetSize( expectedBlob->GetDataSize() );
-			actualDataFloat.SetSize( actualBlob->GetDataSize() );
-			expectedBlob->CopyTo( expectedDataFloat.GetPtr() );
-			actualBlob->CopyTo( actualDataFloat.GetPtr() );
-			CArray<float>& actualData = actualDataFloat;
-
-			ASSERT_EQ( expectedDataFloat.Size(), actualData.Size() );
-			for( int j = 0; j < expectedDataFloat.Size(); j++ ) {
-				ASSERT_NEAR( expectedDataFloat[j], actualData[j], 1E-2 ) << j;
-			}
+			checkResults<float>( actualBlob, expectedBlob );
 		} else if( expectedBlob->GetDataType() == CT_Int ) {
-			expectedDataInt.SetSize( expectedBlob->GetDataSize() );
-			actualDataInt.SetSize( actualBlob->GetDataSize() );
-			expectedBlob->CopyTo( expectedDataInt.GetPtr() );
-			actualBlob->CopyTo( actualDataInt.GetPtr() );
-			CArray<int>& actualData = actualDataInt;
-
-			ASSERT_EQ( expectedDataInt.Size(), actualData.Size() );
-			for( int j = 0; j < expectedDataInt.Size(); j++ ) {
-				ASSERT_NEAR( expectedDataInt[j], actualData[j], 1E-2 ) << j;
-			}
+			checkResults<int>( actualBlob, expectedBlob );
 		} else {
-			ASSERT_TRUE( false );
+			EXPECT_TRUE( false );
 		}
 	}
+	return counters;
 }
 
 } // namespace NeoMLTest
@@ -186,34 +193,76 @@ using namespace NeoMLTest;
 
 //------------------------------------------------------------------------------------------------------------
 
-TEST_P(CDnnInferencePerformanceTest, Test)
+TEST_P( CDnnInferencePerformanceTest, OneMathEngine )
 {
 	const auto& param = GetParam();
-	
-	const int threadCount = 2;
 
-	std::vector<std::future<decltype( TestRunOnce( param ) )>> results;
-	results.reserve( threadCount );
+	auto& mathEngine = MathEngine();
 
-	for( int i = 0; i < threadCount; ++i ) {
-		results.push_back( std::async( std::launch::async, TestRunOnce, std::ref( param ) ) );
+	std::vector<std::future<ResultType>> results;
+	results.reserve( param.ThreadCount );
+
+	for( int i = 0; i < param.ThreadCount; ++i ) {
+		results.push_back( std::async( std::launch::async, Run, std::ref( param ), std::ref( mathEngine ) ) );
 	}	
 	
 	try {
 		for( auto& result : results ) {
-			result.get();
+			bool useavg = ( param.TimeType == TT_Average );
+			auto counters = result.get();
+			for( const auto& counter : *counters ) {
+				GTEST_LOG_( INFO ) << param.Name << " " << counter.Name << ": " << 
+					( useavg ? counter.Value / param.RunCount : counter.Value );
+			}
 		}
 	} catch( std::exception& e ) {
 		GTEST_LOG_( ERROR ) << e.what();
 		throw;
 	}
 
-	MathEngine().CleanUp();
+	mathEngine.CleanUp();
+}
+
+TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
+{
+	const auto& param = GetParam();
+
+	std::vector<std::future<ResultType>> results;
+	results.reserve( param.ThreadCount );
+
+	std::vector<std::unique_ptr<IMathEngine>> mathEngines;
+	mathEngines.reserve( param.ThreadCount );
+
+	for( int i = 0; i < param.ThreadCount; ++i ) {
+		auto mathEngine = CreateMathEngine( MathEngine().GetType() );
+		ASSERT_TRUE( mathEngine != nullptr ) << i;
+		mathEngines.emplace_back( mathEngine );
+		results.push_back( std::async( std::launch::async, Run, std::ref( param ), std::ref( *mathEngine ) ) );
+	}
+
+	try {
+		for( auto& result : results ) {
+			bool useavg = (param.TimeType == TT_Average);
+			auto counters = result.get();
+			for( const auto& counter : *counters ) {
+				GTEST_LOG_(INFO) << param.Name << " " << counter.Name << ": " <<
+					(useavg ? counter.Value / param.RunCount : counter.Value);
+			}
+		}
+	}
+	catch( std::exception& e ) {
+		GTEST_LOG_( ERROR ) << e.what();
+		throw;
+	}
 }
 
 INSTANTIATE_TEST_CASE_P( CDnnInferencePerformanceTestInstantiation, CDnnInferencePerformanceTest,
 	::testing::Values(
-		CDnnInferencePerformanceTestParam(1000, TT_Total, "MobileNetV2Cifar10", // 32x32x3
+		CDnnInferencePerformanceTestParam(
+			1000, 
+			2, 
+			TT_Total, 
+			"MobileNetV2Cifar10", // 32x32x3
 			{ "in" },
 			{ "out" }
 		)

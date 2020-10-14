@@ -21,35 +21,22 @@ limitations under the License.
 
 namespace NeoMLTest {
 
-// Получить путь к файлу в каталоге тестов.
 CString GetTestDataFilePath( const CString& relativePath, const CString& fileName );
 
-// Установить глобальный на тест движок.
-void SetMathEngine( IMathEngine* mathEngine );
+// Get global MathEngine.
+IMathEngine& MathEngine();
 
-// Установить указатель на платформо-специфичные объекты
 void SetPlatformEnv( void* platformEnv );
 
 void* GetPlatformEnv();
 
-// Получить движок в зависимости от типа аргумента --MathEngine
-enum class TMathEngineArgType 
-{
-    Undefined = 0,
-    Cpu,
-    Gpu,
-	Cuda,
-	Vulkan
-};
+NeoML::IMathEngine* CreateMathEngine( TMathEngineType type, int threadCount = 0 );
 
 #ifdef NEOML_USE_FINEOBJ
 int RunTests( int argc, wchar_t* argv[] );
 #else
 int RunTests( int argc, char* argv[] );
 #endif
-
-// Получить глобальный на тест движок.
-IMathEngine& MathEngine();
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -167,7 +154,6 @@ CPtr<T> AddLayer( const CString& layerName, CDnn& net )
 	return AddLayer( layer, layerName, net );
 }
 
-// Создает слой с данным именем, добавляет его к сети, в которой находятся input, и подсоединяет его к input.
 template<class T>
 CPtr<T> AddLayer( const CPtr<T>& layer, const CString& layerName, const CArray<CBaseLayer*>& input )
 {

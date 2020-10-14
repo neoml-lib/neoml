@@ -153,20 +153,10 @@ namespace {
 #endif // NEOML_USE_FINEOBJ
 }
 
-#ifdef NEOML_USE_FINEOBJ
-int RunTests( int argc, wchar_t* argv[] )
-#else
-int RunTests( int argc, char* argv[] )
-#endif
+IMathEngine* CreateMathEngine( TMathEngineType type, int threadCount )
 {
-	NeoMLTest::InitTestDataPath( argc, argv );
-	::testing::InitGoogleTest( &argc, argv );
-	
-	IMathEngine* mathEngine = nullptr;
-	
-	SetMathEngineExceptionHandler( GetExceptionHandler() );
-
-	switch( auto type = GetMathEngineType( argc, argv ) ) {
+	IMathEngine* result = nullptr;
+	switch( type ) {
 		case MET_Cuda:
 		case MET_Vulkan:
 		case MET_Metal: {
@@ -175,34 +165,51 @@ int RunTests( int argc, char* argv[] )
 			for( int i = 0; i < gpuManager->GetMathEngineCount(); ++i ) {
 				gpuManager->GetMathEngineInfo( i, info );
 				if( info.Type == type ) {
-					mathEngine = gpuManager->CreateMathEngine( i, 0 );
+					result = gpuManager->CreateMathEngine( i, 0 );
 					break;
 				}
 			}
-			if( mathEngine ) {
-				GTEST_LOG_( INFO ) << "Using GPU " << toString( type ) << " MathEngine: " << info.Name;
+			if( result ) {
+				GTEST_LOG_( INFO ) << "Create GPU " << toString( type ) << " MathEngine: " << info.Name;
 			} else {
-				GTEST_LOG_( INFO ) << "Can't create GPU " << toString( type ) << " MathEngine!";
-				return 1;
+				GTEST_LOG_( ERROR ) << "Can't create GPU " << toString( type ) << " MathEngine!";
 			}
 			break;
 		}
-		case MET_Undefined: {
-			GTEST_LOG_( INFO ) << "Unknown type of MathEngine in command line arguments!";
-		}
+		case MET_Undefined:
+			GTEST_LOG_( WARNING ) << "Unknown type of MathEngine!";
 		case MET_Cpu: {
-			const int threadCount = NeoMLTest::GetThreadCount( argc, argv );
-			mathEngine = CreateCpuMathEngine( threadCount, 0 );
-			GTEST_LOG_( INFO ) << "Using CPU MathEngine, threadCount = " << threadCount;
+			result = CreateCpuMathEngine( threadCount, 0 );
+			GTEST_LOG_( INFO ) << "Create CPU MathEngine, threadCount = " << threadCount;
 			break;
 		}
 	}
+	return result;
+}
 
-	NeoMLTest::SetMathEngine( mathEngine );
+#ifdef NEOML_USE_FINEOBJ
+int RunTests( int argc, wchar_t* argv[] )
+#else
+int RunTests( int argc, char* argv[] )
+#endif
+{
+	NeoMLTest::InitTestDataPath( argc, argv );
+	::testing::InitGoogleTest( &argc, argv );
+
+	const int threadCount = NeoMLTest::GetThreadCount( argc, argv );
+
+	auto type = GetMathEngineType( argc, argv );
+	
+	std::unique_ptr<IMathEngine> mathEngine_( CreateMathEngine( type, threadCount ) );
+	NeoAssert( mathEngine_ != nullptr );
+	
+	SetMathEngineExceptionHandler( GetExceptionHandler() );
+
+	mathEngine = mathEngine_.get();
 
 	int result = RUN_ALL_TESTS();
 	
-	delete mathEngine;
+	mathEngine = nullptr;
 	
 	return result;
 }
@@ -216,8 +223,6 @@ void* GetPlatformEnv()
 {
 	return platformEnv;
 }
-
-void* GetPlatformEnv();
 
 static inline bool isPathSeparator( char ch ) { return ch == '\\' || ch == '/'; }
 
@@ -267,11 +272,6 @@ static CString mergePathSimple( const CString& dir, const CString& relativePath 
 CString GetTestDataFilePath( const CString& relativePath, const CString& fileName )
 {
 	return mergePathSimple( mergePathSimple( testDir, relativePath ), fileName );
-}
-
-void SetMathEngine( IMathEngine* newMathEngine )
-{
-	mathEngine = newMathEngine;
 }
 
 IMathEngine& MathEngine()
