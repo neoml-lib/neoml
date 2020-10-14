@@ -32,14 +32,19 @@ inline void CBlobConvolution<24>::batchProcessChannels( const float* srcPtr, con
 	__m256& r10, __m256& r11, __m256& r12,
 	__m256& r20, __m256& r21, __m256& r22 )
 {
+	// Process three result pixels per time.
 	auto ProcessNext = [&]()
 	{
+		// Load one channel from one pixels in sequenced windows and fill one ymm register with its value.
 		__m256 st0 = _mm256_broadcast_ss( srcPtr );
 		__m256 st1 = _mm256_broadcast_ss( srcPtr + SrcXStep );
 		__m256 st2 = _mm256_broadcast_ss( srcPtr + 2 * SrcXStep );
+		// Load one channel for the same pixel as in source for all filters.
 		__m256 f0 = _mm256_loadu_ps( fltPtr );
 		__m256 f1 = _mm256_loadu_ps( fltPtr + 8 );
 		__m256 f2 = _mm256_loadu_ps( fltPtr + 16 );
+		// Take result for current pixels in three sequenced windows.
+		// Multiply one chennel for all filters ( for ONE src/flt pixels )
 		r00 = _mm256_fmadd_ps( f0, st0, r00 );
 		r01 = _mm256_fmadd_ps( f1, st0, r01 );
 		r02 = _mm256_fmadd_ps( f2, st0, r02 );
@@ -50,6 +55,7 @@ inline void CBlobConvolution<24>::batchProcessChannels( const float* srcPtr, con
 		r21 = _mm256_fmadd_ps( f1, st2, r21 );
 		r22 = _mm256_fmadd_ps( f2, st2, r22 );
 
+		// Go to next chennel in filter and source
 		fltPtr += FCm8;
 		srcPtr++;
 	};
@@ -63,6 +69,7 @@ template<>
 inline void CBlobConvolution<24>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
 	__m256& r0, __m256& r1, __m256& r2 )
 {
+	// Process one result pixels per time.
 	auto ProcessNext = [&]( __m128 st0_m128 )
 	{
 		__m256 st0 = _mm256_set_m128( st0_m128, st0_m128 );
@@ -80,6 +87,7 @@ inline void CBlobConvolution<24>::singleProcessChannels( const float* srcPtr, co
 
 	for( int c = 0; c < C; c += 4 ) {
 		__m128 s = _mm_loadu_ps( srcPtr + c );
+		// Load four channels and fill __m256 register four times with each of channel.
 		ProcessNext( _mm_permute_ps( s, 0x00 ) );
 		ProcessNext( _mm_permute_ps( s, 0x55 ) );
 		ProcessNext( _mm_permute_ps( s, 0xaa ) );
@@ -94,6 +102,7 @@ inline void CBlobConvolution<24>::batchProcess( const float* srcPtr, float* dstP
 	const __m256 ft1 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 8 ) : _mm256_setzero_ps();
 	const __m256 ft2 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 16 ) : _mm256_setzero_ps();
 
+	// Initialize result pixels with freeterm.
 	__m256 r00 = ft0;
 	__m256 r01 = ft1;
 	__m256 r02 = ft2;
@@ -140,6 +149,7 @@ inline void CBlobConvolution<24>::batchProcess( const float* srcPtr, float* dstP
 template<>
 inline void CBlobConvolution<24>::singleProcess( const float* srcPtr, float* dstPtr, int windowIndex )
 {
+	// Initialize result pixels with freeterm.
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 	__m256 r1 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 8 ) : _mm256_setzero_ps();
 	__m256 r2 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 16 ) : _mm256_setzero_ps();
@@ -189,6 +199,7 @@ inline void CBlobConvolution<18>::batchProcessChannels( const float* srcPtr, con
 	auto ProcessNext = [&]()
 	{
 		// We will process four pixels of source in three steps ( merge each two floats for clarity )
+		// After each step we will "rotate" filter's values.
 		// Step 1:
 		// S: 0 0 0 0 - 0 0 0 0 - 0 1 1 1
 		// F: 0 1 2 3 - 4 5 6 7 - 8 0 1 2
@@ -261,6 +272,7 @@ inline void CBlobConvolution<18>::singleProcessChannels( const float* srcPtr, co
 		ProcessNext( _mm_permute_ps( s, 0xff ) );
 	}
 	if( Cm4 != C ) {
+		// Process remaining channels
 		__m128 s = _mm_loadu_ps( srcPtr + c );
 		switch( C - Cm4 ) {
 			case 3:
@@ -286,6 +298,7 @@ inline void CBlobConvolution<18>::batchProcess( const float* srcPtr, float* dstP
 	__m256 ft1 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 8 ) : _mm256_setzero_ps();
 	__m256 ft2 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 16 ) : _mm256_setzero_ps();
 
+	// Initialize result pixels with freeterm.
 	__m256 r00 = ft0;
 	__m256 r01 = ft1;
 	__m256 r02 = ft2;
@@ -333,6 +346,7 @@ inline void CBlobConvolution<18>::batchProcess( const float* srcPtr, float* dstP
 template<>
 inline void CBlobConvolution<18>::singleProcess( const float* srcPtr, float* dstPtr, int windowIndex )
 {
+	// Initialize result pixels with freeterm.
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 	__m256 r1 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 8 ) : _mm256_setzero_ps();
 	__m256 r2 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 16 ) : _mm256_setzero_ps();
@@ -479,55 +493,57 @@ inline void CBlobConvolution<6>::singleProcessChannels( const float* srcPtr, con
 template<>
 inline void CBlobConvolution<6>::batchProcess( const float* srcPtr, float* dstPtr, int windowIndex )
 {
-		__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
+	__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 
-		__m256 r0 = ft0;
-		__m256 r3 = ft0;
-		__m256 r6 = ft0;
-		RotateLeft2( ft0 );
-		__m256 r1 = ft0; 
-		__m256 r4 = ft0; 
-		__m256 r7 = ft0;
-		RotateLeft2( ft0 );
-		__m256 r2 = ft0;
-		__m256 r5 = ft0;
-		__m256 r8 = ft0;
+	// Initialize result pixels with freeterm.
+	__m256 r0 = ft0;
+	__m256 r3 = ft0;
+	__m256 r6 = ft0;
+	RotateLeft2( ft0 );
+	__m256 r1 = ft0;
+	__m256 r4 = ft0;
+	__m256 r7 = ft0;
+	RotateLeft2( ft0 );
+	__m256 r2 = ft0;
+	__m256 r5 = ft0;
+	__m256 r8 = ft0;
 
-		if( windowIndex == -1 ) {
-			const float* fltPtr = flt;
-			for( int fy = 0; fy < FH; fy++ ) {
-				for( int fx = 0; fx < FW; fx++ ) {
-					batchProcessChannels( srcPtr, fltPtr, r0, r1, r2, r3, r4, r5, r6, r7, r8 );
-					// Move to next pixel in source image on the SAME line
-					srcPtr += SrcXDilation;
-					fltPtr += C * FCm8;
-				}
-				// Move to next pixel in source image on the NEXT line
-				srcPtr += SrcYDilation - SrcXWindowSize;
+	if( windowIndex == -1 ) {
+		const float* fltPtr = flt;
+		for( int fy = 0; fy < FH; fy++ ) {
+			for( int fx = 0; fx < FW; fx++ ) {
+				batchProcessChannels( srcPtr, fltPtr, r0, r1, r2, r3, r4, r5, r6, r7, r8 );
+				// Move to next pixel in source image on the SAME line
+				srcPtr += SrcXDilation;
+				fltPtr += C * FCm8;
 			}
-		} else {
-			auto srcIt = SrcPixelsOffset[windowIndex].cbegin();
-			auto fltIt = FltPixelsOffset[windowIndex].cbegin();
-			for( ; srcIt != SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
-				batchProcessChannels( srcPtr + *srcIt, flt + *fltIt, r0, r1, r2, r3, r4, r5, r6, r7, r8 );
-			}
+			// Move to next pixel in source image on the NEXT line
+			srcPtr += SrcYDilation - SrcXWindowSize;
 		}
+	} else {
+		auto srcIt = SrcPixelsOffset[windowIndex].cbegin();
+		auto fltIt = FltPixelsOffset[windowIndex].cbegin();
+		for( ; srcIt != SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
+			batchProcessChannels( srcPtr + *srcIt, flt + *fltIt, r0, r1, r2, r3, r4, r5, r6, r7, r8 );
+		}
+	}
 
-		// Store result of convolution for (fx,fy) pixel of f-th channel
-		_mm256_storeu_ps( dstPtr, r0 );
-		_mm256_storeu_ps( dstPtr + 8, r1 );
-		_mm256_storeu_ps( dstPtr + 16, r2 );
-		_mm256_storeu_ps( dstPtr + 24, r3 );
-		_mm256_storeu_ps( dstPtr + 32, r4 );
-		_mm256_storeu_ps( dstPtr + 40, r5 );
-		_mm256_storeu_ps( dstPtr + 48, r6 );
-		_mm256_storeu_ps( dstPtr + 56, r7 );
-		_mm256_storeu_ps( dstPtr + 64, r8 );
+	// Store result of convolution for (fx,fy) pixel of f-th channel
+	_mm256_storeu_ps( dstPtr, r0 );
+	_mm256_storeu_ps( dstPtr + 8, r1 );
+	_mm256_storeu_ps( dstPtr + 16, r2 );
+	_mm256_storeu_ps( dstPtr + 24, r3 );
+	_mm256_storeu_ps( dstPtr + 32, r4 );
+	_mm256_storeu_ps( dstPtr + 40, r5 );
+	_mm256_storeu_ps( dstPtr + 48, r6 );
+	_mm256_storeu_ps( dstPtr + 56, r7 );
+	_mm256_storeu_ps( dstPtr + 64, r8 );
 }
 
 template<>
 inline void CBlobConvolution<6>::singleProcess( const float* srcPtr, float* dstPtr, int windowIndex )
 {
+	// Initialize result pixels with freeterm.
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 
 	if( windowIndex == -1 ) {

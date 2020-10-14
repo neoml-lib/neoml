@@ -23,7 +23,7 @@ public:
 	virtual ~CBlobConvolutionBase() = default;
 	virtual void ProcessConvolution( int threadCount ) = 0;
 
-	// We should specify maximum available value of C, FC, FH and FW in order to allocate Filter and FreeTerm variables on stack.
+	// We should specify maximum available values of C, FC, FH and FW in order to allocate Filter and FreeTerm variables on stack.
 	static constexpr int Cmax = 24;
 	static constexpr int FCmax = 24;
 	static constexpr int FHmax = 3;
@@ -43,9 +43,6 @@ public:
 	void ProcessConvolution( int threadCount ) override;
 
 private:
-	// Create this variables in order to use them in class specialization
-	static constexpr int FC_ = FC;
-
 	const int C;
 	const int FH;
 	const int FW;
@@ -63,10 +60,15 @@ private:
 	const float* const freeTerm;
 	float* const dst;
 
+	// Distance in floats between two neighbor pixels in source.
 	const int SrcXStep;
+	// Length of one source line.
 	const int SrcLineStride;
+	// Distance in floats between two neighbor pixels in window by horizontal.
 	const int SrcXDilation;
+	// Distance in floats between two neighbor pixels in window by horizontal.
 	const int SrcYDilation;
+	// Width of source window in floats
 	const int SrcXWindowSize;
 	
 	// For some cases we will use FC, rounded up to nearest integer multiple of 8
@@ -83,9 +85,9 @@ private:
 	// 0  1  2
 	// 3  4  5
 	// 6  7  8
-	// Offset is relative to central pixel
+	// Offset is relative to central pixel of source window
 	const std::array<std::vector<int>, 8> SrcPixelsOffset;
-	// Offset is relative to top left pixel
+	// Offset is relative to top left pixel of filter window
 	const std::array<std::vector<int>, 8>  FltPixelsOffset;
 	// Number of pixels processed with batchProcess() function
 	const int BatchProcessSize;
@@ -94,7 +96,7 @@ private:
 
 	// Process group of result pixels.
 	// For whole windows parameter must be set to -1.
-	// Process convolution for multiple result pixels ( number of pixels is defined by 'BatchProcessSize' member ).
+	// Process convolution for multiple result pixels ( number of pixels is defined by 'FastBatchProcessSize' member ).
 	void batchProcessLoop( int& rx, int rxEnd, const float*& srcPtr, float*& dstPtr, int windowIndex = -1 );
 	void singleProcessLoop( int& rx, int rxEnd, const float*& srcPtr, float*& dstPtr, int windowIndex = -1 );
 
@@ -106,11 +108,13 @@ private:
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0 );
 
 	
-	// Process convolution for multiple result pixels ( number of pixels is defined by 'BatchProcessSize' member ).
+	// Process convolution for multiple result pixels ( number of pixels is defined by 'FastBatchProcessSize' member ).
 	void batchProcess( const float* srcPtr, float* dstPtr, int windowIndex = -1 );
+	void batchProcessSlow( const float* srcPtr, float* dstPtr, int windowIndex = -1 );
 	// Process convolution for single result pixel.
 	void singleProcess( const float* srcPtr, float* dstPtr, int windowIndex = -1 );
 
+	// Rearrange filter and fill 'Filter' and 'FreeTerm' members.
 	const float* rearrangeFileter( const float* filterData );
 	const float* rearrangeFreeTerm( const float* freeTermData );
 	const std::array<std::vector<int>, 8> fillSrcPixelOffset();
@@ -118,6 +122,7 @@ private:
 
 	// Circular rotation of three ymm registers to the left, step equals to six floats.
 	static void RotateLeft6( __m256& y0, __m256& y1, __m256& y2 );
+	// Circular rotation of three ymm registers to the left, step equals to two floats.
 	static void RotateLeft2( __m256& y );
 
 };
@@ -132,6 +137,8 @@ public:
 		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData );
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FC, int C, int FH, int FW )
 {
 	if( FC * C * FH * FW > 
@@ -139,7 +146,7 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FC, int C, int FH, 
 		return false;
 	}
 
-	if( ( FC == 24 && C % 8 == 0  ) ||
+	if( FC == 24 ||
 		FC == 18 ||
 		FC == 6 ) {
 		return true;
@@ -177,6 +184,8 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<int FC>
 CBlobConvolution<FC>::CBlobConvolution( int channelCount, int filterHeight, int filterWidth, 
 	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
@@ -198,10 +207,10 @@ CBlobConvolution<FC>::CBlobConvolution( int channelCount, int filterHeight, int 
 	freeTerm( rearrangeFreeTerm( freeTermData ) ),
 	dst( resultData ),
 	SrcXStep( SW * C ),
-	SrcLineStride( SrcW* C ),
+	SrcLineStride( SrcW * C ),
 	SrcXDilation( DW * C ),
 	SrcYDilation( DH * SrcLineStride ),
-	SrcXWindowSize( FW* SrcXDilation ),
+	SrcXWindowSize( FW * SrcXDilation ),
 	SrcPixelsOffset( fillSrcPixelOffset() ),
 	FltPixelsOffset( fillFltPixelOffset() ),
 	BatchProcessSize( getBatchProcessSize() )
