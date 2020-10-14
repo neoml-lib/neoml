@@ -132,7 +132,7 @@ namespace {
 	{
 		auto value = ArgValue( argc, argv, Arg<char>::TestDataPath );
 		if( value ) {
-			testDir = CString( value, CP_UTF8 );
+			testDir = FObj::CString( value, FObj::CP_UTF8 );
 		}
 	}
 
@@ -248,9 +248,9 @@ static CString mergePathSimple( const CString& dir, const CString& relativePath 
 	switch( separatorsCount ) {
 		case 0:
 			#if FINE_PLATFORM( FINE_WINDOWS )
-				result = dir + '\\' + relativePath;
+				result = dir + "\\" + relativePath;
 			#elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_IOS ) || FINE_PLATFORM( FINE_DARWIN )
-				result = dir + '/' + relativePath;
+				result = dir + "/" + relativePath;
 			#else
 				#error Unknown platform
 			#endif
