@@ -16,20 +16,20 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
+#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_ANDROID )
 #include <cpuid.h>
 #endif
 #if FINE_PLATFORM( FINE_WINDOWS )
 #include <intrin.h>
 #endif
 
-#include <AvxDll.h>
+#include <NeoMathEngineAvxDll.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
 
 namespace NeoML {
 
-CAvxDll::CAvxDll() : isLoaded( false ), functionAdresses{}
+CNeoMathEngineAvxDll::CNeoMathEngineAvxDll() : isLoaded( false ), functionAdresses{}
 {
 	if( !isAvxAvailable() || !Load( libName ) ) {
 		return;
@@ -41,13 +41,13 @@ CAvxDll::CAvxDll() : isLoaded( false ), functionAdresses{}
 	isLoaded = true;
 }
 
-CAvxDll& CAvxDll::GetInstance()
+CNeoMathEngineAvxDll& CNeoMathEngineAvxDll::GetInstance()
 {
-	static CAvxDll instance;
+	static CNeoMathEngineAvxDll instance;
 	return instance;
 }
 
-void CAvxDll::loadFunction( TFunctionPointers functionType, const char* functionName )
+void CNeoMathEngineAvxDll::loadFunction( TFunctionPointers functionType, const char* functionName )
 {
 	void* functionAdress = reinterpret_cast<void*>( GetProcAddress( functionName ) );
 	ASSERT_EXPR( functionAdress != nullptr );
@@ -55,14 +55,14 @@ void CAvxDll::loadFunction( TFunctionPointers functionType, const char* function
 	functionAdresses[static_cast<size_t>(functionType)] = functionAdress;
 }
 
-bool CAvxDll::IsBlobConvolutionAvailable( const CCommonConvolutionDesc& desc ) const
+bool CNeoMathEngineAvxDll::IsBlobConvolutionAvailable( const CCommonConvolutionDesc& desc ) const
 {
 	typedef bool ( *FuncType )( int filterCount, int channelCount, int filterHeight, int filterWidth );
 	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::IsBlobConvolutionAvailable ) ) );
 	return isLoaded && func( desc.Filter.BatchWidth(), desc.Filter.Channels(), desc.Filter.Height(), desc.Filter.Width() );
 }
 
-void CAvxDll::ProcessBlobConvolution( int threadCount, const CCommonConvolutionDesc& desc, const float* sourceData,
+void CNeoMathEngineAvxDll::ProcessBlobConvolution( int threadCount, const CCommonConvolutionDesc& desc, const float* sourceData,
 	const float* filterData, const float* freeTermData, float* resultData ) const
 {
 	typedef bool ( *FuncType )( int filterCount, int channelCount, int filterHeight, int filterWidth, int threadCount,
@@ -81,7 +81,7 @@ void CAvxDll::ProcessBlobConvolution( int threadCount, const CCommonConvolutionD
 		sourceData, filterData, freeTermData, resultData ) );
 }
 
-bool CAvxDll::isAvxAvailable()
+bool CNeoMathEngineAvxDll::isAvxAvailable()
 {
 	// Check for AVX
 	#if FINE_PLATFORM(FINE_WINDOWS)

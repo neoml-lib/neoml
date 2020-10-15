@@ -15,6 +15,11 @@ limitations under the License.
 
 // CBlobConvolution class specializations
 
+#if !defined( _mm256_set_m128 )
+// This instruction is defined since 8 gcc in avxintrin.h
+#define _mm256_set_m128( hi, lo) _mm256_insertf128_ps( _mm256_castps128_ps256( lo ), ( hi ), 0x1 )
+#endif
+
 namespace NeoML {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

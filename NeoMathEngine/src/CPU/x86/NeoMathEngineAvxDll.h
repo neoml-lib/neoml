@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#if !FINE_PLATFORM( FINE_IOS )
+
 #include <array>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineDnnConv.h>
@@ -23,14 +25,14 @@ limitations under the License.
 namespace NeoML {
 
 // Class support dynamic library which is compiled with AVX for performance increasing.
-class CAvxDll : public CDll {
+class CNeoMathEngineAvxDll : public CDll {
 public:
-	CAvxDll( const CAvxDll& ) = delete;
-	CAvxDll& operator=( const CAvxDll& ) = delete;
-	CAvxDll( CAvxDll&& ) = delete;
-	CAvxDll& operator=( CAvxDll&& ) = delete;
+	CNeoMathEngineAvxDll( const CNeoMathEngineAvxDll& ) = delete;
+	CNeoMathEngineAvxDll& operator=( const CNeoMathEngineAvxDll& ) = delete;
+	CNeoMathEngineAvxDll( CNeoMathEngineAvxDll&& ) = delete;
+	CNeoMathEngineAvxDll& operator=( CNeoMathEngineAvxDll&& ) = delete;
 
-	static CAvxDll& GetInstance();
+	static CNeoMathEngineAvxDll& GetInstance();
 
 	bool IsBlobConvolutionAvailable( const CCommonConvolutionDesc& desc ) const;
 	void ProcessBlobConvolution( int threadNum, const CCommonConvolutionDesc& desc, const float* sourceData,
@@ -45,7 +47,7 @@ private:
 	};
 #if FINE_PLATFORM( FINE_WINDOWS )
 	constexpr static char const* libName = "NeoMathEngineAvx.dll";
-#elif FINE_PLATFORM( FINE_LINUX )
+#elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_ANDROID )
 	constexpr static char const* libName = "libNeoMathEngineAvx.so";
 #elif FINE_PLATFORM( FINE_DARWIN )
 	constexpr static char const* libName = "libNeoMathEngineAvx.dylib";
@@ -56,10 +58,12 @@ private:
 	bool isLoaded;
 	std::array<void*, static_cast<size_t>( TFunctionPointers::Count )> functionAdresses;
 
-	CAvxDll();
-	~CAvxDll() = default;
+	CNeoMathEngineAvxDll();
+	~CNeoMathEngineAvxDll() = default;
 
 	void loadFunction( TFunctionPointers functionType, const char* functionName );
 	static bool isAvxAvailable();
 };
 }
+
+#endif // !FINE_PLATFORM( FINE_IOS )

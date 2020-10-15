@@ -37,9 +37,9 @@ link_openmp()
 
 # AVX
 if(WIN32)
-    target_compile_options(${PROJECT_NAME} PRIVATE /arch:AVX)
-elseif(LINUX OR DARWIN )
-    target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-mavx -mfma>)
+	target_compile_options(${PROJECT_NAME} PRIVATE /arch:AVX)
+elseif(LINUX OR DARWIN OR (ANDROID AND ANDROID_ABI MATCHES "^x86.*"))
+	target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-mavx -mfma>)
 endif()
 
 # Install
