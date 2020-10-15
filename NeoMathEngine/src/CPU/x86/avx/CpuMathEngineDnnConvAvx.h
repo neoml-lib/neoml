@@ -43,6 +43,10 @@ public:
 	void ProcessConvolution( int threadCount ) override;
 
 private:
+	struct CSize {
+		int Height;
+		int Width;
+	};
 	const int C;
 	const int FH;
 	const int FW;
@@ -60,16 +64,18 @@ private:
 	const float* const freeTerm;
 	float* const dst;
 
-	// Distance in floats between two neighbor pixels in source.
-	const int SrcXStep;
 	// Length of one source line.
 	const int SrcLineStride;
+	// Distance in floats between two neighbor pixels in source.
+	const int SrcXStep;
+	const int SrcYStep;
 	// Distance in floats between two neighbor pixels in window by horizontal.
 	const int SrcXDilation;
 	// Distance in floats between two neighbor pixels in window by horizontal.
 	const int SrcYDilation;
 	// Width of source window in floats
 	const int SrcXWindowSize;
+	const int DstLineStride;
 	
 	// For some cases we will use FC, rounded up to nearest integer multiple of 8
 	static constexpr int FCm8 = ( FC + 8 - 1 ) / 8 * 8;
@@ -89,16 +95,20 @@ private:
 	const std::array<std::vector<int>, 8> SrcPixelsOffset;
 	// Offset is relative to top left pixel of filter window
 	const std::array<std::vector<int>, 8>  FltPixelsOffset;
-	// Number of pixels processed with batchProcess() function
-	const int BatchProcessSize;
+	// In some cases when the width of the image is nearly equals to the width of optimized batch processing window,
+	// we may faced to situation ( when dilation is higth ) when no one optimized batch ptocessing can be
+	// applied. For such cases we will use optimized batch processing with narrower window but height greater then one.
+	const CSize NarrowBatchProcessSize;
+	const CSize WideBatchProcessSize;
+	// We will set this member for narrow batch processing in order to step between neighbor source windows.
+	int srcNarrowStep;
+	
+	// Initialize NarrowBatchProcessSize and WideBatchProcessSize
+	CSize getNarrowBatchProcessSize();
+	CSize getWideBatchProcessSize();
 
-	int getBatchProcessSize();
-
-	// Process group of result pixels.
-	// For whole windows parameter must be set to -1.
-	// Process convolution for multiple result pixels ( number of pixels is defined by 'FastBatchProcessSize' member ).
-	void batchProcessLoop( int& rx, int rxEnd, const float*& srcPtr, float*& dstPtr, int windowIndex = -1 );
-	void singleProcessLoop( int& rx, int rxEnd, const float*& srcPtr, float*& dstPtr, int windowIndex = -1 );
+	// Process one line of image. In case of narrow processing we will step through several lines.
+	void processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& dstPtr, int windowIndex = -1 );
 
 	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
 		__m256& r00, __m256& r01, __m256& r02,
@@ -109,10 +119,10 @@ private:
 
 	
 	// Process convolution for multiple result pixels ( number of pixels is defined by 'FastBatchProcessSize' member ).
-	void batchProcess( const float* srcPtr, float* dstPtr, int windowIndex = -1 );
-	void batchProcessSlow( const float* srcPtr, float* dstPtr, int windowIndex = -1 );
+	void batchProcess( const float* srcPtr, float* dstPtr, int windowIndex, bool useNarrowProcessing );
 	// Process convolution for single result pixel.
-	void singleProcess( const float* srcPtr, float* dstPtr, int windowIndex = -1 );
+	void singleProcess( const float* srcPtr, float* dstPtr, int windowIndex );
+	void singleProcessNarrow( const float* srcPtr, float* dstPtr, int windowIndex );
 
 	// Rearrange filter and fill 'Filter' and 'FreeTerm' members.
 	const float* rearrangeFileter( const float* filterData );
@@ -206,14 +216,18 @@ CBlobConvolution<FC>::CBlobConvolution( int channelCount, int filterHeight, int 
 	flt( rearrangeFileter( filterData ) ),
 	freeTerm( rearrangeFreeTerm( freeTermData ) ),
 	dst( resultData ),
-	SrcXStep( SW * C ),
 	SrcLineStride( SrcW * C ),
+	SrcXStep( SW * C ),
+	SrcYStep( SH * SrcLineStride ),
 	SrcXDilation( DW * C ),
 	SrcYDilation( DH * SrcLineStride ),
 	SrcXWindowSize( FW * SrcXDilation ),
+	DstLineStride( RW * FC ),
 	SrcPixelsOffset( fillSrcPixelOffset() ),
 	FltPixelsOffset( fillFltPixelOffset() ),
-	BatchProcessSize( getBatchProcessSize() )
+	NarrowBatchProcessSize( getNarrowBatchProcessSize() ),
+	WideBatchProcessSize( getWideBatchProcessSize() ),
+	srcNarrowStep( 0 )
 {
 
 }
@@ -228,6 +242,7 @@ void CBlobConvolution<FC>::ProcessConvolution( int threadCount )
 	const int PartialStepCountAfterX = static_cast<const int>( std::ceil( ( SW * ( std::ceil( static_cast<float>( SrcW ) / SW ) - 1 ) - SrcW + DW + 1 ) / SW ) );
 	const int PartialStepCountBeforeY = static_cast<const int>( std::ceil( static_cast<float>( DH ) / SH ) );
 	const int PartialStepCountAfterY = static_cast<const int>( std::ceil( ( SH * ( std::ceil( static_cast<float>( SrcH ) / SH ) - 1 ) - SrcH + DH + 1 ) / SH ) );
+	const int CentralPartWidth = RW - PartialStepCountBeforeX - PartialStepCountAfterX;
 
 	const int SrcYStep = SH * SrcLineStride;
 	const int DstYDilation = RW * FC;
@@ -244,66 +259,87 @@ void CBlobConvolution<FC>::ProcessConvolution( int threadCount )
 			const int currentRH = min( RH, yStart + yCount );
 			int ry = yStart;
 
-
-			for( ; ry < min( PartialStepCountBeforeY, currentRH ); ry++ ) {
+			int ryEnd = min( PartialStepCountBeforeY, currentRH );
+			while( ry < ryEnd ) {
 				// Top part of image
 				const float* srcPtr = src + ry * SrcYStep;
-				int rx = 0;
+				bool useNarrowProcessing = ( ryEnd ) - ry >= NarrowBatchProcessSize.Height;
 
-				singleProcessLoop( rx, PartialStepCountBeforeX, srcPtr, dstPtr, 0 );
-				batchProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr, 1 );
-				singleProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr, 1 );
-				singleProcessLoop( rx, RW, srcPtr, dstPtr, 2 );
+				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, dstPtr, 0 );
+				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, dstPtr, 1 );
+				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, dstPtr, 2 );
+				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 			}
 
-			for( ; ry < min( RH - PartialStepCountAfterY, currentRH ); ry++ ) {
+
+			ryEnd = min( RH - PartialStepCountAfterY, currentRH );
+			while( ry < ryEnd ) {
 				// Middle part of image
 				const float* srcPtr = src + ry * SrcYStep;
-				int rx = 0;
+				bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
 
-				singleProcessLoop( rx, PartialStepCountBeforeX, srcPtr, dstPtr, 7 );
+				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, dstPtr, 7 );
 
 				// Move to the top left pixel of window from central one
 				srcPtr -= ( SrcYDilation + SrcXDilation );
-				batchProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr );
-				singleProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr );
+				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, dstPtr );
 
 				// Move back to the central pixel again
 				srcPtr += ( SrcYDilation + SrcXDilation );
-				singleProcessLoop( rx, RW, srcPtr, dstPtr, 3 );
+				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, dstPtr, 3 );
+				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 			}
-
-			for( ; ry < min( RH, currentRH ); ry++ ) {
+			
+			ryEnd = min( RH, currentRH );
+			while( ry < ryEnd ) {
 				// Bottom part of image
 				const float* srcPtr = src + ry * SrcYStep;
-				int rx = 0;
+				bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
 
-				singleProcessLoop( rx, PartialStepCountBeforeX, srcPtr, dstPtr, 6 );
-				batchProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr, 5 );
-				singleProcessLoop( rx, RW - PartialStepCountAfterX, srcPtr, dstPtr, 5 );
-				singleProcessLoop( rx, RW, srcPtr, dstPtr, 4 );
+				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, dstPtr, 6 );
+				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, dstPtr, 5 );
+				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, dstPtr, 4 );
+				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 			}
 		}
 	}
 }
 
 template<int FC>
-inline void CBlobConvolution<FC>::batchProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr, int windowIndex )
+inline typename CBlobConvolution<FC>::CSize CBlobConvolution<FC>::getNarrowBatchProcessSize()
 {
-	for( ; rx <= rxEnd - BatchProcessSize; rx += BatchProcessSize ) {
-		batchProcess( srcPtr, dstPtr, windowIndex );
-		srcPtr += BatchProcessSize * SrcXStep;
-		dstPtr += BatchProcessSize * FC;
-	}
+	// Disable narrow processing by default
+	return { INT_MAX, INT_MAX };
 }
 
 template<int FC>
-inline void CBlobConvolution<FC>::singleProcessLoop( int& rx, int rxEnd, const float* &srcPtr, float* &dstPtr, int windowIndex )
+inline void CBlobConvolution<FC>::singleProcessNarrow( const float*, float*,  int )
 {
-	for( ; rx < rxEnd; rx++ ) {
-		singleProcess( srcPtr, dstPtr, windowIndex );
-		srcPtr += SrcXStep;
-		dstPtr += FC;
+	// dummy function
+}
+
+template<int FC>
+inline void CBlobConvolution<FC>::processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& dstPtr, int windowIndex )
+{
+	const int batchStep = useNarrowProcessing ? NarrowBatchProcessSize.Width : WideBatchProcessSize.Width;
+	for( ; rxSize >= batchStep; rxSize -= batchStep ) {
+		batchProcess( srcPtr, dstPtr, windowIndex, useNarrowProcessing );
+		srcPtr += batchStep * SrcXStep;
+		dstPtr += batchStep * FC;
+	}
+
+	if( useNarrowProcessing ) {
+		for( ; rxSize > 0; rxSize-- ) {
+			singleProcessNarrow( srcPtr, dstPtr, windowIndex );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
+		}
+	} else {
+		for( ; rxSize > 0; rxSize-- ) {
+			singleProcess( srcPtr, dstPtr, windowIndex );
+			srcPtr += SrcXStep;
+			dstPtr += FC;
+		}
 	}
 }
 
