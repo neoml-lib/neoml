@@ -85,13 +85,26 @@ inline void CBlobConvolution<24>::singleProcessChannels( const float* srcPtr, co
 		fltPtr += FCm8;
 	};
 
-	for( int c = 0; c < C; c += 4 ) {
-		__m128 s = _mm_loadu_ps( srcPtr + c );
+	int c = C;
+	for( ; c >= 4; c -= 4 ) {
+		__m128 s = _mm_loadu_ps( srcPtr );
 		// Load four channels and fill __m256 register four times with each of channel.
 		ProcessNext( _mm_permute_ps( s, 0x00 ) );
 		ProcessNext( _mm_permute_ps( s, 0x55 ) );
 		ProcessNext( _mm_permute_ps( s, 0xaa ) );
 		ProcessNext( _mm_permute_ps( s, 0xff ) );
+		srcPtr += 4;
+	}
+	if( c != 0 ) {
+		// Process remaining channels
+		__m128 s = _mm_loadu_ps( srcPtr );
+		ProcessNext( _mm_permute_ps( s, 0x00 ) );
+		if( c > 1 ) {
+			ProcessNext( _mm_permute_ps( s, 0x55 ) );
+		}
+		if( c > 2 ) {
+			ProcessNext( _mm_permute_ps( s, 0xaa ) );
+		}
 	}
 }
 
@@ -262,31 +275,24 @@ inline void CBlobConvolution<18>::singleProcessChannels( const float* srcPtr, co
 		fltPtr += FCm8;
 	};
 
-	const int Cm4 = C / 4 * 4;
-	int c = 0;
-	for( ; c < Cm4; c += 4 ) {
-		__m128 s = _mm_loadu_ps( srcPtr + c );
+	int c = C;
+	for( ; c >= 4; c -= 4 ) {
+		__m128 s = _mm_loadu_ps( srcPtr );
 		ProcessNext( _mm_permute_ps( s, 0x00 ) );
 		ProcessNext( _mm_permute_ps( s, 0x55 ) );
 		ProcessNext( _mm_permute_ps( s, 0xaa ) );
 		ProcessNext( _mm_permute_ps( s, 0xff ) );
+		srcPtr += 4;
 	}
-	if( Cm4 != C ) {
+	if( c != 0 ) {
 		// Process remaining channels
-		__m128 s = _mm_loadu_ps( srcPtr + c );
-		switch( C - Cm4 ) {
-			case 3:
+		__m128 s = _mm_loadu_ps( srcPtr );
 				ProcessNext( _mm_permute_ps( s, 0x00 ) );
-				ProcessNext( _mm_permute_ps( s, 0x55 ) );
-				ProcessNext( _mm_permute_ps( s, 0xaa ) );
-				break;
-			case 2:
-				ProcessNext( _mm_permute_ps( s, 0x00 ) );
-				ProcessNext( _mm_permute_ps( s, 0x55 ) );
-				break;
-			case 1:
-				ProcessNext( _mm_permute_ps( s, 0x00 ) );
-				break;
+		if( c > 1 ) {
+			ProcessNext( _mm_permute_ps( s, 0x55 ) );
+		}
+		if( c > 2 ) {
+			ProcessNext( _mm_permute_ps( s, 0xaa ) );
 		}
 	}
 }
@@ -395,7 +401,7 @@ inline CBlobConvolution<6>::CSize CBlobConvolution<6>::getWideBatchProcessSize()
 }
 
 template<>
-inline void CBlobConvolution<6>::batchProcessChannels( const float* srcPtr, const float* fltPtr,
+inline void CBlobConvolution<6>::batchProcessChannels( const float* srcPtr, const float* fltPtr,  int srcNarrowStep,
 	__m256& r0, __m256& r1, __m256& r2,
 	__m256& r3, __m256& r4, __m256& r5,
 	__m256& r6, __m256& r7, __m256& r8 )
@@ -503,36 +509,25 @@ inline void CBlobConvolution<6>::singleProcessChannels( const float* srcPtr, con
 		fltPtr += FCm8;
 	};
 
-	const int Cm4 = C / 4 * 4;
-	int c = 0;
-	for( ; c < Cm4; c += 4 ) {
-		__m128 s = _mm_loadu_ps( srcPtr + c );
+	int c = C;
+	for( ; c >= 4; c -= 4 ) {
+		__m128 s = _mm_loadu_ps( srcPtr );
 		ProcessNext( _mm_permute_ps( s, 0x00 ) );
 		ProcessNext( _mm_permute_ps( s, 0x55 ) );
 		ProcessNext( _mm_permute_ps( s, 0xaa ) );
 		ProcessNext( _mm_permute_ps( s, 0xff ) );
+		srcPtr += 4;
 	}
-	if( Cm4 != C ) {
-		__m128 s = _mm_loadu_ps( srcPtr + c );
-		switch( C - Cm4 ) {
-			case 3:
+	if( c != 0 ) {
+		__m128 s = _mm_loadu_ps( srcPtr );
 				ProcessNext( _mm_permute_ps( s, 0x00 ) );
-				ProcessNext( _mm_permute_ps( s, 0x55 ) );
-				ProcessNext( _mm_permute_ps( s, 0xaa ) );
-				break;
-			case 2:
-				ProcessNext( _mm_permute_ps( s, 0x00 ) );
-				ProcessNext( _mm_permute_ps( s, 0x55 ) );
-				break;
-			case 1:
-				ProcessNext( _mm_permute_ps( s, 0x00 ) );
-				break;
-		}
+		if( c > 1 ) ProcessNext( _mm_permute_ps( s, 0x55 ) );
+		if( c > 2 )	ProcessNext( _mm_permute_ps( s, 0xaa ) );
 	}
 }
 
 template<>
-inline void CBlobConvolution<6>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
+inline void CBlobConvolution<6>::singleProcessChannelsNarrow( const float* srcPtr, const float* fltPtr,
 	__m256& r0, __m256& r1, __m256& r2 )
 {
 	// Process thee source windows one below another.
@@ -551,34 +546,27 @@ inline void CBlobConvolution<6>::singleProcessChannels( const float* srcPtr, con
 		fltPtr += FCm8;
 	};
 
-	const int Cm4 = C / 4 * 4;
-	int c = 0;
-	for( ; c < Cm4; c += 4 ) {
-		__m128 s0 = _mm_loadu_ps( srcPtr + c );
-		__m128 s1 = _mm_loadu_ps( srcPtr + SrcYStep + c );
-		__m128 s2 = _mm_loadu_ps( srcPtr + 2 * SrcYStep + c );
+	int c = C;
+	for( ; c >= 4; c -= 4 ) {
+		__m128 s0 = _mm_loadu_ps( srcPtr );
+		__m128 s1 = _mm_loadu_ps( srcPtr + SrcYStep );
+		__m128 s2 = _mm_loadu_ps( srcPtr + 2 * SrcYStep );
+		srcPtr += 4;
 		ProcessNext( _mm_permute_ps( s0, 0x00 ), _mm_permute_ps( s1, 0x00 ), _mm_permute_ps( s2, 0x00 ) );
 		ProcessNext( _mm_permute_ps( s0, 0x55 ), _mm_permute_ps( s1, 0x55 ), _mm_permute_ps( s2, 0x55 ) );
 		ProcessNext( _mm_permute_ps( s0, 0xaa ), _mm_permute_ps( s1, 0xaa ), _mm_permute_ps( s2, 0xaa ) );
 		ProcessNext( _mm_permute_ps( s0, 0xff ), _mm_permute_ps( s1, 0xff ), _mm_permute_ps( s2, 0xff ) );
 	}
-	if( Cm4 != C ) {
-		__m128 s0 = _mm_loadu_ps( srcPtr + c );
-		__m128 s1 = _mm_loadu_ps( srcPtr + SrcYStep + c );
-		__m128 s2 = _mm_loadu_ps( srcPtr + 2 * SrcYStep + c );
-		switch( C - Cm4 ) {
-			case 3:
+	if( c != 0 ) {
+		__m128 s0 = _mm_loadu_ps( srcPtr );
+		__m128 s1 = _mm_loadu_ps( srcPtr + SrcYStep );
+		__m128 s2 = _mm_loadu_ps( srcPtr + 2 * SrcYStep );
 				ProcessNext( _mm_permute_ps( s0, 0x00 ), _mm_permute_ps( s1, 0x00 ), _mm_permute_ps( s2, 0x00 ) );
+		if( c > 1 ) {
 				ProcessNext( _mm_permute_ps( s0, 0x55 ), _mm_permute_ps( s1, 0x55 ), _mm_permute_ps( s2, 0x55 ) );
+		}
+		if( c > 2 ) {
 				ProcessNext( _mm_permute_ps( s0, 0xaa ), _mm_permute_ps( s1, 0xaa ), _mm_permute_ps( s2, 0xaa ) );
-				break;
-			case 2:
-				ProcessNext( _mm_permute_ps( s0, 0x00 ), _mm_permute_ps( s1, 0x00 ), _mm_permute_ps( s2, 0x00 ) );
-				ProcessNext( _mm_permute_ps( s0, 0x55 ), _mm_permute_ps( s1, 0x55 ), _mm_permute_ps( s2, 0x55 ) );
-				break;
-			case 1:
-				ProcessNext( _mm_permute_ps( s0, 0x00 ), _mm_permute_ps( s1, 0x00 ), _mm_permute_ps( s2, 0x00 ) );
-				break;
 		}
 	}
 }
@@ -586,7 +574,9 @@ inline void CBlobConvolution<6>::singleProcessChannels( const float* srcPtr, con
 template<>
 inline void CBlobConvolution<6>::batchProcess( const float* srcPtr, float* dstPtr, int windowIndex, bool useNarrowProcessing )
 {
-	srcNarrowStep = useNarrowProcessing ? SrcYStep : 4 * SrcXStep;
+	// We will set this member for narrow batch processing in order to step between neighbor source windows.
+	const int srcNarrowStep = useNarrowProcessing ? SrcYStep : 4 * SrcXStep;
+	const int dstNarraowStep = useNarrowProcessing ? DstLineStride : 24;
 	__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 
 	// Initialize result pixels with freeterm.
@@ -606,7 +596,7 @@ inline void CBlobConvolution<6>::batchProcess( const float* srcPtr, float* dstPt
 		const float* fltPtr = flt;
 		for( int fy = 0; fy < FH; fy++ ) {
 			for( int fx = 0; fx < FW; fx++ ) {
-				batchProcessChannels( srcPtr, fltPtr, r0, r1, r2, r3, r4, r5, r6, r7, r8 );
+				batchProcessChannels( srcPtr, fltPtr, srcNarrowStep, r0, r1, r2, r3, r4, r5, r6, r7, r8 );
 				// Move to next pixel in source image on the SAME line
 				srcPtr += SrcXDilation;
 				fltPtr += C * FCm8;
@@ -618,7 +608,7 @@ inline void CBlobConvolution<6>::batchProcess( const float* srcPtr, float* dstPt
 		auto srcIt = SrcPixelsOffset[windowIndex].cbegin();
 		auto fltIt = FltPixelsOffset[windowIndex].cbegin();
 		for( ; srcIt != SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
-			batchProcessChannels( srcPtr + *srcIt, flt + *fltIt, r0, r1, r2, r3, r4, r5, r6, r7, r8 );
+			batchProcessChannels( srcPtr + *srcIt, flt + *fltIt, srcNarrowStep, r0, r1, r2, r3, r4, r5, r6, r7, r8 );
 		}
 	}
 
@@ -626,12 +616,12 @@ inline void CBlobConvolution<6>::batchProcess( const float* srcPtr, float* dstPt
 	_mm256_storeu_ps( dstPtr, r0 );
 	_mm256_storeu_ps( dstPtr + 8, r1 );
 	_mm256_storeu_ps( dstPtr + 16, r2 );
-	_mm256_storeu_ps( dstPtr + 24, r3 );
-	_mm256_storeu_ps( dstPtr + 32, r4 );
-	_mm256_storeu_ps( dstPtr + 40, r5 );
-	_mm256_storeu_ps( dstPtr + 48, r6 );
-	_mm256_storeu_ps( dstPtr + 56, r7 );
-	_mm256_storeu_ps( dstPtr + 64, r8 );
+	_mm256_storeu_ps( dstPtr + dstNarraowStep, r3 );
+	_mm256_storeu_ps( dstPtr + dstNarraowStep + 8, r4 );
+	_mm256_storeu_ps( dstPtr + dstNarraowStep + 16, r5 );
+	_mm256_storeu_ps( dstPtr + 2 * dstNarraowStep, r6 );
+	_mm256_storeu_ps( dstPtr + 2 * dstNarraowStep + 8, r7 );
+	_mm256_storeu_ps( dstPtr + 2 * dstNarraowStep + 16, r8 );
 }
 
 template<>
@@ -677,7 +667,7 @@ inline void CBlobConvolution<6>::singleProcessNarrow( const float* srcPtr, float
 		const float* fltPtr = flt;
 		for( int fy = 0; fy < FH; fy++ ) {
 			for( int fx = 0; fx < FW; fx++ ) {
-				singleProcessChannels( srcPtr, fltPtr, r0, r1, r2 );
+				singleProcessChannelsNarrow( srcPtr, fltPtr, r0, r1, r2 );
 				// Move to next pixel in source image on the SAME line
 				srcPtr += SrcXDilation;
 				fltPtr += C * FCm8;
@@ -689,7 +679,7 @@ inline void CBlobConvolution<6>::singleProcessNarrow( const float* srcPtr, float
 		auto srcIt = SrcPixelsOffset[windowIndex].cbegin();
 		auto fltIt = FltPixelsOffset[windowIndex].cbegin();
 		for( ; srcIt != SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
-			singleProcessChannels( srcPtr + *srcIt, flt + *fltIt, r0, r1, r2 );
+			singleProcessChannelsNarrow( srcPtr + *srcIt, flt + *fltIt, r0, r1, r2 );
 		}
 	}
 
