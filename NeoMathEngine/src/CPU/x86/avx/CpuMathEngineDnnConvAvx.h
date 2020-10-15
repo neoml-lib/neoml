@@ -1,4 +1,4 @@
-/* Copyright ï¿½ 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@ limitations under the License.
 
 #include <array>
 #include <vector>
+#include <climits>
 
 namespace NeoML {
 
@@ -76,7 +77,7 @@ private:
 	// Width of source window in floats
 	const int SrcXWindowSize;
 	const int DstLineStride;
-	
+
 	// For some cases we will use FC, rounded up to nearest integer multiple of 8
 	static constexpr int FCm8 = ( FC + 8 - 1 ) / 8 * 8;
 	// Filter should be alligned to 16 bytes
@@ -102,7 +103,7 @@ private:
 	const CSize WideBatchProcessSize;
 	// We will set this member for narrow batch processing in order to step between neighbor source windows.
 	int srcNarrowStep;
-	
+
 	// Initialize NarrowBatchProcessSize and WideBatchProcessSize
 	CSize getNarrowBatchProcessSize();
 	CSize getWideBatchProcessSize();
@@ -117,7 +118,7 @@ private:
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0 );
 
-	
+
 	// Process convolution for multiple result pixels ( number of pixels is defined by 'FastBatchProcessSize' member ).
 	void batchProcess( const float* srcPtr, float* dstPtr, int windowIndex, bool useNarrowProcessing );
 	// Process convolution for single result pixel.
@@ -151,7 +152,7 @@ public:
 
 bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FC, int C, int FH, int FW )
 {
-	if( FC * C * FH * FW > 
+	if( FC * C * FH * FW >
 		CBlobConvolutionBase::FCmax * CBlobConvolutionBase::Cmax * CBlobConvolutionBase::FHmax * CBlobConvolutionBase::FWmax ) {
 		return false;
 	}
@@ -165,7 +166,7 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FC, int C, int FH, 
 }
 
 std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance( int FC,
-	int channelCount, int filterHeight, int filterWidth, 
+	int channelCount, int filterHeight, int filterWidth,
 	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
@@ -197,7 +198,7 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<int FC>
-CBlobConvolution<FC>::CBlobConvolution( int channelCount, int filterHeight, int filterWidth, 
+CBlobConvolution<FC>::CBlobConvolution( int channelCount, int filterHeight, int filterWidth,
 	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) :
@@ -289,7 +290,7 @@ void CBlobConvolution<FC>::ProcessConvolution( int threadCount )
 				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, dstPtr, 3 );
 				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 			}
-			
+
 			ryEnd = min( RH, currentRH );
 			while( ry < ryEnd ) {
 				// Bottom part of image
