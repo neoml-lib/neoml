@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <memory>
 
 namespace NeoML {
 
@@ -37,7 +38,8 @@ CBaseLayer::CBaseLayer( IMathEngine& _mathEngine, const char* _name, bool _isLea
 	forcedReshape( true ),
 	isReshapeNeeded( true ),
 	lastRunNumber( 0 ),
-	graphCount( 0 )
+	graphCount( 0 ),
+	runOnceTime( 0 )
 {
 }
 
@@ -347,8 +349,21 @@ void CBaseLayer::reshape()
 
 	inputBlobs.SetSize( inputs.Size() );
 	outputBlobs.SetSize( outputs.Size() );
+
+	runOnceTime = 0;
 }
 
+class CRunOnceTimer {
+public:
+	CRunOnceTimer( IMathEngine& mathEngine, IPerformanceCounters::CCounter::TCounterType& result ) :
+		counters( mathEngine.CreatePerformanceCounters() ), result( result ) { counters->Synchronise(); }
+	~CRunOnceTimer() { counters->Synchronise(); result += ( *counters )[0].Value; }
+
+private:
+	std::unique_ptr<IPerformanceCounters> counters;
+	IPerformanceCounters::CCounter::TCounterType& result;
+};
+	
 // Calls RunOnce for the layer, then recursively for its inputs
 void CBaseLayer::runOnce()
 {
@@ -399,6 +414,7 @@ void CBaseLayer::runOnce()
 	}
 
 	{
+		CRunOnceTimer timer( MathEngine(), runOnceTime );
 		RunOnce();
 	}
 

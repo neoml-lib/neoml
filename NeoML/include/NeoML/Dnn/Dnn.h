@@ -171,6 +171,8 @@ public:
 	// Returns the total size of trainable parameters of its internal layers, if layer is composite or recurrent
 	virtual size_t GetTrainableParametersSize() const;
 
+	IPerformanceCounters::CCounter::TCounterType GetRunOnceTime() const { return runOnceTime; }
+
 protected:
 	// A virtual method that creates output blobs using the input blobs
 	virtual void Reshape() = 0;
@@ -316,6 +318,8 @@ private:
 
 	// The number of graphs with which the layer is connected
 	int graphCount;
+
+	IPerformanceCounters::CCounter::TCounterType runOnceTime;
 
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
