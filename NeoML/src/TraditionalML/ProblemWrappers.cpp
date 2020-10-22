@@ -40,6 +40,10 @@ IDataAccumulator::~IDataAccumulator()
 {
 }
 
+ISubProblem::~ISubProblem()
+{
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // CMultivariateRegressionOverUnivariate
 

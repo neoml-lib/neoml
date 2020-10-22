@@ -112,4 +112,13 @@ public:
 	virtual void Finish() = 0;
 };
 
+// Subproblem interface
+class NEOML_API ISubProblem : public IProblem {
+public:
+	virtual ~ISubProblem();
+
+	// Gets the vector index in the original data set
+	virtual int GetOriginalIndex( int index ) const = 0;
+};
+
 } // namespace NeoML

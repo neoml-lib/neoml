@@ -15,20 +15,19 @@ limitations under the License.
 
 #pragma once
 
-#include <SubProblem.h>
+#include <NeoML/TraditionalML/Problem.h>
 
 namespace NeoML {
 
-// The data subset for cross-validation
-// The input data set is split into partsCount parts; the subset corresponds to one of these parts (partIndex)
-// if testSet is true, and all other parts together (except the partIndex) if testSet is false
-// It is guaranteed that the ratio of classes in each part is (almost) the same as in the input data
-class CStratifiedCrossValidationSubProblem : public ISubProblem {
+// Data subset for cross-validation
+// The input data is split into partsCount parts, with the subset equal to one of these parts (with the partIndex index) for testSet == true
+// and to the rest of the parts together (except the partIndex index) for testSet == false
+class NEOML_API CCrossValidationSubProblem : public ISubProblem {
 public:
-	CStratifiedCrossValidationSubProblem( const IProblem* problem, int partsCount, int partIndex, bool testSet );
+	CCrossValidationSubProblem( const IProblem* problem, int partsCount, int partIndex, bool testSet );
 
-	// The index of the element in the original data set
-	int GetOriginalIndex( int index ) const { return translateIndex( index ); }
+	// Gets the index of a vector in the initial data set
+	virtual int GetOriginalIndex( int index ) const { return translateIndex( index ); }
 
 	// IProblem interface methods
 	virtual int GetClassCount() const { return problem->GetClassCount(); }
@@ -36,30 +35,24 @@ public:
 	virtual bool IsDiscreteFeature( int index ) const { return problem->IsDiscreteFeature( index ); }
 	virtual int GetVectorCount() const { return vectorsCount; }
 	virtual int GetClass( int index ) const { return problem->GetClass( translateIndex( index ) ); }
-	virtual CSparseFloatVectorDesc GetVector( int index ) const { return matrix.GetRow( index ); }
 	virtual CSparseFloatMatrixDesc GetMatrix() const { return matrix; }
 	virtual double GetVectorWeight( int index ) const { return problem->GetVectorWeight( translateIndex( index ) ); }
 	virtual int GetDiscretizationValue( int index ) const { return problem->GetDiscretizationValue( index ); }
 
 protected:
-	// delete prohibited
-	virtual ~CStratifiedCrossValidationSubProblem() {}
+	virtual ~CCrossValidationSubProblem() {} // delete operator prohibited
 
 private:
-	const CPtr<const IProblem> problem; // the original data
-	const int partsCount; // the number of parts
-	const int partIndex; // the index of the current part
-	bool testSet; // indicates if this is the test subset
+	const CPtr<const IProblem> problem; // the input data
+	const int partsCount; // the number of subsets
+	const int partIndex; // the index of the current subset
+	bool testSet; // indicates if this is the testing or the training subset
 	int vectorsCount; // the number of vectors in the subset
-	CArray< CArray<int> > objectsPerPart; // the list of object indices for each of the parts
-	int minPartSize; // the minimum number of objects in each part (the total number of elements / the number of parts)
-	int objectsBeforeTestPart; // the number of objects before the test part
-	CArray<int> pointerB; // the pointers to the vector beginnings
-	CArray<int> pointerE; // the pointers to the vector ends
-	CSparseFloatMatrixDesc matrix; // the problem matrix descriptor
+	CArray<int> pointerB; // vector start pointers
+	CArray<int> pointerE; // vector end pointers
+	CSparseFloatMatrixDesc matrix; // the matrix descriptor for the problem
 
 	int translateIndex( int index ) const;
-	void buildObjectsLists();
 };
 
 } // namespace NeoML
