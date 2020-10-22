@@ -29,14 +29,14 @@ limitations under the License.
 
 namespace NeoML {
 
-CNeoMathEngineAvxDll::CNeoMathEngineAvxDll() : isLoaded( false ), functionAdresses{}
+CNeoMathEngineAvxDll::CNeoMathEngineAvxDll() : isLoaded( false )
 {
-	if( !isAvxAvailable() || !Load( libName ) ) {
+	if( !isAvxAvailable() || !Load( IAvxDll::LibName ) ) {
 		return;
 	}
 
-	loadFunction( TFunctionPointers::IsBlobConvolutionAvailable, "IsBlobConvolutionAvailable" );
-	loadFunction( TFunctionPointers::BlobConvolution, "BlobConvolution" );
+	getAvxDllInstFunc = reinterpret_cast<IAvxDll::GetInstanceFunc>( GetProcAddress( IAvxDll::GetInstanceFuncName ) );
+	ASSERT_EXPR( getAvxDllInstFunc != nullptr );
 
 	isLoaded = true;
 }
@@ -47,38 +47,17 @@ CNeoMathEngineAvxDll& CNeoMathEngineAvxDll::GetInstance()
 	return instance;
 }
 
-void CNeoMathEngineAvxDll::loadFunction( TFunctionPointers functionType, const char* functionName )
+std::unique_ptr<IAvxDll> CNeoMathEngineAvxDll::GetAvxDllInst( const CCommonConvolutionDesc& desc )
 {
-	void* functionAdress = reinterpret_cast<void*>( GetProcAddress( functionName ) );
-	ASSERT_EXPR( functionAdress != nullptr );
-
-	functionAdresses[static_cast<size_t>(functionType)] = functionAdress;
-}
-
-bool CNeoMathEngineAvxDll::IsBlobConvolutionAvailable( const CCommonConvolutionDesc& desc ) const
-{
-	typedef bool ( *FuncType )( int filterCount, int channelCount, int filterHeight, int filterWidth );
-	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::IsBlobConvolutionAvailable ) ) );
-	return isLoaded && func( desc.Filter.BatchWidth(), desc.Filter.Channels(), desc.Filter.Height(), desc.Filter.Width() );
-}
-
-void CNeoMathEngineAvxDll::BlobConvolution( int threadCount, const CCommonConvolutionDesc& desc, const float* sourceData,
-	const float* filterData, const float* freeTermData, float* resultData ) const
-{
-	typedef bool ( *FuncType )( int filterCount, int channelCount, int filterHeight, int filterWidth, int threadCount,
-		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
-		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
-		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData );
-	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::BlobConvolution ) ) );
-	
-	// Data should be alligned
-	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( sourceData ) % 32 == 0 );
-	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( resultData ) % 32 == 0 );
-
-	ASSERT_EXPR( func( desc.Filter.BatchWidth(), desc.Filter.Channels(), desc.Filter.Height(), desc.Filter.Width(), threadCount,
+	if( !isLoaded ) {
+		return nullptr;
+	}
+	std::unique_ptr<IAvxDll> avxDll( getAvxDllInstFunc( 
+		desc.Filter.BatchWidth(), desc.Filter.Channels(), desc.Filter.Height(), desc.Filter.Width(),
 		desc.Source.Height(), desc.Source.Width(), desc.StrideHeight, desc.StrideWidth,
-		desc.DilationHeight, desc.DilationWidth, desc.Result.Height(), desc.Result.Width(),
-		sourceData, filterData, freeTermData, resultData ) );
+		desc.DilationHeight, desc.DilationWidth, desc.Result.Height(), desc.Result.Width() ) );
+	ASSERT_EXPR( avxDll != nullptr );
+	return avxDll;
 }
 
 bool CNeoMathEngineAvxDll::isAvxAvailable()

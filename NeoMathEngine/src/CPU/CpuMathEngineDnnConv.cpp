@@ -510,8 +510,9 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 		case CA_2:
 		{
 #if defined(NEOML_USE_SSE) && !FINE_PLATFORM( FINE_ANDROID )
-			if( CNeoMathEngineAvxDll::GetInstance().IsBlobConvolutionAvailable( desc ) ) {
-				CNeoMathEngineAvxDll::GetInstance().BlobConvolution( threadCount, desc, sourceRaw, filterRaw, freeTermRaw, resultRaw );
+			auto avxDll = CNeoMathEngineAvxDll::GetInstance().GetAvxDllInst( desc );
+			if( avxDll != nullptr && avxDll->IsBlobConvolutionAvailable() ) {
+				avxDll->BlobConvolution( threadCount, sourceRaw, filterRaw, freeTermRaw, resultRaw );
 				break;
 			}
 #endif

@@ -17,10 +17,10 @@ limitations under the License.
 
 #if !FINE_PLATFORM( FINE_IOS )
 
-#include <array>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineDnnConv.h>
 #include <MathEngineDll.h>
+#include <avx/include/AvxDll.h>
 
 namespace NeoML {
 
@@ -33,35 +33,16 @@ public:
 	CNeoMathEngineAvxDll& operator=( CNeoMathEngineAvxDll&& ) = delete;
 
 	static CNeoMathEngineAvxDll& GetInstance();
-
-	bool IsBlobConvolutionAvailable( const CCommonConvolutionDesc& desc ) const;
-	void BlobConvolution( int threadNum, const CCommonConvolutionDesc& desc, const float* sourceData,
-		const float* filterData, const float* freeTermData, float* resultData ) const;
+	bool IsAvailable() const;
+	std::unique_ptr<IAvxDll> GetAvxDllInst( const CCommonConvolutionDesc& desc );
 
 private:
-	enum class TFunctionPointers {
-		IsBlobConvolutionAvailable,
-		BlobConvolution,
-
-		Count
-	};
-#if FINE_PLATFORM( FINE_WINDOWS )
-	constexpr static char const* libName = "NeoMathEngineAvx.dll";
-#elif FINE_PLATFORM( FINE_LINUX )
-	constexpr static char const* libName = "libNeoMathEngineAvx.so";
-#elif FINE_PLATFORM( FINE_DARWIN )
-	constexpr static char const* libName = "libNeoMathEngineAvx.dylib";
-#else
-	#error "Platform is not supported!"
-#endif
-
 	bool isLoaded;
-	std::array<void*, static_cast<size_t>( TFunctionPointers::Count )> functionAdresses;
+	IAvxDll::GetInstanceFunc getAvxDllInstFunc;
 
 	CNeoMathEngineAvxDll();
 	~CNeoMathEngineAvxDll() = default;
 
-	void loadFunction( TFunctionPointers functionType, const char* functionName );
 	static bool isAvxAvailable();
 };
 }
