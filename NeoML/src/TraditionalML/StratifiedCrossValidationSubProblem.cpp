@@ -16,7 +16,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <StratifiedCrossValidationSubProblem.h>
+#include <NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h>
 
 namespace NeoML {
 
