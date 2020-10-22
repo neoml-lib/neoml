@@ -128,6 +128,17 @@ void UnregisterLayerName( const std::type_info& typeInfo )
 	getLayerNames().Delete( &typeInfo );
 }
 
+bool IsRegisteredLayerName( const char* name )
+{
+	return getRegisteredLayers().Has( name );
+}
+
+CPtr<CBaseLayer> CreateLayer( const char* name, IMathEngine& mathEngine )
+{
+	NeoAssert( getRegisteredLayers().Has( name ) );
+	return getRegisteredLayers()[name]( mathEngine );
+}
+
 static CPtr<CBaseLayer> createLayer( IMathEngine& mathEngine, const CString& className )
 {
 	TMapPosition pos = getRegisteredLayers().GetFirstPosition( className );
