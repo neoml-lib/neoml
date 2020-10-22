@@ -15,11 +15,10 @@ limitations under the License.
 
 #include <array>
 #include <vector>
-#include <climits>
 
 namespace NeoML {
 
-class CBlobConvolutionBase {
+class CBlobConvolutionBase : public CCrtAllocatedObject {
 public:
 	virtual ~CBlobConvolutionBase() = default;
 	virtual void ProcessConvolution( int threadCount ) = 0;
@@ -81,9 +80,9 @@ private:
 	// For some cases we will use FC, rounded up to nearest integer multiple of 8
 	static constexpr int FCm8 = ( FC + 8 - 1 ) / 8 * 8;
 	// Filter should be alligned to 16 bytes
-	static constexpr size_t FileterSize = FWmax * FHmax * FCmax * Cmax ;
+	static constexpr size_t FilterSize = FWmax * FHmax * FCmax * Cmax ;
 	static constexpr size_t AvxAlignment = 32;
-	float Filter[FileterSize + AvxAlignment];
+	float Filter[FilterSize + AvxAlignment];
 
 	// Free term should be alligned to 16 bytes
 	float FreeTerm[FCm8 + AvxAlignment];
@@ -129,7 +128,7 @@ private:
 	void singleProcessNarrow( const float* srcPtr, float* dstPtr, int windowIndex );
 
 	// Rearrange filter and fill 'Filter' and 'FreeTerm' members.
-	const float* rearrangeFileter( const float* filterData );
+	const float* rearrangeFilter( const float* filterData );
 	const float* rearrangeFreeTerm( const float* freeTermData );
 	const std::array<std::vector<int>, 8> fillSrcPixelOffset();
 	const std::array<std::vector<int>, 8>  fillFltPixelOffset();
@@ -217,7 +216,7 @@ CBlobConvolution<FC>::CBlobConvolution( int channelCount, int filterHeight, int 
 	RH( resultHeight ),
 	RW( resultWidth ),
 	src( sourceData ),
-	flt( rearrangeFileter( filterData ) ),
+	flt( rearrangeFilter( filterData ) ),
 	freeTerm( rearrangeFreeTerm( freeTermData ) ),
 	dst( resultData ),
 	SrcLineStride( SrcW * C ),
@@ -346,11 +345,11 @@ inline void CBlobConvolution<FC>::processConvolutionLoop( int rxSize, bool useNa
 }
 
 template<int FC>
-const float* CBlobConvolution<FC>::rearrangeFileter( const float* filterData )
+const float* CBlobConvolution<FC>::rearrangeFilter( const float* filterData )
 {
-	size_t filterBufferSize = FileterSize + AvxAlignment;
+	size_t filterBufferSize = FilterSize + AvxAlignment;
 	void* alignedFltPtr = const_cast<float*>( Filter );
-	std::align( AvxAlignment, FileterSize, alignedFltPtr, filterBufferSize );
+	std::align( AvxAlignment, FilterSize, alignedFltPtr, filterBufferSize );
 
 	// Rearrange filter data.
 	// Initial packing:
@@ -505,4 +504,4 @@ inline void CBlobConvolution<FC>::RotateLeft2( __m256& y )
 } // namespace NeoML
 
 // Class specializations
-#include <CpuMathEngineDnnConvAvxImpl.h>
+#include <DnnConvImpl.h>

@@ -36,7 +36,7 @@ CNeoMathEngineAvxDll::CNeoMathEngineAvxDll() : isLoaded( false ), functionAdress
 	}
 
 	loadFunction( TFunctionPointers::IsBlobConvolutionAvailable, "IsBlobConvolutionAvailable" );
-	loadFunction( TFunctionPointers::ProcessBlobConvolution, "ProcessBlobConvolution" );
+	loadFunction( TFunctionPointers::BlobConvolution, "BlobConvolution" );
 
 	isLoaded = true;
 }
@@ -62,14 +62,14 @@ bool CNeoMathEngineAvxDll::IsBlobConvolutionAvailable( const CCommonConvolutionD
 	return isLoaded && func( desc.Filter.BatchWidth(), desc.Filter.Channels(), desc.Filter.Height(), desc.Filter.Width() );
 }
 
-void CNeoMathEngineAvxDll::ProcessBlobConvolution( int threadCount, const CCommonConvolutionDesc& desc, const float* sourceData,
+void CNeoMathEngineAvxDll::BlobConvolution( int threadCount, const CCommonConvolutionDesc& desc, const float* sourceData,
 	const float* filterData, const float* freeTermData, float* resultData ) const
 {
 	typedef bool ( *FuncType )( int filterCount, int channelCount, int filterHeight, int filterWidth, int threadCount,
 		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
 		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData );
-	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::ProcessBlobConvolution ) ) );
+	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::BlobConvolution ) ) );
 	
 	// Data should be alligned
 	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( sourceData ) % 32 == 0 );

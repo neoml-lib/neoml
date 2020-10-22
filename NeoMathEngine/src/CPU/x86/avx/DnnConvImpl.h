@@ -38,7 +38,7 @@ inline void CBlobConvolution<24>::batchProcessChannels( const float* srcPtr, con
 	__m256& r20, __m256& r21, __m256& r22 )
 {
 	// Process three result pixels per time.
-	auto ProcessNext = [&]()
+	auto processNext = [&]()
 	{
 		// Load one channel from one pixels in sequenced windows and fill one ymm register with its value.
 		__m256 st0 = _mm256_broadcast_ss( srcPtr );
@@ -66,7 +66,7 @@ inline void CBlobConvolution<24>::batchProcessChannels( const float* srcPtr, con
 	};
 
 	for( int c = 0; c < C; c++ ) {
-		ProcessNext();
+		processNext();
 	}
 }
 
@@ -75,7 +75,7 @@ inline void CBlobConvolution<24>::singleProcessChannels( const float* srcPtr, co
 	__m256& r0, __m256& r1, __m256& r2 )
 {
 	// Process one result pixels per time.
-	auto ProcessNext = [&]( __m128 st0_m128 )
+	auto processNext = [&]( __m128 st0_m128 )
 	{
 		__m256 st0 = _mm256_set_m128( st0_m128, st0_m128 );
 
@@ -94,21 +94,21 @@ inline void CBlobConvolution<24>::singleProcessChannels( const float* srcPtr, co
 	for( ; c >= 4; c -= 4 ) {
 		__m128 s = _mm_loadu_ps( srcPtr );
 		// Load four channels and fill __m256 register four times with each of channel.
-		ProcessNext( _mm_permute_ps( s, 0x00 ) );
-		ProcessNext( _mm_permute_ps( s, 0x55 ) );
-		ProcessNext( _mm_permute_ps( s, 0xaa ) );
-		ProcessNext( _mm_permute_ps( s, 0xff ) );
+		processNext( _mm_permute_ps( s, 0x00 ) );
+		processNext( _mm_permute_ps( s, 0x55 ) );
+		processNext( _mm_permute_ps( s, 0xaa ) );
+		processNext( _mm_permute_ps( s, 0xff ) );
 		srcPtr += 4;
 	}
 	if( c != 0 ) {
 		// Process remaining channels
 		__m128 s = _mm_loadu_ps( srcPtr );
-		ProcessNext( _mm_permute_ps( s, 0x00 ) );
+		processNext( _mm_permute_ps( s, 0x00 ) );
 		if( c > 1 ) {
-			ProcessNext( _mm_permute_ps( s, 0x55 ) );
+			processNext( _mm_permute_ps( s, 0x55 ) );
 		}
 		if( c > 2 ) {
-			ProcessNext( _mm_permute_ps( s, 0xaa ) );
+			processNext( _mm_permute_ps( s, 0xaa ) );
 		}
 	}
 }
@@ -214,7 +214,7 @@ inline void CBlobConvolution<18>::batchProcessChannels( const float* srcPtr, con
 	__m256& r10, __m256& r11, __m256& r12,
 	__m256& r20, __m256& r21, __m256& r22 )
 {
-	auto ProcessNext = [&]()
+	auto processNext = [&]()
 	{
 		// We will process four pixels of source in three steps ( merge each two floats for clarity )
 		// After each step we will "rotate" filter's values.
@@ -257,7 +257,7 @@ inline void CBlobConvolution<18>::batchProcessChannels( const float* srcPtr, con
 	};
 
 	for( int c = 0; c < C; c++ ) {
-		ProcessNext();
+		processNext();
 	}
 }
 
@@ -265,7 +265,7 @@ template<>
 inline void CBlobConvolution<18>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
 	__m256& r0, __m256& r1, __m256& r2 )
 {
-	auto ProcessNext = [&]( __m128 st0_m128 )
+	auto processNext = [&]( __m128 st0_m128 )
 	{
 		__m256 st0 = _mm256_set_m128( st0_m128, st0_m128 );
 
@@ -283,21 +283,21 @@ inline void CBlobConvolution<18>::singleProcessChannels( const float* srcPtr, co
 	int c = C;
 	for( ; c >= 4; c -= 4 ) {
 		__m128 s = _mm_loadu_ps( srcPtr );
-		ProcessNext( _mm_permute_ps( s, 0x00 ) );
-		ProcessNext( _mm_permute_ps( s, 0x55 ) );
-		ProcessNext( _mm_permute_ps( s, 0xaa ) );
-		ProcessNext( _mm_permute_ps( s, 0xff ) );
+		processNext( _mm_permute_ps( s, 0x00 ) );
+		processNext( _mm_permute_ps( s, 0x55 ) );
+		processNext( _mm_permute_ps( s, 0xaa ) );
+		processNext( _mm_permute_ps( s, 0xff ) );
 		srcPtr += 4;
 	}
 	if( c != 0 ) {
 		// Process remaining channels
 		__m128 s = _mm_loadu_ps( srcPtr );
-				ProcessNext( _mm_permute_ps( s, 0x00 ) );
+				processNext( _mm_permute_ps( s, 0x00 ) );
 		if( c > 1 ) {
-			ProcessNext( _mm_permute_ps( s, 0x55 ) );
+			processNext( _mm_permute_ps( s, 0x55 ) );
 		}
 		if( c > 2 ) {
-			ProcessNext( _mm_permute_ps( s, 0xaa ) );
+			processNext( _mm_permute_ps( s, 0xaa ) );
 		}
 	}
 }
@@ -415,7 +415,7 @@ inline void CBlobConvolution<6>::batchProcessChannels( const float* srcPtr, cons
 	const float* srcPtr0 = srcPtr;
 	const float* srcPtr1 = srcPtr + srcNarrowStep;
 	const float* srcPtr2 = srcPtr + 2 * srcNarrowStep;
-	auto ProcessNext = [&]()
+	auto processNext = [&]()
 	{
 		// We will process pixels in three steps
 		//           Step 1    Step 2      Step 3
@@ -495,7 +495,7 @@ inline void CBlobConvolution<6>::batchProcessChannels( const float* srcPtr, cons
 	};
 
 	for( int c = 0; c < C; c++ ) {
-		ProcessNext();
+		processNext();
 	}
 }
 
@@ -503,7 +503,7 @@ template<>
 inline void CBlobConvolution<6>::singleProcessChannels( const float* srcPtr, const float* fltPtr,
 	__m256& r0 )
 {
-	auto ProcessNext = [&]( __m128 st0_m128 )
+	auto processNext = [&]( __m128 st0_m128 )
 	{
 		__m256 st0 = _mm256_set_m128( st0_m128, st0_m128 );
 
@@ -517,17 +517,17 @@ inline void CBlobConvolution<6>::singleProcessChannels( const float* srcPtr, con
 	int c = C;
 	for( ; c >= 4; c -= 4 ) {
 		__m128 s = _mm_loadu_ps( srcPtr );
-		ProcessNext( _mm_permute_ps( s, 0x00 ) );
-		ProcessNext( _mm_permute_ps( s, 0x55 ) );
-		ProcessNext( _mm_permute_ps( s, 0xaa ) );
-		ProcessNext( _mm_permute_ps( s, 0xff ) );
+		processNext( _mm_permute_ps( s, 0x00 ) );
+		processNext( _mm_permute_ps( s, 0x55 ) );
+		processNext( _mm_permute_ps( s, 0xaa ) );
+		processNext( _mm_permute_ps( s, 0xff ) );
 		srcPtr += 4;
 	}
 	if( c != 0 ) {
 		__m128 s = _mm_loadu_ps( srcPtr );
-				ProcessNext( _mm_permute_ps( s, 0x00 ) );
-		if( c > 1 ) ProcessNext( _mm_permute_ps( s, 0x55 ) );
-		if( c > 2 )	ProcessNext( _mm_permute_ps( s, 0xaa ) );
+				processNext( _mm_permute_ps( s, 0x00 ) );
+		if( c > 1 ) processNext( _mm_permute_ps( s, 0x55 ) );
+		if( c > 2 )	processNext( _mm_permute_ps( s, 0xaa ) );
 	}
 }
 
@@ -536,7 +536,7 @@ inline void CBlobConvolution<6>::singleProcessChannelsNarrow( const float* srcPt
 	__m256& r0, __m256& r1, __m256& r2 )
 {
 	// Process thee source windows one below another.
-	auto ProcessNext = [&]( __m128 st0_m128, __m128 st1_m128, __m128 st2_m128 )
+	auto processNext = [&]( __m128 st0_m128, __m128 st1_m128, __m128 st2_m128 )
 	{
 		__m256 st0 = _mm256_set_m128( st0_m128, st0_m128 );
 		__m256 st1 = _mm256_set_m128( st1_m128, st1_m128 );
@@ -557,21 +557,21 @@ inline void CBlobConvolution<6>::singleProcessChannelsNarrow( const float* srcPt
 		__m128 s1 = _mm_loadu_ps( srcPtr + SrcYStep );
 		__m128 s2 = _mm_loadu_ps( srcPtr + 2 * SrcYStep );
 		srcPtr += 4;
-		ProcessNext( _mm_permute_ps( s0, 0x00 ), _mm_permute_ps( s1, 0x00 ), _mm_permute_ps( s2, 0x00 ) );
-		ProcessNext( _mm_permute_ps( s0, 0x55 ), _mm_permute_ps( s1, 0x55 ), _mm_permute_ps( s2, 0x55 ) );
-		ProcessNext( _mm_permute_ps( s0, 0xaa ), _mm_permute_ps( s1, 0xaa ), _mm_permute_ps( s2, 0xaa ) );
-		ProcessNext( _mm_permute_ps( s0, 0xff ), _mm_permute_ps( s1, 0xff ), _mm_permute_ps( s2, 0xff ) );
+		processNext( _mm_permute_ps( s0, 0x00 ), _mm_permute_ps( s1, 0x00 ), _mm_permute_ps( s2, 0x00 ) );
+		processNext( _mm_permute_ps( s0, 0x55 ), _mm_permute_ps( s1, 0x55 ), _mm_permute_ps( s2, 0x55 ) );
+		processNext( _mm_permute_ps( s0, 0xaa ), _mm_permute_ps( s1, 0xaa ), _mm_permute_ps( s2, 0xaa ) );
+		processNext( _mm_permute_ps( s0, 0xff ), _mm_permute_ps( s1, 0xff ), _mm_permute_ps( s2, 0xff ) );
 	}
 	if( c != 0 ) {
 		__m128 s0 = _mm_loadu_ps( srcPtr );
 		__m128 s1 = _mm_loadu_ps( srcPtr + SrcYStep );
 		__m128 s2 = _mm_loadu_ps( srcPtr + 2 * SrcYStep );
-				ProcessNext( _mm_permute_ps( s0, 0x00 ), _mm_permute_ps( s1, 0x00 ), _mm_permute_ps( s2, 0x00 ) );
+				processNext( _mm_permute_ps( s0, 0x00 ), _mm_permute_ps( s1, 0x00 ), _mm_permute_ps( s2, 0x00 ) );
 		if( c > 1 ) {
-				ProcessNext( _mm_permute_ps( s0, 0x55 ), _mm_permute_ps( s1, 0x55 ), _mm_permute_ps( s2, 0x55 ) );
+				processNext( _mm_permute_ps( s0, 0x55 ), _mm_permute_ps( s1, 0x55 ), _mm_permute_ps( s2, 0x55 ) );
 		}
 		if( c > 2 ) {
-				ProcessNext( _mm_permute_ps( s0, 0xaa ), _mm_permute_ps( s1, 0xaa ), _mm_permute_ps( s2, 0xaa ) );
+				processNext( _mm_permute_ps( s0, 0xaa ), _mm_permute_ps( s1, 0xaa ), _mm_permute_ps( s2, 0xaa ) );
 		}
 	}
 }

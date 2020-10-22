@@ -35,19 +35,19 @@ public:
 	static CNeoMathEngineAvxDll& GetInstance();
 
 	bool IsBlobConvolutionAvailable( const CCommonConvolutionDesc& desc ) const;
-	void ProcessBlobConvolution( int threadNum, const CCommonConvolutionDesc& desc, const float* sourceData,
+	void BlobConvolution( int threadNum, const CCommonConvolutionDesc& desc, const float* sourceData,
 		const float* filterData, const float* freeTermData, float* resultData ) const;
 
 private:
 	enum class TFunctionPointers {
 		IsBlobConvolutionAvailable,
-		ProcessBlobConvolution,
+		BlobConvolution,
 
 		Count
 	};
 #if FINE_PLATFORM( FINE_WINDOWS )
 	constexpr static char const* libName = "NeoMathEngineAvx.dll";
-#elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_ANDROID )
+#elif FINE_PLATFORM( FINE_LINUX )
 	constexpr static char const* libName = "libNeoMathEngineAvx.so";
 #elif FINE_PLATFORM( FINE_DARWIN )
 	constexpr static char const* libName = "libNeoMathEngineAvx.dylib";

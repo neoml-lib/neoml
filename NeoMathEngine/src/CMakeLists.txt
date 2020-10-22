@@ -131,14 +131,14 @@ else()
     )
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
-	if(NOT IOS)
-		target_sources(${PROJECT_NAME}
-		PRIVATE
-			CPU/x86/NeoMathEngineAvxDll.cpp
-			CPU/x86/NeoMathEngineAvxDll.h
-		)
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
-	endif()
+    if(NOT IOS AND NOT ANDROID)
+        target_sources(${PROJECT_NAME}
+        PRIVATE
+            CPU/x86/NeoMathEngineAvxDll.cpp
+            CPU/x86/NeoMathEngineAvxDll.h
+        )
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
+    endif()
 endif()
 
 # GPU specific source and settings
@@ -340,7 +340,7 @@ endif()
 
 
 # OpenMP
-link_openmp()
+link_openmp(${PROJECT_NAME})
 
 # SSE2
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)

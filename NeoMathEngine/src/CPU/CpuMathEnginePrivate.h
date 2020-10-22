@@ -23,7 +23,9 @@ limitations under the License.
 
 #include <CpuX86.h>
 #include <CpuX86MathEngineVectorMathPrivate.h>
-#include <NeoMathEngineAvxDll.h>
+#if  !FINE_PLATFORM( FINE_ANDROID )
+	#include <NeoMathEngineAvxDll.h>
+#endif
 
 #elif defined(NEOML_USE_NEON)
 

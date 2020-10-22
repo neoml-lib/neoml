@@ -16,7 +16,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <CpuMathEngineDnnConvAvx.h>
+#include <DnnConv.h>
 
 namespace NeoML {
 
@@ -27,22 +27,22 @@ FME_DLL_EXPORT bool IsBlobConvolutionAvailable( int filterCount, int channelCoun
 }
 
 extern "C"
-FME_DLL_EXPORT bool ProcessBlobConvolution( int filterCount, int channelCount, int filterHeight, int filterWidth, int threadCount,
+FME_DLL_EXPORT bool BlobConvolution( int filterCount, int channelCount, int filterHeight, int filterWidth, int threadCount,
 	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
 {
 	// Data should be alligned
-	if( ( reinterpret_cast<std::uintptr_t>( sourceData ) % 32 != 0 ) ||
-		( reinterpret_cast<std::uintptr_t>( resultData ) % 32 != 0 ) ) {
-		return false;
-	}
+	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( sourceData ) % 32 == 0 );
+	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( resultData ) % 32 == 0 );
 
 	auto blobConvolutionInst = CBlobConvolutionFabric::GetProperInstance( filterCount,
 		channelCount, filterHeight, filterWidth,
 		sourceHeight, sourceWidth, strideHeight, strideWidth,
 		dilationHeight, dilationWidth, resultHeight, resultWidth,
 		sourceData, filterData, freeTermData, resultData );
+
+	ASSERT_EXPR( blobConvolutionInst != nullptr );
 
 	if( blobConvolutionInst != nullptr ) {
 		blobConvolutionInst->ProcessConvolution( threadCount );

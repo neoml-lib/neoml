@@ -509,6 +509,12 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 		case CA_1:
 		case CA_2:
 		{
+#if defined(NEOML_USE_SSE) && !FINE_PLATFORM( FINE_ANDROID )
+			if( CNeoMathEngineAvxDll::GetInstance().IsBlobConvolutionAvailable( desc ) ) {
+				CNeoMathEngineAvxDll::GetInstance().BlobConvolution( threadCount, desc, sourceRaw, filterRaw, freeTermRaw, resultRaw );
+				break;
+			}
+#endif
 			const int algo0ThreadCount = IsOmpRelevant( desc.Result.ObjectCount() * desc.Result.Width() * desc.Result.Height(),
 				static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
 
@@ -516,11 +522,6 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 				static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
 			const int64_t algo1DataSize = static_cast<int64_t>( desc.Result.Width() ) * desc.Result.Height() * desc.Filter.ObjectSize() + desc.Result.ObjectSize();
 
-#if defined(NEOML_USE_SSE)
-			if( CNeoMathEngineAvxDll::GetInstance().IsBlobConvolutionAvailable( desc ) ) {
-				CNeoMathEngineAvxDll::GetInstance().ProcessBlobConvolution( threadCount, desc, sourceRaw, filterRaw, freeTermRaw, resultRaw );
-			} else
-#endif
 			if( min( desc.Result.ObjectCount(), algo1ThreadCount ) * algo1DataSize <= algo0ThreadCount * BlobConvolutionCacheSize ) {
 				blobConvolutionForwardAlgo1( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
 			} else {
