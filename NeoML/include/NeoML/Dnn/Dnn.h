@@ -41,6 +41,16 @@ void NEOML_API RegisterLayerName( const char* mainName, const char* additionalNa
 
 void NEOML_API UnregisterLayerName( const std::type_info& typeInfo );
 
+bool NEOML_API IsRegisteredLayerName( const char* name );
+
+CPtr<CBaseLayer> NEOML_API CreateLayer( const char* name, IMathEngine& mathEngine );
+
+template<class T>
+CPtr<T> CreateLayer( const char* name, IMathEngine& mathEngine )
+{
+	return CheckCast<T>( CreateLayer( name, mathEngine ) );
+}
+
 //------------------------------------------------------------------------------------------------------------
 
 template<class T>
