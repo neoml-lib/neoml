@@ -134,7 +134,7 @@ void CSparseFloatMatrix::AddRow( const CSparseFloatVectorDesc& row )
 
 	CSparseFloatMatrixBody* newBody = body.CopyOnWrite();
 	newBody->Desc.Height++;
-	newBody->Desc.Width = max( body->Desc.Width, row.Size == 0 ? 0 : row.Indexes[row.Size - 1] );
+	newBody->Desc.Width = max( body->Desc.Width, row.Size == 0 ? 0 : row.Indexes[row.Size - 1] + 1 );
 	newBody->Desc.PointerB[newBody->Desc.Height - 1] = newBody->ElementCount;
 	newBody->Desc.PointerE[newBody->Desc.Height - 1] = newBody->ElementCount + row.Size;
 	::memcpy( newBody->Desc.Columns + newBody->ElementCount, row.Indexes, row.Size * sizeof( int ) );
