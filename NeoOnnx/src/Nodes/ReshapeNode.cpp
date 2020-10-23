@@ -29,22 +29,28 @@ CReshapeNode::CReshapeNode( int nodeIndex, const onnx::NodeProto& reshape, int o
 	hasFixedShape( false ),
 	hasRemainder( false )
 {
-	// The differences between versions are in supported data types and legacy optimization attributes
+	// In opsetVersion == 1 new shape is given as node attribute
+	// Since opsetVersion == 5 new shape is acquired from the second input
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", reshape );
 
-	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", reshape );
+	if( OpsetVersion < 5 ) {
+		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", reshape );
+	} else {
+		CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", reshape );
+	}
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", reshape );
 }
 
 void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant first input", OnnxNode );
-	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant second input", OnnxNode );
-
-	const CTensorShape& inputShape = tensors[Input[0]].Shape;
-
-	shape.SetSize( tensors[Input[1]].Data->GetDataSize() );
-	tensors[Input[1]].Data->CopyTo( shape.GetPtr() );
+	if( OpsetVersion >= 5 ) {
+		CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant second input", OnnxNode );
+		shape.SetSize( tensors[Input[1]].Data->GetDataSize() );
+		tensors[Input[1]].Data->CopyTo( shape.GetPtr() );
+	} else {
+		Attributes.GetRequiredIntArray( "shape", shape );
+	}
 
 	hasFixedShape = false;
 	hasRemainder = false;
@@ -55,6 +61,7 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mat
 	int remDim = -1;
 	size_t rem = 1;
 
+	const CTensorShape& inputShape = tensors[Input[0]].Shape;
 	for( int i = 0; i < inputShape.Size(); ++i ) {
 		rem *= inputShape[i];
 	}
