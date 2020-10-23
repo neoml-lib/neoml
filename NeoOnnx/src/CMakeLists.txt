@@ -27,6 +27,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/GraphInput.cpp
     Nodes/GraphInitializer.cpp
     Nodes/GraphOutput.cpp
+    Nodes/IdentityNode.cpp
     Nodes/LeakyReluNode.cpp
     Nodes/LstmNode.cpp
     Nodes/PoolNode.cpp
@@ -66,6 +67,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/GraphInput.h
     Nodes/GraphInitializer.h
     Nodes/GraphOutput.h
+    Nodes/IdentityNode.h
     Nodes/LeakyReluNode.h
     Nodes/LstmNode.h
     Nodes/PoolNode.h
