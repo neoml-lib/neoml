@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <ProblemWrappers.h>
+#include <Buffer.h>
 
 namespace NeoML {
 
@@ -136,10 +137,10 @@ CNotNullWeightsView<TProblem>::CNotNullWeightsView( const TProblem* problem ) :
 		ViewMatrixDesc.Height -= nullWeightElementsCount;
 		if( nullWeightElementsCount > 0 && ViewMatrixDesc.Height > 0 ) {
 			// we are going to remap some elements, so let's create our own arrays of pointers
-			ViewMatrixDesc.PointerB = static_cast<int*>(
-				ALLOCATE_MEMORY( CurrentMemoryManager, ViewMatrixDesc.Height * sizeof( int ) ) );
-			ViewMatrixDesc.PointerE = static_cast<int*>(
-				ALLOCATE_MEMORY( CurrentMemoryManager, ViewMatrixDesc.Height * sizeof( int ) ) );
+			CBuffer<int> pointerB( ViewMatrixDesc.Height );
+			CBuffer<int> pointerE( ViewMatrixDesc.Height );
+			ViewMatrixDesc.PointerB = pointerB.Detach();
+			ViewMatrixDesc.PointerE = pointerE.Detach();
 
 			nullWeightElementsCount = 0 ;
 			notNullWeightElementsIndices.SetBufferSize( ViewMatrixDesc.Height );

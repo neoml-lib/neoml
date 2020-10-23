@@ -85,6 +85,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/TransposeLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
     TraditionalML/AIModel.cpp
+    TraditionalML/Buffer.h
     TraditionalML/ClassificationProbability.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
