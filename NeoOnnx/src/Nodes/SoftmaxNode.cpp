@@ -60,18 +60,12 @@ void CSoftmaxNode::AddLayers( const CGraph& /* graph */, const CTensorCache& ten
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	const CTensorShape& shape = tensors[Input[0]].Shape;
-	CTensorDim dim;
-	if( dims[Input[0]].IsEmpty() ) {
-		for( int i = 0; i < shape.Size(); ++i ) {
-			dim.Add( static_cast<TBlobDim>( BD_Count - shape.Size() + i ) );
-		}
-	} else {
-		dims[Input[0]].CopyTo( dim );
-	}
+	CTensorDim outputDim;
+	getOutputDim( shape, dims, outputDim );
 
 	CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer( dnn.GetMathEngine() );
 	softmax->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
-	softmax->SetNormalizationArea( getArea( shape, dim ) );
+	softmax->SetNormalizationArea( getArea( shape, outputDim ) );
 	softmax->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 
 	dnn.AddLayer( *softmax );
@@ -79,7 +73,7 @@ void CSoftmaxNode::AddLayers( const CGraph& /* graph */, const CTensorCache& ten
 }
 
 // Returns NeoML softmax area applicable to given tensor shape and dim
-CSoftmaxLayer::TNormalizationArea CSoftmaxNode::getArea( const CTensorShape& shape, const CTensorDim& dim )
+CSoftmaxLayer::TNormalizationArea CSoftmaxNode::getArea( const CTensorShape& shape, const CTensorDim& dim ) const
 {
 	// Softmax will be applied to all axes since axisIndex
 	const int axisIndex = axis >= 0 ? axis : axis + shape.Size();
@@ -115,6 +109,23 @@ CSoftmaxLayer::TNormalizationArea CSoftmaxNode::getArea( const CTensorShape& sha
 
 	CheckNeoOnnxSupport( false, "unsupported softmax axes", OnnxNode );
 	return CSoftmaxLayer::NA_Count;
+}
+
+void CSoftmaxNode::getOutputDim( const CTensorShape& shape, const CDimCache& dims, CTensorDim& outputDim ) const
+{
+	if( !dims[Output[0]].IsEmpty() ) {
+		dims[Output[0]].CopyTo( outputDim );
+	}
+	CTensorDim batchDims = { BD_BatchLength, BD_BatchWidth, BD_ListSize };
+	CTensorDim objectDims = { BD_Channels, BD_Depth, BD_Height, BD_Width };
+
+	const int axisIndex = axis >= 0 ? axis : axis + shape.Size();
+	CheckNeoOnnxSupport( axisIndex <= 3 && shape.Size() - axisIndex <= 4, "too many dims to softmax", OnnxNode );
+
+	outputDim.SetSize( shape.Size() );
+	for( int i = 0; i < shape.Size(); ++i ) {
+		outputDim[i] = i < axisIndex ? batchDims[i] : objectDims[i - axisIndex];
+	}
 }
 
 } // namespace NeoOnnx
