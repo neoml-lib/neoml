@@ -37,6 +37,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ShapeNode.cpp
     Nodes/SigmoidNode.cpp
     Nodes/SliceNode.cpp
+    Nodes/SoftmaxNode.cpp
     Nodes/SqueezeNode.cpp
     Nodes/TanhNode.cpp
     Nodes/UnsqueezeNode.cpp
@@ -77,6 +78,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ShapeNode.h
     Nodes/SigmoidNode.h
     Nodes/SliceNode.h
+    Nodes/SoftmaxNode.h
     Nodes/SqueezeNode.h
     Nodes/TanhNode.h
     Nodes/UnsqueezeNode.h
