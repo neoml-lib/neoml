@@ -136,10 +136,10 @@ CNotNullWeightsView<TProblem>::CNotNullWeightsView( const TProblem* problem ) :
 		ViewMatrixDesc.Height -= nullWeightElementsCount;
 		if( nullWeightElementsCount > 0 && ViewMatrixDesc.Height > 0 ) {
 			// we are going to remap some elements, so let's create our own arrays of pointers
-			pointerB = CBuffer<int>( ViewMatrixDesc.Height );
-			pointerE = CBuffer<int>( ViewMatrixDesc.Height );
-			ViewMatrixDesc.PointerB = pointerB;
-			ViewMatrixDesc.PointerE = pointerE;
+			pointerB.SetSize( ViewMatrixDesc.Height );
+			pointerE.SetSize( ViewMatrixDesc.Height );
+			ViewMatrixDesc.PointerB = pointerB.GetPtr();
+			ViewMatrixDesc.PointerE = pointerE.GetPtr();
 
 			nullWeightElementsCount = 0 ;
 			notNullWeightElementsIndices.SetBufferSize( ViewMatrixDesc.Height );

@@ -16,7 +16,6 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Buffer.h>
 
 namespace NeoML {
 
@@ -100,8 +99,8 @@ private:
 		const int BufferSize;
 		CSparseFloatVectorDesc Desc;
 		// Memory holders
-		CBuffer<int> IndexesBuf;
-		CBuffer<float> ValuesBuf;
+		CArray<int> IndexesBuf;
+		CArray<float> ValuesBuf;
 
 		explicit CSparseFloatVectorBody( int bufferSize );
 		explicit CSparseFloatVectorBody( const CSparseFloatVectorDesc& desc );

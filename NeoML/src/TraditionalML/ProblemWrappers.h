@@ -15,7 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/Buffer.h>
 #include <NeoML/TraditionalML/Problem.h>
 
 namespace NeoML {
@@ -136,8 +135,8 @@ private:
 	CArray<int> notNullWeightElementsIndices;
 	// Number of null weighted elements
 	int nullWeightElementsCount;
-	CBuffer<int> pointerB;
-	CBuffer<int> pointerE;
+	CArray<int> pointerB;
+	CArray<int> pointerE;
 };
 
 template<class TProblem>

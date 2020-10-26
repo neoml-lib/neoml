@@ -16,7 +16,6 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Buffer.h>
 
 #include <NeoML/TraditionalML/SparseFloatVector.h>
 
@@ -95,10 +94,10 @@ private:
 		CSparseFloatMatrixDesc Desc;
 
 		// Memory holders
-		CBuffer<int> ColumnsBuf;
-		CBuffer<float> ValuesBuf;
-		CBuffer<int> BeginPointersBuf;
-		CBuffer<int> EndPointersBuf;
+		CArray<int> ColumnsBuf;
+		CArray<float> ValuesBuf;
+		CArray<int> BeginPointersBuf;
+		CArray<int> EndPointersBuf;
 
 		CSparseFloatMatrixBody( int height, int width, int elementCount, int rowsBufferSize, int elementsBufferSize );
 		explicit CSparseFloatMatrixBody( const CSparseFloatMatrixDesc& desc );
