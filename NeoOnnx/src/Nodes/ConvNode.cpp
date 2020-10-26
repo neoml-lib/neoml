@@ -157,7 +157,7 @@ void CConvNode::add2dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& ne
 		conv->SetPaddingHeight( pads[0] );
 		conv->SetPaddingWidth( pads[1] );
 	} else {
-		// In this case we have add explicit padding layer
+		// In this case we have to add explicit padding layer
 		CPtr<CBaseLayer> paddingLayer = CreatePaddingLayer( dnn.GetMathEngine(), conv->GetName() + CString( "_pad" ),
 			{ BD_Height, BD_Width }, pads, 0.f, OnnxNode );
 		dnn.AddLayer( *paddingLayer );
@@ -211,7 +211,7 @@ void CConvNode::add3dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& ne
 		conv->SetPaddingWidth( pads[1] );
 		conv->SetPaddingDepth( pads[2] );
 	} else {
-		// In this case we have add explicit padding layer
+		// In this case we have to add explicit padding layer
 		CPtr<CBaseLayer> paddingLayer = CreatePaddingLayer( dnn.GetMathEngine(), conv->GetName() + CString( "_pad" ),
 			{ BD_Height, BD_Width, BD_Depth }, pads, 0.f, OnnxNode );
 		dnn.AddLayer( *paddingLayer );
