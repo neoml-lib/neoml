@@ -17,19 +17,19 @@ limitations under the License.
 
 namespace NeoML {
 
+// A tiny wrapper over a raw buffer
 template<typename T, typename TMemoryManager = CurrentMemoryManager>
 class CBuffer {
 public:
 	// Allocates buffer with elementsCount elements
 	explicit CBuffer( int elementsCount );
-	// Allocates buffer and copies elementsCount elements from src
-	CBuffer( const T* src, int elementsCount );
 	~CBuffer() { free(); }
 
-	// Copies elementsCount elements from src
-	void CopyFrom( const T* src, int elementsCount );
-	// Copies elementsCount elements from src, then swaps buffers with src
-	void CopyFromAndReplace( T*& src, int elementsCount );
+	// Copies elementsToCopy elements from src
+	void CopyFrom( const T* src, int elementsToCopy );
+
+	// Swaps buffers
+	void Swap( T*& buf ) { swap( buf, ptr ); }
 
 	// Detaches pointer so that it won't be deallocated on destruction
 	T* Detach();
@@ -40,7 +40,7 @@ public:
 private:
 	T* ptr;
 
-	void alloc( int size );
+	void alloc( int elementsCount );
 	void free();
 };
 
@@ -51,30 +51,16 @@ CBuffer<T, TMemoryManager>::CBuffer( int elementsCount )
 }
 
 template<typename T, typename TMemoryManager>
-CBuffer<T, TMemoryManager>::CBuffer( const T* src, int elementsCount )
+inline void CBuffer<T, TMemoryManager>::CopyFrom( const T* src, int elementsToCopy )
 {
-	alloc( elementsCount );
-	CopyFrom( src, elementsCount );
-}
-
-template<typename T, typename TMemoryManager>
-inline void CBuffer<T, TMemoryManager>::CopyFrom( const T* src, int elementsCount )
-{
-	::memcpy( ptr, src, elementsCount * sizeof( T ) );
-}
-
-template<typename T, typename TMemoryManager>
-inline void CBuffer<T, TMemoryManager>::CopyFromAndReplace( T*& src, int elementsCount )
-{
-	CopyFrom( src, elementsCount );
-	swap( src, ptr );
+	::memcpy( ptr, src, elementsToCopy * sizeof( T ) );
 }
 
 template<typename T, typename TMemoryManager>
 inline T* CBuffer<T, TMemoryManager>::Detach()
 {
 	T* res = ptr;
-	ptr = 0;
+	ptr = nullptr;
 	return res;
 }
 

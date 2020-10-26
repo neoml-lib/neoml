@@ -64,10 +64,15 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CSpars
 	NeoAssert( ElementsBufferSize >= 0 );
 	Desc.Height = desc.Height;
 	Desc.Width = desc.Width;
-	CBuffer<int> columns( desc.Columns, ElementsBufferSize );
-	CBuffer<float> values( desc.Values, ElementsBufferSize );
-	CBuffer<int> pointerB( desc.PointerB, RowsBufferSize );
-	CBuffer<int> pointerE( desc.PointerE, RowsBufferSize );
+	CBuffer<int> columns( ElementsBufferSize );
+	CBuffer<float> values( ElementsBufferSize );
+	CBuffer<int> pointerB( RowsBufferSize );
+	CBuffer<int> pointerE( RowsBufferSize );
+
+	columns.CopyFrom( Desc.Columns, ElementsBufferSize );
+	values.CopyFrom( Desc.Values, ElementsBufferSize );
+	pointerB.CopyFrom( Desc.PointerB, RowsBufferSize );
+	pointerE.CopyFrom( Desc.PointerE, RowsBufferSize );
 
 	Desc.Columns = columns.Detach();
 	Desc.Values = values.Detach();
@@ -77,14 +82,10 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CSpars
 
 inline CSparseFloatMatrix::CSparseFloatMatrixBody::~CSparseFloatMatrixBody()
 {
-	if( RowsBufferSize > 0 ) {
-		CurrentMemoryManager::Free( Desc.PointerB );
-		CurrentMemoryManager::Free( Desc.PointerE );
-	}
-	if( ElementsBufferSize > 0 ) {
-		CurrentMemoryManager::Free( Desc.Columns );
-		CurrentMemoryManager::Free( Desc.Values );
-	}
+	CurrentMemoryManager::Free( Desc.PointerB );
+	CurrentMemoryManager::Free( Desc.PointerE );
+	CurrentMemoryManager::Free( Desc.Columns );
+	CurrentMemoryManager::Free( Desc.Values );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -120,15 +121,15 @@ void CSparseFloatMatrix::GrowInRows( int newRowsBufferSize )
 	assert( newRowsBufferSize > 0 );
 	if( newRowsBufferSize > body->RowsBufferSize ) {
 		CSparseFloatMatrixBody* modifiableBody = body.CopyOnWrite();
-
 		int newBufferSize = max( body->RowsBufferSize * 3 / 2, newRowsBufferSize );
-		modifiableBody->RowsBufferSize = newBufferSize;
-
 		CBuffer<int> pointerB( newBufferSize );
-		pointerB.CopyFromAndReplace( modifiableBody->Desc.PointerB, body->Desc.Height );
-
 		CBuffer<int> pointerE( newBufferSize );
-		pointerE.CopyFromAndReplace( modifiableBody->Desc.PointerE, body->Desc.Height );
+
+		pointerB.CopyFrom( body->Desc.PointerB, body->Desc.Height );
+		pointerB.Swap( modifiableBody->Desc.PointerB );
+		pointerE.CopyFrom( body->Desc.PointerE, body->Desc.Height );
+		pointerE.Swap( modifiableBody->Desc.PointerE );
+		modifiableBody->RowsBufferSize = newBufferSize;
 	}
 }
 
@@ -137,15 +138,15 @@ void CSparseFloatMatrix::GrowInElements( int newElementsBufferSize )
 	assert( newElementsBufferSize > 0 );
 	if( newElementsBufferSize > body->ElementsBufferSize ) {
 		CSparseFloatMatrixBody* modifiableBody = body.CopyOnWrite();
-
 		int newBufferSize = max( body->ElementsBufferSize * 3 / 2, newElementsBufferSize );
-		modifiableBody->ElementsBufferSize = newBufferSize;
-
 		CBuffer<int> columns( newBufferSize );
-		columns.CopyFromAndReplace( modifiableBody->Desc.Columns, body->ElementCount );
-
 		CBuffer<float> values( newBufferSize );
-		values.CopyFromAndReplace( modifiableBody->Desc.Values, body->ElementCount );
+
+		columns.CopyFrom( body->Desc.Columns, body->ElementCount );
+		columns.Swap( modifiableBody->Desc.Columns );
+		values.CopyFrom( body->Desc.Values, body->ElementCount );
+		values.Swap( modifiableBody->Desc.Values );
+		modifiableBody->ElementsBufferSize = newBufferSize;
 	}
 }
 

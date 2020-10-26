@@ -164,7 +164,7 @@ CNotNullWeightsView<TProblem>::CNotNullWeightsView( const TProblem* problem ) :
 template<class TProblem>
 CNotNullWeightsView<TProblem>::~CNotNullWeightsView()
 {
-	if( nullWeightElementsCount > 0 && ViewMatrixDesc.Height > 0 ) {
+	if( nullWeightElementsCount > 0 ) {
 		CurrentMemoryManager::Free( ViewMatrixDesc.PointerB );
 		CurrentMemoryManager::Free( ViewMatrixDesc.PointerE );
 	}
