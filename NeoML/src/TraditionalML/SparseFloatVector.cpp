@@ -26,31 +26,31 @@ CSparseFloatVector::CSparseFloatVectorBody* CSparseFloatVector::CSparseFloatVect
 {
 	CSparseFloatVectorBody* body = FINE_DEBUG_NEW CSparseFloatVectorBody( BufferSize );
 	body->Desc.Size = Desc.Size;
-	body->indexes.CopyFrom( Desc.Indexes, Desc.Size );
-	body->values.CopyFrom( Desc.Values, Desc.Size );
+	body->IndexesBuf.CopyFrom( Desc.Indexes, Desc.Size );
+	body->ValuesBuf.CopyFrom( Desc.Values, Desc.Size );
 	return body;
 }
 
 CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( int bufferSize ) :
 	BufferSize( bufferSize ),
-	indexes( BufferSize ),
-	values( BufferSize )
+	IndexesBuf( BufferSize ),
+	ValuesBuf( BufferSize )
 {
 	Desc.Size = 0;
-	Desc.Indexes = indexes;
-	Desc.Values = values;
+	Desc.Indexes = IndexesBuf;
+	Desc.Values = ValuesBuf;
 }
 
 CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( const CSparseFloatVectorDesc& desc ) :
 	BufferSize( desc.Size ),
-	indexes( BufferSize ),
-	values( BufferSize )
+	IndexesBuf( BufferSize ),
+	ValuesBuf( BufferSize )
 {
 	Desc.Size = desc.Size;
-	indexes.CopyFrom( desc.Indexes, Desc.Size );
-	values.CopyFrom( desc.Values, Desc.Size );
-	Desc.Indexes = indexes;
-	Desc.Values = values;
+	IndexesBuf.CopyFrom( desc.Indexes, Desc.Size );
+	ValuesBuf.CopyFrom( desc.Values, Desc.Size );
+	Desc.Indexes = IndexesBuf;
+	Desc.Values = ValuesBuf;
 }
 
 //------------------------------------------------------------------------------------------------------------
