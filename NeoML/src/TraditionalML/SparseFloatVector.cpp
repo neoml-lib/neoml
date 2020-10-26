@@ -26,35 +26,31 @@ CSparseFloatVector::CSparseFloatVectorBody* CSparseFloatVector::CSparseFloatVect
 {
 	CSparseFloatVectorBody* body = FINE_DEBUG_NEW CSparseFloatVectorBody( BufferSize );
 	body->Desc.Size = Desc.Size;
-	::memcpy( body->Desc.Indexes, Desc.Indexes, Desc.Size * sizeof( int ) );
-	::memcpy( body->Desc.Values, Desc.Values, Desc.Size * sizeof( float ) );
+	body->indexes.CopyFrom( Desc.Indexes, Desc.Size );
+	body->values.CopyFrom( Desc.Values, Desc.Size );
 	return body;
 }
 
 CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( int bufferSize ) :
-	BufferSize( bufferSize )
+	BufferSize( bufferSize ),
+	indexes( BufferSize ),
+	values( BufferSize )
 {
 	Desc.Size = 0;
-	Desc.Indexes = static_cast<int*>( ALLOCATE_MEMORY( CurrentMemoryManager, bufferSize * sizeof(int) ) );
-	Desc.Values = static_cast<float*>( ALLOCATE_MEMORY( CurrentMemoryManager, bufferSize * sizeof(float) ) );
+	Desc.Indexes = indexes;
+	Desc.Values = values;
 }
 
 CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( const CSparseFloatVectorDesc& desc ) :
-	BufferSize( desc.Size )
+	BufferSize( desc.Size ),
+	indexes( BufferSize ),
+	values( BufferSize )
 {
 	Desc.Size = desc.Size;
-	Desc.Indexes = static_cast<int*>( ALLOCATE_MEMORY( CurrentMemoryManager, BufferSize * sizeof(int) ) );
-	Desc.Values = static_cast<float*>( ALLOCATE_MEMORY( CurrentMemoryManager, BufferSize * sizeof(float) ) );
-	::memcpy( Desc.Indexes, desc.Indexes, Desc.Size * sizeof( int ) );
-	::memcpy( Desc.Values, desc.Values, Desc.Size * sizeof( float ) );
-}
-
-CSparseFloatVector::CSparseFloatVectorBody::~CSparseFloatVectorBody()
-{
-	if( BufferSize > 0 ) {
-		CurrentMemoryManager::Free( Desc.Indexes );
-		CurrentMemoryManager::Free( Desc.Values );
-	}
+	indexes.CopyFrom( desc.Indexes, Desc.Size );
+	values.CopyFrom( desc.Values, Desc.Size );
+	Desc.Indexes = indexes;
+	Desc.Values = values;
 }
 
 //------------------------------------------------------------------------------------------------------------

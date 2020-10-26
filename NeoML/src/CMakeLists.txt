@@ -85,7 +85,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/TransposeLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
     TraditionalML/AIModel.cpp
-    TraditionalML/Buffer.h
     TraditionalML/ClassificationProbability.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
@@ -150,6 +149,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
 
     # Headers
     ../include/NeoML/ArchiveFile.h
+    ../include/NeoML/Buffer.h
     ../include/NeoML/NeoML.h
     ../include/NeoML/NeoMLCommon.h
     ../include/NeoML/NeoMLDefs.h

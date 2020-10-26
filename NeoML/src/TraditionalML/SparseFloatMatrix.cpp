@@ -17,8 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/TraditionalML/SparseFloatMatrix.h>
-
-#include <Buffer.h>
+#include <NeoML/Buffer.h>
 
 namespace NeoML {
 

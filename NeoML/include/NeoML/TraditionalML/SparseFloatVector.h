@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
+#include <NeoML/Buffer.h>
 
 namespace NeoML {
 
@@ -101,9 +102,14 @@ private:
 
 		explicit CSparseFloatVectorBody( int bufferSize );
 		explicit CSparseFloatVectorBody( const CSparseFloatVectorDesc& desc );
-		virtual ~CSparseFloatVectorBody();
+		~CSparseFloatVectorBody() override = default;
 
 		CSparseFloatVectorBody* Duplicate() const;
+
+	private:
+		// Memory holders
+		CBuffer<int> indexes;
+		CBuffer<float> values;
 	};
 
 	CCopyOnWritePtr<CSparseFloatVectorBody> body; // The vector body.

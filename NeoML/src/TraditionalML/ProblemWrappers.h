@@ -16,8 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/TraditionalML/Problem.h>
-
-#include <Buffer.h>
+#include <NeoML/Buffer.h>
 
 namespace NeoML {
 
