@@ -31,6 +31,7 @@ limitations under the License.
 #include "Nodes/ConstantNode.h"
 #include "Nodes/ConstantOfShapeNode.h"
 #include "Nodes/ConvNode.h"
+#include "Nodes/DropoutNode.h"
 #include "Nodes/EltwiseNode.h"
 #include "Nodes/EluNode.h"
 #include "Nodes/FlattenNode.h"
@@ -114,6 +115,7 @@ REGISTER_OP_NODE( CConstantNode, "Constant" )
 REGISTER_OP_NODE( CConstantOfShapeNode, "ConstantOfShape" )
 REGISTER_OP_NODE( CConvNode, "Conv" )
 REGISTER_OP_NODE( CDivNode, "Div" )
+REGISTER_OP_NODE( CDropoutNode, "Dropout" )
 REGISTER_OP_NODE( CEluNode, "Elu" )
 REGISTER_OP_NODE( CFlattenNode, "Flatten" )
 REGISTER_OP_NODE( CGatherNode, "Gather" )
