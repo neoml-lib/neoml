@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include <NeoML/NeoMLDefs.h>
+
 namespace NeoML {
 
 // A tiny wrapper over a raw buffer
@@ -61,7 +63,7 @@ CBuffer<T, TMemoryManager>::CBuffer( int elementsCount )
 template<typename T, typename TMemoryManager>
 inline CBuffer<T, TMemoryManager>& CBuffer<T, TMemoryManager>::operator=( CBuffer&& other )
 {
-	assert( ptr == nullptr );
+	NeoPresume( ptr == nullptr );
 	Swap( other );
 	return *this;
 }

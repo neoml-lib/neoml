@@ -113,17 +113,20 @@ void CSparseFloatMatrix::GrowInRows( int newRowsBufferSize )
 	if( newRowsBufferSize > body->RowsBufferSize ) {
 		CSparseFloatMatrixBody* modifiableBody = body.CopyOnWrite();
 		int newBufferSize = max( body->RowsBufferSize * 3 / 2, newRowsBufferSize );
-		CBuffer<int> pointerB( newBufferSize );
+
+		// enter scope to free unused memory immediately
+		{
+			CBuffer<int> pointerB( newBufferSize );
+			pointerB.CopyFrom( body->Desc.PointerB, body->Desc.Height );
+			pointerB.Swap( modifiableBody->BeginPointersBuf );
+		}
+
 		CBuffer<int> pointerE( newBufferSize );
-
-		pointerB.CopyFrom( body->Desc.PointerB, body->Desc.Height );
-		pointerB.Swap( modifiableBody->BeginPointersBuf );
-		modifiableBody->Desc.PointerB = modifiableBody->BeginPointersBuf;
-
 		pointerE.CopyFrom( body->Desc.PointerE, body->Desc.Height );
 		pointerE.Swap( modifiableBody->EndPointersBuf );
-		modifiableBody->Desc.PointerE = modifiableBody->EndPointersBuf;
 
+		modifiableBody->Desc.PointerB = modifiableBody->BeginPointersBuf;
+		modifiableBody->Desc.PointerE = modifiableBody->EndPointersBuf;
 		modifiableBody->RowsBufferSize = newBufferSize;
 	}
 }
@@ -134,17 +137,20 @@ void CSparseFloatMatrix::GrowInElements( int newElementsBufferSize )
 	if( newElementsBufferSize > body->ElementsBufferSize ) {
 		CSparseFloatMatrixBody* modifiableBody = body.CopyOnWrite();
 		int newBufferSize = max( body->ElementsBufferSize * 3 / 2, newElementsBufferSize );
-		CBuffer<int> columns( newBufferSize );
+
+		// enter scope to free unused memory immediately
+		{
+			CBuffer<int> columns( newBufferSize );
+			columns.CopyFrom( body->Desc.Columns, body->ElementCount );
+			columns.Swap( modifiableBody->ColumnsBuf );
+		}
+
 		CBuffer<float> values( newBufferSize );
-
-		columns.CopyFrom( body->Desc.Columns, body->ElementCount );
-		columns.Swap( modifiableBody->ColumnsBuf );
-		modifiableBody->Desc.Columns = modifiableBody->ColumnsBuf;
-
 		values.CopyFrom( body->Desc.Values, body->ElementCount );
 		values.Swap( modifiableBody->ValuesBuf );
-		modifiableBody->Desc.Values = modifiableBody->ValuesBuf;
 
+		modifiableBody->Desc.Columns = modifiableBody->ColumnsBuf;
+		modifiableBody->Desc.Values = modifiableBody->ValuesBuf;
 		modifiableBody->ElementsBufferSize = newBufferSize;
 	}
 }
