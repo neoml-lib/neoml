@@ -38,7 +38,11 @@ inline void NeoOnnxCheck( bool expr, const CString& what )
 inline void NeoOnnxCheck( bool expr, const CString& what )
 {
 	if( !( expr ) ) {
-		FineDebugBreak();
+#if defined(_DEBUG) && defined(_WIN32)
+		if( ::IsDebuggerPresent() ) {
+			FineDebugBreak();
+		}
+#endif
 		throw std::logic_error( what );
 	}
 }
