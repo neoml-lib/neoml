@@ -47,6 +47,7 @@ limitations under the License.
 #include "Nodes/ShapeNode.h"
 #include "Nodes/SigmoidNode.h"
 #include "Nodes/SliceNode.h"
+#include "Nodes/SoftmaxNode.h"
 #include "Nodes/SqueezeNode.h"
 #include "Nodes/TanhNode.h"
 #include "Nodes/UnsqueezeNode.h"
@@ -128,6 +129,7 @@ REGISTER_OP_NODE( CReshapeNode, "Reshape" )
 REGISTER_OP_NODE( CShapeNode, "Shape" )
 REGISTER_OP_NODE( CSigmoidNode, "Sigmoid" )
 REGISTER_OP_NODE( CSliceNode, "Slice" )
+REGISTER_OP_NODE( CSoftmaxNode, "Softmax" )
 REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
 REGISTER_OP_NODE( CSubNode, "Sub" )
 REGISTER_OP_NODE( CSumNode, "Sum" )
