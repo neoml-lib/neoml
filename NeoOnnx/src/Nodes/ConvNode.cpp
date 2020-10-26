@@ -17,8 +17,8 @@ limitations under the License.
 #pragma hdrstop
 
 #include "ConvNode.h"
+#include "PadNode.h"
 #include "GraphCache.h"
-#include "NodeUtils.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
@@ -80,7 +80,7 @@ void CConvNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEn
 		kernelShape.Add( weight.Shape[dimIndex] );
 	}
 	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
-		CalculatePadding( autoPad, inputShape, kernelShape, pads, OnnxNode );
+		CalculatePadding( autoPad, inputShape, kernelShape, pads );
 	}
 
 	CTensorShape& outputShape = tensors[Output[0]].Shape;
@@ -151,15 +151,26 @@ void CConvNode::add2dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& ne
 	conv->SetFilterWidth( filterWidth );
 	conv->SetStrideHeight( strides[0] );
 	conv->SetStrideWidth( strides[1] );
-	conv->SetPaddingHeight( pads[0] );
-	conv->SetPaddingWidth( pads[1] );
+	CNeoMLLink convInput = neoMLLinks[Input[0]];
+	if( pads[0] >= pads[2] && pads[1] >= pads[3] ) {
+		// This is a valid case for convolution NeoML
+		conv->SetPaddingHeight( pads[0] );
+		conv->SetPaddingWidth( pads[1] );
+	} else {
+		// In this case we have add explicit padding layer
+		CPtr<CBaseLayer> paddingLayer = CreatePaddingLayer( dnn.GetMathEngine(), conv->GetName() + CString( "_pad" ),
+			{ BD_Height, BD_Width }, pads, 0.f, OnnxNode );
+		dnn.AddLayer( *paddingLayer );
+		paddingLayer->Connect( 0, *convInput.Layer, convInput.OutputIndex );
+		convInput = CNeoMLLink( paddingLayer, 0 );
+	}
 	conv->SetDilationHeight( dilations[0] );
 	conv->SetDilationWidth( dilations[1] );
 
 	conv->SetFilterData( filter );
 	conv->SetFreeTermData( InputCount() == 3 ? tensors[Input[2]].Data : nullptr );
 
-	conv->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	conv->Connect( 0, *convInput.Layer, convInput.OutputIndex );
 	dnn.AddLayer( *conv );
 
 	neoMLLinks[Output[0]] = CNeoMLLink( conv, 0 );
@@ -193,14 +204,25 @@ void CConvNode::add3dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& ne
 	conv->SetStrideHeight( strides[0] );
 	conv->SetStrideWidth( strides[1] );
 	conv->SetStrideDepth( strides[2] );
-	conv->SetPaddingHeight( pads[0] );
-	conv->SetPaddingWidth( pads[1] );
-	conv->SetPaddingDepth( pads[2] );
+	CNeoMLLink convInput = neoMLLinks[Input[0]];
+	if( pads[0] >= pads[3] && pads[1] >= pads[4] && pads[2] >= pads[5] ) {
+		// This is a valid case for convolution NeoML
+		conv->SetPaddingHeight( pads[0] );
+		conv->SetPaddingWidth( pads[1] );
+		conv->SetPaddingDepth( pads[2] );
+	} else {
+		// In this case we have add explicit padding layer
+		CPtr<CBaseLayer> paddingLayer = CreatePaddingLayer( dnn.GetMathEngine(), conv->GetName() + CString( "_pad" ),
+			{ BD_Height, BD_Width, BD_Depth }, pads, 0.f, OnnxNode );
+		dnn.AddLayer( *paddingLayer );
+		paddingLayer->Connect( 0, *convInput.Layer, convInput.OutputIndex );
+		convInput = CNeoMLLink( paddingLayer, 0 );
+	}
 
 	conv->SetFilterData( filter );
 	conv->SetFreeTermData( InputCount() == 3 ? tensors[Input[2]].Data : nullptr );
 
-	conv->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	conv->Connect( 0, *convInput.Layer, convInput.OutputIndex );
 	dnn.AddLayer( *conv );
 
 	neoMLLinks[Output[0]] = CNeoMLLink( conv, 0 );

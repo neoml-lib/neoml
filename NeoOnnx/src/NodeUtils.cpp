@@ -24,24 +24,6 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-void CalculatePadding( const CString& autoPad, const CTensorShape& inputShape,
-	const CTensorShape& kernelShape, CFastArray<int, 8>& pads, const onnx::NodeProto& onnxNode )
-{
-	const int padDims = static_cast<int>( kernelShape.Size() );
-	const int skipDims = static_cast<int>( inputShape.Size() ) - padDims;
-	CheckNeoOnnxInternal( skipDims >= 0, "kernel has more dims than input", onnxNode );
-
-	for( int padDimIndex = 0; padDimIndex < padDims; ++padDimIndex ) {
-		const int totalPadSize = inputShape[padDimIndex + skipDims] + kernelShape[padDimIndex] - 1;
-		if( totalPadSize % 2 == 1 ) {
-			// This case can be supported in NeoML only if mode is SAME_LOWER
-			CheckNeoOnnxSupport( autoPad == "SAME_LOWER", "SAME_UPPER padding", onnxNode );
-		}
-		pads[padDimIndex] = ( totalPadSize + 1 ) / 2;
-		pads[padDims + padDimIndex] = ( totalPadSize + 1 ) / 2;
-	}
-}
-
 CPtr<CDnnBlob> RepackWeightIfFlattened( const CNode* node, const CTensorCache& tensors, const CDimCache& dims, CDnnBlob* weight )
 {
 	if( dynamic_cast<const CFlattenNode*>( node ) == nullptr ) {
