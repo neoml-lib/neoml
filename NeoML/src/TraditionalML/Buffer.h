@@ -21,9 +21,14 @@ namespace NeoML {
 template<typename T, typename TMemoryManager = CurrentMemoryManager>
 class CBuffer {
 public:
+	CBuffer() : ptr( nullptr ) {}
+	CBuffer( CBuffer&& other ) : ptr( nullptr ) { *this = other; }
 	// Allocates buffer with elementsCount elements
 	explicit CBuffer( int elementsCount );
 	~CBuffer() { free(); }
+
+	// Allow construction from an rvalue reference
+	CBuffer& operator=( CBuffer&& other );
 
 	// Copies elementsToCopy elements from src
 	void CopyFrom( const T* src, int elementsToCopy );
@@ -33,9 +38,10 @@ public:
 
 	// Detaches pointer so that it won't be deallocated on destruction
 	T* Detach();
+	operator T*() const { return ptr; }
 
 	CBuffer( const CBuffer& ) = delete;
-	CBuffer& operator=( CBuffer ) = delete;
+	CBuffer& operator=( const CBuffer&& ) = delete;
 
 private:
 	T* ptr;
@@ -48,6 +54,14 @@ template<typename T, typename TMemoryManager>
 CBuffer<T, TMemoryManager>::CBuffer( int elementsCount )
 {
 	alloc( elementsCount );
+}
+
+template<typename T, typename TMemoryManager>
+inline CBuffer<T, TMemoryManager>& CBuffer<T, TMemoryManager>::operator=( CBuffer&& other )
+{
+	assert( ptr == nullptr );
+	Swap( other.ptr );
+	return *this;
 }
 
 template<typename T, typename TMemoryManager>
@@ -71,7 +85,7 @@ inline void CBuffer<T, TMemoryManager>::alloc( int elementsCount )
 	ptr = static_cast<T*>( ALLOCATE_MEMORY( TMemoryManager, elementsCount * sizeof( T ) ) );
 }
 
-// If not detached, deallocates controlled buffer
+// Deallocates controlled buffer
 template<typename T, typename TMemoryManager>
 inline void CBuffer<T, TMemoryManager>::free()
 {
