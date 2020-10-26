@@ -60,11 +60,18 @@ void CSoftmaxNode::AddLayers( const CGraph& /* graph */, const CTensorCache& ten
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	const CTensorShape& shape = tensors[Input[0]].Shape;
-	const CTensorDim& dim = dims[Input[0]];
+	CTensorDim dim;
+	if( dims[Input[0]].IsEmpty() ) {
+		for( int i = 0; i < shape.Size(); ++i ) {
+			dim.Add( static_cast<TBlobDim>( BD_Count - shape.Size() + i ) );
+		}
+	} else {
+		dims[Input[0]].CopyTo( dim );
+	}
 
 	CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer( dnn.GetMathEngine() );
 	softmax->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
-	softmax->SetNormalizationArea( getArea( tensors[Input[0]].Shape, dims[Input[0]] ) );
+	softmax->SetNormalizationArea( getArea( shape, dim ) );
 	softmax->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 
 	dnn.AddLayer( *softmax );
@@ -75,7 +82,7 @@ void CSoftmaxNode::AddLayers( const CGraph& /* graph */, const CTensorCache& ten
 CSoftmaxLayer::TNormalizationArea CSoftmaxNode::getArea( const CTensorShape& shape, const CTensorDim& dim )
 {
 	// Softmax will be applied to all axes since axisIndex
-	const int axisIndex = axis >= 0 ? axis : axis + dim.Size();
+	const int axisIndex = axis >= 0 ? axis : axis + shape.Size();
 
 	// Bit masks of axes of batch (softmax won't be applied) and object (softmax will be applied)
 	int objectAxes = 0;
