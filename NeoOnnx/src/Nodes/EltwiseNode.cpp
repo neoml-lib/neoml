@@ -233,7 +233,7 @@ CPtr<CDnnBlob> CEltwiseNodeBase::broadcast( const CTensor &input, const CTensorS
 	inputOffset.SetSize( inputShape.Size() );
 	inputOffset[inputOffset.Size() - 1] = 1;
 	for( int i = inputOffset.Size() - 2; i >= 0; --i ) {
-		inputOffset[i] = inputOffset[i - 1] * inputShape[i - 1];
+		inputOffset[i] = inputOffset[i + 1] * inputShape[i + 1];
 	}
 
 	float* inputBuff = input.Data->GetBuffer<float>( 0, input.Data->GetDataSize() );
