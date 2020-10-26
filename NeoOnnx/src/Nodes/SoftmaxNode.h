@@ -34,7 +34,8 @@ private:
 	// Softmax is applied along all the axes since this one (this one is included)
 	int axis;
 
-	CSoftmaxLayer::TNormalizationArea getArea( const CTensorShape& shape, const CTensorDim& dim );
+	CSoftmaxLayer::TNormalizationArea getArea( const CTensorShape& shape, const CTensorDim& dim ) const;
+	void getOutputDim( const CTensorShape& shape, const CDimCache& dims, CTensorDim& outputDim ) const;
 };
 
 } // namespace NeoOnnx
