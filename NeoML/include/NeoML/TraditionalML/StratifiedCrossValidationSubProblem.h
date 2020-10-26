@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <SubProblem.h>
+#include <NeoML/TraditionalML/Problem.h>
 
 namespace NeoML {
 
@@ -23,7 +23,7 @@ namespace NeoML {
 // The input data set is split into partsCount parts; the subset corresponds to one of these parts (partIndex)
 // if testSet is true, and all other parts together (except the partIndex) if testSet is false
 // It is guaranteed that the ratio of classes in each part is (almost) the same as in the input data
-class CStratifiedCrossValidationSubProblem : public ISubProblem {
+class NEOML_API CStratifiedCrossValidationSubProblem : public ISubProblem {
 public:
 	CStratifiedCrossValidationSubProblem( const IProblem* problem, int partsCount, int partIndex, bool testSet );
 
