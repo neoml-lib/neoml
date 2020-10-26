@@ -55,24 +55,28 @@ private:
 
 // Eltwise operator nodes with 2 inputs
 
+// Add operator graph node
 class CAddNode : public CEltwiseNodeBase {
 public:
 	CAddNode( int nodeIndex, const onnx::NodeProto& add, int opsetVersion ) :
 		CEltwiseNodeBase( nodeIndex, add, opsetVersion, O_Add, 2 ) {}
 };
 
+// Sub operator graph node
 class CSubNode : public CEltwiseNodeBase {
 public:
 	CSubNode( int nodeIndex, const onnx::NodeProto& sub, int opsetVersion ) :
 		CEltwiseNodeBase( nodeIndex, sub, opsetVersion, O_Sub, 2 ) {}
 };
 
+// Mul operator graph node
 class CMulNode : public CEltwiseNodeBase {
 public:
 	CMulNode( int nodeIndex, const onnx::NodeProto& mul, int opsetVersion ) :
 		CEltwiseNodeBase( nodeIndex, mul, opsetVersion, O_Mul, 2 ) {}
 };
 
+// Div operator graph node
 class CDivNode : public CEltwiseNodeBase {
 public:
 	CDivNode( int nodeIndex, const onnx::NodeProto& div, int opsetVersion ) :
@@ -81,6 +85,7 @@ public:
 
 // Eltwise operator nodes with any number of inputs
 
+// Sum operator graph node
 class CSumNode : public CEltwiseNodeBase {
 public:
 	CSumNode( int nodeIndex, const onnx::NodeProto& sum, int opsetVersion ) :
