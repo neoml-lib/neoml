@@ -25,13 +25,13 @@ limitations under the License.
 #include <string>
 
 #include "Nodes/AbsNode.h"
-#include "Nodes/AddNode.h"
 #include "Nodes/BatchNormalizationNode.h"
 #include "Nodes/ClipNode.h"
 #include "Nodes/ConcatNode.h"
 #include "Nodes/ConstantNode.h"
 #include "Nodes/ConstantOfShapeNode.h"
 #include "Nodes/ConvNode.h"
+#include "Nodes/EltwiseNode.h"
 #include "Nodes/EluNode.h"
 #include "Nodes/FlattenNode.h"
 #include "Nodes/GatherNode.h"
@@ -111,6 +111,7 @@ REGISTER_OP_NODE( CConcatNode, "Concat" )
 REGISTER_OP_NODE( CConstantNode, "Constant" )
 REGISTER_OP_NODE( CConstantOfShapeNode, "ConstantOfShape" )
 REGISTER_OP_NODE( CConvNode, "Conv" )
+REGISTER_OP_NODE( CDivNode, "Div" )
 REGISTER_OP_NODE( CEluNode, "Elu" )
 REGISTER_OP_NODE( CFlattenNode, "Flatten" )
 REGISTER_OP_NODE( CGatherNode, "Gather" )
@@ -120,6 +121,7 @@ REGISTER_OP_NODE( CIdentityNode, "Identity" )
 REGISTER_OP_NODE( CLeakyReluNode, "LeakyRelu" )
 REGISTER_OP_NODE( CLstmNode, "LSTM" )
 REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
+REGISTER_OP_NODE( CMulNode, "Mul" )
 REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
 REGISTER_OP_NODE( CReluNode, "Relu" )
 REGISTER_OP_NODE( CReshapeNode, "Reshape" )
@@ -127,6 +129,8 @@ REGISTER_OP_NODE( CShapeNode, "Shape" )
 REGISTER_OP_NODE( CSigmoidNode, "Sigmoid" )
 REGISTER_OP_NODE( CSliceNode, "Slice" )
 REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
+REGISTER_OP_NODE( CSubNode, "Sub" )
+REGISTER_OP_NODE( CSumNode, "Sum" )
 REGISTER_OP_NODE( CTanhNode, "Tanh" )
 REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )
 

@@ -11,13 +11,13 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Node.cpp
     OpNodeAttributes.cpp
     Nodes/AbsNode.cpp
-    Nodes/AddNode.cpp
     Nodes/BatchNormalizationNode.cpp
     Nodes/ClipNode.cpp
     Nodes/ConcatNode.cpp
     Nodes/ConstantNode.cpp
     Nodes/ConstantOfShapeNode.cpp
     Nodes/ConvNode.cpp
+    Nodes/EltwiseNode.cpp
     Nodes/EluNode.cpp
     Nodes/FlattenNode.cpp
     Nodes/GatherNode.cpp
@@ -51,13 +51,13 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Node.h
     OpNodeAttributes.h
     Nodes/AbsNode.h
-    Nodes/AddNode.h
     Nodes/BatchNormalizationNode.h
     Nodes/ClipNode.h
     Nodes/ConcatNode.h
     Nodes/ConstantNode.h
     Nodes/ConstantOfShapeNode.h
     Nodes/ConvNode.h
+    Nodes/EltwiseNode.h
     Nodes/EluNode.h
     Nodes/FlattenNode.h
     Nodes/GatherNode.h
