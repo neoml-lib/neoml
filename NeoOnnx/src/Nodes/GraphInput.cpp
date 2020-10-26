@@ -38,6 +38,10 @@ void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* math
 	outputShape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
 	for( const onnx::TensorShapeProto_Dimension dim : valueInfo.type().tensor_type().shape().dim() ) {
 		outputShape.Add( static_cast<int>( dim.dim_value() ) );
+		// Replacing 'None' shape with 1
+		if( outputShape.Last() == 0 ) {
+			outputShape.Last() = 1;
+		}
 	}
 }
 
