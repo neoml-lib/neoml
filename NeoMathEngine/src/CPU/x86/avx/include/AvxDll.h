@@ -20,7 +20,7 @@ namespace NeoML {
 
 class IAvxDll : public CCrtAllocatedObject {
 public:
-	constexpr static char* GetInstanceFuncName = "GetAvxDllInstance";
+	constexpr static char const* GetInstanceFuncName = "GetAvxDllInstance";
 
 	#if FINE_PLATFORM( FINE_WINDOWS )
 	constexpr static char const* LibName = "NeoMathEngineAvx.dll";
