@@ -26,39 +26,34 @@ public:
 	CBuffer() : ptr( nullptr ) {}
 	CBuffer( CBuffer&& other ) : ptr( nullptr ) { *this = other; }
 	// Allocates buffer with elementsCount elements
-	explicit CBuffer( int elementsCount );
-	~CBuffer() { free(); }
+	explicit CBuffer( int elementsCount ) : ptr( Alloc( elementsCount ) ) {}
+	~CBuffer() { Free( ptr ); }
 
 	// Allow construction from an rvalue reference
 	CBuffer& operator=( CBuffer&& other );
 
 	// Copies elementsToCopy elements from src
-	void CopyFrom( const T* src, int elementsToCopy );
+	void CopyFrom( const T* src, int elementsToCopy ) { ::memcpy( ptr, src, elementsToCopy * sizeof( T ) ); }
 
 	// Swaps buffers
 	void Swap( CBuffer& buf ) { swap( buf.ptr, ptr ); }
 
-	// Detaches pointer so that it won't be deallocated on destruction
-	T* Detach();
-
 	// Implicit convertion to T*
 	operator T*() const { return ptr; }
+
+	// Allocates elementsCount elements of type T on TMemoryManager allocator
+	static T* Alloc( int elementsCount )
+		{ return static_cast<T*>( ALLOCATE_MEMORY( TMemoryManager, elementsCount * sizeof( T ) ) ); }
+
+	// Deallocates buffer using memory manager
+	static void Free( T* _ptr ) { TMemoryManager::Free( _ptr ); }
 
 	CBuffer( const CBuffer& ) = delete;
 	CBuffer& operator=( const CBuffer&& ) = delete;
 
 private:
 	T* ptr;
-
-	void alloc( int elementsCount );
-	void free();
 };
-
-template<typename T, typename TMemoryManager>
-CBuffer<T, TMemoryManager>::CBuffer( int elementsCount )
-{
-	alloc( elementsCount );
-}
 
 template<typename T, typename TMemoryManager>
 inline CBuffer<T, TMemoryManager>& CBuffer<T, TMemoryManager>::operator=( CBuffer&& other )
@@ -66,34 +61,6 @@ inline CBuffer<T, TMemoryManager>& CBuffer<T, TMemoryManager>::operator=( CBuffe
 	NeoPresume( ptr == nullptr );
 	Swap( other );
 	return *this;
-}
-
-template<typename T, typename TMemoryManager>
-inline void CBuffer<T, TMemoryManager>::CopyFrom( const T* src, int elementsToCopy )
-{
-	::memcpy( ptr, src, elementsToCopy * sizeof( T ) );
-}
-
-template<typename T, typename TMemoryManager>
-inline T* CBuffer<T, TMemoryManager>::Detach()
-{
-	T* res = ptr;
-	ptr = nullptr;
-	return res;
-}
-
-// Allocates elementsCount elements of type T on TMemoryManager allocator
-template<typename T, typename TMemoryManager>
-inline void CBuffer<T, TMemoryManager>::alloc( int elementsCount )
-{
-	ptr = static_cast<T*>( ALLOCATE_MEMORY( TMemoryManager, elementsCount * sizeof( T ) ) );
-}
-
-// Deallocates controlled buffer
-template<typename T, typename TMemoryManager>
-inline void CBuffer<T, TMemoryManager>::free()
-{
-	TMemoryManager::Free( ptr );
 }
 
 } // namespace NeoML
