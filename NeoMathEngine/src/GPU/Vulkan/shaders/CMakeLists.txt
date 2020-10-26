@@ -1,4 +1,4 @@
-﻿project(VulkanShaders)
+project(VulkanShaders)
 
 set(SHADER_SOURCES
     VectorFillScalar.comp 
