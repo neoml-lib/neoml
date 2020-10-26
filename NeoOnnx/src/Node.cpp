@@ -40,6 +40,7 @@ limitations under the License.
 #include "Nodes/IdentityNode.h"
 #include "Nodes/LeakyReluNode.h"
 #include "Nodes/LstmNode.h"
+#include "Nodes/PadNode.h"
 #include "Nodes/PoolNode.h"
 #include "Nodes/ReduceMeanNode.h"
 #include "Nodes/ReluNode.h"
@@ -123,6 +124,7 @@ REGISTER_OP_NODE( CLeakyReluNode, "LeakyRelu" )
 REGISTER_OP_NODE( CLstmNode, "LSTM" )
 REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
 REGISTER_OP_NODE( CMulNode, "Mul" )
+REGISTER_OP_NODE( CPadNode, "Pad" )
 REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
 REGISTER_OP_NODE( CReluNode, "Relu" )
 REGISTER_OP_NODE( CReshapeNode, "Reshape" )
