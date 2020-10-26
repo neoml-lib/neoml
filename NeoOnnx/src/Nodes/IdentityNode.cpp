@@ -36,12 +36,15 @@ CIdentityNode::CIdentityNode( int nodeIndex, const onnx::NodeProto& identity, in
 
 void CIdentityNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
+	tensors[Output[0]] = tensors[Input[0]];
 }
 
 void CIdentityNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
+	if( tensors[Input[0]].Data == nullptr ) {
+		return;
+	}
+
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
 			"labeling output dimensions failed", OnnxNode );
@@ -53,10 +56,12 @@ void CIdentityNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dim
 	}
 }
 
-void CIdentityNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
+void CIdentityNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& /* dnn */ )
 {
-	neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
+	if( tensors[Output[0]].Data == nullptr ) {
+		neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
+	}
 }
 
 } // namespace NeoOnnx
