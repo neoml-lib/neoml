@@ -42,7 +42,7 @@ bool isEqual( const CTensorShape& first, const CTensorShape& second )
 
 // Calculates shape of the result of the numpy-style broadcast operation
 // If shapes can be broadcasted writes broadcasted shape to the result and returns true
-// Returns false if shapes can't be broadcasted (in this case result will be emtpy)
+// Returns false if shapes can't be broadcasted (in this case result will be empty)
 bool broadcastShape( const CTensorShape& first, const CTensorShape& second, CTensorShape& result )
 {
 	int dimCount = max( first.Size(), second.Size() );
@@ -99,16 +99,16 @@ void CEltwiseNodeBase::CalcOutputTensors( CTensorCache& tensors, IMathEngine& ma
 	}
 
 	// NeoML doesn't support numpy-style broadcast
-	// That's why we can manually broadcast pre-calcultaed data and add it by CSourceLayer
-	// But user-provided data has to have the same shape as output
+	// That's why we can manually broadcast pre-calculated data and add it via CSourceLayer
+	// But user-provided data has to have the same shape as output (there is no way to broadcast it in NeoML)
 	for( int i = 0; i < InputCount(); ++i ) {
 		CheckNeoOnnxSupport( tensors[Input[i]].Data != nullptr || isEqual( tensors[Input[i]].Shape, outputShape ),
 			"broadcastable user data", OnnxNode );
 	}
 
-	// NeoML doesn't have EltwiseDiv or EltwiseSub
+	// NeoML doesn't have EltwiseDiv or EltwiseSub layers
 	// NeoOnnx emulates them by EltwiseMul(X, 1 / Y), EltwiseSum(X, -Y)
-	// But that's possible only when second tensor is precalculated
+	// But that's possible only if second tensor is pre-calculated
 	if( operation == O_Sub || operation == O_Div ) {
 		CheckNeoOnnxInternal( argsNum == 2, "wrong number of arguments", OnnxNode );
 		CheckNeoOnnxInternal( tensors[Input[1]].Data != nullptr, "user data as second argument", OnnxNode );
