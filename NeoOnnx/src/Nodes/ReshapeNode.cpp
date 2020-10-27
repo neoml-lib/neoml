@@ -24,6 +24,54 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Attempts to greedily mark dimensions of dstTensor
+// Returns false is failed
+static bool createTensorLabeling( const CTensorShape& srcShape, const CTensorDim& srcDim,
+	const CTensorShape& dstShape, CTensorDim& dstDim )
+{
+	const int len = min( srcShape.Size(), dstShape.Size() );
+	dstDim.SetSize( dstShape.Size() );
+	int usedDims = 0;
+
+	// Marking first unchanged dimensions
+	int left = 0;
+	while( left < len && srcShape[left] == dstShape[left] ) {
+		dstDim[left] = srcDim[left];
+		usedDims |= ( 1 << dstDim[left] );
+		++left;
+	}
+
+	// Marking last unchanged dimensions
+	int right = 0;
+	while( right + left < len && srcShape[srcShape.Size() - 1 - right] == dstShape[dstShape.Size() - 1 - right] ) {
+		dstDim[dstShape.Size() - 1 - right] = srcDim[srcShape.Size() - 1 - right];
+		usedDims |= ( 1 << dstDim[dstShape.Size() - 1 - right] );
+		++right;
+	}
+
+	if( left + right == dstDim.Size() ) {
+		// Whole tensor is labeled
+		return true;
+	}
+
+	// Trying to extrapolate unused channel-first dimensions along dims between left and right indices
+	CTensorDim channelFirst = { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Channels, BD_Depth, BD_Height, BD_Width };
+	int currDimIndex = left == 0 ? 0 : channelFirst.Find( dstDim[left - 1] ) + 1;
+	int lastDimIndex = right == 0 ? channelFirst.Size() : channelFirst.Find( dstDim[right + 1] );
+	while( left + right < dstDim.Size() && currDimIndex < lastDimIndex ) {
+		TBlobDim currDim = channelFirst[--lastDimIndex];
+		if( ( ( 1 << currDim ) & usedDims ) != 0 ) {
+			return false;
+		}
+		dstDim[dstDim.Size() - 1 - right] = currDim;
+		right++;
+	}
+
+	return left + right == dstDim.Size();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CReshapeNode::CReshapeNode( int nodeIndex, const onnx::NodeProto& reshape, int opsetVersion ) :
 	COpNode( nodeIndex, reshape, opsetVersion ),
 	hasFixedShape( false ),
@@ -98,6 +146,17 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mat
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
+void CReshapeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+{
+	if( !dims[Output[0]].IsEmpty() && dims[Input[0]].IsEmpty() ) {
+		CTensorDim inputDim;
+		if( createTensorLabeling( tensors[Output[0]].Shape, dims[Output[0]], tensors[Input[0]].Shape, inputDim ) ) {
+			CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, inputDim, dims[Input[0]] ),
+				"labeling input dimensions failed", OnnxNode );
+		}
+	}
+}
+
 void CReshapeNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
@@ -119,25 +178,31 @@ void CReshapeNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* 
 	// If both input and output dims were marked, output dims have higher priority
 	const CTensorDim& preferredDim = dims[Output[0]].IsEmpty() ? dims[Input[0]] : dims[Output[0]];
 
-	for( int i = 0; i < shape.Size(); ++i ) {
+	for( TBlobDim dim = static_cast< TBlobDim >( 0 ); dim < BD_Count; ++dim ) {
 		CTransformLayer::CDimensionRule rule;
-		switch( shape[i] ) {
-			case 0:
-				// Unchanged
-				rule.Operation = CTransformLayer::O_Multiply;
-				rule.Parameter = 1;
-				break;
-			case -1:
-				// Remainder dimension
-				rule.Operation = CTransformLayer::O_Remainder;
-				rule.Parameter = 1; // Doesn't matter
-				break;
-			default:
-				// Fixed size dimension
-				rule.Operation = CTransformLayer::O_SetSize;
-				rule.Parameter = shape[i];
+		int index = preferredDim.Find( dim );
+		if( index >= 0 && index < shape.Size() ) {
+			switch( shape[index] ) {
+				case 0:
+					// Unchanged
+					rule.Operation = CTransformLayer::O_Multiply;
+					rule.Parameter = 1;
+					break;
+				case -1:
+					// Remainder dimension
+					rule.Operation = CTransformLayer::O_Remainder;
+					rule.Parameter = 1; // Doesn't matter
+					break;
+				default:
+					// Fixed size dimension
+					rule.Operation = CTransformLayer::O_SetSize;
+					rule.Parameter = shape[index];
+			}
+		} else {
+			rule.Operation = CTransformLayer::O_SetSize;
+			rule.Parameter = 1;
 		}
-		transform->SetDimensionRule( preferredDim[i], rule );
+		transform->SetDimensionRule( dim, rule );
 	}
 
 	transform->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
