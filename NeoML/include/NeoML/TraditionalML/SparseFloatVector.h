@@ -105,6 +105,7 @@ public:
 	
 	class CConstIterator {
 	public:
+		CConstIterator() : Indexes( nullptr ), Values( nullptr ) {}
 		CConstIterator( int* indexes, float* values ) : Indexes( indexes ), Values( values ) {}
 
 		CConstElement operator*() const { return CConstElement( { *Indexes, *Values } ); }
@@ -133,6 +134,7 @@ public:
 
 	class CIterator : public CConstIterator {
 	public:
+		CIterator() : CConstIterator() {}
 		CIterator( int* indexes, float* values ) : CConstIterator( indexes, values ) {}
 
 		CModifiableElement operator*() const { return CModifiableElement( { *Indexes, *Values } ); }
@@ -207,7 +209,7 @@ inline CArchive& operator >> ( CArchive& archive, CSparseFloatVector& vector )
 inline CSparseFloatVector::CConstIterator CSparseFloatVector::begin() const
 {
 	if( body == nullptr ) {
-		return CConstIterator( nullptr, nullptr );
+		return CIterator();
 	} else {
 		return CConstIterator( body->Desc.Indexes, body->Desc.Values );
 	}
@@ -216,7 +218,7 @@ inline CSparseFloatVector::CConstIterator CSparseFloatVector::begin() const
 inline CSparseFloatVector::CConstIterator CSparseFloatVector::end() const
 {
 	if( body == nullptr ) {
-		return CConstIterator( nullptr, nullptr );
+		return CIterator();
 	} else {
 		return CConstIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
 	}
@@ -225,7 +227,7 @@ inline CSparseFloatVector::CConstIterator CSparseFloatVector::end() const
 inline CSparseFloatVector::CIterator CSparseFloatVector::begin()
 {
 	if( body == nullptr ) {
-		return CIterator( nullptr, nullptr );
+		return CIterator();
 	} else {
 		body.CopyOnWrite();
 		return CIterator( body->Desc.Indexes, body->Desc.Values );
@@ -235,7 +237,7 @@ inline CSparseFloatVector::CIterator CSparseFloatVector::begin()
 inline CSparseFloatVector::CIterator CSparseFloatVector::end()
 {
 	if( body == nullptr ) {
-		return CIterator( nullptr, nullptr );
+		return CIterator();
 	} else {
 		body.CopyOnWrite();
 		return CIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
