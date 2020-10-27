@@ -25,7 +25,7 @@ struct NEOML_API CSparseFloatVectorDesc {
 	int* Indexes;
 	float* Values;
 
-	CSparseFloatVectorDesc() : Size(0), Indexes(0), Values(0) {}
+	CSparseFloatVectorDesc() : Size( 0 ), Indexes( nullptr ), Values( nullptr ) {}
 
 	static CSparseFloatVectorDesc Empty;
 };
@@ -62,10 +62,10 @@ public:
 	explicit CSparseFloatVector( const CSparseFloatVectorDesc& desc );
 	CSparseFloatVector( const CSparseFloatVector& other );
 
-	CSparseFloatVectorDesc* CopyOnWrite() { return body == 0 ? 0 : &body.CopyOnWrite()->Desc; }
-	const CSparseFloatVectorDesc& GetDesc() const { return body == 0 ? CSparseFloatVectorDesc::Empty : body->Desc; }
+	CSparseFloatVectorDesc* CopyOnWrite() { return body == nullptr ? nullptr : &body.CopyOnWrite()->Desc; }
+	const CSparseFloatVectorDesc& GetDesc() const { return body == nullptr ? CSparseFloatVectorDesc::Empty : body->Desc; }
 
-	int NumberOfElements() const { return body == 0 ? 0 : body->Desc.Size; }
+	int NumberOfElements() const { return body == nullptr ? 0 : body->Desc.Size; }
 
 	double Norm() const;
 	double NormL1() const;
@@ -148,10 +148,9 @@ public:
 		int operator-( const CIterator& other ) const { return static_cast<int>( Indexes - other.Indexes ); }
 	};
 
-	CConstIterator begin() const { return CConstIterator( body->Desc.Indexes, body->Desc.Values ); }
-	CConstIterator end() const
-		{ return CConstIterator( body->Desc.Indexes + NumberOfElements(), body->Desc.Values + NumberOfElements() ); }
-	CIterator begin() { return CIterator( body->Desc.Indexes, body->Desc.Values ); }
+	CConstIterator begin() const;
+	CConstIterator end() const;
+	CIterator begin();
 	CIterator end();
 
 private:
@@ -205,10 +204,42 @@ inline CArchive& operator >> ( CArchive& archive, CSparseFloatVector& vector )
 	return archive;
 }
 
+inline CSparseFloatVector::CConstIterator CSparseFloatVector::begin() const
+{
+	if( body == nullptr ) {
+		return CConstIterator( nullptr, nullptr );
+	} else {
+		return CConstIterator( body->Desc.Indexes, body->Desc.Values );
+	}
+}
+
+inline CSparseFloatVector::CConstIterator CSparseFloatVector::end() const
+{
+	if( body == nullptr ) {
+		return CConstIterator( nullptr, nullptr );
+	} else {
+		return CConstIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
+	}
+}
+
+inline CSparseFloatVector::CIterator CSparseFloatVector::begin()
+{
+	if( body == nullptr ) {
+		return CIterator( nullptr, nullptr );
+	} else {
+		body.CopyOnWrite();
+		return CIterator( body->Desc.Indexes, body->Desc.Values );
+	}
+}
+
 inline CSparseFloatVector::CIterator CSparseFloatVector::end()
 {
-	body.CopyOnWrite();
-	return CIterator( body->Desc.Indexes + NumberOfElements(), body->Desc.Values + NumberOfElements() );
+	if( body == nullptr ) {
+		return CIterator( nullptr, nullptr );
+	} else {
+		body.CopyOnWrite();
+		return CIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
+	}
 }
 
 } // namespace NeoML
