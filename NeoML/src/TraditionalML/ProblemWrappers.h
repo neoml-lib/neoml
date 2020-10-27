@@ -116,7 +116,7 @@ template<class TProblem>
 class CNotNullWeightsView {
 public:
 	CNotNullWeightsView( const TProblem* problem );
-	virtual ~CNotNullWeightsView();
+	virtual ~CNotNullWeightsView() = default;
 
 	// Calculates the index as if we had the matrix without null weighted elements
 	int CalculateOriginalIndex( int viewedIndex ) const;
@@ -135,6 +135,8 @@ private:
 	CArray<int> notNullWeightElementsIndices;
 	// Number of null weighted elements
 	int nullWeightElementsCount;
+	CArray<int> pointerB;
+	CArray<int> pointerE;
 };
 
 template<class TProblem>

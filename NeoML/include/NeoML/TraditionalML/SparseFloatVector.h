@@ -98,10 +98,13 @@ private:
 	struct NEOML_API CSparseFloatVectorBody : public IObject {
 		const int BufferSize;
 		CSparseFloatVectorDesc Desc;
+		// Memory holders
+		CArray<int> IndexesBuf;
+		CArray<float> ValuesBuf;
 
 		explicit CSparseFloatVectorBody( int bufferSize );
 		explicit CSparseFloatVectorBody( const CSparseFloatVectorDesc& desc );
-		virtual ~CSparseFloatVectorBody();
+		~CSparseFloatVectorBody() override = default;
 
 		CSparseFloatVectorBody* Duplicate() const;
 	};
