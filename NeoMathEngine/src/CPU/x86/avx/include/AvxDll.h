@@ -12,15 +12,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
+
+#pragma once
+
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineCommon.h>
-#include <memory>
+#include <SimdConvolutionEngine.h>
 
 namespace NeoML {
 
-class IAvxDll : public CCrtAllocatedObject {
+class IAvxDllLoader : public CCrtAllocatedObject {
 public:
-	constexpr static char const* GetInstanceFuncName = "GetAvxDllInstance";
+	constexpr static char const* GetInstanceFuncName = "GetAvxDllLoaderInstance";
 
 	#if FINE_PLATFORM( FINE_WINDOWS )
 	constexpr static char const* LibName = "NeoMathEngineAvx.dll";
@@ -32,14 +35,9 @@ public:
 	#error "Platform is not supported!"
 	#endif
 
-	typedef IAvxDll* ( *GetInstanceFunc )( 
-		int filterCount, int channelCount, int filterHeight, int filterWidth,
-		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
-		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth );
-	virtual ~IAvxDll() {}
-	virtual bool IsBlobConvolutionAvailable() const = 0;
-	virtual void BlobConvolution( int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) const = 0;
+	typedef IAvxDllLoader* ( *GetInstanceFunc )();
 
+	virtual ~IAvxDllLoader() = default;
+	virtual std::unique_ptr<ISimdConvolutionEngine> InitAvxConvolutionEngine( int filterCount, int channelCount, int filterHeight, int filterWidth ) = 0;
 };
-
 }

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright � 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,25 +13,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-// These functions only use raw pointers, do not contain any omp sections inside and perform no checks
+#include <common.h>
+#pragma hdrstop
 
-#pragma once
-
-#include <NeoMathEngine/NeoMathEngineDefs.h>
 #include <SimdConvolutionEngine.h>
 
-#if defined(NEOML_USE_SSE)
-
-#include <CpuX86.h>
-#include <CpuX86MathEngineVectorMathPrivate.h>
-
-#elif defined(NEOML_USE_NEON)
-
-#include <CpuArm.h>
-#include <CpuArmMathEngineVectorMathPrivate.h>
-
-#else
-
-#error "Platform isn't supported!"
-
+#if defined(NEOML_USE_SSE) && !FINE_PLATFORM( FINE_ANDROID ) && !FINE_PLATFORM( FINE_IOS )
+// So far implemented only for AVX
+#include <CPU/x86/AvxConvolutionEngine.h>
 #endif
+
+
+namespace NeoML {
+
+std::unique_ptr<ISimdConvolutionEngine> InitSimdConvolutionEngine( int filterCount, int channelCount, int filterHeight, int filterWidth )
+{
+	#if defined(NEOML_USE_SSE) && !FINE_PLATFORM( FINE_ANDROID ) && !FINE_PLATFORM( FINE_IOS )
+	return CAvxConvolutionEngine::GetInstance().InitSimdConvolutionEngine( filterCount, channelCount, filterHeight, filterWidth );
+	#else
+	return nullptr;
+	#endif
+}
+
+}

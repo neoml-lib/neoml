@@ -19,6 +19,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
     CPU/CpuMathEngineVectorMath.cpp
+    CPU/SimdConvolutionEngine.cpp
     CrtAllocatedObject.cpp
     DllLoader.cpp
     MathEngineDeviceStackAllocator.cpp
@@ -44,6 +45,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuRandom.h
     CPU/CpuMathEnginePrivate.h
     CPU/CpuMathEngineOmp.h
+    CPU/SimdConvolutionEngine.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
@@ -132,13 +134,13 @@ else()
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
     if(NOT IOS AND NOT ANDROID)
-        target_sources(${PROJECT_NAME}
-        PRIVATE
-            CPU/x86/NeoMathEngineAvxDll.cpp
-            CPU/x86/NeoMathEngineAvxDll.h
-        )
-        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
-    endif()
+		target_sources(${PROJECT_NAME}
+		PRIVATE
+			CPU/x86/AvxConvolutionEngine.cpp
+			CPU/x86/AvxConvolutionEngine.h
+		)
+		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
+	endif()
 endif()
 
 # GPU specific source and settings

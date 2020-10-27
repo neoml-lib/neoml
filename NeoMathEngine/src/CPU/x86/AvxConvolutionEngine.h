@@ -15,36 +15,30 @@ limitations under the License.
 
 #pragma once
 
-#if !FINE_PLATFORM( FINE_IOS )
-
 #include <NeoMathEngine/NeoMathEngine.h>
-#include <MathEngineDnnConv.h>
 #include <MathEngineDll.h>
 #include <avx/include/AvxDll.h>
 
 namespace NeoML {
 
 // Class support dynamic library which is compiled with AVX for performance increasing.
-class CNeoMathEngineAvxDll : public CDll {
+class CAvxConvolutionEngine : public CDll {
 public:
-	CNeoMathEngineAvxDll( const CNeoMathEngineAvxDll& ) = delete;
-	CNeoMathEngineAvxDll& operator=( const CNeoMathEngineAvxDll& ) = delete;
-	CNeoMathEngineAvxDll( CNeoMathEngineAvxDll&& ) = delete;
-	CNeoMathEngineAvxDll& operator=( CNeoMathEngineAvxDll&& ) = delete;
+	CAvxConvolutionEngine( const CAvxConvolutionEngine& ) = delete;
+	CAvxConvolutionEngine& operator=( const CAvxConvolutionEngine& ) = delete;
+	CAvxConvolutionEngine( CAvxConvolutionEngine&& ) = delete;
+	CAvxConvolutionEngine& operator=( CAvxConvolutionEngine&& ) = delete;
 
-	static CNeoMathEngineAvxDll& GetInstance();
-	bool IsAvailable() const;
-	std::unique_ptr<IAvxDll> GetAvxDllInst( const CCommonConvolutionDesc& desc );
+	static CAvxConvolutionEngine& GetInstance();
+	std::unique_ptr<ISimdConvolutionEngine> InitSimdConvolutionEngine( int filterCount, int channelCount, int filterHeight, int filterWidth );
 
 private:
 	bool isLoaded;
-	IAvxDll::GetInstanceFunc getAvxDllInstFunc;
+	IAvxDllLoader::GetInstanceFunc getAvxDllLoaderFunc;
 
-	CNeoMathEngineAvxDll();
-	~CNeoMathEngineAvxDll() = default;
+	CAvxConvolutionEngine();
+	~CAvxConvolutionEngine() = default;
 
 	static bool isAvxAvailable();
 };
 }
-
-#endif // !FINE_PLATFORM( FINE_IOS )

@@ -16,51 +16,48 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_ANDROID )
+#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
 #include <cpuid.h>
 #endif
 #if FINE_PLATFORM( FINE_WINDOWS )
 #include <intrin.h>
 #endif
 
-#include <NeoMathEngineAvxDll.h>
+#include <AvxConvolutionEngine.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
 
 namespace NeoML {
 
-CNeoMathEngineAvxDll::CNeoMathEngineAvxDll() : isLoaded( false )
+CAvxConvolutionEngine::CAvxConvolutionEngine() : isLoaded( false )
 {
-	if( !isAvxAvailable() || !Load( IAvxDll::LibName ) ) {
+	if( !isAvxAvailable() || !Load( IAvxDllLoader::LibName ) ) {
 		return;
 	}
 
-	getAvxDllInstFunc = reinterpret_cast<IAvxDll::GetInstanceFunc>( GetProcAddress( IAvxDll::GetInstanceFuncName ) );
-	ASSERT_EXPR( getAvxDllInstFunc != nullptr );
+	getAvxDllLoaderFunc = reinterpret_cast<IAvxDllLoader::GetInstanceFunc>( GetProcAddress( IAvxDllLoader::GetInstanceFuncName ) );
+	ASSERT_EXPR( getAvxDllLoaderFunc != nullptr );
 
 	isLoaded = true;
 }
 
-CNeoMathEngineAvxDll& CNeoMathEngineAvxDll::GetInstance()
+CAvxConvolutionEngine& CAvxConvolutionEngine::GetInstance()
 {
-	static CNeoMathEngineAvxDll instance;
+	static CAvxConvolutionEngine instance;
 	return instance;
 }
 
-std::unique_ptr<IAvxDll> CNeoMathEngineAvxDll::GetAvxDllInst( const CCommonConvolutionDesc& desc )
+std::unique_ptr<ISimdConvolutionEngine> CAvxConvolutionEngine::InitSimdConvolutionEngine( int filterCount, int channelCount, int filterHeight, int filterWidth )
 {
 	if( !isLoaded ) {
 		return nullptr;
 	}
-	std::unique_ptr<IAvxDll> avxDll( getAvxDllInstFunc( 
-		desc.Filter.BatchWidth(), desc.Filter.Channels(), desc.Filter.Height(), desc.Filter.Width(),
-		desc.Source.Height(), desc.Source.Width(), desc.StrideHeight, desc.StrideWidth,
-		desc.DilationHeight, desc.DilationWidth, desc.Result.Height(), desc.Result.Width() ) );
-	ASSERT_EXPR( avxDll != nullptr );
-	return avxDll;
+	IAvxDllLoader* avxDllLoader = getAvxDllLoaderFunc();
+	ASSERT_EXPR( avxDllLoader != nullptr );
+	return avxDllLoader->InitAvxConvolutionEngine( filterCount, channelCount, filterHeight, filterWidth );
 }
 
-bool CNeoMathEngineAvxDll::isAvxAvailable()
+bool CAvxConvolutionEngine::isAvxAvailable()
 {
 	// Check for AVX
 	#if FINE_PLATFORM(FINE_WINDOWS)
