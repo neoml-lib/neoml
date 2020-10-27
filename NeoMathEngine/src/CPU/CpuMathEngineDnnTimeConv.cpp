@@ -45,7 +45,7 @@ CTimeConvolutionDesc* CCpuMathEngine::InitTimeConvolution( const CBlobDesc& sour
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( padding < ( filter.Height() - 1 ) * dilation + 1 );
 
-	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( source, filter, result, stride, padding, dilation );
+	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( source, result, filter, stride, padding, dilation );
 	return desc;
 }
 

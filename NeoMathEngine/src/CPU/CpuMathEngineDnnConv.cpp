@@ -46,7 +46,7 @@ struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 
 	CCpuConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
-		CCommonConvolutionDesc( source, filter, result, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
+		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
 		ForwardAlgo( getActualForwardAlgo() ),
 		BackwardAlgo( getActualBackwardAlgo() ),
 		SimdConvolutionEngine( InitSimdConvolutionEngine( filter.BatchWidth(), filter.Channels(), filter.Height(), filter.Width() ) )
@@ -130,7 +130,7 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
 
-	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( source, filter, result,
+	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( source, result, filter,
 		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	return desc;
 }
