@@ -125,7 +125,7 @@ public:
 		CConstIterator operator+( int offset ) const { CConstIterator tmp( *this ); tmp += offset; return tmp; }
 		CConstIterator& operator-=( int offset ) { Indexes -= offset; Values -= offset; return *this; }
 		CConstIterator operator-( int offset ) const { CConstIterator tmp( *this ); tmp -= offset; return tmp; }
-		int operator-( const CConstIterator& other ) const { return static_cast<int>( Indexes - other.Indexes ); }
+		int operator-( const CConstIterator& other ) const;
 
 	protected:
 		int* Indexes;
@@ -139,15 +139,19 @@ public:
 
 		CModifiableElement operator*() const { return CModifiableElement( { *Indexes, *Values } ); }
 
-		CIterator& operator++() { Indexes++; Values++; return *this; }
-		CIterator operator++( int ) { CIterator old( *this ); Indexes++; Values++; return old; }
-		CIterator& operator--() { Indexes--; Values--; return *this; }
-		CIterator operator--( int ) { CIterator old( *this ); Indexes--; Values--; return old; }
-		CIterator& operator+=( int offset ) { Indexes += offset; Values += offset; return *this; }
+		CIterator& operator++() { ++myBase(); return *this; }
+		CIterator operator++( int ) { CIterator old( *this ); ++myBase(); return old; }
+		CIterator& operator--() { --myBase(); return *this; }
+		CIterator operator--( int ) { CIterator old( *this ); --myBase(); return old; }
+		CIterator& operator+=( int offset ) { myBase() += offset; return *this; }
 		CIterator operator+( int offset ) const { CIterator tmp( *this ); tmp += offset; return tmp; }
-		CIterator& operator-=( int offset ) { Indexes -= offset; Values -= offset; return *this; }
+		CIterator& operator-=( int offset ) { myBase() -= offset; return *this; }
 		CIterator operator-( int offset ) const { CIterator tmp( *this ); tmp -= offset; return tmp; }
-		int operator-( const CIterator& other ) const { return static_cast<int>( Indexes - other.Indexes ); }
+		int operator-( const CConstIterator& other ) const { return myBase() - other; }
+
+	private:
+		const CConstIterator& myBase() const { return *this; }
+		CConstIterator& myBase() { return *this; }
 	};
 
 	CConstIterator begin() const;
@@ -174,6 +178,47 @@ private:
 	CCopyOnWritePtr<CSparseFloatVectorBody> body; // The vector body.
 };
 
+inline int CSparseFloatVector::CConstIterator::operator-( const CConstIterator& other ) const
+{
+	NeoPresume( Indexes - other.Indexes == Values - other.Values );
+	return static_cast<int>( Indexes - other.Indexes );
+}
+
+inline CSparseFloatVector::CConstIterator CSparseFloatVector::begin() const
+{
+	if( body == nullptr ) {
+		return CIterator();
+	}
+	return CConstIterator( body->Desc.Indexes, body->Desc.Values );
+}
+
+inline CSparseFloatVector::CConstIterator CSparseFloatVector::end() const
+{
+	if( body == nullptr ) {
+		return CIterator();
+	}
+	return CConstIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
+}
+
+inline CSparseFloatVector::CIterator CSparseFloatVector::begin()
+{
+	if( body == nullptr ) {
+		return CIterator();
+	}
+	body.CopyOnWrite();
+	return CIterator( body->Desc.Indexes, body->Desc.Values );
+}
+
+inline CSparseFloatVector::CIterator CSparseFloatVector::end()
+{
+	if( body == nullptr ) {
+		return CIterator();
+	}
+	body.CopyOnWrite();
+	return CIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
+}
+
+//-----------------------------------------------------------------------------------------------------------
 // Writing into a CTextStream
 inline CTextStream& operator<<( CTextStream& stream, const CSparseFloatVector& vector )
 {
@@ -204,44 +249,6 @@ inline CArchive& operator >> ( CArchive& archive, CSparseFloatVector& vector )
 	NeoPresume( archive.IsLoading() );
 	vector.Serialize( archive );
 	return archive;
-}
-
-inline CSparseFloatVector::CConstIterator CSparseFloatVector::begin() const
-{
-	if( body == nullptr ) {
-		return CIterator();
-	} else {
-		return CConstIterator( body->Desc.Indexes, body->Desc.Values );
-	}
-}
-
-inline CSparseFloatVector::CConstIterator CSparseFloatVector::end() const
-{
-	if( body == nullptr ) {
-		return CIterator();
-	} else {
-		return CConstIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
-	}
-}
-
-inline CSparseFloatVector::CIterator CSparseFloatVector::begin()
-{
-	if( body == nullptr ) {
-		return CIterator();
-	} else {
-		body.CopyOnWrite();
-		return CIterator( body->Desc.Indexes, body->Desc.Values );
-	}
-}
-
-inline CSparseFloatVector::CIterator CSparseFloatVector::end()
-{
-	if( body == nullptr ) {
-		return CIterator();
-	} else {
-		body.CopyOnWrite();
-		return CIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
-	}
 }
 
 } // namespace NeoML
