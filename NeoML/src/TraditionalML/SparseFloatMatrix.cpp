@@ -25,10 +25,10 @@ CSparseFloatMatrixDesc CSparseFloatMatrixDesc::Empty;
 inline CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::CSparseFloatMatrixBody::Duplicate() const
 {
 	CSparseFloatMatrixBody* body = FINE_DEBUG_NEW CSparseFloatMatrixBody( Desc.Height, Desc.Width, ElementCount, RowsBufferSize, ElementsBufferSize );
-	::memcpy( body->Desc.Columns, Desc.Columns, ElementsBufferSize * sizeof( int ) );
-	::memcpy( body->Desc.Values, Desc.Values, ElementsBufferSize * sizeof( float ) );
-	::memcpy( body->Desc.PointerB, Desc.PointerB, RowsBufferSize * sizeof( int ) );
-	::memcpy( body->Desc.PointerE, Desc.PointerE, RowsBufferSize * sizeof( int ) );
+	::memcpy( body->Desc.Columns, Desc.Columns, ElementCount * sizeof( int ) );
+	::memcpy( body->Desc.Values, Desc.Values, ElementCount * sizeof( float ) );
+	::memcpy( body->Desc.PointerB, Desc.PointerB, Desc.Height * sizeof( int ) );
+	::memcpy( body->Desc.PointerE, Desc.PointerE, Desc.Height * sizeof( int ) );
 	return body;
 }
 
