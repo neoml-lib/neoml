@@ -31,6 +31,10 @@ std::unique_ptr<ISimdConvolutionEngine> InitSimdConvolutionEngine( int filterCou
 	#if defined(NEOML_USE_SSE) && !FINE_PLATFORM( FINE_ANDROID ) && !FINE_PLATFORM( FINE_IOS )
 	return CAvxConvolutionEngine::GetInstance().InitSimdConvolutionEngine( filterCount, channelCount, filterHeight, filterWidth );
 	#else
+	( void )filterCount;
+	( void )channelCount;
+	( void )filterHeight;
+	( void )filterWidth;
 	return nullptr;
 	#endif
 }
