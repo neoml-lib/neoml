@@ -93,6 +93,66 @@ public:
 
 	void Serialize( CArchive& archive );
 
+	struct CConstElement {
+		const int Index;
+		const float Value;
+	};
+
+	struct CModifiableElement {
+		int& Index;
+		float& Value;
+	};
+	
+	class CConstIterator {
+	public:
+		CConstIterator( int* indexes, float* values ) : Indexes( indexes ), Values( values ) {}
+
+		CConstElement operator*() const { return CConstElement( { *Indexes, *Values } ); }
+
+		bool operator==( const CConstIterator& other ) const { return other.Indexes == Indexes && other.Values == Values; }
+		bool operator!=( const CConstIterator& other ) const { return !( *this == other ); }
+		bool operator<( const CConstIterator& other ) const { return Indexes < other.Indexes && Values < other.Values; }
+		bool operator>( const CConstIterator& other ) const { return other < *this; }
+		bool operator<=( const CConstIterator& other ) const { return !( *this > other ); }
+		bool operator>=( const CConstIterator& other ) const { return !( *this < other ); }
+
+		CConstIterator& operator++() { Indexes++; Values++; return *this; }
+		CConstIterator operator++( int ) { CConstIterator old( *this ); Indexes++; Values++; return old; }
+		CConstIterator& operator--() { Indexes--; Values--; return *this; }
+		CConstIterator operator--( int ) { CConstIterator old( *this ); Indexes--; Values--; return old; }
+		CConstIterator& operator+=( int offset ) { Indexes += offset; Values += offset; return *this; }
+		CConstIterator operator+( int offset ) const { CConstIterator tmp( *this ); tmp += offset; return tmp; }
+		CConstIterator& operator-=( int offset ) { Indexes -= offset; Values -= offset; return *this; }
+		CConstIterator operator-( int offset ) const { CConstIterator tmp( *this ); tmp -= offset; return tmp; }
+		int operator-( const CConstIterator& other ) const { return static_cast<int>( Indexes - other.Indexes ); }
+
+	protected:
+		int* Indexes;
+		float* Values;
+	};
+
+	class CIterator : public CConstIterator {
+	public:
+		CIterator( int* indexes, float* values ) : CConstIterator( indexes, values ) {}
+
+		CModifiableElement operator*() const { return CModifiableElement( { *Indexes, *Values } ); }
+
+		CIterator& operator++() { Indexes++; Values++; return *this; }
+		CIterator operator++( int ) { CIterator old( *this ); Indexes++; Values++; return old; }
+		CIterator& operator--() { Indexes--; Values--; return *this; }
+		CIterator operator--( int ) { CIterator old( *this ); Indexes--; Values--; return old; }
+		CIterator& operator+=( int offset ) { Indexes += offset; Values += offset; return *this; }
+		CIterator operator+( int offset ) const { CIterator tmp( *this ); tmp += offset; return tmp; }
+		CIterator& operator-=( int offset ) { Indexes -= offset; Values -= offset; return *this; }
+		CIterator operator-( int offset ) const { CIterator tmp( *this ); tmp -= offset; return tmp; }
+		int operator-( const CIterator& other ) const { return static_cast<int>( Indexes - other.Indexes ); }
+	};
+
+	CConstIterator begin() const;
+	CConstIterator end() const;
+	CIterator begin();
+	CIterator end();
+
 private:
 	// The vector body, that is, the object that stores all its data.
 	struct NEOML_API CSparseFloatVectorBody : public IObject {
