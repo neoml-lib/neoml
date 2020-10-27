@@ -187,7 +187,7 @@ inline int CSparseFloatVector::CConstIterator::operator-( const CConstIterator& 
 inline CSparseFloatVector::CConstIterator CSparseFloatVector::begin() const
 {
 	if( body == nullptr ) {
-		return CIterator();
+		return CConstIterator();
 	}
 	return CConstIterator( body->Desc.Indexes, body->Desc.Values );
 }
@@ -195,7 +195,7 @@ inline CSparseFloatVector::CConstIterator CSparseFloatVector::begin() const
 inline CSparseFloatVector::CConstIterator CSparseFloatVector::end() const
 {
 	if( body == nullptr ) {
-		return CIterator();
+		return CConstIterator();
 	}
 	return CConstIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
 }
