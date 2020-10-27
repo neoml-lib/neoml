@@ -148,9 +148,10 @@ public:
 		int operator-( const CIterator& other ) const { return static_cast<int>( Indexes - other.Indexes ); }
 	};
 
-	CConstIterator begin() const;
-	CConstIterator end() const;
-	CIterator begin();
+	CConstIterator begin() const { return CConstIterator( body->Desc.Indexes, body->Desc.Values ); }
+	CConstIterator end() const
+		{ return CConstIterator( body->Desc.Indexes + NumberOfElements(), body->Desc.Values + NumberOfElements() ); }
+	CIterator begin() { return CIterator( body->Desc.Indexes, body->Desc.Values ); }
 	CIterator end();
 
 private:
@@ -202,6 +203,12 @@ inline CArchive& operator >> ( CArchive& archive, CSparseFloatVector& vector )
 	NeoPresume( archive.IsLoading() );
 	vector.Serialize( archive );
 	return archive;
+}
+
+inline CSparseFloatVector::CIterator CSparseFloatVector::end()
+{
+	body.CopyOnWrite();
+	return CIterator( body->Desc.Indexes + NumberOfElements(), body->Desc.Values + NumberOfElements() );
 }
 
 } // namespace NeoML
