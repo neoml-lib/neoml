@@ -94,66 +94,58 @@ public:
 	void Serialize( CArchive& archive );
 
 	template<typename T1, typename T2>
-	struct CElement {
-		T1 Index;
-		T2 Value;
-	};
-	
-	class CConstIterator {
+	class CIterator {
 	public:
-		CConstIterator() : Indexes( nullptr ), Values( nullptr ) {}
-		CConstIterator( int* indexes, float* values ) : Indexes( indexes ), Values( values ) {}
+		struct CElement {
+			T1& Index;
+			T2& Value;
+		};
 
-		const CElement<int, float> operator*() const { return CElement<int, float>( { *Indexes, *Values } ); }
+		CIterator() : Indexes( nullptr ), Values( nullptr ) {}
+		CIterator( T1* indexes, T2* values ) : Indexes( indexes ), Values( values ) {}
 
-		bool operator==( const CConstIterator& other ) const { return other.Indexes == Indexes && other.Values == Values; }
-		bool operator!=( const CConstIterator& other ) const { return !( *this == other ); }
-		bool operator<( const CConstIterator& other ) const { return Indexes < other.Indexes && Values < other.Values; }
-		bool operator>( const CConstIterator& other ) const { return other < *this; }
-		bool operator<=( const CConstIterator& other ) const { return !( *this > other ); }
-		bool operator>=( const CConstIterator& other ) const { return !( *this < other ); }
+		// to allow the creation of const iterator from a non-const
+		template<typename U1, typename U2>
+		CIterator( const CIterator<U1, U2>& it ) : Indexes( it.Indexes ), Values( it.Values ) {}
 
-		CConstIterator& operator++() { Indexes++; Values++; return *this; }
-		CConstIterator operator++( int ) { CConstIterator old( *this ); Indexes++; Values++; return old; }
-		CConstIterator& operator--() { Indexes--; Values--; return *this; }
-		CConstIterator operator--( int ) { CConstIterator old( *this ); Indexes--; Values--; return old; }
-		CConstIterator& operator+=( int offset ) { Indexes += offset; Values += offset; return *this; }
-		CConstIterator operator+( int offset ) const { CConstIterator tmp( *this ); tmp += offset; return tmp; }
-		CConstIterator& operator-=( int offset ) { Indexes -= offset; Values -= offset; return *this; }
-		CConstIterator operator-( int offset ) const { CConstIterator tmp( *this ); tmp -= offset; return tmp; }
-		int operator-( const CConstIterator& other ) const;
+		CElement operator*() const { return CElement( { *Indexes, *Values } ); }
 
-	protected:
-		int* Indexes;
-		float* Values;
-	};
+		template<typename U1, typename U2>
+		bool operator==( const CIterator<U1, U2>& other ) const { return other.Indexes == Indexes && other.Values == Values; }
+		template<typename U1, typename U2>
+		bool operator!=( const CIterator<U1, U2>& other ) const { return !( *this == other ); }
+		template<typename U1, typename U2>
+		bool operator<( const CIterator<U1, U2>& other ) const { return Indexes < other.Indexes && Values < other.Values; }
+		template<typename U1, typename U2>
+		bool operator>( const CIterator<U1, U2>& other ) const { return other < *this; }
+		template<typename U1, typename U2>
+		bool operator<=( const CIterator<U1, U2>& other ) const { return !( *this > other ); }
+		template<typename U1, typename U2>
+		bool operator>=( const CIterator<U1, U2>& other ) const { return !( *this < other ); }
 
-	class CIterator : public CConstIterator {
-	public:
-		CIterator() : CConstIterator() {}
-		CIterator( int* indexes, float* values ) : CConstIterator( indexes, values ) {}
-
-		CElement<int&, float&> operator*() const { return CElement<int&, float&>( { *Indexes, *Values } ); }
-
-		CIterator& operator++() { ++myBase(); return *this; }
-		CIterator operator++( int ) { CIterator old( *this ); ++myBase(); return old; }
-		CIterator& operator--() { --myBase(); return *this; }
-		CIterator operator--( int ) { CIterator old( *this ); --myBase(); return old; }
-		CIterator& operator+=( int offset ) { myBase() += offset; return *this; }
+		CIterator& operator++() { Indexes++; Values++; return *this; }
+		CIterator operator++( int ) { CIterator old( *this ); Indexes++; Values++; return old; }
+		CIterator& operator--() { Indexes--; Values--; return *this; }
+		CIterator operator--( int ) { CIterator old( *this ); Indexes--; Values--; return old; }
+		CIterator& operator+=( int offset ) { Indexes += offset; Values += offset; return *this; }
 		CIterator operator+( int offset ) const { CIterator tmp( *this ); tmp += offset; return tmp; }
-		CIterator& operator-=( int offset ) { myBase() -= offset; return *this; }
+		CIterator& operator-=( int offset ) { Indexes -= offset; Values -= offset; return *this; }
 		CIterator operator-( int offset ) const { CIterator tmp( *this ); tmp -= offset; return tmp; }
-		int operator-( const CConstIterator& other ) const { return myBase() - other; }
+		int operator-( const CIterator& other ) const;
 
 	private:
-		const CConstIterator& myBase() const { return *this; }
-		CConstIterator& myBase() { return *this; }
-	};
+		T1* Indexes;
+		T2* Values;
 
-	CConstIterator begin() const;
-	CConstIterator end() const;
-	CIterator begin();
-	CIterator end();
+		template<typename U1, typename U2> friend class CIterator;
+	};
+	typedef CIterator<const int, const float> TConstIterator;
+	typedef CIterator<int, float> TIterator;
+	
+	TConstIterator begin() const;
+	TConstIterator end() const;
+	TIterator begin();
+	TIterator end();
 
 private:
 	// The vector body, that is, the object that stores all its data.
@@ -174,44 +166,45 @@ private:
 	CCopyOnWritePtr<CSparseFloatVectorBody> body; // The vector body.
 };
 
-inline int CSparseFloatVector::CConstIterator::operator-( const CConstIterator& other ) const
+template<typename T1, typename T2>
+inline int CSparseFloatVector::CIterator<T1, T2>::operator-( const CIterator<T1, T2>& other ) const
 {
 	NeoPresume( Indexes - other.Indexes == Values - other.Values );
 	return static_cast<int>( Indexes - other.Indexes );
 }
 
-inline CSparseFloatVector::CConstIterator CSparseFloatVector::begin() const
+inline CSparseFloatVector::TConstIterator CSparseFloatVector::begin() const
 {
 	if( body == nullptr ) {
-		return CConstIterator();
+		return TConstIterator();
 	}
-	return CConstIterator( body->Desc.Indexes, body->Desc.Values );
+	return TConstIterator( body->Desc.Indexes, body->Desc.Values );
 }
 
-inline CSparseFloatVector::CConstIterator CSparseFloatVector::end() const
+inline CSparseFloatVector::TConstIterator CSparseFloatVector::end() const
 {
 	if( body == nullptr ) {
-		return CConstIterator();
+		return TConstIterator();
 	}
-	return CConstIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
+	return TConstIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
 }
 
-inline CSparseFloatVector::CIterator CSparseFloatVector::begin()
+inline CSparseFloatVector::TIterator CSparseFloatVector::begin()
 {
 	if( body == nullptr ) {
-		return CIterator();
+		return TIterator();
 	}
 	body.CopyOnWrite();
-	return CIterator( body->Desc.Indexes, body->Desc.Values );
+	return TIterator( body->Desc.Indexes, body->Desc.Values );
 }
 
-inline CSparseFloatVector::CIterator CSparseFloatVector::end()
+inline CSparseFloatVector::TIterator CSparseFloatVector::end()
 {
 	if( body == nullptr ) {
-		return CIterator();
+		return TIterator();
 	}
 	body.CopyOnWrite();
-	return CIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
+	return TIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
 }
 
 //-----------------------------------------------------------------------------------------------------------
