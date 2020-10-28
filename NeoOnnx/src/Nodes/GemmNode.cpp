@@ -34,7 +34,7 @@ CGemmNode::CGemmNode( int nodeIndex, const onnx::NodeProto& gemm, int opsetVersi
 	transB( Attributes.GetOptionalInt( "transB", 0 ) )
 {
 	// Older versions have broadcast support
-	CheckNeoOnnxSupport( OpsetVersion >= 7 && OpsetVersion <= MaxOpsetVersion, "opset version", gemm );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", gemm );
 
 	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", gemm );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gemm );
@@ -43,6 +43,10 @@ CGemmNode::CGemmNode( int nodeIndex, const onnx::NodeProto& gemm, int opsetVersi
 	CheckNeoOnnxSupport( beta == 1.0f, "beta != 1", gemm );
 	CheckNeoOnnxSupport( transA == 0, "transA != 0", gemm );
 	CheckNeoOnnxSupport( transB != 0, "transB == 0", gemm );
+	if( OpsetVersion < 7 ) {
+		const int broadcast = Attributes.GetOptionalInt( "broadcast", 0 );
+		CheckNeoOnnxSupport( broadcast != 0, "broadcast == 0", gemm );
+	}
 }
 
 void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
