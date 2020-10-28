@@ -44,7 +44,9 @@ void CConstantOfShapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine
 	tensors[Input[0]].Data->CopyTo( tensors[Output[0]].Shape.GetPtr() );
 
 	CTensor value;
-	Attributes.GetOptionalTensor( "value", value, mathEngine );
+	value.Data = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
+	value.Data->Clear();
+	value = Attributes.GetOptionalTensor( "value", value, mathEngine );
 
 	CBlobDesc outputBlobDesc( value.Data->GetDataType() );
 	for( int dimIndex = 0; dimIndex < tensors[Output[0]].Shape.Size(); ++dimIndex ) {
