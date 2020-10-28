@@ -52,6 +52,7 @@ limitations under the License.
 #include "Nodes/SoftmaxNode.h"
 #include "Nodes/SqueezeNode.h"
 #include "Nodes/TanhNode.h"
+#include "Nodes/TransposeNode.h"
 #include "Nodes/UnsqueezeNode.h"
 
 namespace NeoOnnx {
@@ -138,6 +139,7 @@ REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
 REGISTER_OP_NODE( CSubNode, "Sub" )
 REGISTER_OP_NODE( CSumNode, "Sum" )
 REGISTER_OP_NODE( CTanhNode, "Tanh" )
+REGISTER_OP_NODE( CTransposeNode, "Transpose" )
 REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )
 
 } // namespace
