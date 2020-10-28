@@ -32,8 +32,10 @@ public:
 
 private:
 	// Clip( x, minValue, maxValue ) = max( minValue, min( maxValue, x ) )
-	const float minValue;
-	const float maxValue;
+	float minValue;
+	float maxValue;
+
+	void getClipValues( const CTensorCache& tensors );
 };
 
 } // namespace NeoOnnx
