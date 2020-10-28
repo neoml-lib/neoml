@@ -17,6 +17,8 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 
+#include <NeoML/TraditionalML/SparseVectorIterator.h>
+
 namespace NeoML {
 
 // Sparse vector descriptor
@@ -25,7 +27,7 @@ struct NEOML_API CSparseFloatVectorDesc {
 	int* Indexes;
 	float* Values;
 
-	CSparseFloatVectorDesc() : Size(0), Indexes(0), Values(0) {}
+	CSparseFloatVectorDesc() : Size( 0 ), Indexes( nullptr ), Values( nullptr ) {}
 
 	static CSparseFloatVectorDesc Empty;
 };
@@ -50,22 +52,34 @@ inline float GetValue( const CSparseFloatVectorDesc& vector, int index )
 	return 0.f;
 }
 
-//---------------------------------------------------------------------------------------------------------
+template<typename T1, typename T2>
+struct CSparseVectorElement {
+	typedef T1 TIndex;
+	typedef T2 TValue;
+
+	TIndex& Index;
+	TValue& Value;
+};
 
 // A sparse vector
 // Any value that is not specified is 0
 class NEOML_API CSparseFloatVector {
 	static const int InitialBufferSize = 32;
 public:
+	typedef CSparseVectorElement<const int, const float> TConstElement;
+	typedef CSparseVectorElement<int, float> TElement;
+	typedef CSparseVectorIterator<TConstElement> TConstIterator;
+	typedef CSparseVectorIterator<TElement> TIterator;
+
 	CSparseFloatVector();
 	explicit CSparseFloatVector( int bufferSize );
 	explicit CSparseFloatVector( const CSparseFloatVectorDesc& desc );
 	CSparseFloatVector( const CSparseFloatVector& other );
 
-	CSparseFloatVectorDesc* CopyOnWrite() { return body == 0 ? 0 : &body.CopyOnWrite()->Desc; }
-	const CSparseFloatVectorDesc& GetDesc() const { return body == 0 ? CSparseFloatVectorDesc::Empty : body->Desc; }
+	CSparseFloatVectorDesc* CopyOnWrite() { return body == nullptr ? nullptr : &body.CopyOnWrite()->Desc; }
+	const CSparseFloatVectorDesc& GetDesc() const { return body == nullptr ? CSparseFloatVectorDesc::Empty : body->Desc; }
 
-	int NumberOfElements() const { return body == 0 ? 0 : body->Desc.Size; }
+	int NumberOfElements() const { return body == nullptr ? 0 : body->Desc.Size; }
 
 	double Norm() const;
 	double NormL1() const;
@@ -92,6 +106,11 @@ public:
 	void DivideBy( const CSparseFloatVector& divisor );
 
 	void Serialize( CArchive& archive );
+	
+	TConstIterator begin() const;
+	TConstIterator end() const;
+	TIterator begin();
+	TIterator end();
 
 private:
 	// The vector body, that is, the object that stores all its data.
@@ -112,6 +131,41 @@ private:
 	CCopyOnWritePtr<CSparseFloatVectorBody> body; // The vector body.
 };
 
+inline CSparseFloatVector::TConstIterator CSparseFloatVector::begin() const
+{
+	if( body == nullptr ) {
+		return TConstIterator();
+	}
+	return TConstIterator( body->Desc.Indexes, body->Desc.Values );
+}
+
+inline CSparseFloatVector::TConstIterator CSparseFloatVector::end() const
+{
+	if( body == nullptr ) {
+		return TConstIterator();
+	}
+	return TConstIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
+}
+
+inline CSparseFloatVector::TIterator CSparseFloatVector::begin()
+{
+	if( body == nullptr ) {
+		return TIterator();
+	}
+	body.CopyOnWrite();
+	return TIterator( body->Desc.Indexes, body->Desc.Values );
+}
+
+inline CSparseFloatVector::TIterator CSparseFloatVector::end()
+{
+	if( body == nullptr ) {
+		return TIterator();
+	}
+	body.CopyOnWrite();
+	return TIterator( body->Desc.Indexes + body->Desc.Size, body->Desc.Values + body->Desc.Size );
+}
+
+//-----------------------------------------------------------------------------------------------------------
 // Writing into a CTextStream
 inline CTextStream& operator<<( CTextStream& stream, const CSparseFloatVector& vector )
 {
