@@ -17,6 +17,8 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 
+#include <NeoML/TraditionalML/SparseVectorIterator.h>
+
 namespace NeoML {
 
 // Sparse vector descriptor
@@ -50,13 +52,25 @@ inline float GetValue( const CSparseFloatVectorDesc& vector, int index )
 	return 0.f;
 }
 
-//---------------------------------------------------------------------------------------------------------
+template<typename T1, typename T2>
+struct CSparseVectorElement {
+	typedef T1 TIndex;
+	typedef T2 TValue;
+
+	TIndex& Index;
+	TValue& Value;
+};
 
 // A sparse vector
 // Any value that is not specified is 0
 class NEOML_API CSparseFloatVector {
 	static const int InitialBufferSize = 32;
 public:
+	typedef CSparseVectorElement<const int, const float> TConstElement;
+	typedef CSparseVectorElement<int, float> TElement;
+	typedef CSparseVectorIterator<TConstElement> TConstIterator;
+	typedef CSparseVectorIterator<TElement> TIterator;
+
 	CSparseFloatVector();
 	explicit CSparseFloatVector( int bufferSize );
 	explicit CSparseFloatVector( const CSparseFloatVectorDesc& desc );
@@ -92,55 +106,6 @@ public:
 	void DivideBy( const CSparseFloatVector& divisor );
 
 	void Serialize( CArchive& archive );
-
-	template<typename T1, typename T2>
-	class CIterator {
-	public:
-		struct CElement {
-			T1& Index;
-			T2& Value;
-		};
-
-		CIterator() : Indexes( nullptr ), Values( nullptr ) {}
-		CIterator( T1* indexes, T2* values ) : Indexes( indexes ), Values( values ) {}
-
-		// to allow the creation of const iterator from a non-const
-		template<typename U1, typename U2>
-		CIterator( const CIterator<U1, U2>& it ) : Indexes( it.Indexes ), Values( it.Values ) {}
-
-		CElement operator*() const { return CElement( { *Indexes, *Values } ); }
-
-		template<typename U1, typename U2>
-		bool operator==( const CIterator<U1, U2>& other ) const { return other.Indexes == Indexes && other.Values == Values; }
-		template<typename U1, typename U2>
-		bool operator!=( const CIterator<U1, U2>& other ) const { return !( *this == other ); }
-		template<typename U1, typename U2>
-		bool operator<( const CIterator<U1, U2>& other ) const { return Indexes < other.Indexes && Values < other.Values; }
-		template<typename U1, typename U2>
-		bool operator>( const CIterator<U1, U2>& other ) const { return other < *this; }
-		template<typename U1, typename U2>
-		bool operator<=( const CIterator<U1, U2>& other ) const { return !( *this > other ); }
-		template<typename U1, typename U2>
-		bool operator>=( const CIterator<U1, U2>& other ) const { return !( *this < other ); }
-
-		CIterator& operator++() { Indexes++; Values++; return *this; }
-		CIterator operator++( int ) { CIterator old( *this ); Indexes++; Values++; return old; }
-		CIterator& operator--() { Indexes--; Values--; return *this; }
-		CIterator operator--( int ) { CIterator old( *this ); Indexes--; Values--; return old; }
-		CIterator& operator+=( int offset ) { Indexes += offset; Values += offset; return *this; }
-		CIterator operator+( int offset ) const { CIterator tmp( *this ); tmp += offset; return tmp; }
-		CIterator& operator-=( int offset ) { Indexes -= offset; Values -= offset; return *this; }
-		CIterator operator-( int offset ) const { CIterator tmp( *this ); tmp -= offset; return tmp; }
-		int operator-( const CIterator& other ) const;
-
-	private:
-		T1* Indexes;
-		T2* Values;
-
-		template<typename U1, typename U2> friend class CIterator;
-	};
-	typedef CIterator<const int, const float> TConstIterator;
-	typedef CIterator<int, float> TIterator;
 	
 	TConstIterator begin() const;
 	TConstIterator end() const;
@@ -165,13 +130,6 @@ private:
 
 	CCopyOnWritePtr<CSparseFloatVectorBody> body; // The vector body.
 };
-
-template<typename T1, typename T2>
-inline int CSparseFloatVector::CIterator<T1, T2>::operator-( const CIterator<T1, T2>& other ) const
-{
-	NeoPresume( Indexes - other.Indexes == Values - other.Values );
-	return static_cast<int>( Indexes - other.Indexes );
-}
 
 inline CSparseFloatVector::TConstIterator CSparseFloatVector::begin() const
 {
