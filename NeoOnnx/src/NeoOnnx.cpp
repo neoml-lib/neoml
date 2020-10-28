@@ -47,34 +47,6 @@ static int getOpsetVersion( const onnx::ModelProto& model )
 	return -1;
 }
 
-// Checks if onnx graph's nodes are already in topologically sorted order
-static bool isTopSorted( const onnx::GraphProto& onnxGraph )
-{
-	std::unordered_set<std::string> visited;
-
-	for( const onnx::ValueInfoProto& input : onnxGraph.input() ) {
-		visited.insert( input.name() );
-	}
-
-	for( const onnx::TensorProto& initializer : onnxGraph.initializer() ) {
-		visited.insert( initializer.name() );
-	}
-
-	for( const onnx::NodeProto& node : onnxGraph.node() ) {
-		for( const std::string& nodeInput : node.input() ) {
-			if( nodeInput.size() > 0 && visited.find( nodeInput ) == visited.end() ) {
-				return false;
-			}
-		}
-
-		for( const std::string& nodeOutput : node.output() ) {
-			visited.insert( nodeOutput );
-		}
-	}
-
-	return true;
-}
-
 // Builds array of CNode's based on onnxGraph
 static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, CGraph& graph )
 {
@@ -103,19 +75,26 @@ static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, CGr
 		nodeOutputs.Add( onnxInput.name().c_str(), CLink( graph.NodeCount() - 1, 0 ) );
 	}
 
+	const int firstOpNodeIndex = graph.NodeCount();
+
 	// Add onnx graph's nodes
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
 		graph.Add( COpNode::CreateOpNode( graph.NodeCount(), onnxNode, opsetVersion ) );
-		for( int inputIndex = 0; inputIndex < onnxNode.input_size(); ++inputIndex ) {
-			const std::string& inputName = onnxNode.input( inputIndex );
-			if( inputName.size() > 0 ) {
-				graph[graph.NodeCount() - 1]->Connect( inputIndex, nodeOutputs.Get( inputName.data() ) );
-			}
-		}
 
 		// Add this onnxNode's outputs to the map of onnxNode outputs
 		for( int outputIndex = 0; outputIndex < onnxNode.output_size(); ++outputIndex ) {
 			nodeOutputs.Add( onnxNode.output( outputIndex ).c_str(), CLink( graph.NodeCount() - 1, outputIndex ) );
+		}
+	}
+
+	// Connect nodes
+	for( int opNodeIndex = 0; opNodeIndex < onnxGraph.node_size(); ++opNodeIndex ) {
+		const onnx::NodeProto& onnxNode = onnxGraph.node( opNodeIndex );
+		for( int inputIndex = 0; inputIndex < onnxNode.input_size(); ++inputIndex ) {
+			const std::string& inputName = onnxNode.input( inputIndex );
+			if( inputName.size() > 0 ) {
+				graph[firstOpNodeIndex + opNodeIndex]->Connect( inputIndex, nodeOutputs.Get( inputName.data() ) );
+			}
 		}
 	}
 
@@ -166,10 +145,7 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 {
 	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
-
 	CheckNeoOnnxInternal( dnn.GetLayerCount() == 0, "dnn must be empty" );
-	// We've never met an onnx graph which is not topologically sorted
-	CheckNeoOnnxSupport( isTopSorted( onnxGraph ), "onnxGraph is not topologically sorted" );
 
 	// Step 1: create graph nodes and connect them
 	CGraph graph;
