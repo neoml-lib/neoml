@@ -263,6 +263,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/TrainingModel.h
     ../include/NeoML/TraditionalML/TrustRegionNewtonOptimizer.h
     ../include/NeoML/TraditionalML/VariableMatrix.h
+    ../include/NeoML/TraditionalML/VectorIterator.h
 )
 
 target_include_directories(${PROJECT_NAME}
