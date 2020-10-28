@@ -28,12 +28,12 @@ CSqueezeNode::CSqueezeNode( int nodeIndex, const onnx::NodeProto& squeeze, int o
 	COpNode( nodeIndex, squeeze, opsetVersion )
 {
 	// Newer versions have negiative axes support
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", squeeze );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", squeeze );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", squeeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", squeeze );
 
-	Attributes.GetRequiredIntArray( "axes", axes );
+	Attributes.GetOptionalIntArray( "axes", axes );
 }
 
 void CSqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
@@ -44,10 +44,11 @@ void CSqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mat
 	
 	int axisIndex = 0;
 	for( int i = 0; i < inputShape.Size(); ++i ) {
-		if( axisIndex < axes.Size() && i == axes[axisIndex] ) {
+		if( axisIndex < axes.Size() && ( i == axes[axisIndex] || i == axes[axisIndex] + inputShape.Size() ) ) {
 			CheckOnnxProtocol( inputShape[i] == 1, "squeezed dimensions must be of length 1", OnnxNode );
 			++axisIndex;
-		} else {
+		} else if( !axes.IsEmpty() || inputShape[i] != 1 ) {
+			// If axes array is empty we should remove all of the dims with size == 1
 			outputShape.Add( inputShape[i] );
 		}
 	}
@@ -61,14 +62,15 @@ void CSqueezeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims
 		return;
 	}
 
+	const CTensorShape& inputShape = tensors[Input[0]].Shape;
 	const CTensorDim& inputDim = dims[Input[0]];
 
 	CTensorDim outputDim;
 	int axisIndex = 0;
 	for( int i = 0; i < inputDim.Size(); ++i ) {
-		if( axisIndex < axes.Size() && i == axes[axisIndex] ) {
+		if( axisIndex < axes.Size() && ( i == axes[axisIndex] || i == axes[axisIndex] + inputShape.Size() ) ) {
 			++axisIndex;
-		} else {
+		} else if( !axes.IsEmpty() || inputShape[i] != 1 ) {
 			outputDim.Add( inputDim[i] );
 		}
 	}
