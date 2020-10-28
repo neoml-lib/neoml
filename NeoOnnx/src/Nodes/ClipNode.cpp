@@ -26,13 +26,19 @@ namespace NeoOnnx {
 
 CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion ) :
 	COpNode( nodeIndex, clip, opsetVersion ),
-	minValue( Attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
-	maxValue( Attributes.GetOptionalFloat( "max", FLT_MAX ) )
+	minValue( -FLT_MAX ),
+	maxValue( FLT_MAX )
 {
-	// Newer versions are getting min and max values from node inputs instead of node attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", clip );
+	// v1 and v6 get min/max values from node attributes
+	// v11 and older get min/max value from additional inputs
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", clip );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", clip );
+	if( OpsetVersion < 11 ) {
+		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", clip );
+	} else {
+		CheckOnnxProtocol( InputCount() >= 1 || InputCount() <= 3, "node must have from 1 up to 3 inputs", clip );
+	}
+
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", clip );
 }
 
@@ -56,10 +62,11 @@ void CClipNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 	}
 }
 
-void CClipNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
+void CClipNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( minValue == 0.f, "'min' value must be equal to 0", OnnxNode );
+	getClipValues( tensors );
+	CheckNeoOnnxSupport( minValue == 0.f, "clipping with min != 0", OnnxNode );
 
 	CPtr<CReLULayer> relu = new CReLULayer( dnn.GetMathEngine() );
 	relu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
@@ -72,6 +79,36 @@ void CClipNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* ten
 	dnn.AddLayer( *relu );
 
 	neoMLLinks[Output[0]] = CNeoMLLink( relu, 0 );
+}
+
+// Gets clip values based on opset version
+void CClipNode::getClipValues( const CTensorCache& tensors )
+{
+	if( OpsetVersion < 11 ) {
+		minValue = Attributes.GetOptionalFloat( "min", -FLT_MAX );
+		maxValue = Attributes.GetOptionalFloat( "max", FLT_MAX );
+		return;
+	}
+
+	if( InputCount() > 1 ) {
+		const CDnnBlob* minValueBlob = tensors[Input[1]].Data;
+		CheckNeoOnnxSupport( minValueBlob != nullptr, "user-provided clip min value", OnnxNode );
+		if( minValueBlob->GetDataType() == CT_Float ) {
+			minValue = minValueBlob->GetData<float>().GetValue();
+		} else {
+			minValue = static_cast<float>( minValueBlob->GetData<int>().GetValue() );
+		}
+
+		if( InputCount() > 2 ) {
+			const CDnnBlob* maxValueBlob = tensors[Input[2]].Data;
+			CheckNeoOnnxSupport( maxValueBlob != nullptr, "user-provided clip min value", OnnxNode );
+			if( maxValueBlob->GetDataType() == CT_Float ) {
+				maxValue = maxValueBlob->GetData<float>().GetValue();
+			} else {
+				maxValue = static_cast<float>( maxValueBlob->GetData<int>().GetValue() );
+			}
+		}
+	}
 }
 
 } // namespace NeoOnnx
