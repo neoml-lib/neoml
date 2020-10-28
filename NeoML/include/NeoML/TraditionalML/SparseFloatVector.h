@@ -93,14 +93,10 @@ public:
 
 	void Serialize( CArchive& archive );
 
-	struct CConstElement {
-		const int Index;
-		const float Value;
-	};
-
-	struct CModifiableElement {
-		int& Index;
-		float& Value;
+	template<typename T1, typename T2>
+	struct CElement {
+		T1 Index;
+		T2 Value;
 	};
 	
 	class CConstIterator {
@@ -108,7 +104,7 @@ public:
 		CConstIterator() : Indexes( nullptr ), Values( nullptr ) {}
 		CConstIterator( int* indexes, float* values ) : Indexes( indexes ), Values( values ) {}
 
-		CConstElement operator*() const { return CConstElement( { *Indexes, *Values } ); }
+		const CElement<int, float> operator*() const { return CElement<int, float>( { *Indexes, *Values } ); }
 
 		bool operator==( const CConstIterator& other ) const { return other.Indexes == Indexes && other.Values == Values; }
 		bool operator!=( const CConstIterator& other ) const { return !( *this == other ); }
@@ -137,7 +133,7 @@ public:
 		CIterator() : CConstIterator() {}
 		CIterator( int* indexes, float* values ) : CConstIterator( indexes, values ) {}
 
-		CModifiableElement operator*() const { return CModifiableElement( { *Indexes, *Values } ); }
+		CElement<int&, float&> operator*() const { return CElement<int&, float&>( { *Indexes, *Values } ); }
 
 		CIterator& operator++() { ++myBase(); return *this; }
 		CIterator operator++( int ) { CIterator old( *this ); ++myBase(); return old; }
