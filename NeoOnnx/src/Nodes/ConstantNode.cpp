@@ -36,11 +36,7 @@ CConstantNode::CConstantNode( int nodeIndex, const onnx::NodeProto& constant, in
 
 void CConstantNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CPtr<CDnnBlob> value = Attributes.GetRequiredTensor( "value", mathEngine );
-	CheckNeoOnnxSupport( value->GetDataSize() == 1, "'value' must be tensor of size 1", OnnxNode );
-
-	tensors[Output[0]].Shape = { 1 };
-	tensors[Output[0]].Data = value;
+	tensors[Output[0]] = Attributes.GetRequiredTensor( "value", mathEngine );
 }
 
 } // namespace NeoOnnx

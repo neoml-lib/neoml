@@ -93,16 +93,24 @@ void extractValue<CFastArray<int, 8>>( const onnx::AttributeProto& attribute, CF
 }
 
 template<>
-void extractValue<CPtr<CDnnBlob>>( const onnx::AttributeProto& attribute, CPtr<CDnnBlob>& value,
+void extractValue<CTensor>( const onnx::AttributeProto& attribute, CTensor& value,
 	const onnx::NodeProto& onnxNode )
 {
 	CheckOnnxProtocol( attribute.has_t(), CString( "attribute " ) + attribute.name().c_str() + " is not a tensor", onnxNode );
+	
 	TBlobType resultDataType = GetBlobType( static_cast<onnx::TensorProto_DataType>( attribute.t().data_type() ) );
-	value = CDnnBlob::CreateVector( value->GetMathEngine(), resultDataType, 1 );
+	CBlobDesc desc( resultDataType );
+	value.Shape.Empty();
+	for( int i = 0; i < attribute.t().dims().size(); ++i ) {
+		desc.SetDimSize( i, attribute.t().dims().Get( i ) );
+		value.Shape.Add( attribute.t().dims().Get( i ) );
+	}
+	value.Data = CDnnBlob::CreateBlob( value.Data->GetMathEngine(), resultDataType, desc );
+	
 	if( resultDataType == CT_Float ) {
-		LoadBlobData<float>( attribute.t(), *value );
+		LoadBlobData<float>( attribute.t(), *value.Data );
 	} else {
-		LoadBlobData<int>( attribute.t(), *value );
+		LoadBlobData<int>( attribute.t(), *value.Data );
 	}
 }
 
@@ -156,11 +164,15 @@ CString COpNodeAttributes::GetOptionalString( const CString& name, const CString
 	return result;
 }
 
-CPtr<CDnnBlob> COpNodeAttributes::GetOptionalTensor( const CString& name, CDnnBlob& defaultValue ) const
+CTensor COpNodeAttributes::GetOptionalTensor( const CString& name, CTensor& defaultValue, IMathEngine& mathEngine ) const
 {
-	CPtr<CDnnBlob> result = &defaultValue;
-	getValue( name, attributes, result, onnxNode );
-	return result;
+	CTensor result;
+	result.Data = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
+	result.Shape = { 1 };
+	if( getValue( name, attributes, result, onnxNode ) ) {
+		return result;
+	}
+	return defaultValue;
 }
 
 int COpNodeAttributes::GetRequiredInt( const CString& name ) const
@@ -199,9 +211,11 @@ CString COpNodeAttributes::GetRequiredString( const CString& name ) const
 	return result;
 }
 
-CPtr<CDnnBlob> COpNodeAttributes::GetRequiredTensor( const CString& name, IMathEngine& mathEngine ) const
+CTensor COpNodeAttributes::GetRequiredTensor( const CString& name, IMathEngine& mathEngine ) const
 {
-	CPtr<CDnnBlob> result = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
+	CTensor result;
+	result.Data = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
+	result.Shape = { 1 };
 	CheckOnnxProtocol( getValue( name, attributes, result, onnxNode ), "required attribute is missing: " + name, onnxNode );
 	return result;
 }

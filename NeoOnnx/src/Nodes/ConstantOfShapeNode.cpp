@@ -43,20 +43,19 @@ void CConstantOfShapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine
 	tensors[Output[0]].Shape.SetSize( tensors[Input[0]].Data->GetDataSize() );
 	tensors[Input[0]].Data->CopyTo( tensors[Output[0]].Shape.GetPtr() );
 
-	CPtr<CDnnBlob> value = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
-	value->Clear();
-	Attributes.GetOptionalTensor( "value", *value );
+	CTensor value;
+	Attributes.GetOptionalTensor( "value", value, mathEngine );
 
-	CBlobDesc outputBlobDesc( value->GetDataType() );
+	CBlobDesc outputBlobDesc( value.Data->GetDataType() );
 	for( int dimIndex = 0; dimIndex < tensors[Output[0]].Shape.Size(); ++dimIndex ) {
 		outputBlobDesc.SetDimSize( dimIndex, tensors[Output[0]].Shape[dimIndex] );
 	}
 
-	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, value->GetDataType(), outputBlobDesc );
+	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, value.Data->GetDataType(), outputBlobDesc );
 	if( tensors[Output[0]].Data->GetDataType() == CT_Float ) {
-		tensors[Output[0]].Data->Fill( value->GetData().GetValue() );
+		tensors[Output[0]].Data->Fill( value.Data->GetData().GetValue() );
 	} else {
-		tensors[Output[0]].Data->Fill<int>( value->GetData<int>().GetValue() );
+		tensors[Output[0]].Data->Fill<int>( value.Data->GetData<int>().GetValue() );
 	}
 }
 
