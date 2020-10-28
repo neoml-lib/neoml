@@ -31,7 +31,7 @@ public:
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	const int axis; // axis index along which tensors are concatenated
+	int axis; // axis index along which tensors are concatenated
 };
 
 } // namespace NeoOnnx

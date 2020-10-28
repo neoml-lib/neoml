@@ -26,10 +26,10 @@ namespace NeoOnnx {
 
 CConcatNode::CConcatNode( int nodeIndex, const onnx::NodeProto& concat, int opsetVersion ) :
 	COpNode( nodeIndex, concat, opsetVersion ),
-	axis( Attributes.GetRequiredInt( "axis" ) )
+	axis( opsetVersion < 4 ? Attributes.GetOptionalInt( "axis", 1 ) : Attributes.GetRequiredInt( "axis" ) )
 {
 	// Older versions have "axis" attribute as optional, not as required
-	CheckNeoOnnxSupport( OpsetVersion >= 4 && OpsetVersion <= MaxOpsetVersion, "opset version", concat );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", concat );
 
 	CheckOnnxProtocol( InputCount() > 1, "node must have more than 1 inputs", concat );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", concat );
