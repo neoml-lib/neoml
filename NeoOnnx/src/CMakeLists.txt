@@ -42,6 +42,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/SoftmaxNode.cpp
     Nodes/SqueezeNode.cpp
     Nodes/TanhNode.cpp
+    Nodes/TransposeNode.cpp
     Nodes/UnsqueezeNode.cpp
     NodeUtils.cpp
 
@@ -85,6 +86,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/SoftmaxNode.h
     Nodes/SqueezeNode.h
     Nodes/TanhNode.h
+    Nodes/TransposeNode.h
     Nodes/UnsqueezeNode.h
     NodeUtils.h
     Tensor.h
