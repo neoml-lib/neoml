@@ -30,6 +30,8 @@ class COpNodeAttributes {
 public:
 	explicit COpNodeAttributes( const onnx::NodeProto& node );
 
+	bool Has( const CString& name ) const { return attributes.Has( name ); }
+
 	// Getters for optional attributes
 	// Returns default values (or empty arrays) if attribute is missing
 	int GetOptionalInt( const CString& name, int defaultValue ) const;
