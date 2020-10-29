@@ -313,15 +313,34 @@ CFloatVector& CFloatVector::operator -= ( const CSparseFloatVector& vector )
 	return *this;
 }
 
-CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, double factor )
+CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, float factor )
 {
 	float* ptr = CopyOnWrite();
-	const int size = body->Values.Size();
 	const int numberOfElements = desc.Size;
-	for(int i = 0; i < numberOfElements; i++) {
-		int j = desc.Indexes[i];
-		if( j < size) {
+	const int size = body->Values.Size();
+	if( size > desc.Indexes[numberOfElements-1] ) {
+		int i = 0;
+		for( i = 0; i < numberOfElements - 4; i += 4 ) {
+			int j = desc.Indexes[i];
+			int j1 = desc.Indexes[i+1];
+			int j2 = desc.Indexes[i+2];
+			int j3 = desc.Indexes[i+3];
 			ptr[j] = static_cast<float>( ptr[j] + desc.Values[i] * factor );
+			ptr[j1] = static_cast<float>( ptr[j1] + desc.Values[i+1] * factor );
+			ptr[j2] = static_cast<float>( ptr[j2] + desc.Values[i+2] * factor );
+			ptr[j3] = static_cast<float>( ptr[j3] + desc.Values[i+3] * factor );
+		}
+		while( i < numberOfElements ) {
+			int j = desc.Indexes[i];
+			ptr[j] = static_cast<float>( ptr[j] + desc.Values[i] * factor );
+			++i;
+		}
+	} else {
+		for(int i = 0; i < numberOfElements; i++) {
+			int j = desc.Indexes[i];
+			if( j < size) {
+				ptr[j] = static_cast<float>( ptr[j] + desc.Values[i] * factor );
+			}
 		}
 	}
 	return *this;

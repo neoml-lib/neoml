@@ -65,8 +65,8 @@ public:
 
 	// Adds the given vector multiplied by factor
 	CFloatVector& MultiplyAndAdd( const CFloatVector& vector, double factor );
-	CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor ) { return MultiplyAndAdd( vector.GetDesc(), factor ); }
-	CFloatVector& MultiplyAndAdd( const CSparseFloatVectorDesc& vector, double factor );
+	CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, float factor ) { return MultiplyAndAdd( vector.GetDesc(), factor ); }
+	CFloatVector& MultiplyAndAdd( const CSparseFloatVectorDesc& vector, float factor );
 
 	// Adds the given vector, extended by one with the help of LinearFunction gradient, and then multiplied by factor
 	CFloatVector& MultiplyAndAddExt( const CFloatVector& vector, double factor );
