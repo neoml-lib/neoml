@@ -57,11 +57,9 @@ static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, CGr
 	// Add graph initializers
 	CHashTable<CString> initializers;
 	for( const onnx::TensorProto& onnxInitializer : onnxGraph.initializer() ) {
-		if( onnxInitializer.dims_size() > 0 ) {
-			graph.Add( new CGraphInitializer( graph.NodeCount(), onnxInitializer ) );
-			nodeOutputs.Add( onnxInitializer.name().c_str(), CLink( graph.NodeCount() - 1, 0 ) );
-			initializers.Add( onnxInitializer.name().c_str() );
-		}
+		graph.Add( new CGraphInitializer( graph.NodeCount(), onnxInitializer ) );
+		nodeOutputs.Add( onnxInitializer.name().c_str(), CLink( graph.NodeCount() - 1, 0 ) );
+		initializers.Add( onnxInitializer.name().c_str() );
 	}
 
 	// Add graph inputs
