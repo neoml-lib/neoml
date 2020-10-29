@@ -28,7 +28,6 @@ CGraphInitializer::CGraphInitializer( int nodeIndex, const onnx::TensorProto& _i
 	CNode( nodeIndex, 0, 1 ),
 	initializer( _initializer )
 {
-	assert( initializer.dims_size() > 0 );
 }
 
 void CGraphInitializer::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
@@ -38,6 +37,11 @@ void CGraphInitializer::CalcOutputTensors( CTensorCache& tensors, IMathEngine& m
 
 	for( int dimIndex = 0; dimIndex < initializer.dims_size(); ++dimIndex ) {
 		outputShape.Add( static_cast<int>( initializer.dims( dimIndex ) ) );
+	}
+
+	if( outputShape.IsEmpty() ) {
+		// Tensor without dims is a scalar
+		outputShape.Add( 1 );
 	}
 
 	CBlobDesc blobDesc;
