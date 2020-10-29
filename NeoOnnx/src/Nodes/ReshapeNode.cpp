@@ -70,12 +70,21 @@ static bool createTensorLabeling( const CTensorShape& srcShape, const CTensorDim
 	return left + right == dstDim.Size();
 }
 
+static CPtr<CDnnBlob> reshapeBlob( CDnnBlob& inputBlob, const CTensorShape& newShape )
+{
+	CBlobDesc desc( inputBlob.GetDataType() );
+	for( int i = 0; i < newShape.Size(); ++i ) {
+		desc.SetDimSize( i, newShape[i] );
+	}
+	CPtr<CDnnBlob> result = inputBlob.GetCopy();
+	result->ReinterpretDimensions( desc );
+	return result;
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 
 CReshapeNode::CReshapeNode( int nodeIndex, const onnx::NodeProto& reshape, int opsetVersion ) :
-	COpNode( nodeIndex, reshape, opsetVersion ),
-	hasFixedShape( false ),
-	hasRemainder( false )
+	COpNode( nodeIndex, reshape, opsetVersion )
 {
 	// In opsetVersion == 1 new shape is given as node attribute
 	// Since opsetVersion == 5 new shape is acquired from the second input
@@ -91,7 +100,6 @@ CReshapeNode::CReshapeNode( int nodeIndex, const onnx::NodeProto& reshape, int o
 
 void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant first input", OnnxNode );
 	if( OpsetVersion >= 5 ) {
 		CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant second input", OnnxNode );
 		shape.SetSize( tensors[Input[1]].Data->GetDataSize() );
@@ -99,9 +107,6 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mat
 	} else {
 		Attributes.GetRequiredIntArray( "shape", shape );
 	}
-
-	hasFixedShape = false;
-	hasRemainder = false;
 
 	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	outputShape.SetSize( shape.Size() );
@@ -127,7 +132,6 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mat
 				CheckOnnxProtocol( remDim == -1, "only one dimension can be -1", OnnxNode );
 				outputShape[i] = 1;
 				remDim = i;
-				hasRemainder = true;
 				break;
 			default:
 				// Fixed dim size
@@ -135,7 +139,6 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mat
 				CheckOnnxProtocol( rem % shape[i] == 0, "input's elements count isn't divisible by shape", OnnxNode );
 				rem /= shape[i];
 				outputShape[i] = shape[i];
-				hasFixedShape = true;
 		}
 	}
 
@@ -143,11 +146,18 @@ void CReshapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mat
 		outputShape[remDim] = static_cast<int>( rem );
 	}
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
+	if( tensors[Input[0]].Data != nullptr ) {
+		tensors[Output[0]].Data = reshapeBlob( *tensors[Input[0]].Data, outputShape );
+	}
 }
 
 void CReshapeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
+	if( tensors[Output[0]].Data != nullptr ) {
+		// The data already has been pre-calculated
+		return;
+	}
+
 	if( !dims[Output[0]].IsEmpty() && dims[Input[0]].IsEmpty() ) {
 		CTensorDim inputDim;
 		if( createTensorLabeling( tensors[Output[0]].Shape, dims[Output[0]], tensors[Input[0]].Shape, inputDim ) ) {
@@ -157,12 +167,11 @@ void CReshapeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims
 	}
 }
 
-void CReshapeNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& dims,
+void CReshapeNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	if( !hasRemainder && !hasFixedShape ) {
-		// Strange case, reshape doesn't do anything
-		neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
+	if( tensors[Output[0]].Data != nullptr ) {
+		// The data already has been pre-calculated
 		return;
 	}
 

@@ -31,9 +31,6 @@ public:
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	bool hasFixedShape; // Does this op has fixed shape for any of dimensions (shape[i] > 0)
-	bool hasRemainder; // Does this op has a remainder dimension (shape[i] == -1)
-
 	CArray<int> shape; // Shape input value
 };
 
