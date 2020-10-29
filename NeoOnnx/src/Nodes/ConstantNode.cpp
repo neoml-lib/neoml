@@ -28,7 +28,7 @@ CConstantNode::CConstantNode( int nodeIndex, const onnx::NodeProto& constant, in
 	COpNode( nodeIndex, constant, opsetVersion )
 {
 	// Newer versions support values in sparse format
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", constant );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", constant );
 
 	CheckOnnxProtocol( InputCount() == 0, "node must have no inputs", constant );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constant );
@@ -36,6 +36,7 @@ CConstantNode::CConstantNode( int nodeIndex, const onnx::NodeProto& constant, in
 
 void CConstantNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
+	CheckNeoOnnxSupport( Attributes.Has( "value" ), "non-tensor constant", OnnxNode );
 	tensors[Output[0]] = Attributes.GetRequiredTensor( "value", mathEngine );
 }
 
