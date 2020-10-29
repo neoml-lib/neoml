@@ -55,15 +55,12 @@ void CMatMulNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* math
 
 void CMatMulNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( !dims[Input[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"labeling output dimensions failed", OnnxNode );
-	}
-
-	if( !dims[Output[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"labeling input dimensions failed", OnnxNode );
-	}
+	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Output[0]] ),
+		"labeling output dimensions failed", OnnxNode );
+	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Input[0]] ),
+		"labeling input dimensions failed", OnnxNode );
+	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[1]].Shape, { BD_BatchWidth, BD_Channels }, dims[Input[0]] ),
+		"labeling input dimensions failed", OnnxNode );
 }
 
 void CMatMulNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
