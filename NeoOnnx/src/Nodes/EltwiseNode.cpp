@@ -217,6 +217,7 @@ CPtr<CDnnBlob> CEltwiseNodeBase::broadcast( const CTensor &input, const CTensorS
 	bool negative, bool inverted ) const
 {
 	CheckNeoOnnxInternal( input.Data != nullptr, "cannot broadcast tensor with user data", OnnxNode );
+	CheckNeoOnnxInternal( outputShape.Size() == outputDim.Size(), "can't broadcast to unlableled blob", OnnxNode );
 	CBlobDesc outputDesc( CT_Float );
 	for( int i = 0; i < outputShape.Size(); ++i ) {
 		outputDesc.SetDimSize( outputDim[i], outputShape[i] );
