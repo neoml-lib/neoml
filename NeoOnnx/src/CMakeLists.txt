@@ -31,6 +31,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/IdentityNode.cpp
     Nodes/LeakyReluNode.cpp
     Nodes/LstmNode.cpp
+    Nodes/MatMulNode.cpp
     Nodes/PadNode.cpp
     Nodes/PoolNode.cpp
     Nodes/ReduceMeanNode.cpp
@@ -75,6 +76,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/IdentityNode.h
     Nodes/LeakyReluNode.h
     Nodes/LstmNode.h
+    Nodes/MatMulNode.h
     Nodes/PadNode.h
     Nodes/PoolNode.h
     Nodes/ReduceMeanNode.h
