@@ -27,8 +27,9 @@ namespace NeoOnnx {
 CGatherNode::CGatherNode( int nodeIndex, const onnx::NodeProto& gather, int opsetVersion ) :
 	COpNode( nodeIndex, gather, opsetVersion )
 {
-	// Newer versions support negative indices
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", gather );
+	// The difference etween v1 and v11 is in supported types
+	// But NeoML doesn't support new data types anyway
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", gather );
 
 	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", gather );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gather );
