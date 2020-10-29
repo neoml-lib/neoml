@@ -19,14 +19,20 @@ limitations under the License.
 #include "NodeUtils.h"
 #include "Node.h"
 #include "Nodes/FlattenNode.h"
+#include "Nodes/ReshapeNode.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CPtr<CDnnBlob> RepackWeightIfFlattened( const CNode* node, const CTensorCache& tensors, const CDimCache& dims, CDnnBlob* weight )
+CPtr<CDnnBlob> RepackWeightIfFlattened( const CNode* node, const CTensorCache& tensors, const CDimCache& dims,
+	CDnnBlob* weight )
 {
-	if( dynamic_cast<const CFlattenNode*>( node ) == nullptr ) {
+	const CReshapeNode* reshape = dynamic_cast<const CReshapeNode*>( node );
+	const CFlattenNode* flatten = dynamic_cast<const CFlattenNode*>( node );
+	if( ( reshape == nullptr || tensors[reshape->GetInput( 0 )].Shape.Size() <= 2 ) 
+		&& flatten == nullptr )
+	{
 		return weight;
 	}
 
