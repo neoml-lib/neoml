@@ -27,8 +27,9 @@ namespace NeoOnnx {
 CUnsqueezeNode::CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze, int opsetVersion ) :
 	COpNode( nodeIndex, unsqueeze, opsetVersion )
 {
-	// Newer versions have negative axes support
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", unsqueeze);
+	// v1 - original
+	// v11 - supported negative axes values
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", unsqueeze);
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", unsqueeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", unsqueeze );
@@ -44,7 +45,7 @@ void CUnsqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* m
 	outputShape.SetSize( inputShape.Size() + axes.Size() );
 	int axisIndex = 0;
 	for( int i = 0; i < outputShape.Size(); ++i ) {
-		if( axisIndex < axes.Size() && i == axes[axisIndex] ) {
+		if( axisIndex < axes.Size() && ( i == axes[axisIndex] || i == axes[axisIndex] + outputShape.Size() ) ) {
 			outputShape[i] = 1;
 			axisIndex++;
 		} else {
