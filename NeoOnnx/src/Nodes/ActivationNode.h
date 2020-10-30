@@ -72,6 +72,16 @@ public:
 	void CheckOnnxNode() const override;
 };
 
+// HardSigmoid operator node
+class CHardSigmoidNode : public CActivationNode {
+public:
+	CHardSigmoidNode( int nodeIndex, const onnx::NodeProto& hardSigmoid, int opsetVersion );
+
+	// CActivationNode methods' realizations
+	void CheckOnnxNode() const override;
+	void SetLayerParams( const CTensorCache& tensors, CBaseLayer* layer ) const override;
+};
+
 // LeakyRelu operator node
 class CLeakyReluNode : public CActivationNode {
 public:
