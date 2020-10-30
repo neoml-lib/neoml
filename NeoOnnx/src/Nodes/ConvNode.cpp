@@ -145,7 +145,7 @@ void CConvNode::add2dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& ne
 			1, filter->GetData(), filter->GetDataSize() );
 	}
 	
-	conv->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	conv->SetName( Name );
 	conv->SetFilterCount( filterCount );
 	conv->SetFilterHeight( filterHeight );
 	conv->SetFilterWidth( filterWidth );
@@ -196,7 +196,7 @@ void CConvNode::add3dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& ne
 		filterCount, filterHeight, filterWidth, filterDepth, inputChannels );
 	mathEngine.TransposeMatrix( filterCount, tensors[Input[1]].Data->GetData(), inputChannels, 1,
 		filterHeight * filterWidth * filterDepth, 1, filter->GetData(), filter->GetDataSize() );
-	conv->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	conv->SetName( Name );
 	conv->SetFilterCount( filterCount );
 	conv->SetFilterHeight( filterHeight );
 	conv->SetFilterWidth( filterWidth );

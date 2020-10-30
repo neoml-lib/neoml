@@ -29,11 +29,6 @@ public:
 	void LabelTensorDims( const CTensorCache& /* tensors */, CDimCache& /* dims */ ) override {}
 	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
-
-	const CString& Name() const { return name; }
-
-private:
-	const CString name; // Graph output name
 };
 
 } // namespace NeoOnnx

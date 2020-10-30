@@ -67,7 +67,7 @@ void CDropoutNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* 
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CDropoutLayer> dropout = new CDropoutLayer( dnn.GetMathEngine() );
-	dropout->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	dropout->SetName( Name );
 	dropout->SetDropoutRate( ratio );
 
 	dropout->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );

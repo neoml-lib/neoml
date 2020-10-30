@@ -66,7 +66,7 @@ void CBatchNormalizationNode::AddLayers( const CGraph& /* graph */, const CTenso
 		"operation must be performed along output's BD_Channels", OnnxNode );
 
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );
-	bnLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	bnLayer->SetName( Name );
 
 	// Since v9 batch normalization is always spatial
 	// Before that spatial was set by a flag

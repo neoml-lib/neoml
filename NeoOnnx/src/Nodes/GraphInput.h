@@ -30,10 +30,7 @@ public:
 	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
 		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
-	const CString& Name() const { return name; }
-
 private:
-	const CString name; // Graph input name
 	const onnx::ValueInfoProto& valueInfo; // Input information from onnx
 };
 

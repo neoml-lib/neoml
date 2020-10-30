@@ -26,8 +26,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CGraphInput::CGraphInput( int nodeIndex, const onnx::ValueInfoProto& _input ) :
-	CNode( nodeIndex, 0, 1 ),
-	name( _input.name().c_str() ),
+	CNode( nodeIndex, _input.name(), 0, 1 ),
 	valueInfo( _input )
 {
 }
@@ -49,7 +48,7 @@ void CGraphInput::AddLayers( const CGraph& /* graph */, const CTensorCache& tens
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
-	source->SetName( name );
+	source->SetName( Name );
 
 	CheckNeoOnnxSupport( valueInfo.type().has_tensor_type(), "Only tensors supported for graph input values" );
 	CBlobDesc outputBlobDesc(

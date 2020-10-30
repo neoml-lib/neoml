@@ -132,7 +132,7 @@ void CPoolNodeBase::AddLayers( const CGraph& /* graph */, const CTensorCache& /*
 		default:
 			CheckNeoOnnxInternal( false, "unknown pool type", OnnxNode );
 	}
-	pooling->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	pooling->SetName( Name );
 	
 	const CTensorDim& inputDim = dims[Input[0]];
 	CNeoMLLink poolingInput = addPadding( dnn, pooling->GetName() + CString( "_pad" ), inputDim, pads, -FLT_MAX,
