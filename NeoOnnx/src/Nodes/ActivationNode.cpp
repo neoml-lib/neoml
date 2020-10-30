@@ -24,21 +24,21 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CActivationNode::CActivationNode( int nodeIndex, const onnx::NodeProto& onnxNode,
+CActivationNodeBase::CActivationNodeBase( int nodeIndex, const onnx::NodeProto& onnxNode,
 		int opsetVersion, TActivationFunction _activation ) :
 	COpNode( nodeIndex, onnxNode, opsetVersion ),
 	activation( _activation )
 {
 }
 
-void CActivationNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CActivationNodeBase::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	CheckOnnxNode();
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 }
 
-void CActivationNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CActivationNodeBase::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
 		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
@@ -51,7 +51,7 @@ void CActivationNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& d
 	}
 }
 
-void CActivationNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
+void CActivationNodeBase::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
@@ -65,7 +65,7 @@ void CActivationNode::AddLayers( const CGraph& /* graph */, const CTensorCache& 
 //---------------------------------------------------------------------------------------------------------------------
 
 CAbsNode::CAbsNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion ) :
-	CActivationNode( nodeIndex, abs, opsetVersion, AF_Abs )
+	CActivationNodeBase( nodeIndex, abs, opsetVersion, AF_Abs )
 {
 }
 
@@ -82,7 +82,7 @@ void CAbsNode::CheckOnnxNode() const
 //---------------------------------------------------------------------------------------------------------------------
 
 CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion ) :
-	CActivationNode( nodeIndex, clip, opsetVersion, AF_ReLU )
+	CActivationNodeBase( nodeIndex, clip, opsetVersion, AF_ReLU )
 {
 }
 
@@ -142,7 +142,7 @@ void CClipNode::SetLayerParams( const CTensorCache& tensors, CBaseLayer* layer )
 //---------------------------------------------------------------------------------------------------------------------
 
 CEluNode::CEluNode( int nodeIndex, const onnx::NodeProto& elu, int opsetVersion ) :
-	CActivationNode( nodeIndex, elu, opsetVersion, AF_ELU )
+	CActivationNodeBase( nodeIndex, elu, opsetVersion, AF_ELU )
 {
 }
 
@@ -159,7 +159,7 @@ void CEluNode::CheckOnnxNode() const
 //---------------------------------------------------------------------------------------------------------------------
 
 CLeakyReluNode::CLeakyReluNode( int nodeIndex, const onnx::NodeProto& leakyRelu, int opsetVersion ) :
-	CActivationNode( nodeIndex, leakyRelu, opsetVersion, AF_LeakyReLU )
+	CActivationNodeBase( nodeIndex, leakyRelu, opsetVersion, AF_LeakyReLU )
 {
 }
 
@@ -183,7 +183,7 @@ void CLeakyReluNode::SetLayerParams( const CTensorCache& /* tensors */, CBaseLay
 //---------------------------------------------------------------------------------------------------------------------
 
 CHardSigmoidNode::CHardSigmoidNode( int nodeIndex, const onnx::NodeProto& hardSigmoid, int opsetVersion ) :
-	CActivationNode( nodeIndex, hardSigmoid, opsetVersion, AF_HardSigmoid )
+	CActivationNodeBase( nodeIndex, hardSigmoid, opsetVersion, AF_HardSigmoid )
 {
 }
 
@@ -212,7 +212,7 @@ void CHardSigmoidNode::SetLayerParams( const CTensorCache& /* tensors */, CBaseL
 //---------------------------------------------------------------------------------------------------------------------
 
 CReluNode::CReluNode( int nodeIndex, const onnx::NodeProto& relu, int opsetVersion ) :
-	CActivationNode( nodeIndex, relu, opsetVersion, AF_ReLU )
+	CActivationNodeBase( nodeIndex, relu, opsetVersion, AF_ReLU )
 {
 }
 
@@ -229,7 +229,7 @@ void CReluNode::CheckOnnxNode() const
 //---------------------------------------------------------------------------------------------------------------------
 
 CSigmoidNode::CSigmoidNode( int nodeIndex, const onnx::NodeProto& sigmoid, int opsetVersion ) :
-	CActivationNode( nodeIndex, sigmoid, opsetVersion, AF_Sigmoid )
+	CActivationNodeBase( nodeIndex, sigmoid, opsetVersion, AF_Sigmoid )
 {
 }
 
@@ -246,7 +246,7 @@ void CSigmoidNode::CheckOnnxNode() const
 //---------------------------------------------------------------------------------------------------------------------
 
 CTanhNode::CTanhNode( int nodeIndex, const onnx::NodeProto& tanh, int opsetVersion ) :
-	CActivationNode( nodeIndex, tanh, opsetVersion, AF_Tanh )
+	CActivationNodeBase( nodeIndex, tanh, opsetVersion, AF_Tanh )
 {
 }
 
