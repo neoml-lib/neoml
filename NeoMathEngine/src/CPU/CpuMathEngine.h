@@ -28,6 +28,7 @@ struct CCommon3dConvolutionDesc;
 struct CCommonChannelwiseConvolutionDesc;
 class CDeviceStackAllocator;
 class CMemoryPool;
+class ISimdMathEngine;
 
 // Math engine that uses a CPU for calculations
 class CCpuMathEngine : public IMathEngine, public IRawMemoryManager {
@@ -444,6 +445,8 @@ private:
 	const std::unique_ptr<CMemoryPool> memoryPool; // the memory manager
 	const std::unique_ptr<CDeviceStackAllocator> stackAllocator; // the stack memory allocator
 	mutable std::mutex mutex; // to protect the allocations
+
+	std::unique_ptr<ISimdMathEngine> simdMathEngine; // interface for using simd instructions
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 

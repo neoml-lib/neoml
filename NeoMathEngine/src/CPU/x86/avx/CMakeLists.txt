@@ -8,12 +8,11 @@ target_sources(${PROJECT_NAME}
     PRIVATE
 
     # Sources
-    ./src/AvxDll.cpp
+    ./src/AvxMathEngine.cpp
     # Headers
-    ./include/AvxDll.h
     ./common.h
-    ./src/DnnConv.h
-    ./src/DnnConvImpl.h
+    ./src/AvxDnnConv.h
+    ./src/AvxDnnConvImpl.h
 )
 
 string(TOUPPER ${CMAKE_SYSTEM_NAME} UPPERCASE_CMAKE_SYSTEM_NAME)
@@ -22,7 +21,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC _${UPPERCASE_CMAKE_SYSTEM_NAME
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../../../include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../../../src>

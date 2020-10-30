@@ -23,7 +23,7 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineDnnConv.h>
 #include <CpuMathEnginePrivate.h>
-#include <SimdConvolutionEngine.h>
+#include <NeoMathEngine/SimdMathEngine.h>
 
 namespace NeoML {
 
@@ -43,19 +43,19 @@ const int BlobConvolutionCacheSize = 256 * 1024;
 struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 	TConvAlgo ForwardAlgo;
 	TConvAlgo BackwardAlgo;
+	unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
 
-	CCpuConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
+	CCpuConvolutionDesc( unique_ptr<CConvolutionDesc>& simdConvolutionDesc, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
 		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
 		ForwardAlgo( getActualForwardAlgo() ),
 		BackwardAlgo( getActualBackwardAlgo() ),
-		SimdConvolutionEngine( InitSimdConvolutionEngine( filter.BatchWidth(), filter.Channels(), filter.Height(), filter.Width() ) )
+		SimdConvolutionDesc( std::move( simdConvolutionDesc ) )
 	{
 	}
 
 	TConvAlgo getActualForwardAlgo() const;
 	TConvAlgo getActualBackwardAlgo() const;
-	unique_ptr<ISimdConvolutionEngine> SimdConvolutionEngine;
 };
 
 // Gets the algorithm to be used for this convolution
@@ -130,7 +130,10 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
 
-	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( source, result, filter,
+	unique_ptr<CConvolutionDesc> simdConvolutionDesc( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
+		strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
+
+	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( simdConvolutionDesc, source, result, filter,
 		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	return desc;
 }
@@ -512,11 +515,8 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 		case CA_1:
 		case CA_2:
 		{
-			if( desc.SimdConvolutionEngine != nullptr ) {
-				desc.SimdConvolutionEngine->BlobConvolution( threadCount,
-					desc.Source.Height(), desc.Source.Width(), desc.StrideHeight, desc.StrideWidth,
-					desc.DilationHeight, desc.DilationWidth, desc.Result.Height(), desc.Result.Width(),
-					sourceRaw, filterRaw, freeTermRaw, resultRaw );
+			if( desc.SimdConvolutionDesc != nullptr ) {
+				simdMathEngine->BlobConvolution( *desc.SimdConvolutionDesc, sourceRaw, filterRaw, freeTermRaw, resultRaw );
 			} else {
 				const int algo0ThreadCount = IsOmpRelevant( desc.Result.ObjectCount() * desc.Result.Width() * desc.Result.Height(),
 					static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;

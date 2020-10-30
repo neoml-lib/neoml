@@ -20,15 +20,20 @@ limitations under the License.
 
 namespace NeoML {
 
-class ISimdConvolutionEngine : public CCrtAllocatedObject {
+class ISimdMathEngine : public CCrtAllocatedObject {
 public:
-	virtual ~ISimdConvolutionEngine() = default;
-	virtual void BlobConvolution( int threadCount, 
-		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
-		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, 
-		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) = 0;
-};
+	virtual ~ISimdMathEngine() = default;
 
-std::unique_ptr<ISimdConvolutionEngine> InitSimdConvolutionEngine( int filterCount, int channelCount, int filterHeight, int filterWidth );
+	// Convolution
+	// The descriptor should be destroyed using the standard delete operator after use.
+	virtual CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
+		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
+		const CBlobDesc& result ) = 0;
+
+	virtual void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
+		const float* filter, const float* freeTerm, float* result ) = 0;
+
+	static std::unique_ptr<ISimdMathEngine> CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount );
+};
 
 }

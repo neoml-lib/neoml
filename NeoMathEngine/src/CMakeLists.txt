@@ -19,7 +19,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
     CPU/CpuMathEngineVectorMath.cpp
-    CPU/SimdConvolutionEngine.cpp
+    CPU/SimdMathEngine.cpp
     CrtAllocatedObject.cpp
     DllLoader.cpp
     MathEngineDeviceStackAllocator.cpp
@@ -45,7 +45,6 @@ target_sources(${PROJECT_NAME}
     CPU/CpuRandom.h
     CPU/CpuMathEnginePrivate.h
     CPU/CpuMathEngineOmp.h
-    CPU/SimdConvolutionEngine.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
@@ -61,6 +60,7 @@ target_sources(${PROJECT_NAME}
     ../include/NeoMathEngine/MemoryHandle.inl
     ../include/NeoMathEngine/SparseMatrixDesc.h
     ../include/NeoMathEngine/NeoMathEngine.h
+    ../include/NeoMathEngine/SimdMathEngine.h
 )
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -134,11 +134,6 @@ else()
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
     if(NOT IOS AND NOT ANDROID)
-		target_sources(${PROJECT_NAME}
-		PRIVATE
-			CPU/x86/AvxConvolutionEngine.cpp
-			CPU/x86/AvxConvolutionEngine.h
-		)
 		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
 	endif()
 endif()

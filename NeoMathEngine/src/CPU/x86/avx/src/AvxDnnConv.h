@@ -13,15 +13,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-#include <SimdConvolutionEngine.h>
 #include <array>
 #include <vector>
+#include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
-class CBlobConvolutionBase : public ISimdConvolutionEngine {
+class CBlobConvolutionBase : public CCrtAllocatedObject {
 public:
-	~CBlobConvolutionBase() override = default;
+	virtual ~CBlobConvolutionBase() = default;
+	virtual void ProcessConvolution( int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) = 0;
 
 	// We should specify maximum available values of C, FC, FH and FW in order to allocate Filter and FreeTerm variables on stack.
 	static constexpr int Cmax = 24;
@@ -33,14 +34,17 @@ public:
 template<int FC>
 class CBlobConvolution : public CBlobConvolutionBase {
 public:
-	CBlobConvolution( int channelCount, int filterHeight, int filterWidth );
+	CBlobConvolution( IMathEngine* mathEngine,
+		int channelCount, int filterHeight, int filterWidth,
+		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth );
 	~CBlobConvolution() override = default;
 
-	void BlobConvolution( int threadCount,
-		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
-		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
+	void ProcessConvolution( int threadCount,
 		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) override;
 
+	typedef void* ( *StackAlloc )( size_t size );
+	typedef void* ( *StackFree )( void* ptr );
 
 private:
 	struct CSize {
@@ -48,23 +52,23 @@ private:
 		int Width;
 	};
 
-	// We should specify maximum available values of C, FC, FH and FW in order to allocate Filter and FreeTerm variables on stack.
-	static constexpr int Cmax = 24;
-	static constexpr int FCmax = 24;
-	static constexpr int FHmax = 3;
-	static constexpr int FWmax = 3;
+	IMathEngine* mathEngine;
 
-	int C;
-	int FH;
-	int FW;
-	int SrcH;
-	int SrcW;
-	int SH;
-	int SW;
-	int DH;
-	int DW;
-	int RH;
-	int RW;
+	const int C;
+	const int FH;
+	const int FW;
+	const int SrcH;
+	const int SrcW;
+	const int SH;
+	const int SW;
+	const int DH;
+	const int DW;
+	const int RH;
+	const int RW;
+
+	// For some cases we will use FC, rounded up to nearest integer multiple of 8
+	static constexpr int FCm8 = ( FC + 8 - 1 ) / 8 * 8;
+	static constexpr size_t AvxAlignment = 32;
 
 	const float* src;
 	const float* flt;
@@ -72,41 +76,31 @@ private:
 	float* dst;
 
 	// Length of one source line.
-	int SrcLineStride;
+	const int SrcLineStride;
 	// Distance in floats between two neighbor pixels in source.
-	int SrcXStep;
-	int SrcYStep;
+	const int SrcXStep;
+	const int SrcYStep;
 	// Distance in floats between two neighbor pixels in window by horizontal.
-	int SrcXDilation;
+	const int SrcXDilation;
 	// Distance in floats between two neighbor pixels in window by horizontal.
-	int SrcYDilation;
+	const int SrcYDilation;
 	// Width of source window in floats
-	int SrcXWindowSize;
-	int DstLineStride;
-
-	// For some cases we will use FC, rounded up to nearest integer multiple of 8
-	static constexpr int FCm8 = ( FC + 8 - 1 ) / 8 * 8;
-	// Filter should be alligned to 16 bytes
-	static constexpr size_t FilterSize = FWmax * FHmax * FCmax * Cmax ;
-	static constexpr size_t AvxAlignment = 32;
-	float Filter[FilterSize + AvxAlignment];
-
-	// Free term should be alligned to 16 bytes
-	float FreeTerm[FCm8 + AvxAlignment];
+	const int SrcXWindowSize;
+	const int DstLineStride;
 
 	// Choose proper pixels in source and filter:
 	// 0  1  2
 	// 3  4  5
 	// 6  7  8
 	// Offset is relative to central pixel of source window
-	std::array<std::vector<int>, 8> SrcPixelsOffset;
+	const std::array<std::vector<int>, 8> SrcPixelsOffset;
 	// Offset is relative to top left pixel of filter window
-	std::array<std::vector<int>, 8>  FltPixelsOffset;
+	const std::array<std::vector<int>, 8>  FltPixelsOffset;
 	// In some cases when the width of the image is nearly equals to the width of optimized batch processing window,
 	// we may faced to situation ( when dilation is higth ) when no one optimized batch ptocessing can be
 	// applied. For such cases we will use optimized batch processing with narrower window but height greater then one.
-	CSize NarrowBatchProcessSize;
-	CSize WideBatchProcessSize;
+	const CSize NarrowBatchProcessSize;
+	const CSize WideBatchProcessSize;
 
 	// Initialize NarrowBatchProcessSize and WideBatchProcessSize
 	CSize getNarrowBatchProcessSize();
@@ -135,8 +129,8 @@ private:
 	void singleProcessNarrow( const float* srcPtr, float* dstPtr, int windowIndex );
 
 	// Rearrange filter and fill 'Filter' and 'FreeTerm' members.
-	const float* rearrangeFilter( const float* filterData );
-	const float* rearrangeFreeTerm( const float* freeTermData );
+	const float* rearrangeFilter( const float* filterData, CFloatHandleStackVar& Filter );
+	const float* rearrangeFreeTerm( const float* freeTermData, CFloatHandleStackVar& FreeTerm );
 	const std::array<std::vector<int>, 8> fillSrcPixelOffset();
 	const std::array<std::vector<int>, 8>  fillFltPixelOffset();
 
@@ -147,21 +141,22 @@ private:
 
 };
 
-class CBlobConvolutionFabric {
+class CBlobConvolutionFabric : public CCrtAllocatedObject {
 public:
-	static bool IsBlobConvolutionAvailable( int FC, int C, int FH, int FW );
-	static std::unique_ptr<ISimdConvolutionEngine> GetProperInstance( int filterCount, int channelCount, int filterHeight, int filterWidth );
+	static bool IsBlobConvolutionAvailable( int FC, int FH, int FW );
+	static std::unique_ptr<CBlobConvolutionBase> GetProperInstance( IMathEngine* mathEngine, int FC,
+		int channelCount, int filterHeight, int filterWidth,
+		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FC, int C, int FH, int FW )
+bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FC, int FH, int FW )
 {
-	if( FC * C * FH * FW >
-		CBlobConvolutionBase::FCmax * CBlobConvolutionBase::Cmax * CBlobConvolutionBase::FHmax * CBlobConvolutionBase::FWmax ) {
+	if( FH != 3 && FW != 3 ) {
 		return false;
 	}
-
 	if( FC == 24 ||
 		FC == 18 ||
 		FC == 6 ) {
@@ -170,18 +165,27 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FC, int C, int FH, 
 	return false;
 }
 
-std::unique_ptr<ISimdConvolutionEngine> CBlobConvolutionFabric::GetProperInstance( int filterCount, int channelCount, int filterHeight, int filterWidth )
+std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance( IMathEngine* mathEngine, int filterCount,
+	int channelCount, int filterHeight, int filterWidth,
+	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth )
 {
 	switch( filterCount ) {
 		case 24:
-			return std::unique_ptr<ISimdConvolutionEngine>( new CBlobConvolution<24>(
-				channelCount, filterHeight, filterWidth ) );
+			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24>( mathEngine,
+				channelCount, filterHeight, filterWidth,
+				sourceHeight, sourceWidth, strideHeight, strideWidth,
+				dilationHeight, dilationWidth, resultHeight, resultWidth ) );
 		case 18:
-			return std::unique_ptr<ISimdConvolutionEngine>( new CBlobConvolution<18>(
-				channelCount, filterHeight, filterWidth ) );
+			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18>( mathEngine,
+				channelCount, filterHeight, filterWidth,
+				sourceHeight, sourceWidth, strideHeight, strideWidth,
+				dilationHeight, dilationWidth, resultHeight, resultWidth ) );
 		case 6:
-			return std::unique_ptr<ISimdConvolutionEngine>( new CBlobConvolution<6>(
-				channelCount, filterHeight, filterWidth ) );
+			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<6>( mathEngine,
+				channelCount, filterHeight, filterWidth,
+				sourceHeight, sourceWidth, strideHeight, strideWidth,
+				dilationHeight, dilationWidth, resultHeight, resultWidth ) );
 		default:
 			return nullptr;
 	}
@@ -190,47 +194,50 @@ std::unique_ptr<ISimdConvolutionEngine> CBlobConvolutionFabric::GetProperInstanc
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<int FC>
-CBlobConvolution<FC>::CBlobConvolution( int channelCount, int filterHeight, int filterWidth ) :
+CBlobConvolution<FC>::CBlobConvolution( IMathEngine* _mathEngine, int channelCount, int filterHeight, int filterWidth,
+		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth ) :
+	mathEngine( _mathEngine ),
 	C( channelCount ),
 	FH( filterHeight ),
-	FW( filterWidth )
+	FW( filterWidth ),
+	SrcH( sourceHeight ),
+	SrcW( sourceWidth ),
+	SH( strideHeight ),
+	SW( strideWidth ),
+	DH( dilationHeight ),
+	DW( dilationWidth ),
+	RH( resultHeight ),
+	RW( resultWidth ),
+	src( nullptr ),
+	flt( nullptr ),
+	freeTerm( nullptr ),
+	dst( nullptr ),
+	SrcLineStride( SrcW * C ),
+	SrcXStep( SW * C ),
+	SrcYStep( SH * SrcLineStride ),
+	SrcXDilation( DW * C ),
+	SrcYDilation( DH * SrcLineStride ),
+	SrcXWindowSize( FW * SrcXDilation ),
+	DstLineStride( RW * FC ),
+	SrcPixelsOffset( fillSrcPixelOffset() ),
+	FltPixelsOffset( fillFltPixelOffset() ),
+	NarrowBatchProcessSize( getNarrowBatchProcessSize() ),
+	WideBatchProcessSize( getWideBatchProcessSize() )
 {
-
 }
 
 template<int FC>
-void CBlobConvolution<FC>::BlobConvolution( int threadCount,
-	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
-	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth,
+void CBlobConvolution<FC>::ProcessConvolution( int threadCount,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
 {
-	SrcH = sourceHeight;
-	SrcW = sourceWidth;
-	SH = strideHeight;
-	SW = strideWidth;
-	DH = dilationHeight;
-	DW = dilationWidth;
-	RH = resultHeight;
-	RW = resultWidth;
-	src = sourceData;
-	flt = rearrangeFilter( filterData );
-	freeTerm = rearrangeFreeTerm( freeTermData );
-	dst = resultData;
-	SrcLineStride = SrcW * C;
-	SrcXStep = SW * C;
-	SrcYStep = SH * SrcLineStride;
-	SrcXDilation = DW * C;
-	SrcYDilation = DH * SrcLineStride;
-	SrcXWindowSize = FW * SrcXDilation;
-	DstLineStride = RW * FC;
-	SrcPixelsOffset = fillSrcPixelOffset();
-	FltPixelsOffset = fillFltPixelOffset();
-	NarrowBatchProcessSize = getNarrowBatchProcessSize();
-	WideBatchProcessSize = getWideBatchProcessSize();
+	CFloatHandleStackVar Filter( *mathEngine, FW * FH * FCm8 * C );
+	CFloatHandleStackVar FreeTerm( *mathEngine, FCm8 );
 
-	// Data should be alligned
-	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( sourceData ) % 32 == 0 );
-	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( resultData ) % 32 == 0 );
+	src = sourceData;
+	flt = rearrangeFilter( filterData, Filter );
+	freeTerm = rearrangeFreeTerm( freeTermData, FreeTerm );
+	dst = resultData;
 
 	const int curThreadCount = IsOmpRelevant( RH, RH * RW * FC * FW * FH * C ) ? threadCount : 1;
 
@@ -340,12 +347,8 @@ inline void CBlobConvolution<FC>::processConvolutionLoop( int rxSize, bool useNa
 }
 
 template<int FC>
-const float* CBlobConvolution<FC>::rearrangeFilter( const float* filterData )
+const float* CBlobConvolution<FC>::rearrangeFilter( const float* filterData, CFloatHandleStackVar& Filter )
 {
-	size_t filterBufferSize = FilterSize + AvxAlignment;
-	void* alignedFltPtr = const_cast<float*>( Filter );
-	std::align( AvxAlignment, FilterSize, alignedFltPtr, filterBufferSize );
-
 	// Rearrange filter data.
 	// Initial packing:
 	// Filter[0] Pixel[0] Channel[0-23]
@@ -376,7 +379,8 @@ const float* CBlobConvolution<FC>::rearrangeFilter( const float* filterData )
 
 
 
-	float* dstFilter = static_cast<float*>( alignedFltPtr );
+	float* dstFilter = GetRaw( Filter.GetHandle() );
+	ASSERT_EXPR( reinterpret_cast<uintptr_t>( dstFilter ) % AvxAlignment == 0 );
 	for( int y = 0; y < FH; y++ ) {
 		for( int x = 0; x < FW; x++ ) {
 			for( int c = 0; c < C; c++ ) {
@@ -396,16 +400,18 @@ const float* CBlobConvolution<FC>::rearrangeFilter( const float* filterData )
 		}
 	}
 
-	return static_cast<float*>( alignedFltPtr );
+	return GetRaw( Filter.GetHandle() );
 }
 
 template<int FC>
-const float* CBlobConvolution<FC>::rearrangeFreeTerm( const float* freeTermData )
+const float* CBlobConvolution<FC>::rearrangeFreeTerm( const float* freeTermData, CFloatHandleStackVar& FreeTerm )
 {
-	size_t freeTermBufferSize = FCm8 + AvxAlignment;
-	void* alignedFreeTermPtr = const_cast<float*>( FreeTerm );
-	std::align( AvxAlignment, FCm8, alignedFreeTermPtr, freeTermBufferSize );
-	float* dstFreeTerm = static_cast<float*>( alignedFreeTermPtr );
+	if( freeTermData == nullptr ) {
+		return nullptr;
+	}
+
+	float* dstFreeTerm = GetRaw( FreeTerm.GetHandle() );
+	ASSERT_EXPR( reinterpret_cast<uintptr_t>( dstFreeTerm ) % AvxAlignment == 0 );
 
 	for( int f = 0; f < FC; f++ ) {
 		*dstFreeTerm++ = *freeTermData++;
@@ -416,7 +422,7 @@ const float* CBlobConvolution<FC>::rearrangeFreeTerm( const float* freeTermData 
 			*dstFreeTerm++ = *freeTermData++;
 		}
 	}
-	return static_cast<float*>( alignedFreeTermPtr );
+	return GetRaw( FreeTerm.GetHandle() );
 }
 
 template<int FC>
@@ -499,4 +505,4 @@ inline void CBlobConvolution<FC>::RotateLeft2( __m256& y )
 } // namespace NeoML
 
 // Class specializations
-#include <DnnConvImpl.h>
+#include <AvxDnnConvImpl.h>
