@@ -10,16 +10,14 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnx.cpp
     Node.cpp
     OpNodeAttributes.cpp
-    Nodes/AbsNode.cpp
+    Nodes/ActivationNode.cpp
     Nodes/BatchNormalizationNode.cpp
-    Nodes/ClipNode.cpp
     Nodes/ConcatNode.cpp
     Nodes/ConstantNode.cpp
     Nodes/ConstantOfShapeNode.cpp
     Nodes/ConvNode.cpp
     Nodes/DropoutNode.cpp
     Nodes/EltwiseNode.cpp
-    Nodes/EluNode.cpp
     Nodes/FlattenNode.cpp
     Nodes/GatherNode.cpp
     Nodes/GemmNode.cpp
@@ -29,20 +27,16 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/GraphInitializer.cpp
     Nodes/GraphOutput.cpp
     Nodes/IdentityNode.cpp
-    Nodes/LeakyReluNode.cpp
     Nodes/LstmNode.cpp
     Nodes/MatMulNode.cpp
     Nodes/PadNode.cpp
     Nodes/PoolNode.cpp
     Nodes/ReduceMeanNode.cpp
-    Nodes/ReluNode.cpp
     Nodes/ReshapeNode.cpp
     Nodes/ShapeNode.cpp
-    Nodes/SigmoidNode.cpp
     Nodes/SliceNode.cpp
     Nodes/SoftmaxNode.cpp
     Nodes/SqueezeNode.cpp
-    Nodes/TanhNode.cpp
     Nodes/TransposeNode.cpp
     Nodes/UnsqueezeNode.cpp
     NodeUtils.cpp
@@ -55,16 +49,14 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnxCheck.h
     Node.h
     OpNodeAttributes.h
-    Nodes/AbsNode.h
+    Nodes/ActivationNode.h
     Nodes/BatchNormalizationNode.h
-    Nodes/ClipNode.h
     Nodes/ConcatNode.h
     Nodes/ConstantNode.h
     Nodes/ConstantOfShapeNode.h
     Nodes/ConvNode.h
     Nodes/DropoutNode.h
     Nodes/EltwiseNode.h
-    Nodes/EluNode.h
     Nodes/FlattenNode.h
     Nodes/GatherNode.h
     Nodes/GemmNode.h
@@ -74,20 +66,16 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/GraphInitializer.h
     Nodes/GraphOutput.h
     Nodes/IdentityNode.h
-    Nodes/LeakyReluNode.h
     Nodes/LstmNode.h
     Nodes/MatMulNode.h
     Nodes/PadNode.h
     Nodes/PoolNode.h
     Nodes/ReduceMeanNode.h
-    Nodes/ReluNode.h
     Nodes/ReshapeNode.h
     Nodes/ShapeNode.h
-    Nodes/SigmoidNode.h
     Nodes/SliceNode.h
     Nodes/SoftmaxNode.h
     Nodes/SqueezeNode.h
-    Nodes/TanhNode.h
     Nodes/TransposeNode.h
     Nodes/UnsqueezeNode.h
     NodeUtils.h
