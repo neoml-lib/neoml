@@ -132,7 +132,7 @@ void CConcatNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tens
 		default:
 			CheckNeoOnnxSupport( false, "unsupported Concat dimension", OnnxNode );
 	}
-	concatLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	concatLayer->SetName( Name );
 
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 		concatLayer->Connect( inputIndex, *neoMLLinks[Input[inputIndex]].Layer, neoMLLinks[Input[inputIndex]].OutputIndex );

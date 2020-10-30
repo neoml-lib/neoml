@@ -143,7 +143,8 @@ REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CNode::CNode( int _nodeIndex, int inputCount, int _outputCount ) :
+CNode::CNode( int _nodeIndex, const CString& name, int inputCount, int _outputCount ) :
+	Name( name ),
 	nodeIndex( _nodeIndex )
 {
 	Input.SetSize( inputCount );
@@ -175,7 +176,8 @@ void CNode::Connect( int index, const CLink& inputInfo )
 //---------------------------------------------------------------------------------------------------------------------
 
 COpNode::COpNode( int nodeIndex, const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
-	CNode( nodeIndex, _onnxNode.input_size(), _onnxNode.output_size() ),
+	CNode( nodeIndex, _onnxNode.has_name() ? _onnxNode.name() : _onnxNode.output( 0 ) + "_Op",
+		_onnxNode.input_size(), _onnxNode.output_size() ),
 	OpsetVersion( _opsetVersion ),
 	Attributes( _onnxNode ),
 	OnnxNode( _onnxNode )

@@ -25,7 +25,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 CGraphInitializer::CGraphInitializer( int nodeIndex, const onnx::TensorProto& _initializer ) :
-	CNode( nodeIndex, 0, 1 ),
+	CNode( nodeIndex, _initializer.name(), 0, 1 ),
 	initializer( _initializer )
 {
 }

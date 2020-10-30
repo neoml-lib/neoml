@@ -28,10 +28,8 @@ namespace NeoOnnx {
 CPtr<CDnnBlob> RepackWeightIfFlattened( const CNode* node, const CTensorCache& tensors, const CDimCache& dims,
 	CDnnBlob* weight )
 {
-	const CReshapeNode* reshape = dynamic_cast<const CReshapeNode*>( node );
-	const CFlattenNode* flatten = dynamic_cast<const CFlattenNode*>( node );
-	if( ( reshape == nullptr || tensors[reshape->GetInput( 0 )].Shape.Size() <= 2 ) 
-		&& flatten == nullptr )
+	if( dynamic_cast<const CReshapeNode*>( node ) == nullptr
+		&& dynamic_cast<const CFlattenNode*>( node ) == nullptr )
 	{
 		return weight;
 	}

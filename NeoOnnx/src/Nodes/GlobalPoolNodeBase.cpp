@@ -75,7 +75,7 @@ void CGlobalPoolNodeBase::addGlobalPoolingLayer( TPoolingType poolingType, CNeoM
 			CheckNeoOnnxInternal( false, "unknown pool type", OnnxNode );
 	}
 
-	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	poolingLayer->SetName( Name );
 	poolingLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	dnn.AddLayer( *poolingLayer );
 	neoMLLinks[Output[0]] = CNeoMLLink( poolingLayer, 0 );
@@ -97,7 +97,7 @@ void CGlobalPoolNodeBase::add2dPoolingLayer( TPoolingType poolingType, const CTe
 			CheckNeoOnnxInternal( false, "unknown pool type", OnnxNode );
 	}
 
-	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	poolingLayer->SetName( Name );
 
 	// Make it global
 	for( int dimIndex = 0; dimIndex < inputDim.Size(); ++dimIndex ) {
@@ -137,7 +137,7 @@ void CGlobalPoolNodeBase::add3dPoolingLayer( TPoolingType poolingType, const CTe
 			CheckNeoOnnxInternal( false, "unknown pool type", OnnxNode );
 	}
 
-	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	poolingLayer->SetName( Name );
 
 	// Make it global
 	for( int dimIndex = 0; dimIndex < inputDim.Size(); ++dimIndex ) {

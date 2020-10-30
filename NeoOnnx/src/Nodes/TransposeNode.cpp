@@ -156,7 +156,7 @@ void CTransposeNode::AddLayers( const CGraph& graph, const CTensorCache& /* tens
 	buildSwapList( dims[Input[0]], perm, swaps );
 
 	CNeoMLLink currLink = neoMLLinks[Input[0]];
-	const CString baseName = "NeoMLLayer" + Str( dnn.GetLayerCount() ) + "_";
+	const CString baseName = Name + "_";
 	for( int i = 0; i < swaps.Size(); ++i ) {
 		CPtr<CTransposeLayer> currLayer = new CTransposeLayer( dnn.GetMathEngine() );
 		currLayer->SetName( baseName + Str( i ) );

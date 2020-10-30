@@ -176,7 +176,7 @@ void CReshapeNode::AddLayers( const CGraph& /* graph */, const CTensorCache& ten
 	}
 
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
-	transform->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	transform->SetName( Name );
 
 	// This layer can't broadcast dimensions
 	// Expects at least one of dims to be marked

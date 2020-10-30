@@ -146,8 +146,7 @@ void CPadNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 void CPadNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CPtr<CBaseLayer> padding = CreatePaddingLayer( dnn.GetMathEngine(), "NeoMLLayer" + Str( dnn.GetLayerCount() ),
-		dims[Input[0]], pads, value, OnnxNode );
+	CPtr<CBaseLayer> padding = CreatePaddingLayer( dnn.GetMathEngine(), Name, dims[Input[0]], pads, value, OnnxNode );
 	padding->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[1]].OutputIndex );
 	dnn.AddLayer( *padding );
 

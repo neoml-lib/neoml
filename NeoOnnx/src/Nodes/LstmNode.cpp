@@ -84,7 +84,7 @@ void CLstmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 {
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 	CPtr<CLstmLayer> lstmLayer = new CLstmLayer( mathEngine );
-	lstmLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	lstmLayer->SetName( Name );
 
 	CPtr<CDnnBlob> weightMatrix = tensors[Input[1]].Data->GetCopy();
 	CPtr<CDnnBlob> recurWeightMatrix = tensors[Input[2]].Data->GetCopy();

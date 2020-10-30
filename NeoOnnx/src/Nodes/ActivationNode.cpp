@@ -55,7 +55,7 @@ void CActivationNodeBase::AddLayers( const CGraph& /* graph */, const CTensorCac
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
-	activationLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	activationLayer->SetName( Name );
 	SetLayerParams( tensors, activationLayer );
 	activationLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	dnn.AddLayer( *activationLayer );

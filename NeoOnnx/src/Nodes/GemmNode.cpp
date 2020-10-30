@@ -88,7 +88,7 @@ void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, con
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( dnn.GetMathEngine() );
-	fc->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	fc->SetName( Name );
 
 	const CTensorShape& matrixShape = tensors[Input[1]].Shape;
 	const int numberOfElements = matrixShape[transB == 0 ? 1 : 0];

@@ -67,7 +67,7 @@ void CMatMulNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, c
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( dnn.GetMathEngine() );
-	fc->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	fc->SetName( Name );
 	fc->SetNumberOfElements( tensors[Output[0]].Shape[1] );
 	
 	const int inputElems = tensors[Input[1]].Shape[0];

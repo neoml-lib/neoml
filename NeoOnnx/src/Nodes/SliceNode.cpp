@@ -143,7 +143,7 @@ void CSliceNode::addSubSequenceLayer( int start, int end, CDnn& dnn, CNeoMLLinkC
 	subseq->SetStartPos( start );
 	subseq->SetLength( end - start );
 
-	subseq->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	subseq->SetName( Name );
 	subseq->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	dnn.AddLayer( *subseq );
 	neoMLLinks[Output[0]] = CNeoMLLink( subseq, 0 );
@@ -153,7 +153,7 @@ void CSliceNode::addSubSequenceLayer( int start, int end, CDnn& dnn, CNeoMLLinkC
 static void addSinkLayer( CBaseLayer& inputLayer, int index, CDnn& dnn )
 {
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
-	sink->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	sink->SetName( inputLayer.GetName() + CString( "_Sink" ) + Str( index ) );
 	sink->Connect( 0, inputLayer, index );
 	dnn.AddLayer( *sink );
 }
@@ -193,7 +193,7 @@ void CSliceNode::addSplitLayer( TBlobDim splitDim, int start, int end, int dimSi
 
 	outputCounts.Add( end - start );
 	split->SetOutputCounts( outputCounts );
-	split->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	split->SetName( Name );
 	split->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	dnn.AddLayer( *split );
 	neoMLLinks[Output[0]] = CNeoMLLink( split, actualOutputIndex );

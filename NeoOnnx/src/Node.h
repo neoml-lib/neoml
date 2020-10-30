@@ -67,7 +67,7 @@ public:
 	const CLink& GetInput( int inputIndex ) const { return Input[inputIndex]; }
 
 protected:
-	CNode( int nodeIndex, int inputCount, int outputCount );
+	CNode( int nodeIndex, const CString& name, int inputCount, int outputCount );
 
 	// Links connected to inputs of this node
 	CArray<CLink> Input;
@@ -75,8 +75,12 @@ protected:
 	// Links to outputs of this node
 	CArray<CLink> Output;
 
+	// Node name
+	const CString Name;
+
 private:
-	int nodeIndex;
+	// Node index in graph array
+	const int nodeIndex;
 };
 
 //--------------------------------------------------------------------------------------------------------------------

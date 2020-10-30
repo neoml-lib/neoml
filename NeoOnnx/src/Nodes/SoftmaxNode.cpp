@@ -64,7 +64,7 @@ void CSoftmaxNode::AddLayers( const CGraph& /* graph */, const CTensorCache& ten
 	getOutputDim( shape, dims, outputDim );
 
 	CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer( dnn.GetMathEngine() );
-	softmax->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	softmax->SetName( Name );
 	softmax->SetNormalizationArea( getArea( shape, outputDim ) );
 	softmax->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 
