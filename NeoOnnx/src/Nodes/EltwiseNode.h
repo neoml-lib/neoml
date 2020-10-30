@@ -44,11 +44,12 @@ protected:
 private:
 	TOperation operation; // Operation performed by this node
 	int argsNum; // Expected number of arguments (-1 if any number is supported)
+	const int axis; // Broadcast axis
 	mutable int userInputCached; // Index of the input with data provided by user
 
 	int userInput( const CTensorCache& tensors ) const;
-	CPtr<CDnnBlob> broadcast( const CTensor& input, const CTensorShape& outputShape, bool negative, bool inverted ) const;
-	CPtr<CDnnBlob> broadcast( const CTensor& input, const CTensorShape& outputShape, const CTensorDim& outputDim,
+	CPtr<CDnnBlob> broadcast( const CTensor& input, const CTensorShape& outputShape, int axis, bool negative, bool inverted ) const;
+	CPtr<CDnnBlob> broadcast( const CTensor& input, const CTensorShape& outputShape, const CTensorDim& outputDim, int axis,
 		bool negative, bool inverted ) const;
 	CPtr<CDnnBlob> precalcOutput( const CTensorCache& tensors, const CTensorShape& outputShape, IMathEngine& mathEngine ) const;
 };

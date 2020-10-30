@@ -43,19 +43,27 @@ bool isEqual( const CTensorShape& first, const CTensorShape& second )
 // Calculates shape of the result of the numpy-style broadcast operation
 // If shapes can be broadcasted writes broadcasted shape to the result and returns true
 // Returns false if shapes can't be broadcasted (in this case result will be empty)
-bool broadcastShape( const CTensorShape& first, const CTensorShape& second, CTensorShape& result )
+bool broadcastShape( const CTensorShape& first, const CTensorShape& second, int axis, CTensorShape& result )
 {
-	int dimCount = max( first.Size(), second.Size() );
+	CheckNeoOnnxInternal( first.Size() >= second.Size(), "Second tensor has more dimensions" );
+	const int dimCount = first.Size();
 	result.SetSize( dimCount );
 
+	CTensorShape broadcastedSecond;
+	second.CopyTo( broadcastedSecond );
+
+	if( axis < 0 ) {
+		axis = first.Size() - second.Size();
+	}
+	broadcastedSecond.InsertAt( 1, 0, axis );
+	broadcastedSecond.Add( 1, first.Size() - broadcastedSecond.Size() );
+
 	for( int i = 0; i < dimCount; ++i ) {
-		const int dimFirst = first.Size() - 1 - i >= 0 ? first[first.Size() - 1 - i] : 1;
-		const int dimSecond = second.Size() - 1 - i >= 0 ? second[second.Size() - 1 - i] : 1;
-		if( dimFirst != dimSecond && dimFirst != 1 && dimSecond != 1 ) {
+		if( first[i] != broadcastedSecond[i] && first[i] != 1 && broadcastedSecond[i] != 1 ) {
 			result.Empty();
 			return false;
 		}
-		result[dimCount - 1 - i] = max( dimFirst, dimSecond );
+		result[i] = max( first[i], broadcastedSecond[i] );
 	}
 
 	return true;
@@ -68,6 +76,7 @@ CEltwiseNodeBase::CEltwiseNodeBase( int nodeIndex, const onnx::NodeProto& eltwis
 	COpNode( nodeIndex, eltwise, opsetVersion ),
 	operation( _operation ),
 	argsNum( _argsNum ),
+	axis( Attributes.GetOptionalInt( "axis", -1 ) ),
 	userInputCached( -1 )
 {
 	if( argsNum > 0 ) {
@@ -85,7 +94,7 @@ void CEltwiseNodeBase::CalcOutputTensors( CTensorCache& tensors, IMathEngine& ma
 	for( int i = 1; i < InputCount(); ++i ) {
 		CTensorShape currShape;
 		outputShape.CopyTo( currShape );
-		CheckOnnxProtocol( broadcastShape( currShape, tensors[Input[i]].Shape, outputShape ),
+		CheckOnnxProtocol( broadcastShape( currShape, tensors[Input[i]].Shape, axis, outputShape ),
 			"input tensors can't be broadcasted", OnnxNode );
 		hasUserProvidedData |= ( tensors[Input[i]].Data == nullptr );
 	}
@@ -161,7 +170,7 @@ void CEltwiseNodeBase::AddLayers( const CGraph& graph, const CTensorCache& tenso
 		default:
 			CheckNeoOnnxInternal( false, "wrong operation type", OnnxNode );
 	}
-	eltwiseLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
+	eltwiseLayer->SetName( Name );
 
 	for( int i = 0; i < InputCount(); ++i ) {
 		if( tensors[Input[i]].Data == nullptr ) {
@@ -172,7 +181,7 @@ void CEltwiseNodeBase::AddLayers( const CGraph& graph, const CTensorCache& tenso
 			eltwiseLayer->Connect( i, *source );
 			dnn.AddLayer( *source );
 			CPtr<CDnnBlob> data = broadcast( tensors[Input[i]], tensors[Output[0]].Shape, dims[Output[0]],
-				operation == O_Sub && i == 1, operation == O_Div && i == 1 );
+				axis, operation == O_Sub && i == 1, operation == O_Div && i == 1 );
 			source->SetBlob( data );
 		}
 	}
@@ -200,21 +209,21 @@ int CEltwiseNodeBase::userInput( const CTensorCache& tensors ) const
 }
 
 // Broadcasts blob with unlabeled dimensions to the blob with unlabeled dimensions with shape equal to outputShape
-CPtr<CDnnBlob> CEltwiseNodeBase::broadcast( const CTensor& input, const CTensorShape& outputShape, bool negative,
-	bool inverted ) const
+CPtr<CDnnBlob> CEltwiseNodeBase::broadcast( const CTensor& input, const CTensorShape& outputShape, int axis,
+	bool negative, bool inverted ) const
 {
 	CTensorDim outputDim;
 	for( int i = 0; i < outputShape.Size(); ++i ) {
 		outputDim.Add( static_cast<TBlobDim>( i ) );
 	}
-	return broadcast( input, outputShape, outputDim, negative, inverted );
+	return broadcast( input, outputShape, outputDim, axis, negative, inverted );
 }
 
 // Broadcasts blob with unlabeled dimensions to the blob with labeled dimensions with shape equal to outputShape
 // If negative is true then the result will be multiplied by -1
 // If inverted is true then the 1 will be divided by result
-CPtr<CDnnBlob> CEltwiseNodeBase::broadcast( const CTensor &input, const CTensorShape &outputShape, const CTensorDim& outputDim, 
-	bool negative, bool inverted ) const
+CPtr<CDnnBlob> CEltwiseNodeBase::broadcast( const CTensor &input, const CTensorShape &outputShape, const CTensorDim& outputDim,
+	int axis, bool negative, bool inverted ) const
 {
 	CheckNeoOnnxInternal( input.Data != nullptr, "cannot broadcast tensor with user data", OnnxNode );
 	CheckNeoOnnxInternal( outputShape.Size() == outputDim.Size(), "can't broadcast to unlableled blob", OnnxNode );
@@ -227,7 +236,11 @@ CPtr<CDnnBlob> CEltwiseNodeBase::broadcast( const CTensor &input, const CTensorS
 	// inputShape with 1 added to the beginning (if needed)
 	CFastArray<int, 8> inputShape;
 	input.Shape.CopyTo( inputShape );
-	inputShape.InsertAt( 1, 0, outputShape.Size() - inputShape.Size() );
+	if( axis < 0 ) {
+		axis = outputShape.Size() - inputShape.Size();
+	}
+	inputShape.InsertAt( 1, 0, axis );
+	inputShape.Add( 1, outputShape.Size() - inputShape.Size() );
 
 	// offset by each of coordinates of inputShape
 	CFastArray<int, 8> inputOffset;
@@ -290,10 +303,10 @@ CPtr<CDnnBlob> CEltwiseNodeBase::precalcOutput( const CTensorCache& tensors, con
 	
 	static_assert( O_Count == 4, "O_Count != 4" );
 	output->Fill( operation == O_Add || operation == O_Sub ? 0.f : 1.f );
-	
+
 	for( int i = 0; i < InputCount(); ++i ) {
 		CheckNeoOnnxInternal( tensors[Input[i]].Data != nullptr, "precalcOutput was called with user data", OnnxNode );
-		CPtr<CDnnBlob> operand = broadcast( tensors[Input[i]], outputShape, operation == O_Sub && i == 1,
+		CPtr<CDnnBlob> operand = broadcast( tensors[Input[i]], outputShape, axis, operation == O_Sub && i == 1,
 			operation == O_Div && i == 1 );
 		switch( operation ) {
 			case O_Add:
