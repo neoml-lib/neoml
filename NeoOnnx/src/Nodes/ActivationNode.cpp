@@ -81,8 +81,8 @@ void CAbsNode::CheckOnnxNode() const
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion ) :
-	CActivationNode( nodeIndex, abs, opsetVersion, AF_ReLU )
+CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion ) :
+	CActivationNode( nodeIndex, clip, opsetVersion, AF_ReLU )
 {
 }
 
@@ -178,6 +178,35 @@ void CLeakyReluNode::SetLayerParams( const CTensorCache& /* tensors */, CBaseLay
 	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( layer );
 	CheckNeoOnnxInternal( leakyReLU != nullptr, "wrong layer class", OnnxNode );
 	leakyReLU->SetAlpha( Attributes.GetOptionalFloat( "alpha", 0.f ) );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CHardSigmoidNode::CHardSigmoidNode( int nodeIndex, const onnx::NodeProto& hardSigmoid, int opsetVersion ) :
+	CActivationNode( nodeIndex, hardSigmoid, opsetVersion, AF_HardSigmoid )
+{
+}
+
+void CHardSigmoidNode::CheckOnnxNode() const
+{
+	// v1 - original
+	// v6 - removed legacy optimization attributes
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", OnnxNode );
+
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", OnnxNode );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+}
+
+void CHardSigmoidNode::SetLayerParams( const CTensorCache& /* tensors */, CBaseLayer* layer ) const
+{
+	CHardSigmoidLayer* hardSigmoid = dynamic_cast<CHardSigmoidLayer*>( layer );
+	CheckNeoOnnxInternal( hardSigmoid != nullptr, "wrong layer class", OnnxNode );
+
+	const float alpha = Attributes.GetOptionalFloat( "alpha", 0.2f );
+	const float beta = Attributes.GetOptionalFloat( "beta", 0.5f );
+
+	hardSigmoid->SetSlope( alpha );
+	hardSigmoid->SetBias( beta );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
