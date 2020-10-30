@@ -325,18 +325,17 @@ CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, 
 			int j1 = desc.Indexes[i+1];
 			int j2 = desc.Indexes[i+2];
 			int j3 = desc.Indexes[i+3];
-			ptr[j] = static_cast<float>( ptr[j] + desc.Values[i] * factor );
-			ptr[j1] = static_cast<float>( ptr[j1] + desc.Values[i+1] * factor );
-			ptr[j2] = static_cast<float>( ptr[j2] + desc.Values[i+2] * factor );
-			ptr[j3] = static_cast<float>( ptr[j3] + desc.Values[i+3] * factor );
+			ptr[j] = ptr[j] + desc.Values[i] * factor;
+			ptr[j1] = ptr[j1] + desc.Values[i+1] * factor;
+			ptr[j2] = ptr[j2] + desc.Values[i+2] * factor;
+			ptr[j3] = ptr[j3] + desc.Values[i+3] * factor;
 		}
-		while( i < numberOfElements ) {
+		for( ; i < numberOfElements; ++i ) {
 			int j = desc.Indexes[i];
-			ptr[j] = static_cast<float>( ptr[j] + desc.Values[i] * factor );
-			++i;
+			ptr[j] = ptr[j] + desc.Values[i] * factor;
 		}
 	} else {
-		for(int i = 0; i < numberOfElements; i++) {
+		for( int i = 0; i < numberOfElements; i++ ) {
 			int j = desc.Indexes[i];
 			if( j < size) {
 				ptr[j] = static_cast<float>( ptr[j] + desc.Values[i] * factor );
