@@ -102,8 +102,8 @@ void extractValue<CTensor>( const onnx::AttributeProto& attribute, CTensor& valu
 	CBlobDesc desc( resultDataType );
 	value.Shape.Empty();
 	for( int i = 0; i < attribute.t().dims().size(); ++i ) {
-		desc.SetDimSize( i, attribute.t().dims( i ) );
-		value.Shape.Add( attribute.t().dims( i ) );
+		desc.SetDimSize( i, static_cast<int>( attribute.t().dims( i ) ) );
+		value.Shape.Add( static_cast<int>( attribute.t().dims( i ) ) );
 	}
 	value.Data = CDnnBlob::CreateBlob( value.Data->GetMathEngine(), resultDataType, desc );
 	
