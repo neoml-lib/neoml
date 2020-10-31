@@ -169,6 +169,7 @@ void CConvNode::add2dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& ne
 
 	conv->SetFilterData( filter );
 	conv->SetFreeTermData( InputCount() == 3 ? tensors[Input[2]].Data : nullptr );
+	conv->SetZeroFreeTerm( InputCount() == 2 );
 
 	conv->Connect( 0, *convInput.Layer, convInput.OutputIndex );
 	dnn.AddLayer( *conv );
