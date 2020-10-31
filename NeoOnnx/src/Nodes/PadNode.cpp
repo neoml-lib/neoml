@@ -24,12 +24,9 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-void CalculatePadding( const CString& autoPad, const CTensorShape& inputShape, const CTensorShape& kernelShape,
-	CFastArray<int, 8>& pads )
+void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads )
 {
 	const int padDims = static_cast<int>( kernelShape.Size() );
-	const int skipDims = static_cast<int>( inputShape.Size() ) - padDims;
-
 	for( int padDimIndex = 0; padDimIndex < padDims; ++padDimIndex ) {
 		const int totalPadSize = kernelShape[padDimIndex] - 1;
 		if( autoPad == "SAME_LOWER" ) {
