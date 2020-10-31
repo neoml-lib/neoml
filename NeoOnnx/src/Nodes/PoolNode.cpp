@@ -83,7 +83,7 @@ void CPoolNodeBase::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* ma
 	}
 
 	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
-		CalculatePadding( autoPad, inputShape, kernelShape, pads );
+		CalculatePadding( autoPad, kernelShape, pads );
 	}
 
 	if( poolingType == PT_Mean ) {

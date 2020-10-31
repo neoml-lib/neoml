@@ -147,7 +147,7 @@ void CEltwiseNodeBase::LabelTensorDims( const CTensorCache &tensors, CDimCache &
 	}
 }
 
-void CEltwiseNodeBase::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+void CEltwiseNodeBase::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	if( tensors[Output[0]].Data != nullptr ) {

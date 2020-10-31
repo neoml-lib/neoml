@@ -22,8 +22,7 @@ namespace NeoOnnx {
 // Auxiliary functions which are used in all nodes that support padding (Pad/Pool/Conv)
 
 // Calculates padding size if autoPad is SAME_*
-void CalculatePadding( const CString& autoPad, const CTensorShape& inputShape,
-	const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
+void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
 
 // Creates layer which pads tensor with given dims and pad sizes
 CPtr<CBaseLayer> CreatePaddingLayer( IMathEngine& mathEngine, const CString& layerName, const CTensorDim& dim,
