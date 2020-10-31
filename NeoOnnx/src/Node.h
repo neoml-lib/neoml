@@ -96,6 +96,9 @@ public:
 	// Fabric method. Creates CNode's derivative for given onnx node
 	static COpNode* CreateOpNode( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
 
+	// Returns true if operator opType is supported by NeoOnnx
+	static bool IsSupportedOperator( const CString& opType );
+
 protected:
 	COpNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 

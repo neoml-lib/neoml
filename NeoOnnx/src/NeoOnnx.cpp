@@ -33,6 +33,26 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Checks if all the operators are supported by NeoOnnx
+// Throws exception if some op operators are not supoorted
+static void checkOperatorSupport( const onnx::GraphProto& onnxGraph )
+{
+	CHashTable<CString> notSupportedOps;
+	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
+		if( !COpNode::IsSupportedOperator( onnxNode.op_type() ) && !notSupportedOps.Has( onnxNode.op_type() ) ) {
+			notSupportedOps.Add( onnxNode.op_type() );
+		}
+	}
+
+	if( !notSupportedOps.IsEmpty() ) {
+		CString message = "Operators:";
+		for( int i = notSupportedOps.GetFirstPosition(); i != NotFound; i = notSupportedOps.GetNextPosition( i ) ) {
+			message += CString( "\n\t" ) + notSupportedOps.GetValue( i );
+		}
+		CheckNeoOnnxSupport( false, message );
+	}
+}
+
 // Gets opset version from ModelProto
 static int getOpsetVersion( const onnx::ModelProto& model )
 {
@@ -42,7 +62,7 @@ static int getOpsetVersion( const onnx::ModelProto& model )
 		}
 	}
 
-	CheckOnnxProtocol( false, "Can't determine opset version for a model" );
+	CheckOnnxProtocol( false, "Default operator set is missing" );
 
 	return -1;
 }
@@ -66,33 +86,28 @@ static void buildGraph( const onnx::GraphProto& onnxGraph, int opsetVersion, CGr
 	for( const onnx::ValueInfoProto& onnxInput : onnxGraph.input() ) {
 		if( initializers.Has( onnxInput.name().c_str() ) ) {
 			// Networks from PyTorch can have separate inputs for every initializer (every weight/filter etc.)
-			// In case of NeoML inputs like these won't be needed (all of weights must be calculated from initializers)
+			// In case of NeoML inputs like these won't be needed because all the weights must be calculated from initializers
 			continue;
 		}
 		graph.Add( new CGraphInput( graph.NodeCount(), onnxInput ) );
 		nodeOutputs.Add( onnxInput.name().c_str(), CLink( graph.NodeCount() - 1, 0 ) );
 	}
 
-	const int firstOpNodeIndex = graph.NodeCount();
-
-	// Add onnx graph's nodes
+	// Add onnx graph's nodes and connect them
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
 		graph.Add( COpNode::CreateOpNode( graph.NodeCount(), onnxNode, opsetVersion ) );
 
-		// Add this onnxNode's outputs to the map of onnxNode outputs
-		for( int outputIndex = 0; outputIndex < onnxNode.output_size(); ++outputIndex ) {
-			nodeOutputs.Add( onnxNode.output( outputIndex ).c_str(), CLink( graph.NodeCount() - 1, outputIndex ) );
-		}
-	}
-
-	// Connect nodes
-	for( int opNodeIndex = 0; opNodeIndex < onnxGraph.node_size(); ++opNodeIndex ) {
-		const onnx::NodeProto& onnxNode = onnxGraph.node( opNodeIndex );
+		// Connect this node inputs
 		for( int inputIndex = 0; inputIndex < onnxNode.input_size(); ++inputIndex ) {
 			const std::string& inputName = onnxNode.input( inputIndex );
 			if( inputName.size() > 0 ) {
-				graph[firstOpNodeIndex + opNodeIndex]->Connect( inputIndex, nodeOutputs.Get( inputName.data() ) );
+				graph[graph.NodeCount() - 1]->Connect( inputIndex, nodeOutputs.Get( inputName.data() ) );
 			}
+		}
+
+		// Add this node's outputs to the map of all outputs
+		for( int outputIndex = 0; outputIndex < onnxNode.output_size(); ++outputIndex ) {
+			nodeOutputs.Add( onnxNode.output( outputIndex ).c_str(), CLink( graph.NodeCount() - 1, outputIndex ) );
 		}
 	}
 
@@ -144,6 +159,9 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
 	CheckNeoOnnxInternal( dnn.GetLayerCount() == 0, "dnn must be empty" );
+
+	// Prepare: check if every operator is supported by NeOnnx
+	checkOperatorSupport( onnxGraph );
 
 	// Step 1: create graph nodes and connect them
 	CGraph graph;
