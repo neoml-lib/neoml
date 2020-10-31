@@ -176,7 +176,7 @@ void CNode::Connect( int index, const CLink& inputInfo )
 //---------------------------------------------------------------------------------------------------------------------
 
 COpNode::COpNode( int nodeIndex, const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
-	CNode( nodeIndex, _onnxNode.has_name() ? _onnxNode.name() : _onnxNode.output( 0 ) + "_Op",
+	CNode( nodeIndex, _onnxNode.name().empty() ? _onnxNode.output( 0 ) + "_Op" : _onnxNode.name(),
 		_onnxNode.input_size(), _onnxNode.output_size() ),
 	OpsetVersion( _opsetVersion ),
 	Attributes( _onnxNode ),
