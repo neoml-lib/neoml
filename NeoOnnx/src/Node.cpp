@@ -176,7 +176,7 @@ void CNode::Connect( int index, const CLink& inputInfo )
 //---------------------------------------------------------------------------------------------------------------------
 
 COpNode::COpNode( int nodeIndex, const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
-	CNode( nodeIndex, _onnxNode.name().empty() ? _onnxNode.output( 0 ) + "_Op" : _onnxNode.name(),
+	CNode( nodeIndex, ( _onnxNode.name().empty() ? _onnxNode.output( 0 ) : _onnxNode.name() ) + "_Op",
 		_onnxNode.input_size(), _onnxNode.output_size() ),
 	OpsetVersion( _opsetVersion ),
 	Attributes( _onnxNode ),
@@ -189,6 +189,12 @@ COpNode* COpNode::CreateOpNode( int nodeIndex, const onnx::NodeProto& onnxNode, 
 	TMapPosition pos = getRegisteredNodes().GetFirstPosition( onnxNode.op_type() );
 	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
 	return getRegisteredNodes().GetValue( pos )( nodeIndex, onnxNode, opsetVersion );
+}
+
+bool COpNode::IsSupportedOperator( const CString& opType )
+{
+	TMapPosition pos = getRegisteredNodes().GetFirstPosition( opType );
+	return pos != NotFound;
 }
 
 } // namespace NeoOnnx
