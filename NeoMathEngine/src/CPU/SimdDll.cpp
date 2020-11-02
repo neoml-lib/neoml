@@ -58,7 +58,7 @@ bool CSimdDll::Load()
 	#elif FINE_PLATFORM( FINE_LINUX )
 	res = CDll::Load( "libNeoMathEngineAvx.so" );
 	#elif FINE_PLATFORM( FINE_DARWIN )
-	res = CDll::Load( Load( "libNeoMathEngineAvx.dylib" );
+	res = CDll::Load( "libNeoMathEngineAvx.dylib" );
 	#endif
 	if( !res ) {
 		Free();
