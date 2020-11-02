@@ -23,15 +23,9 @@ class CBlobConvolutionBase : public CCrtAllocatedObject {
 public:
 	virtual ~CBlobConvolutionBase() = default;
 	virtual void ProcessConvolution( int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) = 0;
-
-	// We should specify maximum available values of C, FC, FH and FW in order to allocate Filter and FreeTerm variables on stack.
-	static constexpr int Cmax = 24;
-	static constexpr int FCmax = 24;
-	static constexpr int FHmax = 3;
-	static constexpr int FWmax = 3;
 };
 
-template<int FC>
+template<int FltCnt>
 class CBlobConvolution : public CBlobConvolutionBase {
 public:
 	CBlobConvolution( IMathEngine* mathEngine,
@@ -54,26 +48,26 @@ private:
 
 	IMathEngine* mathEngine;
 
-	const int C;
-	const int FH;
-	const int FW;
+	const int ChCnt;
+	const int FltH;
+	const int FltW;
 	const int SrcH;
 	const int SrcW;
-	const int SH;
-	const int SW;
-	const int DH;
-	const int DW;
-	const int RH;
-	const int RW;
+	const int StrideH;
+	const int StrideW;
+	const int DilationH;
+	const int DilationW;
+	const int ResH;
+	const int ResW;
 
-	// For some cases we will use FC, rounded up to nearest integer multiple of 8
-	static constexpr int FCm8 = ( FC + 8 - 1 ) / 8 * 8;
+	// For some cases we will use FltCnt, rounded up to nearest integer multiple of 8
+	static constexpr int FltCntM8 = ( FltCnt + 8 - 1 ) / 8 * 8;
 	static constexpr size_t AvxAlignment = 32;
 
 	const float* src;
 	const float* flt;
 	const float* freeTerm;
-	float* dst;
+	float* res;
 
 	// Length of one source line.
 	const int SrcLineStride;
@@ -86,7 +80,7 @@ private:
 	const int SrcYDilation;
 	// Width of source window in floats
 	const int SrcXWindowSize;
-	const int DstLineStride;
+	const int ResLineStride;
 
 	// Choose proper pixels in source and filter:
 	// 0  1  2
@@ -107,7 +101,7 @@ private:
 	CSize getWideBatchProcessSize();
 
 	// Process one line of image. In case of narrow processing we will step through several lines.
-	void processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& dstPtr, int windowIndex = -1 );
+	void processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, int windowIndex = -1 );
 
 	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
 		__m256& r00, __m256& r01, __m256& r02,
@@ -123,10 +117,10 @@ private:
 
 
 	// Process convolution for multiple result pixels ( number of pixels is defined by 'FastBatchProcessSize' member ).
-	void batchProcess( const float* srcPtr, float* dstPtr, int windowIndex, bool useNarrowProcessing );
+	void batchProcess( const float* srcPtr, float* resPtr, int windowIndex, bool useNarrowProcessing );
 	// Process convolution for single result pixel.
-	void singleProcess( const float* srcPtr, float* dstPtr, int windowIndex );
-	void singleProcessNarrow( const float* srcPtr, float* dstPtr, int windowIndex );
+	void singleProcess( const float* srcPtr, float* resPtr, int windowIndex );
+	void singleProcessNarrow( const float* srcPtr, float* resPtr, int windowIndex );
 
 	// Rearrange filter and fill 'Filter' and 'FreeTerm' members.
 	const float* rearrangeFilter( const float* filterData, CFloatHandleStackVar& Filter );
@@ -135,16 +129,16 @@ private:
 	const std::array<std::vector<int>, 8>  fillFltPixelOffset();
 
 	// Circular rotation of three ymm registers to the left, step equals to six floats.
-	static void RotateLeft6( __m256& y0, __m256& y1, __m256& y2 );
+	static void rotateLeft6( __m256& y0, __m256& y1, __m256& y2 );
 	// Circular rotation of three ymm registers to the left, step equals to two floats.
-	static void RotateLeft2( __m256& y );
+	static void rotateLeft2( __m256& y );
 
 };
 
 class CBlobConvolutionFabric : public CCrtAllocatedObject {
 public:
-	static bool IsBlobConvolutionAvailable( int FC, int FH, int FW );
-	static std::unique_ptr<CBlobConvolutionBase> GetProperInstance( IMathEngine* mathEngine, int FC,
+	static bool IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW );
+	static std::unique_ptr<CBlobConvolutionBase> GetProperInstance( IMathEngine* mathEngine, int FltCnt,
 		int channelCount, int filterHeight, int filterWidth,
 		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth);
@@ -152,14 +146,14 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FC, int FH, int FW )
+bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW )
 {
-	if( FH != 3 && FW != 3 ) {
+	if( FltH != 3 && FltW != 3 ) {
 		return false;
 	}
-	if( FC == 24 ||
-		FC == 18 ||
-		FC == 6 ) {
+	if( FltCnt == 24 ||
+		FltCnt == 18 ||
+		FltCnt == 6 ) {
 		return true;
 	}
 	return false;
@@ -193,33 +187,33 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<int FC>
-CBlobConvolution<FC>::CBlobConvolution( IMathEngine* _mathEngine, int channelCount, int filterHeight, int filterWidth,
+template<int FltCnt>
+CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channelCount, int filterHeight, int filterWidth,
 		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
 		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth ) :
 	mathEngine( _mathEngine ),
-	C( channelCount ),
-	FH( filterHeight ),
-	FW( filterWidth ),
+	ChCnt( channelCount ),
+	FltH( filterHeight ),
+	FltW( filterWidth ),
 	SrcH( sourceHeight ),
 	SrcW( sourceWidth ),
-	SH( strideHeight ),
-	SW( strideWidth ),
-	DH( dilationHeight ),
-	DW( dilationWidth ),
-	RH( resultHeight ),
-	RW( resultWidth ),
+	StrideH( strideHeight ),
+	StrideW( strideWidth ),
+	DilationH( dilationHeight ),
+	DilationW( dilationWidth ),
+	ResH( resultHeight ),
+	ResW( resultWidth ),
 	src( nullptr ),
 	flt( nullptr ),
 	freeTerm( nullptr ),
-	dst( nullptr ),
-	SrcLineStride( SrcW * C ),
-	SrcXStep( SW * C ),
-	SrcYStep( SH * SrcLineStride ),
-	SrcXDilation( DW * C ),
-	SrcYDilation( DH * SrcLineStride ),
-	SrcXWindowSize( FW * SrcXDilation ),
-	DstLineStride( RW * FC ),
+	res( nullptr ),
+	SrcLineStride( SrcW * ChCnt ),
+	SrcXStep( StrideW * ChCnt ),
+	SrcYStep( StrideH * SrcLineStride ),
+	SrcXDilation( DilationW * ChCnt ),
+	SrcYDilation( DilationH * SrcLineStride ),
+	SrcXWindowSize( FltW * SrcXDilation ),
+	ResLineStride( ResW * FltCnt ),
 	SrcPixelsOffset( fillSrcPixelOffset() ),
 	FltPixelsOffset( fillFltPixelOffset() ),
 	NarrowBatchProcessSize( getNarrowBatchProcessSize() ),
@@ -227,127 +221,127 @@ CBlobConvolution<FC>::CBlobConvolution( IMathEngine* _mathEngine, int channelCou
 {
 }
 
-template<int FC>
-void CBlobConvolution<FC>::ProcessConvolution( int threadCount,
+template<int FltCnt>
+void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
 {
-	CFloatHandleStackVar Filter( *mathEngine, FW * FH * FCm8 * C );
-	CFloatHandleStackVar FreeTerm( *mathEngine, FCm8 );
+	CFloatHandleStackVar filterTempBuffer( *mathEngine, FltW * FltH * FltCntM8 * ChCnt );
+	CFloatHandleStackVar freeTermTempBuffer( *mathEngine, FltCntM8 );
 
 	src = sourceData;
-	flt = rearrangeFilter( filterData, Filter );
-	freeTerm = rearrangeFreeTerm( freeTermData, FreeTerm );
-	dst = resultData;
+	flt = rearrangeFilter( filterData, filterTempBuffer );
+	freeTerm = rearrangeFreeTerm( freeTermData, freeTermTempBuffer );
+	res = resultData;
 
-	const int curThreadCount = IsOmpRelevant( RH, RH * RW * FC * FW * FH * C ) ? threadCount : 1;
+	const int curThreadCount = IsOmpRelevant( ResH, ResH * ResW * FltCnt * FltW * FltH * ChCnt ) ? threadCount : 1;
 
 	// Number of steps for each side of image, where filter is applied partially
-	const int PartialStepCountBeforeX = static_cast<const int>( std::ceil( static_cast<float>( DW ) / SW ) );
-	const int PartialStepCountAfterX = static_cast<const int>( std::ceil( ( SW * ( std::ceil( static_cast<float>( SrcW ) / SW ) - 1 ) - SrcW + DW + 1 ) / SW ) );
-	const int PartialStepCountBeforeY = static_cast<const int>( std::ceil( static_cast<float>( DH ) / SH ) );
-	const int PartialStepCountAfterY = static_cast<const int>( std::ceil( ( SH * ( std::ceil( static_cast<float>( SrcH ) / SH ) - 1 ) - SrcH + DH + 1 ) / SH ) );
-	const int CentralPartWidth = RW - PartialStepCountBeforeX - PartialStepCountAfterX;
+	const int PartialStepCountBeforeX = static_cast<const int>( std::ceil( static_cast<float>( DilationW ) / StrideW ) );
+	const int PartialStepCountAfterX = static_cast<const int>( std::ceil( ( StrideW * ( std::ceil( static_cast<float>( SrcW ) / StrideW ) - 1 ) - SrcW + DilationW + 1 ) / StrideW ) );
+	const int PartialStepCountBeforeY = static_cast<const int>( std::ceil( static_cast<float>( DilationH ) / StrideH ) );
+	const int PartialStepCountAfterY = static_cast<const int>( std::ceil( ( StrideH * ( std::ceil( static_cast<float>( SrcH ) / StrideH ) - 1 ) - SrcH + DilationH + 1 ) / StrideH ) );
+	const int CentralPartWidth = ResW - PartialStepCountBeforeX - PartialStepCountAfterX;
 
 
 	NEOML_OMP_NUM_THREADS( curThreadCount )
 	{
 		int yStart;
 		int yCount;
-		if( OmpGetTaskIndexAndCount( RH, yStart, yCount ) ) {
+		if( OmpGetTaskIndexAndCount( ResH, yStart, yCount ) ) {
 
 			// Iterate through result, left->right, top->bottom
-			const int currentRH = min( RH, yStart + yCount );
+			const int currentRH = min( ResH, yStart + yCount );
 			int ry = yStart;
 
 			int ryEnd = min( PartialStepCountBeforeY, currentRH );
 			while( ry < ryEnd ) {
 				// Top part of image
 				const float* srcPtr = src + ry * SrcYStep;
-				float* dstPtr = dst + ry * DstLineStride;
+				float* resPtr = res + ry * ResLineStride;
 				bool useNarrowProcessing = ( ryEnd ) - ry >= NarrowBatchProcessSize.Height;
 
-				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, dstPtr, 0 );
-				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, dstPtr, 1 );
-				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, dstPtr, 2 );
+				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, 0 );
+				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, 1 );
+				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, 2 );
 				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 			}
 
 
-			ryEnd = min( RH - PartialStepCountAfterY, currentRH );
+			ryEnd = min( ResH - PartialStepCountAfterY, currentRH );
 			while( ry < ryEnd ) {
 				// Middle part of image
 				const float* srcPtr = src + ry * SrcYStep;
-				float* dstPtr = dst + ry * DstLineStride;
+				float* resPtr = res + ry * ResLineStride;
 				bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
 
-				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, dstPtr, 7 );
+				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, 7 );
 
 				// Move to the top left pixel of window from central one
 				srcPtr -= ( SrcYDilation + SrcXDilation );
-				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, dstPtr );
+				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr );
 
 				// Move back to the central pixel again
 				srcPtr += ( SrcYDilation + SrcXDilation );
-				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, dstPtr, 3 );
+				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, 3 );
 				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 			}
 
-			ryEnd = min( RH, currentRH );
+			ryEnd = min( ResH, currentRH );
 			while( ry < ryEnd ) {
 				// Bottom part of image
 				const float* srcPtr = src + ry * SrcYStep;
-				float* dstPtr = dst + ry * DstLineStride;
+				float* resPtr = res + ry * ResLineStride;
 				bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
 
-				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, dstPtr, 6 );
-				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, dstPtr, 5 );
-				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, dstPtr, 4 );
+				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, 6 );
+				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, 5 );
+				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, 4 );
 				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 			}
 		}
 	}
 }
 
-template<int FC>
-inline typename CBlobConvolution<FC>::CSize CBlobConvolution<FC>::getNarrowBatchProcessSize()
+template<int FltCnt>
+inline typename CBlobConvolution<FltCnt>::CSize CBlobConvolution<FltCnt>::getNarrowBatchProcessSize()
 {
 	// Disable narrow processing by default
 	return { INT_MAX, INT_MAX };
 }
 
-template<int FC>
-inline void CBlobConvolution<FC>::singleProcessNarrow( const float*, float*,  int )
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::singleProcessNarrow( const float*, float*,  int )
 {
 	// dummy function
 }
 
-template<int FC>
-inline void CBlobConvolution<FC>::processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& dstPtr, int windowIndex )
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, int windowIndex )
 {
 	const int batchStep = useNarrowProcessing ? NarrowBatchProcessSize.Width : WideBatchProcessSize.Width;
 	for( ; rxSize >= batchStep; rxSize -= batchStep ) {
-		batchProcess( srcPtr, dstPtr, windowIndex, useNarrowProcessing );
+		batchProcess( srcPtr, resPtr, windowIndex, useNarrowProcessing );
 		srcPtr += batchStep * SrcXStep;
-		dstPtr += batchStep * FC;
+		resPtr += batchStep * FltCnt;
 	}
 
 	if( useNarrowProcessing ) {
 		for( ; rxSize > 0; rxSize-- ) {
-			singleProcessNarrow( srcPtr, dstPtr, windowIndex );
+			singleProcessNarrow( srcPtr, resPtr, windowIndex );
 			srcPtr += SrcXStep;
-			dstPtr += FC;
+			resPtr += FltCnt;
 		}
 	} else {
 		for( ; rxSize > 0; rxSize-- ) {
-			singleProcess( srcPtr, dstPtr, windowIndex );
+			singleProcess( srcPtr, resPtr, windowIndex );
 			srcPtr += SrcXStep;
-			dstPtr += FC;
+			resPtr += FltCnt;
 		}
 	}
 }
 
-template<int FC>
-const float* CBlobConvolution<FC>::rearrangeFilter( const float* filterData, CFloatHandleStackVar& Filter )
+template<int FltCnt>
+const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData, CFloatHandleStackVar& filterTempBuffer )
 {
 	// Rearrange filter data.
 	// Initial packing:
@@ -359,7 +353,7 @@ const float* CBlobConvolution<FC>::rearrangeFilter( const float* filterData, CFl
 	// ...
 	// Filter[23] Pixel[8] Channel[0-23]
 	//
-	// 1. Result packing for case when FC == FCm8 (for example: 24):
+	// 1. Result packing for case when FltCnt == FltCntM8 (for example: 24):
 	// Pixel[0] Channel[0] Filter[0-23]
 	// Pixel[0] Channel[1] Filter[0-23]
 	// ...
@@ -368,7 +362,7 @@ const float* CBlobConvolution<FC>::rearrangeFilter( const float* filterData, CFl
 	// ...
 	// Pixel[8] Channel[23] Filter[0-23]
 	//
-	// 2. Result packing for case when FC != FCm8 (for example: 18):
+	// 2. Result packing for case when FltCnt != FltCntM8 (for example: 18):
 	// Pixel[0] Channel[0] Filter[0-17] Filter[0-5]
 	// Pixel[0] Channel[1] Filter[0-23] Filter[0-5]
 	// ...
@@ -379,58 +373,58 @@ const float* CBlobConvolution<FC>::rearrangeFilter( const float* filterData, CFl
 
 
 
-	float* dstFilter = GetRaw( Filter.GetHandle() );
-	ASSERT_EXPR( reinterpret_cast<uintptr_t>( dstFilter ) % AvxAlignment == 0 );
-	for( int y = 0; y < FH; y++ ) {
-		for( int x = 0; x < FW; x++ ) {
-			for( int c = 0; c < C; c++ ) {
-				const float* srcFilter = filterData + ( x + y * FW ) * C + c;
-				for( int f = 0; f < FC; f++ ) {
-					*dstFilter++ = *srcFilter;
-					srcFilter += FW * FH * C;
+	float* resFilter = GetRaw( filterTempBuffer.GetHandle() );
+	ASSERT_EXPR( reinterpret_cast<uintptr_t>( resFilter ) % AvxAlignment == 0 );
+	for( int y = 0; y < FltH; y++ ) {
+		for( int x = 0; x < FltW; x++ ) {
+			for( int c = 0; c < ChCnt; c++ ) {
+				const float* srcFilter = filterData + ( x + y * FltW ) * ChCnt + c;
+				for( int f = 0; f < FltCnt; f++ ) {
+					*resFilter++ = *srcFilter;
+					srcFilter += FltW * FltH * ChCnt;
 				}
-				if( FCm8 != FC ) {
-					srcFilter = filterData + ( x + y * FW ) * C + c;
-					for( int f = 0; f < FCm8 - FC; f++ ) {
-						*dstFilter++ = *srcFilter;
-						srcFilter += FW * FH * C;
+				if( FltCntM8 != FltCnt ) {
+					srcFilter = filterData + ( x + y * FltW ) * ChCnt + c;
+					for( int f = 0; f < FltCntM8 - FltCnt; f++ ) {
+						*resFilter++ = *srcFilter;
+						srcFilter += FltW * FltH * ChCnt;
 					}
 				}
 			}
 		}
 	}
 
-	return GetRaw( Filter.GetHandle() );
+	return GetRaw( filterTempBuffer.GetHandle() );
 }
 
-template<int FC>
-const float* CBlobConvolution<FC>::rearrangeFreeTerm( const float* freeTermData, CFloatHandleStackVar& FreeTerm )
+template<int FltCnt>
+const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermData, CFloatHandleStackVar& freeTermTempBuffer )
 {
 	if( freeTermData == nullptr ) {
 		return nullptr;
 	}
 
-	float* dstFreeTerm = GetRaw( FreeTerm.GetHandle() );
-	ASSERT_EXPR( reinterpret_cast<uintptr_t>( dstFreeTerm ) % AvxAlignment == 0 );
+	float* resFreeTerm = GetRaw( freeTermTempBuffer.GetHandle() );
+	ASSERT_EXPR( reinterpret_cast<uintptr_t>( resFreeTerm ) % AvxAlignment == 0 );
 
-	for( int f = 0; f < FC; f++ ) {
-		*dstFreeTerm++ = *freeTermData++;
+	for( int f = 0; f < FltCnt; f++ ) {
+		*resFreeTerm++ = *freeTermData++;
 	}
-	if( FC != FCm8 ) {
-		freeTermData -= FC;
-		for( int f = 0; f < FC; f++ ) {
-			*dstFreeTerm++ = *freeTermData++;
+	if( FltCnt != FltCntM8 ) {
+		freeTermData -= FltCnt;
+		for( int f = 0; f < FltCnt; f++ ) {
+			*resFreeTerm++ = *freeTermData++;
 		}
 	}
-	return GetRaw( FreeTerm.GetHandle() );
+	return GetRaw( freeTermTempBuffer.GetHandle() );
 }
 
-template<int FC>
-const std::array<std::vector<int>, 8> CBlobConvolution<FC>::fillSrcPixelOffset()
+template<int FltCnt>
+const std::array<std::vector<int>, 8> CBlobConvolution<FltCnt>::fillSrcPixelOffset()
 {
-	const int SrcLineStride = SrcW * C;
-	const int SrcYDilation = DH * SrcLineStride;
-	const int SrcXDilation = DW * C;
+	const int SrcLineStride = SrcW * ChCnt;
+	const int SrcYDilation = DilationH * SrcLineStride;
+	const int SrcXDilation = DilationW * ChCnt;
 	return {
 		std::vector<int>{ 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 4 5 7 8
 		std::vector<int>{ -SrcXDilation, 0, SrcXDilation, SrcYDilation - SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 3 4 5 6 7 8
@@ -443,23 +437,23 @@ const std::array<std::vector<int>, 8> CBlobConvolution<FC>::fillSrcPixelOffset()
 	};
 }
 
-template<int FC>
-const std::array<std::vector<int>, 8>  CBlobConvolution<FC>::fillFltPixelOffset()
+template<int FltCnt>
+const std::array<std::vector<int>, 8>  CBlobConvolution<FltCnt>::fillFltPixelOffset()
 {
 	return {
-		std::vector<int>{ 4 * C * FCm8, 5 * C * FCm8, 7 * C * FCm8, 8 * C * FCm8 }, // 4 5 7 8
-		std::vector<int>{ 3 * C * FCm8, 4 * C * FCm8, 5 * C * FCm8, 6 * C * FCm8, 7 * C * FCm8, 8 * C * FCm8 }, // 3 4 5 6 7 8
-		std::vector<int>{ 3 * C * FCm8, 4 * C * FCm8, 6 * C * FCm8, 7 * C * FCm8 }, // 3 4 6 7
-		std::vector<int>{ 0 * C * FCm8, 1 * C * FCm8, 3 * C * FCm8, 4 * C * FCm8, 6 * C * FCm8, 7 * C * FCm8 }, // 0 1 3 4 6 7
-		std::vector<int>{ 0 * C * FCm8, 1 * C * FCm8, 3 * C * FCm8, 4 * C * FCm8 }, // 0 1 3 4
-		std::vector<int>{ 0 * C * FCm8, 1 * C * FCm8, 2 * C * FCm8, 3 * C * FCm8, 4 * C * FCm8, 5 * C * FCm8 }, // 0 1 2 3 4 5
-		std::vector<int>{ 1 * C * FCm8, 2 * C * FCm8, 4 * C * FCm8, 5 * C * FCm8 }, // 1 2 4 5
-		std::vector<int>{ 1 * C * FCm8, 2 * C * FCm8, 4 * C * FCm8, 5 * C * FCm8, 7 * C * FCm8, 8 * C * FCm8 } // 1 2 4 5 7 8
+		std::vector<int>{ 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 4 5 7 8
+		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 3 4 5 6 7 8
+		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 3 4 6 7
+		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 0 1 3 4 6 7
+		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8 }, // 0 1 3 4
+		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 0 1 2 3 4 5
+		std::vector<int>{ 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 1 2 4 5
+		std::vector<int>{ 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 } // 1 2 4 5 7 8
 	};
 }
 
-template<int FC>
-inline void CBlobConvolution<FC>::RotateLeft6( __m256& y0, __m256& y1, __m256& y2 )
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::rotateLeft6( __m256& y0, __m256& y1, __m256& y2 )
 {   //   y0        y1        y2
 	// 0 1 2 3 - 4 5 6 7 - 8 0 1 2
 	// 3 4 5 6 - 7 8 0 1 - 2 3 4 5
@@ -485,8 +479,8 @@ inline void CBlobConvolution<FC>::RotateLeft6( __m256& y0, __m256& y1, __m256& y
 	y1 = _mm256_blend_ps( yt2, yt0, 0xf0 );
 }
 
-template<int FC>
-inline void CBlobConvolution<FC>::RotateLeft2( __m256& y )
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::rotateLeft2( __m256& y )
 {
 	// 0 1 2 0
 	// 1 2 0 1
