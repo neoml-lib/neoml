@@ -33,6 +33,11 @@ CVulkanDll* CDllLoader::vulkanDll = nullptr;
 int CDllLoader::vulkanDllLinkCount = 0;
 #endif
 
+#if !FINE_PLATFORM( FINE_IOS )
+CSimdDll* CDllLoader::simdDll = nullptr;
+int CDllLoader::simdDllLinkCount = 0;
+#endif
+
 static std::mutex mutex;
 
 int CDllLoader::Load( int dll )
@@ -76,6 +81,22 @@ int CDllLoader::Load( int dll )
 			}
 		}
 #endif
+
+#if !FINE_PLATFORM( FINE_IOS )
+		if( ( dll & SIMD_DLL ) != 0 ) {
+			if( simdDll == nullptr ) {
+				simdDll = new CSimdDll();
+			}
+
+			if( !simdDll->Load()) {
+				delete simdDll;
+				simdDll = nullptr;
+			} else {
+				result |= SIMD_DLL;
+				simdDllLinkCount++;
+			}
+		}
+#endif
 	}
 	return result;
 }
@@ -101,6 +122,16 @@ void CDllLoader::Free( int dll )
 				cusparseDll = nullptr;
 				delete cublasDll;
 				cublasDll = nullptr;
+			}
+		}
+#endif
+
+#if !FINE_PLATFORM( FINE_IOS )
+		if( ( dll & SIMD_DLL ) != 0 && simdDllLinkCount > 0 ) {
+			simdDllLinkCount--;
+			if( simdDllLinkCount <= 0 ) {
+				delete simdDll;
+				simdDll = nullptr;
 			}
 		}
 #endif

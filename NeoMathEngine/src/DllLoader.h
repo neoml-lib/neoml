@@ -31,6 +31,10 @@ limitations under the License.
 #include <VulkanDll.h>
 #endif
 
+#if !FINE_PLATFORM( FINE_IOS )
+#include <SimdDll.h>
+#endif
+
 namespace NeoML {
 
 // DLL loading control
@@ -53,7 +57,15 @@ public:
 	static constexpr int VULKAN_DLL = 0x0;
 #endif
 
-	static constexpr int ALL_DLL = VULKAN_DLL | CUDA_DLL;
+#if !FINE_PLATFORM( FINE_IOS )
+	static CSimdDll* simdDll;
+	static int simdDllLinkCount;
+	static constexpr int SIMD_DLL = 0x4;
+#else
+	static constexpr int SIMD_DLL = 0x0;
+#endif
+
+	static constexpr int ALL_DLL = VULKAN_DLL | CUDA_DLL | SIMD_DLL;
 
 	explicit CDllLoader( int dll = ALL_DLL ) : loadedDlls( Load( dll ) ) {}
 	~CDllLoader() { Free( loadedDlls ); }

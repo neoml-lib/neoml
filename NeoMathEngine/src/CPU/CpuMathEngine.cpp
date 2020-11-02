@@ -22,6 +22,7 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <NeoMathEngine/SimdMathEngine.h>
+#include <DllLoader.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
@@ -101,8 +102,14 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 	memoryAlignment( floatAlignment * sizeof(float) ),
 	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, false ) ),
 	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
-	simdMathEngine( ISimdMathEngine::CreateSimdMathEngine( this, threadCount ) )
+	dllLoader( new CDllLoader( CDllLoader::SIMD_DLL ) ),
+	simdMathEngine( nullptr )
 {
+#if !FINE_PLATFORM( FINE_IOS )
+	if( dllLoader->IsLoaded( CDllLoader::SIMD_DLL ) ) {
+		simdMathEngine = CDllLoader::simdDll->CreateSimdMathEngine( this, threadCount );
+	}
+#endif
 }
 
 CCpuMathEngine::~CCpuMathEngine()
