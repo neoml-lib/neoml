@@ -371,9 +371,8 @@ const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData,
 	// ...
 	// Pixel[8] Channel[23] Filter[0-23] Filter[0-5]
 
-
-
-	float* resFilter = GetRaw( filterTempBuffer.GetHandle() );
+	float* resFilterStartPtr = static_cast<float*>( mathEngine->GetBuffer( filterTempBuffer.GetHandle(), 0, filterTempBuffer.Size() * sizeof( float ) ) );
+	float* resFilter = resFilterStartPtr;
 	ASSERT_EXPR( reinterpret_cast<uintptr_t>( resFilter ) % AvxAlignment == 0 );
 	for( int y = 0; y < FltH; y++ ) {
 		for( int x = 0; x < FltW; x++ ) {
@@ -394,7 +393,7 @@ const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData,
 		}
 	}
 
-	return GetRaw( filterTempBuffer.GetHandle() );
+	return resFilterStartPtr;
 }
 
 template<int FltCnt>
@@ -404,7 +403,8 @@ const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermD
 		return nullptr;
 	}
 
-	float* resFreeTerm = GetRaw( freeTermTempBuffer.GetHandle() );
+	float* resFreeTermStartPtr = static_cast<float*>( mathEngine->GetBuffer( freeTermTempBuffer.GetHandle(), 0, freeTermTempBuffer.Size() * sizeof( float ) ) );
+	float* resFreeTerm = resFreeTermStartPtr;
 	ASSERT_EXPR( reinterpret_cast<uintptr_t>( resFreeTerm ) % AvxAlignment == 0 );
 
 	for( int f = 0; f < FltCnt; f++ ) {
@@ -416,7 +416,7 @@ const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermD
 			*resFreeTerm++ = *freeTermData++;
 		}
 	}
-	return GetRaw( freeTermTempBuffer.GetHandle() );
+	return resFreeTermStartPtr;
 }
 
 template<int FltCnt>

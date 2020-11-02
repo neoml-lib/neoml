@@ -17,28 +17,23 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoMathEngine/SimdMathEngine.h>
-#include <MemoryHandleInternal.h>
 #include <MathEngineDnnConv.h>
 #include <AvxDnnConv.h>
 
 namespace NeoML {
 
-struct CAvxConvolutionDesc : public CCommonConvolutionDesc {
-	~CAvxConvolutionDesc() override
-	{
-
-	}
+struct CAvxConvolutionDesc : public CConvolutionDesc {
+	~CAvxConvolutionDesc() override {}
 
 	CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth );
 
-	std::unique_ptr<CBlobConvolutionBase> blobConvolution;
+	std::unique_ptr<CBlobConvolutionBase> BlobConvolution;
 };
 
 CAvxConvolutionDesc::CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
-	CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
-	blobConvolution( CBlobConvolutionFabric::GetProperInstance( mathEngine,
+	BlobConvolution( CBlobConvolutionFabric::GetProperInstance( mathEngine,
 		filter.BatchWidth(), filter.Channels(), filter.Height(), filter.Width(),
 		source.Height(), source.Width(), strideHeight, strideWidth,
 		dilationHeight, dilationWidth, result.Height(), result.Width() ) )
@@ -51,10 +46,10 @@ public:
 
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
-		const CBlobDesc& result ) override;
+		const CBlobDesc& result ) const override;
 
 	void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
-		const float* filter, const float* freeTerm, float* result ) override;
+		const float* filter, const float* freeTerm, float* result ) const override;
 
 private:
 	IMathEngine* mathEngine;
@@ -63,7 +58,7 @@ private:
 
 CConvolutionDesc* CAvxMathEngine::InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
 	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
-	const CBlobDesc& result )
+	const CBlobDesc& result ) const
 {
 	if( CBlobConvolutionFabric::IsBlobConvolutionAvailable( filter.BatchWidth() , filter.Height(), filter.Width() ) ) {
 		return new CAvxConvolutionDesc( mathEngine, source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
@@ -72,11 +67,11 @@ CConvolutionDesc* CAvxMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 }
 
 void CAvxMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
-	const float* filter, const float* freeTerm, float* result )
+	const float* filter, const float* freeTerm, float* result ) const
 {
 	const CAvxConvolutionDesc& desc = static_cast<const CAvxConvolutionDesc&>( convDesc );
 	
-	desc.blobConvolution->ProcessConvolution( threadCount, source, filter, freeTerm, result );
+	desc.BlobConvolution->ProcessConvolution( threadCount, source, filter, freeTerm, result );
 
 }
 

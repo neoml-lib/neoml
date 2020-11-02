@@ -20,7 +20,6 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 
 #include <MathEngineDll.h>
-#include <memory>
 
 namespace NeoML {
 
@@ -39,7 +38,7 @@ public:
 	// Unloads the library
 	void Free();
 
-	std::unique_ptr<ISimdMathEngine> CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount );
+	ISimdMathEngine* CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount );
 
 private:
 	constexpr static char const* CreateSimdMathEngineFuncName = "CreateSimdMathEngine";

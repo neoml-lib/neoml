@@ -80,14 +80,14 @@ void CSimdDll::Free()
 	}
 }
 
-std::unique_ptr<ISimdMathEngine> CSimdDll::CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount )
+ISimdMathEngine* CSimdDll::CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount )
 {
 	if( !IsLoaded() ) {
 		return nullptr;
 	}
 	ISimdMathEngine* simdMathEngine = createSimdMathEngineFunc( mathEngine, threadCount );
 	ASSERT_EXPR( simdMathEngine != nullptr );
-	return std::unique_ptr<ISimdMathEngine>( simdMathEngine );
+	return simdMathEngine;
 }
 
 bool CSimdDll::loadFunctions()

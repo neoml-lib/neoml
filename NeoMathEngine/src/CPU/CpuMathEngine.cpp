@@ -107,7 +107,7 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 {
 #if !FINE_PLATFORM( FINE_IOS )
 	if( dllLoader->IsLoaded( CDllLoader::SIMD_DLL ) ) {
-		simdMathEngine = CDllLoader::simdDll->CreateSimdMathEngine( this, threadCount );
+		simdMathEngine = unique_ptr<ISimdMathEngine>( CDllLoader::simdDll->CreateSimdMathEngine( this, threadCount ) );
 	}
 #endif
 }

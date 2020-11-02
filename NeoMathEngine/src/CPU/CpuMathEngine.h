@@ -448,7 +448,7 @@ private:
 	mutable std::mutex mutex; // to protect the allocations
 
 	std::unique_ptr<CDllLoader> dllLoader; // loading library for simd instructions
-	std::unique_ptr<ISimdMathEngine> simdMathEngine; // interface for using simd instructions
+	std::unique_ptr<const ISimdMathEngine> simdMathEngine; // interface for using simd instructions
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 

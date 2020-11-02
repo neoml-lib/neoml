@@ -18,7 +18,6 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
-#include <NeoMathEngine/SimdMathEngine.h>
 
 #if defined(NEOML_USE_SSE)
 
