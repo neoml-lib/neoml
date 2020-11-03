@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -274,6 +274,17 @@ void CAttentionDecoderLayer::buildLayer()
 	recurrentLayer->Connect(CAttentionRecurrentLayer::I_InitialState, *initTanh);
 
 	SetOutputMapping(*recurrentLayer);
+}
+
+CLayerWrapper<CAttentionDecoderLayer> AttentionDecoder(
+	TAttentionScore score, int outObjectSize, int outSeqLen, int hiddenSize )
+{
+	return CLayerWrapper<CAttentionDecoderLayer>( "AttentionDecoder", [=]( CAttentionDecoderLayer* result ) {
+		result->SetAttentionScore( score );
+		result->SetOutputObjectSize( outObjectSize );
+		result->SetOutputSequenceLen( outSeqLen );
+		result->SetHiddenLayerSize( hiddenSize );
+	} );
 }
 
 //---------------------------------------------------------------------------------------------------------------------

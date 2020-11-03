@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -105,6 +105,14 @@ void CBinaryFocalLossLayer::calculateGradient( CFloatHandle onesVector, CFloatHa
 	MathEngine().VectorEltwiseMultiply( tempVector, sigmoidPowerFocal, tempVector, batchSize ); 
 	// grad = y*sigma(-y*r)^focalForce*(focalForce*(sigma(-y*r) - 1)*log(1+e^(-y*r)) - sigma(-y*r))
 	MathEngine().VectorEltwiseMultiply( tempVector, labels, lossGradient, batchSize );
+}
+
+CLayerWrapper<CBinaryFocalLossLayer> BinaryFocalLoss( float focalForce, float lossWeight )
+{
+	return CLayerWrapper<CBinaryFocalLossLayer>( "BinaryFocalLoss", [=]( CBinaryFocalLossLayer* result ) {
+		result->SetFocalForce( focalForce );
+		result->SetLossWeight( lossWeight );
+	} );
 }
 
 }

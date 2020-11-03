@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -123,6 +123,16 @@ void CDropoutLayer::destroyDropoutDesc()
 		delete desc;
 		desc = 0;
 	}
+}
+
+CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,
+	bool isSpatial, bool isBatchwise )
+{
+	return CLayerWrapper<CDropoutLayer>( "Dropout", [=]( CDropoutLayer* result ) {
+		result->SetSpatial( isSpatial );
+		result->SetBatchwise( isBatchwise );
+		result->SetDropoutRate( dropoutRate );
+	} );
 }
 
 } // namespace NeoML

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -365,6 +365,16 @@ void CLstmLayer::setWeightsData( const CPtr<CDnnBlob>& newWeights )
 
 	SetInputWeightsData( splitWeights[0] );
 	SetRecurWeightsData( splitWeights[1] );
+}
+
+CLayerWrapper<CLstmLayer> Lstm(
+	int hiddenSize, float dropoutRate, bool isInCompatibilityMode )
+{
+	return CLayerWrapper<CLstmLayer>( "", [=]( CLstmLayer* result ) {
+		result->SetHiddenSize( hiddenSize );
+		result->SetDropoutRate( dropoutRate );
+		result->SetCompatibilityMode( isInCompatibilityMode );
+	} );
 }
 
 } // namespace NeoML

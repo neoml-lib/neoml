@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ template<class TProblem>
 class CNotNullWeightsView {
 public:
 	CNotNullWeightsView( const TProblem* problem );
-	virtual ~CNotNullWeightsView();
+	virtual ~CNotNullWeightsView() = default;
 
 	// Calculates the index as if we had the matrix without null weighted elements
 	int CalculateOriginalIndex( int viewedIndex ) const;
@@ -135,6 +135,8 @@ private:
 	CArray<int> notNullWeightElementsIndices;
 	// Number of null weighted elements
 	int nullWeightElementsCount;
+	CArray<int> pointerB;
+	CArray<int> pointerE;
 };
 
 template<class TProblem>

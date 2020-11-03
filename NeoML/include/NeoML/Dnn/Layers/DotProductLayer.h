@@ -40,4 +40,6 @@ protected:
 	void BackwardOnce() override;
 };
 
+NEOML_API CLayerWrapper<CDotProductLayer> DotProduct();
+
 } // namespace NeoML

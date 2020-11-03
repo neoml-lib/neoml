@@ -94,6 +94,20 @@ loss->Connect( 1, *label ); // second input: the correct classes
 net.AddLayer( *loss );
 ```
 
+The same network architecture, using a simplified API:
+
+```c++
+CSourceLayer* data = Source( network, "data" );
+CSourceLayer* label = Source( network, "label" );
+
+CBaseLayer* x = FullyConnected( 1024 ) ( data );
+x = Relu() ( x );
+x = FullyConnected( 512 ) ( x );
+x = Relu() ( x );
+x = FullyConnected( 10 ) ( x );
+CrossEntropyLoss() ( "name", x, label );
+```
+
 ## Creating the data blobs
 
 Let us put the input data into batches of 100 images each; the 60000-image data set will give us 600 iterations per learning epoch.

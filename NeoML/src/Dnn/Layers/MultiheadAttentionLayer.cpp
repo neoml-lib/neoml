@@ -399,4 +399,15 @@ CBaseLayer* CMultiheadAttentionLayer::prepareOutput( CBaseLayer* input )
 	return reshape0;
 }
 
+CLayerWrapper<CMultiheadAttentionLayer> MultiheadAttention(
+	int headCount, int hiddenSize, int outputSize, float dropoutRate )
+{
+	return CLayerWrapper<CMultiheadAttentionLayer>( "MultiheadAttention", [=]( CMultiheadAttentionLayer* result ) {
+		result->SetHeadCount( headCount );
+		result->SetHiddenSize( hiddenSize );
+		result->SetOutputSize( outputSize );
+		result->SetDropoutRate( dropoutRate );
+	} );
+}
+
 } // namespace NeoML

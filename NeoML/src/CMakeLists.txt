@@ -89,7 +89,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
     TraditionalML/CrossValidation.cpp
-    TraditionalML/CrossValidationSubProblem.h
+    TraditionalML/CrossValidationSubProblem.cpp
     TraditionalML/DecisionTreeClassificationModel.cpp
     TraditionalML/DecisionTreeClassificationModel.h
     TraditionalML/DecisionTreeNodeBase.cpp
@@ -142,8 +142,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/SparseFloatMatrix.cpp
     TraditionalML/SparseFloatVector.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
-    TraditionalML/StratifiedCrossValidationSubProblem.h
-    TraditionalML/SubProblem.h
     TraditionalML/SvmBinaryClassifierBuilder.cpp
     TraditionalML/SvmBinaryModel.cpp
     TraditionalML/SvmBinaryModel.h
@@ -162,6 +160,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/DnnInitializer.h
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
+    ../include/NeoML/Dnn/DnnLambdaHolder.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h
@@ -227,6 +226,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/ClassificationResult.h
     ../include/NeoML/TraditionalML/ClusterCenter.h
     ../include/NeoML/TraditionalML/Clustering.h
+    ../include/NeoML/TraditionalML/CrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/CommonCluster.h
     ../include/NeoML/TraditionalML/CrossValidation.h
     ../include/NeoML/TraditionalML/DecisionTreeTrainingModel.h
@@ -257,10 +257,13 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/SMOptimizer.h
     ../include/NeoML/TraditionalML/SparseFloatMatrix.h
     ../include/NeoML/TraditionalML/SparseFloatVector.h
+    ../include/NeoML/TraditionalML/SparseVectorIterator.h
     ../include/NeoML/TraditionalML/SvmBinaryClassifierBuilder.h
+    ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/TrainingModel.h
     ../include/NeoML/TraditionalML/TrustRegionNewtonOptimizer.h
     ../include/NeoML/TraditionalML/VariableMatrix.h
+    ../include/NeoML/TraditionalML/VectorIterator.h
 )
 
 target_include_directories(${PROJECT_NAME}

@@ -54,6 +54,11 @@ public:
 	void Serialize( CArchive& archive ) override;
 };
 
+NEOML_API CLayerWrapper<CSplitChannelsLayer> SplitChannels(
+	const CArray<int>& outputCounts );
+NEOML_API CLayerWrapper<CSplitChannelsLayer> SplitChannels( int output0,
+	int output1 = 0, int output2 = 0 );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // CSplitDepthLayer implements a layer that splits a blob by the Depth dimension
@@ -64,6 +69,11 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 };
+
+NEOML_API CLayerWrapper<CSplitDepthLayer> SplitDepth(
+	const CArray<int>& outputCounts );
+NEOML_API CLayerWrapper<CSplitDepthLayer> SplitDepth( int output0,
+	int output1 = 0, int output2 = 0 );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -76,6 +86,11 @@ public:
 	void Serialize( CArchive& archive ) override;
 };
 
+NEOML_API CLayerWrapper<CSplitWidthLayer> SplitWidth(
+	const CArray<int>& outputCounts );
+NEOML_API CLayerWrapper<CSplitWidthLayer> SplitWidth( int output0,
+	int output1 = 0, int output2 = 0 );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // CSplitHeightLayer implements a layer that splits a blob by the Height dimension (vertically)
@@ -87,6 +102,11 @@ public:
 	void Serialize( CArchive& archive ) override;
 };
 
+NEOML_API CLayerWrapper<CSplitHeightLayer> SplitHeight(
+	const CArray<int>& outputCounts );
+NEOML_API CLayerWrapper<CSplitHeightLayer> SplitHeight( int output0,
+	int output1 = 0, int output2 = 0 );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // CSplitBatchWidthLayer implements a layer that splits a blob by the BatchWidth dimension
@@ -97,5 +117,10 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 };
+
+NEOML_API CLayerWrapper<CSplitBatchWidthLayer> SplitBatchWidth(
+	const CArray<int>& outputCounts );
+NEOML_API CLayerWrapper<CSplitBatchWidthLayer> SplitBatchWidth( int output0,
+	int output1 = 0, int output2 = 0 );
 
 } // namespace NeoML

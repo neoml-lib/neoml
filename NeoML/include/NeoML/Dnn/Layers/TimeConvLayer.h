@@ -141,4 +141,7 @@ inline void CTimeConvLayer::SetDilation( int _dilation )
 	}
 }
 
+NEOML_API CLayerWrapper<CTimeConvLayer> TimeConv( int filterCount,
+	int filterSize, int padding = 0, int stride = 1, int dilation = 1 );
+
 } // namespace NeoML

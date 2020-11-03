@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -112,6 +112,14 @@ void CLinearLayer::Serialize( CArchive& archive )
 	}
 }
 
+CLayerWrapper<CLinearLayer> Linear( float multiplier, float freeTerm )
+{
+	return CLayerWrapper<CLinearLayer>( "Linear", [=]( CLinearLayer* result ) {
+		result->SetMultiplier( multiplier );
+		result->SetFreeTerm( freeTerm );
+	} );
+}
+
 //---------------------------------------------------------------------------------------------------
 
 CELULayer::CELULayer( IMathEngine& mathEngine ) :
@@ -153,6 +161,13 @@ void CELULayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), paramBlobs[0]->GetData() );
 }
 
+CLayerWrapper<CELULayer> Elu( float alpha )
+{
+	return CLayerWrapper<CELULayer>( "Elu", [=]( CELULayer* result ) {
+		result->SetAlpha( alpha );
+	} );
+}
+
 //---------------------------------------------------------------------------------------------------
 
 static const int ReLULayerVersion = 2000;
@@ -188,6 +203,11 @@ void CReLULayer::BackwardOnce()
 {
 	MathEngine().VectorReLUDiffOp( outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), upperThreshold->GetData() );
+}
+
+CLayerWrapper<CReLULayer> Relu()
+{
+	return CLayerWrapper<CReLULayer>( "Relu" );
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -234,6 +254,13 @@ void CLeakyReLULayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), paramBlobs[0]->GetData() );
 }
 
+CLayerWrapper<CLeakyReLULayer> LeakyRelu( float alpha )
+{
+	return CLayerWrapper<CLeakyReLULayer>( "LeakyRelu", [=]( CLeakyReLULayer* result ) {
+		result->SetAlpha( alpha );
+	} );
+}
+
 //---------------------------------------------------------------------------------------------------
 
 static const int HSwishLayerVersion = 2000;
@@ -264,6 +291,11 @@ void CHSwishLayer::BackwardOnce()
 {
 	MathEngine().VectorHSwishDiff( inputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize() );
+}
+
+CLayerWrapper<CHSwishLayer> HSwish()
+{
+	return CLayerWrapper<CHSwishLayer>( "HSwish" );
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -298,6 +330,11 @@ void CAbsLayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize());
 }
 
+CLayerWrapper<CAbsLayer> Abs()
+{
+	return CLayerWrapper<CAbsLayer>( "Abs" );
+}
+
 //---------------------------------------------------------------------------------------------------
 
 static const int SigmoidLayerVersion = 2000;
@@ -319,6 +356,11 @@ void CSigmoidLayer::BackwardOnce()
 {
 	MathEngine().VectorSigmoidDiffOp(outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize());
+}
+
+CLayerWrapper<CSigmoidLayer> Sigmoid()
+{
+	return CLayerWrapper<CSigmoidLayer>( "Sigmoid" );
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -344,6 +386,11 @@ void CTanhLayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize());
 }
 
+CLayerWrapper<CTanhLayer> Tanh()
+{
+	return CLayerWrapper<CTanhLayer>( "Tanh" );
+}
+
 //---------------------------------------------------------------------------------------------------
 
 static const int HardTanhLayerVersion = 2000;
@@ -365,6 +412,11 @@ void CHardTanhLayer::BackwardOnce()
 {
 	MathEngine().VectorHardTanhDiffOp(outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize());
+}
+
+CLayerWrapper<CHardTanhLayer> HardTanh()
+{
+	return CLayerWrapper<CHardTanhLayer>( "HardTanh" );
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -408,6 +460,14 @@ void CHardSigmoidLayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), paramBlobs[0]->GetData(), paramBlobs[1]->GetData() );
 }
 
+CLayerWrapper<CHardSigmoidLayer> HardSigmoid( float slope, float bias )
+{
+	return CLayerWrapper<CHardSigmoidLayer>( "HardSigmoid", [=]( CHardSigmoidLayer* result ) {
+		result->SetSlope( slope );
+		result->SetBias( bias );
+	} );
+}
+
 //---------------------------------------------------------------------------------------------------
 
 static const int PowerLayerVersion = 2000;
@@ -430,6 +490,13 @@ void CPowerLayer::BackwardOnce()
 {
 	MathEngine().VectorPowerDiffOp(exponent, outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize());
+}
+
+CLayerWrapper<CPowerLayer> Power( float exponent )
+{
+	return CLayerWrapper<CPowerLayer>( "Power", [=]( CPowerLayer* result ) {
+		result->SetExponent( exponent );
+	} );
 }
 
 } // namespace NeoML

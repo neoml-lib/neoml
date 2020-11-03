@@ -73,4 +73,9 @@ void CMatrixMultiplicationLayer::BackwardOnce()
 		inputDiffBlobs[1]->GetData(), inputDiffBlobs[1]->GetDataSize() );
 }
 
+CLayerWrapper<CMatrixMultiplicationLayer> MatrixMultiplication()
+{
+	return CLayerWrapper<CMatrixMultiplicationLayer>( "MatrixMultiplication" );
+}
+
 } // namespace NeoML

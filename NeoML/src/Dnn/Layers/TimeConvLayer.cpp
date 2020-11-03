@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -204,6 +204,18 @@ void CTimeConvLayer::destroyDesc()
 		delete desc;
 		desc = 0;
 	}
+}
+
+CLayerWrapper<CTimeConvLayer> TimeConv( int filterCount, int filterSize, int padding,
+	int stride, int dilation )
+{
+	return CLayerWrapper<CTimeConvLayer>( "ChannelwiseConv", [=]( CTimeConvLayer* result ) {
+		result->SetFilterCount( filterCount );
+		result->SetFilterSize( filterSize );
+		result->SetPadding( padding );
+		result->SetStride( stride );
+		result->SetDilation( dilation );
+	} );
 }
 
 } // namespace NeoML

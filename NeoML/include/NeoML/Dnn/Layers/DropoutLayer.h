@@ -61,4 +61,7 @@ private:
 	void destroyDropoutDesc();
 };
 
+NEOML_API CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,
+	bool isSpatial = false, bool isBatchwise = false );
+
 } // namespace NeoML

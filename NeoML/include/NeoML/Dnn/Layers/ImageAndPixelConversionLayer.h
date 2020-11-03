@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -69,6 +69,8 @@ private:
 	CPtr<CDnnBlob> shiftedIndices;
 };
 
+NEOML_API CLayerWrapper<CPixelToImageLayer> PixelToImage( int imageHeight, int imageWidth );
+
 // ====================================================================================================================
 
 // The layer extracts the pixels with the specified coordinates from the specified image.
@@ -102,5 +104,7 @@ private:
 	// the shifted indices
 	CPtr<CDnnBlob> shiftedIndices;
 };
+
+NEOML_API CLayerWrapper<CImageToPixelLayer> ImageToPixel();
 
 } // namespace NeoML

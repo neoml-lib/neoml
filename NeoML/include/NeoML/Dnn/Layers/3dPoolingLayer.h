@@ -78,6 +78,10 @@ private:
 	void destroyDesc();
 };
 
+NEOML_API CLayerWrapper<C3dMaxPoolingLayer> Pooling3dMax(
+	int filterHeight, int filterWidth, int filterDepth,
+	int strideHeight = 1, int strideWidth = 1, int strideDepth = 1 );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // C3dMeanPoolingLayer implements a pooling layer that takes a mean value in the window
@@ -101,5 +105,9 @@ private:
 	void initDesc();
 	void destroyDesc();
 };
+
+NEOML_API CLayerWrapper<C3dMeanPoolingLayer> Pooling3dMean(
+	int filterHeight, int filterWidth, int filterDepth,
+	int strideHeight = 1, int strideWidth = 1, int strideDepth = 1 );
 
 } // namespace NeoML

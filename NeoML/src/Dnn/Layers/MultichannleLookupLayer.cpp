@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -356,6 +356,25 @@ void CMultichannelLookupLayer::Word2VecStep( IMathEngine& mathEngine, int batchS
 
 	// Apply diff to the word2vec matrix
 	mathEngine.MatrixSpreadRowsAdd(diff, batchSize, vectorLen, word2vec, wordCount, wordMatrix);
+}
+
+CLayerWrapper<CMultichannelLookupLayer> MultichannelLookup(
+	const CArray<CLookupDimension>& lookupDimensions, bool useFrameworkLearning )
+{
+	return CLayerWrapper<CMultichannelLookupLayer>( "MultichannelLookupLayer", [=, &lookupDimensions]( CMultichannelLookupLayer* result ) {
+		result->SetDimensions( lookupDimensions );
+		result->SetUseFrameworkLearning( useFrameworkLearning );
+	} );
+}
+
+CLayerWrapper<CMultichannelLookupLayer> Embeddings( int count, int size )
+{
+	return CLayerWrapper<CMultichannelLookupLayer>( "MultichannelLookupLayer", [=]( CMultichannelLookupLayer* result ) {
+		CArray<CLookupDimension> lookupDimensions;
+		lookupDimensions.Add( CLookupDimension( count, size ) );
+		result->SetDimensions( lookupDimensions );
+		result->SetUseFrameworkLearning( true );
+	} );
 }
 
 }

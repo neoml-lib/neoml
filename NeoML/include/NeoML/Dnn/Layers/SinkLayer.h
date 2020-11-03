@@ -41,4 +41,7 @@ protected:
 	void BackwardOnce() override;
 };
 
+// Creates CSinkLayer with name
+NEOML_API CSinkLayer* Sink( const CDnnLayerLink& layer, const char* name );
+
 } // namespace NeoML

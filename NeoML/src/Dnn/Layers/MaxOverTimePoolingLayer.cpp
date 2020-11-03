@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -142,6 +142,15 @@ void CMaxOverTimePoolingLayer::destroyDescs()
 		delete globalDesc;
 		globalDesc = 0;
 	}
+}
+
+CLayerWrapper<CMaxOverTimePoolingLayer> MaxOverTimePooling(
+	int filterLength, int strideLength )
+{
+	return CLayerWrapper<CMaxOverTimePoolingLayer>( "MaxOverTimePooling", [=]( CMaxOverTimePoolingLayer* result ) {
+		result->SetFilterLength( filterLength );
+		result->SetStrideLength( strideLength );
+	} );
 }
 
 } // namespace NeoML
