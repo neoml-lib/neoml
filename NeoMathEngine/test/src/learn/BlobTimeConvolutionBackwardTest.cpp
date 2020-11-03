@@ -35,24 +35,29 @@ static void blobTimeConvolutionBackwardTestImpl( const CTestParams& params, int 
 	const CInterval filterSizeInterval = params.GetInterval( "FilterSize" );
 	const CInterval filterCountInterval = params.GetInterval( "FilterCount" );
 	const CInterval strideInterval = params.GetInterval( "Stride" );
-	const CInterval paddingInterval = params.GetInterval( "Padding" );
+	const CInterval paddingFrontInterval = params.GetInterval( "PaddingFront" );
+	const CInterval paddingBackInterval = params.GetInterval( "PaddingBack" );
 	const CInterval dilationInterval = params.GetInterval( "Dilation" );
 
 	const int batchLength = random.UniformInt( batchLengthInterval.Begin, batchLengthInterval.End );
 	const int batchSize = random.UniformInt( batchSizeInterval.Begin, batchSizeInterval.End );
 	const int objectSize = random.UniformInt( objectSizeInterval.Begin, objectSizeInterval.End );
-	int padding = random.UniformInt( paddingInterval.Begin, paddingInterval.End );
+	int paddingFront = random.UniformInt( paddingFrontInterval.Begin, paddingFrontInterval.End );
+	int paddingBack = random.UniformInt( paddingBackInterval.Begin, paddingBackInterval.End );
 	const int filterSize = random.UniformInt( filterSizeInterval.Begin, std::min( filterSizeInterval.End,
-		batchLength + 2 * padding ) );
+		batchLength + paddingFront + paddingBack ) );
 	const int filterCount = random.UniformInt( filterCountInterval.Begin, filterCountInterval.End );
 	const int stride = random.UniformInt( strideInterval.Begin, strideInterval.End );
 	const int maxDilation = filterSize == 1 ? 1 : ( batchLength - 1 ) / ( filterSize - 1 );
 	const int dilation = random.UniformInt( dilationInterval.Begin, std::min( dilationInterval.End, maxDilation ) );
-	if( padding > ( filterSize - 1 ) * dilation ) {
-		padding = ( filterSize - 1 ) * dilation;
+	if( paddingFront > ( filterSize - 1 ) * dilation ) {
+		paddingFront = ( filterSize - 1 ) * dilation;
+	}
+	if( paddingBack > ( filterSize - 1 ) * dilation ) {
+		paddingBack = ( filterSize - 1 ) * dilation;
 	}
 
-	const int outputSeqLen = ( batchLength - ( filterSize - 1 ) * dilation - 1 + 2 * padding ) / stride + 1;
+	const int outputSeqLen = ( batchLength - ( filterSize - 1 ) * dilation - 1 + paddingFront + paddingBack ) / stride + 1;
 	CBlobDesc inputDesc( CT_Float );
 	inputDesc.SetDimSize( BD_BatchLength, batchLength );
 	inputDesc.SetDimSize( BD_BatchWidth, batchSize );
@@ -104,7 +109,7 @@ static void blobTimeConvolutionBackwardTestImpl( const CTestParams& params, int 
 				const int outputDiffIndex = getFlatIndex( output, outSeq, b, 0, f, 0, 0, 0 );
 				for( int t = 0; t < filterSize; ++t ) {
 					for( int ch = 0; ch < objectSize; ++ch ) {
-						const int inputSeqIndex = outSeq * stride + t * dilation - padding;
+						const int inputSeqIndex = outSeq * stride + t * dilation - paddingFront;
 						if( inputSeqIndex >= 0 && inputSeqIndex < batchLength ) {
 							const int inputDiffIndex = getFlatIndex( input, inputSeqIndex, b, 0,
 								ch, 0, 0, 0 );
@@ -121,7 +126,7 @@ static void blobTimeConvolutionBackwardTestImpl( const CTestParams& params, int 
 	filter.CopyFrom( filterBuff.data() );
 	freeTerm.CopyFrom( freeTermBuff.data() );
 
-	CTimeConvolutionDesc* desc = MathEngine().InitTimeConvolution( input.GetDesc(), stride, padding, dilation,
+	CTimeConvolutionDesc* desc = MathEngine().InitTimeConvolution( input.GetDesc(), stride, paddingFront, paddingBack, dilation,
 		filter.GetDesc(), output.GetDesc() );
 	MathEngine().BlobTimeConvolutionBackward( *desc, output.GetData(),
 		filter.GetData(), freeTerm.GetData(), input.GetData() );
@@ -148,7 +153,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 1;"
 			"FilterCount = 1;"
 			"Stride = 1;"
-			"Padding = 0;"
+			"PaddingFront = 0;"
+			"PaddingBack = 0;"
 			"Dilation = 1;"
 			"TestCount = 10"
 		),
@@ -159,7 +165,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 1;"
 			"FilterCount = 1;"
 			"Stride = 1;"
-			"Padding = 0;"
+			"PaddingFront = 0;"
+			"PaddingBack = 0;"
 			"Dilation = 1;"
 			"TestCount = 1"
 		),
@@ -170,7 +177,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 1;"
 			"FilterCount = 1;"
 			"Stride = 1;"
-			"Padding = 0;"
+			"PaddingFront = 0;"
+			"PaddingBack = 0;"
 			"Dilation = 1;"
 			"TestCount = 1"
 		),
@@ -181,7 +189,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 1;"
 			"FilterCount = 1;"
 			"Stride = 1;"
-			"Padding = 0;"
+			"PaddingFront = 0;"
+			"PaddingBack = 0;"
 			"Dilation = 1;"
 			"TestCount = 1"
 		),
@@ -192,7 +201,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 1;"
 			"FilterCount = 13;"
 			"Stride = 1;"
-			"Padding = 0;"
+			"PaddingFront = 0;"
+			"PaddingBack = 0;"
 			"Dilation = 1;"
 			"TestCount = 1"
 		),
@@ -203,7 +213,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 11;"
 			"FilterCount = 13;"
 			"Stride = 1;"
-			"Padding = 0;"
+			"PaddingFront = 0;"
+			"PaddingBack = 0;"
 			"Dilation = 1;"
 			"TestCount = 1"
 		),
@@ -214,7 +225,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 11;"
 			"FilterCount = 13;"
 			"Stride = 1;"
-			"Padding = 0;"
+			"PaddingFront = 0;"
+			"PaddingBack = 0;"
 			"Dilation = 1;"
 			"TestCount = 1"
 		),
@@ -225,7 +237,32 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 3;"
 			"FilterCount = 11;"
 			"Stride = 2;"
-			"Padding = 2;"
+			"PaddingFront = 2;"
+			"PaddingBack = 2;"
+			"Dilation = 2;"
+			"TestCount = 1"
+		),
+		CTestParams(
+			"BatchLength = 13;"
+			"BatchSize = 7;"
+			"ObjectSize = 5;"
+			"FilterSize = 3;"
+			"FilterCount = 11;"
+			"Stride = 2;"
+			"PaddingFront = 2;"
+			"PaddingBack = 0;"
+			"Dilation = 2;"
+			"TestCount = 1"
+		),
+		CTestParams(
+			"BatchLength = 13;"
+			"BatchSize = 7;"
+			"ObjectSize = 5;"
+			"FilterSize = 3;"
+			"FilterCount = 11;"
+			"Stride = 2;"
+			"PaddingFront = 0;"
+			"PaddingBack = 2;"
 			"Dilation = 2;"
 			"TestCount = 1"
 		),
@@ -236,7 +273,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 5;"
 			"FilterCount = 11;"
 			"Stride = 3;"
-			"Padding = 4;"
+			"PaddingFront = 4;"
+			"PaddingBack = 4;"
 			"Dilation = 3;"
 			"TestCount = 1"
 		),
@@ -247,7 +285,32 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 2;"
 			"FilterCount = 2;"
 			"Stride = 1;"
-			"Padding = 3;"
+			"PaddingFront = 3;"
+			"PaddingBack = 3;"
+			"Dilation = 3;"
+			"TestCount = 1"
+		),
+		CTestParams(
+			"BatchLength = 5;"
+			"BatchSize = 10;"
+			"ObjectSize = 5;"
+			"FilterSize = 2;"
+			"FilterCount = 2;"
+			"Stride = 1;"
+			"PaddingFront = 3;"
+			"PaddingBack = 0;"
+			"Dilation = 3;"
+			"TestCount = 1"
+		),
+		CTestParams(
+			"BatchLength = 5;"
+			"BatchSize = 10;"
+			"ObjectSize = 5;"
+			"FilterSize = 2;"
+			"FilterCount = 2;"
+			"Stride = 1;"
+			"PaddingFront = 0;"
+			"PaddingBack = 3;"
 			"Dilation = 3;"
 			"TestCount = 1"
 		),
@@ -258,7 +321,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 2;"
 			"FilterCount = 1;"
 			"Stride = 2;"
-			"Padding = 0;"
+			"PaddingFront = 0;"
+			"PaddingBack = 0;"
 			"Dilation = 1;"
 			"TestCount = 1"
 		),
@@ -269,7 +333,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 1;"
 			"FilterCount = 1;"
 			"Stride = 1;"
-			"Padding = 0;"
+			"PaddingFront = 0;"
+			"PaddingBack = 0;"
 			"Dilation = 1;"
 			"TestCount = 1"
 		),
@@ -280,7 +345,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = 1;"
 			"FilterCount = 1;"
 			"Stride = 1;"
-			"Padding = 0;"
+			"PaddingFront = 0;"
+			"PaddingBack = 0;"
 			"Dilation = 1;"
 			"TestCount = 1"
 		),
@@ -291,7 +357,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = (1 .. 20);"
 			"FilterCount = (1 .. 3);"
 			"Stride = (1 .. 3);"
-			"Padding = (0 .. 3);"
+			"PaddingFront = (0 .. 3);"
+			"PaddingBack = (0 .. 3);"
 			"Dilation = (1 .. 3);"
 			"TestCount = 600"
 		),
@@ -302,7 +369,8 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 			"FilterSize = (1 .. 20);"
 			"FilterCount = (1 .. 3);"
 			"Stride = (1 .. 3);"
-			"Padding = (0 .. 3);"
+			"PaddingFront = (0 .. 3);"
+			"PaddingBack = (0 .. 3);"
 			"Dilation = (1 .. 5);"
 			"TestCount = 30"
 		)

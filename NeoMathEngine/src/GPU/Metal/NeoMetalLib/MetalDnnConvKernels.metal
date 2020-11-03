@@ -538,7 +538,7 @@ static constant int BlobTimeConvolutionPrepareCombine = 16;
 kernel void cubeKernelBlobTimeConvolutionPrepare( constant CBaseBlobDesc* source [[buffer(0)]],
                                                   constant float* sourceData [[buffer(1)]],
                                                   constant int* strideSize [[buffer(2)]],
-                                                  constant int* paddingSize [[buffer(3)]],
+                                                  constant int* paddingFront [[buffer(3)]],
                                                   constant int* dilation [[buffer(4)]],
                                                   constant CBaseBlobDesc* filt [[buffer(5)]],
                                                   constant float* filtData [[buffer(6)]],
@@ -559,7 +559,7 @@ kernel void cubeKernelBlobTimeConvolutionPrepare( constant CBaseBlobDesc* source
 		return;
 	}
 
-	int inputSeqNumber = seqNumber * *strideSize + h * *dilation - *paddingSize;
+	int inputSeqNumber = seqNumber * *strideSize + h * *dilation - *paddingFront;
 
 	int objectSize = source->ObjectSize();
 

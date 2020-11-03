@@ -26,7 +26,7 @@ void main()
 		return;
 	}
 	
-	int inputSeqNumber = seqNumber * P.stride + h * P.dilation - P.padding;
+	int inputSeqNumber = seqNumber * P.stride + h * P.dilation - P.paddingFront;
 
 	int sourceShift = inputSeqNumber * P.sourceBatchWidth * P.sourceObjectSize;
 	int resultShift = P.sourceObjectSize * P.filterHeight * P.resultBatchWidth * seqNumber + P.sourceObjectSize * h;
