@@ -73,6 +73,9 @@ public:
 	int GetHeight() const { return body == 0 ? 0 : body->Desc.Height; }
 	int GetWidth() const { return body == 0 ? 0 : body->Desc.Width; }
 
+	void GrowInRows( int newRowsBufferSize );
+	void GrowInElements( int newElementsBufferSize );
+
 	void AddRow( const CSparseFloatVector& row );
 	void AddRow( const CSparseFloatVectorDesc& row );
 	CSparseFloatVectorDesc GetRow( int index ) const;
@@ -85,14 +88,20 @@ public:
 private:
 	// The matrix body, that is, the object that stores all its data
 	struct NEOML_API CSparseFloatMatrixBody : public IObject {
-		const int RowsBufferSize;
-		const int ElementsBufferSize;
+		int RowsBufferSize;
+		int ElementsBufferSize;
 		int ElementCount;
 		CSparseFloatMatrixDesc Desc;
 
+		// Memory holders
+		CArray<int> ColumnsBuf;
+		CArray<float> ValuesBuf;
+		CArray<int> BeginPointersBuf;
+		CArray<int> EndPointersBuf;
+
 		CSparseFloatMatrixBody( int height, int width, int elementCount, int rowsBufferSize, int elementsBufferSize );
 		explicit CSparseFloatMatrixBody( const CSparseFloatMatrixDesc& desc );
-		virtual ~CSparseFloatMatrixBody();
+		~CSparseFloatMatrixBody() override = default;
 
 		CSparseFloatMatrixBody* Duplicate() const;
 	};

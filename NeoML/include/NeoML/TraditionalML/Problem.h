@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -110,6 +110,15 @@ public:
 
 	// Stops accumulating data
 	virtual void Finish() = 0;
+};
+
+// Subproblem interface
+class NEOML_API ISubProblem : public IProblem {
+public:
+	virtual ~ISubProblem();
+
+	// Gets the vector index in the original data set
+	virtual int GetOriginalIndex( int index ) const = 0;
 };
 
 } // namespace NeoML
