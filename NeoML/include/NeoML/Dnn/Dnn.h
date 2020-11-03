@@ -181,7 +181,10 @@ public:
 	// Returns the total size of trainable parameters of its internal layers, if layer is composite or recurrent
 	virtual size_t GetTrainableParametersSize() const;
 
-	IPerformanceCounters::CCounter::TCounterType GetRunOnceTime() const { return runOnceTime; }
+	// Returns number of RunOnce calls since last Reshape
+	int GetRunOnceHitCount() const { return runOnceCount; }
+	// Returns total time of RunOnce calls (in milliseconds) since last Reshape
+	IPerformanceCounters::CCounter::TCounterType GetRunOnceTotalTime() const { return runOnceTime; }
 
 protected:
 	// A virtual method that creates output blobs using the input blobs
@@ -329,6 +332,9 @@ private:
 	// The number of graphs with which the layer is connected
 	int graphCount;
 
+	// The total number of RunOnce calls since last Reshape
+	int runOnceCount;
+	// The total time of RunOnce calls since last Reshape in milliseconds
 	IPerformanceCounters::CCounter::TCounterType runOnceTime;
 
 	// Switches the specified blobs into sequence processing mode

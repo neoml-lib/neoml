@@ -39,6 +39,7 @@ CBaseLayer::CBaseLayer( IMathEngine& _mathEngine, const char* _name, bool _isLea
 	isReshapeNeeded( true ),
 	lastRunNumber( 0 ),
 	graphCount( 0 ),
+	runOnceCount( 0 ),
 	runOnceTime( 0 )
 {
 }
@@ -350,6 +351,7 @@ void CBaseLayer::reshape()
 	inputBlobs.SetSize( inputs.Size() );
 	outputBlobs.SetSize( outputs.Size() );
 
+	runOnceCount = 0;
 	runOnceTime = 0;
 }
 
@@ -414,6 +416,7 @@ void CBaseLayer::runOnce()
 	}
 
 	{
+		++runOnceCount;
 		CRunOnceTimer timer( MathEngine(), runOnceTime );
 		RunOnce();
 	}
