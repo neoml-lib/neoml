@@ -20,6 +20,7 @@ limitations under the License.
 #ifdef NEOML_USE_VULKAN
 
 #include <vector>
+#include <array>
 #include <mutex>
 #include <vulkan/vulkan.h>
 #include <NeoMathEngine/NeoMathEngine.h>
@@ -476,9 +477,9 @@ private:
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
 	std::unique_ptr<CDeviceStackAllocator> deviceStackAllocator; // stack allocator for GPU memory
 	std::unique_ptr<CHostStackAllocator> hostStackAllocator; // stack allocator for host memory
-	std::vector< CVulkanImage*, CrtAllocator<CVulkanImage*> > tmpImages; // temporary images
+	CThreadData<std::array<std::unique_ptr<CVulkanImage>, TVI_Count>> tmpImages; // temporary images
 
-	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
+	IMathEngine& mathEngine() { return *this; }
 	int getChannelGroupSize( int height, int channels ) const;
 	const CVulkanImage* getTmpImage( TTmpVulkanImage imageId, int width, int height );
 	const CVulkanImage* getTmpImage( TTmpVulkanImage imageId );

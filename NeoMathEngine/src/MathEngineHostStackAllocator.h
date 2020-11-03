@@ -18,11 +18,7 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <MathEngineAllocator.h>
-#include <mutex>
-#include <unordered_map>
-#include <thread>
-
-using namespace std;
+#include <MathEngineCommon.h>
 
 namespace NeoML {
 
@@ -41,9 +37,7 @@ public:
 
 private:
 	const int memoryAlignment;
-	std::mutex mutex;
-	std::unordered_map< thread::id, CHostStackMemoryManager*,
-		hash<thread::id>, equal_to<thread::id>, CrtAllocator< pair<const thread::id, CHostStackMemoryManager*> > > stackManagers;
+	CThreadData<CHostStackMemoryManager> stackManager;
 };
 
 } // namespace NeoML

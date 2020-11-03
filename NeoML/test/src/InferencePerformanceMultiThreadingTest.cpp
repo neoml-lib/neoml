@@ -183,6 +183,9 @@ ResultType CDnnInferencePerformanceTest::Run(
 			EXPECT_TRUE( false );
 		}
 	}
+
+	mathEngine.CleanUp();
+
 	return counters;
 }
 
@@ -219,8 +222,6 @@ TEST_P( CDnnInferencePerformanceTest, OneMathEngine )
 		GTEST_LOG_( ERROR ) << e.what();
 		throw;
 	}
-
-	mathEngine.CleanUp();
 }
 
 TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
@@ -234,7 +235,7 @@ TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
 	mathEngines.reserve( param.ThreadCount );
 
 	for( int i = 0; i < param.ThreadCount; ++i ) {
-		auto mathEngine = CreateMathEngine( MathEngine().GetType() );
+		auto mathEngine = CreateMathEngine( MathEngine().GetType(), 1 );
 		ASSERT_TRUE( mathEngine != nullptr ) << i;
 		mathEngines.emplace_back( mathEngine );
 		results.push_back( std::async( std::launch::async, Run, std::ref( param ), std::ref( *mathEngine ) ) );
@@ -242,7 +243,7 @@ TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
 
 	try {
 		for( auto& result : results ) {
-			bool useavg = (param.TimeType == TT_Average);
+			bool useavg = ( param.TimeType == TT_Average );
 			auto counters = result.get();
 			for( const auto& counter : *counters ) {
 				GTEST_LOG_(INFO) << param.Name << " " << counter.Name << ": " <<
@@ -258,9 +259,9 @@ TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
 
 INSTANTIATE_TEST_CASE_P( CDnnInferencePerformanceTestInstantiation, CDnnInferencePerformanceTest,
 	::testing::Values(
-		CDnnInferencePerformanceTestParam(
+		CDnnInferencePerformanceTestParam( 
 			1000, 
-			2, 
+			4, 
 			TT_Total, 
 			"MobileNetV2Cifar10", // 32x32x3
 			{ "in" },

@@ -18,7 +18,11 @@ limitations under the License.
 #include <cassert>
 #include <new>
 #include <stdexcept>
+#include <thread>
+#include <mutex>
+#include <unordered_map>
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <MathEngineAllocator.h>
 
 #define __merge__2( a, b )	a##b
 #define __merge__1( a, b )	__merge__2( a, b )
@@ -93,5 +97,46 @@ inline int FloorTo( int val, int discret )
 {
 	return Floor( val, discret ) * discret;
 }
+
+template <typename Key, typename Value>
+using unordered_map = std::unordered_map<Key, Value, 
+	std::hash<Key>, std::equal_to<Key>, CrtAllocator< std::pair<Key const, Value>>>;
+
+template <typename T>
+using vector = std::vector<T, CrtAllocator<T>>;
+
+template <typename T>
+class CThreadData
+{
+public:
+	CThreadData() = default;
+	~CThreadData() noexcept = default;
+
+	CThreadData( const CThreadData& ) = delete;
+	CThreadData& operator=( const CThreadData& ) = delete;
+
+	T* Get() const
+	{
+		auto id = std::this_thread::get_id();
+
+		std::lock_guard<std::mutex> lock( mutex );
+		auto iterator = data.find( id );
+		return ( iterator == data.end() ) ? nullptr : iterator->second.get();
+	}
+
+	T* Set( T* value )
+	{
+		auto id = std::this_thread::get_id();
+		std::unique_ptr<T> ptr( value );
+		std::lock_guard<std::mutex> lock( mutex );
+		auto success = data.emplace( id, std::move( ptr ) ).second;
+		assert( success == true );
+		return value;
+	}
+
+private:
+	mutable std::mutex mutex;
+	unordered_map< std::thread::id, std::unique_ptr<T> > data;
+};
 
 }

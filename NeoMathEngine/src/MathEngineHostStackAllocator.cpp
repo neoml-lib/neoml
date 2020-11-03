@@ -22,7 +22,7 @@ limitations under the License.
 namespace NeoML {
 
 // The memory manager for stack allocation. Tries to keep all allocated memory in one block
-static const int StackBlockQuantum = 64 * 1024; // 64 K
+static constexpr int StackBlockQuantum = 64 * 1024; // 64 K
 
 // Host memory block used for the stack
 class CHostStackBlock : public CCrtAllocatedObject  {
@@ -170,19 +170,13 @@ CHostStackAllocator::CHostStackAllocator( int _memoryAlignment ) :
 
 CHostStackAllocator::~CHostStackAllocator()
 {
-	for( auto cur : stackManagers ) {
-		delete cur.second;
-	}
 }
 
 void CHostStackAllocator::CleanUp()
 {
-	thread::id id = this_thread::get_id();
-
-	lock_guard<std::mutex> lock( mutex );
-	auto iterator = stackManagers.find( id );
-	if( iterator != stackManagers.end() ) {
-		iterator->second->CleanUp();
+	auto manager = stackManager.Get();
+	if( manager ) {
+		manager->CleanUp();
 	}
 }
 
@@ -190,38 +184,22 @@ void* CHostStackAllocator::Alloc( size_t size )
 {
 	// Align size to keep correct data alignment
 	size = ( ( size + memoryAlignment - 1 ) / memoryAlignment ) * memoryAlignment;
-	CHostStackMemoryManager* hostManager = 0;
-	thread::id id = this_thread::get_id();
-
-	{
-		lock_guard<std::mutex> lock( mutex );
-		auto result = stackManagers.find( id );
-		if( result == stackManagers.end() ) {
-			result = stackManagers.insert( make_pair( id, new CHostStackMemoryManager() ) ).first;
-		}
-		hostManager = result->second;
+	auto manager = stackManager.Get();
+	if( manager == nullptr ) {
+		manager = stackManager.Set( new CHostStackMemoryManager );
 	}
-
-	return hostManager->Alloc(size);
+	return manager->Alloc( size );
 }
 
 void CHostStackAllocator::Free( void* ptr )
 {
-	if( ptr == 0 ) {
+	if( ptr == nullptr ) {
 		return;
 	}
 
-	CHostStackMemoryManager* hostManager = 0;
-	thread::id id = this_thread::get_id();
-
-	{
-		lock_guard<std::mutex> lock( mutex );
-
-		auto pair = stackManagers.find( id );
-		hostManager = pair->second;
-	}
-
-	hostManager->Free(ptr);
+	auto manager = stackManager.Get();
+	assert( manager != nullptr );
+	manager->Free( ptr );
 }
 
 } // namespace NeoML

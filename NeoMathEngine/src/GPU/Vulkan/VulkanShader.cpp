@@ -72,7 +72,8 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 	assert( dimensions >= 1 );
 	assert( dimensions <= 3 );
 
-	if( shaders[id] == 0 ) {
+	std::lock_guard<std::mutex> lock( mutex );
+	if( shaders[id] == nullptr ) {
 		// Create the shader data
 		shaders[id] = new CVulkanShaderData();
 
@@ -85,7 +86,7 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 
 		vkSucceded( device.vkCreateShaderModule( &shaderInfo, 0, &shaders[id]->Module ) );
 
-		std::vector< VkDescriptorSetLayoutBinding, CrtAllocator<VkDescriptorSetLayoutBinding> > bindingInfo;
+		vector<VkDescriptorSetLayoutBinding> bindingInfo;
 
 		bindingInfo.reserve( 2 * VulkanMaxBindingCount + 1 );
 		int curBinding = 1;

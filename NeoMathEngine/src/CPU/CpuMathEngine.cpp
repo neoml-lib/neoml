@@ -21,6 +21,7 @@ limitations under the License.
 #include <MathEngineHostStackAllocator.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <MemoryPool.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>

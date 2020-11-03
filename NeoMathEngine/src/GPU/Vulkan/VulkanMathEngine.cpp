@@ -26,6 +26,7 @@ limitations under the License.
 #include <MathEngineCommon.h>
 #include <MathEngineDeviceStackAllocator.h>
 #include <MathEngineHostStackAllocator.h>
+#include <MemoryPool.h>
 #include <MemoryHandleInternal.h>
 #include <VulkanDll.h>
 #include <VulkanCommandQueue.h>
@@ -72,8 +73,7 @@ constexpr int VulkanMemoryAlignment = 16;
 
 CVulkanMathEngine::CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& _device, size_t memoryLimit ) :
 	dllLoader( CDllLoader::VULKAN_DLL ),
-	device( std::move( _device ) ),
-	tmpImages( TVI_Count, nullptr )
+	device( std::move( _device ) )
 {
 	ASSERT_EXPR( device != 0 ); // failed to create the device
 	shaderLoader = std::unique_ptr<CVulkanShaderLoader>( new CVulkanShaderLoader( *device ) );
@@ -86,20 +86,15 @@ CVulkanMathEngine::CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& _dev
 
 CVulkanMathEngine::~CVulkanMathEngine()
 {
-	for( auto cur : tmpImages ) {
-		delete cur;
-	}
 }
 
 void CVulkanMathEngine::SetReuseMemoryMode( bool enable )
 {
-	std::lock_guard<std::mutex> lock( mutex );
 	memoryPool->SetReuseMemoryMode( enable );
 }
 
 CMemoryHandle CVulkanMathEngine::HeapAlloc( size_t size )
 {
-	std::lock_guard<std::mutex> lock( mutex );
 	CMemoryHandle result = memoryPool->Alloc( size );
 	if( result.IsNull() ) {
 		THROW_MEMORY_EXCEPTION;
@@ -112,13 +107,11 @@ void CVulkanMathEngine::HeapFree( const CMemoryHandle& handle )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
-	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->Free( handle );
 }
 
 CMemoryHandle CVulkanMathEngine::StackAlloc( size_t size )
 {
-	std::lock_guard<std::mutex> lock( mutex );
 	CMemoryHandle result = deviceStackAllocator->Alloc( size );
 	if( result.IsNull() ) {
 		THROW_MEMORY_EXCEPTION;
@@ -128,38 +121,39 @@ CMemoryHandle CVulkanMathEngine::StackAlloc( size_t size )
 
 void CVulkanMathEngine::StackFree( const CMemoryHandle& ptr )
 {
-	std::lock_guard<std::mutex> lock( mutex );
 	deviceStackAllocator->Free( ptr );
 }
 
 size_t CVulkanMathEngine::GetFreeMemorySize() const
 {
-	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetFreeMemorySize();
 }
 
 size_t CVulkanMathEngine::GetPeakMemoryUsage() const
 {
-	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetPeakMemoryUsage();
 }
 
 void CVulkanMathEngine::CleanUp()
 {
-	std::lock_guard<std::mutex> lock( mutex );
-	deviceStackAllocator->CleanUp();
-	hostStackAllocator->CleanUp();
 	commandQueue->CleanUp();
-	for( auto& cur : tmpImages ) {
-		delete cur;
-		cur = 0;
-	}
+	hostStackAllocator->CleanUp();
+	deviceStackAllocator->CleanUp();
 	memoryPool->CleanUp();
+
+	if( device->IsImageBased ) {
+		auto images = tmpImages.Get();
+		if( images != nullptr ) {
+			for( auto& ptr : *images ) {
+				ptr.reset();
+			}
+		}
+	}
 }
 
 void* CVulkanMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size )
 {
-	ASSERT_EXPR(handle.GetMathEngine() == this);
+	ASSERT_EXPR( handle.GetMathEngine() == this );
 
 	size_t realSize = size + 16;
 	char* result = reinterpret_cast<char*>( hostStackAllocator->Alloc( realSize ) );
@@ -173,7 +167,7 @@ void* CVulkanMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, siz
 
 void CVulkanMathEngine::ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange )
 {
-	ASSERT_EXPR(handle.GetMathEngine() == this);
+	ASSERT_EXPR( handle.GetMathEngine() == this );
 
 	if( exchange ) {
 		size_t* posPtr = reinterpret_cast<size_t*>( reinterpret_cast<char*>( ptr ) - 16 );
@@ -194,7 +188,6 @@ void CVulkanMathEngine::DataExchangeRaw( const CMemoryHandle& to, const void* fr
 	CTypedMemoryHandle<char> toPtr( to );
 	const char* fromPtr = reinterpret_cast<const char*>( from );
 
-	std::lock_guard<std::mutex> lock( mutex );
 	while( size != 0 ) {
 		CVulkanMemory* vulkanMemory = GetRawAllocation( toPtr );
 		ptrdiff_t vulkanOffset = GetRawOffset( toPtr );
@@ -246,7 +239,6 @@ void CVulkanMathEngine::DataExchangeRaw( void* to, const CMemoryHandle& from, si
 	CTypedMemoryHandle<char> fromPtr( from );
 	char* toPtr = reinterpret_cast<char*>( to );
 
-	std::lock_guard<std::mutex> lock( mutex );
 	while( size != 0 ) {
 		CVulkanMemory* vulkanMemory = GetRawAllocation( fromPtr );
 		ptrdiff_t vulkanOffset = GetRawOffset( fromPtr );
@@ -316,7 +308,7 @@ CMemoryHandle CVulkanMathEngine::Alloc( size_t size )
 void CVulkanMathEngine::Free( const CMemoryHandle& handle )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
-
+	// TODO
 	// Make sure that the memory we are about to clean is not used
 	commandQueue->Wait();
 
@@ -354,32 +346,38 @@ const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId, int
 {
 	assert( device->IsImageBased );
 
+	auto images = tmpImages.Get();
+	if( images == nullptr ) {
+		images = tmpImages.Set( new std::array<std::unique_ptr<CVulkanImage>, TVI_Count> );
+	}
+
 	int newWidth = width;
 	int newHeight = height;
-	if( tmpImages[imageId] != 0 && tmpImages[imageId]->IsImageFit(newWidth, newHeight) ) {
-		tmpImages[imageId]->SetWorkingArea(width, height);
-		return tmpImages[imageId];
+	if( (*images)[imageId] != 0 && (*images)[imageId]->IsImageFit( newWidth, newHeight ) ) {
+		(*images)[imageId]->SetWorkingArea( width, height );
+		return (*images)[imageId].get();
 	}
 
-	if( tmpImages[imageId] != 0 ) {
+	if( (*images)[imageId] ) {
 		commandQueue->Wait(); // make sure the previous temporary image is not used
-		delete tmpImages[imageId];
-		tmpImages[imageId] = 0;
 	}
 
-	CVulkanImage *image = new CVulkanImage( *device, newWidth, newHeight );
-	commandQueue->RunChangeLayoutForImage( image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL );
-	tmpImages[imageId] = image;
+	(*images)[imageId].reset( new CVulkanImage( *device, newWidth, newHeight ) );
+	commandQueue->RunChangeLayoutForImage((*images)[imageId].get(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL );
 
-	tmpImages[imageId]->SetWorkingArea(width, height);
-	return tmpImages[imageId];
+	(*images)[imageId]->SetWorkingArea( width, height );
+	return (*images)[imageId].get();
 }
 
 const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId )
 {
 	assert( device->IsImageBased );
-	assert(tmpImages[imageId] != 0);
-	return tmpImages[imageId];
+
+	auto images = tmpImages.Get();
+	assert( images != nullptr );
+
+	assert( (*images)[imageId] == true );
+	return (*images)[imageId].get();
 }
 
 void CVulkanMathEngine::runShader( const CVulkanShaderData& shader, const void* param, int paramSize,
@@ -387,7 +385,6 @@ void CVulkanMathEngine::runShader( const CVulkanShaderData& shader, const void* 
 	const CMemoryHandle* dataBuffers, const size_t* dataSizes, int dataBufferCount,
 	int countX, int countY, int countZ )
 {
-	std::lock_guard<std::mutex> lock( mutex );
 	commandQueue->RunComputeShader( shader, Ceil(countX, shader.GroupSizeX), Ceil(countY, shader.GroupSizeY), Ceil(countZ, shader.GroupSizeZ),
 		param, paramSize, images, imageCount, samplers, samplerCount,
 		dataBuffers, dataSizes, dataBufferCount );
@@ -401,9 +398,8 @@ void CVulkanMathEngine::runVectorShader( const CVulkanShaderData& shader, const 
 	int groupCountY = Ceil(groupCountX, VulkanMaxVectorXGroupCount);
 	groupCountX = min(groupCountX, VulkanMaxVectorXGroupCount);
 
-	assert(shader.GroupSizeY == 1 && shader.GroupSizeZ == 1);
+	assert( shader.GroupSizeY == 1 && shader.GroupSizeZ == 1 );
 
-	std::lock_guard<std::mutex> lock( mutex );
 	commandQueue->RunComputeShader( shader, groupCountX, groupCountY, 1,  param, paramSize, images, imageCount, samplers, samplerCount,
 		dataBuffers, dataSizes, dataBufferCount );
 }

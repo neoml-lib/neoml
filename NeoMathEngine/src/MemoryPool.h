@@ -19,8 +19,7 @@ limitations under the License.
 #include <NeoMathEngine/MemoryHandle.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <RawMemoryManager.h>
-#include <unordered_map>
-#include <thread>
+#include <MathEngineCommon.h>
 
 namespace NeoML {
 
@@ -43,28 +42,23 @@ public:
 	void Free( const CMemoryHandle& handle );
 
 	// Gets the amount of memory currently available
-	size_t GetFreeMemorySize() const { return freeMemorySize; }
+	size_t GetFreeMemorySize() const { std::lock_guard<std::mutex> lock( mutex ); return freeMemorySize; }
 
 	// Gets the peak memory usage achieved during processing
-	size_t GetPeakMemoryUsage() const { return peakMemoryUsage; }
+	size_t GetPeakMemoryUsage() const { std::lock_guard<std::mutex> lock( mutex ); return peakMemoryUsage; }
 
 	// Frees all memory on the current thread
 	void CleanUp();
 
 private:
-	typedef std::vector< CMemoryBufferPool*, CrtAllocator<CMemoryBufferPool*> > TPoolVector;
-	struct CThreadData {
-		TPoolVector Pool;
-		bool Enabled;
-	};
-	typedef std::unordered_map< std::thread::id, CThreadData, std::hash<std::thread::id>, std::equal_to<std::thread::id>,
-		CrtAllocator< std::pair<const std::thread::id, CThreadData> > > TPoolMap;
-
+	mutable std::mutex mutex;
 	const size_t memoryLimit;
 	IRawMemoryManager* const rawMemoryManager;
 	const bool defaultReuseMemoryMode;
 
-	TPoolMap pools;
+	struct CPoolData;
+	CThreadData<CPoolData> poolData;
+
 	size_t allocatedMemory; // the amount of memory allocated on device (belonging to the user + used for the pools)
 	size_t freeMemorySize; // the amount of free avialable memory
 	size_t peakMemoryUsage; // peak memory usage
@@ -80,13 +74,10 @@ private:
 		CUsedInfo(size_t _size, CMemoryBuffer* _buffer, CMemoryBufferPool* _pool) :
 			size(_size), buffer(_buffer), pool(_pool) {}
 	};
-	typedef std::unordered_map< void*, CUsedInfo, std::hash<void*>, std::equal_to<void*>,
-		CrtAllocator< std::pair<void* const, CUsedInfo> > > TUsedAddressMap;
-	TUsedAddressMap usedMap;
+	
+	unordered_map<void*, CUsedInfo> usedMap;
 
-	void createPools( std::thread::id id );
-	void cleanUp( std::thread::id id );
-	CMemoryHandle tryAlloc( size_t size, CThreadData& data );
+	CMemoryHandle tryAlloc( size_t size, CPoolData& data );
 	CMemoryHandle alloc( size_t size );
 	void freeMemory( size_t size, const CMemoryHandle& data );
 };

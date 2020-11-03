@@ -24,6 +24,8 @@ limitations under the License.
 #include <vulkan/vulkan.h>
 #include <MathEngineAllocator.h>
 
+#include <mutex>
+
 namespace NeoML {
 
 // The maximum number of bindings per shader
@@ -228,10 +230,12 @@ public:
 	~CVulkanShaderLoader();
 
 	// Gets the shader data
-	const CVulkanShaderData& GetShaderData(TShader id, bool isIB, const uint32_t* code, int codeLen,
-		size_t paramSize, int imageCount, int samplerCount, int bufferCount, int dimensions);
+	const CVulkanShaderData& GetShaderData( TShader id, bool isIB, const uint32_t* code, int codeLen,
+		size_t paramSize, int imageCount, int samplerCount, int bufferCount, int dimensions );
 private:
 	void calculateThreadGroupSize( int dimensions, int& threadGroupSizeX, int& threadGroupSizeY, int& threadGroupSizeZ ) const;
+
+	mutable std::mutex mutex;
 
 	const CVulkanDevice& device;
 	std::vector< CVulkanShaderData*, CrtAllocator<CVulkanShaderData*> > shaders; // cache

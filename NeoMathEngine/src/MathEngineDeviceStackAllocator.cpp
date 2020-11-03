@@ -19,6 +19,7 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <MathEngineDeviceStackAllocator.h>
 #include <RawMemoryManager.h>
+#include <MemoryPool.h>
 
 namespace NeoML {
 
@@ -180,18 +181,13 @@ CDeviceStackAllocator::CDeviceStackAllocator( CMemoryPool& _memoryPool, int _mem
 
 CDeviceStackAllocator::~CDeviceStackAllocator()
 {
-	for( auto cur : stackManagers ) {
-		delete cur.second;
-	}
 }
 
 void CDeviceStackAllocator::CleanUp()
 {
-	thread::id id = this_thread::get_id();
-
-	auto iterator = stackManagers.find( id );
-	if( iterator != stackManagers.end() ) {
-		iterator->second->CleanUp();
+	auto manager = stackManager.Get();
+	if( manager ) {
+		manager->CleanUp();
 	}
 }
 
@@ -199,18 +195,12 @@ CMemoryHandle CDeviceStackAllocator::Alloc( size_t size )
 {
 	// Align size to keep correct data alignment
 	size = ( ( size + memoryAlignment - 1 ) / memoryAlignment ) * memoryAlignment;
-	CDeviceStackMemoryManager* deviceManager = 0;
-	thread::id id = this_thread::get_id();
-
-	{
-		auto result = stackManagers.find( id );
-		if( result == stackManagers.end() ) {
-			result = stackManagers.insert( make_pair( id,  new CDeviceStackMemoryManager( memoryPool ) ) ).first;
-		}
-		deviceManager = result->second;
+	
+	auto manager = stackManager.Get();
+	if( manager == nullptr ) {
+		manager = stackManager.Set( new CDeviceStackMemoryManager( memoryPool ) );
 	}
-
-	return deviceManager->Alloc(size);
+	return manager->Alloc( size );
 }
 
 void CDeviceStackAllocator::Free( const CMemoryHandle& ptr )
@@ -219,14 +209,9 @@ void CDeviceStackAllocator::Free( const CMemoryHandle& ptr )
 		return;
 	}
 
-	CDeviceStackMemoryManager* deviceManager = 0;
-	thread::id id = this_thread::get_id();
-
-	{
-		deviceManager = stackManagers.find( id )->second;
-	}
-
-	deviceManager->Free(ptr);
+	auto manager = stackManager.Get();
+	assert( manager != nullptr );
+	manager->Free( ptr );
 }
 
 } // namespace NeoML
