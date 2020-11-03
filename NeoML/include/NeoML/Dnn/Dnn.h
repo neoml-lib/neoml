@@ -182,9 +182,9 @@ public:
 	virtual size_t GetTrainableParametersSize() const;
 
 	// Returns number of RunOnce calls since last Reshape
-	int GetRunOnceHitCount() const { return runOnceCount; }
+	int GetRunOnceCount() const { return runOnceCount; }
 	// Returns total time of RunOnce calls (in milliseconds) since last Reshape
-	IPerformanceCounters::CCounter::TCounterType GetRunOnceTotalTime() const { return runOnceTime; }
+	IPerformanceCounters::CCounter::TCounterType GetRunOnceTime() const { return runOnceTime; }
 
 protected:
 	// A virtual method that creates output blobs using the input blobs
