@@ -37,6 +37,9 @@ public:
 	CVulkanMemory( const CVulkanMemory& ) = delete;
 	CVulkanMemory& operator=( const CVulkanMemory& ) = delete;
 
+	CVulkanMemory( CVulkanMemory&& ) noexcept;
+	CVulkanMemory& operator=( CVulkanMemory&& ) = delete;
+
 	bool HostVisible() const { return ( properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) != 0; }
 
 	VkBuffer Buffer() const { return buffer; }
@@ -51,8 +54,10 @@ private:
 	
 	void release() noexcept
 	{
-		device.vkDestroyBuffer( buffer, nullptr );
-		device.vkFreeMemory( memory, nullptr );
+		if( buffer != nullptr ) {
+			device.vkDestroyBuffer( buffer, nullptr );
+			device.vkFreeMemory( memory, nullptr );
+		}
 	}
 };
 } // namespace NeoML

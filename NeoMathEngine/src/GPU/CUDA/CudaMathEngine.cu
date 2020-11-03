@@ -28,6 +28,7 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineDeviceStackAllocator.h>
 #include <MathEngineHostStackAllocator.h>
+#include <MemoryPool.h>
 #include <math.h>
 #include <float.h>
 #include <cuda_runtime.h>

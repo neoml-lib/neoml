@@ -74,6 +74,15 @@ CVulkanMemory::CVulkanMemory( const CVulkanDevice& _device, std::size_t _size, V
 		THROW_MEMORY_EXCEPTION;
 	}
 }
+
+CVulkanMemory::CVulkanMemory( CVulkanMemory&& other ) noexcept:
+	buffer( other.buffer ),
+	memory( other.memory ),
+	properties( other.properties ),
+	device( other.device )
+{
+	other.buffer = nullptr;
+}
 	
 } // namespace NeoML
 

@@ -69,7 +69,7 @@ CMemoryBuffer* CMemoryBufferPool::TryAlloc()
 	return result;
 }
 
-void CMemoryBufferPool::Free(CMemoryBuffer* data)
+void CMemoryBufferPool::Free( CMemoryBuffer* data )
 {
 	data->SetNext( head );
 	head = data;
@@ -77,7 +77,7 @@ void CMemoryBufferPool::Free(CMemoryBuffer* data)
 
 //------------------------------------------------------------------------------------------------------------
 
-static const unsigned int BufferSizes[] = {
+static constexpr unsigned int BufferSizes[] = {
 	256, 512, 1024, 2048, 2048 + 1024, 4096, 4096 + 2048, 8192,
 	8192 + 4096, 16384, 16384 + 8192, 32768, 32768 + 16384, 65536, 65536 + 32768, 131072,
 	131072 + 65536, 262144, 262144 + 131072, 524288, 524288 + 262144, 1048576, 1048576 + 524288, 2097152,
@@ -87,7 +87,40 @@ static const unsigned int BufferSizes[] = {
 };
 
 template <typename T, int size>
-inline constexpr int lengthof( T(&)[size] ) { return size; }
+constexpr int lengthof( T(&)[size] ) { return size; }
+
+struct CMemoryPool::CPoolData : CCrtAllocatedObject {
+	
+	vector<std::unique_ptr<CMemoryBufferPool>> Pool;
+	bool Enabled;
+
+	explicit CPoolData( CMemoryPool& _memoryPool, bool reuse ) :
+		Enabled( reuse ),
+		memoryPool( _memoryPool )
+	{
+		Pool.reserve( lengthof( BufferSizes ) );
+		for( auto size: BufferSizes ) {
+			Pool.push_back( std::unique_ptr<CMemoryBufferPool>( new CMemoryBufferPool( size ) ) );
+		}
+	}
+
+	void CleanUp()
+	{
+		for( auto& cur : Pool ) {
+			CMemoryBuffer* buffer = cur->TryAlloc();
+			while( buffer != nullptr ) {
+				memoryPool.freeMemory( cur->BufferSize, buffer->Data );
+				delete buffer;
+				buffer = cur->TryAlloc();
+			}
+		}
+	}
+
+	~CPoolData() { CleanUp(); }
+
+private:
+	CMemoryPool& memoryPool;
+};
 
 CMemoryPool::CMemoryPool( size_t _memoryLimit, IRawMemoryManager* _rawMemoryManager, bool reuseMemoryMode ) :
 	memoryLimit( _memoryLimit ),
@@ -101,105 +134,78 @@ CMemoryPool::CMemoryPool( size_t _memoryLimit, IRawMemoryManager* _rawMemoryMana
 
 CMemoryPool::~CMemoryPool()
 {
-	for( auto curPool : pools ) {
-		cleanUp( curPool.first );
-		for( auto curMemBufferPool : curPool.second.Pool ) {
-			delete curMemBufferPool;
-		}
-	}
 }
 
 void CMemoryPool::SetReuseMemoryMode( bool enable )
 {
-	thread::id id = this_thread::get_id();
-	auto pool = pools.find( id );
-	if( pool == pools.end() ) {
-		createPools( id );
-		pool = pools.find( id );
+	if( !poolData ) {
+		poolData.Reset( new CPoolData( *this, defaultReuseMemoryMode ) );
 	}
 
-	pool->second.Enabled = enable;
+	poolData->Enabled = enable;
 }
 
 CMemoryHandle CMemoryPool::Alloc( size_t size )
 {
-	thread::id id = this_thread::get_id();
-	auto pool = pools.find( id );
-	if( pool == pools.end() ) {
-		createPools( id );
-		pool = pools.find( id );
+	if( !poolData ) {
+		poolData.Reset( new CPoolData( *this, defaultReuseMemoryMode ) );
 	}
 
-	CMemoryHandle result = tryAlloc( size, pool->second );
+	CMemoryHandle result = tryAlloc( size, *poolData );
 	if( !result.IsNull() ) {
 		return result;
 	}
 
 	// Not enough memory. Try to free all allocated pools
 	CleanUp();
-	return tryAlloc( size, pool->second );
+	return tryAlloc( size, *poolData );
 }
 
 void CMemoryPool::Free( const CMemoryHandle& handle )
 {
-	TUsedAddressMap::const_iterator pos = usedMap.find( GetRaw(handle) );
+	std::unique_lock<std::mutex> lock( mutex );
+	auto pos = usedMap.find( GetRaw( handle ) );
 	const CUsedInfo& info = pos->second;
+	lock.unlock();
+
+	std::size_t size = 0;
 	if( info.pool != 0 ) {
-		info.pool->Free(info.buffer);
-		freeMemorySize += info.pool->BufferSize;
+		info.pool->Free( info.buffer );
+		size += info.pool->BufferSize;
 	} else {
 		// Large buffer, don't use the pool
-		freeMemory(info.size, handle);
-		freeMemorySize += info.size;
+		freeMemory( info.size, handle );
+		size += info.size;
 	}
+
+	lock.lock();
+	freeMemorySize += size;
 	usedMap.erase( pos );
 }
 
 void CMemoryPool::CleanUp()
 {
-	cleanUp( this_thread::get_id() );
-}
-
-void CMemoryPool::createPools( thread::id id )
-{
-	CThreadData threadData;
-	threadData.Enabled = defaultReuseMemoryMode;
-	for( size_t i = 0; i < sizeof( BufferSizes ) / sizeof( *BufferSizes ); ++i ) {
-		threadData.Pool.push_back( new CMemoryBufferPool( BufferSizes[i] ) );
-	}
-
-	pools[id] = threadData;
-}
-
-void CMemoryPool::cleanUp( thread::id id )
-{
-	auto pool = pools.find( id );
-	if( pool == pools.end() ) {
+	auto data = poolData.Get();
+	if( data == nullptr ) {
 		return;
 	}
 
-	for( auto cur : pool->second.Pool ) {
-		CMemoryBuffer* buffer = cur->TryAlloc();
-		while( buffer != 0 ) {
-			freeMemory(cur->BufferSize, buffer->Data);
-			delete buffer;
-			buffer = cur->TryAlloc();
-		}
-	}
+	data->CleanUp();
 }
 
-inline static bool poolsCompare( const CMemoryBufferPool* a, const size_t& b )
+inline static bool poolsCompare( const std::unique_ptr<CMemoryBufferPool>& a, const size_t& b )
 {
 	return a->BufferSize < b;
 }
 
 // Tries to allocate memory
-CMemoryHandle CMemoryPool::tryAlloc( size_t size, CThreadData& data )
+CMemoryHandle CMemoryPool::tryAlloc( size_t size, CPoolData& data )
 {
-	if( !data.Enabled || size > BufferSizes[lengthof(BufferSizes) - 1] ) {
+	if( !data.Enabled || size > BufferSizes[lengthof( BufferSizes ) - 1] ) {
 		// Allocate without using the buffers pool
 		CMemoryHandle result = alloc( size );
 		if( !result.IsNull() ) {
+			std::lock_guard<std::mutex> lock( mutex );
 			usedMap[GetRaw( result )] = CUsedInfo( size, 0, 0 );
 			freeMemorySize -= size;
 		}
@@ -207,9 +213,9 @@ CMemoryHandle CMemoryPool::tryAlloc( size_t size, CThreadData& data )
 	}
 
 	// Allocate via the buffers pool
-	TPoolVector::iterator pos = std::lower_bound( data.Pool.begin(), data.Pool.end(), size, &poolsCompare );
+	auto pos = std::lower_bound( data.Pool.begin(), data.Pool.end(), size, &poolsCompare );
 
-	CMemoryBufferPool* pool = *pos;
+	CMemoryBufferPool* pool = pos->get();
 	CMemoryBuffer* buffer = pool->TryAlloc();
 	if( buffer == 0 ) {
 		buffer = new CMemoryBuffer();
@@ -219,30 +225,40 @@ CMemoryHandle CMemoryPool::tryAlloc( size_t size, CThreadData& data )
 			return CMemoryHandle();
 		}
 	}
-	freeMemorySize -= pool->BufferSize;
-	usedMap[GetRaw(buffer->Data)] = CUsedInfo(size, buffer, pool);
-
+	
+	{
+		std::lock_guard<std::mutex> lock( mutex );
+		freeMemorySize -= pool->BufferSize;
+		usedMap[GetRaw( buffer->Data )] = CUsedInfo( size, buffer, pool );
+	}
 	return buffer->Data;
 }
 
 CMemoryHandle CMemoryPool::alloc( size_t size )
 {
-	if( size > memoryLimit || allocatedMemory > memoryLimit - size ) {
+	if( size > memoryLimit ) {
 		return CMemoryHandle();
 	}
 	
+	std::lock_guard<std::mutex> lock( mutex );
+	if( allocatedMemory > memoryLimit - size ) {
+		return CMemoryHandle();
+	}
+
 	CMemoryHandle result = rawMemoryManager->Alloc( size );
 
 	if( !result.IsNull() ) {
 		allocatedMemory += size;
 	}
-	peakMemoryUsage = max( peakMemoryUsage, allocatedMemory );
 
+	peakMemoryUsage = max( peakMemoryUsage, allocatedMemory );
 	return result;
 }
 
 void CMemoryPool::freeMemory( size_t size, const CMemoryHandle& data )
 {
+	std::lock_guard<std::mutex> lock( mutex );
+	
 	allocatedMemory -= size;
 
 	rawMemoryManager->Free( data );

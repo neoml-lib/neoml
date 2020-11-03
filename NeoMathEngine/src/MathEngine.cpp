@@ -45,6 +45,34 @@ limitations under the License.
 
 namespace NeoML {
 
+// Thread local data
+using PointerType = std::unique_ptr<void, DeleterType>;
+thread_local unordered_map<const void*, PointerType> threadLocalData;
+
+void SetThreadData( const void* key, void* data, DeleterType deleter )
+{
+	auto it = threadLocalData.find( key );
+	if( it != threadLocalData.end() ) {
+		it->second.reset( data );
+	} else {
+		threadLocalData.emplace( key, PointerType( data, deleter ) );
+	}
+}
+
+void* GetThreadData( const void* key )
+{
+	auto it = threadLocalData.find( key );
+	if( it != threadLocalData.cend() ) {
+		return it->second.get();
+	}
+	return nullptr;
+}
+
+void CleanThreadData( const void* key )
+{
+	threadLocalData.erase( key );
+}
+
 // Interface destructors
 IVectorMathEngine::~IVectorMathEngine() {}
 IBlasEngine::~IBlasEngine() {}
@@ -150,7 +178,7 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 	case MET_Vulkan:
 	{
 		const auto& deviceInfo = loader.vulkanDll->GetDevices()[index >= 0 ? info[index].Id : 0];
-		std::unique_ptr<const CVulkanDevice> device (loader.vulkanDll->CreateDevice( deviceInfo ) );
+		std::unique_ptr<const CVulkanDevice> device( loader.vulkanDll->CreateDevice( deviceInfo ) );
 		if( !device ) {
 			return nullptr;
 		}

@@ -21,8 +21,12 @@ limitations under the License.
 #include <MathEngineHostStackAllocator.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
-#include <NeoMathEngine/SimdMathEngine.h>
+#include <MemoryPool.h>
 #include <DllLoader.h>
+
+#ifdef NEOML_USE_AVX
+#include <NeoMathEngine/SimdMathEngine.h>
+#endif 
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
