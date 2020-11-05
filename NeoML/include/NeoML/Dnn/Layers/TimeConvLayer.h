@@ -38,10 +38,10 @@ public:
 	// The filter stride
 	int GetStride() const { return stride; }
 	void SetStride( int _stride );
-	// Padding in the beginning of BD_BatchLength
+	// Padding at the beginning of BD_BatchLength
 	void SetPaddingFront( int paddingFront );
 	int GetPaddingFront() const { return paddingFront; }
-	// Padding in the end of BD_BatchLength
+	// Padding at the end of BD_BatchLength
 	void SetPaddingBack( int paddingBack );
 	int GetPaddingBack() const { return paddingBack; }
 	// The filter dilation
@@ -85,8 +85,8 @@ private:
 	// The filter stride
 	int stride;
 	// padding
-	int paddingFront; // padding in the beginning of BD_BatchLength
-	int paddingBack; // padding in the end of BD_BatchLength
+	int paddingFront; // padding at the beginning of BD_BatchLength
+	int paddingBack; // padding at the end of BD_BatchLength
 	// The filter dilation
 	int dilation;
 
