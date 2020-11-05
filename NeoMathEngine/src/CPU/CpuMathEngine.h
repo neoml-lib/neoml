@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <RawMemoryManager.h>
+#include <DllLoader.h>
 #include <mutex>
 #include <memory>
 
@@ -29,7 +30,6 @@ struct CCommonChannelwiseConvolutionDesc;
 class CDeviceStackAllocator;
 class CMemoryPool;
 class ISimdMathEngine;
-class CDllLoader;
 
 // Math engine that uses a CPU for calculations
 class CCpuMathEngine : public IMathEngine, public IRawMemoryManager {
@@ -447,7 +447,7 @@ private:
 	const std::unique_ptr<CDeviceStackAllocator> stackAllocator; // the stack memory allocator
 	mutable std::mutex mutex; // to protect the allocations
 
-	std::unique_ptr<CDllLoader> dllLoader; // loading library for simd instructions
+	CDllLoader dllLoader; // loading library for simd instructions
 	std::unique_ptr<const ISimdMathEngine> simdMathEngine; // interface for using simd instructions
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }

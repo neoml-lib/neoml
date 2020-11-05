@@ -16,54 +16,50 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#if !FINE_PLATFORM( FINE_IOS )
-
 #if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
 #include <cpuid.h>
-#endif
-#if FINE_PLATFORM( FINE_WINDOWS )
+#elif FINE_PLATFORM( FINE_WINDOWS )
 #include <intrin.h>
+#else
+#error "Platform isn't supported!"
 #endif
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <MathEngineCommon.h>
 
-#include <SimdDll.h>
+#include <AvxDll.h>
 
 namespace NeoML {
 
-CSimdDll::CSimdDll() : createSimdMathEngineFunc( nullptr )
+CAvxDll::CAvxDll() : createSimdMathEngineFunc( nullptr )
 {
 }
 
-CSimdDll::~CSimdDll()
+CAvxDll::~CAvxDll()
 {
 	Free();
 }
 
-bool CSimdDll::Load()
+bool CAvxDll::Load()
 {
 	if( IsLoaded() ) {
 		return true;
 	}
 
-	if( !isSimdAvailable() ) {
+	if( !isAvxAvailable() ) {
 		return false;
 	}
 
-	bool res = false;
-	#if FINE_PLATFORM( FINE_WINDOWS )
-	res = CDll::Load( "NeoMathEngineAvx.dll" );
-	#elif FINE_PLATFORM( FINE_LINUX )
-	res = CDll::Load( "libNeoMathEngineAvx.so" );
-	#elif FINE_PLATFORM( FINE_DARWIN )
-	res = CDll::Load( "libNeoMathEngineAvx.dylib" );
-	#endif
-	if( !res ) {
-		Free();
-		return false;
-	}
+#if FINE_PLATFORM( FINE_WINDOWS )
+	ASSERT_EXPR( CDll::Load( "NeoMathEngineAvx.dll" ) );
+#elif FINE_PLATFORM( FINE_LINUX )
+	ASSERT_EXPR( CDll::Load( "libNeoMathEngineAvx.so" ) );
+#elif FINE_PLATFORM( FINE_DARWIN )
+	ASSERT_EXPR( CDll::Load( "libNeoMathEngineAvx.dylib" ) );
+#else
+	#error "Platform isn't supported!"
+#endif
 
 	if( !loadFunctions() ) {
 		CDll::Free();
@@ -72,7 +68,7 @@ bool CSimdDll::Load()
 	return true;
 }
 
-void CSimdDll::Free()
+void CAvxDll::Free()
 {
 	if( IsLoaded() ) {
 		createSimdMathEngineFunc = nullptr;
@@ -80,7 +76,7 @@ void CSimdDll::Free()
 	}
 }
 
-ISimdMathEngine* CSimdDll::CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount )
+ISimdMathEngine* CAvxDll::CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount )
 {
 	if( !IsLoaded() ) {
 		return nullptr;
@@ -90,38 +86,34 @@ ISimdMathEngine* CSimdDll::CreateSimdMathEngine( IMathEngine* mathEngine, int th
 	return simdMathEngine;
 }
 
-bool CSimdDll::loadFunctions()
+bool CAvxDll::loadFunctions()
 {
 	createSimdMathEngineFunc = reinterpret_cast<GetSimdMathEngineFunc>( GetProcAddress( CreateSimdMathEngineFuncName ) );
 	return createSimdMathEngineFunc != nullptr;
 }
 
-bool CSimdDll::isSimdAvailable()
+bool CAvxDll::isAvxAvailable()
 {
 	// Check for AVX
-	#if FINE_PLATFORM(FINE_WINDOWS)
+#if FINE_PLATFORM(FINE_WINDOWS)
 
-	#if _MSC_VER < 1900
+#if _MSC_VER < 1900
 	// VS 2015 compiles code which doesn't use all ymm registers. It brings to decrease performance compared to MKL.
 	// Therefore we just disable AVX convolution  enhancement in VS2015.
 	return false;
-	#endif
+#endif
 
 	int cpuId[4] = { 0, 0, 0, 0 };
 	__cpuid( cpuId, 1 );
-	#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
 	unsigned int cpuId[4] = { 0, 0, 0, 0 };
 	__get_cpuid( 1, cpuId, cpuId + 1, cpuId + 2, cpuId + 3 );
-	#elif FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	unsigned int cpuId[4] = { 0, 0, 0, 0 };
-	#else
+#else
 	#error "Platform isn't supported!"
-	#endif
+#endif
 
 	return ( cpuId[2] & 0x10000000 ) != 0;
 
 }
 
 } // namespace NeoML
-
-#endif //  !FINE_PLATFORM( FINE_IOS )

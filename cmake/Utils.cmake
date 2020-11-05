@@ -7,6 +7,14 @@ function(add_gtest_for_target TARGET_NAME MATH_ENGINE_TYPE WORKING_DIR)
             target_compile_options(${TARGET_NAME} PRIVATE /wd4305 /wd4996)
         endif()
 
+		add_dependencies(${TARGET_NAME} NeoMathEngineAvx)
+        if(TARGET NeoMathEngineAvx)
+            add_custom_command(TARGET ${TARGET_NAME} POST_BUILD 
+                    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:NeoMathEngineAvx> $<TARGET_FILE_DIR:${TARGET_NAME}>
+                    COMMENT "Copy NeoMathEngineAvx to ${TARGET_NAME} binary dir to discover tests."
+                )
+        endif()
+		
         get_target_property(LIB_TYPE NeoMathEngine TYPE)
         if(LIB_TYPE STREQUAL "SHARED_LIBRARY")
             add_custom_command(TARGET ${TARGET_NAME} POST_BUILD 

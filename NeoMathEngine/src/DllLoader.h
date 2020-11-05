@@ -31,8 +31,8 @@ limitations under the License.
 #include <VulkanDll.h>
 #endif
 
-#if !FINE_PLATFORM( FINE_IOS )
-#include <SimdDll.h>
+#if FINE_PLATFORM(FINE_WINDOWS) || FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+#include <AvxDll.h>
 #endif
 
 namespace NeoML {
@@ -57,15 +57,15 @@ public:
 	static constexpr int VULKAN_DLL = 0x0;
 #endif
 
-#if !FINE_PLATFORM( FINE_IOS )
-	static CSimdDll* simdDll;
-	static int simdDllLinkCount;
-	static constexpr int SIMD_DLL = 0x4;
+#if FINE_PLATFORM(FINE_WINDOWS) || FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+	static CAvxDll* avxDll;
+	static int avxDllLinkCount;
+	static constexpr int AVX_DLL = 0x4;
 #else
-	static constexpr int SIMD_DLL = 0x0;
+	static constexpr int AVX_DLL = 0x0;
 #endif
 
-	static constexpr int ALL_DLL = VULKAN_DLL | CUDA_DLL | SIMD_DLL;
+	static constexpr int ALL_DLL = VULKAN_DLL | CUDA_DLL | AVX_DLL;
 
 	explicit CDllLoader( int dll = ALL_DLL ) : loadedDlls( Load( dll ) ) {}
 	~CDllLoader() { Free( loadedDlls ); }

@@ -32,8 +32,6 @@ public:
 
 	virtual void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const = 0;
-
-	static std::unique_ptr<ISimdMathEngine> CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount );
 };
 
 }

@@ -19,7 +19,6 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
     CPU/CpuMathEngineVectorMath.cpp
-    CPU/SimdDll.cpp
     CrtAllocatedObject.cpp
     DllLoader.cpp
     MathEngineDeviceStackAllocator.cpp
@@ -45,7 +44,6 @@ target_sources(${PROJECT_NAME}
     CPU/CpuRandom.h
     CPU/CpuMathEnginePrivate.h
     CPU/CpuMathEngineOmp.h
-    CPU/SimdDll.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
@@ -128,13 +126,15 @@ else()
         CPU/x86/CpuX86MathEngineVectorMath.cpp
         CPU/x86/CpuX86MathEngineVectorMathMkl.cpp
         CPU/x86/CpuX86MathEngineDnn3dConv.cpp
+        CPU/x86/AvxDll.cpp
         CPU/x86/CpuX86.h
         CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
+        CPU/x86/AvxDll.h
     )
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
-    if(NOT IOS AND NOT ANDROID)
+    if(WIN32 OR DARWIN OR LINUX)
 		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
 	endif()
 endif()

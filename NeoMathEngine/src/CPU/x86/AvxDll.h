@@ -15,8 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#if !FINE_PLATFORM( FINE_IOS )
-
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 
 #include <MathEngineDll.h>
@@ -27,10 +25,10 @@ class ISimdMathEngine;
 class IMathEngine;
 
 // The dynamic link simd library
-class CSimdDll : public CDll {
+class CAvxDll : public CDll {
 public:
-	CSimdDll();
-	~CSimdDll();
+	CAvxDll();
+	~CAvxDll();
 
 	// Loads the library
 	bool Load();
@@ -47,9 +45,7 @@ private:
 	GetSimdMathEngineFunc createSimdMathEngineFunc;
 
 	bool loadFunctions();
-	static bool isSimdAvailable();
+	static bool isAvxAvailable();
 };
 
 } // namespace NeoML
-
-#endif //  !FINE_PLATFORM( FINE_IOS )

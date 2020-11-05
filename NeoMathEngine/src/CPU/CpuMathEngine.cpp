@@ -102,12 +102,12 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 	memoryAlignment( floatAlignment * sizeof(float) ),
 	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, false ) ),
 	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
-	dllLoader( new CDllLoader( CDllLoader::SIMD_DLL ) ),
+	dllLoader( CDllLoader::AVX_DLL ),
 	simdMathEngine( nullptr )
 {
-#if !FINE_PLATFORM( FINE_IOS )
-	if( dllLoader->IsLoaded( CDllLoader::SIMD_DLL ) ) {
-		simdMathEngine = unique_ptr<ISimdMathEngine>( CDllLoader::simdDll->CreateSimdMathEngine( this, threadCount ) );
+#if FINE_PLATFORM(FINE_WINDOWS) || FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
+		simdMathEngine = unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
 	}
 #endif
 }

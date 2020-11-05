@@ -33,9 +33,9 @@ CVulkanDll* CDllLoader::vulkanDll = nullptr;
 int CDllLoader::vulkanDllLinkCount = 0;
 #endif
 
-#if !FINE_PLATFORM( FINE_IOS )
-CSimdDll* CDllLoader::simdDll = nullptr;
-int CDllLoader::simdDllLinkCount = 0;
+#if FINE_PLATFORM(FINE_WINDOWS) || FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+CAvxDll* CDllLoader::avxDll = nullptr;
+int CDllLoader::avxDllLinkCount = 0;
 #endif
 
 static std::mutex mutex;
@@ -82,18 +82,18 @@ int CDllLoader::Load( int dll )
 		}
 #endif
 
-#if !FINE_PLATFORM( FINE_IOS )
-		if( ( dll & SIMD_DLL ) != 0 ) {
-			if( simdDll == nullptr ) {
-				simdDll = new CSimdDll();
+#if FINE_PLATFORM(FINE_WINDOWS) || FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+		if( ( dll & AVX_DLL ) != 0 ) {
+			if( avxDll == nullptr ) {
+				avxDll = new CAvxDll();
 			}
 
-			if( !simdDll->Load()) {
-				delete simdDll;
-				simdDll = nullptr;
+			if( !avxDll->Load()) {
+				delete avxDll;
+				avxDll = nullptr;
 			} else {
-				result |= SIMD_DLL;
-				simdDllLinkCount++;
+				result |= AVX_DLL;
+				avxDllLinkCount++;
 			}
 		}
 #endif
@@ -126,12 +126,12 @@ void CDllLoader::Free( int dll )
 		}
 #endif
 
-#if !FINE_PLATFORM( FINE_IOS )
-		if( ( dll & SIMD_DLL ) != 0 && simdDllLinkCount > 0 ) {
-			simdDllLinkCount--;
-			if( simdDllLinkCount <= 0 ) {
-				delete simdDll;
-				simdDll = nullptr;
+#if FINE_PLATFORM(FINE_WINDOWS) || FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+		if( ( dll & AVX_DLL ) != 0 && avxDllLinkCount > 0 ) {
+			avxDllLinkCount--;
+			if( avxDllLinkCount <= 0 ) {
+				delete avxDll;
+				avxDll = nullptr;
 			}
 		}
 #endif
