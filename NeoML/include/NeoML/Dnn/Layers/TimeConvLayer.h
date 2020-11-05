@@ -38,9 +38,12 @@ public:
 	// The filter stride
 	int GetStride() const { return stride; }
 	void SetStride( int _stride );
-	// Padding
-	int GetPadding() const { return padding; }
-	void SetPadding( int _padding );
+	// Padding at the beginning of BD_BatchLength
+	void SetPaddingFront( int paddingFront );
+	int GetPaddingFront() const { return paddingFront; }
+	// Padding at the end of BD_BatchLength
+	void SetPaddingBack( int paddingBack );
+	int GetPaddingBack() const { return paddingBack; }
 	// The filter dilation
 	int GetDilation() const { return dilation; }
 	void SetDilation( int _dilation );
@@ -57,6 +60,12 @@ public:
 	virtual CPtr<CDnnBlob> GetFreeTermData() const;
 	virtual void SetFreeTermData( const CPtr<CDnnBlob>& newFreeTerms );
 
+	// DEPRECATED
+	// Gets padding from both sides
+	// assert if paddingFront != paddingBack
+	int GetPadding() const;
+	// Sets padding in both sides of BD_BatchLength
+	void SetPadding( int _padding );
 protected:
 	virtual ~CTimeConvLayer() { destroyDesc(); }
 
@@ -76,7 +85,8 @@ private:
 	// The filter stride
 	int stride;
 	// padding
-	int padding;
+	int paddingFront; // padding at the beginning of BD_BatchLength
+	int paddingBack; // padding at the end of BD_BatchLength
 	// The filter dilation
 	int dilation;
 
@@ -123,11 +133,36 @@ inline void CTimeConvLayer::SetStride( int _stride )
 	}
 }
 
+inline void CTimeConvLayer::SetPaddingFront( int _paddingFront )
+{
+	NeoAssert( _paddingFront >= 0 );
+	if( paddingFront != _paddingFront ) {
+		paddingFront = _paddingFront;
+		ForceReshape();
+	}
+}
+
+inline void CTimeConvLayer::SetPaddingBack( int _paddingBack )
+{
+	NeoAssert( _paddingBack >= 0 );
+	if( paddingBack != _paddingBack ) {
+		paddingBack = _paddingBack;
+		ForceReshape();
+	}
+}
+
+inline int CTimeConvLayer::GetPadding() const
+{
+	NeoAssert( paddingFront == paddingBack );
+	return paddingFront;
+}
+
 inline void CTimeConvLayer::SetPadding( int _padding )
 {
 	NeoAssert( _padding >= 0 );
-	if( padding != _padding ) {
-		padding = _padding;
+	if( paddingFront != _padding || paddingBack != _padding ) {
+		paddingFront = _padding;
+		paddingBack = _padding;
 		ForceReshape();
 	}
 }

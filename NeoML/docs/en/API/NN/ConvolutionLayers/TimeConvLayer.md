@@ -40,10 +40,16 @@ Sets the convolution stride. The default value is `1`.
 ### Padding
 
 ```c++
-void SetPadding( int padding );
+void SetPaddingFront( int padding );
 ```
 
-Specifies how many zero elements should be added at either end of a sequence before performing convolution. For example, if you set `SetPadding( 1 );` two zeros will be added to the sequence - one at the start and one at the finish. The default value is `0`, that is, no padding used.
+Specifies how many zero elements should be added at the beginning of a sequence before performing convolution. The default value is `0`, that is, no padding used.
+
+```c++
+void SetPaddingBack( int padding );
+```
+
+Specifies how many zero elements should be added at the end of a sequence before performing convolution. The default value is `0`, that is, no padding used.
 
 ### Dilated convolution
 
