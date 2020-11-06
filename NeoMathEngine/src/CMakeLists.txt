@@ -126,16 +126,20 @@ else()
         CPU/x86/CpuX86MathEngineVectorMath.cpp
         CPU/x86/CpuX86MathEngineVectorMathMkl.cpp
         CPU/x86/CpuX86MathEngineDnn3dConv.cpp
-        CPU/x86/AvxDll.cpp
         CPU/x86/CpuX86.h
         CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
-        CPU/x86/AvxDll.h
     )
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
     if(WIN32 OR DARWIN OR LINUX)
+        target_sources(${PROJECT_NAME}
+        PRIVATE
+            CPU/x86/AvxDll.cpp
+            CPU/x86/AvxDll.h
+        )
 		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
+		set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
 	endif()
 endif()
 
