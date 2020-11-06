@@ -36,7 +36,7 @@ function(add_gtest_for_target TARGET_NAME MATH_ENGINE_TYPE WORKING_DIR)
         endif()
     endif()
 
-    if(WIN32 OR LINUX OR DARWIN)
+    if(NEOML_USE_AVX)
         add_dependencies(${TARGET_NAME} NeoMathEngineAvx)
         if(TARGET NeoMathEngineAvx)
             add_custom_command(TARGET ${TARGET_NAME} POST_BUILD

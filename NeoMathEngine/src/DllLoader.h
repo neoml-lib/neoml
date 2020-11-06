@@ -31,7 +31,7 @@ limitations under the License.
 #include <VulkanDll.h>
 #endif
 
-#if FINE_PLATFORM(FINE_WINDOWS) || FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+#ifdef NEOML_USE_AVX
 #include <AvxDll.h>
 #endif
 
@@ -57,7 +57,7 @@ public:
 	static constexpr int VULKAN_DLL = 0x0;
 #endif
 
-#if FINE_PLATFORM(FINE_WINDOWS) || FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+#ifdef NEOML_USE_AVX
 	static CAvxDll* avxDll;
 	static int avxDllLinkCount;
 	static constexpr int AVX_DLL = 0x4;

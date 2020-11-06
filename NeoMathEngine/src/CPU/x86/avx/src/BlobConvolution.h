@@ -37,9 +37,6 @@ public:
 	void ProcessConvolution( int threadCount,
 		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) override;
 
-	typedef void* ( *StackAlloc )( size_t size );
-	typedef void* ( *StackFree )( void* ptr );
-
 private:
 	struct CSize {
 		int Height;
