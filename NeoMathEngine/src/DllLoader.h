@@ -65,9 +65,7 @@ public:
 	static constexpr int AVX_DLL = 0x0;
 #endif
 
-	static constexpr int ALL_DLL = VULKAN_DLL | CUDA_DLL | AVX_DLL;
-
-	explicit CDllLoader( int dll = ALL_DLL ) : loadedDlls( Load( dll ) ) {}
+	explicit CDllLoader( int dll ) : loadedDlls( Load( dll ) ) {}
 	~CDllLoader() { Free( loadedDlls ); }
 
 	bool IsLoaded( int dll ) const { return ( loadedDlls & dll ) != 0; }

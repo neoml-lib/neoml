@@ -32,7 +32,8 @@ limitations under the License.
 
 namespace NeoML {
 
-CAvxDll::CAvxDll() : createSimdMathEngineFunc( nullptr )
+CAvxDll::CAvxDll() :
+	createSimdMathEngineFunc( nullptr )
 {
 }
 
@@ -61,10 +62,8 @@ bool CAvxDll::Load()
 	#error "Platform isn't supported!"
 #endif
 
-	if( !loadFunctions() ) {
-		CDll::Free();
-		return false;
-	}
+	ASSERT_EXPR( loadFunctions() );
+
 	return true;
 }
 
@@ -78,9 +77,8 @@ void CAvxDll::Free()
 
 ISimdMathEngine* CAvxDll::CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount )
 {
-	if( !IsLoaded() ) {
-		return nullptr;
-	}
+	ASSERT_EXPR( IsLoaded() );
+
 	ISimdMathEngine* simdMathEngine = createSimdMathEngineFunc( mathEngine, threadCount );
 	ASSERT_EXPR( simdMathEngine != nullptr );
 	return simdMathEngine;
@@ -88,7 +86,7 @@ ISimdMathEngine* CAvxDll::CreateSimdMathEngine( IMathEngine* mathEngine, int thr
 
 bool CAvxDll::loadFunctions()
 {
-	createSimdMathEngineFunc = reinterpret_cast<GetSimdMathEngineFunc>( GetProcAddress( CreateSimdMathEngineFuncName ) );
+	createSimdMathEngineFunc = reinterpret_cast<CreateSimdMathEngineFunc>( GetProcAddress( CreateSimdMathEngineFuncName ) );
 	return createSimdMathEngineFunc != nullptr;
 }
 

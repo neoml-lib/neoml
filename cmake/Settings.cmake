@@ -9,6 +9,10 @@ macro(set_global_variables)
         set(LINUX TRUE)
     endif()
 
+    if(WIN32 OR LINUX OR DARWIN)
+	    set(NEOML_USE_AVX TRUE)
+    endif()
+	
     # Cmake default variables
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     

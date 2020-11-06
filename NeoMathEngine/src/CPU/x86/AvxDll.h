@@ -40,9 +40,9 @@ public:
 
 private:
 	constexpr static char const* CreateSimdMathEngineFuncName = "CreateSimdMathEngine";
-	typedef ISimdMathEngine* ( *GetSimdMathEngineFunc )( IMathEngine* mathEngine, int threadCount );
+	typedef ISimdMathEngine* ( *CreateSimdMathEngineFunc )( IMathEngine* mathEngine, int threadCount );
 
-	GetSimdMathEngineFunc createSimdMathEngineFunc;
+	CreateSimdMathEngineFunc createSimdMathEngineFunc;
 
 	bool loadFunctions();
 	static bool isAvxAvailable();

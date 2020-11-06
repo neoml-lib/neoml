@@ -132,12 +132,13 @@ else()
     )
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
-    if(WIN32 OR DARWIN OR LINUX)
+    if(NEOML_USE_AVX)
         target_sources(${PROJECT_NAME}
         PRIVATE
             CPU/x86/AvxDll.cpp
             CPU/x86/AvxDll.h
         )
+        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_AVX)
 		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
 		set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
 	endif()
@@ -327,7 +328,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
 endif()
 
 # Add some definitions
-target_compile_definitions(${PROJECT_NAME} 
+target_compile_definitions(${PROJECT_NAME}
     PUBLIC
         "$<$<OR:$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:_RELEASE>"
         "$<$<CONFIG:Debug>:_DEBUG>"
