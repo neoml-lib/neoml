@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <MathEngineDnnConv.h>
-#include <AvxDnnConv.h>
+#include <BlobConvolution.h>
 
 namespace NeoML {
 

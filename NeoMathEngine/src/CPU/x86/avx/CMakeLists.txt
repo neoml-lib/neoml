@@ -11,8 +11,8 @@ target_sources(${PROJECT_NAME}
     ./src/AvxMathEngine.cpp
     # Headers
     ./common.h
-    ./src/AvxDnnConv.h
-    ./src/AvxDnnConvImpl.h
+    ./src/BlobConvolution.h
+    ./src/BlobConvolutionImpl.h
 )
 
 string(TOUPPER ${CMAKE_SYSTEM_NAME} UPPERCASE_CMAKE_SYSTEM_NAME)

@@ -9,7 +9,7 @@ macro(set_global_variables)
         set(LINUX TRUE)
     endif()
 
-    if(WIN32 OR LINUX OR DARWIN)
+    if( (CMAKE_SIZEOF_VOID_P EQUAL 8) AND (WIN32 OR LINUX OR DARWIN))
 	    set(NEOML_USE_AVX TRUE)
     endif()
 	
