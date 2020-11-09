@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoMathEngine/SimdMathEngine.h>
-#include <MathEngineDnnConv.h>
 #include <BlobConvolution.h>
 
 namespace NeoML {
