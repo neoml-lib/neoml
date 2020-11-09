@@ -53,10 +53,10 @@ namespace NeoML {
 //       - Channels is equal to GetHiddenSize()
 //
 // article: https://arxiv.org/pdf/1611.01576.pdf
-class NEOML_API CQRNNLayer: public CCompositeLayer {
-	NEOML_DNN_LAYER( CQRNNLayer )
+class NEOML_API CQrnnLayer: public CCompositeLayer {
+	NEOML_DNN_LAYER( CQrnnLayer )
 public:
-	explicit CQRNNLayer( IMathEngine& mathEngine );
+	explicit CQrnnLayer( IMathEngine& mathEngine );
 
 	// Hidden state size
 	int GetHiddenSize() const { return timeConv->GetFilterCount() / 3; }

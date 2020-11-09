@@ -16,11 +16,11 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/QRNNLayer.h>
+#include <NeoML/Dnn/Layers/QrnnLayer.h>
 
 namespace NeoML {
 
-// Layer names inside CQRNNLayer composite
+// Layer names inside CQrnnLayer composite
 static const char* timeConvName = "TimeConv";
 static const char* splitName = "Split";
 static const char* updateActivationName = "UpdateGateActivation";
@@ -36,14 +36,14 @@ static const char* prevStateMultName = "PrevStateMult";
 static const char* resultSumName = "ResultSum";
 static const char* backLinkName = "BackLink";
 
-CQRNNLayer::CQRNNLayer( IMathEngine& mathEngine ) :
+CQrnnLayer::CQrnnLayer( IMathEngine& mathEngine ) :
 	CCompositeLayer( mathEngine ),
 	activation( AF_Tanh )
 {
 	buildLayer();
 }
 
-void CQRNNLayer::SetHiddenSize( int hiddenSize )
+void CQrnnLayer::SetHiddenSize( int hiddenSize )
 {
 	if( GetHiddenSize() == hiddenSize ) {
 		return;
@@ -55,7 +55,7 @@ void CQRNNLayer::SetHiddenSize( int hiddenSize )
 	ForceReshape();
 }
 
-void CQRNNLayer::SetWindowSize( int windowSize )
+void CQrnnLayer::SetWindowSize( int windowSize )
 {
 	NeoAssert( windowSize > 0 );
 	if( timeConv->GetFilterSize() == windowSize ) {
@@ -66,7 +66,7 @@ void CQRNNLayer::SetWindowSize( int windowSize )
 	ForceReshape();
 }
 
-void CQRNNLayer::SetStride( int stride )
+void CQrnnLayer::SetStride( int stride )
 {
 	NeoAssert( stride > 0 );
 	if( timeConv->GetStride() == stride ) {
@@ -77,7 +77,7 @@ void CQRNNLayer::SetStride( int stride )
 	ForceReshape();
 }
 
-void CQRNNLayer::SetPaddingFront( int padding )
+void CQrnnLayer::SetPaddingFront( int padding )
 {
 	NeoAssert( padding >= 0 );
 	if( timeConv->GetPaddingFront() == padding ) {
@@ -88,7 +88,7 @@ void CQRNNLayer::SetPaddingFront( int padding )
 	ForceReshape();
 }
 
-void CQRNNLayer::SetActivation( TActivationFunction newActivation )
+void CQrnnLayer::SetActivation( TActivationFunction newActivation )
 {
 	if( activation == newActivation ) {
 		return;
@@ -105,7 +105,7 @@ void CQRNNLayer::SetActivation( TActivationFunction newActivation )
 	ForceReshape();
 }
 
-void CQRNNLayer::SetDropout( float rate )
+void CQrnnLayer::SetDropout( float rate )
 {
 	NeoAssert( rate >= 0.f && rate <= 1.f );
 	if( rate == 0.f && dropout != nullptr ) {
@@ -118,11 +118,11 @@ void CQRNNLayer::SetDropout( float rate )
 	}
 }
 
-static const int QRNNLayerVersion = 0;
+static const int QrnnLayerVersion = 0;
 
-void CQRNNLayer::Serialize( CArchive& archive )
+void CQrnnLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( QRNNLayerVersion );
+	archive.SerializeVersion( QrnnLayerVersion );
 	CCompositeLayer::Serialize( archive );
 	
 	int activationInt = static_cast<int>( activation );
@@ -148,7 +148,7 @@ void CQRNNLayer::Serialize( CArchive& archive )
 	}
 }
 
-void CQRNNLayer::buildLayer()
+void CQrnnLayer::buildLayer()
 {
 	timeConv = new CTimeConvLayer( MathEngine() );
 	timeConv->SetName( timeConvName );
@@ -163,15 +163,15 @@ void CQRNNLayer::buildLayer()
 	split->Connect( *timeConv );
 	AddLayer( *split );
 
-	forgetSigmoid = new CSigmoidLayer( MathEngine() );
-	forgetSigmoid->SetName( forgetSigmoidName );
-	forgetSigmoid->Connect( 0, *split, G_Forget );
-	AddLayer( *forgetSigmoid );
-
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( MathEngine(), activation );
 	activationLayer->SetName( updateActivationName );
 	activationLayer->Connect( 0, *split, G_Update );
 	AddLayer( *activationLayer );
+
+	forgetSigmoid = new CSigmoidLayer( MathEngine() );
+	forgetSigmoid->SetName( forgetSigmoidName );
+	forgetSigmoid->Connect( 0, *split, G_Forget );
+	AddLayer( *forgetSigmoid );
 
 	CPtr<CSigmoidLayer> outputSigmoid = new CSigmoidLayer( MathEngine() );
 	outputSigmoid->SetName( outputSigmoidName );
@@ -200,7 +200,7 @@ void CQRNNLayer::buildLayer()
 	SetOutputMapping( *recurrentPart );
 }
 
-void CQRNNLayer::buildRecurrentPart()
+void CQrnnLayer::buildRecurrentPart()
 {
 	recurrentPart = new CRecurrentLayer( MathEngine() );
 	recurrentPart->SetName( recurrentPartName );
@@ -228,7 +228,7 @@ void CQRNNLayer::buildRecurrentPart()
 	AddLayer( *recurrentPart );
 }
 
-void CQRNNLayer::addDropout( float rate )
+void CQrnnLayer::addDropout( float rate )
 {
 	// the article recommends new_F = 1 - dropout( 1 - F )
 	// but in order to make less multiplications we use new_F = 1 + dropout( F - 1 )
@@ -262,7 +262,7 @@ void CQRNNLayer::addDropout( float rate )
 	ForceReshape();
 }
 
-void CQRNNLayer::deleteDropout()
+void CQrnnLayer::deleteDropout()
 {
 	DeleteLayer( preDropoutLinearName );
 	DeleteLayer( *dropout );
