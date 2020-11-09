@@ -292,7 +292,7 @@ REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer
 REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLayer" )
 REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
 REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClass" )
-REGISTER_NEOML_LAYER( CQRNNLayer, "NeoMLDnnCQRNNLayer" )
+REGISTER_NEOML_LAYER( CQRNNLayer, "NeoMLDnnQRNNLayer" )
 
 }
 
