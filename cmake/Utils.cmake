@@ -37,12 +37,20 @@ function(add_gtest_for_target TARGET_NAME MATH_ENGINE_TYPE WORKING_DIR)
     endif()
 
     if(NEOML_USE_AVX)
-        add_dependencies(${TARGET_NAME} NeoMathEngineAvx)
+
+    add_dependencies(${TARGET_NAME} NeoMathEngineAvx)
         if(TARGET NeoMathEngineAvx)
-            add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            if(WIN32)
+                add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:NeoMathEngineAvx> $<TARGET_FILE_DIR:${TARGET_NAME}>
                     COMMENT "Copy NeoMathEngineAvx to ${TARGET_NAME} binary dir to discover tests."
                 )
+            else()
+                add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:NeoMathEngineAvx> $<TARGET_FILE_DIR:NeoMathEngine>
+                    COMMENT "Copy NeoMathEngineAvx to NeoMathEngine binary dir to discover tests."
+                )
+            endif()
         endif()
     endif()
 
