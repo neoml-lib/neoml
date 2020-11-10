@@ -39,6 +39,7 @@ CBaseLayer::CBaseLayer( IMathEngine& _mathEngine, const char* _name, bool _isLea
 	isReshapeNeeded( true ),
 	lastRunNumber( 0 ),
 	graphCount( 0 ),
+	useTimer( false ),
 	runOnceCount( 0 ),
 	runOnceTime( 0 )
 {
@@ -357,15 +358,35 @@ void CBaseLayer::reshape()
 
 class CRunOnceTimer {
 public:
-	CRunOnceTimer( IMathEngine& mathEngine, IPerformanceCounters::CCounter::TCounterType& result ) :
-		counters( mathEngine.CreatePerformanceCounters() ), result( result ) { counters->Synchronise(); }
-	~CRunOnceTimer() { counters->Synchronise(); result += ( *counters )[0].Value; }
+	CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount, IPerformanceCounters::CCounter::TCounterType& result );
+	~CRunOnceTimer();
 
 private:
 	std::unique_ptr<IPerformanceCounters> counters;
+	int& hitCount;
 	IPerformanceCounters::CCounter::TCounterType& result;
 };
-	
+
+CRunOnceTimer::CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount,
+		IPerformanceCounters::CCounter::TCounterType& result ) :
+	counters( enable ? mathEngine.CreatePerformanceCounters() : nullptr ),
+	hitCount( hitCount ),
+	result( result )
+{
+	if( enable ) {
+		hitCount++;
+		counters->Synchronise();
+	}
+}
+
+CRunOnceTimer::~CRunOnceTimer()
+{
+	if( counters != nullptr ) {
+		counters->Synchronise();
+		result += ( *counters )[0].Value;
+	}
+}
+
 // Calls RunOnce for the layer, then recursively for its inputs
 void CBaseLayer::runOnce()
 {
@@ -416,8 +437,7 @@ void CBaseLayer::runOnce()
 	}
 
 	{
-		++runOnceCount;
-		CRunOnceTimer timer( MathEngine(), runOnceTime );
+		CRunOnceTimer timer( useTimer, MathEngine(), runOnceCount, runOnceTime );
 		RunOnce();
 	}
 

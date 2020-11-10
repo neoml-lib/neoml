@@ -707,4 +707,11 @@ void CDnn::SerializeCheckpoint( CArchive& archive )
 	}
 }
 
+void CDnn::EnableProfile( bool profile )
+{
+	for( int i = 0; i < layers.Size(); ++i ) {
+		layers[i]->EnableProfile( profile );
+	}
+}
+
 } // namespace NeoML
