@@ -29,8 +29,8 @@ template<int FltCnt>
 class CBlobConvolution : public CBlobConvolutionBase {
 public:
 	CBlobConvolution( IMathEngine* mathEngine,
-		int channelCount, int filterHeight, int filterWidth,
-		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+		int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth, 
+		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
 		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth );
 	~CBlobConvolution() override = default;
 
@@ -50,6 +50,8 @@ private:
 	const int FltW;
 	const int SrcH;
 	const int SrcW;
+	const int PaddingH;
+	const int PaddingW;
 	const int StrideH;
 	const int StrideW;
 	const int DilationH;
@@ -136,8 +138,8 @@ class CBlobConvolutionFabric : public CCrtAllocatedObject {
 public:
 	static bool IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW );
 	static std::unique_ptr<CBlobConvolutionBase> GetProperInstance( IMathEngine* mathEngine, int FltCnt,
-		int channelCount, int filterHeight, int filterWidth,
-		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+		int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
+		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
 		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth);
 };
 
@@ -157,25 +159,25 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, i
 }
 
 std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance( IMathEngine* mathEngine, int filterCount,
-	int channelCount, int filterHeight, int filterWidth,
-	int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+	int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
+	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
 	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth )
 {
 	switch( filterCount ) {
 		case 24:
 			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24>( mathEngine,
-				channelCount, filterHeight, filterWidth,
-				sourceHeight, sourceWidth, strideHeight, strideWidth,
+				channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+				paddingHeight, paddingWidth, strideHeight, strideWidth,
 				dilationHeight, dilationWidth, resultHeight, resultWidth ) );
 		case 18:
 			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18>( mathEngine,
-				channelCount, filterHeight, filterWidth,
-				sourceHeight, sourceWidth, strideHeight, strideWidth,
+				channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+				paddingHeight, paddingWidth, strideHeight, strideWidth,
 				dilationHeight, dilationWidth, resultHeight, resultWidth ) );
 		case 6:
 			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<6>( mathEngine,
-				channelCount, filterHeight, filterWidth,
-				sourceHeight, sourceWidth, strideHeight, strideWidth,
+				channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+				paddingHeight, paddingWidth, strideHeight, strideWidth,
 				dilationHeight, dilationWidth, resultHeight, resultWidth ) );
 		default:
 			return nullptr;
@@ -186,7 +188,7 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 
 template<int FltCnt>
 CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channelCount, int filterHeight, int filterWidth,
-		int sourceHeight, int sourceWidth, int strideHeight, int strideWidth,
+		int sourceHeight, int sourceWidth, int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
 		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth ) :
 	mathEngine( _mathEngine ),
 	ChCnt( channelCount ),
@@ -194,6 +196,8 @@ CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channe
 	FltW( filterWidth ),
 	SrcH( sourceHeight ),
 	SrcW( sourceWidth ),
+	PaddingH( paddingHeight ),
+	PaddingW( paddingWidth ),
 	StrideH( strideHeight ),
 	StrideW( strideWidth ),
 	DilationH( dilationHeight ),
@@ -233,27 +237,31 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	const int curThreadCount = IsOmpRelevant( ResH, ResH * ResW * FltCnt * FltW * FltH * ChCnt ) ? threadCount : 1;
 
 	// Number of steps for each side of image, where filter is applied partially
-	const int PartialStepCountBeforeX = static_cast<const int>( std::ceil( static_cast<float>( DilationW ) / StrideW ) );
-	const int PartialStepCountAfterX = static_cast<const int>( std::ceil( ( StrideW * ( std::ceil( static_cast<float>( SrcW ) / StrideW ) - 1 ) - SrcW + DilationW + 1 ) / StrideW ) );
-	const int PartialStepCountBeforeY = static_cast<const int>( std::ceil( static_cast<float>( DilationH ) / StrideH ) );
-	const int PartialStepCountAfterY = static_cast<const int>( std::ceil( ( StrideH * ( std::ceil( static_cast<float>( SrcH ) / StrideH ) - 1 ) - SrcH + DilationH + 1 ) / StrideH ) );
+	const int PartialStepCountBeforeX = static_cast<const int>( std::ceil( static_cast<float>( PaddingW ) / StrideW ) );
+	const int PartialStepCountAfterX = static_cast<const int>( std::ceil( ( StrideW * ( std::ceil( static_cast<float>( SrcW ) / StrideW ) - 1 ) - SrcW + PaddingW + 1 ) / StrideW ) );
+	const int PartialStepCountBeforeY = static_cast<const int>( std::ceil( static_cast<float>( PaddingH ) / StrideH ) );
+	const int PartialStepCountAfterY = static_cast<const int>( std::ceil( ( StrideH * ( std::ceil( static_cast<float>( SrcH ) / StrideH ) - 1 ) - SrcH + PaddingH + 1 ) / StrideH ) );
 	const int CentralPartWidth = ResW - PartialStepCountBeforeX - PartialStepCountAfterX;
 
+	// FilterH == FilterW == 3
+	const int srcXOffset = 0 + ( DilationW - PaddingW );
+	const int srcYOffset = 0 + ( DilationH - PaddingH );
+	const float* realSrcStart = src + srcXOffset * ChCnt;
 
 	NEOML_OMP_NUM_THREADS( curThreadCount )
 	{
-		int yStart;
-		int yCount;
-		if( OmpGetTaskIndexAndCount( ResH, yStart, yCount ) ) {
+		int ryStart;
+		int ryCount;
+		if( OmpGetTaskIndexAndCount( ResH, ryStart, ryCount ) ) {
 
 			// Iterate through result, left->right, top->bottom
-			const int currentRH = min( ResH, yStart + yCount );
-			int ry = yStart;
+			const int currentRH = min( ResH, ryStart + ryCount );
+			int ry = ryStart;
 
 			int ryEnd = min( PartialStepCountBeforeY, currentRH );
 			while( ry < ryEnd ) {
 				// Top part of image
-				const float* srcPtr = src + ry * SrcYStep;
+				const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
 				float* resPtr = res + ry * ResLineStride;
 				bool useNarrowProcessing = ( ryEnd ) - ry >= NarrowBatchProcessSize.Height;
 
@@ -267,7 +275,7 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 			ryEnd = min( ResH - PartialStepCountAfterY, currentRH );
 			while( ry < ryEnd ) {
 				// Middle part of image
-				const float* srcPtr = src + ry * SrcYStep;
+				const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
 				float* resPtr = res + ry * ResLineStride;
 				bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
 
@@ -286,7 +294,7 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 			ryEnd = min( ResH, currentRH );
 			while( ry < ryEnd ) {
 				// Bottom part of image
-				const float* srcPtr = src + ry * SrcYStep;
+				const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
 				float* resPtr = res + ry * ResLineStride;
 				bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
 

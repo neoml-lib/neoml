@@ -33,8 +33,8 @@ struct CAvxConvolutionDesc : public CConvolutionDesc {
 CAvxConvolutionDesc::CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
 	BlobConvolution( CBlobConvolutionFabric::GetProperInstance( mathEngine,
-		filter.BatchWidth(), filter.Channels(), filter.Height(), filter.Width(),
-		source.Height(), source.Width(), strideHeight, strideWidth,
+		filter.BatchWidth(), filter.Channels(), filter.Height(), filter.Width(), source.Height(), source.Width(), 
+		paddingHeight, paddingWidth, strideHeight, strideWidth,
 		dilationHeight, dilationWidth, result.Height(), result.Width() ) )
 {
 }
