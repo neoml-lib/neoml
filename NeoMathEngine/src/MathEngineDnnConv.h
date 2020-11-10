@@ -80,16 +80,18 @@ struct CCommonTimeConvolutionDesc : public CTimeConvolutionDesc {
 	CBlobDesc Filter;
 	CBlobDesc Result;
 	int Stride;
-	int Padding;
+	int PaddingFront;
+	int PaddingBack;
 	int Dilation;
 
 	CCommonTimeConvolutionDesc( const CBlobDesc& source, const CBlobDesc& filter, const CBlobDesc& result,
-			int stride, int padding, int dilation ) :
+			int stride, int paddingFront, int paddingBack, int dilation ) :
 		Source( source ),
         Filter( filter ),
 		Result( result ),
         Stride( stride ),
-        Padding( padding ),
+		PaddingFront( paddingFront ),
+		PaddingBack( paddingBack ),
         Dilation( dilation )
 	{
 	}

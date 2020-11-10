@@ -85,7 +85,8 @@ struct CCudaTimeConvolutionDescInternal {
 	CCudaBlobDesc Filter;
 	CCudaBlobDesc Result;
 	int Stride;
-	int Padding;
+	int PaddingFront;
+	int PaddingBack;
 	int Dilation;
 };
 
