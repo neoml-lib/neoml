@@ -96,7 +96,7 @@ public:
 	void SetFreeTermData( const CPtr<CDnnBlob>& newFreeTerm ) { timeConv->SetFreeTermData( newFreeTerm ); }
 
 	bool IsReverseSequense() const { return recurrentPart->IsReverseSequense(); }
-	void SetReverseSequence( bool _isReverseSequense ) { recurrentPart->SetReverseSequence( _isReverseSequense ); }
+	void SetReverseSequence( bool isReverseSequense ) { recurrentPart->SetReverseSequence( isReverseSequense ); }
 
 	void Serialize( CArchive& archive );
 
