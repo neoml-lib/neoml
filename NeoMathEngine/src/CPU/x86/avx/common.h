@@ -21,7 +21,6 @@ limitations under the License.
 #include <algorithm>
 
 #include <NeoMathEngine/NeoMathEngine.h>
-#include <MathEngineCommon.h>
 
 #if FINE_PLATFORM( FINE_WINDOWS )
 #include <intrin.h>

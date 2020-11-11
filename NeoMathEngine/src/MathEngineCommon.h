@@ -16,58 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <cassert>
-#include <new>
-#include <stdexcept>
 #include <NeoMathEngine/NeoMathEngine.h>
-
-#define __merge__2( a, b )	a##b
-#define __merge__1( a, b )	__merge__2( a, b )
-#define __UNICODEFILE__	__merge__1( L, __FILE__ )
-
-inline void generateAssert( NeoML::IMathEngineExceptionHandler* exceptionHandler, const char* expr, const wchar_t* file, int line, int errorCode )
-{
-	exceptionHandler->OnAssert( expr, file, line, errorCode );
-}
-
-inline void generateMemoryError( NeoML::IMathEngineExceptionHandler* exceptionHandler )
-{
-	exceptionHandler->OnMemoryError();
-}
-
-#define ASSERT_ERROR_CODE( expr ) \
-	do { \
-		int _err_ = (int)(expr); \
-		if(_err_ != 0) { \
-			NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
-			if( exceptionHandler != 0 ) { \
-				generateAssert( exceptionHandler, #expr, __UNICODEFILE__, __LINE__, _err_ ); \
-			} else { \
-				throw std::logic_error( #expr ); \
-			} \
-		} \
-	} while(0)
-
-#define ASSERT_EXPR( expr ) \
-	do { \
-		if(!(expr)) { \
-			NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
-			if( exceptionHandler != 0 ) { \
-				generateAssert( exceptionHandler, #expr, __UNICODEFILE__, __LINE__, 0 ); \
-			} else { \
-				throw std::logic_error( #expr ); \
-			} \
-		} \
-	} while(0)
-
-#define THROW_MEMORY_EXCEPTION \
-	do { \
-		NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
-		if( exceptionHandler != 0 ) { \
-			generateMemoryError( exceptionHandler ); \
-		} else { \
-			throw std::bad_alloc(); \
-		} \
-	} while(0)
 
 namespace NeoML {
 

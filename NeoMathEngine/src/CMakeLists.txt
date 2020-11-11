@@ -59,6 +59,7 @@ target_sources(${PROJECT_NAME}
     ../include/NeoMathEngine/MemoryHandle.inl
     ../include/NeoMathEngine/SparseMatrixDesc.h
     ../include/NeoMathEngine/NeoMathEngine.h
+    ../include/NeoMathEngine/NeoMathEngineException.h
     ../include/NeoMathEngine/SimdMathEngine.h
 )
 
