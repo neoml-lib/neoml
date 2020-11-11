@@ -42,8 +42,7 @@ public:
 // Non-default handler must be destroyed by the caller after use
 NEOMATHENGINE_API void SetMathEngineExceptionHandler( IMathEngineExceptionHandler* exceptionHandler );
 
-// Get current exception handler interface
-// Returns null if use default
+// Get current exception handler interface ( returns default one if handler wasn't set )
 NEOMATHENGINE_API IMathEngineExceptionHandler* GetMathEngineExceptionHandler();
 
 } // namespace NeoML
