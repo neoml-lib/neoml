@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -74,12 +74,24 @@ void CLinearLayer::RunOnce()
 	CFloatHandle outputPtr = outputBlobs[0]->GetData();
 	int dataSize = outputBlobs[0]->GetDataSize();
 
-	CFloatHandleStackVar multiplierValue( MathEngine() );
-	multiplierValue.SetValue( multiplier );
-	CFloatHandleStackVar freeTermValue( MathEngine() );
-	freeTermValue.SetValue( freeTerm );
-	MathEngine().VectorMultiply(inputPtr, outputPtr, dataSize, multiplierValue);
-	MathEngine().VectorAddValue(outputPtr, outputPtr, dataSize, freeTermValue);
+	if( multiplier != 1.f ) {
+		CFloatHandleStackVar multiplierValue( MathEngine() );
+		multiplierValue.SetValue( multiplier );
+		MathEngine().VectorMultiply( inputPtr, outputPtr, dataSize, multiplierValue );
+		inputPtr = outputPtr;
+	}
+
+	if( freeTerm != 0.f ) {
+		CFloatHandleStackVar freeTermValue( MathEngine() );
+		freeTermValue.SetValue( freeTerm );
+		MathEngine().VectorAddValue( inputPtr, outputPtr, dataSize, freeTermValue );
+		inputPtr = outputPtr;
+	}
+
+	if( inputPtr != outputPtr ) {
+		// The only case when we need to copy data is when mult == 1 && ft == 0 && !inPlace
+		MathEngine().VectorCopy( outputPtr, inputPtr, dataSize );
+	}
 }
 
 void CLinearLayer::BackwardOnce()
@@ -88,9 +100,13 @@ void CLinearLayer::BackwardOnce()
 	CFloatHandle inputDiffPtr = inputDiffBlobs[0]->GetData();
 	int dataSize = outputBlobs[0]->GetDataSize();
 
-	CFloatHandleStackVar multiplierValue( MathEngine() );
-	multiplierValue.SetValue( multiplier );
-	MathEngine().VectorMultiply(outputDiffPtr, inputDiffPtr, dataSize, multiplierValue);
+	if( multiplier != 1.f ) {
+		CFloatHandleStackVar multiplierValue( MathEngine() );
+		multiplierValue.SetValue( multiplier );
+		MathEngine().VectorMultiply( outputDiffPtr, inputDiffPtr, dataSize, multiplierValue );
+	} else if( outputDiffPtr != inputDiffPtr ) {
+		MathEngine().VectorCopy( inputDiffPtr, outputDiffPtr, dataSize );
+	}
 }
 
 static const int LinearLayerVersion = 2000;

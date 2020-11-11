@@ -1,4 +1,4 @@
-﻿if(NeoMathEngine_BUILD_SHARED)
+if(NeoMathEngine_BUILD_SHARED)
     add_library(${PROJECT_NAME} SHARED common.cpp)
 else()
     add_library(${PROJECT_NAME} STATIC common.cpp)

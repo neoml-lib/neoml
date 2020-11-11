@@ -544,8 +544,8 @@ public:
 
 	// Time convolution
 	// The descriptor should be destroyed using the standard delete operator after use.
-	virtual CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source,
-		int stride, int padding, int dilation, const CBlobDesc& filter, const CBlobDesc& result ) = 0;
+	virtual CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront,
+		int paddingBack, int dilation, const CBlobDesc& filter, const CBlobDesc& result ) = 0;
 
 	virtual void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle& freeTerm, const CFloatHandle& result ) = 0;
