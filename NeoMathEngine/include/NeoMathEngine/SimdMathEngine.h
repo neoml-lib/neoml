@@ -1,4 +1,4 @@
-/* Copyright Â© 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,32 +15,23 @@ limitations under the License.
 
 #pragma once
 
-#include <cassert>
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <memory>
 
 namespace NeoML {
 
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
+class ISimdMathEngine : public CCrtAllocatedObject {
+public:
+	virtual ~ISimdMathEngine() = default;
 
-inline int Floor( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return val / discret;
-	}
-	return ( val - discret + 1 ) / discret;
-}
+	// Convolution
+	// The descriptor should be destroyed using the standard delete operator after use.
+	virtual CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
+		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
+		const CBlobDesc& result ) const = 0;
 
-inline int FloorTo( int val, int discret )
-{
-	return Floor( val, discret ) * discret;
-}
+	virtual void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
+		const float* filter, const float* freeTerm, float* result ) const = 0;
+};
 
 }

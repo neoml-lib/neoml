@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+﻿/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,32 +15,19 @@ limitations under the License.
 
 #pragma once
 
-#include <cassert>
+#include <cmath>
+#include <memory>
+#include <vector>
+#include <algorithm>
+
 #include <NeoMathEngine/NeoMathEngine.h>
 
-namespace NeoML {
+#if FINE_PLATFORM( FINE_WINDOWS )
+#include <intrin.h>
+#elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
+#include <x86intrin.h>
+#else
+#error "Platform isn't supported!"
 
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
-
-inline int Floor( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return val / discret;
-	}
-	return ( val - discret + 1 ) / discret;
-}
-
-inline int FloorTo( int val, int discret )
-{
-	return Floor( val, discret ) * discret;
-}
-
-}
+#endif
+using namespace std;
