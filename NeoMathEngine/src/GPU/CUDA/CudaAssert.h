@@ -25,12 +25,7 @@ limitations under the License.
 	do { \
 		int _err_ = ( int ) ( expr ); \
 		if( _err_ != cudaSuccess ) { \
-			NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
-			if( exceptionHandler != nullptr ) { \
-				generateAssert( exceptionHandler, cudaGetErrorString( static_cast<cudaError_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
-			} else { \
-				throw std::logic_error( #expr ); \
-			} \
+			GetMathEngineExceptionHandler()->OnAssert( cudaGetErrorString( static_cast<cudaError_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
 		} \
 	} while(0)
 
@@ -39,12 +34,7 @@ limitations under the License.
 	do { \
 		int _err_ = ( int ) ( expr ); \
 		if( _err_ != CUSPARSE_STATUS_SUCCESS ) { \
-			NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
-			if( exceptionHandler != nullptr ) { \
-				generateAssert( exceptionHandler, cusparse->GetErrorString( static_cast<cusparseStatus_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
-			} else { \
-				throw std::logic_error( #expr ); \
-			} \
+			GetMathEngineExceptionHandler()->OnAssert( cusparse->GetErrorString( static_cast<cusparseStatus_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
 		} \
 	} while(0)
 
@@ -83,12 +73,7 @@ inline const char* cublasGetErrorString( cublasStatus_t status )
 	do { \
 		int _err_ = ( int ) ( expr ); \
 		if( _err_ != CUBLAS_STATUS_SUCCESS ) { \
-			NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
-			if( exceptionHandler != nullptr ) { \
-				generateAssert( exceptionHandler, cublasGetErrorString( static_cast<cublasStatus_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
-			} else { \
-				throw std::logic_error( #expr ); \
-			} \
+			GetMathEngineExceptionHandler()->OnAssert( cublasGetErrorString( static_cast<cublasStatus_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
 		} \
 	} while(0)
 

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+﻿/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,34 +13,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-#pragma once
-
-#include <cassert>
-#include <NeoMathEngine/NeoMathEngine.h>
-
-namespace NeoML {
-
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
-
-inline int Floor( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return val / discret;
-	}
-	return ( val - discret + 1 ) / discret;
-}
-
-inline int FloorTo( int val, int discret )
-{
-	return Floor( val, discret ) * discret;
-}
-
-}
+#include <common.h>
+#pragma hdrstop
