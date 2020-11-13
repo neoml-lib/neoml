@@ -77,14 +77,19 @@ void CQrnnLayer::SetStride( int stride )
 	ForceReshape();
 }
 
-void CQrnnLayer::SetPaddingFront( int padding )
+void CQrnnLayer::SetPadding( int padding )
 {
 	NeoAssert( padding >= 0 );
-	if( timeConv->GetPaddingFront() == padding ) {
+	if( GetPadding() == padding ) {
 		return;
 	}
 
-	timeConv->SetPaddingFront( padding );
+	if( !IsReverseSequense() ) {
+		timeConv->SetPaddingFront( padding );
+	} else {
+		timeConv->SetPaddingBack( padding );
+	}
+
 	ForceReshape();
 }
 
@@ -101,6 +106,20 @@ void CQrnnLayer::SetActivation( TActivationFunction newActivation )
 	activationLayer->Connect( 0, *split, G_Update );
 	negForgetByUpdateByOutput->Connect( 1, *activationLayer );
 	AddLayer( *activationLayer );
+
+	ForceReshape();
+}
+
+void CQrnnLayer::SetReverseSequence( bool reverseSequence )
+{
+	if( reverseSequence == IsReverseSequense() ) {
+		return;
+	}
+
+	int padding = GetPadding();
+	SetPadding( 0 );
+	recurrentPart->SetReverseSequence( reverseSequence );
+	SetPadding( padding );
 
 	ForceReshape();
 }
