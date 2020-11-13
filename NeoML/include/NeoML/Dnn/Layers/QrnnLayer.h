@@ -72,10 +72,12 @@ public:
 	int GetStride() const { return timeConv->GetStride(); }
 	void SetStride( int stride );
 
-	// Padding at the beginning of sequences
+	// Padding
+	// Adds zeros to the beginning of the sequences if IsReverseSequence() is false
+	// Otherwise adds zeros to the end of the sequences
 	// 0 by default
-	int GetPaddingFront() const { return timeConv->GetPaddingFront(); }
-	void SetPaddingFront( int padding );
+	int GetPadding() const { return IsReverseSequense() ? timeConv->GetPaddingBack() : timeConv->GetPaddingFront(); }
+	void SetPadding( int padding );
 
 	// Activation function apllied to the update gate
 	// Tanh by default
@@ -96,7 +98,7 @@ public:
 	void SetFreeTermData( const CPtr<CDnnBlob>& newFreeTerm ) { timeConv->SetFreeTermData( newFreeTerm ); }
 
 	bool IsReverseSequense() const { return recurrentPart->IsReverseSequense(); }
-	void SetReverseSequence( bool isReverseSequense ) { recurrentPart->SetReverseSequence( isReverseSequense ); }
+	void SetReverseSequence( bool isReverseSequense );
 
 	void Serialize( CArchive& archive );
 

@@ -60,10 +60,10 @@ Sets the stride of the window used in time convolution.
 ### Padding
 
 ```c++
-void SetPaddingFront(int paddingFront);
+void SetPadding(int padding);
 ```
 
-Specifies how many zero elements should be added at the beginning of a sequence before performing convolution. The default value is `0`, that is, no padding used.
+Specifies how many zero elements should be added to the sequence before performing convolution. Adds zeros to the beginning of the sequence if `IsReverseSequence()` is not set. Otherwise adds zeros to the end of the sequence. The default value is `0`, that is, no padding used.
 
 ### Activation function
 
