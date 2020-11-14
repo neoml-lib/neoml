@@ -106,8 +106,8 @@ static void blobChannelwiseConvolutionBackwardImpl( const CTestParams& params, i
 	expectedInput.insert( expectedInput.begin(), inputSize, 0 );
 
 	CChannelwiseConvolutionDesc* convDesc = MathEngine().InitBlobChannelwiseConvolution(
-		inputBlob.GetDesc(), paddingHeight, paddingWidth, strideHeight, strideWidth, filterBlob.GetDesc(), 0, outputDiffBlob.GetDesc() );
-	MathEngine().BlobChannelwiseConvolutionBackward( *convDesc, outputDiffBlob.GetData(), filterBlob.GetData(), inputBlob.GetData() );
+		inputBlob.GetDesc(), paddingHeight, paddingWidth, strideHeight, strideWidth, filterBlob.GetDesc(), 0, outputDiffBlob.GetDesc(), AF_None );
+	MathEngine().BlobChannelwiseConvolutionBackward( *convDesc, CConstFloatHandle(), outputDiffBlob.GetData(), filterBlob.GetData(), inputBlob.GetData() );
 	inputBlob.CopyTo( actualInput.data() );
 	delete convDesc;
 

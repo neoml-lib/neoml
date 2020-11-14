@@ -392,6 +392,8 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 			}
 		}
 	}
+
+	Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 }
 
 } // namespace NeoML

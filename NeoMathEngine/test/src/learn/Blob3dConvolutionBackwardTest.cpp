@@ -221,8 +221,8 @@ static void blob3dConvolutionBackwardImpl( const CTestParams& params, int seed )
 
 	C3dConvolutionDesc *convDesc = MathEngine().InitBlob3dConvolution( inputBlob.GetDesc(),
 		convParams.PaddingHeight, convParams.PaddingWidth, convParams.PaddingDepth, convParams.StrideHeight, convParams.StrideWidth, convParams.StrideDepth,
-		filterBlob.GetDesc(), outBlob.GetDesc() );
-	MathEngine().Blob3dConvolutionBackward( *convDesc, outBlob.GetData(),
+		filterBlob.GetDesc(), outBlob.GetDesc(), AF_None );
+	MathEngine().Blob3dConvolutionBackward( *convDesc, CConstFloatHandle(), outBlob.GetData(),
 		filterBlob.GetData(), addFreeTerm ? &ft : nullptr, inputBlob.GetData() );
 	delete convDesc;
 

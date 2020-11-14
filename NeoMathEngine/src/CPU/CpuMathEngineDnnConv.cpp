@@ -46,8 +46,8 @@ struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 	unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
 
 	CCpuConvolutionDesc( unique_ptr<CConvolutionDesc>& simdConvolutionDesc, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
-			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
-		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
+			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, CCommonActivationDesc* activation ) :
+		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth, activation ),
 		ForwardAlgo( getActualForwardAlgo() ),
 		BackwardAlgo( getActualBackwardAlgo() ),
 		SimdConvolutionDesc( std::move( simdConvolutionDesc ) )
@@ -108,7 +108,8 @@ static inline CBlobDesc flatten( const CBlobDesc& desc )
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
 CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
-	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter, const CBlobDesc& result )
+	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter, const CBlobDesc& result,
+	const CActivationInfo& activation )
 {
 	ASSERT_EXPR( strideHeight > 0 );
 	ASSERT_EXPR( strideWidth > 0 );
@@ -129,6 +130,7 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 		( filter.Width() - 1 ) * dilationWidth + 2 * paddingWidth - 1 ) / strideWidth );
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( IsInPlaceActivation( activation.Type ) );
 
 	unique_ptr<CConvolutionDesc> simdConvolutionDesc;
 	if( simdMathEngine != nullptr ) {
@@ -137,7 +139,8 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	}
 
 	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( simdConvolutionDesc, source, result, filter,
-		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
+		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth,
+		dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) ) );
 	return desc;
 }
 
@@ -516,6 +519,7 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 
 	if( desc.SimdConvolutionDesc != nullptr ) {
 		simdMathEngine->BlobConvolution( *desc.SimdConvolutionDesc, sourceRaw, filterRaw, freeTermRaw, resultRaw );
+		Activation( *desc.Activation, result, result, desc.Result.BlobSize() );
 		return;
 	}
 
@@ -548,6 +552,7 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 		default:
 			ASSERT_EXPR( false );
 	}
+	Activation( *desc.Activation, result, result, desc.Result.BlobSize() );
 }
 
 void CCpuMathEngine::backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
@@ -867,10 +872,12 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& de
 	}
 }
 
-void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
+void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CConstFloatHandle& output, const CFloatHandle& outputDiffData,
 	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiffData )
 {
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
+
+	ActivationBackward( *desc.Activation, CConstFloatHandle(), output, outputDiffData, outputDiffData, desc.Result.BlobSize() );
 
 	switch( desc.BackwardAlgo ) {
 		case CA_1:
@@ -883,9 +890,11 @@ void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, 
 			{
 				bool needsFlatten = desc.Filter.Depth() != 1;
 
+				// Activation backward was already done
+				// That's why 3dConv's backward is used without activation
 				C3dConvolutionDesc* blob3dConvDesc = InitBlob3dConvolution( needsFlatten ? flatten( desc.Source ) : desc.Source, 0, 0, 0,
-					desc.StrideHeight, desc.StrideWidth, 1, needsFlatten ? flatten( desc.Filter ) : desc.Filter, desc.Result );
-				Blob3dConvolutionBackward( *blob3dConvDesc, outputDiffData, filter, freeTerm, inputDiffData );
+					desc.StrideHeight, desc.StrideWidth, 1, needsFlatten ? flatten( desc.Filter ) : desc.Filter, desc.Result, AF_None );
+				Blob3dConvolutionBackward( *blob3dConvDesc, output, outputDiffData, filter, freeTerm, inputDiffData );
 				delete blob3dConvDesc;
 				break;
 			}
@@ -1091,7 +1100,7 @@ void CCpuMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc, 
 				bool needsFlatten = desc.Filter.Depth() != 1;
 
 				C3dConvolutionDesc* blob3dConvDesc = InitBlob3dConvolution( needsFlatten ? flatten( desc.Source ) : desc.Source , 0, 0, 0,
-					desc.StrideHeight, desc.StrideWidth, 1, needsFlatten ? flatten( desc.Filter ) : desc.Filter, desc.Result );
+					desc.StrideHeight, desc.StrideWidth, 1, needsFlatten ? flatten( desc.Filter ) : desc.Filter, desc.Result, AF_None );
 				Blob3dConvolutionLearnAdd( *blob3dConvDesc, input, outputDiff, filterDiff, freeTermDiff, true );
 				delete blob3dConvDesc;
 				break;
@@ -1105,7 +1114,8 @@ void CCpuMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc, 
 
 CChannelwiseConvolutionDesc* CCpuMathEngine::InitBlobChannelwiseConvolution( const CBlobDesc& source,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, 
-	const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& result )
+	const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& result,
+	const CActivationInfo& activation )
 {
 	ASSERT_EXPR(source.Depth() == 1);
 	ASSERT_EXPR(filter.Height() > paddingHeight);
@@ -1123,13 +1133,15 @@ CChannelwiseConvolutionDesc* CCpuMathEngine::InitBlobChannelwiseConvolution( con
 	const int expectedOutputWidth = (source.Width() - filter.Width() + 2 * paddingWidth) / strideWidth + 1;
 	ASSERT_EXPR(result.Height() == expectedOutputHeight);
 	ASSERT_EXPR(result.Width() == expectedOutputWidth);
+	ASSERT_EXPR(IsInPlaceActivation(activation.Type));
 
 	CCommonChannelwiseConvolutionDesc* desc = new CCommonChannelwiseConvolutionDesc( paddingHeight, paddingWidth,
-		strideHeight, strideWidth, source, filter, result );
+		strideHeight, strideWidth, source, filter, result,
+		dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) ) );
 	return desc;
 }
 
-void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc,
+void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& forward,
 	const CFloatHandle& inputDiffData, const CFloatHandle& filterData, const CFloatHandle& outputDiffData )
 {
 	const float* inputDiffDataRaw = GetRaw( inputDiffData );
@@ -1140,6 +1152,8 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 	const CBlobDesc& input = desc.Result;
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& output = desc.Source;
+
+	ActivationBackward( *desc.Activation, CConstFloatHandle(), forward, outputDiffData, outputDiffData, input.BlobSize() );
 
 	const int inputGeo = input.Height() * input.Width();
 	const int filterGeo = filter.Height() * filter.Width();

@@ -215,7 +215,7 @@ static void blob3dConvolutionLearnAddImpl( const CTestParams& params, int seed )
 
 	C3dConvolutionDesc *convDesc = MathEngine().InitBlob3dConvolution( inputBlob.GetDesc(),
 		convParams.PaddingHeight, convParams.PaddingWidth, convParams.PaddingDepth, convParams.StrideHeight, convParams.StrideWidth, convParams.StrideDepth,
-		filterDiffBlob.GetDesc(), outDiffBlob.GetDesc() );
+		filterDiffBlob.GetDesc(), outDiffBlob.GetDesc(), AF_None );
 	MathEngine().Blob3dConvolutionLearnAdd( *convDesc, inputBlob.GetData(), outDiffBlob.GetData(),
 		filterDiffBlob.GetData(), addFreeTerm ? &ft : nullptr, false );
 	delete convDesc;

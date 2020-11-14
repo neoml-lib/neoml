@@ -34,6 +34,7 @@ void CTransposedConvLayer::Reshape()
 		GetName(), "different number of inputs and outputs in conv layer" );
 	CheckArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth,
 		GetName(), "padding is more or equal to filter size" );
+	CheckArchitecture( activation.Type == AF_None, GetName(), "activation is not supported in transposed conv" );
 
 	int outputHeight, outputWidth;
 	calcOutputBlobSize(outputHeight, outputWidth);
@@ -78,7 +79,7 @@ void CTransposedConvLayer::RunOnce()
 
 	CFloatHandle freeTerm = FreeTerms()->GetData();
 	for(int i = 0; i < outputBlobs.Size(); ++i) {
-		MathEngine().BlobConvolutionBackward( *convDesc, inputBlobs[i]->GetData(),
+		MathEngine().BlobConvolutionBackward( *convDesc, CConstFloatHandle(), inputBlobs[i]->GetData(),
 			Filter()->GetData(), IsZeroFreeTerm() ? 0 : &freeTerm, outputBlobs[i]->GetData() );
 	}
 }
@@ -116,7 +117,7 @@ void CTransposedConvLayer::initConvDesc()
 {
 	if( convDesc == 0 ) {
 		convDesc = MathEngine().InitBlobConvolution( outputBlobs[0]->GetDesc(), paddingHeight, paddingWidth,
-			strideHeight, strideWidth, dilationHeight, dilationWidth, Filter()->GetDesc(), inputBlobs[0]->GetDesc() );
+			strideHeight, strideWidth, dilationHeight, dilationWidth, Filter()->GetDesc(), inputBlobs[0]->GetDesc(), activation );
 	}
 }
 

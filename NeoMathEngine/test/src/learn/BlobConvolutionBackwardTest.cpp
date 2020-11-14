@@ -135,11 +135,11 @@ static void blobConvolutionBackwardImpl( const CTestParams& params, int seed )
 
 	CConvolutionDesc* convDesc = MathEngine().InitBlobConvolution( inputBlob.GetDesc(),
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
-		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputBlob.GetDesc() );
+		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputBlob.GetDesc(), AF_None );
 
 	CFloatHandle freeTermDataPtr = freeTermBlob.GetData();
 
-	MathEngine().BlobConvolutionBackward( *convDesc, outputBlob.GetData(), filterBlob.GetData(),
+	MathEngine().BlobConvolutionBackward( *convDesc, CConstFloatHandle(), outputBlob.GetData(), filterBlob.GetData(),
 		isZeroFreeTerm ? 0 : &freeTermDataPtr, inputBlob.GetData() );
 	delete convDesc;
 

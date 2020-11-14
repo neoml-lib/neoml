@@ -108,7 +108,7 @@ void C3dConvLayer::initConvDesc()
 {
 	if(convDesc == 0) {
 		convDesc = MathEngine().InitBlob3dConvolution(inputBlobs[0]->GetDesc(), paddingHeight, paddingWidth, paddingDepth,
-			strideHeight, strideWidth, strideDepth, Filter()->GetDesc(), outputBlobs[0]->GetDesc());
+			strideHeight, strideWidth, strideDepth, Filter()->GetDesc(), outputBlobs[0]->GetDesc(), activation);
 	}
 }
 
@@ -119,6 +119,8 @@ void C3dConvLayer::Reshape()
 		GetName(), "different number of inputs and outputs in conv layer" );
 	CheckArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth && paddingDepth < filterDepth,
 		GetName(), "padding is more or equal to filter size" );
+	CheckArchitecture( MathEngine().IsInPlaceActivation( activation.Type ), GetName(),
+		"activation must be in-place" );
 
 	int outputHeight, outputWidth, outputDepth;
 	calcOutputBlobSize(outputHeight, outputWidth, outputDepth);
@@ -176,7 +178,7 @@ void C3dConvLayer::BackwardOnce()
 	initConvDesc();
 
 	for(int i = 0; i < inputDiffBlobs.Size(); ++i) {
-		MathEngine().Blob3dConvolutionBackward( *convDesc, outputDiffBlobs[i]->GetData(),
+		MathEngine().Blob3dConvolutionBackward( *convDesc, outputBlobs[i]->GetData(), outputDiffBlobs[i]->GetData(),
 			Filter()->GetData(), 0, inputDiffBlobs[i]->GetData() );
 	}
 }

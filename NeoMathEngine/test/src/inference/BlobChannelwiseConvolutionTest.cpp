@@ -133,7 +133,7 @@ static void blobChannelwiseConvolutionTestImpl( const CTestParams& params, int s
 	CConstFloatHandle ft = freeTermBlob.GetData();
 
 	CChannelwiseConvolutionDesc* convDesc = MathEngine().InitBlobChannelwiseConvolution( inputBlob.GetDesc(),
-		paddingHeight, paddingWidth, strideHeight, strideWidth, filterBlob.GetDesc(), &freeTermBlob.GetDesc(), outBlob.GetDesc() );
+		paddingHeight, paddingWidth, strideHeight, strideWidth, filterBlob.GetDesc(), &freeTermBlob.GetDesc(), outBlob.GetDesc(), AF_None );
 	MathEngine().BlobChannelwiseConvolution( *convDesc, inputBlob.GetData(),
 		filterBlob.GetData(), &ft, outBlob.GetData() );
 	delete convDesc;

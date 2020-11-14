@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
+#include <NeoMathEngine/ActivationFunction.h>
 #include <NeoMathEngine/BlobType.h>
 #include <NeoMathEngine/MemoryHandle.h>
 #include <NeoMathEngine/BlobDesc.h>
@@ -477,6 +478,7 @@ public:
 };
 
 // Blob operations descriptors
+struct NEOMATHENGINE_API CActivationDesc : public CCrtAllocatedObject { public: virtual ~CActivationDesc(); };
 struct NEOMATHENGINE_API CTimeConvolutionDesc : public CCrtAllocatedObject { public: virtual ~CTimeConvolutionDesc(); };
 struct NEOMATHENGINE_API C3dConvolutionDesc : public CCrtAllocatedObject { public: virtual ~C3dConvolutionDesc(); };
 struct NEOMATHENGINE_API CConvolutionDesc : public CCrtAllocatedObject { public: virtual ~CConvolutionDesc(); };
@@ -542,6 +544,15 @@ public:
 	virtual void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
 		const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev ) = 0;
 
+	// Activation functions
+	// The descriptor should be destroyed using the standard delete operator after use.
+	virtual CActivationDesc* InitActivation( const CActivationInfo& activation, int dataSize ) = 0;
+	virtual bool IsInPlaceActivation( TActivationFunction activation ) = 0;
+	virtual void Activation( const CActivationDesc& desc, const CConstFloatHandle& input,
+		const CFloatHandle& output, int dataSize ) = 0;
+	virtual void ActivationBackward( const CActivationDesc& activationDesc, const CConstFloatHandle& input, const CConstFloatHandle& output,
+		const CConstFloatHandle& outputDiff, const CFloatHandle& inputDiff, int dataSize ) = 0;
+
 	// Time convolution
 	// The descriptor should be destroyed using the standard delete operator after use.
 	virtual CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront,
@@ -559,11 +570,12 @@ public:
 	virtual C3dConvolutionDesc* InitBlob3dConvolution( const CBlobDesc& input,
 		int paddingHeight, int paddingWidth, int paddingDepth,
 		int strideHeight, int strideWidth, int strideDepth,
-		const CBlobDesc& filter, const CBlobDesc& output ) = 0;
+		const CBlobDesc& filter, const CBlobDesc& output,
+		const CActivationInfo& activation ) = 0;
 
 	virtual void Blob3dConvolution( const C3dConvolutionDesc& desc, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
-	virtual void Blob3dConvolutionBackward( const C3dConvolutionDesc& desc, const CFloatHandle& source,
+	virtual void Blob3dConvolutionBackward( const C3dConvolutionDesc& desc, const CConstFloatHandle& forward, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
 	virtual void Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& desc, const CFloatHandle& input,
 		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
@@ -573,11 +585,11 @@ public:
 	// The descriptor should be destroyed using the standard delete operator after use.
 	virtual CConvolutionDesc* InitBlobConvolution( const CBlobDesc& input, int paddingHeight, int paddingWidth,
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
-		const CBlobDesc& output ) = 0;
+		const CBlobDesc& output, const CActivationInfo& activation ) = 0;
 
 	virtual void BlobConvolution( const CConvolutionDesc& desc, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
-	virtual void BlobConvolutionBackward( const CConvolutionDesc& desc, const CFloatHandle& outputDiff,
+	virtual void BlobConvolutionBackward( const CConvolutionDesc& desc, const CConstFloatHandle& output, const CFloatHandle& outputDiff,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff ) = 0;
 	virtual void BlobConvolutionLearnAdd( const CConvolutionDesc& desc, const CFloatHandle& input,
 		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
@@ -588,13 +600,14 @@ public:
 	// The descriptor should be destroyed using the standard delete operator after use.
 	virtual CChannelwiseConvolutionDesc* InitBlobChannelwiseConvolution( 
 		const CBlobDesc& input, int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-		const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& output ) = 0;
+		const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& output,
+		const CActivationInfo& activation ) = 0;
 
 	virtual void BlobChannelwiseConvolution( const CChannelwiseConvolutionDesc& desc, const CConstFloatHandle& source,
 		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
 	// Calculates the derivative by the input for the channelwise convolution 
 	// when the derivative by the output is known
-	virtual void BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& desc,
+	virtual void BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& desc, const CConstFloatHandle& forward,
 		const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle& result ) = 0;
 	// Calculates the derivative by parameters for the channelwise convolution
 	// when the input and the derivative by the output are known
