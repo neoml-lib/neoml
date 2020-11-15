@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -85,6 +85,14 @@ void CUpsampling2DLayer::Serialize( CArchive& archive )
 
 	archive.Serialize( heightCopyCount );
 	archive.Serialize( widthCopyCount );
+}
+
+CLayerWrapper<CUpsampling2DLayer> Upsampling2d( int heightCopyCount, int widthCopyCount )
+{
+	return CLayerWrapper<CUpsampling2DLayer>( "Upsampling2d", [=]( CUpsampling2DLayer* result ) {
+		result->SetHeightCopyCount( heightCopyCount );
+		result->SetWidthCopyCount( widthCopyCount );
+	} );
 }
 
 } // namespace NeoML

@@ -305,4 +305,11 @@ void CObjectNormalizationLayer::LearnOnce()
 	MathEngine().SumMatrixRowsAdd( 1, ScaleDiff()->GetData(), outDiff, objectCount, objectSize );
 }
 
+CLayerWrapper<CObjectNormalizationLayer> ObjectNormalization( float epsilon )
+{
+	return CLayerWrapper<CObjectNormalizationLayer>( "ObjectNormalization", [=]( CObjectNormalizationLayer* result ) {
+		result->SetEpsilon( epsilon );
+	} );
+}
+
 } // namespace NeoML

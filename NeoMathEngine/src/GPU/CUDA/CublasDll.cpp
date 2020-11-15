@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ limitations under the License.
 namespace NeoML {
 
 // Macros for function loading
-#define LOAD_FUNC(Type, Var, NameStr) if((Var = (Type)CDll::GetProcAddress(NameStr)) == 0) return false
+#define LOAD_FUNC(Type, Var, NameStr) if((Var = (Type)(void*)CDll::GetProcAddress(NameStr)) == 0) return false
 #define LOAD_CUBLAS_FUNC(Name) LOAD_FUNC(CCublas::TCublas##Name, functions.Name, "cublas" #Name)
 // For the functions with _v2 suffix, define a separate macro
 #define LOAD_CUBLAS_FUNCV2(Name) LOAD_FUNC(CCublas::TCublas##Name, functions.Name, "cublas" #Name "_v2")

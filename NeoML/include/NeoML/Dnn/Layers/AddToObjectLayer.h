@@ -38,4 +38,6 @@ protected:
 	void BackwardOnce() override;
 };
 
+NEOML_API CLayerWrapper<CAddToObjectLayer> AddToObject();
+
 } // namespace NeoML

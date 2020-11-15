@@ -62,4 +62,7 @@ private:
 	float defaultValue; // the default value for new pixels that appear whenever delta > 0
 };
 
+NEOML_API CLayerWrapper<CImageResizeLayer> ImageResize( int deltaLeft, int deltaRight,
+	int deltaTop, int deltaBottom, float defaultValue );
+
 } // namespace NeoML

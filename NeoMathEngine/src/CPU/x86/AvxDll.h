@@ -1,10 +1,10 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+﻿/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-		http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,55 +15,37 @@ limitations under the License.
 
 #pragma once
 
-#include <array>
-#include <NeoMathEngine/NeoMathEngine.h>
-#include <MathEngineDnnConv.h>
+#include <NeoMathEngine/NeoMathEngineDefs.h>
+
 #include <MathEngineDll.h>
 
 namespace NeoML {
 
-// Class support dynamic library which is compiled with AVX for performance increasing.
+class ISimdMathEngine;
+class IMathEngine;
+
+// The dynamic link simd library
 class CAvxDll : public CDll {
 public:
-	CAvxDll( const CAvxDll& ) = delete;
-	CAvxDll& operator=( const CAvxDll& ) = delete;
-	CAvxDll( CAvxDll&& ) = delete;
-	CAvxDll& operator=( CAvxDll&& ) = delete;
-
-	static CAvxDll& GetInstance();
-
-	// Returns false if avx instruction isn't available or library wasn't loaded.
-	bool IsAvailable() const { return isLoaded; }
-
-	// Call blob convolution for case:
-	// Filter size: 3x3
-	// Filter count: 24
-	// Channel size: 24
-	void CallBlobConvolution_f3x3_c24_fc24( int threadNum, const CCommonConvolutionDesc& desc, const float* sourceData,
-		const float* filterData, const float* freeTermData, float* resultData ) const;
-private:
-	enum class TFunctionPointers {
-		BlobConvolution_f3x3_c24_fc24,
-
-		Count
-	};
-#if FINE_PLATFORM( FINE_WINDOWS )
-	constexpr static char const* libName = "NeoMathEngineAvx.dll";
-#elif FINE_PLATFORM( FINE_LINUX )
-	constexpr static char const* libName = "libNeoMathEngineAvx.so";
-#elif FINE_PLATFORM( FINE_DARWIN )
-	constexpr static char const* libName = "libNeoMathEngineAvx.dylib";
-#else
-	#error "Platform is not supported!"
-#endif
-
-	bool isLoaded;
-	std::array<void*, static_cast<size_t>( TFunctionPointers::Count )> functionAdresses;
-
 	CAvxDll();
-	~CAvxDll() = default;
+	~CAvxDll();
 
-	void loadFunction( TFunctionPointers functionType, const char* functionName );
+	// Loads the library
+	bool Load();
+
+	// Unloads the library
+	void Free();
+
+	ISimdMathEngine* CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount );
+
+private:
+	constexpr static char const* CreateSimdMathEngineFuncName = "CreateSimdMathEngine";
+	typedef ISimdMathEngine* ( *CreateSimdMathEngineFunc )( IMathEngine* mathEngine, int threadCount );
+
+	CreateSimdMathEngineFunc createSimdMathEngineFunc;
+
+	bool loadFunctions();
 	static bool isAvxAvailable();
 };
-}
+
+} // namespace NeoML

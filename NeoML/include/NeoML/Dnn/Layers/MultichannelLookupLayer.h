@@ -92,4 +92,10 @@ private:
 	const CObjectArray<CDnnBlob>& getParams() const { return useFrameworkLearning ? paramBlobs : ownParams; }
 };
 
+NEOML_API CLayerWrapper<CMultichannelLookupLayer> MultichannelLookup(
+	const CArray<CLookupDimension>& lookupDimensions, bool useFrameworkLearning );
+
+// Standard 1d embeddings.
+NEOML_API CLayerWrapper<CMultichannelLookupLayer> Embeddings( int count, int size );
+
 } // namespace NeoML

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -68,5 +68,8 @@ private:
 
 	void updateCenters(const CFloatHandle& tempDiffHandle);
 };
+
+NEOML_API CLayerWrapper<CCenterLossLayer> CenterLoss( int numberOfClasses,
+	float classCentersConvergenceRate, float lossWeight = 1.0f );
 
 } // namespace NeoML

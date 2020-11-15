@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ inline bool CDll::Load( const char* fileName )
 {
 #if FINE_PLATFORM( FINE_WINDOWS )
 	handle = ::LoadLibraryExA( fileName, 0, LOAD_WITH_ALTERED_SEARCH_PATH );
-#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
+#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
 	handle = ::dlopen( fileName, RTLD_LAZY | RTLD_GLOBAL );
 #else
 	#error "Platform is not supported!"
@@ -66,7 +66,7 @@ inline FARPROC CDll::GetProcAddress( const char* functionName ) const
 {
 #if FINE_PLATFORM( FINE_WINDOWS )
 	return ::GetProcAddress( static_cast<HMODULE>( handle ), functionName );
-#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
+#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
 	return (FARPROC)(::dlsym( handle, functionName ));
 #else
 	#error "Platform is not supported!"
@@ -81,7 +81,7 @@ inline void CDll::Free()
 
 #if FINE_PLATFORM( FINE_WINDOWS )
 	::FreeLibrary( static_cast<HMODULE>( handle ) );
-#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
+#elif FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
 	::dlclose( handle );
 #else
 	#error "Platform is not supported!"

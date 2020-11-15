@@ -1,10 +1,10 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+﻿/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-		http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,89 +18,100 @@ limitations under the License.
 
 #if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
 #include <cpuid.h>
-#endif
-#if FINE_PLATFORM( FINE_WINDOWS )
+#elif FINE_PLATFORM( FINE_WINDOWS )
 #include <intrin.h>
+#else
+#error "Platform isn't supported!"
 #endif
 
-#include <AvxDll.h>
+#include <NeoMathEngine/NeoMathEngineDefs.h>
+#include <NeoMathEngine/SimdMathEngine.h>
 #include <MathEngineCommon.h>
-#include <MemoryHandleInternal.h>
+
+#include <AvxDll.h>
 
 namespace NeoML {
 
-CAvxDll::CAvxDll() : isLoaded( false ), functionAdresses{}
+CAvxDll::CAvxDll() :
+	createSimdMathEngineFunc( nullptr )
 {
-	if( !isAvxAvailable() || !Load( libName ) ) {
-		return;
+}
+
+CAvxDll::~CAvxDll()
+{
+	Free();
+}
+
+bool CAvxDll::Load()
+{
+	if( IsLoaded() ) {
+		return true;
 	}
 
-	loadFunction( TFunctionPointers::BlobConvolution_f3x3_c24_fc24, "BlobConvolution_f3x3_c24_fc24" );
+	if( !isAvxAvailable() ) {
+		return false;
+	}
 
-	isLoaded = true;
+#if FINE_PLATFORM( FINE_WINDOWS )
+	ASSERT_EXPR( CDll::Load( "NeoMathEngineAvx.dll" ) );
+#elif FINE_PLATFORM( FINE_LINUX )
+	ASSERT_EXPR( CDll::Load( "libNeoMathEngineAvx.so" ) );
+#elif FINE_PLATFORM( FINE_DARWIN )
+	ASSERT_EXPR( CDll::Load( "libNeoMathEngineAvx.dylib" ) );
+#else
+	#error "Platform isn't supported!"
+#endif
+
+	ASSERT_EXPR( loadFunctions() );
+
+	return true;
 }
 
-CAvxDll& CAvxDll::GetInstance()
+void CAvxDll::Free()
 {
-	static CAvxDll instance;
-	return instance;
+	if( IsLoaded() ) {
+		createSimdMathEngineFunc = nullptr;
+		CDll::Free();
+	}
 }
 
-void CAvxDll::loadFunction( TFunctionPointers functionType, const char* functionName )
+ISimdMathEngine* CAvxDll::CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount )
 {
-	void* functionAdress = reinterpret_cast<void*>( GetProcAddress( functionName ) );
-	ASSERT_EXPR( functionAdress != nullptr );
+	ASSERT_EXPR( IsLoaded() );
 
-	functionAdresses[static_cast<size_t>(functionType)] = functionAdress;
+	ISimdMathEngine* simdMathEngine = createSimdMathEngineFunc( mathEngine, threadCount );
+	ASSERT_EXPR( simdMathEngine != nullptr );
+	return simdMathEngine;
 }
 
-void CAvxDll::CallBlobConvolution_f3x3_c24_fc24( int threadCount, const CCommonConvolutionDesc& desc,
-	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) const
+bool CAvxDll::loadFunctions()
 {
-	typedef void ( *FuncType )( int, int, int, int, int, int, const float*, const float*, const float*, float* );
-	FuncType func = reinterpret_cast<FuncType>( functionAdresses.at( static_cast<size_t>( TFunctionPointers::BlobConvolution_f3x3_c24_fc24 ) ) );
-
-	ASSERT_EXPR( func != nullptr );
-
-	ASSERT_EXPR( desc.Filter.Channels() == 24 );
-	ASSERT_EXPR( desc.Filter.ObjectCount() == 24 );
-	ASSERT_EXPR( desc.PaddingWidth == desc.PaddingHeight );
-	ASSERT_EXPR( desc.DilationWidth == desc.DilationHeight );
-	ASSERT_EXPR( desc.PaddingWidth == desc.DilationWidth );
-	ASSERT_EXPR( desc.StrideWidth == desc.StrideHeight );
-	ASSERT_EXPR( desc.Filter.Width() == 3 );
-	ASSERT_EXPR( desc.Filter.Height() == 3 );
-
-	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>( sourceData ) % 32 == 0 );
-	ASSERT_EXPR( reinterpret_cast<std::uintptr_t>(  resultData  ) % 32 == 0 );
-
-	func( desc.Source.Width(), desc.Result.Height(), desc.Result.Width(), desc.StrideWidth, desc.DilationWidth,
-		threadCount, sourceData,  filterData, freeTermData,  resultData );
+	createSimdMathEngineFunc = reinterpret_cast<CreateSimdMathEngineFunc>( GetProcAddress( CreateSimdMathEngineFuncName ) );
+	return createSimdMathEngineFunc != nullptr;
 }
 
 bool CAvxDll::isAvxAvailable()
 {
 	// Check for AVX
-	#if FINE_PLATFORM(FINE_WINDOWS)
-	
-	#if _MSC_VER < 1900
+#if FINE_PLATFORM(FINE_WINDOWS)
+
+#if _MSC_VER < 1900
 	// VS 2015 compiles code which doesn't use all ymm registers. It brings to decrease performance compared to MKL.
 	// Therefore we just disable AVX convolution  enhancement in VS2015.
 	return false;
-	#endif
-	
+#endif
+
 	int cpuId[4] = { 0, 0, 0, 0 };
 	__cpuid( cpuId, 1 );
-	#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
 	unsigned int cpuId[4] = { 0, 0, 0, 0 };
 	__get_cpuid( 1, cpuId, cpuId + 1, cpuId + 2, cpuId + 3 );
-	#elif FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	unsigned int cpuId[4] = { 0, 0, 0, 0 };
-	#else
+#else
 	#error "Platform isn't supported!"
-	#endif
+#endif
 
 	return ( cpuId[2] & 0x10000000 ) != 0;
 
 }
-}
+
+} // namespace NeoML

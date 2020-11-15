@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineDnnConv.h>
 #include <CpuMathEnginePrivate.h>
+#include <NeoMathEngine/SimdMathEngine.h>
 
 namespace NeoML {
 
@@ -42,12 +43,14 @@ const int BlobConvolutionCacheSize = 256 * 1024;
 struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 	TConvAlgo ForwardAlgo;
 	TConvAlgo BackwardAlgo;
+	unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
 
-	CCpuConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
+	CCpuConvolutionDesc( unique_ptr<CConvolutionDesc>& simdConvolutionDesc, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
-		CCommonConvolutionDesc( source, filter, result, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
+		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
 		ForwardAlgo( getActualForwardAlgo() ),
-		BackwardAlgo( getActualBackwardAlgo() )
+		BackwardAlgo( getActualBackwardAlgo() ),
+		SimdConvolutionDesc( std::move( simdConvolutionDesc ) )
 	{
 	}
 
@@ -127,7 +130,13 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
 
-	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( source, filter, result,
+	unique_ptr<CConvolutionDesc> simdConvolutionDesc;
+	if( simdMathEngine != nullptr ) {
+		simdConvolutionDesc = unique_ptr<CConvolutionDesc>( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
+			strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
+	}
+
+	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( simdConvolutionDesc, source, result, filter,
 		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	return desc;
 }
@@ -504,6 +513,11 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 	float* resultRaw = GetRaw( result );
 
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
+
+	if( desc.SimdConvolutionDesc != nullptr ) {
+		simdMathEngine->BlobConvolution( *desc.SimdConvolutionDesc, sourceRaw, filterRaw, freeTermRaw, resultRaw );
+		return;
+	}
 
 	switch( desc.ForwardAlgo ) {
 		case CA_1:

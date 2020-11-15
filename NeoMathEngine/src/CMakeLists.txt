@@ -1,4 +1,4 @@
-﻿if(NeoMathEngine_BUILD_SHARED)
+if(NeoMathEngine_BUILD_SHARED)
     add_library(${PROJECT_NAME} SHARED common.cpp)
 else()
     add_library(${PROJECT_NAME} STATIC common.cpp)
@@ -59,6 +59,8 @@ target_sources(${PROJECT_NAME}
     ../include/NeoMathEngine/MemoryHandle.inl
     ../include/NeoMathEngine/SparseMatrixDesc.h
     ../include/NeoMathEngine/NeoMathEngine.h
+    ../include/NeoMathEngine/NeoMathEngineException.h
+    ../include/NeoMathEngine/SimdMathEngine.h
 )
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -128,12 +130,19 @@ else()
         CPU/x86/CpuX86.h
         CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
-        CPU/x86/AvxDll.cpp
-        CPU/x86/AvxDll.h
     )
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
+    if(NEOML_USE_AVX)
+        target_sources(${PROJECT_NAME}
+        PRIVATE
+            CPU/x86/AvxDll.cpp
+            CPU/x86/AvxDll.h
+        )
+        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_AVX)
+		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
+		set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
+	endif()
 endif()
 
 # GPU specific source and settings
@@ -320,7 +329,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
 endif()
 
 # Add some definitions
-target_compile_definitions(${PROJECT_NAME} 
+target_compile_definitions(${PROJECT_NAME}
     PUBLIC
         "$<$<OR:$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:_RELEASE>"
         "$<$<CONFIG:Debug>:_DEBUG>"
@@ -335,7 +344,7 @@ endif()
 
 
 # OpenMP
-link_openmp()
+link_openmp(${PROJECT_NAME})
 
 # SSE2
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)

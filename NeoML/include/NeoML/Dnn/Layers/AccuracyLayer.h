@@ -45,6 +45,8 @@ private:
 	double collectedAccuracy;
 };
 
+NEOML_API CLayerWrapper<CAccuracyLayer> Accuracy();
+
 //---------------------------------------------------------------------------------------------------------------------
 
 // Collects the data for a confusion matrix over several iterations
@@ -70,5 +72,7 @@ private:
 	// Confusion matrix
 	CVariableMatrix<float> confusionMatrix;
 };
+
+NEOML_API CLayerWrapper<CConfusionMatrixLayer> ConfusionMatrix();
 
 } // namespace NeoML

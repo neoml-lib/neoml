@@ -207,4 +207,12 @@ void CPositionalEmbeddingLayer::fillPositionalEmbedding( CDnnBlob* blob )
 	blob->CopyFrom( data.GetPtr() );
 }
 
+CLayerWrapper<CPositionalEmbeddingLayer> PositionalEmbedding(
+	CPositionalEmbeddingLayer::TPositionalEmbeddingType type )
+{
+	return CLayerWrapper<CPositionalEmbeddingLayer>( "PositionalEmbedding", [=]( CPositionalEmbeddingLayer* result ) {
+		result->SetType( type );
+	} );
+}
+
 } // namespace NeoML

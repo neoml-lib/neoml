@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,32 +47,35 @@ void CCudaMathEngine::blobTimeConvolutionPrepare( const CCudaTimeConvolutionDesc
 }
 
 CTimeConvolutionDesc* CCudaMathEngine::InitTimeConvolution( const CBlobDesc& source,
-	int stride, int padding, int dilation,
+	int stride, int paddingFront, int paddingBack, int dilation,
 	const CBlobDesc& filter, const CBlobDesc& result )
 {
 	ASSERT_EXPR( stride > 0 );
-	ASSERT_EXPR( padding >= 0 );
+	ASSERT_EXPR( paddingFront >= 0 );
+	ASSERT_EXPR( paddingBack >= 0 );
 	ASSERT_EXPR( dilation > 0 );
 	ASSERT_EXPR( filter.BatchLength() == 1 );
 	ASSERT_EXPR( filter.Width() == 1 );
 	ASSERT_EXPR( filter.Depth() == 1 );
 	ASSERT_EXPR( filter.Channels() == source.ObjectSize() );
-	ASSERT_EXPR( source.BatchLength() + 2 * padding >= ( filter.Height() - 1 ) * dilation + 1 );
-	ASSERT_EXPR( result.BatchLength() == ( source.BatchLength() - ( filter.Height() - 1 ) * dilation - 1 + 2 * padding ) / stride + 1 );
+	ASSERT_EXPR( source.BatchLength() + paddingFront + paddingBack >= ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( result.BatchLength() == ( source.BatchLength() - ( filter.Height() - 1 ) * dilation - 1 + paddingFront + paddingBack ) / stride + 1 );
 	ASSERT_EXPR( result.BatchWidth() == source.BatchWidth() );
 	ASSERT_EXPR( result.ListSize() == 1 && source.ListSize() == 1 );
 	ASSERT_EXPR( result.Width() == 1 );
 	ASSERT_EXPR( result.Height() == 1 );
 	ASSERT_EXPR( result.Depth() == 1 );
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
-	ASSERT_EXPR( padding < ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( paddingFront < ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( paddingBack < ( filter.Height() - 1 ) * dilation + 1 );
 
 	CCudaTimeConvolutionDesc* desc = new CCudaTimeConvolutionDesc();
 	desc->Internal.Source = source;
 	desc->Internal.Filter = filter;
 	desc->Internal.Result = result;
 	desc->Internal.Stride = stride;
-	desc->Internal.Padding = padding;
+	desc->Internal.PaddingFront = paddingFront;
+	desc->Internal.PaddingBack = paddingBack;
 	desc->Internal.Dilation = dilation;
 	return desc;
 }

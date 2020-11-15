@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -490,6 +490,16 @@ void CBatchNormalizationLayer::Serialize( CArchive& archive )
 	} else {
 		NeoAssert( false );
 	}
+}
+
+CLayerWrapper<CBatchNormalizationLayer> BatchNormalization(
+	bool isChannelBased, bool isZeroFreeTerm, float slowConvergenceRate )
+{
+	return CLayerWrapper<CBatchNormalizationLayer>( "BatchNormalization", [=]( CBatchNormalizationLayer* result ) {
+		result->SetChannelBased( isChannelBased );
+		result->SetZeroFreeTerm( isZeroFreeTerm );
+		result->SetSlowConvergenceRate( slowConvergenceRate );
+	} );
 }
 
 } // namespace NeoML

@@ -43,4 +43,6 @@ private:
 	int stride;
 };
 
+NEOML_API CLayerWrapper<CReorgLayer> Reorg();
+
 } // namespace NeoML

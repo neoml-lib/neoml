@@ -20,15 +20,12 @@ limitations under the License.
 #include <vector>
 #include <algorithm>
 
-#include <NeoMathEngine/Platforms.h>
-#include <NeoMathEngine/OpenMP.h>
-
-#include <immintrin.h>
+#include <NeoMathEngine/NeoMathEngine.h>
 
 #if FINE_PLATFORM( FINE_WINDOWS )
-#define FME_DLL_EXPORT __declspec( dllexport )
+#include <intrin.h>
 #elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
-#define FME_DLL_EXPORT __attribute__((visibility("default")))
+#include <x86intrin.h>
 #else
 #error "Platform isn't supported!"
 

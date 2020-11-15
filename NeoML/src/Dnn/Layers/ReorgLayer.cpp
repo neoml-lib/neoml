@@ -88,4 +88,9 @@ void CReorgLayer::SetStride( int _stride )
 	stride = _stride;
 }
 
+CLayerWrapper<CReorgLayer> Reorg()
+{
+	return CLayerWrapper<CReorgLayer>( "Reorg" );
+}
+
 } // namespace NeoML

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,5 +54,7 @@ inline void CTransposeLayer::GetTransposedDimensions(TBlobDim& _d1, TBlobDim& _d
 	_d1 = d1;
 	_d2 = d2;
 }
+
+NEOML_API CLayerWrapper<CTransposeLayer> Transpose( TBlobDim d1, TBlobDim d2 );
 
 } // namespace NeoML

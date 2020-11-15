@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -338,8 +338,8 @@ public:
 	int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) override;
 	void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle, const CBlobDesc& to,
 	const CFloatHandle& toData, int startPos, bool isRev ) override;
-	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int padding, int dilation,
-		const CBlobDesc& filter, const CBlobDesc& result ) override;
+	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront, int paddingBack,
+		int dilation, const CBlobDesc& filter, const CBlobDesc& result ) override;
 	void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle& freeTerm, const CFloatHandle& result ) override;
 	void BlobTimeConvolutionBackward( const CTimeConvolutionDesc& desc, const CFloatHandle& outputDiff,
