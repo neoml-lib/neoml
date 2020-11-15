@@ -100,8 +100,8 @@ void CTransposedConvLayer::LearnOnce()
 
 	CFloatHandle freeTermDiff = FreeTermsDiff()->GetData();
 	for(int i = 0; i < outputDiffBlobs.Size(); ++i) {
-		MathEngine().BlobConvolutionLearnAdd( *convDesc, outputDiffBlobs[i]->GetData(), inputBlobs[i]->GetData(),
-			FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff, true );
+		MathEngine().BlobConvolutionLearnAdd( *convDesc, outputDiffBlobs[i]->GetData(), CFloatHandle(),
+			inputBlobs[i]->GetData(), FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff, true );
 	}
 }
 

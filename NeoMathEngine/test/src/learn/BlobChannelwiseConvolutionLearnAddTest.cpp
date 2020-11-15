@@ -115,7 +115,7 @@ static void blobChannelwiseConvolutionLearnAddImpl( const CTestParams& params, i
 	CChannelwiseConvolutionDesc* convDesc = MathEngine().InitBlobChannelwiseConvolution(
 		inputBlob.GetDesc(), paddingHeight, paddingWidth, strideHeight, strideWidth, filterBlob.GetDesc(), &freeTermBlob.GetDesc(), outputDiffBlob.GetDesc(), AF_None );
 	CFloatHandle freeTermDiffHandle = freeTermBlob.GetData();
-	MathEngine().BlobChannelwiseConvolutionLearnAdd( *convDesc, inputBlob.GetData(), outputDiffBlob.GetData(),
+	MathEngine().BlobChannelwiseConvolutionLearnAdd( *convDesc, inputBlob.GetData(), CFloatHandle(), outputDiffBlob.GetData(),
 		filterBlob.GetData(), addFreeTerm ? &freeTermDiffHandle : 0 );
 	delete convDesc;
 

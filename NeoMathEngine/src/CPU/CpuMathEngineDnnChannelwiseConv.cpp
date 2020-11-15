@@ -317,10 +317,12 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 	if( desc.Filter.Height() == 3 && desc.Filter.Width() == 3 && desc.PaddingHeight == 1 && desc.PaddingWidth == 1 && desc.Filter.Channels() % 4 == 0 ) {
 		if( desc.StrideHeight == 1 && desc.StrideWidth == 1 ) {
 			blobChannelwiseConvolutionFilter3x3Padding1Stride1( desc, source, filter, freeTerm, result );
+			Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 			return;
 		}
 		if( desc.StrideHeight == 2 && desc.StrideWidth == 2 ) {
 			blobChannelwiseConvolutionFilter3x3Padding1Stride2( desc, source, filter, freeTerm, result );
+			Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 			return;
 		}
 	}

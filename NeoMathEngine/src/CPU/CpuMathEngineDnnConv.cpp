@@ -877,7 +877,9 @@ void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, 
 {
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
 
-	ActivationBackward( *desc.Activation, CConstFloatHandle(), output, outputDiffData, outputDiffData, desc.Result.BlobSize() );
+	if( !output.IsNull() ) {
+		ActivationBackward( *desc.Activation, CFloatHandle(), output, outputDiffData, outputDiffData, desc.Result.BlobSize() );
+	}
 
 	switch( desc.BackwardAlgo ) {
 		case CA_1:
@@ -894,7 +896,7 @@ void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, 
 				// That's why 3dConv's backward is used without activation
 				C3dConvolutionDesc* blob3dConvDesc = InitBlob3dConvolution( needsFlatten ? flatten( desc.Source ) : desc.Source, 0, 0, 0,
 					desc.StrideHeight, desc.StrideWidth, 1, needsFlatten ? flatten( desc.Filter ) : desc.Filter, desc.Result, AF_None );
-				Blob3dConvolutionBackward( *blob3dConvDesc, output, outputDiffData, filter, freeTerm, inputDiffData );
+				Blob3dConvolutionBackward( *blob3dConvDesc, CFloatHandle(), outputDiffData, filter, freeTerm, inputDiffData );
 				delete blob3dConvDesc;
 				break;
 			}
@@ -1083,10 +1085,14 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 	}
 }
 
-void CCpuMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc, const CFloatHandle& input,
+void CCpuMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc, const CFloatHandle& input, const CFloatHandle& output,
 	const CFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
+
+	if( !output.IsNull() ) {
+		ActivationBackward( *desc.Activation, CFloatHandle(), output, outputDiff, outputDiff, desc.Result.BlobSize() );
+	}
 
 	switch( desc.BackwardAlgo ) {
 		case CA_1:
@@ -1101,7 +1107,7 @@ void CCpuMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc, 
 
 				C3dConvolutionDesc* blob3dConvDesc = InitBlob3dConvolution( needsFlatten ? flatten( desc.Source ) : desc.Source , 0, 0, 0,
 					desc.StrideHeight, desc.StrideWidth, 1, needsFlatten ? flatten( desc.Filter ) : desc.Filter, desc.Result, AF_None );
-				Blob3dConvolutionLearnAdd( *blob3dConvDesc, input, outputDiff, filterDiff, freeTermDiff, true );
+				Blob3dConvolutionLearnAdd( *blob3dConvDesc, input, CFloatHandle(), outputDiff, filterDiff, freeTermDiff, true );
 				delete blob3dConvDesc;
 				break;
 			}
@@ -1141,7 +1147,7 @@ CChannelwiseConvolutionDesc* CCpuMathEngine::InitBlobChannelwiseConvolution( con
 	return desc;
 }
 
-void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& forward,
+void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc, const CFloatHandle& forward,
 	const CFloatHandle& inputDiffData, const CFloatHandle& filterData, const CFloatHandle& outputDiffData )
 {
 	const float* inputDiffDataRaw = GetRaw( inputDiffData );
@@ -1153,7 +1159,9 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& output = desc.Source;
 
-	ActivationBackward( *desc.Activation, CConstFloatHandle(), forward, outputDiffData, outputDiffData, input.BlobSize() );
+	if( !forward.IsNull() ) {
+		ActivationBackward( *desc.Activation, CConstFloatHandle(), forward, inputDiffData, inputDiffData, desc.Result.BlobSize() );
+	}
 
 	const int inputGeo = input.Height() * input.Width();
 	const int filterGeo = filter.Height() * filter.Width();
@@ -1246,7 +1254,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 	}
 }
 
-void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc, const CFloatHandle& inputData,
+void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc, const CFloatHandle& inputData, const CFloatHandle& outputData,
 	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData )
 {
 	const float* inputDataRaw = GetRaw( inputData );
@@ -1257,6 +1265,10 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 	const CBlobDesc& outputDiff = desc.Result;
 	const CBlobDesc& input = desc.Source;
 	const CBlobDesc& filterDiff = desc.Filter;
+
+	if( !outputData.IsNull() ) {
+		ActivationBackward( *desc.Activation, CFloatHandle(), outputData, outputDiffData, outputDiffData, desc.Result.BlobSize() );
+	}
 
 	const int curThreadCount = IsOmpRelevant( outputDiff.BatchWidth() ) ? threadCount : 1;
 

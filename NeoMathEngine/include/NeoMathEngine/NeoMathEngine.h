@@ -575,9 +575,10 @@ public:
 
 	virtual void Blob3dConvolution( const C3dConvolutionDesc& desc, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
-	virtual void Blob3dConvolutionBackward( const C3dConvolutionDesc& desc, const CConstFloatHandle& forward, const CFloatHandle& source,
+	virtual void Blob3dConvolutionBackward( const C3dConvolutionDesc& desc, const CFloatHandle& forward, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
-	virtual void Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& desc, const CFloatHandle& input,
+	virtual void Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& desc,
+		const CFloatHandle& input, const CFloatHandle& output,
 		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput ) = 0;
 
@@ -591,7 +592,8 @@ public:
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
 	virtual void BlobConvolutionBackward( const CConvolutionDesc& desc, const CConstFloatHandle& output, const CFloatHandle& outputDiff,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff ) = 0;
-	virtual void BlobConvolutionLearnAdd( const CConvolutionDesc& desc, const CFloatHandle& input,
+	virtual void BlobConvolutionLearnAdd( const CConvolutionDesc& desc,
+		const CFloatHandle& input, const CFloatHandle& output,
 		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput ) = 0;
 
@@ -607,12 +609,13 @@ public:
 		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
 	// Calculates the derivative by the input for the channelwise convolution 
 	// when the derivative by the output is known
-	virtual void BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& desc, const CConstFloatHandle& forward,
+	virtual void BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& desc, const CFloatHandle& forward,
 		const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle& result ) = 0;
 	// Calculates the derivative by parameters for the channelwise convolution
 	// when the input and the derivative by the output are known
 	virtual void BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& desc,
-		const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+		const CFloatHandle& input, const CFloatHandle& output,
+		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff ) = 0;
 
 	// GlobalMaxPooling

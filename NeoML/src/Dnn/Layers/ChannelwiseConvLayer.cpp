@@ -131,8 +131,9 @@ void CChannelwiseConvLayer::LearnOnce()
 
 	CFloatHandle freeTermDiff = FreeTermsDiff()->GetData();
 	for( int i = 0; i < outputDiffBlobs.Size(); ++i ) {
-		MathEngine().BlobChannelwiseConvolutionLearnAdd( *convDesc, inputBlobs[i]->GetData(), outputDiffBlobs[i]->GetData(),
-			FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff );
+		MathEngine().BlobChannelwiseConvolutionLearnAdd( *convDesc,
+			inputBlobs[i]->GetData(), IsBackwardPerformed() ? CFloatHandle() : outputBlobs[i]->GetData(),
+			outputDiffBlobs[i]->GetData(), FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff );
 	}
 }
 

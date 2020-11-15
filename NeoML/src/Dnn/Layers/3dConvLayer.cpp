@@ -189,8 +189,9 @@ void C3dConvLayer::LearnOnce()
 
 	CFloatHandle freeTermDiff = FreeTermsDiff()->GetData();
 	for(int i = 0; i < outputDiffBlobs.Size(); ++i) {
-		MathEngine().Blob3dConvolutionLearnAdd( *convDesc, inputBlobs[i]->GetData(), outputDiffBlobs[i]->GetData(),
-			FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff, false );
+		MathEngine().Blob3dConvolutionLearnAdd( *convDesc,
+			inputBlobs[i]->GetData(), IsBackwardPerformed() ? CFloatHandle() : outputBlobs[i]->GetData(),
+			outputDiffBlobs[i]->GetData(), FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff, false );
 	}
 }
 

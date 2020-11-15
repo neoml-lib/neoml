@@ -111,7 +111,7 @@ void C3dTransposedConvLayer::RunOnce()
 
 	CFloatHandle freeTerm = FreeTerms()->GetData();
 	for( int i = 0; i < outputBlobs.Size(); ++i ) {
-		MathEngine().Blob3dConvolutionBackward( *convDesc, CConstFloatHandle(), inputBlobs[i]->GetData(),
+		MathEngine().Blob3dConvolutionBackward( *convDesc, CFloatHandle(), inputBlobs[i]->GetData(),
 			Filter()->GetData(), IsZeroFreeTerm() ? 0 : &freeTerm, outputBlobs[i]->GetData() );
 	}
 }
@@ -132,8 +132,8 @@ void C3dTransposedConvLayer::LearnOnce()
 
 	CFloatHandle freeTermDiff = FreeTermsDiff()->GetData();
 	for( int i = 0; i < outputDiffBlobs.Size(); ++i ) {
-		MathEngine().Blob3dConvolutionLearnAdd( *convDesc, outputDiffBlobs[i]->GetData(), inputBlobs[i]->GetData(),
-			FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff, true);
+		MathEngine().Blob3dConvolutionLearnAdd( *convDesc, outputDiffBlobs[i]->GetData(), CFloatHandle(),
+			inputBlobs[i]->GetData(), FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff, true);
 	}
 }
 
