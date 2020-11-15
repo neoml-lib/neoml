@@ -590,7 +590,7 @@ public:
 
 	virtual void BlobConvolution( const CConvolutionDesc& desc, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
-	virtual void BlobConvolutionBackward( const CConvolutionDesc& desc, const CConstFloatHandle& output, const CFloatHandle& outputDiff,
+	virtual void BlobConvolutionBackward( const CConvolutionDesc& desc, const CFloatHandle& output, const CFloatHandle& outputDiff,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff ) = 0;
 	virtual void BlobConvolutionLearnAdd( const CConvolutionDesc& desc,
 		const CFloatHandle& input, const CFloatHandle& output,

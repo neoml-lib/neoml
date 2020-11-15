@@ -98,7 +98,7 @@ CRleConvolutionDesc* CVulkanMathEngine::InitBlobRleConvolution( const CBlobDesc&
 	CVulkanRleConvolutionDesc* desc = new CVulkanRleConvolutionDesc();
 	desc->StrokeValue = strokeValue;
 	desc->NonStrokeValue = nonStrokeValue;
-	desc->ConvDesc = InitBlobConvolution( source, 0, 0, strideHeight, strideWidth, 1, 1, filter, result );
+	desc->ConvDesc = InitBlobConvolution( source, 0, 0, strideHeight, strideWidth, 1, 1, filter, result, AF_None );
 	return desc;
 }
 
@@ -247,10 +247,12 @@ void CVulkanMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc&
 C3dConvolutionDesc* CVulkanMathEngine::InitBlob3dConvolution( const CBlobDesc& source,
 	int paddingHeight, int paddingWidth, int paddingDepth,
 	int strideHeight, int strideWidth, int strideDepth,
-	const CBlobDesc& filter, const CBlobDesc& result )
+	const CBlobDesc& filter, const CBlobDesc& result,
+	const CActivationInfo& activation )
 {
+	ASSERT_EXPR( IsInPlaceActivation( activation.Type ) );
 	CCommon3dConvolutionDesc* desc = new CCommon3dConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, paddingDepth,
-		strideHeight, strideWidth, strideDepth );
+		strideHeight, strideWidth, strideDepth, dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) ) );
 	return desc;
 }
 
@@ -277,15 +279,21 @@ void CVulkanMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, c
 	runShader( shaderLoader->GET_SHADER_DATA(Blob3dConvolution, true, 0, 0, 4),
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 4,
 		result.Width(), result.Height(), result.Channels() * result.ObjectCount() * result.Depth() );
+
+	Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 }
 
-void CVulkanMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& sourceData,
+void CVulkanMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& forward, const CFloatHandle& sourceData,
 	const CFloatHandle& filterData, const CFloatHandle* freeTerm, const CFloatHandle& resultData )
 {   
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& result = desc.Result;
+
+	if( !forward.IsNull() ) {
+		ActivationBackward( *desc.Activation, CFloatHandle(), forward, sourceData, sourceData, desc.Result.BlobSize() );
+	}
 
     const int sourceGeometry = source.Depth() * source.Height() * source.Width();
     const int tempBufferSize = sourceGeometry * filter.ObjectSize();
@@ -319,7 +327,7 @@ void CVulkanMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& con
     }
 }
 
-void CVulkanMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc&, const CFloatHandle&,
+void CVulkanMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc&, const CFloatHandle&, const CFloatHandle&,
 	const CFloatHandle&, const CFloatHandle&, const CFloatHandle*, bool )
 {
 	ASSERT_EXPR( false );
@@ -329,7 +337,8 @@ void CVulkanMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc&, co
 // Convolution
 
 CConvolutionDesc* CVulkanMathEngine::InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
-	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter, const CBlobDesc& result )
+	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
+	const CBlobDesc& result, const CActivationInfo& activation )
 {
 	ASSERT_EXPR( strideHeight > 0 );
 	ASSERT_EXPR( strideWidth > 0 );
@@ -350,9 +359,11 @@ CConvolutionDesc* CVulkanMathEngine::InitBlobConvolution( const CBlobDesc& sourc
 		( filter.Width() - 1 ) * dilationWidth + 2 * paddingWidth - 1 ) / strideWidth );
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( IsInPlaceActivation( activation.Type ) );
 
 	CCommonConvolutionDesc* desc = new CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth,
-		strideHeight, strideWidth, dilationHeight, dilationWidth );
+		strideHeight, strideWidth, dilationHeight, dilationWidth,
+		dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) ) );
 	return desc;
 }
 
@@ -373,6 +384,7 @@ void CVulkanMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 	// Special cases
 	if( filter.Width() == 1 && filter.Height() == 1 && desc.StrideHeight == 1 && desc.StrideWidth == 1 ) {
 		blobConvolution1x1s1Common( desc, sourceData, filterData, freeTermData, resultData );
+		Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 		return;
 	} else if( filter.Width() == 3 && filter.Height() == 3
 		&& desc.StrideHeight == 1 && desc.StrideWidth == 1
@@ -380,9 +392,11 @@ void CVulkanMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 	{
 		if( device->Type == VDT_Adreno ) {
 			blobConvolution3x3s1d1Adreno( desc, sourceData, filterData, freeTermData, resultData );
+			Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 			return;
 		} else {
 			blobConvolution3x3s1d1( desc, sourceData, filterData, freeTermData, resultData );
+			Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 			return;
 		}
 	}
@@ -426,10 +440,13 @@ void CVulkanMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 			blobConvolutionImpl1( desc, tempSource, tempFilter, freeTermData, resultData, channels8 * 8, totalChannels );
 		}
 	}
+
+	Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 }
 
-void CVulkanMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
+void CVulkanMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputData,
+	const CFloatHandle& outputDiffData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+	const CFloatHandle& inputDiffData )
 {
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -440,6 +457,10 @@ void CVulkanMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDes
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& outputDiff = desc.Result;
+
+	if( !outputData.IsNull() ) {
+		ActivationBackward( *desc.Activation, CFloatHandle(), outputData, outputDiffData, outputDiffData, desc.Result.BlobSize() );
+	}
 
 	int inputChannels = inputDiff.Depth() * inputDiff.Channels();
 	int outputChannels4 = Ceil(filter.ObjectCount(), 4);
@@ -484,7 +505,7 @@ void CVulkanMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDes
 }
 
 void CVulkanMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc&, const CFloatHandle&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle*, bool )
+	const CFloatHandle&, const CFloatHandle&, const CFloatHandle*, bool )
 {
 	ASSERT_EXPR( false );
 }
@@ -888,7 +909,8 @@ const CVulkanImage& CVulkanMathEngine::blobConvolutionBackwardPrepareFilterAdren
 
 CChannelwiseConvolutionDesc* CVulkanMathEngine::InitBlobChannelwiseConvolution( const CBlobDesc& source,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, 
-	const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& result )
+	const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& result,
+	const CActivationInfo& activation )
 {
 	ASSERT_EXPR( source.Depth() == 1 );
 	ASSERT_EXPR( filter.Height() > paddingHeight );
@@ -907,9 +929,11 @@ CChannelwiseConvolutionDesc* CVulkanMathEngine::InitBlobChannelwiseConvolution( 
 	const int expectedOutputWidth = ( source.Width() - filter.Width() + 2 * paddingWidth ) / strideWidth + 1;
 	ASSERT_EXPR( result.Height() == expectedOutputHeight );
 	ASSERT_EXPR( result.Width() == expectedOutputWidth );
+	ASSERT_EXPR( IsInPlaceActivation( activation.Type ) );
 
 	CCommonChannelwiseConvolutionDesc* desc = new CCommonChannelwiseConvolutionDesc( paddingHeight, paddingWidth, 
-		strideHeight, strideWidth, source, filter, result );
+		strideHeight, strideWidth, source, filter, result,
+		dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) ) );
 	return desc;
 }
 
@@ -1018,9 +1042,11 @@ void CVulkanMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutio
 	} else {
 		if(filter.Width() == 3 && filter.Height() == 3 && desc.StrideHeight == 1 && desc.StrideWidth == 1) {
 			blobChannelwiseConvolution3x3s1(desc, sourceData, filterData, freeTermData, resultData);
+			Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 			return;
 		} else if( filter.Width() == 3 && filter.Height() == 3 && desc.StrideHeight == 2 && desc.StrideWidth == 2 ) {
 			blobChannelwiseConvolution3x3s2( desc, sourceData, filterData, freeTermData, resultData );
+			Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 			return;
 		}
 
@@ -1047,16 +1073,18 @@ void CVulkanMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutio
 			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 4,
 			totalChannels, result.Height() * result.Width(), result.ObjectCount() );
 	}
+
+	Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 }
 
 void CVulkanMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle& )
+	const CFloatHandle&, const CFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, const CFloatHandle* )
+	const CFloatHandle&, const CFloatHandle&, const CFloatHandle&, const CFloatHandle* )
 {
 	ASSERT_EXPR( false );
 }

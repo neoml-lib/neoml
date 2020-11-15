@@ -358,7 +358,7 @@ public:
 	void BlobConvolution( const CConvolutionDesc& desc,
 		const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle* freeTerm,
 		const CFloatHandle& result ) override;
-	void BlobConvolutionBackward( const CConvolutionDesc& desc, const CConstFloatHandle& output, const CFloatHandle& outputDiff,
+	void BlobConvolutionBackward( const CConvolutionDesc& desc, const CFloatHandle& output, const CFloatHandle& outputDiff,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff ) override;
 	void BlobConvolutionLearnAdd( const CConvolutionDesc& desc,
 		const CFloatHandle& input, const CFloatHandle& output,

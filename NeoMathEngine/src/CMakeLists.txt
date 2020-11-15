@@ -162,8 +162,8 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         endif()
     endif() # USE_FINE_OBJECTS
 
-    #include(CheckLanguage)
-    #check_language(CUDA)
+    include(CheckLanguage)
+    check_language(CUDA)
 
     if(CMAKE_CUDA_COMPILER)
         # Using CUDA
@@ -271,17 +271,17 @@ if(NeoMathEngine_ENABLE_VULKAN)
             set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
         endif()
         
-        #find_path(Vulkan_INCLUDE_DIR
-        #    NAMES vulkan/vulkan.h
-        #    PATHS "$ENV{VULKAN_SDK}/Include"
-        #            "$ENV{VULKAN_SDK}/include"
-        #)
-        #
-        #find_program(GLSL_COMPILER 
-        #    NAMES glslangValidator
-        #    PATHS "$ENV{VULKAN_SDK}/Bin"
-        #            "$ENV{VULKAN_SDK}/bin"
-        #)
+        find_path(Vulkan_INCLUDE_DIR
+            NAMES vulkan/vulkan.h
+            PATHS "$ENV{VULKAN_SDK}/Include"
+                    "$ENV{VULKAN_SDK}/include"
+        )
+        
+        find_program(GLSL_COMPILER 
+            NAMES glslangValidator
+            PATHS "$ENV{VULKAN_SDK}/Bin"
+                    "$ENV{VULKAN_SDK}/bin"
+        )
         
         if(Vulkan_INCLUDE_DIR AND GLSL_COMPILER)
             message(STATUS "Found Vulkan: TRUE")

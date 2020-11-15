@@ -106,7 +106,7 @@ inline float ActivationDefaultParam2( TActivationFunction activation )
 }
 
 // Structure used for creating activation descriptors in MathEngine
-struct NEOMATHENGINE_API CActivationInfo : public CCrtAllocatedObject {
+struct CActivationInfo {
 	// Constructors are not explicit
 	// It allows to use implicit conversion from AF_* constants
 	// or from initializer lists like { AF_Linear, 0.5f }

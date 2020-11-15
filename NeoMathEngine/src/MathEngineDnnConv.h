@@ -50,10 +50,7 @@ struct CCommonConvolutionDesc : public CConvolutionDesc {
 	{
 	}
 
-	~CCommonConvolutionDesc()
-	{
-		delete Activation;
-	}
+	~CCommonConvolutionDesc() { if( Activation != nullptr ) { delete Activation; } }
 };
 
 // The general 3d convolution descriptor
@@ -85,10 +82,7 @@ struct CCommon3dConvolutionDesc : public C3dConvolutionDesc {
 	{
 	}
 
-	~CCommon3dConvolutionDesc()
-	{
-		delete Activation;
-	}
+	~CCommon3dConvolutionDesc() { if( Activation != nullptr ) { delete Activation; } }
 };
 
 // The general time convolution descriptor
@@ -138,10 +132,7 @@ struct CCommonChannelwiseConvolutionDesc : public CChannelwiseConvolutionDesc {
 	{
 	}
 
-	~CCommonChannelwiseConvolutionDesc()
-	{
-		delete Activation;
-	}
+	~CCommonChannelwiseConvolutionDesc() { if( Activation != nullptr ) { delete Activation; } }
 };
 
 } // namespace NeoML

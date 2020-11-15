@@ -872,7 +872,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& de
 	}
 }
 
-void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CConstFloatHandle& output, const CFloatHandle& outputDiffData,
+void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& output, const CFloatHandle& outputDiffData,
 	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiffData )
 {
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );

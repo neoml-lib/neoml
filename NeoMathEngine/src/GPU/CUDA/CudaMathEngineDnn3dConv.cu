@@ -23,6 +23,7 @@ limitations under the License.
 #include <CudaDevice.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <MathEngineDnnActivation.h>
 
 #include <Kernels/CudaDnn3dConvKernels.h>
 
@@ -42,7 +43,7 @@ static inline int tempMatrixWidth( const CCuda3dConvolutionDescInternal& desc )
 
 C3dConvolutionDesc* CCudaMathEngine::InitBlob3dConvolution( const CBlobDesc& input, int paddingHeight,
 	int paddingWidth, int paddingDepth, int strideHeight, int strideWidth, int strideDepth,
-	const CBlobDesc& filter, const CBlobDesc& output )
+	const CBlobDesc& filter, const CBlobDesc& output, const CActivationInfo& activation )
 {
 	CCuda3dConvolutionDesc* desc = new CCuda3dConvolutionDesc();
 	desc->Internal.Source = input;
@@ -54,6 +55,7 @@ C3dConvolutionDesc* CCudaMathEngine::InitBlob3dConvolution( const CBlobDesc& inp
 	desc->Internal.PaddingHeight = paddingHeight;
 	desc->Internal.PaddingWidth = paddingWidth;
 	desc->Internal.PaddingDepth = paddingDepth;
+	desc->Activation = dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, output.BlobSize() ) );
 	return desc;
 }
 
@@ -62,6 +64,7 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 	const CFloatHandle& result )
 {
 	SetCudaDevice( device->DeviceNumber );
+	const CActivationDesc& activation = *static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Activation;
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 
 	if( freeTerm != 0 ) {
@@ -119,15 +122,23 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 			desc.Filter.ObjectCount(), desc.Filter.ObjectSize(), result,
 			desc.Filter.ObjectCount(), desc.Result.BlobSize() );
 	}
+
+	// Apply activation function
+	Activation( activation, result, result, desc.Result.BlobSize() );
 }
 
-void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& outputDiff,
+void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& output, const CFloatHandle& outputDiff,
 	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 	const int filterCount = desc.Filter.ObjectCount();
 	const int filterObjectSize = desc.Filter.ObjectSize();
+
+	if( !output.IsNull() ) {
+		const CActivationDesc& activation = *static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Activation;
+		ActivationBackward( activation, CFloatHandle(), output, outputDiff, outputDiff, desc.Result.BlobSize() );
+	}
 
 	if( desc.Filter.Height() == 1 && desc.Filter.Width() == 1 && desc.Filter.Depth() == 1
 		&& desc.StrideHeight == 1 && desc.StrideWidth == 1 && desc.StrideDepth == 1
@@ -174,11 +185,16 @@ void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convD
 }
 
 void CCudaMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convDesc,
-	const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+	const CFloatHandle& input, const CFloatHandle& output, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 	const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
+
+	if( !output.IsNull() ) {
+		const CActivationDesc& activation = *static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Activation;
+		ActivationBackward( activation, CFloatHandle(), output, outputDiff, outputDiff, desc.Result.BlobSize() );
+	}
 
 	if( freeTermDiff != 0 ) {
 		const CConstFloatHandle& freeTermSrc = isFreeTermDiffFromInput ? input : outputDiff;

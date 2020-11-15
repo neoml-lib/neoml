@@ -30,7 +30,7 @@ namespace NeoML {
 
 CChannelwiseConvolutionDesc* CCudaMathEngine::InitBlobChannelwiseConvolution( const CBlobDesc& source,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-	const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& result )
+	const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& result, const CActivationInfo& activation )
 {
 	ASSERT_EXPR(source.Depth() == 1);
 	ASSERT_EXPR(filter.Height() > paddingHeight);
@@ -49,6 +49,7 @@ CChannelwiseConvolutionDesc* CCudaMathEngine::InitBlobChannelwiseConvolution( co
 	const int expectedOutputWidth = (source.Width() - filter.Width() + 2 * paddingWidth) / strideWidth + 1;
 	ASSERT_EXPR(result.Height() == expectedOutputHeight);
 	ASSERT_EXPR(result.Width() == expectedOutputWidth);
+	ASSERT_EXPR(IsInPlaceActivation(activation.Type));
 
 	CCudaChannelwiseConvolutionDesc* desc = new CCudaChannelwiseConvolutionDesc();
 	desc->Internal.PaddingHeight = paddingHeight;
@@ -58,6 +59,7 @@ CChannelwiseConvolutionDesc* CCudaMathEngine::InitBlobChannelwiseConvolution( co
 	desc->Internal.Source = source;
 	desc->Internal.Filter = filter;
 	desc->Internal.Result = result;
+	desc->Activation = dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) );
 	return desc;
 }
 
@@ -72,6 +74,7 @@ void CCudaMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionD
 	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+	const CActivationDesc& activation = *static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Activation;
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -82,9 +85,11 @@ void CCudaMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionD
 
 	BlobChannelwiseConvolutionKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), GetRaw( filterData ),
 		freeTermData == 0 ? 0 : GetRaw( *freeTermData ), GetRaw( resultData ) );
+
+	Activation( activation, resultData, resultData, desc.Result.BlobSize() );
 }
 
-void CCudaMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc,
+void CCudaMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc, const CFloatHandle& forward,
 	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -95,6 +100,11 @@ void CCudaMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConv
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
 
+	if( !forward.IsNull() ) {
+		const CActivationDesc& activation = *static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Activation;
+		ActivationBackward( activation, CFloatHandle(), forward, sourceData, sourceData, desc.Result.BlobSize() );
+	}
+
 	dim3 blockCount;
 	dim3 threadCount;
 
@@ -104,7 +114,8 @@ void CCudaMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConv
 }
 
 void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc,
-	const CFloatHandle& inputData, const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData,
+	const CFloatHandle& inputData, const CFloatHandle& outputData,
+	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData,
 	const CFloatHandle* freeTermDiffData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -116,6 +127,11 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& outputDiff = desc.Result;
 	const CCudaBlobDesc& filterDiff = desc.Filter;
+
+	if( !outputData.IsNull() ) {
+		const CActivationDesc& activation = *static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Activation;
+		ActivationBackward( activation, CFloatHandle(), outputData, outputDiffData, outputDiffData, desc.Result.BlobSize() );
+	}
 
 	if( freeTermDiffData != 0 ) {
 		// Train the free term
