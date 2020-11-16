@@ -13,7 +13,7 @@ git;https://tfs/HQ/ThirdParty/_git/MKL
 get;ThirdParty/MKL;/;MKL 2018 Update4 1.0.2.0
 
 git;https://tfs/HQ/Tools_Libs/_git/NeoMLTest
-get;NeoMLTest;/;NeoMLTest-master 1.0.24.0
+get;NeoMLTest;/;NeoMLTest-VaFedyunin-ConvolutionWithActivationTest 1.0.24.1
 
 copy;%ROOT%/../NeoML;%ROOT%/NeoML/NeoML
 copy;%ROOT%/../NeoMathEngine;%ROOT%/NeoML/NeoMathEngine
