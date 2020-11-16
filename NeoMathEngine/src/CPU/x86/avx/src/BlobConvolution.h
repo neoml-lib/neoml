@@ -258,12 +258,12 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 
 		if( CentralPartWidth < 0 ) {
 			if( CentralPartHeight < 0 ) {
-				windowOffsets = { 0, 9, 2, 10, 4, 11, 6, 12, 15 };
+				windowOffsets = { 0, 11, 2, 12, 4, 9, 6, 10, 15 };
 			} else {
-				windowOffsets = { 0, 9, 2, 10, 4, 11, 6, 12, 13 };
+				windowOffsets = { 0, 11, 2, 12, 4, 9, 6, 10, 14 };
 			}
 		} else {
-			windowOffsets = { 0, 9, 2, 10, 4, 11, 6, 12, 14 };
+			windowOffsets = { 0, 11, 2, 12, 4, 9, 6, 10, 13 };
 
 		}
 		CentralPartWidth = std::min( ResW, std::abs( CentralPartWidth ) );
