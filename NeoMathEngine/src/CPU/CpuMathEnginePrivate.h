@@ -23,7 +23,6 @@ limitations under the License.
 
 #include <CpuX86.h>
 #include <CpuX86MathEngineVectorMathPrivate.h>
-#include <AvxDll.h>
 
 #elif defined(NEOML_USE_NEON)
 
