@@ -33,7 +33,8 @@ namespace NeoML {
 // Convolution
 
 CConvolutionDesc* CMetalMathEngine::InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
-	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter, const CBlobDesc& result )
+	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter, const CBlobDesc& result,
+    const CActivationInfo& activation )
 {
 	ASSERT_EXPR( strideHeight > 0 );
 	ASSERT_EXPR( strideWidth > 0 );
@@ -54,9 +55,11 @@ CConvolutionDesc* CMetalMathEngine::InitBlobConvolution( const CBlobDesc& source
 		( filter.Width() - 1 ) * dilationWidth + 2 * paddingWidth - 1 ) / strideWidth );
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
+    ASSERT_EXPR( IsInPlaceActivation( activation.Type ) );
 
 	CCommonConvolutionDesc* desc = new CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth,
-		strideHeight, strideWidth, dilationHeight, dilationWidth );
+		strideHeight, strideWidth, dilationHeight, dilationWidth,
+        dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) ) );
 	return desc;
 }
 
@@ -140,9 +143,11 @@ void CMetalMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
             }
         }
     }
+
+    Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 }
 
-void CMetalMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
+void CMetalMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputData, const CFloatHandle& outputDiffData,
 	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
 {
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
@@ -154,6 +159,10 @@ void CMetalMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& outputDiff = desc.Result;
+
+	if( !outputData.IsNull() ) {
+		ActivationBackward( *desc.Activation, CFloatHandle(), outputData, outputDiffData, outputDiffData, desc.Result.BlobSize() );
+	}
     
     const int tempBufferSize = outputDiff.Height() * outputDiff.Width() * filter.ObjectSize();
     CFloatHandleStackVar temp( mathEngine(), tempBufferSize );
@@ -187,7 +196,7 @@ void CMetalMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc
 }
 
 void CMetalMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc&, const CFloatHandle&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle*, bool )
+	const CFloatHandle&, const CFloatHandle&, const CFloatHandle*, bool )
 {
 	ASSERT_EXPR( false );
 }
@@ -198,7 +207,7 @@ void CMetalMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc&, const C
 C3dConvolutionDesc* CMetalMathEngine::InitBlob3dConvolution( const CBlobDesc& source,
 	int paddingHeight, int paddingWidth, int paddingDepth,
 	int strideHeight, int strideWidth, int strideDepth,
-	const CBlobDesc& filter, const CBlobDesc& result )
+	const CBlobDesc& filter, const CBlobDesc& result, const CActivationInfo& activation )
 {
     ASSERT_EXPR( paddingHeight >= 0 );
     ASSERT_EXPR( paddingWidth >= 0 );
@@ -217,9 +226,11 @@ C3dConvolutionDesc* CMetalMathEngine::InitBlob3dConvolution( const CBlobDesc& so
     ASSERT_EXPR( result.Width() == 1 + ( source.Width() + 2 * paddingWidth - filter.Width() ) / strideWidth );
     ASSERT_EXPR( result.Depth() == 1 + ( source.Depth() + 2 * paddingDepth - filter.Depth() ) / strideDepth );
     ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
+    ASSERT_EXPR( IsInPlaceActivation( activation.Type ) );
 
 	CCommon3dConvolutionDesc* desc = new CCommon3dConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, paddingDepth,
-		strideHeight, strideWidth, strideDepth );
+		strideHeight, strideWidth, strideDepth,
+		dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) );
 	return desc;
 }
 
@@ -270,9 +281,11 @@ void CMetalMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, co
         kernel.SetParam( resultData, 12 );
         ASSERT_EXPR( kernel.Run() );
     }
+
+    Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 }
 
-void CMetalMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
+void CMetalMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& outputData, const CFloatHandle& outputDiffData,
 	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
 {
     ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
@@ -286,6 +299,10 @@ void CMetalMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& conv
     const CBlobDesc& outputDiff = desc.Result;
     const int outputDiffGeometry = outputDiff.Depth() * outputDiff.Height() * outputDiff.Width();
     const int tempBufferSize = outputDiffGeometry * filter.ObjectSize();
+    
+	if( !outputData.IsNull() ) {
+		ActivationBackward( *desc.Activation, CFloatHandle(), outputData, outputDiffData, outputDiffData, desc.Result.BlobSize() );
+	}
     
     CFloatHandleStackVar temp( mathEngine(), tempBufferSize );
     
@@ -426,7 +443,7 @@ void CMetalMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc&,
 
 CChannelwiseConvolutionDesc* CMetalMathEngine::InitBlobChannelwiseConvolution( const CBlobDesc& source,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, 
-	const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& result )
+	const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& result, const CActivationInfo& activation )
 {
 	ASSERT_EXPR( source.Depth() == 1 );
 	ASSERT_EXPR( filter.Height() > paddingHeight );
@@ -445,9 +462,11 @@ CChannelwiseConvolutionDesc* CMetalMathEngine::InitBlobChannelwiseConvolution( c
 	const int expectedOutputWidth = ( source.Width() - filter.Width() + 2 * paddingWidth ) / strideWidth + 1;
 	ASSERT_EXPR( result.Height() == expectedOutputHeight );
 	ASSERT_EXPR( result.Width() == expectedOutputWidth );
+    ASSERT_EXPR( IsInPlaceActivation( activation.Type ) );
 
 	CCommonChannelwiseConvolutionDesc* desc = new CCommonChannelwiseConvolutionDesc( paddingHeight, paddingWidth, 
-		strideHeight, strideWidth, source, filter, result );
+		strideHeight, strideWidth, source, filter, result,
+        dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) );
 	return desc;
 }
 
@@ -495,6 +514,7 @@ void CMetalMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolution
                 kernelConvolution.SetParam( resultData, 8 );
                 ASSERT_EXPR( kernelConvolution.Run() );
             }
+            Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
             return;
         } else if( desc.StrideHeight == 2 && desc.StrideWidth == 2 ) {
             const int combineH = 2;
@@ -526,6 +546,7 @@ void CMetalMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolution
                 kernelConvolution.SetParam( resultData, 8 );
                 ASSERT_EXPR( kernelConvolution.Run() );
             }
+            Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
             return;
         }
     } 
@@ -560,16 +581,18 @@ void CMetalMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolution
         kernelConvolution.SetParam( resultData, 10 );
         ASSERT_EXPR( kernelConvolution.Run() );
     }
+
+    Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 }
 
 void CMetalMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle& )
+    const CFloatHandle&, const CFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
 
 void CMetalMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, const CFloatHandle* )
+	const CFloatHandle&, const CFloatHandle&, const CFloatHandle&, const CFloatHandle* )
 {
 	ASSERT_EXPR( false );
 }
@@ -620,7 +643,7 @@ CRleConvolutionDesc* CMetalMathEngine::InitBlobRleConvolution( const CBlobDesc& 
 	CMetalRleConvolutionDesc* desc = new CMetalRleConvolutionDesc();
 	desc->StrokeValue = strokeValue;
 	desc->NonStrokeValue = nonStrokeValue;
-	desc->ConvDesc = InitBlobConvolution( source, 0, 0, strideHeight, strideWidth, 1, 1, filter, result );
+	desc->ConvDesc = InitBlobConvolution( source, 0, 0, strideHeight, strideWidth, 1, 1, filter, result, AF_None );
 	return desc;
 }
 

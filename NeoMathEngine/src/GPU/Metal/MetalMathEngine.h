@@ -341,6 +341,12 @@ public:
 		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) override;
 	void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
 		const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev ) override;
+	CActivationDesc* InitActivation( const CActivationInfo& activation, int dataSize ) override;
+	bool IsInPlaceActivation( TActivationFunction activation ) override;
+	void Activation( const CActivationDesc& desc, const CConstFloatHandle& input,
+		const CFloatHandle& output, int dataSize ) override;
+	void ActivationBackward( const CActivationDesc& activationDesc, const CConstFloatHandle& input, const CConstFloatHandle& output,
+		const CConstFloatHandle& outputDiff, const CFloatHandle& inputDiff, int dataSize ) override;
 	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront, int paddingBack,
 		int dilation, const CBlobDesc& filter, const CBlobDesc& result ) override;
 	void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CFloatHandle& source,
@@ -352,34 +358,38 @@ public:
 	C3dConvolutionDesc* InitBlob3dConvolution( const CBlobDesc& input,
 		int paddingHeight, int paddingWidth, int paddingDepth,
 		int strideHeight, int strideWidth, int strideDepth,
-		const CBlobDesc& filter, const CBlobDesc& output ) override;
+		const CBlobDesc& filter, const CBlobDesc& output,
+		const CActivationInfo& activation ) override;
 	void Blob3dConvolution( const C3dConvolutionDesc& desc, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) override;
-	void Blob3dConvolutionBackward( const C3dConvolutionDesc& desc, const CFloatHandle& source,
+	void Blob3dConvolutionBackward( const C3dConvolutionDesc& desc, const CFloatHandle& forward, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) override;
-	void Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& desc, const CFloatHandle& input,
+	void Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& desc, const CFloatHandle& input, const CFloatHandle& output,
 		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput ) override;
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& input,
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth,
-		const CBlobDesc& filter, const CBlobDesc& output ) override;
+		const CBlobDesc& filter, const CBlobDesc& output, const CActivationInfo& activation ) override;
 	void BlobConvolution( const CConvolutionDesc& desc,
 		const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle* freeTerm,
 		const CFloatHandle& result ) override;
-	void BlobConvolutionBackward( const CConvolutionDesc& desc, const CFloatHandle& outputDiff,
+	void BlobConvolutionBackward( const CConvolutionDesc& desc, const CFloatHandle& output, const CFloatHandle& outputDiff,
 		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff ) override;
 	void BlobConvolutionLearnAdd( const CConvolutionDesc& desc,
-		const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+		const CFloatHandle& input, const CFloatHandle& output,
+		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput ) override;
 	CChannelwiseConvolutionDesc* InitBlobChannelwiseConvolution( const CBlobDesc& input,
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-		const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& output ) override;
+		const CBlobDesc& filter, const CBlobDesc* freeTerm, const CBlobDesc& output,
+		const CActivationInfo& activation ) override;
 	void BlobChannelwiseConvolution( const CChannelwiseConvolutionDesc& desc, const CConstFloatHandle& source,
 		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) override;
-	void BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc,
+	void BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc, const CFloatHandle& forward,
 		const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle& result ) override;
 	void BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc,
-		const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+		const CFloatHandle& input, const CFloatHandle& output,
+		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff ) override;
 	CGlobalMaxPoolingDesc* InitGlobalMaxPooling( const CBlobDesc& source, const CBlobDesc& maxIndices,
 		const CBlobDesc& result ) override;
