@@ -515,7 +515,7 @@ void CCpuMathEngine::EnumBinarization(int batchSize,
 	for(int i = 0; i < batchSize; ++i) {
 		int enumValue = (int)(*input++);
 		if(enumValue >= 0) {
-			assert(enumValue < enumSize);
+			ASSERT_EXPR(enumValue < enumSize);
 			result[enumValue] = 1;
 		}
 		result += enumSize;

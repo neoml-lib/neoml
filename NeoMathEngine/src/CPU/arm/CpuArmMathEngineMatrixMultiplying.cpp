@@ -36,9 +36,9 @@ void CCpuMathEngine::multiplyMatrixByMatrix(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
 	float* result, int resultRowSize)
 {
-	assert(firstWidth <= firstRowSize);
-	assert(secondWidth <= secondRowSize);
-	assert(secondWidth <= resultRowSize);
+	ASSERT_EXPR(firstWidth <= firstRowSize);
+	ASSERT_EXPR(secondWidth <= secondRowSize);
+	ASSERT_EXPR(secondWidth <= resultRowSize);
 
 	nullify(result, firstHeight, secondWidth, resultRowSize);
 	MultiplyMatrix<false, false, CTmpMemoryHandler>(this, CpuInfo, first, firstRowSize, second, secondRowSize,
@@ -49,8 +49,8 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd(const float* first, int firstH
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
 	float* result, int resultRowSize)
 {
-	assert(firstWidth <= firstRowSize);
-	assert(secondWidth <= resultRowSize);
+	ASSERT_EXPR(firstWidth <= firstRowSize);
+	ASSERT_EXPR(secondWidth <= resultRowSize);
 
 	MultiplyMatrix<false, false, CTmpMemoryHandler>(this, CpuInfo, first, firstRowSize, second, secondRowSize,
 		result, resultRowSize, firstHeight, secondWidth, firstWidth);
@@ -60,9 +60,9 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int fi
 	int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
 	float* result, int resultRowSize)
 {
-	assert(firstWidth <= firstRowSize);
-	assert(firstWidth <= secondRowSize);
-	assert(secondHeight <= resultRowSize);
+	ASSERT_EXPR(firstWidth <= firstRowSize);
+	ASSERT_EXPR(firstWidth <= secondRowSize);
+	ASSERT_EXPR(secondHeight <= resultRowSize);
 
 	nullify(result, firstHeight, secondHeight, resultRowSize);
 	MultiplyMatrix<false, true, CTmpMemoryHandler>(this, CpuInfo, first, firstRowSize, second, secondRowSize,
@@ -92,9 +92,9 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd(const float* first, 
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
 	float* result, int resultRowSize)
 {
-	assert(firstWidth <= firstRowSize);
-	assert(secondWidth <= secondRowSize);
-	assert(secondWidth <= resultRowSize);
+	ASSERT_EXPR(firstWidth <= firstRowSize);
+	ASSERT_EXPR(secondWidth <= secondRowSize);
+	ASSERT_EXPR(secondWidth <= resultRowSize);
 
 	MultiplyMatrix<true, false, CTmpMemoryHandler>(this, CpuInfo, first, firstRowSize, second, secondRowSize,
 		result, resultRowSize, firstWidth, secondWidth, firstHeight);

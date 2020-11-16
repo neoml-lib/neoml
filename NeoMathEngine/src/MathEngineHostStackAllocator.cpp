@@ -57,7 +57,7 @@ public:
 	void* Alloc( size_t size )
 	{
 		void* res = TryAlloc(size);
-		assert( res != 0 );
+		ASSERT_EXPR( res != 0 );
 		return res;
 	}
 
@@ -65,7 +65,7 @@ public:
 	size_t Free( void* ptr )
 	{
 		ptrdiff_t diff = reinterpret_cast<char*>( ptr ) - buffer;
-		assert(0 <= diff && diff < (ptrdiff_t)blockSize); // the pointer belongs to this block
+		ASSERT_EXPR(0 <= diff && diff < (ptrdiff_t)blockSize); // the pointer belongs to this block
 
 		size_t ret = allocSize - diff;
 		allocSize = diff;
@@ -97,7 +97,7 @@ public:
 
 	void CleanUp()
 	{
-		assert( head == 0 || ( head->Prev == 0 && head->GetAllocSize() == 0 ) );
+		ASSERT_EXPR( head == 0 || ( head->Prev == 0 && head->GetAllocSize() == 0 ) );
 		cleanUpWorker();
 	}
 
@@ -130,10 +130,10 @@ public:
 
 	void Free( void* ptr )
 	{
-		assert(head != 0);
+		ASSERT_EXPR(head != 0);
 
 		size_t size = head->Free(ptr);
-		assert(size <= curAllocSize);
+		ASSERT_EXPR(size <= curAllocSize);
 
 		curAllocSize -= size;
 

@@ -125,7 +125,7 @@ void CMemoryProblem::Serialize( CArchive& archive )
 		archive << weights;
 		archive << classes;
 	} else {
-		assert( false );
+		NeoAssert( false );
 	}
 }
 

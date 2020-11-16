@@ -230,7 +230,7 @@ CMemoryHandle CCpuMathEngine::Alloc( size_t size )
 		char* p = static_cast<char*>(malloc(size + memoryAlignment));
 		if( p != 0 ) {
 			const intptr_t delta = memoryAlignment - std::abs( ( reinterpret_cast<intptr_t>( p ) % memoryAlignment ) );
-			assert( delta > 0 && delta <= static_cast<intptr_t>( memoryAlignment ) );
+			ASSERT_EXPR( delta > 0 && delta <= static_cast<intptr_t>( memoryAlignment ) );
 
 			p[delta - 1] = static_cast<char>( delta - 1 );
 			ptr = p + delta;
