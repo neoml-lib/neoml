@@ -230,7 +230,7 @@ C3dConvolutionDesc* CMetalMathEngine::InitBlob3dConvolution( const CBlobDesc& so
 
 	CCommon3dConvolutionDesc* desc = new CCommon3dConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, paddingDepth,
 		strideHeight, strideWidth, strideDepth,
-		dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) );
+		dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) ) );
 	return desc;
 }
 
@@ -334,7 +334,7 @@ void CMetalMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& conv
     }
 }
 
-void CMetalMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc&, const CFloatHandle&,
+void CMetalMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc&, const CFloatHandle&, const CFloatHandle&,
 	const CFloatHandle&, const CFloatHandle&, const CFloatHandle*, bool )
 {
 	ASSERT_EXPR( false );
@@ -466,7 +466,7 @@ CChannelwiseConvolutionDesc* CMetalMathEngine::InitBlobChannelwiseConvolution( c
 
 	CCommonChannelwiseConvolutionDesc* desc = new CCommonChannelwiseConvolutionDesc( paddingHeight, paddingWidth, 
 		strideHeight, strideWidth, source, filter, result,
-        dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) );
+        dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) ) );
 	return desc;
 }
 
