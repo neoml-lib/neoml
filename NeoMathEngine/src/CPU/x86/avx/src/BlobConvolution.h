@@ -86,9 +86,9 @@ private:
 	// 3  4  5
 	// 6  7  8
 	// Offset is relative to central pixel of source window
-	const std::array<std::vector<int>, 8> SrcPixelsOffset;
+	const std::array<std::vector<int>, 16> SrcPixelsOffset;
 	// Offset is relative to top left pixel of filter window
-	const std::array<std::vector<int>, 8>  FltPixelsOffset;
+	const std::array<std::vector<int>, 16>  FltPixelsOffset;
 	// In some cases when the width of the image is nearly equals to the width of optimized batch processing window,
 	// we may faced to situation ( when dilation is higth ) when no one optimized batch ptocessing can be
 	// applied. For such cases we will use optimized batch processing with narrower window but height greater then one.
@@ -100,7 +100,7 @@ private:
 	CSize getWideBatchProcessSize();
 
 	// Process one line of image. In case of narrow processing we will step through several lines.
-	void processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, int windowIndex = -1 );
+	void processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, int windowIndex );
 
 	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
 		__m256& r00, __m256& r01, __m256& r02,
@@ -124,8 +124,8 @@ private:
 	// Rearrange filter and fill 'Filter' and 'FreeTerm' members.
 	const float* rearrangeFilter( const float* filterData, CFloatHandleStackVar& Filter );
 	const float* rearrangeFreeTerm( const float* freeTermData, CFloatHandleStackVar& FreeTerm );
-	const std::array<std::vector<int>, 8> fillSrcPixelOffset();
-	const std::array<std::vector<int>, 8>  fillFltPixelOffset();
+	const std::array<std::vector<int>, 16> fillSrcPixelOffset();
+	const std::array<std::vector<int>, 16> fillFltPixelOffset();
 
 	// Circular rotation of three ymm registers to the left, step equals to six floats.
 	static void rotateLeft6( __m256& y0, __m256& y1, __m256& y2 );
@@ -237,11 +237,38 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	const int curThreadCount = IsOmpRelevant( ResH, ResH * ResW * FltCnt * FltW * FltH * ChCnt ) ? threadCount : 1;
 
 	// Number of steps for each side of image, where filter is applied partially
-	const int PartialStepCountBeforeX = static_cast<const int>( std::ceil( static_cast<float>( PaddingW ) / StrideW ) );
-	const int PartialStepCountAfterX = static_cast<const int>( std::ceil( ( StrideW * ( std::ceil( static_cast<float>( SrcW ) / StrideW ) - 1 ) - SrcW + PaddingW + 1 ) / StrideW ) );
-	const int PartialStepCountBeforeY = static_cast<const int>( std::ceil( static_cast<float>( PaddingH ) / StrideH ) );
-	const int PartialStepCountAfterY = static_cast<const int>( std::ceil( ( StrideH * ( std::ceil( static_cast<float>( SrcH ) / StrideH ) - 1 ) - SrcH + PaddingH + 1 ) / StrideH ) );
-	const int CentralPartWidth = ResW - PartialStepCountBeforeX - PartialStepCountAfterX;
+	int PartialStepCountBeforeX = static_cast<const int>( std::ceil( static_cast<float>( PaddingW ) / StrideW ) );
+	int PartialStepCountAfterX = static_cast<const int>( std::ceil( ( StrideW * ( std::ceil( static_cast<float>( SrcW ) / StrideW ) - 1 ) - SrcW + PaddingW + 1 ) / StrideW ) );
+	int PartialStepCountBeforeY = static_cast<const int>( std::ceil( static_cast<float>( PaddingH ) / StrideH ) );
+	int PartialStepCountAfterY = static_cast<const int>( std::ceil( ( StrideH * ( std::ceil( static_cast<float>( SrcH ) / StrideH ) - 1 ) - SrcH + PaddingH + 1 ) / StrideH ) );
+	// For cases when filter window smaller than source image we may have situation where 
+	// PartialStepCountBefore and PartialStepCountAfter will overlap.
+	int CentralPartWidth = ResW - PartialStepCountBeforeX - PartialStepCountAfterX;
+	int CentralPartHeight = ResH - PartialStepCountBeforeY - PartialStepCountAfterY;
+
+	std::array<int, 9> windowOffsets;
+	if( CentralPartHeight >= 0 && CentralPartWidth >= 0 ) {
+		windowOffsets = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+	} else {
+		// Correct PartialStepCounts
+		PartialStepCountBeforeX += CentralPartWidth < 0 ? CentralPartWidth : 0;
+		PartialStepCountAfterX += CentralPartWidth < 0 ? CentralPartWidth : 0;
+		PartialStepCountBeforeY += CentralPartHeight < 0 ? CentralPartHeight : 0;
+		PartialStepCountAfterY += CentralPartHeight < 0 ? CentralPartHeight : 0;
+
+		if( CentralPartWidth < 0 ) {
+			if( CentralPartHeight < 0 ) {
+				windowOffsets = { 0, 9, 2, 10, 4, 11, 6, 12, 15 };
+			} else {
+				windowOffsets = { 0, 9, 2, 10, 4, 11, 6, 12, 13 };
+			}
+		} else {
+			windowOffsets = { 0, 9, 2, 10, 4, 11, 6, 12, 14 };
+
+		}
+		CentralPartWidth = std::min( ResW, std::abs( CentralPartWidth ) );
+		CentralPartHeight = std::min( ResH, std::abs( CentralPartHeight ) );
+	}
 
 	// FilterH == FilterW == 3
 	const int srcXOffset = 0 + ( DilationW - PaddingW );
@@ -265,12 +292,11 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 				float* resPtr = res + ry * ResLineStride;
 				bool useNarrowProcessing = ( ryEnd ) - ry >= NarrowBatchProcessSize.Height;
 
-				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, 0 );
-				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, 1 );
-				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, 2 );
+				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[0] );
+				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[1] );
+				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[2] );
 				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 			}
-
 
 			ryEnd = min( ResH - PartialStepCountAfterY, currentRH );
 			while( ry < ryEnd ) {
@@ -279,15 +305,9 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 				float* resPtr = res + ry * ResLineStride;
 				bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
 
-				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, 7 );
-
-				// Move to the top left pixel of window from central one
-				srcPtr -= ( SrcYDilation + SrcXDilation );
-				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr );
-
-				// Move back to the central pixel again
-				srcPtr += ( SrcYDilation + SrcXDilation );
-				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, 3 );
+				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[7] );
+				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[8] );
+				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[3] );
 				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 			}
 
@@ -298,9 +318,9 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 				float* resPtr = res + ry * ResLineStride;
 				bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
 
-				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, 6 );
-				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, 5 );
-				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, 4 );
+				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[6] );
+				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[5] );
+				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[4] );
 				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 			}
 		}
@@ -424,36 +444,63 @@ const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermD
 	return resFreeTermStartPtr;
 }
 
+// Filter window offset
+// 0 1 2
+// 3 4 5
+// 6 7 8
 template<int FltCnt>
-const std::array<std::vector<int>, 8> CBlobConvolution<FltCnt>::fillSrcPixelOffset()
+const std::array<std::vector<int>, 16> CBlobConvolution<FltCnt>::fillSrcPixelOffset()
 {
 	const int SrcLineStride = SrcW * ChCnt;
 	const int SrcYDilation = DilationH * SrcLineStride;
 	const int SrcXDilation = DilationW * ChCnt;
 	return {
-		std::vector<int>{ 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 4 5 7 8
-		std::vector<int>{ -SrcXDilation, 0, SrcXDilation, SrcYDilation - SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 3 4 5 6 7 8
-		std::vector<int>{ -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 3 4 6 7
-		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 0 1 3 4 6 7
-		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcXDilation, 0 }, // 0 1 3 4
-		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcYDilation + SrcXDilation, -SrcXDilation, 0, SrcXDilation }, // 0 1 2 3 4 5
-		std::vector<int>{ -SrcYDilation, -SrcYDilation + SrcXDilation, 0, SrcXDilation }, // 1 2 4 5
-		std::vector<int>{ -SrcYDilation, -SrcYDilation + SrcXDilation, 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation } // 1 2 4 5 7 8
+		std::vector<int>{ 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 0) 4 5 7 8
+		std::vector<int>{ -SrcXDilation, 0, SrcXDilation, SrcYDilation - SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 1) 3 4 5 6 7 8
+		std::vector<int>{ -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 2) 3 4 6 7
+		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 3) 0 1 3 4 6 7
+		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcXDilation, 0 }, // 4) 0 1 3 4
+		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcYDilation + SrcXDilation, -SrcXDilation, 0, SrcXDilation }, // 5) 0 1 2 3 4 5
+		std::vector<int>{ -SrcYDilation, -SrcYDilation + SrcXDilation, 0, SrcXDilation }, // 6) 1 2 4 5
+		std::vector<int>{ -SrcYDilation, -SrcYDilation + SrcXDilation, 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 7) 1 2 4 5 7 8
+		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcYDilation + SrcXDilation,
+			-SrcXDilation, 0, SrcXDilation,
+			SrcYDilation - SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation}, // 8) whole filter
+
+		std::vector<int>{ -SrcYDilation, 0 }, // 9) 1 4
+		std::vector<int>{ 0, SrcXDilation }, // 10) 4 5
+		std::vector<int>{ 0, SrcYDilation }, // 11) 4 7
+		std::vector<int>{ -SrcXDilation, 0 }, // 12) 3 4
+		std::vector<int>{ -SrcXDilation, 0, SrcXDilation }, // 13) 3 4 5
+		std::vector<int>{ -SrcYDilation, 0, SrcYDilation }, // 14) 1 4 7
+		std::vector<int>{ 0 } // 15) 4
 	};
 }
 
 template<int FltCnt>
-const std::array<std::vector<int>, 8>  CBlobConvolution<FltCnt>::fillFltPixelOffset()
+const std::array<std::vector<int>, 16>  CBlobConvolution<FltCnt>::fillFltPixelOffset()
 {
 	return {
-		std::vector<int>{ 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 4 5 7 8
-		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 3 4 5 6 7 8
-		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 3 4 6 7
-		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 0 1 3 4 6 7
-		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8 }, // 0 1 3 4
-		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 0 1 2 3 4 5
-		std::vector<int>{ 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 1 2 4 5
-		std::vector<int>{ 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 } // 1 2 4 5 7 8
+		std::vector<int>{ 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 0) 4 5 7 8
+		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 1) 3 4 5 6 7 8
+		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 2) 3 4 6 7
+		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 3) 0 1 3 4 6 7
+		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8 }, // 4) 0 1 3 4
+		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 5) 0 1 2 3 4 5
+		std::vector<int>{ 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 6) 1 2 4 5
+		std::vector<int>{ 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 7) 1 2 4 5 7 8
+		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8,
+			3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8,
+			6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 8) whole filter
+
+		
+		std::vector<int>{ 1 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8 }, // 9) 1 4
+		std::vector<int>{ 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 10) 4 5
+		std::vector<int>{ 4 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 11) 4 7
+		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8 }, // 12) 3 4
+		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 13) 3 4 5
+		std::vector<int>{ 1 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 14) 1 4 7
+		std::vector<int>{ 4 * ChCnt * FltCntM8 } // 15) 4
 	};
 }
 
