@@ -45,6 +45,21 @@ elseif(LINUX OR DARWIN)
     target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-mavx -mfma>)
 endif()
 
+# Win resources
+if(WIN32)
+        if(USE_FINE_OBJECTS)
+        target_include_directories(${PROJECT_NAME} PRIVATE 
+            $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../../../../Build/Inc ${FINE_ROOT}/FineObjects>>
+        )
+    else()
+        target_include_directories(${PROJECT_NAME} PRIVATE 
+            $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../../../../Build/Inc>>
+        )
+    endif()
+    enable_language(RC)
+    target_sources(${PROJECT_NAME} PRIVATE ./NeoMathEngineAvx.rc)
+endif()
+
 # Install
 if(NeoMathEngine_INSTALL)
     if(USE_FINE_OBJECTS)
