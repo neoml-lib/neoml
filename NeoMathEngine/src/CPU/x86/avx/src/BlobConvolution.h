@@ -147,7 +147,7 @@ public:
 
 bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW )
 {
-	if( FltH != 3 && FltW != 3 ) {
+	if( FltH != 3 || FltW != 3 ) {
 		return false;
 	}
 	if( FltCnt == 24 ||
