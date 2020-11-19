@@ -21,6 +21,8 @@ limitations under the License.
 #include <MathEngineHostStackAllocator.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <NeoMathEngine/SimdMathEngine.h>
+#include <DllLoader.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
@@ -99,8 +101,15 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 	floatAlignment( defineFloatAlignment() ),
 	memoryAlignment( floatAlignment * sizeof(float) ),
 	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, false ) ),
-	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) )
+	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
+	dllLoader( CDllLoader::AVX_DLL ),
+	simdMathEngine( nullptr )
 {
+#ifdef NEOML_USE_AVX
+	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
+		simdMathEngine = unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
+	}
+#endif
 }
 
 CCpuMathEngine::~CCpuMathEngine()

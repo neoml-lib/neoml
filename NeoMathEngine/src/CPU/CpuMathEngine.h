@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <RawMemoryManager.h>
+#include <DllLoader.h>
 #include <mutex>
 #include <memory>
 
@@ -28,6 +29,7 @@ struct CCommon3dConvolutionDesc;
 struct CCommonChannelwiseConvolutionDesc;
 class CDeviceStackAllocator;
 class CMemoryPool;
+class ISimdMathEngine;
 
 // Math engine that uses a CPU for calculations
 class CCpuMathEngine : public IMathEngine, public IRawMemoryManager {
@@ -325,8 +327,8 @@ public:
 		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) override;
 	void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
 		const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev ) override;
-	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int padding, int dilation,
-		const CBlobDesc& filter, const CBlobDesc& result ) override;
+	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront, int paddingBack,
+		int dilation, const CBlobDesc& filter, const CBlobDesc& result ) override;
 	void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle& freeTerm, const CFloatHandle& result ) override;
 	void BlobTimeConvolutionBackward( const CTimeConvolutionDesc& desc, const CFloatHandle& outputDiff,
@@ -444,6 +446,9 @@ private:
 	const std::unique_ptr<CMemoryPool> memoryPool; // the memory manager
 	const std::unique_ptr<CDeviceStackAllocator> stackAllocator; // the stack memory allocator
 	mutable std::mutex mutex; // to protect the allocations
+
+	CDllLoader dllLoader; // loading library for simd instructions
+	std::unique_ptr<const ISimdMathEngine> simdMathEngine; // interface for using simd instructions
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 

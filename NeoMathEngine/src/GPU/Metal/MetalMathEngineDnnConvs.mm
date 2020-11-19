@@ -327,26 +327,28 @@ void CMetalMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc&, con
 // Time convolution
 
 CTimeConvolutionDesc* CMetalMathEngine::InitTimeConvolution( const CBlobDesc& source,
-	int stride, int padding, int dilation, const CBlobDesc& filter, const CBlobDesc& result )
+	int stride, int paddingFront, int paddingBack, int dilation, const CBlobDesc& filter, const CBlobDesc& result )
 {
 	ASSERT_EXPR( stride > 0 );
-	ASSERT_EXPR( padding >= 0 );
+	ASSERT_EXPR( paddingFront >= 0 );
+	ASSERT_EXPR( paddingBack >= 0 );
 	ASSERT_EXPR( dilation > 0 );
 	ASSERT_EXPR( filter.BatchLength() == 1 );
 	ASSERT_EXPR( filter.Width() == 1 );
 	ASSERT_EXPR( filter.Depth() == 1 );
 	ASSERT_EXPR( filter.Channels() == source.ObjectSize() );
-	ASSERT_EXPR( source.BatchLength() + 2 * padding >= ( filter.Height() - 1 ) * dilation + 1 );
-	ASSERT_EXPR( result.BatchLength() == ( source.BatchLength() - ( filter.Height() - 1 ) * dilation - 1 + 2 * padding ) / stride + 1 );
+	ASSERT_EXPR( source.BatchLength() + paddingFront + paddingBack >= ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( result.BatchLength() == ( source.BatchLength() - ( filter.Height() - 1 ) * dilation - 1 + paddingFront + paddingBack ) / stride + 1 );
 	ASSERT_EXPR( result.BatchWidth() == source.BatchWidth() );
 	ASSERT_EXPR( result.ListSize() == 1 && source.ListSize() == 1 );
 	ASSERT_EXPR( result.Width() == 1 );
 	ASSERT_EXPR( result.Height() == 1 );
 	ASSERT_EXPR( result.Depth() == 1 );
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
-	ASSERT_EXPR( padding < ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( paddingFront < ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( paddingBack < ( filter.Height() - 1 ) * dilation + 1 );
 
-	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( source, filter, result, stride, padding, dilation );
+	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( source, filter, result, stride, paddingFront, paddingBack, dilation );
 	return desc;
 }
 
@@ -383,7 +385,7 @@ void CMetalMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc
         kernel.SetParam( source, 0 );
         kernel.SetParam( sourceData, 1 );
         kernel.SetParam( desc.Stride, 2 );
-        kernel.SetParam( desc.Padding, 3 );
+        kernel.SetParam( desc.PaddingFront, 3 );
         kernel.SetParam( desc.Dilation, 4 );
         kernel.SetParam( filter, 5 );
         kernel.SetParam( filterData, 6 );

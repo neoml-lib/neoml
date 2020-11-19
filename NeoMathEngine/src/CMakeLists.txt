@@ -59,6 +59,8 @@ target_sources(${PROJECT_NAME}
     ../include/NeoMathEngine/MemoryHandle.inl
     ../include/NeoMathEngine/SparseMatrixDesc.h
     ../include/NeoMathEngine/NeoMathEngine.h
+    ../include/NeoMathEngine/NeoMathEngineException.h
+    ../include/NeoMathEngine/SimdMathEngine.h
 )
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -131,6 +133,16 @@ else()
     )
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
+    if(NEOML_USE_AVX)
+        target_sources(${PROJECT_NAME}
+        PRIVATE
+            CPU/x86/AvxDll.cpp
+            CPU/x86/AvxDll.h
+        )
+        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_AVX)
+		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
+		set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
+	endif()
 endif()
 
 # GPU specific source and settings
@@ -317,7 +329,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
 endif()
 
 # Add some definitions
-target_compile_definitions(${PROJECT_NAME} 
+target_compile_definitions(${PROJECT_NAME}
     PUBLIC
         "$<$<OR:$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:_RELEASE>"
         "$<$<CONFIG:Debug>:_DEBUG>"
@@ -332,25 +344,7 @@ endif()
 
 
 # OpenMP
-if(NOT IOS)
-    find_package(OpenMP REQUIRED)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC NEOML_USE_OMP)
-    string(REPLACE " " ";" OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS})
-    target_compile_options(${PROJECT_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)
-    target_include_directories(${PROJECT_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_INCLUDE_DIRS}>)
-    if(OpenMP_CXX_LIBRARIES)
-        if(ANDROID)
-            get_filename_component(OMP_SUFFIX ${OpenMP_omp_LIBRARY} EXT)
-            if(OMP_SUFFIX STREQUAL ".so")
-                target_link_libraries(${PROJECT_NAME} PUBLIC -fopenmp -static-openmp)
-            else()
-                target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-            endif()
-        else()
-            target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-        endif()
-    endif()
-endif()
+link_openmp(${PROJECT_NAME})
 
 # SSE2
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
