@@ -85,13 +85,13 @@ void CMemoryProblem::SetDiscretizationValue( int index, int value )
 
 void CMemoryProblem::SetVectorWeight( int index, float newWeight )
 {
-	NeoAssert( 0 <= index && index < featureCount );
+	NeoAssert( 0 <= index && index < GetVectorCount() );
 	weights[index] = newWeight;
 }
 
 void CMemoryProblem::SetClass( int index, int newClass )
 {
-	NeoAssert( 0 <= index && index < featureCount );
+	NeoAssert( 0 <= index && index < GetVectorCount() );
 	NeoAssert( newClass >= 0 );
 	NeoAssert( classCount > newClass );
 	classes[index] = newClass;
