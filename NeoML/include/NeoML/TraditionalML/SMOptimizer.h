@@ -102,7 +102,8 @@ public:
 	// data contains the training set
 	// tolerance is the required precision
 	// cacheSize is the cache size in MB
-	CSMOptimizer(const CSvmKernel& kernel, const IProblem& data, double errorWeight, double tolerance, int cacheSize = 200000000);
+	CSMOptimizer(const CSvmKernel& kernel, const IProblem& data, int maxIter, double errorWeight, double tolerance,
+		int cacheSize = 200000000);
 	~CSMOptimizer();
 
 	// Calculates the optimal multipliers for the support vectors
@@ -117,6 +118,7 @@ private:
 	static const double Tau; // infinitesimal number
 
 	const CPtr<const IProblem> data; // the training set
+	int maxIter;
 	const double errorWeight; // the error weight relative to the regularizer (the relative weight of the data set)
 	const double tolerance; // the stop criterion
 	const CKernelMatrix* Q; // the kernel matrix: CQMatrix(i, j) = K(i, j)*y_i*y_j

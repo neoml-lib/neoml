@@ -332,8 +332,10 @@ const float* CKernelMatrix::GetColumn(int i) const
 
 //---------------------------------------------------------------------------------------------------
 
-CSMOptimizer::CSMOptimizer(const CSvmKernel& kernel, const IProblem& _data, double _errorWeight, double tolerance, int cacheSize) :
+CSMOptimizer::CSMOptimizer(const CSvmKernel& kernel, const IProblem& _data,
+		int _maxIter, double _errorWeight, double tolerance, int cacheSize) :
 	data( &_data ),
+	maxIter( _maxIter ),
 	errorWeight( _errorWeight ),
 	tolerance(tolerance),
 	Q( FINE_DEBUG_NEW CKernelMatrix( _data, kernel, cacheSize ) ),
@@ -353,7 +355,6 @@ void CSMOptimizer::Optimize( CArray<double>& alpha, float& freeTerm )
 	alpha.Empty();
 	alpha.Add( 0., data->GetVectorCount() ); // the support vectors coefficients
 
-	int maxIter = max( 10000000, data->GetVectorCount() > INT_MAX / 100 ? INT_MAX : 100 * data->GetVectorCount() );
 	int t;
 	for(t = 0; t < maxIter; t++) {
 		// log progress
