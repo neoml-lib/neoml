@@ -43,7 +43,8 @@ CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const IProblem& problem )
 	float freeTerm;
 	optimizer.Optimize( alpha, freeTerm );
 
-	if( kernel.KernelType() == CSvmKernel::KT_Linear ) {
+	//if( kernel.KernelType() == CSvmKernel::KT_Linear ) {
+	if( false ) {
 		const int vectorCount = problem.GetVectorCount();
 		const int curThreadCount = IsOmpRelevant( vectorCount ) ? params.ThreadCount : 1;
 		const CSparseFloatMatrixDesc matrix = problem.GetMatrix();
