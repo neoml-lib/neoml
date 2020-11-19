@@ -10,7 +10,7 @@
         - [Padding](#padding)
         - [Activation function](#activation-function)
         - [Dropout](#dropout)
-        - [Reverse sequences](#reverse-sequences)
+        - [Recurrent mode](#recurrent-mode)
     - [Trainable parameters](#trainable-parameters)
         - [Filters](#filters)
         - [Free terms](#free-terms)
@@ -60,10 +60,16 @@ Sets the stride of the window used in time convolution.
 ### Padding
 
 ```c++
-void SetPadding(int padding);
+void SetPaddingFront(int padding);
 ```
 
-Specifies how many zero elements should be added to the sequence before performing convolution. Adds zeros to the beginning of the sequence if `IsReverseSequence()` is not set. Otherwise adds zeros to the end of the sequence. The default value is `0`, that is, no padding used.
+Specifies how many zero elements should be added to the begginnings of the sequences before performing convolution. The default value is `0`, that is, no padding used.
+
+```c++
+void SetPaddingBack(int padding);
+```
+
+Specifies how many zero elements should be added to the ends of the sequences before performing convolution. The default value is `0`, that is, no padding used.
 
 ### Activation function
 
@@ -81,13 +87,27 @@ void SetDropout(float rate);
 
 Sets the dropout probability in `forget` gate.
 
-### Reverse sequences
+### Recurrent mode
 
 ```c++
-void SetReverseSequence( bool isReverseSequense )
+// Different approaches in sequence processing
+enum TRecurrentMode {
+    RM_Direct,
+    RM_Reverse,
+
+    // Bidirectional mode where two recurrent parts share the same time convolution
+    RM_BidirectionalConcat, // returns the concatenation of direct and reverse recurrents
+    RM_BidirectionalSum, // returns the sum of direct and reverse recurrents
+    // If you want to use bidirectional qrnn with two separate time convolutions create 2 CQrnnLayers
+    // and merge the results by CConcatChannelsLayer or CEltwiseSumLayer
+
+    RM_Count
+};
+
+void SetRecurrentMode( TRecurrentMode newMode );
 ```
 
-Turns on processing sequences in reversed order.
+Sets the way this layer processes input sequences.
 
 ## Trainable parameters
 
@@ -148,4 +168,4 @@ The only output contains a blob with the results. The output blob dimensions are
 - `BatchLength` can be calculated from the input as `(BatchLength + GetPaddingFront() - (GetWindowSize() - 1)) / GetStride() + 1)`.
 - `BatchWidth` is equal to the inputs' `BatchWidth`.
 - `ListSize`, `Height`, `Width` and `Depth` are equal to `1`.
-- `Channels` is equal to `GetHiddenSize()`.
+- `Channels` is equal to `2 * GetHiddenSize()` if `GetRecurrentMode()` is `RM_BidirectionalConcat`. Otherwise it's equal to `GetHiddenSize()`.
