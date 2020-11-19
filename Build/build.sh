@@ -45,15 +45,27 @@ fi
 
 
 # Target specific settings
-if [[ $FINE_CMAKE_BUILD_TARGET =~ ^(Linux|Darwin)$ ]]; then
+if [[ $FINE_CMAKE_BUILD_TARGET == Linux ]]; then
     # Check hostname
     if [[ $HOSTNAME != $FINE_CMAKE_BUILD_TARGET ]]; then
         printError "HOSTNAME is not $FINE_CMAKE_BUILD_TARGET!"
         exit 1
     fi
-    
+
     export FINE_CMAKE_BUILD_ARCH=x86_64
+ 
+elif [[ $FINE_CMAKE_BUILD_TARGET == Darwin ]]; then
     
+    if [[ $HOSTNAME != $FINE_CMAKE_BUILD_TARGET ]]; then
+        printError "HOSTNAME is not $FINE_CMAKE_BUILD_TARGET!"
+        exit 1
+    fi
+    
+    if [[ ! "$FINE_CMAKE_BUILD_ARCH" =~ ^(x86_64|arm64)$ ]]; then
+        printError "FINE_CMAKE_BUILD_ARCH is not x86_64/arm64"
+        exit 1
+    fi
+       
 elif [[ $FINE_CMAKE_BUILD_TARGET == "IOS" ]]; then
     if [[ $HOSTNAME != Darwin ]]; then
         printError "HOSTNAME must be Darwin!"

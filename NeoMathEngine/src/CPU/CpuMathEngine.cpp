@@ -32,7 +32,7 @@ limitations under the License.
 #error "Platform is not supported!";
 #endif
 
-#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
+#if( FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX ) ) && !FINE_ARCHITECTURE( FINE_ARM64 )
 #include <cpuid.h>
 #endif
 
