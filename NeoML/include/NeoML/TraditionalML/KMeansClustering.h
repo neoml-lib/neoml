@@ -18,6 +18,7 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/Clustering.h>
 #include <NeoML/TraditionalML/FloatVector.h>
+#include <NeoML/TraditionalML/VariableMatrix.h>
 
 namespace NeoML {
 
@@ -26,16 +27,44 @@ class CCommonCluster;
 // K-means clustering algorithm
 class NEOML_API CKMeansClustering : public IClustering {
 public:
+	// Algo used during clusterization
+	enum TKMeansAlgo {
+		// Lloyd algorithm ('naive')
+		KMA_Lloyd = 0,
+		// Elkan argorithm
+		// If used then the distance func must support triangle inequality
+		KMA_Elkan,
+
+		KMA_Count
+	};
+
+	// Algo used during cluster initialization
+	enum TKMeansInitialization {
+		// Some elements of the data
+		KMI_Default = 0,
+		// KMeans++ initialization
+		KMI_KMeansPlusPlus,
+
+		KMI_Count
+	};
+
 	// K-means clustering parameters
 	struct CParam {
+		// Clusterization algorithm
+		TKMeansAlgo Algo;
 		// The distance function
 		TDistanceFunc DistanceFunc;
 		// The initial cluster count
 		// Unless you set up the initial cluster centers when creating the object, 
 		// this number of centers will be randomly selected from the input data set
 		int InitialClustersCount;
+		// Initialization algorithm
+		// It's ignored if initial clusters were provided by user (initialClusters parameter of constructor)
+		TKMeansInitialization Initialization;
 		// The maximum number of iterations
 		int MaxIterations;
+		// Tolerance criterion for Elkan algorithm
+		double Tolerance;
 	};
 
 	// Constructors
@@ -62,10 +91,33 @@ private:
 	CArray<CClusterCenter> initialClusterCenters; // the initial cluster centers
 
 	void selectInitialClusters( const CSparseFloatMatrixDesc& matrix );
+	void defaultInitialization( const CSparseFloatMatrixDesc& matrix );
+	void kMeansPlusPlusInitialization( const CSparseFloatMatrixDesc& matrix );
+
+	bool clusterize( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
+
+	bool lloydClusterization( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
 	void classifyAllData( const CSparseFloatMatrixDesc& matrix, CArray<int>& dataCluster );
 	int findNearestCluster( const CSparseFloatMatrixDesc& matrix, int dataIndex ) const;
+
+	bool elkanClusterization( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
+	void initializeElkanStatistics( const CSparseFloatMatrixDesc& matrix, CArray<int>& assignments,
+		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds, CVariableMatrix<float>& clusterDists,
+		CArray<float>& closestClusterDist, CArray<float>& moveDistance );
+	void computeClustersDists( CVariableMatrix<float>& dists, CArray<float>& closestCluster ) const;
+	void assignVectors( const CSparseFloatMatrixDesc& matrix, const CVariableMatrix<float>& clusterDists,
+		const CArray<float>& closestClusterDist, CArray<int>& assignments, CArray<float>& upperBounds,
+		CVariableMatrix<float>& lowerBounds ) const;
+	void updateMoveDistance( const CArray<CClusterCenter>& oldCenters, CArray<float>& moveDistance ) const;
+	double updateUpperAndLowerBounds( const CSparseFloatMatrixDesc& matrix,
+		const CArray<float>& moveDistance, const CArray<int>& assignments,
+		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds ) const;
+	bool isPruned( const CArray<float>& upperBounds, const CVariableMatrix<float>& lowerBounds,
+		const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id) const;
+
+	void storeClusterCenters( CArray<CClusterCenter>& result );
 	bool updateClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
-		const CArray<int>& dataCluster );
+		const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters );
 };
 
 } // namespace NeoML
