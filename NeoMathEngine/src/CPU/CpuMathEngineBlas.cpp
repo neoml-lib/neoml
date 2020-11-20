@@ -408,7 +408,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channel
 		for(int j = 0; j < lookupCount; ++j) {
 			int index = (int)input.GetValue();
 			input++;
-			ASSERT_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
+			PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
 			int vectorSize = lookupDimensions[j].VectorSize;
 			VectorCopy(output, lookupHandles[j] + index * vectorSize, vectorSize);
 			output += vectorSize;
@@ -436,14 +436,14 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelC
 			if(j < channelCount) {
 				int index = input.GetValue();
 				input++;
-				ASSERT_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
+				PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
 				int vectorSize = lookupDimensions[j].VectorSize;
 				VectorCopy(output, lookupHandles[j] + index * vectorSize, vectorSize);
 				output += vectorSize;
 			}
 		}
 		int remained = channelCount - lookupCount;
-		ASSERT_EXPR(remained == 0);
+		PRESUME_EXPR(remained == 0);
 	}
 }
 
@@ -461,7 +461,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int ch
 			if(j < channelCount) {
 				int index = (int)input.GetValue();
 				input++;
-				ASSERT_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
+				PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
 				int vectorSize = lookupDimensions[j].VectorSize;
 				CFloatHandle pos = lookupHandles[j] + index * vectorSize;
 				VectorMultiplyAndAdd(pos, matrix, pos, vectorSize, multHandle);
@@ -490,7 +490,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int ch
 			if(j < channelCount) {
 				int index = input.GetValue();
 				input++;
-				ASSERT_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
+				PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
 				int vectorSize = lookupDimensions[j].VectorSize;
 				CFloatHandle pos = lookupHandles[j] + index * vectorSize;
 				VectorMultiplyAndAdd(pos, matrix, pos, vectorSize, multHandle);
@@ -515,7 +515,7 @@ void CCpuMathEngine::EnumBinarization(int batchSize,
 	for(int i = 0; i < batchSize; ++i) {
 		int enumValue = (int)(*input++);
 		if(enumValue >= 0) {
-			ASSERT_EXPR(enumValue < enumSize);
+			PRESUME_EXPR(enumValue < enumSize);
 			result[enumValue] = 1;
 		}
 		result += enumSize;
@@ -533,7 +533,7 @@ void CCpuMathEngine::EnumBinarization(int batchSize,
 	for(int i = 0; i < batchSize; ++i) {
 		int enumValue = *input++;
 		if(enumValue >= 0) {
-			ASSERT_EXPR(enumValue < enumSize);
+			PRESUME_EXPR(enumValue < enumSize);
 			result[enumValue] = 1;
 		}
 		result += enumSize;
@@ -1205,7 +1205,7 @@ void CCpuMathEngine::BitSetBinarization( int batchSize, int bitSetSize,
 #else 
 	#error "Platform isn't supported!"
 #endif
-				ASSERT_EXPR( ( enabledBit + offset + elementIndex ) < ( unsigned int ) outputVectorSize );
+				PRESUME_EXPR( ( enabledBit + offset + elementIndex ) < ( unsigned int ) outputVectorSize );
 				result[enabledBit + offset] = 1.0f;
 				element = ( element >> enabledBit ) >> 1;
 				offset += ( enabledBit + 1 );

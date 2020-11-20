@@ -59,7 +59,7 @@ public:
 	CMemoryHandle Alloc( size_t size )
 	{
 		CMemoryHandle res = TryAlloc(size);
-		ASSERT_EXPR( !res.IsNull() );
+		PRESUME_EXPR( !res.IsNull() );
 		return res;
 	}
 
@@ -67,7 +67,7 @@ public:
 	size_t Free( const CMemoryHandle& ptr )
 	{
 		ptrdiff_t diff = CTypedMemoryHandle<char>( ptr ) - buffer;
-		ASSERT_EXPR(0 <= diff && diff < (ptrdiff_t)blockSize); // the pointer belongs to this block
+		PRESUME_EXPR(0 <= diff && diff < (ptrdiff_t)blockSize); // the pointer belongs to this block
 
 		size_t ret = allocSize - diff;
 		allocSize = diff;
@@ -104,7 +104,7 @@ public:
 
 	void CleanUp()
 	{
-		ASSERT_EXPR( head == 0 || ( head->Prev == 0 && head->GetAllocSize() == 0 ) );
+		PRESUME_EXPR( head == 0 || ( head->Prev == 0 && head->GetAllocSize() == 0 ) );
 		cleanUpWorker();
 	}
 
@@ -137,10 +137,10 @@ public:
 
 	void Free( const CMemoryHandle& ptr )
 	{
-		ASSERT_EXPR(head != 0);
+		PRESUME_EXPR(head != 0);
 
 		size_t size = head->Free(ptr);
-		ASSERT_EXPR(size <= curAllocSize);
+		PRESUME_EXPR(size <= curAllocSize);
 
 		curAllocSize -= size;
 

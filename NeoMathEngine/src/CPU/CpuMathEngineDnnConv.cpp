@@ -1167,7 +1167,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 			inputGeo, 1, input.Channels(), 1, inputRepackedDataRaw );
 
 		// Multiply the inputRepacked and filter matrices
-		ASSERT_EXPR( temp.GetDataSize() >= inputRepackedWidth * inputGeo );
+		PRESUME_EXPR( temp.GetDataSize() >= inputRepackedWidth * inputGeo );
 		batchMultiplyMatrixByTransposedMatrix( inputRepackedWidth,
 			inputRepacked.GetPrivateData(), inputGeo, 1,
 			filterTransposed, filterGeo, temp.GetPrivateData() );
