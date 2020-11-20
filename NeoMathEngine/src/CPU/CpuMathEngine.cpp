@@ -115,11 +115,6 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 CCpuMathEngine::~CCpuMathEngine()
 {
 	CleanUp();
-#ifdef NEOML_USE_MKL
-	// mkl_thread_free_buffers does not free the memory completely
-	// Looks like a bug in mkl
-	mkl_free_buffers();
-#endif
 }
 
 void CCpuMathEngine::SetReuseMemoryMode( bool enable )
@@ -279,4 +274,12 @@ IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters() const
 #endif
 }
 
+void CpuMathEngineCleanUp()
+{
+#ifdef NEOML_USE_MKL
+	// mkl_thread_free_buffers does not free the memory completely
+	// Looks like a bug in mkl
+	mkl_free_buffers();
+#endif
+}
 } // namespace NeoML
