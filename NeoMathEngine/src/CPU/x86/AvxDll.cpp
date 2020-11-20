@@ -110,7 +110,8 @@ bool CAvxDll::isAvxAvailable()
 	#error "Platform isn't supported!"
 #endif
 
-	return ( cpuId[2] & 0x10000000 ) != 0;
+	const unsigned int AvxAndFmaBits = ( 1<< 28 ) + ( 1 << 12 );
+	return ( cpuId[2] & AvxAndFmaBits ) == AvxAndFmaBits;
 
 }
 
