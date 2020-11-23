@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #pragma once
-
-#include <NeoMathEngine/CrtAllocatedObject.h>
 
 #define __merge__2( a, b )	a##b
 #define __merge__1( a, b )	__merge__2( a, b )
