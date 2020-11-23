@@ -173,6 +173,7 @@ void CCpuMathEngine::CleanUp()
 {
 	std::lock_guard<std::mutex> lock( mutex );
 	stackAllocator->CleanUp();
+	memoryPool->CleanUp();
 #ifdef NEOML_USE_MKL
 	NEOML_OMP_NUM_THREADS( threadCount )
 	{
