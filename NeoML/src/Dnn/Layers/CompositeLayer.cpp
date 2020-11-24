@@ -447,6 +447,14 @@ void CCompositeLayer::RestartSequence()
 	internalDnn->RestartSequence();
 }
 
+void CCompositeLayer::EnableProfile( bool profile )
+{
+	CBaseLayer::EnableProfile( profile );
+	for( int i = 0; i < layers.Size(); ++i ) {
+		layers[i]->EnableProfile( profile );
+	}
+}
+
 void CCompositeLayer::Reshape()
 {
 	// Create the source layers

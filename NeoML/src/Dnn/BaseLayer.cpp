@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <memory>
 
 namespace NeoML {
 
@@ -37,7 +38,10 @@ CBaseLayer::CBaseLayer( IMathEngine& _mathEngine, const char* _name, bool _isLea
 	forcedReshape( true ),
 	isReshapeNeeded( true ),
 	lastRunNumber( 0 ),
-	graphCount( 0 )
+	graphCount( 0 ),
+	useTimer( false ),
+	runOnceCount( 0 ),
+	runOnceTime( 0 )
 {
 }
 
@@ -347,6 +351,40 @@ void CBaseLayer::reshape()
 
 	inputBlobs.SetSize( inputs.Size() );
 	outputBlobs.SetSize( outputs.Size() );
+
+	runOnceCount = 0;
+	runOnceTime = 0;
+}
+
+class CRunOnceTimer {
+public:
+	CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount, IPerformanceCounters::CCounter::TCounterType& result );
+	~CRunOnceTimer();
+
+private:
+	std::unique_ptr<IPerformanceCounters> counters;
+	int& hitCount;
+	IPerformanceCounters::CCounter::TCounterType& result;
+};
+
+CRunOnceTimer::CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount,
+		IPerformanceCounters::CCounter::TCounterType& result ) :
+	counters( enable ? mathEngine.CreatePerformanceCounters() : nullptr ),
+	hitCount( hitCount ),
+	result( result )
+{
+	if( enable ) {
+		hitCount++;
+		counters->Synchronise();
+	}
+}
+
+CRunOnceTimer::~CRunOnceTimer()
+{
+	if( counters != nullptr ) {
+		counters->Synchronise();
+		result += ( *counters )[0].Value;
+	}
 }
 
 // Calls RunOnce for the layer, then recursively for its inputs
@@ -399,6 +437,7 @@ void CBaseLayer::runOnce()
 	}
 
 	{
+		CRunOnceTimer timer( useTimer, MathEngine(), runOnceCount, runOnceTime );
 		RunOnce();
 	}
 
