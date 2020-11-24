@@ -340,7 +340,7 @@ void CCpuMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& 
 			for( int c = 0; c < outputDiff.Channels(); ++c ) {
 				int index = *maxIndexPtr++;
 				if( index >= 0 ) {
-					assert( index < poolSize );
+					PRESUME_EXPR( index < poolSize );
 					inputDiffChannelData[index * inputDiff.Channels()] = *outputDiffPtr;
 				}
 				++outputDiffPtr;
