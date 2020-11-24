@@ -33,12 +33,17 @@ CVulkanDll* CDllLoader::vulkanDll = nullptr;
 int CDllLoader::vulkanDllLinkCount = 0;
 #endif
 
+#ifdef NEOML_USE_AVX
+CAvxDll* CDllLoader::avxDll = nullptr;
+int CDllLoader::avxDllLinkCount = 0;
+#endif
+
 static std::mutex mutex;
 
 int CDllLoader::Load( int dll )
 {
 	int result = 0;
-	if( (dll & ALL_DLL) != 0 ) {
+	if( dll != 0 ) {
 		std::lock_guard<std::mutex> lock(mutex);
 #ifdef NEOML_USE_VULKAN
 		if( (dll & VULKAN_DLL) != 0 ) {
@@ -76,13 +81,29 @@ int CDllLoader::Load( int dll )
 			}
 		}
 #endif
+
+#ifdef NEOML_USE_AVX
+		if( ( dll & AVX_DLL ) != 0 ) {
+			if( avxDll == nullptr ) {
+				avxDll = new CAvxDll();
+			}
+
+			if( !avxDll->Load()) {
+				delete avxDll;
+				avxDll = nullptr;
+			} else {
+				result |= AVX_DLL;
+				avxDllLinkCount++;
+			}
+		}
+#endif
 	}
 	return result;
 }
 
 void CDllLoader::Free( int dll )
 {
-	if( (dll & ALL_DLL) != 0 ) {
+	if( dll != 0 ) {
 		std::lock_guard<std::mutex> lock( mutex );
 #ifdef NEOML_USE_VULKAN
 		if( (dll & VULKAN_DLL) != 0 && vulkanDllLinkCount > 0 ) {
@@ -101,6 +122,16 @@ void CDllLoader::Free( int dll )
 				cusparseDll = nullptr;
 				delete cublasDll;
 				cublasDll = nullptr;
+			}
+		}
+#endif
+
+#ifdef NEOML_USE_AVX
+		if( ( dll & AVX_DLL ) != 0 && avxDllLinkCount > 0 ) {
+			avxDllLinkCount--;
+			if( avxDllLinkCount <= 0 ) {
+				delete avxDll;
+				avxDll = nullptr;
 			}
 		}
 #endif

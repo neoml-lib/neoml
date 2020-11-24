@@ -296,6 +296,7 @@ delete gpuMathEngine;
 - Рекуррентные слои:
   - [CLstmLayer](LstmLayer.md) - реализация Long Short-Term Memory
   - [CGruLayer](GruLayer.md) - реализация Gated Recurrent Unit
+  - [CQrnnLayer](QrnnLayer.md) - квази-рекуррентный слой
 - [Условное случайное поле (CRF)](CrfLayers/README.md):
   - [CCrfLayer](CrfLayers/CrfLayer.md) - условное случайное поле
   - [CCrfLossLayer](CrfLayers/CrfLossLayer.md) - функция потерь для обучения условного случайного поля

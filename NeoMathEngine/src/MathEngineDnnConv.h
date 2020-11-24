@@ -84,7 +84,7 @@ struct CCommonTimeConvolutionDesc : public CTimeConvolutionDesc {
 	int PaddingBack;
 	int Dilation;
 
-	CCommonTimeConvolutionDesc( const CBlobDesc& source, const CBlobDesc& filter, const CBlobDesc& result,
+	CCommonTimeConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 			int stride, int paddingFront, int paddingBack, int dilation ) :
 		Source( source ),
         Filter( filter ),

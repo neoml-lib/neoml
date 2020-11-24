@@ -25,6 +25,7 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/PerformanceCounters.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
+#include <NeoMathEngine/NeoMathEngineException.h>
 #include <climits>
 
 namespace NeoML {
@@ -829,35 +830,16 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
-// Exception handler interface
-// Use it to change the program's reaction to exceptions
-class NEOMATHENGINE_API IMathEngineExceptionHandler {
-public:
-	virtual ~IMathEngineExceptionHandler();
-	// An error during a method call
-	// The default action is to throw std::logic_error
-	virtual void OnAssert( const char* message, const wchar_t* file, int line, int errorCode ) = 0;
-
-	// Memory cannot be allocated on device
-	// The default action is to throw std::bad_alloc
-	virtual void OnMemoryError() = 0;
-};
-
-// Set exception handler interface for whole programm
-// Setting this to null means using default exception handling
-// Non-default handler must be destroyed by the caller after use
-NEOMATHENGINE_API void SetMathEngineExceptionHandler( IMathEngineExceptionHandler* exceptionHandler );
-
-// Get current exception handler interface
-// Returns null if use default
-NEOMATHENGINE_API IMathEngineExceptionHandler* GetMathEngineExceptionHandler();
-
 // Creates a math engine that uses a CPU for calculations
 // You should call SetMathEngineExceptionHandler() before this call
 // threadCount is the number of threads that may be used;
 // the default value is 0, which means as many threads as the CPU has cores
 // This math engine should be destroyed using the standard delete operator after use
 NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit );
+
+// Destroys all global data that is shared between CPU math engines
+// Should be called only if there are no running CpuMathEngine instances
+NEOMATHENGINE_API void CpuMathEngineCleanUp();
 
 // Gpu math engine flags
 
