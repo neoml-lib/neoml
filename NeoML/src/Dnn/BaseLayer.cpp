@@ -367,10 +367,10 @@ private:
 	IPerformanceCounters::CCounter::TCounterType& result;
 };
 
-CRunOnceTimer::CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount,
+CRunOnceTimer::CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& _hitCount,
 		IPerformanceCounters::CCounter::TCounterType& result ) :
 	counters( enable ? mathEngine.CreatePerformanceCounters() : nullptr ),
-	hitCount( hitCount ),
+	hitCount( _hitCount ),
 	result( result )
 {
 	if( enable ) {

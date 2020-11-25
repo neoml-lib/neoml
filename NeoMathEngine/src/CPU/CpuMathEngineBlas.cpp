@@ -444,6 +444,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelC
 		}
 		int remained = channelCount - lookupCount;
 		PRESUME_EXPR(remained == 0);
+		(void)remained; // Avoid unused variable warning when PRESUME_EXPR is empty (non-debug)
 	}
 }
 
