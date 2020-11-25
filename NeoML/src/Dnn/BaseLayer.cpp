@@ -363,14 +363,12 @@ public:
 
 private:
 	std::unique_ptr<IPerformanceCounters> counters;
-	int& hitCount;
 	IPerformanceCounters::CCounter::TCounterType& result;
 };
 
-CRunOnceTimer::CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& _hitCount,
+CRunOnceTimer::CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount,
 		IPerformanceCounters::CCounter::TCounterType& result ) :
 	counters( enable ? mathEngine.CreatePerformanceCounters() : nullptr ),
-	hitCount( _hitCount ),
 	result( result )
 {
 	if( enable ) {
