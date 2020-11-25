@@ -79,14 +79,14 @@ CSoftmaxLayer::TNormalizationArea CSoftmaxNode::getArea( const CTensorShape& sha
 	const int axisIndex = axis >= 0 ? axis : axis + shape.Size();
 
 	// Bit masks of axes of batch (softmax won't be applied) and object (softmax will be applied)
-	int objectAxes = 0;
-	int batchAxes = 0;
+	int onnxObjectAxes = 0;
+	int onnxBatchAxes = 0;
 	for( int i = 0; i < shape.Size(); ++i ) {
 		if( shape[i] != 1 ) {
 			if( i < axisIndex ) {
-				batchAxes |= ( 1 << dim[i] );
+				onnxBatchAxes |= ( 1 << dim[i] );
 			} else {
-				objectAxes |= ( 1<< dim[i] );
+				onnxObjectAxes |= ( 1<< dim[i] );
 			}
 		}
 	}
@@ -102,7 +102,7 @@ CSoftmaxLayer::TNormalizationArea CSoftmaxNode::getArea( const CTensorShape& sha
 		CSoftmaxLayer::NA_ObjectSize, CSoftmaxLayer::NA_ListSize, CSoftmaxLayer::NA_BatchLength };
 
 	for( int i = 0; i < masks.Size(); ++i ) {
-		if( ( masks[i] & objectAxes ) == objectAxes && ( masks[i] & batchAxes ) == 0 ) {
+		if( ( masks[i] & onnxObjectAxes ) == onnxObjectAxes && ( masks[i] & onnxBatchAxes ) == 0 ) {
 			return areas[i];
 		}
 	}
