@@ -281,6 +281,8 @@ public:
 	const float* GetColumn(int i) const;
 	// Gets the pointer to the diagonal
 	const double* GetDiagonal() const { return diagonal.GetPtr(); }
+	// Gets y[i] binary class
+	float GetBinaryClass( int i ) const  { return classes[i]; }
 
 private:
 	const CSparseFloatMatrixDesc matrix; // the problem data
@@ -341,6 +343,10 @@ CSMOptimizer::CSMOptimizer(const CSvmKernel& kernel, const IProblem& _data,
 	Q( FINE_DEBUG_NEW CKernelMatrix( _data, kernel, cacheSize ) ),
 	log(0)
 {
+	W.SetBufferSize( data->GetVectorCount() );
+	for( int i = 0; i < data->GetVectorCount(); ++i ) {
+		W.Add( data->GetVectorWeight( i ) * errorWeight );
+	}
 }
 
 CSMOptimizer::~CSMOptimizer() 
@@ -388,8 +394,8 @@ void CSMOptimizer::findMaximalViolatingPair(const CArray<double>& alpha, const C
 	i = j = -1;
 
 	for(int t = 0; t < data->GetVectorCount(); t++) {
-		if(data->GetBinaryClass(t) == +1) {
-			if(alpha[t] < getVectorWeight(t)) {
+		if( Q->GetBinaryClass( t ) == +1 ) {
+			if(alpha[t] < W[t]) {
 				if(-gradient[t] >= Gmax) {
 					Gmax = -gradient[t];
 					i = t;
@@ -402,7 +408,7 @@ void CSMOptimizer::findMaximalViolatingPair(const CArray<double>& alpha, const C
 				}
 			}
 		} else {
-			if(alpha[t] < getVectorWeight(t)) {
+			if(alpha[t] < W[t]) {
 				if(gradient[t] <= Gmin) {
 					Gmin = gradient[t];
 					j = t;
@@ -429,10 +435,7 @@ void CSMOptimizer::optimizePair( int i, int j, CArray<double>& alpha, CArray<dou
 	double oldAlpha_i = alpha[i];
 	double oldAlpha_j = alpha[j];
 
-	double weightI = getVectorWeight( i );
-	double weightJ = getVectorWeight( j );
-
-	if( data->GetBinaryClass(i) != data->GetBinaryClass(j) ) {
+	if( Q->GetBinaryClass(i) != Q->GetBinaryClass(j) ) {
 		double quadCoef = QD[i] + QD[j] + 2 * Q_i[j];
 		if (quadCoef <= 0) {
 			quadCoef = Tau;
@@ -453,15 +456,15 @@ void CSMOptimizer::optimizePair( int i, int j, CArray<double>& alpha, CArray<dou
 				alpha[j] = -diff;
 			}
 		}
-		if(diff > weightI - weightJ) {
-			if(alpha[i] > weightI) {
-				alpha[i] = weightI;
-				alpha[j] = weightI - diff;
+		if(diff > W[i] - W[j]) {
+			if(alpha[i] > W[i]) {
+				alpha[i] = W[i];
+				alpha[j] = W[i] - diff;
 			}
 		} else {
-			if(alpha[j] > weightJ) {
-				alpha[j] = weightJ;
-				alpha[i] = weightJ + diff;
+			if(alpha[j] > W[j]) {
+				alpha[j] = W[j];
+				alpha[i] = W[j] + diff;
 			}
 		}
 	} else {
@@ -473,10 +476,10 @@ void CSMOptimizer::optimizePair( int i, int j, CArray<double>& alpha, CArray<dou
 		alpha[i] -= delta;
 		alpha[j] += delta;
 
-		if(sum > weightI) {
-			if(alpha[i] > weightI) {
-				alpha[i] = weightI;
-				alpha[j] = sum - weightI;
+		if(sum > W[i]) {
+			if(alpha[i] > W[i]) {
+				alpha[i] = W[i];
+				alpha[j] = sum - W[i];
 			}
 		} else {
 			if(alpha[j] < 0) {
@@ -484,10 +487,10 @@ void CSMOptimizer::optimizePair( int i, int j, CArray<double>& alpha, CArray<dou
 				alpha[i] = sum;
 			}
 		}
-		if(sum > weightJ) {
-			if(alpha[j] > weightJ)	{
-				alpha[j] = weightJ;
-				alpha[i] = sum - weightJ;
+		if(sum > W[j]) {
+			if(alpha[j] > W[j])	{
+				alpha[j] = W[j];
+				alpha[i] = sum - W[j];
 			}
 		} else {
 			if(alpha[i] < 0) {
@@ -511,9 +514,9 @@ float CSMOptimizer::calculateFreeTerm( const CArray<double>& alpha, const CArray
 	int nFree = 0; // the number of "free" support vectors
 	double upperBound = Inf, lowerBound = -Inf, sumFree = 0;
 	for(int i = 0; i < data->GetVectorCount(); i++) {
-		const double binaryClass = data->GetBinaryClass(i);
+		const double binaryClass = Q->GetBinaryClass(i);
 		double yGrad = -binaryClass * gradient[i];
-		if(alpha[i] >= getVectorWeight(i)) {
+		if(alpha[i] >= W[i]) {
 			if(binaryClass == +1) {
 				upperBound = min(upperBound, yGrad);
 			} else {

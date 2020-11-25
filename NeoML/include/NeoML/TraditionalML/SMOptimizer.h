@@ -103,7 +103,7 @@ public:
 	// tolerance is the required precision
 	// cacheSize is the cache size in MB
 	CSMOptimizer(const CSvmKernel& kernel, const IProblem& data, int maxIter, double errorWeight, double tolerance,
-		int cacheSize = 200000000);
+		int cacheSize = 100);
 	~CSMOptimizer();
 
 	// Calculates the optimal multipliers for the support vectors
@@ -118,19 +118,17 @@ private:
 	static const double Tau; // infinitesimal number
 
 	const CPtr<const IProblem> data; // the training set
-	int maxIter;
+	int maxIter; // maximal iteration
 	const double errorWeight; // the error weight relative to the regularizer (the relative weight of the data set)
 	const double tolerance; // the stop criterion
 	const CKernelMatrix* Q; // the kernel matrix: CQMatrix(i, j) = K(i, j)*y_i*y_j
+	CArray<double> W; // vector of weigths
 	CTextStream* log; // the logging stream
 
 	void findMaximalViolatingPair( const CArray<double>& alpha, const CArray<double>& gradient,
 		int& i, double& Gmax, int&j, double& Gmin ) const;
 	void optimizePair( int i, int j, CArray<double>& alpha, CArray<double>& gradient );
 	float calculateFreeTerm( const CArray<double>& alpha, const CArray<double>& gradient ) const;
-
-	// Retrieves the vector weight
-	double getVectorWeight( int index ) const { return data->GetVectorWeight( index ) * errorWeight; }
 };
 
 } // namespace NeoML
