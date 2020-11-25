@@ -87,7 +87,7 @@ static void blobConvolutionImpl( const CTestParams& params, int seed )
 	const int objectCount = convParams[9];
 	const int filterHeight = convParams[10];
 	const int filterWidth = convParams[11];
-	const bool isZeroFreeTerm = convParams[12];
+	const bool isZeroFreeTerm = convParams[12] == 0 ? false : true;
 
 	const int inputLength = objectCount;
 	const int inputBatch = 1;

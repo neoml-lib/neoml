@@ -192,24 +192,24 @@ class CBaseLoadStoreNeon : public CCrtAllocatedObject {
 public:
 	float32x4_t Load(const float* /*data*/)
 	{
-		assert(false);
+		ASSERT_EXPR(false);
 		return float32x4_t();
 	}
 
 	int32x4_t LoadInt(const int* /*data*/)
 	{
-		assert(false);
+		ASSERT_EXPR(false);
 		return int32x4_t();
 	}
 
 	void Store(const float32x4_t& /*val*/, float* /*data*/)
 	{
-		assert(0);
+		ASSERT_EXPR(0);
 	}
 
 	void StoreInt(const int32x4_t& /*val*/, int* /*data*/)
 	{
-		assert(0);
+		ASSERT_EXPR(0);
 	}
 };
 

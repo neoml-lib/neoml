@@ -65,8 +65,7 @@ CVulkanImage::CVulkanImage( const CVulkanDevice& vulkanDevice, int _width, int _
 			break;
 		}
 	}
-	assert(isFound);
-
+	ASSERT_EXPR(isFound); 
 	vkSucceded( device.vkAllocateMemory( &allocInfo, 0, &imageMemory ) );
 	vkSucceded( device.vkBindImageMemory( image, imageMemory, 0 ) );
 
@@ -134,7 +133,7 @@ bool CVulkanImage::IsImageFit(int& newWidth, int& newHeight) const
 
 void CVulkanImage::SetWorkingArea(int workingWidth, int workingHeight)
 {
-	assert(workingWidth <= width && workingHeight <= height);
+	ASSERT_EXPR(workingWidth <= width && workingHeight <= height);
 	workingWidth;
 	workingHeight;
 	// no more actions needed

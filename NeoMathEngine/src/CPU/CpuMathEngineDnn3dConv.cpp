@@ -218,7 +218,7 @@ void CCpuMathEngine::blob3dConvolutionPrepareInput( const CCommon3dConvolutionDe
 					int colsToComplete = filterBlob.Width();
 					int startI = inputI;
 					if( startI < 0 ) {
-						assert( -startI < colsToComplete );
+						PRESUME_EXPR( -startI < colsToComplete );
 						// padding left
 						vectorFill( inputPrepared, paddingFill, -startI * filterDepthSize );
 						inputPrepared += -startI * filterDepthSize;
@@ -238,7 +238,7 @@ void CCpuMathEngine::blob3dConvolutionPrepareInput( const CCommon3dConvolutionDe
 							int depthToComplete = filterBlob.Depth();
 							int startK = inputK;
 							if( startK < 0 ) {
-								assert( -startK < depthToComplete );
+								PRESUME_EXPR( -startK < depthToComplete );
 								// padding front
 								vectorFill( inputPrepared, paddingFill, -startK * inputBlob.Channels() );
 								inputPrepared += -startK * inputBlob.Channels();
@@ -507,7 +507,7 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 							if( pos + toCopy > result.Depth() ) {
 								toCopy = result.Depth() - pos;
 							}
-							assert( toCopy > 0 );
+							PRESUME_EXPR( toCopy > 0 );
 
 							toCopy *= filter.Channels();
 							float* outputVec = outputLine + pos * filter.Channels();

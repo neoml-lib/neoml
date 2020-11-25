@@ -28,7 +28,7 @@ CGraphInitializer::CGraphInitializer( int nodeIndex, const onnx::TensorProto& _i
 	CNode( nodeIndex, 0, 1 ),
 	initializer( _initializer )
 {
-	assert( initializer.dims_size() > 0 );
+	NeoAssert( initializer.dims_size() > 0 );
 }
 
 void CGraphInitializer::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
