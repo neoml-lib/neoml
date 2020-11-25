@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoML/TraditionalML/KMeansClustering.h>
 #include <NeoML/TraditionalML/CommonCluster.h>
+#include <NeoML/TraditionalML/VariableMatrix.h>
 #include <NeoML/Random.h>
 #include <float.h>
 

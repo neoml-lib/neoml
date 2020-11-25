@@ -18,11 +18,12 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/Clustering.h>
 #include <NeoML/TraditionalML/FloatVector.h>
-#include <NeoML/TraditionalML/VariableMatrix.h>
 
 namespace NeoML {
 
 class CCommonCluster;
+template<class T>
+class CVariableMatrix;
 
 // K-means clustering algorithm
 class NEOML_API CKMeansClustering : public IClustering {
