@@ -426,7 +426,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelC
 	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 	const CFloatHandle& outputHandle, int /*outputChannels*/)
 {
-	ASSERT_EXPR(lookupCount <= channelCount);
+	ASSERT_EXPR(lookupCount == channelCount);
 
 	CConstIntHandle input = inputHandle;
 	CFloatHandle output = outputHandle;
@@ -442,9 +442,6 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelC
 				output += vectorSize;
 			}
 		}
-		int remained = channelCount - lookupCount;
-		PRESUME_EXPR(remained == 0);
-		(void)remained; // Avoid unused variable warning when PRESUME_EXPR is empty (non-debug)
 	}
 }
 
