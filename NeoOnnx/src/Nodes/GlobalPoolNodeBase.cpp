@@ -99,7 +99,6 @@ void CGlobalPoolNodeBase::add2dPoolingLayer( TPoolingType poolingType, const CTe
 
 	poolingLayer->SetName( Name );
 
-	// Make it global
 	for( int dimIndex = 0; dimIndex < inputDim.Size(); ++dimIndex ) {
 		const bool isDimPooled = ( ( ( 1 << static_cast<int>( inputDim[dimIndex] ) ) & pooledDims ) != 0 );
 		switch( inputDim[dimIndex] ) {
@@ -139,7 +138,6 @@ void CGlobalPoolNodeBase::add3dPoolingLayer( TPoolingType poolingType, const CTe
 
 	poolingLayer->SetName( Name );
 
-	// Make it global
 	for( int dimIndex = 0; dimIndex < inputDim.Size(); ++dimIndex ) {
 		const bool isDimPooled = ( ( ( 1 << static_cast<int>( inputDim[dimIndex] ) ) & pooledDims ) != 0 );
 		switch( inputDim[dimIndex] ) {
