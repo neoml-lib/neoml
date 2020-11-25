@@ -649,7 +649,7 @@ const CVulkanImage& CVulkanMathEngine::blobConvolution3x3s1d1PrepareSourceAdreno
 
 	int totalWidth = blob.Width() + paddingLeft + paddingRight;
 
-	assert((totalWidth % 4) == 0);
+	ASSERT_EXPR((totalWidth % 4) == 0);
 
 	int totalWidth4 = totalWidth / 4 * blob.ObjectCount();
 	int channels = blob.Depth() * blob.Channels();

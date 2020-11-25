@@ -110,7 +110,7 @@ CSparseFloatMatrix& CSparseFloatMatrix::operator = ( const CSparseFloatMatrix& v
 
 void CSparseFloatMatrix::GrowInRows( int newRowsBufferSize )
 {
-	assert( newRowsBufferSize > 0 );
+	NeoAssert( newRowsBufferSize > 0 );
 	if( newRowsBufferSize > body->RowsBufferSize ) {
 		CSparseFloatMatrixBody* modifiableBody = body.CopyOnWrite();
 		int newBufferSize = max( body->RowsBufferSize * 3 / 2, newRowsBufferSize );
@@ -126,7 +126,7 @@ void CSparseFloatMatrix::GrowInRows( int newRowsBufferSize )
 
 void CSparseFloatMatrix::GrowInElements( int newElementsBufferSize )
 {
-	assert( newElementsBufferSize > 0 );
+	NeoAssert( newElementsBufferSize > 0 );
 	if( newElementsBufferSize > body->ElementsBufferSize ) {
 		CSparseFloatMatrixBody* modifiableBody = body.CopyOnWrite();
 		int newBufferSize = max( body->ElementsBufferSize * 3 / 2, newElementsBufferSize );

@@ -18,9 +18,10 @@ limitations under the License.
 #ifdef NEOML_USE_METAL
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
-#include <MetalCommandQueue.h>
 #include <NeoMathEngine/BlobDesc.h>
 #include <NeoMathEngine/MemoryHandle.h>
+#include <MathEngineCommon.h>
+#include <MetalCommandQueue.h>
 #include <memory>
 
 @import Foundation;

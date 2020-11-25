@@ -22,7 +22,7 @@ namespace NeoML {
 
 inline int Ceil( int val, int discret )
 {
-	assert( discret > 0 );
+	PRESUME_EXPR( discret > 0 );
 	if( val > 0 ) {
 		return ( val + discret - 1 ) / discret;
 	}
@@ -31,7 +31,7 @@ inline int Ceil( int val, int discret )
 
 inline int Floor( int val, int discret )
 {
-	assert( discret > 0 );
+	PRESUME_EXPR( discret > 0 );
 	if( val > 0 ) {
 		return val / discret;
 	}
