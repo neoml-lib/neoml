@@ -165,7 +165,7 @@ The layer may have 1 to 2 inputs:
 
 The only output contains a blob with the results. The output blob dimensions are:
 
-- `BatchLength` can be calculated from the input as `(BatchLength + GetPaddingFront() - (GetWindowSize() - 1)) / GetStride() + 1)`.
+- `BatchLength` can be calculated from the input as `(BatchLength + GetPaddingFront() + GetPaddingBack() - (GetWindowSize() - 1)) / GetStride() + 1)`.
 - `BatchWidth` is equal to the inputs' `BatchWidth`.
 - `ListSize`, `Height`, `Width` and `Depth` are equal to `1`.
 - `Channels` is equal to `2 * GetHiddenSize()` if `GetRecurrentMode()` is `RM_BidirectionalConcat`. Otherwise it's equal to `GetHiddenSize()`.

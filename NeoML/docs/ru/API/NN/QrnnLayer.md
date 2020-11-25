@@ -164,7 +164,7 @@ CPtr<CDnnBlob> GetFreeTermData() const
 
 Единственный выход содержит блоб с результатами следующиего размера:
 
-- `BatchLength` вычисляемый относительно размеров входа по следующей формуле `(BatchLength + GetPaddingFront() - (GetWindowSize() - 1)) / GetStride() + 1)`;
+- `BatchLength` вычисляемый относительно размеров входа по следующей формуле `(BatchLength + GetPaddingFront() + GetPaddingBack() - (GetWindowSize() - 1)) / GetStride() + 1)`;
 - `BatchWidth` равный `BatchWidth` у первого входа;
 - `ListSize`, `Height`, `Width` и `Depth` равные `1`;
 - `Channels` равный `2 * GetHiddenSize()` если `GetRecurrentMode()` равен `RM_BidirectionalConcat`. В остальных случаях равен `GetHiddenSize()`.
