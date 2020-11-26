@@ -282,7 +282,7 @@ public:
 	// Gets the pointer to the diagonal
 	const double* GetDiagonal() const { return diagonal.GetPtr(); }
 	// Gets y[i] binary class
-	float GetBinaryClass( int i ) const  { return classes[i]; }
+	const float* GetBinaryClasses() const { return classes.GetPtr(); }
 
 private:
 	const CSparseFloatMatrixDesc matrix; // the problem data
@@ -341,6 +341,8 @@ CSMOptimizer::CSMOptimizer(const CSvmKernel& kernel, const IProblem& _data,
 	errorWeight( _errorWeight ),
 	tolerance(tolerance),
 	Q( FINE_DEBUG_NEW CKernelMatrix( _data, kernel, cacheSize ) ),
+	y( Q->GetBinaryClasses() ),
+	QD( Q->GetDiagonal() ),
 	log(0)
 {
 	C.SetBufferSize( data->GetVectorCount() );
@@ -365,9 +367,9 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 	int t;
 	int counter = min( data->GetVectorCount(), 1000 );
 	for(t = 0; t < maxIter; t++) {
-		// log progress
 		if( --counter == 0 ) {
 			counter = min( data->GetVectorCount(), 1000 );
+			// log progress
 			if( log != 0 ) {
 				*log << ".";
 			}
@@ -375,11 +377,14 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 
 		// Find a pair of coefficients that violate Kuhn - Tucker conditions most of all
 		int i, j; 
-		double Gmax, Gmin;
-		findMaximalViolatingPair( alpha, gradient, i, Gmax, j, Gmin);
-		if(Gmax - Gmin < tolerance)	{
-			break;
+		if( selectWorkingSet( i, j ) ) {
+			if(log != 0) {
+				*log << "*";
+			}
+			if( selectWorkingSet( i, j ) ) break;
+			else counter = 1;
 		}
+
 		// Find the optimal values for this pair of coefficients
 		optimizePair( i, j, alpha, gradient );
 	}
@@ -390,6 +395,7 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 	freeTerm = calculateFreeTerm( alpha, gradient );
 }
 
+<<<<<<< HEAD
 // reconstruct inactive elements of G from G_bar and free variables
 void SMOptimizer::reconstructGradient()
 {
@@ -429,18 +435,115 @@ void SMOptimizer::reconstructGradient()
 	}
 }
 
+// return i,j such that
+// i: maximizes -y_i * grad(f)_i, i in I_up(\alpha)
+// j: minimizes the decrease of obj value
+//    (if quadratic coefficient <= 0, replace it with tau)
+//    -y_j*grad(f)_j < -y_i*grad(f)_i, j in I_low(\alpha)
+bool CSMOptimizer::selectWorkingSet( const CArray<double>& alpha, const CArray<double>& gradient, int& out_i, int& out_j )
+{
+	double Gmax = -Inf;
+	double Gmax2 = -Inf;
+	int Gmax_idx = -1;
+	int Gmin_idx = -1;
+	double obj_diff_min = Inf;
+
+	for(int t=0;t<data->GetVectorCount();t++)
+		if( y[t] ==+1 )
+		{
+			if(alpha[t] < W[t])
+				if(-gradient[t] >= Gmax)
+				{
+					Gmax = -gradient[t];
+					Gmax_idx = t;
+				}
+		}
+		else
+		{
+			if(alpha[t] > 0)
+				if(gradient[t] >= Gmax)
+				{
+					Gmax = gradient[t];
+					Gmax_idx = t;
+				}
+		}
+
+	int i = Gmax_idx;
+	const float *Q_i = NULL;
+	if(i != -1) 
+		Q_i = Q->GetColumn(i);
+
+	for(int j=0;j<data->GetVectorCount();j++)
+	{
+		if( y[j] ==+1 )
+		{
+			if (alpha[j] > 0)
+			{
+				double grad_diff=Gmax+gradient[j];
+				if (gradient[j] >= Gmax2)
+					Gmax2 = gradient[j];
+				if (grad_diff > 0)
+				{
+					double obj_diff;
+					double quad_coef = QD[i]+QD[j]-2.0*y[i]*Q_i[j];
+					if (quad_coef > 0)
+						obj_diff = -(grad_diff*grad_diff)/quad_coef;
+					else
+						obj_diff = -(grad_diff*grad_diff)/Tau;
+
+					if (obj_diff <= obj_diff_min)
+					{
+						Gmin_idx=j;
+						obj_diff_min = obj_diff;
+					}
+				}
+			}
+		}
+		else
+		{
+			if (alpha[j] < W[j])
+			{
+				double grad_diff= Gmax-gradient[j];
+				if (-gradient[j] >= Gmax2)
+					Gmax2 = -gradient[j];
+				if (grad_diff > 0)
+				{
+					double obj_diff;
+					double quad_coef = QD[i]+QD[j]+2.0*y[i]*Q_i[j];
+					if (quad_coef > 0)
+						obj_diff = -(grad_diff*grad_diff)/quad_coef;
+					else
+						obj_diff = -(grad_diff*grad_diff)/Tau;
+
+					if (obj_diff <= obj_diff_min)
+					{
+						Gmin_idx=j;
+						obj_diff_min = obj_diff;
+					}
+				}
+			}
+		}
+	}
+
+	if(Gmax+Gmax2 < tolerance || Gmin_idx == -1)
+		return 1;
+
+	out_i = Gmax_idx;
+	out_j = Gmin_idx;
+	return 0;
+}
+
 // Optimizes the target function by changing the alpha_i and alpha_j coefficient
 // The optimal values are calculated analytically
 void CSMOptimizer::optimizePair( int i, int j )
 {	
 	const float* Q_i = Q->GetColumn(i);
 	const float* Q_j = Q->GetColumn(j);
-	const double* QD = Q->GetDiagonal();
 
 	double oldAlpha_i = alpha[i];
 	double oldAlpha_j = alpha[j];
 
-	if( Q->GetBinaryClass(i) != Q->GetBinaryClass(j) ) {
+	if( y[i] != y[j] ) {
 		double quadCoef = QD[i] + QD[j] + 2 * Q_i[j];
 		if (quadCoef <= 0) {
 			quadCoef = Tau;
@@ -519,7 +622,7 @@ float CSMOptimizer::calculateFreeTerm( const CArray<double>& gradient ) const
 	int nFree = 0; // the number of "free" support vectors
 	double upperBound = Inf, lowerBound = -Inf, sumFree = 0;
 	for(int i = 0; i < data->GetVectorCount(); i++) {
-		const double binaryClass = Q->GetBinaryClass(i);
+		const double binaryClass = y[i];
 		double yGrad = -binaryClass * gradient[i];
 		if(alpha[i] >= C[i]) {
 			if(binaryClass == +1) {

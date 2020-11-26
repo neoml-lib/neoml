@@ -122,12 +122,14 @@ private:
 	const double errorWeight; // the error weight relative to the regularizer (the relative weight of the data set)
 	const double tolerance; // the stop criterion
 	const CKernelMatrix* Q; // the kernel matrix: CQMatrix(i, j) = K(i, j)*y_i*y_j
-	CArray<double> C; // vector of weigths * errorWeight
 	CTextStream* log; // the logging stream
 
 	// optimize variables
 	CArray<double> gradient;
 	CArray<double> gradient0; // gradient, if we treat free variables as 0
+	CArray<double> C; // vector of weigths * errorWeight
+	const float* y; // vector of [-1,1] class labels
+	const double* QD; // matrix diagonal
 
 	enum { LOWER_BOUND, UPPER_BOUND, FREE }; 
 	CArray<char> alphaStatus; // alpha statuses
@@ -136,9 +138,9 @@ private:
 
 	void reconstructGradient();
 	void updateAlphaStatus( int i );
-	bool selectWorkingSet( int& outI, int& outJ );
-	void optimizePair( int i, int j );
-	float calculateFreeTerm( const CArray<double>& gradient ) const;
+	bool selectWorkingSet( int& outI, int& outJ ) const;
+	void optimizePair( int i, int j ) const;
+	float calculateFreeTerm() const;
 };
 
 inline void CSMOptimizer::updateAlphaStatus( int i )
