@@ -22,159 +22,12 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/TraditionalML/SMOptimizer.h>
+#include <SMOptimizer.h>
 
 namespace NeoML {
 
 const double CSMOptimizer::Inf = HUGE_VAL;
 const double CSMOptimizer::Tau = 1e-12;
-
-// Raise a number to a power: base**times
-inline double power(double base, int times)
-{
-	double tmp = base, ret = 1.0;
-	for(int t = times; t > 0; t /= 2)
-	{
-		if(t % 2 == 1) {
-			ret *= tmp;
-		}
-		tmp = tmp * tmp;
-	}
-	return ret;
-}
-
-CSvmKernel::CSvmKernel(TKernelType kernelType, int degree, double gamma, double coef0) :
-	kernelType(kernelType), degree(degree), gamma(gamma), coef0(coef0)
-{
-}
-
-// The linear kernel
-double CSvmKernel::linear(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return DotProduct(x1, x2);
-}
-
-double CSvmKernel::linear(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return DotProduct(x1, x2);
-}
-
-// The polynomial kernel
-double CSvmKernel::poly(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return power(gamma * DotProduct(x1, x2) + coef0, degree);
-}
-
-double CSvmKernel::poly(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return power(gamma * DotProduct(x1, x2) + coef0, degree);
-}
-
-// The Gaussian kernel
-double CSvmKernel::rbf(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	double square = 0;
-	int i, j;
-	double diff;
-	for( i = 0, j = 0; i < x1.Size && j < x2.Size; ) {
-		if( x1.Indexes[i] == x2.Indexes[j] ) {
-			diff = x1.Values[i] - x2.Values[j];
-			i++;
-			j++;
-		} else if( x1.Indexes[i] < x2.Indexes[j] ) {
-			diff = x1.Values[i];
-			i++;
-		} else {
-			diff = x2.Values[j];
-			j++;
-		}
-		square += diff * diff;
-	}
-	for(; i < x1.Size; i++) {
-		diff = x1.Values[i];
-		square += diff * diff;
-	}
-	for(; j < x2.Size; j++) {
-		diff = x2.Values[j];
-		square += diff * diff;
-	}
-	return exp(-gamma * square);
-}
-
-double CSvmKernel::rbf(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	double square = 0;
-	int i, j;
-	double diff;
-	for( i = 0, j = 0; i < x1.Size() && j < x2.Size; ) {
-		if( i == x2.Indexes[j] ) {
-			diff = x1[i] - x2.Values[j];
-			i++;
-			j++;
-		} else if( i < x2.Indexes[j] ) {
-			diff = x1[i];
-			i++;
-		} else {
-			diff = x2.Values[j];
-			j++;
-		}
-		square += diff * diff;
-	}
-	for(; i < x1.Size(); i++) {
-		diff = x1[i];
-		square += diff * diff;
-	}
-	for(; j < x2.Size; j++) {
-		diff = x2.Values[j];
-		square += diff * diff;
-	}
-	return exp(-gamma * square);
-}
-
-// The sigmoid kernel
-double CSvmKernel::sigmoid(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return tanh(gamma * DotProduct(x1, x2) + coef0);
-}
-
-double CSvmKernel::sigmoid(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return tanh(gamma * DotProduct(x1, x2) + coef0);
-}
-
-double CSvmKernel::Calculate(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	switch( kernelType ) {
-		case KT_Linear:
-			return linear(x1, x2);
-		case KT_Poly:
-			return poly(x1, x2);
-		case KT_RBF:
-			return rbf(x1, x2);
-		case KT_Sigmoid:
-			return sigmoid(x1, x2);
-		default:
-			NeoAssert(false);
-			return 0;
-	}
-}
-
-double CSvmKernel::Calculate(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	switch( kernelType ) {
-		case KT_Linear:
-			return linear(x1, x2);
-		case KT_Poly:
-			return poly(x1, x2);
-		case KT_RBF:
-			return rbf(x1, x2);
-		case KT_Sigmoid:
-			return sigmoid(x1, x2);
-		default:
-			NeoAssert(false);
-			return 0;
-	}
-}
 
 // Kernel cache
 //
@@ -335,20 +188,23 @@ const float* CKernelMatrix::GetColumn(int i) const
 //---------------------------------------------------------------------------------------------------
 
 CSMOptimizer::CSMOptimizer(const CSvmKernel& kernel, const IProblem& _data,
-		int _maxIter, double _errorWeight, double tolerance, int cacheSize) :
+		int _maxIter, double _errorWeight, double _tolerance, bool _shrinking, int cacheSize) :
 	data( &_data ),
 	maxIter( _maxIter ),
 	errorWeight( _errorWeight ),
-	tolerance(tolerance),
+	tolerance( _tolerance ),
+	shrinking( _shrinking ),
 	Q( FINE_DEBUG_NEW CKernelMatrix( _data, kernel, cacheSize ) ),
+	log( nullptr ),
+	l( data->GetVectorCount() ),
 	y( Q->GetBinaryClasses() ),
-	QD( Q->GetDiagonal() ),
-	log(0)
+	QD( Q->GetDiagonal() )
 {
-	C.SetBufferSize( data->GetVectorCount() );
-	for( int i = 0; i < data->GetVectorCount(); ++i ) {
-		C.Add( data->GetVectorWeight( i ) * errorWeight );
+	weightsMultErrorWeight.SetBufferSize( l );
+	for( int i = 0; i < l; ++i ) {
+		weightsMultErrorWeight.Add( data->GetVectorWeight( i ) * errorWeight );
 	}
+	C = weightsMultErrorWeight.GetPtr();
 }
 
 CSMOptimizer::~CSMOptimizer() 
@@ -359,18 +215,19 @@ CSMOptimizer::~CSMOptimizer()
 void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 {
 	gradient.Empty();
-	gradient.Add(-1., data->GetVectorCount() ); // the target function gradient
+	gradient.Add(-1., l ); // the target function gradient
+	g = gradient.GetPtr();
 	_alpha.Empty();
-	_alpha.Add( 0., data->GetVectorCount() ); // the support vectors coefficients
+	_alpha.Add( 0., l ); // the support vectors coefficients
 	alpha = _alpha.GetPtr();
 
 	int t;
-	int counter = min( data->GetVectorCount(), 1000 );
+	int counter = min( l, 1000 );
 	for(t = 0; t < maxIter; t++) {
 		if( --counter == 0 ) {
-			counter = min( data->GetVectorCount(), 1000 );
+			counter = min( l, 1000 );
 			// log progress
-			if( log != 0 ) {
+			if( log != nullptr ) {
 				*log << ".";
 			}
 		}
@@ -378,35 +235,38 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 		// Find a pair of coefficients that violate Kuhn - Tucker conditions most of all
 		int i, j; 
 		if( selectWorkingSet( i, j ) ) {
-			if(log != 0) {
+			if(log != nullptr) {
 				*log << "*";
 			}
-			if( selectWorkingSet( i, j ) ) break;
-			else counter = 1;
+			if( selectWorkingSet( i, j ) ) {
+				break;
+			} else {
+				// shrink on the next iteration
+				counter = 1;
+			}
 		}
 
 		// Find the optimal values for this pair of coefficients
-		optimizePair( i, j, alpha, gradient );
+		optimizePair( i, j );
 	}
-	if(log != 0) {
+	if(log != nullptr) {
 		*log << "\noptimization finished, #iter = " << t << "\n";
 	}
 	// Calculate the free term
-	freeTerm = calculateFreeTerm( alpha, gradient );
+	freeTerm = calculateFreeTerm();
 }
 
-<<<<<<< HEAD
 // reconstruct inactive elements of G from G_bar and free variables
-void SMOptimizer::reconstructGradient()
+void CSMOptimizer::reconstructGradient()
 {
-	const int l = data->GetVectorCount();
 	if( activeSize == l ) {
 		return;
 	}
+	NeoAssert( false );
 
 	int freeCount = 0;
 	for( int j = activeSize; j < l; ++j ) {
-		gradient[j] = gradient0[j] - 1;
+		g[j] = g0[j] - 1;
 	}
 
 	for( int j=0; j < activeSize; ++j ) {
@@ -421,7 +281,7 @@ void SMOptimizer::reconstructGradient()
 			auto Q_i = Q->GetColumn( i );
 			for( int j=0; j < activeSize; ++j ) {
 				if( alphaStatus[j] == FREE )
-					gradient[i] += alpha[j] * Q_i[j];
+					g[i] += alpha[j] * Q_i[j];
 			}
 		}
 	} else {
@@ -429,7 +289,7 @@ void SMOptimizer::reconstructGradient()
 			if( alphaStatus[i] == FREE ) {
 				auto Q_i = Q->GetColumn( i );
 				for( int j = activeSize; j<l; ++j )
-					gradient[j] += alpha[i] * Q_i[j];
+					g[j] += alpha[i] * Q_i[j];
 			}
 		}
 	}
@@ -440,7 +300,7 @@ void SMOptimizer::reconstructGradient()
 // j: minimizes the decrease of obj value
 //    (if quadratic coefficient <= 0, replace it with tau)
 //    -y_j*grad(f)_j < -y_i*grad(f)_i, j in I_low(\alpha)
-bool CSMOptimizer::selectWorkingSet( const CArray<double>& alpha, const CArray<double>& gradient, int& out_i, int& out_j )
+bool CSMOptimizer::selectWorkingSet( int& outI, int& outJ ) const
 {
 	double Gmax = -Inf;
 	double Gmax2 = -Inf;
@@ -448,22 +308,22 @@ bool CSMOptimizer::selectWorkingSet( const CArray<double>& alpha, const CArray<d
 	int Gmin_idx = -1;
 	double obj_diff_min = Inf;
 
-	for(int t=0;t<data->GetVectorCount();t++)
+	for(int t=0;t<l;t++)
 		if( y[t] ==+1 )
 		{
-			if(alpha[t] < W[t])
-				if(-gradient[t] >= Gmax)
+			if(alpha[t] < C[t])
+				if(-g[t] >= Gmax)
 				{
-					Gmax = -gradient[t];
+					Gmax = -g[t];
 					Gmax_idx = t;
 				}
 		}
 		else
 		{
 			if(alpha[t] > 0)
-				if(gradient[t] >= Gmax)
+				if(g[t] >= Gmax)
 				{
-					Gmax = gradient[t];
+					Gmax = g[t];
 					Gmax_idx = t;
 				}
 		}
@@ -473,15 +333,15 @@ bool CSMOptimizer::selectWorkingSet( const CArray<double>& alpha, const CArray<d
 	if(i != -1) 
 		Q_i = Q->GetColumn(i);
 
-	for(int j=0;j<data->GetVectorCount();j++)
+	for(int j=0;j<l;j++)
 	{
 		if( y[j] ==+1 )
 		{
 			if (alpha[j] > 0)
 			{
-				double grad_diff=Gmax+gradient[j];
-				if (gradient[j] >= Gmax2)
-					Gmax2 = gradient[j];
+				double grad_diff=Gmax+g[j];
+				if (g[j] >= Gmax2)
+					Gmax2 = g[j];
 				if (grad_diff > 0)
 				{
 					double obj_diff;
@@ -501,11 +361,11 @@ bool CSMOptimizer::selectWorkingSet( const CArray<double>& alpha, const CArray<d
 		}
 		else
 		{
-			if (alpha[j] < W[j])
+			if (alpha[j] < C[j])
 			{
-				double grad_diff= Gmax-gradient[j];
-				if (-gradient[j] >= Gmax2)
-					Gmax2 = -gradient[j];
+				double grad_diff= Gmax-g[j];
+				if (-g[j] >= Gmax2)
+					Gmax2 = -g[j];
 				if (grad_diff > 0)
 				{
 					double obj_diff;
@@ -528,18 +388,20 @@ bool CSMOptimizer::selectWorkingSet( const CArray<double>& alpha, const CArray<d
 	if(Gmax+Gmax2 < tolerance || Gmin_idx == -1)
 		return 1;
 
-	out_i = Gmax_idx;
-	out_j = Gmin_idx;
+	outI = Gmax_idx;
+	outJ = Gmin_idx;
 	return 0;
 }
 
 // Optimizes the target function by changing the alpha_i and alpha_j coefficient
 // The optimal values are calculated analytically
-void CSMOptimizer::optimizePair( int i, int j )
+void CSMOptimizer::optimizePair( int i, int j ) const
 {	
 	const float* Q_i = Q->GetColumn(i);
 	const float* Q_j = Q->GetColumn(j);
 
+	double C_i = C[i];
+	double C_j = C[j];
 	double oldAlpha_i = alpha[i];
 	double oldAlpha_j = alpha[j];
 
@@ -548,7 +410,7 @@ void CSMOptimizer::optimizePair( int i, int j )
 		if (quadCoef <= 0) {
 			quadCoef = Tau;
 		}
-		double delta = (-gradient[i] - gradient[j]) / quadCoef;
+		double delta = (-g[i] - g[j]) / quadCoef;
 		double diff = alpha[i] - alpha[j];
 		alpha[i] += delta;
 		alpha[j] += delta;
@@ -564,30 +426,30 @@ void CSMOptimizer::optimizePair( int i, int j )
 				alpha[j] = -diff;
 			}
 		}
-		if(diff > C[i] - C[j]) {
-			if(alpha[i] > C[i]) {
-				alpha[i] = C[i];
-				alpha[j] = C[i] - diff;
+		if(diff > C_i - C_j) {
+			if(alpha[i] > C_i) {
+				alpha[i] = C_i;
+				alpha[j] = C_i - diff;
 			}
 		} else {
-			if(alpha[j] > C[j]) {
-				alpha[j] = C[j];
-				alpha[i] = C[j] + diff;
+			if(alpha[j] > C_j) {
+				alpha[j] = C_j;
+				alpha[i] = C_j + diff;
 			}
 		}
 	} else {
 		double quadCoef = QD[i] + QD[j] - 2 * Q_i[j];
 		if (quadCoef <= 0)
 			quadCoef = Tau;
-		double delta = (gradient[i] - gradient[j]) / quadCoef;
+		double delta = (g[i] - g[j]) / quadCoef;
 		double sum = alpha[i] + alpha[j];
 		alpha[i] -= delta;
 		alpha[j] += delta;
 
-		if(sum > C[i]) {
-			if(alpha[i] > C[i]) {
-				alpha[i] = C[i];
-				alpha[j] = sum - C[i];
+		if(sum > C_i) {
+			if(alpha[i] > C_i) {
+				alpha[i] = C_i;
+				alpha[j] = sum - C_i;
 			}
 		} else {
 			if(alpha[j] < 0) {
@@ -595,10 +457,10 @@ void CSMOptimizer::optimizePair( int i, int j )
 				alpha[i] = sum;
 			}
 		}
-		if(sum > C[j]) {
-			if(alpha[j] > C[j])	{
-				alpha[j] = C[j];
-				alpha[i] = sum - C[j];
+		if(sum > C_j) {
+			if(alpha[j] > C_j)	{
+				alpha[j] = C_j;
+				alpha[i] = sum - C_j;
 			}
 		} else {
 			if(alpha[i] < 0) {
@@ -607,23 +469,23 @@ void CSMOptimizer::optimizePair( int i, int j )
 			}
 		}
 	}
-	// Modify the gradient
+	// Modify the g
 	double deltaAlpha_i = alpha[i] - oldAlpha_i;
 	double deltaAlpha_j = alpha[j] - oldAlpha_j;
-	for(int k = 0; k < data->GetVectorCount(); k++) {
-		gradient[k] += Q_i[k] * deltaAlpha_i + Q_j[k] * deltaAlpha_j;
+	for(int k = 0; k < l; k++) {
+		g[k] += Q_i[k] * deltaAlpha_i + Q_j[k] * deltaAlpha_j;
 	}
 }
 
 
 // Calculates the free term
-float CSMOptimizer::calculateFreeTerm( const CArray<double>& gradient ) const
+float CSMOptimizer::calculateFreeTerm() const
 {
 	int nFree = 0; // the number of "free" support vectors
 	double upperBound = Inf, lowerBound = -Inf, sumFree = 0;
-	for(int i = 0; i < data->GetVectorCount(); i++) {
+	for(int i = 0; i < l; i++) {
 		const double binaryClass = y[i];
-		double yGrad = -binaryClass * gradient[i];
+		double yGrad = -binaryClass * g[i];
 		if(alpha[i] >= C[i]) {
 			if(binaryClass == +1) {
 				upperBound = min(upperBound, yGrad);

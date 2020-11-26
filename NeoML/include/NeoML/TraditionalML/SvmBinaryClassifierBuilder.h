@@ -19,7 +19,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/FloatVector.h>
 #include <NeoML/TraditionalML/ClassificationResult.h>
 #include <NeoML/TraditionalML/TrainingModel.h>
-#include <NeoML/TraditionalML/SMOptimizer.h>
+#include <NeoML/TraditionalML/SvmKernel.h>
 
 namespace NeoML {
 

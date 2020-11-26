@@ -21,12 +21,13 @@ limitations under the License.
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <LinearBinaryModel.h>
 #include <NeoMathEngine/OpenMP.h>
+#include <SMOptimizer.h>
 
 namespace NeoML {
 
 CSvmBinaryClassifierBuilder::CSvmBinaryClassifierBuilder( const CParams& _params ) :
 	params( _params ),
-	log( 0 )
+	log( nullptr )
 {
 }
 
@@ -35,7 +36,7 @@ CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const IProblem& problem )
 	CSvmKernel kernel( params.KernelType, params.Degree, params.Gamma, params.Coeff0 );
 
 	CSMOptimizer optimizer( kernel, problem, params.MaxIterations, params.ErrorWeight, params.Tolerance );
-	if( log != 0 ) {
+	if( log != nullptr ) {
 		optimizer.SetLog( log );
 	}
 
@@ -43,8 +44,7 @@ CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const IProblem& problem )
 	float freeTerm;
 	optimizer.Optimize( alpha, freeTerm );
 
-	//if( kernel.KernelType() == CSvmKernel::KT_Linear ) {
-	if( false ) {
+	if( kernel.KernelType() == CSvmKernel::KT_Linear ) {
 		const int vectorCount = problem.GetVectorCount();
 		const int curThreadCount = IsOmpRelevant( vectorCount ) ? params.ThreadCount : 1;
 		const CSparseFloatMatrixDesc matrix = problem.GetMatrix();

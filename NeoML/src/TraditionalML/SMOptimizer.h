@@ -19,68 +19,11 @@ limitations under the License.
 #include <math.h>
 #include <NeoML/TraditionalML/FloatVector.h>
 #include <NeoML/TraditionalML/Problem.h>
+#include <NeoML/TraditionalML/SvmKernel.h>
 
 namespace NeoML {
 
 class CKernelMatrix;
-
-// The SVM kernel
-class NEOML_API CSvmKernel {
-public:
-	enum TKernelType {
-		KT_Undefined = 0,
-		KT_Linear,
-		KT_Poly,
-		KT_RBF,
-		KT_Sigmoid
-	};
-
-	CSvmKernel() : kernelType( KT_Undefined ), degree( 0 ), gamma( 0 ), coef0( 0 ) {}
-	CSvmKernel(TKernelType kernelType, int degree, double gamma, double coef0);
-
-	// The kernel type
-	TKernelType KernelType() const { return kernelType; }
-	// Calculates the kernel value on given vectors
-	double Calculate(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double Calculate(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
-
-	friend CArchive& operator << ( CArchive& archive, const CSvmKernel& center );
-	friend CArchive& operator >> ( CArchive& archive, CSvmKernel& center );
-
-private:
-	TKernelType kernelType;
-	int degree;
-	double gamma;
-	double coef0;
-
-	double linear(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double linear(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
-	double poly(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double poly(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
-	double rbf(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double rbf(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
-	double sigmoid(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double sigmoid(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
-};
-
-inline CArchive& operator << ( CArchive& archive, const CSvmKernel& kernel )
-{
-	CSvmKernel::TKernelType kernelType = kernel.kernelType;
-	archive.SerializeEnum( kernelType );
-	archive << kernel.degree;
-	archive << kernel.gamma;
-	archive << kernel.coef0;
-	return archive;
-}
-
-inline CArchive& operator >> ( CArchive& archive, CSvmKernel& kernel )
-{
-	archive.SerializeEnum( kernel.kernelType );
-	archive >> kernel.degree;
-	archive >> kernel.gamma;
-	archive >> kernel.coef0;
-	return archive;
-}
 
 // The classification rule:
 //
@@ -121,20 +64,28 @@ private:
 	int maxIter; // maximal iteration
 	const double errorWeight; // the error weight relative to the regularizer (the relative weight of the data set)
 	const double tolerance; // the stop criterion
+	bool shrinking; // do shrinking or not
 	const CKernelMatrix* Q; // the kernel matrix: CQMatrix(i, j) = K(i, j)*y_i*y_j
 	CTextStream* log; // the logging stream
 
 	// optimize variables
-	CArray<double> gradient;
+	CArray<double> gradient; // gradient
+	double* g; // gradient raw pointer
 	CArray<double> gradient0; // gradient, if we treat free variables as 0
-	CArray<double> C; // vector of weigths * errorWeight
+	double* g0; // gradient0 raw pointer array
+	double* alpha; // alpha
+	CArray<double> weightsMultErrorWeight; // vector of weigths * errorWeight
+	const double* C; // C raw pointer array
+	int l; // problem length
 	const float* y; // vector of [-1,1] class labels
 	const double* QD; // matrix diagonal
 
 	enum { LOWER_BOUND, UPPER_BOUND, FREE }; 
-	CArray<char> alphaStatus; // alpha statuses
-	double* alpha;
-	int activeSize;
+	CArray<char> alphaStatusArray; // alpha statuses
+	char* alphaStatus; // alpha status raw pointer array
+	CArray<int> activeSetArray; // active set array
+	int* activeSet; // active set raw pointer array
+	int activeSize; // active set size
 
 	void reconstructGradient();
 	void updateAlphaStatus( int i );
@@ -148,11 +99,10 @@ inline void CSMOptimizer::updateAlphaStatus( int i )
 	if( alpha[i] >= C[i] ) {
 		alphaStatus[i] = UPPER_BOUND;
 	} else if( alpha[i] <= 0 ) {
-		alpha_status[i] = LOWER_BOUND;
+		alphaStatus[i] = LOWER_BOUND;
 	} else {
-		alpha_status[i] = FREE;
+		alphaStatus[i] = FREE;
 	}
 }
-
 
 } // namespace NeoML
