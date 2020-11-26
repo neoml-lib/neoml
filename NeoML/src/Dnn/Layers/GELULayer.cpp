@@ -40,7 +40,7 @@ void CGELULayer::Serialize( CArchive& archive )
 void CGELULayer::Reshape()
 {
 	CheckInputs();
-	assert( inputDescs.Size() == 1 );
+	NeoAssert( inputDescs.Size() == 1 );
 
 	const CBlobDesc& inputDesc = inputDescs[0];
 

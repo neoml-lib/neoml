@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <MathEngineCommon.h>
 #include <RawMemoryManager.h>
 #include <PerformanceCountersDefault.h>
 

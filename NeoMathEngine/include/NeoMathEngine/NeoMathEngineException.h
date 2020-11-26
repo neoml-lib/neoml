@@ -60,6 +60,15 @@ NEOMATHENGINE_API IMathEngineExceptionHandler* GetMathEngineExceptionHandler();
 		} \
 	} while(0)
 
+#ifdef _DEBUG
+	#define PRESUME_ERROR_CODE( expr ) ASSERT_ERROR_CODE( expr )
+	#define PRESUME_EXPR( expr ) ASSERT_EXPR( expr )
+#else
+	// presume is turned off in release version
+	#define PRESUME_ERROR_CODE( expr )
+	#define PRESUME_EXPR( expr )
+#endif
+
 #define THROW_MEMORY_EXCEPTION \
 	do { \
 		GetMathEngineExceptionHandler()->OnMemoryError(); \

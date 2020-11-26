@@ -115,11 +115,6 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 CCpuMathEngine::~CCpuMathEngine()
 {
 	CleanUp();
-#ifdef NEOML_USE_MKL
-	// mkl_thread_free_buffers does not free the memory completely
-	// Looks like a bug in mkl
-	mkl_free_buffers();
-#endif
 }
 
 void CCpuMathEngine::SetReuseMemoryMode( bool enable )
@@ -178,6 +173,7 @@ void CCpuMathEngine::CleanUp()
 {
 	std::lock_guard<std::mutex> lock( mutex );
 	stackAllocator->CleanUp();
+	memoryPool->CleanUp();
 #ifdef NEOML_USE_MKL
 	NEOML_OMP_NUM_THREADS( threadCount )
 	{
@@ -230,7 +226,7 @@ CMemoryHandle CCpuMathEngine::Alloc( size_t size )
 		char* p = static_cast<char*>(malloc(size + memoryAlignment));
 		if( p != 0 ) {
 			const intptr_t delta = memoryAlignment - std::abs( ( reinterpret_cast<intptr_t>( p ) % memoryAlignment ) );
-			assert( delta > 0 && delta <= static_cast<intptr_t>( memoryAlignment ) );
+			ASSERT_EXPR( delta > 0 && delta <= static_cast<intptr_t>( memoryAlignment ) );
 
 			p[delta - 1] = static_cast<char>( delta - 1 );
 			ptr = p + delta;
@@ -279,4 +275,12 @@ IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters() const
 #endif
 }
 
+void CpuMathEngineCleanUp()
+{
+#ifdef NEOML_USE_MKL
+	// mkl_thread_free_buffers does not free the memory completely
+	// Looks like a bug in mkl
+	mkl_free_buffers();
+#endif
+}
 } // namespace NeoML

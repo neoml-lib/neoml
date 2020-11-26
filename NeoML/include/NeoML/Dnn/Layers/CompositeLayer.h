@@ -66,6 +66,8 @@ public:
 	// Starts processing a new sequence
 	void RestartSequence() override;
 
+	void EnableProfile( bool profile ) override;
+
 protected:
 	virtual ~CCompositeLayer();
 

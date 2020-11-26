@@ -165,7 +165,7 @@ inline CBlob<T>::CBlob( IMathEngine& mathEngine, int batchLength, int batchWidth
 			desc.SetDataType(CT_Int);
 			break;
 		default:
-			assert(false);
+			ASSERT_EXPR( false );
 	}
 	desc.SetDimSize(BD_BatchLength, batchLength);
 	desc.SetDimSize(BD_BatchWidth, batchWidth);
