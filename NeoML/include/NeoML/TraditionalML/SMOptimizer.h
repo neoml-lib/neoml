@@ -103,7 +103,7 @@ public:
 	// tolerance is the required precision
 	// cacheSize is the cache size in MB
 	CSMOptimizer(const CSvmKernel& kernel, const IProblem& data, int maxIter, double errorWeight, double tolerance,
-		int cacheSize = 100);
+		bool shrinking = false, int cacheSize = 100);
 	~CSMOptimizer();
 
 	// Calculates the optimal multipliers for the support vectors
@@ -122,13 +122,35 @@ private:
 	const double errorWeight; // the error weight relative to the regularizer (the relative weight of the data set)
 	const double tolerance; // the stop criterion
 	const CKernelMatrix* Q; // the kernel matrix: CQMatrix(i, j) = K(i, j)*y_i*y_j
-	CArray<double> W; // vector of weigths
+	CArray<double> C; // vector of weigths * errorWeight
 	CTextStream* log; // the logging stream
 
-	void findMaximalViolatingPair( const CArray<double>& alpha, const CArray<double>& gradient,
-		int& i, double& Gmax, int&j, double& Gmin ) const;
-	void optimizePair( int i, int j, CArray<double>& alpha, CArray<double>& gradient );
-	float calculateFreeTerm( const CArray<double>& alpha, const CArray<double>& gradient ) const;
+	// optimize variables
+	CArray<double> gradient;
+	CArray<double> gradient0; // gradient, if we treat free variables as 0
+
+	enum { LOWER_BOUND, UPPER_BOUND, FREE }; 
+	CArray<char> alphaStatus; // alpha statuses
+	double* alpha;
+	int activeSize;
+
+	void reconstructGradient();
+	void updateAlphaStatus( int i );
+	bool selectWorkingSet( int& outI, int& outJ );
+	void optimizePair( int i, int j );
+	float calculateFreeTerm( const CArray<double>& gradient ) const;
 };
+
+inline void CSMOptimizer::updateAlphaStatus( int i )
+{
+	if( alpha[i] >= C[i] ) {
+		alphaStatus[i] = UPPER_BOUND;
+	} else if( alpha[i] <= 0 ) {
+		alpha_status[i] = LOWER_BOUND;
+	} else {
+		alpha_status[i] = FREE;
+	}
+}
+
 
 } // namespace NeoML
