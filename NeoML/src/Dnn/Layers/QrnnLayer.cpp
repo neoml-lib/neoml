@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
+#include <NeoML/Dnn/Layers/ConcatLayer.h>
 
 namespace NeoML {
 
@@ -31,14 +32,24 @@ static const char* postDropoutLinearName = "PostDropoutLinear";
 static const char* outputSigmoidName = "OutputSigmoid";
 static const char* negForgetByUpdateByOutputName = "NegForgetByUpdateByOutput";
 static const char* forgetByOutputName = "ForgetByOutput";
-static const char* recurrentPartName = "RecurrentPart";
+static const char* firstRecurrentName = "FirstRecurrent";
+static const char* secondRecurrentName = "SecondRecurrent";
+static const char* bidirectionalMergeName = "BidirectionalMergeName";
+// Layer names inside CQrnnLayer recurrent
 static const char* prevStateMultName = "PrevStateMult";
 static const char* resultSumName = "ResultSum";
 static const char* backLinkName = "BackLink";
 
+static inline bool IsBidirectional( CQrnnLayer::TRecurrentMode mode )
+{
+	static_assert( CQrnnLayer::RM_Count == 4, "CQrnnLayer::RM_Count != 4" );
+	return mode == CQrnnLayer::RM_BidirectionalConcat || mode == CQrnnLayer::RM_BidirectionalSum;
+}
+
 CQrnnLayer::CQrnnLayer( IMathEngine& mathEngine ) :
 	CCompositeLayer( mathEngine ),
-	activation( AF_Tanh )
+	activation( AF_Tanh ),
+	recurrentMode( RM_Direct )
 {
 	buildLayer();
 }
@@ -51,7 +62,10 @@ void CQrnnLayer::SetHiddenSize( int hiddenSize )
 
 	timeConv->SetFilterCount( 3 * hiddenSize );
 	split->SetOutputCounts3( hiddenSize, hiddenSize );
-	backLink->SetDimSize( BD_Channels, hiddenSize );
+	firstBackLink->SetDimSize( BD_Channels, hiddenSize );
+	if( secondBackLink != nullptr ) {
+		secondBackLink->SetDimSize( BD_Channels, hiddenSize );
+	}
 	ForceReshape();
 }
 
@@ -77,19 +91,25 @@ void CQrnnLayer::SetStride( int stride )
 	ForceReshape();
 }
 
-void CQrnnLayer::SetPadding( int padding )
+void CQrnnLayer::SetPaddingFront( int padding )
 {
 	NeoAssert( padding >= 0 );
-	if( GetPadding() == padding ) {
+	if( GetPaddingFront() == padding ) {
 		return;
 	}
 
-	if( !IsReverseSequense() ) {
-		timeConv->SetPaddingFront( padding );
-	} else {
-		timeConv->SetPaddingBack( padding );
+	timeConv->SetPaddingFront( padding );
+	ForceReshape();
+}
+
+void CQrnnLayer::SetPaddingBack( int padding )
+{
+	NeoAssert( padding >= 0 );
+	if( GetPaddingBack() == padding ) {
+		return;
 	}
 
+	timeConv->SetPaddingBack( padding );
 	ForceReshape();
 }
 
@@ -110,20 +130,6 @@ void CQrnnLayer::SetActivation( TActivationFunction newActivation )
 	ForceReshape();
 }
 
-void CQrnnLayer::SetReverseSequence( bool reverseSequence )
-{
-	if( reverseSequence == IsReverseSequense() ) {
-		return;
-	}
-
-	int padding = GetPadding();
-	SetPadding( 0 );
-	recurrentPart->SetReverseSequence( reverseSequence );
-	SetPadding( padding );
-
-	ForceReshape();
-}
-
 void CQrnnLayer::SetDropout( float rate )
 {
 	NeoAssert( rate >= 0.f && rate <= 1.f );
@@ -134,6 +140,50 @@ void CQrnnLayer::SetDropout( float rate )
 	} else if( rate != 0.f ) {
 		dropout->SetDropoutRate( rate );
 		postDropoutLinear->SetMultiplier( 1.f - rate );
+	}
+
+	if( rate == 0.f ) {
+		NeoAssert( dropout == nullptr && postDropoutLinear == nullptr );
+	} else {
+		NeoAssert( dropout != nullptr && dropout->GetDropoutRate() == rate 
+			&& postDropoutLinear != nullptr );
+	}
+}
+
+void CQrnnLayer::SetRecurrentMode( CQrnnLayer::TRecurrentMode newMode )
+{
+	if( recurrentMode == newMode ) {
+		return;
+	}
+
+	recurrentMode = newMode;
+
+	if( IsBidirectional( recurrentMode ) ) {
+		createBidirectionalLayers();
+		firstRecurrent->SetReverseSequence( false );
+	} else {
+		deleteBidirectionalLayers();
+		static_assert( RM_Count == 4, "RM_Count != 4" );
+		firstRecurrent->SetReverseSequence( recurrentMode == RM_Reverse );
+	}
+
+	ForceReshape();
+
+	static_assert( RM_Count == 4, "RM_Count != 4" );
+	if( recurrentMode == RM_Direct ) {
+		NeoAssert( !firstRecurrent->IsReverseSequense() && secondRecurrent == nullptr
+			&& secondBackLink == nullptr && bidirectionalMerge == nullptr );
+	} else if( recurrentMode == RM_Reverse ) {
+		NeoAssert( firstRecurrent->IsReverseSequense() && secondRecurrent == nullptr
+			&& secondBackLink == nullptr && bidirectionalMerge == nullptr );
+	} else if( recurrentMode == RM_BidirectionalConcat ) {
+		NeoAssert( !firstRecurrent->IsReverseSequense() && secondRecurrent != nullptr && secondRecurrent->IsReverseSequense()
+			&& secondBackLink != nullptr && dynamic_cast<CConcatChannelsLayer*>( bidirectionalMerge.Ptr() ) != nullptr );
+	} else if( recurrentMode == RM_BidirectionalSum ) {
+		NeoAssert( !firstRecurrent->IsReverseSequense() && secondRecurrent != nullptr && secondRecurrent->IsReverseSequense()
+			&& secondBackLink != nullptr && dynamic_cast<CEltwiseSumLayer*>( bidirectionalMerge.Ptr() ) != nullptr );
+	} else {
+		NeoAssert( false );
 	}
 }
 
@@ -148,14 +198,18 @@ void CQrnnLayer::Serialize( CArchive& archive )
 	archive.Serialize( activationInt );
 	activation = static_cast<TActivationFunction>( activationInt );
 
+	int recurrentModeInt = static_cast<int>( recurrentMode );
+	archive.Serialize( recurrentModeInt );
+	recurrentMode = static_cast<TRecurrentMode>( recurrentModeInt );
+
 	if( archive.IsLoading() ) {
 		timeConv = CheckCast<CTimeConvLayer>( GetLayer( timeConvName ) );
 		split = CheckCast<CSplitChannelsLayer>( GetLayer( splitName ) );
 		forgetSigmoid = CheckCast<CSigmoidLayer>( GetLayer( forgetSigmoidName ) );
 		negForgetByUpdateByOutput = CheckCast<CEltwiseNegMulLayer>( GetLayer( negForgetByUpdateByOutputName ) );
 		forgetByOutput = CheckCast<CEltwiseMulLayer>( GetLayer( forgetByOutputName ) );
-		recurrentPart = CheckCast<CRecurrentLayer>( GetLayer( recurrentPartName ) );
-		backLink = CheckCast<CBackLinkLayer>( recurrentPart->GetLayer( backLinkName ) );
+		firstRecurrent = CheckCast<CRecurrentLayer>( GetLayer( firstRecurrentName ) );
+		firstBackLink = CheckCast<CBackLinkLayer>( firstRecurrent->GetLayer( backLinkName ) );
 		// Optional layers
 		if( HasLayer( dropoutName ) ) {
 			dropout = CheckCast<CDropoutLayer>( GetLayer( dropoutName ) );
@@ -163,6 +217,11 @@ void CQrnnLayer::Serialize( CArchive& archive )
 		} else {
 			dropout = nullptr;
 			postDropoutLinear = nullptr;
+		}
+		if( IsBidirectional( recurrentMode ) ) {
+			secondRecurrent = CheckCast<CRecurrentLayer>( GetLayer( secondRecurrentName ) );
+			secondBackLink = CheckCast<CBackLinkLayer>( secondRecurrent->GetLayer( backLinkName ) );
+			bidirectionalMerge = GetLayer( bidirectionalMergeName );
 		}
 	}
 }
@@ -210,41 +269,42 @@ void CQrnnLayer::buildLayer()
 	forgetByOutput->Connect( 1, *outputSigmoid );
 	AddLayer( *forgetByOutput );
 
-	buildRecurrentPart();
+	NeoAssert( recurrentMode == RM_Direct );
+	firstRecurrent = buildRecurrentPart( firstRecurrentName );
+	firstRecurrent->Connect( 0, *forgetByOutput );
+	firstRecurrent->Connect( 1, *negForgetByUpdateByOutput );
+	AddLayer( *firstRecurrent );
+	firstBackLink = CheckCast<CBackLinkLayer>( firstRecurrent->GetLayer( backLinkName ) );
 
-	recurrentPart->Connect( 0, *forgetByOutput );
-	recurrentPart->Connect( 1, *negForgetByUpdateByOutput );
-
-	SetInputMapping( 1, *recurrentPart, 2 );
-	SetOutputMapping( *recurrentPart );
+	SetInputMapping( 1, *firstRecurrent, 2 );
+	SetOutputMapping( *firstRecurrent );
 }
 
-void CQrnnLayer::buildRecurrentPart()
+CPtr<CRecurrentLayer> CQrnnLayer::buildRecurrentPart( const char* name )
 {
-	recurrentPart = new CRecurrentLayer( MathEngine() );
-	recurrentPart->SetName( recurrentPartName );
+	CPtr<CRecurrentLayer> result = new CRecurrentLayer( MathEngine() );
+	result->SetName( name );
 
-	backLink = new CBackLinkLayer( MathEngine() );
+	CPtr<CBackLinkLayer> backLink = new CBackLinkLayer( MathEngine() );
 	backLink->SetName( backLinkName );
-	recurrentPart->AddBackLink( *backLink );
-	recurrentPart->SetInputMapping( 2, *backLink, 1 );
+	result->AddBackLink( *backLink );
+	result->SetInputMapping( 2, *backLink, 1 );
 
 	CPtr<CEltwiseMulLayer> prevStateMult = new CEltwiseMulLayer( MathEngine() );
 	prevStateMult->SetName( prevStateMultName );
-	recurrentPart->AddLayer( *prevStateMult );
-	recurrentPart->SetInputMapping( 0, *prevStateMult, 0 );
+	result->AddLayer( *prevStateMult );
+	result->SetInputMapping( 0, *prevStateMult, 0 );
 	prevStateMult->Connect( 1, *backLink );
 
 	CPtr<CEltwiseSumLayer> resultSum = new CEltwiseSumLayer( MathEngine() );
 	resultSum->SetName( resultSumName );
-	recurrentPart->AddLayer( *resultSum );
-	recurrentPart->SetInputMapping( 1, *resultSum, 0 );
+	result->AddLayer( *resultSum );
+	result->SetInputMapping( 1, *resultSum, 0 );
 	resultSum->Connect( 1, *prevStateMult );
 
-	recurrentPart->SetOutputMapping( *resultSum );
+	result->SetOutputMapping( *resultSum );
 	backLink->Connect( *resultSum );
-
-	AddLayer( *recurrentPart );
+	return result;
 }
 
 void CQrnnLayer::addDropout( float rate )
@@ -288,7 +348,58 @@ void CQrnnLayer::deleteDropout()
 	DeleteLayer( *postDropoutLinear );
 	dropout = nullptr;
 	postDropoutLinear = nullptr;
+	negForgetByUpdateByOutput->Connect( 0, *forgetSigmoid );
+	forgetByOutput->Connect( 0, *forgetSigmoid );
 	ForceReshape();
+}
+
+void CQrnnLayer::createBidirectionalLayers()
+{
+	NeoAssert( IsBidirectional( recurrentMode ) );
+	if( secondRecurrent == nullptr ) {
+		secondRecurrent = buildRecurrentPart( secondRecurrentName );
+		secondRecurrent->SetReverseSequence( true );
+		secondRecurrent->Connect( 0, *forgetByOutput );
+		secondRecurrent->Connect( 1, *negForgetByUpdateByOutput );
+		AddLayer( *secondRecurrent );
+		secondBackLink = CheckCast<CBackLinkLayer>( secondRecurrent->GetLayer( backLinkName ) );
+		secondBackLink->SetDimSize( BD_Channels, firstBackLink->GetDimSize( BD_Channels ) );
+		SetInputMapping( 1, *secondRecurrent, 2 );
+	}
+
+	if( bidirectionalMerge != nullptr ) {
+		// We can be here only when the recurrentMode is changing
+		// That means merge layer type was changed
+		DeleteLayer( *bidirectionalMerge );
+		bidirectionalMerge = nullptr;
+	}
+
+	static_assert( CQrnnLayer::RM_Count == 4, "CQrnnLayer::RM_Count != 4" );
+	if( recurrentMode == RM_BidirectionalConcat ) {
+		bidirectionalMerge = new CConcatChannelsLayer( MathEngine() );
+	} else if( recurrentMode == RM_BidirectionalSum ) {
+		bidirectionalMerge = new CEltwiseSumLayer( MathEngine() );
+	} else {
+		NeoAssert( false );
+	}
+	bidirectionalMerge->SetName( bidirectionalMergeName );
+	bidirectionalMerge->Connect( 0, *firstRecurrent );
+	bidirectionalMerge->Connect( 1, *secondRecurrent );
+	AddLayer( *bidirectionalMerge );
+	SetOutputMapping( *bidirectionalMerge );
+}
+
+void CQrnnLayer::deleteBidirectionalLayers()
+{
+	if( secondRecurrent != nullptr ) {
+		NeoAssert( bidirectionalMerge != nullptr );
+		DeleteLayer( *secondRecurrent );
+		secondRecurrent = nullptr;
+		secondBackLink = nullptr;
+		DeleteLayer( *bidirectionalMerge );
+		bidirectionalMerge = nullptr;
+		SetOutputMapping( *firstRecurrent );
+	}
 }
 
 } // namespace NeoML

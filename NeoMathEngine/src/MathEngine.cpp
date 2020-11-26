@@ -176,7 +176,7 @@ class CDefaultMathEngineExceptionHandler : public IMathEngineExceptionHandler {
 public:
 	~CDefaultMathEngineExceptionHandler() override {}
 
-	void OnAssert( const char* message, const wchar_t*,  int, int ) override
+	void OnAssert( const char* message, const wchar_t*, int, int ) override
 	{
 		throw std::logic_error( message );
 	}

@@ -48,9 +48,9 @@ void CCpuMathEngine::multiplyMatrixByMatrix( const float* first, int firstHeight
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
 	float* result, int resultRowSize )
 {
-	assert( firstWidth <= firstRowSize );
-	assert( secondWidth <= secondRowSize );
-	assert( secondWidth <= resultRowSize );
+	ASSERT_EXPR( firstWidth <= firstRowSize );
+	ASSERT_EXPR( secondWidth <= secondRowSize );
+	ASSERT_EXPR( secondWidth <= resultRowSize );
 
 #ifdef NEOML_USE_MKL
 	cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasNoTrans, firstHeight, secondWidth, firstWidth,
@@ -66,8 +66,8 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int first
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
 	float* result, int resultRowSize )
 {
-	assert( firstWidth <= firstRowSize );
-	assert( secondWidth <= resultRowSize );
+	ASSERT_EXPR( firstWidth <= firstRowSize );
+	ASSERT_EXPR( secondWidth <= resultRowSize );
 
 #ifdef NEOML_USE_MKL
 	cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasNoTrans, firstHeight, secondWidth, firstWidth,
@@ -82,8 +82,8 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int fi
 	int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
 	float* result, int resultRowSize)
 {
-	assert(firstWidth <= firstRowSize);
-	assert(firstWidth <= secondRowSize);
+	ASSERT_EXPR(firstWidth <= firstRowSize);
+	ASSERT_EXPR(firstWidth <= secondRowSize);
 
 #ifdef NEOML_USE_MKL
 	cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, firstHeight, secondHeight, firstWidth,
@@ -221,9 +221,9 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd(const float* first,
 	const float* second, int secondWidth, int secondRowSize,
 	float* result, int resultRowSize)
 {
-	assert(firstWidth <= firstRowSize);
-	assert(secondWidth <= secondRowSize);
-	assert(secondWidth <= resultRowSize);
+	ASSERT_EXPR(firstWidth <= firstRowSize);
+	ASSERT_EXPR(secondWidth <= secondRowSize);
+	ASSERT_EXPR(secondWidth <= resultRowSize);
 #ifdef NEOML_USE_MKL
 	cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, firstWidth, secondWidth, firstHeight,
 		1, first, firstRowSize, second, secondRowSize, 1, result, resultRowSize);
