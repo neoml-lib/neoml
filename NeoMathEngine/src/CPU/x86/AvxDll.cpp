@@ -95,7 +95,7 @@ bool CAvxDll::isAvxAvailable()
 	// Check for AVX
 #if FINE_PLATFORM(FINE_WINDOWS)
 
-#if _MSC_VER < 1900
+#if _MSC_VER < 1925
 	// VS 2015 compiles code which doesn't use all ymm registers. It brings to decrease performance compared to MKL.
 	// Therefore we just disable AVX convolution  enhancement in VS2015.
 	return false;
