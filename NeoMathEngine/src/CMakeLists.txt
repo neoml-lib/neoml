@@ -140,9 +140,9 @@ else()
             CPU/x86/AvxDll.h
         )
         target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_AVX)
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
-		set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
-	endif()
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
+        set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
+    endif()
 endif()
 
 # GPU specific source and settings
@@ -230,6 +230,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     endif()
     
 elseif(IOS)
+    # Apple metal
     set(IOS_SOURCES
         GPU/Metal/MetalMathEngine.h
         GPU/Metal/MetalMathEngine.mm
@@ -264,7 +265,7 @@ endif()
 
 if(NeoMathEngine_ENABLE_VULKAN)
     if(WIN32 OR ANDROID)
-        
+        # Vulkan
         if(USE_FINE_OBJECTS)
             set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
         endif()
@@ -287,7 +288,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
             if(USE_FINE_OBJECTS AND CMAKE_HOST_SYSTEM_NAME MATCHES "Linux|Darwin")
                 execute_process(COMMAND chmod +x ${GLSL_COMPILER})
             endif()
-            # Using Vulkan
+
             target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_VULKAN VK_NO_PROTOTYPES)
             
             target_include_directories(${PROJECT_NAME}
@@ -359,7 +360,7 @@ if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
 endif()
 
 # MKL
-if(NOT DARWIN AND NOT ANDROID AND NOT IOS)
+if(NOT ANDROID AND NOT IOS AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86.*")
 
     if(USE_FINE_OBJECTS)
         set(ENV{MKLROOT} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})
