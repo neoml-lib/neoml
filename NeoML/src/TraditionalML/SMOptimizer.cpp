@@ -54,7 +54,7 @@ private:
 		CList *Prev, *Next;	// circular list
 		float *Data; // the data
 
-		CList() { Prev = Next = 0; Data = 0; }
+		CList() { Prev = Next = nullptr; Data = nullptr; }
 	};
 	CArray<CList> columns;  // the array of matrix columns
 	CList lruHead; // the head of the LRU list
@@ -98,12 +98,12 @@ void CKernelCache::lruInsert(CList *l)
 bool CKernelCache::GetColumn(int i, float*& data)
 {
 	CList& column = columns[i];
-	if(column.Next != 0) {
+	if(column.Next != nullptr) {
 		lruDelete(&column);
 	}
 	lruInsert(&column);
 	// The cache has the necessary data
-	if(column.Data != 0) {
+	if(column.Data != nullptr) {
 		data = column.Data;
 		return true;
 	}
@@ -112,7 +112,7 @@ bool CKernelCache::GetColumn(int i, float*& data)
 		CList *old = lruHead.Next;
 		lruDelete(old);
 		delete old->Data;
-		old->Data = 0;
+		old->Data = nullptr;
 		freeSpace += matrixSize;
 	}
 	// Allocate a buffer for new data
@@ -124,25 +124,27 @@ bool CKernelCache::GetColumn(int i, float*& data)
 
 void CKernelCache::SwapIndex( int i, int j )
 {
-    if( i == j ) {
+	if( i == j ) {
 		return;
 	}
 
 	CList& columnI = columns[i];
 	CList& columnJ = columns[j];
-    if( columnI.Next != 0 ) {
+	if( columnI.Next != nullptr ) {
 		lruDelete( &columnI );
 		lruInsert( &columnI );
 	}
-    if( columnI.Next != 0 ) {
+	if( columnJ.Next != nullptr ) {
 		lruDelete( &columnJ );
 		lruInsert( &columnJ );
 	}
-    swap( columnI.Data, columnJ.Data );
+	swap( columnI.Data, columnJ.Data );
 
-    for( CList* column = lruHead.Next; column != &lruHead; column = column->Next ) {
-		swap( column->Data[i], column->Data[j] );
-    }
+	for( CList* column = lruHead.Next; column != &lruHead; column = column->Next ) {
+		if( column->Data != nullptr ) {
+			swap( column->Data[i], column->Data[j] );
+		}
+	}
 }
 
 // The kernel matrix CKernelMatrix(i, j) = K(i, j) * y_i * y_j
@@ -196,7 +198,7 @@ const float* CKernelMatrix::GetColumn(int i) const
 				columnData[j] = static_cast<float>(diagonal[i]);
 			} else {
 				float* columnData1 = cache.GetColumn(j);
-				if(columnData1 != 0) {
+				if(columnData1 != nullptr) {
 					columnData[j] = columnData1[i]; // the matrix is symmetrical
 				} else {
 					CSparseFloatVectorDesc descI;
