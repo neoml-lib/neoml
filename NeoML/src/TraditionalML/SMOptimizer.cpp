@@ -215,11 +215,17 @@ CSMOptimizer::~CSMOptimizer()
 void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 {
 	gradient.Empty();
-	gradient.Add(-1., l ); // the target function gradient
+	gradient.Add( -1., l ); // the target function gradient
 	g = gradient.GetPtr();
-	_alpha.Empty();
-	_alpha.Add( 0., l ); // the support vectors coefficients
-	alpha = _alpha.GetPtr();
+	gradient0.Empty();
+	gradient0.Add( 0., l ); // gradient, if we treat free variables as 0
+	g0 = gradient0.GetPtr();
+	alphaArray.Empty();
+	alphaArray.Add( 0., l ); // the support vectors coefficients
+	alpha = alphaArray.GetPtr();
+	alphaStatusArray.Empty();
+	alphaStatusArray.Add( AS_LowerBound, l );
+	alphaStatus = alphaStatusArray.GetPtr();
 
 	int t;
 	int counter = min( l, 1000 );
@@ -254,6 +260,7 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 	}
 	// Calculate the free term
 	freeTerm = calculateFreeTerm();
+	alphaArray.CopyTo( _alpha );
 }
 
 // reconstruct inactive elements of G from G_bar and free variables
@@ -270,7 +277,7 @@ void CSMOptimizer::reconstructGradient()
 	}
 
 	for( int j=0; j < activeSize; ++j ) {
-		if( alphaStatus[j] == FREE ) {
+		if( alphaStatus[j] == AS_Free ) {
 			freeCount++;
 		}
 	}
@@ -280,13 +287,13 @@ void CSMOptimizer::reconstructGradient()
 		for( int i = activeSize; i < l; ++i ) {
 			auto Q_i = Q->GetColumn( i );
 			for( int j=0; j < activeSize; ++j ) {
-				if( alphaStatus[j] == FREE )
+				if( alphaStatus[j] == AS_Free )
 					g[i] += alpha[j] * Q_i[j];
 			}
 		}
 	} else {
 		for( int i = 0; i < activeSize; ++i ) {
-			if( alphaStatus[i] == FREE ) {
+			if( alphaStatus[i] == AS_Free ) {
 				auto Q_i = Q->GetColumn( i );
 				for( int j = activeSize; j<l; ++j )
 					g[j] += alpha[i] * Q_i[j];
@@ -302,104 +309,87 @@ void CSMOptimizer::reconstructGradient()
 //    -y_j*grad(f)_j < -y_i*grad(f)_i, j in I_low(\alpha)
 bool CSMOptimizer::selectWorkingSet( int& outI, int& outJ ) const
 {
-	double Gmax = -Inf;
-	double Gmax2 = -Inf;
-	int Gmax_idx = -1;
-	int Gmin_idx = -1;
-	double obj_diff_min = Inf;
+	double gMax = -Inf;
+	double gMax2 = -Inf;
+	int gMaxIdx = -1;
+	int gMinIdx = -1;
+	double objDiffMin = Inf;
 
-	for(int t=0;t<l;t++)
-		if( y[t] ==+1 )
-		{
-			if(alpha[t] < C[t])
-				if(-g[t] >= Gmax)
-				{
-					Gmax = -g[t];
-					Gmax_idx = t;
-				}
-		}
-		else
-		{
-			if(alpha[t] > 0)
-				if(g[t] >= Gmax)
-				{
-					Gmax = g[t];
-					Gmax_idx = t;
-				}
-		}
-
-	int i = Gmax_idx;
-	const float *Q_i = NULL;
-	if(i != -1) 
-		Q_i = Q->GetColumn(i);
-
-	for(int j=0;j<l;j++)
-	{
-		if( y[j] ==+1 )
-		{
-			if (alpha[j] > 0)
-			{
-				double grad_diff=Gmax+g[j];
-				if (g[j] >= Gmax2)
-					Gmax2 = g[j];
-				if (grad_diff > 0)
-				{
-					double obj_diff;
-					double quad_coef = QD[i]+QD[j]-2.0*y[i]*Q_i[j];
-					if (quad_coef > 0)
-						obj_diff = -(grad_diff*grad_diff)/quad_coef;
-					else
-						obj_diff = -(grad_diff*grad_diff)/Tau;
-
-					if (obj_diff <= obj_diff_min)
-					{
-						Gmin_idx=j;
-						obj_diff_min = obj_diff;
-					}
+	for( int t = 0; t < l; ++t) {
+		if( y[t] == 1 ) {
+			if( alphaStatus[t] != AS_UpperBound ) {
+				if( -g[t] >= gMax ) {
+					gMax = -g[t];
+					gMaxIdx = t;
 				}
 			}
-		}
-		else
-		{
-			if (alpha[j] < C[j])
-			{
-				double grad_diff= Gmax-g[j];
-				if (-g[j] >= Gmax2)
-					Gmax2 = -g[j];
-				if (grad_diff > 0)
-				{
-					double obj_diff;
-					double quad_coef = QD[i]+QD[j]+2.0*y[i]*Q_i[j];
-					if (quad_coef > 0)
-						obj_diff = -(grad_diff*grad_diff)/quad_coef;
-					else
-						obj_diff = -(grad_diff*grad_diff)/Tau;
-
-					if (obj_diff <= obj_diff_min)
-					{
-						Gmin_idx=j;
-						obj_diff_min = obj_diff;
-					}
-				}
+		} else if( alphaStatus[t] != AS_LowerBound ) {
+			if(g[t] >= gMax) {
+				gMax = g[t];
+				gMaxIdx = t;
 			}
 		}
 	}
 
-	if(Gmax+Gmax2 < tolerance || Gmin_idx == -1)
-		return 1;
+	void ( *updateMinParams )( double, double, const float*, const double*, double, int, double, double,
+		int&, double& );
+	const float* Q_i = NULL;
+	double y_i = 0, QD_i = 0;
+	if( gMaxIdx != -1 ) {
+		Q_i = Q->GetColumn( gMaxIdx );
+		y_i = y[gMaxIdx];
+		QD_i = QD[gMaxIdx];
 
-	outI = Gmax_idx;
-	outJ = Gmin_idx;
-	return 0;
+		updateMinParams = []( double gradDiff, double mult, const float* Q_i, const double* QD, double QD_i,
+				int j, double y_i, double Tau, int& gMinIdx, double& objDiffMin ) {
+			if( gradDiff > 0) {
+				double quadCoef = QD_i + QD[j] + mult * y_i * Q_i[j];
+				if( quadCoef <= 0 ) {
+					quadCoef = Tau;
+				}
+				double objDiff = -( gradDiff * gradDiff ) / quadCoef;
+				if( objDiff <= objDiffMin ) {
+					gMinIdx = j;
+					objDiffMin = objDiff;
+				}
+			}
+		};
+	} else {
+		updateMinParams = []( double, double, const float*, const double*, double, int, double, double,
+			int&, double& ) {};
+	}
+
+	for( int j = 0; j < l; ++j ) {
+		if( y[j] == 1 ) {
+			if( alphaStatus[j] != AS_LowerBound ) {
+				updateMinParams( gMax + g[j], -2, Q_i, QD, QD_i, j, y_i, Tau, gMinIdx, objDiffMin );
+				if( g[j] >= gMax2 ) {
+					gMax2 = g[j];
+				}
+			}
+		} else if( alphaStatus[j] != AS_UpperBound ) {
+			updateMinParams( gMax - g[j], 2, Q_i, QD, QD_i, j, y_i, Tau, gMinIdx, objDiffMin );
+			if( -g[j] >= gMax2 ) {
+				gMax2 = -g[j];
+			}
+		}
+	}
+
+	if( gMax + gMax2 < tolerance || gMinIdx == -1 ) {
+		return true;
+	}
+
+	outI = gMaxIdx;
+	outJ = gMinIdx;
+	return false;
 }
 
 // Optimizes the target function by changing the alpha_i and alpha_j coefficient
 // The optimal values are calculated analytically
-void CSMOptimizer::optimizePair( int i, int j ) const
+void CSMOptimizer::optimizePair( int i, int j )
 {	
 	const float* Q_i = Q->GetColumn(i);
 	const float* Q_j = Q->GetColumn(j);
-
 	double C_i = C[i];
 	double C_j = C[j];
 	double oldAlpha_i = alpha[i];
@@ -407,7 +397,7 @@ void CSMOptimizer::optimizePair( int i, int j ) const
 
 	if( y[i] != y[j] ) {
 		double quadCoef = QD[i] + QD[j] + 2 * Q_i[j];
-		if (quadCoef <= 0) {
+		if( quadCoef <= 0) {
 			quadCoef = Tau;
 		}
 		double delta = (-g[i] - g[j]) / quadCoef;
@@ -439,7 +429,7 @@ void CSMOptimizer::optimizePair( int i, int j ) const
 		}
 	} else {
 		double quadCoef = QD[i] + QD[j] - 2 * Q_i[j];
-		if (quadCoef <= 0)
+		if( quadCoef <= 0 )
 			quadCoef = Tau;
 		double delta = (g[i] - g[j]) / quadCoef;
 		double sum = alpha[i] + alpha[j];
@@ -469,12 +459,33 @@ void CSMOptimizer::optimizePair( int i, int j ) const
 			}
 		}
 	}
+	
 	// Modify the g
 	double deltaAlpha_i = alpha[i] - oldAlpha_i;
 	double deltaAlpha_j = alpha[j] - oldAlpha_j;
 	for(int k = 0; k < l; k++) {
 		g[k] += Q_i[k] * deltaAlpha_i + Q_j[k] * deltaAlpha_j;
 	}
+
+	// Update alphaStatus and g0
+	auto updateAlphaStatusAndGrad0 = [&]( int idx, double C_idx ) {
+		bool ub = alphaStatus[idx] == AS_UpperBound;
+		updateAlphaStatus( idx );
+		if( ub != ( alphaStatus[idx] == AS_UpperBound ) ) {
+			const float* Q_idx = Q->GetColumn( idx );
+			if( ub ) {
+				for( int k=0; k < l; ++k ) {
+					g0[k] -= C_idx * Q_idx[k];
+				}
+			} else {
+				for( int k=0; k < l; ++k ) {
+					g0[k] += C_idx * Q_idx[k];
+				}
+			}
+		}
+	};
+	updateAlphaStatusAndGrad0( i, C_i );
+	updateAlphaStatusAndGrad0( j, C_j );
 }
 
 

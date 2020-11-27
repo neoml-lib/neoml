@@ -25,17 +25,23 @@ namespace NeoML {
 
 class CKernelMatrix;
 
-// The classification rule:
+// An SMO algorithm in Fan et al., JMLR 6(2005), p. 1889--1918
+// Solves:
 //
-// Sum(alpha_i*y_i*K(x_i, x)) + freeTerm <> 0
-// 
-// The function to optimize:
+//  min 0.5(\alpha^T Q \alpha) + p^T \alpha
 //
-//	min 0.5(\alpha^T Q \alpha) - e^T \alpha
+//      y^T \alpha = \delta
+//      y_i = +1 or -1
+//      0 <= alpha_i <= Cp for y_i = 1
+//      0 <= alpha_i <= Cn for y_i = -1
 //
-//		y_i = +1 or -1
-//		0 <= alpha_i <= C_i
-//		y^T \alpha = 0
+// Given:
+//
+//  Q, p, y, Cp, Cn, and an initial feasible point \alpha
+//  l is the size of vectors and matrices
+//  eps is the stopping tolerance
+//
+// solution will be put in \alpha, objective value will be put in obj
 //
 
 // The optimizer for a support-vector machine that uses SMO
@@ -54,9 +60,15 @@ public:
 
 	// Sets a text stream for logging processing
 	// By default logging is off (set to null to turn off)
-	void SetLog(CTextStream* newLog) { log = newLog; }
+	void SetLog( CTextStream* newLog ) { log = newLog; }
 
 private:
+	enum TAlphaStatus {
+		AS_LowerBound,
+		AS_UpperBound,
+		AS_Free
+	}; 
+
 	static const double Inf; // +infinity
 	static const double Tau; // infinitesimal number
 
@@ -68,11 +80,12 @@ private:
 	const CKernelMatrix* Q; // the kernel matrix: CQMatrix(i, j) = K(i, j)*y_i*y_j
 	CTextStream* log; // the logging stream
 
-	// optimize variables
+	// optimizer variables, we use raw pointers to speed up optimization
 	CArray<double> gradient; // gradient
 	double* g; // gradient raw pointer
 	CArray<double> gradient0; // gradient, if we treat free variables as 0
 	double* g0; // gradient0 raw pointer array
+	CArray<double> alphaArray; // gradient
 	double* alpha; // alpha
 	CArray<double> weightsMultErrorWeight; // vector of weigths * errorWeight
 	const double* C; // C raw pointer array
@@ -80,28 +93,29 @@ private:
 	const float* y; // vector of [-1,1] class labels
 	const double* QD; // matrix diagonal
 
-	enum { LOWER_BOUND, UPPER_BOUND, FREE }; 
-	CArray<char> alphaStatusArray; // alpha statuses
-	char* alphaStatus; // alpha status raw pointer array
+	CArray<TAlphaStatus> alphaStatusArray; // alpha statuses
+	TAlphaStatus* alphaStatus; // alpha status raw pointer array
 	CArray<int> activeSetArray; // active set array
 	int* activeSet; // active set raw pointer array
 	int activeSize; // active set size
 
-	void reconstructGradient();
 	void updateAlphaStatus( int i );
+	bool isShrunk();
+	void reconstructGradient();
 	bool selectWorkingSet( int& outI, int& outJ ) const;
-	void optimizePair( int i, int j ) const;
+	void optimizePair( int i, int j );
+	void shrink();
 	float calculateFreeTerm() const;
 };
 
 inline void CSMOptimizer::updateAlphaStatus( int i )
 {
 	if( alpha[i] >= C[i] ) {
-		alphaStatus[i] = UPPER_BOUND;
+		alphaStatus[i] = AS_UpperBound;
 	} else if( alpha[i] <= 0 ) {
-		alphaStatus[i] = LOWER_BOUND;
+		alphaStatus[i] = AS_LowerBound;
 	} else {
-		alphaStatus[i] = FREE;
+		alphaStatus[i] = AS_Free;
 	}
 }
 
