@@ -102,24 +102,13 @@ private:
 
 	bool selectWorkingSet( int& outI, int& outJ ) const;
 	void optimizePair( int i, int j );
+	void updateAlphaStatusAndGradient0( int i );
 	void swapIndex( int i, int j );
 	void shrink();
 	void reconstructGradient();
 	float calculateFreeTerm() const;
-	void updateAlphaStatus( int i );
 	bool canBeShrunk( int i, double gMax1, double gMax2 );
 };
-
-inline void CSMOptimizer::updateAlphaStatus( int i )
-{
-	if( alpha[i] >= C[i] ) {
-		alphaStatus[i] = AS_UpperBound;
-	} else if( alpha[i] <= 0 ) {
-		alphaStatus[i] = AS_LowerBound;
-	} else {
-		alphaStatus[i] = AS_Free;
-	}
-}
 
 inline bool CSMOptimizer::canBeShrunk( int i, double gMax1, double gMax2 )
 {
