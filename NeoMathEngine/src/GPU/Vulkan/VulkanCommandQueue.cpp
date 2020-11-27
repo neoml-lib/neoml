@@ -75,9 +75,9 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 	const void* paramsBuffer, int paramsSize, const CVulkanImage** images, int imageCount,
 	const CVulkanImage** samplers, int samplerCount, const CMemoryHandle* dataBuffers, const size_t* dataSizes, int dataBufferCount )
 {
-	assert( imageCount <= VulkanMaxBindingCount );
-	assert( samplerCount <= VulkanMaxBindingCount );
-	assert( dataBufferCount <= VulkanMaxBindingCount );
+	ASSERT_EXPR( imageCount <= VulkanMaxBindingCount );
+	ASSERT_EXPR( samplerCount <= VulkanMaxBindingCount );
+	ASSERT_EXPR( dataBufferCount <= VulkanMaxBindingCount );
 
 	CCommand* command = new CCommand();
 	command->Buffer = getCommandBuffer();
@@ -130,7 +130,7 @@ void CVulkanCommandQueue::RunComputeShader( const CVulkanShaderData& shader, int
 
 void CVulkanCommandQueue::RunUpdateBuffer( VkBuffer buffer, VkDeviceSize offset, const void* from, size_t size )
 {
-	assert( size <= VulkanMaxUpdateBufferSize );
+	ASSERT_EXPR( size <= VulkanMaxUpdateBufferSize );
 
 	CCommand* command = new CCommand();
 	command->Buffer = getCommandBuffer();

@@ -67,10 +67,10 @@ CVulkanShaderLoader::~CVulkanShaderLoader()
 const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isIB, const uint32_t* code, int codeLen,
 		size_t paramSize, int imageCount, int samplerCount, int bufferCount, int dimensions)
 {
-	assert( imageCount <= IMAGE_MAX_COUNT );
-	assert( samplerCount <= SAMPLER_MAX_COUNT );
-	assert( dimensions >= 1 );
-	assert( dimensions <= 3 );
+	ASSERT_EXPR( imageCount <= IMAGE_MAX_COUNT );
+	ASSERT_EXPR( samplerCount <= SAMPLER_MAX_COUNT );
+	ASSERT_EXPR( dimensions >= 1 );
+	ASSERT_EXPR( dimensions <= 3 );
 
 	if( shaders[id] == 0 ) {
 		// Create the shader data
@@ -128,7 +128,7 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 		VkPushConstantRange pushConstantRange;
 		if( paramSize > 0 || samplerCount > 0 || imageCount > 0 ) {
 			size_t pushConstantSize = PUSH_CONSTANT_PARAM_OFFSET + paramSize;
-			assert( pushConstantSize <= device.Properties.limits.maxPushConstantsSize );
+			ASSERT_EXPR( pushConstantSize <= device.Properties.limits.maxPushConstantsSize );
 			pushConstantRange = { VK_SHADER_STAGE_COMPUTE_BIT, 0, static_cast<uint32_t>( pushConstantSize ) };
 			layoutInfo.pushConstantRangeCount = 1;
 			layoutInfo.pPushConstantRanges = &pushConstantRange;
@@ -188,9 +188,6 @@ const CVulkanShaderData& CVulkanShaderLoader::GetShaderData(TShader id, bool isI
 void CVulkanShaderLoader::calculateThreadGroupSize(int dimensions, 
 	int& threadGroupSizeX, int& threadGroupSizeY, int& threadGroupSizeZ) const
 {
-	assert( dimensions >= 1 );
-	assert( dimensions <= 3 );
-
 	switch( dimensions ) {
 		case 1: {
 			threadGroupSizeX = 

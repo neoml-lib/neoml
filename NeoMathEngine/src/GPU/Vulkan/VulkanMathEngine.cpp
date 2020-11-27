@@ -335,8 +335,8 @@ void CVulkanMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 // Calculate the channels group size (intended for images with large height)
 int CVulkanMathEngine::getChannelGroupSize( int height, int channels ) const
 {
-	assert(height > 0);
-	assert(channels > 0);
+	ASSERT_EXPR(height > 0);
+	ASSERT_EXPR(channels > 0);
 
 	if( !device->IsImageBased ) {
 		return channels; // no images used, so no limitations on geometric size
@@ -352,7 +352,7 @@ int CVulkanMathEngine::getChannelGroupSize( int height, int channels ) const
 // Gets a temporary object with the given id and size
 const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId, int width, int height )
 {
-	assert( device->IsImageBased );
+	ASSERT_EXPR( device->IsImageBased );
 
 	int newWidth = width;
 	int newHeight = height;
@@ -377,8 +377,8 @@ const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId, int
 
 const CVulkanImage* CVulkanMathEngine::getTmpImage( TTmpVulkanImage imageId )
 {
-	assert( device->IsImageBased );
-	assert(tmpImages[imageId] != 0);
+	ASSERT_EXPR( device->IsImageBased );
+	ASSERT_EXPR( tmpImages[imageId] != 0 );
 	return tmpImages[imageId];
 }
 
@@ -401,7 +401,7 @@ void CVulkanMathEngine::runVectorShader( const CVulkanShaderData& shader, const 
 	int groupCountY = Ceil(groupCountX, VulkanMaxVectorXGroupCount);
 	groupCountX = min(groupCountX, VulkanMaxVectorXGroupCount);
 
-	assert(shader.GroupSizeY == 1 && shader.GroupSizeZ == 1);
+	ASSERT_EXPR(shader.GroupSizeY == 1 && shader.GroupSizeZ == 1);
 
 	std::lock_guard<std::mutex> lock( mutex );
 	commandQueue->RunComputeShader( shader, groupCountX, groupCountY, 1,  param, paramSize, images, imageCount, samplers, samplerCount,

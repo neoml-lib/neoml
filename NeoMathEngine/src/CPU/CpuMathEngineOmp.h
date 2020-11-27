@@ -173,7 +173,7 @@ public:
 		sharedItem( _sharedItem ),
 		items( 0 )
 	{
-		assert( count >= 0 );
+		ASSERT_EXPR( count >= 0 );
 		items = reinterpret_cast<TItem*>( malloc( count * sizeof(TItem) ) );
 		TItem* ptr = items;
 		for( int i = 0; i < count; i++ ) {
@@ -197,7 +197,7 @@ public:
 	TItem& GetPrivate() const
 	{
 		const int threadNumber = OmpGetThreadNum();
-		assert( 0 <= threadNumber && threadNumber < count + 1 );
+		ASSERT_EXPR( 0 <= threadNumber && threadNumber < count + 1 );
 
 		if( threadNumber == 0 ) {
 			return sharedItem;
