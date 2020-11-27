@@ -45,6 +45,7 @@ public:
 	bool GetColumn(int i, float*& data);
 	// Returns the pointer to the column; may be null
 	float* GetColumn(int i) const  { return columns[i].Data; }
+	void SwapIndex( int i, int j );
 
 private:
 	const int matrixSize; // the matrix size
@@ -121,6 +122,29 @@ bool CKernelCache::GetColumn(int i, float*& data)
 	return false;
 }
 
+void CKernelCache::SwapIndex( int i, int j )
+{
+    if( i == j ) {
+		return;
+	}
+
+	CList& columnI = columns[i];
+	CList& columnJ = columns[j];
+    if( columnI.Next != 0 ) {
+		lruDelete( &columnI );
+		lruInsert( &columnI );
+	}
+    if( columnI.Next != 0 ) {
+		lruDelete( &columnJ );
+		lruInsert( &columnJ );
+	}
+    swap( columnI.Data, columnJ.Data );
+
+    for( CList* column = lruHead.Next; column != &lruHead; column = column->Next ) {
+		swap( column->Data[i], column->Data[j] );
+    }
+}
+
 // The kernel matrix CKernelMatrix(i, j) = K(i, j) * y_i * y_j
 class CKernelMatrix {
 public:
@@ -136,6 +160,8 @@ public:
 	const double* GetDiagonal() const { return diagonal.GetPtr(); }
 	// Gets y[i] binary class
 	const float* GetBinaryClasses() const { return classes.GetPtr(); }
+	// swaps the data on i and j indices
+	void SwapIndex( int i, int j );
 
 private:
 	const CSparseFloatMatrixDesc matrix; // the problem data
@@ -185,6 +211,22 @@ const float* CKernelMatrix::GetColumn(int i) const
 	return columnData;
 }
 
+void CKernelMatrix::SwapIndex( int i, int j )
+{
+	cache.SwapIndex( i, j );
+	
+	CSparseFloatVectorDesc descI;
+	CSparseFloatVectorDesc descJ;
+	matrix.GetRow( i, descI );
+	matrix.GetRow( j, descJ );
+	swap( descI.Indexes, descJ.Indexes );
+	swap( descI.Values, descJ.Values );
+
+	swap( classes[i], classes[j] );
+	swap( diagonal[i], diagonal[j] );
+}
+
+
 //---------------------------------------------------------------------------------------------------
 
 CSMOptimizer::CSMOptimizer(const CSvmKernel& kernel, const IProblem& _data,
@@ -220,27 +262,46 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 	gradient0.Empty();
 	gradient0.Add( 0., l ); // gradient, if we treat free variables as 0
 	g0 = gradient0.GetPtr();
-	alphaArray.Empty();
-	alphaArray.Add( 0., l ); // the support vectors coefficients
-	alpha = alphaArray.GetPtr();
 	alphaStatusArray.Empty();
 	alphaStatusArray.Add( AS_LowerBound, l );
 	alphaStatus = alphaStatusArray.GetPtr();
 
+	if( shrinking ) {
+		// shrinking does some permutations in coefficients so use internal alpha array
+		alphaArray.Empty();
+		alphaArray.Add( 0., l ); // the support vectors coefficients
+		alpha = alphaArray.GetPtr();
+		activeSetArray.SetSize( l );
+		activeSet = activeSetArray.GetPtr();
+		for( int i = 0; i < l; ++i ) {
+			activeSet[i] = i;
+		}
+		unshrink = false;
+	} else {
+		_alpha.Empty();
+		_alpha.Add( 0., l );
+		alpha = _alpha.GetPtr();
+	}
+	activeSize = l;
+
 	int t;
 	int counter = min( l, 1000 );
-	for(t = 0; t < maxIter; t++) {
+	for( t = 0; t < maxIter; ++t ) {
 		if( --counter == 0 ) {
 			counter = min( l, 1000 );
+			if( shrinking ) {
+				shrink();
+			}
 			// log progress
 			if( log != nullptr ) {
 				*log << ".";
 			}
 		}
 
-		// Find a pair of coefficients that violate Kuhn - Tucker conditions most of all
 		int i, j; 
 		if( selectWorkingSet( i, j ) ) {
+			reconstructGradient();
+			activeSize = l;
 			if(log != nullptr) {
 				*log << "*";
 			}
@@ -260,53 +321,21 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 	}
 	// Calculate the free term
 	freeTerm = calculateFreeTerm();
-	alphaArray.CopyTo( _alpha );
-}
 
-// reconstruct inactive elements of G from G_bar and free variables
-void CSMOptimizer::reconstructGradient()
-{
-	if( activeSize == l ) {
-		return;
-	}
-	NeoAssert( false );
-
-	int freeCount = 0;
-	for( int j = activeSize; j < l; ++j ) {
-		g[j] = g0[j] - 1;
-	}
-
-	for( int j=0; j < activeSize; ++j ) {
-		if( alphaStatus[j] == AS_Free ) {
-			freeCount++;
-		}
-	}
-
-	if( freeCount * l > 2 * activeSize * ( l - activeSize ) )
-	{
-		for( int i = activeSize; i < l; ++i ) {
-			auto Q_i = Q->GetColumn( i );
-			for( int j=0; j < activeSize; ++j ) {
-				if( alphaStatus[j] == AS_Free )
-					g[i] += alpha[j] * Q_i[j];
-			}
-		}
-	} else {
-		for( int i = 0; i < activeSize; ++i ) {
-			if( alphaStatus[i] == AS_Free ) {
-				auto Q_i = Q->GetColumn( i );
-				for( int j = activeSize; j<l; ++j )
-					g[j] += alpha[i] * Q_i[j];
-			}
+	if( shrinking ) {
+		// put back the solution
+		_alpha.SetSize( l );
+		for( int i = 0; i < l; ++i ) {
+			_alpha[activeSet[i]] = alpha[i];
 		}
 	}
 }
 
-// return i,j such that
+// return 1 if already optimal, return 0 otherwise
 // i: maximizes -y_i * grad(f)_i, i in I_up(\alpha)
 // j: minimizes the decrease of obj value
-//    (if quadratic coefficient <= 0, replace it with tau)
-//    -y_j*grad(f)_j < -y_i*grad(f)_i, j in I_low(\alpha)
+//  (if quadratic coefficient <= 0, replace it with tau)
+//  -y_j*grad(f)_j < -y_i*grad(f)_i, j in I_low(\alpha)
 bool CSMOptimizer::selectWorkingSet( int& outI, int& outJ ) const
 {
 	double gMax = -Inf;
@@ -315,7 +344,7 @@ bool CSMOptimizer::selectWorkingSet( int& outI, int& outJ ) const
 	int gMinIdx = -1;
 	double objDiffMin = Inf;
 
-	for( int t = 0; t < l; ++t) {
+	for( int t = 0; t < activeSize; ++t) {
 		if( y[t] == 1 ) {
 			if( alphaStatus[t] != AS_UpperBound ) {
 				if( -g[t] >= gMax ) {
@@ -359,7 +388,7 @@ bool CSMOptimizer::selectWorkingSet( int& outI, int& outJ ) const
 			int&, double& ) {};
 	}
 
-	for( int j = 0; j < l; ++j ) {
+	for( int j = 0; j < activeSize; ++j ) {
 		if( y[j] == 1 ) {
 			if( alphaStatus[j] != AS_LowerBound ) {
 				updateMinParams( gMax + g[j], -2, Q_i, QD, QD_i, j, y_i, Tau, gMinIdx, objDiffMin );
@@ -463,7 +492,7 @@ void CSMOptimizer::optimizePair( int i, int j )
 	// Modify the g
 	double deltaAlpha_i = alpha[i] - oldAlpha_i;
 	double deltaAlpha_j = alpha[j] - oldAlpha_j;
-	for(int k = 0; k < l; k++) {
+	for(int k = 0; k < activeSize; k++) {
 		g[k] += Q_i[k] * deltaAlpha_i + Q_j[k] * deltaAlpha_j;
 	}
 
@@ -488,6 +517,112 @@ void CSMOptimizer::optimizePair( int i, int j )
 	updateAlphaStatusAndGrad0( j, C_j );
 }
 
+void CSMOptimizer::swapIndex( int i, int j )
+{
+	Q->SwapIndex( i, j );
+	swap( g[i], g[j] );
+	swap( alphaStatus[i], alphaStatus[j] );
+	swap( alpha[i], alpha[j] );
+	swap( activeSet[i], activeSet[j] );
+	swap( g0[i], g0[j] );
+	swap( C[i], C[j] );
+}
+
+
+// excludes from active set elements that have reached their upper/lower bound
+// gMax1: max { -y_i * grad(f)_i | i in I_up(\alpha) }
+// gMax2: max { y_i * grad(f)_i | i in I_low(\alpha) }
+void CSMOptimizer::shrink()
+{
+	int i;
+	double gMax1 = -Inf;
+	double gMax2 = -Inf;
+
+	// find maximal violating pair first
+	for( i=0; i < activeSize; ++i ) {
+		if( y[i] == 1 ) {
+			if( alphaStatus[i] != AS_UpperBound && -g[i] >= gMax1 ) {
+				gMax1 = -g[i];
+			}
+			if( alphaStatus[i] != AS_LowerBound && g[i] >= gMax2 ) {
+				gMax2 = g[i];
+			}
+		} else {
+			if( alphaStatus[i] != AS_UpperBound && -g[i] >= gMax2 ) {
+				gMax2 = -g[i];
+			}
+			if( alphaStatus[i] != AS_LowerBound && g[i] >= gMax1 ) {
+				gMax1 = g[i];
+			}
+		}
+	}
+
+	if( !unshrink && gMax1 + gMax2 <= tolerance * 10 ) {
+		unshrink = true;
+		reconstructGradient();
+		activeSize = l;
+		if( log != nullptr ) {
+			*log << "*";
+		}
+	}
+
+	for( i = 0; i < activeSize; ++i ) {
+		if( canBeShrunk( i, gMax1, gMax2 ) ) {
+			--activeSize;
+			while( activeSize > i ) {
+				if( !canBeShrunk( activeSize, gMax1, gMax2 ) ) {
+					swapIndex( i, activeSize );
+					break;
+				}
+				--activeSize;
+			}
+		}
+	}
+}
+
+// reconstruct inactive elements of G from G_bar and free variables
+void CSMOptimizer::reconstructGradient()
+{
+	if( activeSize == l ) {
+		return;
+	}
+
+	int freeCount = 0;
+	for( int j = activeSize; j < l; ++j ) {
+		g[j] = g0[j] - 1;
+	}
+
+	for( int j = 0; j < activeSize; ++j ) {
+		if( alphaStatus[j] == AS_Free ) {
+			freeCount++;
+		}
+	}
+
+	if( log != nullptr && 2 * freeCount < activeSize ) {
+		*log << "\nWarning: using Shrinking=false may be faster\n";
+	}
+
+	if( freeCount * l > 2 * activeSize * ( l - activeSize ) )
+	{
+		for( int i = activeSize; i < l; ++i ) {
+			auto Q_i = Q->GetColumn( i );
+			for( int j = 0; j < activeSize; ++j ) {
+				if( alphaStatus[j] == AS_Free ) {
+					g[i] += alpha[j] * Q_i[j];
+				}
+			}
+		}
+	} else {
+		for( int i = 0; i < activeSize; ++i ) {
+			if( alphaStatus[i] == AS_Free ) {
+				auto Q_i = Q->GetColumn( i );
+				for( int j = activeSize; j < l; ++j ) {
+					g[j] += alpha[i] * Q_i[j];
+				}
+			}
+		}
+	}
+}
 
 // Calculates the free term
 float CSMOptimizer::calculateFreeTerm() const

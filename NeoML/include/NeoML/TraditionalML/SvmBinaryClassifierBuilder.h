@@ -55,10 +55,12 @@ public:
 		double Gamma; // the coefficient before the kernel (used for KT_Poly, KT_RBF, KT_Sigmoid).
 		double Coeff0; // the free term in the kernel (used for KT_Poly, KT_Sigmoid).
 		double Tolerance; // the solution precision and the stop criterion
+		bool Shrinking; // do shrinking or not
 		int ThreadCount; // the number of processing threads used
 
 		CParams( CSvmKernel::TKernelType kerneltype, double errorWeight = 1., int maxIterations = 10000,
-				int degree = 1, double gamma = 1., double coeff0 = 1., double tolerance = 0.1, int threadCount = 1 ) :
+				int degree = 1, double gamma = 1., double coeff0 = 1., double tolerance = 0.1,
+				bool shrinking = true, int threadCount = 1 ) :
 			KernelType( kerneltype ),
 			ErrorWeight( errorWeight ),
 			MaxIterations( maxIterations ),
@@ -66,6 +68,7 @@ public:
 			Gamma( gamma ),
 			Coeff0( coeff0 ),
 			Tolerance( tolerance ),
+			Shrinking( shrinking ),
 			ThreadCount( threadCount )
 		{
 		}

@@ -52,7 +52,7 @@ public:
 	// tolerance is the required precision
 	// cacheSize is the cache size in MB
 	CSMOptimizer(const CSvmKernel& kernel, const IProblem& data, int maxIter, double errorWeight, double tolerance,
-		bool shrinking = false, int cacheSize = 100);
+		bool shrinking, int cacheSize = 100);
 	~CSMOptimizer();
 
 	// Calculates the optimal multipliers for the support vectors
@@ -77,7 +77,7 @@ private:
 	const double errorWeight; // the error weight relative to the regularizer (the relative weight of the data set)
 	const double tolerance; // the stop criterion
 	bool shrinking; // do shrinking or not
-	const CKernelMatrix* Q; // the kernel matrix: CQMatrix(i, j) = K(i, j)*y_i*y_j
+	CKernelMatrix* Q; // the kernel matrix: CQMatrix(i, j) = K(i, j)*y_i*y_j
 	CTextStream* log; // the logging stream
 
 	// optimizer variables, we use raw pointers to speed up optimization
@@ -88,7 +88,7 @@ private:
 	CArray<double> alphaArray; // gradient
 	double* alpha; // alpha
 	CArray<double> weightsMultErrorWeight; // vector of weigths * errorWeight
-	const double* C; // C raw pointer array
+	double* C; // C raw pointer array
 	int l; // problem length
 	const float* y; // vector of [-1,1] class labels
 	const double* QD; // matrix diagonal
@@ -97,15 +97,17 @@ private:
 	TAlphaStatus* alphaStatus; // alpha status raw pointer array
 	CArray<int> activeSetArray; // active set array
 	int* activeSet; // active set raw pointer array
-	int activeSize; // active set size
+	int activeSize;
+	bool unshrink;
 
-	void updateAlphaStatus( int i );
-	bool isShrunk();
-	void reconstructGradient();
 	bool selectWorkingSet( int& outI, int& outJ ) const;
 	void optimizePair( int i, int j );
+	void swapIndex( int i, int j );
 	void shrink();
+	void reconstructGradient();
 	float calculateFreeTerm() const;
+	void updateAlphaStatus( int i );
+	bool canBeShrunk( int i, double gMax1, double gMax2 );
 };
 
 inline void CSMOptimizer::updateAlphaStatus( int i )
@@ -118,5 +120,25 @@ inline void CSMOptimizer::updateAlphaStatus( int i )
 		alphaStatus[i] = AS_Free;
 	}
 }
+
+inline bool CSMOptimizer::canBeShrunk( int i, double gMax1, double gMax2 )
+{
+	if( alphaStatus[i] == AS_UpperBound ) {
+		if( y[i] == 1 ) {
+			return -g[i] > gMax1;
+		} else {
+			return -g[i] > gMax2;
+		}
+	} else if( alphaStatus[i] == AS_LowerBound ) {
+		if( y[i] == 1 ) {
+			return g[i] > gMax2;
+		} else {
+			return g[i] > gMax1;
+		}
+	} else {
+		return false;
+	}
+}
+
 
 } // namespace NeoML
