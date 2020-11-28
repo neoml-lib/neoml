@@ -209,7 +209,7 @@ CKernelMatrix::CKernelMatrix( const IProblem& data, const CSvmKernel& kernel, in
 	// Calculate the matrix diagonal and fill the matrix with sparse vector descs
 	for( int i = 0; i < diagonal.Size(); i++ ) {
 		auto& x_i = x[i];
-		y[i] = data.GetBinaryClass( i );
+		y[i] = static_cast<float>( data.GetBinaryClass( i ) );
 		data.GetMatrix().GetRow( i, x_i );
 		d[i] = kernel.Calculate( x_i, x_i );
 	}
@@ -238,7 +238,7 @@ const float* CKernelMatrix::GetColumn( int i, int len ) const
 			for( int j = start; j < i; ++j ) {
 				calcData( j );
 			}
-			data[i] = d[i];
+			data[i] = static_cast<float>( d[i] );
 			for( int j = i+1; j < len; ++j ) {
 				calcData( j );
 			}
