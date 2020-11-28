@@ -103,9 +103,9 @@ private:
 	bool selectWorkingSet( int& outI, int& outJ ) const;
 	void optimizePair( int i, int j );
 	void updateAlphaStatusAndGradient0( int i );
+	void reconstructGradient();
 	void swapIndex( int i, int j );
 	void shrink();
-	void reconstructGradient();
 	float calculateFreeTerm() const;
 	bool canBeShrunk( int i, double gMax1, double gMax2 );
 };
@@ -128,6 +128,5 @@ inline bool CSMOptimizer::canBeShrunk( int i, double gMax1, double gMax2 )
 		return false;
 	}
 }
-
 
 } // namespace NeoML

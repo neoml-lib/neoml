@@ -84,7 +84,7 @@ CKernelCache::CKernelCache( int matrixSize, int cacheSize )
 CKernelCache::~CKernelCache()
 {
 	for(CList *l = lruHead.Next; l != &lruHead; l = l->Next) {
-		delete l->Data;
+		free( l->Data );
 	}
 }
 
@@ -117,14 +117,14 @@ int CKernelCache::GetData( int i, float*& data, int len )
         {
             CList *old = lruHead.Next;
             lruDelete(old);
-            delete old->Data;
+            free( old->Data );
             freeSpace += old->Length;
             old->Data = nullptr;
             old->Length = 0;
         }
 
         // allocate new space
-		h->Data = FINE_DEBUG_NEW float[len];
+		h->Data = (float*)realloc(h->Data,sizeof(float)*len);
         freeSpace -= more;
         swap( h->Length, len );
     }
@@ -159,7 +159,7 @@ void CKernelCache::SwapIndex( int i, int j )
             {
                 // give up
                 lruDelete(h);
-                delete h->Data;
+                free( h->Data );
                 freeSpace += h->Length;
                 h->Data = 0;
                 h->Length = 0;
@@ -349,11 +349,13 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 		updateAlphaStatusAndGradient0( i );
 		updateAlphaStatusAndGradient0( j );
 	}
-	if(log != nullptr) {
-		*log << "\noptimization finished, #iter = " << t << "\n";
-	}
+	
 	// Calculate the free term
 	freeTerm = calculateFreeTerm();
+	if(log != nullptr) {
+		*log << "\noptimization finished, #iter = " << t << "\n";
+		*log << "free term = " << freeTerm << "\n";
+	}
 
 	if( shrinking ) {
 		// put back the solution
@@ -558,8 +560,55 @@ void CSMOptimizer::updateAlphaStatusAndGradient0( int i )
 	}
 }
 
+// reconstruct inactive elements of G from G_bar and free variables
+void CSMOptimizer::reconstructGradient()
+{
+	if( activeSize == l ) {
+		return;
+	}
+
+	int freeCount = 0;
+	for( int j = activeSize; j < l; ++j ) {
+		g[j] = g0[j] - 1;
+	}
+
+	for( int j = 0; j < activeSize; ++j ) {
+		if( alphaStatus[j] == AS_Free ) {
+			++freeCount;
+		}
+	}
+
+	if( log != nullptr && 2 * freeCount < activeSize ) {
+		*log << "\nWarning: using Shrinking=false may be faster\n";
+	}
+
+	if( freeCount * l > 2 * activeSize * ( l - activeSize ) )
+	{
+		for( int i = activeSize; i < l; ++i ) {
+			auto Q_i = Q->GetColumn( i, activeSize );
+			for( int j = 0; j < activeSize; ++j ) {
+				if( alphaStatus[j] == AS_Free ) {
+					g[i] += alpha[j] * Q_i[j];
+				}
+			}
+		}
+	} else {
+		for( int i = 0; i < activeSize; ++i ) {
+			if( alphaStatus[i] == AS_Free ) {
+				auto Q_i = Q->GetColumn( i, l );
+				double alpha_i = alpha[i];
+				for( int j = activeSize; j < l; ++j ) {
+					g[j] += alpha_i * Q_i[j];
+				}
+			}
+		}
+	}
+}
+
 void CSMOptimizer::swapIndex( int i, int j )
 {
+	NeoPresume( shrinking );
+
 	Q->SwapIndex( i, j );
 	swap( g[i], g[j] );
 	swap( g0[i], g0[j] );
@@ -568,7 +617,6 @@ void CSMOptimizer::swapIndex( int i, int j )
 	swap( alphaStatus[i], alphaStatus[j] );
 	swap( activeSet[i], activeSet[j] );
 }
-
 
 // excludes from active set elements that have reached their upper/lower bound
 // gMax1: max { -y_i * grad(f)_i | i in I_up(\alpha) }
@@ -620,66 +668,21 @@ void CSMOptimizer::shrink()
 	}
 }
 
-// reconstruct inactive elements of G from G_bar and free variables
-void CSMOptimizer::reconstructGradient()
-{
-	if( activeSize == l ) {
-		return;
-	}
-
-	int freeCount = 0;
-	for( int j = activeSize; j < l; ++j ) {
-		g[j] = g0[j] - 1;
-	}
-
-	for( int j = 0; j < activeSize; ++j ) {
-		if( alphaStatus[j] == AS_Free ) {
-			freeCount++;
-		}
-	}
-
-	if( log != nullptr && 2 * freeCount < activeSize ) {
-		*log << "\nWarning: using Shrinking=false may be faster\n";
-	}
-
-	if( freeCount * l > 2 * activeSize * ( l - activeSize ) )
-	{
-		for( int i = activeSize; i < l; ++i ) {
-			auto Q_i = Q->GetColumn( i, activeSize );
-			for( int j = 0; j < activeSize; ++j ) {
-				if( alphaStatus[j] == AS_Free ) {
-					g[i] += alpha[j] * Q_i[j];
-				}
-			}
-		}
-	} else {
-		for( int i = 0; i < activeSize; ++i ) {
-			if( alphaStatus[i] == AS_Free ) {
-				auto Q_i = Q->GetColumn( i, l );
-				double alpha_i = alpha[i];
-				for( int j = activeSize; j < l; ++j ) {
-					g[j] += alpha_i * Q_i[j];
-				}
-			}
-		}
-	}
-}
-
 // Calculates the free term
 float CSMOptimizer::calculateFreeTerm() const
 {
 	int nFree = 0; // the number of "free" support vectors
 	double upperBound = Inf, lowerBound = -Inf, sumFree = 0;
-	for(int i = 0; i < l; i++) {
+	for(int i = 0; i < activeSize; i++) {
 		const double binaryClass = y[i];
 		double yGrad = -binaryClass * g[i];
-		if(alpha[i] >= C[i]) {
+		if( alphaStatus[i] == AS_UpperBound ) {
 			if(binaryClass == +1) {
 				upperBound = min(upperBound, yGrad);
 			} else {
 				lowerBound = max(lowerBound, yGrad);
 			}
-		} else if(alpha[i] <= 0) {
+		} else if( alphaStatus[i] == AS_LowerBound ) {
 			if(binaryClass == -1) {
 				upperBound = min(upperBound, yGrad);
 			} else {
