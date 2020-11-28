@@ -44,8 +44,8 @@ public:
 	// return some position p where [p,len) need to be filled
 	// (p >= len if nothing needs to be filled)
 	int GetData( int i, float*& data, int len );
-	// Returns the pointer to the column; may be null
-	float* GetData(int i) const { return columns[i].Data; }
+	// Returns the pointer to the column (may be null) and sets the len
+	float* GetData( int i, int& len ) const;
 	void SwapIndex( int i, int j );
 
 private:
@@ -57,16 +57,24 @@ private:
 
 		CList() { Prev = Next = nullptr; Data = nullptr; Length = 0; }
 	};
-	CArray<CList> columns;  // the array of matrix columns
+	CArray<CList> columns; // the array of matrix columns
+	CList* c; // raw pointer to columns
 	CList lruHead; // the head of the LRU list
 	
 	void lruDelete(CList *l);
 	void lruInsert(CList *l);
 };
 
+inline float* CKernelCache::GetData( int i, int& len ) const
+{
+	len = c[i].Length;
+	return c[i].Data;
+}
+
 CKernelCache::CKernelCache( int matrixSize, int cacheSize )
 {
 	columns.SetSize(matrixSize);
+	c = columns.GetPtr();
 	freeSpace = cacheSize / sizeof(float);
 	freeSpace -= matrixSize * sizeof(CList) / sizeof(float); // the columns array size
 	freeSpace = max(freeSpace, 2 * matrixSize);	// at least two columns should fit into cache
@@ -98,7 +106,7 @@ void CKernelCache::lruInsert(CList *l)
 
 int CKernelCache::GetData( int i, float*& data, int len )
 {
-    CList *h = &columns[i];
+    CList *h = &c[i];
     if(h->Length) lruDelete(h);
     int more = len - h->Length;
 
@@ -132,7 +140,7 @@ void CKernelCache::SwapIndex( int i, int j )
 		return;
 	}
 
-	CList* head = columns.GetPtr();
+	CList* head = c;
     if(head[i].Length) lruDelete(&head[i]);
     if(head[j].Length) lruDelete(&head[j]);
     swap(head[i].Data,head[j].Data);
@@ -168,32 +176,39 @@ public:
 	// Gets the pointer to a column
 	const float* GetColumn( int i, int len ) const;
 	// Gets the pointer to the diagonal
-	const double* GetDiagonal() const { return diagonal.GetPtr(); }
+	const double* GetDiagonal() const { return d; }
 	// Gets y[i] binary class
-	const float* GetBinaryClasses() const { return classes.GetPtr(); }
+	const float* GetBinaryClasses() const { return y; }
 	// swaps the data on i and j indices
 	void SwapIndex( int i, int j );
 
 private:
-	CSparseFloatMatrixDesc matrix; // the problem data
-	CArray<float> classes; // the vector classes
 	CSvmKernel kernel; // the SVM kernel
 	mutable CKernelCache cache; // the columns cache
+	CArray<CSparseFloatVectorDesc> matrix; // the problem data
+	CSparseFloatVectorDesc* x; // raw pointer to data
+	CArray<float> classes; // the vector classes
+	float* y; // raw pointer to binary classes
 	CArray<double> diagonal; // the matrix diagonal
+	double* d; // raw pointer to diagonal
 };
 
 CKernelMatrix::CKernelMatrix( const IProblem& data, const CSvmKernel& kernel, int cacheSize ) :
-	matrix( data.GetMatrix() ),
 	kernel(kernel), 
 	cache( data.GetVectorCount(), cacheSize * (1<<20) )
 {
+	matrix.SetSize( data.GetVectorCount() );
+	x = matrix.GetPtr();
+	classes.SetSize( data.GetVectorCount() );
+	y = classes.GetPtr();
 	diagonal.SetSize( data.GetVectorCount() );
-	// Calculate the matrix diagonal
+	d = diagonal.GetPtr();
+	// Calculate the matrix diagonal and fill the matrix with sparse vector descs
 	for( int i = 0; i < diagonal.Size(); i++ ) {
-		classes.Add( static_cast<float>( data.GetBinaryClass(i) ) );
-		CSparseFloatVectorDesc vector;
-		matrix.GetRow( i, vector );
-		diagonal[i] = kernel.Calculate( vector, vector );
+		auto& x_i = x[i];
+		y[i] = data.GetBinaryClass( i );
+		data.GetMatrix().GetRow( i, x_i );
+		d[i] = kernel.Calculate( x_i, x_i );
 	}
 }
 
@@ -202,15 +217,31 @@ const float* CKernelMatrix::GetColumn( int i, int len ) const
 	float *data;
 	int start;
 	if( ( start = cache.GetData( i, data, len ) ) < len ) {
-		CSparseFloatVectorDesc descI;
-		matrix.GetRow( i, descI );
-		auto y = classes.GetPtr();
 		float y_i = y[i];
-		CSparseFloatVectorDesc descJ;
-		// TODO: optimize here (set diagonal and check symmetrical
-		for( int j = start; j < len; ++j ) {
-			matrix.GetRow( j, descJ );
-			data[j] = static_cast<float>( y_i * y[j] * kernel.Calculate( descI, descJ ) );
+		auto x_i = x[i];
+		auto calcData = [&]( int j ) {
+			// the cache matrix is symmetrical so col[i][j] == col[j][i]
+			int jColLen;
+			float* jColData = cache.GetData( j, jColLen );
+			if( jColLen > i ) {
+				data[j] = jColData[i];
+			} else {
+				data[j] = static_cast<float>( y_i * y[j] * kernel.Calculate( x_i, x[j] ) );
+			}
+		};
+
+		if( i >= start && i <= len ) {
+			for( int j = start; j < i; ++j ) {
+				calcData( j );
+			}
+			data[i] = d[i];
+			for( int j = i+1; j < len; ++j ) {
+				calcData( j );
+			}
+		} else {
+			for( int j = start; j < len; ++j ) {
+				calcData( j );
+			}
 		}
 	}
 	return data;
@@ -219,36 +250,9 @@ const float* CKernelMatrix::GetColumn( int i, int len ) const
 void CKernelMatrix::SwapIndex( int i, int j )
 {
 	cache.SwapIndex( i, j );
-
-#ifndef _FINAL
-	CSparseFloatVectorDesc descI;
-	CSparseFloatVectorDesc descJ;
-	matrix.GetRow( i, descI );
-	matrix.GetRow( j, descJ );
-#endif
-
-	swap( matrix.PointerB[i], matrix.PointerB[j] );
-	swap( matrix.PointerE[i], matrix.PointerE[j] );
-
-#ifndef _FINAL
-	CSparseFloatVectorDesc descI2;
-	CSparseFloatVectorDesc descJ2;
-	matrix.GetRow( i, descI2 );
-	matrix.GetRow( j, descJ2 );
-
-	auto compare = []( CSparseFloatVectorDesc s1, CSparseFloatVectorDesc s2 ) {
-		NeoAssert( s1.Size == s2.Size );
-		for( int i = 0; i < s1.Size; ++i ) {
-			NeoAssert( s1.Indexes[i] == s2.Indexes[i] );
-			NeoAssert( s1.Values[i] == s2.Values[i] );
-		}
-	};
-	compare( descI, descJ2 );
-	compare( descJ, descI2 );
-#endif
-
-	swap( classes[i], classes[j] );
-	swap( diagonal[i], diagonal[j] );
+	swap( x[i], x[j] );
+	swap( y[i], y[j] );
+	swap( d[i], d[j] );
 }
 
 
