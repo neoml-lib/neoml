@@ -30,10 +30,10 @@ class CKernelMatrix;
 //
 //  min 0.5(\alpha^T Q \alpha) + p^T \alpha
 //
-//      y^T \alpha = \delta
-//      y_i = +1 or -1
-//      0 <= alpha_i <= Cp for y_i = 1
-//      0 <= alpha_i <= Cn for y_i = -1
+//	  y^T \alpha = \delta
+//	  y_i = +1 or -1
+//	  0 <= alpha_i <= Cp for y_i = 1
+//	  0 <= alpha_i <= Cn for y_i = -1
 //
 // Given:
 //

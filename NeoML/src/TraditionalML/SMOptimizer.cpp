@@ -138,37 +138,37 @@ void CKernelCache::SwapIndex( int i, int j )
 		return;
 	}
 
-    if( c[i].Length ) {
+	if( c[i].Length ) {
 		lruDelete( &c[i] );
 	}
-    if( c[j].Length ) {
+	if( c[j].Length ) {
 		lruDelete( &c[j] );
 	}
-    swap( c[i].Data, c[j].Data );
-    swap( c[i].Length, c[j].Length );
-    if( c[i].Length ) {
+	swap( c[i].Data, c[j].Data );
+	swap( c[i].Length, c[j].Length );
+	if( c[i].Length ) {
 		lruInsert( &c[i] );
 	}
-    if( c[j].Length ) {
+	if( c[j].Length ) {
 		lruInsert( &c[j] );
 	}
 
-    if( i > j ) {
+	if( i > j ) {
 		swap( i, j );
 	}
-    for( CList *l = lruHead.Next; l != &lruHead; l = l->Next ) {
-        if( l->Length > i ) {
-            if( l->Length > j ) {
-                swap( l->Data[i], l->Data[j] );
-            } else {
-                lruDelete( l );
-                delete l->Data;
-                freeSpace += matrixSize;
-                l->Data = 0;
-                l->Length = 0;
-            }
-        }
-    }
+	for( CList *l = lruHead.Next; l != &lruHead; l = l->Next ) {
+		if( l->Length > i ) {
+			if( l->Length > j ) {
+				swap( l->Data[i], l->Data[j] );
+			} else {
+				lruDelete( l );
+				delete l->Data;
+				freeSpace += matrixSize;
+				l->Data = 0;
+				l->Length = 0;
+			}
+		}
+	}
 }
 
 // The kernel matrix CKernelMatrix(i, j) = K(i, j) * y_i * y_j
