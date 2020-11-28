@@ -49,6 +49,7 @@ public:
 	void SwapIndex( int i, int j );
 
 private:
+	int matrixSize; // the maximum data array len
 	int freeSpace; // the free space in cache (how many float values can fit in) 
 	struct CList {
 		CList *Prev, *Next;	// a circular list
@@ -71,7 +72,8 @@ inline float* CKernelCache::GetData( int i, int& len ) const
 	return c[i].Data;
 }
 
-CKernelCache::CKernelCache( int matrixSize, int cacheSize )
+CKernelCache::CKernelCache( int _matrixSize, int cacheSize )
+	: matrixSize( _matrixSize )
 {
 	columns.SetSize(matrixSize);
 	c = columns.GetPtr();
@@ -84,7 +86,7 @@ CKernelCache::CKernelCache( int matrixSize, int cacheSize )
 CKernelCache::~CKernelCache()
 {
 	for(CList *l = lruHead.Next; l != &lruHead; l = l->Next) {
-		free( l->Data );
+		delete l->Data;
 	}
 }
 
@@ -106,32 +108,28 @@ void CKernelCache::lruInsert(CList *l)
 
 int CKernelCache::GetData( int i, float*& data, int len )
 {
-    CList *h = &c[i];
-    if(h->Length) lruDelete(h);
-    int more = len - h->Length;
+	CList& column = c[i];
+	if( column.Length != 0 ) {
+		lruDelete( &column );
+	}
+	lruInsert( &column );
 
-    if(more > 0)
-    {
-        // free old space
-        while( freeSpace < more )
-        {
-            CList *old = lruHead.Next;
-            lruDelete(old);
-            free( old->Data );
-            freeSpace += old->Length;
-            old->Data = nullptr;
-            old->Length = 0;
-        }
-
-        // allocate new space
-		h->Data = (float*)realloc(h->Data,sizeof(float)*len);
-        freeSpace -= more;
-        swap( h->Length, len );
-    }
-
-    lruInsert(h);
-    data = h->Data;
-    return len;
+	if( column.Data != 0 ) {
+		data = column.Data;
+	} else {
+		if( freeSpace < matrixSize ) {
+			CList *old = lruHead.Next;
+			lruDelete( old );
+			delete old->Data;
+			old->Data = 0;
+			freeSpace += matrixSize;
+		}
+		column.Data = FINE_DEBUG_NEW float[matrixSize];
+		freeSpace -= matrixSize;
+		data = column.Data;
+	}
+	swap( column.Length, len );
+	return len;
 }
 
 void CKernelCache::SwapIndex( int i, int j )
@@ -140,29 +138,34 @@ void CKernelCache::SwapIndex( int i, int j )
 		return;
 	}
 
-	CList* head = c;
-    if(head[i].Length) lruDelete(&head[i]);
-    if(head[j].Length) lruDelete(&head[j]);
-    swap(head[i].Data,head[j].Data);
-    swap(head[i].Length,head[j].Length);
-    if(head[i].Length) lruInsert(&head[i]);
-    if(head[j].Length) lruInsert(&head[j]);
+    if( c[i].Length ) {
+		lruDelete( &c[i] );
+	}
+    if( c[j].Length ) {
+		lruDelete( &c[j] );
+	}
+    swap( c[i].Data, c[j].Data );
+    swap( c[i].Length, c[j].Length );
+    if( c[i].Length ) {
+		lruInsert( &c[i] );
+	}
+    if( c[j].Length ) {
+		lruInsert( &c[j] );
+	}
 
-    if(i>j) swap(i,j);
-    for(CList *h = lruHead.Next; h!=&lruHead; h=h->Next)
-    {
-        if(h->Length > i)
-        {
-            if(h->Length > j)
-                swap(h->Data[i],h->Data[j]);
-            else
-            {
-                // give up
-                lruDelete(h);
-                free( h->Data );
-                freeSpace += h->Length;
-                h->Data = 0;
-                h->Length = 0;
+    if( i > j ) {
+		swap( i, j );
+	}
+    for( CList *l = lruHead.Next; l != &lruHead; l = l->Next ) {
+        if( l->Length > i ) {
+            if( l->Length > j ) {
+                swap( l->Data[i], l->Data[j] );
+            } else {
+                lruDelete( l );
+                delete l->Data;
+                freeSpace += matrixSize;
+                l->Data = 0;
+                l->Length = 0;
             }
         }
     }
@@ -230,6 +233,7 @@ const float* CKernelMatrix::GetColumn( int i, int len ) const
 			}
 		};
 
+		// set diagonal element if it's needed
 		if( i >= start && i <= len ) {
 			for( int j = start; j < i; ++j ) {
 				calcData( j );
@@ -314,7 +318,7 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 	activeSize = l;
 
 	int t;
-	int counter = min( l, 1000 );
+	int counter = min( l, 1000 ) + 1;
 	for( t = 0; t < maxIter; ++t ) {
 		if( --counter == 0 ) {
 			counter = min( l, 1000 );

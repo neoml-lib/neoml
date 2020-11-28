@@ -52,7 +52,7 @@ public:
 	// tolerance is the required precision
 	// cacheSize is the cache size in MB
 	CSMOptimizer(const CSvmKernel& kernel, const IProblem& data, int maxIter, double errorWeight, double tolerance,
-		bool shrinking, int cacheSize = 100);
+		bool shrinking, int cacheSize = 200);
 	~CSMOptimizer();
 
 	// Calculates the optimal multipliers for the support vectors
