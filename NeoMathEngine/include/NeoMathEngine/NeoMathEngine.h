@@ -803,6 +803,9 @@ public:
 
 	// Releases all temporary resources allocated for the current thread
 	virtual void CleanUp() = 0;
+	// Release temporart cache resources allocated for the current thread
+	virtual void CleanUpDevice() = 0;
+	virtual void CleanUpHost() = 0;
 
 	// Gets a pointer to access the handle memory
 	// GetBuffer and ReleaseBuffer should be called strictly in LIFO order

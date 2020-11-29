@@ -113,6 +113,16 @@ CCpuMathEngine::~CCpuMathEngine()
 #endif
 }
 
+void CCpuMathEngine::CleanUpDevice()
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	stackAllocator->CleanUp();
+}
+
+void CCpuMathEngine::CleanUpHost()
+{
+}
+
 void CCpuMathEngine::SetReuseMemoryMode( bool enable )
 {
 	std::lock_guard<std::mutex> lock( mutex );
