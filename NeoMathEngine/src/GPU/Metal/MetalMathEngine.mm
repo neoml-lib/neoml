@@ -145,6 +145,16 @@ void CMetalMathEngine::CleanUp()
 	memoryPool->CleanUp();
 }
 
+void CMetalMathEngine::CleanUpHost()
+{
+}
+
+void CMetalMathEngine::CleanUpDevice()
+{
+	std::lock_guard<CMutex> lock( *mutex );
+	deviceStackAllocator->CleanUp();
+}
+
 static void* getBufferPtr( void* buffer, ptrdiff_t offset )
 {
 	id<MTLBuffer> metalBuffer = (id)buffer;
