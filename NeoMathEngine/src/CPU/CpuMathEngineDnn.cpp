@@ -421,9 +421,6 @@ static inline void SpaceToDepthFunc( const T* source, int dataRowCount, int data
 				T* resultRow = resultPtr;
 				// iterate over blocks in data row
 				for( int blockIndex = 0; blockIndex < dataRowWidth; ++blockIndex ) {
-					int flatCoord = 0; // coordinate in flattened representation of (blockSize x blockSize x channels) block
-					int block3dOffset = 0; // offset from the beginning of the block in 3-dimensional representation
-
 					const T* sourceBlock = sourceRow;
 					T* resultBlock = resultRow;
 					// iterate over rows of 3-dimensional (blockSize x blockSize x channels) block
