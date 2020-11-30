@@ -57,6 +57,7 @@ private:
 		int Length; // data[0,Length) is cached in this entry
 
 		CList() { Prev = Next = nullptr; Data = nullptr; Length = 0; }
+		~CList() { delete Data; }
 	};
 	CArray<CList> columns; // the array of matrix columns
 	CList* c; // raw pointer to columns
@@ -85,9 +86,6 @@ CKernelCache::CKernelCache( int _matrixSize, int cacheSize )
 
 CKernelCache::~CKernelCache()
 {
-	for(CList *l = lruHead.Next; l != &lruHead; l = l->Next) {
-		delete l->Data;
-	}
 }
 
 // Deletes an element from the LRU list
@@ -108,27 +106,41 @@ void CKernelCache::lruInsert(CList *l)
 
 int CKernelCache::GetData( int i, float*& data, int len )
 {
-	CList& column = c[i];
-	if( column.Length != 0 ) {
-		lruDelete( &column );
+	CList* l = c + i;
+	if( l->Length != 0 ) {
+		lruDelete( l );
 	}
-	lruInsert( &column );
 
-	if( column.Data != 0 ) {
-		data = column.Data;
-	} else {
-		if( freeSpace < matrixSize ) {
-			CList *old = lruHead.Next;
+	int rest = len - l->Length;
+	if( rest > 0 ) {
+		while( freeSpace < rest ) {
+			CList* old = lruHead.Next;
 			lruDelete( old );
-			delete old->Data;
-			old->Data = 0;
-			freeSpace += matrixSize;
+			if( old->Length != 0 ) {
+				delete old->Data;
+				freeSpace += old->Length;
+				old->Data = nullptr;
+				old->Length = 0;
+			}
 		}
-		column.Data = FINE_DEBUG_NEW float[matrixSize];
-		freeSpace -= matrixSize;
-		data = column.Data;
+
+		// reallocate space
+		if( l->Data != nullptr ) {
+			CList tmp;
+			tmp.Data = FINE_DEBUG_NEW float[len];
+			memcpy( tmp.Data, l->Data, l->Length * sizeof( float ) );
+			swap( l->Data, tmp.Data );
+		} else {
+			NeoPresume( l->Length == 0 );
+			l->Data = FINE_DEBUG_NEW float[len];
+		}
+		
+		freeSpace -= rest;
+		swap( l->Length, len );
 	}
-	swap( column.Length, len );
+	
+	lruInsert( l );
+	data = l->Data;
 	return len;
 }
 
@@ -163,8 +175,8 @@ void CKernelCache::SwapIndex( int i, int j )
 			} else {
 				lruDelete( l );
 				delete l->Data;
-				freeSpace += matrixSize;
-				l->Data = 0;
+				freeSpace += l->Length;
+				l->Data = nullptr;
 				l->Length = 0;
 			}
 		}
@@ -218,8 +230,8 @@ CKernelMatrix::CKernelMatrix( const IProblem& data, const CSvmKernel& kernel, in
 const float* CKernelMatrix::GetColumn( int i, int len ) const
 {
 	float *data;
-	int start;
-	if( ( start = cache.GetData( i, data, len ) ) < len ) {
+	int start = cache.GetData( i, data, len );
+	if( start < len ) {
 		float y_i = y[i];
 		auto x_i = x[i];
 		auto calcData = [&]( int j ) {
@@ -335,7 +347,7 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 		if( selectWorkingSet( i, j ) ) {
 			reconstructGradient();
 			activeSize = l;
-			if(log != nullptr) {
+			if( log != nullptr ) {
 				*log << "*";
 			}
 			if( selectWorkingSet( i, j ) ) {
