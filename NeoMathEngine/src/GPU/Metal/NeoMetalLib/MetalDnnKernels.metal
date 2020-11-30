@@ -174,13 +174,13 @@ kernel void blobReorgInt( constant int* input [[buffer(0)]],
 	}
 }
 
-kernel void depthToSpaceFloat( constant float* input [[buffer(0)]],
+kernel void spaceToDepthFloat( constant float* source [[buffer(0)]],
                                constant int& dataRowCount [[buffer(1)]],
                                constant int& dataRowWidth [[buffer(2)]],
                                constant int& blockChannels [[buffer(3)]],
                                constant int& blockSize [[buffer(4)]],
                                constant bool& isForward [[buffer(5)]],
-                               device float* output [[buffer(6)]],
+                               device float* result [[buffer(6)]],
                                uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
 {
     C2DPosition pos( thread_position_in_grid );
@@ -219,13 +219,13 @@ kernel void depthToSpaceFloat( constant float* input [[buffer(0)]],
     *result = *source;
 }
 
-kernel void depthToSpaceInt( constant int* input [[buffer(0)]],
+kernel void spaceToDepthInt( constant int* source [[buffer(0)]],
                              constant int& dataRowCount [[buffer(1)]],
                              constant int& dataRowWidth [[buffer(2)]],
                              constant int& blockChannels [[buffer(3)]],
                              constant int& blockSize [[buffer(4)]],
                              constant bool& isForward [[buffer(5)]],
-                             device int* output [[buffer(6)]],
+                             device int* result [[buffer(6)]],
                              uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
 {
     C2DPosition pos( thread_position_in_grid );
