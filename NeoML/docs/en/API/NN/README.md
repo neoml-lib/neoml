@@ -274,6 +274,8 @@ delete gpuMathEngine;
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) repeats sequences several times
     - [CUpsampling2DLayer](Upsampling2DLayer.md) scales up two-dimensional images
   - [CReorgLayer](ReorgLayer.md) transforms a multi-channel image into several smaller images with more channels
+  - [CSpaceToDepthLayer](SpaceToDepthLayer.md) splits images into squared blocks and flattens each block
+  - [CDepthToSpaceLayer](DepthToSpaceLayer.md) transforms pixels of images into squared blocks
 - Loss functions:
   - For binary classification:
     - [CBinaryCrossEntropyLossLayer](LossLayers/BinaryCrossEntropyLossLayer.md) - cross-entropy
