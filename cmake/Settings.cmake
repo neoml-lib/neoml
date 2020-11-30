@@ -124,7 +124,7 @@ function(link_openmp TARGET_NAME)
             endif()
         endif()
     else()
-        message(WARNING "OpenMP was not found!)
+        message(WARNING "OpenMP was not found!")
     endif()
 endfunction()
 
