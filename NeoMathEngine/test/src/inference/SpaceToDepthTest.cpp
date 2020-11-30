@@ -44,32 +44,6 @@ static void SpaceToDepthNaive( const CBlobDesc& source, const T* sourceData, int
 }
 
 template<class T>
-static void DepthToSpaceNaive( const CBlobDesc& source, const T* sourceData, int blockSize,
-	const CBlobDesc& result, T* resultData )
-{
-	const int batchSize = source.ObjectCount();
-	const int sourceHeight = source.Height();
-	const int sourceWidth = source.Width();
-	const int sourceChannels = source.Channels();
-	const int resultChannels = sourceChannels / ( blockSize * blockSize );
-	for( int batch = 0; batch < batchSize; ++batch ) {
-		for( int blockX = 0; blockX < sourceHeight; ++blockX ) {
-			for( int blockY = 0; blockY < sourceWidth; ++blockY ) {
-				for( int ch = 0; ch < sourceChannels; ++ch ) {
-					const int resultCh = ch % resultChannels;
-					const int inBlockX = ( ch / resultChannels ) % blockSize;
-					const int inBlockY = ( ch / resultChannels ) / blockSize;
-					const int row = blockY * blockSize + inBlockY;
-					const int col = blockX * blockSize + inBlockX;
-					resultData[GetFlatIndex( result, 0, batch, 0, resultCh, 0, row, col )]
-						= sourceData[GetFlatIndex( source, 0, batch, 0, ch, 0, blockY, blockX )];
-				}
-			}
-		}
-	}
-}
-
-template<class T>
 static void spaceToDepthTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
