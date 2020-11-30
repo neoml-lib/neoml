@@ -11,7 +11,8 @@
 
 <!-- /TOC -->
 
-This class implements a layer that splits images from a set of two-dimensional multi-channel images into square `GetBlockSize() x GetBlockSize()` blocks and flattens those blocks.
+This class implements a layer that splits images into square blocks of size `k x k x Ch` and writes the contents of these blocks to the corresponding pixels (`1 x 1 x Ch*k*k`) of the output images in channel-last ordering.
+As a result image of size `H x W x Ch` is transformed into images of size `H/k x W/k x Ch*k*k`.
 
 This operation is the inverse function of [CDepthToSpaceLayer](DepthToSpaceLayer.md).
 
@@ -23,7 +24,7 @@ This operation is the inverse function of [CDepthToSpaceLayer](DepthToSpaceLayer
 void SetBlockSize( int blockSize );
 ```
 
-Sets the value by which the image size will be multiplied in the final result. The image size along either dimension should be a multiple of this value. The value should be greater than `1`.
+Sets the size of the blocks (`k` from layer description). The image size along either dimension should be a multiple of this value. The value should be greater than `1`.
 
 ## Trainable parameters
 

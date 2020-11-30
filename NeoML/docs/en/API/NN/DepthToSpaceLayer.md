@@ -11,7 +11,9 @@
 
 <!-- /TOC -->
 
-This class implements a layer that transforms each pixel of the image from input set into square blocks `GetBlockSize() x GetBlockSize()`.
+This class implements a layer that transforms each pixel (`1 x 1 x Ch`) of 2-dimensional images into square blocks of size `k x k x Ch/(k*k)`.
+The elements of pixel are interpreted as an image of size `k x k x Ch/(k*k)` in channel-last ordering.
+As a result `H x W x Ch` image is transformed into `H*k x W*k x Ch/(k*k)` image.
 
 This operation is the inverse function of [CSpaceToDepthLayer](SpaceToDepthLayer.md).
 
@@ -23,7 +25,7 @@ This operation is the inverse function of [CSpaceToDepthLayer](SpaceToDepthLayer
 void SetBlockSize( int blockSize );
 ```
 
-Sets the value by which the image size will be divided in the final result. The image channels should be a multiple of the square of this value. The value should be greater than `1`.
+Sets the size of the squares (`k` from the layer descrition). The image channels should be a multiple of the square of this value. The value should be greater than `1`.
 
 ## Trainable parameters
 
