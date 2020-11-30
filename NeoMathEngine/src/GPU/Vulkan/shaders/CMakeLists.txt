@@ -132,6 +132,8 @@ set(SHADER_SOURCES
     PrepareBlobForConvolution.comp
     BlobReorgFloat.comp
     BlobReorgInt.comp
+    SpaceToDepthFloat.comp
+    SpaceToDepthInt.comp
 )
 
 set(IB_SHADER_SOURCES

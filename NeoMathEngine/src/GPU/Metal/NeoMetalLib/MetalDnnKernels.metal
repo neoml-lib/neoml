@@ -174,6 +174,96 @@ kernel void blobReorgInt( constant int* input [[buffer(0)]],
 	}
 }
 
+kernel void depthToSpaceFloat( constant float* input [[buffer(0)]],
+                               constant int& dataRowCount [[buffer(1)]],
+                               constant int& dataRowWidth [[buffer(2)]],
+                               constant int& blockChannels [[buffer(3)]],
+                               constant int& blockSize [[buffer(4)]],
+                               constant bool& isForward [[buffer(5)]],
+                               device float* output [[buffer(6)]],
+                               uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
+{
+    C2DPosition pos( thread_position_in_grid );
+
+    // number of elements in the single data row
+    const int dataRowSize = blockSize * ( dataRowWidth * blockSize ) * blockChannels;
+
+    int dataRowIndex;
+    int elementIndex;
+    if( !pos.GetMetalTaskIndex2D( dataRowCount, dataRowSize, dataRowIndex, elementIndex ) ) {
+        return;
+    }
+
+    // number of elements in a single row inside 3d-block
+    const int blockRowSize = blockChannels * blockSize;
+
+    // offset for switching to the next data row
+    // const int dataRowSize = blockSize * ( dataRowWidth * blockSize ) * blockChannels;
+    // offset for switching to the next block inside data row
+    const int sourceBlockOffset = isForward ? blockRowSize : blockSize * blockRowSize;
+    const int resultBlockOffset = isForward ? blockSize * blockRowSize : blockRowSize;
+    // offset for switching to the next row inside the 3d-block
+    const int sourceBlockRowOffset = isForward ? dataRowWidth * blockRowSize : blockRowSize;
+    const int resultBlockRowOffset = isForward ? blockRowSize : dataRowWidth * blockRowSize;
+
+    const int pixelIndex = elementIndex / blockChannels;
+    elementIndex %= blockChannels;
+    const int inBlockX = pixelIndex % blockSize;
+    const int inBlockY = ( pixelIndex / blockSize ) % blockSize;
+    const int blockX = ( pixelIndex / blockSize / blockSize );
+
+    source += dataRowIndex * dataRowSize + blockX * sourceBlockOffset + inBlockY * sourceBlockRowOffset
+        + inBlockX * blockChannels + elementIndex;
+    result += dataRowIndex * dataRowSize + blockX * resultBlockOffset + inBlockY * resultBlockRowOffset
+        + inBlockX * blockChannels + elementIndex;
+    *result = *source;
+}
+
+kernel void depthToSpaceInt( constant int* input [[buffer(0)]],
+                             constant int& dataRowCount [[buffer(1)]],
+                             constant int& dataRowWidth [[buffer(2)]],
+                             constant int& blockChannels [[buffer(3)]],
+                             constant int& blockSize [[buffer(4)]],
+                             constant bool& isForward [[buffer(5)]],
+                             device int* output [[buffer(6)]],
+                             uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
+{
+    C2DPosition pos( thread_position_in_grid );
+
+    // number of elements in the single data row
+    const int dataRowSize = blockSize * ( dataRowWidth * blockSize ) * blockChannels;
+
+    int dataRowIndex;
+    int elementIndex;
+    if( !pos.GetMetalTaskIndex2D( dataRowCount, dataRowSize, dataRowIndex, elementIndex ) ) {
+        return;
+    }
+
+    // number of elements in a single row inside 3d-block
+    const int blockRowSize = blockChannels * blockSize;
+
+    // offset for switching to the next data row
+    // const int dataRowSize = blockSize * ( dataRowWidth * blockSize ) * blockChannels;
+    // offset for switching to the next block inside data row
+    const int sourceBlockOffset = isForward ? blockRowSize : blockSize * blockRowSize;
+    const int resultBlockOffset = isForward ? blockSize * blockRowSize : blockRowSize;
+    // offset for switching to the next row inside the 3d-block
+    const int sourceBlockRowOffset = isForward ? dataRowWidth * blockRowSize : blockRowSize;
+    const int resultBlockRowOffset = isForward ? blockRowSize : dataRowWidth * blockRowSize;
+
+    const int pixelIndex = elementIndex / blockChannels;
+    elementIndex %= blockChannels;
+    const int inBlockX = pixelIndex % blockSize;
+    const int inBlockY = ( pixelIndex / blockSize ) % blockSize;
+    const int blockX = ( pixelIndex / blockSize / blockSize );
+
+    source += dataRowIndex * dataRowSize + blockX * sourceBlockOffset + inBlockY * sourceBlockRowOffset
+        + inBlockX * blockChannels + elementIndex;
+    result += dataRowIndex * dataRowSize + blockX * resultBlockOffset + inBlockY * resultBlockRowOffset
+        + inBlockX * blockChannels + elementIndex;
+    *result = *source;
+}
+
 static constant int BlobSplitByDimCombine = 16;
 kernel void matrixKernelBlobSplitByDim( constant int* height [[buffer(0)]],
                                         constant int* width [[buffer(1)]],

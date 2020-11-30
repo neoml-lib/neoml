@@ -183,6 +183,8 @@ enum TShader {
 	SH_BlobTimeConvolutionPrepare,
 	SH_BlobReorgFloat,
 	SH_BlobReorgInt,
+	SH_SpaceToDepthInt,
+	SH_SpaceToDepthFloat,
 
 	SH_Count
 };

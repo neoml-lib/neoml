@@ -23,6 +23,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobRleConvolutionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobSplitByDimTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobTimeConvolutionTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DepthToSpaceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DropoutTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/EnumBinarizationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiGpuMultiThreadTest.cpp
@@ -37,6 +38,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/ReorgTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixElementsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixRowsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/SpaceToDepthTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Upsampling2DForwardTest.cpp

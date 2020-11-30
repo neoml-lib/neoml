@@ -297,6 +297,42 @@ __global__ void ReorgKernel( const T *input, int width, int height, int nFilters
 	}
 }
 
+template<class T>
+__global__ void SpaceToDepthKernel( const T* source, int dataRowCount, int dataRowWidth,
+	int blockChannels, int blockSize, bool isForward, T* result )
+{
+	// number of elements in the single data row
+	const int dataRowSize = blockSize * ( dataRowWidth * blockSize ) * blockChannels;
+
+	int dataRowIndex = 0;
+	int elementIndex = 0;
+	if( !GetCudaTaskIndex2D( dataRowCount, dataRowSize, dataRowIndex, elementIndex ) ) {
+		return;
+	}
+
+	// number of elements in a single row inside 3d-block
+	const int blockRowSize = blockChannels * blockSize;
+
+	// offset for switching to the next block inside data row
+	const int sourceBlockOffset = isForward ? blockRowSize : blockSize * blockRowSize;
+	const int resultBlockOffset = isForward ? blockSize * blockRowSize : blockRowSize;
+	// offset for switching to the next row inside the 3d-block
+	const int sourceBlockRowOffset = isForward ? dataRowWidth * blockRowSize : blockRowSize;
+	const int resultBlockRowOffset = isForward ? blockRowSize : dataRowWidth * blockRowSize;
+
+	const int pixelIndex = elementIndex / blockChannels;
+	elementIndex %= blockChannels;
+	const int inBlockX = pixelIndex % blockSize;
+	const int inBlockY = ( pixelIndex / blockSize ) % blockSize;
+	const int blockX = ( pixelIndex / blockSize / blockSize );
+
+	source += dataRowIndex * dataRowSize + blockX * sourceBlockOffset + inBlockY * sourceBlockRowOffset
+		+ inBlockX * blockChannels + elementIndex;
+	result += dataRowIndex * dataRowSize + blockX * resultBlockOffset + inBlockY * resultBlockRowOffset
+		+ inBlockX * blockChannels + elementIndex;
+	*result = *source;
+}
+
 __global__ void AddWidthIndexKernel( const float *input, int width, int height, int nFilters,
 	int batchSize, bool isForward, float *output )
 {
