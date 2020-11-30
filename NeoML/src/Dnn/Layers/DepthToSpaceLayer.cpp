@@ -22,7 +22,7 @@ limitations under the License.
 namespace NeoML {
 
 CDepthToSpaceLayer::CDepthToSpaceLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnDepthToSpaceLayer", false ),
+	CBaseLayer( mathEngine, "CDepthToSpaceLayer", false ),
 	blockSize( 1 )
 {
 }
@@ -32,16 +32,15 @@ void CDepthToSpaceLayer::Reshape()
 	CheckInput1();
 	CheckOutputs();
 
-	CheckArchitecture( blockSize >= 1, GetName(), "Too small blockSize" );
-	CheckArchitecture( inputDescs[0].Depth() == 1, GetName(), "Depth must be equal to 1" );
+	CheckArchitecture( blockSize > 1, GetName(), "block size must be more than 1" );
+	CheckArchitecture( inputDescs[0].Depth() == 1, GetName(), "input depth must be 1" );
 
-	// The layer needs only one input and one output
-	CheckArchitecture( GetInputCount() == 1, GetName(), "Multiple inputs" );
+	// The layer needs only one output
 	CheckArchitecture( GetOutputCount() == 1, GetName(), "Multiple outputs" );
 
-	// The input channels should be a multiple of blockSize * blockSize
+	// The input channels must be a multiple of squared block size
 	CheckArchitecture( inputDescs[0].Channels() % ( blockSize * blockSize ) == 0, GetName(),
-		"The input channels must be a multiple of blockSize * blockSize" );
+		"input channels must be a multiple of squared block size" );
 
 	// Calculate the output size
 	outputDescs[0] = inputDescs[0];
@@ -84,7 +83,7 @@ int CDepthToSpaceLayer::GetBlockSize() const
 
 void CDepthToSpaceLayer::SetBlockSize( int _blockSize )
 {
-	NeoAssert( _blockSize > 0 );
+	NeoAssert( _blockSize > 1 );
 	blockSize = _blockSize;
 }
 

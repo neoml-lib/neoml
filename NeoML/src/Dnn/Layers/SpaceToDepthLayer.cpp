@@ -22,7 +22,7 @@ limitations under the License.
 namespace NeoML {
 
 CSpaceToDepthLayer::CSpaceToDepthLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnSpaceToDepthLayer", false ),
+	CBaseLayer( mathEngine, "CSpaceToDepthLayer", false ),
 	blockSize( 1 )
 {
 }
@@ -32,18 +32,17 @@ void CSpaceToDepthLayer::Reshape()
 	CheckInput1();
 	CheckOutputs();
 
-	CheckArchitecture( blockSize >= 1, GetName(), "Too small blockSize" );
-	CheckArchitecture( inputDescs[0].Depth() == 1, GetName(), "Too big depth" );
+	CheckArchitecture( blockSize > 1, GetName(), "block size must be more than 1" );
+	CheckArchitecture( inputDescs[0].Depth() == 1, GetName(), "input depth must be 1" );
 
-	// The layer needs only one input and one output
-	CheckArchitecture( GetInputCount() == 1, GetName(), "Multiple inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "Multiple outputs" );
+	// The layer needs only one output
+	CheckArchitecture( GetOutputCount() == 1, GetName(), "multiple outputs" );
 
-	// The input size should be divisible by the window size
+	// The input size should be a multiple of the block size
 	CheckArchitecture( inputDescs[0].Height() % blockSize == 0, GetName(),
-		"The height of the entrance is not a multiple of the size of the window" );
+		"input height must be a multiple of the block size" );
 	CheckArchitecture( inputDescs[0].Width() % blockSize == 0, GetName(),
-		"The width of the entrance is not a multiple of the size of the window" );
+		"input width must be a multiple of the block size" );
 
 	// Calculate the output size
 	outputDescs[0] = inputDescs[0];
@@ -86,7 +85,7 @@ int CSpaceToDepthLayer::GetBlockSize() const
 
 void CSpaceToDepthLayer::SetBlockSize( int _blockSize )
 {
-	NeoAssert( _blockSize > 0 );
+	NeoAssert( _blockSize > 1 );
 	blockSize = _blockSize;
 }
 
