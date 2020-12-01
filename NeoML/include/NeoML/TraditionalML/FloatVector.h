@@ -190,10 +190,12 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 			sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[j];
 			i++;
 			j++;
-		} else if( static_cast<double>( vector1.Indexes[i] ) < vector2.Indexes[j] ) {
-			i++;
 		} else {
-			j++;
+			if( vector1.Indexes[i] < vector2.Indexes[j] ) {
+				i++;
+			} else {
+				j++;
+			}
 		}
 	}
 	return sum;
