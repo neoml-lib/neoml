@@ -25,23 +25,17 @@ namespace NeoML {
 
 class CKernelMatrix;
 
-// An SMO algorithm in Fan et al., JMLR 6(2005), p. 1889--1918
-// Solves:
+// The classification rule:
 //
-//  min 0.5(\alpha^T Q \alpha) + p^T \alpha
+// Sum(alpha_i*y_i*K(x_i, x)) + freeTerm <> 0
 //
-//	  y^T \alpha = \delta
-//	  y_i = +1 or -1
-//	  0 <= alpha_i <= Cp for y_i = 1
-//	  0 <= alpha_i <= Cn for y_i = -1
+// The function to optimize:
 //
-// Given:
+//	min 0.5(\alpha^T Q \alpha) - e^T \alpha
 //
-//  Q, p, y, Cp, Cn, and an initial feasible point \alpha
-//  l is the size of vectors and matrices
-//  eps is the stopping tolerance
-//
-// solution will be put in \alpha, objective value will be put in obj
+//		y_i = +1 or -1
+//		0 <= alpha_i <= C_i
+//		y^T \alpha = 0
 //
 
 // The optimizer for a support-vector machine that uses SMO
@@ -52,7 +46,7 @@ public:
 	// tolerance is the required precision
 	// cacheSize is the cache size in MB
 	CSMOptimizer(const CSvmKernel& kernel, const IProblem& data, int maxIter, double errorWeight, double tolerance,
-		bool shrinking, int cacheSize = 200);
+		bool doShrinking, int cacheSize = 200);
 	~CSMOptimizer();
 
 	// Calculates the optimal multipliers for the support vectors
@@ -76,8 +70,8 @@ private:
 	int maxIter; // maximal iteration
 	const double errorWeight; // the error weight relative to the regularizer (the relative weight of the data set)
 	const double tolerance; // the stop criterion
-	bool shrinking; // do shrinking or not
-	CKernelMatrix* Q; // the kernel matrix: CQMatrix(i, j) = K(i, j)*y_i*y_j
+	bool doShrinking; // do shrinking or not
+	CKernelMatrix* kernelMatrix; // the kernel matrix
 	CTextStream* log; // the logging stream
 
 	// optimizer variables, we use raw pointers to speed up optimization
@@ -87,27 +81,27 @@ private:
 	double* g0; // gradient0 raw pointer array
 	CArray<double> alphaArray; // gradient
 	double* alpha; // alpha
-	CArray<double> weightsMultErrorWeight; // vector of weigths * errorWeight
-	double* C; // C raw pointer array
-	int l; // problem length
+	CArray<double> weightsMultErrorWeightArray; // vector of weigths * errorWeight
+	double* weightsMultErrorWeight; // a raw pointer to weightsMultErrorWeightArray data
+	int vectorCount; // a problem length
 	const float* y; // vector of [-1,1] class labels
-	const double* QD; // matrix diagonal
+	const double* matrixDiagonal; // matrix diagonal
 
 	CArray<TAlphaStatus> alphaStatusArray; // alpha statuses
 	TAlphaStatus* alphaStatus; // alpha status raw pointer array
 	CArray<int> activeSetArray; // active set array
 	int* activeSet; // active set raw pointer array
-	int activeSize;
-	bool unshrink;
+	int activeSize; // number of vector that are being optimized in this moment
+	bool isShrunk; // whether the problem was shrunk or not
 
-	bool selectWorkingSet( int& outI, int& outJ ) const;
-	void optimizePair( int i, int j );
+	bool findMaxViolatingIndices( int& outI, int& outJ ) const;
+	void optimizeIndices( int i, int j );
 	void updateAlphaStatusAndGradient0( int i );
 	void reconstructGradient();
-	void swapIndex( int i, int j );
+	void swapIndices( int i, int j );
 	void shrink();
-	float calculateFreeTerm() const;
 	bool canBeShrunk( int i, double gMax1, double gMax2 );
+	float calculateFreeTerm() const;
 };
 
 inline bool CSMOptimizer::canBeShrunk( int i, double gMax1, double gMax2 )
