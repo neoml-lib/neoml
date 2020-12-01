@@ -36,7 +36,7 @@ CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const IProblem& problem )
 	CSvmKernel kernel( params.KernelType, params.Degree, params.Gamma, params.Coeff0 );
 
 	CSMOptimizer optimizer( kernel, problem, params.MaxIterations, params.ErrorWeight, params.Tolerance,
-		params.Shrinking );
+		params.DoShrinking );
 	if( log != nullptr ) {
 		optimizer.SetLog( log );
 	}
