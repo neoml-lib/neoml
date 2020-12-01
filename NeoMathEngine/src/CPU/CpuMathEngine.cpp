@@ -171,15 +171,21 @@ size_t CCpuMathEngine::GetPeakMemoryUsage() const
 
 void CCpuMathEngine::CleanUp()
 {
-	std::lock_guard<std::mutex> lock( mutex );
-	stackAllocator->CleanUp();
-	memoryPool->CleanUp();
 #ifdef NEOML_USE_MKL
 	NEOML_OMP_NUM_THREADS( threadCount )
 	{
 		mkl_thread_free_buffers();
 	}
 #endif
+	std::lock_guard<std::mutex> lock( mutex );
+	stackAllocator->CleanUp();
+	memoryPool->CleanUp();
+}
+
+void CCpuMathEngine::CleanUpCache()
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	stackAllocator->CleanUp();
 }
 
 void* CCpuMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t )

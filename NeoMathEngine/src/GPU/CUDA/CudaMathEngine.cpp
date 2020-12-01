@@ -45,6 +45,13 @@ void CCudaMathEngine::CleanUp()
 	memoryPool->CleanUp();
 }
 
+void CCudaMathEngine::CleanUpCache()
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	deviceStackRunTime->CleanUp();
+	hostStackRunTime->CleanUp();
+}
+
 size_t CCudaMathEngine::GetFreeMemorySize() const
 {
 	std::lock_guard<std::mutex> lock( mutex );

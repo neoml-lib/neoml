@@ -341,7 +341,7 @@ void CBaseLayer::reshape()
 	outputDiffBlobs.DeleteAll();
 	clearAllRuntimeBlobs();
 
-	MathEngine().CleanUp();
+	MathEngine().CleanUpCache();
 
 	Reshape();
 

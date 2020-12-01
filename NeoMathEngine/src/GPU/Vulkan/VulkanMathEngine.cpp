@@ -157,6 +157,13 @@ void CVulkanMathEngine::CleanUp()
 	memoryPool->CleanUp();
 }
 
+void CVulkanMathEngine::CleanUpCache()
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	deviceStackAllocator->CleanUp();
+	hostStackAllocator->CleanUp();
+}
+
 void* CVulkanMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size )
 {
 	ASSERT_EXPR(handle.GetMathEngine() == this);

@@ -804,6 +804,8 @@ public:
 
 	// Releases all temporary resources allocated for the current thread
 	virtual void CleanUp() = 0;
+	// Releases stack allocators' temporary resources for the current thread
+	virtual void CleanUpCache() = 0;
 
 	// Gets a pointer to access the handle memory
 	// GetBuffer and ReleaseBuffer should be called strictly in LIFO order
