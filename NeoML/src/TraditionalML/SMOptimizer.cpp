@@ -57,7 +57,7 @@ private:
 		int Length; // data[0,Length) is cached in this entry
 
 		CList() { Prev = Next = nullptr; Data = nullptr; Length = 0; }
-		~CList() { delete Data; }
+		~CList() { delete[] Data; }
 	};
 	CArray<CList> columns; // the array of matrix columns
 	CList* c; // raw pointer to columns
@@ -117,7 +117,7 @@ int CKernelCache::GetData( int i, float*& data, int len )
 			CList* old = lruHead.Next;
 			lruDelete( old );
 			if( old->Length != 0 ) {
-				delete old->Data;
+				delete[] old->Data;
 				freeSpace += old->Length;
 				old->Data = nullptr;
 				old->Length = 0;
@@ -174,7 +174,7 @@ void CKernelCache::SwapIndex( int i, int j )
 				swap( l->Data[i], l->Data[j] );
 			} else {
 				lruDelete( l );
-				delete l->Data;
+				delete[] l->Data;
 				freeSpace += l->Length;
 				l->Data = nullptr;
 				l->Length = 0;
