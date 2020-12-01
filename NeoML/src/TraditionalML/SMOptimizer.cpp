@@ -342,11 +342,9 @@ void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 				*log << ".";
 			}
 		}
-
 		int i, j; 
 		if( selectWorkingSet( i, j ) ) {
 			reconstructGradient();
-			activeSize = l;
 			if( log != nullptr ) {
 				*log << "*";
 			}
@@ -411,44 +409,37 @@ bool CSMOptimizer::selectWorkingSet( int& outI, int& outJ ) const
 		}
 	}
 
-	void ( *updateMinParams )( double, double, const float*, const double*, double, int, double, double,
-		int&, double& );
-	const float* Q_i = NULL;
-	double y_i = 0, QD_i = 0;
-	if( gMaxIdx != -1 ) {
-		Q_i = Q->GetColumn( gMaxIdx, activeSize );
-		y_i = y[gMaxIdx];
-		QD_i = QD[gMaxIdx];
-
-		updateMinParams = []( double gradDiff, double mult, const float* Q_i, const double* QD, double QD_i,
-				int j, double y_i, double Tau, int& gMinIdx, double& objDiffMin ) {
-			if( gradDiff > 0) {
-				double quadCoef = QD_i + QD[j] + mult * y_i * Q_i[j];
-				if( quadCoef <= 0 ) {
-					quadCoef = Tau;
-				}
-				double objDiff = -( gradDiff * gradDiff ) / quadCoef;
-				if( objDiff <= objDiffMin ) {
-					gMinIdx = j;
-					objDiffMin = objDiff;
-				}
-			}
-		};
-	} else {
-		updateMinParams = []( double, double, const float*, const double*, double, int, double, double,
-			int&, double& ) {};
+	if( gMaxIdx == -1 ) {
+		return true;
 	}
+
+	const float* Q_i = Q->GetColumn( gMaxIdx, activeSize );
+	double y_i = y[gMaxIdx];
+	double QD_i = QD[gMaxIdx];
+	auto updateMinParams = [&]( double gradDiff, double mult, int j ) {
+		if( gradDiff > 0) {
+			double quadCoef = QD_i + QD[j] + mult * y_i * Q_i[j];
+			if( quadCoef <= 0 ) {
+				quadCoef = Tau;
+			}
+			double objDiff = -( gradDiff * gradDiff ) / quadCoef;
+			if( objDiff <= objDiffMin ) {
+				gMinIdx = j;
+				objDiffMin = objDiff;
+			}
+		}
+	};
 
 	for( int j = 0; j < activeSize; ++j ) {
 		if( y[j] == 1 ) {
 			if( alphaStatus[j] != AS_LowerBound ) {
-				updateMinParams( gMax + g[j], -2, Q_i, QD, QD_i, j, y_i, Tau, gMinIdx, objDiffMin );
+				updateMinParams( gMax + g[j], -2, j );
 				if( g[j] >= gMax2 ) {
 					gMax2 = g[j];
 				}
 			}
 		} else if( alphaStatus[j] != AS_UpperBound ) {
-			updateMinParams( gMax - g[j], 2, Q_i, QD, QD_i, j, y_i, Tau, gMinIdx, objDiffMin );
+			updateMinParams( gMax - g[j], 2, j );
 			if( -g[j] >= gMax2 ) {
 				gMax2 = -g[j];
 			}
@@ -595,11 +586,11 @@ void CSMOptimizer::reconstructGradient()
 	}
 
 	if( log != nullptr && 2 * freeCount < activeSize ) {
+		NeoPresume( shrinking );
 		*log << "\nWarning: using Shrinking=false may be faster\n";
 	}
 
-	if( freeCount * l > 2 * activeSize * ( l - activeSize ) )
-	{
+	if( freeCount * l > 2 * activeSize * ( l - activeSize ) ) {
 		for( int i = activeSize; i < l; ++i ) {
 			auto Q_i = Q->GetColumn( i, activeSize );
 			for( int j = 0; j < activeSize; ++j ) {
@@ -619,6 +610,7 @@ void CSMOptimizer::reconstructGradient()
 			}
 		}
 	}
+	activeSize = l;
 }
 
 void CSMOptimizer::swapIndex( int i, int j )
@@ -664,7 +656,6 @@ void CSMOptimizer::shrink()
 	if( !unshrink && gMax1 + gMax2 <= tolerance * 10 ) {
 		unshrink = true;
 		reconstructGradient();
-		activeSize = l;
 		if( log != nullptr ) {
 			*log << "*";
 		}
@@ -672,13 +663,11 @@ void CSMOptimizer::shrink()
 
 	for( int i = 0; i < activeSize; ++i ) {
 		if( canBeShrunk( i, gMax1, gMax2 ) ) {
-			--activeSize;
-			while( activeSize > i ) {
+			while( --activeSize > i ) {
 				if( !canBeShrunk( activeSize, gMax1, gMax2 ) ) {
 					swapIndex( i, activeSize );
 					break;
 				}
-				--activeSize;
 			}
 		}
 	}
