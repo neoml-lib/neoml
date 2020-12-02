@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/CommonCluster.h>
 #include <NeoML/TraditionalML/VariableMatrix.h>
 #include <NeoML/Random.h>
+#include <NeoMathEngine/OpenMP.h>
 #include <float.h>
 
 namespace NeoML {
@@ -212,10 +213,16 @@ bool CKMeansClustering::lloydClusterization( const CSparseFloatMatrixDesc& matri
 void CKMeansClustering::classifyAllData( const CSparseFloatMatrixDesc& matrix, CArray<int>& dataCluster )
 {
 	// Each element is assigned to the nearest cluster
-	dataCluster.DeleteAll();
-	const int vectorCount = matrix.Height;
-	for( int i = 0; i < vectorCount; i++ ) {
-		dataCluster.Add( findNearestCluster( matrix, i ) );
+	dataCluster.SetSize( matrix.Height );
+	NEOML_OMP_NUM_THREADS( params.ThreadCount ) {
+		int firstVector = 0;
+		int vectorCount = 0;
+		if( OmpGetTaskIndexAndCount( matrix.Height, firstVector, vectorCount ) ) {
+			const int lastVector = firstVector + vectorCount;
+			for( int i = firstVector; i < lastVector; i++ ) {
+				dataCluster[i] = findNearestCluster( matrix, i );
+			}
+		}
 	}
 }
 
@@ -382,32 +389,39 @@ void CKMeansClustering::assignVectors( const CSparseFloatMatrixDesc& matrix, con
 	NeoAssert( assignments.Size() == matrix.Height );
 	NeoAssert( lowerBounds.SizeX() == params.InitialClustersCount );
 	NeoAssert( upperBounds.Size() == assignments.Size() );
-	for( int i = 0; i < matrix.Height; i++ ) {
-		bool mustRecalculate = true;
-		if( upperBounds[i] <= closestClusterDist[assignments[i]] ) {
-			continue;
-		} else {
-			for( int c = 0; c < clusters.Size(); c++ ) {
-				if( isPruned( upperBounds, lowerBounds, clusterDists, assignments[i], c, i ) ) {
+	NEOML_OMP_NUM_THREADS( params.ThreadCount ) {
+		int firstVector = 0;
+		int vectorCount = 0;
+		if( OmpGetTaskIndexAndCount( matrix.Height, firstVector, vectorCount ) ) {
+			const int lastVector = firstVector + vectorCount;
+			for( int i = firstVector; i < lastVector; i++ ) {
+				bool mustRecalculate = true;
+				if( upperBounds[i] <= closestClusterDist[assignments[i]] ) {
 					continue;
-				}
-				float dist = upperBounds[i];
-				if( mustRecalculate ) {
-					mustRecalculate = false;
-					dist = static_cast<float>(
-						sqrt( clusters[assignments[i]]->CalcDistance( matrix.GetRow( i ),
-							params.DistanceFunc ) ) );
-					lowerBounds( assignments[i], i ) = dist;
-					upperBounds[i] = dist;
-				}
-				if( dist > lowerBounds( c, i ) || dist > 0.5 * clusterDists( assignments[i], c ) ) {
-					const float pointDist = static_cast<float>(
-						sqrt( clusters[c]->CalcDistance( matrix.GetRow( i ),
-							params.DistanceFunc ) ) );
-					lowerBounds( c, i ) = pointDist;
-					if( pointDist < dist ) {
-						upperBounds[i] = pointDist;
-						assignments[i] = c;
+				} else {
+					for( int c = 0; c < clusters.Size(); c++ ) {
+						if( isPruned( upperBounds, lowerBounds, clusterDists, assignments[i], c, i ) ) {
+							continue;
+						}
+						float dist = upperBounds[i];
+						if( mustRecalculate ) {
+							mustRecalculate = false;
+							dist = static_cast<float>(
+								sqrt( clusters[assignments[i]]->CalcDistance( matrix.GetRow( i ),
+									params.DistanceFunc ) ) );
+							lowerBounds( assignments[i], i ) = dist;
+							upperBounds[i] = dist;
+						}
+						if( dist > lowerBounds( c, i ) || dist > 0.5 * clusterDists( assignments[i], c ) ) {
+							const float pointDist = static_cast<float>(
+								sqrt( clusters[c]->CalcDistance( matrix.GetRow( i ),
+									params.DistanceFunc ) ) );
+							lowerBounds( c, i ) = pointDist;
+							if( pointDist < dist ) {
+								upperBounds[i] = pointDist;
+								assignments[i] = c;
+							}
+						}
 					}
 				}
 			}
@@ -427,14 +441,30 @@ double CKMeansClustering::updateUpperAndLowerBounds( const CSparseFloatMatrixDes
 	const CArray<float>& moveDistance, const CArray<int>& assignments,
 	CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds ) const
 {
-	double inertia = 0;
-	for( int j = 0; j < matrix.Height; j++ ) {
-		for( int c = 0; c < clusters.Size(); c++ ) {
-			lowerBounds( c, j ) = max( lowerBounds( c, j ) - moveDistance[c], 0.f );
+	CFastArray<double, 16> localInertia;
+	localInertia.Add( 0., params.ThreadCount );
+
+	NEOML_OMP_NUM_THREADS( params.ThreadCount ) {
+		const int threadIndex = OmpGetThreadNum();
+		int firstVector = 0;
+		int vectorCount = 0;
+		if( OmpGetTaskIndexAndCount( matrix.Height, firstVector, vectorCount ) ) {
+			const int lastVector = firstVector + vectorCount;
+			for( int j = firstVector; j < lastVector; j++ ) {
+				for( int c = 0; c < clusters.Size(); c++ ) {
+					lowerBounds( c, j ) = max( lowerBounds( c, j ) - moveDistance[c], 0.f );
+				}
+				upperBounds[j] += moveDistance[assignments[j]];
+				localInertia[threadIndex] += clusters[assignments[j]]->CalcDistance( matrix.GetRow( j ), params.DistanceFunc );
+			}
 		}
-		upperBounds[j] += moveDistance[assignments[j]];
-		inertia += clusters[assignments[j]]->CalcDistance( matrix.GetRow( j ), params.DistanceFunc );
 	}
+
+	double inertia = 0;
+	for( int i = 0; i < localInertia.Size(); ++i ) {
+		inertia += localInertia[i];
+	}
+
 	return inertia;
 }
 

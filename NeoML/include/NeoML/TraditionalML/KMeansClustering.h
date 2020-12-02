@@ -66,6 +66,8 @@ public:
 		int MaxIterations;
 		// Tolerance criterion for Elkan algorithm
 		double Tolerance;
+		// Number of threads used in KMeans
+		int ThreadCount;
 	};
 
 	// Constructors
