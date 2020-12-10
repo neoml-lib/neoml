@@ -21,9 +21,29 @@ limitations under the License.
 #include <NeoML/TraditionalML/VariableMatrix.h>
 #include <NeoML/Random.h>
 #include <NeoMathEngine/OpenMP.h>
+#include <NeoMathEngine/NeoMathEngine.h>
+#include <NeoML/Dnn/DnnBlob.h>
+#include <NeoML/Dnn/Dnn.h>
 #include <float.h>
+#include <memory>
 
 namespace NeoML {
+
+static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CArray<CFloatVector>& data )
+{
+	NeoAssert( !data.IsEmpty() );
+	const int vectorCount = data.Size();
+	const int featureCount = data[0].Size();
+	CPtr<CDnnBlob> result = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, vectorCount, featureCount );
+	float* buffer = result->GetBuffer<float>( 0, vectorCount * featureCount );
+	float* currPtr = buffer;
+	for( int i = 0; i < data.Size(); ++i ) {
+		::memcpy( currPtr, data[i].GetPtr(), featureCount * sizeof( float ) );
+		currPtr += featureCount;
+	}
+	result->ReleaseBuffer( buffer, true );
+	return result;
+}
 
 CKMeansClustering::CKMeansClustering( const CArray<CClusterCenter>& _clusters, const CParam& _params ) :
 	params( _params ),
@@ -91,6 +111,96 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 		}
 	}
 
+	return success;
+}
+
+bool CKMeansClustering::Clusterize( const CArray<CFloatVector>& rawData, CClusteringResult& result )
+{
+	NeoAssert( params.DistanceFunc == DF_Euclid );
+	NeoAssert( params.Algo == KMA_Lloyd );
+	NeoAssert( rawData.Size() > params.InitialClustersCount );
+	const int vectorCount = rawData.Size();
+	const int featureCount = rawData[0].Size();
+	const int clusterCount = params.InitialClustersCount;
+
+	if( log != 0 ) {
+		*log << L"\nK-means clustering started:\n";
+	}
+
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( params.ThreadCount, 0 ) );
+
+	CPtr<CDnnBlob> data = createDataBlob( *mathEngine, rawData );
+	CPtr<CDnnBlob> centers = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount );
+
+	selectInitialClusters( *data, *centers );
+
+	if( log != 0 ) {
+		*log << L"Initial clusters:\n";
+
+		for( int i = 0; i < clusters.Size(); i++ ) {
+			*log << *clusters[i] << L"\n";
+		}
+	}
+
+	bool success = false;
+
+	CPtr<CDnnBlob> sizes = CDnnBlob::CreateVector( *mathEngine, CT_Int, clusterCount );
+	CPtr<CDnnBlob> labels = CDnnBlob::CreateVector( *mathEngine, CT_Int, vectorCount );
+
+	compileTimeAssert( KMA_Count == 2 );
+	switch( params.Algo ) {
+		case KMA_Lloyd:
+			success = lloydBlobClusterization( *data, *centers, *sizes, *labels );
+			break;
+		case KMA_Elkan:
+			// Не поддерживается для блобов.
+			// Elkan работает только для IClusteringData.
+		default:
+			NeoAssert( false );
+	}
+
+	//	оформление результата кластеризации
+	result.ClusterCount = clusterCount;
+	result.Data.SetSize( vectorCount );
+	labels->CopyTo( result.Data.GetPtr() );
+
+	CPtr<CDnnBlob> variances = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount );
+	calcClusterVariances( *data, *labels, *centers, *sizes, *variances );
+	
+	CConstFloatHandle rawCentersPtr = centers->GetData();
+	CConstFloatHandle rawVariancesPtr = variances->GetData();
+
+	result.Clusters.SetBufferSize( result.ClusterCount );
+
+	int* clusterSizes = sizes->GetBuffer<int>( 0, clusterCount );
+	for( int i = 0, id = 0; i < clusterCount; i++ ) {
+		//	пустые кластеры пропускаем
+		if( clusterSizes[i] > 0 ) {
+			CFloatVector center( featureCount );
+			CFloatVector variance( featureCount );
+
+			mathEngine->DataExchangeTyped( center.CopyOnWrite(), rawCentersPtr, featureCount );
+			mathEngine->DataExchangeTyped( variance.CopyOnWrite(), rawVariancesPtr, featureCount );
+
+			CClusterCenter& currentCenter = result.Clusters.Append();
+			currentCenter.Mean = center;
+			currentCenter.Disp = variance;
+			currentCenter.Norm = DotProduct( currentCenter.Mean, currentCenter.Mean );
+			//	у нас могли быть пустые кластеры, поэтому придется смещать метки.
+			for( int j = 0; j < result.Data.Size(); j++ ) {
+				if( result.Data[j] == i ) {
+					result.Data[j] = id;
+				}
+			}
+			id++;
+		}
+		rawCentersPtr += featureCount;
+		rawVariancesPtr += featureCount;
+	}
+	sizes->ReleaseBuffer( clusterSizes, false );
+
+	result.ClusterCount = result.Clusters.Size();
+	assert( result.Clusters.Size() > 0 );
 	return success;
 }
 
@@ -477,6 +587,245 @@ bool CKMeansClustering::isPruned( const CArray<float>& upperBounds, const CVaria
 	return ( currentCluster == clusterToProcess ) ||
 		( upperBounds[id] <= lowerBounds( clusterToProcess, id ) ) ||
 		( upperBounds[id] <= 0.5 * clusterDists( currentCluster, clusterToProcess ) );
+}
+
+// Выбирает набор начальных кластеров.
+void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& centers )
+{
+	const int vectorCount = data.GetObjectCount();
+	const int featureCount = data.GetObjectSize();
+	if( !initialClusterCenters.IsEmpty() ) {
+		float* buffer = centers.GetBuffer<float>( 0, params.InitialClustersCount * featureCount );
+		float* currPtr = buffer;
+		for( int i = 0; i < params.InitialClustersCount; ++i ) {
+			::memcpy( currPtr, initialClusterCenters[i].Mean.GetPtr(), featureCount * sizeof( float ) );
+			currPtr += featureCount;
+		}
+		centers.ReleaseBuffer( buffer, true );
+		return;
+	}
+
+	compileTimeAssert( KMI_Count == 2 );
+	switch( params.Initialization ) {
+		case KMI_Default:
+			defaultInitialization( data, centers );
+			break;
+		case KMI_KMeansPlusPlus:
+			kMeansPlusPlusInitialization( data, centers );
+			break;
+		default:
+			NeoAssert( false );
+	}
+}
+
+void CKMeansClustering::defaultInitialization( const CDnnBlob& data, CDnnBlob& centers )
+{
+	const int vectorCount = data.GetObjectCount();
+	const int featureCount = data.GetObjectSize();
+	NeoAssert( centers.GetObjectCount() == params.InitialClustersCount );
+	NeoAssert( centers.GetObjectSize() == featureCount );
+
+	const int step = max( vectorCount / params.InitialClustersCount, 1 );
+	NeoAssert( step > 0 );
+	IMathEngine& mathEngine = data.GetMathEngine();
+
+	for( int i = 0; i < params.InitialClustersCount; i++ ) {
+		const int pos = ( i * step ) % vectorCount;
+		mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( pos ), featureCount );
+	}
+}
+
+void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, CDnnBlob& centers )
+{
+	const int vectorCount = data.GetObjectCount();
+	const int featureCount = data.GetObjectSize();
+	//	берем случайный вектор
+	CRandom random( 0xCEA );
+	const int firstChoice = random.UniformInt( 0, vectorCount - 1 );
+	//	копируем его
+	IMathEngine& mathEngine = centers.GetMathEngine();
+	mathEngine.VectorCopy( centers.GetData(), data.GetObjectData( firstChoice ), data.GetObjectSize() );
+
+	CFloatHandleStackVar stackBuff( mathEngine, vectorCount + 1 );
+	CFloatHandle sumBlob = stackBuff;
+	CFloatHandle currDists = stackBuff + 1;
+
+	CHashTable<int> usedVectors;
+	//	для каждой точки будем искать расстояния до близжайшего центроида.
+	//	тут делаем инициализацию
+	CPtr<CDnnBlob> prevDists = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount );
+	mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount,
+		centers.GetData(), prevDists->GetData() );
+	//	теперь последовательно выбираем кластеры
+	for( int k = 1; k < params.InitialClustersCount; k++ ) {
+		CConstFloatHandle currentVector = centers.GetObjectData( k - 1 );
+		//	для каждой точки ищем расстояние до близжайшего центроида
+		mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount,
+			currentVector, currDists );
+		//	ищем сам номер центроида
+		mathEngine.VectorEltwiseMin( currDists, prevDists->GetData(), prevDists->GetData(), prevDists->GetDataSize() );
+		//	вероятность выбора точки должна быть пропорциональная квадрату расстояния
+		//	до нее
+		mathEngine.VectorSum( prevDists->GetData(), prevDists->GetDataSize(), sumBlob );
+
+		//	ищем следующий:
+		//	берем случайную число от 0 до суммы
+		const double sumValue = static_cast<double>( sumBlob.GetValue() );
+		const double scaledSum = random.Uniform( 0, 1 ) * sumValue;
+
+		CArray<float> squares;
+		squares.SetSize( prevDists->GetDataSize() );
+		prevDists->CopyTo( squares.GetPtr() );
+	
+		//	теперь снова начинаем накапливать сумму.
+		//	когда превысим сгенерированное число, остановимся и зафиксируем результат
+		double prefixSum = 0;
+		int nextCoice = -1;
+		for( int i = 0; i < vectorCount; i++ ) {
+			prefixSum += squares[i];
+			if( prefixSum > scaledSum ) {
+				nextCoice = i;
+				break;
+			}
+		}
+		//	алгоритм by-default учитывает эти условия (расстояния будут равны 0 и точки мы пропустим)
+		//	но проверять все же надо
+		assert( nextCoice != -1 );
+		assert( !usedVectors.Has( nextCoice ) );
+		usedVectors.Add( nextCoice );
+		//	копируем выбранный вектор
+		mathEngine.VectorCopy( centers.GetObjectData( k ), data.GetObjectData( nextCoice ), featureCount );
+	}
+}
+
+bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data,
+	CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels )
+{
+	double prevDist = FLT_MAX;
+	double totalDist = 0;
+	const float eps = 1e-3f;
+
+	for( int iter = 0; iter < params.MaxIterations; iter++ ) {
+		totalDist = assignClosest( data, centers, labels );
+		recalcCenters( data, labels, centers, sizes );
+		if( abs( prevDist - totalDist ) < eps ) {
+			return true;
+		}
+		prevDist = totalDist;
+	}
+
+	return false;
+}
+
+//	пересчет расстояний от точек до кластеров
+static void calcPairwiseDistances( const CDnnBlob& data, const CDnnBlob& centers, CFloatHandle& distances )
+{
+	IMathEngine& mathEngine = data.GetMathEngine();
+	const int clusterCount = centers.GetObjectCount();
+	const int vectorCount = data.GetObjectCount();
+	const int featureCount = data.GetObjectSize();
+	CFloatHandle currDistance = distances;
+	for( int k = 0; k < clusterCount; k++ ) {
+		mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount,
+			centers.GetObjectData( k ), currDistance );
+		currDistance += vectorCount;
+	}
+}
+
+//	привязка точек к кластерам
+double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& centers, CDnnBlob& labels )
+{
+	IMathEngine& mathEngine = data.GetMathEngine();
+	const int vectorCount = data.GetObjectCount();
+	const int featureCount = data.GetObjectSize();
+	const int clusterCount = centers.GetObjectCount();
+	CFloatHandleStackVar stackBuff( mathEngine, vectorCount * clusterCount + vectorCount + 1 );
+	CFloatHandle distances = stackBuff.GetHandle();
+	CFloatHandle closestDist = stackBuff.GetHandle() + vectorCount * clusterCount;
+	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount * clusterCount + vectorCount;
+	calcPairwiseDistances( data, centers, distances );
+	mathEngine.FindMinValueInColumns( distances, clusterCount, vectorCount, closestDist, labels.GetData<int>() );
+	mathEngine.VectorSum( closestDist, vectorCount, totalDist );
+	return totalDist.GetValue();
+}
+
+//	раскидываем объекты по текущим центрам, усредняем на кол-во объектов
+void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& labels,
+	CDnnBlob& centers, CDnnBlob& sizes )
+{
+	IMathEngine& mathEngine = data.GetMathEngine();
+	const int clusterCount = params.InitialClustersCount;
+	const int vectorCount = data.GetObjectCount();
+	const int featureCount = data.GetObjectSize();
+
+	mathEngine.LookupAndAddToTable( labels.GetData<int>(), vectorCount, 1, data.GetData(),
+		data.GetObjectSize(), centers.GetData(), clusterCount );
+
+	mathEngine.BuildIntegerHist( labels.GetData<int>(), vectorCount, sizes.GetData<int>(), clusterCount );
+
+	int* rawSizes = sizes.GetBuffer<int>( 0, clusterCount );
+	//	пустые кластеры игнорируем
+	CFloatHandleStackVar invertedSize( mathEngine );
+	for( int i = 0; i < clusterCount; i++ ) {
+		if( rawSizes[i] > 0 ) {
+			invertedSize.SetValue( 1.f / rawSizes[i] );
+			mathEngine.VectorMultiply( centers.GetObjectData( i ), centers.GetObjectData( i ),
+				featureCount, invertedSize );
+		}
+	}
+	sizes.ReleaseBuffer( rawSizes, false );
+}
+
+// подсчет дисперсий кластеров
+void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBlob& labels,
+	const CDnnBlob& centers, const CDnnBlob& sizes, CDnnBlob& variances )
+{
+	IMathEngine& mathEngine = data.GetMathEngine();
+	const int vectorCount = data.GetObjectCount();
+	const int featureCount = data.GetObjectSize();
+	const int clusterCount = sizes.GetDataSize();
+	
+	// 1 / *размер кластера*
+	CPtr<CDnnBlob> sizeInv = CDnnBlob::CreateVector( mathEngine, CT_Float, clusterCount );
+	{
+		int* sizeBuff = const_cast<CDnnBlob&>( sizes ).GetBuffer<int>( 0, clusterCount );
+		float* sizeInvBuff = sizeInv->GetBuffer<float>( 0, clusterCount );
+		for( int i = 0; i < clusterCount; ++i ) {
+			sizeInvBuff[i] = sizeBuff[i] > 0 ? 1.f / sizeBuff[i] : 1.f;
+		}
+		sizeInv->ReleaseBuffer( sizeInvBuff, true );
+		const_cast<CDnnBlob&>( sizes ).ReleaseBuffer( sizeBuff, false );
+	}
+
+	{
+		// Подсчитываем суммы квадратов значений каждого признака для каждого кластера.
+		CFloatHandleStackVar stackBuff( mathEngine, vectorCount * featureCount + clusterCount * featureCount + 1 );
+		CFloatHandle squaredData = stackBuff.GetHandle();
+		mathEngine.VectorEltwiseMultiply( data.GetData(), data.GetData(), squaredData,
+			data.GetDataSize() );
+		CFloatHandle sumOfSquares = stackBuff.GetHandle() + vectorCount * featureCount;
+		mathEngine.VectorFill( sumOfSquares, 0, clusterCount * featureCount );
+		CFloatHandle one = stackBuff.GetHandle() + vectorCount * featureCount + clusterCount * featureCount;
+		one.SetValue( 1.f );
+		CLookupDimension dim;
+		dim.VectorCount = params.InitialClustersCount;
+		dim.VectorSize = featureCount;
+		variances.Clear();
+		mathEngine.VectorMultichannelLookupAndAddToTable( vectorCount, 1, labels.GetData<int>(),
+			&sumOfSquares, &dim, 1, one, squaredData, featureCount );
+		// Подсчитываем суммы квадратов значений каждого признака для каждого кластера, поделенные на размер кластера.
+		mathEngine.MultiplyDiagMatrixByMatrix( sizeInv->GetData(), clusterCount, sumOfSquares, featureCount,
+			variances.GetData(), variances.GetDataSize() );
+	}
+
+	{
+		// Подсчитываем квадрат 
+		CFloatHandleStackVar squaredMean( mathEngine, clusterCount * featureCount );
+		mathEngine.VectorEltwiseMultiply( centers.GetData(), centers.GetData(),
+			squaredMean, clusterCount * featureCount );
+		// Вычитаем из усредненных квадратов квадраты средних и получаем дисперсию.
+		mathEngine.VectorSub( variances.GetData(), squaredMean, variances.GetData(), clusterCount * featureCount );
+	}
 }
 
 } // namespace NeoML

@@ -24,6 +24,7 @@ namespace NeoML {
 class CCommonCluster;
 template<class T>
 class CVariableMatrix;
+class CDnnBlob;
 
 // K-means clustering algorithm
 class NEOML_API CKMeansClustering : public IClustering {
@@ -87,6 +88,8 @@ public:
 	// false if more iterations are needed
 	virtual bool Clusterize( IClusteringData* data, CClusteringResult& result );
 
+	bool Clusterize( const CArray<CFloatVector>& data, CClusteringResult& result );
+
 private:
 	const CParam params; // clustering parameters
 	CTextStream* log; // the logging stream
@@ -121,6 +124,17 @@ private:
 	void storeClusterCenters( CArray<CClusterCenter>& result );
 	bool updateClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
 		const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters );
+
+	void selectInitialClusters( const CDnnBlob& data, CDnnBlob& centers );
+	void defaultInitialization( const CDnnBlob& data, CDnnBlob& centers );
+	void kMeansPlusPlusInitialization( const CDnnBlob& data, CDnnBlob& centers );
+
+	bool lloydBlobClusterization( const CDnnBlob& data, CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels );
+	double assignClosest( const CDnnBlob& data, const CDnnBlob& centers, CDnnBlob& labels );
+	void recalcCenters( const CDnnBlob& data, const CDnnBlob& labels,
+		CDnnBlob& centers, CDnnBlob& sizes );
+	void calcClusterVariances( const CDnnBlob& data, const CDnnBlob& labels,
+		const CDnnBlob& centers, const CDnnBlob& sizes, CDnnBlob& variances );
 };
 
 } // namespace NeoML
