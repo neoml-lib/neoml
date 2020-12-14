@@ -29,7 +29,7 @@ limitations under the License.
 
 namespace NeoML {
 
-static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CArray<CFloatVector>& data )
+static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CFloatVectorArray& data )
 {
 	NeoAssert( !data.IsEmpty() );
 	const int vectorCount = data.Size();
@@ -114,7 +114,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 	return success;
 }
 
-bool CKMeansClustering::Clusterize( const CArray<CFloatVector>& rawData, CClusteringResult& result )
+bool CKMeansClustering::Clusterize( const CFloatVectorArray& rawData, CClusteringResult& result )
 {
 	NeoAssert( params.DistanceFunc == DF_Euclid );
 	NeoAssert( params.Algo == KMA_Lloyd );
@@ -705,8 +705,13 @@ bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data,
 	double totalDist = 0;
 	const float eps = 1e-3f;
 
+	IMathEngine& mathEngine = data.GetMathEngine();
+	// pre-calculate l2-norm of input data
+	CPtr<CDnnBlob> squaredData = CDnnBlob::CreateVector( mathEngine, CT_Float, data.GetObjectCount() );
+	mathEngine.RowMultiplyMatrixByMatrix( data.GetData(), data.GetData(), data.GetObjectCount(),
+		data.GetObjectSize(), squaredData->GetData() );
 	for( int iter = 0; iter < params.MaxIterations; iter++ ) {
-		totalDist = assignClosest( data, centers, labels );
+		totalDist = assignClosest( data, *squaredData, centers, labels );
 		recalcCenters( data, labels, centers, sizes );
 		if( abs( prevDist - totalDist ) < eps ) {
 			return true;
@@ -718,22 +723,31 @@ bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data,
 }
 
 //	пересчет расстояний от точек до кластеров
-static void calcPairwiseDistances( const CDnnBlob& data, const CDnnBlob& centers, CFloatHandle& distances )
+static void calcPairwiseDistances( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& centers,
+	CFloatHandle& distances )
 {
 	IMathEngine& mathEngine = data.GetMathEngine();
 	const int clusterCount = centers.GetObjectCount();
 	const int vectorCount = data.GetObjectCount();
 	const int featureCount = data.GetObjectSize();
-	CFloatHandle currDistance = distances;
-	for( int k = 0; k < clusterCount; k++ ) {
-		mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount,
-			centers.GetObjectData( k ), currDistance );
-		currDistance += vectorCount;
-	}
+	CFloatHandleStackVar stackBuff( mathEngine, clusterCount + 1 );
+	CFloatHandle squaredCenters = stackBuff.GetHandle();
+	CFloatHandle minusTwo = stackBuff.GetHandle() + clusterCount;
+	
+	minusTwo.SetValue( -2.f );
+	// pre-calculate l2-norm of current cluster centers
+	mathEngine.RowMultiplyMatrixByMatrix( centers.GetData(), centers.GetData(), clusterCount, featureCount, squaredCenters );
+
+	// (a - b)^2 = a^2 + b^2 - 2*a*b
+	mathEngine.MultiplyMatrixByTransposedMatrix( 1, centers.GetData(), clusterCount, featureCount, data.GetData(),
+		vectorCount, distances, clusterCount * vectorCount );
+	mathEngine.VectorMultiply( distances, distances, clusterCount * vectorCount, minusTwo );
+	mathEngine.AddVectorToMatrixRows( 1, distances, distances, clusterCount, vectorCount, squaredData.GetData() );
+	mathEngine.AddVectorToMatrixColumns( distances, distances, clusterCount, vectorCount, squaredCenters );
 }
 
 //	привязка точек к кластерам
-double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& centers, CDnnBlob& labels )
+double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& centers, CDnnBlob& labels )
 {
 	IMathEngine& mathEngine = data.GetMathEngine();
 	const int vectorCount = data.GetObjectCount();
@@ -742,11 +756,12 @@ double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& c
 	CFloatHandleStackVar stackBuff( mathEngine, vectorCount * clusterCount + vectorCount + 1 );
 	CFloatHandle distances = stackBuff.GetHandle();
 	CFloatHandle closestDist = stackBuff.GetHandle() + vectorCount * clusterCount;
-	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount * clusterCount + vectorCount;
-	calcPairwiseDistances( data, centers, distances );
+	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount * clusterCount + vectorCount + clusterCount;
+	calcPairwiseDistances( data, squaredData, centers, distances );
 	mathEngine.FindMinValueInColumns( distances, clusterCount, vectorCount, closestDist, labels.GetData<int>() );
 	mathEngine.VectorSum( closestDist, vectorCount, totalDist );
-	return totalDist.GetValue();
+	const double result = static_cast<double>( totalDist.GetValue() );
+	return result;
 }
 
 //	раскидываем объекты по текущим центрам, усредняем на кол-во объектов

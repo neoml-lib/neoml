@@ -88,7 +88,7 @@ public:
 	// false if more iterations are needed
 	virtual bool Clusterize( IClusteringData* data, CClusteringResult& result );
 
-	bool Clusterize( const CArray<CFloatVector>& data, CClusteringResult& result );
+	bool Clusterize( const CFloatVectorArray& data, CClusteringResult& result );
 
 private:
 	const CParam params; // clustering parameters
@@ -130,7 +130,8 @@ private:
 	void kMeansPlusPlusInitialization( const CDnnBlob& data, CDnnBlob& centers );
 
 	bool lloydBlobClusterization( const CDnnBlob& data, CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels );
-	double assignClosest( const CDnnBlob& data, const CDnnBlob& centers, CDnnBlob& labels );
+	double assignClosest( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& centers,
+		CDnnBlob& labels );
 	void recalcCenters( const CDnnBlob& data, const CDnnBlob& labels,
 		CDnnBlob& centers, CDnnBlob& sizes );
 	void calcClusterVariances( const CDnnBlob& data, const CDnnBlob& labels,
