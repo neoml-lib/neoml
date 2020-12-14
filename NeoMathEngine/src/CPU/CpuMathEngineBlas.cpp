@@ -689,16 +689,22 @@ void CCpuMathEngine::LookupAndSum(const CConstIntHandle& indicesHandle, int batc
 void CCpuMathEngine::LookupAndAddToTable(const CConstIntHandle& indicesHandle, int batchSize, int indexCount,
 	const CConstFloatHandle& additionsHandle, int vectorSize, const CFloatHandle& tableHandle, int vectorCount)
 {
-	VectorFill(tableHandle, 0.f, vectorCount * vectorSize);
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( tableHandle.GetMathEngine() == this );
+	ASSERT_EXPR( additionsHandle.GetMathEngine() == this );
 
-	CConstIntHandle indices = indicesHandle;
-	CConstFloatHandle additions = additionsHandle;
-	for(int b = 0; b < batchSize; ++b) {
-		for(int elem = 0; elem < indexCount; ++elem) {
-			int index = (int)indices.GetValue();
+	const int* indices = GetRaw( indicesHandle );
+	const float* additions = GetRaw( additionsHandle );
+	float* table = GetRaw( tableHandle );
+
+	vectorFill( table, 0.f, vectorCount * vectorSize );
+
+	for( int b = 0; b < batchSize; ++b ) {
+		for( int elem = 0; elem < indexCount; ++elem ) {
+			int index = *indices;
 			indices++;
-			if(index >= 0) {
-				VectorAdd(tableHandle + index * vectorSize, additions, tableHandle + index * vectorSize, vectorSize);
+			if( index >= 0 ) {
+				vectorAdd( table + index * vectorSize, additions, table + index * vectorSize, vectorSize );
 			}
 		}
 		additions += vectorSize;
@@ -1014,15 +1020,19 @@ void CCpuMathEngine::MultiplyVectorByTransposedLookupVectorAndAddToTable( int ba
 }
 
 void CCpuMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandle, int matrixHeight,
-	int matrixWidth, const CFloatHandle& resultHandle, const CIntHandle& columnIndices )
+	int matrixWidth, const CFloatHandle& resultHandle, const CIntHandle& rowIndicesHandle )
 {
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( rowIndicesHandle.GetMathEngine() == this );
+
 	const float* matrix = GetRaw( matrixHandle );
 	float* result = GetRaw( resultHandle );
-	int* rowIndices = GetRaw( columnIndices );
+	int* rowIndices = GetRaw( rowIndicesHandle );
 
 	// Copy the first row
-	VectorCopy( resultHandle, matrixHandle, matrixWidth );
-	VectorFill( columnIndices, 0, matrixWidth );
+	vectorCopy( result, matrix, matrixWidth );
+	VectorFill( rowIndicesHandle, 0, matrixWidth );
 	matrix += matrixWidth;
 	// Process the rest
 	for( int i = 0; i < matrixHeight - 1; i++ ) {
