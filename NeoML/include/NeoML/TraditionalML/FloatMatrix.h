@@ -25,10 +25,11 @@ namespace NeoML {
 struct NEOML_API CFloatMatrixDesc {
 	int Height; // the matrix height
 	int Width; // the matrix width
-	float* Values; // data array
+	float* Values; // pointer to data
 
 	CFloatMatrixDesc() : Height( 0 ), Width( 0 ), Values( nullptr ) {}
 
+	// Retrieves the pointer to the row data
 	const float* GetRow( int index ) const;
 
 	static CFloatMatrixDesc Empty; // the empty matrix descriptor
@@ -43,6 +44,7 @@ inline const float* CFloatMatrixDesc::GetRow( int index ) const
 
 //---------------------------------------------------------------------------------------------------------
 
+// A dense matrix
 class NEOML_API CFloatMatrix {
 public:
 	CFloatMatrix() {}
@@ -68,8 +70,10 @@ public:
 	void Serialize( CArchive& archive );
 
 private:
+	// The matrix body, that is, the object that stores all its data
 	struct NEOML_API CFloatMatrixBody : public IObject {
 		CFloatMatrixDesc Desc;
+		// Memory holder
 		CArray<float> ValuesBuf;
 
 		CFloatMatrixBody( int height, int width );
@@ -82,6 +86,7 @@ private:
 	CCopyOnWritePtr<CFloatMatrixBody> body; // The matrix body.
 };
 
+// Writing into a CTextStream
 inline CTextStream& operator<<( CTextStream& stream, const CFloatMatrix& matrix )
 {
 	for( int rowIndex = 0; rowIndex < matrix.GetHeight(); ++rowIndex ) {

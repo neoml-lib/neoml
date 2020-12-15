@@ -153,13 +153,12 @@ bool CKMeansClustering::Clusterize( IDenseClusteringData* rawData, CClusteringRe
 			success = lloydBlobClusterization( *data, *centers, *sizes, *labels );
 			break;
 		case KMA_Elkan:
-			// Не поддерживается для блобов.
-			// Elkan работает только для IClusteringData.
+			// Only Lloyd algorithm is supported for dense data
 		default:
 			NeoAssert( false );
 	}
 
-	//	оформление результата кластеризации
+	// finalizing results
 	result.ClusterCount = clusterCount;
 	result.Data.SetSize( vectorCount );
 	labels->CopyTo( result.Data.GetPtr() );
@@ -174,7 +173,7 @@ bool CKMeansClustering::Clusterize( IDenseClusteringData* rawData, CClusteringRe
 
 	int* clusterSizes = sizes->GetBuffer<int>( 0, clusterCount );
 	for( int i = 0, id = 0; i < clusterCount; i++ ) {
-		//	пустые кластеры пропускаем
+		// Omit empty clusters
 		if( clusterSizes[i] > 0 ) {
 			CFloatVector center( featureCount );
 			CFloatVector variance( featureCount );
@@ -186,7 +185,7 @@ bool CKMeansClustering::Clusterize( IDenseClusteringData* rawData, CClusteringRe
 			currentCenter.Mean = center;
 			currentCenter.Disp = variance;
 			currentCenter.Norm = DotProduct( currentCenter.Mean, currentCenter.Mean );
-			//	у нас могли быть пустые кластеры, поэтому придется смещать метки.
+			// Shift labels in case of empty clusters
 			for( int j = 0; j < result.Data.Size(); j++ ) {
 				if( result.Data[j] == i ) {
 					result.Data[j] = id;
@@ -589,7 +588,7 @@ bool CKMeansClustering::isPruned( const CArray<float>& upperBounds, const CVaria
 		( upperBounds[id] <= 0.5 * clusterDists( currentCluster, clusterToProcess ) );
 }
 
-// Выбирает набор начальных кластеров.
+// Selects initial centers from dense data
 void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& centers )
 {
 	const int vectorCount = data.GetObjectCount();
@@ -618,6 +617,7 @@ void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& c
 	}
 }
 
+// Selects initial centers by using default algo from dense data
 void CKMeansClustering::defaultInitialization( const CDnnBlob& data, CDnnBlob& centers )
 {
 	const int vectorCount = data.GetObjectCount();
@@ -635,14 +635,15 @@ void CKMeansClustering::defaultInitialization( const CDnnBlob& data, CDnnBlob& c
 	}
 }
 
+// Selects initial centers by using K-Means++ algo from dense data
 void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, CDnnBlob& centers )
 {
 	const int vectorCount = data.GetObjectCount();
 	const int featureCount = data.GetObjectSize();
-	//	берем случайный вектор
+	// Select random vector
 	CRandom random( 0xCEA );
 	const int firstChoice = random.UniformInt( 0, vectorCount - 1 );
-	//	копируем его
+	// Copy first vector
 	IMathEngine& mathEngine = centers.GetMathEngine();
 	mathEngine.VectorCopy( centers.GetData(), data.GetObjectData( firstChoice ), data.GetObjectSize() );
 
@@ -651,25 +652,16 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, CDnn
 	CFloatHandle currDists = stackBuff + 1;
 
 	CHashTable<int> usedVectors;
-	//	для каждой точки будем искать расстояния до близжайшего центроида.
-	//	тут делаем инициализацию
 	CPtr<CDnnBlob> prevDists = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount );
 	mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount,
 		centers.GetData(), prevDists->GetData() );
-	//	теперь последовательно выбираем кластеры
 	for( int k = 1; k < params.InitialClustersCount; k++ ) {
 		CConstFloatHandle currentVector = centers.GetObjectData( k - 1 );
-		//	для каждой точки ищем расстояние до близжайшего центроида
 		mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount,
 			currentVector, currDists );
-		//	ищем сам номер центроида
 		mathEngine.VectorEltwiseMin( currDists, prevDists->GetData(), prevDists->GetData(), prevDists->GetDataSize() );
-		//	вероятность выбора точки должна быть пропорциональная квадрату расстояния
-		//	до нее
 		mathEngine.VectorSum( prevDists->GetData(), prevDists->GetDataSize(), sumBlob );
 
-		//	ищем следующий:
-		//	берем случайную число от 0 до суммы
 		const double sumValue = static_cast<double>( sumBlob.GetValue() );
 		const double scaledSum = random.Uniform( 0, 1 ) * sumValue;
 
@@ -677,8 +669,6 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, CDnn
 		squares.SetSize( prevDists->GetDataSize() );
 		prevDists->CopyTo( squares.GetPtr() );
 	
-		//	теперь снова начинаем накапливать сумму.
-		//	когда превысим сгенерированное число, остановимся и зафиксируем результат
 		double prefixSum = 0;
 		int nextCoice = -1;
 		for( int i = 0; i < vectorCount; i++ ) {
@@ -688,16 +678,15 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, CDnn
 				break;
 			}
 		}
-		//	алгоритм by-default учитывает эти условия (расстояния будут равны 0 и точки мы пропустим)
-		//	но проверять все же надо
+
 		assert( nextCoice != -1 );
 		assert( !usedVectors.Has( nextCoice ) );
 		usedVectors.Add( nextCoice );
-		//	копируем выбранный вектор
 		mathEngine.VectorCopy( centers.GetObjectData( k ), data.GetObjectData( nextCoice ), featureCount );
 	}
 }
 
+// Clusterizes dense data by using Lloyd algorithm
 bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data,
 	CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels )
 {
@@ -722,7 +711,7 @@ bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data,
 	return false;
 }
 
-//	пересчет расстояний от точек до кластеров
+// Calculates distances between every point and every cluster center
 static void calcPairwiseDistances( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& centers,
 	CFloatHandle& distances )
 {
@@ -746,7 +735,7 @@ static void calcPairwiseDistances( const CDnnBlob& data, const CDnnBlob& squared
 	mathEngine.AddVectorToMatrixColumns( distances, distances, clusterCount, vectorCount, squaredCenters );
 }
 
-//	привязка точек к кластерам
+// Assigns every point to its closest cluster
 double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& centers, CDnnBlob& labels )
 {
 	IMathEngine& mathEngine = data.GetMathEngine();
@@ -764,7 +753,7 @@ double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& s
 	return result;
 }
 
-//	раскидываем объекты по текущим центрам, усредняем на кол-во объектов
+// Recalculates cluster centers
 void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& labels,
 	CDnnBlob& centers, CDnnBlob& sizes )
 {
@@ -779,9 +768,9 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& lab
 	mathEngine.BuildIntegerHist( labels.GetData<int>(), vectorCount, sizes.GetData<int>(), clusterCount );
 
 	int* rawSizes = sizes.GetBuffer<int>( 0, clusterCount );
-	//	пустые кластеры игнорируем
 	CFloatHandleStackVar invertedSize( mathEngine );
 	for( int i = 0; i < clusterCount; i++ ) {
+		// Ignore empty clusters
 		if( rawSizes[i] > 0 ) {
 			invertedSize.SetValue( 1.f / rawSizes[i] );
 			mathEngine.VectorMultiply( centers.GetObjectData( i ), centers.GetObjectData( i ),
@@ -791,7 +780,7 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& lab
 	sizes.ReleaseBuffer( rawSizes, false );
 }
 
-// подсчет дисперсий кластеров
+// Calculates clusters' variances
 void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBlob& labels,
 	const CDnnBlob& centers, const CDnnBlob& sizes, CDnnBlob& variances )
 {
@@ -800,7 +789,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 	const int featureCount = data.GetObjectSize();
 	const int clusterCount = sizes.GetDataSize();
 	
-	// 1 / *размер кластера*
+	// 1 / *cluster size*
 	CPtr<CDnnBlob> sizeInv = CDnnBlob::CreateVector( mathEngine, CT_Float, clusterCount );
 	{
 		int* sizeBuff = const_cast<CDnnBlob&>( sizes ).GetBuffer<int>( 0, clusterCount );
@@ -813,7 +802,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 	}
 
 	{
-		// Подсчитываем суммы квадратов значений каждого признака для каждого кластера.
+		// Calculate sum of squares of objects in each cluster
 		CFloatHandleStackVar stackBuff( mathEngine, vectorCount * featureCount + clusterCount * featureCount + 1 );
 		CFloatHandle squaredData = stackBuff.GetHandle();
 		mathEngine.VectorEltwiseMultiply( data.GetData(), data.GetData(), squaredData,
@@ -828,17 +817,17 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		variances.Clear();
 		mathEngine.VectorMultichannelLookupAndAddToTable( vectorCount, 1, labels.GetData<int>(),
 			&sumOfSquares, &dim, 1, one, squaredData, featureCount );
-		// Подсчитываем суммы квадратов значений каждого признака для каждого кластера, поделенные на размер кластера.
+		// Divide sum of squares by cluster size
 		mathEngine.MultiplyDiagMatrixByMatrix( sizeInv->GetData(), clusterCount, sumOfSquares, featureCount,
 			variances.GetData(), variances.GetDataSize() );
 	}
 
 	{
-		// Подсчитываем квадрат 
+		// Calculate squared centers
 		CFloatHandleStackVar squaredMean( mathEngine, clusterCount * featureCount );
 		mathEngine.VectorEltwiseMultiply( centers.GetData(), centers.GetData(),
 			squaredMean, clusterCount * featureCount );
-		// Вычитаем из усредненных квадратов квадраты средних и получаем дисперсию.
+		// Subtract squares from average in order to get variance
 		mathEngine.VectorSub( variances.GetData(), squaredMean, variances.GetData(), clusterCount * featureCount );
 	}
 }
