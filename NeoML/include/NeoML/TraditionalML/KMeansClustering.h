@@ -86,9 +86,10 @@ public:
 	// IClustering inteface methods:
 	// Clusterizes the input data and returns true if successful,
 	// false if more iterations are needed
-	virtual bool Clusterize( IClusteringData* data, CClusteringResult& result );
+	bool Clusterize( ISparseClusteringData* data, CClusteringResult& result ) override;
 
-	bool Clusterize( const CFloatVectorArray& data, CClusteringResult& result );
+	// Dense data version
+	bool Clusterize( IDenseClusteringData* data, CClusteringResult& result ) override;
 
 private:
 	const CParam params; // clustering parameters

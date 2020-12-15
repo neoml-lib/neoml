@@ -36,7 +36,7 @@ CHierarchicalClustering::CHierarchicalClustering( const CParam& _params ) :
 	NeoAssert( params.MinClustersCount > 0 );
 }
 
-bool CHierarchicalClustering::Clusterize( IClusteringData* data, CClusteringResult& result )
+bool CHierarchicalClustering::Clusterize( ISparseClusteringData* data, CClusteringResult& result )
 {
 	NeoAssert( data != 0 );
 

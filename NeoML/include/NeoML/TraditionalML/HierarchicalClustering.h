@@ -44,7 +44,10 @@ public:
 	// IClustering interface methods:
 	// Returns true if the specified distance between the clusters was reached AND 
 	// there are more than MinClustersCount clusters
-	virtual bool Clusterize( IClusteringData* input, CClusteringResult& result );
+	bool Clusterize( ISparseClusteringData* input, CClusteringResult& result ) override;
+
+	// Not implemented
+	bool Clusterize( IDenseClusteringData* input, CClusteringResult& result ) override { NeoAssert( false ); return false; };
 
 private:
 	const CParam params; // the clustering parameters

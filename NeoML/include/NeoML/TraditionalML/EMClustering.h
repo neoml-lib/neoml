@@ -61,7 +61,10 @@ public:
 
 	// IClustering interface methods:
 	// Returns true if the algorithm has converged and no clusters are smaller than MinClusterSize
-	virtual bool Clusterize( IClusteringData* input, CClusteringResult& result );
+	bool Clusterize( ISparseClusteringData* input, CClusteringResult& result ) override;
+
+	// Not implemented
+	bool Clusterize( IDenseClusteringData* input, CClusteringResult& result ) override { NeoAssert( false ); return false; };
 
 private:
 	// EM clustering result

@@ -16,7 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/TraditionalML/FloatVector.h>
+#include <NeoML/TraditionalML/FloatMatrix.h>
 #include <NeoML/TraditionalML/SparseFloatMatrix.h>
 #include <NeoML/TraditionalML/CommonCluster.h>
 
@@ -55,8 +55,8 @@ inline CClusteringResult::CClusteringResult( const CClusteringResult& result )
 
 //---------------------------------------------------------------------------------------------------------
 
-// The input data set for clustering
-class IClusteringData : public virtual IObject {
+// The input data set for clustering consisting of sparse vectors
+class ISparseClusteringData : public virtual IObject {
 public:
 	// The number of vectors
 	virtual int GetVectorCount() const = 0;
@@ -71,6 +71,25 @@ public:
 	virtual double GetVectorWeight( int index ) const = 0;
 };
 
+// The input data set for clustering consisting of dense vectors
+class IDenseClusteringData : public virtual IObject {
+public:
+	// The number of vectors
+	virtual int GetVectorCount() const = 0;
+
+	// The number of features (vector length)
+	virtual int GetFeaturesCount() const = 0;
+
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
+
+	// Gets the weight of the vector with the given index
+	virtual double GetVectorWeight( int index ) const = 0;
+};
+
+// DEPRECATED: for backward compatibility
+typedef ISparseClusteringData IClusteringData;
+
 // The clustering algorithm interface
 class IClustering {
 public:
@@ -78,7 +97,8 @@ public:
 
 	// Clusterizes the input data 
 	// and returns true if successful with the given parameters
-	virtual bool Clusterize( IClusteringData* data, CClusteringResult& result ) = 0;
+	virtual bool Clusterize( ISparseClusteringData* data, CClusteringResult& result ) = 0;
+	virtual bool Clusterize( IDenseClusteringData* data, CClusteringResult& result ) = 0;
 };
 
 } // namespace NeoML

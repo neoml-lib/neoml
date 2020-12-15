@@ -60,7 +60,10 @@ public:
 	// IClustering inteface methods:
 	// Clusterizes the input data and returns true if successful,
 	// false if more iterations are needed
-	virtual bool Clusterize( IClusteringData* input, CClusteringResult& result );
+	bool Clusterize( ISparseClusteringData* input, CClusteringResult& result ) override;
+
+	// Not implemented
+	bool Clusterize( IDenseClusteringData* input, CClusteringResult& result ) override { NeoAssert( false ); return false; };
 
 private:
 	// A pair of clusters that will be merged

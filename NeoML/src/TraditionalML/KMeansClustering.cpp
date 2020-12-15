@@ -29,16 +29,16 @@ limitations under the License.
 
 namespace NeoML {
 
-static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CFloatVectorArray& data )
+static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, IDenseClusteringData* data )
 {
-	NeoAssert( !data.IsEmpty() );
-	const int vectorCount = data.Size();
-	const int featureCount = data[0].Size();
+	const int vectorCount = data->GetVectorCount();
+	const int featureCount = data->GetFeaturesCount();
 	CPtr<CDnnBlob> result = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, vectorCount, featureCount );
 	float* buffer = result->GetBuffer<float>( 0, vectorCount * featureCount );
 	float* currPtr = buffer;
-	for( int i = 0; i < data.Size(); ++i ) {
-		::memcpy( currPtr, data[i].GetPtr(), featureCount * sizeof( float ) );
+	CFloatMatrixDesc matrix = data->GetMatrix();
+	for( int i = 0; i < vectorCount; ++i ) {
+		::memcpy( currPtr, matrix.GetRow( i ), featureCount * sizeof( float ) );
 		currPtr += featureCount;
 	}
 	result->ReleaseBuffer( buffer, true );
@@ -61,7 +61,7 @@ CKMeansClustering::CKMeansClustering( const CParam& _params ) :
 {
 }
 
-bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
+bool CKMeansClustering::Clusterize( ISparseClusteringData* input, CClusteringResult& result )
 {
 	NeoAssert( input != 0 );
 
@@ -114,13 +114,13 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 	return success;
 }
 
-bool CKMeansClustering::Clusterize( const CFloatVectorArray& rawData, CClusteringResult& result )
+bool CKMeansClustering::Clusterize( IDenseClusteringData* rawData, CClusteringResult& result )
 {
 	NeoAssert( params.DistanceFunc == DF_Euclid );
 	NeoAssert( params.Algo == KMA_Lloyd );
-	NeoAssert( rawData.Size() > params.InitialClustersCount );
-	const int vectorCount = rawData.Size();
-	const int featureCount = rawData[0].Size();
+	NeoAssert( rawData->GetVectorCount() > params.InitialClustersCount );
+	const int vectorCount = rawData->GetVectorCount();
+	const int featureCount = rawData->GetFeaturesCount();
 	const int clusterCount = params.InitialClustersCount;
 
 	if( log != 0 ) {

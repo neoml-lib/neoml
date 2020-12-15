@@ -57,7 +57,10 @@ public:
 	// By default logging is off (set to null to turn off)
 	void SetLog( CTextStream* newLog ) { log = newLog; }
 
-	virtual bool Clusterize( IClusteringData* input, CClusteringResult& result );
+	bool Clusterize( ISparseClusteringData* input, CClusteringResult& result ) override;
+
+	// Not implemented
+	bool Clusterize( IDenseClusteringData* input, CClusteringResult& result ) override { NeoAssert( false ); return false; };
 
 private:
 	const CParam init; // the clustering parameters

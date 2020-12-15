@@ -87,7 +87,7 @@ CEMClustering::~CEMClustering()
 {
 }
 
-bool CEMClustering::Clusterize( IClusteringData* data, CClusteringResult& result )
+bool CEMClustering::Clusterize( ISparseClusteringData* data, CClusteringResult& result )
 {
 	NeoAssert( data != 0 );
 
