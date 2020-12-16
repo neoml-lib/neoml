@@ -57,6 +57,12 @@ size_t CCudaMathEngine::GetPeakMemoryUsage() const
 	return memoryPool->GetPeakMemoryUsage();
 }
 
+size_t CCudaMathEngine::GetMemoryInPools() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetMemoryInPools();
+}
+
 void CCudaMathEngine::SetReuseMemoryMode( bool )
 {
 	// Always true, because allocation is sync
