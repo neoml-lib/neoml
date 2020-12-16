@@ -53,6 +53,7 @@ public:
 	void StackFree( const CMemoryHandle& handle ) override;
 	size_t GetFreeMemorySize() const override;
 	size_t GetPeakMemoryUsage() const override;
+	size_t GetMemoryInPools() const override;
 	void CleanUp() override;
 	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size ) override;
 	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
