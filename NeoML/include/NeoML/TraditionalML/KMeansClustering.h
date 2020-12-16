@@ -97,16 +97,23 @@ private:
 	CObjectArray<CCommonCluster> clusters; // the current clusters
 	CArray<CClusterCenter> initialClusterCenters; // the initial cluster centers
 
+	// Initial cluster selection for sparse data
 	void selectInitialClusters( const CSparseFloatMatrixDesc& matrix );
 	void defaultInitialization( const CSparseFloatMatrixDesc& matrix );
 	void kMeansPlusPlusInitialization( const CSparseFloatMatrixDesc& matrix );
 
+	// Sparse data clusterization
 	bool clusterize( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
 
+	// Lloyd algorithm implementation for sparse data
 	bool lloydClusterization( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
 	void classifyAllData( const CSparseFloatMatrixDesc& matrix, CArray<int>& dataCluster );
 	int findNearestCluster( const CSparseFloatMatrixDesc& matrix, int dataIndex ) const;
+	void storeClusterCenters( CArray<CClusterCenter>& result );
+	bool updateClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+		const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters );
 
+	// Elkan algorithm implementation for sparse data
 	bool elkanClusterization( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
 	void initializeElkanStatistics( const CSparseFloatMatrixDesc& matrix, CArray<int>& assignments,
 		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds, CVariableMatrix<float>& clusterDists,
@@ -122,18 +129,17 @@ private:
 	bool isPruned( const CArray<float>& upperBounds, const CVariableMatrix<float>& lowerBounds,
 		const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id) const;
 
-	void storeClusterCenters( CArray<CClusterCenter>& result );
-	bool updateClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
-		const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters );
-
+	// Initial cluster selection for dense data
 	void selectInitialClusters( const CDnnBlob& data, CDnnBlob& centers );
 	void defaultInitialization( const CDnnBlob& data, CDnnBlob& centers );
 	void kMeansPlusPlusInitialization( const CDnnBlob& data, CDnnBlob& centers );
 
-	bool lloydBlobClusterization( const CDnnBlob& data, CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels );
-	double assignClosest( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& centers,
-		CDnnBlob& labels );
-	void recalcCenters( const CDnnBlob& data, const CDnnBlob& labels,
+	// Lloyd algorithm implementation for dense data
+	bool lloydBlobClusterization( const CDnnBlob& data, const CDnnBlob& weight,
+		CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels );
+	double assignClosest( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& weight,
+		const CDnnBlob& centers, CDnnBlob& labels );
+	void recalcCenters( const CDnnBlob& data, const CDnnBlob& weight, const CDnnBlob& labels,
 		CDnnBlob& centers, CDnnBlob& sizes );
 	void calcClusterVariances( const CDnnBlob& data, const CDnnBlob& labels,
 		const CDnnBlob& centers, const CDnnBlob& sizes, CDnnBlob& variances );

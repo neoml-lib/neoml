@@ -34,15 +34,20 @@ static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, IDenseClusteringD
 	const int vectorCount = data->GetVectorCount();
 	const int featureCount = data->GetFeaturesCount();
 	CPtr<CDnnBlob> result = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, vectorCount, featureCount );
-	float* buffer = result->GetBuffer<float>( 0, vectorCount * featureCount );
-	float* currPtr = buffer;
-	CFloatMatrixDesc matrix = data->GetMatrix();
-	for( int i = 0; i < vectorCount; ++i ) {
-		::memcpy( currPtr, matrix.GetRow( i ), featureCount * sizeof( float ) );
-		currPtr += featureCount;
-	}
-	result->ReleaseBuffer( buffer, true );
+	result->CopyFrom( data->GetMatrix().Values );
 	return result;
+}
+
+static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, IDenseClusteringData* data )
+{
+	const int vectorCount = data->GetVectorCount();
+	CPtr<CDnnBlob> weight = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount );
+	float* buffer = weight->GetBuffer<float>( 0, vectorCount );
+	for( int vectorIndex = 0; vectorIndex < vectorCount; ++vectorIndex ) {
+		buffer[vectorIndex] = static_cast<float>( data->GetVectorWeight( vectorIndex ) );
+	}
+	weight->ReleaseBuffer( buffer, true );
+	return weight;
 }
 
 CKMeansClustering::CKMeansClustering( const CArray<CClusterCenter>& _clusters, const CParam& _params ) :
@@ -130,6 +135,7 @@ bool CKMeansClustering::Clusterize( IDenseClusteringData* rawData, CClusteringRe
 	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( params.ThreadCount, 0 ) );
 
 	CPtr<CDnnBlob> data = createDataBlob( *mathEngine, rawData );
+	CPtr<CDnnBlob> weight = createWeightBlob( *mathEngine, rawData );
 	CPtr<CDnnBlob> centers = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount );
 
 	selectInitialClusters( *data, *centers );
@@ -144,13 +150,13 @@ bool CKMeansClustering::Clusterize( IDenseClusteringData* rawData, CClusteringRe
 
 	bool success = false;
 
-	CPtr<CDnnBlob> sizes = CDnnBlob::CreateVector( *mathEngine, CT_Int, clusterCount );
+	CPtr<CDnnBlob> sizes = CDnnBlob::CreateVector( *mathEngine, CT_Float, clusterCount );
 	CPtr<CDnnBlob> labels = CDnnBlob::CreateVector( *mathEngine, CT_Int, vectorCount );
 
-	compileTimeAssert( KMA_Count == 2 );
+	static_assert( KMA_Count == 2, "KMA_Count != 2" );
 	switch( params.Algo ) {
 		case KMA_Lloyd:
-			success = lloydBlobClusterization( *data, *centers, *sizes, *labels );
+			success = lloydBlobClusterization( *data, *weight, *centers, *sizes, *labels );
 			break;
 		case KMA_Elkan:
 			// Only Lloyd algorithm is supported for dense data
@@ -165,7 +171,7 @@ bool CKMeansClustering::Clusterize( IDenseClusteringData* rawData, CClusteringRe
 
 	CPtr<CDnnBlob> variances = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount );
 	calcClusterVariances( *data, *labels, *centers, *sizes, *variances );
-	
+
 	CConstFloatHandle rawCentersPtr = centers->GetData();
 	CConstFloatHandle rawVariancesPtr = variances->GetData();
 
@@ -604,7 +610,7 @@ void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& c
 		return;
 	}
 
-	compileTimeAssert( KMI_Count == 2 );
+	static_assert( KMI_Count == 2, "KMI_Count != 2" );
 	switch( params.Initialization ) {
 		case KMI_Default:
 			defaultInitialization( data, centers );
@@ -687,7 +693,7 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, CDnn
 }
 
 // Clusterizes dense data by using Lloyd algorithm
-bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data,
+bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data, const CDnnBlob& weight,
 	CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels )
 {
 	double prevDist = FLT_MAX;
@@ -700,8 +706,8 @@ bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data,
 	mathEngine.RowMultiplyMatrixByMatrix( data.GetData(), data.GetData(), data.GetObjectCount(),
 		data.GetObjectSize(), squaredData->GetData() );
 	for( int iter = 0; iter < params.MaxIterations; iter++ ) {
-		totalDist = assignClosest( data, *squaredData, centers, labels );
-		recalcCenters( data, labels, centers, sizes );
+		totalDist = assignClosest( data, *squaredData, weight, centers, labels );
+		recalcCenters( data, weight, labels, centers, sizes );
 		if( abs( prevDist - totalDist ) < eps ) {
 			return true;
 		}
@@ -736,7 +742,8 @@ static void calcPairwiseDistances( const CDnnBlob& data, const CDnnBlob& squared
 }
 
 // Assigns every point to its closest cluster
-double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& centers, CDnnBlob& labels )
+double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& weight,
+	const CDnnBlob& centers, CDnnBlob& labels )
 {
 	IMathEngine& mathEngine = data.GetMathEngine();
 	const int vectorCount = data.GetObjectCount();
@@ -748,13 +755,14 @@ double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& s
 	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount * clusterCount + vectorCount + clusterCount;
 	calcPairwiseDistances( data, squaredData, centers, distances );
 	mathEngine.FindMinValueInColumns( distances, clusterCount, vectorCount, closestDist, labels.GetData<int>() );
+	mathEngine.VectorEltwiseMultiply( closestDist, weight.GetData(), closestDist, vectorCount );
 	mathEngine.VectorSum( closestDist, vectorCount, totalDist );
 	const double result = static_cast<double>( totalDist.GetValue() );
 	return result;
 }
 
 // Recalculates cluster centers
-void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& labels,
+void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& weight, const CDnnBlob& labels,
 	CDnnBlob& centers, CDnnBlob& sizes )
 {
 	IMathEngine& mathEngine = data.GetMathEngine();
@@ -762,20 +770,24 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& lab
 	const int vectorCount = data.GetObjectCount();
 	const int featureCount = data.GetObjectSize();
 
+	CFloatHandleStackVar stackBuff( mathEngine, centers.GetDataSize() + 1 );
+	CFloatHandle newCenter = stackBuff;
 	mathEngine.LookupAndAddToTable( labels.GetData<int>(), vectorCount, 1, data.GetData(),
-		data.GetObjectSize(), centers.GetData(), clusterCount );
+		data.GetObjectSize(), newCenter, clusterCount );
+	mathEngine.LookupAndAddToTable( labels.GetData<int>(), vectorCount, 1, weight.GetData(),
+		1, sizes.GetData(), clusterCount );
 
-	mathEngine.BuildIntegerHist( labels.GetData<int>(), vectorCount, sizes.GetData<int>(), clusterCount );
-
-	int* rawSizes = sizes.GetBuffer<int>( 0, clusterCount );
-	CFloatHandleStackVar invertedSize( mathEngine );
+	CFloatHandle invertedSize = stackBuff + centers.GetDataSize();
+	float* rawSizes = sizes.GetBuffer<float>( 0, clusterCount );
 	for( int i = 0; i < clusterCount; i++ ) {
 		// Ignore empty clusters
 		if( rawSizes[i] > 0 ) {
+			// Update centers for non-emtpy clusters
 			invertedSize.SetValue( 1.f / rawSizes[i] );
-			mathEngine.VectorMultiply( centers.GetObjectData( i ), centers.GetObjectData( i ),
+			mathEngine.VectorMultiply( newCenter, centers.GetObjectData( i ),
 				featureCount, invertedSize );
 		}
+		newCenter += featureCount;
 	}
 	sizes.ReleaseBuffer( rawSizes, false );
 }
@@ -792,7 +804,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 	// 1 / *cluster size*
 	CPtr<CDnnBlob> sizeInv = CDnnBlob::CreateVector( mathEngine, CT_Float, clusterCount );
 	{
-		int* sizeBuff = const_cast<CDnnBlob&>( sizes ).GetBuffer<int>( 0, clusterCount );
+		float* sizeBuff = const_cast<CDnnBlob&>( sizes ).GetBuffer<float>( 0, clusterCount );
 		float* sizeInvBuff = sizeInv->GetBuffer<float>( 0, clusterCount );
 		for( int i = 0; i < clusterCount; ++i ) {
 			sizeInvBuff[i] = sizeBuff[i] > 0 ? 1.f / sizeBuff[i] : 1.f;
