@@ -177,32 +177,21 @@ bool CKMeansClustering::Clusterize( IDenseClusteringData* rawData, CClusteringRe
 
 	result.Clusters.SetBufferSize( result.ClusterCount );
 
-	int* clusterSizes = sizes->GetBuffer<int>( 0, clusterCount );
-	for( int i = 0, id = 0; i < clusterCount; i++ ) {
-		// Omit empty clusters
-		if( clusterSizes[i] > 0 ) {
-			CFloatVector center( featureCount );
-			CFloatVector variance( featureCount );
+	for( int i = 0; i < clusterCount; i++ ) {
+		CFloatVector center( featureCount );
+		CFloatVector variance( featureCount );
 
-			mathEngine->DataExchangeTyped( center.CopyOnWrite(), rawCentersPtr, featureCount );
-			mathEngine->DataExchangeTyped( variance.CopyOnWrite(), rawVariancesPtr, featureCount );
+		mathEngine->DataExchangeTyped( center.CopyOnWrite(), rawCentersPtr, featureCount );
+		mathEngine->DataExchangeTyped( variance.CopyOnWrite(), rawVariancesPtr, featureCount );
 
-			CClusterCenter& currentCenter = result.Clusters.Append();
-			currentCenter.Mean = center;
-			currentCenter.Disp = variance;
-			currentCenter.Norm = DotProduct( currentCenter.Mean, currentCenter.Mean );
-			// Shift labels in case of empty clusters
-			for( int j = 0; j < result.Data.Size(); j++ ) {
-				if( result.Data[j] == i ) {
-					result.Data[j] = id;
-				}
-			}
-			id++;
-		}
+		CClusterCenter& currentCenter = result.Clusters.Append();
+		currentCenter.Mean = center;
+		currentCenter.Disp = variance;
+		currentCenter.Norm = DotProduct( currentCenter.Mean, currentCenter.Mean );
+
 		rawCentersPtr += featureCount;
 		rawVariancesPtr += featureCount;
 	}
-	sizes->ReleaseBuffer( clusterSizes, false );
 
 	result.ClusterCount = result.Clusters.Size();
 	assert( result.Clusters.Size() > 0 );
