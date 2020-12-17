@@ -60,7 +60,8 @@ public:
 	bool Clusterize( ISparseClusteringData* input, CClusteringResult& result ) override;
 
 	// Not implemented
-	bool Clusterize( IDenseClusteringData* input, CClusteringResult& result ) override { NeoAssert( false ); return false; };
+	bool Clusterize( IDenseClusteringData* /* input */, CClusteringResult& /* result */ ) override
+		{ NeoAssert( false ); return false; };
 
 private:
 	const CParam init; // the clustering parameters
