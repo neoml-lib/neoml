@@ -30,7 +30,6 @@ limitations under the License.
 #include <NeoML/TraditionalML/LinearBinaryClassifierBuilder.h>
 #include <NeoML/TraditionalML/DecisionTreeTrainingModel.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
-#include <NeoML/TraditionalML/SMOptimizer.h>
 #include <NeoML/TraditionalML/SvmBinaryClassifierBuilder.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <NeoML/TraditionalML/DifferentialEvolution.h>
