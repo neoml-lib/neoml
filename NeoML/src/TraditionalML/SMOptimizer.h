@@ -39,7 +39,7 @@ class CKernelMatrix;
 //
 
 // The optimizer for a support-vector machine that uses SMO
-class NEOML_API CSMOptimizer {
+class CSMOptimizer {
 public:
 	// kernel is the SVM kernel function
 	// data contains the training set
