@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/TraditionalML/LinearBinaryClassifierBuilder.h>
+#include <NeoML/TraditionalML/OneVersusAll.h>
 #include <NeoML/TraditionalML/TrustRegionNewtonOptimizer.h>
 #include <LinearBinaryModel.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
@@ -110,6 +111,10 @@ CPtr<IRegressionModel> CLinearBinaryClassifierBuilder::TrainRegression( const IR
 
 CPtr<IModel> CLinearBinaryClassifierBuilder::Train( const IProblem& trainingClassificationData )
 {
+	if( trainingClassificationData.GetClassCount() > 2 ) {
+		return COneVersusAll( *this ).Train( trainingClassificationData );
+	}
+
 	if( function != 0 ) {
 		delete function; // delete the old loss function
 	}
