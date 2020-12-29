@@ -360,7 +360,7 @@ bool CDnnModelWrapper::classify( CClassificationResult& result ) const
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-CPtr<IModel> CDnnTrainingModelWrapper::Train(const IProblem& trainingClassificationData)
+CPtr<IModel> CDnnTrainingModelWrapper::Train(const ISparseClassificationProblem& trainingClassificationData)
 {
 	CPtr<CDnnModelWrapper> model = FINE_DEBUG_NEW CDnnModelWrapper( mathEngine );
 	CPtr<CProblemSourceLayer> problem = FINE_DEBUG_NEW CProblemSourceLayer( mathEngine );

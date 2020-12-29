@@ -110,7 +110,11 @@ class NEOML_API CDnnTrainingModelWrapper : public ITrainingModel {
 public:
 	explicit CDnnTrainingModelWrapper( IMathEngine& _mathEngine ) : mathEngine( _mathEngine ) {}
 
-	CPtr<IModel> Train(const IProblem& trainingClassificationData) override;
+	CPtr<IModel> Train( const ISparseClassificationProblem& trainingClassificationData ) override;
+
+	// Train on dense data
+	CPtr<IModel> Train( const IDenseClassificationProblem& ) override
+		{ NeoAssert( false ); return nullptr; }
 
 protected:
 	// The function that builds and trains a neural network. 

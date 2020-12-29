@@ -20,7 +20,15 @@ limitations under the License.
 
 namespace NeoML {
 
-IProblem::~IProblem()
+IBaseProblem::~IBaseProblem()
+{
+}
+
+ISparseClassificationProblem::~ISparseClassificationProblem()
+{
+}
+
+IDenseClassificationProblem::~IDenseClassificationProblem()
 {
 }
 

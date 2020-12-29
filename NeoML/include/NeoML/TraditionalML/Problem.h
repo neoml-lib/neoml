@@ -16,7 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/TraditionalML/FloatVector.h>
+#include <NeoML/TraditionalML/FloatMatrix.h>
 #include <NeoML/TraditionalML/SparseFloatMatrix.h>
 #include <float.h>
 
@@ -27,9 +27,9 @@ const int DefaultDiscretizationValue = 100;
 
 // The input data for classification training
 // This interface is implemented by the client
-class NEOML_API IProblem : virtual public IObject {
+class NEOML_API IBaseProblem : public IObject {
 public:
-	virtual ~IProblem();
+	virtual ~IBaseProblem();
 
 	// The number of classes
 	virtual int GetClassCount() const = 0;
@@ -49,9 +49,6 @@ public:
 	// The correct class in case of binary classification: +1 or -1
 	double GetBinaryClass( int index ) const { return ( GetClass( index ) != 0 ) ? 1. : -1; }
 
-	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
-
 	// The vector weight
 	virtual double GetVectorWeight( int index ) const = 0;
 
@@ -59,6 +56,27 @@ public:
 	// For discrete features, it is reasonable to set this value to the number of different values the feature can take
 	virtual int GetDiscretizationValue( int ) const { return DefaultDiscretizationValue; }
 };
+
+// Sparse training data interface
+class NEOML_API ISparseClassificationProblem : public IBaseProblem {
+public:
+	virtual ~ISparseClassificationProblem();
+
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
+	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+};
+
+// Dense training data interface
+class NEOML_API IDenseClassificationProblem : public virtual IBaseProblem {
+public:
+	virtual ~IDenseClassificationProblem();
+
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
+};
+
+// DEPRECATED: for compatability
+typedef ISparseClassificationProblem IProblem;
 
 // The input data for regression training
 // This interface is implemented by the client

@@ -16,7 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/TraditionalML/FloatVector.h>
+#include <NeoML/TraditionalML/FloatMatrix.h>
 #include <NeoML/TraditionalML/ClassificationResult.h>
 #include <NeoML/TraditionalML/TrainingModel.h>
 #include <NeoML/Random.h>
@@ -161,7 +161,11 @@ public:
 	void SetLog( CTextStream* newLog ) { logStream = newLog; }
 
 	// The ITrainingModel interface methods:
-	virtual CPtr<IModel> Train( const IProblem& problem );
+	CPtr<IModel> Train( const ISparseClassificationProblem& problem ) override;
+
+	// Train on dense data
+	CPtr<IModel> Train( const IDenseClassificationProblem& ) override
+		{ NeoAssert( false ); return nullptr; }
 
 private:
 	static const int MaxClassifyNodesCacheSize = 10 * Megabyte; // the cache size for leaf nodes

@@ -103,6 +103,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/EMClustering.cpp
     TraditionalML/FeatureSelection.cpp
     TraditionalML/FirstComeClustering.cpp
+    TraditionalML/FloatMatrix.cpp
     TraditionalML/FloatVector.cpp
     TraditionalML/Function.cpp
     TraditionalML/FunctionEvaluation.cpp
@@ -238,6 +239,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/EMClustering.h
     ../include/NeoML/TraditionalML/FeatureSelection.h
     ../include/NeoML/TraditionalML/FirstComeClustering.h
+    ../include/NeoML/TraditionalML/FloatMatrix.h
     ../include/NeoML/TraditionalML/FloatVector.h
     ../include/NeoML/TraditionalML/Function.h
     ../include/NeoML/TraditionalML/FunctionEvaluation.h

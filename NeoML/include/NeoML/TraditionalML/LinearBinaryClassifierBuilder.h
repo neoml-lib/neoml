@@ -16,7 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/TraditionalML/FloatVector.h>
+#include <NeoML/TraditionalML/FloatMatrix.h>
 #include <NeoML/TraditionalML/ClassificationResult.h>
 #include <NeoML/TraditionalML/TrainingModel.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
@@ -101,7 +101,11 @@ public:
 	CPtr<IRegressionModel> TrainRegression( const IRegressionProblem& problem ) override;
 
 	// ITrainingModel interface methods:
-	CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
+	CPtr<IModel> Train( const ISparseClassificationProblem& trainingClassificationData ) override;
+
+	// Train on dense data
+	CPtr<IModel> Train( const IDenseClassificationProblem& ) override
+		{ NeoAssert( false ); return nullptr; }
 
 private:
 	const CParams params; // classification parameters

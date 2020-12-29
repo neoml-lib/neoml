@@ -27,7 +27,8 @@ ILinearBinaryModel::~ILinearBinaryModel()
 {}
 
 // Normalizes the error weight
-static double normalizeErrorWeight( const CLinearBinaryClassifierBuilder::CParams& param, const IProblem& trainingClassificationData )
+static double normalizeErrorWeight( const CLinearBinaryClassifierBuilder::CParams& param,
+	const ISparseClassificationProblem& trainingClassificationData )
 {
 	double totalWeight = 0;
 	const int vectorCount = trainingClassificationData.GetVectorCount();
@@ -38,7 +39,8 @@ static double normalizeErrorWeight( const CLinearBinaryClassifierBuilder::CParam
 }
 
 // Normalizes the error weight
-static double normalizeErrorWeight( const CLinearBinaryClassifierBuilder::CParams& param, const IRegressionProblem& problem )
+static double normalizeErrorWeight( const CLinearBinaryClassifierBuilder::CParams& param,
+	const IRegressionProblem& problem )
 {
 	double totalWeight = 0;
 	const int vectorCount = problem.GetVectorCount();
@@ -49,7 +51,8 @@ static double normalizeErrorWeight( const CLinearBinaryClassifierBuilder::CParam
 }
 
 // Creates a class for the loss function
-static CFunctionWithHessian* createOptimizedFunction( const CLinearBinaryClassifierBuilder::CParams& param, const IProblem& trainingClassificationData )
+static CFunctionWithHessian* createOptimizedFunction( const CLinearBinaryClassifierBuilder::CParams& param,
+	const ISparseClassificationProblem& trainingClassificationData )
 {
 	static_assert( EF_Count == 4, "EF_Count != 4" );
 
@@ -108,7 +111,7 @@ CPtr<IRegressionModel> CLinearBinaryClassifierBuilder::TrainRegression( const IR
 	return FINE_DEBUG_NEW CLinearBinaryModel( plane, sigmoidCoefficients );
 }
 
-CPtr<IModel> CLinearBinaryClassifierBuilder::Train( const IProblem& trainingClassificationData )
+CPtr<IModel> CLinearBinaryClassifierBuilder::Train( const ISparseClassificationProblem& trainingClassificationData )
 {
 	if( function != 0 ) {
 		delete function; // delete the old loss function

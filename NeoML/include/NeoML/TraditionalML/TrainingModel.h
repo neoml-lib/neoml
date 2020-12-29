@@ -24,11 +24,20 @@ namespace NeoML {
 // Classification training interface
 class NEOML_API ITrainingModel {
 public:
-	// Trains a classifier on the input data
-	virtual CPtr<IModel> Train( const IProblem& trainingClassificationData ) = 0;
+	// Trains a classifier on the sparse input data
+	virtual CPtr<IModel> Train( const ISparseClassificationProblem& trainingClassificationData ) = 0;
 
 	template<typename TModel>
-	CPtr<TModel> TrainModel( const IProblem& trainingClassificationData )
+	CPtr<TModel> TrainModel( const ISparseClassificationProblem& trainingClassificationData )
+	{
+		return CheckCast<TModel>( Train( trainingClassificationData ) );
+	}
+
+	// Trains a classifier on the dense input data
+	virtual CPtr<IModel> Train( const IDenseClassificationProblem& trainingClassificationData ) = 0;
+
+	template<typename TModel>
+	CPtr<TModel> TrainModel( const IDenseClassificationProblem& trainingClassificationData )
 	{
 		return CheckCast<TModel>( Train( trainingClassificationData ) );
 	}

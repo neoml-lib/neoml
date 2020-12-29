@@ -31,7 +31,7 @@ CSvmBinaryClassifierBuilder::CSvmBinaryClassifierBuilder( const CParams& _params
 {
 }
 
-CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const IProblem& problem )
+CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const ISparseClassificationProblem& problem )
 {
 	CSvmKernel kernel( params.KernelType, params.Degree, params.Gamma, params.Coeff0 );
 

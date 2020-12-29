@@ -55,7 +55,7 @@ CDecisionTreeTrainingModel::~CDecisionTreeTrainingModel()
 {
 }
 
-CPtr<IModel> CDecisionTreeTrainingModel::Train( const IProblem& problem )
+CPtr<IModel> CDecisionTreeTrainingModel::Train( const ISparseClassificationProblem& problem )
 {
 	NeoAssert( problem.GetVectorCount() > 0 );
 	NeoAssert( problem.GetClassCount() > 0 );

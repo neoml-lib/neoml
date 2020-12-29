@@ -16,7 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/TraditionalML/FloatVector.h>
+#include <NeoML/TraditionalML/FloatMatrix.h>
 #include <NeoML/TraditionalML/ClassificationResult.h>
 #include <NeoML/TraditionalML/TrainingModel.h>
 
@@ -57,7 +57,8 @@ public:
 	void SetLog( CTextStream* newLog ) { logStream = newLog; }
 
 	// ITrainingModel interface methods:
-	virtual CPtr<IModel> Train( const IProblem& trainingClassificationData );
+	CPtr<IModel> Train( const ISparseClassificationProblem& trainingClassificationData ) override;
+	CPtr<IModel> Train( const IDenseClassificationProblem& ) override;
 
 private:
 	ITrainingModel& baseBinaryClassifier; // the basic binary classifier used

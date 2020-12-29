@@ -347,7 +347,7 @@ CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem
 	return train( multivariate, createLossFunction() ).Ptr();
 }
 
-CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
+CPtr<IModel> CGradientBoost::Train( const ISparseClassificationProblem& problem )
 {
 	if( logStream != nullptr ) {
 		*logStream << "\nGradient boost training started:\n";

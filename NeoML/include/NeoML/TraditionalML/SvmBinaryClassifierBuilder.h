@@ -16,7 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/TraditionalML/FloatVector.h>
+#include <NeoML/TraditionalML/FloatMatrix.h>
 #include <NeoML/TraditionalML/ClassificationResult.h>
 #include <NeoML/TraditionalML/TrainingModel.h>
 #include <NeoML/TraditionalML/SvmKernel.h>
@@ -82,7 +82,11 @@ public:
 	// ITrainingModel interface methods:
 	// The resulting IModel is either a ILinearBinaryModel (if the KT_Linear kernel was used)
 	// or a ISvmBinaryModel (if some other kernel was used)
-	CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
+	CPtr<IModel> Train( const ISparseClassificationProblem& trainingClassificationData ) override;
+
+	// Train on dense data
+	CPtr<IModel> Train( const IDenseClassificationProblem& ) override
+		{ NeoAssert( false ); return nullptr; }
 
 private:
 	const CParams params; // classification parameters

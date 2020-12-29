@@ -22,12 +22,12 @@ limitations under the License.
 namespace NeoML {
 
 // The data for training binary classification: 0 for the target class, 1 for the other classes
-class COneVersusAllTrainingData : public IProblem {
+class COneVersusAllSparseTrainingData : public ISparseClassificationProblem {
 public:
-	COneVersusAllTrainingData( const IProblem* data, int baseClass );
+	COneVersusAllSparseTrainingData( const ISparseClassificationProblem* data, int baseClass );
 
 	// IProblem interface methods
-	int GetClassCount() const override { return data->GetClassCount(); }
+	int GetClassCount() const override { return 2; }
 	int GetFeatureCount() const override { return data->GetFeatureCount(); }
 	bool IsDiscreteFeature( int ) const override { return false; }
 	int GetVectorCount() const override { return data->GetVectorCount(); }
@@ -37,14 +37,43 @@ public:
 	int GetDiscretizationValue( int index ) const override { return data->GetDiscretizationValue( index ); }
 
 protected:
-	virtual ~COneVersusAllTrainingData() {} // delete prohibited
+	virtual ~COneVersusAllSparseTrainingData() {} // delete prohibited
 
 private:
-	const CPtr<const IProblem> data; // the source data
+	const CPtr<const ISparseClassificationProblem> data; // the source data
 	const int baseClass; // the number of the target class
 };
 
-inline COneVersusAllTrainingData::COneVersusAllTrainingData( const IProblem* _data, int _baseClass ) :
+COneVersusAllSparseTrainingData::COneVersusAllSparseTrainingData( const ISparseClassificationProblem* _data, int _baseClass ) :
+	data( _data ),
+	baseClass( _baseClass )
+{
+}
+
+// dense version
+class COneVersusAllDenseTrainingData : public IDenseClassificationProblem {
+public:
+	COneVersusAllDenseTrainingData( const IDenseClassificationProblem* data, int baseClass );
+
+	// IProblem interface methods
+	int GetClassCount() const override { return 2; }
+	int GetFeatureCount() const override { return data->GetFeatureCount(); }
+	bool IsDiscreteFeature( int ) const override { return false; }
+	int GetVectorCount() const override { return data->GetVectorCount(); }
+	int GetClass( int index ) const override { return ( data->GetClass( index) == baseClass ) ? 0 : 1; }
+	CFloatMatrixDesc GetMatrix() const override { return data->GetMatrix(); }
+	double GetVectorWeight( int index ) const override { return data->GetVectorWeight( index ); }
+	int GetDiscretizationValue( int index ) const override { return data->GetDiscretizationValue( index ); }
+
+protected:
+	virtual ~COneVersusAllDenseTrainingData() {} // delete prohibited
+
+private:
+	const CPtr<const IDenseClassificationProblem> data; // the source data
+	const int baseClass; // the number of the target class
+};
+
+COneVersusAllDenseTrainingData::COneVersusAllDenseTrainingData( const IDenseClassificationProblem* _data, int _baseClass ) :
 	data( _data ),
 	baseClass( _baseClass )
 {
@@ -58,7 +87,7 @@ COneVersusAll::COneVersusAll( ITrainingModel& _baseBinaryClassifier ) :
 {
 }
 
-CPtr<IModel> COneVersusAll::Train( const IProblem& trainingClassificationData )
+CPtr<IModel> COneVersusAll::Train( const ISparseClassificationProblem& trainingClassificationData )
 {
 	if( logStream != 0 ) {
 		*logStream << "\nOne versus all training started:\n";
@@ -66,7 +95,28 @@ CPtr<IModel> COneVersusAll::Train( const IProblem& trainingClassificationData )
 
 	CObjectArray<IModel> etalons;
 	for( int i = 0; i < trainingClassificationData.GetClassCount(); i++ ) {
-		CPtr<IProblem> trainingData = FINE_DEBUG_NEW COneVersusAllTrainingData( &trainingClassificationData, i );
+		CPtr<ISparseClassificationProblem> trainingData =
+			FINE_DEBUG_NEW COneVersusAllSparseTrainingData( &trainingClassificationData, i );
+		etalons.Add( baseBinaryClassifier.Train( *trainingData ) );
+	}
+
+	if( logStream != 0 ) {
+		*logStream << "\nOne versus all training finished\n";
+	}
+
+	return FINE_DEBUG_NEW COneVersusAllModel( etalons );
+}
+
+CPtr<IModel> COneVersusAll::Train( const IDenseClassificationProblem& trainingClassificationData )
+{
+	if( logStream != 0 ) {
+		*logStream << "\nOne versus all training started:\n";
+	}
+
+	CObjectArray<IModel> etalons;
+	for( int i = 0; i < trainingClassificationData.GetClassCount(); i++ ) {
+		CPtr<IDenseClassificationProblem> trainingData =
+			FINE_DEBUG_NEW COneVersusAllDenseTrainingData( &trainingClassificationData, i );
 		etalons.Add( baseBinaryClassifier.Train( *trainingData ) );
 	}
 
