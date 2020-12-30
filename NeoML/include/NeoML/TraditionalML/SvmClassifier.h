@@ -44,7 +44,7 @@ public:
 };
 
 // Binary SVM training algorithm
-class NEOML_API CSvmBinaryClassifierBuilder : public ITrainingModel {
+class NEOML_API CSvmClassifier : public ITrainingModel {
 public:
 	// Classification parameters
 	struct CParams {
@@ -74,19 +74,23 @@ public:
 		}
 	};
 
-	explicit CSvmBinaryClassifierBuilder( const CParams& params );
+	explicit CSvmClassifier( const CParams& params );
 
 	// Sets the text stream for logging processing
 	void SetLog( CTextStream* newLog ) { log = newLog; }
 
 	// ITrainingModel interface methods:
 	// The resulting IModel is either a ILinearBinaryModel (if the KT_Linear kernel was used)
-	// or a ISvmBinaryModel (if some other kernel was used)
+	// or a ISvmBinaryModel (if some other kernel was used) or a COneVersusAllModel (if number of classes > 2)
 	CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
 
 private:
 	const CParams params; // classification parameters
 	CTextStream* log; // Logging stream
 };
+
+// DEPRECATED: for backward compatibility
+typedef CSvmClassifier CSvmBinaryClassifierBuilder;
+
 
 } // namespace NeoML

@@ -124,7 +124,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/HierarchicalClustering.cpp
     TraditionalML/IsoDataClustering.cpp
     TraditionalML/KMeansClustering.cpp
-    TraditionalML/LinearBinaryClassifierBuilder.cpp
+    TraditionalML/LinearClassifier.cpp
     TraditionalML/LinearBinaryModel.cpp
     TraditionalML/LinearBinaryModel.h
     TraditionalML/MemoryProblem.cpp
@@ -144,7 +144,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/SparseFloatMatrix.cpp
     TraditionalML/SparseFloatVector.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
-    TraditionalML/SvmBinaryClassifierBuilder.cpp
+    TraditionalML/SvmClassifier.cpp
     TraditionalML/SvmBinaryModel.cpp
     TraditionalML/SvmBinaryModel.h
     TraditionalML/SvmKernel.cpp
@@ -248,7 +248,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/IsoDataClustering.h
     ../include/NeoML/TraditionalML/KMeansClustering.h
     ../include/NeoML/TraditionalML/LdGraph.h
-    ../include/NeoML/TraditionalML/LinearBinaryClassifierBuilder.h
+    ../include/NeoML/TraditionalML/LinearClassifier.h
     ../include/NeoML/TraditionalML/MatchingGenerator.h
     ../include/NeoML/TraditionalML/MemoryProblem.h
     ../include/NeoML/TraditionalML/Model.h
@@ -261,7 +261,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/SparseFloatMatrix.h
     ../include/NeoML/TraditionalML/SparseFloatVector.h
     ../include/NeoML/TraditionalML/SparseVectorIterator.h
-    ../include/NeoML/TraditionalML/SvmBinaryClassifierBuilder.h
+    ../include/NeoML/TraditionalML/SvmClassifier.h
     ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/TrainingModel.h

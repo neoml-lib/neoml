@@ -27,10 +27,10 @@ limitations under the License.
 #include <NeoML/TraditionalML/EMClustering.h>
 #include <NeoML/TraditionalML/HierarchicalClustering.h>
 #include <NeoML/TraditionalML/MemoryProblem.h>
-#include <NeoML/TraditionalML/LinearBinaryClassifierBuilder.h>
+#include <NeoML/TraditionalML/LinearClassifier.h>
 #include <NeoML/TraditionalML/DecisionTreeTrainingModel.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
-#include <NeoML/TraditionalML/SvmBinaryClassifierBuilder.h>
+#include <NeoML/TraditionalML/SvmClassifier.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <NeoML/TraditionalML/DifferentialEvolution.h>
 #include <NeoML/Dnn/DnnBlob.h>
