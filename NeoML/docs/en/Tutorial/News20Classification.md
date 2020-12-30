@@ -11,7 +11,7 @@
 
 This tutorial walks through training **NeoML** classification model to classify the well-known [News20](https://archive.ics.uci.edu/ml/datasets/Twenty+Newsgroups) data set.
 
-We are going to use the combination of [linear binary classifier](../API/ClassificationAndRegression/Linear.md) and the ["one versus all"](../API/ClassificationAndRegression/OneVersusAll.md) method.
+We are going to use the combination of [linear classifier](../API/ClassificationAndRegression/Linear.md) and the ["one versus all"](../API/ClassificationAndRegression/OneVersusAll.md) method.
 
 ## Preparing the input data
 
@@ -34,17 +34,14 @@ testArchive >> testData;
 
 ## Training the classifier
 
-The "one versus all" classifier uses the specified binary classifier to train a model per each class that would determine the probability for an object to belong to this class. An input object is then classified by the models voting.
+The "one versus all" classifier uses the specified classifier to train a model per each class that would determine the probability for an object to belong to this class. An input object is then classified by the models voting.
 
-1. Create a linear binary classifier using the `CLinearBinaryClassifierBuilder` class. Select the logistic regression loss function (`EF_LogReg` constant).
-2. Create a `COneVersusAll` classifier, passing the binary classifier set up on the previous step to the constructor.
-3. Call the `Train` method, passing the `trainData` training set prepared above. The method will train the model and return it as an object implementing the `IModel` interface.
+1. Create a linear classifier using the `CLinearClassifier` class. Select the logistic regression loss function (`EF_LogReg` constant).
+2. Call the `Train` method, passing the `trainData` training set prepared above. The method will train the model and return it as an object implementing the `IModel` interface.
 
 ```c++
-CLinearBinaryClassifierBuilder linear( EF_LogReg );
-	
-COneVersusAll oneVersusAll( linear );
-CPtr<IModel> model = oneVersusAll.Train( *trainData );
+CLinearClassifier linear( EF_LogReg );
+CPtr<IModel> model = linear.Train( *trainData );
 ```
 
 ## Analyzing the results

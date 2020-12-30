@@ -1,8 +1,8 @@
-# Linear Binary Classifier CLinearBinaryClassifierBuilder
+# Linear Binary Classifier CLinearClassifier
 
 <!-- TOC -->
 
-- [Linear Binary Classifier CLinearBinaryClassifierBuilder](#linear-binary-classifier-clinearbinaryclassifierbuilder)
+- [Linear Classifier CLinearClassifier](#linear-classifier-clinearclassifier)
 	- [Training settings](#training-settings)
 		- [Loss function](#loss-function)
 	- [Model](#model)
@@ -12,13 +12,13 @@
 
 <!-- /TOC -->
 
-A linear binary classifier finds a hyperplane that divides the feature space in half.
+A linear classifier finds a hyperplane that divides the feature space in half.
 
-In **NeoML** library this method is implemented by the  `CLinearBinaryClassifierBuilder` class. It exposes a `Train` method for creating a classification model and a `TrainRegression` method for creating a linear regression model.
+In **NeoML** library this method is implemented by the  `CLinearClassifier` class. It exposes a `Train` method for creating a classification model and a `TrainRegression` method for creating a linear regression model.
 
 ## Training settings
 
-The parameters are represented by a `CLinearBinaryClassifierBuilder::CParams` structure.
+The parameters are represented by a `CLinearClassifier::CParams` structure.
 
 - *Function* — the loss function.
 - *MaxIterations* — the maximum number of iterations allowed.
@@ -79,12 +79,12 @@ Here is a simple example of training a linear classification model. The input da
 ```c++
 CPtr<Model> buildModel( IProblem* data )
 {
-	CLinearBinaryClassifierBuilder::CParams params;
+	CLinearClassifier::CParams params;
 	params.Function = EF_SquaredHinge;
 	params.L1Coeff = 0.05;
 	params.ThreadCount = 4;
 
-	CLinearBinaryClassifierBuilder builder( params );
+	CLinearClassifier builder( params );
 	return builder.Train( *data );
 }
 ```

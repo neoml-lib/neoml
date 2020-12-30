@@ -1,17 +1,17 @@
-# Машина опорных векторов CSvmBinaryClassifierBuilder
+# Машина опорных векторов CSvmClassifier
 
-- [Машина опорных векторов CSvmBinaryClassifierBuilder](#машина-опорных-векторов-csvmbinaryclassifierbuilder)
+- [Машина опорных векторов CSvmClassifier](#машина-опорных-векторов-csvmclassifier)
 	- [Параметры построения модели](#параметры-построения-модели)
 	- [Модель](#модель)
 	- [Пример](#пример)
 
 Метод опорных векторов переводит исходные вектора в пространство более высокой размерности и ищет в нем разделяющую гиперплоскость с максимальным зазором.
 
-В **NeoML** алгоритм реализован классом `CSvmBinaryClassifierBuilder`. Он предоставляет метод `Train` для обучения модели бинарной классификации.
+В **NeoML** алгоритм реализован классом `CSvmClassifier`. Он предоставляет метод `Train` для обучения модели бинарной классификации.
 
 ## Параметры построения модели
 
-Параметры реализованы структурой `CSvmBinaryClassifierBuilder::CParams`.
+Параметры реализованы структурой `CSvmClassifier::CParams`.
 
 - *KernelType* — тип используемого ядра;
 - *ErrorWeight* — вес "ошибки" относительно регуляризатора;
@@ -56,8 +56,8 @@ public:
 ```c++
 CPtr<Model> buildModel( IProblem* data )
 {
-	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_RBF );
-	CSvmBinaryClassifierBuilder builder( params );
+	CSvmClassifier::CParams params( CSvmKernel::KT_RBF );
+	CSvmClassifier builder( params );
 	return builder.Train( *data );
 }
 ```

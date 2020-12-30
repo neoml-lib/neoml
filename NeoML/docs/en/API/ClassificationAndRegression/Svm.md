@@ -1,17 +1,17 @@
-# Support-Vector Machine CSvmBinaryClassifierBuilder
+# Support-Vector Machine CSvmClassifier
 
-- [Support-Vector Machine CSvmBinaryClassifierBuilder](#support-vector-machinecsvmbinaryclassifierbuilder)
+- [Support-Vector Machine CSvmClassifier](#support-vector-machine-csvmclassifier)
 	- [Training settings](#training-settings)
 	- [Model](#model)
 	- [Sample](#sample)
 
 Support-vector machine translates the input data into vectors in a high-dimensional space and searches for a maximum-margin dividing hyperplane.
 
-In **NeoML** library this method is implemented by the  `CSvmBinaryClassifierBuilder` class. It exposes a `Train` method for creating a model for binary classification.
+In **NeoML** library this method is implemented by the  `CSvmClassifier` class. It exposes a `Train` method for creating a model for binary classification.
 
 ## Training settings
 
-The parameters are represented by a  `CSvmBinaryClassifierBuilder::CParams` structure.
+The parameters are represented by a  `CSvmClassifier::CParams` structure.
 
 - *KernelType* — the type of the kernel function
 - *ErrorWeight* — the error weight relative to the regularization function
@@ -56,8 +56,8 @@ Here is a simple example of training a support-vector classification model. The 
 ```c++
 CPtr<Model> buildModel( IProblem* data )
 {
-	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_RBF );
-	CSvmBinaryClassifierBuilder builder( params );
+	CSvmClassifier::CParams params( CSvmKernel::KT_RBF );
+	CSvmClassifier builder( params );
 	return builder.Train( *data );
 }
 ```
