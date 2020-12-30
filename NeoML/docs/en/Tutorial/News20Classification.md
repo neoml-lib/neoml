@@ -11,7 +11,7 @@
 
 This tutorial walks through training **NeoML** classification model to classify the well-known [News20](https://archive.ics.uci.edu/ml/datasets/Twenty+Newsgroups) data set.
 
-We are going to use the combination of [linear classifier](../API/ClassificationAndRegression/Linear.md) and the ["one versus all"](../API/ClassificationAndRegression/OneVersusAll.md) method.
+We are going to use the [linear classifier](../API/ClassificationAndRegression/Linear.md) that implicitly uses ["one versus all"](../API/ClassificationAndRegression/OneVersusAll.md) method.
 
 ## Preparing the input data
 
@@ -34,13 +34,13 @@ testArchive >> testData;
 
 ## Training the classifier
 
-The "one versus all" classifier uses the specified classifier to train a model per each class that would determine the probability for an object to belong to this class. An input object is then classified by the models voting.
+The "one versus all" method uses the specified classifier to train a model per each class that would determine the probability for an object to belong to this class. An input object is then classified by the models voting.
 
-1. Create a linear classifier using the `CLinearClassifier` class (`COneVersusAll` will take place implicitly). Select the logistic regression loss function (`EF_LogReg` constant).
+1. Create a linear classifier using the `CLinear` class (`COneVersusAll` will take place implicitly). Select the logistic regression loss function (`EF_LogReg` constant).
 2. Call the `Train` method, passing the `trainData` training set prepared above. The method will train the model and return it as an object implementing the `IModel` interface.
 
 ```c++
-CLinearClassifier linear( EF_LogReg );
+CLinear linear( EF_LogReg );
 CPtr<IModel> model = linear.Train( *trainData );
 ```
 

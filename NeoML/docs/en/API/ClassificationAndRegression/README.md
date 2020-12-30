@@ -31,19 +31,19 @@ Gradient boosting is implemented by the [CGradientBoost](GradientBoost.md) class
 
 A linear binary classifier finds a hyperplane that divides the feature space in half.
 
-It is implemented by the [CLinearClassifier](Linear.md) class that trains the `ILinearBinaryModel` or `IOneVersusAllModel` model for classification and the `ILinearRegressionModel` model for linear regression.
+It is implemented by the [CLinear](Linear.md) class that trains the `ILinearBinaryModel` or [`IOneVersusAllModel`](OneVersusAll.md#model) model for classification and the `ILinearRegressionModel` model for linear regression.
 
 ### Support-vector machine
 
 Support-vector machine translates the input data into vectors in a high-dimensional space and searches for a maximum-margin dividing hyperplane.
 
-It is implemented by the [CSvmClassifier](Svm.md) class. The trained model is represented by the `ILinearBinaryModel`, `ISvmBinaryModel` or `IOneVersusAllModel` interface, depending on the type of kernel used.
+It is implemented by the [CSvm](Svm.md) class. The trained model is represented by the [`ILinearBinaryModel`](Linear.md#for-classification), `ISvmBinaryModel` or [`IOneVersusAllModel`](OneVersusAll.md#model) interface, depending on the type of kernel used and number of classes.
 
 ### Decision tree
 
 This classification method involves comparing the object features with a set of threshold values; the result tells us to move to one of the children nodes. Once we reach a leaf node we assign the object to the class this node represents.
 
-The decision tree is implemented by the  [CDecisionTreeTrainingModel](DecisionTree.md) class, while the trained model implements the `IDecisionTreeModel` interface.
+The decision tree is implemented by the  [CDecisionTree](DecisionTree.md) class, while the trained model implements the `IDecisionTreeModel` interface.
 
 ### One versus all method
 

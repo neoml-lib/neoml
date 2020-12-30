@@ -1,8 +1,8 @@
-# Линейный классификатор CLinearClassifier
+# Линейный классификатор CLinear
 
 <!-- TOC -->
 
-- [Линейный классификатор CLinearClassifier](#линейный-классификатор-clinearclassifier)
+- [Линейный классификатор CLinear](#линейный-классификатор-clinear)
 	- [Параметры построения модели](#параметры-построения-модели)
 		- [Функция потерь](#функция-потерь)
 	- [Модель](#модель)
@@ -14,11 +14,11 @@
 
 Линейный классификатор — алгоритм классификации, основанный на построении линейной разделяющей поверхности, которая делит пространство признаков на два полупространства.
 
-В **NeoML** алгоритм реализован классом `CLinearClassifier`. Он предоставляет методы `Train` для обучения модели классификации и `TrainRegression` для обучения модели линейной регрессии.
+В **NeoML** алгоритм реализован классом `CLinear`. Он предоставляет методы `Train` для обучения модели классификации и `TrainRegression` для обучения модели линейной регрессии.
 
 ## Параметры построения модели
 
-Параметры реализованы структурой `CLinearClassifier::CParams`.
+Параметры реализованы структурой `CLinear::CParams`.
 
 - *Function* — функция потерь;
 - *MaxIterations* — максимальное количество итераций;
@@ -79,12 +79,12 @@ public:
 ```c++
 CPtr<Model> buildModel( IProblem* data )
 {
-	CLinearClassifier::CParams params;
+	CLinear::CParams params;
 	params.Function = EF_SquaredHinge;
 	params.L1Coeff = 0.05;
 	params.ThreadCount = 4;
 
-	CLinearClassifier builder( params );
+	CLinear builder( params );
 	return builder.Train( *data );
 }
 ```

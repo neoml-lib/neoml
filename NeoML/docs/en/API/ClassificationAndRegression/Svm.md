@@ -1,17 +1,17 @@
-# Support-Vector Machine CSvmClassifier
+# Support-Vector Machine CSvm
 
-- [Support-Vector Machine CSvmClassifier](#support-vector-machine-csvmclassifier)
+- [Support-Vector Machine CSvm](#support-vector-machine-scvm)
 	- [Training settings](#training-settings)
 	- [Model](#model)
 	- [Sample](#sample)
 
 Support-vector machine translates the input data into vectors in a high-dimensional space and searches for a maximum-margin dividing hyperplane.
 
-In **NeoML** library this method is implemented by the  `CSvmClassifier` class. It exposes a `Train` method for creating a model for binary classification.
+In **NeoML** library this method is implemented by the `CSvm` class. It exposes a `Train` method for creating a model for binary classification.
 
 ## Training settings
 
-The parameters are represented by a  `CSvmClassifier::CParams` structure.
+The parameters are represented by a `CSvm::CParams` structure.
 
 - *KernelType* — the type of the kernel function
 - *ErrorWeight* — the error weight relative to the regularization function
@@ -24,7 +24,7 @@ The parameters are represented by a  `CSvmClassifier::CParams` structure.
 
 ## Model
 
-The trained model implements the [`ILinearBinaryModel`](Linear.md#for-classification) interface if a `KT_Linear` kernel is used; otherwise, it implements the `ISvmBinaryModel` interface.
+The trained model implements the [`ILinearBinaryModel`](Linear.md#for-classification) interface if a `KT_Linear` kernel is used; the [`IOneVersusAllModel`](OneVersusAll.md#model) if number of classes > 2; otherwise, it implements the `ISvmBinaryModel` interface.
 
 ```c++
 // SVM binary classifier interface
@@ -56,8 +56,8 @@ Here is a simple example of training a support-vector classification model. The 
 ```c++
 CPtr<Model> buildModel( IProblem* data )
 {
-	CSvmClassifier::CParams params( CSvmKernel::KT_RBF );
-	CSvmClassifier builder( params );
+	CSvm::CParams params( CSvmKernel::KT_RBF );
+	CSvm builder( params );
 	return builder.Train( *data );
 }
 ```

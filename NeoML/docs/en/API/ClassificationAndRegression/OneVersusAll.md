@@ -61,7 +61,7 @@ public:
 Here is a simple example of training a one-versus-all model using a linear binary classifier.
 
 ```c++
-CLinearClassifier linear( EF_LogReg );
+CLinear linear( EF_LogReg );
 	
 COneVersusAll oneVersusAll( linear );
 CPtr<IModel> model = oneVersusAll.Train( *trainData );

@@ -1,8 +1,8 @@
-# Linear Classifier CLinearClassifier
+# Linear Classifier CLinear
 
 <!-- TOC -->
 
-- [Linear Classifier CLinearClassifier](#linear-classifier-clinearclassifier)
+- [Linear Classifier CLinear](#linear-classifier-clinear)
 	- [Training settings](#training-settings)
 		- [Loss function](#loss-function)
 	- [Model](#model)
@@ -14,11 +14,11 @@
 
 A linear classifier finds a hyperplane that divides the feature space in half.
 
-In **NeoML** library this method is implemented by the  `CLinearClassifier` class. It exposes a `Train` method for creating a classification model and a `TrainRegression` method for creating a linear regression model.
+In **NeoML** library this method is implemented by the  `CLinear` class. It exposes a `Train` method for creating a classification model and a `TrainRegression` method for creating a linear regression model.
 
 ## Training settings
 
-The parameters are represented by a `CLinearClassifier::CParams` structure.
+The parameters are represented by a `CLinear::CParams` structure.
 
 - *Function* — the loss function.
 - *MaxIterations* — the maximum number of iterations allowed.
@@ -79,12 +79,12 @@ Here is a simple example of training a linear classification model. The input da
 ```c++
 CPtr<Model> buildModel( IProblem* data )
 {
-	CLinearClassifier::CParams params;
+	CLinear::CParams params;
 	params.Function = EF_SquaredHinge;
 	params.L1Coeff = 0.05;
 	params.ThreadCount = 4;
 
-	CLinearClassifier builder( params );
+	CLinear builder( params );
 	return builder.Train( *data );
 }
 ```
