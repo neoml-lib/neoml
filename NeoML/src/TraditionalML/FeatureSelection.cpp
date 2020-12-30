@@ -273,7 +273,7 @@ double CalcFeatureAndClassCorrelation( const IProblem& problem, int featureIndex
 
 void CalcFeaturesInformationGain( const IProblem& problem, CArray<double>& informationGain )
 {
-	const CDecisionTreeTrainingModel::TSplitCriterion criterion = CDecisionTreeTrainingModel::SC_InformationGain;
+	const CDecisionTree::TSplitCriterion criterion = CDecisionTree::SC_InformationGain;
 	const int vectorCount = problem.GetVectorCount();
 	const int classCount = problem.GetClassCount();
 	const int featureCount = problem.GetFeatureCount();

@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <NeoML/TraditionalML/FloatVector.h>
-#include <NeoML/TraditionalML/LinearClassifier.h>
+#include <NeoML/TraditionalML/Linear.h>
 
 namespace NeoML {
 

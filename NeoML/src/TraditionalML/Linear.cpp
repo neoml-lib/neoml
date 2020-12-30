@@ -16,7 +16,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/TraditionalML/LinearClassifier.h>
+#include <NeoML/TraditionalML/Linear.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
 #include <NeoML/TraditionalML/TrustRegionNewtonOptimizer.h>
 #include <LinearBinaryModel.h>
@@ -28,7 +28,7 @@ ILinearBinaryModel::~ILinearBinaryModel()
 {}
 
 // Normalizes the error weight
-static double normalizeErrorWeight( const CLinearClassifier::CParams& param, const IProblem& trainingClassificationData )
+static double normalizeErrorWeight( const CLinear::CParams& param, const IProblem& trainingClassificationData )
 {
 	double totalWeight = 0;
 	const int vectorCount = trainingClassificationData.GetVectorCount();
@@ -39,7 +39,7 @@ static double normalizeErrorWeight( const CLinearClassifier::CParams& param, con
 }
 
 // Normalizes the error weight
-static double normalizeErrorWeight( const CLinearClassifier::CParams& param, const IRegressionProblem& problem )
+static double normalizeErrorWeight( const CLinear::CParams& param, const IRegressionProblem& problem )
 {
 	double totalWeight = 0;
 	const int vectorCount = problem.GetVectorCount();
@@ -50,7 +50,7 @@ static double normalizeErrorWeight( const CLinearClassifier::CParams& param, con
 }
 
 // Creates a class for the loss function
-static CFunctionWithHessian* createOptimizedFunction( const CLinearClassifier::CParams& param, const IProblem& trainingClassificationData )
+static CFunctionWithHessian* createOptimizedFunction( const CLinear::CParams& param, const IProblem& trainingClassificationData )
 {
 	static_assert( EF_Count == 4, "EF_Count != 4" );
 
@@ -74,21 +74,21 @@ static CFunctionWithHessian* createOptimizedFunction( const CLinearClassifier::C
 
 //---------------------------------------------------------------------------------------------------------
 
-CLinearClassifier::CLinearClassifier( const CParams& _params ) :
+CLinear::CLinear( const CParams& _params ) :
 	params( _params ),
 	log( 0 ),
 	function( 0 )
 {
 }
 
-CLinearClassifier::~CLinearClassifier()
+CLinear::~CLinear()
 {
 	if( function != 0 ) {
 		delete function;
 	}
 }
 
-CPtr<IRegressionModel> CLinearClassifier::TrainRegression( const IRegressionProblem& problem )
+CPtr<IRegressionModel> CLinear::TrainRegression( const IRegressionProblem& problem )
 {
 	if( function != 0 ) {
 		delete function; // delete the old loss function
@@ -109,7 +109,7 @@ CPtr<IRegressionModel> CLinearClassifier::TrainRegression( const IRegressionProb
 	return FINE_DEBUG_NEW CLinearBinaryModel( plane, sigmoidCoefficients );
 }
 
-CPtr<IModel> CLinearClassifier::Train( const IProblem& trainingClassificationData )
+CPtr<IModel> CLinear::Train( const IProblem& trainingClassificationData )
 {
 	if( trainingClassificationData.GetClassCount() > 2 ) {
 		return COneVersusAll( *this ).Train( trainingClassificationData );

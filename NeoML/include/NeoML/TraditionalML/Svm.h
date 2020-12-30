@@ -44,7 +44,7 @@ public:
 };
 
 // Binary SVM training algorithm
-class NEOML_API CSvmClassifier : public ITrainingModel {
+class NEOML_API CSvm : public ITrainingModel {
 public:
 	// Classification parameters
 	struct CParams {
@@ -74,7 +74,7 @@ public:
 		}
 	};
 
-	explicit CSvmClassifier( const CParams& params );
+	explicit CSvm( const CParams& params );
 
 	// Sets the text stream for logging processing
 	void SetLog( CTextStream* newLog ) { log = newLog; }
@@ -88,9 +88,6 @@ private:
 	const CParams params; // classification parameters
 	CTextStream* log; // Logging stream
 };
-
-// DEPRECATED: for backward compatibility
-typedef CSvmClassifier CSvmBinaryClassifierBuilder;
 
 
 } // namespace NeoML

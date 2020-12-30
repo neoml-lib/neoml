@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/TraditionalML/DecisionTreeTrainingModel.h>
+#include <NeoML/TraditionalML/DecisionTree.h>
 
 namespace NeoML {
 

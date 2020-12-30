@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/TraditionalML/LinearClassifier.h>
+#include <NeoML/TraditionalML/Linear.h>
 
 namespace NeoML {
 

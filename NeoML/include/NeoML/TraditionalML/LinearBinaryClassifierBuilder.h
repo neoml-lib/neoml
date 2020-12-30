@@ -15,12 +15,11 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/DecisionTree.h>
+#include <NeoML/Linear.h>
 
 namespace NeoML {
 
 // DEPRECATED: for backward compatibility
-typedef CDecisionTree CDecisionTreeTrainingModel;
-
+typedef CLinear CLinearBinaryClassifierBuilder;
 
 } // namespace NeoML

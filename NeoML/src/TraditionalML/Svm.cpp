@@ -16,7 +16,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/TraditionalML/SvmClassifier.h>
+#include <NeoML/TraditionalML/Svm.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <SvmBinaryModel.h>
@@ -26,13 +26,13 @@ limitations under the License.
 
 namespace NeoML {
 
-CSvmClassifier::CSvmClassifier( const CParams& _params ) :
+CSvm::CSvm( const CParams& _params ) :
 	params( _params ),
 	log( nullptr )
 {
 }
 
-CPtr<IModel> CSvmClassifier::Train( const IProblem& problem )
+CPtr<IModel> CSvm::Train( const IProblem& problem )
 {
 	if( problem.GetClassCount() > 2 ) {
 		return COneVersusAll( *this ).Train( problem );
