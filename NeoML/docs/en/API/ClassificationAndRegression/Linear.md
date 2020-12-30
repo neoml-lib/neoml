@@ -1,4 +1,4 @@
-# Linear Binary Classifier CLinearClassifier
+# Linear Classifier CLinearClassifier
 
 <!-- TOC -->
 

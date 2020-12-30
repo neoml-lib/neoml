@@ -1,4 +1,4 @@
-# Бинарный линейный классификатор CLinearClassifier
+# Линейный классификатор CLinearClassifier
 
 <!-- TOC -->
 
