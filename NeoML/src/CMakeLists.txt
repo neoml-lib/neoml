@@ -124,7 +124,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/HierarchicalClustering.cpp
     TraditionalML/IsoDataClustering.cpp
     TraditionalML/KMeansClustering.cpp
-    TraditionalML/LinearClassifier.cpp
+    TraditionalML/Linear.cpp
     TraditionalML/LinearBinaryModel.cpp
     TraditionalML/LinearBinaryModel.h
     TraditionalML/MemoryProblem.cpp
