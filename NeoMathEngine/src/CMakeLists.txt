@@ -345,7 +345,9 @@ endif()
 
 
 # OpenMP
-link_openmp(${PROJECT_NAME})
+if(NOT IOS AND NOT (DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64?"))
+    link_openmp(${PROJECT_NAME})
+endif()
 
 # SSE2
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
