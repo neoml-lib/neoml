@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/Svm.h>
+#include <NeoML/TraditionalML/Svm.h>
 
 namespace NeoML {
 
