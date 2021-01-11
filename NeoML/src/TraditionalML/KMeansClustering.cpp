@@ -723,11 +723,11 @@ static void calcPairwiseDistances( const CDnnBlob& data, const CDnnBlob& squared
 	mathEngine.RowMultiplyMatrixByMatrix( centers.GetData(), centers.GetData(), clusterCount, featureCount, squaredCenters );
 
 	// (a - b)^2 = a^2 + b^2 - 2*a*b
-	mathEngine.MultiplyMatrixByTransposedMatrix( 1, centers.GetData(), clusterCount, featureCount, data.GetData(),
-		vectorCount, distances, clusterCount * vectorCount );
+	mathEngine.MultiplyMatrixByTransposedMatrix( 1, data.GetData(), vectorCount, featureCount, centers.GetData(),
+		clusterCount, distances, clusterCount * vectorCount );
 	mathEngine.VectorMultiply( distances, distances, clusterCount * vectorCount, minusTwo );
-	mathEngine.AddVectorToMatrixRows( 1, distances, distances, clusterCount, vectorCount, squaredData.GetData() );
-	mathEngine.AddVectorToMatrixColumns( distances, distances, clusterCount, vectorCount, squaredCenters );
+	mathEngine.AddVectorToMatrixRows( 1, distances, distances, vectorCount, clusterCount, squaredCenters );
+	mathEngine.AddVectorToMatrixColumns( distances, distances, vectorCount, clusterCount, squaredData.GetData() );
 }
 
 // Assigns every point to its closest cluster
@@ -741,9 +741,9 @@ double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& s
 	CFloatHandleStackVar stackBuff( mathEngine, vectorCount * clusterCount + vectorCount + 1 );
 	CFloatHandle distances = stackBuff.GetHandle();
 	CFloatHandle closestDist = stackBuff.GetHandle() + vectorCount * clusterCount;
-	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount * clusterCount + vectorCount + clusterCount;
+	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount * clusterCount + vectorCount;
 	calcPairwiseDistances( data, squaredData, centers, distances );
-	mathEngine.FindMinValueInColumns( distances, clusterCount, vectorCount, closestDist, labels.GetData<int>() );
+	mathEngine.FindMinValueInRows( distances, vectorCount, clusterCount, closestDist, labels.GetData<int>(), vectorCount );
 	mathEngine.VectorEltwiseMultiply( closestDist, weight.GetData(), closestDist, vectorCount );
 	mathEngine.VectorSum( closestDist, vectorCount, totalDist );
 	const double result = static_cast<double>( totalDist.GetValue() );

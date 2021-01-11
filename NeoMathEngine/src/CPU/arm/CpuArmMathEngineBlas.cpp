@@ -164,6 +164,50 @@ void CCpuMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle, i
 	}
 }
 
+void CCpuMathEngine::FindMinValueInRows(const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
+	const CFloatHandle& resultHandle, const CIntHandle& columnIndices, int vectorSize)
+{
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize >= matrixHeight );
+
+	const float* matrix = GetRaw(matrixHandle);
+	float* result = GetRaw(resultHandle);
+	int* indices = GetRaw(columnIndices);
+
+	int count = GetCount4(matrixWidth);
+
+	const int32x4_t initIndex = SetRegisterIntNeon(0, 1, 2, 3);
+	const int32x4_t indexStep = vdupq_n_s32(4);
+
+	for(int j = 0; j < matrixHeight; ++j) {
+		float32x4_t minVal = vdupq_n_f32(FLT_MAX);
+		int32x4_t curIndex = initIndex;
+		int32x4_t minIndex = curIndex;
+
+		for(int i = 0; i < count; ++i) {
+			float32x4_t curVal = LoadNeon4(matrix);
+			findMinValueWorker(curVal, curIndex, minVal, minIndex);
+			curIndex = vaddq_s32(curIndex, indexStep);
+			matrix += 4;
+		}
+
+		if(matrixWidth > 0) {
+			float32x4_t curVal = LoadNeon(matrix, matrixWidth, FLT_MAX);
+			findMinValueWorker(curVal, curIndex, minVal, minIndex);
+			matrix += matrixWidth;
+		}
+
+		float32x2_t res;
+		int32x2_t resIndex;
+		HorizontalMinWithIndexNeon(minVal, minIndex, res, resIndex);
+
+		*result++ = vget_lane_f32(res, 0);
+		*indices++ = vget_lane_s32(resIndex, 0);
+	}
+}
+
 void CCpuMathEngine::FindMaxValueInColumns( int batchSize, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth, const CFloatHandle& resultHandle, const CIntHandle& rowIndices, int vectorSize )
 {

@@ -392,6 +392,27 @@ inline void HorizontalMaxWithIndexNeon(const float32x4_t& val, const int32x4_t& 
 	resIndex = ConditionIntNeon(vcge_f32(max01, max23), vget_low_s32(maxIndex01_23), vget_high_s32(maxIndex01_23));
 }
 
+// Gets the minimum of elements in the register. It is put into each register position
+// The index of the found minimum is set to the indices register
+inline void HorizontalMinWithIndexNeon(const float32x4_t& val, const int32x4_t& index,
+	float32x2_t& res, int32x2_t& resIndex)
+{
+	// Finds the minimum in pairs of 0 and 1 elements, and of 2 and 3 elements
+	float32x4x2_t trn = vtrnq_f32(val, val);
+	int32x4x2_t trnIndex = vtrnq_s32(index, index);
+
+	float32x4_t min01_23 = vminq_f32(trn.val[0], trn.val[1]);
+	// Use LE comparison to get the "earlier" indices when the values are the same
+	int32x4_t minIndex01_23 = ConditionIntNeon(vcleq_f32(trn.val[0], trn.val[1]), trnIndex.val[0], trnIndex.val[1]);
+
+	// Take the minimum from the top and bottom elements
+	float32x2_t min01 = vget_low_f32(min01_23);
+	float32x2_t min23 = vget_high_f32(min01_23);
+	res = vmin_f32(min01, min23);
+	// Use LE comparison to get the "earlier" indices when the values are the same
+	resIndex = ConditionIntNeon(vcle_f32(min01, min23), vget_low_s32(minIndex01_23), vget_high_s32(minIndex01_23));
+}
+
 // Zero check: are all vector elements == 0
 inline bool IsMaskZeroNeon(const uint32x4_t& val)
 {
