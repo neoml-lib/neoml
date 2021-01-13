@@ -32,7 +32,6 @@ PATH=%PATH%;%_VS16%\Common7\IDE
 PATH=%PATH%;%_SDK%\bin\%_SDK_VERSION%\x64
 PATH=%PATH%;%_ABBYY_UTILS%
 PATH=%PATH%;%_GIT%\bin
-PATH=%PATH%;%_SVN%\bin
 PATH=%PATH%;%_CMAKE%\bin
 PATH=%PATH%;%_PYTHON%
 PATH=%PATH%;%_VS16%\MSBuild\Current\Bin
@@ -60,6 +59,8 @@ PATH.x86=%PATH.x86%;%_VS16%\Common7\IDE
 PATH.x86=%PATH.x86%;%_SDK%\bin\%_SDK_VERSION%\x64
 PATH.x86=%PATH.x86%;%_ABBYY_UTILS%
 PATH.x86=%PATH.x86%;%_VS16%\MSBuild\Current\Bin
+PATH.x86=%PATH.x86%;%_GIT%\bin
+PATH.x86=%PATH.x86%;%_CMAKE%\bin
 
 LIB.x86=%_VC16%\Lib\x86;%_SDK%\Lib
 LIB.x86=%LIB.x86%;%ProgramFiles(x86)%\Windows Kits\10\lib\%_SDK_VERSION%\ucrt\x86
@@ -77,6 +78,8 @@ PATH.x64=%PATH.x64%;%_VS16%\Common7\IDE
 PATH.x64=%PATH.x64%;%_SDK%\bin\%_SDK_VERSION%\x64
 PATH.x64=%PATH.x64%;%_ABBYY_UTILS%
 PATH.x64=%PATH.x64%;%_VS16%\MSBuild\Current\Bin
+PATH.x64=%PATH.x64%;%_GIT%\bin
+PATH.x64=%PATH.x64%;%_CMAKE%\bin
 
 LIB.x64=%_VC16%\Lib\x64;%_SDK%\Lib\x64
 LIB.x64=%LIB.x64%;%ProgramFiles(x86)%\Windows Kits\10\lib\%_SDK_VERSION%\ucrt\x64
