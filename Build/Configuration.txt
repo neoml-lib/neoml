@@ -12,79 +12,73 @@ BUILD_USERNAME=buildtech
 
 #----------------------------------------------------------------------------------------
 
-_VS14=%ProgramFiles(x86)%\Microsoft Visual Studio 14.0
-_VC14=%_VS14%\VC
+_VS16=%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Professional
+_VC16=%_VS16%\VC\Tools\MSVC\14.28.29333
 
-_WINKIT=%ProgramFiles(x86)%\Windows Kits\8.1
+_SDK=%ProgramFiles(x86)%\Windows Kits\10
+_SDK_VERSION=10.0.18362.0
 
 _ABBYY_UTILS=%ProgramFiles(x86)%\ABBYY Build Utilities
 _GIT=%ProgramFiles%\Git
-_SVN=%ProgramFiles%\TortoiseSVN
 _CMAKE=%ProgramFiles%\CMake
 _PYTHON=%ProgramFiles(x86)%\Python37
 
 BUILD_PLATFORM=Win32
 
 PATH=%SystemRoot%;%SystemRoot%\System32
-PATH=%PATH%;%_VC14%\bin
-PATH=%PATH%;%_VS14%\Common7\IDE
-PATH=%PATH%;%_WINKIT%\bin\x64
+PATH=%PATH%;%_VC16%\bin\HostX64\x86
+PATH=%PATH%;%_VC16%\bin\HostX64\x64
+PATH=%PATH%;%_VS16%\Common7\IDE
+PATH=%PATH%;%_SDK%\bin\%_SDK_VERSION%\x64
 PATH=%PATH%;%_ABBYY_UTILS%
 PATH=%PATH%;%_GIT%\bin
 PATH=%PATH%;%_SVN%\bin
 PATH=%PATH%;%_CMAKE%\bin
 PATH=%PATH%;%_PYTHON%
-PATH=%PATH%;%ProgramFiles(x86)%\MSBuild\14.0\Bin
-PATH=%PATH%;C:\ProgramData\Anaconda2;C:\ProgramData\Anaconda2\Library\mingw-w64\bin;C:\ProgramData\Anaconda2\Library\usr\bin;C:\ProgramData\Anaconda2\Library\bin;C:\ProgramData\Anaconda2\Scripts
+PATH=%PATH%;%_VS16%\MSBuild\Current\Bin
 
-INCLUDE=%_VC14%\Include
-INCLUDE=%INCLUDE%;%_VC14%\atlmfc\include
-INCLUDE=%INCLUDE%;%ProgramFiles(x86)%\Windows Kits\10\Include\10.0.10240.0\ucrt
-INCLUDE=%INCLUDE%;%_WINKIT%\Include\um
-INCLUDE=%INCLUDE%;%_WINKIT%\Include\shared
-INCLUDE=%INCLUDE%;%_WINKIT%\Include\winrt
+INCLUDE=%_VC16%\include
+INCLUDE=%INCLUDE%;%_SDK%\Include\%_SDK_VERSION%\ucrt
+INCLUDE=%INCLUDE%;%_VC16%\atlmfc\include
+INCLUDE=%INCLUDE%;%_SDK%\Include\%_SDK_VERSION%\um
+INCLUDE=%INCLUDE%;%_SDK%\Include\%_SDK_VERSION%\shared
+INCLUDE=%INCLUDE%;%_SDK%\Include\%_SDK_VERSION%\winrt
 
-LIB=%_VC14%\Lib
-LIB=%LIB%;%ProgramFiles(x86)%\Windows Kits\10\lib\10.0.10240.0\ucrt\x86
-LIB=%LIB%;%_VC14%\atlmfc\lib
-LIB=%LIB%;%_WINKIT%\lib\winv6.3\um\x86
+LIB=%_VC16%\lib\x86;%_SDK%\Lib
+LIB=%LIB%;%ProgramFiles(x86)%\Windows Kits\10\lib\%_SDK_VERSION%\ucrt\x86
+LIB=%LIB%;%ProgramFiles(x86)%\Windows Kits\10\lib\%_SDK_VERSION%\um\x86
+LIB=%LIB%;%_VC16%\atlmfc\lib
 
 #----------------------------------------------------------------------------------------
 
 BUILD_PLATFORM.x86=Win32
 
 PATH.x86=%SystemRoot%;%SystemRoot%\System32
-PATH.x86=%PATH.x86%;%_VC14%\bin
-PATH.x86=%PATH.x86%;%_VS14%\Common7\IDE
-PATH.x86=%PATH.x86%;%_WINKIT%\bin\x64
+PATH.x86=%PATH.x86%;%_VC16%\bin\HostX64\x86
+PATH.x86=%PATH.x86%;%_VC16%\bin\HostX64\x64
+PATH.x86=%PATH.x86%;%_VS16%\Common7\IDE
+PATH.x86=%PATH.x86%;%_SDK%\bin\%_SDK_VERSION%\x64
 PATH.x86=%PATH.x86%;%_ABBYY_UTILS%
-PATH.x86=%PATH.x86%;%_GIT%\bin
-PATH.x86=%PATH.x86%;%_SVN%\bin
-PATH.x86=%PATH.x86%;%_CMAKE%\bin
-PATH.x86=%PATH.x86%;%_PYTHON%
-PATH.x86=%PATH.x86%;%ProgramFiles(x86)%\MSBuild\14.0\Bin
+PATH.x86=%PATH.x86%;%_VS16%\MSBuild\Current\Bin
 
-LIB.x86=%_VC14%\Lib
-LIB.x86=%LIB.x86%;%ProgramFiles(x86)%\Windows Kits\10\lib\10.0.10240.0\ucrt\x86
-LIB.x86=%LIB.x86%;%_VC14%\atlmfc\lib
-LIB.x86=%LIB.x86%;%_WINKIT%\lib\winv6.3\um\x86
+LIB.x86=%_VC16%\Lib\x86;%_SDK%\Lib
+LIB.x86=%LIB.x86%;%ProgramFiles(x86)%\Windows Kits\10\lib\%_SDK_VERSION%\ucrt\x86
+LIB.x86=%LIB.x86%;%ProgramFiles(x86)%\Windows Kits\10\lib\%_SDK_VERSION%\um\x86
+LIB.x86=%LIB.x86%;%_VC16%\atlmfc\lib
 
 #----------------------------------------------------------------------------------------
 
 BUILD_PLATFORM.x64=x64
 
 PATH.x64=%SystemRoot%;%SystemRoot%\System32
-PATH.x64=%PATH.x64%;%_VC14%\bin\amd64
-PATH.x64=%PATH.x64%;%_VS14%\Common7\IDE
-PATH.x64=%PATH.x64%;%_WINKIT%\bin\x64
+PATH.x64=%PATH.x64%;%_VC16%\bin\HostX64\x64
+PATH.x64=%PATH.x64%;%_VC16%\bin
+PATH.x64=%PATH.x64%;%_VS16%\Common7\IDE
+PATH.x64=%PATH.x64%;%_SDK%\bin\%_SDK_VERSION%\x64
 PATH.x64=%PATH.x64%;%_ABBYY_UTILS%
-PATH.x64=%PATH.x64%;%_GIT%\bin
-PATH.x64=%PATH.x64%;%_SVN%\bin
-PATH.x64=%PATH.x64%;%_CMAKE%\bin
-PATH.x64=%PATH.x64%;%_PYTHON%
-PATH.x64=%PATH.x64%;%ProgramFiles(x86)%\MSBuild\14.0\Bin\amd64
+PATH.x64=%PATH.x64%;%_VS16%\MSBuild\Current\Bin
 
-LIB.x64=%_VC14%\Lib\amd64
-LIB.x64=%LIB.x64%;%ProgramFiles(x86)%\Windows Kits\10\lib\10.0.10240.0\ucrt\x64
-LIB.x64=%LIB.x64%;%_VC14%\atlmfc\lib\amd64
-LIB.x64=%LIB.x64%;%_WINKIT%\lib\winv6.3\um\x64
+LIB.x64=%_VC16%\Lib\x64;%_SDK%\Lib\x64
+LIB.x64=%LIB.x64%;%ProgramFiles(x86)%\Windows Kits\10\lib\%_SDK_VERSION%\ucrt\x64
+LIB.x64=%LIB.x64%;%ProgramFiles(x86)%\Windows Kits\10\lib\%_SDK_VERSION%\um\x64
+LIB.x64=%LIB.x64%;%_VC16%\atlmfc\lib\amd64
