@@ -182,19 +182,32 @@ inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vecto
 // The dot product of two vectors
 inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFloatVectorDesc& vector2 )
 {
-	int i = 0;
-	int j = 0;
 	double sum = 0;
-	while( i < vector1.Size && j < vector2.Size ) {
-		if( vector1.Indexes[i] == vector2.Indexes[j] ) {
-			sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[j];
-			i++;
-			j++;
-		} else {
-			if( vector1.Indexes[i] < vector2.Indexes[j] ) {
+
+	if( vector1.Indexes == nullptr ) { // dense array inside
+		NeoPresume( vector1.Size == vector2.Size );
+		NeoPresume( vector2.Indexes == nullptr );
+		const int size = vector1.Size;
+		const float* operand1 = vector1.Values;
+		const float* operand2 = vector2.Values;
+
+		for( int i = 0; i < size; i++ ) {
+			sum += static_cast<double>( operand1[i] ) * operand2[i];
+		}
+	} else {
+		int i = 0;
+		int j = 0;
+		while( i < vector1.Size && j < vector2.Size ) {
+			if( vector1.Indexes[i] == vector2.Indexes[j] ) {
+				sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[j];
 				i++;
-			} else {
 				j++;
+			} else {
+				if( vector1.Indexes[i] < vector2.Indexes[j] ) {
+					i++;
+				} else {
+					j++;
+				}
 			}
 		}
 	}
