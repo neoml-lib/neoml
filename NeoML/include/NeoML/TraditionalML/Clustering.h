@@ -55,36 +55,31 @@ inline CClusteringResult::CClusteringResult( const CClusteringResult& result )
 
 //---------------------------------------------------------------------------------------------------------
 
-// The input data set for clustering consisting of sparse vectors
-class ISparseClusteringData : public virtual IObject {
+// Base interface for clustering data
+class IClusteringDataBase : public virtual IObject {
 public:
 	// The number of vectors
 	virtual int GetVectorCount() const = 0;
 
 	// The number of features (vector length)
 	virtual int GetFeaturesCount() const = 0;
-
-	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
 
 	// Gets the weight of the vector with the given index
 	virtual double GetVectorWeight( int index ) const = 0;
 };
 
-// The input data set for clustering consisting of dense vectors
-class IDenseClusteringData : public virtual IObject {
+// The input data set for clustering consisting of sparse vectors
+class ISparseClusteringData : public IClusteringDataBase {
 public:
-	// The number of vectors
-	virtual int GetVectorCount() const = 0;
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
+	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+};
 
-	// The number of features (vector length)
-	virtual int GetFeaturesCount() const = 0;
-
+// The input data set for clustering consisting of dense vectors
+class IDenseClusteringData : public IClusteringDataBase {
+public:
 	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
 	virtual CFloatMatrixDesc GetMatrix() const = 0;
-
-	// Gets the weight of the vector with the given index
-	virtual double GetVectorWeight( int index ) const = 0;
 };
 
 // DEPRECATED: for backward compatibility
