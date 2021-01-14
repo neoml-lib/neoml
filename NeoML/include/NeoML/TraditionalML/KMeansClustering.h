@@ -51,6 +51,9 @@ public:
 
 	// K-means clustering parameters
 	struct CParam {
+		CParam() : Algo( KMA_Lloyd ), DistanceFunc( DF_Euclid ), InitialClustersCount( 1 ), Initialization( KMI_Default ),
+			MaxIterations( 1000 ), Tolerance( 1e-4 ), ThreadCount( 1 ) {}
+
 		// Clusterization algorithm
 		TKMeansAlgo Algo;
 		// The distance function
