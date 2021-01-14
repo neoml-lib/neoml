@@ -315,13 +315,26 @@ CFloatVector& CFloatVector::operator -= ( const CSparseFloatVector& vector )
 
 CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, double factor )
 {
-	float* ptr = CopyOnWrite();
-	const int size = body->Values.Size();
-	const int numberOfElements = desc.Size;
-	for(int i = 0; i < numberOfElements; i++) {
-		int j = desc.Indexes[i];
-		if( j < size) {
-			ptr[j] = static_cast<float>( ptr[j] + desc.Values[i] * factor );
+	if( desc.Indexes != nullptr ) {
+		float* ptr = CopyOnWrite();
+		const int size = body->Values.Size();
+		const int numberOfElements = desc.Size;
+		for( int i = 0; i < numberOfElements; i++ ) {
+			int j = desc.Indexes[i];
+			if( j < size ) {
+				ptr[j] = static_cast< float >( ptr[j] + desc.Values[i] * factor );
+			}
+		}
+	} else { // dense inside
+		NeoPresume( body->Values.Size() == desc.Size );
+		NeoPresume( body->Values.Size() >= 0 );
+
+		float* ptr = CopyOnWrite();
+		const float* operand = desc.Values;
+		const int size = desc.Size;
+
+		for( int i = 0; i < size; i++ ) {
+			ptr[i] = static_cast< float >( ptr[i] + factor * operand[i] );
 		}
 	}
 	return *this;
