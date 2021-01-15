@@ -34,18 +34,18 @@ if not defined NeoML_BUILD_DIR (
 )
 
 if not defined CMAKE_GENERATOR (
-	set "CMAKE_GENERATOR=Visual Studio 14 2015"
+	set "CMAKE_GENERATOR=Visual Studio 16 2019"
 )
 
 if not defined CMAKE_GENERATOR_TOOLSET (
-	set "CMAKE_GENERATOR_TOOLSET=v140,version=14.00,host=x64"
+	set "CMAKE_GENERATOR_TOOLSET=v142,version=14.28,host=x64"
 )
 if "%CMAKE_GENERATOR_TOOLSET:cuda=%" == "%CMAKE_GENERATOR_TOOLSET%" (
 	set "CMAKE_GENERATOR_TOOLSET=%CMAKE_GENERATOR_TOOLSET%,cuda=%ROOT%/ThirdParty/CUDA/Windows"
 )
 
 if not defined CMAKE_SYSTEM_VERSION (
-	set "CMAKE_SYSTEM_VERSION=8.1"
+	set "CMAKE_SYSTEM_VERSION=10"
 )
 
 if exist "%NeoML_BUILD_DIR%\%ARCH%" (

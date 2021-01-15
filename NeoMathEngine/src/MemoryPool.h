@@ -48,6 +48,9 @@ public:
 	// Gets the peak memory usage achieved during processing
 	size_t GetPeakMemoryUsage() const { return peakMemoryUsage; }
 
+	// Gets the amount of memory used for the pools
+	size_t GetMemoryInPools() const;
+
 	// Frees all memory on the current thread
 	void CleanUp();
 

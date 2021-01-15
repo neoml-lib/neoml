@@ -32,7 +32,7 @@ limitations under the License.
 #error "Platform is not supported!";
 #endif
 
-#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
+#if( FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX ) ) && !FINE_ARCHITECTURE( FINE_ARM64 )
 #include <cpuid.h>
 #endif
 
@@ -167,6 +167,12 @@ size_t CCpuMathEngine::GetPeakMemoryUsage() const
 {
 	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetPeakMemoryUsage();
+}
+
+size_t CCpuMathEngine::GetMemoryInPools() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetMemoryInPools();
 }
 
 void CCpuMathEngine::CleanUp()
