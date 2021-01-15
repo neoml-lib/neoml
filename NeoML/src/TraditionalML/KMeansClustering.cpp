@@ -766,7 +766,7 @@ double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& s
 	CFloatHandle closestDist = stackBuff.GetHandle();
 	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount;
 	CIntHandle labelsHandle = labels.GetData<int>();
-	calcClosestDistances( data, squaredData, centers, closestDist, labelsHandle, params.ResultChunkSize );
+	calcClosestDistances( data, squaredData, centers, closestDist, labelsHandle );
 	mathEngine.VectorEltwiseMultiply( closestDist, weight.GetData(), closestDist, vectorCount );
 	mathEngine.VectorSum( closestDist, vectorCount, totalDist );
 	const double result = static_cast<double>( totalDist.GetValue() );
