@@ -330,7 +330,7 @@ void CCpuMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandl
 
 	// Split matrix horizontally into blocks of smaller size and pray that it will fit into cache
 	const int cacheSize = 0x60000;
-	int blockHeight = min( matrixHeight, max( 1, cacheSize / ( matrixWidth * sizeof( float ) ) ) );
+	int blockHeight = min( matrixHeight, max( 1, static_cast<int>( cacheSize / ( matrixWidth * sizeof( float ) ) ) ) );
 	const int minBlockHeight = 2;
 	if( blockHeight < minBlockHeight ) {
 		// There will be too much excessive read/write operations
