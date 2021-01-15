@@ -210,7 +210,7 @@ public:
 	// Gets the classification results for all tree ensembles [1..k], 
 	// with k taking values from 1 to the total number of trees
 	virtual bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
+	virtual bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
 
 	// Calculates feature usage statistics
 	// Returns the number of times each feature was used for node splitting

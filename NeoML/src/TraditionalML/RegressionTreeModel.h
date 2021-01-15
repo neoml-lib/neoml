@@ -33,7 +33,7 @@ public:
 	// Gets the node that will be used for prediction
 	const CRegressionTreeModel* GetPredictionNode( const CSparseFloatVector& data ) const;
 	const CRegressionTreeModel* GetPredictionNode( const CFloatVector& data ) const;
-	const CRegressionTreeModel* GetPredictionNode( const CSparseFloatVectorDesc& data ) const;
+	const CRegressionTreeModel* GetPredictionNode( const CFloatVectorDesc& data ) const;
 
 	// IRegressionTreeModel interface methods
 	virtual CPtr<IRegressionTreeModel> GetLeftChild() const { return leftChild.Ptr(); }
@@ -44,7 +44,7 @@ public:
 	// IRegressionModel interface methods
 	virtual double Predict( const CSparseFloatVector& data ) const;
 	virtual double Predict( const CFloatVector& data ) const;
-	virtual double Predict( const CSparseFloatVectorDesc& data ) const;
+	virtual double Predict( const CFloatVectorDesc& data ) const;
 	virtual void Serialize( CArchive& archive );
 
 protected:

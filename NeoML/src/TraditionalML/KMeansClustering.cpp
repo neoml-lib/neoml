@@ -42,7 +42,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 {
 	NeoAssert( input != 0 );
 
-	CSparseFloatMatrixDesc matrix = input->GetMatrix();
+	CFloatMatrixDesc matrix = input->GetMatrix();
 	NeoAssert( matrix.Height == input->GetVectorCount() );
 	NeoAssert( matrix.Width == input->GetFeaturesCount() );
 
@@ -111,7 +111,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 }
 
 // Selects the initial clusters
-void CKMeansClustering::selectInitialClusters( const CSparseFloatMatrixDesc& matrix )
+void CKMeansClustering::selectInitialClusters( const CFloatMatrixDesc& matrix )
 {
 	if( !clusters.IsEmpty() ) {
 		// The initial clusters have been set already
@@ -133,7 +133,7 @@ void CKMeansClustering::selectInitialClusters( const CSparseFloatMatrixDesc& mat
 	NeoAssert( step > 0 );
 	clusters.SetBufferSize( params.InitialClustersCount );
 	for( int i = 0; i < params.InitialClustersCount; i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( ( i * step ) % vectorsCount, desc );
 		CFloatVector mean( matrix.Width, desc );
 		clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ) ) );
@@ -141,7 +141,7 @@ void CKMeansClustering::selectInitialClusters( const CSparseFloatMatrixDesc& mat
 }
 
 // Distributes all elements over the existing clusters
-void CKMeansClustering::classifyAllData( const CSparseFloatMatrixDesc& matrix, CArray<int>& dataCluster )
+void CKMeansClustering::classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster )
 {
 	// Each element is assigned to the nearest cluster
 	dataCluster.DeleteAll();
@@ -152,13 +152,13 @@ void CKMeansClustering::classifyAllData( const CSparseFloatMatrixDesc& matrix, C
 }
 
 // Finds the nearest cluster for the element
-int CKMeansClustering::findNearestCluster( const CSparseFloatMatrixDesc& matrix, int dataIndex ) const
+int CKMeansClustering::findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex ) const
 {
 	double bestDistance = DBL_MAX;
 	int res = NotFound;
 	
 	for( int i = 0; i < clusters.Size(); i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( dataIndex, desc );
 		const double distance = clusters[i]->CalcDistance( desc, params.DistanceFunc );
 		if( distance < bestDistance ) {
@@ -172,7 +172,7 @@ int CKMeansClustering::findNearestCluster( const CSparseFloatMatrixDesc& matrix,
 }
 
 // Updates the clusters and returns true if the clusters were changed, false if they stayed the same
-bool CKMeansClustering::updateClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+bool CKMeansClustering::updateClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 	const CArray<int>& dataCluster )
 {
 	// Store the old cluster centers
@@ -185,7 +185,7 @@ bool CKMeansClustering::updateClusters( const CSparseFloatMatrixDesc& matrix, co
 
 	// Update the cluster contents
 	for( int i = 0; i < dataCluster.Size(); i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( i, desc );
 		clusters[dataCluster[i]]->Add( i, desc, weights[i] );
 	}

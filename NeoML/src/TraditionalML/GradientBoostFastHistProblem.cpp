@@ -27,7 +27,7 @@ CGradientBoostFastHistProblem::CGradientBoostFastHistProblem( int threadCount, i
 	usedVectors( _usedVectors ),
 	usedFeatures( _usedFeatures )
 {
-	CSparseFloatMatrixDesc matrix = baseProblem.GetMatrix();
+	CFloatMatrixDesc matrix = baseProblem.GetMatrix();
 	NeoAssert( matrix.Height == baseProblem.GetVectorCount() );
 	NeoAssert( matrix.Width == baseProblem.GetFeatureCount() );
 	// Initialize features data
@@ -54,7 +54,7 @@ int CGradientBoostFastHistProblem::GetUsedVectorDataSize( int index ) const
 }
 
 // Initializes the feature values
-void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int maxBins, const CSparseFloatMatrixDesc& matrix,
+void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int maxBins, const CFloatMatrixDesc& matrix,
 	const IMultivariateRegressionProblem& baseProblem )
 {
 	const int vectorCount = baseProblem.GetVectorCount();
@@ -70,7 +70,7 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 
 	// Adding the non-zero values
 	for( int i = 0; i < vectorCount; i++ ) {
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
 		const double vectorWeight = baseProblem.GetVectorWeight( i );
 
@@ -183,7 +183,7 @@ void CGradientBoostFastHistProblem::compressFeatureValues( int threadCount, int 
 }
 
 // Builds an array with vector data
-void CGradientBoostFastHistProblem::buildVectorData( const CSparseFloatMatrixDesc& matrix )
+void CGradientBoostFastHistProblem::buildVectorData( const CFloatMatrixDesc& matrix )
 {
 	const int vectorCount = matrix.Height;
 	
@@ -191,7 +191,7 @@ void CGradientBoostFastHistProblem::buildVectorData( const CSparseFloatMatrixDes
 	int curVectorPtr = 0;
 	for( int i = 0; i < vectorCount; i++ ) {
 		vectorPtr.Add( curVectorPtr );
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
 
 		for( int j = 0; j < vector.Size; j++ ) {

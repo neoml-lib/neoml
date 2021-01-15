@@ -25,7 +25,7 @@ public:
 	virtual ~CDecisionTreeNodeStatisticBase() {}
 
 	// Adds a vector to the statistics
-	virtual void AddVector( int index, const CSparseFloatVectorDesc& vector ) = 0;
+	virtual void AddVector( int index, const CFloatVectorDesc& vector ) = 0;
 
 	// Finishes accumulating data
 	virtual void Finish() = 0;

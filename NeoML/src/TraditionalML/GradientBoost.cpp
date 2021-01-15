@@ -616,7 +616,7 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 // Builds the ensemble predictions for a set of vectors
 void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep )
 {
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatMatrixDesc matrix = problem.GetMatrix();
 	NeoAssert( matrix.Height == problem.GetVectorCount() );
 	NeoAssert( matrix.Width == problem.GetFeatureCount() );
 
@@ -628,7 +628,7 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 			for( int i = 0; i < count; i++ ) {
 				const int usedVector = usedVectors[index];
 				const CFloatVector value = problem.GetValue( usedVectors[index] );
-				CSparseFloatVectorDesc vector;
+				CFloatVectorDesc vector;
 				matrix.GetRow( usedVector, vector );
 
 				for( int j = 0; j < models.Size(); j++ ) {
@@ -647,7 +647,7 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 // Fills the prediction cache with the values of the full problem
 void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models )
 {
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatMatrixDesc matrix = problem.GetMatrix();
 	NeoAssert( matrix.Height == problem.GetVectorCount() );
 	NeoAssert( matrix.Width == problem.GetFeatureCount() );
 
@@ -664,7 +664,7 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 		if( OmpGetTaskIndexAndCount( problem.GetVectorCount(), index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				const CFloatVector value = problem.GetValue( index );
-				CSparseFloatVectorDesc vector;
+				CFloatVectorDesc vector;
 				matrix.GetRow( index, vector );
 
 				for( int j = 0; j < models.Size(); j++ ) {

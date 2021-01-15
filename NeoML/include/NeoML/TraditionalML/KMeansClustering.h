@@ -61,10 +61,10 @@ private:
 	CObjectArray<CCommonCluster> clusters; // the current clusters
 	CArray<CClusterCenter> initialClusterCenters; // the initial cluster centers
 
-	void selectInitialClusters( const CSparseFloatMatrixDesc& matrix );
-	void classifyAllData( const CSparseFloatMatrixDesc& matrix, CArray<int>& dataCluster );
-	int findNearestCluster( const CSparseFloatMatrixDesc& matrix, int dataIndex ) const;
-	bool updateClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+	void selectInitialClusters( const CFloatMatrixDesc& matrix );
+	void classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster );
+	int findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex ) const;
+	bool updateClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 		const CArray<int>& dataCluster );
 };
 

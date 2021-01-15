@@ -38,7 +38,7 @@ public:
 	// Creates a vector of size length from the given sparse vector; 
 	// the features that are not present in sparse vector are set to 0
 	CFloatVector( int size, const CSparseFloatVector& sparseVector );
-	CFloatVector( int size, const CSparseFloatVectorDesc& sparseVector );
+	CFloatVector( int size, const CFloatVectorDesc& sparseVector );
 	explicit CFloatVector( int size );
 	CFloatVector( int size, float init );
 	CFloatVector( const CFloatVector& other );
@@ -66,12 +66,12 @@ public:
 	// Adds the given vector multiplied by factor
 	CFloatVector& MultiplyAndAdd( const CFloatVector& vector, double factor );
 	CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor ) { return MultiplyAndAdd( vector.GetDesc(), factor ); }
-	CFloatVector& MultiplyAndAdd( const CSparseFloatVectorDesc& vector, double factor );
+	CFloatVector& MultiplyAndAdd( const CFloatVectorDesc& vector, double factor );
 
 	// Adds the given vector, extended by one with the help of LinearFunction gradient, and then multiplied by factor
 	CFloatVector& MultiplyAndAddExt( const CFloatVector& vector, double factor );
 	CFloatVector& MultiplyAndAddExt( const CSparseFloatVector& vector, double factor );
-	CFloatVector& MultiplyAndAddExt( const CSparseFloatVectorDesc& vector, double factor );
+	CFloatVector& MultiplyAndAddExt( const CFloatVectorDesc& vector, double factor );
 
 	// Elementwise operations:
 	void SquareEachElement();
@@ -123,7 +123,7 @@ inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVector& 
 	return *this;
 }
 
-inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVectorDesc& vector, double factor )
+inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CFloatVectorDesc& vector, double factor )
 {
 	MultiplyAndAdd( vector, factor );
 	SetAt( Size() - 1, static_cast<float>( GetPtr()[Size() - 1] + factor ) );
@@ -180,7 +180,7 @@ inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vecto
 }
 
 // The dot product of two vectors
-inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFloatVectorDesc& vector2 )
+inline double DotProduct( const CFloatVectorDesc& vector1, const CFloatVectorDesc& vector2 )
 {
 	double sum = 0;
 	if( vector1.Indexes == nullptr ) { // dense array inside
@@ -210,7 +210,7 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 }
 
 // The dot product of two vectors
-inline double DotProduct( const CFloatVector& vector1, const CSparseFloatVectorDesc& vector2 )
+inline double DotProduct( const CFloatVector& vector1, const CFloatVectorDesc& vector2 )
 {
 	double sum = 0;
 	const float* operand1 = vector1.GetPtr();
@@ -274,7 +274,7 @@ inline double LinearFunction( const CFloatVector& vector1, const CFloatVector& v
 	return sum;
 }
 
-inline double LinearFunction( const CFloatVector& vector1, const CSparseFloatVectorDesc& vector2 )
+inline double LinearFunction( const CFloatVector& vector1, const CFloatVectorDesc& vector2 )
 {
 	NeoAssert( vector1.Size() > 0 );
 

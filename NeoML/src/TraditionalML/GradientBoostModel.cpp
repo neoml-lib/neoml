@@ -54,7 +54,7 @@ double CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, 
 }
 
 double CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
-	const CSparseFloatVectorDesc& vector )
+	const CFloatVectorDesc& vector )
 {
 	double result = 0;
 	for( int i = startPos; i < ensemble.Size(); i++ ) {
@@ -64,7 +64,7 @@ double CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, 
 	return result * learningRate;
 }
 
-bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
+bool CGradientBoostModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
 {
 	if( GetClassCount() == 2 ) {
 		return classify( PredictRaw( ensembles[0], 0, learningRate, data ), result );
@@ -152,7 +152,7 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVector& data, CArray<CCl
 	return ClassifyEx( data.GetDesc(), results );
 }
 
-bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const
+bool CGradientBoostModel::ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const
 {
 	NeoAssert( !ensembles.IsEmpty() );
 
@@ -239,7 +239,7 @@ double CGradientBoostModel::Predict( const CFloatVector& data ) const
 	return PredictRaw( ensembles.First(), 0, learningRate, data );
 }
 
-double CGradientBoostModel::Predict( const CSparseFloatVectorDesc& data ) const
+double CGradientBoostModel::Predict( const CFloatVectorDesc& data ) const
 {
 	return PredictRaw( ensembles.First(), 0, learningRate, data );
 }

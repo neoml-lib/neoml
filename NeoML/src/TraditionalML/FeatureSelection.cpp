@@ -28,7 +28,7 @@ struct CClusterStatistics {
 
 	CClusterStatistics( int featuresCount );
 
-	void AddVector( const CSparseFloatVectorDesc& vector, double weight );
+	void AddVector( const CFloatVectorDesc& vector, double weight );
 	void GetVariance( CArray<double>& variance );
 };
 
@@ -39,7 +39,7 @@ inline CClusterStatistics::CClusterStatistics( int featuresCount ) :
 	SumSquare.Add( 0.0, featuresCount );
 }
 
-inline void CClusterStatistics::AddVector( const CSparseFloatVectorDesc& vector, double weight )
+inline void CClusterStatistics::AddVector( const CFloatVectorDesc& vector, double weight )
 {
 	SumWeight += weight;
 
@@ -65,10 +65,10 @@ void CalcFeaturesVariance( const IProblem& problem, CArray<double>& variance )
 
 	CClusterStatistics statistic( featuresCount );
 
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatMatrixDesc matrix = problem.GetMatrix();
 
 	for( int i = 0; i < vectorsCount; i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( i, desc );
 		statistic.AddVector( desc, problem.GetVectorWeight( i ) );
 	}
@@ -87,10 +87,10 @@ void CalcFeaturesVarianceRatio( const IProblem& problem, CArray<double>& varianc
 		statistics.Add( FINE_DEBUG_NEW CClusterStatistics( featuresCount ) );
 	}
 
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatMatrixDesc matrix = problem.GetMatrix();
 
 	for( int i = 0; i < vectorsCount; i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( i, desc );
 		double weight = problem.GetVectorWeight( i );
 
@@ -150,11 +150,11 @@ void CalcFeaturesChiSquare( const IProblem& problem, CArray<double>& chi2 )
 	classWeight.Add( 0.0, classCount );
 	double totalWeight = 0; // the total weight of all vectors
 
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatMatrixDesc matrix = problem.GetMatrix();
 
 	// Calculate the observed distribution
 	for( int i = 0; i < vectorCount; i++ ) {
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
 		const double weight = problem.GetVectorWeight( i );
 		const int classIndex = problem.GetClass( i );
@@ -207,8 +207,8 @@ double CalcTwoFeaturesCorrelation( const IProblem& problem, int index1, int inde
 	double mean1 = 0;
 	double mean2 = 0;
 
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
-	CSparseFloatVectorDesc vector;
+	CFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatVectorDesc vector;
 	for( int i = 0; i < vectorCount; i++ ) {
 		matrix.GetRow( i, vector );
 		mean1 += GetValue( vector, index1 );
@@ -244,8 +244,8 @@ double CalcFeatureAndClassCorrelation( const IProblem& problem, int featureIndex
 	double mean1 = 0;
 	double mean2 = 0;
 
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
-	CSparseFloatVectorDesc vector;
+	CFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatVectorDesc vector;
 
 	for( int i = 0; i < vectorCount; i++ ) {
 		matrix.GetRow( i, vector );
@@ -289,12 +289,12 @@ void CalcFeaturesInformationGain( const IProblem& problem, CArray<double>& infor
 		}
 	}
 
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatMatrixDesc matrix = problem.GetMatrix();
 
 	CVectorSetClassificationStatistic fullProblemStatistic( classCount );
 
 	for( int i = 0; i < vectorCount; i++ ) {
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
 		const int classIndex = problem.GetClass( i );
 		const double weight = problem.GetVectorWeight( i );

@@ -95,7 +95,7 @@ bool CEMClustering::Clusterize( IClusteringData* data, CClusteringResult& result
 		*log << "\nEM clustering started:\n";
 	}
 
-	CSparseFloatMatrixDesc matrix = data->GetMatrix();
+	CFloatMatrixDesc matrix = data->GetMatrix();
 	NeoAssert( matrix.Height == data->GetVectorCount() );
 	NeoAssert( matrix.Width == data->GetFeaturesCount() );
 
@@ -143,7 +143,7 @@ bool CEMClustering::Clusterize( IClusteringData* data, CClusteringResult& result
 }
 
 // Runs EM clustering with the fixed number of clusters
-void CEMClustering::runEMFixedComponents( const CSparseFloatMatrixDesc& data, const CArray<double>& weights, int clustersCount, int iterationsCount, bool goodOnly,
+void CEMClustering::runEMFixedComponents( const CFloatMatrixDesc& data, const CArray<double>& weights, int clustersCount, int iterationsCount, bool goodOnly,
 	CEmClusteringResult& bestResult )
 {
 	CArray<CClusterCenter> initialClusters;
@@ -180,7 +180,7 @@ int CEMClustering::selectRandomCluster( const CFastArray<double, 1>& cumulativeF
 }
 
 // Finds the best result
-void CEMClustering::findBestResult( const CSparseFloatMatrixDesc& data, const CArray<double>& weights, CEmClusteringResult& result )
+void CEMClustering::findBestResult( const CFloatMatrixDesc& data, const CArray<double>& weights, CEmClusteringResult& result )
 {
 	NeoAssert( !history.IsEmpty() );
 
@@ -211,7 +211,7 @@ void CEMClustering::findBestResult( const CSparseFloatMatrixDesc& data, const CA
 }
 
 // Initializes the starting clusters
-void CEMClustering::calculateInitialClusters( const CSparseFloatMatrixDesc& data, int clustersCount, CArray<CClusterCenter>& initialClusters ) const
+void CEMClustering::calculateInitialClusters( const CFloatMatrixDesc& data, int clustersCount, CArray<CClusterCenter>& initialClusters ) const
 {
 	if( params.InitialClusters.Size() == clustersCount ) {
 		params.InitialClusters.CopyTo( initialClusters );
@@ -222,7 +222,7 @@ void CEMClustering::calculateInitialClusters( const CSparseFloatMatrixDesc& data
 	const int vectorsCount = data.Height;
 	initialClusters.SetSize( clustersCount );
 	for( int i = 0; i < clustersCount; i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		data.GetRow( rand() % vectorsCount, desc );
 		CFloatVector mean( data.Width, desc );
 		CClusterCenter center( mean );
@@ -232,7 +232,7 @@ void CEMClustering::calculateInitialClusters( const CSparseFloatMatrixDesc& data
 }
 
 // Recalculates the starting cluster centers
-void CEMClustering::recalculateInitialClusters( const CSparseFloatMatrixDesc& data, const CEmClusteringResult& prevResult,
+void CEMClustering::recalculateInitialClusters( const CFloatMatrixDesc& data, const CEmClusteringResult& prevResult,
 	CArray<CClusterCenter>& initialClusters ) const
 {
 	initialClusters.SetSize( prevResult.Result.ClusterCount );
@@ -267,7 +267,7 @@ void CEMClustering::recalculateInitialClusters( const CSparseFloatMatrixDesc& da
 			dataClusters[initFrom] = NotFound; // this element will not be used again
 		}
 
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		data.GetRow( initFrom, desc );
 		initialClusters[i].Mean = CFloatVector( initialClusters[i].Mean.Size(), desc );
 		initialClusters[i].Disp = CFloatVector( initialClusters[i].Mean.Size(), 1.0 );
@@ -299,7 +299,7 @@ void CEMClustering::initCumulativeFitnesses( const CArray<CClusterCenter>& initi
 }
 
 // Performs clustering starting with the specified initial cluster set
-void CEMClustering::clusterize( const CSparseFloatMatrixDesc& data, const CArray<double>& weights,
+void CEMClustering::clusterize( const CFloatMatrixDesc& data, const CArray<double>& weights,
 	const CArray<CClusterCenter>& initialClusters, CEmClusteringResult& result )
 {
 	if( log != 0 ) {
@@ -379,7 +379,7 @@ void CEMClustering::expectation()
 }
 
 // Performs the M-step of the algorithm ("maximization")
-void CEMClustering::maximization( const CSparseFloatMatrixDesc& data, const CArray<double>& weights )
+void CEMClustering::maximization( const CFloatMatrixDesc& data, const CArray<double>& weights )
 {
 	// Retrieve all vectors from the collection
 	CArray<CFloatVector> vectors;
@@ -387,7 +387,7 @@ void CEMClustering::maximization( const CSparseFloatMatrixDesc& data, const CArr
 	double sumWeight = 0;
 	vectors.SetBufferSize( data.Height );
 	for( int i = 0; i < data.Height; i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		data.GetRow( i, desc );
 		CFloatVector vector( data.Width, desc );
 		vectors.Add( vector );
@@ -460,7 +460,7 @@ void CEMClustering::calculateNewDisps(  const CArray<CFloatVector>& vectors, con
 }
 
 // Recalculates the logarithm of density multiplied by weight
-void CEMClustering::calculateDensitiesArgs( const CSparseFloatMatrixDesc& data )
+void CEMClustering::calculateDensitiesArgs( const CFloatMatrixDesc& data )
 {
 	for( int j = 0; j < clusters.Size(); j++ ) {
 		double logOfWeight = ::log( clusters[j].Weight ); // multiply the weight by density, then take logarithm of the result
@@ -475,7 +475,7 @@ void CEMClustering::calculateDensitiesArgs( const CSparseFloatMatrixDesc& data )
 
 		for( int i = 0; i < densitiesArgs.Size(); i++ ) {
 			// The final result equals (coefficient + distance to the center + weight)
-			CSparseFloatVectorDesc desc;
+			CFloatVectorDesc desc;
 			data.GetRow( i, desc );
 			densitiesArgs[i].SetAt( j, static_cast<float>( logOfDensityCoeff - 0.5 * calculateDistance( j, desc ) + logOfWeight ) );
 		}
@@ -483,7 +483,7 @@ void CEMClustering::calculateDensitiesArgs( const CSparseFloatMatrixDesc& data )
 }
 
 // Calculates weighted Euclidean distance from the cluster center to the given vector
-double CEMClustering::calculateDistance( int clusterIndex, const CSparseFloatVectorDesc& desc ) const
+double CEMClustering::calculateDistance( int clusterIndex, const CFloatVectorDesc& desc ) const
 {
 	NeoPresume( clusterIndex >= 0 );
 	NeoPresume( clusterIndex < clusters.Size() );
@@ -499,7 +499,7 @@ double CEMClustering::calculateDistance( int clusterIndex, const CSparseFloatVec
 }
 
 // Retrieves clustering result
-void CEMClustering::calculateResult( const CSparseFloatMatrixDesc& data, bool isConverged, CEmClusteringResult& result ) const
+void CEMClustering::calculateResult( const CFloatMatrixDesc& data, bool isConverged, CEmClusteringResult& result ) const
 {
 	CArray<int> clustersSize;
 	clustersSize.InsertAt( 0, 0, clusters.Size() );

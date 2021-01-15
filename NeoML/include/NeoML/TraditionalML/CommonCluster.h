@@ -41,7 +41,7 @@ public:
 	CCommonCluster( const CCommonCluster& first, const CCommonCluster& second );
 
 	// Adds an element to the cluster
-	void Add( int dataIndex, const CSparseFloatVectorDesc& desc, double weight );
+	void Add( int dataIndex, const CFloatVectorDesc& desc, double weight );
 	// Checks if the cluster is empty
 	bool IsEmpty() const { return elements.IsEmpty(); }
 	// Removes all elements of the cluster; the center remains the same
@@ -62,7 +62,7 @@ public:
 	// Calculate the distance from the cluster center to a given element (not necessarily from this cluster)
 	double CalcDistance( const CFloatVector& element, TDistanceFunc distanceFunc ) const;
 	double CalcDistance( const CSparseFloatVector& element, TDistanceFunc distanceFunc ) const;
-	double CalcDistance( const CSparseFloatVectorDesc& element, TDistanceFunc distanceFunc ) const;
+	double CalcDistance( const CFloatVectorDesc& element, TDistanceFunc distanceFunc ) const;
 
 protected:
 	virtual ~CCommonCluster() {} // delete operation is prohibited
@@ -112,7 +112,7 @@ inline double CCommonCluster::CalcDistance( const CSparseFloatVector& element, T
 	return NeoML::CalcDistance( center, element, distanceFunc );
 }
 
-inline double CCommonCluster::CalcDistance( const CSparseFloatVectorDesc& element, TDistanceFunc distanceFunc ) const
+inline double CCommonCluster::CalcDistance( const CFloatVectorDesc& element, TDistanceFunc distanceFunc ) const
 {
 	return NeoML::CalcDistance( center, element, distanceFunc );
 }

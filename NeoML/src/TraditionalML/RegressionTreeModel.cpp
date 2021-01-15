@@ -113,7 +113,7 @@ const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CFloa
 	return this;
 }
 
-const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSparseFloatVectorDesc& data ) const
+const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CFloatVectorDesc& data ) const
 {
 	static_assert( RTNT_Count == 3, "RTNT_Count != 3" );
 
@@ -150,7 +150,7 @@ double CRegressionTreeModel::Predict( const CFloatVector& data ) const
 	return node->info.Value;
 }
 
-double CRegressionTreeModel::Predict( const CSparseFloatVectorDesc& data ) const
+double CRegressionTreeModel::Predict( const CFloatVectorDesc& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_Const );

@@ -21,8 +21,8 @@ limitations under the License.
 
 namespace NeoML {
 
-// Sparse matrix descriptor
-struct NEOML_API CSparseFloatMatrixDesc {
+// A matrix descriptor, that can fit both dense and sparse representations
+struct NEOML_API CFloatMatrixDesc {
 	int Height; // the matrix height
 	int Width; // the matrix width
 	int* Columns; // the columns array
@@ -30,16 +30,19 @@ struct NEOML_API CSparseFloatMatrixDesc {
 	int* PointerB; // the array of indices for vector start in Columns/Values
 	int* PointerE; // the array of indices for vector end in Columns/Values
 
-	CSparseFloatMatrixDesc() : Height(0), Width(0), Columns(nullptr), Values(nullptr), PointerB(nullptr), PointerE(nullptr) {}
+	CFloatMatrixDesc() : Height(0), Width(0), Columns(nullptr), Values(nullptr), PointerB(nullptr), PointerE(nullptr) {}
 
 	// Retrieves the descriptor of a row (as a sparse vector)
-	void GetRow( int index, CSparseFloatVectorDesc& desc ) const;
-	CSparseFloatVectorDesc GetRow( int index ) const;
+	void GetRow( int index, CFloatVectorDesc& desc ) const;
+	CFloatVectorDesc GetRow( int index ) const;
 
-	static CSparseFloatMatrixDesc Empty; // the empty matrix descriptor
+	static CFloatMatrixDesc Empty; // the empty matrix descriptor
 };
 
-inline void CSparseFloatMatrixDesc::GetRow( int index, CSparseFloatVectorDesc& desc ) const
+// DEPRECATED: for compatibility
+typedef CFloatMatrixDesc CSparseFloatMatrixDesc;
+
+inline void CFloatMatrixDesc::GetRow( int index, CFloatVectorDesc& desc ) const
 {
 	NeoAssert( 0 <= index && index < Height );
 	if( Columns == nullptr ) { // dense representation
@@ -52,9 +55,9 @@ inline void CSparseFloatMatrixDesc::GetRow( int index, CSparseFloatVectorDesc& d
 	}
 }
 
-inline CSparseFloatVectorDesc CSparseFloatMatrixDesc::GetRow( int index ) const
+inline CFloatVectorDesc CFloatMatrixDesc::GetRow( int index ) const
 {
-	CSparseFloatVectorDesc res;
+	CFloatVectorDesc res;
 	GetRow( index, res );
 	return res;
 }
@@ -69,11 +72,11 @@ class NEOML_API CSparseFloatMatrix {
 public:
 	CSparseFloatMatrix() {}
 	explicit CSparseFloatMatrix( int width, int rowsBufferSize = 0, int elementsBufferSize = 0 );
-	explicit CSparseFloatMatrix( const CSparseFloatMatrixDesc& desc );
+	explicit CSparseFloatMatrix( const CFloatMatrixDesc& desc );
 	CSparseFloatMatrix( const CSparseFloatMatrix& other );
 
-	CSparseFloatMatrixDesc* CopyOnWrite() { return body == 0 ? 0 : &body.CopyOnWrite()->Desc; }
-	const CSparseFloatMatrixDesc& GetDesc() const { return body == 0 ? CSparseFloatMatrixDesc::Empty : body->Desc; }
+	CFloatMatrixDesc* CopyOnWrite() { return body == 0 ? 0 : &body.CopyOnWrite()->Desc; }
+	const CFloatMatrixDesc& GetDesc() const { return body == 0 ? CFloatMatrixDesc::Empty : body->Desc; }
 
 	int GetHeight() const { return body == 0 ? 0 : body->Desc.Height; }
 	int GetWidth() const { return body == 0 ? 0 : body->Desc.Width; }
@@ -82,9 +85,9 @@ public:
 	void GrowInElements( int newElementsBufferSize );
 
 	void AddRow( const CSparseFloatVector& row );
-	void AddRow( const CSparseFloatVectorDesc& row );
-	CSparseFloatVectorDesc GetRow( int index ) const;
-	void GetRow( int index, CSparseFloatVectorDesc& desc ) const;
+	void AddRow( const CFloatVectorDesc& row );
+	CFloatVectorDesc GetRow( int index ) const;
+	void GetRow( int index, CFloatVectorDesc& desc ) const;
 
 	CSparseFloatMatrix& operator = ( const CSparseFloatMatrix& vector );
 
@@ -96,7 +99,7 @@ private:
 		int RowsBufferSize;
 		int ElementsBufferSize;
 		int ElementCount;
-		CSparseFloatMatrixDesc Desc;
+		CFloatMatrixDesc Desc;
 
 		// Memory holders
 		CArray<int> ColumnsBuf;
@@ -105,7 +108,7 @@ private:
 		CArray<int> EndPointersBuf;
 
 		CSparseFloatMatrixBody( int height, int width, int elementCount, int rowsBufferSize, int elementsBufferSize );
-		explicit CSparseFloatMatrixBody( const CSparseFloatMatrixDesc& desc );
+		explicit CSparseFloatMatrixBody( const CFloatMatrixDesc& desc );
 		~CSparseFloatMatrixBody() override = default;
 
 		CSparseFloatMatrixBody* Duplicate() const;
@@ -118,7 +121,7 @@ private:
 inline CTextStream& operator<<( CTextStream& stream, const CSparseFloatMatrix& matrix )
 {
 	for( int i = 0; i < matrix.GetHeight(); i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( i, desc );
 		stream << "( ";
 		if( desc.Size == 0 ) {

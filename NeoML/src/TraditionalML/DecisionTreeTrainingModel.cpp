@@ -79,9 +79,9 @@ CPtr<CDecisionTreeNodeBase> CDecisionTreeTrainingModel::buildTree( int vectorCou
 	CPtr<CDecisionTreeNodeBase> root = createNode();
 	nodesCount = 1;
 	CDecisionTreeNodeStatisticBase* rootStatistic = createStatistic( root );
-	CSparseFloatMatrixDesc matrix = classificationProblem->GetMatrix();
+	CFloatMatrixDesc matrix = classificationProblem->GetMatrix();
 
-	CSparseFloatVectorDesc desc;
+	CFloatVectorDesc desc;
 	for( int i = 0; i < vectorCount; i++ ) {
 		matrix.GetRow( i, desc );
 		rootStatistic->AddVector( i, desc );
@@ -119,7 +119,7 @@ CPtr<CDecisionTreeNodeBase> CDecisionTreeTrainingModel::buildTree( int vectorCou
 }
 
 // Builds one tree level
-bool CDecisionTreeTrainingModel::buildTreeLevel( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase& root ) const
+bool CDecisionTreeTrainingModel::buildTreeLevel( const CFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase& root ) const
 {
 	if( logStream != 0 ) {
 		*logStream << "\nBuild level " << level << ":\n";
@@ -165,7 +165,7 @@ bool CDecisionTreeTrainingModel::buildTreeLevel( const CSparseFloatMatrixDesc& m
 
 // Gathers statistics for the nodes of one level
 // Returns true if all nodes were traversed and false if another pass is needed
-bool CDecisionTreeTrainingModel::collectStatistics( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase* root ) const
+bool CDecisionTreeTrainingModel::collectStatistics( const CFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase* root ) const
 {
 	NeoAssert( level > 0 );
 	NeoAssert( root != 0 );
@@ -175,7 +175,7 @@ bool CDecisionTreeTrainingModel::collectStatistics( const CSparseFloatMatrixDesc
 	const int matrixHeight = matrix.Height;
 
 	for( int i = 0; i < matrixHeight; i++ ) {
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
 		// Find the leaf node for this vector in the current tree
 		CPtr<CDecisionTreeNodeBase> leaf;

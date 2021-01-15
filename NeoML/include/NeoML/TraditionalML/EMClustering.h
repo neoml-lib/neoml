@@ -90,29 +90,29 @@ private:
 	// densitiesArgs[i][j] is the logarithm of cluster j density on the image i, multiplied by the cluster j weight.
 	CFloatVectorArray densitiesArgs;
 
-	void runEMFixedComponents( const CSparseFloatMatrixDesc& data, const CArray<double>& weights, int clustersCount,
+	void runEMFixedComponents( const CFloatMatrixDesc& data, const CArray<double>& weights, int clustersCount,
 		int iterationsCount, bool goodOnly, CEmClusteringResult& result );
-	void calculateInitialClusters( const CSparseFloatMatrixDesc& data, int clustersCount,
+	void calculateInitialClusters( const CFloatMatrixDesc& data, int clustersCount,
 		CArray<CClusterCenter>& initialClusters ) const;
-	void recalculateInitialClusters( const CSparseFloatMatrixDesc& data, const CEmClusteringResult& prevResult,
+	void recalculateInitialClusters( const CFloatMatrixDesc& data, const CEmClusteringResult& prevResult,
 		CArray<CClusterCenter>& initialClusters ) const;
 	void initCumulativeFitnesses( const CArray<CClusterCenter>& initialClusters,
 		CFastArray<double, 1>& cumulativeFitnesses ) const;
 
 	int selectRandomCluster( const CFastArray<double, 1>& cumulativeFitnesses ) const;
-	void findBestResult( const CSparseFloatMatrixDesc& data, const CArray<double>& weights, CEmClusteringResult& result );
+	void findBestResult( const CFloatMatrixDesc& data, const CArray<double>& weights, CEmClusteringResult& result );
 
-	void clusterize( const CSparseFloatMatrixDesc& data, const CArray<double>& weights, const CArray<CClusterCenter>& clusters,
+	void clusterize( const CFloatMatrixDesc& data, const CArray<double>& weights, const CArray<CClusterCenter>& clusters,
 		CEmClusteringResult& result );
 	void expectation();
-	void maximization( const CSparseFloatMatrixDesc& data, const CArray<double>& weights );
+	void maximization( const CFloatMatrixDesc& data, const CArray<double>& weights );
 	void calculateNewWeights();
 	void calculateNewMeans( const CArray<CFloatVector>& vectors, const CArray<double>& vectorsWeight, double sumWeight );
 	void calculateNewDisps( const CArray<CFloatVector>& vectors, const CArray<double>& vectorsWeight, double sumWeight );
-	void calculateDensitiesArgs( const CSparseFloatMatrixDesc& data );
-	double calculateDistance( int clusterIndex, const CSparseFloatVectorDesc& element ) const;
+	void calculateDensitiesArgs( const CFloatMatrixDesc& data );
+	double calculateDistance( int clusterIndex, const CFloatVectorDesc& element ) const;
 
-	void calculateResult( const CSparseFloatMatrixDesc& data, bool isConverged, CEmClusteringResult& result ) const;
+	void calculateResult( const CFloatMatrixDesc& data, bool isConverged, CEmClusteringResult& result ) const;
 	double calculateLogOfMixtureLikelihood() const;
 };
 

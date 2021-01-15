@@ -63,9 +63,9 @@ private:
 	const CParam init; // the clustering parameters
 	CTextStream* log; // the logging stream
 
-	void processVector( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+	void processVector( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 		int vecNum, bool canAddCluster, CObjectArray<CCommonCluster>& clusters );
-	void deleteTinyClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+	void deleteTinyClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 		CObjectArray<CCommonCluster>& clusters );
 };
 

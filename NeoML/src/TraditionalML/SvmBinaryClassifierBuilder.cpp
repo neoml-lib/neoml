@@ -48,7 +48,7 @@ CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const IProblem& problem )
 	if( kernel.KernelType() == CSvmKernel::KT_Linear ) {
 		const int vectorCount = problem.GetVectorCount();
 		const int curThreadCount = IsOmpRelevant( vectorCount ) ? params.ThreadCount : 1;
-		const CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+		const CFloatMatrixDesc matrix = problem.GetMatrix();
 		NeoAssert( matrix.Height == problem.GetVectorCount() );
 		NeoAssert( matrix.Width == problem.GetFeatureCount() );
 
@@ -65,7 +65,7 @@ CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const IProblem& problem )
 			if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
 				for( int i = 0; i < count; i++ ) {
 					float alphaValue = static_cast<float>( alpha[index] * problem.GetBinaryClass(index) );
-					CSparseFloatVectorDesc desc;
+					CFloatVectorDesc desc;
 					matrix.GetRow( index, desc );
 					plane.MultiplyAndAdd( desc, alphaValue );
 					index++;
@@ -88,7 +88,7 @@ CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const IProblem& problem )
 			int count = 0;
 			if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
 				for( int i = 0; i < count; i++ ) {
-					CSparseFloatVectorDesc desc;
+					CFloatVectorDesc desc;
 					matrix.GetRow( index, desc );
 					distances[index] = LinearFunction( plane, desc );
 					index++;

@@ -46,29 +46,29 @@ CSvmKernel::CSvmKernel(TKernelType kernelType, int degree, double gamma, double 
 }
 
 // The linear kernel
-double CSvmKernel::linear(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
+double CSvmKernel::linear(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
 {
 	return DotProduct(x1, x2);
 }
 
-double CSvmKernel::linear(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
+double CSvmKernel::linear(const CFloatVector& x1, const CFloatVectorDesc& x2) const
 {
 	return DotProduct(x1, x2);
 }
 
 // The polynomial kernel
-double CSvmKernel::poly(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
+double CSvmKernel::poly(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
 {
 	return power(gamma * DotProduct(x1, x2) + coef0, degree);
 }
 
-double CSvmKernel::poly(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
+double CSvmKernel::poly(const CFloatVector& x1, const CFloatVectorDesc& x2) const
 {
 	return power(gamma * DotProduct(x1, x2) + coef0, degree);
 }
 
 // The Gaussian kernel
-double CSvmKernel::rbf(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
+double CSvmKernel::rbf(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
 {
 	double square = 0;
 	int i, j;
@@ -98,7 +98,7 @@ double CSvmKernel::rbf(const CSparseFloatVectorDesc& x1, const CSparseFloatVecto
 	return exp(-gamma * square);
 }
 
-double CSvmKernel::rbf(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
+double CSvmKernel::rbf(const CFloatVector& x1, const CFloatVectorDesc& x2) const
 {
 	double square = 0;
 	int i, j;
@@ -129,17 +129,17 @@ double CSvmKernel::rbf(const CFloatVector& x1, const CSparseFloatVectorDesc& x2)
 }
 
 // The sigmoid kernel
-double CSvmKernel::sigmoid(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
+double CSvmKernel::sigmoid(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
 {
 	return tanh(gamma * DotProduct(x1, x2) + coef0);
 }
 
-double CSvmKernel::sigmoid(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
+double CSvmKernel::sigmoid(const CFloatVector& x1, const CFloatVectorDesc& x2) const
 {
 	return tanh(gamma * DotProduct(x1, x2) + coef0);
 }
 
-double CSvmKernel::Calculate(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
+double CSvmKernel::Calculate(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
 {
 	switch( kernelType ) {
 		case KT_Linear:
@@ -156,7 +156,7 @@ double CSvmKernel::Calculate(const CSparseFloatVectorDesc& x1, const CSparseFloa
 	}
 }
 
-double CSvmKernel::Calculate(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
+double CSvmKernel::Calculate(const CFloatVector& x1, const CFloatVectorDesc& x2) const
 {
 	switch( kernelType ) {
 		case KT_Linear:
