@@ -183,16 +183,11 @@ inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vecto
 inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFloatVectorDesc& vector2 )
 {
 	double sum = 0;
-
 	if( vector1.Indexes == nullptr ) { // dense array inside
-		NeoPresume( vector1.Size == vector2.Size );
 		NeoPresume( vector2.Indexes == nullptr );
-		const int size = vector1.Size;
-		const float* operand1 = vector1.Values;
-		const float* operand2 = vector2.Values;
-
+		const int size = min( vector1.Size, vector2.Size );
 		for( int i = 0; i < size; i++ ) {
-			sum += static_cast<double>( operand1[i] ) * operand2[i];
+			sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[i];
 		}
 	} else {
 		int i = 0;
@@ -217,15 +212,19 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 // The dot product of two vectors
 inline double DotProduct( const CFloatVector& vector1, const CSparseFloatVectorDesc& vector2 )
 {
-	// The sparse vector may not be longer than the regular one
-	NeoAssert( vector2.Size == 0 || vector2.Indexes[vector2.Size - 1] < vector1.Size() );
-
 	double sum = 0;
-
 	const float* operand1 = vector1.GetPtr();
-
-	for( int i = 0; i < vector2.Size; i++ ) {
-		sum += static_cast<double>( vector2.Values[i] ) * operand1[vector2.Indexes[i]];
+	if( vector2.Indexes == nullptr ) { // dense array inside
+		NeoPresume( vector2.Size <= vector1.Size() );
+		for( int i = 0; i < vector2.Size; i++ ) {
+			sum += static_cast<double>( vector2.Values[i] ) * operand1[i];
+		}
+	} else {
+		// The sparse vector may not be longer than the regular one
+		NeoPresume( vector2.Size == 0 || vector2.Indexes[vector2.Size - 1] < vector1.Size() );
+		for( int i = 0; i < vector2.Size; i++ ) {
+			sum += static_cast<double>( vector2.Values[i] ) * operand1[vector2.Indexes[i]];
+		}
 	}
 	return sum;
 }
