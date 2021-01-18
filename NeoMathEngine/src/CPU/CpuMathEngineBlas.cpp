@@ -209,12 +209,16 @@ void CCpuMathEngine::setVectorToMatrixRows( float* result,
 void CCpuMathEngine::AddVectorToMatrixColumns(const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle)
 {
-	CConstFloatHandle matrix = matrixHandle;
-	CFloatHandle result = resultHandle;
-	CConstFloatHandle vector = vectorHandle;
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
+
+	const float* matrix = GetRaw( matrixHandle );
+	float* result = GetRaw( resultHandle );
+	const float* vector = GetRaw( vectorHandle );
 
 	for(int i = 0; i < matrixHeight; ++i) {
-		VectorAddValue(matrix, result, matrixWidth, vector);
+		vectorAddValue(matrix, result, matrixWidth, *vector);
 		matrix += matrixWidth;
 		result += matrixWidth;
 		++vector;
@@ -259,12 +263,16 @@ void CCpuMathEngine::AddVectorToMatrixRows( int batchSize, const CConstFloatHand
 void CCpuMathEngine::RowMultiplyMatrixByMatrix(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, int height, int width, const CFloatHandle& resultHandle)
 {
-	CConstFloatHandle first = firstHandle;
-	CConstFloatHandle second = secondHandle;
-	CFloatHandle result = resultHandle;
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
 
 	for(int i = 0; i < height; ++i) {
-		VectorDotProduct(first, second, width, result);
+		vectorDotProduct(first, second, width, result);
 		first += width;
 		second += width;
 		++result;

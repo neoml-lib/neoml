@@ -389,6 +389,48 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorAddValue( const float* first, float* result, int vectorSize, float value )
+{
+	float32x4_t addition = vdupq_n_f32(value);
+
+	for(int i = 0; i < count; ++i) {
+		float32x4_t res = vaddq_f32(LoadNeon4(first), addition);
+		StoreNeon4(res, result);
+
+		first += 4;
+		result += 4;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vaddq_f32(LoadNeon(first, vectorSize), addition);
+		StoreNeon(res, result, vectorSize);
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorDotProduct( const float* first, const float* second, int vectorSize, float* result )
+{
+	float32x4_t acc = vdupq_n_f32(0);
+
+	for(int i = 0; i < count; ++i) {
+		float32x4_t res = vmulq_f32(LoadNeon4(first), LoadNeon4(second));
+		acc = vaddq_f32(acc, res);
+
+		first += 4;
+		second += 4;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize, 0), LoadNeon(second, vectorSize, 0));
+		acc = vaddq_f32(acc, res);
+	}
+
+	*result = vget_lane_f32(HorizontalAddNeon(acc), 0);
+}
+
 } // namespace NeoML
 
 #endif
