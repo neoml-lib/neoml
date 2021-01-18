@@ -457,12 +457,6 @@ void CVulkanMathEngine::FindMaxValueInRows( const CConstFloatHandle& matrixHandl
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, 1, matrixHeight, 1 );
 }
 
-void CVulkanMathEngine::FindMinValueInRows( const CConstFloatHandle& /*matrixHandle*/, int /*matrixHeight*/, int /*matrixWidth*/,
-	const CFloatHandle& /*resultHandle*/, const CIntHandle& /*columnIndices*/, int /*vectorSize*/ )
-{
-	ASSERT_EXPR( false );
-}
-
 void CVulkanMathEngine::FindMaxValueInColumns( int batchSize, const CConstFloatHandle& matrixHandle, int matrixHeight,
 	int matrixWidth, const CFloatHandle& resultHandle, const CIntHandle& rowIndices, int vectorSize )
 {

@@ -348,10 +348,6 @@ public:
 	virtual void FindMaxValueInRows(const CConstFloatHandle& matrixHandle,
 		int matrixHeight, int matrixWidth, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
-	// Finds the minimum value in each matrix row
-	virtual void FindMinValueInRows(const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
-		const CFloatHandle& resultHandle, const CIntHandle& columnIndices, int vectorSize) = 0;
-
 	// Finds the maximum value in each matrix column, for a set of batchSize matrices, matrixHeight * matrixWidth each
 	// The result is of batchSize * matrixWidth size
 	virtual void FindMaxValueInColumns( int batchSize, const CConstFloatHandle& matrixHandle, int matrixHeight,

@@ -520,12 +520,6 @@ void CMetalMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle,
     ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
 }
 
-void CMetalMathEngine::FindMinValueInRows(const CConstFloatHandle& /*matrixHandle*/, int /*matrixHeight*/, int /*matrixWidth*/,
-    const CFloatHandle& /*resultHandle*/, const CIntHandle& /*columnIndices*/, int /*vectorSize*/)
-{
-    ASSERT_EXPR( false );
-}
-
 void CMetalMathEngine::FindMaxValueInColumns( int batchSize, const CConstFloatHandle& matrixHandle, int matrixHeight,
     int matrixWidth, const CFloatHandle& resultHandle, const CIntHandle& rowIndices, int /*vectorSize*/ )
 {

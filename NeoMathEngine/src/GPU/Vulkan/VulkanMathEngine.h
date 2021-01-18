@@ -261,8 +261,6 @@ public:
 		const CFloatHandle& resultHandle, const CIntHandle& columnIndices, int vectorSize) override;
 	void FindMaxValueInRows(const CConstFloatHandle& matrixHandle,
 		int matrixHeight, int matrixWidth, const CFloatHandle& resultHandle, int vectorSize) override;
-	void FindMinValueInRows(const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
-		const CFloatHandle& resultHandle, const CIntHandle& columnIndices, int vectorSize) override;
 	void FindMaxValueInColumns( int batchSize, const CConstFloatHandle& matrixHandle, int matrixHeight,
 		int matrixWidth, const CFloatHandle& resultHandle, const CIntHandle& rowIndices, int vectorSize ) override;
 	void FindMinValueInColumns( const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,

@@ -447,12 +447,6 @@ void CCudaMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle, 
 		matrixWidth, GetRaw(resultHandle), widthNorm);
 }
 
-void CCudaMathEngine::FindMinValueInRows(const CConstFloatHandle& /*matrixHandle*/, int /*matrixHeight*/, int /*matrixWidth*/,
-	const CFloatHandle& /*resultHandle*/, const CIntHandle& /*columnIndices*/, int /*vectorSize*/)
-{
-	ASSERT_EXPR( false );
-}
-
 void CCudaMathEngine::FindMaxValueInColumns( int batchSize, const CConstFloatHandle& matrixHandle, int matrixHeight,
 	int matrixWidth, const CFloatHandle& resultHandle, const CIntHandle& rowIndices, int vectorSize )
 {

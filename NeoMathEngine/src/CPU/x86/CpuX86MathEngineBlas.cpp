@@ -122,81 +122,6 @@ void CCpuMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle, i
 	}
 }
 
-static inline void findMinValueWorker(const __m128& value, const __m128i& index, __m128& minValue, __m128i& minIndex)
-{
-	__m128i cmp = _mm_castps_si128(_mm_cmplt_ps(value, minValue));
-	minIndex = _mm_or_si128(_mm_andnot_si128(cmp, minIndex), _mm_and_si128(cmp, index));
-	minValue = _mm_min_ps(value, minValue);
-}
-
-void CCpuMathEngine::FindMinValueInRows(const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
-	const CFloatHandle& resultHandle, const CIntHandle& columnIndices, int vectorSize)
-{
-	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
-	ASSERT_EXPR( vectorSize >= matrixHeight );
-
-	const float* matrix = GetRaw(matrixHandle);
-	float* result = GetRaw(resultHandle);
-	int* indices = GetRaw(columnIndices);
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(matrixWidth, sseSize, nonSseSize);
-
-	__m128i iStep = _mm_set1_epi32(4);
-	__m128 minValueAcc = _mm_setzero_ps();
-	__m128i minIndexAcc = _mm_setzero_si128();
-	for(int j = 0; j < matrixHeight; ++j) {
-		// Find the minimum in the row
-		__m128i index = _mm_set_epi32(3, 2, 1, 0);
-		__m128 minValue = _mm_set1_ps(FLT_MAX);
-		__m128i minIndex = index;
-		for(int i = 0; i < sseSize; ++i) {
-			__m128 value = LoadSse4(matrix);
-			findMinValueWorker(value, index, minValue, minIndex);
-
-			index = _mm_add_epi32(index, iStep);
-			matrix += 4;
-		}
-
-		if(nonSseSize > 0) {
-			__m128 value = LoadSse(matrix, nonSseSize, FLT_MAX);
-			findMinValueWorker(value, index, minValue, minIndex);
-
-			matrix += nonSseSize;
-		}
-
-		// Find the minimum inside minValue
-		__m128 value = _mm_shuffle_ps(minValue, minValue, _MM_SHUFFLE(1, 0, 3, 2));
-		index = _mm_shuffle_epi32(minIndex, _MM_SHUFFLE(1, 0, 3, 2));
-		findMinValueWorker(value, index, minValue, minIndex);
-
-		value = _mm_shuffle_ps(minValue, minValue, _MM_SHUFFLE(2, 3, 0, 1));
-		index = _mm_shuffle_epi32(minIndex, _MM_SHUFFLE(2, 3, 0, 1));
-		findMinValueWorker(value, index, minValue, minIndex);
-
-		// Minimum is stored in minValue fields, put it into minValueAcc
-		int phase = j % 4;
-		__m128 mask = GetPhaseMask4(phase);
-		minValueAcc = _mm_or_ps(_mm_andnot_ps(mask, minValueAcc), _mm_and_ps(mask, minValue));
-		minIndexAcc = _mm_or_si128(_mm_andnot_si128(_mm_castps_si128(mask), minIndexAcc),
-			_mm_and_si128(_mm_castps_si128(mask), minIndex));
-
-		// Save the result if necessary
-		if(phase == 3) {
-			StoreSse4(minValueAcc, result);
-			StoreIntSse4(minIndexAcc, indices);
-			result += 4;
-			indices += 4;
-		} else if(j == matrixHeight - 1) {
-			StoreSse(minValueAcc, result, phase + 1);
-			StoreIntSse(minIndexAcc, indices, phase + 1);
-		}
-	}
-}
-
 void CCpuMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
 	const CFloatHandle& resultHandle, int vectorSize)
 {
@@ -319,6 +244,13 @@ void CCpuMathEngine::FindMaxValueInColumns( int batchSize, const CConstFloatHand
 		// Move it to the start of the first row of the next matrix in the batch
 		firstRow += matrixWidth * ( matrixHeight - 1 );
 	}
+}
+
+static inline void findMinValueWorker(const __m128& value, const __m128i& index, __m128& minValue, __m128i& minIndex)
+{
+	__m128i cmp = _mm_castps_si128(_mm_cmplt_ps(value, minValue));
+	minIndex = _mm_or_si128(_mm_andnot_si128(cmp, minIndex), _mm_and_si128(cmp, index));
+	minValue = _mm_min_ps(value, minValue);
 }
 
 void CCpuMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
@@ -459,96 +391,6 @@ void CCpuMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandl
 		firstRow += matrixWidth * ( currBlockHeight - 1 );
 	}
 }
-
-/* void CCpuMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
-	const CFloatHandle& resultHandle, const CIntHandle& rowIndices )
-{
-	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
-
-	int sseSize;
-	int nonSseSize;
-	checkSse( matrixWidth, sseSize, nonSseSize );
-
-	// The pointer moves over the first row of the matrix
-	const float* firstRow = GetRaw( matrixHandle );
-	float* result = GetRaw( resultHandle );
-	int* indices = GetRaw( rowIndices );
-
-	// Process 16 columns at once
-	int currSse = 0;
-	for( ; currSse + 4 <= sseSize; currSse += 4 ) {
-		const float* data = firstRow;
-		__m128 minValue0 = LoadSse4( data );
-		__m128 minValue1 = LoadSse4( data + 4 );
-		__m128 minValue2 = LoadSse4( data + 8 );
-		__m128 minValue3 = LoadSse4( data + 12 );
-		__m128i minIndices0 = _mm_set1_epi32( 0 );
-		__m128i minIndices1 = _mm_set1_epi32( 0 );
-		__m128i minIndices2 = _mm_set1_epi32( 0 );
-		__m128i minIndices3 = _mm_set1_epi32( 0 );
-		data += matrixWidth;
-		for( int h = 1; h < matrixHeight; ++h ) {
-			__m128 value0 = LoadSse4( data );
-			__m128 value1 = LoadSse4( data + 4 );
-			__m128 value2 = LoadSse4( data + 8 );
-			__m128 value3 = LoadSse4( data + 12 );
-			__m128i currIndices = _mm_set1_epi32( h );
-			findMinValueWorker( value0, currIndices, minValue0, minIndices0 );
-			findMinValueWorker( value1, currIndices, minValue1, minIndices1 );
-			findMinValueWorker( value2, currIndices, minValue2, minIndices2 );
-			findMinValueWorker( value3, currIndices, minValue3, minIndices3 );
-			data += matrixWidth;
-		}
-		StoreSse4( minValue0, result );
-		StoreSse4( minValue1, result + 4 );
-		StoreSse4( minValue2, result + 8 );
-		StoreSse4( minValue3, result + 12 );
-		StoreIntSse4( minIndices0, indices );
-		StoreIntSse4( minIndices1, indices + 4 );
-		StoreIntSse4( minIndices2, indices + 8 );
-		StoreIntSse4( minIndices3, indices + 12 );
-		result += 16;
-		indices += 16;
-		firstRow += 16;
-	}
-
-	// Process 4 columns at once
-	for( ; currSse < sseSize; ++currSse ) {
-		const float* data = firstRow;
-		__m128 minValue = LoadSse4( data );
-		__m128i minIndices = _mm_set1_epi32( 0 );
-		data += matrixWidth;
-		for( int h = 1; h < matrixHeight; ++h ) {
-			__m128 value = LoadSse4( data );
-			__m128i currIndices = _mm_set1_epi32( h );
-			findMinValueWorker( value, currIndices, minValue, minIndices );
-			data += matrixWidth;
-		}
-		StoreSse4( minValue, result );
-		StoreIntSse4( minIndices, indices );
-		result += 4;
-		indices += 4;
-		firstRow += 4;
-	}
-
-	if( nonSseSize > 0 ) {
-		// Process the rest of the columns in the same way
-		const float* data = firstRow;
-		__m128 minValue = LoadSse( data, nonSseSize );
-		__m128i minIndices = _mm_set1_epi32( 0 );
-		data += matrixWidth;
-		for( int h = 1; h < matrixHeight; ++h ) {
-			__m128 value = LoadSse( data, nonSseSize );
-			__m128i currIndices = _mm_set1_epi32( h );
-			findMinValueWorker( value, currIndices, minValue, minIndices );
-			data += matrixWidth;
-		}
-		StoreSse( minValue, result, nonSseSize );
-		StoreIntSse( minIndices, indices, nonSseSize );
-	}
-} */
 
 void CCpuMathEngine::MultiplyDiagMatrixByMatrixAndAdd(int batchSize, const CConstFloatHandle& firstHandle,
 	int firstSize, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle)
