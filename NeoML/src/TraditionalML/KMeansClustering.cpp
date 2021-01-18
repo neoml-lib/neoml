@@ -825,15 +825,15 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		const_cast<CDnnBlob&>( sizes ).ReleaseBuffer( sizeBuff, false );
 	}
 
+	CFloatHandleStackVar stackBuff( mathEngine, vectorCount * featureCount + clusterCount * featureCount + 1 );
 	{
 		// Calculate sum of squares of objects in each cluster
-		CFloatHandleStackVar stackBuff( mathEngine, vectorCount * featureCount + clusterCount * featureCount + 1 );
 		CFloatHandle squaredData = stackBuff.GetHandle();
+		CFloatHandle sumOfSquares = stackBuff.GetHandle() + vectorCount * featureCount;
+		CFloatHandle one = stackBuff.GetHandle() + vectorCount * featureCount + clusterCount * featureCount;
 		mathEngine.VectorEltwiseMultiply( data.GetData(), data.GetData(), squaredData,
 			data.GetDataSize() );
-		CFloatHandle sumOfSquares = stackBuff.GetHandle() + vectorCount * featureCount;
 		mathEngine.VectorFill( sumOfSquares, 0, clusterCount * featureCount );
-		CFloatHandle one = stackBuff.GetHandle() + vectorCount * featureCount + clusterCount * featureCount;
 		one.SetValue( 1.f );
 		CLookupDimension dim;
 		dim.VectorCount = params.InitialClustersCount;
@@ -848,7 +848,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 
 	{
 		// Calculate squared centers
-		CFloatHandleStackVar squaredMean( mathEngine, clusterCount * featureCount );
+		CFloatHandle squaredMean = stackBuff;
 		mathEngine.VectorEltwiseMultiply( centers.GetData(), centers.GetData(),
 			squaredMean, clusterCount * featureCount );
 		// Subtract squares from average in order to get variance
