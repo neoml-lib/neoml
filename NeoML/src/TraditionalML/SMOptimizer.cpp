@@ -247,7 +247,7 @@ const float* CKernelMatrix::GetColumn( int i, int len ) const
 		};
 
 		// set diagonal element if it's needed
-		if( i >= start && i <= len ) {
+		if( i >= start && i < len ) {
 			for( int j = start; j < i; ++j ) {
 				calcData( j );
 			}
