@@ -24,6 +24,9 @@ limitations under the License.
 
 namespace NeoML {
 
+// The maximum size of memory used for the pools
+static const size_t MaxMemoryInPools = 192 * 1024 * 1024;
+
 CBaseLayer::CBaseLayer( IMathEngine& _mathEngine, const char* _name, bool _isLearnable ) :
 	mathEngine( _mathEngine ),
 	name( _name ),
@@ -341,7 +344,9 @@ void CBaseLayer::reshape()
 	outputDiffBlobs.DeleteAll();
 	clearAllRuntimeBlobs();
 
-	MathEngine().CleanUp();
+	if( MathEngine().GetMemoryInPools() > MaxMemoryInPools ) {
+		MathEngine().CleanUp();
+	}
 
 	Reshape();
 

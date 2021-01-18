@@ -806,6 +806,9 @@ public:
 	// Gets the peak memory usage achieved during processing
 	virtual size_t GetPeakMemoryUsage() const = 0;
 
+	// The current size of memory in the pools
+	virtual size_t GetMemoryInPools() const = 0;
+
 	// Releases all temporary resources allocated for the current thread
 	virtual void CleanUp() = 0;
 

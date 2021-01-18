@@ -36,7 +36,7 @@ void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* math
 {
 	CTensorShape& outputShape = tensors[Output[0]].Shape;
 	outputShape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
-	for( const onnx::TensorShapeProto_Dimension dim : valueInfo.type().tensor_type().shape().dim() ) {
+	for( const onnx::TensorShapeProto_Dimension& dim : valueInfo.type().tensor_type().shape().dim() ) {
 		outputShape.Add( static_cast<int>( dim.dim_value() ) );
 	}
 }

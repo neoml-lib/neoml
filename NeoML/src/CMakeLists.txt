@@ -141,12 +141,14 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/Score.cpp
     TraditionalML/Shuffler.cpp
     TraditionalML/SMOptimizer.cpp
+    TraditionalML/SMOptimizer.h
     TraditionalML/SparseFloatMatrix.cpp
     TraditionalML/SparseFloatVector.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
     TraditionalML/SvmBinaryClassifierBuilder.cpp
     TraditionalML/SvmBinaryModel.cpp
     TraditionalML/SvmBinaryModel.h
+    TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
 
     # Headers
@@ -258,11 +260,11 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/Score.h
     ../include/NeoML/TraditionalML/Shuffler.h
     ../include/NeoML/TraditionalML/SimpleGenerator.h
-    ../include/NeoML/TraditionalML/SMOptimizer.h
     ../include/NeoML/TraditionalML/SparseFloatMatrix.h
     ../include/NeoML/TraditionalML/SparseFloatVector.h
     ../include/NeoML/TraditionalML/SparseVectorIterator.h
     ../include/NeoML/TraditionalML/SvmBinaryClassifierBuilder.h
+    ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/TrainingModel.h
     ../include/NeoML/TraditionalML/TrustRegionNewtonOptimizer.h
