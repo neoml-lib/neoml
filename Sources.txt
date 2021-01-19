@@ -1,7 +1,7 @@
 
 
 git;https://tfs/HQ/Tools_Libs/_git/FineObjects14
-get;FineObjects;/;FineObjects14-master 14.0.29.0
+get;FineObjects;/;FineObjects14-master 14.0.31.0
 
 git;https://tfs/HQ/ThirdParty/_git/CUDA
 get;ThirdParty/CUDA;/;CUDA v10.2 1.0.4.0
