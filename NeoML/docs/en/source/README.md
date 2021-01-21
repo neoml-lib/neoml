@@ -1,5 +1,7 @@
 ![NeoML](../../images/NeoML_logo.png)
 
+[![Documentation Status](https://readthedocs.org/projects/neoml/badge/?version=latest)](https://neoml.readthedocs.io/en/latest/?badge=latest)
+
 **NeoML** is an end-to-end machine learning framework that allows you to build, train, and deploy ML models. This framework is used by ABBYY engineers for computer vision and natural language processing tasks, including image preprocessing, classification, document layout analysis, OCR, and data extraction from structured and unstructured documents.
 
 Key features:
