@@ -312,4 +312,4 @@ delete gpuMathEngine;
   - [CConfusionMatrixLayer](QualityControlLayers/ConfusionMatrixLayer.md) calculates the *confusion matrix* for multi-class classification
 
 
-[Weight initialization cross reference]: <Dnn.md#weights-initialization>
+[Weight initialization cross reference]: <Dnn.md#Weights initialization>
