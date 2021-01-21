@@ -84,7 +84,7 @@ Before the first training iteration the layers' weights (trainable parameters) a
 - `CDnnUniformInitializer` generates the weights using a uniform distribution over a segment from `GetLowerBound` to `GetUpperBound`.
 - `CDnnXavierInitializer` generates the weights using the normal distribution `N(0, 1/n)` where `n` is the input size.
 
-To select the preferred initializer, create an instance of one of these classes and pass it to the network using the [`CDnn::SetInitializer`][Weight initialization cross reference] method. The default initialization methods is `Xavier`.
+To select the preferred initializer, create an instance of one of these classes and pass it to the network using the [`CDnn::SetInitializer`](Dnn.md#weights-initialization) method. The default initialization methods is `Xavier`.
 
 The initializer is the same for all the network trainable weights, except for the free term vectors that are initialized with zeros.
 
@@ -310,6 +310,3 @@ delete gpuMathEngine;
   - [CAccuracyLayer](QualityControlLayers/AccuracyLayer.md) calculates the proportion of the objects classified correctly
   - [CPrecisionRecallLayer](QualityControlLayers/PrecisionRecallLayer.md) calculates the proportion of correctly classified objects for each of the two classes in binary classification
   - [CConfusionMatrixLayer](QualityControlLayers/ConfusionMatrixLayer.md) calculates the *confusion matrix* for multi-class classification
-
-
-[Weight initialization cross reference]: <Dnn.md:Weights initialization>

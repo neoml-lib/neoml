@@ -36,6 +36,8 @@ extensions = [
     'recommonmark',
 ]
 
+autosectionlabel_prefix_document = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -50,7 +52,7 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'agogo'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -59,15 +61,14 @@ html_static_path = ['_static']
 
 source_suffix = ['.rst', '.md']
 
-
-autosectionlabel_prefix_document = True
-
 # https://github.com/rtfd/recommonmark/blob/master/docs/conf.py
 def setup(app):
     config = {
         #'url_resolver': lambda url: print(url),
         'auto_toc_tree_section': 'Contents',
         'enable_eval_rst': True,
+        'enable_auto_toc_tree': True,
+        #'known_url_schemes': ['http', 'https', 'mailto'],
     }
     app.add_config_value('recommonmark_config', config, True)
     app.add_transform(AutoStructify)

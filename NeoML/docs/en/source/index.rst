@@ -11,18 +11,19 @@ Welcome to NeoML-Sphinx-Test's documentation!
 .. toctree::
    :maxdepth: 3
    :caption: Contents:
-   :hidden:
 
+   Installation/cpp
+   Installation/inference
+   Tutorial/IrisClustering
+   Tutorial/News20Classification
+   Tutorial/SimpleNet
    API/Algorithms/README
    API/ClassificationAndRegression/README
-   API/ClassificationAndRegression/DecisionTree
-   API/ClassificationAndRegression/GradientBoost
-   API/ClassificationAndRegression/Linear
-   API/ClassificationAndRegression/Models
-   API/ClassificationAndRegression/OneVersusAll
-   API/ClassificationAndRegression/Problems
-   API/ClassificationAndRegression/Svm
-   API/ClassificationAndRegression/TrainingModels
+   API/Clustering/README
+   API/Common/README
+   API/NN/README
+   Wrappers/Java
+   Wrappers/ObjectiveC
    Onnx
 
 
