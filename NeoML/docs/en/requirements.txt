@@ -1,0 +1,3 @@
+# NeoML/docs/en/requirements.txt
+sphinx==2.4.0
+sphinx_rtd_theme==0.2.7
