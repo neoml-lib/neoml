@@ -7,7 +7,7 @@
     - [Operations with layers](#operations-with-layers)
         - [Adding a layer](#adding-a-layer)
         - [Checking if the layer is present](#checking-if-the-layer-is-present)
-        - [Accessing a layer](<#Accessing a layer>)
+        - [Accessing a layer](#accessing-a-layer)
         - [Deleting a layer](#deleting-a-layer)
         - [Getting the list of layers](#getting-the-list-of-layers)
         - [Deleting all layers](#deleting-all-layers)
