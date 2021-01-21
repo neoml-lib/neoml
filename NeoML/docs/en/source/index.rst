@@ -6,7 +6,7 @@
 Welcome to NeoML-Sphinx-Test's documentation!
 =============================================
 
-.. mdinclude:: ../../../../README.md
+.. mdinclude:: README.md
 
 .. toctree::
    :maxdepth: 3
