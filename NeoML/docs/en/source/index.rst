@@ -11,6 +11,7 @@ Welcome to NeoML-Sphinx-Test's documentation!
 .. toctree::
    :maxdepth: 3
    :caption: Contents:
+   :hidden:
 
    Installation/cpp
    Installation/inference

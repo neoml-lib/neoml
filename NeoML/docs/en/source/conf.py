@@ -66,7 +66,7 @@ def setup(app):
     config = {
         #'url_resolver': lambda url: print(url),
         'auto_toc_tree_section': 'Contents',
-        'enable_eval_rst': True,
+        'enable_eval_rst': False,
         'enable_auto_toc_tree': True,
         #'known_url_schemes': ['http', 'https', 'mailto'],
     }
