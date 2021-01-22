@@ -25,6 +25,41 @@ copyright = '2021, ABBYY'
 author = 'ABBYY'
 
 
+# -- Pre-process root README.md ----------------------------------------------
+
+with open('../../../../README.md', 'r', encoding='utf-8') as file_in:
+    with open('README.md', 'w', encoding='utf-8') as file_out:
+        for line in file_in:
+            line = line.replace('NeoML/docs/en/source/', '')
+            line = line.replace('NeoML/docs/images/', '../../images/')
+            file_out.write(line)
+
+
+# -- Remove links to the heading in another markdown files -------------------
+
+from os import walk
+from os.path import join, splitext
+
+for dirpath, _, filenames in walk('.'):
+    for filename in filenames:
+        if splitext(filename)[1] != '.md':
+            continue # skip not markdown files
+        filepath = join(dirpath, filename)
+        with open(filepath, 'r', encoding='utf8') as file_in:
+            lines = file_in.readlines()
+        modified = False
+        for i in range(len(lines)):
+            pos = lines[i].find('.md#')
+            while pos != -1:
+                modified = True
+                bracket = lines[i].find(')', pos)
+                lines[i] = lines[i][:pos+3] + lines[i][bracket:]
+                pos = lines[i].find('.md#')
+        if modified:
+            with open(filepath, 'w', encoding='utf8') as file_out:
+                file_out.writelines(lines)
+
+
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
