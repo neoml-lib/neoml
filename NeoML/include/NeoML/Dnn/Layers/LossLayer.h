@@ -27,7 +27,7 @@ class NEOML_API CLossLayer : public CBaseLayer {
 public:
 	CLossLayer( IMathEngine& mathEngine, const char* name, bool trainLabels = false);
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Total loss weight
 	float GetLossWeight() const { return params->GetData().GetValueAt( P_LossWeight ); }
@@ -65,9 +65,9 @@ public:
 protected:
 	const CPtr<CDnnBlob>& GetWeights() { return weights; }
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 	// The function that calculates the loss function and its gradient for a vector set
 	// The data vectors are stored one after another in the batch. The whole data set is of batchSize * vectorSize size.
@@ -146,19 +146,22 @@ public:
 	void SetApplySoftmax( bool applySoftmax ) { isSoftmaxApplied = applySoftmax; }
 	bool IsSoftmaxApplied() const { return isSoftmaxApplied; }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle dataLossGradient, CFloatHandle labelLossGradient) override;
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstIntHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstIntHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 
 private:
 	bool isSoftmaxApplied;
 };
+
+NEOML_API CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
+	bool isSoftmaxApplied = true, float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -174,11 +177,12 @@ public:
 	void SetPositiveWeight( float value );
 	float GetPositiveWeight() const;
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
+	void Reshape() override;
 	// CLossLayer methods implementation
-	virtual void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient ) override;
 
 private:
@@ -187,6 +191,9 @@ private:
 
 	void calculateStableSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) const;
 };
+
+NEOML_API CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(
+	float positiveWeight = 1.0f, float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -199,12 +206,14 @@ class NEOML_API CEuclideanLossLayer : public CLossLayer {
 public:
 	explicit CEuclideanLossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "CCnnEuclideanLossLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
+
+NEOML_API CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -216,12 +225,14 @@ class NEOML_API CHingeLossLayer : public CLossLayer {
 public:
 	explicit CHingeLossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "CCnnHingeLossLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
+
+NEOML_API CLayerWrapper<CHingeLossLayer> HingeLoss( float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -234,11 +245,14 @@ class NEOML_API CSquaredHingeLossLayer : public CLossLayer {
 public:
 	explicit CSquaredHingeLossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "CCnnSquaredHingeLossLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
+
+NEOML_API CLayerWrapper<CSquaredHingeLossLayer> SquaredHingeLoss(
+	float lossWeight = 1.0f );
 
 } // namespace NeoML

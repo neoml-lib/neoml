@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,6 +40,10 @@ IDataAccumulator::~IDataAccumulator()
 {
 }
 
+ISubProblem::~ISubProblem()
+{
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // CMultivariateRegressionOverUnivariate
 
@@ -47,37 +51,7 @@ CMultivariateRegressionOverUnivariate::CMultivariateRegressionOverUnivariate(
 		const IRegressionProblem* _inner ) :
 	inner( _inner )
 {
-	NeoAssert( inner != 0 );
-}
-
-// Gets the number of features
-int CMultivariateRegressionOverUnivariate::GetFeatureCount() const
-{
-	return inner->GetFeatureCount();
-}
-
-// Gets the number of vectors in the data set
-int CMultivariateRegressionOverUnivariate::GetVectorCount() const
-{
-	return inner->GetVectorCount();
-}
-
-// Gets all vectors from the data set as a matrix
-CSparseFloatMatrixDesc CMultivariateRegressionOverUnivariate::GetMatrix() const
-{
-	return inner->GetMatrix();
-}
-
-// Gets the vector weight
-double CMultivariateRegressionOverUnivariate::GetVectorWeight( int index ) const
-{
-	return inner->GetVectorWeight( index );
-}
-
-// Gets the length of the function value vector
-int CMultivariateRegressionOverUnivariate::GetValueSize() const
-{
-	return 1;
+	NeoAssert( inner != nullptr );
 }
 
 // Gets the function value for the vector with the given index in the data set
@@ -95,7 +69,7 @@ CMultivariateRegressionOverClassification::CMultivariateRegressionOverClassifica
 		const IProblem* _inner ) :
 	inner( _inner )
 {
-	NeoAssert( inner != 0 );
+	NeoAssert( inner != nullptr );
 
 	const int classCount = inner->GetClassCount();
 	classValues.SetBufferSize( classCount );
@@ -105,36 +79,6 @@ CMultivariateRegressionOverClassification::CMultivariateRegressionOverClassifica
 		classValue.SetAt( i, 1.f );
 		classValues.Add( classValue );
 	}
-}
-
-// Gets the number of features
-int CMultivariateRegressionOverClassification::GetFeatureCount() const
-{
-	return inner->GetFeatureCount();
-}
-
-// Gets the number of vectors in the data set
-int CMultivariateRegressionOverClassification::GetVectorCount() const
-{
-	return inner->GetVectorCount();
-}
-
-// Gets all vectors from the data set as a matrix
-CSparseFloatMatrixDesc CMultivariateRegressionOverClassification::GetMatrix() const
-{
-	return inner->GetMatrix();
-}
-
-// Gets the vector weight
-double CMultivariateRegressionOverClassification::GetVectorWeight( int index ) const
-{
-	return inner->GetVectorWeight( index );
-}
-
-// Gets the length of the function value vector
-int CMultivariateRegressionOverClassification::GetValueSize() const
-{
-	return classValues.Size();
 }
 
 // Gets the function value for the vector with the given index in the data set
@@ -152,7 +96,7 @@ CMultivariateRegressionOverBinaryClassification::CMultivariateRegressionOverBina
 		const IProblem* _inner ) :
 	inner( _inner )
 {
-	NeoAssert( inner != 0 );
+	NeoAssert( inner != nullptr );
 	NeoAssert( inner->GetClassCount() == 2 );
 
 	classValues[0] = CFloatVector(1);
@@ -161,42 +105,69 @@ CMultivariateRegressionOverBinaryClassification::CMultivariateRegressionOverBina
 	classValues[1].SetAt( 0, 1.f );
 }
 
-// Gets the number of features
-int CMultivariateRegressionOverBinaryClassification::GetFeatureCount() const
-{
-	return inner->GetFeatureCount();
-}
-
-// Gets the number of vectors in the data set
-int CMultivariateRegressionOverBinaryClassification::GetVectorCount() const
-{
-	return inner->GetVectorCount();
-}
-
-// Gets all vectors from the data set as a matrix
-CSparseFloatMatrixDesc CMultivariateRegressionOverBinaryClassification::GetMatrix() const
-{
-	return inner->GetMatrix();
-}
-
-// Gets the vector weight
-double CMultivariateRegressionOverBinaryClassification::GetVectorWeight( int index ) const
-{
-	return inner->GetVectorWeight( index );
-}
-
-// Gets the length of the function value vector
-int CMultivariateRegressionOverBinaryClassification::GetValueSize() const
-{
-	return 1;
-}
-
 // Gets the function value for the vector
 CFloatVector CMultivariateRegressionOverBinaryClassification::GetValue( int index ) const
 {
 	const int classIndex = inner->GetClass( index );
 	NeoAssert( classIndex >= 0 && classIndex < static_cast<int>( _countof( classValues ) ) );
 	return classValues[classIndex];
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// CNotNullWeightsView 
+
+template<class TProblem>
+CNotNullWeightsView<TProblem>::CNotNullWeightsView( const TProblem* problem ) :
+	nullWeightElementsCount( 0 )
+{
+	NeoAssert( problem != nullptr );
+
+	int originalVectorCount = problem->GetVectorCount();
+	if( originalVectorCount > 0 ) {
+		// first, calculate null weighted elements count
+		for( int i = 0; i < originalVectorCount; ++i ) {
+			if( problem->GetVectorWeight( i ) == 0 ) {
+				++nullWeightElementsCount;
+			}
+		}
+
+		// set Height for the local MatrixDesc, then adjust view pointers and fill nullWeightElementsMap if needed
+		ViewMatrixDesc = problem->GetMatrix();
+		ViewMatrixDesc.Height -= nullWeightElementsCount;
+		if( nullWeightElementsCount > 0 && ViewMatrixDesc.Height > 0 ) {
+			// we are going to remap some elements, so let's create our own arrays of pointers
+			pointerB.SetSize( ViewMatrixDesc.Height );
+			pointerE.SetSize( ViewMatrixDesc.Height );
+			ViewMatrixDesc.PointerB = pointerB.GetPtr();
+			ViewMatrixDesc.PointerE = pointerE.GetPtr();
+
+			nullWeightElementsCount = 0 ;
+			notNullWeightElementsIndices.SetBufferSize( ViewMatrixDesc.Height );
+			for( int i = 0; i < originalVectorCount - nullWeightElementsCount; ) {
+				int iScanned = i + nullWeightElementsCount;
+				if( problem->GetVectorWeight( iScanned ) == 0 ) {
+					++nullWeightElementsCount;
+				} else {
+					notNullWeightElementsIndices.Add( iScanned );
+					ViewMatrixDesc.PointerB[i] = problem->GetMatrix().PointerB[iScanned];
+					ViewMatrixDesc.PointerE[i] = problem->GetMatrix().PointerE[iScanned];
+					++i;
+				}
+			}
+
+			NeoAssert( ViewMatrixDesc.Height == notNullWeightElementsIndices.Size() );
+		}
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// CMultivariateRegressionProblemNotNullWeightsView
+
+CMultivariateRegressionProblemNotNullWeightsView::CMultivariateRegressionProblemNotNullWeightsView( 
+		const IMultivariateRegressionProblem* _inner ) :
+	CNotNullWeightsView<IMultivariateRegressionProblem>( _inner ),
+	inner( _inner )
+{
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

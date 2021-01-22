@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
+#pragma once
 
 #include <NeoMathEngine/PerformanceCounters.h>
 #include <chrono>
@@ -26,7 +27,7 @@ public:
 		CounterCount() = 1;
 	}
 
-	virtual void Synchronise() override
+	void Synchronise() override
 	{
 		auto cnow = std::chrono::steady_clock::now().time_since_epoch();
 		auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(cnow).count();

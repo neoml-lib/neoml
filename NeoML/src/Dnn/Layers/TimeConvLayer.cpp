@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,8 @@ CTimeConvLayer::CTimeConvLayer( IMathEngine& mathEngine ) :
 	filterCount(0),
 	filterSize(0),
 	stride(0),
-	padding(0),
+	paddingFront(0),
+	paddingBack(0),
 	dilation(1)
 {
 	paramBlobs.SetSize(2);
@@ -89,9 +90,9 @@ void CTimeConvLayer::Reshape()
 	CheckArchitecture( stride > 0, GetName(), "Stride must be positive" );
 
 	for(int i = 0; i < GetInputCount(); ++i) {
-		const int outputSize = (inputDescs[i].BatchLength() - ( filterSize - 1 ) * dilation - 1 + 2 * padding) / stride + 1;
+		const int outputSize = (inputDescs[i].BatchLength() - ( filterSize - 1 ) * dilation - 1 + paddingFront + paddingBack) / stride + 1;
 
-		CheckArchitecture( filterSize <= inputDescs[i].BatchLength() + 2 *padding,
+		CheckArchitecture( filterSize <= inputDescs[i].BatchLength() + paddingFront + paddingBack,
 			GetName(), "Filter is bigger than input" );
 		if(filter() == 0) {
 			filter() = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, filterCount, filterSize, 1,
@@ -121,16 +122,22 @@ void CTimeConvLayer::Reshape()
 	destroyDesc();
 }
 
-static const int TimeConvLayerVersion = 2000;
+static const int TimeConvLayerVersion = 2001;
 
 void CTimeConvLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( TimeConvLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	const int version = archive.SerializeVersion( TimeConvLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
 
 	archive.Serialize( filterSize );
 	archive.Serialize( stride );
-	archive.Serialize( padding );
+	if( version < 2001 ) {
+		archive.Serialize( paddingFront );
+		paddingBack = paddingFront;
+	} else {
+		archive.Serialize( paddingFront );
+		archive.Serialize( paddingBack );
+	}
 	archive.Serialize( filterCount );
 	archive.Serialize( dilation );
 
@@ -193,8 +200,8 @@ void CTimeConvLayer::FilterLayerParams( float threshold )
 void CTimeConvLayer::initDesc()
 {
 	if( desc == 0 && !inputBlobs.IsEmpty() && !outputBlobs.IsEmpty() ) {
-		desc = MathEngine().InitTimeConvolution( inputBlobs[0]->GetDesc(), stride, padding, dilation,
-			filter()->GetDesc(), outputBlobs[0]->GetDesc() );
+		desc = MathEngine().InitTimeConvolution( inputBlobs[0]->GetDesc(), stride, paddingFront, paddingBack,
+			dilation, filter()->GetDesc(), outputBlobs[0]->GetDesc() );
 	}
 }
 
@@ -204,6 +211,18 @@ void CTimeConvLayer::destroyDesc()
 		delete desc;
 		desc = 0;
 	}
+}
+
+CLayerWrapper<CTimeConvLayer> TimeConv( int filterCount, int filterSize, int padding,
+	int stride, int dilation )
+{
+	return CLayerWrapper<CTimeConvLayer>( "ChannelwiseConv", [=]( CTimeConvLayer* result ) {
+		result->SetFilterCount( filterCount );
+		result->SetFilterSize( filterSize );
+		result->SetPadding( padding );
+		result->SetStride( stride );
+		result->SetDilation( dilation );
+	} );
 }
 
 } // namespace NeoML

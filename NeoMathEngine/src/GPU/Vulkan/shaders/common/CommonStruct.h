@@ -1054,6 +1054,17 @@ PARAM_STRUCT(SumMatrixRows)
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
+// SumMatrixColumns
+DEFINE_SHADER_2D(SumMatrixColumns)
+
+PARAM_STRUCT(SumMatrixColumns)
+{
+	int width;
+	int height;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 // PrepareFilter3x3ForConvolutionAdreno
 IB_DEFINE_SHADER_2D( PrepareFilter3x3ForConvolutionAdreno )
 
@@ -2159,7 +2170,7 @@ PARAM_STRUCT(BlobTimeConvolutionPrepare)
 
 	int filterHeight;
 	int stride;
-	int padding;
+	int paddingFront;
 	int dilation;
 };
 

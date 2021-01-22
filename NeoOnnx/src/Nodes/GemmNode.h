@@ -19,31 +19,30 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Gemm operation node.
-class CGemmNode : public CNode {
+// Gemm operation node
+class CGemmNode : public COpNode {
 public:
-	CGemmNode( const onnx::NodeProto& node, CMap<CString, CInputInfo>& nodeOutputs );
+	CGemmNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 
-	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	// In ONNX Gemm is implemented like
+	// In onnx Gemm is implemented like
 	//     Y = alpha * A' * B' + beta * C
 	// where
 	//     A' is equal to A if transA == 0 or transpose(A) otherwise
 	//     B' is equal to B if transB == 0 or transpose(B) otherwise
-	//     C is optional matrix.
+	//     C is optional matrix
 
-	// Fields for corresponding values.
+	// Values from formula above
 	const float alpha;
 	const float beta;
 	const int transA;
 	const int transB;
-
-	CPtr<CDnnBlob> reorderWeightAfterFlatten( CDnnBlob* weight ) const;
 };
 
 } // namespace NeoOnnx

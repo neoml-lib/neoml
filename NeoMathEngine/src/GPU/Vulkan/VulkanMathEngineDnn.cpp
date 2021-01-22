@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -39,18 +39,10 @@ namespace NeoML {
 #include <shaders/generated/BlobReorgFloat.h>
 #include <shaders/generated/BlobReorgInt.h>
 
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
 
 //------------------------------------------------------------------------------------------------------------
 
-static const int FloatDescArrayMaxBlobs = 32;
+constexpr int FloatDescArrayMaxBlobs = 32;
 
 struct CFloatDescArray {
 	int Count;
@@ -347,7 +339,7 @@ void CVulkanMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHa
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
 
-	assert( desc.Mask.Size() == maskSize );
+	ASSERT_EXPR( desc.Mask.Size() == maskSize );
 
 	if( !desc.IsSpatial ) {
 		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask, outputData, output.BlobSize() );

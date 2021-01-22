@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ class NEOML_API CUpsampling2DLayer : public CBaseLayer {
 public:
 	explicit CUpsampling2DLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	int GetHeightCopyCount() const { return heightCopyCount; }
 	void SetHeightCopyCount( int newHeightCopyCount );
@@ -36,9 +36,9 @@ public:
 	void SetWidthCopyCount( int newWidthCopyCount );
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// The number of vertical repetitions
@@ -46,5 +46,8 @@ private:
 	// The number of horizontal repetitions
 	int widthCopyCount;
 };
+
+NEOML_API CLayerWrapper<CUpsampling2DLayer> Upsampling2d( int heightCopyCount,
+	int widthCopyCount );
 
 } // namespace NeoML

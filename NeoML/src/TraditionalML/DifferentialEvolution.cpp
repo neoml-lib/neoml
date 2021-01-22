@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,7 +36,10 @@ CDifferentialEvolution::CDifferentialEvolution( IFunctionEvaluation& _func, doub
 	NeoAssert( fluctuation > 0. && fluctuation < 1. );
 	NeoAssert( crossProbability > 0. && crossProbability < 1. );
 	NeoAssert( func.NumberOfDimensions() >= 0 );
-	NeoAssert( population > 0 );
+	// The function params 'p' may be transferred to the next generation as is
+	// Otherwise it will be replaced with mutation of 3 other different params ('a','b','c')
+	// That requires at least 4 different vectors in population
+	NeoAssert( population >= 4 );
 }
 
 // Initializes the parameters using random values in the specified range

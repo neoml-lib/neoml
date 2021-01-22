@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,20 +27,20 @@ public:
 	explicit CMultivariateRegressionOverUnivariate( const IRegressionProblem* inner );
 
 	// Gets the number of features
-	virtual int GetFeatureCount() const override;
+	int GetFeatureCount() const override;
 
 	// The number of vectors in the data set
-	virtual int GetVectorCount() const override;
+	int GetVectorCount() const override;
 
 	// Gets all vectors in the data set as a matrix
-	virtual CSparseFloatMatrixDesc GetMatrix() const override;
+	CSparseFloatMatrixDesc GetMatrix() const override;
 	// Gets the vector weight
-	virtual double GetVectorWeight( int index ) const override;
+	double GetVectorWeight( int index ) const override;
 
 	// Gets the length of the function value vector
-	virtual int GetValueSize() const override;
+	int GetValueSize() const override;
 	// Gets the function value for the vector
-	virtual CFloatVector GetValue( int index ) const override;
+	CFloatVector GetValue( int index ) const override;
 
 private:
 	// The inner regression problem
@@ -56,19 +56,19 @@ public:
 	explicit CMultivariateRegressionOverClassification( const IProblem* inner );
 
 	// Gets the number of features
-	virtual int GetFeatureCount() const override;
+	int GetFeatureCount() const override;
 
 	// The number of vectors in the data set
-	virtual int GetVectorCount() const override;
+	int GetVectorCount() const override;
 	// Gets all vectors in the data set as a matrix
-	virtual CSparseFloatMatrixDesc GetMatrix() const override;
+	CSparseFloatMatrixDesc GetMatrix() const override;
 	// Gets the vector weight
-	virtual double GetVectorWeight( int index ) const override;
+	double GetVectorWeight( int index ) const override;
 
 	// Gets the length of the function value vector
-	virtual int GetValueSize() const override;
+	int GetValueSize() const override;
 	// Gets the function value for the vector
-	virtual CFloatVector GetValue( int index ) const override;
+	CFloatVector GetValue( int index ) const override;
 
 private:
 	// The inner classification problem
@@ -87,19 +87,19 @@ public:
 	explicit CMultivariateRegressionOverBinaryClassification( const IProblem* inner );
 
 	// Gets the number of features
-	virtual int GetFeatureCount() const override;
+	int GetFeatureCount() const override;
 
 	// The number of vectors in the data set
-	virtual int GetVectorCount() const override;
+	int GetVectorCount() const override;
 	// Gets all vectors in the data set as a matrix
-	virtual CSparseFloatMatrixDesc GetMatrix() const override;
+	CSparseFloatMatrixDesc GetMatrix() const override;
 	// Gets the vector weight
-	virtual double GetVectorWeight( int index ) const override;
+	double GetVectorWeight( int index ) const override;
 
 	// Gets the length of the function value vector
-	virtual int GetValueSize() const override;
+	int GetValueSize() const override;
 	// Gets the function value for the vector
-	virtual CFloatVector GetValue( int index ) const override;
+	CFloatVector GetValue( int index ) const override;
 
 private:
 	// The inner classification problem
@@ -109,6 +109,78 @@ private:
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
+// A not null elements view mechanism
+// On initialize calculates not null indices and remaps pointers to sparse matrix vectors
+
+template<class TProblem>
+class CNotNullWeightsView {
+public:
+	CNotNullWeightsView( const TProblem* problem );
+	virtual ~CNotNullWeightsView() = default;
+
+	// Calculates the index as if we had the matrix without null weighted elements
+	int CalculateOriginalIndex( int viewedIndex ) const;
+
+	// forbid copy/move
+	CNotNullWeightsView( const CNotNullWeightsView& ) = delete;
+	CNotNullWeightsView( CNotNullWeightsView&& ) = delete;
+	CNotNullWeightsView& operator=( CNotNullWeightsView ) = delete;
+
+protected:
+	// The original matrix desc view over the elements with not null weight only
+	CSparseFloatMatrixDesc ViewMatrixDesc;
+
+private:
+	// The array containing pairs of viewed and original indices
+	CArray<int> notNullWeightElementsIndices;
+	// Number of null weighted elements
+	int nullWeightElementsCount;
+	CArray<int> pointerB;
+	CArray<int> pointerE;
+};
+
+template<class TProblem>
+inline int CNotNullWeightsView<TProblem>::CalculateOriginalIndex( int viewedIndex ) const
+{
+	return nullWeightElementsCount == 0 ? viewedIndex : notNullWeightElementsIndices[viewedIndex];
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// An IMultivatiateRegressionProblem view without the elements with null weight
+// Can be used only with an asssumption that the original matrix won't be changed during this class usage
+
+class CMultivariateRegressionProblemNotNullWeightsView : public IMultivariateRegressionProblem,
+	private CNotNullWeightsView<IMultivariateRegressionProblem> {
+public:
+	explicit CMultivariateRegressionProblemNotNullWeightsView( const IMultivariateRegressionProblem* inner );
+	~CMultivariateRegressionProblemNotNullWeightsView() override = default;
+
+	// The number of features
+	int GetFeatureCount() const override;
+
+	// The number of vectors in the input data set
+	int GetVectorCount() const override;
+
+	// Gets all input vectors as a matrix
+	CSparseFloatMatrixDesc GetMatrix() const override;
+
+	// The vector weight
+	double GetVectorWeight( int index ) const override;
+
+	// The length of the function value vector
+	int GetValueSize() const override;
+
+	// The value of the function on the input vector with the given index
+	CFloatVector GetValue( int index ) const override;
+
+private:
+	// The inner problem
+	const CPtr<const IMultivariateRegressionProblem> inner;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace NeoML
+
+#include <ProblemWrappers.inl>
 

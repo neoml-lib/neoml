@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -110,7 +110,7 @@ inline CModelClassRegistrar<T>::~CModelClassRegistrar()
 #define DECLARE_NEOML_MODEL_NAME( var, modelName ) const char* const var = modelName ;
 
 // Retrieves the model name
-NEOML_API const char* GetModelName( IObject* model );
+NEOML_API const char* GetModelName( const IObject* model );
 
 // Creates a registered model with a given name
 NEOML_API CPtr<IObject> CreateModel( const char* modelName );

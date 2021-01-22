@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -198,6 +198,14 @@ void CPixelToImageLayer::SetImageWidth( int newWidth )
 	imageWidth = newWidth;
 }
 
+CLayerWrapper<CPixelToImageLayer> PixelToImage( int imageHeight, int imageWidth )
+{
+	return CLayerWrapper<CPixelToImageLayer>( "PixelToImage", [=]( CPixelToImageLayer* result ) {
+		result->SetImageHeight( imageHeight );
+		result->SetImageWidth( imageWidth );
+	} );
+}
+
 // ====================================================================================================================
 
 CImageToPixelLayer::CImageToPixelLayer( IMathEngine& mathEngine ) :
@@ -281,6 +289,11 @@ void CImageToPixelLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( ImageToPixelLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
+}
+
+CLayerWrapper<CImageToPixelLayer> ImageToPixel()
+{
+	return CLayerWrapper<CImageToPixelLayer>( "ImageToPixel" );
 }
 
 } // namespace NeoML

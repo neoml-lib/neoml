@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ static inline void fillResultRow( const CCommonChannelwiseConvolutionDesc& desc,
 
 static inline void processFilterRowStride1( const CCommonChannelwiseConvolutionDesc& desc, const float* filter, const float* source, float* result )
 {
-	assert( desc.PaddingWidth == 1 );
-	assert( desc.Filter.Width() == 3 );
+	PRESUME_EXPR( desc.PaddingWidth == 1 );
+	PRESUME_EXPR( desc.Filter.Width() == 3 );
 
 	const int resultWidth = desc.Result.Width();
 	int width = resultWidth - 2;
@@ -79,8 +79,8 @@ static inline void processFilterRowStride1( const CCommonChannelwiseConvolutionD
 
 static inline void processFilterRowStride2( const CCommonChannelwiseConvolutionDesc& desc, const float* filter, const float* source, float* result )
 {
-	assert( desc.PaddingWidth == 1 );
-	assert( desc.Filter.Width() == 3 );
+	PRESUME_EXPR( desc.PaddingWidth == 1 );
+	PRESUME_EXPR( desc.Filter.Width() == 3 );
 
 	const int resultWidth = desc.Result.Width();
 	int width = resultWidth - 1 - ( desc.Source.Width() % 2 );

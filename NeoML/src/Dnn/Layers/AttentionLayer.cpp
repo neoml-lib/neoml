@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,6 +49,8 @@ void CAttentionWeightedSumLayer::Reshape()
 	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
 	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), GetName(), "Batch width mismatch" );
 	CheckArchitecture( inputDescs[0].ListSize() == inputDescs[1].ListSize(), GetName(), "List size mismatch" );
+	CheckArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(), GetName(),
+		"Layer must be used inside of recurrent decoder or inputDescs[1].BatchLength must be equal to 1" );
 
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDimSize(BD_BatchLength, inputDescs[1].BatchLength());
@@ -90,12 +92,11 @@ void CAttentionDotProductLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture( inputDescs.Size() == 2,
-		GetName(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
-	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(),
-		GetName(), "Batch width mismatch" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(),
-		GetName(), "Object size mismatch" );
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
+	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), GetName(), "Batch width mismatch" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "Object size mismatch" );
+	CheckArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(), GetName(),
+		"Layer must be used inside of recurrent decoder or inputDescs[1].BatchLength must be equal to 1" );
 
 	outputDescs[0] = inputDescs[1];
 	outputDescs[0].SetDimSize( BD_ListSize, inputDescs[0].ListSize() );
@@ -138,12 +139,11 @@ void CAttentionSumLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture( inputDescs.Size() == 2,
-		GetName(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
-	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(),
-		GetName(), "Batch width mismatch" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(),
-		GetName(), "Object size mismatch" );
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
+	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), GetName(), "Batch width mismatch" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "Object size mismatch" );
+	CheckArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(), GetName(),
+		"Layer must be used inside of recurrent decoder or inputDescs[1].BatchLength must be equal to 1" );
 
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDimSize(BD_BatchLength, inputDescs[1].BatchLength());
@@ -165,10 +165,9 @@ void CAttentionSumLayer::BackwardOnce()
 //---------------------------------------------------------------------------------------------------------------------
 
 CAttentionDecoderLayer::CAttentionDecoderLayer( IMathEngine& mathEngine ) :
-	CCompositeLayer( mathEngine ),
+	CCompositeLayer( mathEngine, "CCnnAttentionDecoderLayer" ),
 	score(AS_Additive)
 {
-	SetName( "CCnnAttentionDecoderLayer" );
 	buildLayer();
 }
 
@@ -277,16 +276,26 @@ void CAttentionDecoderLayer::buildLayer()
 	SetOutputMapping(*recurrentLayer);
 }
 
+CLayerWrapper<CAttentionDecoderLayer> AttentionDecoder(
+	TAttentionScore score, int outObjectSize, int outSeqLen, int hiddenSize )
+{
+	return CLayerWrapper<CAttentionDecoderLayer>( "AttentionDecoder", [=]( CAttentionDecoderLayer* result ) {
+		result->SetAttentionScore( score );
+		result->SetOutputObjectSize( outObjectSize );
+		result->SetOutputSequenceLen( outSeqLen );
+		result->SetHiddenLayerSize( hiddenSize );
+	} );
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 
 const CString CAttentionRecurrentLayer::hiddenLayerName = "hiddenFullyConnectedLayer";
 
 CAttentionRecurrentLayer::CAttentionRecurrentLayer( IMathEngine& mathEngine ) :
-	CRecurrentLayer( mathEngine ),
+	CRecurrentLayer( mathEngine, "CCnnAttentionRecurrentLayer" ),
 	score( AS_Additive )
 {
 	buildLayer();
-	SetName( "CCnnAttentionRecurrentLayer" );
 }
 
 void CAttentionRecurrentLayer::SetAttentionScore( TAttentionScore newScore )
@@ -482,11 +491,10 @@ void CAttentionRecurrentLayer::buildLayer()
 //---------------------------------------------------------------------------------------------------------------------
 
 CAttentionLayer::CAttentionLayer( IMathEngine& mathEngine ) :
-	CCompositeLayer( mathEngine ),
+	CCompositeLayer( mathEngine, "CCnnAttentionLayer" ),
 	score(AS_Additive),
 	tanhFc(0)
 {
-	SetName( "CCnnAttentionLayer" );
 	buildLayer();
 }
 

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ class NEOML_API CCenterLossLayer : public CLossLayer {
 public:
 	explicit CCenterLossLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The number of classes
 	// The class labels will have to be in the range 0..numberOfClasses - 1
@@ -68,5 +68,8 @@ private:
 
 	void updateCenters(const CFloatHandle& tempDiffHandle);
 };
+
+NEOML_API CLayerWrapper<CCenterLossLayer> CenterLoss( int numberOfClasses,
+	float classCentersConvergenceRate, float lossWeight = 1.0f );
 
 } // namespace NeoML

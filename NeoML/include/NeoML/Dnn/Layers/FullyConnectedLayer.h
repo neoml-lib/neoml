@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,9 +25,9 @@ namespace NeoML {
 class NEOML_API CFullyConnectedLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CFullyConnectedLayer )
 public:
-	explicit CFullyConnectedLayer( IMathEngine& mathEngine );
+	explicit CFullyConnectedLayer( IMathEngine& mathEngine, const char* name = nullptr );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The number of elements ("neurons") of the fully-connected layer
 	int GetNumberOfElements() const { return numberOfElements; }
@@ -57,11 +57,11 @@ public:
 protected:
 	virtual ~CFullyConnectedLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
-	virtual void FilterLayerParams( float threshold ) override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
+	void FilterLayerParams( float threshold ) override;
 
 	// The filter. The pointer is valid only if the desired parameters are known (either defined externally or obtained on reshape)
 	CPtr<CDnnBlob>& Weights() { return paramBlobs[0]; }
@@ -77,5 +77,8 @@ private:
 	int numberOfElements; // the number of elements (neurons) of the fully-connected layer
 	bool isZeroFreeTerm; // indicates if the free term should be set to zero
 };
+
+NEOML_API CLayerWrapper<CFullyConnectedLayer> FullyConnected(
+	int numberOfElements, bool zeroFreeTerm = false );
 
 } // namespace NeoML

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ public:
 	int GetStrideWidth() const { return strideWidth; }
 	void SetStrideWidth( int strideWidth );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	CPoolingLayer( IMathEngine& mathEngine, const char* name );
@@ -45,7 +45,7 @@ protected:
 	int strideHeight;	// the vertical filter stride
 	int strideWidth;	// the horizontal filter stride
 
-	virtual void Reshape() override;
+	void Reshape() override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,14 +56,14 @@ class NEOML_API CMaxPoolingLayer : public CPoolingLayer {
 public:
 	explicit CMaxPoolingLayer( IMathEngine& mathEngine ) : CPoolingLayer( mathEngine, "CCnnMaxPoolingLayer" ), desc( 0 ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~CMaxPoolingLayer() { destroyDesc(); }
 
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void Reshape() override;
 
 private:
 	CPtr<CDnnBlob> maxIndices; // contains the maximums' indices (for the backward pass)
@@ -73,6 +73,9 @@ private:
 	void destroyDesc();
 };
 
+NEOML_API CLayerWrapper<CMaxPoolingLayer> MaxPooling( int filterHeight, int filterWidth, 
+	int strideHeight = 1, int strideWidth = 1 );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // CMeanPoolingLayer implements a pooling layer that takes the average over the window
@@ -81,14 +84,14 @@ class NEOML_API CMeanPoolingLayer : public CPoolingLayer {
 public:
 	explicit CMeanPoolingLayer( IMathEngine& mathEngine ) : CPoolingLayer( mathEngine, "CCnnMeanPoolingLayer" ), desc( 0 ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~CMeanPoolingLayer() { destroyDesc(); }
 
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void Reshape() override;
 
 private:
 	CMeanPoolingDesc* desc;
@@ -96,5 +99,8 @@ private:
 	void initDesc();
 	void destroyDesc();
 };
+
+NEOML_API CLayerWrapper<CMeanPoolingLayer> MeanPooling( int filterHeight, int filterWidth,
+	int strideHeight = 1, int strideWidth = 1 );
 
 } // namespace NeoML

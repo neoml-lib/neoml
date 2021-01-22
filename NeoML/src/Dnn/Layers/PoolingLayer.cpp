@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -206,6 +206,28 @@ void CMaxPoolingLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( MaxPoolingLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CPoolingLayer::Serialize( archive );
+}
+
+CLayerWrapper<CMaxPoolingLayer> MaxPooling(
+	int filterHeight, int filterWidth, int strideHeight, int strideWidth )
+{
+	return CLayerWrapper<CMaxPoolingLayer>( "MaxPooling", [=]( CMaxPoolingLayer* result ) {
+		result->SetFilterHeight( filterHeight );
+		result->SetFilterWidth( filterWidth );
+		result->SetStrideHeight( strideHeight );
+		result->SetStrideWidth( strideWidth );
+	} );
+}
+
+CLayerWrapper<CMeanPoolingLayer> MeanPooling(
+	int filterHeight, int filterWidth, int strideHeight, int strideWidth )
+{
+	return CLayerWrapper<CMeanPoolingLayer>( "MeanPooling", [=]( CMeanPoolingLayer* result ) {
+		result->SetFilterHeight( filterHeight );
+		result->SetFilterWidth( filterWidth );
+		result->SetStrideHeight( strideHeight );
+		result->SetStrideWidth( strideWidth );
+	} );
 }
 
 } // namespace NeoML

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ CMathEngineDropoutDesc::CMathEngineDropoutDesc( IMathEngine& mathEngine, float r
 	IsBatchwise( isBatchwise ),
 	Mask( mathEngine, getMaskSize( rate, isSpatial, isBatchwise, input ) )
 {
-	assert( rate >= 0.f && rate < 1.f );
+	ASSERT_EXPR( rate >= 0.f && rate < 1.f );
 
 	if( rate != 0 ) {
 		mathEngine.VectorFillBernoulli( Mask.GetHandle(), ForwardRate, Mask.Size(), 1.f / ForwardRate, seed );

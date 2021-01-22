@@ -67,4 +67,9 @@ void CGlobalMeanPoolingLayer::BackwardOnce()
 	MathEngine().VectorMultiply( inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), coeff->GetData() );
 }
 
+CLayerWrapper<CGlobalMeanPoolingLayer> GlobalMeanPooling()
+{
+	return CLayerWrapper<CGlobalMeanPoolingLayer>( "GlobalMeanPooling" );
+}
+
 } // namespace NeoML

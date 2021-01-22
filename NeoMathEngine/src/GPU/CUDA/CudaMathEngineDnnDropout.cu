@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <CudaMathEngine.h>
+#include <CudaDevice.h>
+#include <CudaCommon.h>
 #include <MathEngineCommon.h>
 #include <MathEngineDnnDropout.h>
 #include <MemoryHandleInternal.h>
@@ -30,6 +32,7 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHand
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
 	ASSERT_EXPR( outputData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CMathEngineDropoutDesc& desc = static_cast<const CMathEngineDropoutDesc&>( dropoutDesc );
 	const CBlobDesc& input = desc.Input;
@@ -56,7 +59,7 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHand
 
 	getCudaTaskGrid3D( blockCount, threadCount, input.ObjectCount(), input.ObjectSize() / objectSize,
 		objectSize );
-	ChannelLastBlobSpatialDropoutKernel<<<blockCount, threadCount, 0, cudaStream>>>( GetRaw( inputData ),
+	ChannelLastBlobSpatialDropoutKernel<<<blockCount, threadCount>>>( GetRaw( inputData ),
 		GetRaw( desc.Mask.GetHandle() ), GetRaw( outputData ), input.ObjectCount(), input.ObjectSize(),
 		batchWidth, objectSize );
 }

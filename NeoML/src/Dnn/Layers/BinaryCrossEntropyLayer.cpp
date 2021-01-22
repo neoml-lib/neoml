@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,6 +34,12 @@ void CBinaryCrossEntropyLossLayer::SetPositiveWeight( float value )
 float CBinaryCrossEntropyLossLayer::GetPositiveWeight() const
 {
 	return positiveWeightMinusOneValue + 1;
+}
+
+void CBinaryCrossEntropyLossLayer::Reshape()
+{
+	CLossLayer::Reshape();
+	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
 }
 
 void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
@@ -165,6 +171,15 @@ void CBinaryCrossEntropyLossLayer::Serialize( CArchive& archive )
 	CLossLayer::Serialize( archive );
 	
 	archive.Serialize( positiveWeightMinusOneValue );
+}
+
+CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(
+	float positiveWeight, float lossWeight )
+{
+	return CLayerWrapper<CBinaryCrossEntropyLossLayer>( "BinaryCrossEntropyLoss", [=]( CBinaryCrossEntropyLossLayer* result ) {
+		result->SetPositiveWeight( positiveWeight );
+		result->SetLossWeight( lossWeight );
+	} );
 }
 
 } // namespace NeoML

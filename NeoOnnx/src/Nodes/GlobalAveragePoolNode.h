@@ -15,26 +15,20 @@ limitations under the License.
 
 #pragma once
 
-#include "Node.h"
-
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
+#include "GlobalPoolNodeBase.h"
 
 namespace NeoOnnx {
 
-class CGlobalAveragePoolNode : public CNode {
+// GlobalAveragePool operator graph node
+class CGlobalAveragePoolNode : public CGlobalPoolNodeBase {
 public:
-	CGlobalAveragePoolNode( const onnx::NodeProto& globalAveragePool, CMap<CString, CInputInfo>& nodeOutputs );
+	CGlobalAveragePoolNode( int nodeIndex, const onnx::NodeProto& globalAveragePool, int opsetVersion );
 
-	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
-
-private:
-	void add2dPoolingLayer( CDnn& dnn, int pooledDims );
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 };
 
 } // namespace NeoOnnx

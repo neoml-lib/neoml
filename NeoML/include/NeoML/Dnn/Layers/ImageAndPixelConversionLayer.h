@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ class NEOML_API CPixelToImageLayer : public CBaseLayer {
 public:
 	explicit CPixelToImageLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The resulting image height and width
 	int GetImageHeight() const { return imageHeight; }
@@ -55,9 +55,9 @@ public:
 	void SetImageWidth( int newWidth );
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// the resulting image dimensions
@@ -68,6 +68,8 @@ private:
 	// the shifted indices
 	CPtr<CDnnBlob> shiftedIndices;
 };
+
+NEOML_API CLayerWrapper<CPixelToImageLayer> PixelToImage( int imageHeight, int imageWidth );
 
 // ====================================================================================================================
 
@@ -89,12 +91,12 @@ class NEOML_API CImageToPixelLayer : public CBaseLayer {
 public:
 	explicit CImageToPixelLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// the shift vector (to be added to the columns of the indices matrix)
@@ -102,5 +104,7 @@ private:
 	// the shifted indices
 	CPtr<CDnnBlob> shiftedIndices;
 };
+
+NEOML_API CLayerWrapper<CImageToPixelLayer> ImageToPixel();
 
 } // namespace NeoML

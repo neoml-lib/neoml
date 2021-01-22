@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ limitations under the License.
 #include <CudaCommon.h>
 #include <CublasFunctions.h>
 #include <CusparseFunctions.h>
+#include <CudaDevice.h>
+#include <CudaAssert.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineDeviceStackAllocator.h>
@@ -29,49 +31,41 @@ limitations under the License.
 #include <math.h>
 #include <float.h>
 #include <cuda_runtime.h>
-#include <CudaDevice.h>
 
 namespace NeoML {
 
 static __constant__ const float ZeroDev = 0;
 static __constant__ const float OneDev = 1;
 
-const float* CCudaConst::Zero;
-const float* CCudaConst::One;
-
 const int CudaMemoryAlignment = 4;
 
 //------------------------------------------------------------------------------------------------------------
 
-CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, int deviceNumber,
-		size_t memoryLimit ) :
+CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, std::unique_ptr<CCudaDevice>& _device, int flags ) :
 	cusparse( _cusparse ),
 	cublas( _cublas ),
-	device( captureCudaDevice( deviceNumber, memoryLimit ) ),
-	cudaStream( 0 ),
 	cublasHandle( 0 ),
 	cusparseHandle( 0 )
 {
+	device.swap( _device );
+
 	// CUDA
 	ASSERT_EXPR( device != 0 );
-	ASSERT_ERROR_CODE( cudaSetDevice( device->DeviceNumber ) );
-
-	// CUDA stream.
-	ASSERT_ERROR_CODE( cudaStreamCreate( &cudaStream ) );
+	SetCudaDevice( device->DeviceNumber );
 
 	// Cublas.
-	ASSERT_ERROR_CODE( cublas->Create( &cublasHandle ) );
-	ASSERT_ERROR_CODE( cublas->SetAtomicsMode( cublasHandle, CUBLAS_ATOMICS_ALLOWED ) );
-	ASSERT_ERROR_CODE( cublas->SetPointerMode( cublasHandle, CUBLAS_POINTER_MODE_DEVICE ) );
-	ASSERT_ERROR_CODE( cublas->SetStream( cublasHandle, cudaStream ) );
+	ASSERT_CUBLAS( cublas->Create( &cublasHandle ) );
+	cublasMath_t cublasMath = ( flags & GpuMathEngineCublasUseTensorCoresFlag ) == 0 ? CUBLAS_DEFAULT_MATH : CUBLAS_TENSOR_OP_MATH;
+	ASSERT_CUBLAS( cublas->SetMathMode( cublasHandle, cublasMath ) );
+	ASSERT_CUBLAS( cublas->SetAtomicsMode( cublasHandle, CUBLAS_ATOMICS_ALLOWED ) );
+	ASSERT_CUBLAS( cublas->SetPointerMode( cublasHandle, CUBLAS_POINTER_MODE_DEVICE ) );
 
 	// Cusparse.
-	ASSERT_ERROR_CODE( cusparse->Create( &cusparseHandle ) );
-	ASSERT_ERROR_CODE( cusparse->SetStream( cusparseHandle, cudaStream ) );
+	ASSERT_CUSPARSE( cusparse->Create( &cusparseHandle ) );
 
 	// Constants
-	ASSERT_ERROR_CODE( cudaGetSymbolAddress((void**)&CCudaConst::Zero, ZeroDev) );
-	ASSERT_ERROR_CODE( cudaGetSymbolAddress((void**)&CCudaConst::One, OneDev) );
+	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstZero, ZeroDev) );
+	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstOne, OneDev) );
 
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( device->MemoryLimit, this, true ) );
 	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
@@ -86,12 +80,9 @@ CCudaMathEngine::~CCudaMathEngine()
 	deviceStackRunTime.reset();
 	memoryPool.reset();
 
-	cudaStreamDestroy( cudaStream );
-
 	cusparse->Destroy( cusparseHandle );
 	cublas->Destroy( cublasHandle );
 
-	delete device;
 	CDllLoader::Free(CDllLoader::CUDA_DLL);
 }
 
@@ -217,7 +208,7 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 	ASSERT_EXPR(minZ > 0 && minY > 0 && minX > 0);
 	ASSERT_EXPR(batchSize > 0 && height > 0 && width > 0);
 
-	dim3 geom = device->ThreadMax3DCount;
+	dim3 geom( device->ThreadMax3DCountX, device->ThreadMax3DCountY, device->ThreadMax3DCountZ );
 	CudaFixGeom(minX, width, geom.x);
 	CudaFixGeom(minY, height, geom.y);
 	CudaFixGeom(minZ, batchSize, geom.z);

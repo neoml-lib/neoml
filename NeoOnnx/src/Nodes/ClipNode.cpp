@@ -17,44 +17,49 @@ limitations under the License.
 #pragma hdrstop
 
 #include "ClipNode.h"
+#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
-#include "proto/onnx.pb.h"
+#include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CClipNode::CClipNode( const onnx::NodeProto& clip, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( clip, nodeOutputs ),
-	minValue( attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
-	maxValue( attributes.GetOptionalFloat( "max", FLT_MAX ) )
+CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion ) :
+	COpNode( nodeIndex, clip, opsetVersion ),
+	minValue( Attributes.GetOptionalFloat( "min", -FLT_MAX ) ),
+	maxValue( Attributes.GetOptionalFloat( "max", FLT_MAX ) )
 {
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", clip );
+	// Newer versions are getting min and max values from node inputs instead of node attributes
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= 10, "opset version", clip );
+
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", clip );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", clip );
 }
 
-void CClipNode::OnnxReshape()
+void CClipNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_DataTensor, "constant input", onnxNode );
+	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
 
-	outputData.Add( InputTensor( 0 ) );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CClipNode::MarkTensorDims()
+void CClipNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( !InputTensor( 0 ).GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( outputData[0].SetTensorDim( InputTensor( 0 ).GetTensorDim() ),
-			"marking output dimensions failed", onnxNode );
+	if( !dims[Input[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
+			"labeling output dimensions failed", OnnxNode );
 	}
 
-	if( !outputData[0].GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( outputData[0].GetTensorDim() ),
-			"marking input dimensions failed", onnxNode );
+	if( !dims[Output[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
+			"labeling input dimensions failed", OnnxNode );
 	}
 }
 
-void CClipNode::AddLayers( CDnn& dnn )
+void CClipNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( minValue == 0.f, "'min' value must be equal to 0", onnxNode );
+	CheckNeoOnnxSupport( minValue == 0.f, "'min' value must be equal to 0", OnnxNode );
 
 	CPtr<CReLULayer> relu = new CReLULayer( dnn.GetMathEngine() );
 	relu->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
@@ -63,10 +68,10 @@ void CClipNode::AddLayers( CDnn& dnn )
 		relu->SetUpperThreshold( maxValue );
 	}
 
-	relu->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
+	relu->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
 	dnn.AddLayer( *relu );
 
-	outputInfo.Add( COutputInfo( relu, 0 ) );
+	neoMLLinks[Output[0]] = CNeoMLLink( relu, 0 );
 }
 
 } // namespace NeoOnnx

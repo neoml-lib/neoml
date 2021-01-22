@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ public:
 	// The number of features (vector length)
 	virtual int GetFeaturesCount() const = 0;
 
-	// Gets all input vectors as a matrix
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
 	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
 
 	// Gets the weight of the vector with the given index

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,16 +27,16 @@ class NEOML_API CTransposedConvLayer : public CBaseConvLayer {
 public:
 	explicit CTransposedConvLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~CTransposedConvLayer() { destroyConvDesc(); }
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
-	virtual bool IsFilterTransposed() const override { return true; }
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
+	bool IsFilterTransposed() const override { return true; }
 
 private:
 	CConvolutionDesc* convDesc;
@@ -45,5 +45,9 @@ private:
 	void initConvDesc();
 	void calcOutputBlobSize( int& outputHeight, int& outputWidth ) const;
 };
+
+NEOML_API CLayerWrapper<CTransposedConvLayer> TransposedConv( int filterCount,
+	const CConvAxisParams& heightParams, const CConvAxisParams& widthParams,
+	bool isZeroFreeTerm = false );
 
 } // namespace NeoML

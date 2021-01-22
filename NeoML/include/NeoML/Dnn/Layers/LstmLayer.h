@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ class NEOML_API CLstmLayer : public CRecurrentLayer {
 public:
 	explicit CLstmLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The hidden layer size
 	int GetHiddenSize() const { return inputHiddenLayer->GetNumberOfElements() / G_Count; }
@@ -95,5 +95,8 @@ private:
 	void buildLayer(float dropout);
 	void setWeightsData(const CPtr<CDnnBlob>& newWeigths);
 };
+
+NEOML_API CLayerWrapper<CLstmLayer> Lstm(
+	int hiddenSize, float dropoutRate, bool isInCompatibilityMode = false );
 
 } // namespace NeoML

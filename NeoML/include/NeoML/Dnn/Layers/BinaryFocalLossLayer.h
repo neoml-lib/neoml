@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ class NEOML_API CBinaryFocalLossLayer : public CLossLayer {
 public:
 	explicit CBinaryFocalLossLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	static const float DefaultFocalForceValue;
 
@@ -55,5 +55,8 @@ private:
 	void calculateGradient( CFloatHandle onesVector, CFloatHandle entropyValues, CFloatHandle sigmoidVector,
 		CFloatHandle sigmoidMinusOneVector, CConstFloatHandle labels, int batchSize, CFloatHandle lossGradient );
 };
+
+NEOML_API CLayerWrapper<CBinaryFocalLossLayer> BinaryFocalLoss(
+	float focalForce, float lossWeight = 1.0f );
 
 } // namespace NeoML

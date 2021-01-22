@@ -28,7 +28,7 @@ class NEOML_API CImageResizeLayer : public CBaseLayer {
 public:
 	explicit CImageResizeLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The side of the image where size changes
 	enum TImageSide {
@@ -50,9 +50,9 @@ public:
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	int deltaLeft; // the size difference from the left
@@ -61,5 +61,8 @@ private:
 	int deltaBottom; // the size difference from the bottom
 	float defaultValue; // the default value for new pixels that appear whenever delta > 0
 };
+
+NEOML_API CLayerWrapper<CImageResizeLayer> ImageResize( int deltaLeft, int deltaRight,
+	int deltaTop, int deltaBottom, float defaultValue );
 
 } // namespace NeoML

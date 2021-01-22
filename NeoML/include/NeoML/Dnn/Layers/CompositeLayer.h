@@ -28,9 +28,9 @@ class CCompositeSinkLayer;
 class NEOML_API CCompositeLayer : public CBaseLayer, public CDnnLayerGraph {
 	NEOML_DNN_LAYER( CCompositeLayer )
 public:
-	explicit CCompositeLayer( IMathEngine& mathEngine );
+	explicit CCompositeLayer( IMathEngine& mathEngine, const char* name = nullptr );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The mapping of the internal layer inputs to the composite layer inputs
 	void SetInputMapping(int inputNumber, const char* internalLayerName, int internalLayerInput = 0);
@@ -51,27 +51,32 @@ public:
 	bool AreInternalLogsEnabled() const { return areInternalLogsEnabled; }
 
 	// Access to the internal layers
-	virtual int GetLayerCount() const override { return layers.Size(); }
-	virtual void GetLayerList(CArray<const char*>& layerList) const override;
-	virtual CPtr<CBaseLayer> GetLayer(const char* name) override;
-	virtual CPtr<const CBaseLayer> GetLayer(const char* name) const override;
-	virtual bool HasLayer(const char* name) const override;
+	int GetLayerCount() const override { return layers.Size(); }
+	void GetLayerList(CArray<const char*>& layerList) const override;
+	CPtr<CBaseLayer> GetLayer(const char* name) override;
+	CPtr<const CBaseLayer> GetLayer(const char* name) const override;
+	bool HasLayer(const char* name) const override;
 
 	// Returns the total size of the output blobs
-	virtual size_t GetOutputBlobsSize() const override;
+	size_t GetOutputBlobsSize() const override;
+
+	// Returns the total size of trainable parameters
+	size_t GetTrainableParametersSize() const override;
 
 	// Starts processing a new sequence
-	virtual void RestartSequence() override;
+	void RestartSequence() override;
+
+	void EnableProfile( bool profile ) override;
 
 protected:
 	virtual ~CCompositeLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
-	virtual void OnDnnChanged( CDnn* ) override;
-	virtual void FilterLayerParams( float threshold ) override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
+	void OnDnnChanged( CDnn* ) override;
+	void FilterLayerParams( float threshold ) override;
 	
 	// The network object for the internal layers
 	const CDnn* GetInternalDnn() const { return internalDnn; }
@@ -105,8 +110,8 @@ protected:
 
 private:
 	// Adds/deletes a layer
-	virtual void AddLayerImpl(CBaseLayer& layer) override;
-	virtual void DeleteLayerImpl(CBaseLayer& layer) override;
+	void AddLayerImpl(CBaseLayer& layer) override;
+	void DeleteLayerImpl(CBaseLayer& layer) override;
 
 	// The internal network object
 	CDnn* internalDnn;
@@ -140,7 +145,7 @@ private:
 	void setOutputBlobs();
 
 	// Indicates that the layer is composite (contains a sub-network)
-	virtual bool isComposite() const override { return true; }
+	bool isComposite() const override { return true; }
 	// The hook for inserting the child data in the archive, for consistency
 	virtual void serializationHook( CArchive& archive );
 };
@@ -166,14 +171,14 @@ public:
 	// Sets the blob with corrections
 	virtual void SetDiffBlob(CDnnBlob* blob);
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void AllocateOutputBlobs() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void AllocateOutputBlobs() override;
 
 private:
 	CBlobDesc desc;
@@ -200,16 +205,16 @@ public:
 	const CPtr<CDnnBlob>& GetDiffBlob() const { return diffBlob; }
 	virtual void SetDiffBlob( CDnnBlob* blob );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	CPtr<CDnnBlob> blob;
 	CPtr<CDnnBlob> parentBlob;
 	CPtr<CDnnBlob> diffBlob;
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 } // namespace NeoML

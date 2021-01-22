@@ -50,19 +50,19 @@ public:
 
 	// CBaseFile class methods
 #ifdef FINEOBJ_VERSION
-	virtual CUnicodeString GetFileName() const override { return CUnicodeString(L"Buffer"); }
+	CUnicodeString GetFileName() const override { return CUnicodeString(L"Buffer"); }
 #else
-	virtual const char* GetFileName() const override { return "Buffer"; }
+	const char* GetFileName() const override { return "Buffer"; }
 #endif
-	virtual int Read( void*, int bytesCount ) override;
-	virtual void Write( const void*, int ) override { NeoAssert( false ); }
-	virtual __int64 GetPosition() const override { NeoAssert( isOpen ); return pos; }
-	virtual __int64 Seek( __int64 offset, TSeekPosition from ) override;
-	virtual void SetLength( __int64 ) override { NeoAssert( false ); }
-	virtual __int64 GetLength() const override { NeoAssert( isOpen ); return bufferSize; }
-	virtual void Abort() override;
-	virtual void Flush() override { NeoAssert( isOpen ); }
-	virtual void Close() override { return Abort(); }
+	int Read( void*, int bytesCount ) override;
+	void Write( const void*, int ) override { NeoAssert( false ); }
+	__int64 GetPosition() const override { NeoAssert( isOpen ); return pos; }
+	__int64 Seek( __int64 offset, TSeekPosition from ) override;
+	void SetLength( __int64 ) override { NeoAssert( false ); }
+	__int64 GetLength() const override { NeoAssert( isOpen ); return bufferSize; }
+	void Abort() override;
+	void Flush() override { NeoAssert( isOpen ); }
+	void Close() override { return Abort(); }
 
 private:
 	const void* buffer;

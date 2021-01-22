@@ -28,7 +28,7 @@ class NEOML_API CMultichannelLookupLayer : public CBaseLayer {
 public:
 	explicit CMultichannelLookupLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The dimensions of the embeddings
 	void SetDimensions(const CArray<CLookupDimension>&);
@@ -36,8 +36,11 @@ public:
 
 	// Gets the blob with the embeddings (written in the rows) 
 	const CDnnBlob* GetEmbeddings(int i) const;
-	// Copies the embeddings blob from the data parameter
+	// Sets the i'th embedding table
+	// Copies embeddings from data
 	void SetEmbeddings( const CPtr<CDnnBlob>& data, int i );
+	// If copy is false, the function doesn't create additional copy but data will be changed during training
+	void SetEmbeddings( CPtr<CDnnBlob>& data, int i, bool copy );
 
 	// Indicates that external training should be used
 	// The default value is false, which means "internal" training is performed: no regularization, etc.
@@ -72,10 +75,10 @@ public:
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	// The size of stored vectors
@@ -88,5 +91,11 @@ private:
 	CObjectArray<CDnnBlob>& getParams() { return useFrameworkLearning ? paramBlobs : ownParams; }
 	const CObjectArray<CDnnBlob>& getParams() const { return useFrameworkLearning ? paramBlobs : ownParams; }
 };
+
+NEOML_API CLayerWrapper<CMultichannelLookupLayer> MultichannelLookup(
+	const CArray<CLookupDimension>& lookupDimensions, bool useFrameworkLearning );
+
+// Standard 1d embeddings.
+NEOML_API CLayerWrapper<CMultichannelLookupLayer> Embeddings( int count, int size );
 
 } // namespace NeoML

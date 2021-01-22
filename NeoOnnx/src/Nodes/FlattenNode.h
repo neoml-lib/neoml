@@ -15,27 +15,24 @@ limitations under the License.
 
 #pragma once
 
-#include "Node.h"
-
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
+#include "../Node.h"
 
 namespace NeoOnnx {
 
-class CFlattenNode : public CNode {
+// Flatten operator graph node
+class CFlattenNode : public COpNode {
 public:
-	CFlattenNode( const onnx::NodeProto& flatten, CMap<CString, CInputInfo>& nodeOutputs );
+	CFlattenNode( int nodeIndex, const onnx::NodeProto& flatten, int opsetVersion );
 
-	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	// Axis index.
-	// Flatten result is a matrix with size Dim(0) * ... * Dim(axis-1) x Dim(axis) * ... * Dim(N-1).
+	// Axis index
+	// Flatten result is a matrix with size Dim(0) * ... * Dim(axis-1) x Dim(axis) * ... * Dim(N-1)
 	int axis;
 };
 

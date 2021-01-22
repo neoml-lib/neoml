@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -135,6 +135,13 @@ void CMultiHingeLossLayer::Serialize( CArchive& archive )
 	CBaseMultiHingeLossLayer::Serialize( archive );
 }
 
+CLayerWrapper<CMultiHingeLossLayer> MultiHingeLoss( float lossWeight )
+{
+	return CLayerWrapper<CMultiHingeLossLayer>( "MultiHingeLoss", [=]( CMultiHingeLossLayer* result ) {
+		result->SetLossWeight( lossWeight );
+	} );
+}
+
 // ====================================================================================================================
 
 void CMultiSquaredHingeLossLayer::CalculateEltwiseLoss(const CFloatHandle& first, const CFloatHandle& result,
@@ -155,6 +162,13 @@ void CMultiSquaredHingeLossLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( MultiSquaredHingeLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseMultiHingeLossLayer::Serialize( archive );
+}
+
+CLayerWrapper<CMultiSquaredHingeLossLayer> MultiSquaredHingeLoss( float lossWeight )
+{
+	return CLayerWrapper<CMultiSquaredHingeLossLayer>( "MultiSquaredHingeLoss", [=]( CMultiSquaredHingeLossLayer* result ) {
+		result->SetLossWeight( lossWeight );
+	} );
 }
 
 } // namespace NeoML

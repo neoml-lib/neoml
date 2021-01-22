@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,16 +27,16 @@ class NEOML_API C3dTransposedConvLayer : public CBase3dConvLayer {
 public:
 	explicit C3dTransposedConvLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~C3dTransposedConvLayer() { destroyConvDesc(); }
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
-	virtual bool IsFilterTransposed() const override { return true; }
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
+	bool IsFilterTransposed() const override { return true; }
 
 private:
 	C3dConvolutionDesc* convDesc;

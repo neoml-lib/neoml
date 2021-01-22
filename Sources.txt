@@ -1,10 +1,10 @@
 
 
-git;https://tfs/HQ/Tools_Libs/_git/FineObjects13
-get;FineObjects;/;FineObjects13-master 13.0.123.0
+git;https://tfs/HQ/Tools_Libs/_git/FineObjects14
+get;FineObjects;/;FineObjects14-master 14.0.31.0
 
 git;https://tfs/HQ/ThirdParty/_git/CUDA
-get;ThirdParty/CUDA;/;CUDA v10.2 1.0.2.0
+get;ThirdParty/CUDA;/;CUDA v10.2 1.0.4.0
 
 git;https://tfs/HQ/ThirdParty/_git/Vulkan
 get;ThirdParty/Vulkan;/;Vulkan SDK 1.1.130 1.0.2.0
@@ -13,8 +13,11 @@ git;https://tfs/HQ/ThirdParty/_git/MKL
 get;ThirdParty/MKL;/;MKL 2018 Update4 1.0.2.0
 
 git;https://tfs/HQ/Tools_Libs/_git/NeoMLTest
-get;NeoMLTest;/;NeoMLTest-master 1.0.6.0
+get;NeoMLTest;/;NeoMLTest-master 1.0.26.0
 
-git;https://tfs/HQ/Tools_Libs/_git/NeoML
-get;NeoML;/;%BUILD_SOURCEBRANCH%
-
+copy;%ROOT%/../NeoML;%ROOT%/NeoML/NeoML
+copy;%ROOT%/../NeoMathEngine;%ROOT%/NeoML/NeoMathEngine
+copy;%ROOT%/../NeoOnnx;%ROOT%/NeoML/NeoOnnx
+copy;%ROOT%/../NeoProxy;%ROOT%/NeoML/NeoProxy
+copy;%ROOT%/../cmake;%ROOT%/NeoML/cmake
+copy;%ROOT%/../Build;%ROOT%/NeoML/Build

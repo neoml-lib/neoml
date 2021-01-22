@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ class NEOML_API CDnnXavierInitializer : public CDnnInitializer {
 public:
 	explicit CDnnXavierInitializer(CRandom& _random) : CDnnInitializer(_random) {}
 
-	virtual void InitializeLayerParams(CDnnBlob& blob, int inputCount) override;
+	void InitializeLayerParams(CDnnBlob& blob, int inputCount) override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -61,7 +61,7 @@ public:
 	float GetUpperBound() const { return upperBound; }
 	void SetUpperBound(float _upperBound) { upperBound = _upperBound; }
 
-	virtual void InitializeLayerParams(CDnnBlob& blob, int inputCount) override;
+	void InitializeLayerParams(CDnnBlob& blob, int inputCount) override;
 
 private:
 	float lowerBound;

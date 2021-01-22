@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ namespace NeoML {
 // CBaseConvLayer is a base class for convolution layers
 class NEOML_API CBaseConvLayer : public CBaseLayer {
 public:
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Filter size
 	int GetFilterHeight() const { return filterHeight; }
@@ -105,7 +105,7 @@ protected:
 	const CPtr<CDnnBlob>& Filter() const { return paramBlobs[0]; }
 	const CPtr<CDnnBlob>& FreeTerms() const { return paramBlobs[1]; }	// free terms matrix
 
-	virtual void FilterLayerParams( float threshold ) override;
+	void FilterLayerParams( float threshold ) override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,15 +117,15 @@ class NEOML_API CConvLayer : public CBaseConvLayer {
 public:
 	explicit CConvLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~CConvLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	CConvolutionDesc* convDesc; // the convolution descriptor
@@ -147,10 +147,10 @@ class NEOML_API CRleConvLayer : public CBaseConvLayer {
 public:
 	explicit CRleConvLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
-	virtual void SetFilterData( const CPtr<CDnnBlob>& newFilter ) override;
-	virtual void SetFreeTermData( const CPtr<CDnnBlob>& newFreeTerm ) override;
+	void SetFilterData( const CPtr<CDnnBlob>& newFilter ) override;
+	void SetFreeTermData( const CPtr<CDnnBlob>& newFreeTerm ) override;
 
 	// The pixel value for strokes
 	float GetStrokeValue() const { return strokeValue; }
@@ -163,10 +163,10 @@ public:
 protected:
 	virtual ~CRleConvLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	float strokeValue;		// the pixel value for strokes
@@ -177,5 +177,54 @@ private:
 	void initConvDesc();
 	void destroyConvDesc();
 };
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// Convolution parameters along one of the axes.
+struct NEOML_API CConvAxisParams {
+	int FilterSize;
+	int Padding;
+	int Stride;
+	int Dilation;
+
+	CConvAxisParams() : FilterSize( 1 ), Padding( 0 ), Stride( 1 ), Dilation( 1 ) {}
+	explicit CConvAxisParams( int filterSize, int padding = 0, int stride = 1, int dilation = 1 ) :
+		FilterSize( filterSize ),
+		Padding( padding ),
+		Stride( stride ),
+		Dilation( dilation )
+	{
+	}
+};
+
+NEOML_API CLayerWrapper<CConvLayer> Conv( int filterCount,
+	const CConvAxisParams& heightParams, const CConvAxisParams& widthParams,
+	bool isZeroFreeTerm = false );
+
+// Convolution along width dimension, i.e:
+//	filter height = 1
+//	stride height = 1
+//	dilation height = 1
+//	padding height = 0
+inline CLayerWrapper<CConvLayer> ConvByWidth( int filterCount,
+	int filterSize, int padding = 0, int stride = 1, int dilation = 1,
+	bool isZeroFreeTerm = false )
+{
+	return Conv( filterCount, CConvAxisParams(),
+		CConvAxisParams( filterSize, padding, stride, dilation ), isZeroFreeTerm );
+}
+
+// Convolution along height dimension, i.e:
+//	filter width = 1
+//	stride width = 1
+//	dilation width = 1
+//	padding width = 0
+inline CLayerWrapper<CConvLayer> ConvByHeight( int filterCount,
+	int filterSize, int padding = 0, int stride = 1, int dilation = 1,
+	bool isZeroFreeTerm = false )
+{
+	return Conv( filterCount, CConvAxisParams( filterSize, padding, stride, dilation ),
+		CConvAxisParams(), isZeroFreeTerm );
+}
 
 } // namespace NeoML

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -145,7 +145,7 @@ void CSquaredHinge::SetArgument( const CFloatVector& w )
 		int index = 0;
 		int count = 0;
 		if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
-			for( int i = 0; i < vectorCount; i++ ) {
+			for( int i = 0; i < count; i++ ) {
 				double answer = answersPtr[index];
 				double weight = weightsPtr[index];
 				CSparseFloatVectorDesc desc;

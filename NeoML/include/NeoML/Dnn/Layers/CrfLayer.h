@@ -45,7 +45,7 @@ class NEOML_API CCrfLayer : public CRecurrentLayer {
 public:
 	explicit CCrfLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The layer inputs and outputs
 	enum TInput {
@@ -68,6 +68,18 @@ public:
 	float GetDropoutRate() const { return dropOutLayer == 0 ? 0.f : dropOutLayer->GetDropoutRate(); }
 	void SetDropoutRate(float newDropoutRate);
 
+	// Enables calculation of the O_BestPrevClass output during training. Disabled by default.
+	bool GetBestPrevClassEnabled() const;
+	void SetBestPrevClassEnabled( bool enabled );
+
+	// Trainable parameters
+	CPtr<CDnnBlob> GetHiddenWeights() const;
+	void SetHiddenWeights( const CPtr<CDnnBlob>& newWeights );
+	CPtr<CDnnBlob> GetFreeTerms() const;
+	void SetFreeTerms( const CPtr<CDnnBlob>& newWeights );
+	CPtr<CDnnBlob> GetTransitions() const;
+	void SetTransitions( const CPtr<CDnnBlob>& newWeights );
+
 private:
 	CPtr<CFullyConnectedLayer> hiddenLayer;
 	CPtr<CDropoutLayer> dropOutLayer;
@@ -85,7 +97,7 @@ private:
 // #2 - the correct class for the given position
 //
 // The layer outputs: 
-// #0 - for each class contains the previous class in the optimal sequence according to Viterbi method (not during training)
+// #0 - for each class contains the previous class in the optimal sequence according to Viterbi method (optional during training, see SetBestPrevClassEnabled)
 // #1 - the non-normalized logarithm of the probability of the optimal class sequence ending in the given position
 // #2 - the non-normalized logarithm of the probability of the correct class in the given position
 class NEOML_API CCrfCalculationLayer : public CBaseLayer {
@@ -93,7 +105,7 @@ class NEOML_API CCrfCalculationLayer : public CBaseLayer {
 public:
 	explicit CCrfCalculationLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The layer inputs and outputs
 	enum TInput {
@@ -111,11 +123,19 @@ public:
 	int GetPaddingClass() const { return paddingClass; }
 	void SetPaddingClass(int _paddingClass) { paddingClass = _paddingClass; }
 
+	// Enables calculation of the O_BestPrevClass output during training
+	bool GetBestPrevClassEnabled() const { return doCalculateBestPrevClass; }
+	void SetBestPrevClassEnabled( bool enabled ) { doCalculateBestPrevClass = enabled; }
+
+	// Trainable parameters
+	CPtr<CDnnBlob> GetTransitions() const;
+	void SetTransitions( const CPtr<CDnnBlob>& newWeights );
+
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	// The "zero" class (no label); reserved, currently not in use
@@ -128,6 +148,8 @@ private:
 	const CPtr<CDnnBlob>& Transitions() const { return paramBlobs[0]; }
 	mutable CPtr<CDnnBlob> prevLabels; // previous sequence labels
 	CPtr<CDnnBlob> tempSumBlob; // temporary blob with the sum of logarithms of all possible sequences probabilities
+	bool doCalculateBestPrevClass; // enables calculation of the O_BestPrevClass output during training
+	CPtr<CDnnBlob> discardedBestPrevClassMax; // buffer for discarded by-product max values of the O_BestPrevClass calculation during training
 	
 	CPtr<CDnnBlob> getPrevLabels() const;
 	void calcLabelProbability();
@@ -147,7 +169,7 @@ class NEOML_API CCrfLossLayer : public CCompositeLayer {
 public:
 	explicit CCrfLossLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The layer inputs
 	enum TInput {
@@ -180,7 +202,7 @@ class NEOML_API CCrfInternalLossLayer : public CLossLayer {
 public:
 	explicit CCrfInternalLossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "FmlCnnCrfLossLayer", true ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
@@ -200,7 +222,7 @@ class NEOML_API CBestSequenceLayer : public CBaseLayer {
 public:
 	explicit CBestSequenceLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "FmlCnnBestSequenceLayer", false ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 	// The layer inputs
 	enum TIntput {
 		I_BestPrevClass = 0, // a placeholder for constructing the network
@@ -208,9 +230,9 @@ public:
 	};
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
 //-----------------------------------------------------------------------------------------------
@@ -234,6 +256,16 @@ inline int CCrfLayer::GetPaddingClass() const
 inline void CCrfLayer::SetPaddingClass(int paddingClass) 
 { 
 	calculator->SetPaddingClass(paddingClass); 
+}
+
+inline bool CCrfLayer::GetBestPrevClassEnabled() const
+{
+	return calculator->GetBestPrevClassEnabled();
+}
+
+inline void CCrfLayer::SetBestPrevClassEnabled( bool enabled )
+{
+	calculator->SetBestPrevClassEnabled( enabled );
 }
 
 inline float CCrfLossLayer::GetLossWeight() const

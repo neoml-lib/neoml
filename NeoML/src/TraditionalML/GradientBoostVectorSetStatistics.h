@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ class CGradientBoostVectorSetStatistics {
 public:
 	CGradientBoostVectorSetStatistics();
 	explicit CGradientBoostVectorSetStatistics( const CGradientBoostVectorSetStatistics& other );
+	CGradientBoostVectorSetStatistics& operator=( const CGradientBoostVectorSetStatistics& other );
 
 	// Adds a vector
 	void Add( double gradient, double hessian, float weight );
@@ -64,6 +65,16 @@ inline CGradientBoostVectorSetStatistics::CGradientBoostVectorSetStatistics( con
 	totalHessian( other.totalHessian ),
 	totalWeight( other.totalWeight )
 {
+}
+
+inline CGradientBoostVectorSetStatistics& CGradientBoostVectorSetStatistics::operator=( const CGradientBoostVectorSetStatistics& other )
+{
+	if( &other != this ) {
+		totalGradient = other.totalGradient;
+		totalHessian = other.totalHessian;
+		totalWeight = other.totalWeight;
+	}
+	return *this;
 }
 
 inline void CGradientBoostVectorSetStatistics::Add( double gradient, double hessian, float weight )

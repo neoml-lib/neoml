@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ class CMemoryBufferPool : public CCrtAllocatedObject {
 public:
 	const size_t BufferSize;
 
-	explicit CMemoryBufferPool( size_t bufferSize ) : BufferSize(bufferSize), head(0) {}
+	explicit CMemoryBufferPool( size_t bufferSize ) : BufferSize(bufferSize), head(0), memoryInPool(0) {}
 
 	// Allocates a buffer; returns 0 if no free buffers are available
 	CMemoryBuffer* TryAlloc();
@@ -52,9 +52,13 @@ public:
 	// Releases a buffer
 	void Free( CMemoryBuffer* data );
 
+	// Gets the amount of memory used for the pool
+	size_t GetMemoryInPool() const { return memoryInPool; }
+
 private:
 	// Currently free buffers (a singly-linked list)
 	CMemoryBuffer* head;
+	size_t memoryInPool; // the amount of memory used for the pool
 };
 
 CMemoryBuffer* CMemoryBufferPool::TryAlloc()
@@ -64,6 +68,7 @@ CMemoryBuffer* CMemoryBufferPool::TryAlloc()
 	if( result != 0 ) {
 		head = result->GetNext();
 		result->SetNext(0);
+		memoryInPool -= BufferSize;
 	}
 
 	return result;
@@ -73,6 +78,7 @@ void CMemoryBufferPool::Free(CMemoryBuffer* data)
 {
 	data->SetNext( head );
 	head = data;
+	memoryInPool += BufferSize;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -153,6 +159,21 @@ void CMemoryPool::Free( const CMemoryHandle& handle )
 		freeMemorySize += info.size;
 	}
 	usedMap.erase( pos );
+}
+
+size_t CMemoryPool::GetMemoryInPools() const
+{
+	thread::id id = this_thread::get_id();
+	auto pool = pools.find( id );
+	if( pool == pools.end() ) {
+		return 0;
+	}
+	const TPoolVector& threadPools = pool->second.Pool;
+	size_t res = 0;
+	for( auto cur : threadPools ) {
+		res += cur->GetMemoryInPool();
+	}
+	return res;
 }
 
 void CMemoryPool::CleanUp()

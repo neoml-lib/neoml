@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 
 namespace NeoML {
 
@@ -40,14 +41,17 @@ public:
 	void SetNormalizationArea( TNormalizationArea newArea ) { area = newArea; }
 	TNormalizationArea GetNormalizationArea() const { return area; }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	TNormalizationArea area; // the normalization area
 };
+
+NEOML_API CLayerWrapper<CSoftmaxLayer> Softmax(
+	CSoftmaxLayer::TNormalizationArea normalizationArea );
 
 } // namespace NeoML

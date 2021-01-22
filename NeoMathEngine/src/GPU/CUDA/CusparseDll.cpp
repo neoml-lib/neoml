@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,11 +25,18 @@ limitations under the License.
 namespace NeoML {
 
 // Macros to load functions
-#define LOAD_FUNC(Type, Var, NameStr) if((Var = (Type)CDll::GetProcAddress(NameStr)) == 0) return false
-#define LOAD_CUSPARSE_FUNC(Name) LOAD_FUNC(CCusparse::TCusparse##Name, functions.##Name, "cusparse" #Name)
+#define LOAD_FUNC(Type, Var, NameStr) if((Var = (Type)(void*)CDll::GetProcAddress(NameStr)) == 0) return false
+#define LOAD_CUSPARSE_FUNC(Name) LOAD_FUNC(CCusparse::TCusparse##Name, functions.Name, "cusparse" #Name)
 
 // The library name
+#if FINE_PLATFORM(FINE_WINDOWS)
 static const char* cusparseDllName = "cusparse64_10.dll";
+#elif FINE_PLATFORM(FINE_LINUX)
+static const char* cusparseDllName = "libcusparse.so.10";
+#else
+#error "Platform is not supported!"
+#endif
+
 
 CCusparseDll::CCusparseDll()
 {
@@ -77,6 +84,7 @@ bool CCusparseDll::loadFunctions()
 	LOAD_CUSPARSE_FUNC( SetMatIndexBase );
 	LOAD_CUSPARSE_FUNC( Scsrmm );
 	LOAD_CUSPARSE_FUNC( Scsrmm2 );
+	LOAD_CUSPARSE_FUNC( GetErrorString );
 	return true;
 }
 

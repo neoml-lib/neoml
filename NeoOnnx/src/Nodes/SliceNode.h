@@ -17,26 +17,26 @@ limitations under the License.
 
 #include "../Node.h"
 
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
-
 namespace NeoOnnx {
 
-class CSliceNode : public CNode {
+// Slice operator graph node
+class CSliceNode : public COpNode {
 public:
-	CSliceNode( const onnx::NodeProto& slice, CMap<CString, CInputInfo>& nodeOutputs );
+	CSliceNode( int nodeIndex, const onnx::NodeProto& slice, int opsetVersion );
 
-	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
 	CArray<int> axes; // axes, along which slice will be made
 	CArray<int> starts; // first coordinate to include in slice along axis, specified in "axes"
 	CArray<int> ends; // first coordinate to exclude from slice along axis, specified in "axes"
+
+	void addSubSequenceLayer( int start, int end, CDnn& dnn, CNeoMLLinkCache& neoMLLinks );
+	void addSplitLayer( TBlobDim splitDim, int start, int end, int dimSize, CDnn& dnn, CNeoMLLinkCache& neoMLLinks );
 };
 
 } // namespace NeoOnnx

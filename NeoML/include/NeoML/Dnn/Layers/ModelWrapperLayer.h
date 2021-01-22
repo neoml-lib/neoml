@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ limitations under the License.
 
 namespace NeoML {
 
+class CSourceLayer;
+class CSinkLayer;
 class CDnnTrainingModelWrapper;
 
 // CProblemSourceLayer is a wrapper over the IProblem interface. 
@@ -32,7 +34,7 @@ class NEOML_API CProblemSourceLayer : public CBaseLayer {
 public:
 	explicit CProblemSourceLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	int GetBatchSize() const { return batchSize; }
 	void SetBatchSize(int _batchSize);
@@ -53,9 +55,9 @@ public:
 protected:
 	virtual ~CProblemSourceLayer() {}
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	float emptyFill;		// the empty values filler (for values not represented in a sparse vector)
@@ -73,10 +75,10 @@ class NEOML_API CDnnModelWrapper : public IModel {
 public:
 	explicit CDnnModelWrapper(IMathEngine& mathEngine, unsigned int seed = 0xDEADFACE);
 
-	virtual int GetClassCount() const override;
-	virtual bool Classify(const CSparseFloatVectorDesc& data, CClassificationResult& result) const override;
-	virtual bool Classify(const CFloatVector& data, CClassificationResult& result) const override;
-	virtual void Serialize(CArchive& archive) override;
+	int GetClassCount() const override;
+	bool Classify(const CSparseFloatVectorDesc& data, CClassificationResult& result) const override;
+	bool Classify(const CFloatVector& data, CClassificationResult& result) const override;
+	void Serialize(CArchive& archive) override;
 
 protected:
 	int ClassCount;
@@ -108,7 +110,7 @@ class NEOML_API CDnnTrainingModelWrapper : public ITrainingModel {
 public:
 	explicit CDnnTrainingModelWrapper( IMathEngine& _mathEngine ) : mathEngine( _mathEngine ) {}
 
-	virtual CPtr<IModel> Train(const IProblem& trainingClassificationData) override;
+	CPtr<IModel> Train(const IProblem& trainingClassificationData) override;
 
 protected:
 	// The function that builds and trains a neural network. 

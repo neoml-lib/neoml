@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ namespace FObj {
 
 #define __merge__2( a, b )	a##b
 #define __merge__1( a, b )	__merge__2( a, b )
+#define __UNICODEFILE__	__merge__1( L, __FILE__ )
 
 //------------------------------------------------------------------------------------------------------------
 // Exceptions
@@ -59,6 +60,8 @@ inline void FineBreakPoint()
 {
 }
 
+#ifdef _DEBUG
+
 inline void FineDebugBreak()
 {
 #if FINE_PLATFORM( FINE_WINDOWS )
@@ -70,6 +73,12 @@ inline void FineDebugBreak()
 #endif
 }
 
+#else
+
+inline void FineDebugBreak() {}
+
+#endif // _DEBUG
+
 enum TInternalErrorType {
 	IET_Assert,
 	IET_AssertLastError,
@@ -79,7 +88,7 @@ enum TInternalErrorType {
 
 // Generates the "internal error" exception
 inline void GenerateInternalError( TInternalErrorType errorType, const char* functionName,
-	const char* errorText, const char* fileName, int line, int errorCode )
+	const char* errorText, const wchar_t* fileName, int line, int errorCode )
 {
 	CString message;
 	switch( errorType ) {
@@ -99,7 +108,12 @@ inline void GenerateInternalError( TInternalErrorType errorType, const char* fun
 
 	CString lineStr = Str( line );
 	CString errorCodeStr = Str( errorCode );
-	const char* params[5] = { errorText, functionName, fileName, lineStr.data(), errorCodeStr.data() };
+	CString ansiFileName;
+	for( int i = 0; fileName[i] != L'\0'; ++i ) {
+		// Naive casting because tricky symbols aren't used in file names
+		ansiFileName.push_back( static_cast<char>( fileName[i] ) );
+	}
+	const char* params[5] = { errorText, functionName, ansiFileName, lineStr, errorCodeStr };
 	message = SubstParam( message, params, 5 );
 	throw CInternalError( message );
 }
@@ -109,20 +123,20 @@ inline void GenerateInternalError( TInternalErrorType errorType, const char* fun
 #define AssertFO( expr ) \
 if( !( expr ) ) { \
 	FineDebugBreak();	\
-	FObj::GenerateInternalError( IET_Assert, __FUNCTION__, #expr, __FILE__, __LINE__, 0 ); \
+	FObj::GenerateInternalError( IET_Assert, __FUNCTION__, #expr, __UNICODEFILE__, __LINE__, 0 ); \
 }
 
 #define PresumeFO( expr ) \
 if( !( expr ) ) { \
 	FineDebugBreak();	\
-	FObj::GenerateInternalError( IET_Presume, __FUNCTION__, #expr, __FILE__, __LINE__, 0 ); \
+	FObj::GenerateInternalError( IET_Presume, __FUNCTION__, #expr, __UNICODEFILE__, __LINE__, 0 ); \
 }
 
 #else // Release
 
 #define AssertFO( expr ) \
 if( !( expr ) ) { \
-FObj::GenerateInternalError( IET_Assert, "", "", __FILE__, __LINE__, 0 ); \
+	FObj::GenerateInternalError( IET_Assert, "", "", __UNICODEFILE__, __LINE__, 0 ); \
 }
 
 // PresumeFO is turned off for Release version

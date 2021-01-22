@@ -38,12 +38,12 @@ public:
 	int GetStrideDepth() const { return strideDepth; }
 	void SetStrideDepth(int strideDepth);
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	C3dPoolingLayer( IMathEngine& mathEngine, const char* name );
 
-	virtual void Reshape() override;
+	void Reshape() override;
 
 	int filterHeight;	// window height
 	int filterWidth;	// window width
@@ -61,14 +61,14 @@ class NEOML_API C3dMaxPoolingLayer : public C3dPoolingLayer {
 public:
 	explicit C3dMaxPoolingLayer( IMathEngine& mathEngine ) : C3dPoolingLayer( mathEngine, "CCnn3dMaxPoolingLayer" ), desc( 0 ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~C3dMaxPoolingLayer() { destroyDesc(); }
 
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void Reshape() override;
 
 private:
 	CPtr<CDnnBlob> indexBlob; // the indices of maximum elements, used for backpropagation
@@ -78,6 +78,10 @@ private:
 	void destroyDesc();
 };
 
+NEOML_API CLayerWrapper<C3dMaxPoolingLayer> Pooling3dMax(
+	int filterHeight, int filterWidth, int filterDepth,
+	int strideHeight = 1, int strideWidth = 1, int strideDepth = 1 );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // C3dMeanPoolingLayer implements a pooling layer that takes a mean value in the window
@@ -86,14 +90,14 @@ class NEOML_API C3dMeanPoolingLayer : public C3dPoolingLayer {
 public:
 	explicit C3dMeanPoolingLayer( IMathEngine& mathEngine ) : C3dPoolingLayer( mathEngine, "CCnn3dMeanPoolingLayer" ), desc( 0 ) {}
 	
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~C3dMeanPoolingLayer() { destroyDesc(); }
 
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void Reshape() override;
 
 private:
 	C3dMeanPoolingDesc* desc;
@@ -101,5 +105,9 @@ private:
 	void initDesc();
 	void destroyDesc();
 };
+
+NEOML_API CLayerWrapper<C3dMeanPoolingLayer> Pooling3dMean(
+	int filterHeight, int filterWidth, int filterDepth,
+	int strideHeight = 1, int strideWidth = 1, int strideDepth = 1 );
 
 } // namespace NeoML

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ class NEOML_API CFullyConnectedSourceLayer : public CFullyConnectedLayer {
 public:
 	explicit CFullyConnectedSourceLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The number of vectors in the set on each iteration
 	int GetBatchSize() const { return batchSize; }
@@ -55,10 +55,10 @@ public:
 protected:
 	virtual ~CFullyConnectedSourceLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	CPtr<const IProblem> problem; // the current problem
@@ -76,5 +76,8 @@ private:
 	void loadBatchData();
 	bool isBatchLoaded( int index ) const;
 };
+
+NEOML_API CLayerWrapper<CFullyConnectedSourceLayer> FullyConnectedSource(
+	TBlobType labelType, int batchSize, int maxBatchCount, IProblem* problem );
 
 } // namespace NeoML

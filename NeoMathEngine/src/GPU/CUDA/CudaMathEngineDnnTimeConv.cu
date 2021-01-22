@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ limitations under the License.
 #include <CudaMathEngineDnnConvs.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <CudaDevice.h>
+#include <CudaCommon.h>
 
 #include <Kernels/CudaDnnTimeConvKernels.h>
 
@@ -29,6 +31,7 @@ namespace NeoML {
 void CCudaMathEngine::blobTimeConvolutionPrepare( const CCudaTimeConvolutionDescInternal& desc, float* data, const CFloatHandle& sourceData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaBlobDesc& filter = desc.Filter;
 	const CCudaBlobDesc& result = desc.Result;
@@ -40,36 +43,39 @@ void CCudaMathEngine::blobTimeConvolutionPrepare( const CCudaTimeConvolutionDesc
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid3DMinZYX(1, 1, 512, blockCount, threadCount, filter.Height(), result.BatchLength(), xSizeNorm);
-	BlobTimeConvolutionPrepareKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( sourceData ), xSizeNorm, data );
+	BlobTimeConvolutionPrepareKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), xSizeNorm, data );
 }
 
 CTimeConvolutionDesc* CCudaMathEngine::InitTimeConvolution( const CBlobDesc& source,
-	int stride, int padding, int dilation,
+	int stride, int paddingFront, int paddingBack, int dilation,
 	const CBlobDesc& filter, const CBlobDesc& result )
 {
 	ASSERT_EXPR( stride > 0 );
-	ASSERT_EXPR( padding >= 0 );
+	ASSERT_EXPR( paddingFront >= 0 );
+	ASSERT_EXPR( paddingBack >= 0 );
 	ASSERT_EXPR( dilation > 0 );
 	ASSERT_EXPR( filter.BatchLength() == 1 );
 	ASSERT_EXPR( filter.Width() == 1 );
 	ASSERT_EXPR( filter.Depth() == 1 );
 	ASSERT_EXPR( filter.Channels() == source.ObjectSize() );
-	ASSERT_EXPR( source.BatchLength() + 2 * padding >= ( filter.Height() - 1 ) * dilation + 1 );
-	ASSERT_EXPR( result.BatchLength() == ( source.BatchLength() - ( filter.Height() - 1 ) * dilation - 1 + 2 * padding ) / stride + 1 );
+	ASSERT_EXPR( source.BatchLength() + paddingFront + paddingBack >= ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( result.BatchLength() == ( source.BatchLength() - ( filter.Height() - 1 ) * dilation - 1 + paddingFront + paddingBack ) / stride + 1 );
 	ASSERT_EXPR( result.BatchWidth() == source.BatchWidth() );
 	ASSERT_EXPR( result.ListSize() == 1 && source.ListSize() == 1 );
 	ASSERT_EXPR( result.Width() == 1 );
 	ASSERT_EXPR( result.Height() == 1 );
 	ASSERT_EXPR( result.Depth() == 1 );
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
-	ASSERT_EXPR( padding < ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( paddingFront < ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( paddingBack < ( filter.Height() - 1 ) * dilation + 1 );
 
 	CCudaTimeConvolutionDesc* desc = new CCudaTimeConvolutionDesc();
 	desc->Internal.Source = source;
 	desc->Internal.Filter = filter;
 	desc->Internal.Result = result;
 	desc->Internal.Stride = stride;
-	desc->Internal.Padding = padding;
+	desc->Internal.PaddingFront = paddingFront;
+	desc->Internal.PaddingBack = paddingBack;
 	desc->Internal.Dilation = dilation;
 	return desc;
 }
@@ -123,6 +129,7 @@ void CCudaMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& c
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaTimeConvolutionDescInternal& desc = static_cast<const CCudaTimeConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
@@ -158,7 +165,7 @@ void CCudaMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& c
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid2DMinYX(1, 512, blockCount, threadCount, inputDiff.ObjectCount(), xSizeNorm);
-		BlobTimeConvolutionBackwardUnpackKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( outputDiffData ),
+		BlobTimeConvolutionBackwardUnpackKernel<<<blockCount, threadCount>>>( desc, GetRaw( outputDiffData ),
 			GetRaw( filterData ), GetRaw( inputDiffData ), xSizeNorm, combineCount, GetRaw( targetData ) );
 	}
 }
@@ -170,6 +177,7 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermDiffData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaTimeConvolutionDescInternal& desc = static_cast<const CCudaTimeConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& filterDiff = desc.Filter;
@@ -179,7 +187,7 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 	int blockCount;
 	int threadCount;
 	getCudaTaskGrid( blockCount, threadCount, desc.Filter.BlobSize() );
-	blobTimeConvolutionLearnFilterKernel<<<blockCount, threadCount, 0, cudaStream>>>( desc, GetRaw( inputData ),
+	blobTimeConvolutionLearnFilterKernel<<<blockCount, threadCount>>>( desc, GetRaw( inputData ),
 		GetRaw( outputDiffData ), GetRaw( filterDiffData ) );
 
 	// Train the free term

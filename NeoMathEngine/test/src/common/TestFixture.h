@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <cmath>
 #include <algorithm>
+#include <cassert>
 
 using namespace NeoML;
 
@@ -164,7 +165,7 @@ inline CBlob<T>::CBlob( IMathEngine& mathEngine, int batchLength, int batchWidth
 			desc.SetDataType(CT_Int);
 			break;
 		default:
-			assert(false);
+			ASSERT_EXPR( false );
 	}
 	desc.SetDimSize(BD_BatchLength, batchLength);
 	desc.SetDimSize(BD_BatchWidth, batchWidth);

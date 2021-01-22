@@ -15,29 +15,24 @@ limitations under the License.
 
 #pragma once
 
-#include "../Node.h"
-
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
+#include "GlobalPoolNodeBase.h"
 
 namespace NeoOnnx {
 
-class CReduceMeanNode : public CNode {
+// ReduceMean operator graph node
+class CReduceMeanNode : public CGlobalPoolNodeBase {
 public:
-	CReduceMeanNode( const onnx::NodeProto& reduceMean, CMap<CString, CInputInfo>& nodeOutputs );
+	CReduceMeanNode( int nodeIndex, const onnx::NodeProto& reduceMean, int opsetVersion );
 
-	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	const int keepDims; // keep reduced dimensions (of size 1) or remove them.
-	CArray<int> axes; // reduced axes.
-
-	void add2dPoolingLayer( CDnn& dnn, int pooledDims );
+	const int keepDims; // keep reduced dimensions (of size 1) or remove them
+	CArray<int> axes; // reduced axes
 };
 
 } // namespace NeoOnnx

@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
@@ -34,6 +35,7 @@ enum TActivationFunction {
 	AF_HardSigmoid,
 	AF_Power,
 	AF_HSwish,
+	AF_GELU,
 
 	AF_Count
 };
@@ -49,7 +51,7 @@ class NEOML_API CLinearLayer : public CBaseInPlaceLayer {
 public:
 	explicit CLinearLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	float GetMultiplier() const { return multiplier; }
 	void SetMultiplier(float _multiplier) { multiplier = _multiplier; }
@@ -60,9 +62,11 @@ protected:
 	float multiplier;
 	float freeTerm;
 
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CLinearLayer> Linear( float multiplier, float freeTerm );
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -74,15 +78,17 @@ class NEOML_API CELULayer : public CBaseInPlaceLayer {
 public:
 	explicit CELULayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	float GetAlpha() const;
 	void SetAlpha( float newAlpha );
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CELULayer> Elu( float alpha = 0.01f );
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -93,7 +99,7 @@ public:
 	explicit CReLULayer( IMathEngine& mathEngine ) : CBaseInPlaceLayer( mathEngine, "CCnnReLULayer" ), upperThreshold( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
 		{ SetUpperThreshold( 0.0 ); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The upper cutoff for the function value. If you set it to a value > 0, 
 	// the function will be ReLU(x) = Upper_Threshold for x > Upper_Threshold
@@ -102,12 +108,14 @@ public:
 	void SetUpperThreshold(float threshold) { upperThreshold->GetData().SetValue(threshold); }
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	CPtr<CDnnBlob> upperThreshold;
 };
+
+NEOML_API CLayerWrapper<CReLULayer> Relu();
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -122,12 +130,14 @@ public:
 	float GetAlpha() const;
 	void SetAlpha( float newAlpha );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CLeakyReLULayer> LeakyRelu( float alpha = 0.01f );
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -137,13 +147,15 @@ class NEOML_API CHSwishLayer : public CBaseLayer {
 public:
 	explicit CHSwishLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CHSwishLayer", false ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CHSwishLayer> HSwish();
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -153,13 +165,15 @@ class NEOML_API CAbsLayer : public CBaseLayer {
 public:
 	explicit CAbsLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnAbsLayer", false ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CAbsLayer> Abs();
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -169,12 +183,14 @@ class NEOML_API CSigmoidLayer : public CBaseInPlaceLayer {
 public:
 	explicit CSigmoidLayer( IMathEngine& mathEngine ) : CBaseInPlaceLayer( mathEngine, "CCnnSigmoidLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CSigmoidLayer> Sigmoid();
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -184,12 +200,14 @@ class NEOML_API CTanhLayer : public CBaseInPlaceLayer {
 public:
 	explicit CTanhLayer( IMathEngine& mathEngine ) : CBaseInPlaceLayer( mathEngine, "CCnnTanhLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CTanhLayer> Tanh();
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -200,12 +218,14 @@ class NEOML_API CHardTanhLayer : public CBaseInPlaceLayer {
 public:
 	explicit CHardTanhLayer( IMathEngine& mathEngine ) : CBaseInPlaceLayer( mathEngine, "CCnnHardTanhLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CHardTanhLayer> HardTanh();
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -221,15 +241,17 @@ public:
 	float GetBias() const { return paramBlobs[1]->GetData().GetValue(); }
 	void SetBias( float bias ) { paramBlobs[1]->GetData().SetValue( bias ); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	void setDefaultParamBlobs( IMathEngine& mathEngine );
 };
+
+NEOML_API CLayerWrapper<CHardSigmoidLayer> HardSigmoid( float slope, float bias );
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -239,17 +261,19 @@ class NEOML_API CPowerLayer : public CBaseInPlaceLayer {
 public:
 	explicit CPowerLayer( IMathEngine& mathEngine ) : CBaseInPlaceLayer( mathEngine, "CCnnPowerLayer" ), exponent(0) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	void SetExponent( float newExponent ) { exponent = newExponent; }
 	float GetExponent() const { return exponent; }
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	float exponent; // the power to which the elements will be raised
 };
+
+NEOML_API CLayerWrapper<CPowerLayer> Power( float exponent );
 
 } // namespace NeoML

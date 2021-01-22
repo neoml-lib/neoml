@@ -25,6 +25,7 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/PerformanceCounters.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
+#include <NeoMathEngine/NeoMathEngineException.h>
 #include <climits>
 
 namespace NeoML {
@@ -405,6 +406,10 @@ public:
 	virtual void MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) = 0;
+	// Multiplies matrices from two batches, stored one after another in firstHandle, secondHandle parameters
+	virtual void MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle,
+		int resultBufferSize) = 0;
 
 	// Operations on sparse matrices
 
@@ -421,6 +426,10 @@ public:
 	virtual void MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, int firstRowSize,
 		const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) = 0;
+
+	// result[i] = first[i](T) * second[i] for i in [0, batchSize)
+	virtual void MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize) = 0;
 
 	virtual void MultiplyDiagMatrixByMatrix(const CConstFloatHandle& firstHandle, int firstSize,
 		const CConstFloatHandle& secondHandle, int secondWidth,
@@ -535,8 +544,8 @@ public:
 
 	// Time convolution
 	// The descriptor should be destroyed using the standard delete operator after use.
-	virtual CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source,
-		int stride, int padding, int dilation, const CBlobDesc& filter, const CBlobDesc& result ) = 0;
+	virtual CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront,
+		int paddingBack, int dilation, const CBlobDesc& filter, const CBlobDesc& result ) = 0;
 
 	virtual void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle& freeTerm, const CFloatHandle& result ) = 0;
@@ -760,7 +769,7 @@ struct CMathEngineInfo {
 };
 
 // CMathEngine class implements an engine to perform calculations on data specified by CMemoryHandle (CFloatHandle)
-class NEOMATHENGINE_API IMathEngine :  public IDnnEngine {
+class NEOMATHENGINE_API IMathEngine : public IDnnEngine {
 public:
 	virtual ~IMathEngine();
 	// Gets the device type
@@ -793,6 +802,9 @@ public:
 	// Gets the peak memory usage achieved during processing
 	virtual size_t GetPeakMemoryUsage() const = 0;
 
+	// The current size of memory in the pools
+	virtual size_t GetMemoryInPools() const = 0;
+
 	// Releases all temporary resources allocated for the current thread
 	virtual void CleanUp() = 0;
 
@@ -821,27 +833,6 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
-// Exception handler interface
-// Use it to change the program's reaction to exceptions
-class NEOMATHENGINE_API IMathEngineExceptionHandler {
-public:
-	virtual ~IMathEngineExceptionHandler();
-	// An error during a method call
-	// The default action is to throw std::logic_error
-	virtual void OnAssert( const char* message, const char* file, int line, int errorCode ) = 0;
-
-	// Memory cannot be allocated on device
-	// The default action is to throw std::bad_alloc
-	virtual void OnMemoryError() = 0;
-};
-
-// Set exception handler interface for whole programm.
-NEOMATHENGINE_API void SetMathEngineExceptionHandler( IMathEngineExceptionHandler* exceptionHandler );
-
-// Get current exception handler interface
-// Returns null if use default
-NEOMATHENGINE_API IMathEngineExceptionHandler* GetMathEngineExceptionHandler();
-
 // Creates a math engine that uses a CPU for calculations
 // You should call SetMathEngineExceptionHandler() before this call
 // threadCount is the number of threads that may be used;
@@ -849,13 +840,24 @@ NEOMATHENGINE_API IMathEngineExceptionHandler* GetMathEngineExceptionHandler();
 // This math engine should be destroyed using the standard delete operator after use
 NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit );
 
+// Destroys all global data that is shared between CPU math engines
+// Should be called only if there are no running CpuMathEngine instances
+NEOMATHENGINE_API void CpuMathEngineCleanUp();
+
+// Gpu math engine flags
+
+// Use tensor cores in cublas (if possible)
+// If GPU supports tensor cores this flag leads to faster but less precise GEMM operations
+// Works only if MET_Cuda and device is Titan V, geforce 16** or newer
+const int GpuMathEngineCublasUseTensorCoresFlag = 1;
+
 // Creates a math engine that uses the recommended GPU for calculations
 // Returns null if no GPUs are available
 // You should call SetMathEngineExceptionHandler() before this call
 // memoryLimit is the limit to memory used for processing (set to 0 to have no limitation); 
 // if the limit is exceeded IMathEngineExceptionHandler::OnMemoryError() will be called
 // This math engine should be destroyed using the standard delete operator after use
-NEOMATHENGINE_API IMathEngine* CreateGpuMathEngine( size_t memoryLimit );
+NEOMATHENGINE_API IMathEngine* CreateGpuMathEngine( size_t memoryLimit, int flags = 0 );
 
 // The GPU manager interface
 // Allows you to access the information about all available GPUs
@@ -872,7 +874,7 @@ public:
 	// index is the number of the GPU in the list of all available devices (may be from 0 to GetMathEngineCount() - 1)
 	// memoryLimit is the limit to memory used for processing (set to 0 to have no limitation); 
 	// if the limit is exceeded IMathEngineExceptionHandler::OnMemoryError() will be called
-	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit ) const = 0;
+	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit, int flags = 0 ) const = 0;
 };
 
 // Creates a GPU manager

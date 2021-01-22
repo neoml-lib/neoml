@@ -23,11 +23,11 @@ namespace NeoML {
 // CEltwiseBaseLayer is the base class for layers performing elementwise operations
 class NEOML_API CEltwiseBaseLayer : public CBaseLayer {
 public:
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	explicit CEltwiseBaseLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnEltwiseBaseLayer", false ) {}
-	virtual void Reshape() override;
+	CEltwiseBaseLayer( IMathEngine& mathEngine, const char* name ) : CBaseLayer( mathEngine, name, false ) {}
+	void Reshape() override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -36,14 +36,16 @@ protected:
 class NEOML_API CEltwiseSumLayer : public CEltwiseBaseLayer {
 	NEOML_DNN_LAYER( CEltwiseSumLayer )
 public:
-	explicit CEltwiseSumLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName( "CCnnEltwiseSumLayer" ); }
+	explicit CEltwiseSumLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine, "CCnnEltwiseSumLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CEltwiseSumLayer> Sum();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -51,14 +53,16 @@ protected:
 class NEOML_API CEltwiseMulLayer : public CEltwiseBaseLayer {
 	NEOML_DNN_LAYER( CEltwiseMulLayer )
 public:
-	explicit CEltwiseMulLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName( "CCnnEltwiseMulLayer" ); }
+	explicit CEltwiseMulLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine, "CCnnEltwiseMulLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CEltwiseMulLayer> Mul();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -67,19 +71,21 @@ protected:
 class NEOML_API CEltwiseNegMulLayer : public CEltwiseBaseLayer {
 	NEOML_DNN_LAYER( CEltwiseNegMulLayer )
 public:
-	explicit CEltwiseNegMulLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName( "CCnnEltwiseNegMulLayer" ); }
+	explicit CEltwiseNegMulLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine, "CCnnEltwiseNegMulLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	CPtr<CDnnBlob> oneVector;
 	CPtr<CDnnBlob> negInputBlob;
 };
+
+NEOML_API CLayerWrapper<CEltwiseNegMulLayer> NegMul();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -87,20 +93,22 @@ private:
 class NEOML_API CEltwiseMaxLayer : public CEltwiseBaseLayer {
 	NEOML_DNN_LAYER( CEltwiseMaxLayer )
 public:
-	explicit CEltwiseMaxLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine ) { SetName("CCnnEltwiseMaxLayer"); }
+	explicit CEltwiseMaxLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine, "CCnnEltwiseMaxLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	CArray< CArray<CConstFloatHandle> > vectorsArray;
 	CArray< CArray<CFloatHandle> > diffVectorsArray;
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	CPtr<CDnnBlob> maxIndices; // the indices of the inputs that had the largest elements
 };
+
+NEOML_API CLayerWrapper<CEltwiseMaxLayer> Max();
 
 } // namespace NeoML

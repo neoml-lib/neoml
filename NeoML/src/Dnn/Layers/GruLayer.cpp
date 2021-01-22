@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,9 +25,8 @@ limitations under the License.
 namespace NeoML {
 
 CGruLayer::CGruLayer( IMathEngine& mathEngine ) :
-	CRecurrentLayer( mathEngine )
+	CRecurrentLayer( mathEngine, "CCnnGruLayer" )
 {
-	SetName("CCnnGruLayer");
 	buildLayer();
 }
 
@@ -141,6 +140,13 @@ void CGruLayer::Serialize( CArchive& archive )
 		splitLayer = CheckCast<CSplitChannelsLayer>( GetLayer( splitLayer->GetName() ) );
 		mainBackLink = CheckCast<CBackLinkLayer>( GetLayer( mainBackLink->GetName() ) );
 	}
+}
+
+CLayerWrapper<CGruLayer> Gru( int hiddenSize )
+{
+	return CLayerWrapper<CGruLayer>( "Gru", [=]( CGruLayer* result ) {
+		result->SetHiddenSize( hiddenSize );
+	} );
 }
 
 } // namespace NeoML

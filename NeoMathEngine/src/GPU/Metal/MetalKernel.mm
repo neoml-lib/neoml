@@ -89,12 +89,12 @@ CMetalKernel::CMetalKernel( CMetalCommandQueue& _queue, const char* name, int de
     threadgroupWidth( 0 ),
     computeEncoder( nil )
 {
-    assert( depth > 0 );
-    assert( height > 0 );
-    assert( width > 0 );
-    assert( depthCombine > 0 );
-    assert( heightCombine > 0 );
-    assert( widthCombine > 0 );
+    ASSERT_EXPR( depth > 0 );
+    ASSERT_EXPR( height > 0 );
+    ASSERT_EXPR( width > 0 );
+    ASSERT_EXPR( depthCombine > 0 );
+    ASSERT_EXPR( heightCombine > 0 );
+    ASSERT_EXPR( widthCombine > 0 );
 
     // Create a buffer to load the new kernel for processing
     commandBuffer = std::unique_ptr<CMetalCommandBuffer>( queue.CreateCommandBuffer() );

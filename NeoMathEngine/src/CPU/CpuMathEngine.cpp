@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ limitations under the License.
 #include <MathEngineHostStackAllocator.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <NeoMathEngine/SimdMathEngine.h>
+#include <DllLoader.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
@@ -30,7 +32,7 @@ limitations under the License.
 #error "Platform is not supported!";
 #endif
 
-#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
+#if( FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX ) ) && !FINE_ARCHITECTURE( FINE_ARM64 )
 #include <cpuid.h>
 #endif
 
@@ -99,18 +101,20 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 	floatAlignment( defineFloatAlignment() ),
 	memoryAlignment( floatAlignment * sizeof(float) ),
 	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, false ) ),
-	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) )
+	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
+	dllLoader( CDllLoader::AVX_DLL ),
+	simdMathEngine( nullptr )
 {
+#ifdef NEOML_USE_AVX
+	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
+		simdMathEngine = unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
+	}
+#endif
 }
 
 CCpuMathEngine::~CCpuMathEngine()
 {
 	CleanUp();
-#ifdef NEOML_USE_MKL
-	// mkl_thread_free_buffers does not free the memory completely
-	// Looks like a bug in mkl
-	mkl_free_buffers();
-#endif
 }
 
 void CCpuMathEngine::SetReuseMemoryMode( bool enable )
@@ -165,10 +169,17 @@ size_t CCpuMathEngine::GetPeakMemoryUsage() const
 	return memoryPool->GetPeakMemoryUsage();
 }
 
+size_t CCpuMathEngine::GetMemoryInPools() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetMemoryInPools();
+}
+
 void CCpuMathEngine::CleanUp()
 {
 	std::lock_guard<std::mutex> lock( mutex );
 	stackAllocator->CleanUp();
+	memoryPool->CleanUp();
 #ifdef NEOML_USE_MKL
 	NEOML_OMP_NUM_THREADS( threadCount )
 	{
@@ -221,7 +232,7 @@ CMemoryHandle CCpuMathEngine::Alloc( size_t size )
 		char* p = static_cast<char*>(malloc(size + memoryAlignment));
 		if( p != 0 ) {
 			const intptr_t delta = memoryAlignment - std::abs( ( reinterpret_cast<intptr_t>( p ) % memoryAlignment ) );
-			assert( delta > 0 && delta <= static_cast<intptr_t>( memoryAlignment ) );
+			ASSERT_EXPR( delta > 0 && delta <= static_cast<intptr_t>( memoryAlignment ) );
 
 			p[delta - 1] = static_cast<char>( delta - 1 );
 			ptr = p + delta;
@@ -270,4 +281,12 @@ IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters() const
 #endif
 }
 
+void CpuMathEngineCleanUp()
+{
+#ifdef NEOML_USE_MKL
+	// mkl_thread_free_buffers does not free the memory completely
+	// Looks like a bug in mkl
+	mkl_free_buffers();
+#endif
+}
 } // namespace NeoML

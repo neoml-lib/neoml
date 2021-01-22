@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,54 +16,31 @@ limitations under the License.
 #pragma once
 
 #include <cassert>
-#include <new>
 #include <NeoMathEngine/NeoMathEngine.h>
 
-#define __merge__2( a, b )	a##b
-#define __merge__1( a, b )	__merge__2( a, b )
-#define __UNICODEFILE__	__merge__1( L, __FILE__ )
+namespace NeoML {
 
-inline void generateAssert( NeoML::IMathEngineExceptionHandler* exceptionHandler, const char* expr, const char* file, int line, int errorCode )
+inline int Ceil( int val, int discret )
 {
-	exceptionHandler->OnAssert( expr, file, line, errorCode );
+	PRESUME_EXPR( discret > 0 );
+	if( val > 0 ) {
+		return ( val + discret - 1 ) / discret;
+	}
+	return val / discret;
 }
 
-inline void generateMemoryError( NeoML::IMathEngineExceptionHandler* exceptionHandler )
+inline int Floor( int val, int discret )
 {
-	exceptionHandler->OnMemoryError();
+	PRESUME_EXPR( discret > 0 );
+	if( val > 0 ) {
+		return val / discret;
+	}
+	return ( val - discret + 1 ) / discret;
 }
 
-#define ASSERT_ERROR_CODE( expr ) \
-	do { \
-		int _err_ = (int)(expr); \
-		if(_err_ != 0) { \
-			NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
-			if( exceptionHandler != 0 ) { \
-				generateAssert( exceptionHandler, #expr, __FILE__, __LINE__, _err_ ); \
-			} else { \
-				throw std::logic_error( #expr ); \
-			} \
-		} \
-	} while(0)
+inline int FloorTo( int val, int discret )
+{
+	return Floor( val, discret ) * discret;
+}
 
-#define ASSERT_EXPR( expr ) \
-	do { \
-		if(!(expr)) { \
-			NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
-			if( exceptionHandler != 0 ) { \
-				generateAssert( exceptionHandler, #expr, __FILE__, __LINE__, 0 ); \
-			} else { \
-				throw std::logic_error( #expr ); \
-			} \
-		} \
-	} while(0)
-
-#define THROW_MEMORY_EXCEPTION \
-	do { \
-		NeoML::IMathEngineExceptionHandler* exceptionHandler = GetMathEngineExceptionHandler(); \
-		if( exceptionHandler != 0 ) { \
-			generateMemoryError( exceptionHandler ); \
-		} else { \
-			throw std::bad_alloc(); \
-		} \
-	} while(0)
+}

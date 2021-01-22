@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,12 +21,13 @@ limitations under the License.
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <LinearBinaryModel.h>
 #include <NeoMathEngine/OpenMP.h>
+#include <SMOptimizer.h>
 
 namespace NeoML {
 
 CSvmBinaryClassifierBuilder::CSvmBinaryClassifierBuilder( const CParams& _params ) :
 	params( _params ),
-	log( 0 )
+	log( nullptr )
 {
 }
 
@@ -34,8 +35,9 @@ CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const IProblem& problem )
 {
 	CSvmKernel kernel( params.KernelType, params.Degree, params.Gamma, params.Coeff0 );
 
-	CSMOptimizer optimizer( kernel, problem, params.ErrorWeight, params.Tolerance );
-	if( log != 0 ) {
+	CSMOptimizer optimizer( kernel, problem, params.MaxIterations, params.ErrorWeight, params.Tolerance,
+		params.DoShrinking );
+	if( log != nullptr ) {
 		optimizer.SetLog( log );
 	}
 

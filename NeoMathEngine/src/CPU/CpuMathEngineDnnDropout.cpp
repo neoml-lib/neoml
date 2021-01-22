@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ void CCpuMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandl
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
 
-	assert( desc.Mask.Size() == maskSize );
+	ASSERT_EXPR( desc.Mask.Size() == maskSize );
 
 	if( !desc.IsSpatial ) {
 		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(), outputData,

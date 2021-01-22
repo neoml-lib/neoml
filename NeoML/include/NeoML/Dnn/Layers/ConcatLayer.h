@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ namespace NeoML {
 // CBaseConcatLayer is a base class for blob concatenation layers
 class NEOML_API CBaseConcatLayer : public CBaseLayer {
 public:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	const TBlobDim dimension;
@@ -43,8 +43,10 @@ class NEOML_API CConcatChannelsLayer : public CBaseConcatLayer {
 public:
 	explicit CConcatChannelsLayer( IMathEngine& mathEngine ) : CBaseConcatLayer( mathEngine, BD_Channels, "CCnnConcatChannelsLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 };
+
+NEOML_API CLayerWrapper<CConcatChannelsLayer> ConcatChannels();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -54,8 +56,10 @@ class NEOML_API CConcatDepthLayer : public CBaseConcatLayer {
 public:
 	explicit CConcatDepthLayer( IMathEngine& mathEngine ) : CBaseConcatLayer( mathEngine, BD_Depth, "CCnnConcatDepthLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 };
+
+NEOML_API CLayerWrapper<CConcatDepthLayer> ConcatDepth();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -65,8 +69,10 @@ class NEOML_API CConcatWidthLayer : public CBaseConcatLayer {
 public:
 	explicit CConcatWidthLayer( IMathEngine& mathEngine ) : CBaseConcatLayer( mathEngine, BD_Width, "CCnnConcatWidthLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 };
+
+NEOML_API CLayerWrapper<CConcatWidthLayer> ConcatWidth();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -76,8 +82,10 @@ class NEOML_API CConcatHeightLayer : public CBaseConcatLayer {
 public:
 	explicit CConcatHeightLayer( IMathEngine& mathEngine ) : CBaseConcatLayer( mathEngine, BD_Height, "CCnnConcatHeightLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 };
+
+NEOML_API CLayerWrapper<CConcatHeightLayer> ConcatHeight();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -88,8 +96,10 @@ class NEOML_API CConcatBatchWidthLayer : public CBaseConcatLayer {
 public:
 	explicit CConcatBatchWidthLayer( IMathEngine& mathEngine ) : CBaseConcatLayer( mathEngine, BD_BatchWidth, "CCnnConcatBatchWidthLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 };
+
+NEOML_API CLayerWrapper<CConcatBatchWidthLayer> ConcatBatchWidth();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -101,12 +111,14 @@ class NEOML_API CConcatObjectLayer : public CBaseLayer {
 public:
 	explicit CConcatObjectLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnConcatObjectLayer", false ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CConcatObjectLayer> ConcatObject();
 
 } // namespace NeoML

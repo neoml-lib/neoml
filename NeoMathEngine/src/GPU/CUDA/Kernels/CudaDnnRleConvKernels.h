@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ __global__ void BlobConvertFromRleKernel( const CCudaConvolutionDescInternal con
 		return;
 	}
 	const CCudaRleImage* __restrict__ image = reinterpret_cast<const CCudaRleImage*>(
-		(const char* __restrict__)sourceData + num * objectSize);
+		(const char*)sourceData + num * objectSize);
 	float* output = GetBlobPtr(source, resultData, num, line, 0, 0);
 
 	int imageStart = (source.Height() - image->Height) / 2;

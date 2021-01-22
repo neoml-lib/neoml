@@ -26,7 +26,7 @@ class NEOML_API CEnumBinarizationLayer : public CBaseLayer {
 public:
 	explicit CEnumBinarizationLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Enumeration size
 	void SetEnumSize(int _enumSize);
@@ -34,14 +34,16 @@ public:
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// The size
 	int enumSize;
 };
+
+NEOML_API CLayerWrapper<CEnumBinarizationLayer> EnumBinarization( int enumSize );
 
 //-------------------------------------------------------------------------------------------------
 
@@ -52,7 +54,7 @@ class NEOML_API CBitSetVectorizationLayer : public CBaseLayer {
 public:
 	explicit CBitSetVectorizationLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Bitset size
 	void SetBitSetSize( int _bitSetSize );
@@ -60,9 +62,9 @@ public:
 
 protected:
 	// CBaseLayer methods
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// The size

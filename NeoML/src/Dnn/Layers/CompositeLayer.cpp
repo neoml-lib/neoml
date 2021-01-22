@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -154,8 +154,8 @@ void CCompositeSinkLayer::Serialize( CArchive& archive )
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-CCompositeLayer::CCompositeLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnCompositeLayer", true ),
+CCompositeLayer::CCompositeLayer( IMathEngine& mathEngine, const char* name ) :
+	CBaseLayer( mathEngine, name == nullptr ? "CCnnCompositeLayer" : name, true ),
 	internalDnn( 0 ),
 	areInternalLogsEnabled( true )
 {
@@ -429,9 +429,30 @@ size_t CCompositeLayer::GetOutputBlobsSize() const
 	return result;
 }
 
+size_t CCompositeLayer::GetTrainableParametersSize() const
+{
+	if( !IsLearnable() ) {
+		return 0;
+	}
+
+	size_t result = 0;
+	for( int i = 0; i < internalDnn->layers.Size(); i++ ) {
+		result += internalDnn->layers[i]->GetTrainableParametersSize();
+	}
+	return result;
+}
+
 void CCompositeLayer::RestartSequence()
 {
 	internalDnn->RestartSequence();
+}
+
+void CCompositeLayer::EnableProfile( bool profile )
+{
+	CBaseLayer::EnableProfile( profile );
+	for( int i = 0; i < layers.Size(); ++i ) {
+		layers[i]->EnableProfile( profile );
+	}
 }
 
 void CCompositeLayer::Reshape()

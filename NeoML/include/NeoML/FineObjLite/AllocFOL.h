@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,6 +49,25 @@ inline void* CurrentMemoryManager::Alloc( size_t size )
 inline void CurrentMemoryManager::Free( void* ptr )
 {
 	::operator delete( ptr );
+}
+
+//-----------------------------------------------------------------------------------------------
+
+// Working with memory via malloc/free
+class RuntimeHeap {
+public:
+	static void* Alloc( size_t size );
+	static void Free( void* ptr );
+};
+
+inline void* RuntimeHeap::Alloc( size_t size )
+{
+	return ::malloc( size );
+}
+
+inline void RuntimeHeap::Free( void* ptr )
+{
+	::free( ptr );
 }
 
 } // namespace FObj

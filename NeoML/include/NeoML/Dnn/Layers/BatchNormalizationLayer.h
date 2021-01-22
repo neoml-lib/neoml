@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ class NEOML_API CBatchNormalizationLayer : public CBaseLayer {
 public:
 	explicit CBatchNormalizationLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Clears the statistics, keeping only the final parameters
 	// May help to reduce memory consumption (both at runtime and needed for serialization)
@@ -59,10 +59,10 @@ public:
 	void UseFinalParamsForInitialization( bool use ) { useFinalParamsForInitialization = use; }
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	bool isChannelBased;
@@ -119,5 +119,8 @@ private:
 
 	void initializeFromFinalParams();
 };
+
+NEOML_API CLayerWrapper<CBatchNormalizationLayer> BatchNormalization(
+	bool isChannelBased, bool isZeroFreeTerm = false, float slowConvergenceRate = 1.0f );
 
 } // namespace NeoML

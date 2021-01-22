@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,13 +30,15 @@ limitations under the License.
 #include <NeoML/TraditionalML/LinearBinaryClassifierBuilder.h>
 #include <NeoML/TraditionalML/DecisionTreeTrainingModel.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
-#include <NeoML/TraditionalML/SMOptimizer.h>
 #include <NeoML/TraditionalML/SvmBinaryClassifierBuilder.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <NeoML/TraditionalML/DifferentialEvolution.h>
 #include <NeoML/Dnn/DnnBlob.h>
 #include <NeoML/Dnn/DnnSparseMatrix.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <NeoML/Dnn/Layers/SourceLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 #include <NeoML/Dnn/Layers/ConcatLayer.h>
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
@@ -48,6 +50,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoML/Dnn/Layers/BatchNormalizationLayer.h>
+#include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
 #include <NeoML/Dnn/Layers/ImageResizeLayer.h>
 #include <NeoML/Dnn/Layers/BackLinkLayer.h>
@@ -100,6 +103,13 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/RepeatSequenceLayer.h>
 #include <NeoML/Dnn/Layers/DotProductLayer.h>
 #include <NeoML/Dnn/Layers/CtcLayer.h>
+#include <NeoML/Dnn/Layers/AddToObjectLayer.h>
+#include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
+#include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
+#include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
+#include <NeoML/Dnn/Layers/GELULayer.h>
+#include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
+#include <NeoML/Dnn/Layers/QrnnLayer.h>
 #include <NeoML/ArchiveFile.h>
 
 #ifndef NO_NEOML_NAMESPACE

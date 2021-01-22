@@ -17,17 +17,18 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 
 namespace NeoML {
 
 // CTransformLayer implements a layer that changes the blob dimensions without shifting the data in memory
 // For example, you may double the height and halve the width
-class NEOML_API CTransformLayer : public CBaseLayer {
+class NEOML_API CTransformLayer : public CBaseInPlaceLayer {
 	NEOML_DNN_LAYER( CTransformLayer )
 public:
 	explicit CTransformLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// The operation to be performed over the given dimension
 	enum TOperation {
@@ -66,14 +67,28 @@ public:
 protected:
 	~CTransformLayer();
 
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void OnReshaped() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// Transformation parameters for all dimensions
 	CDimensionRule rules[BD_Count];
+
+	// Blob descs
+	CBlobDesc inputDesc;
+	CBlobDesc outputDesc;
 };
+
+// Special values for parameters in Transform:
+
+// Shape inference, only one layer should have this value.
+const int TransformInferenceRemainder = -1;
+// Rest dimension the same.
+const int TransformInferenceSame = -2;
+
+NEOML_API CLayerWrapper<CTransformLayer> Transform( int batchLength,
+	int batchWidth, int listSize, int height, int width, int depth, int channel );
 
 } // namespace NeoML
 

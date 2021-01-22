@@ -11,6 +11,7 @@
         - [Синхронизация работы с GPU](#синхронизация-работы-с-gpu)
         - [Прогрев](#прогрев)
     - [Создание и настройка объекта IMathEngine](#создание-и-настройка-объекта-imathengine)
+        - [Обработка исключений](#обработка-исключений)
         - [Создать движок по умолчанию для CPU](#создать-движок-по-умолчанию-для-cpu)
         - [Создать рекомендованный движок для GPU](#создать-рекомендованный-движок-для-gpu)
         - [Создать произвольный CPU движок](#создать-произвольный-cpu-движок)
@@ -81,6 +82,39 @@ iOS | ARM Neon | Metal
 Создать или получить вычислительный движок можно несколькими способами.
 Если движок не уничтожается автоматически, то перед его уничтожением необходимо освободить всю используемую память, то есть удалить все созданные на этом движке блобы (в том числе могут содержаться в объектах слоёв и сетей, поэтому их также необходимо удалить).
 
+### Обработка исключений
+
+По умолчанию, в случае возникновения исключительной ситуации функции `NeoML` бросают исключения `std::logic_error` или `std::bad_alloc` при нехватке памяти.
+
+Однако, это поведение может быть изменено путём установки обработчика исключений.
+
+```c++
+// Интерфейс обработчика ошибок
+// Используется для изменения поведения программы при исключительных ситуациях
+class NEOMATHENGINE_API IMathEngineExceptionHandler {
+public:
+	virtual ~IMathEngineExceptionHandler();
+	// Во время вызова метода произошла ошибка
+	// По умолчанию бросает std::logic_error
+	virtual void OnAssert( const char* message, const wchar_t* file, int line, int errorCode ) = 0;
+
+	// Не удалось выделить память на устройстве
+	// По умолчанию бросает std::bad_alloc
+	virtual void OnMemoryError() = 0;
+};
+
+// Установить обработчик исключительных ситуаций для всей программы
+// exceptionHandler равный null означает использование обработчика по умолчанию
+// Обработчик не по умолчанию должен быть удален вызвавшим после использования
+NEOMATHENGINE_API void SetMathEngineExceptionHandler( IMathEngineExceptionHandler* exceptionHandler );
+
+// Получить текущий обработчик исключительных ситуаций
+// Возвращает null если используется обработчик по умолчанию
+NEOMATHENGINE_API IMathEngineExceptionHandler* GetMathEngineExceptionHandler();
+```
+
+Для обработки исключений не по умолчанию рекомендуется устанавливать обработчик перед созданием вычислительных движков.
+
 ### Создать движок по умолчанию для CPU
 
 ```c++
@@ -105,7 +139,7 @@ IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit );
 ### Создать произвольный CPU движок
 
 ```c++
-IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit, IMathEngineExceptionHandler* exceptionHandler );
+IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit );
 ```
 Функция создает вычислительный движок, работающий на CPU, с возможностью задать лимит памяти и потоков, а также собственный обработчик исключений. Вызвавший сам должен уничтожить полученный объект после использования.
 
@@ -113,12 +147,11 @@ IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit, IMathEngi
 
 * *threadCount* - ограничение на число потоков;
 * *memoryLimit* - ограничение используемой памяти; значение `0` позволяет использовать всю доступную память.
-* *exceptionHandler* - обработчик исключений. Передайте `null`, чтобы исключения обрабатывались стандартными средствами библиотеки.
 
 ### Создать произвольный GPU движок
 
 ```c++
-IMathEngine* CreateGpuMathEngine( size_t memoryLimit, IMathEngineExceptionHandler* exceptionHandler );
+IMathEngine* CreateGpuMathEngine( size_t memoryLimit );
 ```
 
 Функция создает вычислительный движок, работающий на GPU, с возможностью задать лимит памяти и собственный обработчик исключений. Вызвавший сам должен уничтожить полученный объект после использования.
@@ -126,7 +159,6 @@ IMathEngine* CreateGpuMathEngine( size_t memoryLimit, IMathEngineExceptionHandle
 #### Параметры
 
 * *memoryLimit* - ограничение используемой памяти; значение `0` позволяет использовать всю доступную память.
-* *exceptionHandler* - обработчик исключений. Передайте `null`, чтобы исключения обрабатывались стандартными средствами библиотеки.
 
 ### Использовать менеджер движков на GPU
 
@@ -147,8 +179,7 @@ public:
 	// Создать движок на графическом вычислительном устройстве.
 	// index - индекс устройства в списке доступных ( от 0 до GetMathEngineCount() - 1 ).
 	// memoryLimit - ограничение по памяти на устройстве. В случае превышения IMathEngineExceptionHandler::OnMemoryError().
-	// exceptionHandler - обработчик исключительных ситуаций. Если 0, используется обработка по умолчанию, см. IMathEngineExceptionHandler.
-	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit, IMathEngineExceptionHandler* exceptionHandler ) const = 0;
+	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit ) const = 0;
 };
 ~~~
 
@@ -160,4 +191,3 @@ IGpuMathEngineManager* CreateGpuMathEngineManager();
 ~~~
 
 Созданные с помощью менеджера вычислительные движки должны быть уничтожены после использования.
-

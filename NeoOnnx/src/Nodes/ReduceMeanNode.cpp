@@ -19,25 +19,28 @@ limitations under the License.
 #include "ReduceMeanNode.h"
 #include "NeoOnnxCheck.h"
 
-#include "proto/onnx.pb.h"
+#include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CReduceMeanNode::CReduceMeanNode( const onnx::NodeProto& reduceMean, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( reduceMean, nodeOutputs ),
-	keepDims( attributes.GetOptionalInt( "keepdims", 1 ) )
+CReduceMeanNode::CReduceMeanNode( int nodeIndex, const onnx::NodeProto& reduceMean, int opsetVersion ) :
+	CGlobalPoolNodeBase( nodeIndex, reduceMean, opsetVersion ),
+	keepDims( Attributes.GetOptionalInt( "keepdims", 1 ) )
 {
-	CheckOnnxProtocol( input.Size() == 1, "node must have 1 input", reduceMean );
+	// The differences between versions are in negative indices support
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", reduceMean );
+
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", reduceMean );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", reduceMean );
 
-	attributes.GetRequiredIntArray( "axes", axes );
+	Attributes.GetRequiredIntArray( "axes", axes );
 }
 
-void CReduceMeanNode::OnnxReshape()
+void CReduceMeanNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_DataTensor, "constant input", onnxNode );
-	const CTensorShape& inputShape = InputTensor( 0 ).GetShape();
-	CTensorShape outputShape;
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", OnnxNode );
+	const CTensorShape& inputShape = tensors[Input[0]].Shape;
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 
 	int axisIndex = 0;
 	for( int i = 0; i < inputShape.Size(); ++i ) {
@@ -51,17 +54,18 @@ void CReduceMeanNode::OnnxReshape()
 		}
 	}
 
-	outputData.Add( CTensor( TT_DataTensor, outputShape ) );
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CReduceMeanNode::MarkTensorDims()
+void CReduceMeanNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	const CTensorDim& inputDim = InputTensor( 0 ).GetTensorDim();
-	CheckNeoOnnxInternal( inputDim.Size() == InputTensor( 0 ).GetShape().Size(),
-		"input's dimensions must be marked", onnxNode );
+	const CTensorDim& inputDim = dims[Input[0]];
+	CheckNeoOnnxInternal( inputDim.Size() == tensors[Input[0]].Shape.Size(),
+		"input's dimensions must be marked", OnnxNode );
 
 	if( keepDims != 0 ) {
-		CheckNeoOnnxInternal( outputData[0].SetTensorDim( inputDim ), "marking output dimensions failed", onnxNode );
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, inputDim, dims[Output[0]] ),
+			"labeling output dimensions failed", OnnxNode );
 		return;
 	}
 
@@ -75,55 +79,20 @@ void CReduceMeanNode::MarkTensorDims()
 		}
 	}
 
-	CheckNeoOnnxInternal( outputData[0].SetTensorDim( outputDim ), "marking output dimensions failed", onnxNode );
+	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, outputDim, dims[Output[0]] ),
+		"labeling output dimensions failed", OnnxNode );
 }
 
-static const int pool2dDims = ( 1 << static_cast<int>( BD_Height ) ) | ( 1 << static_cast<int>( BD_Width ) );
-
-void CReduceMeanNode::AddLayers( CDnn& dnn )
+void CReduceMeanNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	int pooledDims = 0;
-	CArray<int> axes;
-	attributes.GetRequiredIntArray( "axes", axes );
-
+	CTensorDim dimsToPool;
+	const CTensorDim& inputDim = dims[Input[0]];
 	for( int axisIndex = 0; axisIndex < axes.Size(); ++axisIndex ) {
-		pooledDims |= ( 1 << static_cast<int>( InputTensor( 0 ).GetTensorDim()[axes[axisIndex]] ) );
+		dimsToPool.Add( inputDim[axes[axisIndex]] );
 	}
 
-	CheckNeoOnnxSupport( ( pooledDims | pool2dDims ) == pool2dDims,
-		"reduce over dimensions other than BD_Height and BD_Width", onnxNode );
-
-	add2dPoolingLayer( dnn, pooledDims );
-}
-
-void CReduceMeanNode::add2dPoolingLayer( CDnn& dnn, int pooledDims )
-{
-	CPtr<CMeanPoolingLayer> poolingLayer = new CMeanPoolingLayer( dnn.GetMathEngine() );
-	poolingLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
-
-	// Making it global.
-	for( int axisIndex = 0; axisIndex < axes.Size(); ++axisIndex ) {
-		TBlobDim dim = InputTensor( 0 ).GetTensorDim()[axes[axisIndex]];
-		const bool isDimPooled = ( ( ( 1 << static_cast<int>( dim ) ) & pooledDims ) != 0 );
-		switch( dim ) {
-			case BD_Height:
-				poolingLayer->SetFilterHeight( isDimPooled ? InputTensor( 0 ).GetShape()[axes[axisIndex]] : 1 );
-				poolingLayer->SetStrideHeight( 1 );
-				break;
-			case BD_Width:
-				poolingLayer->SetFilterWidth( isDimPooled ? InputTensor( 0 ).GetShape()[axes[axisIndex]] : 1 );
-				poolingLayer->SetStrideWidth( 1 );
-				break;
-			default:
-				CheckNeoOnnxInternal( false, CString( "dimension " ) + Str( dim ) + " can not be pooled",
-					onnxNode );
-		}
-	}
-
-	poolingLayer->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
-	dnn.AddLayer( *poolingLayer );
-
-	outputInfo.Add( COutputInfo( poolingLayer, 0 ) );
+	AddPoolingLayer( PT_Mean, dimsToPool, tensors[Input[0]].Shape, inputDim, neoMLLinks, dnn );
 }
 
 } // namespace NeoOnnx

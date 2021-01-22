@@ -17,21 +17,18 @@ limitations under the License.
 
 #include "../Node.h"
 
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
-
 namespace NeoOnnx {
 
-class CClipNode : public CNode {
+// Clip operator graph node
+class CClipNode : public COpNode {
 public:
-	CClipNode( const onnx::NodeProto& clip, CMap<CString, CInputInfo>& nodeOutputs );
+	CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion );
 
-	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
 	// Clip( x, minValue, maxValue ) = max( minValue, min( maxValue, x ) )

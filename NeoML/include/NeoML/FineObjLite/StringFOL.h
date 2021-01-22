@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,15 @@ public:
 	CString( const std::string& str ) : std::string( str ) {}
 
 	operator const char*() const { return data(); }
+
+	int Find( const CString& other ) const;
 };
+
+inline int CString::Find( const CString& other ) const
+{
+	size_t found = std::string::find( other );
+	return found == std::string::npos ? -1 : static_cast<int>( found );
+}
 
 inline CString operator+( const CString& first, const CString& second )
 {

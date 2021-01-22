@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <NeoML/Dnn/Layers/SourceLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
 #include <NeoML/Dnn/Layers/ConcatLayer.h>
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
@@ -26,8 +29,10 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/FullyConnectedSourceLayer.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/PoolingLayer.h>
+#include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoML/Dnn/Layers/BatchNormalizationLayer.h>
+#include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
 #include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
@@ -69,15 +74,21 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/RepeatSequenceLayer.h>
 #include <NeoML/Dnn/Layers/DotProductLayer.h>
 #include <NeoML/Dnn/Layers/ReorgLayer.h>
+#include <NeoML/Dnn/Layers/AddToObjectLayer.h>
+#include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
+#include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
+#include <NeoML/Dnn/Layers/GELULayer.h>
+#include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
+#include <NeoML/Dnn/Layers/QrnnLayer.h>
 
 namespace NeoML {
 
 // The minimum size of temporary data blobs to start reusing memory
 static const size_t MinReuseMemoryModeNetSize = 4 * 1024 * 1024;
 
-static CMap<CString, TCreateLayerFunction>& getRegisteredLayers()
+static CMap<CString, TCreateLayerFunction, CDefaultHash<CString>, RuntimeHeap>& getRegisteredLayers()
 {
-	static CMap<CString, TCreateLayerFunction> registeredLayers;
+	static CMap<CString, TCreateLayerFunction, CDefaultHash<CString>, RuntimeHeap> registeredLayers;
 	return registeredLayers;
 }
 
@@ -95,9 +106,9 @@ struct CTypeInfoNameHash {
 	}
 };
 
-static CMap<const std::type_info*, CString, CTypeInfoNameHash>& getLayerNames()
+static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap>& getLayerNames()
 {
-	static CMap<const std::type_info*, CString, CTypeInfoNameHash> layerNames;
+	static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap> layerNames;
 	return layerNames;
 }
 
@@ -116,6 +127,17 @@ void UnregisterLayerName( const std::type_info& typeInfo )
 {
 	getRegisteredLayers().Delete( getLayerNames().Get( &typeInfo ) );
 	getLayerNames().Delete( &typeInfo );
+}
+
+bool IsRegisteredLayerName( const char* name )
+{
+	return getRegisteredLayers().Has( name );
+}
+
+CPtr<CBaseLayer> CreateLayer( const char* name, IMathEngine& mathEngine )
+{
+	NeoAssert( getRegisteredLayers().Has( name ) );
+	return getRegisteredLayers()[name]( mathEngine );
 }
 
 static CPtr<CBaseLayer> createLayer( IMathEngine& mathEngine, const CString& className )
@@ -205,6 +227,7 @@ REGISTER_NEOML_LAYER( CHingeLossLayer, "FmlCnnHingeLossLayer" )
 REGISTER_NEOML_LAYER( CSquaredHingeLossLayer, "FmlCnnSquaredHingeLossLayer" )
 REGISTER_NEOML_LAYER( CProblemSourceLayer, "FmlCnnProblemSourceLayer" )
 REGISTER_NEOML_LAYER( CBatchNormalizationLayer, "FmlCnnBatchNormalizationLayer" )
+REGISTER_NEOML_LAYER( CObjectNormalizationLayer, "NeoMLDnnObjectNormalizationLayer" )
 REGISTER_NEOML_LAYER( CLinearLayer, "FmlCnnLinearLayer" )
 REGISTER_NEOML_LAYER( CDropoutLayer, "FmlCnnDropoutLayer" )
 REGISTER_NEOML_LAYER( CImageResizeLayer, "FmlCnnImageResizeLayer" )
@@ -263,6 +286,13 @@ REGISTER_NEOML_LAYER( CCompositeSinkLayer, "FmlCompositeCnnSinkLayer" )
 REGISTER_NEOML_LAYER( CAttentionWeightedSumLayer, "FmlCnnAttentionWeightedSumLayer" )
 REGISTER_NEOML_LAYER( CAttentionDotProductLayer, "FmlCnnAttentionDotProductLayer" )
 REGISTER_NEOML_LAYER( CAttentionSumLayer, "FmlCnnAttentionSumLayer" )
+REGISTER_NEOML_LAYER( CAddToObjectLayer, "NeoMLDnnAddToObjectLayer" )
+REGISTER_NEOML_LAYER( CMatrixMultiplicationLayer, "NeoMLDnnMatrixMultiplicationLayer" )
+REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer" )
+REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLayer" )
+REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
+REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClass" )
+REGISTER_NEOML_LAYER( CQrnnLayer, "NeoMLDnnQrnnLayer" )
 
 }
 
@@ -277,15 +307,15 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
 	isRebuildNeeded( false ),
 	isBackwardPerformed( false ),
 	isLearningEnabled( true ),
-	isRecurrentMode( false ),	
+	isRecurrentMode( false ),
 	maxSequenceLength( 1 ),
-	currentSequencePos( 0 ),	
-	isReverseSequense( false ),	
+	currentSequencePos( 0 ),
+	isReverseSequense( false ),
 	autoRestartMode( true ),
 	isReuseMemoryMode( false )
 {
 	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
-	initializer = FINE_DEBUG_NEW CDnnXavierInitializer(random);
+	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
 }
 
 CDnn::~CDnn()
@@ -399,7 +429,7 @@ void CDnn::RequestReshape(bool forcedReshape)
 	}
 }
 
-void CDnn::SetSolver(CDnnSolver* _solver) 
+void CDnn::SetSolver(CDnnSolver* _solver)
 {
 	if(solver.Ptr() == _solver) {
 		return;
@@ -659,8 +689,30 @@ void CDnn::Serialize( CArchive& archive )
 			AddLayer( *layer );
 		}
 		archive >> isLearningEnabled;
+		// In order to avoid the CDnnSolver::Reset for the next solver
+		rebuild();
 	} else {
 		NeoAssert( false );
+	}
+}
+
+void CDnn::SerializeCheckpoint( CArchive& archive )
+{
+	Serialize( archive );
+	CPtr<CDnnSolver> solverPtr = nullptr;
+	if( archive.IsStoring() ) {
+		solverPtr = GetSolver();
+	}
+	SerializeSolver( archive, *this, solverPtr );
+	if( archive.IsLoading() ) {
+		SetSolver( solverPtr );
+	}
+}
+
+void CDnn::EnableProfile( bool profile )
+{
+	for( int i = 0; i < layers.Size(); ++i ) {
+		layers[i]->EnableProfile( profile );
 	}
 }
 

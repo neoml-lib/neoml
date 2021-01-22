@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,16 +26,16 @@ class NEOML_API CTransposeLayer : public CBaseLayer {
 public:
 	explicit CTransposeLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Retrieves or sets the names of the dimensions to be transposed
 	void SetTransposedDimensions(TBlobDim d1, TBlobDim d2);
 	void GetTransposedDimensions(TBlobDim& d1, TBlobDim &d2) const;
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// The dimensions to be transposed
@@ -54,5 +54,7 @@ inline void CTransposeLayer::GetTransposedDimensions(TBlobDim& _d1, TBlobDim& _d
 	_d1 = d1;
 	_d2 = d2;
 }
+
+NEOML_API CLayerWrapper<CTransposeLayer> Transpose( TBlobDim d1, TBlobDim d2 );
 
 } // namespace NeoML

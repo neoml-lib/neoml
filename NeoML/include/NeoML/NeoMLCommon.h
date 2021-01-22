@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ void NEOML_API CheckArchitecture( bool expression, const char* layerName, const 
 
 // Throws the exception with an internal error message
 bool NEOML_API ThrowInternalError( TInternalErrorType errorType, const char* functionName,
-	const char* errorText, const char* fileName, int line, int errorCode );
+	const char* errorText, const wchar_t* fileName, int line, int errorCode );
 } // namespace NeoML
 
 #ifdef _DEBUG
@@ -32,7 +32,7 @@ bool NEOML_API ThrowInternalError( TInternalErrorType errorType, const char* fun
 #define NeoAssert( expr ) \
 if( !( expr ) ) { \
 	FineDebugBreak();	\
-	if( NeoML::ThrowInternalError( IET_Assert, __FUNCTION__, "", __FILE__, __LINE__, 0 ) ) \
+	if( NeoML::ThrowInternalError( IET_Assert, __FUNCTION__, "", __UNICODEFILE__, __LINE__, 0 ) ) \
 		FineBreakPoint(); \
 } else \
 	( ( void )1 )
@@ -40,7 +40,7 @@ if( !( expr ) ) { \
 #define NeoPresume( expr ) \
 if( !( expr ) ) { \
 	FineDebugBreak();	\
-	if( NeoML::ThrowInternalError( IET_Presume, __FUNCTION__, "", __FILE__, __LINE__, 0 ) ) \
+	if( NeoML::ThrowInternalError( IET_Presume, __FUNCTION__, "", __UNICODEFILE__, __LINE__, 0 ) ) \
 		FineBreakPoint(); \
 } else \
 		( ( void )1 )
@@ -49,7 +49,7 @@ if( !( expr ) ) { \
 
 #define NeoAssert( expr ) \
 if( !( expr ) ) { \
-	NeoML::ThrowInternalError( IET_Assert, __FUNCTION__, "", __FILE__, __LINE__, 0 ); \
+	NeoML::ThrowInternalError( IET_Assert, __FUNCTION__, "", __UNICODEFILE__, __LINE__, 0 ); \
 } else \
 	( ( void )1 )
 

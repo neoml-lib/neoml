@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ limitations under the License.
 namespace NeoML {
 
 CFullyConnectedSourceLayer::CFullyConnectedSourceLayer( IMathEngine& mathEngine ) :
-	CFullyConnectedLayer( mathEngine ),
+	CFullyConnectedLayer( mathEngine, "CCnnFullyConnectedSourceLayer" ),
 	problem( nullptr ),
 	batchData( 0 ),
 	batchSize( 1 ),
@@ -33,7 +33,6 @@ CFullyConnectedSourceLayer::CFullyConnectedSourceLayer( IMathEngine& mathEngine 
 	firstVectorInBatchIndex( NotFound ),
 	labelType( CT_Float )
 {
-	SetName( "CCnnFullyConnectedSourceLayer" );
 }
 
 void CFullyConnectedSourceLayer::SetBatchSize( int newBatchSize )
@@ -308,6 +307,17 @@ bool CFullyConnectedSourceLayer::isBatchLoaded( int index ) const
 		return false;
 	}
 	return ( batchFirstLoadedIndex <= index && index <= batchLastLoadedIndex );
+}
+
+CLayerWrapper<CFullyConnectedSourceLayer> FullyConnectedSource( TBlobType labelType,
+	int batchSize, int maxBatchCount, IProblem* problem )
+{
+	return CLayerWrapper<CFullyConnectedSourceLayer>( "FullyConnectedSource", [=, &problem]( CFullyConnectedSourceLayer* result ) {
+		result->SetLabelType( labelType );
+		result->SetBatchSize( batchSize );
+		result->SetMaxBatchCount( maxBatchCount );
+		result->SetProblem( problem );
+	} );
 }
 
 } // namespace NeoML

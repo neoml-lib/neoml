@@ -19,14 +19,16 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-class CTanhNode : public CNode {
+// Tanh operator graph node
+class CTanhNode : public COpNode {
 public:
-	explicit CTanhNode( const onnx::NodeProto& node, CMap<CString, CInputInfo>& nodeOutputs );
+	CTanhNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
 
-	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 };
 
 } // namespace NeoOnnx

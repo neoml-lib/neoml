@@ -45,15 +45,29 @@ fi
 
 
 # Target specific settings
-if [[ $FINE_CMAKE_BUILD_TARGET =~ ^(Linux|Darwin)$ ]]; then
+if [[ $FINE_CMAKE_BUILD_TARGET == Linux ]]; then
     # Check hostname
     if [[ $HOSTNAME != $FINE_CMAKE_BUILD_TARGET ]]; then
         printError "HOSTNAME is not $FINE_CMAKE_BUILD_TARGET!"
         exit 1
     fi
-    
+
     export FINE_CMAKE_BUILD_ARCH=x86_64
+ 
+elif [[ $FINE_CMAKE_BUILD_TARGET == Darwin ]]; then
     
+    if [[ $HOSTNAME != $FINE_CMAKE_BUILD_TARGET ]]; then
+        printError "HOSTNAME is not $FINE_CMAKE_BUILD_TARGET!"
+        exit 1
+    fi
+    
+    if [[ ! "$FINE_CMAKE_BUILD_ARCH" =~ ^(x86_64|arm64|arm64e)$ ]]; then
+        printError "FINE_CMAKE_BUILD_ARCH is not x86_64/arm64/arm64e"
+        exit 1
+    fi
+
+    ADD_ARGS="-DCMAKE_OSX_ARCHITECTURES=${FINE_CMAKE_BUILD_ARCH}"
+       
 elif [[ $FINE_CMAKE_BUILD_TARGET == "IOS" ]]; then
     if [[ $HOSTNAME != Darwin ]]; then
         printError "HOSTNAME must be Darwin!"
@@ -113,7 +127,7 @@ CMAKE_WORKING_DIR=$ROOT/_cmake_working_dir/NeoML.${FINE_CMAKE_BUILD_TARGET}.${FI
 pushd ${CMAKE_WORKING_DIR}
 
 if [[ $FINE_CMAKE_BUILD_TARGET == "IOS" ]]; then
-	cmake -G Xcode -DUSE_FINE_OBJECTS=ON -DCMAKE_TOOLCHAIN_FILE=${ROOT}/NeoML/NeoML/cmake/ios.toolchain.cmake -DIOS_ARCH=${FINE_CMAKE_BUILD_ARCH} ${ROOT}/NeoML/NeoML
+	cmake -G Xcode -DUSE_FINE_OBJECTS=ON -DCMAKE_TOOLCHAIN_FILE=${ROOT}/NeoML/cmake/ios.toolchain.cmake -DIOS_ARCH=${FINE_CMAKE_BUILD_ARCH} ${ROOT}/NeoML/NeoML
 elif [[ $FINE_CMAKE_BUILD_TARGET == "Linux" && $FINE_CMAKE_BUILD_ARCH == "x86" ]]; then
 	cmake -DUSE_FINE_OBJECTS=ON -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_CONFIG} -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32 ${ROOT}/NeoML/NeoML
 elif [[ $FINE_CMAKE_BUILD_TARGET =~ ^(Linux|Darwin)$ ]]; then

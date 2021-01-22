@@ -1,6 +1,6 @@
 ![NeoML](NeoML/docs/images/NeoML_logo.png)
 
-**NeoML** is an end-to-end machine learning framework that allows you to build, train, and deploy ML models. This framework is used by ABBYY engineers for computer vision and natural language tasks, including image preprocessing, classification, document layout analysis, OCR, and data extraction from structured and unstructured documents.
+**NeoML** is an end-to-end machine learning framework that allows you to build, train, and deploy ML models. This framework is used by ABBYY engineers for computer vision and natural language processing tasks, including image preprocessing, classification, document layout analysis, OCR, and data extraction from structured and unstructured documents.
 
 Key features:
 
@@ -47,9 +47,9 @@ The full С++ library version has been tested on the platforms:
 
 |Target OS|Compiler|Architecture|
 |----------|----------|------------------------------|
-|Windows 7+ (CPU и GPU)|MSVC 2015+|x86, x86_64|
+|Windows 7+ (CPU and GPU)|MSVC 2015+|x86, x86_64|
 |Ubuntu 14+ (CPU) |gcc 5.4+|x86_64|
-|MacOS 10.11+|Apple clang 11+|x86_64|
+|MacOS 10.11+ (CPU)|Apple clang 11+|x86_64|
 |iOS 11+ (CPU, GPU)|Apple clang 11+|arm64-v8a, x86_64|
 |Android 5.0+ (CPU), Android 7.0+ (GPU)|clang 7+|armeabi-v7a, arm64-v8a, x86, x86_64|
 
@@ -66,7 +66,7 @@ The library is built with [CMake](https://cmake.org/download/) (recommended vers
 
 For best CPU performance on Windows, Linux and macOS we use [Intel MKL](https://software.intel.com/en-us/mkl).
 
-When processing on a GPU, you can optionally use [CUDA](https://developer.nvidia.com/cuda-downloads) (version 10.2) on Windows and [Vulkan](https://vulkan.lunarg.com/sdk/home) (version 1.1.130 and later) on Android.
+When processing on a GPU, you can optionally use [CUDA](https://developer.nvidia.com/cuda-downloads) (version 10.2) on Windows or Linux and [Vulkan](https://vulkan.lunarg.com/sdk/home) (version 1.1.130 and later) on Windows, Linux or Android.
 
 We also use Google [Test](https://github.com/google/googletest) for testing and Google [Protocol Buffers](https://developers.google.com/protocol-buffers) for working with ONNX model format.
 

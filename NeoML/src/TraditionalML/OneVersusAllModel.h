@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,16 +29,16 @@ public:
 	static CPtr<IModel> Create() { return FINE_DEBUG_NEW COneVersusAllModel(); }
 
 	// IModel interface methods
-	virtual int GetClassCount() const override;
-	virtual bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
-	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
-	virtual void Serialize( CArchive& archive ) override;
+	int GetClassCount() const override;
+	bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
+	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
+	void Serialize( CArchive& archive ) override;
 
 	// IOneVersusAllModel interface methods
-	virtual const CObjectArray<IModel>& GetModels() const override { return classifiers; }
-	virtual bool ClassifyEx( const CSparseFloatVector& data, COneVersusAllClassificationResult& result ) const override;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, COneVersusAllClassificationResult& result ) const override;
-	virtual bool ClassifyEx( const CFloatVector& data, COneVersusAllClassificationResult& result ) const override;
+	const CObjectArray<IModel>& GetModels() const override { return classifiers; }
+	bool ClassifyEx( const CSparseFloatVector& data, COneVersusAllClassificationResult& result ) const override;
+	bool ClassifyEx( const CSparseFloatVectorDesc& data, COneVersusAllClassificationResult& result ) const override;
+	bool ClassifyEx( const CFloatVector& data, COneVersusAllClassificationResult& result ) const override;
 
 protected:
 	virtual ~COneVersusAllModel() {} // delete prohibited

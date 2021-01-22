@@ -17,80 +17,91 @@ limitations under the License.
 #pragma hdrstop
 
 #include "BatchNormalizationNode.h"
+#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
-#include "proto/onnx.pb.h"
+#include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CBatchNormalizationNode::CBatchNormalizationNode( const onnx::NodeProto& batchNormalization,
-		CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( batchNormalization, nodeOutputs ),
-	eps( attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
+CBatchNormalizationNode::CBatchNormalizationNode( int nodeIndex, const onnx::NodeProto& batchNormalization, int opsetVersion ) :
+	COpNode( nodeIndex, batchNormalization, opsetVersion ),
+	eps( Attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
 {
-	CheckOnnxProtocol( input.Size() == 5 || input.Size() == 6, "node must have 5 or 6 inputs", onnxNode );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", onnxNode );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", batchNormalization );
+
+	CheckNeoOnnxSupport( OpsetVersion > 6 || Attributes.GetOptionalInt( "is_test", 0 ) != 0,
+		"training batch normalization is not supported", batchNormalization );
+
+	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "node must have 5 or 6 inputs", OnnxNode );
+	CheckNeoOnnxSupport( OutputCount() == 1, "node must have 1 output", OnnxNode );
 }
 
-void CBatchNormalizationNode::OnnxReshape()
+void CBatchNormalizationNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
-	CheckNeoOnnxSupport( InputTensor( 0 ).GetType() == TT_DataTensor, "constant input data", onnxNode );
-	outputData.Add( InputTensor( 0 ) );
+	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
+
+	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
 }
 
-void CBatchNormalizationNode::MarkTensorDims()
+void CBatchNormalizationNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( !InputTensor( 0 ).GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( outputData[0].SetTensorDim( InputTensor( 0 ).GetTensorDim() ),
-			"marking output dimensions failed", onnxNode );
+	if( !dims[Input[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
+			"labeling output dimensions failed", OnnxNode );
 	}
 
-	if( !outputData[0].GetTensorDim().IsEmpty() ) {
-		CheckNeoOnnxInternal( InputTensor( 0 ).SetTensorDim( outputData[0].GetTensorDim() ),
-			"marking input dimensions failed", onnxNode );
+	if( !dims[Output[0]].IsEmpty() ) {
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
+			"labeling input dimensions failed", OnnxNode );
 	}
 }
 
-void CBatchNormalizationNode::AddLayers( CDnn& dnn )
+void CBatchNormalizationNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( InputTensor( 0 ).GetTensorDim()[1] == BD_Channels,
-		"operation must be performed along input's BD_Channels", onnxNode );
-	CheckNeoOnnxInternal( outputData[0].GetTensorDim()[1] == BD_Channels,
-		"operation must be performed along output's BD_Channels", onnxNode );
+	CheckNeoOnnxInternal( dims[Input[0]][1] == BD_Channels,
+		"operation must be performed along input's BD_Channels", OnnxNode );
+	CheckNeoOnnxInternal( dims[Output[0]][1] == BD_Channels,
+		"operation must be performed along output's BD_Channels", OnnxNode );
 
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );
 	bnLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	bnLayer->SetChannelBased( true );
-	bnLayer->SetFinalParams( calculateFinalParams() );
-
-	bnLayer->Connect( 0, InputLayer( 0 ), InputLayerIndex( 0 ) );
-	dnn.AddLayer( *bnLayer );
-	
-	outputInfo.Add( COutputInfo( bnLayer, 0 ) );
-}
-
-CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams()
-{
-	const int channels = InputTensor( 0 ).GetShape()[1];
-
-	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
-		CheckNeoOnnxSupport( InputTensor( inputIndex ).GetType() == TT_ConstantTensor,
-			"non-constant weights", onnxNode );
-		CheckOnnxProtocol( InputTensor( inputIndex ).GetShape().Size() == 1,
-			"weights must be 1-dimensional", onnxNode );
-		CheckOnnxProtocol( InputTensor( inputIndex ).GetShape()[0] == channels,
-			"weights must have 'channels' length", onnxNode );
+	// Since v9 batch normalization is always spatial
+	// Before that spatial was set by a flag
+	if( OpsetVersion >= 9 || Attributes.GetOptionalInt( "spatial", 1 ) != 0 ) {
+		bnLayer->SetChannelBased( true );
 	}
 
-	const CDnnBlob* scale = InputTensor( 1 ).GetData();
-	const CDnnBlob* bias = InputTensor( 2 ).GetData();
-	const CDnnBlob* mean = InputTensor( 3 ).GetData();
-	const CDnnBlob* var = InputTensor( 4 ).GetData();
+	bnLayer->SetFinalParams( calculateFinalParams( tensors ) );
+
+	bnLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	dnn.AddLayer( *bnLayer );
+	
+	neoMLLinks[Output[0]] = CNeoMLLink( bnLayer, 0 );
+}
+
+// Calculates final params blob based on onnx node's inputs
+// This format can is compatible with NeoML::CBatchNormalizationLayer
+CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( const CTensorCache& tensors )
+{
+	const int channels = tensors[Input[0]].Shape[1];
+
+	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
+		CheckNeoOnnxSupport( tensors[Input[inputIndex]].Data != nullptr, "non-constant weights", OnnxNode );
+		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape.Size() == 1, "weights must be 1-dimensional", OnnxNode );
+		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape[0] == channels, "weights must have 'channels' length", OnnxNode );
+	}
+
+	const CDnnBlob* scale = tensors[Input[1]].Data;
+	const CDnnBlob* bias = tensors[Input[2]].Data;
+	const CDnnBlob* mean = tensors[Input[3]].Data;
+	const CDnnBlob* var = tensors[Input[4]].Data;
 
 	IMathEngine& mathEngine = scale->GetMathEngine();
 
-	// Calculating final params.
+	// Calculating final params
 	CPtr<CDnnBlob> finalParams = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 2, channels );
 	CFloatHandle gamma = finalParams->GetObjectData( 0 );
 

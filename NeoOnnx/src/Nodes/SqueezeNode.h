@@ -17,24 +17,21 @@ limitations under the License.
 
 #include "../Node.h"
 
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
-
 namespace NeoOnnx {
 
-class CSqueezeNode : public CNode {
+// Squeeze operator graph node
+class CSqueezeNode : public COpNode {
 public:
-	CSqueezeNode( const onnx::NodeProto& squeeze, CMap<CString, CInputInfo>& nodeOutputs );
+	CSqueezeNode( int nodeIndex, const onnx::NodeProto& squeeze, int opsetVersion );
 
-	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
-	CArray<int> axes; // removed axes.
+	CArray<int> axes; // removed axes
 };
 
 } // namespace NeoOnnx

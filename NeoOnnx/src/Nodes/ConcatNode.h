@@ -17,21 +17,18 @@ limitations under the License.
 
 #include "../Node.h"
 
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
-
 namespace NeoOnnx {
 
-class CConcatNode : public CNode {
+// Concat operator graph node
+class CConcatNode : public COpNode {
 public:
-	CConcatNode( const onnx::NodeProto& concat, CMap<CString, CInputInfo>& nodeOutputs );
+	CConcatNode( int nodeIndex, const onnx::NodeProto& concat, int opsetVersion );
 
-	// CNode methods' realizations.
-	virtual void OnnxReshape() override;
-	virtual void MarkTensorDims() override;
-	virtual void AddLayers( CDnn& dnn ) override;
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
+	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
+		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
 
 private:
 	const int axis; // axis index along which tensors are concatenated

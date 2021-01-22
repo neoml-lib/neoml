@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ namespace NeoML {
 // CBaseMultiHingeLossLayer
 class NEOML_API CBaseMultiHingeLossLayer : public CLossLayer {
 public:
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	explicit CBaseMultiHingeLossLayer( IMathEngine& mathEngine, const char* name ) : CLossLayer( mathEngine, name ) {}
@@ -48,13 +48,15 @@ class NEOML_API CMultiHingeLossLayer : public CBaseMultiHingeLossLayer {
 public:
 	explicit CMultiHingeLossLayer( IMathEngine& mathEngine ) : CBaseMultiHingeLossLayer( mathEngine, "CCnnMultiHingeLossLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void CalculateEltwiseLoss( const CFloatHandle& first, const CFloatHandle& result, int vectorSize ) override;
+	void CalculateEltwiseLoss( const CFloatHandle& first, const CFloatHandle& result, int vectorSize ) override;
 	virtual void CalculateEltwiseLossDiff( const CFloatHandle& first, const CFloatHandle& second, const CFloatHandle& result,
 		int vectorSize ) override;
 };
+
+NEOML_API CLayerWrapper<CMultiHingeLossLayer> MultiHingeLoss( float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -64,12 +66,15 @@ class NEOML_API CMultiSquaredHingeLossLayer : public CBaseMultiHingeLossLayer {
 public:
 	explicit CMultiSquaredHingeLossLayer( IMathEngine& mathEngine ) : CBaseMultiHingeLossLayer( mathEngine, "CCnnMultiSquaredHingeLossLayer" ) {}
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void CalculateEltwiseLoss( const CFloatHandle& first, const CFloatHandle& result, int vectorSize ) override;
+	void CalculateEltwiseLoss( const CFloatHandle& first, const CFloatHandle& result, int vectorSize ) override;
 	virtual void CalculateEltwiseLossDiff( const CFloatHandle& first, const CFloatHandle& second, const CFloatHandle& result,
 		int vectorSize ) override;
 };
+
+NEOML_API CLayerWrapper<CMultiSquaredHingeLossLayer> MultiSquaredHingeLoss(
+	float lossWeight = 1.0f );
 
 } // namespace NeoML

@@ -17,114 +17,98 @@ limitations under the License.
 #pragma hdrstop
 
 #include "ConcatNode.h"
+#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
-#include "proto/onnx.pb.h"
+#include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CConcatNode::CConcatNode( const onnx::NodeProto& concat, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( concat, nodeOutputs ),
-	axis( attributes.GetRequiredInt( "axis" ) )
+CConcatNode::CConcatNode( int nodeIndex, const onnx::NodeProto& concat, int opsetVersion ) :
+	COpNode( nodeIndex, concat, opsetVersion ),
+	axis( Attributes.GetRequiredInt( "axis" ) )
 {
-	CheckOnnxProtocol( input.Size() > 1, "node must have more than 1 inputs", concat );
+	// Older versions have "axis" attribute as optional, not as required
+	CheckNeoOnnxSupport( OpsetVersion >= 4 && OpsetVersion <= MaxOpsetVersion, "opset version", concat );
+
+	CheckOnnxProtocol( InputCount() > 1, "node must have more than 1 inputs", concat );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", concat );
 }
 
-void CConcatNode::OnnxReshape()
+void CConcatNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
 {
-	CTensorShape outputShape;
-	TTensorType outputDataType = TT_ConstantTensor;
-	TBlobType outputBlobType = CT_Invalid;
-	for( int inputIndex = 0; inputIndex < input.Size(); ++inputIndex ) {
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
 
-		const CTensor& input = InputTensor( inputIndex );
-		switch( input.GetType() ) {
-			case TT_DataTensor:
-				outputDataType = TT_DataTensor;
-				break;
-			case TT_ConstantTensor:
-				CheckOnnxProtocol( outputBlobType == CT_Invalid || outputBlobType == input.GetData()->GetDataType(),
-					"inputs with different data types", onnxNode );
-				outputBlobType = input.GetData()->GetDataType();
-				break;
-			default:
-				NeoAssert( false );
-		}
+	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+		const CTensorShape& inputShape = tensors[Input[inputIndex]].Shape;
 
 		if( outputShape.IsEmpty() ) {
-			input.GetShape().CopyTo( outputShape );
+			inputShape.CopyTo( outputShape );
 		} else {
-			CheckOnnxProtocol( axis < input.GetShape().Size(),
-				"'axis' must be less than input's dimensions count", onnxNode );
-			outputShape[axis] += input.GetShape()[axis];
-		}
-
-		if( input.GetType() == TT_DataTensor ) {
-			outputDataType = TT_DataTensor;
+			CheckOnnxProtocol( axis < inputShape.Size(),"'axis' must be less than input's dimensions count", OnnxNode );
+			outputShape[axis] += inputShape[axis];
 		}
 	}
 
+	TBlobType outputBlobType = CT_Invalid;
+	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+		const CTensor& input = tensors[Input[inputIndex]];
+		if( input.Data == nullptr ) {
+			// Data can't be pre-calculated
+			return;
+		}
+		CheckOnnxProtocol( outputBlobType == CT_Invalid || outputBlobType == input.Data->GetDataType(),
+			"inputs with different data types", OnnxNode );
+		outputBlobType = input.Data->GetDataType();
+	}
 	if( outputBlobType == CT_Invalid ) {
 		outputBlobType = CT_Float;
 	}
 
-	CPtr<CDnnBlob> outputBlob( nullptr );
+	// Precalculate node's output
+	// Allocate output blob
+	CBlobDesc outputDesc( outputBlobType );
+	for( int dim = 0; dim < static_cast<int>( tensors[Output[0]].Shape.Size() ); ++dim ) {
+		outputDesc.SetDimSize( dim, tensors[Output[0]].Shape[dim] );
+	}
+	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, outputBlobType, outputDesc );
 
-	if( outputDataType == TT_ConstantTensor ) {
-		// Precalculating node's output.
-
-		// Allocating output blob.
-		CBlobDesc outputDesc( outputBlobType );
-		for( int dim = 0; dim < static_cast<int>( outputShape.Size() ); ++dim ) {
-			outputDesc.SetDimSize( dim, outputShape[dim] );
-		}
-
-		IMathEngine& mathEngine = InputTensor( 0 ).GetData()->GetMathEngine();
-		outputBlob = CDnnBlob::CreateBlob( mathEngine, outputBlobType, outputDesc );
-
-		// Collecting input blobs for concatenation.
-		CObjectArray<CDnnBlob> inputBlobs;
-		for( int inputIndex = 0; inputIndex < input.Size(); ++inputIndex ) {
-			inputBlobs.Add( InputTensor( inputIndex ).GetData() );
-		}
-
-		// Precalculation.GetShape().size()
-		CDnnBlob::MergeByDim( mathEngine, static_cast<TBlobDim>( axis ), inputBlobs, outputBlob );
+	// Collect input blobs for concatenation
+	CObjectArray<CDnnBlob> inputBlobs;
+	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+		inputBlobs.Add( tensors[Input[inputIndex]].Data );
 	}
 
-	outputData.Add( CTensor( outputDataType, outputShape, outputBlob ) );
+	// Precalculation
+	CDnnBlob::MergeByDim( mathEngine, static_cast<TBlobDim>( axis ), inputBlobs, tensors[Output[0]].Data );
 }
 
-void CConcatNode::MarkTensorDims()
+void CConcatNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
-	if( outputData[0].GetType() == TT_ConstantTensor ) {
-		return;
-	}
-
-	for( int inputIndex = 0; inputIndex < input.Size(); ++inputIndex ) {
-		if( !InputTensor( inputIndex ).GetTensorDim().IsEmpty() ) {
-			CheckNeoOnnxInternal( outputData[0].SetTensorDim( InputTensor( inputIndex ).GetTensorDim() ),
-				"marking output dimensions failed", onnxNode );
+	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+		if( !dims[Input[inputIndex]].IsEmpty() ) {
+			CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
+				"labeling output dimensions failed", OnnxNode );
 		}
 	}
 
-	if( !outputData[0].GetTensorDim().IsEmpty() ) {
-		for( int inputIndex = 0; inputIndex < input.Size(); ++inputIndex ) {
-			CheckNeoOnnxInternal( InputTensor( inputIndex ).SetTensorDim( outputData[0].GetTensorDim() ),
-				"marking input dimensions failed", onnxNode );
+	if( !dims[Output[0]].IsEmpty() ) {
+		for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+			CheckNeoOnnxInternal( SetTensorDim( tensors[Input[inputIndex]].Shape, dims[Output[0]], dims[Input[inputIndex]] ),
+				"labeling input dimensions failed", OnnxNode );
 		}
 	}
 }
 
-void CConcatNode::AddLayers( CDnn& dnn )
+void CConcatNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	if( outputData[0].GetType() == TT_ConstantTensor ) {
+	if( tensors[Input[0]].Data != nullptr ) {
 		return;
 	}
 
 	IMathEngine& mathEngine = dnn.GetMathEngine();
-	const TBlobDim concatDim = outputData[0].GetTensorDim()[axis];
+	const TBlobDim concatDim = dims[Output[0]][axis];
 
 	CPtr<CBaseLayer> concatLayer;
 	switch( concatDim ) {
@@ -146,16 +130,16 @@ void CConcatNode::AddLayers( CDnn& dnn )
 		case BD_BatchLength:
 		case BD_ListSize:
 		default:
-			NeoAssert( false ); // not supported by NeoML.
+			CheckNeoOnnxSupport( false, "unsupported Concat dimension", OnnxNode );
 	}
 	concatLayer->SetName( "NeoMLLayer" + Str( dnn.GetLayerCount() ) );
 
-	for( int inputIndex = 0; inputIndex < input.Size(); ++inputIndex ) {
-		concatLayer->Connect( inputIndex, InputLayer( inputIndex ), InputLayerIndex( inputIndex ) );
+	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+		concatLayer->Connect( inputIndex, *neoMLLinks[Input[inputIndex]].Layer, neoMLLinks[Input[inputIndex]].OutputIndex );
 	}
 	dnn.AddLayer( *concatLayer );
 
-	outputInfo.Add( COutputInfo( concatLayer, 0 ) );
+	neoMLLinks[Output[0]] = CNeoMLLink( concatLayer, 0 );
 }
 
 } // namespace NeoOnnx

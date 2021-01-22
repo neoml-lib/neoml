@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ class NEOML_API CSubSequenceLayer : public CBaseLayer {
 public:
 	explicit CSubSequenceLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Sets the starting point. If it's < 0, the starting point will be counted from the end of sequence, 
 	// with `-1` standing for the last element of the original sequence
@@ -42,9 +42,9 @@ public:
 	void SetReverse() { SetStartPos(-1); SetLength(INT_MIN); }
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	int startPos;
@@ -54,5 +54,11 @@ private:
 
 	void getSequenceInfo(int& sequenceStart, int& subSequenceLength) const;
 };
+
+NEOML_API CLayerWrapper<CSubSequenceLayer> SubSequence(
+	int startPos, int length );
+// CSubSequenceLayer with SetReverse()
+NEOML_API CLayerWrapper<CSubSequenceLayer> ReverseSequence();
+
 
 } // namespace NeoML

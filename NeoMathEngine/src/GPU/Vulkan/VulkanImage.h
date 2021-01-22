@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ enum TTmpVulkanImage {
 // The class implementing a Vulkan image (FRGBA32)
 class CVulkanImage : public CCrtAllocatedObject {
 public:
-	CVulkanImage( CVulkanDevice& device, int _width, int _height );
+	CVulkanImage( const CVulkanDevice& device, int _width, int _height );
 	~CVulkanImage();
 
 	// Checks if an image of newWidth x newHeight size will fit in this one
@@ -64,7 +64,7 @@ public:
 
 	const VkImage& GetVkImage() const; 
 private:
-	CVulkanDevice& device;
+	const CVulkanDevice& device;
 	const int width;
 	const int height;
 

@@ -28,19 +28,21 @@ class NEOML_API CReorgLayer : public CBaseLayer {
 public:
 	explicit CReorgLayer( IMathEngine& mathEngine );
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	int GetStride() const;
 	void SetStride( int stride );
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 
 private:
 	// Specifies the factor for reducing image size
 	int stride;
 };
+
+NEOML_API CLayerWrapper<CReorgLayer> Reorg();
 
 } // namespace NeoML

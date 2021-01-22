@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,17 +21,10 @@ limitations under the License.
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <cuda_runtime.h>
+#include <cfloat>
+#include <cmath>
 
 namespace NeoML {
-
-// Constants
-class CCudaConst : public CCrtAllocatedObject {
-public:
-	static const float* Zero;
-	static const float* One;
-};
-
-//------------------------------------------------------------------------------------------------------------
 
 struct CCudaVectorArray {
 	static const int MaxSize = 16;
@@ -88,6 +81,11 @@ struct CCudaRleImage {
 	CCudaRleStroke Stub;
 	CCudaRleStroke Lines[1];
 };
+
+//------------------------------------------------------------------------------------------------------------
+
+// Setting device
+void SetCudaDevice( int deviceNum );
 
 } // namespace NeoML
 

@@ -37,7 +37,7 @@ The first input accepts a blob with a set of two-dimensional images:
 The second input accepts a blob with `int` data that contains lists of pixel coordinates, of the dimensions:
 
 - `BatchWidth` is equal to the first input `BatchWidth`
-- `ListSize` is the length of each sequence
+- `Channels` is the length of each sequence
 - all other dimensions are equal to `1`
 
 The coordinates of a pixel `(col, row)` are represented in this blob by a single integer number equal to `row * GetImageWidth() + col`.

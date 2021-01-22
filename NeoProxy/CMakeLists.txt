@@ -1,37 +1,16 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
-project(NeoProxy)
-
-# Options
-
-option(NeoProxy_BUILD_SHARED "Build NeoProxy as shared library." ON)
-option(NeoProxy_INSTALL "Install NeoProxy" ON)
-
-if(NeoProxy_BUILD_SHARED)
-    set(NeoOnnx_BUILD_SHARED ON CACHE BOOL "" FORCE)
-    set(NeoML_BUILD_SHARED ON CACHE BOOL "" FORCE)
-    set(NeoMathEngine_BUILD_SHARED ON CACHE BOOL "" FORCE)
-else()
-    set(NeoOnnx_BUILD_SHARED OFF CACHE BOOL "" FORCE)
-    set(NeoML_BUILD_SHARED OFF CACHE BOOL "" FORCE)
-    set(NeoMathEngine_BUILD_SHARED OFF CACHE BOOL "" FORCE)
-endif()
-
-if(NeoProxy_INSTALL)
-    set(NeoML_INSTALL ON CACHE BOOL "" FORCE)
-    set(NeoOnnx_INSTALL ON CACHE BOOL "" FORCE)
-else()
-    set(NeoML_INSTALL OFF CACHE BOOL "" FORCE)
-    set(NeoOnnx_INSTALL OFF CACHE BOOL "" FORCE)
-endif()
-
-# Build
+project(NeoProxy LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
 
 include(Version)
 include(Settings)
 include(GNUInstallDirs)
+
+option(NeoProxy_BUILD_SHARED "Build NeoProxy as shared library." ON)
+
+option(NeoProxy_INSTALL "Install NeoProxy" ON)
 
 set_global_variables()
 

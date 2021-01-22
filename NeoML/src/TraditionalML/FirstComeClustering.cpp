@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -136,9 +136,7 @@ void CFirstComeClustering::processVector( const CSparseFloatMatrixDesc& matrix, 
 void CFirstComeClustering::deleteTinyClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
 	CObjectArray<CCommonCluster>& clusters )
 {
-	int threshold = Round( init.MinClusterSizeRatio * matrix.Width );
-
-	NeoAssert( threshold <= matrix.Height ); // a cluster may not have more than the total number of elements
+	int threshold = Round( init.MinClusterSizeRatio * matrix.Height );
 
 	for( int cluster = clusters.Size() - 1; cluster >= 0; cluster-- ) {
 

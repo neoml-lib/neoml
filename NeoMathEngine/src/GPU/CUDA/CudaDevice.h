@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,13 +20,8 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
-#include <cuda_runtime.h>
 
 namespace NeoML {
-
-// The number of slots in the device memory
-// Memory may only be blocked by whole slots
-const int CUDA_DEV_SLOT_COUNT = 64;
 
 // CUDA device descriptor
 struct CCudaDevice : public CCrtAllocatedObject {
@@ -35,13 +30,23 @@ struct CCudaDevice : public CCrtAllocatedObject {
 	size_t MemoryLimit;
 	int SharedMemoryLimit;
 	int ThreadMaxCount;
-	dim3 ThreadMax3DCount;
+	unsigned int ThreadMax3DCountX;
+	unsigned int ThreadMax3DCountY;
+	unsigned int ThreadMax3DCountZ;
 	int WarpSize;
-	void* Handles[CUDA_DEV_SLOT_COUNT];
+	void* Handle;
 
-	CCudaDevice( int deviceNumber, size_t memoryLimit );
+	CCudaDevice() {}
 	~CCudaDevice();
+	CCudaDevice( const CCudaDevice& ) = delete;
+	CCudaDevice& operator=( const CCudaDevice& ) = delete;
 };
+
+// Captures specified cuda deivice.
+// If deviceIndex is less than 0, tries to get some CUDA device (with focus on the free memory size)
+// If memoryLimit is 0, then creates device which consumes whole free space on the device
+// Device should be deleted after use
+CCudaDevice* CaptureCudaDevice( int deviceIndex, size_t memoryLimit );
 
 } // namespace NeoML
 
