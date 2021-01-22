@@ -30,6 +30,7 @@ author = 'ABBYY'
 with open('../../../../README.md', 'r', encoding='utf-8') as file_in:
     with open('README.md', 'w', encoding='utf-8') as file_out:
         for line in file_in:
+            line = line.replace('NeoML_logo.png', 'NeoML_logo_help.png')
             line = line.replace('NeoML/docs/en/source/', '')
             line = line.replace('NeoML/docs/images/', '../../images/')
             file_out.write(line)
@@ -48,13 +49,11 @@ for dirpath, _, filenames in walk('.'):
         with open(filepath, 'r', encoding='utf8') as file_in:
             lines = file_in.readlines()
         modified = False
-        for i in range(len(lines)):
-            pos = lines[i].find('.md#')
-            while pos != -1:
+        # TODO: Fix heading links for other formats? (this one is HTML-only)
+        for i, line in enumerate(lines):
+            if line.find('.md#') != -1:
                 modified = True
-                bracket = lines[i].find(')', pos)
-                lines[i] = lines[i][:pos+3] + lines[i][bracket:]
-                pos = lines[i].find('.md#')
+                lines[i] = line.replace('.md#', '.html#')
         if modified:
             with open(filepath, 'w', encoding='utf8') as file_out:
                 file_out.writelines(lines)
