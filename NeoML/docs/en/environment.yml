@@ -1,0 +1,9 @@
+name: neoml-docs
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.6
+  - pip
+  pip:
+    - -r file:requirements.txt
