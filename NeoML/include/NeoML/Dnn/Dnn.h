@@ -254,6 +254,9 @@ protected:
 	// Fills with zeros the parameters that are less (but not equal) than a given threshold
 	virtual void FilterLayerParams( float /*threshold*/ ) {}
 
+	// Indexes of trainable bias parameters for LAMB solver.
+	virtual void GetFreeTermParameterIndexes( CArray<int>& indexes ) const { indexes.DeleteAll(); }
+
 	// Retrieves the reference to the IMathEngine with which the layer was created
 	IMathEngine& MathEngine() const;
 
@@ -374,6 +377,7 @@ private:
 	friend class CDnn;
 	friend class CDnnLayerGraph;
 	friend class CDnnSolver;
+	friend class CDnnLambGradientSolver;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////

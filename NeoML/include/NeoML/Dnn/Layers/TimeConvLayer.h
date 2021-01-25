@@ -75,6 +75,7 @@ protected:
 	void BackwardOnce() override;
 	void LearnOnce() override;
 	void FilterLayerParams( float threshold ) override;
+	void GetFreeTermParameterIndexes( CArray<int>& indexes ) const override;
 
 private:
 	CTimeConvolutionDesc* desc;

@@ -126,6 +126,15 @@ void CFullyConnectedLayer::FilterLayerParams( float threshold )
 	}
 }
 
+void CFullyConnectedLayer::GetFreeTermParameterIndexes( CArray<int>& indexes ) const
+{
+	indexes.DeleteAll();
+	if ( !isZeroFreeTerm ) {
+		indexes.Add( 1 ); // free term index
+	}
+	
+}
+
 void CFullyConnectedLayer::SetNumberOfElements(int newNumberOfElements)
 {
 	NeoAssert( ( Weights() == 0 && FreeTerms() == 0 ) || numberOfElements == newNumberOfElements );

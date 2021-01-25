@@ -142,6 +142,15 @@ void CBaseConvLayer::SetFreeTermData(const CPtr<CDnnBlob>& newFreeTerms)
 	}
 }
 
+void CBaseConvLayer::GetFreeTermParameterIndexes( CArray<int>& indexes ) const
+{
+	indexes.DeleteAll();
+	if ( !IsZeroFreeTerm() ) {
+		indexes.Add( 1 );
+	}
+	
+}
+
 void CBaseConvLayer::ApplyBatchNormalization(CBatchNormalizationLayer& batchNorm)
 {
 	CPtr<CDnnBlob> params = batchNorm.GetFinalParams();

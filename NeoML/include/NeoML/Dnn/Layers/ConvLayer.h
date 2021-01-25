@@ -98,6 +98,7 @@ protected:
 	// The filter; the pointer is valid only when the desired parameters are known: either set externally or are filled in on reshape
 	CPtr<CDnnBlob>& Filter() { return paramBlobs[0]; }
 	CPtr<CDnnBlob>& FreeTerms() { return paramBlobs[1]; }	// free terms matrix
+	void GetFreeTermParameterIndexes( CArray<int>& indexes ) const override;
 
 	CPtr<CDnnBlob>& FilterDiff() { return paramDiffBlobs[0]; }
 	CPtr<CDnnBlob>& FreeTermsDiff() { return paramDiffBlobs[1]; }

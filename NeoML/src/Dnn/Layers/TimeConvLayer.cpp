@@ -197,6 +197,12 @@ void CTimeConvLayer::FilterLayerParams( float threshold )
 	}
 }
 
+void CTimeConvLayer::GetFreeTermParameterIndexes( CArray<int>& indexes ) const
+{
+	indexes.DeleteAll();
+	indexes.Add( 1 );
+}
+
 void CTimeConvLayer::initDesc()
 {
 	if( desc == 0 && !inputBlobs.IsEmpty() && !outputBlobs.IsEmpty() ) {

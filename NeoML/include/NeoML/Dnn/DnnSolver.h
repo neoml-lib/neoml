@@ -388,21 +388,6 @@ class NEOML_API CDnnLambGradientSolver : public CDnnSolver {
 public:
 	explicit CDnnLambGradientSolver( IMathEngine& mathEngine );
 
-	// Match type used when checking if layer is excluded from weightDecay
-	enum TExcludeLayerNameMatchType {
-		// Exact match with given string
-		ELNMT_Exact,
-		// If layer's name contains given string
-		ELNMT_Include
-	};
-
-	// Exclude layer from weightDecay optimization
-	// layerName - layer name (or substring if ELMNT_Include is used)
-	// type - match type
-	// paramIndex - index of optimized layer parameter to exclude (NotFound means all layer parameters)
-	void ExcludeWeightDecayLayer( const char* layerName, TExcludeLayerNameMatchType type = ELNMT_Exact,
-		int paramIndex = NotFound );
-
 	// Gets/set moment decay rate (weighted sum of previous gradients)
 	// By default is equal to 0.9 
 	float GetMomentDecayRate() const { return momentDecayRate; }
@@ -491,23 +476,11 @@ private:
 	CArray<float> layersGradientNormSquare;
 	float totalGradientNorm;
 
-	// Layer excluded from optimization
-	struct CExcludedLayer {
-		// Layer name (or substring)
-		CString LayerName;
-		// Match type (exact or substring)
-		TExcludeLayerNameMatchType MatchType;
-		// Parameter number
-		// -1 if all parameters
-		int ParamIndex;
-
-		CExcludedLayer() : MatchType( ELNMT_Exact ), ParamIndex( NotFound ) {}
-	};
-	// Layers excluded from weight decay
-	CArray<CExcludedLayer> excludedLayers;
+	// Layer excluded from optimization (backward compatibility)
+	struct CExcludedLayer;
 
 	float calcL2Norm( const CConstFloatHandle& data, int dataSize ) const;
-	void getWeightDecayIndices( const CBaseLayer& layer, int paramsCount, CHashTable<int>& indexes ) const;
+	void getBiasIndices( const CBaseLayer& layer, CHashTable<int>& indexes ) const;
 
 	void calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update, const CFloatHandle& multiplier ) const;
 };

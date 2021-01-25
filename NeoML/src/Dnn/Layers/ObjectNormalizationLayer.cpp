@@ -305,6 +305,15 @@ void CObjectNormalizationLayer::LearnOnce()
 	MathEngine().SumMatrixRowsAdd( 1, ScaleDiff()->GetData(), outDiff, objectCount, objectSize );
 }
 
+void CObjectNormalizationLayer::GetFreeTermParameterIndexes( CArray<int>& indexes ) const
+{
+	indexes.DeleteAll();
+	for (int i = 0; i < PN_Count; i++) {
+		indexes.Add( i );
+	}
+}
+
+
 CLayerWrapper<CObjectNormalizationLayer> ObjectNormalization( float epsilon )
 {
 	return CLayerWrapper<CObjectNormalizationLayer>( "ObjectNormalization", [=]( CObjectNormalizationLayer* result ) {

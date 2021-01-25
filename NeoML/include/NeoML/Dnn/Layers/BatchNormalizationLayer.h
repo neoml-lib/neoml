@@ -63,6 +63,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	void GetFreeTermParameterIndexes( CArray<int>& indexes ) const override;
 
 private:
 	bool isChannelBased;

@@ -708,21 +708,33 @@ CDnnLambGradientSolver::CDnnLambGradientSolver( IMathEngine& mathEngine ) :
 {
 }
 
-void CDnnLambGradientSolver::ExcludeWeightDecayLayer( const char* layerName, TExcludeLayerNameMatchType type,
-	int paramIndex )
-{
-	CExcludedLayer excludedLayer;
-	excludedLayer.LayerName = layerName;
-	excludedLayer.MatchType = type;
-	excludedLayer.ParamIndex = paramIndex;
-	excludedLayers.Add( excludedLayer );
-}
+static const int DnnLambGradientSolverVersion = 1;
 
-static const int DnnLambGradientSolverVersion = 0;
+// Layer excluded from optimization
+struct CDnnLambGradientSolver::CExcludedLayer {
+	// Layer name (or substring)
+	CString LayerName;
+	// Match type (exact or substring)
+	int MatchType;
+	// Parameter number
+	// -1 if all parameters
+	int ParamIndex;
+
+	CExcludedLayer() : MatchType( 0 ), ParamIndex( NotFound ) {}
+	void Load( CArchive& ar );
+};
+
+void CDnnLambGradientSolver::CExcludedLayer::Load( CArchive& ar )
+{
+	NeoAssert( ar.IsLoading() );
+	ar.Serialize( LayerName );
+	ar.Serialize( MatchType );
+	ar.Serialize( ParamIndex );
+}
 
 void CDnnLambGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 {
-	archive.SerializeVersion( DnnLambGradientSolverVersion );
+	const int version = archive.SerializeVersion( DnnLambGradientSolverVersion );
 	CDnnSolver::Serialize( archive, dnn );
 	archive.Serialize( momentDecayRate );
 	archive.Serialize( secondMomentDecayRate );
@@ -732,19 +744,16 @@ void CDnnLambGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 	archive.Serialize( useNvLamb );
 	archive.Serialize( layersGradientNormSquare );
 
-	int excludedLayersCount = excludedLayers.Size();
-	archive.Serialize( excludedLayersCount );
+	if( version < 1 ) {
+		// Not used any more, for compatibility only
+		NeoAssert( archive.IsLoading() );
+		int excludedLayersCount = 0;
+		archive >> excludedLayersCount;
 
-	if( archive.IsLoading() ) {
-		excludedLayers.SetSize( excludedLayersCount );
-	}
-
-	for( int i = 0; i < excludedLayers.Size(); ++i ) {
-		archive.Serialize( excludedLayers[i].LayerName );
-		int matchType = static_cast<int>( excludedLayers[i].MatchType );
-		archive.Serialize( matchType );
-		excludedLayers[i].MatchType = static_cast<TExcludeLayerNameMatchType>( matchType );
-		archive.Serialize( excludedLayers[i].ParamIndex );
+		for( int i = 0; i < excludedLayersCount; ++i ) {
+			CExcludedLayer tmp;
+			tmp.Load( archive );
+		}
 	}
 }
 
@@ -783,8 +792,8 @@ void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectA
 	MathEngine().DataExchangeTyped( tempVariables->GetData(), varValues.GetPtr(), TV_Count );
 
 	// Getting parameters affected by weight decay
-	CHashTable<int> weightDecayParamIndexes;
-	getWeightDecayIndices( *layer, paramBlobs.Size(), weightDecayParamIndexes );
+	CHashTable<int> weightBiasIndexes;
+	getBiasIndices( *layer, weightBiasIndexes );
 
 	for( int i = 0; i < paramBlobs.Size(); ++i ) {
 		int dataSize = paramBlobs[i]->GetDataSize();
@@ -836,7 +845,7 @@ void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectA
 			tempBlob->GetData(), dataSize );
 
 		// weightDecay
-		if( weightDecayParamIndexes.Has( i ) && layerWeighDecay > 0 ) {
+		if( !weightBiasIndexes.Has( i ) && layerWeighDecay > 0 ) {
 			MathEngine().VectorMultiplyAndAdd( tempBlob->GetData(), paramBlobs[i]->GetData(),
 				tempBlob->GetData(), tempBlob->GetDataSize(), tempVariables->GetData( { TV_WeightDecayVar } ) );
 		}
@@ -865,39 +874,15 @@ float CDnnLambGradientSolver::calcL2Norm( const CConstFloatHandle& data, int dat
 }
 
 // Parameter indices, used in weightDecay
-void CDnnLambGradientSolver::getWeightDecayIndices( const CBaseLayer& layer, int paramsCount,
+void CDnnLambGradientSolver::getBiasIndices( const CBaseLayer& layer,
 	CHashTable<int>& indexes ) const
 {
-	CHashTable<int> excludedIndexes;
-	const CString layerName = layer.GetName();
-	for( int i = 0; i < excludedLayers.Size(); i++ ) {
-		const CExcludedLayer& excludedLayer = excludedLayers[i];
-		switch( excludedLayer.MatchType ) {
-			case ELNMT_Exact:
-				if( excludedLayer.LayerName == layerName ) {
-					excludedIndexes.Add( excludedLayer.ParamIndex );
-				}
-				break;
-			case ELNMT_Include:
-				if( layerName.Find( excludedLayer.LayerName ) != NotFound ) {
-					excludedIndexes.Add( excludedLayer.ParamIndex );
-				}
-				break;
-			default:
-				break;
+	indexes.DeleteAll();
 
-		}
-	}
+	CArray<int> freeTerms;
+	layer.GetFreeTermParameterIndexes( freeTerms );
 
-	if( excludedIndexes.Has( -1 ) ) {
-		return;
-	}
-
-	for( int i = 0; i < paramsCount; i++ ) {
-		if( !excludedIndexes.Has( i ) ) {
-			indexes.Add( i );
-		}
-	}
+	indexes.AddArray( freeTerms );
 }
 
 // Calculate normalizing multiplier
