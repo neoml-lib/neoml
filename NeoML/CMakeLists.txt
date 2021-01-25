@@ -53,9 +53,11 @@ if(USE_FINE_OBJECTS)
 endif()
 
 # DEBUG
-message(INFO "VIRTUAL_ENV is " $ENV{VIRTUAL_ENV})
-message(INFO "PYTHONPATH is " $ENV{PYTHONPATH})
-message(INFO "PATH is " $ENV{PATH})
+message("VIRTUAL_ENV is " $ENV{VIRTUAL_ENV})
+message("PYTHONPATH is " $ENV{PYTHONPATH})
+message("PATH is " $ENV{PATH})
+message("HOME is " $ENV{HOME})
+message("LD_LIBRARY_PATH is " $ENV{LD_LIBRARY_PATH})
 
 # Note, that NeoML target builds NeoMathEngine
 add_subdirectory(src)
