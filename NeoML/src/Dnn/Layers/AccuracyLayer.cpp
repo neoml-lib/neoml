@@ -50,7 +50,8 @@ void CAccuracyLayer::Reshape()
 		&& inputDescs[0].Depth() == 1 );
 
 	outputDescs[0] = CBlobDesc( CT_Float );
-
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize()
+		|| inputDescs[1].ObjectSize() == 1, GetName(), "Object size mismatch between inputs" );
 	iterationsCount = 0;
 	collectedAccuracy = 0;
 }
@@ -66,10 +67,25 @@ void CAccuracyLayer::RunOnceAfterReset()
 	const int objectCount = inputBlob->GetObjectCount();
 	const int objectSize = inputBlob->GetObjectSize();
 
+	const int expectedDataSize = expectedLabelsBlob->GetDataSize();
+	const int expectedObjectCount = expectedLabelsBlob->GetObjectCount();
+	const int expectedObjectSize = expectedLabelsBlob->GetObjectSize();
+
 	inputBuffer.SetSize( dataSize );
-	expectedBuffer.SetSize( dataSize );
-	inputBlob->CopyTo( inputBuffer.GetPtr(), dataSize );
-	expectedLabelsBlob->CopyTo( expectedBuffer.GetPtr(), dataSize );
+	expectedBuffer.SetSize( expectedDataSize );
+	inputBlob->CopyTo( inputBuffer.GetPtr(), inputBuffer.Size() );
+
+	if( expectedLabelsBlob->GetDataType() == NeoML::CT_Float ) {
+		expectedLabelsBlob->CopyTo( expectedBuffer.GetPtr(), expectedBuffer.Size() );
+	} else {
+		CFastArray<int, 1> expectedBufferInt;
+		expectedBufferInt.SetSize( expectedBuffer.Size() );
+		expectedLabelsBlob->CopyTo( expectedBufferInt.GetPtr(), expectedBufferInt.Size() );
+		for( int i = 0; i < expectedBufferInt.Size(); i++ ) {
+			expectedBuffer[i] = 1.0f * expectedBufferInt[i];
+		}
+	}
+
 	int correctlyClassifiedCount = 0;
 	for( int i = 0; i < inputBlob->GetBatchWidth(); i++ ) {
 		for( int j = 0; j < inputBlob->GetBatchLength(); j++ ) {
@@ -84,8 +100,16 @@ void CAccuracyLayer::RunOnceAfterReset()
 						expectedClass = classWeightId;
 					}
 				}
-				if( expectedBuffer[sampleId * objectSize + expectedClass] > 0.f ) {
-					correctlyClassifiedCount += 1;
+				if( expectedObjectSize == objectSize ) {
+					if( expectedBuffer[sampleId * expectedObjectSize + expectedClass] > 0.f ) {
+						correctlyClassifiedCount += 1;
+					}
+				} else {
+					assert( expectedObjectSize == 1 );
+					const int label = Round( expectedBuffer[sampleId * expectedObjectSize] );
+					if( label == expectedClass ) {
+						correctlyClassifiedCount += 1;
+					}
 				}
 			} else {
 				NeoAssert( objectSize == 1 );
