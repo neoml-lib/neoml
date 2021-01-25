@@ -4,3 +4,5 @@ m2r2==0.2.7
 # requirements for build
 pybind11==2.6.1
 cmake==3.18.4
+gcc7==0.0.9
+ninja==1.10.0
