@@ -40,23 +40,49 @@ with open('../../../../README.md', 'r', encoding='utf-8') as file_in:
 
 from os import walk
 from os.path import join, splitext
+import sys
+
+# Fix links to the external md headings for html help
+def replace_md_with_html(filepath):
+    with open(filepath, 'r', encoding='utf8') as file_in:
+        lines = file_in.readlines()
+    modified = False
+    # TODO: Fix heading links for other formats? (this one is HTML-only)
+    for i, line in enumerate(lines):
+        if line.find('.md#') != -1:
+            modified = True
+            lines[i] = line.replace('.md#', '.html#')
+    if modified:
+        with open(filepath, 'w', encoding='utf8') as file_out:
+            file_out.writelines(lines)
+
+# Remove links to the external md headings
+def remove_heading_links(filepath):
+    with open(filepath, 'r', encoding='utf8') as file_in:
+        lines = file_in.readlines()
+    modified = False
+    for i in range(len(lines)):
+        pos = lines[i].find('.md#')
+        while pos != -1:
+            modified = True
+            bracket = lines[i].find(')', pos)
+            lines[i] = lines[i][:pos+3] + lines[i][bracket:]
+            pos = lines[i].find('.md#')
+    if modified:
+        with open(filepath, 'w', encoding='utf8') as file_out:
+            file_out.writelines(lines)
+
+is_html_help = (sys.argv[2] == 'html')
 
 for dirpath, _, filenames in walk('.'):
     for filename in filenames:
         if splitext(filename)[1] != '.md':
             continue # skip not markdown files
         filepath = join(dirpath, filename)
-        with open(filepath, 'r', encoding='utf8') as file_in:
-            lines = file_in.readlines()
-        modified = False
-        # TODO: Fix heading links for other formats? (this one is HTML-only)
-        for i, line in enumerate(lines):
-            if line.find('.md#') != -1:
-                modified = True
-                lines[i] = line.replace('.md#', '.html#')
-        if modified:
-            with open(filepath, 'w', encoding='utf8') as file_out:
-                file_out.writelines(lines)
+        if is_html_help:
+            replace_md_with_html(filepath)
+        else:
+            remove_heading_links(filepath)
 
 
 # -- General configuration ---------------------------------------------------
