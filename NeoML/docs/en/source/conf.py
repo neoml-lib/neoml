@@ -72,7 +72,7 @@ def remove_heading_links(filepath):
         with open(filepath, 'w', encoding='utf8') as file_out:
             file_out.writelines(lines)
 
-is_html_help = (sys.argv[2] == 'html')
+is_html_help = any(map(lambda x: x == 'html', sys.argv))
 
 for dirpath, _, filenames in walk('.'):
     for filename in filenames:

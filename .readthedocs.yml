@@ -10,8 +10,8 @@ sphinx:
    configuration: NeoML/docs/en/source/conf.py
 
 # Optionally build your docs in additional formats such as PDF
-# formats:
-#    - pdf
+formats:
+   - html
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
