@@ -1,7 +1,6 @@
 name: neoml-docs
 
 channels:
-    - conda-forge
     - intel
     - defaults
 
