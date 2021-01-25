@@ -8,5 +8,5 @@ dependencies:
     - python>=3.6
     - anaconda
     - pip
-    pip:
+    - pip:
         - -r file:requirements.txt
