@@ -2,18 +2,18 @@ name: neoml-docs
 
 channels:
     - conda-forge
+    - intel
     - defaults
 
 dependencies:
-    - python>=3.6
-    - anaconda
+    - python=3.6
     - pip
-    - sphinx
-    - m2r2
-    - pybind11
-    - cmake
-    - ninja
-    - protobuf
-    - mkl_devel
-    - numpy
-    - scipy
+    - sphinx=2.4.0
+    - m2r2=0.2.7
+    - pybind11=2.6.1
+    - cmake=3.18.4
+    - ninja=1.10.0
+    - protobuf=3.14.0
+    - mkl-devel=2021.1.1
+    - numpy=1.19.1
+    - scipy=1.5.2
