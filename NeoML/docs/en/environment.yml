@@ -8,5 +8,12 @@ dependencies:
     - python>=3.6
     - anaconda
     - pip
-    - pip:
-        - -r file:requirements.txt
+    - sphinx
+    - m2r2
+    - pybind11
+    - cmake
+    - ninja
+    - protobuf
+    - mkl_devel
+    - numpy
+    - scipy
