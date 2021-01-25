@@ -19,4 +19,4 @@ python:
    install:
    - requirements: NeoML/docs/en/requirements.txt
    - method: setuptools
-     path: NeoML/NeoML/Python
+     path: NeoML/Python
