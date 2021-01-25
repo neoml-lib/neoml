@@ -59,6 +59,7 @@ message("PATH is " $ENV{PATH})
 message("HOME is " $ENV{HOME})
 message("LD_LIBRARY_PATH is " $ENV{LD_LIBRARY_PATH})
 message("CONDA_PREFIX is " $ENV{CONDA_PREFIX})
+message("CONDA_DIR is " $ENV{CONDA_DIR})
 
 # Note, that NeoML target builds NeoMathEngine
 add_subdirectory(src)
