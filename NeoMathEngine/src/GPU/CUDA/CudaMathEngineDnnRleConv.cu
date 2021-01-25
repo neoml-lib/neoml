@@ -75,7 +75,7 @@ CRleConvolutionDesc* CCudaMathEngine::InitBlobRleConvolution( const CBlobDesc& s
 	desc->StrokeValue = strokeValue;
 	desc->NonStrokeValue = nonStrokeValue;
 
-	desc->ConvDesc = static_cast<CCudaConvolutionDesc*>( InitBlobConvolution( source, 0, 0, strideHeight, strideWidth, 1, 1, filter, result ) );
+	desc->ConvDesc = static_cast<CCudaConvolutionDesc*>( InitBlobConvolution( source, 0, 0, strideHeight, strideWidth, 1, 1, filter, result, AF_None ) );
 
 	return desc;
 }
@@ -101,8 +101,8 @@ void CCudaMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& des
 	const CCudaConvolutionDescInternal& convDesc = static_cast<const CCudaRleConvolutionDesc&>( desc ).ConvDesc->Internal;
 	CFloatHandleVar inputConverted( mathEngine(), convDesc.Source.BlobSize() );
 	blobConvertFromRle( static_cast<const CCudaRleConvolutionDesc&>(desc), sourceData, inputConverted );
-	BlobConvolutionLearnAdd( *static_cast<const CCudaRleConvolutionDesc&>(desc).ConvDesc, inputConverted, outputDiffData, filterDiffData,
-		freeTermDiffData, false );
+	BlobConvolutionLearnAdd( *static_cast<const CCudaRleConvolutionDesc&>(desc).ConvDesc, inputConverted, CFloatHandle(),
+		outputDiffData, filterDiffData, freeTermDiffData, false );
 }
 
 } // namespace NeoML

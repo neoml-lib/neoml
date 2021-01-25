@@ -37,7 +37,7 @@ void CConvLayer::initConvDesc()
 	if( convDesc == 0 ) {
 		convDesc = MathEngine().InitBlobConvolution( inputBlobs[0]->GetDesc(),
 			paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth,
-			Filter()->GetDesc(), outputBlobs[0]->GetDesc() );
+			Filter()->GetDesc(), outputBlobs[0]->GetDesc(), activation );
 	}
 }
 void CConvLayer::destroyConvDesc()
@@ -66,6 +66,8 @@ void CConvLayer::Reshape()
 		GetName(), "different number of inputs and outputs in conv layer" );
 	CheckArchitecture( paddingHeight < filterHeight * dilationHeight && paddingWidth < filterWidth * dilationWidth,
 		GetName(), "padding is more or equal to receptive field size" );
+	CheckArchitecture( MathEngine().IsInPlaceActivation( activation.Type ), GetName(),
+		"activation must be in-place" );
 
 	int outputHeight, outputWidth;
 	calcOutputBlobSize(outputHeight, outputWidth);
@@ -124,7 +126,7 @@ void CConvLayer::BackwardOnce()
 	initConvDesc();
 
 	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
-		MathEngine().BlobConvolutionBackward( *convDesc, outputDiffBlobs[i]->GetData(),
+		MathEngine().BlobConvolutionBackward( *convDesc, outputBlobs[i]->GetData(), outputDiffBlobs[i]->GetData(),
 			Filter()->GetData(), 0, inputDiffBlobs[i]->GetData() );
 	}
 }
@@ -135,8 +137,9 @@ void CConvLayer::LearnOnce()
 
 	CFloatHandle freeTermDiff = FreeTermsDiff()->GetData();
 	for(int i = 0; i < outputDiffBlobs.Size(); ++i) {
-		MathEngine().BlobConvolutionLearnAdd( *convDesc, inputBlobs[i]->GetData(), outputDiffBlobs[i]->GetData(),
-			FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff, false );
+		MathEngine().BlobConvolutionLearnAdd( *convDesc,
+			inputBlobs[i]->GetData(), IsBackwardPerformed() ? CFloatHandle() : outputBlobs[i]->GetData(),
+			outputDiffBlobs[i]->GetData(), FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff, false );
 	}
 }
 

@@ -54,6 +54,11 @@ public:
 	int GetFilterCount() const { return filterCount; }
 	void SetFilterCount( int _filterCount );
 
+	// Activation applied to the output after the convolution
+	// MathEngine must suuport it in in-place mode
+	void SetActivation( const CActivationInfo& newActivation );
+	const CActivationInfo& GetActivation() const { return activation; }
+
 	// Returns or sets the filter data (the blobs are copied)
 	// A filter blob has the FilterCount * FilterHeight * FilterWidth * FilterDepth * InputChannelsCount dimensions
 	// (or InputChannelsCount * FilterHeight * FilterWidth * FilterDepth * FilterCount dimensions for transposed filters)
@@ -94,6 +99,8 @@ protected:
 	int dilationWidth;			// horizontal dilation
 
 	bool isZeroFreeTerm; // indicates if free term is set to zero
+
+	CActivationInfo activation; // activation applied after the convolution
 
 	// The filter; the pointer is valid only when the desired parameters are known: either set externally or are filled in on reshape
 	CPtr<CDnnBlob>& Filter() { return paramBlobs[0]; }

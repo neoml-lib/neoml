@@ -32,7 +32,8 @@ CBaseConvLayer::CBaseConvLayer( IMathEngine& mathEngine, const char* name ) :
 	paddingWidth( 0 ),
 	dilationHeight( 1 ),
 	dilationWidth( 1 ),
-	isZeroFreeTerm( false )
+	isZeroFreeTerm( false ),
+	activation( AF_None )
 {
 	paramBlobs.SetSize(2);
 }
@@ -92,6 +93,18 @@ void CBaseConvLayer::SetDilationWidth( int newDilationWidth )
 void CBaseConvLayer::SetFilterCount( int _filterCount )
 {
 	filterCount = _filterCount;
+	ForceReshape();
+}
+
+void CBaseConvLayer::SetActivation( const CActivationInfo& newActivation )
+{
+	if( activation.Type == newActivation.Type && activation.Param1 == newActivation.Param1
+		&& activation.Param2 == newActivation.Param2 )
+	{
+		return;
+	}
+
+	activation = newActivation;
 	ForceReshape();
 }
 
@@ -186,11 +199,11 @@ void CBaseConvLayer::FilterLayerParams( float threshold )
 	}
 }
 
-static const int BaseConvLayerVersion = 2000;
+static const int BaseConvLayerVersion = 2001;
 
 void CBaseConvLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( BaseConvLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	const int version = archive.SerializeVersion( BaseConvLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
 
 	archive.Serialize( filterHeight );
@@ -213,6 +226,16 @@ void CBaseConvLayer::Serialize( CArchive& archive )
 			desc.SetDimSize( 0, freeTerms->GetDataSize() );
 			freeTerms->ReinterpretDimensions( desc );
 		}
+	}
+
+	if( version >= 2001 ) {
+		int activationTypeInt = static_cast<int>( activation.Type );
+		archive.Serialize( activationTypeInt );
+		activation.Type = static_cast<TActivationFunction>( activationTypeInt );
+		archive.Serialize( activation.Param1 );
+		archive.Serialize( activation.Param2 );
+	} else if( archive.IsLoading() ) {
+		activation = AF_None;
 	}
 }
 

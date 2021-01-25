@@ -190,7 +190,7 @@ static void blob3dConvolutionImpl( const CTestParams& params, int seed )
 	CFloatHandle ft = freeTermBlob.GetData();
 
 	C3dConvolutionDesc *convDesc = MathEngine().InitBlob3dConvolution( inputBlob.GetDesc(),
-		paddingHeight, paddingWidth, paddingDepth, strideHeight, strideWidth, strideDepth, filterBlob.GetDesc(), outBlob.GetDesc() );
+		paddingHeight, paddingWidth, paddingDepth, strideHeight, strideWidth, strideDepth, filterBlob.GetDesc(), outBlob.GetDesc(), AF_None );
 	MathEngine().Blob3dConvolution( *convDesc, inputBlob.GetData(), filterBlob.GetData(), addFreeTerm ? &ft : nullptr, outBlob.GetData() );
 	delete convDesc;
 

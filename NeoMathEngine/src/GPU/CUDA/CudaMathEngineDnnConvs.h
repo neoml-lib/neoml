@@ -22,6 +22,7 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <CudaBlobDesc.h>
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <MathEngineDnnActivation.h>
 
 namespace NeoML {
 
@@ -45,6 +46,10 @@ struct CCudaConvolutionDescInternal {
 
 struct CCudaConvolutionDesc : public CConvolutionDesc {
 	CCudaConvolutionDescInternal Internal;
+	CCommonActivationDesc* Activation;
+
+	CCudaConvolutionDesc() : Activation( nullptr ) {}
+	~CCudaConvolutionDesc() { if( Activation != nullptr ) { delete Activation; } }
 };
 
 struct CCuda3dConvolutionDescInternal {
@@ -63,6 +68,10 @@ struct CCuda3dConvolutionDescInternal {
 
 struct CCuda3dConvolutionDesc : public C3dConvolutionDesc {
 	CCuda3dConvolutionDescInternal Internal;
+	CCommonActivationDesc* Activation;
+
+	CCuda3dConvolutionDesc() : Activation( nullptr ) {}
+	~CCuda3dConvolutionDesc() { if( Activation != nullptr ) { delete Activation; } }
 };
 
 // Channelwise convolution
@@ -78,6 +87,10 @@ struct CCudaChannelwiseConvolutionDescInternal {
 
 struct CCudaChannelwiseConvolutionDesc : public CChannelwiseConvolutionDesc {
 	CCudaChannelwiseConvolutionDescInternal Internal;
+	CCommonActivationDesc* Activation;
+
+	CCudaChannelwiseConvolutionDesc() : Activation( nullptr ) {}
+	~CCudaChannelwiseConvolutionDesc() { if( Activation != nullptr ) { delete Activation; } }
 };
 
 struct CCudaTimeConvolutionDescInternal {

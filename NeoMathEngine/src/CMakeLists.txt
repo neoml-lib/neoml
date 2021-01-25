@@ -33,6 +33,7 @@ target_sources(${PROJECT_NAME}
     MathEngineCommon.h
     MathEngineDeviceStackAllocator.h
     MathEngineDll.h
+    MathEngineDnnActivation.h
     MathEngineDnnConv.h
     MathEngineDnnDropout.h
     MathEngineDnnPoolings.h
@@ -52,6 +53,7 @@ target_sources(${PROJECT_NAME}
     CPU/MatrixMultiplyingInterleavedCommon/MicroKernels/MicroKernelBase.h
 
     ../include/NeoMathEngine/NeoMathEngineDefs.h
+    ../include/NeoMathEngine/ActivationFunction.h
     ../include/NeoMathEngine/BlobDesc.h
     ../include/NeoMathEngine/BlobType.h
     ../include/NeoMathEngine/LookupData.h

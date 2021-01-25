@@ -593,10 +593,13 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 C3dConvolutionDesc* CCpuMathEngine::InitBlob3dConvolution( const CBlobDesc& source,
 	int paddingHeight, int paddingWidth, int paddingDepth,
 	int strideHeight, int strideWidth, int strideDepth,
-	const CBlobDesc& filter, const CBlobDesc& result )
+	const CBlobDesc& filter, const CBlobDesc& result,
+	const CActivationInfo& activation )
 {
+	ASSERT_EXPR( IsInPlaceActivation( activation.Type ) );
 	CCommon3dConvolutionDesc *desc = new CCommon3dConvolutionDesc( source, result, filter,
-		paddingHeight, paddingWidth, paddingDepth, strideHeight, strideWidth, strideDepth );
+		paddingHeight, paddingWidth, paddingDepth, strideHeight, strideWidth, strideDepth,
+		dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, result.BlobSize() ) ) );
 	return desc;
 }
 
@@ -621,9 +624,11 @@ void CCpuMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, cons
 	} else {
 		blob3dConvolution( desc, sourceDataRaw, filterDataRaw, freeTermData, resultDataRaw );
 	}
+
+	Activation( *desc.Activation, resultData, resultData, desc.Result.BlobSize() );
 }
 
-void CCpuMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& sourceData,
+void CCpuMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& forward, const CFloatHandle& sourceData,
 	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -637,6 +642,10 @@ void CCpuMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDe
 
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
 
+	if( !forward.IsNull() ) {
+		ActivationBackward( *desc.Activation, CFloatHandle(), forward, sourceData, sourceData, desc.Result.BlobSize() );
+	}
+
 	if( desc.PaddingHeight == 0 && desc.PaddingWidth == 0 && desc.PaddingDepth == 0 && desc.Filter.ObjectSize() == desc.Filter.Channels() ) {
 		blob3dConvolution1x1x1Backward( desc, sourceDataRaw, filterDataRaw, freeTermData, resultDataRaw );
 	} else {
@@ -644,7 +653,7 @@ void CCpuMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDe
 	}
 }
 
-void CCpuMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convDesc, const CFloatHandle& inputData,
+void CCpuMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convDesc, const CFloatHandle& inputData, const CFloatHandle& outputData,
 	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData, bool isFreeTermDiffFromInput )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -653,6 +662,10 @@ void CCpuMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convDe
 	ASSERT_EXPR( freeTermDiffData == 0 || freeTermDiffData->GetMathEngine() == this );
 
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
+
+	if( !outputData.IsNull() ) {
+		ActivationBackward( *desc.Activation, CFloatHandle(), outputData, outputDiffData, outputDiffData, desc.Result.BlobSize() );
+	}
 
 	if( desc.PaddingHeight == 0 && desc.PaddingWidth == 0 && desc.PaddingDepth == 0 && desc.Filter.ObjectSize() == desc.Filter.Channels() ) {
 		blob3dConvolution1x1x1LearnAdd( desc, inputData, outputDiffData, filterDiffData, freeTermDiffData );

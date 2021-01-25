@@ -42,7 +42,7 @@ static inline int tempMatrixWidth( const CCudaConvolutionDescInternal& desc )
 
 CConvolutionDesc* CCudaMathEngine::InitBlobConvolution( const CBlobDesc& input, int paddingHeight,
 	int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth,
-	const CBlobDesc& filter, const CBlobDesc& output )
+	const CBlobDesc& filter, const CBlobDesc& output, const CActivationInfo& activation )
 {
 	int totalInputChannels = input.Channels() * input.Depth();
 	int totalOutputChannels = output.Channels() * output.Depth();
@@ -57,6 +57,7 @@ CConvolutionDesc* CCudaMathEngine::InitBlobConvolution( const CBlobDesc& input, 
 	desc->Internal.PaddingWidth = paddingWidth;
 	desc->Internal.DilationHeight = dilationHeight;
 	desc->Internal.DilationWidth = dilationWidth;
+	desc->Activation = dynamic_cast<CCommonActivationDesc*>( InitActivation( activation, output.BlobSize() ) );
 	return desc;
 }
 
@@ -65,6 +66,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 	const CFloatHandle& resultData )
 {
 	SetCudaDevice( device->DeviceNumber );
+	const CActivationDesc& activation = *static_cast<const CCudaConvolutionDesc&>( convDesc ).Activation;
 	const CCudaConvolutionDescInternal& desc = static_cast<const CCudaConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& source = desc.Source;
 	const CCudaBlobDesc& filter = desc.Filter;
@@ -83,6 +85,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 			filter.ObjectCount(), 512 );
 		Conv3x3s1d1Kernel1x8<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), GetRaw( filterData ),
 			freeTermData == 0 ? 0 : GetRaw( *freeTermData ), GetRaw( resultData ), widthNorm );
+		Activation( activation, resultData, resultData, desc.Result.BlobSize() );
 		return;
 	}
 
@@ -108,6 +111,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 				filter.ObjectCount(), filter.ObjectSize(), resultData,
 				filter.ObjectCount(), result.BlobSize() );
 		}
+		Activation( activation, resultData, resultData, desc.Result.BlobSize() );
 		return;
 	}
 
@@ -144,15 +148,21 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 		}
 	}
 
+	Activation( activation, resultData, resultData, desc.Result.BlobSize() );
 }
 
-void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiff,
-	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff )
+void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& output,
+	const CFloatHandle& outputDiff, const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaConvolutionDescInternal& desc = static_cast<const CCudaConvolutionDesc&>( convDesc ).Internal;
 	const int filterCount = desc.Filter.ObjectCount();
 	const int filterObjectSize = desc.Filter.ObjectSize();
+
+	if( !output.IsNull() ) {
+		const CActivationDesc& activation = *static_cast<const CCudaConvolutionDesc&>( convDesc ).Activation;
+		ActivationBackward( activation, CFloatHandle(), output, outputDiff, outputDiff, desc.Result.BlobSize() );
+	}
 
 	if( desc.Filter.Height() == 1 && desc.Filter.Width() == 1
 		&& desc.StrideHeight == 1 && desc.StrideWidth == 1
@@ -200,12 +210,17 @@ void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc,
 		matrixHeight, matrixWidth, GetRaw( inputDiff ), operation, widthNorm );
 }
 
-void CCudaMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc,
-	const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+void CCudaMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc, const CFloatHandle& input,
+	const CFloatHandle& output, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 	const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaConvolutionDescInternal& desc = static_cast<const CCudaConvolutionDesc&>( convDesc ).Internal;
+
+	if( !output.IsNull() ) {
+		const CActivationDesc& activation = *static_cast<const CCudaConvolutionDesc&>( convDesc ).Activation;
+		ActivationBackward( activation, CFloatHandle(), output, outputDiff, outputDiff, desc.Result.BlobSize() );
+	}
 
 	if( freeTermDiff != 0 ) {
 		// Get the free term gradient

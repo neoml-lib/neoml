@@ -122,11 +122,11 @@ static void blobConvolutionLearnAddImpl( const CTestParams& params, int seed )
 
 	CConvolutionDesc* convDesc = MathEngine().InitBlobConvolution( inputBlob.GetDesc(),
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
-		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputDiffBlob.GetDesc() );
+		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputDiffBlob.GetDesc(), AF_None );
 
 	CFloatHandle freeTermDataPtr = freeTermBlob.GetData();
 
-	MathEngine().BlobConvolutionLearnAdd( *convDesc, inputBlob.GetData(), outputDiffBlob.GetData(),
+	MathEngine().BlobConvolutionLearnAdd( *convDesc, inputBlob.GetData(), CFloatHandle(), outputDiffBlob.GetData(),
 		filterBlob.GetData(), isZeroFreeTerm ? 0 : &freeTermDataPtr, false );
 	delete convDesc;
 

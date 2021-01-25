@@ -52,6 +52,8 @@ void CChannelwiseConvLayer::Reshape()
 		GetName(), "different number of inputs and outputs in conv layer" );
 	CheckArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth,
 		GetName(), "padding is more or equal to filter size" );
+	CheckArchitecture( MathEngine().IsInPlaceActivation( activation.Type ), GetName(),
+		"activation must be in-place" );
 
 	int outputHeight = ( inputDescs[0].Height() - filterHeight + 2 * paddingHeight ) / strideHeight + 1;
 	int outputWidth = ( inputDescs[0].Width() - filterWidth + 2 * paddingWidth ) / strideWidth + 1;
@@ -118,9 +120,8 @@ void CChannelwiseConvLayer::BackwardOnce()
 	initConvDesc();
 
 	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
-		MathEngine().BlobChannelwiseConvolutionBackward( *convDesc,
-			outputDiffBlobs[i]->GetData(), Filter()->GetData(),
-			inputDiffBlobs[i]->GetData() );
+		MathEngine().BlobChannelwiseConvolutionBackward( *convDesc, outputBlobs[i]->GetData(),
+			outputDiffBlobs[i]->GetData(), Filter()->GetData(), inputDiffBlobs[i]->GetData() );
 	}
 }
 
@@ -130,8 +131,9 @@ void CChannelwiseConvLayer::LearnOnce()
 
 	CFloatHandle freeTermDiff = FreeTermsDiff()->GetData();
 	for( int i = 0; i < outputDiffBlobs.Size(); ++i ) {
-		MathEngine().BlobChannelwiseConvolutionLearnAdd( *convDesc, inputBlobs[i]->GetData(), outputDiffBlobs[i]->GetData(),
-			FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff );
+		MathEngine().BlobChannelwiseConvolutionLearnAdd( *convDesc,
+			inputBlobs[i]->GetData(), IsBackwardPerformed() ? CFloatHandle() : outputBlobs[i]->GetData(),
+			outputDiffBlobs[i]->GetData(), FilterDiff()->GetData(), IsZeroFreeTerm() ? 0 : &freeTermDiff );
 	}
 }
 
@@ -148,7 +150,7 @@ void CChannelwiseConvLayer::initConvDesc()
 	if( convDesc == 0 ) {
 		convDesc = MathEngine().InitBlobChannelwiseConvolution( inputBlobs[0]->GetDesc(),
 			paddingHeight, paddingWidth, strideHeight, strideWidth,
-			Filter()->GetDesc(), &FreeTerms()->GetDesc(), outputBlobs[0]->GetDesc() );
+			Filter()->GetDesc(), &FreeTerms()->GetDesc(), outputBlobs[0]->GetDesc(), activation );
 	}
 }
 

@@ -120,7 +120,7 @@ static void blobConvolutionImpl( const CTestParams& params, int seed )
 
 	CConvolutionDesc* convDesc = MathEngine().InitBlobConvolution( inputBlob.GetDesc(),
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
-		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputBlob.GetDesc() );
+		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputBlob.GetDesc(), AF_None );
 
 	CFloatHandle freeTermDataPtr = freeTermBlob.GetData();
 

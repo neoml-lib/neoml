@@ -51,6 +51,7 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunc
 			return FINE_DEBUG_NEW CHSwishLayer( mathEngine );
 		case AF_GELU:
 			return FINE_DEBUG_NEW CGELULayer( mathEngine );
+		case AF_None:
 		default:
 			NeoAssert( false );
 	}

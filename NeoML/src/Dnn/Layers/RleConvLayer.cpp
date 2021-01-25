@@ -59,6 +59,7 @@ void CRleConvLayer::Reshape()
 	NeoAssert( dilationHeight == 1 );
 	NeoAssert( dilationWidth == 1 );
 	NeoAssert( ( filterCount % 4 ) == 0 );
+	CheckArchitecture( activation.Type == AF_None, GetName(), "RLE conv doesn't support activation" );
 
 	int outputHeight, outputWidth;
 	calcOutputBlobSize( outputHeight, outputWidth );

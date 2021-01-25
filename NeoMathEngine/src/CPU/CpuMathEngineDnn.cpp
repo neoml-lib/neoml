@@ -19,6 +19,7 @@ limitations under the License.
 #include <CpuMathEngine.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <MathEngineDnnActivation.h>
 
 namespace NeoML {
 
@@ -222,6 +223,148 @@ void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHand
 			}
 			curToData += objectSize;
 		}
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+CActivationDesc* CCpuMathEngine::InitActivation( const CActivationInfo& activation, int dataSize )
+{
+	size_t bufferSize = 0;
+	if( activation.Type == AF_Abs || activation.Type == AF_HSwish || activation.Type == AF_GELU ) {
+		bufferSize = 2 * dataSize;
+	}
+	return new CCommonActivationDesc( *this, activation, bufferSize );
+}
+
+bool CCpuMathEngine::IsInPlaceActivation( TActivationFunction activation )
+{
+	return activation != AF_Abs && activation != AF_HSwish && activation != AF_GELU;
+}
+
+void CCpuMathEngine::Activation( const CActivationDesc& activationDesc, const CConstFloatHandle& input,
+	const CFloatHandle& output, int dataSize )
+{
+	const CCommonActivationDesc& desc = static_cast<const CCommonActivationDesc&>( activationDesc );
+	switch( desc.Type ) {
+		case AF_Linear:
+		{
+			CConstFloatHandle currData = input;
+			if( desc.Param1 != 1.f ) {
+				VectorMultiply( currData, output, dataSize, desc.Param1Handle );
+				currData = output;
+			}
+			if( desc.Param2 != 0.f ) {
+				VectorAddValue( currData, output, dataSize, desc.Param2Handle );
+				currData = output;
+			}
+			if( currData != output ) {
+				VectorCopy( output, currData, dataSize );
+			}
+			return;
+		}
+		case AF_ELU:
+			VectorELU( input, output, dataSize, desc.Param1Handle );
+			return;
+		case AF_ReLU:
+			VectorReLU( input, output, dataSize, desc.Param1Handle );
+			return;
+		case AF_LeakyReLU:
+			VectorLeakyReLU( input, output, dataSize, desc.Param1Handle );
+			return;
+		case AF_Abs:
+			VectorAbs( input, output, dataSize );
+			return;
+		case AF_Sigmoid:
+			VectorSigmoid( input, output, dataSize );
+			return;
+		case AF_Tanh:
+			VectorTanh( input, output, dataSize );
+			return;
+		case AF_HardTanh:
+			VectorHardTanh( input, output, dataSize );
+			return;
+		case AF_HardSigmoid:
+			VectorHardSigmoid( input, output, dataSize, desc.Param1Handle, desc.Param2Handle );
+			return;
+		case AF_Power:
+			VectorPower( desc.Param1, input, output, dataSize );
+			return;
+		case AF_HSwish:
+			VectorHSwish( input, output, dataSize );
+			return;
+		case AF_GELU:
+			VectorMultiply( input, desc.Buffer, dataSize, desc.Param1Handle );
+			VectorSigmoid( desc.Buffer, desc.Buffer, dataSize );
+			VectorEltwiseMultiply( input, desc.Buffer, output, dataSize );
+			return;
+		case AF_None:
+			return;
+		case AF_Count:
+		default:
+			ASSERT_EXPR( false );
+	}
+}
+
+void CCpuMathEngine::ActivationBackward( const CActivationDesc& activationDesc, const CConstFloatHandle& input,
+	const CConstFloatHandle& output, const CConstFloatHandle& outputDiff, const CFloatHandle& inputDiff, int dataSize )
+{
+	const CCommonActivationDesc& desc = static_cast<const CCommonActivationDesc&>( activationDesc );
+	switch( desc.Type ) {
+		case AF_Linear:
+			if( desc.Param1 != 1.f ) {
+				VectorMultiply( outputDiff, inputDiff, dataSize, desc.Param1Handle );
+			} else if( outputDiff != inputDiff ) {
+				VectorCopy( inputDiff, outputDiff, dataSize );
+			}
+			return;
+		case AF_ELU:
+			VectorELUDiffOp( output, outputDiff, inputDiff, dataSize, desc.Param1Handle );
+			return;
+		case AF_ReLU:
+			VectorReLUDiffOp( output, outputDiff, inputDiff, dataSize, desc.Param1Handle );
+			return;
+		case AF_LeakyReLU:
+			VectorLeakyReLUDiffOp( output, outputDiff, inputDiff, dataSize, desc.Param1Handle );
+			return;
+		case AF_Abs:
+			VectorAbsDiff( desc.Buffer, outputDiff, inputDiff, dataSize );
+			return;
+		case AF_Sigmoid:
+			VectorSigmoidDiffOp( output, outputDiff, inputDiff, dataSize );
+			return;
+		case AF_Tanh:
+			VectorTanhDiffOp( output, outputDiff, inputDiff, dataSize );
+			return;
+		case AF_HardTanh:
+			VectorHardTanhDiffOp( output, outputDiff, inputDiff, dataSize );
+			return;
+		case AF_HardSigmoid:
+			VectorHardSigmoidDiffOp( output, outputDiff, inputDiff, dataSize, desc.Param1Handle, desc.Param2Handle );
+			return;
+		case AF_Power:
+			VectorPowerDiffOp( desc.Param1, output, outputDiff, inputDiff, dataSize );
+			return;
+		case AF_HSwish:
+			VectorHSwishDiff( input, outputDiff, inputDiff, dataSize );
+			return;
+		case AF_GELU:
+		{
+			CFloatHandle multipliedInput = desc.Buffer;
+			CFloatHandle sigmoidMultipliedInput = desc.Buffer.GetHandle() + dataSize;
+			VectorMultiply( input, multipliedInput, dataSize, desc.Param1Handle );
+			VectorSigmoid( multipliedInput, sigmoidMultipliedInput, dataSize );
+			VectorSigmoidDiff( multipliedInput, input, inputDiff, dataSize );
+			VectorMultiply( inputDiff, inputDiff, dataSize, desc.Param1Handle );
+			VectorAdd( inputDiff, sigmoidMultipliedInput, inputDiff, dataSize );
+			VectorEltwiseMultiply( inputDiff, outputDiff, inputDiff, dataSize );
+			return;
+		}
+		case AF_None:
+			return;
+		case AF_Count:
+		default:
+			ASSERT_EXPR( false );
 	}
 }
 

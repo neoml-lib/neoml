@@ -53,6 +53,7 @@ IMathEngine::~IMathEngine() {}
 IMathEngineExceptionHandler::~IMathEngineExceptionHandler() {}
 IGpuMathEngineManager::~IGpuMathEngineManager() {}
 
+CActivationDesc::~CActivationDesc() {}
 CTimeConvolutionDesc::~CTimeConvolutionDesc() {}
 C3dConvolutionDesc::~C3dConvolutionDesc() {}
 CConvolutionDesc::~CConvolutionDesc() {}

@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
+#include <MathEngineDnnActivation.h>
 
 namespace NeoML {
 
@@ -31,9 +32,11 @@ struct CCommonConvolutionDesc : public CConvolutionDesc {
 	int StrideWidth;
 	int DilationHeight;
 	int DilationWidth;
+	CCommonActivationDesc* Activation;
 
 	CCommonConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
-			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
+			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth,
+			CCommonActivationDesc* activation ) :
 		Source( source ),
 		Result( result ),
         Filter( filter ),
@@ -42,9 +45,12 @@ struct CCommonConvolutionDesc : public CConvolutionDesc {
 		StrideHeight( strideHeight ),
 		StrideWidth( strideWidth ),
 		DilationHeight( dilationHeight ),
-		DilationWidth( dilationWidth )
+		DilationWidth( dilationWidth ),
+		Activation( activation )
 	{
 	}
+
+	~CCommonConvolutionDesc() { if( Activation != nullptr ) { delete Activation; } }
 };
 
 // The general 3d convolution descriptor
@@ -58,9 +64,11 @@ struct CCommon3dConvolutionDesc : public C3dConvolutionDesc {
 	int StrideHeight;
 	int StrideWidth;
 	int StrideDepth;
+	CCommonActivationDesc* Activation;
 
 	CCommon3dConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
-			int paddingHeight, int paddingWidth, int paddingDepth, int strideHeight, int strideWidth, int strideDepth ) :
+			int paddingHeight, int paddingWidth, int paddingDepth, int strideHeight, int strideWidth, int strideDepth,
+			CCommonActivationDesc* activation ) :
 		Source( source ),
         Result( result ),
         Filter( filter ),
@@ -69,9 +77,12 @@ struct CCommon3dConvolutionDesc : public C3dConvolutionDesc {
 		PaddingDepth( paddingDepth ),
 		StrideHeight( strideHeight ),
 		StrideWidth( strideWidth ),
-		StrideDepth( strideDepth )
+		StrideDepth( strideDepth ),
+		Activation( activation )
 	{
 	}
+
+	~CCommon3dConvolutionDesc() { if( Activation != nullptr ) { delete Activation; } }
 };
 
 // The general time convolution descriptor
@@ -106,18 +117,22 @@ struct CCommonChannelwiseConvolutionDesc : public CChannelwiseConvolutionDesc {
 	CBlobDesc Source;
 	CBlobDesc Filter;
 	CBlobDesc Result;
+	CCommonActivationDesc* Activation;
 
 	CCommonChannelwiseConvolutionDesc( int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-			const CBlobDesc& source, const CBlobDesc& filter, const CBlobDesc& result ) : 
+			const CBlobDesc& source, const CBlobDesc& filter, const CBlobDesc& result, CCommonActivationDesc* activation ) : 
 		PaddingHeight( paddingHeight ),
 		PaddingWidth( paddingWidth ),
 		StrideHeight( strideHeight ),
 		StrideWidth( strideWidth ),
 		Source( source ),
 		Filter( filter ),
-		Result( result )
+		Result( result ),
+		Activation( activation )
 	{
 	}
+
+	~CCommonChannelwiseConvolutionDesc() { if( Activation != nullptr ) { delete Activation; } }
 };
 
 } // namespace NeoML
