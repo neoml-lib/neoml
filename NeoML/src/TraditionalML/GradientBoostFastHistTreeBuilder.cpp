@@ -74,8 +74,6 @@ CPtr<IRegressionModel> CGradientBoostFastHistTreeBuilder::Build( const CGradient
 			if( logStream != 0 ) {
 				*logStream << L"Split result: index = " << featureIndexes[nodes[node].SplitFeatureId]
 					<< L" threshold = " << cuts[nodes[node].SplitFeatureId]
-					<< L" ( gradient = " << nodes[node].Statistics.TotalGradient()
-					<< L", hessian = " << nodes[node].Statistics.TotalHessian()
 					<< L", criterion = " << nodes[node].Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
 					<< L" )\n";
 			}
@@ -108,8 +106,6 @@ CPtr<IRegressionModel> CGradientBoostFastHistTreeBuilder::Build( const CGradient
 			// The node could not be split
 			if( logStream != 0 ) {
 				*logStream << L"Split result: created const node.\t\t"
-					<< L" ( gradient = " << nodes[node].Statistics.TotalGradient()
-					<< L", hessian = " << nodes[node].Statistics.TotalHessian()
 					<< L", criterion = " << nodes[node].Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
 					<< L" )\n";
 			}
@@ -197,7 +193,7 @@ void CGradientBoostFastHistTreeBuilder::subHist( int firstPtr, int secondPtr )
 
 // Build a histogram on the vectors of the given node
 void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
-	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,
+	const GradientBoostStatType& gradients, const GradientBoostStatType& hessians, const CArray<float>& weights,
 	CGradientBoostVectorSetStatistics& totalStats )
 {
 	CGradientBoostVectorSetStatistics* histStatsPtr = histStats.GetPtr() + node.HistPtr;
@@ -223,7 +219,7 @@ void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistP
 				const int vectorIndex = vectorSet[node.VectorSetPtr + i];
 				addVectorToHist( problem.GetUsedVectorDataPtr( vectorIndex ), problem.GetUsedVectorDataSize( vectorIndex ),
 					gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex], tempHistStats.GetPtr() + histSize * threadNumber );
-				results[threadNumber].Add( gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex] );
+				results[threadNumber].Add( gradients, hessians, weights, vectorIndex );
 				i += params.ThreadCount;
 			}
 		}

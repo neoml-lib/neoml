@@ -26,14 +26,13 @@ public:
 	CRegressionTreeModel();
 
 	// Initializes a leaf node
-	void InitLeafNode( double prediction );
+	void InitLeafNode( const CFloatVector& prediction );
 	// Initializes a split node
 	void InitSplitNode( CRegressionTreeModel& leftChild, CRegressionTreeModel& rightChild, int feature, double threshold );
 
 	// Gets the node that will be used for prediction
 	const CRegressionTreeModel* GetPredictionNode( const CSparseFloatVector& data ) const;
 	const CRegressionTreeModel* GetPredictionNode( const CFloatVector& data ) const;
-	const CRegressionTreeModel* GetPredictionNode( const CSparseFloatVectorDesc& data ) const;
 
 	// IRegressionTreeModel interface methods
 	virtual CPtr<IRegressionTreeModel> GetLeftChild() const { return leftChild.Ptr(); }
@@ -42,9 +41,8 @@ public:
 	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const;
 
 	// IRegressionModel interface methods
-	virtual double Predict( const CSparseFloatVector& data ) const;
-	virtual double Predict( const CFloatVector& data ) const;
-	virtual double Predict( const CSparseFloatVectorDesc& data ) const;
+	virtual CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const;
+	virtual CFloatVector MultivariatePredict( const CFloatVector& data ) const;
 	virtual void Serialize( CArchive& archive );
 
 protected:

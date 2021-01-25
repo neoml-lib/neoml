@@ -31,7 +31,7 @@ class CGradientBoostFullProblem;
 class CGradientBoostFastHistProblem;
 
 // Decision tree ensemble that has been built by gradient boosting
-class CGradientBoostEnsemble : public CObjectArray<IRegressionModel> {
+class CGradientBoostEnsemble : public CObjectArray<IMultivariateRegressionModel> {
 public:
 	CGradientBoostEnsemble() {}
 };
@@ -96,6 +96,7 @@ public:
 		TGradientBoostTreeBuilder TreeBuilder; // the type of tree builder used
 		int MaxBins; // the largest possible histogram size to be used in *GBTB_FastHist* mode
 		float MinSubsetWeight; // the minimum subtree weight (set to 0 to have no lower limit)
+		bool IsMultiBoosted; // create multi-boosted trees with diagonal Hessian matrix
 
 		CParams() :
 			LossFunction( LF_Binomial ),
@@ -112,7 +113,8 @@ public:
 			ThreadCount( 1 ),
 			TreeBuilder( GBTB_Full ),
 			MaxBins( 32 ),
-			MinSubsetWeight( 0.f )
+			MinSubsetWeight( 0.f ),
+			IsMultiBoosted( false )
 		{
 		}
 	};
@@ -181,7 +183,7 @@ private:
 	void initialize( int modelCount, int vectorCount, int featureCount, CArray<CGradientBoostEnsemble>& models );
 	void executeStep( IGradientBoostingLossFunction& lossFunction,
 		const IMultivariateRegressionProblem* problem, const CArray<CGradientBoostEnsemble>& models,
-		CObjectArray<IRegressionModel>& curModels );
+		CObjectArray<IMultivariateRegressionModel>& curModels );
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
 	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
 };
@@ -196,6 +198,7 @@ public:
 	virtual ~IGradientBoostModel();
 
 	// Gets the tree ensemble
+	// todo
 	virtual const CArray<CGradientBoostEnsemble>& GetEnsemble() const = 0;
 
 	// Serializes the model
@@ -228,6 +231,7 @@ public:
 	virtual ~IGradientBoostRegressionModel();
 	
     // Gets the tree ensemble
+	/todo
 	virtual const CArray<CGradientBoostEnsemble>& GetEnsemble() const = 0;
 
 	// Serializes the model
@@ -261,9 +265,9 @@ struct CRegressionTreeNodeInfo {
 	int FeatureIndex;
 	// For RTNT_Continuous - the value used for splitting
 	// For RTNT_Const - the result
-	double Value;
+	CFloatVector Value;
 
-	CRegressionTreeNodeInfo() : Type( RTNT_Undefined ), FeatureIndex( NotFound ), Value( 0 ) {}
+	CRegressionTreeNodeInfo() : Type( RTNT_Undefined ), FeatureIndex( NotFound ) {}
 
 	// Copies the node information to another node
 	void CopyTo( CRegressionTreeNodeInfo& newInfo ) const;
@@ -296,7 +300,7 @@ DECLARE_NEOML_MODEL_NAME( RegressionTreeModelName, "FmlRegressionTreeModel" )
 
 // The regression tree model interface
 // Can be used for iterating through the boosting results if used on trees
-class NEOML_API IRegressionTreeModel : public IRegressionModel {
+class NEOML_API IRegressionTreeModel : public IMultivariateRegressionModel {
 public:
 	virtual ~IRegressionTreeModel();
 

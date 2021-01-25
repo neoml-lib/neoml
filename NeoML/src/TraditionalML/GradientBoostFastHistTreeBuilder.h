@@ -83,6 +83,7 @@ private:
 	CArray<int> idPos; // the identifier positions in the current histogram
 	CArray<int> histIds; // histogram bins identifiers
 	CArray<CGradientBoostVectorSetStatistics> tempHistStats; // a temporary array for building histograms
+	int classCount; // the dimension of prediction value
 
 	// Caching the buffers
 	mutable CArray<double> splitGainsByThreadBuffer;

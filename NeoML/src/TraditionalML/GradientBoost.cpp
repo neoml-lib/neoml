@@ -388,7 +388,7 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 			}
 
 			// One gradient boosting step
-			CObjectArray<IRegressionModel> curIterationModels; // a new model for multi-class classification
+			CObjectArray<IMultivariateRegressionModel> curIterationModels; // a new model for multi-class classification
 			executeStep( *lossFunction, problem, models, curIterationModels );
 
 			for( int j = 0; j < curIterationModels.Size(); j++ ) {
@@ -423,7 +423,7 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.MaxNodesCount = params.MaxNodesCount;
 			builderParams.PruneCriterionValue = params.PruneCriterionValue;
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
-			fullTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder( builderParams, logStream );
+			fullTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder( builderParams, logStream, problem->GetValueSize() );
 			fullProblem = FINE_DEBUG_NEW CGradientBoostFullProblem( params.ThreadCount, problem,
 				usedVectors, usedFeatures, featureNumbers );
 			break;
@@ -523,7 +523,7 @@ void CGradientBoost::initialize( int modelCount, int vectorCount, int featureCou
 // On a sub-problem of the first problem using cache
 void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	const IMultivariateRegressionProblem* problem,
-	const CArray<CGradientBoostEnsemble>& models, CObjectArray<IRegressionModel>& curModels )
+	const CArray<CGradientBoostEnsemble>& models, CObjectArray<IMultivariateRegressionModel>& curModels )
 {
 	NeoAssert( !models.IsEmpty() );
 	NeoAssert( curModels.IsEmpty() );
@@ -597,19 +597,32 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 		}
 	}
 
-	for( int i = 0; i < gradients.Size(); i++ ) {
-		if( logStream != nullptr ) {
-			*logStream << "GradientSum = " << gradientsSum[i]
-				<< " HessianSum = " << hessiansSum[i]
-				<< "\n";
-		}
-		CPtr<IRegressionModel> model;
+	if ( params.IsMultiBoosted ){
+		CPtr<IMultivariateRegressionModel> model;
 		if( fullTreeBuilder != nullptr ) {
-			model = fullTreeBuilder->Build( *fullProblem, gradients[i], gradientsSum[i], hessians[i], hessiansSum[i], weights, weightsSum );
-		} else {
-			model = fastHistTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
+			model = fullTreeBuilder->Build( *fullProblem, gradients.begin(), gradientsSum,
+				hessians.begin(), hessiansSum, weights, weightsSum );
 		}
 		curModels.Add( model );
+	} else {
+		for( int i = 0; i < gradients.Size(); i++ ) {
+			if( logStream != nullptr ) {
+				*logStream << "GradientSum = " << gradientsSum[i]
+					<< " HessianSum = " << hessiansSum[i]
+					<< "\n";
+			}
+			CPtr<IMultivariateRegressionModel> model;
+			if( fullTreeBuilder != nullptr ) {
+				model = fullTreeBuilder->Build( *fullProblem,
+					gradients.begin(), CArray<double>( { gradientsSum[i] } ),
+					hessians.begin(), CArray<double>( { hessiansSum[i] } ),
+					weights, weightsSum );
+			}
+			else {
+				model = fastHistTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
+			}
+			curModels.Add( model );
+		}
 	}
 }
 

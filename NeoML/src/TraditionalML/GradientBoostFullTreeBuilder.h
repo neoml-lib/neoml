@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <GradientBoostFullProblem.h>
 #include <NeoML/TraditionalML/Model.h>
+#include <GradientBoostVectorSetStatistics.h>
 
 namespace NeoML {
 
@@ -39,11 +40,12 @@ public:
 		float MinSubsetWeight; // the minimum subtree weight
 	};
 
-	CGradientBoostFullTreeBuilder( const CParams& params, CTextStream* logStream );
+	CGradientBoostFullTreeBuilder( const CParams& params, CTextStream* logStream, int classCount );
 
 	// Builds the tree
-	CPtr<IRegressionModel> Build( const CGradientBoostFullProblem& problem,
-		const CArray<double>& gradients, double gradientsSum, const CArray<double>& hessians, double hessiansSum,
+	CPtr<IMultivariateRegressionModel> Build( const CGradientBoostFullProblem& problem,
+		const GradientBoostStatType& gradients, const CArray<double>& gradientsSum,
+		const GradientBoostStatType& hessians, const CArray<double>& hessiansSum,
 		const CArray<float>& weights, float weightsSum );
 
 protected:
@@ -60,17 +62,18 @@ private:
 	CArray<int> splitFeatures; // the indices of the split features for this level
 	CArray<int> vectorNodes; // distribution of the current level vectors into subtrees
 	int nodesCount; // the number of nodes in the tree
+	int classCount; // the dimension of prediction value 
 
 	CPtr<CGradientBoostNodeStatistics> initialize( const CGradientBoostFullProblem& problem,
-		double gradientSum, double hessianSum, float weightSum );
-	bool buildTreeLevel( const CGradientBoostFullProblem& problem, int level, const CArray<double>& gradients,
-		const CArray<double>& hessians, const CArray<float>& weights );
+		const CArray<double>& gradientSum, const CArray<double>& hessianSum, float weightSum );
+	bool buildTreeLevel( const CGradientBoostFullProblem& problem, int level, const GradientBoostStatType& gradients,
+		const GradientBoostStatType& hessians, const CArray<float>& weights );
 	void distributeVectorsByNodes( const CGradientBoostFullProblem& problem, int level );
-	void findSplits( const CGradientBoostFullProblem& problem, const CArray<double>& gradients,
-		const CArray<double>& hessians, const CArray<float>& weights );
-	void findBinarySplits( int threadNumber, const CArray<double>& gradients, const CArray<double>& hessians,
+	void findSplits( const CGradientBoostFullProblem& problem, const GradientBoostStatType& gradients,
+		const GradientBoostStatType& hessians, const CArray<float>& weights );
+	void findBinarySplits( int threadNumber, const GradientBoostStatType& gradients, const GradientBoostStatType& hessians,
 		const CArray<float>& weights, int feature, const int* ptr, int size );
-	void findSplits( int threadNumber, const CArray<double>& gradients, const CArray<double>& hessians,
+	void findSplits( int threadNumber, const GradientBoostStatType& gradients, const GradientBoostStatType& hessians,
 		const CArray<float>& weights, int feature, const CFloatVectorElement* ptr, int size );
 	void checkSplit( int feature, float firstValue, float secondValue, CThreadStatistics& statistics ) const;
 	void mergeThreadResults();

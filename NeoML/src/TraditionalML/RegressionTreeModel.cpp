@@ -57,7 +57,6 @@ CRegressionTreeModel::CRegressionTreeModel()
 {
 	info.Type = RTNT_Undefined;
 	info.FeatureIndex = NotFound;
-	info.Value = 0;
 }
 
 CRegressionTreeModel::~CRegressionTreeModel()
@@ -65,7 +64,7 @@ CRegressionTreeModel::~CRegressionTreeModel()
 	NeoPresume( info.Type != RTNT_Undefined );
 }
 
-void CRegressionTreeModel::InitLeafNode( double prediction )
+void CRegressionTreeModel::InitLeafNode( const CFloatVector& prediction )
 {
 	info.Type = RTNT_Const;
 	info.FeatureIndex = NotFound;
@@ -113,21 +112,6 @@ const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CFloa
 	return this;
 }
 
-const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSparseFloatVectorDesc& data ) const
-{
-	static_assert( RTNT_Count == 3, "RTNT_Count != 3" );
-
-	if( info.Type == RTNT_Continuous ) {
-		float featureValue = 0;
-		GetValue( data, info.FeatureIndex, featureValue );
-
-		const CRegressionTreeModel* child = featureValue <= info.Value ? leftChild : rightChild;
-		NeoAssert( child != 0 );
-		return child->GetPredictionNode( data );
-	}
-	return this;
-}
-
 void CRegressionTreeModel::CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const
 {
 	result.Empty();
@@ -136,21 +120,14 @@ void CRegressionTreeModel::CalcFeatureStatistics( int maxFeature, CArray<int>& r
 	calcFeatureStatistics( maxFeature, result );
 }
 
-double CRegressionTreeModel::Predict( const CSparseFloatVector& data ) const
+CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_Const );
 	return node->info.Value;
 }
 
-double CRegressionTreeModel::Predict( const CFloatVector& data ) const
-{
-	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.Value;
-}
-
-double CRegressionTreeModel::Predict( const CSparseFloatVectorDesc& data ) const
+CFloatVector CRegressionTreeModel::MultivariatePredict( const CFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_Const );
