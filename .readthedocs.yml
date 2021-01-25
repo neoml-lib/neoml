@@ -18,3 +18,5 @@ python:
    version: 3.6
    install:
    - requirements: NeoML/docs/en/requirements.txt
+   - method: setuptools
+     path: NeoML/NeoML/Python
