@@ -3,3 +3,4 @@ sphinx==2.4.0
 m2r2==0.2.7
 # requirements for build
 pybind11==2.6.1
+cmake==3.18.4
