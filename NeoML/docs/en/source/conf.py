@@ -47,7 +47,6 @@ def replace_md_with_html(filepath):
     with open(filepath, 'r', encoding='utf8') as file_in:
         lines = file_in.readlines()
     modified = False
-    # TODO: Fix heading links for other formats? (this one is HTML-only)
     for i, line in enumerate(lines):
         if line.find('.md#') != -1:
             modified = True
@@ -87,14 +86,14 @@ for dirpath, _, filenames in walk('.'):
 
 # -- General configuration ---------------------------------------------------
 
-import neoml
+# import neoml
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
     'sphinx.ext.autosectionlabel',
- 
+    'sphinx.ext.autodoc',
     'recommonmark',
 ]
 

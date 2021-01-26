@@ -23,6 +23,7 @@ Welcome to NeoML-Sphinx-Test's documentation!
    API/Clustering/README
    API/Common/README
    API/NN/README
+   Python/module
    Wrappers/Java
    Wrappers/ObjectiveC
    Onnx

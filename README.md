@@ -158,6 +158,10 @@ This module has different implementations for different platforms. In particular
 
 The math engine is also a set of C++ interfaces described [here](NeoML/docs/en/source/API/NN/MathEngine.md).
 
+### Python module
+
+The documentation of python module located [here](NeoML/docs/en/source/Python/module.rst)
+
 ### Java interface
 
 To work with the inference version of the library in Java and Kotlin we provide a [Java interface](NeoML/docs/en/source/Wrappers/Java.md).
