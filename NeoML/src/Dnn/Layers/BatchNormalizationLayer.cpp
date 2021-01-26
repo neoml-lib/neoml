@@ -449,7 +449,6 @@ void CBatchNormalizationLayer::LearnOnce()
 void CBatchNormalizationLayer::GetFreeTermParameterIndexes( CArray<int>& indexes ) const
 {
 	indexes.DeleteAll();
-#pragma message ("Unsure about batch norm params (they are packed altogether in one blob).")
 	indexes.Add( 0 );
 }
 
