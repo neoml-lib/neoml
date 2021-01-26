@@ -231,7 +231,7 @@ public:
 	virtual ~IGradientBoostRegressionModel();
 	
     // Gets the tree ensemble
-	/todo
+	//todo
 	virtual const CArray<CGradientBoostEnsemble>& GetEnsemble() const = 0;
 
 	// Serializes the model
@@ -263,7 +263,8 @@ struct CRegressionTreeNodeInfo {
 	TRegressionTreeNodeType Type; // the node type
 	// The index of the feature used for splitting - only for RTNT_Continuous
 	int FeatureIndex;
-	// For RTNT_Continuous - the value used for splitting
+	// The value of the feature used for splitting
+	double FeatureValue;
 	// For RTNT_Const - the result
 	CFloatVector Value;
 
@@ -277,6 +278,7 @@ inline void CRegressionTreeNodeInfo::CopyTo( CRegressionTreeNodeInfo& newInfo ) 
 {
 	newInfo.Type = Type;
 	newInfo.FeatureIndex = FeatureIndex;
+	newInfo.FeatureValue = FeatureValue;
 	newInfo.Value = Value;
 }
 
@@ -300,7 +302,7 @@ DECLARE_NEOML_MODEL_NAME( RegressionTreeModelName, "FmlRegressionTreeModel" )
 
 // The regression tree model interface
 // Can be used for iterating through the boosting results if used on trees
-class NEOML_API IRegressionTreeModel : public IMultivariateRegressionModel {
+class NEOML_API IRegressionTreeModel : public IRegressionModel, IMultivariateRegressionModel {
 public:
 	virtual ~IRegressionTreeModel();
 
