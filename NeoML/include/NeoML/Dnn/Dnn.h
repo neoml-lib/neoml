@@ -51,6 +51,8 @@ CPtr<T> CreateLayer( const char* name, IMathEngine& mathEngine )
 	return CheckCast<T>( CreateLayer( name, mathEngine ) );
 }
 
+CString NEOML_API GetLayerName( CBaseLayer& layer );
+
 //------------------------------------------------------------------------------------------------------------
 
 template<class T>

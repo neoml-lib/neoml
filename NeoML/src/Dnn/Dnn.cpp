@@ -162,6 +162,11 @@ static CString getLayerName( CBaseLayer* layer )
 	return getLayerNames().GetValue( pos );
 }
 
+CString GetLayerName( CBaseLayer& layer )
+{
+	return getLayerName( &layer );
+}
+
 void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer )
 {
 	if( archive.IsStoring() ) {

@@ -7,12 +7,6 @@ Python module `neoml`
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: neoml.neoml
-   :imported-members:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Class example
 -------------
 

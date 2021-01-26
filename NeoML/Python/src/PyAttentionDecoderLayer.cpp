@@ -22,7 +22,6 @@ class CPyAttentionDecoderLayer : public CPyLayer {
 public:
 	explicit CPyAttentionDecoderLayer( CAttentionDecoderLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
 
-	int GetAttentionScore() const { return static_cast<int>( Layer<CAttentionDecoderLayer>()->GetAttentionScore() ); }
 	void SetAttentionScore( int score ) { Layer<CAttentionDecoderLayer>()->SetAttentionScore( static_cast<TAttentionScore>(score) ); }
 
 	int GetOutputObjectSize() const { return Layer<CAttentionDecoderLayer>()->GetOutputObjectSize(); }
@@ -59,7 +58,6 @@ void InitializeAttentionDecoderLayer( py::module& m )
 			return new CPyAttentionDecoderLayer( *decoder, layer1.MathEngineOwner() );
 		}) )
 		.def( "set_score", &CPyAttentionDecoderLayer::SetAttentionScore, py::return_value_policy::reference )
-		.def( "get_score", &CPyAttentionDecoderLayer::GetAttentionScore, py::return_value_policy::reference )
 		.def( "set_output_seq_len", &CPyAttentionDecoderLayer::SetOutputSequenceLen, py::return_value_policy::reference )
 		.def( "get_output_seq_len", &CPyAttentionDecoderLayer::GetOutputSequenceLen, py::return_value_policy::reference )
 		.def( "set_output_object_size", &CPyAttentionDecoderLayer::SetOutputObjectSize, py::return_value_policy::reference )

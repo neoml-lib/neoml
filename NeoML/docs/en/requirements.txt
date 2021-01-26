@@ -7,3 +7,4 @@ cmake==3.18.4
 ninja==1.10.0
 numpy>=1.19.1
 scipy>=1.5.2
+sphinx-rtd-theme==0.5.1

@@ -202,18 +202,6 @@ void InitializeClustering(py::module& m)
 				int max_iteration_count, int init_cluster_count )
 			{
 				CKMeansClustering::CParam p;
-				p.Algo = CKMeansClustering::KMA_Count;
-				if( algo == "lloyd" ) {
-					p.Algo = CKMeansClustering::KMA_Lloyd;
-				} else if( algo == "elkan" ) {
-					p.Algo = CKMeansClustering::KMA_Elkan;
-				}
-				p.Initialization = CKMeansClustering::KMI_Count;
-				if( init == "default" ) {
-					p.Initialization = CKMeansClustering::KMI_Default;
-				} else if( init == "k++" ) {
-					p.Initialization = CKMeansClustering::KMI_KMeansPlusPlus;
-				}
 				p.DistanceFunc = DF_Undefined;
 				if( distance == "euclid" ) {
 					p.DistanceFunc = DF_Euclid;

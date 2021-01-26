@@ -16,7 +16,7 @@ class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=""):
         Extension.__init__(self, name, sources=[])
         if os.environ.get('READTHEDOCS') == 'True':
-            self.sourcedir = os.path.join(os.path.abspath(sourcedir), "NeoML", "NeoML", "Python")
+            self.sourcedir = os.path.join(os.path.abspath(sourcedir), "NeoML", "Python")
         else:
             self.sourcedir = os.path.abspath(sourcedir)
 
