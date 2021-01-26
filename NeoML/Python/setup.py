@@ -56,8 +56,11 @@ class CMakeBuild(build_ext):
             ["cmake", "--build", ".", "--target", "install"] + build_args, cwd=self.build_temp
         )
 
+is_readthedocs = (os.environ['READTHEDOCS'] == 'True')
+launch_dir = os.getcwd()
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+if is_readthedocs:
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 setup(
     name='neoml',
@@ -72,3 +75,6 @@ setup(
     zip_safe=False,
     test_suite='tests'
 )
+
+if is_readthedocs:
+    os.chdir(launch_dir)
