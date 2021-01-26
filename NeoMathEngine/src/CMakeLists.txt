@@ -368,10 +368,6 @@ if(NOT ANDROID AND NOT IOS AND CMAKE_SYSTEM_PROCESSOR MATCHES "(x86.*)|(amd64)|(
         set(ENV{MKLROOT} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})
     endif()
 
-    if(DEFINED ENV{READTHEDOCS})
-        set(ENV{MKLROOT} $ENV{HOME}/checkouts/readthedocs.org/user_builds/neoml/envs/$ENV{READTHEDOCS_VERSION})
-    endif()
-
     find_package(MKL)
 
     if(MKL_FOUND)
