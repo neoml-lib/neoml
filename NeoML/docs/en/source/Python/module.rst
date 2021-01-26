@@ -10,9 +10,9 @@ Python module `neoml`
 Class example
 -------------
 
-.. autoclass:: neoml.KMeans.KMeans
+.. autoclass:: neoml.KMeans
    :members:
 
-.. autoclass:: neoml.Argmax.Argmax
+.. autoclass:: neoml.Argmax
    :members:
    
