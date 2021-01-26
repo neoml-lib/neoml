@@ -10,6 +10,7 @@ include(Settings)
 set_global_variables()
 
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+find_package(pybind11 REQUIRED)
 
 # Build NeoML
 set(NeoML_INSTALL OFF CACHE BOOL "" FORCE)
