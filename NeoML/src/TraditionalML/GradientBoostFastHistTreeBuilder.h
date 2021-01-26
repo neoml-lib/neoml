@@ -43,7 +43,7 @@ public:
 
 	// Builds a tree
 	CPtr<IRegressionModel> Build( const CGradientBoostFastHistProblem& problem,
-		const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights );
+		const GradientBoostStatType& gradients, const GradientBoostStatType& hessians, const CArray<float>& weights );
 
 protected:
 	virtual ~CGradientBoostFastHistTreeBuilder() {} // delete prohibited
@@ -95,10 +95,10 @@ private:
 	void freeHist( int ptr );
 	void subHist( int firstPtr, int secondPtr );
 	void buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
-		const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,
+		const GradientBoostStatType& gradients, const GradientBoostStatType& hessians, const CArray<float>& weights,
 		CGradientBoostVectorSetStatistics& stats );
-	void addVectorToHist( const int* vectorPtr, int vectorSize, double gradients, double hessian, float weight,
-		CGradientBoostVectorSetStatistics* stats );
+	void addVectorToHist( const int* vectorPtr, int vectorSize, const GradientBoostStatType& gradients, const GradientBoostStatType& hessians, const CArray<float>& weights,
+		CGradientBoostVectorSetStatistics* stats, int vectorIndex );
 	int evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const;
 	void applySplit( const CGradientBoostFastHistProblem& problem, int node, int& leftNode, int& rightNode );
 	bool prune( int node );

@@ -166,7 +166,7 @@ CGradientBoostFullTreeBuilder::CGradientBoostFullTreeBuilder( const CParams& _pa
 	NeoAssert( classCount > 0 );
 }
 
-CPtr<IMultivariateRegressionModel> CGradientBoostFullTreeBuilder::Build( const CGradientBoostFullProblem& problem,
+CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder::Build( const CGradientBoostFullProblem& problem,
 	const GradientBoostStatType& gradients, const CArray<double>& gradientsSum,
 	const GradientBoostStatType& hessians, const CArray<double>& hessiansSum,
 	const CArray<float>& weights, float weightsSum )

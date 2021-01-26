@@ -43,7 +43,7 @@ public:
 	CGradientBoostFullTreeBuilder( const CParams& params, CTextStream* logStream, int classCount );
 
 	// Builds the tree
-	CPtr<IMultivariateRegressionModel> Build( const CGradientBoostFullProblem& problem,
+	CPtr<IRegressionTreeModel> Build( const CGradientBoostFullProblem& problem,
 		const GradientBoostStatType& gradients, const CArray<double>& gradientsSum,
 		const GradientBoostStatType& hessians, const CArray<double>& hessiansSum,
 		const CArray<float>& weights, float weightsSum );

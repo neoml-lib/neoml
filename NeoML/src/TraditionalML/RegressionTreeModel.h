@@ -33,6 +33,7 @@ public:
 
 	// Gets the node that will be used for prediction
 	const CRegressionTreeModel* GetPredictionNode( const CSparseFloatVector& data ) const;
+	const CRegressionTreeModel* GetPredictionNode( const CSparseFloatVectorDesc& data ) const;
 	const CRegressionTreeModel* GetPredictionNode( const CFloatVector& data ) const;
 
 	// IRegressionTreeModel interface methods

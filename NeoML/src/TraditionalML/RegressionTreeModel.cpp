@@ -79,7 +79,7 @@ void CRegressionTreeModel::InitSplitNode( CRegressionTreeModel& left, CRegressio
 
 	info.Type = RTNT_Continuous;
 	info.FeatureIndex = feature;
-	info.Value = threshold;
+	info.FeatureValue = threshold;
 	leftChild = &left;
 	rightChild = &right;
 }
@@ -92,7 +92,22 @@ const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSpar
 		float featureValue = 0;
 		data.GetValue( info.FeatureIndex, featureValue );
 
-		const CRegressionTreeModel* child = featureValue <= info.Value ? leftChild : rightChild;
+		const CRegressionTreeModel* child = featureValue <= info.FeatureValue ? leftChild : rightChild;
+		NeoAssert( child != 0 );
+		return child->GetPredictionNode( data );
+	}
+	return this;
+}
+
+const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSparseFloatVectorDesc& data ) const
+{
+	static_assert(RTNT_Count == 3, "RTNT_Count != 3");
+
+	if( info.Type == RTNT_Continuous ) {
+		float featureValue = 0;
+		GetValue( data, info.FeatureIndex, featureValue );
+
+		const CRegressionTreeModel* child = featureValue <= info.FeatureValue ? leftChild : rightChild;
 		NeoAssert( child != 0 );
 		return child->GetPredictionNode( data );
 	}
@@ -105,7 +120,7 @@ const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CFloa
 
 	if( info.Type == RTNT_Continuous ) {
 		double featureValue = info.FeatureIndex < data.Size() ? data[info.FeatureIndex] : 0;
-		const CRegressionTreeModel* child = featureValue <= info.Value ? leftChild : rightChild;
+		const CRegressionTreeModel* child = featureValue <= info.FeatureValue ? leftChild : rightChild;
 		NeoAssert( child != 0 );
 		return child->GetPredictionNode( data );
 	}
@@ -118,6 +133,27 @@ void CRegressionTreeModel::CalcFeatureStatistics( int maxFeature, CArray<int>& r
 	result.Add( 0, maxFeature );
 
 	calcFeatureStatistics( maxFeature, result );
+}
+
+double CRegressionTreeModel::Predict( const CSparseFloatVector& data ) const
+{
+	const CRegressionTreeModel* node = GetPredictionNode( data );
+	NeoAssert( node->info.Type == RTNT_Const );
+	return node->info.Value[0];
+}
+
+double CRegressionTreeModel::Predict( const CFloatVector& data ) const
+{
+	const CRegressionTreeModel* node = GetPredictionNode( data );
+	NeoAssert( node->info.Type == RTNT_Const );
+	return node->info.Value[0];
+}
+
+double CRegressionTreeModel::Predict( const CSparseFloatVectorDesc& data ) const
+{
+	const CRegressionTreeModel* node = GetPredictionNode( data );
+	NeoAssert( node->info.Type == RTNT_Const );
+	return node->info.Value[0];
 }
 
 CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVector& data ) const
@@ -178,7 +214,7 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 				if( version == 1 ) {
 					float value = 0;
 					archive >> value;
-					info.Value = value;
+					info.FeatureValue = value;
 				} else {
 					archive >> info.Value;
 				}

@@ -29,8 +29,8 @@ namespace NeoML {
 		// Adds a vector
 		void Add( const CArray<double>& gradient, const CArray<double>& hessian, float weight );
 		void Add( const GradientBoostStatType& gradients, const GradientBoostStatType& hessians, const CArray<float>& weights, int vectorIndex );
-		void Add( CGradientBoostVectorSetStatistics& that );
-		void Add( CGradientBoostVectorSetStatistics& that, int classIndex );
+		void Add( const CGradientBoostVectorSetStatistics& that );
+		void Add( const CGradientBoostVectorSetStatistics& that, int classIndex );
 
 		// Deletes a vector
 		void Sub( const CArray<double>& gradient, const CArray<double>& hessian, float weight );
@@ -98,12 +98,12 @@ inline void CGradientBoostVectorSetStatistics::Add( const CArray<double>& gradie
 	totalWeight += weight;
 }
 
-inline void CGradientBoostVectorSetStatistics::Add( CGradientBoostVectorSetStatistics& that )
+inline void CGradientBoostVectorSetStatistics::Add( const CGradientBoostVectorSetStatistics& that )
 {
 	Add( that.TotalGradient(), that.TotalHessian(), that.TotalWeight() );
 }
 
-inline void CGradientBoostVectorSetStatistics::Add( CGradientBoostVectorSetStatistics& that, int classIndex )
+inline void CGradientBoostVectorSetStatistics::Add( const CGradientBoostVectorSetStatistics& that, int classIndex )
 {
 	totalGradient[classIndex] += that.TotalGradient()[classIndex];
 	totalHessian[classIndex] += that.TotalHessian()[classIndex];

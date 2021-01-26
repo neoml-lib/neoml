@@ -31,7 +31,7 @@ class CGradientBoostFullProblem;
 class CGradientBoostFastHistProblem;
 
 // Decision tree ensemble that has been built by gradient boosting
-class CGradientBoostEnsemble : public CObjectArray<IMultivariateRegressionModel> {
+class CGradientBoostEnsemble : public CObjectArray<IRegressionTreeModel> {
 public:
 	CGradientBoostEnsemble() {}
 };
