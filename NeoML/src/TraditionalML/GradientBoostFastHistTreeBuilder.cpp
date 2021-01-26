@@ -318,8 +318,8 @@ int CGradientBoostFastHistTreeBuilder::evaluateSplit( const CGradientBoostFastHi
 				right.Sub( left );
 
 				// The condition (lower limit) for the resulting node size
-				if( left.StatisticsIsSmall( params.MinSubsetHessian, params.MinSubsetWeight ) ||
-					right.StatisticsIsSmall( params.MinSubsetHessian, params.MinSubsetWeight ) )
+				if( left.StatisticsIsSmall( params.MinSubsetHessian, params.MinSubsetWeight, 0 ) ||
+					right.StatisticsIsSmall( params.MinSubsetHessian, params.MinSubsetWeight, 0 ) )
 				{
 					continue;
 				}
@@ -455,7 +455,8 @@ CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder::buildTree( int nod
 	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();
 
 	if( nodes[node].SplitFeatureId == NotFound ) {
-		result->InitLeafNode( -nodes[node].Statistics.TotalGradient() / nodes[node].Statistics.TotalHessian() );
+		CFloatVector leafValue( 1, -nodes[node].Statistics.TotalGradient()[0] / nodes[node].Statistics.TotalHessian()[0] );
+		result->InitLeafNode( leafValue );
 	} else {
 		CPtr<CRegressionTreeModel> left = buildTree( nodes[node].Left, featureIndexes, cuts );
 		CPtr<CRegressionTreeModel> right = buildTree( nodes[node].Right, featureIndexes, cuts );

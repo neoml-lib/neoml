@@ -61,7 +61,7 @@ namespace NeoML {
 		CArray<double> totalGradient; // total gradient
 		CArray<double> totalHessian; // total hessian
 		float totalWeight; // total weight
-		int classCount;
+		int classCount = 1;
 	};
 
 inline CGradientBoostVectorSetStatistics::CGradientBoostVectorSetStatistics( int _classCount ) :
