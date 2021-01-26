@@ -42,7 +42,7 @@ group;para;RunMathEngineTests
 		runx;%ROOT%\WinFinal\NeoMathEngineFullTestDesktop.exe;--MathEngine=cpu
 	end_configuration
 	configuration;x64
-		runx;%ROOT%\WinFinal.x64\NeoMathEngineFullTestDesktop.exe;--MathEngine=gpu
+		runx;%ROOT%\WinFinal.x64\NeoMathEngineFullTestDesktop.exe;--MathEngine=cuda
 	end_configuration
 end_group
 
@@ -51,7 +51,7 @@ group;para;RunInferenceTests
 		runx;%ROOT%\WinFinal\NeoMLInferenceTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal\ --MathEngine=cpu
 	end_configuration
 	configuration;x64
-		runx;%ROOT%\WinFinal.x64\NeoMLInferenceTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal.x64\ --MathEngine=gpu
+		runx;%ROOT%\WinFinal.x64\NeoMLInferenceTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal.x64\ --MathEngine=cuda
 	end_configuration
 end_group
 
@@ -61,6 +61,15 @@ group;para;RunCommonTests
 	end_configuration
 	configuration;x64
 		runx;%ROOT%\WinFinal.x64\NeoMLCCTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal.x64\
-		runx;%ROOT%\WinFinal.x64\NeoMLTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal.x64\ --MathEngine=gpu
+		runx;%ROOT%\WinFinal.x64\NeoMLTestDesktop.exe;--TestDataPath=%ROOT%\WinFinal.x64\ --MathEngine=cuda
+	end_configuration
+end_group
+
+group;para;RunNeoMLTests
+	configuration;x86
+		runx;%ROOT%\WinFinal\NeoMLTest.exe;--TestDataPath=%ROOT%\WinFinal\ --MathEngine=cpu
+	end_configuration
+	configuration;x64
+		runx;%ROOT%\WinFinal.x64\NeoMLTest.exe;--TestDataPath=%ROOT%\WinFinal.x64\ --MathEngine=cuda
 	end_configuration
 end_group
