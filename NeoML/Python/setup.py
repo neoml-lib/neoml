@@ -14,11 +14,8 @@ WIN_ARCH = {
 
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=""):
+        self.sourcedir = os.path.abspath(sourcedir)
         Extension.__init__(self, name, sources=[])
-        if os.environ.get('READTHEDOCS') == 'True':
-            self.sourcedir = os.path.join(os.path.abspath(sourcedir), "NeoML", "Python")
-        else:
-            self.sourcedir = os.path.abspath(sourcedir)
 
 
 class CMakeBuild(build_ext):
@@ -59,6 +56,8 @@ class CMakeBuild(build_ext):
             ["cmake", "--build", ".", "--target", "install"] + build_args, cwd=self.build_temp
         )
 
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 setup(
     name='neoml',
