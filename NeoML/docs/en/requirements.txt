@@ -8,4 +8,4 @@ cmaketools==0.1.6
 ninja==1.10.0
 numpy>=1.19.1
 scipy>=1.5.2
-pybind11[global]==2.6.1
+pybind11-global==2.6.1
