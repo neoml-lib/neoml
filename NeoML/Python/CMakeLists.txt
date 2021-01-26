@@ -10,6 +10,13 @@ include(Settings)
 set_global_variables()
 
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+
+find_path(pybind11_INCLUDE_DIR
+    NAMES pybind11/pybind11.h
+    DOC "The directory where pybind11 includes reside")
+if (NOT (pybind11_INCLUDE_DIR STREQUAL ""))
+    set(ENV{pybind11_DIR} ${pybind11_INCLUDE_DIR})
+endif()
 find_package(pybind11 REQUIRED)
 
 # Build NeoML
