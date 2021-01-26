@@ -27,8 +27,8 @@ author = 'ABBYY'
 
 # -- Pre-process root README.md ----------------------------------------------
 
-with open('../../../../README.md', 'r', encoding='utf-8') as file_in:
-    with open('README.md', 'w', encoding='utf-8') as file_out:
+with open('../../../../README.md', 'r', encoding='utf-8', newline='\n') as file_in:
+    with open('README.md', 'w', encoding='utf-8', newline='\n') as file_out:
         for line in file_in:
             line = line.replace('NeoML_logo.png', 'NeoML_logo_help.png')
             line = line.replace('NeoML/docs/en/source/', '')
@@ -44,7 +44,7 @@ import sys
 
 # Fix links to the external md headings for html help
 def replace_md_with_html(filepath):
-    with open(filepath, 'r', encoding='utf8') as file_in:
+    with open(filepath, 'r', encoding='utf8', newline='\n') as file_in:
         lines = file_in.readlines()
     modified = False
     for i, line in enumerate(lines):
@@ -52,12 +52,12 @@ def replace_md_with_html(filepath):
             modified = True
             lines[i] = line.replace('.md#', '.html#')
     if modified:
-        with open(filepath, 'w', encoding='utf8') as file_out:
+        with open(filepath, 'w', encoding='utf8', newline='\n') as file_out:
             file_out.writelines(lines)
 
 # Remove links to the external md headings
 def remove_heading_links(filepath):
-    with open(filepath, 'r', encoding='utf8') as file_in:
+    with open(filepath, 'r', encoding='utf8', newline='\n') as file_in:
         lines = file_in.readlines()
     modified = False
     for i in range(len(lines)):
@@ -68,7 +68,7 @@ def remove_heading_links(filepath):
             lines[i] = lines[i][:pos+3] + lines[i][bracket:]
             pos = lines[i].find('.md#')
     if modified:
-        with open(filepath, 'w', encoding='utf8') as file_out:
+        with open(filepath, 'w', encoding='utf8', newline='\n') as file_out:
             file_out.writelines(lines)
 
 is_html_help = any(map(lambda x: x == 'html', sys.argv))
