@@ -17,8 +17,6 @@ sphinx:
 python:
    version: 3.6
    install:
+   - requirements: NeoML/docs/en/requirements.txt
    - method: setuptools
      path: NeoML/Python
-
-conda:
-   environment: NeoML/docs/en/environment.yml
