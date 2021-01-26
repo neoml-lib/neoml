@@ -413,6 +413,10 @@ public:
 	bool UseTrustRatio() const { return useTrustRatio; }
 	void SetUseTrustRatio( bool value ) { useTrustRatio = value; }
 
+	// By default weight decay is not applied to bias params and normalizaion layers.
+	bool UseWeightDecayForBias() const { return useWeightDecayForBias; }
+	void SetUseWeightDecayForBias( bool value ) { useWeightDecayForBias = value; }
+
 	// Use NVLamb modification
 	// https://medium.com/nvidia-ai/a-guide-to-optimizer-implementation-for-bert-at-scale-8338cc7f45fd
 	// By default is false
@@ -450,6 +454,8 @@ private:
 	float weightDecayClip;
 	// Is LAMB normalization used
 	bool useTrustRatio;
+	// Is LAMB appliedToBias
+	bool useWeightDecayForBias;
 	// Is NVLamb modification used
 	bool useNvLamb;
 

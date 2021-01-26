@@ -702,6 +702,7 @@ CDnnLambGradientSolver::CDnnLambGradientSolver( IMathEngine& mathEngine ) :
 	epsilon( 1e-6f ),
 	weightDecayClip( -1.f ),
 	useTrustRatio( true ),
+	useWeightDecayForBias( false ),
 	useNvLamb( false ),
 	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) ),
 	totalGradientNorm( 1.0f )
@@ -743,6 +744,9 @@ void CDnnLambGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 	archive.Serialize( useTrustRatio );
 	archive.Serialize( useNvLamb );
 	archive.Serialize( layersGradientNormSquare );
+	if( version > 0 ) {
+		archive.Serialize( useWeightDecayForBias );
+	}
 
 	if( version < 1 ) {
 		// Not used any more, for compatibility only
@@ -754,6 +758,8 @@ void CDnnLambGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 			CExcludedLayer tmp;
 			tmp.Load( archive );
 		}
+		// Heuristic for bacward compatibility
+		useWeightDecayForBias = ( excludedLayersCount == 0 );
 	}
 }
 
@@ -845,7 +851,7 @@ void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectA
 			tempBlob->GetData(), dataSize );
 
 		// weightDecay
-		if( !weightBiasIndexes.Has( i ) && layerWeighDecay > 0 ) {
+		if( ( useWeightDecayForBias || !weightBiasIndexes.Has( i ) ) && layerWeighDecay > 0 ) {
 			MathEngine().VectorMultiplyAndAdd( tempBlob->GetData(), paramBlobs[i]->GetData(),
 				tempBlob->GetData(), tempBlob->GetDataSize(), tempVariables->GetData( { TV_WeightDecayVar } ) );
 		}
