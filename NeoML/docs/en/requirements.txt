@@ -4,7 +4,6 @@ sphinx-rtd-theme==0.5.1
 m2r2==0.2.7
 # requirements for build
 cmake==3.18.4
-cmaketools==0.1.6
 ninja==1.10.0
 numpy>=1.19.1
 scipy>=1.5.2
