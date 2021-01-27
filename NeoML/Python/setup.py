@@ -72,7 +72,7 @@ setup(
     ext_modules=[CMakeExtension("neoml.PythonWrapper")],
     cmdclass={"build_ext": CMakeBuild},
     include_package_data=True,
-    packages=find_packages(),
+    packages=['neoml'],
     zip_safe=False,
     test_suite='tests'
 )
