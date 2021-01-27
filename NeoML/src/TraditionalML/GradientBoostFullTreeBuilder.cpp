@@ -54,13 +54,18 @@ struct CThreadStatistics {
 };
 
 inline CThreadStatistics::CThreadStatistics( const CThreadStatistics& other ):
-	Prev( 0.0 ),
+	Prev( other.Prev ),
 	FeatureIndex( other.FeatureIndex ),
 	Threshold( other.Threshold ),
-	Criterion( other.criterion ),
-	TotalStatistics( totalStatistics )
+	Criterion( other.Criterion ),
+	CurLeftStatistics( other.CurLeftStatistics ),
+	CurRightStatistics( other.CurRightStatistics ),
+	LeftStatistics( other.LeftStatistics ),
+	RightStatistics( other.RightStatistics ),
+	TotalStatistics( other.TotalStatistics )
 {
-
+	other.ResultClassIsLeaf.CopyTo( ResultClassIsLeaf );
+	other.InitialClassIsLeaf.CopyTo( InitialClassIsLeaf );
 }
 
 inline CThreadStatistics::CThreadStatistics( float criterion, const CGradientBoostVectorSetStatistics& totalStatistics,

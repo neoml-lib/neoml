@@ -135,27 +135,6 @@ void CRegressionTreeModel::CalcFeatureStatistics( int maxFeature, CArray<int>& r
 	calcFeatureStatistics( maxFeature, result );
 }
 
-double CRegressionTreeModel::Predict( const CSparseFloatVector& data ) const
-{
-	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.Value[0];
-}
-
-double CRegressionTreeModel::Predict( const CFloatVector& data ) const
-{
-	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.Value[0];
-}
-
-double CRegressionTreeModel::Predict( const CSparseFloatVectorDesc& data ) const
-{
-	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.Value[0];
-}
-
 CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
@@ -164,6 +143,20 @@ CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVector
 }
 
 CFloatVector CRegressionTreeModel::MultivariatePredict( const CFloatVector& data ) const
+{
+	const CRegressionTreeModel* node = GetPredictionNode( data );
+	NeoAssert( node->info.Type == RTNT_Const );
+	return node->info.Value;
+}
+
+CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVectorDesc& data ) const
+{
+	const CRegressionTreeModel* node = GetPredictionNode( data );
+	NeoAssert( node->info.Type == RTNT_Const );
+	return node->info.Value;
+}
+
+CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVectorDesc& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_Const );

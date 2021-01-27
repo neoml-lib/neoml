@@ -30,11 +30,11 @@ public:
 	static CPtr<IModel> Create() { return FINE_DEBUG_NEW CGradientBoostModel(); }
 
 	// Gets the prediction by the tree ensemble
-	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+	static CFloatVector PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
 		const CSparseFloatVector& vector );
-	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+	static CFloatVector PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
 		const CFloatVector& vector );
-	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+	static CFloatVector PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
 		const CSparseFloatVectorDesc& desc );
 
 	// IModel interface methods
@@ -60,6 +60,7 @@ public:
 	// IMultivariateRegressionModel interface methods
 	CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const override;
 	CFloatVector MultivariatePredict( const CFloatVector& data ) const override;
+	CFloatVector MultivariatePredict( const CSparseFloatVectorDesc& data ) const override;
 
 private:
 	CArray<CGradientBoostEnsemble> ensembles; // the models
@@ -67,7 +68,7 @@ private:
 	CGradientBoost::TLossFunction lossFunction; // the loss function to be optimized
 
 	bool classify( double prediction, CClassificationResult& result ) const;
-	bool classify( CArray<double>& predictions, CClassificationResult& result ) const;
+	bool classify( CFloatVector& predictions, CClassificationResult& result ) const;
 	double probability( double prediction ) const;
 
 	// The common implementation for all three MultivariatePredict methods
