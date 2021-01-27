@@ -45,8 +45,8 @@ CFloatVector CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ense
 CFloatVector CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
 	const CSparseFloatVectorDesc& vector )
 {
-	CFloatVector result;
-	for( int i = startPos; i < ensemble.Size(); i++ ) {
+	CFloatVector result = ensemble[startPos]->MultivariatePredict( vector );
+	for( int i = startPos + 1; i < ensemble.Size(); i++ ) {
 		result += ensemble[i]->MultivariatePredict( vector );
 	}
 
@@ -57,8 +57,8 @@ CFloatVector CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ense
 CFloatVector CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
 	const CFloatVector& vector )
 {
-	CFloatVector result;
-	for( int i = startPos; i < ensemble.Size(); i++ ) {
+	CFloatVector result = ensemble[startPos]->MultivariatePredict( vector );
+	for( int i = startPos + 1; i < ensemble.Size(); i++ ) {
 		result += ensemble[i]->MultivariatePredict( vector );
 	}
 
@@ -71,7 +71,7 @@ bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassif
 		return classify( PredictRaw( ensembles[0], 0, learningRate, data ), result );
 	}
 
-	CFloatVector predictions( GetClassCount(), 0 );
+	CFloatVector predictions( ensembles.Size(), 0 );
 	for( int i = 0; i < ensembles.Size(); i++ ) {
 		predictions.SetAt( i, PredictRaw( ensembles[i], 0, learningRate, data )[0] );
 	}
@@ -84,7 +84,7 @@ bool CGradientBoostModel::Classify( const CFloatVector& data, CClassificationRes
 		return classify( PredictRaw( ensembles[0], 0, learningRate, data ), result );
 	}
 
-	CFloatVector predictions( GetClassCount(), 0 );
+	CFloatVector predictions( ensembles.Size(), 0 );
 	for( int i = 0; i < ensembles.Size(); i++ ) {
 		predictions.SetAt( i, PredictRaw( ensembles[i], 0, learningRate, data )[0] );
 	}
@@ -156,8 +156,7 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray
 	NeoAssert( !ensembles.IsEmpty() );
 
 	const int classCount = GetClassCount();
-	CArray<double> predictions;
-	predictions.Add( 0.0, ensembles.Size() );
+	CFloatVector predictions( ensembles.Size(), 0.0 );
 	CArray<double> distances;
 
 	results.DeleteAll();
@@ -166,7 +165,7 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray
 		result.ExceptionProbability = CClassificationProbability( 0 );
 		
 		if( classCount == 2 ) {
-			predictions[0] += learningRate * ensembles[0][resultIndex]->Predict( data );
+			predictions += learningRate * ensembles[0][resultIndex]->MultivariatePredict( data );
 			const double rawValue = probability( predictions[0] );
 			result.PreferredClass = rawValue < 0.5 ? 0 : 1;
 			result.Probabilities.Add( CClassificationProbability( 1 - rawValue ) );
@@ -176,8 +175,16 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray
 			distances.DeleteAll();
 			distances.SetBufferSize( ensembles.Size() );
 			result.PreferredClass = 0;
-			for( int i = 0; i < ensembles.Size(); i++ ) {
-				predictions[i] += learningRate * ensembles[i][resultIndex]->Predict( data );
+
+			if( ensembles.Size() == 1 ){
+				predictions += learningRate * ensembles[0][resultIndex]->MultivariatePredict( data );
+			} else {
+				for( int i = 0; i < ensembles.Size(); i++ ) {
+					predictions.SetAt( i,
+						predictions[i] + learningRate * ensembles[i][resultIndex]->MultivariatePredict( data )[0] );
+				}
+			}
+			for( int i = 0; i < predictions.Size(); i++ ){
 				const double distance = probability( predictions[i] );
 				distances.Add( distance );
 				sumDistance += distance;
@@ -247,12 +254,15 @@ double CGradientBoostModel::Predict( const CSparseFloatVectorDesc& data ) const
 template<typename TData>
 CFloatVector CGradientBoostModel::doMultivariatePredict( const TData& data ) const
 {
-	CFloatVector result( ensembles.Size() );
-	for( int i = 0; i < ensembles.Size(); i++ ) {
-		result.SetAt( i, static_cast<float>(
-			PredictRaw( ensembles[i], 0, learningRate, data ) ) );
+	if( ensembles.Size() == 1 ){
+		return PredictRaw( ensembles[0], 0, learningRate, data );
+	} else {
+		CFloatVector result( ensembles.Size() );
+		for( int i = 0; i < ensembles.Size(); i++ ) {
+			result.SetAt( i, PredictRaw( ensembles[i], 0, learningRate, data )[0] );
+		}
+		return result;
 	}
-	return result;
 }
 
 // IMultivariateRegressionModel interface methods

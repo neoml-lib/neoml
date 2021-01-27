@@ -140,7 +140,7 @@ struct CGradientBoostNodeStatistics : public virtual IObject {
 
 	void InitThreadStatistics( int threadCount, float l1RegFactor, float l2RegFactor );
 
-	CFloatVector& LeafValue();
+	CFloatVector LeafValue();
 };
 
 inline CGradientBoostNodeStatistics::CGradientBoostNodeStatistics( int level, const CGradientBoostVectorSetStatistics& totalStatistics ) :
@@ -157,7 +157,7 @@ inline void CGradientBoostNodeStatistics::InitThreadStatistics( int threadCount,
 	ThreadStatistics.Add( CThreadStatistics( criterion, TotalStatistics, ClassIsLeaf ), threadCount );
 }
 
-inline CFloatVector& CGradientBoostNodeStatistics::LeafValue()
+inline CFloatVector CGradientBoostNodeStatistics::LeafValue()
 {
 	CFloatVector res( ClassIsLeaf.Size() );
 	for( int i = 0; i < ClassIsLeaf.Size(); i++ ){

@@ -156,13 +156,6 @@ CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVector
 	return node->info.Value;
 }
 
-CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVectorDesc& data ) const
-{
-	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.Value;
-}
-
 void CRegressionTreeModel::Serialize( CArchive& archive )
 {
 #ifdef NEOML_USE_FINEOBJ

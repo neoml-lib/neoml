@@ -369,14 +369,14 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 	IGradientBoostingLossFunction* lossFunction )
 {
 	NeoAssert( _problem != nullptr && lossFunction != nullptr );
-
+	printf( "okidoki1\n" );
 	// create view without null weights over original problem
 	CPtr<const IMultivariateRegressionProblem> problem = 
 		FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( _problem );
 	CArray<CGradientBoostEnsemble> models; // the final models ensemble (ensembles are used for multi-class classification)
 	initialize( problem->GetValueSize(), problem->GetVectorCount(),
 		problem->GetFeatureCount(), models );
-
+	printf( "okidoki2\n" );
 	try {
 		// Create a tree builder
 		createTreeBuilder( problem );
@@ -488,7 +488,7 @@ void CGradientBoost::initialize( int modelCount, int vectorCount, int featureCou
 	NeoAssert( vectorCount > 0 );
 	NeoAssert( featureCount > 0 );
 
-	models.SetSize( modelCount );
+	models.SetSize( params.IsMultiBoosted ? 1 : modelCount );
 
 	predictCache.DeleteAll();
 	predictCache.SetSize( modelCount );
@@ -644,9 +644,18 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 				CSparseFloatVectorDesc vector;
 				matrix.GetRow( usedVector, vector );
 
-				for( int j = 0; j < models.Size(); j++ ) {
-					predictCache[j][usedVector].Value += CGradientBoostModel::PredictRaw( models[j], predictCache[j][usedVector].Step,
+				CFloatVector predictions( problem.GetValueSize(), 0.0 );
+				if( params.IsMultiBoosted ){
+					CFloatVector predictions = CGradientBoostModel::PredictRaw( models[0], predictCache[0][usedVector].Step,
 						params.LearningRate, vector );
+				} else {
+					for( int j = 0; j < problem.GetValueSize(); j++ ){
+						predictions.SetAt( j, CGradientBoostModel::PredictRaw( models[j], predictCache[j][usedVector].Step,
+							params.LearningRate, vector )[0] );
+					}
+				}
+				for( int j = 0; j < problem.GetValueSize(); j++ ) {
+					predictCache[j][usedVector].Value += predictions[j];
 					predictCache[j][usedVector].Step = curStep;
 					predicts[j][index] = predictCache[j][usedVector].Value;
 					answers[j][index] = value[j];
@@ -680,9 +689,19 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 				CSparseFloatVectorDesc vector;
 				matrix.GetRow( index, vector );
 
-				for( int j = 0; j < models.Size(); j++ ) {
-					predictCache[j][index].Value += CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
+				CFloatVector predictions( problem.GetValueSize(), 0.0 );
+				if( params.IsMultiBoosted ){
+					CFloatVector predictions = CGradientBoostModel::PredictRaw( models[0], predictCache[0][index].Step,
 						params.LearningRate, vector );
+				}
+				else {
+					for( int j = 0; j < problem.GetValueSize(); j++ ){
+						predictions.SetAt( j, CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
+							params.LearningRate, vector )[0] );
+					}
+				}
+				for( int j = 0; j < problem.GetValueSize(); j++ ) {
+					predictCache[j][index].Value += predictions[j];
 					predictCache[j][index].Step = step;
 					predicts[j][index] = predictCache[j][index].Value;
 					answers[j][index] = value[j];
