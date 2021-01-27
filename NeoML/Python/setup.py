@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
+
+is_readthedocs = (os.environ['READTHEDOCS'] == 'True')
+launch_dir = os.getcwd()
+
+if is_readthedocs:
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 import sys
 import subprocess
 
@@ -55,12 +62,6 @@ class CMakeBuild(build_ext):
         subprocess.check_call(
             ["cmake", "--build", ".", "--target", "install"] + build_args, cwd=self.build_temp
         )
-
-is_readthedocs = (os.environ['READTHEDOCS'] == 'True')
-launch_dir = os.getcwd()
-
-if is_readthedocs:
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 setup(
     name='neoml',
