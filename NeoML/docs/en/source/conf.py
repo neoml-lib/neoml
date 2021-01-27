@@ -108,6 +108,10 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+if os.environ['READTHEDOCS'] == 'True':
+    # readthedocs.io forbids byte-compilation of C-binaries
+    # we've got to mock them :(
+    autodoc_mock_imports = ['neoml.PythonWrapper']
 
 # -- Options for HTML output -------------------------------------------------
 
