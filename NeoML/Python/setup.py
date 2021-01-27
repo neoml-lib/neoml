@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
-is_readthedocs = (os.environ['READTHEDOCS'] == 'True')
+is_readthedocs = (os.getenv('READTHEDOCS') == 'True')
 launch_dir = os.getcwd()
 
 if is_readthedocs:
