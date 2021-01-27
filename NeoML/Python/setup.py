@@ -56,9 +56,22 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
+        print()
+        print('   ***   FIRST CMAKE CALL   ***')
+        print('cwd is ', self.build_temp)
+        print(' '.join(["cmake", ext.sourcedir] + cmake_args))
+        print('   ***   FIRST CMAKE CALL   ***')
+        print()
         subprocess.check_call(
             ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp
         )
+
+        print()
+        print('   ***   SECOND CMAKE CALL   ***')
+        print('cwd is ', self.build_temp)
+        print(' '.join(["cmake", "--build", ".", "--target", "install"] + build_args))
+        print('   ***   SECON CMAKE CALL   ***')
+        print()
         subprocess.check_call(
             ["cmake", "--build", ".", "--target", "install"] + build_args, cwd=self.build_temp
         )
