@@ -42,7 +42,7 @@ public:
 	CGradientBoostFastHistTreeBuilder( const CParams& params, CTextStream* logStream );
 
 	// Builds a tree
-	CPtr<IRegressionModel> Build( const CGradientBoostFastHistProblem& problem,
+	CPtr<IMultivariateRegressionModel> Build( const CGradientBoostFastHistProblem& problem,
 		const GradientBoostStatType& gradients, const GradientBoostStatType& hessians, const CArray<float>& weights );
 
 protected:

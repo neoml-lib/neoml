@@ -31,7 +31,7 @@ class CGradientBoostFullProblem;
 class CGradientBoostFastHistProblem;
 
 // Decision tree ensemble that has been built by gradient boosting
-class CGradientBoostEnsemble : public CObjectArray<IRegressionTreeModel> {
+class CGradientBoostEnsemble : public CObjectArray<IMultivariateRegressionModel> {
 public:
 	CGradientBoostEnsemble() {}
 };
@@ -302,7 +302,7 @@ DECLARE_NEOML_MODEL_NAME( RegressionTreeModelName, "FmlRegressionTreeModel" )
 
 // The regression tree model interface
 // Can be used for iterating through the boosting results if used on trees
-class NEOML_API IRegressionTreeModel : public IRegressionModel, IMultivariateRegressionModel {
+class NEOML_API IRegressionTreeModel : public IMultivariateRegressionModel {
 public:
 	virtual ~IRegressionTreeModel();
 

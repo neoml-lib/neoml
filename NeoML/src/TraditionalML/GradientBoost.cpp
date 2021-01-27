@@ -388,7 +388,7 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 			}
 
 			// One gradient boosting step
-			CObjectArray<IRegressionTreeModel> curIterationModels; // a new model for multi-class classification
+			CObjectArray<IMultivariateRegressionModel> curIterationModels; // a new model for multi-class classification
 			executeStep( *lossFunction, problem, models, curIterationModels );
 
 			for( int j = 0; j < curIterationModels.Size(); j++ ) {
@@ -523,7 +523,7 @@ void CGradientBoost::initialize( int modelCount, int vectorCount, int featureCou
 // On a sub-problem of the first problem using cache
 void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	const IMultivariateRegressionProblem* problem,
-	const CArray<CGradientBoostEnsemble>& models, CObjectArray<IRegressionTreeModel>& curModels )
+	const CArray<CGradientBoostEnsemble>& models, CObjectArray<IMultivariateRegressionModel>& curModels )
 {
 	NeoAssert( !models.IsEmpty() );
 	NeoAssert( curModels.IsEmpty() );
@@ -598,7 +598,7 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	}
 
 	if ( params.IsMultiBoosted ){
-		CPtr<IRegressionTreeModel> model;
+		CPtr<IMultivariateRegressionModel> model;
 		if( fullTreeBuilder != nullptr ) {
 			model = fullTreeBuilder->Build( *fullProblem, gradients.begin(), gradientsSum,
 				hessians.begin(), hessiansSum, weights, weightsSum );
@@ -614,12 +614,12 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 			CPtr<IMultivariateRegressionModel> model;
 			if( fullTreeBuilder != nullptr ) {
 				model = fullTreeBuilder->Build( *fullProblem,
-					gradients.begin(), CArray<double>( { gradientsSum[i] } ),
-					hessians.begin(), CArray<double>( { hessiansSum[i] } ),
+					gradients.begin() + i, CArray<double>( { gradientsSum[i] } ),
+					hessians.begin() + i, CArray<double>( { hessiansSum[i] } ),
 					weights, weightsSum );
 			}
 			else {
-				model = fastHistTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
+				model = fastHistTreeBuilder->Build( *fastHistProblem, gradients.begin() + i, hessians.begin() + i, weights );
 			}
 			curModels.Add( model );
 		}

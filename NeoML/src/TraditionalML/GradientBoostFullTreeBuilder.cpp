@@ -47,10 +47,21 @@ struct CThreadStatistics {
 	CArray<bool> InitialClassIsLeaf;
 	CGradientBoostVectorSetStatistics TotalStatistics;
 
+	CThreadStatistics( const CThreadStatistics& other );
 	explicit CThreadStatistics( float criterion, const CGradientBoostVectorSetStatistics& totalStatistics, const CArray<bool>& classIsLeaf );
 	double CThreadStatistics::CalcCriterion( CGradientBoostVectorSetStatistics& leftResult, CGradientBoostVectorSetStatistics& rightResult,
 		CArray<bool>& leafResult, float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight );
 };
+
+inline CThreadStatistics::CThreadStatistics( const CThreadStatistics& other ):
+	Prev( 0.0 ),
+	FeatureIndex( other.FeatureIndex ),
+	Threshold( other.Threshold ),
+	Criterion( other.criterion ),
+	TotalStatistics( totalStatistics )
+{
+
+}
 
 inline CThreadStatistics::CThreadStatistics( float criterion, const CGradientBoostVectorSetStatistics& totalStatistics,
 											 const CArray<bool>& classIsLeaf ) :
@@ -112,7 +123,7 @@ struct CGradientBoostNodeStatistics : public virtual IObject {
 	int FeatureIndex;
 	// The split threshold
 	float Threshold;
-	// If class is not splitting further
+	// Whether class is not splitting further
 	CArray<bool> ClassIsLeaf;
 	// The child nodes
 	CPtr<CGradientBoostNodeStatistics> Left;
@@ -166,7 +177,7 @@ CGradientBoostFullTreeBuilder::CGradientBoostFullTreeBuilder( const CParams& _pa
 	NeoAssert( classCount > 0 );
 }
 
-CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder::Build( const CGradientBoostFullProblem& problem,
+CPtr<IMultivariateRegressionModel> CGradientBoostFullTreeBuilder::Build( const CGradientBoostFullProblem& problem,
 	const GradientBoostStatType& gradients, const CArray<double>& gradientsSum,
 	const GradientBoostStatType& hessians, const CArray<double>& hessiansSum,
 	const CArray<float>& weights, float weightsSum )
