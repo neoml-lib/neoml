@@ -52,6 +52,7 @@ CFloatVector::CFloatVector( int size, const CFloatVectorDesc& desc )
 	auto bodyPtr = FINE_DEBUG_NEW CFloatVectorBody( size );
 
 	if( desc.Indexes == nullptr ) {
+		NeoAssert( size == desc.Size );
 		for( int i = 0; i < size; i++ ) {
 			bodyPtr->Values[i] = desc.Values[i];
 		}
@@ -68,10 +69,9 @@ CFloatVector::CFloatVector( int size, const CFloatVectorDesc& desc )
 			}
 			bodyPtr->Values[i] = value;
 		}
+		// No elements should stay unprocessed!
+		NeoAssert( ptrPos == ptrSize );
 	}
-
-	// No elements should stay unprocessed!
-	NeoAssert( ptrPos == ptrSize );
 
 	body = bodyPtr;
 }
