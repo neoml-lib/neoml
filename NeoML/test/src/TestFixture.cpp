@@ -184,6 +184,8 @@ IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit, in
 			GTEST_LOG_( INFO ) << "Create CPU MathEngine, threadCount = " << threadCount;
 			break; 
 		}
+		default:
+			break;
 	}
 	return result;
 }
