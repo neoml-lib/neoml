@@ -118,11 +118,20 @@ CPtr<CDenseMemoryProblem> DenseBinaryProblem = CDenseMemoryProblem::Random( 4000
 
 //------------------------------------------------------------------------------------------------
 
-TEST_F( RandomDense4000x20, Svm )
+TEST_F( RandomDense4000x20, SvmLinear )
 {
 	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_Linear );
-	CSvmBinaryClassifierBuilder svm( params );
-	auto model = svm.Train( *DenseBinaryProblem );
+	CSvmBinaryClassifierBuilder svmLinear( params );
+	auto model = svmLinear.Train( *DenseBinaryProblem );
+	ASSERT_TRUE( model != nullptr );
+}
+
+TEST_F( RandomDense4000x20, SvmRbf )
+{
+	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_RBF );
+	CSvmBinaryClassifierBuilder svmRbf( params );
+	auto model = svmRbf.Train( *DenseBinaryProblem );
+	ASSERT_TRUE( model != nullptr );
 }
 
 TEST_F( RandomDense4000x20, Linear )
@@ -131,6 +140,7 @@ TEST_F( RandomDense4000x20, Linear )
 	params.L1Coeff = 0.05f;
 	CLinearBinaryClassifierBuilder linear( params );
 	auto model = linear.Train( *DenseBinaryProblem );
+	ASSERT_TRUE( model != nullptr );
 }
 
 TEST_F( RandomDense4000x20, DecisionTree )
@@ -141,6 +151,7 @@ TEST_F( RandomDense4000x20, DecisionTree )
 	param.AvailableMemory = Megabyte;
 	CDecisionTreeTrainingModel decisionTree( param );
 	auto model = decisionTree.TrainModel<IDecisionTreeModel>( *DenseBinaryProblem );
+	ASSERT_TRUE( model != nullptr );
 }
 
 TEST_F( RandomDense4000x20, GradientBoosting )
@@ -162,6 +173,7 @@ TEST_F( RandomDense4000x20, GradientBoosting )
 
 	CGradientBoost boosting( params );
 	auto model = boosting.TrainModel<IGradientBoostModel>( *DenseBinaryProblem );
+	ASSERT_TRUE( model != nullptr );
 
 	GTEST_LOG_( INFO ) << "Train time: " << GetTickCount() - begin;
 	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
@@ -188,6 +200,7 @@ TEST_F( RandomDense4000x20, CrossValidation )
 	CLinearBinaryClassifierBuilder builderS( params );
 
 	auto model = builderS.Train( *DenseBinaryProblem );
+	ASSERT_TRUE( model != nullptr );
 }
 
 TEST_F( RandomDense4000x20, OneVsAll )
@@ -195,5 +208,6 @@ TEST_F( RandomDense4000x20, OneVsAll )
 	CLinearBinaryClassifierBuilder linear( EF_SquaredHinge );
 	COneVersusAll ovaLinear( linear );
 	auto model = ovaLinear.TrainModel<NeoML::IOneVersusAllModel>( *DenseBinaryProblem );
+	ASSERT_TRUE( model != nullptr );
 }
 
