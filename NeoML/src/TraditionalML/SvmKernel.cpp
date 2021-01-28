@@ -70,78 +70,28 @@ double CSvmKernel::poly(const CFloatVector& x1, const CFloatVectorDesc& x2) cons
 // The Gaussian kernel
 double CSvmKernel::rbf(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
 {
-	double square = 0;
-	double diff;
 	if( x1.Indexes == nullptr ) {
-		NeoAssert( x2.Indexes == nullptr && x1.Size == x2.Size );
-		for( int i = 0; i < x1.Size; ++i ) {
-			diff = x1.Values[i] - x2.Values[i];
-			square += diff * diff;
+		if( x2.Indexes == nullptr ) {
+			return rbfDenseByDense( x1.Values, x1.Size, x2.Values, x2.Size );
+		} else {
+			return rbfDenseBySparse( x1.Values, x1.Size, x2 );
 		}
 	} else {
-		int i, j;
-		for( i = 0, j = 0; i < x1.Size && j < x2.Size; ) {
-			if( x1.Indexes[i] == x2.Indexes[j] ) {
-				diff = x1.Values[i] - x2.Values[j];
-				i++;
-				j++;
-			} else if( x1.Indexes[i] < x2.Indexes[j] ) {
-				diff = x1.Values[i];
-				i++;
-			} else {
-				diff = x2.Values[j];
-				j++;
-			}
-			square += diff * diff;
-		}
-		for( ; i < x1.Size; i++ ) {
-			diff = x1.Values[i];
-			square += diff * diff;
-		}
-		for( ; j < x2.Size; j++ ) {
-			diff = x2.Values[j];
-			square += diff * diff;
+		if( x2.Indexes == nullptr ) {
+			return rbfDenseBySparse( x2.Values, x2.Size, x1 );
+		} else {
+			return rbfSparseBySparse( x1, x2 );
 		}
 	}
-	return exp(-gamma * square);
 }
 
 double CSvmKernel::rbf(const CFloatVector& x1, const CFloatVectorDesc& x2) const
 {
-	double square = 0;
-	double diff;
 	if( x2.Indexes == nullptr ) {
-		NeoAssert( x1.Size() == x2.Size );
-		for( int i = 0; i < x2.Size; ++i ) {
-			diff = x1[i] - x2.Values[i];
-			square += diff * diff;
-		}
+		return rbfDenseByDense( x1.GetPtr(), x1.Size(), x2.Values, x2.Size );
 	} else {
-		int i, j;
-		for( i = 0, j = 0; i < x1.Size() && j < x2.Size; ) {
-			if( i == x2.Indexes[j] ) {
-				diff = x1[i] - x2.Values[j];
-				i++;
-				j++;
-			} else if( i < x2.Indexes[j] ) {
-				diff = x1[i];
-				i++;
-			} else {
-				diff = x2.Values[j];
-				j++;
-			}
-			square += diff * diff;
-		}
-		for( ; i < x1.Size(); i++ ) {
-			diff = x1[i];
-			square += diff * diff;
-		}
-		for( ; j < x2.Size; j++ ) {
-			diff = x2.Values[j];
-			square += diff * diff;
-		}
+		return rbfDenseBySparse( x1.GetPtr(), x1.Size(), x2 );
 	}
-	return exp(-gamma * square);
 }
 
 // The sigmoid kernel
@@ -187,6 +137,78 @@ double CSvmKernel::Calculate(const CFloatVector& x1, const CFloatVectorDesc& x2)
 			NeoAssert(false);
 			return 0;
 	}
+}
+
+double CSvmKernel::rbfDenseBySparse( const float* x1, int x1Size, const CFloatVectorDesc& x2 ) const
+{
+	double square = 0;
+	double diff;
+	int i, j;
+	for( i = 0, j = 0; i < x1Size && j < x2.Size; ) {
+		if( i == x2.Indexes[j] ) {
+			diff = x1[i] - x2.Values[j];
+			i++;
+			j++;
+		} else if( i < x2.Indexes[j] ) {
+			diff = x1[i];
+			i++;
+		} else {
+			diff = x2.Values[j];
+			j++;
+		}
+		square += diff * diff;
+	}
+	for( ; i < x1Size; i++ ) {
+		diff = x1[i];
+		square += diff * diff;
+	}
+	for( ; j < x2.Size; j++ ) {
+		diff = x2.Values[j];
+		square += diff * diff;
+	}
+	return exp(-gamma * square);
+}
+
+double CSvmKernel::rbfDenseByDense( const float* x1, int x1Size, const float* x2, int x2Size ) const
+{
+	NeoAssert( x1Size == x2Size );
+	double square = 0;
+	double diff;
+	for( int i = 0; i < x1Size; ++i ) {
+		diff = x1[i] - x2[i];
+		square += diff * diff;
+	}
+	return exp(-gamma * square);
+}
+
+double CSvmKernel::rbfSparseBySparse( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const
+{
+	double square = 0;
+	double diff;
+	int i, j;
+	for( i = 0, j = 0; i < x1.Size && j < x2.Size; ) {
+		if( x1.Indexes[i] == x2.Indexes[j] ) {
+			diff = x1.Values[i] - x2.Values[j];
+			i++;
+			j++;
+		} else if( x1.Indexes[i] < x2.Indexes[j] ) {
+			diff = x1.Values[i];
+			i++;
+		} else {
+			diff = x2.Values[j];
+			j++;
+		}
+		square += diff * diff;
+	}
+	for( ; i < x1.Size; i++ ) {
+		diff = x1.Values[i];
+		square += diff * diff;
+	}
+	for( ; j < x2.Size; j++ ) {
+		diff = x2.Values[j];
+		square += diff * diff;
+	}
+	return exp(-gamma * square);
 }
 
 } // namespace NeoML
