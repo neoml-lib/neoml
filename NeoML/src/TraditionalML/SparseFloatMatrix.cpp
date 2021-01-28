@@ -142,6 +142,7 @@ void CSparseFloatMatrix::GrowInElements( int newElementsBufferSize )
 
 void CSparseFloatMatrix::AddRow( const CSparseFloatVector& row )
 {
+	NeoAssert( row.GetDesc().Indexes != nullptr );
 	AddRow( row.GetDesc() );
 }
 
@@ -151,15 +152,26 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( 0, 0, 0, InitialRowBufferSize, max( row.Size, InitialElementBufferSize ) );
 	}
 
+	const int* indexes = row.Indexes;
+	// add dense row as a sparse
+	CArray<int> indexesHolder;
+	if( indexes == nullptr ) {
+		indexesHolder.SetSize( row.Size );
+		for( int i = 0; i < row.Size; ++i ) {
+			indexesHolder[i] = i;
+		}
+		indexes = indexesHolder.GetPtr();
+	}
+
 	GrowInRows( body->Desc.Height + 1 );
 	GrowInElements( body->ElementCount + row.Size );
 
 	CSparseFloatMatrixBody* newBody = body.CopyOnWrite();
 	newBody->Desc.Height++;
-	newBody->Desc.Width = max( body->Desc.Width, row.Size == 0 ? 0 : row.Indexes[row.Size - 1] + 1 );
+	newBody->Desc.Width = max( body->Desc.Width, row.Size == 0 ? 0 : indexes[row.Size - 1] + 1 );
 	newBody->Desc.PointerB[newBody->Desc.Height - 1] = newBody->ElementCount;
 	newBody->Desc.PointerE[newBody->Desc.Height - 1] = newBody->ElementCount + row.Size;
-	::memcpy( newBody->Desc.Columns + newBody->ElementCount, row.Indexes, row.Size * sizeof( int ) );
+	::memcpy( newBody->Desc.Columns + newBody->ElementCount, indexes, row.Size * sizeof( int ) );
 	::memcpy( newBody->Desc.Values + newBody->ElementCount, row.Values, row.Size * sizeof( float ) );
 	newBody->ElementCount += row.Size;
 }
@@ -167,21 +179,13 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 CFloatVectorDesc CSparseFloatMatrix::GetRow( int index ) const
 {
 	NeoAssert( 0 <= index && index < GetHeight() );
-
-	CFloatVectorDesc res;
-	res.Size = body == 0 ? 0 : body->Desc.PointerE[index] - body->Desc.PointerB[index];
-	res.Indexes = body == 0 ? 0 : body->Desc.Columns + body->Desc.PointerB[index];
-	res.Values = body == 0 ? 0 : body->Desc.Values + body->Desc.PointerB[index];
-	return res;
+	return body->Desc.GetRow( index );
 }
 
 void CSparseFloatMatrix::GetRow( int index, CFloatVectorDesc& result ) const
 {
 	NeoAssert( 0 <= index && index < GetHeight() );
-
-	result.Size = body->Desc.PointerE[index] - body->Desc.PointerB[index];
-	result.Indexes = body->Desc.Columns + body->Desc.PointerB[index];
-	result.Values = body->Desc.Values + body->Desc.PointerB[index];
+	body->Desc.GetRow( index, result );
 }
 
 void CSparseFloatMatrix::Serialize( CArchive& archive )
