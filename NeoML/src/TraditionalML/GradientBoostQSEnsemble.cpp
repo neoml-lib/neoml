@@ -336,6 +336,7 @@ double CGradientBoostQSEnsemble::Predict( const CSparseFloatVector& data ) const
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
 	const CFloatVectorDesc& desc = data.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	for( int i = 0; i < desc.Size; i++ ) {
 		processFeature( desc.Indexes[i], desc.Values[i], resultBitvectors );
 	}
@@ -358,6 +359,7 @@ double CGradientBoostQSEnsemble::Predict( const CFloatVector& data ) const
 
 double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data ) const
 {
+	NeoAssert( data.Indexes != nullptr );
 	// The resulting bit masks, one per tree; for a start all bits are set to 1
 	CFastArray<unsigned __int64, 512> resultBitvectors;
 	resultBitvectors.SetSize( GetTreesCount() );
@@ -372,6 +374,7 @@ double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data ) const
 
 double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data, int lastTreeIndex ) const
 {
+	NeoAssert( data.Indexes != nullptr );
 	CFastArray<unsigned __int64, 512> resultBitvectors;
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );

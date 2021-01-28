@@ -71,29 +71,37 @@ double CSvmKernel::poly(const CFloatVector& x1, const CFloatVectorDesc& x2) cons
 double CSvmKernel::rbf(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
 {
 	double square = 0;
-	int i, j;
 	double diff;
-	for( i = 0, j = 0; i < x1.Size && j < x2.Size; ) {
-		if( x1.Indexes[i] == x2.Indexes[j] ) {
-			diff = x1.Values[i] - x2.Values[j];
-			i++;
-			j++;
-		} else if( x1.Indexes[i] < x2.Indexes[j] ) {
-			diff = x1.Values[i];
-			i++;
-		} else {
-			diff = x2.Values[j];
-			j++;
+	if( x1.Indexes == nullptr ) {
+		NeoAssert( x2.Indexes == nullptr && x1.Size == x2.Size );
+		for( int i = 0; i < x1.Size; ++i ) {
+			diff = x1.Values[i] - x2.Values[i];
+			square += diff * diff;
 		}
-		square += diff * diff;
-	}
-	for(; i < x1.Size; i++) {
-		diff = x1.Values[i];
-		square += diff * diff;
-	}
-	for(; j < x2.Size; j++) {
-		diff = x2.Values[j];
-		square += diff * diff;
+	} else {
+		int i, j;
+		for( i = 0, j = 0; i < x1.Size && j < x2.Size; ) {
+			if( x1.Indexes[i] == x2.Indexes[j] ) {
+				diff = x1.Values[i] - x2.Values[j];
+				i++;
+				j++;
+			} else if( x1.Indexes[i] < x2.Indexes[j] ) {
+				diff = x1.Values[i];
+				i++;
+			} else {
+				diff = x2.Values[j];
+				j++;
+			}
+			square += diff * diff;
+		}
+		for( ; i < x1.Size; i++ ) {
+			diff = x1.Values[i];
+			square += diff * diff;
+		}
+		for( ; j < x2.Size; j++ ) {
+			diff = x2.Values[j];
+			square += diff * diff;
+		}
 	}
 	return exp(-gamma * square);
 }
@@ -101,29 +109,37 @@ double CSvmKernel::rbf(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) c
 double CSvmKernel::rbf(const CFloatVector& x1, const CFloatVectorDesc& x2) const
 {
 	double square = 0;
-	int i, j;
 	double diff;
-	for( i = 0, j = 0; i < x1.Size() && j < x2.Size; ) {
-		if( i == x2.Indexes[j] ) {
-			diff = x1[i] - x2.Values[j];
-			i++;
-			j++;
-		} else if( i < x2.Indexes[j] ) {
-			diff = x1[i];
-			i++;
-		} else {
-			diff = x2.Values[j];
-			j++;
+	if( x2.Indexes == nullptr ) {
+		NeoAssert( x1.Size() == x2.Size );
+		for( int i = 0; i < x2.Size; ++i ) {
+			diff = x1[i] - x2.Values[i];
+			square += diff * diff;
 		}
-		square += diff * diff;
-	}
-	for(; i < x1.Size(); i++) {
-		diff = x1[i];
-		square += diff * diff;
-	}
-	for(; j < x2.Size; j++) {
-		diff = x2.Values[j];
-		square += diff * diff;
+	} else {
+		int i, j;
+		for( i = 0, j = 0; i < x1.Size() && j < x2.Size; ) {
+			if( i == x2.Indexes[j] ) {
+				diff = x1[i] - x2.Values[j];
+				i++;
+				j++;
+			} else if( i < x2.Indexes[j] ) {
+				diff = x1[i];
+				i++;
+			} else {
+				diff = x2.Values[j];
+				j++;
+			}
+			square += diff * diff;
+		}
+		for( ; i < x1.Size(); i++ ) {
+			diff = x1[i];
+			square += diff * diff;
+		}
+		for( ; j < x2.Size; j++ ) {
+			diff = x2.Values[j];
+			square += diff * diff;
+		}
 	}
 	return exp(-gamma * square);
 }

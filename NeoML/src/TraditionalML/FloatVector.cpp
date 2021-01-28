@@ -25,6 +25,7 @@ CFloatVector::CFloatVector( int size, const CSparseFloatVector& sparseVector )
 	NeoAssert( size >= 0 );
 	auto bodyPtr = FINE_DEBUG_NEW CFloatVectorBody( size );
 	const CFloatVectorDesc& desc = sparseVector.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	int ptrPos = 0;
 	int ptrSize = sparseVector.NumberOfElements();
 
@@ -49,18 +50,24 @@ CFloatVector::CFloatVector( int size, const CFloatVectorDesc& desc )
 {
 	NeoAssert( size >= 0 );
 	auto bodyPtr = FINE_DEBUG_NEW CFloatVectorBody( size );
-	int ptrPos = 0;
-	int ptrSize = desc.Size;
 
-	float value = 0;
-	for( int i = 0; i < size; i++ ) {
-		if( ptrPos >= ptrSize || i < desc.Indexes[ptrPos] ) {
-			value = 0;
-		} else {
-			value = desc.Values[ptrPos];
-			ptrPos++;
+	if( desc.Indexes == nullptr ) {
+		for( int i = 0; i < size; i++ ) {
+			bodyPtr->Values[i] = desc.Values[i];
 		}
-		bodyPtr->Values[i] = value;
+	} else {
+		int ptrSize = desc.Size;
+		int ptrPos = 0;
+		float value = 0;
+		for( int i = 0; i < size; i++ ) {
+			if( ptrPos >= ptrSize || i < desc.Indexes[ptrPos] ) {
+				value = 0;
+			} else {
+				value = desc.Values[ptrPos];
+				ptrPos++;
+			}
+			bodyPtr->Values[i] = value;
+		}
 	}
 
 	// No elements should stay unprocessed!
@@ -271,6 +278,7 @@ CFloatVector& CFloatVector::operator = ( const CSparseFloatVector& vector )
 {
 	float* ptr = CopyOnWrite();
 	const CFloatVectorDesc& desc = vector.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	const int size = body->Values.Size();
 	memset( ptr, 0, size * sizeof( float ) );
 	const int numberOfElements = vector.NumberOfElements();
@@ -287,6 +295,7 @@ CFloatVector& CFloatVector::operator += ( const CSparseFloatVector& vector )
 {
 	float* ptr = CopyOnWrite();
 	const CFloatVectorDesc& desc = vector.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	const int size = body->Values.Size();
 	const int numberOfElements = vector.NumberOfElements();
 	for(int i = 0; i < numberOfElements; i++) {
@@ -302,6 +311,7 @@ CFloatVector& CFloatVector::operator -= ( const CSparseFloatVector& vector )
 {
 	float* ptr = CopyOnWrite();
 	const CFloatVectorDesc& desc = vector.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	const int size = body->Values.Size();
 	const int numberOfElements = vector.NumberOfElements();
 	for(int i = 0; i < numberOfElements; i++) {

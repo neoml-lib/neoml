@@ -44,11 +44,12 @@ void CGradientBoostFullProblem::Update()
 	NeoAssert( matrix.Height == baseProblem->GetVectorCount() );
 	NeoAssert( matrix.Width == baseProblem->GetFeatureCount() );
 
+	auto getCurIndex = GetIndexGettingFunc( matrix );
 	for( int i = 0; i < usedVectors.Size(); i++ ) {
 		CFloatVectorDesc vector;
 		matrix.GetRow( usedVectors[i], vector );
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int link = featureNumbers[vector.Indexes[j]];
+			const int link = featureNumbers[getCurIndex( vector, j )];
 			if( link != NotFound && vector.Values[j] != 0.0 ) {
 				if( vector.Values[j] != 1.0 ) {
 					isUsedFeatureBinary[link] = false;
@@ -89,7 +90,7 @@ void CGradientBoostFullProblem::Update()
 		CFloatVectorDesc vector;
 		matrix.GetRow( usedVectors[i], vector );
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int link = featureNumbers[vector.Indexes[j]];
+			const int link = featureNumbers[getCurIndex( vector, j )];
 			if( link != NotFound && vector.Values[j] != 0.0 ) {
 				if( isUsedFeatureBinary[link] ) {
 					// A binary feature
