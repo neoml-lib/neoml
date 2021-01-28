@@ -289,4 +289,45 @@ void CpuMathEngineCleanUp()
 	mkl_free_buffers();
 #endif
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+#ifdef NEOML_USE_MKL
+
+// Setting mkl exit hanler in order to avoid sys.exit calls
+
+// Custom handler of mkl errors
+static void mklExitHandler( int error )
+{
+	GetMathEngineExceptionHandler()->OnAssert( "MKL internal error", __UNICODEFILE__, __LINE__, error );
+}
+
+// Handler guard responsible for setting custom mkl error handler
+// And resetting it on destruction
+class CMklExitHandlerGuard
+{
+public:
+	CMklExitHandlerGuard();
+	~CMklExitHandlerGuard();
+
+	CMklExitHandlerGuard( const CMklExitHandlerGuard& /*other*/ ) = delete;
+	CMklExitHandlerGuard& operator=( const CMklExitHandlerGuard& /*other*/ ) = delete;
+};
+
+CMklExitHandlerGuard::CMklExitHandlerGuard()
+{
+	mkl_set_exit_handler( mklExitHandler );
+}
+
+CMklExitHandlerGuard::~CMklExitHandlerGuard()
+{
+	// Reset to default (which calls sys.exit)
+	mkl_set_exit_handler( nullptr );
+}
+
+// Static instance of handler guard
+static CMklExitHandlerGuard mklExitHandlerGuard;
+
+#endif // NEOML_USE_MKL
+
 } // namespace NeoML
