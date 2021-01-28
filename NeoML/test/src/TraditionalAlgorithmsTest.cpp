@@ -176,35 +176,6 @@ TEST_F( RandomMulti2000x20, GradientBoostingFastHist )
 	ASSERT_TRUE( model2 != nullptr );
 }
 
-TEST_F( RandomBinary4000x20, CrossValidation )
-{
-	CLinearBinaryClassifierBuilder::CParams params( EF_SquaredHinge );
-	CLinearBinaryClassifierBuilder linear( params );
-
-	CCrossValidation crossValidation( linear, DenseRandomBinaryProblem );
-	const int PartsCount = 10;
-	CCrossValidationResult result;
-
-	int begin = GetTickCount();
-	crossValidation.Execute( PartsCount, AccuracyScore, result, true );
-	GTEST_LOG_( INFO ) << "Dense execution time: " << GetTickCount() - begin;
-
-	ASSERT_EQ( result.Models.Size(), PartsCount );
-	ASSERT_EQ( result.Success.Size(), PartsCount );
-	ASSERT_EQ( result.Results.Size(), DenseRandomBinaryProblem->GetVectorCount() );
-
-	CSigmoid sigmoid;
-	CalcSigmoidCoefficients( result, sigmoid );
-
-	params.SigmoidCoefficients = sigmoid;
-	CLinearBinaryClassifierBuilder builderS( params );
-
-	begin = GetTickCount();
-	auto model = builderS.Train( *DenseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model != nullptr );
-}
-
 TEST_F( RandomMulti2000x20, OneVsAllLinear )
 {
 	CLinearBinaryClassifierBuilder linear( EF_SquaredHinge );
@@ -235,5 +206,59 @@ TEST_F( RandomMulti2000x20, OneVsAllRbf )
 	auto model2 = ovaRbf.TrainModel<NeoML::IOneVersusAllModel>( *SparseRandomMultiProblem );
 	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
 	ASSERT_TRUE( model2 != nullptr );
+}
+
+void crossValidate( int PartsCount, ITrainingModel& trainingModel, IProblem* dense, IProblem* sparse )
+{
+	CCrossValidation crossValidation( trainingModel, dense );
+	CCrossValidationResult result;
+
+	int begin = GetTickCount();
+	crossValidation.Execute( PartsCount, AccuracyScore, result, true );
+	GTEST_LOG_( INFO ) << "Dense execution time: " << GetTickCount() - begin;
+
+	ASSERT_EQ( result.Models.Size(), PartsCount );
+	ASSERT_EQ( result.Success.Size(), PartsCount );
+	ASSERT_EQ( result.Results.Size(), DenseRandomBinaryProblem->GetVectorCount() );
+
+	CString scores = Str( result.Success[0] );
+	for( int i = 1; i < PartsCount; ++i ) {
+		scores = scores + ", " + Str( result.Success[i] );
+	}
+	GTEST_LOG_( INFO ) << "Dense training scores: " << scores;
+
+	CCrossValidation crossValidationSparse( trainingModel, sparse );
+
+	begin = GetTickCount();
+	crossValidationSparse.Execute( PartsCount, AccuracyScore, result, true );
+	GTEST_LOG_( INFO ) << "Sparse execution time: " << GetTickCount() - begin;
+
+	ASSERT_EQ( result.Models.Size(), PartsCount );
+	ASSERT_EQ( result.Success.Size(), PartsCount );
+	ASSERT_EQ( result.Results.Size(), DenseRandomBinaryProblem->GetVectorCount() );
+
+	scores = Str( result.Success[0] );
+	for( int i = 1; i < PartsCount; ++i ) {
+		scores = scores + ", " + Str( result.Success[i] );
+	}
+	GTEST_LOG_( INFO ) << "Sparse training scores: " << scores;
+}
+
+TEST_F( RandomBinary4000x20, CrossValidationLinear )
+{
+	CLinearBinaryClassifierBuilder linear( EF_SquaredHinge );
+	crossValidate( 5, linear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
+}
+
+TEST_F( RandomBinary4000x20, CrossValidationSvmLinear )
+{
+	CSvmBinaryClassifierBuilder svmLinear( CSvmKernel::KT_Linear );
+	crossValidate( 5, svmLinear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
+}
+
+TEST_F( RandomBinary4000x20, CrossValidationSvmRbf )
+{
+	CSvmBinaryClassifierBuilder svmLinear( CSvmKernel::KT_RBF );
+	crossValidate( 5, svmLinear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 

@@ -44,20 +44,24 @@ CCrossValidationSubProblem::CCrossValidationSubProblem( const IProblem* _problem
 	}
 
 	CFloatMatrixDesc baseMatrix = problem->GetMatrix();
-	pointerB.SetSize( vectorsCount );
-	pointerE.SetSize( vectorsCount );
-	for( int i = 0; i < vectorsCount; i++ ) {
-		int index = translateIndex( i );
-		pointerB[i] = baseMatrix.PointerB[index];
-		pointerE[i] = baseMatrix.PointerE[index];
-	}
-
 	matrix.Height = vectorsCount;
 	matrix.Width = baseMatrix.Width;
-	matrix.Columns = baseMatrix.Columns;
-	matrix.Values = baseMatrix.Values;
-	matrix.PointerB = pointerB.GetPtr();
-	matrix.PointerE = pointerE.GetPtr();
+	if( baseMatrix.Columns == nullptr ) { // dense inside
+		matrix.Values = baseMatrix.Values + baseMatrix.Width * translateIndex( 0 );
+	} else {
+		pointerB.SetSize( vectorsCount );
+		pointerE.SetSize( vectorsCount );
+		for( int i = 0; i < vectorsCount; i++ ) {
+			int index = translateIndex( i );
+			pointerB[i] = baseMatrix.PointerB[index];
+			pointerE[i] = baseMatrix.PointerE[index];
+		}
+
+		matrix.Columns = baseMatrix.Columns;
+		matrix.Values = baseMatrix.Values;
+		matrix.PointerB = pointerB.GetPtr();
+		matrix.PointerE = pointerE.GetPtr();
+	}
 }
 
 // Converts the index to the initial data set index
