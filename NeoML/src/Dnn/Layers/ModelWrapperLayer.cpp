@@ -117,11 +117,12 @@ void CProblemSourceLayer::RunOnce()
 	CFloatMatrixDesc matrix = problem->GetMatrix();
 	CFloatVectorDesc vector;
 
+	auto getCurIndex = GetIndexGettingFunc( vector );
 	for(int i = 0; i < batchSize; ++i) {
 		// The data
 		matrix.GetRow( nextProblemIndex, vector );
 		for(int j = 0; j < vector.Size; ++j) {
-			data[vector.Indexes[j]] = static_cast<float>( vector.Values[j] );
+			data[getCurIndex( vector, j )] = static_cast<float>( vector.Values[j] );
 		}
 
 		// The labels
@@ -223,8 +224,9 @@ bool CDnnModelWrapper::Classify(const CFloatVectorDesc& desc, CClassificationRes
 		exchangeBuffer[i] = SourceEmptyFill;
 	}
 
+	auto getCurIndex = GetIndexGettingFunc( desc );
 	for(int i = 0; i < desc.Size; ++i) {
-		exchangeBuffer[desc.Indexes[i]] = desc.Values[i];
+		exchangeBuffer[getCurIndex( desc, i )] = desc.Values[i];
 	}
 	SourceBlob->CopyFrom(exchangeBuffer.GetPtr());
 

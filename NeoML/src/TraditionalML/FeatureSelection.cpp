@@ -43,9 +43,11 @@ inline void CClusterStatistics::AddVector( const CFloatVectorDesc& vector, doubl
 {
 	SumWeight += weight;
 
+	auto getCurIndex = GetIndexGettingFunc( vector );
 	for( int j = 0; j < vector.Size; j++ ) {
-		Sum[vector.Indexes[j]] += vector.Values[j] * weight;
-		SumSquare[vector.Indexes[j]] += vector.Values[j] * vector.Values[j] * weight;
+		const int curIndex = getCurIndex( vector, j );
+		Sum[curIndex] += vector.Values[j] * weight;
+		SumSquare[curIndex] += vector.Values[j] * vector.Values[j] * weight;
 	}
 }
 
@@ -153,6 +155,7 @@ void CalcFeaturesChiSquare( const IProblem& problem, CArray<double>& chi2 )
 	CFloatMatrixDesc matrix = problem.GetMatrix();
 
 	// Calculate the observed distribution
+	auto getCurIndex = GetIndexGettingFunc( matrix );
 	for( int i = 0; i < vectorCount; i++ ) {
 		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
@@ -164,7 +167,7 @@ void CalcFeaturesChiSquare( const IProblem& problem, CArray<double>& chi2 )
 
 		CArray<double>& oneObserved = observed[classIndex];
 		for( int j = 0; j < vector.Size; j++ ) {
-			oneObserved[vector.Indexes[j]] += weight * vector.Values[j];
+			oneObserved[getCurIndex( vector, j )] += weight * vector.Values[j];
 		}
 	}
 
@@ -293,6 +296,7 @@ void CalcFeaturesInformationGain( const IProblem& problem, CArray<double>& infor
 
 	CVectorSetClassificationStatistic fullProblemStatistic( classCount );
 
+	auto getCurIndex = GetIndexGettingFunc( matrix );
 	for( int i = 0; i < vectorCount; i++ ) {
 		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
@@ -300,10 +304,11 @@ void CalcFeaturesInformationGain( const IProblem& problem, CArray<double>& infor
 		const double weight = problem.GetVectorWeight( i );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			if( !problem.IsDiscreteFeature( vector.Indexes[j] ) ) {
+			const int curIndex = getCurIndex( vector, j );
+			if( !problem.IsDiscreteFeature( curIndex ) ) {
 				continue;
 			}
-			CVectorSetClassificationStatistic*& oneValueStatistics = statistics[vector.Indexes[j]]->GetOrCreateValue( vector.Values[j], 0 );
+			CVectorSetClassificationStatistic*& oneValueStatistics = statistics[curIndex]->GetOrCreateValue( vector.Values[j], 0 );
 			if( oneValueStatistics == 0 ) {
 				oneValueStatistics = FINE_DEBUG_NEW CVectorSetClassificationStatistic( classCount );
 			}

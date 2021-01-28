@@ -489,11 +489,13 @@ double CEMClustering::calculateDistance( int clusterIndex, const CFloatVectorDes
 	NeoPresume( clusterIndex < clusters.Size() );
 
 	double res = 0;
+	auto getCurIndex = GetIndexGettingFunc( desc );
 	for( int i = 0; i < desc.Size; i++ ) {
-		NeoAssert( desc.Indexes[i] <= clusters[clusterIndex].Mean.Size() );
-		const double diff = desc.Values[i] - clusters[clusterIndex].Mean[desc.Indexes[i]];
-		NeoAssert( clusters[clusterIndex].Disp[desc.Indexes[i]] > 0 );
-		res += diff * diff / clusters[clusterIndex].Disp[desc.Indexes[i]];
+		const int curIndex = getCurIndex( desc, i );
+		NeoAssert( curIndex <= clusters[clusterIndex].Mean.Size() );
+		const double diff = desc.Values[i] - clusters[clusterIndex].Mean[curIndex];
+		NeoAssert( clusters[clusterIndex].Disp[curIndex] > 0 );
+		res += diff * diff / clusters[clusterIndex].Disp[curIndex];
 	}
 	return res;
 }

@@ -46,10 +46,13 @@ void CClassificationStatistics::AddVector( int index, const CFloatVectorDesc& ve
 	NeoAssert( problem != 0 );
 	const double weight = problem->GetVectorWeight( index );
 	const int classIndex = problem->GetClass( index );
+
+	auto getCurIndex = GetIndexGettingFunc( vector );
 	for( int i = 0; i < vector.Size; i++ ) {
-		if( usedFeatureNumber[vector.Indexes[i]] != NotFound ) {
-			addValue( usedFeatureNumber[vector.Indexes[i]], vector.Values[i], 1, classIndex, weight );
-			featureStatistics[usedFeatureNumber[vector.Indexes[i]]].AddVectorSet( 1, classIndex, weight );
+		const int curIndex = getCurIndex( vector, i );
+		if( usedFeatureNumber[curIndex] != NotFound ) {
+			addValue( usedFeatureNumber[curIndex], vector.Values[i], 1, classIndex, weight );
+			featureStatistics[usedFeatureNumber[curIndex]].AddVectorSet( 1, classIndex, weight );
 		}
 	}
 
