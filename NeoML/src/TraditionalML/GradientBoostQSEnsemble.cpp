@@ -359,14 +359,14 @@ double CGradientBoostQSEnsemble::Predict( const CFloatVector& data ) const
 
 double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data ) const
 {
-	NeoAssert( data.Indexes != nullptr );
 	// The resulting bit masks, one per tree; for a start all bits are set to 1
 	CFastArray<unsigned __int64, 512> resultBitvectors;
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
+	auto getCurIndex = GetIndexGettingFunc( data );
 	for( int i = 0; i < data.Size; i++ ) {
-		processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+		processFeature( getCurIndex( data, i ), data.Values[i], resultBitvectors );
 	}
 
 	return calculateScore<CFloatVectorDesc>( data, resultBitvectors, GetTreesCount() - 1 );
@@ -374,13 +374,13 @@ double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data ) const
 
 double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data, int lastTreeIndex ) const
 {
-	NeoAssert( data.Indexes != nullptr );
 	CFastArray<unsigned __int64, 512> resultBitvectors;
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
+	auto getCurIndex = GetIndexGettingFunc( data );
 	for( int i = 0; i < data.Size; i++ ) {
-		processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+		processFeature( getCurIndex( data, i ), data.Values[i], resultBitvectors );
 	}
 
 	return calculateScore<CFloatVectorDesc>( data, resultBitvectors, lastTreeIndex );
