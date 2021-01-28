@@ -152,28 +152,35 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( 0, 0, 0, InitialRowBufferSize, max( row.Size, InitialElementBufferSize ) );
 	}
 
-	const int* indexes = row.Indexes;
+	CFloatVectorDesc sparseRow = row;
 	// add dense row as a sparse
-	CArray<int> indexesHolder;
-	if( indexes == nullptr ) {
-		indexesHolder.SetSize( row.Size );
+	CArray<int> indexes;
+	CArray<float> values;
+	if( row.Indexes == nullptr ) {
+		indexes.SetBufferSize( row.Size );
+		values.SetBufferSize( row.Size );
 		for( int i = 0; i < row.Size; ++i ) {
-			indexesHolder[i] = i;
+			if( row.Values[i] != 0 ) {
+				indexes.Add( i );
+				values.Add( row.Values[i] );
+			}
 		}
-		indexes = indexesHolder.GetPtr();
+		sparseRow.Indexes = indexes.GetPtr();
+		sparseRow.Values = values.GetPtr();
+		sparseRow.Size = values.Size();
 	}
 
 	GrowInRows( body->Desc.Height + 1 );
-	GrowInElements( body->ElementCount + row.Size );
+	GrowInElements( body->ElementCount + sparseRow.Size );
 
 	CSparseFloatMatrixBody* newBody = body.CopyOnWrite();
 	newBody->Desc.Height++;
-	newBody->Desc.Width = max( body->Desc.Width, row.Size == 0 ? 0 : indexes[row.Size - 1] + 1 );
+	newBody->Desc.Width = max( body->Desc.Width, sparseRow.Size == 0 ? 0 : sparseRow.Indexes[sparseRow.Size - 1] + 1 );
 	newBody->Desc.PointerB[newBody->Desc.Height - 1] = newBody->ElementCount;
-	newBody->Desc.PointerE[newBody->Desc.Height - 1] = newBody->ElementCount + row.Size;
-	::memcpy( newBody->Desc.Columns + newBody->ElementCount, indexes, row.Size * sizeof( int ) );
-	::memcpy( newBody->Desc.Values + newBody->ElementCount, row.Values, row.Size * sizeof( float ) );
-	newBody->ElementCount += row.Size;
+	newBody->Desc.PointerE[newBody->Desc.Height - 1] = newBody->ElementCount + sparseRow.Size;
+	::memcpy( newBody->Desc.Columns + newBody->ElementCount, sparseRow.Indexes, sparseRow.Size * sizeof( int ) );
+	::memcpy( newBody->Desc.Values + newBody->ElementCount, sparseRow.Values, sparseRow.Size * sizeof( float ) );
+	newBody->ElementCount += sparseRow.Size;
 }
 
 CFloatVectorDesc CSparseFloatMatrix::GetRow( int index ) const
