@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2021 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,144 +17,100 @@ limitations under the License.
 #pragma hdrstop
 
 #include <TestFixture.h>
-
-#include <random>
-#include <limits>
+#include <DenseMemoryProblem.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
 
-class RandomDense4000x20 : public CNeoMLTestFixture {
+class RandomBinary4000x20 : public CNeoMLTestFixture {
 public:
-	static bool InitTestFixture(); // Инициализация теста
-	static void DeinitTestFixture(); // Деинициализация теста
+	static bool InitTestFixture() { return true; } // Инициализация теста
+	static void DeinitTestFixture() {} // Деинициализация теста
 };
 
-bool RandomDense4000x20::InitTestFixture()
-{
-	return true;
-}
-
-void RandomDense4000x20::DeinitTestFixture()
-{
-}
-
-//------------------------------------------------------------------------------------------------
-class CDenseMemoryProblem : public IProblem {
+class RandomMulti2000x20 : public CNeoMLTestFixture {
 public:
-	CDenseMemoryProblem( int height, int width, float* values, const int* _classes, const float* _weights ) :
-		classCount( 0 ),
-		classes( _classes ),
-		weights( _weights )
-	{
-		desc.Height = height;
-		desc.Width = width;
-		desc.Values = values;
-
-		for( int i = 0; i < height; i++ ) {
-			if( classCount < classes[i] ) {
-				classCount = classes[i];
-			}
-		}
-		classCount++;
-	}
-
-	// IProblem interface methods:
-	virtual int GetClassCount() const { return classCount; }
-	virtual int GetFeatureCount() const { return desc.Width; }
-	virtual bool IsDiscreteFeature( int ) const { return false; }
-	virtual int GetVectorCount() const { return desc.Height; }
-	virtual int GetClass( int index ) const { return classes[index]; }
-	virtual CFloatMatrixDesc GetMatrix() const { return desc; }
-	virtual double GetVectorWeight( int index ) const { return weights[index]; };
-
-	static CPtr<CDenseMemoryProblem> Random( int samples, int features, int classes )
-	{
-		CPtr<CDenseMemoryProblem> res = new CDenseMemoryProblem();
-
-		std::random_device rd;
-		std::mt19937 gen( rd() );
-		//std::uniform_real_distribution<float> df( std::numeric_limits<float>::min(), std::numeric_limits<float>::max() );
-		std::uniform_real_distribution<float> df( -10, 10 );
-		std::uniform_int_distribution<int> di( 0, classes - 1 );
-		res->valuesArr.SetBufferSize( samples * features );
-		res->classesArr.SetBufferSize( samples );
-		for( int i = 0; i < samples; ++i ) {
-			for( int j = 0; j < features; ++j ) {
-				res->valuesArr.Add( df( gen ) );
-			}
-			res->classesArr.Add( di( gen ) );
-		}
-		// set weights to 1
-		res->weightsArr.Add( 1., samples );
-		res->classCount = classes;
-		res->classes = res->classesArr.GetPtr();
-		res->weights = res->weightsArr.GetPtr();
-		res->desc.Height = samples;
-		res->desc.Width = features;
-		res->desc.Values = res->valuesArr.GetPtr();
-
-		return res;
-	}
-
-protected:
-	~CDenseMemoryProblem() override = default;
-
-private:
-	CDenseMemoryProblem() = default;
-
-	CFloatMatrixDesc desc;
-	int classCount;
-	const int* classes;
-	const float* weights;
-
-	// memory holders when applicable
-	CArray<float> valuesArr;
-	CArray<int> classesArr;
-	CArray<float> weightsArr;
+	static bool InitTestFixture() { return true; } // Инициализация теста
+	static void DeinitTestFixture() {} // Деинициализация теста
 };
-
-CPtr<CDenseMemoryProblem> DenseBinaryProblem = CDenseMemoryProblem::Random( 4000, 20, 2 );
 
 //------------------------------------------------------------------------------------------------
 
-TEST_F( RandomDense4000x20, SvmLinear )
+CPtr<CDenseMemoryProblem> DenseRandomBinaryProblem = CDenseMemoryProblem::Random( 4000, 20, 2 );
+CPtr<CMemoryProblem> SparseRandomBinaryProblem = DenseRandomBinaryProblem->CreateSparse();
+
+CPtr<CDenseMemoryProblem> DenseRandomMultiProblem = CDenseMemoryProblem::Random( 2000, 20, 10 );
+CPtr<CMemoryProblem> SparseRandomMultiProblem = DenseRandomMultiProblem->CreateSparse();
+
+TEST_F( RandomBinary4000x20, SvmLinear )
 {
 	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_Linear );
 	CSvmBinaryClassifierBuilder svmLinear( params );
-	auto model = svmLinear.Train( *DenseBinaryProblem );
+
+	int begin = GetTickCount();
+	auto model = svmLinear.Train( *DenseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
 	ASSERT_TRUE( model != nullptr );
+
+	begin = GetTickCount();
+	auto model2 = svmLinear.Train( *SparseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model2 != nullptr );
 }
 
-TEST_F( RandomDense4000x20, SvmRbf )
+TEST_F( RandomBinary4000x20, SvmRbf )
 {
 	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_RBF );
 	CSvmBinaryClassifierBuilder svmRbf( params );
-	auto model = svmRbf.Train( *DenseBinaryProblem );
+
+	int begin = GetTickCount();
+	auto model = svmRbf.Train( *DenseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
 	ASSERT_TRUE( model != nullptr );
+
+	begin = GetTickCount();
+	auto model2 = svmRbf.Train( *SparseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model2 != nullptr );
 }
 
-TEST_F( RandomDense4000x20, Linear )
+TEST_F( RandomBinary4000x20, Linear )
 {
 	CLinearBinaryClassifierBuilder::CParams params( EF_SquaredHinge );
 	params.L1Coeff = 0.05f;
 	CLinearBinaryClassifierBuilder linear( params );
-	auto model = linear.Train( *DenseBinaryProblem );
+
+	int begin = GetTickCount();
+	auto model = linear.Train( *DenseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
 	ASSERT_TRUE( model != nullptr );
+
+	begin = GetTickCount();
+	auto model2 = linear.Train( *SparseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model2 != nullptr );
 }
 
-TEST_F( RandomDense4000x20, DecisionTree )
+TEST_F( RandomBinary4000x20, DecisionTree )
 {
 	CDecisionTreeTrainingModel::CParams param;
 	param.MaxTreeDepth = 10;
 	param.MaxNodesCount = 4096;
 	param.AvailableMemory = Megabyte;
 	CDecisionTreeTrainingModel decisionTree( param );
-	auto model = decisionTree.TrainModel<IDecisionTreeModel>( *DenseBinaryProblem );
+
+	int begin = GetTickCount();
+	auto model = decisionTree.TrainModel<IDecisionTreeModel>( *DenseRandomBinaryProblem );
 	ASSERT_TRUE( model != nullptr );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+
+	begin = GetTickCount();
+	auto model2 = decisionTree.Train( *SparseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model2 != nullptr );
 }
 
-TEST_F( RandomDense4000x20, GradientBoosting )
+TEST_F( RandomMulti2000x20, GradientBoosting )
 {
 	int begin = GetTickCount();
 
@@ -172,26 +128,33 @@ TEST_F( RandomDense4000x20, GradientBoosting )
 	params.MinSubsetWeight = 8;
 
 	CGradientBoost boosting( params );
-	auto model = boosting.TrainModel<IGradientBoostModel>( *DenseBinaryProblem );
+	auto model = boosting.TrainModel<IGradientBoostModel>( *DenseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
 	ASSERT_TRUE( model != nullptr );
 
-	GTEST_LOG_( INFO ) << "Train time: " << GetTickCount() - begin;
-	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	begin = GetTickCount();
+	auto model2 = boosting.TrainModel<IGradientBoostModel>( *SparseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model2 != nullptr );
 }
 
-TEST_F( RandomDense4000x20, CrossValidation )
+TEST_F( RandomBinary4000x20, CrossValidation )
 {
 	CLinearBinaryClassifierBuilder::CParams params( EF_SquaredHinge );
 	CLinearBinaryClassifierBuilder linear( params );
 
-	CCrossValidation crossValidation( linear, DenseBinaryProblem );
+	CCrossValidation crossValidation( linear, DenseRandomBinaryProblem );
 	const int PartsCount = 10;
 	CCrossValidationResult result;
+
+	int begin = GetTickCount();
 	crossValidation.Execute( PartsCount, AccuracyScore, result, true );
+	GTEST_LOG_( INFO ) << "Dense execution time: " << GetTickCount() - begin;
 
 	ASSERT_EQ( result.Models.Size(), PartsCount );
 	ASSERT_EQ( result.Success.Size(), PartsCount );
-	ASSERT_EQ( result.Results.Size(), DenseBinaryProblem->GetVectorCount() );
+	ASSERT_EQ( result.Results.Size(), DenseRandomBinaryProblem->GetVectorCount() );
 
 	CSigmoid sigmoid;
 	CalcSigmoidCoefficients( result, sigmoid );
@@ -199,15 +162,41 @@ TEST_F( RandomDense4000x20, CrossValidation )
 	params.SigmoidCoefficients = sigmoid;
 	CLinearBinaryClassifierBuilder builderS( params );
 
-	auto model = builderS.Train( *DenseBinaryProblem );
+	begin = GetTickCount();
+	auto model = builderS.Train( *DenseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
 	ASSERT_TRUE( model != nullptr );
 }
 
-TEST_F( RandomDense4000x20, OneVsAll )
+TEST_F( RandomMulti2000x20, OneVsAllLinear )
 {
 	CLinearBinaryClassifierBuilder linear( EF_SquaredHinge );
 	COneVersusAll ovaLinear( linear );
-	auto model = ovaLinear.TrainModel<NeoML::IOneVersusAllModel>( *DenseBinaryProblem );
+
+	int begin = GetTickCount();
+	auto model = ovaLinear.TrainModel<NeoML::IOneVersusAllModel>( *DenseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
 	ASSERT_TRUE( model != nullptr );
+
+	begin = GetTickCount();
+	auto model2 = ovaLinear.TrainModel<NeoML::IOneVersusAllModel>( *SparseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model2 != nullptr );
+}
+
+TEST_F( RandomMulti2000x20, OneVsAllRbf )
+{
+	CSvmBinaryClassifierBuilder svmRbf( CSvmKernel::KT_RBF );
+	COneVersusAll ovaRbf( svmRbf );
+
+	int begin = GetTickCount();
+	auto model = ovaRbf.TrainModel<NeoML::IOneVersusAllModel>( *DenseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model != nullptr );
+
+	begin = GetTickCount();
+	auto model2 = ovaRbf.TrainModel<NeoML::IOneVersusAllModel>( *SparseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model2 != nullptr );
 }
 
