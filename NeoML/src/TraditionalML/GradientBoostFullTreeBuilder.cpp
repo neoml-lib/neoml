@@ -74,7 +74,9 @@ inline CThreadStatistics::CThreadStatistics( float criterion, const CGradientBoo
 	FeatureIndex( NotFound ),
 	Threshold( 0.0 ),
 	Criterion( criterion ),
-	TotalStatistics( totalStatistics )
+	TotalStatistics( totalStatistics ),
+	CurLeftStatistics( classIsLeaf.Size() ),
+	CurRightStatistics( classIsLeaf.Size() )
 {
 	classIsLeaf.CopyTo( InitialClassIsLeaf );
 }
@@ -111,6 +113,16 @@ inline double CThreadStatistics::CalcCriterion( CGradientBoostVectorSetStatistic
 	return result;
 }
 
+inline int leafsCount( const CArray<bool>& isLeaf ){
+	int res = 0;
+	for( int i = 0; i < isLeaf.Size(); i++ ){
+		if( isLeaf[i] ){
+			res++;
+		}
+	}
+	return res;
+}
+
 // The node statistics
 struct CGradientBoostNodeStatistics : public virtual IObject {
 	// The level of the node
@@ -136,19 +148,22 @@ struct CGradientBoostNodeStatistics : public virtual IObject {
 	CGradientBoostVectorSetStatistics LeftStatistics;
 	CGradientBoostVectorSetStatistics RightStatistics;
 
-	explicit CGradientBoostNodeStatistics( int level, const CGradientBoostVectorSetStatistics& totalStatistics );
+	explicit CGradientBoostNodeStatistics( int level, const CGradientBoostVectorSetStatistics& totalStatistics, const CArray<bool>& classIsLeaf );
 
 	void InitThreadStatistics( int threadCount, float l1RegFactor, float l2RegFactor );
 
 	CFloatVector LeafValue();
 };
 
-inline CGradientBoostNodeStatistics::CGradientBoostNodeStatistics( int level, const CGradientBoostVectorSetStatistics& totalStatistics ) :
+inline CGradientBoostNodeStatistics::CGradientBoostNodeStatistics( int level, const CGradientBoostVectorSetStatistics& totalStatistics, const CArray<bool>& classIsLeaf ) :
 	Level( level ),
 	TotalStatistics( totalStatistics ),
 	FeatureIndex( NotFound ),
-	Threshold( 0.0 )
+	Threshold( 0.0 ),
+	LeftStatistics( ClassIsLeaf.Size() ),
+	RightStatistics( ClassIsLeaf.Size() )
 {
+	classIsLeaf.CopyTo( ClassIsLeaf );
 }
 
 inline void CGradientBoostNodeStatistics::InitThreadStatistics( int threadCount, float l1RegFactor, float l2RegFactor )
@@ -221,7 +236,9 @@ CPtr<CGradientBoostNodeStatistics> CGradientBoostFullTreeBuilder::initialize( co
 	// Creating the root and filling in its statistics
 	CGradientBoostVectorSetStatistics totalStatistics( classCount );
 	totalStatistics.Add( gradientSum, hessianSum, weightSum );
-	CPtr<CGradientBoostNodeStatistics> root = FINE_DEBUG_NEW CGradientBoostNodeStatistics( 0, totalStatistics );
+	CArray<bool> leafClasses;
+	leafClasses.Add( false, gradientSum.Size() );
+	CPtr<CGradientBoostNodeStatistics> root = FINE_DEBUG_NEW CGradientBoostNodeStatistics( 0, totalStatistics, leafClasses );
 	root->InitThreadStatistics( params.ThreadCount, params.L1RegFactor, params.L2RegFactor );
 	curLevelStatistics.DeleteAll();
 	curLevelStatistics.Add( root );
@@ -515,7 +532,9 @@ void CGradientBoostFullTreeBuilder::checkSplit( int feature, float firstValue, f
 	const float criterion = statistics.CalcCriterion( leftStatistics, rightStatistics, classIsLeaf,
 		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight );
 
-	if( statistics.Criterion < criterion || ( statistics.Criterion == criterion && statistics.FeatureIndex > feature ) ) {
+	bool toSplit = statistics.Criterion < criterion || (statistics.Criterion == criterion && statistics.FeatureIndex > feature);
+
+	if( leafsCount( classIsLeaf ) != classIsLeaf.Size() && toSplit ) {
 		statistics.FeatureIndex = feature;
 		statistics.Criterion = criterion;
 		if( fabs( firstValue - secondValue ) > 1e-10 ) {
@@ -574,8 +593,8 @@ bool CGradientBoostFullTreeBuilder::split()
 					<< L" )\n";
 			}
 
-			statistics->Left = FINE_DEBUG_NEW CGradientBoostNodeStatistics( statistics->Level + 1, statistics->LeftStatistics );
-			statistics->Right = FINE_DEBUG_NEW CGradientBoostNodeStatistics( statistics->Level + 1, statistics->RightStatistics );
+			statistics->Left = FINE_DEBUG_NEW CGradientBoostNodeStatistics( statistics->Level + 1, statistics->LeftStatistics, statistics->ClassIsLeaf );
+			statistics->Right = FINE_DEBUG_NEW CGradientBoostNodeStatistics( statistics->Level + 1, statistics->RightStatistics, statistics->ClassIsLeaf );
 			nodesCount += 2;
 			result = true;
 		} else {

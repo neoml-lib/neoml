@@ -163,17 +163,19 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 #else
 	const int minSupportedVersion = 1;
 #endif
-	int version = archive.SerializeVersion( 2, minSupportedVersion );
+	int version = archive.SerializeVersion( 3, minSupportedVersion );
 
 	if( archive.IsStoring() ) {
 		unsigned int index = info.FeatureIndex == NotFound ? 0 : info.FeatureIndex + 1;
 		serializeCompact( archive, index );
-		archive << info.Value;
 		if( info.Type == RTNT_Continuous ) {
+			archive << info.FeatureValue;
 			NeoAssert( leftChild != 0 );
 			leftChild->Serialize( archive );
 			NeoAssert( rightChild != 0 );
 			rightChild->Serialize( archive );
+		} else if( info.Type == RTNT_Const ) {
+			archive << info.Value;
 		}
 	} else if( archive.IsLoading() ) {
 		switch( version ) {
@@ -194,17 +196,15 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 #endif
 			case 1:
 			case 2:
+			case 3:
 			{
 				unsigned int index = 0;
 				serializeCompact( archive, index );
-				if( version == 1 ) {
-					float value = 0;
-					archive >> value;
-					info.FeatureValue = value;
-				} else {
-					archive >> info.Value;
-				}
+
 				if( index > 0 ) {
+					float featureValue = 0;
+					archive >> featureValue;
+					info.FeatureValue = featureValue;
 					info.Type = RTNT_Continuous;
 					info.FeatureIndex = index - 1;
 					leftChild = FINE_DEBUG_NEW CRegressionTreeModel();
@@ -212,6 +212,13 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 					rightChild = FINE_DEBUG_NEW CRegressionTreeModel();
 					rightChild->Serialize( archive );
 				} else {
+					if( version == 3 ){
+						archive >> info.Value;
+					} else {
+						float value = 0;
+						archive >> value;
+						info.Value = CFloatVector( 1, value );
+					}
 					info.Type = RTNT_Const;
 					info.FeatureIndex = NotFound;
 				}

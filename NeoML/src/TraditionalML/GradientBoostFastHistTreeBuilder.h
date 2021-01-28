@@ -70,7 +70,8 @@ private:
 			HistPtr( NotFound ),
 			SplitFeatureId( NotFound ),
 			Left( NotFound ),
-			Right( NotFound )
+			Right( NotFound ),
+			Statistics( 1 )
 		{}
 	};
 

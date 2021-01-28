@@ -198,7 +198,6 @@ public:
 	virtual ~IGradientBoostModel();
 
 	// Gets the tree ensemble
-	// todo
 	virtual const CArray<CGradientBoostEnsemble>& GetEnsemble() const = 0;
 
 	// Serializes the model
@@ -231,7 +230,6 @@ public:
 	virtual ~IGradientBoostRegressionModel();
 	
     // Gets the tree ensemble
-	//todo
 	virtual const CArray<CGradientBoostEnsemble>& GetEnsemble() const = 0;
 
 	// Serializes the model

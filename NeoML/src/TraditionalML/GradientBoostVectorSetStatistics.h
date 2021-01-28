@@ -21,6 +21,7 @@ namespace NeoML {
 	// The statistics accumulated for a vector set while building a tree with gradient boosting
 	class CGradientBoostVectorSetStatistics {
 	public:
+
 		CGradientBoostVectorSetStatistics() = default;
 		CGradientBoostVectorSetStatistics( int classCount );
 		explicit CGradientBoostVectorSetStatistics( const CGradientBoostVectorSetStatistics& other );
@@ -61,15 +62,13 @@ namespace NeoML {
 		CArray<double> totalGradient; // total gradient
 		CArray<double> totalHessian; // total hessian
 		float totalWeight; // total weight
-		int classCount = 1;
 	};
 
-inline CGradientBoostVectorSetStatistics::CGradientBoostVectorSetStatistics( int _classCount ) :
-	totalWeight( 0.0 ),
-	classCount( _classCount )
+inline CGradientBoostVectorSetStatistics::CGradientBoostVectorSetStatistics( int classCount ) :
+	totalWeight( 0.0 )
 {
-	totalGradient.Add( 0.0, classCount );
-	totalHessian.Add( 0.0, classCount );
+	totalGradient.Add( 0, classCount );
+	totalHessian.Add( 0, classCount );
 }
 
 inline CGradientBoostVectorSetStatistics::CGradientBoostVectorSetStatistics( const CGradientBoostVectorSetStatistics& other ) :
@@ -91,7 +90,7 @@ inline CGradientBoostVectorSetStatistics& CGradientBoostVectorSetStatistics::ope
 
 inline void CGradientBoostVectorSetStatistics::Add( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
 {
-	for( int i = 0; i < classCount; i++ ){
+	for( int i = 0; i < gradient.Size(); i++ ){
 		totalGradient[i] += gradient[i];
 		totalHessian[i] += hessian[i];
 	}
@@ -113,18 +112,18 @@ inline void CGradientBoostVectorSetStatistics::Add( const CGradientBoostVectorSe
 inline void CGradientBoostVectorSetStatistics::Add( const GradientBoostStatType& gradients, const GradientBoostStatType& hessians,
 	const CArray<float>& weights, int vectorIndex )
 {
-	for( int i = 0; i < classCount; i++ ){
+	for( int i = 0; i < totalGradient.Size(); i++ ){
 		totalGradient[i] += gradients[i][vectorIndex];
 		totalHessian[i] += hessians[i][vectorIndex];
 	}
 	totalWeight += weights[vectorIndex];
 }
 
-inline void CGradientBoostVectorSetStatistics::Sub( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
+inline void CGradientBoostVectorSetStatistics::Sub( const CArray<double>& gradients, const CArray<double>& hessians, float weight )
 {
-	for( int i = 0; i < totalGradient.Size(); i++ ){
-		totalGradient[i] -= gradient[i];
-		totalHessian[i] -= hessian[i];
+	for( int i = 0; i < gradients.Size(); i++ ){
+		totalGradient[i] -= gradients[i];
+		totalHessian[i] -= hessians[i];
 	}
 	totalWeight -= weight;
 }
