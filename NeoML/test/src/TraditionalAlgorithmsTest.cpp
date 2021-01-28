@@ -91,7 +91,7 @@ TEST_F( RandomBinary4000x20, Linear )
 	ASSERT_TRUE( model2 != nullptr );
 }
 
-TEST_F( RandomBinary4000x20, DecisionTree )
+TEST_F( RandomBinary4000x20, DISABLED_DecisionTree )
 {
 	CDecisionTreeTrainingModel::CParams param;
 	param.MaxTreeDepth = 10;
@@ -110,11 +110,10 @@ TEST_F( RandomBinary4000x20, DecisionTree )
 	ASSERT_TRUE( model2 != nullptr );
 }
 
-TEST_F( RandomMulti2000x20, GradientBoosting )
+TEST_F( RandomMulti2000x20, GradientBoostingFull )
 {
-	int begin = GetTickCount();
-
 	CRandom random;
+	random.Reset( 0 );
 	GTEST_LOG_( INFO ) << "Random = " << random.Next();
 	CGradientBoost::CParams params;
 	params.Random = &random;
@@ -126,16 +125,54 @@ TEST_F( RandomMulti2000x20, GradientBoosting )
 	params.Subsample = 1;
 	params.Subfeature = 1;
 	params.MinSubsetWeight = 8;
+	params.TreeBuilder = GBTB_Full;
 
 	CGradientBoost boosting( params );
+	int begin = GetTickCount();
 	auto model = boosting.TrainModel<IGradientBoostModel>( *DenseRandomMultiProblem );
 	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
 	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
 	ASSERT_TRUE( model != nullptr );
 
+	random.Reset( 0 );
+	GTEST_LOG_( INFO ) << "Random = " << random.Next();
 	begin = GetTickCount();
 	auto model2 = boosting.TrainModel<IGradientBoostModel>( *SparseRandomMultiProblem );
 	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	ASSERT_TRUE( model2 != nullptr );
+}
+
+TEST_F( RandomMulti2000x20, GradientBoostingFastHist )
+{
+	CRandom random;
+	random.Reset( 0 );
+	GTEST_LOG_( INFO ) << "Random = " << random.Next();
+	CGradientBoost::CParams params;
+	params.Random = &random;
+	params.LossFunction = CGradientBoost::LF_Binomial;
+	params.IterationsCount = 10;
+	params.LearningRate = 0.3f;
+	params.MaxTreeDepth = 8;
+	params.ThreadCount = 1;
+	params.Subsample = 1;
+	params.Subfeature = 1;
+	params.MinSubsetWeight = 8;
+	params.TreeBuilder = GBTB_FastHist;
+
+	CGradientBoost boosting( params );
+	int begin = GetTickCount();
+	auto model = boosting.TrainModel<IGradientBoostModel>( *DenseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	ASSERT_TRUE( model != nullptr );
+
+	random.Reset( 0 );
+	GTEST_LOG_( INFO ) << "Random = " << random.Next();
+	begin = GetTickCount();
+	auto model2 = boosting.TrainModel<IGradientBoostModel>( *SparseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
 	ASSERT_TRUE( model2 != nullptr );
 }
 
