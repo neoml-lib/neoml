@@ -91,18 +91,15 @@ TEST_F( RandomBinary4000x20, Linear )
 	ASSERT_TRUE( model2 != nullptr );
 }
 
-TEST_F( RandomBinary4000x20, DISABLED_DecisionTree )
+TEST_F( RandomBinary4000x20, DecisionTree )
 {
 	CDecisionTreeTrainingModel::CParams param;
-	param.MaxTreeDepth = 10;
-	param.MaxNodesCount = 4096;
-	param.AvailableMemory = Megabyte;
 	CDecisionTreeTrainingModel decisionTree( param );
 
 	int begin = GetTickCount();
 	auto model = decisionTree.TrainModel<IDecisionTreeModel>( *DenseRandomBinaryProblem );
-	ASSERT_TRUE( model != nullptr );
 	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model != nullptr );
 
 	begin = GetTickCount();
 	auto model2 = decisionTree.Train( *SparseRandomBinaryProblem );
@@ -247,18 +244,25 @@ void crossValidate( int PartsCount, ITrainingModel& trainingModel, IProblem* den
 TEST_F( RandomBinary4000x20, CrossValidationLinear )
 {
 	CLinearBinaryClassifierBuilder linear( EF_SquaredHinge );
-	crossValidate( 5, linear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
+	crossValidate( 2, linear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 
 TEST_F( RandomBinary4000x20, CrossValidationSvmLinear )
 {
 	CSvmBinaryClassifierBuilder svmLinear( CSvmKernel::KT_Linear );
-	crossValidate( 5, svmLinear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
+	crossValidate( 2, svmLinear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 
 TEST_F( RandomBinary4000x20, CrossValidationSvmRbf )
 {
 	CSvmBinaryClassifierBuilder svmLinear( CSvmKernel::KT_RBF );
-	crossValidate( 5, svmLinear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
+	crossValidate( 2, svmLinear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
+}
+
+TEST_F( RandomBinary4000x20, CrossValidationDecisionTree )
+{
+	CDecisionTreeTrainingModel::CParams param;
+	CDecisionTreeTrainingModel decisionTree( param );
+	crossValidate( 2, decisionTree, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 

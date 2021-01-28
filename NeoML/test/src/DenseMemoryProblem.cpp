@@ -44,17 +44,22 @@ CPtr<CDenseMemoryProblem> CDenseMemoryProblem::Random( int samples, int features
 
 	std::random_device rd;
 	std::mt19937 gen( rd() );
-	//std::uniform_real_distribution<float> df( std::numeric_limits<float>::min(), std::numeric_limits<float>::max() );
 	std::uniform_real_distribution<float> df( -10, 10 );
 	std::uniform_int_distribution<int> di( 0, classes - 1 );
+	std::uniform_int_distribution<int> dNull( 0, 3 ); // 1/4 probability of null element
 	res->valuesArr.SetBufferSize( samples * features );
 	res->classesArr.SetBufferSize( samples );
 	for( int i = 0; i < samples; ++i ) {
 		for( int j = 0; j < features; ++j ) {
-			res->valuesArr.Add( df( gen ) );
+			if( dNull( gen ) != 0 ) {
+				res->valuesArr.Add( df( gen ) );
+			} else {
+				res->valuesArr.Add( 0.0 );
+			}
 		}
 		res->classesArr.Add( di( gen ) );
 	}
+
 	// set weights to 1
 	res->weightsArr.Add( 1., samples );
 	res->classCount = classes;
