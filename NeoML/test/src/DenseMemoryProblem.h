@@ -22,13 +22,13 @@ public:
 	CDenseMemoryProblem( int height, int width, float* values, const int* _classes, const float* _weights );
 
 	// IProblem interface methods:
-	virtual int GetClassCount() const { return classCount; }
-	virtual int GetFeatureCount() const { return desc.Width; }
-	virtual bool IsDiscreteFeature( int ) const { return false; }
-	virtual int GetVectorCount() const { return desc.Height; }
-	virtual int GetClass( int index ) const { return classes[index]; }
-	virtual CFloatMatrixDesc GetMatrix() const { return desc; }
-	virtual double GetVectorWeight( int index ) const { return weights[index]; };
+	int GetClassCount() const override { return classCount; }
+	int GetFeatureCount() const override { return desc.Width; }
+	bool IsDiscreteFeature( int ) const override { return false; }
+	int GetVectorCount() const override { return desc.Height; }
+	int GetClass( int index ) const override { return classes[index]; }
+	CFloatMatrixDesc GetMatrix() const override { return desc; }
+	double GetVectorWeight( int index ) const override { return weights[index]; };
 
 	static CPtr<CDenseMemoryProblem> Random( int samples, int features, int classes );
 	CPtr<CMemoryProblem> CreateSparse() const;
