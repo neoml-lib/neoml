@@ -645,7 +645,7 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 
 				CFloatVector predictions( problem.GetValueSize(), 0.0 );
 				if( params.IsMultiBoosted ){
-					CFloatVector predictions = CGradientBoostModel::PredictRaw( models[0], predictCache[0][usedVector].Step,
+					predictions = CGradientBoostModel::PredictRaw( models[0], predictCache[0][usedVector].Step,
 						params.LearningRate, vector, problem.GetValueSize() );
 				} else {
 					for( int j = 0; j < problem.GetValueSize(); j++ ){
@@ -692,8 +692,7 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 				if( params.IsMultiBoosted ){
 					CFloatVector predictions = CGradientBoostModel::PredictRaw( models[0], predictCache[0][index].Step,
 						params.LearningRate, vector, problem.GetValueSize() );
-				}
-				else {
+				} else {
 					for( int j = 0; j < problem.GetValueSize(); j++ ){
 						predictions.SetAt( j, CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
 							params.LearningRate, vector, 1 )[0] );
