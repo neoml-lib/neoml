@@ -142,8 +142,9 @@ void CSparseFloatMatrix::GrowInElements( int newElementsBufferSize )
 
 void CSparseFloatMatrix::AddRow( const CSparseFloatVector& row )
 {
-	NeoAssert( row.GetDesc().Indexes != nullptr );
-	AddRow( row.GetDesc() );
+	CFloatVectorDesc desc = row.GetDesc();
+	NeoAssert( desc.Indexes != nullptr || desc.Values == nullptr );
+	AddRow( desc );
 }
 
 void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
@@ -156,7 +157,7 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 	// add dense row as a sparse
 	CArray<int> indexes;
 	CArray<float> values;
-	if( row.Indexes == nullptr ) {
+	if( row.Indexes == nullptr && row.Values != nullptr ) {
 		indexes.SetBufferSize( row.Size );
 		values.SetBufferSize( row.Size );
 		for( int i = 0; i < row.Size; ++i ) {
@@ -171,7 +172,9 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 	}
 
 	GrowInRows( body->Desc.Height + 1 );
-	GrowInElements( body->ElementCount + sparseRow.Size );
+	if( sparseRow.Size > 0 ) {
+		GrowInElements( body->ElementCount + sparseRow.Size );
+	}
 
 	CSparseFloatMatrixBody* newBody = body.CopyOnWrite();
 	newBody->Desc.Height++;
