@@ -117,7 +117,7 @@ void CProblemSourceLayer::RunOnce()
 	CFloatMatrixDesc matrix = problem->GetMatrix();
 	CFloatVectorDesc vector;
 
-	auto getCurIndex = GetIndexGettingFunc( vector );
+	auto getCurIndex = GetIndexGettingFunc( matrix );
 	for(int i = 0; i < batchSize; ++i) {
 		// The data
 		matrix.GetRow( nextProblemIndex, vector );
