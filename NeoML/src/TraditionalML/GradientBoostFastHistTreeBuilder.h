@@ -41,7 +41,7 @@ public:
 	CGradientBoostFastHistTreeBuilder( const CParams& params, CTextStream* logStream );
 
 	// Builds a tree
-	CPtr<CRegressionTreeModel> Build( const CGradientBoostFastHistProblem& problem,
+	CPtr<IRegressionTreeModel> Build( const CGradientBoostFastHistProblem& problem,
 		const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights );
 
 protected:
@@ -94,7 +94,7 @@ private:
 	int allocHist();
 	void freeHist( int ptr );
 	void subHist( int firstPtr, int secondPtr );
-	void buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
+	void buildHist( const CGradientBoostFastHistProblem& problem, CNode& node,
 		const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,
 		CGradientBoostVectorSetStatistics<double>& stats );
 	void addVectorToHist( const int* vectorPtr, int vectorSize, const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,

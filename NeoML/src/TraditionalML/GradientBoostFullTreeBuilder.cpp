@@ -227,7 +227,7 @@ inline CFloatVector CGradientBoostNodeStatistics<CArray<double>>::LeafValue()
 //------------------------------------------------------------------------------------------------------------
 
 template<class T>
-CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradientBoostParams& _params, CTextStream* _logStream, int _valueSize ) :
+CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradientBoostBuildParams& _params, CTextStream* _logStream, int _valueSize ) :
 	params( _params ),
 	logStream( _logStream ),
 	nodesCount( 0 ),

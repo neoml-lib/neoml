@@ -289,7 +289,10 @@ inline CArchive& operator<<( CArchive& archive, const CRegressionTreeNodeInfo& i
 	if( info.Type == RTNT_MultiConst ) {
 		archive << info.MultiValue;
 	} else {
-		archive << info.FeatureIndex;
+		archive << info.FeatureValue;
+		if( info.Type == RTNT_Continuous ) {
+			archive << info.FeatureIndex;
+		}
 	}
 	return archive;
 }
@@ -300,7 +303,10 @@ inline CArchive& operator >> ( CArchive& archive, CRegressionTreeNodeInfo& info 
 	if( info.Type == RTNT_MultiConst ) {
 		archive >> info.MultiValue;
 	} else {
-		archive >> info.FeatureIndex;
+		archive >> info.FeatureValue;
+		if( info.Type == RTNT_Continuous ) {
+			archive >> info.FeatureIndex;
+		}
 	}
 	return archive;
 }

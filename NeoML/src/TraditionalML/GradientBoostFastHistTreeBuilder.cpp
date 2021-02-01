@@ -35,7 +35,7 @@ CGradientBoostFastHistTreeBuilder::CGradientBoostFastHistTreeBuilder( const CPar
 	NeoAssert( params.MinSubsetWeight >= 0 );
 }
 
-CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGradientBoostFastHistProblem& problem,
+CPtr<IRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGradientBoostFastHistProblem& problem,
 	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights )
 {
 	if( logStream != 0 ) {
@@ -190,7 +190,7 @@ void CGradientBoostFastHistTreeBuilder::subHist( int firstPtr, int secondPtr )
 }
 
 // Build a histogram on the vectors of the given node
-void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
+void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistProblem& problem, CNode& node,
 	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,
 	CGradientBoostVectorSetStatistics<double>& totalStats )
 {
