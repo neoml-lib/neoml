@@ -45,6 +45,9 @@ void CAccuracyLayer::OnReset()
 void CAccuracyLayer::Reshape()
 {
 	CQualityControlLayer::Reshape();
+	NeoAssert( inputDescs[0].Height() == 1
+		&& inputDescs[0].Width() == 1
+		&& inputDescs[0].Depth() == 1 );
 
 	outputDescs[0] = CBlobDesc( CT_Float );
 
@@ -127,6 +130,8 @@ void CConfusionMatrixLayer::Reshape()
 	NeoAssert( inputDescs.Size() == 2 );
 	// For classifying a sigmoid a special implementation is needed
 	NeoAssert( inputDescs[0].Channels() >= 2 );
+	NeoAssert( inputDescs[0].Height() == 1 );
+	NeoAssert( inputDescs[0].Width() == 1 );
 	NeoAssert( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount() );
 	NeoAssert( inputDescs[0].ObjectSize() >= 1 );
 	NeoAssert( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize() );
@@ -151,8 +156,8 @@ void CConfusionMatrixLayer::RunOnceAfterReset()
 	CFastArray<float, 1> expectedClassBuffer;
 
 	int dataSize = inputBlob->GetDataSize();
-	int objectCount = inputBlob->GetObjectCount() * inputBlob->GetGeometricalSize();
-	int channelsCnt = inputBlob->GetChannelsCount();
+	int objectCount = inputBlob->GetObjectCount();
+	int objectSize = inputBlob->GetObjectSize();
 
 	predictedClassBuffer.SetSize( dataSize );
 	expectedClassBuffer.SetSize( dataSize );
@@ -168,9 +173,9 @@ void CConfusionMatrixLayer::RunOnceAfterReset()
 		float maxValueForPredictedClass = -FLT_MAX;
 		float maxValueForExpectedClass = -FLT_MAX;
 
-		for( int classWeightId = 0; classWeightId < channelsCnt; classWeightId++ ) {
-			const float currentPredictedClassWeight = predictedClassBuffer[sampleId * channelsCnt + classWeightId];
-			const float currentExpectedClassWeight = expectedClassBuffer[sampleId * channelsCnt + classWeightId];
+		for( int classWeightId = 0; classWeightId < objectSize; classWeightId++ ) {
+			const float currentPredictedClassWeight = predictedClassBuffer[sampleId * objectSize + classWeightId];
+			const float currentExpectedClassWeight = expectedClassBuffer[sampleId * objectSize + classWeightId];
 			if( maxValueForPredictedClass < currentPredictedClassWeight ) {
 				maxValueForPredictedClass = currentPredictedClassWeight;
 				predictedClass = classWeightId;
