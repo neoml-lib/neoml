@@ -23,7 +23,7 @@ _VC16=%_VS16%\VC\Tools\MSVC\%VCToolsVersion%
 _ABBYY_UTILS=%ProgramFiles(x86)%\ABBYY Build Utilities
 _GIT=%ProgramFiles%\Git
 _CMAKE=%ProgramFiles%\CMake
-_PYTHON=%ProgramFiles(x86)%\Python37
+_PYTHON=%ProgramFiles%\Python36
 
 BUILD_PLATFORM=Win32
 
