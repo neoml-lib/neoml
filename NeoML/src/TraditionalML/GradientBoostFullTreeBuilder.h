@@ -15,6 +15,7 @@ limitations under the License.
 
 #pragma once
 
+#include <RegressionTreeModel.h>
 #include <GradientBoostFullProblem.h>
 #include <NeoML/TraditionalML/Model.h>
 #include <GradientBoostVectorSetStatistics.h>
@@ -26,8 +27,6 @@ struct CThreadStatistics;
 
 template<class T>
 struct CGradientBoostNodeStatistics;
-
-class CRegressionTreeModel;
 
 // Tree building parameters
 struct CGradientBoostParams {
@@ -41,25 +40,14 @@ struct CGradientBoostParams {
 	float MinSubsetWeight; // the minimum subtree weight
 };
 
-class CGradientBoostFullTreeModelsBuilder : public virtual IObject {
-public:
-	static CPtr<CGradientBoostFullTreeModelsBuilder> Create( const CGradientBoostParams& params, CTextStream* logStream, int valueSize );
-
-	void BuildModels( const CGradientBoostFullProblem& problem, bool isMultiBoosted,
-		const CArray<CArray<double>>& gradients, const CArray<double>& gradientsSum,
-		const CArray<CArray<double>>& hessians, const CArray<double>& hessiansSum,
-		const CArray<float>& weights, float weightsSum,
-		CObjectArray<IMultivariateRegressionModel>& models );
-};
-
 // Tree builder
 template <class T>
-class CGradientBoostFullTreeBuilder : public CGradientBoostFullTreeModelsBuilder {
+class CGradientBoostFullTreeBuilder : public virtual IObject {
 public:
 	CGradientBoostFullTreeBuilder( const CGradientBoostParams& params, CTextStream* logStream, int valueSize );
 
 	// Builds the tree
-	CPtr<IMultivariateRegressionModel> Build( const CGradientBoostFullProblem& problem,
+	CPtr<CRegressionTreeModel> Build( const CGradientBoostFullProblem& problem,
 		const CArray<T>& gradients, const T& gradientsSum,
 		const CArray<T>& hessians, const T& hessiansSum,
 		const CArray<float>& weights, float weightsSum );
@@ -95,7 +83,7 @@ private:
 	void mergeThreadResults();
 	bool split();
 	bool prune( CGradientBoostNodeStatistics<T>& node ) const;
-	CPtr<CRegressionTreeModel> buildModel( const CArray<int>& usedFeatures, CGradientBoostNodeStatistics<T>& node ) const;
+	CPtr<IRegressionTreeModel> buildModel( const CArray<int>& usedFeatures, CGradientBoostNodeStatistics<T>& node ) const;
 };
 
 } // namespace NeoML

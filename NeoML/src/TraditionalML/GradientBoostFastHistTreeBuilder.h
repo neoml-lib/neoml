@@ -15,13 +15,12 @@ limitations under the License.
 
 #pragma once
 
+#include <RegressionTreeModel.h>
 #include <GradientBoostFastHistProblem.h>
 #include <GradientBoostVectorSetStatistics.h>
 #include <NeoML/TraditionalML/Model.h>
 
 namespace NeoML {
-
-class CRegressionTreeModel;
 
 // Tree builder
 class CGradientBoostFastHistTreeBuilder : public virtual IObject {
@@ -42,7 +41,7 @@ public:
 	CGradientBoostFastHistTreeBuilder( const CParams& params, CTextStream* logStream );
 
 	// Builds a tree
-	CPtr<IMultivariateRegressionModel> Build( const CGradientBoostFastHistProblem& problem,
+	CPtr<CRegressionTreeModel> Build( const CGradientBoostFastHistProblem& problem,
 		const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights );
 
 protected:

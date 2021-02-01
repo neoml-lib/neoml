@@ -42,10 +42,16 @@ public:
 	virtual void GetNodeInfo( CRegressionTreeNodeInfo& result ) const { result = info; }
 	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const;
 
+	// IRegressionModel interface methods
+	virtual double Predict( const CSparseFloatVector& data ) const;
+	virtual double Predict( const CSparseFloatVectorDesc& data ) const;
+	virtual double Predict( const CFloatVector& data ) const;
+
 	// IMultivariateRegressionModel interface methods
 	virtual CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const;
 	virtual CFloatVector MultivariatePredict( const CSparseFloatVectorDesc& data ) const;
 	virtual CFloatVector MultivariatePredict( const CFloatVector& data ) const;
+
 	virtual void Serialize( CArchive& archive );
 
 protected:

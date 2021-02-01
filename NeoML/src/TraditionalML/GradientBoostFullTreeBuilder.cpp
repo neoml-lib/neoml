@@ -23,40 +23,6 @@ limitations under the License.
 
 namespace NeoML {
 
-CPtr<CGradientBoostFullTreeModelsBuilder> CGradientBoostFullTreeModelsBuilder::Create( const CGradientBoostParams& params, CTextStream* logStream, int valueSize )
-{
-	if( valueSize == 1 ){
-		return FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<double>( params, logStream, valueSize );
-	} else {
-		return FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CArray<double>>( params, logStream, valueSize );
-	}
-}
-
-void CGradientBoostFullTreeModelsBuilder::BuildModels( const CGradientBoostFullProblem& problem, bool isMultiBoosted,
-	const CArray<CArray<double>>& gradients, const CArray<double>& gradientsSum,
-	const CArray<CArray<double>>& hessians, const CArray<double>& hessiansSum,
-	const CArray<float>& weights, float weightsSum,
-	CObjectArray<IMultivariateRegressionModel>& models )
-{
-	if( isMultiBoosted ){
-		CPtr<IMultivariateRegressionModel> model;
-		model = static_cast< CGradientBoostFullTreeBuilder<CArray<double>>* >(this)->Build( problem,
-			gradients, gradientsSum,
-			hessians, hessiansSum,
-			weights, weightsSum );
-		models.Add( model );
-	} else {
-		for( int i = 0; i < gradients.Size(); i++ ) {
-			CPtr<IMultivariateRegressionModel> model;
-			model = static_cast< CGradientBoostFullTreeBuilder<double>* >(this)->Build( problem,
-				gradients[i], gradientsSum[i],
-				hessians[i], hessiansSum[i],
-				weights, weightsSum );
-			models.Add( model );
-		}
-	}
-}
-
 // The statistics for one thread
 template<class T>
 struct CThreadStatistics {
@@ -86,7 +52,7 @@ struct CThreadStatistics {
 	CThreadStatistics( const CThreadStatistics& other );
 	explicit CThreadStatistics( float criterion, const CGradientBoostVectorSetStatistics<T>& totalStatistics, const CArray<bool>& classIsLeaf );
 	double CThreadStatistics::CalcCriterion( CGradientBoostVectorSetStatistics<T>& leftResult, CGradientBoostVectorSetStatistics<T>& rightResult,
-		CArray<bool>& leafResult, float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight );
+		float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight );
 };
 
 template<class T>
@@ -103,6 +69,7 @@ inline CThreadStatistics<T>::CThreadStatistics( const CThreadStatistics& other )
 {
 	other.ResultClassIsLeaf.CopyTo( ResultClassIsLeaf );
 	other.InitialClassIsLeaf.CopyTo( InitialClassIsLeaf );
+	other.CurClassIsLeaf.CopyTo( CurClassIsLeaf );
 }
 
 template<class T>
@@ -114,7 +81,6 @@ inline CThreadStatistics<T>::CThreadStatistics( float criterion, const CGradient
 	Criterion( criterion ),
 	CurLeftStatistics( classIsLeaf.Size() ),
 	CurRightStatistics( classIsLeaf.Size() ),
-	CurClassIsLeaf( classIsLeaf.Size() ),
 	TotalStatistics( totalStatistics )
 {
 	CurClassIsLeaf.SetSize( classIsLeaf.Size() );
@@ -123,14 +89,16 @@ inline CThreadStatistics<T>::CThreadStatistics( float criterion, const CGradient
 
 template<>
 inline double CThreadStatistics<double>::CalcCriterion( CGradientBoostVectorSetStatistics<double>& leftResult, CGradientBoostVectorSetStatistics<double>& rightResult,
-	CArray<bool>& leafResult, float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight ) 
+	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight ) 
 {
 	if( CurLeftStatistics.StatisticsIsSmall( minSubsetHessian, minSubsetWeight, 0 ) ||
 		CurRightStatistics.StatisticsIsSmall( minSubsetHessian, minSubsetWeight, 0 ) )
 	{
+		CurClassIsLeaf[0] = true;
 		return 0;
 	}
 
+	CurClassIsLeaf[0] = false;
 	return CurLeftStatistics.CalcCriterion( l1RegFactor, l2RegFactor, 0 ) +
 		CurRightStatistics.CalcCriterion( l1RegFactor, l2RegFactor, 0 );
 }
@@ -138,7 +106,7 @@ inline double CThreadStatistics<double>::CalcCriterion( CGradientBoostVectorSetS
 template<>
 inline double CThreadStatistics<CArray<double>>::CalcCriterion(
 	CGradientBoostVectorSetStatistics<CArray<double>>& leftResult, CGradientBoostVectorSetStatistics<CArray<double>>& rightResult,
-	CArray<bool>& leafResult, float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight )
+	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight )
 {
 	double result = 0;
 	leftResult.TotalWeight = CurLeftStatistics.TotalWeight;
@@ -164,7 +132,7 @@ inline double CThreadStatistics<CArray<double>>::CalcCriterion(
 			}
 		}
 		
-		leafResult.Add( classIsLeaf );
+		CurClassIsLeaf[i] = classIsLeaf;
 		const CGradientBoostVectorSetStatistics<CArray<double>>& left = ( classIsLeaf ) ? TotalStatistics : CurLeftStatistics;
 		const CGradientBoostVectorSetStatistics<CArray<double>>& right = (classIsLeaf) ? TotalStatistics : CurRightStatistics;
 		leftResult.TotalGradient[i] = left.TotalGradient[i];
@@ -274,7 +242,7 @@ CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradient
 }
 
 template<class T>
-CPtr<IMultivariateRegressionModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
+CPtr<CRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
 	const CArray<T>& gradients, const T& gradientsSum,
 	const CArray<T>& hessians, const T& hessiansSum,
 	const CArray<float>& weights, float weightsSum )
@@ -612,14 +580,13 @@ void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue
 	CThreadStatistics<T>& statistics ) const
 {
 	CGradientBoostVectorSetStatistics<T> leftStatistics( valueSize ), rightStatistics( valueSize );
-	CArray<bool> classIsLeaf;
-	const double criterion = statistics.CalcCriterion( leftStatistics, rightStatistics, classIsLeaf,
+	const double criterion = statistics.CalcCriterion( leftStatistics, rightStatistics,
 		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight );
 
 	bool toSplit = statistics.Criterion < criterion || (statistics.Criterion == criterion && statistics.FeatureIndex > feature);
+	bool allLeaves = ( leafsCount( statistics.CurClassIsLeaf ) == statistics.CurClassIsLeaf.Size() );
 
-
-	if( leafsCount( classIsLeaf ) != classIsLeaf.Size() && toSplit ) {
+	if( !allLeaves && toSplit ) {
 		statistics.FeatureIndex = feature;
 		statistics.Criterion = criterion;
 		if( fabs( firstValue - secondValue ) > 1e-10 ) {
@@ -629,7 +596,7 @@ void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue
 		}
 		statistics.LeftStatistics = statistics.CurLeftStatistics;
 		statistics.RightStatistics = statistics.CurRightStatistics;
-		classIsLeaf.CopyTo( statistics.ResultClassIsLeaf );
+		statistics.CurClassIsLeaf.CopyTo( statistics.ResultClassIsLeaf );
 	}
 }
 
@@ -727,7 +694,7 @@ bool CGradientBoostFullTreeBuilder<T>::prune( CGradientBoostNodeStatistics<T>& n
 
 // Builds the final model
 template<class T>
-CPtr<CRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::buildModel( const CArray<int>& usedFeatures,
+CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::buildModel( const CArray<int>& usedFeatures,
 	CGradientBoostNodeStatistics<T>& node ) const
 {
 	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();

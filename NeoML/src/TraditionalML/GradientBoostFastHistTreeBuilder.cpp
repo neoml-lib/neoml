@@ -35,7 +35,7 @@ CGradientBoostFastHistTreeBuilder::CGradientBoostFastHistTreeBuilder( const CPar
 	NeoAssert( params.MinSubsetWeight >= 0 );
 }
 
-CPtr<IMultivariateRegressionModel> CGradientBoostFastHistTreeBuilder::Build( const CGradientBoostFastHistProblem& problem,
+CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGradientBoostFastHistProblem& problem,
 	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights )
 {
 	if( logStream != 0 ) {

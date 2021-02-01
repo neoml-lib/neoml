@@ -22,19 +22,27 @@ namespace NeoML {
 // The model trained using gradient boosting
 class CGradientBoostModel : public IGradientBoostModel, public IGradientBoostRegressionModel {
 public:
-	CGradientBoostModel() : valueSize( 1 ), learningRate( 0 ), lossFunction( CGradientBoost::LF_Undefined ) {}
-	CGradientBoostModel( CArray<CGradientBoostEnsemble>& models, int valueSize, double learningRate,
+	CGradientBoostModel() : isMultiClass( false ), valueSize( 1 ), learningRate( 0 ), lossFunction( CGradientBoost::LF_Undefined ) {}
+	CGradientBoostModel( CArray<CGradientBoostEnsemble>& models, bool isMultiClass, int valueSize, double learningRate,
 		CGradientBoost::TLossFunction lossFunction );
 
 	// Used for serialization
 	static CPtr<IModel> Create() { return FINE_DEBUG_NEW CGradientBoostModel(); }
 
-	// Gets the prediction by the tree ensemble
-	static CFloatVector PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+	// Gets the prediction by the tree ensemble for single class
+	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const CSparseFloatVector& vector );
+	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const CFloatVector& vector );
+	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const CSparseFloatVectorDesc& desc );
+
+	// Gets the prediction by the tree ensemble for multiple classes
+	static CFloatVector MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
 		const CSparseFloatVector& vector, int valueSize );
-	static CFloatVector PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+	static CFloatVector MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
 		const CFloatVector& vector, int valueSize );
-	static CFloatVector PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+	static CFloatVector MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
 		const CSparseFloatVectorDesc& desc, int valueSize );
 
 	// IModel interface methods
@@ -66,6 +74,7 @@ private:
 	CArray<CGradientBoostEnsemble> ensembles; // the models
 	double learningRate; // the coefficient for each of the models
 	CGradientBoost::TLossFunction lossFunction; // the loss function to be optimized
+	bool isMultiClass; // each model predicts multiple values
 	int valueSize; // the value size of each model
 
 	bool classify( double prediction, CClassificationResult& result ) const;

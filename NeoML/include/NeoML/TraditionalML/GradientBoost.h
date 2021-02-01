@@ -23,7 +23,9 @@ limitations under the License.
 
 namespace NeoML {
 
-class CGradientBoostFullTreeModelsBuilder;
+class IRegressionTreeModel;
+template<class T>
+class CGradientBoostFullTreeBuilder;
 class CGradientBoostFastHistTreeBuilder;
 class IGradientBoostingLossFunction;
 class CGradientBoostModel;
@@ -31,7 +33,7 @@ class CGradientBoostFullProblem;
 class CGradientBoostFastHistProblem;
 
 // Decision tree ensemble that has been built by gradient boosting
-class CGradientBoostEnsemble : public CObjectArray<IMultivariateRegressionModel> {
+class CGradientBoostEnsemble : public CObjectArray<IRegressionTreeModel> {
 public:
 	CGradientBoostEnsemble() {}
 };
@@ -57,6 +59,7 @@ enum TGradientBoostTreeBuilder {
 	// The algorithm will cache all the problem data
 	// This algorithm is faster and works best for binary problems that fit into memory
 	GBTB_FastHist,
+	GBTB_MultiFull,
 	GBTB_Count
 };
 
@@ -96,7 +99,6 @@ public:
 		TGradientBoostTreeBuilder TreeBuilder; // the type of tree builder used
 		int MaxBins; // the largest possible histogram size to be used in *GBTB_FastHist* mode
 		float MinSubsetWeight; // the minimum subtree weight (set to 0 to have no lower limit)
-		bool IsMultiBoosted; // create multi-boosted trees with diagonal Hessian matrix
 
 		CParams() :
 			LossFunction( LF_Binomial ),
@@ -113,8 +115,7 @@ public:
 			ThreadCount( 1 ),
 			TreeBuilder( GBTB_Full ),
 			MaxBins( 32 ),
-			MinSubsetWeight( 0.f ),
-			IsMultiBoosted( false )
+			MinSubsetWeight( 0.f )
 		{
 		}
 	};
@@ -148,7 +149,8 @@ private:
 	const CParams params; // the classification parameters
 	CRandom defaultRandom; // the default random number generator
 	CTextStream* logStream; // the logging stream
-	CPtr<CGradientBoostFullTreeModelsBuilder> fullTreeBuilder; // TGBT_Full tree builder
+	CPtr<CGradientBoostFullTreeBuilder<double>> fullSingleClassTreeBuilder; // TGBT_Full tree builder for single class
+	CPtr<CGradientBoostFullTreeBuilder<CArray<double>>> fullMultiClassTreeBuilder; // TGBT_Full tree builder for multi class
 	CPtr<CGradientBoostFastHistTreeBuilder> fastHistTreeBuilder; // TGBT_FastHist tree builder
 	CPtr<CGradientBoostFullProblem> fullProblem; // the problem data for TGBT_Full mode
 	CPtr<CGradientBoostFastHistProblem> fastHistProblem; // the problem data for TGBT_FastHist mode
@@ -183,7 +185,7 @@ private:
 	void initialize( int modelCount, int vectorCount, int featureCount, CArray<CGradientBoostEnsemble>& models );
 	void executeStep( IGradientBoostingLossFunction& lossFunction,
 		const IMultivariateRegressionProblem* problem, const CArray<CGradientBoostEnsemble>& models,
-		CObjectArray<IMultivariateRegressionModel>& curModels );
+		CObjectArray<IRegressionTreeModel>& curModels );
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
 	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
 };
@@ -253,6 +255,7 @@ enum TRegressionTreeNodeType {
 	RTNT_Undefined = 0,
 	RTNT_Const, // a constant node
 	RTNT_Continuous, // a node that uses a continuous feature for splitting into subtrees
+	RTNT_MultiConst, // a constant node with multiple values
 	RTNT_Count
 };
 
@@ -264,7 +267,7 @@ struct CRegressionTreeNodeInfo {
 	// The value of the feature used for splitting
 	double FeatureValue;
 	// For RTNT_Const - the result
-	CFloatVector Value;
+	CFloatVector MultiValue;
 
 	CRegressionTreeNodeInfo() : Type( RTNT_Undefined ), FeatureIndex( NotFound ) {}
 
@@ -277,22 +280,28 @@ inline void CRegressionTreeNodeInfo::CopyTo( CRegressionTreeNodeInfo& newInfo ) 
 	newInfo.Type = Type;
 	newInfo.FeatureIndex = FeatureIndex;
 	newInfo.FeatureValue = FeatureValue;
-	newInfo.Value = Value;
+	newInfo.MultiValue = MultiValue;
 }
 
 inline CArchive& operator<<( CArchive& archive, const CRegressionTreeNodeInfo& info )
 {
 	archive.SerializeEnum( const_cast<CRegressionTreeNodeInfo&>( info ).Type );
-	archive << info.FeatureIndex;
-	archive << info.Value;
+	if( info.Type == RTNT_MultiConst ) {
+		archive << info.MultiValue;
+	} else {
+		archive << info.FeatureIndex;
+	}
 	return archive;
 }
 
 inline CArchive& operator >> ( CArchive& archive, CRegressionTreeNodeInfo& info )
 {
 	archive.SerializeEnum( info.Type );
-	archive >> info.FeatureIndex;
-	archive >> info.Value;
+	if( info.Type == RTNT_MultiConst ) {
+		archive >> info.MultiValue;
+	} else {
+		archive >> info.FeatureIndex;
+	}
 	return archive;
 }
 
@@ -300,7 +309,7 @@ DECLARE_NEOML_MODEL_NAME( RegressionTreeModelName, "FmlRegressionTreeModel" )
 
 // The regression tree model interface
 // Can be used for iterating through the boosting results if used on trees
-class NEOML_API IRegressionTreeModel : public IMultivariateRegressionModel {
+class NEOML_API IRegressionTreeModel : public IRegressionModel, public IMultivariateRegressionModel {
 public:
 	virtual ~IRegressionTreeModel();
 

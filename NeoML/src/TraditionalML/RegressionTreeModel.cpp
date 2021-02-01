@@ -64,11 +64,20 @@ CRegressionTreeModel::~CRegressionTreeModel()
 	NeoPresume( info.Type != RTNT_Undefined );
 }
 
-void CRegressionTreeModel::InitLeafNode( const CFloatVector& prediction )
+void CRegressionTreeModel::InitLeafNode( double prediction )
 {
 	info.Type = RTNT_Const;
 	info.FeatureIndex = NotFound;
-	info.Value = prediction;
+	info.FeatureValue = prediction;
+	leftChild.Release();
+	rightChild.Release();
+}
+
+void CRegressionTreeModel::InitLeafNode( const CFloatVector& prediction )
+{
+	info.Type = RTNT_MultiConst;
+	info.FeatureIndex = NotFound;
+	info.MultiValue = prediction;
 	leftChild.Release();
 	rightChild.Release();
 }
@@ -86,7 +95,7 @@ void CRegressionTreeModel::InitSplitNode( CRegressionTreeModel& left, CRegressio
 
 const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSparseFloatVector& data ) const
 {
-	static_assert( RTNT_Count == 3, "RTNT_Count != 3" );
+	static_assert( RTNT_Count == 4, "RTNT_Count != 4" );
 
 	if( info.Type == RTNT_Continuous ) {
 		float featureValue = 0;
@@ -101,7 +110,7 @@ const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSpar
 
 const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSparseFloatVectorDesc& data ) const
 {
-	static_assert(RTNT_Count == 3, "RTNT_Count != 3");
+	static_assert(RTNT_Count == 4, "RTNT_Count != 4");
 
 	if( info.Type == RTNT_Continuous ) {
 		float featureValue = 0;
@@ -116,7 +125,7 @@ const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSpar
 
 const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CFloatVector& data ) const
 {
-	static_assert( RTNT_Count == 3, "RTNT_Count != 3" );
+	static_assert( RTNT_Count == 4, "RTNT_Count != 4" );
 
 	if( info.Type == RTNT_Continuous ) {
 		double featureValue = info.FeatureIndex < data.Size() ? data[info.FeatureIndex] : 0;
@@ -135,25 +144,46 @@ void CRegressionTreeModel::CalcFeatureStatistics( int maxFeature, CArray<int>& r
 	calcFeatureStatistics( maxFeature, result );
 }
 
-CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVector& data ) const
+double CRegressionTreeModel::Predict( const CSparseFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.Value;
+	return node->info.FeatureValue;
+}
+
+double CRegressionTreeModel::Predict( const CFloatVector& data ) const
+{
+	const CRegressionTreeModel* node = GetPredictionNode( data );
+	NeoAssert( node->info.Type == RTNT_Const );
+	return node->info.FeatureValue;
+}
+
+double CRegressionTreeModel::Predict( const CSparseFloatVectorDesc& data ) const
+{
+	const CRegressionTreeModel* node = GetPredictionNode( data );
+	NeoAssert( node->info.Type == RTNT_Const );
+	return node->info.FeatureValue;
+}
+
+CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVector& data ) const
+{
+	const CRegressionTreeModel* node = GetPredictionNode( data );
+	NeoAssert( node->info.Type == RTNT_MultiConst );
+	return node->info.MultiValue;
 }
 
 CFloatVector CRegressionTreeModel::MultivariatePredict( const CFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.Value;
+	NeoAssert( node->info.Type == RTNT_MultiConst );
+	return node->info.MultiValue;
 }
 
 CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVectorDesc& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.Value;
+	NeoAssert( node->info.Type == RTNT_MultiConst );
+	return node->info.MultiValue ;
 }
 
 void CRegressionTreeModel::Serialize( CArchive& archive )
@@ -166,16 +196,19 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 	int version = archive.SerializeVersion( 3, minSupportedVersion );
 
 	if( archive.IsStoring() ) {
-		unsigned int index = info.FeatureIndex == NotFound ? 0 : info.FeatureIndex + 1;
-		serializeCompact( archive, index );
+		archive.SerializeEnum( info.Type );
 		if( info.Type == RTNT_Continuous ) {
+			unsigned int index = info.FeatureIndex == NotFound ? 0 : info.FeatureIndex + 1;
+			serializeCompact( archive, index );
 			archive << info.FeatureValue;
 			NeoAssert( leftChild != 0 );
 			leftChild->Serialize( archive );
 			NeoAssert( rightChild != 0 );
 			rightChild->Serialize( archive );
 		} else if( info.Type == RTNT_Const ) {
-			archive << info.Value;
+			archive << info.FeatureValue;
+		} else if( info.Type == RTNT_MultiConst ) {
+			archive << info.MultiValue;
 		}
 	} else if( archive.IsLoading() ) {
 		switch( version ) {
@@ -196,7 +229,6 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 #endif
 			case 1:
 			case 2:
-			case 3:
 			{
 				unsigned int index = 0;
 				serializeCompact( archive, index );
@@ -212,17 +244,29 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 					rightChild = FINE_DEBUG_NEW CRegressionTreeModel();
 					rightChild->Serialize( archive );
 				} else {
-					if( version == 3 ){
-						archive >> info.Value;
-					} else {
-						float value = 0;
-						archive >> value;
-						info.Value = CFloatVector( 1, value );
-					}
+					float value = 0;
+					archive >> value;
+					info.FeatureValue = value;
 					info.Type = RTNT_Const;
 					info.FeatureIndex = NotFound;
 				}
 				break;
+			}
+			case 3:
+			{
+				archive.SerializeEnum( const_cast< CRegressionTreeNodeInfo& >(info).Type );
+				if( info.Type == RTNT_Continuous ) {
+					unsigned int index = 0;
+					serializeCompact( archive, index );
+					info.FeatureIndex = index;
+					archive >> info.FeatureValue;
+				} else if( info.Type == RTNT_Const ) {
+					info.FeatureIndex = NotFound;
+					archive >> info.FeatureValue;
+				} else if( info.Type == RTNT_MultiConst ) {
+					info.FeatureIndex = NotFound;
+					archive >> info.MultiValue;
+				}
 			}
 			default:
 				NeoAssert( false );
@@ -235,7 +279,7 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 // Calculates the feature use frequency
 void CRegressionTreeModel::calcFeatureStatistics( int maxFeature, CArray<int>& result ) const
 {
-	static_assert( RTNT_Count == 3, "RTNT_Count != 3" );
+	static_assert( RTNT_Count == 4, "RTNT_Count != 4" );
 
 	switch( info.Type ) {
 		case RTNT_Continuous:
