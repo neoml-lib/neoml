@@ -1,18 +1,12 @@
+=====================
 Python module `neoml`
 =====================
 
-.. automodule:: neoml
-   :imported-members:
-   :members:
-   :undoc-members:
-   :show-inheritance:
+`neoml` module provides Python interface for C++ library.
 
-Class example
--------------
+The Python API can be split into several parts:
 
-.. autoclass:: neoml.KMeans.KMeans
-   :members:
-
-.. autoclass:: neoml.Argmax.Argmax
-   :members:
-   
+- :ref:`py-clustering`.
+- Classification
+- Neural Networks
+- Classic algorithms

@@ -93,8 +93,8 @@ from os import getenv
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autosectionlabel',
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosectionlabel',
     'sphinx_rtd_theme',
     'recommonmark',
 ]

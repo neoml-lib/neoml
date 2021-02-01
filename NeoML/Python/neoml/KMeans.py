@@ -19,20 +19,24 @@ from scipy.sparse import csr_matrix
 import neoml.PythonWrapper as PythonWrapper
 
 class KMeans(PythonWrapper.KMeans) :
-    """K-Means clustering.
-    Parameters
-    ----------
+    """
+    K-Means clustering.
+    
+    :param max_iteration_count: max number of iterations of K-Means
+    :type max_iteration_count: int
 
-    max_iteration_count :
+    :param init_cluster_count: number of clusters
+    :type init_cluster_count: int
 
-    init_cluster_count :
+    :param algo: algorithm used during clustering
+        {'elkan', 'lloyd'}, default='lloyd'
+    :type algo: str
 
-    algo : {'elkan', 'lloyd'}, default='lloyd'
+    :param init: {'k++', 'default'}, default='default'
+    :type init: str
 
-    init : {'k++', 'default'}, default='default'
-
-    distance : {'euclid', 'machalanobis', 'cosine'}, default='euclid'
-
+    :param distance: {'euclid', 'machalanobis', 'cosine'}, default='euclid'
+    :type distance: str
     """
 
     def __init__(self, max_iteration_count, init_cluster_count, algo='lloyd', init='default', distance='euclid'):
@@ -50,19 +54,26 @@ class KMeans(PythonWrapper.KMeans) :
         super().__init__(algo, init, distance, int(max_iteration_count), int(init_cluster_count))
 
     def clusterize(self, X, weight=None):
-        """.
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The input samples. Internally, it will be converted to
-            ``dtype=np.float32`` and if a sparse matrix is provided
-            to a sparse ``csr_matrix``.
-        weight : array-like of shape (n_samples,), default=None
-            Sample weights. If None, then samples are equally weighted.
+        """
+        Performs clustering of the given data.
 
-        Returns
-        -------
-        self : object
+        :param X: The input samples. Internally, it will be converted to
+            `dtype=np.float32` and if a sparse matrix is provided
+            to a sparse `scipy.csr_matrix`
+        :type X: array-like or sparse matrix of shape (n_samples, n_features)
+        
+        :param weight: Sample weights. If None, then samples are equally weighted.
+            Defaults to `None`.
+        :type weight: array-like of shape (n_samples,)
+        
+        :return: 
+            - clusters - array of integers with cluster indices for each object of `X`;
+            - centers - cluster centers;
+            - vars - cluster variances.
+        :rtype:
+            - clusters - numpy.ndarray(numpy.int32) of shape (n_samples,);
+            - centers - numpy.ndaaray(numpy.float32) of shape (init_cluster_count, n_features)
+            - vars - numpy.ndaaray(numpy.float32) of shape (init_cluster_count, n_features)
         """
         x = csr_matrix(X, dtype=numpy.float32)
 
