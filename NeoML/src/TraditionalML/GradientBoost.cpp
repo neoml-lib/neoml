@@ -414,7 +414,7 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 	switch( params.TreeBuilder ) {
 		case GBTB_Full:
 		{
-			CGradientBoostFullTreeBuilder::CParams builderParams;
+			CGradientBoostParams builderParams;
 			builderParams.L1RegFactor = params.L1RegFactor;
 			builderParams.L2RegFactor = params.L2RegFactor;
 			builderParams.MinSubsetHessian = 1e-3f;
@@ -423,7 +423,7 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.MaxNodesCount = params.MaxNodesCount;
 			builderParams.PruneCriterionValue = params.PruneCriterionValue;
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
-			fullTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder( builderParams, logStream, params.IsMultiBoosted ? problem->GetValueSize() : 1 );
+			fullTreeBuilder = CGradientBoostFullTreeModelsBuilder::Create( builderParams, logStream, params.IsMultiBoosted ? problem->GetValueSize() : 1 );
 			fullProblem = FINE_DEBUG_NEW CGradientBoostFullProblem( params.ThreadCount, problem,
 				usedVectors, usedFeatures, featureNumbers );
 			break;
@@ -597,13 +597,9 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 		}
 	}
 
-	if ( params.IsMultiBoosted ){
-		CPtr<IMultivariateRegressionModel> model;
-		if( fullTreeBuilder != nullptr ) {
-			model = fullTreeBuilder->Build( *fullProblem, gradients.begin(), gradientsSum,
-				hessians.begin(), hessiansSum, weights, weightsSum );
-		}
-		curModels.Add( model );
+	if( fullTreeBuilder != nullptr ) {
+		fullTreeBuilder->BuildModels( *fullProblem, params.IsMultiBoosted,
+			gradients, gradientsSum, hessians, hessiansSum, weights, weightsSum, curModels );
 	} else {
 		for( int i = 0; i < gradients.Size(); i++ ) {
 			if( logStream != nullptr ) {
@@ -612,14 +608,7 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 					<< "\n";
 			}
 			CPtr<IMultivariateRegressionModel> model;
-			if( fullTreeBuilder != nullptr ) {
-				model = fullTreeBuilder->Build( *fullProblem,
-					gradients.begin() + i, CArray<double>( { gradientsSum[i] } ),
-					hessians.begin() + i, CArray<double>( { hessiansSum[i] } ),
-					weights, weightsSum );
-			} else {
-				model = fastHistTreeBuilder->Build( *fastHistProblem, gradients.begin() + i, hessians.begin() + i, weights );
-			}
+			model = fastHistTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
 			curModels.Add( model );
 		}
 	}

@@ -26,6 +26,7 @@ public:
 	CRegressionTreeModel();
 
 	// Initializes a leaf node
+	void InitLeafNode( double prediction );
 	void InitLeafNode( const CFloatVector& prediction );
 	// Initializes a split node
 	void InitSplitNode( CRegressionTreeModel& leftChild, CRegressionTreeModel& rightChild, int feature, double threshold );

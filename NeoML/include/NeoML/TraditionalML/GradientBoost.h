@@ -23,7 +23,7 @@ limitations under the License.
 
 namespace NeoML {
 
-class CGradientBoostFullTreeBuilder;
+class CGradientBoostFullTreeModelsBuilder;
 class CGradientBoostFastHistTreeBuilder;
 class IGradientBoostingLossFunction;
 class CGradientBoostModel;
@@ -148,7 +148,7 @@ private:
 	const CParams params; // the classification parameters
 	CRandom defaultRandom; // the default random number generator
 	CTextStream* logStream; // the logging stream
-	CPtr<CGradientBoostFullTreeBuilder> fullTreeBuilder; // TGBT_Full tree builder
+	CPtr<CGradientBoostFullTreeModelsBuilder> fullTreeBuilder; // TGBT_Full tree builder
 	CPtr<CGradientBoostFastHistTreeBuilder> fastHistTreeBuilder; // TGBT_FastHist tree builder
 	CPtr<CGradientBoostFullProblem> fullProblem; // the problem data for TGBT_Full mode
 	CPtr<CGradientBoostFastHistProblem> fastHistProblem; // the problem data for TGBT_FastHist mode

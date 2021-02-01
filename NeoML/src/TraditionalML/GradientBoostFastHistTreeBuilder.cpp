@@ -36,7 +36,7 @@ CGradientBoostFastHistTreeBuilder::CGradientBoostFastHistTreeBuilder( const CPar
 }
 
 CPtr<IMultivariateRegressionModel> CGradientBoostFastHistTreeBuilder::Build( const CGradientBoostFastHistProblem& problem,
-	const GradientBoostStatType& gradients, const GradientBoostStatType& hessians, const CArray<float>& weights )
+	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights )
 {
 	if( logStream != 0 ) {
 		*logStream << L"\nGradient boost float problem tree building started:\n";
@@ -191,22 +191,22 @@ void CGradientBoostFastHistTreeBuilder::subHist( int firstPtr, int secondPtr )
 
 // Build a histogram on the vectors of the given node
 void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
-	const GradientBoostStatType& gradients, const GradientBoostStatType& hessians, const CArray<float>& weights,
-	CGradientBoostVectorSetStatistics& totalStats )
+	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,
+	CGradientBoostVectorSetStatistics<double>& totalStats )
 {
-	CGradientBoostVectorSetStatistics* histStatsPtr = histStats.GetPtr() + node.HistPtr;
-	::memset( reinterpret_cast<char*>( histStatsPtr ), 0, histSize * sizeof( CGradientBoostVectorSetStatistics ) );
+	CGradientBoostVectorSetStatistics<double>* histStatsPtr = histStats.GetPtr() + node.HistPtr;
+	::memset( reinterpret_cast<char*>( histStatsPtr ), 0, histSize * sizeof( CGradientBoostVectorSetStatistics<double> ) );
 
 	totalStats.Erase();
 
 	const bool isOmp = ( node.VectorSetSize > 4 * params.ThreadCount ); // check if using OpenMP makes sense
 	if( isOmp ) {
 		// There are many vectors in the set, so we'll use several threads to build the histogram
-		CArray<CGradientBoostVectorSetStatistics> results;
+		CArray<CGradientBoostVectorSetStatistics<double>> results;
 		results.SetSize( params.ThreadCount );
 
 		tempHistStats.SetSize( params.ThreadCount * histSize );
-		::memset( reinterpret_cast<char*>( tempHistStats.GetPtr() ), 0, tempHistStats.Size() * sizeof( CGradientBoostVectorSetStatistics ) );
+		::memset( reinterpret_cast<char*>( tempHistStats.GetPtr() ), 0, tempHistStats.Size() * sizeof( CGradientBoostVectorSetStatistics<double> ) );
 
 		NEOML_OMP_NUM_THREADS(params.ThreadCount)
 		{
@@ -253,7 +253,7 @@ void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistP
 	for( int i = 0; i < usedFeatures.Size(); i++ ) {
 		const int nullFeatureId = featureNullValueId[usedFeatures[i]];
 
-		CGradientBoostVectorSetStatistics nullStatistics( totalStats );
+		CGradientBoostVectorSetStatistics<double> nullStatistics( totalStats );
 		for( int j = featurePos[usedFeatures[i]]; j < featurePos[usedFeatures[i] + 1]; j++ ) {
 			nullStatistics.Sub( histStatsPtr[idPos[j]] );
 		}
@@ -262,8 +262,8 @@ void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistP
 }
 
 // Adds a vector to the histogram
-void CGradientBoostFastHistTreeBuilder::addVectorToHist( const int* vectorPtr, int vectorSize, const GradientBoostStatType& gradients, const GradientBoostStatType& hessians, const CArray<float>& weights,
-	CGradientBoostVectorSetStatistics* stats, int vectorIndex )
+void CGradientBoostFastHistTreeBuilder::addVectorToHist( const int* vectorPtr, int vectorSize, const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,
+	CGradientBoostVectorSetStatistics<double>* stats, int vectorIndex )
 {
 	NeoPresume( vectorPtr != 0 );
 	NeoPresume( vectorSize >= 0 );
@@ -288,7 +288,7 @@ int CGradientBoostFastHistTreeBuilder::evaluateSplit( const CGradientBoostFastHi
 	const CArray<int>& usedFeatures = problem.GetUsedFeatures();
 	const CArray<int>& featurePos = problem.GetFeaturePos();
 	double bestValue = node.Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor );
-	const CGradientBoostVectorSetStatistics* histStatsPtr = histStats.GetPtr() + node.HistPtr;
+	const CGradientBoostVectorSetStatistics<double>* histStatsPtr = histStats.GetPtr() + node.HistPtr;
 
 	// Initializing the search results for each thread
 	// The default bestValue is the parent's Gain (the node is not split by default)
@@ -306,13 +306,13 @@ int CGradientBoostFastHistTreeBuilder::evaluateSplit( const CGradientBoostFastHi
 		
 		// Iterate through features (a separate subset for each thread)
 		for( int i = threadNumber; i < usedFeatures.Size(); i += params.ThreadCount ) {
-			CGradientBoostVectorSetStatistics left; // the gain for the left node after the split
-			CGradientBoostVectorSetStatistics right; // for the right node after the split (calculated as the complement to the parent)
+			CGradientBoostVectorSetStatistics<double> left; // the gain for the left node after the split
+			CGradientBoostVectorSetStatistics<double> right; // for the right node after the split (calculated as the complement to the parent)
 			const int firstFeatureIndex = featurePos[usedFeatures[i]];
 			const int lastFetureIndex = featurePos[usedFeatures[i] + 1];
 			// Iterate through feature values (sorted ascending) looking for the split position
 			for( int j = firstFeatureIndex; j < lastFetureIndex; j++ ) {
-				const CGradientBoostVectorSetStatistics& featureStats = histStatsPtr[idPos[j]];
+				const CGradientBoostVectorSetStatistics<double>& featureStats = histStatsPtr[idPos[j]];
 				left.Add( featureStats );
 				right = node.Statistics;
 				right.Sub( left );
@@ -455,7 +455,7 @@ CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder::buildTree( int nod
 	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();
 
 	if( nodes[node].SplitFeatureId == NotFound ) {
-		CFloatVector leafValue( 1, -nodes[node].Statistics.TotalGradient()[0] / nodes[node].Statistics.TotalHessian()[0] );
+		CFloatVector leafValue( 1, -nodes[node].Statistics.TotalGradient / nodes[node].Statistics.TotalHessian );
 		result->InitLeafNode( leafValue );
 	} else {
 		CPtr<CRegressionTreeModel> left = buildTree( nodes[node].Left, featureIndexes, cuts );
