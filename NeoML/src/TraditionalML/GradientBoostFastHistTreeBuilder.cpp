@@ -35,7 +35,7 @@ CGradientBoostFastHistTreeBuilder::CGradientBoostFastHistTreeBuilder( const CPar
 	NeoAssert( params.MinSubsetWeight >= 0 );
 }
 
-CPtr<IRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGradientBoostFastHistProblem& problem,
+CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGradientBoostFastHistProblem& problem,
 	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights )
 {
 	if( logStream != 0 ) {
@@ -455,8 +455,7 @@ CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder::buildTree( int nod
 	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();
 
 	if( nodes[node].SplitFeatureId == NotFound ) {
-		CFloatVector leafValue( 1, -nodes[node].Statistics.TotalGradient / nodes[node].Statistics.TotalHessian );
-		result->InitLeafNode( leafValue );
+		result->InitLeafNode( -nodes[node].Statistics.TotalGradient / nodes[node].Statistics.TotalHessian );
 	} else {
 		CPtr<CRegressionTreeModel> left = buildTree( nodes[node].Left, featureIndexes, cuts );
 		CPtr<CRegressionTreeModel> right = buildTree( nodes[node].Right, featureIndexes, cuts );

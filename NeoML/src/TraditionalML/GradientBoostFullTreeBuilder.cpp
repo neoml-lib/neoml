@@ -185,7 +185,7 @@ struct CGradientBoostNodeStatistics : public virtual IObject {
 
 	void InitThreadStatistics( int threadCount, float l1RegFactor, float l2RegFactor );
 
-	CFloatVector LeafValue();
+	void LeafValue( T& values );
 };
 
 template<class T>
@@ -208,20 +208,18 @@ inline void CGradientBoostNodeStatistics<T>::InitThreadStatistics( int threadCou
 }
 
 template<>
-inline CFloatVector CGradientBoostNodeStatistics<double>::LeafValue()
+inline void CGradientBoostNodeStatistics<double>::LeafValue( double& res )
 {
-	CFloatVector res( 1, -TotalStatistics.TotalGradient / TotalStatistics.TotalHessian );
-	return res;
+	res = -TotalStatistics.TotalGradient / TotalStatistics.TotalHessian;
 }
 
 template<>
-inline CFloatVector CGradientBoostNodeStatistics<CArray<double>>::LeafValue()
+inline void CGradientBoostNodeStatistics<CArray<double>>::LeafValue( CArray<double>& values )
 {
-	CFloatVector res( ClassIsLeaf.Size() );
+	values.SetSize( ClassIsLeaf.Size() );
 	for( int i = 0; i < ClassIsLeaf.Size(); i++ ){
-		res.SetAt( i, -TotalStatistics.TotalGradient[i] / TotalStatistics.TotalHessian[i] );
+		values[i] = -TotalStatistics.TotalGradient[i] / TotalStatistics.TotalHessian[i];
 	}
-	return res;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -242,7 +240,7 @@ CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradient
 }
 
 template<class T>
-CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
+CPtr<CRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
 	const CArray<T>& gradients, const T& gradientsSum,
 	const CArray<T>& hessians, const T& hessiansSum,
 	const CArray<float>& weights, float weightsSum )
@@ -694,13 +692,15 @@ bool CGradientBoostFullTreeBuilder<T>::prune( CGradientBoostNodeStatistics<T>& n
 
 // Builds the final model
 template<class T>
-CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::buildModel( const CArray<int>& usedFeatures,
+CPtr<CRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::buildModel( const CArray<int>& usedFeatures,
 	CGradientBoostNodeStatistics<T>& node ) const
 {
 	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();
 
 	if( node.FeatureIndex == NotFound ) {
-		result->InitLeafNode( node.LeafValue() );
+		T values;
+		node.LeafValue( values );
+		result->InitLeafNode( values );
 	} else {
 		CPtr<CRegressionTreeModel> left = buildModel( usedFeatures, *node.Left );
 		CPtr<CRegressionTreeModel> right = buildModel( usedFeatures, *node.Right );
@@ -708,5 +708,8 @@ CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::buildModel( const C
 	}
 	return result;
 }
+
+template class CGradientBoostFullTreeBuilder<double>;
+template class CGradientBoostFullTreeBuilder<CArray<double>>;
 
 } // namespace NeoML

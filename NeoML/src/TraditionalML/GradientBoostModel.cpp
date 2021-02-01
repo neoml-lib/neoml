@@ -107,26 +107,26 @@ CFloatVector CGradientBoostModel::MultivariatePredictRaw( const CGradientBoostEn
 bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
 {
 	if( isMultiClass ) {
+		return classify( MultivariatePredictRaw( ensembles[0], 0, learningRate, data, valueSize ), result );
+	} else {
 		CFloatVector predictions( ensembles.Size(), 0 );
 		for( int i = 0; i < ensembles.Size(); i++ ) {
 			predictions.SetAt( i, PredictRaw( ensembles[i], 0, learningRate, data ) );
 		}
 		return classify( predictions, result );
-	} else {
-		return classify( MultivariatePredictRaw( ensembles[0], 0, learningRate, data, valueSize ), result );
 	}
 }
 
 bool CGradientBoostModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
 {
 	if( isMultiClass ) {
+		return classify( MultivariatePredictRaw( ensembles[0], 0, learningRate, data, valueSize ), result );
+	} else {
 		CFloatVector predictions( ensembles.Size(), 0 );
 		for( int i = 0; i < ensembles.Size(); i++ ) {
 			predictions.SetAt( i, PredictRaw( ensembles[i], 0, learningRate, data ) );
 		}
 		return classify( predictions, result );
-	} else {
-		return classify( MultivariatePredictRaw( ensembles[0], 0, learningRate, data, valueSize ), result );
 	}
 }
 

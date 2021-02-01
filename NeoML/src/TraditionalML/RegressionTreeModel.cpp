@@ -73,11 +73,14 @@ void CRegressionTreeModel::InitLeafNode( double prediction )
 	rightChild.Release();
 }
 
-void CRegressionTreeModel::InitLeafNode( const CFloatVector& prediction )
+void CRegressionTreeModel::InitLeafNode( const CArray<double>& prediction )
 {
 	info.Type = RTNT_MultiConst;
 	info.FeatureIndex = NotFound;
-	info.MultiValue = prediction;
+	info.MultiValue = CFloatVector( prediction.Size() );
+	for( int i = 0; i < prediction.Size(); i++ ) {
+		info.MultiValue.SetAt( i, prediction[i] );
+	}
 	leftChild.Release();
 	rightChild.Release();
 }

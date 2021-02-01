@@ -47,7 +47,7 @@ public:
 	CGradientBoostFullTreeBuilder( const CGradientBoostBuildParams& params, CTextStream* logStream, int valueSize );
 
 	// Builds the tree
-	CPtr<IRegressionTreeModel> Build( const CGradientBoostFullProblem& problem,
+	CPtr<CRegressionTreeModel> Build( const CGradientBoostFullProblem& problem,
 		const CArray<T>& gradients, const T& gradientsSum,
 		const CArray<T>& hessians, const T& hessiansSum,
 		const CArray<float>& weights, float weightsSum );
@@ -83,7 +83,7 @@ private:
 	void mergeThreadResults();
 	bool split();
 	bool prune( CGradientBoostNodeStatistics<T>& node ) const;
-	CPtr<IRegressionTreeModel> buildModel( const CArray<int>& usedFeatures, CGradientBoostNodeStatistics<T>& node ) const;
+	CPtr<CRegressionTreeModel> buildModel( const CArray<int>& usedFeatures, CGradientBoostNodeStatistics<T>& node ) const;
 };
 
 } // namespace NeoML
