@@ -242,7 +242,7 @@ CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradient
 }
 
 template<class T>
-CPtr<CRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
+CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
 	const CArray<T>& gradients, const T& gradientsSum,
 	const CArray<T>& hessians, const T& hessiansSum,
 	const CArray<float>& weights, float weightsSum )

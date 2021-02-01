@@ -29,7 +29,7 @@ template<class T>
 struct CGradientBoostNodeStatistics;
 
 // Tree building parameters
-struct CGradientBoostParams {
+struct CGradientBoostBuildParams {
 	float L1RegFactor; // L1 regularization factor
 	float L2RegFactor; // L2 regularization factor
 	float MinSubsetHessian; // the minimum hessian value for a subtree
@@ -44,10 +44,10 @@ struct CGradientBoostParams {
 template <class T>
 class CGradientBoostFullTreeBuilder : public virtual IObject {
 public:
-	CGradientBoostFullTreeBuilder( const CGradientBoostParams& params, CTextStream* logStream, int valueSize );
+	CGradientBoostFullTreeBuilder( const CGradientBoostBuildParams& params, CTextStream* logStream, int valueSize );
 
 	// Builds the tree
-	CPtr<CRegressionTreeModel> Build( const CGradientBoostFullProblem& problem,
+	CPtr<IRegressionTreeModel> Build( const CGradientBoostFullProblem& problem,
 		const CArray<T>& gradients, const T& gradientsSum,
 		const CArray<T>& hessians, const T& hessiansSum,
 		const CArray<float>& weights, float weightsSum );
@@ -56,7 +56,7 @@ protected:
 	virtual ~CGradientBoostFullTreeBuilder() {} // delete prohibited
 
 private:
-	const CGradientBoostParams params; // classifier parameters
+	const CGradientBoostBuildParams params; // classifier parameters
 	CTextStream* const logStream; // the logging stream
 	// The leaf cache
 	// The index of each vector points to the leaf (of a partially built tree) to which this vector belongs

@@ -24,8 +24,9 @@ limitations under the License.
 namespace NeoML {
 
 class IRegressionTreeModel;
-template<class T>
+template<class T> 
 class CGradientBoostFullTreeBuilder;
+
 class CGradientBoostFastHistTreeBuilder;
 class IGradientBoostingLossFunction;
 class CGradientBoostModel;
