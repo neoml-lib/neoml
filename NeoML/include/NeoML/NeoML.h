@@ -24,7 +24,6 @@ limitations under the License.
 #include <NeoML/TraditionalML/FirstComeClustering.h>
 #include <NeoML/TraditionalML/IsoDataClustering.h>
 #include <NeoML/TraditionalML/KMeansClustering.h>
-#include <NeoML/TraditionalML/EMClustering.h>
 #include <NeoML/TraditionalML/HierarchicalClustering.h>
 #include <NeoML/TraditionalML/MemoryProblem.h>
 #include <NeoML/TraditionalML/LinearBinaryClassifierBuilder.h>
