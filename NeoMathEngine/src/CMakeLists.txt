@@ -94,7 +94,7 @@ if(ANDROID OR LINUX)
 endif()
 
 # CPU specific settings
-if((ANDROID AND ANDROID_ABI MATCHES "^arm.*") OR (IOS AND IOS_ARCH MATCHES "^arm.*"))
+if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROID_ABI MATCHES "^arm.*") OR (IOS AND IOS_ARCH MATCHES "^arm.*"))
     target_sources(${PROJECT_NAME} 
     PRIVATE
         CPU/arm/CpuArmMathEngineBlas.cpp
@@ -140,9 +140,9 @@ else()
             CPU/x86/AvxDll.h
         )
         target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_AVX)
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
-		set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
-	endif()
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
+        set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
+    endif()
 endif()
 
 # GPU specific source and settings
@@ -230,6 +230,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     endif()
     
 elseif(IOS)
+    # Apple metal
     set(IOS_SOURCES
         GPU/Metal/MetalMathEngine.h
         GPU/Metal/MetalMathEngine.mm
@@ -264,7 +265,7 @@ endif()
 
 if(NeoMathEngine_ENABLE_VULKAN)
     if(WIN32 OR ANDROID)
-        
+        # Vulkan
         if(USE_FINE_OBJECTS)
             set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
         endif()
@@ -287,7 +288,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
             if(USE_FINE_OBJECTS AND CMAKE_HOST_SYSTEM_NAME MATCHES "Linux|Darwin")
                 execute_process(COMMAND chmod +x ${GLSL_COMPILER})
             endif()
-            # Using Vulkan
+
             target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_VULKAN VK_NO_PROTOTYPES)
             
             target_include_directories(${PROJECT_NAME}
@@ -344,12 +345,14 @@ endif()
 
 
 # OpenMP
-link_openmp(${PROJECT_NAME})
+if(NOT IOS AND NOT (DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64?"))
+    link_openmp(${PROJECT_NAME})
+endif()
 
 # SSE2
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
     target_compile_options(${PROJECT_NAME} PRIVATE /arch:SSE2)
-elseif(LINUX OR DARWIN OR (ANDROID AND ANDROID_ABI MATCHES "^x86.*") OR (IOS_ARCH MATCHES "^x86.*"))
+elseif(((LINUX OR DARWIN) AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86.*") OR (ANDROID AND ANDROID_ABI MATCHES "^x86.*") OR (IOS_ARCH MATCHES "^x86.*"))
     target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-msse2>)
 endif()
 
@@ -359,7 +362,7 @@ if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
 endif()
 
 # MKL
-if(NOT ANDROID AND NOT IOS)
+if(NOT ANDROID AND NOT IOS AND CMAKE_SYSTEM_PROCESSOR MATCHES "(x86.*)|(amd64)|(AMD64)")
 
     if(USE_FINE_OBJECTS)
         set(ENV{MKLROOT} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})

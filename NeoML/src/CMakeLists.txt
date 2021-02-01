@@ -100,7 +100,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/DecisionTreeNodeStatisticBase.h
     TraditionalML/DecisionTreeTrainingModel.cpp
     TraditionalML/DifferentialEvolution.cpp
-    TraditionalML/EMClustering.cpp
     TraditionalML/FeatureSelection.cpp
     TraditionalML/FirstComeClustering.cpp
     TraditionalML/FloatVector.cpp
@@ -235,7 +234,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/CrossValidation.h
     ../include/NeoML/TraditionalML/DecisionTreeTrainingModel.h
     ../include/NeoML/TraditionalML/DifferentialEvolution.h
-    ../include/NeoML/TraditionalML/EMClustering.h
     ../include/NeoML/TraditionalML/FeatureSelection.h
     ../include/NeoML/TraditionalML/FirstComeClustering.h
     ../include/NeoML/TraditionalML/FloatVector.h
