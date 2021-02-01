@@ -74,19 +74,19 @@ We also use Google [Test](https://github.com/google/googletest) for testing and 
 
 ### Build fully functional C++ version
 
-See [here](NeoML/docs/en/source/Installation/cpp.md) for instructions on building the C++ library version for different platforms.
+See [here](NeoML/docs/en/Installation/cpp.md) for instructions on building the C++ library version for different platforms.
 
 ### Build inference versions for Java and Objective-C
 
-See [here](NeoML/docs/en/source/Installation/inference.md) for instructions on building the Java and Objective-C versions that would only run the trained neural networks.
+See [here](NeoML/docs/en/Installation/inference.md) for instructions on building the Java and Objective-C versions that would only run the trained neural networks.
 
 ## Getting started
 
 Several tutorials with sample code will help you start working with the library:
 
-- [Train and use a simple network](NeoML/docs/en/source/Tutorial/SimpleNet.md)
-- [Classification with gradient boosting](NeoML/docs/en/source/Tutorial/News20Classification.md)
-- [Data clustering with k-means algorithm](NeoML/docs/en/source/Tutorial/IrisClustering.md)
+- [Train and use a simple network](NeoML/docs/en/Tutorial/SimpleNet.md)
+- [Classification with gradient boosting](NeoML/docs/en/Tutorial/News20Classification.md)
+- [Data clustering with k-means algorithm](NeoML/docs/en/Tutorial/IrisClustering.md)
 
 ## API description
 
@@ -108,15 +108,15 @@ Each network works with one math engine instance, and all its layers should have
 
 #### Multi-threading support
 
-The [math engine interface](NeoML/docs/en/source/API/NN/MathEngine.md) is thread-safe; the same instance may be used in different networks and different threads.
+The [math engine interface](NeoML/docs/en/API/NN/MathEngine.md) is thread-safe; the same instance may be used in different networks and different threads.
 
 Note that this may entail some synchronization overhead.
 
-However, the [neural network implementation](NeoML/docs/en/source/API/NN/Dnn.md) is not thread-safe; the network may run only in one thread.
+However, the [neural network implementation](NeoML/docs/en/API/NN/Dnn.md) is not thread-safe; the network may run only in one thread.
 
 #### ONNX support
 
-**NeoML** library also works with the models created by other frameworks, as long as they support the [ONNX](https://onnx.ai/) format. See [the description of import API](NeoML/docs/en/source/Onnx.md). However, you cannot export a NeoML-trained model into ONNX format.
+**NeoML** library also works with the models created by other frameworks, as long as they support the [ONNX](https://onnx.ai/) format. See [the description of import API](NeoML/docs/en/Onnx.md). However, you cannot export a NeoML-trained model into ONNX format.
 
 #### Serialization format
 
@@ -135,7 +135,7 @@ To work on GPU, the library requires:
 
 #### FineObj
 
-The **NeoML** library originates in ABBYY internal infrastructure. For various reasons ABBYY uses a cross-platform framework called FineObj. Because of this, the open library version uses some of this framework primitives. See the [common classes description](NeoML/docs/en/source/API/Common/README.md).
+The **NeoML** library originates in ABBYY internal infrastructure. For various reasons ABBYY uses a cross-platform framework called FineObj. Because of this, the open library version uses some of this framework primitives. See the [common classes description](NeoML/docs/en/API/Common/README.md).
 
 ### C++ interface 
 
@@ -145,10 +145,10 @@ The **NeoML** library originates in ABBYY internal infrastructure. For various r
 
 The library provides C++ objects that implement various high-level algorithms. It consists of several parts:
 
-- [Neural networks](NeoML/docs/en/source/API/NN/README.md)
-- [Classification and regression algorithms](NeoML/docs/en/source/API/ClassificationAndRegression/README.md)
-- [Clustering algorithms](NeoML/docs/en/source/API/Clustering/README.md)
-- [Auxiliary algorithms](NeoML/docs/en/source/API/Algorithms/README.md)
+- [Neural networks](NeoML/docs/en/API/NN/README.md)
+- [Classification and regression algorithms](NeoML/docs/en/API/ClassificationAndRegression/README.md)
+- [Clustering algorithms](NeoML/docs/en/API/Clustering/README.md)
+- [Auxiliary algorithms](NeoML/docs/en/API/Algorithms/README.md)
 
 #### NeoMathEngine
 
@@ -156,19 +156,19 @@ The math engine used for calculations is a separate module that implements the l
 
 This module has different implementations for different platforms. In particular, there is an implementation that uses a GPU for calculations.
 
-The math engine is also a set of C++ interfaces described [here](NeoML/docs/en/source/API/NN/MathEngine.md).
+The math engine is also a set of C++ interfaces described [here](NeoML/docs/en/API/NN/MathEngine.md).
 
 ### Python module
 
-The documentation of python module located [here](NeoML/docs/en/source/Python/module.rst)
+The documentation of python module located [here](NeoML/docs/en/Python/module.rst)
 
 ### Java interface
 
-To work with the inference version of the library in Java and Kotlin we provide a [Java interface](NeoML/docs/en/source/Wrappers/Java.md).
+To work with the inference version of the library in Java and Kotlin we provide a [Java interface](NeoML/docs/en/Wrappers/Java.md).
 
 ### Objective-C interface
 
-To work with the inference version of the library in Swift and Objective-C we provide an [Objective-C interface](NeoML/docs/en/source/Wrappers/ObjectiveC.md).
+To work with the inference version of the library in Swift and Objective-C we provide an [Objective-C interface](NeoML/docs/en/Wrappers/ObjectiveC.md).
 
 ## License
 Copyright © 2016-2020 ABBYY Production LLC. Licensed under the Apache License, Version 2.0. See [the license file](LICENSE).

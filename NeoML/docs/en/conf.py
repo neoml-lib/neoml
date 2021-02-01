@@ -27,12 +27,12 @@ author = 'ABBYY'
 
 # -- Pre-process root README.md ----------------------------------------------
 
-with open('../../../../README.md', 'r', encoding='utf-8', newline='\n') as file_in:
+with open('../../../README.md', 'r', encoding='utf-8', newline='\n') as file_in:
     with open('README.md', 'w', encoding='utf-8', newline='\n') as file_out:
         for line in file_in:
             line = line.replace('NeoML_logo.png', 'NeoML_logo_help.png')
-            line = line.replace('NeoML/docs/en/source/', '')
-            line = line.replace('NeoML/docs/images/', '../../images/')
+            line = line.replace('NeoML/docs/en/', '')
+            line = line.replace('NeoML/docs/images/', '../images/')
             file_out.write(line)
 
 

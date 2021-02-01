@@ -46,13 +46,13 @@ If the data type is not specified directly anywhere in this documentation, that 
 
 A [layer](BaseLayer.md) is an element of the network that performs some operation: anything from the input data reshape or a simple math function calculation, up to convolution or LSTM ([Long short-term memory](https://en.wikipedia.org/wiki/Long_short-term_memory)).
 
-If the operation needs input data, it will be taken from the layer input. Each layer input contains one data blob, and if several blobs are needed, the layer will have several inputs. Each layer input should be [connected](BaseLayer.md#connecting-to-other-layers) to another layer's output.
+If the operation needs input data, it will be taken from the layer input. Each layer input contains one data blob, and if several blobs are needed, the layer will have several inputs. Each layer input should be [connected](BaseLayer.html#connecting-to-other-layers) to another layer's output.
 
 If the operation returns results that should be used by other layers, they will be passed to the layer outputs. Each layer output contains one data blob, so depending on the operation it performs the layer may have several outputs. Several other layer inputs may be connected to the same output, but you may not leave an output unconnected to any inputs.
 
 In addition, the layer may have settings specified by the user before starting calculations, and trainable parameters that are optimized during network training.
 
-The layers also have [names](BaseLayer.md#the-layer-name) that can be used to find a layer in the network. The name should be set at layer creation or before adding it to the network.
+The layers also have [names](BaseLayer.html#the-layer-name) that can be used to find a layer in the network. The name should be set at layer creation or before adding it to the network.
 
 See [below](#the-layers) for the full list of available layers with links to the detailed descriptions.
 
@@ -60,7 +60,7 @@ See [below](#the-layers) for the full list of available layers with links to the
 
 The neural network is implemented by a [CDnn](Dnn.md) class. A neural network is a directed graph with the vertices corresponding to layers and the arcs corresponding to the connections along which the data is passed from one layer's output to another's input.
 
-Each layer should be [added](Dnn.md#adding-a-layer) to the network after you assign a unique [name](BaseLayer.md#the-layer-name) to it. A layer may not be connected to several networks at once.
+Each layer should be [added](Dnn.html#adding-a-layer) to the network after you assign a unique [name](BaseLayer.html#the-layer-name) to it. A layer may not be connected to several networks at once.
 
 [Source](IOLayers/SourceLayer.md) layers are used to pass the data into the network. A source layer has no inputs and passes the data blob specified by the user to its only output.
 
@@ -84,7 +84,7 @@ Before the first training iteration the layers' weights (trainable parameters) a
 - `CDnnUniformInitializer` generates the weights using a uniform distribution over a segment from `GetLowerBound` to `GetUpperBound`.
 - `CDnnXavierInitializer` generates the weights using the normal distribution `N(0, 1/n)` where `n` is the input size.
 
-To select the preferred initializer, create an instance of one of these classes and pass it to the network using the [`CDnn::SetInitializer`](Dnn.md#weights-initialization) method. The default initialization methods is `Xavier`.
+To select the preferred initializer, create an instance of one of these classes and pass it to the network using the [`CDnn::SetInitializer`](Dnn.html#weights-initialization) method. The default initialization methods is `Xavier`.
 
 The initializer is the same for all the network trainable weights, except for the free term vectors that are initialized with zeros.
 
@@ -97,7 +97,7 @@ The optimizer sets the rules to update the weights during training. It is repres
 - `CDnnNesterovGradientSolver` - Adam with Nesterov momentum ([Nadam](http://cs229.stanford.edu/proj2015/054_report.pdf))
 - `CDnnLambGradientSolver` - [LAMB](https://arxiv.org/pdf/1904.00962.pdf)
 
-To select the preferred optimizer, create an instance of one of these classes and pass it to the network using the [`CDnn::SetSolver`](Dnn.md#the-optimizer) method.
+To select the preferred optimizer, create an instance of one of these classes and pass it to the network using the [`CDnn::SetSolver`](Dnn.html#the-optimizer) method.
 
 The additional settings for the optimizer are:
 
@@ -132,9 +132,9 @@ The serializing direction is determined by the settings with which the file and 
 * to save the network into a file, create `CArchiveFile` with `CArchive::store` flag and an archive over it with `CArchive::SD_Storing` flag.
 * to read the network from the file, use `CArchive::load` and `CArchive::SD_Loading` flags instead.
 
-Once the archive has been created, call the [`CDnn::Serialize`](Dnn.md#serialization) method to serialize the network. The direction will be chosen automatically.
+Once the archive has been created, call the [`CDnn::Serialize`](Dnn.html#serialization) method to serialize the network. The direction will be chosen automatically.
 
-See also [more details about the classes used for serialization](../Common/README.md#serialization).
+See also [more details about the classes used for serialization](../Common/README.html#serialization).
 
 ### Sample code for saving the network
 
