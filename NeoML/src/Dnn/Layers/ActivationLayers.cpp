@@ -221,9 +221,11 @@ void CReLULayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), upperThreshold->GetData() );
 }
 
-CLayerWrapper<CReLULayer> Relu()
+CLayerWrapper<CReLULayer> Relu( float threshold )
 {
-	return CLayerWrapper<CReLULayer>( "Relu" );
+	return CLayerWrapper<CReLULayer>( "Relu", [=] ( CReLULayer* result ) {
+		result->SetUpperThreshold( threshold );
+	} );
 }
 
 //---------------------------------------------------------------------------------------------------
