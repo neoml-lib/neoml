@@ -253,7 +253,7 @@ void CGBEnsembleQsSerializer::Read( int& featureIndex, float& featureValue, bool
 
 		// For the non-optimized and non-inverted nodes, read left child first
 		// For the optimized inverted nodes, read right child first
-		if( HasFlag( state, S_QSNode ) && info.FeatureValue < 0 ) {
+		if( HasFlag( state, S_QSNode ) && info.Value[0] < 0 ) {
 			if( !HasFlag( state, S_RightProcessed ) && info.Type != RTNT_Const ) { // has the right subtree been read?
 				SetFlags( state, S_RightProcessed );
 				DWORD childState = qsLeaves.Has( node->GetRightChild() ) ? 0 : S_QSNode;
@@ -289,7 +289,7 @@ void CGBEnsembleQsSerializer::Read( int& featureIndex, float& featureValue, bool
 	NeoAssert( result != 0 );
 	// Get the current node data
 	featureIndex = info.FeatureIndex;
-	featureValue = static_cast<float>( info.FeatureValue );
+	featureValue = info.Value[0];
 	isQsLeaf = qsLeaves.Has( result );
 }
 

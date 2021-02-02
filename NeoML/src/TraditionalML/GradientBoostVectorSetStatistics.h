@@ -43,9 +43,6 @@ public:
 	double CalcCriterion( float l1, float l2, int classIndex ) const;
 	double CalcCriterion( float l1, float l2 ) const;
 
-	// Statistics is not enough
-	bool StatisticsIsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex ) const;
-
 	T TotalGradient; // total gradient
 	T TotalHessian; // total hessian
 	float TotalWeight; // total weight
@@ -237,13 +234,6 @@ inline void CGradientBoostVectorSetStatistics<CArray<double>>::Erase()
 }
 
 template<>
-inline double CGradientBoostVectorSetStatistics<double>::CalcCriterion( float l1, float l2, int classIndex ) const
-{
-	NeoAssert( classIndex == 0 );
-	return CalcCriterion( l1, l2 );
-}
-
-template<>
 inline double CGradientBoostVectorSetStatistics<CArray<double>>::CalcCriterion( float l1, float l2, int classIndex ) const
 {
 	double temp = TotalGradient[classIndex];
@@ -276,19 +266,6 @@ inline double CGradientBoostVectorSetStatistics<CArray<double>>::CalcCriterion( 
 		res += CalcCriterion( l1, l2, i);
 	}
 	return res;
-}
-
-template<>
-inline bool CGradientBoostVectorSetStatistics<double>::StatisticsIsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex ) const
-{
-	NeoAssert( classIndex == 0 );
-	return TotalHessian < minSubsetHessian || TotalWeight < minSubsetWeight;
-}
-
-template<>
-inline bool CGradientBoostVectorSetStatistics<CArray<double>>::StatisticsIsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex ) const
-{
-	return TotalHessian[classIndex] < minSubsetHessian || TotalWeight < minSubsetWeight;
 }
 
 } // namespace NeoML

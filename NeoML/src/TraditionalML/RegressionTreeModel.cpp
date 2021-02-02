@@ -68,7 +68,7 @@ void CRegressionTreeModel::InitLeafNode( double prediction )
 {
 	info.Type = RTNT_Const;
 	info.FeatureIndex = NotFound;
-	info.FeatureValue = prediction;
+	info.Value = { static_cast<float>( prediction ) };
 	leftChild.Release();
 	rightChild.Release();
 }
@@ -77,9 +77,9 @@ void CRegressionTreeModel::InitLeafNode( const CArray<double>& prediction )
 {
 	info.Type = RTNT_MultiConst;
 	info.FeatureIndex = NotFound;
-	info.MultiValue = CFloatVector( prediction.Size() );
+	info.Value.SetSize( prediction.Size() );
 	for( int i = 0; i < prediction.Size(); i++ ) {
-		info.MultiValue.SetAt( i, prediction[i] );
+		info.Value[i] = prediction[i];
 	}
 	leftChild.Release();
 	rightChild.Release();
@@ -91,7 +91,7 @@ void CRegressionTreeModel::InitSplitNode( CRegressionTreeModel& left, CRegressio
 
 	info.Type = RTNT_Continuous;
 	info.FeatureIndex = feature;
-	info.FeatureValue = threshold;
+	info.Value = { static_cast< float >( threshold ) };
 	leftChild = &left;
 	rightChild = &right;
 }
@@ -104,7 +104,7 @@ const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSpar
 		float featureValue = 0;
 		data.GetValue( info.FeatureIndex, featureValue );
 
-		const CRegressionTreeModel* child = featureValue <= info.FeatureValue ? leftChild : rightChild;
+		const CRegressionTreeModel* child = featureValue <= info.Value[0] ? leftChild : rightChild;
 		NeoAssert( child != 0 );
 		return child->GetPredictionNode( data );
 	}
@@ -119,7 +119,7 @@ const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSpar
 		float featureValue = 0;
 		GetValue( data, info.FeatureIndex, featureValue );
 
-		const CRegressionTreeModel* child = featureValue <= info.FeatureValue ? leftChild : rightChild;
+		const CRegressionTreeModel* child = featureValue <= info.Value[0] ? leftChild : rightChild;
 		NeoAssert( child != 0 );
 		return child->GetPredictionNode( data );
 	}
@@ -132,7 +132,7 @@ const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CFloa
 
 	if( info.Type == RTNT_Continuous ) {
 		double featureValue = info.FeatureIndex < data.Size() ? data[info.FeatureIndex] : 0;
-		const CRegressionTreeModel* child = featureValue <= info.FeatureValue ? leftChild : rightChild;
+		const CRegressionTreeModel* child = featureValue <= info.Value[0] ? leftChild : rightChild;
 		NeoAssert( child != 0 );
 		return child->GetPredictionNode( data );
 	}
@@ -151,42 +151,42 @@ double CRegressionTreeModel::Predict( const CSparseFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.FeatureValue;
+	return node->info.Value[0];
 }
 
 double CRegressionTreeModel::Predict( const CFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.FeatureValue;
+	return node->info.Value[0];
 }
 
 double CRegressionTreeModel::Predict( const CSparseFloatVectorDesc& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_Const );
-	return node->info.FeatureValue;
+	return node->info.Value[0];
 }
 
-CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVector& data ) const
+const CFastArray<float, 1>& CRegressionTreeModel::MultivariatePredict( const CSparseFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_MultiConst );
-	return node->info.MultiValue;
+	return node->info.Value;
 }
 
-CFloatVector CRegressionTreeModel::MultivariatePredict( const CFloatVector& data ) const
+const CFastArray<float, 1>& CRegressionTreeModel::MultivariatePredict( const CFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_MultiConst );
-	return node->info.MultiValue;
+	return node->info.Value;
 }
 
-CFloatVector CRegressionTreeModel::MultivariatePredict( const CSparseFloatVectorDesc& data ) const
+const CFastArray<float, 1>& CRegressionTreeModel::MultivariatePredict( const CSparseFloatVectorDesc& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
 	NeoAssert( node->info.Type == RTNT_MultiConst );
-	return node->info.MultiValue ;
+	return node->info.Value ;
 }
 
 void CRegressionTreeModel::Serialize( CArchive& archive )
@@ -203,15 +203,15 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 		if( info.Type == RTNT_Continuous ) {
 			unsigned int index = info.FeatureIndex == NotFound ? 0 : info.FeatureIndex + 1;
 			serializeCompact( archive, index );
-			archive << info.FeatureValue;
+			archive << info.Value[0];
 			NeoAssert( leftChild != 0 );
 			leftChild->Serialize( archive );
 			NeoAssert( rightChild != 0 );
 			rightChild->Serialize( archive );
 		} else if( info.Type == RTNT_Const ) {
-			archive << info.FeatureValue;
+			archive << info.Value[0];
 		} else if( info.Type == RTNT_MultiConst ) {
-			archive << info.MultiValue;
+			info.Value.Serialize( archive );
 		}
 	} else if( archive.IsLoading() ) {
 		switch( version ) {
@@ -239,7 +239,7 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 				if( index > 0 ) {
 					float featureValue = 0;
 					archive >> featureValue;
-					info.FeatureValue = featureValue;
+					info.Value = { featureValue };
 					info.Type = RTNT_Continuous;
 					info.FeatureIndex = index - 1;
 					leftChild = FINE_DEBUG_NEW CRegressionTreeModel();
@@ -249,7 +249,7 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 				} else {
 					float value = 0;
 					archive >> value;
-					info.FeatureValue = value;
+					info.Value = { value };
 					info.Type = RTNT_Const;
 					info.FeatureIndex = NotFound;
 				}
@@ -262,13 +262,17 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 					unsigned int index = 0;
 					serializeCompact( archive, index );
 					info.FeatureIndex = index;
-					archive >> info.FeatureValue;
+					float value;
+					archive >> value;
+					info.Value = { value };
 				} else if( info.Type == RTNT_Const ) {
 					info.FeatureIndex = NotFound;
-					archive >> info.FeatureValue;
+					float value;
+					archive >> value;
+					info.Value = { value };
 				} else if( info.Type == RTNT_MultiConst ) {
 					info.FeatureIndex = NotFound;
-					archive >> info.MultiValue;
+					info.Value.Serialize( archive );
 				}
 			}
 			default:

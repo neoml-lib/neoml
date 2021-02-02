@@ -265,32 +265,43 @@ struct CRegressionTreeNodeInfo {
 	TRegressionTreeNodeType Type; // the node type
 	// The index of the feature used for splitting - only for RTNT_Continuous
 	int FeatureIndex;
-	// The value of the feature used for splitting
-	double FeatureValue;
-	// For RTNT_Const - the result
-	CFloatVector MultiValue;
+	// The Value[0] of the feature used for splitting - only for RTNT_Continuous
+	// For RTNT_Const/RTNT_MultiConst - the result
+	CFastArray<float, 1> Value;
 
 	CRegressionTreeNodeInfo() : Type( RTNT_Undefined ), FeatureIndex( NotFound ) {}
 
 	// Copies the node information to another node
 	void CopyTo( CRegressionTreeNodeInfo& newInfo ) const;
+
+	CRegressionTreeNodeInfo( const CRegressionTreeNodeInfo& other ) {
+		Type = other.Type;
+		FeatureIndex = other.FeatureIndex;
+		other.Value.CopyTo( Value );
+	}
+
+	CRegressionTreeNodeInfo& operator=( const CRegressionTreeNodeInfo& other ) {
+		Type = other.Type;
+		FeatureIndex = other.FeatureIndex;
+		other.Value.CopyTo( Value );
+		return *this;
+	}
 };
 
 inline void CRegressionTreeNodeInfo::CopyTo( CRegressionTreeNodeInfo& newInfo ) const
 {
 	newInfo.Type = Type;
 	newInfo.FeatureIndex = FeatureIndex;
-	newInfo.FeatureValue = FeatureValue;
-	newInfo.MultiValue = MultiValue;
+	Value.CopyTo( newInfo.Value );
 }
 
 inline CArchive& operator<<( CArchive& archive, const CRegressionTreeNodeInfo& info )
 {
 	archive.SerializeEnum( const_cast<CRegressionTreeNodeInfo&>( info ).Type );
 	if( info.Type == RTNT_MultiConst ) {
-		archive << info.MultiValue;
+		const_cast< CRegressionTreeNodeInfo& >( info ).Value.Serialize( archive );
 	} else {
-		archive << info.FeatureValue;
+		archive << static_cast<double>( info.Value[0] );
 		if( info.Type == RTNT_Continuous ) {
 			archive << info.FeatureIndex;
 		}
@@ -302,9 +313,11 @@ inline CArchive& operator >> ( CArchive& archive, CRegressionTreeNodeInfo& info 
 {
 	archive.SerializeEnum( info.Type );
 	if( info.Type == RTNT_MultiConst ) {
-		archive >> info.MultiValue;
+		info.Value.Serialize( archive );
 	} else {
-		archive >> info.FeatureValue;
+		double value;
+		archive >> value;
+		info.Value = { static_cast<float>( value ) };
 		if( info.Type == RTNT_Continuous ) {
 			archive >> info.FeatureIndex;
 		}
@@ -316,7 +329,7 @@ DECLARE_NEOML_MODEL_NAME( RegressionTreeModelName, "FmlRegressionTreeModel" )
 
 // The regression tree model interface
 // Can be used for iterating through the boosting results if used on trees
-class NEOML_API IRegressionTreeModel : public IRegressionModel, public IMultivariateRegressionModel {
+class NEOML_API IRegressionTreeModel : virtual public IObject {
 public:
 	virtual ~IRegressionTreeModel();
 

@@ -36,21 +36,19 @@ public:
 	const CRegressionTreeModel* GetPredictionNode( const CSparseFloatVectorDesc& data ) const;
 	const CRegressionTreeModel* GetPredictionNode( const CFloatVector& data ) const;
 
+	double Predict( const CSparseFloatVector& data ) const;
+	double Predict( const CSparseFloatVectorDesc& data ) const;
+	double Predict( const CFloatVector& data ) const;
+
+	const CFastArray<float, 1>& MultivariatePredict( const CSparseFloatVector& data ) const;
+	const CFastArray<float, 1>& MultivariatePredict( const CSparseFloatVectorDesc & data ) const;
+	const CFastArray<float, 1>& MultivariatePredict( const CFloatVector& data ) const;
+
 	// IRegressionTreeModel interface methods
 	virtual CPtr<IRegressionTreeModel> GetLeftChild() const { return leftChild.Ptr(); }
 	virtual CPtr<IRegressionTreeModel> GetRightChild() const { return rightChild.Ptr(); }
 	virtual void GetNodeInfo( CRegressionTreeNodeInfo& result ) const { result = info; }
 	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const;
-
-	// IRegressionModel interface methods
-	virtual double Predict( const CSparseFloatVector& data ) const;
-	virtual double Predict( const CSparseFloatVectorDesc& data ) const;
-	virtual double Predict( const CFloatVector& data ) const;
-
-	// IMultivariateRegressionModel interface methods
-	virtual CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const;
-	virtual CFloatVector MultivariatePredict( const CSparseFloatVectorDesc& data ) const;
-	virtual CFloatVector MultivariatePredict( const CFloatVector& data ) const;
 
 	virtual void Serialize( CArchive& archive );
 

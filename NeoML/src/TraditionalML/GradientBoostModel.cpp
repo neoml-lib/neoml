@@ -39,7 +39,7 @@ double CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, 
 	double result = 0;
 
 	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		result += ensemble[i]->Predict( vector );
+		result += dynamic_cast<const CRegressionTreeModel*>( ensemble[i].Ptr() )->Predict( vector );
 	}
 
 	return result * learningRate;
@@ -51,7 +51,7 @@ double CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, 
 	double result = 0;
 
 	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		result += ensemble[i]->Predict( vector );
+		result += dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->Predict( vector );
 	}
 
 	return result * learningRate;
@@ -64,7 +64,7 @@ double CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, 
 	double result = 0;
 
 	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		result += ensemble[i]->Predict( vector );
+		result += dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->Predict( vector );
 	}
 
 	return result * learningRate;
@@ -74,8 +74,12 @@ CFloatVector CGradientBoostModel::MultivariatePredictRaw( const CGradientBoostEn
 	const CSparseFloatVector& vector, int valueSize )
 {
 	CFloatVector result( valueSize, 0.0 );
+	float* resultPtr = result.CopyOnWrite();
 	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		result += ensemble[i]->MultivariatePredict( vector );
+		const CFastArray<float, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->MultivariatePredict( vector );
+		for( int j = 0; j < valueSize; j++ ) {
+			resultPtr[j] += pred[j];
+		}
 	}
 
 	return result * learningRate;
@@ -85,8 +89,12 @@ CFloatVector CGradientBoostModel::MultivariatePredictRaw( const CGradientBoostEn
 	const CSparseFloatVectorDesc& vector, int valueSize )
 {
 	CFloatVector result( valueSize, 0.0 );
+	float* resultPtr = result.CopyOnWrite();
 	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		result += ensemble[i]->MultivariatePredict( vector );
+		const CFastArray<float, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->MultivariatePredict( vector );
+		for( int j = 0; j < valueSize; j++ ) {
+			resultPtr[j] += pred[j];
+		}
 	}
 
 	return result * learningRate;
@@ -97,8 +105,12 @@ CFloatVector CGradientBoostModel::MultivariatePredictRaw( const CGradientBoostEn
 	const CFloatVector& vector, int valueSize )
 {
 	CFloatVector result( valueSize, 0.0 );
+	float* resultPtr = result.CopyOnWrite();
 	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		result += ensemble[i]->MultivariatePredict( vector );
+		const CFastArray<float, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->MultivariatePredict( vector );
+		for( int j = 0; j < valueSize; j++ ) {
+			resultPtr[j] += pred[j];
+		}
 	}
 
 	return result * learningRate;
@@ -196,6 +208,7 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray
 
 	const int classCount = GetClassCount();
 	CFloatVector predictions( classCount, 0.0 );
+	float* predictionsPtr = predictions.CopyOnWrite();
 	CArray<double> distances;
 
 	results.DeleteAll();
@@ -204,8 +217,8 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray
 		result.ExceptionProbability = CClassificationProbability( 0 );
 		
 		if( classCount == 2 ) {
-			predictions += learningRate * ensembles[0][resultIndex]->MultivariatePredict( data );
-			const double rawValue = probability( predictions[0] );
+			predictionsPtr[0] += learningRate * dynamic_cast<const CRegressionTreeModel*>( ensembles[0][resultIndex].Ptr() )->Predict( data );
+			const double rawValue = probability( predictionsPtr[0] );
 			result.PreferredClass = rawValue < 0.5 ? 0 : 1;
 			result.Probabilities.Add( CClassificationProbability( 1 - rawValue ) );
 			result.Probabilities.Add( CClassificationProbability( rawValue ) );
@@ -216,11 +229,13 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray
 			result.PreferredClass = 0;
 
 			if( isMultiClass ){
-				predictions += learningRate * ensembles[0][resultIndex]->MultivariatePredict( data );
+				const CFastArray<float, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensembles[0][resultIndex].Ptr() )->MultivariatePredict( data );
+				for( int i = 0; i < pred.Size(); i++ ) {
+					predictionsPtr[i] += learningRate * pred[i];
+				}
 			} else {
 				for( int i = 0; i < ensembles.Size(); i++ ) {
-					predictions.SetAt( i,
-						predictions[i] + learningRate * ensembles[i][resultIndex]->Predict( data ) );
+					predictionsPtr[i] += learningRate * dynamic_cast< const CRegressionTreeModel* >( ensembles[i][resultIndex].Ptr() )->Predict( data );
 				}
 			}
 			classify( predictions, result );
