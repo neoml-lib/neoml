@@ -28,12 +28,10 @@ public:
 
 	// Adds a vector
 	void Add( const T& gradient, const T& hessian, float weight );
-	void Add( const CArray<T>& gradients, const CArray<T>& hessians, const CArray<float>& weights, int vectorIndex );
 	void Add( const CGradientBoostVectorSetStatistics<T>& other );
 
 	// Deletes a vector
 	void Sub( const T& gradient, const T& hessian, float weight );
-	void Sub( const CArray<T>& gradients, const CArray<T>& hessians, const CArray<float>& weights, int vectorIndex );
 	void Sub( const CGradientBoostVectorSetStatistics<T>& other );
 
 	// Clears all accumulated data
@@ -122,26 +120,6 @@ inline void CGradientBoostVectorSetStatistics<CArray<double>>::Add( const CArray
 }
 
 template<>
-inline void CGradientBoostVectorSetStatistics<double>::Add( const CArray<double>& gradients, const CArray<double>& hessians,
-	const CArray<float>& weights, int vectorIndex )
-{
-	TotalGradient += gradients[vectorIndex];
-	TotalHessian += hessians[vectorIndex];
-	TotalWeight += weights[vectorIndex];
-}
-
-template<>
-inline void CGradientBoostVectorSetStatistics<CArray<double>>::Add( const CArray<CArray<double>>& gradients, const CArray<CArray<double>>& hessians,
-	const CArray<float>& weights, int vectorIndex )
-{
-	for( int i = 0; i < gradients.Size(); i++ ){
-		TotalGradient[i] += gradients[i][vectorIndex];
-		TotalHessian[i] += hessians[i][vectorIndex];
-	}
-	TotalWeight += weights[vectorIndex];
-}
-
-template<>
 inline void CGradientBoostVectorSetStatistics<double>::Add( const CGradientBoostVectorSetStatistics& other )
 {
 	TotalGradient += other.TotalGradient;
@@ -175,26 +153,6 @@ inline void CGradientBoostVectorSetStatistics<CArray<double>>::Sub( const CArray
 		TotalHessian[i] -= hessian[i];
 	}
 	TotalWeight -= weight;
-}
-
-template<>
-inline void CGradientBoostVectorSetStatistics<double>::Sub( const CArray<double>& gradients, const CArray<double>& hessians,
-	const CArray<float>& weights, int vectorIndex )
-{
-	TotalGradient -= gradients[vectorIndex];
-	TotalHessian -= hessians[vectorIndex];
-	TotalWeight -= weights[vectorIndex];
-}
-
-template<>
-inline void CGradientBoostVectorSetStatistics<CArray<double>>::Sub( const CArray<CArray<double>>& gradients, const CArray<CArray<double>>& hessians,
-	const CArray<float>& weights, int vectorIndex )
-{
-	for( int i = 0; i < gradients.Size(); i++ ){
-		TotalGradient[i] -= gradients[i][vectorIndex];
-		TotalHessian[i] -= hessians[i][vectorIndex];
-	}
-	TotalWeight -= weights[vectorIndex];
 }
 
 template<>

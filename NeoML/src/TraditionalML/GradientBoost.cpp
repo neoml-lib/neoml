@@ -415,7 +415,7 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 		case GBTB_Full:
 		case GBTB_MultiFull:
 		{
-			CGradientBoostBuildParams builderParams;
+			CGradientBoostFullTreeBuilderParams builderParams;
 			builderParams.L1RegFactor = params.L1RegFactor;
 			builderParams.L2RegFactor = params.L2RegFactor;
 			builderParams.MinSubsetHessian = 1e-3f;

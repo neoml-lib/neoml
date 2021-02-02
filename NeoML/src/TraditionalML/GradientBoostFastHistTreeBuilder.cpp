@@ -35,9 +35,11 @@ CGradientBoostFastHistTreeBuilder::CGradientBoostFastHistTreeBuilder( const CPar
 	NeoAssert( params.MinSubsetWeight >= 0 );
 }
 
-CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGradientBoostFastHistProblem& problem,
+CPtr<IRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGradientBoostFastHistProblem& problem,
 	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights )
 {
+	NeoAssert( gradients.Size() == hessians.Size() );
+
 	if( logStream != 0 ) {
 		*logStream << L"\nGradient boost float problem tree building started:\n";
 	}
@@ -72,6 +74,8 @@ CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGrad
 			if( logStream != 0 ) {
 				*logStream << L"Split result: index = " << featureIndexes[nodes[node].SplitFeatureId]
 					<< L" threshold = " << cuts[nodes[node].SplitFeatureId]
+					<< L" ( gradient = " << nodes[node].Statistics.TotalGradient
+					<< L", hessian = " << nodes[node].Statistics.TotalHessian
 					<< L", criterion = " << nodes[node].Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
 					<< L" )\n";
 			}
@@ -104,6 +108,8 @@ CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGrad
 			// The node could not be split
 			if( logStream != 0 ) {
 				*logStream << L"Split result: created const node.\t\t"
+					<< L" ( gradient = " << nodes[node].Statistics.TotalGradient
+					<< L", hessian = " << nodes[node].Statistics.TotalHessian
 					<< L", criterion = " << nodes[node].Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
 					<< L" )\n";
 			}
@@ -190,7 +196,7 @@ void CGradientBoostFastHistTreeBuilder::subHist( int firstPtr, int secondPtr )
 }
 
 // Build a histogram on the vectors of the given node
-void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistProblem& problem, CNode& node,
+void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
 	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,
 	CGradientBoostVectorSetStatistics<double>& totalStats )
 {
@@ -216,8 +222,8 @@ void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistP
 			while( i < node.VectorSetSize ) {
 				const int vectorIndex = vectorSet[node.VectorSetPtr + i];
 				addVectorToHist( problem.GetUsedVectorDataPtr( vectorIndex ), problem.GetUsedVectorDataSize( vectorIndex ),
-					gradients, hessians, weights, tempHistStats.GetPtr() + histSize * threadNumber, vectorIndex );
-				results[threadNumber].Add( gradients, hessians, weights, vectorIndex );
+					gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex], tempHistStats.GetPtr() + histSize * threadNumber );
+				results[threadNumber].Add( gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex] );
 				i += params.ThreadCount;
 			}
 		}
@@ -239,7 +245,7 @@ void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistP
 		for( int i = 0; i < node.VectorSetSize; i++ ) {
 			const int vectorIndex = vectorSet[node.VectorSetPtr + i];
 			addVectorToHist( problem.GetUsedVectorDataPtr( vectorIndex ), problem.GetUsedVectorDataSize( vectorIndex ),
-				gradients, hessians, weights, histStatsPtr, vectorIndex );
+				gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex], histStatsPtr );
 			totalStats.Add( gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex] );
 		}
 	}
@@ -262,8 +268,8 @@ void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistP
 }
 
 // Adds a vector to the histogram
-void CGradientBoostFastHistTreeBuilder::addVectorToHist( const int* vectorPtr, int vectorSize, const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,
-	CGradientBoostVectorSetStatistics<double>* stats, int vectorIndex )
+void CGradientBoostFastHistTreeBuilder::addVectorToHist( const int* vectorPtr, int vectorSize, double gradients, double hessian, float weight,
+	CGradientBoostVectorSetStatistics<double>* stats )
 {
 	NeoPresume( vectorPtr != 0 );
 	NeoPresume( vectorSize >= 0 );
@@ -271,7 +277,7 @@ void CGradientBoostFastHistTreeBuilder::addVectorToHist( const int* vectorPtr, i
 	for( int i = 0; i < vectorSize; i++ ) {
 		const int id = idPos[vectorPtr[i]];
 		if( id != NotFound ) {
-			stats[id].Add( gradients, hessians, weights, vectorIndex );
+			stats[id].Add( gradients, hessian, weight );
 		}
 	}
 }

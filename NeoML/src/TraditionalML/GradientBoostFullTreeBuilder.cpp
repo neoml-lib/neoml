@@ -212,7 +212,7 @@ inline void CGradientBoostNodeStatistics<CArray<double>>::LeafValue( CArray<doub
 //------------------------------------------------------------------------------------------------------------
 
 template<class T>
-CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradientBoostBuildParams& _params, CTextStream* _logStream, int _valueSize ) :
+CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradientBoostFullTreeBuilderParams& _params, CTextStream* _logStream, int _valueSize ) :
 	params( _params ),
 	logStream( _logStream ),
 	nodesCount( 0 ),
@@ -227,7 +227,7 @@ CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradient
 }
 
 template<class T>
-CPtr<CRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
+CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
 	const CArray<T>& gradients, const T& gradientsSum,
 	const CArray<T>& hessians, const T& hessiansSum,
 	const CArray<float>& weights, float weightsSum )
@@ -446,7 +446,7 @@ void CGradientBoostFullTreeBuilder<T>::findBinarySplits( int threadNumber,
 			statistics.Prev = 1.0;
 		}
 
-		statistics.CurRightStatistics.Add( gradients, hessians, weights, vectorIndex );
+		statistics.CurRightStatistics.Add( gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex] );
 	}
 
 	// Try splitting using the accumulated statistics
@@ -514,7 +514,7 @@ void CGradientBoostFullTreeBuilder<T>::findSplits( int threadNumber,
 			statistics.Prev = ptr[i].Value;
 		}
 
-		statistics.CurLeftStatistics.Add( gradients, hessians, weights, vectorIndex );
+		statistics.CurLeftStatistics.Add( gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex] );
 	}
 
 	// Now process the positive values
@@ -555,7 +555,7 @@ void CGradientBoostFullTreeBuilder<T>::findSplits( int threadNumber,
 			statistics.Prev = ptr[i].Value;
 		}
 
-		statistics.CurRightStatistics.Add( gradients, hessians, weights, vectorIndex );
+		statistics.CurRightStatistics.Add( gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex] );
 	}
 }
 
