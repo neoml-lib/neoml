@@ -320,11 +320,6 @@ CFloatVector CGradientBoostModel::MultivariatePredict( const CSparseFloatVector&
 	return doMultivariatePredict( data );
 }
 
-CFloatVector CGradientBoostModel::MultivariatePredict( const CSparseFloatVectorDesc& data ) const
-{
-	return doMultivariatePredict( data );
-}
-
 CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVector& data ) const
 {
 	return doMultivariatePredict( data );

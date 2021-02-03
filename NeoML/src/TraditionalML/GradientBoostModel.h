@@ -68,7 +68,6 @@ public:
 	// IMultivariateRegressionModel interface methods
 	CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const override;
 	CFloatVector MultivariatePredict( const CFloatVector& data ) const override;
-	CFloatVector MultivariatePredict( const CSparseFloatVectorDesc& data ) const override;
 
 private:
 	CArray<CGradientBoostEnsemble> ensembles; // the models

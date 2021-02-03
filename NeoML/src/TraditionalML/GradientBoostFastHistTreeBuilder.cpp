@@ -324,10 +324,10 @@ int CGradientBoostFastHistTreeBuilder::evaluateSplit( const CGradientBoostFastHi
 				right.Sub( left );
 
 				// The condition (lower limit) for the resulting node size
-				if( left.TotalHessian < params.MinSubsetHessian ||
-					left.TotalWeight < params.MinSubsetWeight ||
-					right.TotalHessian < params.MinSubsetHessian ||
-					right.TotalWeight < params.MinSubsetWeight )
+				if( left.TotalHessian < params.MinSubsetHessian
+					|| left.TotalWeight < params.MinSubsetWeight
+					|| right.TotalHessian < params.MinSubsetHessian
+					|| right.TotalWeight < params.MinSubsetWeight )
 				{
 					continue;
 				}

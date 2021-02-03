@@ -57,6 +57,7 @@ CRegressionTreeModel::CRegressionTreeModel()
 {
 	info.Type = RTNT_Undefined;
 	info.FeatureIndex = NotFound;
+	info.Value = { 0 };
 }
 
 CRegressionTreeModel::~CRegressionTreeModel()
@@ -200,9 +201,9 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 
 	if( archive.IsStoring() ) {
 		archive.SerializeEnum( info.Type );
+		unsigned int index = info.FeatureIndex == NotFound? 0 : info.FeatureIndex + 1;
+		serializeCompact( archive, index );
 		if( info.Type == RTNT_Continuous ) {
-			unsigned int index = info.FeatureIndex == NotFound ? 0 : info.FeatureIndex + 1;
-			serializeCompact( archive, index );
 			archive << info.Value[0];
 			NeoAssert( leftChild != 0 );
 			leftChild->Serialize( archive );
@@ -257,11 +258,11 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 			}
 			case 3:
 			{
+				unsigned int index = 0;
+				serializeCompact( archive, index );
 				archive.SerializeEnum( const_cast< CRegressionTreeNodeInfo& >(info).Type );
 				if( info.Type == RTNT_Continuous ) {
-					unsigned int index = 0;
-					serializeCompact( archive, index );
-					info.FeatureIndex = index;
+					info.FeatureIndex = index - 1;
 					float value;
 					archive >> value;
 					info.Value = { value };

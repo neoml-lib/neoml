@@ -60,6 +60,8 @@ enum TGradientBoostTreeBuilder {
 	// The algorithm will cache all the problem data
 	// This algorithm is faster and works best for binary problems that fit into memory
 	GBTB_FastHist,
+	// Similar to GBTB_Full but with multiclass trees,
+	// whose leaves contain a vector of values for all classes
 	GBTB_MultiFull,
 	GBTB_Count
 };
@@ -269,18 +271,20 @@ struct CRegressionTreeNodeInfo {
 	// For RTNT_Const/RTNT_MultiConst - the result
 	CFastArray<float, 1> Value;
 
-	CRegressionTreeNodeInfo() : Type( RTNT_Undefined ), FeatureIndex( NotFound ) {}
+	CRegressionTreeNodeInfo() : Type( RTNT_Undefined ), FeatureIndex( NotFound ), Value( { 0 } ) {}
 
 	// Copies the node information to another node
 	void CopyTo( CRegressionTreeNodeInfo& newInfo ) const;
 
-	CRegressionTreeNodeInfo( const CRegressionTreeNodeInfo& other ) {
+	CRegressionTreeNodeInfo( const CRegressionTreeNodeInfo& other )
+	{
 		Type = other.Type;
 		FeatureIndex = other.FeatureIndex;
 		other.Value.CopyTo( Value );
 	}
 
-	CRegressionTreeNodeInfo& operator=( const CRegressionTreeNodeInfo& other ) {
+	CRegressionTreeNodeInfo& operator=( const CRegressionTreeNodeInfo& other )
+	{
 		Type = other.Type;
 		FeatureIndex = other.FeatureIndex;
 		other.Value.CopyTo( Value );
@@ -298,13 +302,11 @@ inline void CRegressionTreeNodeInfo::CopyTo( CRegressionTreeNodeInfo& newInfo ) 
 inline CArchive& operator<<( CArchive& archive, const CRegressionTreeNodeInfo& info )
 {
 	archive.SerializeEnum( const_cast<CRegressionTreeNodeInfo&>( info ).Type );
+	archive << info.FeatureIndex;
 	if( info.Type == RTNT_MultiConst ) {
 		const_cast< CRegressionTreeNodeInfo& >( info ).Value.Serialize( archive );
-	} else {
+	} else if( info.Type == RTNT_Const ) {
 		archive << static_cast<double>( info.Value[0] );
-		if( info.Type == RTNT_Continuous ) {
-			archive << info.FeatureIndex;
-		}
 	}
 	return archive;
 }
@@ -312,15 +314,13 @@ inline CArchive& operator<<( CArchive& archive, const CRegressionTreeNodeInfo& i
 inline CArchive& operator >> ( CArchive& archive, CRegressionTreeNodeInfo& info )
 {
 	archive.SerializeEnum( info.Type );
+	archive >> info.FeatureIndex;
 	if( info.Type == RTNT_MultiConst ) {
 		info.Value.Serialize( archive );
-	} else {
+	} else if( info.Type == RTNT_Const ) {
 		double value;
 		archive >> value;
 		info.Value = { static_cast<float>( value ) };
-		if( info.Type == RTNT_Continuous ) {
-			archive >> info.FeatureIndex;
-		}
 	}
 	return archive;
 }
