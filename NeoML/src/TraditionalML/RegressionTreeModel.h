@@ -40,9 +40,9 @@ public:
 	double Predict( const CSparseFloatVectorDesc& data ) const;
 	double Predict( const CFloatVector& data ) const;
 
-	const CFastArray<float, 1>& MultivariatePredict( const CSparseFloatVector& data ) const;
-	const CFastArray<float, 1>& MultivariatePredict( const CSparseFloatVectorDesc & data ) const;
-	const CFastArray<float, 1>& MultivariatePredict( const CFloatVector& data ) const;
+	const CFastArray<double, 1>& MultivariatePredict( const CSparseFloatVector& data ) const;
+	const CFastArray<double, 1>& MultivariatePredict( const CSparseFloatVectorDesc & data ) const;
+	const CFastArray<double, 1>& MultivariatePredict( const CFloatVector& data ) const;
 
 	// IRegressionTreeModel interface methods
 	virtual CPtr<IRegressionTreeModel> GetLeftChild() const { return leftChild.Ptr(); }

@@ -269,7 +269,7 @@ struct CRegressionTreeNodeInfo {
 	int FeatureIndex;
 	// The Value[0] of the feature used for splitting - only for RTNT_Continuous
 	// For RTNT_Const/RTNT_MultiConst - the result
-	CFastArray<float, 1> Value;
+	CFastArray<double, 1> Value;
 
 	CRegressionTreeNodeInfo() : Type( RTNT_Undefined ), FeatureIndex( NotFound ), Value( { 0 } ) {}
 
@@ -306,7 +306,7 @@ inline CArchive& operator<<( CArchive& archive, const CRegressionTreeNodeInfo& i
 	if( info.Type == RTNT_MultiConst ) {
 		const_cast< CRegressionTreeNodeInfo& >( info ).Value.Serialize( archive );
 	} else if( info.Type != RTNT_Undefined ) {
-		archive << static_cast<double>( info.Value[0] );
+		archive << info.Value[0];
 	}
 	return archive;
 }
@@ -320,7 +320,7 @@ inline CArchive& operator >> ( CArchive& archive, CRegressionTreeNodeInfo& info 
 	} else if( info.Type != RTNT_Undefined ) {
 		double value;
 		archive >> value;
-		info.Value = { static_cast<float>( value ) };
+		info.Value = { value };
 	}
 	return archive;
 }

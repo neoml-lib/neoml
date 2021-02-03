@@ -610,6 +610,11 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 		curModels.Add( model );
 	} else if( fullSingleClassTreeBuilder != nullptr ) {
 		for( int i = 0; i < gradients.Size(); i++ ) {
+			if( logStream != nullptr ) {
+				*logStream << "GradientSum = " << gradientsSum[i]
+					<< " HessianSum = " << hessiansSum[i]
+					<< "\n";
+			}
 			CPtr<IRegressionTreeModel> model;
 			model = fullSingleClassTreeBuilder->Build( *fullProblem,
 				gradients[i], gradientsSum[i],
