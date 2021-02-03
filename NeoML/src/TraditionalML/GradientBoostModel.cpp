@@ -23,10 +23,9 @@ namespace NeoML {
 
 REGISTER_NEOML_MODEL( CGradientBoostModel, GradientBoostModelName )
 
-CGradientBoostModel::CGradientBoostModel( CArray<CGradientBoostEnsemble>& _ensembles, bool _isMultiClass, int _valueSize,
+CGradientBoostModel::CGradientBoostModel( CArray<CGradientBoostEnsemble>& _ensembles, int _valueSize,
 	double _learningRate, CGradientBoost::TLossFunction _lossFunction ) :
-	isMultiClass( _isMultiClass ),
-	valueSize( _isMultiClass ? _valueSize : 1 ),
+	valueSize( _valueSize ),
 	learningRate( _learningRate ),
 	lossFunction( _lossFunction )
 {
@@ -118,7 +117,7 @@ CFloatVector CGradientBoostModel::MultivariatePredictRaw( const CGradientBoostEn
 
 bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
 {
-	if( isMultiClass ) {
+	if( valueSize > 1 ) {
 		return classify( MultivariatePredictRaw( ensembles[0], 0, learningRate, data, valueSize ), result );
 	} else {
 		CFloatVector predictions( ensembles.Size(), 0 );
@@ -131,7 +130,7 @@ bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassif
 
 bool CGradientBoostModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
 {
-	if( isMultiClass ) {
+	if( valueSize > 1 ) {
 		return classify( MultivariatePredictRaw( ensembles[0], 0, learningRate, data, valueSize ), result );
 	} else {
 		CFloatVector predictions( ensembles.Size(), 0 );
@@ -164,6 +163,7 @@ void CGradientBoostModel::Serialize( CArchive& archive )
 		}
 		archive << learningRate;
 		archive.SerializeEnum( lossFunction );
+		archive << valueSize;
 	} else if( archive.IsLoading() ) {
 		int size = 0;
 		archive >> size;
@@ -191,6 +191,11 @@ void CGradientBoostModel::Serialize( CArchive& archive )
 		archive >> learningRate;
 		if( version > 0 ) {
 			archive.SerializeEnum( lossFunction );
+			if( version >= 3 ) {
+				archive >> valueSize;
+			} else {
+				valueSize = 1;
+			}
 		}
 	} else {
 		NeoAssert( false );
@@ -228,7 +233,7 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray
 			distances.SetBufferSize( ensembles.Size() );
 			result.PreferredClass = 0;
 
-			if( isMultiClass ){
+			if( valueSize > 1 ){
 				const CFastArray<float, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensembles[0][resultIndex].Ptr() )->MultivariatePredict( data );
 				for( int i = 0; i < pred.Size(); i++ ) {
 					predictionsPtr[i] += learningRate * pred[i];
@@ -297,7 +302,7 @@ double CGradientBoostModel::Predict( const CSparseFloatVectorDesc& data ) const
 template<typename TData>
 CFloatVector CGradientBoostModel::doMultivariatePredict( const TData& data ) const
 {
-	if( isMultiClass ){
+	if( valueSize > 1 ){
 		return MultivariatePredictRaw( ensembles[0], 0, learningRate, data, valueSize );
 	} else {
 		CFloatVector result( ensembles.Size() );

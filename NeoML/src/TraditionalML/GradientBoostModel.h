@@ -22,8 +22,8 @@ namespace NeoML {
 // The model trained using gradient boosting
 class CGradientBoostModel : public IGradientBoostModel, public IGradientBoostRegressionModel {
 public:
-	CGradientBoostModel() : isMultiClass( false ), valueSize( 1 ), learningRate( 0 ), lossFunction( CGradientBoost::LF_Undefined ) {}
-	CGradientBoostModel( CArray<CGradientBoostEnsemble>& models, bool isMultiClass, int valueSize, double learningRate,
+	CGradientBoostModel() : valueSize( 1 ), learningRate( 0 ), lossFunction( CGradientBoost::LF_Undefined ) {}
+	CGradientBoostModel( CArray<CGradientBoostEnsemble>& models, int valueSize, double learningRate,
 		CGradientBoost::TLossFunction lossFunction );
 
 	// Used for serialization
@@ -74,8 +74,7 @@ private:
 	CArray<CGradientBoostEnsemble> ensembles; // the models
 	double learningRate; // the coefficient for each of the models
 	CGradientBoost::TLossFunction lossFunction; // the loss function to be optimized
-	bool isMultiClass; // each model predicts multiple values
-	int valueSize; // the value size of each model
+	int valueSize; // the value size of each model, if valueSize > 1 then ensemble consists of multiclass trees
 
 	bool classify( double prediction, CClassificationResult& result ) const;
 	bool classify( const CFloatVector& predictions, CClassificationResult& result ) const;
