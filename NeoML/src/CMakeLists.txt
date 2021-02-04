@@ -80,6 +80,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/SourceLayer.cpp
     Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/SubSequenceLayer.cpp
+    Dnn/Layers/TiedEmbeddingsLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
@@ -220,6 +221,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/SourceLayer.h
     ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/SubSequenceLayer.h
+    ../include/NeoML/Dnn/Layers/TiedEmbeddingsLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
