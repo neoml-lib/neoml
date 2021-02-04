@@ -45,6 +45,9 @@ void CAccuracyLayer::OnReset()
 void CAccuracyLayer::Reshape()
 {
 	CQualityControlLayer::Reshape();
+	NeoAssert( inputDescs[0].Height() == 1
+		&& inputDescs[0].Width() == 1
+		&& inputDescs[0].Depth() == 1 );
 
 	outputDescs[0] = CBlobDesc( CT_Float );
 
@@ -60,40 +63,40 @@ void CAccuracyLayer::RunOnceAfterReset()
 	CFastArray<float, 1> expectedBuffer;
 
 	const int dataSize = inputBlob->GetDataSize();
-	const int objectCount = inputBlob->GetObjectCount() * inputBlob->GetGeometricalSize();
-	const int channelsCount = inputBlob->GetChannelsCount();
+	const int objectCount = inputBlob->GetObjectCount();
+	const int objectSize = inputBlob->GetObjectSize();
 
 	inputBuffer.SetSize( dataSize );
 	expectedBuffer.SetSize( dataSize );
 	inputBlob->CopyTo( inputBuffer.GetPtr(), dataSize );
 	expectedLabelsBlob->CopyTo( expectedBuffer.GetPtr(), dataSize );
 	int correctlyClassifiedCount = 0;
-
-	for( int sampleId = 0; sampleId < objectCount; ++sampleId ) {
-		// multiclass classification
-		if( channelsCount >= 2 ) {
-			int expectedClass = 0;
-			float maxValue = -FLT_MAX;
-			for( int classWeightId = 0; classWeightId < channelsCount; classWeightId++ ) {
-				float currentValue = inputBuffer[sampleId * channelsCount + classWeightId];
-				if( maxValue < currentValue ) {
-					maxValue = currentValue;
-					expectedClass = classWeightId;
+	for( int i = 0; i < inputBlob->GetBatchWidth(); i++ ) {
+		for( int j = 0; j < inputBlob->GetBatchLength(); j++ ) {
+			const int sampleId = inputBlob->GetBatchWidth() * j + i;
+			if( objectSize >= 2 ) {
+				int expectedClass = 0;
+				float maxValue = -FLT_MAX;
+				for( int classWeightId = 0; classWeightId < objectSize; classWeightId++ ) {
+					float currentValue = inputBuffer[sampleId * objectSize + classWeightId];
+					if( maxValue < currentValue ) {
+						maxValue = currentValue;
+						expectedClass = classWeightId;
+					}
 				}
-			}
-			if( expectedBuffer[sampleId * channelsCount + expectedClass] > 0.f ) {
-				correctlyClassifiedCount += 1;
-			}
-		} else {
-			// Binary classification
-			NeoAssert( channelsCount == 1 );
-			// The input blob has one channel
-			// That means a positive value corresponds to one class and a negative to the other
-			// The input blob with the correct labels should only contain +1 and -1 values
-			const float predictedValue = inputBuffer[sampleId];
-			const float expectedClass = expectedBuffer[sampleId];
-			if( ( predictedValue >= 0 && expectedClass > 0 ) || ( predictedValue < 0 && expectedClass < 0 ) ) {
-				correctlyClassifiedCount += 1;
+				if( expectedBuffer[sampleId * objectSize + expectedClass] > 0.f ) {
+					correctlyClassifiedCount += 1;
+				}
+			} else {
+				NeoAssert( objectSize == 1 );
+				// The input blob has one channel
+				// That means a positive value corresponds to one class and a negative to the other
+				// The input blob with the correct labels should only contain +1 and -1 values
+				const float predictedValue = inputBuffer[sampleId];
+				const float expectedClass = expectedBuffer[sampleId];
+				if( ( predictedValue >= 0 && expectedClass > 0 ) || ( predictedValue < 0 && expectedClass < 0 ) ) {
+					correctlyClassifiedCount += 1;
+				}
 			}
 		}
 	}
@@ -127,6 +130,8 @@ void CConfusionMatrixLayer::Reshape()
 	NeoAssert( inputDescs.Size() == 2 );
 	// For classifying a sigmoid a special implementation is needed
 	NeoAssert( inputDescs[0].Channels() >= 2 );
+	NeoAssert( inputDescs[0].Height() == 1 );
+	NeoAssert( inputDescs[0].Width() == 1 );
 	NeoAssert( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount() );
 	NeoAssert( inputDescs[0].ObjectSize() >= 1 );
 	NeoAssert( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize() );
@@ -151,8 +156,8 @@ void CConfusionMatrixLayer::RunOnceAfterReset()
 	CFastArray<float, 1> expectedClassBuffer;
 
 	int dataSize = inputBlob->GetDataSize();
-	int objectCount = inputBlob->GetObjectCount() * inputBlob->GetGeometricalSize();
-	int channelsCnt = inputBlob->GetChannelsCount();
+	int objectCount = inputBlob->GetObjectCount();
+	int objectSize = inputBlob->GetObjectSize();
 
 	predictedClassBuffer.SetSize( dataSize );
 	expectedClassBuffer.SetSize( dataSize );
@@ -168,9 +173,9 @@ void CConfusionMatrixLayer::RunOnceAfterReset()
 		float maxValueForPredictedClass = -FLT_MAX;
 		float maxValueForExpectedClass = -FLT_MAX;
 
-		for( int classWeightId = 0; classWeightId < channelsCnt; classWeightId++ ) {
-			const float currentPredictedClassWeight = predictedClassBuffer[sampleId * channelsCnt + classWeightId];
-			const float currentExpectedClassWeight = expectedClassBuffer[sampleId * channelsCnt + classWeightId];
+		for( int classWeightId = 0; classWeightId < objectSize; classWeightId++ ) {
+			const float currentPredictedClassWeight = predictedClassBuffer[sampleId * objectSize + classWeightId];
+			const float currentExpectedClassWeight = expectedClassBuffer[sampleId * objectSize + classWeightId];
 			if( maxValueForPredictedClass < currentPredictedClassWeight ) {
 				maxValueForPredictedClass = currentPredictedClassWeight;
 				predictedClass = classWeightId;
