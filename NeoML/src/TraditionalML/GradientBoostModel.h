@@ -38,12 +38,12 @@ public:
 		const CSparseFloatVectorDesc& desc );
 
 	// Gets the prediction by the tree ensemble for multiple classes
-	static CFloatVector MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CSparseFloatVector& vector, int valueSize );
-	static CFloatVector MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CFloatVector& vector, int valueSize );
-	static CFloatVector MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CSparseFloatVectorDesc& desc, int valueSize );
+	static void MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const CSparseFloatVector& vector, CFastArray<double, 1>& predictions );
+	static void MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const CFloatVector& vector, CFastArray<double, 1>& predictions );
+	static void MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const CSparseFloatVectorDesc& desc, CFastArray<double, 1>& predictions );
 
 	// IModel interface methods
 	int GetClassCount() const override { return ( valueSize == 1 && ensembles.Size() == 1 ) ? 2 : valueSize * ensembles.Size(); }
@@ -76,7 +76,7 @@ private:
 	int valueSize; // the value size of each model, if valueSize > 1 then ensemble consists of multiclass trees
 
 	bool classify( double prediction, CClassificationResult& result ) const;
-	bool classify( const CFloatVector& predictions, CClassificationResult& result ) const;
+	bool classify( CFastArray<double, 1>& predictions, CClassificationResult& result ) const;
 	double probability( double prediction ) const;
 
 	// The common implementation for all three MultivariatePredict methods

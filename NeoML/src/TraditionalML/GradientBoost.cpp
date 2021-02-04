@@ -608,7 +608,7 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 		model = fullMultiClassTreeBuilder->Build( *fullProblem,
 			gradients, gradientsSum, hessians, hessiansSum, weights, weightsSum );
 		curModels.Add( model );
-	} else if( fullSingleClassTreeBuilder != nullptr ) {
+	} else {
 		for( int i = 0; i < gradients.Size(); i++ ) {
 			if( logStream != nullptr ) {
 				*logStream << "GradientSum = " << gradientsSum[i]
@@ -616,21 +616,14 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 					<< "\n";
 			}
 			CPtr<IRegressionTreeModel> model;
-			model = fullSingleClassTreeBuilder->Build( *fullProblem,
-				gradients[i], gradientsSum[i],
-				hessians[i], hessiansSum[i],
-				weights, weightsSum );
-			curModels.Add( model );
-		}
-	} else if( fastHistTreeBuilder != nullptr ) {
-		for( int i = 0; i < gradients.Size(); i++ ) {
-			if( logStream != nullptr ) {
-				*logStream << "GradientSum = " << gradientsSum[i]
-					<< " HessianSum = " << hessiansSum[i]
-					<< "\n";
+			if( fullSingleClassTreeBuilder != nullptr ) {
+				model = fullSingleClassTreeBuilder->Build( *fullProblem,
+					gradients[i], gradientsSum[i],
+					hessians[i], hessiansSum[i],
+					weights, weightsSum );
+			} else {
+				model = fastHistTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
 			}
-			CPtr<IRegressionTreeModel> model;
-			model = fastHistTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
 			curModels.Add( model );
 		}
 	}
@@ -647,6 +640,8 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 	{
 		int index = 0;
 		int count = 0;
+		CFastArray<double, 1> predictions;
+		predictions.SetSize( problem.GetValueSize() );
 		if( OmpGetTaskIndexAndCount( usedVectors.Size(), index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				const int usedVector = usedVectors[index];
@@ -654,20 +649,21 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 				CSparseFloatVectorDesc vector;
 				matrix.GetRow( usedVector, vector );
 
-				CFloatVector predictions( problem.GetValueSize(), 0.0 );
-				if( params.TreeBuilder == GBTB_MultiFull ){
-					predictions = CGradientBoostModel::MultivariatePredictRaw( models[0], predictCache[0][usedVector].Step,
-						params.LearningRate, vector, problem.GetValueSize() );
+				memset( predictions.GetPtr(), 0.0, predictions.Size() * sizeof( double ) );
+				if( params.TreeBuilder == GBTB_MultiFull ) {
+					CGradientBoostModel::MultivariatePredictRaw( models[0], predictCache[0][index].Step,
+						params.LearningRate, vector, predictions );
 				} else {
-					for( int j = 0; j < problem.GetValueSize(); j++ ){
-						predictions.SetAt( j, CGradientBoostModel::PredictRaw( models[j], predictCache[j][usedVector].Step,
-							params.LearningRate, vector ) );
+					for( int j = 0; j < problem.GetValueSize(); j++ ) {
+						predictions[j] = CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
+							params.LearningRate, vector );
 					}
 				}
+
 				for( int j = 0; j < problem.GetValueSize(); j++ ) {
-					predictCache[j][usedVector].Value += predictions[j];
-					predictCache[j][usedVector].Step = curStep;
-					predicts[j][index] = predictCache[j][usedVector].Value;
+					predictCache[j][index].Value += predictions[j];
+					predictCache[j][index].Step = curStep;
+					predicts[j][index] = predictCache[j][index].Value;
 					answers[j][index] = value[j];
 				}
 				index++;
@@ -693,20 +689,22 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 	{
 		int index = 0;
 		int count = 0;
+		CFastArray<double, 1> predictions;
+		predictions.SetSize( problem.GetValueSize() );
 		if( OmpGetTaskIndexAndCount( problem.GetVectorCount(), index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				const CFloatVector value = problem.GetValue( index );
 				CSparseFloatVectorDesc vector;
 				matrix.GetRow( index, vector );
 
-				CFloatVector predictions( problem.GetValueSize(), 0.0 );
 				if( params.TreeBuilder == GBTB_MultiFull ){
-					CFloatVector predictions = CGradientBoostModel::MultivariatePredictRaw( models[0], predictCache[0][index].Step,
-						params.LearningRate, vector, problem.GetValueSize() );
+					memset( predictions.GetPtr(), 0.0, predictions.Size() * sizeof( double ) );
+					CGradientBoostModel::MultivariatePredictRaw( models[0], predictCache[0][index].Step,
+						params.LearningRate, vector, predictions );
 				} else {
 					for( int j = 0; j < problem.GetValueSize(); j++ ){
-						predictions.SetAt( j, CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
-							params.LearningRate, vector ) );
+						predictions[j] = CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
+							params.LearningRate, vector );
 					}
 				}
 

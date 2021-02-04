@@ -305,7 +305,7 @@ inline CArchive& operator<<( CArchive& archive, const CRegressionTreeNodeInfo& i
 	archive << info.FeatureIndex;
 	if( info.Type == RTNT_MultiConst ) {
 		const_cast< CRegressionTreeNodeInfo& >( info ).Value.Serialize( archive );
-	} else if( info.Type != RTNT_Undefined ) {
+	} else {
 		archive << info.Value[0];
 	}
 	return archive;
@@ -317,7 +317,7 @@ inline CArchive& operator >> ( CArchive& archive, CRegressionTreeNodeInfo& info 
 	archive >> info.FeatureIndex;
 	if( info.Type == RTNT_MultiConst ) {
 		info.Value.Serialize( archive );
-	} else if( info.Type != RTNT_Undefined ) {
+	} else {
 		double value;
 		archive >> value;
 		info.Value = { value };

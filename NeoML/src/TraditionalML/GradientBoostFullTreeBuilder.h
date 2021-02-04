@@ -24,7 +24,6 @@ namespace NeoML {
 
 template<class T>
 struct CThreadStatistics;
-
 template<class T>
 struct CGradientBoostNodeStatistics;
 

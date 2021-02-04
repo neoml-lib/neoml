@@ -40,7 +40,7 @@ struct CThreadStatistics {
 	// The best result
 	int FeatureIndex;
 	float Threshold;
-	double Criterion;
+	float Criterion;
 	CArray<bool> ResultClassIsLeaf;
 	CGradientBoostVectorSetStatistics<T> LeftStatistics;
 	CGradientBoostVectorSetStatistics<T> RightStatistics;
@@ -51,18 +51,18 @@ struct CThreadStatistics {
 
 	CThreadStatistics( const CThreadStatistics& other );
 	explicit CThreadStatistics( float criterion, const CGradientBoostVectorSetStatistics<T>& totalStatistics, const CArray<bool>& classIsLeaf );
-	double CThreadStatistics::CalcCriterion( CGradientBoostVectorSetStatistics<T>& leftResult, CGradientBoostVectorSetStatistics<T>& rightResult,
+	double CalcCriterion( CGradientBoostVectorSetStatistics<T>& leftResult, CGradientBoostVectorSetStatistics<T>& rightResult,
 		float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight );
 };
 
 template<class T>
 inline CThreadStatistics<T>::CThreadStatistics( const CThreadStatistics& other ):
+	CurLeftStatistics( other.CurLeftStatistics ),
+	CurRightStatistics( other.CurRightStatistics ),
 	Prev( other.Prev ),
 	FeatureIndex( other.FeatureIndex ),
 	Threshold( other.Threshold ),
 	Criterion( other.Criterion ),
-	CurLeftStatistics( other.CurLeftStatistics ),
-	CurRightStatistics( other.CurRightStatistics ),
 	LeftStatistics( other.LeftStatistics ),
 	RightStatistics( other.RightStatistics ),
 	TotalStatistics( other.TotalStatistics )
@@ -75,12 +75,12 @@ inline CThreadStatistics<T>::CThreadStatistics( const CThreadStatistics& other )
 template<class T>
 inline CThreadStatistics<T>::CThreadStatistics( float criterion, const CGradientBoostVectorSetStatistics<T>& totalStatistics,
 												const CArray<bool>& classIsLeaf ) :
+	CurLeftStatistics( classIsLeaf.Size() ),
+	CurRightStatistics( classIsLeaf.Size() ),
 	Prev( 0.0 ),
 	FeatureIndex( NotFound ),
 	Threshold( 0.0 ),
 	Criterion( criterion ),
-	CurLeftStatistics( classIsLeaf.Size() ),
-	CurRightStatistics( classIsLeaf.Size() ),
 	TotalStatistics( totalStatistics )
 {
 	CurClassIsLeaf.SetSize( classIsLeaf.Size() );
@@ -94,15 +94,15 @@ inline double CThreadStatistics<CArray<double>>::CalcCriterion(
 	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight )
 {
 	double result = 0;
-	leftResult.TotalWeight = CurLeftStatistics.TotalWeight;
-	rightResult.TotalWeight = CurRightStatistics.TotalWeight;
+	leftResult.SetWeight( CurLeftStatistics.TotalWeight() );
+	rightResult.SetWeight( CurRightStatistics.TotalWeight() );
 
 	for( int i = 0; i < InitialClassIsLeaf.Size(); i++ ){
 		bool classIsLeaf = InitialClassIsLeaf[i];
-		if( CurLeftStatistics.TotalHessian[i] < minSubsetHessian || 
-			CurLeftStatistics.TotalWeight < minSubsetWeight ||
-			CurRightStatistics.TotalHessian[i] < minSubsetHessian ||
-			CurRightStatistics.TotalWeight < minSubsetWeight )
+		if( CurLeftStatistics.TotalHessian()[i] < minSubsetHessian || 
+			CurLeftStatistics.TotalWeight() < minSubsetWeight ||
+			CurRightStatistics.TotalHessian()[i] < minSubsetHessian ||
+			CurRightStatistics.TotalWeight() < minSubsetWeight )
 		{
 			classIsLeaf |= true;
 		}
@@ -118,15 +118,15 @@ inline double CThreadStatistics<CArray<double>>::CalcCriterion(
 				criterion = splitCriterion;
 			}
 		}
-		
+
 		CurClassIsLeaf[i] = classIsLeaf;
-		const CGradientBoostVectorSetStatistics<CArray<double>>& left = ( classIsLeaf ) ? TotalStatistics : CurLeftStatistics;
-		const CGradientBoostVectorSetStatistics<CArray<double>>& right = (classIsLeaf) ? TotalStatistics : CurRightStatistics;
-		leftResult.TotalGradient[i] = left.TotalGradient[i];
-		leftResult.TotalHessian[i] = left.TotalHessian[i];
-		rightResult.TotalGradient[i] = right.TotalGradient[i];
-		rightResult.TotalHessian[i] = right.TotalHessian[i];
-		
+		if( classIsLeaf ) {
+			leftResult.SetGradientAndHessian( TotalStatistics, i );
+			rightResult.SetGradientAndHessian( TotalStatistics, i );
+		} else {
+			leftResult.SetGradientAndHessian( CurLeftStatistics, i );
+			rightResult.SetGradientAndHessian( CurRightStatistics, i );
+		}
 		result += criterion;
 	}
 	return result;
@@ -197,7 +197,7 @@ inline void CGradientBoostNodeStatistics<T>::InitThreadStatistics( int threadCou
 template<>
 inline void CGradientBoostNodeStatistics<double>::LeafValue( double& res )
 {
-	res = -TotalStatistics.TotalGradient / TotalStatistics.TotalHessian;
+	res = -TotalStatistics.TotalGradient() / TotalStatistics.TotalHessian();
 }
 
 template<>
@@ -205,7 +205,7 @@ inline void CGradientBoostNodeStatistics<CArray<double>>::LeafValue( CArray<doub
 {
 	values.SetSize( ClassIsLeaf.Size() );
 	for( int i = 0; i < ClassIsLeaf.Size(); i++ ){
-		values[i] = -TotalStatistics.TotalGradient[i] / TotalStatistics.TotalHessian[i];
+		values[i] = -TotalStatistics.TotalGradient()[i] / TotalStatistics.TotalHessian()[i];
 	}
 }
 
@@ -565,16 +565,16 @@ template<>
 void CGradientBoostFullTreeBuilder<double>::checkSplit( int feature, float firstValue, float secondValue,
 	CThreadStatistics<double>& statistics ) const
 {
-	if( statistics.CurLeftStatistics.TotalHessian < params.MinSubsetHessian
-		|| statistics.CurLeftStatistics.TotalWeight < params.MinSubsetWeight
-		|| statistics.CurRightStatistics.TotalHessian < params.MinSubsetHessian
-		|| statistics.CurRightStatistics.TotalWeight < params.MinSubsetWeight )
+	if( statistics.CurLeftStatistics.TotalHessian() < params.MinSubsetHessian
+		|| statistics.CurLeftStatistics.TotalWeight() < params.MinSubsetWeight
+		|| statistics.CurRightStatistics.TotalHessian() < params.MinSubsetHessian
+		|| statistics.CurRightStatistics.TotalWeight() < params.MinSubsetWeight )
 	{
 		return;
 	}
 
-	double criterion = statistics.CurLeftStatistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor ) +
-		statistics.CurRightStatistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor );
+	const float criterion = static_cast< float >( statistics.CurLeftStatistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor ) +
+		statistics.CurRightStatistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor ) );
 
 	if( statistics.Criterion < criterion || ( statistics.Criterion == criterion && statistics.FeatureIndex > feature ) ) {
 		statistics.FeatureIndex = feature;
@@ -594,8 +594,8 @@ void CGradientBoostFullTreeBuilder<CArray<double>>::checkSplit( int feature, flo
 	CThreadStatistics<CArray<double>>& statistics ) const
 {
 	CGradientBoostVectorSetStatistics<CArray<double>> leftStatistics( valueSize ), rightStatistics( valueSize );
-	const double criterion = statistics.CalcCriterion( leftStatistics, rightStatistics,
-		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight );
+	const float criterion = static_cast< float >( statistics.CalcCriterion( leftStatistics, rightStatistics,
+		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight ) );
 
 	bool toSplit = statistics.Criterion < criterion || (statistics.Criterion == criterion && statistics.FeatureIndex > feature);
 	bool allLeaves = ( leafsCount( statistics.CurClassIsLeaf ) == statistics.CurClassIsLeaf.Size() );

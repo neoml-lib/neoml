@@ -74,8 +74,8 @@ CPtr<IRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGrad
 			if( logStream != 0 ) {
 				*logStream << L"Split result: index = " << featureIndexes[nodes[node].SplitFeatureId]
 					<< L" threshold = " << cuts[nodes[node].SplitFeatureId]
-					<< L" ( gradient = " << nodes[node].Statistics.TotalGradient
-					<< L", hessian = " << nodes[node].Statistics.TotalHessian
+					<< L" ( gradient = " << nodes[node].Statistics.TotalGradient()
+					<< L", hessian = " << nodes[node].Statistics.TotalHessian()
 					<< L", criterion = " << nodes[node].Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
 					<< L" )\n";
 			}
@@ -108,8 +108,8 @@ CPtr<IRegressionTreeModel> CGradientBoostFastHistTreeBuilder::Build( const CGrad
 			// The node could not be split
 			if( logStream != 0 ) {
 				*logStream << L"Split result: created const node.\t\t"
-					<< L" ( gradient = " << nodes[node].Statistics.TotalGradient
-					<< L", hessian = " << nodes[node].Statistics.TotalHessian
+					<< L" ( gradient = " << nodes[node].Statistics.TotalGradient()
+					<< L", hessian = " << nodes[node].Statistics.TotalHessian()
 					<< L", criterion = " << nodes[node].Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
 					<< L" )\n";
 			}
@@ -324,10 +324,10 @@ int CGradientBoostFastHistTreeBuilder::evaluateSplit( const CGradientBoostFastHi
 				right.Sub( left );
 
 				// The condition (lower limit) for the resulting node size
-				if( left.TotalHessian < params.MinSubsetHessian
-					|| left.TotalWeight < params.MinSubsetWeight
-					|| right.TotalHessian < params.MinSubsetHessian
-					|| right.TotalWeight < params.MinSubsetWeight )
+				if( left.TotalHessian() < params.MinSubsetHessian
+					|| left.TotalWeight() < params.MinSubsetWeight
+					|| right.TotalHessian() < params.MinSubsetHessian
+					|| right.TotalWeight() < params.MinSubsetWeight )
 				{
 					continue;
 				}
@@ -463,7 +463,7 @@ CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder::buildTree( int nod
 	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();
 
 	if( nodes[node].SplitFeatureId == NotFound ) {
-		result->InitLeafNode( -nodes[node].Statistics.TotalGradient / nodes[node].Statistics.TotalHessian );
+		result->InitLeafNode( -nodes[node].Statistics.TotalGradient() / nodes[node].Statistics.TotalHessian() );
 	} else {
 		CPtr<CRegressionTreeModel> left = buildTree( nodes[node].Left, featureIndexes, cuts );
 		CPtr<CRegressionTreeModel> right = buildTree( nodes[node].Right, featureIndexes, cuts );

@@ -42,51 +42,68 @@ public:
 	double CalcCriterion( float l1, float l2, int classIndex ) const;
 	double CalcCriterion( float l1, float l2 ) const;
 
-	T TotalGradient; // total gradient
-	T TotalHessian; // total hessian
-	float TotalWeight; // total weight
+	// Gets the total gradient
+	const T& TotalGradient() const { return totalGradient; }
+
+	// Gets the total hessian
+	const T& TotalHessian() const { return totalHessian; }
+
+	// Set total gradient and hessian for class
+	void SetGradientAndHessian( const CGradientBoostVectorSetStatistics<T>& other, int classIndex );
+
+	// Gets the total weight
+	float TotalWeight() const { return totalWeight; }
+
+	// Set the total weight
+	void SetWeight( float weight ) { totalWeight = weight; }
+
+
+private:
+	T totalGradient; // total gradient
+	T totalHessian; // total hessian
+	float totalWeight; // total weight
 };
 
 template<>
 inline CGradientBoostVectorSetStatistics<double>::CGradientBoostVectorSetStatistics( int valueSize )
 {
 	NeoAssert( valueSize == 1 );
-	TotalGradient = 0.0;
-	TotalHessian = 0.0;
-	TotalWeight = 0.0;
+	totalGradient = 0.0;
+	totalHessian = 0.0;
+	totalWeight = 0.0;
 }
 
 template<>
 inline CGradientBoostVectorSetStatistics<CArray<double>>::CGradientBoostVectorSetStatistics( int valueSize )
 {
-	TotalGradient.Add( 0.0, valueSize );
-	TotalHessian.Add( 0.0, valueSize );
-	TotalWeight = 0.0;
+	totalGradient.Add( 0.0, valueSize );
+	totalHessian.Add( 0.0, valueSize );
+	totalWeight = 0.0;
 }
 
 template<>
 inline CGradientBoostVectorSetStatistics<double>::CGradientBoostVectorSetStatistics( const CGradientBoostVectorSetStatistics& other )
 {
-	TotalGradient = other.TotalGradient;
-	TotalHessian = other.TotalHessian;
-	TotalWeight = other.TotalWeight;
+	totalGradient = other.totalGradient;
+	totalHessian = other.totalHessian;
+	totalWeight = other.totalWeight;
 }
 
 template<>
 inline CGradientBoostVectorSetStatistics<CArray<double>>::CGradientBoostVectorSetStatistics( const CGradientBoostVectorSetStatistics& other )
 {
-	other.TotalGradient.CopyTo( TotalGradient );
-	other.TotalHessian.CopyTo( TotalHessian );
-	TotalWeight = other.TotalWeight;
+	other.totalGradient.CopyTo( totalGradient );
+	other.totalHessian.CopyTo( totalHessian );
+	totalWeight = other.totalWeight;
 }
 
 template<>
 inline CGradientBoostVectorSetStatistics<double>& CGradientBoostVectorSetStatistics<double>::operator=( const CGradientBoostVectorSetStatistics& other )
 {
 	if( &other != this ) {
-		TotalGradient = other.TotalGradient;
-		TotalHessian = other.TotalHessian;
-		TotalWeight = other.TotalWeight;
+		totalGradient = other.totalGradient;
+		totalHessian = other.totalHessian;
+		totalWeight = other.totalWeight;
 	}
 	return *this;
 }
@@ -95,9 +112,9 @@ template<>
 inline CGradientBoostVectorSetStatistics<CArray<double>>& CGradientBoostVectorSetStatistics<CArray<double>>::operator=( const CGradientBoostVectorSetStatistics& other )
 {
 	if( &other != this ) {
-		other.TotalGradient.CopyTo( TotalGradient );
-		other.TotalHessian.CopyTo( TotalHessian );
-		TotalWeight = other.TotalWeight;
+		other.totalGradient.CopyTo( totalGradient );
+		other.totalHessian.CopyTo( totalHessian );
+		totalWeight = other.totalWeight;
 	}
 	return *this;
 }
@@ -105,144 +122,152 @@ inline CGradientBoostVectorSetStatistics<CArray<double>>& CGradientBoostVectorSe
 template<>
 inline void CGradientBoostVectorSetStatistics<double>::Add( const double& gradient, const double& hessian, float weight )
 {
-	TotalGradient += gradient;
-	TotalHessian += hessian;
-	TotalWeight += weight;
+	totalGradient += gradient;
+	totalHessian += hessian;
+	totalWeight += weight;
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<CArray<double>>::Add( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
 {
-	for( int i = 0; i < TotalGradient.Size(); i++ ){
-		TotalGradient[i] += gradient[i];
-		TotalHessian[i] += hessian[i];
+	for( int i = 0; i < totalGradient.Size(); i++ ){
+		totalGradient[i] += gradient[i];
+		totalHessian[i] += hessian[i];
 	}
-	TotalWeight += weight;
+	totalWeight += weight;
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<double>::Add( const CArray<double>& gradient, const CArray<double>& hessian, const CArray<float>& weight, int vectorIndex )
 {
-	TotalGradient += gradient[vectorIndex];
-	TotalHessian += hessian[vectorIndex];
-	TotalWeight += weight[vectorIndex];
+	totalGradient += gradient[vectorIndex];
+	totalHessian += hessian[vectorIndex];
+	totalWeight += weight[vectorIndex];
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<CArray<double>>::Add( const CArray<CArray<double>>& gradient, const CArray<CArray<double>>& hessian, const CArray<float>& weight, int vectorIndex )
 {
 	for( int i = 0; i < gradient.Size(); i++ ) {
-		TotalGradient[i] += gradient[i][vectorIndex];
-		TotalHessian[i] += hessian[i][vectorIndex];
+		totalGradient[i] += gradient[i][vectorIndex];
+		totalHessian[i] += hessian[i][vectorIndex];
 	}
-	TotalWeight += weight[vectorIndex];
+	totalWeight += weight[vectorIndex];
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<double>::Add( const CGradientBoostVectorSetStatistics& other )
 {
-	TotalGradient += other.TotalGradient;
-	TotalHessian += other.TotalHessian;
-	TotalWeight += other.TotalWeight;
+	totalGradient += other.totalGradient;
+	totalHessian += other.totalHessian;
+	totalWeight += other.totalWeight;
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<CArray<double>>::Add( const CGradientBoostVectorSetStatistics& other )
 {
-	for( int i = 0; i < TotalGradient.Size(); i++ ){
-		TotalGradient[i] += other.TotalGradient[i];
-		TotalHessian[i] += other.TotalHessian[i];
+	for( int i = 0; i < totalGradient.Size(); i++ ){
+		totalGradient[i] += other.totalGradient[i];
+		totalHessian[i] += other.totalHessian[i];
 	}
-	TotalWeight += other.TotalWeight;
+	totalWeight += other.totalWeight;
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<double>::Sub( const double& gradient, const double& hessian, float weight )
 {
-	TotalGradient -= gradient;
-	TotalHessian -= hessian;
-	TotalWeight -= weight;
+	totalGradient -= gradient;
+	totalHessian -= hessian;
+	totalWeight -= weight;
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<CArray<double>>::Sub( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
 {
-	for( int i = 0; i < TotalGradient.Size(); i++ ){
-		TotalGradient[i] -= gradient[i];
-		TotalHessian[i] -= hessian[i];
+	for( int i = 0; i < totalGradient.Size(); i++ ){
+		totalGradient[i] -= gradient[i];
+		totalHessian[i] -= hessian[i];
 	}
-	TotalWeight -= weight;
+	totalWeight -= weight;
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<double>::Sub( const CGradientBoostVectorSetStatistics& other )
 {
-	TotalGradient -= other.TotalGradient;
-	TotalHessian -= other.TotalHessian;
-	TotalWeight -= other.TotalWeight;
+	totalGradient -= other.totalGradient;
+	totalHessian -= other.totalHessian;
+	totalWeight -= other.totalWeight;
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<CArray<double>>::Sub( const CGradientBoostVectorSetStatistics& other )
 {
-	for( int i = 0; i < TotalGradient.Size(); i++ ){
-		TotalGradient[i] -= other.TotalGradient[i];
-		TotalHessian[i] -= other.TotalHessian[i];
+	for( int i = 0; i < totalGradient.Size(); i++ ){
+		totalGradient[i] -= other.totalGradient[i];
+		totalHessian[i] -= other.totalHessian[i];
 	}
-	TotalWeight -= other.TotalWeight;
+	totalWeight -= other.totalWeight;
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<double>::Erase()
 {
-	TotalGradient = 0.0;
-	TotalHessian = 0.0;
-	TotalWeight = 0.0;
+	totalGradient = 0.0;
+	totalHessian = 0.0;
+	totalWeight = 0.0;
 }
 
 template<>
 inline void CGradientBoostVectorSetStatistics<CArray<double>>::Erase()
 {
-	for( int i = 0; i < TotalGradient.Size(); i++ ){
-		TotalGradient[i] = 0.0;
-		TotalHessian[i] = 0.0;
+	for( int i = 0; i < totalGradient.Size(); i++ ){
+		totalGradient[i] = 0.0;
+		totalHessian[i] = 0.0;
 	}
-	TotalWeight = 0.0;
+	totalWeight = 0.0;
 }
 
 template<>
 inline double CGradientBoostVectorSetStatistics<CArray<double>>::CalcCriterion( float l1, float l2, int classIndex ) const
 {
-	double temp = TotalGradient[classIndex];
+	double temp = totalGradient[classIndex];
 	if( temp > l1 ) {
 		temp -= l1;
 	} else if( temp < -l1 ) {
 		temp += l1;
 	}
-	return temp * temp / (TotalHessian[classIndex] + l2);
+	return temp * temp / ( totalHessian[classIndex] + l2 );
 }
 
 template<>
 inline double CGradientBoostVectorSetStatistics<double>::CalcCriterion( float l1, float l2 ) const
 {
-	double temp = TotalGradient;
+	double temp = totalGradient;
 	if( temp > l1 ) {
 		temp -= l1;
 	}
 	else if( temp < -l1 ) {
 		temp += l1;
 	}
-	return temp * temp / (TotalHessian + l2);
+	return temp * temp / ( totalHessian + l2 );
 }
 
 template<>
 inline double CGradientBoostVectorSetStatistics<CArray<double>>::CalcCriterion( float l1, float l2 ) const
 {
 	double res = 0;
-	for( int i = 0; i < TotalGradient.Size(); i++ ){
-		res += CalcCriterion( l1, l2, i);
+	for( int i = 0; i < totalGradient.Size(); i++ ){
+		res += CalcCriterion( l1, l2, i );
 	}
 	return res;
+}
+
+template<>
+inline void CGradientBoostVectorSetStatistics<CArray<double>>::SetGradientAndHessian( const CGradientBoostVectorSetStatistics<CArray<double>>& other,
+	int classIndex )
+{
+	totalGradient[classIndex] = other.totalGradient[classIndex];
+	totalHessian[classIndex] = other.totalHessian[classIndex];
 }
 
 } // namespace NeoML

@@ -69,7 +69,7 @@ void CRegressionTreeModel::InitLeafNode( double prediction )
 {
 	info.Type = RTNT_Const;
 	info.FeatureIndex = NotFound;
-	info.Value = { static_cast<float>( prediction ) };
+	info.Value = { prediction };
 	leftChild.Release();
 	rightChild.Release();
 }
@@ -92,7 +92,7 @@ void CRegressionTreeModel::InitSplitNode( CRegressionTreeModel& left, CRegressio
 
 	info.Type = RTNT_Continuous;
 	info.FeatureIndex = feature;
-	info.Value = { static_cast< float >( threshold ) };
+	info.Value = { threshold };
 	leftChild = &left;
 	rightChild = &right;
 }
@@ -201,7 +201,7 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 
 	if( archive.IsStoring() ) {
 		if( info.Type == RTNT_Continuous ) {
-			unsigned int index = static_cast<unsigned int>( info.FeatureIndex );
+			unsigned int index = static_cast<unsigned int>( info.FeatureIndex + 2 );
 			serializeCompact( archive, index );
 			archive << info.Value[0];
 			NeoAssert( leftChild != 0 );
@@ -209,11 +209,11 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 			NeoAssert( rightChild != 0 );
 			rightChild->Serialize( archive );
 		} else if( info.Type == RTNT_Const ) {
-			unsigned int type = static_cast<unsigned int>( -1 );
+			unsigned int type = 0;
 			serializeCompact( archive, type );
 			archive << info.Value[0];
 		} else if( info.Type == RTNT_MultiConst ) {
-			unsigned int type = static_cast<unsigned int>( -2 );
+			unsigned int type = 1;
 			serializeCompact( archive, type );
 			info.Value.Serialize( archive );
 		}
@@ -263,22 +263,21 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 			}
 			case 3:
 			{
-				unsigned int tempIndex = 0;
-				serializeCompact( archive, tempIndex );
-				int index = static_cast<int>( tempIndex );
-				if( index >= 0 ) {
+				unsigned int index = 0;
+				serializeCompact( archive, index );
+				if( index >= 2 ) {
 					info.Type = RTNT_Continuous;
-					info.FeatureIndex = index;
+					info.FeatureIndex = index - 2;
 					double value;
 					archive >> value;
 					info.Value = { value };
-				} else if( index == -1 ) {
+				} else if( index == 0 ) {
 					info.Type = RTNT_Const;
 					info.FeatureIndex = NotFound;
 					double value;
 					archive >> value;
 					info.Value = { value };
-				} else if( index == -2 ) {
+				} else if( index == 1 ) {
 					info.Type = RTNT_MultiConst;
 					info.FeatureIndex = NotFound;
 					info.Value.Serialize( archive );
