@@ -28,6 +28,7 @@ public:
 
 	// Adds a vector
 	void Add( const T& gradient, const T& hessian, float weight );
+	void Add( const CArray<T>& gradient, const CArray<T>& hessian, const CArray<float>& weight, int vectorIndex );
 	void Add( const CGradientBoostVectorSetStatistics<T>& other );
 
 	// Deletes a vector
@@ -117,6 +118,24 @@ inline void CGradientBoostVectorSetStatistics<CArray<double>>::Add( const CArray
 		TotalHessian[i] += hessian[i];
 	}
 	TotalWeight += weight;
+}
+
+template<>
+inline void CGradientBoostVectorSetStatistics<double>::Add( const CArray<double>& gradient, const CArray<double>& hessian, const CArray<float>& weight, int vectorIndex )
+{
+	TotalGradient += gradient[vectorIndex];
+	TotalHessian += hessian[vectorIndex];
+	TotalWeight += weight[vectorIndex];
+}
+
+template<>
+inline void CGradientBoostVectorSetStatistics<CArray<double>>::Add( const CArray<CArray<double>>& gradient, const CArray<CArray<double>>& hessian, const CArray<float>& weight, int vectorIndex )
+{
+	for( int i = 0; i < gradient.Size(); i++ ) {
+		TotalGradient[i] += gradient[i][vectorIndex];
+		TotalHessian[i] += hessian[i][vectorIndex];
+	}
+	TotalWeight += weight[vectorIndex];
 }
 
 template<>

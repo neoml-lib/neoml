@@ -303,7 +303,7 @@ bool CGradientBoostFullTreeBuilder<T>::buildTreeLevel( const CGradientBoostFullP
 
 	// Select the best overall result from the threads' results
 	mergeThreadResults();
-
+	
 	// Now we have processed all vectors, perform the final split
 	return split();
 }
@@ -446,7 +446,7 @@ void CGradientBoostFullTreeBuilder<T>::findBinarySplits( int threadNumber,
 			statistics.Prev = 1.0;
 		}
 
-		statistics.CurRightStatistics.Add( gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex] );
+		statistics.CurRightStatistics.Add( gradients, hessians, weights, vectorIndex );
 	}
 
 	// Try splitting using the accumulated statistics
@@ -514,7 +514,7 @@ void CGradientBoostFullTreeBuilder<T>::findSplits( int threadNumber,
 			statistics.Prev = ptr[i].Value;
 		}
 
-		statistics.CurLeftStatistics.Add( gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex] );
+		statistics.CurLeftStatistics.Add( gradients, hessians, weights, vectorIndex );
 	}
 
 	// Now process the positive values
@@ -548,6 +548,7 @@ void CGradientBoostFullTreeBuilder<T>::findSplits( int threadNumber,
 			statistics.CurRightStatistics.Erase();
 			statistics.Prev = ptr[i].Value;
 		}
+
 		if( statistics.Prev != ptr[i].Value ) { // equal values should be in the same subtree
 			statistics.CurLeftStatistics = classifyNodesCache[vectorIndex]->TotalStatistics;
 			statistics.CurLeftStatistics.Sub( statistics.CurRightStatistics );
@@ -555,7 +556,7 @@ void CGradientBoostFullTreeBuilder<T>::findSplits( int threadNumber,
 			statistics.Prev = ptr[i].Value;
 		}
 
-		statistics.CurRightStatistics.Add( gradients[vectorIndex], hessians[vectorIndex], weights[vectorIndex] );
+		statistics.CurRightStatistics.Add( gradients, hessians, weights, vectorIndex );
 	}
 }
 
@@ -564,10 +565,10 @@ template<>
 void CGradientBoostFullTreeBuilder<double>::checkSplit( int feature, float firstValue, float secondValue,
 	CThreadStatistics<double>& statistics ) const
 {
-	if( statistics.CurLeftStatistics.TotalHessian < params.MinSubsetHessian ||
-		statistics.CurLeftStatistics.TotalWeight < params.MinSubsetWeight ||
-		statistics.CurRightStatistics.TotalHessian < params.MinSubsetHessian ||
-		statistics.CurRightStatistics.TotalWeight < params.MinSubsetWeight )
+	if( statistics.CurLeftStatistics.TotalHessian < params.MinSubsetHessian
+		|| statistics.CurLeftStatistics.TotalWeight < params.MinSubsetWeight
+		|| statistics.CurRightStatistics.TotalHessian < params.MinSubsetHessian
+		|| statistics.CurRightStatistics.TotalWeight < params.MinSubsetWeight )
 	{
 		return;
 	}
