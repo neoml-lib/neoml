@@ -22,7 +22,7 @@ namespace NeoML {
 // The model trained using gradient boosting
 class CGradientBoostModel : public IGradientBoostModel, public IGradientBoostRegressionModel {
 public:
-	CGradientBoostModel() : valueSize( 1 ), learningRate( 0 ), lossFunction( CGradientBoost::LF_Undefined ) {}
+	CGradientBoostModel() : learningRate( 0 ), lossFunction( CGradientBoost::LF_Undefined ), valueSize( 1 ) {}
 	CGradientBoostModel( CArray<CGradientBoostEnsemble>& models, int valueSize, double learningRate,
 		CGradientBoost::TLossFunction lossFunction );
 
