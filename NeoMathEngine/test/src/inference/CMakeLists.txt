@@ -29,6 +29,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMaxValueInColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMaxValueInRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LookupAndSumTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/LrnTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixSpreadRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixSpreadRowsAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyDiagMatrixByMatrixAndAddTest.cpp
