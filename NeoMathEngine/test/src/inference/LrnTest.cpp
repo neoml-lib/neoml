@@ -94,7 +94,7 @@ static void testLrn( const CTestParams& params, int seed )
 class CMathEngineLrnInferenceTest : public CTestFixtureWithParams {
 };
 
-TEST_F( CMathEngineLrnInferenceTest, PrecalcOdd )
+TEST_F( CMathEngineLrnInferenceTest, Precalc )
 {
 	const int height = 2;
 	const int width = 3;
@@ -123,41 +123,6 @@ TEST_F( CMathEngineLrnInferenceTest, PrecalcOdd )
 		0.15514243f, 0.19009213f, 0.22500427f, 0.25986353f, 0.29491338f, 0.33001018f, 0.36449975f, 0.3988879f,
 		0.43308502f, 0.467459f, 0.50172466f, 0.5371442f, 0.572765f, 0.60618573f, 0.6388899f, 0.67116714f, 0.7046276f,
 		0.73792887f, 0.7746171f, 0.81177235f };
-
-	for( int i = 0; i < dataSize; ++i ) {
-		ASSERT_NEAR( expected[i], output[i], 1e-5f ) << " at index " << i;
-	}
-}
-
-TEST_F( CMathEngineLrnInferenceTest, PrecalcEven )
-{
-	const int height = 2;
-	const int width = 3;
-	const int channels = 7;
-	const int dataSize = height * width * channels;
-
-	std::vector<float> input = { -1.5f, -1.41463415f, -1.32926829f, -1.24390244f, -1.15853659f, -1.07317073f,
-		-0.98780488f, -0.90243902f, -0.81707317f, -0.73170732f, -0.64634146f, -0.56097561f, -0.47560976f,
-		-0.3902439f, -0.30487805f, -0.2195122f, -0.13414634f, -0.04878049f, 0.03658537f, 0.12195122f,
-		0.20731707f, 0.29268293f, 0.37804878f, 0.46341463f, 0.54878049f, 0.63414634f, 0.7195122f, 0.80487805f,
-		0.8902439f, 0.97560976f, 1.06097561f, 1.14634146f, 1.23170732f, 1.31707317f, 1.40243902f, 1.48780488f,
-		1.57317073f, 1.65853659f, 1.74390244f, 1.82926829f, 1.91463415f, 2.f };
-
-	CFloatBlob inputBlob( MathEngine(), 1, 1, 1, height, width, 1, channels );
-	inputBlob.CopyFrom( input.data() );
-	std::unique_ptr<CLrnDesc> desc( MathEngine().InitLrn( inputBlob.GetDesc(), 4, 3.f, 2e-2f, 0.81f ) );
-
-	CFloatBlob outputBlob( MathEngine(), 1, 1, 1, height, width, 1, channels );
-	MathEngine().Lrn( *desc, inputBlob.GetData(), CFloatHandle(), CFloatHandle(), outputBlob.GetData() );
-	std::vector<float> output( dataSize );
-	outputBlob.CopyTo( output.data() );
-
-	std::vector<float> expected = { -0.6125469f, -0.57632184f, -0.54042643f, -0.506333f, -0.4721202f, -0.43779564f,
-		-0.40380767f, -0.36989787f, -0.33466625f, -0.29953277f, -0.2647652f, -0.22993277f, -0.19504364f, -0.16012594f,
-		-0.1251916f, -0.09013577f, -0.05508279f, -0.02003258f, 0.01502511f, 0.05008202f, 0.08513971f, 0.12016974f,
-		0.1551743f, 0.19013642f, 0.22506551f, 0.2599444f, 0.29476506f, 0.32987085f, 0.36477035f, 0.39914367f,
-		0.43330386f, 0.4677131f, 0.5020166f, 0.5362068f, 0.57196486f, 0.607211f, 0.6396949f, 0.67168444f, 0.7051968f,
-		0.7385522f, 0.77174383f, 0.8094015 };
 
 	for( int i = 0; i < dataSize; ++i ) {
 		ASSERT_NEAR( expected[i], output[i], 1e-5f ) << " at index " << i;
