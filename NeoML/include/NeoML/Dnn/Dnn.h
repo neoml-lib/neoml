@@ -177,9 +177,19 @@ public:
 	// Returns the total size of all output blobs together
 	virtual size_t GetOutputBlobsSize() const;
 
+	// Releases all temporary resources allocated for the layer
+	virtual void CleanUp();
+
 	// Returns the total size of trainable parameters in this layer
 	// Returns the total size of trainable parameters of its internal layers, if layer is composite or recurrent
 	virtual size_t GetTrainableParametersSize() const;
+
+	// Enable profile timer for RunOnce
+	virtual void EnableProfile( bool profile ) { useTimer = profile; }
+	// Returns number of RunOnce calls since last Reshape
+	int GetRunOnceCount() const { return runOnceCount; }
+	// Returns total time of RunOnce calls (in milliseconds) since last Reshape
+	IPerformanceCounters::CCounter::TCounterType GetRunOnceTime() const { return runOnceTime; }
 
 protected:
 	// A virtual method that creates output blobs using the input blobs
@@ -327,6 +337,13 @@ private:
 	// The number of graphs with which the layer is connected
 	int graphCount;
 
+	// Use timer to calculate run once time and hit count
+	bool useTimer;
+	// The total number of RunOnce calls since last Reshape
+	int runOnceCount;
+	// The total time of RunOnce calls since last Reshape in milliseconds
+	IPerformanceCounters::CCounter::TCounterType runOnceTime;
+
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
 	CDnnBlob* switchBlobToSequentialMode(CDnnBlob* blob, TBlobCacheType cacheType, bool storeParent);
@@ -451,6 +468,9 @@ public:
 	// Runs the network, performs a backward pass and updates the trainable weights
 	void RunAndLearnOnce();
 
+	// Releases all temporary resources allocated for RunAndBackwardOnce()
+	void CleanUp();
+
 	// Gets the maximum sequence length
 	int GetMaxSequenceLength() const { return maxSequenceLength; }
 	// Gets the current position in sequence (makes sense when calling from one of the Run... methods)
@@ -509,6 +529,9 @@ public:
 	// Serializes network with data, required to resume training
 	// When loading from checkpoint creates new solver (old pointers will point to an object, not used by this net anymore)
 	void SerializeCheckpoint( CArchive& archive );
+
+	// Enables profiling for all the layers in the network
+	void EnableProfile( bool profile );
 
 private:
 	// Adds or deletes a layer

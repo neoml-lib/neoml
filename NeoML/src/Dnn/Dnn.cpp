@@ -79,6 +79,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/GELULayer.h>
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
+#include <NeoML/Dnn/Layers/QrnnLayer.h>
 
 namespace NeoML {
 
@@ -291,6 +292,7 @@ REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer
 REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLayer" )
 REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
 REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClass" )
+REGISTER_NEOML_LAYER( CQrnnLayer, "NeoMLDnnQrnnLayer" )
 
 }
 
@@ -545,6 +547,13 @@ void CDnn::RunAndLearnOnce()
 	solver->Train();
 }
 
+void CDnn::CleanUp()
+{
+	for( int i = 0; i < layers.Size(); i++ ) {
+		layers[i]->CleanUp();
+	}
+}
+
 void CDnn::backwardRunAndLearnOnce(int curSequencePos)
 {
 	currentSequencePos = curSequencePos;
@@ -704,6 +713,13 @@ void CDnn::SerializeCheckpoint( CArchive& archive )
 	SerializeSolver( archive, *this, solverPtr );
 	if( archive.IsLoading() ) {
 		SetSolver( solverPtr );
+	}
+}
+
+void CDnn::EnableProfile( bool profile )
+{
+	for( int i = 0; i < layers.Size(); ++i ) {
+		layers[i]->EnableProfile( profile );
 	}
 }
 

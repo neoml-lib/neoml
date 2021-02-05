@@ -21,7 +21,7 @@ using namespace NeoMLTest;
 template<class T>
 static T matrixSpreadRowsTestRandomFunc( CRandom& )
 {
-	assert( false );
+	ASSERT_EXPR( false );
 }
 
 template<>

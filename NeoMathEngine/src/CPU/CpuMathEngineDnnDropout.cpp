@@ -38,7 +38,7 @@ void CCpuMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandl
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
 
-	assert( desc.Mask.Size() == maskSize );
+	ASSERT_EXPR( desc.Mask.Size() == maskSize );
 
 	if( !desc.IsSpatial ) {
 		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(), outputData,

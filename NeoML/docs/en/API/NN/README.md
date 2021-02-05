@@ -298,6 +298,7 @@ delete gpuMathEngine;
 - Recurrent layers:
   - [CLstmLayer](LstmLayer.md) implements long short-term memory (LSTM)
   - [CGruLayer](GruLayer.md) implements a gated recurrent unit (GRU)
+  - [CQrnnLayer](QrnnLayer.md) implements a quasi-recurrent layer
 - [Conditional random field (CRF)](CrfLayers/README.md):
   - [CCrfLayer](CrfLayers/CrfLayer.md) represents a CRF
   - [CCrfLossLayer](CrfLayers/CrfLossLayer.md) calculates the loss function for training CRF

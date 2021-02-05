@@ -173,6 +173,7 @@ static void destroyDefaultCpuMathEngine()
 		delete multiThreadCpuMathEngine;
 		multiThreadCpuMathEngine = 0;
 	}
+	CpuMathEngineCleanUp();
 }
 
 } // namespace NeoML

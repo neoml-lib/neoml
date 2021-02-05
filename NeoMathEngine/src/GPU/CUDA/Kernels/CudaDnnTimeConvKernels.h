@@ -35,7 +35,7 @@ __global__ void BlobTimeConvolutionPrepareKernel( const CCudaTimeConvolutionDesc
 		return;
 	}
 
-	int inputSeqNumber = seqNumber * desc.Stride + h * desc.Dilation - desc.Padding;
+	int inputSeqNumber = seqNumber * desc.Stride + h * desc.Dilation - desc.PaddingFront;
 
 	int objectSize = source.ObjectSize();
 
@@ -91,13 +91,13 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 
 	for( int filterY = 0; filterY < filter.Height(); filterY++ ) {
 		int inSeqNumFirst = seqNum - filterY * desc.Dilation;
-		if( inSeqNumFirst < -desc.Padding ) {
+		if( inSeqNumFirst < -desc.PaddingFront ) {
 			break; // the next values can only be smaller
 		}
-		if( ( inSeqNumFirst + desc.Padding ) % desc.Stride != 0 ) {
+		if( ( inSeqNumFirst + desc.PaddingFront ) % desc.Stride != 0 ) {
 			continue; // this row is not affected by the current filter row
 		}
-		int outSeqNum = ( inSeqNumFirst + desc.Padding ) / desc.Stride;
+		int outSeqNum = ( inSeqNumFirst + desc.PaddingFront ) / desc.Stride;
 		if( outSeqNum >= outputDiff.BatchLength() ) {
 			continue;
 		}
@@ -138,7 +138,7 @@ __global__ void blobTimeConvolutionLearnFilterKernel( CCudaTimeConvolutionDescIn
 		const int filterNum = index / filterHeight;
 
 		for( int outL = 0; outL < outputLength; ++outL ) {
-			int inL = outL * desc.Stride - desc.Padding + filterRow * desc.Dilation;
+			int inL = outL * desc.Stride - desc.PaddingFront + filterRow * desc.Dilation;
 			if( inL < 0 || inL >= inputLength ) {
 				continue;
 			}

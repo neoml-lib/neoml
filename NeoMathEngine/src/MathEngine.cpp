@@ -45,8 +45,6 @@ limitations under the License.
 
 namespace NeoML {
 
-static IMathEngineExceptionHandler* exceptionHandler = 0;
-
 // Interface destructors
 IVectorMathEngine::~IVectorMathEngine() {}
 IBlasEngine::~IBlasEngine() {}
@@ -85,7 +83,7 @@ private:
 };
 
 CGpuMathEngineManager::CGpuMathEngineManager() :
-	loader()
+	loader( CDllLoader::CUDA_DLL | CDllLoader::VULKAN_DLL )
 {
 #ifdef NEOML_USE_CUDA
 	if( loader.IsLoaded( CDllLoader::CUDA_DLL ) ) {
@@ -174,9 +172,35 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 
 //------------------------------------------------------------------------------------------------------------
 
+class CDefaultMathEngineExceptionHandler : public IMathEngineExceptionHandler {
+public:
+	~CDefaultMathEngineExceptionHandler() override {}
+
+	void OnAssert( const char* message, const wchar_t*, int, int ) override
+	{
+		throw std::logic_error( message );
+	}
+
+	void OnMemoryError() override
+	{
+		throw std::bad_alloc();
+	}
+
+	static IMathEngineExceptionHandler* GetInstance()
+	{
+		static CDefaultMathEngineExceptionHandler instance;
+		return &instance;
+	}
+
+private:
+	CDefaultMathEngineExceptionHandler() {}
+};
+
+static IMathEngineExceptionHandler* exceptionHandler = CDefaultMathEngineExceptionHandler::GetInstance();
+
 void SetMathEngineExceptionHandler( IMathEngineExceptionHandler* newExceptionHandler )
 {
-	exceptionHandler = newExceptionHandler;
+	exceptionHandler = newExceptionHandler == nullptr ? CDefaultMathEngineExceptionHandler::GetInstance() : newExceptionHandler;
 }
 
 IMathEngineExceptionHandler* GetMathEngineExceptionHandler()
