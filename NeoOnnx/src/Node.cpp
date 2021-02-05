@@ -37,6 +37,7 @@ limitations under the License.
 #include "Nodes/GemmNode.h"
 #include "Nodes/GlobalAveragePoolNode.h"
 #include "Nodes/IdentityNode.h"
+#include "Nodes/LrnNode.h"
 #include "Nodes/LstmNode.h"
 #include "Nodes/MatMulNode.h"
 #include "Nodes/PadNode.h"
@@ -120,6 +121,7 @@ REGISTER_OP_NODE( CGlobalAveragePoolNode, "GlobalAveragePool" )
 REGISTER_OP_NODE( CHardSigmoidNode, "HardSigmoid" )
 REGISTER_OP_NODE( CIdentityNode, "Identity" )
 REGISTER_OP_NODE( CLeakyReluNode, "LeakyRelu" )
+REGISTER_OP_NODE( CLrnNode, "LRN" )
 REGISTER_OP_NODE( CLstmNode, "LSTM" )
 REGISTER_OP_NODE( CMatMulNode, "MatMul" )
 REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
