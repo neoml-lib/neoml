@@ -66,7 +66,7 @@ The library is built with [CMake](https://cmake.org/download/) (recommended vers
 
 For best CPU performance on Windows, Linux and macOS we use [Intel MKL](https://software.intel.com/en-us/mkl).
 
-When processing on a GPU, you can optionally use [CUDA](https://developer.nvidia.com/cuda-downloads) (version 10.2) on Windows and [Vulkan](https://vulkan.lunarg.com/sdk/home) (version 1.1.130 and later) on Android.
+When processing on a GPU, you can optionally use [CUDA](https://developer.nvidia.com/cuda-downloads) (version 10.2) on Windows or Linux and [Vulkan](https://vulkan.lunarg.com/sdk/home) (version 1.1.130 and later) on Windows, Linux or Android.
 
 We also use Google [Test](https://github.com/google/googletest) for testing and Google [Protocol Buffers](https://developers.google.com/protocol-buffers) for working with ONNX model format.
 

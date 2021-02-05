@@ -20,7 +20,6 @@ limitations under the License.
 #ifdef NEOML_USE_VULKAN
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
-#include <assert.h>
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <MathEngineAllocator.h>

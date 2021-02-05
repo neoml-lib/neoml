@@ -136,10 +136,10 @@ CNotNullWeightsView<TProblem>::CNotNullWeightsView( const TProblem* problem ) :
 		ViewMatrixDesc.Height -= nullWeightElementsCount;
 		if( nullWeightElementsCount > 0 && ViewMatrixDesc.Height > 0 ) {
 			// we are going to remap some elements, so let's create our own arrays of pointers
-			ViewMatrixDesc.PointerB = static_cast<int*>(
-				ALLOCATE_MEMORY( CurrentMemoryManager, ViewMatrixDesc.Height * sizeof( int ) ) );
-			ViewMatrixDesc.PointerE = static_cast<int*>(
-				ALLOCATE_MEMORY( CurrentMemoryManager, ViewMatrixDesc.Height * sizeof( int ) ) );
+			pointerB.SetSize( ViewMatrixDesc.Height );
+			pointerE.SetSize( ViewMatrixDesc.Height );
+			ViewMatrixDesc.PointerB = pointerB.GetPtr();
+			ViewMatrixDesc.PointerE = pointerE.GetPtr();
 
 			nullWeightElementsCount = 0 ;
 			notNullWeightElementsIndices.SetBufferSize( ViewMatrixDesc.Height );
@@ -157,15 +157,6 @@ CNotNullWeightsView<TProblem>::CNotNullWeightsView( const TProblem* problem ) :
 
 			NeoAssert( ViewMatrixDesc.Height == notNullWeightElementsIndices.Size() );
 		}
-	}
-}
-
-template<class TProblem>
-CNotNullWeightsView<TProblem>::~CNotNullWeightsView()
-{
-	if( nullWeightElementsCount > 0 && ViewMatrixDesc.Height > 0 ) {
-		CurrentMemoryManager::Free( ViewMatrixDesc.PointerB );
-		CurrentMemoryManager::Free( ViewMatrixDesc.PointerE );
 	}
 }
 

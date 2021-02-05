@@ -68,6 +68,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/PositionalEmbeddingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
     Dnn/Layers/ProjectionPoolingLayer.cpp
+    Dnn/Layers/QrnnLayer.cpp
     Dnn/Layers/QualityControlLayer.cpp
     Dnn/Layers/RecurrentLayer.cpp
     Dnn/Layers/ReorgLayer.cpp
@@ -99,7 +100,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/DecisionTreeNodeStatisticBase.h
     TraditionalML/DecisionTreeTrainingModel.cpp
     TraditionalML/DifferentialEvolution.cpp
-    TraditionalML/EMClustering.cpp
     TraditionalML/FeatureSelection.cpp
     TraditionalML/FirstComeClustering.cpp
     TraditionalML/FloatVector.cpp
@@ -139,12 +139,14 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/Score.cpp
     TraditionalML/Shuffler.cpp
     TraditionalML/SMOptimizer.cpp
+    TraditionalML/SMOptimizer.h
     TraditionalML/SparseFloatMatrix.cpp
     TraditionalML/SparseFloatVector.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
     TraditionalML/SvmBinaryClassifierBuilder.cpp
     TraditionalML/SvmBinaryModel.cpp
     TraditionalML/SvmBinaryModel.h
+    TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
 
     # Headers
@@ -207,6 +209,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h
     ../include/NeoML/Dnn/Layers/ProjectionPoolingLayer.h
+    ../include/NeoML/Dnn/Layers/QrnnLayer.h
     ../include/NeoML/Dnn/Layers/QualityControlLayer.h
     ../include/NeoML/Dnn/Layers/RecurrentLayer.h
     ../include/NeoML/Dnn/Layers/ReorgLayer.h
@@ -231,7 +234,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/CrossValidation.h
     ../include/NeoML/TraditionalML/DecisionTreeTrainingModel.h
     ../include/NeoML/TraditionalML/DifferentialEvolution.h
-    ../include/NeoML/TraditionalML/EMClustering.h
     ../include/NeoML/TraditionalML/FeatureSelection.h
     ../include/NeoML/TraditionalML/FirstComeClustering.h
     ../include/NeoML/TraditionalML/FloatVector.h
@@ -254,14 +256,16 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/Score.h
     ../include/NeoML/TraditionalML/Shuffler.h
     ../include/NeoML/TraditionalML/SimpleGenerator.h
-    ../include/NeoML/TraditionalML/SMOptimizer.h
     ../include/NeoML/TraditionalML/SparseFloatMatrix.h
     ../include/NeoML/TraditionalML/SparseFloatVector.h
+    ../include/NeoML/TraditionalML/SparseVectorIterator.h
     ../include/NeoML/TraditionalML/SvmBinaryClassifierBuilder.h
+    ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/TrainingModel.h
     ../include/NeoML/TraditionalML/TrustRegionNewtonOptimizer.h
     ../include/NeoML/TraditionalML/VariableMatrix.h
+    ../include/NeoML/TraditionalML/VectorIterator.h
 )
 
 target_include_directories(${PROJECT_NAME}

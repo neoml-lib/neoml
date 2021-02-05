@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/SparseFloatVector.h>
+#include <NeoML/TraditionalML/VectorIterator.h>
 
 #include <cstddef>
 
@@ -30,6 +31,9 @@ typedef CArray<CFloatVector> CFloatVectorArray;
 // Feature vector
 class NEOML_API CFloatVector {
 public:
+	typedef CVectorIterator<const float> TConstIterator;
+	typedef CVectorIterator<float> TIterator;
+
 	CFloatVector() {}
 	// Creates a vector of size length from the given sparse vector; 
 	// the features that are not present in sparse vector are set to 0
@@ -39,7 +43,7 @@ public:
 	CFloatVector( int size, float init );
 	CFloatVector( const CFloatVector& other );
 
-	bool IsNull() const { return body == 0; }
+	bool IsNull() const { return body == nullptr; }
 	int Size() const { return body->Values.Size(); }
 
 	double Norm() const;
@@ -86,6 +90,11 @@ public:
 	friend CArchive& operator << ( CArchive& archive, const CFloatVector& vector );
 	friend CArchive& operator >> ( CArchive& archive, CFloatVector& vector );
 
+	TConstIterator begin() const;
+	TConstIterator end() const;
+	TIterator begin();
+	TIterator end();
+
 private:
 	// The body of the vector is an object containing all its data.
 	struct NEOML_API CFloatVectorBody: public IObject {
@@ -122,6 +131,38 @@ inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVectorDe
 	return *this;
 }
 
+inline CFloatVector::TConstIterator CFloatVector::begin() const
+{
+	if( body == nullptr ) {
+		return TConstIterator();
+	}
+	return TConstIterator( GetPtr() );
+}
+
+inline CFloatVector::TConstIterator CFloatVector::end() const
+{
+	if( body == nullptr ) {
+		return TConstIterator();
+	}
+	return TConstIterator( GetPtr() + Size() );
+}
+
+inline CFloatVector::TIterator CFloatVector::begin()
+{
+	if( body == nullptr ) {
+		return TIterator();
+	}
+	return TIterator( CopyOnWrite() );
+}
+
+inline CFloatVector::TIterator CFloatVector::end()
+{
+	if( body == nullptr ) {
+		return TIterator();
+	}
+	return TIterator( CopyOnWrite() + Size() );
+}
+
 // The dot product of two vectors
 inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vector2 )
 {
@@ -149,10 +190,12 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 			sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[j];
 			i++;
 			j++;
-		} else if( static_cast<double>( vector1.Indexes[i] ) < vector2.Indexes[j] ) {
-			i++;
 		} else {
-			j++;
+			if( vector1.Indexes[i] < vector2.Indexes[j] ) {
+				i++;
+			} else {
+				j++;
+			}
 		}
 	}
 	return sum;

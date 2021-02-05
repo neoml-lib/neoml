@@ -26,26 +26,28 @@ limitations under the License.
 namespace NeoML {
 
 CTimeConvolutionDesc* CCpuMathEngine::InitTimeConvolution( const CBlobDesc& source,
-	int stride, int padding, int dilation, const CBlobDesc& filter, const CBlobDesc& result )
+	int stride, int paddingFront, int paddingBack, int dilation, const CBlobDesc& filter, const CBlobDesc& result )
 {
 	ASSERT_EXPR( stride > 0 );
-	ASSERT_EXPR( padding >= 0 );
+	ASSERT_EXPR( paddingFront >= 0 );
+	ASSERT_EXPR( paddingBack >= 0 );
 	ASSERT_EXPR( dilation > 0 );
 	ASSERT_EXPR( filter.BatchLength() == 1 );
 	ASSERT_EXPR( filter.Width() == 1 );
 	ASSERT_EXPR( filter.Depth() == 1 );
 	ASSERT_EXPR( filter.Channels() == source.ObjectSize() );
-	ASSERT_EXPR( source.BatchLength() + 2 * padding >= ( filter.Height() - 1 ) * dilation + 1 );
-	ASSERT_EXPR( result.BatchLength() == ( source.BatchLength() - ( filter.Height() - 1 ) * dilation - 1 + 2 * padding ) / stride + 1 );
+	ASSERT_EXPR( source.BatchLength() + paddingFront + paddingBack >= ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( result.BatchLength() == ( source.BatchLength() - ( filter.Height() - 1 ) * dilation - 1 + paddingFront + paddingBack ) / stride + 1 );
 	ASSERT_EXPR( result.BatchWidth() == source.BatchWidth() );
 	ASSERT_EXPR( result.ListSize() == 1 && source.ListSize() == 1 );
 	ASSERT_EXPR( result.Width() == 1 );
 	ASSERT_EXPR( result.Height() == 1 );
 	ASSERT_EXPR( result.Depth() == 1 );
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
-	ASSERT_EXPR( padding < ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( paddingFront < ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( paddingBack < ( filter.Height() - 1 ) * dilation + 1 );
 
-	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( source, filter, result, stride, padding, dilation );
+	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( source, result, filter, stride, paddingFront, paddingBack, dilation );
 	return desc;
 }
 
@@ -76,7 +78,7 @@ void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, 
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int outSeqNum = 0; outSeqNum < result.BatchLength(); ++outSeqNum ) {
 		int filterRowStart = 0;
-		int inputRowStart = outSeqNum * desc.Stride - desc.Padding;
+		int inputRowStart = outSeqNum * desc.Stride - desc.PaddingFront;
 		if( inputRowStart < 0 ) {
 			filterRowStart = ( -inputRowStart - 1 ) / desc.Dilation + 1;
 			inputRowStart = inputRowStart + filterRowStart * desc.Dilation;
@@ -140,13 +142,13 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 
 		for( int filterRow = 0; filterRow < filter.Height(); filterRow++ ) {
 			int inSeqNumFirst = inSeqNum - filterRow * desc.Dilation;
-			if( inSeqNumFirst < -desc.Padding ) {
+			if( inSeqNumFirst < -desc.PaddingFront ) {
 				break; // the next values can only be smaller
 			}
-			if( ( inSeqNumFirst + desc.Padding ) % desc.Stride != 0 ) {
+			if( ( inSeqNumFirst + desc.PaddingFront ) % desc.Stride != 0 ) {
 				continue; // this filter row not applicable to the current row
 			}
-			int outSeqNum = ( inSeqNumFirst + desc.Padding ) / desc.Stride;
+			int outSeqNum = ( inSeqNumFirst + desc.PaddingFront ) / desc.Stride;
 			if( outSeqNum >= outputDiff.BatchLength() ) {
 				continue;
 			}
@@ -193,7 +195,7 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 		float* ompReductionPrivatePtr = GetRaw( ompReduction.GetPrivate().Data );
 
 		for( int filterRow = 0; filterRow < filterDiff.Height(); ++filterRow ) {
-			int inSeqNum = outSeqNum * desc.Stride - desc.Padding + filterRow * desc.Dilation;
+			int inSeqNum = outSeqNum * desc.Stride - desc.PaddingFront + filterRow * desc.Dilation;
 			if( inSeqNum < 0 || inSeqNum >= input.BatchLength() ) {
 				continue; // padding or went out of the input bounds
 			}

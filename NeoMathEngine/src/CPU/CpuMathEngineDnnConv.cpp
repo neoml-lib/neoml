@@ -23,6 +23,7 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineDnnConv.h>
 #include <CpuMathEnginePrivate.h>
+#include <NeoMathEngine/SimdMathEngine.h>
 
 namespace NeoML {
 
@@ -42,12 +43,14 @@ const int BlobConvolutionCacheSize = 256 * 1024;
 struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 	TConvAlgo ForwardAlgo;
 	TConvAlgo BackwardAlgo;
+	unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
 
-	CCpuConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
+	CCpuConvolutionDesc( unique_ptr<CConvolutionDesc>& simdConvolutionDesc, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
-		CCommonConvolutionDesc( source, filter, result, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
+		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
 		ForwardAlgo( getActualForwardAlgo() ),
-		BackwardAlgo( getActualBackwardAlgo() )
+		BackwardAlgo( getActualBackwardAlgo() ),
+		SimdConvolutionDesc( std::move( simdConvolutionDesc ) )
 	{
 	}
 
@@ -127,7 +130,13 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
 
-	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( source, filter, result,
+	unique_ptr<CConvolutionDesc> simdConvolutionDesc;
+	if( simdMathEngine != nullptr ) {
+		simdConvolutionDesc = unique_ptr<CConvolutionDesc>( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
+			strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
+	}
+
+	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( simdConvolutionDesc, source, result, filter,
 		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	return desc;
 }
@@ -505,6 +514,11 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
 
+	if( desc.SimdConvolutionDesc != nullptr ) {
+		simdMathEngine->BlobConvolution( *desc.SimdConvolutionDesc, sourceRaw, filterRaw, freeTermRaw, resultRaw );
+		return;
+	}
+
 	switch( desc.ForwardAlgo ) {
 		case CA_1:
 		case CA_2:
@@ -624,9 +638,9 @@ void CCpuMathEngine::backwardDilationConvolutionAddFilterToOutput( const CCpuCon
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& output = desc.Source;
 
-	assert( desc.DilationHeight >= 1 );
-	assert( desc.DilationWidth >= 1 );
-	assert( desc.DilationHeight + desc.DilationWidth > 2 );
+	ASSERT_EXPR( desc.DilationHeight >= 1 );
+	ASSERT_EXPR( desc.DilationWidth >= 1 );
+	ASSERT_EXPR( desc.DilationHeight + desc.DilationWidth > 2 );
 
 	const int vectorSize = output.Depth() * output.Channels();
 	int startRow;
@@ -784,12 +798,12 @@ void CCpuMathEngine::fillTempBlobsForLearnAlgo2( const CCpuConvolutionDesc& desc
 void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& desc, const CFloatHandle& outputDiffData,
 	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
 {
-	assert( desc.StrideHeight == 1 );
-	assert( desc.StrideWidth == 1 );
-	assert( desc.PaddingHeight == 0 );
-	assert( desc.PaddingWidth == 0 );
-	assert( desc.DilationHeight == 1 );
-	assert( desc.DilationWidth == 1 );
+	ASSERT_EXPR( desc.StrideHeight == 1 );
+	ASSERT_EXPR( desc.StrideWidth == 1 );
+	ASSERT_EXPR( desc.PaddingHeight == 0 );
+	ASSERT_EXPR( desc.PaddingWidth == 0 );
+	ASSERT_EXPR( desc.DilationHeight == 1 );
+	ASSERT_EXPR( desc.DilationWidth == 1 );
 
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& inputDiff = desc.Source;
@@ -891,8 +905,8 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 	const CBlobDesc& filterDiff = desc.Filter;
 	const CBlobDesc& outputDiff = desc.Result;
 	
-	assert( filterDiff.Depth() == input.Depth() );
-	assert( filterDiff.Channels() == input.Channels() );
+	ASSERT_EXPR( filterDiff.Depth() == input.Depth() );
+	ASSERT_EXPR( filterDiff.Channels() == input.Channels() );
 
 	const int objectCount = outputDiff.ObjectCount();
 	const int freeTermDiffSize = isFreeTermDiffFromInput ? filterDiff.Channels() : filterDiff.ObjectCount();
@@ -981,12 +995,12 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 	const CBlobDesc& outputDiff = desc.Result;
 	const CBlobDesc& filterDiff = desc.Filter;
 
-	assert( desc.StrideHeight == 1 );
-	assert( desc.StrideWidth == 1 );
-	assert( desc.PaddingHeight == 0 );
-	assert( desc.PaddingWidth == 0 );
-	assert( desc.DilationHeight == 1 );
-	assert( desc.DilationWidth == 1 );
+	ASSERT_EXPR( desc.StrideHeight == 1 );
+	ASSERT_EXPR( desc.StrideWidth == 1 );
+	ASSERT_EXPR( desc.PaddingHeight == 0 );
+	ASSERT_EXPR( desc.PaddingWidth == 0 );
+	ASSERT_EXPR( desc.DilationHeight == 1 );
+	ASSERT_EXPR( desc.DilationWidth == 1 );
 
 	CBlobDesc tempBlobDesc( CT_Float );
 	createTempBlobsLearnAlgo2( outputDiff, filterDiff, tempBlobDesc );
@@ -1153,7 +1167,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 			inputGeo, 1, input.Channels(), 1, inputRepackedDataRaw );
 
 		// Multiply the inputRepacked and filter matrices
-		assert( temp.GetDataSize() >= inputRepackedWidth * inputGeo );
+		PRESUME_EXPR( temp.GetDataSize() >= inputRepackedWidth * inputGeo );
 		batchMultiplyMatrixByTransposedMatrix( inputRepackedWidth,
 			inputRepacked.GetPrivateData(), inputGeo, 1,
 			filterTransposed, filterGeo, temp.GetPrivateData() );

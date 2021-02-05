@@ -74,12 +74,24 @@ void CLinearLayer::RunOnce()
 	CFloatHandle outputPtr = outputBlobs[0]->GetData();
 	int dataSize = outputBlobs[0]->GetDataSize();
 
-	CFloatHandleStackVar multiplierValue( MathEngine() );
-	multiplierValue.SetValue( multiplier );
-	CFloatHandleStackVar freeTermValue( MathEngine() );
-	freeTermValue.SetValue( freeTerm );
-	MathEngine().VectorMultiply(inputPtr, outputPtr, dataSize, multiplierValue);
-	MathEngine().VectorAddValue(outputPtr, outputPtr, dataSize, freeTermValue);
+	if( multiplier != 1.f ) {
+		CFloatHandleStackVar multiplierValue( MathEngine() );
+		multiplierValue.SetValue( multiplier );
+		MathEngine().VectorMultiply( inputPtr, outputPtr, dataSize, multiplierValue );
+		inputPtr = outputPtr;
+	}
+
+	if( freeTerm != 0.f ) {
+		CFloatHandleStackVar freeTermValue( MathEngine() );
+		freeTermValue.SetValue( freeTerm );
+		MathEngine().VectorAddValue( inputPtr, outputPtr, dataSize, freeTermValue );
+		inputPtr = outputPtr;
+	}
+
+	if( inputPtr != outputPtr ) {
+		// The only case when we need to copy data is when mult == 1 && ft == 0 && !inPlace
+		MathEngine().VectorCopy( outputPtr, inputPtr, dataSize );
+	}
 }
 
 void CLinearLayer::BackwardOnce()
@@ -88,9 +100,13 @@ void CLinearLayer::BackwardOnce()
 	CFloatHandle inputDiffPtr = inputDiffBlobs[0]->GetData();
 	int dataSize = outputBlobs[0]->GetDataSize();
 
-	CFloatHandleStackVar multiplierValue( MathEngine() );
-	multiplierValue.SetValue( multiplier );
-	MathEngine().VectorMultiply(outputDiffPtr, inputDiffPtr, dataSize, multiplierValue);
+	if( multiplier != 1.f ) {
+		CFloatHandleStackVar multiplierValue( MathEngine() );
+		multiplierValue.SetValue( multiplier );
+		MathEngine().VectorMultiply( outputDiffPtr, inputDiffPtr, dataSize, multiplierValue );
+	} else if( outputDiffPtr != inputDiffPtr ) {
+		MathEngine().VectorCopy( inputDiffPtr, outputDiffPtr, dataSize );
+	}
 }
 
 static const int LinearLayerVersion = 2000;
@@ -205,9 +221,11 @@ void CReLULayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), upperThreshold->GetData() );
 }
 
-CLayerWrapper<CReLULayer> Relu()
+CLayerWrapper<CReLULayer> Relu( float threshold )
 {
-	return CLayerWrapper<CReLULayer>( "Relu" );
+	return CLayerWrapper<CReLULayer>( "Relu", [=] ( CReLULayer* result ) {
+		result->SetUpperThreshold( threshold );
+	} );
 }
 
 //---------------------------------------------------------------------------------------------------

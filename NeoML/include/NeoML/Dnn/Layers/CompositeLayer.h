@@ -60,11 +60,16 @@ public:
 	// Returns the total size of the output blobs
 	size_t GetOutputBlobsSize() const override;
 
+	// Releases all temporary resources allocated for the layer
+	virtual void CleanUp() override;
+
 	// Returns the total size of trainable parameters
 	size_t GetTrainableParametersSize() const override;
 
 	// Starts processing a new sequence
 	void RestartSequence() override;
+
+	void EnableProfile( bool profile ) override;
 
 protected:
 	virtual ~CCompositeLayer();

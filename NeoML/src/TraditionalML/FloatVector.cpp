@@ -330,7 +330,7 @@ CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, 
 CSparseFloatVector CFloatVector::SparseVector() const
 {
 	const float* ptr = GetPtr();
-	const int size = body->Values.Size();
+	const int size = Size();
 	// Calculate how many non-zero elements there are
 	int nonZero = 0;
 	for( int i = 0; i < size; i++ ) {
