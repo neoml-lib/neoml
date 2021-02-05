@@ -13,6 +13,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnConv.cpp
     CPU/CpuMathEngineDnnChannelwiseConv.cpp
     CPU/CpuMathEngineDnnDropout.cpp
+    CPU/CpuMathEngineDnnLrn.cpp
     CPU/CpuMathEngineDnn.cpp
     CPU/CpuMathEngineDnnPooling.cpp
     CPU/CpuMathEngineDnnRleConv.cpp
@@ -35,6 +36,7 @@ target_sources(${PROJECT_NAME}
     MathEngineDll.h
     MathEngineDnnConv.h
     MathEngineDnnDropout.h
+    MathEngineDnnLrn.h
     MathEngineDnnPoolings.h
     MathEngineHostStackAllocator.h
     MemoryHandleInternal.h
@@ -190,6 +192,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                 GPU/CUDA/CudaMathEngineDnnDropout.cu
                 GPU/CUDA/CudaMathEngineDnnPoolings.cu
                 GPU/CUDA/CudaMathEngineDnnRleConv.cu
+                GPU/CUDA/CudaMathEngineDnnLrn.cu
                 GPU/CUDA/CudaMathEngineDnnTimeConv.cu
                 GPU/CUDA/CudaMathEngine.cu
                 GPU/CUDA/CudaMathEngineVectorMath.cu
@@ -240,6 +243,7 @@ elseif(IOS)
         GPU/Metal/MetalMathEngineDnnConvs.mm
         GPU/Metal/MetalMathEngineDnnDropout.mm
         GPU/Metal/MetalMathEngineDnnPoolings.mm
+        GPU/Metal/MetalMathEngineDnnLrn.mm
         GPU/Metal/MetalKernel.h
         GPU/Metal/MetalKernel.mm
         GPU/Metal/MetalCommandQueue.h
@@ -309,6 +313,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
                     GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
                     GPU/Vulkan/VulkanMathEngineDnn.cpp
                     GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
+                    GPU/Vulkan/VulkanMathEngineDnnLrn.cpp
                     GPU/Vulkan/VulkanMathEngine.cpp
                     GPU/Vulkan/VulkanMathEngine.h
                     GPU/Vulkan/VulkanMathEngineVectorMath.cpp

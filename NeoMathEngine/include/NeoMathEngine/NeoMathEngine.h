@@ -490,6 +490,7 @@ struct NEOMATHENGINE_API C3dMaxPoolingDesc : public CCrtAllocatedObject { public
 struct NEOMATHENGINE_API C3dMeanPoolingDesc : public CCrtAllocatedObject { public: virtual ~C3dMeanPoolingDesc(); };
 struct NEOMATHENGINE_API CGlobalMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CGlobalMaxOverTimePoolingDesc(); };
 struct NEOMATHENGINE_API CMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CMaxOverTimePoolingDesc(); };
+struct NEOMATHENGINE_API CLrnDesc : public CCrtAllocatedObject { public: virtual ~CLrnDesc(); };
 
 //------------------------------------------------------------------------------------------------------------
 // RLE format
@@ -740,6 +741,14 @@ public:
 		const CBlobDesc& output, int seed ) = 0;
 	// Performs dropout on an input
 	virtual void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) = 0;
+
+	// Local responce normalization.
+	virtual CLrnDesc* InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta ) = 0;
+	virtual void Lrn( const CLrnDesc& desc, const CConstFloatHandle& input, const CFloatHandle& invSum,
+		const CFloatHandle& invSumBeta, const CFloatHandle& outputHandle ) = 0;
+	virtual void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
+		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
+		const CFloatHandle& inputDiff ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

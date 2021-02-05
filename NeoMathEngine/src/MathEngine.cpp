@@ -66,6 +66,7 @@ C3dMaxPoolingDesc::~C3dMaxPoolingDesc() {}
 C3dMeanPoolingDesc::~C3dMeanPoolingDesc() {}
 CGlobalMaxOverTimePoolingDesc::~CGlobalMaxOverTimePoolingDesc() {}
 CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() {}
+CLrnDesc::~CLrnDesc() {}
 
 // GPU manager implementation
 class CGpuMathEngineManager : public IGpuMathEngineManager {
