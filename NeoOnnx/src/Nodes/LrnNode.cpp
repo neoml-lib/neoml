@@ -41,7 +41,7 @@ CLrnNode::CLrnNode( int nodeIndex, const onnx::NodeProto& lrn, int opsetVersion 
 void CLrnNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
 	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	tensors[Output[0]].Data = tensors[Input[0]].Data;
+	tensors[Output[0]] = tensors[Input[0]];
 }
 
 void CLrnNode::LabelTensorDims( const CTensorCache &tensors, CDimCache &dims )
