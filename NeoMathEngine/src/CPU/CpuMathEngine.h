@@ -432,6 +432,12 @@ public:
 	CDropoutDesc* InitDropout( float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input,
 		const CBlobDesc& output, int seed ) override;
 	void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) override;
+	CLrnDesc* InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta ) override;
+	void Lrn( const CLrnDesc& desc, const CConstFloatHandle& input, const CFloatHandle& invSum,
+		const CFloatHandle& invSumBeta, const CFloatHandle& outputHandle ) override;
+	void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
+		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
+		const CFloatHandle& inputDiff ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 
@@ -562,6 +568,9 @@ private:
 	void blobMaxPoolingWithIndices(const CCommonMaxPoolingDesc& desc, const float* sourceData,
 		int* maxIndicesData, float* resultData);
 	void blobMaxPoolingWithoutIndices(const CCommonMaxPoolingDesc& desc, const float* sourceData, float* resultData);
+
+	void lrnImpl(const CLrnDesc& desc, const CConstFloatHandle& input, const CFloatHandle& invSum,
+		const CFloatHandle& invSumBeta, const CFloatHandle& outputHandle);
 };
 
 inline void CCpuMathEngine::VectorReLUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
