@@ -52,26 +52,6 @@ void CCpuMathEngine::lrnImpl( const CLrnDesc& lrnDesc, const CConstFloatHandle& 
 	VectorInv( invSum, invSum, dataSize );
 	VectorPower( desc.Beta, invSum, invSumBeta, dataSize );
 	VectorEltwiseMultiply( invSumBeta, input, output, dataSize );
-
-	/* const float* currInput = GetRaw( input );
-	float* currOutput = GetRaw( output );
-
-	for( int vec = 0; vec < vectorCount; ++vec ) {
-		for( int ch = 0; ch < vectorSize; ++ch ) {
-			double result = 0;
-			const int firstC = max( 0, ch - ( desc.WindowSize - 1 ) / 2 );
-			const int lastC = min( vectorSize - 1, ch + desc.WindowSize / 2 );
-			for( int subC = firstC; subC <= lastC; ++subC ) {
-				result += currInput[subC] * currInput[subC];
-			}
-			result *= desc.Alpha;
-			result /= desc.WindowSize;
-			result += desc.Bias;
-			result = pow( result, static_cast<double>( -desc.Beta ) );
-			*currOutput++ = static_cast<float>( result * currInput[ch] );
-		}
-		currInput += vectorSize;
-	} */
 }
 
 // --------------------------------------------------------------------------------------------------------------------
