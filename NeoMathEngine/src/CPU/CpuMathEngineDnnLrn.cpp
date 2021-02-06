@@ -126,7 +126,52 @@ static void channelwisePool( const float* input, float* output, int vectorCount,
 	}
 }
 
-#elif NEOML_USE_NEON
+#elif defined(NEOML_USE_NEON)
+
+static void channelwisePool( const float* input, float* output, int vectorCount, int vectorSize,
+	int windowSize, float scale, float bias, int threadCount )
+{
+	const int curThreadCount = IsOmpRelevant( vectorCount, vectorCount * vectorSize * windowSize ) ? threadCount : 1;
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int index, count;
+		if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
+			const float* currInput = input + index * vectorSize;
+			float* currOutput = output + index * vectorSize;
+			for( int vec = 0; vec < count; ++vec ) {
+				for( int ch = 0; ch < vectorSize; ++ch ) {
+					const int firstC = max( 0, ch - ( windowSize - 1 ) / 2 );
+					const float* windowStart = currInput + firstC;
+
+					const int lastC = min( vectorSize - 1, ch + windowSize / 2 );
+					int nonSseSize = lastC - firstC + 1;
+					int sseSize = GetCount4( nonSseSize );
+
+					float32x4_t accum;
+					if( nonSseSize > 0 ) {
+						accum = LoadNeon( windowStart, nonSseSize, 0 );
+						windowStart += nonSseSize;
+					} else if( sseSize > 0 ) {
+						accum = LoadNeon4( windowStart );
+						windowStart += 4;
+						sseSize--;
+					} else {
+						accum = vdupq_n_f32( 0 );
+					}
+
+					for( int i = 0; i < sseSize; ++i ) {
+						accum = vaddq_f32( LoadNeon4( windowStart ), accum );
+						windowStart += 4;
+					}
+
+					float res = vget_lane_f32( HorizontalAddNeon( accum ), 0 );
+					*currOutput++ = res * scale + bias;
+				}
+				currInput += vectorSize;
+			}
+		}
+	}
+}
 
 #else
 #error "Unknown architecure"

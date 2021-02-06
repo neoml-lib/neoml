@@ -46,9 +46,9 @@ __global__ void LrnKernel( const float* input, float* invSum, float* invSumBeta,
 	res = 1.f / ( bias + alpha * res / windowSize );
 	*invSum = res;
 	res = powf( res, beta );
-	*invSumBeta = static_cast<float>( res );
+	*invSumBeta = res;
 
-	*output = static_cast<float>( res * input[channelIndex] );
+	*output = res * input[channelIndex];
 }
 
 } // namespace NeoML

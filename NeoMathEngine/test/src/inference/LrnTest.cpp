@@ -87,7 +87,7 @@ static void testLrn( const CTestParams& params, int seed )
 	outputBlob.CopyTo( output.data() );
 
 	for( int i = 0; i < inputBlob.GetDataSize(); ++i ) {
-		ASSERT_NEAR( expected[i], output[i], 1e-5f ) << " at index " << i;
+		ASSERT_NEAR( expected[i], output[i], 1e-3f ) << " at index " << i;
 	}
 }
 
@@ -151,7 +151,7 @@ INSTANTIATE_TEST_CASE_P( CMathEngineLrnInferenceTestInstantiation, CMathEngineLr
 			"MinBeta = 0.000001;"
 			"MaxBeta = 2;"
 			"Values = (-10..10);"
-			"TestCount = 100;"
+			"TestCount = 1000;"
 		)
 	)
 );
