@@ -425,9 +425,9 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.PruneCriterionValue = params.PruneCriterionValue;
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
 			if( params.TreeBuilder == GBTB_MultiFull ) {
-				fullMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CArray<double>>( builderParams, logStream, problem->GetValueSize() );
+				fullMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream );
 			} else {
-				fullSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<double>( builderParams, logStream, 1 );
+				fullSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream );
 			}
 			fullProblem = FINE_DEBUG_NEW CGradientBoostFullProblem( params.ThreadCount, problem,
 				usedVectors, usedFeatures, featureNumbers );

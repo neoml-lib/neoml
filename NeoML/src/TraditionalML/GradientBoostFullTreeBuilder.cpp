@@ -31,9 +31,8 @@ struct CThreadStatistics {
 	// The statistics for nodes are stored because we have to go through the whole tree level when looking for the optimal split threshold
 	// 
 	// The statistics calculated on the left and on the right of the current split threshold
-	CGradientBoostVectorSetStatistics<T> CurLeftStatistics;
-	CGradientBoostVectorSetStatistics<T> CurRightStatistics;
-	CArray<bool> CurClassIsLeaf;
+	T CurLeftStatistics;
+	T CurRightStatistics;
 	// The previous threshold value
 	float Prev;
 
@@ -41,18 +40,14 @@ struct CThreadStatistics {
 	int FeatureIndex;
 	float Threshold;
 	float Criterion;
-	CArray<bool> ResultClassIsLeaf;
-	CGradientBoostVectorSetStatistics<T> LeftStatistics;
-	CGradientBoostVectorSetStatistics<T> RightStatistics;
+	T LeftStatistics;
+	T RightStatistics;
 
 	// The total statistics
-	CArray<bool> InitialClassIsLeaf;
-	const CGradientBoostVectorSetStatistics<T>& TotalStatistics;
+	const T& TotalStatistics;
 
 	CThreadStatistics( const CThreadStatistics& other );
-	explicit CThreadStatistics( float criterion, const CGradientBoostVectorSetStatistics<T>& totalStatistics, const CArray<bool>& classIsLeaf );
-	double CalcCriterion( CGradientBoostVectorSetStatistics<T>& leftResult, CGradientBoostVectorSetStatistics<T>& rightResult,
-		float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight );
+	explicit CThreadStatistics( float criterion, const T& totalStatistics );
 };
 
 template<class T>
@@ -67,79 +62,18 @@ inline CThreadStatistics<T>::CThreadStatistics( const CThreadStatistics& other )
 	RightStatistics( other.RightStatistics ),
 	TotalStatistics( other.TotalStatistics )
 {
-	other.ResultClassIsLeaf.CopyTo( ResultClassIsLeaf );
-	other.InitialClassIsLeaf.CopyTo( InitialClassIsLeaf );
-	other.CurClassIsLeaf.CopyTo( CurClassIsLeaf );
 }
 
 template<class T>
-inline CThreadStatistics<T>::CThreadStatistics( float criterion, const CGradientBoostVectorSetStatistics<T>& totalStatistics,
-												const CArray<bool>& classIsLeaf ) :
-	CurLeftStatistics( classIsLeaf.Size() ),
-	CurRightStatistics( classIsLeaf.Size() ),
+inline CThreadStatistics<T>::CThreadStatistics( float criterion, const T& totalStatistics ) :
+	CurLeftStatistics( totalStatistics.ValueSize() ),
+	CurRightStatistics( totalStatistics.ValueSize() ),
 	Prev( 0.0 ),
 	FeatureIndex( NotFound ),
 	Threshold( 0.0 ),
 	Criterion( criterion ),
 	TotalStatistics( totalStatistics )
 {
-	CurClassIsLeaf.SetSize( classIsLeaf.Size() );
-	ResultClassIsLeaf.SetSize( classIsLeaf.Size() );
-	classIsLeaf.CopyTo( InitialClassIsLeaf );
-}
-
-template<>
-inline double CThreadStatistics<CArray<double>>::CalcCriterion(
-	CGradientBoostVectorSetStatistics<CArray<double>>& leftResult, CGradientBoostVectorSetStatistics<CArray<double>>& rightResult,
-	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight )
-{
-	double result = 0;
-	leftResult.SetWeight( CurLeftStatistics.TotalWeight() );
-	rightResult.SetWeight( CurRightStatistics.TotalWeight() );
-
-	for( int i = 0; i < InitialClassIsLeaf.Size(); i++ ){
-		bool classIsLeaf = InitialClassIsLeaf[i];
-		if( CurLeftStatistics.TotalHessian()[i] < minSubsetHessian || 
-			CurLeftStatistics.TotalWeight() < minSubsetWeight ||
-			CurRightStatistics.TotalHessian()[i] < minSubsetHessian ||
-			CurRightStatistics.TotalWeight() < minSubsetWeight )
-		{
-			classIsLeaf |= true;
-		}
-
-		double criterion = TotalStatistics.CalcCriterion( l1RegFactor, l2RegFactor, i );
-		if( !classIsLeaf ){
-			double splitCriterion = CurLeftStatistics.CalcCriterion( l1RegFactor, l2RegFactor, i ) +
-				CurRightStatistics.CalcCriterion( l1RegFactor, l2RegFactor, i );
-
-			if( splitCriterion < criterion ){
-				classIsLeaf = true;
-			} else {
-				criterion = splitCriterion;
-			}
-		}
-
-		CurClassIsLeaf[i] = classIsLeaf;
-		if( classIsLeaf ) {
-			leftResult.SetGradientAndHessian( TotalStatistics, i );
-			rightResult.SetGradientAndHessian( TotalStatistics, i );
-		} else {
-			leftResult.SetGradientAndHessian( CurLeftStatistics, i );
-			rightResult.SetGradientAndHessian( CurRightStatistics, i );
-		}
-		result += criterion;
-	}
-	return result;
-}
-
-inline int leafsCount( const CArray<bool>& isLeaf ){
-	int res = 0;
-	for( int i = 0; i < isLeaf.Size(); i++ ){
-		if( isLeaf[i] ){
-			res++;
-		}
-	}
-	return res;
 }
 
 // The node statistics
@@ -148,7 +82,7 @@ struct CGradientBoostNodeStatistics : public virtual IObject {
 	// The level of the node
 	const int Level;
 	// The total statistics for all vectors in the node
-	const CGradientBoostVectorSetStatistics<T> TotalStatistics;
+	const T TotalStatistics;
 	// The current statistics used by the threads when looking for the best split of this node
 	// Each thread works with a subset of features which it searches for the best feature and split threshold
 	// After the threads have finished their search the best overall result is selected 
@@ -160,76 +94,54 @@ struct CGradientBoostNodeStatistics : public virtual IObject {
 	int FeatureIndex;
 	// The split threshold
 	float Threshold;
-	// If class is not splitting further
-	CArray<bool> ClassIsLeaf;
 	// The child nodes
 	CPtr<CGradientBoostNodeStatistics<T>> Left;
 	CPtr<CGradientBoostNodeStatistics<T>> Right;
-	CGradientBoostVectorSetStatistics<T> LeftStatistics;
-	CGradientBoostVectorSetStatistics<T> RightStatistics;
+	T LeftStatistics;
+	T RightStatistics;
 
-	explicit CGradientBoostNodeStatistics( int level, const CGradientBoostVectorSetStatistics<T>& totalStatistics, const CArray<bool>& classIsLeaf );
+	explicit CGradientBoostNodeStatistics( int level, const T& totalStatistics );
 
 	void InitThreadStatistics( int threadCount, float l1RegFactor, float l2RegFactor );
-
-	void LeafValue( T& values );
 };
 
 template<class T>
-inline CGradientBoostNodeStatistics<T>::CGradientBoostNodeStatistics( int level, const CGradientBoostVectorSetStatistics<T>& totalStatistics, const CArray<bool>& classIsLeaf ) :
+inline CGradientBoostNodeStatistics<T>::CGradientBoostNodeStatistics( int level, const T& totalStatistics ) :
 	Level( level ),
 	TotalStatistics( totalStatistics ),
 	FeatureIndex( NotFound ),
 	Threshold( 0.0 ),
-	LeftStatistics( classIsLeaf.Size() ),
-	RightStatistics( classIsLeaf.Size() )
+	LeftStatistics( totalStatistics.ValueSize() ),
+	RightStatistics( totalStatistics.ValueSize() )
 {
-	classIsLeaf.CopyTo( ClassIsLeaf );
 }
 
 template<class T>
 inline void CGradientBoostNodeStatistics<T>::InitThreadStatistics( int threadCount, float l1RegFactor, float l2RegFactor )
 {
 	const float criterion = static_cast<float>( TotalStatistics.CalcCriterion( l1RegFactor, l2RegFactor ) );
-	ThreadStatistics.Add( CThreadStatistics<T>( criterion, TotalStatistics, ClassIsLeaf ), threadCount );
-}
-
-template<>
-inline void CGradientBoostNodeStatistics<double>::LeafValue( double& res )
-{
-	res = -TotalStatistics.TotalGradient() / TotalStatistics.TotalHessian();
-}
-
-template<>
-inline void CGradientBoostNodeStatistics<CArray<double>>::LeafValue( CArray<double>& values )
-{
-	values.SetSize( ClassIsLeaf.Size() );
-	for( int i = 0; i < ClassIsLeaf.Size(); i++ ){
-		values[i] = -TotalStatistics.TotalGradient()[i] / TotalStatistics.TotalHessian()[i];
-	}
+	ThreadStatistics.Add( CThreadStatistics<T>( criterion, TotalStatistics ), threadCount );
 }
 
 //------------------------------------------------------------------------------------------------------------
 
 template<class T>
-CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradientBoostFullTreeBuilderParams& _params, CTextStream* _logStream, int _valueSize ) :
+CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradientBoostFullTreeBuilderParams& _params, CTextStream* _logStream ) :
 	params( _params ),
 	logStream( _logStream ),
-	nodesCount( 0 ),
-	valueSize( _valueSize )
+	nodesCount( 0 )
 {
 	NeoAssert( params.MaxTreeDepth > 0 );
 	NeoAssert( params.MaxNodesCount > 0 || params.MaxNodesCount == NotFound );
 	NeoAssert( abs( params.MinSubsetHessian ) > 0 );
 	NeoAssert( params.ThreadCount > 0 );
 	NeoAssert( params.MinSubsetWeight >= 0 );
-	NeoAssert( valueSize > 0 );
 }
 
 template<class T>
 CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
-	const CArray<T>& gradients, const T& gradientsSum,
-	const CArray<T>& hessians, const T& hessiansSum,
+	const CArray<typename T::Type>& gradients, const typename T::Type& gradientsSum,
+	const CArray<typename T::Type>& hessians, const typename T::Type& hessiansSum,
 	const CArray<float>& weights, float weightsSum )
 {
 	if( logStream != 0 ) {
@@ -262,14 +174,11 @@ CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradi
 // Initializes the builder
 template<class T>
 CPtr<CGradientBoostNodeStatistics<T>> CGradientBoostFullTreeBuilder<T>::initialize( const CGradientBoostFullProblem& problem,
-	const T& gradientSum, const T& hessianSum, float weightSum )
+	const typename T::Type& gradientSum, const typename T::Type& hessianSum, float weightSum )
 {
 	// Creating the root and filling in its statistics
-	CGradientBoostVectorSetStatistics<T> totalStatistics( valueSize );
-	totalStatistics.Add( gradientSum, hessianSum, weightSum );
-	CArray<bool> leafClasses;
-	leafClasses.Add( false, valueSize );
-	CPtr<CGradientBoostNodeStatistics<T>> root = FINE_DEBUG_NEW CGradientBoostNodeStatistics<T>( 0, totalStatistics, leafClasses );
+	T totalStatistics( gradientSum, hessianSum, weightSum );
+	CPtr<CGradientBoostNodeStatistics<T>> root = FINE_DEBUG_NEW CGradientBoostNodeStatistics<T>( 0, totalStatistics );
 	root->InitThreadStatistics( params.ThreadCount, params.L1RegFactor, params.L2RegFactor );
 	curLevelStatistics.DeleteAll();
 	curLevelStatistics.Add( root );
@@ -287,7 +196,7 @@ CPtr<CGradientBoostNodeStatistics<T>> CGradientBoostFullTreeBuilder<T>::initiali
 // Builds one level of the tree
 template<class T>
 bool CGradientBoostFullTreeBuilder<T>::buildTreeLevel( const CGradientBoostFullProblem& problem, int level,
-	const CArray<T>& gradients, const CArray<T>& hessians, const CArray<float>& weights )
+	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<float>& weights )
 {
 	if( logStream != 0 ) {
 		*logStream << L"\nBuild level " << level << L":\n";
@@ -402,7 +311,7 @@ void CGradientBoostFullTreeBuilder<T>::distributeVectorsByNodes( const CGradient
 // Finds the best split for each node using the features in the specified range
 template<class T>
 void CGradientBoostFullTreeBuilder<T>::findSplits( const CGradientBoostFullProblem& problem,
-	const CArray<T>& gradients, const CArray<T>& hessians, const CArray<float>& weights )
+	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<float>& weights )
 {
 	NEOML_OMP_NUM_THREADS(params.ThreadCount)
 	{
@@ -425,7 +334,7 @@ void CGradientBoostFullTreeBuilder<T>::findSplits( const CGradientBoostFullProbl
 // Finds the best split for each node using the specified binary feature
 template<class T>
 void CGradientBoostFullTreeBuilder<T>::findBinarySplits( int threadNumber,
-	const CArray<T>& gradients, const CArray<T>& hessians,
+	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians,
 	const CArray<float>& weights, int feature, const int* ptr, int size )
 {
 	if( size == 0 ) {
@@ -467,7 +376,7 @@ void CGradientBoostFullTreeBuilder<T>::findBinarySplits( int threadNumber,
 // Find the best split for each node using the specified feature
 template<class T>
 void CGradientBoostFullTreeBuilder<T>::findSplits( int threadNumber,
-	const CArray<T>& gradients, const CArray<T>& hessians,
+	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians,
 	const CArray<float>& weights, int feature, const CFloatVectorElement* ptr, int size )
 {
 	if( size == 0 ) {
@@ -561,46 +470,18 @@ void CGradientBoostFullTreeBuilder<T>::findSplits( int threadNumber,
 }
 
 // Checks if splitting using the specified values is possible
-template<>
-void CGradientBoostFullTreeBuilder<double>::checkSplit( int feature, float firstValue, float secondValue,
-	CThreadStatistics<double>& statistics ) const
+template<class T>
+void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue, float secondValue,
+	CThreadStatistics<T>& statistics ) const
 {
-	if( statistics.CurLeftStatistics.TotalHessian() < params.MinSubsetHessian
-		|| statistics.CurLeftStatistics.TotalWeight() < params.MinSubsetWeight
-		|| statistics.CurRightStatistics.TotalHessian() < params.MinSubsetHessian
-		|| statistics.CurRightStatistics.TotalWeight() < params.MinSubsetWeight )
-	{
-		return;
-	}
-
-	const float criterion = static_cast< float >( statistics.CurLeftStatistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor ) +
-		statistics.CurRightStatistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor ) );
-
-	if( statistics.Criterion < criterion || ( statistics.Criterion == criterion && statistics.FeatureIndex > feature ) ) {
-		statistics.FeatureIndex = feature;
-		statistics.Criterion = criterion;
-		if( fabs( firstValue - secondValue ) > 1e-10 ) {
-			statistics.Threshold = ( firstValue + secondValue ) / 2;
-		} else {
-			statistics.Threshold = firstValue;
-		}
-		statistics.LeftStatistics = statistics.CurLeftStatistics;
-		statistics.RightStatistics = statistics.CurRightStatistics;
-	}
-}
-
-template<>
-void CGradientBoostFullTreeBuilder<CArray<double>>::checkSplit( int feature, float firstValue, float secondValue,
-	CThreadStatistics<CArray<double>>& statistics ) const
-{
-	CGradientBoostVectorSetStatistics<CArray<double>> leftStatistics( valueSize ), rightStatistics( valueSize );
-	const float criterion = static_cast< float >( statistics.CalcCriterion( leftStatistics, rightStatistics,
+	T leftStatistics( statistics.CurLeftStatistics ), rightStatistics( statistics.CurRightStatistics );
+	const float criterion = static_cast< float >( T::CalcCriterion( leftStatistics, rightStatistics, statistics.TotalStatistics,
 		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight ) );
 
 	bool toSplit = statistics.Criterion < criterion || (statistics.Criterion == criterion && statistics.FeatureIndex > feature);
-	bool allLeaves = ( leafsCount( statistics.CurClassIsLeaf ) == statistics.CurClassIsLeaf.Size() );
+	bool classesNotLeft = leftStatistics.LeavesCount() == leftStatistics.ValueSize();
 
-	if( !allLeaves && toSplit ) {
+	if( !classesNotLeft && toSplit ) {
 		statistics.FeatureIndex = feature;
 		statistics.Criterion = criterion;
 		if( fabs( firstValue - secondValue ) > 1e-10 ) {
@@ -610,7 +491,6 @@ void CGradientBoostFullTreeBuilder<CArray<double>>::checkSplit( int feature, flo
 		}
 		statistics.LeftStatistics = leftStatistics;
 		statistics.RightStatistics = rightStatistics;
-		statistics.CurClassIsLeaf.CopyTo( statistics.ResultClassIsLeaf );
 	}
 }
 
@@ -633,7 +513,6 @@ void CGradientBoostFullTreeBuilder<T>::mergeThreadResults()
 					curLevelStatistics[i]->Threshold = currThreadStatistics.Threshold;
 					curLevelStatistics[i]->LeftStatistics = currThreadStatistics.LeftStatistics;
 					curLevelStatistics[i]->RightStatistics = currThreadStatistics.RightStatistics;
-					currThreadStatistics.ResultClassIsLeaf.CopyTo( curLevelStatistics[i]->ClassIsLeaf );
 				}
 			}
 		}
@@ -661,8 +540,8 @@ bool CGradientBoostFullTreeBuilder<T>::split()
 					<< L" )\n";
 			}
 
-			statistics->Left = FINE_DEBUG_NEW CGradientBoostNodeStatistics<T>( statistics->Level + 1, statistics->LeftStatistics, statistics->ClassIsLeaf );
-			statistics->Right = FINE_DEBUG_NEW CGradientBoostNodeStatistics<T>( statistics->Level + 1, statistics->RightStatistics, statistics->ClassIsLeaf );
+			statistics->Left = FINE_DEBUG_NEW CGradientBoostNodeStatistics<T>( statistics->Level + 1, statistics->LeftStatistics );
+			statistics->Right = FINE_DEBUG_NEW CGradientBoostNodeStatistics<T>( statistics->Level + 1, statistics->RightStatistics );
 			nodesCount += 2;
 			result = true;
 		} else {
@@ -714,18 +593,19 @@ CPtr<CRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::buildModel( const C
 	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();
 
 	if( node.FeatureIndex == NotFound ) {
-		T values;
-		node.LeafValue( values );
+		T::Type values;
+		node.TotalStatistics.LeafValue( values );
 		result->InitLeafNode( values );
 	} else {
 		CPtr<CRegressionTreeModel> left = buildModel( usedFeatures, *node.Left );
 		CPtr<CRegressionTreeModel> right = buildModel( usedFeatures, *node.Right );
 		result->InitSplitNode( *left, *right, usedFeatures[node.FeatureIndex], node.Threshold );
 	}
+
 	return result;
 }
 
-template class CGradientBoostFullTreeBuilder<double>;
-template class CGradientBoostFullTreeBuilder<CArray<double>>;
+template class CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>;
+template class CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>;
 
 } // namespace NeoML

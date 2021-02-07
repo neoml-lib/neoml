@@ -26,6 +26,8 @@ namespace NeoML {
 class IRegressionTreeModel;
 template<class T> 
 class CGradientBoostFullTreeBuilder;
+class CGradientBoostStatisticsSingle;
+class CGradientBoostStatisticsMulti;
 
 class CGradientBoostFastHistTreeBuilder;
 class IGradientBoostingLossFunction;
@@ -152,8 +154,8 @@ private:
 	const CParams params; // the classification parameters
 	CRandom defaultRandom; // the default random number generator
 	CTextStream* logStream; // the logging stream
-	CPtr<CGradientBoostFullTreeBuilder<double>> fullSingleClassTreeBuilder; // TGBT_Full tree builder for single class
-	CPtr<CGradientBoostFullTreeBuilder<CArray<double>>> fullMultiClassTreeBuilder; // TGBT_Full tree builder for multi class
+	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>> fullSingleClassTreeBuilder; // TGBT_Full tree builder for single class
+	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>> fullMultiClassTreeBuilder; // TGBT_Full tree builder for multi class
 	CPtr<CGradientBoostFastHistTreeBuilder> fastHistTreeBuilder; // TGBT_FastHist tree builder
 	CPtr<CGradientBoostFullProblem> fullProblem; // the problem data for TGBT_Full mode
 	CPtr<CGradientBoostFastHistProblem> fastHistProblem; // the problem data for TGBT_FastHist mode

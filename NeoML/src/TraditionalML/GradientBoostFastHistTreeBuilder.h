@@ -17,7 +17,7 @@ limitations under the License.
 
 #include <RegressionTreeModel.h>
 #include <GradientBoostFastHistProblem.h>
-#include <GradientBoostVectorSetStatistics.h>
+#include <GradientBoostStatisticsSingle.h>
 #include <NeoML/TraditionalML/Model.h>
 
 namespace NeoML {
@@ -57,7 +57,7 @@ private:
 		int VectorSetPtr; // a pointer to the start of the vector set of the node
 		int VectorSetSize; // the size of the vector set of the node
 		int HistPtr; // a pointer to the histogram created on the vectors of the node
-		CGradientBoostVectorSetStatistics<double> Statistics; // statistics of the vectors of the node
+		CGradientBoostStatisticsSingle Statistics; // statistics of the vectors of the node
 		int SplitFeatureId; // the identifier of the feature used to split this node
 		int Left; // the pointer to the left child
 		int Right; // the pointer to the right child
@@ -78,10 +78,10 @@ private:
 	CArray<int> nodeStack; // the stack used to build the tree using depth-first search
 	CArray<int> vectorSet; // the array that stores the vector sets for the nodes
 	CArray<int> freeHists; // free histograms list
-	CArray<CGradientBoostVectorSetStatistics<double>> histStats; // the array for storing histograms
+	CArray<CGradientBoostStatisticsSingle> histStats; // the array for storing histograms
 	CArray<int> idPos; // the identifier positions in the current histogram
 	CArray<int> histIds; // histogram bins identifiers
-	CArray<CGradientBoostVectorSetStatistics<double>> tempHistStats; // a temporary array for building histograms
+	CArray<CGradientBoostStatisticsSingle> tempHistStats; // a temporary array for building histograms
 
 	// Caching the buffers
 	mutable CArray<double> splitGainsByThreadBuffer;
@@ -94,9 +94,9 @@ private:
 	void subHist( int firstPtr, int secondPtr );
 	void buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
 		const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,
-		CGradientBoostVectorSetStatistics<double>& stats );
+		CGradientBoostStatisticsSingle& stats );
 	void addVectorToHist( const int* vectorPtr, int vectorSize, double gradients, double hessian, float weight,
-		CGradientBoostVectorSetStatistics<double>* stats );
+		CGradientBoostStatisticsSingle* stats );
 	int evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const;
 	void applySplit( const CGradientBoostFastHistProblem& problem, int node, int& leftNode, int& rightNode );
 	bool prune( int node );
