@@ -51,4 +51,33 @@ __global__ void LrnKernel( const float* input, float* invSum, float* invSumBeta,
 	*output = res * input[channelIndex];
 }
 
+__global__ void LrnBackwardKernel( const float* input, const float* output, const float* outputDiff, const float* invSum,
+	const float* invSumBeta, float* inputDiff, int vectorCount, int vectorSize, int windowSize, float alpha, float beta )
+{
+	int vectorIndex, channelIndex;
+	if( !GetCudaTaskIndex2D( vectorCount, vectorSize, vectorIndex, channelIndex ) ) {
+		return;
+	}
+
+	// (windowSize - 1) / 2 and windowSize / 2 are switched because it's backward
+	const int firstC = max( 0, channelIndex - windowSize / 2 );
+	const int lastC = min( vectorSize - 1, channelIndex + ( windowSize - 1 ) / 2 );
+
+	input += vectorIndex * vectorSize + channelIndex;
+	output += vectorIndex * vectorSize;
+	outputDiff += vectorIndex * vectorSize;
+	invSum += vectorIndex * vectorSize;
+	invSumBeta += vectorIndex * vectorSize + channelIndex;
+	inputDiff += vectorIndex * vectorSize + channelIndex;
+
+	float res = 0;
+	for( int i = firstC; i <= lastC; ++i ) {
+		res += output[i] * outputDiff[i] * invSum[i];
+	}
+
+	res *= -2.f * alpha * beta * *input / windowSize;
+
+	*inputDiff = *invSumBeta * outputDiff[channelIndex] + res;
+}
+
 } // namespace NeoML
