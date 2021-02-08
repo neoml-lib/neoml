@@ -23,6 +23,8 @@ LRN(x)[obj][ch] = x[obj][ch] * / ((bias + alpha * sqrSum[obj][ch] / windowSize) 
 
 where:
 
+- `obj` is index of object `[0; BlobSize / Channels)`
+- `ch` is index of channel `[0; Channels)` 
 - `windowSize`, `bias`, `alpha`, `beta` are settings
 - `sqrSum` is calculated using the following formula:
 
