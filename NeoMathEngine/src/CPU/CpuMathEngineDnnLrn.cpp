@@ -33,7 +33,6 @@ static void channelwisePool( const float* input, float* output, int vectorCount,
 CLrnDesc* CCpuMathEngine::InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta )
 {
 	return new CMathEngineLrnDesc( source, windowSize, bias, alpha, beta );
-	return nullptr;
 }
 
 void CCpuMathEngine::Lrn( const CLrnDesc& lrnDesc, const CConstFloatHandle& input, const CFloatHandle& invSumHandle,
