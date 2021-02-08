@@ -309,6 +309,7 @@ void CRegressionTreeModel::calcFeatureStatistics( int maxFeature, CArray<int>& r
 
 		case RTNT_Undefined: // both leaves
 		case RTNT_Const:
+		case RTNT_MultiConst:
 			return;
 
 		default:

@@ -474,14 +474,12 @@ template<class T>
 void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue, float secondValue,
 	CThreadStatistics<T>& statistics ) const
 {
-	T leftStatistics( statistics.CurLeftStatistics ), rightStatistics( statistics.CurRightStatistics );
+	T leftStatistics( statistics.CurLeftStatistics );
+	T rightStatistics( statistics.CurRightStatistics );
 	const float criterion = static_cast< float >( T::CalcCriterion( leftStatistics, rightStatistics, statistics.TotalStatistics,
 		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight ) );
 
-	bool toSplit = statistics.Criterion < criterion || (statistics.Criterion == criterion && statistics.FeatureIndex > feature);
-	bool classesNotLeft = leftStatistics.LeavesCount() == leftStatistics.ValueSize();
-
-	if( !classesNotLeft && toSplit ) {
+	if( statistics.Criterion < criterion || ( statistics.Criterion == criterion && statistics.FeatureIndex > feature ) ) {
 		statistics.FeatureIndex = feature;
 		statistics.Criterion = criterion;
 		if( fabs( firstValue - secondValue ) > 1e-10 ) {

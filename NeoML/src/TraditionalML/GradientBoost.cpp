@@ -636,12 +636,17 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 	NeoAssert( matrix.Height == problem.GetVectorCount() );
 	NeoAssert( matrix.Width == problem.GetFeatureCount() );
 
+	CArray<CFastArray<double, 1>> predictions;
+	predictions.SetSize( params.ThreadCount );
+	for( int i = 0; i < predictions.Size(); i++ ) {
+		predictions.SetSize( problem.GetValueSize() );
+	}
+
 	NEOML_OMP_NUM_THREADS( params.ThreadCount )
 	{
 		int index = 0;
 		int count = 0;
-		CFastArray<double, 1> predictions;
-		predictions.SetSize( problem.GetValueSize() );
+		int threadNum = OmpGetThreadNum();
 		if( OmpGetTaskIndexAndCount( usedVectors.Size(), index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				const int usedVector = usedVectors[index];
@@ -649,19 +654,18 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 				CSparseFloatVectorDesc vector;
 				matrix.GetRow( usedVector, vector );
 
-				memset( predictions.GetPtr(), 0.0, predictions.Size() * sizeof( double ) );
 				if( params.TreeBuilder == GBTB_MultiFull ) {
 					CGradientBoostModel::MultivariatePredictRaw( models[0], predictCache[0][index].Step,
-						params.LearningRate, vector, predictions );
+						params.LearningRate, vector, predictions[threadNum] );
 				} else {
 					for( int j = 0; j < problem.GetValueSize(); j++ ) {
-						predictions[j] = CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
+						predictions[threadNum][j] = CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
 							params.LearningRate, vector );
 					}
 				}
 
 				for( int j = 0; j < problem.GetValueSize(); j++ ) {
-					predictCache[j][index].Value += predictions[j];
+					predictCache[j][index].Value += predictions[threadNum][j];
 					predictCache[j][index].Step = curStep;
 					predicts[j][index] = predictCache[j][index].Value;
 					answers[j][index] = value[j];
@@ -683,14 +687,18 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 		predicts[i].SetSize( problem.GetVectorCount() );
 		answers[i].SetSize( problem.GetVectorCount());
 	}
+	CArray<CFastArray<double, 1>> predictions;
+	predictions.SetSize( params.ThreadCount );
+	for( int i = 0; i < predictions.Size(); i++ ) {
+		predictions.SetSize( problem.GetValueSize() );
+	}
 
 	int step = models[0].Size();
 	NEOML_OMP_NUM_THREADS( params.ThreadCount )
 	{
 		int index = 0;
 		int count = 0;
-		CFastArray<double, 1> predictions;
-		predictions.SetSize( problem.GetValueSize() );
+		int threadNum = OmpGetThreadNum();
 		if( OmpGetTaskIndexAndCount( problem.GetVectorCount(), index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				const CFloatVector value = problem.GetValue( index );
@@ -698,18 +706,17 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 				matrix.GetRow( index, vector );
 
 				if( params.TreeBuilder == GBTB_MultiFull ){
-					memset( predictions.GetPtr(), 0.0, predictions.Size() * sizeof( double ) );
 					CGradientBoostModel::MultivariatePredictRaw( models[0], predictCache[0][index].Step,
-						params.LearningRate, vector, predictions );
+						params.LearningRate, vector, predictions[threadNum] );
 				} else {
 					for( int j = 0; j < problem.GetValueSize(); j++ ){
-						predictions[j] = CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
+						predictions[threadNum][j] = CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
 							params.LearningRate, vector );
 					}
 				}
 
 				for( int j = 0; j < problem.GetValueSize(); j++ ) {
-					predictCache[j][index].Value += predictions[j];
+					predictCache[j][index].Value += predictions[threadNum][j];
 					predictCache[j][index].Step = step;
 					predicts[j][index] = predictCache[j][index].Value;
 					answers[j][index] = value[j];

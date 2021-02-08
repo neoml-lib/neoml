@@ -64,9 +64,6 @@ public:
 	// Get value size
 	int ValueSize() const { return 1; }
 
-	// Number of 'leaf' classes that is not splitting further               
-	int LeavesCount() const;
-
 private:
 	double totalGradient; // total gradient
 	double totalHessian; // total hessian
@@ -185,10 +182,6 @@ inline double CGradientBoostStatisticsSingle::CalcCriterion(
 
 	return leftResult.CalcCriterion( l1RegFactor, l2RegFactor ) +
 		rightResult.CalcCriterion( l1RegFactor, l2RegFactor );
-}
-
-inline int CGradientBoostStatisticsSingle::LeavesCount() const {
-	return totalHessian == 0 ? 1 : 0;
 }
 
 } // namespace NeoML
