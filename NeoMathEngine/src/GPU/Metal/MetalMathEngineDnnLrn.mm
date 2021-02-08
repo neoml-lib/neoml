@@ -19,20 +19,37 @@ limitations under the License.
 
 #include <MetalMathEngine.h>
 #include <MathEngineCommon.h>
+#include <MathEngineDnnLrn.h>
 #include <MetalKernel.h>
 
 namespace NeoML {
 
-CLrnDesc* CMetalMathEngine::InitLrn( const CBlobDesc& /* source */, int /* windowSize */, float /* bias */, float /* alpha */, float /* beta */ )
+CLrnDesc* CMetalMathEngine::InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta )
 {
-	ASSERT_EXPR( false );
-	return nullptr;
+	return new CMathEngineLrnDesc( source, windowSize, bias, alpha, beta );
 }
 
-void CMetalMathEngine::Lrn( const CLrnDesc& /* lrnDesc */, const CConstFloatHandle& /* input */, const CFloatHandle& /* invSum */,
-	const CFloatHandle& /* invSumBeta */ , const CFloatHandle& /* outputHandle */ )
+void CMetalMathEngine::Lrn( const CLrnDesc& lrnDesc, const CConstFloatHandle& input, const CFloatHandle& /* invSum */,
+	const CFloatHandle& /* invSumBeta */, const CFloatHandle& output )
 {
-	ASSERT_EXPR( false );
+	ASSERT_EXPR( input.GetMathEngine() == this );
+	ASSERT_EXPR( output.GetMathEngine() == this );
+
+	const CMathEngineLrnDesc& desc = static_cast<const CMathEngineLrnDesc&>( lrnDesc );
+
+	const int vectorSize = desc.Source.Channels();
+	const int vectorCount = desc.Source.BlobSize() / vectorSize;
+
+	C2DKernel kernel( *queue, "matrixLrn", 1, 1, vectorCount, vectorSize );
+	kernelSetParam( input, 0 );
+	kernelSetParam( output, 1 );
+	kernelSetParam( vectorCount, 2 );
+	kernelSetParam( vectorSize, 3 );
+	kernelSetParam( desc.WindowSize, 4 );
+	kernelSetParam( desc.Bias, 5 );
+	kernelSetParam( desc.Alpha, 6 );
+	kernelSetParam( desc.Beta, 7 );
+	ASSERT_EXPR( kernel.Run() );
 }
 
 void CMetalMathEngine::LrnBackward( const CLrnDesc& /* desc */, const CConstFloatHandle& /* input */, const CConstFloatHandle& /* output */,
