@@ -124,6 +124,7 @@ void CLrnLayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData() );
 }
 
+// Initializes LRN descriptor
 void CLrnLayer::initDesc()
 {
 	if( desc == nullptr ) {
@@ -131,6 +132,7 @@ void CLrnLayer::initDesc()
 	}
 }
 
+// Destroys LRN descriptor
 void CLrnLayer::destroyDesc()
 {
 	if( desc != nullptr ) {
