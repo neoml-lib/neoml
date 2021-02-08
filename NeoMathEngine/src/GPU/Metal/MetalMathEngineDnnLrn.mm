@@ -41,14 +41,14 @@ void CMetalMathEngine::Lrn( const CLrnDesc& lrnDesc, const CConstFloatHandle& in
 	const int vectorCount = desc.Source.BlobSize() / vectorSize;
 
 	C2DKernel kernel( *queue, "matrixLrn", 1, 1, vectorCount, vectorSize );
-	kernelSetParam( input, 0 );
-	kernelSetParam( output, 1 );
-	kernelSetParam( vectorCount, 2 );
-	kernelSetParam( vectorSize, 3 );
-	kernelSetParam( desc.WindowSize, 4 );
-	kernelSetParam( desc.Bias, 5 );
-	kernelSetParam( desc.Alpha, 6 );
-	kernelSetParam( desc.Beta, 7 );
+	kernel.SetParam( input, 0 );
+	kernel.SetParam( output, 1 );
+	kernel.SetParam( vectorCount, 2 );
+	kernel.SetParam( vectorSize, 3 );
+	kernel.SetParam( desc.WindowSize, 4 );
+	kernel.SetParam( desc.Bias, 5 );
+	kernel.SetParam( desc.Alpha, 6 );
+	kernel.SetParam( desc.Beta, 7 );
 	ASSERT_EXPR( kernel.Run() );
 }
 
