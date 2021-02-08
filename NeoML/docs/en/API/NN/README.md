@@ -240,6 +240,7 @@ delete gpuMathEngine;
 - [CDropoutLayer](DropoutLayer.md) implements random dropout
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) implements batch normalization
 - [CObjectNormalizationLayer](ObjectNormalizationLayer.md) implements normalization over the objects
+- [CLrnLayer](LrnLayer.md) implements local response normalization
 - Elementwise operations with data blobs:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - elementwise sum
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - elementwise product
