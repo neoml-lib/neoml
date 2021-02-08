@@ -405,6 +405,7 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 	buildFullPredictions( *problem, models );
 	loss = lossFunction->CalcLossMean( predicts, answers );
 
+	printf( "%d\n", problem->GetValueSize() );
 	return FINE_DEBUG_NEW CGradientBoostModel( models,  params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1, params.LearningRate, params.LossFunction );
 }
 
@@ -425,6 +426,7 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.PruneCriterionValue = params.PruneCriterionValue;
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
 			if( params.TreeBuilder == GBTB_MultiFull ) {
+				NeoAssert( problem->GetValueSize() > 1 );
 				fullMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream );
 			} else {
 				fullSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream );
@@ -639,7 +641,7 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 	CArray<CFastArray<double, 1>> predictions;
 	predictions.SetSize( params.ThreadCount );
 	for( int i = 0; i < predictions.Size(); i++ ) {
-		predictions.SetSize( problem.GetValueSize() );
+		predictions[i].SetSize( problem.GetValueSize() );
 	}
 
 	NEOML_OMP_NUM_THREADS( params.ThreadCount )
@@ -690,7 +692,7 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 	CArray<CFastArray<double, 1>> predictions;
 	predictions.SetSize( params.ThreadCount );
 	for( int i = 0; i < predictions.Size(); i++ ) {
-		predictions.SetSize( problem.GetValueSize() );
+		predictions[i].SetSize( problem.GetValueSize() );
 	}
 
 	int step = models[0].Size();

@@ -75,6 +75,7 @@ void CGradientBoostModel::MultivariatePredictRaw( const CGradientBoostEnsemble& 
 	::memset( predictions.GetPtr(), 0.0, predictions.Size() * sizeof( double ) );
 	for( int i = startPos; i < ensemble.Size(); i++ ) {
 		const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->MultivariatePredict( vector );
+		NeoAssert( predictions.Size() == pred.Size() );
 		for( int j = 0; j < predictions.Size(); j++ ) {
 			predictions[j] += learningRate * pred[j];
 		}
@@ -87,6 +88,7 @@ void CGradientBoostModel::MultivariatePredictRaw( const CGradientBoostEnsemble& 
 	::memset( predictions.GetPtr(), 0.0, predictions.Size() * sizeof( double ) );
 	for( int i = startPos; i < ensemble.Size(); i++ ) {
 		const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->MultivariatePredict( vector );
+		NeoAssert( predictions.Size() == pred.Size() );
 		for( int j = 0; j < predictions.Size(); j++ ) {
 			predictions[j] += learningRate * pred[j];
 		}
@@ -100,6 +102,7 @@ void CGradientBoostModel::MultivariatePredictRaw( const CGradientBoostEnsemble& 
 	::memset( predictions.GetPtr(), 0.0, predictions.Size() * sizeof( double ) );
 	for( int i = startPos; i < ensemble.Size(); i++ ) {
 		const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->MultivariatePredict( vector );
+		NeoAssert( predictions.Size() == pred.Size() );
 		for( int j = 0; j < predictions.Size(); j++ ) {
 			predictions[j] += learningRate * pred[j];
 		}
@@ -109,7 +112,7 @@ void CGradientBoostModel::MultivariatePredictRaw( const CGradientBoostEnsemble& 
 bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
 {
 	int classCount = GetClassCount();
-	if( classCount == 2 ) {
+	if( classCount == 2 && valueSize == 1 ) {
 		return classify( PredictRaw( ensembles[0], 0, learningRate, data ), result );
 	}
 	
@@ -129,7 +132,7 @@ bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassif
 bool CGradientBoostModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
 {
 	int classCount = GetClassCount();
-	if( classCount == 2 ) {
+	if( classCount == 2 && valueSize == 1 ) {
 		return classify( PredictRaw( ensembles[0], 0, learningRate, data ), result );
 	}
 

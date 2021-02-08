@@ -479,6 +479,7 @@ void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue
 	const float criterion = static_cast< float >( T::CalcCriterion( leftStatistics, rightStatistics, statistics.TotalStatistics,
 		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight ) );
 
+	// printf("%f %f\n", criterion, statistics.Criterion );
 	if( statistics.Criterion < criterion || ( statistics.Criterion == criterion && statistics.FeatureIndex > feature ) ) {
 		statistics.FeatureIndex = feature;
 		statistics.Criterion = criterion;

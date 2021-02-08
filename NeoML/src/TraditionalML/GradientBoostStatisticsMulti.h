@@ -82,9 +82,13 @@ inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( int valueSi
 
 inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
 {
-	totalGradient.Add( 0.0, gradient.Size() );
-	totalHessian.Add( 0.0, hessian.Size() );
-	Add( gradient, hessian, weight );
+	totalGradient.SetSize( gradient.Size() );
+	totalHessian.SetSize( hessian.Size() );
+	for( int i = 0; i < totalGradient.Size(); i++ ) {
+		totalGradient[i] = gradient[i];
+		totalHessian[i] = hessian[i];
+	}
+	totalWeight = weight;
 }
 
 inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( const CGradientBoostStatisticsMulti& other )
@@ -202,7 +206,7 @@ inline double CGradientBoostStatisticsMulti::CalcCriterion(
 	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight )
 {
 	double result = 0;
-	int classesForSplit = 0;
+	int notLeafClassesCount = 0;
 
 	for( int i = 0; i < totalStatistics.ValueSize(); i++ ) {
 		bool isAlreadyLeafClass = totalStatistics.TotalHessian()[i] == 0;
@@ -239,12 +243,12 @@ inline double CGradientBoostStatisticsMulti::CalcCriterion(
 			leftResult.totalHessian[i] = 0;
 			rightResult.totalHessian[i] = 0;
 		} else {
-			classesForSplit++;
+			notLeafClassesCount++;
 		}
 		result += criterion;
 	}
 
-	if( classesForSplit == 0 ) {
+	if( notLeafClassesCount == 0 ) {
 		return 0;
 	}
 	return result;
