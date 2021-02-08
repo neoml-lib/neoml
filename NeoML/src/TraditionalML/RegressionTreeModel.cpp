@@ -271,6 +271,10 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 					double value;
 					archive >> value;
 					info.Value = { value };
+					leftChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					leftChild->Serialize( archive );
+					rightChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					rightChild->Serialize( archive );
 				} else if( index == 0 ) {
 					info.Type = RTNT_Const;
 					info.FeatureIndex = NotFound;
@@ -282,6 +286,7 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 					info.FeatureIndex = NotFound;
 					info.Value.Serialize( archive );
 				}
+				break;
 			}
 			default:
 				NeoAssert( false );

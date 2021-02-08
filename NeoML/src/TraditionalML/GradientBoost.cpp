@@ -405,7 +405,6 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 	buildFullPredictions( *problem, models );
 	loss = lossFunction->CalcLossMean( predicts, answers );
 
-	printf( "%d\n", problem->GetValueSize() );
 	return FINE_DEBUG_NEW CGradientBoostModel( models,  params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1, params.LearningRate, params.LossFunction );
 }
 
