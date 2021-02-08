@@ -711,7 +711,7 @@ kernel void matrixLrn( constant float* input [[buffer(0)]],
                        constant int* windowSize [[buffer(4)]],
                        constant float* bias [[buffer(5)]],
                        constant float* alpha [[buffer(6)]],
-                       constnat float* beta [[buffer(7)]],
+                       constant float* beta [[buffer(7)]],
                        uint2 thread_position_in_grid [[thread_position_in_grid]] )
 {
     C2DPosition pos( thread_position_in_grid );
@@ -725,8 +725,8 @@ kernel void matrixLrn( constant float* input [[buffer(0)]],
     const int firstC = max( 0, channelIndex - ( *windowSize - 1 ) / 2 );
     const int lastC = min( *vectorSize - 1, channelIndex + *windowSize / 2 );
 
-    input += *vectorIndex * *vectorSize;
-    ouptut += *vectorIndex * *vectorSize + channelIndex;
+    input += vectorIndex * *vectorSize;
+    output += vectorIndex * *vectorSize + channelIndex;
 
     float res = 0;
 
