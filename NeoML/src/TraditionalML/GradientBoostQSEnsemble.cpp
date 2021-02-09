@@ -364,9 +364,8 @@ double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data ) const
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
-	auto getCurIndex = GetIndexGettingFunc( data );
 	for( int i = 0; i < data.Size; i++ ) {
-		processFeature( getCurIndex( data, i ), data.Values[i], resultBitvectors );
+		processFeature( data.GetPosIndex( i ), data.Values[i], resultBitvectors );
 	}
 
 	return calculateScore<CFloatVectorDesc>( data, resultBitvectors, GetTreesCount() - 1 );
@@ -378,9 +377,8 @@ double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data, int last
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
-	auto getCurIndex = GetIndexGettingFunc( data );
 	for( int i = 0; i < data.Size; i++ ) {
-		processFeature( getCurIndex( data, i ), data.Values[i], resultBitvectors );
+		processFeature( data.GetPosIndex( i ), data.Values[i], resultBitvectors );
 	}
 
 	return calculateScore<CFloatVectorDesc>( data, resultBitvectors, lastTreeIndex );

@@ -62,26 +62,6 @@ inline CFloatVectorDesc CFloatMatrixDesc::GetRow( int index ) const
 	return res;
 }
 
-typedef int (*GetIndexFunc)( const CFloatVectorDesc& desc, int idx );
-
-inline GetIndexFunc GetIndexGettingFunc( const CFloatMatrixDesc& matrixDesc )
-{
-	if( matrixDesc.Columns == nullptr ) {
-		NeoAssert( matrixDesc.Values != nullptr );
-		return []( const CFloatVectorDesc&, int idx ) { return idx; };
-	}
-	return []( const CFloatVectorDesc& desc, int idx ) { return desc.Indexes[idx]; };
-}
-
-inline GetIndexFunc GetIndexGettingFunc( const CFloatVectorDesc& vectorDesc )
-{
-	if( vectorDesc.Indexes == nullptr ) {
-		NeoAssert( vectorDesc.Values != nullptr );
-		return []( const CFloatVectorDesc&, int idx ) { return idx; };
-	}
-	return []( const CFloatVectorDesc& desc, int idx ) { return desc.Indexes[idx]; };
-}
-
 //---------------------------------------------------------------------------------------------------------
 
 // A sparse matrix

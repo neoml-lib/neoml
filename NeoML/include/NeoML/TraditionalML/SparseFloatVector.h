@@ -29,6 +29,8 @@ struct NEOML_API CFloatVectorDesc {
 
 	CFloatVectorDesc() : Size( 0 ), Indexes( nullptr ), Values( nullptr ) {}
 
+	int GetPosIndex( int pos ) const;
+
 	static CFloatVectorDesc Empty;
 };
 
@@ -63,6 +65,16 @@ inline float GetValue( const CFloatVectorDesc& vector, int index )
 	return 0.f;
 }
 
+inline int CFloatVectorDesc::GetPosIndex( int pos ) const
+{
+	NeoAssert( pos >= 0 && pos < Size );
+	if( Indexes == nullptr ) {
+		return pos;
+	}
+	return Indexes[pos];
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 template<typename T1, typename T2>
 struct CSparseVectorElement {
 	typedef T1 TIndex;

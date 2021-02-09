@@ -47,9 +47,8 @@ void CClassificationStatistics::AddVector( int index, const CFloatVectorDesc& ve
 	const double weight = problem->GetVectorWeight( index );
 	const int classIndex = problem->GetClass( index );
 
-	auto getCurIndex = GetIndexGettingFunc( vector );
 	for( int i = 0; i < vector.Size; i++ ) {
-		const int curIndex = getCurIndex( vector, i );
+		const int curIndex = vector.GetPosIndex( i );
 		if( usedFeatureNumber[curIndex] != NotFound ) {
 			addValue( usedFeatureNumber[curIndex], vector.Values[i], 1, classIndex, weight );
 			featureStatistics[usedFeatureNumber[curIndex]].AddVectorSet( 1, classIndex, weight );

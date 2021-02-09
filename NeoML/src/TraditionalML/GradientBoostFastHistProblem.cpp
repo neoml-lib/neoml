@@ -69,7 +69,6 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 	int totalElementCount = 0; // total number of non-zero elements
 
 	// Adding the non-zero values
-	auto getCurIndex = GetIndexGettingFunc( matrix );
 	for( int i = 0; i < vectorCount; i++ ) {
 		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
@@ -77,7 +76,7 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 
 		totalElementCount += vector.Size;
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int curIndex = getCurIndex( vector, j );
+			const int curIndex = vector.GetPosIndex( j );
 			if( featureValues[curIndex].IsEmpty()
 				|| featureValues[curIndex].Last().Value != vector.Values[j] )
 			{
@@ -191,14 +190,13 @@ void CGradientBoostFastHistProblem::buildVectorData( const CFloatMatrixDesc& mat
 	
 	vectorPtr.SetBufferSize( vectorCount + 1 );
 	int curVectorPtr = 0;
-	auto getCurIndex = GetIndexGettingFunc( matrix );
 	for( int i = 0; i < vectorCount; i++ ) {
 		vectorPtr.Add( curVectorPtr );
 		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int curIndex = getCurIndex( vector, j );
+			const int curIndex = vector.GetPosIndex( j );
 			float* valuePtr = cuts.GetPtr() + featurePos[curIndex]; // the pointer to this feature values
 			int valueCount = featurePos[curIndex + 1] - featurePos[curIndex]; // the number of different values for the feature
 			// Now we get the bin into which the current value falls

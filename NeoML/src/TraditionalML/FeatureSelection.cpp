@@ -43,9 +43,8 @@ inline void CClusterStatistics::AddVector( const CFloatVectorDesc& vector, doubl
 {
 	SumWeight += weight;
 
-	auto getCurIndex = GetIndexGettingFunc( vector );
 	for( int j = 0; j < vector.Size; j++ ) {
-		const int curIndex = getCurIndex( vector, j );
+		const int curIndex = vector.GetPosIndex( j );
 		Sum[curIndex] += vector.Values[j] * weight;
 		SumSquare[curIndex] += vector.Values[j] * vector.Values[j] * weight;
 	}
@@ -155,7 +154,6 @@ void CalcFeaturesChiSquare( const IProblem& problem, CArray<double>& chi2 )
 	CFloatMatrixDesc matrix = problem.GetMatrix();
 
 	// Calculate the observed distribution
-	auto getCurIndex = GetIndexGettingFunc( matrix );
 	for( int i = 0; i < vectorCount; i++ ) {
 		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
@@ -167,7 +165,7 @@ void CalcFeaturesChiSquare( const IProblem& problem, CArray<double>& chi2 )
 
 		CArray<double>& oneObserved = observed[classIndex];
 		for( int j = 0; j < vector.Size; j++ ) {
-			oneObserved[getCurIndex( vector, j )] += weight * vector.Values[j];
+			oneObserved[vector.GetPosIndex( j )] += weight * vector.Values[j];
 		}
 	}
 
@@ -296,7 +294,6 @@ void CalcFeaturesInformationGain( const IProblem& problem, CArray<double>& infor
 
 	CVectorSetClassificationStatistic fullProblemStatistic( classCount );
 
-	auto getCurIndex = GetIndexGettingFunc( matrix );
 	for( int i = 0; i < vectorCount; i++ ) {
 		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
@@ -304,7 +301,7 @@ void CalcFeaturesInformationGain( const IProblem& problem, CArray<double>& infor
 		const double weight = problem.GetVectorWeight( i );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int curIndex = getCurIndex( vector, j );
+			const int curIndex = vector.GetPosIndex( j );
 			if( !problem.IsDiscreteFeature( curIndex ) ) {
 				continue;
 			}
