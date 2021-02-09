@@ -43,8 +43,12 @@ void CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, in
 		const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->Predict( vector );
 		NeoAssert( predictionSize == pred.Size() );
 		for( int j = 0; j < predictions.Size(); j++ ) {
-			predictions[j] += learningRate * pred[j];
+			predictions[j] += pred[j];
 		}
+	}
+
+	for( int j = 0; j < predictions.Size(); j++ ) {
+		predictions[j] *= learningRate;
 	}
 }
 
@@ -59,8 +63,12 @@ void CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, in
 		const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->Predict( vector );
 		NeoAssert( predictions.Size() == pred.Size() );
 		for( int j = 0; j < predictions.Size(); j++ ) {
-			predictions[j] += learningRate * pred[j];
+			predictions[j] += pred[j];
 		}
+	}
+
+	for( int j = 0; j < predictions.Size(); j++ ) {
+		predictions[j] *= learningRate;
 	}
 }
 
@@ -75,8 +83,12 @@ void CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, in
 		const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->Predict( vector );
 		NeoAssert( predictions.Size() == pred.Size() );
 		for( int j = 0; j < predictions.Size(); j++ ) {
-			predictions[j] += learningRate * pred[j];
+			predictions[j] += pred[j];
 		}
+	}
+
+	for( int j = 0; j < predictions.Size(); j++ ) {
+		predictions[j] *= learningRate;
 	}
 }
 
