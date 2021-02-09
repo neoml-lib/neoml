@@ -85,6 +85,7 @@ bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassif
 	CFastArray<double, 1> predictions;
 
 	if( ensembles.Size() > 1 ) {
+		predictions.SetSize( ensembles.Size() );
 		CFastArray<double, 1> ensemblePredictions;
 		ensemblePredictions.SetSize(1);
 		for( int i = 0; i < ensembles.Size(); i++ ) {
@@ -104,6 +105,7 @@ bool CGradientBoostModel::Classify( const CFloatVector& data, CClassificationRes
 	CFastArray<double, 1> predictions;
 
 	if( ensembles.Size() > 1 ) {
+		predictions.SetSize( ensembles.Size() );
 		CFastArray<double, 1> ensemblePredictions;
 		ensemblePredictions.SetSize(1);
 		for( int i = 0; i < ensembles.Size(); i++ ) {
