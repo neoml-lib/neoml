@@ -36,13 +36,9 @@ public:
 	const CRegressionTreeModel* GetPredictionNode( const CFloatVector& data ) const;
 	const CRegressionTreeModel* GetPredictionNode( const CSparseFloatVectorDesc& data ) const;
 
-	double Predict( const CSparseFloatVector& data ) const;
-	double Predict( const CSparseFloatVectorDesc& data ) const;
-	double Predict( const CFloatVector& data ) const;
-
-	const CFastArray<double, 1>& MultivariatePredict( const CSparseFloatVector& data ) const;
-	const CFastArray<double, 1>& MultivariatePredict( const CSparseFloatVectorDesc& data ) const;
-	const CFastArray<double, 1>& MultivariatePredict( const CFloatVector& data ) const;
+	const CFastArray<double, 1>& Predict( const CSparseFloatVector& data ) const;
+	const CFastArray<double, 1>& Predict( const CSparseFloatVectorDesc& data ) const;
+	const CFastArray<double, 1>& Predict( const CFloatVector& data ) const;
 
 	// IRegressionTreeModel interface methods
 	virtual CPtr<IRegressionTreeModel> GetLeftChild() const { return leftChild.Ptr(); }

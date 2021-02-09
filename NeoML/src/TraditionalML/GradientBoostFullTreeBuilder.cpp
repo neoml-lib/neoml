@@ -62,7 +62,6 @@ inline CThreadStatistics<T>::CThreadStatistics( const CThreadStatistics& other )
 	RightStatistics( other.RightStatistics ),
 	TotalStatistics( other.TotalStatistics )
 {
-	NeoAssert( Criterion > 0 );
 }
 
 template<class T>
@@ -75,7 +74,6 @@ inline CThreadStatistics<T>::CThreadStatistics( float criterion, const T& totalS
 	Criterion( criterion ),
 	TotalStatistics( totalStatistics )
 {
-	NeoAssert( Criterion > 0 );
 }
 
 // The node statistics
@@ -478,8 +476,13 @@ void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue
 {
 	T leftStatistics( statistics.CurLeftStatistics );
 	T rightStatistics( statistics.CurRightStatistics );
-	const float criterion = static_cast< float >( T::CalcCriterion( leftStatistics, rightStatistics, statistics.TotalStatistics,
-		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight ) );
+	
+	float criterion = 0;	
+	if( !T::CalcCriterion(criterion, leftStatistics, rightStatistics, statistics.TotalStatistics,
+		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight) )
+	{
+		return;
+	}
 
 	if( statistics.Criterion < criterion || ( statistics.Criterion == criterion && statistics.FeatureIndex > feature ) ) {
 		statistics.FeatureIndex = feature;

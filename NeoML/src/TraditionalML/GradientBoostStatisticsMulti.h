@@ -46,8 +46,10 @@ public:
 	double CalcCriterion( float l1, float l2 ) const;
 
 	// Calculates the split criterion for multiple classes
-	static double CalcCriterion( CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult, const CGradientBoostStatisticsMulti& totalStatistics,
-		float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight );
+	static bool CalcCriterion( float& criterion,
+		CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult,
+		const CGradientBoostStatisticsMulti& totalStatistics, float l1RegFactor, float l2RegFactor,
+		double minSubsetHessian, double minSubsetWeight );
 
 	// Gets the total gradient
 	const CArray<double>& TotalGradient() const { return totalGradient; }
@@ -201,7 +203,7 @@ inline void CGradientBoostStatisticsMulti::LeafValue( CArray<double>& value ) co
 	}
 }
 
-inline double CGradientBoostStatisticsMulti::CalcCriterion(
+inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 	CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult, const CGradientBoostStatisticsMulti& totalStatistics,
 	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight )
 {
@@ -209,9 +211,9 @@ inline double CGradientBoostStatisticsMulti::CalcCriterion(
 	int notLeafClassesCount = 0;
 
 	for( int i = 0; i < totalStatistics.ValueSize(); i++ ) {
-		bool isAlreadyLeafClass = totalStatistics.TotalHessian()[i] == 0;
+		bool isAlreadyLeafClass = ( totalStatistics.TotalHessian()[i] == 0 );
 		bool isNewLeafClass = false;
-		double criterion = 0;
+		double valueCriterion = 0;
 		if( !isAlreadyLeafClass ) {
 			if( leftResult.IsSmall( minSubsetHessian, minSubsetWeight, i ) ||
 				rightResult.IsSmall( minSubsetHessian, minSubsetWeight, i ) )
@@ -219,15 +221,15 @@ inline double CGradientBoostStatisticsMulti::CalcCriterion(
 				isNewLeafClass |= true;
 			}
 
-			criterion = totalStatistics.CalcCriterion( l1RegFactor, l2RegFactor, i );
+			valueCriterion = totalStatistics.CalcCriterion( l1RegFactor, l2RegFactor, i );
 			if( !isNewLeafClass ) {
 				double splitCriterion = leftResult.CalcCriterion( l1RegFactor, l2RegFactor, i ) +
 					rightResult.CalcCriterion( l1RegFactor, l2RegFactor, i );
 
-				if( splitCriterion < criterion ) {
+				if( splitCriterion < valueCriterion ) {
 					isNewLeafClass = true;
 				} else {
-					criterion = splitCriterion;
+					valueCriterion = splitCriterion;
 				}
 			}
 		}
@@ -245,13 +247,14 @@ inline double CGradientBoostStatisticsMulti::CalcCriterion(
 		} else {
 			notLeafClassesCount++;
 		}
-		result += criterion;
+		result += valueCriterion;
 	}
 
 	if( notLeafClassesCount == 0 ) {
-		return 0;
+		return false;
 	}
-	return result;
+	criterion = static_cast<float>( result );
+	return true;
 }
 
 } // namespace NeoML#pragma once
