@@ -29,20 +29,12 @@ public:
 	// Used for serialization
 	static CPtr<IModel> Create() { return FINE_DEBUG_NEW CGradientBoostModel(); }
 
-	// Gets the prediction by the tree ensemble for single class
-	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CSparseFloatVector& vector );
-	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CFloatVector& vector );
-	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CSparseFloatVectorDesc& desc );
-
-	// Gets the prediction by the tree ensemble for multiple classes
-	static void MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+	// Gets the prediction by the tree ensemble
+	static void PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
 		const CSparseFloatVector& vector, CFastArray<double, 1>& predictions );
-	static void MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+	static void PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
 		const CFloatVector& vector, CFastArray<double, 1>& predictions );
-	static void MultivariatePredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+	static void PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
 		const CSparseFloatVectorDesc& desc, CFastArray<double, 1>& predictions );
 
 	// IModel interface methods
@@ -75,7 +67,6 @@ private:
 	CGradientBoost::TLossFunction lossFunction; // the loss function to be optimized
 	int valueSize; // the value size of each model, if valueSize > 1 then ensemble consists of multiclass trees
 
-	bool classify( double prediction, CClassificationResult& result ) const;
 	bool classify( CFastArray<double, 1>& predictions, CClassificationResult& result ) const;
 	double probability( double prediction ) const;
 

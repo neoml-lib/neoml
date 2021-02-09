@@ -69,6 +69,7 @@ private:
 			VectorSetPtr( vectorSetPtr ),
 			VectorSetSize( vectorSetSize ),
 			HistPtr( NotFound ),
+			Statistics(),
 			SplitFeatureId( NotFound ),
 			Left( NotFound ),
 			Right( NotFound )

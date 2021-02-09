@@ -302,7 +302,8 @@ static void generateRandomArray( CRandom& random, int n, int k, CArray<int>& res
 
 CGradientBoost::CGradientBoost( const CParams& _params ) :
 	params( processParams( _params ) ),
-	logStream( 0 )
+	logStream( 0 ),
+	loss( 0 )
 {
 	NeoAssert( params.IterationsCount > 0 );
 	NeoAssert( 0 <= params.Subsample && params.Subsample <= 1 );
@@ -656,12 +657,14 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 				matrix.GetRow( usedVector, vector );
 
 				if( params.TreeBuilder == GBTB_MultiFull ) {
-					CGradientBoostModel::MultivariatePredictRaw( models[0], predictCache[0][index].Step,
+					CGradientBoostModel::PredictRaw( models[0], predictCache[0][index].Step,
 						params.LearningRate, vector, predictions[threadNum] );
 				} else {
+					CFastArray<double, 1> pred;
+					pred.SetSize(1);
 					for( int j = 0; j < problem.GetValueSize(); j++ ) {
-						predictions[threadNum][j] = CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
-							params.LearningRate, vector );
+						 CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step, params.LearningRate, vector, pred );
+						 predictions[threadNum][j] = pred[0];
 					}
 				}
 
@@ -707,12 +710,14 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 				matrix.GetRow( index, vector );
 
 				if( params.TreeBuilder == GBTB_MultiFull ){
-					CGradientBoostModel::MultivariatePredictRaw( models[0], predictCache[0][index].Step,
+					CGradientBoostModel::PredictRaw( models[0], predictCache[0][index].Step,
 						params.LearningRate, vector, predictions[threadNum] );
 				} else {
+					CFastArray<double, 1> pred;
+					pred.SetSize(1);
 					for( int j = 0; j < problem.GetValueSize(); j++ ){
-						predictions[threadNum][j] = CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
-							params.LearningRate, vector );
+						 CGradientBoostModel::PredictRaw(models[j], predictCache[j][index].Step, params.LearningRate, vector, pred );
+						predictions[threadNum][j] = pred[0];
 					}
 				}
 
