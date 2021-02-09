@@ -596,7 +596,7 @@ CPtr<CRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::buildModel( const C
 	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();
 
 	if( node.FeatureIndex == NotFound ) {
-		T::Type values;
+		typename T::Type values;
 		node.TotalStatistics.LeafValue( values );
 		result->InitLeafNode( values );
 	} else {
