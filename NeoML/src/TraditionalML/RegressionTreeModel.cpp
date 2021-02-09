@@ -151,21 +151,21 @@ void CRegressionTreeModel::CalcFeatureStatistics( int maxFeature, CArray<int>& r
 const CFastArray<double, 1>& CRegressionTreeModel::Predict( const CSparseFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_MultiConst );
+	NeoAssert( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
 	return node->info.Value;
 }
 
 const CFastArray<double, 1>& CRegressionTreeModel::Predict( const CFloatVector& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_MultiConst );
+	NeoAssert( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
 	return node->info.Value;
 }
 
 const CFastArray<double, 1>& CRegressionTreeModel::Predict( const CSparseFloatVectorDesc& data ) const
 {
 	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_MultiConst );
+	NeoAssert( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
 	return node->info.Value ;
 }
 
