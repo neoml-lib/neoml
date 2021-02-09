@@ -179,7 +179,7 @@ inline void CGradientBoostStatisticsSingle::LeafValue( double& value ) const
 }
 
 inline bool CGradientBoostStatisticsSingle::CalcCriterion( float& criterion,
-	CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle& totalStatistics,
+	CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle&,
 	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight )
 {
 	if( leftResult.IsSmall( minSubsetHessian, minSubsetWeight ) ||
