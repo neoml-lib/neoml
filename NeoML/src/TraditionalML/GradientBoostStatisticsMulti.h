@@ -64,7 +64,7 @@ public:
 	bool IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex );
 
 	// Get leaf value
-	void CGradientBoostStatisticsMulti::LeafValue( CArray<double>& value ) const;
+	void LeafValue( CArray<double>& value ) const;
 
 	// Get value size
 	int ValueSize() const { return totalGradient.Size(); }
