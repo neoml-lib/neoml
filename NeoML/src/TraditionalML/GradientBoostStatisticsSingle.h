@@ -45,7 +45,7 @@ public:
 
 	// Calculates the split criterion
 	static bool CalcCriterion( float& criterion, CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle& totalStatistics,
-		float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight );
+		float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient );
 
 	// Gets the total gradient
 	double TotalGradient() const { return totalGradient; }
@@ -180,7 +180,7 @@ inline void CGradientBoostStatisticsSingle::LeafValue( double& value ) const
 
 inline bool CGradientBoostStatisticsSingle::CalcCriterion( float& criterion,
 	CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle&,
-	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight )
+	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float )
 {
 	if( leftResult.IsSmall( minSubsetHessian, minSubsetWeight ) ||
 		rightResult.IsSmall( minSubsetHessian, minSubsetWeight ) )

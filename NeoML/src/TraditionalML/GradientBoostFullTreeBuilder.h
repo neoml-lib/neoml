@@ -38,6 +38,7 @@ struct CGradientBoostFullTreeBuilderParams {
 	float PruneCriterionValue; // the value of criterion difference when the nodes should be merged (set to 0 to never merge)
 	int MaxNodesCount; // the maximum number of nodes in a tree (set to NotFound == -1 for no limitation)
 	float MinSubsetWeight; // the minimum subtree weight
+	float DenseTreeBoostCoefficient; // the dense tree boost coefficient 
 };
 
 // Tree builder

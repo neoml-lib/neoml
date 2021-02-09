@@ -104,6 +104,7 @@ public:
 		TGradientBoostTreeBuilder TreeBuilder; // the type of tree builder used
 		int MaxBins; // the largest possible histogram size to be used in *GBTB_FastHist* mode
 		float MinSubsetWeight; // the minimum subtree weight (set to 0 to have no lower limit)
+		float DenseTreeBoostCoefficient; // the dense tree boost coefficient (only for GBTB_MultiFull)
 
 		CParams() :
 			LossFunction( LF_Binomial ),
@@ -120,7 +121,8 @@ public:
 			ThreadCount( 1 ),
 			TreeBuilder( GBTB_Full ),
 			MaxBins( 32 ),
-			MinSubsetWeight( 0.f )
+			MinSubsetWeight( 0.f ),
+			DenseTreeBoostCoefficient( 0.f )
 		{
 		}
 	};

@@ -49,7 +49,7 @@ public:
 	static bool CalcCriterion( float& criterion,
 		CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult,
 		const CGradientBoostStatisticsMulti& totalStatistics, float l1RegFactor, float l2RegFactor,
-		double minSubsetHessian, double minSubsetWeight );
+		double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient );
 
 	// Gets the total gradient
 	const CArray<double>& TotalGradient() const { return totalGradient; }
@@ -205,10 +205,10 @@ inline void CGradientBoostStatisticsMulti::LeafValue( CArray<double>& value ) co
 
 inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 	CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult, const CGradientBoostStatisticsMulti& totalStatistics,
-	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight )
+	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient )
 {
 	double result = 0;
-	int notLeafClassesCount = 0;
+	int leafClassesCount = 0;
 
 	for( int i = 0; i < totalStatistics.ValueSize(); i++ ) {
 		bool isAlreadyLeafClass = ( totalStatistics.TotalHessian()[i] == 0 );
@@ -244,18 +244,17 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 			}
 			leftResult.totalHessian[i] = 0;
 			rightResult.totalHessian[i] = 0;
-		} else {
-			notLeafClassesCount++;
+			leafClassesCount++;
 		}
 		result += valueCriterion;
 	}
 
-	if( notLeafClassesCount == 0 ) {
+	if( leafClassesCount == totalStatistics.ValueSize() ) {
 		return false;
 	}
-	criterion = static_cast<float>( result );
+	criterion = static_cast<float>( result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) ) );
 	return true;
 }
 
-} // namespace NeoML#pragma once
+} // namespace NeoML
 

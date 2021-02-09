@@ -136,6 +136,7 @@ CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradient
 	NeoAssert( abs( params.MinSubsetHessian ) > 0 );
 	NeoAssert( params.ThreadCount > 0 );
 	NeoAssert( params.MinSubsetWeight >= 0 );
+	NeoAssert( params.DenseTreeBoostCoefficient >= 0 );
 }
 
 template<class T>
@@ -478,8 +479,8 @@ void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue
 	T rightStatistics( statistics.CurRightStatistics );
 	
 	float criterion = 0;	
-	if( !T::CalcCriterion(criterion, leftStatistics, rightStatistics, statistics.TotalStatistics,
-		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight) )
+	if( !T::CalcCriterion( criterion, leftStatistics, rightStatistics, statistics.TotalStatistics,
+		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient ) )
 	{
 		return;
 	}
