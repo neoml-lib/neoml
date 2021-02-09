@@ -21,6 +21,8 @@ class CDenseMemoryProblem : public IProblem {
 public:
 	CDenseMemoryProblem( int height, int width, float* values, const int* _classes, const float* _weights );
 
+	CFloatVectorDesc GetVector( int index ) const { return desc.GetRow( index ); }
+
 	// IProblem interface methods:
 	int GetClassCount() const override { return classCount; }
 	int GetFeatureCount() const override { return desc.Width; }
