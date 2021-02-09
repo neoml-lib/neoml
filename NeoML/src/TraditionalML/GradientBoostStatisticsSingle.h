@@ -21,7 +21,8 @@ namespace NeoML {
 class CGradientBoostStatisticsSingle {
 public:
 	typedef double Type;
-	CGradientBoostStatisticsSingle() = default;
+
+	CGradientBoostStatisticsSingle();
 	explicit CGradientBoostStatisticsSingle( int valueSize );
 	explicit CGradientBoostStatisticsSingle( const CGradientBoostStatisticsSingle& other );
 	explicit CGradientBoostStatisticsSingle( double gradient, double hessian, float weight );
@@ -69,6 +70,13 @@ private:
 	double totalHessian; // total hessian
 	float totalWeight; // total weight
 };
+
+inline CGradientBoostStatisticsSingle::CGradientBoostStatisticsSingle()
+{
+	totalGradient = 0.0;
+	totalHessian = 0.0;
+	totalWeight = 0.0;
+}
 
 inline CGradientBoostStatisticsSingle::CGradientBoostStatisticsSingle( int valueSize )
 {
