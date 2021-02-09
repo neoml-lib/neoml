@@ -54,6 +54,7 @@ private:
 	CArray< CArray<int> > objectsPerPart; // the list of object indices for each of the parts
 	int minPartSize; // the minimum number of objects in each part (the total number of elements / the number of parts)
 	int objectsBeforeTestPart; // the number of objects before the test part
+	CArray<float> values; // vector of values
 	CArray<int> pointerB; // the pointers to the vector beginnings
 	CArray<int> pointerE; // the pointers to the vector ends
 	CFloatMatrixDesc matrix; // the problem matrix descriptor

@@ -45,7 +45,15 @@ CStratifiedCrossValidationSubProblem::CStratifiedCrossValidationSubProblem( cons
 	matrix.Height = vectorsCount;
 	matrix.Width = baseMatrix.Width;
 	if( baseMatrix.Columns == nullptr ) { // dense inside
-		matrix.Values = baseMatrix.Values + baseMatrix.Width * translateIndex( 0 );
+		values.SetSize( matrix.Width * vectorsCount );
+		matrix.Values = values.GetPtr();
+		float* ptr = matrix.Values;
+		for( int i = 0; i < vectorsCount; i++, ptr += matrix.Width ) {
+			int index = translateIndex( i );
+			CFloatVectorDesc vec = baseMatrix.GetRow( index );
+			NeoAssert( vec.Size == matrix.Width );
+			::memcpy( ptr, vec.Values, vec.Size * sizeof( float ) );
+		}
 	} else {
 		pointerB.SetSize( vectorsCount );
 		pointerE.SetSize( vectorsCount );
