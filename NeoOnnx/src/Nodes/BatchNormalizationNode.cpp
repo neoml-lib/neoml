@@ -104,9 +104,10 @@ CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( const CTensorCache
 	// Calculating final params
 	CPtr<CDnnBlob> finalParams = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 2, channels );
 
+	CFloatHandleStackVar epsVar( mathEngine );
+	epsVar.SetValue( eps );
 	CFloatHandle gamma = finalParams->GetObjectData( 0 );
-	mathEngine.VectorFill( gamma, eps, channels );
-	mathEngine.VectorAdd( var->GetData(), gamma, gamma, channels );
+	mathEngine.VectorAddValue( var->GetData(), gamma, channels, epsVar );
 	mathEngine.VectorSqrt( gamma, gamma, channels );
 	mathEngine.VectorEltwiseDivide( scale->GetData(), gamma, gamma, channels );
 
