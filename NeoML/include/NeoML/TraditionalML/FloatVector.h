@@ -182,19 +182,27 @@ inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vecto
 // The dot product of two vectors
 inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFloatVectorDesc& vector2 )
 {
-	int i = 0;
-	int j = 0;
 	double sum = 0;
-	while( i < vector1.Size && j < vector2.Size ) {
-		if( vector1.Indexes[i] == vector2.Indexes[j] ) {
-			sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[j];
-			i++;
-			j++;
-		} else {
-			if( vector1.Indexes[i] < vector2.Indexes[j] ) {
+	if( vector1.Indexes == nullptr ) { // dense array inside
+		NeoPresume( vector2.Indexes == nullptr );
+		const int size = min( vector1.Size, vector2.Size );
+		for( int i = 0; i < size; i++ ) {
+			sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[i];
+		}
+	} else {
+		int i = 0;
+		int j = 0;
+		while( i < vector1.Size && j < vector2.Size ) {
+			if( vector1.Indexes[i] == vector2.Indexes[j] ) {
+				sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[j];
 				i++;
-			} else {
 				j++;
+			} else {
+				if( vector1.Indexes[i] < vector2.Indexes[j] ) {
+					i++;
+				} else {
+					j++;
+				}
 			}
 		}
 	}
@@ -204,15 +212,19 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 // The dot product of two vectors
 inline double DotProduct( const CFloatVector& vector1, const CSparseFloatVectorDesc& vector2 )
 {
-	// The sparse vector may not be longer than the regular one
-	NeoAssert( vector2.Size == 0 || vector2.Indexes[vector2.Size - 1] < vector1.Size() );
-
 	double sum = 0;
-
 	const float* operand1 = vector1.GetPtr();
-
-	for( int i = 0; i < vector2.Size; i++ ) {
-		sum += static_cast<double>( vector2.Values[i] ) * operand1[vector2.Indexes[i]];
+	if( vector2.Indexes == nullptr ) { // dense array inside
+		NeoPresume( vector2.Size <= vector1.Size() );
+		for( int i = 0; i < vector2.Size; i++ ) {
+			sum += static_cast<double>( vector2.Values[i] ) * operand1[i];
+		}
+	} else {
+		// The sparse vector may not be longer than the regular one
+		NeoPresume( vector2.Size == 0 || vector2.Indexes[vector2.Size - 1] < vector1.Size() );
+		for( int i = 0; i < vector2.Size; i++ ) {
+			sum += static_cast<double>( vector2.Values[i] ) * operand1[vector2.Indexes[i]];
+		}
 	}
 	return sum;
 }
