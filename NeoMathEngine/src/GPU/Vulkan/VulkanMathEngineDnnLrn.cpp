@@ -25,20 +25,35 @@ limitations under the License.
 #include <VulkanShader.h>
 #include <VulkanDll.h>
 #include <MathEngineCommon.h>
-#include <MathEngineDnnConv.h>
+#include <MathEngineDnnLrn.h>
+
+#include <shaders/generated/Lrn.h>
 
 namespace NeoML {
 
-CLrnDesc* CVulkanMathEngine::InitLrn( const CBlobDesc& /* source */, int /* windowSize */, float /* bias */, float /* alpha */, float /* beta */ )
+CLrnDesc* CVulkanMathEngine::InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta )
 {
-	ASSERT_EXPR( false );
-	return nullptr;
+	return new CMathEngineLrnDesc( source, windowSize, bias, alpha, beta );
 }
 
-void CVulkanMathEngine::Lrn( const CLrnDesc& /* lrnDesc */, const CConstFloatHandle& /* input */, const CFloatHandle& /* invSum */,
-	const CFloatHandle& /* invSumBeta */ , const CFloatHandle& /* outputHandle */ )
+void CVulkanMathEngine::Lrn( const CLrnDesc& lrnDesc, const CConstFloatHandle& input, const CFloatHandle& invSum,
+	const CFloatHandle& invSumBeta , const CFloatHandle& output )
 {
-	ASSERT_EXPR( false );
+	const CMathEngineLrnDesc& desc = static_cast<const CMathEngineLrnDesc&>( lrnDesc );
+	
+	const int vectorSize = desc.Source.Channels();
+	const int vectorCount = desc.Source.BlobSize() / vectorSize;
+	const size_t bytesTotal = vectorSize * vectorCount * sizeof( float );
+
+	CMemoryHandle bufs[4] = { input, invSum.IsNull() ? output : invSum,
+		invSumBeta.IsNull() ? output : invSumBeta, output };
+	size_t sizes[4] = { bytesTotal, bytesTotal, bytesTotal, bytesTotal };
+
+	PARAM_STRUCT(Lrn) param = { vectorCount, vectorSize, desc.WindowSize,
+		desc.Bias, desc.Alpha, desc.Beta };
+	
+	runShader( shaderLoader->GET_SHADER_DATA( Lrn, true, 0, 0, 4 ), &param, sizeof( param ), 0, 0, 0, 0, bufs, sizes,
+		4, vectorCount, vectorSize, 1 );
 }
 
 void CVulkanMathEngine::LrnBackward( const CLrnDesc& /* desc */, const CConstFloatHandle& /* input */, const CConstFloatHandle& /* output */,
