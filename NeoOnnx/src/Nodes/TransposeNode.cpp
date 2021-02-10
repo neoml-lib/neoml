@@ -64,24 +64,6 @@ static bool isChannelLast( const CTensorDim& dim )
 		{ BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Height, BD_Width, BD_Depth, BD_Channels } );
 }
 
-// There is a specific case, when Transpose converting input from channel-last ordering to channel-first
-// But NeoML using channel-last already and NeoOnnx converts weights to be compatible with channel-last ordering
-// In that case we can just ignore this node
-static bool canSkipTranspose( const CNode* inputNode, const CTensorDim& inputDim, const CFastArray<int, 8>& perm )
-{
-	if( dynamic_cast<const CGraphInput*>( inputNode ) == nullptr ) {
-		return false;
-	}
-
-	CTensorDim outputDim;
-	outputDim.SetSize( inputDim.Size() );
-	for( int i = 0; i < outputDim.Size(); ++i ) {
-		outputDim[i] = inputDim[perm[i]];
-	}
-
-	return isChannelLast( inputDim ) && isChannelFirst( outputDim );
-}
-
 typedef CFastArray<TBlobDim, 2> CDimensionPair;
 
 // Builds list of dimension swaps to emulate perm
@@ -134,12 +116,28 @@ void CTransposeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* m
 void CTransposeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
 {
 	if( !dims[Input[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
+		const CTensorDim& inputDim = dims[Input[0]];
+		CTensorDim outputDim;
+		outputDim.SetSize( inputDim.Size() );
+
+		for( int i = 0; i < perm.Size(); ++i ) {
+			outputDim[i] = inputDim[perm[i]];
+		}
+
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, outputDim, dims[Output[0]] ),
 			"labeling output dimensions failed", OnnxNode );
 	}
 
 	if( !dims[Output[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
+		const CTensorDim& outputDim = dims[Output[0]];
+		CTensorDim inputDim;
+		inputDim.SetSize( outputDim.Size() );
+
+		for( int i = 0; i < perm.Size(); ++i ) {
+			inputDim[perm[i]] = outputDim[i];
+		}
+
+		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, inputDim, dims[Input[0]] ),
 			"labeling input dimensions failed", OnnxNode );
 	}
 }
@@ -147,11 +145,6 @@ void CTransposeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& di
 void CTransposeNode::AddLayers( const CGraph& graph, const CTensorCache& /* tensors */, const CDimCache& dims,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	if( canSkipTranspose( graph[Input[0]], dims[Input[0]], perm ) ) {
-		neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
-		return;
-	}
-
 	CArray<CDimensionPair> swaps;
 	buildSwapList( dims[Input[0]], perm, swaps );
 
