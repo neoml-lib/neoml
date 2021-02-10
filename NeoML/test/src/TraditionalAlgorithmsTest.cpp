@@ -84,7 +84,6 @@ TEST_F( RandomBinary4000x20, SvmLinear )
 	CSvmBinaryClassifierBuilder svmLinear( params );
 
 	int begin = GetTickCount();
-
 	auto model = svmLinear.Train( *DenseRandomBinaryProblem );
 	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
 	ASSERT_TRUE( model != nullptr );

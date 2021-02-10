@@ -48,10 +48,12 @@ void CClassificationStatistics::AddVector( int index, const CFloatVectorDesc& ve
 	const int classIndex = problem->GetClass( index );
 
 	for( int i = 0; i < vector.Size; i++ ) {
-		const int curIndex = vector.GetPosIndex( i );
-		if( usedFeatureNumber[curIndex] != NotFound ) {
-			addValue( usedFeatureNumber[curIndex], vector.Values[i], 1, classIndex, weight );
-			featureStatistics[usedFeatureNumber[curIndex]].AddVectorSet( 1, classIndex, weight );
+		if( vector.Values[i] != 0.0 ) {
+			const int curIndex = vector.GetPosIndex( i );
+			if( usedFeatureNumber[curIndex] != NotFound ) {
+				addValue( usedFeatureNumber[curIndex], vector.Values[i], 1, classIndex, weight );
+				featureStatistics[usedFeatureNumber[curIndex]].AddVectorSet( 1, classIndex, weight );
+			}
 		}
 	}
 
