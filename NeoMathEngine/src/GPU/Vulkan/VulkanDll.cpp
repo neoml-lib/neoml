@@ -47,9 +47,16 @@ namespace NeoML {
 static VkApplicationInfo applicationInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO, 0, "NeoMachineLearning",
 	VK_MAKE_VERSION(1, 0, 0), "NeoMathEngine", VK_MAKE_VERSION(1, 0, 0), VK_API_VERSION_1_0 };
 
-static VkInstanceCreateInfo instanceCreateInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, 0, 0, &applicationInfo,
-	0, 0, 0, 0 };
+static VkInstanceCreateInfo instanceCreateInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, 
+	0, 0, &applicationInfo, 0, 0, 0, 0 };
 
+#ifdef ENABLE_VALIDATION
+
+static const std::vector<const char*> validationLayers = {
+		 "VK_LAYER_KHRONOS_validation"
+};
+
+#endif
 //------------------------------------------------------------------------------------------------------------
 
 typedef basic_string<char, char_traits<char>, CrtAllocator<char> > fstring;
@@ -97,7 +104,16 @@ static TVulkanDeviceType defineDeviceType( const VkPhysicalDeviceProperties& pro
 
 	return VDT_Regular;
 }
+#ifdef ENABLE_VALIDATION
 
+static VkBool32 VKAPI_ATTR defaultLogger( VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, 
+	uint64_t, size_t, int32_t, const char* layerPrefix, const char* message, void* )
+{
+	printf( "[Vulkan]: %s: %s\n", layerPrefix, message );
+	return VK_FALSE;
+}
+
+#endif
 //------------------------------------------------------------------------------------------------------------
 
 CVulkanDll::CVulkanDll() :
@@ -111,6 +127,14 @@ CVulkanDll::CVulkanDll() :
 	vkGetPhysicalDeviceQueueFamilyProperties( nullptr ),
 	vkGetPhysicalDeviceMemoryProperties( nullptr ),
 	vkCreateDevice( nullptr )
+#ifdef ENABLE_VALIDATION
+	,
+	vkEnumerateInstanceLayerProperties( nullptr ),
+	vkEnumerateInstanceExtensionProperties( nullptr ),
+	vkCreateDebugReportCallbackEXT( nullptr ),
+	vkDestroyDebugReportCallbackEXT( nullptr ),
+	callback( nullptr )
+#endif
 {
 }
 
@@ -197,6 +221,7 @@ const CVulkanDevice* CVulkanDll::CreateDevice( const CVulkanDeviceInfo& info ) c
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkBindImageMemory);
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateCommandPool);
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyCommandPool);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkResetCommandPool);
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateComputePipelines);
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyPipeline);
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkAllocateCommandBuffers);
@@ -240,6 +265,9 @@ void CVulkanDll::Free()
 		devices.clear();
 		devices.shrink_to_fit();
 		if( vkDestroyInstance != nullptr ) {
+#ifdef ENABLE_VALIDATION
+			vkDestroyDebugReportCallbackEXT( instance, callback, nullptr );
+#endif
 			vkDestroyInstance( instance, 0 );
 		}
 		instance = VK_NULL_HANDLE;
@@ -253,8 +281,35 @@ bool CVulkanDll::loadFunctions()
 	LOAD_VULKAN_FUNC_PROC(vkGetInstanceProcAddr);
 	LOAD_VULKAN_FUNC_PROC(vkGetDeviceProcAddr);
 	LOAD_VULKAN_INSTANCE_FUNC_PROC(vkCreateInstance);
-	if( vkCreateInstance( &instanceCreateInfo, 0, &instance ) == VK_SUCCESS ) {
-		LOAD_VULKAN_INSTANCE_FUNC_PROC(vkDestroyInstance);
+
+#ifdef ENABLE_VALIDATION
+	
+	LOAD_VULKAN_INSTANCE_FUNC_PROC(vkEnumerateInstanceLayerProperties);
+	LOAD_VULKAN_INSTANCE_FUNC_PROC(vkEnumerateInstanceExtensionProperties);
+
+	if( checkLayersSupport() ) {
+		instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>( validationLayers.size() );
+		instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+	}
+#endif
+	auto result = vkCreateInstance( &instanceCreateInfo, 0, &instance );
+	if( result == VK_SUCCESS ) {
+		LOAD_VULKAN_INSTANCE_FUNC_PROC( vkDestroyInstance );
+
+#ifdef ENABLE_VALIDATION
+
+		LOAD_VULKAN_INSTANCE_FUNC_PROC(vkCreateDebugReportCallbackEXT);
+		LOAD_VULKAN_INSTANCE_FUNC_PROC(vkDestroyDebugReportCallbackEXT);
+
+		VkDebugReportCallbackCreateInfoEXT createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+		createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT 
+			| VK_DEBUG_REPORT_WARNING_BIT_EXT
+			| VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+		createInfo.pfnCallback = defaultLogger;
+
+		vkSucceded( vkCreateDebugReportCallbackEXT( instance, &createInfo, nullptr, &callback ) );
+#endif
 		return true;
 	}
 	return false;
@@ -320,6 +375,28 @@ bool CVulkanDll::enumDevices()
 	}
 	return true;
 }
+
+#ifdef ENABLE_VALIDATION
+
+bool CVulkanDll::checkLayersSupport() const
+{
+	uint32_t layerCount = 0;
+
+	vkEnumerateInstanceLayerProperties( &layerCount, nullptr );
+
+	std::vector<VkLayerProperties> allLayers( layerCount );
+	vkSucceded( vkEnumerateInstanceLayerProperties( &layerCount, allLayers.data() ) );
+
+	for( const char* layerName: validationLayers ) {
+		auto iterator = std::find_if( allLayers.cbegin(), allLayers.cend(),
+			[layerName](const VkLayerProperties& p) { return strcmp( p.layerName, layerName ) == 0; } );
+		if( iterator == allLayers.cend() ) {
+			return false;
+		}
+	}
+	return true;
+}
+#endif
 
 } // namespace NeoML
 
