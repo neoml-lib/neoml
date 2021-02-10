@@ -160,8 +160,8 @@ constexpr int SubmitBatchSize = 5;
 
 CVulkanCommandQueue::CData::CData( CVulkanCommandQueue& queue_ ) :
 	queue( queue_ ),
-	commandPool( nullptr ),
-	fence( nullptr ),
+	commandPool( VK_NULL_HANDLE ),
+	fence( VK_NULL_HANDLE ),
 	commandBufferCount( 0 )
 {
 	// Create command pool
@@ -238,7 +238,7 @@ void CVulkanCommandQueue::CData::wait()
 // Gets the descriptors pool
 VkDescriptorSet CVulkanCommandQueue::CData::getDescriptorSet( const VkDescriptorSetLayout* layout )
 {
-	VkDescriptorPool descriptorPool = nullptr;
+	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 	// No special improvements when reusing (as with the buffer), but save the space for the sake of similarity
 	if( descriptorPoolCache.size() * VulkanMaxDescriptorSetPerPool > descriptorSets.size() ) {
 		descriptorPool = descriptorPoolCache[ descriptorSets.size() / VulkanMaxDescriptorSetPerPool ];
@@ -272,7 +272,7 @@ VkDescriptorSet CVulkanCommandQueue::CData::getDescriptorSet( const VkDescriptor
 	}
 	
 	// Allocate descriptors set
-	VkDescriptorSet result = nullptr;
+	VkDescriptorSet result = VK_NULL_HANDLE;
 
 	VkDescriptorSetAllocateInfo allocateInfo{};
 	allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -331,7 +331,7 @@ void CVulkanCommandQueue::CData::submitCommand( VkCommandBuffer commandBuffer )
 		submitInfo.pCommandBuffers = &commandBufferCache[commandBufferCount - 1 - SubmitBatchSize];
 
 		std::lock_guard<std::mutex> lock( queue.mutex );
-		ASSERT_ERROR_CODE( device.vkQueueSubmit( queue.queue, 1, &submitInfo, nullptr ) );
+		ASSERT_ERROR_CODE( device.vkQueueSubmit( queue.queue, 1, &submitInfo, VK_NULL_HANDLE ) );
 	}
 }
 
