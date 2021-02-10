@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
+#include <MathEngineCommon.h>
 #include <CpuMathEngine.h>
 #include <DllLoader.h>
 
@@ -27,7 +28,6 @@ limitations under the License.
 #include <CudaDevice.h>
 #include <CublasDll.h>
 #include <CusparseDll.h>
-#include <MathEngineCommon.h>
 #endif
 
 #ifdef NEOML_USE_VULKAN
@@ -44,6 +44,34 @@ limitations under the License.
 #include <vector>
 
 namespace NeoML {
+
+// Thread local data
+using PointerType = std::unique_ptr<void, DeleterType>;
+thread_local unordered_map<const void*, PointerType> threadLocalData;
+
+void SetThreadData(const void* key, void* data, DeleterType deleter)
+{
+	auto it = threadLocalData.find( key );
+	if( it != threadLocalData.end() ) {
+		it->second.reset( data );
+	} else {
+		threadLocalData.emplace( key, PointerType( data, deleter ) );
+	}
+}
+
+void* GetThreadData( const void* key )
+{
+	auto it = threadLocalData.find( key );
+	if( it != threadLocalData.cend() ) {
+		return it->second.get();
+	}
+	return nullptr;
+}
+
+void CleanThreadData( const void* key )
+{
+	threadLocalData.erase( key );
+}
 
 // Interface destructors
 IVectorMathEngine::~IVectorMathEngine() {}
