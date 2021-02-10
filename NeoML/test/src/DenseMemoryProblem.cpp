@@ -74,7 +74,7 @@ CPtr<CDenseMemoryProblem> CDenseMemoryProblem::Random( int samples, int features
 
 CPtr<CMemoryProblem> CDenseMemoryProblem::CreateSparse() const
 {
-	CPtr<CMemoryProblem> res = new CMemoryProblem( desc.Height, desc.Width );
+	CPtr<CMemoryProblem> res = new CMemoryProblem( desc.Width, classCount );
 	for( int i = 0; i < desc.Height; ++i ) {
 		CFloatVectorDesc row = desc.GetRow( i );
 		res->Add( row, weights[i], classes[i] );
