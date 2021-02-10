@@ -15,8 +15,11 @@ limitations under the License.
 
 #pragma once
 
-#include <cassert>
+#include <thread>
+#include <mutex>
+#include <unordered_map>
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <MathEngineAllocator.h>
 
 namespace NeoML {
 
@@ -42,5 +45,51 @@ inline int FloorTo( int val, int discret )
 {
 	return Floor( val, discret ) * discret;
 }
+
+template <typename Key, typename Value>
+using unordered_map = std::unordered_map<Key, Value, 
+	std::hash<Key>, std::equal_to<Key>, CrtAllocator< std::pair<Key const, Value>>>;
+
+template <typename T>
+using vector = std::vector<T, CrtAllocator<T>>;
+
+using DeleterType = void(*)(void*);
+
+void SetThreadData( const void* key, void* data, DeleterType deleter );
+void* GetThreadData( const void* key );
+void CleanThreadData( const void* key );
+
+template <typename T>
+class CThreadDataPtr
+{
+public:
+	CThreadDataPtr() = default;
+	~CThreadDataPtr() { CleanThreadData( this ); }
+
+	CThreadDataPtr( const CThreadDataPtr& ) = delete;
+	CThreadDataPtr& operator=( const CThreadDataPtr& ) = delete;
+
+	T* operator->() const { return Get(); }
+	T& operator*() const { return *Get(); }
+
+	operator bool() const 
+	{  
+		return GetThreadData( this ) != nullptr;
+	}
+
+	T* Get() const
+	{
+		return static_cast<T*>( GetThreadData( this ) );
+	}
+
+	void Reset( T* value = nullptr )
+	{
+		const T* currentValue = Get();
+		if( value != currentValue ) {
+			auto deleter = []( void* data ) { delete static_cast<T*>( data ); };
+			SetThreadData( this, value, deleter );
+		}
+	}
+};
 
 }

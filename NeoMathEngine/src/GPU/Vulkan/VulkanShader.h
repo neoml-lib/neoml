@@ -19,10 +19,15 @@ limitations under the License.
 
 #ifdef NEOML_USE_VULKAN
 
+#include <shaders/common/CommonStruct.h>
+#include <NeoMathEngine/NeoMathEngineException.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
+#include <array>
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <MathEngineAllocator.h>
+
+#include <mutex>
 
 namespace NeoML {
 
@@ -206,14 +211,14 @@ struct CVulkanShaderData : public CCrtAllocatedObject {
 };
 
 inline CVulkanShaderData::CVulkanShaderData() :
-	Module(VK_NULL_HANDLE),
-	DescLayout(VK_NULL_HANDLE),
-	Layout(VK_NULL_HANDLE),
-	Pipeline(VK_NULL_HANDLE),
-	IsImageBased(false),
-	GroupSizeX(1),
-	GroupSizeY(1),
-	GroupSizeZ(1)
+	Module( VK_NULL_HANDLE ),
+	DescLayout( VK_NULL_HANDLE ),
+	Layout( VK_NULL_HANDLE ),
+	Pipeline( VK_NULL_HANDLE ),
+	IsImageBased( false ),
+	GroupSizeX( 1 ),
+	GroupSizeY( 1 ),
+	GroupSizeZ( 1 )
 {
 }
 
@@ -225,17 +230,41 @@ class CVulkanDll;
 class CVulkanShaderLoader : public CCrtAllocatedObject {
 public:
 	explicit CVulkanShaderLoader( const CVulkanDevice& vulkanDevice );
-	~CVulkanShaderLoader();
+	~CVulkanShaderLoader() noexcept;
 
-	// Gets the shader data
-	const CVulkanShaderData& GetShaderData(TShader id, bool isIB, const uint32_t* code, int codeLen,
-		size_t paramSize, int imageCount, int samplerCount, int bufferCount, int dimensions);
+	// Gets the shader data (lazy)
+	const CVulkanShaderData& GetShaderData( TShader id, bool isIB, const uint32_t* code, int codeLen,
+		size_t paramSize, int imageCount, int samplerCount, int bufferCount, int dimensions ) const;
 private:
-	void calculateThreadGroupSize( int dimensions, int& threadGroupSizeX, int& threadGroupSizeY, int& threadGroupSizeZ ) const;
 
 	const CVulkanDevice& device;
-	std::vector< CVulkanShaderData*, CrtAllocator<CVulkanShaderData*> > shaders; // cache
+	mutable std::array<std::once_flag, SH_Count> flags;
+	mutable vector<CVulkanShaderData*> shaders; // cache
+
+	void createShaderData( TShader id, bool isIB, const uint32_t* code, int codeLen,
+		size_t paramSize, int imageCount, int samplerCount, int bufferCount, int dimensions ) const;
+	void calculateThreadGroupSize( int dimensions, int& threadGroupSizeX, int& threadGroupSizeY, int& threadGroupSizeZ) const;
 };
+
+inline CVulkanShaderLoader::CVulkanShaderLoader( const CVulkanDevice& vulkanDevice ) :
+	device( vulkanDevice ),
+	shaders( SH_Count, nullptr )
+{}
+
+inline const CVulkanShaderData& CVulkanShaderLoader::GetShaderData( TShader id, bool isIB, const uint32_t* code,
+	int codeLen, size_t paramSize, int imageCount,
+	int samplerCount, int bufferCount, int dimensions ) const
+{
+	PRESUME_EXPR( imageCount <= IMAGE_MAX_COUNT );
+	PRESUME_EXPR( samplerCount <= SAMPLER_MAX_COUNT );
+	PRESUME_EXPR( dimensions >= 1 );
+	PRESUME_EXPR( dimensions <= 3 );
+
+	std::call_once( flags[id], &CVulkanShaderLoader::createShaderData, this, id,
+		isIB, code, codeLen, paramSize, imageCount, samplerCount, bufferCount, dimensions );
+
+	return *shaders[id];
+}
 
 // A helper macro
 #define GET_SHADER_DATA(shader, hasParam, imageCount, samplerCount, bufferCount)					\

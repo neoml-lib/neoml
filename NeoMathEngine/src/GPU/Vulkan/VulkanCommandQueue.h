@@ -21,7 +21,10 @@ limitations under the License.
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <vector>
+#include <mutex>
+
 #include <vulkan/vulkan.h>
+
 #include <MathEngineAllocator.h>
 #include <NeoMathEngine/MemoryHandle.h>
 
@@ -38,9 +41,6 @@ constexpr size_t VulkanMaxUpdateBufferSize = 65536;
 constexpr int VulkanMaxDescriptorSetPerPool = 128;
 
 //------------------------------------------------------------------------------------------------------------
-
-struct CCommand;
-
 // The shader execution mechanism
 // The executing resources are distributed on the stack allocator principle 
 // (we noted substantial performance increase from this)
@@ -49,6 +49,9 @@ class CVulkanCommandQueue : public CCrtAllocatedObject {
 public:
 	explicit CVulkanCommandQueue( const CVulkanDevice& device );
 	~CVulkanCommandQueue();
+
+	CVulkanCommandQueue( const CVulkanCommandQueue& ) = delete;
+	CVulkanCommandQueue& operator=( const CVulkanCommandQueue& ) = delete;
 
 	// Add a shader to the compute queue
 	void RunComputeShader( const CVulkanShaderData& shader, int countX, int countY, int countZ,
@@ -69,26 +72,57 @@ public:
 	// Queue repacking an image into new layout
 	void RunChangeLayoutForImage( const CVulkanImage* nativeImage, VkImageLayout oldLayout, VkImageLayout newLayout );
 
-	// Wait for all shaders in the queue to complete
+	// Wait for all commands in current thread is finished
 	void Wait();
 
-	// Release all temporary resources
-	void CleanUp();
+	// Release all temporary resources in current thread
+	void CleanUp() { data.Reset(); }
 
 private:
 	const CVulkanDevice& device; // the processing device
-	VkQueue queue; // the queue handle
-	VkCommandPool commandPool; // the command pool queue
-	std::vector< VkDescriptorPool, CrtAllocator<VkDescriptorPool> > descriptorPools; // the stack of pool descriptors
-	int descriptionSetCount; // the number of used pool descriptors
-	std::vector< VkCommandBuffer, CrtAllocator<VkCommandBuffer> > commandBuffers; // the stack of command buffers
-	int commandBufferCount; // the number of command buffers in use
-	CCommand* commands; // the list of commands to be executed
 
-	VkDescriptorPool getDescriptorPool();
-	VkCommandBuffer getCommandBuffer();
-	void submitCommand( CCommand* command );
+	std::mutex mutex;
+	VkQueue queue; // the queue handle
+
+	struct CData {
+		CVulkanCommandQueue& queue;
+		VkCommandPool commandPool;
+		VkFence fence;
+		vector<VkCommandBuffer> commandBufferCache;
+		int commandBufferCount;
+		vector<VkDescriptorPool> descriptorPoolCache;
+		vector<VkDescriptorSet> descriptorSets;
+
+		CData( CVulkanCommandQueue& queue );
+		~CData();
+
+		VkDescriptorSet getDescriptorSet( const VkDescriptorSetLayout* layout );
+		VkCommandBuffer getCommandBuffer();
+
+		void wait();
+		void submitCommand( VkCommandBuffer commandBuffer );
+	};
+
+	CThreadDataPtr<CData> data;
+	
+	CData& getCurrentData();
 };
+
+inline void CVulkanCommandQueue::Wait()
+{
+	auto currentData = data.Get();
+	if( currentData ) {
+		currentData->wait();
+	}
+}
+
+inline CVulkanCommandQueue::CData& CVulkanCommandQueue::getCurrentData()
+{
+	if( !data ) {
+		data.Reset( new CData( *this ) );
+	}
+	return *data;
+}
 
 } // namespace NeoML
 
