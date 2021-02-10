@@ -22,23 +22,23 @@ namespace NeoML {
 // The model trained using gradient boosting
 class CGradientBoostModel : public IGradientBoostModel, public IGradientBoostRegressionModel {
 public:
-	CGradientBoostModel() : learningRate( 0 ), lossFunction( CGradientBoost::LF_Undefined ) {}
-	CGradientBoostModel( CArray<CGradientBoostEnsemble>& models, double learningRate,
+	CGradientBoostModel() : learningRate( 0 ), lossFunction( CGradientBoost::LF_Undefined ), valueSize( 1 ) {}
+	CGradientBoostModel( CArray<CGradientBoostEnsemble>& models, int valueSize, double learningRate,
 		CGradientBoost::TLossFunction lossFunction );
 
 	// Used for serialization
 	static CPtr<IModel> Create() { return FINE_DEBUG_NEW CGradientBoostModel(); }
 
 	// Gets the prediction by the tree ensemble
-	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CSparseFloatVector& vector );
-	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CFloatVector& vector );
-	static double PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CSparseFloatVectorDesc& desc );
+	static void PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const CSparseFloatVector& vector, CFastArray<double, 1>& predictions );
+	static void PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const CFloatVector& vector, CFastArray<double, 1>& predictions );
+	static void PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const CSparseFloatVectorDesc& desc, CFastArray<double, 1>& predictions );
 
 	// IModel interface methods
-	int GetClassCount() const override { return ensembles.Size() == 1 ? 2 : ensembles.Size(); }
+	int GetClassCount() const override { return ( valueSize == 1 && ensembles.Size() == 1 ) ? 2 : valueSize * ensembles.Size(); }
 	bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
 	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
 	void Serialize( CArchive& archive ) override;
@@ -65,9 +65,9 @@ private:
 	CArray<CGradientBoostEnsemble> ensembles; // the models
 	double learningRate; // the coefficient for each of the models
 	CGradientBoost::TLossFunction lossFunction; // the loss function to be optimized
+	int valueSize; // the value size of each model, if valueSize > 1 then ensemble consists of multiclass trees
 
-	bool classify( double prediction, CClassificationResult& result ) const;
-	bool classify( CArray<double>& predictions, CClassificationResult& result ) const;
+	bool classify( CFastArray<double, 1>& predictions, CClassificationResult& result ) const;
 	double probability( double prediction ) const;
 
 	// The common implementation for all three MultivariatePredict methods
