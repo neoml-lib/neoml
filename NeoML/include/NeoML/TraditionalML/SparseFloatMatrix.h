@@ -48,6 +48,7 @@ inline void CFloatMatrixDesc::GetRow( int index, CFloatVectorDesc& desc ) const
 	if( Columns == nullptr ) { // dense representation
 		desc.Size = Width;
 		desc.Values = Values + index * Width;
+		desc.Indexes = nullptr;
 	} else {
 		desc.Size = PointerE[index] - PointerB[index];
 		desc.Indexes = Columns + PointerB[index];

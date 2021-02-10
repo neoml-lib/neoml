@@ -53,7 +53,7 @@ CCrossValidationSubProblem::CCrossValidationSubProblem( const IProblem* _problem
 		for( int i = 0; i < vectorsCount; i++, ptr += matrix.Width ) {
 			int index = translateIndex( i );
 			CFloatVectorDesc vec = baseMatrix.GetRow( index );
-			NeoAssert( vec.Size == matrix.Width );
+			NeoPresume( vec.Size == matrix.Width );
 			::memcpy( ptr, vec.Values, vec.Size * sizeof( float ) );
 		}
 	} else {

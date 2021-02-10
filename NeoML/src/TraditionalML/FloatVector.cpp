@@ -53,9 +53,7 @@ CFloatVector::CFloatVector( int size, const CFloatVectorDesc& desc )
 
 	if( desc.Indexes == nullptr ) {
 		NeoAssert( size == desc.Size );
-		for( int i = 0; i < size; i++ ) {
-			bodyPtr->Values[i] = desc.Values[i];
-		}
+		::memcpy( bodyPtr->Values.GetPtr(), desc.Values, size * sizeof( float ) );
 	} else {
 		int ptrSize = desc.Size;
 		int ptrPos = 0;

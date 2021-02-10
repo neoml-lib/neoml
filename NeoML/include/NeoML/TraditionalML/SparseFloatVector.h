@@ -67,7 +67,7 @@ inline float GetValue( const CFloatVectorDesc& vector, int index )
 
 inline int CFloatVectorDesc::GetPosIndex( int pos ) const
 {
-	NeoAssert( pos >= 0 && pos < Size );
+	NeoPresume( pos >= 0 && pos < Size );
 	if( Indexes == nullptr ) {
 		return pos;
 	}
