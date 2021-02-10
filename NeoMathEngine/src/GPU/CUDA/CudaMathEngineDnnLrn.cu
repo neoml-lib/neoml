@@ -19,29 +19,76 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngineException.h>
 #include <MathEngineDnnLrn.h>
+#include <MemoryHandleInternal.h>
 #include <CudaMathEngine.h>
 #include <CudaDevice.h>
 #include <CudaCommon.h>
+#include <Kernels/CudaDnnLrnKernels.h>
 
 namespace NeoML {
 
-CLrnDesc* CCudaMathEngine::InitLrn( const CBlobDesc& /* source */, int /* windowSize */, float /* bias */, float /* alpha */, float /* beta */ )
+CLrnDesc* CCudaMathEngine::InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta )
 {
-	ASSERT_EXPR( false );
-	return nullptr;
+	return new CMathEngineLrnDesc( source, windowSize, bias, alpha, beta );
 }
 
-void CCudaMathEngine::Lrn( const CLrnDesc& /* lrnDesc */, const CConstFloatHandle& /* input */, const CFloatHandle& /* invSum */,
-	const CFloatHandle& /* invSumBeta */ , const CFloatHandle& /* outputHandle */ )
+void CCudaMathEngine::Lrn( const CLrnDesc& lrnDesc, const CConstFloatHandle& input, const CFloatHandle& invSum,
+	const CFloatHandle& invSumBeta , const CFloatHandle& output )
 {
-	ASSERT_EXPR( false );
+	ASSERT_EXPR( input.GetMathEngine() == this );
+	ASSERT_EXPR( invSum.IsNull() || invSum.GetMathEngine() == this );
+	ASSERT_EXPR( invSumBeta.IsNull() || invSumBeta.GetMathEngine() == this );
+	ASSERT_EXPR( output.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	const CMathEngineLrnDesc& desc = static_cast<const CMathEngineLrnDesc&>( lrnDesc );
+
+	const int vectorSize = desc.Source.Channels();
+	const int vectorCount = desc.Source.BlobSize() / vectorSize;
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, vectorCount, vectorSize );
+
+	const float* inputPtr = GetRaw( input );
+	float* outputPtr = GetRaw( output );
+	float* invSumPtr = invSum.IsNull() ? outputPtr : GetRaw( invSum );
+	float* invSumBetaPtr = invSumBeta.IsNull() ? outputPtr : GetRaw( invSumBeta );
+
+	LrnKernel<<<blockCount, threadCount>>>( inputPtr, invSumPtr, invSumBetaPtr, outputPtr, vectorCount, vectorSize,
+		desc.WindowSize, desc.Bias, desc.Alpha, desc.Beta ); 
 }
 
-void CCudaMathEngine::LrnBackward( const CLrnDesc& /* desc */, const CConstFloatHandle& /* input */, const CConstFloatHandle& /* output */,
-		const CConstFloatHandle& /* outputDiff */, const CConstFloatHandle& /* invSum */, const CConstFloatHandle& /* invSumBeta */,
-		const CFloatHandle& /* inputDiff */ )
+void CCudaMathEngine::LrnBackward( const CLrnDesc& lrnDesc, const CConstFloatHandle& input, const CConstFloatHandle& output,
+		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
+		const CFloatHandle& inputDiff )
 {
-	ASSERT_EXPR( false );
+	ASSERT_EXPR( input.GetMathEngine() == this );
+	ASSERT_EXPR( output.GetMathEngine() == this );
+	ASSERT_EXPR( outputDiff.GetMathEngine() == this );
+	ASSERT_EXPR( invSum.GetMathEngine() == this );
+	ASSERT_EXPR( invSumBeta.GetMathEngine() == this );
+	ASSERT_EXPR( inputDiff.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	const CMathEngineLrnDesc& desc = static_cast<const CMathEngineLrnDesc&>( lrnDesc );
+
+	const int vectorSize = desc.Source.Channels();
+	const int vectorCount = desc.Source.BlobSize() / vectorSize;
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, vectorCount, vectorSize );
+
+	const float* inputPtr = GetRaw( input );
+	const float* outputPtr = GetRaw( output );
+	const float* outputDiffPtr = GetRaw( outputDiff );
+	const float* invSumPtr = GetRaw( invSum );
+	const float* invSumBetaPtr = GetRaw( invSumBeta );
+	float* inputDiffPtr = GetRaw( inputDiff );
+
+	LrnBackwardKernel<<<blockCount, threadCount>>>( inputPtr, outputPtr, outputDiffPtr, invSumPtr, invSumBetaPtr,
+		inputDiffPtr, vectorCount, vectorSize, desc.WindowSize, desc.Alpha, desc.Beta ); 
 }
 
 } // namespace NeoML

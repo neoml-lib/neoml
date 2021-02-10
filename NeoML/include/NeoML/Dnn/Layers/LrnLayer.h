@@ -21,10 +21,20 @@ limitations under the License.
 namespace NeoML {
 
 // Local Response Normalization layer
-
-// LRN(X) = X * (bias + alpha * channelwise-mean-pool(X^2))^(-beta)
-// where channelwise-mean-pool is a 1-dimensional mean pooling with filter size equal to
-// windowSize and (windowSize-1) / 2 front and back paddings.
+//
+// LRN(x)[obj][ch] = x[obj][ch] * / ((bias + alpha * sqrSum[obj][ch] / windowSize) ^ beta)
+//
+// where:
+//
+// - `obj` is index of object `[0; BlobSize / Channels)`
+// - `ch` is index of channel `[0; Channels)` 
+// - `windowSize`, `bias`, `alpha`, `beta` are settings
+// - `sqrSum` is calculated using the following formula:
+//
+// sqrSum(x)[obj][ch] = sum(x[obj][i] * x[obj][i] for each i in [ch_min, ch_max])
+// ch_min = max(0, ch - floor((windowSize - 1)/2))
+// ch_max = min(C - 1, ch + ceil((windowSize - 1)/2))
+//
 class NEOML_API CLrnLayer: public CBaseLayer {
 	NEOML_DNN_LAYER( CLrnLayer )
 public:
@@ -32,15 +42,19 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 
+	// Window size, along which sum of squares is calculated
 	void SetWindowSize( int value );
 	int GetWindowSize() const { return windowSize; }
 
+	// Bias, added to the scaled sum of squares
 	void SetBias( float value );
 	float GetBias() const { return bias; }
 
+	// Scale of sum of squares
 	void SetAlpha( float value );
 	float GetAlpha() const { return alpha; }
 
+	// Exponent used in formula
 	void SetBeta( float value );
 	float GetBeta() const { return beta; }
 
@@ -53,13 +67,15 @@ protected:
 
 private:
 	CLrnDesc* desc; // the LRN descriptor
-	int windowSize;
-	float bias;
-	float alpha;
-	float beta;
+	int windowSize; // size of window, along which sqr_sum is calculated
+	float bias; // bias, added to the scaled sum
+	float alpha; // scale
+	float beta; // exponent
 
-	CPtr<CDnnBlob> invertedSum;
-	CPtr<CDnnBlob> invertedSumBeta;
+	// temporary blobs
+	// used for computation speed-up during backward propagation
+	CPtr<CDnnBlob> invertedSum; // 1 / (bias + alpha * sqr_sum / windowSize )
+	CPtr<CDnnBlob> invertedSumBeta; // 1 / ((bias + alpha * sqr_sum / windowSize ) ^ beta)
 
 	void initDesc();
 	void destroyDesc();
