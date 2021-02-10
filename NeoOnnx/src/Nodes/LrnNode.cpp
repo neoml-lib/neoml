@@ -59,7 +59,7 @@ void CLrnNode::LabelTensorDims( const CTensorCache &tensors, CDimCache &dims )
 		"labeling output dimensions failed", OnnxNode );
 }
 
-void CLrnNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
+void CLrnNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
 	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
 	CPtr<CLrnLayer> lrnLayer = new CLrnLayer( dnn.GetMathEngine() );
