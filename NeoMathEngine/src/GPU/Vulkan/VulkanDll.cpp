@@ -50,7 +50,7 @@ static VkApplicationInfo applicationInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO,
 static VkInstanceCreateInfo instanceCreateInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, 
 	0, 0, &applicationInfo, 0, 0, 0, 0 };
 
-#ifdef ENABLE_VALIDATION
+#ifdef VULKAN_ENABLE_VALIDATION
 
 static const std::vector<const char*> validationLayers = {
 		 "VK_LAYER_KHRONOS_validation"
@@ -104,7 +104,7 @@ static TVulkanDeviceType defineDeviceType( const VkPhysicalDeviceProperties& pro
 
 	return VDT_Regular;
 }
-#ifdef ENABLE_VALIDATION
+#ifdef VULKAN_ENABLE_VALIDATION
 
 static VkBool32 VKAPI_ATTR defaultLogger( VkDebugReportFlagsEXT, VkDebugReportObjectTypeEXT, 
 	uint64_t, size_t, int32_t, const char* layerPrefix, const char* message, void* )
@@ -127,7 +127,7 @@ CVulkanDll::CVulkanDll() :
 	vkGetPhysicalDeviceQueueFamilyProperties( nullptr ),
 	vkGetPhysicalDeviceMemoryProperties( nullptr ),
 	vkCreateDevice( nullptr )
-#ifdef ENABLE_VALIDATION
+#ifdef VULKAN_ENABLE_VALIDATION
 	,
 	vkEnumerateInstanceLayerProperties( nullptr ),
 	vkEnumerateInstanceExtensionProperties( nullptr ),
@@ -221,7 +221,6 @@ const CVulkanDevice* CVulkanDll::CreateDevice( const CVulkanDeviceInfo& info ) c
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkBindImageMemory);
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateCommandPool);
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyCommandPool);
-	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkResetCommandPool);
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateComputePipelines);
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyPipeline);
 	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkAllocateCommandBuffers);
@@ -265,7 +264,7 @@ void CVulkanDll::Free()
 		devices.clear();
 		devices.shrink_to_fit();
 		if( vkDestroyInstance != nullptr ) {
-#ifdef ENABLE_VALIDATION
+#ifdef VULKAN_ENABLE_VALIDATION
 			vkDestroyDebugReportCallbackEXT( instance, callback, nullptr );
 #endif
 			vkDestroyInstance( instance, 0 );
@@ -282,7 +281,7 @@ bool CVulkanDll::loadFunctions()
 	LOAD_VULKAN_FUNC_PROC(vkGetDeviceProcAddr);
 	LOAD_VULKAN_INSTANCE_FUNC_PROC(vkCreateInstance);
 
-#ifdef ENABLE_VALIDATION
+#ifdef VULKAN_ENABLE_VALIDATION
 	
 	LOAD_VULKAN_INSTANCE_FUNC_PROC(vkEnumerateInstanceLayerProperties);
 	LOAD_VULKAN_INSTANCE_FUNC_PROC(vkEnumerateInstanceExtensionProperties);
@@ -296,7 +295,7 @@ bool CVulkanDll::loadFunctions()
 	if( result == VK_SUCCESS ) {
 		LOAD_VULKAN_INSTANCE_FUNC_PROC( vkDestroyInstance );
 
-#ifdef ENABLE_VALIDATION
+#ifdef VULKAN_ENABLE_VALIDATION
 
 		LOAD_VULKAN_INSTANCE_FUNC_PROC(vkCreateDebugReportCallbackEXT);
 		LOAD_VULKAN_INSTANCE_FUNC_PROC(vkDestroyDebugReportCallbackEXT);
@@ -376,7 +375,7 @@ bool CVulkanDll::enumDevices()
 	return true;
 }
 
-#ifdef ENABLE_VALIDATION
+#ifdef VULKAN_ENABLE_VALIDATION
 
 bool CVulkanDll::checkLayersSupport() const
 {

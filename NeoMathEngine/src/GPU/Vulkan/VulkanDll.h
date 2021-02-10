@@ -106,7 +106,6 @@ struct CVulkanDevice
 	DeviceFunction<PFN_vkDestroyPipeline> vkDestroyPipeline;
 	DeviceFunction<PFN_vkAllocateCommandBuffers> vkAllocateCommandBuffers;
 	DeviceFunction<PFN_vkFreeCommandBuffers> vkFreeCommandBuffers;
-	DeviceFunction<PFN_vkResetCommandPool> vkResetCommandPool;
 	DeviceFunction<PFN_vkCreateFence> vkCreateFence;
 	DeviceFunction<PFN_vkDestroyFence> vkDestroyFence;
 	PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
@@ -222,7 +221,7 @@ private:
 	PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
 	PFN_vkCreateDevice vkCreateDevice;
 
-#ifdef ENABLE_VALIDATION
+#ifdef VULKAN_ENABLE_VALIDATION
 	PFN_vkEnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties;
 	PFN_vkEnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties;
 	PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT;
