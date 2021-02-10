@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
+#include <MathEngineCommon.h>
 #include <CpuMathEngine.h>
 #include <DllLoader.h>
 
@@ -27,7 +28,6 @@ limitations under the License.
 #include <CudaDevice.h>
 #include <CublasDll.h>
 #include <CusparseDll.h>
-#include <MathEngineCommon.h>
 #endif
 
 #ifdef NEOML_USE_VULKAN
