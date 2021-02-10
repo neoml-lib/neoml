@@ -120,7 +120,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/GradientBoostQSEnsemble.cpp
     TraditionalML/GradientBoostQSEnsemble.h
     TraditionalML/GradientBoostQuickScorer.cpp
-    TraditionalML/GradientBoostVectorSetStatistics.h
+    TraditionalML/GradientBoostStatisticsSingle.h
+    TraditionalML/GradientBoostStatisticsMulti.h
     TraditionalML/HierarchicalClustering.cpp
     TraditionalML/IsoDataClustering.cpp
     TraditionalML/KMeansClustering.cpp
