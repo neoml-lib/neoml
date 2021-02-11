@@ -50,10 +50,22 @@ TEST_F( CFloatVectorTest, DotProduct )
 	CRandom rand( 0 );
 	CSparseFloatVector s1 = generateRandomVector( rand, maxLength );
 	CFloatVector s1Vec( maxLength, s1.GetDesc() );
+	CSparseFloatVectorDesc s1DenseDesc;
+	s1DenseDesc.Size = maxLength;
+	s1DenseDesc.Values = s1Vec.CopyOnWrite();
 	for( int i = 0; i < numberOfTests; ++i ) {
-		auto s2 = generateRandomVector( rand, maxLength );
+		CSparseFloatVector s2 = generateRandomVector( rand, maxLength );
+		CFloatVector s2Vec( maxLength, s2.GetDesc() );
+		CSparseFloatVectorDesc s2DenseDesc;
+		s2DenseDesc.Size = maxLength;
+		s2DenseDesc.Values = s2Vec.CopyOnWrite();
+
 		ASSERT_DOUBLE_EQ( DotProduct( s1, s2 ), results[i] );
+		ASSERT_DOUBLE_EQ( DotProduct( s1.GetDesc(), s2DenseDesc ), results[i] );
+		ASSERT_DOUBLE_EQ( DotProduct( s1DenseDesc, s2.GetDesc() ), results[i] );
+		ASSERT_DOUBLE_EQ( DotProduct( s1DenseDesc, s2DenseDesc ), results[i] );
 		ASSERT_DOUBLE_EQ( DotProduct( s1Vec, s2 ), results[i] );
+		ASSERT_DOUBLE_EQ( DotProduct( s1Vec, s2DenseDesc ), results[i] );
 	}
 }
 
@@ -69,10 +81,15 @@ TEST_F( CFloatVectorTest, MultiplyAndAdd )
 	CRandom rand( 0 );
 	CSparseFloatVector s1 = generateRandomVector( rand, maxLength );
 	ASSERT_TRUE( s1.NumberOfElements() <= maxLength );
+	CFloatVector s1Vec( maxLength, s1.GetDesc() );
+	CSparseFloatVectorDesc s1DenseDesc;
+	s1DenseDesc.Size = maxLength;
+	s1DenseDesc.Values = s1Vec.CopyOnWrite();
 	for( int i = 0; i < numberOfTests; ++i ) {
 		CSparseFloatVector s2 = generateRandomVector( rand, maxLength );
 		ASSERT_TRUE( s2.NumberOfElements() <= maxLength );
 		CFloatVector s2Vec( maxLength, s2.GetDesc() );
+		CFloatVector s2VecCopy( s2Vec );
 		double factor = rand.Uniform( -100, 100 );
 
 		for( int i = 0; i < maxLength; ++i ) {
@@ -89,7 +106,28 @@ TEST_F( CFloatVectorTest, MultiplyAndAdd )
 		auto res1 = DotProduct( s2, s1 );
 		auto res2 = DotProduct( s2Vec, s1 );
 		ASSERT_DOUBLE_EQ( res1, res2 );
-		EXPECT_DOUBLE_EQ( res1, results[i] );
+		ASSERT_DOUBLE_EQ( res1, results[i] );
+
+		s2VecCopy.MultiplyAndAdd( s1DenseDesc, factor );
+		auto res3 = DotProduct( s2VecCopy, s1 );
+		ASSERT_DOUBLE_EQ( res3, results[i] );
+	}
+}
+
+TEST_F( CFloatVectorTest, GetValue )
+{
+	const int maxLength = 100;
+	CRandom rand( 0 );
+	CSparseFloatVector s1 = generateRandomVector( rand, maxLength );
+	CSparseFloatVectorDesc s1Desc = s1.GetDesc();
+	ASSERT_TRUE( s1.NumberOfElements() <= maxLength );
+	CFloatVector s1Vec( maxLength, s1Desc );
+	CSparseFloatVectorDesc s1DenseDesc;
+	s1DenseDesc.Size = maxLength;
+	s1DenseDesc.Values = s1Vec.CopyOnWrite();
+
+	for( int i = -1; i < maxLength + 1; ++i ) {
+		ASSERT_EQ( GetValue( s1Desc, i ), GetValue( s1DenseDesc, i ) );
 	}
 }
 

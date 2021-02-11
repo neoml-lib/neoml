@@ -183,25 +183,41 @@ inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vecto
 inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFloatVectorDesc& vector2 )
 {
 	double sum = 0;
-	if( vector1.Indexes == nullptr ) { // dense array inside
-		NeoPresume( vector2.Indexes == nullptr );
-		const int size = min( vector1.Size, vector2.Size );
-		for( int i = 0; i < size; i++ ) {
-			sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[i];
+
+	if( vector1.Indexes == nullptr ) {
+		if( vector2.Indexes == nullptr ) {
+			const int size = min( vector1.Size, vector2.Size );
+			for( int i = 0; i < size; i++ ) {
+				sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[i];
+			}
+		} else {
+			// The sparse vector may not be longer than the regular one
+			NeoPresume( vector2.Size == 0 || vector2.Indexes[vector2.Size - 1] < vector1.Size );
+			for( int i = 0; i < vector2.Size; i++ ) {
+				sum += static_cast<double>( vector2.Values[i] ) * vector1.Values[vector2.Indexes[i]];
+			}
 		}
 	} else {
-		int i = 0;
-		int j = 0;
-		while( i < vector1.Size && j < vector2.Size ) {
-			if( vector1.Indexes[i] == vector2.Indexes[j] ) {
-				sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[j];
-				i++;
-				j++;
-			} else {
-				if( vector1.Indexes[i] < vector2.Indexes[j] ) {
+		if( vector2.Indexes == nullptr ) {
+			// The sparse vector may not be longer than the regular one
+			NeoPresume( vector1.Size == 0 || vector1.Indexes[vector1.Size - 1] < vector2.Size );
+			for( int i = 0; i < vector1.Size; i++ ) {
+				sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[vector1.Indexes[i]];
+			}
+		} else {
+			int i = 0;
+			int j = 0;
+			while( i < vector1.Size && j < vector2.Size ) {
+				if( vector1.Indexes[i] == vector2.Indexes[j] ) {
+					sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[j];
 					i++;
-				} else {
 					j++;
+				} else {
+					if( vector1.Indexes[i] < vector2.Indexes[j] ) {
+						i++;
+					} else {
+						j++;
+					}
 				}
 			}
 		}
