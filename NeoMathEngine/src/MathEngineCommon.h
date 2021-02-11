@@ -18,6 +18,7 @@ limitations under the License.
 #include <thread>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
 
