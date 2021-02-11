@@ -172,8 +172,8 @@ void CSparseFloatMatrix::AddRow( const CSparseFloatVectorDesc& row )
 	}
 
 	GrowInRows( body->Desc.Height + 1 );
-	if( sparseRow.Size > 0 ) {
-		GrowInElements( body->ElementCount + sparseRow.Size );
+	if( row.Size > 0 ) {
+		GrowInElements( body->ElementCount + row.Size );
 	}
 
 	CSparseFloatMatrixBody* newBody = body.CopyOnWrite();
