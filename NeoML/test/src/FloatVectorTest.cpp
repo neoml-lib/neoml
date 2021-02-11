@@ -155,6 +155,29 @@ TEST_F( CFloatVectorTest, AddDenseToSparseMatrix )
 	}
 }
 
+TEST_F( CFloatVectorTest, CreationSparseVectorFromDesc )
+{
+	const int maxLength = 100;
+	const int vectorsCount = 1000;
+	CRandom rand( 0 );
+	for( int i = 0; i < vectorsCount; ++i ) {
+		CSparseFloatVector rowSparse = generateRandomVector( rand, maxLength );
+		CFloatVector rowDense( maxLength, rowSparse.GetDesc() );
+		CSparseFloatVectorDesc denseDesc;
+		denseDesc.Size = maxLength;
+		denseDesc.Values = rowDense.CopyOnWrite();
+
+		CSparseFloatVector sparseCopy( rowSparse.GetDesc() );
+		CSparseFloatVector sparseFromDenseCopy( denseDesc );
+
+		ASSERT_EQ( sparseCopy.NumberOfElements(), sparseFromDenseCopy.NumberOfElements() );
+		for( int i = 0; i < sparseCopy.NumberOfElements(); ++i ) {
+			ASSERT_EQ( sparseCopy.GetDesc().Indexes[i], sparseFromDenseCopy.GetDesc().Indexes[i] );
+			ASSERT_EQ( sparseCopy.GetDesc().Values[i], sparseFromDenseCopy.GetDesc().Values[i] );
+		}
+	}
+}
+
 TEST_F( CFloatVectorTest, Common )
 {
 	CSparseFloatVector sRandom;
