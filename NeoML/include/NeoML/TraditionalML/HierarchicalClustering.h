@@ -44,7 +44,7 @@ public:
 	// IClustering interface methods:
 	// Returns true if the specified distance between the clusters was reached AND 
 	// there are more than MinClustersCount clusters
-	bool Clusterize( ISparseClusteringData* input, CClusteringResult& result ) override;
+	bool Clusterize( IClusteringData* input, CClusteringResult& result ) override;
 
 private:
 	const CParam params; // the clustering parameters

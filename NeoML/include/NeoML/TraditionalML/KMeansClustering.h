@@ -86,7 +86,7 @@ public:
 	// IClustering inteface methods:
 	// Clusterizes the input data and returns true if successful,
 	// false if more iterations are needed
-	bool Clusterize( ISparseClusteringData* data, CClusteringResult& result ) override;
+	bool Clusterize( IClusteringData* data, CClusteringResult& result ) override;
 
 private:
 	const CParam params; // clustering parameters

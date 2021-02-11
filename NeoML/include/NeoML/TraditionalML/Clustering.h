@@ -16,7 +16,6 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/TraditionalML/FloatMatrix.h>
 #include <NeoML/TraditionalML/SparseFloatMatrix.h>
 #include <NeoML/TraditionalML/CommonCluster.h>
 
@@ -56,7 +55,7 @@ inline CClusteringResult::CClusteringResult( const CClusteringResult& result )
 //---------------------------------------------------------------------------------------------------------
 
 // The input data set for clustering consisting of sparse vectors
-class ISparseClusteringData : public virtual IObject {
+class IClusteringData : public virtual IObject {
 public:
 	// The number of vectors
 	virtual int GetVectorCount() const = 0;
@@ -71,9 +70,6 @@ public:
 	virtual double GetVectorWeight( int index ) const = 0;
 };
 
-// DEPRECATED: for backward compatibility
-typedef ISparseClusteringData IClusteringData;
-
 // The clustering algorithm interface
 class IClustering {
 public:
@@ -81,7 +77,7 @@ public:
 
 	// Clusterizes the input data 
 	// and returns true if successful with the given parameters
-	virtual bool Clusterize( ISparseClusteringData* data, CClusteringResult& result ) = 0;
+	virtual bool Clusterize( IClusteringData* data, CClusteringResult& result ) = 0;
 };
 
 } // namespace NeoML

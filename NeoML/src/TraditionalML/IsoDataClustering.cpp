@@ -41,7 +41,7 @@ CIsoDataClustering::~CIsoDataClustering()
 {
 }
 
-bool CIsoDataClustering::Clusterize( ISparseClusteringData* input, CClusteringResult& result )
+bool CIsoDataClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
 {
 	NeoAssert( params.MaxIterations > 0 );
 	NeoAssert( params.InitialClustersCount > 0 );
