@@ -46,10 +46,6 @@ public:
 	// there are more than MinClustersCount clusters
 	bool Clusterize( ISparseClusteringData* input, CClusteringResult& result ) override;
 
-	// Not implemented
-	bool Clusterize( IDenseClusteringData* /* input */, CClusteringResult& /* result */ ) override
-		{ NeoAssert( false ); return false; };
-
 private:
 	const CParam params; // the clustering parameters
 	CTextStream* log; // the logging stream

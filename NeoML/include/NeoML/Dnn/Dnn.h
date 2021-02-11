@@ -177,6 +177,9 @@ public:
 	// Returns the total size of all output blobs together
 	virtual size_t GetOutputBlobsSize() const;
 
+	// Releases all temporary resources allocated for the layer
+	virtual void CleanUp();
+
 	// Returns the total size of trainable parameters in this layer
 	// Returns the total size of trainable parameters of its internal layers, if layer is composite or recurrent
 	virtual size_t GetTrainableParametersSize() const;
@@ -464,6 +467,9 @@ public:
 	void RunAndBackwardOnce();
 	// Runs the network, performs a backward pass and updates the trainable weights
 	void RunAndLearnOnce();
+
+	// Releases all temporary resources allocated for RunAndBackwardOnce()
+	void CleanUp();
 
 	// Gets the maximum sequence length
 	int GetMaxSequenceLength() const { return maxSequenceLength; }

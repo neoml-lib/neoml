@@ -547,6 +547,13 @@ void CDnn::RunAndLearnOnce()
 	solver->Train();
 }
 
+void CDnn::CleanUp()
+{
+	for( int i = 0; i < layers.Size(); i++ ) {
+		layers[i]->CleanUp();
+	}
+}
+
 void CDnn::backwardRunAndLearnOnce(int curSequencePos)
 {
 	currentSequencePos = curSequencePos;

@@ -88,9 +88,6 @@ public:
 	// false if more iterations are needed
 	bool Clusterize( ISparseClusteringData* data, CClusteringResult& result ) override;
 
-	// Dense data version
-	bool Clusterize( IDenseClusteringData* data, CClusteringResult& result ) override;
-
 private:
 	const CParam params; // clustering parameters
 	CTextStream* log; // the logging stream
@@ -129,12 +126,13 @@ private:
 	bool isPruned( const CArray<float>& upperBounds, const CVariableMatrix<float>& lowerBounds,
 		const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id) const;
 
-	// Initial cluster selection for dense data
+	// Specific case for dense data with Euclidean metrics and Lloyd algorithm
+	bool denseLloydL2Clusterize( IClusteringData* rawData, CClusteringResult& result );
+	// Initial cluster selection
 	void selectInitialClusters( const CDnnBlob& data, CDnnBlob& centers );
 	void defaultInitialization( const CDnnBlob& data, CDnnBlob& centers );
 	void kMeansPlusPlusInitialization( const CDnnBlob& data, CDnnBlob& centers );
-
-	// Lloyd algorithm implementation for dense data
+	// Lloyd algorithm implementation
 	bool lloydBlobClusterization( const CDnnBlob& data, const CDnnBlob& weight,
 		CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels );
 	double assignClosest( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& weight,

@@ -29,16 +29,17 @@ limitations under the License.
 
 namespace NeoML {
 
-static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, IDenseClusteringData* data )
+static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, CSparseFloatMatrixDesc& data )
 {
-	const int vectorCount = data->GetVectorCount();
-	const int featureCount = data->GetFeaturesCount();
+	NeoAssert( data.Columns == nullptr );
+	const int vectorCount = data.Height;
+	const int featureCount = data.Width;
 	CPtr<CDnnBlob> result = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, vectorCount, featureCount );
-	result->CopyFrom( data->GetMatrix().Values );
+	result->CopyFrom( data.Values );
 	return result;
 }
 
-static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, IDenseClusteringData* data )
+static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, IClusteringData* data )
 {
 	const int vectorCount = data->GetVectorCount();
 	CPtr<CDnnBlob> weight = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount );
@@ -66,7 +67,7 @@ CKMeansClustering::CKMeansClustering( const CParam& _params ) :
 {
 }
 
-bool CKMeansClustering::Clusterize( ISparseClusteringData* input, CClusteringResult& result )
+bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
 {
 	NeoAssert( input != 0 );
 
@@ -74,13 +75,18 @@ bool CKMeansClustering::Clusterize( ISparseClusteringData* input, CClusteringRes
 	NeoAssert( matrix.Height == input->GetVectorCount() );
 	NeoAssert( matrix.Width == input->GetFeaturesCount() );
 
+	if( log != 0 ) {
+		*log << "\nK-means clustering started:\n";
+	}
+
+	// Specific optimized case (uses MathEngine)
+	if( matrix.Columns == nullptr && params.DistanceFunc == DF_Euclid && params.Algo == KMA_Lloyd ) {
+		return denseLloydL2Clusterize( input, result );
+	}
+
 	CArray<double> weights;
 	for( int i = 0; i < input->GetVectorCount(); i++ ) {
 		weights.Add( input->GetVectorWeight( i ) );
-	}
-
-	if( log != 0 ) {
-		*log << "\nK-means clustering started:\n";
 	}
 
 	selectInitialClusters( matrix );
@@ -119,7 +125,7 @@ bool CKMeansClustering::Clusterize( ISparseClusteringData* input, CClusteringRes
 	return success;
 }
 
-bool CKMeansClustering::Clusterize( IDenseClusteringData* rawData, CClusteringResult& result )
+bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, CClusteringResult& result )
 {
 	NeoAssert( params.DistanceFunc == DF_Euclid );
 	NeoAssert( params.Algo == KMA_Lloyd );
@@ -128,25 +134,13 @@ bool CKMeansClustering::Clusterize( IDenseClusteringData* rawData, CClusteringRe
 	const int featureCount = rawData->GetFeaturesCount();
 	const int clusterCount = params.InitialClustersCount;
 
-	if( log != 0 ) {
-		*log << L"\nK-means clustering started:\n";
-	}
-
 	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( params.ThreadCount, 0 ) );
 
-	CPtr<CDnnBlob> data = createDataBlob( *mathEngine, rawData );
+	CPtr<CDnnBlob> data = createDataBlob( *mathEngine, rawData->GetMatrix() );
 	CPtr<CDnnBlob> weight = createWeightBlob( *mathEngine, rawData );
 	CPtr<CDnnBlob> centers = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount );
 
 	selectInitialClusters( *data, *centers );
-
-	if( log != 0 ) {
-		*log << L"Initial clusters:\n";
-
-		for( int i = 0; i < clusters.Size(); i++ ) {
-			*log << *clusters[i] << L"\n";
-		}
-	}
 
 	bool success = false;
 

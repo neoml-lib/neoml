@@ -71,22 +71,6 @@ public:
 	virtual double GetVectorWeight( int index ) const = 0;
 };
 
-// The input data set for clustering consisting of dense vectors
-class IDenseClusteringData : public virtual IObject {
-public:
-	// The number of vectors
-	virtual int GetVectorCount() const = 0;
-
-	// The number of features (vector length)
-	virtual int GetFeaturesCount() const = 0;
-
-	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
-	virtual CFloatMatrixDesc GetMatrix() const = 0;
-
-	// Gets the weight of the vector with the given index
-	virtual double GetVectorWeight( int index ) const = 0;
-};
-
 // DEPRECATED: for backward compatibility
 typedef ISparseClusteringData IClusteringData;
 
@@ -98,7 +82,6 @@ public:
 	// Clusterizes the input data 
 	// and returns true if successful with the given parameters
 	virtual bool Clusterize( ISparseClusteringData* data, CClusteringResult& result ) = 0;
-	virtual bool Clusterize( IDenseClusteringData* data, CClusteringResult& result ) = 0;
 };
 
 } // namespace NeoML
