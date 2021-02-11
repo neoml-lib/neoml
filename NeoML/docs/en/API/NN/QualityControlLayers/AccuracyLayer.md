@@ -37,10 +37,11 @@ The layer has two inputs. The first input accepts a blob with the network respon
 - `Height`, `Width`, and `Depth` are equal to `1`.
 - `Channels` is equal to `1` for binary classification and to the number of classes if there are more than 2.
 
-The second input should contain a blob of the same dimensions with the correct class labels or allowed `Channels` = 1 in case of crossentropy. 
-
+The second input should contain a blob with the correct class labels:
 - If first input `Channels` is equal to `1`, the labels for the binary classification should contain `1` for one class and `-1` for the other.
-- If `Channels` is greater than `1`, the labels should contain `1` for correct class and `0` for the others, or correct label index in case of crossentropy with `Channels` = 1
+- If `Channels` is greater than `1` for the multiple labels classification two forms are allowed:
+  - labels should contain a blob of the same dimensions with 1 for correct class and 0 for the others.
+  - labels should contain a blob with `Channels` = 1 with correct label indexes.
 
 ## Outputs
 

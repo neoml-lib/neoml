@@ -51,7 +51,7 @@ void CAccuracyLayer::Reshape()
 
 	outputDescs[0] = CBlobDesc( CT_Float );
 	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize()
-		|| inputDescs[1].ObjectSize() == 1, GetName(), "Object size mismatch between inputs" );
+		|| inputDescs[1].ObjectSize() == 1, GetName(), "Second input object size must match or be equal to 1" );
 	iterationsCount = 0;
 	collectedAccuracy = 0;
 }
@@ -61,30 +61,16 @@ void CAccuracyLayer::RunOnceAfterReset()
 	CPtr<CDnnBlob> inputBlob = inputBlobs[0];
 	CPtr<CDnnBlob> expectedLabelsBlob = inputBlobs[1];
 	CFastArray<float, 1> inputBuffer;
-	CFastArray<float, 1> expectedBuffer;
-
+	
 	const int dataSize = inputBlob->GetDataSize();
 	const int objectCount = inputBlob->GetObjectCount();
 	const int objectSize = inputBlob->GetObjectSize();
-
-	const int expectedDataSize = expectedLabelsBlob->GetDataSize();
-	const int expectedObjectCount = expectedLabelsBlob->GetObjectCount();
-	const int expectedObjectSize = expectedLabelsBlob->GetObjectSize();
-
 	inputBuffer.SetSize( dataSize );
-	expectedBuffer.SetSize( expectedDataSize );
 	inputBlob->CopyTo( inputBuffer.GetPtr(), inputBuffer.Size() );
 
-	if( expectedLabelsBlob->GetDataType() == NeoML::CT_Float ) {
-		expectedLabelsBlob->CopyTo( expectedBuffer.GetPtr(), expectedBuffer.Size() );
-	} else {
-		CFastArray<int, 1> expectedBufferInt;
-		expectedBufferInt.SetSize( expectedBuffer.Size() );
-		expectedLabelsBlob->CopyTo( expectedBufferInt.GetPtr(), expectedBufferInt.Size() );
-		for( int i = 0; i < expectedBufferInt.Size(); i++ ) {
-			expectedBuffer[i] = 1.0f * expectedBufferInt[i];
-		}
-	}
+	const int expectedDataSize = expectedLabelsBlob->GetDataSize();
+	const int expectedObjectSize = expectedLabelsBlob->GetObjectSize();
+	int* expectedBuffer = expectedLabelsBlob->GetBuffer<int>( 0, expectedDataSize );
 
 	int correctlyClassifiedCount = 0;
 	for( int i = 0; i < inputBlob->GetBatchWidth(); i++ ) {
@@ -126,6 +112,8 @@ void CAccuracyLayer::RunOnceAfterReset()
 	}
 	collectedAccuracy += static_cast<double>( correctlyClassifiedCount ) / objectCount;
 	outputBlobs[0]->GetData().SetValue( static_cast<float>( collectedAccuracy ) / ++iterationsCount );
+
+	expectedLabelsBlob->ReleaseBuffer( expectedBuffer, false );
 }
 
 CLayerWrapper<CAccuracyLayer> Accuracy()
@@ -151,6 +139,7 @@ void CConfusionMatrixLayer::Serialize( CArchive& archive )
 void CConfusionMatrixLayer::Reshape()
 {
 	CheckInputs();
+
 	NeoAssert( inputDescs.Size() == 2 );
 	// For classifying a sigmoid a special implementation is needed
 	NeoAssert( inputDescs[0].Channels() >= 2 );
