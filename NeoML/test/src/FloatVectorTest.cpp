@@ -131,11 +131,12 @@ TEST_F( CFloatVectorTest, GetValue )
 	}
 }
 
-TEST_F( CFloatVectorTest, AddDenseToSparseMatrix )
+TEST_F( CFloatVectorTest, AddRowToSparseMatrix )
 {
 	const int maxLength = 100;
 	const int rowsCount = 1000;
-	CSparseFloatMatrix matrix;
+	CSparseFloatMatrix matrixFromDense;
+	CSparseFloatMatrix matrixFromSparse;
 	CRandom rand( 0 );
 	for( int i = 0; i < rowsCount; ++i ) {
 		CSparseFloatVector rowSparse = generateRandomVector( rand, maxLength );
@@ -145,8 +146,16 @@ TEST_F( CFloatVectorTest, AddDenseToSparseMatrix )
 		denseDesc.Size = maxLength;
 		denseDesc.Values = rowDense.CopyOnWrite();
 
-		matrix.AddRow( denseDesc );
-		CSparseFloatVectorDesc rowSparseGot = matrix.GetRow( i );
+		matrixFromDense.AddRow( denseDesc );
+		CSparseFloatVectorDesc rowSparseGot = matrixFromDense.GetRow( i );
+		ASSERT_EQ( rowSparse.GetDesc().Size, rowSparseGot.Size );
+		for( int j = 0; j < rowSparseGot.Size; ++j ) {
+			ASSERT_EQ( rowSparse.GetDesc().Indexes[j], rowSparseGot.Indexes[j] );
+			ASSERT_EQ( rowSparse.GetDesc().Values[j], rowSparseGot.Values[j] );
+		}
+
+		matrixFromSparse.AddRow( rowSparse.GetDesc() );
+		matrixFromSparse.GetRow( i, rowSparseGot );
 		ASSERT_EQ( rowSparse.GetDesc().Size, rowSparseGot.Size );
 		for( int j = 0; j < rowSparseGot.Size; ++j ) {
 			ASSERT_EQ( rowSparse.GetDesc().Indexes[j], rowSparseGot.Indexes[j] );
