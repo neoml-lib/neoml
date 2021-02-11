@@ -86,7 +86,6 @@ void CTiedEmbeddingsLayer::RunOnce()
 			inputBlobs[i]->GetObjectCount(), vectorSize, embeddingsTable->GetData(),
 			vectorsCount, outputBlobs[i]->GetData(), outputBlobs[i]->GetDataSize() );
 	}
-	
 }
 
 void CTiedEmbeddingsLayer::BackwardOnce()
@@ -118,17 +117,27 @@ void CTiedEmbeddingsLayer::LearnOnce()
 			outputDiffBlobs[i]->GetObjectCount(), vectorsCount, inputBlobs[i]->GetData(),
 			vectorSize, diffBlob->GetData(), diffBlob->GetDataSize() );
 
-		MathEngine().VectorAdd( totalDiffBlob->GetData(), diffBlob->GetData(), totalDiffBlob->GetData(),
-			totalDiffBlob->GetDataSize() );
+		MathEngine().VectorAdd( totalDiffBlob->GetData(), diffBlob->GetData(),
+			totalDiffBlob->GetData(), totalDiffBlob->GetDataSize() );
 		diffBlob->Clear();
 	}
 
-	CObjectArray<CDnnBlob> totalDiffBlobs;
-	totalDiffBlobs.Add( totalDiffBlob );
-
 	CMultichannelLookupLayer* embeddingsLayer =
 		CheckCast<CMultichannelLookupLayer>( GetDnn()->GetLayer( embeddingsLayerName ) );
-	GetDnn()->GetSolver()->AddDiff( embeddingsLayer, totalDiffBlobs );
+
+	CObjectArray<CDnnBlob> totalDiffBlobs;
+	const int channelsCount = embeddingsLayer->GetDimensions().Size();
+	for( int i = 0; i < channelsCount; i++ ) {
+		if( i == channelIndex ) {
+			totalDiffBlobs.Add( totalDiffBlob );
+		} else {
+			CPtr<CDnnBlob> nullBlob = embeddingsLayer->GetEmbeddings( i )->GetClone();
+			nullBlob->Fill( 0 );
+			totalDiffBlobs.Add( nullBlob );
+		}
+	}
+
+	GetDnn()->GetSolver()->AddDiff( embeddingsLayer, totalDiffBlobs, true );
 }
 
 // Embeddings matrix
