@@ -54,6 +54,8 @@ public:
 	void SetAt( int i, float what );
 	float* CopyOnWrite() { return body.CopyOnWrite()->Values.GetPtr(); }
 	const float* GetPtr() const { return body->Values.GetPtr(); }
+	const CSparseFloatVectorDesc& GetDesc() const
+		{ return body == nullptr ? CSparseFloatVectorDesc::Empty : body->Desc; }
 
 	void Nullify();
 	
@@ -65,7 +67,8 @@ public:
 
 	// Adds the given vector multiplied by factor
 	CFloatVector& MultiplyAndAdd( const CFloatVector& vector, double factor );
-	CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor ) { return MultiplyAndAdd( vector.GetDesc(), factor ); }
+	CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor )
+		{ return MultiplyAndAdd( vector.GetDesc(), factor ); }
 	CFloatVector& MultiplyAndAdd( const CSparseFloatVectorDesc& vector, double factor );
 
 	// Adds the given vector, extended by one with the help of LinearFunction gradient, and then multiplied by factor
@@ -98,20 +101,23 @@ public:
 private:
 	// The body of the vector is an object containing all its data.
 	struct NEOML_API CFloatVectorBody: public IObject {
+		CSparseFloatVectorDesc Desc;
 		CFastArray<float, 1> Values;
 
-		explicit CFloatVectorBody( int size ) { Values.SetSize( size ); }
+		explicit CFloatVectorBody( int size );
 	
 		CFloatVectorBody* Duplicate() const;
 	};
 
 	CCopyOnWritePtr<CFloatVectorBody> body; // the vector body
+	CSparseFloatVectorDesc desc;
 };
 
 inline CFloatVector::CFloatVectorBody* CFloatVector::CFloatVectorBody::Duplicate() const
 {
 	auto result = FINE_DEBUG_NEW CFloatVectorBody( Values.Size() );
 	Values.CopyTo( result->Values );
+	result->Desc.Values = result->Values.GetPtr();
 	return result;
 }
 
@@ -164,22 +170,6 @@ inline CFloatVector::TIterator CFloatVector::end()
 }
 
 // The dot product of two vectors
-inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vector2 )
-{
-	NeoPresume( vector1.Size() == vector2.Size() );
-	double sum = 0;
-
-	const int size = vector1.Size();
-	const float* operand1 = vector1.GetPtr();
-	const float* operand2 = vector2.GetPtr();
-
-	for( int i = 0; i < size; i++ ) {
-		sum += static_cast<double>( operand1[i] ) * operand2[i];
-	}
-	return sum;
-}
-
-// The dot product of two vectors
 inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFloatVectorDesc& vector2 )
 {
 	double sum = 0;
@@ -226,23 +216,16 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 }
 
 // The dot product of two vectors
+inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vector2 )
+{
+	NeoPresume( vector1.Size() == vector2.Size() );
+	return DotProduct( vector1.GetDesc(), vector2.GetDesc() );
+}
+
+// The dot product of two vectors
 inline double DotProduct( const CFloatVector& vector1, const CSparseFloatVectorDesc& vector2 )
 {
-	double sum = 0;
-	const float* operand1 = vector1.GetPtr();
-	if( vector2.Indexes == nullptr ) { // dense array inside
-		NeoPresume( vector2.Size <= vector1.Size() );
-		for( int i = 0; i < vector2.Size; i++ ) {
-			sum += static_cast<double>( vector2.Values[i] ) * operand1[i];
-		}
-	} else {
-		// The sparse vector may not be longer than the regular one
-		NeoPresume( vector2.Size == 0 || vector2.Indexes[vector2.Size - 1] < vector1.Size() );
-		for( int i = 0; i < vector2.Size; i++ ) {
-			sum += static_cast<double>( vector2.Values[i] ) * operand1[vector2.Indexes[i]];
-		}
-	}
-	return sum;
+	return DotProduct( vector1.GetDesc(), vector2 );
 }
 
 // The dot product of two vectors
@@ -327,7 +310,7 @@ inline CTextStream& operator<<( CTextStream& stream, const CFloatVector& vector 
 inline void CFloatVector::SetAt( int i, float what )
 {
 	NeoPresume( i >= 0 && i < body->Values.Size() );
-	body.CopyOnWrite()->Values[i] = what;
+	body.CopyOnWrite()->Desc.Values[i] = what;
 }
 
 inline CFloatVector operator + ( const CFloatVector& vector1, const CFloatVector& vector2 ) 
@@ -417,7 +400,7 @@ inline CArchive& operator >> ( CArchive& archive, CFloatVector& vector )
 		// Currently double for format reasons
 		double temp = 0;
 		archive >> temp;
-		newBody->Values[i] = static_cast<float>( temp );
+		newBody->Desc.Values[i] = static_cast<float>( temp );
 	}
 	vector.body = newBody;
 

@@ -20,6 +20,13 @@ limitations under the License.
 
 namespace NeoML {
 
+CFloatVector::CFloatVectorBody::CFloatVectorBody( int size )
+{
+	Values.SetSize( size );
+	Desc.Values = Values.GetPtr();
+	Desc.Size = size;
+}
+
 CFloatVector::CFloatVector( int size, const CSparseFloatVector& sparseVector )
 {
 	NeoAssert( size >= 0 );
@@ -37,7 +44,7 @@ CFloatVector::CFloatVector( int size, const CSparseFloatVector& sparseVector )
 			value = desc.Values[ptrPos];
 			ptrPos++;
 		}
-		bodyPtr->Values[i] = value;
+		bodyPtr->Desc.Values[i] = value;
 	}
 
 	// No elements should stay unprocessed!
@@ -53,7 +60,7 @@ CFloatVector::CFloatVector( int size, const CSparseFloatVectorDesc& desc )
 
 	if( desc.Indexes == nullptr ) {
 		NeoAssert( size == desc.Size );
-		::memcpy( bodyPtr->Values.GetPtr(), desc.Values, size * sizeof( float ) );
+		::memcpy( bodyPtr->Desc.Values, desc.Values, size * sizeof( float ) );
 	} else {
 		int ptrSize = desc.Size;
 		int ptrPos = 0;
@@ -65,7 +72,7 @@ CFloatVector::CFloatVector( int size, const CSparseFloatVectorDesc& desc )
 				value = desc.Values[ptrPos];
 				ptrPos++;
 			}
-			bodyPtr->Values[i] = value;
+			bodyPtr->Desc.Values[i] = value;
 		}
 		// No elements should stay unprocessed!
 		NeoAssert( ptrPos == ptrSize );
@@ -86,7 +93,7 @@ CFloatVector::CFloatVector( int size, float init )
 
 	auto bodyPtr = FINE_DEBUG_NEW CFloatVectorBody( size );
 	for( int i = 0; i < size; ++i ) {
-		bodyPtr->Values[i] = init;
+		bodyPtr->Desc.Values[i] = init;
 	}
 
 	body = bodyPtr;
@@ -99,8 +106,8 @@ CFloatVector::CFloatVector( const CFloatVector& vector )
 
 double CFloatVector::Norm() const
 {
-	const float* array = body->Values.GetPtr();
-	const int size = body->Values.Size();
+	const float* array = body->Desc.Values;
+	const int size = body->Desc.Size;
     double scale = 0.0;
     double ssq = 1.0;
     /* The following loop is equivalent to this call to the LAPACK 
@@ -124,8 +131,8 @@ double CFloatVector::Norm() const
 double CFloatVector::NormL1() const
 {
 	double sum = 0;
-	const float* array = body->Values.GetPtr();
-	const int size = body->Values.Size();
+	const float* array = body->Desc.Values;
+	const int size = body->Desc.Size;
 	for( int i = 0; i < size; i++ ) {
 		sum += fabs( array[i] );
 	}
@@ -135,8 +142,8 @@ double CFloatVector::NormL1() const
 float CFloatVector::MaxAbs() const
 {
 	float maxAbs = 0;
-	const float* array = body->Values.GetPtr();
-	const int size = body->Values.Size();
+	const float* array = body->Desc.Values;
+	const int size = body->Desc.Size;
 	for( int i = 0; i < size; i++ ) {
 		maxAbs = max( maxAbs, static_cast<float>( abs( array[i] ) ) );
 	}
@@ -145,8 +152,8 @@ float CFloatVector::MaxAbs() const
 
 void CFloatVector::Nullify()
 {
-	NeoPresume( body->Values.Size() >= 0 );
-	memset( CopyOnWrite(), 0, body->Values.Size() * sizeof( float ) );
+	NeoPresume( body->Desc.Size >= 0 );
+	memset( CopyOnWrite(), 0, body->Desc.Size * sizeof( float ) );
 }
 
 CFloatVector& CFloatVector::operator = ( const CFloatVector& vector )
@@ -157,12 +164,12 @@ CFloatVector& CFloatVector::operator = ( const CFloatVector& vector )
 
 CFloatVector& CFloatVector::operator += ( const CFloatVector& vector )
 {
-	NeoPresume( body->Values.Size() == vector.body->Values.Size() );
-	NeoPresume( body->Values.Size() >= 0 );
+	NeoPresume( body->Desc.Size == vector.body->Desc.Size );
+	NeoPresume( body->Desc.Size >= 0 );
 
 	float* array = CopyOnWrite();
-	const float* operand = vector.body->Values.GetPtr();
-	const int size = body->Values.Size();
+	const float* operand = vector.body->Desc.Values;
+	const int size = body->Desc.Size;
 
 	for( int i = 0; i < size; i++ ) {
 		array[i] += operand[i];
@@ -172,12 +179,12 @@ CFloatVector& CFloatVector::operator += ( const CFloatVector& vector )
 
 CFloatVector& CFloatVector::operator -= ( const CFloatVector& vector )
 {
-	NeoPresume( body->Values.Size() == vector.body->Values.Size() );
-	NeoPresume( body->Values.Size() >= 0 );
+	NeoPresume( body->Desc.Size == vector.body->Desc.Size );
+	NeoPresume( body->Desc.Size >= 0 );
 
 	float* array = CopyOnWrite();
-	const float* operand = vector.body->Values.GetPtr();
-	const int size = body->Values.Size();
+	const float* operand = vector.body->Desc.Values;
+	const int size = body->Desc.Size;
 
 	for( int i = 0; i < size; i++ ) {
 		array[i] -= operand[i];
@@ -187,9 +194,9 @@ CFloatVector& CFloatVector::operator -= ( const CFloatVector& vector )
 
 CFloatVector& CFloatVector::operator *= ( double factor )
 {
-	NeoPresume( body->Values.Size() >= 0 );
+	NeoPresume( body->Desc.Size >= 0 );
 	float* ptr = CopyOnWrite();
-	const int size = body->Values.Size();
+	const int size = body->Desc.Size;
 	for( int i = 0; i < size; i++ ) {
 		ptr[i] = static_cast<float>( ptr[i] * factor );
 	}
@@ -198,12 +205,12 @@ CFloatVector& CFloatVector::operator *= ( double factor )
 
 CFloatVector& CFloatVector::MultiplyAndAdd( const CFloatVector& vector, double factor )
 {
-	NeoPresume( body->Values.Size() == vector.body->Values.Size() );
-	NeoPresume( body->Values.Size() >= 0 );
+	NeoPresume( body->Desc.Size == vector.body->Desc.Size );
+	NeoPresume( body->Desc.Size >= 0 );
 
 	float* ptr = CopyOnWrite();
 	const float* operand = vector.GetPtr();
-	const int size = body->Values.Size();
+	const int size = body->Desc.Size;
 
 	for( int i = 0; i < size; i++ ) {
 		ptr[i] = static_cast<float>( ptr[i] + factor * operand[i] );
@@ -213,12 +220,12 @@ CFloatVector& CFloatVector::MultiplyAndAdd( const CFloatVector& vector, double f
 
 CFloatVector& CFloatVector::MultiplyAndAddExt( const CFloatVector& vector, double factor )
 {
-	NeoPresume( body->Values.Size() == vector.body->Values.Size() + 1 );
-	NeoPresume( body->Values.Size() >= 0 );
+	NeoPresume( body->Desc.Size == vector.body->Desc.Size + 1 );
+	NeoPresume( body->Desc.Size >= 0 );
 
 	float* ptr = CopyOnWrite();
 	const float* operand = vector.GetPtr();
-	const int size = vector.body->Values.Size();
+	const int size = vector.body->Desc.Size;
 
 	for( int i = 0; i < size; i++ ) {
 		ptr[i] = static_cast<float>( ptr[i] + factor * operand[i] );
@@ -277,7 +284,7 @@ CFloatVector& CFloatVector::operator = ( const CSparseFloatVector& vector )
 	float* ptr = CopyOnWrite();
 	const CSparseFloatVectorDesc& desc = vector.GetDesc();
 	NeoAssert( desc.Indexes != nullptr );
-	const int size = body->Values.Size();
+	const int size = body->Desc.Size;
 	memset( ptr, 0, size * sizeof( float ) );
 	const int numberOfElements = vector.NumberOfElements();
 	for(int i = 0; i < numberOfElements; i++) {
@@ -294,7 +301,7 @@ CFloatVector& CFloatVector::operator += ( const CSparseFloatVector& vector )
 	float* ptr = CopyOnWrite();
 	const CSparseFloatVectorDesc& desc = vector.GetDesc();
 	NeoAssert( desc.Indexes != nullptr );
-	const int size = body->Values.Size();
+	const int size = body->Desc.Size;
 	const int numberOfElements = vector.NumberOfElements();
 	for(int i = 0; i < numberOfElements; i++) {
 		int j = desc.Indexes[i];
@@ -310,7 +317,7 @@ CFloatVector& CFloatVector::operator -= ( const CSparseFloatVector& vector )
 	float* ptr = CopyOnWrite();
 	const CSparseFloatVectorDesc& desc = vector.GetDesc();
 	NeoAssert( desc.Indexes != nullptr );
-	const int size = body->Values.Size();
+	const int size = body->Desc.Size;
 	const int numberOfElements = vector.NumberOfElements();
 	for(int i = 0; i < numberOfElements; i++) {
 		int j = desc.Indexes[i];
@@ -325,7 +332,7 @@ CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, 
 {
 	float* ptr = CopyOnWrite();
 	if( desc.Indexes != nullptr ) {
-		const int size = body->Values.Size();
+		const int size = body->Desc.Size;
 		const int numberOfElements = desc.Size;
 		for( int i = 0; i < numberOfElements; i++ ) {
 			int j = desc.Indexes[i];
@@ -334,7 +341,7 @@ CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, 
 			}
 		}
 	} else { // dense inside
-		NeoPresume( desc.Size <= body->Values.Size() );
+		NeoPresume( desc.Size <= body->Desc.Size );
 		for( int i = 0; i < desc.Size; i++ ) {
 			ptr[i] = static_cast< float >( ptr[i] + factor * desc.Values[i] );
 		}
