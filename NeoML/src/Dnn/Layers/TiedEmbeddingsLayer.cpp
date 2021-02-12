@@ -52,7 +52,10 @@ void CTiedEmbeddingsLayer::Reshape()
 	CheckInputs();
 
 	CheckArchitecture( GetDnn()->HasLayer( embeddingsLayerName ), GetName(),
-		"Wrong name for embeddings layer." );
+		"Network does not contain embeddings layer with that name." );
+	const CMultichannelLookupLayer* embeddingsLayer = dynamic_cast<CMultichannelLookupLayer*>(
+		GetDnn()->GetLayer( embeddingsLayerName ).Ptr() );
+	CheckArchitecture( embeddingsLayer != 0, GetName(), "The layer is not an embedding layer." );
 
 	const int embeddingsChannelsCount = CheckCast<CMultichannelLookupLayer>(
 		GetDnn()->GetLayer( embeddingsLayerName ) )->GetDimensions().Size();
@@ -67,7 +70,14 @@ void CTiedEmbeddingsLayer::Reshape()
 
 	for( int i = 0; i < inputDescs.Size(); i++ ) {
 		const CBlobDesc inputDesc = inputDescs[i];
-		assert( inputDesc.Channels() == vectorSize );
+		CheckArchitecture( inputDesc.Channels() == vectorSize, GetName(),
+			"The number of channels in the input layer is incorrect." );
+		CheckArchitecture( inputDesc.Width() == 1, GetName(),
+			"The width in the input layer must be 1. " );
+		CheckArchitecture( inputDesc.Height() == 1, GetName(),
+			"The height in the input layer must be 1. " );
+		CheckArchitecture( inputDesc.Depth() == 1, GetName(),
+			"The depth in the input layer must be 1. " );
 
 		CBlobDesc outputDesc = inputDesc;
 		outputDesc.SetDimSize( BD_Channels, vectorsCount );

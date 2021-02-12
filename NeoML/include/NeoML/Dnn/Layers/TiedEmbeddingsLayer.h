@@ -32,6 +32,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 	
 	// Embeddings layer name from which we take the matrix.
+	// Only CMultichannelLookupLayer is supported.
 	const char* GetEmbeddingsLayerName() const { return embeddingsLayerName; }
 	void SetEmbeddingsLayerName( const char* name ) { embeddingsLayerName = name; }
 	// Channel index in embeddings layer.
