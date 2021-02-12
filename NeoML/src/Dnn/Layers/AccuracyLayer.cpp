@@ -21,6 +21,55 @@ limitations under the License.
 
 namespace NeoML {
 
+// Bracket-like class for reading CDnnBlob buffer
+class CDnnBlobBufferReader {
+public:
+	explicit CDnnBlobBufferReader( CDnnBlob* blob );
+	~CDnnBlobBufferReader();
+
+	// Get value from position pos. For integer blob convert result to float.
+	float GetValue( int pos ) const;
+
+private:
+	CDnnBlob* blob;
+	// pointers to buffer
+	int* bufferInt;
+	float* bufferFloat;
+};
+
+CDnnBlobBufferReader::CDnnBlobBufferReader( CDnnBlob* _blob ) :
+	blob( _blob ),
+	bufferInt( 0 ),
+	bufferFloat( 0 )
+{
+	NeoAssert( blob != 0 );
+	if( blob->GetDataType() == CT_Float ) {
+		bufferFloat = blob->GetBuffer<float>( 0, blob->GetDataSize() );
+	} else {
+		bufferInt = blob->GetBuffer<int>( 0, blob->GetDataSize() );
+	}
+}
+
+CDnnBlobBufferReader::~CDnnBlobBufferReader()
+{
+	if( blob->GetDataType() == CT_Float ) {
+		blob->ReleaseBuffer( bufferFloat, false );
+	} else {
+		blob->ReleaseBuffer( bufferInt, false );
+	}
+}
+
+float CDnnBlobBufferReader::GetValue( int pos ) const
+{
+	if( blob->GetDataType() == CT_Float ) {
+		return bufferFloat[pos];
+	} else {
+		return 1.0f * bufferInt[pos];
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CAccuracyLayer::CAccuracyLayer( IMathEngine& mathEngine ) :
 	CQualityControlLayer( mathEngine, "CCnnAccuracyLayer" ),
 	iterationsCount( 0 ),
@@ -68,9 +117,8 @@ void CAccuracyLayer::RunOnceAfterReset()
 	inputBuffer.SetSize( dataSize );
 	inputBlob->CopyTo( inputBuffer.GetPtr(), inputBuffer.Size() );
 
-	const int expectedDataSize = expectedLabelsBlob->GetDataSize();
 	const int expectedObjectSize = expectedLabelsBlob->GetObjectSize();
-	int* expectedBuffer = expectedLabelsBlob->GetBuffer<int>( 0, expectedDataSize );
+	const CDnnBlobBufferReader expectedBuffer( expectedLabelsBlob );
 
 	int correctlyClassifiedCount = 0;
 	for( int i = 0; i < inputBlob->GetBatchWidth(); i++ ) {
@@ -87,12 +135,12 @@ void CAccuracyLayer::RunOnceAfterReset()
 					}
 				}
 				if( expectedObjectSize == objectSize ) {
-					if( expectedBuffer[sampleId * expectedObjectSize + expectedClass] > 0.f ) {
+					if( expectedBuffer.GetValue(sampleId * expectedObjectSize + expectedClass) > 0.f ) {
 						correctlyClassifiedCount += 1;
 					}
 				} else {
 					assert( expectedObjectSize == 1 );
-					const int label = Round( expectedBuffer[sampleId * expectedObjectSize] );
+					const int label = Round( expectedBuffer.GetValue( sampleId * expectedObjectSize ) );
 					if( label == expectedClass ) {
 						correctlyClassifiedCount += 1;
 					}
@@ -103,7 +151,7 @@ void CAccuracyLayer::RunOnceAfterReset()
 				// That means a positive value corresponds to one class and a negative to the other
 				// The input blob with the correct labels should only contain +1 and -1 values
 				const float predictedValue = inputBuffer[sampleId];
-				const float expectedClass = expectedBuffer[sampleId];
+				const float expectedClass = expectedBuffer.GetValue( sampleId );
 				if( ( predictedValue >= 0 && expectedClass > 0 ) || ( predictedValue < 0 && expectedClass < 0 ) ) {
 					correctlyClassifiedCount += 1;
 				}
@@ -112,8 +160,6 @@ void CAccuracyLayer::RunOnceAfterReset()
 	}
 	collectedAccuracy += static_cast<double>( correctlyClassifiedCount ) / objectCount;
 	outputBlobs[0]->GetData().SetValue( static_cast<float>( collectedAccuracy ) / ++iterationsCount );
-
-	expectedLabelsBlob->ReleaseBuffer( expectedBuffer, false );
 }
 
 CLayerWrapper<CAccuracyLayer> Accuracy()
