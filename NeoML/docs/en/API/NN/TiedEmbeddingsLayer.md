@@ -21,7 +21,7 @@ Class implements [tied embeddings layer](https://arxiv.org/pdf/1608.05859.pdf).
 ```c++
 void SetEmbeddingsLayerName( const char* name )
 ```
-Embeddings layer `name`.
+Embeddings layer `name`. Only CMultichannelLookupLayer is allowed.
 
 ### ChannelIndex
 

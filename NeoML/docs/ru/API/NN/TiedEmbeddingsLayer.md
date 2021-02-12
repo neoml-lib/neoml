@@ -21,7 +21,7 @@
 ```c++
 void SetEmbeddingsLayerName( const char* name )
 ```
-Использовать слой эмбеддингов `name`.
+Использовать слой эмбеддингов `name`. Только слой CMultichannelLookupLayer разрешен.
 
 ### ChannelIndex
 
