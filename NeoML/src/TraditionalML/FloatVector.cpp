@@ -203,39 +203,6 @@ CFloatVector& CFloatVector::operator *= ( double factor )
 	return *this;
 }
 
-CFloatVector& CFloatVector::MultiplyAndAdd( const CFloatVector& vector, double factor )
-{
-	NeoPresume( body->Desc.Size == vector.body->Desc.Size );
-	NeoPresume( body->Desc.Size >= 0 );
-
-	float* ptr = CopyOnWrite();
-	const float* operand = vector.GetPtr();
-	const int size = body->Desc.Size;
-
-	for( int i = 0; i < size; i++ ) {
-		ptr[i] = static_cast<float>( ptr[i] + factor * operand[i] );
-	}
-	return *this;
-}
-
-CFloatVector& CFloatVector::MultiplyAndAddExt( const CFloatVector& vector, double factor )
-{
-	NeoPresume( body->Desc.Size == vector.body->Desc.Size + 1 );
-	NeoPresume( body->Desc.Size >= 0 );
-
-	float* ptr = CopyOnWrite();
-	const float* operand = vector.GetPtr();
-	const int size = vector.body->Desc.Size;
-
-	for( int i = 0; i < size; i++ ) {
-		ptr[i] = static_cast<float>( ptr[i] + factor * operand[i] );
-	}
-
-	ptr[size] = static_cast<float>( ptr[size] + factor );
-
-	return *this;
-}
-
 void CFloatVector::SquareEachElement()
 {	
 	const int size = Size();

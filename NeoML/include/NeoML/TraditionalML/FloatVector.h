@@ -121,9 +121,32 @@ inline CFloatVector::CFloatVectorBody* CFloatVector::CFloatVectorBody::Duplicate
 	return result;
 }
 
+inline CFloatVector& CFloatVector::MultiplyAndAdd( const CFloatVector& vector, double factor )
+{
+	NeoPresume( body->Desc.Size == vector.body->Desc.Size );
+	NeoPresume( body->Desc.Size >= 0 );
+
+	MultiplyAndAdd( vector.GetDesc(), factor );
+	return *this;
+}
+
+inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CFloatVector& vector, double factor )
+{
+	NeoPresume( body->Desc.Size == vector.body->Desc.Size + 1 );
+	NeoPresume( body->Desc.Size >= 0 );
+
+	MultiplyAndAdd( vector.GetDesc(), factor );
+	SetAt( Size() - 1, static_cast<float>( GetPtr()[Size() - 1] + factor ) );
+
+	return *this;
+}
+
 inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVector& vector, double factor )
 {
-	MultiplyAndAdd( vector, factor );
+	NeoPresume( body->Desc.Size == vector.NumberOfElements() + 1 );
+	NeoPresume( body->Desc.Size >= 0 );
+
+	MultiplyAndAdd( vector.GetDesc(), factor );
 	SetAt( Size() - 1, static_cast<float>( GetPtr()[Size() - 1] + factor ) );
 
 	return *this;
@@ -131,6 +154,9 @@ inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVector& 
 
 inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVectorDesc& vector, double factor )
 {
+	NeoPresume( body->Desc.Size == vector.Size + 1 );
+	NeoPresume( body->Desc.Size >= 0 );
+
 	MultiplyAndAdd( vector, factor );
 	SetAt( Size() - 1, static_cast<float>( GetPtr()[Size() - 1] + factor ) );
 
