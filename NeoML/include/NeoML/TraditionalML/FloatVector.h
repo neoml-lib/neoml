@@ -67,8 +67,7 @@ public:
 
 	// Adds the given vector multiplied by factor
 	CFloatVector& MultiplyAndAdd( const CFloatVector& vector, double factor );
-	CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor )
-		{ return MultiplyAndAdd( vector.GetDesc(), factor ); }
+	CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor ) { return MultiplyAndAdd( vector.GetDesc(), factor ); }
 	CFloatVector& MultiplyAndAdd( const CSparseFloatVectorDesc& vector, double factor );
 
 	// Adds the given vector, extended by one with the help of LinearFunction gradient, and then multiplied by factor
@@ -336,7 +335,7 @@ inline CTextStream& operator<<( CTextStream& stream, const CFloatVector& vector 
 inline void CFloatVector::SetAt( int i, float what )
 {
 	NeoPresume( i >= 0 && i < body->Values.Size() );
-	body.CopyOnWrite()->Desc.Values[i] = what;
+	body.CopyOnWrite()->Values[i] = what;
 }
 
 inline CFloatVector operator + ( const CFloatVector& vector1, const CFloatVector& vector2 ) 
@@ -426,7 +425,7 @@ inline CArchive& operator >> ( CArchive& archive, CFloatVector& vector )
 		// Currently double for format reasons
 		double temp = 0;
 		archive >> temp;
-		newBody->Desc.Values[i] = static_cast<float>( temp );
+		newBody->Values[i] = static_cast<float>( temp );
 	}
 	vector.body = newBody;
 
