@@ -27,6 +27,9 @@ public:
 	explicit CDnnBlobBufferReader( CDnnBlob* blob );
 	~CDnnBlobBufferReader();
 
+	CDnnBlobBufferReader( const CDnnBlobBufferReader& ) = delete;
+	CDnnBlobBufferReader& operator=( const CDnnBlobBufferReader& ) = delete;
+
 	// Get value from position pos. For integer blob convert result to float.
 	float GetValue( int pos ) const;
 
@@ -185,7 +188,6 @@ void CConfusionMatrixLayer::Serialize( CArchive& archive )
 void CConfusionMatrixLayer::Reshape()
 {
 	CheckInputs();
-
 	NeoAssert( inputDescs.Size() == 2 );
 	// For classifying a sigmoid a special implementation is needed
 	NeoAssert( inputDescs[0].Channels() >= 2 );

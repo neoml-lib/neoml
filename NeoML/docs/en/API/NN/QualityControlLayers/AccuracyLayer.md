@@ -41,7 +41,7 @@ The second input should contain a blob with the correct class labels:
 - If first input `Channels` is equal to `1`, the labels for the binary classification should contain `1` for one class and `-1` for the other.
 - If `Channels` is greater than `1` for the multiple labels classification two forms are allowed:
   - labels should contain a blob of the same dimensions with 1 for correct class and 0 for the others.
-  - labels should contain a blob with `Channels` = 1 with correct label indexes.
+  - labels should contain a blob with `Channels` = 1 with correct label indexes. Both types CT_Float and CT_Int are allowed.
 
 ## Outputs
 
