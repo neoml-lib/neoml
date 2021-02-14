@@ -25,7 +25,7 @@ limitations under the License.
 #include <string>
 
 #include "Nodes/ActivationNode.h"
-//#include "Nodes/BatchNormalizationNode.h"
+#include "Nodes/BatchNormalizationNode.h"
 //#include "Nodes/ConcatNode.h"
 //#include "Nodes/ConstantNode.h"
 //#include "Nodes/ConstantOfShapeNode.h"
@@ -105,7 +105,7 @@ namespace {
 REGISTER_OP_NODE( CAbsNode, "Abs" )
 //REGISTER_OP_NODE( CAddNode, "Add" )
 //REGISTER_OP_NODE( CAveragePoolNode, "AveragePool" )
-//REGISTER_OP_NODE( CBatchNormalizationNode, "BatchNormalization" )
+REGISTER_OP_NODE( CBatchNormalizationNode, "BatchNormalization" )
 REGISTER_OP_NODE( CClipNode, "Clip" )
 //REGISTER_OP_NODE( CConcatNode, "Concat" )
 //REGISTER_OP_NODE( CConstantNode, "Constant" )
