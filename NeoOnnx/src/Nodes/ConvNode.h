@@ -22,13 +22,15 @@ namespace NeoOnnx {
 // Conv operator graph node
 class CConvNode : public COpNode {
 public:
-	CConvNode( int nodeIndex, const onnx::NodeProto& conv, int opsetVersion );
+	CConvNode( const onnx::NodeProto& conv, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
 	const int group; // groups count
@@ -36,9 +38,12 @@ private:
 	CFastArray<int, 8> strides; // kernel strides
 	CFastArray<int, 8> pads; // convolution paddings
 	CFastArray<int, 8> dilations; // convolution dilations
+	CFastArray<int, 8> outputShape; // output shape
 
-	void add2dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
-	void add3dConvLayer( const CTensorCache& tensors, CNeoMLLinkCache& neoMLLinks, CDnn& dnn );
+	void add2dConvLayer( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn );
+	void add3dConvLayer( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn );
 };
 
 } // namespace NeoOnnx

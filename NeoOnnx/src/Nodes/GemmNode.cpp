@@ -49,7 +49,7 @@ CGemmNode::CGemmNode( const onnx::NodeProto& gemm, int opsetVersion ) :
 }
 
 void CGemmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
 	CheckNeoOnnxSupport( !inputs[0]->IsCalculated(), "pre-calculated input", OnnxNode );
 	const CTensorShape& inputShape = inputs[0]->Shape();

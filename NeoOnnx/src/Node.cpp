@@ -29,7 +29,7 @@ limitations under the License.
 //#include "Nodes/ConcatNode.h"
 //#include "Nodes/ConstantNode.h"
 //#include "Nodes/ConstantOfShapeNode.h"
-//#include "Nodes/ConvNode.h"
+#include "Nodes/ConvNode.h"
 //#include "Nodes/DropoutNode.h"
 //#include "Nodes/EltwiseNode.h"
 //#include "Nodes/FlattenNode.h"
@@ -40,7 +40,7 @@ limitations under the License.
 //#include "Nodes/LrnNode.h"
 //#include "Nodes/LstmNode.h"
 //#include "Nodes/MatMulNode.h"
-//#include "Nodes/PadNode.h"
+#include "Nodes/PadNode.h"
 //#include "Nodes/PoolNode.h"
 //#include "Nodes/ReduceMeanNode.h"
 //#include "Nodes/ReshapeNode.h"
@@ -110,7 +110,7 @@ REGISTER_OP_NODE( CClipNode, "Clip" )
 //REGISTER_OP_NODE( CConcatNode, "Concat" )
 //REGISTER_OP_NODE( CConstantNode, "Constant" )
 //REGISTER_OP_NODE( CConstantOfShapeNode, "ConstantOfShape" )
-//REGISTER_OP_NODE( CConvNode, "Conv" )
+REGISTER_OP_NODE( CConvNode, "Conv" )
 //REGISTER_OP_NODE( CDivNode, "Div" )
 //REGISTER_OP_NODE( CDropoutNode, "Dropout" )
 REGISTER_OP_NODE( CEluNode, "Elu" )
@@ -200,7 +200,7 @@ COpNode::COpNode( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 }
 
 void COpNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const
+	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
 {
 	CRandom random( 0x1231 );
 	CDnn internalDnn( random, mathEngine );
@@ -249,7 +249,7 @@ void COpNode::addInternalDnnSources( const CObjectArray<const CTensorBase>& inpu
 	UserInputMask( isUserInput );
 	
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
-		if( inputs[inputIndex] == nullptr ) {
+		if( inputs[inputIndex] == nullptr || !inputs[inputIndex]->IsCalculated() ) {
 			internalInputs.Add( nullptr );
 		} else if( isUserInput[inputIndex] ) {
 			CheckNeoOnnxInternal( inputs[inputIndex]->IsCalculated(), "Can't pass user input into internal net", OnnxNode );
@@ -260,7 +260,6 @@ void COpNode::addInternalDnnSources( const CObjectArray<const CTensorBase>& inpu
 			internalInputs.Add( new CUserTensor( inputs[inputIndex]->Shape(), inputs[inputIndex]->Layout(),
 				CLayerOutput( source, 0 ) ) );
 		} else {
-			CheckNeoOnnxInternal( inputs[inputIndex]->IsCalculated(), "Can't pass user input into internal net", OnnxNode );
 			internalInputs.Add( inputs[inputIndex] );
 		}
 	}

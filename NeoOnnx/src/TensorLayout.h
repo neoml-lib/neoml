@@ -61,6 +61,8 @@ struct CTensorLayout
 		DimType( other.DimType ) { other.OnnxOrder.CopyTo( OnnxOrder ); }
 
 	CTensorLayout& operator=( const CTensorLayout& other );
+
+	bool operator==( const CTensorLayout& other ) const;
 };
 
 inline CTensorLayout& CTensorLayout::operator=( const CTensorLayout& other )
@@ -71,6 +73,21 @@ inline CTensorLayout& CTensorLayout::operator=( const CTensorLayout& other )
 	}
 
 	return *this;
+}
+
+inline bool CTensorLayout::operator==( const CTensorLayout& other ) const
+{
+	if( DimType != other.DimType || OnnxOrder.Size() != other.OnnxOrder.Size() ) {
+		return false;
+	}
+
+	for( int dimIndex = 0; dimIndex < OnnxOrder.Size(); ++dimIndex ) {
+		if( OnnxOrder[dimIndex] != other.OnnxOrder[dimIndex] ) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 } // namespace NeoOnnx

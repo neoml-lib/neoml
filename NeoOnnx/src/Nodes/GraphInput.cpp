@@ -38,7 +38,7 @@ bool CGraphInput::CanCalculateOutput( const CObjectArray<const CTensorBase>& /* 
 }
 
 void CGraphInput::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 	source->SetName( Name() );
@@ -69,7 +69,7 @@ void CGraphInput::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */
 }
 
 void CGraphInput::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ ) const
+	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ )
 {
 	CheckNeoOnnxInternal( false, "Illegal call: CGraphInput::CalculateOutput" );
 }

@@ -55,13 +55,13 @@ public:
 	// Adds required layers to dnn and puts corresponding tensors to the outputs
 	// Called if operator output depends on the data, provided by user
 	virtual void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const = 0;
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) = 0;
 
 	// Calculates the result of the operations
 	// Called if operator's output can be calculated during network conversion 
 	// (which means that tensor's data is independent of user input)
 	virtual void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const = 0;
+		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) = 0;
 
 protected:
 	CNode( const CString& name, const CArray<CString>& inputs, const CArray<CString>& outputs );
@@ -96,7 +96,7 @@ public:
 	// 2. Calling AddLayers CNode's interface method for that internalDnn
 	// 3. Running this CDnn and extracting the results
 	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const override;
+		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) override;
 
 	// Fills the array with bools where true means that index'th input
 	// is expected to be provided by user and false otherwise
