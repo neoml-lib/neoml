@@ -11,36 +11,36 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Node.cpp
     OpNodeAttributes.cpp
     Nodes/ActivationNode.cpp
-    Nodes/BatchNormalizationNode.cpp
-    Nodes/ConcatNode.cpp
-    Nodes/ConstantNode.cpp
-    Nodes/ConstantOfShapeNode.cpp
-    Nodes/ConvNode.cpp
-    Nodes/DropoutNode.cpp
-    Nodes/EltwiseNode.cpp
-    Nodes/FlattenNode.cpp
-    Nodes/GatherNode.cpp
+    #Nodes/BatchNormalizationNode.cpp
+    #Nodes/ConcatNode.cpp
+    #Nodes/ConstantNode.cpp
+    #Nodes/ConstantOfShapeNode.cpp
+    #Nodes/ConvNode.cpp
+    #Nodes/DropoutNode.cpp
+    #Nodes/EltwiseNode.cpp
+    #Nodes/FlattenNode.cpp
+    #Nodes/GatherNode.cpp
     Nodes/GemmNode.cpp
-    Nodes/GlobalAveragePoolNode.cpp
-    Nodes/GlobalPoolNodeBase.cpp
+    #Nodes/GlobalAveragePoolNode.cpp
+    #Nodes/GlobalPoolNodeBase.cpp
     Nodes/GraphInput.cpp
     Nodes/GraphInitializer.cpp
     Nodes/GraphOutput.cpp
-    Nodes/IdentityNode.cpp
-    Nodes/LrnNode.cpp
-    Nodes/LstmNode.cpp
-    Nodes/MatMulNode.cpp
-    Nodes/PadNode.cpp
-    Nodes/PoolNode.cpp
-    Nodes/ReduceMeanNode.cpp
-    Nodes/ReshapeNode.cpp
-    Nodes/ShapeNode.cpp
-    Nodes/SliceNode.cpp
-    Nodes/SoftmaxNode.cpp
-    Nodes/SqueezeNode.cpp
-    Nodes/TransposeNode.cpp
-    Nodes/UnsqueezeNode.cpp
-    NodeUtils.cpp
+    #Nodes/IdentityNode.cpp
+    #Nodes/LrnNode.cpp
+    #Nodes/LstmNode.cpp
+    #Nodes/MatMulNode.cpp
+    #Nodes/PadNode.cpp
+    #Nodes/PoolNode.cpp
+    #Nodes/ReduceMeanNode.cpp
+    #Nodes/ReshapeNode.cpp
+    #Nodes/ShapeNode.cpp
+    #Nodes/SliceNode.cpp
+    #Nodes/SoftmaxNode.cpp
+    #Nodes/SqueezeNode.cpp
+    #Nodes/TransposeNode.cpp
+    #Nodes/UnsqueezeNode.cpp
+    TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
@@ -51,37 +51,38 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Node.h
     OpNodeAttributes.h
     Nodes/ActivationNode.h
-    Nodes/BatchNormalizationNode.h
-    Nodes/ConcatNode.h
-    Nodes/ConstantNode.h
-    Nodes/ConstantOfShapeNode.h
-    Nodes/ConvNode.h
-    Nodes/DropoutNode.h
-    Nodes/EltwiseNode.h
-    Nodes/FlattenNode.h
-    Nodes/GatherNode.h
+    #Nodes/BatchNormalizationNode.h
+    #Nodes/ConcatNode.h
+    #Nodes/ConstantNode.h
+    #Nodes/ConstantOfShapeNode.h
+    #Nodes/ConvNode.h
+    #Nodes/DropoutNode.h
+    #Nodes/EltwiseNode.h
+    #Nodes/FlattenNode.h
+    #Nodes/GatherNode.h
     Nodes/GemmNode.h
-    Nodes/GlobalAveragePoolNode.h
-    Nodes/GlobalPoolNodeBase.h
+    #Nodes/GlobalAveragePoolNode.h
+    #Nodes/GlobalPoolNodeBase.h
     Nodes/GraphInput.h
     Nodes/GraphInitializer.h
     Nodes/GraphOutput.h
-    Nodes/IdentityNode.h
-    Nodes/LrnNode.h
-    Nodes/LstmNode.h
-    Nodes/MatMulNode.h
-    Nodes/PadNode.h
-    Nodes/PoolNode.h
-    Nodes/ReduceMeanNode.h
-    Nodes/ReshapeNode.h
-    Nodes/ShapeNode.h
-    Nodes/SliceNode.h
-    Nodes/SoftmaxNode.h
-    Nodes/SqueezeNode.h
-    Nodes/TransposeNode.h
-    Nodes/UnsqueezeNode.h
+    #Nodes/IdentityNode.h
+    #Nodes/LrnNode.h
+    #Nodes/LstmNode.h
+    #Nodes/MatMulNode.h
+    #Nodes/PadNode.h
+    #Nodes/PoolNode.h
+    #Nodes/ReduceMeanNode.h
+    #Nodes/ReshapeNode.h
+    #Nodes/ShapeNode.h
+    #Nodes/SliceNode.h
+    #Nodes/SoftmaxNode.h
+    #Nodes/SqueezeNode.h
+    #Nodes/TransposeNode.h
+    #Nodes/UnsqueezeNode.h
     NodeUtils.h
     Tensor.h
+    TensorLayout.h
     TensorUtils.h
 )
 

@@ -25,31 +25,31 @@ limitations under the License.
 #include <string>
 
 #include "Nodes/ActivationNode.h"
-#include "Nodes/BatchNormalizationNode.h"
-#include "Nodes/ConcatNode.h"
-#include "Nodes/ConstantNode.h"
-#include "Nodes/ConstantOfShapeNode.h"
-#include "Nodes/ConvNode.h"
-#include "Nodes/DropoutNode.h"
-#include "Nodes/EltwiseNode.h"
-#include "Nodes/FlattenNode.h"
-#include "Nodes/GatherNode.h"
+//#include "Nodes/BatchNormalizationNode.h"
+//#include "Nodes/ConcatNode.h"
+//#include "Nodes/ConstantNode.h"
+//#include "Nodes/ConstantOfShapeNode.h"
+//#include "Nodes/ConvNode.h"
+//#include "Nodes/DropoutNode.h"
+//#include "Nodes/EltwiseNode.h"
+//#include "Nodes/FlattenNode.h"
+//#include "Nodes/GatherNode.h"
 #include "Nodes/GemmNode.h"
-#include "Nodes/GlobalAveragePoolNode.h"
-#include "Nodes/IdentityNode.h"
-#include "Nodes/LrnNode.h"
-#include "Nodes/LstmNode.h"
-#include "Nodes/MatMulNode.h"
-#include "Nodes/PadNode.h"
-#include "Nodes/PoolNode.h"
-#include "Nodes/ReduceMeanNode.h"
-#include "Nodes/ReshapeNode.h"
-#include "Nodes/ShapeNode.h"
-#include "Nodes/SliceNode.h"
-#include "Nodes/SoftmaxNode.h"
-#include "Nodes/SqueezeNode.h"
-#include "Nodes/TransposeNode.h"
-#include "Nodes/UnsqueezeNode.h"
+//#include "Nodes/GlobalAveragePoolNode.h"
+//#include "Nodes/IdentityNode.h"
+//#include "Nodes/LrnNode.h"
+//#include "Nodes/LstmNode.h"
+//#include "Nodes/MatMulNode.h"
+//#include "Nodes/PadNode.h"
+//#include "Nodes/PoolNode.h"
+//#include "Nodes/ReduceMeanNode.h"
+//#include "Nodes/ReshapeNode.h"
+//#include "Nodes/ShapeNode.h"
+//#include "Nodes/SliceNode.h"
+//#include "Nodes/SoftmaxNode.h"
+//#include "Nodes/SqueezeNode.h"
+//#include "Nodes/TransposeNode.h"
+//#include "Nodes/UnsqueezeNode.h"
 
 namespace NeoOnnx {
 
@@ -57,7 +57,7 @@ namespace NeoOnnx {
 #define REGISTER_OP_NODE( classType, opName ) \
 	static CNodeClassRegistrar< classType > __merge__1( _RegisterOpNode, __LINE__ )( opName );
 
-typedef COpNode* ( *TCreateOpNodeFunction )( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
+typedef COpNode* ( *TCreateOpNodeFunction )( const onnx::NodeProto& onnxNode, int opsetVersion );
 
 // Returns reference to the map containing info about registered nodes
 static CMap<CString, TCreateOpNodeFunction>& getRegisteredNodes()
@@ -82,7 +82,7 @@ public:
 	explicit CNodeClassRegistrar( const char* opName );
 
 private:
-	static COpNode* createObject( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
+	static COpNode* createObject( const onnx::NodeProto& onnxNode, int opsetVersion );
 };
 
 template<class T>
@@ -92,9 +92,9 @@ inline CNodeClassRegistrar<T>::CNodeClassRegistrar( const char* opName )
 }
 
 template<class T>
-inline COpNode* CNodeClassRegistrar<T>::createObject( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion )
+inline COpNode* CNodeClassRegistrar<T>::createObject( const onnx::NodeProto& onnxNode, int opsetVersion )
 {
-	return FINE_DEBUG_NEW T( nodeIndex, onnxNode, opsetVersion );
+	return FINE_DEBUG_NEW T( onnxNode, opsetVersion );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -103,94 +103,107 @@ namespace {
 
 // Register all nodes
 REGISTER_OP_NODE( CAbsNode, "Abs" )
-REGISTER_OP_NODE( CAddNode, "Add" )
-REGISTER_OP_NODE( CAveragePoolNode, "AveragePool" )
-REGISTER_OP_NODE( CBatchNormalizationNode, "BatchNormalization" )
+//REGISTER_OP_NODE( CAddNode, "Add" )
+//REGISTER_OP_NODE( CAveragePoolNode, "AveragePool" )
+//REGISTER_OP_NODE( CBatchNormalizationNode, "BatchNormalization" )
 REGISTER_OP_NODE( CClipNode, "Clip" )
-REGISTER_OP_NODE( CConcatNode, "Concat" )
-REGISTER_OP_NODE( CConstantNode, "Constant" )
-REGISTER_OP_NODE( CConstantOfShapeNode, "ConstantOfShape" )
-REGISTER_OP_NODE( CConvNode, "Conv" )
-REGISTER_OP_NODE( CDivNode, "Div" )
-REGISTER_OP_NODE( CDropoutNode, "Dropout" )
+//REGISTER_OP_NODE( CConcatNode, "Concat" )
+//REGISTER_OP_NODE( CConstantNode, "Constant" )
+//REGISTER_OP_NODE( CConstantOfShapeNode, "ConstantOfShape" )
+//REGISTER_OP_NODE( CConvNode, "Conv" )
+//REGISTER_OP_NODE( CDivNode, "Div" )
+//REGISTER_OP_NODE( CDropoutNode, "Dropout" )
 REGISTER_OP_NODE( CEluNode, "Elu" )
-REGISTER_OP_NODE( CFlattenNode, "Flatten" )
-REGISTER_OP_NODE( CGatherNode, "Gather" )
+//REGISTER_OP_NODE( CFlattenNode, "Flatten" )
+//REGISTER_OP_NODE( CGatherNode, "Gather" )
 REGISTER_OP_NODE( CGemmNode, "Gemm" )
-REGISTER_OP_NODE( CGlobalAveragePoolNode, "GlobalAveragePool" )
+//REGISTER_OP_NODE( CGlobalAveragePoolNode, "GlobalAveragePool" )
 REGISTER_OP_NODE( CHardSigmoidNode, "HardSigmoid" )
-REGISTER_OP_NODE( CIdentityNode, "Identity" )
+//REGISTER_OP_NODE( CIdentityNode, "Identity" )
 REGISTER_OP_NODE( CLeakyReluNode, "LeakyRelu" )
-REGISTER_OP_NODE( CLrnNode, "LRN" )
-REGISTER_OP_NODE( CLstmNode, "LSTM" )
-REGISTER_OP_NODE( CMatMulNode, "MatMul" )
-REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
-REGISTER_OP_NODE( CMulNode, "Mul" )
-REGISTER_OP_NODE( CPadNode, "Pad" )
-REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
+//REGISTER_OP_NODE( CLrnNode, "LRN" )
+//REGISTER_OP_NODE( CLstmNode, "LSTM" )
+//REGISTER_OP_NODE( CMatMulNode, "MatMul" )
+//REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
+//REGISTER_OP_NODE( CMulNode, "Mul" )
+//REGISTER_OP_NODE( CPadNode, "Pad" )
+//REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
 REGISTER_OP_NODE( CReluNode, "Relu" )
-REGISTER_OP_NODE( CReshapeNode, "Reshape" )
-REGISTER_OP_NODE( CShapeNode, "Shape" )
+//REGISTER_OP_NODE( CReshapeNode, "Reshape" )
+//REGISTER_OP_NODE( CShapeNode, "Shape" )
 REGISTER_OP_NODE( CSigmoidNode, "Sigmoid" )
-REGISTER_OP_NODE( CSliceNode, "Slice" )
-REGISTER_OP_NODE( CSoftmaxNode, "Softmax" )
-REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
-REGISTER_OP_NODE( CSubNode, "Sub" )
-REGISTER_OP_NODE( CSumNode, "Sum" )
+//REGISTER_OP_NODE( CSliceNode, "Slice" )
+//REGISTER_OP_NODE( CSoftmaxNode, "Softmax" )
+//REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
+//REGISTER_OP_NODE( CSubNode, "Sub" )
+//REGISTER_OP_NODE( CSumNode, "Sum" )
 REGISTER_OP_NODE( CTanhNode, "Tanh" )
-REGISTER_OP_NODE( CTransposeNode, "Transpose" )
-REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )
+//REGISTER_OP_NODE( CTransposeNode, "Transpose" )
+//REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )
 
 } // namespace
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CNode::CNode( int _nodeIndex, const CString& name, int inputCount, int _outputCount ) :
-	Name( name ),
-	nodeIndex( _nodeIndex )
+CNode::CNode( const CString& _name, const CArray<CString>& inputs, const CArray<CString>& outputs ) :
+	name( _name )
 {
-	Input.SetSize( inputCount );
-	Output.SetBufferSize( _outputCount );
-	for( int outputIndex = 0; outputIndex < _outputCount; ++outputIndex ) {
-		Output.Add( CLink( nodeIndex, outputIndex ) );
+	inputs.CopyTo( inputNames );
+	outputs.CopyTo( outputNames );
+}
+
+CNode::CNode( const CString& _name, const ::google::protobuf::RepeatedPtrField<std::string>& inputs,
+		const::google::protobuf::RepeatedPtrField<std::string>& outputs ) :
+	name( _name )
+{
+	for( const std::string& input : inputs ) {
+		inputNames.Add( CString( input ) );
+	}
+
+	for( const std::string& output : outputs ) {
+		outputNames.Add( CString( output ) );
 	}
 }
 
-int CNode::InputCount() const
+const CString& CNode::InputName( int index ) const
 {
-	return Input.Size();
+	CheckNeoOnnxInternal( index >= 0 && index < InputCount(), "Access to non-existing input" );
+	return inputNames[index];
 }
 
-int CNode::OutputCount() const
+const CString& CNode::OutputName( int index ) const
 {
-	return Output.Size();
+	CheckNeoOnnxInternal( index >= 0 && index < OutputCount(), "Access to non-existing output" );
+	return outputNames[index];
 }
 
-void CNode::Connect( int index, const CLink& inputInfo )
+bool CNode::CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const
 {
-	CheckNeoOnnxInternal( index >= 0 && index < InputCount(), "attempt to connect non-existing input" );
-	CheckNeoOnnxInternal( Input[index].NodeIndex == NotFound && Input[index].OutputIndex == NotFound,
-		"attempt to connect already-connected input" );
-	CheckNeoOnnxInternal( inputInfo.OutputIndex >= 0, "attempt to connect an input with incorrect index" );
-	Input[index] = inputInfo;
+	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
+		if( inputs[inputIndex] != nullptr && !inputs[inputIndex]->IsCalculated() ) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-COpNode::COpNode( int nodeIndex, const onnx::NodeProto& _onnxNode, int _opsetVersion ) :
-	CNode( nodeIndex, ( _onnxNode.name().empty() ? _onnxNode.output( 0 ) : _onnxNode.name() ) + "_Op",
-		_onnxNode.input_size(), _onnxNode.output_size() ),
-	OpsetVersion( _opsetVersion ),
-	Attributes( _onnxNode ),
-	OnnxNode( _onnxNode )
+COpNode::COpNode( const onnx::NodeProto& onnxNode, int opsetVersion ) :
+	CNode( ( onnxNode.name().empty() ? onnxNode.output( 0 ) : onnxNode.name() ) + "_Op",
+		onnxNode.input(), onnxNode.output() ),
+	OpsetVersion( opsetVersion ),
+	Attributes( onnxNode ),
+	OnnxNode( onnxNode )
 {
 }
 
-COpNode* COpNode::CreateOpNode( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion )
+COpNode* COpNode::CreateOpNode( const onnx::NodeProto& onnxNode, int opsetVersion )
 {
 	TMapPosition pos = getRegisteredNodes().GetFirstPosition( onnxNode.op_type() );
 	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
-	return getRegisteredNodes().GetValue( pos )( nodeIndex, onnxNode, opsetVersion );
+	return getRegisteredNodes().GetValue( pos )( onnxNode, opsetVersion );
 }
 
 bool COpNode::IsSupportedOperator( const CString& opType )

@@ -22,13 +22,14 @@ namespace NeoOnnx {
 // Graph output node
 class CGraphOutput : public CNode {
 public:
-	CGraphOutput( int nodeIndex, const onnx::ValueInfoProto& output );
+	explicit CGraphOutput( const onnx::ValueInfoProto& output );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& /* tensors */, IMathEngine& /* mathEngine */ ) override {}
-	void LabelTensorDims( const CTensorCache& /* tensors */, CDimCache& /* dims */ ) override {}
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods' 
+	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const override;
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const override;
+	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const override;
 };
 
 } // namespace NeoOnnx

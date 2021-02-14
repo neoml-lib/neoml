@@ -18,16 +18,15 @@ limitations under the License.
 
 #include "GemmNode.h"
 #include "GraphCache.h"
-#include "FlattenNode.h"
 #include "NeoOnnxCheck.h"
-#include "NodeUtils.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CGemmNode::CGemmNode( int nodeIndex, const onnx::NodeProto& gemm, int opsetVersion ) :
-	COpNode( nodeIndex, gemm, opsetVersion ),
+CGemmNode::CGemmNode( const onnx::NodeProto& gemm, int opsetVersion ) :
+	COpNode( gemm, opsetVersion ),
 	alpha( Attributes.GetOptionalFloat( "alpha", 1.f ) ),
 	beta( Attributes.GetOptionalFloat( "beta", 1.f ) ),
 	transA( Attributes.GetOptionalInt( "transA", 0 ) ),
@@ -49,73 +48,55 @@ CGemmNode::CGemmNode( int nodeIndex, const onnx::NodeProto& gemm, int opsetVersi
 	}
 }
 
-void CGemmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CGemmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", OnnxNode );
-	const CTensorShape& inputShape = tensors[Input[0]].Shape;
+	CheckNeoOnnxSupport( !inputs[0]->IsCalculated(), "pre-calculated input", OnnxNode );
+	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckOnnxProtocol( inputShape.Size() == 2, "input must be 2-dimensional", OnnxNode );
 	const int batchSize = inputShape[transA == 0 ? 0 : 1];
 	const int inputObjectSize = inputShape[transA == 0 ? 1 : 0];
 
-	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant weights", OnnxNode );
-	const CTensorShape& matrixShape = tensors[Input[1]].Shape;
+	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", OnnxNode );
+	const CTensorShape& matrixShape = inputs[1]->Shape();
 	CheckOnnxProtocol( matrixShape.Size() == 2, "weights must be 2-dimensional", OnnxNode );
 	CheckOnnxProtocol( matrixShape[transB == 0 ? 0 : 1] == inputObjectSize, "wrong weight size", OnnxNode );
 	const int numberOfElements = matrixShape[transB == 0 ? 1 : 0];
 
 	if( InputCount() == 3 ) {
-		CheckNeoOnnxSupport( tensors[Input[2]].Data != nullptr, "non-constant bias", OnnxNode );
-		const CTensorShape& biasShape = tensors[Input[2]].Shape;
+		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", OnnxNode );
+		const CTensorShape& biasShape = inputs[2]->Shape();
 		CheckOnnxProtocol( biasShape.Size() == 1, "bias must be 1-dimensional", OnnxNode );
 		CheckOnnxProtocol( biasShape[0] == numberOfElements, "wrong bias size", OnnxNode );
 	}
 
-	tensors[Output[0]].Shape = { batchSize, numberOfElements };
-
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-}
-
-void CGemmNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
-{
-	// Gemm operator in onnx always works with 2-dimensional tensors
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Output[0]] ),
-		"labeling output dimensions failed", OnnxNode );
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Input[0]] ),
-		"labeling input dimensions failed", OnnxNode );
-}
-
-void CGemmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
 	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( dnn.GetMathEngine() );
-	fc->SetName( Name );
-
-	const CTensorShape& matrixShape = tensors[Input[1]].Shape;
-	const int numberOfElements = matrixShape[transB == 0 ? 1 : 0];
+	fc->SetName( Name() );
 
 	fc->SetNumberOfElements( numberOfElements );
 
-	CPtr<CDnnBlob> weight = tensors[Input[1]].Data->GetCopy();
-	CBlobDesc weightDesc( CT_Float );
-	weightDesc.SetDimSize( BD_BatchWidth, weight->GetDesc().DimSize( 0 ) );
-	weightDesc.SetDimSize( BD_Channels, weight->GetDesc().DimSize( 1 ) );
-	weight->ReinterpretDimensions( weightDesc );
+	const CTensorLayout fcLayout( { BD_BatchWidth, BD_Channels } );
 
-	// If there is a 'Flatten' node before this we have to reorder weights
-	weight = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, weight );
-
-	fc->SetWeightsData( weight );
+	CPtr<const CTensorBase> matrixTensor = ConvertTensor( *inputs[1], fcLayout );
+	fc->SetWeightsData( dynamic_cast<const CDataTensor*>( matrixTensor.Ptr() )->Data()->GetCopy() );
 
 	if( InputCount() > 2 ) {
-		fc->SetFreeTermData( tensors[Input[2]].Data );
+		fc->SetFreeTermData( dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy() );
 	} else {
 		fc->SetZeroFreeTerm( true );
 	}
 
-	fc->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	CPtr<const CUserTensor> userInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], fcLayout ).Ptr() );
+	fc->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *fc );
 
-	neoMLLinks[Output[0]] = CNeoMLLink( fc, 0 );
+	outputs[0] = new CUserTensor( { inputShape[0], numberOfElements }, fcLayout, CLayerOutput( fc, 0 ) );
+}
+
+void CGemmNode::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ ) const
+{
+	CheckNeoOnnxSupport( false, "Gemm pre-calculation", OnnxNode );
 }
 
 } // namespace NeoOnnx

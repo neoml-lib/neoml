@@ -15,14 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#include "Tensor.h"
-#include "GraphCache.h"
-
-// Forward declaration(s)
-namespace onnx {
-class NodeProto;
-} // namespace onnx
-
 namespace NeoOnnx {
 
 // Pooling type
@@ -32,10 +24,5 @@ enum TPoolingType {
 
 	PT_Count
 };
-
-// Repacks weights from channel-frst to channel-last if node if flatten operator
-// Required for Gemm, LSTM etc
-// Returns the pointer to the same blob if repack isn't needed
-CPtr<CDnnBlob> RepackWeightIfFlattened( const CNode* node, const CTensorCache& tensors, const CDimCache& dims, CDnnBlob* weight );
 
 } // namespace NeoOnnx

@@ -39,7 +39,7 @@ public:
 	void GetOptionalIntArray( const CString& name, CArray<int>& value ) const;
 	void GetOptionalIntArray( const CString& name, CFastArray<int, 8>& value ) const;
 	CString GetOptionalString( const CString& name, const CString& defaultValue ) const;
-	CTensor GetOptionalTensor( const CString& name, CTensor& defaultValue, IMathEngine& mathEngine ) const;
+	CPtr<CDataTensor> GetOptionalTensor( const CString& name, CDataTensor* defaultValue, IMathEngine& mathEngine ) const;
 
 	// Getters for required attributes
 	// CheckOnnxProtocol( false ) if required attribute is missing
@@ -49,7 +49,7 @@ public:
 	void GetRequiredIntArray( const CString& name, CFastArray<int, 8>& value ) const;
 	void GetRequiredInt64Array( const CString& name, CArray<int64_t>& value ) const;
 	CString GetRequiredString( const CString& name ) const;
-	CTensor GetRequiredTensor( const CString& name, IMathEngine& mathEngine ) const;
+	CPtr<CDataTensor> GetRequiredTensor( const CString& name, IMathEngine& mathEngine ) const;
 
 private:
 	const onnx::NodeProto& onnxNode; // reference to the node for error handling

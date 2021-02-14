@@ -22,19 +22,19 @@ namespace NeoOnnx {
 // Base class for operator nodes which are activation functions in NeoML
 class CActivationNodeBase : public COpNode {
 public:
-	CActivationNodeBase( int nodeIndex, const onnx::NodeProto& onnxNode,
-		int opsetVersion, TActivationFunction activation );
+	CActivationNodeBase( const onnx::NodeProto& onnxNode, int opsetVersion,
+		TActivationFunction activation );
 
 	// Checks if onnxNode is valid (opset version, number of inputs and outputs, required attributes)
 	virtual void CheckOnnxNode() const = 0;
 	// Sets additional params for activation layer (e.g. negative slope coeff for CLeakyReLULayer)
-	virtual void SetLayerParams( const CTensorCache& /* tensors */, CBaseLayer* /* layer */ ) const {}
+	virtual void SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* /* layer */ ) const {}
 
 	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override final;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override final;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override final;
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const override;
+	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const override;
 
 private:
 	// Activation function which is applied to the input by this node
@@ -47,7 +47,7 @@ private:
 // Abs operator node
 class CAbsNode : public CActivationNodeBase {
 public:
-	CAbsNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion );
+	CAbsNode( const onnx::NodeProto& abs, int opsetVersion );
 
 	// CActivationNodeBase methods' realizations
 	void CheckOnnxNode() const override;
@@ -56,17 +56,17 @@ public:
 // Clip operator node
 class CClipNode : public CActivationNodeBase {
 public:
-	CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion );
+	CClipNode( const onnx::NodeProto& clip, int opsetVersion );
 
 	// CActivationNodeBase methods' realizations
 	void CheckOnnxNode() const override;
-	void SetLayerParams( const CTensorCache& tensors, CBaseLayer* layer ) const override;
+	void SetLayerParams( const CObjectArray<const CTensorBase>& inputs, CBaseLayer* layer ) const override;
 };
 
 // Elu operator node
 class CEluNode : public CActivationNodeBase {
 public:
-	CEluNode( int nodeIndex, const onnx::NodeProto& elu, int opsetVersion );
+	CEluNode( const onnx::NodeProto& elu, int opsetVersion );
 
 	// CActivationNodeBase methods' realizations
 	void CheckOnnxNode() const override;
@@ -75,27 +75,27 @@ public:
 // HardSigmoid operator node
 class CHardSigmoidNode : public CActivationNodeBase {
 public:
-	CHardSigmoidNode( int nodeIndex, const onnx::NodeProto& hardSigmoid, int opsetVersion );
+	CHardSigmoidNode( const onnx::NodeProto& hardSigmoid, int opsetVersion );
 
 	// CActivationNodeBase methods' realizations
 	void CheckOnnxNode() const override;
-	void SetLayerParams( const CTensorCache& tensors, CBaseLayer* layer ) const override;
+	void SetLayerParams( const CObjectArray<const CTensorBase>& inputs, CBaseLayer* layer ) const override;
 };
 
 // LeakyRelu operator node
 class CLeakyReluNode : public CActivationNodeBase {
 public:
-	CLeakyReluNode( int nodeIndex, const onnx::NodeProto& leakyRelu, int opsetVersion );
+	CLeakyReluNode( const onnx::NodeProto& leakyRelu, int opsetVersion );
 
 	// CActivationNodeBase methods' realizations
 	void CheckOnnxNode() const override;
-	void SetLayerParams( const CTensorCache& tensors, CBaseLayer* layer ) const override;
+	void SetLayerParams( const CObjectArray<const CTensorBase>& inputs, CBaseLayer* layer ) const override;
 };
 
 // Relu operator node
 class CReluNode : public CActivationNodeBase {
 public:
-	CReluNode( int nodeIndex, const onnx::NodeProto& relu, int opsetVersion );
+	CReluNode( const onnx::NodeProto& relu, int opsetVersion );
 
 	// CActivationNodeBase methods' realizations
 	void CheckOnnxNode() const override;
@@ -104,7 +104,7 @@ public:
 // Sigmoid operator node
 class CSigmoidNode : public CActivationNodeBase {
 public:
-	CSigmoidNode( int nodeIndex, const onnx::NodeProto& sigmoid, int opsetVersion );
+	CSigmoidNode( const onnx::NodeProto& sigmoid, int opsetVersion );
 
 	// CActivationNodeBase methods' realizations
 	void CheckOnnxNode() const override;
@@ -113,7 +113,7 @@ public:
 // Tanh operator node
 class CTanhNode : public CActivationNodeBase {
 public:
-	CTanhNode( int nodeIndex, const onnx::NodeProto& tanh, int opsetVersion );
+	CTanhNode( const onnx::NodeProto& tanh, int opsetVersion );
 
 	// CActivationNodeBase methods' realizations
 	void CheckOnnxNode() const override;

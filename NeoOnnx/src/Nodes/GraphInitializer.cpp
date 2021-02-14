@@ -24,17 +24,23 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGraphInitializer::CGraphInitializer( int nodeIndex, const onnx::TensorProto& _initializer ) :
-	CNode( nodeIndex, _initializer.name(), 0, 1 ),
+CGraphInitializer::CGraphInitializer( const onnx::TensorProto& _initializer ) :
+	CNode( _initializer.name(), {}, { _initializer.name() }  ),
 	initializer( _initializer )
 {
 }
 
-void CGraphInitializer::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CGraphInitializer::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ ) const
 {
-	CTensorShape& outputShape = tensors[Output[0]].Shape;
-	outputShape.SetBufferSize( initializer.dims_size() );
+	CheckNeoOnnxInternal( false, "Illegal call CGraphInitializer::AddLayers" );
+}
 
+void CGraphInitializer::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const
+{
+	CTensorShape outputShape;
+	outputShape.SetBufferSize( initializer.dims_size() );
 	for( int dimIndex = 0; dimIndex < initializer.dims_size(); ++dimIndex ) {
 		outputShape.Add( static_cast<int>( initializer.dims( dimIndex ) ) );
 	}
@@ -47,15 +53,17 @@ void CGraphInitializer::CalcOutputTensors( CTensorCache& tensors, IMathEngine& m
 	CBlobDesc blobDesc;
 	blobDesc.SetDataType( GetBlobType( static_cast<onnx::TensorProto_DataType>( initializer.data_type() ) ) );
 	for( int dimIndex = 0; dimIndex < initializer.dims_size(); ++dimIndex ) {
-		blobDesc.SetDimSize( dimIndex, tensors[Output[0]].Shape[dimIndex] );
+		blobDesc.SetDimSize( dimIndex, outputShape[dimIndex] );
 	}
 
-	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, blobDesc.GetDataType(), blobDesc );
+	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( mathEngine, blobDesc.GetDataType(), blobDesc );
 	if( blobDesc.GetDataType() == CT_Float ) {
-		LoadBlobData<float>( initializer, *tensors[Output[0]].Data );
+		LoadBlobData<float>( initializer, *outputBlob );
 	} else {
-		LoadBlobData<int>( initializer, *tensors[Output[0]].Data );
+		LoadBlobData<int>( initializer, *outputBlob );
 	}
+
+	outputs[0] = new CDataTensor( outputShape, CTensorLayout(), *outputBlob );
 }
 
 } // namespace NeoOnnx

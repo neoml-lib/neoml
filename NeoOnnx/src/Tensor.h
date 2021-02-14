@@ -15,79 +15,95 @@ limitations under the License.
 
 #pragma once
 
+#include "TensorLayout.h"
+
 namespace NeoOnnx {
 
-// Tensor shape (in onnx notation)
+// Tensor shape
 typedef CFastArray<int, 8> CTensorShape;
 
-// Match between onnx tensor axes and NeoML dimensions
-typedef CFastArray<TBlobDim, 8> CTensorDim;
+struct CLayerOutput
+{
+	CLayerOutput() : Layer( nullptr ), OutputIndex( NotFound ) {}
+	CLayerOutput( CBaseLayer* layer, int outputIndex ) :
+		Layer( layer ), OutputIndex( outputIndex ) {}
 
-// Tensor in onnx graph
-struct CTensor {
-	// Shape in onnx
-	// Has variable amount of dimensions
-	CTensorShape Shape;
-
-	// Tensor data
-	// nullptr if data can't be pre-calcualated (it depends on data, provided by user)
-	// It's stored in order of onnx dimensions (independent of its NeoML names)
-	CPtr<CDnnBlob> Data;
-
-	CTensor() : Data( nullptr ) {}
-	CTensor( const CTensor& other );
-	CTensor& operator=( const CTensor& other );
-
-	// Sets NeoML dimensions of the tensor
-	// Returns true if there is no conflicts
-	bool SetTensorDim( const CTensorDim& newDim );
+	CBaseLayer* Layer;
+	int OutputIndex;
 };
 
-// --------------------------------------------------------------------------------------------------------------------
+// Base class for tensor in onnx graph
+class CTensorBase : public virtual IObject {
+public:
+	// Tensor's shape. The shape always describes Onnx axes.
+	const CTensorShape& Shape() const { return shape; }
 
-inline CTensor::CTensor( const CTensor& other ) :
-	Data( other.Data )
-{
-	other.Shape.CopyTo( Shape );
-}
+	// Tensor's layout. Contains info about how tensors is represented in memory.
+	const CTensorLayout& Layout() const { return layout; }
 
-inline CTensor& CTensor::operator=( const CTensor &other )
-{
-	if( this != &other ) {
-		Data = other.Data;
-		other.Shape.CopyTo( Shape );
-	}
+	// Returns true if tensor's data doesn't depend on user data
+	// Used for optimization (avoid unnecessary dynammic_cast)
+	virtual bool IsCalculated() const = 0;
+	
+protected:
+	CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout ) :
+		layout( _layout ) { _shape.CopyTo( shape ); }
+	CTensorBase( const CTensorBase& other ) = delete;
+	CTensorBase& operator=( const CTensorBase& other ) = delete;
+	virtual ~CTensorBase() = default;
 
-	return *this;
-}
+private:
+	// Tensor's shape. Always on Onnx order.
+	CTensorShape shape;
 
-inline bool SetTensorDim( const CTensorShape& shape, const CTensorDim& newDim, CTensorDim& dim )
-{
-	if( dim.IsEmpty() ) {
-		if( newDim.Size() == shape.Size() ) {
-			// It's the first request for a match
-			// And the number of dimensions mathes with the shape
-			newDim.CopyTo( dim );
-			return true;
-		}
-		// Dimensions number mismatch
-		return false;
-	}
+	// Information about how tensor is represented in memory
+	CTensorLayout layout;
+};
 
-	if( newDim.Size() != dim.Size() ) {
-		// Dimensions number mismatch
-		return false;
-	}
+// All tensors during Onnx processing can be divided into 2 groups:
+//
+// 1. The tensors whose data depend on the user input. These tensors can't be calculated during conversion.
+// In that case tensor is the result of the work of a layer.
+//
+// 2. The tensors whose data doesn't depend on user input.
+// These tensors' data can (and should) be calculated during generation.
+// Usually these tensors contain trained weights of the model.
 
-	for( int dimIndex = 0; dimIndex < newDim.Size(); ++dimIndex ) {
-		if( dim[dimIndex] != newDim[dimIndex] ) {
-			// Supposed dimensions doesn't match with previously set one
-			return false;
-		}
-	}
+// Tensor with data depending on user input
+class CUserTensor : public CTensorBase {
+public:
+	CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output ) :
+		CTensorBase( shape, layout ), layerOutput( output ) {}
 
-	// Number of dimensions and their values match
-	return true;
-}
+	// CTensorBase methods implementation
+	bool IsCalculated() const override { return false; }
+
+	// Information about corresponding layer and its' output index
+	const CLayerOutput& LayerOutput() const { return layerOutput; }
+	CBaseLayer* Layer() const { return layerOutput.Layer; }
+	int OutputIndex() const { return layerOutput.OutputIndex; }
+
+private:
+	// Information about corresponding layer and its' output index
+	CLayerOutput layerOutput;
+};
+
+// Tensor with data independent of user input
+class CDataTensor : public CTensorBase {
+public:
+	CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& _data ) :
+		CTensorBase( shape, layout ), data( &_data ) {}
+
+	// CTensorBase methods implementation
+	bool IsCalculated() const override { return true; }
+
+	// Blob with data
+	// Data ordering depends on CTensorBase::GetLayout
+	const CDnnBlob* Data() const { return data.Ptr(); }
+
+private:
+	// Blob with data
+	CPtr<const CDnnBlob> data;
+};
 
 } // namespace NeoOnnx

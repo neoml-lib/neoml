@@ -17,40 +17,14 @@ limitations under the License.
 
 #include <NeoML/NeoML.h>
 #include "NeoOnnxCheck.h"
+#include "Tensor.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
 // Gets NeoML blob type from onnx tensor's data type
-inline TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
-{
-	switch( onnxDataType ) {
-		case onnx::TensorProto::FLOAT:
-		case onnx::TensorProto::DOUBLE:
-			return CT_Float;
-		case onnx::TensorProto::BOOL:
-		case onnx::TensorProto::INT8:
-		case onnx::TensorProto::UINT8:
-		case onnx::TensorProto::INT16:
-		case onnx::TensorProto::UINT16:
-		case onnx::TensorProto::INT32:
-		case onnx::TensorProto::UINT32:
-		// Sometimes Constant operator's value is stored in int64 (even if it can be stored in 32-bit integer)
-		// That's why we allow here to use int64 and will cast it later to 32-bit
-		case onnx::TensorProto::INT64:
-		case onnx::TensorProto::UINT64:
-			return CT_Int;
-		case onnx::TensorProto::FLOAT16:
-		case onnx::TensorProto::BFLOAT16:
-		case onnx::TensorProto::COMPLEX64:
-		case onnx::TensorProto::COMPLEX128:
-		case onnx::TensorProto::UNDEFINED:
-		default:
-			CheckNeoOnnxInternal( false, "tensor type is not supported" );
-	}
-	return CT_Invalid;
-}
+TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType );
 
 // Loads data from raw bytes as an array of TSrc and stores it as an array of TDst (via static_cast)
 template<class TSrc, class TDst>
@@ -131,5 +105,8 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 	}
 	dest.ReleaseBuffer( buffer, true );
 }
+
+// Converts tensor into given layout
+CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& destLayout );
 
 } // namespace NeoOnnx
