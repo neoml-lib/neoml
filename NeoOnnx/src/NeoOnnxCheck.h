@@ -16,7 +16,6 @@ limitations under the License.
 #pragma once
 
 #include <exception>
-#include <string>
 
 #include "onnx.pb.h"
 

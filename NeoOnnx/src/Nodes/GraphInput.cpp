@@ -25,15 +25,25 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGraphInput::CGraphInput( int nodeIndex, const onnx::ValueInfoProto& _input ) :
-	CNode( nodeIndex, _input.name(), 0, 1 ),
-	valueInfo( _input )
+CGraphInput::CGraphInput( const onnx::ValueInfoProto& input ) :
+	CNode( input.name(), {}, { input.name() } ),
+	valueInfo( input )
 {
 }
 
-void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+bool CGraphInput::CanCalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */ ) const
 {
-	CTensorShape& outputShape = tensors[Output[0]].Shape;
+	// This node's purpose is providing user data to the net
+	return false;
+}
+
+void CGraphInput::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const
+{
+	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
+	source->SetName( Name() );
+
+	CTensorShape outputShape;
 	outputShape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
 	for( const onnx::TensorShapeProto_Dimension& dim : valueInfo.type().tensor_type().shape().dim() ) {
 		outputShape.Add( static_cast<int>( dim.dim_value() ) );
@@ -42,29 +52,26 @@ void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* math
 			outputShape.Last() = 1;
 		}
 	}
-}
-
-void CGraphInput::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
-	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
-	source->SetName( Name );
+	CheckNeoOnnxSupport( outputShape.Size() < BD_Count, "Tensor has too many dimensions" );
 
 	CheckNeoOnnxSupport( valueInfo.type().has_tensor_type(), "Only tensors supported for graph input values" );
 	CBlobDesc outputBlobDesc(
 		GetBlobType( static_cast<onnx::TensorProto_DataType>( valueInfo.type().tensor_type().elem_type() ) ) );
 
-	NeoOnnxCheck( dims[Output[0]].Size() == tensors[Output[0]].Shape.Size(),
-		"Graph input tensor's dimensions weren't marked with NeoML blob dimensions" );
-	for( int i = 0; i < dims[Output[0]].Size(); ++i ) {
-		outputBlobDesc.SetDimSize( dims[Output[0]][i], tensors[Output[0]].Shape[i] );
+	for( int dim = 0; dim < outputShape.Size(); ++dim ) {
+		outputBlobDesc.SetDimSize( dim, outputShape[dim] );
 	}
 	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );
 	source->SetBlob( inputBlob );
 
 	dnn.AddLayer( *source );
+	outputs[0] = new CUserTensor( outputShape, CTensorLayout(), CLayerOutput( source, 0 ) );
+}
 
-	neoMLLinks[Output[0]] = CNeoMLLink( source, 0 );
+void CGraphInput::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ ) const
+{
+	CheckNeoOnnxInternal( false, "Illegal call: CGraphInput::CalculateOutput" );
 }
 
 } // namespace NeoOnnx

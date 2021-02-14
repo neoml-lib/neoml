@@ -24,20 +24,36 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CGraphOutput::CGraphOutput( int nodeIndex, const onnx::ValueInfoProto& output ) :
-	CNode( nodeIndex, output.name(), 1, 0 )
+CGraphOutput::CGraphOutput( const onnx::ValueInfoProto& output ) :
+	CNode( output.name(), { output.name() }, {} )
 {
 }
 
-void CGraphOutput::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+bool CGraphOutput::CanCalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */ ) const
 {
-	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
-	sink->SetName( Name );
+	// This layer's only purpose is to provide results from the network to the user
+	return false;
+}
 
-	sink->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+void CGraphOutput::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& /* outputs */, CDnn& dnn ) const
+{
+	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(),
+		"Output node must have user-dependent data as input" );
+
+	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
+	sink->SetName( Name() );
+
+	const CLayerOutput& layerOutput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput();
+	sink->Connect( 0, *layerOutput.Layer, layerOutput.OutputIndex );
 
 	dnn.AddLayer( *sink );
+}
+
+void CGraphOutput::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ ) const
+{
+	CheckNeoOnnxInternal( false, "Illegal call: CGraphOutput::CalculateOutput" );
 }
 
 } // namespace NeoOnnx

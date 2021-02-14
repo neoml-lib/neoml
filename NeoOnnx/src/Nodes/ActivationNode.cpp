@@ -24,48 +24,36 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CActivationNodeBase::CActivationNodeBase( int nodeIndex, const onnx::NodeProto& onnxNode,
-		int opsetVersion, TActivationFunction _activation ) :
-	COpNode( nodeIndex, onnxNode, opsetVersion ),
+CActivationNodeBase::CActivationNodeBase( const onnx::NodeProto& onnxNode, int opsetVersion,
+		TActivationFunction _activation ) :
+	COpNode( onnxNode, opsetVersion ),
 	activation( _activation )
 {
 }
 
-void CActivationNodeBase::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CActivationNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const
 {
-	CheckOnnxNode();
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
-}
-
-void CActivationNodeBase::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
-{
-	if( !dims[Input[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"labeling output dimensions failed", OnnxNode );
-	}
-
-	if( !dims[Output[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"labeling input dimensions failed", OnnxNode );
-	}
-}
-
-void CActivationNodeBase::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
+	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
+	CheckNeoOnnxInternal( userInput != nullptr, "Pre-calc input in activation", OnnxNode );
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
-	activationLayer->SetName( Name );
-	SetLayerParams( tensors, activationLayer );
-	activationLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	activationLayer->SetName( Name() );
+	SetLayerParams( inputs, activationLayer );
+	activationLayer->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *activationLayer );
-	neoMLLinks[Output[0]] = CNeoMLLink( activationLayer, 0 );
+	outputs[0] = new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( activationLayer, 0 ) );
+}
+
+void CActivationNodeBase::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ ) const
+{
+	CheckNeoOnnxSupport( false, "Activation function pre-calculation" );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CAbsNode::CAbsNode( int nodeIndex, const onnx::NodeProto& abs, int opsetVersion ) :
-	CActivationNodeBase( nodeIndex, abs, opsetVersion, AF_Abs )
+CAbsNode::CAbsNode( const onnx::NodeProto& abs, int opsetVersion ) :
+	CActivationNodeBase( abs, opsetVersion, AF_Abs )
 {
 }
 
@@ -81,8 +69,8 @@ void CAbsNode::CheckOnnxNode() const
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CClipNode::CClipNode( int nodeIndex, const onnx::NodeProto& clip, int opsetVersion ) :
-	CActivationNodeBase( nodeIndex, clip, opsetVersion, AF_ReLU )
+CClipNode::CClipNode( const onnx::NodeProto& clip, int opsetVersion ) :
+	CActivationNodeBase( clip, opsetVersion, AF_ReLU )
 {
 }
 
@@ -103,7 +91,7 @@ void CClipNode::CheckOnnxNode() const
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
 }
 
-void CClipNode::SetLayerParams( const CTensorCache& tensors, CBaseLayer* layer ) const
+void CClipNode::SetLayerParams( const CObjectArray<const CTensorBase>& inputs, CBaseLayer* layer ) const
 {
 	CReLULayer* relu = dynamic_cast<CReLULayer*>( layer );
 	CheckNeoOnnxInternal( relu != nullptr, "wrong layer class", OnnxNode );
@@ -114,8 +102,9 @@ void CClipNode::SetLayerParams( const CTensorCache& tensors, CBaseLayer* layer )
 		minValue = Attributes.GetOptionalFloat( "min", -FLT_MAX );
 		maxValue = Attributes.GetOptionalFloat( "max", FLT_MAX );
 	} else if( InputCount() > 1 ) {
-		const CDnnBlob* minValueBlob = tensors[Input[1]].Data;
-		CheckNeoOnnxSupport( minValueBlob != nullptr, "user-provided clip min value", OnnxNode );
+		const CDataTensor* minValueTensor = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
+		CheckNeoOnnxSupport( minValueTensor != nullptr, "user-provided clip min value", OnnxNode );
+		const CDnnBlob* minValueBlob = minValueTensor->Data();
 		if( minValueBlob->GetDataType() == CT_Float ) {
 			minValue = minValueBlob->GetData<float>().GetValue();
 		} else {
@@ -123,8 +112,9 @@ void CClipNode::SetLayerParams( const CTensorCache& tensors, CBaseLayer* layer )
 		}
 
 		if( InputCount() > 2 ) {
-			const CDnnBlob* maxValueBlob = tensors[Input[2]].Data;
-			CheckNeoOnnxSupport( maxValueBlob != nullptr, "user-provided clip min value", OnnxNode );
+			const CDataTensor* maxValueTensor = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() );
+			CheckNeoOnnxSupport( maxValueTensor != nullptr, "user-provided clip max value", OnnxNode );
+			const CDnnBlob* maxValueBlob = maxValueTensor->Data();
 			if( maxValueBlob->GetDataType() == CT_Float ) {
 				maxValue = maxValueBlob->GetData<float>().GetValue();
 			} else {
@@ -141,8 +131,8 @@ void CClipNode::SetLayerParams( const CTensorCache& tensors, CBaseLayer* layer )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CEluNode::CEluNode( int nodeIndex, const onnx::NodeProto& elu, int opsetVersion ) :
-	CActivationNodeBase( nodeIndex, elu, opsetVersion, AF_ELU )
+CEluNode::CEluNode( const onnx::NodeProto& elu, int opsetVersion ) :
+	CActivationNodeBase( elu, opsetVersion, AF_ELU )
 {
 }
 
@@ -158,8 +148,8 @@ void CEluNode::CheckOnnxNode() const
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CLeakyReluNode::CLeakyReluNode( int nodeIndex, const onnx::NodeProto& leakyRelu, int opsetVersion ) :
-	CActivationNodeBase( nodeIndex, leakyRelu, opsetVersion, AF_LeakyReLU )
+CLeakyReluNode::CLeakyReluNode( const onnx::NodeProto& leakyRelu, int opsetVersion ) :
+	CActivationNodeBase( leakyRelu, opsetVersion, AF_LeakyReLU )
 {
 }
 
@@ -173,7 +163,7 @@ void CLeakyReluNode::CheckOnnxNode() const
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
 }
 
-void CLeakyReluNode::SetLayerParams( const CTensorCache& /* tensors */, CBaseLayer* layer ) const
+void CLeakyReluNode::SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* layer ) const
 {
 	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( layer );
 	CheckNeoOnnxInternal( leakyReLU != nullptr, "wrong layer class", OnnxNode );
@@ -182,8 +172,8 @@ void CLeakyReluNode::SetLayerParams( const CTensorCache& /* tensors */, CBaseLay
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CHardSigmoidNode::CHardSigmoidNode( int nodeIndex, const onnx::NodeProto& hardSigmoid, int opsetVersion ) :
-	CActivationNodeBase( nodeIndex, hardSigmoid, opsetVersion, AF_HardSigmoid )
+CHardSigmoidNode::CHardSigmoidNode( const onnx::NodeProto& hardSigmoid, int opsetVersion ) :
+	CActivationNodeBase( hardSigmoid, opsetVersion, AF_HardSigmoid )
 {
 }
 
@@ -197,7 +187,7 @@ void CHardSigmoidNode::CheckOnnxNode() const
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
 }
 
-void CHardSigmoidNode::SetLayerParams( const CTensorCache& /* tensors */, CBaseLayer* layer ) const
+void CHardSigmoidNode::SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* layer ) const
 {
 	CHardSigmoidLayer* hardSigmoid = dynamic_cast<CHardSigmoidLayer*>( layer );
 	CheckNeoOnnxInternal( hardSigmoid != nullptr, "wrong layer class", OnnxNode );
@@ -211,8 +201,8 @@ void CHardSigmoidNode::SetLayerParams( const CTensorCache& /* tensors */, CBaseL
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CReluNode::CReluNode( int nodeIndex, const onnx::NodeProto& relu, int opsetVersion ) :
-	CActivationNodeBase( nodeIndex, relu, opsetVersion, AF_ReLU )
+CReluNode::CReluNode( const onnx::NodeProto& relu, int opsetVersion ) :
+	CActivationNodeBase( relu, opsetVersion, AF_ReLU )
 {
 }
 
@@ -228,8 +218,8 @@ void CReluNode::CheckOnnxNode() const
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CSigmoidNode::CSigmoidNode( int nodeIndex, const onnx::NodeProto& sigmoid, int opsetVersion ) :
-	CActivationNodeBase( nodeIndex, sigmoid, opsetVersion, AF_Sigmoid )
+CSigmoidNode::CSigmoidNode( const onnx::NodeProto& sigmoid, int opsetVersion ) :
+	CActivationNodeBase( sigmoid, opsetVersion, AF_Sigmoid )
 {
 }
 
@@ -245,8 +235,8 @@ void CSigmoidNode::CheckOnnxNode() const
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CTanhNode::CTanhNode( int nodeIndex, const onnx::NodeProto& tanh, int opsetVersion ) :
-	CActivationNodeBase( nodeIndex, tanh, opsetVersion, AF_Tanh )
+CTanhNode::CTanhNode( const onnx::NodeProto& tanh, int opsetVersion ) :
+	CActivationNodeBase( tanh, opsetVersion, AF_Tanh )
 {
 }
 

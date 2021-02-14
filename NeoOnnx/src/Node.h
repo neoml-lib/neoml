@@ -16,71 +16,65 @@ limitations under the License.
 #pragma once
 
 #include "OpNodeAttributes.h"
+#include "TensorLayout.h"
 #include "Tensor.h"
 #include "NeoMLLink.h"
 #include "NeoOnnxCheck.h"
 
+#include <onnx.pb.h>
+
 // Forward declaration(s)
-namespace onnx {
-class NodeProto;
-} // namespace onnx
+namespace NeoML {
+class IMathEngine;
+} // namespace NeoML
 
 namespace NeoOnnx {
-
-// Forward declaration(s)
-struct CLink;
-class CGraph;
-template<class T> class CGraphCache;
-
-// Instantiations used in NeoOnnx
-typedef CGraphCache<CTensor> CTensorCache;
-typedef CGraphCache<CTensorDim> CDimCache;
-typedef CGraphCache<CNeoMLLink> CNeoMLLinkCache;
 
 // Node in the NeoOnnx graph
 class CNode {
 public:
 	virtual ~CNode() = default;
 
-	// Calculates output tensors' shape based on inputs' tensors' shape
-	virtual void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) = 0;
+	// Node name
+	const CString& Name() const { return name; }
+	// Number of inputs
+	int InputCount() const { return inputNames.Size(); }
+	// Name of the index'th input
+	const CString& InputName( int index ) const;
+	// Number of outputs
+	int OutputCount() const { return outputNames.Size(); }
+	// Name of the index'th output
+	const CString& OutputName( int outputIndex ) const;
 
-	// Labels onnx tensors' dimensions as NeoML blob dimensions
-	virtual void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) = 0;
+	// Virtual methods
 
-	// Creates corresponding NeoML layers and adds them to the dnn (if needed)
-	virtual void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) = 0;
+	// Returns true if node has all the data required for computing output during generation
+	// This method has default implementation which works for the most of derivatives
+	virtual bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const;
 
-	// Gets the number of inputs
-	int InputCount() const;
+	// Adds required layers to dnn and puts corresponding tensors to the outputs
+	// Called if operator output depends on the data, provided by user
+	virtual void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const = 0;
 
-	// Gets the number of outputs
-	int OutputCount() const;
-	
-	// Connects index'th input of this node with the link
-	// inputInfo's content must be not null
-	// Must be called once for every used input
-	void Connect( int index, const CLink& link );
-
-	// Gets the link connected to the inputIndex'th input
-	const CLink& GetInput( int inputIndex ) const { return Input[inputIndex]; }
+	// Calculates the result of the operations
+	// Called if operator's output can be calculated during network conversion 
+	// (which means that tensor's data is independent of user input)
+	virtual void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const = 0;
 
 protected:
-	CNode( int nodeIndex, const CString& name, int inputCount, int outputCount );
-
-	// Links connected to inputs of this node
-	CArray<CLink> Input;
-
-	// Links to outputs of this node
-	CArray<CLink> Output;
-
-	// Node name
-	const CString Name;
+	CNode( const CString& name, const CArray<CString>& inputs, const CArray<CString>& outputs );
+	CNode( const CString& name, const ::google::protobuf::RepeatedPtrField<std::string>& inputs,
+		const ::google::protobuf::RepeatedPtrField<std::string>& outputs );
 
 private:
-	// Node index in graph array
-	const int nodeIndex;
+	// Node name
+	CString name;
+	// Input names
+	CArray<CString> inputNames;
+	// Output names
+	CArray<CString> outputNames;
 };
 
 //--------------------------------------------------------------------------------------------------------------------
@@ -94,13 +88,13 @@ public:
 	~COpNode() override = default;
 
 	// Fabric method. Creates CNode's derivative for given onnx node
-	static COpNode* CreateOpNode( int nodeIndex, const onnx::NodeProto& onnxNode, int opsetVersion );
+	static COpNode* CreateOpNode( const onnx::NodeProto& onnxNode, int opsetVersion );
 
 	// Returns true if operator opType is supported by NeoOnnx
 	static bool IsSupportedOperator( const CString& opType );
 
 protected:
-	COpNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
+	COpNode( const onnx::NodeProto& node, int opsetVersion );
 
 	const int OpsetVersion; // Opset version
 	const COpNodeAttributes Attributes; // Attributes of this node
