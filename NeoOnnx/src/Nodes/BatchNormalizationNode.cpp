@@ -19,13 +19,14 @@ limitations under the License.
 #include "BatchNormalizationNode.h"
 #include "GraphCache.h"
 #include "NeoOnnxCheck.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CBatchNormalizationNode::CBatchNormalizationNode( int nodeIndex, const onnx::NodeProto& batchNormalization, int opsetVersion ) :
-	COpNode( nodeIndex, batchNormalization, opsetVersion ),
+CBatchNormalizationNode::CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, int opsetVersion ) :
+	COpNode( batchNormalization, opsetVersion ),
 	eps( Attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
 {
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", batchNormalization );
@@ -35,69 +36,71 @@ CBatchNormalizationNode::CBatchNormalizationNode( int nodeIndex, const onnx::Nod
 
 	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "node must have 5 or 6 inputs", OnnxNode );
 	CheckNeoOnnxSupport( OutputCount() == 1, "node must have 1 output", OnnxNode );
-}
-
-void CBatchNormalizationNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
-{
-	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
-
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-}
-
-void CBatchNormalizationNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
-{
-	if( !dims[Input[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"labeling output dimensions failed", OnnxNode );
-	}
-
-	if( !dims[Output[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"labeling input dimensions failed", OnnxNode );
+	if( OpsetVersion < 9 ) {
+		CheckNeoOnnxSupport( Attributes.GetOptionalInt( "spatial", 1 ) != 0,
+			"non-spatial batch norm" );
 	}
 }
 
-void CBatchNormalizationNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CBatchNormalizationNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( dims[Input[0]][1] == BD_Channels,
-		"operation must be performed along input's BD_Channels", OnnxNode );
-	CheckNeoOnnxInternal( dims[Output[0]][1] == BD_Channels,
-		"operation must be performed along output's BD_Channels", OnnxNode );
-
+	CPtr<const CUserTensor> input = convertInput( dynamic_cast<const CUserTensor&>( *inputs[0] ) );
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );
-	bnLayer->SetName( Name );
+	bnLayer->SetName( Name() );
+	bnLayer->SetChannelBased( true );
+	bnLayer->SetFinalParams( calculateFinalParams( input->Shape()[1], inputs ) );
 
-	// Since v9 batch normalization is always spatial
-	// Before that spatial was set by a flag
-	if( OpsetVersion >= 9 || Attributes.GetOptionalInt( "spatial", 1 ) != 0 ) {
-		bnLayer->SetChannelBased( true );
+	bnLayer->Connect( 0, *input->Layer(), input->OutputIndex() );
+	dnn.AddLayer( *bnLayer );
+
+	outputs[0] = new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( bnLayer, 0 ) );
+}
+
+// Converts layer input if needed
+CPtr<const CUserTensor> CBatchNormalizationNode::convertInput( const CUserTensor& input ) const
+{
+	if( input.Layout().DimType == DT_NeoML ) {
+		const CDimOrder& inputDimOrder = input.Layout().OnnxOrder;
+		bool needConversion = false;
+		for( int dimIndex = 0; dimIndex < inputDimOrder.Size(); ++dimIndex ) {
+			// First dimension must be batch (BD_BatchLength, BD_BatchWidth or BD_ListSize)
+			// Second dimension must be channels
+			// Other dimensions must be spatial (BD_Height, BD_Width or BD_Depth)
+			if( ( dimIndex < 1 && inputDimOrder[dimIndex] >= BD_Height )
+				|| ( dimIndex == 1 && inputDimOrder[dimIndex] != BD_Channels )
+				|| ( dimIndex > 1 && ( inputDimOrder[dimIndex] < BD_Height || inputDimOrder[dimIndex] == BD_Channels ) ) )
+			{
+				needConversion = true;
+				break;
+			}
+		}
+
+		if( !needConversion ) {
+			return &input;
+		}
 	}
 
-	bnLayer->SetFinalParams( calculateFinalParams( tensors ) );
+	CDimOrder outputOrder( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
+	outputOrder.SetSize( input.Shape().Size() );
 
-	bnLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
-	dnn.AddLayer( *bnLayer );
-	
-	neoMLLinks[Output[0]] = CNeoMLLink( bnLayer, 0 );
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, CTensorLayout( outputOrder ) ).Ptr() );
 }
 
 // Calculates final params blob based on onnx node's inputs
 // This format can is compatible with NeoML::CBatchNormalizationLayer
-CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( const CTensorCache& tensors )
+CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( int channels, const CObjectArray<const CTensorBase>& inputs )
 {
-	const int channels = tensors[Input[0]].Shape[1];
-
 	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
-		CheckNeoOnnxSupport( tensors[Input[inputIndex]].Data != nullptr, "non-constant weights", OnnxNode );
-		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape.Size() == 1, "weights must be 1-dimensional", OnnxNode );
-		CheckOnnxProtocol( tensors[Input[inputIndex]].Shape[0] == channels, "weights must have 'channels' length", OnnxNode );
+		CheckNeoOnnxSupport( inputs[inputIndex]->IsCalculated(), "non-constant weights", OnnxNode );
+		CheckOnnxProtocol( inputs[inputIndex]->Shape().Size() == 1, "weights must be 1-dimensional", OnnxNode );
+		CheckOnnxProtocol( inputs[inputIndex]->Shape()[0] == channels, "weights must have 'channels' length", OnnxNode );
 	}
 
-	const CDnnBlob* scale = tensors[Input[1]].Data;
-	const CDnnBlob* bias = tensors[Input[2]].Data;
-	const CDnnBlob* mean = tensors[Input[3]].Data;
-	const CDnnBlob* var = tensors[Input[4]].Data;
+	const CDnnBlob* scale = dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
+	const CDnnBlob* bias = dynamic_cast<const CDataTensor&>( *inputs[2] ).Data();
+	const CDnnBlob* mean = dynamic_cast<const CDataTensor&>( *inputs[3] ).Data();
+	const CDnnBlob* var = dynamic_cast<const CDataTensor&>( *inputs[4] ).Data();
 
 	IMathEngine& mathEngine = scale->GetMathEngine();
 

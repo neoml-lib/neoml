@@ -22,18 +22,21 @@ namespace NeoOnnx {
 // BatchNormalization operator graph node
 class CBatchNormalizationNode : public COpNode {
 public:
-	CBatchNormalizationNode( int nodeIndex, const onnx::NodeProto& batchNormalization, int opsetVersion );
+	CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
 	const float eps; // eps value used to prevent division by zero
 
-	CPtr<CDnnBlob> calculateFinalParams( const CTensorCache& tensors );
+	CPtr<const CUserTensor> convertInput( const CUserTensor& input ) const;
+	CPtr<CDnnBlob> calculateFinalParams( int channels, const CObjectArray<const CTensorBase>& inputs );
 };
 
 } // namespace NeoOnnx
