@@ -93,10 +93,4 @@ void CGemmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	outputs[0] = new CUserTensor( { inputShape[0], numberOfElements }, fcLayout, CLayerOutput( fc, 0 ) );
 }
 
-void CGemmNode::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ ) const
-{
-	CheckNeoOnnxSupport( false, "Gemm pre-calculation", OnnxNode );
-}
-
 } // namespace NeoOnnx

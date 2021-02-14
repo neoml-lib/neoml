@@ -44,12 +44,6 @@ void CActivationNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inpu
 	outputs[0] = new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( activationLayer, 0 ) );
 }
 
-void CActivationNodeBase::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ ) const
-{
-	CheckNeoOnnxSupport( false, "Activation function pre-calculation" );
-}
-
 //---------------------------------------------------------------------------------------------------------------------
 
 CAbsNode::CAbsNode( const onnx::NodeProto& abs, int opsetVersion ) :

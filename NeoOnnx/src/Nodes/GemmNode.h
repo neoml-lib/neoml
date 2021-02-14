@@ -24,11 +24,13 @@ class CGemmNode : public COpNode {
 public:
 	CGemmNode( const onnx::NodeProto& node, int opsetVersion );
 
-	// CNode methods' realizations
+	// CNode methods
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const override;
-	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
 	// In onnx Gemm is implemented like

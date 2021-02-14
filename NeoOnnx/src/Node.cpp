@@ -199,6 +199,32 @@ COpNode::COpNode( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 {
 }
 
+void COpNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const
+{
+	CRandom random( 0x1231 );
+	CDnn internalDnn( random, mathEngine );
+
+	// Add source layers for the operator
+	CObjectArray<const CTensorBase> internalInputs;
+	addInternalDnnSources( inputs, internalInputs, internalDnn );
+
+	// Add operator layers
+	CObjectArray<const CTensorBase> internalOutputs;
+	internalOutputs.Add( nullptr, OutputCount() );
+	AddLayers( internalInputs, internalOutputs, internalDnn );
+
+	// Add sink layers for the operator
+	CArray<CSinkLayer*> sinks;
+	addInternalDnnSinks( internalOutputs, sinks, internalDnn );
+
+	// Launch the dnn in order to calculate values
+	internalDnn.RunOnce();
+
+	// Extract values from the net
+	extractOutputs( internalOutputs, sinks, outputs );
+}
+
 COpNode* COpNode::CreateOpNode( const onnx::NodeProto& onnxNode, int opsetVersion )
 {
 	TMapPosition pos = getRegisteredNodes().GetFirstPosition( onnxNode.op_type() );
@@ -210,6 +236,73 @@ bool COpNode::IsSupportedOperator( const CString& opType )
 {
 	TMapPosition pos = getRegisteredNodes().GetFirstPosition( opType );
 	return pos != NotFound;
+}
+
+// Builds array of tensors related to the internal dnn
+// Also adds required source layers to the internal dnn (with corresponding blobs)
+void COpNode::addInternalDnnSources( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& internalInputs, CDnn& internalDnn ) const
+{
+	IMathEngine& mathEngine = internalDnn.GetMathEngine();
+
+	CUserInputMask isUserInput;
+	UserInputMask( isUserInput );
+	
+	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
+		if( inputs[inputIndex] == nullptr ) {
+			internalInputs.Add( nullptr );
+		} else if( isUserInput[inputIndex] ) {
+			CheckNeoOnnxInternal( inputs[inputIndex]->IsCalculated(), "Can't pass user input into internal net", OnnxNode );
+			CPtr<CSourceLayer> source = new CSourceLayer( mathEngine );
+			source->SetName( InputName( inputIndex ) );
+			internalDnn.AddLayer( *source );
+			source->SetBlob( dynamic_cast<const CDataTensor*>( inputs[inputIndex].Ptr() )->Data()->GetCopy() );
+			internalInputs.Add( new CUserTensor( inputs[inputIndex]->Shape(), inputs[inputIndex]->Layout(),
+				CLayerOutput( source, 0 ) ) );
+		} else {
+			CheckNeoOnnxInternal( inputs[inputIndex]->IsCalculated(), "Can't pass user input into internal net", OnnxNode );
+			internalInputs.Add( inputs[inputIndex] );
+		}
+	}
+}
+
+// Builds array of sinks (corresponding to the op outputs)
+// Also adds those layers to the dnn
+void COpNode::addInternalDnnSinks( const CObjectArray<const CTensorBase>& internalOutputs,
+	CArray<CSinkLayer*>& sinks, CDnn& internalDnn ) const
+{
+	IMathEngine& mathEngine = internalDnn.GetMathEngine();
+
+	for( int outputIndex = 0; outputIndex < OutputCount(); ++outputIndex ) {
+		if( internalOutputs[outputIndex] == nullptr || internalOutputs[outputIndex]->IsCalculated() ) {
+			sinks.Add( nullptr );
+		} else {
+			CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
+			sink->SetName( OutputName( outputIndex ) + "_Sink" );
+			internalDnn.AddLayer( *sink );
+			const CLayerOutput& connectedOutput = dynamic_cast<const CUserTensor*>( internalOutputs[outputIndex].Ptr() )->LayerOutput();
+			sink->Connect( 0, *connectedOutput.Layer, connectedOutput.OutputIndex );
+			sinks.Add( sink.Ptr() );
+		}
+	}
+}
+
+// Builds array of the operator outputs based on outputs of the internal dnn
+void COpNode::extractOutputs( const CObjectArray<const CTensorBase>& internalOutputs,
+	const CArray<CSinkLayer*>& sinks, CObjectArray<const CTensorBase>& outputs ) const
+{
+	for( int outputIndex = 0; outputIndex < OutputCount(); ++outputIndex ) {
+		if( internalOutputs[outputIndex]->IsCalculated() ) {
+			// This data was calculated prior to the net
+			// TODO: is this possible?
+			outputs[outputIndex] = internalOutputs[outputIndex];
+		} else if( sinks[outputIndex] != nullptr ) {
+			// Adding network result as data tensor
+			// Shape and layout remains unchanged
+			outputs[outputIndex] = new CDataTensor( internalOutputs[outputIndex]->Shape(),
+				internalOutputs[outputIndex]->Layout(), *( sinks[outputIndex]->GetBlob() ) );
+		} // otherwise leaving it as nullptr
+	}
 }
 
 } // namespace NeoOnnx

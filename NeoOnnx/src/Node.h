@@ -81,11 +81,27 @@ private:
 // Opset versioning support
 const int MaxOpsetVersion = 12;
 
+//--------------------------------------------------------------------------------------------------------------------
+// 
+typedef CFastArray<bool, 8> CUserInputMask;
+
 //---------------------------------------------------------------------------------------------------------------------
 // Operator node
 class COpNode : public CNode {
 public:
 	~COpNode() override = default;
+
+	// Default implementation which imitates pre-calculation in the following way:
+	// 1. Creates small CDnn and creates appropriate sources
+	// 2. Calling AddLayers CNode's interface method for that internalDnn
+	// 3. Running this CDnn and extracting the results
+	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const override;
+
+	// Fills the array with bools where true means that index'th input
+	// is expected to be provided by user and false otherwise
+	// Used in COpNode::CalculateOutput
+	virtual void UserInputMask( CUserInputMask& mask ) const = 0;
 
 	// Fabric method. Creates CNode's derivative for given onnx node
 	static COpNode* CreateOpNode( const onnx::NodeProto& onnxNode, int opsetVersion );
@@ -99,6 +115,14 @@ protected:
 	const int OpsetVersion; // Opset version
 	const COpNodeAttributes Attributes; // Attributes of this node
 	const onnx::NodeProto OnnxNode; // Reference to onnx node (used for diagnostics)
+
+private:
+	void addInternalDnnSources( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& internalInputs, CDnn& internalDnn ) const;
+	void addInternalDnnSinks( const CObjectArray<const CTensorBase>& internalOutputs,
+		CArray<CSinkLayer*>& sinks, CDnn& internalDnn ) const;
+	void extractOutputs( const CObjectArray<const CTensorBase>& internalOutputs,
+		const CArray<CSinkLayer*>& sinks, CObjectArray<const CTensorBase>& outputs ) const;
 };
 
 } // namespace NeoOnnx
