@@ -15,7 +15,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/ConcatNode.cpp
     #Nodes/ConstantNode.cpp
     #Nodes/ConstantOfShapeNode.cpp
-    #Nodes/ConvNode.cpp
+    Nodes/ConvNode.cpp
     #Nodes/DropoutNode.cpp
     #Nodes/EltwiseNode.cpp
     #Nodes/FlattenNode.cpp
@@ -30,7 +30,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/LrnNode.cpp
     #Nodes/LstmNode.cpp
     #Nodes/MatMulNode.cpp
-    #Nodes/PadNode.cpp
+    Nodes/PadNode.cpp
     #Nodes/PoolNode.cpp
     #Nodes/ReduceMeanNode.cpp
     #Nodes/ReshapeNode.cpp
@@ -55,7 +55,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/ConcatNode.h
     #Nodes/ConstantNode.h
     #Nodes/ConstantOfShapeNode.h
-    #Nodes/ConvNode.h
+    Nodes/ConvNode.h
     #Nodes/DropoutNode.h
     #Nodes/EltwiseNode.h
     #Nodes/FlattenNode.h
@@ -70,7 +70,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/LrnNode.h
     #Nodes/LstmNode.h
     #Nodes/MatMulNode.h
-    #Nodes/PadNode.h
+    Nodes/PadNode.h
     #Nodes/PoolNode.h
     #Nodes/ReduceMeanNode.h
     #Nodes/ReshapeNode.h

@@ -69,7 +69,7 @@ static int getOpsetVersion( const onnx::ModelProto& model )
 
 typedef CMap<CString, CPtr<const CTensorBase>> CTensorCache;
 
-static void addNode( const CNode& node, CTensorCache& tensors, CDnn& dnn )
+static void addNode( CNode& node, CTensorCache& tensors, CDnn& dnn )
 {
 	CObjectArray<const CTensorBase> inputs;
 	inputs.Add( nullptr, node.InputCount() );

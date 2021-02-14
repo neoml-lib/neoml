@@ -27,9 +27,9 @@ public:
 	// CNode methods' 
 	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const override;
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const override;
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
 	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const override;
+		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) override;
 };
 
 } // namespace NeoOnnx

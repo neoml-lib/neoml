@@ -31,13 +31,13 @@ CGraphInitializer::CGraphInitializer( const onnx::TensorProto& _initializer ) :
 }
 
 void CGraphInitializer::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ ) const
+	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
 	CheckNeoOnnxInternal( false, "Illegal call CGraphInitializer::AddLayers" );
 }
 
 void CGraphInitializer::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const
+	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
 {
 	CTensorShape outputShape;
 	outputShape.SetBufferSize( initializer.dims_size() );

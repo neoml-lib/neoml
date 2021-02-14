@@ -19,6 +19,7 @@ limitations under the License.
 #include "GraphOutput.h"
 #include "GraphCache.h"
 #include "NeoOnnxCheck.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
@@ -36,7 +37,7 @@ bool CGraphOutput::CanCalculateOutput( const CObjectArray<const CTensorBase>& /*
 }
 
 void CGraphOutput::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& /* outputs */, CDnn& dnn ) const
+	CObjectArray<const CTensorBase>& /* outputs */, CDnn& dnn )
 {
 	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(),
 		"Output node must have user-dependent data as input" );
@@ -44,14 +45,16 @@ void CGraphOutput::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
 	sink->SetName( Name() );
 
-	const CLayerOutput& layerOutput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput();
+	// Converting output into Onnx order
+	CPtr<const CTensorBase> input = ConvertTensor( *inputs[0], CTensorLayout() );
+	const CLayerOutput& layerOutput = dynamic_cast<const CUserTensor*>( input.Ptr() )->LayerOutput();
 	sink->Connect( 0, *layerOutput.Layer, layerOutput.OutputIndex );
 
 	dnn.AddLayer( *sink );
 }
 
 void CGraphOutput::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ ) const
+	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ )
 {
 	CheckNeoOnnxInternal( false, "Illegal call: CGraphOutput::CalculateOutput" );
 }

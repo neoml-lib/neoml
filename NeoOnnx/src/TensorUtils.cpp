@@ -239,16 +239,17 @@ CPtr<const CTensorBase> convertFromNeoMLToOnnx( const CTensorBase& input )
 	// Step 1: reorder the dimensions (if needed)
 	CPtr<const CTensorBase> currTensor = &input;
 
-	CDimOrder outputOrder;
-	input.Layout().OnnxOrder.CopyTo( outputOrder );
-
-	for( int dimIndex = 0; dimIndex < outputOrder.Size(); ++dimIndex ) {
-		if( currTensor->Layout().OnnxOrder[dimIndex] != outputOrder[dimIndex] ) {
-			const int swapDimIndex = currTensor->Layout().OnnxOrder.Find( outputOrder[dimIndex], dimIndex );
-			currTensor = swapDimensions<IsDataTensor>( *currTensor, neoMLOrder[dimIndex], dimIndex,
-				neoMLOrder[swapDimIndex], swapDimIndex );
+	for( int dimIndex = 0; dimIndex < neoMLOrder.Size(); ++dimIndex ) {
+		const CDimOrder& currOrder = currTensor->Layout().OnnxOrder;
+		if( currTensor->Layout().OnnxOrder[dimIndex] != neoMLOrder[dimIndex] ) {
+			// Mismatch means that the onnx dimIndex'th dimension right now is
+			// at the currTensor[dimIndex] of the blob
+			// But it should be at neoMLOrder[dimIndex] of the blob
+			const int swapDimIndex = currOrder.Find( neoMLOrder[dimIndex] );
+			currTensor = swapDimensions<IsDataTensor>( *currTensor, currOrder[dimIndex], dimIndex,
+				neoMLOrder[dimIndex], swapDimIndex );
 			// TODO: Delete after debug
-			CheckNeoOnnxInternal( currTensor->Layout().OnnxOrder[dimIndex] == outputOrder[dimIndex], 
+			CheckNeoOnnxInternal( currTensor->Layout().OnnxOrder[dimIndex] == neoMLOrder[dimIndex], 
 				"Something wrong..." );
 		}
 	}
@@ -272,10 +273,14 @@ CPtr<const CTensorBase> convertFromOnnxToNeoML( const CTensorBase& input, const 
 
 	// Step 2: reorder the dimensions
 	for( int dimIndex = 0; dimIndex < neoMLOrder.Size(); ++dimIndex ) {
-		if( currTensor->Layout().OnnxOrder[dimIndex] != outputOnnxOrder[dimIndex] ) {
-			const int swapDimIndex = currTensor->Layout().OnnxOrder.Find( outputOnnxOrder[dimIndex] );
-			currTensor = swapDimensions<IsDataTensor>( *currTensor, neoMLOrder[dimIndex], dimIndex,
-				neoMLOrder[swapDimIndex], swapDimIndex );
+		const CDimOrder& currOrder = currTensor->Layout().OnnxOrder;
+		if( currOrder[dimIndex] != outputOnnxOrder[dimIndex] ) {
+			// Mismatch means that the onnx dimIndex'th dimension right now is
+			// at the currTensor[dimIndex] of the blob
+			// But it should be at outputOnnxOrder[dimIndex] of the blob
+			const int swapDimIndex = currOrder.Find( outputOnnxOrder[dimIndex] );
+			currTensor = swapDimensions<IsDataTensor>( *currTensor, currOrder[dimIndex], dimIndex,
+				outputOnnxOrder[dimIndex], swapDimIndex );
 			// TODO: Delete after debug
 			CheckNeoOnnxInternal( currTensor->Layout().OnnxOrder[dimIndex] == outputOnnxOrder[dimIndex], 
 				"Something wrong..." );
@@ -334,6 +339,43 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTe
 		return convert<true>( inputTensor, outputLayout );
 	} else {
 		return convert<false>( inputTensor, outputLayout );
+	}
+	// To satisfy compilers' warnings
+	return nullptr;
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+CPtr<const CTensorBase> RemoveTensorDims( const CTensorBase& input, const CFastArray<int, 8>& _dims )
+{
+	CFastArray<int, 8> dims;
+	_dims.CopyTo( dims );
+	dims.QuickSort<Ascending<int>>();
+
+	CTensorShape outputShape;
+	input.Shape().CopyTo( outputShape );
+	for( int i = dims.Size() - 1; i >= 0; --i ) {
+		outputShape.DeleteAt( dims[i] );
+	}
+
+	CTensorLayout outputLayout;
+	if( input.Layout().DimType == DT_NeoML ) {
+		CDimOrder dimOrder;
+		input.Layout().OnnxOrder.CopyTo( dimOrder );
+		if( !dimOrder.IsEmpty() ) {
+			for( int i = dims.Size() - 1; i >= 0; --i ) {
+				dimOrder.DeleteAt( dims[i] );
+			}
+		}
+		outputLayout = CTensorLayout( dimOrder );
+	}
+
+	if( input.IsCalculated() ) {
+		return new CDataTensor( outputShape, outputLayout,
+			*( dynamic_cast<const CDataTensor&>( input ).Data() ) );
+	} else {
+		return new CUserTensor( outputShape, outputLayout,
+			dynamic_cast<const CUserTensor&>( input ).LayerOutput() );
 	}
 	// To satisfy compilers' warnings
 	return nullptr;

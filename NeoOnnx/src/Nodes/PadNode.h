@@ -24,22 +24,23 @@ namespace NeoOnnx {
 // Calculates padding size if autoPad is SAME_*
 void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
 
-// Creates layer which pads tensor with given dims and pad sizes
-CPtr<CBaseLayer> CreatePaddingLayer( IMathEngine& mathEngine, const CString& layerName, const CTensorDim& dim,
-	const CFastArray<int, 8>& pads, float padValue, const onnx::NodeProto& onnxNode );
+// Pads tensor with user-dependent data
+CPtr<const CUserTensor> PadUserTensor( const CUserTensor& inputs, const CFastArray<int, 8>& pads, float padValue );
 
 //---------------------------------------------------------------------------------------------------------------------
 
 // Pad operator graph node
 class CPadNode : public COpNode {
 public:
-	CPadNode( int nodeIndex, const onnx::NodeProto& pad, int opsetVersion );
+	CPadNode( const onnx::NodeProto& pad, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
 	CString mode; // Pad mode

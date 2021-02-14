@@ -19,6 +19,7 @@ limitations under the License.
 #include "PadNode.h"
 #include "GraphCache.h"
 #include "NeoOnnxCheck.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
@@ -38,8 +39,76 @@ void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, 
 	}
 }
 
-CPtr<CBaseLayer> CreatePaddingLayer( IMathEngine& mathEngine, const CString& layerName, const CTensorDim& dim,
-	const CFastArray<int, 8>& pads, float padValue, const onnx::NodeProto& onnxNode )
+// Generate unique layer name for dnn
+static CString getUniqueLayerName( const CString& prefix, const CDnn& dnn )
+{
+	int currIndex = dnn.GetLayerCount();
+	CString currName = prefix + Str( currIndex );
+	while( dnn.HasLayer( currName ) ) {
+		++currIndex;
+		currName = prefix + Str( currIndex );
+	}
+	return currName;
+}
+
+// Converts tensor prior to imageResizeLayer
+CPtr<const CUserTensor> convertTensorBeforeImageResize( const CUserTensor& input, int heightDimIndex, int widthDimIndex )
+{
+	const CTensorLayout& inputLayout = input.Layout();
+
+	if( inputLayout.DimType == DT_Onnx && heightDimIndex == static_cast<int>( BD_Height )
+		&& ( widthDimIndex == NotFound || widthDimIndex == static_cast<int>( BD_Width ) ) )
+	{
+		return &input;
+	}
+
+	if( inputLayout.DimType == DT_NeoML && inputLayout.OnnxOrder[heightDimIndex] == BD_Height
+		&& ( widthDimIndex == NotFound || inputLayout.OnnxOrder[widthDimIndex] == static_cast<int>( BD_Width ) ) )
+	{
+		return &input;
+	}
+
+	CDimOrder newOrder;
+	for( int i = 0; i < input.Shape().Size(); ++i ) {
+		if( i == heightDimIndex ) {
+			newOrder[i] = BD_Height;
+		} else if( i == widthDimIndex ) {
+			newOrder[i] = BD_Width;
+		} else if( widthDimIndex == NotFound ) {
+			newOrder[i] = i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
+				: static_cast<TBlobDim>( i + 1 );
+		} else {
+			newOrder[i] = i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
+				: static_cast<TBlobDim>( i + 2 );
+		}
+	}
+
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, CTensorLayout( newOrder ) ).Ptr() );
+}
+
+CPtr<const CUserTensor> addImageResizeLayer( CImageResizeLayer& imageResize, CDnn& dnn, const CUserTensor& input,
+	int heightDimIndex, int widthDimIndex )
+{
+	// Add imageResize layer
+	CPtr<const CUserTensor> result = convertTensorBeforeImageResize( input, heightDimIndex, widthDimIndex );
+	imageResize.Connect( 0, *result->Layer(), result->OutputIndex() );
+	dnn.AddLayer( imageResize );
+
+	// Calculate output shape
+	CTensorShape outputShape;
+	result->Shape().CopyTo( outputShape );
+	outputShape[heightDimIndex] += imageResize.GetDelta( CImageResizeLayer::IS_Top )
+		+ imageResize.GetDelta( CImageResizeLayer::IS_Bottom );
+	if( widthDimIndex != NotFound ) {
+		outputShape[widthDimIndex] += imageResize.GetDelta( CImageResizeLayer::IS_Left )
+			+ imageResize.GetDelta( CImageResizeLayer::IS_Right );
+	}
+
+	// Construct new CUserTensor which is provided by imageResize layer
+	return new CUserTensor( outputShape, result->Layout(), CLayerOutput( &imageResize, 0 ) );
+}
+
+CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue )
 {
 	// Pool and conv operators storing pads only for N-2 tensor dimensions (leaving out batch and channels)
 	// On the other side Pad operator is storing pads for every tensor dimension
@@ -47,38 +116,59 @@ CPtr<CBaseLayer> CreatePaddingLayer( IMathEngine& mathEngine, const CString& lay
 	// Number of padded dimensions
 	const int paddedDims = pads.Size() / 2;
 	// Index of first padded dimension
-	const int padDimIndex = dim.Size() - paddedDims;
+	const int padDimIndex = input.Shape().Size() - paddedDims;
+	// Prefix for padding layer names
+	const CString padNamePrefix = input.Layer()->GetName() + CString( "_pad_" );
+	// Used network
+	CDnn& dnn = *( input.Layer()->GetDnn() );
+	// Used mathEngine
+	IMathEngine& mathEngine = dnn.GetMathEngine();
 
-	CPtr<CImageResizeLayer> imageResize = new CImageResizeLayer( mathEngine );
-	imageResize->SetName( layerName );
-	imageResize->SetDefalutValue( padValue );
+	CPtr<const CUserTensor> currData = &input;
+	CPtr<CImageResizeLayer> imageResize = nullptr;
+	int heightDimIndex = NotFound;
+	int widthDimIndex = NotFound;
 
 	for( int i = 0; i < paddedDims; ++i ) {
 		if( pads[i] == 0 && pads[i + paddedDims] == 0 ) {
 			continue;
 		}
 
-		switch( dim[padDimIndex + i] ) {
-			case BD_Height:
-				imageResize->SetDelta( CImageResizeLayer::IS_Top, pads[i] );
-				imageResize->SetDelta( CImageResizeLayer::IS_Bottom, pads[paddedDims + i] );
-				break;
-			case BD_Width:
-				imageResize->SetDelta( CImageResizeLayer::IS_Left, pads[i] );
-				imageResize->SetDelta( CImageResizeLayer::IS_Right, pads[paddedDims + i] );
-				break;
-			default:
-				CheckNeoOnnxSupport( false, "Can't pad dimension " + Str( dim[padDimIndex + i]), onnxNode );
+		if( imageResize == nullptr ) {
+			imageResize = new CImageResizeLayer( mathEngine );
+			imageResize->SetName( getUniqueLayerName( padNamePrefix, dnn ) );
+			imageResize->SetDefalutValue( padValue );
+		}
+
+		if( heightDimIndex == NotFound ) {
+			heightDimIndex = padDimIndex + i;
+			imageResize->SetDelta( CImageResizeLayer::IS_Top, pads[i] );
+			imageResize->SetDelta( CImageResizeLayer::IS_Bottom, pads[paddedDims + i] );
+		} else {
+			widthDimIndex = padDimIndex + i;
+			imageResize->SetDelta( CImageResizeLayer::IS_Left, pads[i] );
+			imageResize->SetDelta( CImageResizeLayer::IS_Right, pads[paddedDims + i] );
+			currData = addImageResizeLayer( *imageResize, dnn, *currData, heightDimIndex, widthDimIndex );
+			imageResize = nullptr;
+			heightDimIndex = NotFound;
+			widthDimIndex = NotFound;
 		}
 	}
 
-	return imageResize.Ptr();
+	// Corner case: we need to expand odd number of dimensions
+	// In that case by this moment imageResize will be not nullptr
+	// heightDimIndex will be defined but widthDimIndex will remain NotFound
+	if( imageResize != nullptr ) {
+		currData = addImageResizeLayer( *imageResize, dnn, *currData, heightDimIndex, widthDimIndex );
+	}
+
+	return currData;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CPadNode::CPadNode( int nodeIndex, const onnx::NodeProto& pad, int opsetVersion ) :
-	COpNode( nodeIndex, pad, opsetVersion ),
+CPadNode::CPadNode( const onnx::NodeProto& pad, int opsetVersion ) :
+	COpNode( pad, opsetVersion ),
 	mode( Attributes.GetOptionalString( "mode", "constant" ) ),
 	value( 0.f )
 {
@@ -97,19 +187,18 @@ CPadNode::CPadNode( int nodeIndex, const onnx::NodeProto& pad, int opsetVersion 
 	CheckNeoOnnxSupport( mode == "constant", "Pad with non-constant mode", pad );
 }
 
-void CPadNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CPadNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant data", OnnxNode );
-
 	if( OpsetVersion >= 11 ) {
-		CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant pad sizes", OnnxNode );
-		const CDnnBlob& padsBlob = *tensors[Input[1]].Data;
+		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided pad sizes", OnnxNode );
+		const CDnnBlob& padsBlob = *( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data() );
 		CheckOnnxProtocol( padsBlob.GetDataType() == CT_Int, "non-integer pad sizes", OnnxNode );
 		pads.SetSize( padsBlob.GetDataSize() );
 		padsBlob.CopyTo( pads.GetPtr() );
 		if( InputCount() == 3 ) {
-			CheckNeoOnnxSupport( tensors[Input[2]].Data != nullptr, "non-constant pad value", OnnxNode );
-			const CDnnBlob& valueBlob = *tensors[Input[2]].Data;
+			CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided pad value", OnnxNode );
+			const CDnnBlob& valueBlob = *( dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data() );
 			if( valueBlob.GetDataType() == CT_Float ) {
 				value = valueBlob.GetData<float>().GetValue();
 			} else {
@@ -118,36 +207,7 @@ void CPadNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEng
 		}
 	}
 
-	const CTensorShape& inputShape = tensors[Input[0]].Shape;
-	CheckOnnxProtocol( pads.Size() == inputShape.Size() * 2, "wrong size of pads array", OnnxNode );
-	CTensorShape& outputShape = tensors[Output[0]].Shape;
-	outputShape.SetSize( inputShape.Size() );
-	for( int i = 0; i < inputShape.Size(); ++i ) {
-		outputShape[i] = inputShape[i] + pads[i] + pads[i + pads.Size() / 2];
-	}
-}
-
-void CPadNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
-{
-	if( !dims[Input[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"labeling output dimensions failed", OnnxNode );
-	}
-
-	if( !dims[Output[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"labeling input dimensions failed", OnnxNode );
-	}
-}
-
-void CPadNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
-	CPtr<CBaseLayer> padding = CreatePaddingLayer( dnn.GetMathEngine(), Name, dims[Input[0]], pads, value, OnnxNode );
-	padding->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[1]].OutputIndex );
-	dnn.AddLayer( *padding );
-
-	neoMLLinks[Output[0]] = CNeoMLLink( padding, 0 );
+	outputs[0] = PadUserTensor( dynamic_cast<const CUserTensor&>( *inputs[0] ), pads, value ).Ptr();
 }
 
 } // namespace NeoOnnx
