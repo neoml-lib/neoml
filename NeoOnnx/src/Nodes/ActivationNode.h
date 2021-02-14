@@ -30,11 +30,13 @@ public:
 	// Sets additional params for activation layer (e.g. negative slope coeff for CLeakyReLULayer)
 	virtual void SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* /* layer */ ) const {}
 
-	// CNode methods' realizations
+	// CNode methods
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) const override;
-	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) const override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
 	// Activation function which is applied to the input by this node
