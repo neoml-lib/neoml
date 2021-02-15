@@ -32,8 +32,6 @@ void CQualityControlLayer::Reshape()
 	CheckArchitecture( inputDescs.Size() == 2, GetName(), "layer expects 2 inputs" );
 	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetName(),
 		"Object count mismatch between inputs" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(),
-		"Object size mismatch between inputs" );
 	CheckArchitecture( !outputDescs.IsEmpty(), GetName(), "There is nothing connected to this layer's output" );
 }
 
