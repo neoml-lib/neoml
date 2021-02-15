@@ -29,7 +29,7 @@ limitations under the License.
 
 namespace NeoML {
 
-static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, CSparseFloatMatrixDesc& data )
+static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CSparseFloatMatrixDesc& data )
 {
 	NeoAssert( data.Columns == nullptr );
 	const int vectorCount = data.Height;
@@ -39,7 +39,7 @@ static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, CSparseFloatMatri
 	return result;
 }
 
-static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, IClusteringData* data )
+static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, const IClusteringData* data )
 {
 	const int vectorCount = data->GetVectorCount();
 	CPtr<CDnnBlob> weight = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount );
@@ -580,7 +580,6 @@ bool CKMeansClustering::isPruned( const CArray<float>& upperBounds, const CVaria
 // Selects initial centers from dense data
 void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& centers )
 {
-	const int vectorCount = data.GetObjectCount();
 	const int featureCount = data.GetObjectSize();
 	if( !initialClusterCenters.IsEmpty() ) {
 		float* buffer = centers.GetBuffer<float>( 0, params.InitialClustersCount * featureCount );
@@ -754,8 +753,6 @@ double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& s
 {
 	IMathEngine& mathEngine = data.GetMathEngine();
 	const int vectorCount = data.GetObjectCount();
-	const int featureCount = data.GetObjectSize();
-	const int clusterCount = centers.GetObjectCount();
 	CFloatHandleStackVar stackBuff( mathEngine, vectorCount + 1 );
 	CFloatHandle closestDist = stackBuff.GetHandle();
 	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount;
