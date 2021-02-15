@@ -234,7 +234,11 @@ static bool isEqual( const CClusteringResult& first, const CClusteringResult& se
 	for( int clusterIndex = 0; clusterIndex < first.ClusterCount; ++clusterIndex ) {
 		const CClusterCenter& firstCluster = first.Clusters[clusterIndex];
 		const CClusterCenter& secondCluster = second.Clusters[clusterIndex];
-		if( !isEqual( firstCluster.Mean, secondCluster.Mean ) ) {
+		if( abs( firstCluster.Norm - secondCluster.Norm ) > eps
+			|| abs( firstCluster.Weight - secondCluster.Weight ) > eps
+			|| !isEqual( firstCluster.Mean, secondCluster.Mean )
+			|| !isEqual( firstCluster.Disp, secondCluster.Disp ) )
+		{
 			return false;
 		}
 	}
