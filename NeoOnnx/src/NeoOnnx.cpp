@@ -24,7 +24,6 @@ limitations under the License.
 #include "Nodes/GraphInput.h"
 #include "Nodes/GraphOutput.h"
 #include "Graph.h"
-#include "GraphCache.h"
 
 #include "onnx.pb.h"
 

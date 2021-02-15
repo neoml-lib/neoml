@@ -18,7 +18,6 @@ limitations under the License.
 #include "OpNodeAttributes.h"
 #include "TensorLayout.h"
 #include "Tensor.h"
-#include "NeoMLLink.h"
 #include "NeoOnnxCheck.h"
 
 #include <onnx.pb.h>

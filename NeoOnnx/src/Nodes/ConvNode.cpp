@@ -18,7 +18,6 @@ limitations under the License.
 
 #include "ConvNode.h"
 #include "PadNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 
