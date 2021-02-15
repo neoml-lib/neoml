@@ -109,7 +109,9 @@ bool CAvxDll::isAvxAvailable()
 	unsigned int cpuInfo[4] = { 0, 0, 0, 0 };
 	unsigned int cpuInfoEx[4] = { 0, 0, 0, 0 };
 	__get_cpuid( 1, cpuInfo, cpuInfo + 1, cpuInfo + 2, cpuInfo + 3 );
-	__cpuid_count( 7, 0, cpuInfoEx[0], cpuInfoEx[1], cpuInfoEx[2], cpuInfoEx[3] );
+	#if !FINE_PLATFORM(FINE_DARWIN)
+		__cpuid_count( 7, 0, cpuInfoEx[0], cpuInfoEx[1], cpuInfoEx[2], cpuInfoEx[3] );
+	#endif
 #else
 	#error "Platform isn't supported!"
 #endif
