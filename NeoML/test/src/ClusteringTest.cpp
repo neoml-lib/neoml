@@ -202,24 +202,6 @@ static void kmeansElkanClustering( IClusteringData* data, CClusteringResult& res
 	kMeans.Clusterize( data, result );
 }
 
-::std::ostream& operator<<( ::std::ostream& os, const TClusteringFunction& clustering )
-{
-	if( clustering == firstComeClustering ) {
-		os << "first come clustering\n";
-	} else if( clustering == hierarchicalClustering ) {
-		os << "hierarchical clustering\n";
-	} else if( clustering == isoDataClustering ) {
-		os << "ISODATA clustering\n";
-	} else if( clustering == kmeansLloydClustering ) {
-		os << "K-Means(Lloyd) clustering\n";
-	} else if( clustering == kmeansElkanClustering ) {
-		os << "K-Means(Elkan) clustering\n";
-	} else {
-		os << "Unknown clustering function\n";
-	}
-	return os;
-}
-
 // --------------------------------------------------------------------------------------------------------------------
 // Result check functions
 
