@@ -200,22 +200,27 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 {
 	double sum = 0;
 
+	auto denseBySparse = []( const CSparseFloatVectorDesc& dense, const CSparseFloatVectorDesc& sparse, double& sum ) {
+		if( sparse.Indexes[0] >= dense.Size ) {
+			sum = 0;
+		} else {
+			int lastPos = sparse.Size - 1;
+			while( sparse.Indexes[lastPos] >= dense.Size ) {
+				--lastPos;
+			}
+			for( int i = 0; i <= lastPos; i++ ) {
+				sum += static_cast<double>( sparse.Values[i] ) * dense.Values[sparse.Indexes[i]];
+			}
+		}
+	};
 	if( vector1.Indexes == nullptr ) {
 		if( vector2.Indexes == nullptr ) {
 			const int size = min( vector1.Size, vector2.Size );
 			for( int i = 0; i < size; i++ ) {
 				sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[i];
 			}
-		} else if( vector2.Indexes[0] >= vector1.Size ) {
-			return 0;
 		} else {
-			int lastPos = vector2.Size - 1;
-			while( vector2.Indexes[lastPos] >= vector1.Size ) {
-				--lastPos;
-			}
-			for( int i = 0; i <= lastPos; i++ ) {
-				sum += static_cast<double>( vector2.Values[i] ) * vector1.Values[vector2.Indexes[i]];
-			}
+			denseBySparse( vector1, vector2, sum );
 		}
 	} else if( vector2.Indexes != nullptr ) {
 		int i = 0;
@@ -233,16 +238,8 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 				}
 			}
 		}
-	} else if( vector1.Indexes[0] >= vector2.Size ) {
-		return 0;
 	} else {
-		int lastPos = vector1.Size - 1;
-		while( vector1.Indexes[lastPos] >= vector2.Size ) {
-			--lastPos;
-		}
-		for( int i = 0; i <= lastPos; i++ ) {
-			sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[vector1.Indexes[i]];
-		}
+		denseBySparse( vector2, vector1, sum );
 	}
 	return sum;
 }
