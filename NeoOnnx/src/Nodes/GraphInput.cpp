@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include "GraphInput.h"
-#include "GraphCache.h"
 #include "TensorUtils.h"
 #include "NeoOnnxCheck.h"
 
