@@ -155,13 +155,13 @@ CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
 
 // Calculates the layer parameter gradients to then use them in Train method
 void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs,
-	bool forSharedWeightsLayer )
+	bool sharedWeights )
 {
 	NeoAssert( layer != 0 );
 
 	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer );
 
-	if( !forSharedWeightsLayer ) {
+	if( !sharedWeights ) {
 		++paramDiffBlobsSum.Count;
 	}
 

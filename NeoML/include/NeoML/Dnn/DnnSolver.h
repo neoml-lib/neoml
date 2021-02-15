@@ -30,7 +30,7 @@ public:
 	// Stores the calculated values of layer parameters gradients for further use in Train method
 	// forSharedWeightsLayer=true should only be used within layers that share weights with other layers.
 	void AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs, 
-		bool forSharedWeightsLayer = false );
+		bool sharedWeights = false );
 
 	// Modifies the trainable parameters of the network layers, 
 	// using the accumulated gradients and previous steps' history (moment, etc.) 
