@@ -54,7 +54,7 @@ inline CClusteringResult::CClusteringResult( const CClusteringResult& result )
 
 //---------------------------------------------------------------------------------------------------------
 
-// The input data set for clustering consisting of sparse vectors
+// The input data set for clustering
 class IClusteringData : public virtual IObject {
 public:
 	// The number of vectors
