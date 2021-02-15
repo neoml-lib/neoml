@@ -60,7 +60,10 @@ CFloatVector::CFloatVector( int size, const CSparseFloatVectorDesc& desc )
 
 	if( desc.Indexes == nullptr ) {
 		NeoAssert( size >= desc.Size );
-		::memcpy( bodyPtr->Values.GetPtr(), desc.Values, size * sizeof( float ) );
+		::memcpy( bodyPtr->Values.GetPtr(), desc.Values, desc.Size * sizeof( float ) );
+		if( size > desc.Size ) {
+			::memset( bodyPtr->Values.GetPtr() + desc.Size, 0, ( size - desc.Size ) * sizeof( float ) );
+		}
 	} else {
 		int ptrSize = desc.Size;
 		int ptrPos = 0;
