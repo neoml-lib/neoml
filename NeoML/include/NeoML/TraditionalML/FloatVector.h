@@ -206,6 +206,8 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 			for( int i = 0; i < size; i++ ) {
 				sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[i];
 			}
+		} else if( vector2.Indexes[0] >= vector1.Size ) {
+			return 0;
 		} else {
 			int lastPos = vector2.Size - 1;
 			while( vector2.Indexes[lastPos] >= vector1.Size ) {
@@ -215,31 +217,31 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 				sum += static_cast<double>( vector2.Values[i] ) * vector1.Values[vector2.Indexes[i]];
 			}
 		}
-	} else {
-		if( vector2.Indexes == nullptr ) {
-			int lastPos = vector1.Size - 1;
-			while( vector1.Indexes[lastPos] >= vector2.Size ) {
-				--lastPos;
-			}
-			for( int i = 0; i <= lastPos; i++ ) {
-				sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[vector1.Indexes[i]];
-			}
-		} else {
-			int i = 0;
-			int j = 0;
-			while( i < vector1.Size && j < vector2.Size ) {
-				if( vector1.Indexes[i] == vector2.Indexes[j] ) {
-					sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[j];
+	} else if( vector2.Indexes != nullptr ) {
+		int i = 0;
+		int j = 0;
+		while( i < vector1.Size && j < vector2.Size ) {
+			if( vector1.Indexes[i] == vector2.Indexes[j] ) {
+				sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[j];
+				i++;
+				j++;
+			} else {
+				if( vector1.Indexes[i] < vector2.Indexes[j] ) {
 					i++;
-					j++;
 				} else {
-					if( vector1.Indexes[i] < vector2.Indexes[j] ) {
-						i++;
-					} else {
-						j++;
-					}
+					j++;
 				}
 			}
+		}
+	} else if( vector1.Indexes[0] >= vector2.Size ) {
+		return 0;
+	} else {
+		int lastPos = vector1.Size - 1;
+		while( vector1.Indexes[lastPos] >= vector2.Size ) {
+			--lastPos;
+		}
+		for( int i = 0; i <= lastPos; i++ ) {
+			sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[vector1.Indexes[i]];
 		}
 	}
 	return sum;
