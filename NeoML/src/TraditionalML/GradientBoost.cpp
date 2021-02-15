@@ -17,8 +17,9 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/TraditionalML/GradientBoost.h>
+#include <NeoML/TraditionalML/GradientBoostQuickScorer.h>
 #include <GradientBoostModel.h>
-#include <RegressionTreeModel.h>
+#include <RegressionTree.h>
 #include <GradientBoostFullProblem.h>
 #include <GradientBoostFastHistProblem.h>
 #include <GradientBoostFullTreeBuilder.h>
@@ -38,7 +39,7 @@ IGradientBoostRegressionModel::~IGradientBoostRegressionModel()
 {
 }
 
-IRegressionTreeModel::~IRegressionTreeModel()
+IRegressionTreeNode::~IRegressionTreeNode()
 {
 }
 
@@ -319,21 +320,15 @@ CGradientBoost::~CGradientBoost()
 {
 }
 
-CPtr<IGradientBoostRegressionModel> CGradientBoost::TrainRegression(
-	const IBaseRegressionProblem& problem )
+CPtr<IMultivariateRegressionModel> CGradientBoost::TrainRegression(
+	const IMultivariateRegressionProblem& problem )
 {
 	if( logStream != nullptr ) {
 		*logStream << "\nGradient boost regression training started:\n";
 	}
 
-	CPtr<const IMultivariateRegressionProblem> multivariate =
-		dynamic_cast<const IMultivariateRegressionProblem*>( &problem );
-	if( multivariate == nullptr ) {
-		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate(
-			dynamic_cast<const IRegressionProblem*>( &problem ) );
-	}
-
-	return train( multivariate, createLossFunction() ).Ptr();
+	return CheckCast<IMultivariateRegressionModel>(
+		train( &problem, createLossFunction() ) );
 }
 
 CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem& problem )
@@ -345,7 +340,7 @@ CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem
 	CPtr<const IMultivariateRegressionProblem> multivariate =
 		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( &problem );
 
-	return train( multivariate, createLossFunction() ).Ptr();
+	return CheckCast<IRegressionModel>( train( multivariate, createLossFunction() ) );
 }
 
 CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
@@ -361,11 +356,11 @@ CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
 		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( &problem );
 	}
 
-	return train( multivariate, createLossFunction() ).Ptr();
+	return CheckCast<IModel>( train( multivariate, createLossFunction() ) );
 }
 
 // Trains a model
-CPtr<CGradientBoostModel> CGradientBoost::train(
+CPtr<IObject> CGradientBoost::train(
 	const IMultivariateRegressionProblem* _problem,
 	IGradientBoostingLossFunction* lossFunction )
 {
@@ -389,7 +384,7 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 			}
 
 			// One gradient boosting step
-			CObjectArray<IRegressionTreeModel> curIterationModels; // a new model for multi-class classification
+			CObjectArray<IRegressionTreeNode> curIterationModels; // a new model for multi-class classification
 			executeStep( *lossFunction, problem, models, curIterationModels );
 
 			for( int j = 0; j < curIterationModels.Size(); j++ ) {
@@ -406,7 +401,8 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 	buildFullPredictions( *problem, models );
 	loss = lossFunction->CalcLossMean( predicts, answers );
 
-	return FINE_DEBUG_NEW CGradientBoostModel( models,  params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1, params.LearningRate, params.LossFunction );
+	return createOutputRepresentation(
+		models, params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1 );
 }
 
 // Creates a tree builder depending on the problem type
@@ -532,7 +528,7 @@ void CGradientBoost::initialize( int modelCount, int vectorCount, int featureCou
 // On a sub-problem of the first problem using cache
 void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	const IMultivariateRegressionProblem* problem,
-	const CArray<CGradientBoostEnsemble>& models, CObjectArray<IRegressionTreeModel>& curModels )
+	const CArray<CGradientBoostEnsemble>& models, CObjectArray<IRegressionTreeNode>& curModels )
 {
 	NeoAssert( !models.IsEmpty() );
 	NeoAssert( curModels.IsEmpty() );
@@ -607,10 +603,8 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	}
 
 	if( fullMultiClassTreeBuilder != nullptr ) {
-		CPtr<IRegressionTreeModel> model;
-		model = fullMultiClassTreeBuilder->Build( *fullProblem,
-			gradients, gradientsSum, hessians, hessiansSum, weights, weightsSum );
-		curModels.Add( model );
+		curModels.Add( fullMultiClassTreeBuilder->Build( *fullProblem,
+			gradients, gradientsSum, hessians, hessiansSum, weights, weightsSum ).Ptr() );
 	} else {
 		for( int i = 0; i < gradients.Size(); i++ ) {
 			if( logStream != nullptr ) {
@@ -618,7 +612,7 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 					<< " HessianSum = " << hessiansSum[i]
 					<< "\n";
 			}
-			CPtr<IRegressionTreeModel> model;
+			CPtr<IRegressionTreeNode> model;
 			if( fullSingleClassTreeBuilder != nullptr ) {
 				model = fullSingleClassTreeBuilder->Build( *fullProblem,
 					gradients[i], gradientsSum[i],
@@ -731,6 +725,27 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 				index++;
 			}
 		}
+	}
+}
+
+// Creates model represetation requested in params.
+CPtr<IObject> CGradientBoost::createOutputRepresentation(
+	CArray<CGradientBoostEnsemble>& models, int predictionSize )
+{
+	CPtr<CGradientBoostModel> linked = FINE_DEBUG_NEW CGradientBoostModel(
+		models, predictionSize, params.LearningRate, params.LossFunction );
+
+	switch( params.Representation ) {
+		case GBMR_Linked:
+			return linked.Ptr();
+		case GBMR_Compact:
+			linked->ConvertToCompact();
+			return linked.Ptr();
+		case GBMR_QuickScorer:
+			return CGradientBoostQuickScorer().Build( *linked ).Ptr();
+		default:
+			NeoAssert( false );
+			return 0;
 	}
 }
 
