@@ -63,6 +63,18 @@ TEST_F( CFloatVectorTest, DotProduct )
 		ASSERT_DOUBLE_EQ( DotProduct( s1Vec, s2 ), results[i] );
 		ASSERT_DOUBLE_EQ( DotProduct( s1Vec, s2DenseDesc ), results[i] );
 	}
+
+	// test dense x sparse with no intersection
+	CFloatVector minDense( 5, 2. );
+	CSparseFloatVector minSparse;
+	minSparse.SetAt( 5, 1 );
+	minSparse.SetAt( 8, 1 );
+	ASSERT_DOUBLE_EQ( DotProduct( minSparse, minDense ), 0 );
+
+	// test empty (treated as dense with size = 0)
+	ASSERT_DOUBLE_EQ( DotProduct( s1.GetDesc(), CSparseFloatVectorDesc::Empty ), 0 );
+	ASSERT_DOUBLE_EQ( DotProduct( CSparseFloatVectorDesc::Empty, s1.GetDesc() ), 0 );
+	ASSERT_DOUBLE_EQ( DotProduct( s1Vec, CSparseFloatVectorDesc::Empty ), 0 );
 }
 
 TEST_F( CFloatVectorTest, MultiplyAndAdd )
