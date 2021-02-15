@@ -182,6 +182,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, CClust
 		currentCenter.Mean = center;
 		currentCenter.Disp = variance;
 		currentCenter.Norm = DotProduct( currentCenter.Mean, currentCenter.Mean );
+		currentCenter.Weight = 0;
 
 		rawCentersPtr += featureCount;
 		rawVariancesPtr += featureCount;
@@ -221,6 +222,9 @@ void CKMeansClustering::selectInitialClusters( const CSparseFloatMatrixDesc& mat
 void CKMeansClustering::defaultInitialization( const CSparseFloatMatrixDesc& matrix )
 {
 	const int vectorCount = matrix.Height;
+	CCommonCluster::CParams clusterParam;
+	clusterParam.MinElementCountForVariance = 1;
+
 	// If the cluster centers have not been specified, use some elements of the input data
 	const int step = max( vectorCount / params.InitialClustersCount, 1 );
 	NeoAssert( step > 0 );
@@ -229,7 +233,7 @@ void CKMeansClustering::defaultInitialization( const CSparseFloatMatrixDesc& mat
 		CSparseFloatVectorDesc desc;
 		matrix.GetRow( ( i * step ) % vectorCount, desc );
 		CFloatVector mean( matrix.Width, desc );
-		clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ) ) );
+		clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ), clusterParam ) );
 	}
 }
 
@@ -237,12 +241,14 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CSparseFloatMatrixDe
 {
 	const int vectorCount = matrix.Height;
 	NeoAssert( params.InitialClustersCount <= vectorCount );
+	CCommonCluster::CParams clusterParam;
+	clusterParam.MinElementCountForVariance = 1;
 
 	// Use random element as the first center
 	CRandom random( 0xCEA );
 	const int firstCenterIndex = random.UniformInt( 0, vectorCount - 1 );
 	CFloatVector firstCenter( matrix.Width, matrix.GetRow( firstCenterIndex ) );
-	clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( firstCenter ) ) );
+	clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( firstCenter ), clusterParam ) );
 
 	CArray<double> dists;
 	dists.Add( HUGE_VAL, vectorCount );
