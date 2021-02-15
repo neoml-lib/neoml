@@ -59,7 +59,7 @@ CFloatVector::CFloatVector( int size, const CSparseFloatVectorDesc& desc )
 	auto bodyPtr = FINE_DEBUG_NEW CFloatVectorBody( size );
 
 	if( desc.Indexes == nullptr ) {
-		NeoAssert( size == desc.Size );
+		NeoAssert( size >= desc.Size );
 		::memcpy( bodyPtr->Values.GetPtr(), desc.Values, size * sizeof( float ) );
 	} else {
 		int ptrSize = desc.Size;
@@ -308,8 +308,8 @@ CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, 
 			}
 		}
 	} else { // dense inside
-		NeoPresume( desc.Size <= body->Values.Size() );
-		for( int i = 0; i < desc.Size; i++ ) {
+		const int size = min( body->Values.Size(), desc.Size );
+		for( int i = 0; i < size; i++ ) {
 			ptr[i] = static_cast< float >( ptr[i] + factor * desc.Values[i] );
 		}
 	}

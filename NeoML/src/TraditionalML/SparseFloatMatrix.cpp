@@ -142,9 +142,7 @@ void CSparseFloatMatrix::GrowInElements( int newElementsBufferSize )
 
 void CSparseFloatMatrix::AddRow( const CSparseFloatVector& row )
 {
-	CSparseFloatVectorDesc desc = row.GetDesc();
-	NeoAssert( desc.Indexes != nullptr || desc.Values == nullptr );
-	AddRow( desc );
+	AddRow( row.GetDesc() );
 }
 
 void CSparseFloatMatrix::AddRow( const CSparseFloatVectorDesc& row )
@@ -185,12 +183,14 @@ void CSparseFloatMatrix::AddRow( const CSparseFloatVectorDesc& row )
 
 CSparseFloatVectorDesc CSparseFloatMatrix::GetRow( int index ) const
 {
+	NeoAssert( body != nullptr );
 	NeoAssert( 0 <= index && index < GetHeight() );
 	return body->Desc.GetRow( index );
 }
 
 void CSparseFloatMatrix::GetRow( int index, CSparseFloatVectorDesc& result ) const
 {
+	NeoAssert( body != nullptr );
 	NeoAssert( 0 <= index && index < GetHeight() );
 	body->Desc.GetRow( index, result );
 }
