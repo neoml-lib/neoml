@@ -69,6 +69,11 @@ public:
 		double Tolerance;
 		// Number of threads used in KMeans
 		int ThreadCount;
+
+		CParam() : Algo( KMA_Lloyd ), DistanceFunc( DF_Euclid ), InitialClustersCount( 1 ), Initialization( KMI_Default ),
+			MaxIterations( 1 ), Tolerance( 1e-5f ), ThreadCount( 1 )
+		{
+		}
 	};
 
 	// Constructors
