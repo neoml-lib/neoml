@@ -379,7 +379,7 @@ CSparseFloatVector& CSparseFloatVector::MultiplyAndAdd( const CSparseFloatVector
 	while( i < size && j < otherSize ) {
 		if( desc.Indexes[i] == otherDesc.Indexes[j] ) {
 			newBody->Desc.Indexes[k] = desc.Indexes[i];
-			newBody->Desc.Values[k] = static_cast<float>( desc.Values[i] + factor * desc.Values[j] );
+			newBody->Desc.Values[k] = static_cast<float>( desc.Values[i] + factor * otherDesc.Values[j] );
 			i++;
 			j++;
 		} else if( desc.Indexes[i] < otherDesc.Indexes[j] ) {

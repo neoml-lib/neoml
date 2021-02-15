@@ -80,6 +80,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/SourceLayer.cpp
     Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/SubSequenceLayer.cpp
+    Dnn/Layers/TiedEmbeddingsLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
@@ -100,7 +101,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/DecisionTreeNodeStatisticBase.h
     TraditionalML/DecisionTreeTrainingModel.cpp
     TraditionalML/DifferentialEvolution.cpp
-    TraditionalML/EMClustering.cpp
     TraditionalML/FeatureSelection.cpp
     TraditionalML/FirstComeClustering.cpp
     TraditionalML/FloatVector.cpp
@@ -120,7 +120,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/GradientBoostQSEnsemble.cpp
     TraditionalML/GradientBoostQSEnsemble.h
     TraditionalML/GradientBoostQuickScorer.cpp
-    TraditionalML/GradientBoostVectorSetStatistics.h
+    TraditionalML/GradientBoostStatisticsSingle.h
+    TraditionalML/GradientBoostStatisticsMulti.h
     TraditionalML/HierarchicalClustering.cpp
     TraditionalML/IsoDataClustering.cpp
     TraditionalML/KMeansClustering.cpp
@@ -221,6 +222,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/SourceLayer.h
     ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/SubSequenceLayer.h
+    ../include/NeoML/Dnn/Layers/TiedEmbeddingsLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
@@ -235,7 +237,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/CrossValidation.h
     ../include/NeoML/TraditionalML/DecisionTreeTrainingModel.h
     ../include/NeoML/TraditionalML/DifferentialEvolution.h
-    ../include/NeoML/TraditionalML/EMClustering.h
     ../include/NeoML/TraditionalML/FeatureSelection.h
     ../include/NeoML/TraditionalML/FirstComeClustering.h
     ../include/NeoML/TraditionalML/FloatVector.h
@@ -285,13 +286,13 @@ if(USE_FINE_OBJECTS)
 
     set(MESSAGES_DIR ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.Messages)
     set(MESSAGES_SRC ${MESSAGES_DIR}/NeoMLMessages.cpp)
-    add_custom_target(
-        CompileMessage
+    add_custom_command(
+        OUTPUT ${MESSAGES_SRC}
         COMMAND ${FINE_MESSAGE_COMPILER} -R ${MESSAGES_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../NeoMLMessages.msg
+        MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/../NeoMLMessages.msg
         WORKING_DIRECTORY ${FINE_MESSAGE_COMPILER_DIR}
         COMMENT "Generating messages."
     )
-    add_dependencies(${PROJECT_NAME} CompileMessage)
     
     set_property(SOURCE ${MESSAGES_SRC} PROPERTY GENERATED ON)
     target_sources(${PROJECT_NAME} PRIVATE ${MESSAGES_SRC})
@@ -306,7 +307,7 @@ endif()
 if(WIN32)
 	if(USE_FINE_OBJECTS)
 		target_include_directories(${PROJECT_NAME} PRIVATE
-			$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../../Build/Inc ${FINE_ROOT}/FineObjects ${MESSAGES_DIR}>>
+			$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${FINE_ROOT}/Build/Inc ${FINE_ROOT}/FineObjects ${MESSAGES_DIR}>>
 		)
 	else()
 		target_include_directories(${PROJECT_NAME} PRIVATE 

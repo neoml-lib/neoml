@@ -362,7 +362,7 @@ if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
 endif()
 
 # MKL
-if(NOT ANDROID AND NOT IOS AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86.*")
+if(NOT ANDROID AND NOT IOS AND CMAKE_SYSTEM_PROCESSOR MATCHES "(x86.*)|(amd64)|(AMD64)")
 
     if(USE_FINE_OBJECTS)
         set(ENV{MKLROOT} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})
@@ -378,7 +378,7 @@ endif()
 if(WIN32)
     if(USE_FINE_OBJECTS)
         target_include_directories(${PROJECT_NAME} PRIVATE 
-            $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../../Build/Inc ${FINE_ROOT}/FineObjects>>
+            $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${FINE_ROOT}/Build/Inc ${FINE_ROOT}/FineObjects>>
         )
         target_compile_definitions(${PROJECT_NAME} PUBLIC NEOMATHENGINE_USE_FINEOBJ)
     else()

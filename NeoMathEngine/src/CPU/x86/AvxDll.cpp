@@ -101,17 +101,27 @@ bool CAvxDll::isAvxAvailable()
 	return false;
 #endif
 
-	int cpuId[4] = { 0, 0, 0, 0 };
-	__cpuid( cpuId, 1 );
+	int cpuInfo[4] = { 0, 0, 0, 0 };
+	int cpuInfoEx[4] = { 0, 0, 0, 0 };
+	__cpuid( cpuInfo, 1 );
+	__cpuidex( cpuInfoEx, 7, 0 );
 #elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
-	unsigned int cpuId[4] = { 0, 0, 0, 0 };
-	__get_cpuid( 1, cpuId, cpuId + 1, cpuId + 2, cpuId + 3 );
+	unsigned int cpuInfo[4] = { 0, 0, 0, 0 };
+	unsigned int cpuInfoEx[4] = { 0, 0, 0, 0 };
+	__get_cpuid( 1, cpuInfo, cpuInfo + 1, cpuInfo + 2, cpuInfo + 3 );
+	#if !FINE_PLATFORM(FINE_DARWIN)
+		__cpuid_count( 7, 0, cpuInfoEx[0], cpuInfoEx[1], cpuInfoEx[2], cpuInfoEx[3] );
+	#endif
 #else
 	#error "Platform isn't supported!"
 #endif
 
-	const unsigned int AvxAndFmaBits = ( 1<< 28 ) + ( 1 << 12 );
-	return ( cpuId[2] & AvxAndFmaBits ) == AvxAndFmaBits;
+	const unsigned int AvxAndFmaBits = ( 1 << 28 ) + ( 1 << 12 );
+	bool AvxAndFmaAreAvailable = ( cpuInfo[2] & AvxAndFmaBits ) == AvxAndFmaBits;
+	// Check avx512_f bit in EBX ( any CPU with AVX512 has this bit )
+	bool AnyAvx512IsAvailable = cpuInfoEx[1] & ( 1 << 16 );
+
+	return AvxAndFmaAreAvailable && !AnyAvx512IsAvailable;
 
 }
 
