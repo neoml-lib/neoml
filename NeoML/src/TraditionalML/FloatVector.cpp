@@ -20,6 +20,13 @@ limitations under the License.
 
 namespace NeoML {
 
+CFloatVector::CFloatVectorBody::CFloatVectorBody( int size )
+{
+	Values.SetSize( size );
+	Desc.Values = Values.GetPtr();
+	Desc.Size = size;
+}
+
 CFloatVector::CFloatVector( int size, const CSparseFloatVector& sparseVector )
 {
 	NeoAssert( size >= 0 );
@@ -52,8 +59,11 @@ CFloatVector::CFloatVector( int size, const CSparseFloatVectorDesc& desc )
 	auto bodyPtr = FINE_DEBUG_NEW CFloatVectorBody( size );
 
 	if( desc.Indexes == nullptr ) {
-		NeoAssert( size == desc.Size );
-		::memcpy( bodyPtr->Values.GetPtr(), desc.Values, size * sizeof( float ) );
+		NeoAssert( size >= desc.Size );
+		::memcpy( bodyPtr->Values.GetPtr(), desc.Values, desc.Size * sizeof( float ) );
+		if( size > desc.Size ) {
+			::memset( bodyPtr->Values.GetPtr() + desc.Size, 0, ( size - desc.Size ) * sizeof( float ) );
+		}
 	} else {
 		int ptrSize = desc.Size;
 		int ptrPos = 0;
@@ -196,39 +206,6 @@ CFloatVector& CFloatVector::operator *= ( double factor )
 	return *this;
 }
 
-CFloatVector& CFloatVector::MultiplyAndAdd( const CFloatVector& vector, double factor )
-{
-	NeoPresume( body->Values.Size() == vector.body->Values.Size() );
-	NeoPresume( body->Values.Size() >= 0 );
-
-	float* ptr = CopyOnWrite();
-	const float* operand = vector.GetPtr();
-	const int size = body->Values.Size();
-
-	for( int i = 0; i < size; i++ ) {
-		ptr[i] = static_cast<float>( ptr[i] + factor * operand[i] );
-	}
-	return *this;
-}
-
-CFloatVector& CFloatVector::MultiplyAndAddExt( const CFloatVector& vector, double factor )
-{
-	NeoPresume( body->Values.Size() == vector.body->Values.Size() + 1 );
-	NeoPresume( body->Values.Size() >= 0 );
-
-	float* ptr = CopyOnWrite();
-	const float* operand = vector.GetPtr();
-	const int size = vector.body->Values.Size();
-
-	for( int i = 0; i < size; i++ ) {
-		ptr[i] = static_cast<float>( ptr[i] + factor * operand[i] );
-	}
-
-	ptr[size] = static_cast<float>( ptr[size] + factor );
-
-	return *this;
-}
-
 void CFloatVector::SquareEachElement()
 {	
 	const int size = Size();
@@ -334,8 +311,8 @@ CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, 
 			}
 		}
 	} else { // dense inside
-		NeoPresume( desc.Size <= body->Values.Size() );
-		for( int i = 0; i < desc.Size; i++ ) {
+		const int size = min( body->Values.Size(), desc.Size );
+		for( int i = 0; i < size; i++ ) {
 			ptr[i] = static_cast< float >( ptr[i] + factor * desc.Values[i] );
 		}
 	}

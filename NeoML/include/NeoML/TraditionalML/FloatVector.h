@@ -54,6 +54,8 @@ public:
 	void SetAt( int i, float what );
 	float* CopyOnWrite() { return body.CopyOnWrite()->Values.GetPtr(); }
 	const float* GetPtr() const { return body->Values.GetPtr(); }
+	const CSparseFloatVectorDesc& GetDesc() const
+		{ return body == nullptr ? CSparseFloatVectorDesc::Empty : body->Desc; }
 
 	void Nullify();
 	
@@ -98,14 +100,16 @@ public:
 private:
 	// The body of the vector is an object containing all its data.
 	struct NEOML_API CFloatVectorBody: public IObject {
+		CSparseFloatVectorDesc Desc;
 		CFastArray<float, 1> Values;
 
-		explicit CFloatVectorBody( int size ) { Values.SetSize( size ); }
+		explicit CFloatVectorBody( int size );
 	
 		CFloatVectorBody* Duplicate() const;
 	};
 
 	CCopyOnWritePtr<CFloatVectorBody> body; // the vector body
+	CSparseFloatVectorDesc desc;
 };
 
 inline CFloatVector::CFloatVectorBody* CFloatVector::CFloatVectorBody::Duplicate() const
@@ -115,9 +119,35 @@ inline CFloatVector::CFloatVectorBody* CFloatVector::CFloatVectorBody::Duplicate
 	return result;
 }
 
+inline CFloatVector& CFloatVector::MultiplyAndAdd( const CFloatVector& vector, double factor )
+{
+	NeoPresume( body != nullptr );
+	NeoPresume( body->Desc.Size == vector.body->Desc.Size );
+	NeoPresume( body->Desc.Size >= 0 );
+
+	MultiplyAndAdd( vector.GetDesc(), factor );
+	return *this;
+}
+
+inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CFloatVector& vector, double factor )
+{
+	NeoPresume( body != nullptr );
+	NeoPresume( body->Desc.Size == vector.body->Desc.Size + 1 );
+	NeoPresume( body->Desc.Size >= 0 );
+
+	MultiplyAndAdd( vector.GetDesc(), factor );
+	SetAt( Size() - 1, static_cast<float>( GetPtr()[Size() - 1] + factor ) );
+
+	return *this;
+}
+
 inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVector& vector, double factor )
 {
-	MultiplyAndAdd( vector, factor );
+	NeoPresume( body != nullptr );
+	NeoPresume( body->Desc.Size > vector.GetDesc().Indexes[vector.NumberOfElements()-1] + 1 );
+	NeoPresume( body->Desc.Size >= 0 );
+
+	MultiplyAndAdd( vector.GetDesc(), factor );
 	SetAt( Size() - 1, static_cast<float>( GetPtr()[Size() - 1] + factor ) );
 
 	return *this;
@@ -125,6 +155,8 @@ inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVector& 
 
 inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVectorDesc& vector, double factor )
 {
+	NeoPresume( body != nullptr );
+
 	MultiplyAndAdd( vector, factor );
 	SetAt( Size() - 1, static_cast<float>( GetPtr()[Size() - 1] + factor ) );
 
@@ -164,32 +196,33 @@ inline CFloatVector::TIterator CFloatVector::end()
 }
 
 // The dot product of two vectors
-inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vector2 )
-{
-	NeoPresume( vector1.Size() == vector2.Size() );
-	double sum = 0;
-
-	const int size = vector1.Size();
-	const float* operand1 = vector1.GetPtr();
-	const float* operand2 = vector2.GetPtr();
-
-	for( int i = 0; i < size; i++ ) {
-		sum += static_cast<double>( operand1[i] ) * operand2[i];
-	}
-	return sum;
-}
-
-// The dot product of two vectors
 inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFloatVectorDesc& vector2 )
 {
 	double sum = 0;
-	if( vector1.Indexes == nullptr ) { // dense array inside
-		NeoPresume( vector2.Indexes == nullptr );
-		const int size = min( vector1.Size, vector2.Size );
-		for( int i = 0; i < size; i++ ) {
-			sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[i];
+
+	auto denseBySparse = []( const CSparseFloatVectorDesc& dense, const CSparseFloatVectorDesc& sparse, double& sum ) {
+		if( sparse.Indexes[0] >= dense.Size ) {
+			sum = 0;
+		} else {
+			int lastPos = sparse.Size - 1;
+			while( sparse.Indexes[lastPos] >= dense.Size ) {
+				--lastPos;
+			}
+			for( int i = 0; i <= lastPos; i++ ) {
+				sum += static_cast<double>( sparse.Values[i] ) * dense.Values[sparse.Indexes[i]];
+			}
 		}
-	} else {
+	};
+	if( vector1.Indexes == nullptr ) {
+		if( vector2.Indexes == nullptr ) {
+			const int size = min( vector1.Size, vector2.Size );
+			for( int i = 0; i < size; i++ ) {
+				sum += static_cast<double>( vector1.Values[i] ) * vector2.Values[i];
+			}
+		} else {
+			denseBySparse( vector1, vector2, sum );
+		}
+	} else if( vector2.Indexes != nullptr ) {
 		int i = 0;
 		int j = 0;
 		while( i < vector1.Size && j < vector2.Size ) {
@@ -205,28 +238,22 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 				}
 			}
 		}
+	} else {
+		denseBySparse( vector2, vector1, sum );
 	}
 	return sum;
 }
 
 // The dot product of two vectors
+inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vector2 )
+{
+	return DotProduct( vector1.GetDesc(), vector2.GetDesc() );
+}
+
+// The dot product of two vectors
 inline double DotProduct( const CFloatVector& vector1, const CSparseFloatVectorDesc& vector2 )
 {
-	double sum = 0;
-	const float* operand1 = vector1.GetPtr();
-	if( vector2.Indexes == nullptr ) { // dense array inside
-		NeoPresume( vector2.Size <= vector1.Size() );
-		for( int i = 0; i < vector2.Size; i++ ) {
-			sum += static_cast<double>( vector2.Values[i] ) * operand1[i];
-		}
-	} else {
-		// The sparse vector may not be longer than the regular one
-		NeoPresume( vector2.Size == 0 || vector2.Indexes[vector2.Size - 1] < vector1.Size() );
-		for( int i = 0; i < vector2.Size; i++ ) {
-			sum += static_cast<double>( vector2.Values[i] ) * operand1[vector2.Indexes[i]];
-		}
-	}
-	return sum;
+	return DotProduct( vector1.GetDesc(), vector2 );
 }
 
 // The dot product of two vectors
