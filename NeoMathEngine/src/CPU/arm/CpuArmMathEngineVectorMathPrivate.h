@@ -395,7 +395,8 @@ inline void vectorAddValue( const float* first, float* result, int vectorSize, f
 {
 	float32x4_t addition = vdupq_n_f32(value);
 
-	for(int i = 0; i < count; ++i) {
+	int coord = 0;
+	for( ; coord <= vectorSize - 4; coord += 4 ) {
 		float32x4_t res = vaddq_f32(LoadNeon4(first), addition);
 		StoreNeon4(res, result);
 
@@ -403,6 +404,7 @@ inline void vectorAddValue( const float* first, float* result, int vectorSize, f
 		result += 4;
 	}
 
+	vectorSize -= coord;
 	if(vectorSize > 0) {
 		float32x4_t res = vaddq_f32(LoadNeon(first, vectorSize), addition);
 		StoreNeon(res, result, vectorSize);
@@ -415,7 +417,8 @@ inline void vectorDotProduct( const float* first, const float* second, int vecto
 {
 	float32x4_t acc = vdupq_n_f32(0);
 
-	for(int i = 0; i < count; ++i) {
+	int coord = 0;
+	for( ; coord <= vectorSize - 4; coord += 4 ) {
 		float32x4_t res = vmulq_f32(LoadNeon4(first), LoadNeon4(second));
 		acc = vaddq_f32(acc, res);
 
@@ -423,6 +426,7 @@ inline void vectorDotProduct( const float* first, const float* second, int vecto
 		second += 4;
 	}
 
+	vectorSize -= coord;
 	if(vectorSize > 0) {
 		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize, 0), LoadNeon(second, vectorSize, 0));
 		acc = vaddq_f32(acc, res);
