@@ -205,8 +205,7 @@ static void kmeansElkanClustering( IClusteringData* data, CClusteringResult& res
 // --------------------------------------------------------------------------------------------------------------------
 // Result check functions
 
-static const double doubleEps = 1e-6;
-static const float floatEps = 1e-4f;
+static const float eps = 1e-4f;
 
 static bool isEqual( const CFloatVector& first, const CFloatVector& second )
 {
@@ -218,7 +217,7 @@ static bool isEqual( const CFloatVector& first, const CFloatVector& second )
 	const float* secondPtr = second.GetPtr();
 
 	for( int i = 0; i < first.Size(); ++i ) {
-		if( fabs( firstPtr[i] - secondPtr[i] ) > floatEps ) {
+		if( fabs( firstPtr[i] - secondPtr[i] ) > eps ) {
 			return false;
 		}
 	}
