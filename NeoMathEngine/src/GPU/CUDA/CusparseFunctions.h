@@ -28,7 +28,6 @@ struct CCusparse {
 	// typedef for convenience
 	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseCreate ) ( cusparseHandle_t *handle );
 	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseDestroy ) ( cusparseHandle_t handle );
-	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseSetStream ) ( cusparseHandle_t handle, cudaStream_t streamId );
 	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseCreateCsr ) ( cusparseSpMatDescr_t* spMatDescr, int64_t rows,
 		int64_t cols, int64_t nnz, void* csrRowOffsets, void* csrColInd,  void* csrValues,
 		cusparseIndexType_t csrRowOffsetsType, cusparseIndexType_t csrColIndType, cusparseIndexBase_t idxBase,
@@ -47,7 +46,6 @@ struct CCusparse {
 
 	TCusparseCreate Create;
 	TCusparseDestroy Destroy;
-	TCusparseSetStream SetStream;
 	TCusparseCreateCsr CreateCsr;
 	TCusparseDestroySpMat DestroySpMat;
 	TCusparseCreateDnMat CreateDnMat;
