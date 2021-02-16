@@ -30,7 +30,7 @@ CFloatVector::CFloatVectorBody::CFloatVectorBody( int size )
 CFloatVector::CFloatVector( int size, const CSparseFloatVector& sparseVector ) :
 	CFloatVector( size, sparseVector.GetDesc() )
 {
-	NeoAssert( desc.Indexes != nullptr );
+	NeoAssert( sparseVector.GetDesc().Indexes != nullptr );
 }
 
 CFloatVector::CFloatVector( int size, const CSparseFloatVectorDesc& desc )
@@ -285,10 +285,8 @@ CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, 
 		const int size = body->Values.Size();
 		NeoPresume( size >= ( desc.Size == 0 ? 0 : desc.Indexes[desc.Size - 1] + 1 ) );
 		for( int i = 0; i < desc.Size; i++ ) {
-			int j = desc.Indexes[i];
-			if( j < size ) {
-				ptr[j] = static_cast< float >( ptr[j] + desc.Values[i] * factor );
-			}
+			const int j = desc.Indexes[i];
+			ptr[j] = static_cast< float >( ptr[j] + desc.Values[i] * factor );
 		}
 	} else { // dense inside
 		NeoPresume( body->Values.Size() >= desc.Size );

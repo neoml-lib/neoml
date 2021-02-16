@@ -49,7 +49,7 @@ TEST_F( CFloatVectorTest, DotProduct )
 
 	CRandom rand( 0 );
 	CSparseFloatVector s1 = generateRandomVector( rand, maxLength );
-	CFloatVector s1Vec( maxLength, s1.GetDesc() );
+	CFloatVector s1Vec( maxLength, s1 );
 	CSparseFloatVectorDesc s1DenseDesc( s1Vec.GetDesc() );
 	for( int i = 0; i < numberOfTests; ++i ) {
 		CSparseFloatVector s2 = generateRandomVector( rand, maxLength );

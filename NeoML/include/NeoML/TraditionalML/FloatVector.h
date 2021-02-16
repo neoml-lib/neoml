@@ -109,7 +109,6 @@ private:
 	};
 
 	CCopyOnWritePtr<CFloatVectorBody> body; // the vector body
-	CSparseFloatVectorDesc desc;
 };
 
 inline CFloatVector::CFloatVectorBody* CFloatVector::CFloatVectorBody::Duplicate() const
