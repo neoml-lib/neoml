@@ -167,15 +167,17 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         # Using CUDA
         enable_language(CUDA)
         
-        # extracting major CUDA version
+        # extracting major CUDA
         string(REPLACE "." ";" NEOML_CUDA_VERSION_LIST ${CMAKE_CUDA_COMPILER_VERSION})
         list(GET NEOML_CUDA_VERSION_LIST 0 NEOML_CUDA_VERSION_MAJOR)
         list(GET NEOML_CUDA_VERSION_LIST 1 NEOML_CUDA_VERSION_MINOR)
 
         if(NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11" OR NOT "${NEOML_CUDA_VERSION_MINOR}" STREQUAL "2")
             if(USE_FINE_OBJECTS)
+                # Internal build must fail in case of version mismatch
                 message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
             else()
+                # OSS build can continue
                 message(STATUS "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
             endif()
         else()
