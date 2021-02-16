@@ -28,7 +28,7 @@ template<class T>
 class CGradientBoostFullTreeBuilder;
 class CGradientBoostStatisticsSingle;
 class CGradientBoostStatisticsMulti;
-
+template<class T>
 class CGradientBoostFastHistTreeBuilder;
 class IGradientBoostingLossFunction;
 class CGradientBoostModel;
@@ -63,8 +63,11 @@ enum TGradientBoostTreeBuilder {
 	// This algorithm is faster and works best for binary problems that fit into memory
 	GBTB_FastHist,
 	// Similar to GBTB_Full but with multiclass trees,
-	// whose leaves contain a vector of values for all classes
+	// which leaves contain a vector of values for all classes
 	GBTB_MultiFull,
+	// Similar to GBTB_FastHist but with multiclass trees,
+	// which leaves contain a vector of values for all classes
+	GBTB_MultiFastHist,
 	GBTB_Count
 };
 
@@ -157,8 +160,9 @@ private:
 	CRandom defaultRandom; // the default random number generator
 	CTextStream* logStream; // the logging stream
 	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>> fullSingleClassTreeBuilder; // TGBT_Full tree builder for single class
-	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>> fullMultiClassTreeBuilder; // TGBT_Full tree builder for multi class
-	CPtr<CGradientBoostFastHistTreeBuilder> fastHistTreeBuilder; // TGBT_FastHist tree builder
+	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>> fullMultiClassTreeBuilder; // TGBT_MultiFull tree builder for multi class
+	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>> fastHistSingleClassTreeBuilder; // TGBT_FastHist tree builder for single class
+	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>> fastHistMultiClassTreeBuilder; // TGBT_MultiFastHist tree builder for multi class
 	CPtr<CGradientBoostFullProblem> fullProblem; // the problem data for TGBT_Full mode
 	CPtr<CGradientBoostFastHistProblem> fastHistProblem; // the problem data for TGBT_FastHist mode
 	CArray< CArray<CPredictionCacheItem> > predictCache; // the cache for predictions of the models being built

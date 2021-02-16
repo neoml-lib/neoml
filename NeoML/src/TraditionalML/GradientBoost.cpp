@@ -406,7 +406,9 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 	buildFullPredictions( *problem, models );
 	loss = lossFunction->CalcLossMean( predicts, answers );
 
-	return FINE_DEBUG_NEW CGradientBoostModel( models,  params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1, params.LearningRate, params.LossFunction );
+	return FINE_DEBUG_NEW CGradientBoostModel( models,  
+		( params.TreeBuilder == GBTB_MultiFull || params.TreeBuilder == GBTB_MultiFastHist ) ? problem->GetValueSize() : 1,
+		params.LearningRate, params.LossFunction );
 }
 
 // Creates a tree builder depending on the problem type
@@ -438,7 +440,7 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 		}
 		case GBTB_FastHist:
 		{
-			CGradientBoostFastHistTreeBuilder::CParams builderParams;
+			CGradientBoostFastHistTreeBuilderParams builderParams;
 			builderParams.L1RegFactor = params.L1RegFactor;
 			builderParams.L2RegFactor = params.L2RegFactor;
 			builderParams.MinSubsetHessian = 1e-3f;
@@ -448,7 +450,12 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.PruneCriterionValue = params.PruneCriterionValue;
 			builderParams.MaxBins = params.MaxBins;
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
-			fastHistTreeBuilder = FINE_DEBUG_NEW CGradientBoostFastHistTreeBuilder( builderParams, logStream );
+			if( params.TreeBuilder == GBTB_MultiFull ) {
+				NeoAssert( problem->GetValueSize() > 1 );
+				fastHistMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream );
+			} else {
+				fastHistSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream );
+			}
 			fastHistProblem = FINE_DEBUG_NEW CGradientBoostFastHistProblem( params.ThreadCount, params.MaxBins,
 				*problem, usedVectors, usedFeatures );
 			break;
@@ -464,7 +471,8 @@ void CGradientBoost::destroyTreeBuilder()
 	fullSingleClassTreeBuilder.Release();
 	fullMultiClassTreeBuilder.Release();
 	fullProblem.Release();
-	fastHistTreeBuilder.Release();
+	fastHistSingleClassTreeBuilder.Release();
+	fastHistMultiClassTreeBuilder.Release();
 	fastHistProblem.Release();
 }
 
@@ -606,10 +614,14 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 		}
 	}
 
-	if( fullMultiClassTreeBuilder != nullptr ) {
+	if( fullMultiClassTreeBuilder != nullptr || fastHistMultiClassTreeBuilder != nullptr ) {
 		CPtr<IRegressionTreeModel> model;
-		model = fullMultiClassTreeBuilder->Build( *fullProblem,
-			gradients, gradientsSum, hessians, hessiansSum, weights, weightsSum );
+		if( fullMultiClassTreeBuilder != nullptr ) {
+			model = fullMultiClassTreeBuilder->Build( *fullProblem,
+				gradients, gradientsSum, hessians, hessiansSum, weights, weightsSum );
+		} else {
+			model = fastHistMultiClassTreeBuilder->Build( *fastHistProblem, gradients, hessians, weights );
+		}
 		curModels.Add( model );
 	} else {
 		for( int i = 0; i < gradients.Size(); i++ ) {
@@ -625,7 +637,7 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 					hessians[i], hessiansSum[i],
 					weights, weightsSum );
 			} else {
-				model = fastHistTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
+				model = fastHistSingleClassTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
 			}
 			curModels.Add( model );
 		}

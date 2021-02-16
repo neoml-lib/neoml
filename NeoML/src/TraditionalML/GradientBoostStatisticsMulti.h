@@ -69,6 +69,9 @@ public:
 	// Get value size
 	int ValueSize() const { return totalGradient.Size(); }
 
+	// Set value size
+	void SetSize( int valueSize );
+
 private:
 	CArray<double> totalGradient; // total gradient
 	CArray<double> totalHessian; // total hessian
@@ -254,6 +257,12 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 	}
 	criterion = static_cast<float>( result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) ) );
 	return true;
+}
+
+inline void CGradientBoostStatisticsMulti::Resize( int valueSize )
+{
+	totalGradient.SetSize( valueSize );
+	totalHessian.SetSize( valueSize );
 }
 
 } // namespace NeoML

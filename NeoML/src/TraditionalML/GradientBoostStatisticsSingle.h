@@ -64,6 +64,8 @@ public:
 
 	// Get value size
 	int ValueSize() const { return 1; }
+	// Set value size
+	void SetSize( int valueSize ) { NeoAssert( valueSize == 1 ); }
 
 private:
 	double totalGradient; // total gradient
