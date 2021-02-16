@@ -14,7 +14,7 @@ function(add_gtest_for_target TARGET_NAME MATH_ENGINE_TYPE WORKING_DIR)
                 COMMENT "Copy NeoMathEngine to ${TARGET_NAME} binary dir to discover tests."
             )
         endif()
-
+        
         if(TARGET NeoML)
             get_target_property(LIB_TYPE NeoML TYPE)
             if(LIB_TYPE STREQUAL "SHARED_LIBRARY")
