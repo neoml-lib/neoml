@@ -201,16 +201,8 @@ inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFl
 	double sum = 0;
 
 	auto denseBySparse = []( const CSparseFloatVectorDesc& dense, const CSparseFloatVectorDesc& sparse, double& sum ) {
-		if( sparse.Indexes[0] >= dense.Size ) {
-			sum = 0;
-		} else {
-			int lastPos = sparse.Size - 1;
-			while( sparse.Indexes[lastPos] >= dense.Size ) {
-				--lastPos;
-			}
-			for( int i = 0; i <= lastPos; i++ ) {
-				sum += static_cast<double>( sparse.Values[i] ) * dense.Values[sparse.Indexes[i]];
-			}
+		for( int i = 0; i < sparse.Size && sparse.Indexes[i] < dense.Size; i++ ) {
+			sum += static_cast<double>( sparse.Values[i] ) * dense.Values[sparse.Indexes[i]];
 		}
 	};
 	if( vector1.Indexes == nullptr ) {
