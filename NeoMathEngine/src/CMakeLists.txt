@@ -167,7 +167,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         # Using CUDA
         enable_language(CUDA)
         
-        # extracting major CUDA
+        # extracting CUDA version
         string(REPLACE "." ";" NEOML_CUDA_VERSION_LIST ${CMAKE_CUDA_COMPILER_VERSION})
         list(GET NEOML_CUDA_VERSION_LIST 0 NEOML_CUDA_VERSION_MAJOR)
         list(GET NEOML_CUDA_VERSION_LIST 1 NEOML_CUDA_VERSION_MINOR)
