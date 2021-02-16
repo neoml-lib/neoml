@@ -483,7 +483,7 @@ void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue
 
 	if( statistics.Criterion < criterion || ( statistics.Criterion == criterion && statistics.FeatureIndex > feature ) ) {
 		statistics.FeatureIndex = feature;
-		statistics.Criterion = static_cast<float>( criterion );
+		statistics.Criterion = criterion;
 		if( fabs( firstValue - secondValue ) > 1e-10 ) {
 			statistics.Threshold = ( firstValue + secondValue ) / 2;
 		} else {
