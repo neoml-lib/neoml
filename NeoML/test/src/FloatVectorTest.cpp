@@ -122,6 +122,11 @@ TEST_F( CFloatVectorTest, MultiplyAndAdd )
 		s2VecCopy.MultiplyAndAdd( s1Vec, factor );
 		ASSERT_DOUBLE_EQ( DotProduct( s2VecCopy, s1 ), results[i] );
 	}
+
+	// test empty
+	CFloatVector denseEmpty( 0 );
+	denseEmpty.MultiplyAndAdd( CSparseFloatVectorDesc::Empty, 4 );
+	ASSERT_EQ( denseEmpty.Size(), 0 );
 }
 
 TEST_F( CFloatVectorTest, MultiplyAndAddExt )
@@ -156,6 +161,12 @@ TEST_F( CFloatVectorTest, MultiplyAndAddExt )
 		s2VecCopy.MultiplyAndAddExt( s1DenseDesc, factor );
 		ASSERT_DOUBLE_EQ( DotProduct( s2VecCopy, s1 ), results[i] );
 	}
+
+	// test empty
+	CFloatVector denseOneElement( 1, 2 );
+	denseOneElement.MultiplyAndAddExt( CSparseFloatVectorDesc::Empty, 4 );
+	ASSERT_EQ( denseOneElement.Size(), 1 );
+	ASSERT_EQ( denseOneElement[0], 6 );
 }
 
 TEST_F( CFloatVectorTest, GetValue )
