@@ -337,8 +337,8 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 				// Calculating the gain: if the node is split at this position, 
 				// the criterion loses the parent node (bestValue) and replaces it by left.CalcCriterion and right.CalcCriterion
 				// In the reference paper, a gamma coefficient is also needed for a new node, but we take that into account while pruning
-				double criterion = T::CalcCriterion( criterion, left, right, node.Statistics,
-					params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient ) );	
+				double criterion = T::CalcCriterion( left, right, node.Statistics,
+					params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient );	
 
 				if( splitGainsByThread[threadNumber] < criterion ) {
 					splitGainsByThread[threadNumber] = criterion;

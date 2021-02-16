@@ -478,7 +478,7 @@ void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue
 	T leftStatistics( statistics.CurLeftStatistics );
 	T rightStatistics( statistics.CurRightStatistics );
 	
-	float criterion = static_cast<float>( T::CalcCriterion( criterion, leftStatistics, rightStatistics, statistics.TotalStatistics,
+	float criterion = static_cast<float>( T::CalcCriterion( leftStatistics, rightStatistics, statistics.TotalStatistics,
 		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient ) );	
 
 	if( statistics.Criterion < criterion || ( statistics.Criterion == criterion && statistics.FeatureIndex > feature ) ) {
