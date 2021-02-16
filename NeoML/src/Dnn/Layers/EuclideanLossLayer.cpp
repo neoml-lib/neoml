@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,6 +47,13 @@ void CEuclideanLossLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( EuclideanLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CLossLayer::Serialize( archive );
+}
+
+CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight )
+{
+	return CLayerWrapper<CEuclideanLossLayer>( "EuclideanLoss", [=]( CEuclideanLossLayer* result ) {
+		result->SetLossWeight( lossWeight );
+	} );
 }
 
 }

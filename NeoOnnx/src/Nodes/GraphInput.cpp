@@ -17,52 +17,51 @@ limitations under the License.
 #pragma hdrstop
 
 #include "GraphInput.h"
-#include "../TensorUtils.h"
-#include "../NeoOnnxCheck.h"
+#include "GraphCache.h"
+#include "TensorUtils.h"
+#include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CGraphInput::CGraphInput( const onnx::ValueInfoProto& _input, CMap<CString, CInputInfo>& nodeOutputs ) :
-	CNode( onnx::NodeProto(), nodeOutputs ),
+CGraphInput::CGraphInput( int nodeIndex, const onnx::ValueInfoProto& _input ) :
+	CNode( nodeIndex, 0, 1 ),
 	name( _input.name().c_str() ),
 	valueInfo( _input )
 {
-	nodeOutputs.Add( name, CInputInfo( this, 0 ) );
 }
 
-void CGraphInput::OnnxReshape()
+void CGraphInput::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
 {
-	CTensorShape shape;
-	shape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
-	for( const onnx::TensorShapeProto_Dimension dim : valueInfo.type().tensor_type().shape().dim() ) {
-		shape.Add( static_cast<int>( dim.dim_value() ) );
+	CTensorShape& outputShape = tensors[Output[0]].Shape;
+	outputShape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
+	for( const onnx::TensorShapeProto_Dimension& dim : valueInfo.type().tensor_type().shape().dim() ) {
+		outputShape.Add( static_cast<int>( dim.dim_value() ) );
 	}
-
-	outputData.Add( CTensor( TT_DataTensor, shape ) );
 }
 
-void CGraphInput::AddLayers( CDnn& net )
+void CGraphInput::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
+	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
 {
-	CPtr<CSourceLayer> source = new CSourceLayer( net.GetMathEngine() );
+	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 	source->SetName( name );
 
 	CheckNeoOnnxSupport( valueInfo.type().has_tensor_type(), "Only tensors supported for graph input values" );
 	CBlobDesc outputBlobDesc(
 		GetBlobType( static_cast<onnx::TensorProto_DataType>( valueInfo.type().tensor_type().elem_type() ) ) );
 
-	NeoOnnxCheck( outputData[0].GetTensorDim().Size() == outputData[0].GetShape().Size(),
+	NeoOnnxCheck( dims[Output[0]].Size() == tensors[Output[0]].Shape.Size(),
 		"Graph input tensor's dimensions weren't marked with NeoML blob dimensions" );
-	for( int i = 0; i < outputData[0].GetTensorDim().Size(); ++i ) {
-		outputBlobDesc.SetDimSize( outputData[0].GetTensorDim()[i], outputData[0].GetShape()[i] );
+	for( int i = 0; i < dims[Output[0]].Size(); ++i ) {
+		outputBlobDesc.SetDimSize( dims[Output[0]][i], tensors[Output[0]].Shape[i] );
 	}
-	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( net.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );
+	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );
 	source->SetBlob( inputBlob );
 
-	net.AddLayer( *source );
+	dnn.AddLayer( *source );
 
-	outputInfo.Add( COutputInfo( source, 0 ) );
+	neoMLLinks[Output[0]] = CNeoMLLink( source, 0 );
 }
 
 } // namespace NeoOnnx

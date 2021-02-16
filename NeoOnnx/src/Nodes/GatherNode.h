@@ -17,21 +17,17 @@ limitations under the License.
 
 #include "../Node.h"
 
-// Forward declaration(s).
-namespace onnx {
-class NodeProto;
-} // namespace onnx
-
 namespace NeoOnnx {
 
-class CGatherNode : public CNode {
+// Gather operator graph node
+class CGatherNode : public COpNode {
 public:
-	CGatherNode( const onnx::NodeProto& gather, CMap<CString, CInputInfo>& nodeOutputs );
+	CGatherNode( int nodeIndex, const onnx::NodeProto& gather, int opsetVersion );
 
-	// CNode methods' realizations.
-	void OnnxReshape() override;
-	void MarkTensorDims() override {}
-	void AddLayers( CDnn& ) override {}
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache& /* tensors */, CDimCache& /* dims */ ) override {}
+	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache&, CDnn& ) override {}
 };
 
 } // namespace NeoOnnx

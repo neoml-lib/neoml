@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -104,6 +104,21 @@ void CSubSequenceLayer::BackwardOnce()
 		outputDiffBlobs[0]->GetObjectSize() * outputDiffBlobs[0]->GetListSize(),
 		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetBatchLength() * inputDiffBlobs[0]->GetBatchWidth(), 
 		indices->GetData<int>(), CConstFloatHandle() );
+}
+
+CLayerWrapper<CSubSequenceLayer> SubSequence( int startPos, int length )
+{
+	return CLayerWrapper<CSubSequenceLayer>{ "SubSequence", [=]( CSubSequenceLayer* result ) {
+		result->SetStartPos( startPos );
+		result->SetLength( length );
+	} };
+}
+
+CLayerWrapper<CSubSequenceLayer> ReverseSequence()
+{
+	return CLayerWrapper<CSubSequenceLayer>( "ReverseSubSequence", [=]( CSubSequenceLayer* result ) {
+		result->SetReverse();
+	} );
 }
 
 } // namespace NeoML

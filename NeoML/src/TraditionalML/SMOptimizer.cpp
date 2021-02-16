@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,159 +22,12 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/TraditionalML/SMOptimizer.h>
+#include <SMOptimizer.h>
 
 namespace NeoML {
 
 const double CSMOptimizer::Inf = HUGE_VAL;
 const double CSMOptimizer::Tau = 1e-12;
-
-// Raise a number to a power: base**times
-inline double power(double base, int times)
-{
-	double tmp = base, ret = 1.0;
-	for(int t = times; t > 0; t /= 2)
-	{
-		if(t % 2 == 1) {
-			ret *= tmp;
-		}
-		tmp = tmp * tmp;
-	}
-	return ret;
-}
-
-CSvmKernel::CSvmKernel(TKernelType kernelType, int degree, double gamma, double coef0) :
-	kernelType(kernelType), degree(degree), gamma(gamma), coef0(coef0)
-{
-}
-
-// The linear kernel
-double CSvmKernel::linear(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return DotProduct(x1, x2);
-}
-
-double CSvmKernel::linear(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return DotProduct(x1, x2);
-}
-
-// The polynomial kernel
-double CSvmKernel::poly(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return power(gamma * DotProduct(x1, x2) + coef0, degree);
-}
-
-double CSvmKernel::poly(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return power(gamma * DotProduct(x1, x2) + coef0, degree);
-}
-
-// The Gaussian kernel
-double CSvmKernel::rbf(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	double square = 0;
-	int i, j;
-	double diff;
-	for( i = 0, j = 0; i < x1.Size && j < x2.Size; ) {
-		if( x1.Indexes[i] == x2.Indexes[j] ) {
-			diff = x1.Values[i] - x2.Values[j];
-			i++;
-			j++;
-		} else if( x1.Indexes[i] < x2.Indexes[j] ) {
-			diff = x1.Values[i];
-			i++;
-		} else {
-			diff = x2.Values[j];
-			j++;
-		}
-		square += diff * diff;
-	}
-	for(; i < x1.Size; i++) {
-		diff = x1.Values[i];
-		square += diff * diff;
-	}
-	for(; j < x2.Size; j++) {
-		diff = x2.Values[j];
-		square += diff * diff;
-	}
-	return exp(-gamma * square);
-}
-
-double CSvmKernel::rbf(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	double square = 0;
-	int i, j;
-	double diff;
-	for( i = 0, j = 0; i < x1.Size() && j < x2.Size; ) {
-		if( i == x2.Indexes[j] ) {
-			diff = x1[i] - x2.Values[j];
-			i++;
-			j++;
-		} else if( i < x2.Indexes[j] ) {
-			diff = x1[i];
-			i++;
-		} else {
-			diff = x2.Values[j];
-			j++;
-		}
-		square += diff * diff;
-	}
-	for(; i < x1.Size(); i++) {
-		diff = x1[i];
-		square += diff * diff;
-	}
-	for(; j < x2.Size; j++) {
-		diff = x2.Values[j];
-		square += diff * diff;
-	}
-	return exp(-gamma * square);
-}
-
-// The sigmoid kernel
-double CSvmKernel::sigmoid(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return tanh(gamma * DotProduct(x1, x2) + coef0);
-}
-
-double CSvmKernel::sigmoid(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return tanh(gamma * DotProduct(x1, x2) + coef0);
-}
-
-double CSvmKernel::Calculate(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	switch( kernelType ) {
-		case KT_Linear:
-			return linear(x1, x2);
-		case KT_Poly:
-			return poly(x1, x2);
-		case KT_RBF:
-			return rbf(x1, x2);
-		case KT_Sigmoid:
-			return sigmoid(x1, x2);
-		default:
-			NeoAssert(false);
-			return 0;
-	}
-}
-
-double CSvmKernel::Calculate(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	switch( kernelType ) {
-		case KT_Linear:
-			return linear(x1, x2);
-		case KT_Poly:
-			return poly(x1, x2);
-		case KT_RBF:
-			return rbf(x1, x2);
-		case KT_Sigmoid:
-			return sigmoid(x1, x2);
-		default:
-			NeoAssert(false);
-			return 0;
-	}
-}
 
 // Kernel cache
 //
@@ -187,31 +40,45 @@ public:
 	CKernelCache(int matrixSize, int cacheSize);
 	~CKernelCache();
 	
-	int MatrixSize() const { return matrixSize; }
-	// Returns true if the data block has been filled
-	bool GetColumn(int i, float*& data);
-	// Returns the pointer to the column; may be null
-	float* GetColumn(int i) const  { return columns[i].Data; }
+	// request Column[0,len)
+	// return some position start where [start,len) need to be filled
+	// (if start >= len, nothing needs to be filled)
+	int GetColumn( int i, float*& data, int len );
+	// Returns the pointer to the column (may be null) and sets the len
+	float* GetColumn( int i, int& len ) const;
+	// Swaps the data associated with indices
+	void SwapIndices( int i, int j );
 
 private:
-	const int matrixSize; // the matrix size
+	int matrixSize; // the maximum data array len
 	int freeSpace; // the free space in cache (how many float values can fit in) 
 	struct CList {
-		CList *Prev, *Next;	// circular list
-		float *Data; // the data
+		CList *Prev, *Next;	// a circular list
+		float *Column; // the column data
+		int Length; // Column[0,Length) is cached in this entry
 
-		CList() { Prev = Next = 0; Data = 0; }
+		CList() { Prev = Next = nullptr; Column = nullptr; Length = 0; }
+		~CList() { delete[] Column; }
 	};
-	CArray<CList> columns;  // the array of matrix columns
+	CArray<CList> columns; // the array of matrix columns
+	CList* c; // raw pointer to columns
 	CList lruHead; // the head of the LRU list
 	
 	void lruDelete(CList *l);
 	void lruInsert(CList *l);
 };
 
-CKernelCache::CKernelCache(int matrixSize, int cacheSize) : matrixSize(matrixSize)
+inline float* CKernelCache::GetColumn( int i, int& len ) const
+{
+	len = c[i].Length;
+	return c[i].Column;
+}
+
+CKernelCache::CKernelCache( int _matrixSize, int cacheSize )
+	: matrixSize( _matrixSize )
 {
 	columns.SetSize(matrixSize);
+	c = columns.GetPtr();
 	freeSpace = cacheSize / sizeof(float);
 	freeSpace -= matrixSize * sizeof(CList) / sizeof(float); // the columns array size
 	freeSpace = max(freeSpace, 2 * matrixSize);	// at least two columns should fit into cache
@@ -220,9 +87,6 @@ CKernelCache::CKernelCache(int matrixSize, int cacheSize) : matrixSize(matrixSiz
 
 CKernelCache::~CKernelCache()
 {
-	for(CList *l = lruHead.Next; l != &lruHead; l = l->Next) {
-		delete l->Data;
-	}
 }
 
 // Deletes an element from the LRU list
@@ -241,31 +105,83 @@ void CKernelCache::lruInsert(CList *l)
 	l->Next->Prev = l;
 }
 
-bool CKernelCache::GetColumn(int i, float*& data)
+int CKernelCache::GetColumn( int i, float*& data, int len )
 {
-	CList& column = columns[i];
-	if(column.Next != 0) {
-		lruDelete(&column);
+	CList* l = c + i;
+	if( l->Length != 0 ) {
+		lruDelete( l );
 	}
-	lruInsert(&column);
-	// The cache has the necessary data
-	if(column.Data != 0) {
-		data = column.Data;
-		return true;
+
+	int rest = len - l->Length;
+	if( rest > 0 ) {
+		while( freeSpace < rest ) {
+			CList* old = lruHead.Next;
+			lruDelete( old );
+			if( old->Length != 0 ) {
+				delete[] old->Column;
+				freeSpace += old->Length;
+				old->Column = nullptr;
+				old->Length = 0;
+			}
+		}
+
+		// reallocate space
+		if( l->Column != nullptr ) {
+			CList tmp;
+			tmp.Column = FINE_DEBUG_NEW float[len];
+			memcpy( tmp.Column, l->Column, l->Length * sizeof( float ) );
+			swap( l->Column, tmp.Column );
+		} else {
+			NeoPresume( l->Length == 0 );
+			l->Column = FINE_DEBUG_NEW float[len];
+		}
+		
+		freeSpace -= rest;
+		swap( l->Length, len );
 	}
-	// Free up space
-	if(freeSpace < matrixSize) {
-		CList *old = lruHead.Next;
-		lruDelete(old);
-		delete old->Data;
-		old->Data = 0;
-		freeSpace += matrixSize;
+	
+	lruInsert( l );
+	data = l->Column;
+	return len;
+}
+
+void CKernelCache::SwapIndices( int i, int j )
+{
+	if( i == j ) {
+		return;
 	}
-	// Allocate a buffer for new data
-	column.Data = FINE_DEBUG_NEW float[matrixSize];
-	freeSpace -= matrixSize;
-	data = column.Data;
-	return false;
+
+	if( c[i].Length ) {
+		lruDelete( &c[i] );
+	}
+	if( c[j].Length ) {
+		lruDelete( &c[j] );
+	}
+	swap( c[i].Column, c[j].Column );
+	swap( c[i].Length, c[j].Length );
+	if( c[i].Length ) {
+		lruInsert( &c[i] );
+	}
+	if( c[j].Length ) {
+		lruInsert( &c[j] );
+	}
+
+	if( i > j ) {
+		swap( i, j );
+	}
+	for( CList *l = lruHead.Next; l != &lruHead; l = l->Next ) {
+		if( l->Length > i ) {
+			if( l->Length > j ) {
+				swap( l->Column[i], l->Column[j] );
+			} else {
+				lruDelete( l );
+				delete[] l->Column;
+				freeSpace += l->Length;
+				l->Column = nullptr;
+				l->Length = 0;
+			}
+		}
+	}
 }
 
 // The kernel matrix CKernelMatrix(i, j) = K(i, j) * y_i * y_j
@@ -273,170 +189,289 @@ class CKernelMatrix {
 public:
 	CKernelMatrix( const IProblem& data, const CSvmKernel& kernel, int cacheSize );
 
-	// The size of a square matrix
-	int Size() const { return diagonal.Size(); }
-	// The SVM kernel
-	const CSvmKernel& Kernel() const { return kernel; }
 	// Gets the pointer to a column
-	const float* GetColumn(int i) const;
+	const float* GetColumn( int i, int len ) const;
 	// Gets the pointer to the diagonal
-	const double* GetDiagonal() const { return diagonal.GetPtr(); }
+	const double* GetDiagonal() const { return d; }
+	// Gets y[i] binary class
+	const float* GetBinaryClasses() const { return y; }
+	// Swaps the data on i and j indices
+	void SwapIndices( int i, int j );
 
 private:
-	const CSparseFloatMatrixDesc matrix; // the problem data
-	CArray<float> classes; // the vector classes
 	CSvmKernel kernel; // the SVM kernel
 	mutable CKernelCache cache; // the columns cache
+	CArray<CSparseFloatVectorDesc> matrix; // the problem data
+	CSparseFloatVectorDesc* x; // raw pointer to data
+	CArray<float> classes; // the vector classes
+	float* y; // raw pointer to binary classes
 	CArray<double> diagonal; // the matrix diagonal
+	double* d; // raw pointer to diagonal
 };
 
 CKernelMatrix::CKernelMatrix( const IProblem& data, const CSvmKernel& kernel, int cacheSize ) :
-	matrix( data.GetMatrix() ),
 	kernel(kernel), 
 	cache( data.GetVectorCount(), cacheSize * (1<<20) )
 {
+	matrix.SetSize( data.GetVectorCount() );
+	x = matrix.GetPtr();
+	classes.SetSize( data.GetVectorCount() );
+	y = classes.GetPtr();
 	diagonal.SetSize( data.GetVectorCount() );
-	// Calculate the matrix diagonal
+	d = diagonal.GetPtr();
+	// Calculate the matrix diagonal and fill the matrix with sparse vector descs
 	for( int i = 0; i < diagonal.Size(); i++ ) {
-		classes.Add( static_cast<float>( data.GetBinaryClass(i) ) );
-		CSparseFloatVectorDesc vector;
-		matrix.GetRow( i, vector );
-		diagonal[i] = kernel.Calculate( vector, vector );
+		auto& x_i = x[i];
+		y[i] = static_cast<float>( data.GetBinaryClass( i ) );
+		data.GetMatrix().GetRow( i, x_i );
+		d[i] = kernel.Calculate( x_i, x_i );
 	}
 }
 
-const float* CKernelMatrix::GetColumn(int i) const
+const float* CKernelMatrix::GetColumn( int i, int len ) const
 {
-	float* columnData;
-	if( !cache.GetColumn(i, columnData) ) {
-		// Fill the cache with data
-		for( int j = 0; j < Size(); j++ ) {
-			if(i == j) {
-				columnData[j] = static_cast<float>(diagonal[i]);
+	float* column;
+	int start = cache.GetColumn( i, column, len );
+	if( start < len ) {
+		float y_i = y[i];
+		auto x_i = x[i];
+		auto calcData = [&]( int j ) {
+			// the cache matrix is symmetrical so col[i][j] == col[j][i]
+			int jColLen;
+			float* jColData = cache.GetColumn( j, jColLen );
+			if( jColLen > i ) {
+				column[j] = jColData[i];
 			} else {
-				float* columnData1 = cache.GetColumn(j);
-				if(columnData1 != 0) {
-					columnData[j] = columnData1[i]; // the matrix is symmetrical
-				} else {
-					CSparseFloatVectorDesc descI;
-					CSparseFloatVectorDesc descJ;
-					matrix.GetRow( i, descI );
-					matrix.GetRow( j, descJ );
-					columnData[j] = static_cast<float>( classes[i] * classes[j] * kernel.Calculate( descI, descJ ) );
-				}
+				column[j] = static_cast<float>( y_i * y[j] * kernel.Calculate( x_i, x[j] ) );
+			}
+		};
+
+		// set diagonal element if it's needed
+		if( i >= start && i < len ) {
+			for( int j = start; j < i; ++j ) {
+				calcData( j );
+			}
+			column[i] = static_cast<float>( d[i] );
+			for( int j = i+1; j < len; ++j ) {
+				calcData( j );
+			}
+		} else {
+			for( int j = start; j < len; ++j ) {
+				calcData( j );
 			}
 		}
 	}
-	return columnData;
+	return column;
+}
+
+void CKernelMatrix::SwapIndices( int i, int j )
+{
+	cache.SwapIndices( i, j );
+	swap( x[i], x[j] );
+	swap( y[i], y[j] );
+	swap( d[i], d[j] );
 }
 
 //---------------------------------------------------------------------------------------------------
 
-CSMOptimizer::CSMOptimizer(const CSvmKernel& kernel, const IProblem& _data, double _errorWeight, double tolerance, int cacheSize) :
+CSMOptimizer::CSMOptimizer(const CSvmKernel& kernel, const IProblem& _data,
+		int _maxIter, double _errorWeight, double _tolerance, bool _doShrinking, int cacheSize) :
 	data( &_data ),
+	maxIter( _maxIter ),
 	errorWeight( _errorWeight ),
-	tolerance(tolerance),
-	Q( FINE_DEBUG_NEW CKernelMatrix( _data, kernel, cacheSize ) ),
-	log(0)
+	tolerance( _tolerance ),
+	doShrinking( _doShrinking ),
+	kernelMatrix( FINE_DEBUG_NEW CKernelMatrix( _data, kernel, cacheSize ) ),
+	log( nullptr ),
+	vectorCount( data->GetVectorCount() ),
+	y( kernelMatrix->GetBinaryClasses() ),
+	matrixDiagonal( kernelMatrix->GetDiagonal() )
 {
+	weightsMultErrorWeightArray.SetBufferSize( vectorCount );
+	for( int i = 0; i < vectorCount; ++i ) {
+		weightsMultErrorWeightArray.Add( data->GetVectorWeight( i ) * errorWeight );
+	}
+	weightsMultErrorWeight = weightsMultErrorWeightArray.GetPtr();
 }
 
 CSMOptimizer::~CSMOptimizer() 
 { 
-	delete Q;
+	delete kernelMatrix;
 }
 
-void CSMOptimizer::Optimize( CArray<double>& alpha, float& freeTerm )
+void CSMOptimizer::Optimize( CArray<double>& _alpha, float& freeTerm )
 {
-	CArray<double> gradient;
-	gradient.Add(-1., data->GetVectorCount() ); // the target function gradient
-	alpha.Empty();
-	alpha.Add( 0., data->GetVectorCount() ); // the support vectors coefficients
+	gradient.Empty();
+	gradient.Add( -1., vectorCount ); // the target function gradient
+	g = gradient.GetPtr();
+	gradient0.Empty();
+	gradient0.Add( 0., vectorCount ); // gradient, if we treat free variables as 0
+	g0 = gradient0.GetPtr();
+	alphaStatusArray.Empty();
+	alphaStatusArray.Add( AS_LowerBound, vectorCount );
+	alphaStatus = alphaStatusArray.GetPtr();
 
-	int maxIter = max( 10000000, data->GetVectorCount() > INT_MAX / 100 ? INT_MAX : 100 * data->GetVectorCount() );
+	if( doShrinking ) {
+		// shrinking does some permutations in coefficients so use internal alpha array
+		alphaArray.Empty();
+		alphaArray.Add( 0., vectorCount ); // the support vectors coefficients
+		alpha = alphaArray.GetPtr();
+		activeSetArray.SetSize( vectorCount );
+		activeSet = activeSetArray.GetPtr();
+		for( int i = 0; i < vectorCount; ++i ) {
+			activeSet[i] = i;
+		}
+		isShrunk = false;
+	} else {
+		_alpha.Empty();
+		_alpha.Add( 0., vectorCount );
+		alpha = _alpha.GetPtr();
+	}
+	activeSize = vectorCount;
+
 	int t;
-	for(t = 0; t < maxIter; t++) {
-		// log progress
-		if(log != 0 && t % 1000 == 0) {
-			*log << ".";
+	int counter = min( vectorCount, 1000 ) + 1;
+	for( t = 0; t < maxIter; ++t ) {
+		if( --counter == 0 ) {
+			counter = min( vectorCount, 1000 );
+			if( doShrinking ) {
+				shrink();
+			}
+			// log progress
+			if( log != nullptr ) {
+				*log << ".";
+			}
 		}
-		// Find a pair of coefficients that violate Kuhn - Tucker conditions most of all
 		int i, j; 
-		double Gmax, Gmin;
-		findMaximalViolatingPair( alpha, gradient, i, Gmax, j, Gmin);
-		if(Gmax - Gmin < tolerance)	{
-			break;
+		if( !findMaxViolatingIndices( i, j ) ) {
+			reconstructGradient();
+			if( log != nullptr ) {
+				*log << "*";
+			}
+			if( !findMaxViolatingIndices( i, j ) ) {
+				break;
+			} else {
+				// shrink on the next iteration
+				counter = 1;
+			}
 		}
+
 		// Find the optimal values for this pair of coefficients
-		optimizePair( i, j, alpha, gradient );
+		optimizeIndices( i, j );
+
+		// Update alphaStatus and g0
+		updateAlphaStatusAndGradient0( i );
+		updateAlphaStatusAndGradient0( j );
 	}
-	if(log != 0) {
-		*log << "\noptimization finished, #iter = " << t << "\n";
-	}
+	
 	// Calculate the free term
-	freeTerm = calculateFreeTerm( alpha, gradient );
+	freeTerm = calculateFreeTerm();
+	if(log != nullptr) {
+		*log << "\noptimization finished, #iter = " << t << "\n";
+		*log << "freeTerm = " << freeTerm << "\n";
+	}
+
+	if( doShrinking ) {
+		// put back the solution
+		_alpha.SetSize( vectorCount );
+		for( int i = 0; i < vectorCount; ++i ) {
+			_alpha[activeSet[i]] = alpha[i];
+		}
+	}
 }
 
-// return i,j such that
+// return `false` if already optimal, return `true` otherwise
 // i: maximizes -y_i * grad(f)_i, i in I_up(\alpha)
-// j: minimizes -y_i * grad(f)_i, i in I_low(\alpha)
-void CSMOptimizer::findMaximalViolatingPair(const CArray<double>& alpha, const CArray<double>& gradient,
-	int& i, double& Gmax, int&j, double& Gmin) const
+// j: minimizes the decrease of obj value
+//  (if quadratic coefficient <= 0, replace it with tau)
+//  -y_j*grad(f)_j < -y_i*grad(f)_i, j in I_low(\alpha)
+bool CSMOptimizer::findMaxViolatingIndices( int& outI, int& outJ ) const
 {
-	Gmax = -Inf; Gmin = Inf;
-	i = j = -1;
+	double gMax = -Inf;
+	double gMax2 = -Inf;
+	int gMaxIdx = -1;
+	int gMinIdx = -1;
+	double objDiffMin = Inf;
 
-	for(int t = 0; t < data->GetVectorCount(); t++) {
-		if(data->GetBinaryClass(t) == +1) {
-			if(alpha[t] < getVectorWeight(t)) {
-				if(-gradient[t] >= Gmax) {
-					Gmax = -gradient[t];
-					i = t;
+	for( int i = 0; i < activeSize; ++i) {
+		if( y[i] == 1 ) {
+			if( alphaStatus[i] != AS_UpperBound ) {
+				if( -g[i] >= gMax ) {
+					gMax = -g[i];
+					gMaxIdx = i;
 				}
 			}
-			if(alpha[t] > 0) {
-				if(-gradient[t] <= Gmin) {
-					Gmin = -gradient[t];
-					j = t;
-				}
-			}
-		} else {
-			if(alpha[t] < getVectorWeight(t)) {
-				if(gradient[t] <= Gmin) {
-					Gmin = gradient[t];
-					j = t;
-				}
-			}
-			if(alpha[t] > 0) {
-				if(gradient[t] >= Gmax) {
-					Gmax = gradient[t];
-					i = t;
-				}
+		} else if( alphaStatus[i] != AS_LowerBound ) {
+			if(g[i] >= gMax) {
+				gMax = g[i];
+				gMaxIdx = i;
 			}
 		}
 	}
+
+	if( gMaxIdx == -1 ) {
+		return false;
+	}
+
+	const float* q_i = kernelMatrix->GetColumn( gMaxIdx, activeSize );
+	double y_i = y[gMaxIdx];
+	double qD_i = matrixDiagonal[gMaxIdx];
+	auto updateMinParams = [&]( double gradDiff, double multiplier, int j ) {
+		if( gradDiff > 0) {
+			double quadCoef = qD_i + matrixDiagonal[j] + multiplier * y_i * q_i[j];
+			if( quadCoef <= 0 ) {
+				quadCoef = Tau;
+			}
+			double objDiff = -( gradDiff * gradDiff ) / quadCoef;
+			if( objDiff <= objDiffMin ) {
+				gMinIdx = j;
+				objDiffMin = objDiff;
+			}
+		}
+	};
+
+	for( int j = 0; j < activeSize; ++j ) {
+		if( y[j] == 1 ) {
+			if( alphaStatus[j] != AS_LowerBound ) {
+				updateMinParams( gMax + g[j], -2, j );
+				if( g[j] >= gMax2 ) {
+					gMax2 = g[j];
+				}
+			}
+		} else if( alphaStatus[j] != AS_UpperBound ) {
+			updateMinParams( gMax - g[j], 2, j );
+			if( -g[j] >= gMax2 ) {
+				gMax2 = -g[j];
+			}
+		}
+	}
+
+	if( gMax + gMax2 < tolerance || gMinIdx == -1 ) {
+		return false;
+	}
+
+	outI = gMaxIdx;
+	outJ = gMinIdx;
+	return true;
 }
 
 // Optimizes the target function by changing the alpha_i and alpha_j coefficient
 // The optimal values are calculated analytically
-void CSMOptimizer::optimizePair( int i, int j, CArray<double>& alpha, CArray<double>& gradient )
+void CSMOptimizer::optimizeIndices( int i, int j )
 {	
-	const float* Q_i = Q->GetColumn(i);
-	const float* Q_j = Q->GetColumn(j);
-	const double* QD = Q->GetDiagonal();
-
+	const float* q_i = kernelMatrix->GetColumn( i, activeSize );
+	const float* q_j = kernelMatrix->GetColumn( j, activeSize );
+	double c_i = weightsMultErrorWeight[i];
+	double c_j = weightsMultErrorWeight[j];
 	double oldAlpha_i = alpha[i];
 	double oldAlpha_j = alpha[j];
 
-	double weightI = getVectorWeight( i );
-	double weightJ = getVectorWeight( j );
-
-	if( data->GetBinaryClass(i) != data->GetBinaryClass(j) ) {
-		double quadCoef = QD[i] + QD[j] + 2 * Q_i[j];
-		if (quadCoef <= 0) {
+	if( y[i] != y[j] ) {
+		double quadCoef = matrixDiagonal[i] + matrixDiagonal[j] + 2 * q_i[j];
+		if( quadCoef <= 0) {
 			quadCoef = Tau;
 		}
-		double delta = (-gradient[i] - gradient[j]) / quadCoef;
+		double delta = (-g[i] - g[j]) / quadCoef;
 		double diff = alpha[i] - alpha[j];
 		alpha[i] += delta;
 		alpha[j] += delta;
@@ -452,30 +487,30 @@ void CSMOptimizer::optimizePair( int i, int j, CArray<double>& alpha, CArray<dou
 				alpha[j] = -diff;
 			}
 		}
-		if(diff > weightI - weightJ) {
-			if(alpha[i] > weightI) {
-				alpha[i] = weightI;
-				alpha[j] = weightI - diff;
+		if(diff > c_i - c_j) {
+			if(alpha[i] > c_i) {
+				alpha[i] = c_i;
+				alpha[j] = c_i - diff;
 			}
 		} else {
-			if(alpha[j] > weightJ) {
-				alpha[j] = weightJ;
-				alpha[i] = weightJ + diff;
+			if(alpha[j] > c_j) {
+				alpha[j] = c_j;
+				alpha[i] = c_j + diff;
 			}
 		}
 	} else {
-		double quadCoef = QD[i] + QD[j] - 2 * Q_i[j];
-		if (quadCoef <= 0)
+		double quadCoef = matrixDiagonal[i] + matrixDiagonal[j] - 2 * q_i[j];
+		if( quadCoef <= 0 )
 			quadCoef = Tau;
-		double delta = (gradient[i] - gradient[j]) / quadCoef;
+		double delta = (g[i] - g[j]) / quadCoef;
 		double sum = alpha[i] + alpha[j];
 		alpha[i] -= delta;
 		alpha[j] += delta;
 
-		if(sum > weightI) {
-			if(alpha[i] > weightI) {
-				alpha[i] = weightI;
-				alpha[j] = sum - weightI;
+		if(sum > c_i) {
+			if(alpha[i] > c_i) {
+				alpha[i] = c_i;
+				alpha[j] = sum - c_i;
 			}
 		} else {
 			if(alpha[j] < 0) {
@@ -483,10 +518,10 @@ void CSMOptimizer::optimizePair( int i, int j, CArray<double>& alpha, CArray<dou
 				alpha[i] = sum;
 			}
 		}
-		if(sum > weightJ) {
-			if(alpha[j] > weightJ)	{
-				alpha[j] = weightJ;
-				alpha[i] = sum - weightJ;
+		if(sum > c_j) {
+			if(alpha[j] > c_j)	{
+				alpha[j] = c_j;
+				alpha[i] = sum - c_j;
 			}
 		} else {
 			if(alpha[i] < 0) {
@@ -495,30 +530,164 @@ void CSMOptimizer::optimizePair( int i, int j, CArray<double>& alpha, CArray<dou
 			}
 		}
 	}
-	// Modify the gradient
+	
+	// Modify the g
 	double deltaAlpha_i = alpha[i] - oldAlpha_i;
 	double deltaAlpha_j = alpha[j] - oldAlpha_j;
-	for(int k = 0; k < data->GetVectorCount(); k++) {
-		gradient[k] += Q_i[k] * deltaAlpha_i + Q_j[k] * deltaAlpha_j;
+	for(int k = 0; k < activeSize; k++) {
+		g[k] += q_i[k] * deltaAlpha_i + q_j[k] * deltaAlpha_j;
 	}
 }
 
+void CSMOptimizer::updateAlphaStatusAndGradient0( int i )
+{
+	double c_i = weightsMultErrorWeight[i];
+	bool wasUB = alphaStatus[i] == AS_UpperBound;
+
+	if( alpha[i] >= c_i ) {
+		alphaStatus[i] = AS_UpperBound;
+	} else if( alpha[i] <= 0 ) {
+		alphaStatus[i] = AS_LowerBound;
+	} else {
+		alphaStatus[i] = AS_Free;
+	}
+
+	bool isUB = alphaStatus[i] == AS_UpperBound;
+	if( wasUB != isUB ) {
+		auto q_i = kernelMatrix->GetColumn( i, vectorCount );
+		if( wasUB ) {
+			for( int j = 0; j < vectorCount; ++j ) {
+				g0[j] -= c_i * q_i[j];
+			}
+		} else {
+			for( int j = 0; j < vectorCount; ++j ) {
+				g0[j] += c_i * q_i[j];
+			}
+		}
+	}
+}
+
+// reconstruct inactive elements of G from G_bar and free variables
+void CSMOptimizer::reconstructGradient()
+{
+	if( activeSize == vectorCount ) {
+		return;
+	}
+
+	int freeCount = 0;
+	for( int j = activeSize; j < vectorCount; ++j ) {
+		g[j] = g0[j] - 1;
+	}
+
+	for( int j = 0; j < activeSize; ++j ) {
+		if( alphaStatus[j] == AS_Free ) {
+			++freeCount;
+		}
+	}
+
+	if( log != nullptr && 2 * freeCount < activeSize ) {
+		NeoPresume( doShrinking );
+		*log << "\nWarning: using Shrinking=false may be faster\n";
+	}
+
+	if( freeCount * vectorCount > 2 * activeSize * ( vectorCount - activeSize ) ) {
+		for( int i = activeSize; i < vectorCount; ++i ) {
+			auto q_i = kernelMatrix->GetColumn( i, activeSize );
+			for( int j = 0; j < activeSize; ++j ) {
+				if( alphaStatus[j] == AS_Free ) {
+					g[i] += alpha[j] * q_i[j];
+				}
+			}
+		}
+	} else {
+		for( int i = 0; i < activeSize; ++i ) {
+			if( alphaStatus[i] == AS_Free ) {
+				auto q_i = kernelMatrix->GetColumn( i, vectorCount );
+				double alpha_i = alpha[i];
+				for( int j = activeSize; j < vectorCount; ++j ) {
+					g[j] += alpha_i * q_i[j];
+				}
+			}
+		}
+	}
+	activeSize = vectorCount;
+}
+
+void CSMOptimizer::swapIndices( int i, int j )
+{
+	NeoPresume( doShrinking );
+
+	kernelMatrix->SwapIndices( i, j );
+	swap( g[i], g[j] );
+	swap( g0[i], g0[j] );
+	swap( alpha[i], alpha[j] );
+	swap( weightsMultErrorWeight[i], weightsMultErrorWeight[j] );
+	swap( alphaStatus[i], alphaStatus[j] );
+	swap( activeSet[i], activeSet[j] );
+}
+
+// excludes from active set elements that have reached their upper/lower bound
+// gMax1: max { -y_i * grad(f)_i | i in I_up(\alpha) }
+// gMax2: max { y_i * grad(f)_i | i in I_low(\alpha) }
+void CSMOptimizer::shrink()
+{
+	double gMax1 = -Inf;
+	double gMax2 = -Inf;
+
+	// find maximal violating pair first
+	for( int i = 0; i < activeSize; ++i ) {
+		if( y[i] == 1 ) {
+			if( alphaStatus[i] != AS_UpperBound && -g[i] >= gMax1 ) {
+				gMax1 = -g[i];
+			}
+			if( alphaStatus[i] != AS_LowerBound && g[i] >= gMax2 ) {
+				gMax2 = g[i];
+			}
+		} else {
+			if( alphaStatus[i] != AS_UpperBound && -g[i] >= gMax2 ) {
+				gMax2 = -g[i];
+			}
+			if( alphaStatus[i] != AS_LowerBound && g[i] >= gMax1 ) {
+				gMax1 = g[i];
+			}
+		}
+	}
+
+	if( !isShrunk && gMax1 + gMax2 <= tolerance * 10 ) {
+		isShrunk = true;
+		reconstructGradient();
+		if( log != nullptr ) {
+			*log << "*";
+		}
+	}
+
+	for( int i = 0; i < activeSize; ++i ) {
+		if( canBeShrunk( i, gMax1, gMax2 ) ) {
+			while( --activeSize > i ) {
+				if( !canBeShrunk( activeSize, gMax1, gMax2 ) ) {
+					swapIndices( i, activeSize );
+					break;
+				}
+			}
+		}
+	}
+}
 
 // Calculates the free term
-float CSMOptimizer::calculateFreeTerm( const CArray<double>& alpha, const CArray<double>& gradient ) const
+float CSMOptimizer::calculateFreeTerm() const
 {
 	int nFree = 0; // the number of "free" support vectors
 	double upperBound = Inf, lowerBound = -Inf, sumFree = 0;
-	for(int i = 0; i < data->GetVectorCount(); i++) {
-		const double binaryClass = data->GetBinaryClass(i);
-		double yGrad = -binaryClass * gradient[i];
-		if(alpha[i] >= getVectorWeight(i)) {
+	for(int i = 0; i < activeSize; i++) {
+		const double binaryClass = y[i];
+		double yGrad = -binaryClass * g[i];
+		if( alphaStatus[i] == AS_UpperBound ) {
 			if(binaryClass == +1) {
 				upperBound = min(upperBound, yGrad);
 			} else {
 				lowerBound = max(lowerBound, yGrad);
 			}
-		} else if(alpha[i] <= 0) {
+		} else if( alphaStatus[i] == AS_LowerBound ) {
 			if(binaryClass == -1) {
 				upperBound = min(upperBound, yGrad);
 			} else {

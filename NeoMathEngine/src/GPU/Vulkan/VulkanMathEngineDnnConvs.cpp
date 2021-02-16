@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -52,15 +52,6 @@ namespace NeoML {
 #include <shaders/generated/Blob3dConvolutionBackward.h>
 #include <shaders/generated/BlobConvertFromRLE.h>
 #include <shaders/generated/BlobTimeConvolutionPrepare.h>
-
-inline int Ceil( int val, int discret )
-{
-	assert( discret > 0 );
-	if( val > 0 ) {
-		return ( val + discret - 1 ) / discret;
-	}
-	return val / discret;
-}
 
 //------------------------------------------------------------------------------------------------------------
 // RLE convolution
@@ -163,26 +154,28 @@ void CVulkanMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc&, 
 // Time convolution
 
 CTimeConvolutionDesc* CVulkanMathEngine::InitTimeConvolution( const CBlobDesc& source,
-	int stride, int padding, int dilation, const CBlobDesc& filter, const CBlobDesc& result )
+	int stride, int paddingFront, int paddingBack, int dilation, const CBlobDesc& filter, const CBlobDesc& result )
 {
 	ASSERT_EXPR( stride > 0 );
-	ASSERT_EXPR( padding >= 0 );
+	ASSERT_EXPR( paddingFront >= 0 );
+	ASSERT_EXPR( paddingBack >= 0 );
 	ASSERT_EXPR( dilation > 0 );
 	ASSERT_EXPR( filter.BatchLength() == 1 );
 	ASSERT_EXPR( filter.Width() == 1 );
 	ASSERT_EXPR( filter.Depth() == 1 );
 	ASSERT_EXPR( filter.Channels() == source.ObjectSize() );
-	ASSERT_EXPR( source.BatchLength() + 2 * padding >= ( filter.Height() - 1 ) * dilation + 1 );
-	ASSERT_EXPR( result.BatchLength() == ( source.BatchLength() - ( filter.Height() - 1 ) * dilation - 1 + 2 * padding ) / stride + 1 );
+	ASSERT_EXPR( source.BatchLength() + paddingFront + paddingBack >= ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( result.BatchLength() == ( source.BatchLength() - ( filter.Height() - 1 ) * dilation - 1 + paddingFront + paddingBack ) / stride + 1 );
 	ASSERT_EXPR( result.BatchWidth() == source.BatchWidth() );
 	ASSERT_EXPR( result.ListSize() == 1 && source.ListSize() == 1 );
 	ASSERT_EXPR( result.Width() == 1 );
 	ASSERT_EXPR( result.Height() == 1 );
 	ASSERT_EXPR( result.Depth() == 1 );
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
-	ASSERT_EXPR( padding < ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( paddingFront < ( filter.Height() - 1 ) * dilation + 1 );
+	ASSERT_EXPR( paddingBack < ( filter.Height() - 1 ) * dilation + 1 );
 
-	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( source, filter, result, stride, padding, dilation );
+	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( source, filter, result, stride, paddingFront, paddingBack, dilation );
 	return desc;
 }
 
@@ -215,7 +208,7 @@ void CVulkanMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDes
 		size_t sizes[2] = { source.BlobSize() * sizeof(float), workspaceSize * sizeof(float) };
 
 		PARAM_STRUCT(BlobTimeConvolutionPrepare) param = { source.BatchLength(), source.BatchWidth(), source.ObjectSize(), 
-			result.BatchLength(), result.BatchWidth(), filter.Height(), desc.Stride, desc.Padding, desc.Dilation };
+			result.BatchLength(), result.BatchWidth(), filter.Height(), desc.Stride, desc.PaddingFront, desc.Dilation };
 
 		runShader( shaderLoader->GET_SHADER_DATA(BlobTimeConvolutionPrepare, true, 0, 0, 2),
 			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
@@ -408,12 +401,12 @@ void CVulkanMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 		}
 
 		if( channels8 > 0 ) {
-			blobConvolutionImpl8Adreno( desc, sourceData, filterData, freeTermData != 0, resultData, channels8,
+			blobConvolutionImpl8Adreno( desc, sourceData, filterData, freeTermData != nullptr, resultData, channels8,
 				sourceChannelGroupSize, filterChannelGroupSize );
 		}
 
 		if( ( totalChannels - channels8 * 8 ) != 0 ) {
-			blobConvolutionImpl1Adreno( desc, sourceData, filterData, freeTermData, resultData, channels8 * 8,
+			blobConvolutionImpl1Adreno( desc, sourceData, filterData, freeTermData != nullptr, resultData, channels8 * 8,
 				sourceChannelGroupSize, filterChannelGroupSize );
 		}
 	} else {
@@ -656,7 +649,7 @@ const CVulkanImage& CVulkanMathEngine::blobConvolution3x3s1d1PrepareSourceAdreno
 
 	int totalWidth = blob.Width() + paddingLeft + paddingRight;
 
-	assert((totalWidth % 4) == 0);
+	ASSERT_EXPR((totalWidth % 4) == 0);
 
 	int totalWidth4 = totalWidth / 4 * blob.ObjectCount();
 	int channels = blob.Depth() * blob.Channels();

@@ -15,22 +15,22 @@ limitations under the License.
 
 #pragma once
 
-#include "Node.h"
+#include "../Node.h"
 
 namespace NeoOnnx {
 
+// Graph initializer node
 class CGraphInitializer : public CNode {
 public:
-	CGraphInitializer( const onnx::TensorProto& initializer, CMap<CString, CInputInfo>& nodeOutputs, IMathEngine& mathEngine );
+	CGraphInitializer( int nodeIndex, const onnx::TensorProto& initializer );
 
-	// CNode methods' realizations.
-	void OnnxReshape() override;
-	void MarkTensorDims() override {}
-	void AddLayers( CDnn& ) override { outputInfo.Add( COutputInfo() ); }
+	// CNode methods' realizations
+	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
+	void LabelTensorDims( const CTensorCache&, CDimCache& ) override {}
+	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache&, CDnn& ) override {}
 
 private:
-	IMathEngine& mathEngine;
-	const onnx::TensorProto& initializer;
+	const onnx::TensorProto& initializer; // graph initializer info from onnx
 };
 
 } // namespace NeoOnnx

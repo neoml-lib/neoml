@@ -38,4 +38,6 @@ private:
 	CPtr<CDnnBlob> coeff;
 };
 
+NEOML_API CLayerWrapper<CGlobalMeanPoolingLayer> GlobalMeanPooling();
+
 } // namespace NeoML

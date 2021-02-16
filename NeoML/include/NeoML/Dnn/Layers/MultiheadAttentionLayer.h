@@ -117,4 +117,7 @@ private:
 	CBaseLayer* prepareOutput( CBaseLayer* input );
 };
 
+NEOML_API CLayerWrapper<CMultiheadAttentionLayer> MultiheadAttention(
+	int headCount, int hiddenSize, int outputSize, float dropoutRate );
+
 } // namespace NeoML

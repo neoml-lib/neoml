@@ -2170,7 +2170,7 @@ PARAM_STRUCT(BlobTimeConvolutionPrepare)
 
 	int filterHeight;
 	int stride;
-	int padding;
+	int paddingFront;
 	int dilation;
 };
 

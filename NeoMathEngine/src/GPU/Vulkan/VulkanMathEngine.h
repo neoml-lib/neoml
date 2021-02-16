@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ limitations under the License.
 #include <VulkanImage.h>
 #include <RawMemoryManager.h>
 #include <PerformanceCountersDefault.h>
+#include <DllLoader.h>
 
 namespace NeoML {
 
@@ -40,19 +41,18 @@ class CVulkanShaderLoader;
 class CDeviceStackAllocator;
 class CHostStackAllocator;
 class CVulkanImage;
-class CVulkanDll;
 class CMemoryPool;
 
 // Adds the information about available vulkan devices into the result array
 // Returns true if at least one device has been added
-bool LoadVulkanEngineInfo( CVulkanDll& dll, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result );
+bool LoadVulkanEngineInfo( const CVulkanDll& dll, std::vector< CMathEngineInfo, CrtAllocator<CMathEngineInfo> >& result );
 
 //------------------------------------------------------------------------------------------------------------
 
 // The math engine on vulkan
 class CVulkanMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CVulkanMathEngine( CVulkanDll& dll, int deviceNumber, size_t memoryLimit );
+	CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& device, size_t memoryLimit );
 	~CVulkanMathEngine() override;
 
 	// IMathEngine interface methods
@@ -64,6 +64,7 @@ public:
 	void StackFree( const CMemoryHandle& handle ) override;
 	size_t GetFreeMemorySize() const override;
 	size_t GetPeakMemoryUsage() const override;
+	size_t GetMemoryInPools() const override;
 	void CleanUp() override;
 	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size ) override;
 	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
@@ -350,7 +351,7 @@ public:
 		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) override;
 	void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
 		const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev ) override;
-	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int padding, int dilation,
+	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront, int paddingBack, int dilation,
 		const CBlobDesc& filter, const CBlobDesc& result ) override;
 	void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CFloatHandle& source,
 		const CFloatHandle& filter, const CFloatHandle& freeTerm, const CFloatHandle& result ) override;
@@ -468,11 +469,9 @@ protected:
 	void Free( const CMemoryHandle& handle ) override;
 
 private:
-	CVulkanDll& dll; // vulkan dll wrapper
-
+	CDllLoader dllLoader; // vulkan dll wrapper
 	mutable std::mutex mutex; // protecting the data below from non-thread-safe use
-	int deviceNumber;
-	std::unique_ptr<CVulkanDevice> device; // device descriptor
+	std::unique_ptr<const CVulkanDevice> device; // device descriptor
 	std::unique_ptr<CVulkanShaderLoader> shaderLoader; // shader loader
 	std::unique_ptr<CVulkanCommandQueue> commandQueue; // shader execution queue
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager

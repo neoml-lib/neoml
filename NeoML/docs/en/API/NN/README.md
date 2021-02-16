@@ -235,6 +235,7 @@ delete gpuMathEngine;
   - [C3dMeanPoolingLayer](PoolingLayers/3dMeanPoolingLayer.md) - 3-dimensional mean pooling
   - [CGlobalMaxPoolingLayer](PoolingLayers/GlobalMaxPoolingLayer.md) - max pooling over whole objects
   - [CMaxOverTimePoolingLayer](PoolingLayers/MaxOverTimePoolingLayer.md) - max pooling over sequences along the "time" axis
+  - [CProjectionPoolingLayer](PoolingLayers/ProjectionPoolingLayer.md) - mean pooling along one of the blob dimensions
 - [CSoftmaxLayer](SoftmaxLayer.md) calculates softmax function
 - [CDropoutLayer](DropoutLayer.md) implements random dropout
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) implements batch normalization
@@ -297,6 +298,7 @@ delete gpuMathEngine;
 - Recurrent layers:
   - [CLstmLayer](LstmLayer.md) implements long short-term memory (LSTM)
   - [CGruLayer](GruLayer.md) implements a gated recurrent unit (GRU)
+  - [CQrnnLayer](QrnnLayer.md) implements a quasi-recurrent layer
 - [Conditional random field (CRF)](CrfLayers/README.md):
   - [CCrfLayer](CrfLayers/CrfLayer.md) represents a CRF
   - [CCrfLossLayer](CrfLayers/CrfLossLayer.md) calculates the loss function for training CRF

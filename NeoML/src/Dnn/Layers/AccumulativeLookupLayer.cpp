@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -94,6 +94,14 @@ void CAccumulativeLookupLayer::Serialize( CArchive& archive )
 
 	archive.Serialize( lookupDimension.VectorCount );
 	archive.Serialize( lookupDimension.VectorSize );
+}
+
+NEOML_API CLayerWrapper<NeoML::CAccumulativeLookupLayer> AccumulativeLookup(
+	int count, int size )
+{
+	return CLayerWrapper<CAccumulativeLookupLayer>( "AccumulativeLookup", [=]( CAccumulativeLookupLayer* result ) {
+		return result->SetDimension( CLookupDimension( count, size ) );
+	} );
 }
 
 } // namespace NeoML

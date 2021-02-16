@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +20,12 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <memory>
 
 namespace NeoML {
+
+// The maximum size of memory used for the pools
+static const size_t MaxMemoryInPools = 192 * 1024 * 1024;
 
 CBaseLayer::CBaseLayer( IMathEngine& _mathEngine, const char* _name, bool _isLearnable ) :
 	mathEngine( _mathEngine ),
@@ -37,7 +41,10 @@ CBaseLayer::CBaseLayer( IMathEngine& _mathEngine, const char* _name, bool _isLea
 	forcedReshape( true ),
 	isReshapeNeeded( true ),
 	lastRunNumber( 0 ),
-	graphCount( 0 )
+	graphCount( 0 ),
+	useTimer( false ),
+	runOnceCount( 0 ),
+	runOnceTime( 0 )
 {
 }
 
@@ -216,6 +223,14 @@ size_t CBaseLayer::GetOutputBlobsSize() const
 	return result;
 }
 
+void CBaseLayer::CleanUp()
+{
+	inputBlobs.DeleteAll();
+	inputBlobs.SetSize(inputDescs.Size());
+	outputBlobs.DeleteAll();
+	outputBlobs.SetSize(outputDescs.Size());
+}
+
 size_t CBaseLayer::GetTrainableParametersSize() const
 {
 	if( !isLearnable ) {
@@ -337,7 +352,9 @@ void CBaseLayer::reshape()
 	outputDiffBlobs.DeleteAll();
 	clearAllRuntimeBlobs();
 
-	MathEngine().CleanUp();
+	if( MathEngine().GetMemoryInPools() > MaxMemoryInPools ) {
+		MathEngine().CleanUp();
+	}
 
 	Reshape();
 
@@ -347,6 +364,38 @@ void CBaseLayer::reshape()
 
 	inputBlobs.SetSize( inputs.Size() );
 	outputBlobs.SetSize( outputs.Size() );
+
+	runOnceCount = 0;
+	runOnceTime = 0;
+}
+
+class CRunOnceTimer {
+public:
+	CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount, IPerformanceCounters::CCounter::TCounterType& result );
+	~CRunOnceTimer();
+
+private:
+	std::unique_ptr<IPerformanceCounters> counters;
+	IPerformanceCounters::CCounter::TCounterType& result;
+};
+
+CRunOnceTimer::CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount,
+		IPerformanceCounters::CCounter::TCounterType& result ) :
+	counters( enable ? mathEngine.CreatePerformanceCounters() : nullptr ),
+	result( result )
+{
+	if( enable ) {
+		hitCount++;
+		counters->Synchronise();
+	}
+}
+
+CRunOnceTimer::~CRunOnceTimer()
+{
+	if( counters != nullptr ) {
+		counters->Synchronise();
+		result += ( *counters )[0].Value;
+	}
 }
 
 // Calls RunOnce for the layer, then recursively for its inputs
@@ -399,6 +448,7 @@ void CBaseLayer::runOnce()
 	}
 
 	{
+		CRunOnceTimer timer( useTimer, MathEngine(), runOnceCount, runOnceTime );
 		RunOnce();
 	}
 

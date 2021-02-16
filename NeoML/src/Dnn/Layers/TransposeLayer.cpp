@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -60,6 +60,13 @@ void CTransposeLayer::RunOnce()
 void CTransposeLayer::BackwardOnce()
 {
 	inputDiffBlobs[0]->TransposeFrom(outputDiffBlobs[0], d1, d2);
+}
+
+CLayerWrapper<CTransposeLayer> Transpose( TBlobDim d1, TBlobDim d2 )
+{
+	return CLayerWrapper<CTransposeLayer>( "Transpose", [=]( CTransposeLayer* result ) {
+		result->SetTransposedDimensions( d1, d2 );
+	} );
 }
 
 } // namespace NeoML

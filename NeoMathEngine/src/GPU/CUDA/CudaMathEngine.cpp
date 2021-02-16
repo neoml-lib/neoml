@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ limitations under the License.
 #include <vector>
 #include <CudaDevice.h>
 #include <CudaAssert.h>
+#include <CudaCommon.h>
 
 namespace NeoML {
 
@@ -54,6 +55,12 @@ size_t CCudaMathEngine::GetPeakMemoryUsage() const
 {
 	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetPeakMemoryUsage();
+}
+
+size_t CCudaMathEngine::GetMemoryInPools() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetMemoryInPools();
 }
 
 void CCudaMathEngine::SetReuseMemoryMode( bool )
@@ -157,7 +164,7 @@ CMemoryHandle CCudaMathEngine::CopyFrom( const CMemoryHandle& handle, size_t siz
 
 CMemoryHandle CCudaMathEngine::Alloc( size_t size )
 {
-	cudaSetDevice( device->DeviceNumber );
+	SetCudaDevice( device->DeviceNumber );
 	void* ptr;
 	cudaError_t mallocError = cudaMalloc(&ptr, size);
 	if( mallocError != 0 ) {
@@ -168,7 +175,7 @@ CMemoryHandle CCudaMathEngine::Alloc( size_t size )
 
 void CCudaMathEngine::Free( const CMemoryHandle& handle )
 {
-	ASSERT_CUDA( cudaFree( GetRaw( CTypedMemoryHandle<char>( handle ) ) ) );
+	cudaFree( GetRaw( CTypedMemoryHandle<char>( handle ) ) );
 }
 
 void CCudaMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -73,6 +73,9 @@ private:
 	void destroyDesc();
 };
 
+NEOML_API CLayerWrapper<CMaxPoolingLayer> MaxPooling( int filterHeight, int filterWidth, 
+	int strideHeight = 1, int strideWidth = 1 );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // CMeanPoolingLayer implements a pooling layer that takes the average over the window
@@ -96,5 +99,8 @@ private:
 	void initDesc();
 	void destroyDesc();
 };
+
+NEOML_API CLayerWrapper<CMeanPoolingLayer> MeanPooling( int filterHeight, int filterWidth,
+	int strideHeight = 1, int strideWidth = 1 );
 
 } // namespace NeoML

@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ public:
 	// The correct class in case of binary classification: +1 or -1
 	double GetBinaryClass( int index ) const { return ( GetClass( index ) != 0 ) ? 1. : -1; }
 
-	// Gets all input vectors as a matrix
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
 	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
 
 	// The vector weight
@@ -72,7 +72,7 @@ public:
 	// The number of vectors in the input data set
 	virtual int GetVectorCount() const = 0;
 
-	// Gets all input vectors as a matrix
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
 	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
 
 	// The vector weight
@@ -110,6 +110,15 @@ public:
 
 	// Stops accumulating data
 	virtual void Finish() = 0;
+};
+
+// Subproblem interface
+class NEOML_API ISubProblem : public IProblem {
+public:
+	virtual ~ISubProblem();
+
+	// Gets the vector index in the original data set
+	virtual int GetOriginalIndex( int index ) const = 0;
 };
 
 } // namespace NeoML

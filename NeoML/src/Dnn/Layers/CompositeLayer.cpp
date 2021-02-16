@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -429,6 +429,13 @@ size_t CCompositeLayer::GetOutputBlobsSize() const
 	return result;
 }
 
+void CCompositeLayer::CleanUp()
+{
+	for( int i = 0; i < internalDnn->layers.Size(); i++ ) {
+		internalDnn->layers[i]->CleanUp();
+	}
+}
+
 size_t CCompositeLayer::GetTrainableParametersSize() const
 {
 	if( !IsLearnable() ) {
@@ -445,6 +452,14 @@ size_t CCompositeLayer::GetTrainableParametersSize() const
 void CCompositeLayer::RestartSequence()
 {
 	internalDnn->RestartSequence();
+}
+
+void CCompositeLayer::EnableProfile( bool profile )
+{
+	CBaseLayer::EnableProfile( profile );
+	for( int i = 0; i < layers.Size(); ++i ) {
+		layers[i]->EnableProfile( profile );
+	}
 }
 
 void CCompositeLayer::Reshape()

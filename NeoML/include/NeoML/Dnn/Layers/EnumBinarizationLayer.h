@@ -43,6 +43,8 @@ private:
 	int enumSize;
 };
 
+NEOML_API CLayerWrapper<CEnumBinarizationLayer> EnumBinarization( int enumSize );
+
 //-------------------------------------------------------------------------------------------------
 
 // Converts a bitset represented by bits in the Channels dimension to a vector containing values 0 and 1

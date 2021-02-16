@@ -149,16 +149,19 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle dataLossGradient, CFloatHandle labelLossGradient) override;
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstIntHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstIntHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 
 private:
 	bool isSoftmaxApplied;
 };
+
+NEOML_API CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
+	bool isSoftmaxApplied = true, float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -177,8 +180,9 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
+	void Reshape() override;
 	// CLossLayer methods implementation
-	virtual void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient ) override;
 
 private:
@@ -187,6 +191,9 @@ private:
 
 	void calculateStableSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) const;
 };
+
+NEOML_API CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(
+	float positiveWeight = 1.0f, float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -202,9 +209,11 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
+
+NEOML_API CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -219,9 +228,11 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
+
+NEOML_API CLayerWrapper<CHingeLossLayer> HingeLoss( float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -237,8 +248,11 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
+
+NEOML_API CLayerWrapper<CSquaredHingeLossLayer> SquaredHingeLoss(
+	float lossWeight = 1.0f );
 
 } // namespace NeoML

@@ -23,6 +23,7 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/DnnBlob.h>
 #include <stdint.h>
+#include <NeoML/Dnn/DnnLambdaHolder.h>
 
 namespace NeoML {
 
@@ -39,6 +40,16 @@ typedef CPtr<CBaseLayer> ( *TCreateLayerFunction )( IMathEngine& mathEngine );
 void NEOML_API RegisterLayerName( const char* mainName, const char* additionalName, const std::type_info& typeInfo, TCreateLayerFunction function );
 
 void NEOML_API UnregisterLayerName( const std::type_info& typeInfo );
+
+bool NEOML_API IsRegisteredLayerName( const char* name );
+
+CPtr<CBaseLayer> NEOML_API CreateLayer( const char* name, IMathEngine& mathEngine );
+
+template<class T>
+CPtr<T> CreateLayer( const char* name, IMathEngine& mathEngine )
+{
+	return CheckCast<T>( CreateLayer( name, mathEngine ) );
+}
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -66,6 +77,38 @@ inline CLayerClassRegistrar<T>::~CLayerClassRegistrar()
 
 class CDnn;
 class CDnnLayerGraph;
+class CBaseLayer;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The link between two layers, connecting one layer output to another layer input
+struct CDnnLayerLink {
+	// the pointer to the linked layer
+	CBaseLayer* Layer;
+	// the number of the output to which the connection leads
+	int OutputNumber;
+
+	// Default value for optional inputs.
+	CDnnLayerLink() : Layer( 0 ), OutputNumber( -1 ) {}
+	CDnnLayerLink( const CDnnLayerLink& other ) :
+		Layer( other.Layer ), OutputNumber( other.OutputNumber ) {}
+	CDnnLayerLink( CBaseLayer* layer, int outputNumber ) :
+		Layer( layer ),
+		OutputNumber( outputNumber )
+	{
+		NeoAssert( Layer != 0 );
+		NeoAssert( OutputNumber >= 0 );
+	}
+
+	// Converting constructor
+	CDnnLayerLink( CBaseLayer* layer ) :
+		Layer( layer ), OutputNumber( 0 ) {}
+
+	// Is this layer optional, i.e. created by CLayerOutout() default constructor.
+	bool IsOptional() const { return Layer == 0 && OutputNumber == -1; }
+	// Is the layer output valid?
+	bool IsValid() const { return Layer != 0 && OutputNumber >= 0; }
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -134,9 +177,19 @@ public:
 	// Returns the total size of all output blobs together
 	virtual size_t GetOutputBlobsSize() const;
 
+	// Releases all temporary resources allocated for the layer
+	virtual void CleanUp();
+
 	// Returns the total size of trainable parameters in this layer
 	// Returns the total size of trainable parameters of its internal layers, if layer is composite or recurrent
 	virtual size_t GetTrainableParametersSize() const;
+
+	// Enable profile timer for RunOnce
+	virtual void EnableProfile( bool profile ) { useTimer = profile; }
+	// Returns number of RunOnce calls since last Reshape
+	int GetRunOnceCount() const { return runOnceCount; }
+	// Returns total time of RunOnce calls (in milliseconds) since last Reshape
+	IPerformanceCounters::CCounter::TCounterType GetRunOnceTime() const { return runOnceTime; }
 
 protected:
 	// A virtual method that creates output blobs using the input blobs
@@ -212,13 +265,6 @@ protected:
 	virtual void AllocateOutputBlobs();
 
 private:
-	// The link between two layers, connecting one layer output to another layer input
-	struct CDnnLayerLink {
-		// Output and input links
-		CBaseLayer* Layer; // the pointer to the linked layer
-		int OutputNumber;	// the number of the output to which the connection leads
-	};
-
 	// Describes an input connection
 	struct CInputInfo {
 		CString Name; // the name of the layer that is connected to the input
@@ -290,6 +336,13 @@ private:
 
 	// The number of graphs with which the layer is connected
 	int graphCount;
+
+	// Use timer to calculate run once time and hit count
+	bool useTimer;
+	// The total number of RunOnce calls since last Reshape
+	int runOnceCount;
+	// The total time of RunOnce calls since last Reshape in milliseconds
+	IPerformanceCounters::CCounter::TCounterType runOnceTime;
 
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
@@ -415,6 +468,9 @@ public:
 	// Runs the network, performs a backward pass and updates the trainable weights
 	void RunAndLearnOnce();
 
+	// Releases all temporary resources allocated for RunAndBackwardOnce()
+	void CleanUp();
+
 	// Gets the maximum sequence length
 	int GetMaxSequenceLength() const { return maxSequenceLength; }
 	// Gets the current position in sequence (makes sense when calling from one of the Run... methods)
@@ -473,6 +529,9 @@ public:
 	// Serializes network with data, required to resume training
 	// When loading from checkpoint creates new solver (old pointers will point to an object, not used by this net anymore)
 	void SerializeCheckpoint( CArchive& archive );
+
+	// Enables profiling for all the layers in the network
+	void EnableProfile( bool profile );
 
 private:
 	// Adds or deletes a layer
@@ -544,4 +603,7 @@ void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<
 
 } // namespace NeoML
 
+//////////////////////////////////////////////////////////////////////////////////////////
+
 #include <NeoML/Dnn/Dnn.inl>
+

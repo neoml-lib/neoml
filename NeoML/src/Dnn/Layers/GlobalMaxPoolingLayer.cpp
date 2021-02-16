@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -98,6 +98,13 @@ void CGlobalMaxPoolingLayer::destroyDesc()
 		delete desc;
 		desc = 0;
 	}
+}
+
+CLayerWrapper<CGlobalMaxPoolingLayer> GlobalMaxPooling( int maxCount )
+{
+	return CLayerWrapper<CGlobalMaxPoolingLayer>( "", [=]( CGlobalMaxPoolingLayer* result ) {
+		result->SetMaxCount( maxCount );
+	} );
 }
 
 } // namespace NeoML

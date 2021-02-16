@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -48,6 +48,9 @@ public:
 	// Gets the peak memory usage achieved during processing
 	size_t GetPeakMemoryUsage() const { return peakMemoryUsage; }
 
+	// Gets the amount of memory used for the pools
+	size_t GetMemoryInPools() const;
+
 	// Frees all memory on the current thread
 	void CleanUp();
 
@@ -76,7 +79,7 @@ private:
 		CMemoryBufferPool* pool;
 
 		CUsedInfo() :
-			size( 0 ), pool( 0 ) {}
+			size( 0 ), buffer( nullptr), pool( 0 ) {}
 		CUsedInfo(size_t _size, CMemoryBuffer* _buffer, CMemoryBufferPool* _pool) :
 			size(_size), buffer(_buffer), pool(_pool) {}
 	};

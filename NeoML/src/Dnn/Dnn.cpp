@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -78,6 +78,9 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
 #include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/GELULayer.h>
+#include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
+#include <NeoML/Dnn/Layers/QrnnLayer.h>
+#include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
 
 namespace NeoML {
 
@@ -125,6 +128,17 @@ void UnregisterLayerName( const std::type_info& typeInfo )
 {
 	getRegisteredLayers().Delete( getLayerNames().Get( &typeInfo ) );
 	getLayerNames().Delete( &typeInfo );
+}
+
+bool IsRegisteredLayerName( const char* name )
+{
+	return getRegisteredLayers().Has( name );
+}
+
+CPtr<CBaseLayer> CreateLayer( const char* name, IMathEngine& mathEngine )
+{
+	NeoAssert( getRegisteredLayers().Has( name ) );
+	return getRegisteredLayers()[name]( mathEngine );
 }
 
 static CPtr<CBaseLayer> createLayer( IMathEngine& mathEngine, const CString& className )
@@ -278,6 +292,9 @@ REGISTER_NEOML_LAYER( CMatrixMultiplicationLayer, "NeoMLDnnMatrixMultiplicationL
 REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer" )
 REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLayer" )
 REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
+REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClass" )
+REGISTER_NEOML_LAYER( CQrnnLayer, "NeoMLDnnQrnnLayer" )
+REGISTER_NEOML_LAYER( CTiedEmbeddingsLayer, "TiedEmbeddingsLayer" )
 
 }
 
@@ -292,10 +309,10 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
 	isRebuildNeeded( false ),
 	isBackwardPerformed( false ),
 	isLearningEnabled( true ),
-	isRecurrentMode( false ),	
+	isRecurrentMode( false ),
 	maxSequenceLength( 1 ),
-	currentSequencePos( 0 ),	
-	isReverseSequense( false ),	
+	currentSequencePos( 0 ),
+	isReverseSequense( false ),
 	autoRestartMode( true ),
 	isReuseMemoryMode( false )
 {
@@ -532,6 +549,13 @@ void CDnn::RunAndLearnOnce()
 	solver->Train();
 }
 
+void CDnn::CleanUp()
+{
+	for( int i = 0; i < layers.Size(); i++ ) {
+		layers[i]->CleanUp();
+	}
+}
+
 void CDnn::backwardRunAndLearnOnce(int curSequencePos)
 {
 	currentSequencePos = curSequencePos;
@@ -691,6 +715,13 @@ void CDnn::SerializeCheckpoint( CArchive& archive )
 	SerializeSolver( archive, *this, solverPtr );
 	if( archive.IsLoading() ) {
 		SetSolver( solverPtr );
+	}
+}
+
+void CDnn::EnableProfile( bool profile )
+{
+	for( int i = 0; i < layers.Size(); ++i ) {
+		layers[i]->EnableProfile( profile );
 	}
 }
 

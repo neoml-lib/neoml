@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ limitations under the License.
 namespace NeoML {
 
 // The maximum number of bindings per shader
-static const int VulkanMaxBindingCount = 8;
+constexpr int VulkanMaxBindingCount = 8;
 
 struct CVulkanDevice;
 
@@ -224,7 +224,7 @@ class CVulkanDll;
 // The shader loader
 class CVulkanShaderLoader : public CCrtAllocatedObject {
 public:
-	explicit CVulkanShaderLoader( CVulkanDevice& vulkanDevice );
+	explicit CVulkanShaderLoader( const CVulkanDevice& vulkanDevice );
 	~CVulkanShaderLoader();
 
 	// Gets the shader data
@@ -233,7 +233,7 @@ public:
 private:
 	void calculateThreadGroupSize( int dimensions, int& threadGroupSizeX, int& threadGroupSizeY, int& threadGroupSizeZ ) const;
 
-	CVulkanDevice& device;
+	const CVulkanDevice& device;
 	std::vector< CVulkanShaderData*, CrtAllocator<CVulkanShaderData*> > shaders; // cache
 };
 

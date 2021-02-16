@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -85,13 +85,13 @@ void CMemoryProblem::SetDiscretizationValue( int index, int value )
 
 void CMemoryProblem::SetVectorWeight( int index, float newWeight )
 {
-	NeoAssert( 0 <= index && index < featureCount );
+	NeoAssert( 0 <= index && index < GetVectorCount() );
 	weights[index] = newWeight;
 }
 
 void CMemoryProblem::SetClass( int index, int newClass )
 {
-	NeoAssert( 0 <= index && index < featureCount );
+	NeoAssert( 0 <= index && index < GetVectorCount() );
 	NeoAssert( newClass >= 0 );
 	NeoAssert( classCount > newClass );
 	classes[index] = newClass;
@@ -125,7 +125,7 @@ void CMemoryProblem::Serialize( CArchive& archive )
 		archive << weights;
 		archive << classes;
 	} else {
-		assert( false );
+		NeoAssert( false );
 	}
 }
 

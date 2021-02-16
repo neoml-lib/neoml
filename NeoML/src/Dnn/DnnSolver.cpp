@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -154,23 +154,24 @@ CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
 }
 
 // Calculates the layer parameter gradients to then use them in Train method
-void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs )
+void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs,
+	bool sharedWeights )
 {
 	NeoAssert( layer != 0 );
 
 	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer );
-	++paramDiffBlobsSum.Count;
 
-	if( paramDiffBlobsSum.Count == 1 ) {
-		// The first term
-		NeoAssert( paramDiffBlobsSum.Sum.IsEmpty() );
-		paramDiffBlobs.CopyTo( paramDiffBlobsSum.Sum );
-		return;
+	if( !sharedWeights ) {
+		++paramDiffBlobsSum.Count;
 	}
 
-	NeoAssert( paramDiffBlobsSum.Sum.Size() == paramDiffBlobs.Size() );
-	for( int i = 0; i < paramDiffBlobs.Size(); i++ ) {
-		paramDiffBlobsSum.Sum[i]->Add( paramDiffBlobs[i] );
+	if( paramDiffBlobsSum.Sum.IsEmpty() ) {
+		paramDiffBlobs.CopyTo( paramDiffBlobsSum.Sum );
+	} else {
+		NeoAssert( paramDiffBlobsSum.Sum.Size() == paramDiffBlobs.Size() );
+		for( int i = 0; i < paramDiffBlobs.Size(); i++ ) {
+			paramDiffBlobsSum.Sum[i]->Add( paramDiffBlobs[i] );
+		}
 	}
 }
 

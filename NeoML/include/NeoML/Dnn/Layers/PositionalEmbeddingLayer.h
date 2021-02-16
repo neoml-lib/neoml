@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
+#pragma once
+
 #include <NeoML/Dnn/Dnn.h>
 
 namespace NeoML {
@@ -64,5 +66,8 @@ private:
 	void initializeLearnableAddition();
 	void fillPositionalEmbedding( CDnnBlob* blob );
 };
+
+NEOML_API CLayerWrapper<CPositionalEmbeddingLayer> PositionalEmbedding(
+	CPositionalEmbeddingLayer::TPositionalEmbeddingType type );
 
 } // namespace NeoML

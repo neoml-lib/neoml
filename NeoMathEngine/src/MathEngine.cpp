@@ -19,6 +19,7 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
 #include <CpuMathEngine.h>
+#include <DllLoader.h>
 
 #ifdef NEOML_USE_CUDA
 #include <cuda_runtime.h>
@@ -43,8 +44,6 @@ limitations under the License.
 #include <vector>
 
 namespace NeoML {
-
-static IMathEngineExceptionHandler* exceptionHandler = 0;
 
 // Interface destructors
 IVectorMathEngine::~IVectorMathEngine() {}
@@ -74,9 +73,9 @@ public:
 	CGpuMathEngineManager();
 
 	// IGpuMathEngineManager interface methods
-	virtual int GetMathEngineCount() const { return static_cast<int>( info.size() ); }
-	virtual void GetMathEngineInfo( int index, CMathEngineInfo& info ) const;
-	virtual IMathEngine* CreateMathEngine( int index, size_t memoryLimit ) const;
+	int GetMathEngineCount() const override { return static_cast<int>( info.size() ); }
+	void GetMathEngineInfo( int index, CMathEngineInfo& info ) const override;
+	IMathEngine* CreateMathEngine( int index, size_t memoryLimit, int flags = 0 ) const override;
 
 private:
 	CDllLoader loader;
@@ -84,14 +83,8 @@ private:
 };
 
 CGpuMathEngineManager::CGpuMathEngineManager() :
-	loader()
+	loader( CDllLoader::CUDA_DLL | CDllLoader::VULKAN_DLL )
 {
-#ifdef NEOML_USE_VULKAN
-	if( loader.IsLoaded( CDllLoader::VULKAN_DLL ) ) {
-		LoadVulkanEngineInfo( *CDllLoader::vulkanDll, info );
-	}
-#endif
-
 #ifdef NEOML_USE_CUDA
 	if( loader.IsLoaded( CDllLoader::CUDA_DLL ) ) {
 		int deviceCount = 0;
@@ -112,6 +105,12 @@ CGpuMathEngineManager::CGpuMathEngineManager() :
 	}
 #endif
 
+#ifdef NEOML_USE_VULKAN
+	if (loader.IsLoaded(CDllLoader::VULKAN_DLL)) {
+		LoadVulkanEngineInfo(*CDllLoader::vulkanDll, info);
+	}
+#endif
+
 #ifdef NEOML_USE_METAL
 	CMathEngineInfo deviceInfo;
 	if( LoadMetalEngineInfo( deviceInfo ) ) {
@@ -129,8 +128,9 @@ void CGpuMathEngineManager::GetMathEngineInfo( int index, CMathEngineInfo& resul
 	}
 }
 
-IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLimit ) const
+IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLimit, int flags ) const
 {
+	(void)flags; // Avoiding unused variable warning when NEOML_USE_CUDA is not defined
 	auto size = static_cast<int>(info.size());
 	if( size == 0 || index >= size ) {
 		return nullptr;
@@ -143,12 +143,19 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 		if( device == nullptr ) {
 			return nullptr;
 		}
-		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(), device );
+		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(), device, flags );
 	}
 #endif
 #ifdef NEOML_USE_VULKAN
 	case MET_Vulkan:
-		return new CVulkanMathEngine( *CDllLoader::vulkanDll, index >= 0 ? info[index].Id : 0, memoryLimit );
+	{
+		const auto& deviceInfo = loader.vulkanDll->GetDevices()[index >= 0 ? info[index].Id : 0];
+		std::unique_ptr<const CVulkanDevice> device (loader.vulkanDll->CreateDevice( deviceInfo ) );
+		if( !device ) {
+			return nullptr;
+		}
+		return new CVulkanMathEngine( device, memoryLimit );
+	}
 #endif
 #ifdef NEOML_USE_METAL
 	case MET_Metal:
@@ -165,9 +172,35 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 
 //------------------------------------------------------------------------------------------------------------
 
+class CDefaultMathEngineExceptionHandler : public IMathEngineExceptionHandler {
+public:
+	~CDefaultMathEngineExceptionHandler() override {}
+
+	void OnAssert( const char* message, const wchar_t*, int, int ) override
+	{
+		throw std::logic_error( message );
+	}
+
+	void OnMemoryError() override
+	{
+		throw std::bad_alloc();
+	}
+
+	static IMathEngineExceptionHandler* GetInstance()
+	{
+		static CDefaultMathEngineExceptionHandler instance;
+		return &instance;
+	}
+
+private:
+	CDefaultMathEngineExceptionHandler() {}
+};
+
+static IMathEngineExceptionHandler* exceptionHandler = CDefaultMathEngineExceptionHandler::GetInstance();
+
 void SetMathEngineExceptionHandler( IMathEngineExceptionHandler* newExceptionHandler )
 {
-	exceptionHandler = newExceptionHandler;
+	exceptionHandler = newExceptionHandler == nullptr ? CDefaultMathEngineExceptionHandler::GetInstance() : newExceptionHandler;
 }
 
 IMathEngineExceptionHandler* GetMathEngineExceptionHandler()
@@ -180,10 +213,10 @@ IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit )
 	return new CCpuMathEngine( threadCount, memoryLimit );
 }
 
-IMathEngine* CreateGpuMathEngine( size_t memoryLimit )
+IMathEngine* CreateGpuMathEngine( size_t memoryLimit, int flags )
 {
 	CGpuMathEngineManager manager;
-	return manager.CreateMathEngine(-1, memoryLimit);
+	return manager.CreateMathEngine(-1, memoryLimit, flags);
 }
 
 IGpuMathEngineManager* CreateGpuMathEngineManager()

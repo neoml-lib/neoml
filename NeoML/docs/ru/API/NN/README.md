@@ -233,6 +233,7 @@ delete gpuMathEngine;
   - [C3dMeanPoolingLayer](PoolingLayers/3dMeanPoolingLayer.md) - трехмерный `Mean Pooling`
   - [CGlobalMaxPoolingLayer](PoolingLayers/GlobalMaxPoolingLayer.md) - `Max Pooling` над объектами целиком
   - [CMaxOverTimePoolingLayer](PoolingLayers/MaxOverTimePoolingLayer.md) - `Max Pooling` над последовательностями "по времени"
+  - [CProjectionPoolingLayer](PoolingLayers/ProjectionPoolingLayer.md) - `Mean Pooling` вдоль одной из размерностей блоба
 - [CSoftmaxLayer](SoftmaxLayer.md) - вычисление функции `softmax`
 - [CDropoutLayer](DropoutLayer.md) - реализация `dropout`
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) - батч нормализация
@@ -295,6 +296,7 @@ delete gpuMathEngine;
 - Рекуррентные слои:
   - [CLstmLayer](LstmLayer.md) - реализация Long Short-Term Memory
   - [CGruLayer](GruLayer.md) - реализация Gated Recurrent Unit
+  - [CQrnnLayer](QrnnLayer.md) - квази-рекуррентный слой
 - [Условное случайное поле (CRF)](CrfLayers/README.md):
   - [CCrfLayer](CrfLayers/CrfLayer.md) - условное случайное поле
   - [CCrfLossLayer](CrfLayers/CrfLossLayer.md) - функция потерь для обучения условного случайного поля

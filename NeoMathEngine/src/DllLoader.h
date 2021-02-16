@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
+#pragma once
+
 #include <common.h>
 #pragma hdrstop
 
@@ -26,8 +28,11 @@ limitations under the License.
 #endif
 
 #ifdef NEOML_USE_VULKAN
-#include <VulkanMathEngine.h>
 #include <VulkanDll.h>
+#endif
+
+#ifdef NEOML_USE_AVX
+#include <AvxDll.h>
 #endif
 
 namespace NeoML {
@@ -52,9 +57,15 @@ public:
 	static constexpr int VULKAN_DLL = 0x0;
 #endif
 
-	static constexpr int ALL_DLL = VULKAN_DLL | CUDA_DLL;
+#ifdef NEOML_USE_AVX
+	static CAvxDll* avxDll;
+	static int avxDllLinkCount;
+	static constexpr int AVX_DLL = 0x4;
+#else
+	static constexpr int AVX_DLL = 0x0;
+#endif
 
-	CDllLoader() : loadedDlls( Load(ALL_DLL) ) {}
+	explicit CDllLoader( int dll ) : loadedDlls( Load( dll ) ) {}
 	~CDllLoader() { Free( loadedDlls ); }
 
 	bool IsLoaded( int dll ) const { return ( loadedDlls & dll ) != 0; }

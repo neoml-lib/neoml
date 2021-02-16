@@ -40,7 +40,7 @@ void CGELULayer::Serialize( CArchive& archive )
 void CGELULayer::Reshape()
 {
 	CheckInputs();
-	assert( inputDescs.Size() == 1 );
+	NeoAssert( inputDescs.Size() == 1 );
 
 	const CBlobDesc& inputDesc = inputDescs[0];
 
@@ -94,4 +94,9 @@ void CGELULayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData(), blobSize );
 }
 
-} // namespace FML
+CLayerWrapper<CGELULayer> Gelu()
+{
+	return CLayerWrapper<CGELULayer>( "Gelu" );
+}
+
+} // namespace NeoML

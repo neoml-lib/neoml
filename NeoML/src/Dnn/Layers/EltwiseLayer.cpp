@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -73,6 +73,11 @@ void CEltwiseSumLayer::Serialize( CArchive& archive )
 	CEltwiseBaseLayer::Serialize( archive );
 }
 
+CLayerWrapper<CEltwiseSumLayer> Sum()
+{
+	return CLayerWrapper<CEltwiseSumLayer>( "Sum" );
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void CEltwiseMulLayer::RunOnce()
@@ -113,6 +118,11 @@ void CEltwiseMulLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( EltwiseMulLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CEltwiseBaseLayer::Serialize( archive );
+}
+
+CLayerWrapper<CEltwiseMulLayer> Mul()
+{
+	return CLayerWrapper<CEltwiseMulLayer>( "Mul" );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -174,6 +184,11 @@ void CEltwiseNegMulLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( EltwiseNegMulLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CEltwiseBaseLayer::Serialize( archive );
+}
+
+CLayerWrapper<CEltwiseNegMulLayer> NegMul()
+{
+	return CLayerWrapper<CEltwiseNegMulLayer>( "NegMul" );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -240,6 +255,11 @@ void CEltwiseMaxLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( EltwiseMaxLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CEltwiseBaseLayer::Serialize( archive );
+}
+
+CLayerWrapper<CEltwiseMaxLayer> Max()
+{
+	return CLayerWrapper<CEltwiseMaxLayer>( "Max" );
 }
 
 }

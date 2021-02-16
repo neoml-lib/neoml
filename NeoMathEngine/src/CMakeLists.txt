@@ -59,6 +59,8 @@ target_sources(${PROJECT_NAME}
     ../include/NeoMathEngine/MemoryHandle.inl
     ../include/NeoMathEngine/SparseMatrixDesc.h
     ../include/NeoMathEngine/NeoMathEngine.h
+    ../include/NeoMathEngine/NeoMathEngineException.h
+    ../include/NeoMathEngine/SimdMathEngine.h
 )
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -92,7 +94,7 @@ if(ANDROID OR LINUX)
 endif()
 
 # CPU specific settings
-if((ANDROID AND ANDROID_ABI MATCHES "^arm.*") OR (IOS AND IOS_ARCH MATCHES "^arm.*"))
+if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROID_ABI MATCHES "^arm.*") OR (IOS AND IOS_ARCH MATCHES "^arm.*"))
     target_sources(${PROJECT_NAME} 
     PRIVATE
         CPU/arm/CpuArmMathEngineBlas.cpp
@@ -126,9 +128,21 @@ else()
         CPU/x86/CpuX86MathEngineVectorMathMkl.cpp
         CPU/x86/CpuX86MathEngineDnn3dConv.cpp
         CPU/x86/CpuX86.h
+        CPU/x86/CpuX86MathEngineBlasPrivate.h
+        CPU/x86/CpuX86MathEngineVectorMathPrivate.h
     )
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
+    if(NEOML_USE_AVX)
+        target_sources(${PROJECT_NAME}
+        PRIVATE
+            CPU/x86/AvxDll.cpp
+            CPU/x86/AvxDll.h
+        )
+        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_AVX)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
+        set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
+    endif()
 endif()
 
 # GPU specific source and settings
@@ -165,6 +179,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         target_sources(${PROJECT_NAME}
             PRIVATE
                 GPU/CUDA/CublasDll.cpp
+                GPU/CUDA/CudaCommon.cpp
                 GPU/CUDA/CudaDevice.cpp
                 GPU/CUDA/CudaMathEngine.cpp
                 GPU/CUDA/CusparseDll.cpp
@@ -219,6 +234,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     endif()
     
 elseif(IOS)
+    # Apple metal
     set(IOS_SOURCES
         GPU/Metal/MetalMathEngine.h
         GPU/Metal/MetalMathEngine.mm
@@ -249,63 +265,76 @@ elseif(IOS)
     if(NeoMathEngine_BUILD_SHARED)
         set_target_properties(${PROJECT_NAME} PROPERTIES RESOURCE ${METAL_LIB})
     endif()
-elseif(ANDROID)
-    
-    if(USE_FINE_OBJECTS)
-        set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
-    endif()
-    
-    find_path(Vulkan_INCLUDE_DIR
-        NAMES vulkan/vulkan.h
-        PATHS "$ENV{VULKAN_SDK}/Include"
-                "$ENV{VULKAN_SDK}/include"
-    )
-    
-    find_program(GLSL_COMPILER 
-        NAMES glslangValidator
-        PATHS "$ENV{VULKAN_SDK}/Bin"
-                "$ENV{VULKAN_SDK}/bin"
-    )
-    
-    if(Vulkan_INCLUDE_DIR AND GLSL_COMPILER)
-        message(STATUS "Found Vulkan: TRUE")
+endif()
 
-        if(USE_FINE_OBJECTS AND CMAKE_HOST_SYSTEM_NAME MATCHES "Linux|Darwin")
-            execute_process(COMMAND chmod +x ${GLSL_COMPILER})
+if(NeoMathEngine_ENABLE_VULKAN)
+    if(WIN32 OR ANDROID)
+        # Vulkan
+        if(USE_FINE_OBJECTS)
+            set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
         endif()
-        # Using Vulkan
-        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_VULKAN)
         
-        target_include_directories(${PROJECT_NAME} 
-            PRIVATE 
-                GPU/Vulkan
-                ${Vulkan_INCLUDE_DIR}
+        find_path(Vulkan_INCLUDE_DIR
+            NAMES vulkan/vulkan.h
+            PATHS "$ENV{VULKAN_SDK}/Include"
+                    "$ENV{VULKAN_SDK}/include"
         )
         
-        target_sources(${PROJECT_NAME}
-            PRIVATE
-                GPU/Vulkan/VulkanCommandQueue.cpp
-                GPU/Vulkan/VulkanDll.cpp
-                GPU/Vulkan/VulkanImage.cpp
-                GPU/Vulkan/VulkanMathEngineBlas.cpp
-                GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
-                GPU/Vulkan/VulkanMathEngineDnn.cpp
-                GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
-                GPU/Vulkan/VulkanMathEngine.cpp
-                GPU/Vulkan/VulkanMathEngineVectorMath.cpp
-                GPU/Vulkan/VulkanShader.cpp
+        find_program(GLSL_COMPILER 
+            NAMES glslangValidator
+            PATHS "$ENV{VULKAN_SDK}/Bin"
+                    "$ENV{VULKAN_SDK}/bin"
         )
         
-        add_subdirectory(GPU/Vulkan/shaders)
-        
-        add_dependencies(${PROJECT_NAME} VulkanShaders)
-    else()
-        message(STATUS "Found Vulkan: FALSE")
+        if(Vulkan_INCLUDE_DIR AND GLSL_COMPILER)
+            message(STATUS "Found Vulkan: TRUE")
+
+            if(USE_FINE_OBJECTS AND CMAKE_HOST_SYSTEM_NAME MATCHES "Linux|Darwin")
+                execute_process(COMMAND chmod +x ${GLSL_COMPILER})
+            endif()
+
+            target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_VULKAN VK_NO_PROTOTYPES)
+            
+            target_include_directories(${PROJECT_NAME}
+                PRIVATE 
+                    GPU/Vulkan
+                    ${Vulkan_INCLUDE_DIR}
+            )
+            
+            target_sources(${PROJECT_NAME}
+                PRIVATE
+                    GPU/Vulkan/VulkanCommandQueue.cpp
+                    GPU/Vulkan/VulkanCommandQueue.h
+                    GPU/Vulkan/VulkanDll.cpp
+                    GPU/Vulkan/VulkanDll.h
+                    GPU/Vulkan/VulkanImage.cpp
+                    GPU/Vulkan/VulkanImage.h
+                    GPU/Vulkan/VulkanMathEngineBlas.cpp
+                    GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
+                    GPU/Vulkan/VulkanMathEngineDnn.cpp
+                    GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
+                    GPU/Vulkan/VulkanMathEngine.cpp
+                    GPU/Vulkan/VulkanMathEngine.h
+                    GPU/Vulkan/VulkanMathEngineVectorMath.cpp
+                    GPU/Vulkan/VulkanShader.cpp
+                    GPU/Vulkan/VulkanShader.h
+                    GPU/Vulkan/VulkanMemory.cpp
+                    GPU/Vulkan/VulkanMemory.h
+                    GPU/Vulkan/shaders/common/CommonStruct.h
+            )
+            source_group("GPU\\Vulkan" REGULAR_EXPRESSION "GPU\/Vulkan\/[A-Za-z0-9_]+\.(h|cpp)")
+            
+            add_subdirectory(GPU/Vulkan/shaders)
+            
+            add_dependencies(${PROJECT_NAME} VulkanShaders)
+        else()
+            message(STATUS "Found Vulkan: FALSE")
+        endif()
     endif()
 endif()
 
 # Add some definitions
-target_compile_definitions(${PROJECT_NAME} 
+target_compile_definitions(${PROJECT_NAME}
     PUBLIC
         "$<$<OR:$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:_RELEASE>"
         "$<$<CONFIG:Debug>:_DEBUG>"
@@ -320,30 +349,14 @@ endif()
 
 
 # OpenMP
-if(NOT IOS)
-    find_package(OpenMP REQUIRED)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC NEOML_USE_OMP)
-    string(REPLACE " " ";" OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS})
-    target_compile_options(${PROJECT_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)
-    target_include_directories(${PROJECT_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_INCLUDE_DIRS}>)
-    if(OpenMP_CXX_LIBRARIES)
-        if(ANDROID)
-            get_filename_component(OMP_SUFFIX ${OpenMP_omp_LIBRARY} EXT)
-            if(OMP_SUFFIX STREQUAL ".so")
-                target_link_libraries(${PROJECT_NAME} PUBLIC -fopenmp -static-openmp)
-            else()
-                target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-            endif()
-        else()
-            target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-        endif()
-    endif()
+if(NOT IOS AND NOT (DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64?"))
+    link_openmp(${PROJECT_NAME})
 endif()
 
 # SSE2
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
     target_compile_options(${PROJECT_NAME} PRIVATE /arch:SSE2)
-elseif(LINUX OR DARWIN OR (ANDROID AND ANDROID_ABI MATCHES "^x86.*") OR (IOS_ARCH MATCHES "^x86.*"))
+elseif(((LINUX OR DARWIN) AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86.*") OR (ANDROID AND ANDROID_ABI MATCHES "^x86.*") OR (IOS_ARCH MATCHES "^x86.*"))
     target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-msse2>)
 endif()
 
@@ -353,7 +366,7 @@ if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
 endif()
 
 # MKL
-if(NOT ANDROID AND NOT IOS)
+if(NOT ANDROID AND NOT IOS AND CMAKE_SYSTEM_PROCESSOR MATCHES "(x86.*)|(amd64)|(AMD64)")
 
     if(USE_FINE_OBJECTS)
         set(ENV{MKLROOT} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})
@@ -369,7 +382,7 @@ endif()
 if(WIN32)
     if(USE_FINE_OBJECTS)
         target_include_directories(${PROJECT_NAME} PRIVATE 
-            $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../../Build/Inc ${FINE_ROOT}/FineObjects>>
+            $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${FINE_ROOT}/Build/Inc ${FINE_ROOT}/FineObjects>>
         )
         target_compile_definitions(${PROJECT_NAME} PUBLIC NEOMATHENGINE_USE_FINEOBJ)
     else()

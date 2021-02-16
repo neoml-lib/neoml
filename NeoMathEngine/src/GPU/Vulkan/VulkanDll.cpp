@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <VulkanDll.h>
 #include <string>
+#include <memory>
 
 namespace NeoML {
 
@@ -33,13 +34,9 @@ namespace NeoML {
 	if((Name = (Type)vkGetInstanceProcAddr(instance, NameStr)) == 0) return false
 #define LOAD_VULKAN_INSTANCE_FUNC_PROC(Name) LOAD_VULKAN_INSTANCE_FUNC_PROC_NAME(PFN_##Name, Name, #Name)
 
-#define LOAD_VULKAN_DEVICE_FUNC_PROC_NAME(Type, Name, NameStr) \
-	if((Name = (Type)vkGetDeviceProcAddr(Handle, NameStr)) == 0) return false
-#define LOAD_VULKAN_DEVICE_FUNC_PROC(Name) LOAD_VULKAN_DEVICE_FUNC_PROC_NAME(PFN_##Name, Name, #Name)
-
 #if FINE_PLATFORM(FINE_WINDOWS)
 	static const char* VulkanDllName = "vulkan-1.dll";
-#elif FINE_PLATFORM(FINE_ANDROID)
+#elif FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_LINUX)
 	static const char* VulkanDllName = "libvulkan.so";
 #else
 	#error Platform not supported!
@@ -89,149 +86,31 @@ static TVulkanDeviceType defineDeviceType( const VkPhysicalDeviceProperties& pro
 		return VDT_Adreno;
 	}
 
+	pos = name.find( "geforce" );
+	if (pos != std::string::npos) {
+		return VDT_Nvidia;
+	}
+
+	if(name.find( "intel" ) != std::string::npos ) {
+		return VDT_Intel;
+	}
+
 	return VDT_Regular;
-}
-
-//------------------------------------------------------------------------------------------------------------
-
-// The implementation of a vulkan device
-class CVulkanDeviceImpl: public CVulkanDevice, public CCrtAllocatedObject {
-public:
-	CVulkanDeviceImpl() { Handle = VK_NULL_HANDLE; }
-	virtual ~CVulkanDeviceImpl() { DestroyDevice(); }
-
-	// Tries to create the device
-	bool CreateDevice( PFN_vkCreateDevice vkCreateDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr,
-		const CVulkanDeviceInfo& info );
-
-	// Destroys the device
-	void DestroyDevice();
-
-private:
-	bool loadFunctions( PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr );
-};
-
-bool CVulkanDeviceImpl::CreateDevice( PFN_vkCreateDevice vkCreateDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr,
-	const CVulkanDeviceInfo& info )
-{
-	if( Handle != VK_NULL_HANDLE ) {
-		return false;
-	}
-
-	VkDeviceQueueCreateInfo queueInfo = {};
-	queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueInfo.queueFamilyIndex = info.Family;
-	queueInfo.queueCount = 1;
-	queueInfo.flags = 0;
-	float priority = 1;
-	queueInfo.pQueuePriorities = &priority;
-
-	VkPhysicalDeviceFeatures features = {}; // no special features needed
-
-	VkDeviceCreateInfo deviceInfo = {};
-	deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceInfo.pQueueCreateInfos = &queueInfo;
-	deviceInfo.queueCreateInfoCount = 1;
-	deviceInfo.pEnabledFeatures = &features;
-	if( vkCreateDevice( info.PhysicalDevice, &deviceInfo, 0, &Handle ) != VK_SUCCESS ) {
-		return false;
-	}
-
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyDevice);
-
-	if( !loadFunctions( vkGetDeviceProcAddr ) ) {
-		vkDestroyDevice( Handle, 0 );
-		Handle = VK_NULL_HANDLE;
-		return false;
-	}
-
-	Family = info.Family;
-	IsImageBased = ( info.Type != VDT_MaliBifrost );
-	Type = info.Type;
-	MemoryProperties = info.MemoryProperties;
-	Properties = info.Properties;
-	return true;
-}
-
-void CVulkanDeviceImpl::DestroyDevice()
-{
-	if( Handle == VK_NULL_HANDLE ) {
-		return;
-	}
-	vkDestroyDevice( Handle, 0 );
-	Handle = VK_NULL_HANDLE;
-}
-
-// Loads all necessary functions
-bool CVulkanDeviceImpl::loadFunctions( PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr )
-{
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyDevice);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkGetDeviceQueue);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreateBuffer);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreateImage);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreateImageView);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreateSampler);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyBuffer);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyImage);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyImageView);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroySampler);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkGetBufferMemoryRequirements);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkGetImageMemoryRequirements);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkAllocateMemory);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkFreeMemory);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkBindBufferMemory);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkBindImageMemory);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreateCommandPool);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyCommandPool);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreateComputePipelines);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyPipeline);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkAllocateCommandBuffers);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkFreeCommandBuffers);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreateFence);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyFence);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkBeginCommandBuffer);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkEndCommandBuffer);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkQueueSubmit);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkWaitForFences);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdCopyBuffer);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdPipelineBarrier);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkResetFences);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdUpdateBuffer);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkMapMemory);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkUnmapMemory);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdFillBuffer);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreateDescriptorPool);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyDescriptorPool);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdBindPipeline);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdBindDescriptorSets);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdDispatch);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkAllocateDescriptorSets);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkFreeDescriptorSets);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreateDescriptorSetLayout);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyDescriptorSetLayout);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkUpdateDescriptorSets);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreatePipelineLayout);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyPipelineLayout);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCreateShaderModule);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyShaderModule);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdPushConstants);
-	LOAD_VULKAN_DEVICE_FUNC_PROC(vkQueueWaitIdle);
-	return true;
 }
 
 //------------------------------------------------------------------------------------------------------------
 
 CVulkanDll::CVulkanDll() :
 	instance( VK_NULL_HANDLE ),
-	vkGetInstanceProcAddr( 0 ),
-	vkGetDeviceProcAddr( 0 ),
-	vkCreateInstance( 0 ),
-	vkDestroyInstance( 0 ),
-	vkEnumeratePhysicalDevices( 0 ),
-	vkGetPhysicalDeviceProperties( 0 ),
-	vkGetPhysicalDeviceQueueFamilyProperties( 0 ),
-	vkGetPhysicalDeviceMemoryProperties( 0 ),
-	vkCreateDevice( 0 )
+	vkGetInstanceProcAddr( nullptr ),
+	vkGetDeviceProcAddr( nullptr ),
+	vkCreateInstance( nullptr ),
+	vkDestroyInstance( nullptr ),
+	vkEnumeratePhysicalDevices( nullptr ),
+	vkGetPhysicalDeviceProperties( nullptr ),
+	vkGetPhysicalDeviceQueueFamilyProperties( nullptr ),
+	vkGetPhysicalDeviceMemoryProperties( nullptr ),
+	vkCreateDevice( nullptr )
 {
 }
 
@@ -260,19 +139,99 @@ bool CVulkanDll::Load()
 		CDll::Free();
 		return false;
 	}
+
 	return true;
 }
 
-CVulkanDevice* CVulkanDll::CreateDevice( const CVulkanDeviceInfo& info ) const
+const CVulkanDevice* CVulkanDll::CreateDevice( const CVulkanDeviceInfo& info ) const
 {
-	CVulkanDeviceImpl* deviceImpl = new CVulkanDeviceImpl();
+	VkDeviceQueueCreateInfo queueInfo = {};
+	queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueInfo.queueFamilyIndex = info.Family;
+	queueInfo.queueCount = 1;
+	queueInfo.flags = 0;
+	float priority = 1;
+	queueInfo.pQueuePriorities = &priority;
 
-	if( deviceImpl->CreateDevice( vkCreateDevice, vkGetDeviceProcAddr, info ) ) {
-		return deviceImpl;
+	VkPhysicalDeviceFeatures features = {}; // no special features needed
+
+	VkDeviceCreateInfo deviceInfo = {};
+	deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	deviceInfo.pQueueCreateInfos = &queueInfo;
+	deviceInfo.queueCreateInfoCount = 1;
+	deviceInfo.pEnabledFeatures = &features;
+	
+	VkDevice handle;
+	if( vkCreateDevice(info.PhysicalDevice, &deviceInfo, 0, &handle) != VK_SUCCESS ) {
+		return nullptr;
 	}
 
-	delete deviceImpl;
-	return 0;
+	std::unique_ptr<CVulkanDevice> result( new CVulkanDevice( handle, info ) );
+
+#define LOAD_VULKAN_DEVICE_FUNC_PROC_NAME(Type, Name, NameStr) \
+	if((result->Name = (Type)vkGetDeviceProcAddr(result->device, NameStr)) == 0) return nullptr
+#define LOAD_VULKAN_DEVICE_FUNC_PROC(Name) LOAD_VULKAN_DEVICE_FUNC_PROC_NAME(PFN_##Name, Name, #Name)
+
+#define LOAD_VULKAN_DEVICE_FUNC_PROC_NAME1(Type, Name, NameStr) \
+	Type _##Name =  (Type)vkGetDeviceProcAddr(result->device, NameStr); \
+	if((_##Name) == nullptr) return nullptr; \
+	result->Name = {result->device, _##Name};
+#define LOAD_VULKAN_DEVICE_FUNC_PROC1(Name) LOAD_VULKAN_DEVICE_FUNC_PROC_NAME1(PFN_##Name, Name, #Name)
+
+	// Load functions
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkDestroyDevice);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkGetDeviceQueue);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateBuffer);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateImage);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateImageView);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateSampler);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyBuffer);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyImage);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyImageView);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroySampler);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkGetBufferMemoryRequirements);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkGetImageMemoryRequirements);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkAllocateMemory);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkFreeMemory);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkBindBufferMemory);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkBindImageMemory);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateCommandPool);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyCommandPool);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateComputePipelines);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyPipeline);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkAllocateCommandBuffers);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkFreeCommandBuffers);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateFence);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyFence);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkBeginCommandBuffer);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkEndCommandBuffer);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkQueueSubmit);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkWaitForFences);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdCopyBuffer);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdPipelineBarrier);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkResetFences);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdUpdateBuffer);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkMapMemory);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkUnmapMemory);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdFillBuffer);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateDescriptorPool);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyDescriptorPool);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdBindPipeline);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdBindDescriptorSets);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdDispatch);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkAllocateDescriptorSets);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkFreeDescriptorSets);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateDescriptorSetLayout);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyDescriptorSetLayout);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkUpdateDescriptorSets);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreatePipelineLayout);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyPipelineLayout);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkCreateShaderModule);
+	LOAD_VULKAN_DEVICE_FUNC_PROC1(vkDestroyShaderModule);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkCmdPushConstants);
+	LOAD_VULKAN_DEVICE_FUNC_PROC(vkQueueWaitIdle);
+
+	return result.release();
 }
 
 void CVulkanDll::Free()
@@ -280,7 +239,7 @@ void CVulkanDll::Free()
 	if( IsLoaded() ) {
 		devices.clear();
 		devices.shrink_to_fit();
-		if( vkDestroyInstance != 0 ) {
+		if( vkDestroyInstance != nullptr ) {
 			vkDestroyInstance( instance, 0 );
 		}
 		instance = VK_NULL_HANDLE;
@@ -342,13 +301,14 @@ bool CVulkanDll::enumDevices()
 					CVulkanDeviceInfo info;
 					info.Type = deviceType;
 					info.PhysicalDevice = physicalDevices[i];
+					info.DeviceID = static_cast<int>( devices.size() );
 					info.Family = familyNum;
 					info.AvailableMemory = 0;
 					info.Properties = props;
 					vkGetPhysicalDeviceMemoryProperties( physicalDevices[i], &info.MemoryProperties );
-					for( int h = 0; h < static_cast<int>( info.MemoryProperties.memoryHeapCount ); h++ ) {
+					for( int h = 0; h < static_cast<int>( info.MemoryProperties.memoryHeapCount ); ++h ) {
 						if( ( info.MemoryProperties.memoryHeaps[h].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT ) != 0 ) {
-							info.AvailableMemory += info.MemoryProperties.memoryHeaps[h].size;
+							info.AvailableMemory += static_cast<size_t>( info.MemoryProperties.memoryHeaps[h].size );
 						}
 					}
 

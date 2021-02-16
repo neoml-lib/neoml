@@ -66,6 +66,8 @@ protected:
 	void BackwardOnce() override;
 };
 
+NEOML_API CLayerWrapper<CLinearLayer> Linear( float multiplier, float freeTerm );
+
 //------------------------------------------------------------------------------------------------------------
 
 // The layer that uses ELU activation function:
@@ -85,6 +87,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CELULayer> Elu( float alpha = 0.01f );
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -111,6 +115,8 @@ private:
 	CPtr<CDnnBlob> upperThreshold;
 };
 
+NEOML_API CLayerWrapper<CReLULayer> Relu( float threshold = 0.f );
+
 //------------------------------------------------------------------------------------------------------------
 
 // The layer that uses "leaky ReLU" activation function:
@@ -131,6 +137,8 @@ protected:
 	void BackwardOnce() override;
 };
 
+NEOML_API CLayerWrapper<CLeakyReLULayer> LeakyRelu( float alpha = 0.01f );
+
 //------------------------------------------------------------------------------------------------------------
 
 // The layer that uses the activation function f(x) = x * ReLU6(x + 3) / 6 
@@ -146,6 +154,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CHSwishLayer> HSwish();
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -163,6 +173,8 @@ protected:
 	void BackwardOnce() override;
 };
 
+NEOML_API CLayerWrapper<CAbsLayer> Abs();
+
 //------------------------------------------------------------------------------------------------------------
 
 // The layer that uses a sigmoid activation function 1 / (1 + exp(-x))
@@ -177,6 +189,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CSigmoidLayer> Sigmoid();
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -193,6 +207,8 @@ protected:
 	void BackwardOnce() override;
 };
 
+NEOML_API CLayerWrapper<CTanhLayer> Tanh();
+
 //------------------------------------------------------------------------------------------------------------
 
 // The layer that uses HardTanh activation function:
@@ -208,6 +224,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 };
+
+NEOML_API CLayerWrapper<CHardTanhLayer> HardTanh();
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -233,6 +251,8 @@ private:
 	void setDefaultParamBlobs( IMathEngine& mathEngine );
 };
 
+NEOML_API CLayerWrapper<CHardSigmoidLayer> HardSigmoid( float slope, float bias );
+
 //------------------------------------------------------------------------------------------------------------
 
 // The layer that raises each element to the given power
@@ -253,5 +273,7 @@ protected:
 private:
 	float exponent; // the power to which the elements will be raised
 };
+
+NEOML_API CLayerWrapper<CPowerLayer> Power( float exponent );
 
 } // namespace NeoML

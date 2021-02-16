@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ limitations under the License.
 #ifdef NEOML_USE_VULKAN
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
-#include <assert.h>
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <MathEngineAllocator.h>
@@ -33,10 +32,10 @@ struct CVulkanDevice;
 class CVulkanImage;
 
 // The maximum number of bytes that may be asynchronously copied to GPU memory
-static const size_t VulkanMaxUpdateBufferSize = 65536;
+constexpr size_t VulkanMaxUpdateBufferSize = 65536;
 
 // The number of descriptors in the pool
-static const int VulkanMaxDescriptorSetPerPool = 128;
+constexpr int VulkanMaxDescriptorSetPerPool = 128;
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -48,7 +47,7 @@ struct CCommand;
 // The resources are freed by calling CleanUp()
 class CVulkanCommandQueue : public CCrtAllocatedObject {
 public:
-	explicit CVulkanCommandQueue( CVulkanDevice& device );
+	explicit CVulkanCommandQueue( const CVulkanDevice& device );
 	~CVulkanCommandQueue();
 
 	// Add a shader to the compute queue
@@ -77,7 +76,7 @@ public:
 	void CleanUp();
 
 private:
-	CVulkanDevice& device; // the processing device
+	const CVulkanDevice& device; // the processing device
 	VkQueue queue; // the queue handle
 	VkCommandPool commandPool; // the command pool queue
 	std::vector< VkDescriptorPool, CrtAllocator<VkDescriptorPool> > descriptorPools; // the stack of pool descriptors

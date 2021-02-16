@@ -77,4 +77,11 @@ void CRepeatSequenceLayer::BackwardOnce()
 		copyCount, inputDiffBlobs[0]->GetDataSize());
 }
 
+CLayerWrapper<CRepeatSequenceLayer> RepeatSequence( int repeatCount )
+{
+	return CLayerWrapper<CRepeatSequenceLayer>( "RepeatSequence", [=]( CRepeatSequenceLayer* result ) {
+		result->SetRepeatCount( repeatCount );
+	} );
+}
+
 } // namespace NeoML

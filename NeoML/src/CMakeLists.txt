@@ -67,6 +67,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/PoolingLayer.cpp
     Dnn/Layers/PositionalEmbeddingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
+    Dnn/Layers/ProjectionPoolingLayer.cpp
+    Dnn/Layers/QrnnLayer.cpp
     Dnn/Layers/QualityControlLayer.cpp
     Dnn/Layers/RecurrentLayer.cpp
     Dnn/Layers/ReorgLayer.cpp
@@ -78,6 +80,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/SourceLayer.cpp
     Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/SubSequenceLayer.cpp
+    Dnn/Layers/TiedEmbeddingsLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
@@ -87,8 +90,10 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ClassificationProbability.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
+    TraditionalML/CompactRegressionTree.cpp
+    TraditionalML/CompactRegressionTree.h
     TraditionalML/CrossValidation.cpp
-    TraditionalML/CrossValidationSubProblem.h
+    TraditionalML/CrossValidationSubProblem.cpp
     TraditionalML/DecisionTreeClassificationModel.cpp
     TraditionalML/DecisionTreeClassificationModel.h
     TraditionalML/DecisionTreeNodeBase.cpp
@@ -98,7 +103,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/DecisionTreeNodeStatisticBase.h
     TraditionalML/DecisionTreeTrainingModel.cpp
     TraditionalML/DifferentialEvolution.cpp
-    TraditionalML/EMClustering.cpp
     TraditionalML/FeatureSelection.cpp
     TraditionalML/FirstComeClustering.cpp
     TraditionalML/FloatVector.cpp
@@ -118,13 +122,16 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/GradientBoostQSEnsemble.cpp
     TraditionalML/GradientBoostQSEnsemble.h
     TraditionalML/GradientBoostQuickScorer.cpp
-    TraditionalML/GradientBoostVectorSetStatistics.h
+    TraditionalML/GradientBoostStatisticsSingle.h
+    TraditionalML/GradientBoostStatisticsMulti.h
     TraditionalML/HierarchicalClustering.cpp
     TraditionalML/IsoDataClustering.cpp
     TraditionalML/KMeansClustering.cpp
     TraditionalML/LinearBinaryClassifierBuilder.cpp
     TraditionalML/LinearBinaryModel.cpp
     TraditionalML/LinearBinaryModel.h
+    TraditionalML/LinkedRegressionTree.cpp
+    TraditionalML/LinkedRegressionTree.h
     TraditionalML/MemoryProblem.cpp
     TraditionalML/OneVersusAll.cpp
     TraditionalML/OneVersusAllModel.cpp
@@ -133,19 +140,19 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ProblemWrappers.cpp
     TraditionalML/ProblemWrappers.h
     TraditionalML/ProblemWrappers.inl
-    TraditionalML/RegressionTreeModel.cpp
-    TraditionalML/RegressionTreeModel.h
+    TraditionalML/RegressionTree.h
     TraditionalML/Score.cpp
+    TraditionalML/SerializeCompact.h
     TraditionalML/Shuffler.cpp
     TraditionalML/SMOptimizer.cpp
+    TraditionalML/SMOptimizer.h
     TraditionalML/SparseFloatMatrix.cpp
     TraditionalML/SparseFloatVector.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
-    TraditionalML/StratifiedCrossValidationSubProblem.h
-    TraditionalML/SubProblem.h
     TraditionalML/SvmBinaryClassifierBuilder.cpp
     TraditionalML/SvmBinaryModel.cpp
     TraditionalML/SvmBinaryModel.h
+    TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
 
     # Headers
@@ -161,6 +168,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/DnnInitializer.h
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
+    ../include/NeoML/Dnn/DnnLambdaHolder.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h
@@ -206,6 +214,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h
+    ../include/NeoML/Dnn/Layers/ProjectionPoolingLayer.h
+    ../include/NeoML/Dnn/Layers/QrnnLayer.h
     ../include/NeoML/Dnn/Layers/QualityControlLayer.h
     ../include/NeoML/Dnn/Layers/RecurrentLayer.h
     ../include/NeoML/Dnn/Layers/ReorgLayer.h
@@ -216,6 +226,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/SourceLayer.h
     ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/SubSequenceLayer.h
+    ../include/NeoML/Dnn/Layers/TiedEmbeddingsLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
@@ -225,11 +236,11 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/ClassificationResult.h
     ../include/NeoML/TraditionalML/ClusterCenter.h
     ../include/NeoML/TraditionalML/Clustering.h
+    ../include/NeoML/TraditionalML/CrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/CommonCluster.h
     ../include/NeoML/TraditionalML/CrossValidation.h
     ../include/NeoML/TraditionalML/DecisionTreeTrainingModel.h
     ../include/NeoML/TraditionalML/DifferentialEvolution.h
-    ../include/NeoML/TraditionalML/EMClustering.h
     ../include/NeoML/TraditionalML/FeatureSelection.h
     ../include/NeoML/TraditionalML/FirstComeClustering.h
     ../include/NeoML/TraditionalML/FloatVector.h
@@ -252,13 +263,16 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/Score.h
     ../include/NeoML/TraditionalML/Shuffler.h
     ../include/NeoML/TraditionalML/SimpleGenerator.h
-    ../include/NeoML/TraditionalML/SMOptimizer.h
     ../include/NeoML/TraditionalML/SparseFloatMatrix.h
     ../include/NeoML/TraditionalML/SparseFloatVector.h
+    ../include/NeoML/TraditionalML/SparseVectorIterator.h
     ../include/NeoML/TraditionalML/SvmBinaryClassifierBuilder.h
+    ../include/NeoML/TraditionalML/SvmKernel.h
+    ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/TrainingModel.h
     ../include/NeoML/TraditionalML/TrustRegionNewtonOptimizer.h
     ../include/NeoML/TraditionalML/VariableMatrix.h
+    ../include/NeoML/TraditionalML/VectorIterator.h
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -276,13 +290,13 @@ if(USE_FINE_OBJECTS)
 
     set(MESSAGES_DIR ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.Messages)
     set(MESSAGES_SRC ${MESSAGES_DIR}/NeoMLMessages.cpp)
-    add_custom_target(
-        CompileMessage
+    add_custom_command(
+        OUTPUT ${MESSAGES_SRC}
         COMMAND ${FINE_MESSAGE_COMPILER} -R ${MESSAGES_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../NeoMLMessages.msg
+        MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/../NeoMLMessages.msg
         WORKING_DIRECTORY ${FINE_MESSAGE_COMPILER_DIR}
         COMMENT "Generating messages."
     )
-    add_dependencies(${PROJECT_NAME} CompileMessage)
     
     set_property(SOURCE ${MESSAGES_SRC} PROPERTY GENERATED ON)
     target_sources(${PROJECT_NAME} PRIVATE ${MESSAGES_SRC})
@@ -297,7 +311,7 @@ endif()
 if(WIN32)
 	if(USE_FINE_OBJECTS)
 		target_include_directories(${PROJECT_NAME} PRIVATE
-			$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../../Build/Inc ${FINE_ROOT}/FineObjects ${MESSAGES_DIR}>>
+			$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${FINE_ROOT}/Build/Inc ${FINE_ROOT}/FineObjects ${MESSAGES_DIR}>>
 		)
 	else()
 		target_include_directories(${PROJECT_NAME} PRIVATE 
