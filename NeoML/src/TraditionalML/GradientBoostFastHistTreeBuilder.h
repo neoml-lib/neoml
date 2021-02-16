@@ -15,7 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#include <RegressionTreeModel.h>
 #include <GradientBoostFastHistProblem.h>
 #include <GradientBoostStatisticsSingle.h>
 #include <GradientBoostStatisticsMulti.h>
@@ -23,7 +22,8 @@ limitations under the License.
 
 namespace NeoML {
 
-class CRegressionTreeModel;
+class CRegressionTree;
+class CLinkedRegressionTree;
 
 // Tree building parameters
 struct CGradientBoostFastHistTreeBuilderParams {
@@ -46,7 +46,7 @@ public:
 	CGradientBoostFastHistTreeBuilder( const CGradientBoostFastHistTreeBuilderParams& params, CTextStream* logStream );
 
 	// Builds a tree
-	CPtr<IRegressionTreeModel> Build( const CGradientBoostFastHistProblem& problem,
+	CPtr<CRegressionTree> Build( const CGradientBoostFastHistProblem& problem,
 		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<float>& weights );
 
 protected:
@@ -105,7 +105,7 @@ private:
 	int evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const;
 	void applySplit( const CGradientBoostFastHistProblem& problem, int node, int& leftNode, int& rightNode );
 	bool prune( int node );
-	CPtr<CRegressionTreeModel> buildTree( int node, const CArray<int>& featureIndexes, const CArray<float>& cuts ) const;
+	CPtr<CLinkedRegressionTree> buildTree( int node, const CArray<int>& featureIndexes, const CArray<float>& cuts ) const;
 };
 
 } // namespace NeoML

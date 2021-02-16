@@ -17,7 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <GradientBoostFullTreeBuilder.h>
-#include <RegressionTreeModel.h>
+#include <LinkedRegressionTree.h>
 #include <GradientBoostFullProblem.h>
 #include <NeoMathEngine/OpenMP.h>
 
@@ -140,7 +140,7 @@ CGradientBoostFullTreeBuilder<T>::CGradientBoostFullTreeBuilder( const CGradient
 }
 
 template<class T>
-CPtr<IRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
+CPtr<CRegressionTree> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
 	const CArray<typename T::Type>& gradients, const typename T::Type& gradientsSum,
 	const CArray<typename T::Type>& hessians, const typename T::Type& hessiansSum,
 	const CArray<float>& weights, float weightsSum )
@@ -587,18 +587,18 @@ bool CGradientBoostFullTreeBuilder<T>::prune( CGradientBoostNodeStatistics<T>& n
 
 // Builds the final model
 template<class T>
-CPtr<CRegressionTreeModel> CGradientBoostFullTreeBuilder<T>::buildModel( const CArray<int>& usedFeatures,
+CPtr<CLinkedRegressionTree> CGradientBoostFullTreeBuilder<T>::buildModel( const CArray<int>& usedFeatures,
 	CGradientBoostNodeStatistics<T>& node ) const
 {
-	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();
+	CPtr<CLinkedRegressionTree> result = FINE_DEBUG_NEW CLinkedRegressionTree();
 
 	if( node.FeatureIndex == NotFound ) {
 		typename T::Type values;
 		node.TotalStatistics.LeafValue( values );
 		result->InitLeafNode( values );
 	} else {
-		CPtr<CRegressionTreeModel> left = buildModel( usedFeatures, *node.Left );
-		CPtr<CRegressionTreeModel> right = buildModel( usedFeatures, *node.Right );
+		CPtr<CLinkedRegressionTree> left = buildModel( usedFeatures, *node.Left );
+		CPtr<CLinkedRegressionTree> right = buildModel( usedFeatures, *node.Right );
 		result->InitSplitNode( *left, *right, usedFeatures[node.FeatureIndex], node.Threshold );
 	}
 

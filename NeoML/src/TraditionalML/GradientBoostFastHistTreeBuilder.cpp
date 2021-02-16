@@ -17,7 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <GradientBoostFastHistTreeBuilder.h>
-#include <RegressionTreeModel.h>
+#include <LinkedRegressionTree.h>
 #include <NeoMathEngine/OpenMP.h>
 
 namespace NeoML {
@@ -37,7 +37,7 @@ CGradientBoostFastHistTreeBuilder<T>::CGradientBoostFastHistTreeBuilder( const C
 }
 
 template<class T>
-CPtr<IRegressionTreeModel> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradientBoostFastHistProblem& problem,
+CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradientBoostFastHistProblem& problem,
 	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<float>& weights )
 {
 	NeoAssert( gradients.Size() == hessians.Size() );
@@ -463,18 +463,18 @@ bool CGradientBoostFastHistTreeBuilder<T>::prune( int node )
 
 // Builds the final tree
 template<class T>
-CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder<T>::buildTree( int node, const CArray<int>& featureIndexes,
+CPtr<CLinkedRegressionTree> CGradientBoostFastHistTreeBuilder<T>::buildTree( int node, const CArray<int>& featureIndexes,
 	const CArray<float>& cuts ) const
 {
-	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();
+	CPtr<CLinkedRegressionTree> result = FINE_DEBUG_NEW CLinkedRegressionTree();
 
 	if( nodes[node].SplitFeatureId == NotFound ) {
 		typename T::Type values;
 		nodes[node].Statistics.LeafValue( values );
 		result->InitLeafNode( values );
 	} else {
-		CPtr<CRegressionTreeModel> left = buildTree( nodes[node].Left, featureIndexes, cuts );
-		CPtr<CRegressionTreeModel> right = buildTree( nodes[node].Right, featureIndexes, cuts );
+		CPtr<CLinkedRegressionTree> left = buildTree( nodes[node].Left, featureIndexes, cuts );
+		CPtr<CLinkedRegressionTree> right = buildTree( nodes[node].Right, featureIndexes, cuts );
 		result->InitSplitNode( *left, *right, featureIndexes[nodes[node].SplitFeatureId], cuts[nodes[node].SplitFeatureId] );
 	}
 
