@@ -9,7 +9,7 @@ function(add_gtest_for_target TARGET_NAME MATH_ENGINE_TYPE WORKING_DIR)
 
         get_target_property(LIB_TYPE NeoMathEngine TYPE)
         if(LIB_TYPE STREQUAL "SHARED_LIBRARY")
-            add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            add_custom_command(TARGET ${TARGET_NAME} POST_BUILD 
                 COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:NeoMathEngine> $<TARGET_FILE_DIR:${TARGET_NAME}>
                 COMMENT "Copy NeoMathEngine to ${TARGET_NAME} binary dir to discover tests."
             )
@@ -18,7 +18,7 @@ function(add_gtest_for_target TARGET_NAME MATH_ENGINE_TYPE WORKING_DIR)
         if(TARGET NeoML)
             get_target_property(LIB_TYPE NeoML TYPE)
             if(LIB_TYPE STREQUAL "SHARED_LIBRARY")
-                add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+                add_custom_command(TARGET ${TARGET_NAME} POST_BUILD 
                     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:NeoML> $<TARGET_FILE_DIR:${TARGET_NAME}>
                     COMMENT "Copy NeoML to ${TARGET_NAME} binary dir to discover tests."
                 )
@@ -28,19 +28,9 @@ function(add_gtest_for_target TARGET_NAME MATH_ENGINE_TYPE WORKING_DIR)
                 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
                     set(ARCH_SUFFIX ".x64")
                 endif()
-                add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+                add_custom_command(TARGET ${TARGET_NAME} POST_BUILD 
                     COMMAND ${CMAKE_COMMAND} -E copy ${FINE_ROOT}/Win${FINE_BUILD_TYPE}${ARCH_SUFFIX}/FineObj.dll $<TARGET_FILE_DIR:${TARGET_NAME}>
                     COMMENT "Copy FineObjects"
-                )
-            endif()
-        endif()
-
-        if(TARGET NeoOnnx)
-            get_target_property(LIB_TYPE NeoOnnx TYPE)
-            if(LIB_TYPE STREQUAL "SHARED_LIBRARY")
-                add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:NeoOnnx> $<TARGET_FILE_DIR:${TARGET_NAME}>
-                    COMMENT "Copy NeoOnnx to ${TARGET_NAME} binary dir to discover tests."
                 )
             endif()
         endif()
