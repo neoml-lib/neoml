@@ -76,8 +76,6 @@ CPtr<IRegressionTreeModel> CGradientBoostFastHistTreeBuilder<T>::Build( const CG
 			if( logStream != 0 ) {
 				*logStream << L"Split result: index = " << featureIndexes[nodes[node].SplitFeatureId]
 					<< L" threshold = " << cuts[nodes[node].SplitFeatureId]
-					<< L" ( gradient = " << nodes[node].Statistics.TotalGradient()
-					<< L", hessian = " << nodes[node].Statistics.TotalHessian()
 					<< L", criterion = " << nodes[node].Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
 					<< L" )\n";
 			}
@@ -110,8 +108,6 @@ CPtr<IRegressionTreeModel> CGradientBoostFastHistTreeBuilder<T>::Build( const CG
 			// The node could not be split
 			if( logStream != 0 ) {
 				*logStream << L"Split result: created const node.\t\t"
-					<< L" ( gradient = " << nodes[node].Statistics.TotalGradient()
-					<< L", hessian = " << nodes[node].Statistics.TotalHessian()
 					<< L", criterion = " << nodes[node].Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
 					<< L" )\n";
 			}
@@ -223,7 +219,7 @@ void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHi
 		const int valueSize = histStatsPtr[0].ValueSize();
 		tempHistStats.SetSize( params.ThreadCount * histSize );
 		for( int i = 0; i < params.ThreadCount * histSize; i++ ) {
-			tempHistStats[i].Resize( valueSize );
+			tempHistStats[i].SetSize( valueSize );
 			tempHistStats[i].Erase();
 		}
 
@@ -283,7 +279,7 @@ void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHi
 // Adds a vector to the histogram
 template<class T>
 void CGradientBoostFastHistTreeBuilder<T>::addVectorToHist( const int* vectorPtr, int vectorSize,
-	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessian, float weight, T* stats, int vectorIndex )
+	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<float>& weights, T* stats, int vectorIndex )
 {
 	NeoPresume( vectorPtr != 0 );
 	NeoPresume( vectorSize >= 0 );
@@ -291,7 +287,7 @@ void CGradientBoostFastHistTreeBuilder<T>::addVectorToHist( const int* vectorPtr
 	for( int i = 0; i < vectorSize; i++ ) {
 		const int id = idPos[vectorPtr[i]];
 		if( id != NotFound ) {
-			stats[id].Add( gradients, hessian, weight, vectorIndex );
+			stats[id].Add( gradients, hessians, weights, vectorIndex );
 		}
 	}
 }
@@ -341,14 +337,9 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 				// Calculating the gain: if the node is split at this position, 
 				// the criterion loses the parent node (bestValue) and replaces it by left.CalcCriterion and right.CalcCriterion
 				// In the reference paper, a gamma coefficient is also needed for a new node, but we take that into account while pruning
-				float criterion = 0;	
-				if( !T::CalcCriterion( criterion, left, right, node.Statistics,
-					params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient ) )
-				{
-					continue;
-				}
-				const double criterion = left.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
-					+ right.CalcCriterion( params.L1RegFactor, params.L2RegFactor );
+				double criterion = T::CalcCriterion( criterion, left, right, node.Statistics,
+					params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient ) );	
+
 				if( splitGainsByThread[threadNumber] < criterion ) {
 					splitGainsByThread[threadNumber] = criterion;
 					splitIds[threadNumber] = j;  // this number refers both to the feature and its value
@@ -478,7 +469,9 @@ CPtr<CRegressionTreeModel> CGradientBoostFastHistTreeBuilder<T>::buildTree( int 
 	CPtr<CRegressionTreeModel> result = FINE_DEBUG_NEW CRegressionTreeModel();
 
 	if( nodes[node].SplitFeatureId == NotFound ) {
-		result->InitLeafNode( -nodes[node].Statistics.TotalGradient() / nodes[node].Statistics.TotalHessian() );
+		typename T::Type values;
+		nodes[node].Statistics.LeafValue( values );
+		result->InitLeafNode( values );
 	} else {
 		CPtr<CRegressionTreeModel> left = buildTree( nodes[node].Left, featureIndexes, cuts );
 		CPtr<CRegressionTreeModel> right = buildTree( nodes[node].Right, featureIndexes, cuts );

@@ -18,6 +18,7 @@ limitations under the License.
 #include <RegressionTreeModel.h>
 #include <GradientBoostFastHistProblem.h>
 #include <GradientBoostStatisticsSingle.h>
+#include <GradientBoostStatisticsMulti.h>
 #include <NeoML/TraditionalML/Model.h>
 
 namespace NeoML {
@@ -35,6 +36,7 @@ struct CGradientBoostFastHistTreeBuilderParams {
 	int MaxNodesCount; // the maximum number of nodes in a tree (set to NotFound == -1 for no limitation)
 	int MaxBins; // the maximum histogram size for a feature
 	float MinSubsetWeight; // the minimum subtree weight
+	float DenseTreeBoostCoefficient; // the dense tree boost coefficient 
 };
 
 // Tree builder
@@ -99,7 +101,7 @@ private:
 	void buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
 		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<float>& weights, T& stats );
 	void addVectorToHist( const int* vectorPtr, int vectorSize, const CArray<typename T::Type>& gradients, 
-		const CArray<typename T::Type>& hessian, float weight, T* stats, int vectorIndex );
+		const CArray<typename T::Type>& hessians, const CArray<float>& weights, T* stats, int vectorIndex );
 	int evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const;
 	void applySplit( const CGradientBoostFastHistProblem& problem, int node, int& leftNode, int& rightNode );
 	bool prune( int node );

@@ -46,8 +46,7 @@ public:
 	double CalcCriterion( float l1, float l2 ) const;
 
 	// Calculates the split criterion for multiple classes
-	static bool CalcCriterion( float& criterion,
-		CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult,
+	static double CalcCriterion( CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult,
 		const CGradientBoostStatisticsMulti& totalStatistics, float l1RegFactor, float l2RegFactor,
 		double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient );
 
@@ -206,8 +205,7 @@ inline void CGradientBoostStatisticsMulti::LeafValue( CArray<double>& value ) co
 	}
 }
 
-inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
-	CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult, const CGradientBoostStatisticsMulti& totalStatistics,
+inline double CGradientBoostStatisticsMulti::CalcCriterion( CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult, const CGradientBoostStatisticsMulti& totalStatistics,
 	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient )
 {
 	double result = 0;
@@ -253,13 +251,12 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 	}
 
 	if( leafClassesCount == totalStatistics.ValueSize() ) {
-		return false;
+		return -FLT_MAX;
 	}
-	criterion = static_cast<float>( result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) ) );
-	return true;
+	return result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) );
 }
 
-inline void CGradientBoostStatisticsMulti::Resize( int valueSize )
+inline void CGradientBoostStatisticsMulti::SetSize( int valueSize )
 {
 	totalGradient.SetSize( valueSize );
 	totalHessian.SetSize( valueSize );

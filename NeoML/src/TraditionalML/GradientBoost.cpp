@@ -439,6 +439,7 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			break;
 		}
 		case GBTB_FastHist:
+		case GBTB_MultiFastHist:
 		{
 			CGradientBoostFastHistTreeBuilderParams builderParams;
 			builderParams.L1RegFactor = params.L1RegFactor;
