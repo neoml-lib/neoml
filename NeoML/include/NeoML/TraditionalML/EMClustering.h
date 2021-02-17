@@ -18,6 +18,7 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/Clustering.h>
 #include <NeoML/TraditionalML/FloatVector.h>
+#include <NeoML/Random.h>
 
 namespace NeoML {
 
@@ -52,7 +53,7 @@ public:
 		CParam( const CParam& result );
 	};
 
-	CEMClustering( const CParam& clusteringParams );
+	explicit CEMClustering( const CParam& clusteringParams, CRandom* random = nullptr );
 	virtual ~CEMClustering();
 
 	// Sets a text stream for logging processing
@@ -81,6 +82,8 @@ private:
 	const CParam params; // the algorithm parameters
 	CTextStream* log; // the logging stream
 	CArray<CEmClusteringResult> history; // the history of operations
+	CRandom defRandom;
+	CRandom& random;
 	
 	CArray<CClusterCenter> clusters; // the current cluster centers
 	// The hidden variables of the EM algorithm

@@ -77,9 +77,10 @@ CEMClustering::CEmClusteringResult& CEMClustering::CEmClusteringResult::operator
 
 //---------------------------------------------------------------------------------------------------------
 
-CEMClustering::CEMClustering( const CParam& _params ) :
+CEMClustering::CEMClustering( const CParam& _params, CRandom* _random ) :
 	params( _params ),
-	log( 0 )
+	log( 0 ),
+	random( _random != nullptr ? *_random : defRandom )
 {
 }
 
@@ -169,7 +170,7 @@ void CEMClustering::runEMFixedComponents( const CSparseFloatMatrixDesc& data, co
 int CEMClustering::selectRandomCluster( const CFastArray<double, 1>& cumulativeFitnesses ) const
 {
 	// A cluster may come up with the probability in inverse proportion to its size
-	const double randDouble = static_cast<double>( rand() ) / static_cast<double>( RAND_MAX );
+	const double randDouble = random.Uniform( 0.0, 1.0 );
 	for( int i = 0; i < cumulativeFitnesses.Size(); i++ ) {
 		if( cumulativeFitnesses[i] >= randDouble ) {
 			return i;
@@ -223,7 +224,7 @@ void CEMClustering::calculateInitialClusters( const CSparseFloatMatrixDesc& data
 	initialClusters.SetSize( clustersCount );
 	for( int i = 0; i < clustersCount; i++ ) {
 		CSparseFloatVectorDesc desc;
-		data.GetRow( rand() % vectorsCount, desc );
+		data.GetRow( random.UniformInt( 0, vectorsCount - 1 ), desc );
 		CFloatVector mean( data.Width, desc );
 		CClusterCenter center( mean );
 		center.Weight = 1.0 / clustersCount;
@@ -259,9 +260,9 @@ void CEMClustering::recalculateInitialClusters( const CSparseFloatMatrixDesc& da
 
 		if( clustersElements.IsEmpty() ) {
 			// The initializer is empty so a random element is taken
-			initFrom = rand() % data.Height;
+			initFrom = random.UniformInt( 0, data.Height - 1 );
 		} else {
-			const int indexInCluster = rand() % clustersElements.Size();
+			const int indexInCluster = random.UniformInt( 0, clustersElements.Size() - 1 );
 			initFrom = clustersElements[indexInCluster];
 			// Avoiding repetition for small clusters
 			dataClusters[initFrom] = NotFound; // this element will not be used again

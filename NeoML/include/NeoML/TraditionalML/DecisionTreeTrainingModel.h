@@ -166,7 +166,8 @@ public:
 private:
 	static const int MaxClassifyNodesCacheSize = 10 * Megabyte; // the cache size for leaf nodes
 	CParams params; // the classification parameters
-	CRandom* random; // the random numbers generator
+	CRandom defRandom; // the default random numbers generator
+	CRandom& random; // the actual random numbers generator
 	CTextStream* logStream; // the logging stream
 	CPtr<const IProblem> classificationProblem; // the current input data as an IProblem interface
 	mutable int nodesCount; // the number of tree nodes
