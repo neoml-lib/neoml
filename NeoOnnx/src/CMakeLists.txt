@@ -18,7 +18,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ConvNode.cpp
     #Nodes/DropoutNode.cpp
     #Nodes/EltwiseNode.cpp
-    #Nodes/FlattenNode.cpp
+    Nodes/FlattenNode.cpp
     #Nodes/GatherNode.cpp
     Nodes/GemmNode.cpp
     #Nodes/GlobalAveragePoolNode.cpp
@@ -56,7 +56,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ConvNode.h
     #Nodes/DropoutNode.h
     #Nodes/EltwiseNode.h
-    #Nodes/FlattenNode.h
+    Nodes/FlattenNode.h
     #Nodes/GatherNode.h
     Nodes/GemmNode.h
     #Nodes/GlobalAveragePoolNode.h
