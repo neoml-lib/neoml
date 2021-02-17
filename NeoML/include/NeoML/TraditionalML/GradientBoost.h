@@ -371,6 +371,6 @@ public:
 };
 
 // For backward compatibility.
-using IRegressionTreeModel [[deprecated]] = IRegressionTreeNode;
+using IRegressionTreeModel = IRegressionTreeNode;
 
 } // namespace NeoML
