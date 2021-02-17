@@ -57,7 +57,7 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CSparseFloatMatrixDesc& desc ) :
 	RowsBufferSize( desc.Height ),
 	ElementsBufferSize( desc.Height == 0 ? 0 : ( desc.Columns == nullptr ? desc.Height * desc.Width : desc.PointerE[desc.Height - 1] ) ),
-	ElementCount( desc.Columns != nullptr ? desc.PointerE[desc.Height - 1] : 0 )
+	ElementCount( desc.Height == 0 ? 0 : ( desc.Columns != nullptr ? desc.PointerE[desc.Height - 1] : 0 ) )
 {
 	NeoAssert( RowsBufferSize >= 0 );
 	NeoAssert( ElementsBufferSize >= 0 );
