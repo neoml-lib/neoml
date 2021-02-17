@@ -17,14 +17,14 @@ limitations under the License.
 #pragma hdrstop
 
 #include "FlattenNode.h"
-#include "GraphCache.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CFlattenNode::CFlattenNode( int nodeIndex, const onnx::NodeProto& flatten, int opsetVersion ) :
-	COpNode( nodeIndex, flatten, opsetVersion ),
+CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion ) :
+	COpNode( flatten, opsetVersion ),
 	axis( Attributes.GetOptionalInt( "axis", 1 ) )
 {
 	// The differences between versions are in supported data types and negative axis index
@@ -34,33 +34,40 @@ CFlattenNode::CFlattenNode( int nodeIndex, const onnx::NodeProto& flatten, int o
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", flatten );
 }
 
-void CFlattenNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CFlattenNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	const CTensorShape& inputShape = tensors[Input[0]].Shape;
-	CTensorShape& outputShape = tensors[Output[0]].Shape;
-	outputShape = { 1, 1 };
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "user data expected as input", OnnxNode );
 
-	for( int dimIndex = 0; dimIndex < inputShape.Size(); ++dimIndex ) {
-		outputShape[dimIndex < axis ? 0 : 1] *= inputShape[dimIndex];
+	// Every operator which somehow changes Onnx tensor's shape or dimensions works only with Onnx dim type
+	// Otherwise it'll lead to hardly fixable troubles with data-packing (Onnx's channel-first vs NeoML's channel-last)
+	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout() ).Ptr() );
+
+	// Flatten operator reshapes tensor into 2-dimensional matrix of size
+	// [ dim_0 * ... * dim_(axis-1) ; dim_axis * ... * dim_(n-1) ]
+	// Corner case: if axis == 0 then output shape is [ 1 ; tensorSize ]
+	CTensorShape outputShape( { 1, 1 } );
+	for( int dimIndex = 0; dimIndex < input->Shape().Size(); ++dimIndex ) {
+		outputShape[dimIndex < axis ? 0 : 1] *= input->Shape()[dimIndex];
 	}
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-}
+	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
+	transform->SetName( Name() );
+	transform->SetDimensionRule( static_cast<TBlobDim>( 0 ), 
+		CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, outputShape[0] ) );
+	transform->SetDimensionRule( static_cast<TBlobDim>( 1 ), 
+		CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, outputShape[1] ) );
 
-void CFlattenNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
-{
-	const CTensorDim& inputDims = dims[Input[0]];
-
-	if( !inputDims.IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { inputDims[axis - 1], inputDims[axis] }, dims[Output[0]] ),
-			"labeling output dimensions failed", OnnxNode );
+	for( int dim = 2; dim < BD_Count; ++dim ) {
+		// Other dimensions must be 1
+		transform->SetDimensionRule( static_cast<TBlobDim>( 1 ), 
+			CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
 	}
-}
 
-void CFlattenNode::AddLayers( const CGraph&, const CTensorCache&, const CDimCache&,
-	CNeoMLLinkCache& neoMLLinks, CDnn& )
-{
-	neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
+	transform->Connect( 0, *input->Layer(), input->OutputIndex() );
+	dnn.AddLayer( *transform );
+
+	outputs[0] = new CUserTensor( outputShape, CTensorLayout(), CLayerOutput( transform, 0 ) );
 }
 
 } // namespace NeoOnnx
