@@ -27,11 +27,17 @@ CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion ) :
 	COpNode( flatten, opsetVersion ),
 	axis( Attributes.GetOptionalInt( "axis", 1 ) )
 {
-	// The differences between versions are in supported data types and negative axis index
+	// v1 - original
+	// v9 - added different data types support
+	// v11 - added negative axis index support
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", flatten );
-	
+
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", flatten );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", flatten );
+
+	if( opsetVersion < 11 ) {
+		CheckOnnxProtocol( axis >= 0, "negative axis index", flatten );
+	}
 }
 
 void CFlattenNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
@@ -46,9 +52,10 @@ void CFlattenNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	// Flatten operator reshapes tensor into 2-dimensional matrix of size
 	// [ dim_0 * ... * dim_(axis-1) ; dim_axis * ... * dim_(n-1) ]
 	// Corner case: if axis == 0 then output shape is [ 1 ; tensorSize ]
+	const int axisIndex = axis < 0 ? axis + input->Shape().Size() : axis;
 	CTensorShape outputShape( { 1, 1 } );
 	for( int dimIndex = 0; dimIndex < input->Shape().Size(); ++dimIndex ) {
-		outputShape[dimIndex < axis ? 0 : 1] *= input->Shape()[dimIndex];
+		outputShape[dimIndex < axisIndex ? 0 : 1] *= input->Shape()[dimIndex];
 	}
 
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
