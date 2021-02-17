@@ -54,11 +54,17 @@ CBinaryFocalLossLayer::CBinaryFocalLossLayer( IMathEngine& mathEngine ) :
 	SetFocalForce( DefaultFocalForceValue );
 }
 
+void CBinaryFocalLossLayer::Reshape()
+{
+	CLossLayer::Reshape();
+	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
+}
+
 void CBinaryFocalLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data,
 	int vectorSize, CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
-	NeoAssert( vectorSize == labelSize );
-	NeoAssert( labelSize == 1 );
+	CheckArchitecture( labelSize == vectorSize, GetName(), "the labels dimensions should be equal to the first input dimensions" );
+	CheckArchitecture( vectorSize == 1, GetName(), "BinaryFocalLoss layer works only with binary-class classification" );
 
 	CFloatHandleStackVar tempVector(MathEngine(), batchSize);
 	CFloatHandleStackVar sigmoidVector(MathEngine(), batchSize);
