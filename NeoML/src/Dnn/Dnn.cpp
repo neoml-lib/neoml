@@ -107,38 +107,38 @@ struct CTypeInfoNameHash {
 	}
 };
 
-static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap>& getLayerNames()
+static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap>& getLayerClasses()
 {
-	static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap> layerNames;
-	return layerNames;
+	static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap> layerClasses;
+	return layerClasses;
 }
 
-void RegisterLayerName( const char* mainName, const char* additionalName, const std::type_info& typeInfo, TCreateLayerFunction function )
+void RegisterLayerClass( const char* className, const char* additionalName, const std::type_info& typeInfo, TCreateLayerFunction function )
 {
-	NeoAssert( !getRegisteredLayers().Has( mainName ) );
-	getRegisteredLayers().Add( mainName, function );
+	NeoAssert( !getRegisteredLayers().Has( className ) );
+	getRegisteredLayers().Add( className, function );
 	if( additionalName != 0 ) {
 		NeoAssert( !getRegisteredLayers().Has( additionalName ) );
 		getRegisteredLayers().Add( additionalName, function );
 	}
-	getLayerNames().Add( &typeInfo, mainName );
+	getLayerClasses().Add( &typeInfo, className );
 }
 
-void UnregisterLayerName( const std::type_info& typeInfo )
+void UnregisterLayerClass( const std::type_info& typeInfo )
 {
-	getRegisteredLayers().Delete( getLayerNames().Get( &typeInfo ) );
-	getLayerNames().Delete( &typeInfo );
+	getRegisteredLayers().Delete( getLayerClasses().Get( &typeInfo ) );
+	getLayerClasses().Delete( &typeInfo );
 }
 
-bool IsRegisteredLayerName( const char* name )
+bool IsRegisteredLayerClass( const char* className )
 {
-	return getRegisteredLayers().Has( name );
+	return getRegisteredLayers().Has( className );
 }
 
-CPtr<CBaseLayer> CreateLayer( const char* name, IMathEngine& mathEngine )
+CPtr<CBaseLayer> CreateLayer( const char* className, IMathEngine& mathEngine )
 {
-	NeoAssert( getRegisteredLayers().Has( name ) );
-	return getRegisteredLayers()[name]( mathEngine );
+	NeoAssert( getRegisteredLayers().Has( className ) );
+	return getRegisteredLayers()[className]( mathEngine );
 }
 
 static CPtr<CBaseLayer> createLayer( IMathEngine& mathEngine, const CString& className )
@@ -150,28 +150,28 @@ static CPtr<CBaseLayer> createLayer( IMathEngine& mathEngine, const CString& cla
 	return getRegisteredLayers().GetValue( pos )( mathEngine );
 }
 
-static CString getLayerName( const CBaseLayer* layer )
+static CString getLayerClass( const CBaseLayer* layer )
 {
 	if( layer == 0 ) {
 		return CString();
 	}
 	const std::type_info& layerType = typeid( *layer );
-	TMapPosition pos = getLayerNames().GetFirstPosition( &layerType );
+	TMapPosition pos = getLayerClasses().GetFirstPosition( &layerType );
 	if( pos == NotFound ) {
 		return CString();
 	}
-	return getLayerNames().GetValue( pos );
+	return getLayerClasses().GetValue( pos );
 }
 
-CString GetLayerName( const CBaseLayer& layer )
+CString GetLayerClass( const CBaseLayer& layer )
 {
-	return getLayerName( &layer );
+	return getLayerClass( &layer );
 }
 
 void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer )
 {
 	if( archive.IsStoring() ) {
-		archive << getLayerName( layer );
+		archive << getLayerClass( layer );
 		if( layer != 0 ) {
 			layer->Serialize( archive );
 		}
@@ -664,7 +664,7 @@ void CDnn::Serialize( CArchive& archive )
 
 		archive << layers.Size();
 		for( int i = 0; i < layers.Size(); ++i) {
-			archive << getLayerName( layers[i] );
+			archive << getLayerClass( layers[i] );
 			if( layers[i] != 0 ) {
 				layers[i]->Serialize( archive );
 			}
