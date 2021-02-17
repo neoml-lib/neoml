@@ -56,28 +56,44 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 
 CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CSparseFloatMatrixDesc& desc ) :
 	RowsBufferSize( desc.Height ),
-	ElementsBufferSize( desc.Height == 0 ? 0 : desc.PointerE[desc.Height - 1] ),
-	ElementCount( desc.Height == 0 ? 0 : desc.PointerE[desc.Height - 1] )
+	ElementsBufferSize( desc.Height == 0 ? 0 : ( desc.Columns == nullptr ? desc.Height * desc.Width : desc.PointerE[desc.Height - 1] ) ),
+	ElementCount( desc.Columns != nullptr ? desc.PointerE[desc.Height - 1] : 0 )
 {
 	NeoAssert( RowsBufferSize >= 0 );
 	NeoAssert( ElementsBufferSize >= 0 );
 	Desc.Height = desc.Height;
 	Desc.Width = desc.Width;
 
-	ColumnsBuf.SetSize( ElementsBufferSize );
-	ValuesBuf.SetSize( ElementsBufferSize );
 	BeginPointersBuf.SetSize( RowsBufferSize );
 	EndPointersBuf.SetSize( RowsBufferSize );
-
-	::memcpy( ColumnsBuf.GetPtr(), desc.Columns, ElementsBufferSize * sizeof( int ) );
-	::memcpy( ValuesBuf.GetPtr(), desc.Values, ElementsBufferSize * sizeof( float ) );
-	::memcpy( BeginPointersBuf.GetPtr(), desc.PointerB, RowsBufferSize * sizeof( int ) );
-	::memcpy( EndPointersBuf.GetPtr(), desc.PointerE, RowsBufferSize * sizeof( int ) );
-
-	Desc.Columns = ColumnsBuf.GetPtr();
-	Desc.Values = ValuesBuf.GetPtr();
 	Desc.PointerB = BeginPointersBuf.GetPtr();
 	Desc.PointerE = EndPointersBuf.GetPtr();
+	if( desc.Columns == nullptr ) {
+		ColumnsBuf.SetBufferSize( ElementsBufferSize );
+		ValuesBuf.SetBufferSize( ElementsBufferSize );
+		for( int i = 0; i < desc.Height; ++i ) {
+			Desc.PointerB[i] = ElementCount;
+			for( int j = 0; j < desc.Width; ++j ) {
+				const float value = desc.Values[i * desc.Width + j];
+				if( value != 0 ) {
+					ColumnsBuf.Add( j );
+					ValuesBuf.Add( value );
+					++ElementCount;
+				}
+			}
+			Desc.PointerE[i] = ElementCount;
+		}
+	} else {
+		ColumnsBuf.SetSize( ElementsBufferSize );
+		ValuesBuf.SetSize( ElementsBufferSize );
+		::memcpy( ColumnsBuf.GetPtr(), desc.Columns, ElementsBufferSize * sizeof( int ) );
+		::memcpy( ValuesBuf.GetPtr(), desc.Values, ElementsBufferSize * sizeof( float ) );
+		::memcpy( BeginPointersBuf.GetPtr(), desc.PointerB, RowsBufferSize * sizeof( int ) );
+		::memcpy( EndPointersBuf.GetPtr(), desc.PointerE, RowsBufferSize * sizeof( int ) );
+
+	}
+	Desc.Columns = ColumnsBuf.GetPtr();
+	Desc.Values = ValuesBuf.GetPtr();
 }
 
 //------------------------------------------------------------------------------------------------------------
