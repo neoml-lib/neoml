@@ -150,7 +150,7 @@ static CPtr<CBaseLayer> createLayer( IMathEngine& mathEngine, const CString& cla
 	return getRegisteredLayers().GetValue( pos )( mathEngine );
 }
 
-static CString getLayerName( CBaseLayer* layer )
+static CString getLayerName( const CBaseLayer* layer )
 {
 	if( layer == 0 ) {
 		return CString();
@@ -163,7 +163,12 @@ static CString getLayerName( CBaseLayer* layer )
 	return getLayerNames().GetValue( pos );
 }
 
-void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer )
+CString GetLayerName( const CBaseLayer& layer )
+{
+	return getLayerName( &layer );
+}
+
+void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer )
 {
 	if( archive.IsStoring() ) {
 		archive << getLayerName( layer );
