@@ -280,6 +280,10 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 	ASSERT_EQ( ::memcmp( fromSparse.PointerE, fromDense.PointerE, fromSparse.Height * sizeof( int ) ), 0 );
 	ASSERT_EQ( ::memcmp( fromSparse.Columns, fromDense.Columns, elementsCount * sizeof( int ) ), 0 );
 	ASSERT_EQ( ::memcmp( fromSparse.Values, fromDense.Values, elementsCount * sizeof( float ) ), 0 );
+
+	CSparseFloatMatrix empty( CSparseFloatMatrixDesc::Empty );
+	ASSERT_EQ( empty.GetHeight(), 0 );
+	ASSERT_EQ( empty.GetWidth(), 0 );
 }
 
 TEST_F( CFloatVectorTest, Common )
