@@ -282,14 +282,13 @@ CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, 
 {
 	float* ptr = CopyOnWrite();
 	if( desc.Indexes != nullptr ) {
-		const int size = body->Values.Size();
-		NeoPresume( size >= ( desc.Size == 0 ? 0 : desc.Indexes[desc.Size - 1] + 1 ) );
+		NeoAssert( Size() >= ( desc.Size == 0 ? 0 : desc.Indexes[desc.Size - 1] + 1 ) );
 		for( int i = 0; i < desc.Size; i++ ) {
 			const int j = desc.Indexes[i];
 			ptr[j] = static_cast< float >( ptr[j] + desc.Values[i] * factor );
 		}
 	} else { // dense inside
-		NeoPresume( body->Values.Size() >= desc.Size );
+		NeoAssert( Size() >= desc.Size );
 		for( int i = 0; i < desc.Size; i++ ) {
 			ptr[i] = static_cast< float >( ptr[i] + factor * desc.Values[i] );
 		}

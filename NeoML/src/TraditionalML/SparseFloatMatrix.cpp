@@ -97,14 +97,14 @@ CSparseFloatMatrix::CSparseFloatMatrix( const CSparseFloatMatrixDesc& desc ) :
 {
 }
 
-CSparseFloatMatrix::CSparseFloatMatrix( const CSparseFloatMatrix& vector ) :
-	body( vector.body )
+CSparseFloatMatrix::CSparseFloatMatrix( const CSparseFloatMatrix& matrix ) :
+	body( matrix.body )
 {
 }
 
-CSparseFloatMatrix& CSparseFloatMatrix::operator = ( const CSparseFloatMatrix& vector )
+CSparseFloatMatrix& CSparseFloatMatrix::operator = ( const CSparseFloatMatrix& matrix )
 {
-	body = vector.body;
+	body = matrix.body;
 	return *this;
 }
 

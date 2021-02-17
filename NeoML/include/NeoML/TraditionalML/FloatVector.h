@@ -44,7 +44,7 @@ public:
 	CFloatVector( const CFloatVector& other );
 
 	bool IsNull() const { return body == nullptr; }
-	int Size() const { return body->Values.Size(); }
+	int Size() const { return body == nullptr ? 0 : body->Values.Size(); }
 
 	double Norm() const;
 	double NormL1() const;
@@ -66,13 +66,17 @@ public:
 	CFloatVector& operator /= ( double factor ) { return *this *= (1 / factor); }
 
 	// Adds the given vector multiplied by factor
-	CFloatVector& MultiplyAndAdd( const CFloatVector& vector, double factor );
-	CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor ) { return MultiplyAndAdd( vector.GetDesc(), factor ); }
+	CFloatVector& MultiplyAndAdd( const CFloatVector& vector, double factor )
+		{ return MultiplyAndAdd( vector.GetDesc(), factor ); }
+	CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor )
+		{ return MultiplyAndAdd( vector.GetDesc(), factor ); }
 	CFloatVector& MultiplyAndAdd( const CSparseFloatVectorDesc& vector, double factor );
 
 	// Adds the given vector, extended by one with the help of LinearFunction gradient, and then multiplied by factor
-	CFloatVector& MultiplyAndAddExt( const CFloatVector& vector, double factor );
-	CFloatVector& MultiplyAndAddExt( const CSparseFloatVector& vector, double factor );
+	CFloatVector& MultiplyAndAddExt( const CFloatVector& vector, double factor )
+		{ return MultiplyAndAddExt( vector.GetDesc(), factor ); }
+	CFloatVector& MultiplyAndAddExt( const CSparseFloatVector& vector, double factor )
+		{ return MultiplyAndAddExt( vector.GetDesc(), factor ); }
 	CFloatVector& MultiplyAndAddExt( const CSparseFloatVectorDesc& vector, double factor );
 
 	// Elementwise operations:
@@ -118,44 +122,15 @@ inline CFloatVector::CFloatVectorBody* CFloatVector::CFloatVectorBody::Duplicate
 	return result;
 }
 
-inline CFloatVector& CFloatVector::MultiplyAndAdd( const CFloatVector& vector, double factor )
+inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVectorDesc& desc, double factor )
 {
-	NeoPresume( body != nullptr );
-	NeoPresume( body->Desc.Size >= 0 && body->Desc.Size == vector.body->Desc.Size );
+	const int size = Size();
+	NeoAssert( size > 0 );
+	NeoAssert( desc.Size == 0 || size > (
+		desc.Indexes == 0 ? desc.Size : desc.Indexes[desc.Size - 1] + 1 ) );
 
-	MultiplyAndAdd( vector.GetDesc(), factor );
-	return *this;
-}
-
-inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CFloatVector& vector, double factor )
-{
-	NeoPresume( body != nullptr );
-	NeoPresume( body->Desc.Size > 0 && body->Desc.Size == vector.body->Desc.Size + 1 );
-
-	MultiplyAndAdd( vector.GetDesc(), factor );
-	SetAt( Size() - 1, static_cast<float>( GetPtr()[Size() - 1] + factor ) );
-
-	return *this;
-}
-
-inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVector& vector, double factor )
-{
-	NeoPresume( body != nullptr );
-	NeoPresume( body->Desc.Size > (
-		vector.NumberOfElements() == 0 ? 0 : vector.GetDesc().Indexes[vector.NumberOfElements() - 1] + 1 ) );
-
-	MultiplyAndAdd( vector.GetDesc(), factor );
-	SetAt( Size() - 1, static_cast<float>( GetPtr()[Size() - 1] + factor ) );
-
-	return *this;
-}
-
-inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVectorDesc& vector, double factor )
-{
-	NeoPresume( body != nullptr );
-
-	MultiplyAndAdd( vector, factor );
-	SetAt( Size() - 1, static_cast<float>( GetPtr()[Size() - 1] + factor ) );
+	MultiplyAndAdd( desc, factor );
+	SetAt( size - 1, static_cast<float>( GetPtr()[size - 1] + factor ) );
 
 	return *this;
 }
@@ -248,13 +223,13 @@ inline double DotProduct( const CFloatVector& vector1, const CSparseFloatVectorD
 // The dot product of two vectors
 inline double DotProduct( const CFloatVector& vector1, const CSparseFloatVector& vector2 )
 {
-	return DotProduct( vector1, vector2.GetDesc() );
+	return DotProduct( vector1.GetDesc(), vector2.GetDesc() );
 }
 
 // The dot product of two vectors
 inline double DotProduct( const CSparseFloatVector& vector1, const CFloatVector& vector2 )
 {
-	return DotProduct( vector2, vector1.GetDesc() );
+	return DotProduct( vector1.GetDesc(), vector2.GetDesc() );
 }
 
 // The dot product of two vectors
