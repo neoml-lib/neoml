@@ -429,6 +429,13 @@ size_t CCompositeLayer::GetOutputBlobsSize() const
 	return result;
 }
 
+void CCompositeLayer::CleanUp()
+{
+	for( int i = 0; i < internalDnn->layers.Size(); i++ ) {
+		internalDnn->layers[i]->CleanUp();
+	}
+}
+
 size_t CCompositeLayer::GetTrainableParametersSize() const
 {
 	if( !IsLearnable() ) {

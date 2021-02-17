@@ -115,7 +115,7 @@ private:
 	CPtr<CDnnBlob> upperThreshold;
 };
 
-NEOML_API CLayerWrapper<CReLULayer> Relu();
+NEOML_API CLayerWrapper<CReLULayer> Relu( float threshold = 0.f );
 
 //------------------------------------------------------------------------------------------------------------
 
