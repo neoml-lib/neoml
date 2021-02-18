@@ -21,7 +21,7 @@ limitations under the License.
 
 namespace NeoML {
 
-// Sparse matrix descriptor
+// A matrix descriptor, that can fit both dense and sparse representations
 struct NEOML_API CSparseFloatMatrixDesc {
 	int Height; // the matrix height
 	int Width; // the matrix width
@@ -30,7 +30,7 @@ struct NEOML_API CSparseFloatMatrixDesc {
 	int* PointerB; // the array of indices for vector start in Columns/Values
 	int* PointerE; // the array of indices for vector end in Columns/Values
 
-	CSparseFloatMatrixDesc() : Height(0), Width(0), Columns(0), Values(0), PointerB(0), PointerE(0) {}
+	CSparseFloatMatrixDesc() : Height(0), Width(0), Columns(nullptr), Values(nullptr), PointerB(nullptr), PointerE(nullptr) {}
 
 	// Retrieves the descriptor of a row (as a sparse vector)
 	void GetRow( int index, CSparseFloatVectorDesc& desc ) const;
@@ -42,9 +42,15 @@ struct NEOML_API CSparseFloatMatrixDesc {
 inline void CSparseFloatMatrixDesc::GetRow( int index, CSparseFloatVectorDesc& desc ) const
 {
 	NeoAssert( 0 <= index && index < Height );
-	desc.Size = PointerE[index] - PointerB[index];
-	desc.Indexes = Columns + PointerB[index];
-	desc.Values = Values + PointerB[index];
+	if( Columns == nullptr ) { // dense representation
+		desc.Size = Width;
+		desc.Values = Values + index * Width;
+		desc.Indexes = nullptr;
+	} else {
+		desc.Size = PointerE[index] - PointerB[index];
+		desc.Indexes = Columns + PointerB[index];
+		desc.Values = Values + PointerB[index];
+	}
 }
 
 inline CSparseFloatVectorDesc CSparseFloatMatrixDesc::GetRow( int index ) const
@@ -81,7 +87,7 @@ public:
 	CSparseFloatVectorDesc GetRow( int index ) const;
 	void GetRow( int index, CSparseFloatVectorDesc& desc ) const;
 
-	CSparseFloatMatrix& operator = ( const CSparseFloatMatrix& vector );
+	CSparseFloatMatrix& operator = ( const CSparseFloatMatrix& matrix );
 
 	void Serialize( CArchive& archive );
 
