@@ -28,13 +28,12 @@ void CEuclideanLossLayer::Reshape()
 {
 	CLossLayer::Reshape();
 	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "the labels dimensions should be equal to the first input dimensions" );
 }
 
 void CEuclideanLossLayer::BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize,
 	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient)
 {
-	CheckArchitecture( labelSize == vectorSize, GetName(), "the labels dimensions should be equal to the first input dimensions" );
-
 	int totalSize = batchSize * vectorSize;
 
 	CFloatHandleStackVar temp( MathEngine(), totalSize );
