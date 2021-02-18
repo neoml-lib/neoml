@@ -62,7 +62,7 @@ public:
 	// Rate of dropout applied to the softmax
 	// Negaive value means no dropout
 	// By default the dropout rate is -1
-	float GetDroupoutRate() const { return dropoutRate; }
+	float GetDropoutRate() const { return dropoutRate; }
 	void SetDropoutRate( float dropoutRate ); 
 
 	// Mask usage

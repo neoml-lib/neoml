@@ -23,7 +23,7 @@ limitations under the License.
 
 namespace NeoML {
 
-class IRegressionTreeModel;
+class IRegressionTreeNode;
 template<class T>
 class CGradientBoostFullTreeBuilder;
 class CGradientBoostStatisticsSingle;
@@ -36,7 +36,7 @@ class CGradientBoostFullProblem;
 class CGradientBoostFastHistProblem;
 
 // Decision tree ensemble that has been built by gradient boosting
-class CGradientBoostEnsemble : public CObjectArray<IRegressionTreeModel> {
+class CGradientBoostEnsemble : public CObjectArray<IRegressionTreeNode> {
 public:
 	CGradientBoostEnsemble() {}
 };
@@ -68,7 +68,16 @@ enum TGradientBoostTreeBuilder {
 	GBTB_Count
 };
 
-class IGradientBoostRegressionModel;
+// Different model representations CGradientBoost can produce.
+enum TGradientBoostModelRepresentation {
+	// Straightforward representation used during trainig and for backward compatibility.
+	GBMR_Linked,
+	// Optimized for low memory impact.
+	// Limited to 64K nodes per tree and (64K - 1) features.
+	GBMR_Compact,
+	// Optimized for large numbers of trees of moderate depths.
+	GBMR_QuickScorer
+};
 
 // Gradient tree boosting
 class NEOML_API CGradientBoost : public ITrainingModel, public IRegressionTrainingModel {
@@ -105,6 +114,8 @@ public:
 		int MaxBins; // the largest possible histogram size to be used in *GBTB_FastHist* mode
 		float MinSubsetWeight; // the minimum subtree weight (set to 0 to have no lower limit)
 		float DenseTreeBoostCoefficient; // the dense tree boost coefficient (only for GBTB_MultiFull)
+		// Representation of training result.
+		TGradientBoostModelRepresentation Representation;
 
 		CParams() :
 			LossFunction( LF_Binomial ),
@@ -122,7 +133,8 @@ public:
 			TreeBuilder( GBTB_Full ),
 			MaxBins( 32 ),
 			MinSubsetWeight( 0.f ),
-			DenseTreeBoostCoefficient( 0.f )
+			DenseTreeBoostCoefficient( 0.f ),
+			Representation( GBMR_Compact )
 		{
 		}
 	};
@@ -133,9 +145,9 @@ public:
 	// Sets a text stream for logging processing
 	void SetLog( CTextStream* newLog ) { logStream = newLog; }
 
-	// Trains the regression model
-	virtual CPtr<IGradientBoostRegressionModel> TrainRegression(
-		const IBaseRegressionProblem& problem );
+	// Trains the multivariate regression model
+	CPtr<IMultivariateRegressionModel> TrainRegression(
+		const IMultivariateRegressionProblem& problem );
 
 	// IRegressionTrainingModel interface methods:
 	virtual CPtr<IRegressionModel> TrainRegression( const IRegressionProblem& problem );
@@ -183,7 +195,7 @@ private:
 	// The array length is equal to the total number of features
 	CArray<int> featureNumbers;
 
-	CPtr<CGradientBoostModel> train(
+	CPtr<IObject> train(
 		const IMultivariateRegressionProblem* problem,
 		IGradientBoostingLossFunction* lossFunction );
 	void createTreeBuilder( const IMultivariateRegressionProblem* problem );
@@ -192,9 +204,11 @@ private:
 	void initialize( int modelCount, int vectorCount, int featureCount, CArray<CGradientBoostEnsemble>& models );
 	void executeStep( IGradientBoostingLossFunction& lossFunction,
 		const IMultivariateRegressionProblem* problem, const CArray<CGradientBoostEnsemble>& models,
-		CObjectArray<IRegressionTreeModel>& curModels );
+		CObjectArray<IRegressionTreeNode>& curModels );
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
 	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
+	CPtr<IObject> createOutputRepresentation(
+		CArray<CGradientBoostEnsemble>& models, int predictionSize );
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -229,6 +243,9 @@ public:
 
 	// Reduces the number of trees in the ensemble to the given cutoff value
 	virtual void CutNumberOfTrees( int numberOfTrees ) = 0;
+
+	// Converts model to the compact representation (GBMR_Compact).
+	virtual void ConvertToCompact() = 0;
 };
 
 DECLARE_NEOML_MODEL_NAME( GradientBoostRegressionModelName, "FmlGradientBoostModel" )
@@ -253,6 +270,12 @@ public:
 	// Calculates feature usage statistics
 	// Returns the number of times each feature was used for node splitting
 	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const = 0;
+
+	// Reduces the number of trees in the ensemble to the given cutoff value
+	virtual void CutNumberOfTrees( int numberOfTrees ) = 0;
+
+	// Converts model to the compact representation (GBMR_Compact).
+	virtual void ConvertToCompact() = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -329,26 +352,21 @@ inline CArchive& operator >> ( CArchive& archive, CRegressionTreeNodeInfo& info 
 	return archive;
 }
 
-DECLARE_NEOML_MODEL_NAME( RegressionTreeModelName, "FmlRegressionTreeModel" )
-
-// The regression tree model interface
-// Can be used for iterating through the boosting results if used on trees
-class NEOML_API IRegressionTreeModel : virtual public IObject {
+// The regression tree node interface.
+// Can be used for iterating through the boosting results.
+class NEOML_API IRegressionTreeNode : virtual public IObject {
 public:
-	virtual ~IRegressionTreeModel();
+	virtual ~IRegressionTreeNode();
 
 	// Gets the child nodes
-	virtual CPtr<IRegressionTreeModel> GetLeftChild() const = 0;
-	virtual CPtr<IRegressionTreeModel> GetRightChild() const = 0;
+	virtual CPtr<const IRegressionTreeNode> GetLeftChild() const = 0;
+	virtual CPtr<const IRegressionTreeNode> GetRightChild() const = 0;
 
 	// Gets the node information
 	virtual void GetNodeInfo( CRegressionTreeNodeInfo& info ) const = 0;
-
-	// Calculates the feature statistics
-	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const = 0;
-
-	// Serializes the model
-	virtual void Serialize( CArchive& ) = 0;
 };
+
+// For backward compatibility.
+using IRegressionTreeModel = IRegressionTreeNode;
 
 } // namespace NeoML

@@ -90,6 +90,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ClassificationProbability.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
+    TraditionalML/CompactRegressionTree.cpp
+    TraditionalML/CompactRegressionTree.h
     TraditionalML/CrossValidation.cpp
     TraditionalML/CrossValidationSubProblem.cpp
     TraditionalML/DecisionTreeClassificationModel.cpp
@@ -128,6 +130,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/LinearBinaryClassifierBuilder.cpp
     TraditionalML/LinearBinaryModel.cpp
     TraditionalML/LinearBinaryModel.h
+    TraditionalML/LinkedRegressionTree.cpp
+    TraditionalML/LinkedRegressionTree.h
     TraditionalML/MemoryProblem.cpp
     TraditionalML/OneVersusAll.cpp
     TraditionalML/OneVersusAllModel.cpp
@@ -136,9 +140,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ProblemWrappers.cpp
     TraditionalML/ProblemWrappers.h
     TraditionalML/ProblemWrappers.inl
-    TraditionalML/RegressionTreeModel.cpp
-    TraditionalML/RegressionTreeModel.h
+    TraditionalML/RegressionTree.h
     TraditionalML/Score.cpp
+    TraditionalML/SerializeCompact.h
     TraditionalML/Shuffler.cpp
     TraditionalML/SMOptimizer.cpp
     TraditionalML/SMOptimizer.h

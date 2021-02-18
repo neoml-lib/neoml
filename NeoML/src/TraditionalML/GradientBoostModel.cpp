@@ -17,7 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <GradientBoostModel.h>
-#include <RegressionTreeModel.h>
+#include <CompactRegressionTree.h>
 
 namespace NeoML {
 
@@ -30,66 +30,6 @@ CGradientBoostModel::CGradientBoostModel( CArray<CGradientBoostEnsemble>& _ensem
 	valueSize( _valueSize )
 {
 	_ensembles.MoveTo( ensembles );
-}
-
-void CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
-	const CSparseFloatVector& vector, CFastArray<double, 1>& predictions )
-{
-	const int predictionSize = predictions.Size();
-	predictions.Empty();
-	predictions.Add(0.0, predictionSize);
-
-	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->Predict( vector );
-		NeoAssert( predictionSize == pred.Size() );
-		for( int j = 0; j < predictions.Size(); j++ ) {
-			predictions[j] += pred[j];
-		}
-	}
-
-	for( int j = 0; j < predictions.Size(); j++ ) {
-		predictions[j] *= learningRate;
-	}
-}
-
-void CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
-	const CSparseFloatVectorDesc& vector, CFastArray<double, 1>& predictions )
-{
-	const int predictionSize = predictions.Size();
-	predictions.Empty();
-	predictions.Add(0.0, predictionSize);
-
-	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->Predict( vector );
-		NeoAssert( predictions.Size() == pred.Size() );
-		for( int j = 0; j < predictions.Size(); j++ ) {
-			predictions[j] += pred[j];
-		}
-	}
-
-	for( int j = 0; j < predictions.Size(); j++ ) {
-		predictions[j] *= learningRate;
-	}
-}
-
-void CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
-	const CFloatVector& vector, CFastArray<double, 1>& predictions )
-{
-	const int predictionSize = predictions.Size();
-	predictions.Empty();
-	predictions.Add(0.0, predictionSize);
-
-	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensemble[i].Ptr() )->Predict( vector );
-		NeoAssert( predictions.Size() == pred.Size() );
-		for( int j = 0; j < predictions.Size(); j++ ) {
-			predictions[j] += pred[j];
-		}
-	}
-
-	for( int j = 0; j < predictions.Size(); j++ ) {
-		predictions[j] *= learningRate;
-	}
 }
 
 bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
@@ -167,13 +107,13 @@ void CGradientBoostModel::Serialize( CArchive& archive )
 #ifdef NEOML_USE_FINEOBJ
 				if( version < 2 ) {
 					CUnicodeString modelName = archive.ReadExternalName();
-					ensemble[j] = CreateModel<IRegressionTreeModel>( modelName.CreateString() );
+					ensemble[j] = CreateModel<IRegressionTreeNode>( modelName.CreateString() );
 				}	
 #endif
 				if( version >= 2 ) {
 					CString modelName;
 					archive >> modelName;
-					ensemble[j] = CreateModel<IRegressionTreeModel>( modelName );
+					ensemble[j] = CreateModel<IRegressionTreeNode>( modelName );
 				}
 
 				ensemble[j]->Serialize( archive );
@@ -206,6 +146,7 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray
 	predictions.Add(0.0, ensembles.Size() > 1 ? ensembles.Size() : valueSize);
 	CFastArray<double, 1> curPredictions;
 
+	CRegressionTree::CPrediction pred;
 	results.DeleteAll();
 	for( int resultIndex = 0; resultIndex < ensembles[0].Size(); ++resultIndex ) {
 		CClassificationResult result;
@@ -213,12 +154,11 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray
 		if( ensembles.Size() > 1 ) {
 			NeoAssert(predictions.Size() == ensembles.Size());
 			for( int i = 0; i < ensembles.Size(); i++ ) {
-				const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensembles[i][resultIndex].Ptr() )->Predict( data );
+				static_cast<const CRegressionTree*>( ensembles[i][resultIndex].Ptr() )->Predict( data, pred );
 				predictions[i] += learningRate * pred[0];
 			}
 		} else {
-			const CFastArray<double, 1>& pred = dynamic_cast< const CRegressionTreeModel* >( ensembles[0][resultIndex].Ptr() )->Predict( data );
-
+			static_cast<const CRegressionTree*>( ensembles[0][resultIndex].Ptr() )->Predict( data, pred );
 			NeoAssert(predictions.Size() == pred.Size());
 			for( int i = 0; i < predictions.Size(); i++ ) {
 				predictions[i] += learningRate * pred[i];
@@ -244,7 +184,8 @@ void CGradientBoostModel::CalcFeatureStatistics( int maxFeature, CArray<int>& re
 		const CGradientBoostEnsemble& ensemble = ensembles[i];
 		for( int j = 0; j < ensemble.Size(); j++ ) {
 			CArray<int> oneTreeResult;
-			CheckCast<CRegressionTreeModel>(ensemble[j].Ptr())->CalcFeatureStatistics( maxFeature, oneTreeResult );
+			static_cast<const CRegressionTree*>( ensemble[j].Ptr() )
+				->CalcFeatureStatistics( maxFeature, oneTreeResult );
 			for( int k = 0; k < result.Size(); k++ ) {
 				result[k] += oneTreeResult[k];
 			}
@@ -263,31 +204,43 @@ void CGradientBoostModel::CutNumberOfTrees( int numberOfTrees )
 	}
 }
 
-double CGradientBoostModel::Predict( const CSparseFloatVector& data ) const
+void CGradientBoostModel::ConvertToCompact()
+{
+	for( int i = 0; i < ensembles.Size() ; i++ ) {
+		CGradientBoostEnsemble& ensemble = ensembles[i];
+		for( int j = 0; j < ensemble.Size(); j++ ) {
+			CPtr<IRegressionTreeNode>& tree = ensemble[j];
+			if( dynamic_cast<CCompactRegressionTree*>( tree.Ptr() ) == 0 ) {
+				tree = FINE_DEBUG_NEW CCompactRegressionTree( tree );
+			}
+		}
+	}
+}
+
+// The common implementation for Predict methods
+template<typename TData>
+inline double CGradientBoostModel::doPredict( const TData& data ) const
 {
 	NeoAssert(ensembles.Size() == 1 && valueSize == 1);
 	CFastArray<double, 1> predictions;
 	predictions.SetSize(1);
 	PredictRaw( ensembles.First(), 0, learningRate, data, predictions );
 	return predictions[0];
+}
+
+double CGradientBoostModel::Predict( const CSparseFloatVector& data ) const
+{
+	return doPredict( data.GetDesc() );
 }
 
 double CGradientBoostModel::Predict( const CFloatVector& data ) const
 {
-	NeoAssert(ensembles.Size() == 1 && valueSize == 1);
-	CFastArray<double, 1> predictions;
-	predictions.SetSize(1);
-	PredictRaw( ensembles.First(), 0, learningRate, data, predictions );
-	return predictions[0];
+	return doPredict( data );
 }
 
 double CGradientBoostModel::Predict( const CSparseFloatVectorDesc& data ) const
 {
-	NeoAssert(ensembles.Size() == 1 && valueSize == 1);
-	CFastArray<double, 1> predictions;
-	predictions.SetSize(1);
-	PredictRaw( ensembles.First(), 0, learningRate, data, predictions );
-	return predictions[0];
+	return doPredict( data );
 }
 
 // The common implementation for the three MultivariatePredict method variations
@@ -321,7 +274,7 @@ CFloatVector CGradientBoostModel::doMultivariatePredict( const TData& data ) con
 
 CFloatVector CGradientBoostModel::MultivariatePredict( const CSparseFloatVector& data ) const
 {
-	return doMultivariatePredict( data );
+	return doMultivariatePredict( data.GetDesc() );
 }
 
 CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVector& data ) const
