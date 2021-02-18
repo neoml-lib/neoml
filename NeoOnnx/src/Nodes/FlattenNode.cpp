@@ -67,7 +67,7 @@ void CFlattenNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 
 	for( int dim = 2; dim < BD_Count; ++dim ) {
 		// Other dimensions must be 1
-		transform->SetDimensionRule( static_cast<TBlobDim>( 1 ), 
+		transform->SetDimensionRule( static_cast<TBlobDim>( dim ), 
 			CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
 	}
 
