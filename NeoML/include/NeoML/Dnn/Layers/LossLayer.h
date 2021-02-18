@@ -209,6 +209,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
+	void Reshape() override;
 	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
@@ -228,6 +229,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
+	void Reshape() override;
 	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
@@ -248,6 +250,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
+	void Reshape() override;
 	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };

@@ -38,12 +38,11 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
 	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient, CFloatHandle labelLossGradient )
 {
-	NeoAssert( labelSize == vectorSize );
+	CheckArchitecture( labelSize == vectorSize, GetName(), "for float labels the dimensions should be equal to the first input dimensions" );
 
 	int totalSize = batchSize * vectorSize;
 
-	// This layer works only with multi-class classification
-	NeoAssert( vectorSize >= 2 );
+	CheckArchitecture( vectorSize >= 2, GetName(), "CrossEntropyLoss layer works only with multi-class classification" );
 
 	CFloatHandleStackVar activation( MathEngine(), totalSize );
 	CFloatHandleStackVar activationEltwiseMul( MathEngine(), totalSize );
@@ -92,12 +91,11 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
 	CConstIntHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
-	NeoAssert( labelSize == 1 );
+	CheckArchitecture( labelSize == 1, GetName(), "for int labels each object in the blob should contain the number of the class" );
 
 	int totalSize = batchSize * vectorSize;
 
-	// This layer works only with multi-class classification
-	NeoAssert( vectorSize >= 2 );
+	CheckArchitecture( vectorSize >= 2, GetName(), "CrossEntropyLoss layer works only with multi-class classification" );
 
 	CFloatHandleStackVar activationMul( MathEngine(), batchSize );
 	CFloatHandleStackVar activation( MathEngine(), totalSize );
