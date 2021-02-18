@@ -24,7 +24,7 @@ namespace NeoML {
 
 CRecurrentLayer::CRecurrentLayer( IMathEngine& mathEngine, const char* name ) :
 	CCompositeLayer( mathEngine, name == nullptr ? "CCnnRecurrentLayer" : name ),
-	isReverseSequense(false),
+	isReverseSequence(false),
 	repeatCount(1)
 {
 }
@@ -120,12 +120,12 @@ void CRecurrentLayer::SetState(const CObjectArray<CDnnBlob>& state)
 }
 
 
-void CRecurrentLayer::SetReverseSequence(bool _isReverseSequense)
+void CRecurrentLayer::SetReverseSequence(bool _isReverseSequence)
 {
-	if(isReverseSequense != _isReverseSequense) {
+	if(isReverseSequence != _isReverseSequence) {
 		ForceReshape();
 	}
-	isReverseSequense = _isReverseSequense;
+	isReverseSequence = _isReverseSequence;
 }
 
 void CRecurrentLayer::SetRepeatCount(int count)
@@ -157,7 +157,7 @@ void CRecurrentLayer::SetInternalDnnParams()
 	int sequenceLength;
 	getSequenceParams(batchWidth, sequenceLength);
 	if(!GetDnn()->IsRecurrentMode()) {
-		GetInternalDnn()->setProcessingParams(true, sequenceLength, isReverseSequense, GetDnn()->IsBackwardPerformed());
+		GetInternalDnn()->setProcessingParams(true, sequenceLength, isReverseSequence, GetDnn()->IsBackwardPerformed());
 	} else {
 		CheckArchitecture( repeatCount == 1,
 			GetName(), "repeat count should be 1 for internal recurrent layers" );
@@ -223,7 +223,7 @@ void CRecurrentLayer::serializationHook(CArchive& archive)
 			CPtr<CBaseLayer> layer = backLinks[i].Ptr();
 			SerializeLayer( archive, MathEngine(), layer );
 		}
-		archive << isReverseSequense;
+		archive << isReverseSequence;
 		archive << repeatCount;
 	} else if( archive.IsLoading() ) {
 		backLinks.DeleteAll();
@@ -240,7 +240,7 @@ void CRecurrentLayer::serializationHook(CArchive& archive)
 			// The layers have already been loaded, we only need to specify which of them are used as back links
 			backLinks.Add(CheckCast<CBackLinkLayer>(GetLayer(tmpBackLinks[i]->GetName())));
 		}
-		archive >> isReverseSequense;
+		archive >> isReverseSequence;
 		archive >> repeatCount;
 	} else {
 		NeoAssert( false );
