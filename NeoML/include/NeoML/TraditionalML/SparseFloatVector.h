@@ -123,7 +123,7 @@ public:
 private:
 	// The vector body, that is, the object that stores all its data.
 	struct NEOML_API CSparseFloatVectorBody : public IObject {
-		const int BufferSize;
+		int BufferSize;
 		CSparseFloatVectorDesc Desc;
 		// Memory holders
 		CArray<int> IndexesBuf;
