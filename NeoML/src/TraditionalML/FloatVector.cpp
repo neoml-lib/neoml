@@ -27,30 +27,10 @@ CFloatVector::CFloatVectorBody::CFloatVectorBody( int size )
 	Desc.Size = size;
 }
 
-CFloatVector::CFloatVector( int size, const CSparseFloatVector& sparseVector )
+CFloatVector::CFloatVector( int size, const CSparseFloatVector& sparseVector ) :
+	CFloatVector( size, sparseVector.GetDesc() )
 {
-	NeoAssert( size >= 0 );
-	auto bodyPtr = FINE_DEBUG_NEW CFloatVectorBody( size );
-	const CSparseFloatVectorDesc& desc = sparseVector.GetDesc();
-	NeoAssert( desc.Indexes != nullptr );
-	int ptrPos = 0;
-	int ptrSize = sparseVector.NumberOfElements();
-
-	float value = 0;
-	for( int i = 0; i < size; i++ ) {
-		if( ptrPos >= ptrSize || i < desc.Indexes[ptrPos] ) {
-			value = 0;
-		} else {
-			value = desc.Values[ptrPos];
-			ptrPos++;
-		}
-		bodyPtr->Values[i] = value;
-	}
-
-	// No elements should stay unprocessed!
-	NeoAssert( ptrPos == ptrSize );
-
-	body = bodyPtr;
+	NeoAssert( sparseVector.GetDesc().Indexes != nullptr );
 }
 
 CFloatVector::CFloatVector( int size, const CSparseFloatVectorDesc& desc )
@@ -302,17 +282,14 @@ CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, 
 {
 	float* ptr = CopyOnWrite();
 	if( desc.Indexes != nullptr ) {
-		const int size = body->Values.Size();
-		const int numberOfElements = desc.Size;
-		for( int i = 0; i < numberOfElements; i++ ) {
-			int j = desc.Indexes[i];
-			if( j < size ) {
-				ptr[j] = static_cast< float >( ptr[j] + desc.Values[i] * factor );
-			}
+		NeoAssert( Size() >= ( desc.Size == 0 ? 0 : desc.Indexes[desc.Size - 1] + 1 ) );
+		for( int i = 0; i < desc.Size; i++ ) {
+			const int j = desc.Indexes[i];
+			ptr[j] = static_cast< float >( ptr[j] + desc.Values[i] * factor );
 		}
 	} else { // dense inside
-		const int size = min( body->Values.Size(), desc.Size );
-		for( int i = 0; i < size; i++ ) {
+		NeoAssert( Size() >= desc.Size );
+		for( int i = 0; i < desc.Size; i++ ) {
 			ptr[i] = static_cast< float >( ptr[i] + factor * desc.Values[i] );
 		}
 	}

@@ -49,7 +49,7 @@ TEST_F( CFloatVectorTest, DotProduct )
 
 	CRandom rand( 0 );
 	CSparseFloatVector s1 = generateRandomVector( rand, maxLength );
-	CFloatVector s1Vec( maxLength, s1.GetDesc() );
+	CFloatVector s1Vec( maxLength, s1 );
 	CSparseFloatVectorDesc s1DenseDesc( s1Vec.GetDesc() );
 	for( int i = 0; i < numberOfTests; ++i ) {
 		CSparseFloatVector s2 = generateRandomVector( rand, maxLength );
@@ -122,6 +122,11 @@ TEST_F( CFloatVectorTest, MultiplyAndAdd )
 		s2VecCopy.MultiplyAndAdd( s1Vec, factor );
 		ASSERT_DOUBLE_EQ( DotProduct( s2VecCopy, s1 ), results[i] );
 	}
+
+	// test empty
+	CFloatVector denseEmpty( 0 );
+	denseEmpty.MultiplyAndAdd( CSparseFloatVectorDesc::Empty, 4 );
+	ASSERT_EQ( denseEmpty.Size(), 0 );
 }
 
 TEST_F( CFloatVectorTest, MultiplyAndAddExt )
@@ -156,6 +161,12 @@ TEST_F( CFloatVectorTest, MultiplyAndAddExt )
 		s2VecCopy.MultiplyAndAddExt( s1DenseDesc, factor );
 		ASSERT_DOUBLE_EQ( DotProduct( s2VecCopy, s1 ), results[i] );
 	}
+
+	// test empty
+	CFloatVector denseOneElement( 1, 2 );
+	denseOneElement.MultiplyAndAddExt( CSparseFloatVectorDesc::Empty, 4 );
+	ASSERT_EQ( denseOneElement.Size(), 1 );
+	ASSERT_EQ( denseOneElement[0], 6 );
 }
 
 TEST_F( CFloatVectorTest, GetValue )
@@ -222,6 +233,57 @@ TEST_F( CFloatVectorTest, CreationSparseVectorFromDesc )
 			ASSERT_EQ( sparseCopy.GetDesc().Values[i], sparseFromDenseCopy.GetDesc().Values[i] );
 		}
 	}
+}
+
+TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
+{
+	const int h = 5;
+	const int w = 10;
+	CSparseFloatMatrix sparseMatrix;
+
+	CArray<float> values;
+	values.SetSize( h * w );
+
+	CRandom rand( 0 );
+	for( int i = 0; i < h; ++i ) {
+		CSparseFloatVector row = generateRandomVector( rand, w );
+		for( int j = 0; j < w; ++j ) {
+			values[i*w + j] = GetValue( row.GetDesc(), j );
+		}
+		sparseMatrix.AddRow( row );
+	}
+	CSparseFloatMatrixDesc orig = sparseMatrix.GetDesc();
+	CSparseFloatMatrix sparseMatrixFromSparseDesc( orig );
+	CSparseFloatMatrixDesc fromSparse = sparseMatrixFromSparseDesc.GetDesc();
+
+	// check if copied matrix equals to original
+	ASSERT_EQ( fromSparse.Height, orig.Height );
+	ASSERT_EQ( fromSparse.Width, orig.Width );
+	ASSERT_EQ( ::memcmp( fromSparse.PointerB, orig.PointerB, fromSparse.Height * sizeof( int ) ), 0 );
+	ASSERT_EQ( ::memcmp( fromSparse.PointerE, orig.PointerE, fromSparse.Height * sizeof( int ) ), 0 );
+
+	const int elementsCount = fromSparse.PointerE[fromSparse.Height-1];
+	ASSERT_EQ( ::memcmp( fromSparse.Columns, orig.Columns, elementsCount * sizeof( int ) ), 0 );
+	ASSERT_EQ( ::memcmp( fromSparse.Values, orig.Values, elementsCount * sizeof( float ) ), 0 );
+
+	// check if a matrix created from dense desc is equal to created from sparse one
+	CSparseFloatMatrixDesc denseDesc;
+	denseDesc.Height = h;
+	denseDesc.Width = w;
+	denseDesc.Values = values.GetPtr();
+	CSparseFloatMatrix sparseMatrixFromDenseDesc( denseDesc );
+	CSparseFloatMatrixDesc fromDense = sparseMatrixFromDenseDesc.GetDesc();
+
+	ASSERT_EQ( fromSparse.Height, fromDense.Height );
+	ASSERT_EQ( fromSparse.Width, fromDense.Width );
+	ASSERT_EQ( ::memcmp( fromSparse.PointerB, fromDense.PointerB, fromSparse.Height * sizeof( int ) ), 0 );
+	ASSERT_EQ( ::memcmp( fromSparse.PointerE, fromDense.PointerE, fromSparse.Height * sizeof( int ) ), 0 );
+	ASSERT_EQ( ::memcmp( fromSparse.Columns, fromDense.Columns, elementsCount * sizeof( int ) ), 0 );
+	ASSERT_EQ( ::memcmp( fromSparse.Values, fromDense.Values, elementsCount * sizeof( float ) ), 0 );
+
+	CSparseFloatMatrix empty( CSparseFloatMatrixDesc::Empty );
+	ASSERT_EQ( empty.GetHeight(), 0 );
+	ASSERT_EQ( empty.GetWidth(), 0 );
 }
 
 TEST_F( CFloatVectorTest, Common )

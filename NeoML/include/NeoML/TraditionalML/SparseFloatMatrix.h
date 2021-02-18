@@ -87,7 +87,7 @@ public:
 	CSparseFloatVectorDesc GetRow( int index ) const;
 	void GetRow( int index, CSparseFloatVectorDesc& desc ) const;
 
-	CSparseFloatMatrix& operator = ( const CSparseFloatMatrix& vector );
+	CSparseFloatMatrix& operator = ( const CSparseFloatMatrix& matrix );
 
 	void Serialize( CArchive& archive );
 
