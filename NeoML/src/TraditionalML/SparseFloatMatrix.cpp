@@ -69,11 +69,9 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CSpars
 	Desc.PointerB = BeginPointersBuf.GetPtr();
 	Desc.PointerE = EndPointersBuf.GetPtr();
 	if( desc.Columns == nullptr ) {
-		for( int i = 0; i < desc.Height; ++i ) {
-			for( int j = 0; j < desc.Width; ++j ) {
-				if( desc.Values[i * desc.Width + j] != 0 ) {
-					++ElementsBufferSize;
-				}
+		for( int i = 0; i < desc.Height * desc.Width; ++i ) {
+			if( desc.Values[i] != 0 ) {
+				++ElementsBufferSize;
 			}
 		}
 		ColumnsBuf.SetBufferSize( ElementsBufferSize );
