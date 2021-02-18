@@ -21,7 +21,7 @@ limitations under the License.
 
 namespace NeoML {
 
-// Sparse vector descriptor
+// A vector descriptor, that can fit both dense and sparse representations
 struct NEOML_API CSparseFloatVectorDesc {
 	int Size;
 	int* Indexes;
@@ -34,11 +34,18 @@ struct NEOML_API CSparseFloatVectorDesc {
 
 inline bool GetValue( const CSparseFloatVectorDesc& vector, int index, float& value )
 {
-	const int pos = FindInsertionPoint<int, Ascending<int>, int>( index, vector.Indexes, vector.Size ) - 1;
-	if( pos >= 0 && vector.Indexes[pos] == index ) {
-		value = vector.Values[pos];
+	if( vector.Indexes != nullptr ) {
+		const int pos = FindInsertionPoint<int, Ascending<int>, int>( index, vector.Indexes, vector.Size ) - 1;
+		if( pos >= 0 && vector.Indexes[pos] == index ) {
+			value = vector.Values[pos];
+			return true;
+		}
+		value = 0;
+		return false;
+	} else if( index >= 0 && index < vector.Size ) {
+		value = vector.Values[index];
 		return true;
-	}
+	} 
 	value = 0;
 	return false;
 }
@@ -52,6 +59,7 @@ inline float GetValue( const CSparseFloatVectorDesc& vector, int index )
 	return 0.f;
 }
 
+//---------------------------------------------------------------------------------------------------------------------
 template<typename T1, typename T2>
 struct CSparseVectorElement {
 	typedef T1 TIndex;
@@ -115,7 +123,7 @@ public:
 private:
 	// The vector body, that is, the object that stores all its data.
 	struct NEOML_API CSparseFloatVectorBody : public IObject {
-		const int BufferSize;
+		int BufferSize;
 		CSparseFloatVectorDesc Desc;
 		// Memory holders
 		CArray<int> IndexesBuf;
