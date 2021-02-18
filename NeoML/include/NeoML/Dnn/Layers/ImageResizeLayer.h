@@ -46,7 +46,7 @@ public:
 
 	float GetDefaultValue() const { return defaultValue; }
 	// Sets the default value for new pixels
-	void SetDefalutValue( float value ) { defaultValue = value; }
+	void SetDefaultValue( float value ) { defaultValue = value; }
 
 protected:
 	// CBaseLayer methods
@@ -66,3 +66,4 @@ NEOML_API CLayerWrapper<CImageResizeLayer> ImageResize( int deltaLeft, int delta
 	int deltaTop, int deltaBottom, float defaultValue );
 
 } // namespace NeoML
+	

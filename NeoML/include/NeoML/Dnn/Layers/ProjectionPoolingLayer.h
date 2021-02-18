@@ -30,7 +30,7 @@ public:
 	// Projection dimension
 	// BD_Width by default
 	TBlobDim GetDimension() const { return dimension; }
-	void SetDimenion( TBlobDim dimension );
+	void SetDimension( TBlobDim dimension );
 
 	// If true then output size is equal to the input size and pooling result is broadcasted along the projection dimension
 	// Otherwise projection dimension of the output is equal to 1 and other dimensions are equal to ones of the input
