@@ -21,8 +21,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/FlattenNode.cpp
     #Nodes/GatherNode.cpp
     Nodes/GemmNode.cpp
-    #Nodes/GlobalAveragePoolNode.cpp
-    #Nodes/GlobalPoolNodeBase.cpp
+    Nodes/GlobalPoolNode.cpp
     Nodes/GraphInput.cpp
     Nodes/GraphInitializer.cpp
     Nodes/GraphOutput.cpp
@@ -32,7 +31,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/MatMulNode.cpp
     Nodes/PadNode.cpp
     Nodes/PoolNode.cpp
-    #Nodes/ReduceMeanNode.cpp
     #Nodes/ReshapeNode.cpp
     #Nodes/ShapeNode.cpp
     #Nodes/SliceNode.cpp
@@ -59,8 +57,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/FlattenNode.h
     #Nodes/GatherNode.h
     Nodes/GemmNode.h
-    #Nodes/GlobalAveragePoolNode.h
-    #Nodes/GlobalPoolNodeBase.h
+    Nodes/GlobalPoolNode.h
     Nodes/GraphInput.h
     Nodes/GraphInitializer.h
     Nodes/GraphOutput.h
@@ -70,7 +67,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/MatMulNode.h
     Nodes/PadNode.h
     Nodes/PoolNode.h
-    #Nodes/ReduceMeanNode.h
     #Nodes/ReshapeNode.h
     #Nodes/ShapeNode.h
     #Nodes/SliceNode.h
@@ -78,7 +74,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/SqueezeNode.h
     #Nodes/TransposeNode.h
     #Nodes/UnsqueezeNode.h
-    NodeUtils.h
     Tensor.h
     TensorLayout.h
     TensorUtils.h

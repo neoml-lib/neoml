@@ -35,14 +35,13 @@ limitations under the License.
 #include "Nodes/FlattenNode.h"
 //#include "Nodes/GatherNode.h"
 #include "Nodes/GemmNode.h"
-//#include "Nodes/GlobalAveragePoolNode.h"
+#include "Nodes/GlobalPoolNode.h"
 //#include "Nodes/IdentityNode.h"
 //#include "Nodes/LrnNode.h"
 //#include "Nodes/LstmNode.h"
 //#include "Nodes/MatMulNode.h"
 #include "Nodes/PadNode.h"
 #include "Nodes/PoolNode.h"
-//#include "Nodes/ReduceMeanNode.h"
 //#include "Nodes/ReshapeNode.h"
 //#include "Nodes/ShapeNode.h"
 //#include "Nodes/SliceNode.h"
@@ -117,7 +116,8 @@ REGISTER_OP_NODE( CEluNode, "Elu" )
 REGISTER_OP_NODE( CFlattenNode, "Flatten" )
 //REGISTER_OP_NODE( CGatherNode, "Gather" )
 REGISTER_OP_NODE( CGemmNode, "Gemm" )
-//REGISTER_OP_NODE( CGlobalAveragePoolNode, "GlobalAveragePool" )
+REGISTER_OP_NODE( CGlobalAveragePoolNode, "GlobalAveragePool" )
+REGISTER_OP_NODE( CGlobalMaxPoolNode, "GlobalMaxPool" )
 REGISTER_OP_NODE( CHardSigmoidNode, "HardSigmoid" )
 //REGISTER_OP_NODE( CIdentityNode, "Identity" )
 REGISTER_OP_NODE( CLeakyReluNode, "LeakyRelu" )
@@ -127,7 +127,9 @@ REGISTER_OP_NODE( CLeakyReluNode, "LeakyRelu" )
 REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
 REGISTER_OP_NODE( CMulNode, "Mul" )
 REGISTER_OP_NODE( CPadNode, "Pad" )
-//REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
+REGISTER_OP_NODE( CReduceMaxNode, "ReduceMax" )
+REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
+REGISTER_OP_NODE( CReduceMinNode, "ReduceMin" )
 REGISTER_OP_NODE( CReluNode, "Relu" )
 //REGISTER_OP_NODE( CReshapeNode, "Reshape" )
 //REGISTER_OP_NODE( CShapeNode, "Shape" )

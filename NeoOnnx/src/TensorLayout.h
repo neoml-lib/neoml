@@ -55,7 +55,7 @@ struct CTensorLayout
 
 	CTensorLayout() : DimType( DT_Onnx ) {}
 	explicit CTensorLayout( const CDimOrder& onnxOrder ) :
-		DimType( DT_NeoML ) { onnxOrder.CopyTo( OnnxOrder ); }
+		DimType( onnxOrder.IsEmpty() ? DT_Onnx : DT_NeoML ) { onnxOrder.CopyTo( OnnxOrder ); }
 
 	explicit CTensorLayout( const CTensorLayout& other ) :
 		DimType( other.DimType ) { other.OnnxOrder.CopyTo( OnnxOrder ); }
