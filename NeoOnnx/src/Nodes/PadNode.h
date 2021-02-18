@@ -25,7 +25,7 @@ namespace NeoOnnx {
 void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
 
 // Pads tensor with user-dependent data
-CPtr<const CUserTensor> PadUserTensor( const CUserTensor& inputs, const CFastArray<int, 8>& pads, float padValue );
+CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue );
 
 //---------------------------------------------------------------------------------------------------------------------
 
