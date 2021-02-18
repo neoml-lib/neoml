@@ -33,7 +33,7 @@ CProjectionPoolingLayer::~CProjectionPoolingLayer()
 	destroyDesc();
 }
 
-void CProjectionPoolingLayer::SetDimenion( TBlobDim _dimension )
+void CProjectionPoolingLayer::SetDimension( TBlobDim _dimension )
 {
 	if( dimension == _dimension ) {
 		return;
