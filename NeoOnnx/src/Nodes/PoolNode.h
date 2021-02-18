@@ -16,14 +16,21 @@ limitations under the License.
 #pragma once
 
 #include "../Node.h"
-#include "../NodeUtils.h"
 
 namespace NeoOnnx {
 
 // Base class for non-global Pool operator nodes
 class CPoolNodeBase : public COpNode {
 public:
-	CPoolNodeBase( TPoolingType poolingType, const onnx::NodeProto& pool, int opsetVersion );
+	// Operation type
+	enum TPoolType {
+		PT_Max, // Max pooling
+		PT_Mean, // Average pooling
+
+		PT_Count
+	};
+
+	CPoolNodeBase( TPoolType poolType, const onnx::NodeProto& pool, int opsetVersion );
 
 	// CNode methods
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
@@ -33,7 +40,7 @@ public:
 	void UserInputMask( CUserInputMask& mask ) const override { mask.Add( true ); }
 
 private:
-	TPoolingType poolingType; // pooling type
+	TPoolType poolType; // pooling type
 	const CString autoPad; // padding mode
 	CFastArray<int, 8> kernelShape; // shape of pool kernel
 	CFastArray<int, 8> strides; // kernel strides

@@ -24,9 +24,9 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CPoolNodeBase::CPoolNodeBase( TPoolingType _poolingType, const onnx::NodeProto& poolNode, int opsetVersion ) :
+CPoolNodeBase::CPoolNodeBase( TPoolType _poolType, const onnx::NodeProto& poolNode, int opsetVersion ) :
 	COpNode( poolNode, opsetVersion ),
-	poolingType( _poolingType ),
+	poolType( _poolType ),
 	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
 	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc)
@@ -65,7 +65,7 @@ void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CalculatePadding( autoPad, kernelShape, pads );
 	}
 
-	if( poolingType == PT_Mean ) {
+	if( poolType == PT_Mean ) {
 		for( int padIndex = 0; padIndex < pads.Size(); ++padIndex ) {
 			// We can't pad image correctly for average (result will differ from Onnx anyway)
 			CheckNeoOnnxSupport( pads[padIndex] == 0, "average pooling with padding", OnnxNode );
@@ -83,7 +83,7 @@ void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	// TODO: add 3d-pooling support
 	CPtr<CPoolingLayer> pooling;
 	static_assert( PT_Count == 2, "PT_Count != 2" );
-	switch( poolingType ) {
+	switch( poolType ) {
 		case PT_Max:
 			pooling = new CMaxPoolingLayer( dnn.GetMathEngine() );
 			break;
@@ -98,7 +98,7 @@ void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CDimOrder expectedOrder( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
 	expectedOrder.SetSize( inputShape.Size() );
 	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout( expectedOrder ) ).Ptr() );
-	input = PadUserTensor( *input, pads, poolingType == PT_Max ? -FLT_MAX : 0.f );
+	input = PadUserTensor( *input, pads, poolType == PT_Max ? -FLT_MAX : 0.f );
 
 	pooling->SetFilterHeight( kernelShape[0] );
 	pooling->SetFilterWidth( kernelShape[1] );
