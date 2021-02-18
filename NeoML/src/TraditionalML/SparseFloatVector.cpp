@@ -45,6 +45,12 @@ CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( const CSpars
 	BufferSize( desc.Size )
 {
 	if( desc.Indexes == nullptr ) {
+		for( int i = 0; i < desc.Size; ++i ) {
+			if( desc.Values[i] == 0 ) {
+				--BufferSize;
+			}
+		}
+		Desc.Size = BufferSize;
 		IndexesBuf.SetBufferSize( BufferSize );
 		ValuesBuf.SetBufferSize( BufferSize );
 		for( int i = 0; i < desc.Size; ++i ) {
@@ -53,7 +59,6 @@ CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( const CSpars
 				ValuesBuf.Add( desc.Values[i] );
 			}
 		}
-		Desc.Size = ValuesBuf.Size();
 	} else {
 		Desc.Size = desc.Size;
 		IndexesBuf.SetSize( BufferSize );

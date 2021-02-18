@@ -45,10 +45,9 @@ inline bool GetValue( const CSparseFloatVectorDesc& vector, int index, float& va
 	} else if( index >= 0 && index < vector.Size ) {
 		value = vector.Values[index];
 		return true;
-	} else {
-		value = 0;
-		return false;
-	}
+	} 
+	value = 0;
+	return false;
 }
 
 inline float GetValue( const CSparseFloatVectorDesc& vector, int index )
