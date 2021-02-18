@@ -136,6 +136,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/OneVersusAll.cpp
     TraditionalML/OneVersusAllModel.cpp
     TraditionalML/OneVersusAllModel.h
+    TraditionalML/PCA.cpp
     TraditionalML/PlattScalling.cpp
     TraditionalML/ProblemWrappers.cpp
     TraditionalML/ProblemWrappers.h
@@ -259,6 +260,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/Model.h
     ../include/NeoML/TraditionalML/OneVersusAll.h
     ../include/NeoML/TraditionalML/PlattScalling.h
+    ../include/NeoML/TraditionalML/PCA.h
     ../include/NeoML/TraditionalML/Problem.h
     ../include/NeoML/TraditionalML/Score.h
     ../include/NeoML/TraditionalML/Shuffler.h
