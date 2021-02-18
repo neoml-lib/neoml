@@ -31,7 +31,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/LstmNode.cpp
     #Nodes/MatMulNode.cpp
     Nodes/PadNode.cpp
-    #Nodes/PoolNode.cpp
+    Nodes/PoolNode.cpp
     #Nodes/ReduceMeanNode.cpp
     #Nodes/ReshapeNode.cpp
     #Nodes/ShapeNode.cpp
@@ -69,7 +69,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/LstmNode.h
     #Nodes/MatMulNode.h
     Nodes/PadNode.h
-    #Nodes/PoolNode.h
+    Nodes/PoolNode.h
     #Nodes/ReduceMeanNode.h
     #Nodes/ReshapeNode.h
     #Nodes/ShapeNode.h

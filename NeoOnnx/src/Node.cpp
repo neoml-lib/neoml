@@ -41,7 +41,7 @@ limitations under the License.
 //#include "Nodes/LstmNode.h"
 //#include "Nodes/MatMulNode.h"
 #include "Nodes/PadNode.h"
-//#include "Nodes/PoolNode.h"
+#include "Nodes/PoolNode.h"
 //#include "Nodes/ReduceMeanNode.h"
 //#include "Nodes/ReshapeNode.h"
 //#include "Nodes/ShapeNode.h"
@@ -104,7 +104,7 @@ namespace {
 // Register all nodes
 REGISTER_OP_NODE( CAbsNode, "Abs" )
 REGISTER_OP_NODE( CAddNode, "Add" )
-//REGISTER_OP_NODE( CAveragePoolNode, "AveragePool" )
+REGISTER_OP_NODE( CAveragePoolNode, "AveragePool" )
 REGISTER_OP_NODE( CBatchNormalizationNode, "BatchNormalization" )
 REGISTER_OP_NODE( CClipNode, "Clip" )
 //REGISTER_OP_NODE( CConcatNode, "Concat" )
@@ -124,7 +124,7 @@ REGISTER_OP_NODE( CLeakyReluNode, "LeakyRelu" )
 //REGISTER_OP_NODE( CLrnNode, "LRN" )
 //REGISTER_OP_NODE( CLstmNode, "LSTM" )
 //REGISTER_OP_NODE( CMatMulNode, "MatMul" )
-//REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
+REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
 REGISTER_OP_NODE( CMulNode, "Mul" )
 REGISTER_OP_NODE( CPadNode, "Pad" )
 //REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
