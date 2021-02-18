@@ -155,7 +155,7 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 	}
 
 	// Corner case: we need to expand odd number of dimensions
-	// In that case by this moment imageResize will be not nullptr
+	// In that case by this moment imageResize != nullptr
 	// heightDimIndex will be defined but widthDimIndex will remain NotFound
 	if( imageResize != nullptr ) {
 		currData = addImageResizeLayer( *imageResize, dnn, *currData, heightDimIndex, widthDimIndex );
