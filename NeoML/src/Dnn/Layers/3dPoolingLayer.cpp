@@ -35,38 +35,62 @@ C3dPoolingLayer::C3dPoolingLayer( IMathEngine& mathEngine, const char* name ) :
 
 void C3dPoolingLayer::SetFilterHeight(int _filterHeight)
 {
-	NeoAssert(GetDnn() == 0);
+	NeoAssert(_filterHeight > 0);
+	if( filterHeight == _filterHeight ) {
+		return;
+	}
 	filterHeight = _filterHeight;
+	ForceReshape();
 }
 
 void C3dPoolingLayer::SetFilterWidth(int _filterWidth)
 {
-	NeoAssert(GetDnn() == 0);
+	NeoAssert(_filterWidth > 0);
+	if( filterWidth == _filterWidth ) {
+		return;
+	}
 	filterWidth = _filterWidth;
+	ForceReshape();
 }
 
 void C3dPoolingLayer::SetFilterDepth(int _filterDepth)
 {
-	NeoAssert(GetDnn() == 0);
+	NeoAssert(_filterDepth > 0);
+	if( filterDepth == _filterDepth ) {
+		return;
+	}
 	filterDepth = _filterDepth;
+	ForceReshape();
 }
 
 void C3dPoolingLayer::SetStrideHeight(int _strideHeight)
 {
-	NeoAssert(GetDnn() == 0);
+	NeoAssert(_strideHeight > 0);
+	if( strideHeight == _strideHeight ) {
+		return;
+	}
 	strideHeight = _strideHeight;
+	ForceReshape();
 }
 
 void C3dPoolingLayer::SetStrideWidth(int _strideWidth)
 {
-	NeoAssert(GetDnn() == 0);
+	NeoAssert(_strideWidth > 0);
+	if( strideWidth == _strideWidth ) {
+		return;
+	}
 	strideWidth = _strideWidth;
+	ForceReshape();
 }
 
 void C3dPoolingLayer::SetStrideDepth(int _strideDepth)
 {
-	NeoAssert(GetDnn() == 0);
+	NeoAssert(_strideDepth > 0);
+	if( strideDepth == _strideDepth ) {
+		return;
+	}
 	strideDepth = _strideDepth;
+	ForceReshape();
 }
 
 void C3dPoolingLayer::Reshape()

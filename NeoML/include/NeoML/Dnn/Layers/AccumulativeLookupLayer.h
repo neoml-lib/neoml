@@ -34,10 +34,10 @@ public:
 
 	// The size and number of vector representations
 	void SetDimension( const CLookupDimension& newDimension );
-	const CLookupDimension& GetDimension() const;
+	const CLookupDimension& GetDimension() const { return lookupDimension; }
 
 	// Access the representations
-	CPtr<CDnnBlob> GetEmbeddings() const;
+	CPtr<CDnnBlob> GetEmbeddings() const { return paramBlobs[0]; }
 	void SetEmbeddings( const CPtr<CDnnBlob>& newEmbeddings );
 
 protected:
