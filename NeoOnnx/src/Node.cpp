@@ -31,7 +31,7 @@ limitations under the License.
 //#include "Nodes/ConstantOfShapeNode.h"
 #include "Nodes/ConvNode.h"
 //#include "Nodes/DropoutNode.h"
-//#include "Nodes/EltwiseNode.h"
+#include "Nodes/EltwiseNode.h"
 #include "Nodes/FlattenNode.h"
 //#include "Nodes/GatherNode.h"
 #include "Nodes/GemmNode.h"
@@ -103,7 +103,7 @@ namespace {
 
 // Register all nodes
 REGISTER_OP_NODE( CAbsNode, "Abs" )
-//REGISTER_OP_NODE( CAddNode, "Add" )
+REGISTER_OP_NODE( CAddNode, "Add" )
 //REGISTER_OP_NODE( CAveragePoolNode, "AveragePool" )
 REGISTER_OP_NODE( CBatchNormalizationNode, "BatchNormalization" )
 REGISTER_OP_NODE( CClipNode, "Clip" )
@@ -111,7 +111,7 @@ REGISTER_OP_NODE( CClipNode, "Clip" )
 //REGISTER_OP_NODE( CConstantNode, "Constant" )
 //REGISTER_OP_NODE( CConstantOfShapeNode, "ConstantOfShape" )
 REGISTER_OP_NODE( CConvNode, "Conv" )
-//REGISTER_OP_NODE( CDivNode, "Div" )
+REGISTER_OP_NODE( CDivNode, "Div" )
 //REGISTER_OP_NODE( CDropoutNode, "Dropout" )
 REGISTER_OP_NODE( CEluNode, "Elu" )
 REGISTER_OP_NODE( CFlattenNode, "Flatten" )
@@ -125,7 +125,7 @@ REGISTER_OP_NODE( CLeakyReluNode, "LeakyRelu" )
 //REGISTER_OP_NODE( CLstmNode, "LSTM" )
 //REGISTER_OP_NODE( CMatMulNode, "MatMul" )
 //REGISTER_OP_NODE( CMaxPoolNode, "MaxPool" )
-//REGISTER_OP_NODE( CMulNode, "Mul" )
+REGISTER_OP_NODE( CMulNode, "Mul" )
 REGISTER_OP_NODE( CPadNode, "Pad" )
 //REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
 REGISTER_OP_NODE( CReluNode, "Relu" )
@@ -135,8 +135,8 @@ REGISTER_OP_NODE( CSigmoidNode, "Sigmoid" )
 //REGISTER_OP_NODE( CSliceNode, "Slice" )
 //REGISTER_OP_NODE( CSoftmaxNode, "Softmax" )
 //REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
-//REGISTER_OP_NODE( CSubNode, "Sub" )
-//REGISTER_OP_NODE( CSumNode, "Sum" )
+REGISTER_OP_NODE( CSubNode, "Sub" )
+REGISTER_OP_NODE( CSumNode, "Sum" )
 REGISTER_OP_NODE( CTanhNode, "Tanh" )
 //REGISTER_OP_NODE( CTransposeNode, "Transpose" )
 //REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )

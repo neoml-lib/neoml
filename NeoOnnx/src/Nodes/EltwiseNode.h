@@ -32,56 +32,90 @@ public:
 		O_Count
 	};
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// Tensor broadcast types
+	enum TBroadcastType {
+		BT_None, // Broadcast not supported
+		BT_Onnx, // Onnx custom broadcast, used in some versions
+		BT_Numpy, // Numpy-style broadcast, used in later versions of ONNX
+
+		BT_Count
+	};
+
+	struct CBroadcastInfo {
+		TBroadcastType Type;
+		int Axis;
+
+		explicit CBroadcastInfo( TBroadcastType type, int axis = NotFound ) :
+			Type( type ), Axis( axis ) {}
+	};
+
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	// We can guarantee the support only when second input is CDataTensor (other division is impossible)
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() -1 ); }
+
+	// In some versions different nodes supported different broadcast types
+	// E.g. 'Add' node in opset v1 supports onnx-broadcast but 'Sum' node doesn't support broadcast at all
+	// That's why each derivative should determine by itself which broadcast type is supported
+	virtual CBroadcastInfo BroadcastInfo() const = 0;
 
 protected:
-	CEltwiseNodeBase( int nodeIndex, const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = -1 );
+	CEltwiseNodeBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = NotFound );
 
 private:
 	TOperation operation; // Operation performed by this node
 	int argsNum; // Expected number of arguments (-1 if any number is supported)
-	const int axis; // Broadcast axis
-	mutable int userInputCached; // Index of the input with data provided by user
 
-	int userInput( const CTensorCache& tensors ) const;
-	CPtr<CDnnBlob> broadcast( const CTensor& input, const CTensorShape& outputShape, int axis, bool negative, bool inverted ) const;
-	CPtr<CDnnBlob> broadcast( const CTensor& input, const CTensorShape& outputShape, const CTensorDim& outputDim, int axis,
-		bool negative, bool inverted ) const;
-	CPtr<CDnnBlob> precalcOutput( const CTensorCache& tensors, const CTensorShape& outputShape, IMathEngine& mathEngine ) const;
+	bool broadcastShape( const CTensorShape& first, const CTensorShape& second,
+		const CBroadcastInfo& broadcast, CTensorShape& result ) const;
+	CPtr<const CTensorBase> broadcast( const CTensorBase& input, const CBroadcastInfo& broadcast, const CTensorShape& outputShape ) const;
+	CPtr<const CDataTensor> broadcast( const CDataTensor& input, const CBroadcastInfo& broadcast, const CTensorShape& outputShape ) const;
+	CPtr<const CUserTensor> broadcast( const CUserTensor& input, const CBroadcastInfo& broadcast, const CTensorShape& outputShape ) const;
+	CPtr<const CTensorBase> prepareSecondInput( const CObjectArray<const CTensorBase>& inputs ) const;
 };
 
 // Eltwise operator nodes with 2 inputs
 
-// Add operator graph node
-class CAddNode : public CEltwiseNodeBase {
+// Base class
+class CEltwiseBinaryOpNodeBase : public CEltwiseNodeBase {
 public:
-	CAddNode( int nodeIndex, const onnx::NodeProto& add, int opsetVersion ) :
-		CEltwiseNodeBase( nodeIndex, add, opsetVersion, O_Add, 2 ) {}
+	CEltwiseBinaryOpNodeBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation ) :
+		CEltwiseNodeBase( eltwise, opsetVersion, operation, 2 ) {}
+
+	// CEltwiseNodeBase methods
+	CBroadcastInfo BroadcastInfo() const override;
+};
+
+// Add operator graph node
+class CAddNode : public CEltwiseBinaryOpNodeBase {
+public:
+	CAddNode( const onnx::NodeProto& add, int opsetVersion ) :
+		CEltwiseBinaryOpNodeBase( add, opsetVersion, O_Add ) {}
 };
 
 // Sub operator graph node
-class CSubNode : public CEltwiseNodeBase {
+class CSubNode : public CEltwiseBinaryOpNodeBase {
 public:
-	CSubNode( int nodeIndex, const onnx::NodeProto& sub, int opsetVersion ) :
-		CEltwiseNodeBase( nodeIndex, sub, opsetVersion, O_Sub, 2 ) {}
+	CSubNode( const onnx::NodeProto& sub, int opsetVersion ) :
+		CEltwiseBinaryOpNodeBase( sub, opsetVersion, O_Sub ) {}
 };
 
 // Mul operator graph node
-class CMulNode : public CEltwiseNodeBase {
+class CMulNode : public CEltwiseBinaryOpNodeBase {
 public:
-	CMulNode( int nodeIndex, const onnx::NodeProto& mul, int opsetVersion ) :
-		CEltwiseNodeBase( nodeIndex, mul, opsetVersion, O_Mul, 2 ) {}
+	CMulNode( const onnx::NodeProto& mul, int opsetVersion ) :
+		CEltwiseBinaryOpNodeBase( mul, opsetVersion, O_Mul ) {}
 };
 
 // Div operator graph node
-class CDivNode : public CEltwiseNodeBase {
+class CDivNode : public CEltwiseBinaryOpNodeBase {
 public:
-	CDivNode( int nodeIndex, const onnx::NodeProto& div, int opsetVersion ) :
-		CEltwiseNodeBase( nodeIndex, div, opsetVersion, O_Div, 2 ) {}
+	CDivNode( const onnx::NodeProto& div, int opsetVersion ) :
+		CEltwiseBinaryOpNodeBase( div, opsetVersion, O_Div ) {}
 };
 
 // Eltwise operator nodes with any number of inputs
@@ -89,8 +123,11 @@ public:
 // Sum operator graph node
 class CSumNode : public CEltwiseNodeBase {
 public:
-	CSumNode( int nodeIndex, const onnx::NodeProto& sum, int opsetVersion ) :
-		CEltwiseNodeBase( nodeIndex, sum, opsetVersion, O_Add ) {}
+	CSumNode( const onnx::NodeProto& sum, int opsetVersion ) :
+		CEltwiseNodeBase( sum, opsetVersion, O_Add ) {}
+
+	// CEltwiseNodeBase methods
+	CBroadcastInfo BroadcastInfo() const override;
 };
 
 } // namespace NeoOnnx
