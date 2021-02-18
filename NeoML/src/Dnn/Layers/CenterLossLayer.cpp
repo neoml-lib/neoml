@@ -55,13 +55,12 @@ void CCenterLossLayer::Reshape()
 {
 	CLossLayer::Reshape();
 	CheckArchitecture( inputDescs[1].GetDataType() == CT_Int, GetName(), "labels must be CT_Int" );
+	CheckArchitecture( inputDescs[1].ObjectSize() == 1, GetName(), "should be one number for one label" );
 }
 
 void CCenterLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
 	CConstIntHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
-	CheckArchitecture( labelSize == 1, GetName(), "should be one number for one label" );
-
 	// The total input size
 	const int inputDataSize = batchSize * vectorSize;
 
