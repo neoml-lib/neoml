@@ -18,37 +18,14 @@ limitations under the License.
 
 #include "PoolNode.h"
 #include "PadNode.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-static CNeoMLLink addPadding( CDnn& dnn, const CString& name, const CTensorDim& inputDim, const CFastArray<int, 8>& pads,
-	float padValue, const CNeoMLLink& inputLink, const onnx::NodeProto& onnxNode )
-{
-	bool isPaddingNeeded = false;
-	for( int i = 0; i < pads.Size(); ++i ) {
-		if( pads[i] != 0 ) {
-			isPaddingNeeded = true;
-			break;
-		}
-	}
-
-	if( !isPaddingNeeded ) {
-		return inputLink;
-	}
-
-	CPtr<CBaseLayer> padding = CreatePaddingLayer( dnn.GetMathEngine(), name, inputDim, pads, padValue, onnxNode );
-	padding->Connect( 0, *inputLink.Layer, inputLink.OutputIndex );
-	dnn.AddLayer( *padding );
-
-	return CNeoMLLink( padding, 0 );
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-CPoolNodeBase::CPoolNodeBase( TPoolingType _poolingType, int nodeIndex, const onnx::NodeProto& poolNode, int opsetVersion ) :
-	COpNode( nodeIndex, poolNode, opsetVersion ),
+CPoolNodeBase::CPoolNodeBase( TPoolingType _poolingType, const onnx::NodeProto& poolNode, int opsetVersion ) :
+	COpNode( poolNode, opsetVersion ),
 	poolingType( _poolingType ),
 	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
@@ -65,13 +42,15 @@ CPoolNodeBase::CPoolNodeBase( TPoolingType _poolingType, int nodeIndex, const on
 	CheckNeoOnnxSupport( kernelShape.Size() == 2, "non 2-dimensional max pooling", poolNode );
 }
 
-void CPoolNodeBase::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
 	// Check input
-	const CTensor& inputTensor = tensors[Input[0]];
-	CheckNeoOnnxSupport( inputTensor.Shape.Size() > 2 && inputTensor.Shape.Size() <= 4,
+	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(),
+		"", OnnxNode );
+	const CTensorShape& inputShape = inputs[0]->Shape();
+	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 4,
 		"wrong input tensor's dimensions number", OnnxNode );
-	const CTensorShape& inputShape = inputTensor.Shape;
 	const int poolDims = static_cast<int>( inputShape.Size() ) - 2;
 
 	// Initialize strides, pads and dilations (if not given)
@@ -94,32 +73,14 @@ void CPoolNodeBase::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* ma
 	}
 
 	// Calculate output shape
-	CTensorShape& outputShape = tensors[Output[0]].Shape;
+	CTensorShape outputShape;
 	inputShape.CopyTo( outputShape );
 	for( int dimIndex = 0; dimIndex < poolDims; ++dimIndex ) {
 		outputShape[dimIndex + 2] = ( inputShape[dimIndex + 2] + pads[dimIndex] + pads[dimIndex + poolDims]
 			- kernelShape[dimIndex] ) / strides[dimIndex] + 1;
 	}
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-}
-
-void CPoolNodeBase::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
-{
-	if( !dims[Input[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"labeling output dimensions failed", OnnxNode );
-	}
-
-	if( !dims[Output[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"labeling input dimensions failed", OnnxNode );
-	}
-}
-
-void CPoolNodeBase::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
+	// TODO: add 3d-pooling support
 	CPtr<CPoolingLayer> pooling;
 	static_assert( PT_Count == 2, "PT_Count != 2" );
 	switch( poolingType ) {
@@ -132,13 +93,12 @@ void CPoolNodeBase::AddLayers( const CGraph& /* graph */, const CTensorCache& /*
 		default:
 			CheckNeoOnnxInternal( false, "unknown pool type", OnnxNode );
 	}
-	pooling->SetName( Name );
-	
-	const CTensorDim& inputDim = dims[Input[0]];
-	CNeoMLLink poolingInput = addPadding( dnn, pooling->GetName() + CString( "_pad" ), inputDim, pads, -FLT_MAX,
-		neoMLLinks[Input[0]], OnnxNode );
-	CheckNeoOnnxSupport( inputDim[2] == BD_Height, "wrong pooling dimension", OnnxNode );
-	CheckNeoOnnxSupport( inputDim[3] == BD_Width, "wrong pooling dimension", OnnxNode );
+	pooling->SetName( Name() );
+
+	CDimOrder expectedOrder( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
+	expectedOrder.SetSize( inputShape.Size() );
+	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout( expectedOrder ) ).Ptr() );
+	input = PadUserTensor( *input, pads, poolingType == PT_Max ? -FLT_MAX : 0.f );
 
 	pooling->SetFilterHeight( kernelShape[0] );
 	pooling->SetFilterWidth( kernelShape[1] );
@@ -146,10 +106,10 @@ void CPoolNodeBase::AddLayers( const CGraph& /* graph */, const CTensorCache& /*
 	pooling->SetStrideHeight( strides[0] );
 	pooling->SetStrideWidth( strides[1] );
 
-	pooling->Connect( 0, *poolingInput.Layer, poolingInput.OutputIndex );
+	pooling->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *pooling );
 
-	neoMLLinks[Output[0]] = CNeoMLLink( pooling, 0 );
+	outputs[0] = new CUserTensor( outputShape, input->Layout(), CLayerOutput( pooling, 0 ) );
 }
 
 } // namespace NeoOnnx

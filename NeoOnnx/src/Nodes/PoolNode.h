@@ -23,13 +23,14 @@ namespace NeoOnnx {
 // Base class for non-global Pool operator nodes
 class CPoolNodeBase : public COpNode {
 public:
-	CPoolNodeBase( TPoolingType poolingType, int nodeIndex, const onnx::NodeProto& pool, int opsetVersion );
+	CPoolNodeBase( TPoolingType poolingType, const onnx::NodeProto& pool, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override { mask.Add( true ); }
 
 private:
 	TPoolingType poolingType; // pooling type
@@ -42,15 +43,15 @@ private:
 // MaxPool operator node
 class CMaxPoolNode : public CPoolNodeBase {
 public:
-	CMaxPoolNode( int nodeIndex, const onnx::NodeProto& maxPool, int opsetVersion ) :
-		CPoolNodeBase( PT_Max, nodeIndex, maxPool, opsetVersion ) {}
+	CMaxPoolNode( const onnx::NodeProto& maxPool, int opsetVersion ) :
+		CPoolNodeBase( PT_Max, maxPool, opsetVersion ) {}
 };
 
 // AveragePool operator node
 class CAveragePoolNode : public CPoolNodeBase {
 public:
-	CAveragePoolNode( int nodeIndex, const onnx::NodeProto& averagePool, int opsetVersion ) :
-		CPoolNodeBase( PT_Mean, nodeIndex, averagePool, opsetVersion ) {}
+	CAveragePoolNode( const onnx::NodeProto& averagePool, int opsetVersion ) :
+		CPoolNodeBase( PT_Mean, averagePool, opsetVersion ) {}
 };
 
 } // namespace NeoOnnx
