@@ -42,7 +42,7 @@ public:
 	void GetState(CObjectArray<CDnnBlob>& state) const;
 	void SetState(const CObjectArray<CDnnBlob>& state);
 	// Indicates that the sequence is processed in reverse order
-	bool IsReverseSequense() const { return isReverseSequense; }
+	bool IsReverseSequence() const { return isReverseSequence; }
 	void SetReverseSequence(bool _isReverseSequense);
 	// The number of times the same input sequence is processed
 	// The full number of iterations and the sequence length of the result = Input[0]->BatchLength() * repeatCount
@@ -60,7 +60,7 @@ private:
 	CObjectArray<CBackLinkLayer> backLinks;
 
 	// Indicates if reverse order processing is on
-	bool isReverseSequense;
+	bool isReverseSequence;
 	// The number of repetitions of the same input sequence
 	int repeatCount;
 
