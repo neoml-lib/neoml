@@ -17,51 +17,32 @@ limitations under the License.
 #pragma hdrstop
 
 #include "IdentityNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CIdentityNode::CIdentityNode( int nodeIndex, const onnx::NodeProto& identity, int opsetVersion ) :
-	COpNode( nodeIndex, identity, opsetVersion )
+CIdentityNode::CIdentityNode( const onnx::NodeProto& identity, int opsetVersion ) :
+	COpNode( identity, opsetVersion )
 {
-	// The differences between versions are in legacy optimization flags
+	// v1 - original
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", identity );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", identity );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", identity );
 }
 
-void CIdentityNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CIdentityNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& /* dnn */ )
 {
-	tensors[Output[0]] = tensors[Input[0]];
+	outputs[0] = inputs[0];
 }
 
-void CIdentityNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+void CIdentityNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, IMathEngine& /* mathEngine */ )
 {
-	if( tensors[Input[0]].Data == nullptr ) {
-		return;
-	}
-
-	if( !dims[Input[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"labeling output dimensions failed", OnnxNode );
-	}
-
-	if( !dims[Output[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"labeling input dimensions failed", OnnxNode );
-	}
-}
-
-void CIdentityNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
-	CNeoMLLinkCache& neoMLLinks, CDnn& /* dnn */ )
-{
-	if( tensors[Output[0]].Data == nullptr ) {
-		neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
-	}
+	outputs[0] = inputs[0];
 }
 
 } // namespace NeoOnnx
