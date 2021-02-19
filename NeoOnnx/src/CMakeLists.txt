@@ -12,7 +12,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     OpNodeAttributes.cpp
     Nodes/ActivationNode.cpp
     Nodes/BatchNormalizationNode.cpp
-    #Nodes/ConcatNode.cpp
+    Nodes/ConcatNode.cpp
     Nodes/ConstantNode.cpp
     Nodes/ConstantOfShapeNode.cpp
     Nodes/ConvNode.cpp
@@ -48,7 +48,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     OpNodeAttributes.h
     Nodes/ActivationNode.h
     Nodes/BatchNormalizationNode.h
-    #Nodes/ConcatNode.h
+    Nodes/ConcatNode.h
     Nodes/ConstantNode.h
     Nodes/ConstantOfShapeNode.h
     Nodes/ConvNode.h

@@ -22,16 +22,20 @@ namespace NeoOnnx {
 // Concat operator graph node
 class CConcatNode : public COpNode {
 public:
-	CConcatNode( int nodeIndex, const onnx::NodeProto& concat, int opsetVersion );
+	CConcatNode( const onnx::NodeProto& concat, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
-	int axis; // axis index along which tensors are concatenated
+	CPtr<CBaseLayer> createLayer( TBlobDim concatDim, IMathEngine& mathEngine ) const;
+	CPtr<const CUserTensor> prepareInput( const CObjectArray<const CTensorBase>& inputs,
+		int inputIndex, const CTensorLayout& layout, CDnn& dnn ) const;
 };
 
 } // namespace NeoOnnx

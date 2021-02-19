@@ -26,7 +26,7 @@ limitations under the License.
 
 #include "Nodes/ActivationNode.h"
 #include "Nodes/BatchNormalizationNode.h"
-//#include "Nodes/ConcatNode.h"
+#include "Nodes/ConcatNode.h"
 #include "Nodes/ConstantNode.h"
 #include "Nodes/ConstantOfShapeNode.h"
 #include "Nodes/ConvNode.h"
@@ -106,7 +106,7 @@ REGISTER_OP_NODE( CAddNode, "Add" )
 REGISTER_OP_NODE( CAveragePoolNode, "AveragePool" )
 REGISTER_OP_NODE( CBatchNormalizationNode, "BatchNormalization" )
 REGISTER_OP_NODE( CClipNode, "Clip" )
-//REGISTER_OP_NODE( CConcatNode, "Concat" )
+REGISTER_OP_NODE( CConcatNode, "Concat" )
 REGISTER_OP_NODE( CConstantNode, "Constant" )
 REGISTER_OP_NODE( CConstantOfShapeNode, "ConstantOfShape" )
 REGISTER_OP_NODE( CConvNode, "Conv" )
