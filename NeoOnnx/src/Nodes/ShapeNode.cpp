@@ -17,15 +17,14 @@ limitations under the License.
 #pragma hdrstop
 
 #include "ShapeNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CShapeNode::CShapeNode( int nodeIndex, const onnx::NodeProto& shape, int opsetVersion ) :
-	COpNode( nodeIndex, shape, opsetVersion )
+CShapeNode::CShapeNode( const onnx::NodeProto& shape, int opsetVersion ) :
+	COpNode( shape, opsetVersion )
 {
 	// This operator doesn't have multiple versions
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", shape );
@@ -34,12 +33,20 @@ CShapeNode::CShapeNode( int nodeIndex, const onnx::NodeProto& shape, int opsetVe
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", shape );
 }
 
-void CShapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CShapeNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	const CTensorShape& inputShape = tensors[Input[0]].Shape;
-	tensors[Output[0]].Shape = { inputShape.Size() };
-	tensors[Output[0]].Data = CDnnBlob::CreateVector( mathEngine, CT_Int, inputShape.Size() );
-	tensors[Output[0]].Data->CopyFrom( inputShape.GetPtr() );
+	CheckNeoOnnxInternal( false, "Illegal call: CShapeNode::AddLayers", OnnxNode );
+}
+
+void CShapeNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
+{
+	CheckNeoOnnxInternal( inputs[0] != nullptr, "Undefined input", OnnxNode );
+	const CTensorShape& inputShape = inputs[0]->Shape();
+	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateVector( mathEngine, CT_Int, inputShape.Size() );
+	outputBlob->CopyFrom( inputShape.GetPtr() );
+	outputs[0] = new CDataTensor( { inputShape.Size() }, CTensorLayout(), *outputBlob );
 }
 
 } // namespace NeoOnnx
