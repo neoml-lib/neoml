@@ -17,17 +17,16 @@ limitations under the License.
 #pragma hdrstop
 
 #include "ConstantOfShapeNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CConstantOfShapeNode::CConstantOfShapeNode( int nodeIndex, const onnx::NodeProto& constantOfShape, int opsetVersion ) :
-	COpNode( nodeIndex, constantOfShape, opsetVersion )
+CConstantOfShapeNode::CConstantOfShapeNode( const onnx::NodeProto& constantOfShape, int opsetVersion ) :
+	COpNode( constantOfShape, opsetVersion )
 {
-	// This op was introduced in version 9
+	// v9 - original
 	CheckOnnxProtocol( OpsetVersion >= 9, "wrong opset version", constantOfShape );
 	CheckNeoOnnxSupport( OpsetVersion <= MaxOpsetVersion, "opset version", constantOfShape );
 
@@ -35,30 +34,47 @@ CConstantOfShapeNode::CConstantOfShapeNode( int nodeIndex, const onnx::NodeProto
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constantOfShape );
 }
 
-void CConstantOfShapeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CConstantOfShapeNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data != nullptr, "non-constant input tensor", OnnxNode );
-	CheckNeoOnnxSupport( tensors[Input[0]].Data->GetDataType() == CT_Int, "non-integer input tensor", OnnxNode );
+	CheckNeoOnnxInternal( false, "Illegal call: CConstantOfShapeNode::AddLayers", OnnxNode );
+}
 
-	tensors[Output[0]].Shape.SetSize( tensors[Input[0]].Data->GetDataSize() );
-	tensors[Input[0]].Data->CopyTo( tensors[Output[0]].Shape.GetPtr() );
+void CConstantOfShapeNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
+{
+	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "user-provided input", OnnxNode );
+	const CDnnBlob* inputShapeBlob = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data();
+	CheckNeoOnnxSupport( inputShapeBlob->GetDataType() == CT_Int, "non-integer input tensor", OnnxNode );
 
-	CTensor value;
-	value.Data = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
-	value.Data->Clear();
-	value = Attributes.GetOptionalTensor( "value", value, mathEngine );
-
-	CBlobDesc outputBlobDesc( value.Data->GetDataType() );
-	for( int dimIndex = 0; dimIndex < tensors[Output[0]].Shape.Size(); ++dimIndex ) {
-		outputBlobDesc.SetDimSize( dimIndex, tensors[Output[0]].Shape[dimIndex] );
-	}
-
-	tensors[Output[0]].Data = CDnnBlob::CreateBlob( mathEngine, value.Data->GetDataType(), outputBlobDesc );
-	if( tensors[Output[0]].Data->GetDataType() == CT_Float ) {
-		tensors[Output[0]].Data->Fill( value.Data->GetData().GetValue() );
+	// If "value" attribute is not set then float 0.f is assumed
+	CPtr<const CDnnBlob> valueBlob;
+	if( Attributes.Has( "value" ) ) {
+		valueBlob = Attributes.GetRequiredTensor( "value", mathEngine )->Data();
 	} else {
-		tensors[Output[0]].Data->Fill<int>( value.Data->GetData<int>().GetValue() );
+		CPtr<CDnnBlob> zero = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
+		zero->Clear();
+		valueBlob = zero;
 	}
+
+	// Getting output shape from blob
+	CTensorShape outputShape;
+	outputShape.SetSize( inputShapeBlob->GetDataSize() );
+	inputShapeBlob->CopyTo( outputShape.GetPtr() );
+
+	// Generating output blob
+	CBlobDesc outputBlobDesc( valueBlob->GetDataType() );
+	for( int i = 0; i < outputShape.Size(); ++i ) {
+		outputBlobDesc.SetDimSize( i, outputShape[i] );
+	}
+	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( mathEngine, valueBlob->GetDataType(), outputBlobDesc );
+	if( outputBlob->GetDataType() == CT_Float ) {
+		outputBlob->Fill( valueBlob->GetData().GetValue() );
+	} else {
+		outputBlob->Fill<int>( valueBlob->GetData<int>().GetValue() );
+	}
+	
+	outputs[0] = new CDataTensor( outputShape, CTensorLayout(), *outputBlob );
 }
 
 } // namespace NeoOnnx
