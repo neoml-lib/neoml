@@ -40,15 +40,13 @@ void CBinaryCrossEntropyLossLayer::Reshape()
 {
 	CLossLayer::Reshape();
 	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == 1 && inputDescs[1].ObjectSize() == 1, GetName(), "BinaryCrossEntropy layer can only work with a binary classificaion problem" );
 }
 
 void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
 	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
-	// This layer can only work with a binary classificaion problem
 	// Therefore the labels vector can only contain {-1, 1} values
-	NeoAssert(vectorSize == 1 && labelSize == 1);
-
 	CFloatHandleStackVar one( MathEngine() );
 	one.SetValue( 1.f );
 	CFloatHandleStackVar half( MathEngine() );
