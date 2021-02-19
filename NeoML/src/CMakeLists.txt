@@ -80,6 +80,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/SourceLayer.cpp
     Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/SubSequenceLayer.cpp
+    Dnn/Layers/TiedEmbeddingsLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
@@ -89,6 +90,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ClassificationProbability.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
+    TraditionalML/CompactRegressionTree.cpp
+    TraditionalML/CompactRegressionTree.h
     TraditionalML/CrossValidation.cpp
     TraditionalML/CrossValidationSubProblem.cpp
     TraditionalML/DecisionTreeClassificationModel.cpp
@@ -127,6 +130,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/LinearBinaryClassifierBuilder.cpp
     TraditionalML/LinearBinaryModel.cpp
     TraditionalML/LinearBinaryModel.h
+    TraditionalML/LinkedRegressionTree.cpp
+    TraditionalML/LinkedRegressionTree.h
     TraditionalML/MemoryProblem.cpp
     TraditionalML/OneVersusAll.cpp
     TraditionalML/OneVersusAllModel.cpp
@@ -135,9 +140,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ProblemWrappers.cpp
     TraditionalML/ProblemWrappers.h
     TraditionalML/ProblemWrappers.inl
-    TraditionalML/RegressionTreeModel.cpp
-    TraditionalML/RegressionTreeModel.h
+    TraditionalML/RegressionTree.h
     TraditionalML/Score.cpp
+    TraditionalML/SerializeCompact.h
     TraditionalML/Shuffler.cpp
     TraditionalML/SMOptimizer.cpp
     TraditionalML/SMOptimizer.h
@@ -221,6 +226,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/SourceLayer.h
     ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/SubSequenceLayer.h
+    ../include/NeoML/Dnn/Layers/TiedEmbeddingsLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
@@ -305,7 +311,7 @@ endif()
 if(WIN32)
 	if(USE_FINE_OBJECTS)
 		target_include_directories(${PROJECT_NAME} PRIVATE
-			$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../../Build/Inc ${FINE_ROOT}/FineObjects ${MESSAGES_DIR}>>
+			$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${FINE_ROOT}/Build/Inc ${FINE_ROOT}/FineObjects ${MESSAGES_DIR}>>
 		)
 	else()
 		target_include_directories(${PROJECT_NAME} PRIVATE 

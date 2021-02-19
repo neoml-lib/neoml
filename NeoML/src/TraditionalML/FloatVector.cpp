@@ -20,51 +20,46 @@ limitations under the License.
 
 namespace NeoML {
 
-CFloatVector::CFloatVector( int size, const CSparseFloatVector& sparseVector )
+CFloatVector::CFloatVectorBody::CFloatVectorBody( int size )
 {
-	NeoAssert( size >= 0 );
-	auto bodyPtr = FINE_DEBUG_NEW CFloatVectorBody( size );
-	const CSparseFloatVectorDesc& desc = sparseVector.GetDesc();
-	int ptrPos = 0;
-	int ptrSize = sparseVector.NumberOfElements();
+	Values.SetSize( size );
+	Desc.Values = Values.GetPtr();
+	Desc.Size = size;
+}
 
-	float value = 0;
-	for( int i = 0; i < size; i++ ) {
-		if( ptrPos >= ptrSize || i < desc.Indexes[ptrPos] ) {
-			value = 0;
-		} else {
-			value = desc.Values[ptrPos];
-			ptrPos++;
-		}
-		bodyPtr->Values[i] = value;
-	}
-
-	// No elements should stay unprocessed!
-	NeoAssert( ptrPos == ptrSize );
-
-	body = bodyPtr;
+CFloatVector::CFloatVector( int size, const CSparseFloatVector& sparseVector ) :
+	CFloatVector( size, sparseVector.GetDesc() )
+{
+	NeoAssert( sparseVector.GetDesc().Indexes != nullptr );
 }
 
 CFloatVector::CFloatVector( int size, const CSparseFloatVectorDesc& desc )
 {
 	NeoAssert( size >= 0 );
 	auto bodyPtr = FINE_DEBUG_NEW CFloatVectorBody( size );
-	int ptrPos = 0;
-	int ptrSize = desc.Size;
 
-	float value = 0;
-	for( int i = 0; i < size; i++ ) {
-		if( ptrPos >= ptrSize || i < desc.Indexes[ptrPos] ) {
-			value = 0;
-		} else {
-			value = desc.Values[ptrPos];
-			ptrPos++;
+	if( desc.Indexes == nullptr ) {
+		NeoAssert( size >= desc.Size );
+		::memcpy( bodyPtr->Values.GetPtr(), desc.Values, desc.Size * sizeof( float ) );
+		if( size > desc.Size ) {
+			::memset( bodyPtr->Values.GetPtr() + desc.Size, 0, ( size - desc.Size ) * sizeof( float ) );
 		}
-		bodyPtr->Values[i] = value;
+	} else {
+		int ptrSize = desc.Size;
+		int ptrPos = 0;
+		float value = 0;
+		for( int i = 0; i < size; i++ ) {
+			if( ptrPos >= ptrSize || i < desc.Indexes[ptrPos] ) {
+				value = 0;
+			} else {
+				value = desc.Values[ptrPos];
+				ptrPos++;
+			}
+			bodyPtr->Values[i] = value;
+		}
+		// No elements should stay unprocessed!
+		NeoAssert( ptrPos == ptrSize );
 	}
-
-	// No elements should stay unprocessed!
-	NeoAssert( ptrPos == ptrSize );
 
 	body = bodyPtr;
 }
@@ -191,39 +186,6 @@ CFloatVector& CFloatVector::operator *= ( double factor )
 	return *this;
 }
 
-CFloatVector& CFloatVector::MultiplyAndAdd( const CFloatVector& vector, double factor )
-{
-	NeoPresume( body->Values.Size() == vector.body->Values.Size() );
-	NeoPresume( body->Values.Size() >= 0 );
-
-	float* ptr = CopyOnWrite();
-	const float* operand = vector.GetPtr();
-	const int size = body->Values.Size();
-
-	for( int i = 0; i < size; i++ ) {
-		ptr[i] = static_cast<float>( ptr[i] + factor * operand[i] );
-	}
-	return *this;
-}
-
-CFloatVector& CFloatVector::MultiplyAndAddExt( const CFloatVector& vector, double factor )
-{
-	NeoPresume( body->Values.Size() == vector.body->Values.Size() + 1 );
-	NeoPresume( body->Values.Size() >= 0 );
-
-	float* ptr = CopyOnWrite();
-	const float* operand = vector.GetPtr();
-	const int size = vector.body->Values.Size();
-
-	for( int i = 0; i < size; i++ ) {
-		ptr[i] = static_cast<float>( ptr[i] + factor * operand[i] );
-	}
-
-	ptr[size] = static_cast<float>( ptr[size] + factor );
-
-	return *this;
-}
-
 void CFloatVector::SquareEachElement()
 {	
 	const int size = Size();
@@ -271,6 +233,7 @@ CFloatVector& CFloatVector::operator = ( const CSparseFloatVector& vector )
 {
 	float* ptr = CopyOnWrite();
 	const CSparseFloatVectorDesc& desc = vector.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	const int size = body->Values.Size();
 	memset( ptr, 0, size * sizeof( float ) );
 	const int numberOfElements = vector.NumberOfElements();
@@ -287,6 +250,7 @@ CFloatVector& CFloatVector::operator += ( const CSparseFloatVector& vector )
 {
 	float* ptr = CopyOnWrite();
 	const CSparseFloatVectorDesc& desc = vector.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	const int size = body->Values.Size();
 	const int numberOfElements = vector.NumberOfElements();
 	for(int i = 0; i < numberOfElements; i++) {
@@ -302,6 +266,7 @@ CFloatVector& CFloatVector::operator -= ( const CSparseFloatVector& vector )
 {
 	float* ptr = CopyOnWrite();
 	const CSparseFloatVectorDesc& desc = vector.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	const int size = body->Values.Size();
 	const int numberOfElements = vector.NumberOfElements();
 	for(int i = 0; i < numberOfElements; i++) {
@@ -316,12 +281,16 @@ CFloatVector& CFloatVector::operator -= ( const CSparseFloatVector& vector )
 CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, double factor )
 {
 	float* ptr = CopyOnWrite();
-	const int size = body->Values.Size();
-	const int numberOfElements = desc.Size;
-	for(int i = 0; i < numberOfElements; i++) {
-		int j = desc.Indexes[i];
-		if( j < size) {
-			ptr[j] = static_cast<float>( ptr[j] + desc.Values[i] * factor );
+	if( desc.Indexes != nullptr ) {
+		NeoAssert( Size() >= ( desc.Size == 0 ? 0 : desc.Indexes[desc.Size - 1] + 1 ) );
+		for( int i = 0; i < desc.Size; i++ ) {
+			const int j = desc.Indexes[i];
+			ptr[j] = static_cast< float >( ptr[j] + desc.Values[i] * factor );
+		}
+	} else { // dense inside
+		NeoAssert( Size() >= desc.Size );
+		for( int i = 0; i < desc.Size; i++ ) {
+			ptr[i] = static_cast< float >( ptr[i] + factor * desc.Values[i] );
 		}
 	}
 	return *this;

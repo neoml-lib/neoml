@@ -80,6 +80,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/GELULayer.h>
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
+#include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
 
 namespace NeoML {
 
@@ -149,7 +150,7 @@ static CPtr<CBaseLayer> createLayer( IMathEngine& mathEngine, const CString& cla
 	return getRegisteredLayers().GetValue( pos )( mathEngine );
 }
 
-static CString getLayerName( CBaseLayer* layer )
+static CString getLayerName( const CBaseLayer* layer )
 {
 	if( layer == 0 ) {
 		return CString();
@@ -162,7 +163,12 @@ static CString getLayerName( CBaseLayer* layer )
 	return getLayerNames().GetValue( pos );
 }
 
-void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer )
+CString GetLayerName( const CBaseLayer& layer )
+{
+	return getLayerName( &layer );
+}
+
+void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer )
 {
 	if( archive.IsStoring() ) {
 		archive << getLayerName( layer );
@@ -293,6 +299,7 @@ REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLay
 REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
 REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClass" )
 REGISTER_NEOML_LAYER( CQrnnLayer, "NeoMLDnnQrnnLayer" )
+REGISTER_NEOML_LAYER( CTiedEmbeddingsLayer, "TiedEmbeddingsLayer" )
 
 }
 

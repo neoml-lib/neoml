@@ -15,13 +15,15 @@ limitations under the License.
 
 #pragma once
 
-#include <RegressionTreeModel.h>
 #include <GradientBoostFullProblem.h>
 #include <NeoML/TraditionalML/Model.h>
 #include <GradientBoostStatisticsSingle.h>
 #include <GradientBoostStatisticsMulti.h>
 
 namespace NeoML {
+
+class CRegressionTree;
+class CLinkedRegressionTree;
 
 template<class T>
 struct CThreadStatistics;
@@ -48,7 +50,7 @@ public:
 	CGradientBoostFullTreeBuilder( const CGradientBoostFullTreeBuilderParams& params, CTextStream* logStream );
 
 	// Builds the tree
-	CPtr<IRegressionTreeModel> Build( const CGradientBoostFullProblem& problem,
+	CPtr<CRegressionTree> Build( const CGradientBoostFullProblem& problem,
 		const CArray<typename T::Type>& gradients, const typename T::Type& gradientsSum,
 		const CArray<typename T::Type>& hessians, const typename T::Type& hessiansSum,
 		const CArray<float>& weights, float weightsSum );
@@ -83,7 +85,7 @@ private:
 	void mergeThreadResults();
 	bool split();
 	bool prune( CGradientBoostNodeStatistics<T>& node ) const;
-	CPtr<CRegressionTreeModel> buildModel( const CArray<int>& usedFeatures, CGradientBoostNodeStatistics<T>& node ) const;
+	CPtr<CLinkedRegressionTree> buildModel( const CArray<int>& usedFeatures, CGradientBoostNodeStatistics<T>& node ) const;
 };
 
 } // namespace NeoML
