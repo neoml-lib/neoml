@@ -35,12 +35,12 @@ inline void LoadFromRawData( const std::string& rawSrc, TDst* dest )
 	const TSrc* src = reinterpret_cast<const TSrc*>( rawSrc.data() );
 	for( size_t i = 0; i < rawSrc.size() / sizeof( TSrc ); ++i ) {
 		TSrc value = src[i];
-		if( value >= (std::numeric_limits<TDst>::max)() ) {
+		if( value >= static_cast<TSrc>( (std::numeric_limits<TDst>::max)() ) ) {
 			dest[i] = (std::numeric_limits<TDst>::max)();
-		} else if( value <= (std::numeric_limits<TDst>::min)() ) {
-			dest[i] = (std::numeric_limits<TDst>::min)();
+		} else if( value <= static_cast<TSrc>( (std::numeric_limits<TDst>::lowest)() ) ) {
+			dest[i] = (std::numeric_limits<TDst>::lowest)();
 		} else {
-			dest[i] = static_cast< TDst >( src[i] );
+			dest[i] = static_cast<TDst>( value );
 		}
 	}
 }
@@ -92,7 +92,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 			} else {
 				for( int valueIndex = 0; valueIndex < src.uint64_data_size(); ++valueIndex ) {
 					uint64_t value = src.uint64_data( valueIndex );
-					if( value >= std::numeric_limits<T>::max() ) {
+					if( value >= static_cast<uint64_t>( std::numeric_limits<T>::max() ) ) {
 						buffer[valueIndex] = std::numeric_limits<T>::max();
 					} else {
 						buffer[valueIndex] = static_cast<T>( value );
@@ -106,10 +106,10 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 			} else {
 				for( int valueIndex = 0; valueIndex < src.int64_data_size(); ++valueIndex ) {
 					int64_t value = src.int64_data( valueIndex );
-					if( value >= (std::numeric_limits<T>::max)() ) {
+					if( value >= static_cast<int64_t>( (std::numeric_limits<T>::max)() ) ) {
 						buffer[valueIndex] = (std::numeric_limits<T>::max)();
-					} else if( value <= (std::numeric_limits<T>::min)() ) {
-						buffer[valueIndex] = (std::numeric_limits<T>::min)();
+					} else if( value <= static_cast<int64_t>( (std::numeric_limits<T>::lowest)() ) ) {
+						buffer[valueIndex] = (std::numeric_limits<T>::lowest)();
 					} else {
 						buffer[valueIndex] = static_cast<T>( value );
 					}
