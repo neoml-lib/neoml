@@ -67,12 +67,17 @@ CFocalLossLayer::CFocalLossLayer( IMathEngine& mathEngine ) :
 	maxProbValue->GetData().SetValue( MaxProbValue );
 }
 
+void CFocalLossLayer::Reshape()
+{
+	CLossLayer::Reshape();
+	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "the labels dimensions should be equal to the first input dimensions" );
+	CheckArchitecture( inputDescs[0].ObjectSize() >= 2, GetName(), "FocalLoss layer works only with multi-class classification" );
+}
+
 void CFocalLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
 	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
-	NeoAssert( vectorSize == labelSize );
-	NeoAssert( labelSize >= 2 );
-
 	const int dataSize = vectorSize * batchSize;
 	CFloatHandleVar tempMatrixHandle( MathEngine(), dataSize );
 	// tempMatrix: P_t * y_t
