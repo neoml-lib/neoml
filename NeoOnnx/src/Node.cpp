@@ -44,7 +44,7 @@ limitations under the License.
 #include "Nodes/PoolNode.h"
 //#include "Nodes/ReshapeNode.h"
 #include "Nodes/ShapeNode.h"
-//#include "Nodes/SliceNode.h"
+#include "Nodes/SliceNode.h"
 //#include "Nodes/SoftmaxNode.h"
 #include "Nodes/SqueezeNode.h"
 //#include "Nodes/TransposeNode.h"
@@ -134,7 +134,7 @@ REGISTER_OP_NODE( CReluNode, "Relu" )
 //REGISTER_OP_NODE( CReshapeNode, "Reshape" )
 REGISTER_OP_NODE( CShapeNode, "Shape" )
 REGISTER_OP_NODE( CSigmoidNode, "Sigmoid" )
-//REGISTER_OP_NODE( CSliceNode, "Slice" )
+REGISTER_OP_NODE( CSliceNode, "Slice" )
 //REGISTER_OP_NODE( CSoftmaxNode, "Softmax" )
 REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
 REGISTER_OP_NODE( CSubNode, "Sub" )
