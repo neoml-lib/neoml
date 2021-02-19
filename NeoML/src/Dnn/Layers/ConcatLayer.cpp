@@ -145,6 +145,36 @@ CLayerWrapper<CConcatBatchWidthLayer> ConcatBatchWidth()
 
 // ====================================================================================================================
 
+static const int ConcatBatchLengthLayerVersion = 2000;
+
+void CConcatBatchLengthLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( ConcatBatchLengthLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	CBaseConcatLayer::Serialize( archive );
+}
+
+CLayerWrapper<CConcatBatchLengthLayer> ConcatBatchLength()
+{
+	return CLayerWrapper<CConcatBatchLengthLayer>( "ConcatBatchLength" );
+}
+
+// ====================================================================================================================
+
+static const int ConcatListSizeLayerVersion = 2000;
+
+void CConcatListSizeLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( ConcatListSizeLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	CBaseConcatLayer::Serialize( archive );
+}
+
+CLayerWrapper<CConcatListSizeLayer> ConcatListSize()
+{
+	return CLayerWrapper<CConcatListSizeLayer>( "ConcatListSize" );
+}
+
+// ====================================================================================================================
+
 static const int ConcatObjectLayerVersion = 2000;
 
 void CConcatObjectLayer::Serialize( CArchive& archive )
