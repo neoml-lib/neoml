@@ -32,7 +32,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/PadNode.cpp
     Nodes/PoolNode.cpp
     #Nodes/ReshapeNode.cpp
-    #Nodes/ShapeNode.cpp
+    Nodes/ShapeNode.cpp
     #Nodes/SliceNode.cpp
     #Nodes/SoftmaxNode.cpp
     Nodes/SqueezeNode.cpp
@@ -68,7 +68,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/PadNode.h
     Nodes/PoolNode.h
     #Nodes/ReshapeNode.h
-    #Nodes/ShapeNode.h
+    Nodes/ShapeNode.h
     #Nodes/SliceNode.h
     #Nodes/SoftmaxNode.h
     Nodes/SqueezeNode.h
