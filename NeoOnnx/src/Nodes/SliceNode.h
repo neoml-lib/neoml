@@ -22,21 +22,25 @@ namespace NeoOnnx {
 // Slice operator graph node
 class CSliceNode : public COpNode {
 public:
-	CSliceNode( int nodeIndex, const onnx::NodeProto& slice, int opsetVersion );
+	CSliceNode( const onnx::NodeProto& slice, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const override
+		{ return inputs[0] != nullptr && inputs[0]->IsCalculated(); }
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
-	CArray<int> axes; // axes, along which slice will be made
-	CArray<int> starts; // first coordinate to include in slice along axis, specified in "axes"
-	CArray<int> ends; // first coordinate to exclude from slice along axis, specified in "axes"
-
-	void addSubSequenceLayer( int start, int end, CDnn& dnn, CNeoMLLinkCache& neoMLLinks );
-	void addSplitLayer( TBlobDim splitDim, int start, int end, int dimSize, CDnn& dnn, CNeoMLLinkCache& neoMLLinks );
+	void getAxes( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& axes ) const;
+	void getStarts( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& starts ) const;
+	void getEnds( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& ends ) const;
+	void getSteps( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& steps ) const;
+	CPtr<const CUserTensor> sliceAxis( const CUserTensor& input, int axis, int start, int end, int step ) const;
+	CPtr<const CUserTensor> prepareInputForSlice( const CUserTensor& input, int axis ) const;
 };
 
 } // namespace NeoOnnx
