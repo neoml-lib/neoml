@@ -49,8 +49,6 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 {
 	device.swap( _device );
 
-	CDllLoader::Load( CDllLoader::CUDA_DLL );
-
 	// CUDA
 	ASSERT_EXPR( device != 0 );
 	SetCudaDevice( device->DeviceNumber );
@@ -72,6 +70,8 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( device->MemoryLimit, this, true ) );
 	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
 	hostStackRunTime = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( CudaMemoryAlignment ) );
+
+	CDllLoader::Load( CDllLoader::CUDA_DLL );
 }
 
 CCudaMathEngine::~CCudaMathEngine()
