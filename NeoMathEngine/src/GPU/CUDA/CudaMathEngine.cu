@@ -71,7 +71,7 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
 	hostStackRunTime = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( CudaMemoryAlignment ) );
 
-	CDllLoader::Load( CDllLoader::CUDA_DLL );
+	CDllLoader::Load(CDllLoader::CUDA_DLL);
 }
 
 CCudaMathEngine::~CCudaMathEngine()
@@ -83,7 +83,7 @@ CCudaMathEngine::~CCudaMathEngine()
 	cusparse->Destroy( cusparseHandle );
 	cublas->Destroy( cublasHandle );
 
-	CDllLoader::Free( CDllLoader::CUDA_DLL );
+	CDllLoader::Free(CDllLoader::CUDA_DLL);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
