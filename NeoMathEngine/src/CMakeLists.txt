@@ -167,64 +167,81 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         # Using CUDA
         enable_language(CUDA)
         
-        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_CUDA)
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>
-            $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_50,code=sm_50>)
-        
-        target_sources(${PROJECT_NAME}
-            PRIVATE
-                GPU/CUDA/CublasDll.cpp
-                GPU/CUDA/CudaCommon.cpp
-                GPU/CUDA/CudaDevice.cpp
-                GPU/CUDA/CudaMathEngine.cpp
-                GPU/CUDA/CusparseDll.cpp
-                # CUDA Sources
-                GPU/CUDA/CudaMathEngineBlas.cu
-                GPU/CUDA/CudaMathEngineCublas.cu
-                GPU/CUDA/CudaMathEngineCusparse.cu
-                GPU/CUDA/CudaMathEngineDnn3dConv.cu
-                GPU/CUDA/CudaMathEngineDnnChannelwiseConv.cu
-                GPU/CUDA/CudaMathEngineDnnConv.cu
-                GPU/CUDA/CudaMathEngineDnn.cu
-                GPU/CUDA/CudaMathEngineDnnDropout.cu
-                GPU/CUDA/CudaMathEngineDnnPoolings.cu
-                GPU/CUDA/CudaMathEngineDnnRleConv.cu
-                GPU/CUDA/CudaMathEngineDnnTimeConv.cu
-                GPU/CUDA/CudaMathEngine.cu
-                GPU/CUDA/CudaMathEngineVectorMath.cu
-                # Headers
-                GPU/CUDA/CublasDll.h
-                GPU/CUDA/CudaAssert.h
-                GPU/CUDA/CudaBlobDesc.h
-                GPU/CUDA/CudaCommon.h
-                GPU/CUDA/CudaDevice.h
-                GPU/CUDA/CudaMathEngineDnnConvs.h
-                GPU/CUDA/CudaMathEngineDnnPoolings.h
-                GPU/CUDA/CudaMathEngine.h
-                GPU/CUDA/CusparseDll.h
-                GPU/CUDA/Kernels/CudaBlasKernels.h
-                GPU/CUDA/Kernels/CudaDnn3dConvKernels.h
-                GPU/CUDA/Kernels/CudaDnn3dPoolingKernels.h
-                GPU/CUDA/Kernels/CudaDnnChannelwiseConvKernels.h
-                GPU/CUDA/Kernels/CudaDnnConvKernels.h
-                GPU/CUDA/Kernels/CudaDnnDropoutKernels.h
-                GPU/CUDA/Kernels/CudaDnnGlobalPoolingKernels.h
-                GPU/CUDA/Kernels/CudaDnnGlobalTimePoolingKernels.h
-                GPU/CUDA/Kernels/CudaDnnKernels.h
-                GPU/CUDA/Kernels/CudaDnnPoolingKernels.h
-                GPU/CUDA/Kernels/CudaDnnRleConvKernels.h
-                GPU/CUDA/Kernels/CudaDnnTimeConvKernels.h
-                GPU/CUDA/Kernels/CudaDnnTimePoolingKernels.h
-                GPU/CUDA/Kernels/CudaGrid.h
-                GPU/CUDA/Kernels/CudaRandom.h
-                GPU/CUDA/Kernels/CudaReduce.h
-                GPU/CUDA/Kernels/CudaVectorMathKernels.h
-        )
-        target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/CUDA>)
-        target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>)
-        source_group("GPU\\CUDA" REGULAR_EXPRESSION "GPU\/CUDA\/[A-Za-z0-9_]+\.(h|cpp|cu)")
-        source_group("GPU\\CUDA\\Kernels" REGULAR_EXPRESSION "GPU\/CUDA\/Kernels\/.+")
+        # extracting CUDA version
+        string(REPLACE "." ";" NEOML_CUDA_VERSION_LIST ${CMAKE_CUDA_COMPILER_VERSION})
+        list(GET NEOML_CUDA_VERSION_LIST 0 NEOML_CUDA_VERSION_MAJOR)
+        list(GET NEOML_CUDA_VERSION_LIST 1 NEOML_CUDA_VERSION_MINOR)
+
+        if(NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11" OR NOT "${NEOML_CUDA_VERSION_MINOR}" STREQUAL "2")
+            if(USE_FINE_OBJECTS)
+                # Internal build must fail in case of version mismatch
+                message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
+            else()
+                # OSS build can continue
+                # TODO: TEMPORARY FAILING FOR DEBUG, replace FATAL_ERROR with STATUS afterwards
+                message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
+            endif()
+        else()
+            target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_CUDA)
+            target_compile_options(${PROJECT_NAME} PRIVATE
+                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>
+                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_50,code=sm_50>)
+            target_sources(${PROJECT_NAME}
+                PRIVATE
+                    GPU/CUDA/CublasDll.cpp
+                    GPU/CUDA/CudaCommon.cpp
+                    GPU/CUDA/CudaDevice.cpp
+                    GPU/CUDA/CudaMathEngine.cpp
+                    GPU/CUDA/CusparseDll.cpp
+                    # CUDA Sources
+                    GPU/CUDA/CudaMathEngineBlas.cu
+                    GPU/CUDA/CudaMathEngineCublas.cu
+                    GPU/CUDA/CudaMathEngineCusparse.cu
+                    GPU/CUDA/CudaMathEngineDnn3dConv.cu
+                    GPU/CUDA/CudaMathEngineDnnChannelwiseConv.cu
+                    GPU/CUDA/CudaMathEngineDnnConv.cu
+                    GPU/CUDA/CudaMathEngineDnn.cu
+                    GPU/CUDA/CudaMathEngineDnnDropout.cu
+                    GPU/CUDA/CudaMathEngineDnnPoolings.cu
+                    GPU/CUDA/CudaMathEngineDnnRleConv.cu
+                    GPU/CUDA/CudaMathEngineDnnTimeConv.cu
+                    GPU/CUDA/CudaMathEngine.cu
+                    GPU/CUDA/CudaMathEngineVectorMath.cu
+                    # Headers
+                    GPU/CUDA/CublasDll.h
+                    GPU/CUDA/CublasFunctions.h
+                    GPU/CUDA/CudaAssert.h
+                    GPU/CUDA/CudaBlobDesc.h
+                    GPU/CUDA/CudaCommon.h
+                    GPU/CUDA/CudaDevice.h
+                    GPU/CUDA/CudaMathEngineDnnConvs.h
+                    GPU/CUDA/CudaMathEngineDnnPoolings.h
+                    GPU/CUDA/CudaMathEngine.h
+                    GPU/CUDA/CusparseDll.h
+                    GPU/CUDA/CusparseFunctions.h
+                    GPU/CUDA/Kernels/CudaBlasKernels.h
+                    GPU/CUDA/Kernels/CudaDnn3dConvKernels.h
+                    GPU/CUDA/Kernels/CudaDnn3dPoolingKernels.h
+                    GPU/CUDA/Kernels/CudaDnnChannelwiseConvKernels.h
+                    GPU/CUDA/Kernels/CudaDnnConvKernels.h
+                    GPU/CUDA/Kernels/CudaDnnDropoutKernels.h
+                    GPU/CUDA/Kernels/CudaDnnGlobalPoolingKernels.h
+                    GPU/CUDA/Kernels/CudaDnnGlobalTimePoolingKernels.h
+                    GPU/CUDA/Kernels/CudaDnnKernels.h
+                    GPU/CUDA/Kernels/CudaDnnPoolingKernels.h
+                    GPU/CUDA/Kernels/CudaDnnRleConvKernels.h
+                    GPU/CUDA/Kernels/CudaDnnTimeConvKernels.h
+                    GPU/CUDA/Kernels/CudaDnnTimePoolingKernels.h
+                    GPU/CUDA/Kernels/CudaGrid.h
+                    GPU/CUDA/Kernels/CudaRandom.h
+                    GPU/CUDA/Kernels/CudaReduce.h
+                    GPU/CUDA/Kernels/CudaVectorMathKernels.h
+            )
+            target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/CUDA>)
+            target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>)
+            source_group("GPU\\CUDA" REGULAR_EXPRESSION "GPU\/CUDA\/[A-Za-z0-9_]+\.(h|cpp|cu)")
+            source_group("GPU\\CUDA\\Kernels" REGULAR_EXPRESSION "GPU\/CUDA\/Kernels\/.+")
+        endif()
     else()
         message(STATUS "No CUDA support.")
     endif()
