@@ -24,8 +24,8 @@ namespace NeoML {
 
 CDnnBlob::CDnnBlob( IMathEngine& _mathEngine ) :
 	mathEngine( _mathEngine ),
-	parent(0),
 	dataOwned( true ),
+	parent(0),
 	parentPos(0)
 {
 }
