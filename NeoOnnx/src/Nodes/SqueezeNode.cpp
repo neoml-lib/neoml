@@ -17,76 +17,98 @@ limitations under the License.
 #pragma hdrstop
 
 #include "SqueezeNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CSqueezeNode::CSqueezeNode( int nodeIndex, const onnx::NodeProto& squeeze, int opsetVersion ) :
-	COpNode( nodeIndex, squeeze, opsetVersion )
+CSqueezeNode::CSqueezeNode( const onnx::NodeProto& squeeze, int opsetVersion ) :
+	COpNode( squeeze, opsetVersion )
 {
-	// Newer versions have negiative axes support
+	// v1 - original
+	// v11 - added negative axes index support
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", squeeze );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", squeeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", squeeze );
-
-	Attributes.GetOptionalIntArray( "axes", axes );
 }
 
-void CSqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CSqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	const CTensorShape& inputShape = tensors[Input[0]].Shape;
-	CTensorShape& outputShape = tensors[Output[0]].Shape;
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "user-provided input is expected", OnnxNode );
+
+	CFastArray<int, 8> axes;
+	getAxes( inputs[0]->Shape(), axes );
+
+	CTensorShape outputShape;
+	calcOutputShape( inputs[0]->Shape(), axes, outputShape );
+
+	CDimOrder outputDimOrder;
+	calcOutputDimOrder( inputs[0]->Layout().OnnxOrder, axes, outputDimOrder );
+
+	outputs[0] = new CUserTensor( outputShape, CTensorLayout( outputDimOrder ),
+		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() );
+}
+
+// Fills array with axes indices to be squeezed
+// Returns array of positive indices in sorted order
+void CSqueezeNode::getAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
+{
+	axes.Empty();
+	Attributes.GetOptionalIntArray( "axes", axes );
+	for( int i = 0; i < axes.Size(); ++i ) {
+		if( axes[i] < 0 ) {
+			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", OnnxNode );
+			axes[i] += inputShape.Size();
+		}
+	}
+	axes.QuickSort<Ascending<int>>();
+}
+
+// Calculates output tensor's shape
+void CSqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const
+{
+	outputShape.Empty();
 	outputShape.SetBufferSize( inputShape.Size() - axes.Size() );
-	
-	int axisIndex = 0;
+
+	int axeIndex = 0;
+	int inputDimIndex = 0;
+	outputShape.SetBufferSize( axes.Size() - inputShape.Size() );
+
 	for( int i = 0; i < inputShape.Size(); ++i ) {
-		if( axisIndex < axes.Size() && ( i == axes[axisIndex] || i == axes[axisIndex] + inputShape.Size() ) ) {
-			CheckOnnxProtocol( inputShape[i] == 1, "squeezed dimensions must be of length 1", OnnxNode );
-			++axisIndex;
-		} else if( !axes.IsEmpty() || inputShape[i] != 1 ) {
-			// If axes array is empty we should remove all of the dims with size == 1
+		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
+			++axeIndex;
+		} else {
 			outputShape.Add( inputShape[i] );
 		}
 	}
-
-	tensors[Output[0]].Data = tensors[Input[0]].Data;
 }
 
-void CSqueezeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+// Calculates output tensor's dim order
+void CSqueezeNode::calcOutputDimOrder( const CDimOrder& inputDimOrder, const CFastArray<int, 8>& axes, CDimOrder& outputDimOrder ) const
 {
-	if( tensors[Output[0]].Data != nullptr ) {
+	if( inputDimOrder.IsEmpty() ) {
+		// Original layout is Onnx
+		// No need in conversion
+		outputDimOrder.Empty();
 		return;
 	}
 
-	const CTensorShape& inputShape = tensors[Input[0]].Shape;
-	const CTensorDim& inputDim = dims[Input[0]];
+	// NeoML layout
+	int axeIndex = 0;
+	int inputDimIndex = 0;
+	outputDimOrder.SetBufferSize( axes.Size() + inputDimOrder.Size() );
 
-	CTensorDim outputDim;
-	int axisIndex = 0;
-	for( int i = 0; i < inputDim.Size(); ++i ) {
-		if( axisIndex < axes.Size() && ( i == axes[axisIndex] || i == axes[axisIndex] + inputShape.Size() ) ) {
-			++axisIndex;
-		} else if( !axes.IsEmpty() || inputShape[i] != 1 ) {
-			outputDim.Add( inputDim[i] );
+	// Distribute unused blob dimensions among new axes
+	for( int i = 0; i < inputDimOrder.Size(); ++i ) {
+		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
+			++axeIndex;
+		} else {
+			outputDimOrder.Add( inputDimOrder[i] );
 		}
 	}
-
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, outputDim, dims[Output[0]] ),
-		"labeling output dimensions failed", OnnxNode );
-}
-
-void CSqueezeNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
-	CNeoMLLinkCache& neoMLLinks, CDnn& /* dnn */ )
-{
-	if( tensors[Output[0]].Data != nullptr ) {
-		return;
-	}
-
-	neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
 }
 
 } // namespace NeoOnnx

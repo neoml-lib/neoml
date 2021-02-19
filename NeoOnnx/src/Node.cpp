@@ -46,9 +46,9 @@ limitations under the License.
 //#include "Nodes/ShapeNode.h"
 //#include "Nodes/SliceNode.h"
 //#include "Nodes/SoftmaxNode.h"
-//#include "Nodes/SqueezeNode.h"
+#include "Nodes/SqueezeNode.h"
 //#include "Nodes/TransposeNode.h"
-//#include "Nodes/UnsqueezeNode.h"
+#include "Nodes/UnsqueezeNode.h"
 
 namespace NeoOnnx {
 
@@ -136,12 +136,12 @@ REGISTER_OP_NODE( CReluNode, "Relu" )
 REGISTER_OP_NODE( CSigmoidNode, "Sigmoid" )
 //REGISTER_OP_NODE( CSliceNode, "Slice" )
 //REGISTER_OP_NODE( CSoftmaxNode, "Softmax" )
-//REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
+REGISTER_OP_NODE( CSqueezeNode, "Squeeze" )
 REGISTER_OP_NODE( CSubNode, "Sub" )
 REGISTER_OP_NODE( CSumNode, "Sum" )
 REGISTER_OP_NODE( CTanhNode, "Tanh" )
 //REGISTER_OP_NODE( CTransposeNode, "Transpose" )
-//REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )
+REGISTER_OP_NODE( CUnsqueezeNode, "Unsqueeze" )
 
 } // namespace
 
