@@ -17,27 +17,40 @@ limitations under the License.
 #pragma hdrstop
 
 #include "ConstantNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CConstantNode::CConstantNode( int nodeIndex, const onnx::NodeProto& constant, int opsetVersion ) :
-	COpNode( nodeIndex, constant, opsetVersion )
+CConstantNode::CConstantNode( const onnx::NodeProto& constant, int opsetVersion ) :
+	COpNode( constant, opsetVersion )
 {
-	// Newer versions support values in sparse format
+	// v1 - original
+	// v9 - supported new data types
+	// v11 - added "sparse_value" attribute
+	// v12 - added new attributes: "value_*"
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", constant );
 
 	CheckOnnxProtocol( InputCount() == 0, "node must have no inputs", constant );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constant );
+
+	if( OpsetVersion >= 11 ) {
+		// NeoOnnx supports only "value" attribute
+		CheckNeoOnnxSupport( Attributes.Has( "value" ), "non-trivial value attribute", constant );
+	}
 }
 
-void CConstantNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine )
+void CConstantNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	CheckNeoOnnxSupport( Attributes.Has( "value" ), "non-tensor constant", OnnxNode );
-	tensors[Output[0]] = Attributes.GetRequiredTensor( "value", mathEngine );
+	CheckNeoOnnxInternal( false, "Illegal call: CConstantNode::AddLayers", OnnxNode );
+}
+
+void CConstantNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
+{
+	outputs[0] = Attributes.GetRequiredTensor( "value", mathEngine );
 }
 
 } // namespace NeoOnnx
