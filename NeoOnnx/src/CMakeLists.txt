@@ -35,9 +35,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/ShapeNode.cpp
     #Nodes/SliceNode.cpp
     #Nodes/SoftmaxNode.cpp
-    #Nodes/SqueezeNode.cpp
+    Nodes/SqueezeNode.cpp
     #Nodes/TransposeNode.cpp
-    #Nodes/UnsqueezeNode.cpp
+    Nodes/UnsqueezeNode.cpp
     TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
@@ -71,9 +71,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/ShapeNode.h
     #Nodes/SliceNode.h
     #Nodes/SoftmaxNode.h
-    #Nodes/SqueezeNode.h
+    Nodes/SqueezeNode.h
     #Nodes/TransposeNode.h
-    #Nodes/UnsqueezeNode.h
+    Nodes/UnsqueezeNode.h
     Tensor.h
     TensorLayout.h
     TensorUtils.h

@@ -17,15 +17,14 @@ limitations under the License.
 #pragma hdrstop
 
 #include "UnsqueezeNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CUnsqueezeNode::CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze, int opsetVersion ) :
-	COpNode( nodeIndex, unsqueeze, opsetVersion )
+CUnsqueezeNode::CUnsqueezeNode( const onnx::NodeProto& unsqueeze, int opsetVersion ) :
+	COpNode( unsqueeze, opsetVersion )
 {
 	// v1 - original
 	// v11 - supported negative axes values
@@ -33,63 +32,94 @@ CUnsqueezeNode::CUnsqueezeNode( int nodeIndex, const onnx::NodeProto& unsqueeze,
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", unsqueeze );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", unsqueeze );
-
-	Attributes.GetRequiredIntArray( "axes", axes );
 }
 
-void CUnsqueezeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CUnsqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	const CTensorShape& inputShape = tensors[Input[0]].Shape;
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "user-provided input is expected", OnnxNode );
 
-	CTensorShape& outputShape = tensors[Output[0]].Shape;
-	outputShape.SetSize( inputShape.Size() + axes.Size() );
-	int axisIndex = 0;
-	for( int i = 0; i < outputShape.Size(); ++i ) {
-		if( axisIndex < axes.Size() && ( i == axes[axisIndex] || i == axes[axisIndex] + outputShape.Size() ) ) {
-			outputShape[i] = 1;
-			axisIndex++;
-		} else {
-			outputShape[i] = inputShape[i - axisIndex];
+	CFastArray<int, 8> axes;
+	getAxes( inputs[0]->Shape(), axes );
+
+	CTensorShape outputShape;
+	calcOutputShape( inputs[0]->Shape(), axes, outputShape );
+
+	CDimOrder outputDimOrder;
+	calcOutputDimOrder( inputs[0]->Layout().OnnxOrder, axes, outputDimOrder );
+
+	outputs[0] = new CUserTensor( outputShape, CTensorLayout( outputDimOrder ),
+		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() );
+}
+
+// Fills array with axes indices to be squeezed
+// Returns array of positive indices in sorted order
+void CUnsqueezeNode::getAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
+{
+	axes.Empty();
+	Attributes.GetOptionalIntArray( "axes", axes );
+	for( int i = 0; i < axes.Size(); ++i ) {
+		if( axes[i] < 0 ) {
+			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", OnnxNode );
+			axes[i] += inputShape.Size();
 		}
 	}
-
-	tensors[Output[0]].Data = tensors[Input[0]].Data;
+	axes.QuickSort<Ascending<int>>();
 }
 
-void CUnsqueezeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+// Calculates output tensor's shape
+void CUnsqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const
 {
-	if( tensors[Output[0]].Data != nullptr ) {
-		return;
-	}
+	outputShape.Empty();
+	outputShape.SetBufferSize( inputShape.Size() + axes.Size() );
 
-	const CTensorDim& outputDim = dims[Output[0]];
+	int axeIndex = 0;
+	int inputDimIndex = 0;
+	outputShape.SetBufferSize( axes.Size() + inputShape.Size() );
 
-	if( outputDim.IsEmpty() ) {
-		return;
-	}
-
-	CTensorDim inputDim;
-	int axisIndex = 0;
-	for( int i = 0; i < outputDim.Size(); ++i ) {
-		if( axisIndex < axes.Size() && i == axes[axisIndex] ) {
-			++axisIndex;
+	for( int i = 0; i < axes.Size() + inputShape.Size(); ++i ) {
+		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
+			outputShape.Add( 1 );
 		} else {
-			inputDim.Add( outputDim[i] );
+			CheckNeoOnnxInternal( inputDimIndex < inputShape.Size(), "Wrong dimensions number", OnnxNode );
+			outputShape.Add( inputShape[inputDimIndex] );
+			++inputDimIndex;
 		}
 	}
-
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, inputDim, dims[Input[0]] ),
-		"labeling input dimensions failed", OnnxNode );
 }
 
-void CUnsqueezeNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& /* dims */,
-	CNeoMLLinkCache& neoMLLinks, CDnn& /* dnn */ )
+// Calculates output tensor's dim order
+void CUnsqueezeNode::calcOutputDimOrder( const CDimOrder& inputDimOrder, const CFastArray<int, 8>& axes, CDimOrder& outputDimOrder ) const
 {
-	if( tensors[Output[0]].Data != nullptr ) {
+	if( inputDimOrder.IsEmpty() ) {
+		// Original layout is Onnx
+		// No need in conversion
+		outputDimOrder.Empty();
 		return;
 	}
 
-	neoMLLinks[Output[0]] = neoMLLinks[Input[0]];
+	// NeoML layout
+	TBlobDim currDim = BD_BatchLength;
+	int axeIndex = 0;
+	int inputDimIndex = 0;
+	outputDimOrder.SetBufferSize( axes.Size() + inputDimOrder.Size() );
+
+	// Distribute unused blob dimensions among new axes
+	for( int i = 0; i < axes.Size() + inputDimOrder.Size(); ++i ) {
+		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
+			// Looking for unused blob dim
+			while( currDim < BD_Count && inputDimOrder.Find( currDim ) != NotFound ) {
+				++currDim;
+			}
+			CheckNeoOnnxInternal( currDim != BD_Count, "Wrong dimensions number", OnnxNode );
+			outputDimOrder.Add( currDim );
+			++axeIndex;
+		} else {
+			CheckNeoOnnxInternal( inputDimIndex < inputDimOrder.Size(), "Wrong dimensions number", OnnxNode );
+			outputDimOrder.Add( inputDimOrder[inputDimIndex] );
+			++inputDimIndex;
+		}
+	}
 }
 
 } // namespace NeoOnnx

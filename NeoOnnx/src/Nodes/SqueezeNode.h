@@ -22,16 +22,19 @@ namespace NeoOnnx {
 // Squeeze operator graph node
 class CSqueezeNode : public COpNode {
 public:
-	CSqueezeNode( int nodeIndex, const onnx::NodeProto& squeeze, int opsetVersion );
+	CSqueezeNode( const onnx::NodeProto& squeeze, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override { mask.Add( true ); }
 
 private:
-	CFastArray<int, 8> axes; // removed axes
+	void getAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const;
+	void calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const;
+	void calcOutputDimOrder( const CDimOrder& inputDimOrder, const CFastArray<int, 8>& axes, CDimOrder& outputDimOrder ) const;
 };
 
 } // namespace NeoOnnx
