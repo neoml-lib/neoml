@@ -13,7 +13,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ActivationNode.cpp
     Nodes/BatchNormalizationNode.cpp
     #Nodes/ConcatNode.cpp
-    #Nodes/ConstantNode.cpp
+    Nodes/ConstantNode.cpp
     #Nodes/ConstantOfShapeNode.cpp
     Nodes/ConvNode.cpp
     #Nodes/DropoutNode.cpp
@@ -49,7 +49,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ActivationNode.h
     Nodes/BatchNormalizationNode.h
     #Nodes/ConcatNode.h
-    #Nodes/ConstantNode.h
+    Nodes/ConstantNode.h
     #Nodes/ConstantOfShapeNode.h
     Nodes/ConvNode.h
     #Nodes/DropoutNode.h

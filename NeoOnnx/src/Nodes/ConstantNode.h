@@ -22,12 +22,16 @@ namespace NeoOnnx {
 // Constant operator graph node
 class CConstantNode : public COpNode {
 public:
-	CConstantNode( int nodeIndex, const onnx::NodeProto& constant, int opsetVersion );
+	CConstantNode( const onnx::NodeProto& constant, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache&, CDimCache& ) override {}
-	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache&, CDnn& ) override {}
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override {}
 };
 
 } // namespace NeoOnnx
