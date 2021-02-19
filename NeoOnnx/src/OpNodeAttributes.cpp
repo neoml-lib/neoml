@@ -88,7 +88,13 @@ void extractValue<CFastArray<int, 8>>( const onnx::AttributeProto& attribute, CF
 	const onnx::NodeProto& /* onnxNode */ )
 {
 	for( int64_t element : attribute.ints() ) {
-		value.Add( static_cast<int>( element ) );
+		if( element >= INT_MAX ) {
+			value.Add( INT_MAX );
+		} else if( element <= INT_MIN ) {
+			value.Add( INT_MIN );
+		} else {
+			value.Add( static_cast< int >( element ) );
+		}
 	}
 }
 
