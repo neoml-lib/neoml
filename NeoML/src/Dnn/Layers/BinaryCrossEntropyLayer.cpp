@@ -43,7 +43,7 @@ void CBinaryCrossEntropyLossLayer::Reshape()
 	CheckArchitecture( inputDescs[0].ObjectSize() == 1 && inputDescs[1].ObjectSize() == 1, GetName(), "BinaryCrossEntropy layer can only work with a binary classificaion problem" );
 }
 
-void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
+void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int,
 	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
 	// Therefore the labels vector can only contain {-1, 1} values

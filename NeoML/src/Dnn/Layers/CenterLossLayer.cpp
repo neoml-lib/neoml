@@ -59,7 +59,7 @@ void CCenterLossLayer::Reshape()
 }
 
 void CCenterLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
-	CConstIntHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
+	CConstIntHandle label, int, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
 	// The total input size
 	const int inputDataSize = batchSize * vectorSize;

@@ -63,7 +63,7 @@ void CBinaryFocalLossLayer::Reshape()
 }
 
 void CBinaryFocalLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data,
-	int vectorSize, CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
+	int, CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
 	CFloatHandleStackVar tempVector(MathEngine(), batchSize);
 	CFloatHandleStackVar sigmoidVector(MathEngine(), batchSize);
