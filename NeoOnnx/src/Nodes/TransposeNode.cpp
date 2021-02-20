@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include "TransposeNode.h"
-#include "GraphInput.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
