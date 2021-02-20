@@ -49,7 +49,7 @@ void CGatherNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs
 	CheckNeoOnnxSupport( dataBlob->GetDataType() == CT_Int, "non-integer data", OnnxNode );
 
 	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided indices", OnnxNode );
-	CheckNeoOnnxSupport( inputs[1]->Shape().Size() == 1, "2+ dimensional indices", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1]->Shape().Size() <= 1, "2+ dimensional indices", OnnxNode );
 	const CDnnBlob* indicesBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
 	CheckNeoOnnxInternal( indicesBlob->GetDataType() == CT_Int, "non-integer indices", OnnxNode );
 
