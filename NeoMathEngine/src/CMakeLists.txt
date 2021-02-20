@@ -178,8 +178,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                 message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
             else()
                 # OSS build can continue
-                # TODO: TEMPORARY FAILING FOR DEBUG, replace FATAL_ERROR with STATUS afterwards
-                message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
+                message(STATUS "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
             endif()
         else()
             target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_CUDA)
