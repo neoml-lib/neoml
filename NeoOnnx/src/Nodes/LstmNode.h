@@ -22,13 +22,15 @@ namespace NeoOnnx {
 // Lstm operator graph node
 class CLstmNode : public COpNode {
 public:
-	CLstmNode( int nodeIndex, const onnx::NodeProto& lstm, int opsetVersion );
+	CLstmNode( const onnx::NodeProto& lstm, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
 	const CString direction; // LSTM's direction ("forward", "backward" or "bidirectional")
