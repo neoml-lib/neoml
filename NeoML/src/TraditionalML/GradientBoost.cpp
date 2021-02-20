@@ -610,14 +610,12 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	}
 
 	if( fullMultiClassTreeBuilder != nullptr || fastHistMultiClassTreeBuilder != nullptr ) {
-		CPtr<IRegressionTreeModel> model;
 		if( fullMultiClassTreeBuilder != nullptr ) {
-			model = fullMultiClassTreeBuilder->Build( *fullProblem,
-				gradients, gradientsSum, hessians, hessiansSum, weights, weightsSum );
+			curModels.Add( fullMultiClassTreeBuilder->Build( *fullProblem,
+				gradients, gradientsSum, hessians, hessiansSum, weights, weightsSum ).Ptr() );
 		} else {
-			model = fastHistMultiClassTreeBuilder->Build( *fastHistProblem, gradients, hessians, weights );
+			curModels.Add( fastHistMultiClassTreeBuilder->Build( *fastHistProblem, gradients, hessians, weights ).Ptr() );
 		}
-		curModels.Add( model.Ptr() );
 	} else {
 		for( int i = 0; i < gradients.Size(); i++ ) {
 			if( logStream != nullptr ) {
