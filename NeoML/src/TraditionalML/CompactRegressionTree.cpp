@@ -192,13 +192,25 @@ inline void CCompactRegressionTree::predict(
 void CCompactRegressionTree::Predict(
 	const CFloatVector& features, CPrediction& result ) const
 {
-	predict( features, result );
+	predict( features.GetPtr(), result );
 }
 
 void CCompactRegressionTree::Predict(
 	const CSparseFloatVectorDesc& features, CPrediction& result ) const
 {
 	predict( features, result );
+}
+
+double CCompactRegressionTree::Predict( const CFloatVector& features ) const
+{
+	NeoPresume( predictionSize == 1 );
+	return *predict( features.GetPtr() );
+}
+
+double CCompactRegressionTree::Predict( const CSparseFloatVectorDesc& features ) const
+{
+	NeoPresume( predictionSize == 1 );
+	return *predict( features );
 }
 
 void CCompactRegressionTree::CalcFeatureStatistics(
