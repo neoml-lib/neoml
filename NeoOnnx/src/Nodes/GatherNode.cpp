@@ -17,48 +17,59 @@ limitations under the License.
 #pragma hdrstop
 
 #include "GatherNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CGatherNode::CGatherNode( int nodeIndex, const onnx::NodeProto& gather, int opsetVersion ) :
-	COpNode( nodeIndex, gather, opsetVersion )
+CGatherNode::CGatherNode( const onnx::NodeProto& gather, int opsetVersion ) :
+	COpNode( gather, opsetVersion )
 {
-	// The difference etween v1 and v11 is in supported types
-	// But NeoML doesn't support new data types anyway
+	// v1 - original
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", gather );
 
 	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", gather );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gather );
 }
 
-void CGatherNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CGatherNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
+	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	tensors[Input[1]].Shape.CopyTo( tensors[Output[0]].Shape );
+	CheckNeoOnnxSupport( false, "user-provided input", OnnxNode );
+}
 
-	CheckNeoOnnxSupport( tensors[Input[0]].Data != nullptr, "non-constant input", OnnxNode );
-	CheckNeoOnnxSupport( tensors[Input[0]].Data->GetDataType() == CT_Int, "non-integer input", OnnxNode );
+void CGatherNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
+{
+	// This is a stub for a specific case: integer 1-dimensional data
+	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "User-provided data", OnnxNode );
+	CheckNeoOnnxSupport( inputs[0]->Shape().Size() == 1, "2+ dimensional data", OnnxNode );
+	const CDnnBlob* dataBlob = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data();
+	CheckNeoOnnxSupport( dataBlob->GetDataType() == CT_Int, "non-integer data", OnnxNode );
 
-	CArray<int> data;
-	data.SetSize( tensors[Input[0]].Data->GetDataSize() );
-	tensors[Input[0]].Data->CopyTo( data.GetPtr() );
+	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided indices", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1]->Shape().Size() == 1, "2+ dimensional indices", OnnxNode );
+	const CDnnBlob* indicesBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
+	CheckNeoOnnxInternal( indicesBlob->GetDataType() == CT_Int, "non-integer indices", OnnxNode );
 
-	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant indices", OnnxNode );
-	CheckOnnxProtocol( tensors[Input[1]].Data->GetDataType() == CT_Int, "indices must be integer", OnnxNode );
+	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( mathEngine, CT_Int, indicesBlob->GetDesc() );
+	
+	// const_cast in order to avoid copying (becasuse we won't change dataBlob or indicesBlob contents anyway)
+	int* data = const_cast<CDnnBlob*>( dataBlob )->GetBuffer<int>( 0, dataBlob->GetDataSize() );
+	int* indices = const_cast<CDnnBlob*>( indicesBlob )->GetBuffer<int>( 0, indicesBlob->GetDataSize() );
 
-	CArray<int> indices;
-	indices.SetSize( tensors[Input[1]].Data->GetDataSize() );
-	tensors[Input[1]].Data->CopyTo( indices.GetPtr() );
+	int* result = resultBlob->GetBuffer<int>( 0, resultBlob->GetDataSize() );
 
-	tensors[Output[0]].Data = tensors[Input[1]].Data->GetClone();
-	int* outputBuffer = tensors[Output[0]].Data->GetBuffer<int>( 0, tensors[Output[0]].Data->GetDataSize() );
-	for( int i = 0; i < indices.Size(); ++i ) {
-		outputBuffer[i] = data[indices[i]];
+	for( int i = 0; i < indicesBlob->GetDataSize(); ++i ) {
+		result[i] = data[indices[i]];
 	}
-	tensors[Output[0]].Data->ReleaseBuffer( outputBuffer, true );
+
+	resultBlob->ReleaseBuffer( result, true );
+	const_cast<CDnnBlob*>( indicesBlob )->ReleaseBuffer( indices, false );
+	const_cast<CDnnBlob*>( dataBlob )->ReleaseBuffer( data, false );
+
+	outputs[0] = new CDataTensor( inputs[1]->Shape(), inputs[1]->Layout(), *resultBlob );
 }
 
 } // namespace NeoOnnx

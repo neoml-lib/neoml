@@ -19,7 +19,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/DropoutNode.cpp
     Nodes/EltwiseNode.cpp
     Nodes/FlattenNode.cpp
-    #Nodes/GatherNode.cpp
+    Nodes/GatherNode.cpp
     Nodes/GemmNode.cpp
     Nodes/GlobalPoolNode.cpp
     Nodes/GraphInput.cpp
@@ -55,7 +55,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/DropoutNode.h
     Nodes/EltwiseNode.h
     Nodes/FlattenNode.h
-    #Nodes/GatherNode.h
+    Nodes/GatherNode.h
     Nodes/GemmNode.h
     Nodes/GlobalPoolNode.h
     Nodes/GraphInput.h
