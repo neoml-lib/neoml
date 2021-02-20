@@ -22,20 +22,20 @@ namespace NeoOnnx {
 // Softmax operator graph node
 class CSoftmaxNode : public COpNode {
 public:
-	CSoftmaxNode( int nodeIndex, const onnx::NodeProto& softmax, int opsetVersion );
+	CSoftmaxNode( const onnx::NodeProto& softmax, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
-	// Softmax is applied along all the axes since this one (this one is included)
-	int axis;
+	int axis; // First axis to be softmaxed
 
-	CSoftmaxLayer::TNormalizationArea getArea( const CTensorShape& shape, const CTensorDim& dim ) const;
-	void getOutputDim( const CTensorShape& shape, const CDimCache& dims, CTensorDim& outputDim ) const;
+	void getDimOrder( int dimCount, int axis, const CDimOrder& inputDimOrder, CDimOrder& dimOrder );
 };
 
 } // namespace NeoOnnx
