@@ -22,16 +22,18 @@ namespace NeoOnnx {
 // Reshape operator graph node
 class CReshapeNode : public COpNode {
 public:
-	CReshapeNode( int nodeIndex, const onnx::NodeProto& node, int opsetVersion );
+	CReshapeNode( const onnx::NodeProto& node, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
-	CArray<int> shape; // Shape input value
+	void getShape( const CObjectArray<const CTensorBase>& inputs, CTensorShape& shape );
 };
 
 } // namespace NeoOnnx

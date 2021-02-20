@@ -31,7 +31,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/MatMulNode.cpp
     Nodes/PadNode.cpp
     Nodes/PoolNode.cpp
-    #Nodes/ReshapeNode.cpp
+    Nodes/ReshapeNode.cpp
     Nodes/ShapeNode.cpp
     Nodes/SliceNode.cpp
     #Nodes/SoftmaxNode.cpp
@@ -67,7 +67,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     #Nodes/MatMulNode.h
     Nodes/PadNode.h
     Nodes/PoolNode.h
-    #Nodes/ReshapeNode.h
+    Nodes/ReshapeNode.h
     Nodes/ShapeNode.h
     Nodes/SliceNode.h
     #Nodes/SoftmaxNode.h
