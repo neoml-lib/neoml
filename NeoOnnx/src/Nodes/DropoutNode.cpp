@@ -17,19 +17,20 @@ limitations under the License.
 #pragma hdrstop
 
 #include "DropoutNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CDropoutNode::CDropoutNode( int nodeIndex, const onnx::NodeProto& dropout, int opsetVersion ) :
-	COpNode( nodeIndex, dropout, opsetVersion ),
-	ratio( Attributes.GetOptionalFloat( "ratio", 0.5f ) )
+CDropoutNode::CDropoutNode( const onnx::NodeProto& dropout, int opsetVersion ) :
+	COpNode( dropout, opsetVersion )
 {
-	// The differences between versions are in legacy optimization flags and is_test flags
-	// is_test flag doesn't have any sense in NeoML anyway
+	// v1 - original
+	// v6 - removed legacy optimization attribute
+	// v7 - removed "is_test" attribute
+	// v10 - changed second output data type
+	// v12 - added "seed" attribute, "ratio" moved from attributes to inputs, "training_mode" added
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", dropout );
 
 	if( OpsetVersion < 12 ) {
@@ -38,43 +39,37 @@ CDropoutNode::CDropoutNode( int nodeIndex, const onnx::NodeProto& dropout, int o
 		CheckOnnxProtocol( InputCount() >= 1 || InputCount() <= 3, "node must have from 1 up to 3 inputs", dropout );
 	}
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "node must have 1 output", dropout );
-
-	// NeoML doesn't support mask output (second output)
-	// But we don't restrict dropout to only have one output
-	// because there are examples where dropout has 2 outputs and only one of them is used
 }
 
-void CDropoutNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CDropoutNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
-}
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "unknown input", OnnxNode );
+	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
 
-void CDropoutNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
-{
-	if( !dims[Input[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"labeling output dimensions failed", OnnxNode );
-	}
-
-	if( !dims[Output[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"labeling input dimensions failed", OnnxNode );
-	}
-}
-
-void CDropoutNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
 	CPtr<CDropoutLayer> dropout = new CDropoutLayer( dnn.GetMathEngine() );
-	dropout->SetName( Name );
-	dropout->SetDropoutRate( ratio );
-
-	dropout->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
-	
+	dropout->SetName( Name() );
+	dropout->SetDropoutRate( getRatio( inputs ) );
+	dropout->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *dropout );
 
-	neoMLLinks[Output[0]] = CNeoMLLink( dropout, 0 );
+	outputs[0] = new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( dropout, 0 ) );
+}
+
+// Gets dropout rate
+float CDropoutNode::getRatio( const CObjectArray<const CTensorBase>& inputs ) const
+{
+	if( OpsetVersion < 12 ) {
+		// Before opset 12 ratio is stored as optional attribute with default value 0.5f
+		return Attributes.GetOptionalFloat( "ratio", 0.5f );
+	} else if( inputs.Size() < 2 || inputs[1] == nullptr ) {
+		// If "ratio" input is omitted, default value is 0.5f
+		return 0.5f;
+	}
+
+	// Extracting data from input
+	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided ratio", OnnxNode );
+	return dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetData().GetValue();
 }
 
 } // namespace NeoOnnx

@@ -16,7 +16,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ConstantNode.cpp
     Nodes/ConstantOfShapeNode.cpp
     Nodes/ConvNode.cpp
-    #Nodes/DropoutNode.cpp
+    Nodes/DropoutNode.cpp
     Nodes/EltwiseNode.cpp
     Nodes/FlattenNode.cpp
     #Nodes/GatherNode.cpp
@@ -52,7 +52,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ConstantNode.h
     Nodes/ConstantOfShapeNode.h
     Nodes/ConvNode.h
-    #Nodes/DropoutNode.h
+    Nodes/DropoutNode.h
     Nodes/EltwiseNode.h
     Nodes/FlattenNode.h
     #Nodes/GatherNode.h
