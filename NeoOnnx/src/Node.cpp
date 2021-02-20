@@ -42,7 +42,7 @@ limitations under the License.
 //#include "Nodes/MatMulNode.h"
 #include "Nodes/PadNode.h"
 #include "Nodes/PoolNode.h"
-//#include "Nodes/ReshapeNode.h"
+#include "Nodes/ReshapeNode.h"
 #include "Nodes/ShapeNode.h"
 #include "Nodes/SliceNode.h"
 //#include "Nodes/SoftmaxNode.h"
@@ -131,7 +131,7 @@ REGISTER_OP_NODE( CReduceMaxNode, "ReduceMax" )
 REGISTER_OP_NODE( CReduceMeanNode, "ReduceMean" )
 REGISTER_OP_NODE( CReduceMinNode, "ReduceMin" )
 REGISTER_OP_NODE( CReluNode, "Relu" )
-//REGISTER_OP_NODE( CReshapeNode, "Reshape" )
+REGISTER_OP_NODE( CReshapeNode, "Reshape" )
 REGISTER_OP_NODE( CShapeNode, "Shape" )
 REGISTER_OP_NODE( CSigmoidNode, "Sigmoid" )
 REGISTER_OP_NODE( CSliceNode, "Slice" )
