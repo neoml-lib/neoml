@@ -70,29 +70,27 @@ void CLinkedRegressionTree::InitSplitNode(
 	rightChild = &right;
 }
 
-const CLinkedRegressionTree* CLinkedRegressionTree::GetPredictionNode( const CSparseFloatVectorDesc& data ) const
+template<typename TVector>
+static inline float getFeature( const TVector& features, int number )
+{
+	return features[number];
+}
+
+static inline float getFeature( const CSparseFloatVectorDesc& features, int number )
+{
+	return GetValue( features, number );
+}
+
+template<typename TVector>
+const CLinkedRegressionTree* CLinkedRegressionTree::GetPredictionNode(
+	const TVector& data ) const
 {
 	static_assert(RTNT_Count == 4, "RTNT_Count != 4");
 
 	if( info.Type == RTNT_Continuous ) {
-		float featureValue = 0;
-		GetValue( data, info.FeatureIndex, featureValue );
-
+		const float featureValue = getFeature( data, info.FeatureIndex );
 		const CLinkedRegressionTree* child = featureValue <= info.Value[0] ? leftChild : rightChild;
-		NeoAssert( child != 0 );
-		return child->GetPredictionNode( data );
-	}
-	return this;
-}
-
-const CLinkedRegressionTree* CLinkedRegressionTree::GetPredictionNode( const CFloatVector& data ) const
-{
-	static_assert( RTNT_Count == 4, "RTNT_Count != 4" );
-
-	if( info.Type == RTNT_Continuous ) {
-		double featureValue = info.FeatureIndex < data.Size() ? data[info.FeatureIndex] : 0;
-		const CLinkedRegressionTree* child = featureValue <= info.Value[0] ? leftChild : rightChild;
-		NeoAssert( child != 0 );
+		NeoPresume( child != 0 );
 		return child->GetPredictionNode( data );
 	}
 	return this;
@@ -106,18 +104,41 @@ void CLinkedRegressionTree::CalcFeatureStatistics( int maxFeature, CArray<int>& 
 	calcFeatureStatistics( maxFeature, result );
 }
 
+template<typename TVector>
+inline void CLinkedRegressionTree::predict( const TVector& features, CPrediction& result ) const
+{
+	const CLinkedRegressionTree* node = GetPredictionNode( features );
+	NeoPresume( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
+	node->info.Value.CopyTo( result );
+}
+
+template<typename TVector>
+inline double CLinkedRegressionTree::predict( const TVector& features ) const
+{
+	const CLinkedRegressionTree* node = GetPredictionNode( features );
+	NeoPresume( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
+	NeoPresume( node->info.Value.Size() == 1 );
+	return node->info.Value[0];
+}
+
 void CLinkedRegressionTree::Predict( const CFloatVector& data, CPrediction& result ) const
 {
-	const CLinkedRegressionTree* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
-	node->info.Value.CopyTo( result );
+	predict( data.GetPtr(), result );
 }
 
 void CLinkedRegressionTree::Predict( const CSparseFloatVectorDesc& data, CPrediction& result ) const
 {
-	const CLinkedRegressionTree* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
-	node->info.Value.CopyTo( result );
+	predict( data, result );
+}
+
+double CLinkedRegressionTree::Predict( const CFloatVector& data ) const
+{
+	return predict( data.GetPtr() );
+}
+
+double CLinkedRegressionTree::Predict( const CSparseFloatVectorDesc& data ) const
+{
+	return predict( data );
 }
 
 void CLinkedRegressionTree::Serialize( CArchive& archive )
