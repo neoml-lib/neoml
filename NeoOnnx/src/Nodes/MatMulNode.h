@@ -22,13 +22,18 @@ namespace NeoOnnx {
 // MatMul operator graph node
 class CMatMulNode : public COpNode {
 public:
-	CMatMulNode( int nodeIndex, const onnx::NodeProto& matMul, int opsetVersion );
+	CMatMulNode( const onnx::NodeProto& matMul, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false ); }
+
+private:
+	CPtr<const CTensorBase> prepareTensor( const CTensorBase& tensor ) const;
 };
 
 } // namespace NeoOnnx

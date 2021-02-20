@@ -17,16 +17,15 @@ limitations under the License.
 #pragma hdrstop
 
 #include "MatMulNode.h"
-#include "GraphCache.h"
-#include "NodeUtils.h"
 #include "NeoOnnxCheck.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CMatMulNode::CMatMulNode( int nodeIndex, const onnx::NodeProto& matMul, int opsetVersion ) :
-	COpNode( nodeIndex, matMul, opsetVersion )
+CMatMulNode::CMatMulNode( const onnx::NodeProto& matMul, int opsetVersion ) :
+	COpNode( matMul, opsetVersion )
 {
 	// The differences between versions are in legacy optimization flags
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", matMul );
@@ -35,61 +34,56 @@ CMatMulNode::CMatMulNode( int nodeIndex, const onnx::NodeProto& matMul, int opse
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", matMul );
 }
 
-void CMatMulNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CMatMulNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
 	// The only scenario we support is this:
 	//     first input - user-provided data, single matrix
 	//     second input - pre-calculated data, single matrix
 	// In this case we can emulate this node by CFullyConnectedLayer
-	const CTensor& firstInput = tensors[Input[0]];
-	const CTensor& secondInput = tensors[Input[1]];
-	CheckNeoOnnxSupport( firstInput.Data == nullptr, "pre-calculated first input", OnnxNode );
-	CheckNeoOnnxSupport( firstInput.Shape.Size() == 2, "non-2D first input", OnnxNode );
-	CheckNeoOnnxSupport( secondInput.Data != nullptr, "user-provided second input", OnnxNode );
-	CheckNeoOnnxSupport( secondInput.Shape.Size() == 2, "non-2D first input", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "First input must be provided by user", OnnxNode );
+	CheckNeoOnnxInternal( inputs[1] != nullptr, "Undefined second input", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided second input", OnnxNode );
 
-	CTensorShape& outputShape = tensors[Output[0]].Shape;
-	outputShape.Add( firstInput.Shape[0] );
-	outputShape.Add( secondInput.Shape[1] );
-}
+	CheckNeoOnnxSupport( inputs[0]->Shape().Size() == 2, "3+ dimensional first input", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1]->Shape().Size() == 2, "3+ dimensional second input", OnnxNode );
 
-void CMatMulNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
-{
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Output[0]] ),
-		"labeling output dimensions failed", OnnxNode );
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, { BD_BatchWidth, BD_Channels }, dims[Input[0]] ),
-		"labeling input dimensions failed", OnnxNode );
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[1]].Shape, { BD_BatchWidth, BD_Channels }, dims[Input[0]] ),
-		"labeling input dimensions failed", OnnxNode );
-}
+	const int batchSize = inputs[0]->Shape()[0];
+	const int inputElems = inputs[0]->Shape()[1];
+	const int outputElems = inputs[1]->Shape()[1];
 
-void CMatMulNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
+	CTensorShape outputShape( { batchSize, outputElems } );
+	CTensorLayout layout( { BD_BatchWidth, BD_Channels } );
+
+	// We need to convert weight to correct pack
+	CPtr<const CDataTensor> weight = dynamic_cast<const CDataTensor*>( prepareTensor( *inputs[1] ).Ptr() );
+	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( prepareTensor( *inputs[0] ).Ptr() );
+
+	CPtr<CDnnBlob> weightBlob = CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), CT_Float, 1, outputElems, inputElems );
+	weightBlob->TransposeFrom( weight->Data(), weight->Layout().OnnxOrder[0], weight->Layout().OnnxOrder[1] );
+
 	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( dnn.GetMathEngine() );
-	fc->SetName( Name );
-	fc->SetNumberOfElements( tensors[Output[0]].Shape[1] );
-	
-	const int inputElems = tensors[Input[1]].Shape[0];
-	const int outputElems = tensors[Input[1]].Shape[1];
-
-	CBlobDesc weightDesc = tensors[Input[1]].Data->GetDesc();
-	weightDesc.SetDimSize( 0, outputElems );
-	weightDesc.SetDimSize( 1, inputElems );
-	CPtr<CDnnBlob> weight = CDnnBlob::CreateBlob( dnn.GetMathEngine(), weightDesc );
-	weight->TransposeFrom( tensors[Input[1]].Data, 0, 1 );
-
-	weightDesc = CBlobDesc( CT_Float );
-	weightDesc.SetDimSize( BD_BatchWidth, outputElems );
-	weightDesc.SetDimSize( BD_Channels, inputElems );
-	weight->ReinterpretDimensions( weightDesc );
-	weight = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, weight );
-	fc->SetWeightsData( weight );
+	fc->SetName( Name() );
+	fc->SetNumberOfElements( outputElems );
+	fc->SetWeightsData( weightBlob );
 	fc->SetZeroFreeTerm( true );
-
-	fc->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	fc->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *fc );
-	neoMLLinks[Output[0]] = CNeoMLLink( fc, 0 );
+
+	outputs[0] = new CUserTensor( outputShape, layout, CLayerOutput( fc, 0 ) );
+}
+
+// Prepares tensor for CFullyConnectedLayer
+CPtr<const CTensorBase> CMatMulNode::prepareTensor( const CTensorBase& tensor ) const
+{
+	const CTensorLayout& inputLayout = tensor.Layout();
+	if( inputLayout.DimType == DT_NeoML && inputLayout.OnnxOrder[0] < BD_Height
+		&& inputLayout.OnnxOrder[1] >= BD_Height )
+	{
+		return &tensor;
+	}
+
+	return ConvertTensor( tensor, CTensorLayout( { BD_BatchWidth, BD_Channels } ) );
 }
 
 } // namespace NeoOnnx
