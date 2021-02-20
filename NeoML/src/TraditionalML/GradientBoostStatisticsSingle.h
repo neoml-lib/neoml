@@ -44,7 +44,8 @@ public:
 	double CalcCriterion( float l1, float l2 ) const;
 
 	// Calculates the split criterion
-	static double CalcCriterion( CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle& totalStatistics,
+	static bool CalcCriterion( double& criterion,
+		CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle& totalStatistics,
 		float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient );
 
 	// Gets the total gradient
@@ -180,17 +181,19 @@ inline void CGradientBoostStatisticsSingle::LeafValue( double& value ) const
 	}
 }
 
-inline double CGradientBoostStatisticsSingle::CalcCriterion( CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, 
+inline bool CGradientBoostStatisticsSingle::CalcCriterion( double& criterion,
+	CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, 
 	const CGradientBoostStatisticsSingle&, float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float )
 {
 	if( leftResult.IsSmall( minSubsetHessian, minSubsetWeight ) ||
 		rightResult.IsSmall( minSubsetHessian, minSubsetWeight ) )
 	{
-		return -FLT_MAX;
+		return false;
 	}
 
-	return leftResult.CalcCriterion( l1RegFactor, l2RegFactor ) +
+	criterion = leftResult.CalcCriterion( l1RegFactor, l2RegFactor ) +
 		rightResult.CalcCriterion( l1RegFactor, l2RegFactor );
+	return true;
 }
 
 } // namespace NeoML
