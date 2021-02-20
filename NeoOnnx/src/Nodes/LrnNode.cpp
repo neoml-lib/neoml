@@ -37,7 +37,7 @@ CLrnNode::CLrnNode( const onnx::NodeProto& lrn, int opsetVersion ) :
 void CLrnNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Unknown input", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", OnnxNode );
 	CheckNeoOnnxSupport( inputs[0]->Shape().Size() <= 5, "6+ dimensional input", OnnxNode );
 
 	CDimOrder dimOrder( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );

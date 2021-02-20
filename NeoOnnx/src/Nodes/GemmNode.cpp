@@ -50,7 +50,7 @@ CGemmNode::CGemmNode( const onnx::NodeProto& gemm, int opsetVersion ) :
 void CGemmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( !inputs[0]->IsCalculated(), "pre-calculated input", OnnxNode );
+	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", OnnxNode );
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckOnnxProtocol( inputShape.Size() == 2, "input must be 2-dimensional", OnnxNode );
 	const int batchSize = inputShape[transA == 0 ? 0 : 1];
