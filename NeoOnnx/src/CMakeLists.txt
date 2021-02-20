@@ -28,7 +28,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/IdentityNode.cpp
     Nodes/LrnNode.cpp
     Nodes/LstmNode.cpp
-    #Nodes/MatMulNode.cpp
+    Nodes/MatMulNode.cpp
     Nodes/PadNode.cpp
     Nodes/PoolNode.cpp
     Nodes/ReshapeNode.cpp
@@ -64,7 +64,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/IdentityNode.h
     Nodes/LrnNode.h
     Nodes/LstmNode.h
-    #Nodes/MatMulNode.h
+    Nodes/MatMulNode.h
     Nodes/PadNode.h
     Nodes/PoolNode.h
     Nodes/ReshapeNode.h
