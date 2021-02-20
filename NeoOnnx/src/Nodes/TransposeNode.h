@@ -22,17 +22,14 @@ namespace NeoOnnx {
 // Transpose operator graph node
 class CTransposeNode : public COpNode {
 public:
-	CTransposeNode( int nodeIndex, const onnx::NodeProto& transpose, int opsetVersion );
+	CTransposeNode( const onnx::NodeProto& transpose, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
 
-private:
-	// Target permutation of axes
-	CFastArray<int, 8> perm;
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override { mask.Add( true ); }
 };
 
 } // namespace NeoOnnx

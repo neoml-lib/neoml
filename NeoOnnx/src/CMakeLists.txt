@@ -36,7 +36,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/SliceNode.cpp
     #Nodes/SoftmaxNode.cpp
     Nodes/SqueezeNode.cpp
-    #Nodes/TransposeNode.cpp
+    Nodes/TransposeNode.cpp
     Nodes/UnsqueezeNode.cpp
     TensorUtils.cpp
 
@@ -72,7 +72,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/SliceNode.h
     #Nodes/SoftmaxNode.h
     Nodes/SqueezeNode.h
-    #Nodes/TransposeNode.h
+    Nodes/TransposeNode.h
     Nodes/UnsqueezeNode.h
     Tensor.h
     TensorLayout.h

@@ -18,148 +18,80 @@ limitations under the License.
 
 #include "TransposeNode.h"
 #include "GraphInput.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-// Returns if subseq is a subsequence from the whole sequence
-// In terms that order between subseq elements is stored in whole
-// Elements of subseq aren't obliged to appear immediately right after another
-static bool isSubsequence( const CTensorDim& subseq, const CTensorDim& whole )
-{
-	if( subseq.IsEmpty() ) {
-		return true;
-	}
-
-	int prevElemPos = whole.Find( subseq[0] );
-	if( prevElemPos == -1 ) {
-		return false;
-	}
-
-	for( int i = 1; i < subseq.Size(); ++i ) {
-		int currElemPos = whole.Find( subseq[i], prevElemPos + 1 );
-		if( currElemPos == NotFound ) {
-			return false;
-		}
-		prevElemPos = currElemPos;
-	}
-
-	return true;
-}
-
-// Returns if current dimension list is subsequence of the channel-first ordering
-static bool isChannelFirst( const CTensorDim& dim )
-{
-	return isSubsequence( dim,
-		{ BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Channels, BD_Depth, BD_Height, BD_Width } );
-}
-
-// Returns if current dimension list is subsequence of the channel-last ordering
-static bool isChannelLast( const CTensorDim& dim )
-{
-	return isSubsequence( dim,
-		{ BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Height, BD_Width, BD_Depth, BD_Channels } );
-}
-
-typedef CFastArray<TBlobDim, 2> CDimensionPair;
-
-// Builds list of dimension swaps to emulate perm
-static void buildSwapList( const CTensorDim& inputDim, const CFastArray<int, 8>& perm, CArray<CDimensionPair>& swaps )
-{
-	CFastArray<int, 8> currPerm;
-	perm.CopyTo( currPerm );
-
-	for( int i = 0; i < currPerm.Size(); ++i ) {
-		if( currPerm[i] != i ) {
-			const int otherIndex = currPerm.Find( i );
-			swaps.SetSize( swaps.Size() + 1 );
-			swaps.Last().Add( inputDim[i] );
-			swaps.Last().Add( inputDim[otherIndex] );
-			swap( currPerm[i], currPerm[otherIndex] );
-		}
-		assert( currPerm[i] == i );
-	}
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-CTransposeNode::CTransposeNode( int nodeIndex, const onnx::NodeProto& transpose, int opsetVersion ) :
-	COpNode( nodeIndex, transpose, opsetVersion )
+CTransposeNode::CTransposeNode( const onnx::NodeProto& transpose, int opsetVersion ) :
+	COpNode( transpose, opsetVersion )
 {
 	// The differences between versions are in supported data types and legacy optimization attributes
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", transpose );
 
 	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", transpose );
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", transpose );
-
-	Attributes.GetRequiredIntArray( "perm", perm );
 }
 
-void CTransposeNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+// Gets actual dim order (explicitly, even when DT_Onnx)
+static void getDimOrder( int dimCount, const CTensorLayout& layout, CDimOrder& order )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
+	if( layout.DimType == DT_NeoML ) {
+		layout.OnnxOrder.CopyTo( order );
+		return;
+	}
 
-	const CTensorShape& inputShape = tensors[Input[0]].Shape;
-	CheckNeoOnnxSupport( inputShape.Size() == perm.Size(), "perm.Size doesn't match with input dimensions", OnnxNode );
-
-	CTensorShape& outputShape = tensors[Output[0]].Shape;
-	outputShape.SetSize( inputShape.Size() );
-
-	for( int i = 0; i < outputShape.Size(); ++i ) {
-		outputShape[i] = inputShape[perm[i]];
+	order.SetBufferSize( dimCount );
+	for( int i = 0; i < dimCount; ++i ) {
+		order.Add( static_cast<TBlobDim>( i ) );
 	}
 }
 
-void CTransposeNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
+// Returns is current (explicit) dim order is DT_Onnx
+static bool isOnnxDimOrder( const CDimOrder& order )
 {
-	if( !dims[Input[0]].IsEmpty() ) {
-		const CTensorDim& inputDim = dims[Input[0]];
-		CTensorDim outputDim;
-		outputDim.SetSize( inputDim.Size() );
-
-		for( int i = 0; i < perm.Size(); ++i ) {
-			outputDim[i] = inputDim[perm[i]];
+	for( int i = 0; i < order.Size(); ++i ) {
+		if( order[i] != static_cast<TBlobDim>( i ) ) {
+			return false;
 		}
-
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, outputDim, dims[Output[0]] ),
-			"labeling output dimensions failed", OnnxNode );
 	}
-
-	if( !dims[Output[0]].IsEmpty() ) {
-		const CTensorDim& outputDim = dims[Output[0]];
-		CTensorDim inputDim;
-		inputDim.SetSize( outputDim.Size() );
-
-		for( int i = 0; i < perm.Size(); ++i ) {
-			inputDim[perm[i]] = outputDim[i];
-		}
-
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, inputDim, dims[Input[0]] ),
-			"labeling input dimensions failed", OnnxNode );
-	}
+	return true;
 }
 
-void CTransposeNode::AddLayers( const CGraph& graph, const CTensorCache& /* tensors */, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
+void CTransposeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CArray<CDimensionPair> swaps;
-	buildSwapList( dims[Input[0]], perm, swaps );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "unknown input", OnnxNode );
 
-	CNeoMLLink currLink = neoMLLinks[Input[0]];
-	const CString baseName = Name + "_";
-	for( int i = 0; i < swaps.Size(); ++i ) {
-		CPtr<CTransposeLayer> currLayer = new CTransposeLayer( dnn.GetMathEngine() );
-		currLayer->SetName( baseName + Str( i ) );
-		currLayer->Connect( 0, *currLink.Layer, currLink.OutputIndex );
-		dnn.AddLayer( *currLayer );
-		currLink.Layer = currLayer;
-		currLink.OutputIndex = 0;
+	const CTensorShape& inputShape = inputs[0]->Shape();
+	const int dimCount = inputShape.Size();
+
+	CFastArray<int, 8> perm;
+	// Default value is reverse order
+	perm.SetBufferSize( dimCount );
+	for( int i = 0; i < dimCount; ++i ) {
+		perm.Add( dimCount - 1 - i );
+	}
+	Attributes.GetOptionalIntArray( "perm", perm );
+
+	// Working only with layout (converters will be added by next layers when needed)
+	CDimOrder inputDimOrder;
+	getDimOrder( dimCount, inputs[0]->Layout(), inputDimOrder );
+
+	CDimOrder outputDimOrder;
+	outputDimOrder.SetBufferSize( dimCount );
+	CTensorShape outputShape;
+	outputShape.SetBufferSize( dimCount );
+
+	for( int i = 0; i < dimCount; ++i ) {
+		outputDimOrder.Add( inputDimOrder[perm[i]] );
+		outputShape.Add( inputShape[perm[i]] );
 	}
 
-	neoMLLinks[Output[0]] = currLink;
+	outputs[0] = new CUserTensor( outputShape, 
+		isOnnxDimOrder( outputDimOrder ) ? CTensorLayout() : CTensorLayout( outputDimOrder ),
+		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() );
 }
 
 } // namespace NeoOnnx
