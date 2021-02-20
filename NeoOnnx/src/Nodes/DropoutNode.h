@@ -22,16 +22,18 @@ namespace NeoOnnx {
 // Dropout operator graph node
 class CDropoutNode : public COpNode {
 public:
-	CDropoutNode( int nodeIndex, const onnx::NodeProto& dropout, int opsetVersion );
+	CDropoutNode( const onnx::NodeProto& dropout, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-		CNeoMLLinkCache& neoMLLinks, CDnn& dnn ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 
 private:
-	float ratio; // The ratio of random dropout
+	float getRatio( const CObjectArray<const CTensorBase>& inputs ) const;
 };
 
 } // namespace NeoOnnx
