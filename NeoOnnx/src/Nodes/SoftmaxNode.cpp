@@ -17,15 +17,15 @@ limitations under the License.
 #pragma hdrstop
 
 #include "SoftmaxNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CSoftmaxNode::CSoftmaxNode( int nodeIndex, const onnx::NodeProto& softmax, int opsetVersion ) :
-	COpNode( nodeIndex, softmax, opsetVersion ),
+CSoftmaxNode::CSoftmaxNode( const onnx::NodeProto& softmax, int opsetVersion ) :
+	COpNode( softmax, opsetVersion ),
 	axis( Attributes.GetOptionalInt( "axis", 1 ) )
 {
 	// The differences between versions are in negative axis support
@@ -37,94 +37,60 @@ CSoftmaxNode::CSoftmaxNode( int nodeIndex, const onnx::NodeProto& softmax, int o
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", softmax );
 }
 
-void CSoftmaxNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CSoftmaxNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	tensors[Input[0]].Shape.CopyTo( tensors[Output[0]].Shape );
-}
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Unknown input", OnnxNode );
 
-void CSoftmaxNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
-{
-	if( !dims[Input[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, dims[Input[0]], dims[Output[0]] ),
-			"labeling output dimensions failed", OnnxNode );
-	}
+	const int dimCount = inputs[0]->Shape().Size();
+	CheckNeoOnnxSupport( axis < 3, "more than 3 batch dimensions", OnnxNode );
+	CheckNeoOnnxSupport( dimCount - axis + 1 < 4, "more than 4 object  dimensions", OnnxNode );
 
-	if( !dims[Output[0]].IsEmpty() ) {
-		CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, dims[Output[0]], dims[Input[0]] ),
-			"labeling input dimensions failed", OnnxNode );
-	}
-}
+	CDimOrder outputDimOrder;
+	getDimOrder( dimCount, axis, inputs[0]->Layout().OnnxOrder, outputDimOrder );
 
-void CSoftmaxNode::AddLayers( const CGraph& /* graph */, const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
-	const CTensorShape& shape = tensors[Input[0]].Shape;
-	CTensorDim outputDim;
-	getOutputDim( shape, dims, outputDim );
+	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout( outputDimOrder ) ).Ptr() );
 
 	CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer( dnn.GetMathEngine() );
-	softmax->SetName( Name );
-	softmax->SetNormalizationArea( getArea( shape, outputDim ) );
-	softmax->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
-
+	softmax->SetName( Name() );
+	softmax->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *softmax );
-	neoMLLinks[Output[0]] = CNeoMLLink( softmax, 0 );
+
+	outputs[0] = new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( softmax, 0 ) );
 }
 
-// Returns NeoML softmax area applicable to given tensor shape and dim
-CSoftmaxLayer::TNormalizationArea CSoftmaxNode::getArea( const CTensorShape& shape, const CTensorDim& dim ) const
+void CSoftmaxNode::getDimOrder( int dimCount, int axis, const CDimOrder& inputDimOrder, CDimOrder& dimOrder )
 {
-	// Softmax will be applied to all axes since axisIndex
-	const int axisIndex = axis >= 0 ? axis : axis + shape.Size();
+	if( inputDimOrder.IsEmpty() && axis == 3 ) {
+		// DT_Onnx is ok if axis == 3
+		return;
+	}
 
-	// Bit masks of axes of batch (softmax won't be applied) and object (softmax will be applied)
-	int onnxObjectAxes = 0;
-	int onnxBatchAxes = 0;
-	for( int i = 0; i < shape.Size(); ++i ) {
-		if( shape[i] != 1 ) {
-			if( i < axisIndex ) {
-				onnxBatchAxes |= ( 1 << dim[i] );
-			} else {
-				onnxObjectAxes |= ( 1<< dim[i] );
+	if( !inputDimOrder.IsEmpty() ) {
+		// Check whether NeoML dim order is compatible with softmax
+		bool isCompatible = true;
+		for( int i = 0; i < inputDimOrder.Size(); ++i ) {
+			if( ( i < axis && inputDimOrder[i] >= BD_Height ) // object dimension before axis
+				|| ( i >= axis && inputDimOrder[i] < BD_Height ) ) // batch dimension after axis
+			{
+				isCompatible = false;
+				break;
 			}
 		}
-	}
 
-	// Bit masks of possible softmax areas in NeoML
-	const int channelMask = 1 << BD_Channels;
-	const int objectSizeMask = channelMask | ( 1 << BD_Height ) | ( 1 << BD_Width ) | ( 1 << BD_Depth );
-	const int listSizeMask = 1 << BD_ListSize;
-	const int batchLengthMask = 1 << BD_BatchLength;
-
-	const CFastArray<int, 4> masks = { channelMask, objectSizeMask, listSizeMask, batchLengthMask };
-	const CFastArray<CSoftmaxLayer::TNormalizationArea, 4> areas = { CSoftmaxLayer::NA_Channel,
-		CSoftmaxLayer::NA_ObjectSize, CSoftmaxLayer::NA_ListSize, CSoftmaxLayer::NA_BatchLength };
-
-	for( int i = 0; i < masks.Size(); ++i ) {
-		if( ( masks[i] & onnxObjectAxes ) == onnxObjectAxes && ( masks[i] & onnxBatchAxes ) == 0 ) {
-			return areas[i];
+		if( isCompatible ) {
+			inputDimOrder.CopyTo( dimOrder );
+			return;
 		}
 	}
 
-	CheckNeoOnnxSupport( false, "unsupported softmax axes", OnnxNode );
-	return CSoftmaxLayer::NA_Count;
-}
-
-void CSoftmaxNode::getOutputDim( const CTensorShape& shape, const CDimCache& dims, CTensorDim& outputDim ) const
-{
-	if( !dims[Output[0]].IsEmpty() ) {
-		dims[Output[0]].CopyTo( outputDim );
-	}
-	CTensorDim batchDims = { BD_BatchLength, BD_BatchWidth, BD_ListSize };
-	CTensorDim objectDims = { BD_Channels, BD_Depth, BD_Height, BD_Width };
-
-	const int axisIndex = axis >= 0 ? axis : axis + shape.Size();
-	CheckNeoOnnxSupport( axisIndex <= 3 && shape.Size() - axisIndex <= 4, "too many dims to softmax", OnnxNode );
-
-	outputDim.SetSize( shape.Size() );
-	for( int i = 0; i < shape.Size(); ++i ) {
-		outputDim[i] = i < axisIndex ? batchDims[i] : objectDims[i - axisIndex];
+	dimOrder.SetBufferSize( dimCount );
+	for( int i = 0; i < dimCount; ++i ) {
+		if( i < axis ) {
+			dimOrder[i] = static_cast<TBlobDim>( i );
+		} else {
+			dimOrder[i] = static_cast<TBlobDim>( BD_Height + i - axis );
+		}
 	}
 }
 

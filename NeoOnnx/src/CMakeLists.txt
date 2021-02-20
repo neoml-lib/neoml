@@ -34,7 +34,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ReshapeNode.cpp
     Nodes/ShapeNode.cpp
     Nodes/SliceNode.cpp
-    #Nodes/SoftmaxNode.cpp
+    Nodes/SoftmaxNode.cpp
     Nodes/SqueezeNode.cpp
     Nodes/TransposeNode.cpp
     Nodes/UnsqueezeNode.cpp
@@ -70,7 +70,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/ReshapeNode.h
     Nodes/ShapeNode.h
     Nodes/SliceNode.h
-    #Nodes/SoftmaxNode.h
+    Nodes/SoftmaxNode.h
     Nodes/SqueezeNode.h
     Nodes/TransposeNode.h
     Nodes/UnsqueezeNode.h
