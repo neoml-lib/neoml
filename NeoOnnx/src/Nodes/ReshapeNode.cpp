@@ -28,7 +28,7 @@ CReshapeNode::CReshapeNode( const onnx::NodeProto& reshape, int opsetVersion ) :
 	COpNode( reshape, opsetVersion )
 {
 	// v1 - original
-	// v5 - removed legacy optimization attribute, "shape" moved from attributes to inputs
+	// v5 - removed legacy optimization attribute, "shape" moved from attributes to inputs, supported new data types
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", reshape );
 
 	if( OpsetVersion < 5 ) {
@@ -57,6 +57,8 @@ void CReshapeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CTransformLayer::CDimensionRule rule;
 		if( outputShape[dim] > 0 ) {
 			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, outputShape[dim] );
+		} else if( outputShape[dim] == 0 ) {
+			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_Multiply, 1 );
 		} else if( outputShape[dim] == -1 ) {
 			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, outputShape[dim] );
 		} else {
@@ -74,6 +76,21 @@ void CReshapeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	dnn.AddLayer( *transform );
 
 	outputs[0] = new CUserTensor( outputShape, CTensorLayout(), CLayerOutput( transform, 0 ) );
+}
+
+// Gets output shape
+void CReshapeNode::getShape( const CObjectArray<const CTensorBase>& inputs, CTensorShape& shape )
+{
+	if( OpsetVersion < 5 ) {
+		Attributes.GetRequiredIntArray( "shape", shape );
+		return;
+	}
+
+	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided output shape", OnnxNode );
+	const CDnnBlob* shapeBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
+	CheckOnnxProtocol( shapeBlob->GetDataType() == CT_Int, "Non-integer shape", OnnxNode );
+	shape.SetSize( shapeBlob->GetDataSize() );
+	shapeBlob->CopyTo( shape.GetPtr() );
 }
 
 } // namespace NeoOnnx
