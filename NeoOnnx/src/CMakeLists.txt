@@ -26,7 +26,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/GraphInitializer.cpp
     Nodes/GraphOutput.cpp
     Nodes/IdentityNode.cpp
-    #Nodes/LrnNode.cpp
+    Nodes/LrnNode.cpp
     Nodes/LstmNode.cpp
     #Nodes/MatMulNode.cpp
     Nodes/PadNode.cpp
@@ -62,7 +62,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Nodes/GraphInitializer.h
     Nodes/GraphOutput.h
     Nodes/IdentityNode.h
-    #Nodes/LrnNode.h
+    Nodes/LrnNode.h
     Nodes/LstmNode.h
     #Nodes/MatMulNode.h
     Nodes/PadNode.h

@@ -22,18 +22,15 @@ namespace NeoOnnx {
 // LRN operator graph node
 class CLrnNode : public COpNode {
 public:
-	CLrnNode( int nodeIndex, const onnx::NodeProto& lrn, int opsetVersion );
+	CLrnNode( const onnx::NodeProto& lrn, int opsetVersion );
 
-	// CNode methods' realizations
-	void CalcOutputTensors( CTensorCache& tensors, IMathEngine& mathEngine ) override;
-	void LabelTensorDims( const CTensorCache& tensors, CDimCache& dims ) override;
-	void AddLayers( const CGraph&, const CTensorCache&, const CDimCache&, CNeoMLLinkCache&, CDnn& ) override;
+	// CNode methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
 
-private:
-	float alpha;
-	float beta;
-	float bias;
-	int size;
+	// COpNode methods
+	void UserInputMask( CUserInputMask& mask ) const override
+		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 };
 
 } // namespace NeoOnnx

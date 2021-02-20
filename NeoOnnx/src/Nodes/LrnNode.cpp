@@ -17,19 +17,15 @@ limitations under the License.
 #pragma hdrstop
 
 #include "LrnNode.h"
-#include "GraphCache.h"
 #include "NeoOnnxCheck.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CLrnNode::CLrnNode( int nodeIndex, const onnx::NodeProto& lrn, int opsetVersion ) :
-	COpNode( nodeIndex, lrn, opsetVersion ),
-	alpha( Attributes.GetOptionalFloat( "alpha", 1e-4f ) ),
-	beta( Attributes.GetOptionalFloat( "beta", 0.75f ) ),
-	bias( Attributes.GetOptionalFloat( "bias", 1.f ) ),
-	size( Attributes.GetRequiredInt( "size" ) )
+CLrnNode::CLrnNode( const onnx::NodeProto& lrn, int opsetVersion ) :
+	COpNode( lrn, opsetVersion )
 {
 	// Introduce in opset v1
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", lrn );
@@ -38,39 +34,28 @@ CLrnNode::CLrnNode( int nodeIndex, const onnx::NodeProto& lrn, int opsetVersion 
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", lrn );
 }
 
-void CLrnNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CLrnNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
-	tensors[Output[0]] = tensors[Input[0]];
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Unknown input", OnnxNode );
+	CheckNeoOnnxSupport( inputs[0]->Shape().Size() <= 5, "6+ dimensional input", OnnxNode );
+
+	CDimOrder dimOrder( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
+	dimOrder.SetSize( inputs[0]->Shape().Size() );
+
+	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout( dimOrder ) ).Ptr() );
+
+	CPtr<CLrnLayer> lrn = new CLrnLayer( dnn.GetMathEngine() );
+	lrn->SetName( Name() );
+	lrn->SetWindowSize( Attributes.GetRequiredInt( "size" ) );
+	lrn->SetBias( Attributes.GetOptionalFloat( "bias", 1 ) );
+	lrn->SetAlpha( Attributes.GetOptionalFloat( "alpha", 1e-4f ) );
+	lrn->SetBeta( Attributes.GetOptionalFloat( "beta", 0.75f ) );
+	lrn->Connect( 0, *input->Layer(), input->OutputIndex() );
+	dnn.AddLayer( *lrn );
+
+	outputs[0] = new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( lrn, 0 ) );
 }
 
-void CLrnNode::LabelTensorDims( const CTensorCache &tensors, CDimCache &dims )
-{
-	CTensorDim tensorDims;
-	if( tensors[Input[0]].Shape.Size() == 4 ) {
-		tensorDims.Add( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
-	} else {
-		tensorDims.Add( { BD_BatchWidth, BD_Channels, BD_Depth, BD_Height, BD_Width } );
-	}
-
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, tensorDims, dims[Output[0]] ),
-		"labeling output dimensions failed", OnnxNode );
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, tensorDims, dims[Input[0]] ),
-		"labeling output dimensions failed", OnnxNode );
-}
-
-void CLrnNode::AddLayers( const CGraph& /* graph */, const CTensorCache& /* tensors */, const CDimCache& /* dims */,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
-	CPtr<CLrnLayer> lrnLayer = new CLrnLayer( dnn.GetMathEngine() );
-	lrnLayer->SetName( Name );
-	lrnLayer->SetWindowSize( size );
-	lrnLayer->SetBias( bias );
-	lrnLayer->SetAlpha( alpha );
-	lrnLayer->SetBeta( beta );
-	lrnLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
-	dnn.AddLayer( *lrnLayer );
-	neoMLLinks[Output[0]] = CNeoMLLink( lrnLayer.Ptr(), 0 );
-}
 
 } // namespace NeoOnnx
