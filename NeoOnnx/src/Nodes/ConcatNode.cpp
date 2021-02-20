@@ -74,7 +74,9 @@ void CConcatNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		concat->Connect( inputIndex, *preparedInput->Layer(), preparedInput->OutputIndex() );
 		outputShape[axis] += inputs[inputIndex]->Shape()[axis];
 	}
-	
+
+	dnn.AddLayer( *concat );
+
 	outputs[0] = new CUserTensor( outputShape, inputLayout, CLayerOutput( concat, 0 ) );
 }
 
