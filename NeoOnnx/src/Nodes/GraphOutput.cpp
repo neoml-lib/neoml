@@ -38,8 +38,7 @@ bool CGraphOutput::CanCalculateOutput( const CObjectArray<const CTensorBase>& /*
 void CGraphOutput::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& /* outputs */, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(),
-		"Output node must have user-dependent data as input" );
+	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "COutputNode expects user-provided input" );
 
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
 	sink->SetName( Name() );
