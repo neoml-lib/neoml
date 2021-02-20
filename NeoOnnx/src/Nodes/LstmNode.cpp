@@ -18,107 +18,100 @@ limitations under the License.
 
 #include "LstmNode.h"
 #include "NeoOnnxCheck.h"
-#include "NodeUtils.h"
+#include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
 
-CLstmNode::CLstmNode( int nodeIndex, const onnx::NodeProto& lstm, int opsetVersion ) :
-	COpNode( nodeIndex, lstm, opsetVersion ),
+CLstmNode::CLstmNode( const onnx::NodeProto& lstm, int opsetVersion ) :
+	COpNode( lstm, opsetVersion ),
 	direction( Attributes.GetOptionalString( "direction", "forward" ) ),
 	hiddenSize( Attributes.GetRequiredInt( "hidden_size" ) )
 {
-	// The differences between versions are in some flags and support (i.e. output_sequence)
+	// v1 - original
+	// v7 - added initial state and peephole weight inputs
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", lstm );
 
 	CheckOnnxProtocol( InputCount() >= 3 && InputCount() <= 8, "node must have from 3 upto 8 inputs", lstm );
 	CheckOnnxProtocol( OutputCount() >= 1 && OutputCount() <= 3, "node must have from 1 upto 3 outputs", lstm );
 
 	CheckNeoOnnxSupport( direction != "bidirectional", "bidirectional LSTM", lstm );
+
+	CheckNeoOnnxSupport( !Attributes.Has( "clip" ), "'clip' attirbute", lstm );
+	CheckNeoOnnxSupport( !Attributes.Has( "activations" ), "different activations", lstm );
+	CheckNeoOnnxSupport( !Attributes.Has( "activation_alpha" ), "'activation_alpha' attirbute", lstm );
+	CheckNeoOnnxSupport( !Attributes.Has( "activation_beta" ), "'activation_beta' attirbute", lstm );
 }
 
-void CLstmNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* mathEngine */ )
+void CLstmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
+	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "constant input", OnnxNode );
-	CheckNeoOnnxSupport( tensors[Input[1]].Data != nullptr, "non-constant weight", OnnxNode );
-	CheckNeoOnnxSupport( tensors[Input[2]].Data != nullptr, "non-constant recurrent weight", OnnxNode );
+	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Data input", OnnxNode );
 
-	const CTensorShape& inputShape = tensors[Input[0]].Shape;
+	const CTensorShape& inputShape = inputs[0]->Shape();
 
-	CPtr<CDnnBlob> biasValue = nullptr;
-	if( InputCount() > 3 && Input[3].NodeIndex != NotFound ) {
-		const CTensor& bias = tensors[Input[3]];
-		CheckNeoOnnxSupport( bias.Data != nullptr, "non-constant bias", OnnxNode );
+	CPtr<CDnnBlob> bias = nullptr;
+	if( InputCount() > 3 && inputs[3] != nullptr ) {
+		CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided bias", OnnxNode );
+		bias = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data()->GetCopy();
 	}
 
 	// NeoML doesn't support sequence lengths
-	CheckNeoOnnxSupport( InputCount() <= 4 || Input[4].NodeIndex == NotFound, "sequence lengths", OnnxNode );
-	if( InputCount() > 5 && Input[5].NodeIndex != NotFound ) {
-		const CTensor& initialH = tensors[Input[5]];
-		CheckNeoOnnxSupport( initialH.Data != nullptr, "non-constant initial history", OnnxNode );
-	}
-	if( InputCount() > 6 && Input[6].NodeIndex != NotFound ) {
-		const CTensor& initialC = tensors[Input[6]];
-		CheckNeoOnnxSupport( initialC.Data != nullptr, "non-constant initial state", OnnxNode );
-	}
+	CheckNeoOnnxSupport( InputCount() <= 4 || inputs[4] == nullptr, "sequence lengths", OnnxNode );
 
-	CheckNeoOnnxSupport( InputCount() < 8 || Input[7].NodeIndex == NotFound, "peepholes", OnnxNode );
-	CheckNeoOnnxSupport( tensors[Input[0]].Data == nullptr, "output pre-calculation", OnnxNode );
+	// NeoML doesn't support peepholes
+	CheckNeoOnnxSupport( InputCount() <= 7 || inputs[7] == nullptr, "peepholes", OnnxNode );
 
-	const int sequenceLength = inputShape[0];
-	const int batchSize = inputShape[1];
-	tensors[Output[0]].Shape = { sequenceLength, 1, batchSize, hiddenSize };
-}
+	CPtr<const CUserTensor> inputData = dynamic_cast<const CUserTensor*>(
+		ConvertTensor( *inputs[0], CTensorLayout( { BD_BatchLength, BD_BatchWidth, BD_Channels } ) ).Ptr() );
 
-void CLstmNode::LabelTensorDims( const CTensorCache& tensors, CDimCache& dims )
-{
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Output[0]].Shape, { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels },
-		dims[Output[0]] ), "labeling output dimensions failed", OnnxNode );
-	CheckNeoOnnxInternal( SetTensorDim( tensors[Input[0]].Shape, { BD_BatchLength, BD_BatchWidth, BD_Channels },
-		dims[Input[0]] ), "labeling input dimensions failed", OnnxNode );
-}
-
-void CLstmNode::AddLayers( const CGraph& graph, const CTensorCache& tensors, const CDimCache& dims,
-	CNeoMLLinkCache& neoMLLinks, CDnn& dnn )
-{
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 	CPtr<CLstmLayer> lstmLayer = new CLstmLayer( mathEngine );
-	lstmLayer->SetName( Name );
+	lstmLayer->SetName( Name() );
 
-	CPtr<CDnnBlob> weightMatrix = tensors[Input[1]].Data->GetCopy();
-	CPtr<CDnnBlob> recurWeightMatrix = tensors[Input[2]].Data->GetCopy();
+	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided weight", OnnxNode );
+	CPtr<CDnnBlob> weights = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy();\
 
-	const int inputObjectSize = weightMatrix->DimSize( 1 );
+	const int inputObjectSize = weights->DimSize( 1 );
 
 	CBlobDesc blobDesc( CT_Float );
 	blobDesc.SetDimSize( BD_BatchWidth, 4 * hiddenSize );
 	blobDesc.SetDimSize( BD_Channels, inputObjectSize );
-	weightMatrix->ReinterpretDimensions( blobDesc );
+	weights->ReinterpretDimensions( blobDesc );
 	blobDesc.SetDimSize( BD_Channels, hiddenSize );
-	recurWeightMatrix->ReinterpretDimensions( blobDesc );
+	
+	CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided recurrent weight", OnnxNode );
+	CPtr<CDnnBlob> recurWeights = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy();
+	recurWeights->ReinterpretDimensions( blobDesc );
 
 	lstmLayer->SetHiddenSize( hiddenSize );
-	weightMatrix = reorderGates( weightMatrix, BD_BatchWidth );
-	weightMatrix = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, weightMatrix );
-	recurWeightMatrix = reorderGates( recurWeightMatrix, BD_BatchWidth );
-	recurWeightMatrix = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, recurWeightMatrix );
+	weights = reorderGates( weights, BD_BatchWidth );
+	recurWeights = reorderGates( recurWeights, BD_BatchWidth );
 
-	lstmLayer->SetInputWeightsData( weightMatrix );
-	lstmLayer->SetRecurWeightsData( recurWeightMatrix );
+	lstmLayer->SetInputWeightsData( weights );
+	lstmLayer->SetRecurWeightsData( recurWeights );
 
-	if( InputCount() > 3 && Input[3].NodeIndex != NotFound ) {
-		CPtr<CDnnBlob> neoMLBias = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 1, 4 * hiddenSize );
-		mathEngine.VectorCopy( neoMLBias->GetData(), tensors[Input[3]].Data->GetData(), 4 * hiddenSize );
-		neoMLBias = reorderGates( neoMLBias, BD_Channels );
-		neoMLBias = RepackWeightIfFlattened( graph[Input[0]], tensors, dims, neoMLBias );
-		lstmLayer->SetInputFreeTermData( neoMLBias );
-		lstmLayer->SetRecurFreeTermData( nullptr );
+	if( bias != nullptr ) {
+		CPtr<CDnnBlob> weightBias = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 1, 4 * hiddenSize );
+		CPtr<CDnnBlob> recurBias = weightBias->GetClone();
+
+		mathEngine.VectorCopy( weightBias->GetData(), bias->GetData(), 4 * hiddenSize );
+		mathEngine.VectorCopy( recurBias->GetData(), bias->GetData() + 4 * hiddenSize, 4 * hiddenSize );
+
+		weightBias = reorderGates( weightBias, BD_Channels );
+		recurBias = reorderGates( recurBias, BD_Channels );
+
+		lstmLayer->SetInputFreeTermData( weightBias );
+		lstmLayer->SetRecurFreeTermData( recurBias );
 	}
 
-	lstmLayer->Connect( 0, *neoMLLinks[Input[0]].Layer, neoMLLinks[Input[0]].OutputIndex );
+	lstmLayer->Connect( 0, *inputData->Layer(), inputData->OutputIndex() );
 	dnn.AddLayer( *lstmLayer );
-	neoMLLinks[Output[0]] = CNeoMLLink( lstmLayer, 0 );
+
+	outputs[0] = new CUserTensor( { inputShape[0], 1, inputShape[1], hiddenSize },
+		CTensorLayout( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } ),
+		CLayerOutput( lstmLayer, 0 ) );
 }
 
 // Converts lstm weights from onnx format to NeoML
