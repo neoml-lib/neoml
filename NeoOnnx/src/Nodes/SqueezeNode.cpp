@@ -75,8 +75,6 @@ void CSqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFastA
 
 	int axeIndex = 0;
 	int inputDimIndex = 0;
-	outputShape.SetBufferSize( axes.Size() - inputShape.Size() );
-
 	for( int i = 0; i < inputShape.Size(); ++i ) {
 		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
 			++axeIndex;
