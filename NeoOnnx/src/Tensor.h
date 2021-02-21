@@ -47,7 +47,16 @@ public:
 	
 protected:
 	CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout ) :
-		layout( _layout ) { _shape.CopyTo( shape ); }
+		layout( _layout )
+	{ 
+		_shape.CopyTo( shape );
+		// TODO: DEBUG delete after fix
+		if( layout.DimType == DT_Onnx ) {
+			NeoPresume( layout.OnnxOrder.IsEmpty() );
+		} else {
+			NeoPresume( layout.OnnxOrder.Size() == shape.Size() );
+		}
+	}
 	CTensorBase( const CTensorBase& other ) = delete;
 	CTensorBase& operator=( const CTensorBase& other ) = delete;
 	virtual ~CTensorBase() = default;
@@ -73,7 +82,12 @@ private:
 class CUserTensor : public CTensorBase {
 public:
 	CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output ) :
-		CTensorBase( shape, layout ), layerOutput( output ) {}
+		CTensorBase( shape, layout ), layerOutput( output )
+	{
+		// TODO: DEBUG delete later
+		NeoPresume( output.Layer != nullptr );
+		NeoPresume( output.OutputIndex >= 0 );
+	}
 
 	// CTensorBase methods implementation
 	bool IsCalculated() const override { return false; }
@@ -92,7 +106,27 @@ private:
 class CDataTensor : public CTensorBase {
 public:
 	CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& _data ) :
-		CTensorBase( shape, layout ), data( &_data ) {}
+		CTensorBase( shape, layout ), data( &_data )
+	{
+		// TODO: DEBUG delete after debugging
+		if( layout.DimType == DT_Onnx ) {
+			for( int i = 0; i < shape.Size(); ++i ) {
+				NeoPresume( shape[i] == data->DimSize( i ) );
+			}
+			for( int i = shape.Size(); i < static_cast< int >( BD_Count ); ++i ) {
+				NeoPresume( data->DimSize( i ) == 1 );
+			}
+		} else {
+			for( TBlobDim i = BD_BatchLength; i < BD_Count; ++i ) {
+				const int index = layout.OnnxOrder.Find( i );
+				if( index == NotFound ) {
+					NeoPresume( data->DimSize( i ) == 1 );
+				} else {
+					NeoPresume( shape[index] == data->DimSize( i ) );
+				}
+			}
+		}
+	}
 
 	// CTensorBase methods implementation
 	bool IsCalculated() const override { return true; }
