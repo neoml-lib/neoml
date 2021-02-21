@@ -57,7 +57,7 @@ void CSqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 void CSqueezeNode::getAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
 {
 	axes.Empty();
-	Attributes.GetOptionalIntArray( "axes", axes );
+	Attributes.GetRequiredIntArray( "axes", axes );
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
 			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", OnnxNode );
