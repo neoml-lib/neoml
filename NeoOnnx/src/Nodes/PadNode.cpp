@@ -68,17 +68,18 @@ CPtr<const CUserTensor> convertTensorBeforeImageResize( const CUserTensor& input
 	}
 
 	CDimOrder newOrder;
+	newOrder.SetBufferSize( input.Shape().Size() );
 	for( int i = 0; i < input.Shape().Size(); ++i ) {
 		if( i == heightDimIndex ) {
-			newOrder[i] = BD_Height;
+			newOrder.Add( BD_Height );
 		} else if( i == widthDimIndex ) {
-			newOrder[i] = BD_Width;
+			newOrder.Add( BD_Width );
 		} else if( widthDimIndex == NotFound ) {
-			newOrder[i] = i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
-				: static_cast<TBlobDim>( i + 1 );
+			newOrder.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
+				: static_cast<TBlobDim>( i + 1 ) );
 		} else {
-			newOrder[i] = i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
-				: static_cast<TBlobDim>( i + 2 );
+			newOrder.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
+				: static_cast<TBlobDim>( i + 2 ) );
 		}
 	}
 
