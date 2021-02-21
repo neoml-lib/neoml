@@ -97,7 +97,7 @@ static void addNode( CNode& node, CTensorCache& tensors, CDnn& dnn )
 }
 
 // Builds dnn based on GraphProto
-static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion, CDnn& dnn )
+static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion, CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs )
 {
 	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
@@ -125,6 +125,7 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 		}
 		CGraphInput input( onnxInput );
 		addNode( input, tensors, dnn );
+		inputs.Add( dnn.GetLayer( onnxInput.name().c_str() )->GetName() );
 	}
 
 	// Add onnx graph's nodes and connect them
@@ -137,10 +138,11 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 	for( const onnx::ValueInfoProto& onnxOutput : onnxGraph.output() ) {
 		CGraphOutput output( onnxOutput );
 		addNode( output, tensors, dnn );
+		outputs.Add( dnn.GetLayer( onnxOutput.name().c_str() )->GetName() );
 	}
 }
 
-void LoadFromOnnx( const char* fileName, CDnn& dnn )
+void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -156,7 +158,7 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn )
 			NeoOnnxCheck( false, CString( "Failed to parse model from file " ) + fileName );
 		}
 
-		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn );
+		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, inputs, outputs );
 	} catch( ... ) {
 		input.close();
 		google::protobuf::ShutdownProtobufLibrary();
@@ -167,7 +169,7 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn )
 	google::protobuf::ShutdownProtobufLibrary();
 }
 
-void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn )
+void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -180,7 +182,7 @@ void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn )
 			NeoOnnxCheck( false, "Failed to parse model from buffer" );
 		}
 
-		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn );
+		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, inputs, outputs );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;
