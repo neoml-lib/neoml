@@ -146,8 +146,10 @@ void CEltwiseNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 
 	CObjectArray<const CTensorBase> currInputs;
 	inputs.CopyTo( currInputs );
-	// Preparing values in case of subtraction or division
-	currInputs[1] = prepareSecondInput( currInputs );
+	if( argsNum == 2 ) {
+		// Preparing values in case of subtraction or division
+		currInputs[1] = prepareSecondInput( currInputs );
+	}
 	// Broadcast input to the final shape and set proper layout
 	for( int i = 0; i < inputs.Size(); ++i ) {
 		currInputs[i] = broadcast( *currInputs[i], BroadcastInfo(), outputShape );
@@ -277,7 +279,7 @@ CPtr<const CTensorBase> CEltwiseNodeBase::prepareSecondInput( const CObjectArray
 	// operation is O_Div
 	// a / b = a * (1 / b)
 	// in that case we can't imitate (1 / x) operation by layer that's why only CDataTensor is supported
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "Division suypports only data tensor as second input", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "Div supports only data tensor as second input", OnnxNode );
 	CPtr<const CDataTensor> secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
 	CPtr<CDnnBlob> newBlob = secondInput->Data()->GetClone();
 	newBlob->GetMathEngine().VectorInv( secondInput->Data()->GetData(), newBlob->GetData(), newBlob->GetDataSize() );
