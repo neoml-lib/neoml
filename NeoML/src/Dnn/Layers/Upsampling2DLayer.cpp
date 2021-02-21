@@ -49,8 +49,6 @@ void CUpsampling2DLayer::Reshape()
 	NeoAssert( GetInputCount() == GetOutputCount() );
 
 	for( int i = 0; i < GetInputCount(); ++i ) {
-		NeoAssert( inputDescs[i].BatchLength() == 1 );
-
 		outputDescs[0] = inputDescs[0];
 		outputDescs[0].SetDimSize(BD_Height, heightCopyCount * inputDescs[i].Height());
 		outputDescs[0].SetDimSize(BD_Width, widthCopyCount * inputDescs[i].Width());
