@@ -43,8 +43,8 @@ void CSoftmaxNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Unknown input", OnnxNode );
 
 	const int dimCount = inputs[0]->Shape().Size();
-	CheckNeoOnnxSupport( axis < 3, "more than 3 batch dimensions", OnnxNode );
-	CheckNeoOnnxSupport( dimCount - axis + 1 < 4, "more than 4 object  dimensions", OnnxNode );
+	CheckNeoOnnxSupport( axis <= 3, "more than 3 batch dimensions", OnnxNode );
+	CheckNeoOnnxSupport( dimCount - axis + 1 <= 4, "more than 4 object  dimensions", OnnxNode );
 
 	CDimOrder outputDimOrder;
 	getDimOrder( dimCount, axis, inputs[0]->Layout().OnnxOrder, outputDimOrder );
