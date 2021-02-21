@@ -80,6 +80,7 @@ void CUnsqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFas
 	for( int i = 0; i < axes.Size() + inputShape.Size(); ++i ) {
 		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
 			outputShape.Add( 1 );
+			++axeIndex;
 		} else {
 			CheckNeoOnnxInternal( inputDimIndex < inputShape.Size(), "Wrong dimensions number", OnnxNode );
 			outputShape.Add( inputShape[inputDimIndex] );
