@@ -46,7 +46,7 @@ void CUnsqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	calcOutputShape( inputs[0]->Shape(), axes, outputShape );
 
 	CDimOrder outputDimOrder;
-	calcOutputDimOrder( inputs[0]->Layout().OnnxOrder, axes, outputDimOrder );
+	calcOutputDimOrder( inputs[0]->Shape().Size(), inputs[0]->Layout().OnnxOrder, axes, outputDimOrder );
 
 	outputs[0] = new CUserTensor( outputShape, CTensorLayout( outputDimOrder ),
 		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() );
@@ -89,13 +89,16 @@ void CUnsqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFas
 }
 
 // Calculates output tensor's dim order
-void CUnsqueezeNode::calcOutputDimOrder( const CDimOrder& inputDimOrder, const CFastArray<int, 8>& axes, CDimOrder& outputDimOrder ) const
+void CUnsqueezeNode::calcOutputDimOrder( int dimCount, const CDimOrder& _inputDimOrder, const CFastArray<int, 8>& axes, CDimOrder& outputDimOrder ) const
 {
+	CDimOrder inputDimOrder;
+	_inputDimOrder.CopyTo( inputDimOrder );
+
 	if( inputDimOrder.IsEmpty() ) {
-		// Original layout is Onnx
-		// No need in conversion
-		outputDimOrder.Empty();
-		return;
+		inputDimOrder.SetBufferSize( dimCount );
+		for( int i = 0; i < dimCount; ++i ) {
+			inputDimOrder.Add( static_cast<TBlobDim>( i ) );
+		}
 	}
 
 	// NeoML layout
@@ -120,6 +123,15 @@ void CUnsqueezeNode::calcOutputDimOrder( const CDimOrder& inputDimOrder, const C
 			++inputDimIndex;
 		}
 	}
+
+	// Check if output order is DT_Onnx
+	for( int i = 0; i < outputDimOrder.Size(); ++i ) {
+		if( outputDimOrder[i] != static_cast<TBlobDim>( i ) ) {
+			return;
+		}
+	}
+	// Output dim order is DT_Onnx
+	outputDimOrder.Empty();
 }
 
 } // namespace NeoOnnx
