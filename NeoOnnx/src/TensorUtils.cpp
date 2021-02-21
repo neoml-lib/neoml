@@ -105,11 +105,11 @@ CPtr<const CTensorBase> reinterpretDimensions( const CTensorBase& input, const C
 	CDimOrder outputOrder;
 	getDimOrder( input.Shape(), outputLayout, outputOrder );
 
+	const CDataTensor& inputDataTensor = dynamic_cast<const CDataTensor&>( input );
 	if( isEqual( inputOrder, outputOrder ) ) {
-		return &input;
+		return new CDataTensor( input.Shape(), outputLayout, *inputDataTensor.Data() );
 	}
 
-	const CDataTensor& inputDataTensor = dynamic_cast<const CDataTensor&>( input );
 	const CDnnBlob* inputBlob = inputDataTensor.Data();
 
 	const CBlobDesc& inputDesc = inputBlob->GetDesc();
@@ -144,11 +144,11 @@ CPtr<const CTensorBase> reinterpretDimensions<false>( const CTensorBase& input, 
 	CDimOrder outputOrder;
 	getDimOrder( inputShape, outputLayout, outputOrder );
 
+	const CUserTensor& inputUserTensor = dynamic_cast<const CUserTensor&>( input );
 	if( isEqual( inputOrder, outputOrder ) ) {
-		return &input;
+		return new CUserTensor( inputShape, outputLayout, inputUserTensor.LayerOutput() );
 	}
 
-	const CUserTensor& inputUserTensor = dynamic_cast<const CUserTensor&>( input );
 	CLayerOutput currLayerOutput = inputUserTensor.LayerOutput();
 	CheckNeoOnnxInternal( currLayerOutput.Layer != nullptr && currLayerOutput.OutputIndex != NotFound,
 		"Uninitialized layer output" );
@@ -305,7 +305,7 @@ CPtr<const CTensorBase> convertWithinSameDimType( const CTensorBase& input, cons
 
 	// Since this moment, both layouts definitely have DT_NeoML dim type
 
-	if( isEqual( inputLayout.OnnxOrder, inputLayout.OnnxOrder ) ) {
+	if( isEqual( inputLayout.OnnxOrder, outputLayout.OnnxOrder ) ) {
 		// No changes in data needed
 		return &input;
 	}
