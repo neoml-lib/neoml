@@ -67,12 +67,14 @@ void CTransposeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	const int dimCount = inputShape.Size();
 
 	CFastArray<int, 8> perm;
-	// Default value is reverse order
-	perm.SetBufferSize( dimCount );
-	for( int i = 0; i < dimCount; ++i ) {
-		perm.Add( dimCount - 1 - i );
-	}
 	Attributes.GetOptionalIntArray( "perm", perm );
+	if( perm.IsEmpty() ) {
+		// Default value is reverse order
+		perm.SetBufferSize( dimCount );
+		for( int i = 0; i < dimCount; ++i ) {
+			perm.Add( dimCount - 1 - i );
+		}
+	}
 
 	// Working only with layout (converters will be added by next layers when needed)
 	CDimOrder inputDimOrder;
