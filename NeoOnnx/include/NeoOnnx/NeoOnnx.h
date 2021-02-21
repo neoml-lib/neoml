@@ -29,7 +29,7 @@ namespace NeoOnnx {
 // For every onnx graph output there will be CSinkLayer with the same name
 //
 // Throws std::logic_error if failed to load network
-NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn );
+NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
 
 // Loads network "dnn" from buffer with onnx data
 //
@@ -40,6 +40,6 @@ NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn );
 // For every onnx graph output there will be CSinkLayer with the same name
 //
 // Throws std::logic_error if failed to load network
-NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn );
+NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
 
 } // namespace NeoOnnx
