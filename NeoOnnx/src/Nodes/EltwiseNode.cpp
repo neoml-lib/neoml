@@ -70,17 +70,18 @@ CPtr<const CUserTensor> convertTensorBeforeUpsample( const CUserTensor& input, i
 	}
 
 	CDimOrder newOrder;
+	newOrder.SetBufferSize( input.Shape().Size() );
 	for( int i = 0; i < input.Shape().Size(); ++i ) {
 		if( i == heightDimIndex ) {
-			newOrder[i] = BD_Height;
+			newOrder.Add( BD_Height );
 		} else if( i == widthDimIndex ) {
-			newOrder[i] = BD_Width;
+			newOrder.Add( BD_Width );
 		} else if( widthDimIndex == NotFound ) {
-			newOrder[i] = i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
-				: static_cast<TBlobDim>( i + 1 );
+			newOrder.Add( i < static_cast<int>( BD_Height ) ? static_cast<TBlobDim>( i )
+				: static_cast<TBlobDim>( i + 1 ) );
 		} else {
-			newOrder[i] = i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
-				: static_cast<TBlobDim>( i + 2 );
+			newOrder.Add( i < static_cast<int>( BD_Height ) ? static_cast<TBlobDim>( i )
+				: static_cast<TBlobDim>( i + 2 ) );
 		}
 	}
 
@@ -348,14 +349,15 @@ CPtr<const CUserTensor> CEltwiseNodeBase::broadcast( const CUserTensor& input, c
 		axis = broadcastInfo.Axis;
 	}
 
-	CPtr<const CUserTensor> currData = &input;
+	CPtr<const CUserTensor> currData = padTensorShape( input, outputShape.Size(), axis );
 	CPtr<CUpsampling2DLayer> upsample = nullptr;
 	int heightDimIndex = NotFound;
 	int widthDimIndex = NotFound;
-	const CTensorShape& inputShape = input.Shape();
+	CTensorShape inputShape;
+	currData->Shape().CopyTo( inputShape );
 
 	for( int i = 0; i < inputShape.Size(); ++i ) {
-		if( inputShape[i] == outputShape[axis + i] ) {
+		if( inputShape[i] == outputShape[i] ) {
 			continue;
 		}
 		// TODO: delete after debug
@@ -368,10 +370,10 @@ CPtr<const CUserTensor> CEltwiseNodeBase::broadcast( const CUserTensor& input, c
 
 		if( heightDimIndex == NotFound ) {
 			heightDimIndex = i;
-			upsample->SetHeightCopyCount( outputShape[axis + i] );
+			upsample->SetHeightCopyCount( outputShape[i] );
 		} else {
 			widthDimIndex = i;
-			upsample->SetWidthCopyCount( outputShape[axis + i] );
+			upsample->SetWidthCopyCount( outputShape[i] );
 			currData = addUpsample2dLayer( *upsample, dnn, *currData, heightDimIndex, widthDimIndex );
 			upsample = nullptr;
 			heightDimIndex = NotFound;
@@ -383,10 +385,63 @@ CPtr<const CUserTensor> CEltwiseNodeBase::broadcast( const CUserTensor& input, c
 	// In that case by this moment upsample != nullptr
 	// heightDimIndex will be defined but widthDimIndex will remain NotFound
 	if( upsample != nullptr ) {
+		upsample->SetWidthCopyCount( 1 ); // Default value is 0 which is invalid
 		currData = addUpsample2dLayer( *upsample, dnn, *currData, heightDimIndex, widthDimIndex );
 	}
 
 	return currData;
+}
+
+// Pads shape with '1' without changing the data
+CPtr<const CUserTensor> CEltwiseNodeBase::padTensorShape( const CUserTensor& input, int dimCount, int axis ) const
+{
+	const CTensorShape& inputShape = input.Shape();
+	CheckNeoOnnxInternal( axis + inputShape.Size() <= dimCount, "Wrong axis in broadcast", OnnxNode );
+
+	CTensorShape outputShape;
+	outputShape.Add( 1, axis );
+	outputShape.Add( inputShape );
+	outputShape.Add( 1, dimCount - outputShape.Size() );
+
+	CDimOrder inputDimOrder;
+	if( input.Layout().DimType == DT_Onnx ) {
+		if( axis == 0 ) {
+			// Tensor of size (D1 x ... x Dn) transforms into (D1 x ... x Dn x 1 x 1 x ... )
+			// In DT_Onnx there is no need to calculate layout in that case
+			return new CUserTensor( outputShape, input.Layout(), input.LayerOutput() );
+		}
+		
+		inputDimOrder.SetBufferSize( inputShape.Size() );
+		for( int i = 0; i < inputShape.Size(); ++i ) {
+			inputDimOrder.Add( static_cast<TBlobDim>( i ) );
+		}
+	} else {
+		input.Layout().OnnxOrder.CopyTo( inputDimOrder );
+	}
+
+	TBlobDim currDim = BD_BatchLength;
+	CDimOrder outputDimOrder;
+	outputDimOrder.SetBufferSize( dimCount );
+	// Adding unused blob dims to the new layout
+	for( int i = 0; i < axis; ++i ) {
+		while( inputDimOrder.Find( currDim ) != NotFound && currDim < BD_Count ) {
+			++currDim;
+		}
+		CheckNeoOnnxInternal( currDim != BD_Count, "Wrong axis index", OnnxNode );
+		outputDimOrder.Add( currDim );
+	}
+	// Copying existing dims
+	outputDimOrder.Add( inputDimOrder );
+	// Adding unused blob dims to the new layout
+	for( int i = outputDimOrder.Size(); i < dimCount; ++i ) {
+		while( inputDimOrder.Find( currDim ) != NotFound && currDim < BD_Count ) {
+			++currDim;
+		}
+		CheckNeoOnnxInternal( currDim != BD_Count, "Wrong axis index", OnnxNode );
+		outputDimOrder.Add( currDim );
+	}
+
+	return new CUserTensor( outputShape, CTensorLayout( outputDimOrder ), input.LayerOutput() );
 }
 
 // --------------------------------------------------------------------------------------------------------------------

@@ -76,6 +76,7 @@ private:
 	CPtr<const CDataTensor> broadcast( const CDataTensor& input, const CBroadcastInfo& broadcast, const CTensorShape& outputShape ) const;
 	CPtr<const CUserTensor> broadcast( const CUserTensor& input, const CBroadcastInfo& broadcast, const CTensorShape& outputShape ) const;
 	CPtr<const CTensorBase> prepareSecondInput( const CObjectArray<const CTensorBase>& inputs ) const;
+	CPtr<const CUserTensor> padTensorShape( const CUserTensor& input, int dimCount, int axis ) const;
 };
 
 // Eltwise operator nodes with 2 inputs
