@@ -49,22 +49,37 @@ void CReshapeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 
 	// In order to process tensors correctly reshape is allowed only in DT_Onnx
 	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout() ).Ptr() );
+	const CTensorShape& inputShape = input->Shape();
 
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
 	transform->SetName( Name() );
 
+	int tensorSize = 1;
+	for( int i = 0; i < inputShape.Size(); ++i ) {
+		tensorSize *= inputs[0]->Shape()[i];
+	}
+
+	int remainder = tensorSize;
+	int remainderIndex = NotFound;
 	for( int dim = 0; dim < outputShape.Size(); ++dim ) {
 		CTransformLayer::CDimensionRule rule;
 		if( outputShape[dim] > 0 ) {
 			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, outputShape[dim] );
+			remainder /= outputShape[dim];
 		} else if( outputShape[dim] == 0 ) {
 			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_Multiply, 1 );
+			outputShape[dim] = inputShape[dim];
+			remainder /= outputShape[dim];
 		} else if( outputShape[dim] == -1 ) {
 			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, outputShape[dim] );
+			remainderIndex = dim;
 		} else {
 			CheckOnnxProtocol( false, "Wrong shape value", OnnxNode );
 		}
 		transform->SetDimensionRule( static_cast<TBlobDim>( dim ), rule );
+	}
+	if( remainderIndex != NotFound ) {
+		outputShape[remainderIndex] = remainder;
 	}
 
 	for( int dim = outputShape.Size(); dim < BD_Count; ++dim ) {
