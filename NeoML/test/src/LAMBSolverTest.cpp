@@ -27,7 +27,7 @@ static NeoML::CFullyConnectedLayer* createSimpleNetwork( NeoML::CDnn& dnn )
     NeoML::CrossEntropyLoss()( fc, etalon );
 
     // Non-zero free term
-    auto freeTerm = fc->GetFreeTermData();
+    auto freeTerm = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Float, 1, 1, 4);
     dnn.GetInitializer()->InitializeLayerParams( *freeTerm, 4 );
     fc->SetFreeTermData( freeTerm );
 
