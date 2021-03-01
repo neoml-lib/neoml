@@ -40,7 +40,7 @@ static const int IrnnLayerVersion = 0;
 
 void CIrnnLayer::Serialize( CArchive& archive )
 {
-	const int version = archive.SerializeVersion( IrnnLayerVersion );
+	archive.SerializeVersion( IrnnLayerVersion );
 	CRecurrentLayer::Serialize( archive );
 
 	archive.Serialize( identityScale );
