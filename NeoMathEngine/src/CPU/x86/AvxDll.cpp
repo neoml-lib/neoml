@@ -39,7 +39,7 @@ static const std::string& getModuleDir()
 #if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
 		Dl_info dlInfo;
 		auto returnValue = dladdr( reinterpret_cast<void*>( getModuleDir ), &dlInfo );
-		PRESUME_EXPR( returnValue != 0 );
+		ASSERT_EXPR( returnValue != 0 );
 		
 		constexpr char separator[] = { '/' };
 		const auto* dllPath = dlInfo.dli_fname;
