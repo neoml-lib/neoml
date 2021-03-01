@@ -423,7 +423,7 @@ void CHardTanhLayer::RunOnce()
 {
 	CheckInput1();
 
-	MathEngine().VectorHardTanh(outputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
+	MathEngine().VectorHardTanh(inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 }
 
 void CHardTanhLayer::BackwardOnce()
