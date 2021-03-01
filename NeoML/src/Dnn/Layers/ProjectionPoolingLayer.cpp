@@ -96,7 +96,7 @@ void CProjectionPoolingLayer::Reshape()
 	CheckArchitecture( GetInputCount() == 1, GetName(), "Pooling with multiple inputs" );
 	CheckArchitecture( GetOutputCount() == 1, GetName(), "Pooling with multiple outputs" );
 	CheckArchitecture( inputDescs[0].Depth() == 1 && inputDescs[0].BatchLength() == 1, GetName(),
-		"Bad input blob dimensions" );
+		"Bad input blob dimensions: input.Depth() != 1 or input.BatchLength() != 1" );
 
 	outputDescs[0] = inputDescs[0];
 	if( restoreOriginalImageSize ) {
