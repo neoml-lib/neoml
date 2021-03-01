@@ -32,7 +32,7 @@ void CHingeLossLayer::Reshape()
 }
 
 void CHingeLossLayer::BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize,
-	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient)
+	CConstFloatHandle label, int /* labelSize */, CFloatHandle lossValue, CFloatHandle lossGradient)
 {
 	int totalSize = batchSize * vectorSize;
 
@@ -72,7 +72,7 @@ void CSquaredHingeLossLayer::Reshape()
 }
 
 void CSquaredHingeLossLayer::BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize,
-	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient)
+	CConstFloatHandle label, int /* labelSize */, CFloatHandle lossValue, CFloatHandle lossGradient)
 {
 	int totalSize = batchSize * vectorSize;
 

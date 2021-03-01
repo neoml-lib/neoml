@@ -36,6 +36,8 @@ public:
 		const CFloatVector& features, CPrediction& result ) const override;
 	virtual void Predict(
 		const CSparseFloatVectorDesc& features, CPrediction& result ) const override;
+	virtual double Predict( const CFloatVector& features ) const override;
+	virtual double Predict( const CSparseFloatVectorDesc& features ) const override;
 	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
 
 	// IRegressionTreeNode interface methods
