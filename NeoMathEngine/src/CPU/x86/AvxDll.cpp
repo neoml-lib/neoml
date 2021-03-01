@@ -30,6 +30,51 @@ limitations under the License.
 
 #include <AvxDll.h>
 
+#include <string>
+
+static const std::string& getModuleDir()
+{
+	static std::string result;
+	if( result.empty() ) {
+#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
+		Dl_info dlInfo;
+		auto returnValue = dladdr( reinterpret_cast<void*>( getModuleDir ), &dlInfo );
+		PRESUME_EXPR( returnValue != 0 );
+		
+		constexpr char separator[] = { '/' };
+		const auto* dllPath = dlInfo.dli_fname;
+		auto it = std::find_end( dllPath, dllPath + strlen( dllPath ), separator, separator + 1 );
+		
+		result.assign( dllPath, it + 1 );
+
+#elif FINE_PLATFORM( FINE_WINDOWS )
+
+		static_assert( sizeof( TCHAR ) == sizeof( char ), "TCHAR is wide char type!" );
+		
+		std::vector<char> buffer;
+		DWORD copiedChars = 0;
+		
+		HMODULE handle;
+		auto returnValue = GetModuleHandleEx( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, 
+			reinterpret_cast<LPCSTR>( getModuleDir ), &handle );
+		PRESUME_EXPR( returnValue != 0 );
+		
+		do {
+			buffer.resize( buffer.size() + MAX_PATH );
+			copiedChars = GetModuleFileName( handle, buffer.data(), static_cast<DWORD>( buffer.size() ) );
+		} while( copiedChars >= buffer.size() );
+		
+		constexpr char separator[] = {'\\'};
+		auto it = std::find_end( buffer.cbegin(), buffer.cbegin() + copiedChars, separator, separator + 1 );
+
+		result.assign( buffer.cbegin(), it + 1 );
+
+#else
+	#error "Platform isn't supported!"
+#endif
+	}
+	return result;
+}
 namespace NeoML {
 
 CAvxDll::CAvxDll() :
@@ -52,15 +97,17 @@ bool CAvxDll::Load()
 		return false;
 	}
 
+	std::string dllPath( getModuleDir() );
 #if FINE_PLATFORM( FINE_WINDOWS )
-	ASSERT_EXPR( CDll::Load( "NeoMathEngineAvx.dll" ) );
+	dllPath += "NeoMathEngineAvx.dll";
 #elif FINE_PLATFORM( FINE_LINUX )
-	ASSERT_EXPR( CDll::Load( "libNeoMathEngineAvx.so" ) );
+	dllPath += "libNeoMathEngineAvx.so";
 #elif FINE_PLATFORM( FINE_DARWIN )
-	ASSERT_EXPR( CDll::Load( "libNeoMathEngineAvx.dylib" ) );
+	dllPath += "libNeoMathEngineAvx.dylib";
 #else
 	#error "Platform isn't supported!"
 #endif
+	ASSERT_EXPR( CDll::Load( dllPath.c_str() ) );
 
 	ASSERT_EXPR( loadFunctions() );
 

@@ -454,7 +454,7 @@ const std::array<std::vector<int>, 16> CBlobConvolution<FltCnt>::fillSrcPixelOff
 	const int SrcLineStride = SrcW * ChCnt;
 	const int SrcYDilation = DilationH * SrcLineStride;
 	const int SrcXDilation = DilationW * ChCnt;
-	return {
+	return {{
 		std::vector<int>{ 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 0) 4 5 7 8
 		std::vector<int>{ -SrcXDilation, 0, SrcXDilation, SrcYDilation - SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 1) 3 4 5 6 7 8
 		std::vector<int>{ -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 2) 3 4 6 7
@@ -474,13 +474,13 @@ const std::array<std::vector<int>, 16> CBlobConvolution<FltCnt>::fillSrcPixelOff
 		std::vector<int>{ -SrcXDilation, 0, SrcXDilation }, // 13) 3 4 5
 		std::vector<int>{ -SrcYDilation, 0, SrcYDilation }, // 14) 1 4 7
 		std::vector<int>{ 0 } // 15) 4
-	};
+	}};
 }
 
 template<int FltCnt>
 const std::array<std::vector<int>, 16>  CBlobConvolution<FltCnt>::fillFltPixelOffset()
 {
-	return {
+	return {{
 		std::vector<int>{ 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 0) 4 5 7 8
 		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 1) 3 4 5 6 7 8
 		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 2) 3 4 6 7
@@ -501,7 +501,7 @@ const std::array<std::vector<int>, 16>  CBlobConvolution<FltCnt>::fillFltPixelOf
 		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 13) 3 4 5
 		std::vector<int>{ 1 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 14) 1 4 7
 		std::vector<int>{ 4 * ChCnt * FltCntM8 } // 15) 4
-	};
+	}};
 }
 
 template<int FltCnt>
