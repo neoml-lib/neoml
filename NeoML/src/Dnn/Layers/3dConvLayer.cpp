@@ -32,23 +32,26 @@ CBase3dConvLayer::CBase3dConvLayer( IMathEngine& mathEngine, const char* name ) 
 
 void CBase3dConvLayer::SetFilterDepth(int _filterDepth)
 {
-	NeoAssert(GetDnn() == 0);
-	filterDepth = _filterDepth;
-	ForceReshape();
+	if( filterDepth != _filterDepth ) {
+		filterDepth = _filterDepth;
+		ForceReshape();
+	}
 }
 
 void CBase3dConvLayer::SetStrideDepth(int _strideDepth)
 {
-	NeoAssert(GetDnn() == 0);
-	strideDepth = _strideDepth;
-	ForceReshape();
+	if( strideDepth != _strideDepth ) {
+		strideDepth = _strideDepth;
+		ForceReshape();
+	}
 }
 
 void CBase3dConvLayer::SetPaddingDepth(int _paddingDepth)
 {
-	NeoAssert(GetDnn() == 0);
-	paddingDepth = _paddingDepth;
-	ForceReshape();
+	if( paddingDepth != _paddingDepth ) {
+		paddingDepth = _paddingDepth;
+		ForceReshape();
+	}
 }
 
 static const int Base3dConvLayerVersion = 2000;
