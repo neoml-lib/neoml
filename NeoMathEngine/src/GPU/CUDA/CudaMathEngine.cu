@@ -56,7 +56,7 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 	// Cublas.
 	ASSERT_CUBLAS( cublas->Create( &cublasHandle ) );
 	cublasMath_t cublasMath = CUBLAS_DEFAULT_MATH;
-	if( ( flags & GpuMathEngineCublasUseTensorCoresFloatFlag ) != 0 ) {
+	if( ( flags & GpuMathEngineCublasUseTensorCoresTF32Flag ) != 0 ) {
 		cublasMath = CUBLAS_TF32_TENSOR_OP_MATH;
 	} else if( ( flags & GpuMathEngineCublasUseTensorCoresHalfFlag ) != 0 ) {
 		cublasMath = CUBLAS_TENSOR_OP_MATH;
