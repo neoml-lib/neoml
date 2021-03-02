@@ -92,6 +92,7 @@ void CCtcLossLayer::Reshape()
 {
 	CheckInputs();
 
+	CheckArchitecture( outputDescs.IsEmpty(), GetName(), "CCtcLossLayer has no output" );
 	CheckArchitecture(!GetDnn()->IsRecurrentMode(),
 		GetName(), "ctc loss layer inside the recurrent composite layer" );
 	CheckArchitecture( GetInputCount() >= 2 && GetInputCount() <= 5,
@@ -574,6 +575,7 @@ CCtcDecodingLayer::CCtcDecodingLayer( IMathEngine& mathEngine ) :
 void CCtcDecodingLayer::Reshape()
 {
 	CheckInputs();
+	CheckArchitecture( outputDescs.IsEmpty(), GetName(), "CCtcDecodingLayer has no output" );
 	CBlobDesc transposedDesc = inputDescs[I_Result];
 	transposedDesc.SetDimSize(BD_BatchLength, inputDescs[I_Result].BatchWidth());
 	transposedDesc.SetDimSize(BD_BatchWidth, inputDescs[I_Result].BatchLength());
