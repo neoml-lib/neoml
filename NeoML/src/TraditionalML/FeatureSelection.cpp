@@ -44,8 +44,8 @@ inline void CClusterStatistics::AddVector( const CSparseFloatVectorDesc& vector,
 	SumWeight += weight;
 
 	for( int j = 0; j < vector.Size; j++ ) {
-		Sum[vector.Indexes[j]] += vector.Values[j] * weight;
-		SumSquare[vector.Indexes[j]] += vector.Values[j] * vector.Values[j] * weight;
+		Sum[vector.Indexes == nullptr ? j : vector.Indexes[j]] += vector.Values[j] * weight;
+		SumSquare[vector.Indexes == nullptr ? j : vector.Indexes[j]] += vector.Values[j] * vector.Values[j] * weight;
 	}
 }
 
@@ -300,10 +300,11 @@ void CalcFeaturesInformationGain( const IProblem& problem, CArray<double>& infor
 		const double weight = problem.GetVectorWeight( i );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			if( !problem.IsDiscreteFeature( vector.Indexes[j] ) ) {
+			const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
+			if( !problem.IsDiscreteFeature( index ) ) {
 				continue;
 			}
-			CVectorSetClassificationStatistic*& oneValueStatistics = statistics[vector.Indexes[j]]->GetOrCreateValue( vector.Values[j], 0 );
+			CVectorSetClassificationStatistic*& oneValueStatistics = statistics[index]->GetOrCreateValue( vector.Values[j], 0 );
 			if( oneValueStatistics == 0 ) {
 				oneValueStatistics = FINE_DEBUG_NEW CVectorSetClassificationStatistic( classCount );
 			}

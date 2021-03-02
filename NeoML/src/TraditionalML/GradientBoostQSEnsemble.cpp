@@ -308,6 +308,7 @@ double CGradientBoostQSEnsemble::Predict( const CSparseFloatVector& data ) const
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
 	const CSparseFloatVectorDesc& desc = data.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	for( int i = 0; i < desc.Size; i++ ) {
 		processFeature( desc.Indexes[i], desc.Values[i], resultBitvectors );
 	}
@@ -336,7 +337,7 @@ double CGradientBoostQSEnsemble::Predict( const CSparseFloatVectorDesc& data ) c
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
 	for( int i = 0; i < data.Size; i++ ) {
-		processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+		processFeature( data.Indexes == nullptr ? i : data.Indexes[i], data.Values[i], resultBitvectors );
 	}
 
 	return calculateScore<CSparseFloatVectorDesc>( data, resultBitvectors, GetTreesCount() - 1 );
@@ -349,7 +350,7 @@ double CGradientBoostQSEnsemble::Predict( const CSparseFloatVectorDesc& data, in
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
 	for( int i = 0; i < data.Size; i++ ) {
-		processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+		processFeature( data.Indexes == nullptr ? i : data.Indexes[i], data.Values[i], resultBitvectors );
 	}
 
 	return calculateScore<CSparseFloatVectorDesc>( data, resultBitvectors, lastTreeIndex );

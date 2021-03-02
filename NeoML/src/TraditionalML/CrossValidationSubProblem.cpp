@@ -44,20 +44,31 @@ CCrossValidationSubProblem::CCrossValidationSubProblem( const IProblem* _problem
 	}
 
 	CSparseFloatMatrixDesc baseMatrix = problem->GetMatrix();
-	pointerB.SetSize( vectorsCount );
-	pointerE.SetSize( vectorsCount );
-	for( int i = 0; i < vectorsCount; i++ ) {
-		int index = translateIndex( i );
-		pointerB[i] = baseMatrix.PointerB[index];
-		pointerE[i] = baseMatrix.PointerE[index];
-	}
-
 	matrix.Height = vectorsCount;
 	matrix.Width = baseMatrix.Width;
-	matrix.Columns = baseMatrix.Columns;
-	matrix.Values = baseMatrix.Values;
-	matrix.PointerB = pointerB.GetPtr();
-	matrix.PointerE = pointerE.GetPtr();
+	if( baseMatrix.Columns == nullptr ) { // dense inside
+		values.SetSize( matrix.Width * vectorsCount );
+		matrix.Values = values.GetPtr();
+		float* ptr = matrix.Values;
+		for( int i = 0; i < vectorsCount; i++, ptr += matrix.Width ) {
+			int index = translateIndex( i );
+			CSparseFloatVectorDesc vec = baseMatrix.GetRow( index );
+			NeoPresume( vec.Size == matrix.Width );
+			::memcpy( ptr, vec.Values, vec.Size * sizeof( float ) );
+		}
+	} else {
+		pointerB.SetSize( vectorsCount );
+		pointerE.SetSize( vectorsCount );
+		for( int i = 0; i < vectorsCount; i++ ) {
+			int index = translateIndex( i );
+			pointerB[i] = baseMatrix.PointerB[index];
+			pointerE[i] = baseMatrix.PointerE[index];
+		}
+		matrix.Columns = baseMatrix.Columns;
+		matrix.Values = baseMatrix.Values;
+		matrix.PointerB = pointerB.GetPtr();
+		matrix.PointerE = pointerE.GetPtr();
+	}
 }
 
 // Converts the index to the initial data set index

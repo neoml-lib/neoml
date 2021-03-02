@@ -57,6 +57,10 @@ private:
 	double rbf(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
 	double sigmoid(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
 	double sigmoid(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
+
+	double rbfDenseBySparse( const float* x1, int x1Size, const CSparseFloatVectorDesc& x2 ) const;
+	double rbfDenseByDense( const float* x1, int x1Size, const float* x2, int x2Size ) const;
+	double rbfSparseBySparse( const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2 ) const;
 };
 
 inline CArchive& operator << ( CArchive& archive, const CSvmKernel& kernel )

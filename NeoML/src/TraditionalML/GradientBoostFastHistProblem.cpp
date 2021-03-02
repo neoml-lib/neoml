@@ -76,17 +76,18 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 
 		totalElementCount += vector.Size;
 		for( int j = 0; j < vector.Size; j++ ) {
-			if( featureValues[vector.Indexes[j]].IsEmpty()
-				|| featureValues[vector.Indexes[j]].Last().Value != vector.Values[j] )
+			const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
+			if( featureValues[index].IsEmpty()
+				|| featureValues[index].Last().Value != vector.Values[j] )
 			{
 				CFeatureValue newValue;
 				newValue.Value = vector.Values[j];
 				newValue.Weight = vectorWeight;
-				featureValues[vector.Indexes[j]].Add( newValue );
+				featureValues[index].Add( newValue );
 			} else {
-				featureValues[vector.Indexes[j]].Last().Weight += vectorWeight;
+				featureValues[index].Last().Weight += vectorWeight;
 			}
-			featureWeights[vector.Indexes[j]] += vectorWeight;
+			featureWeights[index] += vectorWeight;
 		}
 		totalWeight += vectorWeight;
 	}
@@ -195,14 +196,15 @@ void CGradientBoostFastHistProblem::buildVectorData( const CSparseFloatMatrixDes
 		matrix.GetRow( i, vector );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			float* valuePtr = cuts.GetPtr() + featurePos[vector.Indexes[j]]; // the pointer to this feature values
-			int valueCount = featurePos[vector.Indexes[j] + 1] - featurePos[vector.Indexes[j]]; // the number of different values for the feature
+			const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
+			float* valuePtr = cuts.GetPtr() + featurePos[index]; // the pointer to this feature values
+			int valueCount = featurePos[index + 1] - featurePos[index]; // the number of different values for the feature
 			// Now we get the bin into which the current value falls
 			int pos = FindInsertionPoint<float, Ascending<float>, float>( vector.Values[j], valuePtr, valueCount );
 			if( pos > 0 && *(valuePtr + pos - 1) == vector.Values[j] ) {
 				pos--;
 			}
-			vectorData.Add( featurePos[vector.Indexes[j]] + pos );
+			vectorData.Add( featurePos[index] + pos );
 		}
 		curVectorPtr += vector.Size;
 	}
