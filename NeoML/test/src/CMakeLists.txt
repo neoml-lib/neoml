@@ -10,6 +10,9 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/TestParams.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/InferencePerformanceMultiThreadingTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FloatVectorTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DenseMemoryProblem.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DenseMemoryProblem.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/ClassificationTest.cpp
 )
 
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
