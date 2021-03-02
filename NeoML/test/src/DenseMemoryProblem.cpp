@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include <DenseMemoryProblem.h>
-#include <random>
 
 namespace NeoMLTest {
 
@@ -42,22 +41,18 @@ CPtr<CDenseMemoryProblem> CDenseMemoryProblem::Random( int samples, int features
 {
 	CPtr<CDenseMemoryProblem> res = new CDenseMemoryProblem();
 
-	std::random_device rd;
-	std::mt19937 gen( rd() );
-	std::uniform_real_distribution<float> df( -10, 10 );
-	std::uniform_int_distribution<int> di( 0, classes - 1 );
-	std::uniform_int_distribution<int> dNull( 0, 3 ); // 1/4 probability of null element
+	CRandom rand( 0 );
 	res->valuesArr.SetBufferSize( samples * features );
 	res->classesArr.SetBufferSize( samples );
 	for( int i = 0; i < samples; ++i ) {
 		for( int j = 0; j < features; ++j ) {
-			if( dNull( gen ) != 0 ) {
-				res->valuesArr.Add( df( gen ) );
+			if( rand.UniformInt( 0, 3 ) != 0 ) { // 1/4 probability of null element
+				res->valuesArr.Add( rand.Uniform( -10, 10 ) );
 			} else {
 				res->valuesArr.Add( 0.0 );
 			}
 		}
-		res->classesArr.Add( di( gen ) );
+		res->classesArr.Add( rand.UniformInt( 0, classes - 1 ) );
 	}
 
 	// set weights to 1
