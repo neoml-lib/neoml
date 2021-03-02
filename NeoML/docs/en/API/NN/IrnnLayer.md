@@ -83,7 +83,7 @@ The free terms of the `FC_input`. It's represented by a blob of the total size `
 ### Recurrent weight matrix
 
 ```c++
-CPtr<CDnnBlob> GetRecurWeigthsData() const;
+CPtr<CDnnBlob> GetRecurWeightsData() const;
 ```
 
 The weight matrix of the `FC_recur` from formula.

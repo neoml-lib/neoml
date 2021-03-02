@@ -61,7 +61,7 @@ public:
 	void SetInputFreeTermData( const CPtr<CDnnBlob>& inputFreeTerm ) { inputFc->SetFreeTermData( inputFreeTerm ); }
 
 	// Recurrent weights
-	CPtr<CDnnBlob> GetRecurWeigthsData() const { return inputFc->GetWeightsData(); }
+	CPtr<CDnnBlob> GetRecurWeightsData() const { return inputFc->GetWeightsData(); }
 	CPtr<CDnnBlob> GetRecurFreeTermData() const { return inputFc->GetFreeTermData(); }
 	void SetRecurWeightsData( const CPtr<CDnnBlob>& recurWeights ) { inputFc->SetWeightsData( recurWeights ); }
 	void SetRecurFreeTermData( const CPtr<CDnnBlob>& recurFreeTerm ) { inputFc->SetFreeTermData( recurFreeTerm ); }

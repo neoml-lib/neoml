@@ -81,7 +81,7 @@ CPtr<CDnnBlob> GetInputFreeTermData() const
 ### Матрица весов FC_recur
 
 ```c++
-CPtr<CDnnBlob> GetRecurWeigthsData() const;
+CPtr<CDnnBlob> GetRecurWeightsData() const;
 ```
 
 Матрица весов слоя `FC_recur` из формулы, представляет собой блоб размеров:
