@@ -50,7 +50,7 @@ public:
 
 	// Sets the standard deviation for input weights
 	float GetInputWeightStd() const { return inputWeightStd; }
-	void SetInputWeightStd( float var ) { inputWeightStd = var; }
+	void SetInputWeightStd( float std ) { inputWeightStd = std; }
 
 	// Trainable parameters
 
