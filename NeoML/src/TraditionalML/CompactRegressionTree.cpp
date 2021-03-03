@@ -90,6 +90,9 @@ CPtr<const IRegressionTreeNode> CCompactRegressionTree::GetLeftChild(
 	int nodeIndex ) const
 {
 	NeoAssert( nodes.IsValidIndex( nodeIndex ) );
+	if( nodes[nodeIndex].FeaturePlusOne == 0 ) {
+		return nullptr;
+	}
 	return getWrapper( nodeIndex + 1 );
 }
 
@@ -97,6 +100,9 @@ CPtr<const IRegressionTreeNode> CCompactRegressionTree::GetRightChild(
 	int nodeIndex ) const
 {
 	NeoAssert( nodes.IsValidIndex( nodeIndex ) );
+	if( nodes[nodeIndex].FeaturePlusOne == 0 ) {
+		return nullptr;
+	}
 	return getWrapper( nodes[nodeIndex].RightChildIndex );
 }
 
