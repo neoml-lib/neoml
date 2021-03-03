@@ -81,6 +81,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
 #include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
+#include <NeoML/Dnn/Layers/IrnnLayer.h>
 
 namespace NeoML {
 
@@ -300,6 +301,7 @@ REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
 REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClass" )
 REGISTER_NEOML_LAYER( CQrnnLayer, "NeoMLDnnQrnnLayer" )
 REGISTER_NEOML_LAYER( CTiedEmbeddingsLayer, "TiedEmbeddingsLayer" )
+REGISTER_NEOML_LAYER( CIrnnLayer, "NeoMLDnnIrnnLayer" );
 
 }
 
