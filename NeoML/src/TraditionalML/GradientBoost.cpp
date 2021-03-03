@@ -445,7 +445,7 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.PruneCriterionValue = params.PruneCriterionValue;
 			builderParams.MaxBins = params.MaxBins;
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
-			if( params.TreeBuilder == GBTB_MultiFull ) {
+			if( params.TreeBuilder == GBTB_MultiFastHist ) {
 				NeoAssert( problem->GetValueSize() > 1 );
 				fastHistMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream );
 			} else {
