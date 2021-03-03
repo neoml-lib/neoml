@@ -136,6 +136,17 @@ bool IsRegisteredLayerName( const char* name )
 	return getRegisteredLayers().Has( name );
 }
 
+void GetRegisteredLayerNames( CArray<const char*>& layerNames )
+{
+	const CMap<CString, TCreateLayerFunction, CDefaultHash<CString>, RuntimeHeap>& registeredLayers = getRegisteredLayers();
+	layerNames.DeleteAll();
+	layerNames.SetBufferSize( registeredLayers.Size() );
+
+	for( int pos = registeredLayers.GetFirstPosition(); pos != NotFound; pos = registeredLayers.GetNextPosition( pos ) ) {
+		layerNames.Add( registeredLayers.GetKey( pos ) );
+	}
+}
+
 CPtr<CBaseLayer> CreateLayer( const char* name, IMathEngine& mathEngine )
 {
 	NeoAssert( getRegisteredLayers().Has( name ) );

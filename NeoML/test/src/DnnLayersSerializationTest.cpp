@@ -97,6 +97,7 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CMatrixMultiplicationLayer>( "NeoMLDnnMatrixMultiplicationLayer" );
 	serializeToFile<CAddToObjectLayer>( "NeoMLDnnAddToObjectLayer" );
 	serializeToFile<CGELULayer>( "NeoMLDnnGELULayer" );
+	serializeToFile<CGlobalMeanPoolingLayer>( "FmlCnnGlobalAveragePoolingLayer" );
 }
 
 #endif // GENERATE_SERIALIZATION_FILES
@@ -190,6 +191,7 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnMatrixMultiplicationLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnAddToObjectLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnGELULayer" );
+	checkSerializeLayer<CBaseLayer>( "FmlCnnGlobalAveragePoolingLayer" );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -2039,4 +2041,27 @@ inline void checkSpecificParams<CIrnnLayer>( CIrnnLayer& layer )
 GTEST_TEST( SerializeFromFile, IrnnLayerSerialization )
 {
 	checkSerializeLayer<CIrnnLayer>( "NeoMLDnnIrnnLayer" );
+}
+
+// ====================================================================================================================
+
+GTEST_TEST( LayerSerialization, CheckRegisteredLayers )
+{
+	CHashTable<CString> ignoredLayers;
+	ignoredLayers.Add( "FmlCCnnChannelwiseSoftmaxLayer" ); // It's an alternative name for CSoftmaxLayer
+	ignoredLayers.Add( "FmlCnnGlobalMainPoolingLayer" ); // It's an alternative name for CGlobalMeanPoolingLayer
+
+	CArray<const char*> layerClasses;
+	GetRegisteredLayerNames( layerClasses );
+
+	for( int i = 0; i < layerClasses.Size(); ++i ) {
+		// skipping ignored layers
+		if( ignoredLayers.Has( layerClasses[i] ) ) {
+			continue;
+		}
+		// trying to open file
+		CArchiveFile file( 
+			GetTestDataFilePath( "data/LayersSerializationTestData", CString( layerClasses[i] ) + ".arch" ),
+			CArchive::load );
+	}
 }
