@@ -16,18 +16,23 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <DenseMemoryProblem.h>
+#include <RandomProblem.h>
 
 namespace NeoMLTest {
 
-CDenseMemoryProblem::CDenseMemoryProblem( int height, int width, float* values, const int* _classes, const float* _weights ) :
+CClassificationRandomProblem::CClassificationRandomProblem( int height, int width, float* values, const int* _classes, const float* _weights ) :
+	matrix( width ),
 	classCount( 0 ),
 	classes( _classes ),
 	weights( _weights )
 {
-	desc.Height = height;
-	desc.Width = width;
-	desc.Values = values;
+	CSparseFloatMatrixDesc* desc = matrix.CopyOnWrite();
+	NeoAssert( desc != nullptr );
+	desc->Height = height;
+	desc->Width = width;
+	desc->Values = values;
+	desc->Columns = nullptr;
+	desc->PointerB = desc->PointerE = nullptr;
 
 	for( int i = 0; i < height; i++ ) {
 		if( classCount < classes[i] ) {
@@ -37,11 +42,10 @@ CDenseMemoryProblem::CDenseMemoryProblem( int height, int width, float* values, 
 	classCount++;
 }
 
-CPtr<CDenseMemoryProblem> CDenseMemoryProblem::Random( int samples, int features, int classes )
+CPtr<CClassificationRandomProblem> CClassificationRandomProblem::Random( CRandom& rand, int samples, int features, int classes )
 {
-	CPtr<CDenseMemoryProblem> res = new CDenseMemoryProblem();
+	CPtr<CClassificationRandomProblem> res = new CClassificationRandomProblem();
 
-	CRandom rand( 0 );
 	res->valuesArr.SetBufferSize( samples * features );
 	res->classesArr.SetBufferSize( samples );
 	for( int i = 0; i < samples; ++i ) {
@@ -60,20 +64,28 @@ CPtr<CDenseMemoryProblem> CDenseMemoryProblem::Random( int samples, int features
 	res->classCount = classes;
 	res->classes = res->classesArr.GetPtr();
 	res->weights = res->weightsArr.GetPtr();
-	res->desc.Height = samples;
-	res->desc.Width = features;
-	res->desc.Values = res->valuesArr.GetPtr();
+
+	res->matrix = CSparseFloatMatrix( features );
+	CSparseFloatMatrixDesc* desc = res->matrix.CopyOnWrite();
+	desc->Height = samples;
+	desc->Width = features;
+	desc->Values = res->valuesArr.GetPtr();
+	desc->Columns = nullptr;
+	desc->PointerB = desc->PointerE = nullptr;
 
 	return res;
 }
 
-CPtr<CMemoryProblem> CDenseMemoryProblem::CreateSparse() const
+CPtr<CClassificationRandomProblem> CClassificationRandomProblem::CreateSparse() const
 {
-	CPtr<CMemoryProblem> res = new CMemoryProblem( desc.Width, classCount );
-	for( int i = 0; i < desc.Height; ++i ) {
-		CSparseFloatVectorDesc row = desc.GetRow( i );
-		res->Add( row, weights[i], classes[i] );
-	}
+	CSparseFloatMatrix sparse( GetMatrix() ); // convert here dense into sparse
+	CPtr<CClassificationRandomProblem> res = new CClassificationRandomProblem();
+	res->matrix = sparse;
+	weightsArr.CopyTo( res->weightsArr );
+	res->weights = res->weightsArr.GetPtr();
+	classesArr.CopyTo( res->classesArr );
+	res->classes = res->classesArr.GetPtr();
+	res->classCount = classCount;
 	return res;
 }
 

@@ -17,31 +17,31 @@ limitations under the License.
 
 namespace NeoMLTest {
 
-class CDenseMemoryProblem : public IProblem {
+class CClassificationRandomProblem : public IProblem {
 public:
-	CDenseMemoryProblem( int height, int width, float* values, const int* _classes, const float* _weights );
+	CClassificationRandomProblem( int height, int width, float* values, const int* _classes, const float* _weights );
 
-	CSparseFloatVectorDesc GetVector( int index ) const { return desc.GetRow( index ); }
+	CSparseFloatVectorDesc GetVector( int index ) const { return GetMatrix().GetRow( index ); }
 
 	// IProblem interface methods:
 	int GetClassCount() const override { return classCount; }
-	int GetFeatureCount() const override { return desc.Width; }
+	int GetFeatureCount() const override { return GetMatrix().Width; }
 	bool IsDiscreteFeature( int ) const override { return false; }
-	int GetVectorCount() const override { return desc.Height; }
+	int GetVectorCount() const override { return GetMatrix().Height; }
 	int GetClass( int index ) const override { return classes[index]; }
-	CSparseFloatMatrixDesc GetMatrix() const override { return desc; }
+	CSparseFloatMatrixDesc GetMatrix() const override { return matrix.GetDesc(); }
 	double GetVectorWeight( int index ) const override { return weights[index]; };
 
-	static CPtr<CDenseMemoryProblem> Random( int samples, int features, int classes );
-	CPtr<CMemoryProblem> CreateSparse() const;
+	static CPtr<CClassificationRandomProblem> Random( CRandom& rand, int samples, int features, int classes );
+	CPtr<CClassificationRandomProblem> CreateSparse() const;
 
 protected:
-	~CDenseMemoryProblem() override = default;
+	~CClassificationRandomProblem() override = default;
 
 private:
-	CDenseMemoryProblem() = default;
+	CClassificationRandomProblem() = default;
 
-	CSparseFloatMatrixDesc desc;
+	CSparseFloatMatrix matrix;
 	int classCount;
 	const int* classes;
 	const float* weights;
