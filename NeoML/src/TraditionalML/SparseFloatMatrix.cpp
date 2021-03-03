@@ -22,7 +22,7 @@ namespace NeoML {
 
 CSparseFloatMatrixDesc CSparseFloatMatrixDesc::Empty;
 
-inline CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::CSparseFloatMatrixBody::Duplicate() const
+CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::CSparseFloatMatrixBody::Duplicate() const
 {
 	CSparseFloatMatrixBody* body = FINE_DEBUG_NEW CSparseFloatMatrixBody( Desc.Height, Desc.Width, ElementCount, RowsBufferSize, ElementsBufferSize );
 	::memcpy( body->Desc.Columns, Desc.Columns, ElementCount * sizeof( int ) );
