@@ -74,20 +74,22 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 		matrix.GetRow( i, vector );
 		const double vectorWeight = baseProblem.GetVectorWeight( i );
 
-		totalElementCount += vector.Size;
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
-			if( featureValues[index].IsEmpty()
-				|| featureValues[index].Last().Value != vector.Values[j] )
-			{
-				CFeatureValue newValue;
-				newValue.Value = vector.Values[j];
-				newValue.Weight = vectorWeight;
-				featureValues[index].Add( newValue );
-			} else {
-				featureValues[index].Last().Weight += vectorWeight;
+			if( vector.Values[j] != 0.0 ) {
+				++totalElementCount;
+				const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
+				if( featureValues[index].IsEmpty()
+					|| featureValues[index].Last().Value != vector.Values[j] )
+				{
+					CFeatureValue newValue;
+					newValue.Value = vector.Values[j];
+					newValue.Weight = vectorWeight;
+					featureValues[index].Add( newValue );
+				} else {
+					featureValues[index].Last().Weight += vectorWeight;
+				}
+				featureWeights[index] += vectorWeight;
 			}
-			featureWeights[index] += vectorWeight;
 		}
 		totalWeight += vectorWeight;
 	}
@@ -196,17 +198,19 @@ void CGradientBoostFastHistProblem::buildVectorData( const CSparseFloatMatrixDes
 		matrix.GetRow( i, vector );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
-			float* valuePtr = cuts.GetPtr() + featurePos[index]; // the pointer to this feature values
-			int valueCount = featurePos[index + 1] - featurePos[index]; // the number of different values for the feature
-			// Now we get the bin into which the current value falls
-			int pos = FindInsertionPoint<float, Ascending<float>, float>( vector.Values[j], valuePtr, valueCount );
-			if( pos > 0 && *(valuePtr + pos - 1) == vector.Values[j] ) {
-				pos--;
+			if( vector.Values[j] != 0.0 ) {
+				++curVectorPtr;
+				const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
+				float* valuePtr = cuts.GetPtr() + featurePos[index]; // the pointer to this feature values
+				int valueCount = featurePos[index + 1] - featurePos[index]; // the number of different values for the feature
+				// Now we get the bin into which the current value falls
+				int pos = FindInsertionPoint<float, Ascending<float>, float>( vector.Values[j], valuePtr, valueCount );
+				if( pos > 0 && *(valuePtr + pos - 1) == vector.Values[j] ) {
+					pos--;
+				}
+				vectorData.Add( featurePos[index] + pos );
 			}
-			vectorData.Add( featurePos[index] + pos );
 		}
-		curVectorPtr += vector.Size;
 	}
 
 	vectorPtr.Add( curVectorPtr );

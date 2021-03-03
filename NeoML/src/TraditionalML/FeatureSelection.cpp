@@ -164,7 +164,7 @@ void CalcFeaturesChiSquare( const IProblem& problem, CArray<double>& chi2 )
 
 		CArray<double>& oneObserved = observed[classIndex];
 		for( int j = 0; j < vector.Size; j++ ) {
-			oneObserved[vector.Indexes[j]] += weight * vector.Values[j];
+			oneObserved[vector.Indexes == nullptr ? j : vector.Indexes[j]] += weight * vector.Values[j];
 		}
 	}
 
@@ -300,15 +300,17 @@ void CalcFeaturesInformationGain( const IProblem& problem, CArray<double>& infor
 		const double weight = problem.GetVectorWeight( i );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
-			if( !problem.IsDiscreteFeature( index ) ) {
-				continue;
+			if( vector.Values[j] != 0.0 ) {
+				const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
+				if( !problem.IsDiscreteFeature( index ) ) {
+					continue;
+				}
+				CVectorSetClassificationStatistic*& oneValueStatistics = statistics[index]->GetOrCreateValue( vector.Values[j], 0 );
+				if( oneValueStatistics == 0 ) {
+					oneValueStatistics = FINE_DEBUG_NEW CVectorSetClassificationStatistic( classCount );
+				}
+				oneValueStatistics->AddVectorSet( 1, classIndex, weight );
 			}
-			CVectorSetClassificationStatistic*& oneValueStatistics = statistics[index]->GetOrCreateValue( vector.Values[j], 0 );
-			if( oneValueStatistics == 0 ) {
-				oneValueStatistics = FINE_DEBUG_NEW CVectorSetClassificationStatistic( classCount );
-			}
-			oneValueStatistics->AddVectorSet( 1, classIndex, weight );
 		}
 		fullProblemStatistic.AddVectorSet( 1, classIndex, weight );
 	}
