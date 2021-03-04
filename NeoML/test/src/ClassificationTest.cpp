@@ -22,6 +22,9 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
+//---------------------------------------------------------------------------------------------------------------------
+// Common functions
+
 void TestClassificationResult( const IModel* modelDense, const IModel* modelSparse,
 	const CClassificationRandomProblem* testDataDense, const CClassificationRandomProblem* testDataSparse )
 {
@@ -70,26 +73,60 @@ void CrossValidate( int PartsCount, ITrainingModel& trainingModel, const IProble
 	}
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+// TestFixures for multi and binary classification with sparse and dense training
+
+// Binary
 class RandomBinaryClassification4000x20 : public CNeoMLTestFixture {
 protected:
 	virtual void SetUp();
 
+	// this methods will create common instanses of each dataset ( not thread-safe! )
+	CClassificationRandomProblem* getDenseRandomBinaryProblem( CRandom& );
+	CClassificationRandomProblem* getDenseBinaryTestData( CRandom& );
+	CClassificationRandomProblem* getSparseRandomBinaryProblem();
+	CClassificationRandomProblem* getSparseBinaryTestData();
+
 	// binary datasets pointers
-	CPtr<CClassificationRandomProblem> DenseRandomBinaryProblem;
-	CPtr<CClassificationRandomProblem> DenseBinaryTestData;
-	CPtr<CClassificationRandomProblem> SparseRandomBinaryProblem;
-	CPtr<CClassificationRandomProblem> SparseBinaryTestData;
+	CClassificationRandomProblem* DenseRandomBinaryProblem;
+	CClassificationRandomProblem* DenseBinaryTestData;
+	CClassificationRandomProblem* SparseRandomBinaryProblem;
+	CClassificationRandomProblem* SparseBinaryTestData;
 
 	void TestBinaryClassificationResult( const IModel* modelDense, const IModel* modelSparse );
 };
 
+CClassificationRandomProblem* RandomBinaryClassification4000x20::getDenseRandomBinaryProblem( CRandom& rand )
+{
+	static auto denseRandomBinaryProblem = CClassificationRandomProblem::Random( rand, 4000, 20, 2 );
+	return denseRandomBinaryProblem.Ptr();
+}
+
+CClassificationRandomProblem* RandomBinaryClassification4000x20::getDenseBinaryTestData( CRandom& rand )
+{
+	static auto denseBinaryTestData = CClassificationRandomProblem::Random( rand, 1000, 20, 2 );
+	return denseBinaryTestData.Ptr();
+}
+
+CClassificationRandomProblem* RandomBinaryClassification4000x20::getSparseRandomBinaryProblem()
+{
+	static auto sparseRandomBinaryProblem = DenseRandomBinaryProblem->CreateSparse();
+	return sparseRandomBinaryProblem.Ptr();
+}
+
+CClassificationRandomProblem* RandomBinaryClassification4000x20::getSparseBinaryTestData()
+{
+	static auto sparseBinaryTestData = DenseBinaryTestData->CreateSparse();
+	return sparseBinaryTestData.Ptr();
+}
+
 void RandomBinaryClassification4000x20::SetUp()
 {
-	CRandom rand( 0 );
-	DenseRandomBinaryProblem = CClassificationRandomProblem::Random( rand, 4000, 20, 2 );
-	DenseBinaryTestData = CClassificationRandomProblem::Random( rand, 1000, 20, 2 );
-	SparseRandomBinaryProblem = DenseRandomBinaryProblem->CreateSparse();
-	SparseBinaryTestData = DenseBinaryTestData->CreateSparse();
+	static CRandom rand( 0 );
+	DenseRandomBinaryProblem = getDenseRandomBinaryProblem( rand );
+	DenseBinaryTestData = getDenseBinaryTestData( rand );
+	SparseRandomBinaryProblem = getSparseRandomBinaryProblem();
+	SparseBinaryTestData = getSparseBinaryTestData();
 }
 
 void RandomBinaryClassification4000x20::TestBinaryClassificationResult( const IModel* modelDense, const IModel* modelSparse )
@@ -97,26 +134,57 @@ void RandomBinaryClassification4000x20::TestBinaryClassificationResult( const IM
 	TestClassificationResult( modelDense, modelSparse, DenseBinaryTestData, SparseBinaryTestData );
 }
 
+// Multi 
 class RandomMultiClassification2000x20 : public CNeoMLTestFixture {
 protected:
 	virtual void SetUp();
 
-	// multiclass datasets pointers
-	CPtr<CClassificationRandomProblem> DenseRandomMultiProblem;
-	CPtr<CClassificationRandomProblem> SparseRandomMultiProblem;
-	CPtr<CClassificationRandomProblem> DenseMultiTestData;
-	CPtr<CClassificationRandomProblem> SparseMultiTestData;
+	// this methods will create common instanses of each dataset ( not thread-safe! )
+	CClassificationRandomProblem* getDenseRandomMultiProblem( CRandom& );
+	CClassificationRandomProblem* getDenseMultiTestData( CRandom& );
+	CClassificationRandomProblem* getSparseRandomMultiProblem();
+	CClassificationRandomProblem* getSparseMultiTestData();
+
+	// binary datasets pointers
+	CClassificationRandomProblem* DenseRandomMultiProblem;
+	CClassificationRandomProblem* DenseMultiTestData;
+	CClassificationRandomProblem* SparseRandomMultiProblem;
+	CClassificationRandomProblem* SparseMultiTestData;
 
 	void TestMultiClassificationResult( const IModel* modelDense, const IModel* modelSparse );
 };
 
+CClassificationRandomProblem* RandomMultiClassification2000x20::getDenseRandomMultiProblem( CRandom& rand )
+{
+	static auto denseRandomMultiProblem = CClassificationRandomProblem::Random( rand, 2000, 20, 10 );
+	return denseRandomMultiProblem.Ptr();
+}
+
+CClassificationRandomProblem* RandomMultiClassification2000x20::getDenseMultiTestData( CRandom& rand )
+{
+	static auto denseMultiTestData = CClassificationRandomProblem::Random( rand, 500, 20, 10 );
+	return denseMultiTestData.Ptr();
+}
+
+CClassificationRandomProblem* RandomMultiClassification2000x20::getSparseRandomMultiProblem()
+{
+	static auto sparseRandomMultiProblem = DenseRandomMultiProblem->CreateSparse();
+	return sparseRandomMultiProblem.Ptr();
+}
+
+CClassificationRandomProblem* RandomMultiClassification2000x20::getSparseMultiTestData()
+{
+	static auto sparseMultiTestData = DenseMultiTestData->CreateSparse();
+	return sparseMultiTestData.Ptr();
+}
+
 void RandomMultiClassification2000x20::SetUp()
 {
-	CRandom rand( 0 );
-	DenseRandomMultiProblem = CClassificationRandomProblem::Random( rand, 2000, 20, 10 );
-	DenseMultiTestData = CClassificationRandomProblem::Random( rand, 500, 20, 10 );
-	SparseRandomMultiProblem = DenseRandomMultiProblem->CreateSparse();
-	SparseMultiTestData = DenseMultiTestData->CreateSparse();
+	static CRandom rand( 0 );
+	DenseRandomMultiProblem = getDenseRandomMultiProblem( rand );
+	DenseMultiTestData = getDenseMultiTestData( rand );
+	SparseRandomMultiProblem = getSparseRandomMultiProblem();
+	SparseMultiTestData = getSparseMultiTestData();
 }
 
 void RandomMultiClassification2000x20::TestMultiClassificationResult( const IModel* modelDense, const IModel* modelSparse )
@@ -124,7 +192,8 @@ void RandomMultiClassification2000x20::TestMultiClassificationResult( const IMod
 	TestClassificationResult( modelDense, modelSparse, DenseMultiTestData, SparseMultiTestData );
 }
 
-//------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+// Tests
 
 TEST_F( RandomBinaryClassification4000x20, SvmLinear )
 {
