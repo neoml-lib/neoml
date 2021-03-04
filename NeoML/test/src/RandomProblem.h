@@ -48,6 +48,8 @@ private:
 
 	// memory holders when applicable
 	CArray<float> valuesArr;
+	CArray<int> pointerB;
+	CArray<int> pointerE;
 	CArray<int> classesArr;
 	CArray<float> weightsArr;
 };

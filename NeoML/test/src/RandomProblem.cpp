@@ -32,7 +32,15 @@ CClassificationRandomProblem::CClassificationRandomProblem( int height, int widt
 	desc->Width = width;
 	desc->Values = values;
 	desc->Columns = nullptr;
-	desc->PointerB = desc->PointerE = nullptr;
+	pointerB.SetSize( height );
+	pointerE.SetSize( height );
+	for( int i = 0, pos = 0; i < height; ++i ) {
+		pointerB[i] = pos;
+		pos += width;
+		pointerE[i] = pos;
+	}
+	desc->PointerB = pointerB.GetPtr();
+	desc->PointerE = pointerE.GetPtr();
 
 	for( int i = 0; i < height; i++ ) {
 		if( classCount < classes[i] ) {
@@ -66,12 +74,20 @@ CPtr<CClassificationRandomProblem> CClassificationRandomProblem::Random( CRandom
 	res->weights = res->weightsArr.GetPtr();
 
 	res->matrix = CSparseFloatMatrix( features );
+	res->pointerB.SetSize( samples );
+	res->pointerE.SetSize( samples );
+	for( int i = 0, pos = 0; i < samples; ++i ) {
+		res->pointerB[i] = pos;
+		pos += features;
+		res->pointerE[i] = pos;
+	}
 	CSparseFloatMatrixDesc* desc = res->matrix.CopyOnWrite();
 	desc->Height = samples;
 	desc->Width = features;
 	desc->Values = res->valuesArr.GetPtr();
 	desc->Columns = nullptr;
-	desc->PointerB = desc->PointerE = nullptr;
+	desc->PointerB = res->pointerB.GetPtr();
+	desc->PointerE = res->pointerE.GetPtr();
 
 	return res;
 }
