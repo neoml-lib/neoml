@@ -1,7 +1,17 @@
-// Copyright (c) 1993-2016, ABBYY (BIT Software). All rights reserved.
-//	Автор: Валинуров Денис
-//	Система: FineMachineLearningTest
-//	Описание: Тест сериализации сверточных сетей.
+/* Copyright © 2021 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
 
 #include <common.h>
 #pragma hdrstop
@@ -22,6 +32,30 @@ static const CString getFileName( const CString& name )
 {
 	return GetTestDataFilePath( "data/LayersSerializationTestData", name + ".arch" );
 }
+
+// Checks the coverage of the tests below
+GTEST_TEST( LayerSerialization, CheckRegisteredLayers )
+{
+	CHashTable<CString> ignoredLayers;
+	ignoredLayers.Add( "FmlCCnnChannelwiseSoftmaxLayer" ); // It's an alternative name for CSoftmaxLayer
+	ignoredLayers.Add( "FmlCnnGlobalMainPoolingLayer" ); // It's an alternative name for CGlobalMeanPoolingLayer
+
+	CArray<const char*> layerClasses;
+	GetRegisteredLayerNames( layerClasses );
+
+	for( int i = 0; i < layerClasses.Size(); ++i ) {
+		// skip ignored layers
+		if( ignoredLayers.Has( layerClasses[i] ) ) {
+			continue;
+		}
+		// try to open file (it must exist)
+		CArchiveFile file( 
+			GetTestDataFilePath( "data/LayersSerializationTestData", CString( layerClasses[i] ) + ".arch" ),
+			CArchive::load );
+	}
+}
+
+// ====================================================================================================================
 
 #ifdef GENERATE_SERIALIZATION_FILES
 
@@ -194,7 +228,7 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "FmlCnnGlobalAveragePoolingLayer" );
 }
 
-//---------------------------------------------------------------------------------------------------------------------
+// ====================================================================================================================
 
 // CPoolingLayer
 
@@ -229,7 +263,7 @@ GTEST_TEST( SerializeFromFile, PoolingLayerSerialization )
 	checkSerializeLayer<CPoolingLayer>( "FmlCnnMeanPoolingLayer" );
 }
 
-//---------------------------------------------------------------------------------------------------------------------
+// ====================================================================================================================
 
 // C3dPoolingLayer
 
@@ -2041,27 +2075,4 @@ inline void checkSpecificParams<CIrnnLayer>( CIrnnLayer& layer )
 GTEST_TEST( SerializeFromFile, IrnnLayerSerialization )
 {
 	checkSerializeLayer<CIrnnLayer>( "NeoMLDnnIrnnLayer" );
-}
-
-// ====================================================================================================================
-
-GTEST_TEST( LayerSerialization, CheckRegisteredLayers )
-{
-	CHashTable<CString> ignoredLayers;
-	ignoredLayers.Add( "FmlCCnnChannelwiseSoftmaxLayer" ); // It's an alternative name for CSoftmaxLayer
-	ignoredLayers.Add( "FmlCnnGlobalMainPoolingLayer" ); // It's an alternative name for CGlobalMeanPoolingLayer
-
-	CArray<const char*> layerClasses;
-	GetRegisteredLayerNames( layerClasses );
-
-	for( int i = 0; i < layerClasses.Size(); ++i ) {
-		// skipping ignored layers
-		if( ignoredLayers.Has( layerClasses[i] ) ) {
-			continue;
-		}
-		// trying to open file
-		CArchiveFile file( 
-			GetTestDataFilePath( "data/LayersSerializationTestData", CString( layerClasses[i] ) + ".arch" ),
-			CArchive::load );
-	}
 }

@@ -1,7 +1,17 @@
-// Copyright (c) 1993-2019, ABBYY (BIT Software). All rights reserved.
-//	Автор: Федюнин Валерий
-//	Система: FineMachineLearningTest
-//	Описание: Тест сериализации сверточных сетей.
+/* Copyright © 2021 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
 
 #include <common.h>
 #pragma hdrstop
@@ -21,83 +31,22 @@ public:
 using namespace NeoML;
 using namespace NeoMLTest;
 
+// Checks that every layer can be serialized in uninitialized state
 TEST_F( CDnnSerializationTest, CnnUninitializedLayerSerialization )
 {
 	CRandom random( 42 );
 	CDnn cnn( random, MathEngine() );
 
-	CObjectArray<CBaseLayer> layers;
-	layers.Add( new CSourceLayer( MathEngine() ) );
-	layers.Add( new CSinkLayer( MathEngine() ) );
-	layers.Add( new CConcatChannelsLayer( MathEngine() ) );
-	layers.Add( new CConcatDepthLayer( MathEngine() ) );
-	layers.Add( new CConcatHeightLayer( MathEngine() ) );
-	layers.Add( new CConcatWidthLayer( MathEngine() ) );
-	layers.Add( new CConcatBatchWidthLayer( MathEngine() ) );
-	layers.Add( new CConcatObjectLayer( MathEngine() ) );
-	layers.Add( new CSplitChannelsLayer( MathEngine() ) );
-	layers.Add( new CSplitDepthLayer( MathEngine() ) );
-	layers.Add( new CSplitWidthLayer( MathEngine() ) );
-	layers.Add( new CSplitHeightLayer( MathEngine() ) );
-	layers.Add( new CSplitBatchWidthLayer( MathEngine() ) );
-	layers.Add( new CEltwiseSumLayer( MathEngine() ) );
-	layers.Add( new CEltwiseMulLayer( MathEngine() ) );
-	layers.Add( new CEltwiseNegMulLayer( MathEngine() ) );
-	layers.Add( new CEltwiseMaxLayer( MathEngine() ) );
-	layers.Add( new CReLULayer( MathEngine() ) );
-	layers.Add( new CAbsLayer( MathEngine() ) );
-	layers.Add( new CSigmoidLayer( MathEngine() ) );
-	layers.Add( new CTanhLayer( MathEngine() ) );
-	layers.Add( new CHardTanhLayer( MathEngine() ) );
-	layers.Add( new CHardSigmoidLayer( MathEngine() ) );
-	layers.Add( new CHSwishLayer( MathEngine() ) );
-	layers.Add( new CPowerLayer( MathEngine() ) );
-	layers.Add( new CConvLayer( MathEngine() ) );
-	layers.Add( new CRleConvLayer( MathEngine() ) );
-	layers.Add( new CMaxPoolingLayer( MathEngine() ) );
-	layers.Add( new CMeanPoolingLayer( MathEngine() ) );
-	layers.Add( new CFullyConnectedLayer( MathEngine() ) );
-	layers.Add( new CCrossEntropyLossLayer( MathEngine() ) );
-	layers.Add( new CBinaryCrossEntropyLossLayer( MathEngine() ) );
-	layers.Add( new CEuclideanLossLayer( MathEngine() ) );
-	layers.Add( new CHingeLossLayer( MathEngine() ) );
-	layers.Add( new CSquaredHingeLossLayer( MathEngine() ) );
-	layers.Add( new CProblemSourceLayer( MathEngine() ) );
-	layers.Add( new CBatchNormalizationLayer( MathEngine() ) );
-	layers.Add( new CLinearLayer( MathEngine() ) );
-	layers.Add( new CDropoutLayer( MathEngine() ) );
-	layers.Add( new CImageResizeLayer( MathEngine() ) );
-	layers.Add( new CMultichannelLookupLayer( MathEngine() ) );
-	layers.Add( new CCompositeLayer( MathEngine() ) );
-	layers.Add( new CSubSequenceLayer( MathEngine() ) );
-	layers.Add( new CBackLinkLayer( MathEngine() ) );
-	layers.Add( new CCaptureSinkLayer( MathEngine() ) );
-	layers.Add( new CEnumBinarizationLayer( MathEngine() ) );
-	layers.Add( new CSoftmaxLayer( MathEngine() ) );
-	layers.Add( new CGlobalMaxPoolingLayer( MathEngine() ) );
-	layers.Add( new CLstmLayer( MathEngine() ) );
-	layers.Add( new CGruLayer( MathEngine() ) );
-	layers.Add( new CMaxOverTimePoolingLayer( MathEngine() ) );
-	layers.Add( new CTimeConvLayer( MathEngine() ) );
-	layers.Add( new C3dConvLayer( MathEngine() ) );
-	layers.Add( new C3dMaxPoolingLayer( MathEngine() ) );
-	layers.Add( new C3dMeanPoolingLayer( MathEngine() ) );
-	layers.Add( new CAttentionLayer( MathEngine() ) );
-	layers.Add( new CTransformLayer( MathEngine() ) );
-	layers.Add( new CTransposeLayer( MathEngine() ) );
-	layers.Add( new CCtcLossLayer( MathEngine() ) );
-	layers.Add( new CCtcDecodingLayer( MathEngine() ) );
-	layers.Add( new CAttentionDecoderLayer( MathEngine() ) );
-	layers.Add( new CAttentionRecurrentLayer( MathEngine() ) );
-	layers.Add( new CAttentionLayer( MathEngine() ) );
-	layers.Add( new CAttentionDotProductLayer( MathEngine() ) );
-	layers.Add( new CAttentionSumLayer( MathEngine() ) );
-	layers.Add( new CAttentionWeightedSumLayer( MathEngine() ) );
+	CArray<const char*> layerClasses;
+	GetRegisteredLayerNames( layerClasses );
 
 	const CString layerName = "LAYER";
-	for( int layerIndex = 0; layerIndex < layers.Size(); ++layerIndex ) {
-		layers[layerIndex]->SetName( layerName );
-		cnn.AddLayer( *layers[layerIndex] );
+	for( int layerIndex = 0; layerIndex < layerClasses.Size(); ++layerIndex ) {
+		{
+			CPtr<CBaseLayer> layer = CreateLayer( layerClasses[layerIndex], MathEngine() );
+			layer->SetName( layerName );
+			cnn.AddLayer( *layer );
+		}
 
 		CString newVersionFileName = "test_archive.new_ver";
 
@@ -113,7 +62,7 @@ TEST_F( CDnnSerializationTest, CnnUninitializedLayerSerialization )
 			archive.Serialize( cnn );
 		}
 
-		cnn.DeleteLayer( layers[layerIndex]->GetName() );
+		cnn.DeleteLayer( layerName );
 	}
 }
 
@@ -182,15 +131,14 @@ static void checkNet( const CArray<CNamedBlob>& inputBlobs, const CArray<CNamedB
 
 static void checkSerializedNet( const CString& fileName )
 {
-	GTEST_LOG_( INFO ) << "Checking archive " << fileName;
-
 	CRandom random( 0x12345 );
 	CDnn cnn( random, MathEngine() );
 	CArray<CNamedBlob> inputBlobs;
 	CArray<CNamedBlob> outputBlobs;
 
 	{
-		CArchiveFile file( GetTestDataFilePath( "data/SerializationTestData", fileName ), CArchive::load, GetPlatformEnv() );
+		CArchiveFile file( GetTestDataFilePath( "data/SerializationTestData", fileName ),
+			CArchive::load, GetPlatformEnv() );
 		CArchive archive( &file, CArchive::SD_Loading );
 
 		archive.Serialize( cnn );
@@ -200,18 +148,18 @@ static void checkSerializedNet( const CString& fileName )
 
 	checkNet( inputBlobs, outputBlobs, cnn, fileName );
 
-	GTEST_LOG_( INFO ) << "Checking current serialization...";
-
+	// Check current serialization
 	{
 		CString newVersionFileName = "test_archive.new_ver";
 		{
+			// Store the net
 			CArchiveFile archiveFile( newVersionFileName, CArchive::store, GetPlatformEnv() );
 			CArchive archive( &archiveFile, CArchive::SD_Storing );
-			// Сохраняем сеть в архив.
 			archive.Serialize( cnn );
 		}
-		// Загружаем из этого же архива.
+
 		{
+			// Load from the same file
 			CArchiveFile archiveFile( newVersionFileName, CArchive::load, GetPlatformEnv() );
 			CArchive archive( &archiveFile, CArchive::SD_Loading );
 			archive.Serialize( cnn );
@@ -221,6 +169,7 @@ static void checkSerializedNet( const CString& fileName )
 	checkNet( inputBlobs, outputBlobs, cnn, fileName );
 }
 
+// Checks serialization of the old versions of CDnn
 TEST_P( CDnnSerializationTest, PreviousVersions )
 {
 	CTestParams params = GetParam();
@@ -274,5 +223,3 @@ INSTANTIATE_TEST_CASE_P(CDnnSerializationTestInstantiation, CDnnSerializationTes
 		)
 	)
 );
-
-
