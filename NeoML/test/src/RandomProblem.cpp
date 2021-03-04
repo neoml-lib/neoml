@@ -20,88 +20,135 @@ limitations under the License.
 
 namespace NeoMLTest {
 
-CClassificationRandomProblem::CClassificationRandomProblem( int height, int width, float* values, const int* _classes, const float* _weights ) :
-	matrix( width ),
-	classCount( 0 ),
-	classes( _classes ),
-	weights( _weights )
+template<typename TLabel>
+CRandomProblemImpl<TLabel>::CRandomProblemImpl( int height, int width, float* values,
+		const TLabel* _labels, const float* _weights ) :
+	Matrix( width ),
+	Labels( _labels ),
+	Weights( _weights )
 {
-	CSparseFloatMatrixDesc* desc = matrix.CopyOnWrite();
+	CSparseFloatMatrixDesc* desc = Matrix.CopyOnWrite();
 	NeoAssert( desc != nullptr );
 	desc->Height = height;
 	desc->Width = width;
 	desc->Values = values;
 	desc->Columns = nullptr;
-	pointerB.SetSize( height );
-	pointerE.SetSize( height );
+	PointerB.SetSize( height );
+	PointerE.SetSize( height );
 	for( int i = 0, pos = 0; i < height; ++i ) {
-		pointerB[i] = pos;
+		PointerB[i] = pos;
 		pos += width;
-		pointerE[i] = pos;
+		PointerE[i] = pos;
 	}
-	desc->PointerB = pointerB.GetPtr();
-	desc->PointerE = pointerE.GetPtr();
+	desc->PointerB = PointerB.GetPtr();
+	desc->PointerE = PointerE.GetPtr();
 
 	for( int i = 0; i < height; i++ ) {
-		if( classCount < classes[i] ) {
-			classCount = classes[i];
+		if( LabelsCount < Labels[i] ) {
+			LabelsCount = Labels[i];
 		}
 	}
-	classCount++;
+	LabelsCount++;
 }
 
-CPtr<CClassificationRandomProblem> CClassificationRandomProblem::Random( CRandom& rand, int samples, int features, int classes )
+template<typename TLabel>
+CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::Random( CRandom& rand, int samples, int features, int labelsCount )
 {
-	CPtr<CClassificationRandomProblem> res = new CClassificationRandomProblem();
+	CPtr< CRandomProblemImpl<TLabel> > res = new CRandomProblemImpl();
 
-	res->valuesArr.SetBufferSize( samples * features );
-	res->classesArr.SetBufferSize( samples );
+	res->Values.SetBufferSize( samples * features );
+	res->LabelsArr.SetBufferSize( samples );
 	for( int i = 0; i < samples; ++i ) {
 		for( int j = 0; j < features; ++j ) {
 			if( rand.UniformInt( 0, 3 ) != 0 ) { // 1/4 probability of null element
-				res->valuesArr.Add( rand.Uniform( -10, 10 ) );
+				res->Values.Add( rand.Uniform( -10, 10 ) );
 			} else {
-				res->valuesArr.Add( 0.0 );
+				res->Values.Add( 0.0 );
 			}
 		}
-		res->classesArr.Add( rand.UniformInt( 0, classes - 1 ) );
+		res->LabelsArr.Add( static_cast<TLabel>( rand.UniformInt( 0, labelsCount - 1 ) ) );
 	}
 
-	// set weights to 1
-	res->weightsArr.Add( 1., samples );
-	res->classCount = classes;
-	res->classes = res->classesArr.GetPtr();
-	res->weights = res->weightsArr.GetPtr();
+	// set Weights to 1
+	res->WeightsArr.Add( 1., samples );
+	res->LabelsCount = labelsCount;
+	res->Labels = res->LabelsArr.GetPtr();
+	res->Weights = res->WeightsArr.GetPtr();
 
-	res->matrix = CSparseFloatMatrix( features );
-	res->pointerB.SetSize( samples );
-	res->pointerE.SetSize( samples );
+	res->Matrix = CSparseFloatMatrix( features );
+	res->PointerB.SetSize( samples );
+	res->PointerE.SetSize( samples );
 	for( int i = 0, pos = 0; i < samples; ++i ) {
-		res->pointerB[i] = pos;
+		res->PointerB[i] = pos;
 		pos += features;
-		res->pointerE[i] = pos;
+		res->PointerE[i] = pos;
 	}
-	CSparseFloatMatrixDesc* desc = res->matrix.CopyOnWrite();
+	CSparseFloatMatrixDesc* desc = res->Matrix.CopyOnWrite();
 	desc->Height = samples;
 	desc->Width = features;
-	desc->Values = res->valuesArr.GetPtr();
+	desc->Values = res->Values.GetPtr();
 	desc->Columns = nullptr;
-	desc->PointerB = res->pointerB.GetPtr();
-	desc->PointerE = res->pointerE.GetPtr();
+	desc->PointerB = res->PointerB.GetPtr();
+	desc->PointerE = res->PointerE.GetPtr();
 
+	return res;
+}
+
+template<typename TLabel>
+CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::CreateSparse() const
+{
+	CSparseFloatMatrix sparse( Matrix.GetDesc() ); // convert here dense into sparse
+	CPtr< CRandomProblemImpl<TLabel> > res = new CRandomProblemImpl();
+	res->Matrix = sparse;
+	WeightsArr.CopyTo( res->WeightsArr );
+	res->Weights = res->WeightsArr.GetPtr();
+	LabelsArr.CopyTo( res->LabelsArr );
+	res->Labels = res->LabelsArr.GetPtr();
+	res->LabelsCount = LabelsCount;
+	return res;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+CClassificationRandomProblem::CClassificationRandomProblem( int height, int width, float* values,
+		const int* _labels, const float* _weights ) :
+	impl( new CRandomProblemImpl<int>( height, width, values, _labels, _weights ) )
+{
+}
+
+CPtr<CClassificationRandomProblem> CClassificationRandomProblem::Random( CRandom& rand, int samples, int features, int labelsCount )
+{
+	CPtr<CClassificationRandomProblem> res = new CClassificationRandomProblem();
+	res->impl = CRandomProblemImpl<int>::Random( rand, samples, features, labelsCount );
 	return res;
 }
 
 CPtr<CClassificationRandomProblem> CClassificationRandomProblem::CreateSparse() const
 {
-	CSparseFloatMatrix sparse( GetMatrix() ); // convert here dense into sparse
 	CPtr<CClassificationRandomProblem> res = new CClassificationRandomProblem();
-	res->matrix = sparse;
-	weightsArr.CopyTo( res->weightsArr );
-	res->weights = res->weightsArr.GetPtr();
-	classesArr.CopyTo( res->classesArr );
-	res->classes = res->classesArr.GetPtr();
-	res->classCount = classCount;
+	res->impl = impl->CreateSparse();
+	return res;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+CRegressionRandomProblem::CRegressionRandomProblem( int height, int width, float* values,
+		const double* _labels, const float* _weights ) :
+	impl( new CRandomProblemImpl<double>( height, width, values, _labels, _weights ) )
+{
+}
+
+CPtr<CRegressionRandomProblem> CRegressionRandomProblem::Random( CRandom& rand, int samples, int features, int labelsCount )
+{
+	CPtr<CRegressionRandomProblem> res = new CRegressionRandomProblem();
+	res->impl = CRandomProblemImpl<double>::Random( rand, samples, features, labelsCount );
+	return res;
+}
+
+CPtr<CRegressionRandomProblem> CRegressionRandomProblem::CreateSparse() const
+{
+	CPtr<CRegressionRandomProblem> res = new CRegressionRandomProblem();
+	res->impl = impl->CreateSparse();
 	return res;
 }
 

@@ -70,7 +70,7 @@ void CrossValidate( int PartsCount, ITrainingModel& trainingModel, const IProble
 	}
 }
 
-class RandomBinary4000x20 : public CNeoMLTestFixture {
+class RandomBinaryClassification4000x20 : public CNeoMLTestFixture {
 protected:
 	virtual void SetUp();
 
@@ -83,7 +83,7 @@ protected:
 	void TestBinaryClassificationResult( const IModel* modelDense, const IModel* modelSparse );
 };
 
-void RandomBinary4000x20::SetUp()
+void RandomBinaryClassification4000x20::SetUp()
 {
 	CRandom rand( 0 );
 	DenseRandomBinaryProblem = CClassificationRandomProblem::Random( rand, 4000, 20, 2 );
@@ -92,12 +92,12 @@ void RandomBinary4000x20::SetUp()
 	SparseBinaryTestData = DenseBinaryTestData->CreateSparse();
 }
 
-void RandomBinary4000x20::TestBinaryClassificationResult( const IModel* modelDense, const IModel* modelSparse )
+void RandomBinaryClassification4000x20::TestBinaryClassificationResult( const IModel* modelDense, const IModel* modelSparse )
 {
 	TestClassificationResult( modelDense, modelSparse, DenseBinaryTestData, SparseBinaryTestData );
 }
 
-class RandomMulti2000x20 : public CNeoMLTestFixture {
+class RandomMultiClassification2000x20 : public CNeoMLTestFixture {
 protected:
 	virtual void SetUp();
 
@@ -110,7 +110,7 @@ protected:
 	void TestMultiClassificationResult( const IModel* modelDense, const IModel* modelSparse );
 };
 
-void RandomMulti2000x20::SetUp()
+void RandomMultiClassification2000x20::SetUp()
 {
 	CRandom rand( 0 );
 	DenseRandomMultiProblem = CClassificationRandomProblem::Random( rand, 2000, 20, 10 );
@@ -119,14 +119,14 @@ void RandomMulti2000x20::SetUp()
 	SparseMultiTestData = DenseMultiTestData->CreateSparse();
 }
 
-void RandomMulti2000x20::TestMultiClassificationResult( const IModel* modelDense, const IModel* modelSparse )
+void RandomMultiClassification2000x20::TestMultiClassificationResult( const IModel* modelDense, const IModel* modelSparse )
 {
 	TestClassificationResult( modelDense, modelSparse, DenseMultiTestData, SparseMultiTestData );
 }
 
 //------------------------------------------------------------------------------------------------
 
-TEST_F( RandomBinary4000x20, SvmLinear )
+TEST_F( RandomBinaryClassification4000x20, SvmLinear )
 {
 	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_Linear );
 	CSvmBinaryClassifierBuilder svmLinear( params );
@@ -144,7 +144,7 @@ TEST_F( RandomBinary4000x20, SvmLinear )
 	TestBinaryClassificationResult( model, model2 );
 }
 
-TEST_F( RandomBinary4000x20, SvmRbf )
+TEST_F( RandomBinaryClassification4000x20, SvmRbf )
 {
 	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_RBF );
 	CSvmBinaryClassifierBuilder svmRbf( params );
@@ -162,7 +162,7 @@ TEST_F( RandomBinary4000x20, SvmRbf )
 	TestBinaryClassificationResult( model, model2 );
 }
 
-TEST_F( RandomBinary4000x20, Linear )
+TEST_F( RandomBinaryClassification4000x20, Linear )
 {
 	CLinearBinaryClassifierBuilder::CParams params( EF_SquaredHinge );
 	params.L1Coeff = 0.05f;
@@ -181,7 +181,7 @@ TEST_F( RandomBinary4000x20, Linear )
 	TestBinaryClassificationResult( model, model2 );
 }
 
-TEST_F( RandomBinary4000x20, DecisionTree )
+TEST_F( RandomBinaryClassification4000x20, DecisionTree )
 {
 	CDecisionTreeTrainingModel::CParams param;
 	CDecisionTreeTrainingModel decisionTree( param );
@@ -199,7 +199,7 @@ TEST_F( RandomBinary4000x20, DecisionTree )
 	TestBinaryClassificationResult( model, model2 );
 }
 
-TEST_F( RandomMulti2000x20, GradientBoostingFull )
+TEST_F( RandomMultiClassification2000x20, GradientBoostingFull )
 {
 	CRandom random;
 	random.Reset( 0 );
@@ -234,7 +234,7 @@ TEST_F( RandomMulti2000x20, GradientBoostingFull )
 	TestMultiClassificationResult( model, model2 );
 }
 
-TEST_F( RandomMulti2000x20, GradientBoostingFastHist )
+TEST_F( RandomMultiClassification2000x20, GradientBoostingFastHist )
 {
 	CRandom random;
 	random.Reset( 0 );
@@ -269,7 +269,7 @@ TEST_F( RandomMulti2000x20, GradientBoostingFastHist )
 	TestMultiClassificationResult( model, model2 );
 }
 
-TEST_F( RandomMulti2000x20, GradientBoostingMultiFull )
+TEST_F( RandomMultiClassification2000x20, GradientBoostingMultiFull )
 {
 	CRandom random( 0 );
 	GTEST_LOG_( INFO ) << "Random = " << random.Next();
@@ -303,7 +303,7 @@ TEST_F( RandomMulti2000x20, GradientBoostingMultiFull )
 	TestMultiClassificationResult( model, model2 );
 }
 
-TEST_F( RandomMulti2000x20, OneVsAllLinear )
+TEST_F( RandomMultiClassification2000x20, OneVsAllLinear )
 {
 	CLinearBinaryClassifierBuilder linear( EF_SquaredHinge );
 	COneVersusAll ovaLinear( linear );
@@ -321,7 +321,7 @@ TEST_F( RandomMulti2000x20, OneVsAllLinear )
 	TestMultiClassificationResult( model, model2 );
 }
 
-TEST_F( RandomMulti2000x20, OneVsAllRbf )
+TEST_F( RandomMultiClassification2000x20, OneVsAllRbf )
 {
 	CSvmBinaryClassifierBuilder svmRbf( CSvmKernel::KT_RBF );
 	COneVersusAll ovaRbf( svmRbf );
@@ -339,25 +339,25 @@ TEST_F( RandomMulti2000x20, OneVsAllRbf )
 	TestMultiClassificationResult( model, model2 );
 }
 
-TEST_F( RandomBinary4000x20, CrossValidationLinear )
+TEST_F( RandomBinaryClassification4000x20, CrossValidationLinear )
 {
 	CLinearBinaryClassifierBuilder linear( EF_SquaredHinge );
 	CrossValidate( 10, linear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 
-TEST_F( RandomBinary4000x20, CrossValidationSvmLinear )
+TEST_F( RandomBinaryClassification4000x20, CrossValidationSvmLinear )
 {
 	CSvmBinaryClassifierBuilder svmLinear( CSvmKernel::KT_Linear );
 	CrossValidate( 10, svmLinear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 
-TEST_F( RandomBinary4000x20, CrossValidationSvmRbf )
+TEST_F( RandomBinaryClassification4000x20, CrossValidationSvmRbf )
 {
 	CSvmBinaryClassifierBuilder svmLinear( CSvmKernel::KT_RBF );
 	CrossValidate( 10, svmLinear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 
-TEST_F( RandomBinary4000x20, CrossValidationDecisionTree )
+TEST_F( RandomBinaryClassification4000x20, CrossValidationDecisionTree )
 {
 	CDecisionTreeTrainingModel::CParams param;
 	CDecisionTreeTrainingModel decisionTree( param );

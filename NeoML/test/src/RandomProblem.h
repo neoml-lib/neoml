@@ -17,41 +17,81 @@ limitations under the License.
 
 namespace NeoMLTest {
 
+// implementation of creation random dense dataset and convertion it into sparse
+template<typename TLabel>
+class CRandomProblemImpl : public virtual IObject {
+public:
+	CRandomProblemImpl( int height, int width, float* values, const TLabel* _labels, const float* _weights );
+
+	static CPtr<CRandomProblemImpl> Random( CRandom& rand, int samples, int features, int labels );
+	CPtr<CRandomProblemImpl> CreateSparse() const;
+
+	CSparseFloatMatrix Matrix;
+	int LabelsCount;
+	const TLabel* Labels;
+	const float* Weights;
+
+	// memory holders when applicable
+	CArray<float> Values;
+	CArray<int> PointerB;
+	CArray<int> PointerE;
+	CArray<TLabel> LabelsArr;
+	CArray<float> WeightsArr;
+
+private:
+	CRandomProblemImpl() = default;
+};
+
+// classification random problem impl
 class CClassificationRandomProblem : public IProblem {
 public:
-	CClassificationRandomProblem( int height, int width, float* values, const int* _classes, const float* _weights );
+	CClassificationRandomProblem( int height, int width, float* values, const int* _labels, const float* _weights );
 
 	CSparseFloatVectorDesc GetVector( int index ) const { return GetMatrix().GetRow( index ); }
 
+	static CPtr<CClassificationRandomProblem> Random( CRandom& rand, int samples, int features, int labels );
+	CPtr<CClassificationRandomProblem> CreateSparse() const;
+
 	// IProblem interface methods:
-	int GetClassCount() const override { return classCount; }
+	int GetClassCount() const override { return impl->LabelsCount; }
 	int GetFeatureCount() const override { return GetMatrix().Width; }
 	bool IsDiscreteFeature( int ) const override { return false; }
 	int GetVectorCount() const override { return GetMatrix().Height; }
-	int GetClass( int index ) const override { return classes[index]; }
-	CSparseFloatMatrixDesc GetMatrix() const override { return matrix.GetDesc(); }
-	double GetVectorWeight( int index ) const override { return weights[index]; };
-
-	static CPtr<CClassificationRandomProblem> Random( CRandom& rand, int samples, int features, int classes );
-	CPtr<CClassificationRandomProblem> CreateSparse() const;
+	int GetClass( int index ) const override { return impl->Labels[index]; }
+	CSparseFloatMatrixDesc GetMatrix() const override { return impl->Matrix.GetDesc(); }
+	double GetVectorWeight( int index ) const override { return impl->Weights[index]; };
 
 protected:
 	~CClassificationRandomProblem() override = default;
 
 private:
 	CClassificationRandomProblem() = default;
+	CPtr< CRandomProblemImpl<int> > impl;
+};
 
-	CSparseFloatMatrix matrix;
-	int classCount;
-	const int* classes;
-	const float* weights;
+// regression random problem impl
+class CRegressionRandomProblem : public IRegressionProblem {
+public:
+	CRegressionRandomProblem( int height, int width, float* values, const double* _labels, const float* _weights );
 
-	// memory holders when applicable
-	CArray<float> valuesArr;
-	CArray<int> pointerB;
-	CArray<int> pointerE;
-	CArray<int> classesArr;
-	CArray<float> weightsArr;
+	CSparseFloatVectorDesc GetVector( int index ) const { return GetMatrix().GetRow( index ); }
+
+	static CPtr<CRegressionRandomProblem> Random( CRandom& rand, int samples, int features, int labels );
+	CPtr<CRegressionRandomProblem> CreateSparse() const;
+
+	// IProblem interface methods:
+	int GetFeatureCount() const override { return GetMatrix().Width; }
+	int GetVectorCount() const override { return GetMatrix().Height; }
+	double GetValue( int index ) const override { return impl->Labels[index]; }
+	CSparseFloatMatrixDesc GetMatrix() const override { return impl->Matrix.GetDesc(); }
+	double GetVectorWeight( int index ) const override { return impl->Weights[index]; };
+
+protected:
+	~CRegressionRandomProblem() override = default;
+
+private:
+	CRegressionRandomProblem() = default;
+	CPtr< CRandomProblemImpl<double> > impl;
 };
 
 } // namespace NeoMLTest
