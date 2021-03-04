@@ -243,13 +243,21 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 
 	CArray<float> values;
 	values.SetSize( h * w );
-
+	CArray<int> pointerB;
+	pointerB.SetSize( h );
+	CArray<int> pointerE;
+	pointerE.SetSize( h );
 	CRandom rand( 0 );
-	for( int i = 0; i < h; ++i ) {
+	for( int pos = 0, i = 0; i < h; ++i ) {
 		CSparseFloatVector row = generateRandomVector( rand, w );
-		for( int j = 0; j < w; ++j ) {
-			values[i*w + j] = GetValue( row.GetDesc(), j );
+		pointerB[i] = pos;
+		for( int j = 0; j < w; ++j, ++pos ) {
+			NeoAssert( i*w + j == pos );
+			values[pos] = GetValue( row.GetDesc(), j );
 		}
+		pointerE[i] = pos;
+		NeoAssert( pointerB[i] + w == pointerE[i] );
+
 		sparseMatrix.AddRow( row );
 	}
 	CSparseFloatMatrixDesc orig = sparseMatrix.GetDesc();
@@ -271,6 +279,8 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 	denseDesc.Height = h;
 	denseDesc.Width = w;
 	denseDesc.Values = values.GetPtr();
+	denseDesc.PointerB = pointerB.GetPtr();
+	denseDesc.PointerE = pointerE.GetPtr();
 	CSparseFloatMatrix sparseMatrixFromDenseDesc( denseDesc );
 	CSparseFloatMatrixDesc fromDense = sparseMatrixFromDenseDesc.GetDesc();
 
@@ -281,9 +291,33 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 	ASSERT_EQ( ::memcmp( fromSparse.Columns, fromDense.Columns, elementsCount * sizeof( int ) ), 0 );
 	ASSERT_EQ( ::memcmp( fromSparse.Values, fromDense.Values, elementsCount * sizeof( float ) ), 0 );
 
+	// test empty
 	CSparseFloatMatrix empty( CSparseFloatMatrixDesc::Empty );
 	ASSERT_EQ( empty.GetHeight(), 0 );
 	ASSERT_EQ( empty.GetWidth(), 0 );
+
+	// test creation from desc with skipped first row
+	--denseDesc.Height;
+	pointerB.DeleteAt( 0 );
+	pointerE.DeleteAt( 0 );
+	denseDesc.PointerB = pointerB.GetPtr();
+	denseDesc.PointerE = pointerE.GetPtr();
+
+	CSparseFloatMatrix sparseMatrixFromDenseDescSkippedFirst( denseDesc );
+	fromDense = sparseMatrixFromDenseDescSkippedFirst.GetDesc();
+	const int denseElementsCount = fromDense.PointerE[fromDense.Height-1];
+	ASSERT_EQ( ::memcmp( fromSparse.Columns + fromSparse.PointerB[1], fromDense.Columns, denseElementsCount * sizeof( int ) ), 0 );
+	ASSERT_EQ( ::memcmp( fromSparse.Values + fromSparse.PointerB[1], fromDense.Values, denseElementsCount * sizeof( float ) ), 0 );
+	ASSERT_EQ( denseElementsCount + fromSparse.PointerE[0], elementsCount );
+
+	// test the same but via GetRow
+	for( int i = 0; i < fromDense.Height; ++i ) {
+		auto fromDenseRow = fromDense.GetRow( i );
+		auto fromSparseNextRow = fromSparse.GetRow( i+1 );
+		ASSERT_EQ( fromSparseNextRow.Size, fromDenseRow.Size );
+		ASSERT_EQ( ::memcmp( fromSparseNextRow.Indexes, fromDenseRow.Indexes, fromDenseRow.Size*sizeof( float ) ), 0 );
+		ASSERT_EQ( ::memcmp( fromSparseNextRow.Values, fromDenseRow.Values, fromDenseRow.Size*sizeof( float ) ), 0 );
+	}
 }
 
 TEST_F( CFloatVectorTest, Common )

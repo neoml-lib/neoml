@@ -69,20 +69,21 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CSpars
 	Desc.PointerB = BeginPointersBuf.GetPtr();
 	Desc.PointerE = EndPointersBuf.GetPtr();
 	if( desc.Columns == nullptr ) {
-		for( int i = 0; i < desc.Height * desc.Width; ++i ) {
-			if( desc.Values[i] != 0 ) {
-				++ElementsBufferSize;
+		for( int i = 0; i < desc.Height; ++i ) {
+			for( int pos = desc.PointerB[i]; pos < desc.PointerE[i]; ++pos ) {
+				if( desc.Values[pos] != 0 ) {
+					++ElementsBufferSize;
+				}
 			}
 		}
 		ColumnsBuf.SetBufferSize( ElementsBufferSize );
 		ValuesBuf.SetBufferSize( ElementsBufferSize );
 		for( int i = 0; i < desc.Height; ++i ) {
 			Desc.PointerB[i] = ElementCount;
-			for( int j = 0; j < desc.Width; ++j ) {
-				const float value = desc.Values[i * desc.Width + j];
-				if( value != 0 ) {
+			for( int pos = desc.PointerB[i], j = 0; pos < desc.PointerE[i]; ++pos, ++j ) {
+				if( desc.Values[pos] != 0 ) {
 					ColumnsBuf.Add( j );
-					ValuesBuf.Add( value );
+					ValuesBuf.Add( desc.Values[pos] );
 					++ElementCount;
 				}
 			}
