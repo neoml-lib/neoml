@@ -135,8 +135,6 @@ CNotNullWeightsView<TProblem>::CNotNullWeightsView( const TProblem* problem ) :
 		ViewMatrixDesc = problem->GetMatrix();
 		ViewMatrixDesc.Height -= nullWeightElementsCount;
 		if( nullWeightElementsCount > 0 && ViewMatrixDesc.Height > 0 ) {
-			NeoAssert( ViewMatrixDesc.Columns != nullptr ); // TODO
-			// we are going to remap some elements, so let's create our own arrays of pointers
 			pointerB.SetSize( ViewMatrixDesc.Height );
 			pointerE.SetSize( ViewMatrixDesc.Height );
 			ViewMatrixDesc.PointerB = pointerB.GetPtr();

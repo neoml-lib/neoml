@@ -48,7 +48,6 @@ private:
 	const int partIndex; // the index of the current subset
 	bool testSet; // indicates if this is the testing or the training subset
 	int vectorsCount; // the number of vectors in the subset
-	CArray<float> values; // vector of values
 	CArray<int> pointerB; // vector start pointers
 	CArray<int> pointerE; // vector end pointers
 	CSparseFloatMatrixDesc matrix; // the matrix descriptor for the problem
