@@ -145,7 +145,7 @@ protected:
 	CClassificationRandomProblem* getSparseRandomMultiProblem();
 	CClassificationRandomProblem* getSparseMultiTestData();
 
-	// binary datasets pointers
+	// multi-class datasets pointers
 	CClassificationRandomProblem* DenseRandomMultiProblem;
 	CClassificationRandomProblem* DenseMultiTestData;
 	CClassificationRandomProblem* SparseRandomMultiProblem;
