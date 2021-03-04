@@ -51,18 +51,8 @@ double CSvmKernel::linear(const CSparseFloatVectorDesc& x1, const CSparseFloatVe
 	return DotProduct(x1, x2);
 }
 
-double CSvmKernel::linear(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return DotProduct(x1, x2);
-}
-
 // The polynomial kernel
 double CSvmKernel::poly(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return power(gamma * DotProduct(x1, x2) + coef0, degree);
-}
-
-double CSvmKernel::poly(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
 {
 	return power(gamma * DotProduct(x1, x2) + coef0, degree);
 }
@@ -72,35 +62,21 @@ double CSvmKernel::rbf(const CSparseFloatVectorDesc& x1, const CSparseFloatVecto
 {
 	if( x1.Indexes == nullptr ) {
 		if( x2.Indexes == nullptr ) {
-			return rbfDenseByDense( x1.Values, x1.Size, x2.Values, x2.Size );
+			return rbfDenseByDense( x1, x2 );
 		} else {
-			return rbfDenseBySparse( x1.Values, x1.Size, x2 );
+			return rbfDenseBySparse( x1, x2 );
 		}
 	} else {
 		if( x2.Indexes == nullptr ) {
-			return rbfDenseBySparse( x2.Values, x2.Size, x1 );
+			return rbfDenseBySparse( x2, x1 );
 		} else {
 			return rbfSparseBySparse( x1, x2 );
 		}
 	}
 }
 
-double CSvmKernel::rbf(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	if( x2.Indexes == nullptr ) {
-		return rbfDenseByDense( x1.GetPtr(), x1.Size(), x2.Values, x2.Size );
-	} else {
-		return rbfDenseBySparse( x1.GetPtr(), x1.Size(), x2 );
-	}
-}
-
 // The sigmoid kernel
 double CSvmKernel::sigmoid(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const
-{
-	return tanh(gamma * DotProduct(x1, x2) + coef0);
-}
-
-double CSvmKernel::sigmoid(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
 {
 	return tanh(gamma * DotProduct(x1, x2) + coef0);
 }
@@ -122,35 +98,18 @@ double CSvmKernel::Calculate(const CSparseFloatVectorDesc& x1, const CSparseFloa
 	}
 }
 
-double CSvmKernel::Calculate(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const
-{
-	switch( kernelType ) {
-		case KT_Linear:
-			return linear(x1, x2);
-		case KT_Poly:
-			return poly(x1, x2);
-		case KT_RBF:
-			return rbf(x1, x2);
-		case KT_Sigmoid:
-			return sigmoid(x1, x2);
-		default:
-			NeoAssert(false);
-			return 0;
-	}
-}
-
-double CSvmKernel::rbfDenseBySparse( const float* x1, int x1Size, const CSparseFloatVectorDesc& x2 ) const
+double CSvmKernel::rbfDenseBySparse( const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2 ) const
 {
 	double square = 0;
 	double diff;
 	int i, j;
-	for( i = 0, j = 0; i < x1Size && j < x2.Size; ) {
+	for( i = 0, j = 0; i < x1.Size && j < x2.Size; ) {
 		if( i == x2.Indexes[j] ) {
-			diff = x1[i] - x2.Values[j];
+			diff = x1.Values[i] - x2.Values[j];
 			i++;
 			j++;
 		} else if( i < x2.Indexes[j] ) {
-			diff = x1[i];
+			diff = x1.Values[i];
 			i++;
 		} else {
 			diff = x2.Values[j];
@@ -158,8 +117,8 @@ double CSvmKernel::rbfDenseBySparse( const float* x1, int x1Size, const CSparseF
 		}
 		square += diff * diff;
 	}
-	for( ; i < x1Size; i++ ) {
-		diff = x1[i];
+	for( ; i < x1.Size; i++ ) {
+		diff = x1.Values[i];
 		square += diff * diff;
 	}
 	for( ; j < x2.Size; j++ ) {
@@ -169,13 +128,12 @@ double CSvmKernel::rbfDenseBySparse( const float* x1, int x1Size, const CSparseF
 	return exp(-gamma * square);
 }
 
-double CSvmKernel::rbfDenseByDense( const float* x1, int x1Size, const float* x2, int x2Size ) const
+double CSvmKernel::rbfDenseByDense( const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2 ) const
 {
-	NeoAssert( x1Size == x2Size );
 	double square = 0;
 	double diff;
-	for( int i = 0; i < x1Size; ++i ) {
-		diff = x1[i] - x2[i];
+	for( int i = 0; i < min( x1.Size, x2.Size ); ++i ) {
+		diff = x1.Values[i] - x2.Values[i];
 		square += diff * diff;
 	}
 	return exp(-gamma * square);

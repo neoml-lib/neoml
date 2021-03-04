@@ -38,7 +38,7 @@ public:
 	TKernelType KernelType() const { return kernelType; }
 	// Calculates the kernel value on given vectors
 	double Calculate(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double Calculate(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
+	double Calculate(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const { return Calculate( x1.GetDesc(), x2 ); }
 
 	friend CArchive& operator << ( CArchive& archive, const CSvmKernel& center );
 	friend CArchive& operator >> ( CArchive& archive, CSvmKernel& center );
@@ -50,16 +50,12 @@ private:
 	double coef0;
 
 	double linear(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double linear(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
 	double poly(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double poly(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
 	double rbf(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double rbf(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
 	double sigmoid(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double sigmoid(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const;
 
-	double rbfDenseBySparse( const float* x1, int x1Size, const CSparseFloatVectorDesc& x2 ) const;
-	double rbfDenseByDense( const float* x1, int x1Size, const float* x2, int x2Size ) const;
+	double rbfDenseBySparse( const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2 ) const;
+	double rbfDenseByDense( const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2 ) const;
 	double rbfSparseBySparse( const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2 ) const;
 };
 
