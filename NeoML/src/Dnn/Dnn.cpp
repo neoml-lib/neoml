@@ -311,7 +311,7 @@ REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
 REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClass" )
 REGISTER_NEOML_LAYER( CQrnnLayer, "NeoMLDnnQrnnLayer" )
 REGISTER_NEOML_LAYER( CTiedEmbeddingsLayer, "TiedEmbeddingsLayer" )
-REGISTER_NEOML_LAYER( CIrnnLayer, "NeoMLDnnIrnnLayer" );
+REGISTER_NEOML_LAYER( CIrnnLayer, "NeoMLDnnIrnnLayer" )
 
 }
 
