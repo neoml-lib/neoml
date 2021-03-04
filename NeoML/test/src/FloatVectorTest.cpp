@@ -317,6 +317,12 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 		ASSERT_EQ( fromSparseNextRow.Size, fromDenseRow.Size );
 		ASSERT_EQ( ::memcmp( fromSparseNextRow.Indexes, fromDenseRow.Indexes, fromDenseRow.Size*sizeof( float ) ), 0 );
 		ASSERT_EQ( ::memcmp( fromSparseNextRow.Values, fromDenseRow.Values, fromDenseRow.Size*sizeof( float ) ), 0 );
+
+		// test GetRow from dense matrix desc
+		fromDenseRow = denseDesc.GetRow( i );
+		for( int i = 0; i < fromDenseRow.Size; ++i ) {
+			ASSERT_EQ( GetValue( fromDenseRow, i ), GetValue( fromSparseNextRow, i ) );
+		}
 	}
 }
 
