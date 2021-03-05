@@ -94,8 +94,7 @@ static void getDimOrder( const CTensorShape& shape, const CTensorLayout& layout,
 
 // Reinterprets dimensions of data (without reordering)
 // Specification for CDataTensor
-template<bool IsDataTensor=true>
-CPtr<const CTensorBase> reinterpretDimensions( const CTensorBase& input, const CTensorLayout& outputLayout )
+CPtr<const CDataTensor> reinterpretDimensions( const CDataTensor& input, const CTensorLayout& outputLayout )
 {
 	CheckNeoOnnxInternal( input.IsCalculated(), "Can't reinterpret dimensions of CUserTensor" );
 
@@ -105,12 +104,11 @@ CPtr<const CTensorBase> reinterpretDimensions( const CTensorBase& input, const C
 	CDimOrder outputOrder;
 	getDimOrder( input.Shape(), outputLayout, outputOrder );
 
-	const CDataTensor& inputDataTensor = dynamic_cast<const CDataTensor&>( input );
 	if( isEqual( inputOrder, outputOrder ) ) {
-		return new CDataTensor( input.Shape(), outputLayout, *inputDataTensor.Data() );
+		return new CDataTensor( input.Shape(), outputLayout, *input.Data() );
 	}
 
-	const CDnnBlob* inputBlob = inputDataTensor.Data();
+	const CDnnBlob* inputBlob = input.Data();
 
 	const CBlobDesc& inputDesc = inputBlob->GetDesc();
 	CBlobDesc outputDesc;
@@ -132,8 +130,7 @@ CPtr<const CTensorBase> reinterpretDimensions( const CTensorBase& input, const C
 }
 
 // Specification for CUserTensor
-template<>
-CPtr<const CTensorBase> reinterpretDimensions<false>( const CTensorBase& input, const CTensorLayout& outputLayout )
+CPtr<const CUserTensor> reinterpretDimensions( const CUserTensor& input, const CTensorLayout& outputLayout )
 {
 	CheckNeoOnnxInternal( !input.IsCalculated(), "Can't reinterpret dimensions of CDataTensor" );
 	const CTensorShape& inputShape = input.Shape();
@@ -144,12 +141,11 @@ CPtr<const CTensorBase> reinterpretDimensions<false>( const CTensorBase& input, 
 	CDimOrder outputOrder;
 	getDimOrder( inputShape, outputLayout, outputOrder );
 
-	const CUserTensor& inputUserTensor = dynamic_cast<const CUserTensor&>( input );
 	if( isEqual( inputOrder, outputOrder ) ) {
-		return new CUserTensor( inputShape, outputLayout, inputUserTensor.LayerOutput() );
+		return new CUserTensor( inputShape, outputLayout, input.LayerOutput() );
 	}
 
-	CLayerOutput currLayerOutput = inputUserTensor.LayerOutput();
+	CLayerOutput currLayerOutput = input.LayerOutput();
 	CheckNeoOnnxInternal( currLayerOutput.Layer != nullptr && currLayerOutput.OutputIndex != NotFound,
 		"Uninitialized layer output" );
 	CheckNeoOnnxInternal( currLayerOutput.Layer->GetDnn() != nullptr, "Layer doesn't belong to net" );
@@ -176,17 +172,25 @@ CPtr<const CTensorBase> reinterpretDimensions<false>( const CTensorBase& input, 
 	return new CUserTensor( inputShape, outputLayout, currLayerOutput );
 }
 
+CPtr<const CTensorBase> reinterpretDimensions( const CTensorBase& input, const CTensorLayout& outputLayout )
+{
+	if( input.IsCalculated() ) {
+		return reinterpretDimensions( dynamic_cast<const CDataTensor&>( input ), outputLayout ).Ptr();
+	} else {
+		return reinterpretDimensions( dynamic_cast<const CUserTensor&>( input ), outputLayout ).Ptr();
+	}
+}
+
 // Swaps 2 dimensions of given tensor
 // Tensor must be of DT_NeoML dim type
 // Specification for CDataTensor
-template<bool IsDataTensor=true>
-CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDim firstDim, int firstDimIndex,
+CPtr<const CDataTensor> swapDimensions( const CDataTensor& input, TBlobDim firstDim, int firstDimIndex,
 	TBlobDim secondDim, int secondDimIndex )
 {
 	CheckNeoOnnxInternal( input.Layout().DimType == DT_NeoML, "Swapping dimensions is possible only from NeoML dim type" );
 	CheckNeoOnnxInternal( input.IsCalculated(), "Can't swap dimensions of CUserTensor" );
 
-	CPtr<const CDnnBlob> outputBlob = dynamic_cast<const CDataTensor&>( input ).Data()->GetTransposed( firstDim, secondDim );
+	CPtr<const CDnnBlob> outputBlob = input.Data()->GetTransposed( firstDim, secondDim );
 	
 	CDimOrder outputOrder;
 	input.Layout().OnnxOrder.CopyTo( outputOrder );
@@ -195,9 +199,8 @@ CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDim first
 	return new CDataTensor( input.Shape(), CTensorLayout( outputOrder ), *outputBlob );
 }
 
-// Specification for CDataTensor
-template<>
-CPtr<const CTensorBase> swapDimensions<false>( const CTensorBase& input, TBlobDim firstDim, int firstDimIndex,
+// Specification for CUserTensor
+CPtr<const CUserTensor> swapDimensions( const CUserTensor& input, TBlobDim firstDim, int firstDimIndex,
 	TBlobDim secondDim, int secondDimIndex )
 {
 	CheckNeoOnnxInternal( input.Layout().DimType == DT_NeoML, "Swapping dimensions is possible only from NeoML dim type" );
@@ -226,8 +229,19 @@ CPtr<const CTensorBase> swapDimensions<false>( const CTensorBase& input, TBlobDi
 	return new CUserTensor( input.Shape(), CTensorLayout( outputOrder ), currLayerOutput );
 }
 
+CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDim firstDim, int firstDimIndex,
+	TBlobDim secondDim, int secondDimIndex )
+{
+	if( input.IsCalculated() ) {
+		return swapDimensions( dynamic_cast<const CDataTensor&>( input ), firstDim, firstDimIndex,
+			secondDim, secondDimIndex ).Ptr();
+	} else {
+		return swapDimensions( dynamic_cast<const CUserTensor&>( input ), firstDim, firstDimIndex,
+			secondDim, secondDimIndex ).Ptr();
+	}
+}
+
 // Converts input blob from NeoML dim order to Onnx
-template<bool IsDataTensor>
 CPtr<const CTensorBase> convertFromNeoMLToOnnx( const CTensorBase& input )
 {
 	CheckNeoOnnxInternal( input.Layout().DimType == DT_NeoML, "input tensor must have DT_NeoML dim type" );
@@ -246,7 +260,7 @@ CPtr<const CTensorBase> convertFromNeoMLToOnnx( const CTensorBase& input )
 			// at the currTensor[dimIndex] of the blob
 			// But it should be at neoMLOrder[dimIndex] of the blob
 			const int swapDimIndex = currOrder.Find( neoMLOrder[dimIndex] );
-			currTensor = swapDimensions<IsDataTensor>( *currTensor, currOrder[dimIndex], dimIndex,
+			currTensor = swapDimensions( *currTensor, currOrder[dimIndex], dimIndex,
 				neoMLOrder[dimIndex], swapDimIndex );
 			// TODO: Delete after debug
 			CheckNeoOnnxInternal( currTensor->Layout().OnnxOrder[dimIndex] == neoMLOrder[dimIndex], 
@@ -255,11 +269,10 @@ CPtr<const CTensorBase> convertFromNeoMLToOnnx( const CTensorBase& input )
 	}
 	
 	// Step 2: rename the dimensions into first N CDnnBlob dims
-	return reinterpretDimensions<IsDataTensor>( *currTensor, CTensorLayout() );
+	return reinterpretDimensions( *currTensor, CTensorLayout() );
 }
 
 // Converts input blob from Onnx dim order to Onnx
-template<bool IsDataTensor>
 CPtr<const CTensorBase> convertFromOnnxToNeoML( const CTensorBase& input, const CDimOrder& outputOnnxOrder )
 {
 	CheckNeoOnnxInternal( input.Layout().DimType == DT_Onnx, "input tensor must have DT_Onnx dim type" );
@@ -269,7 +282,7 @@ CPtr<const CTensorBase> convertFromOnnxToNeoML( const CTensorBase& input, const 
 	neoMLOrder.QuickSort<Ascending<TBlobDim>>();
 
 	// Step 1: rename the dimensions (into DT_NeoML)
-	CPtr<const CTensorBase> currTensor = reinterpretDimensions<IsDataTensor>( input, CTensorLayout( neoMLOrder ) );
+	CPtr<const CTensorBase> currTensor = reinterpretDimensions( input, CTensorLayout( neoMLOrder ) );
 
 	// Step 2: reorder the dimensions
 	for( int dimIndex = 0; dimIndex < neoMLOrder.Size(); ++dimIndex ) {
@@ -279,8 +292,8 @@ CPtr<const CTensorBase> convertFromOnnxToNeoML( const CTensorBase& input, const 
 			// at the currTensor[dimIndex] of the blob
 			// But it should be at outputOnnxOrder[dimIndex] of the blob
 			const int swapDimIndex = currOrder.Find( outputOnnxOrder[dimIndex] );
-			currTensor = swapDimensions<IsDataTensor>( *currTensor, currOrder[dimIndex], dimIndex,
-				outputOnnxOrder[dimIndex], swapDimIndex );
+			currTensor = swapDimensions( *currTensor, currOrder[dimIndex], dimIndex,
+				outputOnnxOrder[dimIndex], swapDimIndex ).Ptr();
 			// TODO: Delete after debug
 			CheckNeoOnnxInternal( currTensor->Layout().OnnxOrder[dimIndex] == outputOnnxOrder[dimIndex], 
 				"Something wrong..." );
@@ -291,7 +304,6 @@ CPtr<const CTensorBase> convertFromOnnxToNeoML( const CTensorBase& input, const 
 }
 
 // Converts to different layout of the same dim type
-template<bool IsDataTensor>
 CPtr<const CTensorBase> convertWithinSameDimType( const CTensorBase& input, const CTensorLayout& outputLayout )
 {
 	const CTensorLayout& inputLayout = input.Layout();
@@ -311,37 +323,23 @@ CPtr<const CTensorBase> convertWithinSameDimType( const CTensorBase& input, cons
 	}
 
 	// TODO: write more effective conversion inside of NeoML format
-	CPtr<const CTensorBase> onnxTensor = convertFromNeoMLToOnnx<IsDataTensor>( input );
-	return convertFromOnnxToNeoML<IsDataTensor>( *onnxTensor, outputLayout.OnnxOrder );
+	CPtr<const CTensorBase> onnxTensor = convertFromNeoMLToOnnx( input );
+	return convertFromOnnxToNeoML( *onnxTensor, outputLayout.OnnxOrder );
 }
 
 // Converts tensor to given layout
-template<bool IsDataTensor>
-CPtr<const CTensorBase> convert( const CTensorBase& inputTensor, const CTensorLayout& outputLayout )
-{
-	const CTensorLayout& inputLayout = inputTensor.Layout();
-	if( inputLayout.DimType == outputLayout.DimType ) {
-		return convertWithinSameDimType<IsDataTensor>( inputTensor, outputLayout );
-	}
-
-	if( inputLayout.DimType == DT_NeoML ) {
-		return convertFromNeoMLToOnnx<IsDataTensor>( inputTensor );
-	} else {
-		return convertFromOnnxToNeoML<IsDataTensor>( inputTensor, outputLayout.OnnxOrder );
-	}
-}
-
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& outputLayout )
 {
 	const CTensorLayout& inputLayout = inputTensor.Layout();
-
-	if( inputTensor.IsCalculated() ) {
-		return convert<true>( inputTensor, outputLayout );
-	} else {
-		return convert<false>( inputTensor, outputLayout );
+	if( inputLayout.DimType == outputLayout.DimType ) {
+		return convertWithinSameDimType( inputTensor, outputLayout );
 	}
-	// To satisfy compilers' warnings
-	return nullptr;
+
+	if( inputLayout.DimType == DT_NeoML ) {
+		return convertFromNeoMLToOnnx( inputTensor );
+	} else {
+		return convertFromOnnxToNeoML( inputTensor, outputLayout.OnnxOrder );
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------
