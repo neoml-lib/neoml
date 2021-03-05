@@ -21,6 +21,58 @@ limitations under the License.
 
 namespace NeoML {
 
+// Bracket-like class for reading CDnnBlob buffer
+class CDnnBlobBufferReader {
+public:
+	explicit CDnnBlobBufferReader( CDnnBlob* blob );
+	~CDnnBlobBufferReader();
+
+	CDnnBlobBufferReader( const CDnnBlobBufferReader& ) = delete;
+	CDnnBlobBufferReader& operator=( const CDnnBlobBufferReader& ) = delete;
+
+	// Get value from position pos. For integer blob convert result to float.
+	float GetValue( int pos ) const;
+
+private:
+	CDnnBlob* blob;
+	// pointers to buffer
+	int* bufferInt;
+	float* bufferFloat;
+};
+
+CDnnBlobBufferReader::CDnnBlobBufferReader( CDnnBlob* _blob ) :
+	blob( _blob ),
+	bufferInt( 0 ),
+	bufferFloat( 0 )
+{
+	NeoAssert( blob != 0 );
+	if( blob->GetDataType() == CT_Float ) {
+		bufferFloat = blob->GetBuffer<float>( 0, blob->GetDataSize() );
+	} else {
+		bufferInt = blob->GetBuffer<int>( 0, blob->GetDataSize() );
+	}
+}
+
+CDnnBlobBufferReader::~CDnnBlobBufferReader()
+{
+	if( blob->GetDataType() == CT_Float ) {
+		blob->ReleaseBuffer( bufferFloat, false );
+	} else {
+		blob->ReleaseBuffer( bufferInt, false );
+	}
+}
+
+float CDnnBlobBufferReader::GetValue( int pos ) const
+{
+	if( blob->GetDataType() == CT_Float ) {
+		return bufferFloat[pos];
+	} else {
+		return 1.0f * bufferInt[pos];
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CAccuracyLayer::CAccuracyLayer( IMathEngine& mathEngine ) :
 	CQualityControlLayer( mathEngine, "CCnnAccuracyLayer" ),
 	iterationsCount( 0 ),
@@ -50,7 +102,8 @@ void CAccuracyLayer::Reshape()
 		&& inputDescs[0].Depth() == 1 );
 
 	outputDescs[0] = CBlobDesc( CT_Float );
-
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize()
+		|| inputDescs[1].ObjectSize() == 1, GetName(), "Second input object size must match or be equal to 1" );
 	iterationsCount = 0;
 	collectedAccuracy = 0;
 }
@@ -60,16 +113,16 @@ void CAccuracyLayer::RunOnceAfterReset()
 	CPtr<CDnnBlob> inputBlob = inputBlobs[0];
 	CPtr<CDnnBlob> expectedLabelsBlob = inputBlobs[1];
 	CFastArray<float, 1> inputBuffer;
-	CFastArray<float, 1> expectedBuffer;
-
+	
 	const int dataSize = inputBlob->GetDataSize();
 	const int objectCount = inputBlob->GetObjectCount();
 	const int objectSize = inputBlob->GetObjectSize();
-
 	inputBuffer.SetSize( dataSize );
-	expectedBuffer.SetSize( dataSize );
-	inputBlob->CopyTo( inputBuffer.GetPtr(), dataSize );
-	expectedLabelsBlob->CopyTo( expectedBuffer.GetPtr(), dataSize );
+	inputBlob->CopyTo( inputBuffer.GetPtr(), inputBuffer.Size() );
+
+	const int expectedObjectSize = expectedLabelsBlob->GetObjectSize();
+	const CDnnBlobBufferReader expectedBuffer( expectedLabelsBlob );
+
 	int correctlyClassifiedCount = 0;
 	for( int i = 0; i < inputBlob->GetBatchWidth(); i++ ) {
 		for( int j = 0; j < inputBlob->GetBatchLength(); j++ ) {
@@ -84,8 +137,16 @@ void CAccuracyLayer::RunOnceAfterReset()
 						expectedClass = classWeightId;
 					}
 				}
-				if( expectedBuffer[sampleId * objectSize + expectedClass] > 0.f ) {
-					correctlyClassifiedCount += 1;
+				if( expectedObjectSize == objectSize ) {
+					if( expectedBuffer.GetValue(sampleId * expectedObjectSize + expectedClass) > 0.f ) {
+						correctlyClassifiedCount += 1;
+					}
+				} else {
+					assert( expectedObjectSize == 1 );
+					const int label = Round( expectedBuffer.GetValue( sampleId * expectedObjectSize ) );
+					if( label == expectedClass ) {
+						correctlyClassifiedCount += 1;
+					}
 				}
 			} else {
 				NeoAssert( objectSize == 1 );
@@ -93,7 +154,7 @@ void CAccuracyLayer::RunOnceAfterReset()
 				// That means a positive value corresponds to one class and a negative to the other
 				// The input blob with the correct labels should only contain +1 and -1 values
 				const float predictedValue = inputBuffer[sampleId];
-				const float expectedClass = expectedBuffer[sampleId];
+				const float expectedClass = expectedBuffer.GetValue( sampleId );
 				if( ( predictedValue >= 0 && expectedClass > 0 ) || ( predictedValue < 0 && expectedClass < 0 ) ) {
 					correctlyClassifiedCount += 1;
 				}

@@ -137,7 +137,7 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 		if( imageResize == nullptr ) {
 			imageResize = new CImageResizeLayer( mathEngine );
 			imageResize->SetName( getUniqueLayerName( padNamePrefix, dnn ) );
-			imageResize->SetDefalutValue( padValue );
+			imageResize->SetDefaultValue( padValue );
 		}
 
 		if( heightDimIndex == NotFound ) {

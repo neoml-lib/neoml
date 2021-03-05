@@ -66,6 +66,8 @@ if(NeoML_BUILD_TESTS AND NOT IS_SUBPROJECT AND NOT ANDROID AND NOT IOS)
     add_subdirectory(test/desktop)
     if(USE_FINE_OBJECTS)
         add_subdirectory(${ROOT_PATH}/NeoMLTest/test ${CMAKE_BINARY_DIR}/test)
+    elseif(NeoML_TEST_DIR)
+        add_subdirectory(${NeoML_TEST_DIR}/test ${CMAKE_BINARY_DIR}/test)
     endif()
 endif()
 

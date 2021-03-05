@@ -109,6 +109,8 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/GELULayer.h>
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
+#include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
+#include <NeoML/Dnn/Layers/IrnnLayer.h>
 #include <NeoML/Dnn/Layers/LrnLayer.h>
 #include <NeoML/ArchiveFile.h>
 

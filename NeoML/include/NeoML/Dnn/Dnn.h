@@ -45,6 +45,8 @@ bool NEOML_API IsRegisteredLayerName( const char* name );
 
 CPtr<CBaseLayer> NEOML_API CreateLayer( const char* name, IMathEngine& mathEngine );
 
+NEOML_API CString GetLayerName( const CBaseLayer& layer );
+
 template<class T>
 CPtr<T> CreateLayer( const char* name, IMathEngine& mathEngine )
 {

@@ -16,56 +16,28 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <RegressionTreeModel.h>
+#include <LinkedRegressionTree.h>
+#include <SerializeCompact.h>
 
 namespace NeoML {
 
-REGISTER_NEOML_MODEL( CRegressionTreeModel, RegressionTreeModelName )
-
-// Serializes an integer depending on its value (similar to UTF encoding)
-static void serializeCompact( CArchive& archive, unsigned int& value )
-{
-	const int UsefulBitCount = 7;
-	const int UsefulBitMask = ( 1 << UsefulBitCount ) - 1;
-	const int ContinueBitMask = ( 1 << UsefulBitCount );
-
-	if( archive.IsStoring() ) {
-		unsigned int temp = value;
-		do {
-			unsigned int div = temp >> UsefulBitCount;
-			unsigned int mod = temp & UsefulBitMask;
-			archive << static_cast<unsigned char>( mod | ( div > 0 ? ContinueBitMask : 0 ) );
-			temp = div;
-		} while( temp > 0 );
-	} else if( archive.IsLoading() ) {
-		value = 0;
-		unsigned int shift = 0;
-		unsigned char mod = 0;
-		do {
-			archive >> mod;
-			value = ( ( mod & UsefulBitMask ) << shift ) + value;
-			shift += UsefulBitCount;
-		} while( mod & ContinueBitMask );
-	} else {
-		NeoAssert( false );
-	}
-}
+REGISTER_NEOML_MODEL( CLinkedRegressionTree, "FmlRegressionTreeModel" )
 
 //------------------------------------------------------------------------------------------------------------
 
-CRegressionTreeModel::CRegressionTreeModel()
+CLinkedRegressionTree::CLinkedRegressionTree()
 {
 	info.Type = RTNT_Undefined;
 	info.FeatureIndex = NotFound;
 	info.Value = { 0 };
 }
 
-CRegressionTreeModel::~CRegressionTreeModel()
+CLinkedRegressionTree::~CLinkedRegressionTree()
 {
 	NeoPresume( info.Type != RTNT_Undefined );
 }
 
-void CRegressionTreeModel::InitLeafNode( double prediction )
+void CLinkedRegressionTree::InitLeafNode( double prediction )
 {
 	info.Type = RTNT_Const;
 	info.FeatureIndex = NotFound;
@@ -74,7 +46,7 @@ void CRegressionTreeModel::InitLeafNode( double prediction )
 	rightChild.Release();
 }
 
-void CRegressionTreeModel::InitLeafNode( const CArray<double>& prediction )
+void CLinkedRegressionTree::InitLeafNode( const CArray<double>& prediction )
 {
 	info.Type = RTNT_MultiConst;
 	info.FeatureIndex = NotFound;
@@ -86,7 +58,8 @@ void CRegressionTreeModel::InitLeafNode( const CArray<double>& prediction )
 	rightChild.Release();
 }
 
-void CRegressionTreeModel::InitSplitNode( CRegressionTreeModel& left, CRegressionTreeModel& right, int feature, double threshold )
+void CLinkedRegressionTree::InitSplitNode(
+	CLinkedRegressionTree& left, CLinkedRegressionTree& right, int feature, double threshold )
 {
 	NeoAssert( info.Type == RTNT_Undefined );
 
@@ -97,50 +70,33 @@ void CRegressionTreeModel::InitSplitNode( CRegressionTreeModel& left, CRegressio
 	rightChild = &right;
 }
 
-const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSparseFloatVector& data ) const
+template<typename TVector>
+static inline float getFeature( const TVector& features, int number )
 {
-	static_assert( RTNT_Count == 4, "RTNT_Count != 4" );
-
-	if( info.Type == RTNT_Continuous ) {
-		float featureValue = 0;
-		data.GetValue( info.FeatureIndex, featureValue );
-
-		const CRegressionTreeModel* child = featureValue <= info.Value[0] ? leftChild : rightChild;
-		NeoAssert( child != 0 );
-		return child->GetPredictionNode( data );
-	}
-	return this;
+	return features[number];
 }
 
-const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CSparseFloatVectorDesc& data ) const
+static inline float getFeature( const CSparseFloatVectorDesc& features, int number )
+{
+	return GetValue( features, number );
+}
+
+template<typename TVector>
+const CLinkedRegressionTree* CLinkedRegressionTree::GetPredictionNode(
+	const TVector& data ) const
 {
 	static_assert(RTNT_Count == 4, "RTNT_Count != 4");
 
 	if( info.Type == RTNT_Continuous ) {
-		float featureValue = 0;
-		GetValue( data, info.FeatureIndex, featureValue );
-
-		const CRegressionTreeModel* child = featureValue <= info.Value[0] ? leftChild : rightChild;
-		NeoAssert( child != 0 );
+		const float featureValue = getFeature( data, info.FeatureIndex );
+		const CLinkedRegressionTree* child = featureValue <= info.Value[0] ? leftChild : rightChild;
+		NeoPresume( child != 0 );
 		return child->GetPredictionNode( data );
 	}
 	return this;
 }
 
-const CRegressionTreeModel* CRegressionTreeModel::GetPredictionNode( const CFloatVector& data ) const
-{
-	static_assert( RTNT_Count == 4, "RTNT_Count != 4" );
-
-	if( info.Type == RTNT_Continuous ) {
-		double featureValue = info.FeatureIndex < data.Size() ? data[info.FeatureIndex] : 0;
-		const CRegressionTreeModel* child = featureValue <= info.Value[0] ? leftChild : rightChild;
-		NeoAssert( child != 0 );
-		return child->GetPredictionNode( data );
-	}
-	return this;
-}
-
-void CRegressionTreeModel::CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const
+void CLinkedRegressionTree::CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const
 {
 	result.Empty();
 	result.Add( 0, maxFeature );
@@ -148,28 +104,44 @@ void CRegressionTreeModel::CalcFeatureStatistics( int maxFeature, CArray<int>& r
 	calcFeatureStatistics( maxFeature, result );
 }
 
-const CFastArray<double, 1>& CRegressionTreeModel::Predict( const CSparseFloatVector& data ) const
+template<typename TVector>
+inline void CLinkedRegressionTree::predict( const TVector& features, CPrediction& result ) const
 {
-	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
-	return node->info.Value;
+	const CLinkedRegressionTree* node = GetPredictionNode( features );
+	NeoPresume( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
+	node->info.Value.CopyTo( result );
 }
 
-const CFastArray<double, 1>& CRegressionTreeModel::Predict( const CFloatVector& data ) const
+template<typename TVector>
+inline double CLinkedRegressionTree::predict( const TVector& features ) const
 {
-	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
-	return node->info.Value;
+	const CLinkedRegressionTree* node = GetPredictionNode( features );
+	NeoPresume( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
+	NeoPresume( node->info.Value.Size() == 1 );
+	return node->info.Value[0];
 }
 
-const CFastArray<double, 1>& CRegressionTreeModel::Predict( const CSparseFloatVectorDesc& data ) const
+void CLinkedRegressionTree::Predict( const CFloatVector& data, CPrediction& result ) const
 {
-	const CRegressionTreeModel* node = GetPredictionNode( data );
-	NeoAssert( node->info.Type == RTNT_MultiConst || node->info.Type == RTNT_Const );
-	return node->info.Value ;
+	predict( data.GetPtr(), result );
 }
 
-void CRegressionTreeModel::Serialize( CArchive& archive )
+void CLinkedRegressionTree::Predict( const CSparseFloatVectorDesc& data, CPrediction& result ) const
+{
+	predict( data, result );
+}
+
+double CLinkedRegressionTree::Predict( const CFloatVector& data ) const
+{
+	return predict( data.GetPtr() );
+}
+
+double CLinkedRegressionTree::Predict( const CSparseFloatVectorDesc& data ) const
+{
+	return predict( data );
+}
+
+void CLinkedRegressionTree::Serialize( CArchive& archive )
 {
 #ifdef NEOML_USE_FINEOBJ
 	const int minSupportedVersion = 0;
@@ -181,7 +153,7 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 	if( archive.IsStoring() ) {
 		if( info.Type == RTNT_Continuous ) {
 			unsigned int index = static_cast<unsigned int>( info.FeatureIndex + 2 );
-			serializeCompact( archive, index );
+			SerializeCompact( archive, index );
 			archive << info.Value[0];
 			NeoAssert( leftChild != 0 );
 			leftChild->Serialize( archive );
@@ -189,11 +161,11 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 			rightChild->Serialize( archive );
 		} else if( info.Type == RTNT_Const ) {
 			unsigned int type = 0;
-			serializeCompact( archive, type );
+			SerializeCompact( archive, type );
 			archive << info.Value[0];
 		} else if( info.Type == RTNT_MultiConst ) {
 			unsigned int type = 1;
-			serializeCompact( archive, type );
+			SerializeCompact( archive, type );
 			info.Value.Serialize( archive );
 		}
 	} else if( archive.IsLoading() ) {
@@ -204,10 +176,10 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 				archive >> info;
 				if( info.Type == RTNT_Continuous ) {
 					CUnicodeString name = archive.ReadExternalName();
-					leftChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					leftChild = FINE_DEBUG_NEW CLinkedRegressionTree();
 					leftChild->Serialize( archive );
 					name = archive.ReadExternalName();
-					rightChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					rightChild = FINE_DEBUG_NEW CLinkedRegressionTree();
 					rightChild->Serialize( archive );
 				}
 				break;
@@ -217,7 +189,7 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 			case 2:
 			{
 				unsigned int index = 0;
-				serializeCompact( archive, index );
+				SerializeCompact( archive, index );
 				if( version == 1 ) {
 					float value = 0;
 					archive >> value;
@@ -230,9 +202,9 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 				if( index > 0 ) {
 					info.Type = RTNT_Continuous;
 					info.FeatureIndex = index - 1;
-					leftChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					leftChild = FINE_DEBUG_NEW CLinkedRegressionTree();
 					leftChild->Serialize( archive );
-					rightChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					rightChild = FINE_DEBUG_NEW CLinkedRegressionTree();
 					rightChild->Serialize( archive );
 				} else {
 					info.Type = RTNT_Const;
@@ -243,16 +215,16 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 			case 3:
 			{
 				unsigned int index = 0;
-				serializeCompact( archive, index );
+				SerializeCompact( archive, index );
 				if( index >= 2 ) {
 					info.Type = RTNT_Continuous;
 					info.FeatureIndex = index - 2;
 					double value;
 					archive >> value;
 					info.Value = { value };
-					leftChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					leftChild = FINE_DEBUG_NEW CLinkedRegressionTree();
 					leftChild->Serialize( archive );
-					rightChild = FINE_DEBUG_NEW CRegressionTreeModel();
+					rightChild = FINE_DEBUG_NEW CLinkedRegressionTree();
 					rightChild->Serialize( archive );
 				} else if( index == 0 ) {
 					info.Type = RTNT_Const;
@@ -276,7 +248,7 @@ void CRegressionTreeModel::Serialize( CArchive& archive )
 }
 
 // Calculates the feature use frequency
-void CRegressionTreeModel::calcFeatureStatistics( int maxFeature, CArray<int>& result ) const
+void CLinkedRegressionTree::calcFeatureStatistics( int maxFeature, CArray<int>& result ) const
 {
 	static_assert( RTNT_Count == 4, "RTNT_Count != 4" );
 
