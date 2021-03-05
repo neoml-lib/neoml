@@ -44,8 +44,8 @@ CRandomProblemImpl<TLabel>::CRandomProblemImpl( int height, int width, float* va
 	desc->PointerE = PointerE.GetPtr();
 
 	for( int i = 0; i < height; i++ ) {
-		if( LabelsCount < Labels[i] ) {
-			LabelsCount = Labels[i];
+		if( LabelsCount < static_cast<int>( Labels[i] ) ) {
+			LabelsCount = static_cast<int>( Labels[i] );
 		}
 	}
 	LabelsCount++;
