@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/TraditionalML/GradientBoost.h>
+#include <RegressionTree.h>
 
 namespace NeoML {
 
@@ -30,12 +31,10 @@ public:
 	static CPtr<IModel> Create() { return FINE_DEBUG_NEW CGradientBoostModel(); }
 
 	// Gets the prediction by the tree ensemble
-	static void PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CSparseFloatVector& vector, CFastArray<double, 1>& predictions );
-	static void PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CFloatVector& vector, CFastArray<double, 1>& predictions );
-	static void PredictRaw( const CGradientBoostEnsemble& models, int startPos, double learningRate,
-		const CSparseFloatVectorDesc& desc, CFastArray<double, 1>& predictions );
+	template<typename TFeatures>
+	static void PredictRaw(
+		const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const TFeatures& features, CFastArray<double, 1>& predictions );
 
 	// IModel interface methods
 	int GetClassCount() const override { return ( valueSize == 1 && ensembles.Size() == 1 ) ? 2 : valueSize * ensembles.Size(); }
@@ -51,6 +50,7 @@ public:
 	bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
 	void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
 	void CutNumberOfTrees( int numberOfTrees ) override;
+	virtual void ConvertToCompact() override;
 
 	// IRegressionModel interface methods
 	double Predict( const CSparseFloatVector& data ) const override;
@@ -70,9 +70,47 @@ private:
 	bool classify( CFastArray<double, 1>& predictions, CClassificationResult& result ) const;
 	double probability( double prediction ) const;
 
-	// The common implementation for all three MultivariatePredict methods
+	// The common implementation for Predict methods
+	template<typename TData>
+	double doPredict( const TData& data ) const;
+	// The common implementation for MultivariatePredict methods
 	template<typename TData>
 	CFloatVector doMultivariatePredict( const TData& data ) const;
 };
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename TFeatures>
+void CGradientBoostModel::PredictRaw(
+	const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
+	const TFeatures& features, CFastArray<double, 1>& predictions )
+{
+	const int predictionSize = predictions.Size();
+	predictions.Empty();
+
+	if( predictionSize == 1 ) {
+		double prediction = 0;
+		for( int i = startPos; i < ensemble.Size(); i++ ) {
+			prediction +=
+				static_cast<const CRegressionTree*>( ensemble[i].Ptr() )->Predict( features );
+		}
+		predictions.Add( prediction * learningRate );
+	} else {
+		CRegressionTree::CPrediction pred;
+		predictions.Add(0.0, predictionSize);
+		for( int i = startPos; i < ensemble.Size(); i++ ) {
+			static_cast<const CRegressionTree*>( ensemble[i].Ptr() )->Predict( features, pred );
+			NeoPresume( predictionSize == pred.Size() );
+			for( int j = 0; j < predictionSize; j++ ) {
+				predictions[j] += pred[j];
+			}
+		}
+		for( int j = 0; j < predictionSize; j++ ) {
+			predictions[j] *= learningRate;
+		}
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace NeoML

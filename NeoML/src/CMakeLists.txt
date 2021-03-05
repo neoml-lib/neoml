@@ -53,6 +53,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/GlobalMeanPoolingLayer.cpp
     Dnn/Layers/GruLayer.cpp
     Dnn/Layers/HingeLossLayer.cpp
+    Dnn/Layers/IrnnLayer.cpp
     Dnn/Layers/ImageAndPixelConversionLayer.cpp
     Dnn/Layers/ImageResizeLayer.cpp
     Dnn/Layers/LossLayer.cpp
@@ -81,6 +82,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/SourceLayer.cpp
     Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/SubSequenceLayer.cpp
+    Dnn/Layers/TiedEmbeddingsLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
@@ -90,6 +92,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ClassificationProbability.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
+    TraditionalML/CompactRegressionTree.cpp
+    TraditionalML/CompactRegressionTree.h
     TraditionalML/CrossValidation.cpp
     TraditionalML/CrossValidationSubProblem.cpp
     TraditionalML/DecisionTreeClassificationModel.cpp
@@ -128,6 +132,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/LinearBinaryClassifierBuilder.cpp
     TraditionalML/LinearBinaryModel.cpp
     TraditionalML/LinearBinaryModel.h
+    TraditionalML/LinkedRegressionTree.cpp
+    TraditionalML/LinkedRegressionTree.h
     TraditionalML/MemoryProblem.cpp
     TraditionalML/OneVersusAll.cpp
     TraditionalML/OneVersusAllModel.cpp
@@ -136,9 +142,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ProblemWrappers.cpp
     TraditionalML/ProblemWrappers.h
     TraditionalML/ProblemWrappers.inl
-    TraditionalML/RegressionTreeModel.cpp
-    TraditionalML/RegressionTreeModel.h
+    TraditionalML/RegressionTree.h
     TraditionalML/Score.cpp
+    TraditionalML/SerializeCompact.h
     TraditionalML/Shuffler.cpp
     TraditionalML/SMOptimizer.cpp
     TraditionalML/SMOptimizer.h
@@ -196,6 +202,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GruLayer.h
+    ../include/NeoML/Dnn/Layers/IrnnLayer.h
     ../include/NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h
     ../include/NeoML/Dnn/Layers/ImageResizeLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
@@ -223,6 +230,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/SourceLayer.h
     ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/SubSequenceLayer.h
+    ../include/NeoML/Dnn/Layers/TiedEmbeddingsLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
@@ -286,13 +294,13 @@ if(USE_FINE_OBJECTS)
 
     set(MESSAGES_DIR ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.Messages)
     set(MESSAGES_SRC ${MESSAGES_DIR}/NeoMLMessages.cpp)
-    add_custom_target(
-        CompileMessage
+    add_custom_command(
+        OUTPUT ${MESSAGES_SRC}
         COMMAND ${FINE_MESSAGE_COMPILER} -R ${MESSAGES_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../NeoMLMessages.msg
+        MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/../NeoMLMessages.msg
         WORKING_DIRECTORY ${FINE_MESSAGE_COMPILER_DIR}
         COMMENT "Generating messages."
     )
-    add_dependencies(${PROJECT_NAME} CompileMessage)
     
     set_property(SOURCE ${MESSAGES_SRC} PROPERTY GENERATED ON)
     target_sources(${PROJECT_NAME} PRIVATE ${MESSAGES_SRC})
@@ -307,7 +315,7 @@ endif()
 if(WIN32)
 	if(USE_FINE_OBJECTS)
 		target_include_directories(${PROJECT_NAME} PRIVATE
-			$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../../Build/Inc ${FINE_ROOT}/FineObjects ${MESSAGES_DIR}>>
+			$<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${FINE_ROOT}/Build/Inc ${FINE_ROOT}/FineObjects ${MESSAGES_DIR}>>
 		)
 	else()
 		target_include_directories(${PROJECT_NAME} PRIVATE 

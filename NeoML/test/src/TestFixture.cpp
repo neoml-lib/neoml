@@ -179,6 +179,7 @@ IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit, in
 		}
 		case MET_Undefined:
 			GTEST_LOG_( WARNING ) << "Unknown type of MathEngine!";
+			// fall through
 		case MET_Cpu: {
 			result = CreateCpuMathEngine( threadCount, memoryLimit );
 			GTEST_LOG_( INFO ) << "Create CPU MathEngine, threadCount = " << threadCount;
