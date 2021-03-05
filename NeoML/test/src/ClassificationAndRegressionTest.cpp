@@ -93,7 +93,8 @@ protected:
 	CClassificationRandomProblem* SparseRandomBinaryProblem;
 	CClassificationRandomProblem* SparseBinaryTestData;
 
-	void TestBinaryClassificationResult( const IModel* modelDense, const IModel* modelSparse );
+	void TestBinaryClassificationResult( const IModel* modelDense, const IModel* modelSparse ) const
+		{ TestClassificationResult( modelDense, modelSparse, DenseBinaryTestData, SparseBinaryTestData ); }
 };
 
 CClassificationRandomProblem* RandomBinaryClassification4000x20::getDenseRandomBinaryProblem( CRandom& rand )
@@ -129,10 +130,8 @@ void RandomBinaryClassification4000x20::SetUp()
 	SparseBinaryTestData = getSparseBinaryTestData();
 }
 
-void RandomBinaryClassification4000x20::TestBinaryClassificationResult( const IModel* modelDense, const IModel* modelSparse )
-{
-	TestClassificationResult( modelDense, modelSparse, DenseBinaryTestData, SparseBinaryTestData );
-}
+class RandomBinaryRegression4000x20 : public CNeoMLTestFixture {
+};
 
 // Multi 
 class RandomMultiClassification2000x20 : public CNeoMLTestFixture {
@@ -151,7 +150,8 @@ protected:
 	CClassificationRandomProblem* SparseRandomMultiProblem;
 	CClassificationRandomProblem* SparseMultiTestData;
 
-	void TestMultiClassificationResult( const IModel* modelDense, const IModel* modelSparse );
+	void TestMultiClassificationResult( const IModel* modelDense, const IModel* modelSparse ) const
+		{ TestClassificationResult( modelDense, modelSparse, DenseMultiTestData, SparseMultiTestData ); }
 };
 
 CClassificationRandomProblem* RandomMultiClassification2000x20::getDenseRandomMultiProblem( CRandom& rand )
@@ -187,13 +187,52 @@ void RandomMultiClassification2000x20::SetUp()
 	SparseMultiTestData = getSparseMultiTestData();
 }
 
-void RandomMultiClassification2000x20::TestMultiClassificationResult( const IModel* modelDense, const IModel* modelSparse )
-{
-	TestClassificationResult( modelDense, modelSparse, DenseMultiTestData, SparseMultiTestData );
-}
+// use classification problems to create CMultivatieateRegressionOverClassification in GradientBoost
+class RandomMultiRegression2000x20 : public RandomMultiClassification2000x20 {
+protected:
+	void TestMultiRegressionResult( const IMultivariateRegressionModel* modelDense,
+		const IMultivariateRegressionModel* modelSparse ) const
+	{
+		auto cmpFloatVectors = []( const CSparseFloatVectorDesc& v1, const CSparseFloatVectorDesc& v2 ) {
+			ASSERT_EQ( v1.Size, v2.Size );
+			ASSERT_EQ( ::memcmp( v1.Values, v2.Values, v2.Size * sizeof( float ) ), 0 );
+			ASSERT_EQ( ::memcmp( v1.Indexes, v2.Indexes, ( v2.Indexes == nullptr ? 0 : v2.Size )*sizeof( float ) ), 0 );
+		};
+
+		for( int i = 0; i < SparseMultiTestData->GetVectorCount(); i++ ) {
+			CFloatVector result1 = modelDense->MultivariatePredict( DenseMultiTestData->GetVector( i ) );
+			CFloatVector result2 = modelDense->MultivariatePredict( SparseMultiTestData->GetVector( i ) );
+			CFloatVector result4 = modelSparse->MultivariatePredict( DenseMultiTestData->GetVector( i ) );
+			CFloatVector result3 = modelSparse->MultivariatePredict( SparseMultiTestData->GetVector( i ) );
+
+			cmpFloatVectors( result1.GetDesc(), result2.GetDesc() );
+			cmpFloatVectors( result1.GetDesc(), result3.GetDesc() );
+			cmpFloatVectors( result1.GetDesc(), result4.GetDesc() );
+		}
+	}
+};
 
 //---------------------------------------------------------------------------------------------------------------------
 // Tests
+
+TEST_F( RandomBinaryClassification4000x20, Linear )
+{
+	CLinearBinaryClassifierBuilder::CParams params( EF_SquaredHinge );
+	params.L1Coeff = 0.05f;
+	CLinearBinaryClassifierBuilder linear( params );
+
+	int begin = GetTickCount();
+	auto model = linear.Train( *DenseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model != nullptr );
+
+	begin = GetTickCount();
+	auto model2 = linear.Train( *SparseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model2 != nullptr );
+
+	TestBinaryClassificationResult( model, model2 );
+}
 
 TEST_F( RandomBinaryClassification4000x20, SvmLinear )
 {
@@ -225,25 +264,6 @@ TEST_F( RandomBinaryClassification4000x20, SvmRbf )
 
 	begin = GetTickCount();
 	auto model2 = svmRbf.Train( *SparseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model2 != nullptr );
-
-	TestBinaryClassificationResult( model, model2 );
-}
-
-TEST_F( RandomBinaryClassification4000x20, Linear )
-{
-	CLinearBinaryClassifierBuilder::CParams params( EF_SquaredHinge );
-	params.L1Coeff = 0.05f;
-	CLinearBinaryClassifierBuilder linear( params );
-
-	int begin = GetTickCount();
-	auto model = linear.Train( *DenseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model != nullptr );
-
-	begin = GetTickCount();
-	auto model2 = linear.Train( *SparseRandomBinaryProblem );
 	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
 	ASSERT_TRUE( model2 != nullptr );
 
@@ -433,3 +453,140 @@ TEST_F( RandomBinaryClassification4000x20, CrossValidationDecisionTree )
 	CrossValidate( 10, decisionTree, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 
+// Test regression
+TEST_F( RandomBinaryRegression4000x20, Linear )
+{
+	CRandom rand( 0 );
+	auto denseRandomBinaryProblem = CRegressionRandomProblem::Random( rand, 4000, 20, 2 );
+	auto denseBinaryTestData = CRegressionRandomProblem::Random( rand, 1000, 20, 2 );
+	auto sparseRandomBinaryProblem = denseRandomBinaryProblem->CreateSparse();
+	auto sparseBinaryTestData = denseBinaryTestData->CreateSparse();
+
+	CLinearBinaryClassifierBuilder::CParams params( EF_L2_Regression );
+	CLinearBinaryClassifierBuilder linear( params );
+
+	int begin = GetTickCount();
+	auto model = linear.TrainRegression( *denseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model != nullptr );
+
+	begin = GetTickCount();
+	auto model2 = linear.TrainRegression( *sparseRandomBinaryProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( model2 != nullptr );
+
+	for( int i = 0; i < sparseBinaryTestData->GetVectorCount(); i++ ) {
+		double result1 = model->Predict( denseBinaryTestData->GetVector( i ) );
+		double result2 = model->Predict( sparseBinaryTestData->GetVector( i ) );
+		double result4 = model2->Predict( denseBinaryTestData->GetVector( i ) );
+		double result3 = model2->Predict( sparseBinaryTestData->GetVector( i ) );
+
+		ASSERT_DOUBLE_EQ( result1, result2 );
+		ASSERT_DOUBLE_EQ( result1, result3 );
+		ASSERT_DOUBLE_EQ( result1, result4 );
+	}
+}
+
+TEST_F( RandomMultiRegression2000x20, GradientBoostingFull )
+{
+	CRandom random;
+	random.Reset( 0 );
+	GTEST_LOG_( INFO ) << "Random = " << random.Next();
+	CGradientBoost::CParams params;
+	params.Random = &random;
+	params.LossFunction = CGradientBoost::LF_Binomial;
+	params.IterationsCount = 10;
+	params.LearningRate = 0.3f;
+	params.MaxTreeDepth = 8;
+	params.ThreadCount = 1;
+	params.Subsample = 1;
+	params.Subfeature = 1;
+	params.MinSubsetWeight = 8;
+	params.TreeBuilder = GBTB_Full;
+
+	CGradientBoost boosting( params );
+	int begin = GetTickCount();
+	auto model = boosting.TrainModel<IGradientBoostRegressionModel>( *DenseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	ASSERT_TRUE( model != nullptr );
+
+	random.Reset( 0 );
+	GTEST_LOG_( INFO ) << "Random = " << random.Next();
+	begin = GetTickCount();
+	auto model2 = boosting.TrainModel<IGradientBoostRegressionModel>( *SparseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	ASSERT_TRUE( model2 != nullptr );
+
+	TestMultiRegressionResult( model, model2 );
+}
+
+TEST_F( RandomMultiRegression2000x20, GradientBoostingFastHist )
+{
+	CRandom random;
+	random.Reset( 0 );
+	GTEST_LOG_( INFO ) << "Random = " << random.Next();
+	CGradientBoost::CParams params;
+	params.Random = &random;
+	params.LossFunction = CGradientBoost::LF_Binomial;
+	params.IterationsCount = 10;
+	params.LearningRate = 0.3f;
+	params.MaxTreeDepth = 8;
+	params.ThreadCount = 1;
+	params.Subsample = 1;
+	params.Subfeature = 1;
+	params.MinSubsetWeight = 8;
+	params.TreeBuilder = GBTB_FastHist;
+
+	CGradientBoost boosting( params );
+	int begin = GetTickCount();
+	auto model = boosting.TrainModel<IGradientBoostRegressionModel>( *DenseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	ASSERT_TRUE( model != nullptr );
+
+	random.Reset( 0 );
+	GTEST_LOG_( INFO ) << "Random = " << random.Next();
+	begin = GetTickCount();
+	auto model2 = boosting.TrainModel<IGradientBoostRegressionModel>( *SparseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	ASSERT_TRUE( model2 != nullptr );
+
+	TestMultiRegressionResult( model, model2 );
+}
+
+TEST_F( RandomMultiRegression2000x20, GradientBoostingMultiFull )
+{
+	CRandom random( 0 );
+	GTEST_LOG_( INFO ) << "Random = " << random.Next();
+	CGradientBoost::CParams params;
+	params.Random = &random;
+	params.LossFunction = CGradientBoost::LF_Binomial;
+	params.IterationsCount = 10;
+	params.LearningRate = 0.3f;
+	params.MaxTreeDepth = 8;
+	params.ThreadCount = 1;
+	params.Subsample = 1;
+	params.Subfeature = 1;
+	params.MinSubsetWeight = 8;
+	params.TreeBuilder = GBTB_MultiFull;
+
+	CGradientBoost boosting( params );
+	int begin = GetTickCount();
+	auto model = boosting.TrainModel<IGradientBoostRegressionModel>( *DenseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	ASSERT_TRUE( model != nullptr );
+
+	random.Reset( 0 );
+	GTEST_LOG_( INFO ) << "Random = " << random.Next();
+	begin = GetTickCount();
+	auto model2 = boosting.TrainModel<IGradientBoostRegressionModel>( *SparseRandomMultiProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	GTEST_LOG_( INFO ) << "The last loss: " << boosting.GetLastLossMean();
+	ASSERT_TRUE( model2 != nullptr );
+
+	TestMultiRegressionResult( model, model2 );
+}

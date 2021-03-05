@@ -23,11 +23,10 @@ class CRandomProblemImpl : public virtual IObject {
 public:
 	CRandomProblemImpl( int height, int width, float* values, const TLabel* _labels, const float* _weights );
 
-	static CPtr<CRandomProblemImpl> Random( CRandom& rand, int samples, int features, int labels );
+	static CPtr<CRandomProblemImpl> Random( CRandom& rand, int samples, int features, int labelsCount );
 	CPtr<CRandomProblemImpl> CreateSparse() const;
 
 	CSparseFloatMatrix Matrix;
-	int LabelsCount;
 	const TLabel* Labels;
 	const float* Weights;
 
@@ -49,11 +48,11 @@ public:
 
 	CSparseFloatVectorDesc GetVector( int index ) const { return GetMatrix().GetRow( index ); }
 
-	static CPtr<CClassificationRandomProblem> Random( CRandom& rand, int samples, int features, int labels );
+	static CPtr<CClassificationRandomProblem> Random( CRandom& rand, int samples, int features, int labelsCount );
 	CPtr<CClassificationRandomProblem> CreateSparse() const;
 
 	// IProblem interface methods:
-	int GetClassCount() const override { return impl->LabelsCount; }
+	int GetClassCount() const override { return classCount; }
 	int GetFeatureCount() const override { return GetMatrix().Width; }
 	bool IsDiscreteFeature( int ) const override { return false; }
 	int GetVectorCount() const override { return GetMatrix().Height; }
@@ -66,6 +65,7 @@ protected:
 
 private:
 	CClassificationRandomProblem() = default;
+	int classCount;
 	CPtr< CRandomProblemImpl<int> > impl;
 };
 

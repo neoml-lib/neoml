@@ -42,13 +42,6 @@ CRandomProblemImpl<TLabel>::CRandomProblemImpl( int height, int width, float* va
 	}
 	desc->PointerB = PointerB.GetPtr();
 	desc->PointerE = PointerE.GetPtr();
-
-	for( int i = 0; i < height; i++ ) {
-		if( LabelsCount < static_cast<int>( Labels[i] ) ) {
-			LabelsCount = static_cast<int>( Labels[i] );
-		}
-	}
-	LabelsCount++;
 }
 
 template<typename TLabel>
@@ -71,7 +64,6 @@ CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::Random( CRandom& 
 
 	// set Weights to 1
 	res->WeightsArr.Add( 1., samples );
-	res->LabelsCount = labelsCount;
 	res->Labels = res->LabelsArr.GetPtr();
 	res->Weights = res->WeightsArr.GetPtr();
 
@@ -104,22 +96,28 @@ CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::CreateSparse() co
 	res->Weights = res->WeightsArr.GetPtr();
 	LabelsArr.CopyTo( res->LabelsArr );
 	res->Labels = res->LabelsArr.GetPtr();
-	res->LabelsCount = LabelsCount;
 	return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CClassificationRandomProblem::CClassificationRandomProblem( int height, int width, float* values,
-		const int* _labels, const float* _weights ) :
-	impl( new CRandomProblemImpl<int>( height, width, values, _labels, _weights ) )
+		const int* _classes, const float* _weights ) :
+	impl( new CRandomProblemImpl<int>( height, width, values, _classes, _weights ) )
 {
+	for( int i = 0; i < GetMatrix().Height; i++ ) {
+		if( classCount < impl->Labels[i] ) {
+			classCount = impl->Labels[i];
+		}
+	}
+	classCount++;
 }
 
-CPtr<CClassificationRandomProblem> CClassificationRandomProblem::Random( CRandom& rand, int samples, int features, int labelsCount )
+CPtr<CClassificationRandomProblem> CClassificationRandomProblem::Random( CRandom& rand, int samples, int features, int classCount )
 {
 	CPtr<CClassificationRandomProblem> res = new CClassificationRandomProblem();
-	res->impl = CRandomProblemImpl<int>::Random( rand, samples, features, labelsCount );
+	res->impl = CRandomProblemImpl<int>::Random( rand, samples, features, classCount );
+	res->classCount = classCount;
 	return res;
 }
 
@@ -127,6 +125,7 @@ CPtr<CClassificationRandomProblem> CClassificationRandomProblem::CreateSparse() 
 {
 	CPtr<CClassificationRandomProblem> res = new CClassificationRandomProblem();
 	res->impl = impl->CreateSparse();
+	res->classCount = classCount;
 	return res;
 }
 
