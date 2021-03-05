@@ -290,20 +290,11 @@ TEST_F( RandomBinaryClassification4000x20, DecisionTree )
 
 TEST_F( RandomMultiClassification2000x20, GradientBoostingFull )
 {
-	CRandom random;
-	random.Reset( 0 );
+	CRandom random( 0 );
 	GTEST_LOG_( INFO ) << "Random = " << random.Next();
 	CGradientBoost::CParams params;
 	params.Random = &random;
-	params.LossFunction = CGradientBoost::LF_Binomial;
 	params.IterationsCount = 10;
-	params.LearningRate = 0.3f;
-	params.MaxTreeDepth = 8;
-	params.ThreadCount = 1;
-	params.Subsample = 1;
-	params.Subfeature = 1;
-	params.MinSubsetWeight = 8;
-	params.TreeBuilder = GBTB_Full;
 
 	CGradientBoost boosting( params );
 	int begin = GetTickCount();
@@ -325,19 +316,11 @@ TEST_F( RandomMultiClassification2000x20, GradientBoostingFull )
 
 TEST_F( RandomMultiClassification2000x20, GradientBoostingFastHist )
 {
-	CRandom random;
-	random.Reset( 0 );
+	CRandom random( 0 );
 	GTEST_LOG_( INFO ) << "Random = " << random.Next();
 	CGradientBoost::CParams params;
 	params.Random = &random;
-	params.LossFunction = CGradientBoost::LF_Binomial;
 	params.IterationsCount = 10;
-	params.LearningRate = 0.3f;
-	params.MaxTreeDepth = 8;
-	params.ThreadCount = 1;
-	params.Subsample = 1;
-	params.Subfeature = 1;
-	params.MinSubsetWeight = 8;
 	params.TreeBuilder = GBTB_FastHist;
 
 	CGradientBoost boosting( params );
@@ -364,14 +347,7 @@ TEST_F( RandomMultiClassification2000x20, GradientBoostingMultiFull )
 	GTEST_LOG_( INFO ) << "Random = " << random.Next();
 	CGradientBoost::CParams params;
 	params.Random = &random;
-	params.LossFunction = CGradientBoost::LF_Binomial;
 	params.IterationsCount = 10;
-	params.LearningRate = 0.3f;
-	params.MaxTreeDepth = 8;
-	params.ThreadCount = 1;
-	params.Subsample = 1;
-	params.Subfeature = 1;
-	params.MinSubsetWeight = 8;
 	params.TreeBuilder = GBTB_MultiFull;
 
 	CGradientBoost boosting( params );
@@ -489,20 +465,11 @@ TEST_F( RandomBinaryRegression4000x20, Linear )
 
 TEST_F( RandomMultiRegression2000x20, GradientBoostingFull )
 {
-	CRandom random;
-	random.Reset( 0 );
+	CRandom random( 0 );
 	GTEST_LOG_( INFO ) << "Random = " << random.Next();
 	CGradientBoost::CParams params;
 	params.Random = &random;
-	params.LossFunction = CGradientBoost::LF_Binomial;
 	params.IterationsCount = 10;
-	params.LearningRate = 0.3f;
-	params.MaxTreeDepth = 8;
-	params.ThreadCount = 1;
-	params.Subsample = 1;
-	params.Subfeature = 1;
-	params.MinSubsetWeight = 8;
-	params.TreeBuilder = GBTB_Full;
 
 	CGradientBoost boosting( params );
 	int begin = GetTickCount();
@@ -524,19 +491,11 @@ TEST_F( RandomMultiRegression2000x20, GradientBoostingFull )
 
 TEST_F( RandomMultiRegression2000x20, GradientBoostingFastHist )
 {
-	CRandom random;
-	random.Reset( 0 );
+	CRandom random( 0 );
 	GTEST_LOG_( INFO ) << "Random = " << random.Next();
 	CGradientBoost::CParams params;
 	params.Random = &random;
-	params.LossFunction = CGradientBoost::LF_Binomial;
 	params.IterationsCount = 10;
-	params.LearningRate = 0.3f;
-	params.MaxTreeDepth = 8;
-	params.ThreadCount = 1;
-	params.Subsample = 1;
-	params.Subfeature = 1;
-	params.MinSubsetWeight = 8;
 	params.TreeBuilder = GBTB_FastHist;
 
 	CGradientBoost boosting( params );
@@ -563,14 +522,7 @@ TEST_F( RandomMultiRegression2000x20, GradientBoostingMultiFull )
 	GTEST_LOG_( INFO ) << "Random = " << random.Next();
 	CGradientBoost::CParams params;
 	params.Random = &random;
-	params.LossFunction = CGradientBoost::LF_Binomial;
 	params.IterationsCount = 10;
-	params.LearningRate = 0.3f;
-	params.MaxTreeDepth = 8;
-	params.ThreadCount = 1;
-	params.Subsample = 1;
-	params.Subfeature = 1;
-	params.MinSubsetWeight = 8;
 	params.TreeBuilder = GBTB_MultiFull;
 
 	CGradientBoost boosting( params );
