@@ -61,7 +61,7 @@ CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::Random( CRandom& 
 	for( int i = 0; i < samples; ++i ) {
 		for( int j = 0; j < features; ++j ) {
 			if( rand.UniformInt( 0, 3 ) != 0 ) { // 1/4 probability of null element
-				res->Values.Add( rand.Uniform( -10, 10 ) );
+				res->Values.Add( static_cast<float>( rand.Uniform( -10, 10 ) ) );
 			} else {
 				res->Values.Add( 0.0 );
 			}
