@@ -423,6 +423,22 @@ TEST_F( CClusteringTest, PrecalcKmeansLloyd )
 	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
 }
 
+static void kmeansElkanDefaultInitClustering( IClusteringData* data, CClusteringResult& result )
+{
+	CKMeansClustering::CParam params;
+	params.DistanceFunc = DF_Euclid;
+	params.InitialClustersCount = 2;
+	params.MaxIterations = 50;
+	params.Algo = CKMeansClustering::KMA_Elkan;
+	params.Initialization = CKMeansClustering::KMI_Default;
+	params.ThreadCount = 1;
+
+	CKMeansClustering kMeans( params );
+	kMeans.Clusterize( data, result );
+}
+
+// This test also checks that if Elkan and Lloyd algos have similar data and initialization
+// then they will return the same results
 TEST_F( CClusteringTest, PrecalcKmeansElkan )
 {
 	CPtr<IClusteringData> sparseData = nullptr;
@@ -431,22 +447,22 @@ TEST_F( CClusteringTest, PrecalcKmeansElkan )
 	generateData( 256, 3, 0x451, sparseData, denseData );
 
 	CClusteringResult sparseResult;
-	kmeansElkanClustering( sparseData, sparseResult );
+	kmeansElkanDefaultInitClustering( sparseData, sparseResult );
 
 	CClusteringResult denseResult;
-	kmeansElkanClustering( denseData, denseResult );
+	kmeansElkanDefaultInitClustering( denseData, denseResult );
 
 	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
 	// Compare with pre-calc result
 	CClusteringResult expectedResult;
 	expectedResult.ClusterCount = 2;
 	expectedResult.Clusters.SetSize( 2 );
-	expectedResult.Clusters[0].Mean = buildFloatVector( { 0.178791, 0.229266, 0.220176 } );
-	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.134377, 0.113255, 0.140109 } );
-	expectedResult.Clusters[0].Norm = 0.133007;
-	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.238011, -0.240367, -0.163405 } );
-	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.154899, 0.132572, 0.179817 } );
-	expectedResult.Clusters[1].Norm = 0.141127;
+	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.009386, -0.184222, -0.177035 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.221126, 0.123710, 0.128456 } );
+	expectedResult.Clusters[0].Norm = 0.065367;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.014822, 0.282805, 0.344131 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.140646, 0.123189, 0.128234 } );
+	expectedResult.Clusters[1].Norm = 0.198624;
 
 	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
 	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
