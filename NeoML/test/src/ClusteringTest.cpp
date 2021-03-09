@@ -235,7 +235,6 @@ static bool isEqual( const CClusteringResult& first, const CClusteringResult& se
 		const CClusterCenter& firstCluster = first.Clusters[clusterIndex];
 		const CClusterCenter& secondCluster = second.Clusters[clusterIndex];
 		if( abs( firstCluster.Norm - secondCluster.Norm ) > eps
-			|| abs( firstCluster.Weight - secondCluster.Weight ) > eps
 			|| !isEqual( firstCluster.Mean, secondCluster.Mean )
 			|| !isEqual( firstCluster.Disp, secondCluster.Disp ) )
 		{
@@ -259,9 +258,19 @@ static bool isCorrectSampleResult( const CClusteringResult& result )
 			&& result.Data[5] == result.Data[6] && result.Data[6] == result.Data[7] );
 }
 
+static CFloatVector buildFloatVector( const CArray<float>& data )
+{
+	CFloatVector res( data.Size() );
+	for( int i = 0; i < data.Size(); ++i ) {
+		res.SetAt( i, data[i] );
+	}
+	return res;
+}
+
 // --------------------------------------------------------------------------------------------------------------------
 // test implementation
 
+// Check on trivial sample
 TEST_P( CClusteringTest, Sample )
 {
 	TClusteringFunction clusterize = GetParam();
@@ -282,6 +291,7 @@ TEST_P( CClusteringTest, Sample )
 	EXPECT_TRUE( isCorrectSampleResult( denseResult ) );
 }
 
+// Compare sparse vs dense on generated data
 TEST_P( CClusteringTest, Generated )
 {
 	TClusteringFunction clusterize = GetParam();
@@ -298,6 +308,148 @@ TEST_P( CClusteringTest, Generated )
 	clusterize( denseData, denseResult );
 
 	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+// Check backward compatibility
+
+TEST_F( CClusteringTest, PrecalcFirstCome )
+{
+	CPtr<IClusteringData> sparseData = nullptr;
+	CPtr<IClusteringData> denseData = nullptr;
+
+	generateData( 256, 3, 0x451, sparseData, denseData );
+
+	CClusteringResult sparseResult;
+	firstComeClustering( sparseData, sparseResult );
+
+	CClusteringResult denseResult;
+	firstComeClustering( denseData, denseResult );
+
+	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
+	// Compare with pre-calc result
+	CClusteringResult expectedResult;
+	expectedResult.ClusterCount = 1;
+	expectedResult.Clusters.SetSize( 1 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.011701, 0.014629, 0.044868 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.186866, 0.176815, 0.194769 } );
+	expectedResult.Clusters[0].Norm = 0.002364;
+
+	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
+	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
+}
+
+TEST_F( CClusteringTest, PrecalcHierarchical )
+{
+	CPtr<IClusteringData> sparseData = nullptr;
+	CPtr<IClusteringData> denseData = nullptr;
+
+	generateData( 256, 3, 0x451, sparseData, denseData );
+
+	CClusteringResult sparseResult;
+	hierarchicalClustering( sparseData, sparseResult );
+
+	CClusteringResult denseResult;
+	hierarchicalClustering( denseData, denseResult );
+
+	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
+	// Compare with pre-calc result
+	CClusteringResult expectedResult;
+	expectedResult.ClusterCount = 2;
+	expectedResult.Clusters.SetSize( 2 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { 0.000190, 0.025189, 0.057201 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.180517, 0.172180, 0.187494 } );
+	expectedResult.Clusters[0].Norm = 0.003906;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.760800, -0.650639, -0.732119 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.016785, 0.019241, 0.039801 } );
+	expectedResult.Clusters[1].Norm = 1.538146;
+
+	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
+	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
+}
+
+TEST_F( CClusteringTest, PrecalcIsoData )
+{
+	CPtr<IClusteringData> sparseData = nullptr;
+	CPtr<IClusteringData> denseData = nullptr;
+
+	generateData( 256, 3, 0x451, sparseData, denseData );
+
+	CClusteringResult sparseResult;
+	isoDataClustering( sparseData, sparseResult );
+
+	CClusteringResult denseResult;
+	isoDataClustering( denseData, denseResult );
+
+	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
+	// Compare with pre-calc result
+	CClusteringResult expectedResult;
+	expectedResult.ClusterCount = 1;
+	expectedResult.Clusters.SetSize( 1 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.011701, 0.014629, 0.044868 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.186866, 0.176815, 0.194769 } );
+	expectedResult.Clusters[0].Norm = 0.002364;
+
+	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
+	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
+}
+
+TEST_F( CClusteringTest, PrecalcKmeansLloyd )
+{
+	CPtr<IClusteringData> sparseData = nullptr;
+	CPtr<IClusteringData> denseData = nullptr;
+
+	generateData( 256, 3, 0x451, sparseData, denseData );
+
+	CClusteringResult sparseResult;
+	kmeansLloydClustering( sparseData, sparseResult );
+
+	CClusteringResult denseResult;
+	kmeansLloydClustering( denseData, denseResult );
+
+	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
+	// Compare with pre-calc result
+	CClusteringResult expectedResult;
+	expectedResult.ClusterCount = 2;
+	expectedResult.Clusters.SetSize( 2 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.009386, -0.184222, -0.177035 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.221126, 0.123710, 0.128456 } );
+	expectedResult.Clusters[0].Norm = 0.065367;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.014822, 0.282805, 0.344131 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.140646, 0.123189, 0.128234 } );
+	expectedResult.Clusters[1].Norm = 0.198624;
+
+	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
+	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
+}
+
+TEST_F( CClusteringTest, PrecalcKmeansElkan )
+{
+	CPtr<IClusteringData> sparseData = nullptr;
+	CPtr<IClusteringData> denseData = nullptr;
+
+	generateData( 256, 3, 0x451, sparseData, denseData );
+
+	CClusteringResult sparseResult;
+	kmeansElkanClustering( sparseData, sparseResult );
+
+	CClusteringResult denseResult;
+	kmeansElkanClustering( denseData, denseResult );
+
+	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
+	// Compare with pre-calc result
+	CClusteringResult expectedResult;
+	expectedResult.ClusterCount = 2;
+	expectedResult.Clusters.SetSize( 2 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { 0.178791, 0.229266, 0.220176 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.134377, 0.113255, 0.140109 } );
+	expectedResult.Clusters[0].Norm = 0.133007;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.238011, -0.240367, -0.163405 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.154899, 0.132572, 0.179817 } );
+	expectedResult.Clusters[1].Norm = 0.141127;
+
+	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
+	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
 }
 
 INSTANTIATE_TEST_CASE_P( CClusteringTestInstantiation, CClusteringTest,
