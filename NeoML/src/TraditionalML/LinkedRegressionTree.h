@@ -33,24 +33,26 @@ public:
 		int feature, double threshold );
 
 	// Gets the node that will be used for prediction
-	const CLinkedRegressionTree* GetPredictionNode( const CFloatVector& data ) const;
-	const CLinkedRegressionTree* GetPredictionNode( const CSparseFloatVectorDesc& data ) const;
+	template<typename TVector>
+	const CLinkedRegressionTree* GetPredictionNode( const TVector& data ) const;
 
 	// CRegressionTree methods implementation.
 	virtual void Predict(
 		const CFloatVector& features, CPrediction& result ) const override;
 	virtual void Predict(
 		const CSparseFloatVectorDesc& features, CPrediction& result ) const override;
-	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const;
+	virtual double Predict( const CFloatVector& features ) const override;
+	virtual double Predict( const CSparseFloatVectorDesc& features ) const override;
+	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
 
 	// IRegressionTreeNode interface methods
-	virtual CPtr<const IRegressionTreeNode> GetLeftChild() const
+	virtual CPtr<const IRegressionTreeNode> GetLeftChild() const override
 		{ return leftChild.Ptr(); }
-	virtual CPtr<const IRegressionTreeNode> GetRightChild() const
+	virtual CPtr<const IRegressionTreeNode> GetRightChild() const override
 		{ return rightChild.Ptr(); }
-	virtual void GetNodeInfo( CRegressionTreeNodeInfo& result ) const { result = info; }
+	virtual void GetNodeInfo( CRegressionTreeNodeInfo& result ) const override { result = info; }
 
-	virtual void Serialize( CArchive& archive );
+	virtual void Serialize( CArchive& archive ) override;
 
 protected:
 	virtual ~CLinkedRegressionTree(); // delete prohibited
@@ -59,6 +61,11 @@ private:
 	CPtr<CLinkedRegressionTree> leftChild; // left child
 	CPtr<CLinkedRegressionTree> rightChild; // right child
 	CRegressionTreeNodeInfo info; // the node information
+
+	template<typename TVector>
+	void predict( const TVector& features, CPrediction& result ) const;
+	template<typename TVector>
+	double predict( const TVector& features ) const;
 
 	void calcFeatureStatistics( int maxFeature, CArray<int>& result ) const;
 };

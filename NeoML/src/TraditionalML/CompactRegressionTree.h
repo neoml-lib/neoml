@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,14 +36,16 @@ public:
 		const CFloatVector& features, CPrediction& result ) const override;
 	virtual void Predict(
 		const CSparseFloatVectorDesc& features, CPrediction& result ) const override;
-	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const;
+	virtual double Predict( const CFloatVector& features ) const override;
+	virtual double Predict( const CSparseFloatVectorDesc& features ) const override;
+	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
 
 	// IRegressionTreeNode interface methods
 	virtual CPtr<const IRegressionTreeNode> GetLeftChild() const override
 		{ return GetLeftChild(0); }
 	virtual CPtr<const IRegressionTreeNode> GetRightChild() const override
 		{ return GetRightChild(0); }
-	virtual void GetNodeInfo( CRegressionTreeNodeInfo& info ) const
+	virtual void GetNodeInfo( CRegressionTreeNodeInfo& info ) const override
 		{ GetNodeInfo( 0, info ); }
 
 	virtual void Serialize( CArchive& archive ) override;
@@ -111,7 +113,7 @@ public:
 		{ return tree.GetLeftChild( index ); }
 	virtual CPtr<const IRegressionTreeNode> GetRightChild() const override
 		{ return tree.GetRightChild( index ); }
-	virtual void GetNodeInfo( CRegressionTreeNodeInfo& info ) const
+	virtual void GetNodeInfo( CRegressionTreeNodeInfo& info ) const override
 		{ tree.GetNodeInfo( index, info ); }
 
 private:

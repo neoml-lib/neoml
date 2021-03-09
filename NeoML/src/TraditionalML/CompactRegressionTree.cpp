@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -192,13 +192,25 @@ inline void CCompactRegressionTree::predict(
 void CCompactRegressionTree::Predict(
 	const CFloatVector& features, CPrediction& result ) const
 {
-	predict( features, result );
+	predict( features.GetPtr(), result );
 }
 
 void CCompactRegressionTree::Predict(
 	const CSparseFloatVectorDesc& features, CPrediction& result ) const
 {
 	predict( features, result );
+}
+
+double CCompactRegressionTree::Predict( const CFloatVector& features ) const
+{
+	NeoPresume( predictionSize == 1 );
+	return *predict( features.GetPtr() );
+}
+
+double CCompactRegressionTree::Predict( const CSparseFloatVectorDesc& features ) const
+{
+	NeoPresume( predictionSize == 1 );
+	return *predict( features );
 }
 
 void CCompactRegressionTree::CalcFeatureStatistics(
@@ -224,8 +236,8 @@ void CCompactRegressionTree::Serialize( CArchive& archive )
 	int nodesCount = nodes.Size();
 	SerializeCompact( archive, nodesCount );
 	if( archive.IsLoading() ) {
-		check( nodesCount == 0 && predictionSize == NotFound ||
-				nodesCount >= 0 && nodesCount <= MaxNodeIndex && predictionSize >= 1,
+		check( ( nodesCount == 0 && predictionSize == NotFound ) ||
+				( nodesCount >= 0 && nodesCount <= MaxNodeIndex && predictionSize >= 1 ),
 			ERR_BAD_ARCHIVE, archive.Name() );
 		nodes.SetSize( nodesCount );
 		wrappers.DeleteAll();
@@ -258,7 +270,7 @@ void CCompactRegressionTree::Serialize( CArchive& archive )
 	nonresidentValues.Serialize( archive );
 	if( archive.IsLoading() ) {
 		check( nonresidentValues.IsEmpty() ||
-				predictionSize > 1 && nonresidentValues.Size() % predictionSize == 0,
+				( predictionSize > 1 && nonresidentValues.Size() % predictionSize == 0 ),
 			ERR_BAD_ARCHIVE, archive.Name() );
 	}
 }
