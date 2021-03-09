@@ -42,44 +42,44 @@ private:
 	CSparseFloatMatrixDesc desc;
 	CArray<int> columns;
 	CArray<float> values;
-	CArray<int> beginPointers;
-	CArray<int> endPointers;
+	CArray<int> pointers;
 };
 
 CClusteringTestData::CClusteringTestData( const CArray<CSparseFloatVector>& vectors, int featureCount, bool isDense )
 {
 	desc.Height = vectors.Size();
 	desc.Width = featureCount;
+	pointers.SetBufferSize( desc.Height + 1 );
 
 	if( isDense ) {
 		values.Add( 0, desc.Height * desc.Width );
 		float* rowPtr = values.GetPtr();
 		for( int i = 0; i < vectors.Size(); ++i ) {
-			const CSparseFloatVectorDesc& desc = vectors[i].GetDesc();
-			for( int j = 0; j < desc.Size; ++j ) {
-				rowPtr[desc.Indexes[j]] = desc.Values[j];
+			const CSparseFloatVectorDesc& vectorDesc = vectors[i].GetDesc();
+			for( int j = 0; j < vectorDesc.Size; ++j ) {
+				rowPtr[vectorDesc.Indexes[j]] = vectorDesc.Values[j];
 			}
 			rowPtr += featureCount;
+			pointers.Add( i * desc.Width );
 		}
-		desc.Values = values.GetPtr();
+		pointers.Add( desc.Height * desc.Width );
 	} else {
-		beginPointers.SetBufferSize( desc.Height );
-		endPointers.SetBufferSize( desc.Height );
+		pointers.Add( 0 );
 		for( int i = 0; i < vectors.Size(); ++i ) {
-			const CSparseFloatVectorDesc& desc = vectors[i].GetDesc();
+			const CSparseFloatVectorDesc& vectorDesc = vectors[i].GetDesc();
 			int prevElementCount = values.Size();
-			beginPointers.Add( prevElementCount );
-			endPointers.Add( prevElementCount + desc.Size );
-			values.SetSize( prevElementCount + desc.Size );
-			::memcpy( values.GetPtr() + prevElementCount, desc.Values, desc.Size * sizeof( float ) );
-			columns.SetSize( prevElementCount + desc.Size );
-			::memcpy( columns.GetPtr() + prevElementCount, desc.Indexes, desc.Size * sizeof( int ) );
+			pointers.Add( prevElementCount + vectorDesc.Size );
+			values.SetSize( prevElementCount + vectorDesc.Size );
+			::memcpy( values.GetPtr() + prevElementCount, vectorDesc.Values, vectorDesc.Size * sizeof( float ) );
+			columns.SetSize( prevElementCount + vectorDesc.Size );
+			::memcpy( columns.GetPtr() + prevElementCount, vectorDesc.Indexes, vectorDesc.Size * sizeof( int ) );
 		}
-		desc.Values = values.GetPtr();
 		desc.Columns = columns.GetPtr();
-		desc.PointerB = beginPointers.GetPtr();
-		desc.PointerE = endPointers.GetPtr();
 	}
+
+	desc.Values = values.GetPtr();
+	desc.PointerB = pointers.GetPtr();
+	desc.PointerE = desc.PointerB + 1;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
