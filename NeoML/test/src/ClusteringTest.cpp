@@ -313,7 +313,7 @@ TEST_P( CClusteringTest, Generated )
 // --------------------------------------------------------------------------------------------------------------------
 // Check backward compatibility
 
-TEST_F( CClusteringTest, PrecalcFirstCome )
+static void precalcTestImpl( TClusteringFunction clusterize, const CClusteringResult& expectedResult )
 {
 	CPtr<IClusteringData> sparseData = nullptr;
 	CPtr<IClusteringData> denseData = nullptr;
@@ -321,13 +321,18 @@ TEST_F( CClusteringTest, PrecalcFirstCome )
 	generateData( 256, 3, 0x451, sparseData, denseData );
 
 	CClusteringResult sparseResult;
-	firstComeClustering( sparseData, sparseResult );
+	clusterize( sparseData, sparseResult );
 
 	CClusteringResult denseResult;
-	firstComeClustering( denseData, denseResult );
+	clusterize( denseData, denseResult );
 
 	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
-	// Compare with pre-calc result
+	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
+	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
+}
+
+TEST_F( CClusteringTest, PrecalcFirstCome )
+{
 	CClusteringResult expectedResult;
 	expectedResult.ClusterCount = 1;
 	expectedResult.Clusters.SetSize( 1 );
@@ -335,25 +340,11 @@ TEST_F( CClusteringTest, PrecalcFirstCome )
 	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.186866, 0.176815, 0.194769 } );
 	expectedResult.Clusters[0].Norm = 0.002364;
 
-	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
-	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
+	precalcTestImpl( firstComeClustering, expectedResult );
 }
 
 TEST_F( CClusteringTest, PrecalcHierarchical )
 {
-	CPtr<IClusteringData> sparseData = nullptr;
-	CPtr<IClusteringData> denseData = nullptr;
-
-	generateData( 256, 3, 0x451, sparseData, denseData );
-
-	CClusteringResult sparseResult;
-	hierarchicalClustering( sparseData, sparseResult );
-
-	CClusteringResult denseResult;
-	hierarchicalClustering( denseData, denseResult );
-
-	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
-	// Compare with pre-calc result
 	CClusteringResult expectedResult;
 	expectedResult.ClusterCount = 2;
 	expectedResult.Clusters.SetSize( 2 );
@@ -364,25 +355,11 @@ TEST_F( CClusteringTest, PrecalcHierarchical )
 	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.016785, 0.019241, 0.039801 } );
 	expectedResult.Clusters[1].Norm = 1.538146;
 
-	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
-	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
+	precalcTestImpl( hierarchicalClustering, expectedResult );
 }
 
 TEST_F( CClusteringTest, PrecalcIsoData )
 {
-	CPtr<IClusteringData> sparseData = nullptr;
-	CPtr<IClusteringData> denseData = nullptr;
-
-	generateData( 256, 3, 0x451, sparseData, denseData );
-
-	CClusteringResult sparseResult;
-	isoDataClustering( sparseData, sparseResult );
-
-	CClusteringResult denseResult;
-	isoDataClustering( denseData, denseResult );
-
-	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
-	// Compare with pre-calc result
 	CClusteringResult expectedResult;
 	expectedResult.ClusterCount = 1;
 	expectedResult.Clusters.SetSize( 1 );
@@ -390,37 +367,7 @@ TEST_F( CClusteringTest, PrecalcIsoData )
 	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.186866, 0.176815, 0.194769 } );
 	expectedResult.Clusters[0].Norm = 0.002364;
 
-	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
-	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
-}
-
-TEST_F( CClusteringTest, PrecalcKmeansLloyd )
-{
-	CPtr<IClusteringData> sparseData = nullptr;
-	CPtr<IClusteringData> denseData = nullptr;
-
-	generateData( 256, 3, 0x451, sparseData, denseData );
-
-	CClusteringResult sparseResult;
-	kmeansLloydClustering( sparseData, sparseResult );
-
-	CClusteringResult denseResult;
-	kmeansLloydClustering( denseData, denseResult );
-
-	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
-	// Compare with pre-calc result
-	CClusteringResult expectedResult;
-	expectedResult.ClusterCount = 2;
-	expectedResult.Clusters.SetSize( 2 );
-	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.009386, -0.184222, -0.177035 } );
-	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.221126, 0.123710, 0.128456 } );
-	expectedResult.Clusters[0].Norm = 0.065367;
-	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.014822, 0.282805, 0.344131 } );
-	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.140646, 0.123189, 0.128234 } );
-	expectedResult.Clusters[1].Norm = 0.198624;
-
-	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
-	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
+	precalcTestImpl( isoDataClustering, expectedResult );
 }
 
 static void kmeansElkanDefaultInitClustering( IClusteringData* data, CClusteringResult& result )
@@ -437,23 +384,8 @@ static void kmeansElkanDefaultInitClustering( IClusteringData* data, CClustering
 	kMeans.Clusterize( data, result );
 }
 
-// This test also checks that if Elkan and Lloyd algos have similar data and initialization
-// then they will return the same results
-TEST_F( CClusteringTest, PrecalcKmeansElkan )
+TEST_F( CClusteringTest, PrecalcKmeans )
 {
-	CPtr<IClusteringData> sparseData = nullptr;
-	CPtr<IClusteringData> denseData = nullptr;
-
-	generateData( 256, 3, 0x451, sparseData, denseData );
-
-	CClusteringResult sparseResult;
-	kmeansElkanDefaultInitClustering( sparseData, sparseResult );
-
-	CClusteringResult denseResult;
-	kmeansElkanDefaultInitClustering( denseData, denseResult );
-
-	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
-	// Compare with pre-calc result
 	CClusteringResult expectedResult;
 	expectedResult.ClusterCount = 2;
 	expectedResult.Clusters.SetSize( 2 );
@@ -464,8 +396,9 @@ TEST_F( CClusteringTest, PrecalcKmeansElkan )
 	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.140646, 0.123189, 0.128234 } );
 	expectedResult.Clusters[1].Norm = 0.198624;
 
-	EXPECT_TRUE( isEqual( sparseResult, expectedResult ) );
-	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
+	precalcTestImpl( kmeansLloydClustering, expectedResult );
+	// Check that different algos with the same initialization return similar results
+	precalcTestImpl( kmeansElkanDefaultInitClustering, expectedResult );
 }
 
 INSTANTIATE_TEST_CASE_P( CClusteringTestInstantiation, CClusteringTest,
