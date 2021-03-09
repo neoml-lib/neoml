@@ -411,62 +411,6 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 	}
 }
 
-//------------------------------------------------------------------------------------------------------------
-
-inline void vectorAddValue( const float* first, float* result, int vectorSize, float value )
-{
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	if(sseSize > 0) {
-		const __m128 addSse = _mm_set_ps1(value);
-		for(int i = 0; i < sseSize; ++i) {
-			_mm_storeu_ps(result, _mm_add_ps(_mm_loadu_ps(first), addSse));
-			first += 4;
-			result += 4;
-		}
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		result[i] = first[i] + value;
-	}
-}
-
-//------------------------------------------------------------------------------------------------------------
-
-inline void vectorDotProduct( const float* first, const float* second, int vectorSize, float* result )
-{
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	float acc = 0;
-
-	if(sseSize > 0) {
-		__m128 sum = _mm_setzero_ps();
-		for(int i = 0; i < sseSize; ++i) {
-			sum = _mm_add_ps(sum, _mm_mul_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
-
-			first += 4;
-			second += 4;
-		}
-
-		__m128 tmp = _mm_shuffle_ps(sum, sum, _MM_SHUFFLE(0, 3, 2, 1));
-		sum = _mm_add_ps(sum, tmp);
-		tmp = _mm_shuffle_ps(sum, sum, _MM_SHUFFLE(1, 0, 3, 2));
-		sum = _mm_add_ss(sum, tmp);
-
-		acc += _mm_cvtss_f32(sum);
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		acc += *first++ * *second++;
-	}
-
-	*result = acc;
-}
-
 } // namespace NeoML
 
 #endif

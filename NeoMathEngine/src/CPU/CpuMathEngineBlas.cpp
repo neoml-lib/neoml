@@ -209,16 +209,12 @@ void CCpuMathEngine::setVectorToMatrixRows( float* result,
 void CCpuMathEngine::AddVectorToMatrixColumns(const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle)
 {
-	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
-
-	const float* matrix = GetRaw( matrixHandle );
-	float* result = GetRaw( resultHandle );
-	const float* vector = GetRaw( vectorHandle );
+	CConstFloatHandle matrix = matrixHandle;
+	CFloatHandle result = resultHandle;
+	CConstFloatHandle vector = vectorHandle;
 
 	for(int i = 0; i < matrixHeight; ++i) {
-		vectorAddValue(matrix, result, matrixWidth, *vector);
+		VectorAddValue(matrix, result, matrixWidth, vector);
 		matrix += matrixWidth;
 		result += matrixWidth;
 		++vector;
@@ -263,16 +259,12 @@ void CCpuMathEngine::AddVectorToMatrixRows( int batchSize, const CConstFloatHand
 void CCpuMathEngine::RowMultiplyMatrixByMatrix(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, int height, int width, const CFloatHandle& resultHandle)
 {
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw( firstHandle );
-	const float* second = GetRaw( secondHandle );
-	float* result = GetRaw( resultHandle );
+	CConstFloatHandle first = firstHandle;
+	CConstFloatHandle second = secondHandle;
+	CFloatHandle result = resultHandle;
 
 	for(int i = 0; i < height; ++i) {
-		vectorDotProduct(first, second, width, result);
+		VectorDotProduct(first, second, width, result);
 		first += width;
 		second += width;
 		++result;
@@ -697,22 +689,16 @@ void CCpuMathEngine::LookupAndSum(const CConstIntHandle& indicesHandle, int batc
 void CCpuMathEngine::LookupAndAddToTable(const CConstIntHandle& indicesHandle, int batchSize, int indexCount,
 	const CConstFloatHandle& additionsHandle, int vectorSize, const CFloatHandle& tableHandle, int vectorCount)
 {
-	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
-	ASSERT_EXPR( tableHandle.GetMathEngine() == this );
-	ASSERT_EXPR( additionsHandle.GetMathEngine() == this );
+	VectorFill(tableHandle, 0.f, vectorCount * vectorSize);
 
-	const int* indices = GetRaw( indicesHandle );
-	const float* additions = GetRaw( additionsHandle );
-	float* table = GetRaw( tableHandle );
-
-	vectorFill( table, 0.f, vectorCount * vectorSize );
-
-	for( int b = 0; b < batchSize; ++b ) {
-		for( int elem = 0; elem < indexCount; ++elem ) {
-			int index = *indices;
+	CConstIntHandle indices = indicesHandle;
+	CConstFloatHandle additions = additionsHandle;
+	for(int b = 0; b < batchSize; ++b) {
+		for(int elem = 0; elem < indexCount; ++elem) {
+			int index = (int)indices.GetValue();
 			indices++;
-			if( index >= 0 ) {
-				vectorAdd( table + index * vectorSize, additions, table + index * vectorSize, vectorSize );
+			if(index >= 0) {
+				VectorAdd(tableHandle + index * vectorSize, additions, tableHandle + index * vectorSize, vectorSize);
 			}
 		}
 		additions += vectorSize;
@@ -1023,6 +1009,33 @@ void CCpuMathEngine::MultiplyVectorByTransposedLookupVectorAndAddToTable( int ba
 		for( int j = 0; j < firstSize; ++j ) {
 			CFloatHandle tableRow = table + ( *index++ ) * vectorSize;
 			VectorMultiplyAndAdd( tableRow, secondVec, tableRow, vectorSize, first++ );
+		}
+	}
+}
+
+void CCpuMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandle, int matrixHeight,
+	int matrixWidth, const CFloatHandle& resultHandle, const CIntHandle& columnIndices )
+{
+	const float* matrix = GetRaw( matrixHandle );
+	float* result = GetRaw( resultHandle );
+	int* rowIndices = GetRaw( columnIndices );
+
+	// Copy the first row
+	VectorCopy( resultHandle, matrixHandle, matrixWidth );
+	VectorFill( columnIndices, 0, matrixWidth );
+	matrix += matrixWidth;
+	// Process the rest
+	for( int i = 0; i < matrixHeight - 1; i++ ) {
+		float* vectorPtr = result;
+		int* indicesPtr = rowIndices;
+		for( int j = 0; j < matrixWidth; j++ ) {
+			if( *matrix < *vectorPtr ) {
+				*vectorPtr = *matrix;
+				*indicesPtr = i + 1;
+			}
+			matrix += 1;
+			vectorPtr += 1;
+			indicesPtr += 1;
 		}
 	}
 }
