@@ -107,6 +107,8 @@ void CCtcLossLayer::Reshape()
 
 	CheckArchitecture( inputDescs[I_Result].BatchWidth() == inputDescs[I_Labels].BatchWidth(), 
 		GetName(), "loss layer result batch size doesn't match labels batch size" );
+	CheckArchitecture( inputDescs[I_Result].ObjectSize() >= blankLabel, GetName(),
+		"too small classes count" );
 	CheckArchitecture( inputDescs[I_Labels].BatchLength() >= 1 && inputDescs[I_Labels].ObjectSize() == 1, 
 		GetName(), "incorrect label size" );
 	CheckArchitecture( allowBlankLabelSkip || hasLabelsLengths || labelsMaxLength * 2 + 1 <= inputDescs[I_Result].BatchLength(),
