@@ -24,6 +24,7 @@ namespace NeoML {
 
 CDnnBlob::CDnnBlob( IMathEngine& _mathEngine ) :
 	mathEngine( _mathEngine ),
+	dataOwned( true ),
 	parent(0),
 	parentPos(0)
 {
@@ -184,7 +185,7 @@ void CDnnBlob::initializeByPattern(TBlobType type, const CBlobDesc& pattern)
 
 CDnnBlob::~CDnnBlob()
 {
-	if( !data.IsNull() && parent == 0 ) {
+	if( !data.IsNull() && parent == 0 && dataOwned ) {
 		mathEngine.HeapFree( data );
 	}
 }

@@ -35,7 +35,11 @@ static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CSparseFloa
 	const int vectorCount = data.Height;
 	const int featureCount = data.Width;
 	CPtr<CDnnBlob> result = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, vectorCount, featureCount );
-	result->CopyFrom( data.Values );
+	CFloatHandle currData = result->GetData();
+	for( int row = 0; row < data.Height; ++row ) {
+		mathEngine.DataExchangeTyped( currData, data.Values + data.PointerB[row], featureCount );
+		currData += featureCount;
+	}
 	return result;
 }
 
