@@ -97,9 +97,10 @@ void CAccuracyLayer::OnReset()
 void CAccuracyLayer::Reshape()
 {
 	CQualityControlLayer::Reshape();
-	NeoAssert( inputDescs[0].Height() == 1
-		&& inputDescs[0].Width() == 1
-		&& inputDescs[0].Depth() == 1 );
+
+	CheckArchitecture( inputDescs[0].Height() == 1, GetName(), "input[0].Height() != 1" );
+	CheckArchitecture( inputDescs[0].Width() == 1, GetName(), "input[0].Width() != 1" );
+	CheckArchitecture( inputDescs[0].Depth() == 1, GetName(), "input[0].Depth() != 1" );
 
 	outputDescs[0] = CBlobDesc( CT_Float );
 	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize()
@@ -188,14 +189,15 @@ void CConfusionMatrixLayer::Serialize( CArchive& archive )
 void CConfusionMatrixLayer::Reshape()
 {
 	CheckInputs();
-	NeoAssert( inputDescs.Size() == 2 );
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "inputs.Size() != 2" );
+
 	// For classifying a sigmoid a special implementation is needed
-	NeoAssert( inputDescs[0].Channels() >= 2 );
-	NeoAssert( inputDescs[0].Height() == 1 );
-	NeoAssert( inputDescs[0].Width() == 1 );
-	NeoAssert( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount() );
-	NeoAssert( inputDescs[0].ObjectSize() >= 1 );
-	NeoAssert( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize() );
+	CheckArchitecture( inputDescs[0].Channels() >= 2, GetName(), "input[0].Channels() < 2");
+	CheckArchitecture( inputDescs[0].Height() == 1, GetName(), "input[0].Height() != 1" );
+	CheckArchitecture( inputDescs[0].Width() == 1, GetName(), "input[0].Width() != 1" );
+	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetName(), "input[0].ObjectCount() != input[1].ObjectCount()" );
+	CheckArchitecture( inputDescs[0].ObjectSize() >= 1, GetName(), "input[0].ObjectSize() < 1" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "input[0].ObjectSize() != input[1].ObjectSize()" );
 
 	const int classCount = inputDescs[0].Channels();
 	if( confusionMatrix.SizeX() != classCount ) {
