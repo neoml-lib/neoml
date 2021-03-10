@@ -206,6 +206,7 @@ void C3dMeanPoolingLayer::Serialize( CArchive& archive )
 
 void C3dMeanPoolingLayer::Reshape()
 {
+	C3dPoolingLayer::Reshape();
 	destroyDesc();
 }
 

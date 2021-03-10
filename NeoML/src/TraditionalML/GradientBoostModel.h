@@ -58,8 +58,7 @@ public:
 	double Predict( const CSparseFloatVectorDesc& data ) const override;
 
 	// IMultivariateRegressionModel interface methods
-	CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const override;
-	CFloatVector MultivariatePredict( const CFloatVector& data ) const override;
+	CFloatVector MultivariatePredict( const CSparseFloatVectorDesc& data ) const override;
 
 private:
 	CArray<CGradientBoostEnsemble> ensembles; // the models
@@ -87,19 +86,27 @@ void CGradientBoostModel::PredictRaw(
 {
 	const int predictionSize = predictions.Size();
 	predictions.Empty();
-	predictions.Add(0.0, predictionSize);
 
-	CRegressionTree::CPrediction pred;
-	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		static_cast<const CRegressionTree*>( ensemble[i].Ptr() )->Predict( features, pred );
-		NeoAssert( predictionSize == pred.Size() );
-		for( int j = 0; j < predictions.Size(); j++ ) {
-			predictions[j] += pred[j];
+	if( predictionSize == 1 ) {
+		double prediction = 0;
+		for( int i = startPos; i < ensemble.Size(); i++ ) {
+			prediction +=
+				static_cast<const CRegressionTree*>( ensemble[i].Ptr() )->Predict( features );
 		}
-	}
-
-	for( int j = 0; j < predictions.Size(); j++ ) {
-		predictions[j] *= learningRate;
+		predictions.Add( prediction * learningRate );
+	} else {
+		CRegressionTree::CPrediction pred;
+		predictions.Add(0.0, predictionSize);
+		for( int i = startPos; i < ensemble.Size(); i++ ) {
+			static_cast<const CRegressionTree*>( ensemble[i].Ptr() )->Predict( features, pred );
+			NeoPresume( predictionSize == pred.Size() );
+			for( int j = 0; j < predictionSize; j++ ) {
+				predictions[j] += pred[j];
+			}
+		}
+		for( int j = 0; j < predictionSize; j++ ) {
+			predictions[j] *= learningRate;
+		}
 	}
 }
 

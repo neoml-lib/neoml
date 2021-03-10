@@ -23,11 +23,17 @@ namespace NeoML {
 
 ///////////////////////////////////////////////////////////////////////////////////
 // CHingeLossLayer
-void CHingeLossLayer::BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize,
-	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient)
-{
-	NeoAssert(vectorSize == labelSize);
 
+void CHingeLossLayer::Reshape()
+{
+	CLossLayer::Reshape();
+	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "the labels dimensions should be equal to the first input dimensions" );
+}
+
+void CHingeLossLayer::BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize,
+	CConstFloatHandle label, int /* labelSize */, CFloatHandle lossValue, CFloatHandle lossGradient)
+{
 	int totalSize = batchSize * vectorSize;
 
 	CFloatHandleStackVar temp( MathEngine(), totalSize );
@@ -57,11 +63,17 @@ CLayerWrapper<CHingeLossLayer> HingeLoss( float lossWeight )
 
 ///////////////////////////////////////////////////////////////////////////////////
 // CSquaredHingeLossLayer
-void CSquaredHingeLossLayer::BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize,
-	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient)
-{
-	NeoAssert(vectorSize == labelSize);
 
+void CSquaredHingeLossLayer::Reshape()
+{
+	CLossLayer::Reshape();
+	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "the labels dimensions should be equal to the first input dimensions" );
+}
+
+void CSquaredHingeLossLayer::BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize,
+	CConstFloatHandle label, int /* labelSize */, CFloatHandle lossValue, CFloatHandle lossGradient)
+{
 	int totalSize = batchSize * vectorSize;
 
 	CFloatHandleStackVar temp( MathEngine(), totalSize );
