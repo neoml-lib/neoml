@@ -187,7 +187,7 @@ static void kmeansLloydClustering( IClusteringData* data, CClusteringResult& res
 	params.MaxIterations = 50;
 	params.Algo = CKMeansClustering::KMA_Lloyd;
 	params.Initialization = CKMeansClustering::KMI_Default;
-	params.ThreadCount = 1;
+	params.ThreadCount = 4;
 
 	CKMeansClustering kMeans( params );
 	kMeans.Clusterize( data, result );
@@ -201,7 +201,7 @@ static void kmeansElkanClustering( IClusteringData* data, CClusteringResult& res
 	params.MaxIterations = 50;
 	params.Algo = CKMeansClustering::KMA_Elkan;
 	params.Initialization = CKMeansClustering::KMI_KMeansPlusPlus;
-	params.ThreadCount = 1;
+	params.ThreadCount = 4;
 
 	CKMeansClustering kMeans( params );
 	kMeans.Clusterize( data, result );
@@ -389,7 +389,7 @@ static void kmeansElkanDefaultInitClustering( IClusteringData* data, CClustering
 	params.MaxIterations = 50;
 	params.Algo = CKMeansClustering::KMA_Elkan;
 	params.Initialization = CKMeansClustering::KMI_Default;
-	params.ThreadCount = 1;
+	params.ThreadCount = 4;
 
 	CKMeansClustering kMeans( params );
 	kMeans.Clusterize( data, result );
