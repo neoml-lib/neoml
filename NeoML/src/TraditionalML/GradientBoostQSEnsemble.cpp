@@ -336,9 +336,13 @@ double CGradientBoostQSEnsemble::Predict( const CSparseFloatVectorDesc& data ) c
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
-	for( int i = 0; i < data.Size; i++ ) {
-		if( data.Values[i] != 0.0 ) {
-			processFeature( data.Indexes == nullptr ? i : data.Indexes[i], data.Values[i], resultBitvectors );
+	if( data.Indexes == nullptr ) {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( i, data.Values[i], resultBitvectors );
+		}
+	} else {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
 		}
 	}
 
@@ -351,9 +355,13 @@ double CGradientBoostQSEnsemble::Predict( const CSparseFloatVectorDesc& data, in
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
-	for( int i = 0; i < data.Size; i++ ) {
-		if( data.Values[i] != 0.0 ) {
-			processFeature( data.Indexes == nullptr ? i : data.Indexes[i], data.Values[i], resultBitvectors );
+	if( data.Indexes == nullptr ) {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( i, data.Values[i], resultBitvectors );
+		}
+	} else {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
 		}
 	}
 
