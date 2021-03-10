@@ -271,13 +271,7 @@ CFloatVector CGradientBoostModel::doMultivariatePredict( const TData& data ) con
 }
 
 // IMultivariateRegressionModel interface methods
-
-CFloatVector CGradientBoostModel::MultivariatePredict( const CSparseFloatVector& data ) const
-{
-	return doMultivariatePredict( data.GetDesc() );
-}
-
-CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVector& data ) const
+CFloatVector CGradientBoostModel::MultivariatePredict( const CSparseFloatVectorDesc& data ) const
 {
 	return doMultivariatePredict( data );
 }

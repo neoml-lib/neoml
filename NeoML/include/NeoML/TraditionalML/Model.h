@@ -62,8 +62,11 @@ public:
 	virtual ~IMultivariateRegressionModel();
 
 	// Predicts the function value on a vector
-	virtual CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const = 0;
-	virtual CFloatVector MultivariatePredict( const CFloatVector& data ) const = 0;
+	virtual CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const
+		{ return MultivariatePredict( data.GetDesc() ); }
+	virtual CFloatVector MultivariatePredict( const CFloatVector& data )
+		{ return MultivariatePredict( data.GetDesc() ); }
+	virtual CFloatVector MultivariatePredict( const CSparseFloatVectorDesc& data ) const = 0;
 
 	// Serializes the model
 	virtual void Serialize( CArchive& archive ) = 0;
