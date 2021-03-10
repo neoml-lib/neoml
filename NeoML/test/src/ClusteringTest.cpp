@@ -115,6 +115,7 @@ static void getSampleData( CPtr<IClusteringData>& sparseData, CPtr<IClusteringDa
 static void generateData( int vectorCount, int featureCount, int seed,
 	CPtr<IClusteringData>& sparseData, CPtr<IClusteringData>& denseData )
 {
+	int printed = 0;
 	CRandom random( seed );
 
 	CArray<CSparseFloatVector> vectors;
@@ -122,14 +123,26 @@ static void generateData( int vectorCount, int featureCount, int seed,
 	for( int i = 0; i < vectorCount; ++i ) {
 		CSparseFloatVector& vector = vectors.Append();
 		bool hasElements = false;
+		double mean = random.Next() % 2 == 0 ? -1 : 1;
+		double sigma = 1. / 4;
 		for( int j = 0; j < featureCount; ++j ) {
-			if( random.Next() % 3 == 2 ) {
-				vector.SetAt( j, static_cast<float>( random.Uniform( -1, 1 ) ) );
+			if( random.Next() % 3 != 0 ) {
+				vector.SetAt( j, static_cast<float>( random.Normal( mean, sigma ) ) );
+				hasElements = true;
+				if( printed < 25 ) {
+					::printf( "Data[%d][%d]: %.5f\n", i, j, vector.GetValue( j ) );
+					++printed;
+				}
 			}
 		}
 		if( !hasElements ) {
 			// Avoiding 0 vectors
-			vector.SetAt( random.UniformInt( 0, featureCount - 1 ), static_cast<float>( random.Uniform( -1, 1 ) ) );
+			const int index = random.UniformInt( 0, featureCount - 1 );
+			vector.SetAt( index, static_cast<float>( random.Normal( mean, sigma ) ) );
+			if( printed < 25 ) {
+				::printf( "Data[%d][%d]: %.5f\n", i, index, vector.GetValue( index ) );
+				++printed;
+			}
 		}
 	}
 
@@ -319,7 +332,7 @@ static void precalcTestImpl( TClusteringFunction clusterize, const CClusteringRe
 	CPtr<IClusteringData> sparseData = nullptr;
 	CPtr<IClusteringData> denseData = nullptr;
 
-	generateData( 256, 3, 0x451, sparseData, denseData );
+	generateData( 128, 3, 0x451, sparseData, denseData );
 
 	CClusteringResult sparseResult;
 	clusterize( sparseData, sparseResult );
@@ -335,11 +348,14 @@ static void precalcTestImpl( TClusteringFunction clusterize, const CClusteringRe
 TEST_F( CClusteringTest, PrecalcFirstCome )
 {
 	CClusteringResult expectedResult;
-	expectedResult.ClusterCount = 1;
-	expectedResult.Clusters.SetSize( 1 );
-	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.011701, 0.014629, 0.044868 } );
-	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.186866, 0.176815, 0.194769 } );
-	expectedResult.Clusters[0].Norm = 0.002364;
+	expectedResult.ClusterCount = 2;
+	expectedResult.Clusters.SetSize( 2 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { 0.561685, 0.627736, 0.710235 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.290764, 0.269636, 0.278547 } );
+	expectedResult.Clusters[0].Norm = 1.213978;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.675586, -0.655485, -0.643366 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.215411, 0.280084, 0.265546 } );
+	expectedResult.Clusters[1].Norm = 1.299998;
 
 	precalcTestImpl( firstComeClustering, expectedResult );
 }
@@ -349,12 +365,12 @@ TEST_F( CClusteringTest, PrecalcHierarchical )
 	CClusteringResult expectedResult;
 	expectedResult.ClusterCount = 2;
 	expectedResult.Clusters.SetSize( 2 );
-	expectedResult.Clusters[0].Mean = buildFloatVector( { 0.000190, 0.025189, 0.057201 } );
-	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.180517, 0.172180, 0.187494 } );
-	expectedResult.Clusters[0].Norm = 0.003906;
-	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.760800, -0.650639, -0.732119 } );
-	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.016785, 0.019241, 0.039801 } );
-	expectedResult.Clusters[1].Norm = 1.538146;
+	expectedResult.Clusters[0].Mean = buildFloatVector( { 0.580782, 0.636106, 0.719705 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.266925, 0.267907, 0.275445 } );
+	expectedResult.Clusters[0].Norm = 1.259914;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.679265, -0.643118, -0.631227 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.212050, 0.282753, 0.268198 } );
+	expectedResult.Clusters[1].Norm = 1.273450;
 
 	precalcTestImpl( hierarchicalClustering, expectedResult );
 }
@@ -362,11 +378,14 @@ TEST_F( CClusteringTest, PrecalcHierarchical )
 TEST_F( CClusteringTest, PrecalcIsoData )
 {
 	CClusteringResult expectedResult;
-	expectedResult.ClusterCount = 1;
-	expectedResult.Clusters.SetSize( 1 );
-	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.011701, 0.014629, 0.044868 } );
-	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.186866, 0.176815, 0.194769 } );
-	expectedResult.Clusters[0].Norm = 0.002364;
+	expectedResult.ClusterCount = 2;
+	expectedResult.Clusters.SetSize( 2 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.256940, -0.233290, -0.418645 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.604588, 0.636909, 0.282105 } );
+	expectedResult.Clusters[0].Norm = 0.295706;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { 0.551979, 0.636387, 1.063543 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.269381, 0.263475, 0.052157 } );
+	expectedResult.Clusters[1].Norm = 1.840793;
 
 	precalcTestImpl( isoDataClustering, expectedResult );
 }
@@ -390,12 +409,12 @@ TEST_F( CClusteringTest, PrecalcKmeans )
 	CClusteringResult expectedResult;
 	expectedResult.ClusterCount = 2;
 	expectedResult.Clusters.SetSize( 2 );
-	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.009386, -0.184222, -0.177035 } );
-	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.221126, 0.123710, 0.128456 } );
-	expectedResult.Clusters[0].Norm = 0.065367;
-	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.014822, 0.282805, 0.344131 } );
-	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.140646, 0.123189, 0.128234 } );
-	expectedResult.Clusters[1].Norm = 0.198624;
+	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.679265, -0.643118, -0.631227 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.212050, 0.282753, 0.268198 } );
+	expectedResult.Clusters[0].Norm = 1.273450;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { 0.580782, 0.636106, 0.719705 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.266925, 0.267907, 0.275445 } );
+	expectedResult.Clusters[1].Norm = 1.259914;
 
 	precalcTestImpl( kmeansLloydClustering, expectedResult );
 	// Check that different algos with the same initialization return similar results
