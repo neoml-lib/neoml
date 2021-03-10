@@ -63,6 +63,7 @@ CClusteringTestData::CClusteringTestData( const CArray<CSparseFloatVector>& vect
 			pointers.Add( i * desc.Width );
 		}
 		pointers.Add( desc.Height * desc.Width );
+		desc.Columns = nullptr;
 	} else {
 		pointers.Add( 0 );
 		for( int i = 0; i < vectors.Size(); ++i ) {
