@@ -132,9 +132,17 @@ double CSvmKernel::rbfDenseByDense( const CSparseFloatVectorDesc& x1, const CSpa
 {
 	double square = 0;
 	double diff;
-	for( int i = 0; i < min( x1.Size, x2.Size ); ++i ) {
+	const int minSize = min( x1.Size, x2.Size );
+	int i = 0;
+	for( ; i < minSize; ++i ) {
 		diff = x1.Values[i] - x2.Values[i];
 		square += diff * diff;
+	}
+	for( ; i < x1.Size; ++i ) {
+		square += x1.Values[i] * x1.Values[i];
+	}
+	for( ; i < x2.Size; ++i ) {
+		square += x2.Values[i] * x2.Values[i];
 	}
 	return exp(-gamma * square);
 }
