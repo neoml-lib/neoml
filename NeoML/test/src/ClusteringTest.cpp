@@ -115,7 +115,6 @@ static void getSampleData( CPtr<IClusteringData>& sparseData, CPtr<IClusteringDa
 static void generateData( int vectorCount, int featureCount, int seed,
 	CPtr<IClusteringData>& sparseData, CPtr<IClusteringData>& denseData )
 {
-	int printed = 0;
 	CRandom random( seed );
 
 	CArray<CSparseFloatVector> vectors;
@@ -129,20 +128,12 @@ static void generateData( int vectorCount, int featureCount, int seed,
 			if( random.Next() % 3 != 0 ) {
 				vector.SetAt( j, static_cast<float>( random.Normal( mean, sigma ) ) );
 				hasElements = true;
-				if( printed < 25 ) {
-					::printf( "Data[%d][%d]: %.5f\n", i, j, vector.GetValue( j ) );
-					++printed;
-				}
 			}
 		}
 		if( !hasElements ) {
 			// Avoiding 0 vectors
 			const int index = random.UniformInt( 0, featureCount - 1 );
 			vector.SetAt( index, static_cast<float>( random.Normal( mean, sigma ) ) );
-			if( printed < 25 ) {
-				::printf( "Data[%d][%d]: %.5f\n", i, index, vector.GetValue( index ) );
-				++printed;
-			}
 		}
 	}
 
