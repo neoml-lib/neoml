@@ -48,7 +48,7 @@ void CGradientBoostFullProblem::Update()
 		CSparseFloatVectorDesc vector;
 		matrix.GetRow( usedVectors[i], vector );
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int link = featureNumbers[vector.Indexes[j]];
+			const int link = featureNumbers[vector.Indexes == nullptr ? j : vector.Indexes[j]];
 			if( link != NotFound && vector.Values[j] != 0.0 ) {
 				if( vector.Values[j] != 1.0 ) {
 					isUsedFeatureBinary[link] = false;
@@ -89,7 +89,7 @@ void CGradientBoostFullProblem::Update()
 		CSparseFloatVectorDesc vector;
 		matrix.GetRow( usedVectors[i], vector );
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int link = featureNumbers[vector.Indexes[j]];
+			const int link = featureNumbers[vector.Indexes == nullptr ? j : vector.Indexes[j]];
 			if( link != NotFound && vector.Values[j] != 0.0 ) {
 				if( isUsedFeatureBinary[link] ) {
 					// A binary feature

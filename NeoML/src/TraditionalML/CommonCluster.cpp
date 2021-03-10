@@ -62,16 +62,9 @@ void CCommonCluster::Add( int dataIndex, const CSparseFloatVectorDesc& desc, dou
 
 	sumWeight += weight;
 
-	if( desc.Indexes == nullptr ) {
-		for( int i = 0; i < desc.Size; i++ ) {
-			sum[i] += desc.Values[i] * weight;
-			sumSquare[i] += desc.Values[i] * desc.Values[i] * weight;
-		}
-	} else {
-		for( int i = 0; i < desc.Size; i++ ) {
-			sum[desc.Indexes[i]] += desc.Values[i] * weight;
-			sumSquare[desc.Indexes[i]] += desc.Values[i] * desc.Values[i] * weight;
-		}
+	for( int i = 0; i < desc.Size; i++ ) {
+		sum[desc.Indexes == nullptr ? i : desc.Indexes[i]] += desc.Values[i] * weight;
+		sumSquare[desc.Indexes == nullptr ? i : desc.Indexes[i]] += desc.Values[i] * desc.Values[i] * weight;
 	}
 
 	isCenterDirty = true;
