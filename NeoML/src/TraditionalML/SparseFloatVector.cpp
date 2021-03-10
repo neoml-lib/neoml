@@ -44,12 +44,28 @@ CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( int bufferSi
 CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( const CSparseFloatVectorDesc& desc ) :
 	BufferSize( desc.Size )
 {
-	Desc.Size = desc.Size;
-	IndexesBuf.SetSize( BufferSize );
-	ValuesBuf.SetSize( BufferSize );
-	::memcpy( IndexesBuf.GetPtr(), desc.Indexes, Desc.Size * sizeof( int ) );
-	::memcpy( ValuesBuf.GetPtr(), desc.Values, Desc.Size * sizeof( float ) );
-
+	if( desc.Indexes == nullptr ) {
+		for( int i = 0; i < desc.Size; ++i ) {
+			if( desc.Values[i] == 0 ) {
+				--BufferSize;
+			}
+		}
+		Desc.Size = BufferSize;
+		IndexesBuf.SetBufferSize( BufferSize );
+		ValuesBuf.SetBufferSize( BufferSize );
+		for( int i = 0; i < desc.Size; ++i ) {
+			if( desc.Values[i] != 0 ) {
+				IndexesBuf.Add( i );
+				ValuesBuf.Add( desc.Values[i] );
+			}
+		}
+	} else {
+		Desc.Size = desc.Size;
+		IndexesBuf.SetSize( BufferSize );
+		ValuesBuf.SetSize( BufferSize );
+		::memcpy( IndexesBuf.GetPtr(), desc.Indexes, Desc.Size * sizeof( int ) );
+		::memcpy( ValuesBuf.GetPtr(), desc.Values, Desc.Size * sizeof( float ) );
+	}
 	Desc.Indexes = IndexesBuf.GetPtr();
 	Desc.Values = ValuesBuf.GetPtr();
 }
@@ -379,7 +395,7 @@ CSparseFloatVector& CSparseFloatVector::MultiplyAndAdd( const CSparseFloatVector
 	while( i < size && j < otherSize ) {
 		if( desc.Indexes[i] == otherDesc.Indexes[j] ) {
 			newBody->Desc.Indexes[k] = desc.Indexes[i];
-			newBody->Desc.Values[k] = static_cast<float>( desc.Values[i] + factor * desc.Values[j] );
+			newBody->Desc.Values[k] = static_cast<float>( desc.Values[i] + factor * otherDesc.Values[j] );
 			i++;
 			j++;
 		} else if( desc.Indexes[i] < otherDesc.Indexes[j] ) {

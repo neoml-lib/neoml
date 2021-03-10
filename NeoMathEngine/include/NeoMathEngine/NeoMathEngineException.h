@@ -51,14 +51,14 @@ NEOMATHENGINE_API IMathEngineExceptionHandler* GetMathEngineExceptionHandler();
 	do { \
 		int _err_ = (int)(expr); \
 		if(_err_ != 0) { \
-			GetMathEngineExceptionHandler()->OnAssert( #expr, __UNICODEFILE__, __LINE__, _err_ ); \
+			NeoML::GetMathEngineExceptionHandler()->OnAssert( #expr, __UNICODEFILE__, __LINE__, _err_ ); \
 		} \
 	} while(0)
 
 #define ASSERT_EXPR( expr ) \
 	do { \
 		if(!(expr)) { \
-			GetMathEngineExceptionHandler()->OnAssert( #expr, __UNICODEFILE__, __LINE__, 0 ); \
+			NeoML::GetMathEngineExceptionHandler()->OnAssert( #expr, __UNICODEFILE__, __LINE__, 0 ); \
 		} \
 	} while(0)
 
