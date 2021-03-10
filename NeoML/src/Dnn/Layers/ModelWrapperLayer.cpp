@@ -121,7 +121,7 @@ void CProblemSourceLayer::RunOnce()
 		// The data
 		matrix.GetRow( nextProblemIndex, vector );
 		for(int j = 0; j < vector.Size; ++j) {
-			data[vector.Indexes[j]] = static_cast<float>( vector.Values[j] );
+			data[vector.Indexes == nullptr ? j : vector.Indexes[j]] = static_cast<float>( vector.Values[j] );
 		}
 
 		// The labels
@@ -224,7 +224,7 @@ bool CDnnModelWrapper::Classify(const CSparseFloatVectorDesc& desc, CClassificat
 	}
 
 	for(int i = 0; i < desc.Size; ++i) {
-		exchangeBuffer[desc.Indexes[i]] = desc.Values[i];
+		exchangeBuffer[desc.Indexes == nullptr ? i : desc.Indexes[i]] = desc.Values[i];
 	}
 	SourceBlob->CopyFrom(exchangeBuffer.GetPtr());
 
