@@ -49,7 +49,7 @@ endif()
 if(WIN32)
         if(USE_FINE_OBJECTS)
         target_include_directories(${PROJECT_NAME} PRIVATE 
-            $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${CMAKE_CURRENT_SOURCE_DIR}/../../../../../Build/Inc ${FINE_ROOT}/FineObjects>>
+            $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:RC>:${FINE_ROOT}/Build/Inc ${FINE_ROOT}/FineObjects>>
         )
     else()
         target_include_directories(${PROJECT_NAME} PRIVATE 

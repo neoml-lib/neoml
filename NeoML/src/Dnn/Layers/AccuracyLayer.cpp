@@ -21,6 +21,58 @@ limitations under the License.
 
 namespace NeoML {
 
+// Bracket-like class for reading CDnnBlob buffer
+class CDnnBlobBufferReader {
+public:
+	explicit CDnnBlobBufferReader( CDnnBlob* blob );
+	~CDnnBlobBufferReader();
+
+	CDnnBlobBufferReader( const CDnnBlobBufferReader& ) = delete;
+	CDnnBlobBufferReader& operator=( const CDnnBlobBufferReader& ) = delete;
+
+	// Get value from position pos. For integer blob convert result to float.
+	float GetValue( int pos ) const;
+
+private:
+	CDnnBlob* blob;
+	// pointers to buffer
+	int* bufferInt;
+	float* bufferFloat;
+};
+
+CDnnBlobBufferReader::CDnnBlobBufferReader( CDnnBlob* _blob ) :
+	blob( _blob ),
+	bufferInt( 0 ),
+	bufferFloat( 0 )
+{
+	NeoAssert( blob != 0 );
+	if( blob->GetDataType() == CT_Float ) {
+		bufferFloat = blob->GetBuffer<float>( 0, blob->GetDataSize() );
+	} else {
+		bufferInt = blob->GetBuffer<int>( 0, blob->GetDataSize() );
+	}
+}
+
+CDnnBlobBufferReader::~CDnnBlobBufferReader()
+{
+	if( blob->GetDataType() == CT_Float ) {
+		blob->ReleaseBuffer( bufferFloat, false );
+	} else {
+		blob->ReleaseBuffer( bufferInt, false );
+	}
+}
+
+float CDnnBlobBufferReader::GetValue( int pos ) const
+{
+	if( blob->GetDataType() == CT_Float ) {
+		return bufferFloat[pos];
+	} else {
+		return 1.0f * bufferInt[pos];
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CAccuracyLayer::CAccuracyLayer( IMathEngine& mathEngine ) :
 	CQualityControlLayer( mathEngine, "CCnnAccuracyLayer" ),
 	iterationsCount( 0 ),
@@ -46,8 +98,13 @@ void CAccuracyLayer::Reshape()
 {
 	CQualityControlLayer::Reshape();
 
-	outputDescs[0] = CBlobDesc( CT_Float );
+	CheckArchitecture( inputDescs[0].Height() == 1, GetName(), "input[0].Height() != 1" );
+	CheckArchitecture( inputDescs[0].Width() == 1, GetName(), "input[0].Width() != 1" );
+	CheckArchitecture( inputDescs[0].Depth() == 1, GetName(), "input[0].Depth() != 1" );
 
+	outputDescs[0] = CBlobDesc( CT_Float );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize()
+		|| inputDescs[1].ObjectSize() == 1, GetName(), "Second input object size must match or be equal to 1" );
 	iterationsCount = 0;
 	collectedAccuracy = 0;
 }
@@ -57,43 +114,51 @@ void CAccuracyLayer::RunOnceAfterReset()
 	CPtr<CDnnBlob> inputBlob = inputBlobs[0];
 	CPtr<CDnnBlob> expectedLabelsBlob = inputBlobs[1];
 	CFastArray<float, 1> inputBuffer;
-	CFastArray<float, 1> expectedBuffer;
-
+	
 	const int dataSize = inputBlob->GetDataSize();
-	const int objectCount = inputBlob->GetObjectCount() * inputBlob->GetGeometricalSize();
-	const int channelsCount = inputBlob->GetChannelsCount();
-
+	const int objectCount = inputBlob->GetObjectCount();
+	const int objectSize = inputBlob->GetObjectSize();
 	inputBuffer.SetSize( dataSize );
-	expectedBuffer.SetSize( dataSize );
-	inputBlob->CopyTo( inputBuffer.GetPtr(), dataSize );
-	expectedLabelsBlob->CopyTo( expectedBuffer.GetPtr(), dataSize );
-	int correctlyClassifiedCount = 0;
+	inputBlob->CopyTo( inputBuffer.GetPtr(), inputBuffer.Size() );
 
-	for( int sampleId = 0; sampleId < objectCount; ++sampleId ) {
-		// multiclass classification
-		if( channelsCount >= 2 ) {
-			int expectedClass = 0;
-			float maxValue = -FLT_MAX;
-			for( int classWeightId = 0; classWeightId < channelsCount; classWeightId++ ) {
-				float currentValue = inputBuffer[sampleId * channelsCount + classWeightId];
-				if( maxValue < currentValue ) {
-					maxValue = currentValue;
-					expectedClass = classWeightId;
+	const int expectedObjectSize = expectedLabelsBlob->GetObjectSize();
+	const CDnnBlobBufferReader expectedBuffer( expectedLabelsBlob );
+
+	int correctlyClassifiedCount = 0;
+	for( int i = 0; i < inputBlob->GetBatchWidth(); i++ ) {
+		for( int j = 0; j < inputBlob->GetBatchLength(); j++ ) {
+			const int sampleId = inputBlob->GetBatchWidth() * j + i;
+			if( objectSize >= 2 ) {
+				int expectedClass = 0;
+				float maxValue = -FLT_MAX;
+				for( int classWeightId = 0; classWeightId < objectSize; classWeightId++ ) {
+					float currentValue = inputBuffer[sampleId * objectSize + classWeightId];
+					if( maxValue < currentValue ) {
+						maxValue = currentValue;
+						expectedClass = classWeightId;
+					}
 				}
-			}
-			if( expectedBuffer[sampleId * channelsCount + expectedClass] > 0.f ) {
-				correctlyClassifiedCount += 1;
-			}
-		} else {
-			// Binary classification
-			NeoAssert( channelsCount == 1 );
-			// The input blob has one channel
-			// That means a positive value corresponds to one class and a negative to the other
-			// The input blob with the correct labels should only contain +1 and -1 values
-			const float predictedValue = inputBuffer[sampleId];
-			const float expectedClass = expectedBuffer[sampleId];
-			if( ( predictedValue >= 0 && expectedClass > 0 ) || ( predictedValue < 0 && expectedClass < 0 ) ) {
-				correctlyClassifiedCount += 1;
+				if( expectedObjectSize == objectSize ) {
+					if( expectedBuffer.GetValue(sampleId * expectedObjectSize + expectedClass) > 0.f ) {
+						correctlyClassifiedCount += 1;
+					}
+				} else {
+					assert( expectedObjectSize == 1 );
+					const int label = Round( expectedBuffer.GetValue( sampleId * expectedObjectSize ) );
+					if( label == expectedClass ) {
+						correctlyClassifiedCount += 1;
+					}
+				}
+			} else {
+				NeoAssert( objectSize == 1 );
+				// The input blob has one channel
+				// That means a positive value corresponds to one class and a negative to the other
+				// The input blob with the correct labels should only contain +1 and -1 values
+				const float predictedValue = inputBuffer[sampleId];
+				const float expectedClass = expectedBuffer.GetValue( sampleId );
+				if( ( predictedValue >= 0 && expectedClass > 0 ) || ( predictedValue < 0 && expectedClass < 0 ) ) {
+					correctlyClassifiedCount += 1;
+				}
 			}
 		}
 	}
@@ -124,12 +189,15 @@ void CConfusionMatrixLayer::Serialize( CArchive& archive )
 void CConfusionMatrixLayer::Reshape()
 {
 	CheckInputs();
-	NeoAssert( inputDescs.Size() == 2 );
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "inputs.Size() != 2" );
+
 	// For classifying a sigmoid a special implementation is needed
-	NeoAssert( inputDescs[0].Channels() >= 2 );
-	NeoAssert( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount() );
-	NeoAssert( inputDescs[0].ObjectSize() >= 1 );
-	NeoAssert( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize() );
+	CheckArchitecture( inputDescs[0].Channels() >= 2, GetName(), "input[0].Channels() < 2");
+	CheckArchitecture( inputDescs[0].Height() == 1, GetName(), "input[0].Height() != 1" );
+	CheckArchitecture( inputDescs[0].Width() == 1, GetName(), "input[0].Width() != 1" );
+	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetName(), "input[0].ObjectCount() != input[1].ObjectCount()" );
+	CheckArchitecture( inputDescs[0].ObjectSize() >= 1, GetName(), "input[0].ObjectSize() < 1" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "input[0].ObjectSize() != input[1].ObjectSize()" );
 
 	const int classCount = inputDescs[0].Channels();
 	if( confusionMatrix.SizeX() != classCount ) {
@@ -151,8 +219,8 @@ void CConfusionMatrixLayer::RunOnceAfterReset()
 	CFastArray<float, 1> expectedClassBuffer;
 
 	int dataSize = inputBlob->GetDataSize();
-	int objectCount = inputBlob->GetObjectCount() * inputBlob->GetGeometricalSize();
-	int channelsCnt = inputBlob->GetChannelsCount();
+	int objectCount = inputBlob->GetObjectCount();
+	int objectSize = inputBlob->GetObjectSize();
 
 	predictedClassBuffer.SetSize( dataSize );
 	expectedClassBuffer.SetSize( dataSize );
@@ -168,9 +236,9 @@ void CConfusionMatrixLayer::RunOnceAfterReset()
 		float maxValueForPredictedClass = -FLT_MAX;
 		float maxValueForExpectedClass = -FLT_MAX;
 
-		for( int classWeightId = 0; classWeightId < channelsCnt; classWeightId++ ) {
-			const float currentPredictedClassWeight = predictedClassBuffer[sampleId * channelsCnt + classWeightId];
-			const float currentExpectedClassWeight = expectedClassBuffer[sampleId * channelsCnt + classWeightId];
+		for( int classWeightId = 0; classWeightId < objectSize; classWeightId++ ) {
+			const float currentPredictedClassWeight = predictedClassBuffer[sampleId * objectSize + classWeightId];
+			const float currentExpectedClassWeight = expectedClassBuffer[sampleId * objectSize + classWeightId];
 			if( maxValueForPredictedClass < currentPredictedClassWeight ) {
 				maxValueForPredictedClass = currentPredictedClassWeight;
 				predictedClass = classWeightId;

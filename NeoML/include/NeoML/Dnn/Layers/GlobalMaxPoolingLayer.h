@@ -23,7 +23,7 @@ namespace NeoML {
 // CGlobalMaxPoolingLayer implements a layer that selects the given number of largest elements 
 // over the whole image (separately in each channel)
 // If the input blob contains several multi-channel images of Height*Width size,
-// the input blob will have the same dimensions except that Height = 1, Width = the number of largest elements
+// the output blob will have the same dimensions except that Height = 1, Width = the number of largest elements
 class NEOML_API CGlobalMaxPoolingLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CGlobalMaxPoolingLayer )
 public:

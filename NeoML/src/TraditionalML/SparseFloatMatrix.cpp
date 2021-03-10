@@ -22,7 +22,7 @@ namespace NeoML {
 
 CSparseFloatMatrixDesc CSparseFloatMatrixDesc::Empty;
 
-inline CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::CSparseFloatMatrixBody::Duplicate() const
+CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::CSparseFloatMatrixBody::Duplicate() const
 {
 	CSparseFloatMatrixBody* body = FINE_DEBUG_NEW CSparseFloatMatrixBody( Desc.Height, Desc.Width, ElementCount, RowsBufferSize, ElementsBufferSize );
 	::memcpy( body->Desc.Columns, Desc.Columns, ElementCount * sizeof( int ) );
@@ -56,28 +56,50 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 
 CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CSparseFloatMatrixDesc& desc ) :
 	RowsBufferSize( desc.Height ),
-	ElementsBufferSize( desc.Height == 0 ? 0 : desc.PointerE[desc.Height - 1] ),
-	ElementCount( desc.Height == 0 ? 0 : desc.PointerE[desc.Height - 1] )
+	ElementsBufferSize( desc.Height == 0 ? 0 : ( desc.Columns != nullptr ? desc.PointerE[desc.Height - 1] : 0 ) ),
+	ElementCount( desc.Height == 0 ? 0 : ( desc.Columns != nullptr ? desc.PointerE[desc.Height - 1] : 0 ) )
 {
 	NeoAssert( RowsBufferSize >= 0 );
 	NeoAssert( ElementsBufferSize >= 0 );
 	Desc.Height = desc.Height;
 	Desc.Width = desc.Width;
 
-	ColumnsBuf.SetSize( ElementsBufferSize );
-	ValuesBuf.SetSize( ElementsBufferSize );
 	BeginPointersBuf.SetSize( RowsBufferSize );
 	EndPointersBuf.SetSize( RowsBufferSize );
-
-	::memcpy( ColumnsBuf.GetPtr(), desc.Columns, ElementsBufferSize * sizeof( int ) );
-	::memcpy( ValuesBuf.GetPtr(), desc.Values, ElementsBufferSize * sizeof( float ) );
-	::memcpy( BeginPointersBuf.GetPtr(), desc.PointerB, RowsBufferSize * sizeof( int ) );
-	::memcpy( EndPointersBuf.GetPtr(), desc.PointerE, RowsBufferSize * sizeof( int ) );
-
-	Desc.Columns = ColumnsBuf.GetPtr();
-	Desc.Values = ValuesBuf.GetPtr();
 	Desc.PointerB = BeginPointersBuf.GetPtr();
 	Desc.PointerE = EndPointersBuf.GetPtr();
+	if( desc.Columns == nullptr ) {
+		for( int i = 0; i < desc.Height; ++i ) {
+			for( int pos = desc.PointerB[i]; pos < desc.PointerE[i]; ++pos ) {
+				if( desc.Values[pos] != 0 ) {
+					++ElementsBufferSize;
+				}
+			}
+		}
+		ColumnsBuf.SetBufferSize( ElementsBufferSize );
+		ValuesBuf.SetBufferSize( ElementsBufferSize );
+		for( int i = 0; i < desc.Height; ++i ) {
+			Desc.PointerB[i] = ElementCount;
+			for( int pos = desc.PointerB[i], j = 0; pos < desc.PointerE[i]; ++pos, ++j ) {
+				if( desc.Values[pos] != 0 ) {
+					ColumnsBuf.Add( j );
+					ValuesBuf.Add( desc.Values[pos] );
+					++ElementCount;
+				}
+			}
+			Desc.PointerE[i] = ElementCount;
+		}
+	} else {
+		ColumnsBuf.SetSize( ElementsBufferSize );
+		ValuesBuf.SetSize( ElementsBufferSize );
+		::memcpy( ColumnsBuf.GetPtr(), desc.Columns, ElementsBufferSize * sizeof( int ) );
+		::memcpy( ValuesBuf.GetPtr(), desc.Values, ElementsBufferSize * sizeof( float ) );
+		::memcpy( BeginPointersBuf.GetPtr(), desc.PointerB, RowsBufferSize * sizeof( int ) );
+		::memcpy( EndPointersBuf.GetPtr(), desc.PointerE, RowsBufferSize * sizeof( int ) );
+
+	}
+	Desc.Columns = ColumnsBuf.GetPtr();
+	Desc.Values = ValuesBuf.GetPtr();
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -97,14 +119,14 @@ CSparseFloatMatrix::CSparseFloatMatrix( const CSparseFloatMatrixDesc& desc ) :
 {
 }
 
-CSparseFloatMatrix::CSparseFloatMatrix( const CSparseFloatMatrix& vector ) :
-	body( vector.body )
+CSparseFloatMatrix::CSparseFloatMatrix( const CSparseFloatMatrix& matrix ) :
+	body( matrix.body )
 {
 }
 
-CSparseFloatMatrix& CSparseFloatMatrix::operator = ( const CSparseFloatMatrix& vector )
+CSparseFloatMatrix& CSparseFloatMatrix::operator = ( const CSparseFloatMatrix& matrix )
 {
-	body = vector.body;
+	body = matrix.body;
 	return *this;
 }
 
@@ -151,37 +173,56 @@ void CSparseFloatMatrix::AddRow( const CSparseFloatVectorDesc& row )
 		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( 0, 0, 0, InitialRowBufferSize, max( row.Size, InitialElementBufferSize ) );
 	}
 
+	int size = row.Size;
+	if( row.Indexes == nullptr ) {
+		for( int i = 0; i < row.Size; ++i ) {
+			if( row.Values[i] == 0 ) {
+				--size;
+			}
+		}
+	}
+
 	GrowInRows( body->Desc.Height + 1 );
-	GrowInElements( body->ElementCount + row.Size );
+	if( size > 0 ) {
+		GrowInElements( body->ElementCount + size );
+	}
 
 	CSparseFloatMatrixBody* newBody = body.CopyOnWrite();
+	int* indexes = newBody->Desc.Columns + newBody->ElementCount;
+	float* values = newBody->Desc.Values + newBody->ElementCount;
 	newBody->Desc.Height++;
-	newBody->Desc.Width = max( body->Desc.Width, row.Size == 0 ? 0 : row.Indexes[row.Size - 1] + 1 );
 	newBody->Desc.PointerB[newBody->Desc.Height - 1] = newBody->ElementCount;
-	newBody->Desc.PointerE[newBody->Desc.Height - 1] = newBody->ElementCount + row.Size;
-	::memcpy( newBody->Desc.Columns + newBody->ElementCount, row.Indexes, row.Size * sizeof( int ) );
-	::memcpy( newBody->Desc.Values + newBody->ElementCount, row.Values, row.Size * sizeof( float ) );
-	newBody->ElementCount += row.Size;
+	newBody->Desc.PointerE[newBody->Desc.Height - 1] = newBody->ElementCount + size;
+	newBody->ElementCount += size;
+	if( row.Indexes == nullptr && row.Values != nullptr ) {
+		int k = 0;
+		for( int i = 0; i < row.Size; ++i ) {
+			if( row.Values[i] != 0 ) {
+				indexes[k] = i;
+				values[k] = row.Values[i];
+				++k;
+			}
+		}
+		NeoPresume( k == size );
+	} else {
+		::memcpy( indexes, row.Indexes, row.Size * sizeof( int ) );
+		::memcpy( values, row.Values, row.Size * sizeof( float ) );
+	}
+	newBody->Desc.Width = max( body->Desc.Width, size == 0 ? 0 : indexes[size - 1] + 1 );
 }
 
 CSparseFloatVectorDesc CSparseFloatMatrix::GetRow( int index ) const
 {
+	NeoAssert( body != nullptr );
 	NeoAssert( 0 <= index && index < GetHeight() );
-
-	CSparseFloatVectorDesc res;
-	res.Size = body == 0 ? 0 : body->Desc.PointerE[index] - body->Desc.PointerB[index];
-	res.Indexes = body == 0 ? 0 : body->Desc.Columns + body->Desc.PointerB[index];
-	res.Values = body == 0 ? 0 : body->Desc.Values + body->Desc.PointerB[index];
-	return res;
+	return body->Desc.GetRow( index );
 }
 
 void CSparseFloatMatrix::GetRow( int index, CSparseFloatVectorDesc& result ) const
 {
+	NeoAssert( body != nullptr );
 	NeoAssert( 0 <= index && index < GetHeight() );
-
-	result.Size = body->Desc.PointerE[index] - body->Desc.PointerB[index];
-	result.Indexes = body->Desc.Columns + body->Desc.PointerB[index];
-	result.Values = body->Desc.Values + body->Desc.PointerB[index];
+	body->Desc.GetRow( index, result );
 }
 
 void CSparseFloatMatrix::Serialize( CArchive& archive )

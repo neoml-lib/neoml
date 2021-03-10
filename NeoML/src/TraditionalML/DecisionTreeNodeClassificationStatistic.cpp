@@ -47,9 +47,12 @@ void CClassificationStatistics::AddVector( int index, const CSparseFloatVectorDe
 	const double weight = problem->GetVectorWeight( index );
 	const int classIndex = problem->GetClass( index );
 	for( int i = 0; i < vector.Size; i++ ) {
-		if( usedFeatureNumber[vector.Indexes[i]] != NotFound ) {
-			addValue( usedFeatureNumber[vector.Indexes[i]], vector.Values[i], 1, classIndex, weight );
-			featureStatistics[usedFeatureNumber[vector.Indexes[i]]].AddVectorSet( 1, classIndex, weight );
+		if( vector.Values[i] != 0.0 ) {
+			const int index = vector.Indexes == nullptr ? i : vector.Indexes[i];
+			if( usedFeatureNumber[index] != NotFound ) {
+				addValue( usedFeatureNumber[index], vector.Values[i], 1, classIndex, weight );
+				featureStatistics[usedFeatureNumber[index]].AddVectorSet( 1, classIndex, weight );
+			}
 		}
 	}
 

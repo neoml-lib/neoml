@@ -43,9 +43,16 @@ inline void CClusterStatistics::AddVector( const CSparseFloatVectorDesc& vector,
 {
 	SumWeight += weight;
 
-	for( int j = 0; j < vector.Size; j++ ) {
-		Sum[vector.Indexes[j]] += vector.Values[j] * weight;
-		SumSquare[vector.Indexes[j]] += vector.Values[j] * vector.Values[j] * weight;
+	if( vector.Indexes == nullptr ) {
+		for( int j = 0; j < vector.Size; j++ ) {
+			Sum[j] += vector.Values[j] * weight;
+			SumSquare[j] += vector.Values[j] * vector.Values[j] * weight;
+		}
+	} else {
+		for( int j = 0; j < vector.Size; j++ ) {
+			Sum[vector.Indexes[j]] += vector.Values[j] * weight;
+			SumSquare[vector.Indexes[j]] += vector.Values[j] * vector.Values[j] * weight;
+		}
 	}
 }
 
@@ -163,8 +170,14 @@ void CalcFeaturesChiSquare( const IProblem& problem, CArray<double>& chi2 )
 		classWeight[classIndex] += weight;
 
 		CArray<double>& oneObserved = observed[classIndex];
-		for( int j = 0; j < vector.Size; j++ ) {
-			oneObserved[vector.Indexes[j]] += weight * vector.Values[j];
+		if( vector.Indexes == nullptr ) {
+			for( int j = 0; j < vector.Size; j++ ) {
+				oneObserved[j] += weight * vector.Values[j];
+			}
+		} else {
+			for( int j = 0; j < vector.Size; j++ ) {
+				oneObserved[vector.Indexes[j]] += weight * vector.Values[j];
+			}
 		}
 	}
 
@@ -300,14 +313,17 @@ void CalcFeaturesInformationGain( const IProblem& problem, CArray<double>& infor
 		const double weight = problem.GetVectorWeight( i );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			if( !problem.IsDiscreteFeature( vector.Indexes[j] ) ) {
-				continue;
+			if( vector.Values[j] != 0.0 ) {
+				const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
+				if( !problem.IsDiscreteFeature( index ) ) {
+					continue;
+				}
+				CVectorSetClassificationStatistic*& oneValueStatistics = statistics[index]->GetOrCreateValue( vector.Values[j], 0 );
+				if( oneValueStatistics == 0 ) {
+					oneValueStatistics = FINE_DEBUG_NEW CVectorSetClassificationStatistic( classCount );
+				}
+				oneValueStatistics->AddVectorSet( 1, classIndex, weight );
 			}
-			CVectorSetClassificationStatistic*& oneValueStatistics = statistics[vector.Indexes[j]]->GetOrCreateValue( vector.Values[j], 0 );
-			if( oneValueStatistics == 0 ) {
-				oneValueStatistics = FINE_DEBUG_NEW CVectorSetClassificationStatistic( classCount );
-			}
-			oneValueStatistics->AddVectorSet( 1, classIndex, weight );
 		}
 		fullProblemStatistic.AddVectorSet( 1, classIndex, weight );
 	}
