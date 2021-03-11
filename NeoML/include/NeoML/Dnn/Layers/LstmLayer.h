@@ -39,13 +39,13 @@ public:
 	void SetHiddenSize(int size);
 
 	// The input hidden layers weights (the blob size is (4*HiddenSize)x1x1xInputSize)
-	CPtr<CDnnBlob> GetInputWeigthsData() const { return inputHiddenLayer->GetWeightsData(); }
+	CPtr<CDnnBlob> GetInputWeightsData() const { return inputHiddenLayer->GetWeightsData(); }
 	CPtr<CDnnBlob> GetInputFreeTermData() const { return inputHiddenLayer->GetFreeTermData(); }
 	void SetInputWeightsData( const CPtr<CDnnBlob>& inputWeights ) { inputHiddenLayer->SetWeightsData( inputWeights ); }
 	void SetInputFreeTermData( const CPtr<CDnnBlob>& inputFreeTerm ) { inputHiddenLayer->SetFreeTermData( inputFreeTerm ); }
 
 	// The recurrent hidden layers weights (the blob size is (4*HiddenSize)x1x1xHiddenSize)
-	CPtr<CDnnBlob> GetRecurWeigthsData() const { return recurHiddenLayer->GetWeightsData(); }
+	CPtr<CDnnBlob> GetRecurWeightsData() const { return recurHiddenLayer->GetWeightsData(); }
 	CPtr<CDnnBlob> GetRecurFreeTermData() const { return recurHiddenLayer->GetFreeTermData(); }
 	void SetRecurWeightsData( const CPtr<CDnnBlob>& recurWeights ) { recurHiddenLayer->SetWeightsData( recurWeights ); }
 	void SetRecurFreeTermData( const CPtr<CDnnBlob>& recurFreeTerm ) { recurHiddenLayer->SetFreeTermData( recurFreeTerm ); }
@@ -93,7 +93,7 @@ private:
 	bool isInCompatibilityMode;
 
 	void buildLayer(float dropout);
-	void setWeightsData(const CPtr<CDnnBlob>& newWeigths);
+	void setWeightsData(const CPtr<CDnnBlob>& newWeights);
 };
 
 NEOML_API CLayerWrapper<CLstmLayer> Lstm(
