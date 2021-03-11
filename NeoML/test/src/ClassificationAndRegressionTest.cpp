@@ -73,6 +73,20 @@ void CrossValidate( int PartsCount, ITrainingModel& trainingModel, const IProble
 	}
 }
 
+void Train( ITrainingModel& trainingModel, const IProblem& denseProblem, const IProblem& sparseProblem,
+	CPtr<IModel>& modelDense, CPtr<IModel>& modelSparse )
+{
+	int begin = GetTickCount();
+	modelDense = trainingModel.Train( denseProblem );
+	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( modelDense != nullptr );
+
+	begin = GetTickCount();
+	modelSparse = trainingModel.Train( sparseProblem );
+	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
+	ASSERT_TRUE( modelSparse != nullptr );
+}
+
 template<class TModel>
 void TrainGB( const CGradientBoost::CParams& params, const IProblem& denseProblem, const IProblem& sparseProblem,
 	CPtr<TModel>& modelDense, CPtr<TModel>& modelSparse )
@@ -114,8 +128,14 @@ protected:
 	CClassificationRandomProblem* SparseRandomBinaryProblem;
 	CClassificationRandomProblem* SparseBinaryTestData;
 
-	void TestBinaryClassificationResult( const IModel* modelDense, const IModel* modelSparse ) const
-		{ TestClassificationResult( modelDense, modelSparse, DenseBinaryTestData, SparseBinaryTestData ); }
+	CPtr<IModel> ModelDense;
+	CPtr<IModel> ModelSparse;
+
+	void TrainBinary( ITrainingModel& trainingModel )
+		{ Train( trainingModel, *DenseRandomBinaryProblem, *SparseRandomBinaryProblem, ModelDense, ModelSparse ); }
+
+	void TestBinaryClassificationResult() const
+		{ TestClassificationResult( ModelDense, ModelSparse, DenseBinaryTestData, SparseBinaryTestData ); }
 };
 
 CClassificationRandomProblem* RandomBinaryClassification4000x20::getDenseRandomBinaryProblem( CRandom& rand )
@@ -195,14 +215,17 @@ protected:
 	CClassificationRandomProblem* SparseRandomMultiProblem;
 	CClassificationRandomProblem* SparseMultiTestData;
 
-	CPtr<IModel> ModelDenseGB;
-	CPtr<IModel> ModelSparseGB;
+	CPtr<IModel> ModelDense;
+	CPtr<IModel> ModelSparse;
+
+	void TrainMulti( ITrainingModel& trainingModel )
+		{ Train( trainingModel, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
 
 	void TrainMultiGradientBoost( const CGradientBoost::CParams& params )
-		{ TrainGB( params, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDenseGB, ModelSparseGB ); }
+		{ TrainGB( params, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
 
-	void TestMultiClassificationResult( const IModel* modelDense, const IModel* modelSparse ) const
-		{ TestClassificationResult( modelDense, modelSparse, DenseMultiTestData, SparseMultiTestData ); }
+	void TestMultiClassificationResult() const
+		{ TestClassificationResult( ModelDense, ModelSparse, DenseMultiTestData, SparseMultiTestData ); }
 };
 
 CClassificationRandomProblem* RandomMultiClassification2000x20::getDenseRandomMultiProblem( CRandom& rand )
@@ -276,72 +299,32 @@ TEST_F( RandomBinaryClassification4000x20, Linear )
 	CLinearBinaryClassifierBuilder::CParams params( EF_SquaredHinge );
 	params.L1Coeff = 0.05f;
 	CLinearBinaryClassifierBuilder linear( params );
-
-	int begin = GetTickCount();
-	auto model = linear.Train( *DenseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model != nullptr );
-
-	begin = GetTickCount();
-	auto model2 = linear.Train( *SparseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model2 != nullptr );
-
-	TestBinaryClassificationResult( model, model2 );
+	TrainBinary( linear );
+	TestBinaryClassificationResult();
 }
 
 TEST_F( RandomBinaryClassification4000x20, SvmLinear )
 {
 	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_Linear );
 	CSvmBinaryClassifierBuilder svmLinear( params );
-
-	int begin = GetTickCount();
-	auto model = svmLinear.Train( *DenseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "dense train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model != nullptr );
-
-	begin = GetTickCount();
-	auto model2 = svmLinear.Train( *SparseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "sparse train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model2 != nullptr );
-
-	TestBinaryClassificationResult( model, model2 );
+	TrainBinary( svmLinear );
+	TestBinaryClassificationResult();
 }
 
 TEST_F( RandomBinaryClassification4000x20, SvmRbf )
 {
 	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_RBF );
 	CSvmBinaryClassifierBuilder svmRbf( params );
-
-	int begin = GetTickCount();
-	auto model = svmRbf.Train( *DenseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model != nullptr );
-
-	begin = GetTickCount();
-	auto model2 = svmRbf.Train( *SparseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model2 != nullptr );
-
-	TestBinaryClassificationResult( model, model2 );
+	TrainBinary( svmRbf );
+	TestBinaryClassificationResult();
 }
 
 TEST_F( RandomBinaryClassification4000x20, DecisionTree )
 {
 	CDecisionTreeTrainingModel::CParams param;
 	CDecisionTreeTrainingModel decisionTree( param );
-
-	int begin = GetTickCount();
-	auto model = decisionTree.TrainModel<IDecisionTreeModel>( *DenseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model != nullptr );
-
-	begin = GetTickCount();
-	auto model2 = decisionTree.Train( *SparseRandomBinaryProblem );
-	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model2 != nullptr );
-
-	TestBinaryClassificationResult( model, model2 );
+	TrainBinary( decisionTree );
+	TestBinaryClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBTB_Full )
@@ -351,7 +334,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_Full )
 	params.Random = &random;
 	params.IterationsCount = 10;
 	TrainMultiGradientBoost( params );
-	TestMultiClassificationResult( ModelDenseGB, ModelSparseGB );
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBTB_FastHist )
@@ -362,7 +345,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_FastHist )
 	params.IterationsCount = 10;
 	params.TreeBuilder = GBTB_FastHist;
 	TrainMultiGradientBoost( params );
-	TestMultiClassificationResult( ModelDenseGB, ModelSparseGB );
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBTB_MultiFull )
@@ -373,7 +356,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_MultiFull )
 	params.IterationsCount = 10;
 	params.TreeBuilder = GBTB_MultiFull;
 	TrainMultiGradientBoost( params );
-	TestMultiClassificationResult( ModelDenseGB, ModelSparseGB );
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBMR_Linked )
@@ -384,7 +367,7 @@ TEST_F( RandomMultiClassification2000x20, GBMR_Linked )
 	params.IterationsCount = 10;
 	params.Representation = GBMR_Linked;
 	TrainMultiGradientBoost( params );
-	TestMultiClassificationResult( ModelDenseGB, ModelSparseGB );
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBMR_Compact )
@@ -395,7 +378,7 @@ TEST_F( RandomMultiClassification2000x20, GBMR_Compact )
 	params.IterationsCount = 10;
 	params.Representation = GBMR_Compact;
 	TrainMultiGradientBoost( params );
-	TestMultiClassificationResult( ModelDenseGB, ModelSparseGB );
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBMR_QuickScorer )
@@ -406,43 +389,23 @@ TEST_F( RandomMultiClassification2000x20, GBMR_QuickScorer )
 	params.IterationsCount = 10;
 	params.Representation = GBMR_QuickScorer;
 	TrainMultiGradientBoost( params );
-	TestMultiClassificationResult( ModelDenseGB, ModelSparseGB );
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, OneVsAllLinear )
 {
 	CLinearBinaryClassifierBuilder linear( EF_SquaredHinge );
 	COneVersusAll ovaLinear( linear );
-
-	int begin = GetTickCount();
-	auto model = ovaLinear.TrainModel<NeoML::IOneVersusAllModel>( *DenseRandomMultiProblem );
-	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model != nullptr );
-
-	begin = GetTickCount();
-	auto model2 = ovaLinear.TrainModel<NeoML::IOneVersusAllModel>( *SparseRandomMultiProblem );
-	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model2 != nullptr );
-
-	TestMultiClassificationResult( model, model2 );
+	TrainMulti( ovaLinear );
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, OneVsAllRbf )
 {
 	CSvmBinaryClassifierBuilder svmRbf( CSvmKernel::KT_RBF );
 	COneVersusAll ovaRbf( svmRbf );
-
-	int begin = GetTickCount();
-	auto model = ovaRbf.TrainModel<NeoML::IOneVersusAllModel>( *DenseRandomMultiProblem );
-	GTEST_LOG_( INFO ) << "Dense train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model != nullptr );
-
-	begin = GetTickCount();
-	auto model2 = ovaRbf.TrainModel<NeoML::IOneVersusAllModel>( *SparseRandomMultiProblem );
-	GTEST_LOG_( INFO ) << "Sparse train time: " << GetTickCount() - begin;
-	ASSERT_TRUE( model2 != nullptr );
-
-	TestMultiClassificationResult( model, model2 );
+	TrainMulti( ovaRbf );
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomBinaryClassification4000x20, CrossValidationLinear )
