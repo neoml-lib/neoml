@@ -37,7 +37,7 @@
 
 Метод опорных векторов переводит исходные вектора в пространство более высокой размерности и ищет в нем разделяющую гиперплоскость с максимальным зазором. 
 
-В **NeoML** реализован классом [CSvmBinaryClassifierBuilder](Svm.md). В зависимости от используемого ядра, обученная модель будет представлена интерфейсом `ILinearBinaryModel` или `ISvmBinaryModel`.
+В **NeoML** реализован классом [CSvm](Svm.md). В зависимости от используемого ядра, обученная модель будет представлена интерфейсом [`ILinearBinaryModel`](Linear.md#for-classification), `ISvmBinaryModel` или [`IOneVersusAllModel`](OneVersusAll.md#model).
 
 ### Дерево решений
 
