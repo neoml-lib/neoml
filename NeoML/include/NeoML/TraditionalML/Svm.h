@@ -89,5 +89,7 @@ private:
 	CTextStream* log; // Logging stream
 };
 
+// DEPRECATED: for backward compatibility
+typedef CSvm CSvmBinaryClassifierBuilder;
 
 } // namespace NeoML

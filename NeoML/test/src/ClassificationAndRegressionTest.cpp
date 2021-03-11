@@ -305,16 +305,16 @@ TEST_F( RandomBinaryClassification4000x20, Linear )
 
 TEST_F( RandomBinaryClassification4000x20, SvmLinear )
 {
-	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_Linear );
-	CSvmBinaryClassifierBuilder svmLinear( params );
+	CSvm::CParams params( CSvmKernel::KT_Linear );
+	CSvm svmLinear( params );
 	TrainBinary( svmLinear );
 	TestBinaryClassificationResult();
 }
 
 TEST_F( RandomBinaryClassification4000x20, SvmRbf )
 {
-	CSvmBinaryClassifierBuilder::CParams params( CSvmKernel::KT_RBF );
-	CSvmBinaryClassifierBuilder svmRbf( params );
+	CSvm::CParams params( CSvmKernel::KT_RBF );
+	CSvm svmRbf( params );
 	TrainBinary( svmRbf );
 	TestBinaryClassificationResult();
 }
@@ -402,10 +402,18 @@ TEST_F( RandomMultiClassification2000x20, OneVsAllLinear )
 
 TEST_F( RandomMultiClassification2000x20, OneVsAllRbf )
 {
-	CSvmBinaryClassifierBuilder svmRbf( CSvmKernel::KT_RBF );
+	CSvm svmRbf( CSvmKernel::KT_RBF );
 	COneVersusAll ovaRbf( svmRbf );
 	TrainMulti( ovaRbf );
 	TestMultiClassificationResult();
+
+	GTEST_LOG_( INFO ) << "Train implicitly and compare";
+	CPtr<IModel> modelImplicitDense;
+	CPtr<IModel> modelImplicitSparse;
+	Train( svmRbf, *DenseRandomMultiProblem, *SparseRandomMultiProblem, modelImplicitDense, modelImplicitSparse );
+	TestClassificationResult( ModelDense, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitSparse, DenseMultiTestData, SparseMultiTestData );
 }
 
 TEST_F( RandomBinaryClassification4000x20, CrossValidationLinear )
@@ -416,13 +424,13 @@ TEST_F( RandomBinaryClassification4000x20, CrossValidationLinear )
 
 TEST_F( RandomBinaryClassification4000x20, CrossValidationSvmLinear )
 {
-	CSvmBinaryClassifierBuilder svmLinear( CSvmKernel::KT_Linear );
+	CSvm svmLinear( CSvmKernel::KT_Linear );
 	CrossValidate( 10, svmLinear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 
 TEST_F( RandomBinaryClassification4000x20, CrossValidationSvmRbf )
 {
-	CSvmBinaryClassifierBuilder svmLinear( CSvmKernel::KT_RBF );
+	CSvm svmLinear( CSvmKernel::KT_RBF );
 	CrossValidate( 10, svmLinear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 

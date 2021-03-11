@@ -269,7 +269,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/SparseFloatVector.h
     ../include/NeoML/TraditionalML/SparseVectorIterator.h
     ../include/NeoML/TraditionalML/Svm.h
-    ../include/NeoML/TraditionalML/SvmBinaryClassifierBuilder.h
     ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/TrainingModel.h
