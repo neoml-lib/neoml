@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/TraditionalML/DecisionTree.h>
+#include <NeoML/TraditionalML/OneVersusAll.h>
 #include <DecisionTreeNodeBase.h>
 #include <DecisionTreeClassificationModel.h>
 #include <DecisionTreeNodeClassificationStatistic.h>
@@ -60,6 +61,10 @@ CPtr<IModel> CDecisionTree::Train( const IProblem& problem )
 	NeoAssert( problem.GetVectorCount() > 0 );
 	NeoAssert( problem.GetClassCount() > 0 );
 	NeoAssert( problem.GetFeatureCount() > 0 );
+
+	if( problem.GetClassCount() > 2 ) {
+		return COneVersusAll( *this ).Train( problem );
+	}
 
 	classificationProblem = &problem;
 	CPtr<CDecisionTreeClassificationModel> root =
