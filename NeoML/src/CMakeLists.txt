@@ -242,7 +242,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/CommonCluster.h
     ../include/NeoML/TraditionalML/CrossValidation.h
     ../include/NeoML/TraditionalML/DecisionTree.h
-    ../include/NeoML/TraditionalML/DecisionTreeTrainingModel.h
     ../include/NeoML/TraditionalML/DifferentialEvolution.h
     ../include/NeoML/TraditionalML/FeatureSelection.h
     ../include/NeoML/TraditionalML/FirstComeClustering.h

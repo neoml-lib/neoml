@@ -185,4 +185,7 @@ private:
 	CDecisionTreeNodeStatisticBase* createStatistic( CDecisionTreeNodeBase* node ) const;
 };
 
+// DEPRECATED: for backward compatibility
+typedef CDecisionTree CDecisionTreeTrainingModel;
+
 } // namespace NeoML
