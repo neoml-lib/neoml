@@ -256,7 +256,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/KMeansClustering.h
     ../include/NeoML/TraditionalML/LdGraph.h
     ../include/NeoML/TraditionalML/Linear.h
-    ../include/NeoML/TraditionalML/LinearBinaryClassifierBuilder.h
     ../include/NeoML/TraditionalML/MatchingGenerator.h
     ../include/NeoML/TraditionalML/MemoryProblem.h
     ../include/NeoML/TraditionalML/Model.h

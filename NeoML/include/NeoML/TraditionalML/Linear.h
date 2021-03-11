@@ -110,4 +110,7 @@ private:
 	CFunctionWithHessian* function; // error function
 };
 
+// DEPRECATED: for backward compatibility
+typedef CLinear CLinearBinaryClassifierBuilder;
+
 } // namespace NeoML
