@@ -29,7 +29,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/Linear.h>
 #include <NeoML/TraditionalML/DecisionTree.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
-#include <NeoML/TraditionalML/SvmBinaryClassifierBuilder.h>
+#include <NeoML/TraditionalML/Svm.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <NeoML/TraditionalML/DifferentialEvolution.h>
 #include <NeoML/Dnn/DnnBlob.h>

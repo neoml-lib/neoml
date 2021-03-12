@@ -16,23 +16,28 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/TraditionalML/SvmBinaryClassifierBuilder.h>
-#include <SvmBinaryModel.h>
+#include <NeoML/TraditionalML/Svm.h>
+#include <NeoML/TraditionalML/OneVersusAll.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
+#include <SvmBinaryModel.h>
 #include <LinearBinaryModel.h>
 #include <NeoMathEngine/OpenMP.h>
 #include <SMOptimizer.h>
 
 namespace NeoML {
 
-CSvmBinaryClassifierBuilder::CSvmBinaryClassifierBuilder( const CParams& _params ) :
+CSvm::CSvm( const CParams& _params ) :
 	params( _params ),
 	log( nullptr )
 {
 }
 
-CPtr<IModel> CSvmBinaryClassifierBuilder::Train( const IProblem& problem )
+CPtr<IModel> CSvm::Train( const IProblem& problem )
 {
+	if( problem.GetClassCount() > 2 ) {
+		return COneVersusAll( *this ).Train( problem );
+	}
+
 	CSvmKernel kernel( params.KernelType, params.Degree, params.Gamma, params.Coeff0 );
 
 	CSMOptimizer optimizer( kernel, problem, params.MaxIterations, params.ErrorWeight, params.Tolerance,
