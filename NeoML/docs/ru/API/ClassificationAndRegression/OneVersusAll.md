@@ -60,7 +60,7 @@ public:
 Ниже представлен простой пример обучения модели на базе линейного бинарного классификатора.
 
 ```c++
-CLinearBinaryClassifierBuilder linear( EF_LogReg );
+CLinear linear( EF_LogReg );
 	
 COneVersusAll oneVersusAll( linear );
 CPtr<IModel> model = oneVersusAll.Train( *trainData );

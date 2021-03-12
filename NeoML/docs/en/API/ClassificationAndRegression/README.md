@@ -31,7 +31,7 @@ Gradient boosting is implemented by the [CGradientBoost](GradientBoost.md) class
 
 A linear binary classifier finds a hyperplane that divides the feature space in half.
 
-It is implemented by the [CLinearBinaryClassifierBuilder](Linear.md) class that trains the `ILinearBinaryModel` model for classification and the `ILinearRegressionModel` model for linear regression.
+It is implemented by the [CLinear](Linear.md) class that trains the `ILinearBinaryModel` or [`IOneVersusAllModel`](OneVersusAll.md#model) model for classification and the `ILinearRegressionModel` model for linear regression.
 
 ### Support-vector machine
 
