@@ -103,9 +103,10 @@ class Blob:
     def asarray(self, copy=False):
         """
         """
-        if type(self.math_engine) is MathEngine.GpuMathEngine:
-            copy = True
-        return numpy.array(self._internal, copy=copy)
+        if type(self.math_engine) is MathEngine.CpuMathEngine:
+            return numpy.array(self._internal, copy=copy)
+        cpu_blob = self.copy(MathEngine.default_math_engine())
+        return numpy.array(cpu_blob._internal, copy=copy)
 
     def copy(self, math_engine):
         """

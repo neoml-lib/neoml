@@ -68,6 +68,9 @@ void CPyMathEngine::CleanUp()
 
 //------------------------------------------------------------------------------------------------------------
 
+static std::unique_ptr<CPyMathEngine> defaultMathEngine = nullptr;
+static CCriticalSection section;
+
 void InitializeMathEngine(py::module& m)
 {
 	py::class_<CPyMathEngine>(m, "MathEngine")
@@ -101,5 +104,13 @@ void InitializeMathEngine(py::module& m)
 			t[i] = name + std::string( info.Name );
 		}
 		return t;
-	});
+	})
+	.def("default_math_engine", []() {
+		CCriticalSectionLock lock( section );
+		if( defaultMathEngine == nullptr ) {
+			CPtr<CPyMathEngineOwner> defaultMathEngineOwner = new CPyMathEngineOwner( CreateCpuMathEngine( 1, 0 ) );
+			defaultMathEngine.reset( new CPyMathEngine( *defaultMathEngineOwner ) );
+		}
+		return *defaultMathEngine;
+	}, py::return_value_policy::reference);
 }
