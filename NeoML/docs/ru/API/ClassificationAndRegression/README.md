@@ -31,7 +31,7 @@
 
 Бинарный линейный классификатор — алгоритм классификации, основанный на построении линейной разделяющей поверхности, которая делит пространство признаков на два полупространства. 
 
-В **NeoML** реализован классом [CLinearBinaryClassifierBuilder](Linear.md). Этот класс позволяет обучить модели `ILinearBinaryModel` для классификации и `ILinearRegressionModel` для линейной регрессии.
+В **NeoML** реализован классом [CLinear](Linear.md). Этот класс позволяет обучить модели `ILinearBinaryModel` или [`IOneVersusAllModel`](OneVersusAll.md#model) для классификации и `ILinearRegressionModel` для линейной регрессии.
 
 ### Машина опорных векторов
 
