@@ -61,7 +61,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
-    Dnn/Layers/MultichannleLookupLayer.cpp
+    Dnn/Layers/MultichannelLookupLayer.cpp
     Dnn/Layers/MultiheadAttentionLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
