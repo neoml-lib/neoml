@@ -104,6 +104,21 @@ class Dnn(PythonWrapper.Dnn):
         """
         return self.get_layers()
 
+    def add_layer(self, layer):
+        """
+        """
+        if type(layer) is not Layer:
+            raise ValueError('The `layer` is expected to be neoml.Dnn.Layer`')
+        self._add_layer(layer.internal)
+    
+    def delete_layer(self, layer):
+        if type(layer) is str:
+            self._delete_layer(layer)
+        elif type(layer) is Layer:
+            self._delete_layer(layer.name)
+        else:
+            raise ValueError('The `layer` is expected to be `str` or `neoml.Dnn.Layer`')
+
     def run(self, inputs):
         """Runs the network.
         Parameters
@@ -185,3 +200,12 @@ class Layer:
         """
         """
         return self._internal.get_name()
+    
+    def connect(self, layer, output_index=0, input_index=0):
+        if not isinstance(layer, Layer):
+            raise ValueError('The `layer` is expected to be neoml.Dnn.Layer')
+        if output_index < 0:
+            raise ValueError('The `output_index` must be >= 0')
+        if input_index < 0:
+            raise ValueError('The `input_index` must be >= 0')
+        self._internal.connect(layer._internal, output_index, input_index)

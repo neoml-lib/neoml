@@ -16,6 +16,7 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
+from .BatchNormalization import BatchNormalization
 from .Utils import check_input_layers
 import neoml.Blob as Blob
 
@@ -188,6 +189,12 @@ class Conv(Layer):
         """
         return Blob(self._internal.get_free_term())
 
+    def apply_batch_normalization(self, layer):
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -340,6 +347,12 @@ class Conv3D(Layer):
         """Gets the free term. The blob is of filter_count size.
         """
         return Blob(self._internal.get_free_term())
+
+    def apply_batch_normalization(self, layer):
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -494,6 +507,12 @@ class TransposedConv3D(Layer):
         """Gets the free term. The blob size is filter_count.
         """
         return Blob(self._internal.get_free_term())
+
+    def apply_batch_normalization(self, layer):
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -666,6 +685,12 @@ class TransposedConv(Layer):
         """
         return Blob(self._internal.get_free_term())
 
+    def apply_batch_normalization(self, layer):
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -816,6 +841,12 @@ class ChannelwiseConv(Layer):
         """Gets the free term. The blob size is inputs' Channels.
         """
         return self._internal.get_free_term()
+
+    def apply_batch_normalization(self, layer):
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
