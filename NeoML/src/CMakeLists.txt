@@ -128,7 +128,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/HierarchicalClustering.cpp
     TraditionalML/IsoDataClustering.cpp
     TraditionalML/KMeansClustering.cpp
-    TraditionalML/LinearBinaryClassifierBuilder.cpp
+    TraditionalML/Linear.cpp
     TraditionalML/LinearBinaryModel.cpp
     TraditionalML/LinearBinaryModel.h
     TraditionalML/LinkedRegressionTree.cpp
@@ -255,7 +255,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/IsoDataClustering.h
     ../include/NeoML/TraditionalML/KMeansClustering.h
     ../include/NeoML/TraditionalML/LdGraph.h
-    ../include/NeoML/TraditionalML/LinearBinaryClassifierBuilder.h
+    ../include/NeoML/TraditionalML/Linear.h
     ../include/NeoML/TraditionalML/MatchingGenerator.h
     ../include/NeoML/TraditionalML/MemoryProblem.h
     ../include/NeoML/TraditionalML/Model.h

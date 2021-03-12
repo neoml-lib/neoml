@@ -61,7 +61,7 @@ public:
 };
 
 // Linear binary classifier training algorithm
-class NEOML_API CLinearBinaryClassifierBuilder : public ITrainingModel, public IRegressionTrainingModel {
+class NEOML_API CLinear : public ITrainingModel, public IRegressionTrainingModel {
 public:
 	// Classification parameters
 	struct CParams {
@@ -91,8 +91,8 @@ public:
 		}
 	};
 
-	explicit CLinearBinaryClassifierBuilder( const CParams& params );
-	virtual ~CLinearBinaryClassifierBuilder();
+	explicit CLinear( const CParams& params );
+	virtual ~CLinear();
 
 	// Sets a text stream for logging processing
 	void SetLog( CTextStream* newLog ) { log = newLog; }
@@ -101,6 +101,7 @@ public:
 	CPtr<IRegressionModel> TrainRegression( const IRegressionProblem& problem ) override;
 
 	// ITrainingModel interface methods:
+	// Trains IOneVersusAllModel if number of classes > 2
 	CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
 
 private:
@@ -108,5 +109,8 @@ private:
 	CTextStream* log; // logging stream
 	CFunctionWithHessian* function; // error function
 };
+
+// DEPRECATED: for backward compatibility
+typedef CLinear CLinearBinaryClassifierBuilder;
 
 } // namespace NeoML

@@ -296,9 +296,9 @@ protected:
 
 TEST_F( RandomBinaryClassification4000x20, Linear )
 {
-	CLinearBinaryClassifierBuilder::CParams params( EF_SquaredHinge );
+	CLinear::CParams params( EF_SquaredHinge );
 	params.L1Coeff = 0.05f;
-	CLinearBinaryClassifierBuilder linear( params );
+	CLinear linear( params );
 	TrainBinary( linear );
 	TestBinaryClassificationResult();
 }
@@ -394,10 +394,18 @@ TEST_F( RandomMultiClassification2000x20, GBMR_QuickScorer )
 
 TEST_F( RandomMultiClassification2000x20, OneVsAllLinear )
 {
-	CLinearBinaryClassifierBuilder linear( EF_SquaredHinge );
+	CLinear linear( EF_SquaredHinge );
 	COneVersusAll ovaLinear( linear );
 	TrainMulti( ovaLinear );
 	TestMultiClassificationResult();
+
+	GTEST_LOG_( INFO ) << "Train implicitly and compare";
+	CPtr<IModel> modelImplicitDense;
+	CPtr<IModel> modelImplicitSparse;
+	Train( linear, *DenseRandomMultiProblem, *SparseRandomMultiProblem, modelImplicitDense, modelImplicitSparse );
+	TestClassificationResult( ModelDense, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitSparse, DenseMultiTestData, SparseMultiTestData );
 }
 
 TEST_F( RandomMultiClassification2000x20, OneVsAllRbf )
@@ -427,7 +435,7 @@ TEST_F( RandomMultiClassification2000x20, OneVsAllDecisionTree )
 
 TEST_F( RandomBinaryClassification4000x20, CrossValidationLinear )
 {
-	CLinearBinaryClassifierBuilder linear( EF_SquaredHinge );
+	CLinear linear( EF_SquaredHinge );
 	CrossValidate( 10, linear, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 
@@ -459,8 +467,8 @@ TEST_F( RandomBinaryRegression4000x20, Linear )
 	auto sparseRandomBinaryProblem = denseRandomBinaryProblem->CreateSparse();
 	auto sparseBinaryTestData = denseBinaryTestData->CreateSparse();
 
-	CLinearBinaryClassifierBuilder::CParams params( EF_L2_Regression );
-	CLinearBinaryClassifierBuilder linear( params );
+	CLinear::CParams params( EF_L2_Regression );
+	CLinear linear( params );
 
 	int begin = GetTickCount();
 	auto model = linear.TrainRegression( *denseRandomBinaryProblem );
