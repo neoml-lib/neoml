@@ -98,54 +98,61 @@ X_test = transform_data(X_test)
 y_test = np.array(test_data[b'labels'], dtype=np.int32)
 
 
-def cifar10_iterator(X, y, batch_size, math_engine):
-    """Slices numpy arrays into batches and wraps them in blobs"""
+def make_blob(data, math_engine):
+    """Wraps numpy data into neoml blob"""
+    shape = data.shape
+    if len(shape) == 4:  # data
+        # Wrap 4-D array into (BatchWidth, Height, Width, Channels) blob
+        blob_shape = (1, shape[0], 1, shape[1], shape[2], 1, shape[3])
+        return neoml.Blob.asblob(math_engine, data, blob_shape)
+    elif len(shape) == 1:  # dense labels
+        # Wrap 1-D array into blob of (BatchWidth,) shape
+        return neoml.Blob.asblob(math_engine, data,
+                                 (1, shape[0], 1, 1, 1, 1, 1))
+    else:
+        assert(False)
 
-    def make_blob(data, math_engine):
-        """Wraps numpy data into neoml blob"""
-        shape = data.shape
-        if len(shape) == 4:  # data
-            # Wrap 4-D array into (BatchWidth, Height, Width, Channels) blob
-            blob_shape = (1, shape[0], 1, shape[1], shape[2], 1, shape[3])
-            return neoml.Blob.asblob(math_engine, data, blob_shape)
-        elif len(shape) == 1:  # dense labels
-            # Wrap 1-D array into blob of (BatchWidth,) shape
-            return neoml.Blob.asblob(math_engine, data,
-                                     (1, shape[0], 1, 1, 1, 1, 1))
-        else:
-            assert(False)
 
+def cifar10_array_iter(X, y, batch_size):
+    """Slices numpy arrays into batches"""
     start = 0
     data_size = y.shape[0]
     while start < data_size:
-        yield (make_blob(X[start : start+batch_size], math_engine),
-               make_blob(y[start : start+batch_size], math_engine))
+        yield X[start : start+batch_size], y[start : start+batch_size]
         start += batch_size
 
 
-def run_net(X, y, batch_size, dnn, data_layer_name, label_layer_name,
-            loss_layer, accuracy_layer, accuracy_sink, is_train):
+def cifar10_blob_iter(X, y, batch_size, math_engine):
+    """Slices numpy arrays into batches and wraps them in blobs"""
+    for X_b, y_b in cifar10_array_iter(X, y, batch_size):
+        yield make_blob(X_b, math_engine), make_blob(y_b, math_engine)
+
+
+def run_net(X, y, batch_size, dnn, is_train):
     """Runs dnn on given data"""
     start = time.time()
     total_loss = 0.
     run_iter = dnn.learn if is_train else dnn.run
     math_engine = dnn.math_engine
-    accuracy_layer.reset = True  # Reset previous statistics
+    layers = dnn.layers
+    loss = layers['loss']
+    accuracy = layers['accuracy']
+    sink = layers['accuracy_sink']
 
-    for X_batch, y_batch in cifar10_iterator(X, y, batch_size, math_engine):
-        run_iter({data_layer_name: X_batch, label_layer_name: y_batch})
+    accuracy.reset = True  # Reset previous statistics
+    for X_batch, y_batch in cifar10_blob_iter(X, y, batch_size, math_engine):
+        run_iter({'data': X_batch, 'labels': y_batch})
         total_loss += loss.last_loss * y_batch.batch_width
-        accuracy_layer.reset = False  # Don't reset statistics within one epoch
+        accuracy.reset = False  # Don't reset statistics within one epoch
 
     avg_loss = total_loss / y.shape[0]
-    acc = accuracy_sink.get_blob().asarray()[0]
+    avg_acc = sink.get_blob().asarray()[0]
     run_time = time.time() - start
-    return avg_loss, acc, run_time
+    return avg_loss, avg_acc, run_time
 
 
 class ConvBlock:
     """Block of dropout->conv->batch_norm->relu6"""
-
     def __init__(self, inputs, filter_count, name):
         self.dropout = neoml.Dnn.Dropout(inputs, rate=0.1, spatial=True,
                                          batchwise=True, name=name+'_dropout')
@@ -156,39 +163,23 @@ class ConvBlock:
                                                name=name+'_bn')
         self.output = neoml.Dnn.ReLU(self.bn, threshold=6., name=name+'_relu6')
 
-    def fuse_batch_norm(self, dnn):
-        """Fuses batch_norm into convolution
-        As a result reduces inference time
-        Should be called when training is finished
-        """
-        if self.bn is None:
-            return  # The layer has already been deleted
-        self.conv.apply_batch_normalization(self.bn)
-        dnn.delete_layer(self.bn.name)
-        self.output.connect(self.conv)
-        self.bn = None
 
+# Create math engine
+math_engine = neoml.MathEngine.GpuMathEngine(0)
+# If GPU can't be found it will return CPU math engine
+print('Device: ', math_engine.info)
 
 # Create net
-math_engine = neoml.MathEngine.CpuMathEngine(0)
 dnn = neoml.Dnn.Dnn(math_engine)
 
 # Network params
-data_layer_name = 'data'
-label_layer_name = 'labels'
 batch_size = 50
 lr = 1e-3
 n_classes = 10
-n_epoch = 5
-
-# Number of blocks and their parameters
-block_params = [
-    {'filter_count'}
-]
 
 # Create layers
-data = neoml.Dnn.Source(dnn, data_layer_name)  # Source for data
-labels = neoml.Dnn.Source(dnn, label_layer_name)  # Source for labels
+data = neoml.Dnn.Source(dnn, 'data')  # Source for data
+labels = neoml.Dnn.Source(dnn, 'labels')  # Source for labels
 # Add a few convolutional blocks
 block1 = ConvBlock(data, filter_count=16, name='block1')  # -> (16,  16)
 block2 = ConvBlock(block1.output, filter_count=32, name='block2')  # -> (8, 8)
@@ -208,37 +199,94 @@ dnn.solver = neoml.Dnn.AdaptiveGradient(math_engine, learning_rate=lr,
                                         moment_decay_rate=0.9,
                                         second_moment_decay_rate=0.999)
 
-# Model training...
+n_epoch = 10
 for epoch in range(n_epoch):
     # Train
-    avg_loss, acc, run_time = run_net(X_train, y_train, batch_size, dnn,
-                                      data_layer_name, label_layer_name, loss,
-                                      accuracy, accuracy_sink, is_train=True)
+    avg_loss, acc, run_time = run_net(X_train, y_train, batch_size,
+                                      dnn, is_train=True)
     print(f'Train #{epoch}\tLoss: {avg_loss:.4f}\t'
           f'Accuracy: {acc:.4f}\tTime: {run_time:.2f} sec')
     # Test
-    avg_loss, acc, run_time = run_net(X_test, y_test, batch_size, dnn,
-                                      data_layer_name, label_layer_name, loss,
-                                      accuracy, accuracy_sink, is_train=False)
+    avg_loss, acc, run_time = run_net(X_test, y_test, batch_size,
+                                      dnn, is_train=False)
     print(f'Test  #{epoch}\tLoss: {avg_loss:.4f}\t'
           f'Accuracy: {acc:.4f}\tTime: {run_time:.2f} sec')
+    if epoch == 1:
+        # If you want to save training progress you can do it via checkpoints
+        # It stores dnn weights and other training data (solver stats, etc.)
+        print('Creating checkpoint...')
+        dnn.store_checkpoint('cifar10_sample.checkpoint')
+    if epoch == 5:
+        # If you want you can resume training from the checkpoint
+        print('Loading checkpoint... (this will roll dnn back to epoch #1)')
+        dnn.load_checkpoint('cifar10_sample.checkpoint')
+        # Be careful! dnn now points to the new net
+        # But other layer/solver variables still pointing to the old net!
 
-# Optimizing after training
+# Prepare network for inference
 
-# Check that dnn has batchnorm layer
-print(f"dnn.has_layer('block1_bn'): {dnn.has_layer('block1_bn')}")
+# Remove training-only layers
+dnn.delete_layer('labels')
+dnn.delete_layer('loss')
+dnn.delete_layer('accuracy')
+dnn.delete_layer('accuracy_sink')
 
-# Fusing batchnorms into convolutions
-block1.fuse_batch_norm(dnn)
-block2.fuse_batch_norm(dnn)
-block3.fuse_batch_norm(dnn)
+# Add sink for dnn output
+sink = neoml.Dnn.Sink(dnn.layers['fc'], name='sink')
 
-# Double-check results (it must be equal to the latest test results)
-avg_loss, acc, run_time = run_net(X_test, y_test, batch_size, dnn,
-                                  data_layer_name, label_layer_name, loss,
-                                  accuracy, accuracy_sink, is_train=False)
-print(f'Fused net test  #{epoch}\tLoss: {avg_loss:.4f}\t'
-      f'Accuracy: {acc:.4f}\tTime: {run_time:.2f} sec')
 
-# Check that dnn doesn't have batchnorm layer
-print(f"dnn.has_layer('block1_bn'): {dnn.has_layer('block1_bn')}")
+def fuse_batch_norm(dnn, block_name):
+    """Fuses batch_norm into convolution
+    As a result reduces inference time
+    Should be used after training
+    """
+    bn_name = block_name + '_bn'
+    if not dnn.has_layer(bn_name):
+        # Batch norm has already been fused
+        return
+    bn_layer = dnn.layers[bn_name]
+    conv_name = block_name + '_conv'
+    conv_layer = dnn.layers[conv_name]
+    # Fuse batch normalization
+    conv_layer.apply_batch_normalization(bn_layer)
+    # Delete layer from net (conv already 'contains' it)
+    dnn.delete_layer(bn_name)
+    # Connect layer after batchnorm to convolution
+    # because batchnorm was removed from the dnn
+    output_name = block_name + '_relu6'
+    dnn.layers[output_name].connect(conv_layer)
+
+
+# Fuse batchnorms into convolutions
+fuse_batch_norm(dnn, 'block1')
+fuse_batch_norm(dnn, 'block2')
+fuse_batch_norm(dnn, 'block2')
+
+# Store trained net
+# In that case it's better to use method load/store
+# Unlike checkpoints those aren't working with training-related data
+# As a result they use less disk space
+dnn.store('cifar10_sample.dnn')
+
+# Load trained net
+# It's done for sample purpose only
+# You may comment the next line and everything will be just fine
+dnn.load('cifar10_sample.dnn')
+
+# Be careful! Layer variables must be updated
+# because they're pointing to the layers of the old dnn
+sink = dnn.layers['sink']
+
+# Evaluate inference
+inference_acc = 0.
+for X_b, y_b in cifar10_array_iter(X_test, y_test, batch_size):
+    dnn.run({'data': make_blob(X_b, math_engine)})
+    # Extract data from sink
+    # unnormalized probs of shape (batch_size, n_classes)
+    logits = sink.get_blob().asarray()
+    # Calculate accuracy
+    inference_acc += (np.argmax(logits, axis=1) == y_b).sum()
+inference_acc /= len(X_test)
+
+# This number must be equal to the test accuracy of the last epoch
+print(f'Inference net test accuracy: {inference_acc:.4f}')
