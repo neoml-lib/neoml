@@ -4,6 +4,12 @@ import sys
 import subprocess
 import re
 
+is_readthedocs = (os.getenv('READTHEDOCS') == 'True')
+launch_dir = os.getcwd()
+
+if is_readthedocs:
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
@@ -81,3 +87,6 @@ setup(
     zip_safe=False,
     test_suite='tests'
 )
+
+if is_readthedocs:
+    os.chdir(launch_dir)
