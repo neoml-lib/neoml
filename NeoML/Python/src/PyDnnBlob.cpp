@@ -117,16 +117,12 @@ static CBlobDesc createBlobDesc( TBlobType type, std::initializer_list<int> dime
 
 class CPyDnnBlob : public CDnnBlob {
 public:
-	CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info&& _info );
+	CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info& _info );
 	virtual ~CPyDnnBlob() = default;
-
-private:
-	py::buffer_info info;
 };
 
-CPyDnnBlob::CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info&& _info ) :
-	CDnnBlob( mathEngine, createBlobDesc( type, dimension ), CPyMemoryHandle( &mathEngine, _info.ptr ) ),
-	info( std::move(_info) )
+CPyDnnBlob::CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info& _info ) :
+	CDnnBlob( mathEngine, createBlobDesc( type, dimension ), CPyMemoryHandle( &mathEngine, _info.ptr ) )
 {
 }
 
@@ -183,19 +179,14 @@ py::buffer_info CPyBlob::GetBufferInfo() const
 		return py::buffer_info();
 	}
 
-	CIntHandle tempInt;
-	CFloatHandle tempFloat;
+	void* ptr = nullptr;
 	CMemoryHandle data;
-
 	if( blob->GetDataType() == CT_Float ) {
-		tempFloat = blob->GetData<float>();
-		data = *static_cast<CMemoryHandle*>(&tempFloat);
+		data = *static_cast<CMemoryHandle*>(&blob->GetData<float>());
 	} else {
-		tempInt = blob->GetData<int>();
-		data = *static_cast<CMemoryHandle*>(&tempInt);
+		data = *static_cast<CMemoryHandle*>(&blob->GetData<int>());
 	}
-	
-	void* ptr = static_cast<CPyMemoryHandle*>( &data )->GetPtr();
+	ptr = static_cast<CPyMemoryHandle*>( &data )->GetPtr();
 
 	std::vector<size_t> shape;
 	for( int i = 0; i < 7; i++ ) {
@@ -254,7 +245,17 @@ CPyBlob CPyBlob::Copy( const CPyMathEngine& pyMathEngine ) const
 
 	CPyBlob res(pyMathEngine, blob->GetDataType(), blob->GetBatchLength(), blob->GetBatchWidth(), blob->GetListSize(),
 		blob->GetHeight(), blob->GetWidth(), blob->GetDepth(), blob->GetChannelsCount());
-	res.Blob()->CopyFrom( blob );
+	if( &res.Blob()->GetMathEngine() == &blob->GetMathEngine() ) {
+		res.Blob()->CopyFrom( blob );
+	} if( blob->GetDataType() == CT_Float ) {
+		float* buffer = blob->GetBuffer<float>( 0, blob->GetDataSize() );
+		res.Blob()->CopyFrom( buffer );
+		blob->ReleaseBuffer( buffer, false );
+	} else {
+		int* buffer = blob->GetBuffer<int>( 0, blob->GetDataSize() );
+		res.Blob()->CopyFrom( buffer );
+		blob->ReleaseBuffer( buffer, false );
+	}
 	return res;		
 }
 

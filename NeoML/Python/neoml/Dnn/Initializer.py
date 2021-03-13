@@ -46,7 +46,7 @@ class Xavier(Initializer):
     ---------
     random_generator : object, default=None
         Sets the random numbers generator to be used.
-        By default, the standard NeoML randomizer with default seed is used.
+        By default, the standard NeoML randomizer with 42 seed is used.
     """
     def __init__(self, random_generator=None):
         if isinstance(random_generator, PythonWrapper.Xavier):
@@ -54,7 +54,7 @@ class Xavier(Initializer):
             return
 
         if random_generator is None:
-            random_generator = neoml.Random.Random()
+            random_generator = neoml.Random.Random(42)
 
         if not isinstance(random_generator, neoml.Random.Random):
             raise ValueError('The `random_generator` must be a neoml.Random.Random.')
@@ -76,7 +76,7 @@ class Uniform(Initializer):
         The upper bound of the distribution.
     random_generator : object, default=None
         Sets the random numbers generator to be used.
-        By default, the standard NeoML randomizer with default seed is used.
+        By default, the standard NeoML randomizer with 42 seed is used.
     """
     def __init__(self, lower_bound=-1.0, upper_bound=1.0, random_generator=None):
         if isinstance(lower_bound, PythonWrapper.Uniform):
@@ -84,7 +84,7 @@ class Uniform(Initializer):
             return
 
         if random_generator is None:
-            random_generator = neoml.Random.Random()
+            random_generator = neoml.Random.Random(42)
 
         if not isinstance(random_generator, neoml.Random.Random):
             raise ValueError('The `random_generator` must be a neoml.Random.Random.')

@@ -208,7 +208,8 @@ class KMeans(PythonWrapper.KMeans) :
 
     """
 
-    def __init__(self, max_iteration_count, init_cluster_count, algo='lloyd', init='default', distance='euclid'):
+    def __init__(self, max_iteration_count, init_cluster_count, algo='lloyd', init='default', distance='euclid',
+                 thread_count=1):
         if algo != 'elkan' and algo != 'lloyd':
             raise ValueError('The `algo` must be one of {`elkan`, `lloyd`}.')
         if init != 'k++' and init != 'default':
@@ -219,8 +220,10 @@ class KMeans(PythonWrapper.KMeans) :
             raise ValueError('The `max_iteration_count` must be > 0.')
         if init_cluster_count <= 0:
             raise ValueError('The `init_cluster_count` must be > 0.')
+        if thread_count <= 0:
+            raise ValueError('The `thread_count` must be < 0')
 
-        super().__init__(algo, init, distance, int(max_iteration_count), int(init_cluster_count))
+        super().__init__(algo, init, distance, int(max_iteration_count), int(init_cluster_count), int(thread_count))
 
     def clusterize(self, X, weight=None):
         """.
@@ -240,7 +243,7 @@ class KMeans(PythonWrapper.KMeans) :
         x = csr_matrix(X, dtype=numpy.float32)
 
         if weight is None:
-            weight = numpy.ones(x.size, numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32)
         else:
             weight = numpy.array(weight, dtype=numpy.float32, copy=False)
             if numpy.any(weight < 0):

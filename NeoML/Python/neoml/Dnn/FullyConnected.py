@@ -16,6 +16,7 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
+from .BatchNormalization import BatchNormalization
 from .Utils import check_input_layers
 import neoml.Blob as Blob
 
@@ -55,12 +56,11 @@ class FullyConnected(Layer):
         """
         self._internal.set_zero_free_term(bool(zero_free_term))
 
-
     def apply_batch_normalization(self, layer):
-        if not type(layer) is BatchNormalization:
-            raise ValueError('The `layer` must be neoml.BatchNormalization.')
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
 
-        self._internal.apply_batch_normalization(layer._internal)	
+        self._internal.apply_batch_normalization(layer._internal)
 
     @property
     def weights(self):
