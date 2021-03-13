@@ -65,7 +65,10 @@ class CMakeBuild(build_ext):
         )
 
 def get_version():
-    file_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), "../../Build/Inc/ProductBuildNumber.h")
+    if is_readthedocs:
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../Build/Inc/ProductBuildNumber.h")
+    else:
+        file_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), "../../Build/Inc/ProductBuildNumber.h")
     pattern = r"#define VERINFO_MAJOR_VERSION ([0-9]+)\n#define VERINFO_MINOR_VERSION ([0-9]+)\n#define VERINFO_MODIFICATION_NUMBER ([0-9]+)"
     with open(file_path, 'r', encoding='utf-8') as f:
         result = re.search(pattern, f.read())
