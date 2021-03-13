@@ -25,10 +25,5 @@ Class description
 Example
 *******
 
-.. code-block:: Python
-   :linenos:
-
-   from neoml.Clustering import KMeans
-   
-   print('Hello World!')
+.. inlcude:: ../../../samples/python/kmeans.py
 
