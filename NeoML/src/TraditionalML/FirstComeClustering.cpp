@@ -54,8 +54,7 @@ bool CFirstComeClustering::Clusterize( IClusteringData* input, CClusteringResult
 	const int vectorsCount = input->GetVectorCount();
 	for( int i = 0; i < vectorsCount; ++i ) {
 		if( log != 0 ) {
-			*log << "\nProcess vector ";
-			*log << CSparseFloatVector( matrix.GetRow( i ) ) << ":\n";
+			*log << "\nProcess vector #" << i << "\n";
 			*log << "Clusters count: " << clusters.Size() << "\n";
 			for( int j = 0; j < clusters.Size(); j++ ) {
 				*log << "Cluster " << j << ":\n";

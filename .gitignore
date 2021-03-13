@@ -13,7 +13,11 @@ WinReleaseS.x64/
 WinDebugS.x64/
 WinFinalS.x64/
 ipch/
+*.pyc
 # stop recurcive 'lib' ignoring
+NeoML/Python/build
+NeoML/Python/dist
+NeoML/Python/neoml.egg-info
 lib
 NeoML/lib
 NeoMathEngine/lib

@@ -31,13 +31,13 @@ Gradient boosting is implemented by the [CGradientBoost](GradientBoost.md) class
 
 A linear binary classifier finds a hyperplane that divides the feature space in half.
 
-It is implemented by the [CLinearBinaryClassifierBuilder](Linear.md) class that trains the `ILinearBinaryModel` model for classification and the `ILinearRegressionModel` model for linear regression.
+It is implemented by the [CLinear](Linear.md) class that trains the `ILinearBinaryModel` or [`IOneVersusAllModel`](OneVersusAll.md#model) model for classification and the `ILinearRegressionModel` model for linear regression.
 
 ### Support-vector machine
 
 Support-vector machine translates the input data into vectors in a high-dimensional space and searches for a maximum-margin dividing hyperplane.
 
-It is implemented by the [CSvmBinaryClassifierBuilder](Svm.md) class. The trained model is represented by the `ILinearBinaryModel` or `ISvmBinaryModel` interface, depending on the type of kernel used.
+It is implemented by the [CSvm](Svm.md) class. The trained model is represented by the [`ILinearBinaryModel`](Linear.md#for-classification), `ISvmBinaryModel` or [`IOneVersusAllModel`](OneVersusAll.md#model) interface, depending on the type of kernel used and number of classes.
 
 ### Decision tree
 

@@ -171,16 +171,16 @@ void CQrnnLayer::SetRecurrentMode( CQrnnLayer::TRecurrentMode newMode )
 
 	static_assert( RM_Count == 4, "RM_Count != 4" );
 	if( recurrentMode == RM_Direct ) {
-		NeoAssert( !firstRecurrent->IsReverseSequense() && secondRecurrent == nullptr
+		NeoAssert( !firstRecurrent->IsReverseSequence() && secondRecurrent == nullptr
 			&& secondBackLink == nullptr && bidirectionalMerge == nullptr );
 	} else if( recurrentMode == RM_Reverse ) {
-		NeoAssert( firstRecurrent->IsReverseSequense() && secondRecurrent == nullptr
+		NeoAssert( firstRecurrent->IsReverseSequence() && secondRecurrent == nullptr
 			&& secondBackLink == nullptr && bidirectionalMerge == nullptr );
 	} else if( recurrentMode == RM_BidirectionalConcat ) {
-		NeoAssert( !firstRecurrent->IsReverseSequense() && secondRecurrent != nullptr && secondRecurrent->IsReverseSequense()
+		NeoAssert( !firstRecurrent->IsReverseSequence() && secondRecurrent != nullptr && secondRecurrent->IsReverseSequence()
 			&& secondBackLink != nullptr && dynamic_cast<CConcatChannelsLayer*>( bidirectionalMerge.Ptr() ) != nullptr );
 	} else if( recurrentMode == RM_BidirectionalSum ) {
-		NeoAssert( !firstRecurrent->IsReverseSequense() && secondRecurrent != nullptr && secondRecurrent->IsReverseSequense()
+		NeoAssert( !firstRecurrent->IsReverseSequence() && secondRecurrent != nullptr && secondRecurrent->IsReverseSequence()
 			&& secondBackLink != nullptr && dynamic_cast<CEltwiseSumLayer*>( bidirectionalMerge.Ptr() ) != nullptr );
 	} else {
 		NeoAssert( false );

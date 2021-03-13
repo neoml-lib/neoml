@@ -19,7 +19,7 @@ Classic `K-Means <https://en.wikipedia.org/wiki/K-means_clustering>`_ algorithm.
 Class description
 *****************
 
-.. autoclass:: neoml.KMeans.KMeans
+.. autoclass:: neoml.Clustering.KMeans
     :members:
 
 Example
@@ -28,7 +28,7 @@ Example
 .. code-block:: Python
    :linenos:
 
-   from neoml.KMeans import KMeans
+   from neoml.Clustering import KMeans
    
    print('Hello World!')
 

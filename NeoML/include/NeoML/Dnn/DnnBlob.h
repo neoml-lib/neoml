@@ -200,10 +200,18 @@ public:
 protected:
 	virtual ~CDnnBlob();
 
+	CDnnBlob( IMathEngine& _mathEngine, const CBlobDesc& _desc, CMemoryHandle _data ) :
+		mathEngine( _mathEngine ), desc( _desc ), data( _data ), dataOwned( false ), parentPos( 0 )
+	{
+		NeoAssert( desc.GetDataType() != CT_Invalid );
+		NeoAssert( &mathEngine == data.GetMathEngine() );
+	}
+
 private:
 	IMathEngine& mathEngine;
 	CBlobDesc desc;
 	CMemoryHandle data;
+	bool dataOwned;
 
 	CPtr<CDnnBlob> parent;	// parent blob
 	int parentPos;

@@ -16,7 +16,6 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/TraditionalML/FloatVector.h>
 #include <NeoML/TraditionalML/SparseFloatMatrix.h>
 #include <NeoML/TraditionalML/CommonCluster.h>
 

@@ -29,14 +29,20 @@ CUpsampling2DLayer::CUpsampling2DLayer( IMathEngine& mathEngine ) :
 
 void CUpsampling2DLayer::SetHeightCopyCount( int newHeightCopyCount )
 {
-	NeoAssert( GetDnn() == 0 );
-	heightCopyCount = newHeightCopyCount;
+	NeoAssert( newHeightCopyCount > 0 );
+	if( heightCopyCount != newHeightCopyCount ) {
+		heightCopyCount = newHeightCopyCount;
+		ForceReshape();
+	}
 }
 
 void CUpsampling2DLayer::SetWidthCopyCount( int newWidthCopyCount )
 {
-	NeoAssert( GetDnn() == 0 );
-	widthCopyCount = newWidthCopyCount;
+	NeoAssert( newWidthCopyCount > 0 );
+	if( widthCopyCount != newWidthCopyCount ) {
+		widthCopyCount = newWidthCopyCount;
+		ForceReshape();
+	}
 }
 
 void CUpsampling2DLayer::Reshape()

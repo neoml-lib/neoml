@@ -51,12 +51,16 @@ void CCenterLossLayer::Serialize( CArchive& archive )
 	}
 }
 
-void CCenterLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
-	CConstIntHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
+void CCenterLossLayer::Reshape()
 {
-	// One number for one label
-	NeoAssert( labelSize == 1 );
+	CLossLayer::Reshape();
+	CheckArchitecture( inputDescs[1].GetDataType() == CT_Int, GetName(), "labels must be CT_Int" );
+	CheckArchitecture( inputDescs[1].ObjectSize() == 1, GetName(), "should be one number for one label" );
+}
 
+void CCenterLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
+	CConstIntHandle label, int /* labelSize */, CFloatHandle lossValue, CFloatHandle lossGradient )
+{
 	// The total input size
 	const int inputDataSize = batchSize * vectorSize;
 
