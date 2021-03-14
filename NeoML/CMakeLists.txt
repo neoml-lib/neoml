@@ -37,7 +37,7 @@ option(NeoML_BUILD_SHARED "Build NeoML as shared library." ON)
 option(NeoML_INSTALL "Install NeoML" ON)
 
 # Build NeoOnnx library
-option(NeoOnnx_BUILD "Build NeoOnnx" OFF)
+option(NeoOnnx_BUILD "Build NeoOnnx" ON)
 if(USE_FINE_OBJECTS)
     set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE) 
 endif()
