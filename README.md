@@ -36,6 +36,7 @@ Key features:
 	- [C++ interface](#c++-interface)
 		- [Algorithms library NeoML](#algorithms-library-neoml)
 		- [NeoMathEngine](#neomathengine)	
+	- [Python module](#python-module)
 	- [Java interface](#java-interface)
 	- [Objective-C interface](#objective-c-interface)
 - [License](#license)
