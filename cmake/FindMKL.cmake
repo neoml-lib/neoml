@@ -78,7 +78,6 @@ else() # NOT USE_FINE_OBJECTS
             $ENV{MKLROOT}
             /opt/intel
             /opt/intel/mkl
-            $ENV{VIRTUAL_ENV}/include
         PATH_SUFFIXES
             mkl
             include
@@ -91,7 +90,6 @@ else() # NOT USE_FINE_OBJECTS
             $ENV{MKLROOT}/lib
             /opt/intel/lib
             /opt/intel/mkl/lib
-            $ENV{VIRTUAL_ENV}/lib
         PATH_SUFFIXES 
             ${MKL_LIBRARY_DIR_SUFFIX}
             IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
@@ -103,7 +101,6 @@ else() # NOT USE_FINE_OBJECTS
             $ENV{MKLROOT}/lib
             /opt/intel/lib
             /opt/intel/mkl/lib
-            $ENV{VIRTUAL_ENV}/lib
         PATH_SUFFIXES 
             ${MKL_LIBRARY_DIR_SUFFIX}
             IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
@@ -115,7 +112,6 @@ else() # NOT USE_FINE_OBJECTS
             $ENV{MKLROOT}/lib
             /opt/intel/lib
             /opt/intel/mkl/lib
-            $ENV{VIRTUAL_ENV}/lib
         PATH_SUFFIXES 
             ${MKL_LIBRARY_DIR_SUFFIX}
             IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
