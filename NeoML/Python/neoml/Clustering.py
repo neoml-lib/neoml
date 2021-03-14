@@ -237,14 +237,15 @@ class KMeans(PythonWrapper.KMeans) :
             Defaults to `None`.
         :type weight: array-like of shape (n_samples,)
 
-        :return: 
+        :return:
+            - tuple(clusters, centers, vars)
             - clusters - array of integers with cluster indices for each object of `X`;
             - centers - cluster centers;
             - vars - cluster variances.
         :rtype:
             - clusters - numpy.ndarray(numpy.int32) of shape (n_samples,);
-            - centers - numpy.ndaaray(numpy.float32) of shape (init_cluster_count, n_features)
-            - vars - numpy.ndaaray(numpy.float32) of shape (init_cluster_count, n_features)
+            - centers - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
+            - vars - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
         """
         x = csr_matrix(X, dtype=numpy.float32)
 
