@@ -1,8 +1,8 @@
 .. _py-clustering:
 
-#####################
-Clustering Algorithms
-#####################
+################
+neoml.Clustering
+################
 
 The `neoml` module contains multiple clustering algoithms such as:
 
