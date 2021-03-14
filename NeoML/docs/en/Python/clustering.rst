@@ -28,6 +28,7 @@ Example
 *******
 
 .. code-block:: python
+
    import numpy as np
    import neoml
 
@@ -53,6 +54,7 @@ Example
 *******
 
 .. code-block:: python
+
    import numpy as np
    import neoml
 
