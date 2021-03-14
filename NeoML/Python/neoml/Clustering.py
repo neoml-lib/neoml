@@ -38,8 +38,7 @@ class FirstCome(PythonWrapper.FirstCome) :
     :type max_cluster_count: int
 
     :param distance: the distance function
-        {'euclid', 'machalanobis', 'cosine'}, default='euclid'
-    :type distance: str
+    :type distance: str, {'euclid', 'machalanobis', 'cosine'}, default='euclid'
     """
 
     def __init__(self, min_vector_count=4, default_variance=1.0, threshold=0.0, min_cluster_size_ratio=0.05, max_cluster_count=100, distance='euclid'):
@@ -62,8 +61,7 @@ class FirstCome(PythonWrapper.FirstCome) :
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :param weight: Sample weights. If `None`, then samples are equally weighted.
-            `None` by default.
-        :type weight: array-like of shape (n_samples,)
+        :type weight: array-like of shape (n_samples,) or None, default=None
 
         :return:
             - clusters - array of integers with cluster indices for each object of `X`;
@@ -93,8 +91,7 @@ class Hierarchical(PythonWrapper.Hierarchical) :
     """Hierarchical clustering.
 
     :param distance: the distance function.
-        {'euclid', 'machalanobis', 'cosine'}, default='euclid'.
-    :type distance: str
+    :type distance: str, {'euclid', 'machalanobis', 'cosine'}, default='euclid'
 
     :param max_cluster_distance: the maximum distance between two clusters that still may be merged.
     :type max_cluster_distance: int
@@ -121,8 +118,7 @@ class Hierarchical(PythonWrapper.Hierarchical) :
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :param weight: Sample weights. If `None`, then samples are equally weighted.
-            `None` by default.
-        :type weight: array-like of shape (n_samples,)
+        :type weight: array-like of shape (n_samples,) or None, default=None
 
         :return:
             - clusters - array of integers with cluster indices for each object of `X`;
@@ -198,8 +194,7 @@ class IsoData(PythonWrapper.IsoData) :
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :param weight: Sample weights. If `None`, then samples are equally weighted.
-            `None` by default.
-        :type weight: array-like of shape (n_samples,)
+        :type weight: array-like of shape (n_samples,) or None, default=None
 
         :return:
             - clusters - array of integers with cluster indices for each object of `X`;
@@ -235,14 +230,13 @@ class KMeans(PythonWrapper.KMeans) :
     :type init_cluster_count: int
 
     :param algo: algorithm used during clustering
-        {'elkan', 'lloyd'}, default='lloyd'
-    :type algo: str
+    :type algo: str, {'elkan', 'lloyd'}, default='lloyd'
 
-    :param init: {'k++', 'default'}, default='default'
-    :type init: str
+    :param init: algorithm used for intial centers selection
+    :type init: str, {'k++', 'default'}, default='default'
 
-    :param distance: {'euclid', 'machalanobis', 'cosine'}, default='euclid'
-    :type distance: str
+    :param distance: metrics used for distance calculation
+    :type distance: str, {'euclid', 'machalanobis', 'cosine'}, default='euclid'
     """
 
     def __init__(self, max_iteration_count, init_cluster_count, algo='lloyd', init='default', distance='euclid'):
