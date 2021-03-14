@@ -232,7 +232,7 @@ class KMeans(PythonWrapper.KMeans) :
     :param algo: algorithm used during clustering
     :type algo: str, {'elkan', 'lloyd'}, default='lloyd'
 
-    :param init: algorithm used for intial centers selection
+    :param init: algorithm used for initial centers selection
     :type init: str, {'k++', 'default'}, default='default'
 
     :param distance: metrics used for distance calculation
