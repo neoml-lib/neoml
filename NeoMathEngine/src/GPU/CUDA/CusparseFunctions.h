@@ -28,30 +28,30 @@ struct CCusparse {
 	// typedef for convenience
 	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseCreate ) ( cusparseHandle_t *handle );
 	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseDestroy ) ( cusparseHandle_t handle );
-	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseSetStream ) ( cusparseHandle_t handle, cudaStream_t streamId );
-	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseCreateMatDescr ) ( cusparseMatDescr_t *descrA );
-	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseDestroyMatDescr ) ( cusparseMatDescr_t descrA );
-	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseSetMatType ) ( cusparseMatDescr_t descrA, cusparseMatrixType_t type );
-	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseSetMatIndexBase ) ( cusparseMatDescr_t descrA, cusparseIndexBase_t base );
-	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseScsrmm ) ( cusparseHandle_t handle, cusparseOperation_t transA,
-		int m, int n, int k, int nnz, const float *alpha, const cusparseMatDescr_t descrA, const float  *csrSortedValA,
-		const int *csrSortedRowPtrA, const int *csrSortedColIndA, const float *B, int ldb, const float *beta, float *C,
-		int ldc );
-	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseScsrmm2 ) ( cusparseHandle_t handle, cusparseOperation_t transA,
-		cusparseOperation_t transB, int m, int n, int k, int nnz, const float *alpha, const cusparseMatDescr_t descrA,
-		const float *csrSortedValA, const int *csrSortedRowPtrA, const int *csrSortedColIndA, const float *B, int ldb,
-		const float *beta, float *C, int ldc );
+	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseCreateCsr ) ( cusparseSpMatDescr_t* spMatDescr, int64_t rows,
+		int64_t cols, int64_t nnz, void* csrRowOffsets, void* csrColInd,  void* csrValues,
+		cusparseIndexType_t csrRowOffsetsType, cusparseIndexType_t csrColIndType, cusparseIndexBase_t idxBase,
+		cudaDataType valueType );
+	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseDestroySpMat ) ( cusparseSpMatDescr_t spMatDescr );
+	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseCreateDnMat ) ( cusparseDnMatDescr_t* dnMatDescr, int64_t rows,
+		int64_t cols, int64_t ld, void* values, cudaDataType valueType, cusparseOrder_t order );
+	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseDestroyDnMat ) ( cusparseDnMatDescr_t dnMatDescr );
+	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseSpMM_bufferSize ) ( cusparseHandle_t handle, cusparseOperation_t opA,
+		cusparseOperation_t opB, const void* alpha, cusparseSpMatDescr_t matA, cusparseDnMatDescr_t matB, const void* beta,
+		cusparseDnMatDescr_t matC, cudaDataType computeType, cusparseSpMMAlg_t alg, size_t* bufferSizer );
+	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseSpMM ) ( cusparseHandle_t handle, cusparseOperation_t opA,
+		cusparseOperation_t opB, const void* alpha, cusparseSpMatDescr_t matA, cusparseDnMatDescr_t matB, const void* beta,
+		cusparseDnMatDescr_t matC, cudaDataType computeType, cusparseSpMMAlg_t alg, void* externalBuffer );
 	typedef const char*( CUSPARSEAPI *TCusparseGetErrorString ) ( cusparseStatus_t status );
 
 	TCusparseCreate Create;
 	TCusparseDestroy Destroy;
-	TCusparseSetStream SetStream;
-	TCusparseCreateMatDescr CreateMatDescr;
-	TCusparseDestroyMatDescr DestroyMatDescr;
-	TCusparseSetMatType SetMatType;
-	TCusparseSetMatIndexBase SetMatIndexBase;
-	TCusparseScsrmm Scsrmm;
-	TCusparseScsrmm2 Scsrmm2;
+	TCusparseCreateCsr CreateCsr;
+	TCusparseDestroySpMat DestroySpMat;
+	TCusparseCreateDnMat CreateDnMat;
+	TCusparseDestroyDnMat DestroyDnMat;
+	TCusparseSpMM_bufferSize SpMM_bufferSize;
+	TCusparseSpMM SpMM;
 	TCusparseGetErrorString GetErrorString;
 };
 

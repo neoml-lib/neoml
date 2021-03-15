@@ -53,6 +53,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/GlobalMeanPoolingLayer.cpp
     Dnn/Layers/GruLayer.cpp
     Dnn/Layers/HingeLossLayer.cpp
+    Dnn/Layers/IrnnLayer.cpp
     Dnn/Layers/ImageAndPixelConversionLayer.cpp
     Dnn/Layers/ImageResizeLayer.cpp
     Dnn/Layers/LossLayer.cpp
@@ -60,7 +61,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
-    Dnn/Layers/MultichannleLookupLayer.cpp
+    Dnn/Layers/MultichannelLookupLayer.cpp
     Dnn/Layers/MultiheadAttentionLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
@@ -101,7 +102,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/DecisionTreeNodeClassificationStatistic.cpp
     TraditionalML/DecisionTreeNodeClassificationStatistic.h
     TraditionalML/DecisionTreeNodeStatisticBase.h
-    TraditionalML/DecisionTreeTrainingModel.cpp
+    TraditionalML/DecisionTree.cpp
     TraditionalML/DifferentialEvolution.cpp
     TraditionalML/FeatureSelection.cpp
     TraditionalML/FirstComeClustering.cpp
@@ -127,7 +128,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/HierarchicalClustering.cpp
     TraditionalML/IsoDataClustering.cpp
     TraditionalML/KMeansClustering.cpp
-    TraditionalML/LinearBinaryClassifierBuilder.cpp
+    TraditionalML/Linear.cpp
     TraditionalML/LinearBinaryModel.cpp
     TraditionalML/LinearBinaryModel.h
     TraditionalML/LinkedRegressionTree.cpp
@@ -149,7 +150,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/SparseFloatMatrix.cpp
     TraditionalML/SparseFloatVector.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
-    TraditionalML/SvmBinaryClassifierBuilder.cpp
+    TraditionalML/Svm.cpp
     TraditionalML/SvmBinaryModel.cpp
     TraditionalML/SvmBinaryModel.h
     TraditionalML/SvmKernel.cpp
@@ -200,6 +201,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GruLayer.h
+    ../include/NeoML/Dnn/Layers/IrnnLayer.h
     ../include/NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h
     ../include/NeoML/Dnn/Layers/ImageResizeLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
@@ -239,7 +241,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/CrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/CommonCluster.h
     ../include/NeoML/TraditionalML/CrossValidation.h
-    ../include/NeoML/TraditionalML/DecisionTreeTrainingModel.h
+    ../include/NeoML/TraditionalML/DecisionTree.h
     ../include/NeoML/TraditionalML/DifferentialEvolution.h
     ../include/NeoML/TraditionalML/FeatureSelection.h
     ../include/NeoML/TraditionalML/FirstComeClustering.h
@@ -253,7 +255,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/IsoDataClustering.h
     ../include/NeoML/TraditionalML/KMeansClustering.h
     ../include/NeoML/TraditionalML/LdGraph.h
-    ../include/NeoML/TraditionalML/LinearBinaryClassifierBuilder.h
+    ../include/NeoML/TraditionalML/Linear.h
     ../include/NeoML/TraditionalML/MatchingGenerator.h
     ../include/NeoML/TraditionalML/MemoryProblem.h
     ../include/NeoML/TraditionalML/Model.h
@@ -266,7 +268,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/SparseFloatMatrix.h
     ../include/NeoML/TraditionalML/SparseFloatVector.h
     ../include/NeoML/TraditionalML/SparseVectorIterator.h
-    ../include/NeoML/TraditionalML/SvmBinaryClassifierBuilder.h
+    ../include/NeoML/TraditionalML/Svm.h
     ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/TrainingModel.h
