@@ -182,11 +182,11 @@ public:
 	void SetArcProbabilityThreshold(float threshold) { arcProbabilityThreshold = threshold; }
 
 	// Sequence length
-	int GetSequenceLength() const { return lastResults[I_Result]->GetBatchLength(); }
+	int GetSequenceLength() const { return I_Result < lastResults.Size() ? lastResults[I_Result]->GetBatchLength() : 0; }
 	// The number of sequences in the batch
-	int GetBatchWidth() const { return lastResults[I_Result]->GetBatchWidth(); }
+	int GetBatchWidth() const { return I_Result < lastResults.Size() ? lastResults[I_Result]->GetBatchWidth() : 0; }
 	// The number of labels used
-	int GetLabelsCount() const { return lastResults[I_Result]->GetChannelsCount(); }
+	int GetLabelsCount() const { return I_Result < lastResults.Size() ? lastResults[I_Result]->GetChannelsCount() : 0; }
 
 	// Builds a linear division graph using the recognition results
 	bool BuildGLD(int sequenceNumber, CLdGraph<CCtcGLDArc>& gld) const;
