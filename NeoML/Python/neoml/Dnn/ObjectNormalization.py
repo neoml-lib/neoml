@@ -16,18 +16,33 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 import neoml.Blob as Blob
 
 
 class ObjectNormalization(Layer):
-    """
+    """The layer that performs object normalization using the formula:
+    objectNorm(x)[i][j] = ((x[i][j] - mean[i]) / sqrt(var[i] + epsilon)) *
+        * scale[j] + bias[j]
+    
+    Layer inputs
+    ----------
+    #1: a set of objects.
+    The dimensions:
+    - BatchLength * BatchWidth * ListSize is the number of objects
+    - Height * Width * Depth * Channels is the object size
+    
+    Layer outputs
+    ----------
+    #1: the normalized result, of the same size as the input.
     
     Parameters
     ----------
-    input_layers :
-    count :
-    size :
+    input_layer : (object, int)
+        The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    epsilon : float, default=0.00001
+        The small value added to the variance to avoid division by zero.
     name : str, default=None
         The layer name.
     """
@@ -48,13 +63,13 @@ class ObjectNormalization(Layer):
 
     @property
     def epsilon(self):
-        """
+        """Gets the small value used to avoid division by zero.
         """
         return self._internal.get_epsilon()
 
     @epsilon.setter
     def epsilon(self, epsilon):
-        """
+        """Sets the small value used to avoid division by zero.
         """
         if float(epsilon) <= 0:
             raise ValueError('The `epsilon` must be > 0.')
@@ -62,24 +77,24 @@ class ObjectNormalization(Layer):
 
     @property
     def scale(self):
-        """
+        """Gets scale, one of the trainable parameters in the formula.
         """
         return Blob.Blob(self._internal.get_scale())
 
     @scale.setter
     def scale(self, scale):
-        """
+        """Sets scale, one of the trainable parameters in the formula.
         """
         self._internal.set_scale(scale._internal)
 
     @property
     def bias(self):
-        """
+        """Gets bias, one of the trainable parameters in the formula.
         """
         return Blob.Blob(self._internal.get_bias())
 
     @bias.setter
     def bias(self, bias):
-        """
+        """Sets bias, one of the trainable parameters in the formula.
         """
         self._internal.set_bias(bias._internal)

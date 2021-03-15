@@ -15,7 +15,8 @@ limitations under the License.
 """
 
 import numpy
-from scipy.sparse import csr_matrix
+from .Utils import convert_data, get_data
+from scipy.sparse import csr_matrix, issparse
 import neoml.PythonWrapper as PythonWrapper
 
 class LinearClassificationModel :
@@ -39,8 +40,8 @@ class LinearClassificationModel :
         predictions : generator of ndarray of shape (n_samples, n_classes)
             The predictions of class probability for each input vector.
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
-        return self.internal.classify(x.indices, x.data, x.indptr)
+        x = convert_data( X )
+        return self.internal.classify(*get_data(x))
 
 class LinearClassifier(PythonWrapper.Linear) :
     """Linear binary classifier.
@@ -114,7 +115,7 @@ class LinearClassifier(PythonWrapper.Linear) :
         model : object
             The trained ``LinearClassificationModel``.
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
+        x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.int32, copy=False )
 
         if x.shape[0] != y.size:
@@ -131,7 +132,7 @@ class LinearClassifier(PythonWrapper.Linear) :
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')
 
-        return LinearClassificationModel(super().train_classifier(x.indices, x.data, x.indptr, int(x.shape[1]), y, weight))
+        return LinearClassificationModel(super().train_classifier(*get_data(x), int(x.shape[1]), y, weight))
 
 
 class LinearRegressionModel :
@@ -155,8 +156,8 @@ class LinearRegressionModel :
         predictions : generator of ndarray of shape (n_samples)
             The predictions of the function value on each input vector.
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
-        return self.internal.predict(x.indices, x.data, x.indptr)
+        x = convert_data( X )
+        return self.internal.predict(*get_data(x))
 
 class LinearRegressor(PythonWrapper.Linear) :
     """Linear regressor.
@@ -229,7 +230,7 @@ class LinearRegressor(PythonWrapper.Linear) :
         model : object
             The trained ``LinearRegressionModel``.
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
+        x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.float32, copy=False )
 
         if x.shape[0] != y.size:
@@ -243,4 +244,4 @@ class LinearRegressor(PythonWrapper.Linear) :
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')
 
-        return LinearRegressionModel(super().train_regressor(x.indices, x.data, x.indptr, int(x.shape[1]), y, weight))
+        return LinearRegressionModel(super().train_regressor(*get_data(x), int(x.shape[1]), y, weight))

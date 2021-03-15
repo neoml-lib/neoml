@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 import numpy
-from scipy.sparse import csr_matrix
+from .Utils import convert_data, get_data
 import neoml.PythonWrapper as PythonWrapper
 
 class GradientBoostClassificationModel:
@@ -46,8 +46,8 @@ class GradientBoostClassificationModel:
         predictions : generator of ndarray of shape (n_samples, n_classes)
             The predictions of class probability for each input vector.
         """
-        x = csr_matrix(X, dtype=numpy.float32)
-        return self.internal.classify(x.indices, x.data, x.indptr)
+        x = convert_data(X)
+        return self.internal.classify(*get_data(x))
 
 class GradientBoostClassifier(PythonWrapper.GradientBoost):
     """Gradient boosting for classification.
@@ -98,10 +98,11 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
     thread_count : int, default=1
         The number of processing threads to be used while training the model.
 
-    builder_type : {'full', 'hist'}, default='full'
+    builder_type : {'full', 'hist', 'multi_full'}, default='full'
         The type of tree builder used. 
         ``full`` means all feature values are used for splitting nodes.
         ``hist`` means the steps of a histogram created from feature values
+        ``multi_full`` means 'full' with multiclass trees
         will be used for splitting nodes.
 
     max_bins : int, default=32
@@ -118,8 +119,8 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
 
         if loss != 'binomial' and loss != 'exponential' and loss != 'squared_hinge' and loss != 'l2':
             raise ValueError('The `loss` must be one of: `exponential`, `binomial`, `squared_hinge`, `l2`.')
-        if builder_type != 'full' and builder_type != 'hist':    
-            raise ValueError('The `builder_type` must be one of: `full`, `hist`.')
+        if builder_type not in ('full', 'hist', 'multi_full'):
+            raise ValueError('The `builder_type` must be one of: `full`, `hist`, `multi_full`.')
         if iteration_count <= 0:
             raise ValueError('The `iteration_count` must be > 0.')
         if subsample < 0 or subsample > 1:
@@ -161,7 +162,7 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
         model : object
             The trained ``GradientBoostClassificationModel``.
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
+        x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.int32, copy=False )
 
         if x.shape[0] != y.size:
@@ -178,7 +179,7 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')
 
-        return GradientBoostClassificationModel(super().train_classifier(x.indices, x.data, x.indptr, int(x.shape[1]), y, weight)) 
+        return GradientBoostClassificationModel(super().train_classifier(*get_data(x), int(x.shape[1]), y, weight)) 
 
 class GradientBoostRegressionModel:
     """Gradient boosting regression model.
@@ -208,8 +209,8 @@ class GradientBoostRegressionModel:
         predictions : generator of ndarray of shape (n_samples)
             The predictions of the function value on each input vector.
         """
-        x = csr_matrix(X, dtype=numpy.float32)
-        return self.internal.predict(x.indices, x.data, x.indptr)
+        x = convert_data(X)
+        return self.internal.predict(*get_data(x))
 
 class GradientBoostRegressor(PythonWrapper.GradientBoost):
     """Gradient boosting for regression.
@@ -277,8 +278,8 @@ class GradientBoostRegressor(PythonWrapper.GradientBoost):
 
         if loss != 'l2':
             raise ValueError('The `loss` must be `l2` for regression.')
-        if builder_type != 'full' and builder_type != 'hist':    
-            raise ValueError('The `builder_type` must be one of: `full`, `hist`}.')
+        if builder_type not in ('full', 'hist'):
+            raise ValueError('The `builder_type` must be one of: `full`, `hist`.')
         if iteration_count <= 0:
             raise ValueError('The `iteration_count` must be > 0.')
         if subsample < 0 or subsample > 1:
@@ -320,7 +321,7 @@ class GradientBoostRegressor(PythonWrapper.GradientBoost):
         model : object
             The trained ``GradientBoostRegressionModel``.
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
+        x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.float32, copy=False )
 
         if x.shape[0] != y.size:
@@ -334,4 +335,4 @@ class GradientBoostRegressor(PythonWrapper.GradientBoost):
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')
 
-        return GradientBoostRegressionModel(super().train_regressor(x.indices, x.data, x.indptr, int(x.shape[1]), y, weight)) 
+        return GradientBoostRegressionModel(super().train_regressor(*get_data(x), int(x.shape[1]), y, weight)) 

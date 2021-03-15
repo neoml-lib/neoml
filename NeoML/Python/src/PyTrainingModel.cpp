@@ -99,7 +99,7 @@ public:
 
 	void Store( const std::string& path );
 
-	py::array_t<double> Classify( py::array indices, py::array data, py::array row );
+	py::array_t<double> Classify( py::array indices, py::array data, py::array row, bool isSparse );
 
 private:
 	CPtr<IModel> ptr;
@@ -119,9 +119,9 @@ void CPyModel::Store( const std::string& path )
 	SerializeModel( archive, ptr );
 }
 
-py::array_t<double> CPyModel::Classify( py::array indices, py::array data, py::array row )
+py::array_t<double> CPyModel::Classify( py::array indices, py::array data, py::array row, bool isSparse )
 {
-	const int* indicesPtr = reinterpret_cast<const int*>( indices.data() );
+	const int* indicesPtr = reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr );
 	const float* dataPtr = reinterpret_cast<const float*>( data.data() );
 	const int* rowPtr = reinterpret_cast<const int*>( row.data() );
 
@@ -133,8 +133,10 @@ py::array_t<double> CPyModel::Classify( py::array indices, py::array data, py::a
 	for( int i = 0; i < rowCount; i++ ) {
 		CSparseFloatVectorDesc vector;
 		vector.Size = rowPtr[i+1] - rowPtr[i];
-		vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
 		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
+		if ( indicesPtr != nullptr ) {
+			vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
+		}
 
 		CClassificationResult result;
 		ptr->Classify( vector, result );
@@ -159,7 +161,7 @@ public:
 
 	void Store( const std::string& path );
 
-	py::array_t<double> Predict( py::array indices, py::array data, py::array row );
+	py::array_t<double> Predict( py::array indices, py::array data, py::array row, bool isSparse );
 
 private:
 	CPtr<IRegressionModel> ptr;
@@ -179,9 +181,9 @@ void CPyRegressionModel::Store( const std::string& path )
 	SerializeModel( archive, ptr );
 }
 
-py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array data, py::array row )
+py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array data, py::array row, bool isSparse )
 {
-	const int* indicesPtr = reinterpret_cast<const int*>( indices.data() );
+	const int* indicesPtr = reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr );
 	const float* dataPtr = reinterpret_cast<const float*>( data.data() );
 	const int* rowPtr = reinterpret_cast<const int*>( row.data() );
 
@@ -192,8 +194,10 @@ py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array da
 	for( int i = 0; i < rowCount; i++ ) {
 		CSparseFloatVectorDesc vector;
 		vector.Size = rowPtr[i+1] - rowPtr[i];
-		vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
 		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
+		if ( indicesPtr != nullptr ) {
+			vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
+		}
 
 		r(i) = ptr->Predict( vector );
 	}
@@ -220,19 +224,19 @@ public:
 	explicit CPyTrainingModel( CPyTrainingModelOwner* _owner ) : owner( owner ) {}
 	virtual ~CPyTrainingModel() {}
 
-	CPyModel TrainClassifier( py::array indices, py::array data, py::array rowPtr, int featureCount, py::array classes, py::array weight );
+	CPyModel TrainClassifier( py::array indices, py::array data, py::array rowPtr, bool isSparse , int featureCount, py::array classes, py::array weight );
 
-	CPyRegressionModel TrainRegressor( py::array indices, py::array data, py::array rowPtr, int featureCount, py::array values, py::array weight );
+	CPyRegressionModel TrainRegressor( py::array indices, py::array data, py::array rowPtr, bool isSparse , int featureCount, py::array values, py::array weight );
 
 	CPyTrainingModelOwner* GetOwner() const { return owner; }
 private:
 	CPtr<CPyTrainingModelOwner> owner;
 };
 
-CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, py::array rowPtr, int featureCount, py::array classes, py::array weight )
+CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, py::array rowPtr, bool isSparse , int featureCount, py::array classes, py::array weight )
 {
 	CPtr<CPyMemoryProblem> problem = new CPyMemoryProblem( static_cast<int>( classes.size() ), featureCount,
-		reinterpret_cast<const int*>( indices.data() ), reinterpret_cast<const float*>( data.data() ),
+		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
 		reinterpret_cast<const float*>( weight.data() ) );
 	CPtr<IModel> model = owner->TrainingModel().Train( *(problem.Ptr()) );
@@ -240,10 +244,10 @@ CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, p
 	return CPyModel( model.Ptr() );
 }
 
-CPyRegressionModel CPyTrainingModel::TrainRegressor( py::array indices, py::array data, py::array rowPtr, int featureCount, py::array values, py::array weight )
+CPyRegressionModel CPyTrainingModel::TrainRegressor( py::array indices, py::array data, py::array rowPtr, bool isSparse , int featureCount, py::array values, py::array weight )
 {
 	CPtr<CPyMemoryRegressionProblem> problem = new CPyMemoryRegressionProblem( static_cast<int>( values.size() ), featureCount,
-		reinterpret_cast<const int*>( indices.data() ), reinterpret_cast<const float*>( data.data() ),
+		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const float*>( values.data() ),
 		reinterpret_cast<const float*>( weight.data() ) );
 	CPtr<IRegressionModel> model = dynamic_cast<IRegressionTrainingModel&>(owner->TrainingModel()).TrainRegression( *(problem.Ptr()) );
@@ -479,6 +483,8 @@ void InitializeTrainingModel(py::module& m)
 					p.TreeBuilder = GBTB_Full;
 				} else if( builder_type == "hist" ) {
 					p.TreeBuilder = GBTB_FastHist;
+				} else if ( builder_type == "multi_full" ) {
+					p.TreeBuilder = GBTB_MultiFull;
 				}
 				p.MaxBins = max_bins;
 				p.MinSubsetWeight = min_subtree_weight;
@@ -493,11 +499,11 @@ void InitializeTrainingModel(py::module& m)
 
 //------------------------------------------------------------------------------------------------------------
 
-	m.def("_cross_validation_score", []( const CPyTrainingModel& classifier, py::array indices, py::array data, py::array rowPtr,
-		int featureCount, py::array classes, py::array weight, const std::string& scoreName, int parts, bool stratified )
+	m.def("_cross_validation_score", []( const CPyTrainingModel& classifier, py::array indices, py::array data, py::array rowPtr, 
+		bool isSparse, int featureCount, py::array classes, py::array weight, const std::string& scoreName, int parts, bool stratified )
 	{
 		CPtr<CPyMemoryProblem> problem = new CPyMemoryProblem( static_cast<int>( classes.size() ), featureCount,
-			reinterpret_cast<const int*>( indices.data() ), reinterpret_cast<const float*>( data.data() ),
+			reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 			reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
 			reinterpret_cast<const float*>( weight.data() ) );
 
