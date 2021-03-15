@@ -1,8 +1,8 @@
-# Дерево решений CDecisionTreeTrainingModel
+# Дерево решений CDecisionTree
 
 <!-- TOC -->
 
-- [Дерево решений CDecisionTreeTrainingModel](#дерево-решений-cdecisiontreetrainingmodel)
+- [Дерево решений CDecisionTree](#дерево-решений-cdecisionTree)
 	- [Параметры построения модели](#параметры-построения-модели)
 	- [Модель](#модель)
 	- [Пример](#пример)
@@ -11,11 +11,11 @@
 
 Метод дерева решений представляет собой классификацию на основе последовательного сравнения признаков данного объекта с некоторыми пороговыми значениями. На основе результата сравнения можно попасть в одну из дочерних вершин и так до тех пор, пока не будет достигнута листовая вершина, в которой производится окончательная классификация.
 
-В **NeoML** алгоритм реализован классом `CDecisionTreeTrainingModel`. Он предоставляет метод `Train` для обучения модели, выполняющей многоклассовую классификацию.
+В **NeoML** алгоритм реализован классом `CDecisionTree`. Он предоставляет метод `Train` для обучения модели, выполняющей многоклассовую классификацию.
 
 ## Параметры построения модели
 
-Параметры реализованы структурой `CDecisionTreeTrainingModel::CParams`.
+Параметры реализованы структурой `CDecisionTree::CParams`.
 
 - *MinContinuousSubsetSize* — [для непрерывного признака] минимальное количество векторов в подмножестве вершины;
 - *MinDiscreteSubsetSize* — [для дискретного признака] минимальное количество векторов в подмножестве вершины;
@@ -63,14 +63,14 @@ public:
 ```c++
 CPtr<IDecisionTreeModel> buildModel( IProblem* data )
 {
-	CDecisionTreeTrainingModel::CParams param;
+	CDecisionTree::CParams param;
 	param.MinContinuousSubsetPart = 0.10; // В поддерево попадает не меньше 10% вершин.
 	param.MinContinuousSubsetSize = 128; // Считаем, что в датасетах только непрерывные признаки.
 	param.MinSplitSize = 16; // В поддереве не меньше 16 вершин.
 	param.MaxTreeDepth = 10; // Дерево не глубже 10 уровней.
-	param.SplitCriterion = CDecisionTreeTrainingModel::SC_InformationGain;
+	param.SplitCriterion = CDecisionTree::SC_InformationGain;
 
-	CDecisionTreeTrainingModel builder( param );
+	CDecisionTree builder( param );
 
 	return dynamic_cast<IDecisionTreeModel*>( builder.Train( data ).Ptr() );
 }

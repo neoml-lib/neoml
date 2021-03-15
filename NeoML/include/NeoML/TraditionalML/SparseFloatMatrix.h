@@ -42,14 +42,13 @@ struct NEOML_API CSparseFloatMatrixDesc {
 inline void CSparseFloatMatrixDesc::GetRow( int index, CSparseFloatVectorDesc& desc ) const
 {
 	NeoAssert( 0 <= index && index < Height );
+	desc.Size = PointerE[index] - PointerB[index];
+	desc.Values = Values + PointerB[index];
 	if( Columns == nullptr ) { // dense representation
-		desc.Size = Width;
-		desc.Values = Values + index * Width;
+		NeoPresume( desc.Size == Width );
 		desc.Indexes = nullptr;
 	} else {
-		desc.Size = PointerE[index] - PointerB[index];
 		desc.Indexes = Columns + PointerB[index];
-		desc.Values = Values + PointerB[index];
 	}
 }
 
