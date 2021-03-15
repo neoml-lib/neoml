@@ -27,7 +27,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/HierarchicalClustering.h>
 #include <NeoML/TraditionalML/MemoryProblem.h>
 #include <NeoML/TraditionalML/Linear.h>
-#include <NeoML/TraditionalML/DecisionTreeTrainingModel.h>
+#include <NeoML/TraditionalML/DecisionTree.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
 #include <NeoML/TraditionalML/Svm.h>
 #include <NeoML/TraditionalML/PlattScalling.h>

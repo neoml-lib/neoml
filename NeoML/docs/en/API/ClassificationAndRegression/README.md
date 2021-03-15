@@ -43,7 +43,7 @@ It is implemented by the [CSvm](Svm.md) class. The trained model is represented 
 
 This classification method involves comparing the object features with a set of threshold values; the result tells us to move to one of the children nodes. Once we reach a leaf node we assign the object to the class this node represents.
 
-The decision tree is implemented by the  [CDecisionTreeTrainingModel](DecisionTree.md) class, while the trained model implements the `IDecisionTreeModel` interface.
+The decision tree is implemented by the [CDecisionTree](DecisionTree.md) class, while the trained model implements the `IDecisionTreeModel` or [`IOneVersusAllModel`](OneVersusAll.md#model) interface depending on the number of classes.
 
 ### One versus all method
 

@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/TraditionalML/DecisionTreeTrainingModel.h>
+#include <NeoML/TraditionalML/DecisionTree.h>
 #include <DecisionTreeNodeStatisticBase.h>
 #include <DecisionTreeNodeBase.h>
 
@@ -37,7 +37,7 @@ public:
 	void Erase();
 
 	// Calculates the specified criterion according to the current data
-	double CalcCriterion( CDecisionTreeTrainingModel::TSplitCriterion criterion ) const;
+	double CalcCriterion( CDecisionTree::TSplitCriterion criterion ) const;
 
 	// The number of vectors in the set
 	int TotalCount() const { return totalCount; }
@@ -104,16 +104,16 @@ inline void CVectorSetClassificationStatistic::Erase()
 	counts.Add( 0, size );
 }
 
-inline double CVectorSetClassificationStatistic::CalcCriterion( CDecisionTreeTrainingModel::TSplitCriterion criterion ) const
+inline double CVectorSetClassificationStatistic::CalcCriterion( CDecisionTree::TSplitCriterion criterion ) const
 {
 	double res = 0;
-	if( criterion == CDecisionTreeTrainingModel::SC_GiniImpurity ) {
+	if( criterion == CDecisionTree::SC_GiniImpurity ) {
 		for( int i = 0; i < weights.Size(); i++ ) {
 			double fraction = weights[i] / totalWeight;
 			res += fraction * ( 1 - fraction );
 		}
 		return res;
-	} else if( criterion == CDecisionTreeTrainingModel::SC_InformationGain ) {
+	} else if( criterion == CDecisionTree::SC_InformationGain ) {
 		for( int i = 0; i < weights.Size(); i++ ) {
 			if( weights[i] > 0 ) {
 				double p = weights[i] / totalWeight;
@@ -138,7 +138,7 @@ public:
 	virtual void AddVector( int index, const CSparseFloatVectorDesc& vector );
 	virtual void Finish();
 	virtual size_t GetSize() const;
-	virtual bool GetSplit( CDecisionTreeTrainingModel::CParams param,
+	virtual bool GetSplit( CDecisionTree::CParams param,
 		bool& isDiscrete, int& featureIndex, CArray<double>& values, double& criterioValue ) const;
 	virtual double GetPredictions( CArray<double>& predictions ) const;
 	virtual int GetVectorsCount() const { return totalStatistics.TotalCount(); }
@@ -170,11 +170,11 @@ private:
 	void mergeOverlappingIntervals( CIntervalArray& intervals );
 	void mergeIntervalsByWeight( int left, int right, int resultIntervalCount, CIntervalArray& intervals );
 	void closeIntervals( double begin, double end, CArray<int>& link, CIntervalArray& intervals );
-	void calcSplitCriterion( CDecisionTreeTrainingModel::CParams param, bool isDiscrete,
+	void calcSplitCriterion( CDecisionTree::CParams param, bool isDiscrete,
 		const CIntervalArray& curItems, CArray<double>& splitValues );
-	double calcContinuousSplitCriterion( CDecisionTreeTrainingModel::CParams param,
+	double calcContinuousSplitCriterion( CDecisionTree::CParams param,
 		const CIntervalArray& intervals, const CVectorSetClassificationStatistic& total, CArray<double>& splitValues ) const;
-	double calcDiscreteSplitCriterion( CDecisionTreeTrainingModel::CParams param,
+	double calcDiscreteSplitCriterion( CDecisionTree::CParams param,
 		const CIntervalArray& intervals, const CVectorSetClassificationStatistic& total, CArray<double>& splitValues ) const;
 	static bool isEqual( const CInterval& interval1, const CInterval& interval2 );
 	static double sumWeight( const CIntervalArray& intervals, int left, int right );
