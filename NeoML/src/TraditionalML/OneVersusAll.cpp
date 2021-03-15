@@ -27,7 +27,7 @@ public:
 	COneVersusAllTrainingData( const IProblem* data, int baseClass );
 
 	// IProblem interface methods
-	int GetClassCount() const override { return data->GetClassCount(); }
+	int GetClassCount() const override { return 2; }
 	int GetFeatureCount() const override { return data->GetFeatureCount(); }
 	bool IsDiscreteFeature( int ) const override { return false; }
 	int GetVectorCount() const override { return data->GetVectorCount(); }
