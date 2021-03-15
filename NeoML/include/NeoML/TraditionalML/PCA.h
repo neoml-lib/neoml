@@ -15,10 +15,13 @@ limitations under the License.
 
 #pragma once
 
+#include <NeoML/NeoMLDefs.h>
+#include <NeoML/TraditionalML/TrainingModel.h>
+
 namespace NeoML {
 
-class PCA : virtual IObject
-{
+class NEOML_API CPCA : public ITrainingModel {
+public:
 	void Train();
 };
 

@@ -23,7 +23,7 @@ limitations under the License.
 
 namespace NeoML {
 
-void PCA::Train()
+void CPCA::Train()
 {
 #ifdef NEOML_USE_MKL
 	float[12] a = { 1, 2, 3, 3, 2, 1, 2, 3, 4, 4, 3, 2 };
