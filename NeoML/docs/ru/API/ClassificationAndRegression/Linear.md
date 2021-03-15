@@ -1,8 +1,8 @@
-# Бинарный линейный классификатор CLinearBinaryClassifierBuilder
+# Линейный классификатор CLinear
 
 <!-- TOC -->
 
-- [Бинарный линейный классификатор CLinearBinaryClassifierBuilder](#бинарный-линейный-классификатор-clinearbinaryclassifierbuilder)
+- [Линейный классификатор CLinear](#линейный-классификатор-clinear)
 	- [Параметры построения модели](#параметры-построения-модели)
 		- [Функция потерь](#функция-потерь)
 	- [Модель](#модель)
@@ -12,13 +12,13 @@
 
 <!-- /TOC -->
 
-Бинарный линейный классификатор — алгоритм классификации, основанный на построении линейной разделяющей поверхности, которая делит пространство признаков на два полупространства.
+Линейный классификатор — алгоритм классификации, основанный на построении линейной разделяющей поверхности, которая делит пространство признаков на два полупространства.
 
-В **NeoML** алгоритм реализован классом `CLinearBinaryClassifierBuilder`. Он предоставляет методы `Train` для обучения модели классификации и `TrainRegression` для обучения модели линейной регрессии.
+В **NeoML** алгоритм реализован классом `CLinear`. Он предоставляет методы `Train` для обучения модели классификации и `TrainRegression` для обучения модели линейной регрессии.
 
 ## Параметры построения модели
 
-Параметры реализованы структурой `CLinearBinaryClassifierBuilder::CParams`.
+Параметры реализованы структурой `CLinear::CParams`.
 
 - *Function* — функция потерь;
 - *MaxIterations* — максимальное количество итераций;
@@ -79,12 +79,12 @@ public:
 ```c++
 CPtr<Model> buildModel( IProblem* data )
 {
-	CLinearBinaryClassifierBuilder::CParams params;
+	CLinear::CParams params;
 	params.Function = EF_SquaredHinge;
 	params.L1Coeff = 0.05;
 	params.ThreadCount = 4;
 
-	CLinearBinaryClassifierBuilder builder( params );
+	CLinear builder( params );
 	return builder.Train( *data );
 }
 ```
