@@ -48,11 +48,11 @@ public:
 	virtual bool IsDiscreteFeature( int index ) const { return false; }
 	virtual int GetVectorCount() const { return desc.Height; }
 	virtual int GetClass( int index ) const { return classes[index]; }
-	virtual CSparseFloatMatrixDesc GetMatrix() const { return desc; }
+	virtual CFloatMatrixDesc GetMatrix() const { return desc; }
 	virtual double GetVectorWeight( int index ) const { return weights[index]; };
 
 private:
-	CSparseFloatMatrixDesc desc;
+	CFloatMatrixDesc desc;
 	int classCount;
 	const int* classes;
 	const float* weights;
