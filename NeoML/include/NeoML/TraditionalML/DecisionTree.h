@@ -104,7 +104,7 @@ public:
 //------------------------------------------------------------------------------------------------------------
 
 // Decision tree training algorithm
-class NEOML_API CDecisionTreeTrainingModel : public ITrainingModel {
+class NEOML_API CDecisionTree : public ITrainingModel {
 public:
 	// The type of criterion to be used for subtree splitting
 	enum TSplitCriterion {
@@ -154,8 +154,8 @@ public:
 	};
 
 	// All features will be used
-	explicit CDecisionTreeTrainingModel( const CParams& params, CRandom* random = 0 );
-	~CDecisionTreeTrainingModel();
+	explicit CDecisionTree( const CParams& params, CRandom* random = 0 );
+	~CDecisionTree();
 
 	// Set a text stream to log the progress
 	void SetLog( CTextStream* newLog ) { logStream = newLog; }
@@ -166,7 +166,8 @@ public:
 private:
 	static const int MaxClassifyNodesCacheSize = 10 * Megabyte; // the cache size for leaf nodes
 	CParams params; // the classification parameters
-	CRandom* random; // the random numbers generator
+	CRandom defRandom; // the default random numbers generator
+	CRandom& random; // the actual random numbers generator
 	CTextStream* logStream; // the logging stream
 	CPtr<const IProblem> classificationProblem; // the current input data as an IProblem interface
 	mutable int nodesCount; // the number of tree nodes
@@ -184,5 +185,8 @@ private:
 	CPtr<CDecisionTreeNodeBase> createNode() const;
 	CDecisionTreeNodeStatisticBase* createStatistic( CDecisionTreeNodeBase* node ) const;
 };
+
+// DEPRECATED: for backward compatibility
+typedef CDecisionTree CDecisionTreeTrainingModel;
 
 } // namespace NeoML

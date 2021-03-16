@@ -16,7 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/TraditionalML/DecisionTreeTrainingModel.h>
+#include <NeoML/TraditionalML/DecisionTree.h>
+#include <NeoML/TraditionalML/OneVersusAll.h>
 #include <DecisionTreeNodeBase.h>
 #include <DecisionTreeClassificationModel.h>
 #include <DecisionTreeNodeClassificationStatistic.h>
@@ -30,11 +31,11 @@ IDecisionTreeModel::~IDecisionTreeModel()
 
 //---------------------------------------------------------------------------------------------------------
 
-const int CDecisionTreeTrainingModel::MaxClassifyNodesCacheSize;
+const int CDecisionTree::MaxClassifyNodesCacheSize;
 
-CDecisionTreeTrainingModel::CDecisionTreeTrainingModel( const CParams& _params, CRandom* _random ) :
+CDecisionTree::CDecisionTree( const CParams& _params, CRandom* _random ) :
 	params( _params ),
-	random( _random ),
+	random( _random != nullptr ? *_random : defRandom ),
 	logStream( 0 ),
 	nodesCount( 0 ),
 	statisticsCacheSize( 0 )
@@ -51,15 +52,19 @@ CDecisionTreeTrainingModel::CDecisionTreeTrainingModel( const CParams& _params, 
 	NeoAssert( 0.00 <= params.ConstNodeThreshold && params.ConstNodeThreshold <= 1.0 );
 }
 
-CDecisionTreeTrainingModel::~CDecisionTreeTrainingModel()
+CDecisionTree::~CDecisionTree()
 {
 }
 
-CPtr<IModel> CDecisionTreeTrainingModel::Train( const IProblem& problem )
+CPtr<IModel> CDecisionTree::Train( const IProblem& problem )
 {
 	NeoAssert( problem.GetVectorCount() > 0 );
 	NeoAssert( problem.GetClassCount() > 0 );
 	NeoAssert( problem.GetFeatureCount() > 0 );
+
+	if( problem.GetClassCount() > 2 ) {
+		return COneVersusAll( *this ).Train( problem );
+	}
 
 	classificationProblem = &problem;
 	CPtr<CDecisionTreeClassificationModel> root =
@@ -68,7 +73,7 @@ CPtr<IModel> CDecisionTreeTrainingModel::Train( const IProblem& problem )
 	return root.Ptr();
 }
 
-CPtr<CDecisionTreeNodeBase> CDecisionTreeTrainingModel::buildTree( int vectorCount )
+CPtr<CDecisionTreeNodeBase> CDecisionTree::buildTree( int vectorCount )
 {
 	if( logStream != 0 ) {
 		*logStream << "\nDecision tree training started:\n";
@@ -119,7 +124,7 @@ CPtr<CDecisionTreeNodeBase> CDecisionTreeTrainingModel::buildTree( int vectorCou
 }
 
 // Builds one tree level
-bool CDecisionTreeTrainingModel::buildTreeLevel( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase& root ) const
+bool CDecisionTree::buildTreeLevel( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase& root ) const
 {
 	if( logStream != 0 ) {
 		*logStream << "\nBuild level " << level << ":\n";
@@ -165,7 +170,7 @@ bool CDecisionTreeTrainingModel::buildTreeLevel( const CSparseFloatMatrixDesc& m
 
 // Gathers statistics for the nodes of one level
 // Returns true if all nodes were traversed and false if another pass is needed
-bool CDecisionTreeTrainingModel::collectStatistics( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase* root ) const
+bool CDecisionTree::collectStatistics( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase* root ) const
 {
 	NeoAssert( level > 0 );
 	NeoAssert( root != 0 );
@@ -223,7 +228,7 @@ bool CDecisionTreeTrainingModel::collectStatistics( const CSparseFloatMatrixDesc
 
 // Splits the specified node according to the accumulated statistics
 // Returns true if new nodes were created when splitting
-bool CDecisionTreeTrainingModel::split( const CDecisionTreeNodeStatisticBase& nodeStatistics, int level ) const
+bool CDecisionTree::split( const CDecisionTreeNodeStatisticBase& nodeStatistics, int level ) const
 {
 	CDecisionTreeNodeBase& node = nodeStatistics.GetNode();
 	CArray<double> predictions;
@@ -301,7 +306,7 @@ bool CDecisionTreeTrainingModel::split( const CDecisionTreeNodeStatisticBase& no
 }
 
 // Generates an array of features used
-void CDecisionTreeTrainingModel::generateUsedFeatures( int randomSelectedFeaturesCount, int featuresCount,
+void CDecisionTree::generateUsedFeatures( int randomSelectedFeaturesCount, int featuresCount,
 	CArray<int>& features ) const
 {
 	features.Empty();
@@ -315,22 +320,21 @@ void CDecisionTreeTrainingModel::generateUsedFeatures( int randomSelectedFeature
 		NeoAssert( randomSelectedFeaturesCount < featuresCount );
 		for( int i = 0; i < randomSelectedFeaturesCount; i++ ) {
 			// Pick a random number from [i, featuresCount - 1] range
-			int randomInt = ( random == 0 ) ? rand() : random->Next();
-			int index = abs( randomInt ) % ( featuresCount - i );
-			swap( features[i], features[i + index] );
+			int index = random.UniformInt( i, featuresCount - 1 );
+			swap( features[i], features[index] );
 		}
 		features.SetSize( randomSelectedFeaturesCount );
 	}
 }
 
 // Creates a node
-CPtr<CDecisionTreeNodeBase> CDecisionTreeTrainingModel::createNode() const
+CPtr<CDecisionTreeNodeBase> CDecisionTree::createNode() const
 {
 	return FINE_DEBUG_NEW CDecisionTreeClassificationModel();
 }
 
 // Creates a node statistics object
-CDecisionTreeNodeStatisticBase* CDecisionTreeTrainingModel::createStatistic( CDecisionTreeNodeBase* node ) const
+CDecisionTreeNodeStatisticBase* CDecisionTree::createStatistic( CDecisionTreeNodeBase* node ) const
 {
 	CArray<int> features;
 	generateUsedFeatures( params.RandomSelectedFeaturesCount, classificationProblem->GetFeatureCount(), features );

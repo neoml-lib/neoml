@@ -321,8 +321,8 @@ TEST_F( RandomBinaryClassification4000x20, SvmRbf )
 
 TEST_F( RandomBinaryClassification4000x20, DecisionTree )
 {
-	CDecisionTreeTrainingModel::CParams param;
-	CDecisionTreeTrainingModel decisionTree( param );
+	CDecisionTree::CParams param;
+	CDecisionTree decisionTree( param );
 	TrainBinary( decisionTree );
 	TestBinaryClassificationResult();
 }
@@ -424,6 +424,23 @@ TEST_F( RandomMultiClassification2000x20, OneVsAllRbf )
 	TestClassificationResult( ModelSparse, modelImplicitSparse, DenseMultiTestData, SparseMultiTestData );
 }
 
+TEST_F( RandomMultiClassification2000x20, OneVsAllDecisionTree )
+{
+	CDecisionTree::CParams param;
+	CDecisionTree decisionTree( param );
+	COneVersusAll ovaDecisionTree( decisionTree );
+	TrainMulti( ovaDecisionTree );
+	TestMultiClassificationResult();
+
+	GTEST_LOG_( INFO ) << "Train implicitly and compare";
+	CPtr<IModel> modelImplicitDense;
+	CPtr<IModel> modelImplicitSparse;
+	Train( decisionTree, *DenseRandomMultiProblem, *SparseRandomMultiProblem, modelImplicitDense, modelImplicitSparse );
+	TestClassificationResult( ModelDense, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitSparse, DenseMultiTestData, SparseMultiTestData );
+}
+
 TEST_F( RandomBinaryClassification4000x20, CrossValidationLinear )
 {
 	CLinear linear( EF_SquaredHinge );
@@ -444,8 +461,8 @@ TEST_F( RandomBinaryClassification4000x20, CrossValidationSvmRbf )
 
 TEST_F( RandomBinaryClassification4000x20, CrossValidationDecisionTree )
 {
-	CDecisionTreeTrainingModel::CParams param;
-	CDecisionTreeTrainingModel decisionTree( param );
+	CDecisionTree::CParams param;
+	CDecisionTree decisionTree( param );
 	CrossValidate( 10, decisionTree, DenseRandomBinaryProblem, SparseRandomBinaryProblem );
 }
 
