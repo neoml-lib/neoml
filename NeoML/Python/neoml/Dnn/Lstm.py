@@ -68,7 +68,7 @@ class Lstm(Layer):
 
     (1) the layer output on every step
 
-    (2) (optional): the hidden state on every step
+    (2) (optional): the cell state on every step
 
     Both outputs have the following dimensions:
     
