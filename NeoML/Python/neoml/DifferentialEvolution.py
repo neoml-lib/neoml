@@ -139,7 +139,7 @@ class DifferentialEvolution:
             raise ValueError('`cross_probability` must be in (0, 1).')
 
         if population < 5:
-            raise ValueError('`population` must be at least 4.')
+            raise ValueError('`population` must be at least 5.')
 
         if result_traits is None:
             result_traits = DoubleTraits()
