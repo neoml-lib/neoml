@@ -24,7 +24,7 @@ class Lstm(Layer):
     """A long short-term memory (LSTM) layer that can be applied to a set of 
     vector sequences. The output is a sequence containing the same number 
     of vectors, each of the layer hidden size length.
-    
+
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
     :type input_layer: (object, int)
@@ -41,42 +41,39 @@ class Lstm(Layer):
     :type reverse_seq: bool, default=False
     :param name: The layer name.
     :type name: str, default=None
-    
-    Layer inputs
-        This layer has 1 to 3 inputs
-    
-        #1: the set of vector sequences, of dimensions:
 
-        - BatchLength - the length of a sequence
-        - BatchWidth * ListSize - the number of vector sequences in the input set
-        - Height * Width * Depth * Channels - the size of each vector in the sequence
+    .. rubric:: Layer inputs:
+
+    (1) the set of vector sequences, of dimensions:
     
-        #2 (optional): the initial state of the LSTM before the first step. 
+        - **BatchLength** - the length of a sequence
+        - **BatchWidth * ListSize** - the number of vector sequences in the input set
+        - **Height * Width * Depth * Channels** - the size of each vector in the sequence
+
+    (2) (optional): the initial state of the LSTM before the first step. 
         If this input is not specified, the initial state is all zeros.
         The dimensions:
-        
-        - BatchLength should be 1
+    
+        - **BatchLength** should be 1
         - the other dimensions should be the same as for the first input
-        
-        #3 (optional): the initial value of "previous output" to be used 
+
+    (3) (optional): the initial value of "previous output" to be used 
         on the first step. If this input is not specified, all zeros will be used.
         The dimensions:
-        
-        - BatchLength should be 1
+    
+        - **BatchLength** should be 1
         - the other dimensions should be the same as for the first input
 
-    Layer outputs
-        This layer has 1 to 2 outputs
+    .. rubric:: Layer outputs
 
-        #1: the result of the current step
-        
-        #2 (optional): the layer history
-        
-        Both outputs' dimensions:
-        
-        - BatchLength, BatchWidth, ListSize are equal to the first input dimensions
-        - Height, Width, Depth are equal to 1
-        - Channels is equal to layer hidden size
+    (1) the result of the current step
+    (2) (optional): the layer history
+
+    Both outputs have the following dimensions:
+    
+        - **BatchLength**, **BatchWidth**, **ListSize** are equal to the first input dimensions
+        - **Height**, **Width**, **Depth** are equal to 1
+        - **Channels** is equal to layer hidden size
     """
     activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]
 
