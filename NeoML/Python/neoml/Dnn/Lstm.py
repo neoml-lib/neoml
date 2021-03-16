@@ -67,6 +67,7 @@ class Lstm(Layer):
     .. rubric:: Layer outputs
 
     (1) the result of the current step
+
     (2) (optional): the layer history
 
     Both outputs have the following dimensions:
