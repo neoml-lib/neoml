@@ -25,52 +25,58 @@ class Lstm(Layer):
     vector sequences. The output is a sequence containing the same number 
     of vectors, each of the layer hidden size length.
     
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: (object, int)
+    :param hidden_size: The size of hidden layer. 
+        Affects the output size and the LSTM state vector size.
+    :type hidden_size: int, default=1
+    :param dropout_rate: The dropout probability for the input and the recurrent data.
+    :type dropout_rate: float, default=0.0
+    :param recurrent_activation: The activation function that is used in forget, reset, and input gates.
+    :type recurrent_activation: str, {"linear", "elu", "relu", "leaky_relu", "abs", 
+        "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", 
+        "power", "hswish", "gelu"}, default="sigmoid"
+    :param reverse_seq: Indicates if the input sequence should be taken in the reverse order.
+    :type reverse_seq: bool, default=False
+    :param name: The layer name.
+    :type name: str, default=None
+    
     Layer inputs
-    ------------
-    #1: the set of vector sequences, of dimensions:
-    - BatchLength - the length of a sequence
-    - BatchWidth * ListSize - the number of vector sequences in the input set
-    - Height * Width * Depth * Channels - the size of each vector in the sequence
+        This layer has 1 to 3 inputs
     
-    #2 (optional): the initial state of the LSTM before the first step. 
-    If this input is not specified, the initial state is all zeros.
-    The dimensions:
-    - BatchLength should be 1
-    - the other dimensions should be the same as for the first input
+        #1: the set of vector sequences, of dimensions:
+
+        - BatchLength - the length of a sequence
+        - BatchWidth * ListSize - the number of vector sequences in the input set
+        - Height * Width * Depth * Channels - the size of each vector in the sequence
     
-    #3 (optional): the initial value of "previous output" to be used 
-    on the first step. If this input is not specified, all zeros will be used.
-    The dimensions:
-    - BatchLength should be 1
-    - the other dimensions should be the same as for the first input
+        #2 (optional): the initial state of the LSTM before the first step. 
+        If this input is not specified, the initial state is all zeros.
+        The dimensions:
+        
+        - BatchLength should be 1
+        - the other dimensions should be the same as for the first input
+        
+        #3 (optional): the initial value of "previous output" to be used 
+        on the first step. If this input is not specified, all zeros will be used.
+        The dimensions:
+        
+        - BatchLength should be 1
+        - the other dimensions should be the same as for the first input
 
     Layer outputs
-    -------------
-    #1: the result of the current step
-    #2: the layer history
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the first input dimensions
-    - Height, Width, Depth are equal to 1
-    - Channels is equal to layer hidden size
-    
-    Parameters
-    --------------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
-        is specified, the first output will be connected.
-    hidden_size : int, default=1
-        The size of hidden layer. 
-        Affects the output size and the LSTM state vector size.
-    dropout_rate : float, default=0.0
-        The dropout probability for the input and the recurrent data.
-    recurrent_activation : {"linear", "elu", "relu", "leaky_relu", "abs", 
-                            "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", 
-                            "power", "hswish", "gelu"}, default="sigmoid"
-        The activation function that is used in forget, reset, and input gates.
-    reverse_seq : bool, default=False
-        Indicates if the input sequence should be taken in the reverse order.
-    name : str, default=None
-        The layer name.
+        This layer has 1 to 2 outputs
+
+        #1: the result of the current step
+        
+        #2 (optional): the layer history
+        
+        Both outputs' dimensions:
+        
+        - BatchLength, BatchWidth, ListSize are equal to the first input dimensions
+        - Height, Width, Depth are equal to 1
+        - Channels is equal to layer hidden size
     """
     activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]
 

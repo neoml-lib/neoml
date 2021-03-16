@@ -1,4 +1,4 @@
-.. _py-clustering:
+.. _py-clustering-submodule:
 
 ################
 neoml.Clustering

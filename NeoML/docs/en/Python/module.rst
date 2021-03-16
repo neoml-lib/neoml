@@ -6,7 +6,9 @@ Python module `neoml`
 
 The Python API is split into several submodules:
 
-- :ref:`py-clustering` containing clustering algorithms
-- neoml.Dnn
+- :ref:`py-clustering-submodule` containing clustering algorithms
+- neoml.MathEngine
+- neoml.Blob
+- :ref:`py-dnn-submodule` containing neural networks and layers
 - neoml.Linear
 - TBD
