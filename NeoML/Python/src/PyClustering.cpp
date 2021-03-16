@@ -34,11 +34,11 @@ public:
 	// IClusteringData interface methods:
 	virtual int GetVectorCount() const { return desc.Height; }
 	virtual int GetFeaturesCount() const { return desc.Width; }
-	virtual CSparseFloatMatrixDesc GetMatrix() const { return desc; }
+	virtual CFloatMatrixDesc GetMatrix() const { return desc; }
 	virtual double GetVectorWeight( int index ) const { return weights[index]; };
 
 private:
-	CSparseFloatMatrixDesc desc;
+	CFloatMatrixDesc desc;
 	const float* weights;
 };
 

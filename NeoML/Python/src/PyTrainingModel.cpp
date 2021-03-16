@@ -77,12 +77,12 @@ public:
 	// IRegressionProblem interface methods:
 	virtual int GetFeatureCount() const { return desc.Width; }
 	virtual int GetVectorCount() const { return desc.Height; }
-	virtual CSparseFloatMatrixDesc GetMatrix() const { return desc; }
+	virtual CFloatMatrixDesc GetMatrix() const { return desc; }
 	virtual double GetVectorWeight( int index ) const { return weights[index]; };
 	virtual double GetValue( int index ) const { return values[index]; }
 
 private:
-	CSparseFloatMatrixDesc desc;
+	CFloatMatrixDesc desc;
 	const float* values;
 	const float* weights;
 };
@@ -131,7 +131,7 @@ py::array_t<double> CPyModel::Classify( py::array indices, py::array data, py::a
 	py::array_t<double, py::array::c_style> totalResult( { rowCount, classesCount } );
 	auto r = totalResult.mutable_unchecked<2>();
 	for( int i = 0; i < rowCount; i++ ) {
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		vector.Size = rowPtr[i+1] - rowPtr[i];
 		vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
 		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
@@ -190,7 +190,7 @@ py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array da
 	py::array_t<double, py::array::c_style> totalResult( { rowCount } );
 	auto r = totalResult.mutable_unchecked<1>();
 	for( int i = 0; i < rowCount; i++ ) {
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		vector.Size = rowPtr[i+1] - rowPtr[i];
 		vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
 		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
