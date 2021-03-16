@@ -35,7 +35,7 @@ const int CDecisionTree::MaxClassifyNodesCacheSize;
 
 CDecisionTree::CDecisionTree( const CParams& _params, CRandom* _random ) :
 	params( _params ),
-	random( _random ),
+	random( _random != nullptr ? *_random : defRandom ),
 	logStream( 0 ),
 	nodesCount( 0 ),
 	statisticsCacheSize( 0 )
@@ -320,9 +320,8 @@ void CDecisionTree::generateUsedFeatures( int randomSelectedFeaturesCount, int f
 		NeoAssert( randomSelectedFeaturesCount < featuresCount );
 		for( int i = 0; i < randomSelectedFeaturesCount; i++ ) {
 			// Pick a random number from [i, featuresCount - 1] range
-			int randomInt = ( random == 0 ) ? rand() : random->Next();
-			int index = abs( randomInt ) % ( featuresCount - i );
-			swap( features[i], features[i + index] );
+			int index = random.UniformInt( i, featuresCount - 1 );
+			swap( features[i], features[index] );
 		}
 		features.SetSize( randomSelectedFeaturesCount );
 	}
