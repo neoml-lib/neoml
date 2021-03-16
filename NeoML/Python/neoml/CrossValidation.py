@@ -19,7 +19,7 @@ from scipy.sparse import csr_matrix
 import neoml.PythonWrapper as PythonWrapper
 
 
-def cross_validation_score(classifier, X, Y, weights=None, score="accuracy", parts=5, stratified=False):
+def cross_validation_score(classifier, X, Y, weight=None, score="accuracy", parts=5, stratified=False):
     """Gets the classification results for the input sample.
 
     Parameters
