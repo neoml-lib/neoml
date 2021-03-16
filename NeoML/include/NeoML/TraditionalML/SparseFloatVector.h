@@ -21,18 +21,22 @@ limitations under the License.
 
 namespace NeoML {
 
-// A vector descriptor, that can fit both dense and sparse representations
-struct NEOML_API CSparseFloatVectorDesc {
+// A vector descriptor
+// If Indexes field is not set assume dense representation, otherwise assume sparse.
+struct NEOML_API CFloatVectorDesc {
 	int Size;
 	int* Indexes;
 	float* Values;
 
-	CSparseFloatVectorDesc() : Size( 0 ), Indexes( nullptr ), Values( nullptr ) {}
+	CFloatVectorDesc() : Size( 0 ), Indexes( nullptr ), Values( nullptr ) {}
 
-	static CSparseFloatVectorDesc Empty;
+	static CFloatVectorDesc Empty;
 };
 
-inline bool GetValue( const CSparseFloatVectorDesc& vector, int index, float& value )
+// DEPRECATED: for compatibility
+typedef CFloatVectorDesc CSparseFloatVectorDesc;
+
+inline bool GetValue( const CFloatVectorDesc& vector, int index, float& value )
 {
 	if( vector.Indexes != nullptr ) {
 		const int pos = FindInsertionPoint<int, Ascending<int>, int>( index, vector.Indexes, vector.Size ) - 1;
@@ -50,7 +54,7 @@ inline bool GetValue( const CSparseFloatVectorDesc& vector, int index, float& va
 	return false;
 }
 
-inline float GetValue( const CSparseFloatVectorDesc& vector, int index )
+inline float GetValue( const CFloatVectorDesc& vector, int index )
 {
 	float value = 0.f;
 	if( GetValue( vector, index, value ) ) {
@@ -81,11 +85,11 @@ public:
 
 	CSparseFloatVector();
 	explicit CSparseFloatVector( int bufferSize );
-	explicit CSparseFloatVector( const CSparseFloatVectorDesc& desc );
+	explicit CSparseFloatVector( const CFloatVectorDesc& desc );
 	CSparseFloatVector( const CSparseFloatVector& other );
 
-	CSparseFloatVectorDesc* CopyOnWrite() { return body == nullptr ? nullptr : &body.CopyOnWrite()->Desc; }
-	const CSparseFloatVectorDesc& GetDesc() const { return body == nullptr ? CSparseFloatVectorDesc::Empty : body->Desc; }
+	CFloatVectorDesc* CopyOnWrite() { return body == nullptr ? nullptr : &body.CopyOnWrite()->Desc; }
+	const CFloatVectorDesc& GetDesc() const { return body == nullptr ? CFloatVectorDesc::Empty : body->Desc; }
 
 	int NumberOfElements() const { return body == nullptr ? 0 : body->Desc.Size; }
 
@@ -124,13 +128,13 @@ private:
 	// The vector body, that is, the object that stores all its data.
 	struct NEOML_API CSparseFloatVectorBody : public IObject {
 		int BufferSize;
-		CSparseFloatVectorDesc Desc;
+		CFloatVectorDesc Desc;
 		// Memory holders
 		CArray<int> IndexesBuf;
 		CArray<float> ValuesBuf;
 
 		explicit CSparseFloatVectorBody( int bufferSize );
-		explicit CSparseFloatVectorBody( const CSparseFloatVectorDesc& desc );
+		explicit CSparseFloatVectorBody( const CFloatVectorDesc& desc );
 		~CSparseFloatVectorBody() override = default;
 
 		CSparseFloatVectorBody* Duplicate() const;
@@ -177,7 +181,7 @@ inline CSparseFloatVector::TIterator CSparseFloatVector::end()
 // Writing into a CTextStream
 inline CTextStream& operator<<( CTextStream& stream, const CSparseFloatVector& vector )
 {
-	const CSparseFloatVectorDesc& desc = vector.GetDesc();
+	const CFloatVectorDesc& desc = vector.GetDesc();
 	stream << "( ";
 	if( desc.Size == 0 ) {
 		stream << "empty";

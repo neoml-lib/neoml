@@ -29,7 +29,7 @@ void CDecisionTreeNodeBase::SetInfo( CDecisionTreeNodeInfoBase* newInfo )
 	info = newInfo;
 }
 
-void CDecisionTreeNodeBase::GetClassifyNode( const CSparseFloatVectorDesc& data, CPtr<CDecisionTreeNodeBase>& node, int& additionalLevel ) const
+void CDecisionTreeNodeBase::GetClassifyNode( const CFloatVectorDesc& data, CPtr<CDecisionTreeNodeBase>& node, int& additionalLevel ) const
 {
 	if( info == 0 ) {
 		node = const_cast<CDecisionTreeNodeBase*>( this );
