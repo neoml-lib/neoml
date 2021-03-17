@@ -200,7 +200,7 @@ void InitializeActivationLayer( py::module& m )
 			CPtr<CLinearLayer> linear = new CLinearLayer( mathEngine );
 			linear->SetMultiplier( multiplier );
 			linear->SetFreeTerm( freeTerm );
-			linear->SetName( name == "" ? findFreeLayerName( dnn, "LinearLayer" ).c_str() : name.c_str() );
+			linear->SetName( FindFreeLayerName( dnn, "Linear", name ).c_str() );
 			dnn.AddLayer( *linear );
 			linear->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyLinearLayer( *linear, layer.MathEngineOwner() );
@@ -221,7 +221,7 @@ void InitializeActivationLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CELULayer> elu = new CELULayer( mathEngine );
 			elu->SetAlpha( alpha );
-			elu->SetName( name == "" ? findFreeLayerName( dnn, "ELU" ).c_str() : name.c_str() );
+			elu->SetName( FindFreeLayerName( dnn, "ELU", name ).c_str() );
 			dnn.AddLayer( *elu );
 			elu->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyELULayer( *elu, layer.MathEngineOwner() );
@@ -240,7 +240,7 @@ void InitializeActivationLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CReLULayer> relu = new CReLULayer( mathEngine );
 			relu->SetUpperThreshold( threshold );
-			relu->SetName( name == "" ? findFreeLayerName( dnn, "ReLU" ).c_str() : name.c_str() );
+			relu->SetName( FindFreeLayerName( dnn, "ReLU", name ).c_str() );
 			dnn.AddLayer( *relu );
 			relu->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyReLULayer( *relu, layer.MathEngineOwner() );
@@ -259,7 +259,7 @@ void InitializeActivationLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CLeakyReLULayer> leakyReLU = new CLeakyReLULayer( mathEngine );
 			leakyReLU->SetAlpha( alpha );
-			leakyReLU->SetName( name == "" ? findFreeLayerName( dnn, "LeakyReLU" ).c_str() : name.c_str() );
+			leakyReLU->SetName( FindFreeLayerName( dnn, "LeakyReLU", name ).c_str() );
 			dnn.AddLayer( *leakyReLU );
 			leakyReLU->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyLeakyReLULayer( *leakyReLU, layer.MathEngineOwner() );
@@ -277,7 +277,7 @@ void InitializeActivationLayer( py::module& m )
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CHSwishLayer> hswish = new CHSwishLayer( mathEngine );
-			hswish->SetName( name == "" ? findFreeLayerName( dnn, "HSwish" ).c_str() : name.c_str() );
+			hswish->SetName( FindFreeLayerName( dnn, "HSwish", name ).c_str() );
 			dnn.AddLayer( *hswish );
 			hswish->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyHSwishLayer( *hswish, layer.MathEngineOwner() );
@@ -293,7 +293,7 @@ void InitializeActivationLayer( py::module& m )
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CAbsLayer> abs = new CAbsLayer( mathEngine );
-			abs->SetName( name == "" ? findFreeLayerName( dnn, "Abs" ).c_str() : name.c_str() );
+			abs->SetName( FindFreeLayerName( dnn, "Abs", name ).c_str() );
 			dnn.AddLayer( *abs );
 			abs->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyAbsLayer( *abs, layer.MathEngineOwner() );
@@ -309,7 +309,7 @@ void InitializeActivationLayer( py::module& m )
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSigmoidLayer> sigmoid = new CSigmoidLayer( mathEngine );
-			sigmoid->SetName( name == "" ? findFreeLayerName( dnn, "Sigmoid" ).c_str() : name.c_str() );
+			sigmoid->SetName( FindFreeLayerName( dnn, "Sigmoid", name ).c_str() );
 			dnn.AddLayer( *sigmoid );
 			sigmoid->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPySigmoidLayer( *sigmoid, layer.MathEngineOwner() );
@@ -325,7 +325,7 @@ void InitializeActivationLayer( py::module& m )
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CTanhLayer> tanh = new CTanhLayer( mathEngine );
-			tanh->SetName( name == "" ? findFreeLayerName( dnn, "Tanh" ).c_str() : name.c_str() );
+			tanh->SetName( FindFreeLayerName( dnn, "Tanh", name ).c_str() );
 			dnn.AddLayer( *tanh );
 			tanh->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyTanhLayer( *tanh, layer.MathEngineOwner() );
@@ -341,7 +341,7 @@ void InitializeActivationLayer( py::module& m )
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CHardTanhLayer> hardTanh = new CHardTanhLayer( mathEngine );
-			hardTanh->SetName( name == "" ? findFreeLayerName( dnn, "HardTanh" ).c_str() : name.c_str() );
+			hardTanh->SetName( FindFreeLayerName( dnn, "HardTanh", name ).c_str() );
 			dnn.AddLayer( *hardTanh );
 			hardTanh->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyHardTanhLayer( *hardTanh, layer.MathEngineOwner() );
@@ -359,7 +359,7 @@ void InitializeActivationLayer( py::module& m )
 			CPtr<CHardSigmoidLayer> hardSigmoid = new CHardSigmoidLayer( mathEngine );
 			hardSigmoid->SetSlope(slope);
 			hardSigmoid->SetBias(bias);
-			hardSigmoid->SetName( name == "" ? findFreeLayerName( dnn, "HardSigmoid" ).c_str() : name.c_str() );
+			hardSigmoid->SetName( FindFreeLayerName( dnn, "HardSigmoid", name ).c_str() );
 			dnn.AddLayer( *hardSigmoid );
 			hardSigmoid->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyHardSigmoidLayer( *hardSigmoid, layer.MathEngineOwner() );
@@ -380,7 +380,7 @@ void InitializeActivationLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CPowerLayer> power = new CPowerLayer( mathEngine );
 			power->SetExponent( exponent );
-			power->SetName( name == "" ? findFreeLayerName( dnn, "Power" ).c_str() : name.c_str() );
+			power->SetName( FindFreeLayerName( dnn, "Power", name ).c_str() );
 			dnn.AddLayer( *power );
 			power->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyPowerLayer( *power, layer.MathEngineOwner() );
@@ -398,7 +398,7 @@ void InitializeActivationLayer( py::module& m )
 				CDnn& dnn = layer.Dnn();
 				IMathEngine& mathEngine = dnn.GetMathEngine();
 				CPtr<CGELULayer> gelu = new CGELULayer(mathEngine);
-				gelu->SetName(name == "" ? findFreeLayerName(dnn, "GELU").c_str() : name.c_str());
+				gelu->SetName( FindFreeLayerName(dnn, "GELU", name).c_str() );
 				dnn.AddLayer(*gelu);
 				gelu->Connect(0, layer.BaseLayer(), outputNumber);
 				return new CPyGELULayer(*gelu, layer.MathEngineOwner());

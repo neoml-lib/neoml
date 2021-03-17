@@ -60,7 +60,7 @@ void InitializeBinarizationLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CEnumBinarizationLayer> bin = new CEnumBinarizationLayer( mathEngine );
 			bin->SetEnumSize( enumSize );
-			bin->SetName( name == "" ? findFreeLayerName( dnn, "EnumBinarization" ).c_str() : name.c_str() );
+			bin->SetName( FindFreeLayerName( dnn, "EnumBinarization", name ).c_str() );
 			dnn.AddLayer( *bin );
 			bin->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyEnumBinarizationLayer( *bin, layer.MathEngineOwner() );
@@ -79,7 +79,7 @@ void InitializeBinarizationLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CBitSetVectorizationLayer> bin = new CBitSetVectorizationLayer( mathEngine );
 			bin->SetBitSetSize( bitsetSize );
-			bin->SetName( name == "" ? findFreeLayerName( dnn, "BitSetVectorization" ).c_str() : name.c_str() );
+			bin->SetName( FindFreeLayerName( dnn, "BitSetVectorization", name ).c_str() );
 			dnn.AddLayer( *bin );
 			bin->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyBitSetVectorizationLayer( *bin, layer.MathEngineOwner() );

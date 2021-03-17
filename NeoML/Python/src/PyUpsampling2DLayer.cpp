@@ -49,7 +49,7 @@ void InitializeUpsampling2DLayer( py::module& m )
 			CPtr<CUpsampling2DLayer> upsampling = new CUpsampling2DLayer( mathEngine );
 			upsampling->SetHeightCopyCount(heightCopyCount);
 			upsampling->SetWidthCopyCount(widthCopyCount);
-			upsampling->SetName( name == "" ? findFreeLayerName( dnn, "Upsampling2D" ).c_str() : name.c_str() );
+			upsampling->SetName( FindFreeLayerName( dnn, "Upsampling2D", name ).c_str() );
 			dnn.AddLayer( *upsampling );
 			for( int i = 0; i < layers.size(); i++ ) {
 				upsampling->Connect(i, layers[i].cast<CPyLayer>().BaseLayer(), outputs[i].cast<int>());

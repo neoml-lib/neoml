@@ -72,7 +72,7 @@ void InitializeIrnnLayer( py::module& m )
 			irnn->SetIdentityScale(identity_scale);
 			irnn->SetInputWeightStd(input_weight_std);
 			irnn->SetReverseSequence(reverse_seq);
-			irnn->SetName( name == "" ? findFreeLayerName( dnn, "Irnn" ).c_str() : name.c_str() );
+			irnn->SetName( FindFreeLayerName( dnn, "Irnn", name ).c_str() );
 			dnn.AddLayer( *irnn );
 
 			for( int i = 0; i < inputs.size(); i++ ) {

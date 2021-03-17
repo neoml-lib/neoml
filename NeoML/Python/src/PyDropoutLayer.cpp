@@ -55,7 +55,7 @@ void InitializeDropoutLayer( py::module& m )
 			dropout->SetDropoutRate( dropoutRate );
 			dropout->SetSpatial( isSpatial );
 			dropout->SetBatchwise( isBatchwise );
-			dropout->SetName( name == "" ? findFreeLayerName( dnn, "Dropout" ).c_str() : name.c_str() );
+			dropout->SetName( FindFreeLayerName( dnn, "Dropout", name ).c_str() );
 			dnn.AddLayer( *dropout );
 			dropout->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyDropoutLayer( *dropout, layer.MathEngineOwner() );

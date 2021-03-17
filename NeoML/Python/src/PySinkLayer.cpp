@@ -47,7 +47,7 @@ void InitializeSinkLayer( py::module& m )
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
-			sink->SetName( name == "" ? findFreeLayerName( dnn, "SinkLayer" ).c_str() : name.c_str() );
+			sink->SetName( FindFreeLayerName( dnn, "Sink", name ).c_str() );
 			dnn.AddLayer( *sink );
 			sink->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPySinkLayer( *sink, layer.MathEngineOwner() );

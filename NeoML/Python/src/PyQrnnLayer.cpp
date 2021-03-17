@@ -80,7 +80,7 @@ void InitializeQrnnLayer( py::module& m )
 			qrnn->SetActivation(static_cast<TActivationFunction>(activation));
 			qrnn->SetDropout(dropoutRate);
 			qrnn->SetRecurrentMode(static_cast<CQrnnLayer::TRecurrentMode>(mode));
-			qrnn->SetName( name == "" ? findFreeLayerName( dnn, "Qrnn" ).c_str() : name.c_str() );
+			qrnn->SetName( FindFreeLayerName( dnn, "Qrnn", name ).c_str() );
 			dnn.AddLayer( *qrnn );
 
 			for( int i = 0; i < inputs.size(); i++ ) {
