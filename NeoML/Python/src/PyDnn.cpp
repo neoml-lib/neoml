@@ -422,7 +422,7 @@ void InitializeDnn(py::module& m)
 				}
 
 				auto t0_array = t[0].cast<py::array>();
-				CPyMemoryFile file( &t0_array );
+				CPyMemoryFile file( t0_array );
 				CArchive archive( &file, CArchive::load );
 				CPtr<CPyMathEngineOwner> mathEngineOwner( new CPyMathEngineOwner() );
 				CPtr<CPyRandomOwner> randomOwner( new CPyRandomOwner() );

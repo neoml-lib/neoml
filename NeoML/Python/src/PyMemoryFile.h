@@ -25,20 +25,20 @@ namespace py = pybind11;
 class CPyMemoryFile : public CBaseFile {
 public:
 	CPyMemoryFile();
-	CPyMemoryFile( py::array* buffer );
+	CPyMemoryFile( py::array buffer );
 	virtual ~CPyMemoryFile();
 
 	bool IsOpen() const { return state != S_Closed; }
-	py::array* GetBuffer() const;
+	py::array GetBuffer() const;
 
 	virtual const char* GetFileName() const { return "Memory file."; }
 	virtual int Read( void*, int bytesCount );
 	virtual void Write( const void*, int bytesCount );
 	virtual void Close();
-	virtual __int64 GetPosition() const;
-	virtual __int64 Seek( __int64 offset, TSeekPosition from );
-	virtual void SetLength( __int64 newLength );
-	virtual __int64 GetLength() const;
+	virtual long long GetPosition() const;
+	virtual long long Seek( long long offset, TSeekPosition from );
+	virtual void SetLength( long long newLength );
+	virtual long long GetLength() const;
 	virtual void Abort();
 	virtual void Flush();
 
@@ -51,7 +51,7 @@ private:
 		S_Closed
 	};
 
-	py::array* buffer;
+	py::array buffer;
 	int bufferSize;
 	int fileLength;
 	int currentPosition;
