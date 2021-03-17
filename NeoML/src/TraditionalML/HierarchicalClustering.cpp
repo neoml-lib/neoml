@@ -70,6 +70,10 @@ bool CHierarchicalClustering::Clusterize( IClusteringData* data, CClusteringResu
 			*log << "\n[Step " << initialClustersCount - clusters.Size() << "]\n";
 		}
 
+		if( clusters.Size() <= params.MinClustersCount ) {
+			break;
+		}
+
 		int first = NotFound;
 		int second = NotFound;
 		findNearestClusters( first, second );
@@ -80,10 +84,6 @@ bool CHierarchicalClustering::Clusterize( IClusteringData* data, CClusteringResu
 
 		if( distances[first][second] > params.MaxClustersDistance ) {
 			success = true;
-			break;
-		}
-
-		if( clusters.Size() <= params.MinClustersCount ) {
 			break;
 		}
 
