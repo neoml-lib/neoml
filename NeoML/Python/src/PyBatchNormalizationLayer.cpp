@@ -60,7 +60,7 @@ void InitializeBatchNormalizationLayer( py::module& m )
 			batchNorm->SetChannelBased( channelBased );
 			batchNorm->SetZeroFreeTerm( zeroFreeTerm );
 			batchNorm->SetSlowConvergenceRate( slowConvergenceRate );
-			batchNorm->SetName( name == "" ? findFreeLayerName( dnn, "BatchNormalization" ).c_str() : name.c_str() );
+			batchNorm->SetName( FindFreeLayerName( dnn, "BatchNormalization", name ).c_str() );
 			dnn.AddLayer( *batchNorm );
 			batchNorm->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyBatchNormalizationLayer( *batchNorm, layer.MathEngineOwner() );

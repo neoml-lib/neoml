@@ -57,7 +57,7 @@ void InitializePrecisionRecallLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CPrecisionRecallLayer> recall = new CPrecisionRecallLayer( mathEngine );
 			recall->SetReset(reset);
-			recall->SetName( name == "" ? findFreeLayerName( dnn, "PrecisionRecall" ).c_str() : name.c_str() );
+			recall->SetName( FindFreeLayerName( dnn, "PrecisionRecall", name ).c_str() );
 			dnn.AddLayer( *recall );
 			recall->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			recall->Connect( 1, layer2.BaseLayer(), outputNumber2 );
