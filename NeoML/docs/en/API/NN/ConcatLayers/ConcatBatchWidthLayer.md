@@ -22,7 +22,7 @@ This layer has no trainable parameters.
 
 ## Inputs
 
-The layer accepts an arbitrary number of inputs, each containing a [blob](..\DnnBlob.md) with data:
+The layer accepts an arbitrary number of inputs, each containing a [blob](../DnnBlob.md) with data:
 
 - `BatchLength`, `ListSize`, `Height`, `Width`, `Depth`, and `Channels` dimensions must be the same for all inputs. 
 - The `BatchWidth` dimension may vary.
