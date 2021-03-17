@@ -2017,7 +2017,7 @@ class DnnTestCase(TestCase):
         self.assertTrue(len(dnn.input_layers), 1)
         self.assertTrue(len(dnn.layers), 3)
         self.assertTrue(len(dnn.output_layers), 1)
-
+'''
 class TraditionalTestCase(TestCase):
     def _test_classification_model(self, model, params):
         X_dense = np.eye(20, 5, dtype=np.float32)
@@ -2132,3 +2132,4 @@ class ClusteringTestCase(TestCase):
 
     def test_kmeans(self):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
+'''
