@@ -78,23 +78,27 @@ class ObjectNormalization(Layer):
     @property
     def scale(self):
         """Gets scale, one of the trainable parameters in the formula.
+        The total blob size is equal to the input Height * Width * Depth * Channels.
         """
         return Blob.Blob(self._internal.get_scale())
 
     @scale.setter
     def scale(self, scale):
         """Sets scale, one of the trainable parameters in the formula.
+        The total blob size is equal to the input Height * Width * Depth * Channels.
         """
         self._internal.set_scale(scale._internal)
 
     @property
     def bias(self):
         """Gets bias, one of the trainable parameters in the formula.
+        The total blob size is equal to the input Height * Width * Depth * Channels.
         """
         return Blob.Blob(self._internal.get_bias())
 
     @bias.setter
     def bias(self, bias):
         """Sets bias, one of the trainable parameters in the formula.
+        The total blob size is equal to the input Height * Width * Depth * Channels.
         """
         self._internal.set_bias(bias._internal)

@@ -24,7 +24,7 @@ class FullyConnected(Layer):
     """The fully connected layer.
     It multiplies each of the input vectors by the weight matrix
     and adds the free term vector to the result.
-    
+
     Layer inputs
     -----------
     The layer can have any number of inputs.
@@ -32,7 +32,7 @@ class FullyConnected(Layer):
     - BatchLength * BatchWidth * ListSize is the number of vectors
     - Height * Width * Depth * Channels is the vector size; 
         should be the same for all inputs
-  
+
     Layer outputs
     -----------
     The layer returns one output for each input.
@@ -40,7 +40,7 @@ class FullyConnected(Layer):
     - BatchLength, BatchWidth, ListSize the same as for the input
     - Height, Width, Depth are 1
     - Channels is element_count
-    
+
     Parameters
     -----------
     input_layers : array of (object, int) tuples or objects
@@ -89,7 +89,7 @@ class FullyConnected(Layer):
 
 
     def apply_batch_normalization(self, layer):
-        """Connects the batch normalization layer directly 
+        """Applies the batch normalization layer directly
         to this layer output.
         If you perform batch normalization on this layer's output, 
         you can train the network, then move the batch normalization layer
