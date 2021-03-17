@@ -51,7 +51,7 @@ void InitializeObjectNormalizationLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CObjectNormalizationLayer> norm = new CObjectNormalizationLayer( mathEngine );
 			norm->SetEpsilon(epsilon);
-			norm->SetName( name == "" ? findFreeLayerName( dnn, "ObjectNormalization" ).c_str() : name.c_str() );
+			norm->SetName( FindFreeLayerName( dnn, "ObjectNormalization", name ).c_str() );
 			dnn.AddLayer( *norm );
 			norm->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPyObjectNormalizationLayer( *norm, layer1.MathEngineOwner() );

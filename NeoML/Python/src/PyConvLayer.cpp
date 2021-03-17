@@ -136,7 +136,7 @@ void InitializeConvLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CConvLayer> conv = new CConvLayer( mathEngine );
-			conv->SetName( name == "" ? findFreeLayerName( dnn, "Conv" ).c_str() : name.c_str() );
+			conv->SetName( FindFreeLayerName( dnn, "Conv", name ).c_str() );
 			conv->SetFilterCount( filterCount );
 			conv->SetFilterHeight( filterHeight );
 			conv->SetFilterWidth( filterWidth );
@@ -179,7 +179,7 @@ void InitializeConvLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<C3dConvLayer> conv = new C3dConvLayer( mathEngine );
-			conv->SetName( name == "" ? findFreeLayerName( dnn, "Conv3D" ).c_str() : name.c_str() );
+			conv->SetName( FindFreeLayerName( dnn, "Conv3D", name ).c_str() );
 			conv->SetFilterCount( filterCount );
 			conv->SetFilterHeight( filterHeight );
 			conv->SetFilterWidth( filterWidth );
@@ -214,7 +214,7 @@ void InitializeConvLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<C3dTransposedConvLayer> conv = new C3dTransposedConvLayer( mathEngine );
-			conv->SetName( name == "" ? findFreeLayerName( dnn, "TransposedConv3D" ).c_str() : name.c_str() );
+			conv->SetName( FindFreeLayerName( dnn, "TransposedConv3D", name ).c_str() );
 			conv->SetFilterCount( filterCount );
 			conv->SetFilterHeight( filterHeight );
 			conv->SetFilterWidth( filterWidth );
@@ -247,7 +247,7 @@ void InitializeConvLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CTransposedConvLayer> conv = new CTransposedConvLayer( mathEngine );
-			conv->SetName( name == "" ? findFreeLayerName( dnn, "TransposedConv" ).c_str() : name.c_str() );
+			conv->SetName( FindFreeLayerName( dnn, "TransposedConv", name ).c_str() );
 			conv->SetFilterCount( filterCount );
 			conv->SetFilterHeight( filterHeight );
 			conv->SetFilterWidth( filterWidth );
@@ -279,7 +279,7 @@ void InitializeConvLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CTimeConvLayer> conv = new CTimeConvLayer( mathEngine );
-			conv->SetName( name == "" ? findFreeLayerName( dnn, "TimeConv" ).c_str() : name.c_str() );
+			conv->SetName( FindFreeLayerName( dnn, "TimeConv", name ).c_str() );
 			conv->SetFilterCount( filterCount );
 			conv->SetFilterSize( filterSize );
 			conv->SetStride( stride );
@@ -319,7 +319,7 @@ void InitializeConvLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CChannelwiseConvLayer> conv = new CChannelwiseConvLayer( mathEngine );
-			conv->SetName( name == "" ? findFreeLayerName( dnn, "ChannelwiseConvLayer" ).c_str() : name.c_str() );
+			conv->SetName( FindFreeLayerName( dnn, "ChannelwiseConv", name ).c_str() );
 			conv->SetFilterCount( filterCount );
 			conv->SetFilterHeight( filterHeight );
 			conv->SetFilterWidth( filterWidth );

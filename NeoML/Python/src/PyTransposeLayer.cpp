@@ -76,7 +76,7 @@ void InitializeTransposeLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CTransposeLayer> transpose = new CTransposeLayer( mathEngine );
 			transpose->SetTransposedDimensions(static_cast<TBlobDim>(firstIndex), static_cast<TBlobDim>(secondIndex));
-			transpose->SetName( name == "" ? findFreeLayerName( dnn, "Transpose" ).c_str() : name.c_str() );
+			transpose->SetName( FindFreeLayerName( dnn, "Transpose", name ).c_str() );
 			dnn.AddLayer( *transpose );
 			transpose->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPyTransposeLayer( *transpose, layer1.MathEngineOwner() );

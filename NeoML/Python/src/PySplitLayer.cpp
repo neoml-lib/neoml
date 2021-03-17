@@ -96,7 +96,7 @@ void InitializeSplitLayer( py::module& m )
 				outputs[i] = reinterpret_cast<const int*>(sizes.data())[i];
 			}
 			split->SetOutputCounts(outputs);
-			split->SetName( name == "" ? findFreeLayerName( dnn, "SplitChannels" ).c_str() : name.c_str() );
+			split->SetName( FindFreeLayerName( dnn, "SplitChannels", name ).c_str() );
 			dnn.AddLayer( *split );
 			split->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPySplitChannelsLayer( *split, layer1.MathEngineOwner() );
@@ -118,7 +118,7 @@ void InitializeSplitLayer( py::module& m )
 				outputs[i] = reinterpret_cast<const int*>(sizes.data())[i];
 			}
 			split->SetOutputCounts(outputs);
-			split->SetName( name == "" ? findFreeLayerName( dnn, "SplitDepth" ).c_str() : name.c_str() );
+			split->SetName( FindFreeLayerName( dnn, "SplitDepth", name ).c_str() );
 			dnn.AddLayer( *split );
 			split->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPySplitDepthLayer( *split, layer1.MathEngineOwner() );
@@ -140,7 +140,7 @@ void InitializeSplitLayer( py::module& m )
 				outputs[i] = reinterpret_cast<const int*>(sizes.data())[i];
 			}
 			split->SetOutputCounts(outputs);
-			split->SetName( name == "" ? findFreeLayerName( dnn, "SplitWidth" ).c_str() : name.c_str() );
+			split->SetName( FindFreeLayerName( dnn, "SplitWidth", name ).c_str() );
 			dnn.AddLayer( *split );
 			split->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPySplitWidthLayer( *split, layer1.MathEngineOwner() );
@@ -162,7 +162,7 @@ void InitializeSplitLayer( py::module& m )
 				outputs[i] = reinterpret_cast<const int*>(sizes.data())[i];
 			}
 			split->SetOutputCounts(outputs);
-			split->SetName( name == "" ? findFreeLayerName( dnn, "SplitHeight" ).c_str() : name.c_str() );
+			split->SetName( FindFreeLayerName( dnn, "SplitHeight", name ).c_str() );
 			dnn.AddLayer( *split );
 			split->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPySplitHeightLayer( *split, layer1.MathEngineOwner() );
@@ -184,7 +184,7 @@ void InitializeSplitLayer( py::module& m )
 				outputs[i] = reinterpret_cast<const int*>(sizes.data())[i];
 			}
 			split->SetOutputCounts(outputs);
-			split->SetName( name == "" ? findFreeLayerName( dnn, "SplitBatchWidth" ).c_str() : name.c_str() );
+			split->SetName( FindFreeLayerName( dnn, "SplitBatchWidth", name ).c_str() );
 			dnn.AddLayer( *split );
 			split->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPySplitBatchWidthLayer( *split, layer1.MathEngineOwner() );
