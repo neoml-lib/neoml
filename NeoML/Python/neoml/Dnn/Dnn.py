@@ -144,6 +144,9 @@ class Dnn(PythonWrapper.Dnn):
         Parameters
         ----------
         inputs : The dictionary of input blobs.
+            The dictionary keys (str) are the source layer names.
+            The dictionary values (neoml.Blob) are the blobs passed 
+            to these source layers.
 
         Returns
         -------
@@ -175,6 +178,9 @@ class Dnn(PythonWrapper.Dnn):
         Parameters
         ---------
         inputs : The dictionary of input blobs.
+            The dictionary keys (str) are the source layer names.
+            The dictionary values (neoml.Blob) are the blobs passed 
+            to these source layers.
 
         Returns
         -------
@@ -201,6 +207,9 @@ class Dnn(PythonWrapper.Dnn):
         Parameters
         ---------
         inputs : The dictionary of input blobs.
+            The dictionary keys (str) are the source layer names.
+            The dictionary values (neoml.Blob) are the blobs passed 
+            to these source layers.
 
         Returns
         -------

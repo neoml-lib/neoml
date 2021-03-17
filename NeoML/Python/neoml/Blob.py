@@ -50,7 +50,8 @@ class Blob:
 
     @property
     def math_engine(self):
-        """The math engine which will perform the calculations.
+        """The math engine that allocates the blob memory 
+        and will work with its data.
         """
         return self._internal.math_engine()
 
@@ -125,13 +126,15 @@ class Blob:
     def asarray(self, copy=False):
         """Returns the contents of the blob as a multi-dimensional array, 
         keeping only those dimensions that are more than 1 element long.
+        If all dimensions are 1, the blob will be a one-element array.
         
         Parameters
         ---------
         copy : bool, default=False
-            If True, the data will be copied. If False, the array will share
-            the memory buffer with the blob and only provide more convenient 
-            access to the same data.
+            If True, the data will be copied. If False, the array may share
+            the memory buffer with the blob if possible and only provide 
+            more convenient access to the same data.
+            Not copying may be impossible if the blob is in GPU memory.
         """
         if type(self.math_engine) is MathEngine.GpuMathEngine:
             copy = True
@@ -145,12 +148,12 @@ class Blob:
 # -------------------------------------------------------------------------------------------------------------
 
 def store(blob, file_path):
-    """Stores the contents of the blob into a file at the specified path.
+    """Stores the blob in a file at the specified path.
     
     Parameters
     ---------
     file_path : str
-        The full path to the file where the blob contents should be stored.
+        The full path to the file where the blob should be stored.
     """
     if not type(blob) is Blob:
         raise ValueError('The `blob` must be neoml.Blob.')
@@ -162,14 +165,14 @@ def store(blob, file_path):
 
 
 def load(math_engine, file_path):
-    """Loads the contents of the blob from the specified location.
+    """Loads the blob from the specified location.
     
     Parameters
     ---------
     math_engine : object
-        The math engine that will perform calculations.
+        The math engine that works with this blob.
     file_path : str
-        The full path to the file from which blob contents should be loaded.
+        The full path to the file from which the blob should be loaded.
     """
     if not isinstance(math_engine, MathEngine.MathEngine):
         raise ValueError('The `math_engine` must be neoml.MathEngine.')
@@ -183,7 +186,7 @@ def asblob(math_engine, data, shape=None, copy=False):
     Parameters
     ---------
     math_engine : object
-        The math engine that will perform calculations.
+        The math engine that works with this blob.
     data : object
         A pointer to the data.
     shape : array of int, default=None
@@ -191,8 +194,9 @@ def asblob(math_engine, data, shape=None, copy=False):
         a one-element blob will be assumed.
     copy : bool, default=False
         Specifies if the data should be copied to another memory block
-        or kept in the same place, making the data parameter point to
-        the body of the newly-created blob.
+        or kept in the same place if possible, making the data parameter 
+        point to the body of the newly-created blob.
+        Not copying may be impossible if the blob is in GPU memory.
     """
     if shape is None:
         shape = numpy.ones(7, numpy.int32)
@@ -227,7 +231,7 @@ def vector(math_engine, size, dtype="float32"):
     Parameters
     ---------
     math_engine : object
-        The math engine that will perform calculations.
+        The math engine that works with this blob.
     size : int, > 0
         The vector length.
     dtype : {"float32", "int32"}, default="float32"
@@ -249,7 +253,7 @@ def matrix(math_engine, matrix_height, matrix_width, dtype="float32"):
     Parameters
     ---------
     math_engine : object
-        The math engine that will perform calculations.
+        The math engine that works with this blob.
     matrix_height : int, > 0
         The matrix height.
     matrix_width : int, > 0
@@ -275,7 +279,7 @@ def tensor(math_engine, shape, dtype="float32"):
     Parameters
     ---------
     math_engine : object
-        The math engine that will perform calculations.
+        The math engine that works with this blob.
     shape : array of int
         The target blob dimensions.
     dtype : {"float32", "int32"}, default="float32"
@@ -301,7 +305,7 @@ def list_blob(math_engine, batch_len, batch_width, list_size, channels, dtype="f
     Parameters
     ---------
     math_engine : object
-        The math engine that will perform calculations.
+        The math engine that works with this blob.
     batch_len : int, > 0
         The BatchLength dimension of the new blob.
     batch_width : int, > 0
@@ -335,7 +339,7 @@ def image2d(math_engine, batch_len, batch_width, height, width, channels, dtype=
     Parameters
     ---------
     math_engine : object
-        The math engine that will perform calculations.
+        The math engine that works with this blob.
     batch_len : int, > 0
         The BatchLength dimension of the new blob.
     batch_width : int, > 0
@@ -373,7 +377,7 @@ def image3d(math_engine, batch_len, batch_width, height, width, depth, channels,
     Parameters
     ---------
     math_engine : object
-        The math engine that will perform calculations.
+        The math engine that works with this blob.
     batch_len : int, > 0
         The BatchLength dimension of the new blob.
     batch_width : int, > 0
