@@ -4,6 +4,12 @@ import sys
 import subprocess
 import re
 
+is_readthedocs = (os.getenv('READTHEDOCS') == 'True')
+launch_dir = os.getcwd()
+
+if is_readthedocs:
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
@@ -59,7 +65,10 @@ class CMakeBuild(build_ext):
         )
 
 def get_version():
-    file_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), "../../Build/Inc/ProductBuildNumber.h")
+    if is_readthedocs:
+        file_path = os.path.join(os.getcwd(), "../../Build/Inc/ProductBuildNumber.h")
+    else:
+        file_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), "../../Build/Inc/ProductBuildNumber.h")
     pattern = r"#define VERINFO_MAJOR_VERSION ([0-9]+)\n#define VERINFO_MINOR_VERSION ([0-9]+)\n#define VERINFO_MODIFICATION_NUMBER ([0-9]+)"
     with open(file_path, 'r', encoding='utf-8') as f:
         result = re.search(pattern, f.read())
@@ -81,3 +90,6 @@ setup(
     zip_safe=False,
     test_suite='tests'
 )
+
+if is_readthedocs:
+    os.chdir(launch_dir)
