@@ -53,7 +53,7 @@ void InitializeSourceLayer( py::module& m )
 		.def( py::init([]( const CPyDnn& dnn, const std::string& name )
 		{
 			CPtr<CSourceLayer> sourceLayer( new CSourceLayer( dnn.MathEngine() ) );
-			sourceLayer->SetName( name == "" ? findFreeLayerName( dnn.Dnn(), "Source" ).c_str() : name.c_str() );
+			sourceLayer->SetName( FindFreeLayerName( dnn.Dnn(), "Source", name ).c_str() );
 			dnn.Dnn().AddLayer( *sourceLayer );
 
 			return new CPySourceLayer( sourceLayer, dnn.MathEngineOwner() );

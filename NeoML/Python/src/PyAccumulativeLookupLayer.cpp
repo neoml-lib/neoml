@@ -69,7 +69,7 @@ void InitializeAccumulativeLookupLayer( py::module& m )
 			d.VectorCount = count;
 			d.VectorSize = size;
 			accumulativeLookup->SetDimension( d );
-			accumulativeLookup->SetName( name == "" ? findFreeLayerName( dnn, "AccumulativeLookup" ).c_str() : name.c_str() );
+			accumulativeLookup->SetName( FindFreeLayerName( dnn, "AccumulativeLookup", name ).c_str() );
 			dnn.AddLayer( *accumulativeLookup );
 			accumulativeLookup->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyAccumulativeLookupLayer( *accumulativeLookup, layer.MathEngineOwner() );

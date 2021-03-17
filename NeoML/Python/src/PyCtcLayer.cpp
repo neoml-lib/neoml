@@ -104,7 +104,7 @@ void InitializeCtcLayer( py::module& m )
 			loss->SetBlankLabel( blank );
 			loss->SetAllowBlankLabelSkips( skip );
 			loss->SetLossWeight( lossWeight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "CtcLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "CtcLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			for( int i = 0; i < layers.size(); i++ ) {
 				loss->Connect(i, layers[i].cast<CPyLayer>().BaseLayer(), outputs[i].cast<int>());
@@ -139,7 +139,7 @@ void InitializeCtcLayer( py::module& m )
 			loss->SetBlankLabel( blank );
 			loss->SetBlankProbabilityThreshold( blankThreshold );
 			loss->SetArcProbabilityThreshold( arcThreshold );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "CtcDecoding" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "CtcDecoding", name ).c_str() );
 			dnn.AddLayer( *loss );
 			for(int i = 0; i < layers.size(); i++) {
 				loss->Connect(i, layers[i].cast<CPyLayer>().BaseLayer(), outputs[i].cast<int>());

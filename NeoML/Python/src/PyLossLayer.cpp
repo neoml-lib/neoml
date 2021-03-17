@@ -234,7 +234,7 @@ void InitializeLossLayer( py::module& m )
 			CPtr<CCrossEntropyLossLayer> loss = new CCrossEntropyLossLayer( mathEngine );
 			loss->SetApplySoftmax( softmax );
 			loss->SetLossWeight( lossWeight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "CrossEntropyLossLayer" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "CrossEntropyLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -263,7 +263,7 @@ void InitializeLossLayer( py::module& m )
 			CPtr<CBinaryCrossEntropyLossLayer> loss = new CBinaryCrossEntropyLossLayer( mathEngine );
 			loss->SetPositiveWeight( positiveWeight );
 			loss->SetLossWeight( lossWeight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "BinaryCrossEntropyLossLayer" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "BinaryCrossEntropyLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -291,7 +291,7 @@ void InitializeLossLayer( py::module& m )
 
 			CPtr<CEuclideanLossLayer> loss = new CEuclideanLossLayer( mathEngine );
 			loss->SetLossWeight( lossWeight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "EuclideanLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "EuclideanLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -317,7 +317,7 @@ void InitializeLossLayer( py::module& m )
 
 			CPtr<CHingeLossLayer> loss = new CHingeLossLayer( mathEngine );
 			loss->SetLossWeight( lossWeight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "EuclideanLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "EuclideanLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -343,7 +343,7 @@ void InitializeLossLayer( py::module& m )
 
 			CPtr<CSquaredHingeLossLayer> loss = new CSquaredHingeLossLayer( mathEngine );
 			loss->SetLossWeight( lossWeight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "SquaredHingeLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "SquaredHingeLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -369,7 +369,7 @@ void InitializeLossLayer( py::module& m )
 
 			CPtr<CMultiHingeLossLayer> loss = new CMultiHingeLossLayer( mathEngine );
 			loss->SetLossWeight( lossWeight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "MultiHingeLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "MultiHingeLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -395,7 +395,7 @@ void InitializeLossLayer( py::module& m )
 
 			CPtr<CMultiSquaredHingeLossLayer> loss = new CMultiSquaredHingeLossLayer( mathEngine );
 			loss->SetLossWeight( lossWeight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "MultiSquaredHingeLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "MultiSquaredHingeLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -422,7 +422,7 @@ void InitializeLossLayer( py::module& m )
 			CPtr<CFocalLossLayer> loss = new CFocalLossLayer( mathEngine );
 			loss->SetLossWeight( lossWeight );
 			loss->SetFocalForce( force );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "FocalLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "FocalLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -451,7 +451,7 @@ void InitializeLossLayer( py::module& m )
 			CPtr<CBinaryFocalLossLayer> loss = new CBinaryFocalLossLayer( mathEngine );
 			loss->SetLossWeight( lossWeight );
 			loss->SetFocalForce( force );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "BinaryFocalLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "BinaryFocalLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -481,7 +481,7 @@ void InitializeLossLayer( py::module& m )
 			loss->SetNumberOfClasses( classCount );
 			loss->SetClassCentersConvergenceRate( rate );
 			loss->SetLossWeight( lossWeight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "CenterLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "CenterLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
