@@ -41,7 +41,7 @@ void InitializeDotProductLayer( py::module& m )
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CDotProductLayer> dotProduct = new CDotProductLayer( mathEngine );
-			dotProduct->SetName( name == "" ? findFreeLayerName( dnn, "DotProduct" ).c_str() : name.c_str() );
+			dotProduct->SetName( FindFreeLayerName( dnn, "DotProduct", name ).c_str() );
 			dnn.AddLayer( *dotProduct );
 			dotProduct->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			dotProduct->Connect( 1, layer2.BaseLayer(), outputNumber2 );

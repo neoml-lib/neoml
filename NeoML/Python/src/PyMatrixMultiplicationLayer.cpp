@@ -41,7 +41,7 @@ void InitializeMatrixMultiplicationLayer( py::module& m )
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CMatrixMultiplicationLayer> mm = new CMatrixMultiplicationLayer( mathEngine );
-			mm->SetName( name == "" ? findFreeLayerName( dnn, "MatrixMultiplication" ).c_str() : name.c_str() );
+			mm->SetName( FindFreeLayerName( dnn, "MatrixMultiplication", name ).c_str() );
 			dnn.AddLayer( *mm );
 			mm->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			mm->Connect( 1, layer2.BaseLayer(), outputNumber2 );

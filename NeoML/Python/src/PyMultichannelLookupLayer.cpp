@@ -89,7 +89,7 @@ void InitializeMultichannelLookupLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CMultichannelLookupLayer> lookup = new CMultichannelLookupLayer( mathEngine );
-			lookup->SetName( name == "" ? findFreeLayerName( dnn, "MultichannelLookupLayer" ).c_str() : name.c_str() );
+			lookup->SetName( FindFreeLayerName( dnn, "MultichannelLookup", name ).c_str() );
 			CArray<CLookupDimension> d;
 			for( int i = 0; i < dimensions.size(); i++ ) {
 				py::tuple t = dimensions[i].cast<py::tuple>();
