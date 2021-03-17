@@ -55,7 +55,7 @@ void InitializeAttentionDecoderLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CAttentionDecoderLayer> decoder = new CAttentionDecoderLayer( mathEngine );
-			decoder->SetName( name == "" ? findFreeLayerName( dnn, "AttentionDecoderLayer" ).c_str() : name.c_str() );
+			decoder->SetName( FindFreeLayerName( dnn, "AttentionDecoder", name ).c_str() );
 			dnn.AddLayer( *decoder );
 			decoder->Connect( 0, layer0.BaseLayer(), outputNumber0 );
 			decoder->Connect( 1, layer1.BaseLayer(), outputNumber1 );

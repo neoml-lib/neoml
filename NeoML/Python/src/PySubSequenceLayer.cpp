@@ -52,7 +52,7 @@ void InitializeSubSequenceLayer( py::module& m )
 				sequence->SetStartPos(pos);
 				sequence->SetLength(len);
 			}
-			sequence->SetName( name == "" ? findFreeLayerName( dnn, "SubSequence" ).c_str() : name.c_str() );
+			sequence->SetName( FindFreeLayerName( dnn, "SubSequence", name ).c_str() );
 			dnn.AddLayer( *sequence );
 			sequence->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPySubSequenceLayer( *sequence, layer1.MathEngineOwner() );

@@ -41,7 +41,7 @@ void InitializeSequenceSumLayer( py::module& m )
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSequenceSumLayer> sequence = new CSequenceSumLayer( mathEngine );
-			sequence->SetName( name == "" ? findFreeLayerName( dnn, "SequenceSum" ).c_str() : name.c_str() );
+			sequence->SetName( FindFreeLayerName( dnn, "SequenceSum", name ).c_str() );
 			dnn.AddLayer( *sequence );
 			sequence->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPySequenceSumLayer( *sequence, layer1.MathEngineOwner() );

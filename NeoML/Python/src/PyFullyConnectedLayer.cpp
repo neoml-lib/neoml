@@ -59,7 +59,7 @@ void InitializeFullyConnectedLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( mathEngine );
-			fc->SetName( name == "" ? findFreeLayerName( dnn, "FullyConnectedLayer" ).c_str() : name.c_str() );
+			fc->SetName( FindFreeLayerName( dnn, "FullyConnected", name ).c_str() );
 			fc->SetZeroFreeTerm( freeTerm );
 			fc->SetNumberOfElements( numberOfElements );
 			dnn.AddLayer( *fc );

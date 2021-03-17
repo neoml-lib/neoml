@@ -72,7 +72,7 @@ void InitializeTransformLayer( py::module& m )
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CTransformLayer> transform = new CTransformLayer( mathEngine );
-			transform->SetName( name == "" ? findFreeLayerName( dnn, "Transform" ).c_str() : name.c_str() );
+			transform->SetName( FindFreeLayerName( dnn, "Transform", name ).c_str() );
 			dnn.AddLayer( *transform );
 			transform->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			CPyTransformLayer* result = new CPyTransformLayer( *transform, layer1.MathEngineOwner() );
