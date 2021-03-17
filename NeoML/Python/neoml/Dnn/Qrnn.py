@@ -36,7 +36,7 @@ class Qrnn(Layer):
     - BatchLength is the length of one sequence
     - BatchWidth is the number of vector sequences in the set
     - ListSize is 1
-    - Height * Width * Depth * Channels 
+    - Height * Width * Depth * Channels is the vector length
     
     #2 (optional): the initial state of the recurrent part.
     If not set, the recurrent part is all zeros before the first step.
