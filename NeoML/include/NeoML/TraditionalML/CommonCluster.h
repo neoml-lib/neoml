@@ -20,8 +20,6 @@ limitations under the License.
 
 namespace NeoML {
 
-class IClusteringData;
-
 // The common cluster representation for all clustering algorithms
 class NEOML_API CCommonCluster : public virtual IObject {
 public:
