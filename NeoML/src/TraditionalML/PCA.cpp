@@ -14,16 +14,13 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <common.h>
-#ifdef NEOML_USE_MKL
-#include <mkl.h>
-#endif
 #pragma hdrstop
 
 #include <NeoML/TraditionalML/PCA.h>
 
 namespace NeoML {
 
-void CPCA::Train()
+CPtr<IModel> CPCA::Train( const IProblem& problem )
 {
 #ifdef NEOML_USE_MKL
 	float[12] a = { 1, 2, 3, 3, 2, 1, 2, 3, 4, 4, 3, 2 };
@@ -31,7 +28,9 @@ void CPCA::Train()
 	float* u = nullptr;
 	float[16] superb;
 	LAPACKE_sgesvd(LAPACK_ROW_MAJOR, 'O', 'A', 4, 3, &a, 4, u, 4, &vt, 3, &superb);
+	printf("kulebaka\n");
 #endif
+	return nullptr;
 }
 
 } // namespace NeoML

@@ -22,7 +22,8 @@ namespace NeoML {
 
 class NEOML_API CPCA : public ITrainingModel {
 public:
-	void Train();
+	virtual CPtr<IModel> Train( const IProblem& problem );
+	~CPCA() {};
 };
 
 } // namespace NeoML
