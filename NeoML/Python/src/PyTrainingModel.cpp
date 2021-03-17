@@ -224,16 +224,16 @@ public:
 	explicit CPyTrainingModel( CPyTrainingModelOwner* _owner ) : owner( owner ) {}
 	virtual ~CPyTrainingModel() {}
 
-	CPyModel TrainClassifier( py::array indices, py::array data, py::array rowPtr, bool isSparse , int featureCount, py::array classes, py::array weight );
+	CPyModel TrainClassifier( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array classes, py::array weight );
 
-	CPyRegressionModel TrainRegressor( py::array indices, py::array data, py::array rowPtr, bool isSparse , int featureCount, py::array values, py::array weight );
+	CPyRegressionModel TrainRegressor( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array values, py::array weight );
 
 	CPyTrainingModelOwner* GetOwner() const { return owner; }
 private:
 	CPtr<CPyTrainingModelOwner> owner;
 };
 
-CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, py::array rowPtr, bool isSparse , int featureCount, py::array classes, py::array weight )
+CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array classes, py::array weight )
 {
 	CPtr<CPyMemoryProblem> problem = new CPyMemoryProblem( static_cast<int>( classes.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
@@ -244,7 +244,7 @@ CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, p
 	return CPyModel( model.Ptr() );
 }
 
-CPyRegressionModel CPyTrainingModel::TrainRegressor( py::array indices, py::array data, py::array rowPtr, bool isSparse , int featureCount, py::array values, py::array weight )
+CPyRegressionModel CPyTrainingModel::TrainRegressor( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array values, py::array weight )
 {
 	CPtr<CPyMemoryRegressionProblem> problem = new CPyMemoryRegressionProblem( static_cast<int>( values.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),

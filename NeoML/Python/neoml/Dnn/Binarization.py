@@ -21,21 +21,21 @@ from neoml.Utils import check_input_layers
 
 class EnumBinarization(Layer):
     """The layer that converts enumeration values into one-hot encoding.
-    
+
     Layer inputs
     ----------
     #1: a blob with int or float data that contains enumeration values.
     The dimensions:
     - Channels is 1
     - the other dimensions may be of any length
-    
+
     Layer outputs
     ----------
     #1: a blob with the vectors that one-hot encode the enumeration values.
     The dimensions:
     - Channels is enum_size
     - the other dimensions stay the same as in the first input
-    
+
     Parameters
     ----------
     input_layer : (object, int)
@@ -75,7 +75,7 @@ class EnumBinarization(Layer):
 
 class BitSetVectorization(Layer):
     """The layer that converts a bitset into vectors of ones and zeros.
-    
+
     Layer inputs
     ----------
     #1: a blob with int data containing bitsets. 
@@ -83,14 +83,14 @@ class BitSetVectorization(Layer):
     - BatchLength * BatchWidth * ListSize * Height * Width * Depth
         is the number of bitsets
     - Channels is bitset itself
-    
+
     Layer outputs
     ----------
     #1: a blob with the result of vectorization.
     The dimensions:
     - Channels is equal to bit_set_size
     - the other dimensions are the same as for the input
-    
+
     Parameters
     ----------
     input_layer : (object, int)

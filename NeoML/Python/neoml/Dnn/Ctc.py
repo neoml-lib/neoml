@@ -23,7 +23,7 @@ class CtcLoss(Layer):
     """The layer that calculates the loss function used for connectionist
     temporal classification (CTC).
     See https://www.cs.toronto.edu/~graves/preprint.pdf
-    
+
     Layer inputs
     ------------
     #1: the network response.
@@ -32,36 +32,36 @@ class CtcLoss(Layer):
     - BatchWidth is the number of sequences in the set
     - ListSize is 1
     - Height * Width * Depth * Channels is the number of classes
-    
+
     #2: the correct labels as a blob with int data.
     The dimensions:
     - BatchLength is the maximum labels sequence length
     - BatchWidth is the number of sequences, same as first input's BatchWidth
     - the other dimensions are 1
-    
+
     #3 (optional): the label sequences lengths as a blob with int data.
     If this input isn't connected, the label sequences are considered to be
     the second input's BatchLength long.
     The dimensions:
     - BatchWidth is the same as for the first input
     - the other dimensions are 1
-    
+
     #4 (optional): the network response sequences lengths as a blob
     with int data. If this input isn't connected, the response sequences
     are considered to be the first input's BatchLength long.
     The dimensions:
     - BatchWidth is the same as for the first input
     - the other dimensions are 1
-    
+
     #5 (optional): the sequences' weights. 
     The dimensions:
     - BatchWidth is the same as for the first input
     - the other dimensions are 1
-    
+
     Layer outputs
     ------------
     The layer has no output.
-    
+
     Parameters
     ---------------
     input_layers : array of (object, int) tuples or objects
@@ -151,7 +151,7 @@ class CtcLoss(Layer):
 class CtcDecoding(Layer):
     """The layer that is looking for the most probable sequences 
     in the response of a connectionist temporal classification (CTC) network.
-    
+
     Layer inputs
     -----------
     #1: the network response.
@@ -160,18 +160,18 @@ class CtcDecoding(Layer):
     - BatchWidth is the number of sequences in the set
     - ListSize is 1
     - Height * Width * Depth * Channels is the number of classes
-        
+
     #2 (optional): the network response sequences lengths as a blob
     with int data. If this input isn't connected, the response sequences
     are considered to be the first input's BatchLength long.
     The dimensions:
     - BatchWidth is the same as for the first input
     - the other dimensions are 1
-    
+
     Layer outputs
     -----------
     The layer has no output.
-    
+
     Parameters
     ---------------
     input_layers : array of (object, int) tuples or objects
@@ -181,7 +181,7 @@ class CtcDecoding(Layer):
     blank : int
         Sets the value for the blank label that will be used as space.
     blank_threshold : float, [0..1]
-        The probability threshold for blank layers when building
+        The probability threshold for blank labels when building
         a linear division graph (LDG).
     arc_threshold : float, [0..1]
         The probability threshold for cutting off arcs when building

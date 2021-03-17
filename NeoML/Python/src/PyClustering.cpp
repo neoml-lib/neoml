@@ -197,42 +197,40 @@ void InitializeClustering(py::module& m)
 //------------------------------------------------------------------------------------------------------------
 
 	py::class_<CPyKMeans>(m, "KMeans")
-        .def( py::init(
-            []( const std::string& algo, const std::string& init, const std::string& distance,
-                int max_iteration_count, int cluster_count, int thread_count )
-            {
-                CKMeansClustering::CParam p;
-                
-                p.Algo = CKMeansClustering::KMA_Count;
-                if( algo == "lloyd" ) {
-                    p.Algo = CKMeansClustering::KMA_Lloyd;
-                } else if( algo == "elkan" ) {
-                    p.Algo = CKMeansClustering::KMA_Elkan;
-                }
-                p.Initialization = CKMeansClustering::KMI_Count;
-                if( init == "default" ) {
-                    p.Initialization = CKMeansClustering::KMI_Default;
-                } else if( init == "k++" ) {
-                    p.Initialization = CKMeansClustering::KMI_KMeansPlusPlus;
-                }
-                
-                p.DistanceFunc = DF_Undefined;
-                if( distance == "euclid" ) {
-                    p.DistanceFunc = DF_Euclid;
-                } else if( distance == "machalanobis" ) {
-                    p.DistanceFunc = DF_Machalanobis;
-                } else if( distance == "cosine" ) {
-                    p.DistanceFunc = DF_Cosine;
-                }
-                p.InitialClustersCount = cluster_count;
-                p.MaxIterations = max_iteration_count;
-                p.ThreadCount = thread_count;
-                return new CPyKMeans( p );
-            })
-        )
+		.def( py::init(
+			[]( const std::string& algo, const std::string& init, const std::string& distance,
+				int max_iteration_count, int cluster_count, int thread_count )
+			{
+				CKMeansClustering::CParam p;
+
+				p.Algo = CKMeansClustering::KMA_Count;
+				if( algo == "lloyd" ) {
+					p.Algo = CKMeansClustering::KMA_Lloyd;
+				} else if( algo == "elkan" ) {
+					p.Algo = CKMeansClustering::KMA_Elkan;
+				}
+				p.Initialization = CKMeansClustering::KMI_Count;
+				if( init == "default" ) {
+					p.Initialization = CKMeansClustering::KMI_Default;
+				} else if( init == "k++" ) {
+					p.Initialization = CKMeansClustering::KMI_KMeansPlusPlus;
+				}
+
+				p.DistanceFunc = DF_Undefined;
+				if( distance == "euclid" ) {
+					p.DistanceFunc = DF_Euclid;
+				} else if( distance == "machalanobis" ) {
+					p.DistanceFunc = DF_Machalanobis;
+				} else if( distance == "cosine" ) {
+					p.DistanceFunc = DF_Cosine;
+				}
+				p.InitialClustersCount = cluster_count;
+				p.MaxIterations = max_iteration_count;
+				p.ThreadCount = thread_count;
+				return new CPyKMeans( p );
+			})
+		)
 
 		.def( "clusterize", &CPyKMeans::Clusterize, py::return_value_policy::reference )
 	;
-
 }
-
