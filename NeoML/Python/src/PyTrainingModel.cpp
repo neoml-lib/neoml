@@ -310,7 +310,7 @@ void InitializeTrainingModel(py::module& m)
 				}
 
 				auto t0_array = t[0].cast<py::array>();
-				CPyMemoryFile file( &t0_array );
+				CPyMemoryFile file( t0_array );
 				CArchive archive( &file, CArchive::load );
 				CPtr<IModel> model;
 				SerializeModel( archive, model );
@@ -341,7 +341,7 @@ void InitializeTrainingModel(py::module& m)
 				}
 
 				auto t0_array = t[0].cast<py::array>();
-				CPyMemoryFile file( &t0_array );
+				CPyMemoryFile file( t0_array );
 				CArchive archive( &file, CArchive::load );
 				CPtr<IRegressionModel> model;
 				SerializeModel( archive, model );
