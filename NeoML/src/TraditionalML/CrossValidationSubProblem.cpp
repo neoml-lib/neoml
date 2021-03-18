@@ -43,7 +43,7 @@ CCrossValidationSubProblem::CCrossValidationSubProblem( const IProblem* _problem
 		vectorsCount = testSizeDiv * ( partsCount - 1 ) + testSizeMod + ( partIndex < testSizeMod ? -1 : 0 );
 	}
 
-	CSparseFloatMatrixDesc baseMatrix = problem->GetMatrix();
+	CFloatMatrixDesc baseMatrix = problem->GetMatrix();
 	pointerB.SetSize( vectorsCount );
 	pointerE.SetSize( vectorsCount );
 	for( int i = 0; i < vectorsCount; i++ ) {

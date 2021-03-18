@@ -92,7 +92,7 @@ void CCtcLossLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture( outputDescs.IsEmpty(), GetName(), "CCtcLossLayer has no output" );
+	CheckArchitecture(outputDescs.IsEmpty(), GetName(), "CCtcLossLayer has no output");
 	CheckArchitecture(!GetDnn()->IsRecurrentMode(),
 		GetName(), "ctc loss layer inside the recurrent composite layer" );
 	CheckArchitecture( GetInputCount() >= 2 && GetInputCount() <= 5,
@@ -577,7 +577,7 @@ CCtcDecodingLayer::CCtcDecodingLayer( IMathEngine& mathEngine ) :
 void CCtcDecodingLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( outputDescs.IsEmpty(), GetName(), "CCtcDecodingLayer has no output" );
+	CheckArchitecture(outputDescs.IsEmpty(), GetName(), "CCtcDecodingLayer has no output");
 	CBlobDesc transposedDesc = inputDescs[I_Result];
 	transposedDesc.SetDimSize(BD_BatchLength, inputDescs[I_Result].BatchWidth());
 	transposedDesc.SetDimSize(BD_BatchWidth, inputDescs[I_Result].BatchLength());
@@ -727,6 +727,11 @@ bool CCtcDecodingLayer::BuildGLD(int sequenceNumber, CLdGraph<CCtcGLDArc>& gld) 
 
 void CCtcDecodingLayer::GetBestSequence(int sequenceNumber, CArray<int>& bestLabelSequence) const
 {
+	bestLabelSequence.DeleteAll();
+
+	if(lastResults.IsEmpty()) {
+		return;
+	}
 	// Find the best label for each index in the sequence
 	int sequenceLength = lastResults[I_Result]->GetBatchLength();
 	if( lastResults.Size() > I_InputLengths ) {
@@ -739,7 +744,6 @@ void CCtcDecodingLayer::GetBestSequence(int sequenceNumber, CArray<int>& bestLab
 	bestLabelsArray.SetSize(sequenceLength);
 	MathEngine().DataExchangeTyped(bestLabelsArray.GetPtr(), bestLabels->GetData<const int>( {sequenceNumber} ), sequenceLength);
 	
-	bestLabelSequence.DeleteAll();
 	for(int i = 0; i < bestLabelsArray.Size(); i++) {
 		int l = bestLabelsArray[i];
 		if(l != blankLabel && 

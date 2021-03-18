@@ -38,7 +38,7 @@ public:
 
 	// IModel interface methods
 	int GetClassCount() const override { return ( valueSize == 1 && ensembles.Size() == 1 ) ? 2 : valueSize * ensembles.Size(); }
-	bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
+	bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const override;
 	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
 	void Serialize( CArchive& archive ) override;
 
@@ -47,7 +47,7 @@ public:
 	double GetLearningRate() const override { return learningRate; }
 	CGradientBoost::TLossFunction GetLossFunction() const override { return lossFunction; }
 	bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const override;
-	bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
+	bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
 	void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
 	void CutNumberOfTrees( int numberOfTrees ) override;
 	virtual void ConvertToCompact() override;
@@ -55,11 +55,10 @@ public:
 	// IRegressionModel interface methods
 	double Predict( const CSparseFloatVector& data ) const override;
 	double Predict( const CFloatVector& data ) const override;
-	double Predict( const CSparseFloatVectorDesc& data ) const override;
+	double Predict( const CFloatVectorDesc& data ) const override;
 
 	// IMultivariateRegressionModel interface methods
-	CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const override;
-	CFloatVector MultivariatePredict( const CFloatVector& data ) const override;
+	CFloatVector MultivariatePredict( const CFloatVectorDesc& data ) const override;
 
 private:
 	CArray<CGradientBoostEnsemble> ensembles; // the models
