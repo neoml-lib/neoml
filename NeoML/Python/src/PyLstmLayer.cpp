@@ -35,7 +35,7 @@ public:
 	bool GetReverseSequence() const { return Layer<CLstmLayer>()->IsReverseSequence(); }
 
 	void SetInputWeights( const CPyBlob& blob ) { Layer<CLstmLayer>()->SetInputWeightsData( blob.Blob() ); }
-	CPyBlob GetInputWeights() const { return CPyBlob( MathEngineOwner(), Layer<CLstmLayer>()->GetInputWeigthsData() ); }
+	CPyBlob GetInputWeights() const { return CPyBlob( MathEngineOwner(), Layer<CLstmLayer>()->GetInputWeigthsData().Ptr() ); }
 
 	void SetInputFreeTerm( const CPyBlob& blob ) { Layer<CLstmLayer>()->SetInputFreeTermData( blob.Blob() ); }
 	CPyBlob GetInputFreeTerm() const { return CPyBlob( MathEngineOwner(), Layer<CLstmLayer>()->GetInputFreeTermData() ); }
