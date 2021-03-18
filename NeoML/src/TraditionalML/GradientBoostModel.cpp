@@ -204,12 +204,8 @@ void CGradientBoostModel::CutNumberOfTrees( int numberOfTrees )
 	}
 }
 
-void CGradientBoostModel::ConvertToCompact( const IBaseRegressionProblem* problem )
+void CGradientBoostModel::ConvertToCompact()
 {
-	if( !CCompactRegressionTree::IsModelConvertable( problem, this ) ) {
-		return;
-	}
-
 	for( int i = 0; i < ensembles.Size() ; i++ ) {
 		CGradientBoostEnsemble& ensemble = ensembles[i];
 		for( int j = 0; j < ensemble.Size(); j++ ) {

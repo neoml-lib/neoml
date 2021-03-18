@@ -25,6 +25,7 @@ limitations under the License.
 #include <GradientBoostFullTreeBuilder.h>
 #include <GradientBoostFastHistTreeBuilder.h>
 #include <ProblemWrappers.h>
+#include <CompactRegressionTree.h>
 #include <NeoMathEngine/OpenMP.h>
 
 namespace NeoML {
@@ -738,7 +739,9 @@ CPtr<IObject> CGradientBoost::createOutputRepresentation( const IMultivariateReg
 		case GBMR_Linked:
 			return linked.Ptr();
 		case GBMR_Compact:
-			linked->ConvertToCompact( problem );
+			if( CCompactRegressionTree::IsModelConvertable( problem, linked.Ptr() ) ) {
+				linked->ConvertToCompact();
+			}
 			return linked.Ptr();
 		case GBMR_QuickScorer:
 			return CGradientBoostQuickScorer().Build( *linked ).Ptr();

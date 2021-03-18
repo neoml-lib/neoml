@@ -22,6 +22,6 @@ class Random(PythonWrapper.Random):
     """
     def __init__(self, seed=None):
         if seed is None:
-            seed = 42
+            seed = 195948557
 
         super().__init__(int(seed))

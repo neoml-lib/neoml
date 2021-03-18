@@ -245,7 +245,7 @@ public:
 	virtual void CutNumberOfTrees( int numberOfTrees ) = 0;
 
 	// Converts model to the compact representation (GBMR_Compact).
-	virtual void ConvertToCompact( const IBaseRegressionProblem* problem ) = 0;
+	virtual void ConvertToCompact() = 0;
 };
 
 DECLARE_NEOML_MODEL_NAME( GradientBoostRegressionModelName, "FmlGradientBoostModel" )
@@ -275,7 +275,7 @@ public:
 	virtual void CutNumberOfTrees( int numberOfTrees ) = 0;
 
 	// Converts model to the compact representation (GBMR_Compact).
-	virtual void ConvertToCompact( const IBaseRegressionProblem* problem ) = 0;
+	virtual void ConvertToCompact() = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
