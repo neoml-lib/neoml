@@ -42,7 +42,7 @@ class MathEngineTestCase(TestCase):
         blob = neoml.Blob.vector(math_engine, 10, "int32")
         self.assertEqual(math_engine.peak_memory_usage, 40)
 
-'''
+
 class BlobTestCase(TestCase):
     def test_pickle(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2132,4 +2132,3 @@ class ClusteringTestCase(TestCase):
 
     def test_kmeans(self):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
-'''
