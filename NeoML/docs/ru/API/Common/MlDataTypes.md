@@ -6,10 +6,10 @@
     - [Вектор](#вектор)
         - [Класс CFloatVector](#класс-cfloatvector)
     - [Разреженный вектор](#разреженный-вектор)
-        - [Описание CSparseFloatVectorDesc](#описание-csparsefloatvectordesc)
+        - [Описание CFloatVectorDesc](#описание-csparsefloatvectordesc)
         - [Класс CSparseFloatVector](#класс-csparsefloatvector)
     - [Разреженная матрица](#разреженная-матрица)
-        - [Описание CSparseFloatMatrixDesc](#описание-csparsefloatmatrixdesc)
+        - [Описание CFloatMatrixDesc](#описание-csparsefloatmatrixdesc)
         - [Класс CSparseFloatMatrix](#класс-csparsefloatmatrix)
 
 <!-- /TOC -->
@@ -26,7 +26,7 @@
 CFloatVector(); // Конструктор по умолчанию. Используется, например, для конструирования объекта перед сериализацией значений из архива.
 // Создать вектор размера size на основе разреженного, не заданные значения признаков устанавливаются в 0.
 CFloatVector( int size, const CSparseFloatVector& sparseVector );
-CFloatVector( int size, const CSparseFloatVectorDesc& sparseVector );
+CFloatVector( int size, const CFloatVectorDesc& sparseVector );
 explicit CFloatVector( int size ); // Вектора размера size.
 CFloatVector( int size, float init ); // Вектор размера size, каждый элемент которого равен init.
 CFloatVector( const CFloatVector& other );
@@ -79,7 +79,7 @@ void Nullify();
 ```c++
 CFloatVector& MultiplyAndAdd( const CFloatVector& vector, double factor );
 CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor );
-CFloatVector& MultiplyAndAdd( const CSparseFloatVectorDesc& vector, double factor );
+CFloatVector& MultiplyAndAdd( const CFloatVectorDesc& vector, double factor );
 ```
 
 Длина вектора (L2-норма):
@@ -109,12 +109,12 @@ friend CArchive& operator >> ( CArchive& archive, CFloatVector& vector );
 
 ## Разреженный вектор
 
-### Описание разреженного вектора CSparseFloatVectorDesc
+### Описание разреженного вектора CFloatVectorDesc
 
 Описание разреженного вектора, хранящее минимальную информацию, достаточную для извлечения данных. Не предоставляет возможность изменения данных.
 
 ```c++
-struct NEOML_API CSparseFloatVectorDesc {
+struct NEOML_API CFloatVectorDesc {
 	int Size; // Количество аллоцированных элементов в векторе.
 	int* Indexes; // Координаты в векторе.
 	float* Values; // Значения в соответствующих координатах.
@@ -130,7 +130,7 @@ struct NEOML_API CSparseFloatVectorDesc {
 ```c++
 CSparseFloatVector();
 explicit CSparseFloatVector( int bufferSize );
-explicit CSparseFloatVector( const CSparseFloatVectorDesc& desc );
+explicit CSparseFloatVector( const CFloatVectorDesc& desc );
 CSparseFloatVector( const CSparseFloatVector& other );
 ```
 
@@ -145,7 +145,7 @@ CSparseFloatVector& operator = ( const CSparseFloatVector& vector );
 Получение описания:
 
 ```c++
-const CSparseFloatVectorDesc& GetDesc() const;
+const CFloatVectorDesc& GetDesc() const;
 ```
 
 Количество аллоцированных элементов в векторе:
@@ -197,13 +197,13 @@ void Serialize( CArchive& archive );
 
 ## Разреженная матрица
 
-### Описание CSparseFloatMatrixDesc
+### Описание CFloatMatrixDesc
 
 Описание разреженной матрицы, хранящее минимальную информацию, достаточную для извлечения данных. Не предоставляет возможности изменения данных.
 
 ```c++
 // Описание разреженной матрицы.
-struct NEOML_API CSparseFloatMatrixDesc {
+struct NEOML_API CFloatMatrixDesc {
 	int Height; // Высота матрицы.
 	int Width; // Ширина матрицы.
 	int* Columns; // Указатель на колонки элементов.
@@ -212,8 +212,8 @@ struct NEOML_API CSparseFloatMatrixDesc {
 	int* PointerE; // Индексы концов данных векторов в Columns/Values.
 
 	// Получение описания строки в матрице.
-	void GetRow( int index, CSparseFloatVectorDesc& desc ) const;
-	CSparseFloatVectorDesc GetRow( int index ) const;
+	void GetRow( int index, CFloatVectorDesc& desc ) const;
+	CFloatVectorDesc GetRow( int index ) const;
 };
 ```
 
@@ -226,7 +226,7 @@ struct NEOML_API CSparseFloatMatrixDesc {
 ```c++
 CSparseFloatMatrix() {}
 CSparseFloatMatrix( int width, int rowsBufferSize = 0, int elementsBufferSize = 0 );
-explicit CSparseFloatMatrix( const CSparseFloatMatrixDesc& desc );
+explicit CSparseFloatMatrix( const CFloatMatrixDesc& desc );
 CSparseFloatMatrix( const CSparseFloatMatrix& other );
 ```
 
@@ -241,7 +241,7 @@ CSparseFloatMatrix& operator = ( const CSparseFloatMatrix& vector );
 Получение описания:
 
 ```c++
-const CSparseFloatMatrixDesc& GetDesc() const;
+const CFloatMatrixDesc& GetDesc() const;
 ```
 
 Получение размеров матрицы:
@@ -255,14 +255,14 @@ int GetWidth() const;
 
 ```c++
 void AddRow( const CSparseFloatVector& row );
-void AddRow( const CSparseFloatVectorDesc& row );
+void AddRow( const CFloatVectorDesc& row );
 ```
 
 Получение описания строки матрицы (т.е. разреженного вектора):
 
 ```c++
-CSparseFloatVectorDesc GetRow( int index ) const;
-void GetRow( int index, CSparseFloatVectorDesc& desc ) const;
+CFloatVectorDesc GetRow( int index ) const;
+void GetRow( int index, CFloatVectorDesc& desc ) const;
 ```
 
 #### Сериализация

@@ -39,7 +39,7 @@ public:
 	CDecisionTreeNodeInfoBase* GetInfo() const { return info; }
 
 	// Gets the node to be used for classification
-	void GetClassifyNode( const CSparseFloatVectorDesc& data, CPtr<CDecisionTreeNodeBase>& node, int& level ) const;
+	void GetClassifyNode( const CFloatVectorDesc& data, CPtr<CDecisionTreeNodeBase>& node, int& level ) const;
 	void GetClassifyNode( const CFloatVector& data, CPtr<CDecisionTreeNodeBase>& node, int& level ) const;
 
 protected:

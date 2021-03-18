@@ -147,8 +147,8 @@ CPtr<IModel> CLinear::Train( const IProblem& trainingClassificationData )
 	if( params.SigmoidCoefficients.IsValid() ) {
 		sigmoidCoefficients = params.SigmoidCoefficients;
 	} else {
-		CSparseFloatMatrixDesc matrix = trainingClassificationData.GetMatrix();
-		CSparseFloatVectorDesc vector;
+		CFloatMatrixDesc matrix = trainingClassificationData.GetMatrix();
+		CFloatVectorDesc vector;
 		CArray<double> distances;
 		for( int i = 0; i < vectorsCount; i++ ) {
 			matrix.GetRow( i, vector );

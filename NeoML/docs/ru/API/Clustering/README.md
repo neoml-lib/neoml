@@ -51,10 +51,10 @@ public:
 	virtual int GetFeaturesCount() const = 0;
 
 	// Получить вектор из набора.
-	virtual CSparseFloatVectorDesc GetVector( int index ) const = 0;
+	virtual CFloatVectorDesc GetVector( int index ) const = 0;
 
 	// Получить все вектора набора в виде матрицы размера GetVectorCount() x GetFeaturesCount().
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
 	// Получить вес вектора.
 	virtual double GetVectorWeight( int index ) const = 0;

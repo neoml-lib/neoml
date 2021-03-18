@@ -272,7 +272,7 @@ protected:
 
 	void TestMultiRegressionResult() const
 	{
-		auto cmpFloatVectors = []( const CSparseFloatVectorDesc& v1, const CSparseFloatVectorDesc& v2 ) {
+		auto cmpFloatVectors = []( const CFloatVectorDesc& v1, const CFloatVectorDesc& v2 ) {
 			ASSERT_EQ( v1.Size, v2.Size );
 			ASSERT_EQ( ::memcmp( v1.Values, v2.Values, v2.Size * sizeof( float ) ), 0 );
 			ASSERT_EQ( ::memcmp( v1.Indexes, v2.Indexes, ( v2.Indexes == nullptr ? 0 : v2.Size )*sizeof( float ) ), 0 );

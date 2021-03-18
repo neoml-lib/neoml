@@ -211,8 +211,8 @@ void CalcSigmoidCoefficients( const CCrossValidationResult& crossValidationResul
 
 	CArray<double> output;
 	output.SetSize( crossValidationResult.Problem->GetVectorCount() );
-	CSparseFloatMatrixDesc matrix = crossValidationResult.Problem->GetMatrix();
-	CSparseFloatVectorDesc vector;
+	CFloatMatrixDesc matrix = crossValidationResult.Problem->GetMatrix();
+	CFloatVectorDesc vector;
 
 	for( int i = 0; i < crossValidationResult.Results.Size(); i++ ) {
 		const int modelIndex = crossValidationResult.ModelIndex[i];
