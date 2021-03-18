@@ -443,7 +443,7 @@ void InitializeDnn(py::module& m)
 				CPyMemoryFile file( t0_array );
 				CArchive archive( &file, CArchive::load );
 				CPtr<CPyMathEngineOwner> mathEngineOwner( new CPyMathEngineOwner() );
-				CPtr<CPyRandomOwner> randomOwner( new CPyRandomOwner(42) );
+				CPtr<CPyRandomOwner> randomOwner( new CPyRandomOwner() );
 				CPyDnn pyDnn( *randomOwner, *mathEngineOwner );
 				pyDnn.Dnn().SerializeCheckpoint( archive );
 				return pyDnn;
