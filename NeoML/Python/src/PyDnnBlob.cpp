@@ -117,12 +117,16 @@ static CBlobDesc createBlobDesc( TBlobType type, std::initializer_list<int> dime
 
 class CPyDnnBlob : public CDnnBlob {
 public:
-	CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info& _info );
+	CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info&& _info );
 	virtual ~CPyDnnBlob() = default;
+
+private:
+	py::buffer_info info;
 };
 
-CPyDnnBlob::CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info& _info ) :
-	CDnnBlob( mathEngine, createBlobDesc( type, dimension ), CPyMemoryHandle( &mathEngine, _info.ptr ) )
+CPyDnnBlob::CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info&& _info ) :
+	CDnnBlob( mathEngine, createBlobDesc( type, dimension ), CPyMemoryHandle( &mathEngine, _info.ptr ) ),
+	info( std::move( _info ) )
 {
 }
 
@@ -199,17 +203,18 @@ py::buffer_info CPyBlob::GetBufferInfo() const
 		shape.push_back( 1 );
 	}
 
+	const int shapeSize = static_cast<int>( shape.size() );
 	std::array<std::array<size_t,7>, 7> multShape;
-	for( int i = 0; i < 7; i++ ) {
+	for( int i = 0; i < shapeSize; i++ ) {
 		multShape[i][i] = shape[i];
-		for( int j = i + 1; j < 7; j++ ) {
+		for( int j = i + 1; j < shapeSize; j++ ) {
 			multShape[i][j] = multShape[i][j-1] * shape[j];
 		}
 	}
 	size_t itemSize = blob->GetDataType() == CT_Float ? sizeof(float) : sizeof(int);
 	std::string format = blob->GetDataType() == CT_Float ? py::format_descriptor<float>::format() : py::format_descriptor<int>::format();
 
-	switch( shape.size() ) {
+	switch( shapeSize ) {
 		case 1:
 			return py::buffer_info( ptr, itemSize, format, 1, std::vector<size_t>{shape[0]},
 				std::vector<size_t>{itemSize} );
