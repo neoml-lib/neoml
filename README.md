@@ -162,7 +162,7 @@ The math engine is also a set of C++ interfaces described [here](NeoML/docs/en/A
 
 ### Python module
 
-The documentation of python module located [here](NeoML/docs/en/Python/module.rst)
+The documentation of python module located [here](NeoML/docs/en/Python/index.rst)
 
 ### Java interface
 
