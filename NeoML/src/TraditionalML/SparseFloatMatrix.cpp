@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CSparseFloatMatrixDesc CSparseFloatMatrixDesc::Empty;
+CFloatMatrixDesc CFloatMatrixDesc::Empty;
 
 CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::CSparseFloatMatrixBody::Duplicate() const
 {
@@ -54,7 +54,7 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 	Desc.PointerE = EndPointersBuf.GetPtr();
 }
 
-CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CSparseFloatMatrixDesc& desc ) :
+CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloatMatrixDesc& desc ) :
 	RowsBufferSize( desc.Height ),
 	ElementsBufferSize( desc.Height == 0 ? 0 : ( desc.Columns != nullptr ? desc.PointerE[desc.Height - 1] : 0 ) ),
 	ElementCount( desc.Height == 0 ? 0 : ( desc.Columns != nullptr ? desc.PointerE[desc.Height - 1] : 0 ) )
@@ -114,7 +114,7 @@ CSparseFloatMatrix::CSparseFloatMatrix( int width, int rowsBufferSize, int eleme
 {
 }
 
-CSparseFloatMatrix::CSparseFloatMatrix( const CSparseFloatMatrixDesc& desc ) :
+CSparseFloatMatrix::CSparseFloatMatrix( const CFloatMatrixDesc& desc ) :
 	body( FINE_DEBUG_NEW CSparseFloatMatrixBody( desc ) )
 {
 }
@@ -167,7 +167,7 @@ void CSparseFloatMatrix::AddRow( const CSparseFloatVector& row )
 	AddRow( row.GetDesc() );
 }
 
-void CSparseFloatMatrix::AddRow( const CSparseFloatVectorDesc& row )
+void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 {
 	if( body == 0 ) {
 		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( 0, 0, 0, InitialRowBufferSize, max( row.Size, InitialElementBufferSize ) );
@@ -211,14 +211,14 @@ void CSparseFloatMatrix::AddRow( const CSparseFloatVectorDesc& row )
 	newBody->Desc.Width = max( body->Desc.Width, size == 0 ? 0 : indexes[size - 1] + 1 );
 }
 
-CSparseFloatVectorDesc CSparseFloatMatrix::GetRow( int index ) const
+CFloatVectorDesc CSparseFloatMatrix::GetRow( int index ) const
 {
 	NeoAssert( body != nullptr );
 	NeoAssert( 0 <= index && index < GetHeight() );
 	return body->Desc.GetRow( index );
 }
 
-void CSparseFloatMatrix::GetRow( int index, CSparseFloatVectorDesc& result ) const
+void CSparseFloatMatrix::GetRow( int index, CFloatVectorDesc& result ) const
 {
 	NeoAssert( body != nullptr );
 	NeoAssert( 0 <= index && index < GetHeight() );
@@ -289,7 +289,7 @@ void CSparseFloatMatrix::Serialize( CArchive& archive )
 		archive << body->Desc.Width;
 
 		for( int row = 0; row < body->Desc.Height; row++ ) {
-			CSparseFloatVectorDesc desc = GetRow( row );
+			CFloatVectorDesc desc = GetRow( row );
 			int notNullElementCount = 0;
 			int lastNotNullElementIndex = NotFound;
 			for( int i = 0; i < desc.Size; i++ ) {

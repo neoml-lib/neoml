@@ -17,12 +17,46 @@ limitations under the License.
 import numpy
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 import neoml.Blob as Blob
 
 
 class MultichannelLookup(Layer):
-    """
+    """The layer that trains fixed-length vector representation for the values
+    of several discrete features.
+    See https://en.wikipedia.org/wiki/Word2vec, 
+    https://en.wikipedia.org/wiki/GloVe_(machine_learning)
+    
+    Layer inputs
+    ----------
+    #1: a blob with feature values (float or int).
+    The dimensions:
+    - BatchLength * BatchWidth * ListSize * Height * Width * Depth
+        is the number of features
+    - Channels is the dimension along which the feature values for
+        different sets are stored. Not smaller than the number of 
+        feature sets.
+        
+    Layer outputs
+    ----------
+    #1: the blob with vectors for each input feature.
+    The dimensions:
+    - BatchLength, BatchWidth, ListSize, Height, Width, Depth
+        are the same as for the input
+    - Channels is the sum of vector lengths of all sets and additional channels
+    if the input Channels is more than the number of tables.
+    
+    Parameters
+    ----------
+    input_layers : array of (object, int) tuples or objects
+        The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    dimensions : a list of (int, int) tuples
+        Each of the elements specifies the number and length of vectors 
+        in the representation table with the element's index.
+    name : str, default=None
+        The layer name.
     """
     def __init__(self, input_layers, dimensions=None, name=None):
 
@@ -30,16 +64,16 @@ class MultichannelLookup(Layer):
             dimensions = [(1, 1)]
 
         if not type(dimensions) is list:
-            raise ValueError('The `dimensions` must be list with elements like this (VectorCount, VectorSize).')
+            raise ValueError('`dimensions` must be a list of elements like (VectorCount, VectorSize).')
 
         if any(not type(d) is tuple for d in dimensions):
-            raise ValueError('The `dimensions` must be list with elements like this (VectorCount, VectorSize).')
+            raise ValueError('`dimensions` must be a list of elements like (VectorCount, VectorSize).')
 
         if any(len(d) != 2 for d in dimensions):
-            raise ValueError('The `dimensions` must be list with elements like this (VectorCount, VectorSize).')
+            raise ValueError('`dimensions` must be a list of elements like (VectorCount, VectorSize).')
 
         if any(d[0] < 0 or d[1] < 1 for d in dimensions):
-            raise ValueError('The `dimensions` must be list with elements like this (VectorCount, VectorSize).')
+            raise ValueError('`dimensions` must be a list of elements like (VectorCount, VectorSize).')
 
         if type(input_layers) is PythonWrapper.MultichannelLookup:
             super().__init__(input_layers)
@@ -52,35 +86,41 @@ class MultichannelLookup(Layer):
 
     @property
     def dimensions(self):
-        """
+        """Gets the list of representation table sizes.
         """
         return self._internal.get_dimensions()
 
     @dimensions.setter
     def dimensions(self, dimensions):
-        """
+        """Sets the list of representation table sizes.
         """
         if not type(dimensions) is list:
-            raise ValueError('The `dimensions` must be list with elements like this (VectorCount, VectorSize).')
+            raise ValueError('`dimensions` must be a list of elements like (VectorCount, VectorSize).')
 
         if any(not type(d) is tuple for d in dimensions):
-            raise ValueError('The `dimensions` must be list with elements like this (VectorCount, VectorSize).')
+            raise ValueError('`dimensions` must be a list of elements like (VectorCount, VectorSize).')
 
         if any(len(d) != 2 for d in dimensions):
-            raise ValueError('The `dimensions` must be list with elements like this (VectorCount, VectorSize).')
+            raise ValueError('`dimensions` must be a list of elements like (VectorCount, VectorSize).')
 
         if any(d[0] < 0 or d[1] < 1 for d in dimensions):
-            raise ValueError('The `dimensions` must be list with elements like this (VectorCount, VectorSize).')
+            raise ValueError('`dimensions` must be a list of elements like (VectorCount, VectorSize).')
 
         self._internal.set_dimensions(dimensions)
 
     def get_embeddings(self, index):
-        """
+        """Gets the representation table with the given index 
+        as a blob of the dimensions:
+        - BatchLength * BatchWidth * ListSize is dimensions[i].VectorCount
+        - Height * Width * Depth * Channels is dimensions[i].VectorSize
         """
         return Blob.Blob(self._internal.get_embeddings(index))
 
     def set_embeddings(self, index, blob):
-        """
+        """Sets the representation table with the given index 
+        as a blob of the dimensions:
+        - BatchLength * BatchWidth * ListSize is dimensions[i].VectorCount
+        - Height * Width * Depth * Channels is dimensions[i].VectorSize
         """
         if not type(blob) is Blob.Blob:
             raise ValueError('The `blob` must be neoml.Blob.')
@@ -88,6 +128,9 @@ class MultichannelLookup(Layer):
         return self._internal.set_embeddings(index, blob._internal)
 
     def initialize(self, initializer):
+        """Specifies a different initializer for this layer
+        than the one set for the whole network in general.
+        """
         if initializer is None:
             return self._internal.clear()
     

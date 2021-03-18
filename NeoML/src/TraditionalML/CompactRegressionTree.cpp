@@ -155,7 +155,7 @@ static inline float getFeature( const TVector& features, int number )
 	return features[number];
 }
 
-static inline float getFeature( const CSparseFloatVectorDesc& features, int number )
+static inline float getFeature( const CFloatVectorDesc& features, int number )
 {
 	return GetValue( features, number );
 }
@@ -202,7 +202,7 @@ void CCompactRegressionTree::Predict(
 }
 
 void CCompactRegressionTree::Predict(
-	const CSparseFloatVectorDesc& features, CPrediction& result ) const
+	const CFloatVectorDesc& features, CPrediction& result ) const
 {
 	predict( features, result );
 }
@@ -213,7 +213,7 @@ double CCompactRegressionTree::Predict( const CFloatVector& features ) const
 	return *predict( features.GetPtr() );
 }
 
-double CCompactRegressionTree::Predict( const CSparseFloatVectorDesc& features ) const
+double CCompactRegressionTree::Predict( const CFloatVectorDesc& features ) const
 {
 	NeoPresume( predictionSize == 1 );
 	return *predict( features );

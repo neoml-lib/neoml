@@ -100,32 +100,32 @@ private:
 	CArray<CClusterCenter> initialClusterCenters; // the initial cluster centers
 
 	// Initial cluster selection for sparse data
-	void selectInitialClusters( const CSparseFloatMatrixDesc& matrix );
-	void defaultInitialization( const CSparseFloatMatrixDesc& matrix );
-	void kMeansPlusPlusInitialization( const CSparseFloatMatrixDesc& matrix );
+	void selectInitialClusters( const CFloatMatrixDesc& matrix );
+	void defaultInitialization( const CFloatMatrixDesc& matrix );
+	void kMeansPlusPlusInitialization( const CFloatMatrixDesc& matrix );
 
 	// Sparse data clusterization
-	bool clusterize( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
+	bool clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
 
 	// Lloyd algorithm implementation for sparse data
-	bool lloydClusterization( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
-	void classifyAllData( const CSparseFloatMatrixDesc& matrix, CArray<int>& dataCluster );
-	int findNearestCluster( const CSparseFloatMatrixDesc& matrix, int dataIndex ) const;
+	bool lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
+	void classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster );
+	int findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex ) const;
 	void storeClusterCenters( CArray<CClusterCenter>& result );
-	bool updateClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+	bool updateClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 		const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters );
 
 	// Elkan algorithm implementation for sparse data
-	bool elkanClusterization( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
-	void initializeElkanStatistics( const CSparseFloatMatrixDesc& matrix, CArray<int>& assignments,
+	bool elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
+	void initializeElkanStatistics( const CFloatMatrixDesc& matrix, CArray<int>& assignments,
 		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds, CVariableMatrix<float>& clusterDists,
 		CArray<float>& closestClusterDist, CArray<float>& moveDistance );
 	void computeClustersDists( CVariableMatrix<float>& dists, CArray<float>& closestCluster ) const;
-	void assignVectors( const CSparseFloatMatrixDesc& matrix, const CVariableMatrix<float>& clusterDists,
+	void assignVectors( const CFloatMatrixDesc& matrix, const CVariableMatrix<float>& clusterDists,
 		const CArray<float>& closestClusterDist, CArray<int>& assignments, CArray<float>& upperBounds,
 		CVariableMatrix<float>& lowerBounds ) const;
 	void updateMoveDistance( const CArray<CClusterCenter>& oldCenters, CArray<float>& moveDistance ) const;
-	double updateUpperAndLowerBounds( const CSparseFloatMatrixDesc& matrix,
+	double updateUpperAndLowerBounds( const CFloatMatrixDesc& matrix,
 		const CArray<float>& moveDistance, const CArray<int>& assignments,
 		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds ) const;
 	bool isPruned( const CArray<float>& upperBounds, const CVariableMatrix<float>& lowerBounds,

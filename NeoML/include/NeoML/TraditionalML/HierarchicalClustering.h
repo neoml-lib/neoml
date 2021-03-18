@@ -53,9 +53,9 @@ private:
 	CObjectArray<CCommonCluster> clusters; // the current clusters
 	CFloatVectorArray distances; // the matrix containing distances between clusters
 
-	void initialize( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
+	void initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
 	void findNearestClusters( int& first, int& second ) const;
-	void mergeClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights, int first, int second );
+	void mergeClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights, int first, int second );
 };
 
 } // namespace NeoML

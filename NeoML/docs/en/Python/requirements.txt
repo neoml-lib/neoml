@@ -1,8 +1,8 @@
 # NeoML/docs/en/requirements.txt
 sphinx==2.4.0
 sphinx-rtd-theme==0.5.1
-m2r2==0.2.7
-recommonmark==0.6.0
+# m2r2==0.2.7
+# recommonmark==0.6.0
 # requirements for build
 cmake==3.18.4
 ninja==1.10.0

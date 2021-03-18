@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import numpy
+from .Utils import convert_data, get_data
 from scipy.sparse import csr_matrix
 import neoml.PythonWrapper as PythonWrapper
 
@@ -73,7 +74,7 @@ class FirstCome(PythonWrapper.FirstCome) :
             - centers - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
             - vars - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
+        x = convert_data( X )
 
         if weight is None:
             weight = numpy.ones(x.size, numpy.float32)
@@ -82,7 +83,7 @@ class FirstCome(PythonWrapper.FirstCome) :
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
-        return super().clusterize(x.indices, x.data, x.indptr, int(x.shape[1]), weight)
+        return super().clusterize(*get_data(x), int(x.shape[1]), weight)
 
 #-------------------------------------------------------------------------------------------------------------
 
@@ -130,7 +131,7 @@ class Hierarchical(PythonWrapper.Hierarchical) :
             - centers - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
             - vars - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
+        x = convert_data( X )
 
         if weight is None:
             weight = numpy.ones(x.size, numpy.float32)
@@ -139,7 +140,7 @@ class Hierarchical(PythonWrapper.Hierarchical) :
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
-        return super().clusterize(x.indices, x.data, x.indptr, int(x.shape[1]), weight)
+        return super().clusterize(*get_data(x), int(x.shape[1]), weight)
 
 #-------------------------------------------------------------------------------------------------------------
 
@@ -206,7 +207,7 @@ class IsoData(PythonWrapper.IsoData) :
             - centers - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
             - vars - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
+        x = convert_data( X )
 
         if weight is None:
             weight = numpy.ones(x.size, numpy.float32)
@@ -215,7 +216,7 @@ class IsoData(PythonWrapper.IsoData) :
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
-        return super().clusterize(x.indices, x.data, x.indptr, int(x.shape[1]), weight)
+        return super().clusterize(*get_data(x), int(x.shape[1]), weight)
 
 #-------------------------------------------------------------------------------------------------------------
 
@@ -239,7 +240,8 @@ class KMeans(PythonWrapper.KMeans) :
     :type distance: str, {'euclid', 'machalanobis', 'cosine'}, default='euclid'
     """
 
-    def __init__(self, max_iteration_count, init_cluster_count, algo='lloyd', init='default', distance='euclid'):
+    def __init__(self, max_iteration_count, cluster_count, algo='lloyd', init='default', distance='euclid',
+                 thread_count=1):
         if algo != 'elkan' and algo != 'lloyd':
             raise ValueError('The `algo` must be one of {`elkan`, `lloyd`}.')
         if init != 'k++' and init != 'default':
@@ -248,10 +250,11 @@ class KMeans(PythonWrapper.KMeans) :
             raise ValueError('The `distance` must be one of {`euclid`, `machalanobis`, `cosine`}.')
         if max_iteration_count <= 0:
             raise ValueError('The `max_iteration_count` must be > 0.')
-        if init_cluster_count <= 0:
-            raise ValueError('The `init_cluster_count` must be > 0.')
-
-        super().__init__(algo, init, distance, int(max_iteration_count), int(init_cluster_count))
+        if cluster_count <= 0:
+            raise ValueError('The `cluster_count` must be > 0.')
+        if thread_count <= 0:
+            raise ValueError('The `thread_count` must be < 0')
+        super().__init__(algo, init, distance, int(max_iteration_count), int(cluster_count), int(thread_count))
 
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.
@@ -275,7 +278,7 @@ class KMeans(PythonWrapper.KMeans) :
             - centers - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
             - vars - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
         """
-        x = csr_matrix(X, dtype=numpy.float32)
+        x = convert_data(X)
 
         if weight is None:
             weight = numpy.ones(x.size, numpy.float32)
@@ -284,4 +287,4 @@ class KMeans(PythonWrapper.KMeans) :
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
-        return super().clusterize(x.indices, x.data, x.indptr, int(x.shape[1]), weight)
+        return super().clusterize(*get_data(x), int(x.shape[1]), weight)
