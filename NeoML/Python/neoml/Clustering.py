@@ -255,6 +255,10 @@ class KMeans(PythonWrapper.KMeans) :
         if thread_count <= 0:
             raise ValueError('The `thread_count` must be < 0')
         super().__init__(algo, init, distance, int(max_iteration_count), int(cluster_count), int(thread_count))
+        if thread_count <= 0:
+            raise ValueError('The `thread_count` must be < 0')
+
+        super().__init__(algo, init, distance, int(max_iteration_count), int(init_cluster_count), int(thread_count))
 
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.
@@ -281,7 +285,7 @@ class KMeans(PythonWrapper.KMeans) :
         x = convert_data(X)
 
         if weight is None:
-            weight = numpy.ones(x.size, numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32)
         else:
             weight = numpy.array(weight, dtype=numpy.float32, copy=False)
             if numpy.any(weight < 0):

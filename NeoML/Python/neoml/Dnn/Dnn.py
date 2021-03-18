@@ -39,7 +39,7 @@ class Dnn(PythonWrapper.Dnn):
             raise ValueError('The `math_engine` must be a neoml.MathEngine.MathEngine.')
 
         if random is None:
-            random = neoml.Random.Random()
+            random = neoml.Random.Random(42)
 
         if not isinstance(random, neoml.Random.Random):
             raise ValueError('The `random_generator` must be a neoml.Random.Random.')
