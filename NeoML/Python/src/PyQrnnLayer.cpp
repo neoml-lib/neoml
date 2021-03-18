@@ -42,10 +42,10 @@ public:
 	float GetDropout() const { return Layer<CQrnnLayer>()->GetDropout(); }
 
 	void SetFilter( const CPyBlob& blob ) { Layer<CQrnnLayer>()->SetFilterData( blob.Blob() ); }
-	CPyBlob GetFilter() const { return CPyBlob( MathEngineOwner(), Layer<CQrnnLayer>()->GetFilterData().Ptr() ); }
+	CPyBlob GetFilter() const { return CPyBlob( MathEngineOwner(), Layer<CQrnnLayer>()->GetFilterData() ); }
 
 	void SetFreeTerm( const CPyBlob& blob ) { Layer<CQrnnLayer>()->SetFreeTermData( blob.Blob() ); }
-	CPyBlob GetFreeTerm() const { return CPyBlob( MathEngineOwner(), Layer<CQrnnLayer>()->GetFreeTermData().Ptr() ); }
+	CPyBlob GetFreeTerm() const { return CPyBlob( MathEngineOwner(), Layer<CQrnnLayer>()->GetFreeTermData() ); }
 
 	void SetRecurrentMode(int value) { Layer<CQrnnLayer>()->SetRecurrentMode(static_cast<CQrnnLayer::TRecurrentMode>(value)); }
 	int GetRecurrentMode() const { return static_cast<int>(Layer<CQrnnLayer>()->GetRecurrentMode()); }
