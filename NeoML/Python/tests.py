@@ -1803,7 +1803,7 @@ class PoolingTestCase(TestCase):
         self.assertAlmostEqual(irnn.identity_scale, identity_scale, delta=1e-5)
         self.assertAlmostEqual(irnn.input_weight_std, input_weight_std, delta=1e-5)
         self.assertEqual(a.shape, (batch_length, batch_width, 1, 1, 1, 1, hidden_size))
-
+'''
 class LossTestCase(TestCase):
     def _test_loss(self, layer, kwargs={},
                    n_classes=2,
@@ -2078,4 +2078,3 @@ class ClusteringTestCase(TestCase):
 
     def test_kmeans(self):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
-'''
