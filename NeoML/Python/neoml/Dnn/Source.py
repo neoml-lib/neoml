@@ -27,7 +27,8 @@ class Source(Layer):
     
     Layer outputs
     ---------------
-    The layer has one output that contains the data blob passed into the last call of ``set_blob``.
+    The layer has one output that contains the data blob 
+    passed into the last call of set_blob.
       
     Parameters
     -------------

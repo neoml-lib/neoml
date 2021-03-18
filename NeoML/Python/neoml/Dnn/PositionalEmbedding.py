@@ -16,19 +16,50 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 import neoml.Blob as Blob
 
 
 class PositionalEmbedding(Layer):
-    """
+    """The layer that maps positions in sequence into vectors, 
+    optionally trainable. The exact formula depends on the type_name parameter.
+    
+    The formula for "transformers":
+    result[i][j][k] = input[i][j][k] + sin(j / pow(10000, (k / vectorLength))),
+    where
+    - i is the index of sequence in batch (from 0 to BatchWidth - 1)
+    - j is the position of vector in sequence (from 0 to ListSize - 1)
+    - k is the index of the element in the vector (from 0 to vectorLength - 1)
+    
+    The formula for "learnable_addition":
+    result[i][j] = input[i][j] + addends[j],
+    where
+    - i is the index of sequence in batch (from 0 to BatchWidth - 1)
+    - j is the position of vector in sequence (from 0 to ListSize - 1)
+    - addends is the trainable vector to be added
+    
+    Layer inputs
+    ----------
+    #1: a blob with vector sequences.
+    The dimensions:
+    - BatchLength is 1
+    - BatchWidth is the number of sequences in the set
+    - ListSize is the sequence length
+    - Height * Width * Depth * Channels is the vector length;
+        for "transformers", Height, Width, and Depth should be 1,
+        vector length is equal to Channels
+    
+    Layer outputs
+    ----------
+    #1: the transformation result, of the same dimensions as the input.
     
     Parameters
     ----------
     input_layer : (object, int)
         The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    type :
+    type_name : {"learnable_addition", "transformers"}
+        The operation type.
     name : str, default=None
         The layer name.
     """
@@ -49,13 +80,13 @@ class PositionalEmbedding(Layer):
 
     @property
     def type(self):
-        """
+        """Gets the type of operation the layer performs.
         """
         return self.types[self._internal.get_type()]
 
     @type.setter
     def type(self, type):
-        """
+        """Sets the type of operation the layer performs.
         """
         type_index = self.types.index(type)
 
@@ -63,12 +94,16 @@ class PositionalEmbedding(Layer):
 
     @property
     def addends(self):
-        """
+        """Gets the trainable vectors added. The blob dimensions:
+        - BatchLength, BatchWidth are 1
+        - the other dimensions are the same as for the input
         """
         return Blob.Blob(self._internal.get_addends())
 
     @addends.setter
     def addends(self, addends):
-        """
+        """Sets the trainable vectors added. The blob dimensions:
+        - BatchLength, BatchWidth are 1
+        - the other dimensions are the same as for the input
         """
         self._internal.set_addends(addends._internal)

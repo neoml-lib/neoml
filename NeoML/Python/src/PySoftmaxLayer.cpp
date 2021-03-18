@@ -45,7 +45,7 @@ void InitializeSoftmaxLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer( mathEngine );
 			softmax->SetNormalizationArea( static_cast<CSoftmaxLayer::TNormalizationArea>(area_index) );
-			softmax->SetName( name == "" ? findFreeLayerName( dnn, "Softmax" ).c_str() : name.c_str() );
+			softmax->SetName( FindFreeLayerName( dnn, "Softmax", name ).c_str() );
 			dnn.AddLayer( *softmax );
 			softmax->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPySoftmaxLayer( *softmax, layer1.MathEngineOwner() );

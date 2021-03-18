@@ -15,7 +15,8 @@ limitations under the License.
 """
 
 import numpy
-from scipy.sparse import csr_matrix
+from .Utils import convert_data, get_data
+from scipy.sparse import csr_matrix, issparse
 import neoml.PythonWrapper as PythonWrapper
 
 
@@ -48,7 +49,7 @@ def cross_validation_score(classifier, X, Y, weight=None, score="accuracy", part
         The predictions of class probability for each input vector.
     """
 
-    x = csr_matrix( X, dtype=numpy.float32 )
+    x = convert_data( X )
     y = numpy.array( Y, dtype=numpy.int32, copy=False )
 
     if x.shape[0] != y.size:
@@ -71,4 +72,4 @@ def cross_validation_score(classifier, X, Y, weight=None, score="accuracy", part
     if parts <= 0 or parts >= y.size / 2:
         raise ValueError('`parts` must be in (0, vectorCount).')
 
-    return PythonWrapper._cross_validation_score(classifier, x.indices, x.data, x.indptr, int(x.shape[1]), y, weight, score, parts, bool(stratified))
+    return PythonWrapper._cross_validation_score(classifier, *get_data(x), int(x.shape[1]), y, weight, score, parts, bool(stratified))

@@ -77,17 +77,17 @@ private:
 	CObjectArray<CCommonCluster> clusters; // current clusters
 	CPointerArray<CFloatVectorArray> history; // algorithm iteration history`
 
-	void selectInitialClusters( const CSparseFloatMatrixDesc& matrix );
-	void classifyAllData( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
-	int findNearestCluster( const CSparseFloatVectorDesc& vector, const CObjectArray<CCommonCluster>& clusters ) const;
+	void selectInitialClusters( const CFloatMatrixDesc& matrix );
+	void classifyAllData( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
+	int findNearestCluster( const CFloatVectorDesc& vector, const CObjectArray<CCommonCluster>& clusters ) const;
 
-	bool splitClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
+	bool splitClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
 	double calcMeanDiameter() const;
 	double calcClusterDiameter( const CCommonCluster& cluster ) const;
-	bool splitCluster( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights, int index );
-	bool splitByFeature(  const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights, int clusterNumber,
+	bool splitCluster( const CFloatMatrixDesc& matrix, const CArray<double>& weights, int index );
+	bool splitByFeature(  const CFloatMatrixDesc& matrix, const CArray<double>& weights, int clusterNumber,
 		CFloatVector& firstMeans, CFloatVector& secondMeans ) const;
-	void splitData(  const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights, const CArray<int>& dataIndexes,
+	void splitData(  const CFloatMatrixDesc& matrix, const CArray<double>& weights, const CArray<int>& dataIndexes,
 		int firstCluster, int secondCluster );
 
 	void mergeClusters();

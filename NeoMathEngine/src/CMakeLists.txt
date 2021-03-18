@@ -386,10 +386,15 @@ if(NOT ANDROID AND NOT IOS AND CMAKE_SYSTEM_PROCESSOR MATCHES "(x86.*)|(amd64)|(
         set(ENV{MKLROOT} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})
     endif()
 
-    set(MKL_USE_STATIC_LIBS ON)
-    find_package(MKL REQUIRED)
-    target_link_libraries(${PROJECT_NAME} PRIVATE MKL::Libs)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_MKL)
+    find_package(MKL)
+
+    if(MKL_FOUND)
+        set(MKL_USE_STATIC_LIBS ON)
+        target_link_libraries(${PROJECT_NAME} PRIVATE MKL::Libs)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_MKL)
+    elseif(USE_FINE_OBJECTS)
+        message(FATAL_ERROR "MKL not found!")
+    endif()
 endif()
 
 # Win resources

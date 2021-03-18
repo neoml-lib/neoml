@@ -35,11 +35,11 @@ public:
 
 	int GetVectorCount() const override { return desc.Height; }
 	int GetFeaturesCount() const override { return desc.Width; }
-	CSparseFloatMatrixDesc GetMatrix() const override { return desc; }
+	CFloatMatrixDesc GetMatrix() const override { return desc; }
 	double GetVectorWeight( int /* index */ ) const override { return 1; }
 
 private:
-	CSparseFloatMatrixDesc desc;
+	CFloatMatrixDesc desc;
 	CArray<int> columns;
 	CArray<float> values;
 	CArray<int> pointers;
@@ -55,7 +55,7 @@ CClusteringTestData::CClusteringTestData( const CArray<CSparseFloatVector>& vect
 		values.Add( 0, desc.Height * desc.Width );
 		float* rowPtr = values.GetPtr();
 		for( int i = 0; i < vectors.Size(); ++i ) {
-			const CSparseFloatVectorDesc& vectorDesc = vectors[i].GetDesc();
+			const CFloatVectorDesc& vectorDesc = vectors[i].GetDesc();
 			for( int j = 0; j < vectorDesc.Size; ++j ) {
 				rowPtr[vectorDesc.Indexes[j]] = vectorDesc.Values[j];
 			}
@@ -67,7 +67,7 @@ CClusteringTestData::CClusteringTestData( const CArray<CSparseFloatVector>& vect
 	} else {
 		pointers.Add( 0 );
 		for( int i = 0; i < vectors.Size(); ++i ) {
-			const CSparseFloatVectorDesc& vectorDesc = vectors[i].GetDesc();
+			const CFloatVectorDesc& vectorDesc = vectors[i].GetDesc();
 			int prevElementCount = values.Size();
 			pointers.Add( prevElementCount + vectorDesc.Size );
 			values.SetSize( prevElementCount + vectorDesc.Size );

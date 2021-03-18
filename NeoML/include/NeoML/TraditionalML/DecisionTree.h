@@ -177,8 +177,8 @@ private:
 	mutable CArray<int> classifyNodesLevel; // the levels of leaf nodes
 
 	CPtr<CDecisionTreeNodeBase> buildTree( int vectorCount );
-	bool buildTreeLevel( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase& root ) const;
-	bool collectStatistics( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase* root ) const;
+	bool buildTreeLevel( const CFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase& root ) const;
+	bool collectStatistics( const CFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase* root ) const;
 	bool split( const CDecisionTreeNodeStatisticBase& nodeStatistics, int level ) const;
 	void generateUsedFeatures( int randomSelectedFeaturesCount, int featuresCount, CArray<int>& features ) const;
 

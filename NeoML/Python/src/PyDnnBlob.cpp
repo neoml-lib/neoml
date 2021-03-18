@@ -317,7 +317,7 @@ void InitializeBlob( py::module& m )
 				}
 
 				auto t0_array = t[0].cast<py::array>();
-				CPyMemoryFile file( &t0_array );
+				CPyMemoryFile file( t0_array );
 				CArchive archive( &file, CArchive::load );
 				bool isNull = true;
 				archive >> isNull;

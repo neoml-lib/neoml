@@ -19,7 +19,7 @@ limitations under the License.
 #include "PyMemoryFile.h"
 
 CPyMemoryFile::CPyMemoryFile() :
-	buffer( new py::array( py::dtype("byte"), {}, {} ) ),
+	buffer( py::array( py::dtype("byte"), {}, {} ) ),
 	bufferSize( 0 ),
 	fileLength( 0 ),
 	currentPosition( 0 ),
@@ -28,10 +28,10 @@ CPyMemoryFile::CPyMemoryFile() :
 	NeoAssert( growBytes >= 0 );
 }
 
-CPyMemoryFile::CPyMemoryFile( py::array* _buffer ) :
+CPyMemoryFile::CPyMemoryFile( const py::array& _buffer ) :
 	buffer( _buffer ),
-	bufferSize( static_cast<int>( _buffer->size() ) ),
-	fileLength( static_cast<int>( _buffer->size() ) ),
+	bufferSize( static_cast<int>( _buffer.size() ) ),
+	fileLength( static_cast<int>( _buffer.size() ) ),
 	currentPosition( 0 ),
 	state( S_Read )
 {
@@ -43,7 +43,7 @@ CPyMemoryFile::~CPyMemoryFile()
 	Close();
 }
 
-py::array* CPyMemoryFile::GetBuffer() const
+const py::array& CPyMemoryFile::GetBuffer() const
 {
 	NeoAssert( !IsOpen() );
 	return buffer;
@@ -62,7 +62,7 @@ int CPyMemoryFile::Read( void* ptr, int bytesCount )
 	if( size <= 0 ) {
 		return 0;
 	}
-	::memcpy( ptr, (char*)buffer->mutable_data() + currentPosition, size );
+	::memcpy( ptr, (char*)buffer.mutable_data() + currentPosition, size );
 	currentPosition += size;
 	return size;
 }
@@ -82,7 +82,7 @@ void CPyMemoryFile::Write( const void* ptr, int bytesCount )
 	if( newPosition > bufferSize ) {
 		setBufferSize( newPosition );
 	}
-	::memcpy( (char*)buffer->mutable_data() + currentPosition, ptr, bytesCount );
+	::memcpy( (char*)buffer.mutable_data() + currentPosition, ptr, bytesCount );
 	currentPosition = newPosition;
 	fileLength = max( fileLength, currentPosition );
 }
@@ -93,23 +93,23 @@ void CPyMemoryFile::Close()
 		return;
 	}
 
-	buffer->resize( {fileLength} );
+	buffer.resize( {fileLength} );
 	bufferSize = 0;
 	fileLength = 0;
 	currentPosition = 0;
 	state = S_Closed;
 }
 
-__int64 CPyMemoryFile::GetPosition() const
+long long CPyMemoryFile::GetPosition() const
 {
 	return currentPosition;
 }
 
-__int64 CPyMemoryFile::Seek( __int64 offset, TSeekPosition from )
+long long CPyMemoryFile::Seek( long long offset, TSeekPosition from )
 {
 	NeoAssert( IsOpen() );
 
-	__int64 newPosition = currentPosition;
+	long long newPosition = currentPosition;
 	switch( from ) {
 		case current:
 			newPosition += offset;
@@ -131,7 +131,7 @@ __int64 CPyMemoryFile::Seek( __int64 offset, TSeekPosition from )
 	return currentPosition;
 }
 
-void CPyMemoryFile::SetLength( __int64 newLength )
+void CPyMemoryFile::SetLength( long long newLength )
 {
 	NeoAssert( state == S_Write );
 	NeoAssert( 0 <= newLength && newLength <= INT_MAX );
@@ -145,7 +145,7 @@ void CPyMemoryFile::SetLength( __int64 newLength )
 	fileLength = length32;
 }
 
-__int64 CPyMemoryFile::GetLength() const
+long long CPyMemoryFile::GetLength() const
 {
 	return fileLength;
 }
@@ -163,6 +163,6 @@ void CPyMemoryFile::setBufferSize( int requiredSize )
 {
 	NeoAssert( growBytes > 0 );
 	int newBufferSize = max( bufferSize + bufferSize / 2, CeilTo( requiredSize, growBytes ) );
-	buffer->resize( {newBufferSize} );
+	buffer.resize( {newBufferSize} );
 	bufferSize = newBufferSize;
 }

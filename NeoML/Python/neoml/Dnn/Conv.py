@@ -16,8 +16,8 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
+from neoml.Utils import check_input_layers
 from .BatchNormalization import BatchNormalization
-from .Utils import check_input_layers
 import neoml.Blob as Blob
 
 
