@@ -102,5 +102,8 @@ void InitializeMathEngine(py::module& m)
 		}
 		return t;
 	})
-	.def("default_math_engine", []() { return CPyMathEngine( CPyMathEngineOwner() ); });
+	.def("default_math_engine", []() {
+		CPyMathEngineOwner owner;
+		return CPyMathEngine( owner );
+	});
 }
