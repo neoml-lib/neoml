@@ -272,7 +272,6 @@ class LayersTestCase(TestCase):
         inputs = {"source1": input1}
 
         outputs = dnn.run(inputs)
-
         out1 = outputs["sink1"].asarray()
         out2 = outputs["sink2"].asarray()
 
@@ -1600,6 +1599,41 @@ class PoolingTestCase(TestCase):
         self.assertEqual(pre.result, [24, 24, 0, 0])
         self.assertEqual(layer.result, [24, 24, 0, 0])
         self.assertEqual(a.size, 4)
+
+    def test_qrnn(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source1 = neoml.Dnn.Source(dnn, "source1")
+        source2 = neoml.Dnn.Source(dnn, "source2")
+        qrnn = neoml.Dnn.Qrnn((source1, source2), 7, 4, 2, (1, 1), "sigmoid", 0.6, "direct", "qrnn")
+        filter = neoml.Blob.asblob(math_engine, np.ones((21, 5, 6), dtype=np.float32), (1, 21, 1, 4, 1, 1, 6))
+        qrnn.filter = filter
+        free_term = neoml.Blob.asblob(math_engine, np.ones((21,), dtype=np.float32), (1, 21, 1, 1, 1, 1, 1))
+        qrnn.free_term = free_term
+        layer = dnn.layers['qrnn']
+        self.assertEqual(layer.name, 'qrnn')
+
+        sink = neoml.Dnn.Sink(qrnn, "sink")
+
+        input1 = neoml.Blob.asblob(math_engine, np.ones((2, 3, 6), dtype=np.float32), (2, 3, 1, 1, 1, 1, 6))
+        input2 = neoml.Blob.asblob(math_engine, np.ones((3, 7), dtype=np.float32), (1, 3, 1, 1, 1, 1, 7))
+
+        inputs = {"source1": input1, "source2": input2}
+        outputs = dnn.run(inputs)
+        a = outputs["sink"]
+
+        self.assertEqual(qrnn.hidden_size, 7)
+        self.assertEqual(layer.hidden_size, 7)
+        self.assertEqual(qrnn.window_size, 4)
+        self.assertEqual(qrnn.stride, 2)
+        self.assertEqual(qrnn.padding_front, 1)
+        self.assertEqual(layer.padding_front, 1)
+        self.assertEqual(qrnn.padding_back, 1)
+        self.assertEqual(qrnn.activation, "sigmoid")
+        self.assertAlmostEqual(qrnn.dropout, 0.6, delta=1e-3)
+        self.assertEqual(qrnn.recurrent_mode, "direct")
+
+        self.assertEqual(a.shape, (1, 3, 1, 1, 1, 1, 7 ))
 
     def test_reorg(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
