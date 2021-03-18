@@ -887,7 +887,7 @@ class LayersTestCase(TestCase):
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
         self.assertEqual(out.shape, (4, 5, 9, 2))
-'''
+
     def test_image_resize(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -1390,7 +1390,7 @@ class LayersTestCase(TestCase):
         out2 = outputs["sink2"].asarray()
         self.assertEqual(out1.shape, (9, 3, 14, 11, 9, 7))
         self.assertEqual(out2.shape, (9, 3, 14, 11, 9, 7))
-
+'''
 class PoolingTestCase(TestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
                       input_shape=(2, 1, 2, 3, 5, 4, 2)):
