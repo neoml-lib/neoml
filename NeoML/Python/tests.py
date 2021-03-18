@@ -1545,7 +1545,7 @@ class PoolingTestCase(TestCase):
         self.assertEqual(pre.result, [24, 24, 0, 0])
         self.assertEqual(layer.result, [24, 24, 0, 0])
         self.assertEqual(a.size, 4)
-'''
+
     def test_qrnn(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -1599,7 +1599,7 @@ class PoolingTestCase(TestCase):
         outputs = dnn.run(inputs)
         out = outputs["sink"]
         self.assertEqual(out.shape, (1, 3, 1, 4, 4, 1, 16))
-
+'''
     def test_repeat_count(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
