@@ -1545,7 +1545,7 @@ class PoolingTestCase(TestCase):
         self.assertEqual(pre.result, [24, 24, 0, 0])
         self.assertEqual(layer.result, [24, 24, 0, 0])
         self.assertEqual(a.size, 4)
-
+'''
     def test_qrnn(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -1803,7 +1803,7 @@ class PoolingTestCase(TestCase):
         self.assertAlmostEqual(irnn.identity_scale, identity_scale, delta=1e-5)
         self.assertAlmostEqual(irnn.input_weight_std, input_weight_std, delta=1e-5)
         self.assertEqual(a.shape, (batch_length, batch_width, 1, 1, 1, 1, hidden_size))
-'''
+
 class LossTestCase(TestCase):
     def _test_loss(self, layer, kwargs={},
                    n_classes=2,
