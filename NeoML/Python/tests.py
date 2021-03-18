@@ -258,60 +258,6 @@ class SolverTestCase(TestCase):
 
 
 class LayersTestCase(TestCase):
-    def test_lstm(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
-        dnn = neoml.Dnn.Dnn(math_engine)
-        source1 = neoml.Dnn.Source(dnn, "source1")
-        lstm = neoml.Dnn.Lstm(source1, 7, 0.6, name="lstm")
-        sink1 = neoml.Dnn.Sink((lstm, 0), "sink1")
-        sink2 = neoml.Dnn.Sink((lstm, 1), "sink2")
-        layer = dnn.layers['lstm']
-        self.assertEqual(layer.name, 'lstm')
-
-        input1 = neoml.Blob.asblob(math_engine, np.ones((5, 3, 16), dtype=np.float32), (5, 3, 1, 1, 1, 1, 16))
-        inputs = {"source1": input1}
-
-        outputs = dnn.run(inputs)
-        out1 = outputs["sink1"].asarray()
-        out2 = outputs["sink2"].asarray()
-
-        self.assertEqual(lstm.hidden_size, 7)
-        self.assertEqual(layer.hidden_size, 7)
-
-        self.assertEqual(lstm.reverse_sequence, False)
-        lstm.reverse_sequence = True
-        self.assertEqual(lstm.reverse_sequence, True)
-        self.assertEqual(layer.reverse_sequence, True)
-
-        self.assertAlmostEqual(lstm.dropout, 0.6, delta=1e-3)
-        lstm.dropout = 0.9
-        self.assertAlmostEqual(lstm.dropout, 0.9, delta=1e-3)
-        self.assertAlmostEqual(layer.dropout, 0.9, delta=1e-3)
-
-        self.assertEqual(lstm.activation, "sigmoid")
-        lstm.activation = "abs"
-        self.assertEqual(lstm.activation, "abs")
-
-        self.assertEqual(out1.shape, (5, 3, 7))
-        self.assertEqual(out2.shape, (5, 3, 7))
-
-        w_blob = lstm.input_weights
-        weights = w_blob.asarray()
-        lstm.input_weights = w_blob
-        f_blob = lstm.input_free_term
-        free_term = f_blob.asarray()
-        lstm.input_free_term = f_blob
-
-        w_blob = lstm.recurrent_weights
-        weights = w_blob.asarray()
-        lstm.recurrent_weights = w_blob
-        f_blob = lstm.recurrent_free_term
-        free_term = f_blob.asarray()
-        lstm.recurrent_free_term = f_blob
-
-        self.assertEqual(weights.shape, (28, 7))
-        self.assertEqual(free_term.shape, (28,))
-'''
     def test_fully_connected(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -351,7 +297,7 @@ class LayersTestCase(TestCase):
 
         self.assertEqual(weights.shape, (5, 16))
         self.assertEqual(free_term.shape, (5,))
-
+'''
     def test_concat_channels(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
