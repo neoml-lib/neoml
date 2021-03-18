@@ -16,7 +16,8 @@ The `neoml` module contains multiple clustering algoithms such as:
 K-Means
 #######
 
-:doc:`K-Means <../API/Clustering/kMeans>` method is the most popular clustering algorithm.
+`K-Means method <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/kMeans.md>`_
+is the most popular clustering algorithm.
 It assigns each object to tthe cluster with the nearest center.
 
 Class description
@@ -42,7 +43,8 @@ Example
 ISODATA
 #######
 
-:doc:`ISODATA <../API/Clustering/ISODATA>` clustering algorithm is base on geometrical proximity of the data points.
+`ISODATA clustering algorithm <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/ISODATA.md>`_
+is based on geometrical proximity of the data points.
 The clustering result will depend greatly on the initial settings.
 
 Class description
@@ -70,7 +72,8 @@ Example
 Hierarchical clustering
 #######################
 
-The library provides a "naive" implemetation of upward :doc:`hierarchical clustering<../API/Clustering/Hierarchical>`.
+The library provides a "naive" implemetation of upward
+`hierarchical clustering<https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/Hierarchical.md>`_.
 First, it creates a cluster per element, the merges clusters on each step until the final cluster is achieved.
 
 Class description
@@ -97,7 +100,8 @@ Example
 First come clustering
 #####################
 
-A :doc:`simple clustering algorithm <../API/Clustering/FirstCome>` that create a new cluster for each new vector
+A `simple clustering algorithm <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/FirstCome.md>`_
+that create a new cluster for each new vector
 that is far enough from the clusters already existing.
 
 Class description

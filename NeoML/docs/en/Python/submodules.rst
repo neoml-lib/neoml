@@ -1,8 +1,13 @@
-=====================
-Python module `neoml`
-=====================
+Submodules
+##########
 
-`neoml` module provides Python interface for C++ library.
+.. toctree::
+   :maxdepth: 3
+   :caption: Submodules:
+   :hidden:
+
+   clustering
+   dnn
 
 The Python API is split into several submodules:
 
