@@ -9,9 +9,35 @@ Welcome to NeoML's documentation!
 
 `neoml` module provides Python interface for `C++ library <https://github.com/neoml-lib/neoml>`_.
 
-.. include:: submodules.rst
+Submodules
+##########
 
-.. include:: installation.rst
+.. toctree::
+   :maxdepth: 3
+   :caption: Submodules
+   :hidden:
+
+   submodules/clustering
+   submodules/dnn
+
+The Python API is split into several submodules:
+
+- :ref:`py-clustering-submodule` containing clustering algorithms
+- neoml.MathEngine
+- neoml.Blob
+- :ref:`py-dnn-submodule` containing neural networks and layers
+- neoml.Linear
+- TBD
+
+Installation
+############
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Installation
+   :hidden:
+
+TBD
 
 
 Indices and tables
