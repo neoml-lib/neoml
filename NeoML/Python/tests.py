@@ -1096,7 +1096,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(ctcLoss.skip, True)
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((64, 4, 5), dtype=np.float32), (3, 4, 1, 1, 1, 1, 5))
-        input2 = neoml.Blob.asblob(math_engine, np.ones((9, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
+        input2 = neoml.Blob.asblob(math_engine, np.ones((2, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
         inputs = {"source1": input1, "source2": input2}
         dnn.run(inputs)
         self.assertAlmostEqual(ctcLoss.last_loss, 4.8283, delta=1e-4)
