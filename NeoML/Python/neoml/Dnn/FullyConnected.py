@@ -16,12 +16,44 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 import neoml.Blob as Blob
 
 
 class FullyConnected(Layer):
-    """
+    """The fully connected layer.
+    It multiplies each of the input vectors by the weight matrix
+    and adds the free term vector to the result.
+
+    Layer inputs
+    -----------
+    The layer can have any number of inputs.
+    The dimensions:
+    - BatchLength * BatchWidth * ListSize is the number of vectors
+    - Height * Width * Depth * Channels is the vector size; 
+        should be the same for all inputs
+
+    Layer outputs
+    -----------
+    The layer returns one output for each input.
+    The dimensions:
+    - BatchLength, BatchWidth, ListSize the same as for the input
+    - Height, Width, Depth are 1
+    - Channels is element_count
+
+    Parameters
+    -----------
+    input_layers : array of (object, int) tuples or objects
+        The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    element_count : int, > 0
+        The length of each vector in the output.
+    is_zero_free_term : bool, default=False
+        If True, the free term vector is set to all zeros and not trained.
+        If False, the free term is trained together with the weights.
+    name : str, default=None
+        The layer name.
     """
     def __init__(self, input_layers, element_count, is_zero_free_term=False, name=None):
 
@@ -39,24 +71,31 @@ class FullyConnected(Layer):
 
     @property
     def element_count(self):
-        """
+        """Gets the length of each vector in the output.
         """
         return self._internal.get_element_count()
 
     @property
     def zero_free_term(self):
-        """
+        """Sets the length of each vector in the output.
         """
         return self._internal.get_zero_free_term()
 
     @zero_free_term.setter
     def zero_free_term(self, zero_free_term):
-        """
+        """Checks if the free term is all zeros.
         """
         self._internal.set_zero_free_term(bool(zero_free_term))
 
 
     def apply_batch_normalization(self, layer):
+        """Applies the batch normalization layer directly
+        to this layer output.
+        If you perform batch normalization on this layer's output, 
+        you can train the network, then move the batch normalization layer
+        here and delete it from the network. This will save some calculations
+        when running the network.
+        """
         if not type(layer) is BatchNormalization:
             raise ValueError('The `layer` must be neoml.BatchNormalization.')
 
@@ -64,13 +103,17 @@ class FullyConnected(Layer):
 
     @property
     def weights(self):
-        """
+        """Gets the trained weights as a blob of the dimensions:
+        - BatchLength * BatchWidth * ListSize equal to element_count
+        - Height, Width, Depth, Channels the same as for the first input
         """
         return Blob.Blob(self._internal.get_weights())
 
     @weights.setter
     def weights(self, blob):
-        """
+        """Sets the trained weights as a blob of the dimensions:
+        - BatchLength * BatchWidth * ListSize equal to element_count
+        - Height, Width, Depth, Channels the same as for the first input
         """
         if not type(blob) is Blob.Blob:
             raise ValueError('The `blob` must be neoml.Blob.')
@@ -79,13 +122,13 @@ class FullyConnected(Layer):
 
     @property
     def free_term(self):
-        """
+        """Gets the free term vector, of element_count length.
         """
         return Blob.Blob(self._internal.get_free_term())
 
     @free_term.setter
     def free_term(self, blob):
-        """
+        """Sets the free term vector, of element_count length.
         """
         if not type(blob) is Blob.Blob:
             raise ValueError('The `blob` must be neoml.Blob.')
