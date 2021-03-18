@@ -62,7 +62,7 @@ CPtr<IModel> CDecisionTree::Train( const IProblem& problem )
 	NeoAssert( problem.GetClassCount() > 0 );
 	NeoAssert( problem.GetFeatureCount() > 0 );
 
-	if( problem.GetClassCount() > 2 ) {
+	if( problem.GetClassCount() > 2 && params.MulticlassMode == MM_OneVsAll ) {
 		return COneVersusAll( *this ).Train( problem );
 	}
 

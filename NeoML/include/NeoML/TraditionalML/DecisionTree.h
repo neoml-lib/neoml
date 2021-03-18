@@ -113,6 +113,13 @@ public:
 		SC_Count
 	};
 
+	// The algorithm used for multi-class classification
+	enum TMulticlassMode {
+		MM_SingleTree = 0,
+		MM_OneVsAll,
+		MM_Count
+	};
+
 	// Classification parameters
 	struct CParams {
 		// The minimum number of vectors corresponding to a node subtree:
@@ -136,6 +143,8 @@ public:
 		int RandomSelectedFeaturesCount;
 		// The memory limit for the algorithm
 		size_t AvailableMemory; 
+		// The algorithm used for multi-class classification
+		TMulticlassMode MulticlassMode;
 
 		CParams() :
 			MinContinuousSubsetSize( 1 ),
@@ -148,7 +157,8 @@ public:
 			SplitCriterion( SC_InformationGain ),
 			ConstNodeThreshold( 0.99 ),
 			RandomSelectedFeaturesCount( NotFound ),
-			AvailableMemory( Gigabyte )
+			AvailableMemory( Gigabyte ),
+			MulticlassMode( MM_SingleTree )
 		{
 		}
 	};
