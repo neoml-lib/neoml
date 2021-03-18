@@ -297,7 +297,7 @@ class LayersTestCase(TestCase):
 
         self.assertEqual(weights.shape, (5, 16))
         self.assertEqual(free_term.shape, (5,))
-'''
+
     def test_concat_channels(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -887,7 +887,7 @@ class LayersTestCase(TestCase):
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
         self.assertEqual(out.shape, (4, 5, 9, 2))
-
+'''
     def test_image_resize(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
