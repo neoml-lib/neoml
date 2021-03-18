@@ -201,8 +201,8 @@ public:
 private:
 	CSvmKernel kernel; // the SVM kernel
 	mutable CKernelCache cache; // the columns cache
-	CArray<CSparseFloatVectorDesc> matrix; // the problem data
-	CSparseFloatVectorDesc* x; // raw pointer to data
+	CArray<CFloatVectorDesc> matrix; // the problem data
+	CFloatVectorDesc* x; // raw pointer to data
 	CArray<float> classes; // the vector classes
 	float* y; // raw pointer to binary classes
 	CArray<double> diagonal; // the matrix diagonal

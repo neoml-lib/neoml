@@ -40,15 +40,15 @@ void CGradientBoostFullProblem::Update()
 	isUsedFeatureBinary.DeleteAll();
 	isUsedFeatureBinary.Add( true, usedFeatures.Size() );
 
-	CSparseFloatMatrixDesc matrix = baseProblem->GetMatrix();
+	CFloatMatrixDesc matrix = baseProblem->GetMatrix();
 	NeoAssert( matrix.Height == baseProblem->GetVectorCount() );
 	NeoAssert( matrix.Width == baseProblem->GetFeatureCount() );
 
 	for( int i = 0; i < usedVectors.Size(); i++ ) {
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		matrix.GetRow( usedVectors[i], vector );
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int link = featureNumbers[vector.Indexes[j]];
+			const int link = featureNumbers[vector.Indexes == nullptr ? j : vector.Indexes[j]];
 			if( link != NotFound && vector.Values[j] != 0.0 ) {
 				if( vector.Values[j] != 1.0 ) {
 					isUsedFeatureBinary[link] = false;
@@ -86,10 +86,10 @@ void CGradientBoostFullProblem::Update()
 	featurePos.CopyTo( curFeaturePos );
 
 	for( int i = 0; i < usedVectors.Size(); i++ ) {
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		matrix.GetRow( usedVectors[i], vector );
 		for( int j = 0; j < vector.Size; j++ ) {
-			const int link = featureNumbers[vector.Indexes[j]];
+			const int link = featureNumbers[vector.Indexes == nullptr ? j : vector.Indexes[j]];
 			if( link != NotFound && vector.Values[j] != 0.0 ) {
 				if( isUsedFeatureBinary[link] ) {
 					// A binary feature

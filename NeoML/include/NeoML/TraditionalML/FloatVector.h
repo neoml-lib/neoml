@@ -38,7 +38,7 @@ public:
 	// Creates a vector of size length from the given sparse vector; 
 	// the features that are not present in sparse vector are set to 0
 	CFloatVector( int size, const CSparseFloatVector& sparseVector );
-	CFloatVector( int size, const CSparseFloatVectorDesc& sparseVector );
+	CFloatVector( int size, const CFloatVectorDesc& sparseVector );
 	explicit CFloatVector( int size );
 	CFloatVector( int size, float init );
 	CFloatVector( const CFloatVector& other );
@@ -54,8 +54,8 @@ public:
 	void SetAt( int i, float what );
 	float* CopyOnWrite() { return body.CopyOnWrite()->Values.GetPtr(); }
 	const float* GetPtr() const { return body->Values.GetPtr(); }
-	const CSparseFloatVectorDesc& GetDesc() const
-		{ return body == nullptr ? CSparseFloatVectorDesc::Empty : body->Desc; }
+	const CFloatVectorDesc& GetDesc() const
+		{ return body == nullptr ? CFloatVectorDesc::Empty : body->Desc; }
 
 	void Nullify();
 	
@@ -70,14 +70,14 @@ public:
 		{ return MultiplyAndAdd( vector.GetDesc(), factor ); }
 	CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor )
 		{ return MultiplyAndAdd( vector.GetDesc(), factor ); }
-	CFloatVector& MultiplyAndAdd( const CSparseFloatVectorDesc& vector, double factor );
+	CFloatVector& MultiplyAndAdd( const CFloatVectorDesc& vector, double factor );
 
 	// Adds the given vector, extended by one with the help of LinearFunction gradient, and then multiplied by factor
 	CFloatVector& MultiplyAndAddExt( const CFloatVector& vector, double factor )
 		{ return MultiplyAndAddExt( vector.GetDesc(), factor ); }
 	CFloatVector& MultiplyAndAddExt( const CSparseFloatVector& vector, double factor )
 		{ return MultiplyAndAddExt( vector.GetDesc(), factor ); }
-	CFloatVector& MultiplyAndAddExt( const CSparseFloatVectorDesc& vector, double factor );
+	CFloatVector& MultiplyAndAddExt( const CFloatVectorDesc& vector, double factor );
 
 	// Elementwise operations:
 	void SquareEachElement();
@@ -104,7 +104,7 @@ public:
 private:
 	// The body of the vector is an object containing all its data.
 	struct NEOML_API CFloatVectorBody: public IObject {
-		CSparseFloatVectorDesc Desc;
+		CFloatVectorDesc Desc;
 		CFastArray<float, 1> Values;
 
 		explicit CFloatVectorBody( int size );
@@ -122,7 +122,7 @@ inline CFloatVector::CFloatVectorBody* CFloatVector::CFloatVectorBody::Duplicate
 	return result;
 }
 
-inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CSparseFloatVectorDesc& desc, double factor )
+inline CFloatVector& CFloatVector::MultiplyAndAddExt( const CFloatVectorDesc& desc, double factor )
 {
 	const int size = Size();
 	NeoAssert( size > 0 );
@@ -168,11 +168,11 @@ inline CFloatVector::TIterator CFloatVector::end()
 }
 
 // The dot product of two vectors
-inline double DotProduct( const CSparseFloatVectorDesc& vector1, const CSparseFloatVectorDesc& vector2 )
+inline double DotProduct( const CFloatVectorDesc& vector1, const CFloatVectorDesc& vector2 )
 {
 	double sum = 0;
 
-	auto denseBySparse = []( const CSparseFloatVectorDesc& dense, const CSparseFloatVectorDesc& sparse, double& sum ) {
+	auto denseBySparse = []( const CFloatVectorDesc& dense, const CFloatVectorDesc& sparse, double& sum ) {
 		for( int i = 0; i < sparse.Size && sparse.Indexes[i] < dense.Size; i++ ) {
 			sum += static_cast<double>( sparse.Values[i] ) * dense.Values[sparse.Indexes[i]];
 		}
@@ -215,7 +215,7 @@ inline double DotProduct( const CFloatVector& vector1, const CFloatVector& vecto
 }
 
 // The dot product of two vectors
-inline double DotProduct( const CFloatVector& vector1, const CSparseFloatVectorDesc& vector2 )
+inline double DotProduct( const CFloatVector& vector1, const CFloatVectorDesc& vector2 )
 {
 	return DotProduct( vector1.GetDesc(), vector2 );
 }
@@ -265,7 +265,7 @@ inline double LinearFunction( const CFloatVector& vector1, const CFloatVector& v
 	return sum;
 }
 
-inline double LinearFunction( const CFloatVector& vector1, const CSparseFloatVectorDesc& vector2 )
+inline double LinearFunction( const CFloatVector& vector1, const CFloatVectorDesc& vector2 )
 {
 	NeoAssert( vector1.Size() > 0 );
 
