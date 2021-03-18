@@ -49,7 +49,7 @@ for i in range(n_dots):
 # Clustering
 
 kmeans = neoml.Clustering.KMeans(max_iteration_count=1000,
-                                 init_cluster_count=n_clusters,
+                                 cluster_count=n_clusters,
                                  thread_count=4)
 labels, means, disps = kmeans.clusterize(X)
 
