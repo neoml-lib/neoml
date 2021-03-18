@@ -7,7 +7,7 @@ import numpy as np
 from scipy import sparse
 import neoml
 
-'''
+
 class MathEngineTestCase(TestCase):
     def test_gpu_math_engine(self):
 
@@ -42,7 +42,7 @@ class MathEngineTestCase(TestCase):
         blob = neoml.Blob.vector(math_engine, 10, "int32")
         self.assertEqual(math_engine.peak_memory_usage, 40)
 
-
+'''
 class BlobTestCase(TestCase):
     def test_pickle(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
