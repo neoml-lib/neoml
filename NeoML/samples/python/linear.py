@@ -1,5 +1,5 @@
 """This sample finds optimal parameters and performs
-classification of the 20newsgroups dataset"
+classification of the 20newsgroups dataset
 """
 
 __copyright__ = """
@@ -71,4 +71,4 @@ model, params = grid_search(neoml.Linear.LinearClassifier, train_data.data,
                             train_data.target, param_grid)
 
 print('Best params: ', params)
-print(f'Accuracy: {accuracy(model, test_data.data, test_data.target)}:.4f')
+print(f'Accuracy: {accuracy(model, test_data.data, test_data.target):.4f}')
