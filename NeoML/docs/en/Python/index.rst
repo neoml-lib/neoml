@@ -7,6 +7,8 @@
 Welcome to NeoML's documentation!
 #################################
 
+.. image:: ../../images/NeoML_logo_help.png
+
 `neoml` module provides Python interface for `C++ library <https://github.com/neoml-lib/neoml>`_.
 
 Submodules
