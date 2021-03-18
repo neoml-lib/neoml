@@ -272,7 +272,7 @@ class LayersTestCase(TestCase):
         inputs = {"source1": input1}
 
         outputs = dnn.run(inputs)
-        '''
+
         out1 = outputs["sink1"].asarray()
         out2 = outputs["sink2"].asarray()
 
@@ -297,6 +297,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(out2.shape, (5, 3, 7))
 
         w_blob = lstm.input_weights
+        '''
         weights = w_blob.asarray()
         lstm.input_weights = w_blob
         f_blob = lstm.input_free_term
