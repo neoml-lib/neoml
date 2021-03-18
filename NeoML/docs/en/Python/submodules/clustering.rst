@@ -1,4 +1,4 @@
-.. _py-clustering-submodule:
+.. _py-submodule-clustering:
 
 ################
 neoml.Clustering
@@ -6,12 +6,12 @@ neoml.Clustering
 
 The `neoml` module contains multiple clustering algoithms such as:
 
-- :ref:`py-kmeans`
-- :ref:`py-isodata`
-- :ref:`py-hierarchical`
-- :ref:`py-first-come`
+- :ref:`py-clustering-kmeans`
+- :ref:`py-clustering-isodata`
+- :ref:`py-clustering-hierarchical`
+- :ref:`py-clustering-first-come`
 
-.. _py-kmeans:
+.. _py-clustering-kmeans:
 
 K-Means
 #######
@@ -38,7 +38,7 @@ Example
    kmeans = neoml.Clustering.KMeans(init_cluster_count=4, init='k++', algo='elkan')
    labels, centers, disps = kmeans.clusterize(data)
 
-.. _py-isodata:
+.. _py-clustering-isodata:
 
 ISODATA
 #######
@@ -67,7 +67,7 @@ Example
                                       max_cluster_diameter=10., mean_diameter_coef=1.)
    labels, centers, disps = isodata.clusterize(data)
 
-.. _py-hierarchical:
+.. _py-clustering-hierarchical:
 
 Hierarchical clustering
 #######################
@@ -95,7 +95,7 @@ Example
                                                 distance='euclid')
    labels, centers, disps = hierarchical.clusterize(data)
 
-.. _py-first-come:
+.. _py-clustering-first-come:
 
 First come clustering
 #####################
