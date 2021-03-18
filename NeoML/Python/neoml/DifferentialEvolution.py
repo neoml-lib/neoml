@@ -20,43 +20,101 @@ import neoml.PythonWrapper as PythonWrapper
 
 
 class BaseTraits(metaclass=ABCMeta):
-    """
+    """Base class for working with traits in differential evolution.
     """
 
     @abstractmethod
     def generate(self, min_value, max_value):
-        """
+        """Generates a random trait value in the specified bounds.
+        
+        Parameters
+        ---------
+        min_value : any type
+            The lower bound for the interval.
+        max_value : any type
+            The upper bound for the interval.
         """
 
     @abstractmethod
     def less(self, first, second):
-        """
+        """Checks if the first trait value is smaller than the second.
+        
+        Parameters
+        ---------
+        first : any type
+            The first value to be compared.
+        second : any type
+            The second value to be compared.
         """
 
     @abstractmethod
     def mutate(self, base, left, right, fluctuation, min_value, max_value):
-        """
+        """Performs mutation for the differential evolution algorithm.
+        
+        Parameters
+        ---------
+        base : any type
+            A member of the original population.
+        left : any type
+            Another member of the original population.
+        right : any type
+            Another member of the original population.
+        fluctuation : any type
+            The coefficient for mutation.
+        min_value : any type
+            The lower bound for the mutated value.
+        max_value : any type
+            The upper bound for the mutated value.
         """
 
 # -------------------------------------------------------------------------------------------------------------
 
 
 class DoubleTraits(BaseTraits):
-    """
+    """The implementation of a double parameter.
     """
 
     def generate(self, min_value, max_value):
-        """
+        """Generates a random trait value in the specified bounds.
+        
+        Parameters
+        ---------
+        min_value : double
+            The lower bound for the interval.
+        max_value : double
+            The upper bound for the interval.
         """
         return random.uniform(min_value, max_value)
 
     def less(self, first, second):
-        """
+        """Checks if the first trait value is smaller than the second.
+        
+        Parameters
+        ---------
+        first : double
+            The first value to be compared.
+        second : double
+            The second value to be compared.
         """
         return first < second
 
     def mutate(self, base, left, right, fluctuation, min_value, max_value):
-        """
+        """Performs mutation for the differential evolution algorithm.
+        
+        Parameters
+        ---------
+        base : double
+            A member of the original population.
+        left : double
+            Another member of the original population.
+        right : double
+            Another member of the original population.
+        fluctuation : double
+            The coefficient for mutation.
+        min_value : double
+            The lower bound for the mutated value.
+        max_value : double
+            The upper bound for the mutated value.
         """
         mute = base + fluctuation * (left - right)
         if mute < min_value:
@@ -70,21 +128,50 @@ class DoubleTraits(BaseTraits):
 
 
 class IntTraits(BaseTraits):
-    """
+    """The implementation of an integer parameter.
     """
 
     def generate(self, min_value, max_value):
-        """
+        """Generates a random trait value in the specified bounds.
+        
+        Parameters
+        ---------
+        min_value : int
+            The lower bound for the interval.
+        max_value : int
+            The upper bound for the interval.
         """
         return int(random.uniform(min_value, max_value))
 
     def less(self, first, second):
-        """
+        """Checks if the first trait value is smaller than the second.
+        
+        Parameters
+        ---------
+        first : int
+            The first value to be compared.
+        second : int
+            The second value to be compared.
         """
         return first < second
 
     def mutate(self, base, left, right, fluctuation, min_value, max_value):
-        """
+        """Performs mutation for the differential evolution algorithm.
+        
+        Parameters
+        ---------
+        base : int
+            A member of the original population.
+        left : int
+            Another member of the original population.
+        right : int
+            Another member of the original population.
+        fluctuation : double
+            The coefficient for mutation.
+        min_value : int
+            The lower bound for the mutated value.
+        max_value : int
+            The upper bound for the mutated value.
         """
         mute = base + int(fluctuation * (left - right))
         if mute < min_value:
@@ -130,7 +217,7 @@ class DifferentialEvolution:
             if len(lower_bounds) != len(param_traits):
                 raise ValueError('`bounds` and `param_traits` inputs must be the same length.')
             if any(not isinstance(p, BaseTraits) for p in param_traits):
-                raise ValueError('`param_traits` must be list of neoml.BaseTraits implementations.')
+                raise ValueError('`param_traits` must be a list of neoml.BaseTraits implementations.')
 
         if fluctuation <= 0 or fluctuation >= 1:
             raise ValueError('`fluctuation` must be in (0, 1).')
@@ -151,7 +238,7 @@ class DifferentialEvolution:
             max_non_growing_count = -1
 
         if not isinstance(result_traits, BaseTraits):
-            raise ValueError('`result_traits` must be implementation of neoml.BaseTraits.')
+            raise ValueError('`result_traits` must implement neoml.BaseTraits.')
 
         self.internal = PythonWrapper.DifferentialEvolution(f, lower_bounds, upper_bounds, param_traits,
                                                             result_traits, float(fluctuation), float(cross_probability),
@@ -159,33 +246,34 @@ class DifferentialEvolution:
                                                             int(max_non_growing_count))
 
     def build_next_generation(self):
-        """Builds next generation
+        """Builds the next generation.
             
         Return values
         -------
-        success : returns true if any of the stop conditions was fulfilled
+        success : bool
+           Returns True if any of the stop conditions was fulfilled.
         """
         return self.internal.build_next_generation()
 
     def run(self):
-        """Runs optimization until one of the stop conditions is fulfilled
+        """Runs optimization until one of the stop conditions is fulfilled.
         """
         return self.internal.run()
 
     @property
     def population(self):
-        """Gets the resulting population
+        """Gets the resulting population.
         """
         return self.internal.get_population()
 
     @property
     def population_function_values(self):
-        """Gets the function values on the resulting population
+        """Gets the function values on the resulting population.
         """
         return self.internal.get_population_function_values()
 
     @property
     def optimal_vector(self):
-        """Gets the "best vector"
+        """Gets the "best vector".
         """
         return self.internal.get_optimal_vector()
