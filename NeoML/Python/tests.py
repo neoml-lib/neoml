@@ -256,7 +256,7 @@ class SolverTestCase(TestCase):
         self.assertAlmostEqual(solver.max_gradient_norm, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.moment_decay_rate, 0.6, delta=1e-3)
 
-'''
+
 class LayersTestCase(TestCase):
     def test_lstm(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -311,7 +311,7 @@ class LayersTestCase(TestCase):
 
         self.assertEqual(weights.shape, (28, 7))
         self.assertEqual(free_term.shape, (28,))
-
+'''
     def test_fully_connected(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
