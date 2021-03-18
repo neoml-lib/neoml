@@ -297,7 +297,6 @@ class LayersTestCase(TestCase):
         self.assertEqual(out2.shape, (5, 3, 7))
 
         w_blob = lstm.input_weights
-        '''
         weights = w_blob.asarray()
         lstm.input_weights = w_blob
         f_blob = lstm.input_free_term
@@ -313,7 +312,6 @@ class LayersTestCase(TestCase):
 
         self.assertEqual(weights.shape, (28, 7))
         self.assertEqual(free_term.shape, (28,))
-        '''
 
     def test_fully_connected(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
