@@ -43,7 +43,7 @@ public:
 	// The number of vectors
 	virtual int GetVectorCount() const = 0;
 
-	// The correct class number for a vector with a given index in [0, GetClassCount())
+	// The correct class number for a vector with a given index in [0, GetVectorCount())
 	virtual int GetClass( int index ) const = 0;
 
 	// The correct class in case of binary classification: +1 or -1

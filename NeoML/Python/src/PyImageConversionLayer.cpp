@@ -90,7 +90,7 @@ void InitializeImageConversionLayer( py::module& m )
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CImageToPixelLayer> accuracy = new CImageToPixelLayer( mathEngine );
-			accuracy->SetName( name == "" ? findFreeLayerName( dnn, "ImageToPixel" ).c_str() : name.c_str() );
+			accuracy->SetName( FindFreeLayerName( dnn, "ImageToPixel", name ).c_str() );
 			dnn.AddLayer( *accuracy );
 			accuracy->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			accuracy->Connect( 1, layer2.BaseLayer(), outputNumber2 );
@@ -109,7 +109,7 @@ void InitializeImageConversionLayer( py::module& m )
 			CPtr<CPixelToImageLayer> conv = new CPixelToImageLayer( mathEngine );
 			conv->SetImageHeight(height);
 			conv->SetImageWidth(width);
-			conv->SetName( name == "" ? findFreeLayerName( dnn, "PixelToImage" ).c_str() : name.c_str() );
+			conv->SetName( FindFreeLayerName( dnn, "PixelToImage", name ).c_str() );
 			dnn.AddLayer( *conv );
 			conv->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			conv->Connect( 1, layer2.BaseLayer(), outputNumber2 );
@@ -135,7 +135,7 @@ void InitializeImageConversionLayer( py::module& m )
 			resize->SetDelta(CImageResizeLayer::IS_Top, top);
 			resize->SetDelta(CImageResizeLayer::IS_Bottom, bottom);
 			resize->SetDefaultValue(defaultValue);
-			resize->SetName( name == "" ? findFreeLayerName( dnn, "ImageResize" ).c_str() : name.c_str() );
+			resize->SetName( FindFreeLayerName( dnn, "ImageResize", name ).c_str() );
 			dnn.AddLayer( *resize );
 			resize->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPyImageResizeLayer( *resize, layer1.MathEngineOwner() );
