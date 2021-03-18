@@ -186,9 +186,11 @@ py::buffer_info CPyBlob::GetBufferInfo() const
 	void* ptr = nullptr;
 	CMemoryHandle data;
 	if( blob->GetDataType() == CT_Float ) {
-		data = *static_cast<CMemoryHandle*>(&blob->GetData<float>());
+		CFloatHandle floatData = blob->GetData<float>();
+		data = *static_cast<CMemoryHandle*>(&floatData);
 	} else {
-		data = *static_cast<CMemoryHandle*>(&blob->GetData<int>());
+		CIntHandle intData = blob->GetData<int>();
+		data = *static_cast<CMemoryHandle*>(&intData);
 	}
 	ptr = static_cast<CPyMemoryHandle*>( &data )->GetPtr();
 
