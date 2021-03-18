@@ -126,7 +126,7 @@ private:
 
 CPyDnnBlob::CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info&& _info ) :
 	CDnnBlob( mathEngine, createBlobDesc( type, dimension ), CPyMemoryHandle( &mathEngine, _info.ptr ) ),
-	info( std::move( _info ) )
+	info( std::move(_info) )
 {
 }
 
