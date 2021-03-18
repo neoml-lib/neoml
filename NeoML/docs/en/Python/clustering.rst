@@ -73,7 +73,7 @@ Hierarchical clustering
 #######################
 
 The library provides a "naive" implemetation of upward
-`hierarchical clustering<https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/Hierarchical.md>`_.
+`hierarchical clustering <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/Hierarchical.md>`_.
 First, it creates a cluster per element, the merges clusters on each step until the final cluster is achieved.
 
 Class description
