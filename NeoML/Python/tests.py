@@ -270,8 +270,9 @@ class LayersTestCase(TestCase):
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((5, 3, 16), dtype=np.float32), (5, 3, 1, 1, 1, 1, 16))
         inputs = {"source1": input1}
-        '''
+
         outputs = dnn.run(inputs)
+        '''
         out1 = outputs["sink1"].asarray()
         out2 = outputs["sink2"].asarray()
 
