@@ -28,7 +28,7 @@ CPyMemoryFile::CPyMemoryFile() :
 	NeoAssert( growBytes >= 0 );
 }
 
-CPyMemoryFile::CPyMemoryFile( py::array _buffer ) :
+CPyMemoryFile::CPyMemoryFile( const py::array& _buffer ) :
 	buffer( _buffer ),
 	bufferSize( static_cast<int>( _buffer.size() ) ),
 	fileLength( static_cast<int>( _buffer.size() ) ),
@@ -43,7 +43,7 @@ CPyMemoryFile::~CPyMemoryFile()
 	Close();
 }
 
-py::array CPyMemoryFile::GetBuffer() const
+const py::array& CPyMemoryFile::GetBuffer() const
 {
 	NeoAssert( !IsOpen() );
 	return buffer;

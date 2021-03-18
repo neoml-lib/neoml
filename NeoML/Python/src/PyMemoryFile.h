@@ -25,11 +25,11 @@ namespace py = pybind11;
 class CPyMemoryFile : public CBaseFile {
 public:
 	CPyMemoryFile();
-	CPyMemoryFile( py::array buffer );
+	CPyMemoryFile( const py::array& buffer );
 	virtual ~CPyMemoryFile();
 
 	bool IsOpen() const { return state != S_Closed; }
-	py::array GetBuffer() const;
+	const py::array& GetBuffer() const;
 
 	virtual const char* GetFileName() const { return "Memory file."; }
 	virtual int Read( void*, int bytesCount );
