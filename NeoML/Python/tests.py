@@ -1390,7 +1390,7 @@ class LayersTestCase(TestCase):
         out2 = outputs["sink2"].asarray()
         self.assertEqual(out1.shape, (9, 3, 14, 11, 9, 7))
         self.assertEqual(out2.shape, (9, 3, 14, 11, 9, 7))
-'''
+
 class PoolingTestCase(TestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
                       input_shape=(2, 1, 2, 3, 5, 4, 2)):
@@ -1803,7 +1803,7 @@ class PoolingTestCase(TestCase):
         self.assertAlmostEqual(irnn.identity_scale, identity_scale, delta=1e-5)
         self.assertAlmostEqual(irnn.input_weight_std, input_weight_std, delta=1e-5)
         self.assertEqual(a.shape, (batch_length, batch_width, 1, 1, 1, 1, hidden_size))
-
+'''
 class LossTestCase(TestCase):
     def _test_loss(self, layer, kwargs={},
                    n_classes=2,
