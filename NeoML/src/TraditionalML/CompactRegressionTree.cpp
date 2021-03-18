@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CompactRegressionTree.h>
+#include <GradientBoostModel.h>
 #include <SerializeCompact.h>
 
 namespace NeoML {
@@ -273,6 +274,41 @@ void CCompactRegressionTree::Serialize( CArchive& archive )
 				( predictionSize > 1 && nonresidentValues.Size() % predictionSize == 0 ),
 			ERR_BAD_ARCHIVE, archive.Name() );
 	}
+}
+
+bool CCompactRegressionTree::IsModelConvertable( const IBaseRegressionProblem* problem,
+	const CGradientBoostModel* model )
+{
+	// Check feature count
+	if( problem->GetFeatureCount() >= MaxFeature ) {
+		return false;
+	}
+
+	// Check nodes count in every tree
+	const CArray<CGradientBoostEnsemble>& ensembles = model->GetEnsemble();
+	for( int i = 0; i < ensembles.Size(); ++i ) {
+		for( int j = 0; j < ensembles[i].Size(); ++j ) {
+			int nodeCount = 1;
+			CArray<const IRegressionTreeNode*> stack( { ensembles[i][j] } );
+			// Calculating node count by dfs
+			while( !stack.IsEmpty() ) {
+				const IRegressionTreeNode* currNode = stack.Last();
+				stack.DeleteLast();
+				CRegressionTreeNodeInfo info;
+				currNode->GetNodeInfo( info );
+				if( info.Type == RTNT_Continuous ) {
+					stack.Add( currNode->GetLeftChild().Ptr() );
+					stack.Add( currNode->GetRightChild().Ptr() );
+					nodeCount += 2;
+					if( nodeCount > MaxNodeIndex ) {
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

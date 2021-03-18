@@ -401,8 +401,8 @@ CPtr<IObject> CGradientBoost::train(
 	buildFullPredictions( *problem, models );
 	loss = lossFunction->CalcLossMean( predicts, answers );
 
-	return createOutputRepresentation(
-		models, params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1 );
+	return createOutputRepresentation( problem, models,
+		params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1 );
 }
 
 // Creates a tree builder depending on the problem type
@@ -423,7 +423,6 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
 			builderParams.DenseTreeBoostCoefficient = params.DenseTreeBoostCoefficient;
 			if( params.TreeBuilder == GBTB_MultiFull ) {
-				NeoAssert( problem->GetValueSize() > 1 );
 				fullMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream );
 			} else {
 				fullSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream );
@@ -729,7 +728,7 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 }
 
 // Creates model represetation requested in params.
-CPtr<IObject> CGradientBoost::createOutputRepresentation(
+CPtr<IObject> CGradientBoost::createOutputRepresentation( const IMultivariateRegressionProblem* problem,
 	CArray<CGradientBoostEnsemble>& models, int predictionSize )
 {
 	CPtr<CGradientBoostModel> linked = FINE_DEBUG_NEW CGradientBoostModel(
@@ -739,7 +738,7 @@ CPtr<IObject> CGradientBoost::createOutputRepresentation(
 		case GBMR_Linked:
 			return linked.Ptr();
 		case GBMR_Compact:
-			linked->ConvertToCompact();
+			linked->ConvertToCompact( problem );
 			return linked.Ptr();
 		case GBMR_QuickScorer:
 			return CGradientBoostQuickScorer().Build( *linked ).Ptr();
