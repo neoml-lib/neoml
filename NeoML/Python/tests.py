@@ -293,8 +293,8 @@ class LayersTestCase(TestCase):
         lstm.activation = "abs"
         self.assertEqual(lstm.activation, "abs")
 
-        self.assertEqual(out1.shape, (5, 3, 7))
-        self.assertEqual(out2.shape, (5, 3, 7))
+        self.assertEqual(out1.shape, (5, 3, 8))
+        self.assertEqual(out2.shape, (5, 3, 8))
 
         w_blob = lstm.input_weights
         '''
