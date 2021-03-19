@@ -78,7 +78,7 @@ void InitializeAccuracyLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CAccuracyLayer> accuracy = new CAccuracyLayer( mathEngine );
 			accuracy->SetReset( reset );
-			accuracy->SetName( name == "" ? findFreeLayerName( dnn, "Accuracy" ).c_str() : name.c_str() );
+			accuracy->SetName( FindFreeLayerName( dnn, "Accuracy", name ).c_str() );
 			dnn.AddLayer( *accuracy );
 			accuracy->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			accuracy->Connect( 1, layer2.BaseLayer(), outputNumber2 );
@@ -98,7 +98,7 @@ void InitializeAccuracyLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CConfusionMatrixLayer> confusion = new CConfusionMatrixLayer( mathEngine );
 			confusion->SetReset( reset );
-			confusion->SetName( name == "" ? findFreeLayerName( dnn, "ConfusionMatrix" ).c_str() : name.c_str() );
+			confusion->SetName( FindFreeLayerName( dnn, "ConfusionMatrix", name ).c_str() );
 			dnn.AddLayer( *confusion );
 			confusion->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			confusion->Connect( 1, layer2.BaseLayer(), outputNumber2 );

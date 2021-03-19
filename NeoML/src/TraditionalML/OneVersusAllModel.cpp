@@ -42,7 +42,7 @@ bool COneVersusAllModel::ClassifyEx( const CSparseFloatVector& data,
 	return ClassifyEx( data.GetDesc(), result );
 }
 
-bool COneVersusAllModel::ClassifyEx( const CSparseFloatVectorDesc& data,
+bool COneVersusAllModel::ClassifyEx( const CFloatVectorDesc& data,
 	COneVersusAllClassificationResult& result ) const
 {
 	CArray<double> probability;
@@ -97,7 +97,7 @@ bool COneVersusAllModel::ClassifyEx( const CFloatVector& data, COneVersusAllClas
 	return true;
 }
 
-bool COneVersusAllModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
+bool COneVersusAllModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
 {
 	COneVersusAllClassificationResult extendedResult;
 	ClassifyEx( data, extendedResult );

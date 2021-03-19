@@ -115,7 +115,7 @@ void InitializeCrfLayer( py::module& m )
 			crf->SetNumberOfClasses(classCount);
 			crf->SetPaddingClass(padding);
 			crf->SetDropoutRate(dropoutRate);
-			crf->SetName( name == "" ? findFreeLayerName( dnn, "Crf" ).c_str() : name.c_str() );
+			crf->SetName( FindFreeLayerName( dnn, "Crf", name ).c_str() );
 			dnn.AddLayer( *crf );
 			crf->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			crf->Connect( 1, layer2.BaseLayer(), outputNumber2 );
@@ -150,7 +150,7 @@ void InitializeCrfLayer( py::module& m )
 
 			CPtr<CCrfLossLayer> loss = new CCrfLossLayer( mathEngine );
 			loss->SetLossWeight( loss_weight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "CrfLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "CrfLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -176,7 +176,7 @@ void InitializeCrfLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CBestSequenceLayer> best = new CBestSequenceLayer( mathEngine );
-			best->SetName( name == "" ? findFreeLayerName( dnn, "BestSequence" ).c_str() : name.c_str() );
+			best->SetName( FindFreeLayerName( dnn, "BestSequence", name ).c_str() );
 			dnn.AddLayer( *best );
 			best->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			best->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );

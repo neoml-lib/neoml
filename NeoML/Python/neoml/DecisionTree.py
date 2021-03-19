@@ -15,7 +15,8 @@ limitations under the License.
 """
 
 import numpy
-from scipy.sparse import csr_matrix
+from .Utils import convert_data, get_data
+from scipy.sparse import csr_matrix, issparse
 import neoml.PythonWrapper as PythonWrapper
 
 
@@ -41,8 +42,8 @@ class DecisionTreeClassificationModel:
         predictions : generator of ndarray of shape (n_samples, n_classes)
             The predictions of class probability for each input vector.
         """
-        x = csr_matrix(X, dtype=numpy.float32)
-        return self.internal.classify(x.indices, x.data, x.indptr)
+        x = convert_data(X)
+        return self.internal.classify(*get_data(x))
 
 
 class DecisionTreeClassifier(PythonWrapper.DecisionTree):
@@ -121,7 +122,7 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
             The trained ``DecisionTreeClassificationModel``.
         """
 
-        x = csr_matrix(X, dtype=numpy.float32)
+        x = convert_data(X)
         y = numpy.array(Y, dtype=numpy.int32, copy=False)
 
         if x.shape[0] != y.size:
@@ -138,5 +139,4 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')
 
-        return DecisionTreeClassificationModel(super().train_classifier(x.indices, x.data, x.indptr, int(x.shape[1]),
-                                                                         y, weight))
+        return DecisionTreeClassificationModel(super().train_classifier(*get_data(x), int(x.shape[1]), y, weight))

@@ -45,10 +45,10 @@ public:
 	virtual int GetClass( int index ) const = 0;
 
 	// Получить вектор набора.
-	virtual CSparseFloatVectorDesc GetVector( int index ) const = 0;
+	virtual CFloatVectorDesc GetVector( int index ) const = 0;
 
 	// Получить все вектора набора.
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
 	// Получить вес вектора.
 	virtual double GetVectorWeight( int index ) const = 0;
@@ -84,10 +84,10 @@ public:
 	virtual int GetVectorCount() const = 0;
 
 	// Получить вектор из набора.
-	virtual CSparseFloatVectorDesc GetVector( int index ) const = 0;
+	virtual CFloatVectorDesc GetVector( int index ) const = 0;
 
 	// Получить все вектора набора.
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
 	// Получить вес вектора.
 	virtual double GetVectorWeight( int index ) const = 0;

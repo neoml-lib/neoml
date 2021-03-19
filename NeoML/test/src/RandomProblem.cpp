@@ -27,7 +27,7 @@ CRandomProblemImpl<TLabel>::CRandomProblemImpl( int height, int width, float* va
 	Labels( _labels ),
 	Weights( _weights )
 {
-	CSparseFloatMatrixDesc* desc = Matrix.CopyOnWrite();
+	CFloatMatrixDesc* desc = Matrix.CopyOnWrite();
 	NeoAssert( desc != nullptr );
 	desc->Height = height;
 	desc->Width = width;
@@ -75,7 +75,7 @@ CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::Random( CRandom& 
 		pos += features;
 		res->PointerE[i] = pos;
 	}
-	CSparseFloatMatrixDesc* desc = res->Matrix.CopyOnWrite();
+	CFloatMatrixDesc* desc = res->Matrix.CopyOnWrite();
 	desc->Height = samples;
 	desc->Width = features;
 	desc->Values = res->Values.GetPtr();

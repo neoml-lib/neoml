@@ -63,7 +63,7 @@ void InitializeMultiheadAttentionLayer( py::module& m )
 				attention->SetHiddenSize(hiddenSize);
 				attention->SetOutputSize(outputSize);
 				attention->SetDropoutRate(dropoutRate);
-				attention->SetName(name == "" ? findFreeLayerName(dnn, "MultiheadAttention").c_str() : name.c_str());
+				attention->SetName( FindFreeLayerName(dnn, "MultiheadAttention", name).c_str() );
 				dnn.AddLayer(*attention);
 				attention->Connect(0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>());
 				attention->Connect(1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>());

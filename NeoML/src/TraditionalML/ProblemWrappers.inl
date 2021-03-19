@@ -31,7 +31,7 @@ inline int CMultivariateRegressionOverUnivariate::GetVectorCount() const
 }
 
 // Gets all vectors from the data set as a matrix
-inline CSparseFloatMatrixDesc CMultivariateRegressionOverUnivariate::GetMatrix() const
+inline CFloatMatrixDesc CMultivariateRegressionOverUnivariate::GetMatrix() const
 {
 	return inner->GetMatrix();
 }
@@ -64,7 +64,7 @@ inline int CMultivariateRegressionOverClassification::GetVectorCount() const
 }
 
 // Gets all vectors from the data set as a matrix
-inline CSparseFloatMatrixDesc CMultivariateRegressionOverClassification::GetMatrix() const
+inline CFloatMatrixDesc CMultivariateRegressionOverClassification::GetMatrix() const
 {
 	return inner->GetMatrix();
 }
@@ -97,7 +97,7 @@ inline int CMultivariateRegressionOverBinaryClassification::GetVectorCount() con
 }
 
 // Gets all vectors from the data set as a matrix
-inline CSparseFloatMatrixDesc CMultivariateRegressionOverBinaryClassification::GetMatrix() const
+inline CFloatMatrixDesc CMultivariateRegressionOverBinaryClassification::GetMatrix() const
 {
 	return inner->GetMatrix();
 }
@@ -130,7 +130,7 @@ inline int CMultivariateRegressionProblemNotNullWeightsView::GetVectorCount() co
 }
 
 // Gets all input vectors as a matrix
-inline CSparseFloatMatrixDesc CMultivariateRegressionProblemNotNullWeightsView::GetMatrix() const
+inline CFloatMatrixDesc CMultivariateRegressionProblemNotNullWeightsView::GetMatrix() const
 {
 	return ViewMatrixDesc;
 }
