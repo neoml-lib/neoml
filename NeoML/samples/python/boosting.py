@@ -41,6 +41,7 @@ def accuracy(model, X, y):
     return float(correct)/len(y)
 
 
+# These arguments will be used for every builder_type
 shared_kwargs = {
     'loss' : 'binomial',
     'iteration_count' : 100,
@@ -56,6 +57,7 @@ shared_kwargs = {
     'thread_count' : 1,
 }
 
+# Train and test boosting for every builder type
 for builder in ['full', 'hist', 'multi_full']:
     start = time.time()
     boost_kwargs = { **shared_kwargs, 'builder_type' : builder}
