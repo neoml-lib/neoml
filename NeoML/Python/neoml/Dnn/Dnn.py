@@ -139,16 +139,24 @@ class Dnn(PythonWrapper.Dnn):
         return self.get_layers()
 
     def add_layer(self, layer):
+        """Adds layer to the network
+
+        :param layer: The layer to be added
+        :type layer: neoml.Dnn.Layer
         """
-        """
-        if type(layer) is not Layer:
+        if not isinstance(layer, Layer):
             raise ValueError('The `layer` is expected to be neoml.Dnn.Layer`')
         self._add_layer(layer.internal)
     
     def delete_layer(self, layer):
+        """Deletes layer from the network
+
+        :param layer: The layer (or its name) to be deleted
+        :type layer: neoml.Dnn.Layer or str
+        """
         if type(layer) is str:
             self._delete_layer(layer)
-        elif type(layer) is Layer:
+        elif isinstance(layer, Layer):
             self._delete_layer(layer.name)
         else:
             raise ValueError('The `layer` is expected to be `str` or `neoml.Dnn.Layer`')
