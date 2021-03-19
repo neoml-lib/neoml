@@ -77,7 +77,7 @@ enum TGradientBoostModelRepresentation {
 	GBMR_Compact,
 	// Optimized for large numbers of trees of moderate depths.
 	GBMR_QuickScorer,
-	// Automatically generate most efficient representation
+	// Automatically generate the most efficient representation
 	GBMR_Auto,
 
 	GBMR_Count
