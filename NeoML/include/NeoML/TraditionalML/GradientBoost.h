@@ -207,7 +207,7 @@ private:
 		CObjectArray<IRegressionTreeNode>& curModels );
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
 	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
-	CPtr<IObject> createOutputRepresentation( const IMultivariateRegressionProblem* problem,
+	CPtr<IObject> createOutputRepresentation(
 		CArray<CGradientBoostEnsemble>& models, int predictionSize );
 };
 

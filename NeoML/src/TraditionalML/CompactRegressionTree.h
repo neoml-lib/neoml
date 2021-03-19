@@ -50,9 +50,6 @@ public:
 
 	virtual void Serialize( CArchive& archive ) override;
 
-	static bool IsModelConvertable( const IBaseRegressionProblem* problem,
-		const CGradientBoostModel* model );
-
 private:
 	// Feature number cannot exceeed this.
 	static const uint16_t MaxFeature = UINT16_MAX - 2;
