@@ -50,6 +50,10 @@ public:
 
 	virtual void Serialize( CArchive& archive ) override;
 
+	// Returns true if model can be converted to the ensembles of CCompactRegressionTree
+	static bool IsModelConvertable( const IBaseRegressionProblem* problem,
+		const CGradientBoostModel* model );
+
 private:
 	// Feature number cannot exceeed this.
 	static const uint16_t MaxFeature = UINT16_MAX - 2;

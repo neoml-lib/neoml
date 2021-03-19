@@ -25,6 +25,7 @@ limitations under the License.
 #include <GradientBoostFullTreeBuilder.h>
 #include <GradientBoostFastHistTreeBuilder.h>
 #include <ProblemWrappers.h>
+#include <CompactRegressionTree.h>
 #include <NeoMathEngine/OpenMP.h>
 
 namespace NeoML {
@@ -401,8 +402,8 @@ CPtr<IObject> CGradientBoost::train(
 	buildFullPredictions( *problem, models );
 	loss = lossFunction->CalcLossMean( predicts, answers );
 
-	return createOutputRepresentation(
-		models, params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1 );
+	return createOutputRepresentation( problem, models,
+		params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1 );
 }
 
 // Creates a tree builder depending on the problem type
@@ -728,12 +729,13 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 }
 
 // Creates model represetation requested in params.
-CPtr<IObject> CGradientBoost::createOutputRepresentation(
+CPtr<IObject> CGradientBoost::createOutputRepresentation( const IMultivariateRegressionProblem* problem,
 	CArray<CGradientBoostEnsemble>& models, int predictionSize )
 {
 	CPtr<CGradientBoostModel> linked = FINE_DEBUG_NEW CGradientBoostModel(
 		models, predictionSize, params.LearningRate, params.LossFunction );
 
+	static_assert( GBMR_Count == 4, "GBMR_Count != 4" );
 	switch( params.Representation ) {
 		case GBMR_Linked:
 			return linked.Ptr();
@@ -742,6 +744,11 @@ CPtr<IObject> CGradientBoost::createOutputRepresentation(
 			return linked.Ptr();
 		case GBMR_QuickScorer:
 			return CGradientBoostQuickScorer().Build( *linked ).Ptr();
+		case GBMR_Auto:
+			if( CCompactRegressionTree::IsModelConvertable( problem, linked.Ptr() ) ) {
+				linked->ConvertToCompact();
+			}
+			return linked.Ptr();
 		default:
 			NeoAssert( false );
 			return 0;

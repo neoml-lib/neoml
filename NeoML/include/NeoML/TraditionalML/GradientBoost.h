@@ -76,7 +76,11 @@ enum TGradientBoostModelRepresentation {
 	// Limited to 64K nodes per tree and (64K - 1) features.
 	GBMR_Compact,
 	// Optimized for large numbers of trees of moderate depths.
-	GBMR_QuickScorer
+	GBMR_QuickScorer,
+	// Automatically generate most efficient representation
+	GBMR_Auto,
+
+	GBMR_Count
 };
 
 // Gradient tree boosting
@@ -207,7 +211,7 @@ private:
 		CObjectArray<IRegressionTreeNode>& curModels );
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
 	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
-	CPtr<IObject> createOutputRepresentation(
+	CPtr<IObject> createOutputRepresentation( const IMultivariateRegressionProblem* problem,
 		CArray<CGradientBoostEnsemble>& models, int predictionSize );
 };
 
