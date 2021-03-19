@@ -435,7 +435,9 @@ TEST_F( RandomMultiClassification2000x20, OneVsAllDecisionTree )
 	GTEST_LOG_( INFO ) << "Train implicitly and compare";
 	CPtr<IModel> modelImplicitDense;
 	CPtr<IModel> modelImplicitSparse;
-	Train( decisionTree, *DenseRandomMultiProblem, *SparseRandomMultiProblem, modelImplicitDense, modelImplicitSparse );
+	param.MulticlassMode = CDecisionTree::MM_OneVsAll;
+	CDecisionTree decisionTree2( param );
+	Train( decisionTree2, *DenseRandomMultiProblem, *SparseRandomMultiProblem, modelImplicitDense, modelImplicitSparse );
 	TestClassificationResult( ModelDense, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
 	TestClassificationResult( ModelSparse, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
 	TestClassificationResult( ModelSparse, modelImplicitSparse, DenseMultiTestData, SparseMultiTestData );
