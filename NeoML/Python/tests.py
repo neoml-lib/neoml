@@ -278,10 +278,10 @@ class LayersTestCase(TestCase):
         self.assertEqual(lstm.hidden_size, 7)
         self.assertEqual(layer.hidden_size, 7)
 
-        # self.assertEqual(lstm.reverse_sequence, False)
-        # lstm.reverse_sequence = True
-        # self.assertEqual(lstm.reverse_sequence, True)
-        # self.assertEqual(layer.reverse_sequence, True)
+        self.assertEqual(lstm.reverse_sequence, False)
+        lstm.reverse_sequence = True
+        self.assertEqual(lstm.reverse_sequence, True)
+        self.assertEqual(layer.reverse_sequence, True)
 
         self.assertAlmostEqual(lstm.dropout, 0.6, delta=1e-3)
         lstm.dropout = 0.9
