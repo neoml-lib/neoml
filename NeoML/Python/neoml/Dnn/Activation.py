@@ -24,26 +24,24 @@ class Linear(Layer):
     for each element of a single input:
     f(x) = multiplier * x + free_term
 
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    multiplier : float
-        The linear function multiplier.
-    free_term : float
-        The linear function free term.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param multiplier: The linear function multiplier.
+    :type multiplier: float
+    :param free_term: The linear function free term.
+    :type free_term: float
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+    with activation function values on each of the input elements
     """
 
     def __init__(self, input_layer, multiplier, free_term, name=None):

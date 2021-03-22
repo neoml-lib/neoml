@@ -32,13 +32,10 @@ class BatchNormalization(Layer):
             the exponential moving mean and the unbiased variance
             estimate calculated during training.
     
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    channel_based : bool, default=True
-        Turns on and off channel-based statistics:
+    :type input_layer: object, tuple(object, int)
+    :param channel_based: Turns on and off channel-based statistics:
         - If True, mean, var, gamma, and beta in the formula will be 
             vectors of the input Channels length. 
             The i coordinate will iterate over all values from 0 to 
@@ -47,12 +44,13 @@ class BatchNormalization(Layer):
             will have the Height * Width * Depth * Channels length. 
             The i coordinate will iterate over all values from 0 to 
             BatchLength * BatchWidth * ListSize - 1.
-    zero_free_term : bool, default=False
-        Specifies if the free term (beta) should be trained or filled with zeros.
-    slow_convergence_rate : float, default=1.0
-        The coefficient for calculating the exponential moving mean and variance.
-    name : str, default=None
-        The layer name.
+    :type channel_based: bool, default=True
+    :param zero_free_term: Specifies if the free term (beta) should be trained or filled with zeros.
+    :type zero_free_term: bool, default=False
+    :param slow_convergence_rate : The coefficient for calculating the exponential moving mean and variance.
+    :type slow_convergence_rate: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
     """
 
     def __init__(self, input_layer, channel_based, zero_free_term=False, slow_convergence_rate=1.0, name=None):

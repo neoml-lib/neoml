@@ -24,35 +24,33 @@ class Reorg(Layer):
     into a set of images of smaller size but with more channels.
     This operation is used in YOLO architecture: https://pjreddie.com/darknet/yolo/
     
-    Layer inputs
-    ----------
-    #1: a blob with images.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize is the number of images
-    - Height is the image height; should be a multiple of stride
-    - Width is the image width; should be a multiple of stride
-    - Depth is 1
-    - Channels is the number of channels the image format uses
-    
-    Layer outputs
-    ----------
-    #1: the result of image transformation.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize are the same as for the input
-    - Height is input Height / stride
-    - Width is input Width / stride
-    - Depth is 1
-    - Channels is input Channels * stride^2
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    stride : int, default=1
-        The value by which the image size will be divided in the final result.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param stride: The value by which the image size will be divided in the final result.
+    :type stride: int, default=1
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with images.
+    The dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** is the number of images
+    - **Height** is the image height; should be a multiple of stride
+    - **Width** is the image width; should be a multiple of stride
+    - **Depth** is 1
+    - **Channels** is the number of channels the image format uses
+    
+    .. rubric:: Layer outputs:
+
+    (1) the result of image transformation.
+    The dimensions:
+    - **BatchLength**, **BatchWidth**, **ListSize** are the same as for the input
+    - **Height** is input Height / stride
+    - **Width** is input **Width** / stride
+    - **Depth** is 1
+    - **Channels** is input **Channels** * stride^2
     """
 
     def __init__(self, input_layer, stride=1, name=None):

@@ -23,57 +23,55 @@ class Crf(Layer):
     """The layer that trains and calculates transitional probabilities
     in a conditional random field (CRF).
     
-    Layer inputs
-    ----------
-    #1: a blob with the object sequences.
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: object, tuple(object, int) of list of them
+    :param class_count: The number of classes in the CRF.
+    :type class_count: int
+    :param padding: The number of empty class used to fill the sequence end.
+    :type padding: int, default=0
+    :param dropout_rate: Variational dropout.
+    :type dropout_rate: float, default=0.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with the object sequences.
     The dimensions:
-    - BatchLength is the sequence length
-    - BatchWidth is the number of sequences in the set
-    - ListSize is 1
-    - Height * Width * Depth * Channels is the object size
+    - **BatchLength** is the sequence length
+    - **BatchWidth** is the number of sequences in the set
+    - **ListSize** is 1
+    - **Height** * **Width** * **Depth** * **Channels** is the object size
     
-    #2 (optional): a blob with integer data that contains the correct class
+    (2) (optional): a blob with integer data that contains the correct class
     sequences. It is required only for training.
     The dimensions:
-    - BatchLength, BatchWidth equal to the first input's
+    - **BatchLength**, **BatchWidth** equal to the first input's
     - the other dimensions are equal to 1
     
-    Layer outputs
-    ----------
-    #1 (optional): a blob with integer data that contains optimal class 
+    .. rubric:: Layer outputs:
+
+    (1) (optional): a blob with integer data that contains optimal class 
     sequences. 
     This output will be returned only if you set calc_prev_best_class to True.
     During training, this output usually isn't needed 
     and is switched off by default.
     The dimensions:
-    - BatchLength, BatchWidth equal to the first input's
-    - Channels equal to the number of classes
+    - **BatchLength**, **BatchWidth** equal to the first input's
+    - **Channels** equal to the number of classes
     - the other dimensions are equal to 1
     
-    #2: a blob with float data that contains non-normalized logarithm of 
+    (2): a blob with float data that contains non-normalized logarithm of 
     optimal class sequences probabilities.
     The dimensions are the same as for the first output.
     
-    #3 (optional): a blob with non-normalized logarithm of the correct class
+    (3) (optional): a blob with non-normalized logarithm of the correct class
     sequences probabilities. 
     This output will be there only if the layer has two inputs.
     The dimensions are equal to the second input's:
-    - BatchLength, BatchWidth equal to the first input's
+    - **BatchLength**, **BatchWidth** equal to the first input's
     - the other dimensions are equal to 1
-        
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
-        is specified, the first output will be connected.
-    class_count : int
-        The number of classes in the CRF.
-    padding : int, default=0
-        The number of empty class used to fill the sequence end.
-    dropout_rate : float, default=0.0
-        Variational dropout.
-    name : str, default=None
-        The layer name.
     """
 
     def __init__(self, input_layer, class_count, padding=0, dropout_rate=0.0, name=None):
@@ -82,7 +80,7 @@ class Crf(Layer):
             super().__init__(input_layer)
             return
 
-        layers, outputs = check_input_layers(input_layer, 2)
+        layers, outputs = check_input_layers(input_layer, (1, 2))
 
         if class_count < 1:
             raise ValueError('The `class_count` must be > 0.')
@@ -93,7 +91,7 @@ class Crf(Layer):
         if float(dropout_rate) < 0 or float(dropout_rate) >= 1:
             raise ValueError('The `dropout_rate` must be in [0, 1).')
 
-        internal = PythonWrapper.Crf(str(name), layers[0], layers[1], int(outputs[0]), int(outputs[1]), class_count, padding, dropout_rate)
+        internal = PythonWrapper.Crf(str(name), layers, outputs, class_count, padding, dropout_rate)
         super().__init__(internal)
 
     @property

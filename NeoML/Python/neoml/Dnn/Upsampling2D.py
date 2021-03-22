@@ -24,36 +24,34 @@ class Upsampling2D(Layer):
     The new pixels are filled up by repeating the existing pixels' values,
     without any interpolation.
     
-    Layer inputs
-    ----------
-    The layer can have any amount of inputs, each with a set of images.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize is the number of images
-    - Height is the images' height
-    - Width is the images' width
-    - Depth * Channels is the number of channels the image format uses
-    
-    Layer outputs
-    ----------
-    For each input, there is a corresponding output with upscaled images.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, Depth, Channels equal 
-        the correspoonding input dimensions
-    - Height is height_copy_count times larger than the input Height
-    - Width is width_copy_count times larger than the input Width
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    height_copy_count : int, > 0
-        The height multiplier.
-    width_copy_count : int, > 0
-        The width multiplier.
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, tuple(object, int) or list of them
+    :param height_copy_count: The height multiplier.
+    :type height_copy_count: int, > 0
+    :param width_copy_count: The width multiplier.
+    :type width_copy_count: int, > 0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer can have any amount of inputs, each with a set of images.
+    The dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** is the number of images
+    - **Height** is the images' height
+    - **Width** is the images' width
+    - **Depth** * **Channels** is the number of channels the image format uses
+    
+    .. rubric:: Layer outputs:
+
+    For each input, there is a corresponding output with upscaled images.
+    The dimensions:
+    - **BatchLength**, **BatchWidth**, **ListSize**, **Depth**, **Channels** equal 
+        the correspoonding input dimensions
+    - **Height** is height_copy_count times larger than the input **Height**
+    - **Width** is width_copy_count times larger than the input **Width**
     """
 
     def __init__(self, input_layers, height_copy_count, width_copy_count, name=None):

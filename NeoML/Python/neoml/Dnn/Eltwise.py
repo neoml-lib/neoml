@@ -22,22 +22,20 @@ from neoml.Utils import check_input_layers
 class EltwiseSum(Layer):
     """The layer that adds up its inputs element by element.
 
-    Layer inputs
-    -----------
-    The layer should have at least two inputs. All inputs should be the same size.
-    
-    Layer outputs
-    -----------
-    The layer has one output of the same size as the inputs.
-    
-    Parameters
-    -----------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer should have at least two inputs. All inputs should be the same size.
+    
+    .. rubric:: Layer outputs:
+
+    The layer has one output of the same size as the inputs.
     """
     def __init__(self, input_layers, name=None):
 

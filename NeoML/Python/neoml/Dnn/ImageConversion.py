@@ -22,36 +22,34 @@ from neoml.Utils import check_input_layers
 class ImageResize(Layer):
     """The layer that resizes a set of two-dimensional multi-channel images.
     
-    Layer inputs
-    ----------
-    #1: a set of images, of the dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images
-    - Height - the images' height
-    - Width - the images' width
-    - Depth * Channels - the number of channels the image format uses
-    
-    Layer outputs
-    ----------
-    #1: a blob with the resized images, of the dimensions:
-    - BatchLength, BatchWidth, ListSize, Depth, Channels are 
-        equal to the input dimensions
-    - Height is the input Height plus the sum of top and bottom deltas
-    - Width is the input Width plus the sum of right and left deltas
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    deltas : ("left", "right", "top", "bottom")
-        The differences between the original and the resized image, 
+    :type input_layer: object, tuple(object, int)
+    :param deltas: The differences between the original and the resized image, 
         on each side. If the difference is negative, rows or columns are
         removed from the specified side. If it is positive, rows or
         columns are added and filled with the default_value pixels.
-    default_value : float, default=0.0
-        The value for the added pixels.
-    name : str, default=None
-        The layer name.
+    :type deltas: str, ("left", "right", "top", "bottom")
+    :param default_value: The value for the added pixels.
+    :type default_value: float, default=0.0 
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a set of images, of the dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** * **Channels** - the number of channels the image format uses
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the resized images, of the dimensions:
+    - **BatchLength**, **BatchWidth**, **ListSize**, **Depth**, **Channels** are 
+        equal to the input dimensions
+    - **Height** is the input Height plus the sum of top and bottom deltas
+    - **Width** is the input Width plus the sum of right and left deltas
     """
 
     def __init__(self, input_layer, deltas, default_value=0.0, name=None):

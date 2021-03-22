@@ -24,58 +24,56 @@ class CtcLoss(Layer):
     temporal classification (CTC).
     See https://www.cs.toronto.edu/~graves/preprint.pdf
 
-    Layer inputs
-    ------------
-    #1: the network response.
-    The dimensions:
-    - BatchLength is the maximum sequence length
-    - BatchWidth is the number of sequences in the set
-    - ListSize is 1
-    - Height * Width * Depth * Channels is the number of classes
-
-    #2: the correct labels as a blob with int data.
-    The dimensions:
-    - BatchLength is the maximum labels sequence length
-    - BatchWidth is the number of sequences, same as first input's BatchWidth
-    - the other dimensions are 1
-
-    #3 (optional): the label sequences lengths as a blob with int data.
-    If this input isn't connected, the label sequences are considered to be
-    the second input's BatchLength long.
-    The dimensions:
-    - BatchWidth is the same as for the first input
-    - the other dimensions are 1
-
-    #4 (optional): the network response sequences lengths as a blob
-    with int data. If this input isn't connected, the response sequences
-    are considered to be the first input's BatchLength long.
-    The dimensions:
-    - BatchWidth is the same as for the first input
-    - the other dimensions are 1
-
-    #5 (optional): the sequences' weights. 
-    The dimensions:
-    - BatchWidth is the same as for the first input
-    - the other dimensions are 1
-
-    Layer outputs
-    ------------
-    The layer has no output.
-
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    blank : int
-        Sets the value for the blank label that will be used as space.
-    skip : bool
-        Specifies if blank labels may be skipped when aligning.
-    loss_weight : float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param blank: Sets the value for the blank label that will be used as space.
+    :type blank: int
+    :param skip: Specifies if blank labels may be skipped when aligning.
+    :type skip: bool
+    :param    loss_weight:  The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response.
+    The dimensions:
+    - **BatchLength** is the maximum sequence length
+    - **BatchWidth** is the number of sequences in the set
+    - **ListSize** is 1
+    - **Height** * **Width** * **Depth** * **Channels** is the number of classes
+
+    (2) the correct labels as a blob with int data.
+    The dimensions:
+    - **BatchLength** is the maximum labels sequence length
+    - **BatchWidth** is the number of sequences, same as first input's **BatchWidth**
+    - the other dimensions are 1
+
+    (3) (optional): the label sequences lengths as a blob with int data.
+    If this input isn't connected, the label sequences are considered to be
+    the second input's **BatchLength** long.
+    The dimensions:
+    - **BatchWidth** is the same as for the first input
+    - the other dimensions are 1
+
+    (4) (optional): the network response sequences lengths as a blob
+    with int data. If this input isn't connected, the response sequences
+    are considered to be the first input's **BatchLength** long.
+    The dimensions:
+    - **BatchWidth** is the same as for the first input
+    - the other dimensions are 1
+
+    (5) (optional): the sequences' weights. 
+    The dimensions:
+    - **BatchWidth** is the same as for the first input
+    - the other dimensions are 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, blank, skip, loss_weight=1.0, name=None):
 
@@ -152,42 +150,40 @@ class CtcDecoding(Layer):
     """The layer that is looking for the most probable sequences 
     in the response of a connectionist temporal classification (CTC) network.
 
-    Layer inputs
-    -----------
-    #1: the network response.
+    :param input_layers: The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: object, (object, int) or list of them        
+    :param blank: Sets the value for the blank label that will be used as space.
+    :type blank: int
+    :param blank_threshold: The probability threshold for blank labels when building
+        a linear division graph (LDG).
+    :type blank_threshold: float, [0..1]
+    :param arc_threshold: The probability threshold for cutting off arcs when building
+        a linear division graph (LDG).
+    :type arc_threshold: float, [0..1]
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response.
     The dimensions:
     - BatchLength is the maximum sequence length
     - BatchWidth is the number of sequences in the set
     - ListSize is 1
     - Height * Width * Depth * Channels is the number of classes
 
-    #2 (optional): the network response sequences lengths as a blob
+    (2) (optional): the network response sequences lengths as a blob
     with int data. If this input isn't connected, the response sequences
     are considered to be the first input's BatchLength long.
     The dimensions:
     - BatchWidth is the same as for the first input
     - the other dimensions are 1
 
-    Layer outputs
-    -----------
-    The layer has no output.
+    .. rubric:: Layer outputs:
 
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
-        The integer in each tuple specifies the number of the output.
-        If not set, the first output will be used.
-    blank : int
-        Sets the value for the blank label that will be used as space.
-    blank_threshold : float, [0..1]
-        The probability threshold for blank labels when building
-        a linear division graph (LDG).
-    arc_threshold : float, [0..1]
-        The probability threshold for cutting off arcs when building
-        a linear division graph (LDG).
-    name : str, default=None
-        The layer name.
+    The layer has no output.
     """
     def __init__(self, input_layers, blank, blank_threshold, arc_threshold, name=None):
 

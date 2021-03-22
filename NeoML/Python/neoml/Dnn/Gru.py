@@ -23,35 +23,33 @@ class Gru(Layer):
     """The gated recurrent unit (GRU) layer that works with a set
     of vector sequences.
     
-    Layer inputs
-    ----------
-    #1: the set of vector sequences.
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :param input_layer: object, tuple(object, int) or list of them
+    :param hidden_size: The size of the hidden layer.
+    :type hidden_size: int
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of vector sequences.
     The dimensions:
-    - BatchLength is sequence length
-    - BatchWidth * ListSize is the number of sequences
-    - Height * Width * Depth * Channels is vector size
+    - **BatchLength** is sequence length
+    - **BatchWidth** * **ListSize** is the number of sequences
+    - **Height** * **Width** * **Depth** * **Channels** is vector size
     
-    #2 (optional): the initial previous step result. If you do not connect
+    (2) (optional): the initial previous step result. If you do not connect
     this input all zeros will be used on the first step.
     The dimensions are the same as for the first input.
     
-    Layer outputs
-    ----------
-    #1: a vector sequence of the same length.
+    .. rubric:: Layer outputs:
+
+    (1) a vector sequence of the same length.
     The dimensions:
-    - BatchLength, BatchWidth, ListSize equal to the input's dimensions
-    - Height, Width, Depth are 1
+    - **BatchLength**, **BatchWidth**, **ListSize** equal to the input's dimensions
+    - **Height**, **Width**, **Depth** are 1
     - Channels is equal to hidden layer size
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
-        is specified, the first output will be connected.
-    hidden_size : int
-        The size of the hidden layer.
-    name : str, default=None
-        The layer name.
     """
     def __init__(self, input_layer, hidden_size, name=None):
 

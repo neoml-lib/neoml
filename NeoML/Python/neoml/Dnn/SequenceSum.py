@@ -22,29 +22,27 @@ from neoml.Utils import check_input_layers
 class SequenceSum(Layer):
     """The layer that adds up object sequences.
     
-    Layer inputs
-    ----------
-    #1: a set of object sequences.
-    The dimensions:
-    - BatchLength is the sequence length
-    - BatchWidth is the number of sequences in the set
-    - ListSize is 1
-    - Height * Width * Depth * Channels is the object size
-    
-    Layer outputs
-    ----------
-    #1: the results of adding up each of the sequences.
-    The dimensions:
-    - BatchLength is 1
-    - the other dimensions are the same as for the input
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a set of object sequences.
+    The dimensions:
+    - **BatchLength** is the sequence length
+    - **BatchWidth** is the number of sequences in the set
+    - **ListSize** is 1
+    - **Height** * **Width** * **Depth** * **Channels** is the object size
+    
+    .. rubric:: Layer outputs:
+
+    (1) the results of adding up each of the sequences.
+    The dimensions:
+    - **BatchLength** is 1
+    - the other dimensions are the same as for the input
     """
 
     def __init__(self, input_layer, name=None):

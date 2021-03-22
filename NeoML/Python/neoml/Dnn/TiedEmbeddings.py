@@ -26,30 +26,28 @@ class TiedEmbeddings(Layer):
     See https://arxiv.org/pdf/1608.05859.pdf
     The representations table is taken from a MultichannelLookup layer.
     
-    Layer inputs
-    -----------
-    The layer may have any number of inputs, of the dimensions:
-    - BatchLength * BatchWidth * ListSize is the number of objects
-    - Height, Width, Depth are 1
-    - Channels is the embedding size
-    
-    Layer outputs
-    -----------
-    For each input the layer has one output of the same dimensions.
-    
-    Parameters
-    -----------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    embeddings_layer_name : str
-        The name of the layer used for embeddings. 
-        Needs to be a MultichannelLookup layer.
-    channel : int, >=0
-        The channel index in the embeddings layer.
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, tuple(object, int) or list of them
+    :param embeddings_layer_name: The name of the layer used for embeddings. 
+        Needs to be a MultichannelLookup layer.   
+    :type embeddings_layer_name: str
+    :param channel: The channel index in the embeddings layer.
+    :type channel: int, >=0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer may have any number of inputs, of the dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** is the number of objects
+    - **Height**, **Width**, **Depth** are 1
+    - **Channels** is the embedding size
+    
+    .. rubric:: Layer outputs:
+
+    For each input the layer has one output of the same dimensions.
     """
     def __init__(self, input_layers, embeddings_layer_name, channel, name=None):
 

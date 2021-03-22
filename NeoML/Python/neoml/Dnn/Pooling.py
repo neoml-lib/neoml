@@ -72,34 +72,32 @@ class Pooling(Layer):
 class MaxPooling(Pooling):
     """The pooling layer that finds maximum in a window.
 
-    Layer inputs
-    ------------
-    #1: the set of images, of dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth * Channels - the number of channels the image format uses
-        
-    Layer outputs
-    -------------
-    #1: the result of pooling
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the input dimensions
-    - Height can be calculated from the input as (Height - FilterHeight)/StrideHeight + 1
-    - Width can be calculated from the input as (Width - FilterWidth)/StrideWidth + 1
-    - Depth and Channels are equal to the input dimensions
-    
-    Parameters
-    --------------
-    input_layers : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layers: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    filter_size : (int, int), default=(3, 3)
-        The size of the window: (height, width).
-    stride_size : (int, int), default=(1, 1)
-        Window stride (vertical, horizontal).
-    name : str, default=None
-        The layer name.
+    :type input_layers: (object, int)
+    :param filter_size: The size of the window: (height, width).    
+    :type filter_size: tuple(int, int), default=(3, 3)
+    :param stride_size: Window stride (vertical, horizontal).  
+    :type stride_size: tuple(int, int), default=(1, 1)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of images, of dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** * **Channels** - the number of channels the image format uses
+        
+    .. rubric:: Layer outputs:
+
+    (1) the result of pooling
+    The dimensions:
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
+    - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
+    - **Depth** and **Channels** are equal to the input dimensions
     """
     def __init__(self, input_layers, filter_size=(3, 3), stride_size=(1, 1), name=None):
 
@@ -131,34 +129,32 @@ class MaxPooling(Pooling):
 class MeanPooling(Pooling):
     """The pooling layer that takes average over the window.
 
-    Layer inputs
-    ------------
-    #1: the set of images, of dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth * Channels - the number of channels the image format uses
-        
-    Layer outputs
-    -------------
-    #1: the result of pooling
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the input dimensions
-    - Height can be calculated from the input as (Height - FilterHeight)/StrideHeight + 1
-    - Width can be calculated from the input as (Width - FilterWidth)/StrideWidth + 1
-    - Depth and Channels are equal to the input dimensions
-    
-    Parameters
-    --------------
-    input_layers : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layers: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    filter_size : (int, int), default=(3, 3)
-        The size of the window: (height, width).
-    stride_size : (int, int), default=(1, 1)
-        Window stride (vertical, horizontal).
-    name : str, default=None
-        The layer name.
+    :type input_layers: (object, int)
+    :param filter_size: The size of the window: (height, width).    
+    :type filter_size: tuple(int, int), default=(3, 3)
+    :param stride_size: Window stride (vertical, horizontal).  
+    :type stride_size: tuple(int, int), default=(1, 1)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of images, of dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** * **Channels** - the number of channels the image format uses
+        
+    .. rubric:: Layer outputs:
+
+    (1) the result of pooling
+    The dimensions:
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
+    - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
+    - **Depth** and **Channels** are equal to the input dimensions
     """
     def __init__(self, input_layers, filter_size=(3, 3), stride_size=(1, 1), name=None):
 
@@ -187,37 +183,35 @@ class GlobalMaxPooling(Layer):
     If you set the number of largest elements to 1, it will function
     exactly as MaxPooling3d with the filter size equal to the input image size.
     
-    Layer inputs
-    ------------
-    #1: the set of images, of dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth - the images' depth
-    - Channels - the number of channels the image format uses
-        
-    Layer outputs
-    -------------
-    #1: the maximum values found.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, Channels are equal to the input dimensions
-    - Height, Depth are 1
-    - Width is max_count
-    
-    #2 (optional): the indices of the values found in the input blob.
-    The dimensions are the same.
-    
-    Parameters
-    --------------
-    input_layers : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layers: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    max_count : int, > 0
-        The number of largest elements to be found. Note that these 
+    :type input_layers: object, tuple(object, int)
+    :param max_count: The number of largest elements to be found. Note that these 
         do not have to be equal to each other; the top max_count elements
-        will be returned.
-    name : str, default=None
-        The layer name.
+        will be returned.    
+    :type max_count: int, > 0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of images, of dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** - the images' depth
+    - **Channels** - the number of channels the image format uses
+        
+    .. rubric:: Layer outputs:
+
+    (1) the maximum values found.
+    The dimensions:
+    - **BatchLength**, **BatchWidth**, **ListSize**, **Channels** are equal to the input dimensions
+    - **Height**, **Depth** are 1
+    - **Width** is max_count
+    
+    (2) (optional): the indices of the values found in the input blob.
+    The dimensions are the same.
     """
     def __init__(self, input_layers, max_count, name=None):
 
@@ -256,30 +250,28 @@ class GlobalMeanPooling(Layer):
     It functions exactly as MeanPooling3d with the filter size 
     equal to the input image size.
     
-    Layer inputs
-    ------------
-    #1: the set of images, of dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth - the images' depth
-    - Channels - the number of channels the image format uses
-        
-    Layer outputs
-    -------------
-    #1: the average values over each image.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the input dimensions
-    - Height, Width, Depth are 1
-    - Channels is equal to the input Channels
-    
-    Parameters
-    --------------
-    input_layers : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layers: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of images, of dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** - the images' depth
+    - **Channels** - the number of channels the image format uses
+        
+    .. rubric:: Layer outputs:
+
+    (1) the average values over each image.
+    The dimensions:
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height**, **Width**, **Depth** are 1
+    - **Channels** is equal to the input **Channels**
     """
     def __init__(self, input_layers, name=None):
 
@@ -299,34 +291,32 @@ class MaxOverTimePooling(Layer):
     """The layer that finds maximums on the set of sequences,
     with the window taken over BatchLength axis.
     
-    Layer inputs
-    ------------
-    #1: the set of sequences, of dimensions:
-    - BatchLength is the sequence length
-    - BatchWidth * ListSize is the number of sequences in the set
-    - Height * Width * Depth * Channels is the length of each vector
-        
-    Layer outputs
-    -------------
-    #1: the pooling result.
-    The dimensions:
-    - BatchLength is
-        -- 1 if filter_len is <= 0
-        -- (BatchLength - filter_len) / stride_len + 1 otherwise
-    - the other dimensions are the same as for the input
-    
-    Parameters
-    --------------
-    input_layers : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layers: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    filter_len : int
-        The window size. Set to <= 0 if the maximum over the whole 
-        sequence length should be found.
-    stride_len : int, > 0
-        The window stride. Meaningful only for filter_len > 0.
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, tuple(object, int)
+    :param filter_len: The window size. Set to <= 0 if the maximum over the whole 
+        sequence length should be found.   
+    :type filter_len: int
+    :param stride_len: The window stride. Meaningful only for filter_len > 0.   
+    :type stride_len: int, > 0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of sequences, of dimensions:
+    - **BatchLength** is the sequence length
+    - **BatchWidth** * **ListSize** is the number of sequences in the set
+    - **Height** * **Width** * **Depth** * **Channels** is the length of each vector
+        
+    .. rubric:: Layer outputs:
+
+    (1) the pooling result.
+    The dimensions:
+    - **BatchLength** is
+        -- 1 if filter_len is <= 0
+        -- (**BatchLength** - filter_len) / stride_len + 1 otherwise
+    - the other dimensions are the same as for the input
     """
     def __init__(self, input_layers, filter_len, stride_len, name=None):
 
@@ -378,31 +368,29 @@ class ProjectionPooling(Layer):
     or stays the same length with all elements equal to the average 
     when original_size=True.
     
-    Layer inputs
-    ------------
-    #1: a data blob of any size.
+    :param input_layers: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layers: object, tuple(object, int)
+    :param dimension: The dimension along which the average is taken.    
+    :type dimension: str, {"batch_length", "batch_width", "list_size", 
+        "height", "width", "depth", "channels"}
+    :param original_size: Specifies if the blob should stay the same size, with the average 
+        value broadcast along the pooling dimension.
+    :type original_size: bool, default=False
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size.
     
-    Layer outputs
-    ------------
-    #1: the result of pooling.
+    .. rubric:: Layer outputs:
+
+    (1) the result of pooling.
     The dimensions:
     - all stay the same if original_size is True
     - if original_size is False, the pooling dimension is 1 
         and other dimensions stay the same
-    
-    Parameters
-    --------------
-    input_layers : (object, int)
-        The input layer and the number of its output. If no number
-        is specified, the first output will be connected.
-    dimension : {"batch_length", "batch_width", "list_size", 
-                    "height", "width", "depth", "channels"}
-        The dimension along which the average is taken.
-    original_size : bool, default=False
-        Specifies if the blob should stay the same size, with the average 
-        value broadcast along the pooling dimension.
-    name : str, default=None
-        The layer name.
     """
 
     dimensions = ["batch_length", "batch_width", "list_size", "height", "width", "depth", "channels"]
@@ -507,36 +495,34 @@ class MaxPooling3D(Pooling3D):
     """The pooling layer that finds maximum in a window 
     for three-dimensional images.
 
-    Layer inputs
-    ------------
-    #1: the set of images, of dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth - the images' depth
-    - Channels - the number of channels the image format uses
-        
-    Layer outputs
-    -------------
-    #1: the result of pooling
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the input dimensions
-    - Height can be calculated from the input as (Height - FilterHeight)/StrideHeight + 1
-    - Width can be calculated from the input as (Width - FilterWidth)/StrideWidth + 1
-    - Depth can be calculated from the input as (Depth - FilterDepth)/StrideDepth + 1
-    - Channels is equal to the input Channels
-    
-    Parameters
-    --------------
-    input_layers : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layers: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    filter_size : (int, int, int), default=(3, 3, 3)
-        The size of the window: (height, width, depth).
-    stride_size : (int, int, int), default=(1, 1, 1)
-        Window stride (vertical, horizontal, depth).
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, tuple(object, int)
+    :param filter_size: The size of the window: (height, width, depth).     
+    :type filter_size: tuple(int, int, int), default=(3, 3, 3)
+    :param stride_size: Window stride (vertical, horizontal, depth).  
+    :type stride_size: tuple(int, int, int), default=(1, 1, 1)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of images, of dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** - the images' depth
+    - **Channels** - the number of channels the image format uses
+        
+    .. rubric:: Layer outputs:
+
+    (1) the result of pooling
+    The dimensions:
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
+    - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
+    - **Depth** can be calculated from the input as (**Depth** - **FilterDepth**)/**StrideDepth** + 1
+    - **Channels** is equal to the input **Channels**
     """
     def __init__(self, input_layers, filter_size=(3, 3, 3), stride_size=(1, 1, 1), name=None):
 
@@ -563,36 +549,34 @@ class MeanPooling3D(Pooling3D):
     """The pooling layer that takes average over a window 
     for three-dimensional images.
 
-    Layer inputs
-    ------------
-    #1: the set of images, of dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth - the images' depth
-    - Channels - the number of channels the image format uses
-        
-    Layer outputs
-    -------------   
-    #1: the result of pooling
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the input dimensions
-    - Height can be calculated from the input as (Height - FilterHeight)/StrideHeight + 1
-    - Width can be calculated from the input as (Width - FilterWidth)/StrideWidth + 1
-    - Depth can be calculated from the input as (Depth - FilterDepth)/StrideDepth + 1
-    - Channels is equal to the input Channels
-    
-    Parameters
-    --------------
-    input_layers : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layers: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    filter_size : (int, int, int), default=(3, 3, 3)
-        The size of the window: (height, width, depth).
-    stride_size : (int, int, int), default=(1, 1, 1)
-        Window stride (vertical, horizontal, depth).
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, tuple(object, int)
+    :param filter_size: The size of the window: (height, width, depth).     
+    :type filter_size: tuple(int, int, int), default=(3, 3, 3)
+    :param stride_size: Window stride (vertical, horizontal, depth).  
+    :type stride_size: tuple(int, int, int), default=(1, 1, 1)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of images, of dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** - the images' depth
+    - **Channels** - the number of channels the image format uses
+        
+    .. rubric:: Layer outputs:
+
+    (1) the result of pooling
+    The dimensions:
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
+    - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
+    - **Depth** can be calculated from the input as (**Depth** - **FilterDepth**)/**StrideDepth** + 1
+    - **Channels** is equal to the input **Channels**
     """
     def __init__(self, input_layers, filter_size=(3, 3, 3), stride_size=(1, 1, 1), name=None):
 

@@ -29,63 +29,61 @@ class Qrnn(Layer):
     fully-connected layers in the recurrent part.
     See https://arxiv.org/abs/1611.01576
     
-    Layer inputs
-    ----------
-    #1: the set of vector sequences.
-    The dimensions:
-    - BatchLength is the length of one sequence
-    - BatchWidth is the number of vector sequences in the set
-    - ListSize is 1
-    - Height * Width * Depth * Channels is the vector length
-    
-    #2 (optional): the initial state of the recurrent part.
-    If not set, the recurrent part is all zeros before the first step.
-    The dimensions:
-    - BatchLength, ListSize, Height, Width, Depth are 1
-    - BatchWidth is the same as for the first input
-    - Channels is hidden_size
-    
-    Layer outputs
-    ----------
-    #1: the result sequence.
-    The dimensions:
-    - BatchLength can be calculated from the input as
-        (BatchLength + paddings[0] + paddings[1] - (window_size - 1))/(stride + 1)
-    - BatchWidth is the same as for the inputs
-    - ListSize, Height, Width, Depth are 1
-    - Channels is hidden_size for all recurrent modes 
-        except bidirectional_concat, when it is 2 * hidden_size
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    hidden_size : int, > 0
-        The hidden layer size.
-    window_size : int, > 0
-        The size of the window used in time convolution.
-    stride : int, > 0, default=1
-        The window stride for time convolution.
-    paddings : (int, int), >= 0, default=(0, 0)
-        The additional zeros tacked to the start and end of sequence 
-        before convolution.
-    activation : {"linear", "elu", "relu", "leaky_relu", "abs", "sigmoid",
+    :type input_layers: list of object, tuple(object, int)
+    :param hidden_size: The hidden layer size.    
+    :type hidden_size: int, > 0
+    :param window_size: The size of the window used in time convolution.    
+    :type window_size: int, > 0
+    :param stride: The window stride for time convolution.
+    :type stride: int, > 0, default=1
+    :param paddings: The additional zeros tacked to the start and end of sequence 
+        before convolution.    
+    :type paddings: tuple(int, int), >= 0, default=(0, 0)
+    :param activation: The activation function used in the update gate.    
+    :type activation: str, {"linear", "elu", "relu", "leaky_relu", "abs", "sigmoid",
                     "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", 
                     "gelu"}, default="tanh"
-        The activation function used in the update gate.
-    dropout : float, [0..1], default=0.0
-        The dropout probability in the forget gate.
-    mode : {"direct", "reverse", "bidirectional_concat", 
-                "bidirectional_sum"}, default="direct"
-        The way of processing the input sequences.
+    :param dropout: The dropout probability in the forget gate.
+    :type dropout: float, [0..1], default=0.0
+    :param mode: The way of processing the input sequences.
         - bidirectional_concat means the direct and the reverse 
             sequence are concatenated and then processed as one;
         - bidirectional_sum means the direct and the reverse
-            sequence are added up and then processed as one.
-    name : str, default=None
-        The layer name.
+            sequence are added up and then processed as one.  
+    :type mode: str, {"direct", "reverse", "bidirectional_concat", 
+                "bidirectional_sum"}, default="direct"
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of vector sequences.
+    The dimensions:
+    - **BatchLength** is the length of one sequence
+    - **BatchWidth** is the number of vector sequences in the set
+    - **ListSize** is 1
+    - **Height** * **Width** * **Depth** * **Channels** is the vector length
+    
+    (2) (optional): the initial state of the recurrent part.
+    If not set, the recurrent part is all zeros before the first step.
+    The dimensions:
+    - **BatchLength**, **ListSize**, **Height**, **Width**, **Depth** are 1
+    - **BatchWidth** is the same as for the first input
+    - **Channels** is hidden_size
+    
+    .. rubric:: Layer outputs:
+
+    (1) the result sequence.
+    The dimensions:
+    - **BatchLength** can be calculated from the input as
+        (**BatchLength** + paddings[0] + paddings[1] - (window_size - 1))/(stride + 1)
+    - **BatchWidth** is the same as for the inputs
+    - **ListSize**, **Height**, **Width**, **Depth** are 1
+    - **Channels** is hidden_size for all recurrent modes 
+        except bidirectional_concat, when it is 2 * hidden_size
     """
 
     activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]

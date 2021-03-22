@@ -38,35 +38,32 @@ class MultiheadAttention(Layer):
     See the papers: https://arxiv.org/pdf/1706.03762.pdf
     https://arxiv.org/pdf/1807.03819.pdf
     
-    Layer inputs
-    ----------
-    #1: matrix Q (1 x BatchWidth x ListSize_Q x 1 x 1 x 1 x Channels_Q)
-    #2: matrix K (1 x BatchWidth x ListSize_V x 1 x 1 x 1 x Channels_Q)
-    #3: matrix V (1 x BatchWidth x ListSize_V x 1 x 1 x 1 x Channels_V)
-    #4: mask, can be 0.
-
-    
-    Layer outputs
-    ----------
-    #1: result matrix (1, BatchWidth, ListSize_Q, 1, 1, 1, output_size)
-    
-    Parameters
-    ----------
-    input_layer : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layer: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    head_count : int, > 0, default=1
-        The number of heads in attention.
-    hidden_size : int, > 0
-        The size of trainable matrices W_*. Should be a multiple of head_count.
-    output_size : int, > 0
-        The size of output.
-    dropout_rate : float, default=-1
-        Rate of droupout applied to the softmax. 
+    :type input_layer: list of object, tuple(object, int)
+    :param head_count: The number of heads in attention.
+    :type head_count: int, > 0, default=1
+    :param hidden_size: The size of trainable matrices W_*. Should be a multiple of head_count.
+    :type hidden_size: int, > 0     
+    :param output_size: The size of output.
+    :type output_size: int, > 0
+    :param dropout_rate: Rate of droupout applied to the softmax. 
         A negative value means no dropout.
-    name : str, default=None
-        The layer name.
+    :type dropout_rate: float, default=-1
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) matrix Q of shape (1 x **BatchWidth** x **ListSize_Q** x 1 x 1 x 1 x **Channels_Q**)
+    (2) matrix K of shape (1 x **BatchWidth** x **ListSize_V** x 1 x 1 x 1 x **Channels_Q**)
+    (3) matrix V (1 x **BatchWidth** x **ListSize_V** x 1 x 1 x 1 x **Channels_V**)
+    (4) (optional): mask, can be 0.
+
+    .. rubric:: Layer outputs:
+
+    (1) result matrix of shape (1, **BatchWidth**, **ListSize_Q**, 1, 1, 1, output_size)
     """
 
     def __init__(self, input_layer, head_count, hidden_size, output_size, dropout_rate, name=None):

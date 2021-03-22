@@ -38,30 +38,28 @@ class PositionalEmbedding(Layer):
     - j is the position of vector in sequence (from 0 to ListSize - 1)
     - addends is the trainable vector to be added
     
-    Layer inputs
-    ----------
-    #1: a blob with vector sequences.
-    The dimensions:
-    - BatchLength is 1
-    - BatchWidth is the number of sequences in the set
-    - ListSize is the sequence length
-    - Height * Width * Depth * Channels is the vector length;
-        for "transformers", Height, Width, and Depth should be 1,
-        vector length is equal to Channels
-    
-    Layer outputs
-    ----------
-    #1: the transformation result, of the same dimensions as the input.
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    type_name : {"learnable_addition", "transformers"}
-        The operation type.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param type_name: The operation type.    
+    :type type_name: str, {"learnable_addition", "transformers"}
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with vector sequences.
+    The dimensions:
+    - **BatchLength** is 1
+    - **BatchWidth** is the number of sequences in the set
+    - **ListSize** is the sequence length
+    - **Height** * **Width** * **Depth** * **Channels** is the vector length;
+        for "transformers", **Height**, **Width**, and **Depth** should be 1,
+        vector length is equal to **Channels**
+    
+    .. rubric:: Layer outputs:
+
+    (1) the transformation result, of the same dimensions as the input.
     """
     types = ["learnable_addition", "transformers"]
 

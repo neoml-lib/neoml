@@ -22,27 +22,25 @@ from neoml.Utils import check_input_layers
 class Argmax(Layer):
     """The layer that finds the maximum element along the given dimension. 
     
-    Layer inputs
-    ------------
-    #1: a data blob of any size
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: object, tuple(object, int)
+    :param dimension: The dimension along which the maximum is to be found.
+    :type dimension: str, {'batch_length', 'batch_width', 'list_size', 'height', 'width',
+        'depth', 'channels'}, default='channels'
+    :param name: The layer name.
+    :type name: str, default=None
 
-    Layer outputs
-    -------------
-    #1: contains the coordinate of the maximum
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+
+    .. rubric:: Layer outputs:
+
+    (1) contains the coordinate of the maximum
     The dimensions:
     - 'dimension' along which the maximum is found is equal to 1
     - all other dimensions are equal to the first input dimensions
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
-        is specified, the first output will be connected.
-    dimension : {'batch_length', 'batch_width', 'list_size', 'height', 'width',
-                'depth', 'channels'}, default='channels'
-        The dimension along which the maximum is to be found.
-    name : str, default=None
-        The layer name.
     """
     dimensions = ["batch_length", "batch_width", "list_size", "height", "width", "depth", "channels"]
 

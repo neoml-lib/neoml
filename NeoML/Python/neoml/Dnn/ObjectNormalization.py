@@ -25,26 +25,24 @@ class ObjectNormalization(Layer):
     objectNorm(x)[i][j] = ((x[i][j] - mean[i]) / sqrt(var[i] + epsilon)) *
         * scale[j] + bias[j]
     
-    Layer inputs
-    ----------
-    #1: a set of objects.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize is the number of objects
-    - Height * Width * Depth * Channels is the object size
-    
-    Layer outputs
-    ----------
-    #1: the normalized result, of the same size as the input.
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    epsilon : float, default=0.00001
-        The small value added to the variance to avoid division by zero.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param epsilon: The small value added to the variance to avoid division by zero. 
+    :type epsilon: float, default=0.00001
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a set of objects.
+    The dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** is the number of objects
+    - **Height** * **Width** * **Depth** * **Channels** is the object size
+    
+    .. rubric:: Layer outputs:
+
+    (1) the normalized result, of the same size as the input.
     """
 
     def __init__(self, input_layer, epsilon=0.00001, name=None):
