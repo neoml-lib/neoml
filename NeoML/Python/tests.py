@@ -296,6 +296,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(out2.shape, (5, 3, 7))
 
         w_blob = lstm.input_weights
+        print( w_blob.shape )
         weights = w_blob.asarray()
         lstm.input_weights = w_blob
         f_blob = lstm.input_free_term
