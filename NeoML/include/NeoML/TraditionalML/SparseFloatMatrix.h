@@ -69,11 +69,11 @@ inline CFloatVectorDesc CFloatMatrixDesc::GetRow( int index ) const
 // A sparse matrix
 // Any value that is not specified is 0
 class NEOML_API CSparseFloatMatrix {
-	static const int InitialRowBufferSize = 32;
-	static const int InitialElementBufferSize = 512;
+	static const size_t InitialRowBufferSize = 32;
+	static const size_t InitialElementBufferSize = 512;
 public:
 	CSparseFloatMatrix() {}
-	explicit CSparseFloatMatrix( int width, int rowsBufferSize = 0, int elementsBufferSize = 0 );
+	explicit CSparseFloatMatrix( int width, size_t rowsBufferSize = 0, size_t elementsBufferSize = 0 );
 	explicit CSparseFloatMatrix( const CFloatMatrixDesc& desc );
 	CSparseFloatMatrix( const CSparseFloatMatrix& other );
 
@@ -83,8 +83,8 @@ public:
 	int GetHeight() const { return body == 0 ? 0 : body->Desc.Height; }
 	int GetWidth() const { return body == 0 ? 0 : body->Desc.Width; }
 
-	void GrowInRows( int newRowsBufferSize );
-	void GrowInElements( int newElementsBufferSize );
+	void GrowInRows( size_t newRowsBufferSize );
+	void GrowInElements( size_t newElementsBufferSize );
 
 	void AddRow( const CSparseFloatVector& row );
 	void AddRow( const CFloatVectorDesc& row );
@@ -98,20 +98,14 @@ public:
 private:
 	// The matrix body, that is, the object that stores all its data
 	struct NEOML_API CSparseFloatMatrixBody : public IObject {
-		int RowsBufferSize;
-		int ElementsBufferSize;
-		int ElementCount;
+		size_t RowsBufferSize;
+		size_t ElementsBufferSize;
+		size_t ElementCount;
 		CFloatMatrixDesc Desc;
 
-		// Memory holders
-		CArray<int> ColumnsBuf;
-		CArray<float> ValuesBuf;
-		CArray<int> BeginPointersBuf;
-		CArray<int> EndPointersBuf;
-
-		CSparseFloatMatrixBody( int height, int width, int elementCount, int rowsBufferSize, int elementsBufferSize );
+		CSparseFloatMatrixBody( int height, int width, size_t elementCount, size_t rowsBufferSize, size_t elementsBufferSize );
 		explicit CSparseFloatMatrixBody( const CFloatMatrixDesc& desc );
-		~CSparseFloatMatrixBody() override = default;
+		~CSparseFloatMatrixBody();
 
 		CSparseFloatMatrixBody* Duplicate() const;
 	};

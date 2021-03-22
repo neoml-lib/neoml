@@ -326,6 +326,22 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 	}
 }
 
+TEST_F( CFloatVectorTest, CreateHugeSparseMatrix )
+{
+	const int maxLength = 128;
+	const int rowsCount = 17e6;
+	CSparseFloatMatrix matrix( maxLength );
+	CRandom rand( 0 );
+	for( int i = 0; i < rowsCount; ++i ) {
+		CFloatVector row( maxLength, 1.0 );
+		matrix.AddRow( row.GetDesc() );
+
+		if( (i+1) % 1000000 == 0 ) {
+			GTEST_LOG_( INFO ) << i+1 << " rows added";
+		}
+	}
+}
+
 TEST_F( CFloatVectorTest, Common )
 {
 	CSparseFloatVector sRandom;
