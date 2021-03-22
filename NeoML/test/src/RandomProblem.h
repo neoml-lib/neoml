@@ -32,8 +32,8 @@ public:
 
 	// memory holders when applicable
 	CArray<float> Values;
-	CArray<int> PointerB;
-	CArray<int> PointerE;
+	CArray<size_t> PointerB;
+	CArray<size_t> PointerE;
 	CArray<TLabel> LabelsArr;
 	CArray<float> WeightsArr;
 

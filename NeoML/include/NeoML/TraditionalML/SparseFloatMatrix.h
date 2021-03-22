@@ -29,8 +29,8 @@ struct NEOML_API CFloatMatrixDesc {
 	int Width; // the matrix width
 	int* Columns; // the columns array
 	float* Values; // the values array
-	int* PointerB; // the array of indices for vector start in Columns/Values
-	int* PointerE; // the array of indices for vector end in Columns/Values
+	size_t* PointerB; // the array of indices for vector start in Columns/Values
+	size_t* PointerE; // the array of indices for vector end in Columns/Values
 
 	CFloatMatrixDesc() : Height(0), Width(0), Columns(nullptr), Values(nullptr), PointerB(nullptr), PointerE(nullptr) {}
 
@@ -47,7 +47,7 @@ typedef CFloatMatrixDesc CSparseFloatMatrixDesc;
 inline void CFloatMatrixDesc::GetRow( int index, CFloatVectorDesc& desc ) const
 {
 	NeoAssert( 0 <= index && index < Height );
-	desc.Size = PointerE[index] - PointerB[index];
+	desc.Size = static_cast<int>( PointerE[index] - PointerB[index] );
 	desc.Values = Values + PointerB[index];
 	if( Columns == nullptr ) { // dense representation
 		NeoPresume( desc.Size == Width );
@@ -108,6 +108,7 @@ private:
 		~CSparseFloatMatrixBody();
 
 		CSparseFloatMatrixBody* Duplicate() const;
+		void CopyDataTo( const CSparseFloatMatrixBody* dst ) const;
 	};
  
 	CCopyOnWritePtr<CSparseFloatMatrixBody> body; // The matrix body.
