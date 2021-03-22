@@ -339,6 +339,13 @@ TEST_F( CFloatVectorTest, CreateHugeSparseMatrix )
 		if( (i+1) % 1000000 == 0 ) {
 			GTEST_LOG_( INFO ) << i+1 << " rows added";
 		}
+
+		CFloatVectorDesc rowGot = matrix.GetRow( i );
+		ASSERT_EQ( rowGot.Size, maxLength );
+		for( int j = 0; j < maxLength; ++j ) {
+			ASSERT_EQ( rowGot.Indexes[j], j );
+			ASSERT_DOUBLE_EQ( rowGot.Values[j], 1.0 );
+		}
 	}
 }
 
