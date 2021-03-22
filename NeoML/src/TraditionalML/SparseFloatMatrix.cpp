@@ -91,7 +91,6 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 		::memcpy( Desc.Values, desc.Values, ElementsBufferSize * sizeof( float ) );
 		::memcpy( Desc.PointerB, desc.PointerB, RowsBufferSize * sizeof( size_t ) );
 		::memcpy( Desc.PointerE, desc.PointerE, RowsBufferSize * sizeof( size_t ) );
-
 	}
 }
 
