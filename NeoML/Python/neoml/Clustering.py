@@ -50,7 +50,7 @@ class FirstCome(PythonWrapper.FirstCome) :
         if distance != 'euclid' and distance != 'machalanobis' and distance != 'cosine':
             raise ValueError('The `distance` must be one of {`euclid`, `machalanobis`, `cosine`}.')
         if max_cluster_count <= 0:
-            raise ValueError('The `max_ cluster_count` must be > 0.')
+            raise ValueError('The `max_cluster_count` must be > 0.')
         if min_cluster_size_ratio > 1 or min_cluster_size_ratio < 0:
             raise ValueError('The `min_cluster_size_ratio` must be in [0, 1].')
 
@@ -61,7 +61,7 @@ class FirstCome(PythonWrapper.FirstCome) :
 
         :param X: The input samples. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
-            to a sparse ``scipy.csr_matrix``
+            to a sparse ``scipy.csr_matrix``.
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :param weight: Sample weights. If `None`, then samples are equally weighted.
@@ -120,8 +120,8 @@ class Hierarchical(PythonWrapper.Hierarchical) :
         """Performs clustering of the given data.
 
         :param X: The input samples. Internally, it will be converted
-            to ``dtype=np.float32`` and if a sparse matrix is provided
-            to a sparse ``scipy.csr_matrix``
+            to ``dtype=np.float32``, and if a sparse matrix is provided -
+            to a sparse ``scipy.csr_matrix``.
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :param weight: Sample weights. If `None`, then samples are equally weighted.
@@ -198,8 +198,8 @@ class IsoData(PythonWrapper.IsoData) :
         """Performs clustering of the given data.
 
         :param X: The input samples. Internally, it will be converted
-            to ``dtype=np.float32`` and if a sparse matrix is provided
-            to a sparse ``scipy.csr_matrix``
+            to ``dtype=np.float32``, and if a sparse matrix is provided -
+            to a sparse ``scipy.csr_matrix``.
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :param weight: Sample weights. If `None`, then samples are equally weighted.
@@ -271,8 +271,8 @@ class KMeans(PythonWrapper.KMeans) :
         """Performs clustering of the given data.
 
         :param X: The input samples. Internally, it will be converted
-            to ``dtype=np.float32`` and if a sparse matrix is provided
-            to a sparse ``scipy.csr_matrix``
+            to ``dtype=np.float32``, and if a sparse matrix is provided -
+            to a sparse ``scipy.csr_matrix``.
         :type X: array-like or sparse matrix of shape (n_samples, n_features)
 
         :param weight: Sample weights. If `None`, then samples are equally weighted.
