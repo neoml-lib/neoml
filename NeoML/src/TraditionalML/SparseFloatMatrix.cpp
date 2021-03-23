@@ -18,6 +18,9 @@ limitations under the License.
 
 #include <NeoML/TraditionalML/SparseFloatMatrix.h>
 
+#ifdef max
+#undef max
+#endif
 #include <limits>
 
 namespace NeoML {
