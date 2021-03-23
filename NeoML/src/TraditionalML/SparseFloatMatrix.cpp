@@ -18,9 +18,12 @@ limitations under the License.
 
 #include <NeoML/TraditionalML/SparseFloatMatrix.h>
 
+#include <limits>
+
 namespace NeoML {
 
 CFloatMatrixDesc CFloatMatrixDesc::Empty;
+static size_t MaxBufferSize = std::numeric_limits<size_t>::max() / 4;
 
 CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::CSparseFloatMatrixBody::Duplicate() const
 {
@@ -28,7 +31,6 @@ CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::CSparseFloatMatr
 	CopyDataTo( body );
 	return body;
 }
-
 
 void CSparseFloatMatrix::CSparseFloatMatrixBody::CopyDataTo( const CSparseFloatMatrixBody* dst ) const
 {
@@ -136,9 +138,12 @@ CSparseFloatMatrix& CSparseFloatMatrix::operator = ( const CSparseFloatMatrix& m
 
 void CSparseFloatMatrix::GrowInRows( size_t newRowsBufferSize )
 {
-	NeoAssert( newRowsBufferSize > 0 );
 	if( newRowsBufferSize > body->RowsBufferSize ) {
-		size_t newBufferSize = max( body->RowsBufferSize * 3 / 2, newRowsBufferSize );
+		NeoAssert( MaxBufferSize >= newRowsBufferSize );
+
+		size_t newBufferSize = MaxBufferSize / ( 3 / 2 ) >= body->RowsBufferSize ?
+			max( body->RowsBufferSize * 3 / 2, newRowsBufferSize ) :
+			MaxBufferSize;
 		const CSparseFloatMatrixBody* oldBody = body.Ptr();
 		if( body->RefCount() != 1 ) {
 			body = new CSparseFloatMatrixBody( body->Desc.Height, body->Desc.Width,
@@ -160,9 +165,12 @@ void CSparseFloatMatrix::GrowInRows( size_t newRowsBufferSize )
 
 void CSparseFloatMatrix::GrowInElements( size_t newElementsBufferSize )
 {
-	NeoAssert( newElementsBufferSize > 0 );
 	if( newElementsBufferSize > body->ElementsBufferSize ) {
-		size_t newBufferSize = max( body->ElementsBufferSize * 3 / 2, newElementsBufferSize );
+		NeoAssert( MaxBufferSize >= newElementsBufferSize );
+
+		size_t newBufferSize = MaxBufferSize / ( 3 / 2 ) >= body->ElementsBufferSize ?
+			max( body->ElementsBufferSize * 3 / 2, newElementsBufferSize ) :
+			MaxBufferSize;
 		const CSparseFloatMatrixBody* oldBody = body.Ptr();
 		if( body->RefCount() != 1 ) {
 			body = new CSparseFloatMatrixBody( body->Desc.Height, body->Desc.Width,

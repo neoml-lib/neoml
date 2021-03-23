@@ -326,28 +326,6 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 	}
 }
 
-TEST_F( CFloatVectorTest, CreateHugeSparseMatrix )
-{
-	const int maxLength = 128;
-	const int rowsCount = 17000000;
-	CSparseFloatMatrix matrix( maxLength );
-	CRandom rand( 0 );
-	for( int i = 0; i < rowsCount; ++i ) {
-		CFloatVector row( maxLength, 1.0 );
-		matrix.AddRow( row.GetDesc() );
-	}
-	GTEST_LOG_( INFO ) << rowsCount << " rows added";
-	// test some random elements have been set correctly
-	const int elementsToTestCount = 1000;
-	for( int i = 0; i < elementsToTestCount; ++i ) {
-		const int r = rand.UniformInt( 0, rowsCount - 1 );
-		const int c = rand.UniformInt( 0, maxLength - 1 );
-		const size_t pos = static_cast<size_t>( r ) * maxLength + c;
-		ASSERT_EQ( matrix.GetDesc().Columns[pos], c );
-		ASSERT_DOUBLE_EQ( matrix.GetDesc().Values[pos], 1.0 );
-	}
-}
-
 TEST_F( CFloatVectorTest, Common )
 {
 	CSparseFloatVector sRandom;
@@ -405,5 +383,28 @@ TEST_F( CFloatVectorTest, Common )
 
 	CFloatVector s1Full( 10 );
 	s1Full.SetAt( 1, 2.2f );
+}
+
+// disable this test due to non-deterministic behavior on test servers
+TEST_F( CFloatVectorTest, DISABLED_CreateHugeSparseMatrix )
+{
+	const int maxLength = 128;
+	const int rowsCount = 17000000;
+	CSparseFloatMatrix matrix( maxLength );
+	CRandom rand( 0 );
+	for( int i = 0; i < rowsCount; ++i ) {
+		CFloatVector row( maxLength, 1.0 );
+		matrix.AddRow( row.GetDesc() );
+	}
+	GTEST_LOG_( INFO ) << rowsCount << " rows added";
+	// test some random elements have been set correctly
+	const int elementsToTestCount = 1000;
+	for( int i = 0; i < elementsToTestCount; ++i ) {
+		const int r = rand.UniformInt( 0, rowsCount - 1 );
+		const int c = rand.UniformInt( 0, maxLength - 1 );
+		const size_t pos = static_cast<size_t>( r ) * maxLength + c;
+		ASSERT_EQ( matrix.GetDesc().Columns[pos], c );
+		ASSERT_DOUBLE_EQ( matrix.GetDesc().Values[pos], 1.0 );
+	}
 }
 
