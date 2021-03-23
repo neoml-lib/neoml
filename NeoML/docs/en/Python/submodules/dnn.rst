@@ -24,10 +24,21 @@ Layers
 Recurrent layers
 ****************
 
+Lstm
+~~~~
+
 .. autoclass:: neoml.Dnn.Lstm
    :members:
+
+Qrnn
+~~~~
+
 .. autoclass:: neoml.Dnn.Qrnn
    :members:
+
+Gru
+~~~
+
 .. autoclass:: neoml.Dnn.Gru
    :members:
 
