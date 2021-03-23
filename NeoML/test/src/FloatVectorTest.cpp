@@ -335,17 +335,16 @@ TEST_F( CFloatVectorTest, CreateHugeSparseMatrix )
 	for( int i = 0; i < rowsCount; ++i ) {
 		CFloatVector row( maxLength, 1.0 );
 		matrix.AddRow( row.GetDesc() );
-
-		if( (i+1) % 1000000 == 0 ) {
-			GTEST_LOG_( INFO ) << i+1 << " rows added";
-		}
-
-		CFloatVectorDesc rowGot = matrix.GetRow( i );
-		ASSERT_EQ( rowGot.Size, maxLength );
-		for( int j = 0; j < maxLength; ++j ) {
-			ASSERT_EQ( rowGot.Indexes[j], j );
-			ASSERT_DOUBLE_EQ( rowGot.Values[j], 1.0 );
-		}
+	}
+	GTEST_LOG_( INFO ) << rowsCount << " rows added";
+	// test some random elements have been set correctly
+	const int elementsToTestCount = 1000;
+	for( int i = 0; i < elementsToTestCount; ++i ) {
+		const int r = rand.UniformInt( 0, rowsCount - 1 );
+		const int c = rand.UniformInt( 0, maxLength - 1 );
+		const size_t pos = static_cast<size_t>( r ) * maxLength + c;
+		ASSERT_EQ( matrix.GetDesc().Columns[pos], c );
+		ASSERT_DOUBLE_EQ( matrix.GetDesc().Values[pos], 1.0 );
 	}
 }
 
