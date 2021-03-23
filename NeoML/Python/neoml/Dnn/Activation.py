@@ -539,7 +539,7 @@ class GELU(Layer):
     for each element of the signle input:
     f(x) = x / (1 + exp(-1.702 * x))
     
-   :param input_layer: The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
     :type input_layer: object, tuple(object, int)
     :param name: The layer name.

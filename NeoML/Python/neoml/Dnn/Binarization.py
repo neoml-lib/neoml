@@ -87,7 +87,7 @@ class BitSetVectorization(Layer):
     (1) a blob with int data containing bitsets. 
     The dimensions:
     - **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth**
-        is the number of bitsets
+    is the number of bitsets
     - **Channels** is bitset itself
 
     .. rubric:: Layer outputs:

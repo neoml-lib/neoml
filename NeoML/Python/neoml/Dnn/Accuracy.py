@@ -38,10 +38,10 @@ class Accuracy(Layer):
     (1) a blob with the network response
     The dimensions:
     - **BatchLength** * **BatchWidth** * **ListSize** equal to the number of objects 
-        that were classified
+    that were classified
     - **Height**, **Width**, **Depth** equal to 1
     - **Channels** equal to 1 for binary classification and to the number of classes 
-        if there are more than 2
+    if there are more than 2
     
     (2) a blob with the correct class labels
     The dimensions should be the same as for the first input
@@ -101,7 +101,7 @@ class ConfusionMatrix(Layer):
     (1) a blob with the network response
     The dimensions:
     - **BatchLength** * **BatchWidth** * **ListSize** equal to the number of objects 
-        that were classified
+    that were classified
     - **Height**, **Width**, **Depth** equal to 1
     - **Channels** equal to the number of classes and should be greater than 1
     
