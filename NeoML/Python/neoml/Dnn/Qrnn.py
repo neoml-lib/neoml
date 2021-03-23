@@ -26,7 +26,8 @@ class Qrnn(Layer):
     Unlike LSTM or GRU, the layer performs most of the calculations 
     before the recurrent part, which helps improve performance on GPU.
     We use time convolution outside of the recurrent part instead of
-    fully-connected layers in the recurrent part. See https://arxiv.org/abs/1611.01576
+    fully-connected layers in the recurrent part.
+    See https://arxiv.org/abs/1611.01576
 
     :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
@@ -49,9 +50,9 @@ class Qrnn(Layer):
     :type dropout: float, [0..1], default=0.0
     :param mode: The way of processing the input sequences.
         - bidirectional_concat means the direct and the reverse 
-          sequence are concatenated and then processed as one;
+        sequence are concatenated and then processed as one;
         - bidirectional_sum means the direct and the reverse
-          sequence are added up and then processed as one.  
+        sequence are added up and then processed as one.  
     :type mode: str, {"direct", "reverse", "bidirectional_concat", 
         "bidirectional_sum"}, default="direct"
     :param name: The layer name.
@@ -78,11 +79,11 @@ class Qrnn(Layer):
     (1) the result sequence.
     The dimensions:
     - **BatchLength** can be calculated from the input as
-        (**BatchLength** + paddings[0] + paddings[1] - (window_size - 1))/(stride + 1)
+    (**BatchLength** + paddings[0] + paddings[1] - (window_size - 1))/(stride + 1)
     - **BatchWidth** is the same as for the inputs
     - **ListSize**, **Height**, **Width**, **Depth** are 1
     - **Channels** is hidden_size for all recurrent modes 
-        except bidirectional_concat, when it is 2 * hidden_size
+    except bidirectional_concat, when it is 2 * hidden_size
     """
 
     activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]
@@ -234,8 +235,8 @@ class Qrnn(Layer):
         """Gets the trained weights for each gate. The blob dimensions:
         - **BatchLength** is 1
         - **BatchWidth** is 3 * **hidden_size**
-            (contains the weights for each of the three gates 
-            in the order: update, forget, output)
+        (contains the weights for each of the three gates 
+        in the order: update, forget, output)
         - **Height** is **window_size**
         - **Width**, **Depth** are 1
         - **Channels** is equal to the input's **Height** * **Width** * **Depth** * **Channels**
@@ -247,8 +248,8 @@ class Qrnn(Layer):
         """Sets the trained weights for each gate. The blob dimensions:
         - **BatchLength** is 1
         - **BatchWidt**h is 3 * **hidden_size**
-            (contains the weights for each of the three gates 
-            in the order: update, forget, output)
+        (contains the weights for each of the three gates 
+        in the order: update, forget, output)
         - **Height** is **window_size**
         - **Width**, **Depth** are 1
         - **Channels** is equal to the input's **Height** * **Width** * **Depth** * **Channels**
