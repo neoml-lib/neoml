@@ -60,30 +60,31 @@ class Qrnn(Layer):
 
     .. rubric:: Layer inputs:
 
-    (1) the set of vector sequences.
-    The dimensions:
-    - **BatchLength** is the length of one sequence
-    - **BatchWidth** is the number of vector sequences in the set
-    - **ListSize** is 1
-    - **Height** * **Width** * **Depth** * **Channels** is the vector length
+    (1) the set of vector sequences, of dimensions:
+
+        - **BatchLength** is the length of one sequence
+        - **BatchWidth** is the number of vector sequences in the set
+        - **ListSize** is 1
+        - **Height** * **Width** * **Depth** * **Channels** is the vector length
     
     (2) (optional): the initial state of the recurrent part.
     If not set, the recurrent part is all zeros before the first step.
     The dimensions:
-    - **BatchLength**, **ListSize**, **Height**, **Width**, **Depth** are 1
-    - **BatchWidth** is the same as for the first input
-    - **Channels** is hidden_size
+
+        - **BatchLength**, **ListSize**, **Height**, **Width**, **Depth** are 1
+        - **BatchWidth** is the same as for the first input
+        - **Channels** is hidden_size
     
     .. rubric:: Layer outputs:
 
-    (1) the result sequence.
-    The dimensions:
-    - **BatchLength** can be calculated from the input as
-    (**BatchLength** + paddings[0] + paddings[1] - (window_size - 1))/(stride + 1)
-    - **BatchWidth** is the same as for the inputs
-    - **ListSize**, **Height**, **Width**, **Depth** are 1
-    - **Channels** is hidden_size for all recurrent modes 
-    except bidirectional_concat, when it is 2 * hidden_size
+    (1) the result sequence. The dimensions:
+
+        - **BatchLength** can be calculated from the input as
+        (**BatchLength** + paddings[0] + paddings[1] - (window_size - 1))/(stride + 1)
+        - **BatchWidth** is the same as for the inputs
+        - **ListSize**, **Height**, **Width**, **Depth** are 1
+        - **Channels** is hidden_size for all recurrent modes 
+        except bidirectional_concat, when it is 2 * hidden_size
     """
 
     activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]
