@@ -8,6 +8,7 @@ neoml.Dnn
 - :ref:`py-dnn-layers`
 
    - :ref:`py-dnn-recurrent`
+   - :ref:`py-dnn-activation`
 
 .. _py-dnn-network:
 
@@ -25,19 +26,19 @@ Recurrent layers
 ****************
 
 Lstm
-~~~~
+====
 
 .. autoclass:: neoml.Dnn.Lstm
    :members:
 
 Qrnn
-~~~~
+====
 
 .. autoclass:: neoml.Dnn.Qrnn
    :members:
 
 Gru
-~~~
+===
 
 .. autoclass:: neoml.Dnn.Gru
    :members:
@@ -47,28 +48,73 @@ Gru
 Activation layers
 *****************
 
+Linear
+======
+
 .. autoclass:: neoml.Dnn.Linear
    :members:
+
+ELU
+===
+
 .. autoclass:: neoml.Dnn.ELU
    :members:
+
+ReLU
+====
+
 .. autoclass:: neoml.Dnn.ReLU
    :members:
+
+LeakyReLU
+=========
+
 .. autoclass:: neoml.Dnn.LeakyReLU
    :members:
+
+HSwish
+======
+
 .. autoclass:: neoml.Dnn.HSwish
    :members:
+
+GELU
+====
+
 .. autoclass:: neoml.Dnn.GELU
    :members:
+
+Abs
+===
 .. autoclass:: neoml.Dnn.Abs
    :members:
+
+Sigmoid
+=======
+
 .. autoclass:: neoml.Dnn.Sigmoid
    :members:
+
+Tanh
+====
+
 .. autoclass:: neoml.Dnn.Tanh
    :members:
+
+HardTanh
+========
 .. autoclass:: neoml.Dnn.HardTanh
    :members:
+
+HardSigmoid
+===========
+
 .. autoclass:: neoml.Dnn.HardSigmoid
    :members:
+
+Power
+=====
+
 .. autoclass:: neoml.Dnn.Power
    :members:
 
