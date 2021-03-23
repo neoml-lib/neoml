@@ -86,36 +86,34 @@ class ConfusionMatrix(Layer):
     of objects that belong to the "row" class and were classified 
     as the "column" class.
     
-    Layer inputs
-    ----------
-    #1: a blob with the network response
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize equal to the number of objects 
-        that were classified
-    - Height, Width, Depth equal to 1
-    - Channels equal to the number of classes and should be greater than 1
-    
-    #2: a blob with the correct class labels
-    The dimensions should be the same as for the first input
-    
-    Layer outputs
-    ----------
-    #1: the confusion matrix.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, Depth, Channels are 1
-    - Height and Width are equal to the input Channels
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    reset : bool, default=True
-        Specifies if the statistics should be reset with each run.
+    :type input_layers: list of object, tuple(object, int)
+    :param reset: Specifies if the statistics should be reset with each run.
         Set to False to accumulate statistics for subsequent runs.
-    name : str, default=None
-        The layer name.
+    :type reset: bool, default=True
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with the network response
+    The dimensions:
+    - **BatchLength** * **BatchWidth** * **ListSize** equal to the number of objects 
+        that were classified
+    - **Height**, **Width**, **Depth** equal to 1
+    - **Channels** equal to the number of classes and should be greater than 1
+    
+    (2) a blob with the correct class labels
+    The dimensions should be the same as for the first input
+    
+    .. rubric:: Layer outputs:
+
+    (1) the confusion matrix.
+    The dimensions:
+    - **BatchLength**, **BatchWidth**, **ListSize**, **Depth**, **Channels** are 1
+    - **Height** and **Width** are equal to the input **Channels**
     """
 
     def __init__(self, input_layers, reset=True, name=None):
@@ -144,14 +142,14 @@ class ConfusionMatrix(Layer):
     @property
     def matrix(self):
         """Gets the confusion matrix. The dimensions:
-        - BatchLength, BatchWidth, ListSize, Depth, Channels are 1
-        - Height and Width are equal to the input Channels
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Depth**, **Channels** are 1
+        - **Height** and **Width** are equal to the input **Channels**
         """
         return self._internal.get_matrix()
 
     def reset_matrix(self):
         """Resets the confusion matrix values. The dimensions:
-        - BatchLength, BatchWidth, ListSize, Depth, Channels are 1
-        - Height and Width are equal to the input Channels
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Depth**, **Channels** are 1
+        - **Height** and **Width** are equal to the input **Channels**
         """
         return self._internal.reset_matrix()

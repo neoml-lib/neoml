@@ -26,9 +26,8 @@ class Qrnn(Layer):
     Unlike LSTM or GRU, the layer performs most of the calculations 
     before the recurrent part, which helps improve performance on GPU.
     We use time convolution outside of the recurrent part instead of
-    fully-connected layers in the recurrent part.
-    See https://arxiv.org/abs/1611.01576
-    
+    fully-connected layers in the recurrent part. See https://arxiv.org/abs/1611.01576
+
     :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
@@ -50,11 +49,11 @@ class Qrnn(Layer):
     :type dropout: float, [0..1], default=0.0
     :param mode: The way of processing the input sequences.
         - bidirectional_concat means the direct and the reverse 
-            sequence are concatenated and then processed as one;
+          sequence are concatenated and then processed as one;
         - bidirectional_sum means the direct and the reverse
-            sequence are added up and then processed as one.  
+          sequence are added up and then processed as one.  
     :type mode: str, {"direct", "reverse", "bidirectional_concat", 
-                "bidirectional_sum"}, default="direct"
+        "bidirectional_sum"}, default="direct"
     :param name: The layer name.
     :type name: str, default=None
 
@@ -233,26 +232,26 @@ class Qrnn(Layer):
     @property
     def filter(self):
         """Gets the trained weights for each gate. The blob dimensions:
-        - BatchLength is 1
-        - BatchWidth is 3 * hidden_size 
+        - **BatchLength** is 1
+        - **BatchWidth** is 3 * **hidden_size**
             (contains the weights for each of the three gates 
             in the order: update, forget, output)
-        - Height is window_size
-        - Width, Depth are 1
-        - Channels is equal to the input's Height * Width * Depth * Channels
+        - **Height** is **window_size**
+        - **Width**, **Depth** are 1
+        - **Channels** is equal to the input's **Height** * **Width** * **Depth** * **Channels**
         """
         return Blob.Blob(self._internal.get_filter())
 
     @filter.setter
     def filter(self, blob):
         """Sets the trained weights for each gate. The blob dimensions:
-        - BatchLength is 1
-        - BatchWidth is 3 * hidden_size 
+        - **BatchLength** is 1
+        - **BatchWidt**h is 3 * **hidden_size**
             (contains the weights for each of the three gates 
             in the order: update, forget, output)
-        - Height is window_size
-        - Width, Depth are 1
-        - Channels is equal to the input's Height * Width * Depth * Channels
+        - **Height** is **window_size**
+        - **Width**, **Depth** are 1
+        - **Channels** is equal to the input's **Height** * **Width** * **Depth** * **Channels**
         """
         if not type(blob) is Blob.Blob:
             raise ValueError('The `blob` must be neoml.Blob.')

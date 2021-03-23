@@ -34,7 +34,7 @@ Recurrent layers
 .. _py-dnn-activation:
 
 Activation layers
-****************
+*****************
 
 .. autoclass:: neoml.Dnn.Linear
    :members:
@@ -62,9 +62,26 @@ Activation layers
    :members:
 
 Binarization layers
-****************
+*******************
 
 .. autoclass:: neoml.Dnn.EnumBinarization
    :members:
 .. autoclass:: neoml.Dnn.BitSetVectorization
    :members:
+
+AccumulativeLookup layer
+************************
+
+.. autoclass:: neoml.Dnn.AccumulativeLookup
+   :members:
+
+Accuracy layers
+***************
+
+.. autoclass:: neoml.Dnn.Accuracy
+   :members:
+.. autoclass:: neoml.Dnn.ConfusionMatrix
+   :members:
+
+AddToObject layer
+*****************
