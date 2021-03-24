@@ -411,8 +411,10 @@ TEST_F( CFloatVectorTest, CreateHugeSparseMatrix )
 			ASSERT_DOUBLE_EQ( matrix.GetDesc().Values[pos], 1.0 );
 		}
 	} catch( CMemoryException* ex ) {
-		GTEST_LOG_( INFO ) << "CMemoryException caught";
+		GTEST_LOG_( INFO ) << "CMemoryException* caught";
 		delete ex;
+	} catch( CMemoryException& ) {
+		GTEST_LOG_( INFO ) << "CMemoryException caught";
 	}
 }
 
