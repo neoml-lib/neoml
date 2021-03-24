@@ -49,7 +49,7 @@ class BatchNormalization(Layer):
     :type channel_based: bool, default=True
     :param zero_free_term: Specifies if the free term (beta) should be trained or filled with zeros.
     :type zero_free_term: bool, default=False
-    :param slow_convergence_rate : The coefficient for calculating the exponential moving mean and variance.
+    :param slow_convergence_rate: The coefficient for calculating the exponential moving mean and variance.
     :type slow_convergence_rate: float, default=1.0
     :param name: The layer name.
     :type name: str, default=None

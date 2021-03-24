@@ -65,7 +65,7 @@ class Crf(Layer):
         - **Channels** equal to the number of classes
         - the other dimensions are equal to 1
     
-    (2): a blob with float data that contains non-normalized logarithm of 
+    (2) a blob with float data that contains non-normalized logarithm of 
         optimal class sequences probabilities.
         The dimensions are the same as for the first output.
     
@@ -159,8 +159,8 @@ class Crf(Layer):
     def hidden_weights(self):
         """Gets the hidden layer weights. The dimensions:
 
-        - BatchLength * BatchWidth * ListSize is the number of classes
-        - Height * Width * Depth * Channels the same as for the first input
+        - **BatchLength** * **BatchWidth** * **ListSize** is the number of classes
+        - **Height** * **Width** * **Depth** * **Channels** the same as for the first input
         """
         return self._internal.get_hidden_weights()
 
@@ -168,8 +168,8 @@ class Crf(Layer):
     def hidden_weights(self, hidden_weights):
         """Sets the hidden layer weights. The dimensions:
 
-        - BatchLength * BatchWidth * ListSize is class_count
-        - Height * Width * Depth * Channels the same as for the first input
+        - **BatchLength** * **BatchWidth** * **ListSize** is class_count
+        - **Height** * **Width** * **Depth** * **Channels** the same as for the first input
         """
         self._internal.set_hidden_weights(hidden_weights)
 
@@ -189,7 +189,7 @@ class Crf(Layer):
     def transitions(self):
         """Gets the transition probability matrix. The dimensions:
 
-        - BatchLength, BatchWidth are class_count
+        - **BatchLength**, **BatchWidth** are class_count
         - the other dimensions are 1
         """
         return self._internal.get_transitions()
@@ -198,7 +198,7 @@ class Crf(Layer):
     def transitions(self, transitions):
         """Sets the transition probability matrix. The dimensions:
 
-        - BatchLength, BatchWidth are class_count
+        - **BatchLength**, **BatchWidth** are class_count
         - the other dimensions are 1
         """
         self._internal.set_transitions(transitions)

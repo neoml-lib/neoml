@@ -24,7 +24,7 @@ class Irnn(Layer):
     """IRNN implementation from this article: https://arxiv.org/pdf/1504.00941.pdf
 
     It's a simple recurrent unit with the following formula:
-    Y_t = ReLU( FC_input( X_t ) + FC_recur( Y_t-1 ) )
+    :math:Y_t = ReLU( FC_input( X_t ) + FC_recur( Y_t-1 ) )
     Where FC_* are fully-connected layers.
 
     The crucial point of this layer is weights initialization.
