@@ -31,7 +31,7 @@ class SequenceSum(Layer):
     .. rubric:: Layer inputs:
 
     (1) a set of object sequences.
-    The dimensions:
+        The dimensions:
 
         - **BatchLength** is the sequence length
         - **BatchWidth** is the number of sequences in the set
@@ -41,7 +41,7 @@ class SequenceSum(Layer):
     .. rubric:: Layer outputs:
 
     (1) the results of adding up each of the sequences.
-    The dimensions:
+        The dimensions:
 
         - **BatchLength** is 1
         - the other dimensions are the same as for the input

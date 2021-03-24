@@ -175,17 +175,17 @@ class CtcDecoding(Layer):
     (1) the network response.
         The dimensions:
 
-        - BatchLength is the maximum sequence length
-        - BatchWidth is the number of sequences in the set
-        - ListSize is 1
-        - Height * Width * Depth * Channels is the number of classes
+        - **BatchLength** is the maximum sequence length
+        - **BatchWidth** is the number of sequences in the set
+        - **ListSize** is 1
+        - **Height** * **Width** * **Depth** * **Channels** is the number of classes
 
     (2) (optional): the network response sequences lengths as a blob
         with int data. If this input isn't connected, the response sequences
-        are considered to be the first input's BatchLength long.
+        are considered to be the first input's **BatchLength** long.
         The dimensions:
 
-        - BatchWidth is the same as for the first input
+        - **BatchWidth** is the same as for the first input
         - the other dimensions are 1
 
     .. rubric:: Layer outputs:

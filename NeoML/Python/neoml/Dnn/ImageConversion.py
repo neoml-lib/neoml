@@ -49,7 +49,7 @@ class ImageResize(Layer):
     (1) a blob with the resized images, of the dimensions:
 
         - **BatchLength**, **BatchWidth**, **ListSize**, **Depth**, **Channels** are 
-            equal to the input dimensions
+          equal to the input dimensions
         - **Height** is the input Height plus the sum of top and bottom deltas
         - **Width** is the input Width plus the sum of right and left deltas
     """
@@ -122,7 +122,7 @@ class PixelToImage(Layer):
         - **ListSize** is the length of each sequence
         - **Height**, **Width**, **Depth** are 1
         - **Channels** is the number of channels for the pixel sequences 
-            and the output images.
+          and the output images.
     
     (2) a blob with integer data that contains lists of pixel coordinates.
         The dimensions:

@@ -483,12 +483,6 @@ ProjectionPooling
 .. autoclass:: neoml.Dnn.ProjectionPooling
    :members:
 
-Pooling3D
-=================
-
-.. autoclass:: neoml.Dnn.Pooling3D
-   :members:
-
 MaxPooling3D
 =================
 

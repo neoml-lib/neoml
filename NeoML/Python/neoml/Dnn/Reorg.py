@@ -35,7 +35,7 @@ class Reorg(Layer):
     .. rubric:: Layer inputs:
 
     (1) a blob with images.
-    The dimensions:
+        The dimensions:
 
         - **BatchLength** * **BatchWidth** * **ListSize** is the number of images
         - **Height** is the image height; should be a multiple of stride
@@ -46,7 +46,7 @@ class Reorg(Layer):
     .. rubric:: Layer outputs:
 
     (1) the result of image transformation.
-    The dimensions:
+        The dimensions:
 
         - **BatchLength**, **BatchWidth**, **ListSize** are the same as for the input
         - **Height** is input Height / stride

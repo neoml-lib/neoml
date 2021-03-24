@@ -34,8 +34,8 @@ class SplitChannels(Layer):
 
     .. rubric:: Layer inputs:
 
-    #1: a blob with input data.
-    The dimensions:
+    (1) a blob with input data.
+        The dimensions:
 
         - **Channels** should not be less than the sum of sizes array elements.
     
@@ -84,7 +84,7 @@ class SplitDepth(Layer):
     .. rubric:: Layer inputs:
 
     (1) a blob with input data.
-    The dimensions:
+        The dimensions:
 
         - **Depth** should not be less than the sum of sizes array elements.
     
@@ -133,7 +133,7 @@ class SplitWidth(Layer):
     .. rubric:: Layer inputs:
 
     (1) a blob with input data.
-    The dimensions:
+        The dimensions:
 
         - **Width** should not be less than the sum of sizes array elements.
     
@@ -182,7 +182,7 @@ class SplitHeight(Layer):
     .. rubric:: Layer inputs:
 
     (1) a blob with input data.
-    The dimensions:
+        The dimensions:
 
         - **Height** should not be less than the sum of sizes array elements.
     
@@ -231,7 +231,7 @@ class SplitBatchWidth(Layer):
     .. rubric:: Layer inputs:
 
     (1) a blob with input data.
-    The dimensions:
+        The dimensions:
 
         - **BatchWidth** should not be less than the sum of sizes array elements.
     

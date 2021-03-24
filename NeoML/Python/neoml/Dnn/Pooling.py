@@ -321,11 +321,11 @@ class MaxOverTimePooling(Layer):
     .. rubric:: Layer outputs:
 
     (1) the pooling result.
-    The dimensions:
+        The dimensions:
 
         - **BatchLength** is
-            -- 1 if filter_len is <= 0
-            -- (**BatchLength** - filter_len) / stride_len + 1 otherwise
+            - 1 if filter_len is <= 0
+            - (**BatchLength** - filter_len) / stride_len + 1 otherwise
         - the other dimensions are the same as for the input
     """
     def __init__(self, input_layers, filter_len, stride_len, name=None):

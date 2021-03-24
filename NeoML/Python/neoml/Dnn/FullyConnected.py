@@ -44,7 +44,7 @@ class FullyConnected(Layer):
 
     - **BatchLength** * **BatchWidth** * **ListSize** is the number of vectors
     - **Height** * **Width** * **Depth** * **Channels** is the vector size; 
-        should be the same for all inputs
+      should be the same for all inputs
 
     .. rubric:: Layer outputs:
 

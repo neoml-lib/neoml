@@ -28,7 +28,7 @@ class Dropout(Layer):
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    :type input_layer:object, tuple(object, int)
+    :type input_layer: object, tuple(object, int)
     :param rate: The proportion of elements that will be set to 0.
     :type rate: float, [0..1]
     :param spatial: Turns on and off the spatial dropout mode. 
