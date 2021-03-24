@@ -27,18 +27,19 @@ class Softmax(Layer):
         is specified, the first output will be connected.
     :type input_layer: object, tuple(object, int)
     :param area: Specifies which dimensions constitute the vector length:
+
         - object_size: there are 
-            **BatchLength** * **BatchWidth** * **ListSize** vectors, of
-            **Height** * **Width** * **Depth** * **Channels** length each
+          **BatchLength** * **BatchWidth** * **ListSize** vectors, of
+          **Height** * **Width** * **Depth** * **Channels** length each
         - batch_length: there are
-            **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth** * **Channels** vectors, of
-            **BatchLength** length each
+          **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth** * **Channels** vectors, of
+          **BatchLength** length each
         - list_size: there are 
-            **BatchLength** * **BatchWidth** * **Height** * **Width** * **Depth** * **Channels** vectors, of
-            **ListSize** length each
+          **BatchLength** * **BatchWidth** * **Height** * **Width** * **Depth** * **Channels** vectors, of
+          **ListSize** length each
         - channel: there are
-            **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth** vectors, of
-            **Channels** length each  
+          **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth** vectors, of
+          **Channels** length each  
     :type area: str, {"object_size", "batch_length", "list_size", "channel"}, default="object_size"
     :param name: The layer name.
     :type name: str, default=None
@@ -46,7 +47,7 @@ class Softmax(Layer):
     .. rubric:: Layer inputs:
 
     (1) a data blob of any size. The area setting determines 
-    which dimensions would be considered to constitute vector length.
+        which dimensions would be considered to constitute vector length.
     
     .. rubric:: Layer outputs:
 

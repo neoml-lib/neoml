@@ -39,19 +39,21 @@ class Upsampling2D(Layer):
 
     The layer can have any amount of inputs, each with a set of images.
     The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** is the number of images
-    - **Height** is the images' height
-    - **Width** is the images' width
-    - **Depth** * **Channels** is the number of channels the image format uses
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is the number of images
+        - **Height** is the images' height
+        - **Width** is the images' width
+        - **Depth** * **Channels** is the number of channels the image format uses
     
     .. rubric:: Layer outputs:
 
     For each input, there is a corresponding output with upscaled images.
     The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize**, **Depth**, **Channels** equal 
-        the correspoonding input dimensions
-    - **Height** is height_copy_count times larger than the input **Height**
-    - **Width** is width_copy_count times larger than the input **Width**
+
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Depth**, **Channels** equal 
+          the correspoonding input dimensions
+        - **Height** is height_copy_count times larger than the input **Height**
+        - **Width** is width_copy_count times larger than the input **Width**
 
     """
 

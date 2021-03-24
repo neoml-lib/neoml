@@ -36,15 +36,17 @@ class SplitChannels(Layer):
 
     #1: a blob with input data.
     The dimensions:
-    - **Channels** should not be less than the sum of sizes array elements.
+
+        - **Channels** should not be less than the sum of sizes array elements.
     
     .. rubric:: Layer outputs:
 
     The layer has at least len(sizes) outputs.
     The dimensions:
-    - **Channels** equals the corresponding element of sizes array, 
-        for the last output it is input **Channels** minus the sum of sizes
-    - all other dimensions are the same as for the input
+
+        - **Channels** equals the corresponding element of sizes array, 
+          for the last output it is input **Channels** minus the sum of sizes
+        - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
         if type(input_layer) is PythonWrapper.SplitChannels:
@@ -83,15 +85,17 @@ class SplitDepth(Layer):
 
     (1) a blob with input data.
     The dimensions:
-    - **Depth** should not be less than the sum of sizes array elements.
+
+        - **Depth** should not be less than the sum of sizes array elements.
     
     .. rubric:: Layer outputs:
 
     The layer has at least len(sizes) outputs.
     The dimensions:
-    - **Depth** equals the corresponding element of sizes array, 
-        for the last output it is input **Depth** minus the sum of sizes
-    - all other dimensions are the same as for the input
+
+        - **Depth** equals the corresponding element of sizes array, 
+          for the last output it is input **Depth** minus the sum of sizes
+        - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
         if type(input_layer) is PythonWrapper.SplitDepth:
@@ -130,15 +134,17 @@ class SplitWidth(Layer):
 
     (1) a blob with input data.
     The dimensions:
-    - **Width** should not be less than the sum of sizes array elements.
+
+        - **Width** should not be less than the sum of sizes array elements.
     
     .. rubric:: Layer outputs:
 
     The layer has at least len(sizes) outputs.
     The dimensions:
-    - **Width** equals the corresponding element of sizes array, 
-        for the last output it is input **Width** minus the sum of sizes
-    - all other dimensions are the same as for the input
+
+        - **Width** equals the corresponding element of sizes array, 
+          for the last output it is input **Width** minus the sum of sizes
+        - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
         if type(input_layer) is PythonWrapper.SplitWidth:
@@ -177,15 +183,17 @@ class SplitHeight(Layer):
 
     (1) a blob with input data.
     The dimensions:
-    - **Height** should not be less than the sum of sizes array elements.
+
+        - **Height** should not be less than the sum of sizes array elements.
     
     .. rubric:: Layer outputs:
 
     The layer has at least len(sizes) outputs.
     The dimensions:
-    - **Height** equals the corresponding element of sizes array, 
-        for the last output it is input **Height** minus the sum of sizes
-    - all other dimensions are the same as for the input
+
+        - **Height** equals the corresponding element of sizes array, 
+          for the last output it is input **Height** minus the sum of sizes
+        - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
         if type(input_layer) is PythonWrapper.SplitHeight:
@@ -224,15 +232,17 @@ class SplitBatchWidth(Layer):
 
     (1) a blob with input data.
     The dimensions:
-    - **BatchWidth** should not be less than the sum of sizes array elements.
+
+        - **BatchWidth** should not be less than the sum of sizes array elements.
     
     .. rubric:: Layer outputs:
 
     The layer has at least len(sizes) outputs.
     The dimensions:
-    - **BatchWidth** equals the corresponding element of sizes array, 
-        for the last output it is input **BatchWidth** minus the sum of sizes
-    - all other dimensions are the same as for the input
+
+        - **BatchWidth** equals the corresponding element of sizes array, 
+          for the last output it is input **BatchWidth** minus the sum of sizes
+        - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
         if type(input_layer) is PythonWrapper.SplitBatchWidth:

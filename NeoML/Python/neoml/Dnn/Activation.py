@@ -41,7 +41,7 @@ class Linear(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -107,7 +107,7 @@ class ELU(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -164,7 +164,7 @@ class ReLU(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -215,7 +215,7 @@ class LeakyReLU(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -266,7 +266,7 @@ class HSwish(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -301,7 +301,7 @@ class Abs(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -337,7 +337,7 @@ class Sigmoid(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -373,7 +373,7 @@ class Tanh(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -411,7 +411,7 @@ class HardTanh(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -453,7 +453,7 @@ class HardSigmoid(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -515,7 +515,7 @@ class Power(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 
@@ -563,7 +563,7 @@ class GELU(Layer):
     .. rubric:: Layer outputs:
 
     (1) a data blob of the same size as the input,
-    with activation function values on each of the input elements
+        with activation function values on each of the input elements
 
     """
 

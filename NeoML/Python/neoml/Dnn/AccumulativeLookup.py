@@ -38,17 +38,19 @@ class AccumulativeLookup(Layer):
     
     (1) a data blob with integer data that contains the feature values.
     The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** equal to the number 
-    of different values the feature can take
-    - **Height** * **Width** * **Depth** * **Channels** equal to the number of values in the set
+
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to the number 
+          of different values the feature can take
+        - **Height** * **Width** * **Depth** * **Channels** equal to the number of values in the set
     
     .. rubric:: Layer outputs:
 
     (1) a blob with the sum of vector representations of the given feature values.
     The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** equal to these dimensions of the input
-    - **Height**, **Width**, **Depth** equal to 1
-    - **Channels** equal to the vector length (size parameter below)
+
+        - **BatchLength**, **BatchWidth**, **ListSize** equal to these dimensions of the input
+        - **Height**, **Width**, **Depth** equal to 1
+        - **Channels** equal to the vector length (size parameter below)
     """
 
     def __init__(self, input_layer, count, size, name=None):

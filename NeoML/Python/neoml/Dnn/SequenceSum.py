@@ -32,17 +32,19 @@ class SequenceSum(Layer):
 
     (1) a set of object sequences.
     The dimensions:
-    - **BatchLength** is the sequence length
-    - **BatchWidth** is the number of sequences in the set
-    - **ListSize** is 1
-    - **Height** * **Width** * **Depth** * **Channels** is the object size
+
+        - **BatchLength** is the sequence length
+        - **BatchWidth** is the number of sequences in the set
+        - **ListSize** is 1
+        - **Height** * **Width** * **Depth** * **Channels** is the object size
     
     .. rubric:: Layer outputs:
 
     (1) the results of adding up each of the sequences.
     The dimensions:
-    - **BatchLength** is 1
-    - the other dimensions are the same as for the input
+
+        - **BatchLength** is 1
+        - the other dimensions are the same as for the input
     """
 
     def __init__(self, input_layer, name=None):

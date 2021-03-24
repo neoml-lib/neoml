@@ -34,15 +34,17 @@ class EnumBinarization(Layer):
 
     (1) a blob with int or float data that contains enumeration values.
     The dimensions:
-    - **Channels** is 1
-    - the other dimensions may be of any length
+
+        - **Channels** is 1
+        - the other dimensions may be of any length
 
     .. rubric:: Layer outputs:
 
     (1) a blob with the vectors that one-hot encode the enumeration values.
     The dimensions:
-    - **Channels** is enum_size
-    - the other dimensions stay the same as in the first input
+
+        - **Channels** is enum_size
+        - the other dimensions stay the same as in the first input
     """
 
     def __init__(self, input_layer, enum_size, name=None):
@@ -86,16 +88,18 @@ class BitSetVectorization(Layer):
 
     (1) a blob with int data containing bitsets. 
     The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth**
-    is the number of bitsets
-    - **Channels** is bitset itself
+
+        - **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth**
+          is the number of bitsets
+        - **Channels** is bitset itself
 
     .. rubric:: Layer outputs:
 
     (1) a blob with the result of vectorization.
     The dimensions:
-    - **Channels** is equal to bit_set_size
-    - the other dimensions are the same as for the input
+
+        - **Channels** is equal to bit_set_size
+        - the other dimensions are the same as for the input
     """
 
     def __init__(self, input_layer, bit_set_size, name=None):

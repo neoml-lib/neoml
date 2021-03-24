@@ -44,7 +44,7 @@ Gru
    :members:
 
 Irnn
-===
+====
 
 .. autoclass:: neoml.Dnn.Irnn
    :members:
@@ -132,7 +132,7 @@ Binarization layers
 .. autoclass:: neoml.Dnn.BitSetVectorization
    :members:
 
-AccumulativeLookup layer
+AccumulativeLookup
 ************************
 
 .. autoclass:: neoml.Dnn.AccumulativeLookup
@@ -153,7 +153,7 @@ ConfusionMatrix
 .. autoclass:: neoml.Dnn.ConfusionMatrix
    :members:
 
-Argmax layer
+Argmax
 ************
 
 .. autoclass:: neoml.Dnn.Argmax
@@ -162,13 +162,13 @@ Argmax layer
 Attention layers
 ****************
 
-AttentionDecoder layer
+AttentionDecoder
 ======================
 
 .. autoclass:: neoml.Dnn.AttentionDecoder 
    :members:
 
-MultiheadAttention layer
+MultiheadAttention
 ========================
 
 .. autoclass:: neoml.Dnn.MultiheadAttention
@@ -303,13 +303,13 @@ CtcDecoding
 .. autoclass:: neoml.Dnn.CtcDecoding
    :members:
 
-Dot Product layer
+DotProduct
 ****************
 
 .. autoclass:: neoml.Dnn.DotProduct 
    :members:
 
-Dropout layer
+Dropout
 *************
 
 .. autoclass:: neoml.Dnn.Dropout 
@@ -342,7 +342,7 @@ EltwiseMax
 .. autoclass:: neoml.Dnn.EltwiseMax
    :members:
 
-FullyConnected layer
+FullyConnected
 *********************
 
 .. autoclass:: neoml.Dnn.FullyConnected
@@ -432,13 +432,13 @@ MultiSquaredHingeLoss
 .. autoclass:: neoml.Dnn.MultiSquaredHingeLoss
    :members:
 
-MatrixMultiplication layer
+MatrixMultiplication
 **************************
 
 .. autoclass:: neoml.Dnn.MatrixMultiplication
    :members:
 
-MultichannelLookup layer
+MultichannelLookup
 **************************
 
 .. autoclass:: neoml.Dnn.MultichannelLookup
@@ -501,44 +501,44 @@ MeanPooling3D
 .. autoclass:: neoml.Dnn.MeanPooling3D
    :members:
 
-PositionalEmbedding layer
+PositionalEmbedding
 *************************
 
 .. autoclass:: neoml.Dnn.PositionalEmbedding
    :members:
 
-PrecisionRecall layer
+PrecisionRecall
 *************************
 
 .. autoclass:: neoml.Dnn.PrecisionRecall
    :members:
 
-Reorg layer
+Reorg
 *************************
 
 .. autoclass:: neoml.Dnn.Reorg
    :members:
 
-SequenceSum layer
+SequenceSum
 ********************
 
 .. autoclass:: neoml.Dnn.SequenceSum
    :members:
 
-Output layer
-********************
+Sink
+*********
 
 .. autoclass:: neoml.Dnn.Sink
    :members:
 
-Softmax layer
-********************
+Softmax
+************
 
 .. autoclass:: neoml.Dnn.Softmax
    :members:
 
-Input layer
-********************
+Source
+********
 
 .. autoclass:: neoml.Dnn.Source
    :members:
@@ -591,26 +591,26 @@ ReverseSequence
 .. autoclass:: neoml.Dnn.ReverseSequence
    :members:
 
-TiedEmbeddings layer
+TiedEmbeddings
 ********************
 
 .. autoclass:: neoml.Dnn.TiedEmbeddings
    :members:
 
-Transform layer
+Transform
 ****************
 
 .. autoclass:: neoml.Dnn.Transform
    :members:
 
-Transpose layer
+Transpose
 ****************
 
 .. autoclass:: neoml.Dnn.Transpose
    :members:
 
-Upsampling2D layer
-****************
+Upsampling2D
+************
 
 .. autoclass:: neoml.Dnn.Upsampling2D
    :members:

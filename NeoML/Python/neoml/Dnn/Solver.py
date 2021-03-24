@@ -142,9 +142,9 @@ class AdaptiveGradient(Solver):
     :param learning_rate: The learning rate.
     :type learning_rate: float, default=0.01
     :param l1: The L1 regularization parameter.
-    :type l1 : float, default=0
+    :type l1: float, default=0
     :param l2: The L2 regularization parameter.
-    :type l2 : float, default=0
+    :type l2: float, default=0
     :param max_gradient_norm: The upper limit for gradient norm.
         A negative value means no limit, which is also the default setting.
     :type max_gradient_norm: float, default=-1.0

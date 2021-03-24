@@ -24,7 +24,7 @@ class Irnn(Layer):
     """IRNN implementation from this article: https://arxiv.org/pdf/1504.00941.pdf
 
     It's a simple recurrent unit with the following formula:
-        Y_t = ReLU( FC_input( X_t ) + FC_recur( Y_t-1 ) )
+    Y_t = ReLU( FC_input( X_t ) + FC_recur( Y_t-1 ) )
     Where FC_* are fully-connected layers.
 
     The crucial point of this layer is weights initialization.
@@ -52,17 +52,18 @@ class Irnn(Layer):
     .. rubric:: Layer inputs:
 
     (1) the set of vector sequences, of dimensions:
-    - **BatchLength** - the length of a sequence
-    - **BatchWidth** * **ListSize** - the number of vector sequences in the input set
-    - **Height** * **Width** * **Depth** * **Channels** - the size of each vector in the sequence
+
+        - **BatchLength** - the length of a sequence
+        - **BatchWidth** * **ListSize** - the number of vector sequences in the input set
+        - **Height** * **Width** * **Depth** * **Channels** - the size of each vector in the sequence
 
     .. rubric:: Layer outputs:
 
-    (1) the result of the current step.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** are the same as for the input
-    - **Height**, **Width**, **Depth** are 1
-    - **Channels** is hidden_size
+    (1) the result of the current step. The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** are the same as for the input
+        - **Height**, **Width**, **Depth** are 1
+        - **Channels** is hidden_size
     """
 
     def __init__(self, input_layer, hidden_size=1, identity_scale=1., input_weight_std=1e-3, reverse_seq=False,
@@ -138,16 +139,18 @@ class Irnn(Layer):
     @property
     def input_weights(self):
         """Gets the FC_input weights. The dimensions:
-        - **BatchLength** * **BatchWidth** * **ListSize** is hidden_size
-        - **Height** * **Width** * **Depth** * **Channels** is the same as for the input
+
+            - **BatchLength** * **BatchWidth** * **ListSize** is hidden_size
+            - **Height** * **Width** * **Depth** * **Channels** is the same as for the input
         """
         return Blob.Blob(self._internal.get_input_weights())
 
     @input_weights.setter
     def input_weights(self, blob):
         """Sets the FC_input weights. The dimensions:
-        - **BatchLength** * **BatchWidth** * **ListSize** is hidden_size
-        - **Height** * **Width** * **Depth** * **Channels** is the same as for the input
+
+            - **BatchLength** * **BatchWidth** * **ListSize** is hidden_size
+            - **Height** * **Width** * **Depth** * **Channels** is the same as for the input
         """
         if not type(blob) is Blob.Blob:
             raise ValueError('The `blob` must be neoml.Blob.')
@@ -172,16 +175,18 @@ class Irnn(Layer):
     @property
     def recurrent_weights(self):
         """Gets the FC_recur weights. The dimensions:
-        - **BatchLength** * **BatchWidth** * **ListSize** is hidden_size
-        - **Height** * **Width** * **Depth** * **Channels** is hidden_size
+
+            - **BatchLength** * **BatchWidth** * **ListSize** is hidden_size
+            - **Height** * **Width** * **Depth** * **Channels** is hidden_size
         """
         return Blob.Blob(self._internal.get_recurrent_weights())
 
     @recurrent_weights.setter
     def recurrent_weights(self, blob):
         """Sets the FC_recur weights. The dimensions:
-        - **BatchLength** * **BatchWidth** * **ListSize** is hidden_size
-        - **Height** * **Width** * **Depth** * **Channels** is hidden_size
+
+            - **BatchLength** * **BatchWidth** * **ListSize** is hidden_size
+            - **Height** * **Width** * **Depth** * **Channels** is hidden_size
         """
         if not type(blob) is Blob.Blob:
             raise ValueError('The `blob` must be neoml.Blob.')

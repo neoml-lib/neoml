@@ -103,7 +103,7 @@ class Gru(Layer):
 
         - **BatchLength** * **BatchWidth** * **ListSize** equal to 2 * **hidden_size**
         - **Height** * **Width** * **Depth** * **Channels** equal to 
-        this dimension of the input plus **hidden_size**
+          this dimension of the input plus **hidden_size**
         """
         return self._internal.get_gate_weights()
 
@@ -112,7 +112,7 @@ class Gru(Layer):
         """Sets the gate weights as a 2d matrix of the size:
         - **BatchLength** * **BatchWidth** * **ListSize** equal to 2 * **hidden_size**
         - **Height** * **Width** * **Depth** * **Channels** equal to 
-        this dimension of the input plus hidden_size
+          this dimension of the input plus hidden_size
         """
         self._internal.set_gate_weights(gate_weights)
 

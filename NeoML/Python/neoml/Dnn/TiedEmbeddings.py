@@ -41,9 +41,10 @@ class TiedEmbeddings(Layer):
     .. rubric:: Layer inputs:
 
     The layer may have any number of inputs, of the dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** is the number of objects
-    - **Height**, **Width**, **Depth** are 1
-    - **Channels** is the embedding size
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is the number of objects
+        - **Height**, **Width**, **Depth** are 1
+        - **Channels** is the embedding size
     
     .. rubric:: Layer outputs:
 
