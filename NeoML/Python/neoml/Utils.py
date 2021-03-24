@@ -85,5 +85,5 @@ def get_data(X):
     if issparse(X):
         return X.indices, X.data, X.indptr, True
     height, width = X.shape
-    indptr = np.array([i * width for i in range(height+1)], dtype=np.uintp)
+    indptr = np.array([i * width for i in range(height+1)], dtype=np.uint32)
     return np.array([]), X.ravel(), indptr, False

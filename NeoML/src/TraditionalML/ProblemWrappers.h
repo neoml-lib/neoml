@@ -135,8 +135,8 @@ private:
 	CArray<int> notNullWeightElementsIndices;
 	// Number of null weighted elements
 	int nullWeightElementsCount;
-	CArray<size_t> pointerB;
-	CArray<size_t> pointerE;
+	CArray<uint32_t> pointerB;
+	CArray<uint32_t> pointerE;
 };
 
 template<class TProblem>

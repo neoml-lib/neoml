@@ -32,7 +32,7 @@ CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::Random( CRandom& 
 	desc->Columns = nullptr;
 
 	res->LabelsArr.SetBufferSize( samples );
-	size_t pos = 0;
+	uint32_t pos = 0;
 	for( int i = 0; i < samples; ++i ) {
 		desc->PointerB[i] = pos;
 		for( int j = 0; j < features; ++j, ++pos ) {

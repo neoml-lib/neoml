@@ -42,7 +42,7 @@ private:
 	CFloatMatrixDesc desc;
 	CArray<int> columns;
 	CArray<float> values;
-	CArray<size_t> pointers;
+	CArray<uint32_t> pointers;
 };
 
 CClusteringTestData::CClusteringTestData( const CArray<CSparseFloatVector>& vectors, int featureCount, bool isDense )
