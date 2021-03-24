@@ -46,7 +46,7 @@ bool CIsoDataClustering::Clusterize( IClusteringData* input, CClusteringResult& 
 	NeoAssert( params.MaxIterations > 0 );
 	NeoAssert( params.InitialClustersCount > 0 );
 
-	CSparseFloatMatrixDesc matrix = input->GetMatrix();
+	CFloatMatrixDesc matrix = input->GetMatrix();
 	NeoAssert( matrix.Height == input->GetVectorCount() );
 	NeoAssert( matrix.Width == input->GetFeaturesCount() );
 
@@ -127,7 +127,7 @@ CIsoDataClustering::CIsoDataClustersPair::CIsoDataClustersPair( int index1, int 
 }
 
 // Selects initial clusters
-void CIsoDataClustering::selectInitialClusters( const CSparseFloatMatrixDesc& matrix )
+void CIsoDataClustering::selectInitialClusters( const CFloatMatrixDesc& matrix )
 {
 	if( !clusters.IsEmpty() ) {
 		// Initial cluster centers already defined
@@ -140,7 +140,7 @@ void CIsoDataClustering::selectInitialClusters( const CSparseFloatMatrixDesc& ma
 	NeoAssert( step > 0 );
 	clusters.SetBufferSize( params.InitialClustersCount );
 	for( int i = 0; i < params.InitialClustersCount; i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( ( i * step ) % vectorsCount, desc );
 		CFloatVector mean( matrix.Width, desc );
 		clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ) ) );
@@ -148,7 +148,7 @@ void CIsoDataClustering::selectInitialClusters( const CSparseFloatMatrixDesc& ma
 }
 
 // Distributes all data into clusters with given centers, then updates the centers
-void CIsoDataClustering::classifyAllData( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights )
+void CIsoDataClustering::classifyAllData( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
 {
 	for( int i = 0; i < clusters.Size(); i++ ) {
 		clusters[i]->Reset();
@@ -156,7 +156,7 @@ void CIsoDataClustering::classifyAllData( const CSparseFloatMatrixDesc& matrix, 
 
 	const int vectorsCount = matrix.Height;
 	for( int i = 0; i < vectorsCount; i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( i, desc );
 		int clusterIndex = findNearestCluster( desc, clusters );
 		clusters[clusterIndex]->Add( i, desc, weights[i] );
@@ -173,7 +173,7 @@ void CIsoDataClustering::classifyAllData( const CSparseFloatMatrixDesc& matrix, 
 		clusters.DeleteAt( i );
 
 		for( int j = 0; j < elements.Size(); j++ ) {
-			CSparseFloatVectorDesc desc;
+			CFloatVectorDesc desc;
 			matrix.GetRow( i, desc );
 			int clusterIndex = findNearestCluster( desc, clusters );
 			clusters[clusterIndex]->Add( elements[j], desc, weights[i] );
@@ -186,7 +186,7 @@ void CIsoDataClustering::classifyAllData( const CSparseFloatMatrixDesc& matrix, 
 }
 
 // Finds the closest cluster
-int CIsoDataClustering::findNearestCluster( const CSparseFloatVectorDesc& vector, const CObjectArray<CCommonCluster>& allClusters ) const
+int CIsoDataClustering::findNearestCluster( const CFloatVectorDesc& vector, const CObjectArray<CCommonCluster>& allClusters ) const
 {
 	NeoAssert( !allClusters.IsEmpty() );
 
@@ -203,7 +203,7 @@ int CIsoDataClustering::findNearestCluster( const CSparseFloatVectorDesc& vector
 }
 
 // Splits clusters
-bool CIsoDataClustering::splitClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights )
+bool CIsoDataClustering::splitClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
 {
 	double meanDiameter = calcMeanDiameter();
 	bool split = false;
@@ -249,7 +249,7 @@ double CIsoDataClustering::calcClusterDiameter( const CCommonCluster& cluster ) 
 }
 
 // Tries to split the given cluster
-bool CIsoDataClustering::splitCluster( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights, int clusterNumber )
+bool CIsoDataClustering::splitCluster( const CFloatMatrixDesc& matrix, const CArray<double>& weights, int clusterNumber )
 {
 	NeoAssert( 0 <= clusterNumber && clusterNumber < clusters.Size() );
 
@@ -287,7 +287,7 @@ bool CIsoDataClustering::splitCluster( const CSparseFloatMatrixDesc& matrix, con
 }
 
 // Splits the cluster by the given feature values
-bool CIsoDataClustering::splitByFeature(  const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights, int clusterNumber,
+bool CIsoDataClustering::splitByFeature(  const CFloatMatrixDesc& matrix, const CArray<double>& weights, int clusterNumber,
 	CFloatVector& firstMeans, CFloatVector& secondMeans ) const
 {
 	CArray<int> elements;
@@ -295,7 +295,7 @@ bool CIsoDataClustering::splitByFeature(  const CSparseFloatMatrixDesc& matrix, 
 	CArray<CFloatVector> elementsVectors;
 	CArray<double> elementsWeight;
 	for( int i = 0; i < elements.Size(); i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( elements[i], desc );
 		CFloatVector vector( matrix.Width, desc );
 		elementsVectors.Add( vector );
@@ -359,14 +359,14 @@ bool CIsoDataClustering::splitByFeature(  const CSparseFloatMatrixDesc& matrix, 
 }
 
 // Distributes the data between two clusters
-void CIsoDataClustering::splitData(  const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+void CIsoDataClustering::splitData(  const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 	const CArray<int>& dataIndexes, int firstCluster, int secondCluster )
 {
 	clusters[firstCluster]->Reset();
 	clusters[secondCluster]->Reset();
 
 	for( int i = 0; i < dataIndexes.Size(); i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( dataIndexes[i], desc );
 		double firstDistance = clusters[firstCluster]->CalcDistance( desc, DF_Machalanobis );
 		double secondDistance = clusters[secondCluster]->CalcDistance( desc, DF_Machalanobis );

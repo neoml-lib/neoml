@@ -31,8 +31,8 @@ CSvmBinaryModel::CSvmBinaryModel( const CSvmKernel& _kernel, const IProblem& pro
 	kernel( _kernel ),
 	freeTerm( _freeTerm )
 {
-	CSparseFloatVectorDesc desc;
-	CSparseFloatMatrixDesc problemMatrix = problem.GetMatrix();
+	CFloatVectorDesc desc;
+	CFloatMatrixDesc problemMatrix = problem.GetMatrix();
 	NeoAssert( problemMatrix.Height == problem.GetVectorCount() );
 	NeoAssert( problemMatrix.Width == problem.GetFeatureCount() );
 
@@ -54,9 +54,9 @@ CSvmBinaryModel::CSvmBinaryModel( const CSvmKernel& _kernel, const IProblem& pro
 	}
 }
 
-bool CSvmBinaryModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
+bool CSvmBinaryModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
 {
-	CSparseFloatVectorDesc desc;
+	CFloatVectorDesc desc;
 	double value = freeTerm;
 	for( int i = 0; i < alpha.Size(); i++ ) {
 		matrix.GetRow( i, desc );
@@ -79,7 +79,7 @@ bool CSvmBinaryModel::Classify( const CSparseFloatVectorDesc& data, CClassificat
 
 bool CSvmBinaryModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
 {
-	CSparseFloatVectorDesc desc;
+	CFloatVectorDesc desc;
 	double value = freeTerm;
 	for( int i = 0; i < alpha.Size(); i++ ) {
 		matrix.GetRow( i, desc );

@@ -44,7 +44,7 @@ public:
 	// IClustering interface methods:
 	// Returns true if the specified distance between the clusters was reached AND 
 	// there are more than MinClustersCount clusters
-	virtual bool Clusterize( IClusteringData* input, CClusteringResult& result );
+	bool Clusterize( IClusteringData* input, CClusteringResult& result ) override;
 
 private:
 	const CParam params; // the clustering parameters
@@ -53,9 +53,9 @@ private:
 	CObjectArray<CCommonCluster> clusters; // the current clusters
 	CFloatVectorArray distances; // the matrix containing distances between clusters
 
-	void initialize( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights );
+	void initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
 	void findNearestClusters( int& first, int& second ) const;
-	void mergeClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights, int first, int second );
+	void mergeClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights, int first, int second );
 };
 
 } // namespace NeoML
