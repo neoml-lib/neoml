@@ -385,13 +385,16 @@ TEST_F( CFloatVectorTest, Common )
 	s1Full.SetAt( 1, 2.2f );
 }
 
-// disable this test due to non-deterministic behavior on test servers
+#if FINE_32_BIT
+TEST_F( CFloatVectorTest, DISABLED_CreateHugeSparseMatrix )
+#else
 TEST_F( CFloatVectorTest, CreateHugeSparseMatrix )
+#endif
 {
 	const int maxLength = 128;
 	const int rowsCount = 17000000;
 	try {
-		CSparseFloatMatrix matrix( maxLength, rowsCount, maxLength * static_cast< size_t >( rowsCount ) );
+		CSparseFloatMatrix matrix( maxLength, rowsCount );
 		for( int i = 0; i < rowsCount; ++i ) {
 			CFloatVector row( maxLength, 1.0 );
 			matrix.AddRow( row.GetDesc() );

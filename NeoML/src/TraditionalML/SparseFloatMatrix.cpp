@@ -26,7 +26,19 @@ limitations under the License.
 namespace NeoML {
 
 CFloatMatrixDesc CFloatMatrixDesc::Empty;
-static size_t MaxBufferSize = std::numeric_limits<size_t>::max() / 4;
+
+namespace {
+template<typename T>
+class CBufferHolder {
+public:
+	CBufferHolder() : Data( nullptr ) {}
+	CBufferHolder( T* data ) : Data( data ) {}
+	CBufferHolder( CBufferHolder&& buf ) { swap( Data, buf.Data ); }
+	CBufferHolder( const CBufferHolder& ) = delete;
+	~CBufferHolder() { delete[] Data; }
+	T* Data;
+};
+}
 
 CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::CSparseFloatMatrixBody::Duplicate() const
 {
@@ -141,26 +153,31 @@ CSparseFloatMatrix& CSparseFloatMatrix::operator = ( const CSparseFloatMatrix& m
 
 void CSparseFloatMatrix::GrowInRows( size_t newRowsBufferSize )
 {
+	static_assert( sizeof( size_t ) == sizeof( intptr_t ), "sizeof( size_t ) is not equal to sizeof( intptr_t )" );
+	static size_t maxBufferSize = INTPTR_MAX / sizeof( size_t );
 	if( newRowsBufferSize > body->RowsBufferSize ) {
-		NeoAssert( MaxBufferSize >= newRowsBufferSize );
+		NeoAssert( maxBufferSize >= newRowsBufferSize );
 
-		size_t newBufferSize = MaxBufferSize / ( 3 / 2 ) >= body->RowsBufferSize ?
+		size_t newBufferSize = maxBufferSize / ( 3 / 2 ) >= body->RowsBufferSize ?
 			max( body->RowsBufferSize * 3 / 2, newRowsBufferSize ) :
-			MaxBufferSize;
+			maxBufferSize;
 		const CSparseFloatMatrixBody* oldBody = body.Ptr();
 		if( body->RefCount() != 1 ) {
 			body = new CSparseFloatMatrixBody( body->Desc.Height, body->Desc.Width,
 				body->ElementCount, body->ElementsBufferSize, newBufferSize );
 			oldBody->CopyDataTo( const_cast<CSparseFloatMatrixBody*>( body.Ptr() ) );
 		} else {
-			// use as a memory holder for new buffers
-			CSparseFloatMatrixBody tmp( 0, 0, 0, newBufferSize, 0 );
-			::memcpy( tmp.Desc.PointerB, body->Desc.PointerB, body->Desc.Height * sizeof( size_t ) );
-			::memcpy( tmp.Desc.PointerE, body->Desc.PointerE, body->Desc.Height * sizeof( size_t ) );
-
 			CSparseFloatMatrixBody* modifiableBody = const_cast<CSparseFloatMatrixBody*>( body.Ptr() );
-			swap( tmp.Desc.PointerB, modifiableBody->Desc.PointerB );
-			swap( tmp.Desc.PointerE, modifiableBody->Desc.PointerE );
+			{
+				CBufferHolder<size_t> pointerB( new size_t[newBufferSize] );
+				::memcpy( pointerB.Data, body->Desc.PointerB, body->Desc.Height * sizeof( size_t ) );
+				swap( pointerB.Data, modifiableBody->Desc.PointerB );
+			}
+			{
+				CBufferHolder<size_t> pointerE( new size_t[newBufferSize] );
+				::memcpy( pointerE.Data, body->Desc.PointerE, body->Desc.Height * sizeof( size_t ) );
+				swap( pointerE.Data, modifiableBody->Desc.PointerE );
+			}
 			modifiableBody->RowsBufferSize = newBufferSize;
 		}
 	}
@@ -168,26 +185,31 @@ void CSparseFloatMatrix::GrowInRows( size_t newRowsBufferSize )
 
 void CSparseFloatMatrix::GrowInElements( size_t newElementsBufferSize )
 {
+	static_assert( sizeof( float ) == 4 && sizeof( int ) == 4, "sizeof( size_t ) is not 4" );
+	static size_t maxBufferSize = INTPTR_MAX / 4;
 	if( newElementsBufferSize > body->ElementsBufferSize ) {
-		NeoAssert( MaxBufferSize >= newElementsBufferSize );
+		NeoAssert( maxBufferSize >= newElementsBufferSize );
 
-		size_t newBufferSize = MaxBufferSize / ( 3 / 2 ) >= body->ElementsBufferSize ?
+		size_t newBufferSize = maxBufferSize / ( 3 / 2 ) >= body->ElementsBufferSize ?
 			max( body->ElementsBufferSize * 3 / 2, newElementsBufferSize ) :
-			MaxBufferSize;
+			maxBufferSize;
 		const CSparseFloatMatrixBody* oldBody = body.Ptr();
 		if( body->RefCount() != 1 ) {
 			body = new CSparseFloatMatrixBody( body->Desc.Height, body->Desc.Width,
 				body->ElementCount, body->ElementsBufferSize, newBufferSize );
 			oldBody->CopyDataTo( body.Ptr() );
 		} else {
-			// use as a memory holder for new buffers
-			CSparseFloatMatrixBody tmp( 0, 0, 0, 0, newBufferSize );
-			::memcpy( tmp.Desc.Columns, body->Desc.Columns, body->ElementCount * sizeof( int ) );
-			::memcpy( tmp.Desc.Values, body->Desc.Values, body->ElementCount * sizeof( float ) );
-
 			CSparseFloatMatrixBody* modifiableBody = const_cast<CSparseFloatMatrixBody*>( body.Ptr() );
-			swap( tmp.Desc.Columns, modifiableBody->Desc.Columns );
-			swap( tmp.Desc.Values, modifiableBody->Desc.Values );
+			{
+				CBufferHolder<int> columns( new int[newBufferSize] );
+				::memcpy( columns.Data, body->Desc.Columns, body->ElementCount * sizeof( int ) );
+				swap( columns.Data, modifiableBody->Desc.Columns );
+			}
+			{
+				CBufferHolder<float> values( new float[newBufferSize] );
+				::memcpy( values.Data, body->Desc.Values, body->ElementCount * sizeof( float ) );
+				swap( values.Data, modifiableBody->Desc.Values );
+			}
 			modifiableBody->ElementsBufferSize = newBufferSize;
 		}
 	}
