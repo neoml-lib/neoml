@@ -432,9 +432,10 @@ class HardTanh(Layer):
 class HardSigmoid(Layer):
     """The layer that calculates the "hard sigmoid" activation function
     for each element of the single input:
-    f(x) = 0                    if x <= -bias / slope
-    f(x) = slope * x + bias     if -bias / slope < x < (1 - bias) / slope
-    f(x) = 1                    if x >= (1 - bias) / slope
+
+    - f(x) = 0                    if x <= -bias / slope
+    - f(x) = slope * x + bias     if -bias / slope < x < (1 - bias) / slope
+    - f(x) = 1                    if x >= (1 - bias) / slope
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
