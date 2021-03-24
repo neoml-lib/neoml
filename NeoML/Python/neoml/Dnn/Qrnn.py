@@ -80,11 +80,11 @@ class Qrnn(Layer):
     (1) the result sequence. The dimensions:
 
         - **BatchLength** can be calculated from the input as
-            (BatchLength + paddings[0] + paddings[1] - (window_size - 1))/(stride + 1)
+          (BatchLength + paddings[0] + paddings[1] - (window_size - 1))/(stride + 1)
         - **BatchWidth** is the same as for the inputs
         - **ListSize**, **Height**, **Width**, **Depth** are 1
         - **Channels** is hidden_size for all recurrent modes 
-            except bidirectional_concat, when it is 2 * hidden_size
+          except bidirectional_concat, when it is 2 * hidden_size
     """
 
     activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]
