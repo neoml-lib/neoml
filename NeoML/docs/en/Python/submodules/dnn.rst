@@ -169,7 +169,7 @@ AttentionDecoder layer
    :members:
 
 MultiheadAttention layer
-======================
+========================
 
 .. autoclass:: neoml.Dnn.MultiheadAttention
    :members:

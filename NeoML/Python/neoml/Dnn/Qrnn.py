@@ -80,11 +80,11 @@ class Qrnn(Layer):
     (1) the result sequence. The dimensions:
 
         - **BatchLength** can be calculated from the input as
-        (**BatchLength** + paddings[0] + paddings[1] - (window_size - 1))/(stride + 1)
+            (BatchLength + paddings[0] + paddings[1] - (window_size - 1))/(stride + 1)
         - **BatchWidth** is the same as for the inputs
         - **ListSize**, **Height**, **Width**, **Depth** are 1
         - **Channels** is hidden_size for all recurrent modes 
-        except bidirectional_concat, when it is 2 * hidden_size
+            except bidirectional_concat, when it is 2 * hidden_size
     """
 
     activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]
@@ -235,10 +235,10 @@ class Qrnn(Layer):
     def filter(self):
         """Gets the trained weights for each gate. The blob dimensions:
         - **BatchLength** is 1
-        - **BatchWidth** is 3 * **hidden_size**
+        - **BatchWidth** is 3 * hidden_size
         (contains the weights for each of the three gates 
         in the order: update, forget, output)
-        - **Height** is **window_size**
+        - **Height** is window_size
         - **Width**, **Depth** are 1
         - **Channels** is equal to the input's **Height** * **Width** * **Depth** * **Channels**
         """
@@ -248,10 +248,10 @@ class Qrnn(Layer):
     def filter(self, blob):
         """Sets the trained weights for each gate. The blob dimensions:
         - **BatchLength** is 1
-        - **BatchWidt**h is 3 * **hidden_size**
+        - **BatchWidt**h is 3 * hidden_size
         (contains the weights for each of the three gates 
         in the order: update, forget, output)
-        - **Height** is **window_size**
+        - **Height** is window_size
         - **Width**, **Depth** are 1
         - **Channels** is equal to the input's **Height** * **Width** * **Depth** * **Channels**
         """
