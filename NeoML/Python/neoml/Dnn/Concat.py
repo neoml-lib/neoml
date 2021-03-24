@@ -42,7 +42,7 @@ class ConcatChannels(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the result of concatenation.
-    The dimensions:
+        The dimensions:
 
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Height**, **Width**, **Depth** equal to the inputs' dimensions
@@ -87,7 +87,7 @@ class ConcatDepth(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the result of concatenation.
-    The dimensions:
+        The dimensions:
 
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Height**, **Width**, **Channels** equal to the inputs' dimensions
@@ -132,7 +132,7 @@ class ConcatWidth(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the result of concatenation.
-    The dimensions:
+        The dimensions:
 
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Height**, **Depth**, **Channels** equal to the inputs' dimensions
@@ -177,7 +177,7 @@ class ConcatHeight(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the result of concatenation.
-    The dimensions:
+        The dimensions:
 
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Width**, **Depth**, **Channels** equal to the inputs' dimensions
@@ -222,7 +222,7 @@ class ConcatBatchWidth(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the result of concatenation.
-    The dimensions:
+        The dimensions:
 
     - **BatchLength**, **ListSize**, **Height**,
       **Width**, **Depth**, **Channels** equal to the inputs' dimensions
@@ -266,7 +266,7 @@ class ConcatObject(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the result of concatenation.
-    The dimensions:
+        The dimensions:
 
     - **BatchLength**, **BatchWidth**, **ListSize** equal to the inputs' dimensions
     - **Height**, **Width**, **Depth** equal to 1

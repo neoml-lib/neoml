@@ -382,11 +382,11 @@ class TransposedConv3D(Layer):
 
     - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
     - **Height** can be calculated from the input **Height** as
-        **StrideHeight** * (**Height** - 1) + **FilterHeight** - 2 * **PaddingHeight**
+      **StrideHeight** * (**Height** - 1) + **FilterHeight** - 2 * **PaddingHeight**
     - **Width** can be calculated from the input **Width** as
-        **StrideWidth** * (**Width** - 1) + **FilterWidth** - 2 * **PaddingWidth**
+      **StrideWidth** * (**Width** - 1) + **FilterWidth** - 2 * **PaddingWidth**
     - **Depth** can be calculated from the input **Depth** as
-        **StrideDepth** * (**Depth** - 1) + **FilterDepth** - 2 * **PaddingDepth**
+      **StrideDepth** * (**Depth** - 1) + **FilterDepth** - 2 * **PaddingDepth**
     - **Channels** is equal to the number of filters
     """
 
@@ -539,7 +539,7 @@ class TransposedConv(Layer):
 
     - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
     - **Height** can be calculated from the input **Height** as
-      **trideHeight** * (**Height** - 1) + (**FilterHeight** - 1) * **DilationHeight** + 1 - 2 * **PaddingHeight**
+      **StrideHeight** * (**Height** - 1) + (**FilterHeight** - 1) * **DilationHeight** + 1 - 2 * **PaddingHeight**
     - **Width** can be calculated from the input **Width** as
       **StrideWidth** * (**Width** - 1) + (**FilterWidth** - 1) * **DilationWidth** + 1 - 2 * **PaddingWidths**
     - **Depth** is 1
@@ -685,7 +685,7 @@ class ChannelwiseConv(Layer):
         Should be the same as the number of channels in the input.    
     :type filter_count: int, default=1
     :param filter_size: Filter size (height, width).
-    :type filter_size : (int, int), default=(3, 3)
+    :type filter_size: (int, int), default=(3, 3)
     :param stride_size: Convolution stride (vertical, horizontal).
     :type stride_size: (int, int), default=(1, 1)
     :param padding_size: The size of the padding (vertical, horizontal).

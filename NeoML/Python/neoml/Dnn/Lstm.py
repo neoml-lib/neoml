@@ -72,9 +72,9 @@ class Lstm(Layer):
 
     Both outputs have the following dimensions:
     
-        - **BatchLength**, **BatchWidth**, **ListSize** are equal to the first input dimensions
-        - **Height**, **Width**, **Depth** are equal to 1
-        - **Channels** is equal to layer hidden size
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the first input dimensions
+    - **Height**, **Width**, **Depth** are equal to 1
+    - **Channels** is equal to layer hidden size
     """
     activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]
 

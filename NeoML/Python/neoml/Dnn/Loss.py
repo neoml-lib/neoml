@@ -158,8 +158,7 @@ class BinaryCrossEntropyLoss(Loss):
     """The layer that calculates the cross-entropy loss function
     for binary classification:
     loss = y * -log(sigmoid(x)) + (1 - y) * -log(1 - sigmoid(x)), where
-        x is the network response,
-        y is the correct class label (can be -1 or 1)
+    x is the network response, y is the correct class label (can be -1 or 1)
 
     :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
@@ -475,7 +474,7 @@ class BinaryFocalLoss(Loss):
     .. rubric:: Layer inputs:
 
     (1) the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
+        It should contain the probability distribution for objects over classes.
     
     (2) the correct class labels (1 or -1). 
     

@@ -94,7 +94,7 @@ class MaxPooling(Pooling):
     .. rubric:: Layer outputs:
 
     (1) the result of pooling
-    The dimensions:
+        The dimensions:
 
         - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
         - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
@@ -153,7 +153,7 @@ class MeanPooling(Pooling):
     .. rubric:: Layer outputs:
 
     (1) the result of pooling
-    The dimensions:
+        The dimensions:
 
         - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
         - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
@@ -323,7 +323,8 @@ class MaxOverTimePooling(Layer):
     (1) the pooling result.
         The dimensions:
 
-        - **BatchLength** is
+        - **BatchLength** is:
+
             - 1 if filter_len is <= 0
             - (**BatchLength** - filter_len) / stride_len + 1 otherwise
         - the other dimensions are the same as for the input
@@ -397,7 +398,7 @@ class ProjectionPooling(Layer):
     .. rubric:: Layer outputs:
 
     (1) the result of pooling.
-    The dimensions:
+        The dimensions:
 
         - all stay the same if original_size is True
         - if original_size is False, the pooling dimension is 1 
@@ -529,7 +530,7 @@ class MaxPooling3D(Pooling3D):
     .. rubric:: Layer outputs:
 
     (1) the result of pooling
-    The dimensions:
+        The dimensions:
 
         - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
         - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1

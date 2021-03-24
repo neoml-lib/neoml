@@ -32,10 +32,11 @@ class MatrixMultiplication(Layer):
     .. rubric:: Layer inputs:
 
     (1) the first set of matrices.
-    The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of matrices in the set
-    - **Height** * **Width** * **Depth** - the height of each matrix
-    - **Channels** - the width of each matrix
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of matrices in the set
+        - **Height** * **Width** * **Depth** - the height of each matrix
+        - **Channels** - the width of each matrix
     
     (2) the second set of matrices.
         The dimensions:

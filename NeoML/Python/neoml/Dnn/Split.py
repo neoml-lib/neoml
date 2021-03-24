@@ -44,9 +44,9 @@ class SplitChannels(Layer):
     The layer has at least len(sizes) outputs.
     The dimensions:
 
-        - **Channels** equals the corresponding element of sizes array, 
-          for the last output it is input **Channels** minus the sum of sizes
-        - all other dimensions are the same as for the input
+    - **Channels** equals the corresponding element of sizes array, 
+        for the last output it is input **Channels** minus the sum of sizes
+    - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
         if type(input_layer) is PythonWrapper.SplitChannels:
