@@ -154,11 +154,11 @@ inline void CGradientBoostStatisticsSingle::Erase()
 
 inline double CGradientBoostStatisticsSingle::CalcCriterion( float l1, float l2 ) const
 {
-	double temp = totalGradient;
-	if( temp > l1 ) {
-		temp -= l1;
-	} else if( temp < -l1 ) {
-		temp += l1;
+	double temp = 0;
+	if( totalGradient > l1 ) {
+		temp = totalGradient - l1;
+	} else if( totalGradient < -l1 ) {
+		temp = totalGradient + l1;
 	}
 	return temp * temp / ( totalHessian + l2 );
 }
