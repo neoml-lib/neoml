@@ -51,7 +51,7 @@ class Upsampling2D(Layer):
     The dimensions:
 
     - **BatchLength**, **BatchWidth**, **ListSize**, **Depth**, **Channels** equal 
-        the correspoonding input dimensions
+      the correspoonding input dimensions
     - **Height** is height_copy_count times larger than the input **Height**
     - **Width** is width_copy_count times larger than the input **Width**
 

@@ -586,7 +586,7 @@ class MeanPooling3D(Pooling3D):
     .. rubric:: Layer outputs:
 
     (1) the result of pooling
-    The dimensions:
+        The dimensions:
 
         - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
         - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1

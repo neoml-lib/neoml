@@ -33,7 +33,7 @@ class EnumBinarization(Layer):
     .. rubric:: Layer inputs:
 
     (1) a blob with int or float data that contains enumeration values.
-    The dimensions:
+        The dimensions:
 
         - **Channels** is 1
         - the other dimensions may be of any length
@@ -41,7 +41,7 @@ class EnumBinarization(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the vectors that one-hot encode the enumeration values.
-    The dimensions:
+        The dimensions:
 
         - **Channels** is enum_size
         - the other dimensions stay the same as in the first input

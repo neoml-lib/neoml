@@ -45,7 +45,7 @@ class SplitChannels(Layer):
     The dimensions:
 
     - **Channels** equals the corresponding element of sizes array, 
-        for the last output it is input **Channels** minus the sum of sizes
+      for the last output it is input **Channels** minus the sum of sizes
     - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):

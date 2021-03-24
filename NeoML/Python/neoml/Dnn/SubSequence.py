@@ -43,7 +43,7 @@ class SubSequence(Layer):
         The dimensions:
 
         - **BatchWidth** is abs(length) or smaller if it doesn't fit 
-            after starting at start_pos
+          after starting at start_pos
         - the other dimensions are the same as for the input
 
     """
