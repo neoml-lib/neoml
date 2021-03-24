@@ -68,8 +68,8 @@ class Qrnn(Layer):
         - **Height** * **Width** * **Depth** * **Channels** is the vector length
     
     (2) (optional): the initial state of the recurrent part.
-    If not set, the recurrent part is all zeros before the first step.
-    The dimensions:
+        If not set, the recurrent part is all zeros before the first step.
+        The dimensions:
 
         - **BatchLength**, **ListSize**, **Height**, **Width**, **Depth** are 1
         - **BatchWidth** is the same as for the first input

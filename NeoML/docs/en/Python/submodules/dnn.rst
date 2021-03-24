@@ -43,6 +43,12 @@ Gru
 .. autoclass:: neoml.Dnn.Gru
    :members:
 
+Irnn
+===
+
+.. autoclass:: neoml.Dnn.Irnn
+   :members:
+
 .. _py-dnn-activation:
 
 Activation layers
@@ -135,10 +141,512 @@ AccumulativeLookup layer
 Accuracy layers
 ***************
 
+Accuracy
+========
+
 .. autoclass:: neoml.Dnn.Accuracy
    :members:
+
+ConfusionMatrix
+================
+
 .. autoclass:: neoml.Dnn.ConfusionMatrix
    :members:
 
-AddToObject layer
-*****************
+Argmax layer
+************
+
+.. autoclass:: neoml.Dnn.Argmax
+   :members:
+
+Attention layers
+****************
+
+AttentionDecoder layer
+======================
+
+.. autoclass:: neoml.Dnn.AttentionDecoder 
+   :members:
+
+MultiheadAttention layer
+======================
+
+.. autoclass:: neoml.Dnn.MultiheadAttention
+   :members:
+
+Normalization layers
+********************
+
+BatchNormalization
+==================
+
+.. autoclass:: neoml.Dnn.BatchNormalization 
+   :members:
+
+ObjectNormalization
+===================
+
+.. autoclass:: neoml.Dnn.ObjectNormalization
+   :members:
+
+Concatenation layers
+************************
+
+ConcatChannels
+==============
+
+.. autoclass:: neoml.Dnn.ConcatChannels 
+   :members:
+
+ConcatDepth
+===========
+
+.. autoclass:: neoml.Dnn.ConcatDepth 
+   :members:
+
+ConcatWidth
+===========
+
+.. autoclass:: neoml.Dnn.ConcatWidth 
+   :members:
+
+ConcatHeight
+============
+
+.. autoclass:: neoml.Dnn.ConcatHeight 
+   :members:
+
+ConcatBatchWidth
+================
+
+.. autoclass:: neoml.Dnn.ConcatBatchWidth
+   :members:
+
+ConcatObject
+============
+
+.. autoclass:: neoml.Dnn.ConcatObject
+   :members:
+
+Convolutional layers
+********************
+
+Conv
+====
+
+.. autoclass:: neoml.Dnn.Conv
+   :members:
+
+Conv3D
+======
+
+.. autoclass:: neoml.Dnn.Conv3D
+   :members:
+
+TransposedConv3D
+================
+
+.. autoclass:: neoml.Dnn.TransposedConv3D
+   :members:
+
+TransposedConv
+==============
+
+.. autoclass:: neoml.Dnn.TransposedConv
+   :members:
+
+ChannelwiseConv
+===============
+
+.. autoclass:: neoml.Dnn.ChannelwiseConv
+   :members:
+
+TimeConv
+========
+
+.. autoclass:: neoml.Dnn.TimeConv
+   :members:
+
+Crf layers
+**********
+
+Crf
+===
+
+.. autoclass:: neoml.Dnn.Crf
+   :members:
+
+CrfLoss
+=======
+
+.. autoclass:: neoml.Dnn.CrfLoss
+   :members:
+
+BestSequence
+============
+
+.. autoclass:: neoml.Dnn.BestSequence
+   :members:
+
+Ctc layers
+**********
+
+CtcLoss
+=======
+
+.. autoclass:: neoml.Dnn.CtcLoss
+   :members:
+
+CtcDecoding
+===========
+
+.. autoclass:: neoml.Dnn.CtcDecoding
+   :members:
+
+Dot Product layer
+****************
+
+.. autoclass:: neoml.Dnn.DotProduct 
+   :members:
+
+Dropout layer
+*************
+
+.. autoclass:: neoml.Dnn.Dropout 
+   :members:
+
+Elementwise operation layers
+****************************
+
+EltwiseSum
+==========
+
+.. autoclass:: neoml.Dnn.EltwiseSum
+   :members:
+
+EltwiseMul
+==========
+
+.. autoclass:: neoml.Dnn.EltwiseMul
+   :members:
+
+EltwiseNegMul
+=============
+
+.. autoclass:: neoml.Dnn.EltwiseNegMul
+   :members:
+
+EltwiseMax
+==========
+
+.. autoclass:: neoml.Dnn.EltwiseMax
+   :members:
+
+FullyConnected layer
+*********************
+
+.. autoclass:: neoml.Dnn.FullyConnected
+   :members:
+
+Image Conversion layers
+***********************
+
+ImageResize
+===========
+
+.. autoclass:: neoml.Dnn.ImageResize
+   :members:
+
+PixelToImage
+============
+
+.. autoclass:: neoml.Dnn.PixelToImage
+   :members:
+
+ImageToPixel
+============
+
+.. autoclass:: neoml.Dnn.ImageToPixel
+   :members:
+
+Loss layers
+***********
+
+CrossEntropyLoss
+================
+
+.. autoclass:: neoml.Dnn.CrossEntropyLoss
+   :members:
+
+BinaryCrossEntropyLoss
+======================
+
+.. autoclass:: neoml.Dnn.BinaryCrossEntropyLoss
+   :members:
+
+EuclideanLoss
+======================
+
+.. autoclass:: neoml.Dnn.EuclideanLoss
+   :members:
+
+HingeLoss
+==========
+
+.. autoclass:: neoml.Dnn.HingeLoss
+   :members:
+
+SquaredHingeLoss
+================
+
+.. autoclass:: neoml.Dnn.SquaredHingeLoss
+   :members:
+
+FocalLoss
+================
+
+.. autoclass:: neoml.Dnn.FocalLoss
+   :members:
+
+BinaryFocalLoss
+================
+
+.. autoclass:: neoml.Dnn.BinaryFocalLoss
+   :members:
+
+CenterLoss
+================
+
+.. autoclass:: neoml.Dnn.CenterLoss
+   :members:
+
+MultiHingeLoss
+================
+
+.. autoclass:: neoml.Dnn.MultiHingeLoss
+   :members:
+
+MultiSquaredHingeLoss
+=====================
+
+.. autoclass:: neoml.Dnn.MultiSquaredHingeLoss
+   :members:
+
+MatrixMultiplication layer
+**************************
+
+.. autoclass:: neoml.Dnn.MatrixMultiplication
+   :members:
+
+MultichannelLookup layer
+**************************
+
+.. autoclass:: neoml.Dnn.MultichannelLookup
+   :members:
+
+Pooling layers
+**************
+
+MaxPooling
+==========
+
+.. autoclass:: neoml.Dnn.MaxPooling
+   :members:
+
+MeanPooling
+===========
+
+.. autoclass:: neoml.Dnn.MeanPooling
+   :members:
+
+GlobalMaxPooling
+================
+
+.. autoclass:: neoml.Dnn.GlobalMaxPooling
+   :members:
+
+GlobalMeanPooling
+================
+
+.. autoclass:: neoml.Dnn.GlobalMeanPooling
+   :members:
+
+MaxOverTimePooling
+==================
+
+.. autoclass:: neoml.Dnn.MaxOverTimePooling
+   :members:
+
+ProjectionPooling
+=================
+
+.. autoclass:: neoml.Dnn.ProjectionPooling
+   :members:
+
+Pooling3D
+=================
+
+.. autoclass:: neoml.Dnn.Pooling3D
+   :members:
+
+MaxPooling3D
+=================
+
+.. autoclass:: neoml.Dnn.MaxPooling3D
+   :members:
+
+MeanPooling3D
+=================
+
+.. autoclass:: neoml.Dnn.MeanPooling3D
+   :members:
+
+PositionalEmbedding layer
+*************************
+
+.. autoclass:: neoml.Dnn.PositionalEmbedding
+   :members:
+
+PrecisionRecall layer
+*************************
+
+.. autoclass:: neoml.Dnn.PrecisionRecall
+   :members:
+
+Reorg layer
+*************************
+
+.. autoclass:: neoml.Dnn.Reorg
+   :members:
+
+SequenceSum layer
+********************
+
+.. autoclass:: neoml.Dnn.SequenceSum
+   :members:
+
+Output layer
+********************
+
+.. autoclass:: neoml.Dnn.Sink
+   :members:
+
+Softmax layer
+********************
+
+.. autoclass:: neoml.Dnn.Softmax
+   :members:
+
+Input layer
+********************
+
+.. autoclass:: neoml.Dnn.Source
+   :members:
+
+Split layers
+********************
+
+SplitChannels
+=============
+
+.. autoclass:: neoml.Dnn.SplitChannels
+   :members:
+
+SplitDepth
+=============
+
+.. autoclass:: neoml.Dnn.SplitDepth
+   :members:
+
+SplitWidth
+=============
+
+.. autoclass:: neoml.Dnn.SplitWidth
+   :members:
+
+SplitHeight
+=============
+
+.. autoclass:: neoml.Dnn.SplitHeight
+   :members:
+
+SplitBatchWidth
+===============
+
+.. autoclass:: neoml.Dnn.SplitBatchWidth
+   :members:
+
+SubSequence layers
+******************
+
+SubSequence
+===============
+
+.. autoclass:: neoml.Dnn.SubSequence
+   :members:
+
+ReverseSequence
+===============
+
+.. autoclass:: neoml.Dnn.ReverseSequence
+   :members:
+
+TiedEmbeddings layer
+********************
+
+.. autoclass:: neoml.Dnn.TiedEmbeddings
+   :members:
+
+Transform layer
+****************
+
+.. autoclass:: neoml.Dnn.Transform
+   :members:
+
+Transpose layer
+****************
+
+.. autoclass:: neoml.Dnn.Transpose
+   :members:
+
+Upsampling2D layer
+****************
+
+.. autoclass:: neoml.Dnn.Upsampling2D
+   :members:
+
+Initializers
+*************
+
+Xavier
+======
+
+.. autoclass:: neoml.Dnn.Xavier
+   :members:
+
+Uniform
+=======
+
+.. autoclass:: neoml.Dnn.Uniform
+   :members:
+
+Solvers
+********
+
+SimpleGradient
+===============
+
+.. autoclass:: neoml.Dnn.SimpleGradient
+   :members:
+
+AdaptiveGradient
+=================
+
+.. autoclass:: neoml.Dnn.AdaptiveGradient
+   :members:
+
+NesterovGradient
+================
+
+.. autoclass:: neoml.Dnn.NesterovGradient
+   :members:

@@ -42,6 +42,7 @@ class Linear(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, multiplier, free_term, name=None):
@@ -107,6 +108,7 @@ class ELU(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, alpha, name=None):
@@ -163,6 +165,7 @@ class ReLU(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, threshold=0.0, name=None):
@@ -213,6 +216,7 @@ class LeakyReLU(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, alpha, name=None):
@@ -263,6 +267,7 @@ class HSwish(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
@@ -297,6 +302,7 @@ class Abs(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
@@ -332,6 +338,7 @@ class Sigmoid(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
@@ -367,6 +374,7 @@ class Tanh(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
@@ -404,6 +412,7 @@ class HardTanh(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
@@ -445,6 +454,7 @@ class HardSigmoid(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, slope, bias, name=None):
@@ -506,6 +516,7 @@ class Power(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, exponent, name=None):
@@ -553,6 +564,7 @@ class GELU(Layer):
 
     (1) a data blob of the same size as the input,
     with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):

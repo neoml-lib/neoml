@@ -49,17 +49,18 @@ class PositionalEmbedding(Layer):
     .. rubric:: Layer inputs:
 
     (1) a blob with vector sequences.
-    The dimensions:
-    - **BatchLength** is 1
-    - **BatchWidth** is the number of sequences in the set
-    - **ListSize** is the sequence length
-    - **Height** * **Width** * **Depth** * **Channels** is the vector length;
+        The dimensions:
+        - **BatchLength** is 1
+        - **BatchWidth** is the number of sequences in the set
+        - **ListSize** is the sequence length
+        - **Height** * **Width** * **Depth** * **Channels** is the vector length;
         for "transformers", **Height**, **Width**, and **Depth** should be 1,
         vector length is equal to **Channels**
     
     .. rubric:: Layer outputs:
 
     (1) the transformation result, of the same dimensions as the input.
+
     """
     types = ["learnable_addition", "transformers"]
 

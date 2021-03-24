@@ -40,10 +40,11 @@ class SubSequence(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the subsequence of objects.
-    The dimensions:
-    - **BatchWidth** is abs(length) or smaller if it doesn't fit 
+        The dimensions:
+        - **BatchWidth** is abs(length) or smaller if it doesn't fit 
         after starting at start_pos
-    - the other dimensions are the same as for the input
+        - the other dimensions are the same as for the input
+
     """
 
     def __init__(self, input_layer, start_pos=0, length=1, name=None):
@@ -101,6 +102,7 @@ class ReverseSequence(Layer):
     .. rubric:: Layer outputs:
 
     (1) the reverse sequence. The same size as the input.
+
     """
 
     def __init__(self, input_layer, name=None):

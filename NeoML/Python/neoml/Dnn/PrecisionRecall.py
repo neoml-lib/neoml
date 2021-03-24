@@ -37,20 +37,21 @@ class PrecisionRecall(Layer):
     .. rubric:: Layer inputs:
 
     (1) the network response.
-    The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** is the number of objects classified
-    - **Height**, **Width**, **Depth**, **Channels** are 1
+        The dimensions:
+        - **BatchLength** * **BatchWidth** * **ListSize** is the number of objects classified
+        - **Height**, **Width**, **Depth**, **Channels** are 1
    
     (2) the correct class labels (1 or -1).
-    The dimensions are the same as for the first input.
+        The dimensions are the same as for the first input.
    
     .. rubric:: Layer outputs:
 
     (1) the 4-element array along the **Channels** dimension that contains:
-    0 - the number of correctly classified objects in class 1
-    1 - the total number of objects in class 1
-    2 - the number of correctly classified objects in class -1
-    3 - the total number of objects in class -1
+        0 - the number of correctly classified objects in class 1
+        1 - the total number of objects in class 1
+        2 - the number of correctly classified objects in class -1
+        3 - the total number of objects in class -1
+
     """
 
     def __init__(self, input_layers, reset=True, name=None):

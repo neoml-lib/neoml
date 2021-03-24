@@ -52,6 +52,7 @@ class Upsampling2D(Layer):
         the correspoonding input dimensions
     - **Height** is height_copy_count times larger than the input **Height**
     - **Width** is width_copy_count times larger than the input **Width**
+
     """
 
     def __init__(self, input_layers, height_copy_count, width_copy_count, name=None):
