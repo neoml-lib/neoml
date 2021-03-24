@@ -21,7 +21,7 @@ limitations under the License.
 
 class CPyMemoryProblem : public IProblem {
 public:
-	CPyMemoryProblem( int height, int width, const int* columns, const float* values, const int32_t* rowPtr,
+	CPyMemoryProblem( int height, int width, const int* columns, const float* values, const uint32_t* rowPtr,
 		const int* _classes, const float* _weights ) :
 		classCount( 0 ),
 		classes( _classes ),
