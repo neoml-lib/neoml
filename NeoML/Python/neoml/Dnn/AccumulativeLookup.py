@@ -37,7 +37,7 @@ class AccumulativeLookup(Layer):
     .. rubric:: Layer inputs:
     
     (1) a data blob with integer data that contains the feature values.
-    The dimensions:
+        The dimensions:
 
         - **BatchLength** * **BatchWidth** * **ListSize** equal to the number 
           of different values the feature can take
@@ -46,7 +46,7 @@ class AccumulativeLookup(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the sum of vector representations of the given feature values.
-    The dimensions:
+        The dimensions:
 
         - **BatchLength**, **BatchWidth**, **ListSize** equal to these dimensions of the input
         - **Height**, **Width**, **Depth** equal to 1

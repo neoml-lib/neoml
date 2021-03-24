@@ -47,6 +47,7 @@ class Conv(Layer):
     .. rubric:: Layer inputs:
 
     Can have several inputs, of the dimensions:
+
     - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
     - **Height** - the images' height
     - **Width** - the images' width
@@ -55,11 +56,12 @@ class Conv(Layer):
     .. rubric:: Layer outputs:
 
     The layer has as many outputs as the inputs, of the dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
     - **Height** can be calculated from the input **Height** as
-        (2 * **PaddingHeight** + **Height** - (1 + **DilationHeight** * (**FilterHeight** - 1))) / **StrideHeight** + 1
+      (2 * **PaddingHeight** + **Height** - (1 + **DilationHeight** * (**FilterHeight** - 1))) / **StrideHeight** + 1
     - **Width** can be calculated from the input **Width** as
-        (2 * **PaddingWidth** + **Width** - (1 + **DilationWidth** * (**FilterWidth** - 1))) / **StrideWidth** + 1
+      (2 * **PaddingWidth** + **Width** - (1 + **DilationWidth** * (**FilterWidth** - 1))) / **StrideWidth** + 1
     - **Depth** is equal to 1
     - **Channels** is equal to the number of filters
     """
@@ -173,9 +175,10 @@ class Conv(Layer):
     @property
     def filter(self):
         """Gets the filters. The dimensions:
-        - BatchLength * BatchWidth * ListSize is filter_count
-        - Height, Width are taken from filter_size
-        - Depth, Channels are equal to the inputs' dimensions
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
+        - **Height**, **Width** are taken from filter_size
+        - **Depth**, **Channels** are equal to the inputs' dimensions
         """
         return Blob(self._internal.get_filter())
 
@@ -212,6 +215,7 @@ class Conv3D(Layer):
     .. rubric:: Layer inputs:
 
     Can have several inputs, of the dimensions:
+
     - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
     - **Height** - the images' height
     - **Width** - the images' width
@@ -221,13 +225,14 @@ class Conv3D(Layer):
     .. rubric:: Layer outputs:
 
     The layer has as many outputs as the inputs, of the dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
     - **Height** can be calculated from the input **Height** as
-        (2 * **PaddingHeight** + **Height** - **FilterHeight**) / **StrideHeight** + 1
+      (2 * **PaddingHeight** + **Height** - **FilterHeight**) / **StrideHeight** + 1
     - **Width** can be calculated from the input **Width** as
-        (2 * **PaddingWidth** + **Width** - **FilterWidth**) / **StrideWidth** + 1
+      (2 * **PaddingWidth** + **Width** - **FilterWidth**) / **StrideWidth** + 1
     - **Depth** can be calculated from the input **Depth** as
-        (2 * **PaddingDepth** + **Depth** - **FilterDepth**) / **StrideDepth** + 1
+      (2 * **PaddingDepth** + **Depth** - **FilterDepth**) / **StrideDepth** + 1
     - **Channels** is equal to the number filters
     """
 
@@ -324,9 +329,10 @@ class Conv3D(Layer):
     @property
     def filter(self):
         """Gets the filters. The dimensions:
-        - BatchLength * BatchWidth * ListSize is filter_count
-        - Height, Width, Depth are taken from filter_size
-        - Channels is equal to the inputs' Channels
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
+        - **Height**, **Width**, **Depth** are taken from filter_size
+        - **Channels** is equal to the inputs' **Channels**
         """
         return Blob(self._internal.get_filter())
 
@@ -363,6 +369,7 @@ class TransposedConv3D(Layer):
     .. rubric:: Layer inputs:
 
     Can have several inputs, of the dimensions:
+
     - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
     - **Height** - the images' height
     - **Width** - the images' width
@@ -372,6 +379,7 @@ class TransposedConv3D(Layer):
     .. rubric:: Layer outputs:
 
     The layer has as many outputs as the inputs, of the dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
     - **Height** can be calculated from the input **Height** as
         **StrideHeight** * (**Height** - 1) + **FilterHeight** - 2 * **PaddingHeight**
@@ -475,10 +483,11 @@ class TransposedConv3D(Layer):
     @property
     def filter(self):
         """Gets the filters. The dimensions:
-        - BatchLength, ListSize are 1
-        - BatchWidth is equal to the inputs' Channels
-        - Height, Width, Depth are taken from filter_size
-        - Channels is filter_count
+
+        - **BatchLength**, **ListSize** are 1
+        - **BatchWidth** is equal to the inputs' **Channels**
+        - **Height**, **Width**, **Depth** are taken from filter_size
+        - **Channels** is filter_count
         """
         return Blob(self._internal.get_filter())
 
@@ -518,6 +527,7 @@ class TransposedConv(Layer):
     .. rubric:: Layer inputs:
 
     Can have several inputs, of the dimensions:
+
     - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
     - **Height** - the images' height
     - **Width** - the images' width
@@ -526,11 +536,12 @@ class TransposedConv(Layer):
     .. rubric:: Layer outputs:
 
     The layer has as many outputs as the inputs, of the dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
     - **Height** can be calculated from the input **Height** as
-        **trideHeight** * (**Height** - 1) + (**FilterHeight** - 1) * **DilationHeight** + 1 - 2 * **PaddingHeight**
+      **trideHeight** * (**Height** - 1) + (**FilterHeight** - 1) * **DilationHeight** + 1 - 2 * **PaddingHeight**
     - **Width** can be calculated from the input **Width** as
-        **StrideWidth** * (**Width** - 1) + (**FilterWidth** - 1) * **DilationWidth** + 1 - 2 * **PaddingWidths**
+      **StrideWidth** * (**Width** - 1) + (**FilterWidth** - 1) * **DilationWidth** + 1 - 2 * **PaddingWidths**
     - **Depth** is 1
     - **Channels** is equal to the number of filters
     """
@@ -644,10 +655,11 @@ class TransposedConv(Layer):
     @property
     def filter(self):
         """Gets the filters. The dimensions:
-        - BatchLength, ListSize are 1
-        - BatchWidth is equal to the inputs' Channels * Depth
-        - Height, Width are taken from filter_size
-        - Channels is filter_count
+
+        - **BatchLength**, **ListSize** are 1
+        - **BatchWidth** is equal to the inputs' **Channels** * **Depth**
+        - **Height**, **Width** are taken from filter_size
+        - **Channels** is filter_count
         """
         return Blob(self._internal.get_filter())
 
@@ -686,6 +698,7 @@ class ChannelwiseConv(Layer):
     .. rubric:: Layer inputs:
 
     Can have several inputs, of the dimensions:
+
     - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
     - **Height** - the images' height
     - **Width** - the images' width
@@ -694,11 +707,12 @@ class ChannelwiseConv(Layer):
     .. rubric:: Layer outputs:
 
     The layer has as many outputs as the inputs, of the dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
     - **Height** can be calculated from the input **Height** as
-        (2 * **PaddingHeight** + **Height** - **FilterHeight**)/**StrideHeight** + 1
+      (2 * **PaddingHeight** + **Height** - **FilterHeight**)/**StrideHeight** + 1
     - **Width** can be calculated from the input **Width** as
-        (2 * **PaddingWidth** + **Width** - **FilterWidth**)/**StrideWidth** + 1
+      (2 * **PaddingWidth** + **Width** - **FilterWidth**)/**StrideWidth** + 1
     - **Depth** is equal to 1
     - **Channels** is equal to the number of channels in the filter and the input
     """
@@ -793,9 +807,10 @@ class ChannelwiseConv(Layer):
     @property
     def filter(self):
         """Gets the filter. The dimensions:
-        - BatchLength, BatchWidth, ListSize, Depth are 1
-        - Height, Width are taken from filter_size
-        - Channels is equal to the inputs' Channels
+
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Depth** are 1
+        - **Height**, **Width** are taken from filter_size
+        - **Channels** is equal to the inputs' **Channels**
         """
         return self._internal.get_filter()
 
@@ -833,6 +848,7 @@ class TimeConv(Layer):
     .. rubric:: Layer inputs:
 
     Can have several inputs, of the dimensions:
+
     - **BatchLength** is the sequence length
     - **BatchWidth** * **ListSize** - the number of sequences in the set
     - **Height** * **Width** * **Depth** * **Channels** - the size of each element
@@ -840,9 +856,9 @@ class TimeConv(Layer):
     .. rubric:: Layer outputs:
 
     The layer has as many outputs as the inputs, of the dimensions:
+
     - **BatchLength** can be calculated from the input **BatchLength** as
-        (padding_front + padding_back + BatchLength - 
-            - (1 + dilation * (filter_size - 1)))/stride + 1
+      (padding_front + padding_back + BatchLength - (1 + dilation * (filter_size - 1)))/stride + 1
     - **BatchWidth**, **ListSize** are equal to the input dimensions
     - **Height**, **Width**, **Depth** are equal to 1
     - **Channels** is equal to the number of filters 
@@ -968,11 +984,12 @@ class TimeConv(Layer):
     @property
     def filter(self):
         """Gets the filters. The dimensions:
-        - BatchLength is 1
-        - BatchWidth is filter_count
-        - Height is filter_size
-        - Width, Depth are 1
-        - Channels is the inputs' Height * Width * Depth * Channels
+
+        - **BatchLength** is 1
+        - **BatchWidth** is filter_count
+        - **Height** is filter_size
+        - **Width**, **Depth** are 1
+        - **Channels** is the inputs' **Height** * **Width** * **Depth** * **Channels**
         """
         return Blob(self._internal.get_filter())
 

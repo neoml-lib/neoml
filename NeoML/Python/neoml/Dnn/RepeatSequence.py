@@ -34,16 +34,18 @@ class RepeatSequence(Layer):
 
     (1) a sequence of objects.
     The dimensions:
-    - **BatchLength** is the sequence length
-    - **BatchWidth** * **ListSize** is the number of sequences in the set
-    - **Height** * **Width** * **Depth** * **Channels** is the size of each object
+
+        - **BatchLength** is the sequence length
+        - **BatchWidth** * **ListSize** is the number of sequences in the set
+        - **Height** * **Width** * **Depth** * **Channels** is the size of each object
     
     .. rubric:: Layer outputs:
 
     (1) the same sequence repeated repeat_count times.
     The dimensions:
-    - **BatchLength** is repeat_count times larger than the input's **BatchLength**
-    - all other dimensions are the same as for the input
+
+        - **BatchLength** is repeat_count times larger than the input's **BatchLength**
+        - all other dimensions are the same as for the input
     """
 
     def __init__(self, input_layer, repeat_count, name=None):

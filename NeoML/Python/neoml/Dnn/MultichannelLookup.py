@@ -40,21 +40,23 @@ class MultichannelLookup(Layer):
     .. rubric:: Layer inputs:
 
     (1) a blob with feature values (float or int).
-    The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth**
-        is the number of features
-    - **Channels** is the dimension along which the feature values for
-        different sets are stored. Not smaller than the number of 
-        feature sets.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth**
+          is the number of features
+        - **Channels** is the dimension along which the feature values for
+          different sets are stored. Not smaller than the number of 
+          feature sets.
         
     .. rubric:: Layer outputs:
 
     (1) the blob with vectors for each input feature.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize**, **Height**, **Width**, **Depth**
-        are the same as for the input
-    - **Channels** is the sum of vector lengths of all sets and additional channels
-    if the input **Channels** is more than the number of tables.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Height**, **Width**, **Depth**
+          are the same as for the input
+        - **Channels** is the sum of vector lengths of all sets and additional channels
+          if the input **Channels** is more than the number of tables.
     """
     def __init__(self, input_layers, dimensions=None, name=None):
 
@@ -109,16 +111,18 @@ class MultichannelLookup(Layer):
     def get_embeddings(self, index):
         """Gets the representation table with the given index 
         as a blob of the dimensions:
-        - BatchLength * BatchWidth * ListSize is dimensions[i].VectorCount
-        - Height * Width * Depth * Channels is dimensions[i].VectorSize
+
+            - BatchLength * BatchWidth * ListSize is dimensions[i].VectorCount
+            - Height * Width * Depth * Channels is dimensions[i].VectorSize
         """
         return Blob.Blob(self._internal.get_embeddings(index))
 
     def set_embeddings(self, index, blob):
         """Sets the representation table with the given index 
         as a blob of the dimensions:
-        - BatchLength * BatchWidth * ListSize is dimensions[i].VectorCount
-        - Height * Width * Depth * Channels is dimensions[i].VectorSize
+
+            - BatchLength * BatchWidth * ListSize is dimensions[i].VectorCount
+            - Height * Width * Depth * Channels is dimensions[i].VectorSize
         """
         if not type(blob) is Blob.Blob:
             raise ValueError('The `blob` must be neoml.Blob.')

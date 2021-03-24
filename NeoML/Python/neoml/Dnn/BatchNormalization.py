@@ -25,25 +25,27 @@ class BatchNormalization(Layer):
     
     - gamma and beta are the trainable parameters
     - mean and var depend on whether the layer is being trained:
+
         - If the layer is being trained, mean[j] and var[j] are 
-            the mean value and the variance of x data with j 
-            coordinate across all i.
+          the mean value and the variance of x data with j 
+          coordinate across all i.
         - If the layer is not being trained, mean[j] and var[j] are
-            the exponential moving mean and the unbiased variance
-            estimate calculated during training.
+          the exponential moving mean and the unbiased variance
+          estimate calculated during training.
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
     :type input_layer: object, tuple(object, int)
     :param channel_based: Turns on and off channel-based statistics:
+
         - If True, mean, var, gamma, and beta in the formula will be 
-            vectors of the input Channels length. 
-            The i coordinate will iterate over all values from 0 to 
-            BatchLength * BatchWidth * ListSize * Height * Width * Depth - 1.
+          vectors of the input **Channels** length. 
+          The i coordinate will iterate over all values from 0 to 
+          **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth** - 1.
         - If False, the mean, var, gamma, and beta vectors 
-            will have the Height * Width * Depth * Channels length. 
-            The i coordinate will iterate over all values from 0 to 
-            BatchLength * BatchWidth * ListSize - 1.
+          will have the **Height** * **Width** * **Depth** * **Channels** length. 
+          The i coordinate will iterate over all values from 0 to 
+          **BatchLength** * **BatchWidth** * **ListSize** - 1.
     :type channel_based: bool, default=True
     :param zero_free_term: Specifies if the free term (beta) should be trained or filled with zeros.
     :type zero_free_term: bool, default=False
@@ -111,20 +113,22 @@ class BatchNormalization(Layer):
     @property
     def final_params(self):
         """Gets the trained parameters as a blob of the dimensions:
-        - BatchLength, ListSize, Channels equal to 1
-        - BatchWidth is 2
-        - Height, Width, Depth equal to 1 if in channel-based mode,
-            otherwise the same as the dimensions of the input
+
+        - **BatchLength**, **ListSize**, **Channels** equal to 1
+        - **BatchWidth** is 2
+        - **Height**, **Width**, **Depth** equal to 1 if in channel-based mode,
+          otherwise the same as the dimensions of the input
         """
         return Blob( self._internal.get_final_params() )
 
     @final_params.setter
     def final_params(self, final_params):
         """Sets the trainable parameters as a blob of the dimensions:
-        - BatchLength, ListSize, Channels equal to 1
-        - BatchWidth is 2
-        - Height, Width, Depth equal to 1 if in channel-based mode,
-            otherwise the same as the dimensions of the input
+
+        - **BatchLength**, **ListSize**, **Channels** equal to 1
+        - **BatchWidth** is 2
+        - **Height**, **Width**, **Depth** equal to 1 if in channel-based mode,
+          otherwise the same as the dimensions of the input
         """
         self._internal.set_final_params(final_params._internal)
 

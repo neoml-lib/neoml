@@ -50,8 +50,8 @@ class Dropout(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob of the same dimensions, with some of the elements set to 0,
-    during training only.
-    When you run the network, this layer does nothing.
+        during training only.
+        When you run the network, this layer does nothing.
     """
 
     def __init__(self, input_layer, rate=0.5, spatial=False, batchwise=False, name=None):

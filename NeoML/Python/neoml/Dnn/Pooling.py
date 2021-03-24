@@ -85,19 +85,21 @@ class MaxPooling(Pooling):
     .. rubric:: Layer inputs:
 
     (1) the set of images, of dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
-    - **Height** - the images' height
-    - **Width** - the images' width
-    - **Depth** * **Channels** - the number of channels the image format uses
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+        - **Height** - the images' height
+        - **Width** - the images' width
+        - **Depth** * **Channels** - the number of channels the image format uses
         
     .. rubric:: Layer outputs:
 
     (1) the result of pooling
     The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
-    - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
-    - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
-    - **Depth** and **Channels** are equal to the input dimensions
+
+        - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+        - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
+        - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
+        - **Depth** and **Channels** are equal to the input dimensions
     """
     def __init__(self, input_layers, filter_size=(3, 3), stride_size=(1, 1), name=None):
 
@@ -142,19 +144,21 @@ class MeanPooling(Pooling):
     .. rubric:: Layer inputs:
 
     (1) the set of images, of dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
-    - **Height** - the images' height
-    - **Width** - the images' width
-    - **Depth** * **Channels** - the number of channels the image format uses
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+        - **Height** - the images' height
+        - **Width** - the images' width
+        - **Depth** * **Channels** - the number of channels the image format uses
         
     .. rubric:: Layer outputs:
 
     (1) the result of pooling
     The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
-    - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
-    - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
-    - **Depth** and **Channels** are equal to the input dimensions
+
+        - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+        - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
+        - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
+        - **Depth** and **Channels** are equal to the input dimensions
     """
     def __init__(self, input_layers, filter_size=(3, 3), stride_size=(1, 1), name=None):
 
@@ -196,22 +200,24 @@ class GlobalMaxPooling(Layer):
     .. rubric:: Layer inputs:
 
     (1) the set of images, of dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
-    - **Height** - the images' height
-    - **Width** - the images' width
-    - **Depth** - the images' depth
-    - **Channels** - the number of channels the image format uses
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+        - **Height** - the images' height
+        - **Width** - the images' width
+        - **Depth** - the images' depth
+        - **Channels** - the number of channels the image format uses
         
     .. rubric:: Layer outputs:
 
     (1) the maximum values found.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize**, **Channels** are equal to the input dimensions
-    - **Height**, **Depth** are 1
-    - **Width** is max_count
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Channels** are equal to the input dimensions
+        - **Height**, **Depth** are 1
+        - **Width** is max_count
     
     (2) (optional): the indices of the values found in the input blob.
-    The dimensions are the same.
+        The dimensions are the same.
     """
     def __init__(self, input_layers, max_count, name=None):
 
@@ -259,19 +265,21 @@ class GlobalMeanPooling(Layer):
     .. rubric:: Layer inputs:
 
     (1) the set of images, of dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
-    - **Height** - the images' height
-    - **Width** - the images' width
-    - **Depth** - the images' depth
-    - **Channels** - the number of channels the image format uses
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+        - **Height** - the images' height
+        - **Width** - the images' width
+        - **Depth** - the images' depth
+        - **Channels** - the number of channels the image format uses
         
     .. rubric:: Layer outputs:
 
     (1) the average values over each image.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
-    - **Height**, **Width**, **Depth** are 1
-    - **Channels** is equal to the input **Channels**
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+        - **Height**, **Width**, **Depth** are 1
+        - **Channels** is equal to the input **Channels**
     """
     def __init__(self, input_layers, name=None):
 
@@ -305,18 +313,20 @@ class MaxOverTimePooling(Layer):
     .. rubric:: Layer inputs:
 
     (1) the set of sequences, of dimensions:
-    - **BatchLength** is the sequence length
-    - **BatchWidth** * **ListSize** is the number of sequences in the set
-    - **Height** * **Width** * **Depth** * **Channels** is the length of each vector
+
+        - **BatchLength** is the sequence length
+        - **BatchWidth** * **ListSize** is the number of sequences in the set
+        - **Height** * **Width** * **Depth** * **Channels** is the length of each vector
         
     .. rubric:: Layer outputs:
 
     (1) the pooling result.
     The dimensions:
-    - **BatchLength** is
-        -- 1 if filter_len is <= 0
-        -- (**BatchLength** - filter_len) / stride_len + 1 otherwise
-    - the other dimensions are the same as for the input
+
+        - **BatchLength** is
+            -- 1 if filter_len is <= 0
+            -- (**BatchLength** - filter_len) / stride_len + 1 otherwise
+        - the other dimensions are the same as for the input
     """
     def __init__(self, input_layers, filter_len, stride_len, name=None):
 
@@ -388,9 +398,10 @@ class ProjectionPooling(Layer):
 
     (1) the result of pooling.
     The dimensions:
-    - all stay the same if original_size is True
-    - if original_size is False, the pooling dimension is 1 
-        and other dimensions stay the same
+
+        - all stay the same if original_size is True
+        - if original_size is False, the pooling dimension is 1 
+          and other dimensions stay the same
     """
 
     dimensions = ["batch_length", "batch_width", "list_size", "height", "width", "depth", "channels"]
@@ -508,21 +519,23 @@ class MaxPooling3D(Pooling3D):
     .. rubric:: Layer inputs:
 
     (1) the set of images, of dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
-    - **Height** - the images' height
-    - **Width** - the images' width
-    - **Depth** - the images' depth
-    - **Channels** - the number of channels the image format uses
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+        - **Height** - the images' height
+        - **Width** - the images' width
+        - **Depth** - the images' depth
+        - **Channels** - the number of channels the image format uses
         
     .. rubric:: Layer outputs:
 
     (1) the result of pooling
     The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
-    - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
-    - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
-    - **Depth** can be calculated from the input as (**Depth** - **FilterDepth**)/**StrideDepth** + 1
-    - **Channels** is equal to the input **Channels**
+
+        - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+        - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
+        - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
+        - **Depth** can be calculated from the input as (**Depth** - **FilterDepth**)/**StrideDepth** + 1
+        - **Channels** is equal to the input **Channels**
     """
     def __init__(self, input_layers, filter_size=(3, 3, 3), stride_size=(1, 1, 1), name=None):
 
@@ -562,21 +575,23 @@ class MeanPooling3D(Pooling3D):
     .. rubric:: Layer inputs:
 
     (1) the set of images, of dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
-    - **Height** - the images' height
-    - **Width** - the images' width
-    - **Depth** - the images' depth
-    - **Channels** - the number of channels the image format uses
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+        - **Height** - the images' height
+        - **Width** - the images' width
+        - **Depth** - the images' depth
+        - **Channels** - the number of channels the image format uses
         
     .. rubric:: Layer outputs:
 
     (1) the result of pooling
     The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
-    - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
-    - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
-    - **Depth** can be calculated from the input as (**Depth** - **FilterDepth**)/**StrideDepth** + 1
-    - **Channels** is equal to the input **Channels**
+
+        - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+        - **Height** can be calculated from the input as (**Height** - **FilterHeight**)/**StrideHeight** + 1
+        - **Width** can be calculated from the input as (**Width** - **FilterWidth**)/**StrideWidth** + 1
+        - **Depth** can be calculated from the input as (**Depth** - **FilterDepth**)/**StrideDepth** + 1
+        - **Channels** is equal to the input **Channels**
     """
     def __init__(self, input_layers, filter_size=(3, 3, 3), stride_size=(1, 1, 1), name=None):
 

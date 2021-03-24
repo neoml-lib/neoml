@@ -38,9 +38,10 @@ class DotProduct(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the dot product.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** equal to the inputs' dimensions
-    - **Height**, **Width**, **Depth**, **Channels** equal to 1
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** equal to the inputs' dimensions
+        - **Height**, **Width**, **Depth**, **Channels** equal to 1
     """
 
     def __init__(self, input_layers, name=None):

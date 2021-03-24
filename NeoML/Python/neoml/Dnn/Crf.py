@@ -38,40 +38,44 @@ class Crf(Layer):
     .. rubric:: Layer inputs:
 
     (1) a blob with the object sequences.
-    The dimensions:
-    - **BatchLength** is the sequence length
-    - **BatchWidth** is the number of sequences in the set
-    - **ListSize** is 1
-    - **Height** * **Width** * **Depth** * **Channels** is the object size
+        The dimensions:
+
+        - **BatchLength** is the sequence length
+        - **BatchWidth** is the number of sequences in the set
+        - **ListSize** is 1
+        - **Height** * **Width** * **Depth** * **Channels** is the object size
     
     (2) (optional): a blob with integer data that contains the correct class
-    sequences. It is required only for training.
-    The dimensions:
-    - **BatchLength**, **BatchWidth** equal to the first input's
-    - the other dimensions are equal to 1
+        sequences. It is required only for training.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth** equal to the first input's
+        - the other dimensions are equal to 1
     
     .. rubric:: Layer outputs:
 
     (1) (optional): a blob with integer data that contains optimal class 
-    sequences. 
-    This output will be returned only if you set calc_prev_best_class to True.
-    During training, this output usually isn't needed 
-    and is switched off by default.
-    The dimensions:
-    - **BatchLength**, **BatchWidth** equal to the first input's
-    - **Channels** equal to the number of classes
-    - the other dimensions are equal to 1
+        sequences. 
+        This output will be returned only if you set calc_prev_best_class to True.
+        During training, this output usually isn't needed 
+        and is switched off by default.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth** equal to the first input's
+        - **Channels** equal to the number of classes
+        - the other dimensions are equal to 1
     
     (2): a blob with float data that contains non-normalized logarithm of 
-    optimal class sequences probabilities.
-    The dimensions are the same as for the first output.
+        optimal class sequences probabilities.
+        The dimensions are the same as for the first output.
     
     (3) (optional): a blob with non-normalized logarithm of the correct class
-    sequences probabilities. 
-    This output will be there only if the layer has two inputs.
-    The dimensions are equal to the second input's:
-    - **BatchLength**, **BatchWidth** equal to the first input's
-    - the other dimensions are equal to 1
+        sequences probabilities. 
+        This output will be there only if the layer has two inputs.
+        The dimensions are equal to the second input's:
+
+        - **BatchLength**, **BatchWidth** equal to the first input's
+        - the other dimensions are equal to 1
     """
 
     def __init__(self, input_layer, class_count, padding=0, dropout_rate=0.0, name=None):
@@ -154,6 +158,7 @@ class Crf(Layer):
     @property
     def hidden_weights(self):
         """Gets the hidden layer weights. The dimensions:
+
         - BatchLength * BatchWidth * ListSize is the number of classes
         - Height * Width * Depth * Channels the same as for the first input
         """
@@ -162,6 +167,7 @@ class Crf(Layer):
     @hidden_weights.setter
     def hidden_weights(self, hidden_weights):
         """Sets the hidden layer weights. The dimensions:
+
         - BatchLength * BatchWidth * ListSize is class_count
         - Height * Width * Depth * Channels the same as for the first input
         """
@@ -182,6 +188,7 @@ class Crf(Layer):
     @property
     def transitions(self):
         """Gets the transition probability matrix. The dimensions:
+
         - BatchLength, BatchWidth are class_count
         - the other dimensions are 1
         """
@@ -190,6 +197,7 @@ class Crf(Layer):
     @transitions.setter
     def transitions(self, transitions):
         """Sets the transition probability matrix. The dimensions:
+
         - BatchLength, BatchWidth are class_count
         - the other dimensions are 1
         """
@@ -202,38 +210,37 @@ class CrfLoss(Layer):
     """The layer that calculates the loss function used for training a CRF.
     The value is -log(probability of the correct class sequence)
     
-    Layer inputs
-    ------------
-    #1: a blob with integer data that contains optimal class sequences.
-    The dimensions:
-    - BatchLength, BatchWidth equal to the network inputs'
-    - Channels equal to the number of classes
-    - the other dimensions are equal to 1
-    
-    #2: a blob with float data containing non-normalized logarithm 
-    of probabilities of the optimal class sequences.
-    The dimensions are the same as for the first input.
-    
-    #3: a blob with float data containing non-normalized logarithm
-    of probability of the correct class being in this position.
-    The dimensions:
-    - BatchLength, BatchWidth the same as for the first input
-    - the other dimensions equal to 1
-
-    Layer outputs
-    -------------
-    The layer has no output.
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    loss_weight :  float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type input_layers: array of (object, int) tuples or objects
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight:  float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+        
+    .. rubric:: Layer inputs:
+
+    (1) a blob with integer data that contains optimal class sequences.
+        The dimensions:
+        - **BatchLength**, **BatchWidth** equal to the network inputs'
+        - **Channels** equal to the number of classes
+        - the other dimensions are equal to 1
+    
+    (2) a blob with float data containing non-normalized logarithm 
+        of probabilities of the optimal class sequences.
+        The dimensions are the same as for the first input.
+    
+    (3) a blob with float data containing non-normalized logarithm
+        of probability of the correct class being in this position.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth** the same as for the first input
+        - the other dimensions equal to 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, loss_weight=1.0, name=None):
 
@@ -283,35 +290,35 @@ class BestSequence(Layer):
     """The layer that finds the optimal class sequence 
     using the Crf layer output.
     
-    Layer inputs
-    -----------
-    #1: first output of Crf. A blob with int data that contains the optimal
-    class sequences.
-    The dimensions:
-    - BatchLength is the sequence length
-    - BatchWidth is the number of sequences in the set
-    - Channels is the number of classes
-    - all other dimensions are 1
-    
-    #2: second output of Crf. A blob with float data that contains
-    non-normalized logarithm of optimal class sequences probabilities.
-    The dimensions are the same as for the first input.    
-    
-    Layer outputs
-    -----------
-    #1: a blob with int data that contains the optimal class sequence.
-    The dimensions:
-    - BatchLength, BatchWidth are the same as for the inputs
-    - the other dimensions are 1
-    
-    Parameters
-    -----------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+        
+    .. rubric:: Layer inputs:
+
+    (1) first output of Crf. A blob with int data that contains the optimal
+        class sequences.
+        The dimensions:
+
+        - **BatchLength** is the sequence length
+        - **BatchWidth** is the number of sequences in the set
+        - **Channels** is the number of classes
+        - all other dimensions are 1
+    
+    (2) second output of Crf. A blob with float data that contains
+        non-normalized logarithm of optimal class sequences probabilities.
+        The dimensions are the same as for the first input.    
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with int data that contains the optimal class sequence.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth** are the same as for the inputs
+        - the other dimensions are 1
     """
     def __init__(self, input_layers, name=None):
 

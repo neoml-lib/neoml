@@ -69,9 +69,9 @@ class Gru(Layer):
     def main_weights(self):
         """Gets the output weights as a 2d matrix of the size:
 
-            - **BatchLength** * **BatchWidth** * **ListSize** equal to **hidden_size**
-            - **Height** * **Width** * **Depth** * **Channels** equal to 
-              this dimension of the input plus hidden_size
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to **hidden_size**
+        - **Height** * **Width** * **Depth** * **Channels** equal to 
+          this dimension of the input plus hidden_size
         """
         return self._internal.get_main_weights()
 
@@ -79,9 +79,9 @@ class Gru(Layer):
     def main_weights(self, main_weights):
         """Sets the output weights as a 2d matrix of the size:
 
-            - **BatchLength** * **BatchWidth** * **ListSize** equal to **hidden_size**
-            - **Height** * **Width** * **Depth** * **Channels** equal to 
-              this dimension of the input plus hidden_size
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to **hidden_size**
+        - **Height** * **Width** * **Depth** * **Channels** equal to 
+          this dimension of the input plus hidden_size
         """
         self._internal.set_main_weights(main_weights)
 
@@ -110,6 +110,7 @@ class Gru(Layer):
     @gate_weights.setter
     def gate_weights(self, gate_weights):
         """Sets the gate weights as a 2d matrix of the size:
+
         - **BatchLength** * **BatchWidth** * **ListSize** equal to 2 * **hidden_size**
         - **Height** * **Width** * **Depth** * **Channels** equal to 
           this dimension of the input plus hidden_size

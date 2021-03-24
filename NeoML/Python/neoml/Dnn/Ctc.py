@@ -40,36 +40,41 @@ class CtcLoss(Layer):
     .. rubric:: Layer inputs:
 
     (1) the network response.
-    The dimensions:
-    - **BatchLength** is the maximum sequence length
-    - **BatchWidth** is the number of sequences in the set
-    - **ListSize** is 1
-    - **Height** * **Width** * **Depth** * **Channels** is the number of classes
+        The dimensions:
+
+        - **BatchLength** is the maximum sequence length
+        - **BatchWidth** is the number of sequences in the set
+        - **ListSize** is 1
+        - **Height** * **Width** * **Depth** * **Channels** is the number of classes
 
     (2) the correct labels as a blob with int data.
-    The dimensions:
-    - **BatchLength** is the maximum labels sequence length
-    - **BatchWidth** is the number of sequences, same as first input's **BatchWidth**
-    - the other dimensions are 1
+
+        The dimensions:
+        - **BatchLength** is the maximum labels sequence length
+        - **BatchWidth** is the number of sequences, same as first input's **BatchWidth**
+        - the other dimensions are 1
 
     (3) (optional): the label sequences lengths as a blob with int data.
-    If this input isn't connected, the label sequences are considered to be
-    the second input's **BatchLength** long.
-    The dimensions:
-    - **BatchWidth** is the same as for the first input
-    - the other dimensions are 1
+        If this input isn't connected, the label sequences are considered to be
+        the second input's **BatchLength** long.
+        The dimensions:
+
+        - **BatchWidth** is the same as for the first input
+        - the other dimensions are 1
 
     (4) (optional): the network response sequences lengths as a blob
-    with int data. If this input isn't connected, the response sequences
-    are considered to be the first input's **BatchLength** long.
-    The dimensions:
-    - **BatchWidth** is the same as for the first input
-    - the other dimensions are 1
+        with int data. If this input isn't connected, the response sequences
+        are considered to be the first input's **BatchLength** long.
+        The dimensions:
+
+        - **BatchWidth** is the same as for the first input
+        - the other dimensions are 1
 
     (5) (optional): the sequences' weights. 
-    The dimensions:
-    - **BatchWidth** is the same as for the first input
-    - the other dimensions are 1
+        The dimensions:
+
+        - **BatchWidth** is the same as for the first input
+        - the other dimensions are 1
 
     .. rubric:: Layer outputs:
 
@@ -168,18 +173,20 @@ class CtcDecoding(Layer):
     .. rubric:: Layer inputs:
 
     (1) the network response.
-    The dimensions:
-    - BatchLength is the maximum sequence length
-    - BatchWidth is the number of sequences in the set
-    - ListSize is 1
-    - Height * Width * Depth * Channels is the number of classes
+        The dimensions:
+
+        - BatchLength is the maximum sequence length
+        - BatchWidth is the number of sequences in the set
+        - ListSize is 1
+        - Height * Width * Depth * Channels is the number of classes
 
     (2) (optional): the network response sequences lengths as a blob
-    with int data. If this input isn't connected, the response sequences
-    are considered to be the first input's BatchLength long.
-    The dimensions:
-    - BatchWidth is the same as for the first input
-    - the other dimensions are 1
+        with int data. If this input isn't connected, the response sequences
+        are considered to be the first input's BatchLength long.
+        The dimensions:
+
+        - BatchWidth is the same as for the first input
+        - the other dimensions are 1
 
     .. rubric:: Layer outputs:
 

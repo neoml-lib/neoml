@@ -38,9 +38,10 @@ class Argmax(Layer):
     .. rubric:: Layer outputs:
 
     (1) contains the coordinate of the maximum
-    The dimensions:
-    - 'dimension' along which the maximum is found is equal to 1
-    - all other dimensions are equal to the first input dimensions
+        The dimensions:
+
+        - 'dimension' along which the maximum is found is equal to 1
+        - all other dimensions are equal to the first input dimensions
     """
     dimensions = ["batch_length", "batch_width", "list_size", "height", "width", "depth", "channels"]
 

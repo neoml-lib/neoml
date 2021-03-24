@@ -100,26 +100,29 @@ class CrossEntropyLoss(Loss):
     .. rubric:: Layer inputs:
 
     (1) the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    If you are not going to apply softmax in this layer, each element should already be >= 0, 
-    and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
-    The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
-    - **Height** * **Width** * **Depth** * **Channels** - the number of classes
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the number of classes
     
     (2) the correct class labels. Two formats are acceptable:
-    - The blob contains float data, the dimensions are equal to the first input dimensions. 
-      It should be filled with zeros, and only the coordinate of the class to which 
-      the corresponding object from the first input belongs should be 1.
-    - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
-      equal to these dimensions of the first input, and the other dimensions equal to 1.
-      Each object in the blob contains the number of the class 
-      to which the corresponding object from the first input belongs.
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
     
     (3) (optional): the objects' weights.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
-    - the other dimensions should be 1
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
 
     .. rubric:: Layer outputs:
 
@@ -174,15 +177,16 @@ class BinaryCrossEntropyLoss(Loss):
     .. rubric:: Layer inputs:
 
     (1) the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
+        It should contain the probability distribution for objects over classes.
     
     (2) the correct class labels (1 or -1). 
     
     (3) (optional): the objects' weights.
     
     The dimensions of all inputs are the same:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
-    - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
 
     .. rubric:: Layer outputs:
 
@@ -239,8 +243,9 @@ class EuclideanLoss(Loss):
     (3) (optional): the objects' weights.
     
     The dimensions of all inputs are the same:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
-    - **Height** * **Width** * **Depth** * **Channels** - the object size
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the object size
 
     .. rubric:: Layer outputs:
 
@@ -278,15 +283,16 @@ class HingeLoss(Loss):
     .. rubric:: Layer inputs:
 
     (1) the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
+        It should contain the probability distribution for objects over classes.
     
     (2) the correct class labels (1 or -1). 
     
     (3) (optional): the objects' weights.
     
     The dimensions of all inputs are the same:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
-    - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
 
     .. rubric:: Layer outputs:
 
@@ -327,15 +333,16 @@ class SquaredHingeLoss(Loss):
     .. rubric:: Layer inputs:
 
     (1) the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
+        It should contain the probability distribution for objects over classes.
     
     (2) the correct class labels (1 or -1). 
     
     (3) (optional): the objects' weights.
     
     The dimensions of all inputs are the same:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
-    - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
 
     .. rubric:: Layer outputs:
 
@@ -381,26 +388,29 @@ class FocalLoss(Loss):
     .. rubric:: Layer inputs:
 
     (1) the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    If you are not going to apply softmax in this layer, each element should already be >= 0, 
-    and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
-    The dimensions:
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
     - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
     - **Height** * **Width** * **Depth** * **Channels** - the number of classes
     
     (2) the correct class labels. Two formats are acceptable:
-    - The blob contains float data, the dimensions are equal to the first input dimensions. 
-      It should be filled with zeros, and only the coordinate of the class to which 
-      the corresponding object from the first input belongs should be 1.
-    - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
-      equal to these dimensions of the first input, and the other dimensions equal to 1.
-      Each object in the blob contains the number of the class 
-      to which the corresponding object from the first input belongs.
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
     
     (3) (optional): the objects' weights.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
-    - the other dimensions should be 1
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
 
     .. rubric:: Layer outputs:
 
@@ -472,8 +482,9 @@ class BinaryFocalLoss(Loss):
     (3) (optional): the objects' weights.
     
     The dimensions of all inputs are the same:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
-    - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
 
     .. rubric:: Layer outputs:
 
@@ -535,26 +546,29 @@ class CenterLoss(Loss):
     .. rubric:: Layer inputs:
 
     (1) the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    If you are not going to apply softmax in this layer, each element should already be >= 0, 
-    and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
-    The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
-    - **Height** * **Width** * **Depth** * **Channels** - the number of classes
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the number of classes
     
     (2) the correct class labels. Two formats are acceptable:
-    - The blob contains float data, the dimensions are equal to the first input dimensions. 
-      It should be filled with zeros, and only the coordinate of the class to which 
-      the corresponding object from the first input belongs should be 1.
-    - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
-      equal to these dimensions of the first input, and the other dimensions equal to 1.
-      Each object in the blob contains the number of the class 
-      to which the corresponding object from the first input belongs.
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
     
     (3) (optional): the objects' weights.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
-    - the other dimensions should be 1
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
 
     .. rubric:: Layer outputs:
 
@@ -618,26 +632,29 @@ class MultiHingeLoss(Loss):
     .. rubric:: Layer inputs:
 
     (1) the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    If you are not going to apply softmax in this layer, each element should already be >= 0, 
-    and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
-    The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
-    - **Height** * **Width** * **Depth** * **Channels** - the number of classes
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the number of classes
     
     (2) the correct class labels. Two formats are acceptable:
-    - The blob contains float data, the dimensions are equal to the first input dimensions. 
-      It should be filled with zeros, and only the coordinate of the class to which 
-      the corresponding object from the first input belongs should be 1.
-    - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
-      equal to these dimensions of the first input, and the other dimensions equal to 1.
-      Each object in the blob contains the number of the class 
-      to which the corresponding object from the first input belongs.
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
     
     (3) (optional): the objects' weights.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
-    - the other dimensions should be 1
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
 
     .. rubric:: Layer outputs:
 
@@ -678,26 +695,29 @@ class MultiSquaredHingeLoss(Loss):
     .. rubric:: Layer inputs:
 
     (1) the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    If you are not going to apply softmax in this layer, each element should already be >= 0, 
-    and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
-    The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
-    - **Height** * **Width** * **Depth** * **Channels** - the number of classes
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the number of classes
     
     (2) the correct class labels. Two formats are acceptable:
-    - The blob contains float data, the dimensions are equal to the first input dimensions. 
-      It should be filled with zeros, and only the coordinate of the class to which 
-      the corresponding object from the first input belongs should be 1.
-    - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
-      equal to these dimensions of the first input, and the other dimensions equal to 1.
-      Each object in the blob contains the number of the class 
-      to which the corresponding object from the first input belongs.
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
     
     (3) (optional): the objects' weights.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
-    - the other dimensions should be 1
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
 
     .. rubric:: Layer outputs:
 

@@ -34,6 +34,7 @@ class ConcatChannels(Layer):
     
     The layer accepts an arbitrary number of inputs.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Height**, **Width**, **Depth** equal for all inputs
     - **Channels** dimension may vary
@@ -42,6 +43,7 @@ class ConcatChannels(Layer):
 
     (1) a blob with the result of concatenation.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Height**, **Width**, **Depth** equal to the inputs' dimensions
     - **Channels** equal to the sum of all inputs' **Channels**
@@ -77,6 +79,7 @@ class ConcatDepth(Layer):
 
     The layer accepts an arbitrary number of inputs.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Height**, **Width**, **Channels** equal for all inputs
     - **Depth** dimension may vary
@@ -85,6 +88,7 @@ class ConcatDepth(Layer):
 
     (1) a blob with the result of concatenation.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Height**, **Width**, **Channels** equal to the inputs' dimensions
     - **Depth** equal to the sum of all inputs' **Depth**
@@ -120,6 +124,7 @@ class ConcatWidth(Layer):
 
     The layer accepts an arbitrary number of inputs.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Height**, **Depth**, **Channels** equal for all inputs
     - **Width** dimension may vary
@@ -128,6 +133,7 @@ class ConcatWidth(Layer):
 
     (1) a blob with the result of concatenation.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Height**, **Depth**, **Channels** equal to the inputs' dimensions
     - **Width** equal to the sum of all inputs' **Width**
@@ -163,6 +169,7 @@ class ConcatHeight(Layer):
 
     The layer accepts an arbitrary number of inputs.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Width**, **Depth**, **Channels** equal for all inputs
     - **Height** dimension may vary
@@ -171,6 +178,7 @@ class ConcatHeight(Layer):
 
     (1) a blob with the result of concatenation.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize**, 
       **Width**, **Depth**, **Channels** equal to the inputs' dimensions
     - **Height** equal to the sum of all inputs' **Height**
@@ -206,6 +214,7 @@ class ConcatBatchWidth(Layer):
 
     The layer accepts an arbitrary number of inputs.
     The dimensions:
+
     - **BatchLength**, **ListSize**, **Height**,
       **Width**, **Depth**, **Channels** equal for all inputs
     - **BatchWidth** dimension may vary
@@ -214,6 +223,7 @@ class ConcatBatchWidth(Layer):
 
     (1) a blob with the result of concatenation.
     The dimensions:
+
     - **BatchLength**, **ListSize**, **Height**,
       **Width**, **Depth**, **Channels** equal to the inputs' dimensions
     - **BatchWidth** equal to the sum of all inputs' **BatchWidth**
@@ -249,6 +259,7 @@ class ConcatObject(Layer):
 
     The layer accepts an arbitrary number of inputs.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize** equal for all inputs
     - **Height**, **Width**, **Depth**, **Channels** dimensions may vary
     
@@ -256,6 +267,7 @@ class ConcatObject(Layer):
 
     (1) a blob with the result of concatenation.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize** equal to the inputs' dimensions
     - **Height**, **Width**, **Depth** equal to 1
     - **Channels** equal to the sum of 

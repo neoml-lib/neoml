@@ -32,19 +32,21 @@ class AddToObject(Layer):
     .. rubric:: Layer inputs:
 
     (1) the data blob of the dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
-    - **Height** * **Width** * **Depth** * **Channels** - object size
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - object size
     
     (2) the data blob with the object to add to the first input.
-    The dimensions:
-    - **Height**, **Width**, **Depth**, **Channels** are the same as for the first input
-    - the other dimensions are 1
+        The dimensions:
+
+        - **Height**, **Width**, **Depth**, **Channels** are the same as for the first input
+        - the other dimensions are 1
     
     .. rubric:: Layer outputs:
 
     (1) a blob that contains the result of adding 
-    the second input to each object of the first.
-    The dimensions are the same as for the first input.
+        the second input to each object of the first.
+        The dimensions are the same as for the first input.
     """
 
     def __init__(self, input_layers, name=None):

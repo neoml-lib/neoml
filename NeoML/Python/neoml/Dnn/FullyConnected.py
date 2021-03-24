@@ -41,6 +41,7 @@ class FullyConnected(Layer):
 
     The layer can have any number of inputs.
     The dimensions:
+
     - **BatchLength** * **BatchWidth** * **ListSize** is the number of vectors
     - **Height** * **Width** * **Depth** * **Channels** is the vector size; 
         should be the same for all inputs
@@ -49,6 +50,7 @@ class FullyConnected(Layer):
 
     The layer returns one output for each input.
     The dimensions:
+
     - **BatchLength**, **BatchWidth**, **ListSize** the same as for the input
     - **Height**, **Width**, **Depth** are 1
     - **Channels** is element_count
@@ -102,16 +104,18 @@ class FullyConnected(Layer):
     @property
     def weights(self):
         """Gets the trained weights as a blob of the dimensions:
-        - BatchLength * BatchWidth * ListSize equal to element_count
-        - Height, Width, Depth, Channels the same as for the first input
+
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to element_count
+        - **Height**, **Width**, **Depth**, **Channels** the same as for the first input
         """
         return Blob.Blob(self._internal.get_weights())
 
     @weights.setter
     def weights(self, blob):
         """Sets the trained weights as a blob of the dimensions:
-        - BatchLength * BatchWidth * ListSize equal to element_count
-        - Height, Width, Depth, Channels the same as for the first input
+
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to element_count
+        - **Height**, **Width**, **Depth**, **Channels** the same as for the first input
         """
         if not type(blob) is Blob.Blob:
             raise ValueError('The `blob` must be neoml.Blob.')

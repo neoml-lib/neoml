@@ -87,7 +87,7 @@ class BitSetVectorization(Layer):
     .. rubric:: Layer inputs:
 
     (1) a blob with int data containing bitsets. 
-    The dimensions:
+        The dimensions:
 
         - **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth**
           is the number of bitsets
@@ -96,7 +96,7 @@ class BitSetVectorization(Layer):
     .. rubric:: Layer outputs:
 
     (1) a blob with the result of vectorization.
-    The dimensions:
+        The dimensions:
 
         - **Channels** is equal to bit_set_size
         - the other dimensions are the same as for the input

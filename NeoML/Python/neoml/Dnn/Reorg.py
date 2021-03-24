@@ -36,21 +36,23 @@ class Reorg(Layer):
 
     (1) a blob with images.
     The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** is the number of images
-    - **Height** is the image height; should be a multiple of stride
-    - **Width** is the image width; should be a multiple of stride
-    - **Depth** is 1
-    - **Channels** is the number of channels the image format uses
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is the number of images
+        - **Height** is the image height; should be a multiple of stride
+        - **Width** is the image width; should be a multiple of stride
+        - **Depth** is 1
+        - **Channels** is the number of channels the image format uses
     
     .. rubric:: Layer outputs:
 
     (1) the result of image transformation.
     The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** are the same as for the input
-    - **Height** is input Height / stride
-    - **Width** is input **Width** / stride
-    - **Depth** is 1
-    - **Channels** is input **Channels** * stride^2
+
+        - **BatchLength**, **BatchWidth**, **ListSize** are the same as for the input
+        - **Height** is input Height / stride
+        - **Width** is input **Width** / stride
+        - **Depth** is 1
+        - **Channels** is input **Channels** * stride^2
     """
 
     def __init__(self, input_layer, stride=1, name=None):

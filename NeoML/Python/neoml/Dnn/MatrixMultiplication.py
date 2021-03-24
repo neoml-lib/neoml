@@ -38,20 +38,22 @@ class MatrixMultiplication(Layer):
     - **Channels** - the width of each matrix
     
     (2) the second set of matrices.
-    The dimensions:
-    - **BatchLength** * **BatchWidth** * **ListSize** - the number of matrices in the set, 
-        must be the same as for the first input
-    - **Height** * **Width** * **Depth** - the height of each matrix, 
-        must be equal to Channels of the first input
-    - **Channels** - the width of each matrix
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of matrices in the set, 
+          must be the same as for the first input
+        - **Height** * **Width** * **Depth** - the height of each matrix, 
+          must be equal to Channels of the first input
+        - **Channels** - the width of each matrix
     
     .. rubric:: Layer outputs:
 
     (1) the set of multiplication results.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize**, **Height**, **Width**, **Depth** 
-        the same as for the first input
-    - **Channels** the same as for the second input
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Height**, **Width**, **Depth** 
+          the same as for the first input
+        - **Channels** the same as for the second input
     """
 
     def __init__(self, input_layers, name=None):

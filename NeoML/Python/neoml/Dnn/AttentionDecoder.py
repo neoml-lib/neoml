@@ -46,15 +46,16 @@ class AttentionDecoder(Layer):
     (1) a data blob of any size with the input sequence
     
     (2) the special character used to initialize the output sequence
-    All dimensions are equal to 1
+        All dimensions are equal to 1
     
     .. rubric:: Layer outputs:
 
     (1) the output sequence
-    The dimensions:
-    - **BatchLength** equal to output_seq_len
-    - **Channels** equal to output_object_size
-    - all other dimensions are equal to 1
+        The dimensions:
+
+        - **BatchLength** equal to output_seq_len
+        - **Channels** equal to output_object_size
+        - all other dimensions are equal to 1
     """
     scores = ["additive", "dot_product"]
 
