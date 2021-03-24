@@ -33,23 +33,23 @@ class Gru(Layer):
 
     .. rubric:: Layer inputs:
 
-    (1) the set of vector sequences.
-    The dimensions:
-    - **BatchLength** is sequence length
-    - **BatchWidth** * **ListSize** is the number of sequences
-    - **Height** * **Width** * **Depth** * **Channels** is vector size
+    (1) the set of vector sequences. The dimensions:
+
+        - **BatchLength** is sequence length
+        - **BatchWidth** * **ListSize** is the number of sequences
+        - **Height** * **Width** * **Depth** * **Channels** is vector size
     
     (2) (optional): the initial previous step result. If you do not connect
-    this input all zeros will be used on the first step.
-    The dimensions are the same as for the first input.
+        this input all zeros will be used on the first step.
+        The dimensions are the same as for the first input.
     
     .. rubric:: Layer outputs:
 
-    (1) a vector sequence of the same length.
-    The dimensions:
-    - **BatchLength**, **BatchWidth**, **ListSize** equal to the input's dimensions
-    - **Height**, **Width**, **Depth** are 1
-    - **Channels** is equal to hidden layer size
+    (1) a vector sequence of the same length. The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** equal to the input's dimensions
+        - **Height**, **Width**, **Depth** are 1
+        - **Channels** is equal to hidden layer size
     """
     def __init__(self, input_layer, hidden_size, name=None):
 
@@ -68,18 +68,20 @@ class Gru(Layer):
     @property
     def main_weights(self):
         """Gets the output weights as a 2d matrix of the size:
-        - **BatchLength** * **BatchWidth** * **ListSize** equal to **hidden_size**
-        - **Height** * **Width** * **Depth** * **Channels** equal to 
-        this dimension of the input plus hidden_size
+
+            - **BatchLength** * **BatchWidth** * **ListSize** equal to **hidden_size**
+            - **Height** * **Width** * **Depth** * **Channels** equal to 
+              this dimension of the input plus hidden_size
         """
         return self._internal.get_main_weights()
 
     @main_weights.setter
     def main_weights(self, main_weights):
         """Sets the output weights as a 2d matrix of the size:
-        - **BatchLength** * **BatchWidth** * **ListSize** equal to **hidden_size**
-        - **Height** * **Width** * **Depth** * **Channels** equal to 
-        this dimension of the input plus hidden_size
+
+            - **BatchLength** * **BatchWidth** * **ListSize** equal to **hidden_size**
+            - **Height** * **Width** * **Depth** * **Channels** equal to 
+              this dimension of the input plus hidden_size
         """
         self._internal.set_main_weights(main_weights)
 
@@ -98,6 +100,7 @@ class Gru(Layer):
     @property
     def gate_weights(self):
         """Gets the gate weights as a 2d matrix of the size:
+
         - **BatchLength** * **BatchWidth** * **ListSize** equal to 2 * **hidden_size**
         - **Height** * **Width** * **Depth** * **Channels** equal to 
         this dimension of the input plus **hidden_size**
