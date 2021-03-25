@@ -385,7 +385,8 @@ TEST_F( CFloatVectorTest, Common )
 	s1Full.SetAt( 1, 2.2f );
 }
 
-TEST_F( CFloatVectorTest, CreateHugeSparseMatrix )
+// disable this test due to occasional error on linux build VM
+TEST_F( CFloatVectorTest, DISABLED_CreateHugeSparseMatrix )
 {
 	const int maxLength = 128;
 	const int rowsCount = 17000000;
