@@ -24,13 +24,13 @@ class Irnn(Layer):
     """IRNN implementation from this article: https://arxiv.org/pdf/1504.00941.pdf
 
     It's a simple recurrent unit with the following formula:
-    :math:`Y_t = ReLU( FC_input( X_t ) + FC_recur( Y_t-1 ) )`
-    Where :math:`FC` are fully-connected layers.
+    :math:`Y_t = ReLU( FC_{input}( X_t ) + FC_{recur}( Y_t-1 ) )`
+    where :math:`FC` are fully-connected layers.
 
     The crucial point of this layer is weights initialization.
-    The weight matrix of :math:`FC_input` is initialized from N(0, input_weight_std),
+    The weight matrix of :math:`FC_{input}` is initialized from N(0, input_weight_std),
     where input_weight_std is a layer parameter.
-    The weight matrix of :math:`FC_recur` is an identity matrix, 
+    The weight matrix of :math:`FC_{recur}` is an identity matrix, 
     multiplied by identity_scale parameter.
     
     :param input_layer: The input layer and the number of its output. If no number

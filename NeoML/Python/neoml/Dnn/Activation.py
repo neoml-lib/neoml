@@ -22,7 +22,7 @@ from neoml.Utils import check_input_layers
 class Linear(Layer):
     """The layer that calculates a linear activation function
     for each element of a single input:
-    f(x) = multiplier * x + free_term
+    :math:`f(x) = multiplier * x + free_term`
 
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -89,8 +89,8 @@ class ELU(Layer):
     """The layer that calculates the ELU activation function
     for each element of the single input:
 
-    - :math:`f(x) = alpha * (exp(x) - 1)`    if x < 0
-    - :math:`f(x) = x`                       if x >= 0
+    - :math:`f(x) = alpha * (\exp{x} - 1)`    if :math:`x < 0`
+    - :math:`f(x) = x`                       if :math:`x \ge 0`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -143,14 +143,14 @@ class ReLU(Layer):
     """The layer that calculates the ReLU activation function
     for each element of the single input:
 
-    - :math:`f(x) = 0`    if x <= 0
-    - :math:`f(x) = x`    if x > 0
+    - :math:`f(x) = 0`    if :math:`x \le 0`
+    - :math:`f(x) = x`    if :math:`x > 0`
 
     You also can set the cutoff upper threshold:
 
-    - :math:`f(x) = 0`            if x <= 0
-    - :math:`f(x) = x`            if 0 < x < threshold
-    - :math:`f(x) = threshold`    if threshold <= x
+    - :math:`f(x) = 0`            if :math:`x \le 0`
+    - :math:`f(x) = x`            if :math:`0 < x < threshold`
+    - :math:`f(x) = threshold`    if :math:`threshold \le x`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -201,8 +201,8 @@ class LeakyReLU(Layer):
     """The layer that calculates the "leaky" ReLU activation function
     for each element of the single input:
 
-    - :math:`f(x) = alpha * x`    if x <= 0
-    - :math:`f(x) = x`            if x > 0
+    - :math:`f(x) = alpha * x`    if :math:`x \le 0`
+    - :math:`f(x) = x`            if :math:`x > 0`
 
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -254,9 +254,9 @@ class HSwish(Layer):
     """The layer that calculates the H-Swish activation function
     for each element of the single input:
 
-    - :math:`f(x) = 0`                    if x <= -3
-    - :math:`f(x) = x * (x + 3) / 6`      if -3 < x < 3
-    - :math:`f(x) = x`                    if x >= 3
+    - :math:`f(x) = 0`                    if :math:`x \le -3`
+    - :math:`f(x) = x * (x + 3) / 6`      if :math:`-3 < x < 3`
+    - :math:`f(x) = x`                    if :math:`x \ge 3`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -327,7 +327,7 @@ class Abs(Layer):
 class Sigmoid(Layer):
     """The layer that calculates the sigmoid activation function
     for each element of the signle input:
-    f(x) = 1 / (1 + exp(-x))
+    :math:`f(x) = 1 / (1 + \exp{-x})`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -363,7 +363,7 @@ class Sigmoid(Layer):
 class Tanh(Layer):
     """The layer that calculates the tanh activation function
     for each element of the single input:
-    f(x) = (exp(2 * x) - 1) / (exp(2 * x) + 1)
+    :math:`f(x) = (\exp{2 * x} - 1) / (\exp{2 * x} + 1)`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -400,9 +400,9 @@ class HardTanh(Layer):
     """The layer that calculates the HardTanh activation function
     for each element of the single input:
   
-    - :math:`f(x) = -1`    if x <= -1
-    - :math:`f(x) = x`     if -1 < x < 1
-    - :math:`f(x) = 1`     if x >= 1
+    - :math:`f(x) = -1`    if :math:`x \le -1`
+    - :math:`f(x) = x`     if :math:`-1 < x < 1`
+    - :math:`f(x) = 1`     if :math:`x \ge 1`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -439,9 +439,9 @@ class HardSigmoid(Layer):
     """The layer that calculates the "hard sigmoid" activation function
     for each element of the single input:
 
-    - f(x) = 0                    if x <= -bias / slope
-    - f(x) = slope * x + bias     if -bias / slope < x < (1 - bias) / slope
-    - f(x) = 1                    if x >= (1 - bias) / slope
+    - :math:`f(x) = 0`                    if :math:`x \le -bias / slope`
+    - :math:`f(x) = slope * x + bias`     if :math:`-bias / slope < x < (1 - bias) / slope`
+    - :math:`f(x) = 1`                    if :math:`x \ge (1 - bias) / slope`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -555,7 +555,7 @@ class Power(Layer):
 class GELU(Layer):
     """The layer that calculates the GELU activation function
     for each element of the signle input:
-    f(x) = x / (1 + exp(-1.702 * x))
+    :math:`f(x) = x / (1 + \exp{-1.702 * x})`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.

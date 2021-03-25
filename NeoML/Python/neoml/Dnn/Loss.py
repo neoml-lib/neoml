@@ -81,10 +81,10 @@ class Loss(Layer):
 class CrossEntropyLoss(Loss):
     """The layer that calculates the loss value as cross-entropy 
     between the result and the standard:
-    loss = -sum(y_i * log(z_i)),
+    :math:`loss = -\sum{y_i * \log{z_i}}`,
     where for each i class 
-        y_i represents the class label, 
-        z_i is the network response (with softmax applied or not)
+    :math:`y_i` represents the class label, 
+    :math:`z_i` is the network response (with softmax applied or not)
 
     :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
@@ -157,7 +157,7 @@ class CrossEntropyLoss(Loss):
 class BinaryCrossEntropyLoss(Loss):
     """The layer that calculates the cross-entropy loss function
     for binary classification:
-    loss = y * -log(sigmoid(x)) + (1 - y) * -log(1 - sigmoid(x)), where
+    :math:`loss = y * -\log{sigmoid(x)} + (1 - y) * -\log{1 - sigmoid(x)}`, where
     x is the network response, y is the correct class label (can be -1 or 1)
 
     :param input_layers: The input layers to be connected. 
@@ -266,7 +266,7 @@ class EuclideanLoss(Loss):
 
 class HingeLoss(Loss):
     """The layer that calculates hinge loss function for binary classification:
-    f(x) = max (0, 1 - x * y), where 
+    :math:`f(x) = \max{0, 1 - x * y}`, where 
     x is the network response, 
     y is the correct class label (1 or -1).
     
@@ -314,8 +314,9 @@ class HingeLoss(Loss):
 class SquaredHingeLoss(Loss):
     """The layer that calculates squared hinge loss function
     for binary classification:
-    f(x) = -4 * x * y               if x * y < -1
-    f(x) = sqr(max(0, 1 - x * y))   if x * y >= -1
+
+    - :math:`f(x) = -4 * x * y`               if :math:`x * y < -1`
+    - :math:`f(x) = (\max{0, 1 - x * y})^2`   if :math:`x * y \ge -1`
     where:
     x is the network response, 
     y is the correct class label (1 or -1).
@@ -368,8 +369,8 @@ class FocalLoss(Loss):
     focus on learning the difference between similar-looking elements of
     different classes.
     
-    f(x) = -pow(1 - x_right, force) * log(x_right)
-    where x_right is the network response element that represents 
+    :math:`f(x) = -(1 - x_{right})^{force} * \log{x_{right}}`
+    where :math:`x_{right}` is the network response element that represents 
     the probability for the object to belong to the correct class.
     
     :param input_layers: The input layers to be connected. 
@@ -454,7 +455,7 @@ class BinaryFocalLoss(Loss):
     focus on learning the difference between similar-looking elements of
     different classes.
     
-    f(x) = -pow(sigmoid(-y * x), force) * log(1 + exp(-y * x))
+    :math:`f(x) = -(sigmoid(-y * x))^force * \log{1 + \exp{-y * x}}`
     where:
     x is the network response, 
     y is the correct class label (1 or -1).
@@ -614,10 +615,10 @@ class CenterLoss(Loss):
 class MultiHingeLoss(Loss):
     """The layer that calculates hinge loss function for multiple class
     classification:
-    f(x) = max(0, 1 - (x_right - x_max_wrong))
+    :math:`f(x) = \max{0, 1 - (x_{right} - x_{max\_wrong})}`
     where 
-    x_right is the network response for the correct class,
-    x_max_wrong is the largest response for all the incorrect classes.
+    :math:`x_{right}` is the network response for the correct class,
+    :math:`x_{max\_wrong}` is the largest response for all the incorrect classes.
     
     :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
@@ -676,11 +677,12 @@ class MultiHingeLoss(Loss):
 class MultiSquaredHingeLoss(Loss):
     """The layer that calculates squared hinge loss function for multiple class
     classification:
-    f(x) = -4 * (x_right - x_max_wrong)             if x_right - x_max_wrong < -1
-    f(x) = sqr(max(0, 1 - (x_right - x_max_wrong))) if x_right - x_max_wrong >= -1
+
+    - :math:`f(x) = -4 * (x_{right} - x_{max\_wrong})`             if :math:`x_{right} - x_{max\_wrong} < -1`
+    - :math:`f(x) = (\max{0, 1 - (x_{right} - x_{max\_wrong})})^2` if :math:`x_{right} - x_{max\_wrong} \ge -1`
     where 
-    x_right is the network response for the correct class,
-    x_max_wrong is the largest response for all the incorrect classes.
+    :math:`x_{right}` is the network response for the correct class,
+    :math:`x_{max\_wrong}` is the largest response for all the incorrect classes.
     
     :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
