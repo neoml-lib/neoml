@@ -157,7 +157,7 @@ class CrossEntropyLoss(Loss):
 class BinaryCrossEntropyLoss(Loss):
     """The layer that calculates the cross-entropy loss function
     for binary classification:
-    :math:`loss = y * -\log{sigmoid(x)} + (1 - y) * -\log{1 - sigmoid(x)}`, where
+    :math:`loss = - y * \log(sigmoid(x)) - (1 - y) * \log(1 - sigmoid(x))`, where
     x is the network response, y is the correct class label (can be -1 or 1)
 
     :param input_layers: The input layers to be connected. 
