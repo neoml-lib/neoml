@@ -369,7 +369,7 @@ class FocalLoss(Loss):
     focus on learning the difference between similar-looking elements of
     different classes.
     
-    :math:`f(x) = -(1 - x_{right})^{force} * \log{x_{right}}`
+    :math:`f(x) = -(1 - x_{right})^{force} * \log(x_{right})`
     where :math:`x_{right}` is the network response element that represents 
     the probability for the object to belong to the correct class.
     
@@ -455,7 +455,7 @@ class BinaryFocalLoss(Loss):
     focus on learning the difference between similar-looking elements of
     different classes.
     
-    :math:`f(x) = -(sigmoid(-y * x))^{force} * \log{1 + e^{-y * x}}`
+    :math:`f(x) = -(sigmoid(-y * x))^{force} * \log(1 + e^{-y * x})`
     where:
     x is the network response, 
     y is the correct class label (1 or -1).
