@@ -48,9 +48,12 @@ public:
 	virtual ~IRegressionModel();
 
 	// Predicts the function value on a vector
-	virtual double Predict( const CSparseFloatVector& data ) const = 0;
-	virtual double Predict( const CFloatVector& data ) const = 0;
 	virtual double Predict( const CFloatVectorDesc& desc ) const = 0;
+	virtual double Predict( const CSparseFloatVector& data ) const
+	{
+		return Predict( data.GetDesc() );
+	}
+	virtual double Predict( const CFloatVector& data ) const = 0;
 
 	// Serializes the model
 	virtual void Serialize( CArchive& archive ) = 0;
