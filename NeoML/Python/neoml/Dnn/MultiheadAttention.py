@@ -28,11 +28,11 @@ class MultiheadAttention(Layer):
     :math:`V = W_V * V`
     where :math:`W_*` are trainable matrices of size (Channels_* x GetHiddenSize())
    
-    Attention(Q, K, V) = :math:`\textrm{softmax}( Q * K_t / \sqrt(d_K) ) * V`
+    Attention(Q, K, V) = :math:`\mathit{softmax}( Q * K_t / \sqrt{d_K} ) * V`
     where :math:`d_k` - dimension of k
     
-    :math:`\textrm{MultiHeadAttention} = \textrm{dropout_if_needed}(\textrm{concat}( head_1, ..., head_N )) * W_O`
-    where :math:`head_i = \textrm{Attention}( W_{Q,i} * X, W_{K,i} * X, W_{V,i} * X )`, 
+    :math:`MultiHeadAttention = dropout_if_needed(concat( head_1, ..., head_N )) * W_O`
+    where :math:`head_i = Attention( W_{Q,i} * X, W_{K,i} * X, W_{V,i} * X )`, 
     :math:`W_*` - trainable parameters and :math:`W_O` is an additional trainable matrix of size (GetHiddenSize() x GetOutputSize())
 
     See the papers: https://arxiv.org/pdf/1706.03762.pdf

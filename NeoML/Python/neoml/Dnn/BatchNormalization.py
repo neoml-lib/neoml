@@ -21,7 +21,7 @@ from neoml.Utils import check_input_layers
 
 class BatchNormalization(Layer):
     """The layer that performs normalization using the formula:
-    :math:`\textrm{bn}(x)[i][j] = ((x[i][j] - \textrm{mean}[j]) / \sqrt(\textrm{var}[j])) * \textrm{gamma}[j] + \textrm{beta}[j]`
+    :math:`bn(x)[i][j] = ((x[i][j] - mean[j]) / \sqrt{var[j]}) * gamma[j] + beta[j]`
     
     - gamma and beta are the trainable parameters
     - mean and var depend on whether the layer is being trained:
