@@ -266,7 +266,7 @@ class EuclideanLoss(Loss):
 
 class HingeLoss(Loss):
     """The layer that calculates hinge loss function for binary classification:
-    :math:`f(x) = \max{0, 1 - x * y}`, where 
+    :math:`f(x) = \max{(0, 1 - x * y)}`, where 
     x is the network response, 
     y is the correct class label (1 or -1).
     
@@ -316,7 +316,7 @@ class SquaredHingeLoss(Loss):
     for binary classification:
 
     - :math:`f(x) = -4 * x * y`               if :math:`x * y < -1`
-    - :math:`f(x) = (\max{0, 1 - x * y})^2`   if :math:`x * y \ge -1`
+    - :math:`f(x) = (\max{(0, 1 - x * y)})^2`   if :math:`x * y \ge -1`
     where:
     x is the network response, 
     y is the correct class label (1 or -1).
@@ -455,7 +455,7 @@ class BinaryFocalLoss(Loss):
     focus on learning the difference between similar-looking elements of
     different classes.
     
-    :math:`f(x) = -(sigmoid(-y * x))^force * \log{1 + \exp{-y * x}}`
+    :math:`f(x) = -(sigmoid(-y * x))^{force} * \log{1 + e^{-y * x}}`
     where:
     x is the network response, 
     y is the correct class label (1 or -1).
@@ -615,7 +615,7 @@ class CenterLoss(Loss):
 class MultiHingeLoss(Loss):
     """The layer that calculates hinge loss function for multiple class
     classification:
-    :math:`f(x) = \max{0, 1 - (x_{right} - x_{max\_wrong})}`
+    :math:`f(x) = \max{(0, 1 - (x_{right} - x_{max\_wrong}))}`
     where 
     :math:`x_{right}` is the network response for the correct class,
     :math:`x_{max\_wrong}` is the largest response for all the incorrect classes.
@@ -679,7 +679,7 @@ class MultiSquaredHingeLoss(Loss):
     classification:
 
     - :math:`f(x) = -4 * (x_{right} - x_{max\_wrong})`             if :math:`x_{right} - x_{max\_wrong} < -1`
-    - :math:`f(x) = (\max{0, 1 - (x_{right} - x_{max\_wrong})})^2` if :math:`x_{right} - x_{max\_wrong} \ge -1`
+    - :math:`f(x) = (\max{(0, 1 - (x_{right} - x_{max\_wrong}))})^2` if :math:`x_{right} - x_{max\_wrong} \ge -1`
     where 
     :math:`x_{right}` is the network response for the correct class,
     :math:`x_{max\_wrong}` is the largest response for all the incorrect classes.

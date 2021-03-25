@@ -22,7 +22,7 @@ from neoml.Utils import check_input_layers
 class Linear(Layer):
     """The layer that calculates a linear activation function
     for each element of a single input:
-    :math:`f(x) = multiplier * x + free_term`
+    :math:`f(x) = multiplier * x + free\_term`
 
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -89,8 +89,8 @@ class ELU(Layer):
     """The layer that calculates the ELU activation function
     for each element of the single input:
 
-    - :math:`f(x) = alpha * (\exp{x} - 1)`    if :math:`x < 0`
-    - :math:`f(x) = x`                       if :math:`x \ge 0`
+    - :math:`f(x) = alpha * (e^x - 1)`    if :math:`x < 0`
+    - :math:`f(x) = x`                    if :math:`x \ge 0`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -327,7 +327,7 @@ class Abs(Layer):
 class Sigmoid(Layer):
     """The layer that calculates the sigmoid activation function
     for each element of the signle input:
-    :math:`f(x) = 1 / (1 + \exp{-x})`
+    :math:`f(x) = 1 / (1 + e^{-x})`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -363,7 +363,7 @@ class Sigmoid(Layer):
 class Tanh(Layer):
     """The layer that calculates the tanh activation function
     for each element of the single input:
-    :math:`f(x) = (\exp{2 * x} - 1) / (\exp{2 * x} + 1)`
+    :math:`f(x) = (e^{2 * x} - 1) / (e^{2 * x} + 1)`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -555,7 +555,7 @@ class Power(Layer):
 class GELU(Layer):
     """The layer that calculates the GELU activation function
     for each element of the signle input:
-    :math:`f(x) = x / (1 + \exp{-1.702 * x})`
+    :math:`f(x) = x / (1 + e^{-1.702 * x})`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
