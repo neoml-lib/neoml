@@ -32,7 +32,7 @@ class CtcLoss(Layer):
     :type blank: int
     :param skip: Specifies if blank labels may be skipped when aligning.
     :type skip: bool
-    :param    loss_weight:  The multiplier for the loss function value during training.
+    :param loss_weight:  The multiplier for the loss function value during training.
     :type loss_weight: float, default=1.0
     :param name: The layer name.
     :type name: str, default=None

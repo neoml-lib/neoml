@@ -28,16 +28,17 @@ class AttentionDecoder(Layer):
         If not set, the first output will be used.
     :type input_layers: list of object, tuple(object, int)
     :param score: The type of estimate function used to check alignment 
-        of input and output sequences.
-        ``additive`` is tanh(x*Wx + y*Wy)*v
-        ``dot_product`` is x*W*y
+        of input and output sequences:
+
+        - ``additive`` is tanh(x*Wx + y*Wy)*v
+        - ``dot_product`` is x*W*y
     :type score: str, {'additive', 'dot_product'}
     :param hidden_size: The size of the hidden layer.
     :type hidden_size: int
     :param output_object_size: The number of channels in the output object.
     :type output_object_size: int
-    :param output_seq_len : The length of the output sequence.
-    :type output_seq_len : int
+    :param output_seq_len: The length of the output sequence.
+    :type output_seq_len: int
     :param name: The layer name.
     :type name: str, default=None
 

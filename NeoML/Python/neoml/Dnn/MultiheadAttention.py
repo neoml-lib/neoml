@@ -23,17 +23,17 @@ class MultiheadAttention(Layer):
     """The multihead self-attention layer that transforms a set of matrices
     according to a formula:
 
-    Q = W_Q * Q
-    K = W_K * K
-    V = W_V * V
-    where W_* are trainable matrices of size (Channels_* x GetHiddenSize())
+    :math:`Q = W_Q * Q`,
+    :math:`K = W_K * K`,
+    :math:`V = W_V * V`
+    where :math:`W_*` are trainable matrices of size (Channels_* x GetHiddenSize())
    
-    Attention(Q, K, V) = softmax( Q * K_t / sqrt(d_K) ) * V
-    where d_k - dimension of k
+    Attention(Q, K, V) = :math:`\textrm{softmax}( Q * K_t / \sqrt(d_K) ) * V`
+    where :math:`d_k` - dimension of k
     
-    MultiHeadAttention = dropout_if_needed(concat( head_1, ..., head_N )) * W_O
-    where head_i = Attention( W_Q_i * X, W_K_i * X, W_V_i * X ) 
-    W_* - trainable parameters and W_O is an additional trainable matrix of size (GetHiddenSize() x GetOutputSize())
+    :math:`\textrm{MultiHeadAttention} = \textrm{dropout_if_needed}(\textrm{concat}( head_1, ..., head_N )) * W_O`
+    where :math:`head_i = \textrm{Attention}( W_{Q,i} * X, W_{K,i} * X, W_{V,i} * X )`, 
+    :math:`W_*` - trainable parameters and :math:`W_O` is an additional trainable matrix of size (GetHiddenSize() x GetOutputSize())
 
     See the papers: https://arxiv.org/pdf/1706.03762.pdf
     https://arxiv.org/pdf/1807.03819.pdf

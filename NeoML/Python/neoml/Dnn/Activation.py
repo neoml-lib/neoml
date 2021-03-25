@@ -88,8 +88,9 @@ class Linear(Layer):
 class ELU(Layer):
     """The layer that calculates the ELU activation function
     for each element of the single input:
-    f(x) = alpha * (exp(x) - 1)    if x < 0
-    f(x) = x                       if x >= 0
+
+    - :math:`f(x) = alpha * (exp(x) - 1)`    if x < 0
+    - :math:`f(x) = x`                       if x >= 0
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -141,13 +142,15 @@ class ELU(Layer):
 class ReLU(Layer):
     """The layer that calculates the ReLU activation function
     for each element of the single input:
-    f(x) = 0    if x <= 0
-    f(x) = x    if x > 0
+
+    - :math:`f(x) = 0`    if x <= 0
+    - :math:`f(x) = x`    if x > 0
 
     You also can set the cutoff upper threshold:
-    f(x) = 0            if x <= 0
-    f(x) = x            if 0 < x < threshold
-    f(x) = threshold    if threshold <= x
+
+    - :math:`f(x) = 0`            if x <= 0
+    - :math:`f(x) = x`            if 0 < x < threshold
+    - :math:`f(x) = threshold`    if threshold <= x
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -197,8 +200,9 @@ class ReLU(Layer):
 class LeakyReLU(Layer):
     """The layer that calculates the "leaky" ReLU activation function
     for each element of the single input:
-    f(x) = alpha * x    if x <= 0
-    f(x) = x            if x > 0
+
+    - :math:`f(x) = alpha * x`    if x <= 0
+    - :math:`f(x) = x`            if x > 0
 
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -249,9 +253,10 @@ class LeakyReLU(Layer):
 class HSwish(Layer):
     """The layer that calculates the H-Swish activation function
     for each element of the single input:
-    f(x) = 0                    if x <= -3
-    f(x) = x * (x + 3) / 6      if -3 < x < 3
-    f(x) = x                    if x >= 3
+
+    - :math:`f(x) = 0`                    if x <= -3
+    - :math:`f(x) = x * (x + 3) / 6`      if -3 < x < 3
+    - :math:`f(x) = x`                    if x >= 3
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -394,9 +399,10 @@ class Tanh(Layer):
 class HardTanh(Layer):
     """The layer that calculates the HardTanh activation function
     for each element of the single input:
-    f(x) = -1    if x <= -1
-    f(x) = x     if -1 < x < 1
-    f(x) = 1     if x >= 1
+  
+    - :math:`f(x) = -1`    if x <= -1
+    - :math:`f(x) = x`     if -1 < x < 1
+    - :math:`f(x) = 1`     if x >= 1
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
