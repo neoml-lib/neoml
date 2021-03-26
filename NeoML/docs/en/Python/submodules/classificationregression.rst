@@ -1,10 +1,10 @@
-.. _py-submodule-clustering:
+.. _py-submodule-classificationregression:
 
 ################
-neoml.Clustering
+neoml.ClassificationRegression
 ################
 
-The `neoml` module contains multiple clustering algorithms such as:
+The `neoml` module provides:
 
 - :ref:`py-clustering-kmeans`
 - :ref:`py-clustering-isodata`

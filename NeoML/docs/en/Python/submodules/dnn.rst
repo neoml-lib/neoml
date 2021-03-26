@@ -7,6 +7,7 @@ neoml.Dnn
 - :ref:`py-dnn-network`
 - :ref:`py-dnn-layers`
 
+   - :ref: `py-dnn-sinksource`
    - :ref:`py-dnn-recurrent`
 
 .. _py-dnn-network:
@@ -14,10 +15,18 @@ neoml.Dnn
 Neural network
 ##############
 
+.. autoclass:: neoml.Dnn.Dnn
+.. autoclass:: neoml.Dnn.Blob
+
 .. _py-dnn-layers:
 
 Layers
 ######
+
+.. _py-dnn-sinksource:
+
+The layers used to pass data to and from the network
+*********************************************************
 
 .. _py-dnn-recurrent:
 
@@ -26,3 +35,13 @@ Recurrent layers
 
 .. autoclass:: neoml.Dnn.Lstm
    :members:
+
+.. autoclass:: neoml.Dnn.FullyConnected
+   :members:
+
+Activation layers
+****************
+
+Loss layers
+****************
+
