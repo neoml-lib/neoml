@@ -853,9 +853,9 @@ NEOMATHENGINE_API void CpuMathEngineCleanUp();
 // Half tensor core math - less accurate, supported by all cards with tensor cores
 // Incompatible with float math flag below
 const int GpuMathEngineCublasUseTensorCoresHalfFlag = 0x1;
-// Float tensor core math - more accurate, supported by modern cards (e.g. not supported by TITAN RTX)
+// TF32 tensor core math - more accurate, supported by modern cards based on the Ampere architecture
 // Incompatible with half math flag above
-const int GpuMathEngineCublasUseTensorCoresFloatFlag = 0x2;
+const int GpuMathEngineCublasUseTensorCoresTF32Flag = 0x2;
 
 // Creates a math engine that uses the recommended GPU for calculations
 // Returns null if no GPUs are available

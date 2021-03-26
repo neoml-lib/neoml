@@ -32,7 +32,7 @@ CGradientBoostModel::CGradientBoostModel( CArray<CGradientBoostEnsemble>& _ensem
 	_ensembles.MoveTo( ensembles );
 }
 
-bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
+bool CGradientBoostModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
 {
 	CFastArray<double, 1> predictions;
 
@@ -138,7 +138,7 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVector& data, CArray<CCl
 	return ClassifyEx( data.GetDesc(), results );
 }
 
-bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const
+bool CGradientBoostModel::ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const
 {
 	NeoAssert( !ensembles.IsEmpty() );
 
@@ -238,7 +238,7 @@ double CGradientBoostModel::Predict( const CFloatVector& data ) const
 	return doPredict( data );
 }
 
-double CGradientBoostModel::Predict( const CSparseFloatVectorDesc& data ) const
+double CGradientBoostModel::Predict( const CFloatVectorDesc& data ) const
 {
 	return doPredict( data );
 }
@@ -271,13 +271,7 @@ CFloatVector CGradientBoostModel::doMultivariatePredict( const TData& data ) con
 }
 
 // IMultivariateRegressionModel interface methods
-
-CFloatVector CGradientBoostModel::MultivariatePredict( const CSparseFloatVector& data ) const
-{
-	return doMultivariatePredict( data.GetDesc() );
-}
-
-CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVector& data ) const
+CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVectorDesc& data ) const
 {
 	return doMultivariatePredict( data );
 }

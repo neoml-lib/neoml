@@ -37,8 +37,8 @@ public:
 
 	virtual int GetVectorCount() const { return matrix.GetHeight(); }
 	virtual int GetFeaturesCount() const { return matrix.GetWidth(); }
-	virtual CSparseFloatVectorDesc GetVector( int index ) const { return matrix.GetRow( index ); }
-	virtual CSparseFloatMatrixDesc GetMatrix() const { return matrix.GetDesc(); }
+	virtual CFloatVectorDesc GetVector( int index ) const { return matrix.GetRow( index ); }
+	virtual CFloatMatrixDesc GetMatrix() const { return matrix.GetDesc(); }
 	virtual double GetVectorWeight( int /*index*/ ) const { return 1.0; }
 
 private:

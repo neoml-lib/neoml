@@ -16,7 +16,6 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/TraditionalML/FloatVector.h>
 #include <NeoML/TraditionalML/SparseFloatMatrix.h>
 #include <NeoML/TraditionalML/CommonCluster.h>
 
@@ -65,7 +64,7 @@ public:
 	virtual int GetFeaturesCount() const = 0;
 
 	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
 	// Gets the weight of the vector with the given index
 	virtual double GetVectorWeight( int index ) const = 0;

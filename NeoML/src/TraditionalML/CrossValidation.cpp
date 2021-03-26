@@ -63,13 +63,13 @@ void CCrossValidation::Execute( int partsCount, TScore score, CCrossValidationRe
 			testSubProblem = FINE_DEBUG_NEW CCrossValidationSubProblem( problem, partsCount, i, true );
 		}
 
-		CSparseFloatMatrixDesc testSubProblemMatrix = testSubProblem->GetMatrix();
+		CFloatMatrixDesc testSubProblemMatrix = testSubProblem->GetMatrix();
 		
 		// Current model classification result to calculate the loss function
 		CArray<CClassificationResult> classificationResults;
 
 		for( int j = 0; j < testSubProblem->GetVectorCount(); j++ ) {
-			CSparseFloatVectorDesc vector;
+			CFloatVectorDesc vector;
 			testSubProblemMatrix.GetRow( j, vector );
 			model->Classify( vector, result.Results[testSubProblem->GetOriginalIndex( j )] );
 			classificationResults.Add( result.Results[testSubProblem->GetOriginalIndex( j )] );

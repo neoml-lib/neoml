@@ -307,7 +307,8 @@ double CGradientBoostQSEnsemble::Predict( const CSparseFloatVector& data ) const
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
-	const CSparseFloatVectorDesc& desc = data.GetDesc();
+	const CFloatVectorDesc& desc = data.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	for( int i = 0; i < desc.Size; i++ ) {
 		processFeature( desc.Indexes[i], desc.Values[i], resultBitvectors );
 	}
@@ -328,31 +329,43 @@ double CGradientBoostQSEnsemble::Predict( const CFloatVector& data ) const
 	return calculateScore<CFloatVector>( data, resultBitvectors, GetTreesCount() - 1 );
 }
 
-double CGradientBoostQSEnsemble::Predict( const CSparseFloatVectorDesc& data ) const
+double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data ) const
 {
 	// The resulting bit masks, one per tree; for a start all bits are set to 1
 	CFastArray<unsigned __int64, 512> resultBitvectors;
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
-	for( int i = 0; i < data.Size; i++ ) {
-		processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+	if( data.Indexes == nullptr ) {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( i, data.Values[i], resultBitvectors );
+		}
+	} else {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+		}
 	}
 
-	return calculateScore<CSparseFloatVectorDesc>( data, resultBitvectors, GetTreesCount() - 1 );
+	return calculateScore<CFloatVectorDesc>( data, resultBitvectors, GetTreesCount() - 1 );
 }
 
-double CGradientBoostQSEnsemble::Predict( const CSparseFloatVectorDesc& data, int lastTreeIndex ) const
+double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data, int lastTreeIndex ) const
 {
 	CFastArray<unsigned __int64, 512> resultBitvectors;
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
-	for( int i = 0; i < data.Size; i++ ) {
-		processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+	if( data.Indexes == nullptr ) {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( i, data.Values[i], resultBitvectors );
+		}
+	} else {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+		}
 	}
 
-	return calculateScore<CSparseFloatVectorDesc>( data, resultBitvectors, lastTreeIndex );
+	return calculateScore<CFloatVectorDesc>( data, resultBitvectors, lastTreeIndex );
 }
 
 CArchive& operator<<( CArchive& archive, const CGradientBoostQSEnsemble& block )
@@ -762,7 +775,7 @@ static inline float getFeatureValue( const CFloatVector& data, int index )
 	return data[index];
 }
 
-static inline float getFeatureValue( const CSparseFloatVectorDesc& data, int index )
+static inline float getFeatureValue( const CFloatVectorDesc& data, int index )
 {
 	float result;
 	GetValue( data, index, result );
