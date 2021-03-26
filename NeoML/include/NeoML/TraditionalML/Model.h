@@ -33,9 +33,7 @@ public:
 	// Classifies the input vector and returns true if successful, false otherwise
 	virtual bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const = 0;
 	virtual bool Classify( const CSparseFloatVector& data, CClassificationResult& result ) const
-	{
-		return Classify( data.GetDesc(), result );
-	}
+		{ return Classify( data.GetDesc(), result ); }
 	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const = 0;
 
 	// Serializes the model
@@ -50,9 +48,7 @@ public:
 	// Predicts the function value on a vector
 	virtual double Predict( const CFloatVectorDesc& desc ) const = 0;
 	virtual double Predict( const CSparseFloatVector& data ) const
-	{
-		return Predict( data.GetDesc() );
-	}
+		{ return Predict( data.GetDesc() ); }
 	virtual double Predict( const CFloatVector& data ) const = 0;
 
 	// Serializes the model

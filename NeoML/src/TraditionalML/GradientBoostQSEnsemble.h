@@ -91,7 +91,6 @@ public:
 	void Build( const CGradientBoostEnsemble &treeModel );
 
 	// Prediction methods
-	double Predict( const CSparseFloatVector& data ) const;
 	double Predict( const CFloatVector& data ) const;
 	double Predict( const CFloatVectorDesc& data ) const;
 

@@ -77,11 +77,6 @@ void CLinearBinaryModel::Serialize( CArchive& archive )
 	}
 }
 
-double CLinearBinaryModel::Predict( const CSparseFloatVector& data ) const
-{
-	return LinearFunction( plane, data );
-}
-
 double CLinearBinaryModel::Predict( const CFloatVector& data ) const
 {
 	return LinearFunction( plane, data );

@@ -63,7 +63,6 @@ public:
 	bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
 
 	// IRegressionModel interface methods
-	double Predict( const CSparseFloatVector& data ) const override;
 	double Predict( const CFloatVector& data ) const override;
 	double Predict( const CFloatVectorDesc& data ) const override;
 
@@ -99,11 +98,6 @@ CGradientBoostQSModel::CGradientBoostQSModel( const CArray<CGradientBoostEnsembl
 		ensembles.Add( FINE_DEBUG_NEW CGradientBoostQSEnsemble() );
 		ensembles.Last()->Build( gbEnsemble );
 	}
-}
-
-double CGradientBoostQSModel::Predict( const CSparseFloatVector& data ) const
-{
-	return ensembles.First()->Predict( data ) * learningRate;
 }
 
 double CGradientBoostQSModel::Predict( const CFloatVector& data ) const

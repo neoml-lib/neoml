@@ -39,7 +39,6 @@ public:
 	const CSigmoid& GetSigmoid() const override { return coefficients; }
 
 	// IRegressionModel interface methods
-	double Predict( const CSparseFloatVector& data ) const override;
 	double Predict( const CFloatVector& data ) const override;
 	double Predict( const CFloatVectorDesc& data ) const override;
 

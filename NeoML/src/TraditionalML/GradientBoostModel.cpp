@@ -228,11 +228,6 @@ inline double CGradientBoostModel::doPredict( const TData& data ) const
 	return predictions[0];
 }
 
-double CGradientBoostModel::Predict( const CSparseFloatVector& data ) const
-{
-	return doPredict( data.GetDesc() );
-}
-
 double CGradientBoostModel::Predict( const CFloatVector& data ) const
 {
 	return doPredict( data );
