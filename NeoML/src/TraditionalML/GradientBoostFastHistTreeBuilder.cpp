@@ -286,7 +286,7 @@ void CGradientBoostFastHistTreeBuilder::addVectorToHist( const int* vectorPtr, i
 // Returns NotFound if splitting is impossible
 int CGradientBoostFastHistTreeBuilder::evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const
 {
-	if( ( params.MaxNodesCount != NotFound ) && ( nodes.Size() + 2 > params.MaxNodesCount )
+	if( ( params.MaxNodesCount != NotFound && nodes.Size() + 2 > params.MaxNodesCount )
 	    || ( node.Level >= params.MaxTreeDepth ) ) {
 		// The nodes limit has been reached
 		return NotFound;
