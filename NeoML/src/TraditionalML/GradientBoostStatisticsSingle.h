@@ -25,16 +25,16 @@ public:
 	CGradientBoostStatisticsSingle();
 	explicit CGradientBoostStatisticsSingle( int valueSize );
 	explicit CGradientBoostStatisticsSingle( const CGradientBoostStatisticsSingle& other );
-	explicit CGradientBoostStatisticsSingle( double gradient, double hessian, float weight );
+	explicit CGradientBoostStatisticsSingle( double gradient, double hessian, double weight );
 	CGradientBoostStatisticsSingle& operator=( const CGradientBoostStatisticsSingle& other );
 
 	// Adds a vector
-	void Add( double gradient, double hessian, float weight );
-	void Add( const CArray<double>& gradient, const CArray<double>& hessian, const CArray<float>& weight, int vectorIndex );
+	void Add( double gradient, double hessian, double weight );
+	void Add( const CArray<double>& gradient, const CArray<double>& hessian, const CArray<double>& weight, int vectorIndex );
 	void Add( const CGradientBoostStatisticsSingle& other );
 
 	// Deletes a vector
-	void Sub( double gradient, double hessian, float weight );
+	void Sub( double gradient, double hessian, double weight );
 	void Sub( const CGradientBoostStatisticsSingle& other );
 
 	// Clears all accumulated data
@@ -86,7 +86,7 @@ inline CGradientBoostStatisticsSingle::CGradientBoostStatisticsSingle( int value
 	totalWeight = 0.0;
 }
 
-inline CGradientBoostStatisticsSingle::CGradientBoostStatisticsSingle( double gradient, double hessian, float weight )
+inline CGradientBoostStatisticsSingle::CGradientBoostStatisticsSingle( double gradient, double hessian, double weight )
 {
 	totalGradient = gradient;
 	totalHessian = hessian;
@@ -110,14 +110,14 @@ inline CGradientBoostStatisticsSingle& CGradientBoostStatisticsSingle::operator=
 	return *this;
 }
 
-inline void CGradientBoostStatisticsSingle::Add( double gradient, double hessian, float weight )
+inline void CGradientBoostStatisticsSingle::Add( double gradient, double hessian, double weight )
 {
 	totalGradient += gradient;
 	totalHessian += hessian;
 	totalWeight += weight;
 }
 
-inline void CGradientBoostStatisticsSingle::Add( const CArray<double>& gradient, const CArray<double>& hessian, const CArray<float>& weight, int vectorIndex )
+inline void CGradientBoostStatisticsSingle::Add( const CArray<double>& gradient, const CArray<double>& hessian, const CArray<double>& weight, int vectorIndex )
 {
 	totalGradient += gradient[vectorIndex];
 	totalHessian += hessian[vectorIndex];
@@ -131,7 +131,7 @@ inline void CGradientBoostStatisticsSingle::Add( const CGradientBoostStatisticsS
 	totalWeight += other.totalWeight;
 }
 
-inline void CGradientBoostStatisticsSingle::Sub( double gradient, double hessian, float weight )
+inline void CGradientBoostStatisticsSingle::Sub( double gradient, double hessian, double weight )
 {
 	totalGradient -= gradient;
 	totalHessian -= hessian;

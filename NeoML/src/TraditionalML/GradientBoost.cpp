@@ -576,12 +576,12 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	gradientsSum.Add( 0, gradients.Size() );
 	CArray<double> hessiansSum;
 	hessiansSum.Add( 0, gradients.Size() );
-	CArray<float> weights;
+	CArray<double> weights;
 	weights.SetSize( usedVectors.Size() );
 
-	float weightsSum = 0;
+	double weightsSum = 0;
 	for( int i = 0; i < usedVectors.Size(); i++ ) {
-		weights[i] = static_cast<float>( problem->GetVectorWeight( usedVectors[i] ) );
+		weights[i] = problem->GetVectorWeight( usedVectors[i] );
 		weightsSum += weights[i];
 	}
 
