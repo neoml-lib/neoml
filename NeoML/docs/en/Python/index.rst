@@ -11,7 +11,7 @@ Welcome to NeoML documentation!
 
 `neoml` module provides a Python interface for the `C++ NeoML library <https://github.com/neoml-lib/neoml>`_.
 
-**NeoML** is an end-to-end machine learning framework that allows you to build, train, and deploy ML models. This framework is used by ABBYY engineers for computer vision and natural language processing tasks, including image preprocessing, classification, document layout analysis, OCR, and data extraction from structured and unstructured documents.
+NeoML is an end-to-end machine learning framework that allows you to build, train, and deploy ML models. This framework is used by ABBYY engineers for computer vision and natural language processing tasks, including image preprocessing, classification, document layout analysis, OCR, and data extraction from structured and unstructured documents.
 
 Basic principles
 ###################
@@ -19,9 +19,7 @@ Basic principles
 Platform independence
 ***********************
 
-The user interface is completely separated from the low-level calculations implemented by a math engine. 
-
-The only thing you have to do is to specify at the start the type of the math engine that will be used for calculations. You can also choose to select the math engine automatically, based on the device configuration detected.
+The user interface is completely separated from the low-level calculations implemented by a math engine. The only thing you have to do is to specify at the start the type of the math engine that will be used for calculations. You can also choose to select the math engine automatically, based on the device configuration detected.
 
 The rest of your machine learning code will be the same regardless of the math engine you choose.
 
@@ -33,16 +31,14 @@ Each network works with one math engine instance, and all its layers should have
 Multi-threading support
 ***************************
 
-The math engine interface is thread-safe; the same instance may be used in different networks and different threads.
+The math engine interface is thread-safe; the same instance may be used in different networks and different threads. Note that this may entail some synchronization overhead.
 
-Note that this may entail some synchronization overhead.
-
-However, the `neural network implementation`<py-submodule-dnn> is not thread-safe; the network may run only in one thread.
+However, the `neural network implementation <py-submodule-dnn>`_ is not thread-safe; the network may run only in one thread.
 
 .. ONNX support
    ********************
 
-   **NeoML** library also works with the models created by other frameworks, as long as they support the `ONNX`<https://onnx.ai/> format. See [the description of import API](NeoML/docs/en/Onnx.md). However, you cannot export a NeoML-trained model into ONNX format.
+   **NeoML** library also works with the models created by other frameworks, as long as they support the `ONNX <https://onnx.ai/>` format. See the description of import API. However, you cannot export a NeoML-trained model into ONNX format.
 
 
 Submodules

@@ -4,7 +4,7 @@
 neoml.Clustering
 ################
 
-The `neoml` module contains multiple clustering algorithms such as:
+The `neoml` module provides several methods for clustering data.
 
 - :ref:`py-clustering-kmeans`
 - :ref:`py-clustering-isodata`
@@ -16,9 +16,9 @@ The `neoml` module contains multiple clustering algorithms such as:
 K-Means
 #######
 
-`K-Means method <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/kMeans.md>`_
-is the most popular clustering algorithm.
-It assigns each object to the cluster with the nearest center.
+K-Means method is the most popular clustering algorithm.
+
+On each step, the mass center for each cluster is calculated, and then the vectors are reassigned to clusters with the nearest center. The algorithm stops on the step when the in-cluster distance does not change.
 
 Class description
 *****************

@@ -4,26 +4,44 @@
 neoml.ClassificationRegression
 ################
 
-The `neoml` module provides:
+In `neoml` module, you can find various methods for solving classification and regression problems.
 
-- :ref:`py-clustering-kmeans`
-- :ref:`py-clustering-isodata`
-- :ref:`py-clustering-hierarchical`
-- :ref:`py-clustering-first-come`
+- :ref:`py-classification-gradientboosting`
+- :ref:`py-classification-linear`
+- :ref:`py-classification-svm`
+- :ref:`py-classification-decisiontree`
+- :ref:`py-classification-onevsall`
 
-.. _py-clustering-kmeans:
+.. _py-classification-gradientboosting:
 
-K-Means
-#######
+Gradient tree boosting
+######################
 
-`K-Means method <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/kMeans.md>`_
-is the most popular clustering algorithm.
-It assigns each object to the cluster with the nearest center.
+Gradient boosting method creates an ensemble of decision trees using random subsets of features and input data.
+The algorithm only accepts continuous features. If your data is characterized by discrete features you will need to transform them into continuous ones (for example, using binarization).
 
-Class description
-*****************
+Classifier class description
+****************************
 
-.. autoclass:: neoml.Clustering.KMeans
+.. autoclass:: neoml.GradientBoostClassifier
+   :members:
+
+Classification model class description
+**************************************
+
+.. autoclass:: neoml.GradientBoostClassificationModel
+   :members:
+
+Regressor class description
+***************************
+
+.. autoclass::neoml.GradientBoostRegressor
+   :members:
+
+Regression model class description
+**********************************
+
+.. autoclass::neoml.GradientBoostRegressionModel
    :members:
 
 Example
@@ -34,93 +52,7 @@ Example
    import numpy as np
    import neoml
 
-   data = np.rand(1000, 5)
-   kmeans = neoml.Clustering.KMeans(init_cluster_count=4, init='k++', algo='elkan')
-   labels, centers, disps = kmeans.clusterize(data)
-
-.. _py-clustering-isodata:
-
-ISODATA
-#######
-
-`ISODATA clustering algorithm <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/ISODATA.md>`_
-is based on geometrical proximity of the data points.
-The clustering result will depend greatly on the initial settings.
-
-Class description
-*****************
-
-.. autoclass:: neoml.Clustering.IsoData
-   :members:
-
-Example
-*******
-
-.. code-block:: python
-
-   import numpy as np
-   import neoml
-
-   data = np.rand(1000, 5)
-   isodata = neoml.Clustering.IsoData(init_cluster_count=2, max_cluster_count=10,
-                                      max_iteration_count=100, min_cluster_distance=1.,
-                                      max_cluster_diameter=10., mean_diameter_coef=1.)
-   labels, centers, disps = isodata.clusterize(data)
-
-.. _py-clustering-hierarchical:
-
-Hierarchical clustering
-#######################
-
-The library provides a "naive" implemetation of upward
-`hierarchical clustering <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/Hierarchical.md>`_.
-First, it creates a cluster per element, the merges clusters on each step until the final cluster is achieved.
-
-Class description
-*****************
-
-.. autoclass:: neoml.Clustering.Hierarchical
-   :members:
-
-Example
-*******
-
-.. code-block:: python
-
-   import numpy as np
-   import neoml
-
-   data = np.rand(1000, 5)
-   hierarchical = neoml.Clustering.Hierarchical(max_cluster_distance=2., min_cluster_count=2,
-                                                distance='euclid')
-   labels, centers, disps = hierarchical.clusterize(data)
-
-.. _py-clustering-first-come:
-
-First come clustering
-#####################
-
-A `simple clustering algorithm <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/FirstCome.md>`_
-that create a new cluster for each new vector
-that is far enough from the clusters already existing.
-
-Class description
-*****************
-
-.. autoclass:: neoml.Clustering.FirstCome
-   :members:
-
-Example
-*******
-
-.. code-block:: python
-
-   import numpy as np
-   import neoml
-
-   data = np.rand(1000, 5)
-   first_come = neoml.Clustering.FirstCome(min_vector_count=5, default_variance=2.,
-                                           threshold=0., min_cluster_size_ratio=0.1,
-                                           max_cluster_count=25, distance='euclid')
-   labels, centers, disps = first_come.clusterize(data)
-
+.. _py-classification-linear:
+.. _py-classification-svm:
+.. _py-classification-decisiontree:
+.. _py-classification-onevsall:

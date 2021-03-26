@@ -16,7 +16,10 @@ Neural network
 ##############
 
 .. autoclass:: neoml.Dnn.Dnn
+   :members:
+
 .. autoclass:: neoml.Dnn.Blob
+   :members:
 
 .. _py-dnn-layers:
 
