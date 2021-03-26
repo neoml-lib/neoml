@@ -23,25 +23,25 @@ The algorithm only accepts continuous features. If your data is characterized by
 Classifier class description
 ****************************
 
-.. autoclass:: neoml.GradientBoostClassifier
+.. autoclass:: neoml.GradientBoost.GradientBoostClassifier
    :members:
 
 Classification model class description
 **************************************
 
-.. autoclass:: neoml.GradientBoostClassificationModel
+.. autoclass:: neoml.GradientBoost.GradientBoostClassificationModel
    :members:
 
 Regressor class description
 ***************************
 
-.. autoclass::neoml.GradientBoostRegressor
+.. autoclass::neoml.GradientBoost.GradientBoostRegressor
    :members:
 
 Regression model class description
 **********************************
 
-.. autoclass::neoml.GradientBoostRegressionModel
+.. autoclass::neoml.GradientBoost.GradientBoostRegressionModel
    :members:
 
 Example
@@ -53,6 +53,21 @@ Example
    import neoml
 
 .. _py-classification-linear:
+
+Linear
+#################
+
 .. _py-classification-svm:
+
+Support-vector machine
+######################
+
 .. _py-classification-decisiontree:
+
+Decision tree
+#############
+
 .. _py-classification-onevsall:
+
+One versus all
+##############
