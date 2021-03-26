@@ -54,7 +54,7 @@ public:
 	double TotalHessian() const { return totalHessian; }
 
 	// Gets the total weight
-	float TotalWeight() const { return totalWeight; }
+	double TotalWeight() const { return totalWeight; }
 
 	// Get leaf value
 	void LeafValue( double& value ) const;
@@ -68,7 +68,7 @@ public:
 private:
 	double totalGradient; // total gradient
 	double totalHessian; // total hessian
-	float totalWeight; // total weight
+	double totalWeight; // total weight
 };
 
 inline CGradientBoostStatisticsSingle::CGradientBoostStatisticsSingle()

@@ -58,7 +58,7 @@ public:
 	const CArray<double>& TotalHessian() const { return totalHessian; }
 
 	// Gets the total weight
-	float TotalWeight() const { return totalWeight; }
+	double TotalWeight() const { return totalWeight; }
 
 	// Check if statistics is not enough
 	bool IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex );
@@ -72,7 +72,7 @@ public:
 private:
 	CArray<double> totalGradient; // total gradient
 	CArray<double> totalHessian; // total hessian
-	float totalWeight; // total weight
+	double totalWeight; // total weight
 };
 
 inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( int valueSize )
