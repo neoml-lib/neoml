@@ -749,11 +749,6 @@ void CGradientBoostQSEnsemble::processFeature( int featureIndex, float value, CF
 	}
 }
 
-static inline float getFeatureValue( const CSparseFloatVector& data, int index )
-{
-	return data.GetValue( index );
-}
-
 static inline float getFeatureValue( const CFloatVector& data, int index )
 {
 	return data[index];
