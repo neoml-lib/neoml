@@ -35,16 +35,19 @@ namespace NeoML {
 // It's achieved by using 1-dimensional convolution over temporal axis (CTimeConvLayer) outside of recurrent part
 // instead of FullyConnected layers inside of recurrent part.
 //
-// As a result recurrent part is reduced down to 2 eltwise layers.
+// As a result recurrent part contains only eltwise operations.
+// For optimization purposes this recurrent part is implemented without explicit RecurrentLayers.
 //
 // Layer inputs:
 //     1. Blob with sequences BatchLength x BatchWidth x Height x Width x Depth x Channels where
 //       - BatchLength - length of input sequences
 //       - BatchWidth - number of sequences in the batch
 //       - Height * Width * Depth * Channels - size of objects in sequences
-//     2. Optional. Initial state for recurrent part with size BatchWidth x Channels where
+//     2. Optional. Initial state for first recurrent part of size BatchWidth x Channels where
 //       - BatchWidth must be equal to the BatchWidth of the first input
 //       - Channels must be equal to the GetHiddenSize()
+//     3. Optional. Initial state for the second recurrent part (bidirectional case only)
+//       of the same size as previous layer input
 //
 // Layer outputs:
 //     1. Results. It has a shape of BatchLength x BatchWidth x Channels where
@@ -57,6 +60,15 @@ namespace NeoML {
 class NEOML_API CQrnnLayer: public CCompositeLayer {
 	NEOML_DNN_LAYER( CQrnnLayer )
 public:
+	// Different poolings used in QRNN
+	enum TPoolingType {
+		PT_FPooling, // f-pooling from article, uses 2 gates (Update, Forget)
+		PT_FoPooling, // fo-pooling from article, uses 3 gates (Update, Forget, Output)
+		PT_IfoPooling, // ifo pooling from article, uses 4 gates (Update, Forget, Output, Input)
+
+		PT_Count
+	};
+
 	// Different approaches in sequence processing
 	enum TRecurrentMode {
 		RM_Direct,
@@ -73,8 +85,26 @@ public:
 
 	explicit CQrnnLayer( IMathEngine& mathEngine );
 
+	// Layer settings
+
+	// Changing next settings may cause weight reset
+	// That's why they must be called before training
+
+	// Pooling type used after the time convolution
+	TPoolingType GetPoolingType() const { return poolingType; }
+	void SetPoolingType( TPoolingType newPoolingType );
+
+	// The way to process sequences in recurrent part
+	TRecurrentMode GetRecurrentMode() const { return recurrentMode; }
+	void SetRecurrentMode( TRecurrentMode newMode );
+
+	// Activation function apllied to the update gate
+	// Tanh by default
+	TActivationFunction GetActivation() const { return activation; }
+	void SetActivation( TActivationFunction newActivation );
+
 	// Hidden state size
-	int GetHiddenSize() const { return timeConv->GetFilterCount() / 3; }
+	int GetHiddenSize() const { return timeConv->GetFilterCount() / gateCount(); }
 	void SetHiddenSize( int hiddenSize );
 
 	// Window size
@@ -94,16 +124,15 @@ public:
 	// Adds zeros to the ends of the sequences
 	int GetPaddingBack() const { return timeConv->GetPaddingBack(); }
 	void SetPaddingBack( int padding );
-	
-	// Activation function apllied to the update gate
-	// Tanh by default
-	TActivationFunction GetActivation() const { return activation; }
-	void SetActivation( TActivationFunction newActivation );
+
+	// Next settings may be changed during training without losing trained weights
 
 	// Dropout rate
 	// By default is equal to zero (no dropout)
 	float GetDropout() const { return dropout == nullptr ? 0.f : dropout->GetDropoutRate(); }
 	void SetDropout( float rate );
+
+	// Trainable parameters
 
 	// Time convolution filter
 	CPtr<CDnnBlob> GetFilterData() const { return timeConv->GetFilterData(); }
@@ -113,10 +142,6 @@ public:
 	CPtr<CDnnBlob> GetFreeTermData() const { return timeConv->GetFreeTermData(); }
 	void SetFreeTermData( const CPtr<CDnnBlob>& newFreeTerm ) { timeConv->SetFreeTermData( newFreeTerm ); }
 
-	// The way to process sequences in recurrent part
-	TRecurrentMode GetRecurrentMode() const { return recurrentMode; }
-	void SetRecurrentMode( TRecurrentMode newMode );
-
 	void Serialize( CArchive& archive );
 
 private:
@@ -124,30 +149,107 @@ private:
 		G_Update, // new activation values (Z in article)
 		G_Forget, // forget multiplier (F in article)
 		G_Output, // output gate, (O in article)
+		G_Input, // input gate (I in article)
 
 		G_Count
 	};
+	// Layer config
+	TPoolingType poolingType; // pooling type used after time convolution
+	TRecurrentMode recurrentMode; // method used for processing sequences
 	TActivationFunction activation; // update gate activation function
-	TRecurrentMode recurrentMode;
+	// Conv + split
 	CPtr<CTimeConvLayer> timeConv; // time convolution
 	CPtr<CSplitChannelsLayer> split; // split layer
+	// Forget gate
 	CPtr<CSigmoidLayer> forgetSigmoid; // forget gate sigmoid
-	CPtr<CDropoutLayer> dropout; // forget gate dropout (if needed)
-	CPtr<CLinearLayer> postDropoutLinear; // compensate scale after dropout (if needed)
-	CPtr<CEltwiseNegMulLayer> negForgetByUpdateByOutput; // (1 - forget) * update * output
-	CPtr<CEltwiseMulLayer> forgetByOutput; // forget * output
-	CPtr<CRecurrentLayer> firstRecurrent; // first recurrent part
-	CPtr<CBackLinkLayer> firstBackLink; // back link from the first recurrent part
-	CPtr<CRecurrentLayer> secondRecurrent; // additional recurrent part used in bidirectional case
-	CPtr<CBackLinkLayer> secondBackLink; // back link from the second recurrent part
-	CPtr<CBaseLayer> bidirectionalMerge; // merge layer for direct and reverse recurrent parts
+	CPtr<CDropoutLayer> dropout; // forget gate dropout
+	CPtr<CLinearLayer> postDropoutLinear; // compensate scale after dropout
+	// Qrnn poolings
+	CPtr<CBaseLayer> firstPooling;
+	CPtr<CBaseLayer> secondPooling; // used when recurrent mode is bidirection
 
-	void buildLayer();
-	CPtr<CRecurrentLayer> buildRecurrentPart( const char* name );
+	void buildLayer( float dropoutRate, int hiddenSize, int windowSize, int stride, int padFront, int padBack );
+	CPtr<CSigmoidLayer> addSigmoid( CBaseLayer& inputLayer, int outputIndex, const char* sigmoidName );
+	CPtr<CBaseLayer> addPoolingLayer( const char* name, bool reverse );
+	CPtr<CEltwiseMulLayer> addMulLayer( CBaseLayer& first, CBaseLayer& second, const char* mulLayerName );
+	CPtr<CBaseLayer> addBidirectionalMerge( CBaseLayer& first, CBaseLayer& second, const char* mergeName );
+	void addInitialStateInputMapping( CBaseLayer& pooling, int inputMappingIndex );
 	void addDropout( float dropoutRate );
 	void deleteDropout();
-	void createBidirectionalLayers();
-	void deleteBidirectionalLayers();
+	void rebuildLayer( int prevGateCount );
+	bool isBidirectional() const;
+	int gateCount() const;
+};
+
+// --------------------------------------------------------------------------------------------------------------------
+
+// Some layers that are used in QRNN
+
+// f-pooling from QRNN
+// the folrmula:
+//
+//  y_t = f_t * y_(t-1) + (1 - f_t) * z_t
+//
+// where t is index on temporal axis (along BatchLength)
+// z - update gate
+// f - forget gate
+//
+// Layer inputs:
+//     1. update gate
+//     2. forget gate
+//     3. (optional) initial state
+class NEOML_API CQrnnFPoolingLayer : public CBaseLayer {
+	NEOML_DNN_LAYER( CQrnnFPoolingLayer )
+public:
+	explicit CQrnnFPoolingLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CQrnnFPoolingLayer", false ) {}
+
+	bool IsReverse() const { return reverse; }
+	void SetReverse( bool newReverse ) { reverse = newReverse; }
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+
+private:
+	bool reverse;
+};
+
+// if-pooling from QRNN
+// the folrmula:
+//
+//  y_t = f_t * y_(t-1) + i_t * z_t
+//
+// where t is index on temporal axis (along BatchLength)
+// z - update gate
+// f - forget gate
+// i - input gate
+//
+// Layer inputs:
+//     1. update gate
+//     2. forget gate
+//     3. input gate
+//     4. (optional) initial state
+
+class NEOML_API CQrnnIfPoolingLayer : public CBaseLayer {
+	NEOML_DNN_LAYER( CQrnnIfPoolingLayer )
+public:
+	explicit CQrnnIfPoolingLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CQrnnIfPoolingLayer", false ) {}
+
+	bool IsReverse() const { return reverse; }
+	void SetReverse( bool newReverse ) { reverse = newReverse; }
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+
+private:
+	bool reverse;
 };
 
 } // namespace NeoML
