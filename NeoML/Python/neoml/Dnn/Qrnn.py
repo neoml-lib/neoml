@@ -62,9 +62,12 @@ class Qrnn(Layer):
         The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    hidden_size : int, > 0
+    pooling_type: str, {'f', 'fo', 'ifo'}, default='f'
+        The pooling type used in recurrent part
+        More detailed formulas are given in the article
+    hidden_size : int, > 0, default=1
         The hidden layer size.
-    window_size : int, > 0
+    window_size : int, > 0, default=1
         The size of the window used in time convolution.
     stride : int, > 0, default=1
         The window stride for time convolution.
@@ -88,14 +91,20 @@ class Qrnn(Layer):
         The layer name.
     """
 
-    activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]
+    pooling_types = ['f', 'fo', 'ifo']
+    activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh",
+                   "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]
     recurrent_modes = ["direct", "reverse", "bidirectional_concat", "bidirectional_sum"]
 
-    def __init__(self, input_layers, hidden_size, window_size, stride=1, paddings=(0, 0), activation="tanh", dropout=0.0, mode="direct", name=None):
+    def __init__(self, input_layers, pooling_type='f', hidden_size=1,
+                 window_size=1, stride=1, paddings=(0, 0), activation="tanh",
+                 dropout=0.0, mode="direct", name=None):
 
         if type(input_layers) is PythonWrapper.Qrnn:
             super().__init__(input_layers)
             return
+        
+        pooling_type_index = self.pooling_types.index(pooling_type)
 
         if hidden_size < 1:
             raise ValueError('The `hidden_size` must be > 0.')
@@ -126,7 +135,9 @@ class Qrnn(Layer):
 
         layers, outputs = check_input_layers(input_layers, (1, 2))
 
-        internal = PythonWrapper.Qrnn(str(name), layers, int(hidden_size), int(window_size), int(stride), int(padding_front), int(padding_back), activation_index, float(dropout), mode_index, outputs)
+        internal = PythonWrapper.Qrnn(str(name), layers, int(pooling_type_index), int(hidden_size), int(window_size),
+                                      int(stride), int(padding_front), int(padding_back), activation_index,
+                                      float(dropout), mode_index, outputs)
         super().__init__(internal)
 
     @property
