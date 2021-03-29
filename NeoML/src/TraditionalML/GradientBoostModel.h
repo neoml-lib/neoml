@@ -50,7 +50,7 @@ public:
 	bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
 	void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
 	void CutNumberOfTrees( int numberOfTrees ) override;
-	virtual void ConvertToCompact( int featureCount ) override;
+	virtual void ConvertToCompact( unsigned featureCount ) override;
 
 	// IRegressionModel interface methods
 	double Predict( const CSparseFloatVector& data ) const override;

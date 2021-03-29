@@ -204,7 +204,7 @@ void CGradientBoostModel::CutNumberOfTrees( int numberOfTrees )
 	}
 }
 
-void CGradientBoostModel::ConvertToCompact( int featureCount )
+void CGradientBoostModel::ConvertToCompact( unsigned featureCount )
 {
 	for( int i = 0; i < ensembles.Size() ; i++ ) {
 		CGradientBoostEnsemble& ensemble = ensembles[i];

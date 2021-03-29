@@ -729,7 +729,7 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 
 // Creates model represetation requested in params.
 CPtr<IObject> CGradientBoost::createOutputRepresentation(
-	CArray<CGradientBoostEnsemble>& models, int predictionSize, int featureCount )
+	CArray<CGradientBoostEnsemble>& models, int predictionSize, unsigned featureCount )
 {
 	CPtr<CGradientBoostModel> linked = FINE_DEBUG_NEW CGradientBoostModel(
 		models, predictionSize, params.LearningRate, params.LossFunction );

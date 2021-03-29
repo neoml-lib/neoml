@@ -14,6 +14,7 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #pragma once
+#undef max
 
 #include <limits>
 #include <RegressionTree.h>
@@ -53,7 +54,7 @@ public:
 	virtual void Serialize( CArchive& archive ) override;
 
 	// Feature number cannot exceeed this.
-	static const T MaxFeature = (std::numeric_limits<T>::max()) - 2;
+	static const T MaxFeature = std::numeric_limits<T>::max() - 2;
 	// Node index within the `nodes` array cannot exceed this.
 	static const uint16_t MaxNodeIndex = UINT16_MAX - 1;
 
