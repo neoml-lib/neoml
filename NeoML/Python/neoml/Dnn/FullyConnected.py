@@ -17,6 +17,7 @@ limitations under the License.
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from neoml.Utils import check_input_layers
+from .BatchNormalization import BatchNormalization
 import neoml.Blob as Blob
 
 
@@ -87,19 +88,17 @@ class FullyConnected(Layer):
         """
         self._internal.set_zero_free_term(bool(zero_free_term))
 
-
     def apply_batch_normalization(self, layer):
-        """Applies the batch normalization layer directly
-        to this layer output.
-        If you perform batch normalization on this layer's output, 
-        you can train the network, then move the batch normalization layer
-        here and delete it from the network. This will save some calculations
-        when running the network.
-        """
-        if not type(layer) is BatchNormalization:
-            raise ValueError('The `layer` must be neoml.BatchNormalization.')
+        """Applies batch normalization to this layer.
+        Batch normalization must be deleted from the dnn afterwards
+        and layers which were connected to the batch norm must be connected to this layer.
 
-        self._internal.apply_batch_normalization(layer._internal)	
+        :param neoml.Dnn.BatchNormalization layer: batch norm to be applied
+        """
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
 
     @property
     def weights(self):

@@ -908,7 +908,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(layer.name, 'conv')
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((4, 3, 2), dtype=np.float32), (1, 4, 3, 1, 1, 1, 2))
-        input2 = neoml.Blob.asblob(math_engine, np.ones((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
+        input2 = neoml.Blob.asblob(math_engine, np.zeros((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
         inputs = {"source1": input1, "source2": input2}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
@@ -936,7 +936,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(layer.width, 9)
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((4, 3, 2), dtype=np.float32), (1, 4, 3, 1, 1, 1, 2))
-        input2 = neoml.Blob.asblob(math_engine, np.ones((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
+        input2 = neoml.Blob.asblob(math_engine, np.zeros((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
         inputs = {"source1": input1, "source2": input2}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
@@ -1060,12 +1060,12 @@ class LayersTestCase(TestCase):
         layer = dnn.layers['best']
         self.assertEqual(layer.name, 'best')
 
-        input1 = neoml.Blob.asblob(math_engine, np.ones((3, 5), dtype=np.int32), (3, 1, 5, 1, 1, 1, 1))
+        input1 = neoml.Blob.asblob(math_engine, np.zeros((3, 5), dtype=np.int32), (3, 1, 5, 1, 1, 1, 1))
         input2 = neoml.Blob.asblob(math_engine, np.ones((3, 5), dtype=np.float32), (3, 1, 5, 1, 1, 1, 1))
         inputs = {"source1": input1, "source2": input2}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
-        self.assertTrue(np.equal(out, [1., 1., 0.]).all())
+        self.assertTrue(np.equal(out, [0., 0., 0.]).all())
 
     def test_ctc_loss(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -1096,7 +1096,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(ctcLoss.skip, True)
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((64, 4, 5), dtype=np.float32), (3, 4, 1, 1, 1, 1, 5))
-        input2 = neoml.Blob.asblob(math_engine, np.ones((9, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
+        input2 = neoml.Blob.asblob(math_engine, np.ones((2, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
         inputs = {"source1": input1, "source2": input2}
         dnn.run(inputs)
         self.assertAlmostEqual(ctcLoss.last_loss, 4.8283, delta=1e-4)

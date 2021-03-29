@@ -136,9 +136,10 @@ class Blob:
             more convenient access to the same data.
             Not copying may be impossible if the blob is in GPU memory.
         """
-        if type(self.math_engine) is MathEngine.GpuMathEngine:
-            copy = True
-        return numpy.array(self._internal, copy=copy)
+        if type(self.math_engine) is MathEngine.CpuMathEngine:
+            return numpy.array(self._internal, copy=copy)
+        cpu_blob = self.copy(MathEngine.default_math_engine())
+        return numpy.array(cpu_blob._internal, copy=False)
 
     def copy(self, math_engine):
         """Creates a blob copy independent of this blob.
