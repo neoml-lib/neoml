@@ -22,30 +22,30 @@ from neoml.Utils import check_input_layers
 class RepeatSequence(Layer):
     """The layer that repeats the input sequences several times.
     
-    Layer inputs
-    ---------
-    #1: a sequence of objects.
-    The dimensions:
-    - BatchLength is the sequence length
-    - BatchWidth * ListSize is the number of sequences in the set
-    - Height * Width * Depth * Channels is the size of each object
-    
-    Layer outputs
-    ---------
-    #1: the same sequence repeated repeat_count times.
-    The dimensions:
-    - BatchLength is repeat_count times larger than the input's BatchLength
-    - all other dimensions are the same as for the input
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    repeat_count : int, > 0
-        The number of repetitions.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param repeat_count: The number of repetitions.
+    :type repeat_count: int, > 0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a sequence of objects.
+    The dimensions:
+
+        - **BatchLength** is the sequence length
+        - **BatchWidth** * **ListSize** is the number of sequences in the set
+        - **Height** * **Width** * **Depth** * **Channels** is the size of each object
+    
+    .. rubric:: Layer outputs:
+
+    (1) the same sequence repeated repeat_count times.
+    The dimensions:
+
+        - **BatchLength** is repeat_count times larger than the input's **BatchLength**
+        - all other dimensions are the same as for the input
     """
 
     def __init__(self, input_layer, repeat_count, name=None):

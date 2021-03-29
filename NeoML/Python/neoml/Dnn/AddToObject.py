@@ -22,31 +22,31 @@ from neoml.Utils import check_input_layers
 class AddToObject(Layer):
     """The layer that adds the same object to all objects in its first input.
     
-    Layer inputs
-    ----------
-    #1: the data blob of the dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height * Width * Depth * Channels - object size
-    
-    #2: the data blob with the object to add to the first input.
-    The dimensions:
-    - Height, Width, Depth, Channels are the same as for the first input
-    - the other dimensions are 1
-    
-    Layer outputs
-    ----------
-    #1: a blob that contains the result of adding 
-    the second input to each object of the first.
-    The dimensions are the same as for the first input.
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the data blob of the dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - object size
+    
+    (2) the data blob with the object to add to the first input.
+        The dimensions:
+
+        - **Height**, **Width**, **Depth**, **Channels** are the same as for the first input
+        - the other dimensions are 1
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob that contains the result of adding 
+        the second input to each object of the first.
+        The dimensions are the same as for the first input.
     """
 
     def __init__(self, input_layers, name=None):
