@@ -223,7 +223,6 @@ void CQrnnLayer::buildLayer( float dropoutRate, int hiddenSize, int windowSize, 
 	AddLayer( *activationLayer );
 
 	forgetSigmoid = addSigmoid( *split, G_Forget, forgetSigmoidName );
-	AddLayer( *forgetSigmoid );
 
 	CPtr<CSigmoidLayer> outputSigmoid;
 	if( gateCount() > G_Output ) {
@@ -301,6 +300,9 @@ CPtr<CBaseLayer> CQrnnLayer::addPoolingLayer( const char* poolingName, bool reve
 	} else {
 		pooling->Connect( 1, *forgetSigmoid );
 	}
+	pooling->SetName( poolingName );
+	AddLayer( *pooling );
+	return pooling;
 }
 
 // Adds multiplication of 2 inputs
@@ -431,6 +433,23 @@ int CQrnnLayer::gateCount() const
 	return -1;
 }
 
+CLayerWrapper<CQrnnLayer> Qrnn( CQrnnLayer::TPoolingType poolingType, CQrnnLayer::TRecurrentMode recurrentMode,
+	int hiddenSize, int windowSize, int paddingFront, int paddingBack, float dropout, int stride,
+	TActivationFunction activation )
+{
+	return CLayerWrapper<CQrnnLayer>( "", [=] ( CQrnnLayer* result ) {
+		result->SetPoolingType( poolingType );
+		result->SetRecurrentMode( recurrentMode );
+		result->SetHiddenSize( hiddenSize );
+		result->SetWindowSize( windowSize );
+		result->SetStride( stride );
+		result->SetPaddingFront( paddingFront );
+		result->SetPaddingBack( paddingBack );
+		result->SetDropout( dropout );
+		result->SetActivation( activation );
+	} );
+}
+
 // --------------------------------------------------------------------------------------------------------------------
 
 static const int QrnnFPoolingLayerVersion = 0;
@@ -444,7 +463,7 @@ void CQrnnFPoolingLayer::Serialize( CArchive& archive )
 
 void CQrnnFPoolingLayer::Reshape()
 {
-	outputDescs.Add( inputDescs[0] );
+	outputDescs[0] = inputDescs[0];
 }
 
 void CQrnnFPoolingLayer::RunOnce()
@@ -481,7 +500,7 @@ void CQrnnIfPoolingLayer::Serialize( CArchive& archive )
 
 void CQrnnIfPoolingLayer::Reshape()
 {
-	outputDescs.Add( inputDescs[0] );
+	outputDescs[0] = inputDescs[0];
 }
 
 void CQrnnIfPoolingLayer::RunOnce()

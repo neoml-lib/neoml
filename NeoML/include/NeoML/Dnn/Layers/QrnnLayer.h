@@ -181,6 +181,10 @@ private:
 	int gateCount() const;
 };
 
+CLayerWrapper<CQrnnLayer> NEOML_API Qrnn( CQrnnLayer::TPoolingType poolingType, CQrnnLayer::TRecurrentMode recurrentMode,
+	int hiddenSize, int windowSize, int paddingFront = 0, int paddingBack = 0, float dropout = 0.f,
+	int stride = 1, TActivationFunction activation = AF_Tanh );
+
 // --------------------------------------------------------------------------------------------------------------------
 
 // Some layers that are used in QRNN
