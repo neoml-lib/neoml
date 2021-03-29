@@ -70,7 +70,7 @@ void CCompactRegressionTree<T>::importNodes(
 			break;
 
 		case NeoML::TRegressionTreeNodeType::RTNT_Continuous:
-			NeoAssert( info.FeatureIndex <= MaxFeature );
+			NeoAssert( (unsigned)info.FeatureIndex <= MaxFeature );
 			node.FeaturePlusOne = static_cast<uint16_t>( info.FeatureIndex + 1 );
 
 			NeoAssert( info.Value.Size() == 1 );
@@ -241,7 +241,7 @@ void CCompactRegressionTree<T>::CalcFeatureStatistics(
 
 	for( int i = 0; i < nodes.Size(); i++ ) {
 		const CNode& node = nodes[i];
-		if( node.FeaturePlusOne != 0 && node.FeaturePlusOne <= maxFeature ) {
+		if( node.FeaturePlusOne != 0 && node.FeaturePlusOne <= (unsigned)maxFeature ) {
 			result[node.FeaturePlusOne - 1]++;
 		}
 	}
