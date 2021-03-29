@@ -407,7 +407,7 @@ void CMetalMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objec
     }
 }
 
-void CVulkanMathEngine::QrnnFPoolingBackward( bool /*reverse*/, int /*sequenceLength*/, int /*objectSize*/,
+void CMetalMathEngine::QrnnFPoolingBackward( bool /*reverse*/, int /*sequenceLength*/, int /*objectSize*/,
     const CConstFloatHandle& /*update*/, const CConstFloatHandle& /*forget*/,
     const CConstFloatHandle& /*initialState*/, const CConstFloatHandle& /*result*/, const CFloatHandle& /*resultDiff*/,
     const CFloatHandle& /*updateDiff*/, const CFloatHandle& /*forgetDiff*/ )
