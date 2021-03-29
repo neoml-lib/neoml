@@ -210,7 +210,7 @@ void InitializePoolingLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CMaxPoolingLayer> pooling = new CMaxPoolingLayer( mathEngine );
-			pooling->SetName( name == "" ? findFreeLayerName( dnn, "MaxPoolingLayer" ).c_str() : name.c_str() );
+			pooling->SetName( FindFreeLayerName( dnn, "MaxPooling", name ).c_str() );
 			pooling->SetFilterHeight( filterHeight );
 			pooling->SetFilterWidth( filterWidth );
 			pooling->SetStrideHeight( strideHeight );
@@ -236,7 +236,7 @@ void InitializePoolingLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CMeanPoolingLayer> pooling = new CMeanPoolingLayer( mathEngine );
-			pooling->SetName( name == "" ? findFreeLayerName( dnn, "MeanPoolingLayer" ).c_str() : name.c_str() );
+			pooling->SetName( FindFreeLayerName( dnn, "MeanPooling", name ).c_str() );
 			pooling->SetFilterHeight( filterHeight );
 			pooling->SetFilterWidth( filterWidth );
 			pooling->SetStrideHeight( strideHeight );
@@ -261,7 +261,7 @@ void InitializePoolingLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CGlobalMaxPoolingLayer> pooling = new CGlobalMaxPoolingLayer(mathEngine);
-			pooling->SetName(name == "" ? findFreeLayerName(dnn, "GlobalMaxPooling").c_str() : name.c_str());
+			pooling->SetName( FindFreeLayerName(dnn, "GlobalMaxPooling", name).c_str() );
 			pooling->SetMaxCount(maxCount);
 			dnn.AddLayer(*pooling);
 
@@ -285,7 +285,7 @@ void InitializePoolingLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CGlobalMeanPoolingLayer> pooling = new CGlobalMeanPoolingLayer(mathEngine);
-			pooling->SetName(name == "" ? findFreeLayerName(dnn, "GlobalMeanPooling").c_str() : name.c_str());
+			pooling->SetName( FindFreeLayerName(dnn, "GlobalMeanPooling", name).c_str() );
 			dnn.AddLayer(*pooling);
 
 			pooling->Connect(0, layer.BaseLayer(), outputNumber);
@@ -306,7 +306,7 @@ void InitializePoolingLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CMaxOverTimePoolingLayer> pooling = new CMaxOverTimePoolingLayer(mathEngine);
-			pooling->SetName(name == "" ? findFreeLayerName(dnn, "MaxOverTimePooling").c_str() : name.c_str());
+			pooling->SetName( FindFreeLayerName(dnn, "MaxOverTimePooling", name).c_str() );
 			pooling->SetFilterLength(filter_len);
 			pooling->SetStrideLength(stride_len);
 			dnn.AddLayer(*pooling);
@@ -333,7 +333,7 @@ void InitializePoolingLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CProjectionPoolingLayer> pooling = new CProjectionPoolingLayer(mathEngine);
-			pooling->SetName(name == "" ? findFreeLayerName(dnn, "ProjectionPooling").c_str() : name.c_str());
+			pooling->SetName( FindFreeLayerName(dnn, "ProjectionPooling", name).c_str() );
 			pooling->SetDimension(static_cast<TBlobDim>(dimension));
 			pooling->SetRestoreOriginalImageSize(originalSize);
 			dnn.AddLayer(*pooling);
@@ -385,7 +385,7 @@ void InitializePoolingLayer( py::module& m )
 			pooling->SetStrideHeight(strideHeight);
 			pooling->SetStrideWidth(strideWidth);
 			pooling->SetStrideDepth(strideDepth);
-			pooling->SetName(name == "" ? findFreeLayerName(dnn, "MaxPooling3D").c_str() : name.c_str());
+			pooling->SetName( FindFreeLayerName(dnn, "MaxPooling3D", name).c_str() );
 			dnn.AddLayer(*pooling);
 
 			pooling->Connect(0, layer.BaseLayer(), outputNumber);
@@ -413,7 +413,7 @@ void InitializePoolingLayer( py::module& m )
 			pooling->SetStrideHeight(strideHeight);
 			pooling->SetStrideWidth(strideWidth);
 			pooling->SetStrideDepth(strideDepth);
-			pooling->SetName(name == "" ? findFreeLayerName(dnn, "MeanPooling3D").c_str() : name.c_str());
+			pooling->SetName( FindFreeLayerName(dnn, "MeanPooling3D", name).c_str() );
 			dnn.AddLayer(*pooling);
 
 			pooling->Connect(0, layer.BaseLayer(), outputNumber);

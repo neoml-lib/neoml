@@ -14,7 +14,9 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 """
 
-from .Dnn import Layer
+import numpy as np
+from scipy.sparse import csr_matrix, issparse
+from neoml.Dnn.Dnn import Layer
 
 
 def check_input_layers(input_layers, layer_count):
@@ -69,3 +71,19 @@ def check_input_layers(input_layers, layer_count):
             raise ValueError('Invalid value `input_layers`. It must be a list of layers or a list of (layer, output).')
 
     return layers, outputs
+
+def convert_data(X):
+    if issparse(X):
+        return csr_matrix(X, dtype=np.float32)
+
+    data = np.array(X, dtype=np.float32, copy=False, order='C')
+    if data.ndim != 2:
+        raise ValueError('X must be of shape (n_samples, n_features)')
+    return data
+
+def get_data(X):
+    if issparse(X):
+        return X.indices, X.data, X.indptr, True
+    height, width = X.shape
+    indptr = np.array([i * width for i in range(height+1)], dtype=np.int32)
+    return np.array([]), X.ravel(), indptr, False

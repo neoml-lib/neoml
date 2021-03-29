@@ -85,7 +85,7 @@ void InitializeEltwiseLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CEltwiseSumLayer> eltwise = new CEltwiseSumLayer( mathEngine );
-			eltwise->SetName( name == "" ? findFreeLayerName( dnn, "EltwiseSumLayer" ).c_str() : name.c_str() );
+			eltwise->SetName( FindFreeLayerName( dnn, "EltwiseSum", name ).c_str() );
 			dnn.AddLayer( *eltwise );
 
 			for( int i = 0; i < layers.size(); i++ ) {
@@ -109,7 +109,7 @@ void InitializeEltwiseLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CEltwiseMulLayer> eltwise = new CEltwiseMulLayer( mathEngine );
-			eltwise->SetName( name == "" ? findFreeLayerName( dnn, "EltwiseMulLayer" ).c_str() : name.c_str() );
+			eltwise->SetName( FindFreeLayerName( dnn, "EltwiseMul", name ).c_str() );
 			dnn.AddLayer( *eltwise );
 
 			for( int i = 0; i < layers.size(); i++ ) {
@@ -133,7 +133,7 @@ void InitializeEltwiseLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CEltwiseNegMulLayer> eltwise = new CEltwiseNegMulLayer( mathEngine );
-			eltwise->SetName( name == "" ? findFreeLayerName( dnn, "EltwiseNegMulLayer" ).c_str() : name.c_str() );
+			eltwise->SetName( FindFreeLayerName( dnn, "EltwiseNegMul", name ).c_str() );
 			dnn.AddLayer( *eltwise );
 
 			for( int i = 0; i < layers.size(); i++ ) {
@@ -157,7 +157,7 @@ void InitializeEltwiseLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CEltwiseMaxLayer> eltwise = new CEltwiseMaxLayer( mathEngine );
-			eltwise->SetName( name == "" ? findFreeLayerName( dnn, "EltwiseMaxLayer" ).c_str() : name.c_str() );
+			eltwise->SetName( FindFreeLayerName( dnn, "EltwiseMax", name ).c_str() );
 			dnn.AddLayer( *eltwise );
 
 			for( int i = 0; i < layers.size(); i++ ) {

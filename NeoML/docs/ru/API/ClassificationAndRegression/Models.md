@@ -26,7 +26,7 @@ public:
 	virtual int GetClassCount() const = 0;
 
 	// Классификация данных. Если не удалось классифицировать данные, то возвращает false.
-	virtual bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const = 0;
+	virtual bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const = 0;
 
 	// Сериализация.
 	virtual void Serialize( CArchive& archive ) = 0;
@@ -44,7 +44,7 @@ public:
 	// Предсказать значения для вектора.
 	virtual double Predict( const CSparseFloatVector& data ) const = 0;
 	virtual double Predict( const CFloatVector& data ) const = 0;
-	virtual double Predict( const CSparseFloatVectorDesc& desc ) const = 0;
+	virtual double Predict( const CFloatVectorDesc& desc ) const = 0;
 
 	// Сериализация.
 	virtual void Serialize( CArchive& archive ) = 0;

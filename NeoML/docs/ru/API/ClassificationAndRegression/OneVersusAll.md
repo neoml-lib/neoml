@@ -35,7 +35,7 @@ public:
 	// получить результат классификации с информацией о нормализации вероятностей
 	virtual bool ClassifyEx( const CSparseFloatVector& data,
 		COneVersusAllClassificationResult& result ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data,
+	virtual bool ClassifyEx( const CFloatVectorDesc& data,
 		COneVersusAllClassificationResult& result ) const = 0;
 
 	// Сериализация.

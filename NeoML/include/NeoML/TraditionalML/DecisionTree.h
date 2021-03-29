@@ -113,6 +113,13 @@ public:
 		SC_Count
 	};
 
+	// The algorithm used for multi-class classification
+	enum TMulticlassMode {
+		MM_SingleTree = 0,
+		MM_OneVsAll,
+		MM_Count
+	};
+
 	// Classification parameters
 	struct CParams {
 		// The minimum number of vectors corresponding to a node subtree:
@@ -136,6 +143,8 @@ public:
 		int RandomSelectedFeaturesCount;
 		// The memory limit for the algorithm
 		size_t AvailableMemory; 
+		// The algorithm used for multi-class classification
+		TMulticlassMode MulticlassMode;
 
 		CParams() :
 			MinContinuousSubsetSize( 1 ),
@@ -148,7 +157,8 @@ public:
 			SplitCriterion( SC_InformationGain ),
 			ConstNodeThreshold( 0.99 ),
 			RandomSelectedFeaturesCount( NotFound ),
-			AvailableMemory( Gigabyte )
+			AvailableMemory( Gigabyte ),
+			MulticlassMode( MM_SingleTree )
 		{
 		}
 	};
@@ -166,7 +176,8 @@ public:
 private:
 	static const int MaxClassifyNodesCacheSize = 10 * Megabyte; // the cache size for leaf nodes
 	CParams params; // the classification parameters
-	CRandom* random; // the random numbers generator
+	CRandom defRandom; // the default random numbers generator
+	CRandom& random; // the actual random numbers generator
 	CTextStream* logStream; // the logging stream
 	CPtr<const IProblem> classificationProblem; // the current input data as an IProblem interface
 	mutable int nodesCount; // the number of tree nodes
@@ -176,8 +187,8 @@ private:
 	mutable CArray<int> classifyNodesLevel; // the levels of leaf nodes
 
 	CPtr<CDecisionTreeNodeBase> buildTree( int vectorCount );
-	bool buildTreeLevel( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase& root ) const;
-	bool collectStatistics( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase* root ) const;
+	bool buildTreeLevel( const CFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase& root ) const;
+	bool collectStatistics( const CFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase* root ) const;
 	bool split( const CDecisionTreeNodeStatisticBase& nodeStatistics, int level ) const;
 	void generateUsedFeatures( int randomSelectedFeaturesCount, int featuresCount, CArray<int>& features ) const;
 

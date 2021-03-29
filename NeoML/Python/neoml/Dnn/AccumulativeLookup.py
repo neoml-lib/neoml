@@ -16,41 +16,41 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 
 class AccumulativeLookup(Layer):
     """The layer that trains fixed-length vector representations
     for the values of a discrete feature.
     It can work only with one feature. When several values of the feature
     are passed, the sum of the corresponding vectors is returned.
-    
-    Layer inputs
-    ----------
-    #1: a data blob with integer data that contains the feature values.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize equal to the number 
-    of different values the feature can take
-    - Height * Width * Depth * Channels equal to the number of values in the set
-    
-    Layer outputs
-    ----------
-    #1: a blob with the sum of vector representations of the given feature values.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize equal to these dimensions of the input
-    - Height, Width, Depth equal to 1
-    - Channels equal to the vector length (size parameter below)
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    count : int
-        The number of vectors in the representation table.
-    size : int
-        The length of each vector in the representation table.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param count: The number of vectors in the representation table.
+    :type count: int
+    :param size: The length of each vector in the representation table.
+    :type size: int
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+    
+    (1) a data blob with integer data that contains the feature values.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to the number 
+          of different values the feature can take
+        - **Height** * **Width** * **Depth** * **Channels** equal to the number of values in the set
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the sum of vector representations of the given feature values.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** equal to these dimensions of the input
+        - **Height**, **Width**, **Depth** equal to 1
+        - **Channels** equal to the vector length (size parameter below)
     """
 
     def __init__(self, input_layer, count, size, name=None):

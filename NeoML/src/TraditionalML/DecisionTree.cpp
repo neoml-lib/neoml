@@ -35,7 +35,7 @@ const int CDecisionTree::MaxClassifyNodesCacheSize;
 
 CDecisionTree::CDecisionTree( const CParams& _params, CRandom* _random ) :
 	params( _params ),
-	random( _random ),
+	random( _random != nullptr ? *_random : defRandom ),
 	logStream( 0 ),
 	nodesCount( 0 ),
 	statisticsCacheSize( 0 )
@@ -62,7 +62,7 @@ CPtr<IModel> CDecisionTree::Train( const IProblem& problem )
 	NeoAssert( problem.GetClassCount() > 0 );
 	NeoAssert( problem.GetFeatureCount() > 0 );
 
-	if( problem.GetClassCount() > 2 ) {
+	if( problem.GetClassCount() > 2 && params.MulticlassMode == MM_OneVsAll ) {
 		return COneVersusAll( *this ).Train( problem );
 	}
 
@@ -84,9 +84,9 @@ CPtr<CDecisionTreeNodeBase> CDecisionTree::buildTree( int vectorCount )
 	CPtr<CDecisionTreeNodeBase> root = createNode();
 	nodesCount = 1;
 	CDecisionTreeNodeStatisticBase* rootStatistic = createStatistic( root );
-	CSparseFloatMatrixDesc matrix = classificationProblem->GetMatrix();
+	CFloatMatrixDesc matrix = classificationProblem->GetMatrix();
 
-	CSparseFloatVectorDesc desc;
+	CFloatVectorDesc desc;
 	for( int i = 0; i < vectorCount; i++ ) {
 		matrix.GetRow( i, desc );
 		rootStatistic->AddVector( i, desc );
@@ -124,7 +124,7 @@ CPtr<CDecisionTreeNodeBase> CDecisionTree::buildTree( int vectorCount )
 }
 
 // Builds one tree level
-bool CDecisionTree::buildTreeLevel( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase& root ) const
+bool CDecisionTree::buildTreeLevel( const CFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase& root ) const
 {
 	if( logStream != 0 ) {
 		*logStream << "\nBuild level " << level << ":\n";
@@ -170,7 +170,7 @@ bool CDecisionTree::buildTreeLevel( const CSparseFloatMatrixDesc& matrix, int le
 
 // Gathers statistics for the nodes of one level
 // Returns true if all nodes were traversed and false if another pass is needed
-bool CDecisionTree::collectStatistics( const CSparseFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase* root ) const
+bool CDecisionTree::collectStatistics( const CFloatMatrixDesc& matrix, int level, CDecisionTreeNodeBase* root ) const
 {
 	NeoAssert( level > 0 );
 	NeoAssert( root != 0 );
@@ -180,7 +180,7 @@ bool CDecisionTree::collectStatistics( const CSparseFloatMatrixDesc& matrix, int
 	const int matrixHeight = matrix.Height;
 
 	for( int i = 0; i < matrixHeight; i++ ) {
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
 		// Find the leaf node for this vector in the current tree
 		CPtr<CDecisionTreeNodeBase> leaf;
@@ -320,9 +320,8 @@ void CDecisionTree::generateUsedFeatures( int randomSelectedFeaturesCount, int f
 		NeoAssert( randomSelectedFeaturesCount < featuresCount );
 		for( int i = 0; i < randomSelectedFeaturesCount; i++ ) {
 			// Pick a random number from [i, featuresCount - 1] range
-			int randomInt = ( random == 0 ) ? rand() : random->Next();
-			int index = abs( randomInt ) % ( featuresCount - i );
-			swap( features[i], features[i + index] );
+			int index = random.UniformInt( i, featuresCount - 1 );
+			swap( features[i], features[index] );
 		}
 		features.SetSize( randomSelectedFeaturesCount );
 	}

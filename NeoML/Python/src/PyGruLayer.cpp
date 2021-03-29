@@ -81,7 +81,7 @@ void InitializeGruLayer( py::module& m )
 
 			CPtr<CGruLayer> gru = new CGruLayer( mathEngine );
 			gru->SetHiddenSize( hidden_size );
-			gru->SetName( name == "" ? findFreeLayerName( dnn, "Gru" ).c_str() : name.c_str() );
+			gru->SetName( FindFreeLayerName( dnn, "Gru", name ).c_str() );
 			dnn.AddLayer( *gru );
 			gru->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 

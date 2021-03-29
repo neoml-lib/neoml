@@ -16,7 +16,7 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 import neoml.Blob as Blob
 
 
@@ -24,21 +24,19 @@ class Sink(Layer):
     """The sink layer that serves to pass a data blob out of the network.
     Use the ``get_blob`` method to retrieve the blob.
     
-    Layer inputs
-    ---------------
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
     The layer has one input that accepts a data blob of any size.
     
-    Layer outputs
-    ---------------
+    .. rubric:: Layer outputs:
+
     The layer has no outputs.
-    
-    Parameters
-    ---------------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
-        is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
     """
     def __init__(self, input_layer, name=None):
 

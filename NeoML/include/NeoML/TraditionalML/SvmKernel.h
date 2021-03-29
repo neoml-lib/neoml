@@ -37,8 +37,8 @@ public:
 	// The kernel type
 	TKernelType KernelType() const { return kernelType; }
 	// Calculates the kernel value on given vectors
-	double Calculate(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double Calculate(const CFloatVector& x1, const CSparseFloatVectorDesc& x2) const { return Calculate( x1.GetDesc(), x2 ); }
+	double Calculate(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const;
+	double Calculate(const CFloatVector& x1, const CFloatVectorDesc& x2) const { return Calculate( x1.GetDesc(), x2 ); }
 
 	friend CArchive& operator << ( CArchive& archive, const CSvmKernel& center );
 	friend CArchive& operator >> ( CArchive& archive, CSvmKernel& center );
@@ -49,14 +49,14 @@ private:
 	double gamma;
 	double coef0;
 
-	double linear(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double poly(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double rbf(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
-	double sigmoid(const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2) const;
+	double linear(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const;
+	double poly(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const;
+	double rbf(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const;
+	double sigmoid(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const;
 
-	double rbfDenseBySparse( const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2 ) const;
-	double rbfDenseByDense( const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2 ) const;
-	double rbfSparseBySparse( const CSparseFloatVectorDesc& x1, const CSparseFloatVectorDesc& x2 ) const;
+	double rbfDenseBySparse( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const;
+	double rbfDenseByDense( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const;
+	double rbfSparseBySparse( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const;
 };
 
 inline CArchive& operator << ( CArchive& archive, const CSvmKernel& kernel )

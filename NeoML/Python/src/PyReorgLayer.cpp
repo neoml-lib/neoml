@@ -45,7 +45,7 @@ void InitializeReorgLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CReorgLayer> reorg = new CReorgLayer( mathEngine );
 			reorg->SetStride(stride);
-			reorg->SetName( name == "" ? findFreeLayerName( dnn, "Reorg" ).c_str() : name.c_str() );
+			reorg->SetName( FindFreeLayerName( dnn, "Reorg", name ).c_str() );
 			dnn.AddLayer( *reorg );
 			reorg->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPyReorgLayer( *reorg, layer1.MathEngineOwner() );

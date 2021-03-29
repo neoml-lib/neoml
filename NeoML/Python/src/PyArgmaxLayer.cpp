@@ -45,7 +45,7 @@ void InitializeArgmaxLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CArgmaxLayer> argmax = new CArgmaxLayer( mathEngine );
 			argmax->SetDimension( static_cast<TBlobDim>(dimension) );
-			argmax->SetName( name == "" ? findFreeLayerName( dnn, "ArgmaxLayer" ).c_str() : name.c_str() );
+			argmax->SetName( FindFreeLayerName( dnn, "Argmax", name ).c_str() );
 			dnn.AddLayer( *argmax );
 			argmax->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyArgmaxLayer( *argmax, layer.MathEngineOwner() );

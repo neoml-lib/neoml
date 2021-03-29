@@ -41,7 +41,7 @@ CClassificationStatistics::CClassificationStatistics( CDecisionTreeNodeBase* _no
 	discretizationIntervals.SetSize( usedFeatures.Size() );
 }
 
-void CClassificationStatistics::AddVector( int index, const CSparseFloatVectorDesc& vector )
+void CClassificationStatistics::AddVector( int index, const CFloatVectorDesc& vector )
 {
 	NeoAssert( problem != 0 );
 	const double weight = problem->GetVectorWeight( index );

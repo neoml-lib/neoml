@@ -18,6 +18,22 @@ limitations under the License.
 
 #include "PyLayer.h"
 
+std::string FindFreeLayerName( const CDnn& dnn, const std::string& layerName, const std::string& userName )
+{
+	if( userName != "None" ) {
+		return userName;
+	}
+	int index = 0;
+	std::string name;
+	do {
+		index++;
+		name = layerName + std::to_string(index);
+	} while( dnn.HasLayer( name.c_str() ) );
+	
+	return name;
+}
+
+
 void InitializeLayer( py::module& m )
 {
 	py::class_<CPyLayer>(m, "Layer")
