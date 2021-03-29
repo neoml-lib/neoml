@@ -97,6 +97,7 @@ from os import getenv
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.mathjax',
 #    'sphinx.ext.autosectionlabel',
     'sphinx_rtd_theme',
 #     'recommonmark',
@@ -130,6 +131,13 @@ html_theme = 'sphinx_rtd_theme'
 # html_static_path = ['_static']
 
 # source_suffix = ['.rst', '.md']
+
+# Configuring mathjax
+
+mathjax_config = {
+    'extensions': ['tex2jax.js'],
+    'jax': ['input/TeX', 'output/HTML-CSS'],
+}
 
 # https://github.com/rtfd/recommonmark/blob/master/docs/conf.py
 def setup(app):

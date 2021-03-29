@@ -42,11 +42,9 @@ class Xavier(Initializer):
     """Initializes a blob using the Xavier algorithm: with random values
     from a normal distribution over (0, 1 / input_size).
     
-    Parameters
-    ---------
-    random_generator : object, default=None
-        Sets the random numbers generator to be used.
+    :param random_generator: Sets the random numbers generator to be used.
         By default, the standard NeoML randomizer with default seed is used.
+    :type random_generator: object, default=None     
     """
     def __init__(self, random_generator=None):
         if isinstance(random_generator, PythonWrapper.Xavier):
@@ -68,15 +66,13 @@ class Xavier(Initializer):
 class Uniform(Initializer):
     """Initializes a blob using uniform distribution between the set bounds.
     
-    Parameters
-    ---------
-    lower_bound : float, default=-1.0
-        The lower bound of the distribution.
-    upper_bound : float, default=1.0
-        The upper bound of the distribution.
-    random_generator : object, default=None
-        Sets the random numbers generator to be used.
+    :param lower_bound: The lower bound of the distribution.
+    :type lower_bound: float, default=-1.0
+    :param upper_bound: The upper bound of the distribution.
+    :type upper_bound: float, default=1.0
+    :param random_generator: Sets the random numbers generator to be used.
         By default, the standard NeoML randomizer with default seed is used.
+    :type random_generator: object, default=None 
     """
     def __init__(self, lower_bound=-1.0, upper_bound=1.0, random_generator=None):
         if isinstance(lower_bound, PythonWrapper.Uniform):

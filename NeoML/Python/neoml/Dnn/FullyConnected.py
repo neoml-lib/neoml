@@ -25,35 +25,35 @@ class FullyConnected(Layer):
     It multiplies each of the input vectors by the weight matrix
     and adds the free term vector to the result.
 
-    Layer inputs
-    -----------
-    The layer can have any number of inputs.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize is the number of vectors
-    - Height * Width * Depth * Channels is the vector size; 
-        should be the same for all inputs
-
-    Layer outputs
-    -----------
-    The layer returns one output for each input.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize the same as for the input
-    - Height, Width, Depth are 1
-    - Channels is element_count
-
-    Parameters
-    -----------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    element_count : int, > 0
-        The length of each vector in the output.
-    is_zero_free_term : bool, default=False
-        If True, the free term vector is set to all zeros and not trained.
+    :type input_layers: list of object, tuple(object, int)
+    :param element_count: The length of each vector in the output.
+    :type element_count: int, > 0
+    :param  is_zero_free_term: If True, the free term vector is set to all zeros and not trained.
         If False, the free term is trained together with the weights.
-    name : str, default=None
-        The layer name.
+    :type is_zero_free_term: bool, default=False  
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer can have any number of inputs.
+    The dimensions:
+
+    - **BatchLength** * **BatchWidth** * **ListSize** is the number of vectors
+    - **Height** * **Width** * **Depth** * **Channels** is the vector size; 
+      should be the same for all inputs
+
+    .. rubric:: Layer outputs:
+
+    The layer returns one output for each input.
+    The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize** the same as for the input
+    - **Height**, **Width**, **Depth** are 1
+    - **Channels** is element_count
     """
     def __init__(self, input_layers, element_count, is_zero_free_term=False, name=None):
 
@@ -104,16 +104,18 @@ class FullyConnected(Layer):
     @property
     def weights(self):
         """Gets the trained weights as a blob of the dimensions:
-        - BatchLength * BatchWidth * ListSize equal to element_count
-        - Height, Width, Depth, Channels the same as for the first input
+
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to element_count
+        - **Height**, **Width**, **Depth**, **Channels** the same as for the first input
         """
         return Blob.Blob(self._internal.get_weights())
 
     @weights.setter
     def weights(self, blob):
         """Sets the trained weights as a blob of the dimensions:
-        - BatchLength * BatchWidth * ListSize equal to element_count
-        - Height, Width, Depth, Channels the same as for the first input
+
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to element_count
+        - **Height**, **Width**, **Depth**, **Channels** the same as for the first input
         """
         if not type(blob) is Blob.Blob:
             raise ValueError('The `blob` must be neoml.Blob.')
