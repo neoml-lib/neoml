@@ -35,7 +35,7 @@ Example
    import neoml
 
    data = np.rand(1000, 5)
-   kmeans = neoml.Clustering.KMeans(init_cluster_count=4, init='k++', algo='elkan')
+   kmeans = neoml.Clustering.KMeans(cluster_count=4, init='k++', algo='elkan')
    labels, centers, disps = kmeans.clusterize(data)
 
 .. _py-clustering-isodata:
