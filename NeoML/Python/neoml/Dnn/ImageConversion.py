@@ -22,36 +22,36 @@ from neoml.Utils import check_input_layers
 class ImageResize(Layer):
     """The layer that resizes a set of two-dimensional multi-channel images.
     
-    Layer inputs
-    ----------
-    #1: a set of images, of the dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images
-    - Height - the images' height
-    - Width - the images' width
-    - Depth * Channels - the number of channels the image format uses
-    
-    Layer outputs
-    ----------
-    #1: a blob with the resized images, of the dimensions:
-    - BatchLength, BatchWidth, ListSize, Depth, Channels are 
-        equal to the input dimensions
-    - Height is the input Height plus the sum of top and bottom deltas
-    - Width is the input Width plus the sum of right and left deltas
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    deltas : ("left", "right", "top", "bottom")
-        The differences between the original and the resized image, 
+    :type input_layer: object, tuple(object, int)
+    :param deltas: The differences between the original and the resized image, 
         on each side. If the difference is negative, rows or columns are
         removed from the specified side. If it is positive, rows or
         columns are added and filled with the default_value pixels.
-    default_value : float, default=0.0
-        The value for the added pixels.
-    name : str, default=None
-        The layer name.
+    :type deltas: str, ("left", "right", "top", "bottom")
+    :param default_value: The value for the added pixels.
+    :type default_value: float, default=0.0 
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a set of images, of the dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of images
+        - **Height** - the images' height
+        - **Width** - the images' width
+        - **Depth** * **Channels** - the number of channels the image format uses
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the resized images, of the dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Depth**, **Channels** are 
+          equal to the input dimensions
+        - **Height** is the input Height plus the sum of top and bottom deltas
+        - **Width** is the input Width plus the sum of right and left deltas
     """
 
     def __init__(self, input_layer, deltas, default_value=0.0, name=None):
@@ -101,45 +101,47 @@ class PixelToImage(Layer):
     """The layer that creates a set of two-dimensional images using a set of
     pixel sequences with specified coordinates.
     
-    Layer inputs
-    ----------
-    #1: a blob with pixel sequences.
-    The dimensions:
-    - BatchLength is 1
-    - BatchWidth is the number of sequences in the set
-    - ListSize is the length of each sequence
-    - Height, Width, Depth are 1
-    - Channels is the number of channels for the pixel sequences 
-        and the output images.
-    
-    #2: a blob with integer data that contains lists of pixel coordinates.
-    The dimensions:
-    - BatchWidth, ListSize are the same as for the first input
-    - the other dimensions are 1
-    
-    Layer outputs
-    ----------
-    #1: a blob with images.
-    The dimensions:
-    - BatchLength is 1
-    - BatchWidth is the same as for the first input
-    - ListSize is 1
-    - Height is the specified image height
-    - Width is the specified image width
-    - Depth is 1
-    - Channels is the same as for the first input
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    height : int
-        The height of the resulting images.
-    width : int
-        The width of the resulting images.
-    name : str, default=None
-        The layer name.
+    :type input_layer: list of object, tuple(object, int)
+    :param height: The height of the resulting images.  
+    :type height: int
+    :param width: The width of the resulting images.    
+    :type width: int
+    :param name: The layer name.    
+    :type name: str, default=None
+        
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with pixel sequences.
+        The dimensions:
+
+        - **BatchLength** is 1
+        - **BatchWidth** is the number of sequences in the set
+        - **ListSize** is the length of each sequence
+        - **Height**, **Width**, **Depth** are 1
+        - **Channels** is the number of channels for the pixel sequences 
+          and the output images.
+    
+    (2) a blob with integer data that contains lists of pixel coordinates.
+        The dimensions:
+
+        - **BatchWidth**, **ListSize** are the same as for the first input
+        - the other dimensions are 1
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with images.
+        The dimensions:
+
+        - **BatchLength** is 1
+        - **BatchWidth** is the same as for the first input
+        - **ListSize** is 1
+        - **Height** is the specified image height
+        - **Width** is the specified image width
+        - **Depth** is 1
+        - **Channels** is the same as for the first input
     """
 
     def __init__(self, input_layer, height, width, name=None):
@@ -194,41 +196,42 @@ class ImageToPixel(Layer):
     """The layer that extracts a set of pixel sequences along the specified 
     coordinates from a set of two-dimensional images.
     
-    Layer inputs
-    ----------
-    #1: a set of two-dimensional images.
-    The blob dimensions:
-    - BatchLength is 1
-    - BatchWidth is the number of sequences in the set
-    - ListSize 1
-    - Height is the images' height
-    - Width is the images' width
-    - Depth is 1
-    - Channels is the number of channels the image format uses
-    
-    #2: a blob with integer data that contains the pixel sequences.
-    The dimensions: 
-    - BatchWidth is the same as for the first input
-    - ListSize is the length of each sequence
-    - all other dimensions are 1
-    
-    Layer outputs
-    ----------
-    #1: a blob with the pixel sequences.
-    The dimensions:
-    - BatchLength is 1
-    - BatchWidth is the inputs' BatchWidth
-    - ListSize is the same as for the second input
-    - Height, Width, Depth are 1
-    - Channels is the same as for the first input
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
+    :type input_layer: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+        
+    .. rubric:: Layer inputs:
+
+    (1) a set of two-dimensional images.
+        The blob dimensions:
+
+        - **BatchLength** is 1
+        - **BatchWidth** is the number of sequences in the set
+        - **ListSize** 1
+        - **Height** is the images' height
+        - **Width** is the images' width
+        - **Depth** is 1
+        - **Channels** is the number of channels the image format uses
+    
+    (2) a blob with integer data that contains the pixel sequences.
+        The dimensions:
+
+        - **BatchWidth** is the same as for the first input
+        - **ListSize** is the length of each sequence
+        - all other dimensions are 1
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the pixel sequences.
+        The dimensions:
+
+        - **BatchLength** is 1
+        - **BatchWidth** is the inputs' **BatchWidth**
+        - **ListSize** is the same as for the second input
+        - **Height**, **Width**, **Depth** are 1
+        - **Channels** is the same as for the first input
     """
 
     def __init__(self, input_layer, name=None):
