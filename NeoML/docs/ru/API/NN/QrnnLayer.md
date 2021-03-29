@@ -4,6 +4,7 @@
 
 - [Класс CQrnnLayer](#класс-cqrnnlayer)
     - [Настройки](#настройки)
+        - [Тип пулинга](#тип-пулинга)
         - [Размер скрытого слоя](#размер-скрытого-слоя)
         - [Размер окна](#размер-окна)
         - [Шаг окна](#шаг-окна)
@@ -31,6 +32,24 @@
 Реализация основана на [следующей статье](https://arxiv.org/abs/1611.01576).
 
 ## Настройки
+
+### Тип пулинга
+
+```c++
+// Different poolings used in QRNN
+enum TPoolingType {
+    PT_FPooling, // f-pooling from article, uses 2 gates (Update, Forget)
+    PT_FoPooling, // fo-pooling from article, uses 3 gates (Update, Forget, Output)
+    PT_IfoPooling, // ifo pooling from article, uses 4 gates (Update, Forget, Output, Input)
+
+    PT_Count
+};
+
+void SetPoolingType(TPoolingType newPoolingType);
+```
+
+Установить тип пулинга. Пулингом в QRNN называется рекуррентная часть после свертки "по времени".
+Точные формулы соответствующих пулингов можно посмотреть в [статье](https://arxiv.org/abs/1611.01576).
 
 ### Размер скрытого слоя
 
@@ -119,7 +138,7 @@ CPtr<CDnnBlob> GetFilterData() cons;
 Фильтры, содержащие веса сразу для всех гейтов, представляют собой [блоб](DnnBlob.md) размеров:
 
 - `BatchLength` равен `1`;
-- `BatchWidth` равен `3 * GetHiddenSize()`;
+- `BatchWidth` равен `gates * GetHiddenSize()`, где `gates` равен `2` если используется `PT_FPooling`, `3` в случае `PT_FoPooling` и `4` в случае `PT_IfoPooling`;
 - `Height` равен `GetWindowSize()`;
 - `Width` равен `1`;
 - `Depth` равен `1`;
@@ -128,9 +147,10 @@ CPtr<CDnnBlob> GetFilterData() cons;
 Вдоль оси `BatchWidth` матрица содержит веса гейтов в следующем порядке:
 
 ```c++
-G_Update, // update gate (Z из статьи)
-G_Forget, // forget gate (F из статьи)
-G_Output, // output gate (O из статьи)
+G_Update, // update gate (Z in the article)
+G_Forget, // forget gate (F in the article)
+G_Output, // output gate (O in the article)
+G_Input, // input gate (I in the article)
 ```
 
 ### Свободные члены
@@ -139,7 +159,7 @@ G_Output, // output gate (O из статьи)
 CPtr<CDnnBlob> GetFreeTermData() const
 ```
 
-Свободные члены представляют собой блоб, имеющий суммарный размер, равный `3 * GetHiddenSize()`. Порядок относительно гейтов см. [выше](#фильтры-свертки).
+Свободные члены представляют собой блоб, имеющий суммарный размер, равный `BatchWidth` блоба с фильтрами выше.
 
 ## Входы
 
