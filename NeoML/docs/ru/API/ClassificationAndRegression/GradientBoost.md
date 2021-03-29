@@ -88,7 +88,7 @@ public:
 
 	// Получить результаты классификации на всех подмножествах деревьев вида [1..k]
 	virtual bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
+	virtual bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
 
 	// Посчитать статистику для признаков.
 	// Возвращает число раз, которое данный признак был использован для разделения в деревьях.
@@ -162,7 +162,7 @@ public:
 
 	// Получить результаты классификации на всех подмножествах деревьев вида [0..k].
 	virtual bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
+	virtual bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
 };
 ```
 

@@ -27,12 +27,12 @@ public:
 	COneVersusAllTrainingData( const IProblem* data, int baseClass );
 
 	// IProblem interface methods
-	int GetClassCount() const override { return data->GetClassCount(); }
+	int GetClassCount() const override { return 2; }
 	int GetFeatureCount() const override { return data->GetFeatureCount(); }
 	bool IsDiscreteFeature( int ) const override { return false; }
 	int GetVectorCount() const override { return data->GetVectorCount(); }
 	int GetClass( int index ) const override { return ( data->GetClass( index) == baseClass ) ? 0 : 1; }
-	CSparseFloatMatrixDesc GetMatrix() const override { return data->GetMatrix(); }
+	CFloatMatrixDesc GetMatrix() const override { return data->GetMatrix(); }
 	double GetVectorWeight( int index ) const override { return data->GetVectorWeight( index ); }
 	int GetDiscretizationValue( int index ) const override { return data->GetDiscretizationValue( index ); }
 

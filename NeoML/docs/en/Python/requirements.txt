@@ -1,0 +1,12 @@
+# NeoML/docs/en/requirements.txt
+sphinx==2.4.0
+sphinx-rtd-theme==0.5.1
+# m2r2==0.2.7
+# recommonmark==0.6.0
+# requirements for build
+cmake==3.18.4
+ninja==1.10.0
+setuptools==51.3.3
+numpy>=1.19.1
+scipy>=1.5.2
+pybind11-global==2.6.1
