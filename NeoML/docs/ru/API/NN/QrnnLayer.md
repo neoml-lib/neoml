@@ -149,8 +149,8 @@ CPtr<CDnnBlob> GetFilterData() cons;
 ```c++
 G_Update, // update gate (Z in the article)
 G_Forget, // forget gate (F in the article)
-G_Output, // output gate (O in the article)
-G_Input, // input gate (I in the article)
+G_Output, // output gate if used (O in the article)
+G_Input, // input gate if used (I in the article)
 ```
 
 ### Свободные члены
