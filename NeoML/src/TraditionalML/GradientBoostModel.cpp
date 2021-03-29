@@ -17,78 +17,58 @@ limitations under the License.
 #pragma hdrstop
 
 #include <GradientBoostModel.h>
-#include <RegressionTreeModel.h>
+#include <CompactRegressionTree.h>
 
 namespace NeoML {
 
 REGISTER_NEOML_MODEL( CGradientBoostModel, GradientBoostModelName )
 
-CGradientBoostModel::CGradientBoostModel( CArray<CGradientBoostEnsemble>& _ensembles, double _learningRate,
-	CGradientBoost::TLossFunction _lossFunction ) :
+CGradientBoostModel::CGradientBoostModel( CArray<CGradientBoostEnsemble>& _ensembles, int _valueSize,
+	double _learningRate, CGradientBoost::TLossFunction _lossFunction ) :
 	learningRate( _learningRate ),
-	lossFunction( _lossFunction )
+	lossFunction( _lossFunction ),
+	valueSize( _valueSize )
 {
 	_ensembles.MoveTo( ensembles );
 }
 
-double CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
-	const CSparseFloatVector& vector )
+bool CGradientBoostModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
 {
-	double result = 0;
-	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		result += ensemble[i]->Predict( vector );
+	CFastArray<double, 1> predictions;
+
+	if( ensembles.Size() > 1 ) {
+		predictions.SetSize( ensembles.Size() );
+		CFastArray<double, 1> ensemblePredictions;
+		ensemblePredictions.SetSize(1);
+		for( int i = 0; i < ensembles.Size(); i++ ) {
+			PredictRaw(ensembles[i], 0, learningRate, data, ensemblePredictions);
+			predictions[i] = ensemblePredictions[0];
+		}
+	} else {
+		predictions.SetSize( valueSize );
+		PredictRaw( ensembles[0], 0, learningRate, data, predictions );
 	}
 
-	return result * learningRate;
-}
-
-double CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
-	const CFloatVector& vector )
-{
-	double result = 0;
-	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		result += ensemble[i]->Predict( vector );
-	}
-
-	return result * learningRate;
-}
-
-double CGradientBoostModel::PredictRaw( const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
-	const CSparseFloatVectorDesc& vector )
-{
-	double result = 0;
-	for( int i = startPos; i < ensemble.Size(); i++ ) {
-		result += ensemble[i]->Predict( vector );
-	}
-
-	return result * learningRate;
-}
-
-bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
-{
-	if( GetClassCount() == 2 ) {
-		return classify( PredictRaw( ensembles[0], 0, learningRate, data ), result );
-	}
-
-	CArray<double> predictions;
-	predictions.SetBufferSize( ensembles.Size() );
-	for( int i = 0; i < ensembles.Size(); i++ ) {
-		predictions.Add( PredictRaw( ensembles[i], 0, learningRate, data ) );
-	}
 	return classify( predictions, result );
 }
 
 bool CGradientBoostModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
 {
-	if( GetClassCount() == 2 ) {
-		return classify( PredictRaw( ensembles[0], 0, learningRate, data ), result );
+	CFastArray<double, 1> predictions;
+
+	if( ensembles.Size() > 1 ) {
+		predictions.SetSize( ensembles.Size() );
+		CFastArray<double, 1> ensemblePredictions;
+		ensemblePredictions.SetSize(1);
+		for( int i = 0; i < ensembles.Size(); i++ ) {
+			PredictRaw(ensembles[i], 0, learningRate, data, ensemblePredictions);
+			predictions[i] = ensemblePredictions[0];
+		}
+	} else {
+		predictions.SetSize( valueSize );
+		PredictRaw( ensembles[0], 0, learningRate, data, predictions );
 	}
 
-	CArray<double> predictions;
-	predictions.SetBufferSize( ensembles.Size() );
-	for( int i = 0; i < ensembles.Size(); i++ ) {
-		predictions.Add( PredictRaw( ensembles[i], 0, learningRate, data ) );
-	}
 	return classify( predictions, result );
 }
 
@@ -99,7 +79,7 @@ void CGradientBoostModel::Serialize( CArchive& archive )
 #else
 	const int minSupportedVersion = 2;
 #endif
-	int version = archive.SerializeVersion( 2, minSupportedVersion );
+	int version = archive.SerializeVersion( 3, minSupportedVersion );
 
 	if( archive.IsStoring() ) {
 		archive << ensembles.Size();
@@ -114,6 +94,7 @@ void CGradientBoostModel::Serialize( CArchive& archive )
 		}
 		archive << learningRate;
 		archive.SerializeEnum( lossFunction );
+		archive << valueSize;
 	} else if( archive.IsLoading() ) {
 		int size = 0;
 		archive >> size;
@@ -126,13 +107,13 @@ void CGradientBoostModel::Serialize( CArchive& archive )
 #ifdef NEOML_USE_FINEOBJ
 				if( version < 2 ) {
 					CUnicodeString modelName = archive.ReadExternalName();
-					ensemble[j] = CreateModel<IRegressionModel>( modelName.CreateString() );
+					ensemble[j] = CreateModel<IRegressionTreeNode>( modelName.CreateString() );
 				}	
 #endif
 				if( version >= 2 ) {
 					CString modelName;
 					archive >> modelName;
-					ensemble[j] = CreateModel<IRegressionModel>( modelName );
+					ensemble[j] = CreateModel<IRegressionTreeNode>( modelName );
 				}
 
 				ensemble[j]->Serialize( archive );
@@ -141,6 +122,11 @@ void CGradientBoostModel::Serialize( CArchive& archive )
 		archive >> learningRate;
 		if( version > 0 ) {
 			archive.SerializeEnum( lossFunction );
+			if( version >= 3 ) {
+				archive >> valueSize;
+			} else {
+				valueSize = 1;
+			}
 		}
 	} else {
 		NeoAssert( false );
@@ -152,45 +138,35 @@ bool CGradientBoostModel::ClassifyEx( const CSparseFloatVector& data, CArray<CCl
 	return ClassifyEx( data.GetDesc(), results );
 }
 
-bool CGradientBoostModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const
+bool CGradientBoostModel::ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const
 {
 	NeoAssert( !ensembles.IsEmpty() );
 
-	const int classCount = GetClassCount();
-	CArray<double> predictions;
-	predictions.Add( 0.0, ensembles.Size() );
-	CArray<double> distances;
+	CFastArray<double, 1> predictions;
+	predictions.Add(0.0, ensembles.Size() > 1 ? ensembles.Size() : valueSize);
+	CFastArray<double, 1> curPredictions;
 
+	CRegressionTree::CPrediction pred;
 	results.DeleteAll();
 	for( int resultIndex = 0; resultIndex < ensembles[0].Size(); ++resultIndex ) {
 		CClassificationResult result;
-		result.ExceptionProbability = CClassificationProbability( 0 );
-		
-		if( classCount == 2 ) {
-			predictions[0] += learningRate * ensembles[0][resultIndex]->Predict( data );
-			const double rawValue = probability( predictions[0] );
-			result.PreferredClass = rawValue < 0.5 ? 0 : 1;
-			result.Probabilities.Add( CClassificationProbability( 1 - rawValue ) );
-			result.Probabilities.Add( CClassificationProbability( rawValue ) );
-		} else {
-			double sumDistance = 0;
-			distances.DeleteAll();
-			distances.SetBufferSize( ensembles.Size() );
-			result.PreferredClass = 0;
-			for( int i = 0; i < ensembles.Size(); i++ ) {
-				predictions[i] += learningRate * ensembles[i][resultIndex]->Predict( data );
-				const double distance = probability( predictions[i] );
-				distances.Add( distance );
-				sumDistance += distance;
-				if( distance > distances[result.PreferredClass] ) {
-					result.PreferredClass = i;
-				}
-			}
 
-			for( int i = 0; i < distances.Size(); i++ ) {
-				result.Probabilities.Add( CClassificationProbability( distances[i] / sumDistance ) );
+		if( ensembles.Size() > 1 ) {
+			NeoAssert(predictions.Size() == ensembles.Size());
+			for( int i = 0; i < ensembles.Size(); i++ ) {
+				static_cast<const CRegressionTree*>( ensembles[i][resultIndex].Ptr() )->Predict( data, pred );
+				predictions[i] += learningRate * pred[0];
+			}
+		} else {
+			static_cast<const CRegressionTree*>( ensembles[0][resultIndex].Ptr() )->Predict( data, pred );
+			NeoAssert(predictions.Size() == pred.Size());
+			for( int i = 0; i < predictions.Size(); i++ ) {
+				predictions[i] += learningRate * pred[i];
 			}
 		}
+
+		predictions.CopyTo(curPredictions);
+		classify(curPredictions, result);
 
 		results.Add( result );
 	}
@@ -208,7 +184,8 @@ void CGradientBoostModel::CalcFeatureStatistics( int maxFeature, CArray<int>& re
 		const CGradientBoostEnsemble& ensemble = ensembles[i];
 		for( int j = 0; j < ensemble.Size(); j++ ) {
 			CArray<int> oneTreeResult;
-			CheckCast<CRegressionTreeModel>(ensemble[j].Ptr())->CalcFeatureStatistics( maxFeature, oneTreeResult );
+			static_cast<const CRegressionTree*>( ensemble[j].Ptr() )
+				->CalcFeatureStatistics( maxFeature, oneTreeResult );
 			for( int k = 0; k < result.Size(); k++ ) {
 				result[k] += oneTreeResult[k];
 			}
@@ -227,62 +204,93 @@ void CGradientBoostModel::CutNumberOfTrees( int numberOfTrees )
 	}
 }
 
-// IRegressionModel interface methods
+void CGradientBoostModel::ConvertToCompact()
+{
+	for( int i = 0; i < ensembles.Size() ; i++ ) {
+		CGradientBoostEnsemble& ensemble = ensembles[i];
+		for( int j = 0; j < ensemble.Size(); j++ ) {
+			CPtr<IRegressionTreeNode>& tree = ensemble[j];
+			if( dynamic_cast<CCompactRegressionTree*>( tree.Ptr() ) == 0 ) {
+				tree = FINE_DEBUG_NEW CCompactRegressionTree( tree );
+			}
+		}
+	}
+}
+
+// The common implementation for Predict methods
+template<typename TData>
+inline double CGradientBoostModel::doPredict( const TData& data ) const
+{
+	NeoAssert(ensembles.Size() == 1 && valueSize == 1);
+	CFastArray<double, 1> predictions;
+	predictions.SetSize(1);
+	PredictRaw( ensembles.First(), 0, learningRate, data, predictions );
+	return predictions[0];
+}
 
 double CGradientBoostModel::Predict( const CSparseFloatVector& data ) const
 {
-	return PredictRaw( ensembles.First(), 0, learningRate, data );
+	return doPredict( data.GetDesc() );
 }
 
 double CGradientBoostModel::Predict( const CFloatVector& data ) const
 {
-	return PredictRaw( ensembles.First(), 0, learningRate, data );
+	return doPredict( data );
 }
 
-double CGradientBoostModel::Predict( const CSparseFloatVectorDesc& data ) const
+double CGradientBoostModel::Predict( const CFloatVectorDesc& data ) const
 {
-	return PredictRaw( ensembles.First(), 0, learningRate, data );
+	return doPredict( data );
 }
 
 // The common implementation for the three MultivariatePredict method variations
 template<typename TData>
 CFloatVector CGradientBoostModel::doMultivariatePredict( const TData& data ) const
 {
+	CFastArray<double, 1> predictions;
+
+	if( ensembles.Size() == 1 ){		
+		predictions.Add( 0.0, valueSize );
+		PredictRaw( ensembles[0], 0, learningRate, data, predictions );
+		CFloatVector result( valueSize );
+		float* resultPtr = result.CopyOnWrite();
+		for( int i = 0; i < valueSize; i++ ) {
+			resultPtr[i] = static_cast<float>( predictions[i] );
+		}
+		return result;
+	}
+	
+	predictions.Add( 0.0, 1 );
 	CFloatVector result( ensembles.Size() );
+	float* resultPtr = result.CopyOnWrite();
 	for( int i = 0; i < ensembles.Size(); i++ ) {
-		result.SetAt( i, static_cast<float>(
-			PredictRaw( ensembles[i], 0, learningRate, data ) ) );
+		PredictRaw(ensembles[i], 0, learningRate, data, predictions);
+		resultPtr[i] = static_cast<float>(predictions[0]);
 	}
 	return result;
 }
 
 // IMultivariateRegressionModel interface methods
-
-CFloatVector CGradientBoostModel::MultivariatePredict( const CSparseFloatVector& data ) const
-{
-	return doMultivariatePredict( data );
-}
-
-CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVector& data ) const
+CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVectorDesc& data ) const
 {
 	return doMultivariatePredict( data );
 }
 
 // Performs classification
-bool CGradientBoostModel::classify( double prediction, CClassificationResult& result ) const
+bool CGradientBoostModel::classify( CFastArray<double, 1>& predictions, CClassificationResult& result ) const
 {
-	double prob = probability( prediction );
-	result.ExceptionProbability = CClassificationProbability( 0 );
-	result.PreferredClass = prob < 0.5 ? 0 : 1;
-	result.Probabilities.Empty();
-	result.Probabilities.Add( CClassificationProbability( 1 - prob ) );
-	result.Probabilities.Add( CClassificationProbability( prob ) );
-	return true;
-}
+	NeoAssert( !predictions.IsEmpty() );
 
-// Performs classification
-bool CGradientBoostModel::classify( CArray<double>& predictions, CClassificationResult& result ) const
-{
+	if( predictions.Size() == 1 ) {
+		double prob = probability( predictions[0] );
+		result.ExceptionProbability = CClassificationProbability( 0 );
+		result.PreferredClass = prob < 0.5 ? 0 : 1;
+		result.Probabilities.Empty();
+		result.Probabilities.Add( CClassificationProbability( 1 - prob ) );
+		result.Probabilities.Add( CClassificationProbability( prob ) );
+		return true;
+	}
+
 	result.ExceptionProbability = CClassificationProbability( 0 );
 	result.PreferredClass = 0;
 	double sumPredictions = 0;
@@ -295,7 +303,7 @@ bool CGradientBoostModel::classify( CArray<double>& predictions, CClassification
 	}
 
 	result.Probabilities.Empty();
-	for( int i = 0; i < ensembles.Size(); i++ ) {
+	for( int i = 0; i < predictions.Size(); i++ ) {
 		result.Probabilities.Add( CClassificationProbability( predictions[i] / sumPredictions ) );
 	}
 	return true;

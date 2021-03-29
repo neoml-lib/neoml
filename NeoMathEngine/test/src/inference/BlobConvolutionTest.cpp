@@ -145,7 +145,7 @@ static void blobConvolutionImpl( const CTestParams& params, int seed )
 		dilationHeight, dilationWidth, strideHeight, strideWidth );
 
 	for( int i = 0; i < outputSize; ++i ) {
-		ASSERT_NEAR( expectedData[i], actualData[i], 1e-3f );
+		ASSERT_TRUE( FloatEq( expectedData[i], actualData[i], 1e-3f ) );
 	}
 }
 
@@ -612,6 +612,26 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobConvolutionTestInstantiation, CMathEngin
 			"DilationWidth = 1;"
 			"StrideHeight = 1;"
 			"StrideWidth = 1;"
+			"IsZeroFreeTerm = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputLength = 3;"
+			"InputBatch = 4;"
+			"InputHeight = 20;"
+			"InputWidth = 25;"
+			"InputDepth = 6;"
+			"InputChannels = 7;"
+			"FilterCount = 18;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"DilationHeight = 2;"
+			"DilationWidth = 2;"
+			"StrideHeight = 4;"
+			"StrideWidth = 4;"
 			"IsZeroFreeTerm = 1;"
 			"Values = (-10..10);"
 			"TestCount = 1;"

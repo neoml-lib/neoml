@@ -26,10 +26,10 @@ limitations under the License.
 #include <NeoML/TraditionalML/KMeansClustering.h>
 #include <NeoML/TraditionalML/HierarchicalClustering.h>
 #include <NeoML/TraditionalML/MemoryProblem.h>
-#include <NeoML/TraditionalML/LinearBinaryClassifierBuilder.h>
-#include <NeoML/TraditionalML/DecisionTreeTrainingModel.h>
+#include <NeoML/TraditionalML/Linear.h>
+#include <NeoML/TraditionalML/DecisionTree.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
-#include <NeoML/TraditionalML/SvmBinaryClassifierBuilder.h>
+#include <NeoML/TraditionalML/Svm.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <NeoML/TraditionalML/DifferentialEvolution.h>
 #include <NeoML/Dnn/DnnBlob.h>
@@ -109,6 +109,8 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/GELULayer.h>
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
+#include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
+#include <NeoML/Dnn/Layers/IrnnLayer.h>
 #include <NeoML/ArchiveFile.h>
 
 #ifndef NO_NEOML_NAMESPACE

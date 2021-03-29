@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CSparseFloatVectorDesc CSparseFloatVectorDesc::Empty; // an empty vector descriptor
+CFloatVectorDesc CFloatVectorDesc::Empty; // an empty vector descriptor
 
 CSparseFloatVector::CSparseFloatVectorBody* CSparseFloatVector::CSparseFloatVectorBody::Duplicate() const
 {
@@ -41,15 +41,31 @@ CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( int bufferSi
 	Desc.Values = ValuesBuf.GetPtr();
 }
 
-CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( const CSparseFloatVectorDesc& desc ) :
+CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( const CFloatVectorDesc& desc ) :
 	BufferSize( desc.Size )
 {
-	Desc.Size = desc.Size;
-	IndexesBuf.SetSize( BufferSize );
-	ValuesBuf.SetSize( BufferSize );
-	::memcpy( IndexesBuf.GetPtr(), desc.Indexes, Desc.Size * sizeof( int ) );
-	::memcpy( ValuesBuf.GetPtr(), desc.Values, Desc.Size * sizeof( float ) );
-
+	if( desc.Indexes == nullptr ) {
+		for( int i = 0; i < desc.Size; ++i ) {
+			if( desc.Values[i] == 0 ) {
+				--BufferSize;
+			}
+		}
+		Desc.Size = BufferSize;
+		IndexesBuf.SetBufferSize( BufferSize );
+		ValuesBuf.SetBufferSize( BufferSize );
+		for( int i = 0; i < desc.Size; ++i ) {
+			if( desc.Values[i] != 0 ) {
+				IndexesBuf.Add( i );
+				ValuesBuf.Add( desc.Values[i] );
+			}
+		}
+	} else {
+		Desc.Size = desc.Size;
+		IndexesBuf.SetSize( BufferSize );
+		ValuesBuf.SetSize( BufferSize );
+		::memcpy( IndexesBuf.GetPtr(), desc.Indexes, Desc.Size * sizeof( int ) );
+		::memcpy( ValuesBuf.GetPtr(), desc.Values, Desc.Size * sizeof( float ) );
+	}
 	Desc.Indexes = IndexesBuf.GetPtr();
 	Desc.Values = ValuesBuf.GetPtr();
 }
@@ -59,9 +75,9 @@ CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( const CSpars
 // Calculates the number of elements of two sparse vectors union
 static inline int calcUnionElementsCount( const CSparseFloatVector& vector1, const CSparseFloatVector& vector2 )
 {
-	const CSparseFloatVectorDesc& body1 = vector1.GetDesc();
+	const CFloatVectorDesc& body1 = vector1.GetDesc();
 	const int size1 = vector1.NumberOfElements();
-	const CSparseFloatVectorDesc& body2 = vector2.GetDesc();
+	const CFloatVectorDesc& body2 = vector2.GetDesc();
 	const int size2 = vector2.NumberOfElements();
 
 	int i = 0;
@@ -99,7 +115,7 @@ CSparseFloatVector::CSparseFloatVector( int bufferSize ) :
 	}
 }
 
-CSparseFloatVector::CSparseFloatVector( const CSparseFloatVectorDesc& desc ) :
+CSparseFloatVector::CSparseFloatVector( const CFloatVectorDesc& desc ) :
 	body( FINE_DEBUG_NEW CSparseFloatVectorBody( desc ) )
 {
 }
@@ -115,7 +131,7 @@ double CSparseFloatVector::Norm() const
 	if( size == 0 ) {
 		return 0;
 	}
-	const CSparseFloatVectorDesc& desc = GetDesc();
+	const CFloatVectorDesc& desc = GetDesc();
 	
 	double scale = 0.0;
 	double ssq = 1.0;
@@ -140,7 +156,7 @@ double CSparseFloatVector::Norm() const
 double CSparseFloatVector::NormL1() const
 {
 	const int size = NumberOfElements();
-	const CSparseFloatVectorDesc& desc = GetDesc();
+	const CFloatVectorDesc& desc = GetDesc();
 	double sum = 0;
 	for( int i = 0; i < size; i++ ) {
 		sum += fabs( desc.Values[i] );
@@ -151,7 +167,7 @@ double CSparseFloatVector::NormL1() const
 float CSparseFloatVector::MaxAbs() const
 {
 	float maxAbs = 0;
-	const CSparseFloatVectorDesc& desc = GetDesc();
+	const CFloatVectorDesc& desc = GetDesc();
 	const int size = NumberOfElements();
 	for( int i = 0; i < size; i++ ) {
 		maxAbs = max( maxAbs, static_cast<float>( abs( desc.Values[i] ) ) );
@@ -162,7 +178,7 @@ float CSparseFloatVector::MaxAbs() const
 void CSparseFloatVector::SetAt( int index, float value )
 {
 	const int size = NumberOfElements();
-	const CSparseFloatVectorDesc& desc = GetDesc();
+	const CFloatVectorDesc& desc = GetDesc();
 
 	int i = NotFound;
 	if( size == 0 || desc.Indexes[size - 1] <= index ) {
@@ -204,7 +220,7 @@ void CSparseFloatVector::SetAt( int index, float value )
 bool CSparseFloatVector::GetValue( int index, float& value ) const
 {
 	const int size = NumberOfElements();
-	const CSparseFloatVectorDesc& desc = GetDesc();
+	const CFloatVectorDesc& desc = GetDesc();
 
 	const int pos = FindInsertionPoint<int, Ascending<int>, int>( index, desc.Indexes, size ) - 1;
 	if( pos >= 0 && desc.Indexes[pos] == index ) {
@@ -243,14 +259,14 @@ CSparseFloatVector& CSparseFloatVector::operator += ( const CSparseFloatVector& 
 	if( otherSize == 0 ) {
 		return *this;
 	}
-	const CSparseFloatVectorDesc& otherDesc = vector.GetDesc();
+	const CFloatVectorDesc& otherDesc = vector.GetDesc();
 
 	const int size = NumberOfElements();
 	if( size == 0 ) {
 		*this = vector;
 		return *this;
 	}
-	const CSparseFloatVectorDesc& desc = GetDesc();
+	const CFloatVectorDesc& desc = GetDesc();
 
 	const int newSize = calcUnionElementsCount( *this, vector );
 	CSparseFloatVectorBody* newBody = FINE_DEBUG_NEW CSparseFloatVectorBody( newSize );
@@ -301,10 +317,10 @@ CSparseFloatVector& CSparseFloatVector::operator -= ( const CSparseFloatVector& 
 	if( otherSize == 0 ) {
 		return *this;
 	}
-	const CSparseFloatVectorDesc& otherDesc = vector.GetDesc();
+	const CFloatVectorDesc& otherDesc = vector.GetDesc();
 
 	const int size = NumberOfElements();
-	const CSparseFloatVectorDesc& desc = GetDesc();
+	const CFloatVectorDesc& desc = GetDesc();
 
 	const int elementsCount = calcUnionElementsCount( *this, vector );
 	CSparseFloatVectorBody* newBody = FINE_DEBUG_NEW CSparseFloatVectorBody( elementsCount );
@@ -351,7 +367,7 @@ CSparseFloatVector& CSparseFloatVector::operator -= ( const CSparseFloatVector& 
 
 CSparseFloatVector& CSparseFloatVector::operator *= ( double factor )
 {
-	CSparseFloatVectorDesc* desc = CopyOnWrite();
+	CFloatVectorDesc* desc = CopyOnWrite();
 	const int size = NumberOfElements();
 	for( int i = 0; i < size; i++ ) {
 		desc->Values[i] = static_cast<float>( desc->Values[i] * factor );
@@ -365,10 +381,10 @@ CSparseFloatVector& CSparseFloatVector::MultiplyAndAdd( const CSparseFloatVector
 	if( otherSize == 0 ) {
 		return *this;
 	}
-	const CSparseFloatVectorDesc& otherDesc = vector.GetDesc();
+	const CFloatVectorDesc& otherDesc = vector.GetDesc();
 
 	const int size = NumberOfElements();
-	const CSparseFloatVectorDesc& desc = GetDesc();
+	const CFloatVectorDesc& desc = GetDesc();
 
 	const int newSize = calcUnionElementsCount( *this, vector );
 	CSparseFloatVectorBody* newBody = FINE_DEBUG_NEW CSparseFloatVectorBody( newSize );
@@ -379,7 +395,7 @@ CSparseFloatVector& CSparseFloatVector::MultiplyAndAdd( const CSparseFloatVector
 	while( i < size && j < otherSize ) {
 		if( desc.Indexes[i] == otherDesc.Indexes[j] ) {
 			newBody->Desc.Indexes[k] = desc.Indexes[i];
-			newBody->Desc.Values[k] = static_cast<float>( desc.Values[i] + factor * desc.Values[j] );
+			newBody->Desc.Values[k] = static_cast<float>( desc.Values[i] + factor * otherDesc.Values[j] );
 			i++;
 			j++;
 		} else if( desc.Indexes[i] < otherDesc.Indexes[j] ) {
@@ -415,7 +431,7 @@ CSparseFloatVector& CSparseFloatVector::MultiplyAndAdd( const CSparseFloatVector
 
 void CSparseFloatVector::SquareEachElement()
 {
-	CSparseFloatVectorDesc* desc = CopyOnWrite();
+	CFloatVectorDesc* desc = CopyOnWrite();
 	const int size = NumberOfElements();
 	for( int i = 0; i < size; i++ ) {
 		desc->Values[i] *= desc->Values[i];
@@ -428,9 +444,9 @@ void CSparseFloatVector::MultiplyBy( const CSparseFloatVector& factor )
 	if( otherSize == 0 ) {
 		return;
 	}
-	const CSparseFloatVectorDesc& otherDesc = factor.GetDesc();
+	const CFloatVectorDesc& otherDesc = factor.GetDesc();
 
-	CSparseFloatVectorDesc* desc = CopyOnWrite();
+	CFloatVectorDesc* desc = CopyOnWrite();
 	const int size = NumberOfElements();
 
 	int i = 0;
@@ -454,9 +470,9 @@ void CSparseFloatVector::DivideBy( const CSparseFloatVector& divisor )
 	if( otherSize == 0 ) {
 		return;
 	}
-	const CSparseFloatVectorDesc& otherDesc = divisor.GetDesc();
+	const CFloatVectorDesc& otherDesc = divisor.GetDesc();
 	
-	CSparseFloatVectorDesc* desc = CopyOnWrite();
+	CFloatVectorDesc* desc = CopyOnWrite();
 	const int size = NumberOfElements();
 
 	int i = 0;
@@ -526,7 +542,7 @@ void CSparseFloatVector::Serialize( CArchive& archive )
 			body = newBody;
 		}
 	} else if( archive.IsStoring() ) {
-		const CSparseFloatVectorDesc& desc = GetDesc();
+		const CFloatVectorDesc& desc = GetDesc();
 		int notNullElementCount = 0;
 		int lastNotNullElementIndex = NotFound;
 		for( int i = 0; i < desc.Size; i++ ) {

@@ -33,6 +33,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <GradientBoostQSEnsemble.h>
+#include <SerializeCompact.h>
 
 namespace NeoML {
 
@@ -58,16 +59,16 @@ inline static int findLowestBitIndex( unsigned __int64 value )
 }
 
 // Finds the nodes that will be used for leaves of the optimized subtree
-inline static void findQsLeaves( const IRegressionTreeModel* root, CHashTable<const IRegressionTreeModel*>& qsLeaves )
+inline static void findQsLeaves( const IRegressionTreeNode* root, CHashTable<const IRegressionTreeNode*>& qsLeaves )
 {
-	CFastArray<const IRegressionTreeModel*, MaxQSLeavesCount * 2> nextLevel; // next level nodes
-	CFastArray<const IRegressionTreeModel*, MaxQSLeavesCount * 2> curLevel; // current level nodes
+	CFastArray<const IRegressionTreeNode*, MaxQSLeavesCount * 2> nextLevel; // next level nodes
+	CFastArray<const IRegressionTreeNode*, MaxQSLeavesCount * 2> curLevel; // current level nodes
 	curLevel.Add( root );
 
 	// Traverse the tree breadth first until we get MaxQSLeavesCount leaves
 	while( !curLevel.IsEmpty() ) {
 		for( int i = curLevel.Size() - 1; i >= 0; i-- ) {
-			const IRegressionTreeModel* node = curLevel[i];
+			const IRegressionTreeNode* node = curLevel[i];
 
 			CRegressionTreeNodeInfo nodeInfo;
 			node->GetNodeInfo(nodeInfo);
@@ -94,7 +95,7 @@ inline static void findQsLeaves( const IRegressionTreeModel* root, CHashTable<co
 
 	// All nodes on this level will not fit in, put in as many as possible
 	for( int i = 0; i < curLevel.Size() && qsLeaves.Size() < MaxQSLeavesCount; i++ ) {
-		const IRegressionTreeModel* node = curLevel[i];
+		const IRegressionTreeNode* node = curLevel[i];
 
 		CRegressionTreeNodeInfo nodeInfo;
 		node->GetNodeInfo(nodeInfo);
@@ -104,35 +105,6 @@ inline static void findQsLeaves( const IRegressionTreeModel* root, CHashTable<co
 			qsLeaves.Add( node->GetLeftChild() );
 			qsLeaves.Add( node->GetRightChild() );
 		}
-	}
-}
-
-// Serializes an integer depending on its value (like UTF).
-inline static void serializeCompact( CArchive& archive, unsigned int& value )
-{
-	const int UsefulBitCount = 7;
-	const int UsefulBitMask = ( 1 << UsefulBitCount ) - 1;
-	const int ContinueBitMask = ( 1 << UsefulBitCount );
-
-	if( archive.IsStoring() ) {
-		unsigned int temp = value;
-		do {
-			unsigned int div = temp >> UsefulBitCount;
-			unsigned int mod = temp & UsefulBitMask;
-			archive << static_cast<unsigned char>( mod | ( div > 0 ? ContinueBitMask : 0 ) );
-			temp = div;
-		} while( temp > 0 );
-	} else if( archive.IsLoading() ) {
-		value = 0;
-		unsigned int shift = 0;
-		unsigned char mod = 0;
-		do {
-			archive >> mod;
-			value = ( ( mod & UsefulBitMask ) << shift ) + value;
-			shift += UsefulBitCount;
-		} while( mod & ContinueBitMask );
-	} else {
-		NeoAssert( false );
 	}
 }
 
@@ -166,7 +138,7 @@ private:
 void CArchiveQsSerializer::Read( int& featureIndex, float& value, bool& isQsLeaf )
 {
 	unsigned int rawFeatureIndex = 0;
-	serializeCompact( archive, rawFeatureIndex );
+	SerializeCompact( archive, rawFeatureIndex );
 	archive >> value;
 	
 	if( noSimpleNodes ) {
@@ -191,7 +163,7 @@ void CArchiveQsSerializer::Write( int featureIndex, float value, bool isQsLeaf )
 		}
 	}
 	// There are generally far fewer features than 2^31, so there numbers may be stored more efficiently
-	serializeCompact( archive, rawFeatureIndex );
+	SerializeCompact( archive, rawFeatureIndex );
 	archive << value;
 }
 
@@ -200,7 +172,7 @@ void CArchiveQsSerializer::Write( int featureIndex, float value, bool isQsLeaf )
 // Serializes the gradient boosting tree
 class CGBEnsembleQsSerializer : public IQsSerializer {
 public:
-	CGBEnsembleQsSerializer( const IRegressionTreeModel* root, const CHashTable<const IRegressionTreeModel*>& qsLeaves );
+	CGBEnsembleQsSerializer( const IRegressionTreeNode* root, const CHashTable<const IRegressionTreeNode*>& qsLeaves );
 
 	// IQsSerializer interface methods
 	void Read( int& featureIndex, float& value, bool& isQsLeaf ) override;
@@ -213,18 +185,18 @@ private:
 	static const unsigned int S_QSNode = 8;
 
 	struct CStackNode {
-		const IRegressionTreeModel* Node;
+		const IRegressionTreeNode* Node;
 		DWORD State;
 
-		explicit CStackNode( const IRegressionTreeModel* node, DWORD state ) : Node( node ), State( state ) { NeoAssert( node != 0 ); }
+		explicit CStackNode( const IRegressionTreeNode* node, DWORD state ) : Node( node ), State( state ) { NeoAssert( node != 0 ); }
 	};
 
-	const CHashTable<const IRegressionTreeModel*>& qsLeaves; // optimized leaves hash
+	const CHashTable<const IRegressionTreeNode*>& qsLeaves; // optimized leaves hash
 
 	CFastArray<CStackNode, 32> stack; // the stack for depth-first search
 };
 
-CGBEnsembleQsSerializer::CGBEnsembleQsSerializer( const IRegressionTreeModel* root, const CHashTable<const IRegressionTreeModel*>& _qsLeaves ) :
+CGBEnsembleQsSerializer::CGBEnsembleQsSerializer( const IRegressionTreeNode* root, const CHashTable<const IRegressionTreeNode*>& _qsLeaves ) :
 	qsLeaves( _qsLeaves )
 {
 	DWORD state = !qsLeaves.Has( root ) ? S_QSNode : 0;
@@ -237,10 +209,10 @@ void CGBEnsembleQsSerializer::Read( int& featureIndex, float& value, bool& isQsL
 	NeoAssert( !stack.IsEmpty() );
 
 	CRegressionTreeNodeInfo info;
-	const IRegressionTreeModel* result = 0;
+	const IRegressionTreeNode* result = 0;
 
 	while( !stack.IsEmpty() ) {
-		const IRegressionTreeModel* node = stack.Last().Node;
+		const IRegressionTreeNode* node = stack.Last().Node;
 		DWORD& state = stack.Last().State;
 
 		node->GetNodeInfo( info );
@@ -253,7 +225,7 @@ void CGBEnsembleQsSerializer::Read( int& featureIndex, float& value, bool& isQsL
 
 		// For the non-optimized and non-inverted nodes, read left child first
 		// For the optimized inverted nodes, read right child first
-		if( HasFlag( state, S_QSNode ) && info.Value < 0 ) {
+		if( HasFlag( state, S_QSNode ) && info.Value[0] < 0 ) {
 			if( !HasFlag( state, S_RightProcessed ) && info.Type != RTNT_Const ) { // has the right subtree been read?
 				SetFlags( state, S_RightProcessed );
 				DWORD childState = qsLeaves.Has( node->GetRightChild() ) ? 0 : S_QSNode;
@@ -289,7 +261,7 @@ void CGBEnsembleQsSerializer::Read( int& featureIndex, float& value, bool& isQsL
 	NeoAssert( result != 0 );
 	// Get the current node data
 	featureIndex = info.FeatureIndex;
-	value = static_cast<float>( info.Value );
+	value = static_cast<float>( info.Value[0] );
 	isQsLeaf = qsLeaves.Has( result );
 }
 
@@ -304,12 +276,12 @@ void CGradientBoostQSEnsemble::Build( const CGradientBoostEnsemble &treeModel )
 
 	// Feature indices will be compressed for compact representation
 	CArray<int> features; // the "optimized node -> feature index" mapping
-	CHashTable<const IRegressionTreeModel*> qsLeavesTable; // the table of optimized subtree leaves
+	CHashTable<const IRegressionTreeNode*> qsLeavesTable; // the table of optimized subtree leaves
 	// For all optimized subtrees fill in lessNodes and moreNodes
 	for( int i = 0; i < treeCount; i++ ) {
 		treeQsLeavesOffsets[i] = qsLeaves.Size();
 
-		CPtr<const IRegressionTreeModel> tree = CheckCast<const IRegressionTreeModel>( treeModel[i] );
+		CPtr<const IRegressionTreeNode> tree = CheckCast<const IRegressionTreeNode>( treeModel[i] );
 		// Choose an optimized subtree and write the leaves into the table
 		findQsLeaves( tree, qsLeavesTable );
 
@@ -335,7 +307,8 @@ double CGradientBoostQSEnsemble::Predict( const CSparseFloatVector& data ) const
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
-	const CSparseFloatVectorDesc& desc = data.GetDesc();
+	const CFloatVectorDesc& desc = data.GetDesc();
+	NeoAssert( desc.Indexes != nullptr );
 	for( int i = 0; i < desc.Size; i++ ) {
 		processFeature( desc.Indexes[i], desc.Values[i], resultBitvectors );
 	}
@@ -356,31 +329,43 @@ double CGradientBoostQSEnsemble::Predict( const CFloatVector& data ) const
 	return calculateScore<CFloatVector>( data, resultBitvectors, GetTreesCount() - 1 );
 }
 
-double CGradientBoostQSEnsemble::Predict( const CSparseFloatVectorDesc& data ) const
+double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data ) const
 {
 	// The resulting bit masks, one per tree; for a start all bits are set to 1
 	CFastArray<unsigned __int64, 512> resultBitvectors;
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
-	for( int i = 0; i < data.Size; i++ ) {
-		processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+	if( data.Indexes == nullptr ) {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( i, data.Values[i], resultBitvectors );
+		}
+	} else {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+		}
 	}
 
-	return calculateScore<CSparseFloatVectorDesc>( data, resultBitvectors, GetTreesCount() - 1 );
+	return calculateScore<CFloatVectorDesc>( data, resultBitvectors, GetTreesCount() - 1 );
 }
 
-double CGradientBoostQSEnsemble::Predict( const CSparseFloatVectorDesc& data, int lastTreeIndex ) const
+double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data, int lastTreeIndex ) const
 {
 	CFastArray<unsigned __int64, 512> resultBitvectors;
 	resultBitvectors.SetSize( GetTreesCount() );
 	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
 
-	for( int i = 0; i < data.Size; i++ ) {
-		processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+	if( data.Indexes == nullptr ) {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( i, data.Values[i], resultBitvectors );
+		}
+	} else {
+		for( int i = 0; i < data.Size; i++ ) {
+			processFeature( data.Indexes[i], data.Values[i], resultBitvectors );
+		}
 	}
 
-	return calculateScore<CSparseFloatVectorDesc>( data, resultBitvectors, lastTreeIndex );
+	return calculateScore<CFloatVectorDesc>( data, resultBitvectors, lastTreeIndex );
 }
 
 CArchive& operator<<( CArchive& archive, const CGradientBoostQSEnsemble& block )
@@ -790,7 +775,7 @@ static inline float getFeatureValue( const CFloatVector& data, int index )
 	return data[index];
 }
 
-static inline float getFeatureValue( const CSparseFloatVectorDesc& data, int index )
+static inline float getFeatureValue( const CFloatVectorDesc& data, int index )
 {
 	float result;
 	GetValue( data, index, result );

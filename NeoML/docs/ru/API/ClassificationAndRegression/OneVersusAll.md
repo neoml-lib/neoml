@@ -35,7 +35,7 @@ public:
 	// получить результат классификации с информацией о нормализации вероятностей
 	virtual bool ClassifyEx( const CSparseFloatVector& data,
 		COneVersusAllClassificationResult& result ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data,
+	virtual bool ClassifyEx( const CFloatVectorDesc& data,
 		COneVersusAllClassificationResult& result ) const = 0;
 
 	// Сериализация.
@@ -60,7 +60,7 @@ public:
 Ниже представлен простой пример обучения модели на базе линейного бинарного классификатора.
 
 ```c++
-CLinearBinaryClassifierBuilder linear( EF_LogReg );
+CLinear linear( EF_LogReg );
 	
 COneVersusAll oneVersusAll( linear );
 CPtr<IModel> model = oneVersusAll.Train( *trainData );

@@ -50,7 +50,7 @@ private:
 	IMathEngine& mathEngine; // the math engine
 	const int rowCount; // the number of rows
 	const int columnCount; // the number of columns
-	CArray<CSparseFloatVectorDesc> vectors; // the vectors (matrix columns)
+	CArray<CFloatVectorDesc> vectors; // the vectors (matrix columns)
 	CArray<CMatrix> matrixes; // the matrix descriptions
 	int totalElementSize; // the size of matrix elements (aligned)
 	int totalRowSize; // the size of matrix rows (aligned)
