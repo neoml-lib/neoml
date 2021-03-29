@@ -15,12 +15,14 @@ limitations under the License.
 
 #pragma once
 
+#include <limits>
 #include <RegressionTree.h>
 
 namespace NeoML {
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
+template<class T>
 class CCompactRegressionTree : public CRegressionTree {
 public:
 	CCompactRegressionTree() {}
@@ -50,17 +52,18 @@ public:
 
 	virtual void Serialize( CArchive& archive ) override;
 
-private:
 	// Feature number cannot exceeed this.
-	static const uint16_t MaxFeature = UINT16_MAX - 2;
+	static const T MaxFeature = std::numeric_limits<T>::max() - 2;
 	// Node index within the `nodes` array cannot exceed this.
 	static const uint16_t MaxNodeIndex = UINT16_MAX - 1;
+
+private:
 
 	// Describes tree node.
 	struct CNode {
 		// For non-leaf node the index of the feature incremented by one.
 		// For leaf node is zero.
-		uint16_t FeaturePlusOne = 0;
+		T FeaturePlusOne = 0;
 		// For non-leaf node the index of the right child within the `nodes` array.
 		// Left child is always stored immediatelly after its parent.
 		uint16_t RightChildIndex = 0;
@@ -100,9 +103,13 @@ private:
 	const float* predict( const TVector& features ) const;
 };
 
+typedef CCompactRegressionTree<uint16_t> CCompact16RegressionTree;
+typedef CCompactRegressionTree<uint32_t> CCompact32RegressionTree;
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
-class CCompactRegressionTree::CNodeWrapper : public IRegressionTreeNode {
+template<class T>
+class CCompactRegressionTree<T>::CNodeWrapper : public IRegressionTreeNode {
 public:
 	CNodeWrapper( const CCompactRegressionTree& _tree, int _index ) :
 		tree( _tree ),

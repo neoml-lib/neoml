@@ -402,7 +402,7 @@ CPtr<IObject> CGradientBoost::train(
 	loss = lossFunction->CalcLossMean( predicts, answers );
 
 	return createOutputRepresentation(
-		models, params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1 );
+		models, params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1, problem->GetFeatureCount() );
 }
 
 // Creates a tree builder depending on the problem type
@@ -729,7 +729,7 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 
 // Creates model represetation requested in params.
 CPtr<IObject> CGradientBoost::createOutputRepresentation(
-	CArray<CGradientBoostEnsemble>& models, int predictionSize )
+	CArray<CGradientBoostEnsemble>& models, int predictionSize, int featureCount )
 {
 	CPtr<CGradientBoostModel> linked = FINE_DEBUG_NEW CGradientBoostModel(
 		models, predictionSize, params.LearningRate, params.LossFunction );
@@ -738,7 +738,7 @@ CPtr<IObject> CGradientBoost::createOutputRepresentation(
 		case GBMR_Linked:
 			return linked.Ptr();
 		case GBMR_Compact:
-			linked->ConvertToCompact();
+			linked->ConvertToCompact( featureCount );
 			return linked.Ptr();
 		case GBMR_QuickScorer:
 			return CGradientBoostQuickScorer().Build( *linked ).Ptr();

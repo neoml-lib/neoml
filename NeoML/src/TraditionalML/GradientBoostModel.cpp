@@ -204,14 +204,18 @@ void CGradientBoostModel::CutNumberOfTrees( int numberOfTrees )
 	}
 }
 
-void CGradientBoostModel::ConvertToCompact()
+void CGradientBoostModel::ConvertToCompact( int featureCount )
 {
 	for( int i = 0; i < ensembles.Size() ; i++ ) {
 		CGradientBoostEnsemble& ensemble = ensembles[i];
 		for( int j = 0; j < ensemble.Size(); j++ ) {
 			CPtr<IRegressionTreeNode>& tree = ensemble[j];
-			if( dynamic_cast<CCompactRegressionTree*>( tree.Ptr() ) == 0 ) {
-				tree = FINE_DEBUG_NEW CCompactRegressionTree( tree );
+			if( dynamic_cast< CCompact16RegressionTree* >( tree.Ptr() ) == 0 && dynamic_cast< CCompact32RegressionTree* >( tree.Ptr() ) == 0 ) {
+				if( featureCount <= CCompact16RegressionTree::MaxFeature ) {
+					tree = FINE_DEBUG_NEW CCompact16RegressionTree( tree );
+				} else if( featureCount <= CCompact32RegressionTree::MaxFeature ) {
+					tree = FINE_DEBUG_NEW CCompact32RegressionTree( tree );
+				}
 			}
 		}
 	}
