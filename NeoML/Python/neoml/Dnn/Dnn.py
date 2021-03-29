@@ -27,12 +27,10 @@ class Dnn(PythonWrapper.Dnn):
     calculations on data blobs. It starts with source layers and ends with 
     sink layers.
     
-    Parameters
-    ---------
-    math_engine : object
-        The math engine that will perform calculations.
-    random : object, default=None
-        The random numbers generator to be used for training and initialization.
+    :param math_engine: The math engine that will perform calculations.
+    :type math_engine: object
+    :param random: The random numbers generator to be used for training and initialization.
+    :type random: object, default=None 
     """
     def __init__(self, math_engine, random=None):
         if not isinstance(math_engine, neoml.MathEngine.MathEngine):
@@ -49,30 +47,24 @@ class Dnn(PythonWrapper.Dnn):
     def store(self, path):
         """Serializes the network.
         
-        Parameters
-        ---------
-        path : str
-            The full path to the location where the network should be stored.
+        :param path: The full path to the location where the network should be stored.
+        :type path: str
         """
         self._store(str(path))
 
     def load(self, path):
         """Loads the network from file.
         
-        Parameters
-        ---------
-        path : str
-            The full path to the location from where the network should be loaded.
+        :param path: The full path to the location from where the network should be loaded.
+        :type path: str
         """
         self._load(str(path))
 
     def store_checkpoint(self, path):
         """Serializes the network with the data required to resume training.
         
-        Parameters
-        ---------
-        path : str
-            The full path to the location where the network should be stored.
+        :param path: The full path to the location where the network should be stored.
+        :type path: str
         """
         self._store_checkpoint(str(path))
 
@@ -81,10 +73,8 @@ class Dnn(PythonWrapper.Dnn):
         A new solver will be created, because the old pointers will point
         to an object no longer used by this network.
         
-        Parameters
-        ---------
-        path : str
-            The full path to the location from where the network should be loaded.
+        :param path: The full path to the location from where the network should be loaded.
+        :type path: str
         """
         self._load_checkpoint(str(path))
 
@@ -164,15 +154,14 @@ class Dnn(PythonWrapper.Dnn):
     def run(self, inputs):
         """Runs the network.
         
-        Parameters
-        ----------
-        inputs : The dictionary of input blobs.
+        :param inputs: The dictionary of input blobs.
             The dictionary keys (str) are the source layer names.
             The dictionary values (neoml.Blob) are the blobs passed 
             to these source layers.
+        :type: inputs: dict
 
-        Returns
-        -------
+        .. rubric:: Layer outputs:
+
             The list of output blobs.
         """
         dnn_inputs = self.get_inputs()
@@ -198,15 +187,14 @@ class Dnn(PythonWrapper.Dnn):
     def run_and_backward(self, inputs):
         """Runs the network and performs a backward pass with the input data.
         
-        Parameters
-        ---------
-        inputs : The dictionary of input blobs.
+        :param: inputs: The dictionary of input blobs.
             The dictionary keys (str) are the source layer names.
             The dictionary values (neoml.Blob) are the blobs passed 
             to these source layers.
+        :type inputs: dict
 
-        Returns
-        -------
+        .. rubric:: Layer outputs:
+
             The list of output blobs.
         """
         dnn_inputs = self.get_inputs()
@@ -227,15 +215,14 @@ class Dnn(PythonWrapper.Dnn):
         """Runs the network, performs a backward pass 
         and updates the trainable weights.
         
-        Parameters
-        ---------
-        inputs : The dictionary of input blobs.
+        :param inputs: The dictionary of input blobs.
             The dictionary keys (str) are the source layer names.
             The dictionary values (neoml.Blob) are the blobs passed 
             to these source layers.
+        :type inputs: dict
 
-        Returns
-        -------
+        .. rubric:: Layer outputs:
+
             The list of output blobs.
         """
         dnn_inputs = self.get_inputs()

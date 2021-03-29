@@ -25,47 +25,46 @@ class Conv(Layer):
     """The layer that performs convolution 
     on a set of two-dimensional multi-channel images.
 
-    Layer inputs
-    ------------
-    Can have several inputs, of the dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth * Channels - the number of channels the image format uses
-
-    Layer outputs
-    -------------
-    The layer has as many outputs as the inputs, of the dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the input dimensions
-    - Height can be calculated from the input Height as
-        (2 * PaddingHeight + Height - (1 + DilationHeight * (FilterHeight - 1))) / StrideHeight + 1
-    - Width can be calculated from the input Width as
-        (2 * PaddingWidth + Width - (1 + DilationWidth * (FilterWidth - 1))) / StrideWidth + 1
-    - Depth is equal to 1
-    - Channels is equal to the number of filters
-
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    filter_count : int, default=1
-        The number of filters.
-    filter_size : (int, int), default=(3, 3)
-        Filter size (height, width).
-    stride_size : (int, int), default=(1, 1)
-        Convolution stride (vertical, horizontal).
-    padding_size : (int, int), default=(0, 0)
-        The size of the padding (vertical, horizontal).
-    dilation_size : (int, int), default=(1, 1)
-        The step values for dilated convolution (vertical, horizontal).
+    :type input_layers: object, tuple(object, int) or list of them
+    :param filter_count: The number of filters.
+    :type filter_count: int, default=1
+    :param filter_size: Filter size (height, width).
+    :type filter_size: tuple(int, int), default=(3, 3)    
+    :param stride_size: Convolution stride (vertical, horizontal).
+    :type stride_size: tuple(int, int), default=(1, 1)   
+    :param padding_size: The size of the padding (vertical, horizontal).
+    :type padding_size: tuple(int, int), default=(0, 0) 
+    :param dilation_size: The step values for dilated convolution (vertical, horizontal).
         The default value of (1, 1) means no dilation.
-    is_zero_free_term : bool, default=True
-        Specifies if the free term should be zero.
-    name : str, default=None
-        The layer name. 
+    :type dilation_size: tuple(int, int), default=(1, 1)
+    :param is_zero_free_term: Specifies if the free term should be zero.
+    :type is_zero_free_term: bool, default=True
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    Can have several inputs, of the dimensions:
+
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** * **Channels** - the number of channels the image format uses
+
+    .. rubric:: Layer outputs:
+
+    The layer has as many outputs as the inputs, of the dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height** can be calculated from the input **Height** as
+      (2 * **PaddingHeight** + **Height** - (1 + **DilationHeight** * (**FilterHeight** - 1))) / **StrideHeight** + 1
+    - **Width** can be calculated from the input **Width** as
+      (2 * **PaddingWidth** + **Width** - (1 + **DilationWidth** * (**FilterWidth** - 1))) / **StrideWidth** + 1
+    - **Depth** is equal to 1
+    - **Channels** is equal to the number of filters
     """
 
     def __init__(self, input_layers, filter_count=1, filter_size=(3, 3), stride_size=(1, 1), padding_size=(0, 0),
@@ -177,9 +176,10 @@ class Conv(Layer):
     @property
     def filter(self):
         """Gets the filters. The dimensions:
-        - BatchLength * BatchWidth * ListSize is filter_count
-        - Height, Width are taken from filter_size
-        - Depth, Channels are equal to the inputs' dimensions
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
+        - **Height**, **Width** are taken from filter_size
+        - **Depth**, **Channels** are equal to the inputs' dimensions
         """
         return Blob(self._internal.get_filter())
 
@@ -208,45 +208,45 @@ class Conv3D(Layer):
     """The layer that performs convolution 
     on a set of three-dimensional multi-channel images.
 
-    Layer inputs
-    ------------
-    Can have several inputs, of the dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth - the images' depth
-    - Channels - the number of channels the image format uses
-
-    Layer outputs
-    -------------
-    The layer has as many outputs as the inputs, of the dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the input dimensions
-    - Height can be calculated from the input Height as
-        (2 * PaddingHeight + Height - FilterHeight) / StrideHeight + 1
-    - Width can be calculated from the input Width as
-        (2 * PaddingWidth + Width - FilterWidth) / StrideWidth + 1
-    - Depth can be calculated from the input Depth as
-        (2 * PaddingDepth + Depth - FilterDepth) / StrideDepth + 1
-    - Channels is equal to the number filters
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    filter_count : int, default=1
-        The number of filters.
-    filter_size : (int, int, int), default=(3, 3, 3)
-        Filter size (height, width, depth).
-    stride_size : (int, int, int), default=(1, 1, 1)
-        Convolution stride (vertical, horizontal, depth).
-    padding_size : (int, int, int), default=(0, 0, 0)
-        The size of the padding (vertical, horizontal, depth).
-    is_zero_free_term : bool, default=False
-        Specifies if the free term should be zero.
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, tuple(object, int) or list of them
+    :param filter_count: The number of filters.
+    :type filter_count: int, default=1
+    :param filter_size: Filter size (height, width, depth).
+    :type filter_size: (int, int, int), default=(3, 3, 3)
+    :param stride_size: Convolution stride (vertical, horizontal, depth).
+    :type stride_size: (int, int, int), default=(1, 1, 1)
+    :param padding_size: The size of the padding (vertical, horizontal, depth).
+    :type padding_size: (int, int, int), default=(0, 0, 0)
+    :param is_zero_free_term: Specifies if the free term should be zero.
+    :type is_zero_free_term: bool, default=False  
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    Can have several inputs, of the dimensions:
+
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** - the images' depth
+    - **Channels** - the number of channels the image format uses
+
+    .. rubric:: Layer outputs:
+
+    The layer has as many outputs as the inputs, of the dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height** can be calculated from the input **Height** as
+      (2 * **PaddingHeight** + **Height** - **FilterHeight**) / **StrideHeight** + 1
+    - **Width** can be calculated from the input **Width** as
+      (2 * **PaddingWidth** + **Width** - **FilterWidth**) / **StrideWidth** + 1
+    - **Depth** can be calculated from the input **Depth** as
+      (2 * **PaddingDepth** + **Depth** - **FilterDepth**) / **StrideDepth** + 1
+    - **Channels** is equal to the number filters
     """
 
     def __init__(self, input_layers, filter_count=1, filter_size=(3, 3, 3), stride_size=(1, 1, 1),
@@ -342,9 +342,10 @@ class Conv3D(Layer):
     @property
     def filter(self):
         """Gets the filters. The dimensions:
-        - BatchLength * BatchWidth * ListSize is filter_count
-        - Height, Width, Depth are taken from filter_size
-        - Channels is equal to the inputs' Channels
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
+        - **Height**, **Width**, **Depth** are taken from filter_size
+        - **Channels** is equal to the inputs' **Channels**
         """
         return Blob(self._internal.get_filter())
 
@@ -373,45 +374,45 @@ class TransposedConv3D(Layer):
     """The layer that performs transposed convolution 
     on a set of three-dimensional multi-channel images.
 
-    Layer inputs
-    ------------
-    Can have several inputs, of the dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth - the images' depth
-    - Channels - the number of channels the image format uses
-
-    Layer outputs
-    -------------
-    The layer has as many outputs as the inputs, of the dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the input dimensions
-    - Height can be calculated from the input Height as
-        StrideHeight * (Height - 1) + FilterHeight - 2 * PaddingHeight
-    - Width can be calculated from the input Width as
-        StrideWidth * (Width - 1) + FilterWidth - 2 * PaddingWidth
-    - Depth can be calculated from the input Depth as
-        StrideDepth * (Depth - 1) + FilterDepth - 2 * PaddingDepth
-    - Channels is equal to the number of filters
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    filter_count : int, default=1
-        The number of filters.
-    filter_size : (int, int, int), default=(3, 3, 3)
-        Filter size (height, width, depth).
-    stride_size : (int, int, int), default=(1, 1, 1)
-        Convolution stride (vertical, horizontal, depth).
-    padding_size : (int, int, int), default=(0, 0, 0)
-        The size of the padding (vertical, horizontal, depth).
-    is_zero_free_term : bool, default=False
-        Specifies if the free term should be zero.
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, tuple(object, int) or list of them
+    :param filter_count: The number of filters.
+    :type filter_count: int, default=1
+    :param filter_size: Filter size (height, width, depth).  
+    :type filter_size: (int, int, int), default=(3, 3, 3)
+    :param stride_size: Convolution stride (vertical, horizontal, depth).    
+    :type stride_size: (int, int, int), default=(1, 1, 1)
+    :param padding_size: The size of the padding (vertical, horizontal, depth).     
+    :type padding_size: (int, int, int), default=(0, 0, 0)
+    :param is_zero_free_term: Specifies if the free term should be zero.    
+    :type is_zero_free_term: bool, default=False
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    Can have several inputs, of the dimensions:
+
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** - the images' depth
+    - **Channels** - the number of channels the image format uses
+
+    .. rubric:: Layer outputs:
+
+    The layer has as many outputs as the inputs, of the dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height** can be calculated from the input **Height** as
+      **StrideHeight** * (**Height** - 1) + **FilterHeight** - 2 * **PaddingHeight**
+    - **Width** can be calculated from the input **Width** as
+      **StrideWidth** * (**Width** - 1) + **FilterWidth** - 2 * **PaddingWidth**
+    - **Depth** can be calculated from the input **Depth** as
+      **StrideDepth** * (**Depth** - 1) + **FilterDepth** - 2 * **PaddingDepth**
+    - **Channels** is equal to the number of filters
     """
 
     def __init__(self, input_layers, filter_count=1, filter_size=(3, 3, 3), stride_size=(1, 1, 1),
@@ -507,10 +508,11 @@ class TransposedConv3D(Layer):
     @property
     def filter(self):
         """Gets the filters. The dimensions:
-        - BatchLength, ListSize are 1
-        - BatchWidth is equal to the inputs' Channels
-        - Height, Width, Depth are taken from filter_size
-        - Channels is filter_count
+
+        - **BatchLength**, **ListSize** are 1
+        - **BatchWidth** is equal to the inputs' **Channels**
+        - **Height**, **Width**, **Depth** are taken from filter_size
+        - **Channels** is filter_count
         """
         return Blob(self._internal.get_filter())
 
@@ -539,46 +541,46 @@ class TransposedConv(Layer):
     """The layer that performs transposed convolution 
     on a set of two-dimensional multi-channel images.
 
-    Layer inputs
-    ------------
-    Can have several inputs, of the dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth * Channels - the number of channels the image format uses
-
-    Layer outputs
-    -------------
-    The layer has as many outputs as the inputs, of the dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the input dimensions
-    - Height can be calculated from the input Height as
-        StrideHeight * (Height - 1) + (FilterHeight - 1) * DilationHeight + 1 - 2 * PaddingHeight
-    - Width can be calculated from the input Width as
-        StrideWidth * (Width - 1) + (FilterWidth - 1) * DilationWidth + 1 - 2 * PaddingWidths
-    - Depth is 1
-    - Channels is equal to the number of filters
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    filter_count : int, default=1
-        The number of filters.
-    filter_size : (int, int), default=(3, 3)
-        Filter size (height, width).
-    stride_size : (int, int), default=(1, 1)
-        Convolution stride (vertical, horizontal).
-    padding_size : (int, int), default=(0, 0)
-        The size of the padding (vertical, horizontal).
-    dilation_size : (int, int), default=(1, 1)
-        The step values for dilated convolution (vertical, horizontal).
-        The default value of (1, 1) means no dilation.
-    is_zero_free_term : bool, default=False
-        Specifies if the free term should be zero.
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, tuple(object, int) or list of them
+    :param filter_count: The number of filters.
+    :type filter_count: int, default=1
+    :param filter_size: Filter size (height, width).    
+    :type filter_size: (int, int), default=(3, 3)
+    :param stride_size: Convolution stride (vertical, horizontal).    
+    :type stride_size: (int, int), default=(1, 1)
+    :param padding_size: The size of the padding (vertical, horizontal).
+    :type padding_size: (int, int), default=(0, 0)
+    :param dilation_size: The step values for dilated convolution (vertical, horizontal).
+        The default value of (1, 1) means no dilation.    
+    :type dilation_size: (int, int), default=(1, 1)
+    :param is_zero_free_term: Specifies if the free term should be zero.    
+    :type is_zero_free_term: bool, default=False
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    Can have several inputs, of the dimensions:
+
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** * **Channels** - the number of channels the image format uses
+
+    .. rubric:: Layer outputs:
+
+    The layer has as many outputs as the inputs, of the dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height** can be calculated from the input **Height** as
+      **StrideHeight** * (**Height** - 1) + (**FilterHeight** - 1) * **DilationHeight** + 1 - 2 * **PaddingHeight**
+    - **Width** can be calculated from the input **Width** as
+      **StrideWidth** * (**Width** - 1) + (**FilterWidth** - 1) * **DilationWidth** + 1 - 2 * **PaddingWidths**
+    - **Depth** is 1
+    - **Channels** is equal to the number of filters
     """
 
     def __init__(self, input_layers, filter_count=1, filter_size=(3, 3), stride_size=(1, 1), padding_size=(0, 0),
@@ -690,10 +692,11 @@ class TransposedConv(Layer):
     @property
     def filter(self):
         """Gets the filters. The dimensions:
-        - BatchLength, ListSize are 1
-        - BatchWidth is equal to the inputs' Channels * Depth
-        - Height, Width are taken from filter_size
-        - Channels is filter_count
+
+        - **BatchLength**, **ListSize** are 1
+        - **BatchWidth** is equal to the inputs' **Channels** * **Depth**
+        - **Height**, **Width** are taken from filter_size
+        - **Channels** is filter_count
         """
         return Blob(self._internal.get_filter())
 
@@ -723,45 +726,44 @@ class ChannelwiseConv(Layer):
     Each channel of the input is convolved
     with the corresponding channel of the filter.
 
-    Layer inputs
-    ------------
-    Can have several inputs, of the dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of images in the set
-    - Height - the images' height
-    - Width - the images' width
-    - Depth * Channels - the number of channels the image format uses
-
-    Layer outputs
-    -------------
-    The layer has as many outputs as the inputs, of the dimensions:
-    - BatchLength, BatchWidth, ListSize are equal to the input dimensions
-    - Height can be calculated from the input Height as
-        (2 * PaddingHeight + Height - FilterHeight)/StrideHeight + 1
-    - Width can be calculated from the input Width as
-        (2 * PaddingWidth + Width - FilterWidth)/StrideWidth + 1
-    - Depth is equal to 1
-    - Channels is equal to the number of channels in the filter and the input
-
-
-    Parameters
-    ----------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected.
+    :param input_layers: The input layers to be connected.
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    filter_count : int, default=1
-        The number of channels in the filter.
-        Should be the same as the number of channels in the input.
-    filter_size : (int, int), default=(3, 3)
-        Filter size (height, width).
-    stride_size : (int, int), default=(1, 1)
-        Convolution stride (vertical, horizontal).
-    padding_size : (int, int), default=(0, 0)
-        The size of the padding (vertical, horizontal).
-    free_term : bool, default=True
-        Specifies if the free term should be non-zero.
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, tuple(object, int) or list of them
+    :param filter_count: The number of channels in the filter.
+        Should be the same as the number of channels in the input.    
+    :type filter_count: int, default=1
+    :param filter_size: Filter size (height, width).
+    :type filter_size: (int, int), default=(3, 3)
+    :param stride_size: Convolution stride (vertical, horizontal).
+    :type stride_size: (int, int), default=(1, 1)
+    :param padding_size: The size of the padding (vertical, horizontal).
+    :type padding_size: (int, int), default=(0, 0)
+    :param free_term: Specifies if the free term should be non-zero.    
+    :type free_term: bool, default=True
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    Can have several inputs, of the dimensions:
+
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+    - **Height** - the images' height
+    - **Width** - the images' width
+    - **Depth** * **Channels** - the number of channels the image format uses
+
+    .. rubric:: Layer outputs:
+
+    The layer has as many outputs as the inputs, of the dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height** can be calculated from the input **Height** as
+      (2 * **PaddingHeight** + **Height** - **FilterHeight**)/**StrideHeight** + 1
+    - **Width** can be calculated from the input **Width** as
+      (2 * **PaddingWidth** + **Width** - **FilterWidth**)/**StrideWidth** + 1
+    - **Depth** is equal to 1
+    - **Channels** is equal to the number of channels in the filter and the input
     """
 
     def __init__(self, input_layers, filter_count, filter_size=(3, 3), stride_size=(1, 1), padding_size=(0, 0),
@@ -854,9 +856,10 @@ class ChannelwiseConv(Layer):
     @property
     def filter(self):
         """Gets the filter. The dimensions:
-        - BatchLength, BatchWidth, ListSize, Depth are 1
-        - Height, Width are taken from filter_size
-        - Channels is equal to the inputs' Channels
+
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Depth** are 1
+        - **Height**, **Width** are taken from filter_size
+        - **Channels** is equal to the inputs' **Channels**
         """
         return self._internal.get_filter()
 
@@ -884,44 +887,42 @@ class ChannelwiseConv(Layer):
 class TimeConv(Layer):
     """The layer that performs time convolution on a set of sequences.
     
-    Layer inputs
-    ------------
-    Can have several inputs, of the dimensions:
-    - BatchLength is the sequence length
-    - BatchWidth * ListSize - the number of sequences in the set
-    - Height * Width * Depth * Channels - the size of each element
-
-    Layer outputs
-    -------------
-    The layer has as many outputs as the inputs, of the dimensions:
-    - BatchLength can be calculated from the input BatchLength as
-        (padding_front + padding_back + BatchLength - 
-            - (1 + dilation * (filter_size - 1)))/stride + 1
-    - BatchWidth, ListSize are equal to the input dimensions
-    - Height, Width, Depth are equal to 1
-    - Channels is equal to the number of filters
-
-
-    Parameters
-    ----------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected.
+    :param input_layers: The input layers to be connected.
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    filter_count : int, > 0
-        The number of filters.
-    filter_size : int, > 0
-        Filter size.
-    padding_front : int, >= 0
-        The number of zeros to be added at the sequence start.
-    padding_back : int, >= 0
-        The number of zeros to be added at the sequence end.
-    dilation : int, default=1
-        The step value for dilated convolution. 1 means no dilation.
-    stride : int, > 0, default=1
-        Convolution stride.
-    name : str, default=None
-        The layer name.    
+    :type input_layers: object, tuple(object, int) or list of them
+    :param filter_count: The number of filters.    
+    :type filter_count: int, > 0
+    :param filter_size: Filter size.    
+    :type filter_size: int, > 0
+    :param padding_front: The number of zeros to be added at the sequence start.
+    :type padding_front: int, >= 0
+    :param padding_back: The number of zeros to be added at the sequence end.
+    :type padding_back: int, >= 0
+    :param dilation: The step value for dilated convolution. 1 means no dilation.     
+    :type dilation: int, default=1
+    :param stride: Convolution stride.    
+    :type stride: int, > 0, default=1
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    Can have several inputs, of the dimensions:
+
+    - **BatchLength** is the sequence length
+    - **BatchWidth** * **ListSize** - the number of sequences in the set
+    - **Height** * **Width** * **Depth** * **Channels** - the size of each element
+
+    .. rubric:: Layer outputs:
+
+    The layer has as many outputs as the inputs, of the dimensions:
+
+    - **BatchLength** can be calculated from the input **BatchLength** as
+      (padding_front + padding_back + BatchLength - (1 + dilation * (filter_size - 1)))/stride + 1
+    - **BatchWidth**, **ListSize** are equal to the input dimensions
+    - **Height**, **Width**, **Depth** are equal to 1
+    - **Channels** is equal to the number of filters 
     """
 
     def __init__(self, input_layers, filter_count, filter_size, padding_front=0, padding_back=0, dilation=1, stride=1, name=None):
@@ -1044,11 +1045,12 @@ class TimeConv(Layer):
     @property
     def filter(self):
         """Gets the filters. The dimensions:
-        - BatchLength is 1
-        - BatchWidth is filter_count
-        - Height is filter_size
-        - Width, Depth are 1
-        - Channels is the inputs' Height * Width * Depth * Channels
+
+        - **BatchLength** is 1
+        - **BatchWidth** is filter_count
+        - **Height** is filter_size
+        - **Width**, **Depth** are 1
+        - **Channels** is the inputs' **Height** * **Width** * **Depth** * **Channels**
         """
         return Blob(self._internal.get_filter())
 
