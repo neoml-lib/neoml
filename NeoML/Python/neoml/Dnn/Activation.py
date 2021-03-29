@@ -22,28 +22,27 @@ from neoml.Utils import check_input_layers
 class Linear(Layer):
     """The layer that calculates a linear activation function
     for each element of a single input:
-    f(x) = multiplier * x + free_term
+    :math:`f(x) = multiplier * x + free\_term`
 
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    multiplier : float
-        The linear function multiplier.
-    free_term : float
-        The linear function free term.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param multiplier: The linear function multiplier.
+    :type multiplier: float
+    :param free_term: The linear function free term.
+    :type free_term: float
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, multiplier, free_term, name=None):
@@ -89,28 +88,28 @@ class Linear(Layer):
 class ELU(Layer):
     """The layer that calculates the ELU activation function
     for each element of the single input:
-    f(x) = alpha * (exp(x) - 1)    if x < 0
-    f(x) = x                       if x >= 0
+
+    - :math:`f(x) = alpha * (e^x - 1)`    if :math:`x < 0`
+    - :math:`f(x) = x`                    if :math:`x \ge 0`
     
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    alpha : float
-        The multiplier before the exponential function used
-        for negative values of x.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param alpha: The multiplier before the exponential function used
+        for negative values of x.    
+    :type alpha: float
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, alpha, name=None):
@@ -143,32 +142,33 @@ class ELU(Layer):
 class ReLU(Layer):
     """The layer that calculates the ReLU activation function
     for each element of the single input:
-    f(x) = 0    if x <= 0
-    f(x) = x    if x > 0
+
+    - :math:`f(x) = 0`    if :math:`x \le 0`
+    - :math:`f(x) = x`    if :math:`x > 0`
 
     You also can set the cutoff upper threshold:
-    f(x) = 0            if x <= 0
-    f(x) = x            if 0 < x < threshold
-    f(x) = threshold    if threshold <= x
-    
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
 
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    - :math:`f(x) = 0`            if :math:`x \le 0`
+    - :math:`f(x) = x`            if :math:`0 < x < threshold`
+    - :math:`f(x) = threshold`    if :math:`threshold \le x`
+    
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    threshold : float, default=0
-        The upper cutoff threshold. 0 resets the threshold.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param threshold: The upper cutoff threshold. 0 resets the threshold.   
+    :type threshold: float, default=0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, threshold=0.0, name=None):
@@ -200,27 +200,27 @@ class ReLU(Layer):
 class LeakyReLU(Layer):
     """The layer that calculates the "leaky" ReLU activation function
     for each element of the single input:
-    f(x) = alpha * x    if x <= 0
-    f(x) = x            if x > 0
 
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    - :math:`f(x) = alpha * x`    if :math:`x \le 0`
+    - :math:`f(x) = x`            if :math:`x > 0`
+
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    alpha : float, default=0
-        The multiplier used for negative values of x.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param alpha: The multiplier used for negative values of x.    
+    :type alpha: float, default=0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, alpha, name=None):
@@ -253,26 +253,26 @@ class LeakyReLU(Layer):
 class HSwish(Layer):
     """The layer that calculates the H-Swish activation function
     for each element of the single input:
-    f(x) = 0                    if x <= -3
-    f(x) = x * (x + 3) / 6      if -3 < x < 3
-    f(x) = x                    if x >= 3
+
+    - :math:`f(x) = 0`                    if :math:`x \le -3`
+    - :math:`f(x) = x * (x + 3) / 6`      if :math:`-3 < x < 3`
+    - :math:`f(x) = x`                    if :math:`x \ge 3`
     
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
@@ -293,22 +293,21 @@ class Abs(Layer):
     """The layer that calculates the absolute value
     of each element of the single input.
     
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
@@ -328,24 +327,23 @@ class Abs(Layer):
 class Sigmoid(Layer):
     """The layer that calculates the sigmoid activation function
     for each element of the signle input:
-    f(x) = 1 / (1 + exp(-x))
+    :math:`f(x) = 1 / (1 + e^{-x})`
     
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
@@ -365,24 +363,23 @@ class Sigmoid(Layer):
 class Tanh(Layer):
     """The layer that calculates the tanh activation function
     for each element of the single input:
-    f(x) = (exp(2 * x) - 1) / (exp(2 * x) + 1)
+    :math:`f(x) = (e^{2 * x} - 1) / (e^{2 * x} + 1)`
     
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
@@ -402,26 +399,26 @@ class Tanh(Layer):
 class HardTanh(Layer):
     """The layer that calculates the HardTanh activation function
     for each element of the single input:
-    f(x) = -1    if x <= -1
-    f(x) = x     if -1 < x < 1
-    f(x) = 1     if x >= 1
+  
+    - :math:`f(x) = -1`    if :math:`x \le -1`
+    - :math:`f(x) = x`     if :math:`-1 < x < 1`
+    - :math:`f(x) = 1`     if :math:`x \ge 1`
     
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
@@ -441,30 +438,30 @@ class HardTanh(Layer):
 class HardSigmoid(Layer):
     """The layer that calculates the "hard sigmoid" activation function
     for each element of the single input:
-    f(x) = 0                    if x <= -bias / slope
-    f(x) = slope * x + bias     if -bias / slope < x < (1 - bias) / slope
-    f(x) = 1                    if x >= (1 - bias) / slope
+
+    - :math:`f(x) = 0`                    if :math:`x \le -bias / slope`
+    - :math:`f(x) = slope * x + bias`     if :math:`-bias / slope < x < (1 - bias) / slope`
+    - :math:`f(x) = 1`                    if :math:`x \ge (1 - bias) / slope`
     
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    slope : float, > 0
-        The slope of the linear component.
-    bias : float
-        The shift of the linear component from 0.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param slope: The slope of the linear component.   
+    :type slope: float, > 0
+    :param bias: The shift of the linear component from 0.
+    :type bias: float
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, slope, bias, name=None):
@@ -510,24 +507,23 @@ class HardSigmoid(Layer):
 class Power(Layer):
     """The layer that raises each element of the input to the given power.
     
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    exponent : float
-        The power to which the input elements will be raised.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param exponent: The power to which the input elements will be raised.
+    :type exponent: float
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, exponent, name=None):
@@ -559,24 +555,23 @@ class Power(Layer):
 class GELU(Layer):
     """The layer that calculates the GELU activation function
     for each element of the signle input:
-    f(x) = x / (1 + exp(-1.702 * x))
+    :math:`f(x) = x / (1 + e^{-1.702 * x})`
     
-    Layer inputs
-    ----------
-    #1: a data blob of any size
-    
-    Layer outputs
-    ----------
-    #1: a data blob of the same size as the input,
-    with activation function values on each of the input elements
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with activation function values on each of the input elements
+
     """
 
     def __init__(self, input_layer, name=None):
