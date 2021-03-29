@@ -25,34 +25,35 @@ class PrecisionRecall(Layer):
     Using these statistics, you can easily calculate the precision 
     and recall for the trained network.
     
-    Layer inputs
-    ----------
-    #1: the network response.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize is the number of objects classified
-    - Height, Width, Depth, Channels are 1
-   
-    #2: the correct class labels (1 or -1).
-    The dimensions are the same as for the first input.
-   
-    Layer outputs
-    ----------
-    #1: the 4-element array along the Channels dimension that contains:
-    0 - the number of correctly classified objects in class 1
-    1 - the total number of objects in class 1
-    2 - the number of correctly classified objects in class -1
-    3 - the total number of objects in class -1
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
-    reset : bool, default=True
-        Specifies if the statistics should be reset with each run.
-        Set to False to accumulate statistics for subsequent runs.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param reset: Specifies if the statistics should be reset with each run.
+        Set to False to accumulate statistics for subsequent runs.  
+    :type reset: bool, default=True
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is the number of objects classified
+        - **Height**, **Width**, **Depth**, **Channels** are 1
+   
+    (2) the correct class labels (1 or -1).
+        The dimensions are the same as for the first input.
+   
+    .. rubric:: Layer outputs:
+
+    (1) the 4-element array along the **Channels** dimension that contains:
+
+        - 0 - the number of correctly classified objects in class 1
+        - 1 - the total number of objects in class 1
+        - 2 - the number of correctly classified objects in class -1
+        - 3 - the total number of objects in class -1
+
     """
 
     def __init__(self, input_layers, reset=True, name=None):

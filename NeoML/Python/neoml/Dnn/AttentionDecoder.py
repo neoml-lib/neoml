@@ -23,41 +23,40 @@ class AttentionDecoder(Layer):
     """The layer that converts the input sequence 
     into the output sequence, not necessarily of the same length
 
-    Layer inputs
-    ------------
-    #1: a data blob of any size with the input sequence
-    
-    #2: the special character used to initialize the output sequence
-    All dimensions are equal to 1
-    
-    Layer outputs
-    -------------
-    #1: the output sequence
-    The dimensions:
-    - BatchLength equal to output_seq_len
-    - Channels equal to output_object_size
-    - all other dimensions are equal to 1
-
-       
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    score : {"additive", "dot_product"}
-        The type of estimate function used to check alignment 
-        of input and output sequences.
-        ``additive`` is tanh(x*Wx + y*Wy)*v
-        ``dot_product`` is x*W*y
-    hidden_size : int
-        The size of the hidden layer.
-    output_object_size : int
-        The number of channels in the output object.
-    output_seq_len : int
-        The length of the output sequence.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param score: The type of estimate function used to check alignment 
+        of input and output sequences:
+
+        - ``additive`` is tanh(x*Wx + y*Wy)*v
+        - ``dot_product`` is x*W*y
+    :type score: str, {'additive', 'dot_product'}
+    :param hidden_size: The size of the hidden layer.
+    :type hidden_size: int
+    :param output_object_size: The number of channels in the output object.
+    :type output_object_size: int
+    :param output_seq_len: The length of the output sequence.
+    :type output_seq_len: int
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size with the input sequence
+    
+    (2) the special character used to initialize the output sequence
+        All dimensions are equal to 1
+    
+    .. rubric:: Layer outputs:
+
+    (1) the output sequence
+        The dimensions:
+
+        - **BatchLength** equal to output_seq_len
+        - **Channels** equal to output_object_size
+        - all other dimensions are equal to 1
     """
     scores = ["additive", "dot_product"]
 

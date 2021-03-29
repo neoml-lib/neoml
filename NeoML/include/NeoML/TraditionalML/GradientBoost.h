@@ -52,8 +52,6 @@ inline void ArrayMemMoveElement( CGradientBoostEnsemble* dest, CGradientBoostEns
 // The type of tree builder used in the gradient boosting algorithm
 enum TGradientBoostTreeBuilder {
 	// All feature values may be used for subtree splitting
-	// The algorithm will use up to params.AvailableMemory memory for caching the temporary data;
-	// this buffer should be at least large enough to store all values of a single feature at the same time.
 	// This algorithm can provide better quality 
 	// and may be used even in the case where the whole problem data does not fit into memory
 	GBTB_Full = 0,
