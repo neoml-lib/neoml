@@ -227,8 +227,8 @@ class KMeans(PythonWrapper.KMeans) :
     :param max_iteration_count: max number of iterations of K-Means
     :type max_iteration_count: int
 
-    :param init_cluster_count: number of clusters
-    :type init_cluster_count: int
+    :param cluster_count: number of clusters
+    :type cluster_count: int
 
     :param algo: algorithm used during clustering
     :type algo: str, {'elkan', 'lloyd'}, default='lloyd'
@@ -275,13 +275,13 @@ class KMeans(PythonWrapper.KMeans) :
         :rtype:
             - tuple(clusters, centers, vars)
             - clusters - numpy.ndarray(numpy.int32) of shape (n_samples,)
-            - centers - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
-            - vars - numpy.ndarray(numpy.float32) of shape (init_cluster_count, n_features)
+            - centers - numpy.ndarray(numpy.float32) of shape (cluster_count, n_features)
+            - vars - numpy.ndarray(numpy.float32) of shape (cluster_count, n_features)
         """
         x = convert_data(X)
 
         if weight is None:
-            weight = numpy.ones(x.size, numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32)
         else:
             weight = numpy.array(weight, dtype=numpy.float32, copy=False)
             if numpy.any(weight < 0):

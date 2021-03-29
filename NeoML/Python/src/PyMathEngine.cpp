@@ -101,5 +101,9 @@ void InitializeMathEngine(py::module& m)
 			t[i] = name + std::string( info.Name );
 		}
 		return t;
+	})
+	.def("default_math_engine", []() {
+		CPyMathEngineOwner owner;
+		return CPyMathEngine( owner );
 	});
 }

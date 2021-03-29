@@ -20,6 +20,8 @@ limitations under the License.
 #include "PyInitializer.h"
 #include "PySolver.h"
 
+class CPyLayer;
+
 class CPyDnn {
 public:
 	CPyDnn( CPyRandomOwner& _randomOwner, CPyMathEngineOwner& _mathEngineOwner );
@@ -40,6 +42,10 @@ public:
 	py::dict GetInputs() const;
 	py::dict GetOutputs() const;
 	py::dict GetLayers() const;
+
+	bool HasLayer( const char* name ) const;
+	void AddLayer( CPyLayer& layer );
+	void DeleteLayer( const char* name );
 
 	py::dict Run( py::list inputs );
 
