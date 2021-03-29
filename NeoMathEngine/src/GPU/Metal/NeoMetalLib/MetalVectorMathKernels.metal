@@ -2225,7 +2225,7 @@ kernel void vectorQrnnFPooling( constant bool& reverse [[buffer(0)]],
 {
     C1DPosition pos( thread_position_in_grid );
     int index;
-    if( pos.GetMetalTaskIndex( *objectSize, index ) ) {
+    if( pos.GetMetalTaskIndex( objectSize, index ) ) {
         int currOffset = reverse != 0 ? index + ( sequenceLength - 1 ) * objectSize : index;
         int nextObjectOffset = reverse != 0 ? -objectSize : objectSize;
 
@@ -2253,7 +2253,7 @@ kernel void vectorQrnnIfPooling( constant bool& reverse [[buffer(0)]],
 {
     C1DPosition pos( thread_position_in_grid );
     int index;
-    if( pos.GetMetalTaskIndex( *objectSize, index ) ) {
+    if( pos.GetMetalTaskIndex( objectSize, index ) ) {
         int currOffset = reverse != 0 ? index + ( sequenceLength - 1 ) * objectSize : index;
         int nextObjectOffset = reverse != 0 ? -objectSize : objectSize;
 
