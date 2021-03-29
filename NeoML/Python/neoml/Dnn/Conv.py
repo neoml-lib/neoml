@@ -17,6 +17,7 @@ limitations under the License.
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from neoml.Utils import check_input_layers
+from .BatchNormalization import BatchNormalization
 import neoml.Blob as Blob
 
 
@@ -188,6 +189,18 @@ class Conv(Layer):
         """
         return Blob(self._internal.get_free_term())
 
+    def apply_batch_normalization(self, layer):
+        """Applies batch normalization to this layer.
+        Batch normalization must be deleted from the dnn afterwards
+        and layers which were connected to the batch norm must be connected to this layer.
+
+        :param neoml.Dnn.BatchNormalization layer: batch norm to be applied
+        """
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -341,6 +354,18 @@ class Conv3D(Layer):
         """Gets the free term. The blob is of filter_count size.
         """
         return Blob(self._internal.get_free_term())
+
+    def apply_batch_normalization(self, layer):
+        """Applies batch normalization to this layer.
+        Batch normalization must be deleted from the dnn afterwards
+        and layers which were connected to the batch norm must be connected to this layer.
+
+        :param neoml.Dnn.BatchNormalization layer: batch norm to be applied
+        """
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -496,6 +521,18 @@ class TransposedConv3D(Layer):
         """Gets the free term. The blob size is filter_count.
         """
         return Blob(self._internal.get_free_term())
+
+    def apply_batch_normalization(self, layer):
+        """Applies batch normalization to this layer.
+        Batch normalization must be deleted from the dnn afterwards
+        and layers which were connected to the batch norm must be connected to this layer.
+
+        :param neoml.Dnn.BatchNormalization layer: batch norm to be applied
+        """
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -669,6 +706,18 @@ class TransposedConv(Layer):
         """
         return Blob(self._internal.get_free_term())
 
+    def apply_batch_normalization(self, layer):
+        """Applies batch normalization to this layer.
+        Batch normalization must be deleted from the dnn afterwards
+        and layers which were connected to the batch norm must be connected to this layer.
+
+        :param neoml.Dnn.BatchNormalization layer: batch norm to be applied
+        """
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -819,6 +868,18 @@ class ChannelwiseConv(Layer):
         """Gets the free term. The blob size is inputs' Channels.
         """
         return self._internal.get_free_term()
+
+    def apply_batch_normalization(self, layer):
+        """Applies batch normalization to this layer.
+        Batch normalization must be deleted from the dnn afterwards
+        and layers which were connected to the batch norm must be connected to this layer.
+
+        :param neoml.Dnn.BatchNormalization layer: batch norm to be applied
+        """
+        if type(layer) is not BatchNormalization:
+            raise ValueError('The `layer` must be neoml.Dnn.BatchNormalization.')
+
+        self._internal.apply_batch_normalization(layer._internal)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
