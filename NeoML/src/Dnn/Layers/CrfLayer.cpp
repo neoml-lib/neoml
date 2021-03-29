@@ -324,6 +324,8 @@ void CCrfLossLayer::buildLayer()
 	AddLayer(*internalLossLayer);
 	internalLossLayer->Connect(0, *sequenceProbabilities);
 	internalLossLayer->Connect(1, *labelProbabilities);
+	// Pass the sequence weights to the internal loss layer
+	SetInputMapping( I_SequenceWeights, *internalLossLayer, 2 );
 	
 	// The dummy sink for network building
 	CPtr<CSinkLayer> dummySink = FINE_DEBUG_NEW CSinkLayer( MathEngine() );
