@@ -466,7 +466,7 @@ void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 	float regL2 = layer->GetBaseL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values of the variables
-	CFastArray<float, 9> varValues;
+	CFastArray<float, TV_Count> varValues;
 	varValues.SetSize( TV_Count );
 
 	varValues[TV_MomentDecayRateVar] = momentDecayRate;
