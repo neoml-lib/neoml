@@ -188,7 +188,6 @@ public:
 		return list;
 	}
 
-
 private:
 	CPtr<CPyFunctionEvaluationOwner> function;
 	CPtr<CPyDifferentialEvolutionOwner> evolution;
