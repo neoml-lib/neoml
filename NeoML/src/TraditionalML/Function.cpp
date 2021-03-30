@@ -40,7 +40,7 @@ static void calcL1Regularization( const CFloatVector& w, float l1Coeff, double& 
 //------------------------------------------------------------------------------------------------------------
 
 // Multiplies hessian by vector
-static CFloatVector calcHessianProduct( int threadCount, const CSparseFloatMatrixDesc& matrix, const CFloatVector& arg,
+static CFloatVector calcHessianProduct( int threadCount, const CFloatMatrixDesc& matrix, const CFloatVector& arg,
 	float errorWeight, const CArray<double>& hessian )
 {
 	const int vectorCount = matrix.Height;
@@ -64,7 +64,7 @@ static CFloatVector calcHessianProduct( int threadCount, const CSparseFloatMatri
 		if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				if( hessian[index] != 0 ) {
-					CSparseFloatVectorDesc desc;
+					CFloatVectorDesc desc;
 					matrix.GetRow( index, desc );
 
 					double temp = LinearFunction( arg, desc );
@@ -148,7 +148,7 @@ void CSquaredHinge::SetArgument( const CFloatVector& w )
 			for( int i = 0; i < count; i++ ) {
 				double answer = answersPtr[index];
 				double weight = weightsPtr[index];
-				CSparseFloatVectorDesc desc;
+				CFloatVectorDesc desc;
 				matrix.GetRow( index, desc );
 
 				double x = answer * LinearFunction( arg, desc );
@@ -240,7 +240,7 @@ void CL2Regression::SetArgument( const CFloatVector& w )
 		if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				float weight = weightsPtr[index];
-				CSparseFloatVectorDesc desc;
+				CFloatVectorDesc desc;
 				matrix.GetRow( index, desc );
 
 				double d = LinearFunction( arg, desc ) - answersPtr[index];
@@ -341,7 +341,7 @@ void CLogRegression::SetArgument( const CFloatVector& w )
 			for( int i = 0; i < count; i++ ) {
 				double answer = answersPtr[index];
 				double weight = weightsPtr[index];
-				CSparseFloatVectorDesc desc;
+				CFloatVectorDesc desc;
 				matrix.GetRow( index, desc );
 
 				double dot = LinearFunction( arg, desc );
@@ -432,7 +432,7 @@ void CSmoothedHinge::SetArgument( const CFloatVector& w )
 			for( int i = 0; i < count; i++ ) {
 				float answer = answersPtr[index];
 				float weight = weightsPtr[index];
-				CSparseFloatVectorDesc desc;
+				CFloatVectorDesc desc;
 				matrix.GetRow( index, desc );
 
 				double d = answer * LinearFunction( arg, desc ) - 1;

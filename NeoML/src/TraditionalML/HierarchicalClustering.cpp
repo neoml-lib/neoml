@@ -44,7 +44,7 @@ bool CHierarchicalClustering::Clusterize( IClusteringData* data, CClusteringResu
 		*log << "\nHierarchical clustering started:\n";
 	}
 
-	CSparseFloatMatrixDesc matrix = data->GetMatrix();
+	CFloatMatrixDesc matrix = data->GetMatrix();
 	NeoAssert( matrix.Height == data->GetVectorCount() );
 	NeoAssert( matrix.Width == data->GetFeaturesCount() );
 
@@ -70,6 +70,10 @@ bool CHierarchicalClustering::Clusterize( IClusteringData* data, CClusteringResu
 			*log << "\n[Step " << initialClustersCount - clusters.Size() << "]\n";
 		}
 
+		if( clusters.Size() <= params.MinClustersCount ) {
+			break;
+		}
+
 		int first = NotFound;
 		int second = NotFound;
 		findNearestClusters( first, second );
@@ -80,10 +84,6 @@ bool CHierarchicalClustering::Clusterize( IClusteringData* data, CClusteringResu
 
 		if( distances[first][second] > params.MaxClustersDistance ) {
 			success = true;
-			break;
-		}
-
-		if( clusters.Size() <= params.MinClustersCount ) {
 			break;
 		}
 
@@ -119,7 +119,7 @@ bool CHierarchicalClustering::Clusterize( IClusteringData* data, CClusteringResu
 }
 
 // Initializes the algorithm
-void CHierarchicalClustering::initialize( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights )
+void CHierarchicalClustering::initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
 {
 	const int vectorsCount = matrix.Height;
 
@@ -128,7 +128,7 @@ void CHierarchicalClustering::initialize( const CSparseFloatMatrixDesc& matrix, 
 		// Each element is a cluster
 		clusters.SetBufferSize( vectorsCount );
 		for( int i = 0; i < vectorsCount; i++ ) {
-			CSparseFloatVectorDesc desc;
+			CFloatVectorDesc desc;
 			matrix.GetRow( i, desc );
 			CFloatVector mean( matrix.Width, desc );
 			clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ) ) );
@@ -144,7 +144,7 @@ void CHierarchicalClustering::initialize( const CSparseFloatMatrixDesc& matrix, 
 		// Each element of the original data set is put into the nearest cluster
 		for( int i = 0; i < vectorsCount; i++ ) {
 			int nearestCluster = 0;
-			CSparseFloatVectorDesc desc;
+			CFloatVectorDesc desc;
 			matrix.GetRow( i, desc );
 			double minDistance = clusters[nearestCluster]->CalcDistance( desc, params.DistanceType );
 
@@ -195,7 +195,7 @@ void CHierarchicalClustering::findNearestClusters( int& first, int& second ) con
 }
 
 // Merges two clusters
-void CHierarchicalClustering::mergeClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+void CHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 	int first, int second )
 {
 	NeoAssert( first < second );
@@ -211,7 +211,7 @@ void CHierarchicalClustering::mergeClusters( const CSparseFloatMatrixDesc& matri
 	CArray<int> secondClustersElements;
 	clusters[second]->GetAllElements( secondClustersElements );
 	for( int i = 0; i < secondClustersElements.Size(); i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( secondClustersElements[i], desc );
 		clusters[first]->Add( secondClustersElements[i], desc, weights[secondClustersElements[i]] );
 	}

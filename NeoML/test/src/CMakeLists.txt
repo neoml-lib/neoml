@@ -8,6 +8,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/TestFixture.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/TestParams.h
     ${CMAKE_CURRENT_SOURCE_DIR}/TestParams.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ClusteringTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLayersSerializationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSerializationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/InferencePerformanceMultiThreadingTest.cpp
@@ -15,6 +16,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/RandomProblem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RandomProblem.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ClassificationAndRegressionTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/LAMBSolverTest.cpp
 )
 
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

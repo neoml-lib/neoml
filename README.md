@@ -1,6 +1,8 @@
 ![NeoML](NeoML/docs/images/NeoML_logo.png)
 
-[![Build status](https://dev.azure.com/abbyyopensource/NeoML/_apis/build/status/NeoML/Main%20Pipeline)](https://dev.azure.com/abbyyopensource/NeoML/_build/latest?definitionId=2)
+![Desktop Build Status](https://img.shields.io/azure-devops/build/abbyyopensource/401f7fe0-92d9-411d-9839-60d3455fa1c0/2/master?label=Desktop%20Build)
+![Python Build](https://img.shields.io/azure-devops/build/abbyyopensource/401f7fe0-92d9-411d-9839-60d3455fa1c0/14/master?label=Python%20Build)
+[![Documentation Status](https://readthedocs.org/projects/neoml/badge/?version=latest)](https://neoml.readthedocs.io/en/latest/?badge=latest)
 
 **NeoML** is an end-to-end machine learning framework that allows you to build, train, and deploy ML models. This framework is used by ABBYY engineers for computer vision and natural language processing tasks, including image preprocessing, classification, document layout analysis, OCR, and data extraction from structured and unstructured documents.
 
@@ -35,6 +37,7 @@ Key features:
 	- [C++ interface](#c++-interface)
 		- [Algorithms library NeoML](#algorithms-library-neoml)
 		- [NeoMathEngine](#neomathengine)	
+	- [Python module](#python-module)
 	- [Java interface](#java-interface)
 	- [Objective-C interface](#objective-c-interface)
 - [License](#license)
@@ -157,6 +160,10 @@ The math engine used for calculations is a separate module that implements the l
 This module has different implementations for different platforms. In particular, there is an implementation that uses a GPU for calculations.
 
 The math engine is also a set of C++ interfaces described [here](NeoML/docs/en/API/NN/MathEngine.md).
+
+### Python module
+
+The documentation of python module located [here](NeoML/docs/en/Python/index.rst)
 
 ### Java interface
 

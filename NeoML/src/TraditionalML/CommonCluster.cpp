@@ -54,7 +54,7 @@ CCommonCluster::CCommonCluster( const CCommonCluster& first, const CCommonCluste
 	RecalcCenter();
 }
 
-void CCommonCluster::Add( int dataIndex, const CSparseFloatVectorDesc& desc, double weight )
+void CCommonCluster::Add( int dataIndex, const CFloatVectorDesc& desc, double weight )
 {
 	NeoAssert( dataIndex >= 0 );
 

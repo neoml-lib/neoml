@@ -114,8 +114,8 @@ void CProblemSourceLayer::RunOnce()
 	float* weights = exchangeBufs[2].GetPtr();
 
 	int vectorCount = problem->GetVectorCount();
-	CSparseFloatMatrixDesc matrix = problem->GetMatrix();
-	CSparseFloatVectorDesc vector;
+	CFloatMatrixDesc matrix = problem->GetMatrix();
+	CFloatVectorDesc vector;
 
 	for(int i = 0; i < batchSize; ++i) {
 		// The data
@@ -212,7 +212,7 @@ int CDnnModelWrapper::GetClassCount() const
 	return ClassCount;
 }
 
-bool CDnnModelWrapper::Classify(const CSparseFloatVectorDesc& desc, CClassificationResult& result) const
+bool CDnnModelWrapper::Classify(const CFloatVectorDesc& desc, CClassificationResult& result) const
 {
 	NeoAssert(SourceBlob.Ptr() != 0);
 	NeoPresume(SourceBlob.Ptr() == SourceLayer->GetBlob().Ptr());
