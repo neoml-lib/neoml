@@ -123,7 +123,7 @@ CLayerWrapper<CImageResizeLayer> ImageResize( int deltaLeft, int deltaRight, int
 		result->SetDelta( CImageResizeLayer::IS_Right, deltaRight );
 		result->SetDelta( CImageResizeLayer::IS_Bottom, deltaBottom );
 		result->SetDelta( CImageResizeLayer::IS_Top, deltaTop );
-		result->SetDefalutValue( defaultValue );
+		result->SetDefaultValue( defaultValue );
 	} );
 }
 

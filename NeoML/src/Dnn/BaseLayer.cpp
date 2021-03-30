@@ -223,6 +223,14 @@ size_t CBaseLayer::GetOutputBlobsSize() const
 	return result;
 }
 
+void CBaseLayer::CleanUp()
+{
+	inputBlobs.DeleteAll();
+	inputBlobs.SetSize(inputDescs.Size());
+	outputBlobs.DeleteAll();
+	outputBlobs.SetSize(outputDescs.Size());
+}
+
 size_t CBaseLayer::GetTrainableParametersSize() const
 {
 	if( !isLearnable ) {

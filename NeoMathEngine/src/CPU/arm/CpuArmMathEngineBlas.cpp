@@ -239,6 +239,37 @@ void CCpuMathEngine::FindMaxValueInColumns( int batchSize, const CConstFloatHand
 	}
 }
 
+void CCpuMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandle, int matrixHeight,
+	int matrixWidth, const CFloatHandle& resultHandle, const CIntHandle& rowIndicesHandle )
+{
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( rowIndicesHandle.GetMathEngine() == this );
+
+	const float* matrix = GetRaw( matrixHandle );
+	float* result = GetRaw( resultHandle );
+	int* rowIndices = GetRaw( rowIndicesHandle );
+
+	// Copy the first row
+	vectorCopy( result, matrix, matrixWidth );
+	vectorFill( rowIndices, 0, matrixWidth );
+	matrix += matrixWidth;
+	// Process the rest
+	for( int i = 0; i < matrixHeight - 1; i++ ) {
+		float* vectorPtr = result;
+		int* indicesPtr = rowIndices;
+		for( int j = 0; j < matrixWidth; j++ ) {
+			if( *matrix < *vectorPtr ) {
+				*vectorPtr = *matrix;
+				*indicesPtr = i + 1;
+			}
+			matrix += 1;
+			vectorPtr += 1;
+			indicesPtr += 1;
+		}
+	}
+}
+
 void CCpuMathEngine::MultiplyLookupMatrixByLookupVector(int batchSize, const CLookupMatrix& matrix,
 	const CLookupVector& vector, const CFloatHandle& resultHandle, int resultSize)
 {

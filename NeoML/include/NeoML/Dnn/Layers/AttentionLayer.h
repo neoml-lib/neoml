@@ -58,7 +58,8 @@ public:
 		I_InputSequence = 0,
 		I_OutputInitializer = 1
 	};
-	// Sets the estimate function
+	// The estimate function
+	TAttentionScore GetAttentionScore() const { return score; }
 	void SetAttentionScore( TAttentionScore newScore );
 
 	// Gets and sets the output object size (the number of channels) and the length of the output sequence

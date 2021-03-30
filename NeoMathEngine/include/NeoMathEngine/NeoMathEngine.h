@@ -849,7 +849,13 @@ NEOMATHENGINE_API void CpuMathEngineCleanUp();
 // Use tensor cores in cublas (if possible)
 // If GPU supports tensor cores this flag leads to faster but less precise GEMM operations
 // Works only if MET_Cuda and device is Titan V, geforce 16** or newer
-const int GpuMathEngineCublasUseTensorCoresFlag = 1;
+
+// Half tensor core math - less accurate, supported by all cards with tensor cores
+// Incompatible with float math flag below
+const int GpuMathEngineCublasUseTensorCoresHalfFlag = 0x1;
+// TF32 tensor core math - more accurate, supported by modern cards based on the Ampere architecture
+// Incompatible with half math flag above
+const int GpuMathEngineCublasUseTensorCoresTF32Flag = 0x2;
 
 // Creates a math engine that uses the recommended GPU for calculations
 // Returns null if no GPUs are available

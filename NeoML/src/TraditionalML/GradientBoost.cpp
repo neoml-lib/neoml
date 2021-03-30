@@ -17,8 +17,9 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/TraditionalML/GradientBoost.h>
+#include <NeoML/TraditionalML/GradientBoostQuickScorer.h>
 #include <GradientBoostModel.h>
-#include <RegressionTreeModel.h>
+#include <RegressionTree.h>
 #include <GradientBoostFullProblem.h>
 #include <GradientBoostFastHistProblem.h>
 #include <GradientBoostFullTreeBuilder.h>
@@ -38,7 +39,7 @@ IGradientBoostRegressionModel::~IGradientBoostRegressionModel()
 {
 }
 
-IRegressionTreeModel::~IRegressionTreeModel()
+IRegressionTreeNode::~IRegressionTreeNode()
 {
 }
 
@@ -302,7 +303,8 @@ static void generateRandomArray( CRandom& random, int n, int k, CArray<int>& res
 
 CGradientBoost::CGradientBoost( const CParams& _params ) :
 	params( processParams( _params ) ),
-	logStream( 0 )
+	logStream( 0 ),
+	loss( 0 )
 {
 	NeoAssert( params.IterationsCount > 0 );
 	NeoAssert( 0 <= params.Subsample && params.Subsample <= 1 );
@@ -318,21 +320,15 @@ CGradientBoost::~CGradientBoost()
 {
 }
 
-CPtr<IGradientBoostRegressionModel> CGradientBoost::TrainRegression(
-	const IBaseRegressionProblem& problem )
+CPtr<IMultivariateRegressionModel> CGradientBoost::TrainRegression(
+	const IMultivariateRegressionProblem& problem )
 {
 	if( logStream != nullptr ) {
 		*logStream << "\nGradient boost regression training started:\n";
 	}
 
-	CPtr<const IMultivariateRegressionProblem> multivariate =
-		dynamic_cast<const IMultivariateRegressionProblem*>( &problem );
-	if( multivariate == nullptr ) {
-		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate(
-			dynamic_cast<const IRegressionProblem*>( &problem ) );
-	}
-
-	return train( multivariate, createLossFunction() ).Ptr();
+	return CheckCast<IMultivariateRegressionModel>(
+		train( &problem, createLossFunction() ) );
 }
 
 CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem& problem )
@@ -344,7 +340,7 @@ CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem
 	CPtr<const IMultivariateRegressionProblem> multivariate =
 		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( &problem );
 
-	return train( multivariate, createLossFunction() ).Ptr();
+	return CheckCast<IRegressionModel>( train( multivariate, createLossFunction() ) );
 }
 
 CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
@@ -360,11 +356,11 @@ CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
 		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( &problem );
 	}
 
-	return train( multivariate, createLossFunction() ).Ptr();
+	return CheckCast<IModel>( train( multivariate, createLossFunction() ) );
 }
 
 // Trains a model
-CPtr<CGradientBoostModel> CGradientBoost::train(
+CPtr<IObject> CGradientBoost::train(
 	const IMultivariateRegressionProblem* _problem,
 	IGradientBoostingLossFunction* lossFunction )
 {
@@ -388,7 +384,7 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 			}
 
 			// One gradient boosting step
-			CObjectArray<IRegressionModel> curIterationModels; // a new model for multi-class classification
+			CObjectArray<IRegressionTreeNode> curIterationModels; // a new model for multi-class classification
 			executeStep( *lossFunction, problem, models, curIterationModels );
 
 			for( int j = 0; j < curIterationModels.Size(); j++ ) {
@@ -405,7 +401,8 @@ CPtr<CGradientBoostModel> CGradientBoost::train(
 	buildFullPredictions( *problem, models );
 	loss = lossFunction->CalcLossMean( predicts, answers );
 
-	return FINE_DEBUG_NEW CGradientBoostModel( models, params.LearningRate, params.LossFunction );
+	return createOutputRepresentation(
+		models, params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1 );
 }
 
 // Creates a tree builder depending on the problem type
@@ -413,8 +410,9 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 {
 	switch( params.TreeBuilder ) {
 		case GBTB_Full:
+		case GBTB_MultiFull:
 		{
-			CGradientBoostFullTreeBuilder::CParams builderParams;
+			CGradientBoostFullTreeBuilderParams builderParams;
 			builderParams.L1RegFactor = params.L1RegFactor;
 			builderParams.L2RegFactor = params.L2RegFactor;
 			builderParams.MinSubsetHessian = 1e-3f;
@@ -423,7 +421,12 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.MaxNodesCount = params.MaxNodesCount;
 			builderParams.PruneCriterionValue = params.PruneCriterionValue;
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
-			fullTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder( builderParams, logStream );
+			builderParams.DenseTreeBoostCoefficient = params.DenseTreeBoostCoefficient;
+			if( params.TreeBuilder == GBTB_MultiFull ) {
+				fullMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream );
+			} else {
+				fullSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream );
+			}
 			fullProblem = FINE_DEBUG_NEW CGradientBoostFullProblem( params.ThreadCount, problem,
 				usedVectors, usedFeatures, featureNumbers );
 			break;
@@ -453,7 +456,8 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 // Destroys a tree builder
 void CGradientBoost::destroyTreeBuilder()
 {
-	fullTreeBuilder.Release();
+	fullSingleClassTreeBuilder.Release();
+	fullMultiClassTreeBuilder.Release();
 	fullProblem.Release();
 	fastHistTreeBuilder.Release();
 	fastHistProblem.Release();
@@ -488,7 +492,7 @@ void CGradientBoost::initialize( int modelCount, int vectorCount, int featureCou
 	NeoAssert( vectorCount > 0 );
 	NeoAssert( featureCount > 0 );
 
-	models.SetSize( modelCount );
+	models.SetSize( params.TreeBuilder == GBTB_MultiFull ? 1 : modelCount );
 
 	predictCache.DeleteAll();
 	predictCache.SetSize( modelCount );
@@ -523,7 +527,7 @@ void CGradientBoost::initialize( int modelCount, int vectorCount, int featureCou
 // On a sub-problem of the first problem using cache
 void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	const IMultivariateRegressionProblem* problem,
-	const CArray<CGradientBoostEnsemble>& models, CObjectArray<IRegressionModel>& curModels )
+	const CArray<CGradientBoostEnsemble>& models, CObjectArray<IRegressionTreeNode>& curModels )
 {
 	NeoAssert( !models.IsEmpty() );
 	NeoAssert( curModels.IsEmpty() );
@@ -597,43 +601,69 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 		}
 	}
 
-	for( int i = 0; i < gradients.Size(); i++ ) {
-		if( logStream != nullptr ) {
-			*logStream << "GradientSum = " << gradientsSum[i]
-				<< " HessianSum = " << hessiansSum[i]
-				<< "\n";
+	if( fullMultiClassTreeBuilder != nullptr ) {
+		curModels.Add( fullMultiClassTreeBuilder->Build( *fullProblem,
+			gradients, gradientsSum, hessians, hessiansSum, weights, weightsSum ).Ptr() );
+	} else {
+		for( int i = 0; i < gradients.Size(); i++ ) {
+			if( logStream != nullptr ) {
+				*logStream << "GradientSum = " << gradientsSum[i]
+					<< " HessianSum = " << hessiansSum[i]
+					<< "\n";
+			}
+			CPtr<IRegressionTreeNode> model;
+			if( fullSingleClassTreeBuilder != nullptr ) {
+				model = fullSingleClassTreeBuilder->Build( *fullProblem,
+					gradients[i], gradientsSum[i],
+					hessians[i], hessiansSum[i],
+					weights, weightsSum );
+			} else {
+				model = fastHistTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
+			}
+			curModels.Add( model );
 		}
-		CPtr<IRegressionModel> model;
-		if( fullTreeBuilder != nullptr ) {
-			model = fullTreeBuilder->Build( *fullProblem, gradients[i], gradientsSum[i], hessians[i], hessiansSum[i], weights, weightsSum );
-		} else {
-			model = fastHistTreeBuilder->Build( *fastHistProblem, gradients[i], hessians[i], weights );
-		}
-		curModels.Add( model );
 	}
 }
 
 // Builds the ensemble predictions for a set of vectors
 void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep )
 {
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatMatrixDesc matrix = problem.GetMatrix();
 	NeoAssert( matrix.Height == problem.GetVectorCount() );
 	NeoAssert( matrix.Width == problem.GetFeatureCount() );
+
+	CArray<CFastArray<double, 1>> predictions;
+	predictions.SetSize( params.ThreadCount );
+	for( int i = 0; i < predictions.Size(); i++ ) {
+		predictions[i].SetSize( problem.GetValueSize() );
+	}
 
 	NEOML_OMP_NUM_THREADS( params.ThreadCount )
 	{
 		int index = 0;
 		int count = 0;
+		int threadNum = OmpGetThreadNum();
 		if( OmpGetTaskIndexAndCount( usedVectors.Size(), index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				const int usedVector = usedVectors[index];
 				const CFloatVector value = problem.GetValue( usedVectors[index] );
-				CSparseFloatVectorDesc vector;
+				CFloatVectorDesc vector;
 				matrix.GetRow( usedVector, vector );
 
-				for( int j = 0; j < models.Size(); j++ ) {
-					predictCache[j][usedVector].Value += CGradientBoostModel::PredictRaw( models[j], predictCache[j][usedVector].Step,
-						params.LearningRate, vector );
+				if( params.TreeBuilder == GBTB_MultiFull ) {
+					CGradientBoostModel::PredictRaw( models[0], predictCache[0][usedVector].Step,
+						params.LearningRate, vector, predictions[threadNum] );
+				} else {
+					CFastArray<double, 1> pred;
+					pred.SetSize(1);
+					for( int j = 0; j < problem.GetValueSize(); j++ ) {
+						 CGradientBoostModel::PredictRaw( models[j], predictCache[j][usedVector].Step, params.LearningRate, vector, pred );
+						 predictions[threadNum][j] = pred[0];
+					}
+				}
+
+				for( int j = 0; j < problem.GetValueSize(); j++ ) {
+					predictCache[j][usedVector].Value += predictions[threadNum][j];
 					predictCache[j][usedVector].Step = curStep;
 					predicts[j][index] = predictCache[j][usedVector].Value;
 					answers[j][index] = value[j];
@@ -647,7 +677,7 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 // Fills the prediction cache with the values of the full problem
 void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models )
 {
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatMatrixDesc matrix = problem.GetMatrix();
 	NeoAssert( matrix.Height == problem.GetVectorCount() );
 	NeoAssert( matrix.Width == problem.GetFeatureCount() );
 
@@ -655,21 +685,38 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 		predicts[i].SetSize( problem.GetVectorCount() );
 		answers[i].SetSize( problem.GetVectorCount());
 	}
+	CArray<CFastArray<double, 1>> predictions;
+	predictions.SetSize( params.ThreadCount );
+	for( int i = 0; i < predictions.Size(); i++ ) {
+		predictions[i].SetSize( problem.GetValueSize() );
+	}
 
 	int step = models[0].Size();
 	NEOML_OMP_NUM_THREADS( params.ThreadCount )
 	{
 		int index = 0;
 		int count = 0;
+		int threadNum = OmpGetThreadNum();
 		if( OmpGetTaskIndexAndCount( problem.GetVectorCount(), index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				const CFloatVector value = problem.GetValue( index );
-				CSparseFloatVectorDesc vector;
+				CFloatVectorDesc vector;
 				matrix.GetRow( index, vector );
 
-				for( int j = 0; j < models.Size(); j++ ) {
-					predictCache[j][index].Value += CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
-						params.LearningRate, vector );
+				if( params.TreeBuilder == GBTB_MultiFull ){
+					CGradientBoostModel::PredictRaw( models[0], predictCache[0][index].Step,
+						params.LearningRate, vector, predictions[threadNum] );
+				} else {
+					CFastArray<double, 1> pred;
+					pred.SetSize(1);
+					for( int j = 0; j < problem.GetValueSize(); j++ ){
+						 CGradientBoostModel::PredictRaw(models[j], predictCache[j][index].Step, params.LearningRate, vector, pred );
+						predictions[threadNum][j] = pred[0];
+					}
+				}
+
+				for( int j = 0; j < problem.GetValueSize(); j++ ) {
+					predictCache[j][index].Value += predictions[threadNum][j];
 					predictCache[j][index].Step = step;
 					predicts[j][index] = predictCache[j][index].Value;
 					answers[j][index] = value[j];
@@ -677,6 +724,27 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 				index++;
 			}
 		}
+	}
+}
+
+// Creates model represetation requested in params.
+CPtr<IObject> CGradientBoost::createOutputRepresentation(
+	CArray<CGradientBoostEnsemble>& models, int predictionSize )
+{
+	CPtr<CGradientBoostModel> linked = FINE_DEBUG_NEW CGradientBoostModel(
+		models, predictionSize, params.LearningRate, params.LossFunction );
+
+	switch( params.Representation ) {
+		case GBMR_Linked:
+			return linked.Ptr();
+		case GBMR_Compact:
+			linked->ConvertToCompact();
+			return linked.Ptr();
+		case GBMR_QuickScorer:
+			return CGradientBoostQuickScorer().Build( *linked ).Ptr();
+		default:
+			NeoAssert( false );
+			return 0;
 	}
 }
 
