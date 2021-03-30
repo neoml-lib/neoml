@@ -205,7 +205,8 @@ CLayerWrapper<CQrnnLayer> NEOML_API Qrnn( CQrnnLayer::TPoolingType poolingType, 
 class NEOML_API CQrnnFPoolingLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CQrnnFPoolingLayer )
 public:
-	explicit CQrnnFPoolingLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CQrnnFPoolingLayer", false ) {}
+	explicit CQrnnFPoolingLayer( IMathEngine& mathEngine )
+		: CBaseLayer( mathEngine, "CQrnnFPoolingLayer", false ), reverse( false ) {}
 
 	bool IsReverse() const { return reverse; }
 	void SetReverse( bool newReverse ) { reverse = newReverse; }
@@ -240,7 +241,8 @@ private:
 class NEOML_API CQrnnIfPoolingLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CQrnnIfPoolingLayer )
 public:
-	explicit CQrnnIfPoolingLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CQrnnIfPoolingLayer", false ) {}
+	explicit CQrnnIfPoolingLayer( IMathEngine& mathEngine ) :
+		CBaseLayer( mathEngine, "CQrnnIfPoolingLayer", false ), reverse( false ) {}
 
 	bool IsReverse() const { return reverse; }
 	void SetReverse( bool newReverse ) { reverse = newReverse; }
