@@ -33,7 +33,7 @@ public:
 	int GetVectorCount() const override;
 
 	// Gets all vectors in the data set as a matrix
-	CSparseFloatMatrixDesc GetMatrix() const override;
+	CFloatMatrixDesc GetMatrix() const override;
 	// Gets the vector weight
 	double GetVectorWeight( int index ) const override;
 
@@ -61,7 +61,7 @@ public:
 	// The number of vectors in the data set
 	int GetVectorCount() const override;
 	// Gets all vectors in the data set as a matrix
-	CSparseFloatMatrixDesc GetMatrix() const override;
+	CFloatMatrixDesc GetMatrix() const override;
 	// Gets the vector weight
 	double GetVectorWeight( int index ) const override;
 
@@ -92,7 +92,7 @@ public:
 	// The number of vectors in the data set
 	int GetVectorCount() const override;
 	// Gets all vectors in the data set as a matrix
-	CSparseFloatMatrixDesc GetMatrix() const override;
+	CFloatMatrixDesc GetMatrix() const override;
 	// Gets the vector weight
 	double GetVectorWeight( int index ) const override;
 
@@ -128,7 +128,7 @@ public:
 
 protected:
 	// The original matrix desc view over the elements with not null weight only
-	CSparseFloatMatrixDesc ViewMatrixDesc;
+	CFloatMatrixDesc ViewMatrixDesc;
 
 private:
 	// The array containing pairs of viewed and original indices
@@ -162,7 +162,7 @@ public:
 	int GetVectorCount() const override;
 
 	// Gets all input vectors as a matrix
-	CSparseFloatMatrixDesc GetMatrix() const override;
+	CFloatMatrixDesc GetMatrix() const override;
 
 	// The vector weight
 	double GetVectorWeight( int index ) const override;

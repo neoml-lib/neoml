@@ -31,7 +31,7 @@ CLinearBinaryModel::CLinearBinaryModel( const CFloatVector& _plane, const CSigmo
 {
 }
 
-bool CLinearBinaryModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
+bool CLinearBinaryModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
 {
 	const double distance = LinearFunction( plane, data );
 	return classify( distance, result );
@@ -87,7 +87,7 @@ double CLinearBinaryModel::Predict( const CFloatVector& data ) const
 	return LinearFunction( plane, data );
 }
 
-double CLinearBinaryModel::Predict( const CSparseFloatVectorDesc& data ) const
+double CLinearBinaryModel::Predict( const CFloatVectorDesc& data ) const
 {
 	return LinearFunction( plane, data );
 }

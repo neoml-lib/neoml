@@ -41,7 +41,7 @@ CStratifiedCrossValidationSubProblem::CStratifiedCrossValidationSubProblem( cons
 		vectorsCount = problem->GetVectorCount() - objectsPerPart[partIndex].Size();
 	}
 
-	CSparseFloatMatrixDesc baseMatrix = problem->GetMatrix();
+	CFloatMatrixDesc baseMatrix = problem->GetMatrix();
 	pointerB.SetSize( vectorsCount );
 	pointerE.SetSize( vectorsCount );
 	for( int i = 0; i < vectorsCount; i++ ) {

@@ -68,7 +68,7 @@ inline CArchive& operator >> ( CArchive& archive, CSigmoid& sigmoid )
 void NEOML_API CalcSigmoidCoefficients( const IProblem& trainingClassificationData,
 	const CArray<double>& classificatorOutput, CSigmoid& coefficients );
 
-// Calculates the sigmoid coefficients using the CLinearBinaryClassifierBuilder cross-validation result.
+// Calculates the sigmoid coefficients using the CLinear cross-validation result.
 void NEOML_API CalcSigmoidCoefficients( const CCrossValidationResult& crossValidationResult,
 	CSigmoid& coefficients );
 
