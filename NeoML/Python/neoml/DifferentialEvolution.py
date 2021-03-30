@@ -133,7 +133,7 @@ class IntTraits(BaseTraits):
 
     def generate(self, min_value, max_value):
         """Generates a random trait value in the specified bounds.
-        
+
         Parameters
         ---------
         min_value : int
@@ -145,7 +145,7 @@ class IntTraits(BaseTraits):
 
     def less(self, first, second):
         """Checks if the first trait value is smaller than the second.
-        
+
         Parameters
         ---------
         first : int
@@ -157,7 +157,7 @@ class IntTraits(BaseTraits):
 
     def mutate(self, base, left, right, fluctuation, min_value, max_value):
         """Performs mutation for the differential evolution algorithm.
-        
+
         Parameters
         ---------
         base : int
@@ -247,7 +247,7 @@ class DifferentialEvolution:
 
     def build_next_generation(self):
         """Builds the next generation.
-            
+
         Return values
         -------
         success : bool
