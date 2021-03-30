@@ -23,29 +23,29 @@ class SubSequence(Layer):
     """The layer that extracts a subsequence 
     from each vector sequence of the set.
     
-    Layer inputs
-    ----------
-    #1: a blob with a set of objects, numbered along the BatchWidth dimension.
-    
-    Layer outputs
-    ----------
-    #1: a blob with the subsequence of objects.
-    The dimensions:
-    - BatchWidth is abs(length) or smaller if it doesn't fit 
-        after starting at start_pos
-    - the other dimensions are the same as for the input
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    start_pos : int
-        The first element of the subsequence. Counted from the end if negative.
-    length : int
-        The length of the subsequence. Reversed order if negative.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param start_pos: The first element of the subsequence. Counted from the end if negative.  
+    :type start_pos: int
+    :param length: The length of the subsequence. Reversed order if negative.
+    :type length: int
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with a set of objects, numbered along the **BatchWidth** dimension.
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the subsequence of objects.
+        The dimensions:
+
+        - **BatchWidth** is abs(length) or smaller if it doesn't fit 
+          after starting at start_pos
+        - the other dimensions are the same as for the input
+
     """
 
     def __init__(self, input_layer, start_pos=0, length=1, name=None):
@@ -89,22 +89,21 @@ class SubSequence(Layer):
 class ReverseSequence(Layer):
     """The layer that reverses sequence order of the input.
     
-    Layer inputs
-    ----------
-    #1: a blob of any size with sequence of objects 
-        numbered along the BatchWidth dimension.
-    
-    Layer outputs
-    ----------
-    #1: the reverse sequence. The same size as the input.
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob of any size with sequence of objects 
+        numbered along the **BatchWidth** dimension.
+    
+    .. rubric:: Layer outputs:
+
+    (1) the reverse sequence. The same size as the input.
+
     """
 
     def __init__(self, input_layer, name=None):
