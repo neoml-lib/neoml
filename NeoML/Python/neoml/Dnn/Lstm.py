@@ -16,7 +16,7 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 import neoml.Blob as Blob
 
 
@@ -27,7 +27,7 @@ class Lstm(Layer):
 
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    :type input_layer: (object, int)
+    :type input_layer: object, tuple(object, int) or list of them
     :param hidden_size: The size of hidden layer. 
         Affects the output size and the LSTM state vector size.
     :type hidden_size: int, default=1
@@ -64,7 +64,7 @@ class Lstm(Layer):
         - **BatchLength** should be 1
         - the other dimensions should be the same as for the first input
 
-    .. rubric:: Layer outputs
+    .. rubric:: Layer outputs:
 
     (1) the layer output on every step
 
@@ -72,9 +72,9 @@ class Lstm(Layer):
 
     Both outputs have the following dimensions:
     
-        - **BatchLength**, **BatchWidth**, **ListSize** are equal to the first input dimensions
-        - **Height**, **Width**, **Depth** are equal to 1
-        - **Channels** is equal to layer hidden size
+    - **BatchLength**, **BatchWidth**, **ListSize** are equal to the first input dimensions
+    - **Height**, **Width**, **Depth** are equal to 1
+    - **Channels** is equal to layer hidden size
     """
     activations = ["linear", "elu", "relu", "leaky_relu", "abs", "sigmoid", "tanh", "hard_tanh", "hard_sigmoid", "power", "hswish", "gelu"]
 

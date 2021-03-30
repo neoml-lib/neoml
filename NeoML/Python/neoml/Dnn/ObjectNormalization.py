@@ -16,20 +16,33 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 import neoml.Blob as Blob
 
 
 class ObjectNormalization(Layer):
-    """
+    """The layer that performs object normalization using the formula:
+    :math:`objectNorm(x)[i][j] = ((x[i][j] - mean[i]) / \sqrt{var[i] + epsilon}) * scale[j] + bias[j]`
     
-    Parameters
-    ----------
-    input_layers :
-    count :
-    size :
-    name : str, default=None
-        The layer name.
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: object, tuple(object, int)
+    :param epsilon: The small value added to the variance to avoid division by zero. 
+    :type epsilon: float, default=0.00001
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a set of objects.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** is the object size
+    
+    .. rubric:: Layer outputs:
+
+    (1) the normalized result, of the same size as the input.
     """
 
     def __init__(self, input_layer, epsilon=0.00001, name=None):
@@ -48,13 +61,13 @@ class ObjectNormalization(Layer):
 
     @property
     def epsilon(self):
-        """
+        """Gets the small value used to avoid division by zero.
         """
         return self._internal.get_epsilon()
 
     @epsilon.setter
     def epsilon(self, epsilon):
-        """
+        """Sets the small value used to avoid division by zero.
         """
         if float(epsilon) <= 0:
             raise ValueError('The `epsilon` must be > 0.')
@@ -62,24 +75,28 @@ class ObjectNormalization(Layer):
 
     @property
     def scale(self):
-        """
+        """Gets scale, one of the trainable parameters in the formula.
+        The total blob size is equal to the input **Height** * **Width** * **Depth** * **Channels**.
         """
         return Blob.Blob(self._internal.get_scale())
 
     @scale.setter
     def scale(self, scale):
-        """
+        """Sets scale, one of the trainable parameters in the formula.
+        The total blob size is equal to the input **Height** * **Width** * **Depth** * **Channels**.
         """
         self._internal.set_scale(scale._internal)
 
     @property
     def bias(self):
-        """
+        """Gets bias, one of the trainable parameters in the formula.
+        The total blob size is equal to the input **Height** * **Width** * **Depth** * **Channels**.
         """
         return Blob.Blob(self._internal.get_bias())
 
     @bias.setter
     def bias(self, bias):
-        """
+        """Sets bias, one of the trainable parameters in the formula.
+        The total blob size is equal to the input **Height** * **Width** * **Depth** * **Channels**.
         """
         self._internal.set_bias(bias._internal)

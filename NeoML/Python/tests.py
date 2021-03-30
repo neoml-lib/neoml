@@ -2,7 +2,9 @@ from unittest import TestCase
 import os
 import tempfile
 import pickle
+import itertools
 import numpy as np
+from scipy import sparse
 import neoml
 
 
@@ -906,7 +908,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(layer.name, 'conv')
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((4, 3, 2), dtype=np.float32), (1, 4, 3, 1, 1, 1, 2))
-        input2 = neoml.Blob.asblob(math_engine, np.ones((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
+        input2 = neoml.Blob.asblob(math_engine, np.zeros((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
         inputs = {"source1": input1, "source2": input2}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
@@ -934,7 +936,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(layer.width, 9)
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((4, 3, 2), dtype=np.float32), (1, 4, 3, 1, 1, 1, 2))
-        input2 = neoml.Blob.asblob(math_engine, np.ones((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
+        input2 = neoml.Blob.asblob(math_engine, np.zeros((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
         inputs = {"source1": input1, "source2": input2}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
@@ -1058,12 +1060,12 @@ class LayersTestCase(TestCase):
         layer = dnn.layers['best']
         self.assertEqual(layer.name, 'best')
 
-        input1 = neoml.Blob.asblob(math_engine, np.ones((3, 5), dtype=np.int32), (3, 1, 5, 1, 1, 1, 1))
+        input1 = neoml.Blob.asblob(math_engine, np.zeros((3, 5), dtype=np.int32), (3, 1, 5, 1, 1, 1, 1))
         input2 = neoml.Blob.asblob(math_engine, np.ones((3, 5), dtype=np.float32), (3, 1, 5, 1, 1, 1, 1))
         inputs = {"source1": input1, "source2": input2}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
-        self.assertTrue(np.equal(out, [1., 1., 0.]).all())
+        self.assertTrue(np.equal(out, [0., 0., 0.]).all())
 
     def test_ctc_loss(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -1094,7 +1096,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(ctcLoss.skip, True)
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((64, 4, 5), dtype=np.float32), (3, 4, 1, 1, 1, 1, 5))
-        input2 = neoml.Blob.asblob(math_engine, np.ones((9, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
+        input2 = neoml.Blob.asblob(math_engine, np.ones((2, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
         inputs = {"source1": input1, "source2": input2}
         dnn.run(inputs)
         self.assertAlmostEqual(ctcLoss.last_loss, 4.8283, delta=1e-4)
@@ -2038,3 +2040,120 @@ class TraditionalTestCase(TestCase):
             self.assertEqual(eval_population.shape, (population,))
             optimal_vector = np.array(diff_evo.optimal_vector)
             self.assertEqual(optimal_vector.shape, (dim,))
+
+    def _test_classification_model(self, model, params, is_binary=False):
+        X_dense = np.eye(20, 5, dtype=np.float32)
+        X_dense_list = X_dense.tolist()
+        X_sparse = sparse.csr_matrix(X_dense)
+        val = 1 if is_binary else 3
+        y = val * np.ones(20, dtype=np.int32)
+        weight = np.ones(20, dtype=np.float32)
+        for X in (X_dense, X_dense_list, X_sparse):
+            classifier = model(**params).train(X, y, weight)
+            pred = classifier.classify(X[0:3])
+            self.assertTrue(np.equal(np.argmax(pred), [val, val, val]).all())
+
+    def _test_regression_model(self, model, params):
+        X_dense = np.eye(20, 5, dtype=np.float32)
+        X_dense_list = X_dense.tolist()
+        X_sparse = sparse.csr_matrix(X_dense)
+        y = np.ones(20, dtype=np.int32)
+        weight = np.ones(20, dtype=np.float32)
+        for X in (X_dense, X_dense_list, X_sparse):
+            regressor = model(**params).train(X, y, weight)
+            pred = regressor.predict(X[0:3])
+            self.assertEqual(pred.shape, (3,))
+
+    def test_gradient_boosting_classification(self):
+        for loss, builder_type, thread_count, is_binary in itertools.product(
+                ('binomial', 'exponential', 'squared_hinge', 'l2'),
+                ('full', 'hist', 'multi_full'), (1, 4), (False, True)):
+            self._test_classification_model(neoml.GradientBoost.GradientBoostClassifier,
+                dict(loss=loss, iteration_count=10, builder_type=builder_type, thread_count=thread_count))
+
+    def test_gradient_boosting_regression(self):
+        for builder_type, thread_count in itertools.product(('full', 'hist'), (1, 4)):
+            self._test_regression_model(neoml.GradientBoost.GradientBoostRegressor,
+                dict(iteration_count=10, builder_type=builder_type, thread_count=thread_count))
+
+    def test_decision_tree_classification(self):
+        for criterion, is_binary in itertools.product(('gini', 'information_gain'), (False, True)):
+            self._test_classification_model(neoml.DecisionTree.DecisionTreeClassifier,
+                dict(criterion=criterion))
+
+    def test_svm_classification(self):
+        for kernel, thread_count, is_binary in itertools.product(('linear', 'poly', 'rbf', 'sigmoid'),
+                                                                 (1, 4), (False, True)):
+            self._test_classification_model(neoml.SVM.SvmClassifier,
+                dict(kernel=kernel, thread_count=thread_count))
+
+    def test_linear_classification(self):
+        for loss, thread_count, is_binary in itertools.product(('binomial', 'squared_hinge', 'smoothed_hinge'),
+                                                               (1, 4), (False, True)):
+            self._test_classification_model(neoml.Linear.LinearClassifier,
+                dict(loss=loss, thread_count=thread_count))
+
+    def test_linear_regression(self):
+        for thread_count in (1, 4):
+            self._test_regression_model(neoml.Linear.LinearRegressor,
+                dict(thread_count=thread_count))
+
+    def test_cross_validation_score(self):
+        from neoml.CrossValidation import cross_validation_score
+        X_dense = np.eye(20, 5, dtype=np.float32)
+        X_dense_list = X_dense.tolist()
+        X_sparse = sparse.csr_matrix(X_dense)
+        y = np.ones(20, dtype=np.int32)
+        weight = np.ones(20, dtype=np.float32)
+        for X in (X_dense, X_dense_list, X_sparse):
+            for classifier, score in itertools.product(
+                    ( neoml.Linear.LinearClassifier(),
+                      neoml.GradientBoost.GradientBoostClassifier(),
+                      neoml.SVM.SvmClassifier(),
+                      neoml.DecisionTree.DecisionTreeClassifier()
+                    ), ('accuracy', 'f1')):
+                cv_score = cross_validation_score(classifier, X, y, weight, score, 5)
+                self.assertEqual(cv_score.shape, (5,))
+
+    def test_load_store(self):
+        dir = tempfile.mkdtemp()
+        for model_init, model_result in (
+                (neoml.DecisionTree.DecisionTreeClassifier, neoml.DecisionTree.DecisionTreeClassificationModel),
+                (neoml.GradientBoost.GradientBoostRegressor, neoml.GradientBoost.GradientBoostRegressionModel)): 
+            
+            path = os.path.join(dir, 'test')
+            pickled = model_init().train([[1]], [1])
+            with open(path, 'wb') as file:
+                pickle.dump(pickled, file)
+            with open(path, 'rb') as file:
+                loaded = pickle.load(file)
+            self.assertEqual(type(loaded), model_result)
+            os.remove(path)
+        os.rmdir(dir)
+
+class ClusteringTestCase(TestCase):
+    def _test_clusterize(self, method, params={}):
+        X_dense = np.eye(20, 5, dtype=np.float32)
+        X_dense_list = X_dense.tolist()
+        X_sparse = sparse.csr_matrix(X_dense)
+        weight = np.ones(20, dtype=np.float32)
+        method = getattr(neoml.Clustering, method)(**params)
+        for X in (X_dense, X_dense_list, X_sparse):
+            clusters = method.clusterize(X, weight)
+            self.assertEqual(clusters[0].shape, (20,))
+            self.assertEqual(clusters[1].shape[1], 5)
+            self.assertEqual(clusters[2].shape[1], 5)
+
+    def test_first_come(self):
+        self._test_clusterize('FirstCome', dict(threshold=0.01))
+
+    def test_hierarchical(self):
+        self._test_clusterize('Hierarchical', dict(max_cluster_distance=2, min_cluster_count=6))
+
+    def test_iso_data(self):
+        self._test_clusterize('IsoData', dict(init_cluster_count=6, max_cluster_count=10, 
+            min_cluster_size=1, max_iteration_count=10, min_cluster_distance=0.1, 
+            max_cluster_diameter=2, mean_diameter_coef=2))
+
+    def test_kmeans(self):
+        self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))

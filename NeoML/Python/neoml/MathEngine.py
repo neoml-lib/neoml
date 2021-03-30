@@ -87,3 +87,9 @@ def enum_gpu():
     """Allows you to access the information about all available GPUs
     """
     return PythonWrapper.enum_gpu()
+
+
+def default_math_engine():
+    """Returns default CPU math engine
+    """
+    return MathEngine(PythonWrapper.default_math_engine())

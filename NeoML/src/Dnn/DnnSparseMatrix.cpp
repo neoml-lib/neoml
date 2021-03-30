@@ -51,7 +51,7 @@ void CDnnSparseMatrix::Create( const IProblem* problem, int startVectorIndex, in
 	vectors.SetBufferSize( rowCount * batchCount );
 	matrixes.SetBufferSize( batchCount );
 
-	CSparseFloatMatrixDesc problemMatrix = problem->GetMatrix();
+	CFloatMatrixDesc problemMatrix = problem->GetMatrix();
 	totalElementSize = 0;
 	totalRowSize = 0;
 	for( int i = 0; i < rowCount * batchCount; i++ ) {

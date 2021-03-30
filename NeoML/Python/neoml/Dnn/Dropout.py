@@ -16,7 +16,7 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 
 
 class Dropout(Layer):
@@ -26,34 +26,32 @@ class Dropout(Layer):
     When the network is not being trained (for example, during a test run),
     the dropout will not happen.
     
-    Layer inputs
-    ----------
-    #1: a data blob of any dimensions.
-    
-    Layer outputs
-    ----------
-    #1: a blob of the same dimensions, with some of the elements set to 0,
-    during training only.
-    When you run the network, this layer does nothing.
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    rate : float, [0..1]
-        The proportion of elements that will be set to 0.
-    spatial : bool, default=False
-        Turns on and off the spatial dropout mode. 
+    :type input_layer: object, tuple(object, int)
+    :param rate: The proportion of elements that will be set to 0.
+    :type rate: float, [0..1]
+    :param spatial: Turns on and off the spatial dropout mode. 
         When True, the whole contents of a channel will be filled with zeros,
         instead of elements one by one.
         Useful for convolutional networks.
-    batchwise : bool, default=False
-        Turns on and off the batchwise dropout mode.
+    :type spatial: bool, default=False
+    :param batchwise: Turns on and off the batchwise dropout mode.
         When True, the same mask will be used along the same BatchWidth.
         Useful for large input size.
-    name : str, default=None
-        The layer name.
+    :type batchwise: bool, default=False
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any dimensions.
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob of the same dimensions, with some of the elements set to 0,
+        during training only.
+        When you run the network, this layer does nothing.
     """
 
     def __init__(self, input_layer, rate=0.5, spatial=False, batchwise=False, name=None):

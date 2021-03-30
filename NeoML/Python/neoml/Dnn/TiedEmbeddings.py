@@ -17,12 +17,38 @@ limitations under the License.
 import numpy
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 import neoml.Blob as Blob
 
 
 class TiedEmbeddings(Layer):
-    """
+    """The tied embeddings layer. 
+    See https://arxiv.org/pdf/1608.05859.pdf
+    The representations table is taken from a MultichannelLookup layer.
+    
+    :param input_layers: The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: object, tuple(object, int) or list of them
+    :param embeddings_layer_name: The name of the layer used for embeddings. 
+        Needs to be a MultichannelLookup layer.   
+    :type embeddings_layer_name: str
+    :param channel: The channel index in the embeddings layer.
+    :type channel: int, >=0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer may have any number of inputs, of the dimensions:
+
+    - **BatchLength** * **BatchWidth** * **ListSize** is the number of objects
+    - **Height**, **Width**, **Depth** are 1
+    - **Channels** is the embedding size
+    
+    .. rubric:: Layer outputs:
+
+    For each input the layer has one output of the same dimensions.
     """
     def __init__(self, input_layers, embeddings_layer_name, channel, name=None):
 
@@ -40,25 +66,25 @@ class TiedEmbeddings(Layer):
 
     @property
     def embeddings_layer_name(self):
-        """
+        """Gets the name of the layer used for representation table.
         """
         return self._internal.get_embeddings_layer_name()
 
     @embeddings_layer_name.setter
     def embeddings_layer_name(self, embeddings_layer_name):
-        """
+        """Sets the name of the layer used for representation table.
         """
         self._internal.set_embeddings_layer_name(embeddings_layer_name)
 
     @property
     def channel(self):
-        """
+        """Gets the channel index in the embeddings layer.
         """
         return self._internal.get_channel()
 
     @channel.setter
     def channel(self, channel):
-        """
+        """Sets the channel index in the embeddings layer.
         """
         if channel < 0:
             raise ValueError('`channel` must be >= 0.')

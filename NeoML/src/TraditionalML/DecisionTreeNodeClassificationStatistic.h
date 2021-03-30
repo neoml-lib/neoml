@@ -135,7 +135,7 @@ public:
 	explicit CClassificationStatistics( CDecisionTreeNodeBase* node, const IProblem& problem, const CArray<int>& usedFeatures );
 
 	// CDecisionTreeNodeStatisticBase interface methods
-	virtual void AddVector( int index, const CSparseFloatVectorDesc& vector );
+	virtual void AddVector( int index, const CFloatVectorDesc& vector );
 	virtual void Finish();
 	virtual size_t GetSize() const;
 	virtual bool GetSplit( CDecisionTree::CParams param,

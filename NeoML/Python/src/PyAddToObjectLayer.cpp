@@ -41,7 +41,7 @@ void InitializeAddToObjectLayer( py::module& m )
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CAddToObjectLayer> addToObject = new CAddToObjectLayer( mathEngine );
-			addToObject->SetName( name == "" ? findFreeLayerName( dnn, "AddToObject" ).c_str() : name.c_str() );
+			addToObject->SetName( FindFreeLayerName( dnn, "AddToObject", name ).c_str() );
 			dnn.AddLayer( *addToObject );
 			addToObject->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			addToObject->Connect( 1, layer2.BaseLayer(), outputNumber2 );

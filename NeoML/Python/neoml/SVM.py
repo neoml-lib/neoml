@@ -15,7 +15,8 @@ limitations under the License.
 """
 
 import numpy
-from scipy.sparse import csr_matrix
+from .Utils import convert_data, get_data
+from scipy.sparse import csr_matrix, issparse
 import neoml.PythonWrapper as PythonWrapper
 
 class SvmClassificationModel :
@@ -39,8 +40,8 @@ class SvmClassificationModel :
         predictions : generator of ndarray of shape (n_samples, n_classes)
             The predictions of the input samples.
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
-        return self.internal.classify(x.indices, x.data, x.indptr)
+        x = convert_data( X )
+        return self.internal.classify(*get_data(x))
 
 class SvmClassifier(PythonWrapper.Svm) :
     """Support-vector machine algorithm translates the input data
@@ -112,7 +113,7 @@ class SvmClassifier(PythonWrapper.Svm) :
         model : object
             The trained ``SvmClassificationModel``.
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
+        x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.int32, copy=False )
 
         if x.shape[0] != y.size:
@@ -129,4 +130,4 @@ class SvmClassifier(PythonWrapper.Svm) :
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')
 
-        return SvmClassificationModel(super().train_classifier(x.indices, x.data, x.indptr, int(x.shape[1]), y, weight))
+        return SvmClassificationModel(super().train_classifier(*get_data(x), int(x.shape[1]), y, weight))
