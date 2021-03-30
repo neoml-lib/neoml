@@ -23,7 +23,7 @@ namespace NeoML {
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-REGISTER_NEOML_MODEL( CCompact16RegressionTree, "Compact16RegressionTree" )
+REGISTER_NEOML_MODEL( CCompact16RegressionTree, "CompactRegressionTree" )
 REGISTER_NEOML_MODEL( CCompact32RegressionTree, "Compact32RegressionTree" )
 
 /////////////////////////////////////////////////////////////////////////////////////////
