@@ -24,25 +24,24 @@ class DotProduct(Layer):
     each object in the first input is multiplied by the object
     with the same index in the second input.
     
-    Layer inputs
-    ----------
-    The layer has two inputs, which must contain blobs of the same dimensions.
-    
-    Layer outputs
-    ----------
-    #1: a blob with the dot product.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize equal to the inputs' dimensions
-    - Height, Width, Depth, Channels equal to 1
-    
-    Parameters
-    ----------
-    input_layer : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layer: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layer: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer has two inputs, which must contain blobs of the same dimensions.
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the dot product.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** equal to the inputs' dimensions
+        - **Height**, **Width**, **Depth**, **Channels** equal to 1
     """
 
     def __init__(self, input_layers, name=None):

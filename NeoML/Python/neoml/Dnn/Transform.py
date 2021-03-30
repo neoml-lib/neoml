@@ -25,35 +25,35 @@ class Transform(Layer):
     stays the same, and therefore the product of all dimensions 
     should not be changed by the transformation.
     
-    Layer inputs
-    ----------
-    #1: a data blob of any size.
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected. 
+    :type input_layer: object, tuple(object, int)
+    :param transforms: Specifies the transformation to be made to each of the 7 dimensions:
+
+        - "set" its length to the int value
+        - "multiply" by the int value
+        - "divide" by the int value
+        - "remainder" may only be set for one dimension; it will be set 
+          so that the total size of the blob stays the same
+    :type transforms: array of 7 tuples (operation, value), 
+        operation: one of "remainder", "set", "multiply", "divide"
+        value: int > 0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size.
     
-    Layer outputs
-    ----------
-    #1: a blob of the dimensions determined by the rules:
-    - the dimensions in "set" mode will be equal to the specified value
-    - the dimensions in "multiply" mode will be value times larger
-    - the dimensions in "divide" mode will be value times smaller
-    - the dimension in "remainder" mode will be such that 
-        the total size of the input and the output are the same
-    
-    Parameters
-    ----------
-    input_layer :  (object, int)
-        The input layer and the number of its output. If no number
-        is specified, the first output will be connected.
-    transforms : array of 7 tuples (operation, value), 
-                    operation: one of "remainder", "set", "multiply", "divide"
-                    value: int > 0
-        Specifies the transformation to be made to each of the 7 dimensions:
-            - "set" its length to the int value
-            - "multiply" by the int value
-            - "divide" by the int value
-            - "remainder" may only be set for one dimension; it will be set 
-                so that the total size of the blob stays the same
-    name : str, default=None
-        The layer name.
+    .. rubric:: Layer outputs:
+
+    (1) a blob of the dimensions determined by the rules:
+
+        - the dimensions in "set" mode will be equal to the specified value
+        - the dimensions in "multiply" mode will be value times larger
+        - the dimensions in "divide" mode will be value times smaller
+        - the dimension in "remainder" mode will be such that 
+          the total size of the input and the output are the same
     """
 
     rules = ["remainder", "set", "multiply", "divide"]
