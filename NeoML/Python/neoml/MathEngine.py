@@ -37,6 +37,9 @@ class MathEngine:
         """
         return self._internal.clean_up()
 
+    def sum(self, a, b, c):
+        return self._internal.sum(a, b, c)
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 

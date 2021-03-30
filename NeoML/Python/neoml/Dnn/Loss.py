@@ -734,3 +734,24 @@ class MultiSquaredHingeLoss(Loss):
 
         internal = PythonWrapper.MultiSquaredHingeLoss(str(name), layers, outputs, float(loss_weight))
         super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class CustomLoss(Loss, metaclass=ABC):
+    """
+    """
+    def __init__(self, input_layers, loss_weight=1.0, name=None):
+
+        if type(input_layers) is PythonWrapper.MultiSquaredHingeLoss:
+            super().__init__(input_layers)
+            return
+
+        layers, outputs = check_input_layers(input_layers, (2, 3))
+
+        internal = PythonWrapper.MultiSquaredHingeLoss(str(name), layers, outputs, float(loss_weight))
+        super().__init__(internal)
+
+    @abstractmethod
+    def calc_loss_and_gradient( data, labels, loss, gradient ):
+ 

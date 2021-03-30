@@ -66,6 +66,34 @@ void CPyMathEngine::CleanUp()
 	return mathEngineOwner->MathEngine().CleanUp();
 }
 
+void CPyMathEngine::VectorAdd(const CPyBlob& first, const CPyBlob& second, const CPyBlob& result)
+{
+	if( first.Blob()->GetDataType() == CT_Float ) {
+		mathEngineOwner->MathEngine().VectorAdd(first.Blob()->GetData<float>(), second.Blob()->GetData<float>(),
+			result.Blob()->GetData<float>(), first.Blob()->GetDataSize());
+	} else {
+		mathEngineOwner->MathEngine().VectorAdd(first.Blob()->GetData<int>(), second.Blob()->GetData<int>(),
+			result.Blob()->GetData<int>(), first.Blob()->GetDataSize());
+	}
+}
+
+void CPyMathEngine::VectorSub(const CPyBlob& first, const CPyBlob& second, const CPyBlob& result)
+{
+	if( first.Blob()->GetDataType() == CT_Float ) {
+		mathEngineOwner->MathEngine().VectorAdd(first.Blob()->GetData<float>(), second.Blob()->GetData<float>(),
+			result.Blob()->GetData<float>(), first.Blob()->GetDataSize());
+	} else {
+		mathEngineOwner->MathEngine().VectorAdd(first.Blob()->GetData<int>(), second.Blob()->GetData<int>(),
+			result.Blob()->GetData<int>(), first.Blob()->GetDataSize());
+	}
+}
+
+void CPyMathEngine::VectorEltwiseMultiply(const CPyBlob& first, const CPyBlob& result, const CPyBlob& multiplier)
+{
+	mathEngineOwner->MathEngine().VectorEltwiseMultiply(first.Blob()->GetData<float>(), result.Blob()->GetData<float>(),
+		first.Blob()->GetDataSize(), multiplier.Blob()->GetData<float>() );
+}
+
 //------------------------------------------------------------------------------------------------------------
 
 void InitializeMathEngine(py::module& m)
@@ -76,6 +104,8 @@ void InitializeMathEngine(py::module& m)
 		.def( "get_info", &CPyMathEngine::GetInfo, py::return_value_policy::reference )
 		.def( "get_peak_memory_usage", &CPyMathEngine::GetPeakMemoryUsage, py::return_value_policy::reference )
 		.def( "clean_up", &CPyMathEngine::CleanUp, py::return_value_policy::reference )
+		.def( "add", &CPyMathEngine::VectorAdd, py::return_value_policy::reference )
+		.def( "sub", &CPyMathEngine::VectorSub, py::return_value_policy::reference )
 	;
 
 	m.def("enum_gpu", []() {
