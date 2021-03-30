@@ -64,11 +64,15 @@ class CMakeBuild(build_ext):
             ["cmake", "--build", ".", "--target", "install"] + build_args, cwd=self.build_temp
         )
 
+this_directory = os.path.abspath(os.path.dirname(__file__))
+
+# Get version from Build/Inc/ProductBuildNumber.h file
 def get_version():
     if is_readthedocs:
         file_path = os.path.join(os.getcwd(), "../../Build/Inc/ProductBuildNumber.h")
     else:
-        file_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), "../../Build/Inc/ProductBuildNumber.h")
+        file_path = os.path.join(this_directory, "../../Build/Inc/ProductBuildNumber.h")
+
     pattern = r"#define VERINFO_MAJOR_VERSION ([0-9]+)\n#define VERINFO_MINOR_VERSION ([0-9]+)\n#define VERINFO_MODIFICATION_NUMBER ([0-9]+)"
     with open(file_path, 'r', encoding='utf-8') as f:
         result = re.search(pattern, f.read())
@@ -77,10 +81,17 @@ def get_version():
         raise Exception("Failed to parse {}".format(file_path))
     return ""
 
+# Get the content of README.txt file
+def get_long_description():
+    with open(os.path.join(this_directory, 'README.txt'), encoding='utf-8') as f:
+        return f.read()
+
 setup(
     name='neoml',
     version=get_version(),
     description='NeoML python bindings',
+    long_description=get_long_description(),
+    long_description_content_type='text/markdown',
     url='http://github.com/neoml-lib/neoml',
     install_requires=['numpy>=1.19.1', 'scipy>=1.5.2'],
     ext_modules=[CMakeExtension("neoml.PythonWrapper")],
