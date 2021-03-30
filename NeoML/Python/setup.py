@@ -6,9 +6,11 @@ import re
 
 is_readthedocs = (os.getenv('READTHEDOCS') == 'True')
 launch_dir = os.getcwd()
+this_directory = os.path.abspath(os.path.dirname(__file__))
 
 if is_readthedocs:
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    this_directory = os.getcwd()
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
@@ -64,14 +66,9 @@ class CMakeBuild(build_ext):
             ["cmake", "--build", ".", "--target", "install"] + build_args, cwd=self.build_temp
         )
 
-this_directory = os.path.abspath(os.path.dirname(__file__))
-
 # Get version from Build/Inc/ProductBuildNumber.h file
 def get_version():
-    if is_readthedocs:
-        file_path = os.path.join(os.getcwd(), "../../Build/Inc/ProductBuildNumber.h")
-    else:
-        file_path = os.path.join(this_directory, "../../Build/Inc/ProductBuildNumber.h")
+    file_path = os.path.join(this_directory, "../../Build/Inc/ProductBuildNumber.h")
 
     pattern = r"#define VERINFO_MAJOR_VERSION ([0-9]+)\n#define VERINFO_MINOR_VERSION ([0-9]+)\n#define VERINFO_MODIFICATION_NUMBER ([0-9]+)"
     with open(file_path, 'r', encoding='utf-8') as f:
