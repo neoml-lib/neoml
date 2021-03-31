@@ -90,7 +90,7 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 			Desc.PointerB[i] = ElementCount;
 			for( uint32_t pos = desc.PointerB[i], j = 0; pos < desc.PointerE[i]; ++pos, ++j ) {
 				if( desc.Values[pos] != 0 ) {
-					Desc.Columns[ElementCount] = static_cast<int>( j );
+					Desc.Columns[ElementCount] = to<int>( j );
 					Desc.Values[ElementCount] = desc.Values[pos];
 					++ElementCount;
 				}

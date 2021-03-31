@@ -47,7 +47,7 @@ typedef CFloatMatrixDesc CSparseFloatMatrixDesc;
 inline void CFloatMatrixDesc::GetRow( int index, CFloatVectorDesc& desc ) const
 {
 	NeoAssert( 0 <= index && index < Height );
-	desc.Size = static_cast<int>( PointerE[index] - PointerB[index] );
+	desc.Size = to<int>( PointerE[index] - PointerB[index] );
 	desc.Values = Values + PointerB[index];
 	if( Columns == nullptr ) { // dense representation
 		NeoPresume( desc.Size == Width );

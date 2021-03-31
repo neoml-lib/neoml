@@ -132,7 +132,7 @@ py::array_t<double> CPyModel::Classify( py::array indices, py::array data, py::a
 	auto r = totalResult.mutable_unchecked<2>();
 	for( int i = 0; i < rowCount; i++ ) {
 		CFloatVectorDesc vector;
-		vector.Size = static_cast<int>( rowPtr[i+1] - rowPtr[i] );
+		vector.Size = to<int>( rowPtr[i+1] - rowPtr[i] );
 		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
 		if ( indicesPtr != nullptr ) {
 			vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
@@ -193,7 +193,7 @@ py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array da
 	auto r = totalResult.mutable_unchecked<1>();
 	for( int i = 0; i < rowCount; i++ ) {
 		CFloatVectorDesc vector;
-		vector.Size = static_cast<int>( rowPtr[i+1] - rowPtr[i] );
+		vector.Size = to<int>( rowPtr[i+1] - rowPtr[i] );
 		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
 		if ( indicesPtr != nullptr ) {
 			vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
