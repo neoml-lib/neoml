@@ -1,8 +1,8 @@
 .. _py-submodule-classificationregression:
 
-################################
+##############################
 neoml.ClassificationRegression
-###################################
+##############################
 
 In `neoml` module, you can find various methods for solving classification and regression problems.
 
