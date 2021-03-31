@@ -226,9 +226,7 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 
 	GrowInRows( body->Desc.Height + 1 );
 	if( size > 0 ) {
-		if( body->ElementCount > MaxBufferSize - size ) {
-			throw new CMemoryException(); // unable to allocate (gonna be uint32_t overflow)
-		}
+		assert( body->ElementCount <= MaxBufferSize - size );
 		GrowInElements( body->ElementCount + size );
 	}
 
