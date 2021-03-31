@@ -908,7 +908,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(layer.name, 'conv')
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((4, 3, 2), dtype=np.float32), (1, 4, 3, 1, 1, 1, 2))
-        input2 = neoml.Blob.asblob(math_engine, np.ones((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
+        input2 = neoml.Blob.asblob(math_engine, np.zeros((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
         inputs = {"source1": input1, "source2": input2}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
@@ -936,7 +936,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(layer.width, 9)
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((4, 3, 2), dtype=np.float32), (1, 4, 3, 1, 1, 1, 2))
-        input2 = neoml.Blob.asblob(math_engine, np.ones((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
+        input2 = neoml.Blob.asblob(math_engine, np.zeros((4, 3), dtype=np.int32), (1, 4, 1, 1, 1, 1, 3))
         inputs = {"source1": input1, "source2": input2}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
@@ -1060,12 +1060,12 @@ class LayersTestCase(TestCase):
         layer = dnn.layers['best']
         self.assertEqual(layer.name, 'best')
 
-        input1 = neoml.Blob.asblob(math_engine, np.ones((3, 5), dtype=np.int32), (3, 1, 5, 1, 1, 1, 1))
+        input1 = neoml.Blob.asblob(math_engine, np.zeros((3, 5), dtype=np.int32), (3, 1, 5, 1, 1, 1, 1))
         input2 = neoml.Blob.asblob(math_engine, np.ones((3, 5), dtype=np.float32), (3, 1, 5, 1, 1, 1, 1))
         inputs = {"source1": input1, "source2": input2}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
-        self.assertTrue(np.equal(out, [1., 1., 0.]).all())
+        self.assertTrue(np.equal(out, [0., 0., 0.]).all())
 
     def test_ctc_loss(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -1096,7 +1096,7 @@ class LayersTestCase(TestCase):
         self.assertEqual(ctcLoss.skip, True)
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((64, 4, 5), dtype=np.float32), (3, 4, 1, 1, 1, 1, 5))
-        input2 = neoml.Blob.asblob(math_engine, np.ones((9, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
+        input2 = neoml.Blob.asblob(math_engine, np.ones((2, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
         inputs = {"source1": input1, "source2": input2}
         dnn.run(inputs)
         self.assertAlmostEqual(ctcLoss.last_loss, 4.8283, delta=1e-4)
@@ -2019,16 +2019,17 @@ class DnnTestCase(TestCase):
         self.assertTrue(len(dnn.output_layers), 1)
 
 class TraditionalTestCase(TestCase):
-    def _test_classification_model(self, model, params):
+    def _test_classification_model(self, model, params, is_binary=False):
         X_dense = np.eye(20, 5, dtype=np.float32)
         X_dense_list = X_dense.tolist()
         X_sparse = sparse.csr_matrix(X_dense)
-        y = np.ones(20, dtype=np.int32)
+        val = 1 if is_binary else 3
+        y = val * np.ones(20, dtype=np.int32)
         weight = np.ones(20, dtype=np.float32)
         for X in (X_dense, X_dense_list, X_sparse):
             classifier = model(**params).train(X, y, weight)
             pred = classifier.classify(X[0:3])
-            self.assertTrue(np.equal(np.argmax(pred), [1, 1, 1]).all())
+            self.assertTrue(np.equal(np.argmax(pred), [val, val, val]).all())
 
     def _test_regression_model(self, model, params):
         X_dense = np.eye(20, 5, dtype=np.float32)
@@ -2042,9 +2043,9 @@ class TraditionalTestCase(TestCase):
             self.assertEqual(pred.shape, (3,))
 
     def test_gradient_boosting_classification(self):
-        for loss, builder_type, thread_count in itertools.product(
+        for loss, builder_type, thread_count, is_binary in itertools.product(
                 ('binomial', 'exponential', 'squared_hinge', 'l2'),
-                ('full', 'hist', 'multi_full'), (1, 4)):
+                ('full', 'hist', 'multi_full'), (1, 4), (False, True)):
             self._test_classification_model(neoml.GradientBoost.GradientBoostClassifier,
                 dict(loss=loss, iteration_count=10, builder_type=builder_type, thread_count=thread_count))
 
@@ -2054,17 +2055,19 @@ class TraditionalTestCase(TestCase):
                 dict(iteration_count=10, builder_type=builder_type, thread_count=thread_count))
 
     def test_decision_tree_classification(self):
-        for criterion in ('gini', 'information_gain'):
+        for criterion, is_binary in itertools.product(('gini', 'information_gain'), (False, True)):
             self._test_classification_model(neoml.DecisionTree.DecisionTreeClassifier,
                 dict(criterion=criterion))
 
     def test_svm_classification(self):
-        for kernel, thread_count in itertools.product(('linear', 'poly', 'rbf', 'sigmoid'), (1, 4)):
+        for kernel, thread_count, is_binary in itertools.product(('linear', 'poly', 'rbf', 'sigmoid'),
+                                                                 (1, 4), (False, True)):
             self._test_classification_model(neoml.SVM.SvmClassifier,
                 dict(kernel=kernel, thread_count=thread_count))
 
     def test_linear_classification(self):
-        for loss, thread_count in itertools.product(('binomial', 'squared_hinge', 'smoothed_hinge'), (1, 4)):
+        for loss, thread_count, is_binary in itertools.product(('binomial', 'squared_hinge', 'smoothed_hinge'),
+                                                               (1, 4), (False, True)):
             self._test_classification_model(neoml.Linear.LinearClassifier,
                 dict(loss=loss, thread_count=thread_count))
 

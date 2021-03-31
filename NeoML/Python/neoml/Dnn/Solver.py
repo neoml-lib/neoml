@@ -93,21 +93,20 @@ class Solver:
 class SimpleGradient(Solver):
     """Stochastic gradient descent with moment.
     
-    Parameters
-    ---------
-    math_engine : object
-        The math engine to be used for calculations.
-    learning_rate : float, default=0.01
-        The learning rate.
-    l1 : float, default=0
-        The L1 regularization parameter.
-    l2 : float, default=0
-        The L2 regularization parameter.
-    max_gradient_norm : float, default=-1.0
-        The upper limit for gradient norm.
-        A negative value means no limit, which is also the default setting.
-    moment_decay_rate : float, default=0.9
-        The moment decay rate. Moment is a weighted sum of previous gradients.
+    :param math_engine: The math engine to be used for calculations.
+    :type math_engine: object
+    :param learning_rate: The learning rate.
+    :type learning_rate: float, default=0.01
+    :param l1: The L1 regularization parameter.    
+    :type l1: float, default=0
+    :param l2: The L2 regularization parameter.    
+    :type l2: float, default=0
+    :param max_gradient_norm: The upper limit for gradient norm.
+        A negative value means no limit, which is also the default setting.  
+    :type max_gradient_norm: float, default=-1.0
+    :param moment_decay_rate: The moment decay rate. Moment is a weighted sum of previous gradients.
+    :type moment_decay_rate: float, default=0.9
+        
     """
     def __init__(self, math_engine, learning_rate=0.01, l1=0, l2=0, max_gradient_norm=-1.0, moment_decay_rate=0.9):
         if isinstance(math_engine, PythonWrapper.SimpleGradient):
@@ -138,33 +137,31 @@ class SimpleGradient(Solver):
 class AdaptiveGradient(Solver):
     """Gradient descent with adaptive momentum (Adam).
     
-    Parameters
-    ---------
-    math_engine : object
-        The math engine to be used for calculations.
-    learning_rate : float, default=0.01
-        The learning rate.
-    l1 : float, default=0
-        The L1 regularization parameter.
-    l2 : float, default=0
-        The L2 regularization parameter.
-    max_gradient_norm : float, default=-1.0
-        The upper limit for gradient norm.
+    :param math_engine: The math engine to be used for calculations.
+    :type math_engine: object
+    :param learning_rate: The learning rate.
+    :type learning_rate: float, default=0.01
+    :param l1: The L1 regularization parameter.
+    :type l1: float, default=0
+    :param l2: The L2 regularization parameter.
+    :type l2: float, default=0
+    :param max_gradient_norm: The upper limit for gradient norm.
         A negative value means no limit, which is also the default setting.
-    moment_decay_rate : float, default=0.9
-        The moment decay rate. Moment is a weighted sum of previous gradients.
-    second_moment_decay_rate : float, default=0.99
-        The decay rate for the weighted sum of previous gradients, squared,
-        also called the second moment.
-    epsilon : float, default=1e-6
-        The small value used to avoid division by zero 
+    :type max_gradient_norm: float, default=-1.0
+    :param moment_decay_rate: The moment decay rate. Moment is a weighted sum of previous gradients.   
+    :type moment_decay_rate: float, default=0.9
+    :param second_moment_decay_rate: The decay rate for the weighted sum of previous gradients, squared,
+        also called the second moment.  
+    :type second_moment_decay_rate: float, default=0.99
+    :param epsilon: The small value used to avoid division by zero 
         when calculating second moment.
-    ams_grad : bool, default=False
-        Turns AMSGrad mode on or off.
+    :type epsilon: float, default=1e-6
+    :param ams_grad: Turns AMSGrad mode on or off.
         AMSGrad helps against divergence and rapid vanishing of previous states
         memory, which may become a problem for the optimizers that use 
         the moving mean for squared gradient history (Adam, NAdam, RMSprop).
-        See https://openreview.net/pdf?id=ryQu7f-RZ.
+        See https://openreview.net/pdf?id=ryQu7f-RZ.   
+    :type ams_grad: bool, default=False
     """
     def __init__(self, math_engine, learning_rate=0.01, l1=0, l2=0, max_gradient_norm=-1.0, moment_decay_rate=0.9,
                  second_moment_decay_rate=0.99, epsilon=1e-6, ams_grad=False):
@@ -243,33 +240,31 @@ class NesterovGradient(Solver):
     """The optimizer that uses Nesterov moment.
     See http://cs229.stanford.edu/proj2015/054_report.pdf (Algo 8).
     
-    Parameters
-    ---------
-    math_engine : object
-        The math engine to be used for calculations.
-    learning_rate : float, default=0.01
-        The learning rate.
-    l1 : float, default=0
-        The L1 regularization parameter.
-    l2 : float, default=0
-        The L2 regularization parameter.
-    max_gradient_norm : float, default=-1.0
-        The upper limit for gradient norm.
+    :param math_engine: The math engine to be used for calculations.
+    :type math_engine: object
+    :param learning_rate: The learning rate.    
+    :type learning_rate: float, default=0.01
+    :param l1: The L1 regularization parameter.
+    :type l1: float, default=0
+    :param l2: The L2 regularization parameter.
+    :type l2: float, default=0
+    :param max_gradient_norm: The upper limit for gradient norm.
         A negative value means no limit, which is also the default setting.
-    moment_decay_rate : float, default=0.9
-        The moment decay rate. Moment is a weighted sum of previous gradients.
-    second_moment_decay_rate : float, default=0.99
-        The decay rate for the weighted sum of previous gradients, squared,
+    :type max_gradient_norm: float, default=-1.0
+    :param moment_decay_rate: The moment decay rate. Moment is a weighted sum of previous gradients.   
+    :type moment_decay_rate: float, default=0.9
+    :param second_moment_decay_rate: The decay rate for the weighted sum of previous gradients, squared,
         also called the second moment.
-    epsilon : float, default=1e-6
-        The small value used to avoid division by zero 
-        when calculating second moment.
-    ams_grad : bool, default=False
-        Turns AMSGrad mode on or off.
+    :type second_moment_decay_rate: float, default=0.99
+    :param epsilon: The small value used to avoid division by zero 
+        when calculating second moment.    
+    :type epsilon: float, default=1e-6
+    :param ams_grad: Turns AMSGrad mode on or off.
         AMSGrad helps against divergence and rapid vanishing of previous states
         memory, which may become a problem for the optimizers that use 
         the moving mean for squared gradient history (Adam, NAdam, RMSprop).
         See https://openreview.net/pdf?id=ryQu7f-RZ.
+    :type ams_grad: bool, default=False 
     """
     def __init__(self, math_engine, learning_rate=0.01, l1=0, l2=0, max_gradient_norm=-1.0, moment_decay_rate=0.9,
                  second_moment_decay_rate=0.99, epsilon=1e-6, ams_grad=False):
