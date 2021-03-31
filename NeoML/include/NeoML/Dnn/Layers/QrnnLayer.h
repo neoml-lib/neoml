@@ -98,7 +98,7 @@ public:
 	TRecurrentMode GetRecurrentMode() const { return recurrentMode; }
 	void SetRecurrentMode( TRecurrentMode newMode );
 
-	// Activation function apllied to the update gate
+	// Activation function applied to the update gate
 	// Tanh by default
 	TActivationFunction GetActivation() const { return activation; }
 	void SetActivation( TActivationFunction newActivation );
@@ -190,7 +190,7 @@ CLayerWrapper<CQrnnLayer> NEOML_API Qrnn( CQrnnLayer::TPoolingType poolingType, 
 // Some layers that are used in QRNN
 
 // f-pooling from QRNN
-// the folrmula:
+// the formula:
 //
 //  y_t = f_t * y_(t-1) + (1 - f_t) * z_t
 //
@@ -223,7 +223,7 @@ private:
 };
 
 // if-pooling from QRNN
-// the folrmula:
+// the formula:
 //
 //  y_t = f_t * y_(t-1) + i_t * z_t
 //
