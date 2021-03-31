@@ -58,8 +58,8 @@ The Python API is split into several submodules:
 - Neural networks :ref:`py-submodule-dnn`
 - Clustering algorithms :ref:`py-submodule-clustering`
 - Classification and regression algorithms :ref:`py-submodule-classificationregression`
-- Math engine used for calculations
-- Other algorithms
+- Math engine used for calculations :ref:`py-submodule-mathengine`
+- Other algorithms :ref:`py-submodule-misc`
 
 Installation
 ############

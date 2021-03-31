@@ -15,6 +15,9 @@ neoml.Dnn
 Neural network
 ##############
 
+.. autoclass:: neoml.Dnn.Dnn
+   :members:
+
 .. _py-dnn-layers:
 
 Layers
@@ -138,13 +141,19 @@ AccumulativeLookup
 .. autoclass:: neoml.Dnn.AccumulativeLookup
    :members:
 
-Accuracy layers
-***************
+Quality control layers
+**********************
 
 Accuracy
 ========
 
 .. autoclass:: neoml.Dnn.Accuracy
+   :members:
+
+PrecisionRecall
+========================
+
+.. autoclass:: neoml.Dnn.PrecisionRecall
    :members:
 
 ConfusionMatrix
@@ -501,12 +510,6 @@ PositionalEmbedding
 .. autoclass:: neoml.Dnn.PositionalEmbedding
    :members:
 
-PrecisionRecall
-*************************
-
-.. autoclass:: neoml.Dnn.PrecisionRecall
-   :members:
-
 Reorg
 *************************
 
@@ -570,8 +573,8 @@ SplitBatchWidth
 .. autoclass:: neoml.Dnn.SplitBatchWidth
    :members:
 
-SubSequence layers
-******************
+Working with sequences
+*************************
 
 SubSequence
 ===============
@@ -610,37 +613,37 @@ Upsampling2D
    :members:
 
 Initializers
-*************
+###############
 
 Xavier
-======
+***********
 
 .. autoclass:: neoml.Dnn.Xavier
    :members:
 
 Uniform
-=======
+*************
 
 .. autoclass:: neoml.Dnn.Uniform
    :members:
 
 Solvers
-********
+###########
 
 SimpleGradient
-===============
+******************
 
 .. autoclass:: neoml.Dnn.SimpleGradient
    :members:
 
 AdaptiveGradient
-=================
+********************
 
 .. autoclass:: neoml.Dnn.AdaptiveGradient
    :members:
 
 NesterovGradient
-================
+******************
 
 .. autoclass:: neoml.Dnn.NesterovGradient
    :members:

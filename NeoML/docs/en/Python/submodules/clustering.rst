@@ -101,7 +101,7 @@ First come clustering
 #####################
 
 A `simple clustering algorithm <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/FirstCome.md>`_
-that create a new cluster for each new vector
+that creates a new cluster for each new vector
 that is far enough from the clusters already existing.
 
 Class description
