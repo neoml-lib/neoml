@@ -43,6 +43,8 @@ void NEOML_API UnregisterLayerName( const std::type_info& typeInfo );
 
 bool NEOML_API IsRegisteredLayerName( const char* name );
 
+void NEOML_API GetRegisteredLayerNames( CArray<const char*>& layerNames );
+
 CPtr<CBaseLayer> NEOML_API CreateLayer( const char* name, IMathEngine& mathEngine );
 
 NEOML_API CString GetLayerName( const CBaseLayer& layer );
