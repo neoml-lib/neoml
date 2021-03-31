@@ -584,11 +584,12 @@ static inline void qrnnFPoolingFirstStep( const float* z, const float* f,
 	}
 }
 
-// res = f * ( h - z ) + z
+// res = f * h + (1 - f) * z
 // where h - res of previous step
 static inline void qrnnFPoolingStep( const float* z, const float* f, const float* h,
 	float* res, int sseSize, int nonSseSize )
 {
+	__m128 ones = _mm_set1_ps( 1.f );
 	while( sseSize >= 4 ) {
 		__m128 z0 = LoadSse4( z );
 		__m128 z1 = LoadSse4( z + 4 );
@@ -608,10 +609,10 @@ static inline void qrnnFPoolingStep( const float* z, const float* f, const float
 		__m128 h3 = LoadSse4( h + 12 );
 		h += 16;
 
-		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, _mm_sub_ps( h0, z0 ) ), z0 );
-		__m128 res1 = _mm_add_ps( _mm_mul_ps( f1, _mm_sub_ps( h1, z1 ) ), z1 );
-		__m128 res2 = _mm_add_ps( _mm_mul_ps( f2, _mm_sub_ps( h2, z2 ) ), z2 );
-		__m128 res3 = _mm_add_ps( _mm_mul_ps( f3, _mm_sub_ps( h3, z3 ) ), z3 );
+		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( _mm_sub_ps( ones, f0 ), z0 ) );
+		__m128 res1 = _mm_add_ps( _mm_mul_ps( f1, h1 ), _mm_mul_ps( _mm_sub_ps( ones, f1 ), z1 ) );
+		__m128 res2 = _mm_add_ps( _mm_mul_ps( f2, h2 ), _mm_mul_ps( _mm_sub_ps( ones, f2 ), z2 ) );
+		__m128 res3 = _mm_add_ps( _mm_mul_ps( f3, h3 ), _mm_mul_ps( _mm_sub_ps( ones, f3 ), z3 ) );
 
 		StoreSse4( res0, res );
 		StoreSse4( res1, res + 4 );
@@ -632,7 +633,7 @@ static inline void qrnnFPoolingStep( const float* z, const float* f, const float
 		__m128 h0 = LoadSse4( h );
 		h += 4;
 
-		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, _mm_sub_ps( h0, z0 ) ), z0 );
+		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( _mm_sub_ps( ones, f0 ), z0 ) );
 		StoreSse4( res0, res );
 		res += 4;
 
@@ -643,7 +644,7 @@ static inline void qrnnFPoolingStep( const float* z, const float* f, const float
 		__m128 z0 = LoadSse( z, nonSseSize );
 		__m128 f0 = LoadSse( f, nonSseSize );
 		__m128 h0 = LoadSse( h, nonSseSize );
-		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, _mm_sub_ps( h0, z0 ) ), z0 );
+		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( _mm_sub_ps( ones, f0 ), z0 ) );
 		StoreSse( res0, res, nonSseSize );
 	}
 }

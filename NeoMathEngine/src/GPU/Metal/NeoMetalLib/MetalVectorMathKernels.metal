@@ -2229,7 +2229,7 @@ kernel void vectorQrnnFPooling( constant bool& reverse [[buffer(0)]],
         int currOffset = reverse != 0 ? index + ( sequenceLength - 1 ) * objectSize : index;
         int nextObjectOffset = reverse != 0 ? -objectSize : objectSize;
 
-        float prevRes = f[currOffset] * ( h0[index] - z[currOffset] ) + z[currOffset];
+        float prevRes = f[currOffset] * h0[index] + ( 1 - f[currOffset] ) * z[currOffset];
         res[currOffset] = prevRes;
         
         for( int step = 0; step < sequenceLength - 1; ++step ) {

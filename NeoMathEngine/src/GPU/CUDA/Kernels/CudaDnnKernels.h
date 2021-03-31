@@ -363,7 +363,7 @@ __global__ void QrnnFPoolingKernel( bool reverse, int sequenceLength, int object
 		*res = *z * ( 1. - *f );
 	} else {
 		h0 += index;
-		*res = *f * ( *h0 - *z ) + *z;
+		*res = *f * *h0 + ( 1. - *f ) * *z;
 	}
 
 	const float* hPrev = res;
@@ -371,7 +371,7 @@ __global__ void QrnnFPoolingKernel( bool reverse, int sequenceLength, int object
 		z += nextObjectOffset;
 		f += nextObjectOffset;
 		res += nextObjectOffset;
-		*res = *f * ( *hPrev - *z ) + *z;
+		*res = *f * *hPrev + ( 1. - *f ) * *z;
 		hPrev = res;
 	}
 }

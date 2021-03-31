@@ -531,11 +531,12 @@ static inline void qrnnFPoolingFirstStep( const float* z, const float* f,
 	}
 }
 
-// res = f * ( h - z ) + z
+// res = f * h + (1 - f) * z
 // where h - res of previous step
 static inline void qrnnFPoolingStep( const float* z, const float* f, const float* h,
 	float* res, int neonSize, int nonNeonSize )
 {
+	float32x4_t ones = vdupq_n_f32( 1.f );
 	while( neonSize >= 4 ) {
 		NEON_LOAD_16_FLOATS(z, z);
 		z += 16;
@@ -546,10 +547,10 @@ static inline void qrnnFPoolingStep( const float* z, const float* f, const float
 		NEON_LOAD_16_FLOATS(h, h);
 		h += 16;
 
-		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, vsubq_f32( h0, z0 ) ), z0 );
-		float32x4_t res1 = vaddq_f32( vmulq_f32( f1, vsubq_f32( h1, z1 ) ), z1 );
-		float32x4_t res2 = vaddq_f32( vmulq_f32( f2, vsubq_f32( h2, z2 ) ), z2 );
-		float32x4_t res3 = vaddq_f32( vmulq_f32( f3, vsubq_f32( h3, z3 ) ), z3 );
+		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq( vsubq( ones, f0 ), z0 ) );
+		float32x4_t res1 = vaddq_f32( vmulq_f32( f1, h1 ), vmulq( vsubq( ones, f1 ), z1 ) );
+		float32x4_t res2 = vaddq_f32( vmulq_f32( f2, h2 ), vmulq( vsubq( ones, f2 ), z2 ) );
+		float32x4_t res3 = vaddq_f32( vmulq_f32( f4, h3 ), vmulq( vsubq( ones, f3 ), z3 ) );
 
 		NEON_STORE_16_FLOATS(res, res);
 		res += 16;
@@ -567,7 +568,7 @@ static inline void qrnnFPoolingStep( const float* z, const float* f, const float
 		float32x4_t h0 = LoadNeon4( h );
 		h += 4;
 
-		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, vsubq_f32( h0, z0 ) ), z0 );
+		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq( vsubq( ones, f0 ), z0 ) );
 		StoreNeon4( res0, res );
 		res += 4;
 
@@ -578,7 +579,7 @@ static inline void qrnnFPoolingStep( const float* z, const float* f, const float
 		float32x4_t z0 = LoadNeon( z, nonNeonSize );
 		float32x4_t f0 = LoadNeon( f, nonNeonSize );
 		float32x4_t h0 = LoadNeon( h, nonNeonSize );
-		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, vsubq_f32( h0, z0 ) ), z0 );
+		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq( vsubq( ones, f0 ), z0 ) );
 		StoreNeon( res0, res, nonNeonSize );
 	}
 }

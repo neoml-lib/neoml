@@ -25,12 +25,12 @@ void main()
         int currOffset = P.reverse != 0 ? index + ( P.sequenceLength - 1 ) * P.objectSize : index;
         int nextObjectOffset = P.reverse != 0 ? -P.objectSize : P.objectSize;
 
-        float prevRes = f[currOffset] * ( h0[index] - z[currOffset] ) + z[currOffset];
+        float prevRes = f[currOffset] * h0[index] + ( 1 - f[currOffset] ) * z[currOffset];
         res[currOffset] = prevRes;
         
         for( int step = 0; step < P.sequenceLength - 1; ++step ) {
             currOffset += nextObjectOffset;
-            float currRes = f[currOffset] * ( prevRes - z[currOffset] ) + z[currOffset];
+            float currRes = f[currOffset] * prevRes + ( 1 - f[currOffset] ) * z[currOffset];
             res[currOffset] = currRes;
             prevRes = currRes;
         }
