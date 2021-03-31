@@ -6,9 +6,25 @@ neoml.Dnn
 
 - :ref:`py-dnn-network`
 - :ref:`py-dnn-layers`
-
    - :ref:`py-dnn-recurrent`
    - :ref:`py-dnn-activation`
+   - :ref:`py-dnn-binarization`
+   - :ref:`py-dnn-qualitycontrol`
+   - :ref:`py-dnn-attention`
+   - :ref:`py-dnn-normalization`
+   - :ref:`py-dnn-concat`
+   - :ref:`py-dnn-convolution`
+   - :ref:`py-dnn-crf`
+   - :ref:`py-dnn-ctc`
+   - :ref:`py-dnn-eltwise`
+   - :ref:`py-dnn-imageconversion`
+   - :ref:`py-dnn-loss`
+   - :ref:`py-dnn-pooling`
+   - :ref:`py-dnn-inputoutput`
+   - :ref:`py-dnn-split`
+   - :ref:`py-dnn-sequences`
+- :ref:`py-dnn-initializer`
+- :ref:`py-dnn-solver`
 
 .. _py-dnn-network:
 
@@ -127,11 +143,18 @@ Power
 .. autoclass:: neoml.Dnn.Power
    :members:
 
+.._py-dnn-binarization:
+
 Binarization layers
 *******************
 
+EnumBinarization
+=================
 .. autoclass:: neoml.Dnn.EnumBinarization
    :members:
+
+BitSetVectorization
+====================
 .. autoclass:: neoml.Dnn.BitSetVectorization
    :members:
 
@@ -140,6 +163,8 @@ AccumulativeLookup
 
 .. autoclass:: neoml.Dnn.AccumulativeLookup
    :members:
+
+.._py-dnn-qualitycontrol:
 
 Quality control layers
 **********************
@@ -168,6 +193,8 @@ Argmax
 .. autoclass:: neoml.Dnn.Argmax
    :members:
 
+.._py-dnn-attention:
+
 Attention layers
 ****************
 
@@ -182,6 +209,8 @@ MultiheadAttention
 
 .. autoclass:: neoml.Dnn.MultiheadAttention
    :members:
+
+.._py-dnn-normalization:
 
 Normalization layers
 ********************
@@ -198,8 +227,11 @@ ObjectNormalization
 .. autoclass:: neoml.Dnn.ObjectNormalization
    :members:
 
+.._py-dnn-concat:
+
 Concatenation layers
 ************************
+The layers that concatenate blobs along one of the dimensions.
 
 ConcatChannels
 ==============
@@ -237,8 +269,11 @@ ConcatObject
 .. autoclass:: neoml.Dnn.ConcatObject
    :members:
 
+.._py-dnn-conv:
+
 Convolutional layers
 ********************
+The layers that perform various types of convolution.
 
 Conv
 ====
@@ -276,8 +311,11 @@ TimeConv
 .. autoclass:: neoml.Dnn.TimeConv
    :members:
 
-Crf layers
+.._py-dnn-crf:
+
+CRF layers
 **********
+
 
 Crf
 ===
@@ -297,7 +335,9 @@ BestSequence
 .. autoclass:: neoml.Dnn.BestSequence
    :members:
 
-Ctc layers
+.._py-dnn-ctc:
+
+CTC layers
 **********
 
 CtcLoss
@@ -323,6 +363,8 @@ Dropout
 
 .. autoclass:: neoml.Dnn.Dropout 
    :members:
+
+.._py-dnn-eltwise:
 
 Elementwise operation layers
 ****************************
@@ -357,7 +399,9 @@ FullyConnected
 .. autoclass:: neoml.Dnn.FullyConnected
    :members:
 
-Image Conversion layers
+.._py-dnn-imageconversion:
+
+Image conversion layers
 ***********************
 
 ImageResize
@@ -377,6 +421,8 @@ ImageToPixel
 
 .. autoclass:: neoml.Dnn.ImageToPixel
    :members:
+
+.._py-dnn-loss:
 
 Loss layers
 ***********
@@ -453,6 +499,8 @@ MultichannelLookup
 .. autoclass:: neoml.Dnn.MultichannelLookup
    :members:
 
+.._py-dnn-pooling:
+
 Pooling layers
 **************
 
@@ -516,14 +564,19 @@ Reorg
 .. autoclass:: neoml.Dnn.Reorg
    :members:
 
-SequenceSum
-********************
+.._py-dnn-inputoutput:
 
-.. autoclass:: neoml.Dnn.SequenceSum
+Passing the data to and from the network
+**********************************************
+
+Source
+==============
+
+.. autoclass:: neoml.Dnn.Source
    :members:
 
 Sink
-*********
+=============
 
 .. autoclass:: neoml.Dnn.Sink
    :members:
@@ -534,14 +587,11 @@ Softmax
 .. autoclass:: neoml.Dnn.Softmax
    :members:
 
-Source
-********
-
-.. autoclass:: neoml.Dnn.Source
-   :members:
+.._py-dnn-split:
 
 Split layers
 ********************
+The layers that split a blob along one of the dimensions.
 
 SplitChannels
 =============
@@ -573,6 +623,8 @@ SplitBatchWidth
 .. autoclass:: neoml.Dnn.SplitBatchWidth
    :members:
 
+.._py-dnn-sequences:
+
 Working with sequences
 *************************
 
@@ -586,6 +638,12 @@ ReverseSequence
 ===============
 
 .. autoclass:: neoml.Dnn.ReverseSequence
+   :members:
+
+SequenceSum
+===================
+
+.. autoclass:: neoml.Dnn.SequenceSum
    :members:
 
 TiedEmbeddings
@@ -612,6 +670,8 @@ Upsampling2D
 .. autoclass:: neoml.Dnn.Upsampling2D
    :members:
 
+.._py-dnn-initializer
+
 Initializers
 ###############
 
@@ -626,6 +686,8 @@ Uniform
 
 .. autoclass:: neoml.Dnn.Uniform
    :members:
+
+.._py-dnn-solver:
 
 Solvers
 ###########
