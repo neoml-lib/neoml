@@ -36,7 +36,7 @@ class DecisionTreeClassificationModel:
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :return: the predictions of class probability for each input vector.
-        :rtype: generator of ndarray of shape (n_samples, n_classes)
+        :rtype: *generator of ndarray of shape (n_samples, n_classes)*
         """
         x = convert_data(X)
         return self.internal.classify(*get_data(x))
