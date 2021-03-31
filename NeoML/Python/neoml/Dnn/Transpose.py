@@ -23,27 +23,25 @@ class Transpose(Layer):
     """The layer that switches two of the blob dimensions,
     moving the data inside accordingly.
     
-    Layer inputs
-    ----------
-    #1: a data blob to be transposed, of any size.
-    
-    Layer outputs
-    ----------
-    #1: the result of transposition.
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    first_dim : {"batch_length", "batch_width", "list_size", 
+    :type input_layer: object, tuple(object, int)
+    :param first_dim: One of the dimensions that should be switched.   
+    :type first_dim: str, {"batch_length", "batch_width", "list_size", 
                     "height", "width", "depth", "channels"}
-        One of the dimensions that should be switched.
-    second_dim : {"batch_length", "batch_width", "list_size", 
+    :param second_dim: The other dimension that should be switched.
+    :type second_dim: str, {"batch_length", "batch_width", "list_size", 
                     "height", "width", "depth", "channels"}
-        The other dimension that should be switched.
-    name : str, default=None
-        The layer name.
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob to be transposed, of any size.
+    
+    .. rubric:: Layer outputs:
+
+    (1) the result of transposition.
     """
 
     dimensions = ["batch_length", "batch_width", "list_size", "height", "width", "depth", "channels"]

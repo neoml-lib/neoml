@@ -46,6 +46,8 @@ public:
 
 	py::object GetFilter() const;
 	py::object GetFreeTerm() const;
+
+	void ApplyBatchNormalization(const CPyLayer& layer);
 };
 
 //------------------------------------------------------------------------------------------------------------

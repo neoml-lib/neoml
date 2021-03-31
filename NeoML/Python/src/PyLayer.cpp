@@ -33,6 +33,10 @@ std::string FindFreeLayerName( const CDnn& dnn, const std::string& layerName, co
 	return name;
 }
 
+void CPyLayer::Connect( CPyLayer &layer, int outputIndex, int inputIndex )
+{
+	baseLayer->Connect( inputIndex, *layer.baseLayer, outputIndex );
+}
 
 void InitializeLayer( py::module& m )
 {
@@ -40,5 +44,6 @@ void InitializeLayer( py::module& m )
 		.def( "output_count", &CPyLayer::GetOutputCount, py::return_value_policy::reference )
 		.def( "get_name", &CPyLayer::GetName, py::return_value_policy::reference )
 		.def( "create_python_object", &CPyLayer::CreatePythonObject, py::return_value_policy::reference )
+		.def( "connect", &CPyLayer::Connect, py::return_value_policy::reference )
 	;
 }

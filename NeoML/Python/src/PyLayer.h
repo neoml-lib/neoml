@@ -36,6 +36,8 @@ public:
 
 	virtual py::object CreatePythonObject() const { NeoAssert(false); return py::cast(0); }
 
+	void Connect( CPyLayer& layer, int outputIndex, int inputIndex );
+
 private:
 	CPtr<CPyMathEngineOwner> mathEngineOwner;
 	CPtr<CBaseLayer> baseLayer;

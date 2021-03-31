@@ -23,35 +23,33 @@ class Gru(Layer):
     """The gated recurrent unit (GRU) layer that works with a set
     of vector sequences.
     
-    Layer inputs
-    ----------
-    #1: the set of vector sequences.
-    The dimensions:
-    - BatchLength is sequence length
-    - BatchWidth * ListSize is the number of sequences
-    - Height * Width * Depth * Channels is vector size
-    
-    #2 (optional): the initial previous step result. If you do not connect
-    this input all zeros will be used on the first step.
-    The dimensions are the same as for the first input.
-    
-    Layer outputs
-    ----------
-    #1: a vector sequence of the same length.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize equal to the input's dimensions
-    - Height, Width, Depth are 1
-    - Channels is equal to hidden layer size
-    
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    hidden_size : int
-        The size of the hidden layer.
-    name : str, default=None
-        The layer name.
+    :param input_layer: object, tuple(object, int) or list of them
+    :param hidden_size: The size of the hidden layer.
+    :type hidden_size: int
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of vector sequences. The dimensions:
+
+        - **BatchLength** is sequence length
+        - **BatchWidth** * **ListSize** is the number of sequences
+        - **Height** * **Width** * **Depth** * **Channels** is vector size
+    
+    (2) (optional): the initial previous step result. If you do not connect
+        this input all zeros will be used on the first step.
+        The dimensions are the same as for the first input.
+    
+    .. rubric:: Layer outputs:
+
+    (1) a vector sequence of the same length. The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** equal to the input's dimensions
+        - **Height**, **Width**, **Depth** are 1
+        - **Channels** is equal to hidden layer size
     """
     def __init__(self, input_layer, hidden_size, name=None):
 
@@ -70,18 +68,20 @@ class Gru(Layer):
     @property
     def main_weights(self):
         """Gets the output weights as a 2d matrix of the size:
-        - BatchLength * BatchWidth * ListSize equal to hidden_size
-        - Height * Width * Depth * Channels equal to 
-            this dimension of the input plus hidden_size
+
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to **hidden_size**
+        - **Height** * **Width** * **Depth** * **Channels** equal to 
+          this dimension of the input plus hidden_size
         """
         return self._internal.get_main_weights()
 
     @main_weights.setter
     def main_weights(self, main_weights):
         """Sets the output weights as a 2d matrix of the size:
-        - BatchLength * BatchWidth * ListSize equal to hidden_size
-        - Height * Width * Depth * Channels equal to 
-            this dimension of the input plus hidden_size
+
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to **hidden_size**
+        - **Height** * **Width** * **Depth** * **Channels** equal to 
+          this dimension of the input plus hidden_size
         """
         self._internal.set_main_weights(main_weights)
 
@@ -100,18 +100,20 @@ class Gru(Layer):
     @property
     def gate_weights(self):
         """Gets the gate weights as a 2d matrix of the size:
-        - BatchLength * BatchWidth * ListSize equal to 2* hidden_size
-        - Height * Width * Depth * Channels equal to 
-            this dimension of the input plus hidden_size
+
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to 2 * **hidden_size**
+        - **Height** * **Width** * **Depth** * **Channels** equal to 
+          this dimension of the input plus **hidden_size**
         """
         return self._internal.get_gate_weights()
 
     @gate_weights.setter
     def gate_weights(self, gate_weights):
         """Sets the gate weights as a 2d matrix of the size:
-        - BatchLength * BatchWidth * ListSize equal to 2* hidden_size
-        - Height * Width * Depth * Channels equal to 
-            this dimension of the input plus hidden_size
+
+        - **BatchLength** * **BatchWidth** * **ListSize** equal to 2 * **hidden_size**
+        - **Height** * **Width** * **Depth** * **Channels** equal to 
+          this dimension of the input plus hidden_size
         """
         self._internal.set_gate_weights(gate_weights)
 
