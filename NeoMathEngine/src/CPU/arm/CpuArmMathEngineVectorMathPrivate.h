@@ -550,7 +550,7 @@ static inline void qrnnFPoolingStep( const float* z, const float* f, const float
 		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( vsubq_f32( ones, f0 ), z0 ) );
 		float32x4_t res1 = vaddq_f32( vmulq_f32( f1, h1 ), vmulq_f32( vsubq_f32( ones, f1 ), z1 ) );
 		float32x4_t res2 = vaddq_f32( vmulq_f32( f2, h2 ), vmulq_f32( vsubq_f32( ones, f2 ), z2 ) );
-		float32x4_t res3 = vaddq_f32( vmulq_f32( f4, h3 ), vmulq_f32( vsubq_f32( ones, f3 ), z3 ) );
+		float32x4_t res3 = vaddq_f32( vmulq_f32( f3, h3 ), vmulq_f32( vsubq_f32( ones, f3 ), z3 ) );
 
 		NEON_STORE_16_FLOATS(res, res);
 		res += 16;
