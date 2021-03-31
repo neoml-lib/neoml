@@ -1,4 +1,4 @@
-.. _py_submodule_misc:
+.. _py-submodule-misc:
 
 ###################
 neoml.Algorithms
