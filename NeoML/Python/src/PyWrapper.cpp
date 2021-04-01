@@ -69,6 +69,7 @@ limitations under the License.
 #include "PyRandom.h"
 #include "PyInitializer.h"
 #include "PyTiedEmbeddingsLayer.h"
+#include "PyDifferentialEvolution.h"
 
 PYBIND11_MODULE(PythonWrapper, m) {
 
@@ -131,5 +132,6 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeRandom( m );
 
 	InitializeInitializer( m );
+	InitializeDifferentialEvolution( m );
 }
 
