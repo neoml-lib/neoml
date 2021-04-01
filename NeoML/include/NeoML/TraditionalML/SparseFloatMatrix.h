@@ -29,8 +29,8 @@ struct NEOML_API CFloatMatrixDesc {
 	int Width; // the matrix width
 	int* Columns; // the columns array
 	float* Values; // the values array
-	uint32_t* PointerB; // the array of indices for vector start in Columns/Values
-	uint32_t* PointerE; // the array of indices for vector end in Columns/Values
+	int* PointerB; // the array of indices for vector start in Columns/Values
+	int* PointerE; // the array of indices for vector end in Columns/Values
 
 	CFloatMatrixDesc() : Height(0), Width(0), Columns(nullptr), Values(nullptr), PointerB(nullptr), PointerE(nullptr) {}
 
@@ -47,7 +47,7 @@ typedef CFloatMatrixDesc CSparseFloatMatrixDesc;
 inline void CFloatMatrixDesc::GetRow( int index, CFloatVectorDesc& desc ) const
 {
 	NeoAssert( 0 <= index && index < Height );
-	desc.Size = to<int>( PointerE[index] - PointerB[index] );
+	desc.Size = PointerE[index] - PointerB[index];
 	desc.Values = Values + PointerB[index];
 	if( Columns == nullptr ) { // dense representation
 		NeoPresume( desc.Size == Width );
@@ -69,11 +69,11 @@ inline CFloatVectorDesc CFloatMatrixDesc::GetRow( int index ) const
 // A sparse matrix
 // Any value that is not specified is 0
 class NEOML_API CSparseFloatMatrix {
-	static const uint32_t InitialRowBufferSize = 32;
-	static const uint32_t InitialElementBufferSize = 512;
+	static const int InitialRowBufferSize = 32;
+	static const int InitialElementBufferSize = 512;
 public:
 	CSparseFloatMatrix() {}
-	explicit CSparseFloatMatrix( int width, uint32_t rowsBufferSize = 0, uint32_t elementsBufferSize = 0 );
+	explicit CSparseFloatMatrix( int width, int rowsBufferSize = 0, int elementsBufferSize = 0 );
 	explicit CSparseFloatMatrix( const CFloatMatrixDesc& desc );
 	CSparseFloatMatrix( const CSparseFloatMatrix& other );
 
@@ -83,8 +83,8 @@ public:
 	int GetHeight() const { return body == 0 ? 0 : body->Desc.Height; }
 	int GetWidth() const { return body == 0 ? 0 : body->Desc.Width; }
 
-	void GrowInRows( uint32_t newRowsBufferSize );
-	void GrowInElements( uint32_t newElementsBufferSize );
+	void GrowInRows( int newRowsBufferSize );
+	void GrowInElements( int newElementsBufferSize );
 
 	void AddRow( const CSparseFloatVector& row );
 	void AddRow( const CFloatVectorDesc& row );
@@ -98,12 +98,12 @@ public:
 private:
 	// The matrix body, that is, the object that stores all its data
 	struct NEOML_API CSparseFloatMatrixBody : public IObject {
-		uint32_t RowsBufferSize;
-		uint32_t ElementsBufferSize;
-		uint32_t ElementCount;
+		int RowsBufferSize;
+		int ElementsBufferSize;
+		int ElementCount;
 		CFloatMatrixDesc Desc;
 
-		CSparseFloatMatrixBody( int height, int width, uint32_t elementCount, uint32_t rowsBufferSize, uint32_t elementsBufferSize );
+		CSparseFloatMatrixBody( int height, int width, int elementCount, int rowsBufferSize, int elementsBufferSize );
 		explicit CSparseFloatMatrixBody( const CFloatMatrixDesc& desc );
 		~CSparseFloatMatrixBody();
 

@@ -243,9 +243,9 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 
 	CArray<float> values;
 	values.SetSize( h * w );
-	CArray<uint32_t> pointerB;
+	CArray<int> pointerB;
 	pointerB.SetSize( h );
-	CArray<uint32_t> pointerE;
+	CArray<int> pointerE;
 	pointerE.SetSize( h );
 	CRandom rand( 0 );
 	for( int pos = 0, i = 0; i < h; ++i ) {
@@ -267,10 +267,10 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 	// check if copied matrix equals to original
 	ASSERT_EQ( fromSparse.Height, orig.Height );
 	ASSERT_EQ( fromSparse.Width, orig.Width );
-	ASSERT_EQ( ::memcmp( fromSparse.PointerB, orig.PointerB, fromSparse.Height * sizeof( uint32_t ) ), 0 );
-	ASSERT_EQ( ::memcmp( fromSparse.PointerE, orig.PointerE, fromSparse.Height * sizeof( uint32_t ) ), 0 );
+	ASSERT_EQ( ::memcmp( fromSparse.PointerB, orig.PointerB, fromSparse.Height * sizeof( int ) ), 0 );
+	ASSERT_EQ( ::memcmp( fromSparse.PointerE, orig.PointerE, fromSparse.Height * sizeof( int ) ), 0 );
 
-	const uint32_t elementsCount = fromSparse.PointerE[fromSparse.Height-1];
+	const int elementsCount = fromSparse.PointerE[fromSparse.Height-1];
 	ASSERT_EQ( ::memcmp( fromSparse.Columns, orig.Columns, elementsCount * sizeof( int ) ), 0 );
 	ASSERT_EQ( ::memcmp( fromSparse.Values, orig.Values, elementsCount * sizeof( float ) ), 0 );
 
@@ -286,8 +286,8 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 
 	ASSERT_EQ( fromSparse.Height, fromDense.Height );
 	ASSERT_EQ( fromSparse.Width, fromDense.Width );
-	ASSERT_EQ( ::memcmp( fromSparse.PointerB, fromDense.PointerB, fromSparse.Height * sizeof( uint32_t ) ), 0 );
-	ASSERT_EQ( ::memcmp( fromSparse.PointerE, fromDense.PointerE, fromSparse.Height * sizeof( uint32_t ) ), 0 );
+	ASSERT_EQ( ::memcmp( fromSparse.PointerB, fromDense.PointerB, fromSparse.Height * sizeof( int ) ), 0 );
+	ASSERT_EQ( ::memcmp( fromSparse.PointerE, fromDense.PointerE, fromSparse.Height * sizeof( int ) ), 0 );
 	ASSERT_EQ( ::memcmp( fromSparse.Columns, fromDense.Columns, elementsCount * sizeof( int ) ), 0 );
 	ASSERT_EQ( ::memcmp( fromSparse.Values, fromDense.Values, elementsCount * sizeof( float ) ), 0 );
 
@@ -305,7 +305,7 @@ TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
 
 	CSparseFloatMatrix sparseMatrixFromDenseDescSkippedFirst( denseDesc );
 	fromDense = sparseMatrixFromDenseDescSkippedFirst.GetDesc();
-	const uint32_t denseElementsCount = fromDense.PointerE[fromDense.Height-1];
+	const int denseElementsCount = fromDense.PointerE[fromDense.Height-1];
 	ASSERT_EQ( ::memcmp( fromSparse.Columns + fromSparse.PointerB[1], fromDense.Columns, denseElementsCount * sizeof( int ) ), 0 );
 	ASSERT_EQ( ::memcmp( fromSparse.Values + fromSparse.PointerB[1], fromDense.Values, denseElementsCount * sizeof( float ) ), 0 );
 	ASSERT_EQ( denseElementsCount + fromSparse.PointerE[0], elementsCount );
@@ -403,7 +403,7 @@ TEST_F( CFloatVectorTest, DISABLED_CreateHugeSparseMatrix )
 		for( int i = 0; i < elementsToTestCount; ++i ) {
 			const int r = rand.UniformInt( 0, rowsCount - 1 );
 			const int c = rand.UniformInt( 0, maxLength - 1 );
-			const uint32_t pos = static_cast< uint32_t >( r ) * maxLength + c;
+			const int pos = r * maxLength + c;
 			ASSERT_EQ( matrix.GetDesc().Columns[pos], c );
 			ASSERT_DOUBLE_EQ( matrix.GetDesc().Values[pos], 1.0 );
 		}
@@ -412,6 +412,11 @@ TEST_F( CFloatVectorTest, DISABLED_CreateHugeSparseMatrix )
 		delete ex;
 	} catch( CMemoryException& ) {
 		GTEST_LOG_( INFO ) << "CMemoryException caught";
+	} catch( CInternalError* ex ) {
+		GTEST_LOG_( INFO ) << "CInternalError* caught";
+		delete ex;
+	} catch( CInternalError& ) {
+		GTEST_LOG_( INFO ) << "CInternalError caught";
 	}
 }
 

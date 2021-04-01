@@ -20,15 +20,15 @@ limitations under the License.
 
 class CPyClusteringData : public IClusteringData {
 public:
-	CPyClusteringData( int height, int width, const int* columns, const float* values, const uint32_t* rowPtr, const float* _weights ) :
+	CPyClusteringData( int height, int width, const int* columns, const float* values, const int* rowPtr, const float* _weights ) :
 		weights( _weights )
 	{
 		desc.Height = height;
 		desc.Width = width;
 		desc.Columns = const_cast<int*>( columns );
 		desc.Values = const_cast<float*>( values );
-		desc.PointerB = const_cast<uint32_t*>( rowPtr );
-		desc.PointerE = const_cast<uint32_t*>( rowPtr ) + 1;
+		desc.PointerB = const_cast<int*>( rowPtr );
+		desc.PointerE = const_cast<int*>( rowPtr ) + 1;
 	}
 
 	// IClusteringData interface methods:
@@ -59,7 +59,7 @@ py::tuple CPyClustering::Clusterize( py::array indices, py::array data, py::arra
 {
 	CPtr<CPyClusteringData> problem = new CPyClusteringData( static_cast<int>( weight.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
-		reinterpret_cast<const uint32_t*>( rowPtr.data() ), reinterpret_cast<const float*>( weight.data() ) );
+		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const float*>( weight.data() ) );
 
 	CClusteringResult result;
 

@@ -21,7 +21,7 @@ limitations under the License.
 
 class CPyMemoryProblem : public IProblem {
 public:
-	CPyMemoryProblem( int height, int width, const int* columns, const float* values, const uint32_t* rowPtr,
+	CPyMemoryProblem( int height, int width, const int* columns, const float* values, const int* rowPtr,
 		const int* _classes, const float* _weights ) :
 		classCount( 0 ),
 		classes( _classes ),
@@ -31,8 +31,8 @@ public:
 		desc.Width = width;
 		desc.Columns = const_cast<int*>( columns );
 		desc.Values = const_cast<float*>( values );
-		desc.PointerB = const_cast<uint32_t*>( rowPtr );
-		desc.PointerE = const_cast<uint32_t*>( rowPtr ) + 1;
+		desc.PointerB = const_cast<int*>( rowPtr );
+		desc.PointerE = const_cast<int*>( rowPtr ) + 1;
 			
 		for( int i = 0; i < height; i++ ) {
 			if( classCount < classes[i] ) {
@@ -62,7 +62,7 @@ private:
 
 class CPyMemoryRegressionProblem : public IRegressionProblem {
 public:
-	CPyMemoryRegressionProblem( int height, int width, const int* columns, const float* values, const uint32_t* rowPtr, const float* _values, const float* _weights ) :
+	CPyMemoryRegressionProblem( int height, int width, const int* columns, const float* values, const int* rowPtr, const float* _values, const float* _weights ) :
 		values( _values ),
 		weights( _weights )
 	{
@@ -70,8 +70,8 @@ public:
 		desc.Width = width;
 		desc.Columns = const_cast<int*>( columns );
 		desc.Values = const_cast<float*>( values );
-		desc.PointerB = const_cast<uint32_t*>( rowPtr );
-		desc.PointerE = const_cast<uint32_t*>( rowPtr ) + 1;
+		desc.PointerB = const_cast<int*>( rowPtr );
+		desc.PointerE = const_cast<int*>( rowPtr ) + 1;
 	}
 
 	// IRegressionProblem interface methods:
@@ -123,7 +123,7 @@ py::array_t<double> CPyModel::Classify( py::array indices, py::array data, py::a
 {
 	const int* indicesPtr = reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr );
 	const float* dataPtr = reinterpret_cast<const float*>( data.data() );
-	const uint32_t* rowPtr = reinterpret_cast<const uint32_t*>( row.data() );
+	const int* rowPtr = reinterpret_cast<const int*>( row.data() );
 
 	int classesCount = ptr->GetClassCount();
 	int rowCount = static_cast<int>( row.size() ) - 1;
@@ -132,7 +132,7 @@ py::array_t<double> CPyModel::Classify( py::array indices, py::array data, py::a
 	auto r = totalResult.mutable_unchecked<2>();
 	for( int i = 0; i < rowCount; i++ ) {
 		CFloatVectorDesc vector;
-		vector.Size = to<int>( rowPtr[i+1] - rowPtr[i] );
+		vector.Size = rowPtr[i+1] - rowPtr[i];
 		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
 		if ( indicesPtr != nullptr ) {
 			vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
@@ -185,7 +185,7 @@ py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array da
 {
 	const int* indicesPtr = reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr );
 	const float* dataPtr = reinterpret_cast<const float*>( data.data() );
-	const uint32_t* rowPtr = reinterpret_cast<const uint32_t*>( row.data() );
+	const int* rowPtr = reinterpret_cast<const int*>( row.data() );
 
 	int rowCount = static_cast<int>( row.size() ) - 1;
 
@@ -193,7 +193,7 @@ py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array da
 	auto r = totalResult.mutable_unchecked<1>();
 	for( int i = 0; i < rowCount; i++ ) {
 		CFloatVectorDesc vector;
-		vector.Size = to<int>( rowPtr[i+1] - rowPtr[i] );
+		vector.Size = rowPtr[i+1] - rowPtr[i];
 		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
 		if ( indicesPtr != nullptr ) {
 			vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
@@ -237,7 +237,7 @@ CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, p
 {
 	CPtr<CPyMemoryProblem> problem = new CPyMemoryProblem( static_cast<int>( classes.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
-		reinterpret_cast<const uint32_t*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
+		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
 		reinterpret_cast<const float*>( weight.data() ) );
 	CPtr<IModel> model = owner->TrainingModel().Train( *(problem.Ptr()) );
 
@@ -248,7 +248,7 @@ CPyRegressionModel CPyTrainingModel::TrainRegressor( py::array indices, py::arra
 {
 	CPtr<CPyMemoryRegressionProblem> problem = new CPyMemoryRegressionProblem( static_cast<int>( values.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
-		reinterpret_cast<const uint32_t*>( rowPtr.data() ), reinterpret_cast<const float*>( values.data() ),
+		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const float*>( values.data() ),
 		reinterpret_cast<const float*>( weight.data() ) );
 	CPtr<IRegressionModel> model = dynamic_cast<IRegressionTrainingModel&>(owner->TrainingModel()).TrainRegression( *(problem.Ptr()) );
 
@@ -505,7 +505,7 @@ void InitializeTrainingModel(py::module& m)
 	{
 		CPtr<CPyMemoryProblem> problem = new CPyMemoryProblem( static_cast<int>( classes.size() ), featureCount,
 			reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
-			reinterpret_cast<const uint32_t*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
+			reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
 			reinterpret_cast<const float*>( weight.data() ) );
 
 		CCrossValidationResult results;
