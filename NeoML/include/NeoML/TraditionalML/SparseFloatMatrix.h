@@ -108,7 +108,7 @@ private:
 		~CSparseFloatMatrixBody();
 
 		CSparseFloatMatrixBody* Duplicate() const;
-		void CopyDataTo( const CSparseFloatMatrixBody* dst ) const;
+		static void CopyData( const CFloatMatrixDesc& dst, const CFloatMatrixDesc& src, int elementCount  );
 	};
  
 	CCopyOnWritePtr<CSparseFloatMatrixBody> body; // The matrix body.
