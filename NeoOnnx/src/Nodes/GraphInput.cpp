@@ -64,7 +64,7 @@ void CGraphInput::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */
 	source->SetBlob( inputBlob );
 
 	dnn.AddLayer( *source );
-	outputs[0] = new CUserTensor( outputShape, CTensorLayout(), CLayerOutput( source, 0 ) );
+	outputs[0] = new CUserTensor( outputShape, CTensorLayout( outputShape.Size() ), CLayerOutput( source, 0 ) );
 }
 
 void CGraphInput::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,

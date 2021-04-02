@@ -33,31 +33,6 @@ CTransposeNode::CTransposeNode( const onnx::NodeProto& transpose, int opsetVersi
 	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", transpose );
 }
 
-// Gets actual dim order (explicitly, even when DT_Onnx)
-static void getDimOrder( int dimCount, const CTensorLayout& layout, CDimOrder& order )
-{
-	if( layout.DimType == DT_NeoML ) {
-		layout.OnnxOrder.CopyTo( order );
-		return;
-	}
-
-	order.SetBufferSize( dimCount );
-	for( int i = 0; i < dimCount; ++i ) {
-		order.Add( static_cast<TBlobDim>( i ) );
-	}
-}
-
-// Returns is current (explicit) dim order is DT_Onnx
-static bool isOnnxDimOrder( const CDimOrder& order )
-{
-	for( int i = 0; i < order.Size(); ++i ) {
-		if( order[i] != static_cast<TBlobDim>( i ) ) {
-			return false;
-		}
-	}
-	return true;
-}
-
 void CTransposeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
@@ -77,21 +52,18 @@ void CTransposeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	}
 
 	// Working only with layout (converters will be added by next layers when needed)
-	CDimOrder inputDimOrder;
-	getDimOrder( dimCount, inputs[0]->Layout(), inputDimOrder );
-
-	CDimOrder outputDimOrder;
-	outputDimOrder.SetBufferSize( dimCount );
+	const CTensorLayout& inputLayout = inputs[0]->Layout();
+	CTensorLayout outputLayout;
+	outputLayout.SetBufferSize( dimCount );
 	CTensorShape outputShape;
 	outputShape.SetBufferSize( dimCount );
 
 	for( int i = 0; i < dimCount; ++i ) {
-		outputDimOrder.Add( inputDimOrder[perm[i]] );
+		outputLayout.Add( inputLayout[perm[i]] );
 		outputShape.Add( inputShape[perm[i]] );
 	}
 
-	outputs[0] = new CUserTensor( outputShape, 
-		isOnnxDimOrder( outputDimOrder ) ? CTensorLayout() : CTensorLayout( outputDimOrder ),
+	outputs[0] = new CUserTensor( outputShape, outputLayout,
 		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() );
 }
 

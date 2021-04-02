@@ -44,7 +44,7 @@ void CGraphOutput::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	sink->SetName( Name() );
 
 	// Converting output into Onnx order
-	CPtr<const CTensorBase> input = ConvertTensor( *inputs[0], CTensorLayout() );
+	CPtr<const CTensorBase> input = ConvertTensor( *inputs[0], CTensorLayout( inputs[0]->DimCount() ) );
 	const CLayerOutput& layerOutput = dynamic_cast<const CUserTensor*>( input.Ptr() )->LayerOutput();
 	sink->Connect( 0, *layerOutput.Layer, layerOutput.OutputIndex );
 

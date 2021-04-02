@@ -59,31 +59,31 @@ void CBatchNormalizationNode::AddLayers( const CObjectArray<const CTensorBase>& 
 // Converts layer input if needed
 CPtr<const CUserTensor> CBatchNormalizationNode::convertInput( const CUserTensor& input ) const
 {
-	if( input.Layout().DimType == DT_NeoML ) {
-		const CDimOrder& inputDimOrder = input.Layout().OnnxOrder;
-		bool needConversion = false;
-		for( int dimIndex = 0; dimIndex < inputDimOrder.Size(); ++dimIndex ) {
-			// First dimension must be batch (BD_BatchLength, BD_BatchWidth or BD_ListSize)
-			// Second dimension must be channels
-			// Other dimensions must be spatial (BD_Height, BD_Width or BD_Depth)
-			if( ( dimIndex < 1 && inputDimOrder[dimIndex] >= BD_Height )
-				|| ( dimIndex == 1 && inputDimOrder[dimIndex] != BD_Channels )
-				|| ( dimIndex > 1 && ( inputDimOrder[dimIndex] < BD_Height || inputDimOrder[dimIndex] == BD_Channels ) ) )
-			{
-				needConversion = true;
-				break;
-			}
-		}
-
-		if( !needConversion ) {
-			return &input;
+	const CTensorLayout& inputLayout = input.Layout();
+	bool needConversion = false;
+	for( int dimIndex = 0; dimIndex < inputLayout.Size(); ++dimIndex ) {
+		// First dimension must be batch (BD_BatchLength, BD_BatchWidth or BD_ListSize)
+		// Second dimension must be channels
+		// Other dimensions must be spatial (BD_Height, BD_Width or BD_Depth)
+		if( ( dimIndex < 1 && inputLayout[dimIndex] >= BD_Height )
+			|| ( dimIndex == 1 && inputLayout[dimIndex] != BD_Channels )
+			|| ( dimIndex > 1 && ( inputLayout[dimIndex] < BD_Height || inputLayout[dimIndex] == BD_Channels ) ) )
+		{
+			needConversion = true;
+			break;
 		}
 	}
 
-	CDimOrder outputOrder( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
-	outputOrder.SetSize( input.Shape().Size() );
+	if( !needConversion ) {
+		// input's layout is compatible with batch normalzation
+		// No conversion needed
+		return &input;
+	}
 
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, CTensorLayout( outputOrder ) ).Ptr() );
+	CTensorLayout outputLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
+	outputLayout.SetSize( input.DimCount() );
+
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, outputLayout ).Ptr() );
 }
 
 // Calculates final params blob based on onnx node's inputs
@@ -92,7 +92,7 @@ CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( int channels, cons
 {
 	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
 		CheckNeoOnnxSupport( inputs[inputIndex]->IsCalculated(), "non-constant weights", OnnxNode );
-		CheckOnnxProtocol( inputs[inputIndex]->Shape().Size() == 1, "weights must be 1-dimensional", OnnxNode );
+		CheckOnnxProtocol( inputs[inputIndex]->DimCount() == 1, "weights must be 1-dimensional", OnnxNode );
 		CheckOnnxProtocol( inputs[inputIndex]->Shape()[0] == channels, "weights must have 'channels' length", OnnxNode );
 	}
 

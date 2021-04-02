@@ -58,12 +58,11 @@ private:
 	TPoolType poolType; // pool type
 
 	CPtr<const CUserTensor> prepareInput( const CUserTensor& input, const CFastArray<int, 8>& axes, CDnn& dnn ) const;
-	void calcInputDimOrder( const CTensorShape& inputShape, const CTensorLayout& inputLayout,
-		const CFastArray<int, 8>& axes, CDimOrder& order ) const;
+	CPtr<const CUserTensor> convertInputLayout( const CUserTensor& input, const CFastArray<int, 8>& axes ) const;
 
 	CPtr<const CUserTensor> addPoolingLayer( const CUserTensor& preparedInput, const CFastArray<int, 8>& axes, CDnn& dnn ) const;
 	void calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const;
-	void calcOutputDimOrder( const CDimOrder& inputDimOrder, const CFastArray<int, 8>& axes,CDimOrder& outputDimOrder ) const;
+	CTensorLayout calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const;
 
 	CPtr<const CUserTensor> addPostProcessing( const CUserTensor& layerOutput, CDnn& dnn ) const;
 };

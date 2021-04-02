@@ -46,7 +46,7 @@ void CGlobalPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inpu
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
 	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", OnnxNode );
-	CheckNeoOnnxSupport( inputs[0]->Shape().Size() <= 7, "Tensor with 8+ dimensions", OnnxNode );
+	CheckNeoOnnxSupport( inputs[0]->DimCount() <= 7, "Tensor with 8+ dimensions", OnnxNode );
 
 	CFastArray<int, 8> axes;
 	PoolAxes( inputs[0]->Shape(), axes );
@@ -62,10 +62,8 @@ void CGlobalPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inpu
 // Prepares input for NeoML's CGlobal*PoolingLayer
 CPtr<const CUserTensor> CGlobalPoolNodeBase::prepareInput( const CUserTensor& input, const CFastArray<int, 8>& axes, CDnn& dnn ) const
 {
-	// Step 1: converting to proper dimension order
-	CDimOrder inputOrder;
-	calcInputDimOrder( input.Shape(), input.Layout(), axes, inputOrder );
-	CPtr<const CUserTensor> result = dynamic_cast<const CUserTensor*>( ConvertTensor( input, CTensorLayout( inputOrder ) ).Ptr() );
+	// Step 1: converting to proper layout (if needed)
+	CPtr<const CUserTensor> result = convertInputLayout( input, axes );
 
 	// Step 2: add pre-processing layers if needed
 	if( poolType == PT_Min ) {
@@ -81,37 +79,20 @@ CPtr<const CUserTensor> CGlobalPoolNodeBase::prepareInput( const CUserTensor& in
 	return result;
 }
 
-// Gets tensor's blob dimensions (even if it isn't represented explicitly in layout.OnnxOrder)
-static void getDimOrder( const CTensorShape& shape, const CTensorLayout& layout, CDimOrder& dimOrder )
-{
-	if( layout.DimType == DT_NeoML ) {
-		layout.OnnxOrder.CopyTo( dimOrder );
-		return;
-	}
-
-	dimOrder.SetBufferSize( shape.Size() );
-	for( int dim = 0; dim < shape.Size(); ++dim ) {
-		dimOrder.Add( static_cast<TBlobDim>( dim ) );
-	}
-}
-
 // Check if current layout is compatible with Global*PoolingLayer
 static bool isCompatibleLayout( const CTensorShape& shape, const CTensorLayout& layout, const CFastArray<int, 8>& pooledDims,
 	const CFastArray<int, 8>& remainingDims )
 {
-	CDimOrder inputDimOrder;
-	getDimOrder( shape, layout, inputDimOrder );
-
-	// Check that every pooled axe is BD_Height, BD_Width or BD_Depth
+	// Check that pooled axes are BD_Height, BD_Width or BD_Depth
 	for( int i = 0; i < pooledDims.Size(); ++i ) {
-		if( inputDimOrder[pooledDims[i]] < BD_Height || inputDimOrder[pooledDims[i]] == BD_Channels ) {
+		if( layout[pooledDims[i]] < BD_Height || layout[pooledDims[i]] == BD_Channels ) {
 			return false;
 		}
 	}
 
-	// Check that every remaining axe is BD_BatchLength, BD_BatchWidth, BD_ListSize or BD_Channels
+	// Check that remaining axes are BD_BatchLength, BD_BatchWidth, BD_ListSize or BD_Channels
 	for( int i = 0; i < remainingDims.Size(); ++i ) {
-		if( inputDimOrder[remainingDims[i]] >= BD_Height && inputDimOrder[remainingDims[i]] <= BD_Depth ) {
+		if( layout[remainingDims[i]] >= BD_Height && layout[remainingDims[i]] <= BD_Depth ) {
 			return false;
 		}
 	}
@@ -119,12 +100,12 @@ static bool isCompatibleLayout( const CTensorShape& shape, const CTensorLayout& 
 	return true;
 }
 
-// Generates dimOrder which is compatible with NeoML's CGlobal*PoolingLayer
-void CGlobalPoolNodeBase::calcInputDimOrder( const CTensorShape& inputShape, const CTensorLayout& inputLayout,
-	const CFastArray<int, 8>& axes, CDimOrder& order ) const
+// Convert input's layout into compatible with NeoML's CGlobal*PoolingLayer
+CPtr<const CUserTensor> CGlobalPoolNodeBase::convertInputLayout( const CUserTensor& input,
+	const CFastArray<int, 8>& axes ) const
 {
-	order.DeleteAll();
-	order.Add( BD_Count, inputShape.Size() );
+	const CTensorShape& inputShape = input.Shape();
+	const CTensorLayout& inputLayout = input.Layout();
 
 	// Non-trivial dims to be pooled
 	CFastArray<int, 8> pooledDims;
@@ -141,40 +122,43 @@ void CGlobalPoolNodeBase::calcInputDimOrder( const CTensorShape& inputShape, con
 			remainingDims.Add( dimIndex );
 		}
 	}
-
 	CheckNeoOnnxSupport( pooledDims.Size() <= 3 && remainingDims.Size() <= 4,
 		"Global pooling which can't be emulated by NeoML", OnnxNode );
 
 	if( isCompatibleLayout( inputShape, inputLayout, pooledDims, remainingDims ) ) {
-		inputLayout.OnnxOrder.CopyTo( order );
-		return;
+		return &input;
 	}
+
+	CTensorLayout convertedLayout;
+	convertedLayout.Add( BD_Count, inputShape.Size() );
 
 	// Distribute dimensions which can be pooled between non-trivial pooled dims
 	for( int i = 0; i < pooledDims.Size(); ++i ) {
-		order[pooledDims[i]] = BD_Height + i;
+		convertedLayout[pooledDims[i]] = BD_Height + i;
 	}
 
 	{
 		// Distribute dimensions which can't be pooled between non-trivial remaining dims
-		CDimOrder possibleRemainingDims( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Channels } );
+		CTensorLayout possibleRemainingDims( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Channels } );
 		for( int i = 0; i < remainingDims.Size(); ++i ) {
-			order[remainingDims[i]] = possibleRemainingDims[i];
+			convertedLayout[remainingDims[i]] = possibleRemainingDims[i];
 		}
 	}
 
 	// Distribute unused dimensions between the rest (trivial) of tensor dimensions
 	TBlobDim currDim = BD_BatchLength;
-	for( int i = 0; i < order.Size(); ++i ) {
-		if( order[i] == -BD_Count ) {
-			while( order.Find( currDim ) != NotFound && currDim != BD_Count ) {
+	for( int i = 0; i < convertedLayout.Size(); ++i ) {
+		if( convertedLayout[i] == BD_Count ) {
+			while( convertedLayout.Find( currDim ) != NotFound && currDim != BD_Count ) {
 				++currDim;
 			}
 			// Double-check
 			CheckNeoOnnxInternal( currDim != BD_Count, "Can't distribute blob dimensions between tensor dims", OnnxNode );
-			order[i] = currDim;
+			convertedLayout[i] = currDim;
 		}
 	}
+
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, convertedLayout ).Ptr() );
 }
 
 // Adds CGlobal*Pooling layer
@@ -202,10 +186,7 @@ CPtr<const CUserTensor> CGlobalPoolNodeBase::addPoolingLayer( const CUserTensor&
 	CTensorShape outputShape;
 	calcOutputShape( preparedInput.Shape(), axes, outputShape );
 
-	CDimOrder outputDimOrder;
-	calcOutputDimOrder( preparedInput.Layout().OnnxOrder, axes, outputDimOrder );
-
-	return new CUserTensor( outputShape, CTensorLayout( outputDimOrder ), CLayerOutput( pooling, 0 ) );
+	return new CUserTensor( outputShape, calcOutputLayout( preparedInput.Layout(), axes ), CLayerOutput( pooling, 0 ) );
 }
 
 // Calculate this node's output shape
@@ -230,28 +211,26 @@ void CGlobalPoolNodeBase::calcOutputShape( const CTensorShape& inputShape, const
 }
 
 // Calculate this node's output shape
-void CGlobalPoolNodeBase::calcOutputDimOrder( const CDimOrder& inputDimOrder,
-	const CFastArray<int, 8>& axes, CDimOrder& outputDimOrder ) const
+CTensorLayout CGlobalPoolNodeBase::calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const
 {
-	outputDimOrder.DeleteAll();
-
 	const bool keepDims = KeepDims();
 	
 	if( keepDims ) {
-		inputDimOrder.CopyTo( outputDimOrder );
-		return;
+		return inputLayout;
 	}
 
 	int axeIndex = 0;
-	outputDimOrder.SetBufferSize( inputDimOrder.Size() - axes.Size() );
+	CTensorLayout outputLayout;
+	outputLayout.SetBufferSize( inputLayout.Size() - axes.Size() );
 
-	for( int dimIndex = 0; dimIndex < inputDimOrder.Size(); ++dimIndex ) {
+	for( int dimIndex = 0; dimIndex < inputLayout.Size(); ++dimIndex ) {
 		if( axeIndex < axes.Size() && dimIndex == axes[axeIndex] ) {
 			axeIndex++;
 		} else {
-			outputDimOrder.Add( inputDimOrder[dimIndex] );
+			outputLayout.Add( inputLayout[dimIndex] );
 		}
 	}
+	return outputLayout;
 }
 
 // Adds additional layers after pooling if needed.
