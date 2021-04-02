@@ -57,6 +57,8 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 	ElementsBufferSize( elementsBufferSize ),
 	ElementCount( elementCount )
 {
+	NeoAssert( RowsBufferSize >= 0 );
+	NeoAssert( ElementsBufferSize >= 0 );
 	Desc.Height = height;
 	Desc.Width = width;
 
@@ -71,6 +73,8 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 	ElementsBufferSize( desc.Height == 0 ? 0 : ( desc.Columns != nullptr ? desc.PointerE[desc.Height - 1] : 0 ) ),
 	ElementCount( desc.Height == 0 ? 0 : ( desc.Columns != nullptr ? desc.PointerE[desc.Height - 1] : 0 ) )
 {
+	NeoAssert( RowsBufferSize >= 0 );
+	NeoAssert( ElementsBufferSize >= 0 );
 	Desc.Height = desc.Height;
 	Desc.Width = desc.Width;
 
@@ -146,6 +150,7 @@ CSparseFloatMatrix& CSparseFloatMatrix::operator = ( const CSparseFloatMatrix& m
 
 void CSparseFloatMatrix::GrowInRows( int newRowsBufferSize )
 {
+	NeoAssert( newRowsBufferSize > 0 );
 	if( newRowsBufferSize > body->RowsBufferSize ) {
 		int newBufferSize = ( MaxBufferSize / 3 * 2 >= body->RowsBufferSize ) ?
 			max( body->RowsBufferSize / 2 * 3, newRowsBufferSize ) :
@@ -174,6 +179,7 @@ void CSparseFloatMatrix::GrowInRows( int newRowsBufferSize )
 
 void CSparseFloatMatrix::GrowInElements( int newElementsBufferSize )
 {
+	NeoAssert( newElementsBufferSize > 0 );
 	if( newElementsBufferSize > body->ElementsBufferSize ) {
 		int newBufferSize = ( MaxBufferSize / 3 * 2 >= body->ElementsBufferSize ) ?
 			max( body->ElementsBufferSize / 2 * 3, newElementsBufferSize ) :
