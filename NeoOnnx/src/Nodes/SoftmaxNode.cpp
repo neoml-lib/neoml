@@ -42,14 +42,12 @@ void CSoftmaxNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 {
 	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Unknown input", OnnxNode );
 
-	const int dimCount = inputs[0]->Shape().Size();
+	const int dimCount = inputs[0]->DimCount();
 	CheckNeoOnnxSupport( axis <= 3, "more than 3 batch dimensions", OnnxNode );
 	CheckNeoOnnxSupport( dimCount - axis + 1 <= 4, "more than 4 object  dimensions", OnnxNode );
 
-	CDimOrder outputDimOrder;
-	getDimOrder( dimCount, axis, inputs[0]->Layout().OnnxOrder, outputDimOrder );
-
-	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout( outputDimOrder ) ).Ptr() );
+	CTensorLayout compatibleLayout = getCompatibleLayout( dimCount, axis, inputs[0]->Layout() );
+	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], compatibleLayout ).Ptr() );
 
 	CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer( dnn.GetMathEngine() );
 	softmax->SetName( Name() );
@@ -59,39 +57,33 @@ void CSoftmaxNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	outputs[0] = new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( softmax, 0 ) );
 }
 
-void CSoftmaxNode::getDimOrder( int dimCount, int axis, const CDimOrder& inputDimOrder, CDimOrder& dimOrder )
+CTensorLayout CSoftmaxNode::getCompatibleLayout( int dimCount, int axis, const CTensorLayout& inputLayout ) const
 {
-	if( inputDimOrder.IsEmpty() && axis == 3 ) {
-		// DT_Onnx is ok if axis == 3
-		return;
-	}
-
-	if( !inputDimOrder.IsEmpty() ) {
-		// Check whether NeoML dim order is compatible with softmax
-		bool isCompatible = true;
-		for( int i = 0; i < inputDimOrder.Size(); ++i ) {
-			if( ( i < axis && inputDimOrder[i] >= BD_Height ) // object dimension before axis
-				|| ( i >= axis && inputDimOrder[i] < BD_Height ) ) // batch dimension after axis
-			{
-				isCompatible = false;
-				break;
-			}
-		}
-
-		if( isCompatible ) {
-			inputDimOrder.CopyTo( dimOrder );
-			return;
+	// Check whether input layout is compatible with softmax
+	bool isCompatible = true;
+	for( int i = 0; i < inputLayout.Size(); ++i ) {
+		if( ( i < axis && inputLayout[i] >= BD_Height ) // object dimension before axis
+			|| ( i >= axis && inputLayout[i] < BD_Height ) ) // batch dimension after axis
+		{
+			isCompatible = false;
+			break;
 		}
 	}
 
-	dimOrder.SetBufferSize( dimCount );
+	if( isCompatible ) {
+		return inputLayout;
+	}
+
+	CTensorLayout compatibleLayout;
+	compatibleLayout.SetBufferSize( dimCount );
 	for( int i = 0; i < dimCount; ++i ) {
 		if( i < axis ) {
-			dimOrder[i] = static_cast<TBlobDim>( i );
+			compatibleLayout[i] = static_cast<TBlobDim>( i );
 		} else {
-			dimOrder[i] = static_cast<TBlobDim>( BD_Height + i - axis );
+			compatibleLayout[i] = static_cast<TBlobDim>( BD_Height + i - axis );
 		}
 	}
+	return compatibleLayout;
 }
 
 } // namespace NeoOnnx

@@ -40,7 +40,7 @@ void CConcatNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
 	CheckNeoOnnxInternal( inputs[0] != nullptr, "Unknown input", OnnxNode );
-	const int dimCount = inputs[0]->Shape().Size();
+	const int dimCount = inputs[0]->DimCount();
 
 	int axis = 1;
 	if( OpsetVersion < 4 ) {
@@ -54,14 +54,7 @@ void CConcatNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	}
 
 	const CTensorLayout& inputLayout = inputs[0]->Layout();
-	TBlobDim concatDim;
-	if( inputLayout.DimType == DT_Onnx ) {
-		concatDim = static_cast<TBlobDim>( axis );
-	} else {
-		concatDim = inputLayout.OnnxOrder[axis];
-	}
-
-	CPtr<CBaseLayer> concat = createLayer( concatDim, dnn.GetMathEngine() );
+	CPtr<CBaseLayer> concat = createLayer( inputLayout[axis], dnn.GetMathEngine() );
 	concat->SetName( Name() );
 
 	CTensorShape outputShape;

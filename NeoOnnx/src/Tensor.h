@@ -35,6 +35,9 @@ struct CLayerOutput
 // Base class for tensor in onnx graph
 class CTensorBase : public virtual IObject {
 public:
+	// Number of tensors dimensions
+	const int DimCount() const { return shape.Size(); }
+
 	// Tensor's shape. The shape always describes Onnx axes.
 	const CTensorShape& Shape() const { return shape; }
 
@@ -51,10 +54,12 @@ protected:
 	{ 
 		_shape.CopyTo( shape );
 		// TODO: DEBUG delete after fix
-		if( layout.DimType == DT_Onnx ) {
-			NeoPresume( layout.OnnxOrder.IsEmpty() );
-		} else {
-			NeoPresume( layout.OnnxOrder.Size() == shape.Size() );
+		NeoPresume( layout.Size() == shape.Size() );
+		// TODO: DEBUG delete after fix
+		int mask = 0;
+		for( int dimIndex = 0; dimIndex < layout.Size(); ++dimIndex ) {
+			NeoPresume( ( mask & ( 1 << layout[dimIndex] ) ) == 0 );
+			mask |= ( 1 << layout[dimIndex] );
 		}
 	}
 	CTensorBase( const CTensorBase& other ) = delete;
@@ -109,21 +114,12 @@ public:
 		CTensorBase( shape, layout ), data( &_data )
 	{
 		// TODO: DEBUG delete after debugging
-		if( layout.DimType == DT_Onnx ) {
-			for( int i = 0; i < shape.Size(); ++i ) {
-				NeoPresume( shape[i] == data->DimSize( i ) );
-			}
-			for( int i = shape.Size(); i < static_cast< int >( BD_Count ); ++i ) {
+		for( TBlobDim i = BD_BatchLength; i < BD_Count; ++i ) {
+			const int index = layout.Find( i );
+			if( index == NotFound ) {
 				NeoPresume( data->DimSize( i ) == 1 );
-			}
-		} else {
-			for( TBlobDim i = BD_BatchLength; i < BD_Count; ++i ) {
-				const int index = layout.OnnxOrder.Find( i );
-				if( index == NotFound ) {
-					NeoPresume( data->DimSize( i ) == 1 );
-				} else {
-					NeoPresume( shape[index] == data->DimSize( i ) );
-				}
+			} else {
+				NeoPresume( shape[index] == data->DimSize( i ) );
 			}
 		}
 	}

@@ -188,21 +188,20 @@ CPtr<const CUserTensor> CSliceNode::sliceAxis( const CUserTensor& input, int axi
 // Prepares input tensor for slice
 CPtr<const CUserTensor> CSliceNode::prepareInputForSlice( const CUserTensor& input, int axis ) const
 {
-	TBlobDim currDim = input.Layout().DimType == DT_Onnx ? static_cast<TBlobDim>( axis )
-		: input.Layout().OnnxOrder[axis];
+	TBlobDim currDim = input.Layout()[axis];
 
 	if( currDim == BD_BatchLength ) {
 		return &input;
 	}
 
-	CDimOrder order;
-	order.SetBufferSize( input.Shape().Size() );
-	for( int i = 0; i < input.Shape().Size(); ++i ) {
-		order[i] = static_cast<TBlobDim>( i );
+	CTensorLayout outputLayout;
+	outputLayout.SetBufferSize( input.DimCount() );
+	for( int i = 0; i < input.DimCount(); ++i ) {
+		outputLayout[i] = static_cast<TBlobDim>( i );
 	}
-	swap( order[axis], order[0] );
+	swap( outputLayout[axis], outputLayout[0] );
 
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, CTensorLayout( order ) ).Ptr() );
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, outputLayout ).Ptr() );
 }
 
 } // namespace NeoOnnx

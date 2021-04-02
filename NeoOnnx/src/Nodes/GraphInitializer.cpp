@@ -62,7 +62,7 @@ void CGraphInitializer::CalculateOutput( const CObjectArray<const CTensorBase>& 
 		LoadBlobData<int>( initializer, *outputBlob );
 	}
 
-	outputs[0] = new CDataTensor( outputShape, CTensorLayout(), *outputBlob );
+	outputs[0] = new CDataTensor( outputShape, CTensorLayout( outputShape.Size() ), *outputBlob );
 }
 
 } // namespace NeoOnnx

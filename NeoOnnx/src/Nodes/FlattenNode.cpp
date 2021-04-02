@@ -47,14 +47,14 @@ void CFlattenNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 
 	// Every operator which somehow changes Onnx tensor's shape or dimensions works only with Onnx dim type
 	// Otherwise it'll lead to hardly fixable troubles with data-packing (Onnx's channel-first vs NeoML's channel-last)
-	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout() ).Ptr() );
+	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout( inputs[0]->DimCount() ) ).Ptr() );
 
 	// Flatten operator reshapes tensor into 2-dimensional matrix of size
 	// [ dim_0 * ... * dim_(axis-1) ; dim_axis * ... * dim_(n-1) ]
 	// Corner case: if axis == 0 then output shape is [ 1 ; tensorSize ]
-	const int axisIndex = axis < 0 ? axis + input->Shape().Size() : axis;
+	const int axisIndex = axis < 0 ? axis + input->DimCount() : axis;
 	CTensorShape outputShape( { 1, 1 } );
-	for( int dimIndex = 0; dimIndex < input->Shape().Size(); ++dimIndex ) {
+	for( int dimIndex = 0; dimIndex < input->DimCount(); ++dimIndex ) {
 		outputShape[dimIndex < axisIndex ? 0 : 1] *= input->Shape()[dimIndex];
 	}
 
@@ -74,7 +74,7 @@ void CFlattenNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	transform->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *transform );
 
-	outputs[0] = new CUserTensor( outputShape, CTensorLayout(), CLayerOutput( transform, 0 ) );
+	outputs[0] = new CUserTensor( outputShape, CTensorLayout( outputShape.Size() ), CLayerOutput( transform, 0 ) );
 }
 
 } // namespace NeoOnnx

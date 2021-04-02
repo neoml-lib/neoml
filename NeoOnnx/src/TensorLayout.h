@@ -17,72 +17,50 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Determines type of the dimensions in tensor
-enum TDimType
-{
-	// Onnx dimensions
-	// Unlike NeoML's, Onnx tensor axes don't have specific meaning (channels, height, batch, etc.).
-	// In memory n-dimensional Onnx tensor is represented by a blob with first n dimensions used
-	// in order of TBlobDim enumberation
-	// That's the default NeoOnnx pack
-	DT_Onnx,
-
-	// NeoML dimensions
-	// That means if tensor contains batch of 2-dimensional images
-	// it uses BD_BatchWidth, BD_Height, BD_Width and BD_Channels
-	// NeoML layers, whose behavior depends on the exact dimension sizes
-	// will use tensors with these dimensions (Conv, Pool, Softmax, etc.)
-	DT_NeoML,
-
-	DT_Count
-};
-
-// Tensor dimensions order
-typedef CFastArray<TBlobDim, 8> CDimOrder;
-
 // Desribes how tensor is represented in memory
-struct CTensorLayout
-{
-	// Tensor dimensions type
-	TDimType DimType;
+// tensorLayout[i] is the blob dimension, where i'th onnx axis is located
+class CTensorLayout: public CFastArray<TBlobDim, 8> {
+public:
+	CTensorLayout() {}
+	explicit CTensorLayout( int dimCount );
+	CTensorLayout( std::initializer_list<TBlobDim> list ) : CFastArray<TBlobDim, 8>( list ) {}
+	CTensorLayout( const CTensorLayout& other ) { other.CopyTo( *this ); }
 
-	// The order of dimensions of Onnx tensor
-	// Empty when DimType != DT_NeoML
-	// When DimType == DT_NeoML OnnxOrder.Size() is equal to the number of dimensions of
-	// corresponding onnx tensor and OnnxOrder[i] shows which of the TBlobDim should be
-	// of i'th position in order to restore original Onnx tensor
-	CDimOrder OnnxOrder;
-
-	CTensorLayout() : DimType( DT_Onnx ) {}
-	explicit CTensorLayout( const CDimOrder& onnxOrder ) :
-		DimType( onnxOrder.IsEmpty() ? DT_Onnx : DT_NeoML ) { onnxOrder.CopyTo( OnnxOrder ); }
-
-	CTensorLayout( const CTensorLayout& other ) :
-		DimType( other.DimType ) { other.OnnxOrder.CopyTo( OnnxOrder ); }
-
+	CTensorLayout& operator=( std::initializer_list<TBlobDim> list );
 	CTensorLayout& operator=( const CTensorLayout& other );
 
 	bool operator==( const CTensorLayout& other ) const;
+	bool operator!=( const CTensorLayout& other ) const { return !operator==( other ); }
 };
 
-inline CTensorLayout& CTensorLayout::operator=( const CTensorLayout& other )
+inline CTensorLayout::CTensorLayout( int dimCount )
 {
-	if( this != &other ) {
-		DimType = other.DimType;
-		other.OnnxOrder.CopyTo( OnnxOrder );
+	SetSize( dimCount );
+	for( int i = 0; i < dimCount; ++i ) {
+		operator[](i) = static_cast<TBlobDim>( i );
 	}
+}
 
+inline CTensorLayout& CTensorLayout::operator=( std::initializer_list<TBlobDim> list )
+{
+	CFastArray<TBlobDim, 8>::operator=( list );
+	return *this;
+}
+
+inline CTensorLayout& CTensorLayout::operator=(  const CTensorLayout& other )
+{
+	other.CopyTo( *this );
 	return *this;
 }
 
 inline bool CTensorLayout::operator==( const CTensorLayout& other ) const
 {
-	if( DimType != other.DimType || OnnxOrder.Size() != other.OnnxOrder.Size() ) {
+	if( Size() != other.Size() ) {
 		return false;
 	}
 
-	for( int dimIndex = 0; dimIndex < OnnxOrder.Size(); ++dimIndex ) {
-		if( OnnxOrder[dimIndex] != other.OnnxOrder[dimIndex] ) {
+	for( int i = 0; i < Size(); ++i ) {
+		if( other[i] != ( *this )[i] ) {
 			return false;
 		}
 	}

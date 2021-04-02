@@ -48,7 +48,8 @@ void CReshapeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	getShape( inputs, outputShape );
 
 	// In order to process tensors correctly reshape is allowed only in DT_Onnx
-	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout() ).Ptr() );
+	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0],
+		CTensorLayout( inputs[0]->DimCount() ) ).Ptr() );
 	const CTensorShape& inputShape = input->Shape();
 
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
@@ -90,7 +91,7 @@ void CReshapeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	transform->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *transform );
 
-	outputs[0] = new CUserTensor( outputShape, CTensorLayout(), CLayerOutput( transform, 0 ) );
+	outputs[0] = new CUserTensor( outputShape, CTensorLayout( outputShape.Size() ), CLayerOutput( transform, 0 ) );
 }
 
 // Gets output shape

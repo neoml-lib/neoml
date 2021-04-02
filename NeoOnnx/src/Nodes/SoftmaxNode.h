@@ -35,7 +35,7 @@ public:
 private:
 	int axis; // First axis to be softmaxed
 
-	void getDimOrder( int dimCount, int axis, const CDimOrder& inputDimOrder, CDimOrder& dimOrder );
+	CTensorLayout getCompatibleLayout( int dimCount, int axis, const CTensorLayout& inputLayout ) const;
 };
 
 } // namespace NeoOnnx

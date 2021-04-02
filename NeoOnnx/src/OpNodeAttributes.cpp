@@ -118,7 +118,7 @@ void extractValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPt
 	} else {
 		LoadBlobData<int>( attribute.t(), *resultBlob );
 	}
-	value = new CDataTensor( resultShape, CTensorLayout(), *resultBlob );
+	value = new CDataTensor( resultShape, CTensorLayout( resultShape.Size() ), *resultBlob );
 }
 
 // Gets value of type T from the attribute 'name'
@@ -174,7 +174,7 @@ CString COpNodeAttributes::GetOptionalString( const CString& name, const CString
 CPtr<CDataTensor> COpNodeAttributes::GetOptionalTensor( const CString& name, CDataTensor* defaultValue, IMathEngine& mathEngine ) const
 {
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
-	CPtr<CDataTensor> result = new CDataTensor( { 1 }, CTensorLayout(), *resultBlob );
+	CPtr<CDataTensor> result = new CDataTensor( { 1 }, CTensorLayout( 1 ), *resultBlob );
 	if( getValue( name, attributes, result, onnxNode ) ) {
 		return result;
 	}
@@ -220,7 +220,7 @@ CString COpNodeAttributes::GetRequiredString( const CString& name ) const
 CPtr<CDataTensor> COpNodeAttributes::GetRequiredTensor( const CString& name, IMathEngine& mathEngine ) const
 {
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
-	CPtr<CDataTensor> result = new CDataTensor( { 1 }, CTensorLayout(), *resultBlob );
+	CPtr<CDataTensor> result = new CDataTensor( { 1 }, CTensorLayout( 1 ), *resultBlob );
 	CheckOnnxProtocol( getValue( name, attributes, result, onnxNode ), "required attribute is missing: " + name, onnxNode );
 	return result;
 }

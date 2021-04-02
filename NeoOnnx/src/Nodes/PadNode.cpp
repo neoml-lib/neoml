@@ -55,35 +55,29 @@ CPtr<const CUserTensor> convertTensorBeforeImageResize( const CUserTensor& input
 {
 	const CTensorLayout& inputLayout = input.Layout();
 
-	if( inputLayout.DimType == DT_Onnx && heightDimIndex == static_cast<int>( BD_Height )
-		&& ( widthDimIndex == NotFound || widthDimIndex == static_cast<int>( BD_Width ) ) )
+	if( inputLayout[heightDimIndex] == BD_Height
+		&& ( widthDimIndex == NotFound || inputLayout[widthDimIndex] == static_cast<int>( BD_Width ) ) )
 	{
 		return &input;
 	}
 
-	if( inputLayout.DimType == DT_NeoML && inputLayout.OnnxOrder[heightDimIndex] == BD_Height
-		&& ( widthDimIndex == NotFound || inputLayout.OnnxOrder[widthDimIndex] == static_cast<int>( BD_Width ) ) )
-	{
-		return &input;
-	}
-
-	CDimOrder newOrder;
-	newOrder.SetBufferSize( input.Shape().Size() );
-	for( int i = 0; i < input.Shape().Size(); ++i ) {
+	CTensorLayout newLayout;
+	newLayout.SetBufferSize( input.DimCount() );
+	for( int i = 0; i < input.DimCount(); ++i ) {
 		if( i == heightDimIndex ) {
-			newOrder.Add( BD_Height );
+			newLayout.Add( BD_Height );
 		} else if( i == widthDimIndex ) {
-			newOrder.Add( BD_Width );
+			newLayout.Add( BD_Width );
 		} else if( widthDimIndex == NotFound ) {
-			newOrder.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
+			newLayout.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
 				: static_cast<TBlobDim>( i + 1 ) );
 		} else {
-			newOrder.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
+			newLayout.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
 				: static_cast<TBlobDim>( i + 2 ) );
 		}
 	}
 
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, CTensorLayout( newOrder ) ).Ptr() );
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, newLayout ).Ptr() );
 }
 
 CPtr<const CUserTensor> addImageResizeLayer( CImageResizeLayer& imageResize, CDnn& dnn, const CUserTensor& input,
@@ -116,7 +110,7 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 	// Number of padded dimensions
 	const int paddedDims = pads.Size() / 2;
 	// Index of first padded dimension
-	const int padDimIndex = input.Shape().Size() - paddedDims;
+	const int padDimIndex = input.DimCount() - paddedDims;
 	// Prefix for padding layer names
 	const CString padNamePrefix = input.Layer()->GetName() + CString( "_pad_" );
 	// Used network

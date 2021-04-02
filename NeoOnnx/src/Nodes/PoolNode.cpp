@@ -95,9 +95,9 @@ void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	}
 	pooling->SetName( Name() );
 
-	CDimOrder expectedOrder( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
-	expectedOrder.SetSize( inputShape.Size() );
-	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], CTensorLayout( expectedOrder ) ).Ptr() );
+	CTensorLayout expectedLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
+	expectedLayout.SetSize( inputShape.Size() );
+	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], expectedLayout ).Ptr() );
 	input = PadUserTensor( *input, pads, poolType == PT_Max ? -FLT_MAX : 0.f );
 
 	pooling->SetFilterHeight( kernelShape[0] );

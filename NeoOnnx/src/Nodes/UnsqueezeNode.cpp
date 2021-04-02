@@ -45,10 +45,9 @@ void CUnsqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CTensorShape outputShape;
 	calcOutputShape( inputs[0]->Shape(), axes, outputShape );
 
-	CDimOrder outputDimOrder;
-	calcOutputDimOrder( inputs[0]->Shape().Size(), inputs[0]->Layout().OnnxOrder, axes, outputDimOrder );
+	CTensorLayout outputLayout = calcOutputLayout( inputs[0]->DimCount(), inputs[0]->Layout(), axes );
 
-	outputs[0] = new CUserTensor( outputShape, CTensorLayout( outputDimOrder ),
+	outputs[0] = new CUserTensor( outputShape, outputLayout,
 		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() );
 }
 
@@ -90,49 +89,34 @@ void CUnsqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFas
 }
 
 // Calculates output tensor's dim order
-void CUnsqueezeNode::calcOutputDimOrder( int dimCount, const CDimOrder& _inputDimOrder, const CFastArray<int, 8>& axes, CDimOrder& outputDimOrder ) const
+CTensorLayout CUnsqueezeNode::calcOutputLayout( int dimCount, const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const
 {
-	CDimOrder inputDimOrder;
-	_inputDimOrder.CopyTo( inputDimOrder );
-
-	if( inputDimOrder.IsEmpty() ) {
-		inputDimOrder.SetBufferSize( dimCount );
-		for( int i = 0; i < dimCount; ++i ) {
-			inputDimOrder.Add( static_cast<TBlobDim>( i ) );
-		}
-	}
-
 	// NeoML layout
 	TBlobDim currDim = BD_BatchLength;
 	int axeIndex = 0;
 	int inputDimIndex = 0;
-	outputDimOrder.SetBufferSize( axes.Size() + inputDimOrder.Size() );
+	CTensorLayout outputLayout;
+	outputLayout.SetBufferSize( axes.Size() + inputLayout.Size() );
 
 	// Distribute unused blob dimensions among new axes
-	for( int i = 0; i < axes.Size() + inputDimOrder.Size(); ++i ) {
+	for( int i = 0; i < axes.Size() + inputLayout.Size(); ++i ) {
 		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
 			// Looking for unused blob dim
-			while( currDim < BD_Count && inputDimOrder.Find( currDim ) != NotFound ) {
+			while( currDim < BD_Count && inputLayout.Find( currDim ) != NotFound ) {
 				++currDim;
 			}
 			CheckNeoOnnxInternal( currDim != BD_Count, "Wrong dimensions number", OnnxNode );
-			outputDimOrder.Add( currDim );
+			outputLayout.Add( currDim );
+			++currDim;
 			++axeIndex;
 		} else {
-			CheckNeoOnnxInternal( inputDimIndex < inputDimOrder.Size(), "Wrong dimensions number", OnnxNode );
-			outputDimOrder.Add( inputDimOrder[inputDimIndex] );
+			CheckNeoOnnxInternal( inputDimIndex < inputLayout.Size(), "Wrong dimensions number", OnnxNode );
+			outputLayout.Add( inputLayout[inputDimIndex] );
 			++inputDimIndex;
 		}
 	}
 
-	// Check if output order is DT_Onnx
-	for( int i = 0; i < outputDimOrder.Size(); ++i ) {
-		if( outputDimOrder[i] != static_cast<TBlobDim>( i ) ) {
-			return;
-		}
-	}
-	// Output dim order is DT_Onnx
-	outputDimOrder.Empty();
+	return outputLayout;
 }
 
 } // namespace NeoOnnx

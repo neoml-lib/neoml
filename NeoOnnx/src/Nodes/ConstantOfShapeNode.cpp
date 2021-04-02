@@ -74,7 +74,7 @@ void CConstantOfShapeNode::CalculateOutput( const CObjectArray<const CTensorBase
 		outputBlob->Fill<int>( valueBlob->GetData<int>().GetValue() );
 	}
 	
-	outputs[0] = new CDataTensor( outputShape, CTensorLayout(), *outputBlob );
+	outputs[0] = new CDataTensor( outputShape, CTensorLayout( outputShape.Size() ), *outputBlob );
 }
 
 } // namespace NeoOnnx

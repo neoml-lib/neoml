@@ -45,8 +45,8 @@ void CMatMulNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CheckNeoOnnxInternal( inputs[1] != nullptr, "Undefined second input", OnnxNode );
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided second input", OnnxNode );
 
-	CheckNeoOnnxSupport( inputs[0]->Shape().Size() == 2, "3+ dimensional first input", OnnxNode );
-	CheckNeoOnnxSupport( inputs[1]->Shape().Size() == 2, "3+ dimensional second input", OnnxNode );
+	CheckNeoOnnxSupport( inputs[0]->DimCount() == 2, "3+ dimensional first input", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1]->DimCount() == 2, "3+ dimensional second input", OnnxNode );
 
 	const int batchSize = inputs[0]->Shape()[0];
 	const int inputElems = inputs[0]->Shape()[1];
@@ -60,7 +60,7 @@ void CMatMulNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( prepareTensor( *inputs[0] ).Ptr() );
 
 	CPtr<CDnnBlob> weightBlob = CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), CT_Float, 1, outputElems, inputElems );
-	weightBlob->TransposeFrom( weight->Data(), weight->Layout().OnnxOrder[0], weight->Layout().OnnxOrder[1] );
+	weightBlob->TransposeFrom( weight->Data(), weight->Layout()[0], weight->Layout()[1] );
 
 	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( dnn.GetMathEngine() );
 	fc->SetName( Name() );
@@ -77,9 +77,8 @@ void CMatMulNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 CPtr<const CTensorBase> CMatMulNode::prepareTensor( const CTensorBase& tensor ) const
 {
 	const CTensorLayout& inputLayout = tensor.Layout();
-	if( inputLayout.DimType == DT_NeoML && inputLayout.OnnxOrder[0] < BD_Height
-		&& inputLayout.OnnxOrder[1] >= BD_Height )
-	{
+	CheckNeoOnnxInternal( inputLayout.Size() == 2, "input must be 2 dimensional", OnnxNode );
+	if( inputLayout[0] < BD_Height && inputLayout[1] >= BD_Height ) {
 		return &tensor;
 	}
 
