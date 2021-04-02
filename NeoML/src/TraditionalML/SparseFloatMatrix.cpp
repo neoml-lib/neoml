@@ -229,7 +229,7 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 
 	GrowInRows( body->Desc.Height + 1 );
 	if( size > 0 ) {
-		assert( body->ElementCount <= MaxBufferSize - size );
+		NeoAssert( body->ElementCount <= MaxBufferSize - size );
 		GrowInElements( body->ElementCount + size );
 	}
 
