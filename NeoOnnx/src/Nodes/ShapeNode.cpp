@@ -44,9 +44,12 @@ void CShapeNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 {
 	CheckNeoOnnxInternal( inputs[0] != nullptr, "Undefined input", OnnxNode );
 	const CTensorShape& inputShape = inputs[0]->Shape();
-	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateVector( mathEngine, CT_Int, inputShape.Size() );
+	CTensorLayout outputLayout( 1 );
+	CBlobDesc outputBlobDesc( CT_Int );
+	outputBlobDesc.SetDimSize( outputLayout[0], inputShape.Size() );
+	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( mathEngine, CT_Int, outputBlobDesc );
 	outputBlob->CopyFrom( inputShape.GetPtr() );
-	outputs[0] = new CDataTensor( { inputShape.Size() }, CTensorLayout( 1 ), *outputBlob );
+	outputs[0] = new CDataTensor( { inputShape.Size() }, outputLayout, *outputBlob );
 }
 
 } // namespace NeoOnnx

@@ -43,8 +43,13 @@ void CGraphOutput::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
 	sink->SetName( Name() );
 
-	// Converting output into Onnx order
-	CPtr<const CTensorBase> input = ConvertTensor( *inputs[0], CTensorLayout( inputs[0]->DimCount() ) );
+	// In order to be compatible with Onnx sinks must return blobs in the onnx-friendly layout (non-transposed)
+	CPtr<const CTensorBase> input = inputs[0];
+	if( IsTransposedLayout( input->Layout() ) ) {
+		CTensorLayout onnxLayout = inputs[0]->Layout();
+		onnxLayout.QuickSort<Ascending<TBlobDim>>();
+		input = ConvertTensor( *input, onnxLayout );
+	}
 	const CLayerOutput& layerOutput = dynamic_cast<const CUserTensor*>( input.Ptr() )->LayerOutput();
 	sink->Connect( 0, *layerOutput.Layer, layerOutput.OutputIndex );
 

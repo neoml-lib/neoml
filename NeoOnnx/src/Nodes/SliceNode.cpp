@@ -197,7 +197,7 @@ CPtr<const CUserTensor> CSliceNode::prepareInputForSlice( const CUserTensor& inp
 	CTensorLayout outputLayout;
 	outputLayout.SetBufferSize( input.DimCount() );
 	for( int i = 0; i < input.DimCount(); ++i ) {
-		outputLayout[i] = static_cast<TBlobDim>( i );
+		outputLayout.Add( static_cast<TBlobDim>( i ) );
 	}
 	swap( outputLayout[axis], outputLayout[0] );
 

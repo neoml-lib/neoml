@@ -63,9 +63,10 @@ void CConstantOfShapeNode::CalculateOutput( const CObjectArray<const CTensorBase
 	inputShapeBlob->CopyTo( outputShape.GetPtr() );
 
 	// Generating output blob
+	CTensorLayout outputLayout( outputShape.Size() );
 	CBlobDesc outputBlobDesc( valueBlob->GetDataType() );
 	for( int i = 0; i < outputShape.Size(); ++i ) {
-		outputBlobDesc.SetDimSize( i, outputShape[i] );
+		outputBlobDesc.SetDimSize( outputLayout[i], outputShape[i] );
 	}
 	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( mathEngine, valueBlob->GetDataType(), outputBlobDesc );
 	if( outputBlob->GetDataType() == CT_Float ) {
@@ -74,7 +75,7 @@ void CConstantOfShapeNode::CalculateOutput( const CObjectArray<const CTensorBase
 		outputBlob->Fill<int>( valueBlob->GetData<int>().GetValue() );
 	}
 	
-	outputs[0] = new CDataTensor( outputShape, CTensorLayout( outputShape.Size() ), *outputBlob );
+	outputs[0] = new CDataTensor( outputShape, outputLayout, *outputBlob );
 }
 
 } // namespace NeoOnnx

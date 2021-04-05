@@ -47,9 +47,14 @@ void CReshapeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CTensorShape outputShape;
 	getShape( inputs, outputShape );
 
-	// In order to process tensors correctly reshape is allowed only in DT_Onnx
-	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0],
-		CTensorLayout( inputs[0]->DimCount() ) ).Ptr() );
+	// In order to process tensors correctly reshape is not allowed in transposed layouts
+	CPtr<const CUserTensor> input;
+	if( IsTransposedLayout( inputs[0]->Layout() ) ) {
+		input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0],
+			CTensorLayout( inputs[0]->DimCount() ) ).Ptr() );
+	} else {
+		input = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
+	}
 	const CTensorShape& inputShape = input->Shape();
 
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
@@ -62,36 +67,39 @@ void CReshapeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 
 	int remainder = tensorSize;
 	int remainderIndex = NotFound;
-	for( int dim = 0; dim < outputShape.Size(); ++dim ) {
+	CTensorLayout outputLayout( outputShape.Size() );
+	for( int dimIndex = 0; dimIndex < outputShape.Size(); ++dimIndex ) {
 		CTransformLayer::CDimensionRule rule;
-		if( outputShape[dim] > 0 ) {
-			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, outputShape[dim] );
-			remainder /= outputShape[dim];
-		} else if( outputShape[dim] == 0 ) {
+		if( outputShape[dimIndex] > 0 ) {
+			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, outputShape[dimIndex] );
+			remainder /= outputShape[dimIndex];
+		} else if( outputShape[dimIndex] == 0 ) {
 			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_Multiply, 1 );
-			outputShape[dim] = inputShape[dim];
-			remainder /= outputShape[dim];
-		} else if( outputShape[dim] == -1 ) {
-			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, outputShape[dim] );
-			remainderIndex = dim;
+			outputShape[dimIndex] = inputShape[dimIndex];
+			remainder /= outputShape[dimIndex];
+		} else if( outputShape[dimIndex] == -1 ) {
+			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, outputShape[dimIndex] );
+			remainderIndex = dimIndex;
 		} else {
 			CheckOnnxProtocol( false, "Wrong shape value", OnnxNode );
 		}
-		transform->SetDimensionRule( static_cast<TBlobDim>( dim ), rule );
+		transform->SetDimensionRule( outputLayout[dimIndex], rule );
 	}
+
 	if( remainderIndex != NotFound ) {
 		outputShape[remainderIndex] = remainder;
 	}
 
-	for( int dim = outputShape.Size(); dim < BD_Count; ++dim ) {
-		transform->SetDimensionRule( static_cast<TBlobDim>( dim ),
-			CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
+	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
+		if( outputLayout.Find( dim ) == NotFound ) {
+			transform->SetDimensionRule( dim, CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
+		}
 	}
 
 	transform->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *transform );
 
-	outputs[0] = new CUserTensor( outputShape, CTensorLayout( outputShape.Size() ), CLayerOutput( transform, 0 ) );
+	outputs[0] = new CUserTensor( outputShape, outputLayout, CLayerOutput( transform, 0 ) );
 }
 
 // Gets output shape

@@ -57,14 +57,15 @@ void CGraphInput::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */
 	CBlobDesc outputBlobDesc(
 		GetBlobType( static_cast<onnx::TensorProto_DataType>( valueInfo.type().tensor_type().elem_type() ) ) );
 
-	for( int dim = 0; dim < outputShape.Size(); ++dim ) {
-		outputBlobDesc.SetDimSize( dim, outputShape[dim] );
+	CTensorLayout outputLayout( outputShape.Size() );
+	for( int dimIndex = 0; dimIndex < outputShape.Size(); ++dimIndex ) {
+		outputBlobDesc.SetDimSize( outputLayout[dimIndex], outputShape[dimIndex] );
 	}
 	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );
 	source->SetBlob( inputBlob );
 
 	dnn.AddLayer( *source );
-	outputs[0] = new CUserTensor( outputShape, CTensorLayout( outputShape.Size() ), CLayerOutput( source, 0 ) );
+	outputs[0] = new CUserTensor( outputShape, outputLayout, CLayerOutput( source, 0 ) );
 }
 
 void CGraphInput::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
