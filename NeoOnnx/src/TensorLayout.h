@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include "NeoOnnxCheck.h"
+
 namespace NeoOnnx {
 
 // Desribes how tensor is represented in memory
@@ -35,9 +37,38 @@ public:
 
 inline CTensorLayout::CTensorLayout( int dimCount )
 {
-	SetSize( dimCount );
-	for( int i = 0; i < dimCount; ++i ) {
-		operator[](i) = static_cast<TBlobDim>( i );
+	SetBufferSize( dimCount );
+	// Next dimensions are educated guesses
+	// If they'll match future layers then it will save one transform operation
+	// (transpose can't be avoided anyway)
+	switch( dimCount ) {
+		case 0:
+			// dimCount == 0 means scalar
+			break;
+		case 1:
+			Add( { BD_Channels } );
+			break;
+		case 2:
+			Add( { BD_BatchWidth, BD_Channels } );
+			break;
+		case 3:
+			Add( { BD_BatchLength, BD_BatchWidth, BD_Channels } );
+			break;
+		case 4:
+			Add( { BD_BatchWidth, BD_Height, BD_Width, BD_Channels } );
+			break;
+		case 5:
+			Add( { BD_BatchLength, BD_BatchWidth, BD_Height, BD_Width, BD_Channels } );
+			break;
+		case 6:
+			Add( { BD_BatchLength, BD_BatchWidth, BD_Height, BD_Width, BD_Depth, BD_Channels } );
+			break;
+		case 7:
+			Add( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Height, BD_Width, BD_Depth, BD_Channels } );
+			break;
+		default:
+			CheckNeoOnnxInternal( false, "unsupported dimension count" );
+			break;
 	}
 }
 
@@ -66,6 +97,17 @@ inline bool CTensorLayout::operator==( const CTensorLayout& other ) const
 	}
 
 	return true;
+}
+
+// Returns true if data in blob is not in the same order, as it would be in onnx tensor
+inline bool IsTransposedLayout( const CTensorLayout& layout )
+{
+	for( int dimIndex = 0; dimIndex < layout.Size() - 1; ++dimIndex ) {
+		if( layout[dimIndex] > layout[dimIndex + 1] ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 } // namespace NeoOnnx

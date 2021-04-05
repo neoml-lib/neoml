@@ -105,10 +105,11 @@ void extractValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPt
 	CheckOnnxProtocol( attribute.has_t(), CString( "attribute " ) + attribute.name().c_str() + " is not a tensor", onnxNode );
 	
 	TBlobType resultDataType = GetBlobType( static_cast<onnx::TensorProto_DataType>( attribute.t().data_type() ) );
+	CTensorLayout resultLayout( attribute.t().dims().size() );
 	CBlobDesc desc( resultDataType );
 	CTensorShape resultShape;
 	for( int i = 0; i < attribute.t().dims().size(); ++i ) {
-		desc.SetDimSize( i, static_cast<int>( attribute.t().dims( i ) ) );
+		desc.SetDimSize( resultLayout[i], static_cast<int>( attribute.t().dims( i ) ) );
 		resultShape.Add( static_cast<int>( attribute.t().dims( i ) ) );
 	}
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( value->Data()->GetMathEngine(), resultDataType, desc );
@@ -118,7 +119,7 @@ void extractValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPt
 	} else {
 		LoadBlobData<int>( attribute.t(), *resultBlob );
 	}
-	value = new CDataTensor( resultShape, CTensorLayout( resultShape.Size() ), *resultBlob );
+	value = new CDataTensor( resultShape, resultLayout, *resultBlob );
 }
 
 // Gets value of type T from the attribute 'name'
