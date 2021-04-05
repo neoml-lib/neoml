@@ -185,7 +185,7 @@ __global__ void BlobGlobalMaxPoolingSortKernel( const CCudaGlobalMaxPoolingDescI
 					sourceIndex = curIndex;
 				}
 				unsigned int value = ( unsigned int )__ldg( sourceData + sourceIndex );
-				unsigned int histValue = ( value >> bin ) & ( histSize - 1 );
+				unsigned int histValue = ~( value >> bin ) & ( histSize - 1 );
 				sharedHistogram[histValue] += 1;
 				curIndex += totalChannels;
 			}
@@ -234,9 +234,9 @@ __global__ void BlobGlobalMaxPoolingSortKernel( const CCudaGlobalMaxPoolingDescI
 			for( int i = 0; i < count; ++i ) {
 				int sourceIndex = indicesSorted[curIndex];
 				unsigned int value = ( unsigned int )__ldg( sourceData + sourceIndex );
-				unsigned int histValue = ( value >> bin ) & ( histSize - 1 );
+				unsigned int histValue = ~( value >> bin ) & ( histSize - 1 );
 				int newIndex = outOffset + batchIndex + ( sharedHistogram[histValue] + sumSharedHistogram[histValue] ) * totalChannels + c;
-				indicesSorted[newIndex] = count; // sourceIndex;
+				indicesSorted[newIndex] = sourceIndex;
 				curIndex += totalChannels;
 				sharedHistogram[histValue]++;
 			}
@@ -247,16 +247,17 @@ __global__ void BlobGlobalMaxPoolingSortKernel( const CCudaGlobalMaxPoolingDescI
 		outOffset ^= source.BlobSize();
 	}
 
-
-	if( b < source.ObjectCount() && c < totalChannels && threadIdx.y == 0 ) {
-		int sortedIndex = outOffset + (( b + 1 ) * poolSize - 1 ) * totalChannels + c;
+	if( b < source.ObjectCount() && c < totalChannels ) {
+		int step = ( maxCount + blockDim.y - 1 ) / blockDim.y;
+		int sortedIndex = inOffset + b * poolSize * totalChannels + c;
 		int outIndex = b * maxCount * totalChannels + c;
-		for( int i = 0; i < maxCount; ++i ) {
+
+		for( int i = 0; i < maxCount; i += step ) {
 			int index = indicesSorted[sortedIndex];
 			maxIndicesData[outIndex] = ( index - c ) / totalChannels - b * poolSize;
 			resultData[outIndex] = sourceData[index];
-			sortedIndex -= totalChannels;
-			outIndex += totalChannels;
+			sortedIndex += step * totalChannels;
+			outIndex += step * totalChannels;
 		}
 	}
 }

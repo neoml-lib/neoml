@@ -272,14 +272,13 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 			GetRaw( maxIndicesData ), GetRaw( indicesSorted.GetHandle() ), GetRaw( resultData ), poolSize, maxCount, poolSizeNorm, numBins );
 
 		printf("blob size = %d %d %d %d\n", source.BlobSize(), source.BatchWidth(), source.Width(), source.Channels());
-
+		/*
 		printf("\n");
-		for( int i = 0; i < 2 * source.BlobSize(); ++i ){
+		for( int i = 0; i < 2 * source.BlobSize(); i++ ){
 			printf("%d ", indicesSorted.GetValueAt( i ));
 		}
 		printf("\n");
 
-		/*
 		printf("\n");
 		for( int i = 0; i < 2 * source.BlobSize(); ++i ){
 			printf("%d ", indicesSortedPtr[i]);
