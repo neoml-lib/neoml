@@ -33,7 +33,7 @@ Multi-threading support
 
 The math engine interface is thread-safe; the same instance may be used in different networks and different threads. Note that this may entail some synchronization overhead.
 
-However, the `neural network implementation <:ref:`py-submodule-dnn`>`_ is not thread-safe; the network may run only in one thread.
+However, the :ref:`neural network implementation <py-submodule-dnn>` is not thread-safe; the network may run only in one thread.
 
 .. ONNX support
    ********************
