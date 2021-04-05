@@ -25,26 +25,26 @@ limitations under the License.
 namespace NeoOnnx {
 
 CSoftmaxNode::CSoftmaxNode( const onnx::NodeProto& softmax, int opsetVersion ) :
-	COpNode( softmax, opsetVersion ),
+	CLayerOpNode( softmax, opsetVersion ),
 	axis( Attributes.GetOptionalInt( "axis", 1 ) )
 {
 	// The differences between versions are in negative axis support
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", softmax );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	// Negative axis index supported since v11
-	CheckOnnxProtocol( axis >= 0 || opsetVersion >= 11, "negative axis index", softmax );
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", softmax );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", softmax );
+	CheckOnnxProtocol( axis >= 0 || opsetVersion >= 11, "negative axis index", *this );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CSoftmaxNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Unknown input", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Unknown input", *this );
 
 	const int dimCount = inputs[0]->DimCount();
-	CheckNeoOnnxSupport( axis <= 3, "more than 3 batch dimensions", OnnxNode );
-	CheckNeoOnnxSupport( dimCount - axis + 1 <= 4, "more than 4 object  dimensions", OnnxNode );
+	CheckNeoOnnxSupport( axis <= 3, "more than 3 batch dimensions", *this );
+	CheckNeoOnnxSupport( dimCount - axis + 1 <= 4, "more than 4 object  dimensions", *this );
 
 	CTensorLayout compatibleLayout = getCompatibleLayout( dimCount, axis, inputs[0]->Layout() );
 	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], compatibleLayout ).Ptr() );

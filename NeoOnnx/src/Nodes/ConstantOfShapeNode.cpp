@@ -27,25 +27,25 @@ CConstantOfShapeNode::CConstantOfShapeNode( const onnx::NodeProto& constantOfSha
 	COpNode( constantOfShape, opsetVersion )
 {
 	// v9 - original
-	CheckOnnxProtocol( OpsetVersion >= 9, "wrong opset version", constantOfShape );
-	CheckNeoOnnxSupport( OpsetVersion <= MaxOpsetVersion, "opset version", constantOfShape );
+	CheckOnnxProtocol( OpsetVersion >= 9, "wrong opset version", *this );
+	CheckNeoOnnxSupport( OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", constantOfShape );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constantOfShape );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CConstantOfShapeNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
 	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	CheckNeoOnnxInternal( false, "Illegal call: CConstantOfShapeNode::AddLayers", OnnxNode );
+	CheckNeoOnnxInternal( false, "Illegal call: CConstantOfShapeNode::AddLayers", *this );
 }
 
 void CConstantOfShapeNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "user-provided input", OnnxNode );
+	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "user-provided input", *this );
 	const CDnnBlob* inputShapeBlob = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data();
-	CheckNeoOnnxSupport( inputShapeBlob->GetDataType() == CT_Int, "non-integer input tensor", OnnxNode );
+	CheckNeoOnnxSupport( inputShapeBlob->GetDataType() == CT_Int, "non-integer input tensor", *this );
 
 	// If "value" attribute is not set then float 0.f is assumed
 	CPtr<const CDnnBlob> valueBlob;

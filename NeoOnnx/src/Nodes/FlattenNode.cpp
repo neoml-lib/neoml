@@ -24,26 +24,26 @@ limitations under the License.
 namespace NeoOnnx {
 
 CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion ) :
-	COpNode( flatten, opsetVersion ),
+	CLayerOpNode( flatten, opsetVersion ),
 	axis( Attributes.GetOptionalInt( "axis", 1 ) )
 {
 	// v1 - original
 	// v9 - added different data types support
 	// v11 - added negative axis index support
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", flatten );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", flatten );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", flatten );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 
 	if( opsetVersion < 11 ) {
-		CheckOnnxProtocol( axis >= 0, "negative axis index", flatten );
+		CheckOnnxProtocol( axis >= 0, "negative axis index", *this );
 	}
 }
 
 void CFlattenNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
 
 	// Every operator which somehow changes Onnx tensor's shape or dimensions works only with Onnx dim type
 	// Otherwise it'll lead to hardly fixable troubles with data-ordering

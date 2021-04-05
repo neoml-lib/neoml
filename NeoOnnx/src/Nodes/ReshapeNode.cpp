@@ -25,24 +25,24 @@ limitations under the License.
 namespace NeoOnnx {
 
 CReshapeNode::CReshapeNode( const onnx::NodeProto& reshape, int opsetVersion ) :
-	COpNode( reshape, opsetVersion )
+	CLayerOpNode( reshape, opsetVersion )
 {
 	// v1 - original
 	// v5 - removed legacy optimization attribute, "shape" moved from attributes to inputs, supported new data types
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", reshape );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 5 ) {
-		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", reshape );
+		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
 	} else {
-		CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", reshape );
+		CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", *this );
 	}
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", reshape );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CReshapeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "unknown input", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "unknown input", *this );
 
 	CTensorShape outputShape;
 	getShape( inputs, outputShape );
@@ -81,7 +81,7 @@ void CReshapeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, outputShape[dimIndex] );
 			remainderIndex = dimIndex;
 		} else {
-			CheckOnnxProtocol( false, "Wrong shape value", OnnxNode );
+			CheckOnnxProtocol( false, "Wrong shape value", *this );
 		}
 		transform->SetDimensionRule( outputLayout[dimIndex], rule );
 	}
@@ -110,9 +110,9 @@ void CReshapeNode::getShape( const CObjectArray<const CTensorBase>& inputs, CTen
 		return;
 	}
 
-	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided output shape", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided output shape", *this );
 	const CDnnBlob* shapeBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
-	CheckOnnxProtocol( shapeBlob->GetDataType() == CT_Int, "Non-integer shape", OnnxNode );
+	CheckOnnxProtocol( shapeBlob->GetDataType() == CT_Int, "Non-integer shape", *this );
 	shape.SetSize( shapeBlob->GetDataSize() );
 	shapeBlob->CopyTo( shape.GetPtr() );
 }

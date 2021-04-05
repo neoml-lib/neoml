@@ -27,31 +27,31 @@ CGatherNode::CGatherNode( const onnx::NodeProto& gather, int opsetVersion ) :
 	COpNode( gather, opsetVersion )
 {
 	// v1 - original
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", gather );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", gather );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gather );
+	CheckOnnxProtocol( InputCount() == 2, "node must have 2 inputs", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CGatherNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
 	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	CheckNeoOnnxSupport( false, "user-provided input", OnnxNode );
+	CheckNeoOnnxSupport( false, "user-provided input", *this );
 }
 
 void CGatherNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
 {
 	// This is a stub for a specific case: integer 1-dimensional data
-	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "User-provided data", OnnxNode );
-	CheckNeoOnnxSupport( inputs[0]->DimCount() == 1, "2+ dimensional data", OnnxNode );
+	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "User-provided data", *this );
+	CheckNeoOnnxSupport( inputs[0]->DimCount() == 1, "2+ dimensional data", *this );
 	const CDnnBlob* dataBlob = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data();
-	CheckNeoOnnxSupport( dataBlob->GetDataType() == CT_Int, "non-integer data", OnnxNode );
+	CheckNeoOnnxSupport( dataBlob->GetDataType() == CT_Int, "non-integer data", *this );
 
-	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided indices", OnnxNode );
-	CheckNeoOnnxSupport( inputs[1]->DimCount() <= 1, "2+ dimensional indices", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided indices", *this );
+	CheckNeoOnnxSupport( inputs[1]->DimCount() <= 1, "2+ dimensional indices", *this );
 	const CDnnBlob* indicesBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
-	CheckNeoOnnxInternal( indicesBlob->GetDataType() == CT_Int, "non-integer indices", OnnxNode );
+	CheckNeoOnnxInternal( indicesBlob->GetDataType() == CT_Int, "non-integer indices", *this );
 
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( mathEngine, CT_Int, indicesBlob->GetDesc() );
 	

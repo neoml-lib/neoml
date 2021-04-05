@@ -25,10 +25,13 @@ class AttributeProto;
 
 namespace NeoOnnx {
 
+// Forward declaration(s)
+class COpNode;
+
 // Onnx operator node attributes
 class COpNodeAttributes {
 public:
-	explicit COpNodeAttributes( const onnx::NodeProto& node );
+	COpNodeAttributes( const onnx::NodeProto& onnxNode, const COpNode& node );
 
 	bool Has( const CString& name ) const { return attributes.Has( name ); }
 
@@ -52,7 +55,7 @@ public:
 	CPtr<CDataTensor> GetRequiredTensor( const CString& name, IMathEngine& mathEngine ) const;
 
 private:
-	const onnx::NodeProto& onnxNode; // reference to the node for error handling
+	const COpNode& node; // reference to the node for error handling
 	CMap<CString, const onnx::AttributeProto*> attributes; // mapping between attribute keys and values
 };
 

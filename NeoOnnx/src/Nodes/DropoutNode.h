@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Dropout operator graph node
-class CDropoutNode : public COpNode {
+class CDropoutNode : public CLayerOpNode {
 public:
 	CDropoutNode( const onnx::NodeProto& dropout, int opsetVersion );
 

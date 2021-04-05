@@ -25,19 +25,19 @@ limitations under the License.
 namespace NeoOnnx {
 
 CBatchNormalizationNode::CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, int opsetVersion ) :
-	COpNode( batchNormalization, opsetVersion ),
+	CLayerOpNode( batchNormalization, opsetVersion ),
 	eps( Attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
 {
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", batchNormalization );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckNeoOnnxSupport( OpsetVersion > 6 || Attributes.GetOptionalInt( "is_test", 0 ) != 0,
-		"training batch normalization is not supported", batchNormalization );
+		"training batch normalization is not supported", *this );
 
-	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "node must have 5 or 6 inputs", OnnxNode );
-	CheckNeoOnnxSupport( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "node must have 5 or 6 inputs", *this );
+	CheckNeoOnnxSupport( OutputCount() == 1, "node must have 1 output", *this );
 	if( OpsetVersion < 9 ) {
 		CheckNeoOnnxSupport( Attributes.GetOptionalInt( "spatial", 1 ) != 0,
-			"non-spatial batch norm" );
+			"non-spatial batch norm", *this );
 	}
 }
 
@@ -91,9 +91,9 @@ CPtr<const CUserTensor> CBatchNormalizationNode::convertInput( const CUserTensor
 CPtr<CDnnBlob> CBatchNormalizationNode::calculateFinalParams( int channels, const CObjectArray<const CTensorBase>& inputs )
 {
 	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
-		CheckNeoOnnxSupport( inputs[inputIndex]->IsCalculated(), "non-constant weights", OnnxNode );
-		CheckOnnxProtocol( inputs[inputIndex]->DimCount() == 1, "weights must be 1-dimensional", OnnxNode );
-		CheckOnnxProtocol( inputs[inputIndex]->Shape()[0] == channels, "weights must have 'channels' length", OnnxNode );
+		CheckNeoOnnxSupport( inputs[inputIndex]->IsCalculated(), "non-constant weights", *this );
+		CheckOnnxProtocol( inputs[inputIndex]->DimCount() == 1, "weights must be 1-dimensional", *this );
+		CheckOnnxProtocol( inputs[inputIndex]->Shape()[0] == channels, "weights must have 'channels' length", *this );
 	}
 
 	const CDnnBlob* scale = dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();

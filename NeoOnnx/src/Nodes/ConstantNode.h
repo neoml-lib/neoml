@@ -29,9 +29,6 @@ public:
 		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
 	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) override;
-
-	// COpNode methods
-	void UserInputMask( CUserInputMask& mask ) const override {}
 };
 
 } // namespace NeoOnnx

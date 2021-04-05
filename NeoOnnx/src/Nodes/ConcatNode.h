@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Concat operator graph node
-class CConcatNode : public COpNode {
+class CConcatNode : public CLayerOpNode {
 public:
 	CConcatNode( const onnx::NodeProto& concat, int opsetVersion );
 
@@ -30,12 +30,10 @@ public:
 
 	// COpNode methods
 	void UserInputMask( CUserInputMask& mask ) const override
-		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
+		{ mask.Add( true, InputCount() ); }
 
 private:
 	CPtr<CBaseLayer> createLayer( TBlobDim concatDim, IMathEngine& mathEngine ) const;
-	CPtr<const CUserTensor> prepareInput( const CObjectArray<const CTensorBase>& inputs,
-		int inputIndex, const CTensorLayout& layout, CDnn& dnn ) const;
 };
 
 } // namespace NeoOnnx

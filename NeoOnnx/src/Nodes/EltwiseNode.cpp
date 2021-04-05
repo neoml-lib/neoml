@@ -108,15 +108,15 @@ CPtr<const CUserTensor> addUpsample2dLayer( CUpsampling2DLayer& upsample, CDnn& 
 //---------------------------------------------------------------------------------------------------------------------
 
 CEltwiseNodeBase::CEltwiseNodeBase( const onnx::NodeProto& eltwise, int opsetVersion,
-	TOperation _operation, int _argsNum ) :
-	COpNode( eltwise, opsetVersion ),
+		TOperation _operation, int _argsNum ) :
+	CLayerOpNode( eltwise, opsetVersion ),
 	operation( _operation ),
 	argsNum( _argsNum )
 {
 	if( argsNum > 0 ) {
-		CheckOnnxProtocol( InputCount() == argsNum, "expected " + Str( argsNum ) + " arguments", OnnxNode );
+		CheckOnnxProtocol( InputCount() == argsNum, "expected " + Str( argsNum ) + " arguments", *this );
 	}
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CEltwiseNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
@@ -134,7 +134,7 @@ void CEltwiseNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	for( int i = 1; i < inputs.Size(); ++i ) {
 		CTensorShape buff;
 		CheckNeoOnnxSupport( broadcastShape( outputShape, inputs[i]->Shape(), BroadcastInfo(), buff ),
-			"Can't broadcast tensors shape", OnnxNode );
+			"Can't broadcast tensors shape", *this );
 		buff.CopyTo( outputShape );
 	}
 
@@ -171,7 +171,7 @@ void CEltwiseNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	eltwise->SetName( Name() );
 	for( int i = 0; i < currInputs.Size(); ++i ) {
 		// TODO: Debug-only, delete later
-		CheckNeoOnnxInternal( !currInputs[i]->IsCalculated(), "By this moment all tensors must be user-provided", OnnxNode );
+		CheckNeoOnnxInternal( !currInputs[i]->IsCalculated(), "By this moment all tensors must be user-provided", *this );
 		const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( currInputs[i].Ptr() );
 		eltwise->Connect( i, *userInput->Layer(), userInput->OutputIndex() );
 	}
@@ -197,7 +197,7 @@ bool CEltwiseNodeBase::broadcastShape( const CTensorShape& first, const CTensorS
 	int axis = NotFound;
 	if( broadcast.Type == BT_Onnx ) {
 		axis = broadcast.Axis;
-		CheckNeoOnnxSupport( second.Size() <= first.Size(), "second tensor has more dimensions", OnnxNode );
+		CheckNeoOnnxSupport( second.Size() <= first.Size(), "second tensor has more dimensions", *this );
 		if( axis < 0 ) {
 			axis = abs( first.Size() - second.Size() );
 		}
@@ -219,7 +219,7 @@ bool CEltwiseNodeBase::broadcastShape( const CTensorShape& first, const CTensorS
 	}
 	// TODO: Debug-only, delete later
 	CheckNeoOnnxInternal( broadcast.Type == BT_Onnx || paddedShape.Size() == biggerShape.Size(),
-		"something wrong with Numpy broadcast", OnnxNode );
+		"something wrong with Numpy broadcast", *this );
 
 	// This will add ones only in case of BT_Onnx and axis != abs( first.Size() - second.Size() )
 	paddedShape.Add( 1, biggerShape.Size() - paddedShape.Size() );
@@ -241,7 +241,7 @@ bool CEltwiseNodeBase::broadcastShape( const CTensorShape& first, const CTensorS
 CPtr<const CTensorBase> CEltwiseNodeBase::prepareSecondInput( const CObjectArray<const CTensorBase>& inputs ) const
 {
 	static_assert( O_Count == 4, "O_Count != 4" );
-	CheckNeoOnnxInternal( inputs.Size() == 2, "Illegal CEltwiseNodeBase::prepareSecondInput call", OnnxNode );
+	CheckNeoOnnxInternal( inputs.Size() == 2, "Illegal CEltwiseNodeBase::prepareSecondInput call", *this );
 	if( operation == O_Mul || operation == O_Add ) {
 		// Add and Mul already have corresponding layers 
 		return inputs[1];
@@ -273,7 +273,7 @@ CPtr<const CTensorBase> CEltwiseNodeBase::prepareSecondInput( const CObjectArray
 	// operation is O_Div
 	// a / b = a * (1 / b)
 	// in that case we can't imitate (1 / x) operation by layer that's why only CDataTensor is supported
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "Div supports only data tensor as second input", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "Div supports only data tensor as second input", *this );
 	CPtr<const CDataTensor> secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
 	CPtr<CDnnBlob> newBlob = secondInput->Data()->GetClone();
 	newBlob->GetMathEngine().VectorInv( secondInput->Data()->GetData(), newBlob->GetData(), newBlob->GetDataSize() );
@@ -298,7 +298,7 @@ CPtr<const CDataTensor> CEltwiseNodeBase::broadcast( const CDataTensor& input, c
 		return &input;
 	}
 
-	CheckNeoOnnxInternal( broadcastInfo.Type != BT_None, "Cannot broadcast tensor", OnnxNode );
+	CheckNeoOnnxInternal( broadcastInfo.Type != BT_None, "Cannot broadcast tensor", *this );
 
 	IMathEngine& mathEngine = input.Data()->GetMathEngine();
 	CRandom random( 0x32456 );
@@ -311,7 +311,7 @@ CPtr<const CDataTensor> CEltwiseNodeBase::broadcast( const CDataTensor& input, c
 	CPtr<const CUserTensor> internalInput = new CUserTensor( input.Shape(), input.Layout(), CLayerOutput( source, 0 ) );
 	CPtr<const CUserTensor> internalOutput = broadcast( *internalInput, broadcastInfo, outputShape );
 	// TODO: delete after debug
-	CheckNeoOnnxInternal( isEqual( internalOutput->Shape(), outputShape ), "User tensor broadcast bug!", OnnxNode );
+	CheckNeoOnnxInternal( isEqual( internalOutput->Shape(), outputShape ), "User tensor broadcast bug!", *this );
 
 	CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
 	sink->Connect( 0, *internalOutput->Layer(), internalOutput->OutputIndex() );
@@ -330,7 +330,7 @@ CPtr<const CUserTensor> CEltwiseNodeBase::broadcast( const CUserTensor& input, c
 		return &input;
 	}
 
-	CheckNeoOnnxInternal( broadcastInfo.Type != BT_None, "Wrong broadcast type", OnnxNode );
+	CheckNeoOnnxInternal( broadcastInfo.Type != BT_None, "Wrong broadcast type", *this );
 	CheckNeoOnnxInternal( input.DimCount() <= outputShape.Size(), "Broadcast cannot reduce dimension count" );
 
 	// Prefix for upsmaple layer names
@@ -357,7 +357,7 @@ CPtr<const CUserTensor> CEltwiseNodeBase::broadcast( const CUserTensor& input, c
 			continue;
 		}
 		// TODO: delete after debug
-		CheckNeoOnnxInternal( inputShape[i] == 1, "User tensor broadcast bug!", OnnxNode );
+		CheckNeoOnnxInternal( inputShape[i] == 1, "User tensor broadcast bug!", *this );
 
 		if( upsample == nullptr ) {
 			upsample = new CUpsampling2DLayer( mathEngine );
@@ -392,7 +392,7 @@ CPtr<const CUserTensor> CEltwiseNodeBase::broadcast( const CUserTensor& input, c
 CPtr<const CUserTensor> CEltwiseNodeBase::padTensorShape( const CUserTensor& input, int dimCount, int axis ) const
 {
 	const CTensorShape& inputShape = input.Shape();
-	CheckNeoOnnxInternal( axis + inputShape.Size() <= dimCount, "Wrong axis in broadcast", OnnxNode );
+	CheckNeoOnnxInternal( axis + inputShape.Size() <= dimCount, "Wrong axis in broadcast", *this );
 
 	CTensorShape outputShape;
 	outputShape.Add( 1, axis );
@@ -409,7 +409,7 @@ CPtr<const CUserTensor> CEltwiseNodeBase::padTensorShape( const CUserTensor& inp
 		while( inputLayout.Find( currDim ) != NotFound && currDim < BD_Count ) {
 			++currDim;
 		}
-		CheckNeoOnnxInternal( currDim != BD_Count, "Wrong axis index", OnnxNode );
+		CheckNeoOnnxInternal( currDim != BD_Count, "Wrong axis index", *this );
 		outputLayout.Add( currDim );
 		++currDim;
 	}
@@ -420,7 +420,7 @@ CPtr<const CUserTensor> CEltwiseNodeBase::padTensorShape( const CUserTensor& inp
 		while( inputLayout.Find( currDim ) != NotFound && currDim < BD_Count ) {
 			++currDim;
 		}
-		CheckNeoOnnxInternal( currDim != BD_Count, "Wrong axis index", OnnxNode );
+		CheckNeoOnnxInternal( currDim != BD_Count, "Wrong axis index", *this );
 		outputLayout.Add( currDim );
 		++currDim;
 	}

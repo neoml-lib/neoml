@@ -26,15 +26,15 @@ limitations under the License.
 namespace NeoOnnx {
 
 CConvNode::CConvNode( const onnx::NodeProto& conv, int opsetVersion ) :
-	COpNode( conv, opsetVersion ),
+	CLayerOpNode( conv, opsetVersion ),
 	group( Attributes.GetOptionalInt( "group", 1 ) ),
 	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
 	// The differences between versions are in default values of some flags and supported data types
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", conv );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", conv );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", conv );
+	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 
 	Attributes.GetOptionalIntArray( "strides", strides );
 	Attributes.GetOptionalIntArray( "pads", pads );
@@ -46,7 +46,7 @@ void CConvNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 {
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 5,
-		"wrong input tensor's dimensions number", OnnxNode );
+		"wrong input tensor's dimensions number", *this );
 	const int convDims = static_cast<int>( inputShape.Size() ) - 2;
 
 	if( strides.IsEmpty() ) {
@@ -61,11 +61,11 @@ void CConvNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 
 	// Check groups (NeoML supports only 2D, 3D and Channelwise2D convolutions)
 	CheckNeoOnnxSupport( group == 1 || ( group == inputShape[1] && convDims < 3 ),
-		"grouped convolutiion (non-channelwise)", OnnxNode );
+		"grouped convolutiion (non-channelwise)", *this );
 
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", OnnxNode );
+		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", *this );
 	}
 
 	// Calculate padding
@@ -92,7 +92,7 @@ void CConvNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	} else if( inputShape.Size() == 5 ) {
 		add3dConvLayer( inputs, outputs, dnn );
 	} else {
-		CheckNeoOnnxSupport( false, "1-dimensional conv", OnnxNode );
+		CheckNeoOnnxSupport( false, "1-dimensional conv", *this );
 	}
 }
 
@@ -116,8 +116,8 @@ void CConvNode::add2dConvLayer( const CObjectArray<const CTensorBase>& inputs,
 		conv = new CConvLayer( mathEngine );
 		filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoML2dLayout ).Ptr() );
 	} else {
-		CheckNeoOnnxSupport( filterCount == inputChannels, "non-trivial grouped conv", OnnxNode);
-		CheckNeoOnnxSupport( group == inputChannels, "non-trivial grouped conv", OnnxNode );
+		CheckNeoOnnxSupport( filterCount == inputChannels, "non-trivial grouped conv", *this );
+		CheckNeoOnnxSupport( group == inputChannels, "non-trivial grouped conv", *this );
 		conv = new CChannelwiseConvLayer( mathEngine );
 		// In channelwise convolution filter has specific layout
 		const CTensorLayout filterLayout( { BD_Channels, BD_BatchWidth, BD_Height, BD_Width } );
@@ -169,9 +169,9 @@ void CConvNode::add3dConvLayer( const CObjectArray<const CTensorBase>& inputs,
 	const int filterWidth = filterShape[3];
 	const int filterDepth = filterShape[4];
 
-	CheckNeoOnnxSupport( group == 1, "groupped 3d convolution", OnnxNode );
+	CheckNeoOnnxSupport( group == 1, "groupped 3d convolution", *this );
 	for( int dimIndex = 0; dimIndex < dilations.Size(); ++dimIndex ) {
-		CheckNeoOnnxSupport( dilations[dimIndex] == 1, "dilated 3d convolution", OnnxNode );
+		CheckNeoOnnxSupport( dilations[dimIndex] == 1, "dilated 3d convolution", *this );
 	}
 
 	CPtr<C3dConvLayer> conv = new C3dConvLayer( dnn.GetMathEngine() );

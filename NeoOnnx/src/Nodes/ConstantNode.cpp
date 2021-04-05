@@ -30,21 +30,21 @@ CConstantNode::CConstantNode( const onnx::NodeProto& constant, int opsetVersion 
 	// v9 - supported new data types
 	// v11 - added "sparse_value" attribute
 	// v12 - added new attributes: "value_*"
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", constant );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 0, "node must have no inputs", constant );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", constant );
+	CheckOnnxProtocol( InputCount() == 0, "node must have no inputs", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 
 	if( OpsetVersion >= 11 ) {
 		// NeoOnnx supports only "value" attribute
-		CheckNeoOnnxSupport( Attributes.Has( "value" ), "non-trivial value attribute", constant );
+		CheckNeoOnnxSupport( Attributes.Has( "value" ), "non-trivial value attribute", *this );
 	}
 }
 
 void CConstantNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
 	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	CheckNeoOnnxInternal( false, "Illegal call: CConstantNode::AddLayers", OnnxNode );
+	CheckNeoOnnxInternal( false, "Illegal call: CConstantNode::AddLayers", *this );
 }
 
 void CConstantNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,

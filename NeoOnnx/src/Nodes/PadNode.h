@@ -30,7 +30,7 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 //---------------------------------------------------------------------------------------------------------------------
 
 // Pad operator graph node
-class CPadNode : public COpNode {
+class CPadNode : public CLayerOpNode {
 public:
 	CPadNode( const onnx::NodeProto& pad, int opsetVersion );
 

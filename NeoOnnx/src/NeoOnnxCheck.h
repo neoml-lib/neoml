@@ -17,9 +17,9 @@ limitations under the License.
 
 #include <exception>
 
-#include "onnx.pb.h"
-
 namespace NeoOnnx {
+
+class COpNode;
 
 #ifdef NEOML_USE_FINEOBJ
 
@@ -49,10 +49,7 @@ inline void NeoOnnxCheck( bool expr, const CString& what )
 #endif
 
 // Adds node info to message 'what'
-inline CString GetMessageWithNodeInfo( const CString& what, const onnx::NodeProto& node )
-{
-	return what + " at node " + node.op_type().c_str() + "(" + node.output( 0 ).c_str() + ")";
-}
+CString GetMessageWithNodeInfo( const CString& what, const COpNode& node );
 
 // Throws std::logic_error if 'expr' is false
 // Checks if graph or nodes are sticking to the onnx protocol
@@ -63,7 +60,7 @@ inline void CheckOnnxProtocol( bool expr, const CString& what )
 	}
 }
 
-inline void CheckOnnxProtocol( bool expr, const CString& what, const onnx::NodeProto& node )
+inline void CheckOnnxProtocol( bool expr, const CString& what, const COpNode& node )
 {
 	if( !( expr ) ) {
 		CheckOnnxProtocol( false, GetMessageWithNodeInfo( what, node ) );
@@ -79,7 +76,7 @@ inline void CheckNeoOnnxSupport( bool expr, const CString& what )
 	}
 }
 
-inline void CheckNeoOnnxSupport( bool expr, const CString& what, const onnx::NodeProto& node )
+inline void CheckNeoOnnxSupport( bool expr, const CString& what, const COpNode& node )
 {
 	if( !( expr ) ) {
 		CheckNeoOnnxSupport( false, GetMessageWithNodeInfo( what, node ) );
@@ -95,7 +92,7 @@ inline void CheckNeoOnnxInternal( bool expr, const CString& what )
 	}
 }
 
-inline void CheckNeoOnnxInternal( bool expr, const CString& what, const onnx::NodeProto& node )
+inline void CheckNeoOnnxInternal( bool expr, const CString& what, const COpNode& node )
 {
 	if( !( expr ) ) {
 		CheckNeoOnnxInternal( false, GetMessageWithNodeInfo( what, node ) );

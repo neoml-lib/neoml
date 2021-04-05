@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Base class for global pool nodes
-class CGlobalPoolNodeBase : public COpNode {
+class CGlobalPoolNodeBase : public CLayerOpNode {
 public:
 	// Pooling types
 	enum TPoolType {

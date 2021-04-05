@@ -25,48 +25,48 @@ limitations under the License.
 namespace NeoOnnx {
 
 CGemmNode::CGemmNode( const onnx::NodeProto& gemm, int opsetVersion ) :
-	COpNode( gemm, opsetVersion ),
+	CLayerOpNode( gemm, opsetVersion ),
 	alpha( Attributes.GetOptionalFloat( "alpha", 1.f ) ),
 	beta( Attributes.GetOptionalFloat( "beta", 1.f ) ),
 	transA( Attributes.GetOptionalInt( "transA", 0 ) ),
 	transB( Attributes.GetOptionalInt( "transB", 0 ) )
 {
 	// Older versions have broadcast support
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", gemm );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", gemm );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", gemm );
+	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 
-	CheckNeoOnnxSupport( alpha == 1.0f, "alpha != 1", gemm );
-	CheckNeoOnnxSupport( beta == 1.0f, "beta != 1", gemm );
-	CheckNeoOnnxSupport( transA == 0, "transA != 0", gemm );
-	CheckNeoOnnxSupport( transB != 0, "transB == 0", gemm );
+	CheckNeoOnnxSupport( alpha == 1.0f, "alpha != 1", *this );
+	CheckNeoOnnxSupport( beta == 1.0f, "beta != 1", *this );
+	CheckNeoOnnxSupport( transA == 0, "transA != 0", *this );
+	CheckNeoOnnxSupport( transB != 0, "transB == 0", *this );
 	if( OpsetVersion < 7 ) {
 		const int broadcast = Attributes.GetOptionalInt( "broadcast", 0 );
-		CheckNeoOnnxSupport( broadcast != 0, "broadcast == 0", gemm );
+		CheckNeoOnnxSupport( broadcast != 0, "broadcast == 0", *this );
 	}
 }
 
 void CGemmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", OnnxNode );
+	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
 	const CTensorShape& inputShape = inputs[0]->Shape();
-	CheckOnnxProtocol( inputShape.Size() == 2, "input must be 2-dimensional", OnnxNode );
+	CheckOnnxProtocol( inputShape.Size() == 2, "input must be 2-dimensional", *this );
 	const int batchSize = inputShape[transA == 0 ? 0 : 1];
 	const int inputObjectSize = inputShape[transA == 0 ? 1 : 0];
 
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
 	const CTensorShape& matrixShape = inputs[1]->Shape();
-	CheckOnnxProtocol( matrixShape.Size() == 2, "weights must be 2-dimensional", OnnxNode );
-	CheckOnnxProtocol( matrixShape[transB == 0 ? 0 : 1] == inputObjectSize, "wrong weight size", OnnxNode );
+	CheckOnnxProtocol( matrixShape.Size() == 2, "weights must be 2-dimensional", *this );
+	CheckOnnxProtocol( matrixShape[transB == 0 ? 0 : 1] == inputObjectSize, "wrong weight size", *this );
 	const int numberOfElements = matrixShape[transB == 0 ? 1 : 0];
 
 	if( InputCount() == 3 ) {
-		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", OnnxNode );
+		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", *this );
 		const CTensorShape& biasShape = inputs[2]->Shape();
-		CheckOnnxProtocol( biasShape.Size() == 1, "bias must be 1-dimensional", OnnxNode );
-		CheckOnnxProtocol( biasShape[0] == numberOfElements, "wrong bias size", OnnxNode );
+		CheckOnnxProtocol( biasShape.Size() == 1, "bias must be 1-dimensional", *this );
+		CheckOnnxProtocol( biasShape[0] == numberOfElements, "wrong bias size", *this );
 	}
 
 	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( dnn.GetMathEngine() );

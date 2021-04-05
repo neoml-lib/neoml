@@ -25,25 +25,25 @@ limitations under the License.
 namespace NeoOnnx {
 
 CSliceNode::CSliceNode( const onnx::NodeProto& slice, int opsetVersion ) :
-	COpNode( slice, opsetVersion )
+	CLayerOpNode( slice, opsetVersion )
 {
 	// v1 - original
 	// v10 - attributes replaced with additional inputs + 'step' support
 	// v11 - added backward slicing support
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", slice );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 10 ) {
-		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", slice );
+		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
 	} else {
-		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", slice );
+		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
 	}
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", slice );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CSliceNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
 
 	CFastArray<int, 8> axes;
 	getAxes( inputs, axes );
@@ -82,9 +82,9 @@ void CSliceNode::getAxes( const CObjectArray<const CTensorBase>& inputs, CFastAr
 		}
 	} else {
 		if( inputs.Size() >= 4 && inputs[3] != nullptr ) {
-			CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided axes", OnnxNode );
+			CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided axes", *this );
 			const CDnnBlob* axesBlob = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data();
-			CheckOnnxProtocol( axesBlob->GetDataType() == CT_Int, "Non-integer axes", OnnxNode );
+			CheckOnnxProtocol( axesBlob->GetDataType() == CT_Int, "Non-integer axes", *this );
 			axes.SetSize( axesBlob->GetDataSize() );
 			axesBlob->CopyTo( axes.GetPtr() );
 		}
@@ -98,9 +98,9 @@ void CSliceNode::getStarts( const CObjectArray<const CTensorBase>& inputs, CFast
 		// Extracting from attributes
 		Attributes.GetRequiredIntArray( "starts", starts );
 	} else {
-		CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided starts", OnnxNode );
+		CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided starts", *this );
 		const CDnnBlob* startsBlob = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data();
-		CheckOnnxProtocol( startsBlob->GetDataType() == CT_Int, "Non-integer starts", OnnxNode );
+		CheckOnnxProtocol( startsBlob->GetDataType() == CT_Int, "Non-integer starts", *this );
 		starts.SetSize( startsBlob->GetDataSize() );
 		startsBlob->CopyTo( starts.GetPtr() );
 	}
@@ -113,9 +113,9 @@ void CSliceNode::getEnds( const CObjectArray<const CTensorBase>& inputs, CFastAr
 		// Extracting from attributes
 		Attributes.GetRequiredIntArray( "ends", ends );
 	} else {
-		CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided ends", OnnxNode );
+		CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided ends", *this );
 		const CDnnBlob* endsBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
-		CheckOnnxProtocol( endsBlob->GetDataType() == CT_Int, "Non-integer ends", OnnxNode );
+		CheckOnnxProtocol( endsBlob->GetDataType() == CT_Int, "Non-integer ends", *this );
 		ends.SetSize( endsBlob->GetDataSize() );
 		endsBlob->CopyTo( ends.GetPtr() );
 	}
@@ -137,9 +137,9 @@ void CSliceNode::getSteps( const CObjectArray<const CTensorBase>& inputs, CFastA
 		}
 	} else {
 		if( inputs.Size() >= 5 && inputs[4] != nullptr ) {
-			CheckNeoOnnxSupport( inputs[4]->IsCalculated(), "User-provided steps", OnnxNode );
+			CheckNeoOnnxSupport( inputs[4]->IsCalculated(), "User-provided steps", *this );
 			const CDnnBlob* stepsBlob = dynamic_cast<const CDataTensor*>( inputs[4].Ptr() )->Data();
-			CheckOnnxProtocol( stepsBlob->GetDataType() == CT_Int, "Non-integer steps", OnnxNode );
+			CheckOnnxProtocol( stepsBlob->GetDataType() == CT_Int, "Non-integer steps", *this );
 			steps.SetSize( stepsBlob->GetDataSize() );
 			stepsBlob->CopyTo( steps.GetPtr() );
 		}
@@ -149,7 +149,7 @@ void CSliceNode::getSteps( const CObjectArray<const CTensorBase>& inputs, CFastA
 // Adds slice along one axis
 CPtr<const CUserTensor> CSliceNode::sliceAxis( const CUserTensor& input, int axis, int start, int end, int step ) const
 {
-	CheckNeoOnnxSupport( step == 1 || step == -1, "Slice with step", OnnxNode );
+	CheckNeoOnnxSupport( step == 1 || step == -1, "Slice with step", *this );
 
 	const CTensorShape& inputShape = input.Shape();
 	if( axis < 0 ) {
@@ -164,7 +164,7 @@ CPtr<const CUserTensor> CSliceNode::sliceAxis( const CUserTensor& input, int axi
 		end = inputShape[axis];
 	}
 
-	CheckNeoOnnxInternal( start < end, "start >= end", OnnxNode );
+	CheckNeoOnnxInternal( start < end, "start >= end", *this );
 
 	CPtr<const CUserTensor> convertedInput = prepareInputForSlice( input, axis );
 	CTensorShape outputShape;

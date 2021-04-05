@@ -13,30 +13,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-#pragma once
+#include "common.h"
+#pragma hdrstop
 
-#include "../Node.h"
+#include "NeoOnnxCheck.h"
+#include "Node.h"
 
 namespace NeoOnnx {
 
-// Lstm operator graph node
-class CLstmNode : public CLayerOpNode {
-public:
-	CLstmNode( const onnx::NodeProto& lstm, int opsetVersion );
-
-	// CNode methods
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
-
-	// COpNode methods
-	void UserInputMask( CUserInputMask& mask ) const override
-		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
-
-private:
-	const CString direction; // LSTM's direction ("forward", "backward" or "bidirectional")
-	const int hiddenSize; // Size of hidden state vector
-
-	CPtr<CDnnBlob> reorderGates( CPtr<CDnnBlob> weights, TBlobDim dim );
-};
+CString GetMessageWithNodeInfo( const CString& what, const COpNode& node )
+{
+	return what + " at node " + node.Type() + "(" + node.Name() + ")";
+}
 
 } // namespace NeoOnnx

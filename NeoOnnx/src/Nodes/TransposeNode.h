@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Transpose operator graph node
-class CTransposeNode : public COpNode {
+class CTransposeNode : public CLayerOpNode {
 public:
 	CTransposeNode( const onnx::NodeProto& transpose, int opsetVersion );
 

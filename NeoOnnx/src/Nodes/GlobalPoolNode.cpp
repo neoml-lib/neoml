@@ -24,18 +24,18 @@ limitations under the License.
 namespace NeoOnnx {
 
 CGlobalPoolNodeBase::CGlobalPoolNodeBase( TPoolType _poolType, const onnx::NodeProto& onnxNode, int opsetVersion ) :
-	COpNode( onnxNode, opsetVersion ),
+	CLayerOpNode( onnxNode, opsetVersion ),
 	poolType( _poolType )
 {
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", OnnxNode );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CGlobalPoolNodeBase::PoolAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
 {
 	// Global pooling interpret tensor as (B x C x D0 x D1 x .. x DN)
 	// Where D0 ... DN are pooled dimensions
-	CheckOnnxProtocol( inputShape.Size() >= 2, "Global pool input must be at least 2-dimensional", OnnxNode );
+	CheckOnnxProtocol( inputShape.Size() >= 2, "Global pool input must be at least 2-dimensional", *this );
 	axes.SetBufferSize( inputShape.Size() - 2 );
 	for( int i = 2; i < inputShape.Size(); ++i ) {
 		axes.Add( i );
@@ -45,8 +45,8 @@ void CGlobalPoolNodeBase::PoolAxes( const CTensorShape& inputShape, CFastArray<i
 void CGlobalPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", OnnxNode );
-	CheckNeoOnnxSupport( inputs[0]->DimCount() <= 7, "Tensor with 8+ dimensions", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
+	CheckNeoOnnxSupport( inputs[0]->DimCount() <= 7, "Tensor with 8+ dimensions", *this );
 
 	CFastArray<int, 8> axes;
 	PoolAxes( inputs[0]->Shape(), axes );
@@ -123,7 +123,7 @@ CPtr<const CUserTensor> CGlobalPoolNodeBase::convertInputLayout( const CUserTens
 		}
 	}
 	CheckNeoOnnxSupport( pooledDims.Size() <= 3 && remainingDims.Size() <= 4,
-		"Global pooling which can't be emulated by NeoML", OnnxNode );
+		"Global pooling which can't be emulated by NeoML", *this );
 
 	if( isCompatibleLayout( inputShape, inputLayout, pooledDims, remainingDims ) ) {
 		return &input;
@@ -153,7 +153,7 @@ CPtr<const CUserTensor> CGlobalPoolNodeBase::convertInputLayout( const CUserTens
 				++currDim;
 			}
 			// Double-check
-			CheckNeoOnnxInternal( currDim != BD_Count, "Can't distribute blob dimensions between tensor dims", OnnxNode );
+			CheckNeoOnnxInternal( currDim != BD_Count, "Can't distribute blob dimensions between tensor dims", *this );
 			convertedLayout[i] = currDim;
 		}
 	}
@@ -176,7 +176,7 @@ CPtr<const CUserTensor> CGlobalPoolNodeBase::addPoolingLayer( const CUserTensor&
 			pooling = new CGlobalMeanPoolingLayer( dnn.GetMathEngine() );
 			break;
 		default:
-			CheckNeoOnnxInternal( false, "Unknown pooling type", OnnxNode );
+			CheckNeoOnnxInternal( false, "Unknown pooling type", *this );
 	}
 
 	pooling->SetName( Name() );
@@ -273,7 +273,7 @@ void CReducePoolNodeBase::PoolAxes( const CTensorShape& inputShape, CFastArray<i
 
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
-			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", OnnxNode );
+			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", *this );
 			axes[i] += inputShape.Size();
 		}
 	}

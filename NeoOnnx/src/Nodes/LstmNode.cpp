@@ -25,43 +25,43 @@ limitations under the License.
 namespace NeoOnnx {
 
 CLstmNode::CLstmNode( const onnx::NodeProto& lstm, int opsetVersion ) :
-	COpNode( lstm, opsetVersion ),
+	CLayerOpNode( lstm, opsetVersion ),
 	direction( Attributes.GetOptionalString( "direction", "forward" ) ),
 	hiddenSize( Attributes.GetRequiredInt( "hidden_size" ) )
 {
 	// v1 - original
 	// v7 - added initial state and peephole weight inputs
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", lstm );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() >= 3 && InputCount() <= 8, "node must have from 3 upto 8 inputs", lstm );
-	CheckOnnxProtocol( OutputCount() >= 1 && OutputCount() <= 3, "node must have from 1 upto 3 outputs", lstm );
+	CheckOnnxProtocol( InputCount() >= 3 && InputCount() <= 8, "node must have from 3 upto 8 inputs", *this );
+	CheckOnnxProtocol( OutputCount() >= 1 && OutputCount() <= 3, "node must have from 1 upto 3 outputs", *this );
 
-	CheckNeoOnnxSupport( direction != "bidirectional", "bidirectional LSTM", lstm );
+	CheckNeoOnnxSupport( direction != "bidirectional", "bidirectional LSTM", *this );
 
-	CheckNeoOnnxSupport( !Attributes.Has( "clip" ), "'clip' attirbute", lstm );
-	CheckNeoOnnxSupport( !Attributes.Has( "activations" ), "different activations", lstm );
-	CheckNeoOnnxSupport( !Attributes.Has( "activation_alpha" ), "'activation_alpha' attirbute", lstm );
-	CheckNeoOnnxSupport( !Attributes.Has( "activation_beta" ), "'activation_beta' attirbute", lstm );
+	CheckNeoOnnxSupport( !Attributes.Has( "clip" ), "'clip' attirbute", *this );
+	CheckNeoOnnxSupport( !Attributes.Has( "activations" ), "different activations", *this );
+	CheckNeoOnnxSupport( !Attributes.Has( "activation_alpha" ), "'activation_alpha' attirbute", *this );
+	CheckNeoOnnxSupport( !Attributes.Has( "activation_beta" ), "'activation_beta' attirbute", *this );
 }
 
 void CLstmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
 
 	const CTensorShape& inputShape = inputs[0]->Shape();
 
 	CPtr<CDnnBlob> bias = nullptr;
 	if( InputCount() > 3 && inputs[3] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided bias", OnnxNode );
+		CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided bias", *this );
 		bias = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data()->GetCopy();
 	}
 
 	// NeoML doesn't support sequence lengths
-	CheckNeoOnnxSupport( InputCount() <= 4 || inputs[4] == nullptr, "sequence lengths", OnnxNode );
+	CheckNeoOnnxSupport( InputCount() <= 4 || inputs[4] == nullptr, "sequence lengths", *this );
 
 	// NeoML doesn't support peepholes
-	CheckNeoOnnxSupport( InputCount() <= 7 || inputs[7] == nullptr, "peepholes", OnnxNode );
+	CheckNeoOnnxSupport( InputCount() <= 7 || inputs[7] == nullptr, "peepholes", *this );
 
 	CPtr<const CUserTensor> inputData = dynamic_cast<const CUserTensor*>(
 		ConvertTensor( *inputs[0], CTensorLayout( { BD_BatchLength, BD_BatchWidth, BD_Channels } ) ).Ptr() );
@@ -70,7 +70,7 @@ void CLstmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CPtr<CLstmLayer> lstmLayer = new CLstmLayer( mathEngine );
 	lstmLayer->SetName( Name() );
 
-	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided weight", OnnxNode );
+	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided weight", *this );
 	CPtr<CDnnBlob> weights = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy();\
 
 	const int inputObjectSize = weights->DimSize( 1 );
@@ -81,7 +81,7 @@ void CLstmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	weights->ReinterpretDimensions( blobDesc );
 	blobDesc.SetDimSize( BD_Channels, hiddenSize );
 	
-	CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided recurrent weight", OnnxNode );
+	CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided recurrent weight", *this );
 	CPtr<CDnnBlob> recurWeights = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy();
 	recurWeights->ReinterpretDimensions( blobDesc );
 

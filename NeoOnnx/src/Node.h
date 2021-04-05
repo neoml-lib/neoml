@@ -18,7 +18,6 @@ limitations under the License.
 #include "OpNodeAttributes.h"
 #include "TensorLayout.h"
 #include "Tensor.h"
-#include "NeoOnnxCheck.h"
 
 #include <onnx.pb.h>
 
@@ -29,7 +28,8 @@ class IMathEngine;
 
 namespace NeoOnnx {
 
-// Node in the NeoOnnx graph
+// Node in the onnx graph
+// It may represent any entity in graph (input, initializer, operator, output)
 class CNode {
 public:
 	virtual ~CNode() = default;
@@ -86,21 +86,15 @@ typedef CFastArray<bool, 8> CUserInputMask;
 
 //---------------------------------------------------------------------------------------------------------------------
 // Operator node
+// This class adds some operators-only features support (type, attributes, opsetVersion)
+// and fabric methods for operators
+// Doesn't affect interfaces in any way
 class COpNode : public CNode {
 public:
 	~COpNode() override = default;
 
-	// Default implementation which imitates pre-calculation in the following way:
-	// 1. Creates small CDnn and creates appropriate sources
-	// 2. Calling AddLayers CNode's interface method for that internalDnn
-	// 3. Running this CDnn and extracting the results
-	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) override;
-
-	// Fills the array with bools where true means that index'th input
-	// is expected to be provided by user and false otherwise
-	// Used in COpNode::CalculateOutput
-	virtual void UserInputMask( CUserInputMask& mask ) const = 0;
+	// Operator's type
+	const CString& Type() const { return type; }
 
 	// Fabric method. Creates CNode's derivative for given onnx node
 	static COpNode* CreateOpNode( const onnx::NodeProto& onnxNode, int opsetVersion );
@@ -112,8 +106,35 @@ protected:
 	COpNode( const onnx::NodeProto& node, int opsetVersion );
 
 	const int OpsetVersion; // Opset version
-	const COpNodeAttributes Attributes; // Attributes of this node
-	const onnx::NodeProto OnnxNode; // Reference to onnx node (used for diagnostics)
+	const COpNodeAttributes Attributes; // Attributes of this operator
+
+private:
+	const CString type; // Operator type
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+// Operator, which can be emulated by NeoML layers
+// Provides default implementation of one of CNode's methods and adds new method to the interface
+class CLayerOpNode : public COpNode {
+public:
+	// Fills the array with bools where true means that index'th input
+	// is expected to be provided by user and false otherwise
+	// Used in COpNode::CalculateOutput
+	virtual void UserInputMask( CUserInputMask& mask ) const = 0;
+
+	// CNode's interface
+	// Default implementation which imitates pre-calculation in the following way:
+	// 1. Creates small CDnn and creates appropriate sources
+	// 2. Calling AddLayers CNode's interface method for that internalDnn
+	// 3. Running this CDnn and extracting the results
+	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) final;
+
+	// CNode::AddLayers must be defined by child classes
+
+protected:
+	CLayerOpNode( const onnx::NodeProto& node, int opsetVersion )
+		: COpNode( node, opsetVersion ) {}
 
 private:
 	void addInternalDnnSources( const CObjectArray<const CTensorBase>& inputs,
