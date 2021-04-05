@@ -135,7 +135,7 @@ static bool getValue( const CString& name, const CMap<CString, const onnx::Attri
 	}
 
 	const onnx::AttributeProto* attributeValue = attributes.GetValue( attrPos );
-	CheckNeoOnnxInternal( attributeValue != nullptr, CString( "attribute " ) + name + " is nullptr", node );
+	NeoAssert( attributeValue != nullptr );
 
 	extractValue<T>( *attributeValue, value, node );
 	return true;

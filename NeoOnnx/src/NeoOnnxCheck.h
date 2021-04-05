@@ -83,20 +83,4 @@ inline void CheckNeoOnnxSupport( bool expr, const CString& what, const COpNode& 
 	}
 }
 
-// Throws std::logic_error if 'expr' is false
-// Checks if something goes wrong inside of NeoOnnx
-inline void CheckNeoOnnxInternal( bool expr, const CString& what )
-{
-	if( !( expr ) ) {
-		NeoOnnxCheck( false, CString( "NeoOnnx internal error: " ) + what );
-	}
-}
-
-inline void CheckNeoOnnxInternal( bool expr, const CString& what, const COpNode& node )
-{
-	if( !( expr ) ) {
-		CheckNeoOnnxInternal( false, GetMessageWithNodeInfo( what, node ) );
-	}
-}
-
 } // namespace NeoOnnx

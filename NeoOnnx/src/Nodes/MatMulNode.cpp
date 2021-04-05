@@ -41,8 +41,8 @@ void CMatMulNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	//     first input - user-provided data, single matrix
 	//     second input - pre-calculated data, single matrix
 	// In this case we can emulate this node by CFullyConnectedLayer
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "First input must be provided by user", *this );
-	CheckNeoOnnxInternal( inputs[1] != nullptr, "Undefined second input", *this );
+	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
+	NeoAssert( inputs[1] != nullptr );
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided second input", *this );
 
 	CheckNeoOnnxSupport( inputs[0]->DimCount() == 2, "3+ dimensional first input", *this );
@@ -77,7 +77,7 @@ void CMatMulNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 CPtr<const CTensorBase> CMatMulNode::prepareTensor( const CTensorBase& tensor ) const
 {
 	const CTensorLayout& inputLayout = tensor.Layout();
-	CheckNeoOnnxInternal( inputLayout.Size() == 2, "input must be 2 dimensional", *this );
+	NeoAssert( inputLayout.Size() == 2 );
 	if( inputLayout[0] < BD_Height && inputLayout[1] >= BD_Height ) {
 		return &tensor;
 	}

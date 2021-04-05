@@ -36,7 +36,7 @@ CTransposeNode::CTransposeNode( const onnx::NodeProto& transpose, int opsetVersi
 void CTransposeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "unknown input", *this );
+	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	const int dimCount = inputShape.Size();

@@ -39,7 +39,7 @@ CConcatNode::CConcatNode( const onnx::NodeProto& concat, int opsetVersion ) :
 void CConcatNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr, "Unknown input", *this );
+	NeoAssert( inputs[0] != nullptr );
 	const int dimCount = inputs[0]->DimCount();
 
 	int axis = 1;
@@ -62,7 +62,7 @@ void CConcatNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	outputShape[axis] = 0;
 
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		CheckNeoOnnxInternal( inputs[inputIndex] != nullptr, "Unknown input", *this );
+		NeoAssert( inputs[inputIndex] != nullptr );
 		CPtr<const CUserTensor> preparedInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[inputIndex], inputLayout ).Ptr() );
 		concat->Connect( inputIndex, *preparedInput->Layer(), preparedInput->OutputIndex() );
 		outputShape[axis] += inputs[inputIndex]->Shape()[axis];

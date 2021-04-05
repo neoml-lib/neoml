@@ -37,7 +37,7 @@ CUnsqueezeNode::CUnsqueezeNode( const onnx::NodeProto& unsqueeze, int opsetVersi
 void CUnsqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "user-provided input is expected", *this );
+	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
 	CFastArray<int, 8> axes;
 	getAxes( inputs[0]->Shape(), axes );
@@ -81,14 +81,14 @@ void CUnsqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFas
 			outputShape.Add( 1 );
 			++axeIndex;
 		} else {
-			CheckNeoOnnxInternal( inputDimIndex < inputShape.Size(), "Wrong dimensions number", *this );
+			NeoAssert( inputDimIndex < inputShape.Size() );
 			outputShape.Add( inputShape[inputDimIndex] );
 			++inputDimIndex;
 		}
 	}
 }
 
-// Calculates output tensor's dim order
+// Calculates output tensor's layout
 CTensorLayout CUnsqueezeNode::calcOutputLayout( int dimCount, const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const
 {
 	// NeoML layout
@@ -105,12 +105,12 @@ CTensorLayout CUnsqueezeNode::calcOutputLayout( int dimCount, const CTensorLayou
 			while( currDim < BD_Count && inputLayout.Find( currDim ) != NotFound ) {
 				++currDim;
 			}
-			CheckNeoOnnxInternal( currDim != BD_Count, "Wrong dimensions number", *this );
+			NeoAssert( currDim != BD_Count );
 			outputLayout.Add( currDim );
 			++currDim;
 			++axeIndex;
 		} else {
-			CheckNeoOnnxInternal( inputDimIndex < inputLayout.Size(), "Wrong dimensions number", *this );
+			NeoAssert( inputDimIndex < inputLayout.Size() );
 			outputLayout.Add( inputLayout[inputDimIndex] );
 			++inputDimIndex;
 		}

@@ -43,7 +43,7 @@ CSliceNode::CSliceNode( const onnx::NodeProto& slice, int opsetVersion ) :
 void CSliceNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
+	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
 	CFastArray<int, 8> axes;
 	getAxes( inputs, axes );
@@ -164,7 +164,7 @@ CPtr<const CUserTensor> CSliceNode::sliceAxis( const CUserTensor& input, int axi
 		end = inputShape[axis];
 	}
 
-	CheckNeoOnnxInternal( start < end, "start >= end", *this );
+	NeoAssert( start < end );
 
 	CPtr<const CUserTensor> convertedInput = prepareInputForSlice( input, axis );
 	CTensorShape outputShape;

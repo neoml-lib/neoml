@@ -75,7 +75,7 @@ static void addNode( CNode& node, CTensorCache& tensors, CDnn& dnn )
 	for( int inputIndex = 0; inputIndex < node.InputCount(); ++inputIndex ) {
 		const CString& inputName = node.InputName( inputIndex );
 		if( inputName != "" ) {
-			CheckNeoOnnxInternal( tensors.Has( inputName ), "Unknown input: " + inputName );
+			CheckOnnxProtocol( tensors.Has( inputName ), "Unknown input: " + inputName );
 			inputs[inputIndex] = tensors[inputName];
 		}
 	}
@@ -91,7 +91,7 @@ static void addNode( CNode& node, CTensorCache& tensors, CDnn& dnn )
 
 	for( int outputIndex = 0; outputIndex < node.OutputCount(); ++outputIndex ) {
 		const CString& outputName = node.OutputName( outputIndex );
-		CheckNeoOnnxInternal( !tensors.Has( outputName ), "Output already exist: " + outputName );
+		CheckOnnxProtocol( !tensors.Has( outputName ), "Output already exist: " + outputName );
 		tensors.Add( outputName, outputs[outputIndex] );
 	}
 }
@@ -101,11 +101,11 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 {
 	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
-	CheckNeoOnnxInternal( dnn.GetLayerCount() == 0, "dnn must be empty" );
 
 	// Prepare: check if every operator is supported by NeOnnx
 	checkOperatorSupport( onnxGraph );
 
+	dnn.DeleteAllLayers();
 	CTensorCache tensors;
 
 	// Add graph initializers

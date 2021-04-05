@@ -48,7 +48,7 @@ TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
 		case onnx::TensorProto::COMPLEX128:
 		case onnx::TensorProto::UNDEFINED:
 		default:
-			CheckNeoOnnxInternal( false, "tensor type is not supported" );
+			CheckNeoOnnxSupport( false, "tensor type" );
 	}
 	return CT_Invalid;
 }
@@ -69,7 +69,7 @@ static CString getUniqueName( const CDnn& dnn, const CString& prefix )
 // Renames dimensions of data blob (without any reordering in memory)
 CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTensorShape& shape, const CTensorLayout& outputLayout )
 {
-	CheckNeoOnnxInternal( shape.Size() == outputLayout.Size(), "shape/layout size mismatch" );
+	NeoAssert( shape.Size() == outputLayout.Size() );
 	// We have to copy data here because multiple tensors may be connected to the input tensor
 	CBlobDesc outputBlobDesc( input.GetDataType() );
 	for( int dimIndex = 0; dimIndex < shape.Size(); ++dimIndex ) {
@@ -84,7 +84,7 @@ CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTensorShape
 // Renames dimensions of layer output (without any reordering in memory)
 CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorShape& shape, const CTensorLayout& outputLayout )
 {
-	CheckNeoOnnxInternal( shape.Size() == outputLayout.Size(), "shape/layout size mismatch" );
+	NeoAssert( shape.Size() == outputLayout.Size() );
 	CDnn& dnn = *( input.Layer->GetDnn() );
 	CPtr<CTransformLayer> transformLayer = new CTransformLayer( dnn.GetMathEngine() );
 	transformLayer->SetName( getUniqueName( dnn, "transform_" ) );
@@ -148,8 +148,7 @@ CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDim first
 	CTensorLayout outputLayout = input.Layout();
 	const int firstDimIndex = outputLayout.Find( firstDim );
 	const int secondDimIndex = outputLayout.Find( secondDim );
-	CheckNeoOnnxInternal( firstDimIndex != NotFound && secondDimIndex != NotFound,
-		"swap of missing dimension" );
+	NeoAssert( firstDimIndex != NotFound && secondDimIndex != NotFound );
 	swap( outputLayout[firstDimIndex], outputLayout[secondDimIndex] );
 
 	if( input.IsCalculated() ) {
@@ -171,8 +170,7 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLa
 	}
 
 	const int dimCount = outputLayout.Size();
-	CheckNeoOnnxInternal( input.DimCount() == dimCount,
-		"input's dimension count doesn't math outputLayout's" );
+	NeoAssert( input.DimCount() == dimCount );
 
 	// Step 1: renaming dimensions (if needed)
 	// It's possible that input.Layout() and outputLayout use different dimensions

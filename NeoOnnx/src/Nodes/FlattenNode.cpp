@@ -43,7 +43,7 @@ CFlattenNode::CFlattenNode( const onnx::NodeProto& flatten, int opsetVersion ) :
 void CFlattenNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
+	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
 	// Every operator which somehow changes Onnx tensor's shape or dimensions works only with Onnx dim type
 	// Otherwise it'll lead to hardly fixable troubles with data-ordering

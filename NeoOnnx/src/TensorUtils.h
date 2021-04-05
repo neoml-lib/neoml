@@ -122,7 +122,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 		case onnx::TensorProto::COMPLEX128:
 		case onnx::TensorProto::UNDEFINED:
 		default:
-			CheckNeoOnnxInternal( false, "tensor type is not supported" );
+			CheckNeoOnnxSupport( false, "tensor type" );
 	}
 	dest.ReleaseBuffer( buffer, true );
 }

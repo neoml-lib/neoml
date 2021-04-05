@@ -53,14 +53,16 @@ protected:
 		layout( _layout )
 	{ 
 		_shape.CopyTo( shape );
-		// TODO: DEBUG delete after fix
+#ifdef _DEBUG
 		NeoPresume( layout.Size() == shape.Size() );
-		// TODO: DEBUG delete after fix
+		// Checking that every dimension is valid and used only once
 		int mask = 0;
 		for( int dimIndex = 0; dimIndex < layout.Size(); ++dimIndex ) {
+			NeoPresume( layout[dimIndex] >= BD_BatchLength && layout[dimIndex] < BD_Count );
 			NeoPresume( ( mask & ( 1 << layout[dimIndex] ) ) == 0 );
 			mask |= ( 1 << layout[dimIndex] );
 		}
+#endif
 	}
 	CTensorBase( const CTensorBase& other ) = delete;
 	CTensorBase& operator=( const CTensorBase& other ) = delete;
@@ -89,7 +91,6 @@ public:
 	CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output ) :
 		CTensorBase( shape, layout ), layerOutput( output )
 	{
-		// TODO: DEBUG delete later
 		NeoPresume( output.Layer != nullptr );
 		NeoPresume( output.OutputIndex >= 0 );
 	}
@@ -113,7 +114,8 @@ public:
 	CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& _data ) :
 		CTensorBase( shape, layout ), data( &_data )
 	{
-		// TODO: DEBUG delete after debugging
+#ifdef _DEBUG
+		// Checking that shape, layout and CDnnBlob are matching
 		for( TBlobDim i = BD_BatchLength; i < BD_Count; ++i ) {
 			const int index = layout.Find( i );
 			if( index == NotFound ) {
@@ -122,6 +124,7 @@ public:
 				NeoPresume( shape[index] == data->DimSize( i ) );
 			}
 		}
+#endif
 	}
 
 	// CTensorBase methods implementation

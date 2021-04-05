@@ -47,7 +47,7 @@ CLstmNode::CLstmNode( const onnx::NodeProto& lstm, int opsetVersion ) :
 void CLstmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
+	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
 	const CTensorShape& inputShape = inputs[0]->Shape();
 

@@ -59,7 +59,7 @@ void CGraphOutput::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 void CGraphOutput::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
 	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ )
 {
-	CheckNeoOnnxInternal( false, "Illegal call: CGraphOutput::CalculateOutput" );
+	NeoAssert( false );
 }
 
 } // namespace NeoOnnx
