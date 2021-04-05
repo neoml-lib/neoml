@@ -34,7 +34,7 @@ void CActivationNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inpu
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
 	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
-	CheckNeoOnnxInternal( userInput != nullptr, "Pre-calc input in activation", *this );
+	NeoAssert( userInput != nullptr );
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
 	activationLayer->SetName( Name() );
 	SetLayerParams( inputs, activationLayer );
@@ -87,7 +87,7 @@ void CClipNode::CheckOnnxNode() const
 void CClipNode::SetLayerParams( const CObjectArray<const CTensorBase>& inputs, CBaseLayer* layer ) const
 {
 	CReLULayer* relu = dynamic_cast<CReLULayer*>( layer );
-	CheckNeoOnnxInternal( relu != nullptr, "wrong layer class", *this );
+	NeoAssert( relu != nullptr );
 
 	float minValue = -FLT_MAX;
 	float maxValue = FLT_MAX;
@@ -159,7 +159,7 @@ void CLeakyReluNode::CheckOnnxNode() const
 void CLeakyReluNode::SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* layer ) const
 {
 	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( layer );
-	CheckNeoOnnxInternal( leakyReLU != nullptr, "wrong layer class", *this );
+	NeoAssert( leakyReLU != nullptr );
 	leakyReLU->SetAlpha( Attributes.GetOptionalFloat( "alpha", 0.f ) );
 }
 
@@ -183,7 +183,7 @@ void CHardSigmoidNode::CheckOnnxNode() const
 void CHardSigmoidNode::SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* layer ) const
 {
 	CHardSigmoidLayer* hardSigmoid = dynamic_cast<CHardSigmoidLayer*>( layer );
-	CheckNeoOnnxInternal( hardSigmoid != nullptr, "wrong layer class", *this );
+	NeoAssert( hardSigmoid != nullptr );
 
 	const float alpha = Attributes.GetOptionalFloat( "alpha", 0.2f );
 	const float beta = Attributes.GetOptionalFloat( "beta", 0.5f );

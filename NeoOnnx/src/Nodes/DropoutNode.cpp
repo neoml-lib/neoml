@@ -44,7 +44,7 @@ CDropoutNode::CDropoutNode( const onnx::NodeProto& dropout, int opsetVersion ) :
 void CDropoutNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
+	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
 
 	CPtr<CDropoutLayer> dropout = new CDropoutLayer( dnn.GetMathEngine() );

@@ -36,13 +36,13 @@ CShapeNode::CShapeNode( const onnx::NodeProto& shape, int opsetVersion ) :
 void CShapeNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
 	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	CheckNeoOnnxInternal( false, "Illegal call: CShapeNode::AddLayers", *this );
+	NeoAssert( false );
 }
 
 void CShapeNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr, "Undefined input", *this );
+	NeoAssert( inputs[0] != nullptr );
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CTensorLayout outputLayout( 1 );
 	CBlobDesc outputBlobDesc( CT_Int );

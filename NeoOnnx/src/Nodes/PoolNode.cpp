@@ -91,7 +91,7 @@ void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 			pooling = new CMeanPoolingLayer( dnn.GetMathEngine() );
 			break;
 		default:
-			CheckNeoOnnxInternal( false, "unknown pool type", *this );
+			NeoAssert( false );
 	}
 	pooling->SetName( Name() );
 

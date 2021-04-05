@@ -40,7 +40,7 @@ CSoftmaxNode::CSoftmaxNode( const onnx::NodeProto& softmax, int opsetVersion ) :
 void CSoftmaxNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Unknown input", *this );
+	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
 	const int dimCount = inputs[0]->DimCount();
 	CheckNeoOnnxSupport( axis <= 3, "more than 3 batch dimensions", *this );

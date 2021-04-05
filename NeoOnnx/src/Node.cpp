@@ -68,7 +68,7 @@ static CMap<CString, TCreateOpNodeFunction>& getRegisteredNodes()
 // Registers function as a way to create operator node for NodeProto::op_type == opName
 void registerNode( const char* opName, TCreateOpNodeFunction function )
 {
-	CheckNeoOnnxInternal( !getRegisteredNodes().Has( opName ), "Double-register node op: " + CString( opName ) );
+	NeoAssert( !getRegisteredNodes().Has( opName ) );
 	getRegisteredNodes().Add( opName, function );
 }
 
@@ -169,13 +169,13 @@ CNode::CNode( const CString& _name, const ::google::protobuf::RepeatedPtrField<s
 
 const CString& CNode::InputName( int index ) const
 {
-	CheckNeoOnnxInternal( index >= 0 && index < InputCount(), "Access to non-existing input" );
+	NeoAssert( index >= 0 && index < InputCount() );
 	return inputNames[index];
 }
 
 const CString& CNode::OutputName( int index ) const
 {
-	CheckNeoOnnxInternal( index >= 0 && index < OutputCount(), "Access to non-existing output" );
+	NeoAssert( index >= 0 && index < OutputCount() );
 	return outputNames[index];
 }
 
@@ -256,7 +256,7 @@ void CLayerOpNode::addInternalDnnSources( const CObjectArray<const CTensorBase>&
 		if( inputs[inputIndex] == nullptr || !inputs[inputIndex]->IsCalculated() ) {
 			internalInputs.Add( nullptr );
 		} else if( isUserInput[inputIndex] ) {
-			CheckNeoOnnxInternal( inputs[inputIndex]->IsCalculated(), "Can't pass user input into internal net", *this );
+			NeoAssert( inputs[inputIndex]->IsCalculated() );
 			CPtr<CSourceLayer> source = new CSourceLayer( mathEngine );
 			source->SetName( InputName( inputIndex ) );
 			internalDnn.AddLayer( *source );

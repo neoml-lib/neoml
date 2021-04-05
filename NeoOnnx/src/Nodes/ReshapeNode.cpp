@@ -42,7 +42,7 @@ CReshapeNode::CReshapeNode( const onnx::NodeProto& reshape, int opsetVersion ) :
 void CReshapeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "unknown input", *this );
+	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
 	CTensorShape outputShape;
 	getShape( inputs, outputShape );

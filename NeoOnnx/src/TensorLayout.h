@@ -24,7 +24,7 @@ namespace NeoOnnx {
 class CTensorLayout: public CFastArray<TBlobDim, 8> {
 public:
 	CTensorLayout() {}
-	explicit CTensorLayout( int dimCount );
+	explicit CTensorLayout( int dimCount ); // Returns default layout for dimCount-dimensional tensor
 	CTensorLayout( std::initializer_list<TBlobDim> list ) : CFastArray<TBlobDim, 8>( list ) {}
 	CTensorLayout( const CTensorLayout& other ) { other.CopyTo( *this ); }
 
@@ -67,7 +67,7 @@ inline CTensorLayout::CTensorLayout( int dimCount )
 			Add( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Height, BD_Width, BD_Depth, BD_Channels } );
 			break;
 		default:
-			CheckNeoOnnxInternal( false, "unsupported dimension count" );
+			CheckNeoOnnxSupport( false, "unsupported dimension count" );
 			break;
 	}
 }

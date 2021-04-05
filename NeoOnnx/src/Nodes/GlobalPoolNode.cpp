@@ -45,8 +45,7 @@ void CGlobalPoolNodeBase::PoolAxes( const CTensorShape& inputShape, CFastArray<i
 void CGlobalPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
-	CheckNeoOnnxSupport( inputs[0]->DimCount() <= 7, "Tensor with 8+ dimensions", *this );
+	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
 	CFastArray<int, 8> axes;
 	PoolAxes( inputs[0]->Shape(), axes );
@@ -153,7 +152,7 @@ CPtr<const CUserTensor> CGlobalPoolNodeBase::convertInputLayout( const CUserTens
 				++currDim;
 			}
 			// Double-check
-			CheckNeoOnnxInternal( currDim != BD_Count, "Can't distribute blob dimensions between tensor dims", *this );
+			NeoAssert( currDim != BD_Count );
 			convertedLayout[i] = currDim;
 		}
 	}
@@ -176,7 +175,7 @@ CPtr<const CUserTensor> CGlobalPoolNodeBase::addPoolingLayer( const CUserTensor&
 			pooling = new CGlobalMeanPoolingLayer( dnn.GetMathEngine() );
 			break;
 		default:
-			CheckNeoOnnxInternal( false, "Unknown pooling type", *this );
+			NeoAssert( false );
 	}
 
 	pooling->SetName( Name() );

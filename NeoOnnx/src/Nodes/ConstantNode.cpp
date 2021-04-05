@@ -44,7 +44,7 @@ CConstantNode::CConstantNode( const onnx::NodeProto& constant, int opsetVersion 
 void CConstantNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
 	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	CheckNeoOnnxInternal( false, "Illegal call: CConstantNode::AddLayers", *this );
+	NeoAssert( false );
 }
 
 void CConstantNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,

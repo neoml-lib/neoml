@@ -32,7 +32,7 @@ CGraphInitializer::CGraphInitializer( const onnx::TensorProto& _initializer ) :
 void CGraphInitializer::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
 	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	CheckNeoOnnxInternal( false, "Illegal call: CGraphInitializer::AddLayers" );
+	NeoAssert( false );
 }
 
 void CGraphInitializer::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
