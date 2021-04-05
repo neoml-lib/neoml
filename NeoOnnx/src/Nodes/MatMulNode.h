@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // MatMul operator graph node
-class CMatMulNode : public COpNode {
+class CMatMulNode : public CLayerOpNode {
 public:
 	CMatMulNode( const onnx::NodeProto& matMul, int opsetVersion );
 

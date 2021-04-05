@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Base class for nodes which perform eltwise operations
-class CEltwiseNodeBase : public COpNode {
+class CEltwiseNodeBase : public CLayerOpNode {
 public:
 	// Supported eltwise operations
 	enum TOperation {

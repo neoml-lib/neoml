@@ -196,12 +196,27 @@ COpNode::COpNode( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 	CNode( ( onnxNode.name().empty() ? onnxNode.output( 0 ) : onnxNode.name() ) + "_Op",
 		onnxNode.input(), onnxNode.output() ),
 	OpsetVersion( opsetVersion ),
-	Attributes( onnxNode ),
-	OnnxNode( onnxNode )
+	Attributes( onnxNode, *this ),
+	type( onnxNode.op_type().c_str() )
 {
 }
 
-void COpNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+COpNode* COpNode::CreateOpNode( const onnx::NodeProto& onnxNode, int opsetVersion )
+{
+	TMapPosition pos = getRegisteredNodes().GetFirstPosition( onnxNode.op_type() );
+	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
+	return getRegisteredNodes().GetValue( pos )( onnxNode, opsetVersion );
+}
+
+bool COpNode::IsSupportedOperator( const CString& opType )
+{
+	TMapPosition pos = getRegisteredNodes().GetFirstPosition( opType );
+	return pos != NotFound;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void CLayerOpNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
 {
 	CRandom random( 0x1231 );
@@ -227,34 +242,21 @@ void COpNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 	extractOutputs( internalOutputs, sinks, outputs );
 }
 
-COpNode* COpNode::CreateOpNode( const onnx::NodeProto& onnxNode, int opsetVersion )
-{
-	TMapPosition pos = getRegisteredNodes().GetFirstPosition( onnxNode.op_type() );
-	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
-	return getRegisteredNodes().GetValue( pos )( onnxNode, opsetVersion );
-}
-
-bool COpNode::IsSupportedOperator( const CString& opType )
-{
-	TMapPosition pos = getRegisteredNodes().GetFirstPosition( opType );
-	return pos != NotFound;
-}
-
 // Builds array of tensors related to the internal dnn
 // Also adds required source layers to the internal dnn (with corresponding blobs)
-void COpNode::addInternalDnnSources( const CObjectArray<const CTensorBase>& inputs,
+void CLayerOpNode::addInternalDnnSources( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& internalInputs, CDnn& internalDnn ) const
 {
 	IMathEngine& mathEngine = internalDnn.GetMathEngine();
 
 	CUserInputMask isUserInput;
 	UserInputMask( isUserInput );
-	
+
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 		if( inputs[inputIndex] == nullptr || !inputs[inputIndex]->IsCalculated() ) {
 			internalInputs.Add( nullptr );
 		} else if( isUserInput[inputIndex] ) {
-			CheckNeoOnnxInternal( inputs[inputIndex]->IsCalculated(), "Can't pass user input into internal net", OnnxNode );
+			CheckNeoOnnxInternal( inputs[inputIndex]->IsCalculated(), "Can't pass user input into internal net", *this );
 			CPtr<CSourceLayer> source = new CSourceLayer( mathEngine );
 			source->SetName( InputName( inputIndex ) );
 			internalDnn.AddLayer( *source );
@@ -269,7 +271,7 @@ void COpNode::addInternalDnnSources( const CObjectArray<const CTensorBase>& inpu
 
 // Builds array of sinks (corresponding to the op outputs)
 // Also adds those layers to the dnn
-void COpNode::addInternalDnnSinks( const CObjectArray<const CTensorBase>& internalOutputs,
+void CLayerOpNode::addInternalDnnSinks( const CObjectArray<const CTensorBase>& internalOutputs,
 	CArray<CSinkLayer*>& sinks, CDnn& internalDnn ) const
 {
 	IMathEngine& mathEngine = internalDnn.GetMathEngine();
@@ -289,7 +291,7 @@ void COpNode::addInternalDnnSinks( const CObjectArray<const CTensorBase>& intern
 }
 
 // Builds array of the operator outputs based on outputs of the internal dnn
-void COpNode::extractOutputs( const CObjectArray<const CTensorBase>& internalOutputs,
+void CLayerOpNode::extractOutputs( const CObjectArray<const CTensorBase>& internalOutputs,
 	const CArray<CSinkLayer*>& sinks, CObjectArray<const CTensorBase>& outputs ) const
 {
 	for( int outputIndex = 0; outputIndex < OutputCount(); ++outputIndex ) {

@@ -27,10 +27,10 @@ CIdentityNode::CIdentityNode( const onnx::NodeProto& identity, int opsetVersion 
 	COpNode( identity, opsetVersion )
 {
 	// v1 - original
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", identity );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", identity );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", identity );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CIdentityNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,

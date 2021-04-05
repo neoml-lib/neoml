@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // BatchNormalization operator graph node
-class CBatchNormalizationNode : public COpNode {
+class CBatchNormalizationNode : public CLayerOpNode {
 public:
 	CBatchNormalizationNode( const onnx::NodeProto& batchNormalization, int opsetVersion );
 

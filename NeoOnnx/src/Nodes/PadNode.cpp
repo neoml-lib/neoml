@@ -162,7 +162,7 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 //---------------------------------------------------------------------------------------------------------------------
 
 CPadNode::CPadNode( const onnx::NodeProto& pad, int opsetVersion ) :
-	COpNode( pad, opsetVersion ),
+	CLayerOpNode( pad, opsetVersion ),
 	mode( Attributes.GetOptionalString( "mode", "constant" ) ),
 	value( 0.f )
 {
@@ -170,28 +170,28 @@ CPadNode::CPadNode( const onnx::NodeProto& pad, int opsetVersion ) :
 	// In v2 pads are provided by 'pads' attribute and pad value is provided by 'value' attribute 
 	// In v11 pads and pad value are provided by additional inputs
 	if( opsetVersion < 11 ) {
-		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", pad );
+		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
 		Attributes.GetRequiredIntArray( opsetVersion == 1 ? "paddings" : "pads", pads );
 		value = Attributes.GetOptionalFloat( "value", 0.f );
 	} else {
-		CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", pad );
+		CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "node must have 2 or 3 inputs", *this );
 	}
 
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", pad );
-	CheckNeoOnnxSupport( mode == "constant", "Pad with non-constant mode", pad );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
+	CheckNeoOnnxSupport( mode == "constant", "Pad with non-constant mode", *this );
 }
 
 void CPadNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
 	if( OpsetVersion >= 11 ) {
-		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided pad sizes", OnnxNode );
+		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided pad sizes", *this );
 		const CDnnBlob& padsBlob = *( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data() );
-		CheckOnnxProtocol( padsBlob.GetDataType() == CT_Int, "non-integer pad sizes", OnnxNode );
+		CheckOnnxProtocol( padsBlob.GetDataType() == CT_Int, "non-integer pad sizes", *this );
 		pads.SetSize( padsBlob.GetDataSize() );
 		padsBlob.CopyTo( pads.GetPtr() );
 		if( InputCount() == 3 ) {
-			CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided pad value", OnnxNode );
+			CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided pad value", *this );
 			const CDnnBlob& valueBlob = *( dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data() );
 			if( valueBlob.GetDataType() == CT_Float ) {
 				value = valueBlob.GetData<float>().GetValue();

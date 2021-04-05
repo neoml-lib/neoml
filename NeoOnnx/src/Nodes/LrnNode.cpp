@@ -25,20 +25,20 @@ limitations under the License.
 namespace NeoOnnx {
 
 CLrnNode::CLrnNode( const onnx::NodeProto& lrn, int opsetVersion ) :
-	COpNode( lrn, opsetVersion )
+	CLayerOpNode( lrn, opsetVersion )
 {
 	// Introduce in opset v1
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", lrn );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", lrn );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", lrn );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CLrnNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", OnnxNode );
-	CheckNeoOnnxSupport( inputs[0]->DimCount() <= 5, "6+ dimensional input", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
+	CheckNeoOnnxSupport( inputs[0]->DimCount() <= 5, "6+ dimensional input", *this );
 
 	CTensorLayout outputLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
 	outputLayout.SetSize( inputs[0]->DimCount() );

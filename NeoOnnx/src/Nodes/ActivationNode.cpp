@@ -25,7 +25,7 @@ namespace NeoOnnx {
 
 CActivationNodeBase::CActivationNodeBase( const onnx::NodeProto& onnxNode, int opsetVersion,
 		TActivationFunction _activation ) :
-	COpNode( onnxNode, opsetVersion ),
+	CLayerOpNode( onnxNode, opsetVersion ),
 	activation( _activation )
 {
 }
@@ -34,7 +34,7 @@ void CActivationNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inpu
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
 	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
-	CheckNeoOnnxInternal( userInput != nullptr, "Pre-calc input in activation", OnnxNode );
+	CheckNeoOnnxInternal( userInput != nullptr, "Pre-calc input in activation", *this );
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
 	activationLayer->SetName( Name() );
 	SetLayerParams( inputs, activationLayer );
@@ -54,10 +54,10 @@ void CAbsNode::CheckOnnxNode() const
 {
 	// v1 - original
 	// v6 - removed legacy optimization attributes and added new data types support
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", OnnxNode );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", OnnxNode );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -73,21 +73,21 @@ void CClipNode::CheckOnnxNode() const
 	// v6 - removed legacy optimization attributes
 	// v11 - min/max values were moved from attributes to additional inputs
 	// v12 - new data types supported
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", OnnxNode );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 11 ) {
-		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", OnnxNode );
+		CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
 	} else {
-		CheckOnnxProtocol( InputCount() >= 1 || InputCount() <= 3, "node must have from 1 up to 3 inputs", OnnxNode );
+		CheckOnnxProtocol( InputCount() >= 1 || InputCount() <= 3, "node must have from 1 up to 3 inputs", *this );
 	}
 
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CClipNode::SetLayerParams( const CObjectArray<const CTensorBase>& inputs, CBaseLayer* layer ) const
 {
 	CReLULayer* relu = dynamic_cast<CReLULayer*>( layer );
-	CheckNeoOnnxInternal( relu != nullptr, "wrong layer class", OnnxNode );
+	CheckNeoOnnxInternal( relu != nullptr, "wrong layer class", *this );
 
 	float minValue = -FLT_MAX;
 	float maxValue = FLT_MAX;
@@ -96,7 +96,7 @@ void CClipNode::SetLayerParams( const CObjectArray<const CTensorBase>& inputs, C
 		maxValue = Attributes.GetOptionalFloat( "max", FLT_MAX );
 	} else if( InputCount() > 1 ) {
 		const CDataTensor* minValueTensor = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
-		CheckNeoOnnxSupport( minValueTensor != nullptr, "user-provided clip min value", OnnxNode );
+		CheckNeoOnnxSupport( minValueTensor != nullptr, "user-provided clip min value", *this );
 		const CDnnBlob* minValueBlob = minValueTensor->Data();
 		if( minValueBlob->GetDataType() == CT_Float ) {
 			minValue = minValueBlob->GetData<float>().GetValue();
@@ -106,7 +106,7 @@ void CClipNode::SetLayerParams( const CObjectArray<const CTensorBase>& inputs, C
 
 		if( InputCount() > 2 ) {
 			const CDataTensor* maxValueTensor = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() );
-			CheckNeoOnnxSupport( maxValueTensor != nullptr, "user-provided clip max value", OnnxNode );
+			CheckNeoOnnxSupport( maxValueTensor != nullptr, "user-provided clip max value", *this );
 			const CDnnBlob* maxValueBlob = maxValueTensor->Data();
 			if( maxValueBlob->GetDataType() == CT_Float ) {
 				maxValue = maxValueBlob->GetData<float>().GetValue();
@@ -116,7 +116,7 @@ void CClipNode::SetLayerParams( const CObjectArray<const CTensorBase>& inputs, C
 		}
 	}
 
-	CheckNeoOnnxSupport( minValue == 0, "Clip with non-zero min value", OnnxNode );
+	CheckNeoOnnxSupport( minValue == 0, "Clip with non-zero min value", *this );
 	if( maxValue != FLT_MAX ) {
 		relu->SetUpperThreshold( maxValue );
 	}
@@ -133,10 +133,10 @@ void CEluNode::CheckOnnxNode() const
 {
 	// v1 - original
 	// v6 - removed legacy optimization attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", OnnxNode );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", OnnxNode );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -150,16 +150,16 @@ void CLeakyReluNode::CheckOnnxNode() const
 {
 	// v1 - original
 	// v6 - removed legacy optimization attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", OnnxNode );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", OnnxNode );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CLeakyReluNode::SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* layer ) const
 {
 	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( layer );
-	CheckNeoOnnxInternal( leakyReLU != nullptr, "wrong layer class", OnnxNode );
+	CheckNeoOnnxInternal( leakyReLU != nullptr, "wrong layer class", *this );
 	leakyReLU->SetAlpha( Attributes.GetOptionalFloat( "alpha", 0.f ) );
 }
 
@@ -174,16 +174,16 @@ void CHardSigmoidNode::CheckOnnxNode() const
 {
 	// v1 - original
 	// v6 - removed legacy optimization attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", OnnxNode );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", OnnxNode );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CHardSigmoidNode::SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* layer ) const
 {
 	CHardSigmoidLayer* hardSigmoid = dynamic_cast<CHardSigmoidLayer*>( layer );
-	CheckNeoOnnxInternal( hardSigmoid != nullptr, "wrong layer class", OnnxNode );
+	CheckNeoOnnxInternal( hardSigmoid != nullptr, "wrong layer class", *this );
 
 	const float alpha = Attributes.GetOptionalFloat( "alpha", 0.2f );
 	const float beta = Attributes.GetOptionalFloat( "beta", 0.5f );
@@ -203,10 +203,10 @@ void CReluNode::CheckOnnxNode() const
 {
 	// v1 - original
 	// v6 - removed legacy optimization attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", OnnxNode );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", OnnxNode );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -220,10 +220,10 @@ void CSigmoidNode::CheckOnnxNode() const
 {
 	// v1 - original
 	// v6 - removed legacy optimization attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", OnnxNode );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", OnnxNode );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -237,10 +237,10 @@ void CTanhNode::CheckOnnxNode() const
 {
 	// v1 - original
 	// v6 - removed legacy optimization attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", OnnxNode );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", OnnxNode );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", OnnxNode );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 } // namespace NeoOnnx

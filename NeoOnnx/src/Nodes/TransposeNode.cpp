@@ -24,19 +24,19 @@ limitations under the License.
 namespace NeoOnnx {
 
 CTransposeNode::CTransposeNode( const onnx::NodeProto& transpose, int opsetVersion ) :
-	COpNode( transpose, opsetVersion )
+	CLayerOpNode( transpose, opsetVersion )
 {
 	// The differences between versions are in supported data types and legacy optimization attributes
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", transpose );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", transpose );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", transpose );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CTransposeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "unknown input", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "unknown input", *this );
 
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	const int dimCount = inputShape.Size();

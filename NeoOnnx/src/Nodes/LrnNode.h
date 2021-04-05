@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // LRN operator graph node
-class CLrnNode : public COpNode {
+class CLrnNode : public CLayerOpNode {
 public:
 	CLrnNode( const onnx::NodeProto& lrn, int opsetVersion );
 
@@ -30,7 +30,7 @@ public:
 
 	// COpNode methods
 	void UserInputMask( CUserInputMask& mask ) const override
-		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
+		{ mask.Add( true, InputCount() ); }
 };
 
 } // namespace NeoOnnx

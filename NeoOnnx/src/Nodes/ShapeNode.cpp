@@ -27,22 +27,22 @@ CShapeNode::CShapeNode( const onnx::NodeProto& shape, int opsetVersion ) :
 	COpNode( shape, opsetVersion )
 {
 	// This operator doesn't have multiple versions
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", shape );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", shape );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", shape );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CShapeNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
 	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
 {
-	CheckNeoOnnxInternal( false, "Illegal call: CShapeNode::AddLayers", OnnxNode );
+	CheckNeoOnnxInternal( false, "Illegal call: CShapeNode::AddLayers", *this );
 }
 
 void CShapeNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr, "Undefined input", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr, "Undefined input", *this );
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CTensorLayout outputLayout( 1 );
 	CBlobDesc outputBlobDesc( CT_Int );

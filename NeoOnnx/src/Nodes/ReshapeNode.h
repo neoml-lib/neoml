@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Reshape operator graph node
-class CReshapeNode : public COpNode {
+class CReshapeNode : public CLayerOpNode {
 public:
 	CReshapeNode( const onnx::NodeProto& node, int opsetVersion );
 

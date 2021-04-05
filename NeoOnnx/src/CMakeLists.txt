@@ -8,6 +8,7 @@ add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnx.cpp
+    NeoOnnxCheck.cpp
     Node.cpp
     OpNodeAttributes.cpp
     Nodes/ActivationNode.cpp

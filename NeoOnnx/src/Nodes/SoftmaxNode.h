@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Softmax operator graph node
-class CSoftmaxNode : public COpNode {
+class CSoftmaxNode : public CLayerOpNode {
 public:
 	CSoftmaxNode( const onnx::NodeProto& softmax, int opsetVersion );
 

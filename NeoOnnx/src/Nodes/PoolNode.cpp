@@ -25,21 +25,21 @@ limitations under the License.
 namespace NeoOnnx {
 
 CPoolNodeBase::CPoolNodeBase( TPoolType _poolType, const onnx::NodeProto& poolNode, int opsetVersion ) :
-	COpNode( poolNode, opsetVersion ),
+	CLayerOpNode( poolNode, opsetVersion ),
 	poolType( _poolType ),
 	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
 {
 	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc)
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", poolNode );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", poolNode );
-	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "node must have 1 or 2 outputs", poolNode );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "node must have 1 or 2 outputs", *this );
 
 	Attributes.GetRequiredIntArray( "kernel_shape", kernelShape );
 	Attributes.GetOptionalIntArray( "strides", strides );
 	Attributes.GetOptionalIntArray( "pads", pads );
 
-	CheckNeoOnnxSupport( kernelShape.Size() == 2, "non 2-dimensional max pooling", poolNode );
+	CheckNeoOnnxSupport( kernelShape.Size() == 2, "non 2-dimensional max pooling", *this );
 }
 
 void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
@@ -47,10 +47,10 @@ void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 {
 	// Check input
 	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(),
-		"", OnnxNode );
+		"", *this );
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 4,
-		"wrong input tensor's dimensions number", OnnxNode );
+		"wrong input tensor's dimensions number", *this );
 	const int poolDims = static_cast<int>( inputShape.Size() ) - 2;
 
 	// Initialize strides, pads and dilations (if not given)
@@ -68,7 +68,7 @@ void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	if( poolType == PT_Mean ) {
 		for( int padIndex = 0; padIndex < pads.Size(); ++padIndex ) {
 			// We can't pad image correctly for average (result will differ from Onnx anyway)
-			CheckNeoOnnxSupport( pads[padIndex] == 0, "average pooling with padding", OnnxNode );
+			CheckNeoOnnxSupport( pads[padIndex] == 0, "average pooling with padding", *this );
 		}
 	}
 
@@ -91,7 +91,7 @@ void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 			pooling = new CMeanPoolingLayer( dnn.GetMathEngine() );
 			break;
 		default:
-			CheckNeoOnnxInternal( false, "unknown pool type", OnnxNode );
+			CheckNeoOnnxInternal( false, "unknown pool type", *this );
 	}
 	pooling->SetName( Name() );
 

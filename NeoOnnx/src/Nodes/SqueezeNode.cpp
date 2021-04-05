@@ -24,20 +24,20 @@ limitations under the License.
 namespace NeoOnnx {
 
 CSqueezeNode::CSqueezeNode( const onnx::NodeProto& squeeze, int opsetVersion ) :
-	COpNode( squeeze, opsetVersion )
+	CLayerOpNode( squeeze, opsetVersion )
 {
 	// v1 - original
 	// v11 - added negative axes index support
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", squeeze );
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", squeeze );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", squeeze );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CSqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "user-provided input is expected", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "user-provided input is expected", *this );
 
 	CFastArray<int, 8> axes;
 	getAxes( inputs[0]->Shape(), axes );
@@ -57,7 +57,7 @@ void CSqueezeNode::getAxes( const CTensorShape& inputShape, CFastArray<int, 8>& 
 	Attributes.GetRequiredIntArray( "axes", axes );
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
-			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", OnnxNode );
+			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", *this );
 			axes[i] += inputShape.Size();
 		}
 	}

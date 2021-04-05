@@ -24,20 +24,20 @@ limitations under the License.
 namespace NeoOnnx {
 
 CUnsqueezeNode::CUnsqueezeNode( const onnx::NodeProto& unsqueeze, int opsetVersion ) :
-	COpNode( unsqueeze, opsetVersion )
+	CLayerOpNode( unsqueeze, opsetVersion )
 {
 	// v1 - original
 	// v11 - supported negative axes values
-	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", unsqueeze);
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", unsqueeze );
-	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", unsqueeze );
+	CheckOnnxProtocol( InputCount() == 1, "node must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "node must have 1 output", *this );
 }
 
 void CUnsqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
 {
-	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "user-provided input is expected", OnnxNode );
+	CheckNeoOnnxInternal( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "user-provided input is expected", *this );
 
 	CFastArray<int, 8> axes;
 	getAxes( inputs[0]->Shape(), axes );
@@ -59,7 +59,7 @@ void CUnsqueezeNode::getAxes( const CTensorShape& inputShape, CFastArray<int, 8>
 	Attributes.GetOptionalIntArray( "axes", axes );
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
-			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", OnnxNode );
+			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", *this );
 			axes[i] += inputShape.Size();
 		}
 	}
@@ -81,7 +81,7 @@ void CUnsqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFas
 			outputShape.Add( 1 );
 			++axeIndex;
 		} else {
-			CheckNeoOnnxInternal( inputDimIndex < inputShape.Size(), "Wrong dimensions number", OnnxNode );
+			CheckNeoOnnxInternal( inputDimIndex < inputShape.Size(), "Wrong dimensions number", *this );
 			outputShape.Add( inputShape[inputDimIndex] );
 			++inputDimIndex;
 		}
@@ -105,12 +105,12 @@ CTensorLayout CUnsqueezeNode::calcOutputLayout( int dimCount, const CTensorLayou
 			while( currDim < BD_Count && inputLayout.Find( currDim ) != NotFound ) {
 				++currDim;
 			}
-			CheckNeoOnnxInternal( currDim != BD_Count, "Wrong dimensions number", OnnxNode );
+			CheckNeoOnnxInternal( currDim != BD_Count, "Wrong dimensions number", *this );
 			outputLayout.Add( currDim );
 			++currDim;
 			++axeIndex;
 		} else {
-			CheckNeoOnnxInternal( inputDimIndex < inputLayout.Size(), "Wrong dimensions number", OnnxNode );
+			CheckNeoOnnxInternal( inputDimIndex < inputLayout.Size(), "Wrong dimensions number", *this );
 			outputLayout.Add( inputLayout[inputDimIndex] );
 			++inputDimIndex;
 		}

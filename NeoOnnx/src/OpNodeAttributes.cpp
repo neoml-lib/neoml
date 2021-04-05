@@ -24,10 +24,10 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-COpNodeAttributes::COpNodeAttributes( const onnx::NodeProto& node ) :
-	onnxNode( node )
+COpNodeAttributes::COpNodeAttributes( const onnx::NodeProto& onnxNode, const COpNode& _node ) :
+	node( _node )
 {
-	for( const onnx::AttributeProto& attribute : node.attribute() ) {
+	for( const onnx::AttributeProto& attribute : onnxNode.attribute() ) {
 		attributes.Add( attribute.name().c_str(), &attribute );
 	}
 }
@@ -35,35 +35,35 @@ COpNodeAttributes::COpNodeAttributes( const onnx::NodeProto& node ) :
 // Extracts value of type T from attribute
 // CheckOnnxProtocol( false ) if attribute doesn't contain value of required type
 template<class T>
-static void extractValue( const onnx::AttributeProto& attribute, T& /*value*/, const onnx::NodeProto& onnxNode )
+static void extractValue( const onnx::AttributeProto& attribute, T& /*value*/, const COpNode& node )
 {
-	CheckOnnxProtocol( false, CString( "attribute " ) + attribute.name().c_str() + " has unsupported data type", onnxNode );
+	CheckOnnxProtocol( false, CString( "attribute " ) + attribute.name().c_str() + " has unsupported data type", node );
 }
 
 template<>
-void extractValue<int>( const onnx::AttributeProto& attribute, int& value, const onnx::NodeProto& onnxNode )
+void extractValue<int>( const onnx::AttributeProto& attribute, int& value, const COpNode& node )
 {
-	CheckOnnxProtocol( attribute.has_i(), CString( "attribute " ) + attribute.name().c_str() + " is not an int", onnxNode );
+	CheckOnnxProtocol( attribute.has_i(), CString( "attribute " ) + attribute.name().c_str() + " is not an int", node );
 	value = static_cast<int>( attribute.i() );
 }
 
 template<>
-void extractValue<float>( const onnx::AttributeProto& attribute, float& value, const onnx::NodeProto& onnxNode )
+void extractValue<float>( const onnx::AttributeProto& attribute, float& value, const COpNode& node )
 {
-	CheckOnnxProtocol( attribute.has_f(), CString( "attribute " ) + attribute.name().c_str() + " is not a float", onnxNode );
+	CheckOnnxProtocol( attribute.has_f(), CString( "attribute " ) + attribute.name().c_str() + " is not a float", node );
 	value = static_cast<float>( attribute.f() );
 }
 
 template<>
-void extractValue<CString>( const onnx::AttributeProto& attribute, CString& value, const onnx::NodeProto& onnxNode )
+void extractValue<CString>( const onnx::AttributeProto& attribute, CString& value, const COpNode& node )
 {
-	CheckOnnxProtocol( attribute.has_s(), CString( "attribute " ) + attribute.name().c_str() + " is not a string", onnxNode );
+	CheckOnnxProtocol( attribute.has_s(), CString( "attribute " ) + attribute.name().c_str() + " is not a string", node );
 	value = attribute.s().c_str();
 }
 
 template<>
 void extractValue<CArray<int>>( const onnx::AttributeProto& attribute, CArray<int>& value,
-	const onnx::NodeProto& /* onnxNode */ )
+	const COpNode& /* node */ )
 {
 	value.Empty();
 	value.SetBufferSize( attribute.ints_size() );
@@ -74,7 +74,7 @@ void extractValue<CArray<int>>( const onnx::AttributeProto& attribute, CArray<in
 
 template<>
 void extractValue<CArray<int64_t>>( const onnx::AttributeProto& attribute, CArray<int64_t>& value,
-	const onnx::NodeProto& /* onnxNode */ )
+	const COpNode& /* node */ )
 {
 	value.Empty();
 	value.SetBufferSize( attribute.ints_size() );
@@ -85,7 +85,7 @@ void extractValue<CArray<int64_t>>( const onnx::AttributeProto& attribute, CArra
 
 template<>
 void extractValue<CFastArray<int, 8>>( const onnx::AttributeProto& attribute, CFastArray<int, 8>& value,
-	const onnx::NodeProto& /* onnxNode */ )
+	const COpNode& /* node */ )
 {
 	for( int64_t element : attribute.ints() ) {
 		if( element >= static_cast<int64_t>( INT_MAX ) ) {
@@ -100,9 +100,9 @@ void extractValue<CFastArray<int, 8>>( const onnx::AttributeProto& attribute, CF
 
 template<>
 void extractValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPtr<CDataTensor>& value,
-	const onnx::NodeProto& onnxNode )
+	const COpNode& node )
 {
-	CheckOnnxProtocol( attribute.has_t(), CString( "attribute " ) + attribute.name().c_str() + " is not a tensor", onnxNode );
+	CheckOnnxProtocol( attribute.has_t(), CString( "attribute " ) + attribute.name().c_str() + " is not a tensor", node );
 	
 	TBlobType resultDataType = GetBlobType( static_cast<onnx::TensorProto_DataType>( attribute.t().data_type() ) );
 	CTensorLayout resultLayout( attribute.t().dims().size() );
@@ -127,7 +127,7 @@ void extractValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPt
 // Returns false if attribute is missing
 template<class T>
 static bool getValue( const CString& name, const CMap<CString, const onnx::AttributeProto*>& attributes, T& value,
-	const onnx::NodeProto& onnxNode )
+	const COpNode& node )
 {
 	const int attrPos = attributes.GetFirstPosition( name );
 	if( attrPos == NotFound ) {
@@ -135,40 +135,40 @@ static bool getValue( const CString& name, const CMap<CString, const onnx::Attri
 	}
 
 	const onnx::AttributeProto* attributeValue = attributes.GetValue( attrPos );
-	CheckNeoOnnxInternal( attributeValue != nullptr, CString( "attribute " ) + name + " is nullptr", onnxNode );
+	CheckNeoOnnxInternal( attributeValue != nullptr, CString( "attribute " ) + name + " is nullptr", node );
 
-	extractValue<T>( *attributeValue, value, onnxNode );
+	extractValue<T>( *attributeValue, value, node );
 	return true;
 }
 
 int COpNodeAttributes::GetOptionalInt( const CString& name, int defaultValue ) const
 {
 	int result = defaultValue;
-	getValue( name, attributes, result, onnxNode );
+	getValue( name, attributes, result, node );
 	return result;
 }
 
 float COpNodeAttributes::GetOptionalFloat( const CString& name, float defaultValue ) const
 {
 	float result = defaultValue;
-	getValue( name, attributes, result, onnxNode );
+	getValue( name, attributes, result, node );
 	return result;
 }
 
 void COpNodeAttributes::GetOptionalIntArray( const CString& name, CArray<int>& value ) const
 {
-	getValue( name, attributes, value, onnxNode );
+	getValue( name, attributes, value, node );
 }
 
 void COpNodeAttributes::GetOptionalIntArray( const CString& name, CFastArray<int, 8>& value ) const
 {
-	getValue( name, attributes, value, onnxNode );
+	getValue( name, attributes, value, node );
 }
 
 CString COpNodeAttributes::GetOptionalString( const CString& name, const CString& defaultValue ) const
 {
 	CString result = defaultValue;
-	getValue( name, attributes, result, onnxNode );
+	getValue( name, attributes, result, node );
 	return result;
 }
 
@@ -176,7 +176,7 @@ CPtr<CDataTensor> COpNodeAttributes::GetOptionalTensor( const CString& name, CDa
 {
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	CPtr<CDataTensor> result = new CDataTensor( { 1 }, CTensorLayout( 1 ), *resultBlob );
-	if( getValue( name, attributes, result, onnxNode ) ) {
+	if( getValue( name, attributes, result, node ) ) {
 		return result;
 	}
 	return defaultValue;
@@ -185,36 +185,36 @@ CPtr<CDataTensor> COpNodeAttributes::GetOptionalTensor( const CString& name, CDa
 int COpNodeAttributes::GetRequiredInt( const CString& name ) const
 {
 	int value = 0;
-	CheckOnnxProtocol( getValue( name, attributes, value, onnxNode ), "required attribute is missing: " + name, onnxNode );
+	CheckOnnxProtocol( getValue( name, attributes, value, node ), "required attribute is missing: " + name, node );
 	return value;
 }
 
 float COpNodeAttributes::GetRequiredFloat( const CString& name ) const
 {
 	float result = 0.f;
-	CheckOnnxProtocol( getValue( name, attributes, result, onnxNode ), "required attribute is missing: " + name, onnxNode );
+	CheckOnnxProtocol( getValue( name, attributes, result, node ), "required attribute is missing: " + name, node );
 	return result;
 }
 
 void COpNodeAttributes::GetRequiredIntArray( const CString& name, CArray<int>& value ) const
 {
-	CheckOnnxProtocol( getValue( name, attributes, value, onnxNode ), "required attribute is missing: " + name, onnxNode );
+	CheckOnnxProtocol( getValue( name, attributes, value, node ), "required attribute is missing: " + name, node );
 }
 
 void COpNodeAttributes::GetRequiredIntArray( const CString& name, CFastArray<int, 8>& value ) const
 {
-	CheckOnnxProtocol( getValue( name, attributes, value, onnxNode ), "required attribute is missing: " + name, onnxNode );
+	CheckOnnxProtocol( getValue( name, attributes, value, node ), "required attribute is missing: " + name, node );
 }
 
 void COpNodeAttributes::GetRequiredInt64Array( const CString& name, CArray<int64_t>& value ) const
 {
-	CheckOnnxProtocol( getValue( name, attributes, value, onnxNode ), "required attribute is missing: " + name, onnxNode );
+	CheckOnnxProtocol( getValue( name, attributes, value, node ), "required attribute is missing: " + name, node );
 }
 
 CString COpNodeAttributes::GetRequiredString( const CString& name ) const
 {
 	CString result;
-	CheckOnnxProtocol( getValue( name, attributes, result, onnxNode ), "required attribute is missing: " + name, onnxNode );
+	CheckOnnxProtocol( getValue( name, attributes, result, node ), "required attribute is missing: " + name, node );
 	return result;
 }
 
@@ -222,7 +222,7 @@ CPtr<CDataTensor> COpNodeAttributes::GetRequiredTensor( const CString& name, IMa
 {
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	CPtr<CDataTensor> result = new CDataTensor( { 1 }, CTensorLayout( 1 ), *resultBlob );
-	CheckOnnxProtocol( getValue( name, attributes, result, onnxNode ), "required attribute is missing: " + name, onnxNode );
+	CheckOnnxProtocol( getValue( name, attributes, result, node ), "required attribute is missing: " + name, node );
 	return result;
 }
 
