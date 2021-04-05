@@ -237,19 +237,55 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 
 	int poolSizeNorm = (poolSize + BlobGlobalMaxPoolingCombine - 1) / BlobGlobalMaxPoolingCombine;
 
-	// As the shared memory size depends on maxCount, we may need to limit the number of threads
-	int sharedMemoryPerThread = 4 * maxCount * sizeof(float);
-	int maxThreadCount = device->SharedMemoryLimit / sharedMemoryPerThread;
-
 	dim3 blockCount;
 	dim3 threadCount;
-	getCudaTaskGrid2DMinYX(1, device->ThreadMaxCount, blockCount, threadCount,
-		source.ObjectCount() * source.Channels(), poolSizeNorm, maxThreadCount);
-	blockCount.x = 1;
 
-	int sharedSize = threadCount.y * threadCount.x * sharedMemoryPerThread;
-	BlobGlobalMaxPoolingKernel<<<blockCount, threadCount, sharedSize>>>( desc, GetRaw( sourceData ),
-		GetRaw( maxIndicesData ), GetRaw( resultData ), poolSize, maxCount, poolSizeNorm );
+	if( maxCount < 1 ){
+		// As the shared memory size depends on maxCount, we may need to limit the number of thread
+		int sharedMemoryPerThread = 4 * maxCount * sizeof( float );
+		int maxThreadCount = device->SharedMemoryLimit / sharedMemoryPerThread;
+
+		getCudaTaskGrid2DMinYX(1, device->ThreadMaxCount, blockCount, threadCount,
+			source.ObjectCount() * source.Channels(), poolSizeNorm, maxThreadCount);
+		blockCount.x = 1;
+
+		int sharedSize = threadCount.y * threadCount.x * sharedMemoryPerThread;
+		BlobGlobalMaxPoolingHeapKernel<<<blockCount, threadCount, sharedSize>>>( desc, GetRaw( sourceData ),
+			GetRaw( maxIndicesData ), GetRaw( resultData ), poolSize, maxCount, poolSizeNorm );
+	} else {
+		int numBins = 2;
+		int histSize = ( 1 << numBins ) * sizeof( int );
+		int maxThreadCount = device->SharedMemoryLimit / ( histSize + 1 );
+
+		int height = 1;
+		while( height < poolSizeNorm ) {
+			height *= 2;
+		}
+		getCudaTaskGrid2DMinYX(1, 1, blockCount, threadCount,
+			height, source.ObjectCount() * source.Channels(), maxThreadCount);
+		blockCount.y = 1;
+		printf("thread count = %d %d %d\n", blockCount.x, threadCount.x, threadCount.y);
+		CIntHandleVar indicesSorted( mathEngine(), 2 * source.BlobSize() );
+
+		int sharedSize = ( ( threadCount.y + 1 ) * threadCount.x ) * histSize;
+		BlobGlobalMaxPoolingSortKernel<<<blockCount, threadCount, sharedSize>>>( desc, GetRaw( sourceData ),
+			GetRaw( maxIndicesData ), GetRaw( indicesSorted.GetHandle() ), GetRaw( resultData ), poolSize, maxCount, poolSizeNorm, numBins );
+
+		printf("blob size = %d %d %d %d\n", source.BlobSize(), source.BatchWidth(), source.Width(), source.Channels());
+
+		printf("\n");
+		for( int i = 0; i < 2 * source.BlobSize(); ++i ){
+			printf("%d ", indicesSorted.GetValueAt( i ));
+		}
+		printf("\n");
+
+		/*
+		printf("\n");
+		for( int i = 0; i < 2 * source.BlobSize(); ++i ){
+			printf("%d ", indicesSortedPtr[i]);
+		}
+		printf("\n");*/
+	}
 }
 
 void CCudaMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& poolingDesc,

@@ -38,7 +38,7 @@ __device__ inline void MergeBuffers(int maxCount, float* buffer, float* maxIndex
 
 const int BlobGlobalMaxPoolingCombine = 8;
 __launch_bounds__( 1024, 1 )
-__global__ void BlobGlobalMaxPoolingKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
+__global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
 	int* maxIndicesData, float* resultData, int poolSize, int maxCount, int poolSizeNorm )
 {
 	const CCudaBlobDesc& source = desc.Source;
@@ -143,6 +143,120 @@ __global__ void BlobGlobalMaxPoolingKernel( const CCudaGlobalMaxPoolingDescInter
 				curResultData += totalChannels;
 				maxIndexData += totalChannels;
 			}
+		}
+	}
+}
+
+__launch_bounds__( 1024, 1 )
+__global__ void BlobGlobalMaxPoolingSortKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
+	int* maxIndicesData, int* indicesSorted, float* resultData, int poolSize, int maxCount, int poolSizeNorm, int numBins )
+{
+	extern __shared__ float sharedData[];
+
+	const CCudaBlobDesc& source = desc.Source;
+	const CCudaBlobDesc& maxIndices = desc.MaxIndices;
+	const CCudaBlobDesc& result = desc.Result;
+
+	unsigned int histSize = 1 << numBins;
+	int* sharedHistogram = (int*)( sharedData + ( threadIdx.x * ( blockDim.y + 1 ) + threadIdx.y ) * histSize );
+	int* sumSharedHistogram = (int*)( sharedData + ( threadIdx.x * ( blockDim.y + 1 ) + blockDim.y ) * histSize );
+	int inOffset = 0;
+	int outOffset = source.BlobSize();
+
+	int totalChannels = source.Channels();
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int b = x / totalChannels;
+	int c = x % totalChannels;
+	int combine = ( poolSize + blockDim.y - 1 ) / blockDim.y;
+	int count = min( combine, poolSize - threadIdx.y * combine );
+
+	for( int bin = 0; bin < 32 / numBins; bin += numBins ) {
+		for( int i = 0; i < histSize; ++i ) {
+			sharedHistogram[i] = 0;
+		}
+
+		// build histogram for each thread
+		if( b < source.ObjectCount() && c < totalChannels ) {
+			int curIndex = inOffset + ( b * poolSize + threadIdx.y * combine ) * totalChannels + c;
+
+			for( int i = 0; i < count; ++i ) {
+				int& sourceIndex = indicesSorted[curIndex];
+				if( bin == 0 ) {
+					sourceIndex = curIndex;
+				}
+				unsigned int value = ( unsigned int )__ldg( sourceData + sourceIndex );
+				unsigned int histValue = ( value >> bin ) & ( histSize - 1 );
+				sharedHistogram[histValue] += 1;
+				curIndex += totalChannels;
+			}
+		}
+
+		__syncthreads();
+
+		// prefix sum for threads in two steps
+
+		// up-sweep step
+		for( int step = 2; step <= blockDim.y; step *= 2 ) {
+			if( ( threadIdx.y + 1 ) % step == 0 ) {
+				for( int j = 0; j < histSize; ++j ) {
+					sharedHistogram[j] += ( sharedHistogram - step / 2 * histSize )[j];
+				}
+			}
+			__syncthreads();
+		}
+
+		// down-sweep step
+		if( threadIdx.y == blockDim.y - 1 ) {
+			sumSharedHistogram[0] = 0;
+			for( int j = 0; j < histSize - 1; ++j ) {
+				sumSharedHistogram[j + 1] = sumSharedHistogram[j] + sharedHistogram[j];
+				sharedHistogram[j] = 0;
+			}
+			sharedHistogram[histSize - 1] = 0;
+		}
+		__syncthreads();
+
+		for( int step = blockDim.y; step > 1; step /= 2 ) {
+			if( ( threadIdx.y + 1 ) % step == 0 ) {
+				for( int j = 0; j < histSize; ++j ) {
+					int t = ( sharedHistogram - step / 2 * histSize )[j];
+					( sharedHistogram - step / 2 * histSize )[j] = sharedHistogram[j];
+					sharedHistogram[j] += t;
+				}
+			}
+			__syncthreads();
+		}
+
+		if( b < source.ObjectCount() && c < totalChannels ) {
+			int curIndex = inOffset + ( b * poolSize + threadIdx.y * combine ) * totalChannels + c;
+			int batchIndex = b * poolSize * totalChannels;
+
+			for( int i = 0; i < count; ++i ) {
+				int sourceIndex = indicesSorted[curIndex];
+				unsigned int value = ( unsigned int )__ldg( sourceData + sourceIndex );
+				unsigned int histValue = ( value >> bin ) & ( histSize - 1 );
+				int newIndex = outOffset + batchIndex + ( sharedHistogram[histValue] + sumSharedHistogram[histValue] ) * totalChannels + c;
+				indicesSorted[newIndex] = count; // sourceIndex;
+				curIndex += totalChannels;
+				sharedHistogram[histValue]++;
+			}
+		}
+		__syncthreads();
+
+		inOffset ^= source.BlobSize();
+		outOffset ^= source.BlobSize();
+	}
+
+
+	if( b < source.ObjectCount() && c < totalChannels && threadIdx.y == 0 ) {
+		int sortedIndex = outOffset + (( b + 1 ) * poolSize - 1 ) * totalChannels + c;
+		int outIndex = b * maxCount * totalChannels + c;
+		for( int i = 0; i < maxCount; ++i ) {
+			int index = indicesSorted[sortedIndex];
+			maxIndicesData[outIndex] = ( index - c ) / totalChannels - b * poolSize;
+			resultData[outIndex] = sourceData[index];
+			sortedIndex -= totalChannels;
+			outIndex += totalChannels;
 		}
 	}
 }

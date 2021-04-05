@@ -45,8 +45,7 @@ static void blobGlobalMaxPoolingTestImpl( const CTestParams& params, int seed )
 	const int channels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const int depth = random.UniformInt( depthInterval.Begin, depthInterval.End );
 	const int height = random.UniformInt( heightInterval.Begin, heightInterval.End );
-	const int width = random.UniformInt( widthInterval.Begin, std::min( widthInterval.End,
-		( depthInterval.End * heightInterval.End ) / ( depth * height ) ) );
+	const int width = random.UniformInt( widthInterval.Begin, widthInterval.End );
 	const int maxCount = random.UniformInt( maxCountInterval.Begin, maxCountInterval.End );
 
 	CFloatBlob output( MathEngine(), batchLength, batchWidth, listSize, 1, maxCount, 1, channels );
@@ -66,7 +65,7 @@ static void blobGlobalMaxPoolingTestImpl( const CTestParams& params, int seed )
 	actualIndices.resize( output.GetDataSize() );
 
 	for( size_t i = 0; i < inputBuff.size(); ++i ) {
-		inputBuff[i] = static_cast<float>( random.Uniform( -10, 10 ) );
+		inputBuff[i] = static_cast<float>( random.Uniform( 0, 10 ) );
 	}
 
 	std::vector<int> perm;
@@ -108,6 +107,18 @@ static void blobGlobalMaxPoolingTestImpl( const CTestParams& params, int seed )
 
 	output.CopyTo( actual.data() );
 	indices.CopyTo( actualIndices.data() );
+	/*
+	for( int i = 0; i < inputBuff.size(); i++ ) {
+		printf("%f ", inputBuff[i]);
+	}
+	printf("\n");
+	for( int i = 0; i < actual.size(); i++ ) {
+		printf("%f ", actual[i]);
+	}
+	printf("\n");
+	for( int i = 0; i < actualIndices.size(); i++ ) {
+		printf("%d ", actualIndices[i]);
+	}*/
 
 	for( size_t i = 0; i < expected.size(); ++i ) {
 		ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << params;
@@ -122,7 +133,7 @@ class CMathEngineGlobalMaxPoolingTest : public CTestFixtureWithParams {
 
 INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngineGlobalMaxPoolingTest,
 	::testing::Values(
-		CTestParams(
+		/*CTestParams(
 			"BatchLength = 1;"
 			"BatchWidth = 2;"
 			"ListSize = 1;"
@@ -176,6 +187,17 @@ INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngi
 			"Width = (1..25);"
 			"MaxCount = (1..7);"
 			"TestCount = 50"
+		),*/
+		CTestParams(
+			"BatchLength = 1;"
+			"BatchWidth = 10;"
+			"ListSize = 1;"
+			"Channels = 2;"
+			"Depth = 1;"
+			"Height = 1;"
+			"Width = 200;"
+			"MaxCount = 2;"
+			"TestCount = 1;"
 		)
 	)
 );
