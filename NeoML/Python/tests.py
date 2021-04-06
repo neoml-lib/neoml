@@ -2019,6 +2019,28 @@ class DnnTestCase(TestCase):
         self.assertTrue(len(dnn.output_layers), 1)
 
 class TraditionalTestCase(TestCase):
+    def test_differential_evolution(self):
+        from neoml.DifferentialEvolution import IntTraits, DoubleTraits, DifferentialEvolution
+        def func(vec):
+            return sum([x**2 for x in vec])
+
+        for dim, param_traits, max_gen_count, result_traits, population in (
+            (1, None, None, None, 50),
+            (10, [IntTraits()] * 5 + [DoubleTraits()] * 5, 10, DoubleTraits(), 100),
+        ):
+            diff_evo = DifferentialEvolution(func, [-5] * dim, [5] * dim,
+                param_traits=param_traits, result_traits=result_traits,
+                max_generation_count=max_gen_count, population=population)
+            diff_evo.build_next_generation()
+            diff_evo.run()
+            self.assertEqual(diff_evo.build_next_generation(), True)
+            res_population = np.array(diff_evo.population)
+            self.assertEqual(res_population.shape, (population, dim))
+            eval_population = np.array(diff_evo.population_function_values)
+            self.assertEqual(eval_population.shape, (population,))
+            optimal_vector = np.array(diff_evo.optimal_vector)
+            self.assertEqual(optimal_vector.shape, (dim,))
+
     def _test_classification_model(self, model, params, is_binary=False):
         X_dense = np.eye(20, 5, dtype=np.float32)
         X_dense_list = X_dense.tolist()
