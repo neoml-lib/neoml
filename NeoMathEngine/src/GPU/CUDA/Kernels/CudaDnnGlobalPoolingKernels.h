@@ -168,7 +168,7 @@ __global__ void BlobGlobalMaxPoolingSortKernel( const CCudaGlobalMaxPoolingDescI
 	int b = x / totalChannels;
 	int c = x % totalChannels;
 	int combine = ( poolSize + blockDim.y - 1 ) / blockDim.y;
-	int count = min( combine, poolSize - threadIdx.y * combine );
+	int count = min( combine, poolSize - (int)threadIdx.y * combine );
 
 	for( int bin = 0; bin < 32 / numBins; bin += numBins ) {
 		for( int i = 0; i < histSize; ++i ) {
@@ -248,16 +248,13 @@ __global__ void BlobGlobalMaxPoolingSortKernel( const CCudaGlobalMaxPoolingDescI
 	}
 
 	if( b < source.ObjectCount() && c < totalChannels ) {
-		int step = ( maxCount + blockDim.y - 1 ) / blockDim.y;
 		int sortedIndex = inOffset + b * poolSize * totalChannels + c;
 		int outIndex = b * maxCount * totalChannels + c;
 
-		for( int i = 0; i < maxCount; i += step ) {
-			int index = indicesSorted[sortedIndex];
-			maxIndicesData[outIndex] = ( index - c ) / totalChannels - b * poolSize;
-			resultData[outIndex] = sourceData[index];
-			sortedIndex += step * totalChannels;
-			outIndex += step * totalChannels;
+		for( int i = threadIdx.y; i < maxCount; i += blockDim.y ) {
+			int index = indicesSorted[sortedIndex + i * totalChannels];
+			maxIndicesData[outIndex + i * totalChannels] = ( index - c ) / totalChannels - b * poolSize;
+			resultData[outIndex + i * totalChannels] = sourceData[index];
 		}
 	}
 }

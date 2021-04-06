@@ -107,19 +107,19 @@ static void blobGlobalMaxPoolingTestImpl( const CTestParams& params, int seed )
 
 	output.CopyTo( actual.data() );
 	indices.CopyTo( actualIndices.data() );
-	/*
+/*
 	for( int i = 0; i < inputBuff.size(); i++ ) {
 		printf("%f ", inputBuff[i]);
 	}
 	printf("\n");
 	for( int i = 0; i < actual.size(); i++ ) {
-		printf("%f ", actual[i]);
+		printf( "%f ", actual[i] );
 	}
 	printf("\n");
 	for( int i = 0; i < actualIndices.size(); i++ ) {
 		printf("%d ", actualIndices[i]);
-	}
-	*/
+	}*/
+
 	for( size_t i = 0; i < expected.size(); ++i ) {
 		ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << params;
 		ASSERT_EQ( expectedIndices[i], actualIndices[i] ) << params;
@@ -192,11 +192,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngi
 			"BatchLength = 1;"
 			"BatchWidth = 1000;"
 			"ListSize = 1;"
-			"Channels = 3;"
+			"Channels = 1;"
 			"Depth = 1;"
 			"Height = 1;"
-			"Width = 1000;"
-			"MaxCount = 100;"
+			"Width = 100000;"
+			"MaxCount = 1000;"
 			"TestCount = 1;"
 		)
 	)
