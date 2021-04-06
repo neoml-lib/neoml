@@ -341,9 +341,9 @@ CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::copyOnWriteAndGr
 		return currentSize;
 	};
 
-	rowsBufferSize = body->RowsBufferSize == 0 ?  max( rowsBufferSize, InitialRowsBufferSize ) :
+	rowsBufferSize = body->RowsBufferSize == 0 ? max( rowsBufferSize, InitialRowsBufferSize ) :
 		newBufferSize( body->RowsBufferSize, rowsBufferSize );
-	elementsBufferSize = body->ElementsBufferSize == 0 ?  max( elementsBufferSize, InitialElementsBufferSize ) :
+	elementsBufferSize = body->ElementsBufferSize == 0 ? max( elementsBufferSize, InitialElementsBufferSize ) :
 		newBufferSize( body->ElementsBufferSize, elementsBufferSize );
 	if( body->RefCount() != 1 ) {
 		auto oldBody = body.Ptr();
