@@ -51,16 +51,16 @@ Linear
 
 A linear classifier finds a hyperplane that divides the feature space in half.
 
-.. autoclass::neoml.LinearClassifier
+.. autoclass::neoml.Linear.LinearClassifier
    :members:
 
-.. autoclass::neoml.LinearClassificationModel
+.. autoclass::neoml.Linear.LinearClassificationModel
    :members:
 
-.. autoclass::neoml.LinearRegressor
+.. autoclass::neoml.Linear.LinearRegressor
    :members:
 
-.. autoclass::neoml.LinearRegressionModel
+.. autoclass::neoml.Linear.LinearRegressionModel
 
 .. _py-classification-svm:
 
