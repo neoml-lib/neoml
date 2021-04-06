@@ -44,18 +44,23 @@ Regression model
 .. autoclass::neoml.GradientBoost.GradientBoostRegressionModel
    :members:
 
-Example
-*******
-
-.. code-block:: python
-
-   import numpy as np
-   import neoml
-
 .. _py-classification-linear:
 
 Linear
 #################
+
+A linear classifier finds a hyperplane that divides the feature space in half.
+
+.. autoclass::neoml.LinearClassifier
+   :members:
+
+.. autoclass::neoml.LinearClassificationModel
+   :members:
+
+.. autoclass::neoml.LinearRegressor
+   :members:
+
+.. autoclass::neoml.LinearRegressionModel
 
 .. _py-classification-svm:
 

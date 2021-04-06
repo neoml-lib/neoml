@@ -6,6 +6,7 @@ neoml.Dnn
 
 - :ref:`py-dnn-network`
 - :ref:`py-dnn-layers`
+
    - :ref:`py-dnn-recurrent`
    - :ref:`py-dnn-activation`
    - :ref:`py-dnn-binarization`
@@ -13,7 +14,7 @@ neoml.Dnn
    - :ref:`py-dnn-attention`
    - :ref:`py-dnn-normalization`
    - :ref:`py-dnn-concat`
-   - :ref:`py-dnn-convolution`
+   - :ref:`py-dnn-conv`
    - :ref:`py-dnn-crf`
    - :ref:`py-dnn-ctc`
    - :ref:`py-dnn-eltwise`
@@ -23,6 +24,7 @@ neoml.Dnn
    - :ref:`py-dnn-inputoutput`
    - :ref:`py-dnn-split`
    - :ref:`py-dnn-sequences`
+
 - :ref:`py-dnn-initializer`
 - :ref:`py-dnn-solver`
 
