@@ -71,13 +71,14 @@ inline CFloatVectorDesc CFloatMatrixDesc::GetRow( int index ) const
 class NEOML_API CSparseFloatMatrix {
 	static const int InitialRowBufferSize = 32;
 	static const int InitialElementBufferSize = 512;
+	static const int MaxBufferSize = INT_MAX;
 public:
 	CSparseFloatMatrix() {}
 	explicit CSparseFloatMatrix( int width, int rowsBufferSize = 0, int elementsBufferSize = 0 );
 	explicit CSparseFloatMatrix( const CFloatMatrixDesc& desc );
 	CSparseFloatMatrix( const CSparseFloatMatrix& other );
 
-	CFloatMatrixDesc* CopyOnWrite() { return body == 0 ? 0 : &body.CopyOnWrite()->Desc; }
+	CFloatMatrixDesc* CopyOnWrite() { return body == 0 ? 0 : &copyOnWriteExt()->Desc; }
 	const CFloatMatrixDesc& GetDesc() const { return body == 0 ? CFloatMatrixDesc::Empty : body->Desc; }
 
 	int GetHeight() const { return body == 0 ? 0 : body->Desc.Height; }
@@ -106,11 +107,10 @@ private:
 		CSparseFloatMatrixBody( int height, int width, int elementCount, int rowsBufferSize, int elementsBufferSize );
 		explicit CSparseFloatMatrixBody( const CFloatMatrixDesc& desc );
 		~CSparseFloatMatrixBody();
-
-		CSparseFloatMatrixBody* Duplicate() const;
 	};
  
-	CCopyOnWritePtr<CSparseFloatMatrixBody> body; // The matrix body.
+	CPtr<CSparseFloatMatrixBody> body; // The matrix body.
+	CSparseFloatMatrixBody* copyOnWriteExt( int rowsBufferSize = 0, int columnsBufferSize = 0 );
 };
 
 // Writing into a CTextStream
