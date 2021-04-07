@@ -395,6 +395,9 @@ TEST_F( CFloatVectorTest, DISABLED_CreateHugeSparseMatrix )
 		for( int i = 0; i < rowsCount; ++i ) {
 			CFloatVector row( maxLength, 1.0 );
 			matrix.AddRow( row.GetDesc() );
+			if( (i+1) % 1000000 == 0 ) {
+				GTEST_LOG_( INFO ) << i+1 << " rows added";
+			}
 		}
 		GTEST_LOG_( INFO ) << rowsCount << " rows added";
 		// test some random elements have been set correctly
