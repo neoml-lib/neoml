@@ -264,6 +264,9 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 		getCudaTaskGrid2DMinYX(1, 1, blockCount, threadCount,
 			height, source.ObjectCount() * source.Channels(), maxThreadCount);
 		blockCount.y = 1;
+		threadCount.y = 1024;
+		blockCount.x = source.ObjectCount() * source.Channels();
+		threadCount.x = 1;
 		printf("thread count = %d %d %d\n", blockCount.x, threadCount.x, threadCount.y);
 		CIntHandleVar indicesSorted( mathEngine(), 2 * source.BlobSize() );
 
@@ -279,7 +282,13 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 			int j = indicesSorted.GetValueAt( i );
 			printf("%f ", sourceData.GetValueAt( j ));
 		}
-		printf("\n");
+		printf("\n\n");
+		for( int i = source.BlobSize(); i < 2 * source.BlobSize(); i++ ){
+			int j = indicesSorted.GetValueAt( i );
+			printf("%f ", sourceData.GetValueAt( j ));
+		}
+		printf("\n\n");*/
+		/*
 		for( int i = source.BlobSize(); i < source.BlobSize() + 3 * maxCount; i++ ){
 			int j = indicesSorted.GetValueAt( i );
 			printf("%f ", sourceData.GetValueAt( j ));

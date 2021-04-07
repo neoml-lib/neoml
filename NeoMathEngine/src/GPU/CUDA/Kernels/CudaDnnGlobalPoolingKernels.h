@@ -170,7 +170,7 @@ __global__ void BlobGlobalMaxPoolingSortKernel( const CCudaGlobalMaxPoolingDescI
 	int combine = ( poolSize + blockDim.y - 1 ) / blockDim.y;
 	int count = min( combine, poolSize - (int)threadIdx.y * combine );
 
-	for( int bin = 0; bin < 32 / numBins; bin += numBins ) {
+	for( int bin = 0; bin < 32; bin += numBins ) {
 		for( int i = 0; i < histSize; ++i ) {
 			sharedHistogram[i] = 0;
 		}
@@ -184,7 +184,7 @@ __global__ void BlobGlobalMaxPoolingSortKernel( const CCudaGlobalMaxPoolingDescI
 				if( bin == 0 ) {
 					sourceIndex = curIndex;
 				}
-				unsigned int value = ( unsigned int )__ldg( sourceData + sourceIndex );
+				unsigned int value = *( unsigned* )( sourceData + sourceIndex );
 				unsigned int histValue = ~( value >> bin ) & ( histSize - 1 );
 				sharedHistogram[histValue] += 1;
 				curIndex += totalChannels;
@@ -233,7 +233,7 @@ __global__ void BlobGlobalMaxPoolingSortKernel( const CCudaGlobalMaxPoolingDescI
 
 			for( int i = 0; i < count; ++i ) {
 				int sourceIndex = indicesSorted[curIndex];
-				unsigned int value = ( unsigned int )__ldg( sourceData + sourceIndex );
+				unsigned int value = *( unsigned* )( sourceData + sourceIndex );
 				unsigned int histValue = ~( value >> bin ) & ( histSize - 1 );
 				int newIndex = outOffset + batchIndex + ( sharedHistogram[histValue] + sumSharedHistogram[histValue] ) * totalChannels + c;
 				indicesSorted[newIndex] = sourceIndex;
