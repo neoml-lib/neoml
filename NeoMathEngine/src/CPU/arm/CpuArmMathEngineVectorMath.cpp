@@ -489,61 +489,6 @@ void CCpuMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 	VectorMultiply(firstHandle, resultHandle, vectorSize, mult);
 }
 
-void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vmulq_f32(LoadNeon4(first), LoadNeon4(second));
-		StoreNeon4(res, result);
-
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), LoadNeon(second, vectorSize));
-		StoreNeon(res, result, vectorSize);
-	}
-}
-
-void CCpuMathEngine::VectorEltwiseMultiplyAdd(const CConstFloatHandle& firstHandle,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = MultiplyAndAddNeon(LoadNeon4(result), LoadNeon4(first), LoadNeon4(second));
-		StoreNeon4(res, result);
-
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = MultiplyAndAddNeon(LoadNeon(result, vectorSize),
-			LoadNeon(first, vectorSize), LoadNeon(second, vectorSize));
-		StoreNeon(res, result, vectorSize);
-	}
-}
-
 void CCpuMathEngine::VectorEltwiseNegMultiply(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
 {

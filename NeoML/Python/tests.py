@@ -1605,7 +1605,7 @@ class PoolingTestCase(TestCase):
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
-        qrnn = neoml.Dnn.Qrnn((source1, source2), 7, 4, 2, (1, 1), "sigmoid", 0.6, "direct", "qrnn")
+        qrnn = neoml.Dnn.Qrnn((source1, source2), 'fo', 7, 4, 2, (1, 1), "sigmoid", 0.6, "direct", "qrnn")
         filter = neoml.Blob.asblob(math_engine, np.ones((21, 5, 6), dtype=np.float32), (1, 21, 1, 4, 1, 1, 6))
         qrnn.filter = filter
         free_term = neoml.Blob.asblob(math_engine, np.ones((21,), dtype=np.float32), (1, 21, 1, 1, 1, 1, 1))
