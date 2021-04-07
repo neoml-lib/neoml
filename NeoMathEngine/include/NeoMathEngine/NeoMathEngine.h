@@ -740,6 +740,33 @@ public:
 		const CBlobDesc& output, int seed ) = 0;
 	// Performs dropout on an input
 	virtual void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) = 0;
+
+	// QRNN poolings (https://arxiv.org/pdf/1611.01576.pdf)
+	// These operations calculate recursive parts of QRNN
+	// It doesn't include output gate handling
+	// Initial states are optional (maybe null)
+
+	// QRNN f-pooling
+	virtual void QrnnFPooling( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& initialState,
+		const CFloatHandle& result ) = 0;
+	// QRNN f-pooling backward
+	// Note: it will modify the contents of resultDiff
+	virtual void QrnnFPoolingBackward( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget,
+		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
+		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff ) = 0;
+
+	// QRNN if-pooling
+	virtual void QrnnIfPooling( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+		const CConstFloatHandle& initialState, const CFloatHandle& result ) = 0;
+	// QRNN if-pooling backward
+	// Note: it will modify the contents of resultDiff
+	virtual void QrnnIfPoolingBackward( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
+		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
