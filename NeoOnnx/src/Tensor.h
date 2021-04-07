@@ -49,21 +49,7 @@ public:
 	virtual bool IsCalculated() const = 0;
 	
 protected:
-	CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout ) :
-		layout( _layout )
-	{ 
-		_shape.CopyTo( shape );
-#ifdef _DEBUG
-		NeoPresume( layout.Size() == shape.Size() );
-		// Checking that every dimension is valid and used only once
-		int mask = 0;
-		for( int dimIndex = 0; dimIndex < layout.Size(); ++dimIndex ) {
-			NeoPresume( layout[dimIndex] >= BD_BatchLength && layout[dimIndex] < BD_Count );
-			NeoPresume( ( mask & ( 1 << layout[dimIndex] ) ) == 0 );
-			mask |= ( 1 << layout[dimIndex] );
-		}
-#endif
-	}
+	CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout );
 	CTensorBase( const CTensorBase& other ) = delete;
 	CTensorBase& operator=( const CTensorBase& other ) = delete;
 	virtual ~CTensorBase() = default;
@@ -75,6 +61,24 @@ private:
 	// Information about how tensor is represented in memory
 	CTensorLayout layout;
 };
+
+inline CTensorBase::CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout ) :
+	layout( _layout )
+{
+	_shape.CopyTo( shape );
+#ifdef _DEBUG
+	NeoPresume( layout.Size() == shape.Size() );
+	// Checking that every dimension is valid and used only once
+	int mask = 0;
+	for( int dimIndex = 0; dimIndex < layout.Size(); ++dimIndex ) {
+		NeoPresume( layout[dimIndex] >= BD_BatchLength && layout[dimIndex] < BD_Count );
+		NeoPresume( ( mask & ( 1 << layout[dimIndex] ) ) == 0 );
+		mask |= ( 1 << layout[dimIndex] );
+	}
+#endif
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 // All tensors during Onnx processing can be divided into 2 groups:
 //
@@ -88,12 +92,7 @@ private:
 // Tensor with data depending on user input
 class CUserTensor : public CTensorBase {
 public:
-	CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output ) :
-		CTensorBase( shape, layout ), layerOutput( output )
-	{
-		NeoPresume( output.Layer != nullptr );
-		NeoPresume( output.OutputIndex >= 0 );
-	}
+	CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output );
 
 	// CTensorBase methods implementation
 	bool IsCalculated() const override { return false; }
@@ -108,24 +107,20 @@ private:
 	CLayerOutput layerOutput;
 };
 
+inline CUserTensor::CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output ) :
+	CTensorBase( shape, layout ),
+	layerOutput( output )
+{
+	NeoPresume( output.Layer != nullptr );
+	NeoPresume( output.OutputIndex >= 0 );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 // Tensor with data independent of user input
 class CDataTensor : public CTensorBase {
 public:
-	CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& _data ) :
-		CTensorBase( shape, layout ), data( &_data )
-	{
-#ifdef _DEBUG
-		// Checking that shape, layout and CDnnBlob are matching
-		for( TBlobDim i = BD_BatchLength; i < BD_Count; ++i ) {
-			const int index = layout.Find( i );
-			if( index == NotFound ) {
-				NeoPresume( data->DimSize( i ) == 1 );
-			} else {
-				NeoPresume( shape[index] == data->DimSize( i ) );
-			}
-		}
-#endif
-	}
+	CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& data );
 
 	// CTensorBase methods implementation
 	bool IsCalculated() const override { return true; }
@@ -138,5 +133,21 @@ private:
 	// Blob with data
 	CPtr<const CDnnBlob> data;
 };
+
+inline CDataTensor::CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& _data ) :
+	CTensorBase( shape, layout ), data( &_data )
+{
+#ifdef _DEBUG
+	// Checking that shape, layout and CDnnBlob are matching
+	for( TBlobDim i = BD_BatchLength; i < BD_Count; ++i ) {
+		const int index = layout.Find( i );
+		if( index == NotFound ) {
+			NeoPresume( data->DimSize( i ) == 1 );
+		} else {
+			NeoPresume( shape[index] == data->DimSize( i ) );
+		}
+	}
+#endif
+}
 
 } // namespace NeoOnnx
