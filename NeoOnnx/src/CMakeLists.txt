@@ -43,7 +43,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
 
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
-    Graph.h
     NeoOnnxCheck.h
     Node.h
     OpNodeAttributes.h

@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include "Node.h"
-#include "Graph.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
