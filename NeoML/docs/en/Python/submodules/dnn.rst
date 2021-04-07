@@ -24,7 +24,6 @@ neoml.Dnn
    - :ref:`py-dnn-inputoutput`
    - :ref:`py-dnn-split`
    - :ref:`py-dnn-sequences`
-
 - :ref:`py-dnn-initializer`
 - :ref:`py-dnn-solver`
 
