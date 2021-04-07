@@ -20,15 +20,13 @@ limitations under the License.
 #include "TensorUtils.h"
 #include "NeoOnnxCheck.h"
 
-#include "onnx.pb.h"
-
 namespace NeoOnnx {
 
 COpNodeAttributes::COpNodeAttributes( const onnx::NodeProto& onnxNode, const COpNode& _node ) :
 	node( _node )
 {
 	for( const onnx::AttributeProto& attribute : onnxNode.attribute() ) {
-		attributes.Add( attribute.name().c_str(), &attribute );
+		attributes.Add( attribute.name().c_str(), attribute );
 	}
 }
 
@@ -126,7 +124,7 @@ void extractValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPt
 // Returns true and fills the value if attribute is present
 // Returns false if attribute is missing
 template<class T>
-static bool getValue( const CString& name, const CMap<CString, const onnx::AttributeProto*>& attributes, T& value,
+static bool getValue( const CString& name, const CMap<CString, const onnx::AttributeProto>& attributes, T& value,
 	const COpNode& node )
 {
 	const int attrPos = attributes.GetFirstPosition( name );
@@ -134,10 +132,8 @@ static bool getValue( const CString& name, const CMap<CString, const onnx::Attri
 		return false;
 	}
 
-	const onnx::AttributeProto* attributeValue = attributes.GetValue( attrPos );
-	NeoAssert( attributeValue != nullptr );
-
-	extractValue<T>( *attributeValue, value, node );
+	const onnx::AttributeProto& attributeValue = attributes.GetValue( attrPos );
+	extractValue<T>( attributeValue, value, node );
 	return true;
 }
 

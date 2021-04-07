@@ -17,11 +17,7 @@ limitations under the License.
 
 #include "Tensor.h"
 
-// Forward declaration(s)
-namespace onnx {
-class NodeProto;
-class AttributeProto;
-} // namespace onnx
+#include "onnx.pb.h"
 
 namespace NeoOnnx {
 
@@ -56,7 +52,7 @@ public:
 
 private:
 	const COpNode& node; // reference to the node for error handling
-	CMap<CString, const onnx::AttributeProto*> attributes; // mapping between attribute keys and values
+	CMap<CString, const onnx::AttributeProto> attributes; // mapping between attribute keys and values
 };
 
 } // namespace NeoOnnx
