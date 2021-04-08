@@ -55,12 +55,12 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 	ElementCount( 0 )
 {
 	NeoAssert( desc.Height >= 0 && desc.Width >= 0 );
-	if( desc.Height == 0 ) {
-		return;
-	}
 
 	Desc.Height = desc.Height;
 	Desc.Width = desc.Width;
+	if( desc.Height == 0 ) {
+		return;
+	}
 
 	RowsBufferSize = max( RowsBufferSize, InitialRowsBufferSize );
 	Desc.PointerB = FINE_DEBUG_NEW int[RowsBufferSize];
