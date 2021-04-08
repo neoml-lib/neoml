@@ -67,18 +67,19 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 	Desc.PointerE = FINE_DEBUG_NEW int[RowsBufferSize];
 	if( desc.Columns == nullptr ) {
 		for( int i = 0; i < desc.Height; ++i ) {
-			Desc.PointerB[i] = ElementsBufferSize;
+			Desc.PointerB[i] = ElementCount;
 			for( int pos = desc.PointerB[i]; pos < desc.PointerE[i]; ++pos ) {
 				if( desc.Values[pos] != 0 ) {
-					++ElementsBufferSize;
+					++ElementCount;
 				}
 			}
-			Desc.PointerE[i] = ElementsBufferSize;
+			Desc.PointerE[i] = ElementCount;
 		}
-		if( ElementsBufferSize > 0 ) {
-			ElementsBufferSize = max( ElementsBufferSize, InitialElementsBufferSize );
+		if( ElementCount > 0 ) {
+			ElementsBufferSize = max( ElementCount, InitialElementsBufferSize );
 			Desc.Columns = FINE_DEBUG_NEW int[ElementsBufferSize];
 			Desc.Values = FINE_DEBUG_NEW float[ElementsBufferSize];
+			ElementCount = 0;
 			for( int i = 0; i < desc.Height; ++i ) {
 				for( int pos = desc.PointerB[i], j = 0; pos < desc.PointerE[i]; ++pos, ++j ) {
 					if( desc.Values[pos] != 0 ) {
@@ -88,6 +89,7 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 					}
 				}
 			}
+			NeoPresume( ElementCount == Desc.PointerE[Desc.Height - 1] );
 		}
 	} else {
 		for( int i = 0; i < desc.Height; ++i ) {
