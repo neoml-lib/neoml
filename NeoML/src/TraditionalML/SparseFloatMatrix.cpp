@@ -32,7 +32,7 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 	ElementCount( elementCount )
 {
 	NeoAssert( height >= 0 && width >= 0 && elementCount >= 0 );
-	NeoAssert( rowsBufferSize >= 0 && elementsBufferSize >= 0 );
+	NeoAssert( rowsBufferSize >= height && elementsBufferSize >= 0 );
 
 	Desc.Height = height;
 	Desc.Width = width;
@@ -44,7 +44,6 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 	}
 	if( RowsBufferSize > 0 ) {
 		RowsBufferSize = max( RowsBufferSize, InitialRowsBufferSize );
-		NeoAssert( RowsBufferSize >= Desc.Height );
 		Desc.PointerB = FINE_DEBUG_NEW int[RowsBufferSize];
 		Desc.PointerE = FINE_DEBUG_NEW int[RowsBufferSize];
 	}
@@ -64,7 +63,6 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 	Desc.Width = desc.Width;
 
 	RowsBufferSize = max( RowsBufferSize, InitialRowsBufferSize );
-	NeoAssert( RowsBufferSize >= Desc.Height );
 	Desc.PointerB = FINE_DEBUG_NEW int[RowsBufferSize];
 	Desc.PointerE = FINE_DEBUG_NEW int[RowsBufferSize];
 	if( desc.Columns == nullptr ) {
