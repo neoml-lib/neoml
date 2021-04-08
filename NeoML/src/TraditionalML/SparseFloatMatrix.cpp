@@ -75,11 +75,20 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 			}
 			Desc.PointerE[i] = ElementCount;
 		}
-		if( ElementCount > 0 ) {
-			ElementsBufferSize = max( ElementCount, InitialElementsBufferSize );
-			Desc.Columns = FINE_DEBUG_NEW int[ElementsBufferSize];
-			Desc.Values = FINE_DEBUG_NEW float[ElementsBufferSize];
-			ElementCount = 0;
+	} else {
+		for( int i = 0; i < desc.Height; ++i ) {
+			Desc.PointerB[i] = ElementCount;
+			ElementCount += desc.PointerE[i] - desc.PointerB[i];
+			Desc.PointerE[i] = ElementCount;
+		}
+	}
+
+	if( ElementCount > 0 ) {
+		ElementsBufferSize = max( ElementCount, InitialElementsBufferSize );
+		Desc.Columns = FINE_DEBUG_NEW int[ElementsBufferSize];
+		Desc.Values = FINE_DEBUG_NEW float[ElementsBufferSize];
+		ElementCount = 0;
+		if( desc.Columns == nullptr ) {
 			for( int i = 0; i < desc.Height; ++i ) {
 				for( int pos = desc.PointerB[i], j = 0; pos < desc.PointerE[i]; ++pos, ++j ) {
 					if( desc.Values[pos] != 0 ) {
@@ -89,28 +98,15 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 					}
 				}
 			}
-			NeoPresume( ElementCount == Desc.PointerE[Desc.Height - 1] );
-		}
-	} else {
-		for( int i = 0; i < desc.Height; ++i ) {
-			Desc.PointerB[i] = ElementCount;
-			ElementCount += desc.PointerE[i] - desc.PointerB[i];
-			Desc.PointerE[i] = ElementCount;
-		}
-		if( ElementCount > 0 ) {
-			ElementsBufferSize = max( ElementCount, InitialElementsBufferSize );
-			Desc.Columns = FINE_DEBUG_NEW int[ElementsBufferSize];
-			Desc.Values = FINE_DEBUG_NEW float[ElementsBufferSize];
-			int* columnsPtr = Desc.Columns;
-			float* valuesPtr = Desc.Values;
+		} else {
 			for( int i = 0; i < desc.Height; ++i ) {
 				CFloatVectorDesc vec = desc.GetRow( i );
-				::memcpy( columnsPtr, vec.Indexes, vec.Size * sizeof( int ) );
-				::memcpy( valuesPtr, vec.Values, vec.Size * sizeof( float ) );
-				columnsPtr += vec.Size;
-				valuesPtr += vec.Size;
+				::memcpy( Desc.Columns + ElementCount, vec.Indexes, vec.Size * sizeof( int ) );
+				::memcpy( Desc.Values + ElementCount, vec.Values, vec.Size * sizeof( float ) );
+				ElementCount += vec.Size;
 			}
 		}
+		NeoPresume( ElementCount == Desc.PointerE[Desc.Height - 1] );
 	}
 }
 
