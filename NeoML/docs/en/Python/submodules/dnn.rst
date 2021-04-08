@@ -121,7 +121,7 @@ Irnn
 .. autoclass:: neoml.Dnn.Irnn
    :members:
 
-.. _py-dnn-fullyconnected
+.. _py-dnn-fullyconnected:
 
 FullyConnected
 *********************
@@ -370,7 +370,7 @@ MeanPooling3D
 .. autoclass:: neoml.Dnn.MeanPooling3D
    :members:
 
-.._py-dnn-softmax:
+.. _py-dnn-softmax:
 
 Softmax
 ************
