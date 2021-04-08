@@ -10,7 +10,6 @@ In `neoml` module, you can find various methods for solving classification and r
 - :ref:`py-classification-linear`
 - :ref:`py-classification-svm`
 - :ref:`py-classification-decisiontree`
-- :ref:`py-classification-onevsall`
 
 .. _py-classification-gradientboosting:
 
@@ -35,13 +34,13 @@ Classification model
 Regressor
 ***************************
 
-.. autoclass::neoml.GradientBoost.GradientBoostRegressor
+.. autoclass:: neoml.GradientBoost.GradientBoostRegressor
    :members:
 
 Regression model
 **********************************
 
-.. autoclass::neoml.GradientBoost.GradientBoostRegressionModel
+.. autoclass:: neoml.GradientBoost.GradientBoostRegressionModel
    :members:
 
 .. _py-classification-linear:
@@ -51,28 +50,39 @@ Linear
 
 A linear classifier finds a hyperplane that divides the feature space in half.
 
-.. autoclass::neoml.Linear.LinearClassifier
+.. autoclass:: neoml.Linear.LinearClassifier
    :members:
 
-.. autoclass::neoml.Linear.LinearClassificationModel
+.. autoclass:: neoml.Linear.LinearClassificationModel
    :members:
 
-.. autoclass::neoml.Linear.LinearRegressor
+.. autoclass:: neoml.Linear.LinearRegressor
    :members:
 
-.. autoclass::neoml.Linear.LinearRegressionModel
+.. autoclass:: neoml.Linear.LinearRegressionModel
 
 .. _py-classification-svm:
 
 Support-vector machine
 ######################
 
+Support-vector machine translates the input data into vectors in a high-dimensional space and searches for a maximum-margin dividing hyperplane.
+
+.. autoclass:: neoml.SVM.SvmClassifier
+   :members:
+
+.. autoclass:: neoml.SVM.SvmClassificationModel
+   :members:
+
 .. _py-classification-decisiontree:
 
 Decision tree
 #############
 
-.. _py-classification-onevsall:
+Decision tree is a classification method that involves comparing the object features with a set of threshold values; the result tells us to move to one of the children nodes. Once we reach a leaf node we assign the object to the class this node represents.
 
-One versus all
-##############
+.. autoclass:: neoml.DecisionTree.DecisionTreeClassifier
+   :members:
+
+.. autoclass:: neoml.DecisionTree.DecisionTreeClassificationModel
+   :members:
