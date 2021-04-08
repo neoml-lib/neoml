@@ -32,11 +32,19 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 	ElementCount( elementCount )
 {
 	NeoAssert( height >= 0 && width >= 0 && elementCount >= 0 );
-	NeoAssert( rowsBufferSize >= height && elementsBufferSize >= 0 );
+	NeoAssert( rowsBufferSize >= 0 && elementsBufferSize >= 0 );
 
 	Desc.Height = height;
 	Desc.Width = width;
 
+	if( ElementCount > ElementsBufferSize ) {
+		NeoAssert( ElementsBufferSize == 0 );
+		ElementsBufferSize = ElementCount;
+	}
+	if( Desc.Height > RowsBufferSize ) {
+		NeoAssert( RowsBufferSize == 0 );
+		RowsBufferSize = Desc.Height;
+	}
 	if( ElementsBufferSize > 0 ) {
 		ElementsBufferSize = max( ElementsBufferSize, InitialElementsBufferSize );
 		Desc.Columns = FINE_DEBUG_NEW int[ElementsBufferSize];
@@ -146,20 +154,12 @@ CSparseFloatMatrix& CSparseFloatMatrix::operator = ( const CSparseFloatMatrix& m
 
 void CSparseFloatMatrix::GrowInRows( int newRowsBufferSize )
 {
-	if( body != nullptr ) {
-		copyOnWriteAndGrow( newRowsBufferSize, body->ElementsBufferSize );
-	} else {
-		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( 0, 0, 0, newRowsBufferSize, 0 );
-	}
+	copyOnWriteAndGrow( newRowsBufferSize );
 }
 
 void CSparseFloatMatrix::GrowInElements( int newElementsBufferSize )
 {
-	if( body != nullptr ) {
-		copyOnWriteAndGrow( body->RowsBufferSize, newElementsBufferSize );
-	} else {
-		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( 0, 0, 0, 0, newElementsBufferSize );
-	}
+	copyOnWriteAndGrow( 0, newElementsBufferSize );
 }
 
 void CSparseFloatMatrix::AddRow( const CSparseFloatVector& row )
@@ -169,10 +169,6 @@ void CSparseFloatMatrix::AddRow( const CSparseFloatVector& row )
 
 void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 {
-	if( body == 0 ) {
-		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( 0, 0, 0, InitialRowsBufferSize, row.Size );
-	}
-
 	int size = row.Size;
 	if( row.Indexes == nullptr ) {
 		for( int i = 0; i < row.Size; ++i ) {
@@ -181,11 +177,19 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 			}
 		}
 	}
+	int rowsBufferSize = 0;
+	int elementsBufferSize = 0;
+	if( body == nullptr ) {
+		rowsBufferSize = 1;
+		elementsBufferSize = size;
+	} else {
+		NeoAssert( body->Desc.Height <= MaxBufferSize - 1 );
+		NeoAssert( body->ElementCount <= MaxBufferSize - size );
 
-	NeoAssert( body->Desc.Height <= MaxBufferSize - 1 );
-	NeoAssert( body->ElementCount <= MaxBufferSize - size );
-
-	CSparseFloatMatrixBody* newBody = copyOnWriteAndGrow( body->Desc.Height + 1, body->ElementCount + size );
+		rowsBufferSize = body->Desc.Height + 1;
+		elementsBufferSize = body->ElementCount + size;
+	}
+	CSparseFloatMatrixBody* newBody = copyOnWriteAndGrow( rowsBufferSize, elementsBufferSize );
 	int* indexes = newBody->Desc.Columns + newBody->ElementCount;
 	float* values = newBody->Desc.Values + newBody->ElementCount;
 	newBody->Desc.Height++;
@@ -342,7 +346,11 @@ CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::copyOnWriteAndGr
 	int elementsBufferSize )
 {
 	NeoAssert( rowsBufferSize >= 0 && elementsBufferSize >= 0 );
-	NeoAssert( body != nullptr );
+
+	if( body == nullptr ) {
+		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( 0, 0, 0, rowsBufferSize, elementsBufferSize );
+		return body.Ptr();
+	}
 
 	auto newBufferSize = []( int currentSize, int neededSize ) {
 		if( neededSize > currentSize ) {
@@ -350,7 +358,6 @@ CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::copyOnWriteAndGr
 		}
 		return currentSize;
 	};
-
 	rowsBufferSize = body->RowsBufferSize == 0 ? max( rowsBufferSize, InitialRowsBufferSize ) :
 		newBufferSize( body->RowsBufferSize, rowsBufferSize );
 	elementsBufferSize = body->ElementsBufferSize == 0 ? max( elementsBufferSize, InitialElementsBufferSize ) :

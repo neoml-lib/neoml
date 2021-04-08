@@ -75,7 +75,7 @@ public:
 	explicit CSparseFloatMatrix( const CFloatMatrixDesc& desc );
 	CSparseFloatMatrix( const CSparseFloatMatrix& other );
 
-	CFloatMatrixDesc* CopyOnWrite() { return body == 0 ? 0 : &copyOnWriteAndGrow()->Desc; }
+	CFloatMatrixDesc* CopyOnWrite() { return &copyOnWriteAndGrow()->Desc; }
 	const CFloatMatrixDesc& GetDesc() const { return body == 0 ? CFloatMatrixDesc::Empty : body->Desc; }
 
 	int GetHeight() const { return body == 0 ? 0 : body->Desc.Height; }
