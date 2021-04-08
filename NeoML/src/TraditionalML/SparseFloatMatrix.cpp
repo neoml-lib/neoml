@@ -24,14 +24,6 @@ CFloatMatrixDesc CFloatMatrixDesc::Empty;
 const int CSparseFloatMatrix::CSparseFloatMatrixBody::InitialRowsBufferSize;
 const int CSparseFloatMatrix::CSparseFloatMatrixBody::InitialElementsBufferSize;
 
-static void copyDescData( const CFloatMatrixDesc& dst, const CFloatMatrixDesc& src, int elementCount )
-{
-	::memcpy( dst.Columns, src.Columns, elementCount * sizeof( int ) );
-	::memcpy( dst.Values, src.Values, elementCount * sizeof( float ) );
-	::memcpy( dst.PointerB, src.PointerB, src.Height * sizeof( int ) );
-	::memcpy( dst.PointerE, src.PointerE, src.Height * sizeof( int ) );
-}
-
 CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, int width, int elementCount,
 		int rowsBufferSize, int elementsBufferSize ) :
 	RowsBufferSize( rowsBufferSize ),
@@ -66,23 +58,6 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 	RowsBufferSize = max( RowsBufferSize, InitialRowsBufferSize );
 	Desc.PointerB = FINE_DEBUG_NEW int[RowsBufferSize];
 	Desc.PointerE = FINE_DEBUG_NEW int[RowsBufferSize];
-
-	// handle continuous sparse case (empty fits too)
-	if( desc.Columns != nullptr ) {
-		bool isContinuousSparse = true;
-		for( int i = 0; i < desc.Height - 1 && isContinuousSparse; ++i ) {
-			isContinuousSparse = desc.PointerE[i] == desc.PointerB[i+1];
-		}
-		if( isContinuousSparse ) {
-			ElementCount = desc.Height > 0 ? ( desc.PointerE[desc.Height-1] - desc.PointerB[0] ) : 0;
-			ElementsBufferSize = max( ElementCount, InitialElementsBufferSize );
-			Desc.Columns = FINE_DEBUG_NEW int[ElementsBufferSize];
-			Desc.Values = FINE_DEBUG_NEW float[ElementsBufferSize];
-			copyDescData( Desc, desc, ElementCount );
-			return;
-		}
-	}
-
 	if( desc.Columns == nullptr ) {
 		for( int i = 0; i < desc.Height; ++i ) {
 			Desc.PointerB[i] = ElementCount;
@@ -372,7 +347,10 @@ CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::copyOnWriteAndGr
 		auto oldBody = body.Ptr();
 		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( body->Desc.Height, body->Desc.Width,
 			body->ElementCount, rowsBufferSize, elementsBufferSize );
-		copyDescData( body->Desc, oldBody->Desc, oldBody->ElementCount );
+		::memcpy( body->Desc.Columns, oldBody->Desc.Columns, oldBody->ElementCount * sizeof( int ) );
+		::memcpy( body->Desc.Values, oldBody->Desc.Values, oldBody->ElementCount * sizeof( float ) );
+		::memcpy( body->Desc.PointerB, oldBody->Desc.PointerB, oldBody->Desc.Height * sizeof( int ) );
+		::memcpy( body->Desc.PointerE, oldBody->Desc.PointerE, oldBody->Desc.Height * sizeof( int ) );
 	} else {
 		if( rowsBufferSize > body->RowsBufferSize ) {
 			reallocAndCopy( body->Desc.PointerB, rowsBufferSize, body->RowsBufferSize );
