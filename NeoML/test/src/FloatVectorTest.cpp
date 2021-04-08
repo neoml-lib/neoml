@@ -184,7 +184,7 @@ TEST_F( CFloatVectorTest, GetValue )
 	}
 }
 
-TEST_F( CFloatVectorTest, CreationSparseVectorFromDesc )
+TEST_F( CFloatVectorTest, CreationFromDesc )
 {
 	const int maxLength = 100;
 	const int vectorsCount = 1000;
