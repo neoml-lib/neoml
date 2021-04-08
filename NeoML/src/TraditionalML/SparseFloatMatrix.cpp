@@ -32,19 +32,11 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 	ElementCount( elementCount )
 {
 	NeoAssert( height >= 0 && width >= 0 && elementCount >= 0 );
-	NeoAssert( rowsBufferSize >= 0 && elementsBufferSize >= 0 );
+	NeoAssert( rowsBufferSize >= height && elementsBufferSize >= elementCount );
 
 	Desc.Height = height;
 	Desc.Width = width;
 
-	if( ElementCount > ElementsBufferSize ) {
-		NeoAssert( ElementsBufferSize == 0 );
-		ElementsBufferSize = ElementCount;
-	}
-	if( Desc.Height > RowsBufferSize ) {
-		NeoAssert( RowsBufferSize == 0 );
-		RowsBufferSize = Desc.Height;
-	}
 	if( ElementsBufferSize > 0 ) {
 		ElementsBufferSize = max( ElementsBufferSize, InitialElementsBufferSize );
 		Desc.Columns = FINE_DEBUG_NEW int[ElementsBufferSize];
