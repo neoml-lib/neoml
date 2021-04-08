@@ -24,6 +24,7 @@ neoml.Dnn
    - :ref:`py-dnn-imageconversion`
    - :ref:`py-dnn-crf`
    - :ref:`py-dnn-ctc`
+
 - :ref:`py-dnn-initializers`
 - :ref:`py-dnn-solver`
 
@@ -290,6 +291,23 @@ MeanPooling3D
 =================
 
 .. autoclass:: neoml.Dnn.MeanPooling3D
+   :members:
+
+.. _py-dnn-inputoutput:
+
+Passing the data to and from the network
+**********************************************
+
+Source
+==============
+
+.. autoclass:: neoml.Dnn.Source
+   :members:
+
+Sink
+=============
+
+.. autoclass:: neoml.Dnn.Sink
    :members:
 
 .. _py-dnn-qualitycontrol:
