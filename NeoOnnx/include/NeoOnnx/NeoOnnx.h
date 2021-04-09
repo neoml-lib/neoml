@@ -27,6 +27,8 @@ namespace NeoOnnx {
 // Inputs with initializers will be ignored (used for parameters calculation)
 //
 // For every onnx graph output there will be CSinkLayer with the same name
+// Graph inputs' and outputs' names will be added to the corresponding CArray's
+// Names' pointers are attached to the corresponding layers' names
 //
 // Throws std::logic_error if failed to load network
 NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
@@ -38,6 +40,8 @@ NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<co
 // Inputs with initializers will be ignored (used for parameters calculation)
 //
 // For every onnx graph output there will be CSinkLayer with the same name
+// Graph inputs' and outputs' names will be added to the corresponding CArray's
+// Names' pointers are attached to the corresponding layers' names
 //
 // Throws std::logic_error if failed to load network
 NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
