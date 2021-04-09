@@ -127,6 +127,7 @@ public:
 	// 1. Creates small CDnn and creates appropriate sources
 	// 2. Calling AddLayers CNode's interface method for that internalDnn
 	// 3. Running this CDnn and extracting the results
+	// In future final may be removed (for optimization purposes)
 	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) final;
 
