@@ -86,6 +86,10 @@ author = 'ABBYY'
 #         else:
 #             remove_heading_links(filepath)
 
+# -- Copy python samples into subfolder --------------------------------------
+
+import distutils.dir_util
+distutils.dir_util.copy_tree('../../../samples/python', './samples')
 
 # -- General configuration ---------------------------------------------------
 
@@ -101,6 +105,7 @@ extensions = [
 #    'sphinx.ext.autosectionlabel',
     'sphinx_rtd_theme',
 #     'recommonmark',
+    'nbsphinx',
 ]
 
 # autosectionlabel_prefix_document = True

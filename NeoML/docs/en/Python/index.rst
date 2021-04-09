@@ -22,6 +22,13 @@ Submodules
    submodules/clustering
    submodules/dnn
 
+.. toctree::
+   :maxdepth: 3
+   :caption: Samples
+   :hidden:
+
+   samples/Cifar10
+
 The Python API is split into several submodules:
 
 - :ref:`py-submodule-clustering` containing clustering algorithms
