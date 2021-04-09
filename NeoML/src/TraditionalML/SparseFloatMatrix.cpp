@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -163,14 +163,14 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 		NeoAssert( elementCount <= MaxBufferSize - size );
 
 		rowsBufferSize = body->Desc.Height + 1;
-		elementCount = body->ValuesBuf.Size();
 		elementsBufferSize = elementCount + size;
+		elementCount = body->ValuesBuf.Size();
 	}
 	CSparseFloatMatrixBody* newBody = copyOnWriteAndGrow( rowsBufferSize, elementsBufferSize );
 	newBody->BeginPointersBuf.Add( elementCount );
 	newBody->EndPointersBuf.Add( elementCount + size );
 	newBody->Desc.Height++;
-	if( row.Indexes == nullptr && row.Values != nullptr ) {
+	if( row.Indexes == nullptr ) {
 		for( int i = 0; i < row.Size; ++i ) {
 			if( row.Values[i] != 0 ) {
 				newBody->ColumnsBuf.Add( i );
@@ -327,31 +327,28 @@ CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::copyOnWriteAndGr
 	}
 
 	if( body->RefCount() != 1 ) {
-		auto oldBody = body.Ptr();
-		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( body->Desc.Height, body->Desc.Width,
-			body->ValuesBuf.Size(), rowsBufferSize, elementsBufferSize );
+		CPtr<CSparseFloatMatrixBody> oldBody = body.Ptr();
+		body = FINE_DEBUG_NEW CSparseFloatMatrixBody( oldBody->Desc.Height, oldBody->Desc.Width,
+			oldBody->ValuesBuf.Size(), rowsBufferSize, elementsBufferSize );
 		oldBody->ColumnsBuf.CopyTo( body->ColumnsBuf );
 		oldBody->ValuesBuf.CopyTo( body->ValuesBuf );
 		oldBody->BeginPointersBuf.CopyTo( body->BeginPointersBuf );
-		oldBody->EndPointersBuf.CopyTo( body->EndPointersBuf );
-		body->Desc.Columns = body->ColumnsBuf.GetPtr();
-		body->Desc.Values = body->ValuesBuf.GetPtr();
-		body->Desc.PointerB = body->BeginPointersBuf.GetPtr();
-		body->Desc.PointerE = body->EndPointersBuf.GetPtr();
+		oldBody->EndPointersBuf.CopyTo( body->EndPointersBuf );		
 	} else {
 		if( rowsBufferSize > body->BeginPointersBuf.BufferSize() ) {
 			body->BeginPointersBuf.Grow( rowsBufferSize );
-			body->EndPointersBuf.Grow( rowsBufferSize );
-			body->Desc.PointerB = body->BeginPointersBuf.GetPtr();
-			body->Desc.PointerE = body->EndPointersBuf.GetPtr();
+			body->EndPointersBuf.Grow( rowsBufferSize );			
 		}
 		if( elementsBufferSize > body->ValuesBuf.BufferSize() ) {
 			body->ColumnsBuf.Grow( elementsBufferSize );
-			body->Desc.Columns = body->ColumnsBuf.GetPtr();
 			body->ValuesBuf.Grow( elementsBufferSize );
-			body->Desc.Values = body->ValuesBuf.GetPtr();
 		}
 	}
+	
+	body->Desc.PointerB = body->BeginPointersBuf.GetPtr();
+	body->Desc.PointerE = body->EndPointersBuf.GetPtr();
+	body->Desc.Columns = body->ColumnsBuf.GetPtr();
+	body->Desc.Values = body->ValuesBuf.GetPtr();
 	return body.Ptr();
 }
 
