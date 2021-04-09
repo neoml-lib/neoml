@@ -160,10 +160,10 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 	int elementCount = 0;
 	if( body != nullptr ) {
 		NeoAssert( body->Desc.Height <= MaxBufferSize - 1 );
-		NeoAssert( elementCount <= MaxBufferSize - size );
+		NeoAssert( body->ValuesBuf.Size() <= MaxBufferSize - size );
 
 		rowsBufferSize = body->Desc.Height + 1;
-		elementsBufferSize = elementCount + size;
+		elementsBufferSize = body->ValuesBuf.Size() + size;
 		elementCount = body->ValuesBuf.Size();
 	}
 	CSparseFloatMatrixBody* newBody = copyOnWriteAndGrow( rowsBufferSize, elementsBufferSize );
