@@ -68,51 +68,61 @@ TEST_F( CSparseFloatMatrixTest, AddRow )
 	}
 }
 
-TEST_F( CSparseFloatMatrixTest, CreationFromEmptyDescAndGrow )
+TEST_F( CSparseFloatMatrixTest, CreationFromEmptyDesc )
 {
 	CSparseFloatMatrix empty( CFloatMatrixDesc::Empty );
 	ASSERT_EQ( empty.GetHeight(), 0 );
 	ASSERT_EQ( empty.GetWidth(), 0 );
+}
 
-	CFloatMatrixDesc descInitial = empty.GetDesc();
+TEST_F( CSparseFloatMatrixTest, Grow )
+{
+	const int h = 5;
+	const int w = 10;
+	CRandom rand( 0 );
+	CSparseFloatMatrix matrix( w );
+	for( int i = 0; i < h; ++i ) {
+		matrix.AddRow( generateRandomVector( rand, w ) );
+	}
+	CFloatMatrixDesc descInitial = matrix.GetDesc();
 	auto columnsInitialPtr = descInitial.Columns;
 	auto valuesInitialPtr = descInitial.Values;
 	auto bInitialPtr = descInitial.PointerB;
 	auto eInitialPtr = descInitial.PointerE;
 
 	// modifiable desc should be the same
-	CFloatMatrixDesc* modifiableDesc = empty.CopyOnWrite();
+	CFloatMatrixDesc* modifiableDesc = matrix.CopyOnWrite();
 	ASSERT_EQ( descInitial.Columns, modifiableDesc->Columns );
 	ASSERT_EQ( descInitial.PointerB, modifiableDesc->PointerB );
 
 	// the matrix should be initially (32x512) allocated, so if we grow, buffers should stay unchanged
-	empty.GrowInElements( 100 );
-	auto columnsGrownPtr = empty.GetDesc().Columns;
-	auto valuesGrownPtr = empty.GetDesc().Values;
-	empty.GrowInRows( 10 );
-	auto bGrownPtr = empty.GetDesc().PointerB;
-	auto eGrownPtr = empty.GetDesc().PointerE;
+	matrix.GrowInElements( 512 );
+	auto columnsGrownPtr = matrix.GetDesc().Columns;
+	auto valuesGrownPtr = matrix.GetDesc().Values;
+	matrix.GrowInRows( 32 );
+	auto bGrownPtr = matrix.GetDesc().PointerB;
+	auto eGrownPtr = matrix.GetDesc().PointerE;
 	ASSERT_EQ( columnsInitialPtr, columnsGrownPtr );
 	ASSERT_EQ( valuesInitialPtr, valuesGrownPtr );
 	ASSERT_EQ( bInitialPtr, bGrownPtr );
 	ASSERT_EQ( eInitialPtr, eGrownPtr );
 
 	// now grow over and check that accessed buffers have changed
-	empty.GrowInElements( 1000 );
-	columnsGrownPtr = empty.GetDesc().Columns;
-	valuesGrownPtr = empty.GetDesc().Values;
-	bGrownPtr = empty.GetDesc().PointerB;
-	eGrownPtr = empty.GetDesc().PointerE;
+	matrix.GrowInElements( 513 );
+	columnsGrownPtr = matrix.GetDesc().Columns;
+	valuesGrownPtr = matrix.GetDesc().Values;
+	bGrownPtr = matrix.GetDesc().PointerB;
+	eGrownPtr = matrix.GetDesc().PointerE;
 	ASSERT_NE( columnsInitialPtr, columnsGrownPtr );
 	ASSERT_NE( valuesInitialPtr, valuesGrownPtr );
 	ASSERT_EQ( bInitialPtr, bGrownPtr );
 	ASSERT_EQ( eInitialPtr, eGrownPtr );
 
-	empty.GrowInRows( 100 );
-	ASSERT_EQ( columnsGrownPtr, empty.GetDesc().Columns );
-	ASSERT_EQ( valuesGrownPtr, empty.GetDesc().Values );
-	ASSERT_NE( bGrownPtr, empty.GetDesc().PointerB );
-	ASSERT_NE( eGrownPtr, empty.GetDesc().PointerE );
+	matrix.GrowInRows( 33 );
+	ASSERT_EQ( columnsGrownPtr, matrix.GetDesc().Columns );
+	ASSERT_EQ( valuesGrownPtr, matrix.GetDesc().Values );
+	ASSERT_NE( bGrownPtr, matrix.GetDesc().PointerB );
+	ASSERT_NE( eGrownPtr, matrix.GetDesc().PointerE );
 }
 
 TEST_F( CSparseFloatMatrixTest, CopyOnWrite )

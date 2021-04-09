@@ -70,6 +70,8 @@ inline CFloatVectorDesc CFloatMatrixDesc::GetRow( int index ) const
 // Any value that is not specified is 0
 class NEOML_API CSparseFloatMatrix {
 	static const int MaxBufferSize = INT_MAX;
+	static const int InitialRowsBufferSize = 32;
+	static const int InitialElementsBufferSize = 512;
 public:
 	CSparseFloatMatrix() {}
 	explicit CSparseFloatMatrix( int width, int rowsBufferSize = 0, int elementsBufferSize = 0 );
@@ -97,17 +99,17 @@ public:
 private:
 	// The matrix body, that is, the object that stores all its data
 	struct NEOML_API CSparseFloatMatrixBody : public IObject {
-		static const int InitialRowsBufferSize = 32;
-		static const int InitialElementsBufferSize = 512;
-
-		int RowsBufferSize;
-		int ElementsBufferSize;
-		int ElementCount;
 		CFloatMatrixDesc Desc;
+
+		// Memory holders
+		CFastArray<int, 1> ColumnsBuf;
+		CFastArray<float, 1> ValuesBuf;
+		CFastArray<int, 1> BeginPointersBuf;
+		CFastArray<int, 1> EndPointersBuf;
 
 		CSparseFloatMatrixBody( int height, int width, int elementCount, int rowsBufferSize, int elementsBufferSize );
 		explicit CSparseFloatMatrixBody( const CFloatMatrixDesc& desc );
-		~CSparseFloatMatrixBody();
+		~CSparseFloatMatrixBody() override = default;
 	};
  
 	CPtr<CSparseFloatMatrixBody> body; // The matrix body.

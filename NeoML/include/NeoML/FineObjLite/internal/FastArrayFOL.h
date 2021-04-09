@@ -175,7 +175,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::grow( int newSize )
 {
 	PresumeFO( newSize >= 0 );
 	if( newSize > bufferSize ) {
-		int delta = max( newSize - bufferSize, max( bufferSize / 2, initialBufferSize ) );
+		int delta = min( max( newSize - bufferSize, max( bufferSize / 2, initialBufferSize ) ), INT_MAX - bufferSize );
 		reallocateBuffer( bufferSize + delta );
 	}
 }

@@ -576,6 +576,7 @@ inline int CArray<T, Allocator>::FindInsertionPoint( const SEARCHED_TYPE& what )
 //----------------------------------------------------------------------------------------------
 
 static const int MinBufferGrowSize = 8;
+static const int MaxBufferSize = INT_MAX;
 
 template<class T, class Allocator>
 inline void CArray<T, Allocator>::moveData( typename CArray<T, Allocator>::CDataHolder* destDataPtr, int destIndex,
