@@ -21,6 +21,7 @@ limitations under the License.
 namespace NeoML {
 
 CFloatMatrixDesc CFloatMatrixDesc::Empty;
+const int CSparseFloatMatrix::MaxBufferSize;
 const int CSparseFloatMatrix::InitialRowsBufferSize;
 const int CSparseFloatMatrix::InitialElementsBufferSize;
 
@@ -41,7 +42,7 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 	ColumnsBuf.SetBufferSize( elementsBufferSize );
 	ValuesBuf.SetBufferSize( elementsBufferSize );
 
-	// leave Desc's buffers unutialized, cause we don't fill buffers with the data in this ctor
+	// leave Desc's buffers uninitialized, cause we don't fill buffers with the data in this ctor
 }
 
 CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloatMatrixDesc& desc )
@@ -105,7 +106,6 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 
 //------------------------------------------------------------------------------------------------------------
 
-const int CSparseFloatMatrix::MaxBufferSize;
 const int sparseSignature = -1;
 const int denseSignature = -2;
 
