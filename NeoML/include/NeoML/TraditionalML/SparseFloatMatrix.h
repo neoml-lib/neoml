@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ public:
 	explicit CSparseFloatMatrix( const CFloatMatrixDesc& desc );
 	CSparseFloatMatrix( const CSparseFloatMatrix& other );
 
-	CFloatMatrixDesc* CopyOnWrite() { return &copyOnWriteAndGrow()->Desc; }
+	CFloatMatrixDesc* CopyOnWrite() { return body == 0 ? 0 : &copyOnWriteAndGrow()->Desc; }
 	const CFloatMatrixDesc& GetDesc() const { return body == 0 ? CFloatMatrixDesc::Empty : body->Desc; }
 
 	int GetHeight() const { return body == 0 ? 0 : body->Desc.Height; }
