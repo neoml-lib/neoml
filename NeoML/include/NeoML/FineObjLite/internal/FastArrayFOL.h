@@ -58,6 +58,8 @@ public:
 
 	T* GetPtr();
 	const T* GetPtr() const;
+	T* GetBufferPtr() { return dataPtr; }
+	const T* GetBufferPtr() const { return dataPtr; }
 
 	void ReplaceAt( const T& elem, int location );
 	void InsertAt( const T& elem, int location );
