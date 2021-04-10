@@ -329,18 +329,14 @@ CSparseFloatMatrix::CSparseFloatMatrixBody* CSparseFloatMatrix::copyOnWriteAndGr
 		oldBody->BeginPointersBuf.CopyTo( body->BeginPointersBuf );
 		oldBody->EndPointersBuf.CopyTo( body->EndPointersBuf );		
 	} else {
-		if( rowsBufferSize > body->BeginPointersBuf.BufferSize() ) {
-			body->BeginPointersBuf.Grow( rowsBufferSize );
-			body->Desc.PointerB = body->BeginPointersBuf.GetBufferPtr();
-			body->EndPointersBuf.Grow( rowsBufferSize );			
-			body->Desc.PointerE = body->EndPointersBuf.GetBufferPtr();
-		}
-		if( elementsBufferSize > body->ValuesBuf.BufferSize() ) {
-			body->ColumnsBuf.Grow( elementsBufferSize );
-			body->Desc.Columns = body->ColumnsBuf.GetBufferPtr();
-			body->ValuesBuf.Grow( elementsBufferSize );
-			body->Desc.Values = body->ValuesBuf.GetBufferPtr();
-		}
+		body->BeginPointersBuf.Grow( rowsBufferSize );
+		body->EndPointersBuf.Grow( rowsBufferSize );
+		body->ColumnsBuf.Grow( elementsBufferSize );
+		body->ValuesBuf.Grow( elementsBufferSize );
+		body->Desc.PointerB = body->BeginPointersBuf.GetBufferPtr();
+		body->Desc.PointerE = body->EndPointersBuf.GetBufferPtr();
+		body->Desc.Columns = body->ColumnsBuf.GetBufferPtr();
+		body->Desc.Values = body->ValuesBuf.GetBufferPtr();
 	}
 	return body.Ptr();
 }
