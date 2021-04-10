@@ -26,13 +26,10 @@ const int CSparseFloatMatrix::InitialRowsBufferSize;
 const int CSparseFloatMatrix::InitialElementsBufferSize;
 
 CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, int width, int elementCount,
-		int rowsBufferSize, int elementsBufferSize )
+	int rowsBufferSize, int elementsBufferSize )
 {
 	NeoAssert( height >= 0 && width >= 0 && elementCount >= 0 );
 	NeoAssert( rowsBufferSize >= 0 && elementsBufferSize >= 0 );
-
-	Desc.Height = height;
-	Desc.Width = width;
 
 	rowsBufferSize = max( height, max( rowsBufferSize, InitialRowsBufferSize ) );
 	BeginPointersBuf.SetBufferSize( rowsBufferSize );
@@ -42,18 +39,17 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, 
 	ColumnsBuf.SetBufferSize( elementsBufferSize );
 	ValuesBuf.SetBufferSize( elementsBufferSize );
 
-	Desc.PointerB = BeginPointersBuf.GetBufferPtr();
-	Desc.PointerE = EndPointersBuf.GetBufferPtr();
+	Desc.Height = height;
+	Desc.Width = width;
 	Desc.Columns = ColumnsBuf.GetBufferPtr();
 	Desc.Values = ValuesBuf.GetBufferPtr();
+	Desc.PointerB = BeginPointersBuf.GetBufferPtr();
+	Desc.PointerE = EndPointersBuf.GetBufferPtr();
 }
 
 CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloatMatrixDesc& desc )
 {
 	NeoAssert( desc.Height >= 0 && desc.Width >= 0 );
-
-	Desc.Height = desc.Height;
-	Desc.Width = desc.Width;
 
 	int rowsBufferSize = max( desc.Height, InitialRowsBufferSize );
 	BeginPointersBuf.SetBufferSize( rowsBufferSize );
@@ -101,6 +97,8 @@ CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( const CFloat
 		NeoPresume( elementCount == ValuesBuf.Size() );
 	}
 
+	Desc.Height = desc.Height;
+	Desc.Width = desc.Width;
 	Desc.Columns = ColumnsBuf.GetBufferPtr();
 	Desc.Values = ValuesBuf.GetBufferPtr();
 	Desc.PointerB = BeginPointersBuf.GetBufferPtr();
@@ -135,7 +133,7 @@ CSparseFloatMatrix& CSparseFloatMatrix::operator = ( const CSparseFloatMatrix& m
 
 void CSparseFloatMatrix::GrowInRows( int newRowsBufferSize )
 {
-	copyOnWriteAndGrow( newRowsBufferSize );
+	copyOnWriteAndGrow( newRowsBufferSize, 0 );
 }
 
 void CSparseFloatMatrix::GrowInElements( int newElementsBufferSize )
