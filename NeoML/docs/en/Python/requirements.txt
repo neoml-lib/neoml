@@ -1,12 +1,14 @@
 # NeoML/docs/en/requirements.txt
 sphinx==2.4.0
-sphinx-rtd-theme==0.5.1 # Pretty-looking theme for generated HTMLs
-nbsphinx==0.8.3 # Add ipynb support to sphinx docs
-pandoc==1.0.2 # Required for markdown cells in nbsphinx
-ipython==7.16.1 # Required for syntax highlighting in nbsphinx
-# m2r2==0.2.7 (used for C++ doc build)
-# recommonmark==0.6.0
-# requirements for build
+sphinx-rtd-theme==0.5.1  # Pretty-looking theme for generated HTMLs
+nbsphinx==0.8.3  # Add .ipynb support to sphinx docs
+pandoc==1.0.2  # Required for markdown cells in nbsphinx
+ipython==7.16.1  # Required for syntax highlighting in nbsphinx
+sphinx-copybutton==0.3.1  # Add 'copy to clipboard' button to code snippets
+# m2r2==0.2.7  (used for C++ docs build)
+# recommonmark==0.6.0  (used for C++ docs build)
+
+# requirements for package build on readthedocs
 cmake==3.18.4
 ninja==1.10.0
 setuptools==51.3.3

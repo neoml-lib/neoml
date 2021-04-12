@@ -100,12 +100,13 @@ from os import getenv
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.mathjax',
+    'sphinx_copybutton',   # Add 'copy to clipboard' button to every code snippet
+    'sphinx.ext.autodoc',  # Support docstrings from python code
+    'sphinx.ext.mathjax',  # Support LaTeX formulas in docs (and docstrings)
 #    'sphinx.ext.autosectionlabel',
-    'sphinx_rtd_theme',
+    'sphinx_rtd_theme',  # Pretty theme for HTML
 #     'recommonmark',
-    'nbsphinx',
+    'nbsphinx',  # Support .ipynb files
 ]
 
 # autosectionlabel_prefix_document = True
