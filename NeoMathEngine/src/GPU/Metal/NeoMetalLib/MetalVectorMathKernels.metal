@@ -2213,3 +2213,58 @@ kernel void matrixKernelMatrixRowsToVectorSquaredL2Distance( constant float* mat
         }
     }
 }
+
+kernel void vectorQrnnFPooling( constant bool& reverse [[buffer(0)]],
+                                constant int& sequenceLength [[buffer(1)]],
+                                constant int& objectSize [[buffer(2)]],
+                                constant float* z [[buffer(3)]],
+                                constant float* f [[buffer(4)]],
+                                constant float* h0 [[buffer(5)]],
+                                device float* res [[buffer(6)]],
+                                uint thread_position_in_grid [[thread_position_in_grid]] )
+{
+    C1DPosition pos( thread_position_in_grid );
+    int index;
+    if( pos.GetMetalTaskIndex( objectSize, index ) ) {
+        int currOffset = reverse != 0 ? index + ( sequenceLength - 1 ) * objectSize : index;
+        int nextObjectOffset = reverse != 0 ? -objectSize : objectSize;
+
+        float prevRes = f[currOffset] * h0[index] + ( 1 - f[currOffset] ) * z[currOffset];
+        res[currOffset] = prevRes;
+        
+        for( int step = 0; step < sequenceLength - 1; ++step ) {
+            currOffset += nextObjectOffset;
+            float currRes = f[currOffset] * ( prevRes - z[currOffset] ) + z[currOffset];
+            res[currOffset] = currRes;
+            prevRes = currRes;
+        }
+    }
+}
+
+kernel void vectorQrnnIfPooling( constant bool& reverse [[buffer(0)]],
+                                 constant int& sequenceLength [[buffer(1)]],
+                                 constant int& objectSize [[buffer(2)]],
+                                 constant float* z [[buffer(3)]],
+                                 constant float* f [[buffer(4)]],
+                                 constant float* i [[buffer(5)]],
+                                 constant float* h0 [[buffer(6)]],
+                                 device float* res [[buffer(7)]],
+                                 uint thread_position_in_grid [[thread_position_in_grid]] )
+{
+    C1DPosition pos( thread_position_in_grid );
+    int index;
+    if( pos.GetMetalTaskIndex( objectSize, index ) ) {
+        int currOffset = reverse != 0 ? index + ( sequenceLength - 1 ) * objectSize : index;
+        int nextObjectOffset = reverse != 0 ? -objectSize : objectSize;
+
+        float prevRes = f[currOffset] * h0[index] + i[currOffset] * z[currOffset];
+        res[currOffset] = prevRes;
+        
+        for( int step = 0; step < sequenceLength - 1; ++step ) {
+            currOffset += nextObjectOffset;
+            float currRes = f[currOffset] * prevRes + i[currOffset] * z[currOffset];
+            res[currOffset] = currRes;
+            prevRes = currRes;
+        }
+    }
+}
