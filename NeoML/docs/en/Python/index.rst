@@ -29,6 +29,7 @@ Submodules
 
    tutorials/Cifar10
    tutorials/Linear
+   tutorials/KMeans
 
 The Python API is split into several submodules:
 
