@@ -57,10 +57,10 @@ Submodules
 
 The Python API is split into several submodules:
 
-- :ref:`Neural networks neoml.Dnn <py-submodule-dnn>`
-- :ref:`Clustering algorithms neoml.Clustering <py-submodule-clustering>`
-- :ref:`Classification and regression algorithms neoml.ClassificationRegression <py-submodule-classificationregression>`
-- :ref:`Math engine used for calculations neoml.MathEngine <py-submodule-mathengine>`
+- :ref:`Neural networks <py-submodule-dnn>`
+- :ref:`Clustering algorithms <py-submodule-clustering>`
+- :ref:`Classification and regression algorithms <py-submodule-classificationregression>`
+- :ref:`Math engine used for calculations <py-submodule-mathengine>`
 - :ref:`Other algorithms <py-submodule-misc>`
 
 Installation

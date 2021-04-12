@@ -19,26 +19,20 @@ Gradient tree boosting
 Gradient boosting method creates an ensemble of decision trees using random subsets of features and input data.
 The algorithm only accepts continuous features. If your data is characterized by discrete features you will need to transform them into continuous ones (for example, using binarization).
 
-Classifier
+Classification
 ****************************
 
 .. autoclass:: neoml.GradientBoost.GradientBoostClassifier
    :members:
 
-Classification model
-**************************************
-
 .. autoclass:: neoml.GradientBoost.GradientBoostClassificationModel
    :members:
 
-Regressor
+Regression
 ***************************
 
 .. autoclass:: neoml.GradientBoost.GradientBoostRegressor
    :members:
-
-Regression model
-**********************************
 
 .. autoclass:: neoml.GradientBoost.GradientBoostRegressionModel
    :members:
@@ -50,11 +44,17 @@ Linear
 
 A linear classifier finds a hyperplane that divides the feature space in half.
 
+Classification
+**************
+
 .. autoclass:: neoml.Linear.LinearClassifier
    :members:
 
 .. autoclass:: neoml.Linear.LinearClassificationModel
    :members:
+
+Regression
+**********
 
 .. autoclass:: neoml.Linear.LinearRegressor
    :members:
