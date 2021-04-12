@@ -144,6 +144,12 @@ mathjax_config = {
     'jax': ['input/TeX', 'output/HTML-CSS'],
 }
 
+# Configuring nbsphinx
+
+# readthedocs doesn't allow us to build C++ wrappers
+# that's why execution is impossible anyway
+nbsphinx_execute = 'never'
+
 # https://github.com/rtfd/recommonmark/blob/master/docs/conf.py
 def setup(app):
     config = {
