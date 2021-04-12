@@ -627,7 +627,7 @@ inline void CArray<T, Allocator>::reallocateBuffer( int newSize )
 	PresumeFO( newSize >= size );
 	CDataHolder* oldDataPtr = dataPtr;
 
-	AssertFO( newSize <= UINTPTR_MAX / sizeof( CDataHolder ) );
+	AssertFO( static_cast<size_t>( newSize ) <= UINTPTR_MAX / sizeof( CDataHolder ) );
 	dataPtr = static_cast<CDataHolder*>( ALLOCATE_MEMORY( Allocator, newSize * sizeof( CDataHolder ) ) );
 	moveData( dataPtr, 0, oldDataPtr, 0, size );
 
