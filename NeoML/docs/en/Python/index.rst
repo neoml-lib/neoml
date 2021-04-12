@@ -24,10 +24,10 @@ Submodules
 
 .. toctree::
    :maxdepth: 3
-   :caption: Samples
+   :caption: Tutorials
    :hidden:
 
-   samples/Cifar10
+   tutorials/Cifar10
 
 The Python API is split into several submodules:
 
