@@ -28,6 +28,7 @@ Submodules
    :hidden:
 
    tutorials/Cifar10
+   tutorials/Linear
 
 The Python API is split into several submodules:
 
