@@ -86,11 +86,6 @@ author = 'ABBYY'
 #         else:
 #             remove_heading_links(filepath)
 
-# -- Copy python samples into subfolder --------------------------------------
-
-import distutils.dir_util
-distutils.dir_util.copy_tree('../../../samples/python', './samples')
-
 # -- General configuration ---------------------------------------------------
 
 import sphinx_rtd_theme
