@@ -474,6 +474,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::reallocateBuffer( int n
 
 	if( newSize > InitialBufferSize() ) {
 		T* oldDataPtr = dataPtr;
+		AssertFO( newSize <= UINTPTR_MAX / sizeof( T ) );
 		dataPtr = static_cast<T*>( ALLOCATE_MEMORY( Allocator, newSize * sizeof( T ) ) );
 		if( size > 0 ) {
 			::memcpy( reinterpret_cast<char*>( dataPtr ), reinterpret_cast<char*>( oldDataPtr ), size * sizeof( T ) );
