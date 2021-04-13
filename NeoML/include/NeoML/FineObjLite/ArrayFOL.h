@@ -106,8 +106,8 @@ public:
 	T* GetPtr();
 	const T* GetPtr() const;
 	// Returns the pointer to the first element in the array
-	T* GetBufferPtr() { return dataPtr; }
-	const T* GetBufferPtr() const { return dataPtr; }
+	T* GetBufferPtr() { return ( T* )dataPtr; }
+	const T* GetBufferPtr() const { return ( T* )dataPtr; }
 	// Accessing elements by index
 	const T& operator [] ( int location ) const;
 	T& operator [] ( int location );
