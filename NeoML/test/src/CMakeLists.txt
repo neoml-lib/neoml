@@ -13,6 +13,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSerializationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/InferencePerformanceMultiThreadingTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FloatVectorTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/SparseFloatMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RandomProblem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RandomProblem.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ClassificationAndRegressionTest.cpp
