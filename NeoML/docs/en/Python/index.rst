@@ -28,9 +28,11 @@ Submodules
    :hidden:
 
    tutorials/Cifar10
+   tutorials/IRNN
    tutorials/Linear
    tutorials/KMeans
    tutorials/Regressor
+   tutorials/Boosting
 
 The Python API is split into several submodules:
 
