@@ -240,7 +240,7 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 	dim3 blockCount;
 	dim3 threadCount;
 
-	if( maxCount < 1 ){
+	if( maxCount < 100 || device->MemoryLimit < 4 * source.BlobSize() * sizeof(float) ){
 		// As the shared memory size depends on maxCount, we may need to limit the number of thread
 		int sharedMemoryPerThread = 4 * maxCount * sizeof( float );
 		int maxThreadCount = device->SharedMemoryLimit / sharedMemoryPerThread;
@@ -254,8 +254,11 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 			GetRaw( maxIndicesData ), GetRaw( resultData ), poolSize, maxCount, poolSizeNorm );
 	} else {
 		int numBins = 2;
-		int histSize = ( 1 << numBins ) * sizeof( int );
-		int maxThreadCount = device->SharedMemoryLimit / ( histSize + 1 );
+		int histSize = ( 1 << numBins );
+		int maxThreadCount = device->SharedMemoryLimit / histSize;
+
+		dim3 scanBlockCount;
+		dim3 scanThreadCount;
 
 		int height = 1;
 		while( height < poolSizeNorm ) {
@@ -263,43 +266,33 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 		}
 		getCudaTaskGrid2DMinYX(1, 1, blockCount, threadCount,
 			height, source.ObjectCount() * source.Channels(), maxThreadCount);
-		blockCount.y = 1;
-		threadCount.y = 1024;
-		blockCount.x = source.ObjectCount() * source.Channels();
-		threadCount.x = 1;
-		printf("thread count = %d %d %d\n", blockCount.x, threadCount.x, threadCount.y);
-		CIntHandleVar indicesSorted( mathEngine(), 2 * source.BlobSize() );
 
-		int sharedSize = ( ( threadCount.y + 1 ) * threadCount.x ) * histSize;
-		BlobGlobalMaxPoolingSortKernel<<<blockCount, threadCount, sharedSize>>>( desc, GetRaw( sourceData ),
-			GetRaw( maxIndicesData ), GetRaw( indicesSorted.GetHandle() ), GetRaw( resultData ), poolSize, maxCount, poolSizeNorm, numBins );
+		getCudaTaskGrid2DMinYX(1, 1, scanBlockCount, scanThreadCount,
+			blockCount.y, source.ObjectCount() * source.Channels(), maxThreadCount);
 
-		printf("blob size = %d %d %d %d\n", source.BlobSize(), source.BatchWidth(), source.Width(), source.Channels());
+		CIntHandleVar indicesSorted1( mathEngine(), source.BlobSize() );
+		CIntHandleVar indicesSorted2( mathEngine(), source.BlobSize() );
+		CIntHandleVar localSums( mathEngine(), blockCount.x * threadCount.x * blockCount.y * histSize );
+		CIntHandleVar globalSums( mathEngine(), blockCount.x * threadCount.x * ( blockCount.y + 1 ) * histSize );
 
-		/*
-		printf("\n");
-		for( int i = 0; i < source.BlobSize(); i++ ){
-			int j = indicesSorted.GetValueAt( i );
-			printf("%f ", sourceData.GetValueAt( j ));
-		}
-		printf("\n\n");
-		for( int i = source.BlobSize(); i < 2 * source.BlobSize(); i++ ){
-			int j = indicesSorted.GetValueAt( i );
-			printf("%f ", sourceData.GetValueAt( j ));
-		}
-		printf("\n\n");*/
-		/*
-		for( int i = source.BlobSize(); i < source.BlobSize() + 3 * maxCount; i++ ){
-			int j = indicesSorted.GetValueAt( i );
-			printf("%f ", sourceData.GetValueAt( j ));
-		}
-		printf("\n");
+		int localSortSharedSize = threadCount.y * threadCount.x * histSize * sizeof( int );
+		int scanSharedSize = scanThreadCount.x * scanThreadCount.y  * histSize * sizeof( int );
 
-		printf("\n");
-		for( int i = 0; i < 2 * source.BlobSize(); ++i ){
-			printf("%d ", indicesSortedPtr[i]);
+		int bitCount = sizeof(float) * 8;
+		for( int bin = 0; bin < bitCount; bin += numBins ) {
+			// local sort inside block
+			BlobGlobalMaxPoolingLocalSortKernel<<<blockCount, threadCount, localSortSharedSize>>>( desc, GetRaw( sourceData ),
+				GetRaw( indicesSorted1.GetHandle() ), GetRaw( indicesSorted2.GetHandle() ), poolSize, bin, histSize, GetRaw( localSums.GetHandle() ), GetRaw( globalSums.GetHandle() ) );
+
+			// prefix scan for blocks data
+			BlobGlobalMaxPoolingGlobalScanKernel<<<scanBlockCount, scanThreadCount, scanSharedSize>>>( desc, 
+				histSize, GetRaw( globalSums.GetHandle() ), blockCount.y );
+
+			// global sort
+			BlobGlobalMaxPoolingGlobalShuffleKernel<<<blockCount, threadCount, 1>>>( desc, GetRaw( sourceData ),
+				GetRaw( indicesSorted2.GetHandle() ), GetRaw( indicesSorted1.GetHandle() ), bin, histSize, poolSize, GetRaw( localSums.GetHandle() ), GetRaw( globalSums.GetHandle() ),
+				GetRaw( resultData ), GetRaw( maxIndicesData ), maxCount, bin >= bitCount - numBins );
 		}
-		printf("\n");*/
 	}
 }
 
