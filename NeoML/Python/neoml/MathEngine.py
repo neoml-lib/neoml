@@ -65,7 +65,7 @@ class GpuMathEngine(MathEngine):
     
     :param gpu_index: the index of the GPU on which you wish to work. 
         Use the `enum_gpu` method to get the list.
-    :type gpu_index: int, \ge 0
+    :type gpu_index: int, >= 0
     """
     def __init__(self, gpu_index):
         if gpu_index is None:
