@@ -206,7 +206,7 @@ private:
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
 	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
 	CPtr<IObject> createOutputRepresentation(
-		CArray<CGradientBoostEnsemble>& models, int predictionSize, unsigned featureCount );
+		CArray<CGradientBoostEnsemble>& models, int predictionSize );
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -243,7 +243,7 @@ public:
 	virtual void CutNumberOfTrees( int numberOfTrees ) = 0;
 
 	// Converts model to the compact representation (GBMR_Compact).
-	virtual void ConvertToCompact( unsigned featureCount ) = 0;
+	virtual void ConvertToCompact() = 0;
 };
 
 DECLARE_NEOML_MODEL_NAME( GradientBoostRegressionModelName, "FmlGradientBoostModel" )
@@ -273,7 +273,7 @@ public:
 	virtual void CutNumberOfTrees( int numberOfTrees ) = 0;
 
 	// Converts model to the compact representation (GBMR_Compact).
-	virtual void ConvertToCompact( unsigned featureCount ) = 0;
+	virtual void ConvertToCompact() = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

@@ -55,7 +55,7 @@ public:
 	// Feature number cannot exceeed this.
 	static const T MaxFeature = ( std::numeric_limits<T>::max )() - 2;
 	// Node index within the `nodes` array cannot exceed this.
-	static const uint16_t MaxNodeIndex = UINT16_MAX - 1;
+	static const T MaxNodeIndex = ( std::numeric_limits<T>::max )() - 1;
 
 private:
 
@@ -66,7 +66,7 @@ private:
 		T FeaturePlusOne = 0;
 		// For non-leaf node the index of the right child within the `nodes` array.
 		// Left child is always stored immediatelly after its parent.
-		uint16_t RightChildIndex = 0;
+		T RightChildIndex = 0;
 
 		// For non-leaf node the threshold feature value (scalar).
 		// For leaf node the value of regression function (scalar or vector).

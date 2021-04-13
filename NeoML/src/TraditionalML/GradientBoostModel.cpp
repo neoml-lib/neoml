@@ -204,17 +204,38 @@ void CGradientBoostModel::CutNumberOfTrees( int numberOfTrees )
 	}
 }
 
-void CGradientBoostModel::ConvertToCompact( unsigned featureCount )
+void RegressionTreeSearch( uint64_t& featureCount, uint64_t& nodesCount, const IRegressionTreeNode* tree )
+{
+	if( tree == nullptr ) {
+		return;
+	}
+	CRegressionTreeNodeInfo info;
+	tree->GetNodeInfo( info );
+	if( info.Type == RTNT_Continuous ) {
+		featureCount = max( featureCount, ( uint64_t )info.FeatureIndex );
+	}
+	nodesCount++;
+	RegressionTreeSearch( featureCount, nodesCount, tree->GetLeftChild().Ptr() );
+	RegressionTreeSearch( featureCount, nodesCount, tree->GetRightChild().Ptr() );
+}
+
+void CGradientBoostModel::ConvertToCompact()
 {
 	for( int i = 0; i < ensembles.Size() ; i++ ) {
 		CGradientBoostEnsemble& ensemble = ensembles[i];
 		for( int j = 0; j < ensemble.Size(); j++ ) {
 			CPtr<IRegressionTreeNode>& tree = ensemble[j];
+
 			if( dynamic_cast< CCompact16RegressionTree* >( tree.Ptr() ) == 0 && dynamic_cast< CCompact32RegressionTree* >( tree.Ptr() ) == 0 ) {
-				if( featureCount <= CCompact16RegressionTree::MaxFeature ) {
+				uint64_t featureCount = 0, nodesCount = 0;
+				RegressionTreeSearch( featureCount, nodesCount, tree.Ptr() );
+
+				if( featureCount <= CCompact16RegressionTree::MaxFeature && nodesCount <= CCompact16RegressionTree::MaxNodeIndex ) {
 					tree = FINE_DEBUG_NEW CCompact16RegressionTree( tree );
-				} else if( featureCount <= CCompact32RegressionTree::MaxFeature ) {
+				} else if( featureCount <= CCompact32RegressionTree::MaxFeature && nodesCount <= CCompact32RegressionTree::MaxNodeIndex ) {
 					tree = FINE_DEBUG_NEW CCompact32RegressionTree( tree );
+				} else {
+					NeoAssert( false );
 				}
 			}
 		}
