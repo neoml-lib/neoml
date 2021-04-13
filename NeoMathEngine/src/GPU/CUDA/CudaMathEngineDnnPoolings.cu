@@ -269,6 +269,7 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 
 		getCudaTaskGrid2DMinYX(1, 1, scanBlockCount, scanThreadCount,
 			blockCount.y, source.ObjectCount() * source.Channels(), maxThreadCount);
+		scanBlockCount.y = 1;
 
 		CIntHandleVar indicesSorted1( mathEngine(), source.BlobSize() );
 		CIntHandleVar indicesSorted2( mathEngine(), source.BlobSize() );
