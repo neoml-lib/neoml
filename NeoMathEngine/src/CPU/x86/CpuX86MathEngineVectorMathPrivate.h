@@ -287,6 +287,65 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 
 //------------------------------------------------------------------------------------------------------------
 
+inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int sseSize, int nonSseSize )
+{
+	while( sseSize >= 4 ) {
+		__m128 first0 = LoadSse4( first );
+		__m128 first1 = LoadSse4( first + 4 );
+		__m128 first2 = LoadSse4( first + 8 );
+		__m128 first3 = LoadSse4( first + 12 );
+		first += 16;
+
+		__m128 second0 = LoadSse4( second );
+		__m128 second1 = LoadSse4( second + 4 );
+		__m128 second2 = LoadSse4( second + 8 );
+		__m128 second3 = LoadSse4( second + 12 );
+		second += 16;
+
+		__m128 res0 = _mm_mul_ps( first0, second0 );
+		__m128 res1 = _mm_mul_ps( first1, second1 );
+		__m128 res2 = _mm_mul_ps( first2, second2 );
+		__m128 res3 = _mm_mul_ps( first3, second3 );
+
+		StoreSse4( res0, result );
+		StoreSse4( res1, result + 4 );
+		StoreSse4( res2, result + 8 );
+		StoreSse4( res3, result + 12 );
+		result += 16;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		__m128 first0 = LoadSse4( first );
+		first += 4;
+
+		__m128 second0 = LoadSse4( second );
+		second += 4;
+
+		__m128 res0 = _mm_mul_ps( first0, second0 );
+		StoreSse4( res0, result );
+		result += 4;
+
+		sseSize--;
+	}
+
+	if( nonSseSize ) {
+		__m128 first0 = LoadSse( first, nonSseSize );
+		__m128 second0 = LoadSse( second, nonSseSize );
+		__m128 res0 = _mm_mul_ps( first0, second0 );
+		StoreSse( res0, result, nonSseSize );
+	}
+}
+
+inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+	vectorEltwiseMultiply( first, second, result, sseSize, nonSseSize );
+}
+
 inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
 {
 	int sseSize;
@@ -465,6 +524,203 @@ inline void vectorDotProduct( const float* first, const float* second, int vecto
 	}
 
 	*result = acc;
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+// QRNN primitives
+
+// res = z * ( 1 - f )
+static inline void qrnnFPoolingFirstStep( const float* z, const float* f,
+	float* res, int sseSize, int nonSseSize )
+{
+	__m128 ones = _mm_set1_ps( 1.f );
+	while( sseSize >= 4 ) {
+		__m128 z0 = LoadSse4( z );
+		__m128 z1 = LoadSse4( z + 4 );
+		__m128 z2 = LoadSse4( z + 8 );
+		__m128 z3 = LoadSse4( z + 12 );
+		z += 16;
+
+		__m128 f0 = LoadSse4( f );
+		__m128 f1 = LoadSse4( f + 4 );
+		__m128 f2 = LoadSse4( f + 8 );
+		__m128 f3 = LoadSse4( f + 12 );
+		f += 16;
+
+		__m128 res0 = _mm_mul_ps( z0, _mm_sub_ps( ones, f0 ) );
+		__m128 res1 = _mm_mul_ps( z1, _mm_sub_ps( ones, f1 ) );
+		__m128 res2 = _mm_mul_ps( z2, _mm_sub_ps( ones, f2 ) );
+		__m128 res3 = _mm_mul_ps( z3, _mm_sub_ps( ones, f3 ) );
+
+		StoreSse4( res0, res );
+		StoreSse4( res1, res + 4 );
+		StoreSse4( res2, res + 8 );
+		StoreSse4( res3, res + 12 );
+		res += 16;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		__m128 z0 = LoadSse4( z );
+		z += 4;
+
+		__m128 f0 = LoadSse4( f );
+		f += 4;
+
+		__m128 res0 = _mm_mul_ps( z0, _mm_sub_ps( ones, f0 ) );
+		StoreSse4( res0, res );
+		res += 4;
+
+		--sseSize;
+	}
+
+	if( nonSseSize > 0 ) {
+		__m128 z0 = LoadSse( z, nonSseSize );
+		__m128 f0 = LoadSse( f, nonSseSize );
+		__m128 res0 = _mm_mul_ps( z0, _mm_sub_ps( ones, f0 ) );
+		StoreSse( res0, res, nonSseSize );
+	}
+}
+
+// res = f * h + (1 - f) * z
+// where h - res of previous step
+static inline void qrnnFPoolingStep( const float* z, const float* f, const float* h,
+	float* res, int sseSize, int nonSseSize )
+{
+	__m128 ones = _mm_set1_ps( 1.f );
+	while( sseSize >= 4 ) {
+		__m128 z0 = LoadSse4( z );
+		__m128 z1 = LoadSse4( z + 4 );
+		__m128 z2 = LoadSse4( z + 8 );
+		__m128 z3 = LoadSse4( z + 12 );
+		z += 16;
+
+		__m128 f0 = LoadSse4( f );
+		__m128 f1 = LoadSse4( f + 4 );
+		__m128 f2 = LoadSse4( f + 8 );
+		__m128 f3 = LoadSse4( f + 12 );
+		f += 16;
+
+		__m128 h0 = LoadSse4( h );
+		__m128 h1 = LoadSse4( h + 4 );
+		__m128 h2 = LoadSse4( h + 8 );
+		__m128 h3 = LoadSse4( h + 12 );
+		h += 16;
+
+		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( _mm_sub_ps( ones, f0 ), z0 ) );
+		__m128 res1 = _mm_add_ps( _mm_mul_ps( f1, h1 ), _mm_mul_ps( _mm_sub_ps( ones, f1 ), z1 ) );
+		__m128 res2 = _mm_add_ps( _mm_mul_ps( f2, h2 ), _mm_mul_ps( _mm_sub_ps( ones, f2 ), z2 ) );
+		__m128 res3 = _mm_add_ps( _mm_mul_ps( f3, h3 ), _mm_mul_ps( _mm_sub_ps( ones, f3 ), z3 ) );
+
+		StoreSse4( res0, res );
+		StoreSse4( res1, res + 4 );
+		StoreSse4( res2, res + 8 );
+		StoreSse4( res3, res + 12 );
+		res += 16;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		__m128 z0 = LoadSse4( z );
+		z += 4;
+
+		__m128 f0 = LoadSse4( f );
+		f += 4;
+
+		__m128 h0 = LoadSse4( h );
+		h += 4;
+
+		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( _mm_sub_ps( ones, f0 ), z0 ) );
+		StoreSse4( res0, res );
+		res += 4;
+
+		sseSize--;
+	}
+
+	if( nonSseSize > 0 ) {
+		__m128 z0 = LoadSse( z, nonSseSize );
+		__m128 f0 = LoadSse( f, nonSseSize );
+		__m128 h0 = LoadSse( h, nonSseSize );
+		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( _mm_sub_ps( ones, f0 ), z0 ) );
+		StoreSse( res0, res, nonSseSize );
+	}
+}
+
+// res = f * h + i * z
+// where h is res of previous step
+static inline void qrnnIfPoolingStep( const float* z, const float* f, const float* i, const float* h,
+	float* res, int sseSize, int nonSseSize )
+{
+	while( sseSize >= 4 ) {
+		__m128 z0 = LoadSse4( z );
+		__m128 z1 = LoadSse4( z + 4 );
+		__m128 z2 = LoadSse4( z + 8 );
+		__m128 z3 = LoadSse4( z + 12 );
+		z += 16;
+
+		__m128 f0 = LoadSse4( f );
+		__m128 f1 = LoadSse4( f + 4 );
+		__m128 f2 = LoadSse4( f + 8 );
+		__m128 f3 = LoadSse4( f + 12 );
+		f += 16;
+
+		__m128 i0 = LoadSse4( i );
+		__m128 i1 = LoadSse4( i + 4 );
+		__m128 i2 = LoadSse4( i + 8 );
+		__m128 i3 = LoadSse4( i + 12 );
+		i += 16;
+
+		__m128 h0 = LoadSse4( h );
+		__m128 h1 = LoadSse4( h + 4 );
+		__m128 h2 = LoadSse4( h + 8 );
+		__m128 h3 = LoadSse4( h + 12 );
+		h += 16;
+
+		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( i0, z0 ) );
+		__m128 res1 = _mm_add_ps( _mm_mul_ps( f1, h1 ), _mm_mul_ps( i1, z1 ) );
+		__m128 res2 = _mm_add_ps( _mm_mul_ps( f2, h2 ), _mm_mul_ps( i2, z2 ) );
+		__m128 res3 = _mm_add_ps( _mm_mul_ps( f3, h3 ), _mm_mul_ps( i3, z3 ) );
+
+		StoreSse4( res0, res );
+		StoreSse4( res1, res + 4 );
+		StoreSse4( res2, res + 8 );
+		StoreSse4( res3, res + 12 );
+		res += 16;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		__m128 z0 = LoadSse4( z );
+		z += 4;
+
+		__m128 f0 = LoadSse4( f );
+		f += 4;
+
+		__m128 i0 = LoadSse4( i );
+		i += 4;
+
+		__m128 h0 = LoadSse4( h );
+		h += 4;
+
+		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( i0, z0 ) );
+		StoreSse4( res0, res );
+		res += 4;
+
+		sseSize--;
+	}
+
+	if( nonSseSize > 0 ) {
+		__m128 z0 = LoadSse( z, nonSseSize );
+		__m128 f0 = LoadSse( f, nonSseSize );
+		__m128 i0 = LoadSse( i, nonSseSize );
+		__m128 h0 = LoadSse( h, nonSseSize );
+		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( i0, z0 ) );
+		StoreSse( res0, res, nonSseSize );
+	}
 }
 
 } // namespace NeoML

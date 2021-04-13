@@ -404,6 +404,103 @@ void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CIntHandle&
 		source.Channels(), source.ObjectCount(), isForward, GetRaw(resultData) );
 }
 
+void CCudaMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objectSize,
+	const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& initialState,
+	const CFloatHandle& result )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( update.GetMathEngine() == this );
+	ASSERT_EXPR( forget.GetMathEngine() == this );
+	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+
+	int blockCount = 0;
+	int threadCount = 0;
+	getCudaTaskGrid( blockCount, threadCount, objectSize );
+
+	QrnnFPoolingKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, objectSize,
+		GetRaw( update ), GetRaw( forget ),
+		initialState.IsNull() ? nullptr : GetRaw( initialState ),
+		GetRaw( result ) );
+}
+
+void CCudaMathEngine::QrnnFPoolingBackward( bool reverse, int sequenceLength, int objectSize,
+	const CConstFloatHandle& update, const CConstFloatHandle& forget,
+	const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
+	const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( update.GetMathEngine() == this );
+	ASSERT_EXPR( forget.GetMathEngine() == this );
+	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
+	ASSERT_EXPR( updateDiff.GetMathEngine() == this );
+	ASSERT_EXPR( forgetDiff.GetMathEngine() == this );
+
+	int blockCount = 0;
+	int threadCount = 0;
+	getCudaTaskGrid( blockCount, threadCount, objectSize );
+
+	QrnnFPoolingBackwardKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, objectSize,
+		GetRaw( update ), GetRaw( forget ),
+		initialState.IsNull() ? nullptr : GetRaw( initialState ),
+		GetRaw( result ), GetRaw( resultDiff ),
+		GetRaw( updateDiff ), GetRaw( forgetDiff ) );
+}
+
+void CCudaMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int objectSize,
+	const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+	const CConstFloatHandle& initialState, const CFloatHandle& result )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( update.GetMathEngine() == this );
+	ASSERT_EXPR( forget.GetMathEngine() == this );
+	ASSERT_EXPR( input.GetMathEngine() == this );
+	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+
+	int blockCount = 0;
+	int threadCount = 0;
+	getCudaTaskGrid( blockCount, threadCount, objectSize );
+
+	QrnnIfPoolingKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, objectSize,
+		GetRaw( update ), GetRaw( forget ), GetRaw( input ),
+		initialState.IsNull() ? nullptr : GetRaw( initialState ),
+		GetRaw( result ) );
+}
+
+void CCudaMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, int objectSize,
+	const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+	const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
+	const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( update.GetMathEngine() == this );
+	ASSERT_EXPR( forget.GetMathEngine() == this );
+	ASSERT_EXPR( input.GetMathEngine() == this );
+	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
+	ASSERT_EXPR( updateDiff.GetMathEngine() == this );
+	ASSERT_EXPR( forgetDiff.GetMathEngine() == this );
+	ASSERT_EXPR( inputDiff.GetMathEngine() == this );
+
+	int blockCount = 0;
+	int threadCount = 0;
+	getCudaTaskGrid( blockCount, threadCount, objectSize );
+
+	QrnnIfPoolingBackwardKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, objectSize,
+		GetRaw( update ), GetRaw( forget ), GetRaw( input ),
+		initialState.IsNull() ? nullptr : GetRaw( initialState ),
+		GetRaw( result ), GetRaw( resultDiff ),
+		GetRaw( updateDiff ), GetRaw( forgetDiff ), GetRaw( inputDiff ) );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA
