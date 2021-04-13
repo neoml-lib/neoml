@@ -69,9 +69,10 @@ inline CFloatVectorDesc CFloatMatrixDesc::GetRow( int index ) const
 // A sparse matrix
 // Any value that is not specified is 0
 class NEOML_API CSparseFloatMatrix {
-	static const int MaxBufferSize = INT_MAX;
 	static const int InitialRowsBufferSize = 32;
 	static const int InitialElementsBufferSize = 512;
+	static const int MaxRowsCount = INT_MAX;
+	static const int MaxElementsCount = INT_MAX;
 public:
 	CSparseFloatMatrix() {}
 	explicit CSparseFloatMatrix( int width, int rowsBufferSize = 0, int elementsBufferSize = 0 );

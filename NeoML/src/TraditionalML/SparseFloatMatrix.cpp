@@ -21,9 +21,10 @@ limitations under the License.
 namespace NeoML {
 
 CFloatMatrixDesc CFloatMatrixDesc::Empty;
-const int CSparseFloatMatrix::MaxBufferSize;
 const int CSparseFloatMatrix::InitialRowsBufferSize;
 const int CSparseFloatMatrix::InitialElementsBufferSize;
+const int CSparseFloatMatrix::MaxRowsCount;
+const int CSparseFloatMatrix::MaxElementsCount;
 
 CSparseFloatMatrix::CSparseFloatMatrixBody::CSparseFloatMatrixBody( int height, int width, int elementCount,
 	int rowsBufferSize, int elementsBufferSize )
@@ -159,8 +160,8 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 	int newHeight = 1;
 	int newElementCount = size;
 	if( body != nullptr ) {
-		NeoAssert( body->Desc.Height <= MaxBufferSize - 1 );
-		NeoAssert( body->ValuesBuf.Size() <= MaxBufferSize - size );
+		NeoAssert( body->Desc.Height <= MaxRowsCount - 1 );
+		NeoAssert( body->ValuesBuf.Size() <= MaxElementsCount - size );
 
 		newHeight += body->Desc.Height;
 		newElementCount += body->ValuesBuf.Size();
