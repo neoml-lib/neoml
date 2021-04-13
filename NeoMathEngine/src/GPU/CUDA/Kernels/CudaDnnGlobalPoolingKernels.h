@@ -22,6 +22,66 @@ limitations under the License.
 
 namespace NeoML {
 
+struct IndexedHeap {
+	float* data;
+	float* indices;
+	int size;
+	__device__ IndexedHeap( float* d, float* ind, int maxCount ) : data( d ), indices( ind ), size( maxCount ) {}
+
+	__device__ void swap( int a, int b ) {
+		float temp = data[a];
+		data[a] = data[b];
+		data[b] = temp;
+		temp = indices[a];
+		indices[a] = indices[b];
+		indices[b] = temp;
+	}
+
+	__device__ bool is_less( int left, int right ) {
+		return ( data[left] == data[right] ) ? indices[left] > indices[right] : data[left] < data[right];
+	}
+
+	__device__ void heapify( int node, int size ) {
+		while (true) {
+			const int left = 2 * node + 1;
+			const int right = left + 1;
+			int smallest = node;
+			if ( left < size && is_less( left, smallest ) ) {
+				smallest = left;
+			}
+			if ( right < size && is_less( right, smallest ) ) {
+				smallest = right;
+			}
+			if ( smallest == node ) {
+				break;
+			}
+			swap( smallest, node );
+			node = smallest;
+		}
+	}
+
+	__device__ void build_heap() {
+		for ( int node = ( size - 1 ) / 2; node >= 0; node-- ) {
+			heapify( node, size );
+		}
+	}
+
+	__device__ void insert( float val, int ind ) {
+		if( ( data[0] == val ) ? indices[0] > ind : data[0] < val ) {
+			data[0] = val;
+			indices[0] = ind;
+			heapify( 0, size );
+		}
+	}
+
+	__device__ void sort() {
+		for ( int cnt = size - 1; cnt > 0; cnt-- ) {
+			swap( cnt, 0 );
+			heapify( 0, cnt );
+		}
+	}
+};
+
 __device__ inline void MergeBuffers(int maxCount, float* buffer, float* maxIndexBuffer,
 	const float* buffer0, const float* maxIndexBuffer0, const float* buffer1, const float* maxIndexBuffer1)
 {
@@ -38,8 +98,8 @@ __device__ inline void MergeBuffers(int maxCount, float* buffer, float* maxIndex
 
 const int BlobGlobalMaxPoolingCombine = 8;
 __launch_bounds__( 1024, 1 )
-__global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
-	int* maxIndicesData, float* resultData, int poolSize, int maxCount, int poolSizeNorm )
+__global__ void BlobGlobalMaxPoolingLocalHeapKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
+	float* maxIndicesData, float* resultData, int poolSize, int maxCount, int poolSizeNorm )
 {
 	const CCudaBlobDesc& source = desc.Source;
 	const CCudaBlobDesc& maxIndices = desc.MaxIndices;
@@ -59,6 +119,7 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 		buffer[i] = -FLT_MAX;
 		maxIndexBuffer[i] = -1.f;
 	}
+	IndexedHeap heap( buffer, maxIndexBuffer, maxCount );
 
 	int totalChannels = source.Channels();
 	// Find the position and other indices
@@ -74,24 +135,16 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 		int c = bc % totalChannels;
 
 		const float* curSourceData = sourceData + ( b * poolSize + index ) * totalChannels + c;
-		for(int i = 0; i < count; ++i) {
-			float nextValue = __ldg(curSourceData);
-			float nextIndex = (float)index;
-			for(int j = 0; j < maxCount; ++j) {
-				if(nextValue >= buffer[j]) {
-					float preValue = buffer[j];
-					float preIndex = maxIndexBuffer[j];
-					buffer[j] = nextValue;
-					maxIndexBuffer[j] = nextIndex;
-					nextValue = preValue;
-					nextIndex = preIndex;
-				}
-			}
-
+		for( int i = 0; i < count; ++i ) {
+			float nextValue = __ldg( curSourceData );
+			int nextIndex = ( int )index;
+			heap.insert( nextValue, nextIndex );
 			index += step;
 			curSourceData += step * totalChannels;
 		}
 	}
+	heap.sort();
+
 	// Merge the buffers
 	int toMergeCount = blockDim.x;
 	int threadNum = threadIdx.x;
@@ -129,16 +182,109 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 		}
 	}
 
-	if(threadIdx.x == 0) {
-		// Copy the result into final blobs
+	if( threadIdx.x == 0 ) {
+		// Copy the result into global memory
 		int channelNum = bc % totalChannels;
 		int batchNum = bc / totalChannels;
-		if(batchNum < result.ObjectCount() && channelNum < totalChannels) {
-			float* curResultData = GetBlobPtr(result, resultData, batchNum, 0, 0, channelNum);
-			int* maxIndexData = GetBlobPtr(maxIndices, maxIndicesData, batchNum, 0, 0, channelNum);
-			for(int i = 0; i < maxCount; ++i) {
-				*curResultData = *buffer++;
-				*maxIndexData = *maxIndexBuffer++;
+		if( batchNum < result.ObjectCount() && channelNum < totalChannels ) {
+			int offset = ( bc * gridDim.x + blockIdx.x ) * maxCount;
+			float* result = resultData + offset;
+			float* indices = maxIndicesData + offset;
+			for( int i = 0; i < maxCount; ++i ) {
+				result[i] = buffer[i];
+				indices[i] = maxIndexBuffer[i];
+			}
+		}
+	}
+}
+
+__launch_bounds__( 1024, 1 )
+__global__ void BlobGlobalMaxPoolingGlobalHeapKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
+	float *heapIndices, float* heapValues, int* maxIndicesData, float* resultData, int poolSize, int maxCount, int size )
+{
+	const CCudaBlobDesc& source = desc.Source;
+	const CCudaBlobDesc& maxIndices = desc.MaxIndices;
+	const CCudaBlobDesc& result = desc.Result;
+
+	// Initialize the data
+	extern __shared__ float sharedData[];
+
+	int bufferStep = 4 * maxCount;
+	float* buffer = sharedData + ( threadIdx.y * blockDim.x + threadIdx.x ) * bufferStep;
+	float* maxIndexBuffer = buffer + maxCount;
+	int inOffset = 0;
+	int outOffset = 2 * maxCount;
+
+	for(int i = 0; i < maxCount; ++i) {
+		buffer[i] = -FLT_MAX;
+		maxIndexBuffer[i] = -1.f;
+	}
+
+	int totalChannels = source.Channels();
+	// Find the position and other indices
+	int bc;
+	int index;
+	if( GetCudaTaskIndex2D( source.ObjectCount() * totalChannels, size, bc, index ) ) {
+		int combine = ( size + blockDim.x - 1 ) / blockDim.x;
+		int step;
+		int count = GetCudaTaskCountAndIndex( poolSize, combine, index, step );
+
+		float* curValues = heapValues + ( bc * size + index ) * maxCount;
+		float* curIndices = heapIndices + ( bc * size + index ) * maxCount;
+		for( int i = 0; i < maxCount; ++i ) {
+			buffer[i] = curValues[i];
+			maxIndexBuffer[i] = curIndices[i];
+		}
+
+		for( int i = 1; i < count; ++i ) {
+			curValues += step * maxCount;
+			curIndices += step * maxCount;
+
+			MergeBuffers( maxCount, buffer + outOffset, maxIndexBuffer + outOffset,
+				buffer + inOffset, maxIndexBuffer + inOffset, curValues, curIndices );
+			
+			inOffset ^= 2 * maxCount;
+			outOffset ^= 2 * maxCount;
+		}
+
+		for( int i = 0; i < maxCount; ++i ) {
+			buffer[outOffset + i] = buffer[inOffset + i];
+			maxIndexBuffer[outOffset + i] = maxIndexBuffer[inOffset + i];
+		}
+	}
+
+	__syncthreads();
+
+
+	inOffset = 0;
+	outOffset = 2 * maxCount;
+	for( int step = 1; step < size; step *= 2 ) {
+		if( threadIdx.x >= step ) {
+			float* partnerBuffer = buffer - step * bufferStep;
+			float* partnerIndexBuffer = buffer - step * bufferStep + maxCount;
+			MergeBuffers( maxCount, buffer + outOffset, maxIndexBuffer + outOffset,
+				buffer + inOffset, maxIndexBuffer + inOffset, partnerBuffer + inOffset, partnerIndexBuffer + inOffset );
+		} else {
+			for( int i = 0; i < maxCount; ++i ) {
+				buffer[outOffset + i] = buffer[inOffset + i];
+				maxIndexBuffer[outOffset + i] = maxIndexBuffer[inOffset + i];
+			}
+		}
+		inOffset ^= 2 * maxCount;
+		outOffset ^= 2 * maxCount;
+		__syncthreads();
+	}
+
+	if( threadIdx.x == blockDim.x - 1 ) {
+		// Copy the result into result blobs
+		int channelNum = bc % totalChannels;
+		int batchNum = bc / totalChannels;
+		if( batchNum < result.ObjectCount() && channelNum < totalChannels ) {
+			float* curResultData = GetBlobPtr( result, resultData, batchNum, 0, 0, channelNum );
+			int* maxIndexData = GetBlobPtr( maxIndices, maxIndicesData, batchNum, 0, 0, channelNum );
+			for( int i = 0; i < maxCount; ++i ) {
+				*curResultData = buffer[inOffset + i];
+				*maxIndexData = maxIndexBuffer[inOffset + i];
 
 				curResultData += totalChannels;
 				maxIndexData += totalChannels;
