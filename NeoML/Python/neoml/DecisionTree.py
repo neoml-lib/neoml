@@ -70,7 +70,7 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
     :param random_selected_feature_count: no more than this number of randomly selected features will be used for each node.
         -1 means use all features every time.
     :type random_selected_feature_count: int, default=-1
-s    """
+    """
 
     def __init__(self, criterion='gini', min_subset_size=1, min_subset_part=0.0, min_split_size=1, max_tree_depth=32,
                  max_node_count=4096, const_threshold=0.99, random_selected_feature_count=-1):
