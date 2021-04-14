@@ -204,19 +204,28 @@ void CGradientBoostModel::CutNumberOfTrees( int numberOfTrees )
 	}
 }
 
-void RegressionTreeSearch( uint64_t& featureCount, uint64_t& nodesCount, const IRegressionTreeNode* tree )
-{
-	if( tree == nullptr ) {
-		return;
-	}
+static void regressionTreeSearch( uint64_t& featureCount, uint64_t& nodesCount, const IRegressionTreeNode* node ) {
+	CFastArray<const IRegressionTreeNode*, 1> stack;
 	CRegressionTreeNodeInfo info;
-	tree->GetNodeInfo( info );
-	if( info.Type == RTNT_Continuous ) {
-		featureCount = max( featureCount, ( uint64_t )info.FeatureIndex );
+	while( node != nullptr || !stack.IsEmpty() ) {
+		if( !stack.IsEmpty() ) {
+			node = stack.Last();
+			stack.DeleteLast();
+		}
+		while( node != nullptr ) {
+			node->GetNodeInfo( info );
+			if( info.FeatureIndex >= 0 ) {
+				featureCount = max( featureCount, ( uint64_t )info.FeatureIndex );
+			}
+			nodesCount++;
+			const IRegressionTreeNode* left = node->GetLeftChild().Ptr();
+			const IRegressionTreeNode* right = node->GetRightChild().Ptr();
+			if( right != nullptr ) {
+				stack.Add( right );
+			}
+			node = left;
+		}
 	}
-	nodesCount++;
-	RegressionTreeSearch( featureCount, nodesCount, tree->GetLeftChild().Ptr() );
-	RegressionTreeSearch( featureCount, nodesCount, tree->GetRightChild().Ptr() );
 }
 
 void CGradientBoostModel::ConvertToCompact()
@@ -227,8 +236,9 @@ void CGradientBoostModel::ConvertToCompact()
 			CPtr<IRegressionTreeNode>& tree = ensemble[j];
 
 			if( dynamic_cast< CCompact16RegressionTree* >( tree.Ptr() ) == 0 && dynamic_cast< CCompact32RegressionTree* >( tree.Ptr() ) == 0 ) {
+				// find max featureIndex and nodes count
 				uint64_t featureCount = 0, nodesCount = 0;
-				RegressionTreeSearch( featureCount, nodesCount, tree.Ptr() );
+				regressionTreeSearch( featureCount, nodesCount, tree );
 
 				if( featureCount <= CCompact16RegressionTree::MaxFeature && nodesCount <= CCompact16RegressionTree::MaxNodeIndex ) {
 					tree = FINE_DEBUG_NEW CCompact16RegressionTree( tree );
