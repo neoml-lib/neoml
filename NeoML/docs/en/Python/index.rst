@@ -55,6 +55,18 @@ Submodules
    submodules/mathengine
    submodules/misc
 
+.. toctree::
+   :maxdepth: 3
+   :caption: Tutorials
+   :hidden:
+
+   tutorials/Cifar10
+   tutorials/IRNN
+   tutorials/Linear
+   tutorials/KMeans
+   tutorials/Regressor
+   tutorials/Boosting
+
 The Python API is split into several submodules:
 
 - :ref:`Neural networks <py-submodule-dnn>`
