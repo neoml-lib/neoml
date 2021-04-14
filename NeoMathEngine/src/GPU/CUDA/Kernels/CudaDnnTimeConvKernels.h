@@ -20,6 +20,60 @@ limitations under the License.
 
 namespace NeoML {
 
+// Time convolution may be done as a matrix multiplication if inputData will be reordered in a temporary matrix
+// where i-th row contains data, which will be processed by filter in roder to get i-th row of output
+
+// This kernel builds a PART of this matrix, starting with firstLineIndex and of matrixHeight height
+// It's done because full temp matrix may require a lot of memory
+
+const int BuildTempMatrixCombine = 16;
+__global__ void BuildTempMatrixKernel( const CCudaTimeConvolutionDescInternal desc,
+	const float* __restrict__ input, int matrixPartHeight, int matrixWidth, float* __restrict__ matrix,
+	int firstLineIndex, int matrixWidthNorm )
+{
+	const int objectSize = desc.Source.ObjectSize();
+	const int batchSize = desc.Source.BatchWidth() * desc.Source.ListSize();
+	const int inBatchLen = desc.Source.BatchLength();
+	const int outBatchLen = desc.Result.BatchLength();
+	const int stride = desc.Stride;
+	const int padFront = desc.PaddingFront;
+	const int dilation = desc.Dilation;
+
+	int matrixRow;
+	int matrixCol;
+
+	GetCudaTaskIndex2D( matrixPartHeight, matrixWidthNorm, matrixRow, matrixCol );
+	if( matrixRow >= matrixPartHeight ) {
+		return;
+	}
+
+	int step;
+	int count = GetCudaTaskCountAndIndex( matrixWidth, BuildTempMatrixCombine, matrixCol, step );
+	matrix += matrixRow * matrixWidth + matrixCol;
+
+	// Row index in full temporary matrix
+	const int fullMatrixRowIndex = matrixRow + firstLineIndex;
+	const int batch = fullMatrixRowIndex % batchSize;
+	const int seqPos = fullMatrixRowIndex / batchSize;
+
+	const int inputSeqStart = seqPos * stride - padFront;
+
+	for( int i = 0; i < count; ++i ) {
+		const int elemIndex = matrixCol % objectSize;
+		const int filterSeq = matrixCol / objectSize;
+
+		const int inputSeq = inputSeqStart + filterSeq * dilation;
+		if( inputSeq >= 0 && inputSeq < inBatchLen ) {
+			*matrix = input[( inputSeq * batchSize + batch ) * objectSize + elemIndex];
+		} else {
+			*matrix = 0;
+		}
+
+		matrixCol += step;
+		matrix += step;
+	}
+}
+
 const int BlobTimeConvolutionPrepareCombine = 16;
 __global__ void BlobTimeConvolutionPrepareKernel( const CCudaTimeConvolutionDescInternal desc,
 	const float* sourceData, int xSizeNorm, float* preparedData )
@@ -115,7 +169,7 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	}
 }
 
-__global__ void blobTimeConvolutionLearnFilterKernel( CCudaTimeConvolutionDescInternal desc,
+__global__ void BlobTimeConvolutionLearnFilterKernel( CCudaTimeConvolutionDescInternal desc,
 	const float* __restrict__ input, const float* __restrict__ outputDiff, float* filterDiff )
 {
 	const int objectSize = desc.Filter.Channels();
