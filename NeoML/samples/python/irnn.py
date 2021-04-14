@@ -110,12 +110,12 @@ data = neoml.Dnn.Source(dnn, data_layer_name)  # Source for data
 labels = neoml.Dnn.Source(dnn, label_layer_name)  # Source for labels
 # (BatchWidth, Channels) -> (BatchLength, BatchWidth) for recurrent layer
 transpose = neoml.Dnn.Transpose(data, first_dim='batch_length',
-                                      second_dim='channels')
+                                second_dim='channels')
 irnn = neoml.Dnn.Irnn(transpose, hidden_size, identity_scale=1.,
-                       input_weight_std=1e-3, name='irnn')
+                      input_weight_std=1e-3, name='irnn')
 # IRNN returns whole sequence, need to take only last element
 subseq = neoml.Dnn.SubSequence(irnn, start_pos=-1,
-                                       length=1, name='subseq')
+                               length=1, name='subseq')
 # Forming distribution (unsoftmaxed!)
 fc = neoml.Dnn.FullyConnected(subseq, n_classes, name='fc')
 # Softmax is applied inside cross-entropy
