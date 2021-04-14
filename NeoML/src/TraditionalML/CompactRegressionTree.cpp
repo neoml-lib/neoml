@@ -77,7 +77,7 @@ void CCompactRegressionTree<T>::importNodes(
 			node.Value.Resident = static_cast<float>( info.Value[0] );
 
 			importNodes( source->GetLeftChild() );
-			NeoAssert( nodes.Size() <= MaxNodeIndex );
+			NeoAssert( static_cast<unsigned>( nodes.Size() ) <= MaxNodeIndex );
 			// NB: `nodes[index]` instead of `node` because of possible reallocation.
 			nodes[index].RightChildIndex = static_cast<uint16_t>( nodes.Size() );
 			importNodes( source->GetRightChild() );
