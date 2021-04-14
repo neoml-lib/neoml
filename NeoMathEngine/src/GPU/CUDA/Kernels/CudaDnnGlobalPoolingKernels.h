@@ -37,7 +37,7 @@ struct IndexedHeap {
 		indices[b] = temp;
 	}
 
-	__device__ bool is_less( int left, int right ) {
+	__device__ bool isLess( int left, int right ) {
 		return ( data[left] == data[right] ) ? indices[left] > indices[right] : data[left] < data[right];
 	}
 
@@ -46,10 +46,10 @@ struct IndexedHeap {
 			const int left = 2 * node + 1;
 			const int right = left + 1;
 			int smallest = node;
-			if ( left < size && is_less( left, smallest ) ) {
+			if ( left < size && isLess( left, smallest ) ) {
 				smallest = left;
 			}
-			if ( right < size && is_less( right, smallest ) ) {
+			if ( right < size && isLess( right, smallest ) ) {
 				smallest = right;
 			}
 			if ( smallest == node ) {
@@ -60,7 +60,7 @@ struct IndexedHeap {
 		}
 	}
 
-	__device__ void build_heap() {
+	__device__ void buildHeap() {
 		for ( int node = ( size - 1 ) / 2; node >= 0; node-- ) {
 			heapify( node, size );
 		}
