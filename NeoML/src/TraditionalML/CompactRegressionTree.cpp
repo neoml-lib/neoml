@@ -258,7 +258,7 @@ void CCompactRegressionTree<T>::Serialize( CArchive& archive )
 	SerializeCompact( archive, nodesCount );
 	if( archive.IsLoading() ) {
 		check( ( nodesCount == 0 && predictionSize == NotFound ) ||
-				( nodesCount >= 0 && nodesCount <= MaxNodeIndex && predictionSize >= 1 ),
+				( nodesCount >= 0 && ( unsigned )nodesCount <= MaxNodeIndex && predictionSize >= 1 ),
 			ERR_BAD_ARCHIVE, archive.Name() );
 		nodes.SetSize( nodesCount );
 		wrappers.DeleteAll();
