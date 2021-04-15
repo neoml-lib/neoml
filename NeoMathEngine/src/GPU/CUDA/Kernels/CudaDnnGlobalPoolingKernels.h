@@ -169,7 +169,8 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 	}
 }
 
-__device__ inline unsigned FloatToUnsigned( const float* ptr ) {
+__device__ inline unsigned FloatToUnsigned( const float* ptr )
+{
 	unsigned res = *( unsigned* )ptr;
 	unsigned sign = 1 << ( sizeof( float ) * 8 - 1 );
 	if( res & sign ) {
