@@ -23,8 +23,8 @@ limitations under the License.
 namespace NeoML {
 
 struct IndexedValue {
-	float ind;
 	float val;
+	int ind;
 
 	__device__ bool isLess( const IndexedValue& other ) {
 		return ( val == other.val ) ? ind > other.ind : val < other.val;
@@ -40,20 +40,29 @@ struct IndexedValue {
 	}
 };
 
+template<bool isMinHeap>
 struct Heap {
 	IndexedValue* data;
 	int size;
 	__device__ Heap( float* _data, int maxCount ) : data( reinterpret_cast<IndexedValue*>( _data ) ), size( maxCount ) {}
+
+	__device__ isLess( int left, int right ) {
+		if( isMinHeap ) {
+			return data[left].isLess( data[right] );
+		} else {
+			return data[right].isLess( data[left] );
+		}
+	}
 
 	__device__ void heapify( int node, int size ) {
 		while (true) {
 			const int left = 2 * node + 1;
 			const int right = left + 1;
 			int smallest = node;
-			if ( left < size && data[left].isLess( data[smallest] ) ) {
+			if ( left < size && isLess( left, smallest ) ) {
 				smallest = left;
 			}
-			if ( right < size && data[right].isLess( data[smallest] ) ) {
+			if ( right < size && isLess( right, smallest ) ) {
 				smallest = right;
 			}
 			if ( smallest == node ) {
@@ -70,17 +79,25 @@ struct Heap {
 		}
 	}
 
-	__device__ void insert( IndexedValue entry ) {
-		if( data[0].isLess( entry ) ) {
-			data[0] = entry;
-			heapify( 0, size );
-		}
-	}
-
 	__device__ void sort() {
 		for ( int cnt = size - 1; cnt > 0; cnt-- ) {
 			data[0].swap( data[cnt] );
 			heapify( 0, cnt );
+		}
+	}
+
+	__device__ IndexedValue root() {
+		return data[0];
+	}
+
+	__device__ void replaceRoot( IndexedValue entry ) {
+		data[0] = entry;
+		heapify( 0, size );
+	}
+
+	__device__ void insert( IndexedValue entry ) {
+		if( data[0].isLess( entry ) ) {
+			replaceRoot( entry );
 		}
 	}
 };
@@ -97,29 +114,48 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 	extern __shared__ float sharedData[];
 
 	int bufferStep = 2 * maxCount;
-	float* buffer = sharedData + threadIdx.x * bufferStep;
-	float* maxIndexBuffer = buffer + maxCount;
+	float* localHeap = sharedData + threadIdx.x * bufferStep;
+	float* globalHeap = sharedData + blockDim.x * bufferStep;
 
 	for(int i = 0; i < maxCount; ++i) {
-		buffer[i] = -FLT_MAX;
-		maxIndexBuffer[i] = -1.f;
+		localHeap[2 * i] = -FLT_MAX;
+		localHeap[2 * i + 1] = -1;
 	}
-	Heap heap( buffer, maxIndexBuffer, maxCount );
+	Heap<true> heap( localHeap, maxCount );
 
 	int totalChannels = source.Channels();
 	int bc = blockIdx.x;
+	int threadCount = blockDim.x;
 	int b = bc / totalChannels;
 	int c = bc % totalChannels;
 
 	const float* curSourceData = sourceData + ( b * poolSize + threadIdx.x ) * totalChannels + c;
-	for( int ind = threadIdx.x; ind < poolSize; ind += blockDim.x ) {
+	for( int ind = threadIdx.x; ind < poolSize; ind += threadCount ) {
 		heap.insert( { ind, __ldg( curSourceData ) } );
-		curSourceData += blockDim.x * totalChannels;
+		curSourceData += threadCount * totalChannels;
 	}
 	heap.sort();
 
-	if(threadIdx.x == 0) {
-		
+	if( threadIdx.x == 0 ) {
+		for(int i = 0; i < maxCount; ++i) {
+			globalHeap[2 * i] = -FLT_MAX;
+			globalHeap[2 * i + 1] = -1;
+		}
+
+		// add max from each thread to min heap
+		Heap<true> minHeap( globalHeap, maxCount );
+		for( int i = 0; i < threadCount; ++i ) {
+			minHeap.insert( { i * bufferStep, sharedData[i * bufferStep] } );
+		}
+
+		// build max heap and extract maximum maxCount times
+		Heap<false> maxHeap( globalHeap, maxCount );
+		maxHeap.buildHeap();
+		for( int resIndex = 0; resIndex < maxCount; ++resIndex ) {
+			const IndexedValue& root = maxHeap.root();
+			resultData[resIndex] = root.val;
+			maxIndicesData[resIndex] = sharedData[root.ind].ind;
+		}
 	}
 }
 
