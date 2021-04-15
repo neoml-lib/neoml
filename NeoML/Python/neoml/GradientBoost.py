@@ -29,6 +29,11 @@ class GradientBoostClassificationModel:
 
 
     def store(self, path):
+        """Saves the model at the given location.
+        
+        :param path: the full path to where the model should be saved.
+        :type path: str
+        """
         self.internal.store(path)       
 
     def classify(self, X):
@@ -46,9 +51,7 @@ class GradientBoostClassificationModel:
         return self.internal.classify(*get_data(x))
 
 class GradientBoostClassifier(PythonWrapper.GradientBoost):
-    """Gradient boosting for classification.
-    
-    Gradient boosting method creates an ensemble of decision trees
+    """Gradient boosting for classification. Gradient boosting method creates an ensemble of decision trees
     using random subsets of features and input data.
 
     :param loss: the loss function to be optimized. 
@@ -149,8 +152,8 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``GradientBoostClassificationModel``.
-        :rtype: *object*
+        :return: the trained classification model.
+        :rtype: neoml.GradientBoost.GradientBoostClassificationModel
         """
         x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.int32, copy=False )
@@ -182,6 +185,11 @@ class GradientBoostRegressionModel:
 
 
     def store(self, path):
+        """Saves the model at the given location.
+
+        :param path: the full path to where the model should be saved.
+        :type path: str
+        """
         self.internal.store(path)       
 
     def predict(self, X):
@@ -298,8 +306,8 @@ class GradientBoostRegressor(PythonWrapper.GradientBoost):
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``GradientBoostRegressionModel``.
-        :rtype: *object*
+        :return: the trained regression model.
+        :rtype: neoml.GradientBoost.GradientBoostRegressionModel
         """
         x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.float32, copy=False )
