@@ -70,14 +70,14 @@ void CCompactRegressionTree<T>::importNodes(
 			break;
 
 		case NeoML::TRegressionTreeNodeType::RTNT_Continuous:
-			NeoAssert( static_cast<unsigned>( info.FeatureIndex ) <= MaxFeature );
-			node.FeaturePlusOne = static_cast<uint16_t>( info.FeatureIndex + 1 );
+			NeoAssert( static_cast<uint64_t>( info.FeatureIndex ) <= MaxFeature );
+			node.FeaturePlusOne = static_cast<T>( info.FeatureIndex + 1 );
 
 			NeoAssert( info.Value.Size() == 1 );
 			node.Value.Resident = static_cast<float>( info.Value[0] );
 
 			importNodes( source->GetLeftChild() );
-			NeoAssert( static_cast<unsigned>( nodes.Size() ) <= MaxNodeIndex );
+			NeoAssert( static_cast<uint64_t>( nodes.Size() ) <= MaxNodeIndex );
 			// NB: `nodes[index]` instead of `node` because of possible reallocation.
 			nodes[index].RightChildIndex = static_cast<uint16_t>( nodes.Size() );
 			importNodes( source->GetRightChild() );
@@ -241,7 +241,7 @@ void CCompactRegressionTree<T>::CalcFeatureStatistics(
 
 	for( int i = 0; i < nodes.Size(); i++ ) {
 		const CNode& node = nodes[i];
-		if( node.FeaturePlusOne != 0 && node.FeaturePlusOne <= static_cast<unsigned>( maxFeature ) ) {
+		if( node.FeaturePlusOne != 0 && node.FeaturePlusOne <= static_cast<uint32_t>( maxFeature ) ) {
 			result[node.FeaturePlusOne - 1]++;
 		}
 	}
@@ -258,7 +258,7 @@ void CCompactRegressionTree<T>::Serialize( CArchive& archive )
 	SerializeCompact( archive, nodesCount );
 	if( archive.IsLoading() ) {
 		check( ( nodesCount == 0 && predictionSize == NotFound ) ||
-				( nodesCount >= 0 && ( unsigned )nodesCount <= MaxNodeIndex && predictionSize >= 1 ),
+				( nodesCount >= 0 && static_cast<uint64_t>( nodesCount ) <= MaxNodeIndex && predictionSize >= 1 ),
 			ERR_BAD_ARCHIVE, archive.Name() );
 		nodes.SetSize( nodesCount );
 		wrappers.DeleteAll();

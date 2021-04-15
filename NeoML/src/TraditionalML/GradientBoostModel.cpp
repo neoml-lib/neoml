@@ -216,7 +216,7 @@ static void regressionTreeSearch( uint64_t& featureCount, uint64_t& nodesCount, 
 		while( node != nullptr ) {
 			node->GetNodeInfo( info );
 			if( info.FeatureIndex >= 0 ) {
-				featureCount = max( featureCount, ( uint64_t )info.FeatureIndex );
+				featureCount = max( featureCount, static_cast<uint64_t>( info.FeatureIndex ) );
 			}
 			nodesCount++;
 			const IRegressionTreeNode* left = node->GetLeftChild().Ptr();

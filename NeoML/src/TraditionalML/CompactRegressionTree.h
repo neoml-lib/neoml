@@ -53,9 +53,9 @@ public:
 	virtual void Serialize( CArchive& archive ) override;
 
 	// Feature number cannot exceeed this.
-	static const T MaxFeature = ( std::numeric_limits<T>::max )() - 2;
+	static const uint64_t MaxFeature = ( std::numeric_limits<T>::max )() - 2;
 	// Node index within the `nodes` array cannot exceed this.
-	static const T MaxNodeIndex = ( std::numeric_limits<T>::max )() - 1;
+	static const uint64_t MaxNodeIndex = ( std::numeric_limits<T>::max )() - 1;
 
 private:
 
