@@ -21,7 +21,7 @@ limitations under the License.
 namespace NeoML {
 
 // Time convolution may be done as a matrix multiplication if inputData will be reordered in a temporary matrix
-// where i-th row contains data, which will be processed by filter in roder to get i-th row of output
+// where i-th row contains data, which will be covered by filter in i-th row of output
 
 // This kernel builds a PART of this matrix, starting with firstLineIndex and of matrixHeight height
 // It's done because full temp matrix may require a lot of memory
