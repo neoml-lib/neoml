@@ -204,7 +204,8 @@ void CGradientBoostModel::CutNumberOfTrees( int numberOfTrees )
 	}
 }
 
-static void regressionTreeSearch( uint64_t& featureCount, uint64_t& nodesCount, const IRegressionTreeNode* node ) {
+static void regressionTreeSearch( uint64_t& featureCount, uint64_t& nodesCount, const IRegressionTreeNode* node )
+{
 	CFastArray<const IRegressionTreeNode*, 32> stack;
 	CRegressionTreeNodeInfo info;
 	while( node != nullptr || !stack.IsEmpty() ) {
