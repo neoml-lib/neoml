@@ -241,7 +241,7 @@ void CCompactRegressionTree<T>::CalcFeatureStatistics(
 
 	for( int i = 0; i < nodes.Size(); i++ ) {
 		const CNode& node = nodes[i];
-		if( node.FeaturePlusOne != 0 && node.FeaturePlusOne <= static_cast<uint32_t>( maxFeature ) ) {
+		if( node.FeaturePlusOne != 0 && node.FeaturePlusOne <= static_cast<uint64_t>( maxFeature ) ) {
 			result[node.FeaturePlusOne - 1]++;
 		}
 	}
