@@ -235,16 +235,13 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 	int poolSize = source.Depth() * source.Height() * source.Width();
 	int maxCount = result.Depth() * result.Height() * result.Width();
 
-	int poolSizeNorm = (poolSize + BlobGlobalMaxPoolingCombine - 1) / BlobGlobalMaxPoolingCombine;
-
 	if( maxCount < 100 ){
 		// As the shared memory size depends on maxCount, we may need to limit the number of thread
 		int sharedMemoryPerThread = 2 * maxCount * sizeof( float );
-		int maxThreadCount = device->SharedMemoryLimit / sharedMemoryPerThread - 1;
+		int maxThreadCount = min( device->SharedMemoryLimit / sharedMemoryPerThread - 1, max( 1, poolSize / maxCount ) );
 		int blockCount = source.ObjectCount() * source.Channels();
-		int threadCount = min( device->ThreadMaxCount, min( maxThreadCount, poolSize / ( 2 * maxCount ) ) );
+		int threadCount = min( device->ThreadMaxCount, maxThreadCount );
 
-		printf( "thread count = %d %d\n", threadCount, blockCount );
 		int sharedSize = ( threadCount + 1 ) * sharedMemoryPerThread;
 		BlobGlobalMaxPoolingHeapKernel<<<blockCount, threadCount, sharedSize>>>( desc, GetRaw( sourceData ),
 			GetRaw( maxIndicesData ), GetRaw( resultData ), poolSize, maxCount );
@@ -260,6 +257,7 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 		dim3 scanThreadCount;
 
 		int height = 1;
+		int poolSizeNorm = poolSize / 8;
 		while( height < poolSizeNorm ) {
 			height *= 2;
 		}

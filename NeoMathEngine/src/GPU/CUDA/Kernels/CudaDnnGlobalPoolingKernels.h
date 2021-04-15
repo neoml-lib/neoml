@@ -24,7 +24,7 @@ namespace NeoML {
 
 struct IndexedValue {
 	float val;
-	int ind;
+	float ind;
 
 	__device__ bool isLess( const IndexedValue& other ) {
 		return ( val == other.val ) ? ind > other.ind : val < other.val;
@@ -36,7 +36,7 @@ struct IndexedValue {
 		other.val = tmp;
 		tmp = ind;
 		ind = other.ind;
-		other.ind = ind;
+		other.ind = tmp;
 	}
 };
 
@@ -46,7 +46,7 @@ struct Heap {
 	int size;
 	__device__ Heap( float* _data, int maxCount ) : data( reinterpret_cast<IndexedValue*>( _data ) ), size( maxCount ) {}
 
-	__device__ isLess( int left, int right ) {
+	__device__ bool isLess( int left, int right ) {
 		if( isMinHeap ) {
 			return data[left].isLess( data[right] );
 		} else {
@@ -113,28 +113,30 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 	// Initialize the data
 	extern __shared__ float sharedData[];
 
+	int threadCount = blockDim.x;
 	int bufferStep = 2 * maxCount;
 	float* localHeap = sharedData + threadIdx.x * bufferStep;
-	float* globalHeap = sharedData + blockDim.x * bufferStep;
+	float* globalHeap = sharedData + threadCount * bufferStep;
 
-	for(int i = 0; i < maxCount; ++i) {
+	for( int i = 0; i < maxCount; ++i ) {
 		localHeap[2 * i] = -FLT_MAX;
 		localHeap[2 * i + 1] = -1;
 	}
+
 	Heap<true> heap( localHeap, maxCount );
 
 	int totalChannels = source.Channels();
 	int bc = blockIdx.x;
-	int threadCount = blockDim.x;
 	int b = bc / totalChannels;
 	int c = bc % totalChannels;
 
 	const float* curSourceData = sourceData + ( b * poolSize + threadIdx.x ) * totalChannels + c;
 	for( int ind = threadIdx.x; ind < poolSize; ind += threadCount ) {
-		heap.insert( { ind, __ldg( curSourceData ) } );
+		heap.insert( { __ldg( curSourceData ), ind } );
 		curSourceData += threadCount * totalChannels;
 	}
 	heap.sort();
+	__syncthreads();
 
 	if( threadIdx.x == 0 ) {
 		for(int i = 0; i < maxCount; ++i) {
@@ -145,16 +147,24 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 		// add max from each thread to min heap
 		Heap<true> minHeap( globalHeap, maxCount );
 		for( int i = 0; i < threadCount; ++i ) {
-			minHeap.insert( { i * bufferStep, sharedData[i * bufferStep] } );
+			minHeap.insert( { sharedData[i * bufferStep], i * bufferStep } );
 		}
 
 		// build max heap and extract maximum maxCount times
 		Heap<false> maxHeap( globalHeap, maxCount );
 		maxHeap.buildHeap();
-		for( int resIndex = 0; resIndex < maxCount; ++resIndex ) {
+		for( int i = 0, resIndex = b * maxCount * totalChannels + c; i < maxCount; ++i, resIndex += totalChannels ) {
 			const IndexedValue& root = maxHeap.root();
 			resultData[resIndex] = root.val;
-			maxIndicesData[resIndex] = sharedData[root.ind].ind;
+			int rootIndex = ( int )root.ind;
+			if( rootIndex == -1 ) {
+				maxIndicesData[resIndex] = -1;
+			} else {
+				IndexedValue* threadMax = reinterpret_cast< IndexedValue* >( sharedData + rootIndex );
+				maxIndicesData[resIndex] = ( int )threadMax->ind;
+				IndexedValue* threadNextMax = reinterpret_cast< IndexedValue* >( sharedData + rootIndex + 2 );
+				maxHeap.replaceRoot( { threadNextMax->val, rootIndex + 2 } );
+			}
 		}
 	}
 }
