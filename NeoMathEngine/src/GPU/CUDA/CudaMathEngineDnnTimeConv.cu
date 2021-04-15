@@ -188,6 +188,7 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 	// Let's try to build temp matrix
 	const int tempMatrixWidth = filterDiff.ObjectSize();
 	const int tempMatrixHeight = outputDiff.BlobSize() / filterDiff.ObjectCount();
+	// Max amount of memory allowed is a half of math engine's free memory
 	const int maxInMemoryHeight = min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ),
 		tempMatrixHeight );
 
