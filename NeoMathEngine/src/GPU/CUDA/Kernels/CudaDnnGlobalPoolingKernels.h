@@ -22,40 +22,44 @@ limitations under the License.
 
 namespace NeoML {
 
-struct IndexedHeap {
-	float* data;
-	float* indices;
+struct IndexedValue {
+	float ind;
+	float val;
+
+	__device__ bool isLess( const IndexedValue& other ) {
+		return ( val == other.val ) ? ind > other.ind : val < other.val;
+	}
+
+	__device__ void swap( IndexedValue& other ) {
+		float tmp = val;
+		val = other.val;
+		other.val = tmp;
+		tmp = ind;
+		ind = other.ind;
+		other.ind = ind;
+	}
+};
+
+struct Heap {
+	IndexedValue* data;
 	int size;
-	__device__ IndexedHeap( float* d, float* ind, int maxCount ) : data( d ), indices( ind ), size( maxCount ) {}
-
-	__device__ void swap( int a, int b ) {
-		float temp = data[a];
-		data[a] = data[b];
-		data[b] = temp;
-		temp = indices[a];
-		indices[a] = indices[b];
-		indices[b] = temp;
-	}
-
-	__device__ bool isLess( int left, int right ) {
-		return ( data[left] == data[right] ) ? indices[left] > indices[right] : data[left] < data[right];
-	}
+	__device__ Heap( float* _data, int maxCount ) : data( reinterpret_cast<IndexedValue*>( _data ) ), size( maxCount ) {}
 
 	__device__ void heapify( int node, int size ) {
 		while (true) {
 			const int left = 2 * node + 1;
 			const int right = left + 1;
 			int smallest = node;
-			if ( left < size && isLess( left, smallest ) ) {
+			if ( left < size && data[left].isLess( data[smallest] ) ) {
 				smallest = left;
 			}
-			if ( right < size && isLess( right, smallest ) ) {
+			if ( right < size && data[right].isLess( data[smallest] ) ) {
 				smallest = right;
 			}
 			if ( smallest == node ) {
 				break;
 			}
-			swap( smallest, node );
+			data[smallest].swap( data[node] );
 			node = smallest;
 		}
 	}
@@ -66,135 +70,56 @@ struct IndexedHeap {
 		}
 	}
 
-	__device__ void insert( float val, int ind ) {
-		if( ( data[0] == val ) ? indices[0] > ind : data[0] < val ) {
-			data[0] = val;
-			indices[0] = ind;
+	__device__ void insert( IndexedValue entry ) {
+		if( data[0].isLess( entry ) ) {
+			data[0] = entry;
 			heapify( 0, size );
 		}
 	}
 
 	__device__ void sort() {
 		for ( int cnt = size - 1; cnt > 0; cnt-- ) {
-			swap( cnt, 0 );
+			data[0].swap( data[cnt] );
 			heapify( 0, cnt );
 		}
 	}
 };
 
-__device__ inline void MergeBuffers(int maxCount, float* buffer, float* maxIndexBuffer,
-	const float* buffer0, const float* maxIndexBuffer0, const float* buffer1, const float* maxIndexBuffer1)
-{
-	while(maxCount-- > 0) {
-		if(*buffer0 > *buffer1) {
-			*buffer++ = *buffer0++;
-			*maxIndexBuffer++ = *maxIndexBuffer0++;
-		} else {
-			*buffer++ = *buffer1++;
-			*maxIndexBuffer++ = *maxIndexBuffer1++;
-		}
-	}
-}
-
-const int BlobGlobalMaxPoolingCombine = 8;
 __launch_bounds__( 1024, 1 )
 __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
-	int* maxIndicesData, float* resultData, int poolSize, int maxCount, int poolSizeNorm )
+	int* maxIndicesData, float* resultData, int poolSize, int maxCount )
 {
 	const CCudaBlobDesc& source = desc.Source;
 	const CCudaBlobDesc& maxIndices = desc.MaxIndices;
 	const CCudaBlobDesc& result = desc.Result;
 
-	int bufferStep = 2 * maxCount;
-
 	// Initialize the data
 	extern __shared__ float sharedData[];
 
-	float* buffer = sharedData + (threadIdx.y * blockDim.x * 2 + threadIdx.x) * bufferStep;
+	int bufferStep = 2 * maxCount;
+	float* buffer = sharedData + threadIdx.x * bufferStep;
 	float* maxIndexBuffer = buffer + maxCount;
-	// The pointer to the end of the buffer (the rest will be used to merge)
-	float* bufferEnd = sharedData + (threadIdx.y * blockDim.x * 2 + blockDim.x) * bufferStep;
 
 	for(int i = 0; i < maxCount; ++i) {
 		buffer[i] = -FLT_MAX;
 		maxIndexBuffer[i] = -1.f;
 	}
-	IndexedHeap heap( buffer, maxIndexBuffer, maxCount );
+	Heap heap( buffer, maxIndexBuffer, maxCount );
 
 	int totalChannels = source.Channels();
-	// Find the position and other indices
-	int bc;
-	int index;
-	if(GetCudaTaskIndex2D(source.ObjectCount() * totalChannels, poolSizeNorm, bc, index)) {
-		// Find the maximum of the 'combine' values and put them into the buffer
-		int combine = (poolSize + blockDim.x - 1) / blockDim.x;
-		int step;
-		int count = GetCudaTaskCountAndIndex(poolSize, combine, index, step);
+	int bc = blockIdx.x;
+	int b = bc / totalChannels;
+	int c = bc % totalChannels;
 
-		int b = bc / totalChannels;
-		int c = bc % totalChannels;
-
-		const float* curSourceData = sourceData + ( b * poolSize + index ) * totalChannels + c;
-		for(int i = 0; i < count; ++i) {
-			heap.insert( __ldg( curSourceData ), index );
-			index += step;
-			curSourceData += step * totalChannels;
-		}
+	const float* curSourceData = sourceData + ( b * poolSize + threadIdx.x ) * totalChannels + c;
+	for( int ind = threadIdx.x; ind < poolSize; ind += blockDim.x ) {
+		heap.insert( { ind, __ldg( curSourceData ) } );
+		curSourceData += blockDim.x * totalChannels;
 	}
 	heap.sort();
 
-	// Merge the buffers
-	int toMergeCount = blockDim.x;
-	int threadNum = threadIdx.x;
-	while(toMergeCount > 1) {
-		__syncthreads();
-
-		bool isOdd = (toMergeCount % 2) != 0;
-		int mergedBufferCount = toMergeCount / 2;
-
-		if((threadNum % 2) == 0) {
-			threadNum /= 2;
-			if(threadNum == mergedBufferCount) {
-				// The buffer number was odd; for this thread (last) no merge is required
-				buffer += mergedBufferCount * bufferStep;
-				maxIndexBuffer += mergedBufferCount * bufferStep;
-			} else {
-				float* resultBuffer = bufferEnd + bufferStep * threadNum;
-				float* resultMaxIndexBuffer = resultBuffer + maxCount;
-				MergeBuffers(maxCount, resultBuffer, resultMaxIndexBuffer,
-					buffer, maxIndexBuffer, buffer + bufferStep, maxIndexBuffer + bufferStep);
-				buffer = resultBuffer;
-				maxIndexBuffer = resultMaxIndexBuffer;
-
-				if(isOdd) {
-					buffer -= bufferStep;
-					maxIndexBuffer -= bufferStep;
-				}
-			}
-			bufferEnd += bufferStep * mergedBufferCount;
-		}
-
-		toMergeCount = mergedBufferCount;
-		if(isOdd) {
-			++toMergeCount;
-		}
-	}
-
 	if(threadIdx.x == 0) {
-		// Copy the result into final blobs
-		int channelNum = bc % totalChannels;
-		int batchNum = bc / totalChannels;
-		if(batchNum < result.ObjectCount() && channelNum < totalChannels) {
-			float* curResultData = GetBlobPtr(result, resultData, batchNum, 0, 0, channelNum);
-			int* maxIndexData = GetBlobPtr(maxIndices, maxIndicesData, batchNum, 0, 0, channelNum);
-			for(int i = 0; i < maxCount; ++i) {
-				*curResultData = *buffer++;
-				*maxIndexData = *maxIndexBuffer++;
-
-				curResultData += totalChannels;
-				maxIndexData += totalChannels;
-			}
-		}
+		
 	}
 }
 

@@ -237,22 +237,21 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 
 	int poolSizeNorm = (poolSize + BlobGlobalMaxPoolingCombine - 1) / BlobGlobalMaxPoolingCombine;
 
-	dim3 blockCount;
-	dim3 threadCount;
-
 	if( maxCount < 100 ){
 		// As the shared memory size depends on maxCount, we may need to limit the number of thread
-		int sharedMemoryPerThread = 4 * maxCount * sizeof( float );
-		int maxThreadCount = device->SharedMemoryLimit / sharedMemoryPerThread;
+		int sharedMemoryPerThread = 2 * maxCount * sizeof( float );
+		int maxThreadCount = device->SharedMemoryLimit / sharedMemoryPerThread - 1;
+		int blockCount = source.ObjectCount() * source.Channels();
+		int threadCount = min( device->ThreadMaxCount, min( maxThreadCount, poolSize / ( 2 * maxCount ) ) );
 
-		getCudaTaskGrid2DMinYX(1, device->ThreadMaxCount, blockCount, threadCount,
-			source.ObjectCount() * source.Channels(), poolSizeNorm, maxThreadCount);
-		blockCount.x = 1;
-
-		int sharedSize = threadCount.y * threadCount.x * sharedMemoryPerThread;
+		printf( "thread count = %d %d\n", threadCount, blockCount );
+		int sharedSize = ( threadCount + 1 ) * sharedMemoryPerThread;
 		BlobGlobalMaxPoolingHeapKernel<<<blockCount, threadCount, sharedSize>>>( desc, GetRaw( sourceData ),
-			GetRaw( maxIndicesData ), GetRaw( resultData ), poolSize, maxCount, poolSizeNorm );
+			GetRaw( maxIndicesData ), GetRaw( resultData ), poolSize, maxCount );
 	} else {
+		dim3 blockCount;
+		dim3 threadCount;
+
 		int numBins = 2;
 		int histSize = ( 1 << numBins );
 		int maxThreadCount = device->SharedMemoryLimit / histSize;

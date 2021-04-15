@@ -120,7 +120,7 @@ class CMathEngineGlobalMaxPoolingTest : public CTestFixtureWithParams {
 };
 
 INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngineGlobalMaxPoolingTest,
-	::testing::Values(
+	::testing::Values(/*
 		CTestParams(
 			"BatchLength = 1;"
 			"BatchWidth = 2;"
@@ -186,6 +186,17 @@ INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngi
 			"Width = 10000;"
 			"MaxCount = 10000;"
 			"TestCount = 100;"
+		),*/
+		CTestParams(
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"Channels = 1;"
+			"Depth = 1;"
+			"Height = 1;"
+			"Width = 10000;"
+			"MaxCount = 50;"
+			"TestCount = 1;"
 		)
 	)
 );
