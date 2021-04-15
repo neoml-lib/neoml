@@ -185,8 +185,10 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 
 	// Train the filter
 	if( filterDiff.Height() == 1 && desc.Stride == 1 ) {
+		// This assert has already been checked in InitTimeConvolution
+		ASSERT_EXPR( desc.PaddingFront == 0 && desc.PaddingBack == 0 );
 		// Trivial case
-		MultiplyTransposedMatrixByMatrixAndAdd( outputDiffData + desc.PaddingFront * outputDiff.ObjectSize(), desc.Source.ObjectCount(),
+		MultiplyTransposedMatrixByMatrixAndAdd( outputDiffData, desc.Source.ObjectCount(),
 			outputDiff.ObjectSize(), outputDiff.ObjectSize(), inputData, desc.Source.ObjectSize(),
 			desc.Source.ObjectSize(), filterDiffData, filterDiff.ObjectSize(), filterDiff.BlobSize() );
 	} else {
