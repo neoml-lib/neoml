@@ -26,10 +26,9 @@ namespace NeoML {
 // This kernel builds a PART of this matrix, starting with firstLineIndex and of matrixHeight height
 // It's done because full temp matrix may require a lot of memory
 
-const int BuildTempMatrixCombine = 16;
 __global__ void BuildTempMatrixKernel( const CCudaTimeConvolutionDescInternal desc,
 	const float* __restrict__ input, int matrixPartHeight, int matrixWidth, float* __restrict__ matrix,
-	int firstLineIndex, int matrixWidthNorm )
+	int firstLineIndex )
 {
 	const int objectSize = desc.Source.ObjectSize();
 	const int batchSize = desc.Source.BatchWidth() * desc.Source.ListSize();
@@ -42,13 +41,10 @@ __global__ void BuildTempMatrixKernel( const CCudaTimeConvolutionDescInternal de
 	int matrixRow;
 	int matrixCol;
 
-	GetCudaTaskIndex2D( matrixPartHeight, matrixWidthNorm, matrixRow, matrixCol );
-	if( matrixRow >= matrixPartHeight ) {
+	if( !GetCudaTaskIndex2D( matrixPartHeight, matrixWidth, matrixRow, matrixCol ) ) {
 		return;
 	}
 
-	int step;
-	int count = GetCudaTaskCountAndIndex( matrixWidth, BuildTempMatrixCombine, matrixCol, step );
 	matrix += matrixRow * matrixWidth + matrixCol;
 
 	// Row index in full temporary matrix
@@ -58,19 +54,14 @@ __global__ void BuildTempMatrixKernel( const CCudaTimeConvolutionDescInternal de
 
 	const int inputSeqStart = seqPos * stride - padFront;
 
-	for( int i = 0; i < count; ++i ) {
-		const int elemIndex = matrixCol % objectSize;
-		const int filterSeq = matrixCol / objectSize;
+	const int elemIndex = matrixCol % objectSize;
+	const int filterSeq = matrixCol / objectSize;
 
-		const int inputSeq = inputSeqStart + filterSeq * dilation;
-		if( inputSeq >= 0 && inputSeq < inBatchLen ) {
-			*matrix = input[( inputSeq * batchSize + batch ) * objectSize + elemIndex];
-		} else {
-			*matrix = 0;
-		}
-
-		matrixCol += step;
-		matrix += step;
+	const int inputSeq = inputSeqStart + filterSeq * dilation;
+	if( inputSeq >= 0 && inputSeq < inBatchLen ) {
+		*matrix = input[( inputSeq * batchSize + batch ) * objectSize + elemIndex];
+	} else {
+		*matrix = 0;
 	}
 }
 

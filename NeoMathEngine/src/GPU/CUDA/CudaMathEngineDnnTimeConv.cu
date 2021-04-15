@@ -201,8 +201,7 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 	} else {
 		int matrixRowIndex = 0;
 		CFloatHandle currOutputDiff = outputDiffData;
-		const int widthNorm = ( tempMatrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
-		CFloatHandleStackVar tempMatrixPart( mathEngine(), maxInMemoryHeight * tempMatrixHeight );
+		CFloatHandleStackVar tempMatrixPart( mathEngine(), maxInMemoryHeight * tempMatrixWidth );
 		const int filterCount = desc.Result.ObjectSize();
 
 		// Build temp matrix part by part and add filterDiff of that part
@@ -211,10 +210,10 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 
 			dim3 blockCount;
 			dim3 threadCount;
-			getCudaTaskGrid2D( blockCount, threadCount, currPartHeight, widthNorm );
+			getCudaTaskGrid2D( blockCount, threadCount, currPartHeight, tempMatrixWidth );
 
 			BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( inputData ), currPartHeight,
-				tempMatrixWidth, GetRaw( tempMatrixPart.GetHandle() ), matrixRowIndex, widthNorm );
+				tempMatrixWidth, GetRaw( tempMatrixPart.GetHandle() ), matrixRowIndex );
 
 			MultiplyTransposedMatrixByMatrixAndAdd( currOutputDiff, currPartHeight, filterCount, filterCount,
 				tempMatrixPart.GetHandle(), tempMatrixWidth, tempMatrixWidth, filterDiffData, tempMatrixWidth, tempMatrixWidth );
