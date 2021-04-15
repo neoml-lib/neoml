@@ -184,43 +184,48 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 	const CCudaBlobDesc& outputDiff = desc.Result;
 
 	// Train the filter
-
-	// Let's try to build temp matrix
-	const int tempMatrixWidth = filterDiff.ObjectSize();
-	const int tempMatrixHeight = outputDiff.BlobSize() / filterDiff.ObjectCount();
-	// Max amount of memory allowed is a half of math engine's free memory
-	const int maxInMemoryHeight = min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ),
-		tempMatrixHeight );
-
-	if( maxInMemoryHeight == 0 ) {
-		// naive implementatino without additional memory consumption
-		int blockCount;
-		int threadCount;
-		getCudaTaskGrid( blockCount, threadCount, desc.Filter.BlobSize() );
-		BlobTimeConvolutionLearnFilterKernel<<<blockCount, threadCount >> > ( desc, GetRaw( inputData ),
-			GetRaw( outputDiffData ), GetRaw( filterDiffData ) );
+	if( filterDiff.Height() == 1 && desc.Stride == 1 ) {
+		// Trivial case
+		MultiplyTransposedMatrixByMatrixAndAdd( outputDiffData + desc.PaddingFront * outputDiff.ObjectSize(), desc.Source.ObjectCount(),
+			outputDiff.ObjectSize(), outputDiff.ObjectSize(), inputData, desc.Source.ObjectSize(),
+			desc.Source.ObjectSize(), filterDiffData, filterDiff.ObjectSize(), filterDiff.BlobSize() );
 	} else {
-		int matrixRowIndex = 0;
-		CFloatHandle currOutputDiff = outputDiffData;
-		CFloatHandleStackVar tempMatrixPart( mathEngine(), maxInMemoryHeight * tempMatrixWidth );
-		const int filterCount = desc.Result.ObjectSize();
+		// Let's try to build temp matrix
+		const int tempMatrixWidth = filterDiff.ObjectSize();
+		const int tempMatrixHeight = outputDiff.BlobSize() / filterDiff.ObjectCount();
+		// Max amount of memory allowed is a half of math engine's free memory
+		const int maxInMemoryHeight = min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ),
+			tempMatrixHeight );
 
-		// Build temp matrix part by part and add filterDiff of that part
-		while( matrixRowIndex < tempMatrixHeight ) {
-			const int currPartHeight = min( tempMatrixHeight - matrixRowIndex, maxInMemoryHeight );
+		if( maxInMemoryHeight == 0 ) {
+			// naive implementatino which doesn't use additional memory
+			int blockCount;
+			int threadCount;
+			getCudaTaskGrid( blockCount, threadCount, desc.Filter.BlobSize() );
+			BlobTimeConvolutionLearnFilterKernel<<<blockCount, threadCount>>>( desc, GetRaw( inputData ),
+				GetRaw( outputDiffData ), GetRaw( filterDiffData ) );
+		} else {
+			int matrixRowIndex = 0;
+			CFloatHandle currOutputDiff = outputDiffData;
+			CFloatHandleStackVar tempMatrixPart( mathEngine(), maxInMemoryHeight * tempMatrixWidth );
+			const int filterCount = desc.Result.ObjectSize();
 
-			dim3 blockCount;
-			dim3 threadCount;
-			getCudaTaskGrid2D( blockCount, threadCount, currPartHeight, tempMatrixWidth );
+			// Build temp matrix part by part and add filterDiff of that part
+			while( matrixRowIndex < tempMatrixHeight ) {
+				const int currPartHeight = min( tempMatrixHeight - matrixRowIndex, maxInMemoryHeight );
 
-			BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( inputData ), currPartHeight,
-				tempMatrixWidth, GetRaw( tempMatrixPart.GetHandle() ), matrixRowIndex );
+				dim3 blockCount;
+				dim3 threadCount;
+				getCudaTaskGrid2D( blockCount, threadCount, currPartHeight, tempMatrixWidth );
 
-			MultiplyTransposedMatrixByMatrixAndAdd( currOutputDiff, currPartHeight, filterCount, filterCount,
-				tempMatrixPart.GetHandle(), tempMatrixWidth, tempMatrixWidth, filterDiffData, tempMatrixWidth, tempMatrixWidth );
+				BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( inputData ), currPartHeight,
+					tempMatrixWidth, GetRaw( tempMatrixPart.GetHandle() ), matrixRowIndex );
+				MultiplyTransposedMatrixByMatrixAndAdd( currOutputDiff, currPartHeight, filterCount, filterCount,
+					tempMatrixPart.GetHandle(), tempMatrixWidth, tempMatrixWidth, filterDiffData, tempMatrixWidth, filterDiff.BlobSize() );
 
-			matrixRowIndex += currPartHeight;
-			currOutputDiff += currPartHeight * filterCount;
+				matrixRowIndex += currPartHeight;
+				currOutputDiff += currPartHeight * filterCount;
+			}
 		}
 	}
 
