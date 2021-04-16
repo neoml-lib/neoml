@@ -49,8 +49,8 @@ Submodules
    :caption: Submodules
    :hidden:
 
-   submodules/dnn
    submodules/clustering
+   submodules/dnn
    submodules/classificationregression
    submodules/mathengine
    submodules/misc
