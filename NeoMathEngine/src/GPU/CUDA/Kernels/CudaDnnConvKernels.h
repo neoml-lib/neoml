@@ -115,7 +115,7 @@ __global__ void BuildTempMatrixKernel( const CCudaConvolutionDescInternal desc,
 		x = xy % desc.Result.Width();
 		y = xy / desc.Result.Width();
 		b = y / desc.Result.Height();
-		y = y % desc.Result.Heigh();
+		y = y % desc.Result.Height();
 		sourceData += b * desc.Source.ObjectSize() + c;
 
 		int startX = strideWidth * x + -paddingWidth;
