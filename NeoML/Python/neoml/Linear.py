@@ -103,7 +103,7 @@ class LinearClassifier(PythonWrapper.Linear) :
         :type weight: array-like of shape (n_samples,), default=None
 
         :return: the trained classification model.
-        :rtype: neoml.Linear.LinearClassificationModel.
+        :rtype: neoml.Linear.LinearClassificationModel
         """
         x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.int32, copy=False )
@@ -140,7 +140,7 @@ class LinearRegressionModel :
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :return: the predictions of the function value on each input vector.
-        :rtype: generator of ndarray of shape (n_samples)
+        :rtype: *generator of ndarray of shape (n_samples)*
         """
         x = convert_data( X )
         return self.internal.predict(*get_data(x))

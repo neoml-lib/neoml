@@ -45,7 +45,7 @@ class GradientBoostClassificationModel:
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :return: the predictions of class probability for each input vector.
-        :rtype: generator of ndarray of shape (n_samples, n_classes)
+        :rtype: *generator of ndarray of shape (n_samples, n_classes)*
         """
         x = convert_data(X)
         return self.internal.classify(*get_data(x))
@@ -201,7 +201,7 @@ class GradientBoostRegressionModel:
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :return: the predictions of the function value on each input vector.
-        :rtype: generator of ndarray of shape (n_samples)
+        :rtype: *generator of ndarray of shape (n_samples)*
         """
         x = convert_data(X)
         return self.internal.predict(*get_data(x))
