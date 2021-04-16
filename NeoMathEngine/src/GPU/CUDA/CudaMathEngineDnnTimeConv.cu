@@ -136,37 +136,43 @@ void CCudaMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& c
 	const CCudaBlobDesc& filter = desc.Filter;
 	const CCudaBlobDesc& outputDiff = desc.Result;
 
-	int workspaceSize = 0;
+	if( desc.Stride == 1 && filter.Height() == 1 ) {
+		// This assert has already been checked in InitTimeConvolution
+		ASSERT_EXPR( desc.PaddingFront == 0 && desc.PaddingBack == 0 );
+		// Trivial case
+		MultiplyMatrixByMatrix( 1, outputDiffData, outputDiff.ObjectCount(), outputDiff.ObjectSize(),
+			filterData, filter.ObjectSize(), inputDiffData, inputDiff.BlobSize() );
+	} else {
+		// Let's try to build temp matrix
+		const int tempMatrixWidth = filter.ObjectSize();
+		const int tempMatrixHeight = outputDiff.BlobSize() / filter.ObjectCount();
+		// Max amount of memory allowed is a half of math engine's free memory
+		const int maxInMemoryHeight = max( 1,
+			min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ), tempMatrixHeight ) );
 
-	bool useTempMatrix = desc.Stride > 1 || filter.Height() > 1;
+		int matrixRowIndex = 0;
+		CFloatHandle currOutputDiff = outputDiffData;
+		CFloatHandleStackVar tempMatrixPart( mathEngine(), maxInMemoryHeight * tempMatrixWidth );
 
-	int targetDataSize = outputDiff.BatchLength() * inputDiff.BatchWidth() * filter.Height() * inputDiff.ObjectSize();
+		VectorFill( inputDiffData, 0.f, inputDiff.BlobSize() );
+		
+		const int combineCount = max( 1, BlobTimeConvolutionBackwardUnpackCombine / filter.Height() );
+		const int xSizeNorm = (inputDiff.ObjectSize() + combineCount - 1) / combineCount;
+		while( matrixRowIndex < tempMatrixHeight ) {
+			const int currPartHeight = min( tempMatrixHeight - matrixRowIndex, maxInMemoryHeight );
 
-	if( useTempMatrix ) {
-		// Create a temporary matrix
-		workspaceSize = targetDataSize;
-	}
+			MultiplyMatrixByMatrix( 1, currOutputDiff, currPartHeight, outputDiff.ObjectSize(),
+				filterData, filter.ObjectSize(), tempMatrixPart, maxInMemoryHeight * tempMatrixWidth );
 
-	CFloatHandleStackVar buffer( mathEngine(), workspaceSize );
-	CFloatHandle targetData = (useTempMatrix) ? buffer.GetHandle() : inputDiffData;
+			dim3 blockCount;
+			dim3 threadCount;
+			getCudaTaskGrid2DMinYX(1, 512, blockCount, threadCount, inputDiff.ObjectCount(), xSizeNorm);
+			BlobTimeConvolutionBackwardUnpackKernel<<<blockCount, threadCount>>>( desc, GetRaw( filterData ),
+				GetRaw( inputDiffData ), xSizeNorm, combineCount, GetRaw( tempMatrixPart.GetHandle() ), matrixRowIndex, currPartHeight );
 
-	// Reverse convolution
-	MultiplyMatrixByMatrix( 1, outputDiffData, outputDiff.ObjectCount(), outputDiff.ObjectSize(),
-		filterData, filter.ObjectSize(), targetData, targetDataSize );
-
-	if( useTempMatrix ) {
-		// Add up the data from the temporary matrix
-		int combineCount = BlobTimeConvolutionBackwardUnpackCombine / filter.Height();
-		if(combineCount == 0) {
-			combineCount = 1;
+			currOutputDiff += currPartHeight * outputDiff.ObjectSize();
+			matrixRowIndex += currPartHeight;
 		}
-		int xSizeNorm = (inputDiff.ObjectSize() + combineCount - 1) / combineCount;
-
-		dim3 blockCount;
-		dim3 threadCount;
-		getCudaTaskGrid2DMinYX(1, 512, blockCount, threadCount, inputDiff.ObjectCount(), xSizeNorm);
-		BlobTimeConvolutionBackwardUnpackKernel<<<blockCount, threadCount>>>( desc, GetRaw( outputDiffData ),
-			GetRaw( filterData ), GetRaw( inputDiffData ), xSizeNorm, combineCount, GetRaw( targetData ) );
 	}
 }
 
