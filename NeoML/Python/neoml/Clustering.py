@@ -57,12 +57,12 @@ class FirstCome(PythonWrapper.FirstCome) :
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.
 
-        :param X: the input sample. Internally, it will be converted
+        :param X: The input samples. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
             to a sparse ``scipy.csr_matrix``.
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        :param weight: sample weights. If `None`, then samples are equally weighted.
+        :param weight: Sample weights. If `None`, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,) or None, default=None
 
         :return:
@@ -116,12 +116,12 @@ class Hierarchical(PythonWrapper.Hierarchical) :
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.
 
-        :param X: the input sample. Internally, it will be converted
+        :param X: The input samples. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
             to a sparse ``scipy.csr_matrix``.
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        :param weight: sample weights. If `None`, then samples are equally weighted.
+        :param weight: Sample weights. If `None`, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,) or None, default=None
 
         :return:
@@ -193,12 +193,12 @@ class IsoData(PythonWrapper.IsoData) :
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.
 
-        :param X: the input sample. Internally, it will be converted
+        :param X: The input samples. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
             to a sparse ``scipy.csr_matrix``.
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        :param weight: sample weights. If `None`, then samples are equally weighted.
+        :param weight: Sample weights. If `None`, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,) or None, default=None
 
         :return:
@@ -228,7 +228,7 @@ class IsoData(PythonWrapper.IsoData) :
 class KMeans(PythonWrapper.KMeans) :
     """K-means clustering.
 
-    :param max_iteration_count: the maximim number of algorithm iterations.
+    :param max_iteration_count: the maximum number of algorithm iterations.
     :type max_iteration_count: int
 
     :param cluster_count: the number of clusters.
@@ -263,12 +263,12 @@ class KMeans(PythonWrapper.KMeans) :
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.
 
-        :param X: the input sample. Internally, it will be converted
-            to ``dtype=np.float32``, and if a sparse matrix is provided –
+        :param X: The input samples. Internally, it will be converted
+            to ``dtype=np.float32``, and if a sparse matrix is provided -
             to a sparse ``scipy.csr_matrix``.
         :type X: array-like or sparse matrix of shape (n_samples, n_features)
 
-        :param weight: sample weights. If `None`, then samples are equally weighted.
+        :param weight: Sample weights. If `None`, then samples are equally weighted.
             `None` by default.
         :type weight: array-like of shape (n_samples,)
 
