@@ -16,7 +16,7 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
-#include <NeoOnnx/NeoOnnx.h>
+#include <NeoOnnx/NeoOnnxImport.h>
 
 #include "NeoOnnxCheck.h"
 #include "Node.h"
