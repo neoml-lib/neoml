@@ -7,7 +7,7 @@ endif()
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_sources( ${PROJECT_NAME} PRIVATE
-    NeoOnnx.cpp
+    NeoOnnxImport.cpp
     NeoOnnxCheck.cpp
     Node.cpp
     OpNodeAttributes.cpp
@@ -43,6 +43,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
 
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
+    ../include/NeoOnnx/NeoOnnxImport.h
     NeoOnnxCheck.h
     Node.h
     OpNodeAttributes.h
