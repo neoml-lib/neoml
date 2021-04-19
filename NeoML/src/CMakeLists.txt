@@ -137,6 +137,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/OneVersusAll.cpp
     TraditionalML/OneVersusAllModel.cpp
     TraditionalML/OneVersusAllModel.h
+    TraditionalML/OneVersusOne.cpp
+    TraditionalML/OneVersusOneModel.cpp
+    TraditionalML/OneVersusOneModel.h
     TraditionalML/PlattScalling.cpp
     TraditionalML/ProblemWrappers.cpp
     TraditionalML/ProblemWrappers.h
@@ -260,6 +263,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/MemoryProblem.h
     ../include/NeoML/TraditionalML/Model.h
     ../include/NeoML/TraditionalML/OneVersusAll.h
+    ../include/NeoML/TraditionalML/OneVersusOne.h
     ../include/NeoML/TraditionalML/PlattScalling.h
     ../include/NeoML/TraditionalML/Problem.h
     ../include/NeoML/TraditionalML/Score.h
