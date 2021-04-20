@@ -23,7 +23,7 @@ namespace NeoML {
 
 // The algorithm used for multi-class classification
 enum TMulticlassMode {
-	MM_SingleTree = 0, // Special case supported only in CDecisionTree
+	MM_SingleClassifier = 0, // Special case supported in some classifiers (CDesicionTree)
 	MM_OneVsAll,
 	MM_OneVsOne,
 	MM_Count

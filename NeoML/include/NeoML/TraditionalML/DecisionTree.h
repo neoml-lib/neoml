@@ -151,7 +151,7 @@ public:
 			ConstNodeThreshold( 0.99 ),
 			RandomSelectedFeaturesCount( NotFound ),
 			AvailableMemory( Gigabyte ),
-			MulticlassMode( MM_SingleTree )
+			MulticlassMode( MM_SingleClassifier )
 		{
 		}
 	};

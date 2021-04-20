@@ -119,7 +119,7 @@ CPtr<IModel> CLinear::Train( const IProblem& trainingClassificationData )
 				return COneVersusAll( *this ).Train( trainingClassificationData );
 			case MM_OneVsOne:
 				return COneVersusOne( *this ).Train( trainingClassificationData );
-			case MM_SingleTree:
+			case MM_SingleClassifier:
 			default:
 				NeoAssert( false );
 		}

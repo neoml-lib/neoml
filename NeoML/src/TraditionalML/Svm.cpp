@@ -42,7 +42,7 @@ CPtr<IModel> CSvm::Train( const IProblem& problem )
 				return COneVersusAll( *this ).Train( problem );
 			case MM_OneVsOne:
 				return COneVersusOne( *this ).Train( problem );
-			case MM_SingleTree:
+			case MM_SingleClassifier:
 			default:
 				NeoAssert( false );
 		}
