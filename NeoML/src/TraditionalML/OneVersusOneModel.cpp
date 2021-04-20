@@ -26,7 +26,7 @@ REGISTER_NEOML_MODEL( COneVersusOneModel, OneVersusOneModelName )
 // classifier count must be equal to classCount * (classCount - 1) / 2
 static inline int getClassCount( int classifierCount )
 {
-	int result = static_cast<int>( ceil( sqrt( static_cast<double>( classifierCount ) ) ) );
+	int result = static_cast<int>( ceil( sqrt( static_cast<double>( 2 * classifierCount ) ) ) );
 	NeoPresume( result * ( result - 1 ) == classifierCount * 2 );
 	return result;
 }
@@ -150,9 +150,9 @@ bool COneVersusOneModel::Classify( const CFloatVectorDesc& data, CClassification
 
 	int classifierIndex = 0;
 	for( int i = 0; i < classCount - 1; ++i ) {
-		for( int j = 0; j < classCount; ++j ) {
+		for( int j = i + 1; j < classCount; ++j ) {
 			CClassificationResult subresult;
-			NeoAssert( classifiers[i]->Classify( data, subresult ) );
+			NeoAssert( classifiers[classifierIndex++]->Classify( data, subresult ) );
 			NeoPresume( subresult.Probabilities.Size() == 2 );
 			pred[i][j] = static_cast<float>( subresult.Probabilities[0].GetValue() );
 			pred[j][i] = static_cast<float>( subresult.Probabilities[1].GetValue() );
@@ -184,9 +184,9 @@ bool COneVersusOneModel::Classify( const CFloatVector& data, CClassificationResu
 
 	int classifierIndex = 0;
 	for( int i = 0; i < classCount - 1; ++i ) {
-		for( int j = 0; j < classCount; ++j ) {
+		for( int j = i + 1; j < classCount; ++j ) {
 			CClassificationResult subresult;
-			NeoAssert( classifiers[i]->Classify( data, subresult ) );
+			NeoAssert( classifiers[classifierIndex++]->Classify( data, subresult ) );
 			NeoPresume( subresult.Probabilities.Size() == 2 );
 			pred[i][j] = static_cast<float>( subresult.Probabilities[0].GetValue() );
 			pred[j][i] = static_cast<float>( subresult.Probabilities[1].GetValue() );
