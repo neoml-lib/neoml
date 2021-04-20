@@ -27,36 +27,36 @@ class MultichannelLookup(Layer):
     See https://en.wikipedia.org/wiki/Word2vec, 
     https://en.wikipedia.org/wiki/GloVe_(machine_learning)
     
-    Layer inputs
-    ----------
-    #1: a blob with feature values (float or int).
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize * Height * Width * Depth
-        is the number of features
-    - Channels is the dimension along which the feature values for
-        different sets are stored. Not smaller than the number of 
-        feature sets.
-        
-    Layer outputs
-    ----------
-    #1: the blob with vectors for each input feature.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, Height, Width, Depth
-        are the same as for the input
-    - Channels is the sum of vector lengths of all sets and additional channels
-    if the input Channels is more than the number of tables.
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    dimensions : a list of (int, int) tuples
-        Each of the elements specifies the number and length of vectors 
+    :type input_layers: object, tuple(object, int) or list of them
+    :param dimensions: Each of the elements specifies the number and length of vectors 
         in the representation table with the element's index.
-    name : str, default=None
-        The layer name.
+    :type dimensions: list of tuple(int, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with feature values (float or int).
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth**
+          is the number of features
+        - **Channels** is the dimension along which the feature values for
+          different sets are stored. Not smaller than the number of 
+          feature sets.
+        
+    .. rubric:: Layer outputs:
+
+    (1) the blob with vectors for each input feature.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Height**, **Width**, **Depth**
+          are the same as for the input
+        - **Channels** is the sum of vector lengths of all sets and additional channels
+          if the input **Channels** is more than the number of tables.
     """
     def __init__(self, input_layers, dimensions=None, name=None):
 
@@ -111,16 +111,18 @@ class MultichannelLookup(Layer):
     def get_embeddings(self, index):
         """Gets the representation table with the given index 
         as a blob of the dimensions:
-        - BatchLength * BatchWidth * ListSize is dimensions[i].VectorCount
-        - Height * Width * Depth * Channels is dimensions[i].VectorSize
+
+            - BatchLength * BatchWidth * ListSize is dimensions[i].VectorCount
+            - Height * Width * Depth * Channels is dimensions[i].VectorSize
         """
         return Blob.Blob(self._internal.get_embeddings(index))
 
     def set_embeddings(self, index, blob):
         """Sets the representation table with the given index 
         as a blob of the dimensions:
-        - BatchLength * BatchWidth * ListSize is dimensions[i].VectorCount
-        - Height * Width * Depth * Channels is dimensions[i].VectorSize
+
+            - BatchLength * BatchWidth * ListSize is dimensions[i].VectorCount
+            - Height * Width * Depth * Channels is dimensions[i].VectorSize
         """
         if not type(blob) is Blob.Blob:
             raise ValueError('The `blob` must be neoml.Blob.')
