@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoML {
 
 // One versus one classifier
-class COneVersusOneModel : public IOneVersusOneModel {
+class COneVersusOneModel : public IModel {
 public:
 	COneVersusOneModel() {}
 	explicit COneVersusOneModel( CObjectArray<IModel>& classifiers );
@@ -34,11 +34,8 @@ public:
 	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
 	void Serialize( CArchive& archive ) override;
 
-	// IOneVersusOneModel interface methods
-	const CObjectArray<IModel>& GetModels() const override { return classifiers; }
-
 protected:
-	virtual ~COneVersusOneModel() = default; // disable explicit delete
+	virtual ~COneVersusOneModel() = default; // disable public delete
 
 private:
 	CObjectArray<IModel> classifiers; // binary classifiers for each pair of classes

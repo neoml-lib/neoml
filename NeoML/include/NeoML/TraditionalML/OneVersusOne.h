@@ -24,15 +24,6 @@ namespace NeoML {
 
 DECLARE_NEOML_MODEL_NAME( OneVersusOneModelName, "NeoMLOneVersusOneModel" )
 
-// One-versus-one classification model interface
-class NEOML_API IOneVersusOneModel : public IModel {
-public:
-	virtual ~IOneVersusOneModel() = default;
-
-	// Gets the basic IModel for all the binary classifiers
-	virtual const CObjectArray<IModel>& GetModels() const = 0;
-};
-
 // One versus one classifier training interface
 class NEOML_API COneVersusOne : public ITrainingModel {
 public:
