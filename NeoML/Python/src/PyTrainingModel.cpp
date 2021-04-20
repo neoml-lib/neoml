@@ -488,7 +488,7 @@ void InitializeTrainingModel(py::module& m)
 				}
 				p.MaxBins = max_bins;
 				p.MinSubsetWeight = min_subtree_weight;
-				p.Representation = GBMR_Linked;
+				p.Representation = GBMR_Compact;
 
 				return new CPyGradientBoost( p, p.Random );
 			})
