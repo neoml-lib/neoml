@@ -36,7 +36,7 @@ CGradientBoostFastHistTreeBuilder::CGradientBoostFastHistTreeBuilder( const CPar
 }
 
 CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder::Build( const CGradientBoostFastHistProblem& problem,
-	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights )
+	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<double>& weights )
 {
 	NeoAssert( gradients.Size() == hessians.Size() );
 
@@ -197,7 +197,7 @@ void CGradientBoostFastHistTreeBuilder::subHist( int firstPtr, int secondPtr )
 
 // Build a histogram on the vectors of the given node
 void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
-	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<float>& weights,
+	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<double>& weights,
 	CGradientBoostStatisticsSingle& totalStats )
 {
 	CGradientBoostStatisticsSingle* histStatsPtr = histStats.GetPtr() + node.HistPtr;
@@ -268,7 +268,7 @@ void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistP
 }
 
 // Adds a vector to the histogram
-void CGradientBoostFastHistTreeBuilder::addVectorToHist( const int* vectorPtr, int vectorSize, double gradients, double hessian, float weight,
+void CGradientBoostFastHistTreeBuilder::addVectorToHist( const int* vectorPtr, int vectorSize, double gradients, double hessian, double weight,
 	CGradientBoostStatisticsSingle* stats )
 {
 	NeoPresume( vectorPtr != 0 );
