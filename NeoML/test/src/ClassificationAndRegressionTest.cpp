@@ -443,6 +443,57 @@ TEST_F( RandomMultiClassification2000x20, OneVsAllDecisionTree )
 	TestClassificationResult( ModelSparse, modelImplicitSparse, DenseMultiTestData, SparseMultiTestData );
 }
 
+TEST_F( RandomMultiClassification2000x20, OneVsOneLinear )
+{
+	CLinear linear( EF_SquaredHinge );
+	COneVersusOne ovoLinear( linear );
+	TrainMulti( ovoLinear );
+	TestMultiClassificationResult();
+
+	GTEST_LOG_( INFO ) << "Train implicitly and compare";
+	CPtr<IModel> modelImplicitDense;
+	CPtr<IModel> modelImplicitSparse;
+	Train( linear, *DenseRandomMultiProblem, *SparseRandomMultiProblem, modelImplicitDense, modelImplicitSparse );
+	TestClassificationResult( ModelDense, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitSparse, DenseMultiTestData, SparseMultiTestData );
+}
+
+TEST_F( RandomMultiClassification2000x20, OneVsOneRbf )
+{
+	CSvm svmRbf( CSvmKernel::KT_RBF );
+	COneVersusOne ovoRbf( svmRbf );
+	TrainMulti( ovoRbf );
+	TestMultiClassificationResult();
+
+	GTEST_LOG_( INFO ) << "Train implicitly and compare";
+	CPtr<IModel> modelImplicitDense;
+	CPtr<IModel> modelImplicitSparse;
+	Train( svmRbf, *DenseRandomMultiProblem, *SparseRandomMultiProblem, modelImplicitDense, modelImplicitSparse );
+	TestClassificationResult( ModelDense, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitSparse, DenseMultiTestData, SparseMultiTestData );
+}
+
+TEST_F( RandomMultiClassification2000x20, OneVsOneDecisionTree )
+{
+	CDecisionTree::CParams param;
+	CDecisionTree decisionTree( param );
+	COneVersusOne ovoDecisionTree( decisionTree );
+	TrainMulti( ovoDecisionTree );
+	TestMultiClassificationResult();
+
+	GTEST_LOG_( INFO ) << "Train implicitly and compare";
+	CPtr<IModel> modelImplicitDense;
+	CPtr<IModel> modelImplicitSparse;
+	param.MulticlassMode = CDecisionTree::MM_OneVsAll;
+	CDecisionTree decisionTree2( param );
+	Train( decisionTree2, *DenseRandomMultiProblem, *SparseRandomMultiProblem, modelImplicitDense, modelImplicitSparse );
+	TestClassificationResult( ModelDense, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitDense, DenseMultiTestData, SparseMultiTestData );
+	TestClassificationResult( ModelSparse, modelImplicitSparse, DenseMultiTestData, SparseMultiTestData );
+}
+
 TEST_F( RandomBinaryClassification4000x20, CrossValidationLinear )
 {
 	CLinear linear( EF_SquaredHinge );
