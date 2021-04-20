@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoML/TraditionalML/Svm.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
+#include <NeoML/TraditionalML/OneVersusOne.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <SvmBinaryModel.h>
 #include <LinearBinaryModel.h>
@@ -35,7 +36,17 @@ CSvm::CSvm( const CParams& _params ) :
 CPtr<IModel> CSvm::Train( const IProblem& problem )
 {
 	if( problem.GetClassCount() > 2 ) {
-		return COneVersusAll( *this ).Train( problem );
+		static_assert( MM_Count == 3, "MM_Count != 3" );
+		switch( params.MulticlassMode ) {
+			case MM_OneVsAll:
+				return COneVersusAll( *this ).Train( problem );
+			case MM_OneVsOne:
+				return COneVersusOne( *this ).Train( problem );
+			case MM_SingleTree:
+			default:
+				NeoAssert( false );
+		}
+		return nullptr;
 	}
 
 	CSvmKernel kernel( params.KernelType, params.Degree, params.Gamma, params.Coeff0 );

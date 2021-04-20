@@ -113,13 +113,6 @@ public:
 		SC_Count
 	};
 
-	// The algorithm used for multi-class classification
-	enum TMulticlassMode {
-		MM_SingleTree = 0,
-		MM_OneVsAll,
-		MM_Count
-	};
-
 	// Classification parameters
 	struct CParams {
 		// The minimum number of vectors corresponding to a node subtree:
