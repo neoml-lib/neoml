@@ -99,7 +99,7 @@ void findProb( const CArray<CArray<float>>& pred, CArray<float>& prob )
 			if( row == col ) {
 				continue;
 			}
-			mat[row][row] += pred[row][col] * pred[col][row];
+			mat[row][row] += pred[col][row] * pred[col][row];
 			mat[row][col] = -pred[row][col] * pred[col][row];
 		}
 	}
