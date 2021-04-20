@@ -43,14 +43,14 @@ public:
 	// The number of vectors
 	virtual int GetVectorCount() const = 0;
 
-	// The correct class number for a vector with a given index in [0, GetClassCount())
+	// The correct class number for a vector with a given index in [0, GetVectorCount())
 	virtual int GetClass( int index ) const = 0;
 
 	// The correct class in case of binary classification: +1 or -1
 	double GetBinaryClass( int index ) const { return ( GetClass( index ) != 0 ) ? 1. : -1; }
 
 	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
 	// The vector weight
 	virtual double GetVectorWeight( int index ) const = 0;
@@ -73,7 +73,7 @@ public:
 	virtual int GetVectorCount() const = 0;
 
 	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
 	// The vector weight
 	virtual double GetVectorWeight( int index ) const = 0;

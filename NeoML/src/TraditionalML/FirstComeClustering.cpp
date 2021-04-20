@@ -38,7 +38,7 @@ bool CFirstComeClustering::Clusterize( IClusteringData* input, CClusteringResult
 		*log << "\nFirst come clustering started:\n";
 	}
 
-	CSparseFloatMatrixDesc matrix = input->GetMatrix();
+	CFloatMatrixDesc matrix = input->GetMatrix();
 	NeoAssert( matrix.Height == input->GetVectorCount() );
 	NeoAssert( matrix.Width == input->GetFeaturesCount() );
 
@@ -88,7 +88,7 @@ bool CFirstComeClustering::Clusterize( IClusteringData* input, CClusteringResult
 }
 
 // The initial clustering
-void CFirstComeClustering::processVector( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+void CFirstComeClustering::processVector( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 	int vecNum, bool canAddCluster, CObjectArray<CCommonCluster>& clusters )
 {
 	NeoPresume( init.MaxClusterCount > 0 ); // at least one cluster should exist
@@ -97,7 +97,7 @@ void CFirstComeClustering::processVector( const CSparseFloatMatrixDesc& matrix, 
 	int minCluster = clusters.Size();
 	double minDistance = DBL_MAX;
 
-	CSparseFloatVectorDesc desc;
+	CFloatVectorDesc desc;
 	matrix.GetRow( vecNum, desc );
 	for( int clusterNum = 0; clusterNum < clusters.Size(); ++clusterNum ) {
 		double distance = clusters[clusterNum]->CalcDistance( desc, init.DistanceFunc );
@@ -132,7 +132,7 @@ void CFirstComeClustering::processVector( const CSparseFloatMatrixDesc& matrix, 
 }
 
 // Deletes the clusters that are too small
-void CFirstComeClustering::deleteTinyClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+void CFirstComeClustering::deleteTinyClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 	CObjectArray<CCommonCluster>& clusters )
 {
 	int threshold = Round( init.MinClusterSizeRatio * matrix.Height );

@@ -6,10 +6,10 @@
     - [Vector](#vector)
         - [CFloatVector class](#cfloatvector-class)
     - [Sparse vector](#sparse-vector)
-        - [The descriptor CSparseFloatVectorDesc](#the-descriptor-csparsefloatvectordesc)
+        - [The descriptor CFloatVectorDesc](#the-descriptor-csparsefloatvectordesc)
         - [CSparseFloatVector class](#csparsefloatvector-class)
     - [Sparse matrix](#sparse-matrix)
-        - [The descriptor CSparseFloatMatrixDesc](#the-descriptor-csparsefloatmatrixdesc)
+        - [The descriptor CFloatMatrixDesc](#the-descriptor-csparsefloatmatrixdesc)
         - [CSparseFloatMatrix class](#csparsefloatmatrix-class)
 
 <!-- /TOC -->
@@ -26,7 +26,7 @@ This class implements a regular (non-sparse) vector with `float` elements.
 CFloatVector(); // the default constructor; used, for example, for creating an object before serializing the values from archive
 // Creates a vector with 'size' elements from a sparse vector; the values absent in the sparse vector are set to 0.
 CFloatVector( int size, const CSparseFloatVector& sparseVector );
-CFloatVector( int size, const CSparseFloatVectorDesc& sparseVector );
+CFloatVector( int size, const CFloatVectorDesc& sparseVector );
 explicit CFloatVector( int size ); // vectors with 'size' elements
 CFloatVector( int size, float init ); // vector with 'size' elements, each equal to 'init'
 CFloatVector( const CFloatVector& other );
@@ -75,7 +75,7 @@ Sets all vector elements to zero.
 ```c++
 CFloatVector& MultiplyAndAdd( const CFloatVector& vector, double factor );
 CFloatVector& MultiplyAndAdd( const CSparseFloatVector& vector, double factor );
-CFloatVector& MultiplyAndAdd( const CSparseFloatVectorDesc& vector, double factor );
+CFloatVector& MultiplyAndAdd( const CFloatVectorDesc& vector, double factor );
 ```
 
 Adds a vector multiplied by a factor to this one.
@@ -107,12 +107,12 @@ friend CArchive& operator >> ( CArchive& archive, CFloatVector& vector );
 
 ## Sparse vector
 
-### The descriptor CSparseFloatVectorDesc
+### The descriptor CFloatVectorDesc
 
 The descriptor stores only as much information as is necessary to retrieve the data. Changing the values via the descriptor is impossible.
 
 ```c++
-struct NEOML_API CSparseFloatVectorDesc {
+struct NEOML_API CFloatVectorDesc {
 	int Size; // the number of allocated elements in the vector
 	int* Indexes; // the coordinates of the elements in the full vector
 	float* Values; // the values of the elements
@@ -128,7 +128,7 @@ Represents a sparse vector with `float` elements. The full vector size is not st
 ```c++
 CSparseFloatVector();
 explicit CSparseFloatVector( int bufferSize );
-explicit CSparseFloatVector( const CSparseFloatVectorDesc& desc );
+explicit CSparseFloatVector( const CFloatVectorDesc& desc );
 CSparseFloatVector( const CSparseFloatVector& other );
 ```
 
@@ -141,7 +141,7 @@ CSparseFloatVector& operator = ( const CSparseFloatVector& vector );
 #### Methods
 
 ```c++
-const CSparseFloatVectorDesc& GetDesc() const;
+const CFloatVectorDesc& GetDesc() const;
 ```
 
 Gets the vector descriptor.
@@ -195,13 +195,13 @@ void Serialize( CArchive& archive );
 
 ## Sparse matrix
 
-### The descriptor CSparseFloatMatrixDesc
+### The descriptor CFloatMatrixDesc
 
 The descriptor stores only as much information as is necessary to retrieve the data. Changing the values via the descriptor is impossible.
 
 ```c++
 // Sparse matrix descriptor
-struct NEOML_API CSparseFloatMatrixDesc {
+struct NEOML_API CFloatMatrixDesc {
 	int Height; // the matrix height
 	int Width; // the matrix width
 	int* Columns; // columns pointer
@@ -210,8 +210,8 @@ struct NEOML_API CSparseFloatMatrixDesc {
 	int* PointerE; // indices of vectors' endings in Columns/Values.
 
 	// Gets the row descriptor
-	void GetRow( int index, CSparseFloatVectorDesc& desc ) const;
-	CSparseFloatVectorDesc GetRow( int index ) const;
+	void GetRow( int index, CFloatVectorDesc& desc ) const;
+	CFloatVectorDesc GetRow( int index ) const;
 };
 ```
 
@@ -224,7 +224,7 @@ Represents a sparse matrix with `float` elements.
 ```c++
 CSparseFloatMatrix() {}
 CSparseFloatMatrix( int width, int rowsBufferSize = 0, int elementsBufferSize = 0 );
-explicit CSparseFloatMatrix( const CSparseFloatMatrixDesc& desc );
+explicit CSparseFloatMatrix( const CFloatMatrixDesc& desc );
 CSparseFloatMatrix( const CSparseFloatMatrix& other );
 ```
 
@@ -237,7 +237,7 @@ CSparseFloatMatrix& operator = ( const CSparseFloatMatrix& vector );
 #### Methods
 
 ```c++
-const CSparseFloatMatrixDesc& GetDesc() const;
+const CFloatMatrixDesc& GetDesc() const;
 ```
 
 Gets the matrix descriptor.
@@ -251,14 +251,14 @@ Gets the matrix size.
 
 ```c++
 void AddRow( const CSparseFloatVector& row );
-void AddRow( const CSparseFloatVectorDesc& row );
+void AddRow( const CFloatVectorDesc& row );
 ```
 
 Adds a row to the matrix.
 
 ```c++
-CSparseFloatVectorDesc GetRow( int index ) const;
-void GetRow( int index, CSparseFloatVectorDesc& desc ) const;
+CFloatVectorDesc GetRow( int index ) const;
+void GetRow( int index, CFloatVectorDesc& desc ) const;
 ```
 
 Gets a row descriptor (a row in a sparse matrix would be a sparse vector).

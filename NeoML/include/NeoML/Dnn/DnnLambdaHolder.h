@@ -31,7 +31,7 @@ template<typename Out, typename ...In>
 class CLambdaHolderBase<Out( In... )> : public virtual IObject {
 public:
 	// Executes lambda.
-	virtual void Execute( In... arguments ) = 0;
+	virtual Out Execute( In... arguments ) = 0;
 	// Copies lambda.
 	virtual CPtr<CLambdaHolderBase<Out( In... )>> Copy() = 0;
 };
@@ -45,8 +45,8 @@ class CLambdaHolder<T, Out( In... )> : public CLambdaHolderBase<Out( In... )> {
 public:
 	CLambdaHolder( T _lambda ) : lambda( _lambda ) {}
 
-	virtual void Execute( In... in )
-		{ lambda( in... ); }
+	virtual Out Execute( In... in )
+		{ return lambda( in... ); }
 
 	virtual CPtr<CLambdaHolderBase<Out( In... )>> Copy()
 		{ return new CLambdaHolder<T, Out( In... )>( lambda ); }

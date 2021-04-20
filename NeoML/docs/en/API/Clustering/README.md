@@ -51,10 +51,10 @@ public:
 	virtual int GetFeaturesCount() const = 0;
 
 	// Gets the vector with the given index
-	virtual CSparseFloatVectorDesc GetVector( int index ) const = 0;
+	virtual CFloatVectorDesc GetVector( int index ) const = 0;
 
 	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
 	// Gets the vector weight
 	virtual double GetVectorWeight( int index ) const = 0;
