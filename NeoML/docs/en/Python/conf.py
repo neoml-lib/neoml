@@ -86,7 +86,6 @@ author = 'ABBYY'
 #         else:
 #             remove_heading_links(filepath)
 
-
 # -- General configuration ---------------------------------------------------
 
 import sphinx_rtd_theme
@@ -96,10 +95,13 @@ from os import getenv
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
+    'sphinx_copybutton',   # Add 'copy to clipboard' button to every code snippet
+    'sphinx.ext.autodoc',  # Support docstrings from python code
+    'sphinx.ext.mathjax',  # Support LaTeX formulas in docs (and docstrings)
 #    'sphinx.ext.autosectionlabel',
-    'sphinx_rtd_theme',
+    'sphinx_rtd_theme',  # Pretty theme for HTML
 #     'recommonmark',
+    'nbsphinx',  # Support .ipynb files
 ]
 
 # autosectionlabel_prefix_document = True
@@ -130,6 +132,19 @@ html_theme = 'sphinx_rtd_theme'
 # html_static_path = ['_static']
 
 # source_suffix = ['.rst', '.md']
+
+# Configuring mathjax
+
+mathjax_config = {
+    'extensions': ['tex2jax.js'],
+    'jax': ['input/TeX', 'output/HTML-CSS'],
+}
+
+# Configuring nbsphinx
+
+# readthedocs doesn't allow us to build C++ wrappers
+# that's why execution is impossible anyway
+nbsphinx_execute = 'never'
 
 # https://github.com/rtfd/recommonmark/blob/master/docs/conf.py
 def setup(app):

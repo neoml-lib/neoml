@@ -23,18 +23,21 @@ namespace NeoML {
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-REGISTER_NEOML_MODEL( CCompactRegressionTree, "CompactRegressionTree" )
+REGISTER_NEOML_MODEL( CCompact16RegressionTree, "CompactRegressionTree" )
+REGISTER_NEOML_MODEL( CCompact32RegressionTree, "Compact32RegressionTree" )
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-CCompactRegressionTree::CCompactRegressionTree(
+template<class T>
+CCompactRegressionTree<T>::CCompactRegressionTree(
 	const NeoML::IRegressionTreeNode* source )
 {
 	importNodes( source );
 }
 
 // Recursively converts IRegressionTreeNode into CNode-s.
-void CCompactRegressionTree::importNodes(
+template<class T>
+void CCompactRegressionTree<T>::importNodes(
 	const NeoML::IRegressionTreeNode* source )
 {
 	NeoAssert( source != 0 );
@@ -67,14 +70,14 @@ void CCompactRegressionTree::importNodes(
 			break;
 
 		case NeoML::TRegressionTreeNodeType::RTNT_Continuous:
-			NeoAssert( info.FeatureIndex <= MaxFeature );
-			node.FeaturePlusOne = static_cast<uint16_t>( info.FeatureIndex + 1 );
+			NeoAssert( static_cast<uint64_t>( info.FeatureIndex ) <= MaxFeature );
+			node.FeaturePlusOne = static_cast<T>( info.FeatureIndex + 1 );
 
 			NeoAssert( info.Value.Size() == 1 );
 			node.Value.Resident = static_cast<float>( info.Value[0] );
 
 			importNodes( source->GetLeftChild() );
-			NeoAssert( nodes.Size() <= MaxNodeIndex );
+			NeoAssert( static_cast<uint64_t>( nodes.Size() ) <= MaxNodeIndex );
 			// NB: `nodes[index]` instead of `node` because of possible reallocation.
 			nodes[index].RightChildIndex = static_cast<uint16_t>( nodes.Size() );
 			importNodes( source->GetRightChild() );
@@ -86,7 +89,8 @@ void CCompactRegressionTree::importNodes(
 }
 
 // Actual implementation of IRegressionTreeNode for this class and CNodeWrapper,
-CPtr<const IRegressionTreeNode> CCompactRegressionTree::GetLeftChild(
+template<class T>
+CPtr<const IRegressionTreeNode> CCompactRegressionTree<T>::GetLeftChild(
 	int nodeIndex ) const
 {
 	NeoAssert( nodes.IsValidIndex( nodeIndex ) );
@@ -96,7 +100,8 @@ CPtr<const IRegressionTreeNode> CCompactRegressionTree::GetLeftChild(
 	return getWrapper( nodeIndex + 1 );
 }
 
-CPtr<const IRegressionTreeNode> CCompactRegressionTree::GetRightChild(
+template<class T>
+CPtr<const IRegressionTreeNode> CCompactRegressionTree<T>::GetRightChild(
 	int nodeIndex ) const
 {
 	NeoAssert( nodes.IsValidIndex( nodeIndex ) );
@@ -106,8 +111,9 @@ CPtr<const IRegressionTreeNode> CCompactRegressionTree::GetRightChild(
 	return getWrapper( nodes[nodeIndex].RightChildIndex );
 }
 
-// Retirns wrapper for agiven node.
-CPtr<const IRegressionTreeNode> CCompactRegressionTree::getWrapper( int nodeIndex ) const
+// Returns wrapper for agiven node.
+template<class T>
+CPtr<const IRegressionTreeNode> CCompactRegressionTree<T>::getWrapper( int nodeIndex ) const
 {
 	NeoAssert( nodes.IsValidIndex( nodeIndex ) );
 	if( nodeIndex == 0 ) {
@@ -121,7 +127,8 @@ CPtr<const IRegressionTreeNode> CCompactRegressionTree::getWrapper( int nodeInde
 	return wrappers[nodeIndex];
 }
 
-void CCompactRegressionTree::GetNodeInfo(
+template<class T>
+void CCompactRegressionTree<T>::GetNodeInfo(
 	int nodeIndex , CRegressionTreeNodeInfo& info ) const
 {
 	NeoAssert( nodes.IsValidIndex( nodeIndex ) );
@@ -160,8 +167,9 @@ static inline float getFeature( const CFloatVectorDesc& features, int number )
 	return GetValue( features, number );
 }
 
+template<class T>
 template<typename TVector>
-inline const float* CCompactRegressionTree::predict( const TVector& features ) const
+inline const float* CCompactRegressionTree<T>::predict( const TVector& features ) const
 {
 	int index = 0;
 	for( ;; ) {
@@ -183,8 +191,9 @@ inline const float* CCompactRegressionTree::predict( const TVector& features ) c
 	return 0;
 }
 
+template<class T>
 template<typename TVector>
-inline void CCompactRegressionTree::predict(
+inline void CCompactRegressionTree<T>::predict(
 	const TVector& features, CPrediction& result ) const
 {
 	const float* pValues = predict( features );
@@ -195,31 +204,36 @@ inline void CCompactRegressionTree::predict(
 }
 
 // CRegressionTree methods implementation.
-void CCompactRegressionTree::Predict(
+template<class T>
+void CCompactRegressionTree<T>::Predict(
 	const CFloatVector& features, CPrediction& result ) const
 {
 	predict( features.GetPtr(), result );
 }
 
-void CCompactRegressionTree::Predict(
+template<class T>
+void CCompactRegressionTree<T>::Predict(
 	const CFloatVectorDesc& features, CPrediction& result ) const
 {
 	predict( features, result );
 }
 
-double CCompactRegressionTree::Predict( const CFloatVector& features ) const
+template<class T>
+double CCompactRegressionTree<T>::Predict( const CFloatVector& features ) const
 {
 	NeoPresume( predictionSize == 1 );
 	return *predict( features.GetPtr() );
 }
 
-double CCompactRegressionTree::Predict( const CFloatVectorDesc& features ) const
+template<class T>
+double CCompactRegressionTree<T>::Predict( const CFloatVectorDesc& features ) const
 {
 	NeoPresume( predictionSize == 1 );
 	return *predict( features );
 }
 
-void CCompactRegressionTree::CalcFeatureStatistics(
+template<class T>
+void CCompactRegressionTree<T>::CalcFeatureStatistics(
 	int maxFeature, CArray<int>& result ) const
 {
 	result.DeleteAll();
@@ -227,13 +241,14 @@ void CCompactRegressionTree::CalcFeatureStatistics(
 
 	for( int i = 0; i < nodes.Size(); i++ ) {
 		const CNode& node = nodes[i];
-		if( node.FeaturePlusOne != 0 && node.FeaturePlusOne <= maxFeature ) {
+		if( node.FeaturePlusOne != 0 && node.FeaturePlusOne <= static_cast<uint64_t>( maxFeature ) ) {
 			result[node.FeaturePlusOne - 1]++;
 		}
 	}
 }
 
-void CCompactRegressionTree::Serialize( CArchive& archive )
+template<class T>
+void CCompactRegressionTree<T>::Serialize( CArchive& archive )
 {
 	/*const int version =*/ archive.SerializeVersion(0);
 
@@ -243,7 +258,7 @@ void CCompactRegressionTree::Serialize( CArchive& archive )
 	SerializeCompact( archive, nodesCount );
 	if( archive.IsLoading() ) {
 		check( ( nodesCount == 0 && predictionSize == NotFound ) ||
-				( nodesCount >= 0 && nodesCount <= MaxNodeIndex && predictionSize >= 1 ),
+				( nodesCount >= 0 && static_cast<uint64_t>( nodesCount ) <= MaxNodeIndex && predictionSize >= 1 ),
 			ERR_BAD_ARCHIVE, archive.Name() );
 		nodes.SetSize( nodesCount );
 		wrappers.DeleteAll();
@@ -280,6 +295,9 @@ void CCompactRegressionTree::Serialize( CArchive& archive )
 			ERR_BAD_ARCHIVE, archive.Name() );
 	}
 }
+
+template class CCompactRegressionTree<uint16_t>;
+template class CCompactRegressionTree<uint32_t>;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 

@@ -22,29 +22,29 @@ from neoml.Utils import check_input_layers
 class EnumBinarization(Layer):
     """The layer that converts enumeration values into one-hot encoding.
 
-    Layer inputs
-    ----------
-    #1: a blob with int or float data that contains enumeration values.
-    The dimensions:
-    - Channels is 1
-    - the other dimensions may be of any length
-
-    Layer outputs
-    ----------
-    #1: a blob with the vectors that one-hot encode the enumeration values.
-    The dimensions:
-    - Channels is enum_size
-    - the other dimensions stay the same as in the first input
-
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    enum_size : int, > 0
-        The number of constants in the enumeration.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param enum_size: The number of constants in the enumeration.
+    :type enum_size: int, > 0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with int or float data that contains enumeration values.
+        The dimensions:
+
+        - **Channels** is 1
+        - the other dimensions may be of any length
+
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the vectors that one-hot encode the enumeration values.
+        The dimensions:
+
+        - **Channels** is enum_size
+        - the other dimensions stay the same as in the first input
     """
 
     def __init__(self, input_layer, enum_size, name=None):
@@ -76,30 +76,30 @@ class EnumBinarization(Layer):
 class BitSetVectorization(Layer):
     """The layer that converts a bitset into vectors of ones and zeros.
 
-    Layer inputs
-    ----------
-    #1: a blob with int data containing bitsets. 
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize * Height * Width * Depth
-        is the number of bitsets
-    - Channels is bitset itself
-
-    Layer outputs
-    ----------
-    #1: a blob with the result of vectorization.
-    The dimensions:
-    - Channels is equal to bit_set_size
-    - the other dimensions are the same as for the input
-
-    Parameters
-    ----------
-    input_layer : (object, int)
-        The input layer and the number of its output. If no number
+    :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
-    bit_set_size : int, > 0
-        The size of the bitset.
-    name : str, default=None
-        The layer name.
+    :type input_layer: object, tuple(object, int)
+    :param bit_set_size: The size of the bitset. 
+    :type bit_set_size: int, > 0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with int data containing bitsets. 
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** * **Height** * **Width** * **Depth**
+          is the number of bitsets
+        - **Channels** is bitset itself
+
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the result of vectorization.
+        The dimensions:
+
+        - **Channels** is equal to bit_set_size
+        - the other dimensions are the same as for the input
     """
 
     def __init__(self, input_layer, bit_set_size, name=None):

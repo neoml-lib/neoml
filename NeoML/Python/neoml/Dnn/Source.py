@@ -21,21 +21,20 @@ import neoml.Blob as Blob
 
 class Source(Layer):
     """The source layer that serves to pass a data blob into the network.
-    Layer inputs
-    ---------------
+
+    :param dnn: The neural network.
+    :type dnn: object
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
     The layer has no inputs.
     
-    Layer outputs
-    ---------------
+    .. rubric:: Layer outputs:
+
     The layer has one output that contains the data blob 
     passed into the last call of set_blob.
-      
-    Parameters
-    -------------
-    dnn : object
-        The neural network.
-    name : str, default=None
-        The layer name.
     """
     def __init__(self, dnn, name=None):
         if type(dnn) is PythonWrapper.Source:
