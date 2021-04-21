@@ -67,10 +67,13 @@ class SvmClassifier(PythonWrapper.Svm) :
 
     :param thread_count: The number of processing threads to be used while training the model.
     :type thread_count: int, default=1
+
+    :param multiclass_mode: determines how to handle multi-class classification
+    :type multiclass_mode: str, ['one_vs_all', 'one_vs_one'], default='one_vs_all'
     """
 
     def __init__(self, kernel='linear', max_iteration_count=1000, error_weight=1.0,
-        degree=1, gamma=1.0, coeff0=1.0, tolerance=0.1, thread_count=1):
+        degree=1, gamma=1.0, coeff0=1.0, tolerance=0.1, thread_count=1, multiclass_mode='one_vs_all'):
 
         if kernel != 'linear' and kernel != 'poly' and kernel != 'rbf' and kernel != 'sigmoid':
             raise ValueError('The `kernel` must be one of: `linear`, `poly`, `rbf`, `sigmoid`.')
@@ -81,9 +84,11 @@ class SvmClassifier(PythonWrapper.Svm) :
 
         if thread_count <= 0:
             raise ValueError('The `thread_count` must be > 0.')
+        if multiclass_mode != 'one_vs_all' and multiclass_mode != 'one_vs_one':
+            raise ValueError('The `multiclass_mode` must be one of: `one_vs_all`, `one_vs_one`.')
 
         super().__init__(kernel, float(error_weight), int(max_iteration_count), int(degree),
-            float(gamma), float(coeff0), float(tolerance), int(thread_count))
+            float(gamma), float(coeff0), float(tolerance), int(thread_count), multiclass_mode)
 
     def train(self, X, Y, weight=None):
         """Trains the SVM classification model.
