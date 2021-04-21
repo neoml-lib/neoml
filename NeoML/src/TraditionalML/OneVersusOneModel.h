@@ -31,7 +31,8 @@ public:
 	// IModel interface methods
 	int GetClassCount() const override { return classCount; }
 	bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const override;
-	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
+	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override
+		{ return Classify( data.GetDesc(), result ); }
 	void Serialize( CArchive& archive ) override;
 
 protected:

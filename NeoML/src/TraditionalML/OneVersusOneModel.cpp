@@ -174,40 +174,6 @@ bool COneVersusOneModel::Classify( const CFloatVectorDesc& data, CClassification
 	return true;
 }
 
-bool COneVersusOneModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
-{
-	CArray<CArray<float>> pred;
-	pred.SetSize( classCount );
-	for( int i = 0; i < classCount; ++i ) {
-		pred[i].Add( 0.f, classCount );
-	}
-
-	int classifierIndex = 0;
-	for( int i = 0; i < classCount - 1; ++i ) {
-		for( int j = i + 1; j < classCount; ++j ) {
-			CClassificationResult subresult;
-			NeoAssert( classifiers[classifierIndex++]->Classify( data, subresult ) );
-			NeoPresume( subresult.Probabilities.Size() == 2 );
-			pred[i][j] = static_cast<float>( subresult.Probabilities[0].GetValue() );
-			pred[j][i] = static_cast<float>( subresult.Probabilities[1].GetValue() );
-		}
-	}
-
-	CArray<float> prob;
-	findProb( pred, prob );
-	result.ExceptionProbability = CClassificationProbability( 0 );
-	result.Probabilities.SetBufferSize( classCount );
-	result.PreferredClass = 0;
-	for( int i = 0; i < classCount; ++i ) {
-		result.Probabilities.Add( CClassificationProbability( static_cast<double>( prob[i] ) ) );
-		if( prob[i] > prob[result.PreferredClass] ) {
-			result.PreferredClass = i;
-		}
-	}
-
-	return true;
-}
-
 static const int oneVersusOneVersion = 0;
 
 void COneVersusOneModel::Serialize( CArchive& archive )
