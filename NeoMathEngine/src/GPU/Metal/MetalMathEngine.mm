@@ -193,7 +193,7 @@ CMemoryHandle CMetalMathEngine::CopyFrom( const CMemoryHandle& handle, size_t si
 	CMemoryHandle result = HeapAlloc( size );
 
 	IMathEngine* otherMathEngine = handle.GetMathEngine();
-	void* ptr = otherMathEngine->GetBuffer( handle, 0, size );
+	void* ptr = otherMathEngine->GetBuffer( handle, 0, size, true );
 
 	DataExchangeRaw( result, ptr, size );
 
