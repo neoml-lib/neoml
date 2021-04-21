@@ -27,6 +27,7 @@ The parameters are represented by a `CDecisionTree::CParams` structure.
 - *SplitCriterion* — the criterion for subset splitting.
 - *ConstNodeThreshold* — the ratio of the equal elements in the subset which should be the threshold for creating a constant node (may be from 0 to 1).
 - *RandomSelectedFeaturesCount* — no more than this number of randomly selected features will be used for each node. Set the value to `-1` to use all features every time.
+- *MulticlassMode* - the approach used in multiclass task.
 
 ## Model
 
