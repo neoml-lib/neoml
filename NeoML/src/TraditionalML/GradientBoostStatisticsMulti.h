@@ -166,11 +166,11 @@ inline void CGradientBoostStatisticsMulti::Erase()
 
 inline double CGradientBoostStatisticsMulti::CalcCriterion( float l1, float l2, int classIndex ) const
 {
-	double temp = totalGradient[classIndex];
-	if( temp > l1 ) {
-		temp -= l1;
-	} else if( temp < -l1 ) {
-		temp += l1;
+	double temp = 0;
+	if( totalGradient[classIndex] > l1 ) {
+		temp = totalGradient[classIndex] - l1;
+	} else if( totalGradient[classIndex] < -l1 ) {
+		temp = totalGradient[classIndex] + l1;
 	}
 	return temp * temp / ( totalHessian[classIndex] + l2 );
 }
