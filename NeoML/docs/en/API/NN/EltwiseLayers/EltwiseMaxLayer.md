@@ -22,7 +22,7 @@ This layer has no trainable parameters.
 
 ## Inputs
 
-The layer should have at least two inputs. The [blobs](..\DnnBlob.md) of all inputs should have the same dimensions.
+The layer should have at least two inputs. The [blobs](../DnnBlob.md) of all inputs should have the same dimensions.
 
 ## Outputs
 

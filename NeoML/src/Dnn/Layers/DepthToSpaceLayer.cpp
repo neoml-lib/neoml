@@ -70,7 +70,7 @@ static const int DepthToSpaceLayerVersion = 0;
 
 void CDepthToSpaceLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( DepthToSpaceLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( DepthToSpaceLayerVersion );
 	CBaseLayer::Serialize( archive );
 	
 	archive.Serialize( blockSize );

@@ -381,4 +381,152 @@ __global__ void AddHeightIndexKernel( const int *input, int width, int height, i
 	output[index] = input[index] + ( isForward ? inputRow : -inputRow );
 }
 
+__global__ void QrnnFPoolingKernel( bool reverse, int sequenceLength, int objectSize,
+	const float* z, const float* f, const float* h0, float* res )
+{
+	int index = 0;
+	if( !GetCudaTaskIndex( objectSize, index ) ) {
+		return;
+	}
+
+	const int nextObjectOffset = reverse ? -objectSize : objectSize;
+	const int firstElemOffset = reverse ? objectSize * ( sequenceLength - 1 ) + index : index;
+	z += firstElemOffset;
+	f += firstElemOffset;
+	res += firstElemOffset;
+
+	if( h0 == nullptr ) {
+		*res = *z * ( 1. - *f );
+	} else {
+		h0 += index;
+		*res = *f * *h0 + ( 1. - *f ) * *z;
+	}
+
+	const float* hPrev = res;
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		z += nextObjectOffset;
+		f += nextObjectOffset;
+		res += nextObjectOffset;
+		*res = *f * *hPrev + ( 1. - *f ) * *z;
+		hPrev = res;
+	}
+}
+
+__global__ void QrnnFPoolingBackwardKernel( bool reverse, int sequenceLength, int objectSize,
+	const float* z, const float* f, const float* h0, const float* out, float* outDiff,
+	float* zDiff, float* fDiff )
+{
+	int index = 0;
+	if( !GetCudaTaskIndex( objectSize, index ) ) {
+		return;
+	}
+
+	const int nextObjectOffset = reverse ? -objectSize : objectSize;
+	const int firstElemOffset = reverse ? objectSize * ( sequenceLength - 1 ) + index : index;
+	z += firstElemOffset;
+	f += firstElemOffset;
+	out += firstElemOffset;
+	outDiff += firstElemOffset;
+	zDiff += firstElemOffset;
+	fDiff += firstElemOffset;
+
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		*zDiff = *outDiff * ( 1.f - *f );
+		*fDiff = *outDiff * ( *( out + nextObjectOffset ) - *z );
+		*( outDiff + nextObjectOffset ) += *outDiff * *f;
+		z += nextObjectOffset;
+		f += nextObjectOffset;
+		out += nextObjectOffset;
+		outDiff += nextObjectOffset;
+		zDiff += nextObjectOffset;
+		fDiff += nextObjectOffset;
+	}
+
+	*zDiff = *outDiff * ( 1.f - *f );
+	if( h0 == nullptr ) {
+		*fDiff = - ( *z * *outDiff );
+	} else {
+		h0 += index;
+		*fDiff = *outDiff * ( *h0 - *z );
+	}
+}
+
+__global__ void QrnnIfPoolingKernel( bool reverse, int sequenceLength, int objectSize,
+	const float* z, const float* f, const float* i, const float* h0, float* res )
+{
+	int index = 0;
+	if( !GetCudaTaskIndex( objectSize, index ) ) {
+		return;
+	}
+
+	const int nextObjectOffset = reverse ? -objectSize : objectSize;
+	const int firstElemOffset = reverse ? objectSize * ( sequenceLength - 1 ) + index : index;
+	z += firstElemOffset;
+	f += firstElemOffset;
+	i += firstElemOffset;
+	res += firstElemOffset;
+
+	if( h0 == nullptr ) {
+		*res = *i * *z;
+	} else {
+		h0 += index;
+		*res = *f * *h0 + *i * *z;
+	}
+
+	const float* hPrev = res;
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		z += nextObjectOffset;
+		f += nextObjectOffset;
+		i += nextObjectOffset;
+		res += nextObjectOffset;
+		*res = *f * *hPrev + *i * *z;
+		hPrev = res;
+	}
+}
+
+__global__ void QrnnIfPoolingBackwardKernel( bool reverse, int sequenceLength, int objectSize,
+	const float* z, const float* f, const float* i, const float* h0, const float* out, float* outDiff,
+	float* zDiff, float* fDiff, float* iDiff )
+{
+	int index = 0;
+	if( !GetCudaTaskIndex( objectSize, index ) ) {
+		return;
+	}
+
+	const int nextObjectOffset = reverse ? -objectSize : objectSize;
+	const int firstElemOffset = reverse ? objectSize * ( sequenceLength - 1 ) + index : index;
+	z += firstElemOffset;
+	f += firstElemOffset;
+	i += firstElemOffset;
+	out += firstElemOffset;
+	outDiff += firstElemOffset;
+	zDiff += firstElemOffset;
+	fDiff += firstElemOffset;
+	iDiff += firstElemOffset;
+
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		*zDiff = *outDiff * *i;
+		*fDiff = *outDiff * *( out + nextObjectOffset );
+		*iDiff = *outDiff * *z;
+		*( outDiff + nextObjectOffset ) += *outDiff * *f;
+		z += nextObjectOffset;
+		f += nextObjectOffset;
+		i += nextObjectOffset;
+		out += nextObjectOffset;
+		outDiff += nextObjectOffset;
+		zDiff += nextObjectOffset;
+		fDiff += nextObjectOffset;
+		iDiff += nextObjectOffset;
+	}
+
+	*zDiff = *outDiff * *i;
+	if( h0 == nullptr ) {
+		*fDiff = 0.f;
+	} else {
+		h0 += index;
+		*fDiff = *outDiff * *h0;
+	}
+	*iDiff = *outDiff * *z;
+}
+
 } // namespace NeoML

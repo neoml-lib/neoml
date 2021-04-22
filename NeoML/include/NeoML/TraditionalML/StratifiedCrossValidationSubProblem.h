@@ -36,8 +36,8 @@ public:
 	virtual bool IsDiscreteFeature( int index ) const { return problem->IsDiscreteFeature( index ); }
 	virtual int GetVectorCount() const { return vectorsCount; }
 	virtual int GetClass( int index ) const { return problem->GetClass( translateIndex( index ) ); }
-	virtual CSparseFloatVectorDesc GetVector( int index ) const { return matrix.GetRow( index ); }
-	virtual CSparseFloatMatrixDesc GetMatrix() const { return matrix; }
+	virtual CFloatVectorDesc GetVector( int index ) const { return matrix.GetRow( index ); }
+	virtual CFloatMatrixDesc GetMatrix() const { return matrix; }
 	virtual double GetVectorWeight( int index ) const { return problem->GetVectorWeight( translateIndex( index ) ); }
 	virtual int GetDiscretizationValue( int index ) const { return problem->GetDiscretizationValue( index ); }
 
@@ -56,7 +56,7 @@ private:
 	int objectsBeforeTestPart; // the number of objects before the test part
 	CArray<int> pointerB; // the pointers to the vector beginnings
 	CArray<int> pointerE; // the pointers to the vector ends
-	CSparseFloatMatrixDesc matrix; // the problem matrix descriptor
+	CFloatMatrixDesc matrix; // the problem matrix descriptor
 
 	int translateIndex( int index ) const;
 	void buildObjectsLists();

@@ -43,6 +43,7 @@ public:
 	void SetFocalForce( float value );
 
 protected:
+	void Reshape() override;
 	virtual void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data,
 		int vectorSize, CConstFloatHandle label, int labelSize, CFloatHandle lossValue,
 		CFloatHandle lossGradient ) override;

@@ -35,6 +35,10 @@ void CReorgLayer::Reshape()
 	CheckArchitecture( min( inputDescs[0].Height(), inputDescs[0].Width() ) >= stride,
 		GetName(), "reorg layer Too small input size" );
 
+	// Division by zero if count of input channels less than stride^2
+	CheckArchitecture( inputDescs[0].Channels() >= stride * stride, GetName(),
+		"reorg layer Too small count of input channels" );
+
 	CheckArchitecture( stride >= 1, GetName(), "reorg layer Too small stride" );
 	CheckArchitecture( inputDescs[0].Depth() == 1, GetName(), "reorg layer Too big depth" );
 

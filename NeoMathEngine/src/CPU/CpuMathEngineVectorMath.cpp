@@ -167,4 +167,60 @@ void CCpuMathEngine::VectorSpreadValues( const CConstFloatHandle& sourceHandle, 
 	}
 }
 
+void CCpuMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
+	int vectorSize, const CConstFloatHandle& addition)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( addition.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+	float value = *GetRaw( addition );
+
+	vectorAddValue( first, result, vectorSize, value );
+}
+
+void CCpuMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	int vectorSize, const CFloatHandle& resultHandle)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
+
+	vectorDotProduct( first, second, vectorSize, result );
+}
+
+void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
+	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw(firstHandle);
+	const float* second = GetRaw(secondHandle);
+	float* result = GetRaw(resultHandle);
+
+	NeoML::vectorEltwiseMultiply( first, second, result, vectorSize );
+}
+
+void CCpuMathEngine::VectorEltwiseMultiplyAdd( const CConstFloatHandle& firstHandle,
+	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw(firstHandle);
+	const float* second = GetRaw(secondHandle);
+	float* result = GetRaw(resultHandle);
+
+	NeoML::vectorEltwiseMultiplyAdd( first ,second, result, vectorSize );
+}
+
 } // namespace NeoML

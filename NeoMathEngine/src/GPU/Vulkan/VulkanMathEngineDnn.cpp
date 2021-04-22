@@ -38,6 +38,8 @@ namespace NeoML {
 #include <shaders/generated/BlobMergeByDim.h>
 #include <shaders/generated/BlobReorgFloat.h>
 #include <shaders/generated/BlobReorgInt.h>
+#include <shaders/generated/QrnnFPooling.h>
+#include <shaders/generated/QrnnIfPooling.h>
 #include <shaders/generated/SpaceToDepthFloat.h>
 #include <shaders/generated/SpaceToDepthInt.h>
 
@@ -454,6 +456,89 @@ void CVulkanMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHa
 
 	runShader( shaderLoader->GET_SHADER_DATA(BlobSpatialDropout, true, 0, 0, 3), &param, sizeof(param),
 		0, 0, 0, 0, bufs, sizes, 3, maskObjectSize, input.ObjectSize() / maskObjectSize, input.ObjectCount() );
+}
+
+void CVulkanMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objectSize,
+	const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& initialState,
+	const CFloatHandle& result )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( update.GetMathEngine() == this );
+	ASSERT_EXPR( forget.GetMathEngine() == this );
+	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+
+	const size_t dataSize = sequenceLength * objectSize * sizeof( float );
+	size_t sizes[4] = { dataSize, dataSize, objectSize * sizeof( float ), dataSize };
+
+	PARAM_STRUCT( QrnnFPooling ) param = {
+		reverse ? 1 : 0,
+		sequenceLength,
+		objectSize
+	};
+
+	if( initialState.IsNull() ) {
+		CFloatHandleStackVar zeros( *this, objectSize );
+		VectorFill( zeros, 0.f, objectSize );
+		CMemoryHandle buffs[4] = { update, forget, zeros.GetHandle(), result };
+		runVectorShader( shaderLoader->GET_SHADER_DATA(QrnnFPooling, true, 0, 0, 4), &param,
+			 sizeof( param ), 0, 0, 0, 0, buffs, sizes, 4, objectSize );
+	} else {
+		CMemoryHandle buffs[4] = { update, forget, initialState, result };
+		runVectorShader( shaderLoader->GET_SHADER_DATA(QrnnFPooling, true, 0, 0, 4), &param,
+			sizeof( param ), 0, 0, 0, 0, buffs, sizes, 4, objectSize );
+	}
+}
+
+void CVulkanMathEngine::QrnnFPoolingBackward( bool /*reverse*/, int /*sequenceLength*/, int /*objectSize*/,
+	const CConstFloatHandle& /*update*/, const CConstFloatHandle& /*forget*/,
+	const CConstFloatHandle& /*initialState*/, const CConstFloatHandle& /*result*/, const CFloatHandle& /*resultDiff*/,
+	const CFloatHandle& /*updateDiff*/, const CFloatHandle& /*forgetDiff*/ )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int objectSize,
+	const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+	const CConstFloatHandle& initialState, const CFloatHandle& result )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( update.GetMathEngine() == this );
+	ASSERT_EXPR( forget.GetMathEngine() == this );
+	ASSERT_EXPR( input.GetMathEngine() == this );
+	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+
+	const size_t dataSize = sequenceLength * objectSize * sizeof( float );
+	size_t sizes[5] = { dataSize, dataSize, dataSize, objectSize * sizeof( float ), dataSize };
+
+	PARAM_STRUCT( QrnnIfPooling ) param = {
+		reverse ? 1 : 0,
+		sequenceLength,
+		objectSize
+	};
+
+	if( initialState.IsNull() ) {
+		CFloatHandleStackVar zeros( *this, objectSize );
+		VectorFill( zeros, 0.f, objectSize );
+		CMemoryHandle buffs[5] = { update, forget, input, zeros.GetHandle(), result };
+		runVectorShader( shaderLoader->GET_SHADER_DATA(QrnnIfPooling, true, 0, 0, 5), &param,
+			sizeof( param ), 0, 0, 0, 0, buffs, sizes, 5, objectSize );
+	} else {
+		CMemoryHandle buffs[5] = { update, forget, input, initialState, result };
+		runVectorShader( shaderLoader->GET_SHADER_DATA(QrnnIfPooling, true, 0, 0, 5), &param,
+			sizeof( param ), 0, 0, 0, 0, buffs, sizes, 5, objectSize );
+	}
+}
+
+void CVulkanMathEngine::QrnnIfPoolingBackward( bool /*reverse*/, int /*sequenceLength*/, int /*objectSize*/,
+	const CConstFloatHandle& /*update*/, const CConstFloatHandle& /*forget*/, const CConstFloatHandle& /*input*/,
+	const CConstFloatHandle& /*initialState*/, const CConstFloatHandle& /*result*/, const CFloatHandle& /*resultDiff*/,
+	const CFloatHandle& /*updateDiff*/, const CFloatHandle& /*forgetDiff*/, const CFloatHandle& /*inputDiff*/ )
+{
+	ASSERT_EXPR( false );
 }
 
 } // namespace NeoML

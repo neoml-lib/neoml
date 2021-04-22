@@ -35,7 +35,7 @@ public:
 	// Get the classification result with the info on normalized probabilities
 	virtual bool ClassifyEx( const CSparseFloatVector& data,
 		COneVersusAllClassificationResult& result ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data,
+	virtual bool ClassifyEx( const CFloatVectorDesc& data,
 		COneVersusAllClassificationResult& result ) const = 0;
 
 	// Serialize the model
@@ -61,7 +61,7 @@ public:
 Here is a simple example of training a one-versus-all model using a linear binary classifier.
 
 ```c++
-CLinearBinaryClassifierBuilder linear( EF_LogReg );
+CLinear linear( EF_LogReg );
 	
 COneVersusAll oneVersusAll( linear );
 CPtr<IModel> model = oneVersusAll.Train( *trainData );

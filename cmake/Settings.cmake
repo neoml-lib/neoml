@@ -9,10 +9,10 @@ macro(set_global_variables)
         set(LINUX TRUE)
     endif()
 
-    if( (CMAKE_SIZEOF_VOID_P EQUAL 8) AND (WIN32 OR LINUX OR DARWIN))
-	    set(NEOML_USE_AVX TRUE)
+    if(NOT DEFINED ENV{READTHEDOCS} AND (CMAKE_SIZEOF_VOID_P EQUAL 8) AND (WIN32 OR LINUX OR DARWIN) AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm.*")
+        set(NEOML_USE_AVX TRUE)
     endif()
-	
+
     # Cmake default variables
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     
@@ -100,30 +100,33 @@ function(configure_target TARGET_NAME)
             set_target_properties(${TARGET_NAME} PROPERTIES ARCHIVE_OUTPUT_NAME ${TARGET_NAME}.${WIN_ARCH_SUFFIX}.${FINE_BUILD_TYPE})
             # Generate debug info for Release config
             target_link_options(${TARGET_NAME} PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
+            target_compile_options(${TARGET_NAME} PUBLIC "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<NOT:$<CONFIG:Debug>>>:/GL>")
+            target_compile_options(${TARGET_NAME} PUBLIC "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RelWithDebInfo>>:/Ob2>")
+            target_link_options(${TARGET_NAME} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT\:REF>")
+            target_link_options(${TARGET_NAME} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/OPT\:ICF>")
+            target_link_options(${TARGET_NAME} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/LTCG>")
         endif()
     endif()
 endfunction()
 
 function(link_openmp TARGET_NAME)
-	if(NOT IOS)
-		find_package(OpenMP REQUIRED)
-		target_compile_definitions(${TARGET_NAME} PUBLIC NEOML_USE_OMP)
-		string(REPLACE " " ";" OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS})
-		target_compile_options(${TARGET_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)
-		target_include_directories(${TARGET_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_INCLUDE_DIRS}>)
-		if(OpenMP_CXX_LIBRARIES)
-			if(ANDROID)
-				get_filename_component(OMP_SUFFIX ${OpenMP_omp_LIBRARY} EXT)
-				if(OMP_SUFFIX STREQUAL ".so")
-					target_link_libraries(${TARGET_NAME} PUBLIC -fopenmp -static-openmp)
-				else()
-					target_link_libraries(${TARGET_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-				endif()
-			else()
-				target_link_libraries(${TARGET_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-			endif()
-		endif()
-	endif()
+    find_package(OpenMP REQUIRED)
+    target_compile_definitions(${TARGET_NAME} PUBLIC NEOML_USE_OMP)
+    string(REPLACE " " ";" OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS})
+    target_compile_options(${TARGET_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)
+    target_include_directories(${TARGET_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_INCLUDE_DIRS}>)
+    if(OpenMP_CXX_LIBRARIES)
+        if(ANDROID)
+            get_filename_component(OMP_SUFFIX ${OpenMP_omp_LIBRARY} EXT)
+            if(OMP_SUFFIX STREQUAL ".so")
+                target_link_libraries(${TARGET_NAME} PUBLIC -fopenmp -static-openmp)
+            else()
+                target_link_libraries(${TARGET_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
+            endif()
+        else()
+            target_link_libraries(${TARGET_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
+        endif()
+    endif()
 endfunction()
 
 if(USE_FINE_OBJECTS)
@@ -146,7 +149,7 @@ if(USE_FINE_OBJECTS)
 
                 add_custom_command(TARGET ${PROJECT_NAME} 
                     POST_BUILD
-                    COMMAND python ${FINE_ROOT}/FineObjects/Cmake/unexport.py
+                    COMMAND python3 ${FINE_ROOT}/FineObjects/Cmake/unexport.py
                         lib${PROJECT_NAME}.so ${FINE_ROOT}/FineObjects/Cmake/unexported_symbols.txt 
                         ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}.dir/${LINK_CMD_FILE}
                         COMMENT "Unexport symbols in ${PROJECT_NAME}"
