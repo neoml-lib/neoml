@@ -26,7 +26,7 @@ public:
 
 	// CNode methods
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 
 	// COpNode methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask.Add( true ); }

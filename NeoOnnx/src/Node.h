@@ -54,7 +54,7 @@ public:
 	// Adds required layers to dnn and puts corresponding tensors to the outputs
 	// Called if operator output depends on the data, provided by user
 	virtual void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) = 0;
+		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) = 0;
 
 	// Calculates the result of the operations
 	// Called if operator's output can be calculated during network conversion 

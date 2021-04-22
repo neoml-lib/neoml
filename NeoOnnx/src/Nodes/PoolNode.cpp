@@ -43,7 +43,7 @@ CPoolNodeBase::CPoolNodeBase( TPoolType _poolType, const onnx::NodeProto& poolNo
 }
 
 void CPoolNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
 	// Check input
 	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(),

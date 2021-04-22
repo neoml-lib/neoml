@@ -27,7 +27,7 @@ public:
 	// CNode methods' realizations
 	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const override;
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 		IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs ) override;
 

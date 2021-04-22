@@ -85,7 +85,7 @@ static void addNode( CNode& node, CTensorCache& tensors, CDnn& dnn )
 	if( node.CanCalculateOutput( inputs ) ) {
 		node.CalculateOutput( inputs, dnn.GetMathEngine(), outputs );
 	} else {
-		node.AddLayers( inputs, outputs, dnn );
+		node.AddLayers( inputs, dnn, outputs );
 	}
 
 	for( int outputIndex = 0; outputIndex < node.OutputCount(); ++outputIndex ) {

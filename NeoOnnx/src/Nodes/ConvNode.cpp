@@ -42,7 +42,7 @@ CConvNode::CConvNode( const onnx::NodeProto& conv, int opsetVersion ) :
 }
 
 void CConvNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 5,
@@ -88,9 +88,9 @@ void CConvNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	}
 
 	if( inputShape.Size() == 4 ) {
-		add2dConvLayer( inputs, outputs, dnn );
+		add2dConvLayer( inputs, dnn, outputs );
 	} else if( inputShape.Size() == 5 ) {
-		add3dConvLayer( inputs, outputs, dnn );
+		add3dConvLayer( inputs, dnn, outputs );
 	} else {
 		CheckNeoOnnxSupport( false, "1-dimensional conv", *this );
 	}
@@ -98,7 +98,7 @@ void CConvNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 
 // Adds 2-dimensional convolution
 void CConvNode::add2dConvLayer( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
 	const CTensorLayout neoML2dLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
 
@@ -158,7 +158,7 @@ void CConvNode::add2dConvLayer( const CObjectArray<const CTensorBase>& inputs,
 
 // Adds 3-dimensional convolution
 void CConvNode::add3dConvLayer( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
 	const CTensorLayout neoML3dLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
 

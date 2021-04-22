@@ -28,7 +28,7 @@ public:
 	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const override
 		{ return inputs[0] != nullptr && inputs[0]->IsCalculated(); }
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 
 	// COpNode methods
 	void UserInputMask( CUserInputMask& mask ) const override

@@ -35,7 +35,7 @@ CMatMulNode::CMatMulNode( const onnx::NodeProto& matMul, int opsetVersion ) :
 }
 
 void CMatMulNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
 	// The only scenario we support is this:
 	//     first input - user-provided data, single matrix

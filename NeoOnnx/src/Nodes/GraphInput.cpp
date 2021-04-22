@@ -37,7 +37,7 @@ bool CGraphInput::CanCalculateOutput( const CObjectArray<const CTensorBase>& /* 
 }
 
 void CGraphInput::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 	source->SetName( Name() );

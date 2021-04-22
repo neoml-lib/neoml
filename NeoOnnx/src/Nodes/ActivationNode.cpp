@@ -31,7 +31,7 @@ CActivationNodeBase::CActivationNodeBase( const onnx::NodeProto& onnxNode, int o
 }
 
 void CActivationNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
 	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
 	NeoAssert( userInput != nullptr );
