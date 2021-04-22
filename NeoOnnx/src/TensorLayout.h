@@ -26,7 +26,7 @@ public:
 	CTensorLayout() {}
 	explicit CTensorLayout( int dimCount ); // Returns default layout for dimCount-dimensional tensor
 	CTensorLayout( std::initializer_list<TBlobDim> list ) : CFastArray<TBlobDim, 8>( list ) {}
-	CTensorLayout( const CTensorLayout& other ) { other.CopyTo( *this ); }
+	CTensorLayout( const CTensorLayout& other ) : CFastArray<TBlobDim, 8>() { other.CopyTo( *this ); }
 
 	CTensorLayout& operator=( std::initializer_list<TBlobDim> list );
 	CTensorLayout& operator=( const CTensorLayout& other );
