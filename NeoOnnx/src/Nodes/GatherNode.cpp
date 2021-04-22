@@ -40,7 +40,7 @@ void CGatherNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */
 }
 
 void CGatherNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
+	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
 {
 	// This is a stub for a specific case: integer 1-dimensional data
 	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "User-provided data", *this );

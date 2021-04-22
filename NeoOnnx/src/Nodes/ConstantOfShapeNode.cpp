@@ -41,7 +41,7 @@ void CConstantOfShapeNode::AddLayers( const CObjectArray<const CTensorBase>& /* 
 }
 
 void CConstantOfShapeNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
+	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
 {
 	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "user-provided input", *this );
 	const CDnnBlob* inputShapeBlob = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data();

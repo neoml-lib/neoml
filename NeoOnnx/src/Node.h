@@ -60,7 +60,7 @@ public:
 	// Called if operator's output can be calculated during network conversion 
 	// (which means that tensor's data is independent of user input)
 	virtual void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) = 0;
+		IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs ) = 0;
 
 protected:
 	CNode( const CString& name, const CArray<CString>& inputs, const CArray<CString>& outputs );
@@ -129,7 +129,7 @@ public:
 	// 3. Running this CDnn and extracting the results
 	// In future final may be removed (for optimization purposes)
 	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) final;
+		IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs ) final;
 
 	// CNode::AddLayers must be defined by child classes
 
