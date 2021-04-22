@@ -98,15 +98,16 @@ static void blobGlobalMaxPoolingTestImpl( const CTestParams& params, int seed )
 	}
 
 	input.CopyFrom( inputBuff.data() );
+	CGlobalMaxPoolingDesc* poolingDesc;
 
-	CGlobalMaxPoolingDesc* poolingDesc = MathEngine().InitGlobalMaxPooling( input.GetDesc(), indices.GetDesc(),
+	poolingDesc = MathEngine().InitGlobalMaxPooling( input.GetDesc(), indices.GetDesc(),
 		output.GetDesc() );
 	MathEngine().BlobGlobalMaxPooling( *poolingDesc, input.GetData(), indices.GetData(),
 		output.GetData() );
-	delete poolingDesc;
-
 	output.CopyTo( actual.data() );
 	indices.CopyTo( actualIndices.data() );
+
+	delete poolingDesc;
 
 	for( size_t i = 0; i < expected.size(); ++i ) {
 		ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << params;
@@ -120,7 +121,7 @@ class CMathEngineGlobalMaxPoolingTest : public CTestFixtureWithParams {
 };
 
 INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngineGlobalMaxPoolingTest,
-	::testing::Values(/*
+	::testing::Values(
 		CTestParams(
 			"BatchLength = 1;"
 			"BatchWidth = 2;"
@@ -170,7 +171,7 @@ INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngi
 			"BatchWidth = (1..25);"
 			"ListSize = (1..25);"
 			"Channels = (1..100);"
-			"Depth = (1..25);"
+			"Depth = (1..5);"
 			"Height = (1..5);"
 			"Width = (1..25);"
 			"MaxCount = (1..7);"
@@ -186,17 +187,17 @@ INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngi
 			"Width = 10000;"
 			"MaxCount = 10000;"
 			"TestCount = 100;"
-		),*/
+		),
 		CTestParams(
-			"BatchLength = 1;"
-			"BatchWidth = 1;"
-			"ListSize = 1;"
-			"Channels = 1;"
+			"BatchLength = (1..3);"
+			"BatchWidth = (1..3);"
+			"ListSize = (1..3);"
+			"Channels = (1..5);"
 			"Depth = 1;"
 			"Height = 1;"
-			"Width = 10000;"
-			"MaxCount = 50;"
-			"TestCount = 1;"
+			"Width = 1000;"
+			"MaxCount = 2000;"
+			"TestCount = 10;"
 		)
 	)
 );

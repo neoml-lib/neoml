@@ -238,33 +238,39 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 	if( maxCount < 100 ){
 		// As the shared memory size depends on maxCount, we may need to limit the number of thread
 		int sharedMemoryPerThread = 2 * maxCount * sizeof( float );
-		int maxThreadCount = min( device->SharedMemoryLimit / sharedMemoryPerThread - 1, max( 1, poolSize / maxCount ) );
-		int blockCount = source.ObjectCount() * source.Channels();
-		int threadCount = min( device->ThreadMaxCount, maxThreadCount );
+		int maxThreadCount = device->SharedMemoryLimit / sharedMemoryPerThread;
+		dim3 blockCount;
+		dim3 threadCount;
 
-		int sharedSize = ( threadCount + 1 ) * sharedMemoryPerThread;
+		getCudaTaskGrid2DMinYX(device->ThreadMax3DCountY, 1, blockCount, threadCount,
+			( poolSize + maxCount - 1 ) / maxCount + 1, source.ObjectCount() * source.Channels(), maxThreadCount);
+		blockCount.y = 1;
+		threadCount.y--;
+
+		int sharedSize = threadCount.x * ( threadCount.y + 1 ) * sharedMemoryPerThread;
 		BlobGlobalMaxPoolingHeapKernel<<<blockCount, threadCount, sharedSize>>>( desc, GetRaw( sourceData ),
 			GetRaw( maxIndicesData ), GetRaw( resultData ), poolSize, maxCount );
 	} else {
 		dim3 blockCount;
 		dim3 threadCount;
-
-		int numBins = 2;
-		int histSize = ( 1 << numBins );
-		int maxThreadCount = device->SharedMemoryLimit / histSize;
-
 		dim3 scanBlockCount;
 		dim3 scanThreadCount;
 
+		int bitsPerBin = 8;
+		int histSize = ( 1 << bitsPerBin );
+		int memoryPerThread = histSize * sizeof( int );
+		int maxThreadCount = device->SharedMemoryLimit / memoryPerThread;
+
 		int height = 1;
-		int poolSizeNorm = poolSize / 8;
+		int poolSizeNorm = max( 1, poolSize / ( 2 * histSize ) );
 		while( height < poolSizeNorm ) {
 			height *= 2;
 		}
-		getCudaTaskGrid2DMinYX(1, 1, blockCount, threadCount,
+
+		getCudaTaskGrid2DMinYX(device->ThreadMax3DCountY, 1, blockCount, threadCount,
 			height, source.ObjectCount() * source.Channels(), maxThreadCount);
 
-		getCudaTaskGrid2DMinYX(1, 1, scanBlockCount, scanThreadCount,
+		getCudaTaskGrid2DMinYX(device->ThreadMax3DCountY, 1, scanBlockCount, scanThreadCount,
 			blockCount.y, source.ObjectCount() * source.Channels(), maxThreadCount);
 		scanBlockCount.y = 1;
 
@@ -272,12 +278,11 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 		CIntHandleVar indicesSorted2( mathEngine(), source.BlobSize() );
 		CIntHandleVar localSums( mathEngine(), blockCount.x * threadCount.x * blockCount.y * histSize );
 		CIntHandleVar globalSums( mathEngine(), blockCount.x * threadCount.x * ( blockCount.y + 1 ) * histSize );
-
-		int localSortSharedSize = threadCount.y * threadCount.x * histSize * sizeof( int );
-		int scanSharedSize = scanThreadCount.x * scanThreadCount.y  * histSize * sizeof( int );
+		int localSortSharedSize = threadCount.y * threadCount.x * memoryPerThread;
+		int scanSharedSize = scanThreadCount.x * scanThreadCount.y  * memoryPerThread;
 
 		int bitCount = sizeof(float) * 8;
-		for( int bin = 0; bin < bitCount; bin += numBins ) {
+		for( int bin = 0; bin < bitCount; bin += bitsPerBin ) {
 			// local sort inside block
 			BlobGlobalMaxPoolingLocalSortKernel<<<blockCount, threadCount, localSortSharedSize>>>( desc, GetRaw( sourceData ),
 				GetRaw( indicesSorted1.GetHandle() ), GetRaw( indicesSorted2.GetHandle() ), poolSize, bin, histSize, GetRaw( localSums.GetHandle() ), GetRaw( globalSums.GetHandle() ) );
@@ -288,8 +293,8 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 
 			// global sort
 			BlobGlobalMaxPoolingGlobalShuffleKernel<<<blockCount, threadCount, 1>>>( desc, GetRaw( sourceData ),
-				GetRaw( indicesSorted2.GetHandle() ), GetRaw( indicesSorted1.GetHandle() ), bin, histSize, poolSize, GetRaw( localSums.GetHandle() ), GetRaw( globalSums.GetHandle() ),
-				GetRaw( resultData ), GetRaw( maxIndicesData ), maxCount, bin >= bitCount - numBins );
+			 	GetRaw( indicesSorted2.GetHandle() ), GetRaw( indicesSorted1.GetHandle() ), bin, histSize, poolSize, GetRaw( localSums.GetHandle() ), GetRaw( globalSums.GetHandle() ),
+				GetRaw( resultData ), GetRaw( maxIndicesData ), maxCount, bin == 0, bin >= bitCount - bitsPerBin );
 		}
 	}
 }
