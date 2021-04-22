@@ -26,7 +26,7 @@ public:
 
 	// CNode methods
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 
 	// COpNode methods
 	void UserInputMask( CUserInputMask& mask ) const override
@@ -41,9 +41,9 @@ private:
 	CFastArray<int, 8> outputShape; // output shape
 
 	void add2dConvLayer( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn );
+		CDnn& dnn, CObjectArray<const CTensorBase>& outputs );
 	void add3dConvLayer( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn );
+		CDnn& dnn, CObjectArray<const CTensorBase>& outputs );
 };
 
 } // namespace NeoOnnx

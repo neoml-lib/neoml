@@ -34,7 +34,7 @@ CGatherNode::CGatherNode( const onnx::NodeProto& gather, int opsetVersion ) :
 }
 
 void CGatherNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
+	CDnn& /* dnn */, CObjectArray<const CTensorBase>& /* outputs */ )
 {
 	CheckNeoOnnxSupport( false, "user-provided input", *this );
 }

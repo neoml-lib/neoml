@@ -35,7 +35,7 @@ CLrnNode::CLrnNode( const onnx::NodeProto& lrn, int opsetVersion ) :
 }
 
 void CLrnNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 	CheckNeoOnnxSupport( inputs[0]->DimCount() <= 5, "6+ dimensional input", *this );

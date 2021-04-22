@@ -35,7 +35,7 @@ CSqueezeNode::CSqueezeNode( const onnx::NodeProto& squeeze, int opsetVersion ) :
 }
 
 void CSqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& /* dnn */ )
+	CDnn& /* dnn */, CObjectArray<const CTensorBase>& outputs )
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 

@@ -34,7 +34,7 @@ CShapeNode::CShapeNode( const onnx::NodeProto& shape, int opsetVersion ) :
 }
 
 void CShapeNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
+	CDnn& /* dnn */, CObjectArray<const CTensorBase>& /* outputs */ )
 {
 	NeoAssert( false );
 }

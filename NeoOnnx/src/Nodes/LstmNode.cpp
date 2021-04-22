@@ -45,7 +45,7 @@ CLstmNode::CLstmNode( const onnx::NodeProto& lstm, int opsetVersion ) :
 }
 
 void CLstmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 

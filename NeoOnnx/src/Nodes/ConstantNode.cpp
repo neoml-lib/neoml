@@ -42,7 +42,7 @@ CConstantNode::CConstantNode( const onnx::NodeProto& constant, int opsetVersion 
 }
 
 void CConstantNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
+	CDnn& /* dnn */, CObjectArray<const CTensorBase>& /* outputs */ )
 {
 	NeoAssert( false );
 }

@@ -35,7 +35,7 @@ CConstantOfShapeNode::CConstantOfShapeNode( const onnx::NodeProto& constantOfSha
 }
 
 void CConstantOfShapeNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& /* outputs */, CDnn& /* dnn */ )
+	CDnn& /* dnn */, CObjectArray<const CTensorBase>& /* outputs */ )
 {
 	NeoAssert( false );
 }

@@ -120,7 +120,7 @@ CEltwiseNodeBase::CEltwiseNodeBase( const onnx::NodeProto& eltwise, int opsetVer
 }
 
 void CEltwiseNodeBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
 	// Corner case which doesn't contradict Onnx protocol: nodes with variable input count can have 1 input
 	if( inputs.Size() == 1 && argsNum < 0 ) {

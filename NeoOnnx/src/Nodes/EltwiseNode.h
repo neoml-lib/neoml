@@ -51,7 +51,7 @@ public:
 
 	// CNode methods
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
+		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 
 	// COpNode methods
 	// We can guarantee the support only when second input is CDataTensor (other division is impossible)

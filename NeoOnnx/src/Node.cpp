@@ -228,7 +228,7 @@ void CLayerOpNode::CalculateOutput( const CObjectArray<const CTensorBase>& input
 	// Add operator layers
 	CObjectArray<const CTensorBase> internalOutputs;
 	internalOutputs.Add( nullptr, OutputCount() );
-	AddLayers( internalInputs, internalOutputs, internalDnn );
+	AddLayers( internalInputs, internalDnn, internalOutputs );
 
 	// Add sink layers for the operator
 	CArray<CSinkLayer*> sinks;

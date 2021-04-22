@@ -34,7 +34,7 @@ CIdentityNode::CIdentityNode( const onnx::NodeProto& identity, int opsetVersion 
 }
 
 void CIdentityNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& /* dnn */ )
+	CDnn& /* dnn */, CObjectArray<const CTensorBase>& outputs )
 {
 	outputs[0] = inputs[0];
 }
