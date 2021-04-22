@@ -40,7 +40,7 @@ void CIdentityNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 }
 
 void CIdentityNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, IMathEngine& /* mathEngine */ )
+	IMathEngine& /* mathEngine */, CObjectArray<const CTensorBase>& outputs )
 {
 	outputs[0] = inputs[0];
 }

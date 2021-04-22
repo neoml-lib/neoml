@@ -216,7 +216,7 @@ bool COpNode::IsSupportedOperator( const CString& opType )
 //---------------------------------------------------------------------------------------------------------------------
 
 void CLayerOpNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
+	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
 {
 	CRandom random( 0x1231 );
 	CDnn internalDnn( random, mathEngine );

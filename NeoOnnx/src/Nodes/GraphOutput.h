@@ -29,7 +29,7 @@ public:
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;
 	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine ) override;
+		IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs ) override;
 };
 
 } // namespace NeoOnnx

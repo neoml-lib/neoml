@@ -69,7 +69,7 @@ void CGraphInput::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */
 }
 
 void CGraphInput::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& /* outputs */, IMathEngine& /* mathEngine */ )
+	IMathEngine& /* mathEngine */, CObjectArray<const CTensorBase>& /* outputs */ )
 {
 	NeoAssert( false );
 }

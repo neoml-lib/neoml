@@ -40,7 +40,7 @@ void CShapeNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
 }
 
 void CShapeNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
+	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
 {
 	NeoAssert( inputs[0] != nullptr );
 	const CTensorShape& inputShape = inputs[0]->Shape();

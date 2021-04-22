@@ -36,7 +36,7 @@ void CGraphInitializer::AddLayers( const CObjectArray<const CTensorBase>& /* inp
 }
 
 void CGraphInitializer::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
-	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
+	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
 {
 	CTensorShape outputShape;
 	outputShape.SetBufferSize( initializer.dims_size() );
