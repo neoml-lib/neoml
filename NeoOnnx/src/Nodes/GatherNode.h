@@ -26,7 +26,7 @@ public:
 
 	// CNode methods
 	// At this moment this layer can't be emulated by NeoMl
-	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const override
+	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */ ) const override
 		{ return true; }
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;

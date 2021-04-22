@@ -35,7 +35,7 @@ CUnsqueezeNode::CUnsqueezeNode( const onnx::NodeProto& unsqueeze, int opsetVersi
 }
 
 void CUnsqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CObjectArray<const CTensorBase>& outputs, CDnn& /* dnn */ )
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
@@ -45,7 +45,7 @@ void CUnsqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CTensorShape outputShape;
 	calcOutputShape( inputs[0]->Shape(), axes, outputShape );
 
-	CTensorLayout outputLayout = calcOutputLayout( inputs[0]->DimCount(), inputs[0]->Layout(), axes );
+	CTensorLayout outputLayout = calcOutputLayout( inputs[0]->Layout(), axes );
 
 	outputs[0] = new CUserTensor( outputShape, outputLayout,
 		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() );
@@ -89,7 +89,7 @@ void CUnsqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFas
 }
 
 // Calculates output tensor's layout
-CTensorLayout CUnsqueezeNode::calcOutputLayout( int dimCount, const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const
+CTensorLayout CUnsqueezeNode::calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const
 {
 	// NeoML layout
 	TBlobDim currDim = BD_BatchLength;

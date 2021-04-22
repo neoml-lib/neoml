@@ -47,7 +47,7 @@ void CConstantNode::AddLayers( const CObjectArray<const CTensorBase>& /* inputs 
 	NeoAssert( false );
 }
 
-void CConstantNode::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+void CConstantNode::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
 	CObjectArray<const CTensorBase>& outputs, IMathEngine& mathEngine )
 {
 	outputs[0] = Attributes.GetRequiredTensor( "value", mathEngine );

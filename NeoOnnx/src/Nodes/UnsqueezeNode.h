@@ -34,7 +34,7 @@ public:
 private:
 	void getAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const;
 	void calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const;
-	CTensorLayout calcOutputLayout( int dimCount, const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const;
+	CTensorLayout calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const;
 };
 
 } // namespace NeoOnnx
