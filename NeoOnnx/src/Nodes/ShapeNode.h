@@ -25,7 +25,7 @@ public:
 	CShapeNode( const onnx::NodeProto& shape, int opsetVersion );
 
 	// CNode methods
-	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const override
+	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */ ) const override
 		{ return true; }
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CObjectArray<const CTensorBase>& outputs, CDnn& dnn ) override;

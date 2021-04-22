@@ -164,7 +164,6 @@ void CConvNode::add3dConvLayer( const CObjectArray<const CTensorBase>& inputs,
 
 	const CTensorShape& filterShape = inputs[1]->Shape();
 	const int filterCount = filterShape[0];
-	const int inputChannels = inputs[0]->Shape()[1];
 	const int filterHeight = filterShape[2];
 	const int filterWidth = filterShape[3];
 	const int filterDepth = filterShape[4];

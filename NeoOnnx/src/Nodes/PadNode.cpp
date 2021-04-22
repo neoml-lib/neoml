@@ -182,7 +182,7 @@ CPadNode::CPadNode( const onnx::NodeProto& pad, int opsetVersion ) :
 }
 
 void CPadNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CObjectArray<const CTensorBase>& outputs, CDnn& /* dnn */ )
 {
 	if( OpsetVersion >= 11 ) {
 		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided pad sizes", *this );

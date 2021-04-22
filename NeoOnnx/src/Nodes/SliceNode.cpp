@@ -41,7 +41,7 @@ CSliceNode::CSliceNode( const onnx::NodeProto& slice, int opsetVersion ) :
 }
 
 void CSliceNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CObjectArray<const CTensorBase>& outputs, CDnn& /* dnn */ )
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 

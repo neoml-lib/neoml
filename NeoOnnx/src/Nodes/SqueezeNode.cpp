@@ -35,7 +35,7 @@ CSqueezeNode::CSqueezeNode( const onnx::NodeProto& squeeze, int opsetVersion ) :
 }
 
 void CSqueezeNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& outputs, CDnn& dnn )
+	CObjectArray<const CTensorBase>& outputs, CDnn& /* dnn */ )
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
@@ -71,7 +71,6 @@ void CSqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFastA
 	outputShape.SetBufferSize( inputShape.Size() - axes.Size() );
 
 	int axeIndex = 0;
-	int inputDimIndex = 0;
 	for( int i = 0; i < inputShape.Size(); ++i ) {
 		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
 			++axeIndex;
@@ -85,7 +84,6 @@ void CSqueezeNode::calcOutputShape( const CTensorShape& inputShape, const CFastA
 CTensorLayout CSqueezeNode::calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const
 {
 	int axeIndex = 0;
-	int inputDimIndex = 0;
 	CTensorLayout outputLayout;
 	outputLayout.SetBufferSize( inputLayout.Size() - axes.Size() );
 

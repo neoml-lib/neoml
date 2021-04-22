@@ -53,7 +53,6 @@ void CGemmNode::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckOnnxProtocol( inputShape.Size() == 2, "input must be 2-dimensional", *this );
-	const int batchSize = inputShape[transA == 0 ? 0 : 1];
 	const int inputObjectSize = inputShape[transA == 0 ? 1 : 0];
 
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );

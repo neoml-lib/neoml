@@ -79,7 +79,7 @@ CPtr<const CUserTensor> CGlobalPoolNodeBase::prepareInput( const CUserTensor& in
 }
 
 // Check if current layout is compatible with Global*PoolingLayer
-static bool isCompatibleLayout( const CTensorShape& shape, const CTensorLayout& layout, const CFastArray<int, 8>& pooledDims,
+static bool isCompatibleLayout( const CTensorLayout& layout, const CFastArray<int, 8>& pooledDims,
 	const CFastArray<int, 8>& remainingDims )
 {
 	// Check that pooled axes are BD_Height, BD_Width or BD_Depth
@@ -124,7 +124,7 @@ CPtr<const CUserTensor> CGlobalPoolNodeBase::convertInputLayout( const CUserTens
 	CheckNeoOnnxSupport( pooledDims.Size() <= 3 && remainingDims.Size() <= 4,
 		"Global pooling which can't be emulated by NeoML", *this );
 
-	if( isCompatibleLayout( inputShape, inputLayout, pooledDims, remainingDims ) ) {
+	if( isCompatibleLayout( inputLayout, pooledDims, remainingDims ) ) {
 		return &input;
 	}
 
