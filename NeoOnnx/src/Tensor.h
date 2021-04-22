@@ -36,7 +36,7 @@ struct CLayerOutput
 class CTensorBase : public virtual IObject {
 public:
 	// Number of tensors dimensions
-	const int DimCount() const { return shape.Size(); }
+	int DimCount() const { return shape.Size(); }
 
 	// Tensor's shape. The shape always describes Onnx axes.
 	const CTensorShape& Shape() const { return shape; }
