@@ -235,19 +235,19 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 	int poolSize = source.Depth() * source.Height() * source.Width();
 	int maxCount = result.Depth() * result.Height() * result.Width();
 
-	if( maxCount < 100 ){
-		// As the shared memory size depends on maxCount, we may need to limit the number of thread
-		int sharedMemoryPerThread = 2 * maxCount * sizeof( float );
-		int maxThreadCount = device->SharedMemoryLimit / sharedMemoryPerThread;
+	int heapSharedMemoryPerThread = 2 * maxCount * sizeof( float );
+	int heapMaxThreadCount = device->SharedMemoryLimit / heapSharedMemoryPerThread;
+	if( heapMaxThreadCount > 32 || device->MemoryLimit < 4 * source.BlobSize() * sizeof(float) ){
 		dim3 blockCount;
 		dim3 threadCount;
 
-		getCudaTaskGrid2DMinYX(device->ThreadMax3DCountY, 1, blockCount, threadCount,
-			( poolSize + maxCount - 1 ) / maxCount + 1, source.ObjectCount() * source.Channels(), maxThreadCount);
-		blockCount.y = 1;
-		threadCount.y--;
+		getCudaTaskGrid2DMinYX( 1, device->ThreadMax3DCountX, blockCount, threadCount,
+			source.ObjectCount() * source.Channels(), ( poolSize + maxCount - 1 ) / maxCount + 1, heapMaxThreadCount );
+		blockCount.x = 1;
+		threadCount.x--;
+		ASSERT_EXPR( threadCount.x > 0 );
 
-		int sharedSize = threadCount.x * ( threadCount.y + 1 ) * sharedMemoryPerThread;
+		int sharedSize = threadCount.y * ( threadCount.x + 1 ) * heapSharedMemoryPerThread;
 		BlobGlobalMaxPoolingHeapKernel<<<blockCount, threadCount, sharedSize>>>( desc, GetRaw( sourceData ),
 			GetRaw( maxIndicesData ), GetRaw( resultData ), poolSize, maxCount );
 	} else {

@@ -181,10 +181,10 @@ INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngi
 			"BatchLength = (1..3);"
 			"BatchWidth = (1..3);"
 			"ListSize = (1..3);"
-			"Channels = (1..5);"
+			"Channels = (1..3);"
 			"Depth = 1;"
 			"Height = 1;"
-			"Width = 10000;"
+			"Width = 100000;"
 			"MaxCount = 10000;"
 			"TestCount = 100;"
 		),
@@ -198,6 +198,17 @@ INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngi
 			"Width = 1000;"
 			"MaxCount = 2000;"
 			"TestCount = 10;"
+		),
+		CTestParams(
+			"BatchLength = 1;"
+			"BatchWidth = 100;"
+			"ListSize = 1;"
+			"Channels = 1000;"
+			"Depth = 1;"
+			"Height = 1;"
+			"Width = 100;"
+			"MaxCount = 100;"
+			"TestCount = 1;"
 		)
 	)
 );

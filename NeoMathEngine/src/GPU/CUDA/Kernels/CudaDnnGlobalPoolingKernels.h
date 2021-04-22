@@ -116,14 +116,14 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 	extern __shared__ float sharedData[];
 
 	int totalChannels = source.Channels();
-	int x = blockIdx.x * blockDim.x + threadIdx.x;
-	int b = x / totalChannels;
-	int c = x % totalChannels;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	int b = y / totalChannels;
+	int c = y % totalChannels;
 
-	int threadCountY = blockDim.y;
+	int threadCountX = blockDim.x;
 	int bufferStep = 2 * maxCount;
-	float* localHeap = sharedData + ( threadIdx.x * ( blockDim.y + 1 ) + threadIdx.y ) * bufferStep;
-	float* globalHeap = sharedData + ( threadIdx.x * ( blockDim.y + 1 ) + blockDim.y ) * bufferStep;
+	float* localHeap = sharedData + ( threadIdx.y * ( blockDim.x + 1 ) + threadIdx.x ) * bufferStep;
+	float* globalHeap = sharedData + ( threadIdx.y * ( blockDim.x + 1 ) + blockDim.x ) * bufferStep;
 
 	for( int i = 0; i < maxCount; ++i ) {
 		localHeap[2 * i] = -FLT_MAX;
@@ -133,16 +133,16 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 	Heap<HeapType::MinHeap> heap( localHeap, maxCount );
 
 	if( b < source.ObjectCount() && c < totalChannels ) {
-		const float* curSourceData = sourceData + ( b * poolSize + threadIdx.y ) * totalChannels + c;
-		for( int ind = threadIdx.y; ind < poolSize; ind += threadCountY ) {
+		const float* curSourceData = sourceData + ( b * poolSize + threadIdx.x ) * totalChannels + c;
+		for( int ind = threadIdx.x; ind < poolSize; ind += threadCountX ) {
 			heap.insert( { __ldg( curSourceData ), ind } );
-			curSourceData += threadCountY * totalChannels;
+			curSourceData += threadCountX * totalChannels;
 		}
 		heap.sort();
 	}
 	__syncthreads();
 
-	if( threadIdx.y == 0 && b < source.ObjectCount() && c < totalChannels  ) {
+	if( threadIdx.x == 0 && b < source.ObjectCount() && c < totalChannels  ) {
 		for(int i = 0; i < maxCount; ++i) {
 			globalHeap[2 * i] = -FLT_MAX;
 			globalHeap[2 * i + 1] = -1;
@@ -150,7 +150,7 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 
 		// add max from each thread to min heap
 		Heap<HeapType::MinHeap> minHeap( globalHeap, maxCount );
-		for( int i = 0; i < threadCountY; ++i ) {
+		for( int i = 0; i < threadCountX; ++i ) {
 			minHeap.insert( { localHeap[i * bufferStep], i * bufferStep } );
 		}
 
