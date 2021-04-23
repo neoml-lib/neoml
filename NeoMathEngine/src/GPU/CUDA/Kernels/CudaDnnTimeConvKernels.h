@@ -65,47 +65,6 @@ __global__ void BuildTempMatrixKernel( const CCudaTimeConvolutionDescInternal de
 	}
 }
 
-const int BlobTimeConvolutionPrepareCombine = 16;
-__global__ void BlobTimeConvolutionPrepareKernel( const CCudaTimeConvolutionDescInternal desc,
-	const float* sourceData, int xSizeNorm, float* preparedData )
-{
-	const CCudaBlobDesc& filter = desc.Filter;
-	const CCudaBlobDesc& result = desc.Result;
-	const CCudaBlobDesc& source = desc.Source;
-
-	int h = blockIdx.z * blockDim.z + threadIdx.z;
-	int seqNumber = blockIdx.y * blockDim.y + threadIdx.y;
-
-	if( h >= filter.Height() || seqNumber >= result.BatchLength() ) {
-		return;
-	}
-
-	int inputSeqNumber = seqNumber * desc.Stride + h * desc.Dilation - desc.PaddingFront;
-
-	int objectSize = source.ObjectSize();
-
-	int sourceShift = inputSeqNumber * source.BatchWidth() * objectSize;
-
-	int resultShift = objectSize * filter.Height() * result.BatchWidth() * seqNumber + objectSize * h;
-	int resultStep = objectSize * filter.Height();
-
-	const float* inputData = (0 <= inputSeqNumber && inputSeqNumber < source.BatchLength())
-		? (sourceData + sourceShift) : 0;
-	float* outputData = preparedData + resultShift;
-
-	// Pass over x
-	int index;
-	int step;
-	int count = GetCudaTaskCountAndIndex(result.BatchWidth() * objectSize,
-		BlobTimeConvolutionPrepareCombine, index, step);
-
-	for( int i = 0; i < count; ++i, index += step ) {
-		int batch = index / objectSize;
-		int pos = index % objectSize;
-		outputData[batch * resultStep + pos] = (inputData == 0) ? 0 : __ldg(inputData + index);
-	}
-}
-
 const int BlobTimeConvolutionBackwardUnpackCombine = 64;
 __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolutionDescInternal desc, float* outputDiffData,
 	const float* filterData, float* inputDiffData, int xSizeNorm, int combineCount, const float* data )
