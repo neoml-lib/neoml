@@ -420,7 +420,7 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 
 				multiplyMatrixByTransposedMatrix( tempDataPtr, size, filterObjectSize,
 					filterObjectSize, filterData, filterObjectCount, filterObjectSize, resultDataPtr,
-					filterObjectCount );
+					filterObjectCount, CustomSgemmFunction );
 
 				if( freeTermData != nullptr ) {
 					addVectorToMatrixRows( resultDataPtr, resultDataPtr, size, filterObjectCount, filterObjectCount, 
@@ -490,11 +490,11 @@ void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& des
 
 					multiplyMatrixByTransposedMatrixAndAdd( tempBlobPtr, result.Height() * resultCount, filter.ObjectSize(),
 						filter.ObjectSize(), filterData, filter.BatchWidth(), filter.ObjectSize(), outputTransposedPtr,
-						filter.BatchWidth() );
+						filter.BatchWidth(), CustomSgemmFunction );
 				} else {
 					multiplyMatrixByTransposedMatrix( tempBlobPtr, result.Height() * resultCount, filter.ObjectSize(),
 						filter.ObjectSize(), filterData, filter.BatchWidth(), filter.ObjectSize(), outputTransposedPtr,
-						filter.BatchWidth() );
+						filter.BatchWidth(), CustomSgemmFunction );
 				}
 
 				// Transpose the result
@@ -744,7 +744,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 			multiplyMatrixByTransposedMatrix( sourceDataRaw + inputStart * filterForwardChannelsCount,
 				inputCount, filterForwardChannelsCount, filterForwardChannelsCount,
 				filterForwardRaw, filterForwardGeometricalSize, filterForwardChannelsCount,
-				tempRaw + inputStart * tempWidth, filterForwardGeometricalSize );
+				tempRaw + inputStart * tempWidth, filterForwardGeometricalSize, CustomSgemmFunction );
 		}
 
 		if( curThreadCount > 1 ) {
@@ -858,7 +858,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& de
 				int outputDiffWidth = filter.Width() * tempBlobDesc.Depth() * tempBlobDesc.Channels();
 				multiplyMatrixByTransposedMatrixAndAdd( outputDiffMatrix, outputDiffHeight, outputDiffWidth, outputDiffWidth,
 					filterStart, filter.Depth() * filter.Channels(), filter.Width() * filter.BatchWidth(),
-					inputDiffMatrix, filter.Width() * inputDiff.Depth() * inputDiff.Channels() );
+					inputDiffMatrix, filter.Width() * inputDiff.Depth() * inputDiff.Channels(), CustomSgemmFunction );
 			}
 
 			inputDiffStart += inputDiff.Width() * inputDiff.Depth() * inputDiff.Channels();
@@ -950,7 +950,7 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 		multiplyTransposedMatrixByMatrix( GetRaw( outputDiffTrans.GetPrivateData() ),
 			outputDiffTrans.GetHeight(), outputDiffTrans.GetWidth(),
 			tempBlobHolderDataRaw, tempBlobHolder.GetWidth(),
-			outputTempDataRaw );
+			outputTempDataRaw, CustomSgemmFunction );
 
 		vectorAdd( filterDiffReductionDataRaw, outputTempDataRaw,
 			filterDiffReductionDataRaw, filterDiff.BlobSize() );
@@ -1037,7 +1037,8 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 					inputMatrix,
 					input.Depth() * input.Channels(),
 					input.Depth() * input.Channels(),
-					filterMatrix, filterDiff.ObjectSize() );
+					filterMatrix, filterDiff.ObjectSize(),
+					CustomSgemmFunction);
 			}
 		}
 

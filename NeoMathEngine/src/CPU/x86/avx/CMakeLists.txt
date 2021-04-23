@@ -14,7 +14,8 @@ target_sources(${PROJECT_NAME}
     ./common.h
     ./src/BlobConvolution.h
     ./src/BlobConvolutionImpl.h
-    #./src/MatrixMultiplying/Interleavers
+    ./src/AvxCommon.h
+    ./src/MatrixMultiplying/Interleavers/Interleavers.h
     ./src/MatrixMultiplying/Kernels/Kernels_6x.h
 )
 

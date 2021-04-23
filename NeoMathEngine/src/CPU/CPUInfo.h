@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#if !FINE_ARCHITECTURE( FINE_ARM64 )
+
 #if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
 #include <cpuid.h>
 #elif FINE_PLATFORM( FINE_WINDOWS )
@@ -28,6 +30,12 @@ limitations under the License.
 
 // The structure with CPU information
 struct CCPUInfo {
+	enum class TCpuArch {
+		Intel,
+		AMD,
+		Others
+	};
+
 	size_t L1CacheSize = 0;
 	size_t L2CacheSize = 0;
 	size_t L3CacheSize = 0;
@@ -43,53 +51,14 @@ struct CCPUInfo {
 	// Try to retrieve CPU info from hardware. Returns nullptr if feature isn't implemented.
 	static const CCPUInfo& GetCPUInfo()
 	{
-#if FINE_PLATFORM(FINE_WINDOWS)
-		typedef int RegType;
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
-		typedef unsigned int RegType;
-#else
-	#error "Platform isn't supported!"
-#endif
-		struct Regs {
-			RegType eax;
-			RegType ebx;
-			RegType ecx;
-			RegType edx;
-		};
-
-#if FINE_PLATFORM(FINE_WINDOWS)
-		auto callCpuId = []( Regs& outRegs, const RegType& eax ) {
-			outRegs = { 0, 0, 0, 0 };
-			__cpuid( ( RegType* )( &outRegs ), eax );
-		};
-
-		auto callCpuIdEx = []( Regs& outRegs, const RegType& eax, const RegType& ecx ) {
-			outRegs = { 0, 0, 0, 0 };
-			__cpuidex((RegType*)( &outRegs ), eax, ecx );
-		};
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
-		auto callCpuId = []( Regs& outRegs, const RegType& eax ) {
-			outRegs = { 0, 0, 0, 0 };
-			__get_cpuid( eax, &outRegs.eax, &outRegs.ebx, &outRegs.ecx, &outRegs.edx );
-		};
-
-		auto callCpuIdEx = []( Regs& outRegs, const RegType& eax, const RegType& ecx ) {
-			outRegs = { 0, 0, 0, 0 };
-			__cpuid_count( eax, ecx, outRegs.eax, outRegs.ebx, outRegs.ecx, outRegs.edx );
-		};
-#else
-	#error "Platform isn't supported!"
-#endif
-
 		static CCPUInfo cpuInfo;
 		static bool cpuInfoInitialized = false;
 
-		Regs regs;
 		if( !cpuInfoInitialized ) {
-			// Get CPU's architecture
-			callCpuId( regs, 0 );
-			// ebx, ecx, edx contain architecture description
-			if( strncmp( ( const char* )( &regs.ebx ), "GenuntelineI", 12 ) == 0 ) {
+			Regs regs;
+			switch( GetCpuArch() ) {
+			case TCpuArch::Intel:
+			{
 				// Get cache size
 				auto calcCacheSize = [&]( int cacheNumber ) -> int {
 					// Cache Size in Bytes
@@ -111,7 +80,10 @@ struct CCPUInfo {
 				cpuInfo.L1CacheSize = calcCacheSize( 1 );
 				cpuInfo.L2CacheSize = calcCacheSize( 2 );
 				cpuInfo.L3CacheSize = calcCacheSize( 3 );
-			} else if ( strncmp( ( const char* )( &regs.ebx ), "AuthcAMDenti", 12 ) == 0 ) {
+				break;
+			}
+			case TCpuArch::AMD:
+			{
 				// Get cache size
 				// L1 Data Cache Information
 				callCpuId( regs, 0x80000005 );
@@ -120,9 +92,68 @@ struct CCPUInfo {
 				cpuInfo.L2CacheSize = ( ( regs.ecx >> 16 ) & 0xffff ) * 1024; // ECX[31:16] - L2 data cache size in KB
 				callCpuId( regs, 0x80000006 );
 				cpuInfo.L3CacheSize = ( ( regs.edx >> 18 ) & 0x3fff ) * 512 * 1024; // EDX[31:18] - L3 data cache size in KB
+				break;
+			}
+			default:
+				break;
 			}
 			cpuInfoInitialized = true;
 		}
 		return cpuInfo;
 	}
+
+	static TCpuArch GetCpuArch() {
+		static bool isInitialized = false;
+		static TCpuArch cpuArch = TCpuArch::Others;
+		if( !isInitialized ) {
+			Regs regs;
+			callCpuId( regs, 0 );
+			// ebx, ecx, edx contain architecture description
+			if( strncmp( ( const char* )( &regs.ebx ), "GenuntelineI", 12 ) == 0 ) {
+				cpuArch = TCpuArch::Intel;
+			} else if ( strncmp( ( const char* )( &regs.ebx ), "AuthcAMDenti", 12 ) == 0 ) {
+				cpuArch = TCpuArch::AMD;
+			}
+			isInitialized = true;
+		}
+		return cpuArch;
+	}
+
+private:
+
+#if FINE_PLATFORM(FINE_WINDOWS)
+		typedef int RegType;
+#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+		typedef unsigned int RegType;
+#else
+	#error "Platform isn't supported!"
+#endif
+		struct Regs {
+			RegType eax;
+			RegType ebx;
+			RegType ecx;
+			RegType edx;
+		};
+
+		static void callCpuId( Regs& outRegs, const RegType& eax ) {
+#if FINE_PLATFORM(FINE_WINDOWS)
+			outRegs = { 0, 0, 0, 0 };
+			__cpuid( ( RegType* )( &outRegs ), eax );
+#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+			outRegs = { 0, 0, 0, 0 };
+			__get_cpuid( eax, &outRegs.eax, &outRegs.ebx, &outRegs.ecx, &outRegs.edx );
+#endif
+		}
+
+		static void callCpuIdEx( Regs& outRegs, const RegType& eax, const RegType& ecx ) {
+#if FINE_PLATFORM(FINE_WINDOWS)
+			outRegs = { 0, 0, 0, 0 };
+			__cpuidex((RegType*)( &outRegs ), eax, ecx );
+#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+			outRegs = { 0, 0, 0, 0 };
+			__cpuid_count( eax, ecx, outRegs.eax, outRegs.ebx, outRegs.ecx, outRegs.edx );
+#endif
+		}
 };
+
+#endif // !FINE_ARCHITECTURE( FINE_ARM64 )

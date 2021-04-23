@@ -23,6 +23,7 @@ limitations under the License.
 #include <MathEngineCommon.h>
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <DllLoader.h>
+#include <CPUInfo.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
@@ -30,14 +31,6 @@ limitations under the License.
 #include <PerformanceCountersDefault.h>
 #else
 #error "Platform is not supported!";
-#endif
-
-#if( FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX ) ) && !FINE_ARCHITECTURE( FINE_ARM64 )
-#include <cpuid.h>
-#endif
-
-#if FINE_PLATFORM( FINE_WINDOWS )
-#include <intrin.h>
 #endif
 
 #ifdef NEOML_USE_MKL
@@ -52,6 +45,7 @@ limitations under the License.
 
 namespace NeoML {
 
+// TODO: Move to CPUinfo
 // Defines the float alignment
 static int defineFloatAlignment()
 {
@@ -103,11 +97,21 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, false ) ),
 	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
 	dllLoader( CDllLoader::AVX_DLL ),
-	simdMathEngine( nullptr )
+	simdMathEngine( nullptr ),
+	CustomSgemmFunction( nullptr )
 {
 #ifdef NEOML_USE_AVX
 	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
 		simdMathEngine = unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
+		// Don't use custom sgemm function when we are compiled with MKL and when we are on Intel CPU.
+		if( CCPUInfo::GetCpuArch() == CCPUInfo::TCpuArch::Intel ) {
+#ifndef NEOML_USE_MKL
+			CustomSgemmFunction = simdMathEngine->GetSgemmFunction();
+#endif
+		} else {
+			// Non Intel architectures
+			CustomSgemmFunction = simdMathEngine->GetSgemmFunction();
+		}
 	}
 #endif
 }

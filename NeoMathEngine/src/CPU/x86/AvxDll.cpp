@@ -138,6 +138,7 @@ bool CAvxDll::loadFunctions()
 
 bool CAvxDll::isAvxAvailable()
 {
+	// TODO: move to CPUInfo
 	// Check for AVX
 #if FINE_PLATFORM(FINE_WINDOWS)
 
