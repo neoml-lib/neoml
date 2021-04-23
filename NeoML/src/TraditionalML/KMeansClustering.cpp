@@ -29,6 +29,22 @@ limitations under the License.
 
 namespace NeoML {
 
+// Calculates the inertia of current result
+static float calcInertia( const IClusteringData& data, const CClusteringResult& result )
+{
+	const CFloatMatrixDesc& matrix = data.GetMatrix();
+	float inertia = 0;
+	for( int i = 0; i < matrix.Height; ++i ) {
+		const int clusterIndex = result.Data[i];
+		CFloatVector dist( matrix.Width, matrix.GetRow( i ) );
+		dist -= result.Clusters[clusterIndex].Mean;
+		for( int j = 0; j < matrix.Width; ++j ) {
+			inertia += dist[j] * dist[j];
+		}
+	}
+	return inertia;
+}
+
 static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CFloatMatrixDesc& data )
 {
 	NeoAssert( data.Columns == nullptr );
@@ -73,6 +89,35 @@ CKMeansClustering::CKMeansClustering( const CParam& _params ) :
 
 bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
 {
+	bool succeeded = runClusterization( input, params.Seed, result );
+
+	if( params.RunCount == 1 ) {
+		return succeeded;
+	}
+
+	float inertia = calcInertia( *input, result );
+	::printf( "first inertia: %.4f\n", inertia );
+	CRandom random( params.Seed );
+
+	for( int runIndex = 1; runIndex < params.RunCount; ++runIndex ) {
+		CClusteringResult newResult;
+		bool runSucceeded = runClusterization( input, static_cast<int>( random.Next() ), newResult );
+		float newInertia = calcInertia( *input, newResult );
+		::printf( "inertia: %.4f", newInertia );
+		if( newInertia < inertia ) {
+			::printf( "\tImprovement!!!" );
+			inertia = newInertia;
+			succeeded = runSucceeded;
+			newResult.CopyTo( result );
+		}
+		::printf( "\n" );
+	}
+
+	return succeeded;
+}
+
+bool CKMeansClustering::runClusterization( IClusteringData* input, int seed, CClusteringResult& result )
+{
 	NeoAssert( input != 0 );
 
 	CFloatMatrixDesc matrix = input->GetMatrix();
@@ -85,7 +130,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 
 	// Specific optimized case (uses MathEngine)
 	if( matrix.Columns == nullptr && params.DistanceFunc == DF_Euclid && params.Algo == KMA_Lloyd ) {
-		return denseLloydL2Clusterize( input, result );
+		return denseLloydL2Clusterize( input, seed, result );
 	}
 
 	CArray<double> weights;
@@ -93,7 +138,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 		weights.Add( input->GetVectorWeight( i ) );
 	}
 
-	selectInitialClusters( matrix );
+	selectInitialClusters( matrix, seed );
 
 	if( log != 0 ) {
 		*log << "Initial clusters:\n";
@@ -129,7 +174,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 	return success;
 }
 
-bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, CClusteringResult& result )
+bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result )
 {
 	NeoAssert( params.DistanceFunc == DF_Euclid );
 	NeoAssert( params.Algo == KMA_Lloyd );
@@ -144,7 +189,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, CClust
 	CPtr<CDnnBlob> weight = createWeightBlob( *mathEngine, rawData );
 	CPtr<CDnnBlob> centers = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount );
 
-	selectInitialClusters( *data, *centers );
+	selectInitialClusters( *data, seed, *centers );
 
 	bool success = false;
 
@@ -198,7 +243,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, CClust
 }
 
 // Selects the initial clusters
-void CKMeansClustering::selectInitialClusters( const CFloatMatrixDesc& matrix )
+void CKMeansClustering::selectInitialClusters( const CFloatMatrixDesc& matrix, int seed )
 {
 	if( !clusters.IsEmpty() ) {
 		// The initial clusters have been set already
@@ -215,33 +260,55 @@ void CKMeansClustering::selectInitialClusters( const CFloatMatrixDesc& matrix )
 	}
 
 	if( params.Initialization == KMI_Default ) {
-		defaultInitialization( matrix );
+		defaultInitialization( matrix, seed );
 	} else if( params.Initialization == KMI_KMeansPlusPlus ) {
-		kMeansPlusPlusInitialization( matrix );
+		kMeansPlusPlusInitialization( matrix, seed );
 	} else {
 		NeoAssert( false );
 	}
 }
 
-void CKMeansClustering::defaultInitialization( const CFloatMatrixDesc& matrix )
+void CKMeansClustering::defaultInitialization( const CFloatMatrixDesc& matrix, int seed )
 {
 	const int vectorCount = matrix.Height;
 	CCommonCluster::CParams clusterParam;
 	clusterParam.MinElementCountForVariance = 1;
-
-	// If the cluster centers have not been specified, use some elements of the input data
-	const int step = max( vectorCount / params.InitialClustersCount, 1 );
-	NeoAssert( step > 0 );
 	clusters.SetBufferSize( params.InitialClustersCount );
-	for( int i = 0; i < params.InitialClustersCount; i++ ) {
-		CFloatVectorDesc desc;
-		matrix.GetRow( ( i * step ) % vectorCount, desc );
-		CFloatVector mean( matrix.Width, desc );
-		clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ), clusterParam ) );
+
+	if( seed == 0xCEA ) {
+		// !Backward compatibility!
+		// If the cluster centers have not been specified, use some elements of the input data
+		const int step = max( vectorCount / params.InitialClustersCount, 1 );
+		NeoAssert( step > 0 );
+		for( int i = 0; i < params.InitialClustersCount; i++ ) {
+			CFloatVectorDesc desc;
+			matrix.GetRow( ( i * step ) % vectorCount, desc );
+			CFloatVector mean( matrix.Width, desc );
+			clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ), clusterParam ) );
+		}
+	} else {
+		CArray<int> perm;
+		perm.SetSize( matrix.Height );
+		for( int i = 0; i < perm.Size(); ++i ) {
+			perm[i] = i;
+		}
+		CRandom random( seed );
+		for( int i = 0; i < perm.Size(); ++i ) {
+			const int j = random.UniformInt( 0, matrix.Height - 1 );
+			if( i != j ) {
+				swap( perm[i], perm[j] );
+			}
+		}
+		for( int i = 0; i < params.InitialClustersCount; i++ ) {
+			CFloatVectorDesc desc;
+			matrix.GetRow( perm[i] );
+			CFloatVector mean( matrix.Width, desc );
+			clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ), clusterParam ) );
+		}
 	}
 }
 
-void CKMeansClustering::kMeansPlusPlusInitialization( const CFloatMatrixDesc& matrix )
+void CKMeansClustering::kMeansPlusPlusInitialization( const CFloatMatrixDesc& matrix, int seed )
 {
 	const int vectorCount = matrix.Height;
 	NeoAssert( params.InitialClustersCount <= vectorCount );
@@ -249,7 +316,7 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CFloatMatrixDesc& ma
 	clusterParam.MinElementCountForVariance = 1;
 
 	// Use random element as the first center
-	CRandom random( 0xCEA );
+	CRandom random( seed );
 	const int firstCenterIndex = random.UniformInt( 0, vectorCount - 1 );
 	CFloatVector firstCenter( matrix.Width, matrix.GetRow( firstCenterIndex ) );
 	clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( firstCenter ), clusterParam ) );
@@ -588,7 +655,7 @@ bool CKMeansClustering::isPruned( const CArray<float>& upperBounds, const CVaria
 }
 
 // Selects initial centers from dense data
-void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& centers )
+void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, int seed, CDnnBlob& centers )
 {
 	const int featureCount = data.GetObjectSize();
 	if( !initialClusterCenters.IsEmpty() ) {
@@ -605,10 +672,10 @@ void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& c
 	static_assert( KMI_Count == 2, "KMI_Count != 2" );
 	switch( params.Initialization ) {
 		case KMI_Default:
-			defaultInitialization( data, centers );
+			defaultInitialization( data, seed, centers );
 			break;
 		case KMI_KMeansPlusPlus:
-			kMeansPlusPlusInitialization( data, centers );
+			kMeansPlusPlusInitialization( data, seed, centers );
 			break;
 		default:
 			NeoAssert( false );
@@ -616,30 +683,50 @@ void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& c
 }
 
 // Selects initial centers by using default algo from dense data
-void CKMeansClustering::defaultInitialization( const CDnnBlob& data, CDnnBlob& centers )
+void CKMeansClustering::defaultInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers )
 {
 	const int vectorCount = data.GetObjectCount();
 	const int featureCount = data.GetObjectSize();
 	NeoAssert( centers.GetObjectCount() == params.InitialClustersCount );
 	NeoAssert( centers.GetObjectSize() == featureCount );
-
-	const int step = max( vectorCount / params.InitialClustersCount, 1 );
-	NeoAssert( step > 0 );
 	IMathEngine& mathEngine = data.GetMathEngine();
 
-	for( int i = 0; i < params.InitialClustersCount; i++ ) {
-		const int pos = ( i * step ) % vectorCount;
-		mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( pos ), featureCount );
+	if( seed == 0xCEA ) {
+		// !Backward compatibility!
+		const int step = max( vectorCount / params.InitialClustersCount, 1 );
+		NeoAssert( step > 0 );
+
+		for( int i = 0; i < params.InitialClustersCount; i++ ) {
+			const int pos = ( i * step ) % vectorCount;
+			mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( pos ), featureCount );
+		}
+	} else {
+		CArray<int> perm;
+		perm.SetSize( vectorCount );
+		for( int i = 0; i < perm.Size(); ++i ) {
+			perm[i] = i;
+		}
+		CRandom random( seed );
+		for( int i = 0; i < perm.Size(); ++i ) {
+			const int j = random.UniformInt( 0, vectorCount - 1 );
+			if( i != j ) {
+				swap( perm[i], perm[j] );
+			}
+		}
+
+		for( int i = 0; i < params.InitialClustersCount; i++ ) {
+			mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( perm[i] ), featureCount );
+		}
 	}
 }
 
 // Selects initial centers by using K-Means++ algo from dense data
-void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, CDnnBlob& centers )
+void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers )
 {
 	const int vectorCount = data.GetObjectCount();
 	const int featureCount = data.GetObjectSize();
 	// Select random vector
-	CRandom random( 0xCEA );
+	CRandom random( seed );
 	const int firstChoice = random.UniformInt( 0, vectorCount - 1 );
 	// Copy first vector
 	IMathEngine& mathEngine = centers.GetMathEngine();

@@ -69,9 +69,14 @@ public:
 		double Tolerance;
 		// Number of threads used in KMeans
 		int ThreadCount;
+		// Number of runs of algorithm
+		// If more than one then the best variant (least ineratia) will be returned
+		int RunCount;
+		// Initial seed for choosing centers (and seeds if RunCount > 1)
+		int Seed;
 
 		CParam() : Algo( KMA_Lloyd ), DistanceFunc( DF_Euclid ), InitialClustersCount( 1 ), Initialization( KMI_Default ),
-			MaxIterations( 1 ), Tolerance( 1e-5f ), ThreadCount( 1 )
+			MaxIterations( 1 ), Tolerance( 1e-5f ), ThreadCount( 1 ), RunCount( 1 ), Seed( 0xCEA )
 		{
 		}
 	};
@@ -99,10 +104,13 @@ private:
 	CObjectArray<CCommonCluster> clusters; // the current clusters
 	CArray<CClusterCenter> initialClusterCenters; // the initial cluster centers
 
+	// Single run of clusterization with given seed
+	bool runClusterization( IClusteringData* input, int seed, CClusteringResult& result );
+
 	// Initial cluster selection for sparse data
-	void selectInitialClusters( const CFloatMatrixDesc& matrix );
-	void defaultInitialization( const CFloatMatrixDesc& matrix );
-	void kMeansPlusPlusInitialization( const CFloatMatrixDesc& matrix );
+	void selectInitialClusters( const CFloatMatrixDesc& matrix, int seed );
+	void defaultInitialization( const CFloatMatrixDesc& matrix, int seed );
+	void kMeansPlusPlusInitialization( const CFloatMatrixDesc& matrix, int seed );
 
 	// Sparse data clusterization
 	bool clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
@@ -132,11 +140,11 @@ private:
 		const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id) const;
 
 	// Specific case for dense data with Euclidean metrics and Lloyd algorithm
-	bool denseLloydL2Clusterize( IClusteringData* rawData, CClusteringResult& result );
+	bool denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result );
 	// Initial cluster selection
-	void selectInitialClusters( const CDnnBlob& data, CDnnBlob& centers );
-	void defaultInitialization( const CDnnBlob& data, CDnnBlob& centers );
-	void kMeansPlusPlusInitialization( const CDnnBlob& data, CDnnBlob& centers );
+	void selectInitialClusters( const CDnnBlob& data, int seed, CDnnBlob& centers );
+	void defaultInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers );
+	void kMeansPlusPlusInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers );
 	// Lloyd algorithm implementation
 	bool lloydBlobClusterization( const CDnnBlob& data, const CDnnBlob& weight,
 		CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels );
