@@ -114,7 +114,7 @@ public:
 	// If pos + size > the total blob size, 0 will be returned
 	// The GetBuffer and ReleaseBuffer methods should be called strictly on the last-in-first-out principle within the same thread
 	template<class T>
-	T* GetBuffer( int pos, int size );
+	T* GetBuffer( int pos, int size, bool exchange );
 
 	// exchange parameter indicates if the buffer contents should be "flushed" to the device memory
 	// If you turn it off, the changes made in the buffer may not be passed to the blob memory
@@ -366,7 +366,7 @@ inline void CDnnBlob::CopyTo(T* dst) const
 }
 
 template<class T>
-inline T* CDnnBlob::GetBuffer( int pos, int size )
+inline T* CDnnBlob::GetBuffer( int pos, int size, bool exchange )
 {
 	if( pos < 0 || GetDataSize() < pos + size ) {
 		return 0;
@@ -384,7 +384,7 @@ inline T* CDnnBlob::GetBuffer( int pos, int size )
 			NeoAssert( false );
 	}
 
-	return static_cast<T*>( mathEngine.GetBuffer( data, pos * dataSize, size * dataSize ) );
+	return static_cast<T*>( mathEngine.GetBuffer( data, pos * dataSize, size * dataSize, exchange ) );
 }
 
 inline int CDnnBlob::GetParentPos() const
