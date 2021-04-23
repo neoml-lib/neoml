@@ -66,8 +66,8 @@ __global__ void BuildTempMatrixKernel( const CCudaTimeConvolutionDescInternal de
 }
 
 const int BlobTimeConvolutionBackwardUnpackCombine = 64;
-__global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolutionDescInternal desc, float* outputDiffData,
-	const float* filterData, float* inputDiffData, int xSizeNorm, int combineCount, const float* data )
+__global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolutionDescInternal desc, const float* filterData,
+	float* inputDiffData, int xSizeNorm, int combineCount, const float* data, int firstRowIndex, int currPartHeight )
 {
 	const CCudaBlobDesc& inputDiff = desc.Source;
 	const CCudaBlobDesc& filter = desc.Filter;
@@ -80,8 +80,8 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 
 	int objectSize = inputDiff.ObjectSize();
 
-	int seqNum = batch / inputDiff.BatchWidth();
-	int batchNum = batch % inputDiff.BatchWidth();
+	int seqNum = batch / ( inputDiff.BatchWidth() * inputDiff.ListSize() );
+	int batchNum = batch % ( inputDiff.BatchWidth() * inputDiff.ListSize() );
 
 	int index;
 	int step;
@@ -105,7 +105,11 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 		if( outSeqNum >= outputDiff.BatchLength() ) {
 			continue;
 		}
-		const float* from = data + ( (outSeqNum * inputDiff.BatchWidth() + batchNum) * filter.Height() + filterY) * objectSize;
+		const int tempMatrixRowIndex = outSeqNum * inputDiff.BatchWidth() * inputDiff.ListSize() + batchNum;
+		if( tempMatrixRowIndex < firstRowIndex || tempMatrixRowIndex >= firstRowIndex + currPartHeight ) {
+			continue;
+		}
+		const float* from = data + ((tempMatrixRowIndex - firstRowIndex) * filter.Height() + filterY) * objectSize;
 		int curIndex = index;
 		for(int i = 0; i < count; ++i, curIndex += step) {
 			sums[i] += __ldg(from + curIndex);
@@ -113,9 +117,9 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	}
 
 	// Write the results
-	float* curInputDiffData = inputDiffData + (seqNum * inputDiff.BatchWidth() + batchNum) * objectSize;
+	float* curInputDiffData = inputDiffData + (seqNum * inputDiff.BatchWidth() * inputDiff.ListSize() + batchNum) * objectSize;
 	for( int i = 0; i < count; ++i, index += step ) {
-		curInputDiffData[index] = sums[i];
+		curInputDiffData[index] += sums[i];
 	}
 }
 
