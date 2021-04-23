@@ -20,44 +20,48 @@ limitations under the License.
 
 namespace NeoML {
 
-const int BlobTimeConvolutionPrepareCombine = 16;
-__global__ void BlobTimeConvolutionPrepareKernel( const CCudaTimeConvolutionDescInternal desc,
-	const float* sourceData, int xSizeNorm, float* preparedData )
+// Time convolution may be done as a matrix multiplication if inputData will be reordered in a temporary matrix
+// where i-th row contains data, which will be covered by filter in i-th row of output
+
+// This kernel builds a PART of this matrix, starting with firstLineIndex and of matrixHeight height
+// It's done because full temp matrix may require a lot of memory
+
+__global__ void BuildTempMatrixKernel( const CCudaTimeConvolutionDescInternal desc,
+	const float* __restrict__ input, int matrixPartHeight, int matrixWidth, float* __restrict__ matrix,
+	int firstLineIndex )
 {
-	const CCudaBlobDesc& filter = desc.Filter;
-	const CCudaBlobDesc& result = desc.Result;
-	const CCudaBlobDesc& source = desc.Source;
+	const int objectSize = desc.Source.ObjectSize();
+	const int batchSize = desc.Source.BatchWidth() * desc.Source.ListSize();
+	const int inBatchLen = desc.Source.BatchLength();
+	const int outBatchLen = desc.Result.BatchLength();
+	const int stride = desc.Stride;
+	const int padFront = desc.PaddingFront;
+	const int dilation = desc.Dilation;
 
-	int h = blockIdx.z * blockDim.z + threadIdx.z;
-	int seqNumber = blockIdx.y * blockDim.y + threadIdx.y;
+	int matrixRow;
+	int matrixCol;
 
-	if( h >= filter.Height() || seqNumber >= result.BatchLength() ) {
+	if( !GetCudaTaskIndex2D( matrixPartHeight, matrixWidth, matrixRow, matrixCol ) ) {
 		return;
 	}
 
-	int inputSeqNumber = seqNumber * desc.Stride + h * desc.Dilation - desc.PaddingFront;
+	matrix += matrixRow * matrixWidth + matrixCol;
 
-	int objectSize = source.ObjectSize();
+	// Row index in full temporary matrix
+	const int fullMatrixRowIndex = matrixRow + firstLineIndex;
+	const int batch = fullMatrixRowIndex % batchSize;
+	const int seqPos = fullMatrixRowIndex / batchSize;
 
-	int sourceShift = inputSeqNumber * source.BatchWidth() * objectSize;
+	const int inputSeqStart = seqPos * stride - padFront;
 
-	int resultShift = objectSize * filter.Height() * result.BatchWidth() * seqNumber + objectSize * h;
-	int resultStep = objectSize * filter.Height();
+	const int elemIndex = matrixCol % objectSize;
+	const int filterSeq = matrixCol / objectSize;
 
-	const float* inputData = (0 <= inputSeqNumber && inputSeqNumber < source.BatchLength())
-		? (sourceData + sourceShift) : 0;
-	float* outputData = preparedData + resultShift;
-
-	// Pass over x
-	int index;
-	int step;
-	int count = GetCudaTaskCountAndIndex(result.BatchWidth() * objectSize,
-		BlobTimeConvolutionPrepareCombine, index, step);
-
-	for( int i = 0; i < count; ++i, index += step ) {
-		int batch = index / objectSize;
-		int pos = index % objectSize;
-		outputData[batch * resultStep + pos] = (inputData == 0) ? 0 : __ldg(inputData + index);
+	const int inputSeq = inputSeqStart + filterSeq * dilation;
+	if( inputSeq >= 0 && inputSeq < inBatchLen ) {
+		*matrix = input[( inputSeq * batchSize + batch ) * objectSize + elemIndex];
+	} else {
+		*matrix = 0;
 	}
 }
 

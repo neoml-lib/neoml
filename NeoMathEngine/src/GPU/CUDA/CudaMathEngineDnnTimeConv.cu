@@ -28,24 +28,6 @@ limitations under the License.
 
 namespace NeoML {
 
-void CCudaMathEngine::blobTimeConvolutionPrepare( const CCudaTimeConvolutionDescInternal& desc, float* data, const CFloatHandle& sourceData )
-{
-	ASSERT_EXPR( sourceData.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-
-	const CCudaBlobDesc& filter = desc.Filter;
-	const CCudaBlobDesc& result = desc.Result;
-	const CCudaBlobDesc& source = desc.Source;
-
-	int xSizeNorm = source.BatchWidth() * source.ObjectSize();
-	xSizeNorm = (xSizeNorm + BlobTimeConvolutionPrepareCombine - 1) / BlobTimeConvolutionPrepareCombine;
-
-	dim3 blockCount;
-	dim3 threadCount;
-	getCudaTaskGrid3DMinZYX(1, 1, 512, blockCount, threadCount, filter.Height(), result.BatchLength(), xSizeNorm);
-	BlobTimeConvolutionPrepareKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), xSizeNorm, data );
-}
-
 CTimeConvolutionDesc* CCudaMathEngine::InitTimeConvolution( const CBlobDesc& source,
 	int stride, int paddingFront, int paddingBack, int dilation,
 	const CBlobDesc& filter, const CBlobDesc& result )
@@ -94,29 +76,44 @@ void CCudaMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc,
 	const CCudaBlobDesc& filter = desc.Filter;
 	const CCudaBlobDesc& result = desc.Result;
 
-	int workspaceSize = 0;
-
-	bool useTempMatrix = desc.Stride > 1 || filter.Height() > 1;
-
-	if( useTempMatrix ) {
-		// Create a temporary matrix
-		workspaceSize = result.BatchLength() * source.BatchWidth() * filter.Height() * source.ObjectSize();
-	}
-
-	CFloatHandleStackVar buffer( mathEngine(), workspaceSize );
-	CConstFloatHandle curSourceData;
-	if( useTempMatrix ) {
-		blobTimeConvolutionPrepare( desc, GetRaw(buffer.GetHandle()), sourceData );
-		curSourceData = buffer.GetHandle();
+	if( filter.Height() == 1 && desc.Stride == 1 ) {
+		// This assert has already been checked in InitTimeConvolution
+		ASSERT_EXPR( desc.PaddingFront == 0 && desc.PaddingBack == 0 );
+		// Trivial case
+		MultiplyMatrixByTransposedMatrix(sourceData,
+			source.BatchLength() * source.BatchWidth(), source.ObjectSize(), source.ObjectSize(),
+			filterData, filter.ObjectCount(), source.ObjectSize(),
+			resultData + desc.PaddingFront * filter.ObjectCount(), filter.ObjectCount(), result.BlobSize());
 	} else {
-		curSourceData = sourceData;
-	}
+		// Convolution through temp matrix
+		const int tempMatrixWidth = filter.ObjectSize();
+		const int tempMatrixHeight = result.BlobSize() / filter.ObjectCount();
+		// Max amount of memory allowed is a half of math engine's free memory
+		const int maxInMemoryHeight = max( 1,
+			min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ), tempMatrixHeight ) );
 
-	// Convolution
-	MultiplyMatrixByTransposedMatrix(curSourceData,
-		result.BatchLength() * source.BatchWidth(), filter.Height() * source.ObjectSize(), filter.Height() * source.ObjectSize(),
-		filterData, filter.ObjectCount(), filter.Height() * source.ObjectSize(),
-		resultData, filter.ObjectCount(), result.BlobSize());
+		int matrixRowIndex = 0;
+		CFloatHandle currResult = resultData;
+		CFloatHandleStackVar tempMatrixPart( mathEngine(), maxInMemoryHeight * tempMatrixWidth );
+
+		// Build temp matrix part by part and add filterDiff of that part
+		while( matrixRowIndex < tempMatrixHeight ) {
+			const int currPartHeight = min( tempMatrixHeight - matrixRowIndex, maxInMemoryHeight );
+
+			dim3 blockCount;
+			dim3 threadCount;
+			getCudaTaskGrid2D( blockCount, threadCount, currPartHeight, tempMatrixWidth );
+
+			BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), currPartHeight,
+				tempMatrixWidth, GetRaw( tempMatrixPart.GetHandle() ), matrixRowIndex );
+			MultiplyMatrixByTransposedMatrix(tempMatrixPart, currPartHeight, tempMatrixWidth, tempMatrixWidth,
+				filterData, filter.ObjectCount(), tempMatrixWidth,
+				currResult, filter.ObjectCount(), result.BlobSize());
+
+			matrixRowIndex += currPartHeight;
+			currResult += currPartHeight * filter.ObjectCount();
+		}
+	}
 
 	// Free term
 	AddVectorToMatrixRows( 1, resultData, resultData, result.ObjectCount(), result.ObjectSize(), freeTermData );
