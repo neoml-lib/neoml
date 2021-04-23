@@ -9,10 +9,13 @@ target_sources(${PROJECT_NAME}
 
     # Sources
     ./src/AvxMathEngine.cpp
+    ./src/MatrixMultiplying/AvxMatrixMultiplying.cpp
     # Headers
     ./common.h
     ./src/BlobConvolution.h
     ./src/BlobConvolutionImpl.h
+    #./src/MatrixMultiplying/Interleavers
+    ./src/MatrixMultiplying/Kernels/Kernels_6x.h
 )
 
 string(TOUPPER ${CMAKE_SYSTEM_NAME} UPPERCASE_CMAKE_SYSTEM_NAME)
@@ -21,8 +24,14 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC _${UPPERCASE_CMAKE_SYSTEM_NAME
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../MatrixMultiplyingInterleavedCommon>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/MatrixMultiplying>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/MatrixMultiplying/Interleavers>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/MatrixMultiplying/Kernels>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../../../include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../..>
 )
 
 # Add some definitions
