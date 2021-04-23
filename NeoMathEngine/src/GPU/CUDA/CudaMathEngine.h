@@ -528,8 +528,6 @@ private:
 	template<class T>
 	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 
-	void blobTimeConvolutionPrepare( const CCudaTimeConvolutionDescInternal& desc, float* data, const CFloatHandle& sourceData );
-
 	void blobConvertFromRle( const CCudaRleConvolutionDesc& desc, const CFloatHandle& source, const CFloatHandle& result );
 
 	void multiplyMatrixByTransposedMatrixAndAdd( const CConstFloatHandle& firstHandle,
