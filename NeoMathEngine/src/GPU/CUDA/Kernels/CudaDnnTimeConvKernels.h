@@ -123,7 +123,7 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	}
 }
 
-__global__ void blobTimeConvolutionLearnFilterKernel( CCudaTimeConvolutionDescInternal desc,
+__global__ void BlobTimeConvolutionLearnFilterKernel( CCudaTimeConvolutionDescInternal desc,
 	const float* __restrict__ input, const float* __restrict__ outputDiff, float* filterDiff )
 {
 	const int objectSize = desc.Filter.Channels();
