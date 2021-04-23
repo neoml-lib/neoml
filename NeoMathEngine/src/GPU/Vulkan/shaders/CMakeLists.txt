@@ -132,6 +132,8 @@ set(SHADER_SOURCES
     PrepareBlobForConvolution.comp
     BlobReorgFloat.comp
     BlobReorgInt.comp
+    QrnnFPooling.comp
+    QrnnIfPooling.comp
 )
 
 set(IB_SHADER_SOURCES

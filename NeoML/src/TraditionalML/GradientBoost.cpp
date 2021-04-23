@@ -402,7 +402,11 @@ CPtr<IObject> CGradientBoost::train(
 	loss = lossFunction->CalcLossMean( predicts, answers );
 
 	return createOutputRepresentation(
+<<<<<<< HEAD
 		models, params.TreeBuilder == GBTB_MultiFull || params.TreeBuilder == GBTB_MultiFastHist ? problem->GetValueSize() : 1 );
+=======
+		models, params.TreeBuilder == GBTB_MultiFull ? problem->GetValueSize() : 1 );
+>>>>>>> 220e6b9364009cf18e6ce5464a3d9f4e4ed90934
 }
 
 // Creates a tree builder depending on the problem type
@@ -423,7 +427,6 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
 			builderParams.DenseTreeBoostCoefficient = params.DenseTreeBoostCoefficient;
 			if( params.TreeBuilder == GBTB_MultiFull ) {
-				NeoAssert( problem->GetValueSize() > 1 );
 				fullMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream );
 			} else {
 				fullSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream );
@@ -583,12 +586,12 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	gradientsSum.Add( 0, gradients.Size() );
 	CArray<double> hessiansSum;
 	hessiansSum.Add( 0, gradients.Size() );
-	CArray<float> weights;
+	CArray<double> weights;
 	weights.SetSize( usedVectors.Size() );
 
-	float weightsSum = 0;
+	double weightsSum = 0;
 	for( int i = 0; i < usedVectors.Size(); i++ ) {
-		weights[i] = static_cast<float>( problem->GetVectorWeight( usedVectors[i] ) );
+		weights[i] = problem->GetVectorWeight( usedVectors[i] );
 		weightsSum += weights[i];
 	}
 
@@ -639,7 +642,7 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 // Builds the ensemble predictions for a set of vectors
 void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep )
 {
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatMatrixDesc matrix = problem.GetMatrix();
 	NeoAssert( matrix.Height == problem.GetVectorCount() );
 	NeoAssert( matrix.Width == problem.GetFeatureCount() );
 
@@ -658,7 +661,7 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 			for( int i = 0; i < count; i++ ) {
 				const int usedVector = usedVectors[index];
 				const CFloatVector value = problem.GetValue( usedVectors[index] );
-				CSparseFloatVectorDesc vector;
+				CFloatVectorDesc vector;
 				matrix.GetRow( usedVector, vector );
 
 				if( params.TreeBuilder == GBTB_MultiFull ) {
@@ -688,7 +691,7 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 // Fills the prediction cache with the values of the full problem
 void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models )
 {
-	CSparseFloatMatrixDesc matrix = problem.GetMatrix();
+	CFloatMatrixDesc matrix = problem.GetMatrix();
 	NeoAssert( matrix.Height == problem.GetVectorCount() );
 	NeoAssert( matrix.Width == problem.GetFeatureCount() );
 
@@ -711,7 +714,7 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 		if( OmpGetTaskIndexAndCount( problem.GetVectorCount(), index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				const CFloatVector value = problem.GetValue( index );
-				CSparseFloatVectorDesc vector;
+				CFloatVectorDesc vector;
 				matrix.GetRow( index, vector );
 
 				if( params.TreeBuilder == GBTB_MultiFull ){

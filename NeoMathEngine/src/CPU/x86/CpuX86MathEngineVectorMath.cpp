@@ -1209,35 +1209,6 @@ void CCpuMathEngine::VectorAdd( const CConstIntHandle& firstHandle,
 	}
 }
 
-void CCpuMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& additionHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( additionHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	float addition = *GetRaw(additionHandle);
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	if(sseSize > 0) {
-		const __m128 addSse = _mm_set_ps1(addition);
-		for(int i = 0; i < sseSize; ++i) {
-			_mm_storeu_ps(result, _mm_add_ps(_mm_loadu_ps(first), addSse));
-			first += 4;
-			result += 4;
-		}
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		result[i] = first[i] + addition;
-	}
-}
-
 void CCpuMathEngine::VectorAddValue( const CConstIntHandle& firstHandle,
 	const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& additionHandle )
 {
@@ -1346,47 +1317,6 @@ void CCpuMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 	CFloatHandleStackVar mult( mathEngine(), 1 );
 	mult.SetValue( -*GetRaw(multiplierHandle) );
 	VectorMultiply(firstHandle, resultHandle, vectorSize, mult);
-}
-
-void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	for(int i = 0; i < sseSize; ++i) {
-		_mm_storeu_ps(result, _mm_mul_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result++ = *first++ * *second++;
-	}
-}
-
-void CCpuMathEngine::VectorEltwiseMultiplyAdd( const CConstFloatHandle& firstHandle,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize )
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
-
-	NeoML::vectorEltwiseMultiplyAdd( first ,second, result, vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseNegMultiply(const CConstFloatHandle& firstHandle,
@@ -1864,46 +1794,6 @@ void CCpuMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, const
 
 		*result++ = *first++ + mult * x;
 	}
-}
-
-void CCpuMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	int vectorSize, const CFloatHandle& resultHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	float result = 0;
-
-	if(sseSize > 0) {
-		__m128 sum = _mm_setzero_ps();
-		for(int i = 0; i < sseSize; ++i) {
-			sum = _mm_add_ps(sum, _mm_mul_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
-
-			first += 4;
-			second += 4;
-		}
-
-		__m128 tmp = _mm_shuffle_ps(sum, sum, _MM_SHUFFLE(0, 3, 2, 1));
-		sum = _mm_add_ps(sum, tmp);
-		tmp = _mm_shuffle_ps(sum, sum, _MM_SHUFFLE(1, 0, 3, 2));
-		sum = _mm_add_ss(sum, tmp);
-
-		result += _mm_cvtss_f32(sum);
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		result += *first++ * *second++;
-	}
-
-	*GetRaw(resultHandle) = result;
 }
 
 void CCpuMathEngine::VectorEltwiseNotNegative( const CConstIntHandle& firstHandle, const CFloatHandle& resultHandle,

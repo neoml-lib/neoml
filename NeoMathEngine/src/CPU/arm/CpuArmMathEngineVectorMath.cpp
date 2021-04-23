@@ -336,33 +336,6 @@ void CCpuMathEngine::VectorAdd(const CConstIntHandle& firstHandle, const CConstI
 	}
 }
 
-void CCpuMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& additionHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( additionHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	float32x4_t addition = vdupq_n_f32(*GetRaw(additionHandle));
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vaddq_f32(LoadNeon4(first), addition);
-		StoreNeon4(res, result);
-
-		first += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vaddq_f32(LoadNeon(first, vectorSize), addition);
-		StoreNeon(res, result, vectorSize);
-	}
-}
-
 void CCpuMathEngine::VectorAddValue(const CConstIntHandle& firstHandle,
 	const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& additionHandle)
 {
@@ -514,61 +487,6 @@ void CCpuMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 	mult.SetValue( -*GetRaw(multHandle) );
 
 	VectorMultiply(firstHandle, resultHandle, vectorSize, mult);
-}
-
-void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vmulq_f32(LoadNeon4(first), LoadNeon4(second));
-		StoreNeon4(res, result);
-
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), LoadNeon(second, vectorSize));
-		StoreNeon(res, result, vectorSize);
-	}
-}
-
-void CCpuMathEngine::VectorEltwiseMultiplyAdd(const CConstFloatHandle& firstHandle,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = MultiplyAndAddNeon(LoadNeon4(result), LoadNeon4(first), LoadNeon4(second));
-		StoreNeon4(res, result);
-
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = MultiplyAndAddNeon(LoadNeon(result, vectorSize),
-			LoadNeon(first, vectorSize), LoadNeon(second, vectorSize));
-		StoreNeon(res, result, vectorSize);
-	}
 }
 
 void CCpuMathEngine::VectorEltwiseNegMultiply(const CConstFloatHandle& firstHandle,
@@ -1955,36 +1873,6 @@ void CCpuMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, const
 			huberThreshold, negHuberThreshold, mult);
 		StoreNeon(res, result, vectorSize);
 	}
-}
-
-void CCpuMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle,
-	const CConstFloatHandle& secondHandle, int vectorSize, const CFloatHandle& resultHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	float32x4_t acc = vdupq_n_f32(0);
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vmulq_f32(LoadNeon4(first), LoadNeon4(second));
-		acc = vaddq_f32(acc, res);
-
-		first += 4;
-		second += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize, 0), LoadNeon(second, vectorSize, 0));
-		acc = vaddq_f32(acc, res);
-	}
-
-	*result = vget_lane_f32(HorizontalAddNeon(acc), 0);
 }
 
 void CCpuMathEngine::VectorEltwiseNotNegative( const CConstIntHandle& firstHandle,

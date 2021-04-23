@@ -81,6 +81,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
 #include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
+#include <NeoML/Dnn/Layers/IrnnLayer.h>
 
 namespace NeoML {
 
@@ -133,6 +134,16 @@ void UnregisterLayerName( const std::type_info& typeInfo )
 bool IsRegisteredLayerName( const char* name )
 {
 	return getRegisteredLayers().Has( name );
+}
+
+void GetRegisteredLayerNames( CArray<const char*>& layerNames )
+{
+	const CMap<CString, TCreateLayerFunction, CDefaultHash<CString>, RuntimeHeap>& registeredLayers = getRegisteredLayers();
+	layerNames.DeleteAll();
+	layerNames.SetBufferSize( registeredLayers.Size() );
+	for( int pos = registeredLayers.GetFirstPosition(); pos != NotFound; pos = registeredLayers.GetNextPosition( pos ) ) {
+		layerNames.Add( registeredLayers.GetKey( pos ) );
+	}
 }
 
 CPtr<CBaseLayer> CreateLayer( const char* name, IMathEngine& mathEngine )
@@ -299,7 +310,10 @@ REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLay
 REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
 REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClass" )
 REGISTER_NEOML_LAYER( CQrnnLayer, "NeoMLDnnQrnnLayer" )
+REGISTER_NEOML_LAYER( CQrnnFPoolingLayer, "NeoMLDnnQrnnFPoolingLayer" )
+REGISTER_NEOML_LAYER( CQrnnIfPoolingLayer, "NeoMLDnnQrnnIfPoolingLayer" )
 REGISTER_NEOML_LAYER( CTiedEmbeddingsLayer, "TiedEmbeddingsLayer" )
+REGISTER_NEOML_LAYER( CIrnnLayer, "NeoMLDnnIrnnLayer" )
 
 }
 

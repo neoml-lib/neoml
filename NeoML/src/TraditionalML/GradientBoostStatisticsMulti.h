@@ -24,16 +24,16 @@ public:
 	CGradientBoostStatisticsMulti() = default;
 	explicit CGradientBoostStatisticsMulti( int valueSize );
 	explicit CGradientBoostStatisticsMulti( const CGradientBoostStatisticsMulti& other );
-	explicit CGradientBoostStatisticsMulti( const CArray<double>& gradient, const CArray<double>& hessian, float weight );
+	explicit CGradientBoostStatisticsMulti( const CArray<double>& gradient, const CArray<double>& hessian, double weight );
 	CGradientBoostStatisticsMulti& operator=( const CGradientBoostStatisticsMulti& other );
 
 	// Adds a vector
-	void Add( const CArray<double>& gradient, const CArray<double>& hessian, float weight );
-	void Add( const CArray<CArray<double>>& gradient, const CArray<CArray<double>>& hessian, const CArray<float>& weight, int vectorIndex );
+	void Add( const CArray<double>& gradient, const CArray<double>& hessian, double weight );
+	void Add( const CArray<CArray<double>>& gradient, const CArray<CArray<double>>& hessian, const CArray<double>& weight, int vectorIndex );
 	void Add( const CGradientBoostStatisticsMulti& other );
 
 	// Deletes a vector
-	void Sub( const CArray<double>& gradient, const CArray<double>& hessian, float weight );
+	void Sub( const CArray<double>& gradient, const CArray<double>& hessian, double weight );
 	void Sub( const CGradientBoostStatisticsMulti& other );
 
 	// Clears all accumulated data
@@ -57,7 +57,7 @@ public:
 	const CArray<double>& TotalHessian() const { return totalHessian; }
 
 	// Gets the total weight
-	float TotalWeight() const { return totalWeight; }
+	double TotalWeight() const { return totalWeight; }
 
 	// Check if statistics is not enough
 	bool IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex );
@@ -74,7 +74,7 @@ public:
 private:
 	CArray<double> totalGradient; // total gradient
 	CArray<double> totalHessian; // total hessian
-	float totalWeight; // total weight
+	double totalWeight; // total weight
 };
 
 inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( int valueSize )
@@ -84,7 +84,7 @@ inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( int valueSi
 	totalWeight = 0.0;
 }
 
-inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
+inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( const CArray<double>& gradient, const CArray<double>& hessian, double weight )
 {
 	totalGradient.SetSize( gradient.Size() );
 	totalHessian.SetSize( hessian.Size() );
@@ -112,7 +112,7 @@ inline CGradientBoostStatisticsMulti& CGradientBoostStatisticsMulti::operator=( 
 	return *this;
 }
 
-inline void CGradientBoostStatisticsMulti::Add( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
+inline void CGradientBoostStatisticsMulti::Add( const CArray<double>& gradient, const CArray<double>& hessian, double weight )
 {
 	for( int i = 0; i < totalGradient.Size(); i++ ) {
 		totalGradient[i] += gradient[i];
@@ -121,7 +121,7 @@ inline void CGradientBoostStatisticsMulti::Add( const CArray<double>& gradient, 
 	totalWeight += weight;
 }
 
-inline void CGradientBoostStatisticsMulti::Add( const CArray<CArray<double>>& gradient, const CArray<CArray<double>>& hessian, const CArray<float>& weight, int vectorIndex )
+inline void CGradientBoostStatisticsMulti::Add( const CArray<CArray<double>>& gradient, const CArray<CArray<double>>& hessian, const CArray<double>& weight, int vectorIndex )
 {
 	for( int i = 0; i < gradient.Size(); i++ ) {
 		totalGradient[i] += gradient[i][vectorIndex];
@@ -139,7 +139,7 @@ inline void CGradientBoostStatisticsMulti::Add( const CGradientBoostStatisticsMu
 	totalWeight += other.totalWeight;
 }
 
-inline void CGradientBoostStatisticsMulti::Sub( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
+inline void CGradientBoostStatisticsMulti::Sub( const CArray<double>& gradient, const CArray<double>& hessian, double weight )
 {
 	for( int i = 0; i < totalGradient.Size(); i++ ) {
 		totalGradient[i] -= gradient[i];
@@ -168,11 +168,11 @@ inline void CGradientBoostStatisticsMulti::Erase()
 
 inline double CGradientBoostStatisticsMulti::CalcCriterion( float l1, float l2, int classIndex ) const
 {
-	double temp = totalGradient[classIndex];
-	if( temp > l1 ) {
-		temp -= l1;
-	} else if( temp < -l1 ) {
-		temp += l1;
+	double temp = 0;
+	if( totalGradient[classIndex] > l1 ) {
+		temp = totalGradient[classIndex] - l1;
+	} else if( totalGradient[classIndex] < -l1 ) {
+		temp = totalGradient[classIndex] + l1;
 	}
 	return temp * temp / ( totalHessian[classIndex] + l2 );
 }

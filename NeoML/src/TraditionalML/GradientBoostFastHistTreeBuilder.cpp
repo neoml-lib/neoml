@@ -199,9 +199,15 @@ void CGradientBoostFastHistTreeBuilder<T>::subHist( int firstPtr, int secondPtr 
 }
 
 // Build a histogram on the vectors of the given node
+<<<<<<< HEAD
 template<class T>
 void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
 	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<float>& weights, T& totalStats )
+=======
+void CGradientBoostFastHistTreeBuilder::buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
+	const CArray<double>& gradients, const CArray<double>& hessians, const CArray<double>& weights,
+	CGradientBoostStatisticsSingle& totalStats )
+>>>>>>> 220e6b9364009cf18e6ce5464a3d9f4e4ed90934
 {
 	T* histStatsPtr = histStats.GetPtr() + node.HistPtr;
 	for( int i = 0; i < histSize; i++ ) {
@@ -277,9 +283,14 @@ void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHi
 }
 
 // Adds a vector to the histogram
+<<<<<<< HEAD
 template<class T>
 void CGradientBoostFastHistTreeBuilder<T>::addVectorToHist( const int* vectorPtr, int vectorSize,
 	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<float>& weights, T* stats, int vectorIndex )
+=======
+void CGradientBoostFastHistTreeBuilder::addVectorToHist( const int* vectorPtr, int vectorSize, double gradients, double hessian, double weight,
+	CGradientBoostStatisticsSingle* stats )
+>>>>>>> 220e6b9364009cf18e6ce5464a3d9f4e4ed90934
 {
 	NeoPresume( vectorPtr != 0 );
 	NeoPresume( vectorSize >= 0 );
@@ -297,8 +308,9 @@ void CGradientBoostFastHistTreeBuilder<T>::addVectorToHist( const int* vectorPtr
 template<class T>
 int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const
 {
-	if( node.Level >= params.MaxTreeDepth ) {
-		// The level limit has been reached
+	if( ( params.MaxNodesCount != NotFound && nodes.Size() + 2 > params.MaxNodesCount )
+	    || ( node.Level >= params.MaxTreeDepth ) ) {
+		// The nodes limit has been reached
 		return NotFound;
 	}
 

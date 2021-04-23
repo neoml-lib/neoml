@@ -79,11 +79,11 @@ private:
 	CArray<int> vectorData; // the vector data
 	CArray<int> vectorPtr; // the pointers to the data of the given vector
 
-	void initializeFeatureInfo( int threadCount, int maxBins, const CSparseFloatMatrixDesc& matrix,
+	void initializeFeatureInfo( int threadCount, int maxBins, const CFloatMatrixDesc& matrix,
 		const IMultivariateRegressionProblem& baseProblem );
 	void compressFeatureValues( int threadCount, int maxBins, double totalWeight,
 		CArray< CArray<CFeatureValue> >& featureValues );
-	void buildVectorData( const CSparseFloatMatrixDesc& matrix );
+	void buildVectorData( const CFloatMatrixDesc& matrix );
 };
 
 } // namespace NeoML

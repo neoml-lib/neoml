@@ -35,7 +35,7 @@ public:
 	virtual bool IsDiscreteFeature( int index ) const { return problem->IsDiscreteFeature( index ); }
 	virtual int GetVectorCount() const { return vectorsCount; }
 	virtual int GetClass( int index ) const { return problem->GetClass( translateIndex( index ) ); }
-	virtual CSparseFloatMatrixDesc GetMatrix() const { return matrix; }
+	virtual CFloatMatrixDesc GetMatrix() const { return matrix; }
 	virtual double GetVectorWeight( int index ) const { return problem->GetVectorWeight( translateIndex( index ) ); }
 	virtual int GetDiscretizationValue( int index ) const { return problem->GetDiscretizationValue( index ); }
 
@@ -50,7 +50,7 @@ private:
 	int vectorsCount; // the number of vectors in the subset
 	CArray<int> pointerB; // vector start pointers
 	CArray<int> pointerE; // vector end pointers
-	CSparseFloatMatrixDesc matrix; // the matrix descriptor for the problem
+	CFloatMatrixDesc matrix; // the matrix descriptor for the problem
 
 	int translateIndex( int index ) const;
 };

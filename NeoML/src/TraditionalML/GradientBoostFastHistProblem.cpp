@@ -28,7 +28,7 @@ CGradientBoostFastHistProblem::CGradientBoostFastHistProblem( int threadCount, i
 	usedFeatures( _usedFeatures ),
 	valueSize( baseProblem.GetValueSize() )
 {
-	CSparseFloatMatrixDesc matrix = baseProblem.GetMatrix();
+	CFloatMatrixDesc matrix = baseProblem.GetMatrix();
 	NeoAssert( matrix.Height == baseProblem.GetVectorCount() );
 	NeoAssert( matrix.Width == baseProblem.GetFeatureCount() );
 	// Initialize features data
@@ -55,7 +55,7 @@ int CGradientBoostFastHistProblem::GetUsedVectorDataSize( int index ) const
 }
 
 // Initializes the feature values
-void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int maxBins, const CSparseFloatMatrixDesc& matrix,
+void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int maxBins, const CFloatMatrixDesc& matrix,
 	const IMultivariateRegressionProblem& baseProblem )
 {
 	const int vectorCount = baseProblem.GetVectorCount();
@@ -71,23 +71,26 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 
 	// Adding the non-zero values
 	for( int i = 0; i < vectorCount; i++ ) {
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
 		const double vectorWeight = baseProblem.GetVectorWeight( i );
 
-		totalElementCount += vector.Size;
 		for( int j = 0; j < vector.Size; j++ ) {
-			if( featureValues[vector.Indexes[j]].IsEmpty()
-				|| featureValues[vector.Indexes[j]].Last().Value != vector.Values[j] )
-			{
-				CFeatureValue newValue;
-				newValue.Value = vector.Values[j];
-				newValue.Weight = vectorWeight;
-				featureValues[vector.Indexes[j]].Add( newValue );
-			} else {
-				featureValues[vector.Indexes[j]].Last().Weight += vectorWeight;
+			if( vector.Values[j] != 0.0 ) {
+				++totalElementCount;
+				const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
+				if( featureValues[index].IsEmpty()
+					|| featureValues[index].Last().Value != vector.Values[j] )
+				{
+					CFeatureValue newValue;
+					newValue.Value = vector.Values[j];
+					newValue.Weight = vectorWeight;
+					featureValues[index].Add( newValue );
+				} else {
+					featureValues[index].Last().Weight += vectorWeight;
+				}
+				featureWeights[index] += vectorWeight;
 			}
-			featureWeights[vector.Indexes[j]] += vectorWeight;
 		}
 		totalWeight += vectorWeight;
 	}
@@ -184,7 +187,7 @@ void CGradientBoostFastHistProblem::compressFeatureValues( int threadCount, int 
 }
 
 // Builds an array with vector data
-void CGradientBoostFastHistProblem::buildVectorData( const CSparseFloatMatrixDesc& matrix )
+void CGradientBoostFastHistProblem::buildVectorData( const CFloatMatrixDesc& matrix )
 {
 	const int vectorCount = matrix.Height;
 	
@@ -192,20 +195,23 @@ void CGradientBoostFastHistProblem::buildVectorData( const CSparseFloatMatrixDes
 	int curVectorPtr = 0;
 	for( int i = 0; i < vectorCount; i++ ) {
 		vectorPtr.Add( curVectorPtr );
-		CSparseFloatVectorDesc vector;
+		CFloatVectorDesc vector;
 		matrix.GetRow( i, vector );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			float* valuePtr = cuts.GetPtr() + featurePos[vector.Indexes[j]]; // the pointer to this feature values
-			int valueCount = featurePos[vector.Indexes[j] + 1] - featurePos[vector.Indexes[j]]; // the number of different values for the feature
-			// Now we get the bin into which the current value falls
-			int pos = FindInsertionPoint<float, Ascending<float>, float>( vector.Values[j], valuePtr, valueCount );
-			if( pos > 0 && *(valuePtr + pos - 1) == vector.Values[j] ) {
-				pos--;
+			if( vector.Values[j] != 0.0 ) {
+				++curVectorPtr;
+				const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
+				float* valuePtr = cuts.GetPtr() + featurePos[index]; // the pointer to this feature values
+				int valueCount = featurePos[index + 1] - featurePos[index]; // the number of different values for the feature
+				// Now we get the bin into which the current value falls
+				int pos = FindInsertionPoint<float, Ascending<float>, float>( vector.Values[j], valuePtr, valueCount );
+				if( pos > 0 && *(valuePtr + pos - 1) == vector.Values[j] ) {
+					pos--;
+				}
+				vectorData.Add( featurePos[index] + pos );
 			}
-			vectorData.Add( featurePos[vector.Indexes[j]] + pos );
 		}
-		curVectorPtr += vector.Size;
 	}
 
 	vectorPtr.Add( curVectorPtr );
