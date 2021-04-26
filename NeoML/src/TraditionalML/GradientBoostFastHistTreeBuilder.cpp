@@ -23,9 +23,10 @@ limitations under the License.
 namespace NeoML {
 
 template<class T>
-CGradientBoostFastHistTreeBuilder<T>::CGradientBoostFastHistTreeBuilder( const CGradientBoostFastHistTreeBuilderParams& _params, CTextStream* _logStream ) :
+CGradientBoostFastHistTreeBuilder<T>::CGradientBoostFastHistTreeBuilder( const CGradientBoostFastHistTreeBuilderParams& _params, CTextStream* _logStream, int _predictionSize ) :
 	params( _params ),
 	logStream( _logStream ),
+	predictionSize( _predictionSize  ),
 	histSize( NotFound )
 {
 	NeoAssert( params.MaxTreeDepth > 0 );
@@ -51,7 +52,7 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 	initHistData( problem );
 
 	// Creating the tree root
-	CNode root( 0, 0, vectorSet.Size(), problem.GetValueSize() );
+	CNode root( 0, 0, vectorSet.Size() );
 	root.HistPtr = allocHist();
 	buildHist( problem, root, gradients, hessians, weights, root.Statistics );
 	nodes.Empty();
@@ -161,7 +162,7 @@ void CGradientBoostFastHistTreeBuilder<T>::initHistData( const CGradientBoostFas
 	histSize = histIds.Size();
 
 	// The histogram size of tree depth + 1 is sufficient
-	histStats.Add( T( problem.GetValueSize() ), histSize * ( params.MaxTreeDepth + 1 ) );
+	histStats.Add( T( predictionSize ), histSize * ( params.MaxTreeDepth + 1 ) );
 	freeHists.Empty();
 	for( int i = 0; i <= params.MaxTreeDepth; i++ ) {
 		freeHists.Add( i * histSize ); // a histogram is identified by the pointer to its start in the histData array
@@ -208,13 +209,14 @@ void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHi
 		histStatsPtr[i].Erase();
 	}
 
+	totalStats.SetSize( predictionSize );
 	totalStats.Erase();
 
 	const bool isOmp = ( node.VectorSetSize > 4 * params.ThreadCount ); // check if using OpenMP makes sense
 	if( isOmp ) {
 		// There are many vectors in the set, so we'll use several threads to build the histogram
 		CArray<T> results;
-		results.Add( T( problem.GetValueSize() ), params.ThreadCount );
+		results.Add( T( predictionSize ), params.ThreadCount );
 
 		const int valueSize = histStatsPtr[0].ValueSize();
 		tempHistStats.SetSize( params.ThreadCount * histSize );
@@ -324,8 +326,8 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 		
 		// Iterate through features (a separate subset for each thread)
 		for( int i = threadNumber; i < usedFeatures.Size(); i += params.ThreadCount ) {
-			T left( problem.GetValueSize() ); // the gain for the left node after the split
-			T right( problem.GetValueSize() ); // for the right node after the split (calculated as the complement to the parent)
+			T left( predictionSize ); // the gain for the left node after the split
+			T right( predictionSize ); // for the right node after the split (calculated as the complement to the parent)
 			const int firstFeatureIndex = featurePos[usedFeatures[i]];
 			const int lastFetureIndex = featurePos[usedFeatures[i] + 1];
 			// Iterate through feature values (sorted ascending) looking for the split position
@@ -429,11 +431,11 @@ void CGradientBoostFastHistTreeBuilder<T>::applySplit( const CGradientBoostFastH
 	NeoAssert( vectorCount - leftIndex > 0 );
 
 	// Creating the child nodes
-	CNode left( nodes[node].Level + 1, vectorPtr, leftIndex, problem.GetValueSize() );
+	CNode left( nodes[node].Level + 1, vectorPtr, leftIndex );
 	nodes.Add( left );
 	leftNode = nodes.Size() - 1;
 
-	CNode right( nodes[node].Level + 1, vectorPtr + leftIndex, vectorCount - leftIndex, problem.GetValueSize() );
+	CNode right( nodes[node].Level + 1, vectorPtr + leftIndex, vectorCount - leftIndex );
 	nodes.Add( right );
 	rightNode = nodes.Size() - 1;
 }

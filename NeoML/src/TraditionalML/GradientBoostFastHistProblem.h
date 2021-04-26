@@ -36,8 +36,6 @@ public:
 	// Gets the size of the vector data
 	int GetUsedVectorDataSize( int index ) const;
 
-	// The length of the function value vector
-	int GetValueSize() const { return valueSize; };
 	// Gets the number of features
 	int GetFeatureCount() const { return nullValueIds.Size(); }
 	// Gets the array of features used
@@ -71,7 +69,6 @@ private:
 	// The array has N * CParams::Subfeature elements, where N is the number of features in the full set
 	const CArray<int>& usedFeatures;
 
-	int valueSize; // length of the function value vector
 	CArray<int> featurePos; // the identifier positions for this feature
 	CArray<int> featureIndexes; // the indices of the feature to which the identifier belongs
 	CArray<float> cuts; // the cut values for histograms

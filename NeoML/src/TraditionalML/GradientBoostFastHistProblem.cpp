@@ -25,8 +25,7 @@ CGradientBoostFastHistProblem::CGradientBoostFastHistProblem( int threadCount, i
 		const IMultivariateRegressionProblem& baseProblem,
 		const CArray<int>& _usedVectors, const CArray<int>& _usedFeatures ) :
 	usedVectors( _usedVectors ),
-	usedFeatures( _usedFeatures ),
-	valueSize( baseProblem.GetValueSize() )
+	usedFeatures( _usedFeatures )
 {
 	CFloatMatrixDesc matrix = baseProblem.GetMatrix();
 	NeoAssert( matrix.Height == baseProblem.GetVectorCount() );

@@ -56,7 +56,7 @@ public:
 		float MinSubsetWeight; // the minimum subtree weight
 	};
 
-	CGradientBoostFastHistTreeBuilder( const CGradientBoostFastHistTreeBuilderParams& params, CTextStream* logStream );
+	CGradientBoostFastHistTreeBuilder( const CGradientBoostFastHistTreeBuilderParams& params, CTextStream* logStream, int predictionSize );
 
 	// Builds a tree
 	CPtr<CRegressionTree> Build( const CGradientBoostFastHistProblem& problem,
@@ -80,18 +80,19 @@ private:
 		int Left; // the pointer to the left child
 		int Right; // the pointer to the right child
 
-		CNode( int level, int vectorSetPtr, int vectorSetSize, int valueSize ) :
+		CNode( int level, int vectorSetPtr, int vectorSetSize ) :
 			Level( level ),
 			VectorSetPtr( vectorSetPtr ),
 			VectorSetSize( vectorSetSize ),
 			HistPtr( NotFound ),
-			Statistics( valueSize ),
+			Statistics(),
 			SplitFeatureId( NotFound ),
 			Left( NotFound ),
 			Right( NotFound )
 		{}
 	};
 
+	int predictionSize; // size of prediction value in leaves
 	int histSize; // histogram size
 	CArray<CNode> nodes; // the final tree nodes
 	CArray<int> nodeStack; // the stack used to build the tree using depth-first search
@@ -112,7 +113,8 @@ private:
 	void freeHist( int ptr );
 	void subHist( int firstPtr, int secondPtr );
 	void buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
-		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights, T& stats );
+		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights,
+		T& stats );
 	void addVectorToHist( const int* vectorPtr, int vectorSize, const CArray<typename T::Type>& gradients, 
 		const CArray<typename T::Type>& hessians, const CArray<double>& weights, T* stats, int vectorIndex );
 	int evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const;

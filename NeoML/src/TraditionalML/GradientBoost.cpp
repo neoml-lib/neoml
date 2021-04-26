@@ -445,9 +445,9 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.MaxBins = params.MaxBins;
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
 			if( params.TreeBuilder == GBTB_MultiFastHist ) {
-				fastHistMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream );
+				fastHistMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream, problem->GetValueSize() );
 			} else {
-				fastHistSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream );
+				fastHistSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream, 1 );
 			}
 			fastHistProblem = FINE_DEBUG_NEW CGradientBoostFastHistProblem( params.ThreadCount, params.MaxBins,
 				*problem, usedVectors, usedFeatures );
