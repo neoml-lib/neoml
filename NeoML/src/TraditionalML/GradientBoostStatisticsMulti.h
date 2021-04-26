@@ -46,7 +46,7 @@ public:
 	double CalcCriterion( float l1, float l2 ) const;
 
 	// Calculates the split criterion for multiple classes
-	static bool CalcCriterion( float& criterion,
+	static bool CalcCriterion( double& criterion,
 		CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult,
 		const CGradientBoostStatisticsMulti& totalStatistics, float l1RegFactor, float l2RegFactor,
 		double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient );
@@ -68,6 +68,9 @@ public:
 
 	// Get value size
 	int ValueSize() const { return totalGradient.Size(); }
+
+	// Set value size
+	void SetSize( int valueSize );
 
 private:
 	CArray<double> totalGradient; // total gradient
@@ -203,7 +206,7 @@ inline void CGradientBoostStatisticsMulti::LeafValue( CArray<double>& value ) co
 	}
 }
 
-inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
+inline bool CGradientBoostStatisticsMulti::CalcCriterion( double& criterion,
 	CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult, const CGradientBoostStatisticsMulti& totalStatistics,
 	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient )
 {
@@ -252,8 +255,14 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 	if( leafClassesCount == totalStatistics.ValueSize() ) {
 		return false;
 	}
-	criterion = static_cast<float>( result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) ) );
+	criterion = result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) );
 	return true;
+}
+
+inline void CGradientBoostStatisticsMulti::SetSize( int valueSize )
+{
+	totalGradient.SetSize( valueSize );
+	totalHessian.SetSize( valueSize );
 }
 
 } // namespace NeoML

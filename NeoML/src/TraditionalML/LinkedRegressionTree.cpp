@@ -76,7 +76,7 @@ static inline float getFeature( const TVector& features, int number )
 	return features[number];
 }
 
-static inline float getFeature( const CFloatVectorDesc& features, int number )
+static inline float getFeature( const CSparseFloatVectorDesc& features, int number )
 {
 	return GetValue( features, number );
 }
@@ -126,7 +126,7 @@ void CLinkedRegressionTree::Predict( const CFloatVector& data, CPrediction& resu
 	predict( data.GetPtr(), result );
 }
 
-void CLinkedRegressionTree::Predict( const CFloatVectorDesc& data, CPrediction& result ) const
+void CLinkedRegressionTree::Predict( const CSparseFloatVectorDesc& data, CPrediction& result ) const
 {
 	predict( data, result );
 }
@@ -136,7 +136,7 @@ double CLinkedRegressionTree::Predict( const CFloatVector& data ) const
 	return predict( data.GetPtr() );
 }
 
-double CLinkedRegressionTree::Predict( const CFloatVectorDesc& data ) const
+double CLinkedRegressionTree::Predict( const CSparseFloatVectorDesc& data ) const
 {
 	return predict( data );
 }

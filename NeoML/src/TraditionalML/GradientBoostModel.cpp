@@ -32,7 +32,7 @@ CGradientBoostModel::CGradientBoostModel( CArray<CGradientBoostEnsemble>& _ensem
 	_ensembles.MoveTo( ensembles );
 }
 
-bool CGradientBoostModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
+bool CGradientBoostModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
 {
 	CFastArray<double, 1> predictions;
 
