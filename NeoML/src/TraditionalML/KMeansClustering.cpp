@@ -30,17 +30,15 @@ limitations under the License.
 namespace NeoML {
 
 // Calculates the inertia of current result
-static float calcInertia( const IClusteringData& data, const CClusteringResult& result )
+static double calcInertia( const IClusteringData& data, const CClusteringResult& result, TDistanceFunc distFunc )
 {
 	const CFloatMatrixDesc& matrix = data.GetMatrix();
-	float inertia = 0;
+	double inertia = 0;
 	for( int i = 0; i < matrix.Height; ++i ) {
 		const int clusterIndex = result.Data[i];
-		CFloatVector dist( matrix.Width, matrix.GetRow( i ) );
-		dist -= result.Clusters[clusterIndex].Mean;
-		for( int j = 0; j < matrix.Width; ++j ) {
-			inertia += dist[j] * dist[j];
-		}
+		const double weight = data.GetVectorWeight( i );
+		CPtr<CCommonCluster> commonCluster = new CCommonCluster( result.Clusters[clusterIndex] );
+		inertia += commonCluster->CalcDistance( matrix.GetRow( i ), distFunc ) * weight;
 	}
 	return inertia;
 }
@@ -95,14 +93,14 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 		return succeeded;
 	}
 
-	float inertia = calcInertia( *input, result );
+	double inertia = calcInertia( *input, result, params.DistanceFunc );
 	::printf( "first inertia: %.4f\n", inertia );
 	CRandom random( params.Seed );
 
 	for( int runIndex = 1; runIndex < params.RunCount; ++runIndex ) {
 		CClusteringResult newResult;
 		bool runSucceeded = runClusterization( input, static_cast<int>( random.Next() ), newResult );
-		float newInertia = calcInertia( *input, newResult );
+		double newInertia = calcInertia( *input, newResult, params.DistanceFunc );
 		::printf( "inertia: %.4f", newInertia );
 		if( newInertia < inertia ) {
 			::printf( "\tImprovement!!!" );
