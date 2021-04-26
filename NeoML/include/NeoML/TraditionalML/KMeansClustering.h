@@ -72,7 +72,7 @@ public:
 		// Number of runs of algorithm
 		// If more than one then the best variant (least ineratia) will be returned
 		int RunCount;
-		// Initial seed for choosing centers (and seeds if RunCount > 1)
+		// Initial seed for random
 		int Seed;
 
 		CParam() : Algo( KMA_Lloyd ), DistanceFunc( DF_Euclid ), InitialClustersCount( 1 ), Initialization( KMI_Default ),
