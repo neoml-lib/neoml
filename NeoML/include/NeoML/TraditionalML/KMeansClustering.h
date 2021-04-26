@@ -105,7 +105,7 @@ private:
 	CArray<CClusterCenter> initialClusterCenters; // the initial cluster centers
 
 	// Single run of clusterization with given seed
-	bool runClusterization( IClusteringData* input, int seed, CClusteringResult& result );
+	bool runClusterization( IClusteringData* input, int seed, CClusteringResult& result, double& inertia );
 
 	// Initial cluster selection for sparse data
 	void selectInitialClusters( const CFloatMatrixDesc& matrix, int seed );
@@ -113,18 +113,18 @@ private:
 	void kMeansPlusPlusInitialization( const CFloatMatrixDesc& matrix, int seed );
 
 	// Sparse data clusterization
-	bool clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
+	bool clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
 
 	// Lloyd algorithm implementation for sparse data
-	bool lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
-	void classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster );
-	int findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex ) const;
+	bool lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
+	void classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster, double& inertia );
+	int findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex, double& inertia ) const;
 	void storeClusterCenters( CArray<CClusterCenter>& result );
 	bool updateClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 		const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters );
 
 	// Elkan algorithm implementation for sparse data
-	bool elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
+	bool elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
 	void initializeElkanStatistics( const CFloatMatrixDesc& matrix, CArray<int>& assignments,
 		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds, CVariableMatrix<float>& clusterDists,
 		CArray<float>& closestClusterDist, CArray<float>& moveDistance );
@@ -140,14 +140,14 @@ private:
 		const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id) const;
 
 	// Specific case for dense data with Euclidean metrics and Lloyd algorithm
-	bool denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result );
+	bool denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result, double& inertia );
 	// Initial cluster selection
 	void selectInitialClusters( const CDnnBlob& data, int seed, CDnnBlob& centers );
 	void defaultInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers );
 	void kMeansPlusPlusInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers );
 	// Lloyd algorithm implementation
 	bool lloydBlobClusterization( const CDnnBlob& data, const CDnnBlob& weight,
-		CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels );
+		CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels, double& inertia );
 	double assignClosest( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& weight,
 		const CDnnBlob& centers, CDnnBlob& labels );
 	void recalcCenters( const CDnnBlob& data, const CDnnBlob& weight, const CDnnBlob& labels,
