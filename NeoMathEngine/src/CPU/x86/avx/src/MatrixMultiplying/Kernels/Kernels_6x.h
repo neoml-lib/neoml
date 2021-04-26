@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,88 +12,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
+#pragma once
 
 #include <AvxCommon.h>
 #include <MicroKernels/MicroKernelBase.h>
-
-// Prepare and transpose the matrix
-template<>
-struct CInterleaverBase<true, 4> {
-	static void Prepare( float* out, const float* in, size_t stride, size_t width, size_t height )
-	{
-		const int Len = 4;
-
-		const size_t iStep = stride * Len;
-		const size_t oStep = width * Len;
-
-		for( ; height >= Len; height -= Len ) {
-			int tempWidth = width;
-			const float* tempIn = in;
-			float* tempOut = out;
-			for( ; tempWidth >= 8; tempWidth -= 8 ) {
-				__m256 a = _mm256_loadu_ps( tempIn + 0 * stride );
-				__m256 b = _mm256_loadu_ps( tempIn + 1 * stride );
-				__m256 c = _mm256_loadu_ps( tempIn + 2 * stride );
-				__m256 d = _mm256_loadu_ps( tempIn + 3 * stride );
-
-				// a:     a0 a1 a2 a3 a4 a5 a6 a7
-				// b:     b0 b1 b2 b3 b4 b5 b6 b7
-				// ab_lo: a0 b0 a1 b1 a4 b4 a5 b5
-				__m256 ab_lo = _mm256_unpacklo_ps( a, b );
-				// a:     a0 a1 a2 a3 a4 a5 a6 a7
-				// b:     b0 b1 b2 b3 b4 b5 b6 b7
-				// ab_hi: a2 b2 a3 b3 a6 b6 a7 b7
-				__m256 ab_hi = _mm256_unpackhi_ps( a, b );
-				// c:     c0 c1 c2 c3 c4 c5 c6 c7
-				// d:     d0 d1 d2 d3 d4 d5 d6 d7
-				// cd_lo: c0 d0 c1 d1 c4 d4 c5 d5
-				__m256 cd_lo = _mm256_unpacklo_ps( c, d );
-				// c:     c0 c1 c2 c3 c4 c5 c6 c7
-				// d:     d0 d1 d2 d3 d4 d5 d6 d7
-				// cd_hi: c2 d2 c3 d3 c6 d6 c7 d7
-				__m256 cd_hi = _mm256_unpackhi_ps( c, d );
-
-				// ab_lo:   a0 b0 a1 b1 a4 b4 a5 b5
-				// cd_lo:   c0 d0 c1 d1 c4 d4 c5 d5
-				// abcd_04: a0 b0 c0 d0 a4 b4 c4 d4
-				__m256 abcd_04 = _mm256_shuffle_ps( ab_lo, cd_lo, _MM_SHUFFLE( 1, 0, 1, 0 ) );
-				__m256 abcd_15 = _mm256_shuffle_ps( ab_lo, cd_lo, _MM_SHUFFLE( 3, 2, 3, 2 ) );
-				__m256 abcd_26 = _mm256_shuffle_ps( ab_hi, cd_hi, _MM_SHUFFLE( 1, 0, 1, 0 ) );
-				__m256 abcd_37 = _mm256_shuffle_ps( ab_hi, cd_hi, _MM_SHUFFLE( 3, 2, 3, 2 ) );
-
-				// __m256 abcd_01 = _mm256_permute2f128_ps( abcd_04, abcd_15, 0 | 2 << 4 );
-				_mm256_storeu_ps( tempOut + 0, _mm256_permute2f128_ps( abcd_04, abcd_15, 0 | 2 << 4 ) );
-				// __m256 abcd_23 = _mm256_permute2f128_ps( abcd_26, abcd_37, 0 | 2 << 4 );
-				_mm256_storeu_ps( tempOut + 8, _mm256_permute2f128_ps( abcd_26, abcd_37, 0 | 2 << 4 ) );
-				// __m256 abcd_45 = _mm256_permute2f128_ps( abcd_04, abcd_15, 1 | 3 << 4 );
-				_mm256_storeu_ps( tempOut + 16, _mm256_permute2f128_ps( abcd_04, abcd_15, 1 | 3 << 4 ) );
-				// __m256 abcd_67 = _mm256_permute2f128_ps( abcd_26, abcd_37, 1 | 3 << 4 );
-				_mm256_storeu_ps( tempOut + 24, _mm256_permute2f128_ps( abcd_26, abcd_37, 1 | 3 << 4 ) );
-				tempIn += 8;
-				tempOut += 32;
-			}
-			if( tempWidth != 0 ) {
-				CInterleaverBase<false, 1>::Transpose( tempOut, Len, tempIn, stride, Len, tempWidth );
-			}
-			in += iStep;
-			out += oStep;
-		}
-		height %= Len;
-		if( height > 0 ) {
-			CInterleaverBase<false, 1>::Transpose(out, Len, in, stride, height, width);
-			out += height;
-			const size_t len = (Len - height) * sizeof(float);
-			for( ; width > 0; --width ) {
-				memset(out, 0, len);
-				out += Len;
-			}
-		}
-	}
-};
-
-
-////////////////////////////
-
 
 inline __m256 _mm256_loadu2_m128 ( float const *hiAddr, float const *loAddr )
 {
@@ -129,11 +51,22 @@ struct CMicroKernel_6x16 : public CMicroKernelBase<6, 16> {
 		__m256 b0, b1, a0, a1;
 
 		for( ; k >= 4; k -= 4 ) {
+			//      b0   b1
+			// a0   c00  c01
+			// a1   c10  c11
+			// a2   c20  c21
+			// a3   c30  c31
+			// a4   c40  c41
+			// a5   c50  c51
 			// Iteration 0
-			_mm_prefetch( aPtr + 80, _MM_HINT_T0 );
+			_mm_prefetch( aPtr + 48, _MM_HINT_T0 );
+			// b0: b0[0-7]
 			b0 = _mm256_loadu_ps( bPtr + 0 );
+			// b1: b1[0-7]
 			b1 = _mm256_loadu_ps( bPtr + 8 );
+			// a0: a0[0] a0[0] a0[0] a0[0] a0[0] a0[0] a0[0] a0[0]
 			a0 = _mm256_broadcast_ss( aPtr + 0 );
+			// a1: a1[0] a1[0] a1[0] a1[0] a1[0] a1[0] a1[0] a1[0]
 			a1 = _mm256_broadcast_ss( aPtr + 1 );
 			c00 = _mm256_fmadd_ps( a0, b0, c00 );
 			c01 = _mm256_fmadd_ps( a0, b1, c01 );
@@ -179,7 +112,7 @@ struct CMicroKernel_6x16 : public CMicroKernelBase<6, 16> {
 			c51 = _mm256_fmadd_ps( a1, b1, c51 );
 
 			// Iteration 2
-			_mm_prefetch( aPtr + 76, _MM_HINT_T0 );
+			_mm_prefetch( aPtr + 60, _MM_HINT_T0 );
 			b0 = _mm256_loadu_ps( bPtr + 32 );
 			b1 = _mm256_loadu_ps( bPtr + 40 );
 			a0 = _mm256_broadcast_ss( aPtr +12 );
@@ -278,175 +211,112 @@ struct CMicroKernel_6x16 : public CMicroKernelBase<6, 16> {
 	}
 };
 
-struct CMicroKernel_96x1 : public CMicroKernelBase<96, 1> {
-	static void Calculate( const float* aPtr, const float* bPtr, float* cPtr, size_t cRowSize, size_t k ) {
-				__m256 c0 = _mm256_setzero_ps();
-				__m256 c1 = _mm256_setzero_ps();
-				__m256 c2 = _mm256_setzero_ps();
-				__m256 c3 = _mm256_setzero_ps();
-				__m256 c4 = _mm256_setzero_ps();
-				__m256 c5 = _mm256_setzero_ps();
-				__m256 c6 = _mm256_setzero_ps();
-				__m256 c7 = _mm256_setzero_ps();
-				__m256 c8 = _mm256_setzero_ps();
-				__m256 c9 = _mm256_setzero_ps();
-				__m256 c10 = _mm256_setzero_ps();
-				__m256 c11 = _mm256_setzero_ps();
-				__m256 b, a0, a1, a2;
-				for( int l = 0; l < k; l++ ) {
-					b = _mm256_broadcast_ss( bPtr );
-					a0 = _mm256_loadu_ps( aPtr + 0 );
-					a1 = _mm256_loadu_ps( aPtr + 8 );
-					a2 = _mm256_loadu_ps( aPtr + 16 );
-					c0 = _mm256_fmadd_ps( a0, b, c0 );
-					c1 = _mm256_fmadd_ps( a1, b, c1 );
-					c2 = _mm256_fmadd_ps( a2, b, c2 );
-
-					a0 = _mm256_loadu_ps( aPtr + 24 );
-					a1 = _mm256_loadu_ps( aPtr + 32 );
-					a2 = _mm256_loadu_ps( aPtr + 40 );
-					c3 = _mm256_fmadd_ps( a0, b, c3 );
-					c4 = _mm256_fmadd_ps( a1, b, c4 );
-					c5 = _mm256_fmadd_ps( a2, b, c5 );
-
-					a0 = _mm256_loadu_ps( aPtr + 48 );
-					a1 = _mm256_loadu_ps( aPtr + 56 );
-					a2 = _mm256_loadu_ps( aPtr + 64 );
-					c6 = _mm256_fmadd_ps( a0, b, c6 );
-					c7 = _mm256_fmadd_ps( a1, b, c7 );
-					c8 = _mm256_fmadd_ps( a2, b, c8 );
-
-					a0 = _mm256_loadu_ps( aPtr + 72 );
-					a1 = _mm256_loadu_ps( aPtr + 80 );
-					a2 = _mm256_loadu_ps( aPtr + 88 );
-					c9 = _mm256_fmadd_ps( a0, b, c9 );
-					c10 = _mm256_fmadd_ps( a1, b, c10 );
-					c11 = _mm256_fmadd_ps( a2, b, c11 );
-
-					bPtr++; aPtr += 96;
-				}
-
-				_mm256_storeu_ps( cPtr + 0, _mm256_add_ps( c0, _mm256_loadu_ps( cPtr + 0 ) ) );
-				_mm256_storeu_ps( cPtr + 8, _mm256_add_ps( c1, _mm256_loadu_ps( cPtr + 8 ) ) );
-				_mm256_storeu_ps( cPtr + 16, _mm256_add_ps( c2, _mm256_loadu_ps( cPtr + 16 ) ) );
-				_mm256_storeu_ps( cPtr + 24, _mm256_add_ps( c3, _mm256_loadu_ps( cPtr + 24 ) ) );
-				_mm256_storeu_ps( cPtr + 32, _mm256_add_ps( c4, _mm256_loadu_ps( cPtr + 32 ) ) );
-				_mm256_storeu_ps( cPtr + 40, _mm256_add_ps( c5, _mm256_loadu_ps( cPtr + 40 ) ) );
-				_mm256_storeu_ps( cPtr + 48, _mm256_add_ps( c6, _mm256_loadu_ps( cPtr + 48 ) ) );
-				_mm256_storeu_ps( cPtr + 56, _mm256_add_ps( c7, _mm256_loadu_ps( cPtr + 56 ) ) );
-				_mm256_storeu_ps( cPtr + 64, _mm256_add_ps( c8, _mm256_loadu_ps( cPtr + 64 ) ) );
-				_mm256_storeu_ps( cPtr + 72, _mm256_add_ps( c9, _mm256_loadu_ps( cPtr + 72 ) ) );
-				_mm256_storeu_ps( cPtr + 80, _mm256_add_ps( c10, _mm256_loadu_ps( cPtr + 80 ) ) );
-				_mm256_storeu_ps( cPtr + 88, _mm256_add_ps( c11, _mm256_loadu_ps( cPtr + 88) ) );
-	}
-};
-
 struct CMicroKernel_6x8 : public CMicroKernelBase<6, 8> {
 	static void Calculate( const float* aPtr, const float* bPtr, float* cPtr, size_t cRowSize, size_t k ) {
-				__m256 c0 = _mm256_setzero_ps();
-				__m256 c1 = _mm256_setzero_ps();
-				__m256 c2 = _mm256_setzero_ps();
-				__m256 c3 = _mm256_setzero_ps();
-				__m256 c4 = _mm256_setzero_ps();
-				__m256 c5 = _mm256_setzero_ps();
+		__m256 c0 = _mm256_setzero_ps();
+		__m256 c1 = _mm256_setzero_ps();
+		__m256 c2 = _mm256_setzero_ps();
+		__m256 c3 = _mm256_setzero_ps();
+		__m256 c4 = _mm256_setzero_ps();
+		__m256 c5 = _mm256_setzero_ps();
 
-				__m256 b, a0, a1, a2, a3, a4, a5;
+		__m256 b, a0, a1, a2, a3, a4, a5;
 
-				for( ; k >= 4; k -= 4 ) {
-					b = _mm256_loadu_ps( bPtr );
-					a0 = _mm256_broadcast_ss( aPtr );
-					a1 = _mm256_broadcast_ss( aPtr + 1 );
-					a2 = _mm256_broadcast_ss( aPtr + 2 );
-					a3 = _mm256_broadcast_ss( aPtr + 3 );
-					a4 = _mm256_broadcast_ss( aPtr + 4 );
-					a5 = _mm256_broadcast_ss( aPtr + 5 );
+		for( ; k >= 4; k -= 4 ) {
+			b = _mm256_loadu_ps( bPtr );
+			a0 = _mm256_broadcast_ss( aPtr );
+			a1 = _mm256_broadcast_ss( aPtr + 1 );
+			a2 = _mm256_broadcast_ss( aPtr + 2 );
+			a3 = _mm256_broadcast_ss( aPtr + 3 );
+			a4 = _mm256_broadcast_ss( aPtr + 4 );
+			a5 = _mm256_broadcast_ss( aPtr + 5 );
 
-					c0 = _mm256_fmadd_ps( a0, b, c0 );
-					c1 = _mm256_fmadd_ps( a1, b, c1 );
-					c2 = _mm256_fmadd_ps( a2, b, c2 );
-					c3 = _mm256_fmadd_ps( a3, b, c3 );
-					c4 = _mm256_fmadd_ps( a4, b, c4 );
-					c5 = _mm256_fmadd_ps( a5, b, c5 );
+			c0 = _mm256_fmadd_ps( a0, b, c0 );
+			c1 = _mm256_fmadd_ps( a1, b, c1 );
+			c2 = _mm256_fmadd_ps( a2, b, c2 );
+			c3 = _mm256_fmadd_ps( a3, b, c3 );
+			c4 = _mm256_fmadd_ps( a4, b, c4 );
+			c5 = _mm256_fmadd_ps( a5, b, c5 );
 
-					b = _mm256_loadu_ps( bPtr + 8 );
-					a0 = _mm256_broadcast_ss( aPtr + 6 );
-					a1 = _mm256_broadcast_ss( aPtr + 7 );
-					a2 = _mm256_broadcast_ss( aPtr + 8 );
-					a3 = _mm256_broadcast_ss( aPtr + 9 );
-					a4 = _mm256_broadcast_ss( aPtr + 10 );
-					a5 = _mm256_broadcast_ss( aPtr + 11 );
+			b = _mm256_loadu_ps( bPtr + 8 );
+			a0 = _mm256_broadcast_ss( aPtr + 6 );
+			a1 = _mm256_broadcast_ss( aPtr + 7 );
+			a2 = _mm256_broadcast_ss( aPtr + 8 );
+			a3 = _mm256_broadcast_ss( aPtr + 9 );
+			a4 = _mm256_broadcast_ss( aPtr + 10 );
+			a5 = _mm256_broadcast_ss( aPtr + 11 );
 
-					c0 = _mm256_fmadd_ps( a0, b, c0 );
-					c1 = _mm256_fmadd_ps( a1, b, c1 );
-					c2 = _mm256_fmadd_ps( a2, b, c2 );
-					c3 = _mm256_fmadd_ps( a3, b, c3 );
-					c4 = _mm256_fmadd_ps( a4, b, c4 );
-					c5 = _mm256_fmadd_ps( a5, b, c5 );
+			c0 = _mm256_fmadd_ps( a0, b, c0 );
+			c1 = _mm256_fmadd_ps( a1, b, c1 );
+			c2 = _mm256_fmadd_ps( a2, b, c2 );
+			c3 = _mm256_fmadd_ps( a3, b, c3 );
+			c4 = _mm256_fmadd_ps( a4, b, c4 );
+			c5 = _mm256_fmadd_ps( a5, b, c5 );
 
-					b = _mm256_loadu_ps( bPtr + 16 );
-					a0 = _mm256_broadcast_ss( aPtr + 12 );
-					a1 = _mm256_broadcast_ss( aPtr + 13 );
-					a2 = _mm256_broadcast_ss( aPtr + 14 );
-					a3 = _mm256_broadcast_ss( aPtr + 15 );
-					a4 = _mm256_broadcast_ss( aPtr + 16 );
-					a5 = _mm256_broadcast_ss( aPtr + 17 );
+			b = _mm256_loadu_ps( bPtr + 16 );
+			a0 = _mm256_broadcast_ss( aPtr + 12 );
+			a1 = _mm256_broadcast_ss( aPtr + 13 );
+			a2 = _mm256_broadcast_ss( aPtr + 14 );
+			a3 = _mm256_broadcast_ss( aPtr + 15 );
+			a4 = _mm256_broadcast_ss( aPtr + 16 );
+			a5 = _mm256_broadcast_ss( aPtr + 17 );
 
-					c0 = _mm256_fmadd_ps( a0, b, c0 );
-					c1 = _mm256_fmadd_ps( a1, b, c1 );
-					c2 = _mm256_fmadd_ps( a2, b, c2 );
-					c3 = _mm256_fmadd_ps( a3, b, c3 );
-					c4 = _mm256_fmadd_ps( a4, b, c4 );
-					c5 = _mm256_fmadd_ps( a5, b, c5 );
+			c0 = _mm256_fmadd_ps( a0, b, c0 );
+			c1 = _mm256_fmadd_ps( a1, b, c1 );
+			c2 = _mm256_fmadd_ps( a2, b, c2 );
+			c3 = _mm256_fmadd_ps( a3, b, c3 );
+			c4 = _mm256_fmadd_ps( a4, b, c4 );
+			c5 = _mm256_fmadd_ps( a5, b, c5 );
 
-					b = _mm256_loadu_ps( bPtr + 24 );
-					a0 = _mm256_broadcast_ss( aPtr + 18 );
-					a1 = _mm256_broadcast_ss( aPtr + 19 );
-					a2 = _mm256_broadcast_ss( aPtr + 20 );
-					a3 = _mm256_broadcast_ss( aPtr + 21 );
-					a4 = _mm256_broadcast_ss( aPtr + 22 );
-					a5 = _mm256_broadcast_ss( aPtr + 23 );
+			b = _mm256_loadu_ps( bPtr + 24 );
+			a0 = _mm256_broadcast_ss( aPtr + 18 );
+			a1 = _mm256_broadcast_ss( aPtr + 19 );
+			a2 = _mm256_broadcast_ss( aPtr + 20 );
+			a3 = _mm256_broadcast_ss( aPtr + 21 );
+			a4 = _mm256_broadcast_ss( aPtr + 22 );
+			a5 = _mm256_broadcast_ss( aPtr + 23 );
 
-					c0 = _mm256_fmadd_ps( a0, b, c0 );
-					c1 = _mm256_fmadd_ps( a1, b, c1 );
-					c2 = _mm256_fmadd_ps( a2, b, c2 );
-					c3 = _mm256_fmadd_ps( a3, b, c3 );
-					c4 = _mm256_fmadd_ps( a4, b, c4 );
-					c5 = _mm256_fmadd_ps( a5, b, c5 );
+			c0 = _mm256_fmadd_ps( a0, b, c0 );
+			c1 = _mm256_fmadd_ps( a1, b, c1 );
+			c2 = _mm256_fmadd_ps( a2, b, c2 );
+			c3 = _mm256_fmadd_ps( a3, b, c3 );
+			c4 = _mm256_fmadd_ps( a4, b, c4 );
+			c5 = _mm256_fmadd_ps( a5, b, c5 );
 
-					bPtr += 32; aPtr += 24;
-				}
+			bPtr += 32; aPtr += 24;
+		}
 
-				for( ; k > 0; k-- ) {
-					b = _mm256_loadu_ps( bPtr );
-					a0 = _mm256_broadcast_ss( aPtr );
-					a1 = _mm256_broadcast_ss( aPtr + 1 );
-					a2 = _mm256_broadcast_ss( aPtr + 2 );
-					a3 = _mm256_broadcast_ss( aPtr + 3 );
-					a4 = _mm256_broadcast_ss( aPtr + 4 );
-					a5 = _mm256_broadcast_ss( aPtr + 5 );
+		for( ; k > 0; k-- ) {
+			b = _mm256_loadu_ps( bPtr );
+			a0 = _mm256_broadcast_ss( aPtr );
+			a1 = _mm256_broadcast_ss( aPtr + 1 );
+			a2 = _mm256_broadcast_ss( aPtr + 2 );
+			a3 = _mm256_broadcast_ss( aPtr + 3 );
+			a4 = _mm256_broadcast_ss( aPtr + 4 );
+			a5 = _mm256_broadcast_ss( aPtr + 5 );
 
-					c0 = _mm256_fmadd_ps( a0, b, c0 );
-					c1 = _mm256_fmadd_ps( a1, b, c1 );
-					c2 = _mm256_fmadd_ps( a2, b, c2 );
-					c3 = _mm256_fmadd_ps( a3, b, c3 );
-					c4 = _mm256_fmadd_ps( a4, b, c4 );
-					c5 = _mm256_fmadd_ps( a5, b, c5 );
+			c0 = _mm256_fmadd_ps( a0, b, c0 );
+			c1 = _mm256_fmadd_ps( a1, b, c1 );
+			c2 = _mm256_fmadd_ps( a2, b, c2 );
+			c3 = _mm256_fmadd_ps( a3, b, c3 );
+			c4 = _mm256_fmadd_ps( a4, b, c4 );
+			c5 = _mm256_fmadd_ps( a5, b, c5 );
 
-					bPtr += 8; aPtr += 6;
-				}
+			bPtr += 8; aPtr += 6;
+		}
 
-				_mm256_storeu_ps( cPtr, _mm256_add_ps( c0, _mm256_loadu_ps( cPtr ) ) );
-				cPtr += cRowSize;
-				_mm256_storeu_ps( cPtr, _mm256_add_ps( c1, _mm256_loadu_ps( cPtr ) ) );
-				cPtr += cRowSize;
-				_mm256_storeu_ps( cPtr, _mm256_add_ps( c2, _mm256_loadu_ps( cPtr ) ) );
-				cPtr += cRowSize;
-				_mm256_storeu_ps( cPtr, _mm256_add_ps( c3, _mm256_loadu_ps( cPtr ) ) );
-				cPtr += cRowSize;
-				_mm256_storeu_ps( cPtr, _mm256_add_ps( c4, _mm256_loadu_ps( cPtr ) ) );
-				cPtr += cRowSize;
-				_mm256_storeu_ps( cPtr, _mm256_add_ps( c5, _mm256_loadu_ps( cPtr ) ) );
-				cPtr += cRowSize;
+		_mm256_storeu_ps( cPtr, _mm256_add_ps( c0, _mm256_loadu_ps( cPtr ) ) );
+		cPtr += cRowSize;
+		_mm256_storeu_ps( cPtr, _mm256_add_ps( c1, _mm256_loadu_ps( cPtr ) ) );
+		cPtr += cRowSize;
+		_mm256_storeu_ps( cPtr, _mm256_add_ps( c2, _mm256_loadu_ps( cPtr ) ) );
+		cPtr += cRowSize;
+		_mm256_storeu_ps( cPtr, _mm256_add_ps( c3, _mm256_loadu_ps( cPtr ) ) );
+		cPtr += cRowSize;
+		_mm256_storeu_ps( cPtr, _mm256_add_ps( c4, _mm256_loadu_ps( cPtr ) ) );
+		cPtr += cRowSize;
+		_mm256_storeu_ps( cPtr, _mm256_add_ps( c5, _mm256_loadu_ps( cPtr ) ) );
+		cPtr += cRowSize;
 	}
 };
 
@@ -458,35 +328,35 @@ struct CMicroKernel_6x4 : public CMicroKernelBase<6, 4> {
 
 				__m256 b, b0, b1;
 				__m256 a0, a1, a2, a00, a01, a02, a10, a11, a12;
-				
+
 				__m128 const * aPtrVec = reinterpret_cast<__m128 const *>( aPtr );
-				
+
 				for( ; k >= 4; k -= 4 ) {
 					// Iteration 0, 1:
 					b = _mm256_loadu_ps( bPtr );
-					a0 = _mm256_broadcast_ps( aPtrVec++ );
-					a1 = _mm256_broadcast_ps( aPtrVec++ );
-					a2 = _mm256_broadcast_ps( aPtrVec++ );
+					a0 = _mm256_broadcast_ps( aPtrVec + 0 );
+					a1 = _mm256_broadcast_ps( aPtrVec + 1 );
+					a2 = _mm256_broadcast_ps( aPtrVec + 2 );
 					b0 = _mm256_permute2f128_ps( b, b, PERMUTE2( 0, 0 ) );
 					b1 = _mm256_permute2f128_ps( b, b, PERMUTE2( 1, 1 ) );
-					bPtr += 8;
-					
+					_mm_prefetch( aPtrVec + 6, _MM_HINT_T0 );
+
 					a00 = _mm256_permutevar_ps( a0, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
-					a01 = _mm256_permutevar_ps( a0, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 					a02 = _mm256_permutevar_ps( a1, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
-					a10 = _mm256_permutevar_ps( a1, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 					a11 = _mm256_permutevar_ps( a2, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
+					a01 = _mm256_permutevar_ps( a0, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
+					a10 = _mm256_permutevar_ps( a1, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 					a12 = _mm256_permutevar_ps( a2, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 
-					b = _mm256_loadu_ps( bPtr );
+					b = _mm256_loadu_ps( bPtr + 8 );
 
 					c0 = _mm256_fmadd_ps( a00, b0, c0 );
 					c1 = _mm256_fmadd_ps( a01, b0, c1 );
 					c2 = _mm256_fmadd_ps( a02, b0, c2 );
 
-					a0 = _mm256_broadcast_ps( aPtrVec++ );
-					a1 = _mm256_broadcast_ps( aPtrVec++ );
-					a2 = _mm256_broadcast_ps( aPtrVec++ );
+					a0 = _mm256_broadcast_ps( aPtrVec + 3 );
+					a1 = _mm256_broadcast_ps( aPtrVec + 4 );
+					a2 = _mm256_broadcast_ps( aPtrVec + 5 );
 
 					c0 = _mm256_fmadd_ps( a10, b1, c0 );
 					c1 = _mm256_fmadd_ps( a11, b1, c1 );
@@ -494,13 +364,13 @@ struct CMicroKernel_6x4 : public CMicroKernelBase<6, 4> {
 
 					b0 = _mm256_permute2f128_ps( b, b, PERMUTE2( 0, 0 ) );
 					b1 = _mm256_permute2f128_ps( b, b, PERMUTE2( 1, 1 ) );
-					bPtr += 8;
+					_mm_prefetch( aPtrVec + 9, _MM_HINT_T0 );
 
 					a00 = _mm256_permutevar_ps( a0, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
-					a01 = _mm256_permutevar_ps( a0, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 					a02 = _mm256_permutevar_ps( a1, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
-					a10 = _mm256_permutevar_ps( a1, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 					a11 = _mm256_permutevar_ps( a2, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
+					a01 = _mm256_permutevar_ps( a0, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
+					a10 = _mm256_permutevar_ps( a1, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 					a12 = _mm256_permutevar_ps( a2, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 
 					c0 = _mm256_fmadd_ps( a00, b0, c0 );
@@ -509,24 +379,26 @@ struct CMicroKernel_6x4 : public CMicroKernelBase<6, 4> {
 					c0 = _mm256_fmadd_ps( a10, b1, c0 );
 					c1 = _mm256_fmadd_ps( a11, b1, c1 );
 					c2 = _mm256_fmadd_ps( a12, b1, c2 );
+					bPtr += 16;
+					aPtrVec += 6;
 
 				}
 
 				if( k >= 2 ) {
 					k -= 2;
 					b = _mm256_loadu_ps( bPtr );
-					a0 = _mm256_broadcast_ps( aPtrVec++ );
-					a1 = _mm256_broadcast_ps( aPtrVec++ );
-					a2 = _mm256_broadcast_ps( aPtrVec++ );
+					a0 = _mm256_broadcast_ps( aPtrVec );
+					a1 = _mm256_broadcast_ps( aPtrVec + 1 );
+					a2 = _mm256_broadcast_ps( aPtrVec + 2 );
 					b0 = _mm256_permute2f128_ps( b, b, PERMUTE2( 0, 0 ) );
 					b1 = _mm256_permute2f128_ps( b, b, PERMUTE2( 1, 1 ) );
 					bPtr += 8;
 
 					a00 = _mm256_permutevar_ps( a0, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
-					a01 = _mm256_permutevar_ps( a0, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 					a02 = _mm256_permutevar_ps( a1, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
-					a10 = _mm256_permutevar_ps( a1, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 					a11 = _mm256_permutevar_ps( a2, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
+					a01 = _mm256_permutevar_ps( a0, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
+					a10 = _mm256_permutevar_ps( a1, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 					a12 = _mm256_permutevar_ps( a2, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 
 					c0 = _mm256_fmadd_ps( a00, b0, c0 );
@@ -535,16 +407,17 @@ struct CMicroKernel_6x4 : public CMicroKernelBase<6, 4> {
 					c0 = _mm256_fmadd_ps( a10, b1, c0 );
 					c1 = _mm256_fmadd_ps( a11, b1, c1 );
 					c2 = _mm256_fmadd_ps( a12, b1, c2 );
+					aPtrVec += 3;
 				}
 
 				if( k > 0 ) {
 					b0 = _mm256_broadcast_ps( reinterpret_cast<__m128 const *>( bPtr ) );
-					a0 = _mm256_broadcast_ps( aPtrVec++ );
-					a1 = _mm256_broadcast_ps( aPtrVec++ );
+					a0 = _mm256_broadcast_ps( aPtrVec );
+					a1 = _mm256_broadcast_ps( aPtrVec + 1 );
 
 					a00 = _mm256_permutevar_ps( a0, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
-					a01 = _mm256_permutevar_ps( a0, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 					a02 = _mm256_permutevar_ps( a1, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
+					a01 = _mm256_permutevar_ps( a0, PERMUTE8( 3, 3, 3, 3, 2, 2, 2, 2 ) );
 
 					c0 = _mm256_fmadd_ps( a00, b0, c0 );
 					c1 = _mm256_fmadd_ps( a01, b0, c1 );
@@ -697,7 +570,7 @@ struct CMicroKernel_6x2 : public CMicroKernelBase<6, 2> {
 				_mm256_maskstore_ps( cPtr, mask, _mm256_add_ps ( c1, _mm256_maskload_ps( cPtr, mask ) ) );
 				cPtr += cRowSize - 2;
 				mask = _mm256_set_epi32( 0, 0, 0, 0, -1, -1, 0, 0 );
-				_mm256_maskstore_ps( cPtr, mask, _mm256_add_ps ( c1, _mm256_maskload_ps( cPtr, mask ) ) );
+				_mm256_maskstore_ps( cPtr, mask, _mm256_add_ps ( c1	, _mm256_maskload_ps( cPtr, mask ) ) );
 	}
 };
 
@@ -797,6 +670,4 @@ struct CMicroKernel_6x1 : public CMicroKernelBase<6, 1> {
 				_mm256_maskstore_ps( cPtr, mask, _mm256_add_ps (c0, _mm256_maskload_ps( cPtr, mask ) ) );
 	}
 };
-
-using CKernelCombi = CKernelCombineHorizontal<CMicroKernel_6x16, CMicroKernel_6x8, CMicroKernel_6x4, CMicroKernel_6x2/*, CMicroKernel_6x1*/>;
 
