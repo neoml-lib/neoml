@@ -255,11 +255,11 @@ CPyBlob CPyBlob::Copy( const CPyMathEngine& pyMathEngine ) const
 	if( &res.Blob()->GetMathEngine() == &blob->GetMathEngine() ) {
 		res.Blob()->CopyFrom( blob );
 	} if( blob->GetDataType() == CT_Float ) {
-		float* buffer = blob->GetBuffer<float>( 0, blob->GetDataSize() );
+		float* buffer = blob->GetBuffer<float>( 0, blob->GetDataSize(), true );
 		res.Blob()->CopyFrom( buffer );
 		blob->ReleaseBuffer( buffer, false );
 	} else {
-		int* buffer = blob->GetBuffer<int>( 0, blob->GetDataSize() );
+		int* buffer = blob->GetBuffer<int>( 0, blob->GetDataSize(), true );
 		res.Blob()->CopyFrom( buffer );
 		blob->ReleaseBuffer( buffer, false );
 	}

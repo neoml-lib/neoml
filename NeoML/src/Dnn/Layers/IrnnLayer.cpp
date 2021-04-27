@@ -122,7 +122,7 @@ void CIrnnLayer::identityInitialization( CDnnBlob& blob )
 	const int objectSize = blob.GetObjectSize();
 	NeoAssert( blob.GetObjectCount() == objectSize );
 
-	float* buff = blob.GetBuffer<float>( 0, objectSize * objectSize );
+	float* buff = blob.GetBuffer<float>( 0, objectSize * objectSize, false );
 	for( int i = 0; i < blob.GetDataSize(); ++i ) {
 		buff[i] = i % objectSize == i / objectSize ? identityScale : 0.f;
 	}
@@ -134,7 +134,7 @@ void CIrnnLayer::normalInitialization( CDnnBlob& blob )
 {
 	const int dataSize = blob.GetDataSize();
 
-	float* buff = blob.GetBuffer<float>( 0, dataSize );
+	float* buff = blob.GetBuffer<float>( 0, dataSize, false );
 	CRandom& random = GetDnn()->Random();
 	for( int i = 0; i < dataSize; ++i ) {
 		buff[i] = static_cast<float>( random.Normal( 0., inputWeightStd ) );

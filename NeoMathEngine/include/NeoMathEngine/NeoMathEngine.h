@@ -837,7 +837,7 @@ public:
 
 	// Gets a pointer to access the handle memory
 	// GetBuffer and ReleaseBuffer should be called strictly in LIFO order
-	virtual void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size ) = 0;
+	virtual void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) = 0;
 	virtual void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) = 0;
 
 	// Data exchange device <-> host.

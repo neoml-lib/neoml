@@ -53,7 +53,7 @@ void CGatherNode::CalcOutputTensors( CTensorCache& tensors, IMathEngine& /* math
 	tensors[Input[1]].Data->CopyTo( indices.GetPtr() );
 
 	tensors[Output[0]].Data = tensors[Input[1]].Data->GetClone();
-	int* outputBuffer = tensors[Output[0]].Data->GetBuffer<int>( 0, tensors[Output[0]].Data->GetDataSize() );
+	int* outputBuffer = tensors[Output[0]].Data->GetBuffer<int>( 0, tensors[Output[0]].Data->GetDataSize(), false );
 	for( int i = 0; i < indices.Size(); ++i ) {
 		outputBuffer[i] = data[indices[i]];
 	}

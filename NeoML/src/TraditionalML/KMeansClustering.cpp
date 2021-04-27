@@ -47,7 +47,7 @@ static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, const IClusteri
 {
 	const int vectorCount = data->GetVectorCount();
 	CPtr<CDnnBlob> weight = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount );
-	float* buffer = weight->GetBuffer<float>( 0, vectorCount );
+	float* buffer = weight->GetBuffer<float>( 0, vectorCount, false );
 	for( int vectorIndex = 0; vectorIndex < vectorCount; ++vectorIndex ) {
 		buffer[vectorIndex] = static_cast<float>( data->GetVectorWeight( vectorIndex ) );
 	}
@@ -648,7 +648,7 @@ void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, int seed, C
 {
 	const int featureCount = data.GetObjectSize();
 	if( !initialClusterCenters.IsEmpty() ) {
-		float* buffer = centers.GetBuffer<float>( 0, params.InitialClustersCount * featureCount );
+		float* buffer = centers.GetBuffer<float>( 0, params.InitialClustersCount * featureCount, false );
 		float* currPtr = buffer;
 		for( int i = 0; i < params.InitialClustersCount; ++i ) {
 			::memcpy( currPtr, initialClusterCenters[i].Mean.GetPtr(), featureCount * sizeof( float ) );
@@ -866,7 +866,7 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& wei
 		1, sizes.GetData(), clusterCount );
 
 	CFloatHandle invertedSize = stackBuff + centers.GetDataSize();
-	float* rawSizes = sizes.GetBuffer<float>( 0, clusterCount );
+	float* rawSizes = sizes.GetBuffer<float>( 0, clusterCount, true );
 	for( int i = 0; i < clusterCount; i++ ) {
 		// Ignore empty clusters
 		if( rawSizes[i] > 0 ) {
@@ -892,8 +892,8 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 	// 1 / *cluster size*
 	CPtr<CDnnBlob> sizeInv = CDnnBlob::CreateVector( mathEngine, CT_Float, clusterCount );
 	{
-		float* sizeBuff = const_cast<CDnnBlob&>( sizes ).GetBuffer<float>( 0, clusterCount );
-		float* sizeInvBuff = sizeInv->GetBuffer<float>( 0, clusterCount );
+		float* sizeBuff = const_cast<CDnnBlob&>( sizes ).GetBuffer<float>( 0, clusterCount, true );
+		float* sizeInvBuff = sizeInv->GetBuffer<float>( 0, clusterCount, false );
 		for( int i = 0; i < clusterCount; ++i ) {
 			sizeInvBuff[i] = sizeBuff[i] > 0 ? 1.f / sizeBuff[i] : 1.f;
 		}
