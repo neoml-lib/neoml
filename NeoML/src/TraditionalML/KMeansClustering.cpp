@@ -74,27 +74,25 @@ CKMeansClustering::CKMeansClustering( const CParam& _params ) :
 bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
 {
 	double inertia;
+	// Run first clusterization with params.Seed as initial seed
 	bool succeeded = runClusterization( input, params.Seed, result, inertia );
 
 	if( params.RunCount == 1 ) {
 		return succeeded;
 	}
 
-	::printf( "*first inertia: %.4f\n", inertia );
+	// Run other clusterization with seeds generated from CRandom( params.Seed )
 	CRandom random( params.Seed );
-
 	for( int runIndex = 1; runIndex < params.RunCount; ++runIndex ) {
 		CClusteringResult newResult;
 		double newInertia;
 		bool runSucceeded = runClusterization( input, static_cast<int>( random.Next() ), newResult, newInertia );
-		::printf( "*inertia: %.4f", newInertia );
+		// Update result if current run is better (== has less inertia)
 		if( newInertia < inertia ) {
-			::printf( "\tImprovement!!!" );
 			inertia = newInertia;
 			succeeded = runSucceeded;
 			newResult.CopyTo( result );
 		}
-		::printf( "\n" );
 	}
 
 	return succeeded;
