@@ -323,7 +323,7 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 	{
 		const int threadNumber = OmpGetThreadNum();
 		NeoAssert( threadNumber < params.ThreadCount );
-		
+
 		// Iterate through features (a separate subset for each thread)
 		for( int i = threadNumber; i < usedFeatures.Size(); i += params.ThreadCount ) {
 			T left( predictionSize ); // the gain for the left node after the split
