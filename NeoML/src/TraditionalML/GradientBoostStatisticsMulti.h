@@ -256,6 +256,7 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( double& criterion,
 		return false;
 	}
 	criterion = result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) );
+	printf( "kulebaka %f %f %f\n", criterion, leftResult.TotalWeight(), rightResult.TotalWeight() );
 	return true;
 }
 

@@ -427,9 +427,6 @@ void CGradientBoostFastHistTreeBuilder<T>::applySplit( const CGradientBoostFastH
 		FObj::swap( vectorSet[vectorPtr + leftIndex], vectorSet[vectorPtr + rightIndex] );
 	}
 
-	if( leftIndex == 0 || vectorCount - leftIndex == 0 ) {
-		printf("empty subtree\n");
-	}
 	NeoAssert( leftIndex > 0 );
 	NeoAssert( vectorCount - leftIndex > 0 );
 
