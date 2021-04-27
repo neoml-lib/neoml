@@ -133,7 +133,7 @@ public:
 			ThreadCount( 1 ),
 			TreeBuilder( GBTB_Full ),
 			MaxBins( 32 ),
-			MinSubsetWeight( 0.001f ),
+			MinSubsetWeight( 1e-3f ),
 			DenseTreeBoostCoefficient( 0.f ),
 			Representation( GBMR_Compact )
 		{

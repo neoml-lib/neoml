@@ -61,7 +61,7 @@ public:
 	double TotalWeight() const { return totalWeight; }
 
 	// Check if statistics is not enough
-	bool IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex );
+	bool IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex ) const;
 
 	// Get leaf value
 	void LeafValue( CArray<double>& value ) const;
@@ -189,7 +189,7 @@ inline double CGradientBoostStatisticsMulti::CalcCriterion( float l1, float l2 )
 	return res;
 }
 
-inline bool CGradientBoostStatisticsMulti::IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex )
+inline bool CGradientBoostStatisticsMulti::IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex ) const
 {
 	return totalHessian[classIndex] < minSubsetHessian || totalWeight < minSubsetWeight;
 }
@@ -214,7 +214,7 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( double& criterion,
 	int leafClassesCount = 0;
 
 	for( int i = 0; i < totalStatistics.ValueSize(); i++ ) {
-		bool isAlreadyLeafClass = ( totalStatistics.TotalHessian()[i] == 0 );
+		bool isAlreadyLeafClass = totalStatistics.IsSmall( minSubsetHessian, minSubsetWeight, i );
 		bool isNewLeafClass = false;
 		double valueCriterion = 0;
 		if( !isAlreadyLeafClass ) {
