@@ -380,6 +380,18 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionLearnAddTestInstantiation, CBlobTim
 			"PaddingBack = (0 .. 3);"
 			"Dilation = (1 .. 5);"
 			"TestCount = 30"
+		),
+		CTestParams(
+			"BatchLength = 3;"
+			"BatchSize = 15;"
+			"ObjectSize = 3;"
+			"FilterSize = 1;"
+			"FilterCount = 7;"
+			"Stride = 1;"
+			"PaddingFront = 2;"
+			"PaddingBack = 3;"
+			"Dilation = 1;"
+			"TestCount = 1"
 		)
 	)
 );
