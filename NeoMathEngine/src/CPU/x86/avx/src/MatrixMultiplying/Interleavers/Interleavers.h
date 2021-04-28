@@ -29,7 +29,7 @@ struct CInterleaverBase<true, 4> {
 		const size_t oStep = width * Len;
 
 		for( ; height >= Len; height -= Len ) {
-			int tempWidth = width;
+			size_t tempWidth = width;
 			const float* tempIn = in;
 			float* tempOut = out;
 			for( ; tempWidth >= 8; tempWidth -= 8 ) {

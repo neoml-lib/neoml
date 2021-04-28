@@ -17,24 +17,25 @@ limitations under the License.
 #include <AvxCommon.h>
 #include <MicroKernels/MicroKernelBase.h>
 
-inline __m256 _mm256_loadu2_m128 ( float const *hiAddr, float const *loAddr )
-{
-  return _mm256_insertf128_ps( _mm256_castps128_ps256( _mm_loadu_ps ( loAddr ) ), _mm_loadu_ps( hiAddr ), 1 );
-}
-inline void _mm256_storeu2_m128( float *hiAddr, float *loAddr, __m256 data )
-{
-  _mm_storeu_ps ( loAddr, _mm256_castps256_ps128( data ) );
+#ifndef _mm256_loadu2_m128
+#define _mm256_loadu2_m128( hiAddr, loAddr ) \
+  _mm256_insertf128_ps( _mm256_castps128_ps256( _mm_loadu_ps ( loAddr ) ), _mm_loadu_ps( hiAddr ), 1 );
+#endif
+
+#ifndef _mm256_storeu2_m128
+#define _mm256_storeu2_m128( hiAddr, loAddr, data ) \
+  _mm_storeu_ps ( loAddr, _mm256_castps256_ps128( data ) ); \
   _mm_storeu_ps ( hiAddr, _mm256_extractf128_ps( data, 1) );
-}
+#endif
 
 struct CMicroKernel_6x16 : public CMicroKernelBase<6, 16> {
 	static void Calculate( const float* aPtr, const float* bPtr, float* cPtr, size_t cRowSize, size_t k ) {
-		_mm_prefetch( cPtr + 0 * cRowSize, _MM_HINT_T0 );
-		_mm_prefetch( cPtr + 1 * cRowSize, _MM_HINT_T0 );
-		_mm_prefetch( cPtr + 2 * cRowSize, _MM_HINT_T0 );
-		_mm_prefetch( cPtr + 3 * cRowSize, _MM_HINT_T0 );
-		_mm_prefetch( cPtr + 4 * cRowSize, _MM_HINT_T0 );
-		_mm_prefetch( cPtr + 5 * cRowSize, _MM_HINT_T0 );
+		_mm_prefetch( reinterpret_cast<const char*>( cPtr + 0 * cRowSize ), _MM_HINT_T0 );
+		_mm_prefetch( reinterpret_cast<const char*>( cPtr + 1 * cRowSize ), _MM_HINT_T0 );
+		_mm_prefetch( reinterpret_cast<const char*>( cPtr + 2 * cRowSize ), _MM_HINT_T0 );
+		_mm_prefetch( reinterpret_cast<const char*>( cPtr + 3 * cRowSize ), _MM_HINT_T0 );
+		_mm_prefetch( reinterpret_cast<const char*>( cPtr + 4 * cRowSize ), _MM_HINT_T0 );
+		_mm_prefetch( reinterpret_cast<const char*>( cPtr + 5 * cRowSize ), _MM_HINT_T0 );
 		__m256 c00 = _mm256_setzero_ps();
 		__m256 c01 = _mm256_setzero_ps();
 		__m256 c10 = _mm256_setzero_ps();
@@ -59,7 +60,7 @@ struct CMicroKernel_6x16 : public CMicroKernelBase<6, 16> {
 			// a4   c40  c41
 			// a5   c50  c51
 			// Iteration 0
-			_mm_prefetch( aPtr + 48, _MM_HINT_T0 );
+			_mm_prefetch(  reinterpret_cast<const char*>( aPtr + 48 ), _MM_HINT_T0 );
 			// b0: b0[0-7]
 			b0 = _mm256_loadu_ps( bPtr + 0 );
 			// b1: b1[0-7]
@@ -112,7 +113,7 @@ struct CMicroKernel_6x16 : public CMicroKernelBase<6, 16> {
 			c51 = _mm256_fmadd_ps( a1, b1, c51 );
 
 			// Iteration 2
-			_mm_prefetch( aPtr + 60, _MM_HINT_T0 );
+			_mm_prefetch( reinterpret_cast<const char*>( aPtr + 60 ), _MM_HINT_T0 );
 			b0 = _mm256_loadu_ps( bPtr + 32 );
 			b1 = _mm256_loadu_ps( bPtr + 40 );
 			a0 = _mm256_broadcast_ss( aPtr +12 );
@@ -339,7 +340,7 @@ struct CMicroKernel_6x4 : public CMicroKernelBase<6, 4> {
 					a2 = _mm256_broadcast_ps( aPtrVec + 2 );
 					b0 = _mm256_permute2f128_ps( b, b, PERMUTE2( 0, 0 ) );
 					b1 = _mm256_permute2f128_ps( b, b, PERMUTE2( 1, 1 ) );
-					_mm_prefetch( aPtrVec + 6, _MM_HINT_T0 );
+					_mm_prefetch( reinterpret_cast<const char*>( aPtrVec + 6 ), _MM_HINT_T0 );
 
 					a00 = _mm256_permutevar_ps( a0, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
 					a02 = _mm256_permutevar_ps( a1, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
@@ -364,7 +365,7 @@ struct CMicroKernel_6x4 : public CMicroKernelBase<6, 4> {
 
 					b0 = _mm256_permute2f128_ps( b, b, PERMUTE2( 0, 0 ) );
 					b1 = _mm256_permute2f128_ps( b, b, PERMUTE2( 1, 1 ) );
-					_mm_prefetch( aPtrVec + 9, _MM_HINT_T0 );
+					_mm_prefetch( reinterpret_cast<const char*>( aPtrVec + 9 ), _MM_HINT_T0 );
 
 					a00 = _mm256_permutevar_ps( a0, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
 					a02 = _mm256_permutevar_ps( a1, PERMUTE8( 1, 1, 1, 1, 0, 0, 0, 0 ) );
