@@ -63,6 +63,7 @@ Regression
    :members:
 
 .. autoclass:: neoml.Linear.LinearRegressionModel
+   :members:
 
 .. _py-classification-svm:
 
