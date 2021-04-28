@@ -24,8 +24,8 @@ class Blob:
     
     A blob is a 7-dimensional array, with each of its dimensions assigned
     a specific meaning:
-    - **BatchLength** is a "time" axis, used to denote data sequences; 
-        it is mainly used in recurrent networks
+
+    - **BatchLength** is a "time" axis, used to denote data sequences; it is mainly used in recurrent networks
     - **BatchWidth** corresponds to the batch, used to pass several independent
         objects together
     - **ListSize** is the dimensions for the objects that are connected
@@ -164,8 +164,7 @@ def store(blob, file_path):
 def load(math_engine, file_path):
     """Loads the blob from the specified location.
 
-    :param math_engine: the math engine that works with this blob.
-    :type math_engine: ``neoml.MathEngine``
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
 
     :param file_path: the full path to the file from which the blob should be loaded.
     :type file_path: str
@@ -179,8 +178,7 @@ def load(math_engine, file_path):
 def asblob(math_engine, data, shape=None, copy=False):
     """Organizes the data from a memory buffer into a blob.
 
-    :param math_engine: the math engine that works with this blob.
-    :type math_engine: ``neoml.MathEngine``
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
 
     :param data: a pointer to the data.
     :type data: object
@@ -225,8 +223,7 @@ def asblob(math_engine, data, shape=None, copy=False):
 def vector(math_engine, size, dtype="float32"):
     """Creates a one-dimensional blob, that is, a vector.
 
-    :param math_engine: the math engine that works with this blob.
-    :type math_engine: ``neoml.MathEngine``
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
 
     :param size: the vector length.
     :type size: int, > 0
@@ -247,8 +244,7 @@ def vector(math_engine, size, dtype="float32"):
 def matrix(math_engine, matrix_height, matrix_width, dtype="float32"):
     """Creates a two-dimensional blob, that is, a matrix.
 
-    :param math_engine: the math engine that works with this blob.
-    :type math_engine: ``neoml.MathEngine``
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
 
     :param matrix_height: the matrix height.
     :type matrix_height: int, > 0
@@ -274,8 +270,7 @@ def matrix(math_engine, matrix_height, matrix_width, dtype="float32"):
 def tensor(math_engine, shape, dtype="float32"):
     """Creates a blob of the specified shape.
 
-    :param math_engine: the math engine that works with this blob.
-    :type math_engine: ``neoml.MathEngine``
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
 
     :param shape: the target blob dimensions.
     :type shape: array of int
@@ -300,8 +295,7 @@ def tensor(math_engine, shape, dtype="float32"):
 def list_blob(math_engine, batch_len, batch_width, list_size, channels, dtype="float32"):
     """Creates a blob with one-dimensional **Height** * **Width** * **Depth** elements.
 
-    :param math_engine: the math engine that works with this blob.
-    :type math_engine: ``neoml.MathEngine``
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
 
     :param batch_len: the **BatchLength** dimension of the new blob.
     :type batch_len: int, > 0
@@ -337,8 +331,7 @@ def list_blob(math_engine, batch_len, batch_width, list_size, channels, dtype="f
 def image2d(math_engine, batch_len, batch_width, height, width, channels, dtype="float32"):
     """Creates a blob with two-dimensional multi-channel images.
 
-    :param math_engine: the math engine that works with this blob.
-    :type math_engine: ``neoml.MathEngine``
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
 
     :param batch_len: the **BatchLength** dimension of the new blob.
     :type batch_len: int, > 0
@@ -379,8 +372,7 @@ def image2d(math_engine, batch_len, batch_width, height, width, channels, dtype=
 def image3d(math_engine, batch_len, batch_width, height, width, depth, channels, dtype="float32"):
     """Creates a blob with three-dimensional multi-channel images.
 
-    :param math_engine: the math engine that works with this blob.
-    :type math_engine: ``neoml.MathEngine``
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
 
     :param batch_len: the **BatchLength** dimension of the new blob.
     :type batch_len: int, > 0

@@ -76,8 +76,37 @@ The blobs may contain one of the two types of data: ``float`` and ``int``. Both 
 
 If the data type is not specified directly anywhere in this documentation, that means ``float`` is used.
 
+Class description
+*******************
+
 .. autoclass:: neoml.Blob.Blob
    :members:
+
+Working with blobs
+*******************
+
+.. automethod:: neoml.Blob.store
+
+.. automethod:: neoml.Blob.load
+
+.. automethod:: neoml.Blob.asblob
+
+Creating blobs of typical size
+******************************
+
+The auxiliary methods that create blobs for frequently used types of data.
+
+.. automethod:: neoml.Blob.vector
+
+.. automethod:: neoml.Blob.matrix
+
+.. automethod:: neoml.Blob.tensor
+
+.. automethod:: neoml.Blob.list_blob
+
+.. automethod:: neoml.Blob.image2d
+
+.. automethod:: neoml.Blob.image3d
 
 .. _py-dnn-layers:
 
