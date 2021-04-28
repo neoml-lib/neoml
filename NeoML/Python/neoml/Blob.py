@@ -21,24 +21,6 @@ import numpy
 
 class Blob:
     """The class that stores and transmits data in neural networks.
-    
-    A blob is a 7-dimensional array, with each of its dimensions assigned
-    a specific meaning:
-
-    - **BatchLength** is a "time" axis, used to denote data sequences; it is mainly used in recurrent networks
-    - **BatchWidth** corresponds to the batch, used to pass several independent
-        objects together
-    - **ListSize** is the dimensions for the objects that are connected
-        (for example, pixels out of one image) but do not form a sequence
-    - **Height** is the height of a matrix or an image
-    - **Width** is the width of a matrix or an image
-    - **Depth** is the width of a 3-dimensional image
-    - **Channels** corresponds to channels for multi-channel image formats 
-        and is also used to work with one-dimensional vectors
-    
-    .. rubric:: Data types:
-
-    `int` and `float` data types are supported. Both are 32-bit.
     """
 
     def __init__(self, internal):
