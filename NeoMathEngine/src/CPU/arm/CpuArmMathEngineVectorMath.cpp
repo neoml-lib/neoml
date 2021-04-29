@@ -70,7 +70,6 @@ void CCpuMathEngine::VectorConvert( const CConstFloatHandle& from, const CIntHan
 		StoreIntNeon4( vcvtq_s32_f32( LoadNeon4( fromPtr ) ), toPtr );
 		toPtr += 4;
 		fromPtr += 4;
-		vectorSize -= 4;
 	}
 
 	if( vectorSize > 0 ) {
@@ -93,7 +92,6 @@ void CCpuMathEngine::VectorConvert( const CConstIntHandle& from, const CFloatHan
 		StoreNeon4( vcvtq_f32_s32( LoadIntNeon4( fromPtr ) ), toPtr );
 		toPtr += 4;
 		fromPtr += 4;
-		vectorSize -= 4;
 	}
 
 	if( vectorSize > 0 ) {
