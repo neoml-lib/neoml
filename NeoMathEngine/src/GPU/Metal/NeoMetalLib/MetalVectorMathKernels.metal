@@ -73,6 +73,9 @@ kernel void vectorKernelConvertFloatToInt( constant float* from [[buffer(0)]],
     int step;
     int actionCount = pos.GetMetalTaskCountAndIndex( *vectorSize, VectorCombineCount, index, step );
 
+    from += index;
+    to += index;
+
     for( int i = 0; i < actionCount; ++i ) {
         *to = static_cast<int>( *from );
         from += step;
@@ -91,6 +94,9 @@ kernel void vectorKernelConvertIntToFloat( constant int* from [[buffer(0)]],
     int index;
     int step;
     int actionCount = pos.GetMetalTaskCountAndIndex( *vectorSize, VectorCombineCount, index, step );
+
+    from += index;
+    to += index;
 
     for( int i = 0; i < actionCount; ++i ) {
         *to = static_cast<float>( *from );
