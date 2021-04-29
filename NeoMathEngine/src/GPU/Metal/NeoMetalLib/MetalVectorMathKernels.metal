@@ -61,12 +61,12 @@ kernel void vectorKernelFillInt( device int* first [[buffer(0)]],
     }
 }
 
-kernel void vectorConvertFloatToInt( constant float* from [[buffer(0)]],
-                                     device int* to [[buffer(1)]],
-                                     constant int* vectorSize [[buffer(2)]],
-                                     uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
-                                     uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
-                                     uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+kernel void vectorKernelConvertFloatToInt( constant float* from [[buffer(0)]],
+                                           device int* to [[buffer(1)]],
+                                           constant int* vectorSize [[buffer(2)]],
+                                           uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                           uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                           uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
 {
     C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
     int index;
@@ -80,12 +80,12 @@ kernel void vectorConvertFloatToInt( constant float* from [[buffer(0)]],
     }
 }
 
-kernel void vectorConvertIntToFloat( constant int* from [[buffer(0)]],
-                                     device float* to [[buffer(1)]],
-                                     constant int* vectorSize [[buffer(2)]],
-                                     uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
-                                     uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
-                                     uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+kernel void vectorKernelConvertIntToFloat( constant int* from [[buffer(0)]],
+                                           device float* to [[buffer(1)]],
+                                           constant int* vectorSize [[buffer(2)]],
+                                           uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                           uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                           uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
 {
     C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
     int index;
