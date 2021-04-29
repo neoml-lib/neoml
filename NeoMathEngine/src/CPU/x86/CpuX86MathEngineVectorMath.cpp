@@ -80,6 +80,54 @@ void CCpuMathEngine::VectorFill( const CIntHandle& resultHandle, int value, int 
 	#endif
 }
 
+void CCpuMathEngine::VectorConvert( const CConstFloatHandle& from, const CIntHandle& to, int vectorSize )
+{
+	ASSERT_EXPR( from.GetMathEngine() == this );
+	ASSERT_EXPR( to.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize >= 0 );
+
+	const float* fromPtr = GetRaw( from );
+	int* toPtr = GetRaw( to );
+
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	for( int i = 0; i < sseSize; ++i ) {
+		StoreIntSse4( _mm_cvttps_epi32( LoadSse4( fromPtr ) ), toPtr );
+		toPtr += 4;
+		fromPtr += 4;
+	}
+
+	if( nonSseSize > 0 ) {
+		StoreIntSse( _mm_cvttps_epi32( LoadSse( fromPtr, nonSseSize ) ), toPtr, nonSseSize );
+	}
+}
+
+void CCpuMathEngine::VectorConvert( const CConstIntHandle& from, const CFloatHandle& to, int vectorSize )
+{
+	ASSERT_EXPR( from.GetMathEngine() == this );
+	ASSERT_EXPR( to.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize >= 0 );
+
+	const int* fromPtr = GetRaw( from );
+	float* toPtr = GetRaw( to );
+
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	for( int i = 0; i < sseSize; ++i ) {
+		StoreSse4( _mm_cvtepi32_ps( LoadIntSse4( fromPtr ) ), toPtr );
+		toPtr += 4;
+		fromPtr += 4;
+	}
+
+	if( nonSseSize > 0 ) {
+		StoreSse( _mm_cvtepi32_ps( LoadIntSse( fromPtr, nonSseSize ) ), toPtr, nonSseSize );
+	}
+}
+
 void CCpuMathEngine::FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold )
 {
 	ASSERT_EXPR( data.GetMathEngine() == this );

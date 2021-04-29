@@ -72,6 +72,30 @@ void CMetalMathEngine::VectorFill(const CIntHandle& result, int vectorSize, cons
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::VectorConvert(const CConstFloatHandle& from, const CIntHandle& to, int vectorSize)
+{
+    ASSERT_EXPR( from.GetMathEngine() == this );
+    ASSERT_EXPR( to.GetMathEngine() == this );
+
+    C1DKernal kernel( *queue, "vectorKernelConvertFloatToInt", VectorCombineCount, vectorSize );
+    kernel.SetParam( from, 0 );
+    kernel.SetParam( to, 1 );
+    kernel.SetParam( vectorSize, 2 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::VectorConvert(const CConstIntHandle& from, const CFloatHandle& to, int vectorSize)
+{
+    ASSERT_EXPR( from.GetMathEngine() == this );
+    ASSERT_EXPR( to.GetMathEngine() == this );
+
+    C1DKernal kernel( *queue, "vectorKernelConvertIntToFloat", VectorCombineCount, vectorSize );
+    kernel.SetParam( from, 0 );
+    kernel.SetParam( to, 1 );
+    kernel.SetParam( vectorSize, 2 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
 void CMetalMathEngine::VectorFillBernoulli(const CFloatHandle& result, float p, int vectorSize, float value, int seed)
 {
     ASSERT_EXPR( result.GetMathEngine() == this );

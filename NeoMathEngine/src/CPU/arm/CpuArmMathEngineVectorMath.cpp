@@ -55,6 +55,52 @@ void CCpuMathEngine::VectorFill(const CIntHandle& result, int value, int vectorS
 	vectorFill( GetRaw( result ), value, vectorSize );
 }
 
+void CCpuMathEngine::VectorConvert( const CConstFloatHandle& from, const CIntHandle& to, int vectorSize )
+{
+	ASSERT_EXPR( from.GetMathEngine() == this );
+	ASSERT_EXPR( to.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize >= 0 );
+
+	const float* fromPtr = GetRaw( from );
+	int* toPtr = GetRaw( to );
+
+	int count = GetCount4( vectorSize );
+
+	for( int i = 0; i < count; ++i ) {
+		StoreIntNeon4( vcvtq_s32_f32( LoadNeon4( fromPtr ) ), toPtr );
+		toPtr += 4;
+		fromPtr += 4;
+		vectorSize -= 4;
+	}
+
+	if( vectorSize > 0 ) {
+		StoreIntNeon( vcvtq_s32_f32( LoadNeon( fromPtr, vectorSize ) ), toPtr, vectorSize );
+	}
+}
+
+void CCpuMathEngine::VectorConvert( const CConstIntHandle& from, const CFloatHandle& to, int vectorSize )
+{
+	ASSERT_EXPR( from.GetMathEngine() == this );
+	ASSERT_EXPR( to.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize >= 0 );
+
+	const int* fromPtr = GetRaw( from );
+	float* toPtr = GetRaw( to );
+
+	int count = GetCount4( vectorSize );
+
+	for( int i = 0; i < count; ++i ) {
+		StoreNeon4( vcvtq_f32_s32( LoadIntNeon4( fromPtr ) ), toPtr );
+		toPtr += 4;
+		fromPtr += 4;
+		vectorSize -= 4;
+	}
+
+	if( vectorSize > 0 ) {
+		StoreNeon( vcvtq_f32_s32( LoadIntNeon( fromPtr, vectorSize ) ), toPtr, vectorSize );
+	}
+}
+
 void CCpuMathEngine::VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize,
 	const CFloatHandle& resultHandle)
 {

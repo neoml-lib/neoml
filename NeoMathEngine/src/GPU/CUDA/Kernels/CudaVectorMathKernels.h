@@ -53,6 +53,24 @@ __global__ void VectorFillHandleKernel(T* mem, int count, const T* __restrict__ 
 	}
 }
 
+const int VectorConvertCombineCount = 8;
+template<class From, class To>
+__global__ void VectorConvertKernel( const From* from, To* to, int count )
+{
+	int index;
+	int step;
+	int actionCount = GetCudaTaskCountAndIndex(count, VectorConvertCombineCount, index, step);
+
+	from += index;
+	to += index;
+
+	for( int i = 0; i < actionCount; ++i ) {
+		*to = static_cast<To>( *from );
+		from += step;
+		to += step;
+	}
+}
+
 const int VectorFillBernoulliCombine = 8;
 __global__ void VectorFillBernoulliKernel( float* result, float p, int vectorSize, float value, int randomInit )
 {
