@@ -71,6 +71,7 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 
 		// Calculating the best identifier for the split
 		nodes[node].SplitFeatureId = evaluateSplit( problem, nodes[node] );
+		printf("kulebaka %d %d\n", node, nodes[node].SplitFeatureId);
 		if( nodes[node].SplitFeatureId != NotFound ) {
 			// The split is possible
 			if( logStream != 0 ) {
@@ -329,9 +330,9 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 			T left( predictionSize ); // the gain for the left node after the split
 			T right( predictionSize ); // for the right node after the split (calculated as the complement to the parent)
 			const int firstFeatureIndex = featurePos[usedFeatures[i]];
-			const int lastFetureIndex = featurePos[usedFeatures[i] + 1];
+			const int lastFeatureIndex = featurePos[usedFeatures[i] + 1];
 			// Iterate through feature values (sorted ascending) looking for the split position
-			for( int j = firstFeatureIndex; j < lastFetureIndex; j++ ) {
+			for( int j = firstFeatureIndex; j < lastFeatureIndex; j++ ) {
 				const T& featureStats = histStatsPtr[idPos[j]];
 				left.Add( featureStats );
 				right = node.Statistics;
@@ -426,6 +427,7 @@ void CGradientBoostFastHistTreeBuilder<T>::applySplit( const CGradientBoostFastH
 		}
 		FObj::swap( vectorSet[vectorPtr + leftIndex], vectorSet[vectorPtr + rightIndex] );
 	}
+
 
 	NeoAssert( leftIndex > 0 );
 	NeoAssert( vectorCount - leftIndex > 0 );
