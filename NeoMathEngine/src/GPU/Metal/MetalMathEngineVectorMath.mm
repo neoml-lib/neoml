@@ -77,7 +77,7 @@ void CMetalMathEngine::VectorConvert(const CConstFloatHandle& from, const CIntHa
     ASSERT_EXPR( from.GetMathEngine() == this );
     ASSERT_EXPR( to.GetMathEngine() == this );
 
-    C1DKernal kernel( *queue, "vectorKernelConvertFloatToInt", VectorCombineCount, vectorSize );
+    C1DKernel kernel( *queue, "vectorKernelConvertFloatToInt", VectorCombineCount, vectorSize );
     kernel.SetParam( from, 0 );
     kernel.SetParam( to, 1 );
     kernel.SetParam( vectorSize, 2 );
@@ -89,7 +89,7 @@ void CMetalMathEngine::VectorConvert(const CConstIntHandle& from, const CFloatHa
     ASSERT_EXPR( from.GetMathEngine() == this );
     ASSERT_EXPR( to.GetMathEngine() == this );
 
-    C1DKernal kernel( *queue, "vectorKernelConvertIntToFloat", VectorCombineCount, vectorSize );
+    C1DKernel kernel( *queue, "vectorKernelConvertIntToFloat", VectorCombineCount, vectorSize );
     kernel.SetParam( from, 0 );
     kernel.SetParam( to, 1 );
     kernel.SetParam( vectorSize, 2 );
