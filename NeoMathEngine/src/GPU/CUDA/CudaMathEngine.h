@@ -58,7 +58,7 @@ public:
 	size_t GetPeakMemoryUsage() const override;
 	size_t GetMemoryInPools() const override;
 	void CleanUp() override;
-	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size ) override;
+	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) override;
 	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
 	void DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size ) override;
 	void DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size ) override;
@@ -527,8 +527,6 @@ private:
 	void blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 	template<class T>
 	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
-
-	void blobTimeConvolutionPrepare( const CCudaTimeConvolutionDescInternal& desc, float* data, const CFloatHandle& sourceData );
 
 	void blobConvertFromRle( const CCudaRleConvolutionDesc& desc, const CFloatHandle& source, const CFloatHandle& result );
 
