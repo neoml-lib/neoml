@@ -60,6 +60,50 @@ kernel void vectorKernelFillInt( device int* first [[buffer(0)]],
         first += step;
     }
 }
+
+kernel void vectorKernelConvertFloatToInt( constant float* from [[buffer(0)]],
+                                           device int* to [[buffer(1)]],
+                                           constant int* vectorSize [[buffer(2)]],
+                                           uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                           uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                           uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+{
+    C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
+    int index;
+    int step;
+    int actionCount = pos.GetMetalTaskCountAndIndex( *vectorSize, VectorCombineCount, index, step );
+
+    from += index;
+    to += index;
+
+    for( int i = 0; i < actionCount; ++i ) {
+        *to = static_cast<int>( *from );
+        from += step;
+        to += step;
+    }
+}
+
+kernel void vectorKernelConvertIntToFloat( constant int* from [[buffer(0)]],
+                                           device float* to [[buffer(1)]],
+                                           constant int* vectorSize [[buffer(2)]],
+                                           uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                           uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                           uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+{
+    C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
+    int index;
+    int step;
+    int actionCount = pos.GetMetalTaskCountAndIndex( *vectorSize, VectorCombineCount, index, step );
+
+    from += index;
+    to += index;
+
+    for( int i = 0; i < actionCount; ++i ) {
+        *to = static_cast<float>( *from );
+        from += step;
+        to += step;
+    }
+}
     
 kernel void vectorKernelVectorFillBernoulli( device float* result [[buffer(0)]],
                                              constant float& p [[buffer(1)]],

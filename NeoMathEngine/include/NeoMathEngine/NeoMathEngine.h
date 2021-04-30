@@ -46,6 +46,10 @@ public:
 	virtual void VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value) = 0;
 	virtual void VectorFill(const CIntHandle& result, int vectorSize, const CConstIntHandle& value) = 0;
 
+	// Converting data type
+	virtual void VectorConvert(const CConstFloatHandle& from, const CIntHandle& to, int vectorSize) = 0;
+	virtual void VectorConvert(const CConstIntHandle& from, const CFloatHandle& to, int vectorSize) = 0;
+
 	// Filling a vector using the Bernoulli distribution with p being the probability of 1
 	// The elements for which the distribution gives 1 are set to the specified value
 	virtual void VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed ) = 0;
