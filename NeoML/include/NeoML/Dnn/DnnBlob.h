@@ -271,6 +271,43 @@ inline void SerializeBlobs( IMathEngine& mathEngine, CArchive& archive, CObjectA
 	}
 }
 
+enum class TDnnBlobBufferAccess {
+	Read,
+	Write,
+	ReadWrite
+};
+
+// Helper to safely work with `CDnnBlob::GetBuffer`/`CDnnBlob::ReleaseBuffer`.
+template<typename TBufferType = float>
+class CDnnBlobBuffer {
+public:
+	CDnnBlobBuffer( CDnnBlob& _blob, int pos, int _size, TDnnBlobBufferAccess _access ) :
+		blob( _blob ),
+		access( _access ),
+		size( _size ),
+		ptr( blob.GetBuffer<TBufferType>( pos, size, access == TDnnBlobBufferAccess::Read || access == TDnnBlobBufferAccess::ReadWrite ) )
+	{}
+	CDnnBlobBuffer( const CDnnBlobBuffer& ) = delete;
+	~CDnnBlobBuffer() { blob.ReleaseBuffer( ptr, access == TDnnBlobBufferAccess::Write || access == TDnnBlobBufferAccess::ReadWrite ); }
+
+	TBufferType* Ptr() { return ptr; }
+	const TBufferType* Ptr() const { return ptr; }
+
+	operator TBufferType*() { return ptr; }
+	operator const TBufferType*() const { return ptr; }
+
+	TBufferType& operator[]( int i ) { NeoAssert( 0 <= i && i < size ); return ptr[i]; }
+	TBufferType operator[]( int i ) const { NeoAssert( 0 <= i && i < size ); return ptr[i]; }
+
+	CDnnBlobBuffer& operator=( const CDnnBlobBuffer& ) = delete;
+
+private:
+	CDnnBlob& blob;
+	TDnnBlobBufferAccess access;
+	int size;
+	TBufferType* ptr;
+};
+
 inline CDnnBlob* CDnnBlob::CreateBlob( IMathEngine& mathEngine, const CBlobDesc& pattern )
 {
 	return CreateBlob(mathEngine, CT_Float, pattern);
