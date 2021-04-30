@@ -69,6 +69,8 @@ public:
 	void VectorFill(const CIntHandle& result, int value, int vectorSize) override;
 	void VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value) override;
 	void VectorFill(const CIntHandle& result, int vectorSize, const CConstIntHandle& value) override;
+	void VectorConvert(const CConstFloatHandle& from, const CIntHandle& to, int vectorSize) override;
+	void VectorConvert(const CConstIntHandle& from, const CFloatHandle& to, int vectorSize) override;
 	void VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed ) override;
 	void FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold ) override;
 	void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) override;
