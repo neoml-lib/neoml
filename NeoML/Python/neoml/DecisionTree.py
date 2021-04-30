@@ -98,8 +98,6 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
     def train(self, X, Y, weight=None):
         """Trains the decision tree.
 
-        Parameters
-        ----------
         :param X: the training sample. The values will be converted 
             to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
@@ -111,8 +109,8 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``DecisionTreeClassificationModel``.
-        :rtype: *object*
+        :return: the trained classification model.
+        :rtype: neoml.DecisionTree.DecisionTreeClassificationModel
         """
 
         x = convert_data(X)
