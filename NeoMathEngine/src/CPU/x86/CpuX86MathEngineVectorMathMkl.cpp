@@ -36,6 +36,18 @@ limitations under the License.
 
 namespace NeoML {
 
+void CCpuMathEngine::VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw(firstHandle);
+	float* result = GetRaw(resultHandle);
+	for(int i = 0; i < vectorSize; ++i) {
+		*result++ = -*first++;
+	}
+}
+
 void CCpuMathEngine::VectorExp(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );

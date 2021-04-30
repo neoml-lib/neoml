@@ -66,6 +66,12 @@ public:
 	virtual void VectorEqualValue( const CConstIntHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstIntHandle& valueHandle ) = 0;
 
+	// result = max( first, second )
+	virtual void VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
+		int vectorSize ) = 0;
+	virtual void VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+		int gradHeight, int gradWidth ) = 0;
+
 	// ELU
 	virtual void VectorELU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		int vectorSize, const CConstFloatHandle& alpha) = 0;
@@ -140,13 +146,19 @@ public:
 	virtual void VectorHardSigmoidDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle) = 0;
 
+	// result = -first
+	virtual void VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
+
 	// result = exp(first)
 	virtual void VectorExp(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
 	// result = log(first)
 	virtual void VectorLog( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		int vectorSize ) = 0;
-	
+	// result = first == 0 ? 0 : 1/first
+	virtual void VectorLogDiff( const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
+		const CConstFloatHandle& valueHandle, const CFloatHandle& resultHandle ) = 0;
+
 	// result = -log(first)
 	virtual void VectorNegLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
@@ -168,6 +180,10 @@ public:
 	// Vector substraction
 	// result = first - second
 	virtual void VectorSub(const CConstFloatHandle& firstHandle,
+		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
+	virtual void VectorSub(const CConstFloatHandle& firstHandle,
+		float second, const CFloatHandle& resultHandle, int vectorSize) = 0;
+	virtual void VectorSub(float first,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
 	// Multiplies a vector by a number and adds it to another vector
@@ -259,6 +275,11 @@ public:
 	// elementwise LogSumExp: result[i] = log(exp(first[i]) + exp(second[i]))
 	virtual void VectorEltwiseLogSumExp(const CConstFloatHandle& first, const CConstFloatHandle& second,
 		const CFloatHandle& result, int vectorSize) = 0;
+
+	virtual void VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result, const CIntHandle& indices) = 0;
+
+	virtual void VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
+		const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -295,6 +316,11 @@ public:
 	virtual void AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
 		const CFloatHandle& result, int vectorSize) = 0;
+
+	// Elementwise adds two matrices of the same size
+	virtual void AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+		int height, int width, const CFloatHandle& result ) = 0;
+
 	// Elementwise adds two matrices of the same size
 	virtual void AddMatrixElementsToMatrix(const CConstFloatHandle& matrix, int height, int width,
 		const CFloatHandle& result, const CConstIntHandle& indices) = 0;
@@ -320,6 +346,10 @@ public:
 	// Calculates the total of matrix columns
 	virtual void SumMatrixColumns(const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 		int matrixHeight, int matrixWidth) = 0;
+
+	// Elementwise divide matrix columns by vector of size matrixHeight.
+	virtual void MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrix, int matrixHeight, int matrixWidth,
+		const CConstFloatHandle& vector, const CFloatHandle& resultHandle ) = 0;
 
 	// Vector operations over matrix rows
 	// log(exp(x0) + ... + exp(xn)), the result is a vector with "height" elements

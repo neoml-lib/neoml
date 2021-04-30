@@ -209,6 +209,44 @@ void CCpuMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle,
 	}
 }
 
+void CCpuMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result = ( *first >= secondValue ) ? *first : secondValue;
+		result++;
+		first++;
+	}
+}
+
+void CCpuMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+	int gradHeight, int gradWidth )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+
+	const float* first = GetRaw( firstHandle );
+	float* grad = GetRaw( gradHandle );
+
+	const int firstSize = gradHeight == 1 ? gradWidth : gradHeight;
+	const int gradSize =  gradHeight == 1 ? 1 : gradWidth;
+
+	for( int i = 0; i < firstSize; ++i ) {
+		if( *first < secondValue ) {
+			vectorFill( grad, 0.0f, gradSize );
+		}
+		grad += gradSize;
+		first++;
+	}
+}
+
 void CCpuMathEngine::VectorELU( const CConstFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alphaHandle )
 {
@@ -1265,6 +1303,56 @@ void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle,
 	}
 }
 
+void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float second, const CFloatHandle& resultHandle,
+	int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw(firstHandle);
+	float* result = GetRaw(resultHandle);
+
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	__m128 secondSse = _mm_set_ps1(second);
+	for(int i = 0; i < sseSize; ++i) {
+		_mm_storeu_ps(result, _mm_sub_ps(_mm_loadu_ps(first), secondSse));
+		first += 4;
+		result += 4;
+	}
+
+	for(int i = 0; i < nonSseSize; ++i) {
+		result[i] = first[i] - second;
+	}
+}
+
+void CCpuMathEngine::VectorSub(float first, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
+	int vectorSize)
+{
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* second = GetRaw(secondHandle);
+	float* result = GetRaw(resultHandle);
+
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	__m128 firstSse = _mm_set_ps1(first);
+	for(int i = 0; i < sseSize; ++i) {
+		_mm_storeu_ps(result, _mm_sub_ps(firstSse, _mm_loadu_ps(second)));
+		second += 4;
+		result += 4;
+	}
+
+	for(int i = 0; i < nonSseSize; ++i) {
+		result[i] = first - second[i];
+	}
+}
+
 void CCpuMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle)
 {
@@ -1502,6 +1590,37 @@ void CCpuMathEngine::VectorInv(const CConstFloatHandle& firstHandle, const CFloa
 			*result++ = FLT_MAX;
 		} else {
 			*result++ = 1.f / div;
+		}
+	}
+}
+
+// result = first == 0 ? 0 : 1 / first
+void CCpuMathEngine::VectorLogDiff( const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
+	const CConstFloatHandle& valueHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( sourceGradHeight > 0 );
+	ASSERT_EXPR( sourceGradWidth > 0 );
+	ASSERT_EXPR( valueHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* sourceGrad = GetRaw(sourceGradHandle);
+	const float* value = GetRaw(valueHandle);
+	float* result = GetRaw(resultHandle);
+
+	const int valueSize = sourceGradHeight == 1 ? sourceGradWidth : sourceGradHeight;
+	const int gradSize = sourceGradHeight == 1 ? 1 : sourceGradWidth;
+	for( int i = 0; i < valueSize; ++i ) {
+		float div = *value++;
+		if( (-FLT_MIN <= div && div < 0) || (0 <= div && div <= FLT_MIN) ) {
+			for( int j = 0; j < gradSize; j++ ) {
+				*result++ = 0;
+				sourceGrad++;
+			}
+		} else {
+			for( int j = 0; j < gradSize; j++ ) {
+				*result++ = *sourceGrad++ / div;
+			}
 		}
 	}
 }

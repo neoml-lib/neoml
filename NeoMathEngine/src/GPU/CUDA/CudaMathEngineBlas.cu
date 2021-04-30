@@ -184,6 +184,12 @@ void CCudaMathEngine::AddMatrixElementsToMatrix(const CConstFloatHandle& matrix,
 		height, width, GetRaw(result), GetRaw(indices));
 }
 
+void CCudaMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+	int height, int width, const CFloatHandle& result )
+{
+	ASSERT_EXPR( false );
+}
+
 void CCudaMathEngine::AddVectorToMatrixRows(int batchSize,
 	const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle, int matrixHeight,
 	int matrixWidth, const CConstFloatHandle& vectorHandle)
@@ -279,6 +285,15 @@ void CCudaMathEngine::SumMatrixColumns(const CFloatHandle& resultHandle, const C
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
 	sumMatrixColumnsKernelFunc(resultHandle, GetRaw(matrixHandle), matrixHeight, matrixWidth, false);
+}
+
+void CCudaMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
+	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( false );
 }
 
 void CCudaMathEngine::MatrixLogSumExpByRows(const CConstFloatHandle& matrix, int height, int width,

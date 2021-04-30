@@ -208,6 +208,27 @@ void CCudaMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle,
 		(GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, GetRaw( valueHandle ));
 }
 
+void CCudaMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
+	int vectorSize )
+{
+	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+	ASSERT_EXPR(vectorSize >= 0);
+
+	ASSERT_EXPR(false);
+}
+
+void CCudaMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+	int gradHeight, int gradWidth )
+{
+	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+	ASSERT_EXPR(gradHandle.GetMathEngine() == this);
+	ASSERT_EXPR(gradHeight >= 0);
+	ASSERT_EXPR(gradWidth > 0);
+
+	ASSERT_EXPR(false);
+}
+
 void CCudaMathEngine::VectorELU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 	int vectorSize, const CConstFloatHandle& alpha )
 {
@@ -577,6 +598,13 @@ void CCudaMathEngine::VectorHardSigmoidDiffOp( const CConstFloatHandle& firstHan
 		( GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize, GetRaw( slopeHandle ) );
 }
 
+void CCudaMathEngine::VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+	ASSERT_EXPR(false);
+}
+
 void CCudaMathEngine::VectorExp(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
@@ -603,6 +631,15 @@ void CCudaMathEngine::VectorLog( const CConstFloatHandle& firstHandle,
 
 	VectorLogKernel<<<blockCount, threadCount>>>( GetRaw( firstHandle ),
 		GetRaw( resultHandle ), vectorSize );
+}
+
+void CCudaMathEngine::VectorLogDiff( const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
+	const CConstFloatHandle& valueHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR(sourceGradHandle.GetMathEngine() == this);
+	ASSERT_EXPR(valueHandle.GetMathEngine() == this);
+	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+	ASSERT_EXPR(false);
 }
 
 void CCudaMathEngine::VectorNegLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
@@ -714,6 +751,24 @@ void CCudaMathEngine::VectorSub(const CConstFloatHandle& firstHandle, const CCon
 
 	VectorSubKernel<<<blockCount, threadCount>>>
 		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
+}
+
+void CCudaMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float second, const CFloatHandle& resultHandle,
+	int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	ASSERT_EXPR( false );
+}
+
+void CCudaMathEngine::VectorSub(float first, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
+	int vectorSize)
+{
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	ASSERT_EXPR( false );
 }
 
 void CCudaMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -1154,6 +1209,31 @@ void CCudaMathEngine::VectorEltwiseLogSumExp(const CConstFloatHandle& first, con
 
 	VectorEltwiseLogSumExpKernel<<<blockCount, threadCount>>>(GetRaw(first),
 		GetRaw(second), GetRaw(result), vectorSize);
+}
+
+void CCudaMathEngine::VectorTopK(const CConstFloatHandle& firstHandle, int firstSize, int k, const CFloatHandle& resultHandle,
+	const CIntHandle& indicesHandle)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( firstSize >= 0 );
+	ASSERT_EXPR( k > 0 );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+
+	ASSERT_EXPR( false );
+}
+
+void CCudaMathEngine::VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
+		const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad)
+{
+	ASSERT_EXPR( sourceGrad.GetMathEngine() == this );
+	ASSERT_EXPR( sourceGradHeight > 0 );
+	ASSERT_EXPR( sourceGradWidth > 0 );
+	ASSERT_EXPR( indices.GetMathEngine() == this );
+	ASSERT_EXPR( k > 0 );
+	ASSERT_EXPR( resultGrad.GetMathEngine() == this );
+
+	ASSERT_EXPR( false );
 }
 
 } // namespace NeoML

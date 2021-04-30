@@ -195,4 +195,71 @@ void CCpuMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, cons
 	vectorDotProduct( first, second, vectorSize, result );
 }
 
+void CCpuMathEngine::VectorTopK(const CConstFloatHandle& firstHandle, int firstSize, int k, const CFloatHandle& resultHandle,
+	const CIntHandle& indicesHandle)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( firstSize >= 0 );
+	ASSERT_EXPR( k > 0 );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+	int* indices = GetRaw( indicesHandle );
+	int size = 0;
+
+	for( int i = 0; i < firstSize; i++ ) {
+		int pos = 0;
+		for( pos = 0; pos < size; pos++ ) {
+			if( *first > result[pos] ) {
+				for( int j = min(size + 1, k) - 1; j >= pos + 1; j-- ) {
+					result[j] = result[j - 1];
+					indices[j] = indices[j - 1];
+				}
+				break;
+			}
+		}
+		if( pos < k ) {
+			result[pos] = *first;
+			indices[pos] = i;
+			size = min( size + 1, k );
+		}
+		first++;
+	}
+}
+
+void CCpuMathEngine::VectorTopKDiff(const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
+	const CConstIntHandle& indicesHandle, int k, const CFloatHandle& resultGradHandle)
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( sourceGradHeight > 0 );
+	ASSERT_EXPR( sourceGradWidth > 0 );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( k > 0 );
+	ASSERT_EXPR( resultGradHandle.GetMathEngine() == this );
+
+	const float* sourceGrad = GetRaw( sourceGradHandle );
+	const int* indices = GetRaw( indicesHandle );
+	float* resultGrad = GetRaw( resultGradHandle );
+
+	if( sourceGradHeight == 1 ) {
+		vectorFill0( resultGrad, k * sourceGradWidth );
+		for( int i = 0; i < k; i++ ) {
+			const int pos = indices[i];
+			resultGrad[pos] = sourceGrad[pos];
+
+			resultGrad += sourceGradWidth;
+		}
+		return;
+	}
+
+	for( int i = 0; i < k; i++ ) {
+		const int pos = indices[i] * sourceGradWidth ;
+		vectorCopy( resultGrad, sourceGrad + pos, sourceGradWidth );
+
+		resultGrad += sourceGradWidth;
+	}
+}
+
 } // namespace NeoML
