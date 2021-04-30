@@ -21,24 +21,6 @@ import numpy
 
 class Blob:
     """The class that stores and transmits data in neural networks.
-    
-    A blob is a 7-dimensional array, with each of its dimensions assigned
-    a specific meaning:
-    - BatchLength is a "time" axis, used to denote data sequences; 
-        it is mainly used in recurrent networks
-    - BatchWidth corresponds to the batch, used to pass several independent
-        objects together
-    - ListSize is the dimensions for the objects that are connected
-        (for example, pixels out of one image) but do not form a sequence
-    - Height is the height of a matrix or an image
-    - Width is the width of a matrix or an image
-    - Depth is the width of a 3-dimensional image
-    - Channels corresponds to channels for multi-channel image formats 
-        and is also used to work with one-dimensional vectors
-    
-    Data types
-    ---------
-    int and float data types are supported. Both are 32-bit.
     """
 
     def __init__(self, internal):
@@ -63,63 +45,63 @@ class Blob:
 
     @property
     def batch_len(self):
-        """Returns the BatchLength dimension.
+        """The **BatchLength** dimension.
         """
         return self._internal.batch_len()
 
     @property
     def batch_width(self):
-        """Returns the BatchWidth dimension.
+        """The **BatchWidth** dimension.
         """
         return self._internal.batch_width()
 
     @property
     def list_size(self):
-        """Returns the ListSize dimension.
+        """The **ListSize** dimension.
         """
         return self._internal.list_size()
 
     @property
     def height(self):
-        """Returns the Height dimension.
+        """The **Height** dimension.
         """
         return self._internal.height()
 
     @property
     def width(self):
-        """Returns the Width dimension.
+        """The **Width** dimension.
         """
         return self._internal.width()
 
     @property
     def depth(self):
-        """Returns the Depth dimension.
+        """The **Depth** dimension.
         """
         return self._internal.depth()
 
     @property
     def channels(self):
-        """Returns the Channels dimension.
+        """The **Channels** dimension.
         """
         return self._internal.channels()
 
     @property
     def size(self):
-        """Returns the blob total size: the product of all dimensions.
+        """The blob total size: the product of all dimensions.
         """
         return self._internal.size()
 
     @property
     def object_count(self):
-        """Returns the number of objects in the blob, 
-        equal to BatchLength * BatchWidth * ListSize.
+        """The number of objects in the blob, 
+        equal to **BatchLength** * **BatchWidth** * **ListSize**.
         """
         return self._internal.object_count()
 
     @property
     def object_size(self):
-        """Returns the size of one object, equal to
-        Height * Width * Depth * Channels.
+        """The size of one object, equal to
+        **Height** * **Width** * **Depth** * **Channels**.
         """
         return self._internal.object_size()
 
@@ -127,14 +109,12 @@ class Blob:
         """Returns the contents of the blob as a multi-dimensional array, 
         keeping only those dimensions that are more than 1 element long.
         If all dimensions are 1, the blob will be a one-element array.
-        
-        Parameters
-        ---------
-        copy : bool, default=False
-            If True, the data will be copied. If False, the array may share
+
+        :param copy: if `True`, the data will be copied. If `False`, the array may share
             the memory buffer with the blob if possible and only provide 
             more convenient access to the same data.
             Not copying may be impossible if the blob is in GPU memory.
+        :type copy: bool, default=False
         """
         if type(self.math_engine) is MathEngine.CpuMathEngine:
             return numpy.array(self._internal, copy=copy)
@@ -150,11 +130,9 @@ class Blob:
 
 def store(blob, file_path):
     """Stores the blob in a file at the specified path.
-    
-    Parameters
-    ---------
-    file_path : str
-        The full path to the file where the blob should be stored.
+
+    :param file_path: the full path to the file where the blob should be stored.
+    :type file_path: str
     """
     if not type(blob) is Blob:
         raise ValueError('The `blob` must be neoml.Blob.')
@@ -167,13 +145,11 @@ def store(blob, file_path):
 
 def load(math_engine, file_path):
     """Loads the blob from the specified location.
-    
-    Parameters
-    ---------
-    math_engine : object
-        The math engine that works with this blob.
-    file_path : str
-        The full path to the file from which the blob should be loaded.
+
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
+
+    :param file_path: the full path to the file from which the blob should be loaded.
+    :type file_path: str
     """
     if not isinstance(math_engine, MathEngine.MathEngine):
         raise ValueError('The `math_engine` must be neoml.MathEngine.')
@@ -183,21 +159,21 @@ def load(math_engine, file_path):
 
 def asblob(math_engine, data, shape=None, copy=False):
     """Organizes the data from a memory buffer into a blob.
-    
-    Parameters
-    ---------
-    math_engine : object
-        The math engine that works with this blob.
-    data : object
-        A pointer to the data.
-    shape : array of int, default=None
-        The target blob dimensions. If none are specified,
+
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
+
+    :param data: a pointer to the data.
+    :type data: object
+
+    :param shape: the target blob dimensions. If none are specified,
         a one-element blob will be assumed.
-    copy : bool, default=False
-        Specifies if the data should be copied to another memory block
+    :type shape: array of int, default=None
+
+    :param copy: specifies if the data should be copied to another memory block
         or kept in the same place if possible, making the data parameter 
         point to the body of the newly-created blob.
         Not copying may be impossible if the blob is in GPU memory.
+    :type copy: bool, default=False
     """
     if shape is None:
         shape = numpy.ones(7, numpy.int32)
@@ -228,15 +204,14 @@ def asblob(math_engine, data, shape=None, copy=False):
 
 def vector(math_engine, size, dtype="float32"):
     """Creates a one-dimensional blob, that is, a vector.
-    
-    Parameters
-    ---------
-    math_engine : object
-        The math engine that works with this blob.
-    size : int, > 0
-        The vector length.
-    dtype : {"float32", "int32"}, default="float32"
-        The type of data in the blob.
+
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
+
+    :param size: the vector length.
+    :type size: int, > 0
+
+    :param dtype: the type of data in the blob.
+    :type dtype: str, {"float32", "int32"}, default="float32"
     """
     if dtype != "float32" and dtype != "int32":
         raise ValueError('The `dtype` must be one of {`float32`, `int32`}.')
@@ -250,17 +225,17 @@ def vector(math_engine, size, dtype="float32"):
 
 def matrix(math_engine, matrix_height, matrix_width, dtype="float32"):
     """Creates a two-dimensional blob, that is, a matrix.
-    
-    Parameters
-    ---------
-    math_engine : object
-        The math engine that works with this blob.
-    matrix_height : int, > 0
-        The matrix height.
-    matrix_width : int, > 0
-        The matrix width.
-    dtype : {"float32", "int32"}, default="float32"
-        The type of data in the blob.
+
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
+
+    :param matrix_height: the matrix height.
+    :type matrix_height: int, > 0
+
+    :param matrix_width: the matrix width.
+    :type matrix_width: int, > 0
+
+    :param dtype: the type of data in the blob.
+    :type dtype: str, {"float32", "int32"}, default="float32"
     """
     if dtype != "float32" and dtype != "int32":
         raise ValueError('The `dtype` must be one of {`float32`, `int32`}.')
@@ -276,15 +251,14 @@ def matrix(math_engine, matrix_height, matrix_width, dtype="float32"):
 
 def tensor(math_engine, shape, dtype="float32"):
     """Creates a blob of the specified shape.
-    
-    Parameters
-    ---------
-    math_engine : object
-        The math engine that works with this blob.
-    shape : array of int
-        The target blob dimensions.
-    dtype : {"float32", "int32"}, default="float32"
-        The type of data in the blob.
+
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
+
+    :param shape: the target blob dimensions.
+    :type shape: array of int
+
+    :param dtype: the type of data in the blob.
+    :type dtype: str, {"float32", "int32"}, default="float32"
     """
     if dtype != "float32" and dtype != "int32":
         raise ValueError('The `dtype` must be one of {`float32`, `int32`}.')
@@ -301,22 +275,24 @@ def tensor(math_engine, shape, dtype="float32"):
 
 
 def list_blob(math_engine, batch_len, batch_width, list_size, channels, dtype="float32"):
-    """Creates a blob with one-dimensional Height * Width * Depth elements.
-    
-    Parameters
-    ---------
-    math_engine : object
-        The math engine that works with this blob.
-    batch_len : int, > 0
-        The BatchLength dimension of the new blob.
-    batch_width : int, > 0
-        The BatchWidth dimension of the new blob.
-    list_size : int, > 0
-        The ListSize dimension of the new blob.
-    channels : int, > 0
-        The Channels dimension of the new blob.
-    dtype : {"float32", "int32"}, default="float32"
-        The type of data in the blob.
+    """Creates a blob with one-dimensional **Height** * **Width** * **Depth** elements.
+
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
+
+    :param batch_len: the **BatchLength** dimension of the new blob.
+    :type batch_len: int, > 0
+
+    :param batch_width: the **BatchWidth** dimension of the new blob.
+    :type batch_width: int, > 0
+
+    :param list_size: the **ListSize** dimension of the new blob.
+    :type list_size: int, > 0
+
+    :param channels: the **Channels** dimension of the new blob.
+    :type channels: int, > 0
+
+    :param dtype: the type of data in the blob.
+    :type dtype: str, {"float32", "int32"}, default="float32"
     """
     if dtype != "float32" and dtype != "int32":
         raise ValueError('The `dtype` must be one of {`float32`, `int32`}.')
@@ -336,23 +312,26 @@ def list_blob(math_engine, batch_len, batch_width, list_size, channels, dtype="f
 
 def image2d(math_engine, batch_len, batch_width, height, width, channels, dtype="float32"):
     """Creates a blob with two-dimensional multi-channel images.
-    
-    Parameters
-    ---------
-    math_engine : object
-        The math engine that works with this blob.
-    batch_len : int, > 0
-        The BatchLength dimension of the new blob.
-    batch_width : int, > 0
-        The BatchWidth dimension of the new blob.
-    height : int, > 0
-        The image height.
-    width: int, > 0
-        The image width.
-    channels : int, > 0
-        The number of channels in the image format.
-    dtype : {"float32", "int32"}, default="float32"
-        The type of data in the blob.
+
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
+
+    :param batch_len: the **BatchLength** dimension of the new blob.
+    :type batch_len: int, > 0
+
+    :param batch_width: the **BatchWidth** dimension of the new blob.
+    :type batch_width: int, > 0
+
+    :param height: the image height.
+    :type height: int, > 0
+
+    :param width: the image width.
+    :type width: int, > 0
+
+    :param channels: the number of channels in the image format.
+    :type channels: int, > 0
+
+    :param dtype: the type of data in the blob.
+    :type dtype: str, {"float32", "int32"}, default="float32"
     """
     if dtype != "float32" and dtype != "int32":
         raise ValueError('The `dtype` must be one of {`float32`, `int32`}.')
@@ -374,25 +353,29 @@ def image2d(math_engine, batch_len, batch_width, height, width, channels, dtype=
 
 def image3d(math_engine, batch_len, batch_width, height, width, depth, channels, dtype="float32"):
     """Creates a blob with three-dimensional multi-channel images.
-    
-    Parameters
-    ---------
-    math_engine : object
-        The math engine that works with this blob.
-    batch_len : int, > 0
-        The BatchLength dimension of the new blob.
-    batch_width : int, > 0
-        The BatchWidth dimension of the new blob.
-    height : int, > 0
-        The image height.
-    width: int, > 0
-        The image width.
-    depth: int, > 0
-        The image depth.
-    channels : int, > 0
-        The number of channels in the image format.
-    dtype : {"float32", "int32"}, default="float32"
-        The type of data in the blob.
+
+    :param neoml.MathEngine.MathEngine math_engine: the math engine that works with this blob.
+
+    :param batch_len: the **BatchLength** dimension of the new blob.
+    :type batch_len: int, > 0
+
+    :param batch_width: the **BatchWidth** dimension of the new blob.
+    :type batch_width: int, > 0
+
+    :param height: the image height.
+    :type height: int, > 0
+
+    :param width: the image width.
+    :type width: int, > 0
+
+    :param depth: the image depth.
+    :type depth: int, > 0
+
+    :param channels: the number of channels in the image format.
+    :type channels: int, > 0
+
+    :param dtype: the type of data in the blob.
+    :type dtype: str, {"float32", "int32"}, default="float32"
     """
     if dtype != "float32" and dtype != "int32":
         raise ValueError('The `dtype` must be one of {`float32`, `int32`}.')
