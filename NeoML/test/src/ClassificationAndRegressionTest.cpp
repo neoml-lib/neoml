@@ -342,7 +342,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_FastHist )
 	CRandom random( 0 );
 	CGradientBoost::CParams params;
 	params.Random = &random;
-	params.IterationsCount = 1;
+	params.IterationsCount = 5;
 	params.TreeBuilder = GBTB_FastHist;
 	TrainMultiGradientBoost( params );
 	TestMultiClassificationResult();
@@ -364,7 +364,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_MultiFastHist )
 	CRandom random( 0 );
 	CGradientBoost::CParams params;
 	params.Random = &random;
-	params.IterationsCount = 1;
+	params.IterationsCount = 5;
 	params.TreeBuilder = GBTB_MultiFastHist;
 	TrainMultiGradientBoost( params );
 	TestMultiClassificationResult();
