@@ -33,11 +33,11 @@ limitations under the License.
 #define REGISTER_NEOML_LAYER( classType, name ) static NeoML::CLayerClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( name, 0 );
 #define REGISTER_NEOML_LAYER_EX( classType, name1, name2 ) static NeoML::CLayerClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( name1, name2 );
 
+namespace NeoML {
+
 typedef CPtr<CBaseLayer> ( *TCreateLayerFunction )( IMathEngine& mathEngine );
 
 void NEOML_API RegisterLayerName( const char* mainName, const char* additionalName, const std::type_info& typeInfo, TCreateLayerFunction function );
-
-namespace NeoML {
 
 void NEOML_API UnregisterLayerName( const std::type_info& typeInfo );
 
