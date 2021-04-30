@@ -40,7 +40,7 @@ void TestClassificationResult( const IModel* modelDense, const IModel* modelSpar
 		ASSERT_TRUE( modelSparse->Classify( testDataSparse->GetVector( i ), result4 ) );
 
 		ASSERT_EQ( result1.PreferredClass, result2.PreferredClass );
-		// ASSERT_EQ( result1.PreferredClass, result3.PreferredClass );
+		ASSERT_EQ( result1.PreferredClass, result3.PreferredClass );
 		ASSERT_EQ( result1.PreferredClass, result4.PreferredClass );
 	}
 }
