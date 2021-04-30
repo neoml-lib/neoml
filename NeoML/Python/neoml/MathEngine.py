@@ -37,9 +37,6 @@ class MathEngine:
         """
         return self._internal.clean_up()
 
-    def sum(self, a, b, c):
-        return self._internal.sum(a, b, c)
-
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -90,3 +87,47 @@ def enum_gpu():
     """Allows you to access the information about all available GPUs
     """
     return PythonWrapper.enum_gpu()
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+def add(a, b):
+    """
+    """
+    if not type(a) is Blob:
+        raise ValueError('`a` must be neoml.Blob.')
+
+    if not type(b) is Blob:
+        raise ValueError('`b` must be neoml.Blob.')
+
+    if a.shape != b.shape:
+        raise ValueError("The blobs must have the same shape.")
+
+    if a.size == 0:
+        raise ValueError("The blobs mustn't be empty.")
+    
+    return Blob(PythonWrapper.blob_sum(a._internal, b._internal))
+
+def sum(a):
+    """
+    """
+    if not type(a) is Blob:
+        raise ValueError('`a` must be neoml.Blob.')
+
+    if a.size == 0:
+        raise ValueError("The blobs mustn't be empty.")
+    
+    return Blob(PythonWrapper.blob_sum(a._internal))
+
+def top_k(a, k=1):
+    """
+    """
+    if not type(a) is Blob:
+        raise ValueError('`a` must be neoml.Blob.')
+
+    if (int)k <= 0:
+        raise ValueError('`k` must be > 0.')
+
+    if a.size == 0:
+        raise ValueError("The blobs mustn't be empty.")
+    
+    return Blob(PythonWrapper.blob_top_k(a._internal, (int)k))
