@@ -67,7 +67,7 @@ Submodules
    tutorials/Regressor
    tutorials/Boosting
 
-The Python API is split into several submodules:
+The Python API contains several submodules:
 
 - :ref:`Neural networks <py-submodule-dnn>`
 - :ref:`Clustering algorithms <py-submodule-clustering>`
@@ -83,7 +83,16 @@ Installation
    :caption: Installation
    :hidden:
 
-TBD
+Install a stable version of NeoML library from PyPI::
+
+    pip3 install neoml
+
+Install the library you downloaded locally from `our github repo <https://github.com/neoml-lib/neoml>`::
+
+    cd <path to neoml>/NeoML/Python
+    python3 setup.py install
+
+Supported Python versions: 3.6 to 3.9
 
 
 Index
