@@ -125,7 +125,7 @@ public:
 			Subsample( 1.f ),
 			Subfeature( 1.f ),
 			Random( 0 ),
-			MaxTreeDepth( 10 ),
+			MaxTreeDepth( 3 ),
 			MaxNodesCount( NotFound ),
 			L1RegFactor( 0.f ),
 			L2RegFactor( 1.f ),
