@@ -15,4 +15,4 @@ See our documentation that includes detailed API reference and tutorials demonst
 
 ## Install
 
-    pip install neoml
+    pip3 install neoml
