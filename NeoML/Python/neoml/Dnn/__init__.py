@@ -22,7 +22,7 @@ from .Gru import Gru
 from .ImageConversion import ImageResize, PixelToImage, ImageToPixel  
 from .Irnn import Irnn
 from .Lstm import Lstm
-from .Loss import CrossEntropyLoss, BinaryCrossEntropyLoss, EuclideanLoss, HingeLoss, SquaredHingeLoss, FocalLoss, BinaryFocalLoss, CenterLoss, MultiHingeLoss, MultiSquaredHingeLoss 
+from .Loss import CrossEntropyLoss, BinaryCrossEntropyLoss, EuclideanLoss, HingeLoss, SquaredHingeLoss, FocalLoss, BinaryFocalLoss, CenterLoss, MultiHingeLoss, MultiSquaredHingeLoss, CustomLoss 
 from .MatrixMultiplication import MatrixMultiplication
 from .MultichannelLookup import MultichannelLookup
 from .MultiheadAttention import MultiheadAttention

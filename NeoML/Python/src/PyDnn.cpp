@@ -96,6 +96,7 @@ REGISTER_NEOML_PYLAYER_EX( "Loss", "BinaryCrossEntropyLoss", "FmlCnnBinaryCrossE
 REGISTER_NEOML_PYLAYER_EX( "Loss", "EuclideanLoss", "FmlCnnEuclideanLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "HingeLoss", "FmlCnnHingeLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "SquaredHingeLoss", "FmlCnnSquaredHingeLossLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Loss", "CustomLoss", "NeoMLCustomLossLayer" )
 REGISTER_NEOML_PYLAYER( "ProblemSource", "FmlCnnProblemSourceLayer" )
 REGISTER_NEOML_PYLAYER( "BatchNormalization", "FmlCnnBatchNormalizationLayer" )
 REGISTER_NEOML_PYLAYER( "ObjectNormalization", "NeoMLDnnObjectNormalizationLayer" )
