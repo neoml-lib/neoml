@@ -189,7 +189,7 @@ py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array da
 
 	int rowCount = static_cast<int>( row.size() ) - 1;
 
-	py::array_t<double, py::array::c_style> totalResult( { rowCount } );
+	py::array_t<double, py::array::c_style> totalResult( rowCount );
 	auto r = totalResult.mutable_unchecked<1>();
 	for( int i = 0; i < rowCount; i++ ) {
 		CFloatVectorDesc vector;
@@ -221,7 +221,7 @@ private:
 class CPyTrainingModel {
 public:
 	explicit CPyTrainingModel( ITrainingModel* classifier ) : owner( new CPyTrainingModelOwner( classifier ) ) {}
-	explicit CPyTrainingModel( CPyTrainingModelOwner* _owner ) : owner( owner ) {}
+	explicit CPyTrainingModel( CPyTrainingModelOwner* _owner ) : owner( _owner ) {}
 	virtual ~CPyTrainingModel() {}
 
 	CPyModel TrainClassifier( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array classes, py::array weight );
@@ -488,6 +488,7 @@ void InitializeTrainingModel(py::module& m)
 				}
 				p.MaxBins = max_bins;
 				p.MinSubsetWeight = min_subtree_weight;
+				p.Representation = GBMR_Compact;
 
 				return new CPyGradientBoost( p, p.Random );
 			})

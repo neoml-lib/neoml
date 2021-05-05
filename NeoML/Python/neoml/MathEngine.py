@@ -18,7 +18,7 @@ import neoml.PythonWrapper as PythonWrapper
 
 
 class MathEngine:
-    """
+    """The base class for a math engine that does calculations.
     """
     def __init__(self, internal):
         if not isinstance(internal, PythonWrapper.MathEngine):
@@ -28,7 +28,7 @@ class MathEngine:
 
     @property
     def peak_memory_usage(self):
-        """The peak memory usage achieved during processing
+        """The peak memory usage achieved during processing.
         """
         return self._internal.get_peak_memory_usage()
 
@@ -41,7 +41,10 @@ class MathEngine:
 
 
 class CpuMathEngine(MathEngine):
-    """
+    """A math engine working on CPU.
+    
+    :param thread_count: the maximum number of threads in use.
+    :type thread_count: int, default=None
     """
     def __init__(self, thread_count=None):
         if thread_count is None:
@@ -58,7 +61,11 @@ class CpuMathEngine(MathEngine):
 
 
 class GpuMathEngine(MathEngine):
-    """
+    """A math engine working on GPU.
+    
+    :param gpu_index: the index of the GPU on which you wish to work. 
+        Use the `enum_gpu` method to get the list.
+    :type gpu_index: int, >= 0
     """
     def __init__(self, gpu_index):
         if gpu_index is None:
@@ -76,17 +83,21 @@ class GpuMathEngine(MathEngine):
 
     @property
     def info(self):
-        """Gets the device information
+        """Gets the device information.
         """
         return self._internal.get_info()
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-
 def enum_gpu():
-    """Allows you to access the information about all available GPUs
+    """Lists the available GPUs.
     """
     return PythonWrapper.enum_gpu()
+  
+def default_math_engine():
+    """Creates a default CPU math engine that uses only one processing thread and has no memory limitations.
+    """
+    return MathEngine(PythonWrapper.default_math_engine())
 
 # ----------------------------------------------------------------------------------------------------------------------
 

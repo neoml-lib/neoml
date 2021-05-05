@@ -58,7 +58,7 @@ public:
 	size_t GetPeakMemoryUsage() const override;
 	size_t GetMemoryInPools() const override;
 	void CleanUp() override;
-	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size ) override;
+	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) override;
 	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
 	void DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size ) override;
 	void DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size ) override;
@@ -69,6 +69,8 @@ public:
 	void VectorFill(const CIntHandle& result, int value, int vectorSize) override;
 	void VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value) override;
 	void VectorFill(const CIntHandle& result, int vectorSize, const CConstIntHandle& value) override;
+	void VectorConvert(const CConstFloatHandle& from, const CIntHandle& to, int vectorSize) override;
+	void VectorConvert(const CConstIntHandle& from, const CFloatHandle& to, int vectorSize) override;
 	void VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed ) override;
 	void FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold ) override;
 	void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) override;
@@ -463,6 +465,20 @@ public:
 	CDropoutDesc* InitDropout( float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input,
 		const CBlobDesc& output, int seed ) override;
 	void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) override;
+	void QrnnFPooling( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& initialState,
+		const CFloatHandle& result ) override;
+	void QrnnFPoolingBackward( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget,
+		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
+		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff ) override;
+	void QrnnIfPooling( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+		const CConstFloatHandle& initialState, const CFloatHandle& result ) override;
+	void QrnnIfPoolingBackward( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
+		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:
@@ -531,8 +547,6 @@ private:
 	void blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 	template<class T>
 	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
-
-	void blobTimeConvolutionPrepare( const CCudaTimeConvolutionDescInternal& desc, float* data, const CFloatHandle& sourceData );
 
 	void blobConvertFromRle( const CCudaRleConvolutionDesc& desc, const CFloatHandle& source, const CFloatHandle& result );
 

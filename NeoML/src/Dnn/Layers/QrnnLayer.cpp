@@ -30,42 +30,44 @@ static const char* preDropoutLinearName = "PreDropoutLinear";
 static const char* dropoutName = "Dropout";
 static const char* postDropoutLinearName = "PostDropoutLinear";
 static const char* outputSigmoidName = "OutputSigmoid";
-static const char* negForgetByUpdateByOutputName = "NegForgetByUpdateByOutput";
-static const char* forgetByOutputName = "ForgetByOutput";
-static const char* firstRecurrentName = "FirstRecurrent";
-static const char* secondRecurrentName = "SecondRecurrent";
+static const char* inputSigmoidName = "InputSigmoid";
+static const char* firstPoolingName = "FirstPooling";
+static const char* secondPoolingName = "SecondPooling";
+static const char* firstOutputGateName = "FirstOutputGate";
+static const char* secondOutputGateName = "SecondOutputGate";
 static const char* bidirectionalMergeName = "BidirectionalMergeName";
-// Layer names inside CQrnnLayer recurrent
-static const char* prevStateMultName = "PrevStateMult";
-static const char* resultSumName = "ResultSum";
-static const char* backLinkName = "BackLink";
-
-static inline bool IsBidirectional( CQrnnLayer::TRecurrentMode mode )
-{
-	static_assert( CQrnnLayer::RM_Count == 4, "CQrnnLayer::RM_Count != 4" );
-	return mode == CQrnnLayer::RM_BidirectionalConcat || mode == CQrnnLayer::RM_BidirectionalSum;
-}
 
 CQrnnLayer::CQrnnLayer( IMathEngine& mathEngine ) :
 	CCompositeLayer( mathEngine ),
-	activation( AF_Tanh ),
-	recurrentMode( RM_Direct )
+	poolingType( PT_FPooling ),
+	recurrentMode( RM_Direct ),
+	activation( AF_Tanh )
 {
-	buildLayer();
+	buildLayer( 0.f, 1, 1, 1, 0, 0 );
+}
+
+void CQrnnLayer::SetPoolingType( TPoolingType newPoolingType )
+{
+	if( poolingType == newPoolingType ) {
+		return;
+	}
+
+	const int prevGateCount = gateCount();
+	poolingType = newPoolingType;
+	rebuildLayer( prevGateCount );
 }
 
 void CQrnnLayer::SetHiddenSize( int hiddenSize )
 {
+	NeoAssert( hiddenSize > 0 );
 	if( GetHiddenSize() == hiddenSize ) {
 		return;
 	}
 
-	timeConv->SetFilterCount( 3 * hiddenSize );
-	split->SetOutputCounts3( hiddenSize, hiddenSize );
-	firstBackLink->SetDimSize( BD_Channels, hiddenSize );
-	if( secondBackLink != nullptr ) {
-		secondBackLink->SetDimSize( BD_Channels, hiddenSize );
-	}
+	timeConv->SetFilterCount( gateCount() * hiddenSize );
+	CArray<int> outputCounts;
+	outputCounts.Add( hiddenSize, gateCount() - 1 );
+	split->SetOutputCounts( outputCounts );
 	ForceReshape();
 }
 
@@ -120,14 +122,7 @@ void CQrnnLayer::SetActivation( TActivationFunction newActivation )
 	}
 
 	activation = newActivation;
-	DeleteLayer( updateActivationName );
-	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( MathEngine(), activation );
-	activationLayer->SetName( updateActivationName );
-	activationLayer->Connect( 0, *split, G_Update );
-	negForgetByUpdateByOutput->Connect( 1, *activationLayer );
-	AddLayer( *activationLayer );
-
-	ForceReshape();
+	rebuildLayer( gateCount() );
 }
 
 void CQrnnLayer::SetDropout( float rate )
@@ -157,59 +152,33 @@ void CQrnnLayer::SetRecurrentMode( CQrnnLayer::TRecurrentMode newMode )
 	}
 
 	recurrentMode = newMode;
-
-	if( IsBidirectional( recurrentMode ) ) {
-		createBidirectionalLayers();
-		firstRecurrent->SetReverseSequence( false );
-	} else {
-		deleteBidirectionalLayers();
-		static_assert( RM_Count == 4, "RM_Count != 4" );
-		firstRecurrent->SetReverseSequence( recurrentMode == RM_Reverse );
-	}
-
-	ForceReshape();
-
-	static_assert( RM_Count == 4, "RM_Count != 4" );
-	if( recurrentMode == RM_Direct ) {
-		NeoAssert( !firstRecurrent->IsReverseSequence() && secondRecurrent == nullptr
-			&& secondBackLink == nullptr && bidirectionalMerge == nullptr );
-	} else if( recurrentMode == RM_Reverse ) {
-		NeoAssert( firstRecurrent->IsReverseSequence() && secondRecurrent == nullptr
-			&& secondBackLink == nullptr && bidirectionalMerge == nullptr );
-	} else if( recurrentMode == RM_BidirectionalConcat ) {
-		NeoAssert( !firstRecurrent->IsReverseSequence() && secondRecurrent != nullptr && secondRecurrent->IsReverseSequence()
-			&& secondBackLink != nullptr && dynamic_cast<CConcatChannelsLayer*>( bidirectionalMerge.Ptr() ) != nullptr );
-	} else if( recurrentMode == RM_BidirectionalSum ) {
-		NeoAssert( !firstRecurrent->IsReverseSequence() && secondRecurrent != nullptr && secondRecurrent->IsReverseSequence()
-			&& secondBackLink != nullptr && dynamic_cast<CEltwiseSumLayer*>( bidirectionalMerge.Ptr() ) != nullptr );
-	} else {
-		NeoAssert( false );
-	}
+	rebuildLayer( gateCount() );
 }
 
-static const int QrnnLayerVersion = 0;
+static const int QrnnLayerVersion = 1;
 
 void CQrnnLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( QrnnLayerVersion );
+	// During move from v0 to v1 the backward compatibility was broken
+	archive.SerializeVersion( QrnnLayerVersion, 1 );
 	CCompositeLayer::Serialize( archive );
+
+	int poolingTypeInt = static_cast<int>( poolingType );
+	archive.Serialize( poolingTypeInt );
+	poolingType = static_cast<TPoolingType>( poolingTypeInt );
+
+	int recurrentModeInt = static_cast<int>( recurrentMode );
+	archive.Serialize( recurrentModeInt );
+	recurrentMode = static_cast<TRecurrentMode>( recurrentModeInt );
 	
 	int activationInt = static_cast<int>( activation );
 	archive.Serialize( activationInt );
 	activation = static_cast<TActivationFunction>( activationInt );
 
-	int recurrentModeInt = static_cast<int>( recurrentMode );
-	archive.Serialize( recurrentModeInt );
-	recurrentMode = static_cast<TRecurrentMode>( recurrentModeInt );
-
 	if( archive.IsLoading() ) {
 		timeConv = CheckCast<CTimeConvLayer>( GetLayer( timeConvName ) );
 		split = CheckCast<CSplitChannelsLayer>( GetLayer( splitName ) );
 		forgetSigmoid = CheckCast<CSigmoidLayer>( GetLayer( forgetSigmoidName ) );
-		negForgetByUpdateByOutput = CheckCast<CEltwiseNegMulLayer>( GetLayer( negForgetByUpdateByOutputName ) );
-		forgetByOutput = CheckCast<CEltwiseMulLayer>( GetLayer( forgetByOutputName ) );
-		firstRecurrent = CheckCast<CRecurrentLayer>( GetLayer( firstRecurrentName ) );
-		firstBackLink = CheckCast<CBackLinkLayer>( firstRecurrent->GetLayer( backLinkName ) );
 		// Optional layers
 		if( HasLayer( dropoutName ) ) {
 			dropout = CheckCast<CDropoutLayer>( GetLayer( dropoutName ) );
@@ -218,97 +187,163 @@ void CQrnnLayer::Serialize( CArchive& archive )
 			dropout = nullptr;
 			postDropoutLinear = nullptr;
 		}
-		if( IsBidirectional( recurrentMode ) ) {
-			secondRecurrent = CheckCast<CRecurrentLayer>( GetLayer( secondRecurrentName ) );
-			secondBackLink = CheckCast<CBackLinkLayer>( secondRecurrent->GetLayer( backLinkName ) );
-			bidirectionalMerge = GetLayer( bidirectionalMergeName );
+		firstPooling = GetLayer( firstPoolingName );
+		if( HasLayer( secondPoolingName ) ) {
+			secondPooling = GetLayer( secondPoolingName );
 		}
 	}
 }
 
-void CQrnnLayer::buildLayer()
+void CQrnnLayer::buildLayer( float dropoutRate, int hiddenSize, int windowSize, int stride, int padFront, int padBack )
 {
+	// Add time conv
 	timeConv = new CTimeConvLayer( MathEngine() );
 	timeConv->SetName( timeConvName );
-	timeConv->SetFilterCount( 3 );
-	timeConv->SetFilterSize( 1 );
+	timeConv->SetFilterCount( hiddenSize * gateCount() );
+	timeConv->SetFilterSize( windowSize );
+	timeConv->SetStride( stride );
+	timeConv->SetPaddingFront( padFront );
+	timeConv->SetPaddingBack( padBack );
 	AddLayer( *timeConv );
 	SetInputMapping( *timeConv );
 
+	// Add split layers
 	split = new CSplitChannelsLayer( MathEngine() );
 	split->SetName( splitName );
-	split->SetOutputCounts3( 1, 1 );
+	CArray<int> outputCounts;
+	outputCounts.Add( hiddenSize, gateCount() - 1 );
+	split->SetOutputCounts( outputCounts );
 	split->Connect( *timeConv );
 	AddLayer( *split );
 
+	// Apply activation to every gate
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( MathEngine(), activation );
 	activationLayer->SetName( updateActivationName );
 	activationLayer->Connect( 0, *split, G_Update );
 	AddLayer( *activationLayer );
 
-	forgetSigmoid = new CSigmoidLayer( MathEngine() );
-	forgetSigmoid->SetName( forgetSigmoidName );
-	forgetSigmoid->Connect( 0, *split, G_Forget );
-	AddLayer( *forgetSigmoid );
+	forgetSigmoid = addSigmoid( *split, G_Forget, forgetSigmoidName );
 
-	CPtr<CSigmoidLayer> outputSigmoid = new CSigmoidLayer( MathEngine() );
-	outputSigmoid->SetName( outputSigmoidName );
-	outputSigmoid->Connect( 0, *split, G_Output );
-	AddLayer( *outputSigmoid );
+	CPtr<CSigmoidLayer> outputSigmoid;
+	if( gateCount() > G_Output ) {
+		outputSigmoid = addSigmoid( *split, G_Output, outputSigmoidName );
+	}
 
-	negForgetByUpdateByOutput = new CEltwiseNegMulLayer( MathEngine() );
-	negForgetByUpdateByOutput->SetName( negForgetByUpdateByOutputName );
-	negForgetByUpdateByOutput->Connect( 0, *forgetSigmoid );
-	negForgetByUpdateByOutput->Connect( 1, *activationLayer );
-	negForgetByUpdateByOutput->Connect( 2, *outputSigmoid );
-	AddLayer( *negForgetByUpdateByOutput );
+	CPtr<CSigmoidLayer> inputSigmoid;
+	if( gateCount() > G_Input ) {
+		inputSigmoid = addSigmoid( *split, G_Input, inputSigmoidName );
+	}
 
-	forgetByOutput = new CEltwiseMulLayer( MathEngine() );
-	forgetByOutput->SetName( forgetByOutputName );
-	forgetByOutput->Connect( 0, *forgetSigmoid );
-	forgetByOutput->Connect( 1, *outputSigmoid );
-	AddLayer( *forgetByOutput );
+	static_assert( RM_Count == 4, "RM_Count != 4" );
+	firstPooling = addPoolingLayer( firstPoolingName, recurrentMode == RM_Reverse );
+	if( isBidirectional() ) {
+		secondPooling = addPoolingLayer( secondPoolingName, true );
+		if( gateCount() > G_Output ) {
+			CPtr<CEltwiseMulLayer> firstOutputGate = addMulLayer( *firstPooling, *outputSigmoid, firstOutputGateName );
+			CPtr<CEltwiseMulLayer> secondOutputGate = addMulLayer( *secondPooling, *outputSigmoid, secondOutputGateName );
+			CPtr<CBaseLayer> mergeLayer = addBidirectionalMerge( *firstOutputGate, *secondOutputGate, bidirectionalMergeName );
+			SetOutputMapping( *mergeLayer );
+		} else {
+			CPtr<CBaseLayer> mergeLayer = addBidirectionalMerge( *firstPooling, *secondPooling, bidirectionalMergeName );
+			SetOutputMapping( *mergeLayer );
+		}
+	} else {
+		secondPooling = nullptr;
+		if( gateCount() > G_Output ) {
+			CPtr<CEltwiseMulLayer> outputGate = addMulLayer( *firstPooling, *outputSigmoid, firstOutputGateName );
+			SetOutputMapping( *outputGate );
+		} else {
+			SetOutputMapping( *firstPooling );
+		}
+	}
 
-	NeoAssert( recurrentMode == RM_Direct );
-	firstRecurrent = buildRecurrentPart( firstRecurrentName );
-	firstRecurrent->Connect( 0, *forgetByOutput );
-	firstRecurrent->Connect( 1, *negForgetByUpdateByOutput );
-	AddLayer( *firstRecurrent );
-	firstBackLink = CheckCast<CBackLinkLayer>( firstRecurrent->GetLayer( backLinkName ) );
+	addInitialStateInputMapping( *firstPooling, 1 );
+	if( isBidirectional() ) {
+		addInitialStateInputMapping( *secondPooling, 2 );
+	}
 
-	SetInputMapping( 1, *firstRecurrent, 2 );
-	SetOutputMapping( *firstRecurrent );
+	dropout = nullptr;
+	postDropoutLinear = nullptr;
+	if( dropoutRate > 0.f ) {
+		addDropout( dropoutRate );
+	}
 }
 
-CPtr<CRecurrentLayer> CQrnnLayer::buildRecurrentPart( const char* name )
+// Adds sigmoid layer after outputIndex'th output of input layer
+CPtr<CSigmoidLayer> CQrnnLayer::addSigmoid( CBaseLayer& input, int outputIndex, const char* sigmoidName )
 {
-	CPtr<CRecurrentLayer> result = new CRecurrentLayer( MathEngine() );
-	result->SetName( name );
+	CPtr<CSigmoidLayer> sigmoid = new CSigmoidLayer( MathEngine() );
+	sigmoid->SetName( sigmoidName );
+	sigmoid->Connect( 0, input, outputIndex );
+	AddLayer( *sigmoid );
+	return sigmoid;
+}
 
-	CPtr<CBackLinkLayer> backLink = new CBackLinkLayer( MathEngine() );
-	backLink->SetName( backLinkName );
-	result->AddBackLink( *backLink );
-	result->SetInputMapping( 2, *backLink, 1 );
+// Adds qrnn pooling layer
+CPtr<CBaseLayer> CQrnnLayer::addPoolingLayer( const char* poolingName, bool reverse )
+{
+	CPtr<CBaseLayer> pooling;
+	if( poolingType == PT_IfoPooling ) {
+		CPtr<CQrnnIfPoolingLayer> ifPooling = new CQrnnIfPoolingLayer( MathEngine() );
+		ifPooling->SetReverse( reverse );
+		ifPooling->Connect( 2, inputSigmoidName );
+		pooling = ifPooling.Ptr();
+	} else {
+		CPtr<CQrnnFPoolingLayer> fPooling = new CQrnnFPoolingLayer( MathEngine() );
+		fPooling->SetReverse( reverse );
+		pooling = fPooling.Ptr();
+	}
+	pooling->Connect( 0, updateActivationName );
+	// there may be dropout after forget gate
+	if( postDropoutLinear != nullptr ) {
+		pooling->Connect( 1, *postDropoutLinear );
+	} else {
+		pooling->Connect( 1, *forgetSigmoid );
+	}
+	pooling->SetName( poolingName );
+	AddLayer( *pooling );
+	return pooling;
+}
 
-	CPtr<CEltwiseMulLayer> prevStateMult = new CEltwiseMulLayer( MathEngine() );
-	prevStateMult->SetName( prevStateMultName );
-	result->AddLayer( *prevStateMult );
-	result->SetInputMapping( 0, *prevStateMult, 0 );
-	prevStateMult->Connect( 1, *backLink );
+// Adds multiplication of 2 inputs
+CPtr<CEltwiseMulLayer> CQrnnLayer::addMulLayer( CBaseLayer& first, CBaseLayer& second, const char* mulLayerName )
+{
+	CPtr<CEltwiseMulLayer> mulLayer = new CEltwiseMulLayer( MathEngine() );
+	mulLayer->SetName( mulLayerName );
+	mulLayer->Connect( 0, first );
+	mulLayer->Connect( 1, second );
+	AddLayer( *mulLayer );
+	return mulLayer;
+}
 
-	CPtr<CEltwiseSumLayer> resultSum = new CEltwiseSumLayer( MathEngine() );
-	resultSum->SetName( resultSumName );
-	result->AddLayer( *resultSum );
-	result->SetInputMapping( 1, *resultSum, 0 );
-	resultSum->Connect( 1, *prevStateMult );
+CPtr<CBaseLayer> CQrnnLayer::addBidirectionalMerge( CBaseLayer& first, CBaseLayer& second, const char* mergeName )
+{
+	static_assert( RM_Count == 4, "RM_Count != 4" );
+	NeoAssert( recurrentMode == RM_BidirectionalConcat || recurrentMode == RM_BidirectionalSum );
+	CPtr<CBaseLayer> mergeLayer;
+	if( recurrentMode == RM_BidirectionalConcat ) {
+		mergeLayer = new CConcatChannelsLayer( MathEngine() );
+	} else {
+		mergeLayer = new CEltwiseSumLayer( MathEngine() );
+	}
+	mergeLayer->SetName( mergeName );
+	mergeLayer->Connect( 0, first );
+	mergeLayer->Connect( 1, second );
+	AddLayer( *mergeLayer );
+	return mergeLayer;
+}
 
-	result->SetOutputMapping( *resultSum );
-	backLink->Connect( *resultSum );
-	return result;
+// Adds input mapping for pooling's initial state
+void CQrnnLayer::addInitialStateInputMapping( CBaseLayer& pooling, int inputMappingIndex )
+{
+	static_assert( PT_Count == 3, "PT_Count != 3" );
+	const int initialStateInput = poolingType == PT_IfoPooling ? 3 : 2;
+	SetInputMapping( inputMappingIndex, pooling, initialStateInput );
 }
 
 void CQrnnLayer::addDropout( float rate )
 {
+	NeoAssert( rate > 0.f );
 	// the article recommends new_F = 1 - dropout( 1 - F )
 	// but in order to make less multiplications we use new_F = 1 + dropout( F - 1 )
 	
@@ -335,8 +370,10 @@ void CQrnnLayer::addDropout( float rate )
 	postDropoutLinear->Connect( *dropout );
 	AddLayer( *postDropoutLinear );
 
-	negForgetByUpdateByOutput->Connect( 0, *postDropoutLinear );
-	forgetByOutput->Connect( 0, *postDropoutLinear );
+	firstPooling->Connect( G_Forget, *postDropoutLinear );
+	if( secondPooling != nullptr ) {
+		secondPooling->Connect( G_Forget, *postDropoutLinear );
+	}
 
 	ForceReshape();
 }
@@ -348,58 +385,143 @@ void CQrnnLayer::deleteDropout()
 	DeleteLayer( *postDropoutLinear );
 	dropout = nullptr;
 	postDropoutLinear = nullptr;
-	negForgetByUpdateByOutput->Connect( 0, *forgetSigmoid );
-	forgetByOutput->Connect( 0, *forgetSigmoid );
+	firstPooling->Connect( G_Forget, *forgetSigmoid );
+	if( secondPooling != nullptr ) {
+		secondPooling->Connect( G_Forget, *forgetSigmoid );
+	}
 	ForceReshape();
 }
 
-void CQrnnLayer::createBidirectionalLayers()
+void CQrnnLayer::rebuildLayer( int prevGateCount )
 {
-	NeoAssert( IsBidirectional( recurrentMode ) );
-	if( secondRecurrent == nullptr ) {
-		secondRecurrent = buildRecurrentPart( secondRecurrentName );
-		secondRecurrent->SetReverseSequence( true );
-		secondRecurrent->Connect( 0, *forgetByOutput );
-		secondRecurrent->Connect( 1, *negForgetByUpdateByOutput );
-		AddLayer( *secondRecurrent );
-		secondBackLink = CheckCast<CBackLinkLayer>( secondRecurrent->GetLayer( backLinkName ) );
-		secondBackLink->SetDimSize( BD_Channels, firstBackLink->GetDimSize( BD_Channels ) );
-		SetInputMapping( 1, *secondRecurrent, 2 );
-	}
+	const float dropoutRate = GetDropout();
+	// Here the prevGateCount is used because current value of poolingType contains new value
+	// And this new pooling may have different number of gates (if rebuildLayer was called from SetPoolingType)
+	const int hiddenSize = timeConv->GetFilterCount() / prevGateCount;
+	const int windowSize = timeConv->GetFilterSize();
+	const int stride = timeConv->GetStride();
+	const int padFront = timeConv->GetPaddingFront();
+	const int padBack = timeConv->GetPaddingBack();
 
-	if( bidirectionalMerge != nullptr ) {
-		// We can be here only when the recurrentMode is changing
-		// That means merge layer type was changed
-		DeleteLayer( *bidirectionalMerge );
-		bidirectionalMerge = nullptr;
-	}
+	DeleteAllLayers();
 
-	static_assert( CQrnnLayer::RM_Count == 4, "CQrnnLayer::RM_Count != 4" );
-	if( recurrentMode == RM_BidirectionalConcat ) {
-		bidirectionalMerge = new CConcatChannelsLayer( MathEngine() );
-	} else if( recurrentMode == RM_BidirectionalSum ) {
-		bidirectionalMerge = new CEltwiseSumLayer( MathEngine() );
-	} else {
-		NeoAssert( false );
-	}
-	bidirectionalMerge->SetName( bidirectionalMergeName );
-	bidirectionalMerge->Connect( 0, *firstRecurrent );
-	bidirectionalMerge->Connect( 1, *secondRecurrent );
-	AddLayer( *bidirectionalMerge );
-	SetOutputMapping( *bidirectionalMerge );
+	buildLayer( dropoutRate, hiddenSize, windowSize, stride, padFront, padBack );
 }
 
-void CQrnnLayer::deleteBidirectionalLayers()
+bool CQrnnLayer::isBidirectional() const
 {
-	if( secondRecurrent != nullptr ) {
-		NeoAssert( bidirectionalMerge != nullptr );
-		DeleteLayer( *secondRecurrent );
-		secondRecurrent = nullptr;
-		secondBackLink = nullptr;
-		DeleteLayer( *bidirectionalMerge );
-		bidirectionalMerge = nullptr;
-		SetOutputMapping( *firstRecurrent );
+	static_assert( CQrnnLayer::RM_Count == 4, "CQrnnLayer::RM_Count != 4" );
+	return recurrentMode == CQrnnLayer::RM_BidirectionalConcat || recurrentMode == CQrnnLayer::RM_BidirectionalSum;
+}
+
+// Returns number of gates used by this pooling
+int CQrnnLayer::gateCount() const
+{
+	static_assert( PT_Count == 3, "PT_Count != 3" );
+	switch( poolingType ) {
+		case PT_FPooling:
+			return 2;
+		case PT_FoPooling:
+			return 3;
+		case PT_IfoPooling:
+			return 4;
+		case PT_Count:
+		default:
+			NeoAssert( false );
 	}
+
+	return -1;
+}
+
+CLayerWrapper<CQrnnLayer> Qrnn( CQrnnLayer::TPoolingType poolingType, CQrnnLayer::TRecurrentMode recurrentMode,
+	int hiddenSize, int windowSize, int paddingFront, int paddingBack, float dropout, int stride,
+	TActivationFunction activation )
+{
+	return CLayerWrapper<CQrnnLayer>( "", [=] ( CQrnnLayer* result ) {
+		result->SetPoolingType( poolingType );
+		result->SetRecurrentMode( recurrentMode );
+		result->SetHiddenSize( hiddenSize );
+		result->SetWindowSize( windowSize );
+		result->SetStride( stride );
+		result->SetPaddingFront( paddingFront );
+		result->SetPaddingBack( paddingBack );
+		result->SetDropout( dropout );
+		result->SetActivation( activation );
+	} );
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+static const int QrnnFPoolingLayerVersion = 0;
+
+void CQrnnFPoolingLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( QrnnFPoolingLayerVersion );
+	CBaseLayer::Serialize( archive );
+	archive.Serialize( reverse );
+}
+
+void CQrnnFPoolingLayer::Reshape()
+{
+	outputDescs[0] = inputDescs[0];
+}
+
+void CQrnnFPoolingLayer::RunOnce()
+{
+	const int sequenceLength = inputBlobs[0]->GetBatchLength();
+	const int objectSize = inputBlobs[0]->GetDataSize() / sequenceLength;
+	MathEngine().QrnnFPooling( reverse, sequenceLength, objectSize,
+		inputBlobs[0]->GetData(), inputBlobs[1]->GetData(),
+		inputBlobs.Size() == 2 ? CFloatHandle() : inputBlobs[2]->GetData(),
+		outputBlobs[0]->GetData() );
+}
+
+void CQrnnFPoolingLayer::BackwardOnce()
+{
+	const int sequenceLength = inputBlobs[0]->GetBatchLength();
+	const int objectSize = inputBlobs[0]->GetDataSize() / sequenceLength;
+	MathEngine().QrnnFPoolingBackward( !reverse, sequenceLength, objectSize,
+		inputBlobs[0]->GetData(), inputBlobs[1]->GetData(),
+		inputBlobs.Size() == 2 ? CFloatHandle() : inputBlobs[2]->GetData(),
+		outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+		inputDiffBlobs[0]->GetData(), inputDiffBlobs[1]->GetData() );
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+static const int QrnnIfPoolingLayerVersion = 0;
+
+void CQrnnIfPoolingLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( QrnnIfPoolingLayerVersion );
+	CBaseLayer::Serialize( archive );
+	archive.Serialize( reverse );
+}
+
+void CQrnnIfPoolingLayer::Reshape()
+{
+	outputDescs[0] = inputDescs[0];
+}
+
+void CQrnnIfPoolingLayer::RunOnce()
+{
+	const int sequenceLength = inputBlobs[0]->GetBatchLength();
+	const int objectSize = inputBlobs[0]->GetDataSize() / sequenceLength;
+	MathEngine().QrnnIfPooling( reverse, sequenceLength, objectSize,
+		inputBlobs[0]->GetData(), inputBlobs[1]->GetData(), inputBlobs[2]->GetData(),
+		inputBlobs.Size() == 3 ? CFloatHandle() : inputBlobs[3]->GetData(),
+		outputBlobs[0]->GetData() );
+}
+
+void CQrnnIfPoolingLayer::BackwardOnce()
+{
+	const int sequenceLength = inputBlobs[0]->GetBatchLength();
+	const int objectSize = inputBlobs[0]->GetDataSize() / sequenceLength;
+	MathEngine().QrnnIfPoolingBackward( !reverse, sequenceLength, objectSize,
+		inputBlobs[0]->GetData(), inputBlobs[1]->GetData(), inputBlobs[2]->GetData(),
+		inputBlobs.Size() == 3 ? CFloatHandle() : inputBlobs[3]->GetData(),
+		outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+		inputDiffBlobs[0]->GetData(), inputDiffBlobs[1]->GetData(), inputDiffBlobs[2]->GetData() );
 }
 
 } // namespace NeoML

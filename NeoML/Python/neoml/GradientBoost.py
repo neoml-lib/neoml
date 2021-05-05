@@ -29,87 +29,84 @@ class GradientBoostClassificationModel:
 
 
     def store(self, path):
+        """Saves the model at the given location.
+        
+        :param path: the full path to where the model should be saved.
+        :type path: str
+        """
         self.internal.store(path)       
 
     def classify(self, X):
         """Gets the classification results for the input sample.
 
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The input vectors, put into a matrix. The values will be 
+        :param X: the input vectors, put into a matrix. The values will be 
             converted to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Return values
-        -------
-        predictions : generator of ndarray of shape (n_samples, n_classes)
-            The predictions of class probability for each input vector.
+        :return: the predictions of class probability for each input vector.
+        :rtype: *generator of ndarray of shape (n_samples, n_classes)*
         """
         x = convert_data(X)
         return self.internal.classify(*get_data(x))
 
 class GradientBoostClassifier(PythonWrapper.GradientBoost):
-    """Gradient boosting for classification.
-    
-    Gradient boosting method creates an ensemble of decision trees
+    """Gradient boosting for classification. Gradient boosting method creates an ensemble of decision trees
     using random subsets of features and input data.
 
-    Parameters
-    ----------  
-    loss : {'exponential', 'binomial', 'squared_hinge', 'l2'}, default='binomial'
-        The loss function to be optimized. 
+    :param loss: the loss function to be optimized. 
         'binomial' refers to deviance (= logistic regression) for classification
         with probabilistic outputs. 
         'exponential' is similar to the AdaBoost algorithm.
+    :type loss: str, {'exponential', 'binomial', 'squared_hinge', 'l2'}, default='binomial'
 
-    iteration_count : int, default=100
-        The maximum number of iterations (that is, the number of trees in the ensemble).
+    :param iteration_count: the maximum number of iterations (that is, the number of trees in the ensemble).
+    :type iteration_count: int, default=100
 
-    learning_rate : float, default=0.1
-        The multiplier for each classifier tree.
+    :param learning_rate: the multiplier for each classifier tree.
         There is a trade-off between ``learning_rate`` and ``iteration_count``.
+    :type learning_rate: float, default=0.1
 
-    subsample : float, [0..1], default=1.0
-        The fraction of input data that is used for building one tree.
+    :param subsample: the fraction of input data that is used for building one tree.
+    :type subsample: float, [0..1], default=1.0
 
-    subfeature : float, [0..1], default=1.0
-        The fraction of features that is used for building one tree.
+    :param subfeature: the fraction of features that is used for building one tree.
+    :type subfeature: float, [0..1], default=1.0
 
-    random_seed : int, default=0
-        The random generator seed number.
+    :param random_seed: the random generator seed number.
+    :type random_seed: int, default=0
 
-    max_depth : int, default=10
-        The maximum depth of a tree in ensemble.
+    :param max_depth: the maximum depth of a tree in ensemble.
+    :type max_depth: int, default=10
 
-    max_node_count : int, default=-1
-        The maximum number of nodes in a tree. -1 means no limitation.
+    :param max_node_count: the maximum number of nodes in a tree. -1 means no limitation.
+    :type max_node_count: int, default=-1
 
-    l1_reg : float, default=0.0
-        The L1 regularization factor.
+    :param l1_reg: the L1 regularization factor.
+    :type l1_reg: float, default=0.0
 
-    l2_reg : float, default=1.0
-        The L2 regularization factor.
+    :param l2_reg: the L2 regularization factor.
+    :type l2_reg: float, default=1.0
 
-    prune : float, default=0.0
-        The value of criterion difference when the nodes should be merged.
+    :param prune: the value of criterion difference when the nodes should be merged.
         The 0 default value means never merge nodes.
+    :type prune: float, default=0.0
 
-    thread_count : int, default=1
-        The number of processing threads to be used while training the model.
+    :param thread_count: the number of processing threads to be used while training the model.
+    :type thread_count: int, default=1
 
-    builder_type : {'full', 'hist', 'multi_full'}, default='full'
-        The type of tree builder used. 
+    :param builder_type: the type of tree builder used. 
         ``full`` means all feature values are used for splitting nodes.
         ``hist`` means the steps of a histogram created from feature values
         ``multi_full`` means 'full' with multiclass trees
         will be used for splitting nodes.
+    :type builder_type: str, {'full', 'hist', 'multi_full'}, default='full'
 
-    max_bins : int, default=32
-        The largest possible histogram size to be used in ``hist`` mode.
+    :param max_bins: the largest possible histogram size to be used in ``hist`` mode.
+    :type max_bins: int, default=32
 
-    min_subtree_weight : float, default=0.0
-        The minimum subtree weight. The 0 default value means no lower limit.
+    :param min_subtree_weight: the minimum subtree weight. The 0 default value means no lower limit.
+    :type min_subtree_weight: float, default=0.0
     """
 
     def __init__(self, loss='binomial', iteration_count=100, learning_rate=0.1,
@@ -143,24 +140,20 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
 
     def train(self, X, Y, weight=None):
         """Trains the gradient boosting model for classification.
-        
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The training sample. The values will be converted 
+
+        :param X: the training sample. The values will be converted 
             to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Y : array-like of shape (n_samples,)
-            Correct class labels (``int``) for the training set vectors.
+        :param Y: correct class labels (``int``) for the training set vectors.
+        :type Y: array-like of shape (n_samples,)
 
-        weight : array-like of shape (n_samples,), default=None
-            Sample weights. If None, then samples are equally weighted.
-        
-        Return values
-        -------
-        model : object
-            The trained ``GradientBoostClassificationModel``.
+        :param weight: sample weights. If None, then samples are equally weighted.
+        :type weight: array-like of shape (n_samples,), default=None
+
+        :return: the trained classification model.
+        :rtype: neoml.GradientBoost.GradientBoostClassificationModel
         """
         x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.int32, copy=False )
@@ -192,22 +185,23 @@ class GradientBoostRegressionModel:
 
 
     def store(self, path):
+        """Saves the model at the given location.
+
+        :param path: the full path to where the model should be saved.
+        :type path: str
+        """
         self.internal.store(path)       
 
     def predict(self, X):
         """Predicts the value of the function.
 
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The input vectors. The values will be converted 
+        :param X: the input vectors. The values will be converted 
             to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Return values
-        -------
-        predictions : generator of ndarray of shape (n_samples)
-            The predictions of the function value on each input vector.
+        :return: the predictions of the function value on each input vector.
+        :rtype: *generator of ndarray of shape (n_samples)*
         """
         x = convert_data(X)
         return self.internal.predict(*get_data(x))
@@ -217,58 +211,56 @@ class GradientBoostRegressor(PythonWrapper.GradientBoost):
     Gradient boosting method creates an ensemble of decision trees
     using random subsets of features and input data.
 
-    Parameters
-    ----------
-    loss : {'l2'}, default='l2'
-        The loss function to be optimized. 
+    :param loss: the loss function to be optimized. 
         The quadratic loss L2 is the only one supported.
+    :type loss: str, {'l2'}, default='l2'
 
-    iteration_count : int, default=100
-        The maximum number of iterations (that is, the number of trees in the ensemble).
+    :param iteration_count: the maximum number of iterations (that is, the number of trees in the ensemble).
+    :type iteration_count: int, default=100
 
-    learning_rate : float, default=0.1
-        The multiplier for each tree.
+    :param learning_rate: the multiplier for each tree.
         There is a trade-off between ``learning_rate`` and ``iteration_count``.
+    :type learning_rate: float, default=0.1
 
-    subsample : float, [0..1], default=1.0
-        The fraction of input data that is used for building one tree.
+    :param subsample: the fraction of input data that is used for building one tree.
+    :type subsample: float, [0..1], default=1.0
 
-    subfeature : float, [0..1], default=1.0
-        The fraction of features that is used for building one tree.
+    :param subfeature: the fraction of features that is used for building one tree.
+    :type subfeature: float, [0..1], default=1.0
 
-    random_seed : int, default=0
-        The random generator seed number.
+    :param random_seed: the random generator seed number.
+    :type random_seed: int, default=0
 
-    max_depth : int, default=10
-        The maximum depth of a tree in ensemble.
+    :param max_depth: the maximum depth of a tree in ensemble.
+    :type max_depth: int, default=10
 
-    max_node_count : int, default=-1
-        The maximum number of nodes in a tree. -1 means no limitation.
+    :param max_node_count: the maximum number of nodes in a tree. -1 means no limitation.
+    :type max_node_count: int, default=-1
 
-    l1_reg : float, default=0.0
-        The L1 regularization factor.
+    :param l1_reg: the L1 regularization factor.
+    :type l1_reg: float, default=0.0
 
-    l2_reg : float, default=1.0
-        The L2 regularization factor.
+    :param l2_reg: the L2 regularization factor.
+    :type l2_reg: float, default=1.0
 
-    prune : float, default=0.0
-        The value of criterion difference when the nodes should be merged.
+    :param prune: the value of criterion difference when the nodes should be merged.
         The 0 default value means never merge nodes.
+    :type prune: float, default=0.0
 
-    thread_count : int, default=1
-        The number of processing threads to be used while training the model.
+    :param thread_count: the number of processing threads to be used while training the model.
+    :type thread_count: int, default=1
 
-    builder_type : {'full', 'hist'}, default='full'
-        The type of tree builder used. 
+    :param builder_type: the type of tree builder used. 
         ``full`` means all feature values are used for splitting nodes.
         ``hist`` means the steps of a histogram created from feature values
         will be used for splitting nodes.
+    :type builder_type: str, {'full', 'hist'}, default='full'
 
-    max_bins : int, default=32
-        The largest possible histogram size to be used in ``hist`` mode.
+    :param max_bins: the largest possible histogram size to be used in ``hist`` mode.
+    :type max_bins: int, default=32
 
-    min_subtree_weight : float, default=0.0
-        The minimum subtree weight. The 0 default value means no lower limit.
+    :param min_subtree_weight: the minimum subtree weight. The 0 default value means no lower limit.
+    :type min_subtree_weight: float, default=0.0
     """
 
     def __init__(self, loss='l2', iteration_count=100, learning_rate=0.1,
@@ -302,24 +294,20 @@ class GradientBoostRegressor(PythonWrapper.GradientBoost):
 
     def train(self, X, Y, weight=None):
         """Trains the gradient boosting model for regression.
-        
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The training sample. The values will be converted 
+
+        :param X: the training sample. The values will be converted 
             to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Y : array-like of shape (n_samples,)
-            Correct function values (``float``) for the training set vectors.
+        :param Y: correct function values (``float``) for the training set vectors.
+        :type Y: array-like of shape (n_samples,)
 
-        weight : array-like of shape (n_samples,), default=None
-            Sample weights. If None, then samples are equally weighted.
-        
-        Return values
-        -------
-        model : object
-            The trained ``GradientBoostRegressionModel``.
+        :param weight: sample weights. If None, then samples are equally weighted.
+        :type weight: array-like of shape (n_samples,), default=None
+
+        :return: the trained regression model.
+        :rtype: neoml.GradientBoost.GradientBoostRegressionModel
         """
         x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.float32, copy=False )
