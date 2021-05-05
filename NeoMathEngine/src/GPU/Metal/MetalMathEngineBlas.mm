@@ -30,6 +30,28 @@ namespace NeoML {
 // The number of combined values for the vector kernels
 static const int VectorCombineCount = 8;
 
+void CMetalMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrix, int matrixHeight, int matrixWidth,
+	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( matrix.GetMathEngine() == this );
+	ASSERT_EXPR( vevectorHandlector.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( matrixHeight > 0 );
+	ASSERT_EXPR( matrixWidth > 0 );
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+	int height, int width, const CFloatHandle& result )
+{
+	ASSERT_EXPR( diagMatrix.GetMathEngine() == this );
+	ASSERT_EXPR( matrix.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+	ASSERT_EXPR( height > 0 );
+	ASSERT_EXPR( width > 0 );
+	ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
 	const CConstIntHandle& indices, const CFloatHandle& result, int)
 {
