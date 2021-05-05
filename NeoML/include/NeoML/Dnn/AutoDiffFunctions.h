@@ -20,29 +20,56 @@ limitations under the License.
 
 namespace NeoML {
 
+// Creates the const blob filled with the specified value.
 NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float data, const CBlobDesc& desc = {1} );
+// Creates the const blob using the specified data.
 NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float* data, const CBlobDesc& desc );
 NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const CArray<float>& data, const CBlobDesc& desc );
 
+// Creates the blob which is the sum of the specified blobs. 
+// Blobs descs must be equal!
+// res[i] = first[i] + second[i]
 NEOML_API CPtr<const CDnnBlob> Add( const CDnnBlob* first, const CDnnBlob* second );
+// res[i] = first[i] + second
 NEOML_API CPtr<const CDnnBlob> Add( const CDnnBlob* first, float second );
+// res[i] = first + second[i]
 NEOML_API CPtr<const CDnnBlob> Add( float first, const CDnnBlob* second );
 
+// Creates the blob which is the subtraction of the specified blobs. 
+// Blobs descs must be equal!
+// res[i] = first[i] - second[i]
 NEOML_API CPtr<const CDnnBlob> Sub( const CDnnBlob* first, const CDnnBlob* second );
+// res[i] = first[i] - second
 NEOML_API CPtr<const CDnnBlob> Sub( const CDnnBlob* first, float second );
+// res[i] = first - second[i]
 NEOML_API CPtr<const CDnnBlob> Sub( float first, const CDnnBlob* second );
 
+// Creates the blob which is the elementwise multiplication of the specified blobs. 
+// Blobs descs must be equal!
+// res[i] = first[i] * second[i]
 CPtr<const CDnnBlob> NEOML_API Mult( const CDnnBlob* first, const CDnnBlob* second );
+// res[i] = first[i] * second
 CPtr<const CDnnBlob> NEOML_API Mult( const CDnnBlob* first, float second );
+// res[i] = first * second[i]
 CPtr<const CDnnBlob> NEOML_API Mult( float first, const CDnnBlob* second );
 
+// Creates the blob which is the result of element-wise div of the first blob by the second. 
+// Blobs descs must be equal!
+// res[i] = first[i] / second[i]
 CPtr<const CDnnBlob> NEOML_API Div( const CDnnBlob* first, const CDnnBlob* second );
+// res[i] = first[i] / second
 CPtr<const CDnnBlob> NEOML_API Div( const CDnnBlob* first, float second );
+// res[i] = first / second[i]
 CPtr<const CDnnBlob> NEOML_API Div( float first, const CDnnBlob* second );
 
+// Creates the blob which is the elementwise maximum of the specified parameters. 
+// res[i] = max(first[i], second)
 CPtr<const CDnnBlob> NEOML_API Max( const CDnnBlob* first, float second );
+// res[i] = max(first, second[i])
 CPtr<const CDnnBlob> NEOML_API Max( float first, const CDnnBlob* second );
 
+// Calculates the total of all blob elements.
+// The result is a single element blob which is the sum of all element of the specified blob.
 NEOML_API CPtr<const CDnnBlob> Sum( const CDnnBlob* first );
 
 NEOML_API CPtr<const CDnnBlob> Neg( const CDnnBlob* first );
@@ -57,6 +84,10 @@ CPtr<const CDnnBlob> NEOML_API TopK( const CDnnBlob* first, int k );
 
 NEOML_API CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float min, float max );
 
+// Calculates the binary cross entropy of two blobs.
+// result = (1 - labels) * x + log(1 + exp(-x))
+// if fromLogits then x = preds else x = log( clippedPreds / (1 - clippedPreds) )
+// Blobs must have the equal shapes.
 NEOML_API CPtr<const CDnnBlob> BinaryCrossEntropy( const CDnnBlob* labels, const CDnnBlob* preds, bool fromLogits );
 
 } // namespace NeoML

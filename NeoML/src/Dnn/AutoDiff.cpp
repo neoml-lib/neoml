@@ -192,7 +192,7 @@ CPtr<const CDnnBlob> CGradientTape::Gradient( const CDnnBlob& expression, const 
 	NeoAssert( varTapeBlob->Tape() == impl );
 
 	CPtr<const ITapeOperation> operation = impl->GetOperation( expressionTapeBlob );
-	CPtr<CDnnBlob> grad( operation->Gradient( varTapeBlob ) );
+	CPtr<const CDnnBlob> grad( operation->Gradient( varTapeBlob ) );
 
 	if( grad->GetObjectCount() == 1 ) {
 		return grad;
@@ -201,7 +201,7 @@ CPtr<const CDnnBlob> CGradientTape::Gradient( const CDnnBlob& expression, const 
 	CPtr<CDnnBlob> result( CDnnBlob::CreateBlob( grad->GetMathEngine(), var.GetDesc() ) );
 	NeoAssert( var.GetDataSize() == grad->GetObjectSize() );
 	grad->GetMathEngine().SumMatrixRows( 1, result->GetData(), grad->GetData(), grad->GetObjectCount(), grad->GetObjectSize() );
-	return result;
+	return result.Ptr();
 }
 
 } // namespace NeoML

@@ -55,14 +55,14 @@ CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float data, const CBlobDesc
 {
 	CPtr<CDnnBlob> result( new CTapeBlob( 0, mathEngine, desc ) );
 	result->Fill( data );
-	return result;
+	return result.Ptr();
 }
 
 CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float* data, const CBlobDesc& desc )
 {
 	CPtr<CDnnBlob> result( new CTapeBlob( 0, mathEngine, desc ) );
 	result->CopyFrom( data );
-	return result;
+	return result.Ptr();
 }
 
 CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const CArray<float>& data, const CBlobDesc& desc )
@@ -70,7 +70,7 @@ CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const CArray<float>& data, 
 	NeoAssert( desc.BlobSize() == data.Size() );
 	CPtr<CDnnBlob> result( new CTapeBlob( 0, mathEngine, desc ) );
 	result->CopyFrom( data.GetPtr() );
-	return result;
+	return result.Ptr();
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -122,6 +122,7 @@ CPtr<const CDnnBlob> Add( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
+	NeoAssert( first->GetDesc().HasEqualDimensions( second->GetDesc() ) );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
@@ -226,6 +227,7 @@ CPtr<const CDnnBlob> Sub( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
+	NeoAssert( first->GetDesc().HasEqualDimensions( second->GetDesc() ) );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
@@ -365,6 +367,7 @@ CPtr<const CDnnBlob> Mult( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
+	NeoAssert( first->GetDesc().HasEqualDimensions( second->GetDesc() ) );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
@@ -513,6 +516,7 @@ CPtr<const CDnnBlob> Div( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
+	NeoAssert( first->GetDesc().HasEqualDimensions( second->GetDesc() ) );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
@@ -973,7 +977,7 @@ CPtr<const CDnnBlob> BinaryCrossEntropy( const CDnnBlob* labels, const CDnnBlob*
 {
 	NeoAssert( labels != 0 );
 	NeoAssert( preds != 0 );
-	NeoAssert( labels->GetDataSize() == preds->GetDataSize() );
+	NeoAssert( labels->GetDesc().HasEqualDimensions( preds->GetDesc() ) );
 
 	IMathEngine& mathEngine = preds->GetMathEngine();
 	const int vectorSize = preds->GetDataSize();

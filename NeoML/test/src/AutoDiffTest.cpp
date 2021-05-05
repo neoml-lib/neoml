@@ -31,6 +31,42 @@ public:
 	static void DeinitTestFixture() {}
 };
 
+TEST_F( CAutoDiffTest, TestConst )
+{
+	CGradientTape tape;
+
+	CPtr<const CDnnBlob> const1 = Const( MathEngine(), 42.42, {100, 200, 50} );
+
+	CArray<float> const1Data;
+	const1Data.SetSize( const1->GetDataSize() );
+	const1->CopyTo( const1Data.GetPtr() );
+
+	ASSERT_EQ( const1->GetChannelsCount(), 50 );
+	ASSERT_EQ( const1->GetWidth(), 200 );
+	ASSERT_EQ( const1->GetHeight(), 100 );
+	for( int i = 0; i < const1Data.Size(); i++ ) {
+		ASSERT_NEAR( 42.42, const1Data[i], 1e-4 );
+	}
+
+	const1 = Const( MathEngine(), const1Data.GetPtr(), {const1Data.Size()} );
+	const1Data.SetSize( const1->GetDataSize() );
+	const1->CopyTo( const1Data.GetPtr() );
+
+	ASSERT_EQ( const1->GetChannelsCount(), 50 * 200 * 100 );
+	for( int i = 0; i < const1Data.Size(); i++ ) {
+		ASSERT_NEAR( 42.42, const1Data[i], 1e-4 );
+	}
+
+	const1 = Const( MathEngine(), const1Data, {50, 100, 200, 1, 1, 1, 1} );
+	const1Data.SetSize( const1->GetDataSize() );
+	const1->CopyTo( const1Data.GetPtr() );
+
+	ASSERT_EQ( const1->GetObjectCount(), 50 * 200 * 100 );
+	for( int i = 0; i < const1Data.Size(); i++ ) {
+		ASSERT_NEAR( 42.42, const1Data[i], 1e-4 );
+	}
+}
+
 TEST_F( CAutoDiffTest, TestAdd1 )
 {
 	CGradientTape tape;
