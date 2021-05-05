@@ -55,7 +55,7 @@ class BatchNormalization(Layer):
     :type name: str, default=None
     """
 
-    def __init__(self, input_layer, channel_based, zero_free_term=False, slow_convergence_rate=1.0, name=None):
+    def __init__(self, input_layer, channel_based=True, zero_free_term=False, slow_convergence_rate=1.0, name=None):
 
         if type(input_layer) is PythonWrapper.BatchNormalization:
             super().__init__(input_layer)

@@ -46,6 +46,10 @@ public:
 	virtual void VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value) = 0;
 	virtual void VectorFill(const CIntHandle& result, int vectorSize, const CConstIntHandle& value) = 0;
 
+	// Converting data type
+	virtual void VectorConvert(const CConstFloatHandle& from, const CIntHandle& to, int vectorSize) = 0;
+	virtual void VectorConvert(const CConstIntHandle& from, const CFloatHandle& to, int vectorSize) = 0;
+
 	// Filling a vector using the Bernoulli distribution with p being the probability of 1
 	// The elements for which the distribution gives 1 are set to the specified value
 	virtual void VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed ) = 0;
@@ -770,6 +774,33 @@ public:
 		const CBlobDesc& output, int seed ) = 0;
 	// Performs dropout on an input
 	virtual void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) = 0;
+
+	// QRNN poolings (https://arxiv.org/pdf/1611.01576.pdf)
+	// These operations calculate recursive parts of QRNN
+	// It doesn't include output gate handling
+	// Initial states are optional (maybe null)
+
+	// QRNN f-pooling
+	virtual void QrnnFPooling( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& initialState,
+		const CFloatHandle& result ) = 0;
+	// QRNN f-pooling backward
+	// Note: it will modify the contents of resultDiff
+	virtual void QrnnFPoolingBackward( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget,
+		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
+		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff ) = 0;
+
+	// QRNN if-pooling
+	virtual void QrnnIfPooling( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+		const CConstFloatHandle& initialState, const CFloatHandle& result ) = 0;
+	// QRNN if-pooling backward
+	// Note: it will modify the contents of resultDiff
+	virtual void QrnnIfPoolingBackward( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
+		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -840,7 +871,7 @@ public:
 
 	// Gets a pointer to access the handle memory
 	// GetBuffer and ReleaseBuffer should be called strictly in LIFO order
-	virtual void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size ) = 0;
+	virtual void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) = 0;
 	virtual void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) = 0;
 
 	// Data exchange device <-> host.

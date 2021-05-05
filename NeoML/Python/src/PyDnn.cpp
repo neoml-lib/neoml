@@ -307,6 +307,21 @@ py::dict CPyDnn::GetOutputs() const
 	return result;
 }
 
+bool CPyDnn::HasLayer( const char* layerName ) const
+{
+	return dnn->HasLayer( layerName );
+}
+
+void CPyDnn::AddLayer( CPyLayer& pyLayer )
+{
+	dnn->AddLayer( pyLayer.BaseLayer() );
+}
+
+void CPyDnn::DeleteLayer( const char* layerName )
+{
+	dnn->DeleteLayer( layerName );
+}
+
 py::dict CPyDnn::GetLayers() const
 {
 	CArray<const char*> layerNames;
@@ -401,6 +416,9 @@ void InitializeDnn(py::module& m)
 		.def( "get_inputs", &CPyDnn::GetInputs, py::return_value_policy::reference )
 		.def( "get_outputs", &CPyDnn::GetOutputs, py::return_value_policy::reference )
 		.def( "get_layers", &CPyDnn::GetLayers, py::return_value_policy::reference )
+		.def( "has_layer", &CPyDnn::HasLayer, py::return_value_policy::reference )
+		.def( "_add_layer", &CPyDnn::AddLayer, py::return_value_policy::reference )
+		.def( "_delete_layer", &CPyDnn::DeleteLayer, py::return_value_policy::reference )
 		.def( "_run", &CPyDnn::Run, py::return_value_policy::reference )
 		.def( "_run_and_backward", &CPyDnn::RunAndBackward, py::return_value_policy::reference )
 		.def( "_learn", &CPyDnn::Learn, py::return_value_policy::reference )

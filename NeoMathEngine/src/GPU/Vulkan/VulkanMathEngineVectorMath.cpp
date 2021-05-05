@@ -31,6 +31,8 @@ namespace NeoML {
 
 // Include the shader code
 #include <shaders/generated/VectorFillScalar.h>
+#include <shaders/generated/VectorConvertFloatToInt.h>
+#include <shaders/generated/VectorConvertIntToFloat.h>
 #include <shaders/generated/VectorELU.h>
 #include <shaders/generated/VectorELUDiff.h>
 #include <shaders/generated/VectorELUDiffOp.h>
@@ -134,6 +136,24 @@ void CVulkanMathEngine::VectorFill(const CIntHandle& result, int vectorSize, con
 	size_t sizes[2] = { sizeof( int ), vectorSize * sizeof( int ) };
 
 	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorFillScalar, false, 0, 0, 2),
+		0, 0, 0, 0, 0, 0, bufs, sizes, 2, Ceil(vectorSize, VectorCombine) );
+}
+
+void CVulkanMathEngine::VectorConvert( const CConstFloatHandle& from, const CIntHandle& to, int vectorSize )
+{
+	CMemoryHandle bufs[2] = { from, to };
+	size_t sizes[2] = { vectorSize * sizeof( float ), vectorSize * sizeof( int ) };
+
+	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorConvertFloatToInt, false, 0, 0, 2),
+		0, 0, 0, 0, 0, 0, bufs, sizes, 2, Ceil(vectorSize, VectorCombine) );
+}
+
+void CVulkanMathEngine::VectorConvert( const CConstIntHandle& from, const CFloatHandle& to, int vectorSize )
+{
+	CMemoryHandle bufs[2] = { from, to };
+	size_t sizes[2] = { vectorSize * sizeof( int ), vectorSize * sizeof( float ) };
+
+	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorConvertIntToFloat, false, 0, 0, 2),
 		0, 0, 0, 0, 0, 0, bufs, sizes, 2, Ceil(vectorSize, VectorCombine) );
 }
 

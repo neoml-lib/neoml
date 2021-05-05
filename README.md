@@ -1,6 +1,8 @@
 ![NeoML](NeoML/docs/images/NeoML_logo.png)
 
-[![Build status](https://dev.azure.com/abbyyopensource/NeoML/_apis/build/status/NeoML/Main%20Pipeline)](https://dev.azure.com/abbyyopensource/NeoML/_build/latest?definitionId=2)
+![Desktop Build Status](https://img.shields.io/azure-devops/build/abbyyopensource/401f7fe0-92d9-411d-9839-60d3455fa1c0/2/master?label=Desktop%20Build)
+![Python Build](https://img.shields.io/azure-devops/build/abbyyopensource/401f7fe0-92d9-411d-9839-60d3455fa1c0/14/master?label=Python%20Build)
+![iOS Build](https://img.shields.io/azure-devops/build/abbyyopensource/401f7fe0-92d9-411d-9839-60d3455fa1c0/15/master?label=iOS%20build)
 [![Documentation Status](https://readthedocs.org/projects/neoml/badge/?version=latest)](https://neoml.readthedocs.io/en/latest/?badge=latest)
 
 **NeoML** is an end-to-end machine learning framework that allows you to build, train, and deploy ML models. This framework is used by ABBYY engineers for computer vision and natural language processing tasks, including image preprocessing, classification, document layout analysis, OCR, and data extraction from structured and unstructured documents.

@@ -377,6 +377,84 @@ void CMetalMathEngine::MatrixRowsToVectorSquaredL2Distance( const CConstFloatHan
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objectSize,
+    const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& initialState,
+    const CFloatHandle& result )
+{
+    ASSERT_EXPR( sequenceLength >= 1 );
+    ASSERT_EXPR( objectSize >= 1 );
+    ASSERT_EXPR( update.GetMathEngine() == this );
+    ASSERT_EXPR( forget.GetMathEngine() == this );
+    ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+    ASSERT_EXPR( result.GetMathEngine() == this );
+
+    C1DKernel kernel( *queue, "vectorQrnnFPooling", 1, objectSize );
+    kernel.SetParam( reverse, 0 );
+    kernel.SetParam( sequenceLength, 1 );
+    kernel.SetParam( objectSize, 2 );
+    kernel.SetParam( update, 3 );
+    kernel.SetParam( forget, 4 );
+    kernel.SetParam( result, 6 );
+
+    if( initialState.IsNull() ) {
+        CFloatHandleStackVar zeros( *this, objectSize );
+        VectorFill( zeros, 0.f, objectSize );
+        kernel.SetParam( zeros, 5 );
+        ASSERT_EXPR( kernel.Run() ); 
+    } else {
+        kernel.SetParam( initialState, 5 );
+        ASSERT_EXPR( kernel.Run() ); 
+    }
+}
+
+void CMetalMathEngine::QrnnFPoolingBackward( bool /*reverse*/, int /*sequenceLength*/, int /*objectSize*/,
+    const CConstFloatHandle& /*update*/, const CConstFloatHandle& /*forget*/,
+    const CConstFloatHandle& /*initialState*/, const CConstFloatHandle& /*result*/, const CFloatHandle& /*resultDiff*/,
+    const CFloatHandle& /*updateDiff*/, const CFloatHandle& /*forgetDiff*/ )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int objectSize,
+    const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+    const CConstFloatHandle& initialState, const CFloatHandle& result )
+{
+    ASSERT_EXPR( sequenceLength >= 1 );
+    ASSERT_EXPR( objectSize >= 1 );
+    ASSERT_EXPR( update.GetMathEngine() == this );
+    ASSERT_EXPR( forget.GetMathEngine() == this );
+    ASSERT_EXPR( input.GetMathEngine() == this );
+    ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+    ASSERT_EXPR( result.GetMathEngine() == this );
+
+    C1DKernel kernel( *queue, "vectorQrnnIfPooling", 1, objectSize );
+    kernel.SetParam( reverse, 0 );
+    kernel.SetParam( sequenceLength, 1 );
+    kernel.SetParam( objectSize, 2 );
+    kernel.SetParam( update, 3 );
+    kernel.SetParam( forget, 4 );
+    kernel.SetParam( input, 5 );
+    kernel.SetParam( result, 7 );
+
+    if( initialState.IsNull() ) {
+        CFloatHandleStackVar zeros( *this, objectSize );
+        VectorFill( zeros, 0.f, objectSize );
+        kernel.SetParam( zeros, 6 );
+        ASSERT_EXPR( kernel.Run() ); 
+    } else {
+        kernel.SetParam( initialState, 6 );
+        ASSERT_EXPR( kernel.Run() ); 
+    }
+}
+
+void CMetalMathEngine::QrnnIfPoolingBackward( bool /*reverse*/, int /*sequenceLength*/, int /*objectSize*/,
+    const CConstFloatHandle& /*update*/, const CConstFloatHandle& /*forget*/, const CConstFloatHandle& /*input*/,
+    const CConstFloatHandle& /*initialState*/, const CConstFloatHandle& /*result*/, const CFloatHandle& /*resultDiff*/,
+    const CFloatHandle& /*updateDiff*/, const CFloatHandle& /*forgetDiff*/, const CFloatHandle& /*inputDiff*/ )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL

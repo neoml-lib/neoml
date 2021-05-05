@@ -4,7 +4,7 @@
 neoml.Clustering
 ################
 
-The `neoml` module contains multiple clustering algoithms such as:
+The `neoml` module provides several methods for clustering data.
 
 - :ref:`py-clustering-kmeans`
 - :ref:`py-clustering-isodata`
@@ -13,12 +13,12 @@ The `neoml` module contains multiple clustering algoithms such as:
 
 .. _py-clustering-kmeans:
 
-K-Means
+K-means
 #######
 
-`K-Means method <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/kMeans.md>`_
-is the most popular clustering algorithm.
-It assigns each object to tthe cluster with the nearest center.
+K-means method is the most popular clustering algorithm.
+
+On each step, the mass center for each cluster is calculated, and then the vectors are reassigned to clusters with the nearest center. The algorithm stops on the step when the in-cluster distance does not change.
 
 Class description
 *****************
@@ -35,7 +35,7 @@ Example
    import neoml
 
    data = np.rand(1000, 5)
-   kmeans = neoml.Clustering.KMeans(init_cluster_count=4, init='k++', algo='elkan')
+   kmeans = neoml.Clustering.KMeans(cluster_count=4, init='k++', algo='elkan')
    labels, centers, disps = kmeans.clusterize(data)
 
 .. _py-clustering-isodata:
@@ -43,9 +43,10 @@ Example
 ISODATA
 #######
 
-`ISODATA clustering algorithm <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/ISODATA.md>`_
-is based on geometrical proximity of the data points.
+ISODATA clustering algorithm is based on geometrical proximity of the data points.
 The clustering result will depend greatly on the initial settings.
+
+See Ball, Geoffrey H., Hall, David J. Isodata: a method of data analysis and pattern classification. (1965)
 
 Class description
 *****************
@@ -72,9 +73,10 @@ Example
 Hierarchical clustering
 #######################
 
-The library provides a "naive" implemetation of upward
-`hierarchical clustering <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/Hierarchical.md>`_.
-First, it creates a cluster per element, the merges clusters on each step until the final cluster is achieved.
+The library provides a "naive" implemetation of upward hierarchical clustering.
+The initial state has a cluster for every element. On each step, the two closest 
+clusters are merged. Once the target number of clusters is reached, or all clusters
+are too far from each other to be merged, the process ends.
 
 Class description
 *****************
@@ -100,9 +102,9 @@ Example
 First come clustering
 #####################
 
-A `simple clustering algorithm <https://github.com/neoml-lib/neoml/blob/master/NeoML/docs/en/API/Clustering/FirstCome.md>`_
-that create a new cluster for each new vector
-that is far enough from the clusters already existing.
+A simple clustering algorithm that works with only one run through the data set. 
+Each new vector is added to the nearest cluster, or if all the clusters are too far, 
+a new cluster will be created for this vector. At the end, the clusters that are too small are destroyed and their vectors redistributed.
 
 Class description
 *****************
