@@ -432,6 +432,58 @@ void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle, const CCons
 	}
 }
 
+void CCpuMathEngine::VectorSub(float firstValue, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+
+	float32x4_t first = vdupq_n_f32(firstValue);
+	const float* second = GetRaw(secondHandle);
+	float* result = GetRaw(resultHandle);
+	int count = GetCount4(vectorSize);
+
+	for(int i = 0; i < count; ++i) {
+		float32x4_t res = vsubq_f32(first, LoadNeon4(second));
+		StoreNeon4(res, result);
+
+		second += 4;
+		result += 4;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vsubq_f32(first, LoadNeon(second, vectorSize));
+		StoreNeon(res, result, vectorSize);
+	}
+}
+
+void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float secondValue,
+	const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw(firstHandle);
+	float32x4_t second = vdupq_n_f32(secondValue);
+	float* result = GetRaw(resultHandle);
+	int count = GetCount4(vectorSize);
+
+	for(int i = 0; i < count; ++i) {
+		float32x4_t res = vsubq_f32(LoadNeon4(first), second);
+		StoreNeon4(res, result);
+
+		first += 4;
+		result += 4;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vsubq_f32(LoadNeon(first, vectorSize), second);
+		StoreNeon(res, result, vectorSize);
+	}
+}
+
 void CCpuMathEngine::VectorMultiplyAndAdd(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
 	int vectorSize, const CConstFloatHandle& multHandle)
