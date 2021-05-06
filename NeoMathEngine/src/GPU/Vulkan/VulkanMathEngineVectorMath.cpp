@@ -956,7 +956,7 @@ void CVulkanMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float s
 	secondValue;	
 }
 
-void CVulkanMathEngine::EngineVectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+void CVulkanMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
 	int gradHeight, int gradWidth )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );

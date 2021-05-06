@@ -87,7 +87,7 @@ void CVulkanMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& mat
 	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle )
 {
 	ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( vevectorHandlector.GetMathEngine() == this );
+	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( matrixHeight > 0 );
 	ASSERT_EXPR( matrixWidth > 0 );

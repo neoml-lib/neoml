@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include "PyLossLayer.h"
-#include "PyTape.h"
 #include "PyDnnBlob.h"
 
 class CPyLossLayer : public CPyLayer {
@@ -54,7 +53,7 @@ protected:
 	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override
 	{
-		CGradientTape tape;
+	/*	CGradientTape tape;
 
 		CPtr<CTapeBlob> dataBlob( new CTapeBlob( &tape, data, batchSize, vectorSize, 1, 1 ) );
 		CPyBlob dataPyBlob( *mathEngineOwner, dataBlob );
@@ -68,9 +67,9 @@ protected:
 		mathEngineOwner->MathEngine().VectorCopy( lossValue, value->GetData(), batchSize );
 
 		if( !lossGradient.IsNull() ) {
-			CPtr<CDnnBlob> gradient = tape.Gradient( result, 0 );
+			CPtr<const CDnnBlob> gradient = tape.Gradient( result, 0 );
 			mathEngineOwner->MathEngine().VectorCopy( lossGradient, gradient->GetData(), batchSize * vectorSize );
-		}
+		}*/
 	}
 
 	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,

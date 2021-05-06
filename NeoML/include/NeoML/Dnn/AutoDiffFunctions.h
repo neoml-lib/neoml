@@ -26,8 +26,8 @@ NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float data, const
 NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float* data, const CBlobDesc& desc );
 NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const CArray<float>& data, const CBlobDesc& desc );
 
-// Creates the blob which is the sum of the specified blobs. 
-// Blobs descs must be equal!
+// Creates the blob which is the element-wise sum of the specified blobs. 
+// Blobs sizes must be equal!
 // res[i] = first[i] + second[i]
 NEOML_API CPtr<const CDnnBlob> Add( const CDnnBlob* first, const CDnnBlob* second );
 // res[i] = first[i] + second
@@ -35,8 +35,8 @@ NEOML_API CPtr<const CDnnBlob> Add( const CDnnBlob* first, float second );
 // res[i] = first + second[i]
 NEOML_API CPtr<const CDnnBlob> Add( float first, const CDnnBlob* second );
 
-// Creates the blob which is the subtraction of the specified blobs. 
-// Blobs descs must be equal!
+// Creates the blob which is the element-wise subtraction of the specified blobs. 
+// Blobs sizes must be equal!
 // res[i] = first[i] - second[i]
 NEOML_API CPtr<const CDnnBlob> Sub( const CDnnBlob* first, const CDnnBlob* second );
 // res[i] = first[i] - second
@@ -44,8 +44,8 @@ NEOML_API CPtr<const CDnnBlob> Sub( const CDnnBlob* first, float second );
 // res[i] = first - second[i]
 NEOML_API CPtr<const CDnnBlob> Sub( float first, const CDnnBlob* second );
 
-// Creates the blob which is the elementwise multiplication of the specified blobs. 
-// Blobs descs must be equal!
+// Creates the blob which is the element-wise multiplication of the specified blobs. 
+// Blobs sizes must be equal!
 // res[i] = first[i] * second[i]
 CPtr<const CDnnBlob> NEOML_API Mult( const CDnnBlob* first, const CDnnBlob* second );
 // res[i] = first[i] * second
@@ -53,8 +53,8 @@ CPtr<const CDnnBlob> NEOML_API Mult( const CDnnBlob* first, float second );
 // res[i] = first * second[i]
 CPtr<const CDnnBlob> NEOML_API Mult( float first, const CDnnBlob* second );
 
-// Creates the blob which is the result of element-wise div of the first blob by the second. 
-// Blobs descs must be equal!
+// Creates the blob which is the element-wise div of the first blob by the second. 
+// Blobs sizes must be equal!
 // res[i] = first[i] / second[i]
 CPtr<const CDnnBlob> NEOML_API Div( const CDnnBlob* first, const CDnnBlob* second );
 // res[i] = first[i] / second
@@ -62,7 +62,7 @@ CPtr<const CDnnBlob> NEOML_API Div( const CDnnBlob* first, float second );
 // res[i] = first / second[i]
 CPtr<const CDnnBlob> NEOML_API Div( float first, const CDnnBlob* second );
 
-// Creates the blob which is the elementwise maximum of the specified parameters. 
+// Creates the blob which is the element-wise maximum of the specified parameters. 
 // res[i] = max(first[i], second)
 CPtr<const CDnnBlob> NEOML_API Max( const CDnnBlob* first, float second );
 // res[i] = max(first, second[i])
@@ -72,19 +72,29 @@ CPtr<const CDnnBlob> NEOML_API Max( float first, const CDnnBlob* second );
 // The result is a single element blob which is the sum of all element of the specified blob.
 NEOML_API CPtr<const CDnnBlob> Sum( const CDnnBlob* first );
 
-// Creates the blob with negative values of the specified blob.
+// Creates the blob each element of which is the negative value of the corresponding element of the specified blob.
 // res[i] = -first[i]
 NEOML_API CPtr<const CDnnBlob> Neg( const CDnnBlob* first );
 
+// Creates the blob each element of which is the absolute value of the corresponding element of the specified blob.
+// res[i] = |first[i]|
 NEOML_API CPtr<const CDnnBlob> Abs( const CDnnBlob* first );
 
+// Creates the blob each element of which is the log of the corresponding element of the specified blob.
+// res[i] = log(first[i])
 NEOML_API CPtr<const CDnnBlob> Log( const CDnnBlob* first );
 
+// Creates the blob each element of which is the exponential of the corresponding element of the specified blob.
+// res[i] = exp(first[i])
 NEOML_API CPtr<const CDnnBlob> Exp( const CDnnBlob* first );
 
+// Finds values of the k largest entries for the blob.
+// The result is a k element blob.
 CPtr<const CDnnBlob> NEOML_API TopK( const CDnnBlob* first, int k );
 
-NEOML_API CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float min, float max );
+// Creates the blob each element of which is the clipped value of the corresponding element of the specified blob.
+// res[i] = min( max(first[i], minValue), maxValue )
+NEOML_API CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float minValue, float maxValue );
 
 // Calculates the binary cross entropy of two blobs.
 // result = (1 - labels) * x + log(1 + exp(-x))

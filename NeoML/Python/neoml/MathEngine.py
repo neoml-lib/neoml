@@ -135,10 +135,10 @@ def top_k(a, k=1):
     if not type(a) is Blob:
         raise ValueError('`a` must be neoml.Blob.')
 
-    if (int)k <= 0:
+    if int(k) <= 0:
         raise ValueError('`k` must be > 0.')
 
     if a.size == 0:
         raise ValueError("The blobs mustn't be empty.")
     
-    return Blob(PythonWrapper.blob_top_k(a._internal, (int)k))
+    return Blob(PythonWrapper.blob_top_k(a._internal, int(k)))

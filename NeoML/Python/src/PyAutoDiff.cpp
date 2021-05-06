@@ -16,22 +16,22 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include "PyTape.h"
+#include "PyAutoDiff.h"
 
 void InitializeTape(py::module& m)
 {
 	m.def( "tape_sum", [](const CPyBlob& first) {
-		CPtr<CTypeBlob> result( Sum( first.Blob() ) );
-		return CPyBlob( first.MathEngineOwner(), result );
+		CPtr<const CDnnBlob> result( Sum( first.Blob() ) );
+		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
 	m.def("tape_add", [](const CPyBlob& first, const CPyBlob& second) {
-		CPtr<CTypeBlob> result( Add( first.Blob(), second.Blob() ) );
-		return CPyBlob( first.MathEngineOwner(), result );
+		CPtr<const CDnnBlob> result( Add( first.Blob(), second.Blob() ) );
+		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
 	m.def("tape_mult", [](const CPyBlob& first, const CPyBlob& second) {
-		CPtr<CTypeBlob> result( Mult( first.Blob(), second.Blob() ) );
-		return CPyBlob( first.MathEngineOwner(), result );
+		CPtr<const CDnnBlob> result( Mult( first.Blob(), second.Blob() ) );
+		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 }
