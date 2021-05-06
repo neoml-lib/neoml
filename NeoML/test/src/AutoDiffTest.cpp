@@ -35,7 +35,7 @@ TEST_F( CAutoDiffTest, TestConst )
 {
 	CGradientTape tape;
 
-	CPtr<const CDnnBlob> const1 = Const( MathEngine(), 42.42, {100, 200, 50} );
+	CPtr<const CDnnBlob> const1 = Const( MathEngine(), 42.42, {100, 200, 1, 50} );
 
 	CArray<float> const1Data;
 	const1Data.SetSize( const1->GetDataSize() );

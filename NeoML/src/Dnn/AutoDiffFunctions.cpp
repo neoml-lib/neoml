@@ -122,7 +122,7 @@ CPtr<const CDnnBlob> Add( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
-	NeoAssert( first->GetDesc().HasEqualDimensions( second->GetDesc() ) );
+	NeoAssert( first->GetDataSize() == second->GetDataSize() );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
@@ -367,7 +367,7 @@ CPtr<const CDnnBlob> Mult( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
-	NeoAssert( first->GetDesc().HasEqualDimensions( second->GetDesc() ) );
+	NeoAssert( first->GetDataSize() == second->GetDataSize() );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
@@ -422,24 +422,6 @@ CTapeDiv::CTapeDiv( const CDnnBlob& _first, const CDnnBlob& _second ) :
 	second( &_second )
 {
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 || dynamic_cast<const CTapeBlob*>(second.Ptr()) != 0 );
-}
-
-static void print( CConstFloatHandle data, int w )
-{
-	for( int i = 0; i < w; i++ ) {
-		printf("%.2f ", data.GetValueAt(i) );
-	}
-	printf("\n");
-}
-
-static void print( CConstFloatHandle data, int h, int w )
-{
-	for( int i = 0; i < h; i++ ) {
-		for( int j = 0; j < w; j++ ) {
-			printf("%.2f ", data.GetValueAt(i * w + j) );
-		}
-		printf("\n");
-	}
 }
 
 CPtr<CDnnBlob> CTapeDiv::Gradient( const CTapeBlob* var ) const
@@ -1027,10 +1009,7 @@ CPtr<const CDnnBlob> BinaryCrossEntropy( const CDnnBlob* labels, const CDnnBlob*
 {
 	NeoAssert( labels != 0 );
 	NeoAssert( preds != 0 );
-	NeoAssert( labels->GetDesc().HasEqualDimensions( preds->GetDesc() ) );
-
-	IMathEngine& mathEngine = preds->GetMathEngine();
-	const int vectorSize = preds->GetDataSize();
+	NeoAssert( labels->GetDataSize() == preds->GetDataSize() );
 
 	// Notations:
 	// x = logits, z = labels
@@ -1041,7 +1020,7 @@ CPtr<const CDnnBlob> BinaryCrossEntropy( const CDnnBlob* labels, const CDnnBlob*
 	// The formula to avoid overflow for large exponent power in exp(-x):
 	// loss = (1 - z) * x + log(1 + exp(-abs(x))) + max(-x, 0)
 
-	CPtr<const CDnnBlob> clippedPreds = fromLogits ? preds : Clip( preds, 0.0000001f, 0.9999999f );
+	CPtr<const CDnnBlob> clippedPreds = fromLogits ? preds : Clip( preds, 0.0000001f, 0.9999999f ).Ptr();
 
 	CPtr<const CDnnBlob> x = fromLogits ? clippedPreds : Log( Div( clippedPreds, Sub(1, clippedPreds) ) );
 	CPtr<const CDnnBlob> temp1 = Mult( Sub( 1, labels ), x );
