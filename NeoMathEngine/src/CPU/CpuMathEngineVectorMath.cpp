@@ -404,4 +404,43 @@ void CCpuMathEngine::VectorNeg(const CConstFloatHandle& firstHandle, const CFloa
 	}
 }
 
+void CCpuMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
+	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( minHandle.GetMathEngine() == this );
+	ASSERT_EXPR( maxHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw(firstHandle);
+	const float* sourceGrad = GetRaw(sourceGradHandle);
+	float* result = GetRaw(resultHandle);
+	const float minValue = *GetRaw(minHandle);
+	const float maxValue = *GetRaw(maxHandle);
+
+	const int firstSize = gradHeight == 1 ? gradWidth : gradHeight;
+	const int gradSize = gradHeight == 1 ? 1 : gradWidth;
+
+	for( int i = 0; i < firstSize; ++i ) {
+		if( *first < minValue || *first > maxValue ) {
+			for( int j = 0; j < gradSize; j++ ) {
+				*result = 0;
+				result++;
+				sourceGrad++;
+			}
+		} else {
+			for( int j = 0; j < gradSize; j++ ) {
+				*result = *sourceGrad;
+				result++;
+				sourceGrad++;
+			}
+		}
+		first++;
+	}
+}
+
 } // namespace NeoML

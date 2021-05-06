@@ -237,6 +237,9 @@ public:
 	// result = min(max(first, minValue), maxValue)
 	virtual void VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
 		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle) = 0;
+	virtual void VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+		const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
+		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle) = 0;
 
 	virtual void VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	// resultHandle = sigmoid-derivative(firstHandle) * secondHandle

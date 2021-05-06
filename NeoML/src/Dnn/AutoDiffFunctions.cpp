@@ -668,7 +668,7 @@ CPtr<CDnnBlob> CTapeSum::Gradient( const CTapeBlob* var ) const
 	}
 
 	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( grad->GetMathEngine(), { width } );
-	result->GetMathEngine().SumMatrixColumns( result->GetData(), grad->GetData(), height, width );
+	result->GetMathEngine().SumMatrixRows( 1, result->GetData(), grad->GetData(), height, width );
 	return result;
 }
 
@@ -960,16 +960,20 @@ CPtr<const CDnnBlob> NEOML_API TopK( const CDnnBlob* first, int k )
 
 class CTapeClip : public ITapeOperation {
 public:
-	explicit CTapeClip( const CDnnBlob& first );
+	explicit CTapeClip( const CDnnBlob& first, float minValue, float maxValue );
 
 	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
+	float minValue;
+	float maxValue;
 };
 
-CTapeClip::CTapeClip( const CDnnBlob& _first ) :
-	first( &_first )
+CTapeClip::CTapeClip( const CDnnBlob& _first, float _minValue, float _maxValue ) :
+	first( &_first ),
+	minValue( _minValue ),
+	maxValue( _maxValue )
 {
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 );
 }
@@ -977,7 +981,20 @@ CTapeClip::CTapeClip( const CDnnBlob& _first ) :
 CPtr<CDnnBlob> CTapeClip::Gradient( const CTapeBlob* var ) const
 {
 	CPtr<CDnnBlob> grad = callGradient( first, var );
-	return grad;
+	if( grad == 0 ) {
+		return 0;
+	}
+
+	IMathEngine& mathEngine = first->GetMathEngine();
+
+	CFloatHandleStackVar minHandle( mathEngine, 1 );
+	minHandle.SetValue( minValue );
+	CFloatHandleStackVar maxHandle( mathEngine, 1 );
+	maxHandle.SetValue( maxValue );
+	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, grad->GetDesc() );
+	mathEngine.VectorMinMaxDiff( grad->GetData(), grad->GetObjectCount(), grad->GetObjectSize(), first->GetData(),
+		result->GetData(), minHandle, maxHandle );
+	return result.Ptr();
 }
 
 CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float minValue, float maxValue )
@@ -997,7 +1014,7 @@ CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float minValue, float maxValue
 	mathEngine.VectorMinMax( first->GetData(), result->GetData(), first->GetDataSize(), minHandle, maxHandle );
 
 	if( tape != 0 ) {
-		CPtr<ITapeOperation> operation( new CTapeClip( *tapeBlob ) ); 
+		CPtr<ITapeOperation> operation( new CTapeClip( *tapeBlob, minValue, maxValue ) ); 
 		tape->Add( result, operation );
 	}
 
