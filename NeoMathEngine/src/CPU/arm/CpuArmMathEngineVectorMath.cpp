@@ -435,7 +435,6 @@ void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle, const CCons
 void CCpuMathEngine::VectorSub(float firstValue, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 
@@ -463,7 +462,6 @@ void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float secon
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 
 	const float* first = GetRaw(firstHandle);
 	float32x4_t second = vdupq_n_f32(secondValue);
