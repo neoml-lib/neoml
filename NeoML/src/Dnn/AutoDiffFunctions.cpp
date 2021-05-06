@@ -424,6 +424,24 @@ CTapeDiv::CTapeDiv( const CDnnBlob& _first, const CDnnBlob& _second ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 || dynamic_cast<const CTapeBlob*>(second.Ptr()) != 0 );
 }
 
+static void print( CConstFloatHandle data, int w )
+{
+	for( int i = 0; i < w; i++ ) {
+		printf("%.2f ", data.GetValueAt(i) );
+	}
+	printf("\n");
+}
+
+static void print( CConstFloatHandle data, int h, int w )
+{
+	for( int i = 0; i < h; i++ ) {
+		for( int j = 0; j < w; j++ ) {
+			printf("%.2f ", data.GetValueAt(i * w + j) );
+		}
+		printf("\n");
+	}
+}
+
 CPtr<CDnnBlob> CTapeDiv::Gradient( const CTapeBlob* var ) const
 {
 	CPtr<CDnnBlob> result;
@@ -460,6 +478,7 @@ CPtr<CDnnBlob> CTapeDiv::Gradient( const CTapeBlob* var ) const
 		return firstGrad;
 	}
 
+	// firstGrag = first' * second
 	if( firstGrad->GetObjectCount() == 1 ) {
 		assert( firstGrad->GetDataSize() == second->GetDataSize() );
 		mathEngine.VectorEltwiseMultiply( firstGrad->GetData(), second->GetData(), firstGrad->GetData(),
@@ -471,6 +490,7 @@ CPtr<CDnnBlob> CTapeDiv::Gradient( const CTapeBlob* var ) const
 		swap( result, firstGrad );
 	}
 
+	// secondGrag = -second' * first
 	if( secondGrad->GetObjectCount() == 1 ) {
 		assert( secondGrad->GetDataSize() == first->GetDataSize() );
 		mathEngine.VectorEltwiseMultiply( secondGrad->GetData(), first->GetData(), secondGrad->GetData(),
@@ -485,16 +505,19 @@ CPtr<CDnnBlob> CTapeDiv::Gradient( const CTapeBlob* var ) const
 		secondGrad->GetMathEngine().VectorNeg( result->GetData(), secondGrad->GetData(), result->GetDataSize() );
 	}
 
+	// secondSquare = second * second
 	CFloatHandleStackVar secondSquare( mathEngine, second->GetDataSize() );
-	mathEngine.VectorEltwiseMultiply( second->GetData(), second->GetData(), secondSquare, gradientSize );
+	mathEngine.VectorEltwiseMultiply( second->GetData(), second->GetData(), secondSquare, second->GetDataSize() );
 
 	if( firstGrad->GetDataSize() < secondGrad->GetDataSize() ) {
+		// secondGrad = firstGrad + secondGrad / secondSquare
 		mathEngine.AddDiagMatrixToMatrix( firstGrad->GetData(), secondGrad->GetData(),
 			secondGrad->GetObjectCount(), secondGrad->GetObjectSize(), secondGrad->GetData() );
 		mathEngine.MatrixColumnsEltwiseDivide( secondGrad->GetData(), secondGrad->GetObjectCount(), gradientSize,
 			secondSquare.GetHandle(), secondGrad->GetData() );
 		return secondGrad;
 	} else if( secondGrad->GetDataSize() < firstGrad->GetDataSize() ) {
+		// firstGrad = firstGrad + secondGrad / secondSquare
 		mathEngine.AddDiagMatrixToMatrix( secondGrad->GetData(), firstGrad->GetData(),
 			firstGrad->GetObjectCount(), firstGrad->GetObjectSize(), firstGrad->GetData() );
 		mathEngine.MatrixColumnsEltwiseDivide( firstGrad->GetData(), firstGrad->GetObjectCount(), gradientSize,
@@ -502,6 +525,7 @@ CPtr<CDnnBlob> CTapeDiv::Gradient( const CTapeBlob* var ) const
 		return firstGrad;
 	}
 
+	// firstGrad = firstGrad + secondGrad / secondSquare
 	mathEngine.VectorAdd(firstGrad->GetData(), secondGrad->GetData(), firstGrad->GetData(), firstGrad->GetDataSize());
 	if( firstGrad->GetObjectCount() == 1 ) {
 		mathEngine.VectorEltwiseDivide( firstGrad->GetData(), secondSquare.GetHandle(), firstGrad->GetData(), vectorSize );
@@ -509,6 +533,7 @@ CPtr<CDnnBlob> CTapeDiv::Gradient( const CTapeBlob* var ) const
 		mathEngine.MatrixColumnsEltwiseDivide( firstGrad->GetData(), vectorSize, gradientSize,
 			secondSquare.GetHandle(), firstGrad->GetData() );
 	}
+
 	return firstGrad;
 }
 
@@ -516,7 +541,7 @@ CPtr<const CDnnBlob> Div( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
-	NeoAssert( first->GetDesc().HasEqualDimensions( second->GetDesc() ) );
+	NeoAssert( first->GetDataSize() == second->GetDataSize() );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
@@ -734,7 +759,15 @@ CTapeAbs::CTapeAbs( const CDnnBlob& _first ) :
 
 CPtr<CDnnBlob> CTapeAbs::Gradient( const CTapeBlob* var ) const
 {
-	return callGradient( first, var );
+	CPtr<CDnnBlob> grad = callGradient( first, var );
+	if( grad == 0 ) {
+		return 0;
+	}
+
+	IMathEngine& mathEngine = first->GetMathEngine();
+	mathEngine.VectorAbsDiff( grad->GetData(), grad->GetObjectCount(), grad->GetObjectSize(), first->GetData(), grad->GetData() );
+
+	return grad;
 }
 
 CPtr<const CDnnBlob> Abs( const CDnnBlob* first )

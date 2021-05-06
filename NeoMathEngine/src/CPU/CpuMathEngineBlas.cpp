@@ -345,7 +345,7 @@ void CCpuMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrix
 
 	for( int i = 0; i < matrixHeight; i++ ) {
 		for( int j = 0; j < matrixWidth; j++ ) {
-			*result = *matrix * *vector;
+			*result = *matrix / *vector;
 			result++;
 			matrix++;
 		}

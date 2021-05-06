@@ -198,7 +198,7 @@ TEST_F( CAutoDiffTest, TestMult1 )
 	loss->CopyTo( lossData.GetPtr() );
 
 	float lossRes[16] = { 505, 200901, 982, 1470, 1956, 1952, 2435, 110,
-		                 4050, 100, 55, 1156, 1560, 864, 782, 291 };
+						  4050, 100, 55, 1156, 1560, 864, 782, 291 };
 	for( int i = 0; i < lengthof(lossRes); i++ ) {
 		ASSERT_EQ( lossRes[i], lossData[i] );
 	}
@@ -210,9 +210,112 @@ TEST_F( CAutoDiffTest, TestMult1 )
 	grad->CopyTo( gradData.GetPtr() );
 
 	float gradRes[VectorSize] = { 201406, 201192, 1764, 2334, 3112, 3512, 2490, 615,
-		                          8100, 200, 165, 2626, 3516, 2816, 3217, 1273 };
+								 8100, 200, 165, 2626, 3516, 2816, 3217, 1273 };
 	for( int i = 0; i < lengthof(gradRes); i++ ) {
 		ASSERT_EQ( gradRes[i], gradData[i] );
+	}
+}
+
+TEST_F( CAutoDiffTest, TestDiv1 )
+{
+	CGradientTape tape;
+
+	const int VectorSize = 4;
+
+	CArray<float> xData;
+	xData.InsertAt( 1.0, 0, VectorSize );
+	CPtr<CDnnBlob> xBlob( CDnnBlob::CreateVector( MathEngine(), CT_Float, xData.Size() ) );
+	xBlob->CopyFrom( xData.GetPtr() );
+	CPtr<const CDnnBlob> x = tape.Variable( *xBlob );
+
+	float valuesA[VectorSize] = { 0.501, 0.001, 0.002, 0.003 };
+	CPtr<CDnnBlob> a( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
+	a->CopyFrom( valuesA );
+
+	float valuesB[VectorSize] = { 0.001, 0.401, 0.002, 0.003 };
+	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
+	b->CopyFrom( valuesB );
+
+	CPtr<const CDnnBlob> ax = TopK( Mult(x, a), 4 );
+	CPtr<const CDnnBlob> bx = TopK( Mult(b, x), 4 );
+
+	CPtr<const CDnnBlob> loss = Div(ax, bx);
+
+	CArray<float> lossData;
+	lossData.SetSize( loss->GetDataSize() );
+	loss->CopyTo( lossData.GetPtr() );
+
+	float lossRes[VectorSize] = { 1.2493765, 1., 1., 1. };
+	for( int i = 0; i < lengthof(lossRes); i++ ) {
+		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+	}
+
+	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
+
+	CArray<float> gradData;
+	gradData.SetSize( grad->GetDataSize() );
+	grad->CopyTo( gradData.GetPtr() );
+
+	float gradRes[VectorSize] = { 0.2493765, -0.2493765, 0, 0 };
+	for( int i = 0; i < lengthof(gradRes); i++ ) {
+		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+	}
+}
+
+TEST_F( CAutoDiffTest, TestDiv2 )
+{
+	CGradientTape tape;
+
+	const int VectorSize = 16;
+
+	CArray<float> xData;
+	xData.InsertAt( 1.0, 0, VectorSize );
+	CPtr<CDnnBlob> xBlob( CDnnBlob::CreateVector( MathEngine(), CT_Float, xData.Size() ) );
+	xBlob->CopyFrom( xData.GetPtr() );
+	CPtr<const CDnnBlob> x = tape.Variable( *xBlob );
+
+	float valuesA[VectorSize] = { 0.501, 0.001, 0.002, 0.003, 0.004, 0.004, 0.005, 0.505,
+								  0.010, 0.010, 0.011, 0.490, 0.489, 0.488, 0.487, 0.491 };
+	CPtr<CDnnBlob> a( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
+	a->CopyFrom( valuesA );
+
+	float valuesB[VectorSize] = { 0.001, 0.401, 0.002, 0.003, 0.004, 0.004, 0.005, 0.010,
+								  0.405, 0.010, 0.011, 0.289, 0.390, 0.288, 0.391, 0.291 };
+	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
+	b->CopyFrom( valuesB );
+
+	CPtr<const CDnnBlob> ax = Mult(x, a);
+	CPtr<const CDnnBlob> bx = Mult(b, x);
+
+	CPtr<const CDnnBlob> top16ax = TopK(ax, 16);
+	CPtr<const CDnnBlob> top16bx = bx;
+
+	CPtr<const CDnnBlob> loss = Div(top16ax, top16bx);
+
+	CArray<float> lossData;
+	lossData.SetSize( loss->GetDataSize() );
+	loss->CopyTo( lossData.GetPtr() );
+
+	float lossRes[16] = { 505, 1.2493765, 245.4999, 163.3333,
+						  122.2499, 121.99999, 97.40000, 1.100000,
+						  0.02469135, 1.000000, 0.45454543, 0.01384083,
+						  0.01025641, 0.010416667, 0.00511509, 0.00343642 };
+	for( int i = 0; i < lengthof(lossRes); i++ ) {
+		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+	}
+
+	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
+
+	CArray<float> gradData;
+	gradData.SetSize( grad->GetDataSize() );
+	grad->CopyTo( gradData.GetPtr() );
+
+	float gradRes[VectorSize] = { -503.750549, -1.24594, -245.4948, -163.3229,
+								  -122.2361, -121.9897, -96.94545, 503.89996,
+								  0, 0, 0.6454546, 163.3195,
+								  122.2397, 121.9895, 97.394882, 245.49655 };
+	for( int i = 0; i < lengthof(gradRes); i++ ) {
+		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
@@ -263,6 +366,61 @@ TEST_F( CAutoDiffTest, TestLog )
 
 	float gradRes[VectorSize] = { 0.5554324, 0.44456762, 0, 0, 0, 0, 0, 0.55494505, 0.44505498, 0, 0, 0.5568182, 0.44318178, 0,
 		0.44331068, 0.5566894 };
+	for( int i = 0; i < lengthof(gradRes); i++ ) {
+		ASSERT_NEAR( gradRes[i], gradData[i], 1e-4 );
+	}
+}
+
+TEST_F( CAutoDiffTest, TestAbs )
+{
+	CGradientTape tape;
+
+	const int VectorSize = 16;
+
+	CArray<float> xData;
+	xData.InsertAt( 1.0, 0, VectorSize );
+	CPtr<CDnnBlob> xBlob( CDnnBlob::CreateVector( MathEngine(), CT_Float, xData.Size() ) );
+	xBlob->CopyFrom( xData.GetPtr() );
+	CPtr<const CDnnBlob> x = tape.Variable( *xBlob );
+
+	float valuesA[VectorSize] = { -0.501, -0.001, -0.002, -0.003, -0.004, -0.004, -0.005, -0.505,
+								  -0.010, -0.010, -0.011, -0.490, -0.489, -0.488, -0.487, -0.491 };
+	CPtr<CDnnBlob> a( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
+	a->CopyFrom( valuesA );
+
+	float valuesB[VectorSize] = { 0.001, 0.401, 0.002, 0.003, 0.004, 0.004, 0.005, 0.010,
+								  0.405, 0.010, 0.011, 0.289, 0.390, 0.288, 0.391, 0.291 };
+	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
+	b->CopyFrom( valuesB );
+
+	CPtr<const CDnnBlob> ax = Mult(x, a);
+	CPtr<const CDnnBlob> bx = Mult(b, x);
+
+	CPtr<const CDnnBlob> top4ax = TopK(ax, 4);
+	CPtr<const CDnnBlob> top4bx = TopK(bx, 4);
+
+	CPtr<const CDnnBlob> loss = Abs( Add(top4ax, top4bx) );
+
+	CArray<float> lossData;
+	lossData.SetSize( loss->GetDataSize() );
+	loss->CopyTo( lossData.GetPtr() );
+
+	float lossRes[4] = { 0.404, 0.399, 0.388, 0.385999 };
+	for( int i = 0; i < lengthof(lossRes); i++ ) {
+		ASSERT_NEAR( lossRes[i], lossData[i], 1e-4 );
+	}
+
+	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
+
+	CArray<float> gradData;
+	gradData.SetSize( grad->GetDataSize() );
+	grad->CopyTo( gradData.GetPtr() );
+
+	float gradRes[VectorSize] = { 0., 0.4, -0.002, -0.003,
+								  -0.004, 0., 0., 0.,
+								  0.405, 0., 0., 0.,
+								  0.39, 0, 0.391, 0. };
+
 	for( int i = 0; i < lengthof(gradRes); i++ ) {
 		ASSERT_NEAR( gradRes[i], gradData[i], 1e-4 );
 	}
@@ -401,4 +559,12 @@ TEST_F( CAutoDiffTest, TestBinaryCrossEntropy )
 	CArray<float> gradData;
 	gradData.SetSize( grad->GetDataSize() );
 	grad->CopyTo( gradData.GetPtr() );
+
+	float gradRes[16] = { 0.2010512, -0.166944, 0., 0.,
+						  0., 0., 0., 0.194260,
+						  -0.168067, 0., 0., 0.219183,
+						  -0.163934, 0., -0.164203, 0.217567};
+	for( int i = 0; i < lengthof(gradRes); i++ ) {
+		ASSERT_NEAR( gradRes[i], gradData[i], 1e-4 );
+	}
 }
