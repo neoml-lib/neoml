@@ -19,10 +19,10 @@ limitations under the License.
 #include <NeoOnnx/NeoOnnxImport.h>
 
 #include "NeoOnnxCheck.h"
-#include "Node.h"
-#include "Nodes/GraphInitializer.h"
-#include "Nodes/GraphInput.h"
-#include "Nodes/GraphOutput.h"
+#include "Operator.h"
+#include "GraphInitializer.h"
+#include "GraphInput.h"
+#include "GraphOutput.h"
 
 #include "onnx.pb.h"
 
@@ -37,7 +37,7 @@ static void checkOperatorSupport( const onnx::GraphProto& onnxGraph )
 {
 	CHashTable<CString> notSupportedOps;
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
-		if( !COpNode::IsSupportedOperator( onnxNode.op_type() ) && !notSupportedOps.Has( onnxNode.op_type() ) ) {
+		if( !COperator::IsSupportedOperator( onnxNode.op_type() ) && !notSupportedOps.Has( onnxNode.op_type() ) ) {
 			notSupportedOps.Add( onnxNode.op_type() );
 		}
 	}
@@ -67,12 +67,12 @@ static int getOpsetVersion( const onnx::ModelProto& model )
 
 typedef CMap<CString, CPtr<const CTensorBase>> CTensorCache;
 
-static void addNode( CNode& node, CTensorCache& tensors, CDnn& dnn )
+static void addOperator( COperator& op, CTensorCache& tensors, CDnn& dnn )
 {
 	CObjectArray<const CTensorBase> inputs;
-	inputs.Add( nullptr, node.InputCount() );
-	for( int inputIndex = 0; inputIndex < node.InputCount(); ++inputIndex ) {
-		const CString& inputName = node.InputName( inputIndex );
+	inputs.Add( nullptr, op.InputCount() );
+	for( int inputIndex = 0; inputIndex < op.InputCount(); ++inputIndex ) {
+		const CString& inputName = op.InputName( inputIndex );
 		if( inputName != "" ) {
 			CheckOnnxProtocol( tensors.Has( inputName ), "Unknown input: " + inputName );
 			inputs[inputIndex] = tensors[inputName];
@@ -80,23 +80,24 @@ static void addNode( CNode& node, CTensorCache& tensors, CDnn& dnn )
 	}
 
 	CObjectArray<const CTensorBase> outputs;
-	outputs.Add( nullptr, node.OutputCount() );
+	outputs.Add( nullptr, op.OutputCount() );
 
-	if( node.CanCalculateOutput( inputs ) ) {
-		node.CalculateOutput( inputs, dnn.GetMathEngine(), outputs );
+	if( op.CanCalculateOutput( inputs ) ) {
+		op.CalculateOutput( inputs, dnn.GetMathEngine(), outputs );
 	} else {
-		node.AddLayers( inputs, dnn, outputs );
+		op.AddLayers( inputs, dnn, outputs );
 	}
 
-	for( int outputIndex = 0; outputIndex < node.OutputCount(); ++outputIndex ) {
-		const CString& outputName = node.OutputName( outputIndex );
+	for( int outputIndex = 0; outputIndex < op.OutputCount(); ++outputIndex ) {
+		const CString& outputName = op.OutputName( outputIndex );
 		CheckOnnxProtocol( !tensors.Has( outputName ), "Output already exist: " + outputName );
 		tensors.Add( outputName, outputs[outputIndex] );
 	}
 }
 
 // Builds dnn based on GraphProto
-static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion, CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs )
+static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion,
+	CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs )
 {
 	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
@@ -111,8 +112,8 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 	CHashTable<CString> initializers;
 	for( const onnx::TensorProto& onnxInitializer : onnxGraph.initializer() ) {
 		CGraphInitializer initializer( onnxInitializer );
-		addNode( initializer, tensors, dnn );
-		initializers.Add( onnxInitializer.name().c_str() );
+		tensors.Add( initializer.Name(), initializer.GetDataTensor( dnn.GetMathEngine() ).Ptr() );
+		initializers.Add( initializer.Name() );
 	}
 
 	// Add graph inputs
@@ -122,22 +123,26 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 			// In case of NeoML inputs like these won't be needed because all the weights must be calculated from initializers
 			continue;
 		}
-		CGraphInput input( onnxInput );
-		addNode( input, tensors, dnn );
-		inputs.Add( dnn.GetLayer( onnxInput.name().c_str() )->GetName() );
+		CGraphInput graphInput( onnxInput );
+		CPtr<const CUserTensor> inputTensor = graphInput.AddSourceLayer( dnn ).Ptr();
+		tensors.Add( graphInput.Name(), inputTensor.Ptr() );
+		inputs.Add( inputTensor->Layer()->GetName() );
 	}
 
-	// Add onnx graph's nodes and connect them
+	// Add onnx graph's operator nodes and connect them
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
-		std::unique_ptr<CNode> node( COpNode::CreateOpNode( onnxNode, opsetVersion ) );
-		addNode( *node, tensors, dnn );
+		std::unique_ptr<COperator> op( COperator::CreateOperator( onnxNode, opsetVersion ) );
+		addOperator( *op, tensors, dnn );
 	}
 
 	// Add graph outputs
 	for( const onnx::ValueInfoProto& onnxOutput : onnxGraph.output() ) {
 		CGraphOutput output( onnxOutput );
-		addNode( output, tensors, dnn );
-		outputs.Add( dnn.GetLayer( onnxOutput.name().c_str() )->GetName() );
+		CheckOnnxProtocol( tensors.Has( output.Name() ), "" );
+		const CPtr<const CTensorBase>& baseTensor = tensors[output.Name()];
+		NeoAssert( baseTensor != nullptr && !baseTensor->IsCalculated() );
+		CPtr<const CSinkLayer> sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ), dnn );
+		outputs.Add( sink->GetName() );
 	}
 }
 
