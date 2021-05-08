@@ -13,17 +13,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-#include "common.h"
-#pragma hdrstop
+#pragma once
 
-#include "NeoOnnxCheck.h"
-#include "Operator.h"
+#include "../Operator.h"
 
 namespace NeoOnnx {
 
-CString GetMessageWithOperatorInfo( const CString& what, const COperator& op )
-{
-	return what + " in operator " + op.Type() + "(" + op.Name() + ")";
-}
+// Identity operator
+class CIdentityOperator : public COperator {
+public:
+	CIdentityOperator( const onnx::NodeProto& identity, int opsetVersion );
+
+	// CLayerOperator methods
+	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
+		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
+	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
+		IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs ) override;
+};
 
 } // namespace NeoOnnx

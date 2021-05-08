@@ -13,17 +13,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-#include "common.h"
-#pragma hdrstop
+#pragma once
 
-#include "NeoOnnxCheck.h"
-#include "Operator.h"
+#include "Tensor.h"
+
+// Forward declaration(s)
+namespace onnx {
+class ValueInfoProto;
+} // namespace onnx
 
 namespace NeoOnnx {
 
-CString GetMessageWithOperatorInfo( const CString& what, const COperator& op )
-{
-	return what + " in operator " + op.Type() + "(" + op.Name() + ")";
-}
+// Graph output
+class CGraphOutput {
+public:
+	explicit CGraphOutput( const onnx::ValueInfoProto& output );
+
+	// Graph output name
+	const CString& Name() const { return name; }
+
+	// Adds corresponding sink layer to the dnn
+	CPtr<const CSinkLayer> AddSinkLayer( const CUserTensor& input, CDnn& dnn ) const;
+
+private:
+	// Graph output name
+	CString name;
+};
 
 } // namespace NeoOnnx

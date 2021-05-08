@@ -7,74 +7,74 @@ endif()
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_sources( ${PROJECT_NAME} PRIVATE
+    GraphInput.cpp
+    GraphInitializer.cpp
+    GraphOutput.cpp
     NeoOnnxImport.cpp
     NeoOnnxCheck.cpp
-    Node.cpp
-    OpNodeAttributes.cpp
-    Nodes/ActivationNode.cpp
-    Nodes/BatchNormalizationNode.cpp
-    Nodes/ConcatNode.cpp
-    Nodes/ConstantNode.cpp
-    Nodes/ConstantOfShapeNode.cpp
-    Nodes/ConvNode.cpp
-    Nodes/DropoutNode.cpp
-    Nodes/EltwiseNode.cpp
-    Nodes/FlattenNode.cpp
-    Nodes/GatherNode.cpp
-    Nodes/GemmNode.cpp
-    Nodes/GlobalPoolNode.cpp
-    Nodes/GraphInput.cpp
-    Nodes/GraphInitializer.cpp
-    Nodes/GraphOutput.cpp
-    Nodes/IdentityNode.cpp
-    Nodes/LrnNode.cpp
-    Nodes/LstmNode.cpp
-    Nodes/MatMulNode.cpp
-    Nodes/PadNode.cpp
-    Nodes/PoolNode.cpp
-    Nodes/ReshapeNode.cpp
-    Nodes/ShapeNode.cpp
-    Nodes/SliceNode.cpp
-    Nodes/SoftmaxNode.cpp
-    Nodes/SqueezeNode.cpp
-    Nodes/TransposeNode.cpp
-    Nodes/UnsqueezeNode.cpp
+    Operator.cpp
+    OperatorAttributes.cpp
+    Operators/ActivationOperator.cpp
+    Operators/BatchNormalizationOperator.cpp
+    Operators/ConcatOperator.cpp
+    Operators/ConstantOperator.cpp
+    Operators/ConstantOfShapeOperator.cpp
+    Operators/ConvOperator.cpp
+    Operators/DropoutOperator.cpp
+    Operators/EltwiseOperator.cpp
+    Operators/FlattenOperator.cpp
+    Operators/GatherOperator.cpp
+    Operators/GemmOperator.cpp
+    Operators/GlobalPoolOperator.cpp
+    Operators/IdentityOperator.cpp
+    Operators/LrnOperator.cpp
+    Operators/LstmOperator.cpp
+    Operators/MatMulOperator.cpp
+    Operators/PadOperator.cpp
+    Operators/PoolOperator.cpp
+    Operators/ReshapeOperator.cpp
+    Operators/ShapeOperator.cpp
+    Operators/SliceOperator.cpp
+    Operators/SoftmaxOperator.cpp
+    Operators/SqueezeOperator.cpp
+    Operators/TransposeOperator.cpp
+    Operators/UnsqueezeOperator.cpp
     TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
     ../include/NeoOnnx/NeoOnnxImport.h
+    GraphInput.h
+    GraphInitializer.h
+    GraphOutput.h
     NeoOnnxCheck.h
-    Node.h
-    OpNodeAttributes.h
-    Nodes/ActivationNode.h
-    Nodes/BatchNormalizationNode.h
-    Nodes/ConcatNode.h
-    Nodes/ConstantNode.h
-    Nodes/ConstantOfShapeNode.h
-    Nodes/ConvNode.h
-    Nodes/DropoutNode.h
-    Nodes/EltwiseNode.h
-    Nodes/FlattenNode.h
-    Nodes/GatherNode.h
-    Nodes/GemmNode.h
-    Nodes/GlobalPoolNode.h
-    Nodes/GraphInput.h
-    Nodes/GraphInitializer.h
-    Nodes/GraphOutput.h
-    Nodes/IdentityNode.h
-    Nodes/LrnNode.h
-    Nodes/LstmNode.h
-    Nodes/MatMulNode.h
-    Nodes/PadNode.h
-    Nodes/PoolNode.h
-    Nodes/ReshapeNode.h
-    Nodes/ShapeNode.h
-    Nodes/SliceNode.h
-    Nodes/SoftmaxNode.h
-    Nodes/SqueezeNode.h
-    Nodes/TransposeNode.h
-    Nodes/UnsqueezeNode.h
+    Operator.h
+    OperatorAttributes.h
+    Operators/ActivationOperator.h
+    Operators/BatchNormalizationOperator.h
+    Operators/ConcatOperator.h
+    Operators/ConstantOperator.h
+    Operators/ConstantOfShapeOperator.h
+    Operators/ConvOperator.h
+    Operators/DropoutOperator.h
+    Operators/EltwiseOperator.h
+    Operators/FlattenOperator.h
+    Operators/GatherOperator.h
+    Operators/GemmOperator.h
+    Operators/GlobalPoolOperator.h
+    Operators/IdentityOperator.h
+    Operators/LrnOperator.h
+    Operators/LstmOperator.h
+    Operators/MatMulOperator.h
+    Operators/PadOperator.h
+    Operators/PoolOperator.h
+    Operators/ReshapeOperator.h
+    Operators/ShapeOperator.h
+    Operators/SliceOperator.h
+    Operators/SoftmaxOperator.h
+    Operators/SqueezeOperator.h
+    Operators/TransposeOperator.h
+    Operators/UnsqueezeOperator.h
     Tensor.h
     TensorLayout.h
     TensorUtils.h

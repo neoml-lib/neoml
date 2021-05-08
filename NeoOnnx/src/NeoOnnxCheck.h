@@ -19,7 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-class COpNode;
+class COperator;
 
 #ifdef NEOML_USE_FINEOBJ
 
@@ -48,11 +48,11 @@ inline void NeoOnnxCheck( bool expr, const CString& what )
 
 #endif
 
-// Adds node info to message 'what'
-CString GetMessageWithNodeInfo( const CString& what, const COpNode& node );
+// Adds operator info to message 'what'
+CString GetMessageWithOperatorInfo( const CString& what, const COperator& op );
 
 // Throws std::logic_error if 'expr' is false
-// Checks if graph or nodes are sticking to the onnx protocol
+// Checks if graph or operator are sticking to the onnx protocol
 inline void CheckOnnxProtocol( bool expr, const CString& what )
 {
 	if( !( expr ) ) {
@@ -60,10 +60,10 @@ inline void CheckOnnxProtocol( bool expr, const CString& what )
 	}
 }
 
-inline void CheckOnnxProtocol( bool expr, const CString& what, const COpNode& node )
+inline void CheckOnnxProtocol( bool expr, const CString& what, const COperator& op )
 {
 	if( !( expr ) ) {
-		CheckOnnxProtocol( false, GetMessageWithNodeInfo( what, node ) );
+		CheckOnnxProtocol( false, GetMessageWithOperatorInfo( what, op ) );
 	}
 }
 
@@ -76,10 +76,10 @@ inline void CheckNeoOnnxSupport( bool expr, const CString& what )
 	}
 }
 
-inline void CheckNeoOnnxSupport( bool expr, const CString& what, const COpNode& node )
+inline void CheckNeoOnnxSupport( bool expr, const CString& what, const COperator& op )
 {
 	if( !( expr ) ) {
-		CheckNeoOnnxSupport( false, GetMessageWithNodeInfo( what, node ) );
+		CheckNeoOnnxSupport( false, GetMessageWithOperatorInfo( what, op ) );
 	}
 }
 

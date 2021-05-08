@@ -13,17 +13,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-#include "common.h"
-#pragma hdrstop
+#pragma once
 
-#include "NeoOnnxCheck.h"
-#include "Operator.h"
+#include "Tensor.h"
+
+// Forward declaration(s)
+namespace onnx {
+class TensorProto;
+} // namespace onnx
 
 namespace NeoOnnx {
 
-CString GetMessageWithOperatorInfo( const CString& what, const COperator& op )
-{
-	return what + " in operator " + op.Type() + "(" + op.Name() + ")";
-}
+// Graph initializer
+class CGraphInitializer {
+public:
+	explicit CGraphInitializer( const onnx::TensorProto& initializer );
+
+	// Graph initializer name
+	const CString& Name() const { return name; }
+
+	// Returns initializer value as data tensor
+	CPtr<const CDataTensor> GetDataTensor( IMathEngine& mathEngine );
+
+private:
+	// graph initializer name
+	CString name;
+	// graph initializer info from onnx
+	const onnx::TensorProto& initializer;
+};
 
 } // namespace NeoOnnx
