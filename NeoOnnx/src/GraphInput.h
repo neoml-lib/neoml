@@ -29,6 +29,9 @@ class CGraphInput {
 public:
 	explicit CGraphInput( const onnx::ValueInfoProto& input );
 
+	CGraphInput( const CGraphInput& other ) = delete;
+	CGraphInput& operator= ( const CGraphInput& other ) = delete;
+
 	// Graph input name
 	const CString& Name() const { return name; }
 
