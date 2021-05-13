@@ -132,10 +132,14 @@ CPtr<CDnnBlob> CLstmOperator::reorderGates( CPtr<CDnnBlob> blob, TBlobDim dim )
 	CDnnBlob::SplitByDim( mathEngine, dim, blob, onnxGateWeight );
 
 	CObjectArray<CDnnBlob> neoMLGateWeight;
-	neoMLGateWeight.Add( onnxGateWeight[3] ); // Main gate
-	neoMLGateWeight.Add( onnxGateWeight[2] ); // Forget gate
-	neoMLGateWeight.Add( onnxGateWeight[0] ); // Input gate
-	neoMLGateWeight.Add( onnxGateWeight[1] ); // Reset gate
+	// Main gate
+	neoMLGateWeight.Add( onnxGateWeight[3] );
+	// Forget gate
+	neoMLGateWeight.Add( onnxGateWeight[2] );
+	// Input gate
+	neoMLGateWeight.Add( onnxGateWeight[0] );
+	// Reset gate
+	neoMLGateWeight.Add( onnxGateWeight[1] );
 
 	CPtr<CDnnBlob> result = blob->GetClone();
 	CDnnBlob::MergeByDim( mathEngine, dim, neoMLGateWeight, result );

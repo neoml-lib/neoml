@@ -24,7 +24,8 @@ namespace NeoOnnx {
 class CTensorLayout: public CFastArray<TBlobDim, 8> {
 public:
 	CTensorLayout() {}
-	explicit CTensorLayout( int dimCount ); // Returns default layout for dimCount-dimensional tensor
+	// Returns default layout for dimCount-dimensional tensor
+	explicit CTensorLayout( int dimCount );
 	CTensorLayout( std::initializer_list<TBlobDim> list ) : CFastArray<TBlobDim, 8>( list ) {}
 	CTensorLayout( const CTensorLayout& other ) : CFastArray<TBlobDim, 8>() { other.CopyTo( *this ); }
 

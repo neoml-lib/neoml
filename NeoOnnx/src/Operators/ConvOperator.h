@@ -32,12 +32,18 @@ public:
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
-	const int group; // groups count
-	const CString autoPad; // padding mode
-	CFastArray<int, 8> strides; // kernel strides
-	CFastArray<int, 8> pads; // convolution paddings
-	CFastArray<int, 8> dilations; // convolution dilations
-	CFastArray<int, 8> outputShape; // output shape
+	// groups count
+	const int group;
+	// padding mode
+	const CString autoPad;
+	// kernel strides
+	CFastArray<int, 8> strides;
+	// convolution paddings
+	CFastArray<int, 8> pads;
+	// convolution dilations
+	CFastArray<int, 8> dilations;
+	// convolution dilations
+	CFastArray<int, 8> outputShape;
 
 	void add2dConvLayer( const CObjectArray<const CTensorBase>& inputs,
 		CDnn& dnn, CObjectArray<const CTensorBase>& outputs );

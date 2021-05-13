@@ -15,15 +15,17 @@ limitations under the License.
 
 #pragma once
 
+#include "onnx.pb.h"
+
+#include <limits>
+
 #include <NeoML/NeoML.h>
 #include "NeoOnnxCheck.h"
 #include "Tensor.h"
 
-#include <limits>
-
-#include "onnx.pb.h"
-
 namespace NeoOnnx {
+
+// Auxiliary data loading functions
 
 // Gets NeoML blob type from onnx tensor's data type
 TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType );
@@ -131,6 +133,9 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 	dest.ReleaseBuffer( buffer, true );
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+// Auxiliary tensor layout functions
+
 // Converts tensor into given layout
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& destLayout );
 
@@ -145,6 +150,9 @@ CPtr<const CTensorBase> RemoveTensorDims( const CTensorBase& input, const CFastA
 void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
 
 // Pads tensor with user-dependent data
+// Last pads.Size() / 2 dimensions of tensors will be padded (it's compatible with both Conv and Pad onnx operators)
+// First pads.Size() / 2 numbers determine padding size at the front of the axis
+// Last pads.Size() / 2 numbers determine padding size at the back of the axis
 CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue );
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -164,7 +172,7 @@ enum TBroadcastType {
 
 // Broadcast info
 struct CBroadcast {
-	// Type
+	// Broadcast type
 	TBroadcastType Type;
 	// Broadcasted axis index
 	int Axis;

@@ -32,7 +32,8 @@ public:
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
-	const float eps; // eps value used to prevent division by zero
+	// eps value used to prevent division by zero
+	const float eps;
 
 	CPtr<const CUserTensor> convertInput( const CUserTensor& input ) const;
 	CPtr<CDnnBlob> calculateFinalParams( int channels, const CObjectArray<const CTensorBase>& inputs );

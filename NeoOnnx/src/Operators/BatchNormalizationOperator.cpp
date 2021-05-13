@@ -16,11 +16,11 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
+#include "onnx.pb.h"
+
 #include "BatchNormalizationOperator.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
-
-#include "onnx.pb.h"
 
 namespace NeoOnnx {
 
@@ -86,8 +86,7 @@ CPtr<const CUserTensor> CBatchNormalizationOperator::convertInput( const CUserTe
 	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, outputLayout ).Ptr() );
 }
 
-// Calculates final params blob based on onnx operator's inputs
-// This format can is compatible with NeoML::CBatchNormalizationLayer
+// Calculates NeoML::CBatchNormalizationLayer's final params blob from onnx operator's inputs
 CPtr<CDnnBlob> CBatchNormalizationOperator::calculateFinalParams( int channels, const CObjectArray<const CTensorBase>& inputs )
 {
 	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {

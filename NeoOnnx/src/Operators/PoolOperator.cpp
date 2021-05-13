@@ -23,6 +23,21 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+static CPtr<CPoolingLayer> createPoolingLayer( CPoolOperatorBase::TPoolType poolType, IMathEngine& mathEngine )
+{
+	static_assert( CPoolOperatorBase::PT_Count == 2, "CPoolOperatorBase::PT_Count != 2" );
+	switch( poolType ) {
+		case CPoolOperatorBase::PT_Max:
+			return new CMaxPoolingLayer( mathEngine );
+		case CPoolOperatorBase::PT_Mean:
+			return new CMeanPoolingLayer( mathEngine );
+		default:
+			NeoAssert( false );
+	}
+
+	return nullptr;
+}
+
 CPoolOperatorBase::CPoolOperatorBase( TPoolType _poolType, const onnx::NodeProto& poolNode, int opsetVersion ) :
 	CLayerOperator( poolNode, opsetVersion ),
 	poolType( _poolType ),
@@ -79,19 +94,7 @@ void CPoolOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inputs
 			- kernelShape[dimIndex] ) / strides[dimIndex] + 1;
 	}
 
-	// TODO: add 3d-pooling support
-	CPtr<CPoolingLayer> pooling;
-	static_assert( PT_Count == 2, "PT_Count != 2" );
-	switch( poolType ) {
-		case PT_Max:
-			pooling = new CMaxPoolingLayer( dnn.GetMathEngine() );
-			break;
-		case PT_Mean:
-			pooling = new CMeanPoolingLayer( dnn.GetMathEngine() );
-			break;
-		default:
-			NeoAssert( false );
-	}
+	CPtr<CPoolingLayer> pooling = createPoolingLayer( poolType, dnn.GetMathEngine() );
 	pooling->SetName( Name() );
 
 	CTensorLayout expectedLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );

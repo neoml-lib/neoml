@@ -24,8 +24,10 @@ class CPoolOperatorBase : public CLayerOperator {
 public:
 	// Operation type
 	enum TPoolType {
-		PT_Max, // Max pooling
-		PT_Mean, // Average pooling
+		// Max pooling
+		PT_Max,
+		// Average pooling
+		PT_Mean,
 
 		PT_Count
 	};
@@ -40,11 +42,16 @@ public:
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
-	TPoolType poolType; // pooling type
-	const CString autoPad; // padding mode
-	CFastArray<int, 8> kernelShape; // shape of pool kernel
-	CFastArray<int, 8> strides; // kernel strides
-	CFastArray<int, 8> pads; // convolution paddings
+	// Pooling type
+	TPoolType poolType;
+	// Padding mode
+	const CString autoPad;
+	// Shape of pool kernel
+	CFastArray<int, 8> kernelShape;
+	// Kernel strides
+	CFastArray<int, 8> strides;
+	// Convolution paddings
+	CFastArray<int, 8> pads;
 };
 
 // MaxPool operator

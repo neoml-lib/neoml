@@ -32,8 +32,10 @@ public:
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
-	const CString direction; // LSTM's direction ("forward", "backward" or "bidirectional")
-	const int hiddenSize; // Size of hidden state vector
+	// LSTM's direction ("forward", "backward" or "bidirectional")
+	const CString direction;
+	// Size of hidden state vector
+	const int hiddenSize;
 
 	CPtr<CDnnBlob> reorderGates( CPtr<CDnnBlob> weights, TBlobDim dim );
 };

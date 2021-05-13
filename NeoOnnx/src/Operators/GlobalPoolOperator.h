@@ -55,7 +55,8 @@ protected:
 	CGlobalPoolOperatorBase( TPoolType poolType, const onnx::NodeProto& onnxNode, int opsetVersion );
 
 private:
-	TPoolType poolType; // pool type
+	// Pool type
+	TPoolType poolType;
 
 	CPtr<const CUserTensor> prepareInput( const CUserTensor& input, const CFastArray<int, 8>& axes, CDnn& dnn ) const;
 	CPtr<const CUserTensor> convertInputLayout( const CUserTensor& input, const CFastArray<int, 8>& axes ) const;

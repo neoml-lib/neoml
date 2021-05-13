@@ -32,7 +32,8 @@ public:
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
-	int axis; // First axis to be softmaxed
+	// First axis to be softmaxed
+	int axis;
 
 	CTensorLayout getCompatibleLayout( int dimCount, int axis, const CTensorLayout& inputLayout ) const;
 };

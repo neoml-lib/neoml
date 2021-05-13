@@ -132,7 +132,7 @@ void CConvOperator::add2dConvLayer( const CObjectArray<const CTensorBase>& input
 	CPtr<const CUserTensor> currInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], neoML2dLayout ).Ptr() );
 
 	if( pads[0] >= pads[2] && pads[1] >= pads[3] ) {
-		// This is a valid case for convolution in NeoML
+		// This is a valid case for a convolution in NeoML
 		conv->SetPaddingHeight( pads[0] );
 		conv->SetPaddingWidth( pads[1] );
 	} else {
@@ -184,7 +184,7 @@ void CConvOperator::add3dConvLayer( const CObjectArray<const CTensorBase>& input
 	CPtr<const CUserTensor> currInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], neoML3dLayout ).Ptr() );
 	
 	if( pads[0] >= pads[3] && pads[1] >= pads[4] && pads[2] >= pads[5] ) {
-		// This is a valid case for convolution NeoML
+		// This is a valid case for a convolution in NeoML
 		conv->SetPaddingHeight( pads[0] );
 		conv->SetPaddingWidth( pads[1] );
 		conv->SetPaddingDepth( pads[2] );

@@ -19,9 +19,11 @@ limitations under the License.
 #include "TensorLayout.h"
 #include "Tensor.h"
 
-#include <onnx.pb.h>
-
 // Forward declaration(s)
+namespace onnx {
+class NodeProto;
+} // namespace onnx
+
 namespace NeoML {
 class IMathEngine;
 } // namespace NeoML
@@ -32,14 +34,11 @@ namespace NeoOnnx {
 const int MaxOpsetVersion = 12;
 
 // onnx operator
-// This class adds some operators-only features support (type, attributes, opsetVersion)
-// and fabric methods for operators
-// Doesn't affect interfaces in any way
 class COperator {
 public:
 	virtual ~COperator() = default;
 
-	// Operator name
+	// Operator's name
 	const CString& Name() const { return name; }
 	// Operator's type
 	const CString& Type() const { return type; }

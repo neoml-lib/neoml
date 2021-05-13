@@ -32,9 +32,12 @@ public:
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
-	CString mode; // Pad mode
-	float value; // Pad value
-	CFastArray<int, 8> pads; // Pad sizes
+	// Pad mode
+	CString mode;
+	// Pad value
+	float value;
+	// Pad sizes
+	CFastArray<int, 8> pads;
 };
 
 } // namespace NeoOnnx

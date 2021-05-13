@@ -16,10 +16,10 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
+#include "onnx.pb.h"
+
 #include "GraphInitializer.h"
 #include "TensorUtils.h"
-
-#include "onnx.pb.h"
 
 namespace NeoOnnx {
 
