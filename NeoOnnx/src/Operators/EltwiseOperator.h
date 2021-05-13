@@ -17,6 +17,8 @@ limitations under the License.
 
 #include "../Operator.h"
 
+#include "TensorUtils.h"
+
 namespace NeoOnnx {
 
 // Base class for operators which perform eltwise operations
@@ -32,23 +34,6 @@ public:
 		O_Count
 	};
 
-	// Tensor broadcast types
-	enum TBroadcastType {
-		BT_None, // Broadcast not supported
-		BT_Onnx, // Onnx custom broadcast, used in some versions
-		BT_Numpy, // Numpy-style broadcast, used in later versions of ONNX
-
-		BT_Count
-	};
-
-	struct CBroadcastInfo {
-		TBroadcastType Type;
-		int Axis;
-
-		explicit CBroadcastInfo( TBroadcastType type, int axis = NotFound ) :
-			Type( type ), Axis( axis ) {}
-	};
-
 	// CLayerOperator methods
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
@@ -60,7 +45,7 @@ public:
 	// In some versions different operators supported different broadcast types
 	// E.g. 'Add' operators in opset v1 supports onnx-broadcast but 'Sum' operators doesn't support broadcast at all
 	// That's why each derivative should determine by itself which broadcast type is supported
-	virtual CBroadcastInfo BroadcastInfo() const = 0;
+	virtual CBroadcast GetBroadcast() const = 0;
 
 protected:
 	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = NotFound );
@@ -68,14 +53,7 @@ protected:
 private:
 	TOperation operation; // Operation performed by this operator
 	int argsNum; // Expected number of arguments (-1 if any number is supported)
-
-	bool broadcastShape( const CTensorShape& first, const CTensorShape& second,
-		const CBroadcastInfo& broadcast, CTensorShape& result ) const;
-	CPtr<const CTensorBase> broadcast( const CTensorBase& input, const CBroadcastInfo& broadcast, const CTensorShape& outputShape ) const;
-	CPtr<const CDataTensor> broadcast( const CDataTensor& input, const CBroadcastInfo& broadcast, const CTensorShape& outputShape ) const;
-	CPtr<const CUserTensor> broadcast( const CUserTensor& input, const CBroadcastInfo& broadcast, const CTensorShape& outputShape ) const;
 	CPtr<const CTensorBase> prepareSecondInput( const CObjectArray<const CTensorBase>& inputs ) const;
-	CPtr<const CUserTensor> padTensorShape( const CUserTensor& input, int dimCount, int axis ) const;
 };
 
 // Eltwise operators with 2 inputs
@@ -87,7 +65,7 @@ public:
 		CEltwiseOperatorBase( eltwise, opsetVersion, operation, 2 ) {}
 
 	// CEltwiseOperatorBase methods
-	CBroadcastInfo BroadcastInfo() const override;
+	CBroadcast GetBroadcast() const override;
 };
 
 // Add operator
@@ -127,7 +105,7 @@ public:
 		CEltwiseOperatorBase( sum, opsetVersion, O_Add ) {}
 
 	// CEltwiseOperatorBase methods
-	CBroadcastInfo BroadcastInfo() const override;
+	CBroadcast GetBroadcast() const override;
 };
 
 } // namespace NeoOnnx

@@ -139,12 +139,46 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTe
 CPtr<const CTensorBase> RemoveTensorDims( const CTensorBase& input, const CFastArray<int, 8>& dims );
 
 //---------------------------------------------------------------------------------------------------------------------
-// Auxiliary functions which are used in all operators that support padding (Pad/Pool/Conv)
+// Auxiliary tensor padding functions
 
 // Calculates padding size if autoPad is SAME_*
 void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
 
 // Pads tensor with user-dependent data
 CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue );
+
+//---------------------------------------------------------------------------------------------------------------------
+// Auxiliary tensor broadcast functions
+
+// Tensor broadcast types
+enum TBroadcastType {
+	// Broadcast not supported
+	BT_None,
+	// Onnx custom broadcast, used in some older versions
+	BT_Onnx,
+	// Numpy-style broadcast, used in later versions of ONNX
+	BT_Numpy,
+
+	BT_Count
+};
+
+// Broadcast info
+struct CBroadcast {
+	// Type
+	TBroadcastType Type;
+	// Broadcasted axis index
+	int Axis;
+
+	explicit CBroadcast( TBroadcastType type, int axis = NotFound ) :
+		Type( type ), Axis( axis ) {}
+};
+
+// Calculates shape of the result of the broadcast operation
+// If shapes can be broadcasted writes broadcasted shape to the result and returns true
+// Returns false if shapes can't be broadcasted (in this case result will be empty)
+bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast, CTensorShape& result );
+
+// Broadcasts the given tensor to the given outputShape according to given broadcast
+CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast, const CTensorShape& outputShape );
 
 } // namespace NeoOnnx
