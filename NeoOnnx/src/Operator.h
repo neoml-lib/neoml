@@ -38,6 +38,9 @@ class COperator {
 public:
 	virtual ~COperator() = default;
 
+	COperator( const COperator& other ) = delete;
+	COperator& operator= ( const COperator& other ) = delete;
+
 	// Operator's name
 	const CString& Name() const { return name; }
 	// Operator's type

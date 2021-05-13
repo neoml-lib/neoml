@@ -29,6 +29,9 @@ class CGraphOutput {
 public:
 	explicit CGraphOutput( const onnx::ValueInfoProto& output );
 
+	CGraphOutput( const CGraphOutput& other ) = delete;
+	CGraphOutput& operator= ( const CGraphOutput& other ) = delete;
+
 	// Graph output name
 	const CString& Name() const { return name; }
 

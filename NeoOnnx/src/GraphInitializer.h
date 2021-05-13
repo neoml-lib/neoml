@@ -29,6 +29,9 @@ class CGraphInitializer {
 public:
 	explicit CGraphInitializer( const onnx::TensorProto& initializer );
 
+	CGraphInitializer( const CGraphInitializer& other ) = delete;
+	CGraphInitializer& operator= ( const CGraphInitializer& other ) = delete;
+
 	// Graph initializer name
 	const CString& Name() const { return name; }
 
