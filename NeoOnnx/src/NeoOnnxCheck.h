@@ -52,7 +52,7 @@ inline void NeoOnnxCheck( bool expr, const CString& what )
 CString GetMessageWithOperatorInfo( const CString& what, const COperator& op );
 
 // Throws std::logic_error if 'expr' is false
-// Checks if graph or operator are sticking to the onnx protocol
+// Checks if onnx protocol has been violated
 inline void CheckOnnxProtocol( bool expr, const CString& what )
 {
 	if( !( expr ) ) {
@@ -68,7 +68,8 @@ inline void CheckOnnxProtocol( bool expr, const CString& what, const COperator& 
 }
 
 // Throws std::logic_error if 'expr' is false
-// Checks if there is something which is a valid onnx but is not supported by NeoOnnx
+// Used when expr can't be emulated by NeoOnnx despite being valid case of onnx
+// e.g. 8+ dimensional tensors which aren't supported by NeoML
 inline void CheckNeoOnnxSupport( bool expr, const CString& what ) 
 {
 	if( !( expr ) ) {

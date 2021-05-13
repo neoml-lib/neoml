@@ -51,8 +51,10 @@ public:
 	CPtr<CDataTensor> GetRequiredTensor( const CString& name, IMathEngine& mathEngine ) const;
 
 private:
-	const COperator& op; // reference to the operator for error handling
-	CMap<CString, const onnx::AttributeProto> attributes; // mapping between attribute keys and values
+	// Reference to the operator for error handling
+	const COperator& op;
+	// Mapping between attribute keys and values
+	CMap<CString, const onnx::AttributeProto> attributes;
 };
 
 } // namespace NeoOnnx

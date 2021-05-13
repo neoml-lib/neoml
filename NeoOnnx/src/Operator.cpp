@@ -16,12 +16,12 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
-#include "Operator.h"
-#include "NeoOnnxCheck.h"
-
 #include "onnx.pb.h"
 
 #include <string>
+
+#include "Operator.h"
+#include "NeoOnnxCheck.h"
 
 #include "Operators/ActivationOperator.h"
 #include "Operators/BatchNormalizationOperator.h"
@@ -142,7 +142,7 @@ REGISTER_OPERATOR( CTanhOperator, "Tanh" )
 REGISTER_OPERATOR( CTransposeOperator, "Transpose" )
 REGISTER_OPERATOR( CUnsqueezeOperator, "Unsqueeze" )
 
-} // namespace
+} // anonymous namespace
 
 COperator::COperator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 	OpsetVersion( opsetVersion ),
@@ -278,14 +278,14 @@ void CLayerOperator::extractOutputs( const CObjectArray<const CTensorBase>& inte
 	for( int outputIndex = 0; outputIndex < OutputCount(); ++outputIndex ) {
 		if( internalOutputs[outputIndex]->IsCalculated() ) {
 			// This data was calculated prior to the net
-			// TODO: is this possible?
 			outputs[outputIndex] = internalOutputs[outputIndex];
 		} else if( sinks[outputIndex] != nullptr ) {
-			// Adding network result as data tensor
-			// Shape and layout remains unchanged
+			// Add network result as data tensor
+			// Shape and layout remain unchanged
 			outputs[outputIndex] = new CDataTensor( internalOutputs[outputIndex]->Shape(),
 				internalOutputs[outputIndex]->Layout(), *( sinks[outputIndex]->GetBlob() ) );
-		} // otherwise leaving it as nullptr
+		}
+		// otherwise leave internalOutputs[outputIndex] as nullptr
 	}
 }
 

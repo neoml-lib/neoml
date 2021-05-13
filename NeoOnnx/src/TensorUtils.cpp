@@ -16,10 +16,10 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
+#include "onnx.pb.h"
+
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
-
-#include "onnx.pb.h"
 
 namespace NeoOnnx {
 
@@ -323,6 +323,7 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 
 	// Number of padded dimensions
 	const int paddedDims = pads.Size() / 2;
+	NeoAssert( pads.Size() == paddedDims * 2 );
 	// Index of first padded dimension
 	const int padDimIndex = input.DimCount() - paddedDims;
 	// Prefix for padding layer names
@@ -363,9 +364,8 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 		}
 	}
 
-	// Corner case: we need to expand odd number of dimensions
-	// In that case by this moment imageResize != nullptr
-	// heightDimIndex will be defined but widthDimIndex will remain NotFound
+	// In case of padding odd number of dimnesion by this moment imageResize != nullptr
+	// widthDimIndex is equal to NotFound
 	if( imageResize != nullptr ) {
 		currData = addImageResizeLayer( *imageResize, dnn, *currData, heightDimIndex, widthDimIndex );
 	}
@@ -443,6 +443,7 @@ bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second
 	return true;
 }
 
+// Adds upsample layer to the dnn
 static CPtr<const CUserTensor> addUpsample2dLayer( CUpsampling2DLayer& upsample, CDnn& dnn, const CUserTensor& input,
 	int heightDimIndex, int widthDimIndex )
 {
@@ -560,11 +561,11 @@ static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, co
 		}
 	}
 
-	// Corner case: we need to broadcast odd number of dimensions
-	// In that case by this moment upsample != nullptr
-	// heightDimIndex will be defined but widthDimIndex will remain NotFound
+	// In case of broadcasting odd number of dimensions by this moment upsample != nullptr
+	// widthDimIndex is equal to NotFound
 	if( upsample != nullptr ) {
-		upsample->SetWidthCopyCount( 1 ); // Default value is 0 which is invalid
+		// Default value is 0 which is invalid
+		upsample->SetWidthCopyCount( 1 );
 		currData = addUpsample2dLayer( *upsample, dnn, *currData, heightDimIndex, widthDimIndex );
 	}
 

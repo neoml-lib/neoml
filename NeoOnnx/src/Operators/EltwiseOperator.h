@@ -26,10 +26,14 @@ class CEltwiseOperatorBase : public CLayerOperator {
 public:
 	// Supported eltwise operations
 	enum TOperation {
-		O_Add, // Addition
-		O_Sub, // Subtraction
-		O_Mul, // Multiplication
-		O_Div, // Division
+		// Addition
+		O_Add,
+		// Subtraction
+		O_Sub,
+		// Multiplication
+		O_Mul,
+		// Division
+		O_Div,
 
 		O_Count
 	};
@@ -51,8 +55,11 @@ protected:
 	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = NotFound );
 
 private:
-	TOperation operation; // Operation performed by this operator
-	int argsNum; // Expected number of arguments (-1 if any number is supported)
+	// Operation performed by this operator
+	TOperation operation;
+	// Expected number of arguments (-1 if any number is supported)
+	int argsNum;
+
 	CPtr<const CTensorBase> prepareSecondInput( const CObjectArray<const CTensorBase>& inputs ) const;
 };
 

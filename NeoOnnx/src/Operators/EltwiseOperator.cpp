@@ -16,11 +16,11 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
+#include "onnx.pb.h"
+
 #include "EltwiseOperator.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
-
-#include "onnx.pb.h"
 
 namespace NeoOnnx {
 
@@ -122,7 +122,7 @@ CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int 
 void CEltwiseOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
 {
-	// Corner case which doesn't contradict Onnx protocol: opeartors with variable input count can have 1 input
+	// Corner case which doesn't violate Onnx protocol: opeartors with variable input count may have 1 input
 	if( inputs.Size() == 1 && argsNum < 0 ) {
 		outputs[0] = inputs[0];
 		return;
@@ -200,7 +200,7 @@ CPtr<const CTensorBase> CEltwiseOperatorBase::prepareSecondInput( const CObjectA
 				newBlob->GetDataSize(), minusOne );
 			return new CDataTensor( secondInput->Shape(), secondInput->Layout(), *newBlob );
 		} else {
-			// Imitating by CLinearLayer with multiplier equal to -1
+			// Imitating by CLinearLayer with multiplier set to -1
 			CPtr<const CUserTensor> secondInput = dynamic_cast<const CUserTensor*>( inputs[1].Ptr() );
 			CDnn& dnn = *secondInput->Layer()->GetDnn();
 			CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );

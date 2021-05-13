@@ -55,7 +55,8 @@ static void checkOperatorSupport( const onnx::GraphProto& onnxGraph )
 static int getOpsetVersion( const onnx::ModelProto& model )
 {
 	for( const auto& opset : model.opset_import() ) {
-		if( opset.domain().empty() ) { // Default onnx opset
+		if( opset.domain().empty() ) {
+			// Default onnx opset
 			return static_cast<int>( opset.version() );
 		}
 	}
