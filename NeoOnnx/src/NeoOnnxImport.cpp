@@ -16,6 +16,11 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
+#include "onnx.pb.h"
+
+#include <fstream>
+#include <iostream>
+
 #include <NeoOnnx/NeoOnnxImport.h>
 
 #include "NeoOnnxCheck.h"
@@ -23,11 +28,6 @@ limitations under the License.
 #include "GraphInitializer.h"
 #include "GraphInput.h"
 #include "GraphOutput.h"
-
-#include "onnx.pb.h"
-
-#include <fstream>
-#include <iostream>
 
 namespace NeoOnnx {
 
@@ -65,8 +65,10 @@ static int getOpsetVersion( const onnx::ModelProto& model )
 	return -1;
 }
 
+// Tensor cache used to store all named tensors during graph building
 typedef CMap<CString, CPtr<const CTensorBase>> CTensorCache;
 
+// Adds operator's outputs to the tensor cache and dnn
 static void addOperator( COperator& op, CTensorCache& tensors, CDnn& dnn )
 {
 	CObjectArray<const CTensorBase> inputs;

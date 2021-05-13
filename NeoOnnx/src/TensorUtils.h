@@ -63,8 +63,9 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 			}
 			break;
 		case onnx::TensorProto::DOUBLE:
+			// Here downcast may happen (double -> float)
 			if( isRaw ) {
-				LoadFromRawData<int, T>( src.raw_data(), buffer );
+				LoadFromRawData<double, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.double_data_size(); ++valueIndex ) {
 					buffer[valueIndex] = static_cast<T>( src.double_data( valueIndex ) );
@@ -85,6 +86,9 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				}
 			}
 			break;
+		// NeoML works only with 32-bit signed types
+		// But sometimes data values are quite small (like some indices)
+		// that's why we can try to load them into NeoML data type
 		case onnx::TensorProto::UINT32:
 		case onnx::TensorProto::UINT64:
 			if( isRaw ) {
@@ -133,5 +137,14 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTe
 // Removes dimensions of size 1
 // Doesn't add any layers or perform any conversions
 CPtr<const CTensorBase> RemoveTensorDims( const CTensorBase& input, const CFastArray<int, 8>& dims );
+
+//---------------------------------------------------------------------------------------------------------------------
+// Auxiliary functions which are used in all operators that support padding (Pad/Pool/Conv)
+
+// Calculates padding size if autoPad is SAME_*
+void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
+
+// Pads tensor with user-dependent data
+CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue );
 
 } // namespace NeoOnnx

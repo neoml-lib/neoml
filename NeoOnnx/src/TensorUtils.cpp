@@ -55,7 +55,8 @@ TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-static CString getUniqueName( const CDnn& dnn, const CString& prefix )
+// Gets layer name with given prefix which isn't used in dnn
+static CString getUniqueLayerName( const CDnn& dnn, const CString& prefix )
 {
 	int currIndex = dnn.GetLayerCount();
 	CString currName = prefix + Str( currIndex );
@@ -65,6 +66,8 @@ static CString getUniqueName( const CDnn& dnn, const CString& prefix )
 	}
 	return currName;
 }
+
+//---------------------------------------------------------------------------------------------------------------------
 
 // Renames dimensions of data blob (without any reordering in memory)
 CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTensorShape& shape, const CTensorLayout& outputLayout )
@@ -87,7 +90,7 @@ CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorShape& sh
 	NeoAssert( shape.Size() == outputLayout.Size() );
 	CDnn& dnn = *( input.Layer->GetDnn() );
 	CPtr<CTransformLayer> transformLayer = new CTransformLayer( dnn.GetMathEngine() );
-	transformLayer->SetName( getUniqueName( dnn, "transform_" ) );
+	transformLayer->SetName( getUniqueLayerName( dnn, "transform_" ) );
 	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
 		const int dimIndex = outputLayout.Find( dim );
 		if( dimIndex == NotFound ) {
@@ -135,7 +138,7 @@ CLayerOutput swapDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlob
 {
 	CDnn& dnn = *( input.Layer->GetDnn() );
 	CPtr<CTransposeLayer> transposeLayer = new CTransposeLayer( dnn.GetMathEngine() );
-	transposeLayer->SetName( getUniqueName( dnn, "transpose_" ) );
+	transposeLayer->SetName( getUniqueLayerName( dnn, "transpose_" ) );
 	transposeLayer->SetTransposedDimensions( firstDim, secondDim );
 	dnn.AddLayer( *transposeLayer );
 	transposeLayer->Connect( 0, *input.Layer, input.OutputIndex );
@@ -240,6 +243,133 @@ CPtr<const CTensorBase> RemoveTensorDims( const CTensorBase& input, const CFastA
 	}
 	// To satisfy compilers' warnings
 	return nullptr;
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads )
+{
+	const int padDims = static_cast<int>( kernelShape.Size() );
+	for( int padDimIndex = 0; padDimIndex < padDims; ++padDimIndex ) {
+		const int totalPadSize = kernelShape[padDimIndex] - 1;
+		if( autoPad == "SAME_LOWER" ) {
+			pads[padDimIndex] = ( totalPadSize + 1 ) / 2;
+		} else {
+			pads[padDimIndex] = totalPadSize / 2;
+		}
+		pads[padDims + padDimIndex] = totalPadSize - pads[padDimIndex];
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+// Converts tensor prior to imageResizeLayer
+CPtr<const CUserTensor> convertTensorBeforeImageResize( const CUserTensor& input, int heightDimIndex, int widthDimIndex )
+{
+	const CTensorLayout& inputLayout = input.Layout();
+
+	if( inputLayout[heightDimIndex] == BD_Height
+		&& ( widthDimIndex == NotFound || inputLayout[widthDimIndex] == static_cast<int>( BD_Width ) ) )
+	{
+		return &input;
+	}
+
+	CTensorLayout newLayout;
+	newLayout.SetBufferSize( input.DimCount() );
+	for( int i = 0; i < input.DimCount(); ++i ) {
+		if( i == heightDimIndex ) {
+			newLayout.Add( BD_Height );
+		} else if( i == widthDimIndex ) {
+			newLayout.Add( BD_Width );
+		} else if( widthDimIndex == NotFound ) {
+			newLayout.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
+				: static_cast<TBlobDim>( i + 1 ) );
+		} else {
+			newLayout.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
+				: static_cast<TBlobDim>( i + 2 ) );
+		}
+	}
+
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, newLayout ).Ptr() );
+}
+
+CPtr<const CUserTensor> addImageResizeLayer( CImageResizeLayer& imageResize, CDnn& dnn, const CUserTensor& input,
+	int heightDimIndex, int widthDimIndex )
+{
+	// Add imageResize layer
+	CPtr<const CUserTensor> result = convertTensorBeforeImageResize( input, heightDimIndex, widthDimIndex );
+	imageResize.Connect( 0, *result->Layer(), result->OutputIndex() );
+	dnn.AddLayer( imageResize );
+
+	// Calculate output shape
+	CTensorShape outputShape;
+	result->Shape().CopyTo( outputShape );
+	outputShape[heightDimIndex] += imageResize.GetDelta( CImageResizeLayer::IS_Top )
+		+ imageResize.GetDelta( CImageResizeLayer::IS_Bottom );
+	if( widthDimIndex != NotFound ) {
+		outputShape[widthDimIndex] += imageResize.GetDelta( CImageResizeLayer::IS_Left )
+			+ imageResize.GetDelta( CImageResizeLayer::IS_Right );
+	}
+
+	// Construct new CUserTensor which is provided by imageResize layer
+	return new CUserTensor( outputShape, result->Layout(), CLayerOutput( &imageResize, 0 ) );
+}
+
+CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue )
+{
+	// Pool and conv operators storing pads only for N-2 tensor dimensions (leaving out batch and channels)
+	// On the other side Pad operator is storing pads for every tensor dimension
+
+	// Number of padded dimensions
+	const int paddedDims = pads.Size() / 2;
+	// Index of first padded dimension
+	const int padDimIndex = input.DimCount() - paddedDims;
+	// Prefix for padding layer names
+	const CString padNamePrefix = input.Layer()->GetName() + CString( "_pad_" );
+	// Used network
+	CDnn& dnn = *( input.Layer()->GetDnn() );
+	// Used mathEngine
+	IMathEngine& mathEngine = dnn.GetMathEngine();
+
+	CPtr<const CUserTensor> currData = &input;
+	CPtr<CImageResizeLayer> imageResize = nullptr;
+	int heightDimIndex = NotFound;
+	int widthDimIndex = NotFound;
+
+	for( int i = 0; i < paddedDims; ++i ) {
+		if( pads[i] == 0 && pads[i + paddedDims] == 0 ) {
+			continue;
+		}
+
+		if( imageResize == nullptr ) {
+			imageResize = new CImageResizeLayer( mathEngine );
+			imageResize->SetName( getUniqueLayerName( dnn, padNamePrefix ) );
+			imageResize->SetDefaultValue( padValue );
+		}
+
+		if( heightDimIndex == NotFound ) {
+			heightDimIndex = padDimIndex + i;
+			imageResize->SetDelta( CImageResizeLayer::IS_Top, pads[i] );
+			imageResize->SetDelta( CImageResizeLayer::IS_Bottom, pads[paddedDims + i] );
+		} else {
+			widthDimIndex = padDimIndex + i;
+			imageResize->SetDelta( CImageResizeLayer::IS_Left, pads[i] );
+			imageResize->SetDelta( CImageResizeLayer::IS_Right, pads[paddedDims + i] );
+			currData = addImageResizeLayer( *imageResize, dnn, *currData, heightDimIndex, widthDimIndex );
+			imageResize = nullptr;
+			heightDimIndex = NotFound;
+			widthDimIndex = NotFound;
+		}
+	}
+
+	// Corner case: we need to expand odd number of dimensions
+	// In that case by this moment imageResize != nullptr
+	// heightDimIndex will be defined but widthDimIndex will remain NotFound
+	if( imageResize != nullptr ) {
+		currData = addImageResizeLayer( *imageResize, dnn, *currData, heightDimIndex, widthDimIndex );
+	}
+
+	return currData;
 }
 
 } // namespace NeoOnnx

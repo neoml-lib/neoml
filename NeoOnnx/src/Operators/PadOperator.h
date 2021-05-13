@@ -19,16 +19,6 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Auxiliary functions which are used in all operators that support padding (Pad/Pool/Conv)
-
-// Calculates padding size if autoPad is SAME_*
-void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
-
-// Pads tensor with user-dependent data
-CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue );
-
-//---------------------------------------------------------------------------------------------------------------------
-
 // Pad operator
 class CPadOperator : public CLayerOperator {
 public:

@@ -16,11 +16,10 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
-#include "PoolOperator.h"
-#include "PadOperator.h"
-#include "TensorUtils.h"
-
 #include "onnx.pb.h"
+
+#include "PoolOperator.h"
+#include "TensorUtils.h"
 
 namespace NeoOnnx {
 
