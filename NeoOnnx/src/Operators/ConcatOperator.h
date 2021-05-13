@@ -29,8 +29,7 @@ public:
 		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 
 	// COperator methods
-	void UserInputMask( CUserInputMask& mask ) const override
-		{ mask.Add( true, InputCount() ); }
+	void UserInputMask( CUserInputMask& mask ) const override { for( int i = 0; i < InputCount(); ++i ) mask |= i; }
 
 private:
 	CPtr<CBaseLayer> createLayer( TBlobDim concatDim, IMathEngine& mathEngine ) const;

@@ -97,7 +97,7 @@ private:
 //---------------------------------------------------------------------------------------------------------------------
 
 // Determines whether index'th input is expected to be provided by user or not
-typedef CFastArray<bool, 8> CUserInputMask;
+typedef CDynamicBitSet<8> CUserInputMask;
 
 // Operator, which can be emulated by NeoML layers
 // Provides default implementation of one of CNode's methods and adds new method to the interface
