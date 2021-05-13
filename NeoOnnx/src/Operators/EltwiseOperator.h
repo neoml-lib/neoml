@@ -55,8 +55,7 @@ public:
 
 	// COperator methods
 	// We can guarantee the support only when second input is CDataTensor (other division is impossible)
-	void UserInputMask( CUserInputMask& mask ) const override
-		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
+	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 	// In some versions different operators supported different broadcast types
 	// E.g. 'Add' operators in opset v1 supports onnx-broadcast but 'Sum' operators doesn't support broadcast at all

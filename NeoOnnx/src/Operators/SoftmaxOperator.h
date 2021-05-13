@@ -29,8 +29,7 @@ public:
 		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 
 	// COperator methods
-	void UserInputMask( CUserInputMask& mask ) const override
-		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
+	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
 	int axis; // First axis to be softmaxed

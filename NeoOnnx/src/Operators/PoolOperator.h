@@ -37,7 +37,7 @@ public:
 		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 
 	// COperator methods
-	void UserInputMask( CUserInputMask& mask ) const override { mask.Add( true ); }
+	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
 	TPoolType poolType; // pooling type

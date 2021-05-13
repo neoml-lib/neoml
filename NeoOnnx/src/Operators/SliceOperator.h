@@ -29,8 +29,7 @@ public:
 		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 
 	// CLayerOperator methods
-	void UserInputMask( CUserInputMask& mask ) const override
-		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
+	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
 	void getAxes( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& axes ) const;
