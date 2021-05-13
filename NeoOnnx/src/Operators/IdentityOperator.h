@@ -24,7 +24,9 @@ class CIdentityOperator : public COperator {
 public:
 	CIdentityOperator( const onnx::NodeProto& identity, int opsetVersion );
 
-	// CLayerOperator methods
+	// COperator methods
+	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const override
+		{ return inputs.IsEmpty() || inputs[0]->IsCalculated(); }
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,

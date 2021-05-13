@@ -55,8 +55,7 @@ public:
 	// Virtual methods
 
 	// Returns true if operator has all the data required for computing output during generation
-	// This method has default implementation which works for the most of derivatives
-	virtual bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const;
+	virtual bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const = 0;
 
 	// Adds required layers to dnn and puts corresponding tensors to the outputs
 	// Called if operator output depends on the data, provided by user
@@ -110,6 +109,10 @@ public:
 	virtual void UserInputMask( CUserInputMask& mask ) const = 0;
 
 	// COperator's interface
+
+	// Default implementation which works for the most of the derivatives
+	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const final;
+
 	// Default implementation which imitates pre-calculation in the following way:
 	// 1. Creates small CDnn and creates appropriate sources
 	// 2. Calling AddLayers COperator's interface method for that internalDnn
