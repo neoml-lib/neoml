@@ -133,7 +133,7 @@ void CEltwiseOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inp
 	inputs[0]->Shape().CopyTo( outputShape );
 	for( int i = 1; i < inputs.Size(); ++i ) {
 		CTensorShape buff;
-		CheckNeoOnnxSupport( broadcastShape( outputShape, inputs[i]->Shape(), BroadcastInfo(), buff ),
+		CheckNeoOnnxSupport( BroadcastTensorShape( outputShape, inputs[i]->Shape(), GetBroadcast(), buff ),
 			"Can't broadcast tensors shape", *this );
 		buff.CopyTo( outputShape );
 	}
@@ -146,7 +146,7 @@ void CEltwiseOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inp
 	}
 	// Broadcast input to the final shape and set proper layout
 	for( int i = 0; i < inputs.Size(); ++i ) {
-		currInputs[i] = broadcast( *currInputs[i], BroadcastInfo(), outputShape );
+		currInputs[i] = BroadcastTensor( *currInputs[i], GetBroadcast(), outputShape );
 		currInputs[i] = ConvertTensor( *currInputs[i], currInputs[0]->Layout() );
 	}
 
@@ -176,62 +176,6 @@ void CEltwiseOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inp
 	}
 	dnn.AddLayer( *eltwise );
 	outputs[0] = new CUserTensor( outputShape, currInputs[0]->Layout(), CLayerOutput( eltwise, 0 ) );
-}
-
-// Calculates shape of the result of the broadcast operation
-// If shapes can be broadcasted writes broadcasted shape to the result and returns true
-// Returns false if shapes can't be broadcasted (in this case result will be empty)
-bool CEltwiseOperatorBase::broadcastShape( const CTensorShape& first, const CTensorShape& second,
-	const CBroadcastInfo& broadcast, CTensorShape& result ) const
-{
-	if( broadcast.Type == BT_None ) {
-		// No broadcast, the shape must match
-		if( isEqual( first, second ) ) {
-			first.CopyTo( result );
-			return true;
-		}
-		return false;
-	}
-
-	int axis = NotFound;
-	if( broadcast.Type == BT_Onnx ) {
-		axis = broadcast.Axis;
-		CheckNeoOnnxSupport( second.Size() <= first.Size(), "second tensor has more dimensions", *this );
-		if( axis < 0 ) {
-			axis = abs( first.Size() - second.Size() );
-		}
-	} else {
-		// Numpy-style broadcast is similar to the Onnx-broadcast with axis equal to difference
-		// in number of dimensions
-		axis = abs( first.Size() - second.Size() );
-	}
-
-	// The shape with lesser number of dimensions must be padded with ones
-	const CTensorShape& lesserShape = first.Size() <= second.Size() ? first : second;
-	const CTensorShape& biggerShape = first.Size() > second.Size() ? first  : second;
-	CTensorShape paddedShape;
-	paddedShape.Add( 1, axis );
-	paddedShape.Add( lesserShape );
-	if( paddedShape.Size() > biggerShape.Size() ) {
-		// Wrong braodcast parameters (axis value is too big)
-		return false;
-	}
-	NeoAssert( broadcast.Type == BT_Onnx || paddedShape.Size() == biggerShape.Size() );
-
-	// This will add ones only in case of BT_Onnx and axis != abs( first.Size() - second.Size() )
-	paddedShape.Add( 1, biggerShape.Size() - paddedShape.Size() );
-
-	result.SetSize( paddedShape.Size() );
-	for( int dim = 0; dim < result.Size(); ++dim ) {
-		if( paddedShape[dim] == biggerShape[dim] || min( paddedShape[dim], biggerShape[dim] ) == 1 ) {
-			result[dim] = max( paddedShape[dim], biggerShape[dim] );
-		} else {
-			result.DeleteAll();
-			return false;
-		}
-	}
-
-	return true;
 }
 
 // This method modifies second input for binary division or subtraction
@@ -277,175 +221,28 @@ CPtr<const CTensorBase> CEltwiseOperatorBase::prepareSecondInput( const CObjectA
 	return new CDataTensor( secondInput->Shape(), secondInput->Layout(), *newBlob );
 }
 
-// Broadcasts tensor into outputShape via broadcastInfo
-CPtr<const CTensorBase> CEltwiseOperatorBase::broadcast( const CTensorBase& input, const CBroadcastInfo& broadcastInfo,
-	const CTensorShape& outputShape ) const
-{
-	if( input.IsCalculated() ) {
-		return broadcast( dynamic_cast<const CDataTensor&>( input ), broadcastInfo, outputShape ).Ptr();
-	}
-	return broadcast( dynamic_cast<const CUserTensor&>( input ), broadcastInfo, outputShape ).Ptr();
-}
-
-// Broadcasts data tensor into outputShape via broadcastInfo
-CPtr<const CDataTensor> CEltwiseOperatorBase::broadcast( const CDataTensor& input, const CBroadcastInfo& broadcastInfo,
-	const CTensorShape& outputShape ) const
-{
-	if( isEqual( input.Shape(), outputShape ) ) {
-		return &input;
-	}
-
-	NeoAssert( broadcastInfo.Type != BT_None );
-
-	IMathEngine& mathEngine = input.Data()->GetMathEngine();
-	CRandom random( 0x32456 );
-
-	CDnn internalDnn( random, mathEngine );
-	CPtr<CSourceLayer> source = new CSourceLayer( mathEngine );
-	source->SetBlob( input.Data()->GetCopy() );
-	internalDnn.AddLayer( *source );
-	
-	CPtr<const CUserTensor> internalInput = new CUserTensor( input.Shape(), input.Layout(), CLayerOutput( source, 0 ) );
-	CPtr<const CUserTensor> internalOutput = broadcast( *internalInput, broadcastInfo, outputShape );
-	NeoPresume( isEqual( internalOutput->Shape(), outputShape ) );
-
-	CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
-	sink->Connect( 0, *internalOutput->Layer(), internalOutput->OutputIndex() );
-	internalDnn.AddLayer( *sink );
-
-	internalDnn.RunOnce();
-
-	return new CDataTensor( outputShape, internalOutput->Layout(), *sink->GetBlob() );
-}
-
-// Broadcasts user tensor into outputShape via broadcastInfo
-CPtr<const CUserTensor> CEltwiseOperatorBase::broadcast( const CUserTensor& input, const CBroadcastInfo& broadcastInfo,
-	const CTensorShape& outputShape ) const
-{
-	if( isEqual( input.Shape(), outputShape ) ) {
-		return &input;
-	}
-
-	NeoAssert( broadcastInfo.Type != BT_None );
-	NeoAssert( input.DimCount() <= outputShape.Size() );
-
-	// Prefix for upsmaple layer names
-	const CString upsampleNamePrefix = input.Layer()->GetName() + CString( "_upsample_" );
-	// Used network
-	CDnn& dnn = *( input.Layer()->GetDnn() );
-	// Used mathEngine
-	IMathEngine& mathEngine = dnn.GetMathEngine();
-
-	int axis = outputShape.Size() - input.DimCount();
-	if( broadcastInfo.Type == BT_Onnx && broadcastInfo.Axis >= 0 ) {
-		axis = broadcastInfo.Axis;
-	}
-
-	CPtr<const CUserTensor> currData = padTensorShape( input, outputShape.Size(), axis );
-	CPtr<CUpsampling2DLayer> upsample = nullptr;
-	int heightDimIndex = NotFound;
-	int widthDimIndex = NotFound;
-	CTensorShape inputShape;
-	currData->Shape().CopyTo( inputShape );
-
-	for( int i = 0; i < inputShape.Size(); ++i ) {
-		if( inputShape[i] == outputShape[i] ) {
-			continue;
-		}
-		NeoAssert( inputShape[i] == 1 );
-
-		if( upsample == nullptr ) {
-			upsample = new CUpsampling2DLayer( mathEngine );
-			upsample->SetName( getUniqueLayerName( upsampleNamePrefix, dnn ) );
-		}
-
-		if( heightDimIndex == NotFound ) {
-			heightDimIndex = i;
-			upsample->SetHeightCopyCount( outputShape[i] );
-		} else {
-			widthDimIndex = i;
-			upsample->SetWidthCopyCount( outputShape[i] );
-			currData = addUpsample2dLayer( *upsample, dnn, *currData, heightDimIndex, widthDimIndex );
-			upsample = nullptr;
-			heightDimIndex = NotFound;
-			widthDimIndex = NotFound;
-		}
-	}
-
-	// Corner case: we need to broadcast odd number of dimensions
-	// In that case by this moment upsample != nullptr
-	// heightDimIndex will be defined but widthDimIndex will remain NotFound
-	if( upsample != nullptr ) {
-		upsample->SetWidthCopyCount( 1 ); // Default value is 0 which is invalid
-		currData = addUpsample2dLayer( *upsample, dnn, *currData, heightDimIndex, widthDimIndex );
-	}
-
-	return currData;
-}
-
-// Pads shape with '1' without changing the data
-CPtr<const CUserTensor> CEltwiseOperatorBase::padTensorShape( const CUserTensor& input, int dimCount, int axis ) const
-{
-	const CTensorShape& inputShape = input.Shape();
-	NeoAssert( axis + inputShape.Size() <= dimCount );
-
-	CTensorShape outputShape;
-	outputShape.Add( 1, axis );
-	outputShape.Add( inputShape );
-	outputShape.Add( 1, dimCount - outputShape.Size() );
-
-	const CTensorLayout& inputLayout = input.Layout();
-
-	TBlobDim currDim = BD_BatchLength;
-	CTensorLayout outputLayout;
-	outputLayout.SetBufferSize( dimCount );
-	// Adding unused blob dims to the new layout
-	for( int i = 0; i < axis; ++i ) {
-		while( inputLayout.Find( currDim ) != NotFound && currDim < BD_Count ) {
-			++currDim;
-		}
-		NeoAssert( currDim != BD_Count );
-		outputLayout.Add( currDim );
-		++currDim;
-	}
-	// Copying existing dims
-	outputLayout.Add( inputLayout );
-	// Adding unused blob dims to the new layout
-	for( int i = outputLayout.Size(); i < dimCount; ++i ) {
-		while( inputLayout.Find( currDim ) != NotFound && currDim < BD_Count ) {
-			++currDim;
-		}
-		NeoAssert( currDim != BD_Count );
-		outputLayout.Add( currDim );
-		++currDim;
-	}
-
-	return new CUserTensor( outputShape, outputLayout, input.LayerOutput() );
-}
-
 // --------------------------------------------------------------------------------------------------------------------
 
-CEltwiseOperatorBase::CBroadcastInfo CEltwiseBinaryOperatorBase::BroadcastInfo() const
+CBroadcast CEltwiseBinaryOperatorBase::GetBroadcast() const
 {
 	if( OpsetVersion < 7 ) {
 		if( Attributes.GetOptionalInt( "broadcast", 0 ) != 0 ) {
-			return CBroadcastInfo( BT_Onnx,
-				Attributes.GetOptionalInt( "axis", NotFound ) );
+			return CBroadcast( BT_Onnx, Attributes.GetOptionalInt( "axis", NotFound ) );
 		} else {
-			return CBroadcastInfo( BT_None );
+			return CBroadcast( BT_None );
 		}
 	}
 
-	return CBroadcastInfo( BT_Numpy );
+	return CBroadcast( BT_Numpy );
 }
 
-CEltwiseOperatorBase::CBroadcastInfo CSumOperator::BroadcastInfo() const
+CBroadcast CSumOperator::GetBroadcast() const
 {
 	if( OpsetVersion < 8 ) {
-		return CBroadcastInfo( BT_None );
+		return CBroadcast( BT_None );
 	}
 
-	return CBroadcastInfo( BT_Numpy );
+	return CBroadcast( BT_Numpy );
 }
 
 } // namespace NeoOnnx
