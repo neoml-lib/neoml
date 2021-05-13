@@ -24,7 +24,9 @@ class CConstantOperator : public COperator {
 public:
 	CConstantOperator( const onnx::NodeProto& constant, int opsetVersion );
 
-	// CLayerOperator methods
+	// COperator methods
+	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& /*inputs*/ ) const override
+		{ return true; }
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,

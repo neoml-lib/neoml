@@ -24,13 +24,11 @@ class CSliceOperator : public CLayerOperator {
 public:
 	CSliceOperator( const onnx::NodeProto& slice, int opsetVersion );
 
-	// CLayerOperator methods
-	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const override
-		{ return inputs[0] != nullptr && inputs[0]->IsCalculated(); }
+	// COperator methods
 	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
 		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
 
-	// COperator methods
+	// CLayerOperator methods
 	void UserInputMask( CUserInputMask& mask ) const override
 		{ mask.Add( true ); mask.Add( false, InputCount() - 1 ); }
 

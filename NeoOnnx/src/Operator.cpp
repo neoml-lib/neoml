@@ -171,17 +171,6 @@ const CString& COperator::OutputName( int index ) const
 	return outputNames[index];
 }
 
-bool COperator::CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const
-{
-	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		if( inputs[inputIndex] != nullptr && !inputs[inputIndex]->IsCalculated() ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 COperator* COperator::CreateOperator( const onnx::NodeProto& onnxNode, int opsetVersion )
 {
 	TMapPosition pos = getRegisteredOperators().GetFirstPosition( onnxNode.op_type() );
@@ -196,6 +185,17 @@ bool COperator::IsSupportedOperator( const CString& operatorType )
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+
+bool CLayerOperator::CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const
+{
+	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
+		if( inputs[inputIndex] != nullptr && !inputs[inputIndex]->IsCalculated() ) {
+			return false;
+		}
+	}
+
+	return true;
+}
 
 void CLayerOperator::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
