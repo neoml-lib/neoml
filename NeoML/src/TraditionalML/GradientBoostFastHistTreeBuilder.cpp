@@ -71,7 +71,6 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 
 		// Calculating the best identifier for the split
 		nodes[node].SplitFeatureId = evaluateSplit( problem, nodes[node] );
-		printf("kulebaka %d %d\n", node, nodes[node].SplitFeatureId);
 		if( nodes[node].SplitFeatureId != NotFound ) {
 			// The split is possible
 			if( logStream != 0 ) {
