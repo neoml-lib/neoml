@@ -16,7 +16,7 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 
 
 class Loss(Layer):
@@ -81,51 +81,52 @@ class Loss(Layer):
 class CrossEntropyLoss(Loss):
     """The layer that calculates the loss value as cross-entropy 
     between the result and the standard:
-    loss = -sum(y_i * log(z_i)),
+    :math:`loss = -\sum{y_i * \log{z_i}}`,
     where for each i class 
-        y_i represents the class label, 
-        z_i is the network response (with softmax applied or not)
+    :math:`y_i` represents the class label, 
+    :math:`z_i` is the network response (with softmax applied or not)
 
-    Layer inputs
-    ------------
-    #1: the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    If you are not going to apply softmax in this layer, each element should already be >= 0, 
-    and the sum over Height * Width * Depth * Channels dimension should be equal to 1.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height * Width * Depth * Channels - the number of classes
-    
-    #2: the correct class labels. Two formats are acceptable:
-    - The blob contains float data, the dimensions are equal to the first input dimensions. 
-      It should be filled with zeros, and only the coordinate of the class to which 
-      the corresponding object from the first input belongs should be 1.
-    - The blob contains int data with BatchLength, BatchWidth, and ListSize
-      equal to these dimensions of the first input, and the other dimensions equal to 1.
-      Each object in the blob contains the number of the class 
-      to which the corresponding object from the first input belongs.
-    
-    #3 (optional): the objects' weights.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize should be the same as for the first input
-    - the other dimensions should be 1
-
-    Layer outputs
-    -------------
-    The layer has no output.
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    softmax : bool, default=True
-        Specifies if softmax function should be applied to the result.
-    loss_weight : float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param softmax: Specifies if softmax function should be applied to the result.
+    :type softmax: bool, default=True
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the number of classes
+    
+    (2) the correct class labels. Two formats are acceptable:
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
+    
+    (3) (optional): the objects' weights.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.  
     """
     def __init__(self, input_layers, softmax=True, loss_weight=1.0, name=None):
 
@@ -156,41 +157,39 @@ class CrossEntropyLoss(Loss):
 class BinaryCrossEntropyLoss(Loss):
     """The layer that calculates the cross-entropy loss function
     for binary classification:
-    loss = y * -log(sigmoid(x)) + (1 - y) * -log(1 - sigmoid(x)), where
-        x is the network response,
-        y is the correct class label (can be -1 or 1)
+    :math:`loss = - y * \log(sigmoid(x)) - (1 - y) * \log(1 - sigmoid(x))`, where
+    x is the network response, y is the correct class label (can be -1 or 1)
 
-    Layer inputs
-    ------------
-    #1: the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    
-    #2: the correct class labels (1 or -1). 
-    
-    #3 (optional): the objects' weights.
-    
-    The dimensions of all inputs are the same:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height, Width, Depth, Channels should be equal to 1
-
-    Layer outputs
-    -------------
-    The layer has no output.
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    positive_weight : float, default=1.0
-        The multiplier for correctly classified objects. 
+    :type input_layers: list of object, tuple(object, int)
+    :param positive_weight: The multiplier for correctly classified objects. 
         Tune this value to prioritize precision (positive_weight < 1) 
         or recall (positive_weight > 1) during training.
-    loss_weight : float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type positive_weight: float, default=1.0
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+        It should contain the probability distribution for objects over classes.
+    
+    (2) the correct class labels (1 or -1). 
+    
+    (3) (optional): the objects' weights.
+    
+    The dimensions of all inputs are the same:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, positive_weight=1.0, loss_weight=1.0, name=None):
 
@@ -225,32 +224,31 @@ class EuclideanLoss(Loss):
     """The layer that calculates the loss function equal to Euclidean distance
     between the network response and the correct classes.
     
-    Layer inputs
-    ------------
-    #1: the network response for which you are calculating the loss.
-    
-    #2: the correct class objects. 
-    
-    #3 (optional): the objects' weights.
-    
-    The dimensions of all inputs are the same:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height * Width * Depth * Channels - the object size
-
-    Layer outputs
-    -------------
-    The layer has no output.
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    loss_weight : float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+    
+    (2) the correct class objects. 
+    
+    (3) (optional): the objects' weights.
+    
+    The dimensions of all inputs are the same:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the object size
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, loss_weight=1.0, name=None):
 
@@ -268,37 +266,36 @@ class EuclideanLoss(Loss):
 
 class HingeLoss(Loss):
     """The layer that calculates hinge loss function for binary classification:
-    f(x) = max (0, 1 - x * y), where 
+    :math:`f(x) = \max(0, 1 - x * y)`, where 
     x is the network response, 
     y is the correct class label (1 or -1).
     
-    Layer inputs
-    ------------
-    #1: the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    
-    #2: the correct class labels (1 or -1). 
-    
-    #3 (optional): the objects' weights.
-    
-    The dimensions of all inputs are the same:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height, Width, Depth, Channels should be equal to 1
-
-    Layer outputs
-    -------------
-    The layer has no output.
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    loss_weight : float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+        It should contain the probability distribution for objects over classes.
+    
+    (2) the correct class labels (1 or -1). 
+    
+    (3) (optional): the objects' weights.
+    
+    The dimensions of all inputs are the same:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, loss_weight=1.0, name=None):
 
@@ -317,39 +314,39 @@ class HingeLoss(Loss):
 class SquaredHingeLoss(Loss):
     """The layer that calculates squared hinge loss function
     for binary classification:
-    f(x) = -4 * x * y               if x * y < -1
-    f(x) = sqr(max(0, 1 - x * y))   if x * y >= -1
+
+    - :math:`f(x) = -4 * x * y`               if :math:`x * y < -1`
+    - :math:`f(x) = (\max(0, 1 - x * y))^2`   if :math:`x * y \ge -1`
     where:
     x is the network response, 
     y is the correct class label (1 or -1).
     
-    Layer inputs
-    ------------
-    #1: the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    
-    #2: the correct class labels (1 or -1). 
-    
-    #3 (optional): the objects' weights.
-    
-    The dimensions of all inputs are the same:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height, Width, Depth, Channels should be equal to 1
-
-    Layer outputs
-    -------------
-    The layer has no output.
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    loss_weight : float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+        It should contain the probability distribution for objects over classes.
+    
+    (2) the correct class labels (1 or -1). 
+    
+    (3) (optional): the objects' weights.
+    
+    The dimensions of all inputs are the same:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, loss_weight=1.0, name=None):
 
@@ -372,51 +369,52 @@ class FocalLoss(Loss):
     focus on learning the difference between similar-looking elements of
     different classes.
     
-    f(x) = -pow(1 - x_right, force) * log(x_right)
-    where x_right is the network response element that represents 
+    :math:`f(x) = -(1 - x_{right})^{force} * \log(x_{right})`
+    where :math:`x_{right}` is the network response element that represents 
     the probability for the object to belong to the correct class.
     
-    Layer inputs
-    ------------
-    #1: the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    If you are not going to apply softmax in this layer, each element should already be >= 0, 
-    and the sum over Height * Width * Depth * Channels dimension should be equal to 1.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height * Width * Depth * Channels - the number of classes
-    
-    #2: the correct class labels. Two formats are acceptable:
-    - The blob contains float data, the dimensions are equal to the first input dimensions. 
-      It should be filled with zeros, and only the coordinate of the class to which 
-      the corresponding object from the first input belongs should be 1.
-    - The blob contains int data with BatchLength, BatchWidth, and ListSize
-      equal to these dimensions of the first input, and the other dimensions equal to 1.
-      Each object in the blob contains the number of the class 
-      to which the corresponding object from the first input belongs.
-    
-    #3 (optional): the objects' weights.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize should be the same as for the first input
-    - the other dimensions should be 1
-
-    Layer outputs
-    -------------
-    The layer has no output.
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    force : float, > 0, default=2.0
-        The focal force, that is, the degree to which learning
+    :type input_layers: list of object, tuple(object, int)
+    :param force: The focal force, that is, the degree to which learning
         will concentrate on similar objects.
-    loss_weight : float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type force: float, > 0, default=2.0
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
+    - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+    - **Height** * **Width** * **Depth** * **Channels** - the number of classes
+    
+    (2) the correct class labels. Two formats are acceptable:
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
+    
+    (3) (optional): the objects' weights.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, force, loss_weight=1.0, name=None):
 
@@ -457,41 +455,40 @@ class BinaryFocalLoss(Loss):
     focus on learning the difference between similar-looking elements of
     different classes.
     
-    f(x) = -pow(sigmoid(-y * x), force) * log(1 + exp(-y * x))
+    :math:`f(x) = -(sigmoid(-y * x))^{force} * \log(1 + e^{-y * x})`
     where:
     x is the network response, 
     y is the correct class label (1 or -1).
     
-    Layer inputs
-    ------------
-    #1: the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    
-    #2: the correct class labels (1 or -1). 
-    
-    #3 (optional): the objects' weights.
-    
-    The dimensions of all inputs are the same:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height, Width, Depth, Channels should be equal to 1
-
-    Layer outputs
-    -------------
-    The layer has no output.
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    force : float, > 0, default=2.0
-        The focal force, that is, the degree to which learning
+    :type input_layers: list of object, tuple(object, int)
+    :param force: The focal force, that is, the degree to which learning
         will concentrate on similar objects.
-    loss_weight : float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type force: float, > 0, default=2.0
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+        It should contain the probability distribution for objects over classes.
+    
+    (2) the correct class labels (1 or -1). 
+    
+    (3) (optional): the objects' weights.
+    
+    The dimensions of all inputs are the same:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height**, **Width**, **Depth**, **Channels** should be equal to 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, force, loss_weight=1.0, name=None):
 
@@ -531,50 +528,51 @@ class CenterLoss(Loss):
     of the same class. 
     See the paper at http://ydwen.github.io/papers/WenECCV16.pdf
     
-    Layer inputs
-    ------------
-    #1: the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    If you are not going to apply softmax in this layer, each element should already be >= 0, 
-    and the sum over Height * Width * Depth * Channels dimension should be equal to 1.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height * Width * Depth * Channels - the number of classes
-    
-    #2: the correct class labels. Two formats are acceptable:
-    - The blob contains float data, the dimensions are equal to the first input dimensions. 
-      It should be filled with zeros, and only the coordinate of the class to which 
-      the corresponding object from the first input belongs should be 1.
-    - The blob contains int data with BatchLength, BatchWidth, and ListSize
-      equal to these dimensions of the first input, and the other dimensions equal to 1.
-      Each object in the blob contains the number of the class 
-      to which the corresponding object from the first input belongs.
-    
-    #3 (optional): the objects' weights.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize should be the same as for the first input
-    - the other dimensions should be 1
-
-    Layer outputs
-    -------------
-    The layer has no output.
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    class_count : integer
-        The number of classes in the model.
-    rate : float, [0..1]
-        Class center convergence rate: the multiplier used 
+    :type input_layers: list of object, tuple(object, int)
+    :param class_count: The number of classes in the model.
+    :type class_count: int
+    :param rate: Class center convergence rate: the multiplier used 
         for calculating the moving mean of the class centers 
         for each subsequent iteration.
-    loss_weight : float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type rate: float, [0..1]
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the number of classes
+    
+    (2) the correct class labels. Two formats are acceptable:
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
+    
+    (3) (optional): the objects' weights.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, class_count, rate, loss_weight=1.0, name=None):
 
@@ -617,49 +615,50 @@ class CenterLoss(Loss):
 class MultiHingeLoss(Loss):
     """The layer that calculates hinge loss function for multiple class
     classification:
-    f(x) = max(0, 1 - (x_right - x_max_wrong))
+    :math:`f(x) = \max(0, 1 - (x_{right} - x_{max\_wrong}))`
     where 
-    x_right is the network response for the correct class,
-    x_max_wrong is the largest response for all the incorrect classes.
+    :math:`x_{right}` is the network response for the correct class,
+    :math:`x_{max\_wrong}` is the largest response for all the incorrect classes.
     
-    Layer inputs
-    ------------
-    #1: the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    If you are not going to apply softmax in this layer, each element should already be >= 0, 
-    and the sum over Height * Width * Depth * Channels dimension should be equal to 1.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height * Width * Depth * Channels - the number of classes
-    
-    #2: the correct class labels. Two formats are acceptable:
-    - The blob contains float data, the dimensions are equal to the first input dimensions. 
-      It should be filled with zeros, and only the coordinate of the class to which 
-      the corresponding object from the first input belongs should be 1.
-    - The blob contains int data with BatchLength, BatchWidth, and ListSize
-      equal to these dimensions of the first input, and the other dimensions equal to 1.
-      Each object in the blob contains the number of the class 
-      to which the corresponding object from the first input belongs.
-    
-    #3 (optional): the objects' weights.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize should be the same as for the first input
-    - the other dimensions should be 1
-
-    Layer outputs
-    -------------
-    The layer has no output.
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    loss_weight :  float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the number of classes
+    
+    (2) the correct class labels. Two formats are acceptable:
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
+    
+    (3) (optional): the objects' weights.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, loss_weight=1.0, name=None):
 
@@ -678,50 +677,52 @@ class MultiHingeLoss(Loss):
 class MultiSquaredHingeLoss(Loss):
     """The layer that calculates squared hinge loss function for multiple class
     classification:
-    f(x) = -4 * (x_right - x_max_wrong)             if x_right - x_max_wrong < -1
-    f(x) = sqr(max(0, 1 - (x_right - x_max_wrong))) if x_right - x_max_wrong >= -1
-    where 
-    x_right is the network response for the correct class,
-    x_max_wrong is the largest response for all the incorrect classes.
-    
-    Layer inputs
-    ------------
-    #1: the network response for which you are calculating the loss.
-    It should contain the probability distribution for objects over classes.
-    If you are not going to apply softmax in this layer, each element should already be >= 0, 
-    and the sum over Height * Width * Depth * Channels dimension should be equal to 1.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of objects
-    - Height * Width * Depth * Channels - the number of classes
-    
-    #2: the correct class labels. Two formats are acceptable:
-    - The blob contains float data, the dimensions are equal to the first input dimensions. 
-      It should be filled with zeros, and only the coordinate of the class to which 
-      the corresponding object from the first input belongs should be 1.
-    - The blob contains int data with BatchLength, BatchWidth, and ListSize
-      equal to these dimensions of the first input, and the other dimensions equal to 1.
-      Each object in the blob contains the number of the class 
-      to which the corresponding object from the first input belongs.
-    
-    #3 (optional): the objects' weights.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize should be the same as for the first input
-    - the other dimensions should be 1
 
-    Layer outputs
-    -------------
-    The layer has no output.
+    - :math:`f(x) = -4 * (x_{right} - x_{max\_wrong})`             if :math:`x_{right} - x_{max\_wrong} < -1`
+    - :math:`f(x) = (\max(0, 1 - (x_{right} - x_{max\_wrong})))^2` if :math:`x_{right} - x_{max\_wrong} \ge -1`
+    where 
+    :math:`x_{right}` is the network response for the correct class,
+    :math:`x_{max\_wrong}` is the largest response for all the incorrect classes.
     
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    loss_weight :  float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the number of classes
+    
+    (2) the correct class labels. Two formats are acceptable:
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
+    
+    (3) (optional): the objects' weights.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, loss_weight=1.0, name=None):
 

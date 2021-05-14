@@ -55,17 +55,17 @@ public:
 
 	// IGradientBoostQSModel interface methods
 	int GetClassCount() const override { return ensembles.Size() == 1 ? 2 : ensembles.Size(); };
-	bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
+	bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const override;
 	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
 
 	// IGradientBoostQSModel interface methods
 	bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const override;
-	bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
+	bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
 
 	// IRegressionModel interface methods
 	double Predict( const CSparseFloatVector& data ) const override;
 	double Predict( const CFloatVector& data ) const override;
-	double Predict( const CSparseFloatVectorDesc& data ) const override;
+	double Predict( const CFloatVectorDesc& data ) const override;
 
 	// General methods
 	double GetLearningRate() const override { return learningRate; };
@@ -111,12 +111,12 @@ double CGradientBoostQSModel::Predict( const CFloatVector& data ) const
 	return ensembles.First()->Predict( data ) * learningRate;
 }
 
-double CGradientBoostQSModel::Predict( const CSparseFloatVectorDesc& data ) const
+double CGradientBoostQSModel::Predict( const CFloatVectorDesc& data ) const
 {
 	return ensembles.First()->Predict( data ) * learningRate;
 }
 
-bool CGradientBoostQSModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const 
+bool CGradientBoostQSModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const 
 {
 	if( GetClassCount() == 2 ) {
 		const double value = ensembles.First()->Predict( data );
@@ -151,7 +151,7 @@ bool CGradientBoostQSModel::ClassifyEx( const CSparseFloatVector& data, CArray<C
 	return ClassifyEx( data.GetDesc(), results );
 }
 
-bool CGradientBoostQSModel::ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const
+bool CGradientBoostQSModel::ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const
 {
 	NeoAssert( !ensembles.IsEmpty() );
 

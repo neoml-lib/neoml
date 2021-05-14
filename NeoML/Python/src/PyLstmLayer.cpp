@@ -68,7 +68,7 @@ void InitializeLstmLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CLstmLayer> lstm = new CLstmLayer( mathEngine );
-			lstm->SetName( name == "" ? findFreeLayerName( dnn, "Lstm" ).c_str() : name.c_str() );
+			lstm->SetName( FindFreeLayerName( dnn, "Lstm", name ).c_str() );
 			lstm->SetHiddenSize( hiddent_size );
 			lstm->SetDropoutRate( dropout_rate );
 			lstm->SetRecurrentActivation( static_cast<TActivationFunction>(recurrent_activation_index) );

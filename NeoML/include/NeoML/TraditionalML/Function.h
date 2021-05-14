@@ -73,7 +73,7 @@ public:
 	virtual CFloatVector HessianProduct( const CFloatVector& s );
 
 protected:
-	const CSparseFloatMatrixDesc matrix;
+	const CFloatMatrixDesc matrix;
 	const float errorWeight;
 	const float l1Coeff;
 	const int threadCount;
@@ -101,7 +101,7 @@ public:
 	virtual CFloatVector HessianProduct(const CFloatVector& s);
 
 protected:
-	const CSparseFloatMatrixDesc matrix;
+	const CFloatMatrixDesc matrix;
 	const float errorWeight;
 	const float p;
 	const float l1Coeff;
@@ -130,7 +130,7 @@ public:
 	virtual CFloatVector HessianProduct( const CFloatVector& s );
 
 protected:
-	const CSparseFloatMatrixDesc matrix;
+	const CFloatMatrixDesc matrix;
 	const float errorWeight;
 	const float l1Coeff;
 	const int threadCount;
@@ -158,7 +158,7 @@ public:
 	virtual CFloatVector HessianProduct( const CFloatVector& s );
 
 protected:
-	const CSparseFloatMatrixDesc matrix;
+	const CFloatMatrixDesc matrix;
 	const float errorWeight;
 	const float l1Coeff;
 	const int threadCount;

@@ -46,6 +46,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedMatrixByMatrixAndAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedMatrixBySparseMatrixAndAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyVectorByTransposedLookupVectorAndAddToTableTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/QrnnBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RowMultiplyMatrixByMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SubVectorFromMatrixColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsAddTest.cpp

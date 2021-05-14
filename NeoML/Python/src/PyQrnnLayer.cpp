@@ -21,6 +21,7 @@ limitations under the License.
 class CPyQrnnLayer : public CPyLayer {
 public:
 	explicit CPyQrnnLayer( CQrnnLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
+
 	void SetHiddenSize(int value) { Layer<CQrnnLayer>()->SetHiddenSize(value); }
 	int GetHiddenSize() const { return Layer<CQrnnLayer>()->GetHiddenSize(); }
 
@@ -65,13 +66,14 @@ void InitializeQrnnLayer( py::module& m )
 		{
 			return new CPyQrnnLayer( *layer.Layer<CQrnnLayer>(), layer.MathEngineOwner() );
 			}))
-		.def(py::init([](const std::string& name, const py::list& inputs, int hiddenSize, int windowSize, int stride,
+		.def(py::init([](const std::string& name, const py::list& inputs, int pooling, int hiddenSize, int windowSize, int stride,
 			int paddingFront, int paddingBack, int activation, float dropoutRate, int mode, const py::list& input_outputs)
 		{
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CQrnnLayer> qrnn = new CQrnnLayer(mathEngine);
+			qrnn->SetPoolingType(static_cast<CQrnnLayer::TPoolingType>(pooling));
 			qrnn->SetHiddenSize(hiddenSize);
 			qrnn->SetWindowSize(windowSize);
 			qrnn->SetStride(stride);
@@ -80,7 +82,7 @@ void InitializeQrnnLayer( py::module& m )
 			qrnn->SetActivation(static_cast<TActivationFunction>(activation));
 			qrnn->SetDropout(dropoutRate);
 			qrnn->SetRecurrentMode(static_cast<CQrnnLayer::TRecurrentMode>(mode));
-			qrnn->SetName( name == "" ? findFreeLayerName( dnn, "Qrnn" ).c_str() : name.c_str() );
+			qrnn->SetName( FindFreeLayerName( dnn, "Qrnn", name ).c_str() );
 			dnn.AddLayer( *qrnn );
 
 			for( int i = 0; i < inputs.size(); i++ ) {

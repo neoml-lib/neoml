@@ -16,22 +16,69 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 
 
 class CtcLoss(Layer):
-    """
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    """The layer that calculates the loss function used for connectionist
+    temporal classification (CTC).
+    See https://www.cs.toronto.edu/~graves/preprint.pdf
+
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    loss_weight : float, default=1.0
-        The multiplier for the loss function value during training.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param blank: Sets the value for the blank label that will be used as space.
+    :type blank: int
+    :param skip: Specifies if blank labels may be skipped when aligning.
+    :type skip: bool
+    :param loss_weight:  The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response.
+        The dimensions:
+
+        - **BatchLength** is the maximum sequence length
+        - **BatchWidth** is the number of sequences in the set
+        - **ListSize** is 1
+        - **Height** * **Width** * **Depth** * **Channels** is the number of classes
+
+    (2) the correct labels as a blob with int data.
+
+        The dimensions:
+        - **BatchLength** is the maximum labels sequence length
+        - **BatchWidth** is the number of sequences, same as first input's **BatchWidth**
+        - the other dimensions are 1
+
+    (3) (optional): the label sequences lengths as a blob with int data.
+        If this input isn't connected, the label sequences are considered to be
+        the second input's **BatchLength** long.
+        The dimensions:
+
+        - **BatchWidth** is the same as for the first input
+        - the other dimensions are 1
+
+    (4) (optional): the network response sequences lengths as a blob
+        with int data. If this input isn't connected, the response sequences
+        are considered to be the first input's **BatchLength** long.
+        The dimensions:
+
+        - **BatchWidth** is the same as for the first input
+        - the other dimensions are 1
+
+    (5) (optional): the sequences' weights. 
+        The dimensions:
+
+        - **BatchWidth** is the same as for the first input
+        - the other dimensions are 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, blank, skip, loss_weight=1.0, name=None):
 
@@ -46,13 +93,13 @@ class CtcLoss(Layer):
 
     @property
     def blank(self):
-        """
+        """Gets the value of the blank label.
         """
         return self._internal.get_blank_label()
 
     @blank.setter
     def blank(self, value):
-        """
+        """Sets the value of the blank label.
         """
         self._internal.set_blank_label(int(value))
 
@@ -91,13 +138,13 @@ class CtcLoss(Layer):
 
     @property
     def skip(self):
-        """
+        """Checks if blank labels may be skipped when aligning.
         """
         return self._internal.get_skip()
 
     @skip.setter
     def skip(self, value):
-        """
+        """Specifies if blank labels may be skipped when aligning.
         """
         self._internal.set_skip(bool(value))
 
@@ -105,16 +152,45 @@ class CtcLoss(Layer):
 
 
 class CtcDecoding(Layer):
-    """
-    
-    Parameters
-    ---------------
-    input_layers : array of (object, int) tuples or objects
-        The input layers to be connected. 
+    """The layer that is looking for the most probable sequences 
+    in the response of a connectionist temporal classification (CTC) network.
+
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: object, (object, int) or list of them        
+    :param blank: Sets the value for the blank label that will be used as space.
+    :type blank: int
+    :param blank_threshold: The probability threshold for blank labels when building
+        a linear division graph (LDG).
+    :type blank_threshold: float, [0..1]
+    :param arc_threshold: The probability threshold for cutting off arcs when building
+        a linear division graph (LDG).
+    :type arc_threshold: float, [0..1]
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response.
+        The dimensions:
+
+        - **BatchLength** is the maximum sequence length
+        - **BatchWidth** is the number of sequences in the set
+        - **ListSize** is 1
+        - **Height** * **Width** * **Depth** * **Channels** is the number of classes
+
+    (2) (optional): the network response sequences lengths as a blob
+        with int data. If this input isn't connected, the response sequences
+        are considered to be the first input's **BatchLength** long.
+        The dimensions:
+
+        - **BatchWidth** is the same as for the first input
+        - the other dimensions are 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, blank, blank_threshold, arc_threshold, name=None):
 
@@ -129,59 +205,64 @@ class CtcDecoding(Layer):
 
     @property
     def blank(self):
-        """
+        """Gets the value of the blank label.
         """
         return self._internal.get_blank_label()
 
     @blank.setter
     def blank(self, value):
-        """
+        """Sets the value of the blank label.
         """
         self._internal.set_blank_label(int(value))
 
     @property
     def blank_threshold(self):
-        """
+        """Gets the probability threshold for blank layers when building
+        a linear division graph (LDG).
         """
         return self._internal.get_blank_threshold()
 
     @blank_threshold.setter
     def blank_threshold(self, value):
-        """
+        """Sets the probability threshold for blank layers when building
+        a linear division graph (LDG).
         """
         self._internal.set_blank_threshold(float(value))
 
     @property
     def arc_threshold(self):
-        """
+        """Gets the probability threshold for cutting off arcs when building
+        a linear division graph (LDG).
         """
         return self._internal.get_arc_threshold()
 
     @arc_threshold.setter
     def arc_threshold(self, value):
-        """
+        """Sets the probability threshold for cutting off arcs when building
+        a linear division graph (LDG).
         """
         self._internal.set_arc_threshold(float(value))
 
     @property
     def sequence_length(self):
-        """
+        """Returns the sequence length.
         """
         return self._internal.get_sequence_length()
 
     @property
     def batch_width(self):
-        """
+        """Returns the number of sequences.
         """
         return self._internal.get_batch_width()
 
     @property
     def label_count(self):
-        """
+        """Returns the number of classes.
         """
         return self._internal.get_label_count()
 
     def get_best_sequence(self, sequence_number):
-        """
+        """Retrieves the most probable sequence for the object
+        with sequence_number index in the set.
         """
         return self._internal.get_best_sequence(sequence_number)

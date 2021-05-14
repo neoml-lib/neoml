@@ -18,11 +18,32 @@ limitations under the License.
 
 #include "PyLayer.h"
 
+std::string FindFreeLayerName( const CDnn& dnn, const std::string& layerName, const std::string& userName )
+{
+	if( userName != "None" ) {
+		return userName;
+	}
+	int index = 0;
+	std::string name;
+	do {
+		index++;
+		name = layerName + std::to_string(index);
+	} while( dnn.HasLayer( name.c_str() ) );
+	
+	return name;
+}
+
+void CPyLayer::Connect( CPyLayer &layer, int outputIndex, int inputIndex )
+{
+	baseLayer->Connect( inputIndex, *layer.baseLayer, outputIndex );
+}
+
 void InitializeLayer( py::module& m )
 {
 	py::class_<CPyLayer>(m, "Layer")
 		.def( "output_count", &CPyLayer::GetOutputCount, py::return_value_policy::reference )
 		.def( "get_name", &CPyLayer::GetName, py::return_value_policy::reference )
 		.def( "create_python_object", &CPyLayer::CreatePythonObject, py::return_value_policy::reference )
+		.def( "connect", &CPyLayer::Connect, py::return_value_policy::reference )
 	;
 }

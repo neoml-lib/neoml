@@ -16,12 +16,7 @@ limitations under the License.
 #pragma once
 
 #include "PyMathEngine.h"
-
-inline std::string findFreeLayerName( const CDnn&, const std::string& name )
-{
-	return name;
-}
-
+                                               
 class CPyLayer {
 public:
 	explicit CPyLayer( CBaseLayer& _baseLayer, CPyMathEngineOwner& _mathEngineOwner ) :
@@ -41,9 +36,13 @@ public:
 
 	virtual py::object CreatePythonObject() const { NeoAssert(false); return py::cast(0); }
 
+	void Connect( CPyLayer& layer, int outputIndex, int inputIndex );
+
 private:
 	CPtr<CPyMathEngineOwner> mathEngineOwner;
 	CPtr<CBaseLayer> baseLayer;
 };
+
+std::string FindFreeLayerName( const CDnn&, const std::string& layerName, const std::string& userName );
 
 void InitializeLayer( py::module& m );

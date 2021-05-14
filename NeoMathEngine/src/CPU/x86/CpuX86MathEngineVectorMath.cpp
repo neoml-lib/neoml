@@ -80,6 +80,54 @@ void CCpuMathEngine::VectorFill( const CIntHandle& resultHandle, int value, int 
 	#endif
 }
 
+void CCpuMathEngine::VectorConvert( const CConstFloatHandle& from, const CIntHandle& to, int vectorSize )
+{
+	ASSERT_EXPR( from.GetMathEngine() == this );
+	ASSERT_EXPR( to.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize >= 0 );
+
+	const float* fromPtr = GetRaw( from );
+	int* toPtr = GetRaw( to );
+
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	for( int i = 0; i < sseSize; ++i ) {
+		StoreIntSse4( _mm_cvttps_epi32( LoadSse4( fromPtr ) ), toPtr );
+		toPtr += 4;
+		fromPtr += 4;
+	}
+
+	if( nonSseSize > 0 ) {
+		StoreIntSse( _mm_cvttps_epi32( LoadSse( fromPtr, nonSseSize ) ), toPtr, nonSseSize );
+	}
+}
+
+void CCpuMathEngine::VectorConvert( const CConstIntHandle& from, const CFloatHandle& to, int vectorSize )
+{
+	ASSERT_EXPR( from.GetMathEngine() == this );
+	ASSERT_EXPR( to.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize >= 0 );
+
+	const int* fromPtr = GetRaw( from );
+	float* toPtr = GetRaw( to );
+
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	for( int i = 0; i < sseSize; ++i ) {
+		StoreSse4( _mm_cvtepi32_ps( LoadIntSse4( fromPtr ) ), toPtr );
+		toPtr += 4;
+		fromPtr += 4;
+	}
+
+	if( nonSseSize > 0 ) {
+		StoreSse( _mm_cvtepi32_ps( LoadIntSse( fromPtr, nonSseSize ) ), toPtr, nonSseSize );
+	}
+}
+
 void CCpuMathEngine::FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold )
 {
 	ASSERT_EXPR( data.GetMathEngine() == this );
@@ -1317,47 +1365,6 @@ void CCpuMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 	CFloatHandleStackVar mult( mathEngine(), 1 );
 	mult.SetValue( -*GetRaw(multiplierHandle) );
 	VectorMultiply(firstHandle, resultHandle, vectorSize, mult);
-}
-
-void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	for(int i = 0; i < sseSize; ++i) {
-		_mm_storeu_ps(result, _mm_mul_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result++ = *first++ * *second++;
-	}
-}
-
-void CCpuMathEngine::VectorEltwiseMultiplyAdd( const CConstFloatHandle& firstHandle,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize )
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
-
-	NeoML::vectorEltwiseMultiplyAdd( first ,second, result, vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseNegMultiply(const CConstFloatHandle& firstHandle,

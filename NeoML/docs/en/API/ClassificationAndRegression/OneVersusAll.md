@@ -35,7 +35,7 @@ public:
 	// Get the classification result with the info on normalized probabilities
 	virtual bool ClassifyEx( const CSparseFloatVector& data,
 		COneVersusAllClassificationResult& result ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data,
+	virtual bool ClassifyEx( const CFloatVectorDesc& data,
 		COneVersusAllClassificationResult& result ) const = 0;
 
 	// Serialize the model

@@ -106,20 +106,21 @@ void InitializeCrfLayer( py::module& m )
 		{
 			return new CPyCrfLayer( *layer.Layer<CCrfLayer>(), layer.MathEngineOwner() );
 		}))
-		.def( py::init([]( const std::string& name, const CPyLayer& layer1, const CPyLayer& layer2, int outputNumber1, int outputNumber2,
+		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs,
 			int classCount, int padding, float dropoutRate )
 		{
-			CDnn& dnn = layer1.Dnn();
+			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CCrfLayer> crf = new CCrfLayer( mathEngine );
 			crf->SetNumberOfClasses(classCount);
 			crf->SetPaddingClass(padding);
 			crf->SetDropoutRate(dropoutRate);
-			crf->SetName( name == "" ? findFreeLayerName( dnn, "Crf" ).c_str() : name.c_str() );
+			crf->SetName( FindFreeLayerName( dnn, "Crf", name ).c_str() );
 			dnn.AddLayer( *crf );
-			crf->Connect( 0, layer1.BaseLayer(), outputNumber1 );
-			crf->Connect( 1, layer2.BaseLayer(), outputNumber2 );
-			return new CPyCrfLayer( *crf, layer1.MathEngineOwner() );
+			for( int i = 0; i < inputs.size(); i++ ) {
+				crf->Connect( i, inputs[i].cast<CPyLayer>().BaseLayer(), input_outputs[i].cast<int>() );
+			}
+			return new CPyCrfLayer( *crf, inputs[0].cast<CPyLayer>().MathEngineOwner() );
 		}) )
 		.def( "get_class_count", &CPyCrfLayer::GetNumberOfClasses, py::return_value_policy::reference )
 		.def( "set_class_count", &CPyCrfLayer::SetNumberOfClasses, py::return_value_policy::reference )
@@ -150,7 +151,7 @@ void InitializeCrfLayer( py::module& m )
 
 			CPtr<CCrfLossLayer> loss = new CCrfLossLayer( mathEngine );
 			loss->SetLossWeight( loss_weight );
-			loss->SetName( name == "" ? findFreeLayerName( dnn, "CrfLoss" ).c_str() : name.c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "CrfLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
@@ -176,7 +177,7 @@ void InitializeCrfLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CBestSequenceLayer> best = new CBestSequenceLayer( mathEngine );
-			best->SetName( name == "" ? findFreeLayerName( dnn, "BestSequence" ).c_str() : name.c_str() );
+			best->SetName( FindFreeLayerName( dnn, "BestSequence", name ).c_str() );
 			dnn.AddLayer( *best );
 			best->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			best->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );

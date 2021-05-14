@@ -45,10 +45,10 @@ public:
 	virtual int GetClass( int index ) const = 0;
 
 	// Get a vector
-	virtual CSparseFloatVectorDesc GetVector( int index ) const = 0;
+	virtual CFloatVectorDesc GetVector( int index ) const = 0;
 
 	// The training set as a matrix
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
 	// The vector weight
 	virtual double GetVectorWeight( int index ) const = 0;
@@ -83,10 +83,10 @@ public:
 	virtual int GetVectorCount() const = 0;
 
 	// Get a vector
-	virtual CSparseFloatVectorDesc GetVector( int index ) const = 0;
+	virtual CFloatVectorDesc GetVector( int index ) const = 0;
 
 	// The training set as a matrix
-	virtual CSparseFloatMatrixDesc GetMatrix() const = 0;
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
 	// The vector weight
 	virtual double GetVectorWeight( int index ) const = 0;

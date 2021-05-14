@@ -94,6 +94,32 @@ void CCudaMathEngine::VectorFill(const CIntHandle& result, int vectorSize, const
 	VectorFillHandleKernel<<<blockCount, threadCount>>>(GetRaw(result), vectorSize, GetRaw(value));
 }
 
+void CCudaMathEngine::VectorConvert(const CConstFloatHandle& from, const CIntHandle& to, int vectorSize)
+{
+	ASSERT_EXPR(from.GetMathEngine() == this);
+	ASSERT_EXPR(to.GetMathEngine() == this);
+	ASSERT_EXPR(vectorSize >= 0);
+
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorConvertCombineCount);
+
+	VectorConvertKernel<<<blockCount, threadCount>>>(GetRaw(from), GetRaw(to), vectorSize);
+}
+
+void CCudaMathEngine::VectorConvert(const CConstIntHandle& from, const CFloatHandle& to, int vectorSize)
+{
+	ASSERT_EXPR(from.GetMathEngine() == this);
+	ASSERT_EXPR(to.GetMathEngine() == this);
+	ASSERT_EXPR(vectorSize >= 0);
+
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorConvertCombineCount);
+
+	VectorConvertKernel<<<blockCount, threadCount>>>(GetRaw(from), GetRaw(to), vectorSize);
+}
+
 void CCudaMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float valueHandle, int seed )
 {
 	ASSERT_EXPR(result.GetMathEngine() == this);

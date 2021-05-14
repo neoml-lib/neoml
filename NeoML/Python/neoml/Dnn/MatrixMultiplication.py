@@ -16,44 +16,45 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
-from .Utils import check_input_layers
+from neoml.Utils import check_input_layers
 
 
 class MatrixMultiplication(Layer):
     """The layer that multiplies two sets of matrices.
     
-    Layer inputs
-    ----------
-    #1: the first set of matrices.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of matrices in the set
-    - Height * Width * Depth - the height of each matrix
-    - Channels - the width of each matrix
-    
-    #2: the second set of matrices.
-    The dimensions:
-    - BatchLength * BatchWidth * ListSize - the number of matrices in the set, 
-        must be the same as for the first input
-    - Height * Width * Depth - the height of each matrix, 
-        must be equal to Channels of the first input
-    - Channels - the width of each matrix
-    
-    Layer outputs
-    ----------
-    #1: the set of multiplication results.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, Height, Width, Depth 
-        the same as for the first input
-    - Channels the same as for the second input
-
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the first set of matrices.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of matrices in the set
+        - **Height** * **Width** * **Depth** - the height of each matrix
+        - **Channels** - the width of each matrix
+    
+    (2) the second set of matrices.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of matrices in the set, 
+          must be the same as for the first input
+        - **Height** * **Width** * **Depth** - the height of each matrix, 
+          must be equal to Channels of the first input
+        - **Channels** - the width of each matrix
+    
+    .. rubric:: Layer outputs:
+
+    (1) the set of multiplication results.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Height**, **Width**, **Depth** 
+          the same as for the first input
+        - **Channels** the same as for the second input
     """
 
     def __init__(self, input_layers, name=None):

@@ -15,7 +15,8 @@ limitations under the License.
 """
 
 import numpy
-from scipy.sparse import csr_matrix
+from .Utils import convert_data, get_data
+from scipy.sparse import csr_matrix, issparse
 import neoml.PythonWrapper as PythonWrapper
 
 class SvmClassificationModel :
@@ -27,52 +28,43 @@ class SvmClassificationModel :
     def classify(self, X):
         """Gets the classification results for the input sample.
 
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The input samples. Internally, it will be converted to
-            ``dtype=np.float32`` and if a sparse matrix is provided
+        :param X: the input sample. Internally, it will be converted to
+            ``dtype=np.float32``, and if a sparse matrix is provided -
             to a sparse ``csr_matrix``.
+        :type X:  {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Return values
-        -------
-        predictions : generator of ndarray of shape (n_samples, n_classes)
-            The predictions of the input samples.
+        :return: predictions of the input samples.
+        :rtype: *generator of ndarray of shape (n_samples, n_classes)*
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
-        return self.internal.classify(x.indices, x.data, x.indptr)
+        x = convert_data( X )
+        return self.internal.classify(*get_data(x))
 
 class SvmClassifier(PythonWrapper.Svm) :
-    """Support-vector machine algorithm translates the input data
-    into vectors in a high-dimensional space and searches 
-    for a maximum-margin dividing hyperplane.
+    """Support-vector machine (SVM) classifier.
 
-    
-    Parameters
-    ----------
-    kernel : {'linear', 'poly', 'rbf', 'sigmoid'}, default='linear'
-        The kernel function to be used.
+    :param kernel: the kernel function to be used.
+    :type kernel: str, {'linear', 'poly', 'rbf', 'sigmoid'}, default='linear'
 
-    max_iteration_count : int, default=1000
-        The maximum number of iterations.
+    :param max_iteration_count: the maximum number of iterations.
+    :type max_iteration_count: int, default=1000
 
-    error_weight : float, default=1.0
-        The error weight relative to the regularization function.
+    :param error_weight: the error weight relative to the regularization function.
+    :type error_weight: float, default=1.0
 
-    degree : int, default=1
-        The degree for the gaussian kernel.
+    :param degree: the degree for the gaussian kernel.
+    :type degree: int, default=1
 
-    gamma : float, default=1.0
-        The kernel coefficient (for 'poly', 'rbf', 'sigmoid').
+    :param gamma: the kernel coefficient for `poly`, `rbf`, `sigmoid`.
+    :type gamma: float, default=1.0
 
-    coeff0 : float, default=1.0
-        The kernel free term (for 'poly, 'sigmoid').
-    
-    tolerance : float, default=0.1
-        The algorithm precision.
-    
-    thread_count : int, default=1
-        The number of processing threads to be used while training the model.
+    :param coeff0: the kernel free term for `poly`, `sigmoid`.
+    :type coeff0: float, default=1.0
+
+    :param tolerance: the algorithm precision.
+    :type tolerance: float, default=0.1
+
+    :param thread_count: The number of processing threads to be used while training the model.
+    :type thread_count: int, default=1
     """
 
     def __init__(self, kernel='linear', max_iteration_count=1000, error_weight=1.0,
@@ -94,25 +86,21 @@ class SvmClassifier(PythonWrapper.Svm) :
     def train(self, X, Y, weight=None):
         """Trains the SVM classification model.
 
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The training sample. The values will be converted 
+        :param X: the training sample. The values will be converted 
             to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Y : array-like of shape (n_samples,)
-            Correct class labels (``int``) for the training set vectors.
+        :param Y: correct class labels (``int``) for the training set vectors.
+        :type Y: array-like of shape (n_samples,)
 
-        weight : array-like of shape (n_samples,), default=None
-            Sample weights. If None, then samples are equally weighted.
+        :param weight: sample weights. If None, then samples are equally weighted.
+        :type weight: array-like of shape (n_samples,), default=None
 
-        Return values
-        -------
-        model : object
-            The trained ``SvmClassificationModel``.
+        :return: the trained classification model.
+        :rtype: neoml.SVM.SvmClassificationModel
         """
-        x = csr_matrix( X, dtype=numpy.float32 )
+        x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.int32, copy=False )
 
         if x.shape[0] != y.size:
@@ -129,4 +117,4 @@ class SvmClassifier(PythonWrapper.Svm) :
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')
 
-        return SvmClassificationModel(super().train_classifier(x.indices, x.data, x.indptr, int(x.shape[1]), y, weight))
+        return SvmClassificationModel(super().train_classifier(*get_data(x), int(x.shape[1]), y, weight))

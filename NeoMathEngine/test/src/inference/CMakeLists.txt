@@ -34,6 +34,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyDiagMatrixByMatrixAndAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyDiagMatrixByMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyMatrixByTransposedMatrixTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/QrnnInferenceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ReorgTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixElementsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixRowsTest.cpp
@@ -45,6 +46,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorAddValueTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorBernulliKLDerivativeTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorConvertTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorDotProductTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseDivideTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseLogSumExpTest.cpp

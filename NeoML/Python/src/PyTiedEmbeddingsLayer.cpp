@@ -49,7 +49,7 @@ void InitializeTiedEmbeddingsLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CTiedEmbeddingsLayer> tied = new CTiedEmbeddingsLayer( mathEngine );
-			tied->SetName( name == "" ? findFreeLayerName( dnn, "TiedEmbeddings" ).c_str() : name.c_str() );
+			tied->SetName( FindFreeLayerName( dnn, "TiedEmbeddings", name ).c_str() );
 			tied->SetChannelIndex( channel );
 			tied->SetEmbeddingsLayerName( embeddingsName.c_str() );
 

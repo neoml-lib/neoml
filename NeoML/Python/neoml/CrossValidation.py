@@ -15,40 +15,45 @@ limitations under the License.
 """
 
 import numpy
-from scipy.sparse import csr_matrix
+from .Utils import convert_data, get_data
+from scipy.sparse import csr_matrix, issparse
 import neoml.PythonWrapper as PythonWrapper
 
 
-def cross_validation_score(classifier, X, Y, weights=None, score="accuracy", parts=5, stratified=False):
-    """Gets the classification results for the input sample.
+def cross_validation_score(classifier, X, Y, weight=None, score="accuracy", parts=5, stratified=False):
+    """Performs cross-validation of the given classifier on a set of data.
+    The input sample is divided into the specified number of parts, then each of them in turn serves as the testing set while all the others are taken for the training set.
+    Can calculate either accuracy or F-measure.
 
-    Parameters
-    ----------
-    X : {array-like, sparse matrix} of shape (n_samples, n_features)
-        The input vectors, put into a matrix. The values will be 
+    :param classifier: the classifier to be tested.
+    :type classifier: object
+
+    :param X: the input vectors, put into a matrix. The values will be 
         converted to ``dtype=np.float32``. If a sparse matrix is
         passed in, it will be converted to a sparse ``csr_matrix``.
+    :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
+        
+    :param Y: correct function values (``float``) for the training set vectors.
+    :type Y: array-like of shape (n_samples,)
 
-    Y : array-like of shape (n_samples,)
-        Correct function values (``float``) for the training set vectors.
+    :param weight: sample weights. If None, then all vectors are equally weighted.
+    :type weight: array-like of shape (n_samples,), default=None
 
-    weight : array-like of shape (n_samples,), default=None
-        Sample weights. If None, then samples are equally weighted.
-
-    score : {'accuracy', 'f1'}, default='accuracy'
+    :param score: the metric that should be calculated.
+    :type score: str, {'accuracy', 'f1'}, default='accuracy'
   
-    parts :
+    :param parts: the number of parts into which the input sample should be divided.
+    :type parts: int, default=5
 
-    stratified: "It is guaranteed that the ratio of classes in each part is (almost) the same as in the input data"
+    :param stratified: specifies if the input set should be divided so that 
+        the ratio of classes in each part is (almost) the same as in the input data.
+    :type stratified: bool, default=False
 
-
-    Return values
-    -------
-    predictions : generator of ndarray of shape (n_samples, n_classes)
-        The predictions of class probability for each input vector.
+    :return: the calculated metrics.
+    :rtype: *array-like of shape (parts,)*
     """
 
-    x = csr_matrix( X, dtype=numpy.float32 )
+    x = convert_data( X )
     y = numpy.array( Y, dtype=numpy.int32, copy=False )
 
     if x.shape[0] != y.size:
@@ -71,4 +76,4 @@ def cross_validation_score(classifier, X, Y, weights=None, score="accuracy", par
     if parts <= 0 or parts >= y.size / 2:
         raise ValueError('`parts` must be in (0, vectorCount).')
 
-    return PythonWrapper._cross_validation_score(classifier, x.indices, x.data, x.indptr, int(x.shape[1]), y, weight, score, parts, bool(stratified))
+    return PythonWrapper._cross_validation_score(classifier, *get_data(x), int(x.shape[1]), y, weight, score, parts, bool(stratified))

@@ -48,7 +48,7 @@ void InitializePositionalEmbeddingLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CPositionalEmbeddingLayer> pos = new CPositionalEmbeddingLayer( mathEngine );
 			pos->SetType(static_cast<CPositionalEmbeddingLayer::TPositionalEmbeddingType>(typeIndex));
-			pos->SetName( name == "" ? findFreeLayerName( dnn, "PositionalEmbedding" ).c_str() : name.c_str() );
+			pos->SetName( FindFreeLayerName( dnn, "PositionalEmbedding", name ).c_str() );
 			dnn.AddLayer( *pos );
 			pos->Connect( 0, layer1.BaseLayer(), outputNumber1 );
 			return new CPyPositionalEmbeddingLayer( *pos, layer1.MathEngineOwner() );

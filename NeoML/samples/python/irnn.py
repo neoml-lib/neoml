@@ -106,26 +106,26 @@ math_engine = neoml.MathEngine.CpuMathEngine(1)
 dnn = neoml.Dnn.Dnn(math_engine)
 
 # Create layers
-data = neoml.Source.Source(dnn, data_layer_name)  # Source for data
-labels = neoml.Source.Source(dnn, label_layer_name)  # Source for labels
+data = neoml.Dnn.Source(dnn, data_layer_name)  # Source for data
+labels = neoml.Dnn.Source(dnn, label_layer_name)  # Source for labels
 # (BatchWidth, Channels) -> (BatchLength, BatchWidth) for recurrent layer
-transpose = neoml.Transpose.Transpose(data, first_dim='batch_length',
-                                      second_dim='channels')
-irnn = neoml.Irnn.Irnn(transpose, hidden_size, identity_scale=1.,
-                       input_weight_std=1e-3, name='irnn')
+transpose = neoml.Dnn.Transpose(data, first_dim='batch_length',
+                                second_dim='channels')
+irnn = neoml.Dnn.Irnn(transpose, hidden_size, identity_scale=1.,
+                      input_weight_std=1e-3, name='irnn')
 # IRNN returns whole sequence, need to take only last element
-subseq = neoml.SubSequence.SubSequence(irnn, start_pos=-1,
-                                       length=1, name='subseq')
+subseq = neoml.Dnn.SubSequence(irnn, start_pos=-1,
+                               length=1, name='subseq')
 # Forming distribution (unsoftmaxed!)
-fc = neoml.FullyConnected.FullyConnected(subseq, n_classes, name='fc')
+fc = neoml.Dnn.FullyConnected(subseq, n_classes, name='fc')
 # Softmax is applied inside cross-entropy
-loss = neoml.Loss.CrossEntropyLoss((fc, labels), name='loss')
+loss = neoml.Dnn.CrossEntropyLoss((fc, labels), name='loss')
 # Auxilary layers in order to get statistics
-accuracy = neoml.Accuracy.Accuracy((fc, labels), name='accuracy')
-accuracy_sink = neoml.Sink.Sink(accuracy, name='accuracy_sink')
+accuracy = neoml.Dnn.Accuracy((fc, labels), name='accuracy')
+accuracy_sink = neoml.Dnn.Sink(accuracy, name='accuracy_sink')
 
 # Create solver
-dnn.solver = neoml.Solver.AdaptiveGradient(math_engine, learning_rate=lr,
+dnn.solver = neoml.Dnn.AdaptiveGradient(math_engine, learning_rate=lr,
                                            l1=0., l2=0.,  # No regularization
                                            max_gradient_norm=1.,  # clip grad
                                            moment_decay_rate=0.9,

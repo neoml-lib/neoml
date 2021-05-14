@@ -188,8 +188,9 @@ void CCpuMathEngine::CleanUp()
 #endif
 }
 
-void* CCpuMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t )
+void* CCpuMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t, bool exchange )
 {
+	(void) exchange; // always returned, no need to copy
 	return reinterpret_cast<char*>( GetRaw( handle ) ) + pos;
 }
 

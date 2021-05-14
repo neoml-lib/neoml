@@ -182,4 +182,7 @@ CPtr<T> AddLayer( const CString& layerName, const CArray<CBaseLayer*>& input )
 class CNeoMLTestFixture : public ::testing::Test {
 };
 
+class CNeoMlTestFixtureWithParams : public CNeoMLTestFixture, public ::testing::WithParamInterface<CTestParams> {
+};
+
 } // namespace NeoMLTest

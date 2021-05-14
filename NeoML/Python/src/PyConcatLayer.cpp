@@ -103,7 +103,7 @@ void InitializeConcatLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CConcatChannelsLayer> concat = new CConcatChannelsLayer( mathEngine );
-			concat->SetName( name == "" ? findFreeLayerName( dnn, "ConcatChannels" ).c_str() : name.c_str() );
+			concat->SetName( FindFreeLayerName( dnn, "ConcatChannels", name ).c_str() );
 			dnn.AddLayer( *concat );
 
 			for( int i = 0; i < inputs.size(); i++ ) {
@@ -125,7 +125,7 @@ void InitializeConcatLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CConcatWidthLayer> concat = new CConcatWidthLayer( mathEngine );
-			concat->SetName( name == "" ? findFreeLayerName( dnn, "ConcatWidth" ).c_str() : name.c_str() );
+			concat->SetName( FindFreeLayerName( dnn, "ConcatWidth", name ).c_str() );
 			dnn.AddLayer( *concat );
 
 			for( int i = 0; i < inputs.size(); i++ ) {
@@ -147,7 +147,7 @@ void InitializeConcatLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CConcatHeightLayer> concat = new CConcatHeightLayer( mathEngine );
-			concat->SetName( name == "" ? findFreeLayerName( dnn, "ConcatHeight" ).c_str() : name.c_str() );
+			concat->SetName( FindFreeLayerName( dnn, "ConcatHeight", name ).c_str() );
 			dnn.AddLayer( *concat );
 
 			for( int i = 0; i < inputs.size(); i++ ) {
@@ -169,7 +169,7 @@ void InitializeConcatLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CConcatDepthLayer> concat = new CConcatDepthLayer( mathEngine );
-			concat->SetName( name == "" ? findFreeLayerName( dnn, "ConcatDepth" ).c_str() : name.c_str() );
+			concat->SetName( FindFreeLayerName( dnn, "ConcatDepth", name ).c_str() );
 			dnn.AddLayer( *concat );
 
 			for( int i = 0; i < inputs.size(); i++ ) {
@@ -191,7 +191,7 @@ void InitializeConcatLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CConcatBatchWidthLayer> concat = new CConcatBatchWidthLayer( mathEngine );
-			concat->SetName( name == "" ? findFreeLayerName( dnn, "ConcatBatchWidth" ).c_str() : name.c_str() );
+			concat->SetName( FindFreeLayerName( dnn, "ConcatBatchWidth", name ).c_str() );
 			dnn.AddLayer( *concat );
 
 			for( int i = 0; i < inputs.size(); i++ ) {
@@ -213,7 +213,7 @@ void InitializeConcatLayer( py::module& m )
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
 			CPtr<CConcatObjectLayer> concat = new CConcatObjectLayer( mathEngine );
-			concat->SetName( name == "" ? findFreeLayerName( dnn, "ConcatObject" ).c_str() : name.c_str() );
+			concat->SetName( FindFreeLayerName( dnn, "ConcatObject", name ).c_str() );
 			dnn.AddLayer( *concat );
 
 			for( int i = 0; i < inputs.size(); i++ ) {

@@ -15,7 +15,8 @@ limitations under the License.
 """
 
 import numpy
-from scipy.sparse import csr_matrix
+from .Utils import convert_data, get_data
+from scipy.sparse import csr_matrix, issparse
 import neoml.PythonWrapper as PythonWrapper
 
 
@@ -29,51 +30,46 @@ class DecisionTreeClassificationModel:
     def classify(self, X):
         """Gets the classification results for the input sample.
 
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The input vectors, put into a matrix. The values will be 
+        :param X: the input vectors, put into a matrix. The values will be 
             converted to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Return values
-        -------
-        predictions : generator of ndarray of shape (n_samples, n_classes)
-            The predictions of class probability for each input vector.
+        :return: the predictions of class probability for each input vector.
+        :rtype: *generator of ndarray of shape (n_samples, n_classes)*
         """
-        x = csr_matrix(X, dtype=numpy.float32)
-        return self.internal.classify(x.indices, x.data, x.indptr)
+        x = convert_data(X)
+        return self.internal.classify(*get_data(x))
 
 
 class DecisionTreeClassifier(PythonWrapper.DecisionTree):
     """Decision tree classifier.
-    Parameters
-    ----------
-    criterion : {'gini', 'information_gain'}, default='gini'
-        The type of criterion to be used for subtree splitting.
 
-    min_subset_size : int, default=1
-        The minimum number of vectors corresponding to a node subtree. 
+    :param criterion: the type of criterion to be used for subtree splitting.
+    :type criterion: str, {'gini', 'information_gain'}, default='gini'
 
-    min_subset_part : float, [0..1], default=0.0
-        The minimum weight of the vectors in a subtree relative to the parent node weight.
+    :param min_subset_size: the minimum number of vectors corresponding to a node subtree.
+    :type min_subset_size: int, default=1
 
-    min_split_size : int, default=1
-        The minimum number of vectors in a node subtree when it may be divided further.
+    :param min_subset_part: the minimum weight of the vectors in a subtree relative to the parent node weight.
+    :type min_subset_part: float, [0..1], default=0.0
 
-    max_tree_depth : int, default=32
-        The maximum depth of the tree.
+    :param min_split_size: the minimum number of vectors in a node subtree when it may be divided further.
+    :type min_split_size: int, default=1
 
-    max_node_count : int, default=4096
-        The maximum number of nodes in the tree.
+    :param max_tree_depth: the maximum depth of the tree.
+    :type max_tree_depth: int, default=32
 
-    const_threshold : float, [0..1], default=0.99
-        If the ratio of same class elements in the subset is greater than this value,
+    :param max_node_count: the maximum number of nodes in the tree.
+    :type max_node_count: int, default=4096
+
+    :param const_threshold: if the ratio of same class elements in the subset is greater than this value,
         a constant node will be created.
+    :type const_threshold: float, [0..1], default=0.99
 
-    random_selected_feature_count : int, default=-1
-        No more than this number of randomly selected features will be used for each node.
+    :param random_selected_feature_count: no more than this number of randomly selected features will be used for each node.
         -1 means use all features every time.
+    :type random_selected_feature_count: int, default=-1
     """
 
     def __init__(self, criterion='gini', min_subset_size=1, min_subset_part=0.0, min_split_size=1, max_tree_depth=32,
@@ -102,26 +98,22 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
     def train(self, X, Y, weight=None):
         """Trains the decision tree.
 
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The training sample. The values will be converted 
+        :param X: the training sample. The values will be converted 
             to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Y : array-like of shape (n_samples,)
-            Correct class labels (``int``) for the training set vectors.
+        :param Y: correct class labels (``int``) for the training set vectors.
+        :type Y: array-like of shape (n_samples,)
 
-        weight : array-like of shape (n_samples,), default=None
-            Sample weights. If None, then samples are equally weighted.
+        :param weight: sample weights. If None, then samples are equally weighted.
+        :type weight: array-like of shape (n_samples,), default=None
 
-        Return values
-        -------
-        model : object
-            The trained ``DecisionTreeClassificationModel``.
+        :return: the trained classification model.
+        :rtype: neoml.DecisionTree.DecisionTreeClassificationModel
         """
 
-        x = csr_matrix(X, dtype=numpy.float32)
+        x = convert_data(X)
         y = numpy.array(Y, dtype=numpy.int32, copy=False)
 
         if x.shape[0] != y.size:
@@ -138,5 +130,4 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')
 
-        return DecisionTreeClassificationModel(super().train_classifier(x.indices, x.data, x.indptr, int(x.shape[1]),
-                                                                         y, weight))
+        return DecisionTreeClassificationModel(super().train_classifier(*get_data(x), int(x.shape[1]), y, weight))

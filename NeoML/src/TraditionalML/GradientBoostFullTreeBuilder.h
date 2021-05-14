@@ -53,7 +53,7 @@ public:
 	CPtr<CRegressionTree> Build( const CGradientBoostFullProblem& problem,
 		const CArray<typename T::Type>& gradients, const typename T::Type& gradientsSum,
 		const CArray<typename T::Type>& hessians, const typename T::Type& hessiansSum,
-		const CArray<float>& weights, float weightsSum );
+		const CArray<double>& weights, double weightsSum );
 
 protected:
 	virtual ~CGradientBoostFullTreeBuilder() {} // delete prohibited
@@ -71,16 +71,16 @@ private:
 	int nodesCount; // the number of nodes in the tree
 
 	CPtr<CGradientBoostNodeStatistics<T>> initialize( const CGradientBoostFullProblem& problem,
-		const typename T::Type& gradientSum, const typename T::Type& hessianSum, float weightSum );
+		const typename T::Type& gradientSum, const typename T::Type& hessianSum, double weightSum );
 	bool buildTreeLevel( const CGradientBoostFullProblem& problem, int level, const CArray<typename T::Type>& gradients,
-		const CArray<typename T::Type>& hessians, const CArray<float>& weights );
+		const CArray<typename T::Type>& hessians, const CArray<double>& weights );
 	void distributeVectorsByNodes( const CGradientBoostFullProblem& problem, int level );
 	void findSplits( const CGradientBoostFullProblem& problem, const CArray<typename T::Type>& gradients,
-		const CArray<typename T::Type>& hessians, const CArray<float>& weights );
+		const CArray<typename T::Type>& hessians, const CArray<double>& weights );
 	void findBinarySplits( int threadNumber, const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians,
-		const CArray<float>& weights, int feature, const int* ptr, int size );
+		const CArray<double>& weights, int feature, const int* ptr, int size );
 	void findSplits( int threadNumber, const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians,
-		const CArray<float>& weights, int feature, const CFloatVectorElement* ptr, int size );
+		const CArray<double>& weights, int feature, const CFloatVectorElement* ptr, int size );
 	void checkSplit( int feature, float firstValue, float secondValue, CThreadStatistics<T>& statistics ) const;
 	void mergeThreadResults();
 	bool split();

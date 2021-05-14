@@ -1,7 +1,7 @@
 
 
 git;https://tfs/HQ/Tools_Libs/_git/FineObjects14
-get;FineObjects;/;FineObjects14-master 14.0.41.0
+get;FineObjects;/;FineObjects14-master 14.0.50.0
 
 git;https://tfs/HQ/ThirdParty/_git/CUDA
 get;ThirdParty/CUDA;/;CUDA v11.2 1.0.1.0
@@ -13,7 +13,7 @@ git;https://tfs/HQ/ThirdParty/_git/MKL
 get;ThirdParty/MKL;/;MKL 2018 Update4 1.0.2.0
 
 git;https://tfs/HQ/Tools_Libs/_git/NeoMLTest
-get;NeoMLTest;/;NeoMLTest-master 1.0.32.0
+get;NeoMLTest;/;NeoMLTest-master 1.0.37.0
 
 copy;%ROOT%/../NeoML;%ROOT%/NeoML/NeoML
 copy;%ROOT%/../NeoMathEngine;%ROOT%/NeoML/NeoMathEngine
