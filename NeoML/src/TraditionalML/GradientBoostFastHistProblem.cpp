@@ -122,16 +122,6 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 
 	compressFeatureValues( threadCount, maxBins, totalWeight, featureValues );
 
-	printf("start\n");
-	for( int i = 0; i < featureValues.Size(); i++ ) {
-		for( int j = 0; j < featureValues[i].Size(); j++ ) {
-			if( fabs( featureValues[i][j].Value ) < 0.0001 ) {
-				printf("%f %f\n", featureValues[i][j].Value, featureValues[i][j].Weight);
-			}
-		}
-	}
-	printf("end\n");
-
 	// Initializing the internal arrays
 	nullValueIds.Add( NotFound, featureValues.Size() );
 	featurePos.SetBufferSize( featureValues.Size() );
@@ -208,7 +198,7 @@ void CGradientBoostFastHistProblem::buildVectorData( const CFloatMatrixDesc& mat
 		matrix.GetRow( i, vector );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			if( vector.Values[j] != 0.0 ) {
+			if( fabs( vector.Values[j] ) > 0.00001 ) {
 				++curVectorPtr;
 				const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
 				float* valuePtr = cuts.GetPtr() + featurePos[index]; // the pointer to this feature values

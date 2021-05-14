@@ -150,16 +150,14 @@ void CGradientBoostFastHistTreeBuilder<T>::initHistData( const CGradientBoostFas
 
 	idPos.Empty();
 	idPos.Add( NotFound, featurePos.Last() );
-	histIds.Empty();
+	histSize = 0;
 	for( int i = 0; i < usedFeatures.Size(); i++ ) {
 		const int featureIndex = usedFeatures[i];
 		for( int j = featurePos[featureIndex]; j < featurePos[featureIndex + 1]; j++ ) {
-			idPos[j] = histIds.Size();
-			histIds.Add( j );
+			idPos[j] = histSize;
+			histSize++;
 		}
 	}
-
-	histSize = histIds.Size();
 
 	// The histogram size of tree depth + 1 is sufficient
 	histStats.Add( T( predictionSize ), histSize * ( params.MaxTreeDepth + 1 ) );

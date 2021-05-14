@@ -100,7 +100,6 @@ private:
 	CArray<int> freeHists; // free histograms list
 	CArray<T> histStats; // the array for storing histograms
 	CArray<int> idPos; // the identifier positions in the current histogram
-	CArray<int> histIds; // histogram bins identifiers
 	CArray<T> tempHistStats; // a temporary array for building histograms
 
 	// Caching the buffers
