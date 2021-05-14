@@ -37,7 +37,7 @@ void AvxMultiplyMatrixSelected( bool transA, bool transB,
 	float* cPtr, size_t cRowSize,
 	size_t m, size_t n, size_t k )
 {
-	const CCPUInfo& cpuinfo = CCPUInfo::GetCPUInfo();
+	static const CCPUInfo& cpuinfo = CCPUInfo::GetCPUInfo();
 
 	unsigned char transSelector = ( transA ? 0b10 : 0 ) + ( transB ? 0b01 : 0 );
 	switch( transSelector ) {

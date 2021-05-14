@@ -25,6 +25,8 @@ limitations under the License.
 #error "Platform isn't supported!"
 #endif
 
+#endif // !FINE_ARCHITECTURE( FINE_ARM64 )
+
 #include <cstring>
 
 
@@ -49,111 +51,163 @@ struct CCPUInfo {
 
 
 	// Try to retrieve CPU info from hardware. Returns nullptr if feature isn't implemented.
-	static const CCPUInfo& GetCPUInfo()
+	static CCPUInfo GetCPUInfo()
 	{
-		static CCPUInfo cpuInfo;
-		static bool cpuInfoInitialized = false;
+		CCPUInfo cpuInfo;
 
-		if( !cpuInfoInitialized ) {
-			Regs regs;
-			switch( GetCpuArch() ) {
-			case TCpuArch::Intel:
-			{
+		Regs regs;
+		switch( GetCpuArch() ) {
+		case TCpuArch::Intel:
+		{
+			// Get cache size
+			auto calcCacheSize = [&]( int cacheNumber ) -> int {
+				// Cache Size in Bytes
+				// = (Ways + 1) * (Partitions + 1) * (Line_Size + 1) * (Sets + 1)
+				// = (EBX[31:22] + 1) * (EBX[21:12] + 1) * (EBX[11:0] + 1) * (ECX + 1)
+
+				// Get Ways, Partitions, Line_size and Sets
+				callCpuIdEx( regs, 4, cacheNumber );
+				int ways = ( regs.ebx >> 22 ) & 0x3ff; // EBX[31:22]
+				int partitions = ( regs.ebx >> 12 ) &0x3ff; // EBX[21:12]
+				int lineSize = regs.ebx & 0xfff; // EBX[11:0]
+				int sets = regs.ecx;
+
 				// Get cache size
-				auto calcCacheSize = [&]( int cacheNumber ) -> int {
-					// Cache Size in Bytes
-					// = (Ways + 1) * (Partitions + 1) * (Line_Size + 1) * (Sets + 1)
-					// = (EBX[31:22] + 1) * (EBX[21:12] + 1) * (EBX[11:0] + 1) * (ECX + 1)
+				callCpuIdEx( regs, 4, 1 );
+				return  ( ways + 1 ) * ( partitions + 1 ) * ( lineSize + 1 ) * (sets + 1 );
+			};
 
-					// Get Ways, Partitions, Line_size and Sets
-					callCpuIdEx( regs, 4, cacheNumber );
-					int ways = ( regs.ebx >> 22 ) & 0x3ff; // EBX[31:22]
-					int partitions = ( regs.ebx >> 12 ) &0x3ff; // EBX[21:12]
-					int lineSize = regs.ebx & 0xfff; // EBX[11:0]
-					int sets = regs.ecx;
-
-					// Get cache size
-					callCpuIdEx( regs, 4, 1 );
-					return  ( ways + 1 ) * ( partitions + 1 ) * ( lineSize + 1 ) * (sets + 1 );
-				};
-
-				cpuInfo.L1CacheSize = calcCacheSize( 1 );
-				cpuInfo.L2CacheSize = calcCacheSize( 2 );
-				cpuInfo.L3CacheSize = calcCacheSize( 3 );
-				break;
-			}
-			case TCpuArch::AMD:
-			{
-				// Get cache size
-				// L1 Data Cache Information
-				callCpuId( regs, 0x80000005 );
-				cpuInfo.L1CacheSize = ( ( regs.ecx >> 24 ) & 0xff ) * 1024; // ECX[31:24] - L1 data cache size in KB
-				callCpuId( regs, 0x80000006 );
-				cpuInfo.L2CacheSize = ( ( regs.ecx >> 16 ) & 0xffff ) * 1024; // ECX[31:16] - L2 data cache size in KB
-				callCpuId( regs, 0x80000006 );
-				cpuInfo.L3CacheSize = ( ( regs.edx >> 18 ) & 0x3fff ) * 512 * 1024; // EDX[31:18] - L3 data cache size in KB
-				break;
-			}
-			default:
-				break;
-			}
-			cpuInfoInitialized = true;
+			cpuInfo.L1CacheSize = calcCacheSize( 1 );
+			cpuInfo.L2CacheSize = calcCacheSize( 2 );
+			cpuInfo.L3CacheSize = calcCacheSize( 3 );
+			break;
 		}
+		case TCpuArch::AMD:
+		{
+			// Get cache size
+			// L1 Data Cache Information
+			callCpuId( regs, 0x80000005 );
+			cpuInfo.L1CacheSize = ( ( regs.ecx >> 24 ) & 0xff ) * 1024; // ECX[31:24] - L1 data cache size in KB
+			callCpuId( regs, 0x80000006 );
+			cpuInfo.L2CacheSize = ( ( regs.ecx >> 16 ) & 0xffff ) * 1024; // ECX[31:16] - L2 data cache size in KB
+			callCpuId( regs, 0x80000006 );
+			cpuInfo.L3CacheSize = ( ( regs.edx >> 18 ) & 0x3fff ) * 512 * 1024; // EDX[31:18] - L3 data cache size in KB
+			break;
+		}
+		default:
+			break;
+		}
+
 		return cpuInfo;
 	}
 
 	static TCpuArch GetCpuArch() {
-		static bool isInitialized = false;
-		static TCpuArch cpuArch = TCpuArch::Others;
-		if( !isInitialized ) {
-			Regs regs;
-			callCpuId( regs, 0 );
-			// ebx, ecx, edx contain architecture description
-			if( strncmp( ( const char* )( &regs.ebx ), "GenuntelineI", 12 ) == 0 ) {
-				cpuArch = TCpuArch::Intel;
-			} else if ( strncmp( ( const char* )( &regs.ebx ), "AuthcAMDenti", 12 ) == 0 ) {
-				cpuArch = TCpuArch::AMD;
-			}
-			isInitialized = true;
+		Regs regs;
+		callCpuId( regs, 0 );
+		// ebx, ecx, edx contain architecture description
+		if( strncmp( ( const char* )( &regs.ebx ), "GenuntelineI", 12 ) == 0 ) {
+			return TCpuArch::Intel;
+		} else if ( strncmp( ( const char* )( &regs.ebx ), "AuthcAMDenti", 12 ) == 0 ) {
+			return TCpuArch::AMD;
+		} else {
+			return TCpuArch::Others;
 		}
-		return cpuArch;
+	}
+
+	// Defines the float alignment
+	static int DefineFloatAlignment()
+	{
+#ifdef NEOML_USE_NEON
+		return 4;
+#else
+		int floatAlignment = 4; // SSE alignment
+
+		Regs regs;
+		callCpuId( regs, 1 );
+
+		// avx and osxsave
+		const int AvxFlag = ( 1 << 28 ) + ( 1 << 27 );
+
+		if( (regs.ecx & AvxFlag) == AvxFlag ) {
+#if FINE_PLATFORM(FINE_WINDOWS)
+			// AVX supported
+			// Check OS support (if it keeps AVX register when switching contexts - OSXSAVE)
+			int64_t res = _xgetbv(_XCR_XFEATURE_ENABLED_MASK);
+			const int64_t OsFlag = 0x6;
+			if((res & OsFlag) == OsFlag) {
+				// AVX supported, change the alignment for better operation of mkl
+				floatAlignment = 8;
+			}
+#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
+			floatAlignment = 8;
+#elif
+#error "Platform isn't supported!"
+#endif
+		}
+
+		return floatAlignment;
+#endif // NEOML_USE_NEON
+	}
+
+	static bool IsAvxAndFmaAvailable()
+	{
+		Regs regs;
+		callCpuId( regs, 1 );
+
+		const unsigned int AvxAndFmaBits = ( 1 << 28 ) + ( 1 << 12 );
+		bool AvxAndFmaAreAvailable = ( regs.ecx & AvxAndFmaBits ) == AvxAndFmaBits;
+
+
+		return AvxAndFmaAreAvailable;
+	}
+
+	static bool IsAvx512Available()
+	{
+		Regs regs;
+		callCpuIdEx( regs, 7, 0 );
+
+		// Check avx512_f bit in EBX ( any CPU with AVX512 has this bit )
+		bool AnyAvx512IsAvailable = regs.ebx & ( 1 << 16 );
+
+		return AnyAvx512IsAvailable;
 	}
 
 private:
 
 #if FINE_PLATFORM(FINE_WINDOWS)
-		typedef int RegType;
+	typedef int RegType;
 #elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
-		typedef unsigned int RegType;
+	typedef unsigned int RegType;
 #else
-	#error "Platform isn't supported!"
+#error "Platform isn't supported!"
 #endif
-		struct Regs {
-			RegType eax;
-			RegType ebx;
-			RegType ecx;
-			RegType edx;
-		};
+	struct Regs {
+		RegType eax;
+		RegType ebx;
+		RegType ecx;
+		RegType edx;
+	};
 
-		static void callCpuId( Regs& outRegs, const RegType& eax ) {
+	static void callCpuId( Regs& outRegs, const RegType& eax ) {
+		outRegs = { 0, 0, 0, 0 };
+#if !FINE_ARCHITECTURE( FINE_ARM64 )
 #if FINE_PLATFORM(FINE_WINDOWS)
-			outRegs = { 0, 0, 0, 0 };
-			__cpuid( ( RegType* )( &outRegs ), eax );
+		__cpuid( ( RegType* )( &outRegs ), eax );
 #elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
-			outRegs = { 0, 0, 0, 0 };
-			__get_cpuid( eax, &outRegs.eax, &outRegs.ebx, &outRegs.ecx, &outRegs.edx );
+		__get_cpuid( eax, &outRegs.eax, &outRegs.ebx, &outRegs.ecx, &outRegs.edx );
 #endif
-		}
-
-		static void callCpuIdEx( Regs& outRegs, const RegType& eax, const RegType& ecx ) {
-#if FINE_PLATFORM(FINE_WINDOWS)
-			outRegs = { 0, 0, 0, 0 };
-			__cpuidex((RegType*)( &outRegs ), eax, ecx );
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
-			outRegs = { 0, 0, 0, 0 };
-			__cpuid_count( eax, ecx, outRegs.eax, outRegs.ebx, outRegs.ecx, outRegs.edx );
-#endif
-		}
-};
-
 #endif // !FINE_ARCHITECTURE( FINE_ARM64 )
+	}
+
+	static void callCpuIdEx( Regs& outRegs, const RegType& eax, const RegType& ecx ) {
+		outRegs = { 0, 0, 0, 0 };
+#if !FINE_ARCHITECTURE( FINE_ARM64 )
+#if FINE_PLATFORM(FINE_WINDOWS)
+		__cpuidex((RegType*)( &outRegs ), eax, ecx );
+#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+		__cpuid_count( eax, ecx, outRegs.eax, outRegs.ebx, outRegs.ecx, outRegs.edx );
+#endif
+#endif // !FINE_ARCHITECTURE( FINE_ARM64 )
+	}
+
+};
