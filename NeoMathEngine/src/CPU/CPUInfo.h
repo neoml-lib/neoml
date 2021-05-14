@@ -176,10 +176,8 @@ private:
 
 #if FINE_PLATFORM(FINE_WINDOWS)
 	typedef int RegType;
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
-	typedef unsigned int RegType;
 #else
-#error "Platform isn't supported!"
+	typedef unsigned int RegType;
 #endif
 	struct Regs {
 		RegType eax;
