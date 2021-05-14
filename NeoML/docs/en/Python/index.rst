@@ -82,7 +82,7 @@ Tutorials
 
 Here are several guides that walk you through using NeoML for simple practical tasks, illustrating the specifics of building NeoML networks, working with the blob data format, and evaluating the performance.
 
-- :ref:`Neural network for CIFAR-10 dataset <tutorials/Cifar10.ipynb>`
+- :ref:`tutorials/Cifar10.ipynb`
 - :ref:`Identity recurrent neural network (IRNN) <tutorials/IRNN.ipynb>`
 - :ref:`Linear classifier <tutorials/Linear.ipynb>`
 - :ref:`k-means clustering <tutorials/KMeans.ipynb>`
