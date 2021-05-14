@@ -20,7 +20,11 @@ limitations under the License.
 #include <MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h>
 
 #include <Interleavers.h>
-#include <Kernels_6x.h>
+#include <Kernel_AVX_6x16.h>
+#include <Kernel_AVX_6x8.h>
+#include <Kernel_AVX_6x4.h>
+#include <Kernel_AVX_6x2.h>
+#include <Kernel_AVX_6x1.h>
 
 namespace NeoML {
 

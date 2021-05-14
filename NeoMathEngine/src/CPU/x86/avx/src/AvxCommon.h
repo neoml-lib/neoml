@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
+#pragma once
+
 #include <immintrin.h>
 
 #define PERMUTE2( p1, p0 ) ( ( p0 << 0 ) + ( p1 << 4 ) )
@@ -21,3 +23,14 @@ limitations under the License.
 #define BLEND8( b7, b6, b5, b4, b3, b2, b1, b0 ) ( b0 + ( b1 << 1 ) + ( b2 << 2 ) + ( b3 << 3 ) + \
 	( b4 << 4 ) + ( b5 << 5 ) + ( b6 << 6 ) + ( b7 << 7 ) )
 #define SHUFFLE4( s3, s2, s1, s0 ) ( ( s3 << 3 ) + ( s2 << 2 ) + ( s1 << 1 ) + ( s0 << 0 ) )
+
+#ifndef _mm256_loadu2_m128
+#define _mm256_loadu2_m128( hiAddr, loAddr ) \
+  _mm256_insertf128_ps( _mm256_castps128_ps256( _mm_loadu_ps ( loAddr ) ), _mm_loadu_ps( hiAddr ), 1 )
+#endif
+
+#ifndef _mm256_storeu2_m128
+#define _mm256_storeu2_m128( hiAddr, loAddr, data ) \
+  _mm_storeu_ps ( loAddr, _mm256_castps256_ps128( data ) ); \
+  _mm_storeu_ps ( hiAddr, _mm256_extractf128_ps( data, 1) )
+#endif
