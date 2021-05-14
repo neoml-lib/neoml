@@ -19,89 +19,6 @@ limitations under the License.
 #include "PyLossLayer.h"
 #include "PyDnnBlob.h"
 
-class CPyLossLayer : public CPyLayer {
-public:
-	explicit CPyLossLayer( CLossLayer& layer, CPyMathEngineOwner& mathEngineOwner ) :
-		CPyLayer( layer, mathEngineOwner ) {}
-
-	float GetLastLoss() const { return Layer<CLossLayer>()->GetLastLoss(); }
-
-	float GetLossWeight() const { return Layer<CLossLayer>()->GetLossWeight(); }
-	void SetLossWeight( float lossWeight ) { Layer<CLossLayer>()->SetLossWeight(lossWeight); }
-
-	bool GetTrainLabels() const { return Layer<CLossLayer>()->TrainLabels(); }
-	void SetTrainLabels( bool toSet ) { Layer<CLossLayer>()->SetTrainLabels(toSet); }
-
-	float GetMaxGradientValue() const { return Layer<CLossLayer>()->GetMaxGradientValue(); }
-	void SetMaxGradientValue(float maxValue) { Layer<CLossLayer>()->SetMaxGradientValue(maxValue); }
-};
-
-//------------------------------------------------------------------------------------------------------------
-
-class CPythonLossLayer : public CLossLayer {
-	NEOML_DNN_LAYER( CPythonLossLayer )
-public:
-	CPythonLossLayer( IMathEngine& mathEngine ) :
-		CLossLayer( mathEngine, "CCustomLossLayer" ), pyObject(), mathEngineOwner() {}
-
-	CPythonLossLayer( CPyMathEngineOwner& _mathEngineOwner, const py::object& obj ) :
-		CLossLayer( _mathEngineOwner.MathEngine(), "CCustomLossLayer" ), pyObject( obj ), mathEngineOwner( &_mathEngineOwner ) {}
-
-	py::object PyObject() const { return pyObject; }
-
-protected:
-	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
-		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override
-	{
-	/*	CGradientTape tape;
-
-		CPtr<CTapeBlob> dataBlob( new CTapeBlob( &tape, data, batchSize, vectorSize, 1, 1 ) );
-		CPyBlob dataPyBlob( *mathEngineOwner, dataBlob );
-
-		CPtr<CTapeBlob> labelBlob( new CTapeBlob( 0, data, batchSize, vectorSize, 1, 1 ) );
-		CPyBlob labelPyBlob( *mathEngineOwner, labelBlob );
-
-		CPyBlob result = pyObject.attr("_calc_loss")( dataPyBlob, labelPyBlob ).cast<CPyBlob>();
-
-		CPtr<CDnnBlob> value = result.Blob();
-		mathEngineOwner->MathEngine().VectorCopy( lossValue, value->GetData(), batchSize );
-
-		if( !lossGradient.IsNull() ) {
-			CPtr<const CDnnBlob> gradient = tape.Gradient( result, 0 );
-			mathEngineOwner->MathEngine().VectorCopy( lossGradient, gradient->GetData(), batchSize * vectorSize );
-		}*/
-	}
-
-	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
-		int labelSize, CFloatHandle lossValue, CFloatHandle dataLossGradient, CFloatHandle labelLossGradient) override
-	{
-	}
-	void BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize, CConstIntHandle label,
-		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override
-	{
-
-	}
-
-private:
-	py::object pyObject;
-	CPtr<CPyMathEngineOwner> mathEngineOwner;
-};
-
-class CPyCustomLossLayer : public CPyLossLayer {
-public:
-	explicit CPyCustomLossLayer( CPythonLossLayer& layer, CPyMathEngineOwner& mathEngineOwner ) :
-		CPyLossLayer( layer, mathEngineOwner ) {}
-
-	py::object CreatePythonObject() const
-	{
-		return Layer<CPythonLossLayer>()->PyObject();
-	}
-};
-
-REGISTER_NEOML_LAYER( CPythonLossLayer, "NeoMLCustomLossLayer" )
-
-//------------------------------------------------------------------------------------------------------------
-
 class CPyCrossEntropyLossLayer : public CPyLossLayer {
 public:
 	explicit CPyCrossEntropyLossLayer( CCrossEntropyLossLayer& layer, CPyMathEngineOwner& mathEngineOwner ) :
@@ -281,33 +198,6 @@ void InitializeLossLayer( py::module& m )
 
 		.def( "get_max_gradient", &CPyLossLayer::GetMaxGradientValue, py::return_value_policy::reference )
 		.def( "set_max_gradient", &CPyLossLayer::SetMaxGradientValue, py::return_value_policy::reference )
-	;
-
-//------------------------------------------------------------------------------------------------------------
-
-	py::class_<CPyCustomLossLayer, CPyLossLayer>(m, "CustomLoss")
-		.def( py::init([]( const CPyLayer& layer )
-		{
-			return CPyCustomLossLayer( *layer.Layer<CPythonLossLayer>(), layer.MathEngineOwner() );
-		}))
-		.def( py::init([]( const py::object& object, const std::string& name, const py::list& layers, const py::list& outputs,
-			float lossWeight )
-		{
-			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
-			IMathEngine& mathEngine = dnn.GetMathEngine();
-
-			CPtr<CPythonLossLayer> loss = new CPythonLossLayer( layers[0].cast<CPyLayer>().MathEngineOwner(), object );
-			loss->SetLossWeight( lossWeight );
-			loss->SetName( FindFreeLayerName( dnn, "CustomLoss", name ).c_str() );
-			dnn.AddLayer( *loss );
-			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
-			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
-			if( layers.size() == 3 ) {
-				loss->Connect( 2, layers[2].cast<CPyLayer>().BaseLayer(), outputs[2].cast<int>() );
-			}
-
-			return CPyCustomLossLayer( *loss, layers[0].cast<CPyLayer>().MathEngineOwner() );
-		}) )
 	;
 
 //------------------------------------------------------------------------------------------------------------

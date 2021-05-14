@@ -740,31 +740,52 @@ class MultiSquaredHingeLoss(Loss):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class CustomLoss(Loss, metaclass=ABCMeta):
+class CustomLossCalculatorBase(metaclass=ABCMeta):
     """
     """
-    def __init__(self, input_layers, loss_weight=1.0, name=None):
+    def __init__(self, math_engine):
+        self._math_engine = math_engine
+
+    @property
+    def math_engine(self):
+        return self._math_engine
+
+    @abstractmethod
+    def calc(self, data, labels):
+        """
+        """
+
+class CustomLoss(Loss):
+    """
+    """
+    def __init__(self, input_layers, loss_calculator=None, loss_weight=1.0, name=None):
+        if type(input_layers) is PythonWrapper.CustomLoss:
+            super().__init__(input_layers)
+            return
 
         layers, outputs = check_input_layers(input_layers, (2, 3))
 
-        internal = PythonWrapper.CustomLoss(self, str(name), layers, outputs, float(loss_weight))
+        if not isinstance(loss_calculator, CustomLossCalculatorBase):
+            raise ValueError("The 'loss_calculator' must be a instance of neoml.CustomLossCalculatorBase.")
+
+        internal = PythonWrapper.CustomLoss(loss_calculator, str(name), layers, outputs, float(loss_weight))
         super().__init__(internal)
 
-    @abstractmethod
-    def calc_loss(self, data, labels):
-        """
-        """
+# ----------------------------------------------------------------------------------------------------------------------
 
-    def _calc_loss(self, data, labels):
-        data_blob = Blob.Blob(data)
-        labels_blob = Blob.Blob(labels)
-        loss = self.calc_loss(data_blob, labels_blob)
 
-        if not type(loss) is Blob.Blob:
-            raise ValueError("The result of 'calc_loss' must be neoml.Blob.")
+def call_loss_calculator(data, labels, loss_calculator):
+    """
+    """
+    data_blob = Blob.Blob(data)
+    labels_blob = Blob.Blob(labels)
 
-        if loss.size != data_blob.object_count:
-            raise ValueError("The result of 'calc_loss' must have size == data.object_count.")
+    loss = loss_calculator.calc(data_blob, labels_blob)
 
-        return loss._internal
+    if not type(loss) is Blob.Blob:
+        raise ValueError("The result of 'calc' must be neoml.Blob.")
 
+    if loss.size != data_blob.object_count:
+        raise ValueError("The result of 'calc' must have size == data.object_count.")
+
+    return loss._internal

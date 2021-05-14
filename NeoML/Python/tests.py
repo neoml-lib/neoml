@@ -1858,6 +1858,17 @@ class PoolingTestCase(TestCase):
         self.assertAlmostEqual(irnn.input_weight_std, input_weight_std, delta=1e-5)
         self.assertEqual(a.shape, (batch_length, batch_width, 1, 1, 1, 1, hidden_size))
 
+class BinaryCrossEntropyCalculator(neoml.Dnn.CustomLossCalculatorBase):
+    """
+    """
+    def __init__(self, math_engine):
+        super().__init__(math_engine)
+
+    def calc(self, data, labels):
+        """
+        """
+        return neoml.AutoDiff.binary_cross_entropy(data, labels, True)
+
 class LossTestCase(TestCase):
     def _test_loss(self, layer, kwargs={},
                    n_classes=2,
@@ -1886,6 +1897,28 @@ class LossTestCase(TestCase):
             self.assertEqual(getattr(loss, k), getattr(layer, k))
         self.assertAlmostEqual(loss.last_loss, last_loss, delta=1e-3)
         self.assertAlmostEqual(layer.last_loss, last_loss, delta=1e-3)
+
+    def test_custom_loss(self):
+        shape = (2, 3, 1, 1, 1, 1, 1)
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source1 = neoml.Dnn.Source(dnn, "source1")
+        source2 = neoml.Dnn.Source(dnn, "source2")
+        source3 = neoml.Dnn.Source(dnn, "source3")
+        loss = neoml.Dnn.CustomLoss((source1, source2, source3), name="loss", loss_weight=7.7,
+                                    loss_calculator=BinaryCrossEntropyCalculator(math_engine))
+        layer = dnn.layers['loss']
+        self.assertEqual(layer.name, 'loss')
+
+        input1 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
+        input2 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
+        input3 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
+
+        inputs = {"source1": input1, "source2": input2, "source3": input3}
+        dnn.run(inputs)
+
+        self.assertAlmostEqual(loss.last_loss, 0.313261, delta=1e-3)
+        self.assertAlmostEqual(layer.last_loss, 0.313261, delta=1e-3)
 
     def test_cross_entropy_loss(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
