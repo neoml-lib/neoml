@@ -122,6 +122,16 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 
 	compressFeatureValues( threadCount, maxBins, totalWeight, featureValues );
 
+	printf("start\n");
+	for( int i = 0; i < featureValues.Size(); i++ ) {
+		for( int j = 0; j < featureValues[i].Size(); j++ ) {
+			if( fabs( featureValues[i][j].Value ) < 0.0001 ) {
+				printf("%f %f\n", featureValues[i][j].Value, featureValues[i][j].Weight);
+			}
+		}
+	}
+	printf("end\n");
+
 	// Initializing the internal arrays
 	nullValueIds.Add( NotFound, featureValues.Size() );
 	featurePos.SetBufferSize( featureValues.Size() );
