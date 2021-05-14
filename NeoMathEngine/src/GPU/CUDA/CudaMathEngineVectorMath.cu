@@ -261,7 +261,7 @@ void CCudaMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float
 
 	const int firstSize = gradHeight == 1 ? gradWidth : gradHeight;
 	const int gradSize = gradHeight == 1 ? 1 : gradWidth;
-	const int gradNorm = ( gradSize + VectorMinMaxDiffCombine - 1 ) / VectorMinMaxDiffCombine;
+	const int gradNorm = ( gradSize + VectorMaxDiffCombineCount - 1 ) / VectorMaxDiffCombineCount;
 
 	dim3 blockCount;
 	dim3 threadCount;
