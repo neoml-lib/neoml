@@ -647,7 +647,7 @@ public:
 		const CBlobDesc& result ) = 0;
 
 	virtual void BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& desc,
-		const CFloatHandle& source, const CIntHandle& maxIndices, const CFloatHandle& result ) = 0;
+		const CConstFloatHandle& source, const CIntHandle& maxIndices, const CFloatHandle& result ) = 0;
 	virtual void BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& desc,
 		const CFloatHandle& outputDiff, const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) = 0;
 
