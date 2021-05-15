@@ -15,218 +15,78 @@ limitations under the License.
 """
 
 import neoml.PythonWrapper as PythonWrapper
+from neoml.MathEngine import MathEngine
 from neoml.Blob import Blob
+import numpy
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-def const(math_engine, shape, value):
-    """
-    """
-    if not isinstance(math_engine, MathEngine.MathEngine):
-        raise ValueError('The `math_engine` must be neoml.MathEngine.')
-
-    np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
-
-    if len(np_shape.shape) > 7:
-        raise ValueError('The `shape` must have not more then 7 dimensions.')
-    
-    return Blob(PythonWrapper.blob_const(mathEngine._internal, np_shape, float(value)))
 
 def const(math_engine, shape, data):
     """
     """
-    if not isinstance(math_engine, MathEngine.MathEngine):
+    if not isinstance(math_engine, MathEngine):
         raise ValueError('The `math_engine` must be neoml.MathEngine.')
 
     np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
 
     if len(np_shape.shape) > 7:
         raise ValueError('The `shape` must have not more then 7 dimensions.')
+
+    if numpy.isscalar(data):
+        return Blob(PythonWrapper.blob_const(math_engine._internal, np_shape, float(data)))
 
     np_data = numpy.array(data, copy=False, order='C')
 
     if len(np_data.shape) > 7:
         raise ValueError('The `shape` must have not more then 7 dimensions.')
-    
-    return Blob(PythonWrapper.blob_const(mathEngine._internal, np_shape, np_data))
+
+    return Blob(PythonWrapper.blob_const(math_engine._internal, np_shape, np_data))
 
 def add(a, b):
+    """Elementwise sum of two blobs or blob with a scalar
     """
-    """
-    if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
+    if not type(a) is Blob and not type(b) is Blob:
+        raise ValueError('`a` or `b` must be neoml.Blob.')
 
-    if not type(b) is Blob:
-        raise ValueError('`b` must be neoml.Blob.')
-
-    if a.shape != b.shape:
-        raise ValueError("The blobs must have the same shape.")
-
-    if a.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_add(a._internal, b._internal))
-
-def add(a, b):
-    """
-    """
-    if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
-
-    if a.size == 0:
-        raise ValueError("The blob mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_add(a._internal, float(b)))
-
-def add(a, b):
-    """
-    """
-    if not type(b) is Blob:
-        raise ValueError('`b` must be neoml.Blob.')
-
-    if b.size == 0:
-        raise ValueError("The blob mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_add(float(a), b._internal))
+    return a + b
 
 def sub(a, b):
+    """Elementwise sub of two blobs or blob with a scalar
     """
-    """
-    if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
+    if not type(a) is Blob and not type(b) is Blob:
+        raise ValueError('`a` or `b` must be neoml.Blob.')
 
-    if not type(b) is Blob:
-        raise ValueError('`b` must be neoml.Blob.')
-
-    if a.shape != b.shape:
-        raise ValueError("The blobs must have the same shape.")
-
-    if a.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_sub(a._internal, b._internal))
-
-def sub(a, b):
-    """
-    """
-    if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
-
-    if a.size == 0:
-        raise ValueError("The blob mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_sub(a._internal, float(b)))
-
-def sub(a, b):
-    """
-    """
-    if not type(b) is Blob:
-        raise ValueError('`b` must be neoml.Blob.')
-
-    if b.size == 0:
-        raise ValueError("The blob mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_sub(float(a), b._internal))
+    return a - b
 
 def mult(a, b):
+    """Elementwise mult of two blobs or blob with a scalar
     """
-    """
-    if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
+    if not type(a) is Blob and not type(b) is Blob:
+        raise ValueError('`a` or `b` must be neoml.Blob.')
 
-    if not type(b) is Blob:
-        raise ValueError('`b` must be neoml.Blob.')
-
-    if a.shape != b.shape:
-        raise ValueError("The blobs must have the same shape.")
-
-    if a.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_mult(a._internal, b._internal))
-
-def mult(a, b):
-    """
-    """
-    if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
-
-    if a.size == 0:
-        raise ValueError("The blob mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_mult(a._internal, float(b)))
-
-def mult(a, b):
-    """
-    """
-    if not type(b) is Blob:
-        raise ValueError('`b` must be neoml.Blob.')
-
-    if b.size == 0:
-        raise ValueError("The blob mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_mult(float(a), b._internal))
+    return a * b
 
 def div(a, b):
+    """Elementwise div of two blobs or blob with a scalar
     """
-    """
-    if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
-
-    if not type(b) is Blob:
-        raise ValueError('`b` must be neoml.Blob.')
-
-    if a.shape != b.shape:
-        raise ValueError("The blobs must have the same shape.")
-
-    if a.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
+    if not type(a) is Blob and not type(b) is Blob:
+        raise ValueError('`a` or `b` must be neoml.Blob.')
     
-    return Blob(PythonWrapper.blob_div(a._internal, b._internal))
-
-def div(a, b):
-    """
-    """
-    if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
-
-    if a.size == 0:
-        raise ValueError("The blob mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_div(a._internal, float(b)))
-
-def div(a, b):
-    """
-    """
-    if not type(b) is Blob:
-        raise ValueError('`b` must be neoml.Blob.')
-
-    if b.size == 0:
-        raise ValueError("The blob mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_div(float(a), b._internal))
+    return a / b
 
 def max(a, b):
     """
     """
-    if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
-
-    if a.size == 0:
-        raise ValueError("The blob mustn't be empty.")
+    if type(a) is Blob:
+        if a.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+        return Blob(PythonWrapper.blob_max(a._internal, float(b)))
+    elif type(b) is Blob:
+        if b.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+        return Blob(PythonWrapper.blob_max(float(a), b._internal))
     
-    return Blob(PythonWrapper.blob_max(a._internal, float(b)))
-
-def max(a, b):
-    """
-    """
-    if not type(b) is Blob:
-        raise ValueError('`b` must be neoml.Blob.')
-
-    if b.size == 0:
-        raise ValueError("The blob mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_max(float(a), b._internal))
+    raise ValueError('`a` or `b` must be neoml.Blob.')
 
 def sum(a):
     """
@@ -242,13 +102,7 @@ def sum(a):
 def neg(a):
     """
     """
-    if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
-
-    if a.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
-    
-    return Blob(PythonWrapper.blob_neg(a._internal))
+    return -a;
 
 def abs(a):
     """

@@ -18,35 +18,17 @@ limitations under the License.
 
 #include "PyAutoDiff.h"
 
-std::vector<int> createShape( const py::array& data )
+std::vector<int> createShape( const py::array& desc )
 {
-	std::vector<int> shape;
-	switch( data.ndim() ) {
-		case 1:
-			shape = {1, 1, 1, 1, 1, 1, (int)data.shape(0)};
-			break;
-		case 2:
-			shape = {1, 1, 1, 1, 1, (int)data.shape(0), (int)data.shape(1)};
-			break;
-		case 3:
-			shape = {1, 1, 1, 1, (int)data.shape(0), (int)data.shape(1), (int)data.shape(2)};
-			break;
-		case 4:
-			shape = {1, 1, 1, (int)data.shape(0), (int)data.shape(1), (int)data.shape(2), (int)data.shape(3)};
-			break;
-		case 5:
-			shape = {1, 1, (int)data.shape(0), (int)data.shape(1), (int)data.shape(2), (int)data.shape(3), (int)data.shape(4)};
-			break;
-		case 6:
-			shape = {1, (int)data.shape(0), (int)data.shape(1), (int)data.shape(2), (int)data.shape(3), (int)data.shape(4), (int)data.shape(5)};
-			break;
-		case 7:
-			shape = {(int)data.shape(0), (int)data.shape(1), (int)data.shape(2), (int)data.shape(3), (int)data.shape(4), (int)data.shape(5), (int)data.shape(6)};
-			break;
-		default:
-			assert( false );
-	};
-	return shape;
+	if( desc.size() > 7 ) {
+		assert(false);
+	}
+	const int* shape = reinterpret_cast<const int*>( desc.data() );
+	std::vector<int> resultShape( 7, 1 );
+	for( int i = 7 - desc.size(), j = 0; i < 7; i++, j++ ) {
+		resultShape[i] = shape[j];
+	}
+	return resultShape;
 }
 
 void InitializeTape(py::module& m)
