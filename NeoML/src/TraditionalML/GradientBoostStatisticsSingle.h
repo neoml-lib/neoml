@@ -68,6 +68,9 @@ public:
 	// Set value size
 	void SetSize( int valueSize ) { NeoAssert( valueSize == 1 ); }
 
+	void print() {
+		printf("%f %f", totalGradient, totalHessian);
+	}
 private:
 	double totalGradient; // total gradient
 	double totalHessian; // total hessian

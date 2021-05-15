@@ -72,6 +72,12 @@ public:
 	// Set value size
 	void SetSize( int valueSize );
 
+	void print() {
+		for( int i = 0; i < totalGradient.Size(); i++ ) {
+			printf("%f %f : ", totalGradient[i], totalHessian[i]);
+		}
+	}
+
 private:
 	CArray<double> totalGradient; // total gradient
 	CArray<double> totalHessian; // total hessian
