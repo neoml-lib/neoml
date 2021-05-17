@@ -273,9 +273,6 @@ void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHi
 			nullStatistics.Sub( histStatsPtr[idPos[j]] );
 		}
 		histStatsPtr[idPos[nullFeatureId]].Add( nullStatistics );
-		printf("kulebaka1 %d  ", i);
-		nullStatistics.print();
-		printf("\n");
 	}
 }
 
