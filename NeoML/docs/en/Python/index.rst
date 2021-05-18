@@ -85,7 +85,7 @@ Here are several guides that walk you through using NeoML for simple practical t
 - :ref:`Neural network for CIFAR-10 dataset <tutorials/Cifar10.ipynb>`
 - :ref:`Identity recurrent neural network (IRNN) <tutorials/IRNN.ipynb>`
 - :ref:`Linear classifier <tutorials/Linear.ipynb>`
-- :ref:`*k*-means clustering <tutorials/KMeans.ipynb>`
+- :ref:``k`-means clustering <tutorials/KMeans.ipynb>`
 - :ref:`Linear regressor <tutorials/Regressor.ipynb>`
 - :ref:`Gradient boosting classifier <tutorials/Boosting.ipynb>`
 
