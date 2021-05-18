@@ -1858,13 +1858,16 @@ class PoolingTestCase(TestCase):
         self.assertAlmostEqual(irnn.input_weight_std, input_weight_std, delta=1e-5)
         self.assertEqual(a.shape, (batch_length, batch_width, 1, 1, 1, 1, hidden_size))
 
-class CustomLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
-    def __init__(self, math_engine, func):
-        super().__init__(math_engine)
-        self.calc = func
 
+class MultLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
     def calc(self, data, labels):
-        pass
+        return neoml.AutoDiff.mult(data - labels, data - labels)
+
+
+class BinaryCrossEntropyLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
+    def calc(self, data, labels):
+        return neoml.AutoDiff.binary_cross_entropy(data, labels, True)
+
 
 class LossTestCase(TestCase):
     def _test_loss(self, layer, kwargs={},
@@ -1895,7 +1898,7 @@ class LossTestCase(TestCase):
         self.assertAlmostEqual(loss.last_loss, last_loss, delta=1e-3)
         self.assertAlmostEqual(layer.last_loss, last_loss, delta=1e-3)
 
-    def _test_custom_loss(self, loss_function, result_loss):
+    def _test_custom_loss(self, loss_calculator, result_loss):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
         shape = (2, 3, 1, 1, 1, 1, 1)
@@ -1903,27 +1906,39 @@ class LossTestCase(TestCase):
         source2 = neoml.Dnn.Source(dnn, "source2")
         source3 = neoml.Dnn.Source(dnn, "source3")
         loss = neoml.Dnn.CustomLoss((source1, source2, source3), name="loss", loss_weight=7.7,
-                                    loss_calculator=CustomLossCalculator(math_engine, loss_function))
-        layer = dnn.layers['loss']
-        self.assertEqual(layer.name, 'loss')
+                                    loss_calculator=loss_calculator)
 
         input1 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
         input2 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
         input3 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
 
         inputs = {"source1": input1, "source2": input2, "source3": input3}
-        dnn.run(inputs)
 
-        self.assertAlmostEqual(loss.last_loss, result_loss, delta=1e-3)
+        dir = tempfile.mkdtemp()
+
+        path = os.path.join(dir, 'custom_loss_dnn.arc')
+        dnn.store_checkpoint(path)
+
+        dnn_loaded = neoml.Dnn.Dnn(math_engine)
+        dnn_loaded.load_checkpoint(path)
+
+        os.remove(path)
+        os.rmdir(dir)
+
+        dnn_loaded.run(inputs)
+
+        layer = dnn_loaded.layers['loss']
+        self.assertEqual(layer.name, 'loss')
+
         self.assertAlmostEqual(layer.last_loss, result_loss, delta=1e-3)
 
     def test_custom_loss(self):
         import neoml.AutoDiff as ad
-        for loss_function, result_loss in [
-            (lambda data, labels: ad.binary_cross_entropy(data, labels, True), 0.313261),
-            (lambda data, labels: ad.mult(data - labels, data - labels), 0),
+        for loss_calculator, result_loss in [
+            (BinaryCrossEntropyLossCalculator(), 0.313261),
+            (MultLossCalculator(), 0),
         ]:
-            self._test_custom_loss(loss_function, result_loss)
+            self._test_custom_loss(loss_calculator, result_loss)
 
     def test_autodiff_functions(self):
         import neoml.AutoDiff as ad

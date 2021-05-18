@@ -23,6 +23,8 @@ namespace NeoML {
 class CGradientTapeImpl;
 class IGradientTape;
 
+// Gradient calculation engine.
+// Implements automatic gradient calculation for all functions defined in AutoDiffFunctions.h and user-defined.
 class NEOML_API CGradientTape {
 public:
 	CGradientTape();
@@ -44,12 +46,14 @@ private:
 
 //------------------------------------------------------------------------------------------------------------
 
+// CDnnBlob containing information for gradient calculation.
 class NEOML_API CTapeBlob : public CDnnBlob {
 public:
 	CTapeBlob( IGradientTape* tape, const CDnnBlob& blob );
 	CTapeBlob( IGradientTape* tape, IMathEngine& mathEngine, const CBlobDesc& desc );
 	CTapeBlob( IGradientTape* tape, const CFloatHandle& data, int height, int width, int depth, int channels );
 
+	// Gets used gradient calculation engine.
 	CPtr<IGradientTape> Tape() const { return tape; }
 	
 protected:
@@ -66,6 +70,8 @@ private:
 
 //------------------------------------------------------------------------------------------------------------
 
+// Interface for tape operation.
+// Every user-defined operation should implement this interface for calculating gradient using CTapeGradient.
 class ITapeOperation : public IObject {
 public:
 	virtual CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const = 0;
@@ -73,18 +79,18 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
-// 
+// Internal gradient calculation engine inteface.
+// Uses for add user-defined operations in tape.
 class IGradientTape : public virtual IObject {
 public:
-	// 
+	// Adds operation which has been used for calculating blob 'result'.
 	virtual void Add( const CTapeBlob* result, const ITapeOperation* operation ) = 0;
 
-	// 
+	// Removes operation for the blob.
 	virtual void Remove( const CTapeBlob* result ) = 0;
 
-	// 
+	// Gets operation which has been used for calculating blob 'expression'.
 	virtual CPtr<const ITapeOperation> GetOperation( const CTapeBlob* expression ) = 0;
-	
 };
 
 } // namespace NeoML

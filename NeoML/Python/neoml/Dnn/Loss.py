@@ -743,13 +743,6 @@ class MultiSquaredHingeLoss(Loss):
 class CustomLossCalculatorBase(metaclass=ABCMeta):
     """
     """
-    def __init__(self, math_engine):
-        self._math_engine = math_engine
-
-    @property
-    def math_engine(self):
-        return self._math_engine
-
     @abstractmethod
     def calc(self, data, labels):
         """

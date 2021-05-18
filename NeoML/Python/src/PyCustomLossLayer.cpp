@@ -22,6 +22,40 @@ limitations under the License.
 
 static const int PythonLossLayerVersion = 1;
 
+static CArchive& operator <<( CArchive& archive, const py::object& obj )
+{
+	py::object pyModule = py::module::import( "pickle" );
+	py::object pyDumps = pyModule.attr( "dumps" );
+	py::bytes dumpedObject = pyDumps( obj ).cast<py::bytes>();
+	string str = dumpedObject;
+
+	archive << static_cast<int>(str.length());
+	for( size_t i = 0; i < str.length(); i++ ) {
+		archive << str[i];
+	}
+	
+	return archive;
+}
+
+static CArchive& operator >>( CArchive& archive, py::object& obj )
+{
+	int len = 0;
+	archive >> len;
+	string s(len, 't');
+	for( size_t i = 0; i < len; i++ ) {
+		archive >> s[i];
+	}
+
+	py::bytes dumpedObject( s );
+	py::object pyModule = py::module::import( "pickle" );
+	py::object pyLoads = pyModule.attr( "loads" );
+	obj = pyLoads(dumpedObject);
+
+	return archive;
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 class CTempBlob : public CDnnBlob {
 public:
 	CTempBlob( IMathEngine& mathEngine, const CConstFloatHandle& data, std::initializer_list<int> dimension );
@@ -49,12 +83,11 @@ protected:
 	{
 		CGradientTape tape;
 
-		CPyMathEngine mathEngine = lossCalculator.attr("math_engine").attr("_internal").cast<CPyMathEngine>();
-		CPtr<CPyMathEngineOwner> mathEngineOwner = &mathEngine.MathEngineOwner();
+		CPtr<CPyMathEngineOwner> mathEngineOwner = new CPyMathEngineOwner( &MathEngine(), false );
 
 		CPtr<const CDnnBlob> dataBlob = new CTempBlob( mathEngineOwner->MathEngine(), data, {batchSize, 1, 1, 1, 1, 1, vectorSize} );
 		CPtr<const CDnnBlob> var = tape.Variable( *dataBlob.Ptr() );
-		CPyBlob dataPyBlob( mathEngine.MathEngineOwner(), const_cast<CDnnBlob*>(var.Ptr()) );
+		CPyBlob dataPyBlob( *mathEngineOwner, const_cast<CDnnBlob*>(var.Ptr()) );
 
 		CPtr<CDnnBlob> labelBlob( new CTempBlob( mathEngineOwner->MathEngine(), label, {batchSize, 1, 1, 1, 1, 1, vectorSize} ) );
 		CPyBlob labelPyBlob( *mathEngineOwner, labelBlob );
@@ -87,7 +120,11 @@ protected:
 		archive.SerializeVersion( PythonLossLayerVersion, 1 );
 		CLossLayer::Serialize( archive );
 
-		lossCalculator;
+		if( archive.IsLoading() ) {
+			archive >> lossCalculator;
+		} else {
+			archive << lossCalculator;
+		}
 	}
 
 private:
