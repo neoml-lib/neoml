@@ -131,7 +131,7 @@ CPtr<const CDnnBlob> Add( const CDnnBlob* first, const CDnnBlob* second )
 	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( second );
 	IGradientTape* tape2 = tapeBlob2 != 0 ? tapeBlob2->Tape() : 0;
 
-	assert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
+	NeoAssert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
 
 	IGradientTape* tape = tape1 != 0 ? tape1 : tape2;
 
@@ -236,7 +236,7 @@ CPtr<const CDnnBlob> Sub( const CDnnBlob* first, const CDnnBlob* second )
 	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( second );
 	IGradientTape* tape2 = tapeBlob2 != 0 ? tapeBlob2->Tape() : 0;
 
-	assert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
+	NeoAssert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
 
 	IGradientTape* tape = tape1 != 0 ? tape1 : tape2;
 
@@ -316,7 +316,7 @@ CPtr<CDnnBlob> CTapeMult::Gradient( const CTapeBlob* var ) const
 
 	if( firstGrad != 0 ) {
 		if( firstGrad->GetObjectCount() == 1 ) {
-			assert( firstGrad->GetDataSize() == second->GetDataSize() );
+			NeoAssert( firstGrad->GetDataSize() == second->GetDataSize() );
 			firstGrad->GetMathEngine().VectorEltwiseMultiply( firstGrad->GetData(), second->GetData(), firstGrad->GetData(),
 				firstGrad->GetDataSize() );
 		} else {
@@ -329,7 +329,7 @@ CPtr<CDnnBlob> CTapeMult::Gradient( const CTapeBlob* var ) const
 
 	if( secondGrad != 0 ) {
 		if( secondGrad->GetObjectCount() == 1 ) {
-			assert( secondGrad->GetDataSize() == first->GetDataSize() );
+			NeoAssert( secondGrad->GetDataSize() == first->GetDataSize() );
 			secondGrad->GetMathEngine().VectorEltwiseMultiply( secondGrad->GetData(), first->GetData(), secondGrad->GetData(),
 				secondGrad->GetDataSize() );
 		} else {
@@ -376,7 +376,7 @@ CPtr<const CDnnBlob> Mult( const CDnnBlob* first, const CDnnBlob* second )
 	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( second );
 	IGradientTape* tape2 = tapeBlob2 != 0 ? tapeBlob2->Tape() : 0;
 
-	assert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
+	NeoAssert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
 
 	IGradientTape* tape = tape1 != 0 ? tape1 : tape2;
 
@@ -462,7 +462,7 @@ CPtr<CDnnBlob> CTapeDiv::Gradient( const CTapeBlob* var ) const
 
 	// firstGrag = first' * second
 	if( firstGrad->GetObjectCount() == 1 ) {
-		assert( firstGrad->GetDataSize() == second->GetDataSize() );
+		NeoAssert( firstGrad->GetDataSize() == second->GetDataSize() );
 		mathEngine.VectorEltwiseMultiply( firstGrad->GetData(), second->GetData(), firstGrad->GetData(),
 			firstGrad->GetDataSize() );
 	} else {
@@ -474,7 +474,7 @@ CPtr<CDnnBlob> CTapeDiv::Gradient( const CTapeBlob* var ) const
 
 	// secondGrag = -second' * first
 	if( secondGrad->GetObjectCount() == 1 ) {
-		assert( secondGrad->GetDataSize() == first->GetDataSize() );
+		NeoAssert( secondGrad->GetDataSize() == first->GetDataSize() );
 		mathEngine.VectorEltwiseMultiply( secondGrad->GetData(), first->GetData(), secondGrad->GetData(),
 			secondGrad->GetDataSize() );
 		secondGrad->GetMathEngine().VectorNeg( secondGrad->GetData(), secondGrad->GetData(), secondGrad->GetDataSize() );
@@ -532,7 +532,7 @@ CPtr<const CDnnBlob> Div( const CDnnBlob* first, const CDnnBlob* second )
 	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( second );
 	IGradientTape* tape2 = tapeBlob2 != 0 ? tapeBlob2->Tape() : 0;
 
-	assert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
+	NeoAssert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
 
 	IGradientTape* tape = tape1 != 0 ? tape1 : tape2;
 
