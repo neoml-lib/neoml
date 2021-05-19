@@ -21,7 +21,7 @@ limitations under the License.
 
 namespace NeoML {
 
-static CPtr<CDnnBlob> callGradient( const CDnnBlob* blob, const CTapeBlob* var )
+static CPtr<CDnnBlob> callJacobian( const CDnnBlob* blob, const CTapeBlob* var )
 {
 	NeoAssert( var != 0 );
 
@@ -44,7 +44,7 @@ static CPtr<CDnnBlob> callGradient( const CDnnBlob* blob, const CTapeBlob* var )
 		return 0;
 	}
 
-	CPtr<CDnnBlob> result = tapeOperation->Gradient( var );
+	CPtr<CDnnBlob> result = tapeOperation->Jacobian( var );
 	NeoAssert( result->GetObjectSize() == var->GetDataSize() );
 	return result;
 }
@@ -65,21 +65,13 @@ CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float* data, const CBlobDes
 	return result.Ptr();
 }
 
-CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const CArray<float>& data, const CBlobDesc& desc )
-{
-	NeoAssert( desc.BlobSize() == data.Size() );
-	CPtr<CDnnBlob> result( new CTapeBlob( 0, mathEngine, desc ) );
-	result->CopyFrom( data.GetPtr() );
-	return result.Ptr();
-}
-
 //------------------------------------------------------------------------------------------------------------
 
 class CTapeAdd : public ITapeOperation {
 public:
 	CTapeAdd( const CDnnBlob& first, const CDnnBlob* second );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -93,29 +85,29 @@ CTapeAdd::CTapeAdd( const CDnnBlob& _first, const CDnnBlob* _second ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 || dynamic_cast<const CTapeBlob*>(second.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeAdd::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeAdd::Jacobian( const CTapeBlob* var ) const
 {
-	CPtr<CDnnBlob> firstGrad = callGradient( first, var );
-	CPtr<CDnnBlob> secondGrad = callGradient( second, var );
-	if( firstGrad == 0 ) {
-		return secondGrad;
+	CPtr<CDnnBlob> firstJacobian = callJacobian( first, var );
+	CPtr<CDnnBlob> secondJacobian = callJacobian( second, var );
+	if( firstJacobian == 0 ) {
+		return secondJacobian;
 	}
-	if( secondGrad == 0 ) {
-		return firstGrad;
-	}
-
-	if( firstGrad->GetDataSize() < secondGrad->GetDataSize() ) {
-		firstGrad->GetMathEngine().AddDiagMatrixToMatrix( firstGrad->GetData(), secondGrad->GetData(),
-			secondGrad->GetObjectCount(), secondGrad->GetObjectSize(), secondGrad->GetData() );
-		return secondGrad;
-	} else if( secondGrad->GetDataSize() < firstGrad->GetDataSize() ) {
-		firstGrad->GetMathEngine().AddDiagMatrixToMatrix( secondGrad->GetData(), firstGrad->GetData(),
-			firstGrad->GetObjectCount(), firstGrad->GetObjectSize(), firstGrad->GetData() );
-		return firstGrad;
+	if( secondJacobian == 0 ) {
+		return firstJacobian;
 	}
 
-	firstGrad->GetMathEngine().VectorAdd(firstGrad->GetData(), secondGrad->GetData(), firstGrad->GetData(), firstGrad->GetDataSize());
-	return firstGrad;
+	if( firstJacobian->GetDataSize() < secondJacobian->GetDataSize() ) {
+		firstJacobian->GetMathEngine().AddDiagMatrixToMatrix( firstJacobian->GetData(), secondJacobian->GetData(),
+			secondJacobian->GetObjectCount(), secondJacobian->GetObjectSize(), secondJacobian->GetData() );
+		return secondJacobian;
+	} else if( secondJacobian->GetDataSize() < firstJacobian->GetDataSize() ) {
+		firstJacobian->GetMathEngine().AddDiagMatrixToMatrix( secondJacobian->GetData(), firstJacobian->GetData(),
+			firstJacobian->GetObjectCount(), firstJacobian->GetObjectSize(), firstJacobian->GetData() );
+		return firstJacobian;
+	}
+
+	firstJacobian->GetMathEngine().VectorAdd(firstJacobian->GetData(), secondJacobian->GetData(), firstJacobian->GetData(), firstJacobian->GetDataSize());
+	return firstJacobian;
 }
 
 CPtr<const CDnnBlob> Add( const CDnnBlob* first, const CDnnBlob* second )
@@ -177,7 +169,7 @@ class CTapeSub : public ITapeOperation {
 public:
 	CTapeSub( const CDnnBlob* first, const CDnnBlob* second );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -191,36 +183,36 @@ CTapeSub::CTapeSub( const CDnnBlob* _first, const CDnnBlob* _second ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 || dynamic_cast<const CTapeBlob*>(second.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeSub::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeSub::Jacobian( const CTapeBlob* var ) const
 {
-	CPtr<CDnnBlob> firstGrad = callGradient( first, var );
-	CPtr<CDnnBlob> secondGrad = callGradient( second, var );
+	CPtr<CDnnBlob> firstJacobian = callJacobian( first, var );
+	CPtr<CDnnBlob> secondJacobian = callJacobian( second, var );
 
 	IMathEngine& mathEngine = first != 0 ? first->GetMathEngine() : second->GetMathEngine() ;
 
-	if( secondGrad != 0 ) {
-		mathEngine.VectorNeg( secondGrad->GetData(), secondGrad->GetData(), secondGrad->GetDataSize() );
+	if( secondJacobian != 0 ) {
+		mathEngine.VectorNeg( secondJacobian->GetData(), secondJacobian->GetData(), secondJacobian->GetDataSize() );
 	}
 
-	if( firstGrad == 0 ) {
-		return secondGrad;
+	if( firstJacobian == 0 ) {
+		return secondJacobian;
 	}
-	if( secondGrad == 0 ) {
-		return firstGrad;
-	}
-
-	if( firstGrad->GetDataSize() < secondGrad->GetDataSize() ) {
-		firstGrad->GetMathEngine().AddDiagMatrixToMatrix( firstGrad->GetData(), secondGrad->GetData(),
-			secondGrad->GetObjectCount(), secondGrad->GetObjectSize(), secondGrad->GetData() );
-		return secondGrad;
-	} else if( secondGrad->GetDataSize() < firstGrad->GetDataSize() ) {
-		firstGrad->GetMathEngine().AddDiagMatrixToMatrix( secondGrad->GetData(), firstGrad->GetData(),
-			firstGrad->GetObjectCount(), firstGrad->GetObjectSize(), firstGrad->GetData() );
-		return firstGrad;
+	if( secondJacobian == 0 ) {
+		return firstJacobian;
 	}
 
-	firstGrad->GetMathEngine().VectorAdd(firstGrad->GetData(), secondGrad->GetData(), firstGrad->GetData(), firstGrad->GetDataSize());
-	return firstGrad;
+	if( firstJacobian->GetDataSize() < secondJacobian->GetDataSize() ) {
+		firstJacobian->GetMathEngine().AddDiagMatrixToMatrix( firstJacobian->GetData(), secondJacobian->GetData(),
+			secondJacobian->GetObjectCount(), secondJacobian->GetObjectSize(), secondJacobian->GetData() );
+		return secondJacobian;
+	} else if( secondJacobian->GetDataSize() < firstJacobian->GetDataSize() ) {
+		firstJacobian->GetMathEngine().AddDiagMatrixToMatrix( secondJacobian->GetData(), firstJacobian->GetData(),
+			firstJacobian->GetObjectCount(), firstJacobian->GetObjectSize(), firstJacobian->GetData() );
+		return firstJacobian;
+	}
+
+	firstJacobian->GetMathEngine().VectorAdd(firstJacobian->GetData(), secondJacobian->GetData(), firstJacobian->GetData(), firstJacobian->GetDataSize());
+	return firstJacobian;
 }
 
 CPtr<const CDnnBlob> Sub( const CDnnBlob* first, const CDnnBlob* second )
@@ -294,7 +286,7 @@ class CTapeMult : public ITapeOperation {
 public:
 	explicit CTapeMult( const CDnnBlob& first, const CDnnBlob& second );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -308,59 +300,59 @@ CTapeMult::CTapeMult( const CDnnBlob& _first, const CDnnBlob& _second ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 || dynamic_cast<const CTapeBlob*>(second.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeMult::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeMult::Jacobian( const CTapeBlob* var ) const
 {
 	CPtr<CDnnBlob> result;
-	CPtr<CDnnBlob> firstGrad = callGradient( first, var );
-	CPtr<CDnnBlob> secondGrad = callGradient( second, var );
+	CPtr<CDnnBlob> firstJacobian = callJacobian( first, var );
+	CPtr<CDnnBlob> secondJacobian = callJacobian( second, var );
 
-	if( firstGrad != 0 ) {
-		if( firstGrad->GetObjectCount() == 1 ) {
-			NeoAssert( firstGrad->GetDataSize() == second->GetDataSize() );
-			firstGrad->GetMathEngine().VectorEltwiseMultiply( firstGrad->GetData(), second->GetData(), firstGrad->GetData(),
-				firstGrad->GetDataSize() );
+	if( firstJacobian != 0 ) {
+		if( firstJacobian->GetObjectCount() == 1 ) {
+			NeoAssert( firstJacobian->GetDataSize() == second->GetDataSize() );
+			firstJacobian->GetMathEngine().VectorEltwiseMultiply( firstJacobian->GetData(), second->GetData(), firstJacobian->GetData(),
+				firstJacobian->GetDataSize() );
 		} else {
-			result = firstGrad->GetClone();
-			firstGrad->GetMathEngine().MultiplyDiagMatrixByMatrix( second->GetData(), second->GetDataSize(),
-				firstGrad->GetData(), firstGrad->GetObjectSize(), result->GetData(), result->GetDataSize() );
-			swap( result, firstGrad );
+			result = firstJacobian->GetClone();
+			firstJacobian->GetMathEngine().MultiplyDiagMatrixByMatrix( second->GetData(), second->GetDataSize(),
+				firstJacobian->GetData(), firstJacobian->GetObjectSize(), result->GetData(), result->GetDataSize() );
+			swap( result, firstJacobian );
 		}
 	}
 
-	if( secondGrad != 0 ) {
-		if( secondGrad->GetObjectCount() == 1 ) {
-			NeoAssert( secondGrad->GetDataSize() == first->GetDataSize() );
-			secondGrad->GetMathEngine().VectorEltwiseMultiply( secondGrad->GetData(), first->GetData(), secondGrad->GetData(),
-				secondGrad->GetDataSize() );
+	if( secondJacobian != 0 ) {
+		if( secondJacobian->GetObjectCount() == 1 ) {
+			NeoAssert( secondJacobian->GetDataSize() == first->GetDataSize() );
+			secondJacobian->GetMathEngine().VectorEltwiseMultiply( secondJacobian->GetData(), first->GetData(), secondJacobian->GetData(),
+				secondJacobian->GetDataSize() );
 		} else {
 			if( result == 0 ) {
-				result = secondGrad->GetClone();
+				result = secondJacobian->GetClone();
 			}
-			secondGrad->GetMathEngine().MultiplyDiagMatrixByMatrix( first->GetData(), first->GetDataSize(),
-				secondGrad->GetData(), secondGrad->GetObjectSize(), result->GetData(), result->GetDataSize() );
-			swap( result, secondGrad );
+			secondJacobian->GetMathEngine().MultiplyDiagMatrixByMatrix( first->GetData(), first->GetDataSize(),
+				secondJacobian->GetData(), secondJacobian->GetObjectSize(), result->GetData(), result->GetDataSize() );
+			swap( result, secondJacobian );
 		}
 	}
 
-	if( firstGrad == 0 ) {
-		return secondGrad;
+	if( firstJacobian == 0 ) {
+		return secondJacobian;
 	}
-	if( secondGrad == 0 ) {
-		return firstGrad;
-	}
-
-	if( firstGrad->GetDataSize() < secondGrad->GetDataSize() ) {
-		firstGrad->GetMathEngine().AddDiagMatrixToMatrix( firstGrad->GetData(), secondGrad->GetData(),
-			secondGrad->GetObjectCount(), secondGrad->GetObjectSize(), secondGrad->GetData() );
-		return secondGrad;
-	} else if( secondGrad->GetDataSize() < firstGrad->GetDataSize() ) {
-		firstGrad->GetMathEngine().AddDiagMatrixToMatrix( secondGrad->GetData(), firstGrad->GetData(),
-			firstGrad->GetObjectCount(), firstGrad->GetObjectSize(), firstGrad->GetData() );
-		return firstGrad;
+	if( secondJacobian == 0 ) {
+		return firstJacobian;
 	}
 
-	firstGrad->GetMathEngine().VectorAdd(firstGrad->GetData(), secondGrad->GetData(), firstGrad->GetData(), firstGrad->GetDataSize());
-	return firstGrad;
+	if( firstJacobian->GetDataSize() < secondJacobian->GetDataSize() ) {
+		firstJacobian->GetMathEngine().AddDiagMatrixToMatrix( firstJacobian->GetData(), secondJacobian->GetData(),
+			secondJacobian->GetObjectCount(), secondJacobian->GetObjectSize(), secondJacobian->GetData() );
+		return secondJacobian;
+	} else if( secondJacobian->GetDataSize() < firstJacobian->GetDataSize() ) {
+		firstJacobian->GetMathEngine().AddDiagMatrixToMatrix( secondJacobian->GetData(), firstJacobian->GetData(),
+			firstJacobian->GetObjectCount(), firstJacobian->GetObjectSize(), firstJacobian->GetData() );
+		return firstJacobian;
+	}
+
+	firstJacobian->GetMathEngine().VectorAdd(firstJacobian->GetData(), secondJacobian->GetData(), firstJacobian->GetData(), firstJacobian->GetDataSize());
+	return firstJacobian;
 }
 
 CPtr<const CDnnBlob> Mult( const CDnnBlob* first, const CDnnBlob* second )
@@ -410,7 +402,7 @@ class CTapeDiv : public ITapeOperation {
 public:
 	explicit CTapeDiv( const CDnnBlob& first, const CDnnBlob& second );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -424,99 +416,99 @@ CTapeDiv::CTapeDiv( const CDnnBlob& _first, const CDnnBlob& _second ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 || dynamic_cast<const CTapeBlob*>(second.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeDiv::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeDiv::Jacobian( const CTapeBlob* var ) const
 {
 	CPtr<CDnnBlob> result;
-	CPtr<CDnnBlob> firstGrad = callGradient( first, var );
-	CPtr<CDnnBlob> secondGrad = callGradient( second, var );
+	CPtr<CDnnBlob> firstJacobian = callJacobian( first, var );
+	CPtr<CDnnBlob> secondJacobian = callJacobian( second, var );
 
-	if( firstGrad == 0 && secondGrad == 0 ) {
+	if( firstJacobian == 0 && secondJacobian == 0 ) {
 		return 0;
 	}
 
 	IMathEngine& mathEngine = first->GetMathEngine();
-	const int gradientSize = firstGrad != 0 ? firstGrad->GetObjectSize() : secondGrad->GetObjectSize();
+	const int gradientSize = firstJacobian != 0 ? firstJacobian->GetObjectSize() : secondJacobian->GetObjectSize();
 	const int vectorSize = first->GetDataSize();
 
-	if( firstGrad == 0 ) {
-		if( secondGrad->GetObjectCount() == 1 ) {
-			mathEngine.VectorEltwiseDivide( secondGrad->GetData(), first->GetData(), secondGrad->GetData(),
-				secondGrad->GetDataSize() );
+	if( firstJacobian == 0 ) {
+		if( secondJacobian->GetObjectCount() == 1 ) {
+			mathEngine.VectorEltwiseDivide( secondJacobian->GetData(), first->GetData(), secondJacobian->GetData(),
+				secondJacobian->GetDataSize() );
 		} else {
-			mathEngine.MatrixColumnsEltwiseDivide( secondGrad->GetData(), secondGrad->GetObjectCount(), gradientSize,
-				first->GetData(), secondGrad->GetData() );
+			mathEngine.MatrixColumnsEltwiseDivide( secondJacobian->GetData(), secondJacobian->GetObjectCount(), gradientSize,
+				first->GetData(), secondJacobian->GetData() );
 		}
-		return secondGrad;
+		return secondJacobian;
 	}
 	
-	if( secondGrad == 0 ) {
-		if( firstGrad->GetObjectCount() == 1 ) {
-			mathEngine.VectorEltwiseDivide( firstGrad->GetData(), second->GetData(), firstGrad->GetData(),
-				firstGrad->GetDataSize() );
+	if( secondJacobian == 0 ) {
+		if( firstJacobian->GetObjectCount() == 1 ) {
+			mathEngine.VectorEltwiseDivide( firstJacobian->GetData(), second->GetData(), firstJacobian->GetData(),
+				firstJacobian->GetDataSize() );
 		} else {
-			mathEngine.MatrixColumnsEltwiseDivide( firstGrad->GetData(), firstGrad->GetObjectCount(), gradientSize,
-				second->GetData(), firstGrad->GetData() );
+			mathEngine.MatrixColumnsEltwiseDivide( firstJacobian->GetData(), firstJacobian->GetObjectCount(), gradientSize,
+				second->GetData(), firstJacobian->GetData() );
 		}
-		return firstGrad;
+		return firstJacobian;
 	}
 
-	// firstGrag = first' * second
-	if( firstGrad->GetObjectCount() == 1 ) {
-		NeoAssert( firstGrad->GetDataSize() == second->GetDataSize() );
-		mathEngine.VectorEltwiseMultiply( firstGrad->GetData(), second->GetData(), firstGrad->GetData(),
-			firstGrad->GetDataSize() );
+	// firstJacobian = first' * second
+	if( firstJacobian->GetObjectCount() == 1 ) {
+		NeoAssert( firstJacobian->GetDataSize() == second->GetDataSize() );
+		mathEngine.VectorEltwiseMultiply( firstJacobian->GetData(), second->GetData(), firstJacobian->GetData(),
+			firstJacobian->GetDataSize() );
 	} else {
-		result = firstGrad->GetClone();
+		result = firstJacobian->GetClone();
 		mathEngine.MultiplyDiagMatrixByMatrix( second->GetData(), second->GetDataSize(),
-			firstGrad->GetData(), firstGrad->GetObjectSize(), result->GetData(), result->GetDataSize() );
-		swap( result, firstGrad );
+			firstJacobian->GetData(), firstJacobian->GetObjectSize(), result->GetData(), result->GetDataSize() );
+		swap( result, firstJacobian );
 	}
 
-	// secondGrag = -second' * first
-	if( secondGrad->GetObjectCount() == 1 ) {
-		NeoAssert( secondGrad->GetDataSize() == first->GetDataSize() );
-		mathEngine.VectorEltwiseMultiply( secondGrad->GetData(), first->GetData(), secondGrad->GetData(),
-			secondGrad->GetDataSize() );
-		secondGrad->GetMathEngine().VectorNeg( secondGrad->GetData(), secondGrad->GetData(), secondGrad->GetDataSize() );
+	// secondJacobian = -second' * first
+	if( secondJacobian->GetObjectCount() == 1 ) {
+		NeoAssert( secondJacobian->GetDataSize() == first->GetDataSize() );
+		mathEngine.VectorEltwiseMultiply( secondJacobian->GetData(), first->GetData(), secondJacobian->GetData(),
+			secondJacobian->GetDataSize() );
+		secondJacobian->GetMathEngine().VectorNeg( secondJacobian->GetData(), secondJacobian->GetData(), secondJacobian->GetDataSize() );
 	} else {
 		if( result == 0 ) {
-			result = secondGrad->GetClone();
+			result = secondJacobian->GetClone();
 		}
 		mathEngine.MultiplyDiagMatrixByMatrix( first->GetData(), first->GetDataSize(),
-			secondGrad->GetData(), secondGrad->GetObjectSize(), result->GetData(), result->GetDataSize() );
-		secondGrad->GetMathEngine().VectorNeg( result->GetData(), secondGrad->GetData(), result->GetDataSize() );
+			secondJacobian->GetData(), secondJacobian->GetObjectSize(), result->GetData(), result->GetDataSize() );
+		secondJacobian->GetMathEngine().VectorNeg( result->GetData(), secondJacobian->GetData(), result->GetDataSize() );
 	}
 
 	// secondSquare = second * second
 	CFloatHandleStackVar secondSquare( mathEngine, second->GetDataSize() );
 	mathEngine.VectorEltwiseMultiply( second->GetData(), second->GetData(), secondSquare, second->GetDataSize() );
 
-	if( firstGrad->GetDataSize() < secondGrad->GetDataSize() ) {
-		// secondGrad = firstGrad + secondGrad / secondSquare
-		mathEngine.AddDiagMatrixToMatrix( firstGrad->GetData(), secondGrad->GetData(),
-			secondGrad->GetObjectCount(), secondGrad->GetObjectSize(), secondGrad->GetData() );
-		mathEngine.MatrixColumnsEltwiseDivide( secondGrad->GetData(), secondGrad->GetObjectCount(), gradientSize,
-			secondSquare.GetHandle(), secondGrad->GetData() );
-		return secondGrad;
-	} else if( secondGrad->GetDataSize() < firstGrad->GetDataSize() ) {
-		// firstGrad = firstGrad + secondGrad / secondSquare
-		mathEngine.AddDiagMatrixToMatrix( secondGrad->GetData(), firstGrad->GetData(),
-			firstGrad->GetObjectCount(), firstGrad->GetObjectSize(), firstGrad->GetData() );
-		mathEngine.MatrixColumnsEltwiseDivide( firstGrad->GetData(), firstGrad->GetObjectCount(), gradientSize,
-			secondSquare.GetHandle(), firstGrad->GetData() );
-		return firstGrad;
+	if( firstJacobian->GetDataSize() < secondJacobian->GetDataSize() ) {
+		// secondJacobian = firstJacobian + secondJacobian / secondSquare
+		mathEngine.AddDiagMatrixToMatrix( firstJacobian->GetData(), secondJacobian->GetData(),
+			secondJacobian->GetObjectCount(), secondJacobian->GetObjectSize(), secondJacobian->GetData() );
+		mathEngine.MatrixColumnsEltwiseDivide( secondJacobian->GetData(), secondJacobian->GetObjectCount(), gradientSize,
+			secondSquare.GetHandle(), secondJacobian->GetData() );
+		return secondJacobian;
+	} else if( secondJacobian->GetDataSize() < firstJacobian->GetDataSize() ) {
+		// firstJacobian = firstJacobian + secondJacobian / secondSquare
+		mathEngine.AddDiagMatrixToMatrix( secondJacobian->GetData(), firstJacobian->GetData(),
+			firstJacobian->GetObjectCount(), firstJacobian->GetObjectSize(), firstJacobian->GetData() );
+		mathEngine.MatrixColumnsEltwiseDivide( firstJacobian->GetData(), firstJacobian->GetObjectCount(), gradientSize,
+			secondSquare.GetHandle(), firstJacobian->GetData() );
+		return firstJacobian;
 	}
 
-	// firstGrad = firstGrad + secondGrad / secondSquare
-	mathEngine.VectorAdd(firstGrad->GetData(), secondGrad->GetData(), firstGrad->GetData(), firstGrad->GetDataSize());
-	if( firstGrad->GetObjectCount() == 1 ) {
-		mathEngine.VectorEltwiseDivide( firstGrad->GetData(), secondSquare.GetHandle(), firstGrad->GetData(), vectorSize );
+	// firstJacobian = firstJacobian + secondJacobian / secondSquare
+	mathEngine.VectorAdd(firstJacobian->GetData(), secondJacobian->GetData(), firstJacobian->GetData(), firstJacobian->GetDataSize());
+	if( firstJacobian->GetObjectCount() == 1 ) {
+		mathEngine.VectorEltwiseDivide( firstJacobian->GetData(), secondSquare.GetHandle(), firstJacobian->GetData(), vectorSize );
 	} else {
-		mathEngine.MatrixColumnsEltwiseDivide( firstGrad->GetData(), vectorSize, gradientSize,
-			secondSquare.GetHandle(), firstGrad->GetData() );
+		mathEngine.MatrixColumnsEltwiseDivide( firstJacobian->GetData(), vectorSize, gradientSize,
+			secondSquare.GetHandle(), firstJacobian->GetData() );
 	}
 
-	return firstGrad;
+	return firstJacobian;
 }
 
 CPtr<const CDnnBlob> Div( const CDnnBlob* first, const CDnnBlob* second )
@@ -567,7 +559,7 @@ class CTapeMax : public ITapeOperation {
 public:
 	explicit CTapeMax( const CDnnBlob& first, float second );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -581,16 +573,16 @@ CTapeMax::CTapeMax( const CDnnBlob& _first, float _second ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeMax::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeMax::Jacobian( const CTapeBlob* var ) const
 {
-	CPtr<CDnnBlob> grad = callGradient( first, var );
-	if( grad == 0 ) {
+	CPtr<CDnnBlob> jacobian = callJacobian( first, var );
+	if( jacobian == 0 ) {
 		return 0;
 	}
 
-	grad->GetMathEngine().VectorMaxDiff( first->GetData(), second, grad->GetData(),
-		grad->GetObjectCount(), grad->GetObjectSize() );
-	return grad;
+	jacobian->GetMathEngine().VectorMaxDiff( first->GetData(), second, jacobian->GetData(),
+		jacobian->GetObjectCount(), jacobian->GetObjectSize() );
+	return jacobian;
 }
 
 CPtr<const CDnnBlob> NEOML_API Max( const CDnnBlob* first, float second )
@@ -624,7 +616,7 @@ class CTapeSum : public ITapeOperation {
 public:
 	explicit CTapeSum( const CDnnBlob& first );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -636,21 +628,21 @@ CTapeSum::CTapeSum( const CDnnBlob& _first ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeSum::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeSum::Jacobian( const CTapeBlob* var ) const
 {
-	CPtr<CDnnBlob> grad = callGradient( first, var );
-	if( grad == 0 ) {
+	CPtr<CDnnBlob> jacobian = callJacobian( first, var );
+	if( jacobian == 0 ) {
 		return 0;
 	}
-	int height = grad->GetObjectCount();
-	int width = grad->GetObjectSize();
+	int height = jacobian->GetObjectCount();
+	int width = jacobian->GetObjectSize();
 
 	if( height == 1 ) {
-		return grad;
+		return jacobian;
 	}
 
-	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( grad->GetMathEngine(), { width } );
-	result->GetMathEngine().SumMatrixRows( 1, result->GetData(), grad->GetData(), height, width );
+	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( jacobian->GetMathEngine(), { width } );
+	result->GetMathEngine().SumMatrixRows( 1, result->GetData(), jacobian->GetData(), height, width );
 	return result;
 }
 
@@ -679,7 +671,7 @@ class CTapeNeg : public ITapeOperation {
 public:
 	explicit CTapeNeg( const CDnnBlob& first );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -691,15 +683,15 @@ CTapeNeg::CTapeNeg( const CDnnBlob& _first ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeNeg::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeNeg::Jacobian( const CTapeBlob* var ) const
 {
-	CPtr<CDnnBlob> grad = callGradient( first, var );
-	if( grad == 0 ) {
+	CPtr<CDnnBlob> jacobian = callJacobian( first, var );
+	if( jacobian == 0 ) {
 		return 0;
 	}
 
-	grad->GetMathEngine().VectorNeg( grad->GetData(), grad->GetData(), grad->GetDataSize() );
-	return grad;
+	jacobian->GetMathEngine().VectorNeg( jacobian->GetData(), jacobian->GetData(), jacobian->GetDataSize() );
+	return jacobian;
 }
 
 CPtr<const CDnnBlob> Neg( const CDnnBlob* first )
@@ -727,7 +719,7 @@ class CTapeAbs : public ITapeOperation {
 public:
 	explicit CTapeAbs( const CDnnBlob& first );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -739,17 +731,18 @@ CTapeAbs::CTapeAbs( const CDnnBlob& _first ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeAbs::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeAbs::Jacobian( const CTapeBlob* var ) const
 {
-	CPtr<CDnnBlob> grad = callGradient( first, var );
-	if( grad == 0 ) {
+	CPtr<CDnnBlob> jacobian = callJacobian( first, var );
+	if( jacobian == 0 ) {
 		return 0;
 	}
 
 	IMathEngine& mathEngine = first->GetMathEngine();
-	mathEngine.VectorAbsDiff( grad->GetData(), grad->GetObjectCount(), grad->GetObjectSize(), first->GetData(), grad->GetData() );
+	mathEngine.VectorAbsDiff( jacobian->GetData(), jacobian->GetObjectCount(), jacobian->GetObjectSize(),
+		first->GetData(), jacobian->GetData() );
 
-	return grad;
+	return jacobian;
 }
 
 CPtr<const CDnnBlob> Abs( const CDnnBlob* first )
@@ -777,7 +770,7 @@ class CTapeExp : public ITapeOperation {
 public:
 	explicit CTapeExp( const CDnnBlob& first );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -789,10 +782,10 @@ CTapeExp::CTapeExp( const CDnnBlob& _first ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeExp::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeExp::Jacobian( const CTapeBlob* var ) const
 {
-	CPtr<CDnnBlob> grad = callGradient( first, var );
-	if( grad == 0 ) {
+	CPtr<CDnnBlob> jacobian = callJacobian( first, var );
+	if( jacobian == 0 ) {
 		return 0;
 	}
 
@@ -800,14 +793,14 @@ CPtr<CDnnBlob> CTapeExp::Gradient( const CTapeBlob* var ) const
 	CFloatHandleStackVar expV( mathEngine, first->GetDataSize() );
 	mathEngine.VectorExp( first->GetData(), expV, first->GetDataSize() );
 
-	if( grad->GetObjectCount() == 1 ) {
-		NeoAssert( grad->GetDataSize() == first->GetDataSize() );
-		mathEngine.VectorEltwiseMultiply( grad->GetData(), expV, grad->GetData(), grad->GetDataSize() );
-		return grad;
+	if( jacobian->GetObjectCount() == 1 ) {
+		NeoAssert( jacobian->GetDataSize() == first->GetDataSize() );
+		mathEngine.VectorEltwiseMultiply( jacobian->GetData(), expV, jacobian->GetData(), jacobian->GetDataSize() );
+		return jacobian;
 	}
 
-	CPtr<CDnnBlob> result = grad->GetClone();
-	mathEngine.MultiplyDiagMatrixByMatrix( expV, first->GetDataSize(), grad->GetData(), grad->GetObjectSize(),
+	CPtr<CDnnBlob> result = jacobian->GetClone();
+	mathEngine.MultiplyDiagMatrixByMatrix( expV, first->GetDataSize(), jacobian->GetData(), jacobian->GetObjectSize(),
 		result->GetData(), result->GetDataSize() );
 	return result;
 }
@@ -837,7 +830,7 @@ class CTapeLog : public ITapeOperation {
 public:
 	explicit CTapeLog( const CDnnBlob& first );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -849,17 +842,17 @@ CTapeLog::CTapeLog( const CDnnBlob& _first ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeLog::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeLog::Jacobian( const CTapeBlob* var ) const
 {
-	CPtr<CDnnBlob> grad = callGradient( first, var );
-	if( grad == 0 ) {
+	CPtr<CDnnBlob> jacobian = callJacobian( first, var );
+	if( jacobian == 0 ) {
 		return 0;
 	}
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
-	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, grad->GetDesc() );
-	mathEngine.VectorLogDiff( grad->GetData(), grad->GetObjectCount(), grad->GetObjectSize(), first->GetData(), result->GetData() );
+	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, jacobian->GetDesc() );
+	mathEngine.VectorLogDiff( jacobian->GetData(), jacobian->GetObjectCount(), jacobian->GetObjectSize(), first->GetData(), result->GetData() );
 	return result;
 }
 
@@ -888,7 +881,7 @@ class CTapeTopK : public ITapeOperation {
 public:
 	explicit CTapeTopK( const CDnnBlob& first, const CDnnBlob& indices );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -902,17 +895,17 @@ CTapeTopK::CTapeTopK( const CDnnBlob& _first, const CDnnBlob& _indices ) :
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeTopK::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeTopK::Jacobian( const CTapeBlob* var ) const
 {
-	CPtr<CDnnBlob> grad = callGradient( first, var );
-	if( grad == 0 ) {
+	CPtr<CDnnBlob> jacobian = callJacobian( first, var );
+	if( jacobian == 0 ) {
 		return 0;
 	}
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
-	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, {indices->GetDataSize(), 1, 1, 1, 1, 1, grad->GetObjectSize()} );
-	mathEngine.VectorTopKDiff( grad->GetData(), grad->GetObjectCount(), grad->GetObjectSize(), indices->GetData<int>(),
+	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, {indices->GetDataSize(), 1, 1, 1, 1, 1, jacobian->GetObjectSize()} );
+	mathEngine.VectorTopKDiff( jacobian->GetData(), jacobian->GetObjectCount(), jacobian->GetObjectSize(), indices->GetData<int>(),
 		indices->GetDataSize(), result->GetData() );
 	return result;
 }
@@ -944,7 +937,7 @@ class CTapeClip : public ITapeOperation {
 public:
 	explicit CTapeClip( const CDnnBlob& first, float minValue, float maxValue );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	CPtr<const CDnnBlob> first;
@@ -960,10 +953,10 @@ CTapeClip::CTapeClip( const CDnnBlob& _first, float _minValue, float _maxValue )
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeClip::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeClip::Jacobian( const CTapeBlob* var ) const
 {
-	CPtr<CDnnBlob> grad = callGradient( first, var );
-	if( grad == 0 ) {
+	CPtr<CDnnBlob> jacobian = callJacobian( first, var );
+	if( jacobian == 0 ) {
 		return 0;
 	}
 
@@ -973,8 +966,8 @@ CPtr<CDnnBlob> CTapeClip::Gradient( const CTapeBlob* var ) const
 	minHandle.SetValue( minValue );
 	CFloatHandleStackVar maxHandle( mathEngine, 1 );
 	maxHandle.SetValue( maxValue );
-	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, grad->GetDesc() );
-	mathEngine.VectorMinMaxDiff( grad->GetData(), grad->GetObjectCount(), grad->GetObjectSize(), first->GetData(),
+	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, jacobian->GetDesc() );
+	mathEngine.VectorMinMaxDiff( jacobian->GetData(), jacobian->GetObjectCount(), jacobian->GetObjectSize(), first->GetData(),
 		result->GetData(), minHandle, maxHandle );
 	return result.Ptr();
 }

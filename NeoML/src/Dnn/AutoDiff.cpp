@@ -45,12 +45,6 @@ CTapeBlob::CTapeBlob( IGradientTape* _tape, IMathEngine& mathEngine, const CBlob
 {
 }
 
-CTapeBlob::CTapeBlob( IGradientTape* _tape, const CFloatHandle& data, int height, int width, int depth, int channels ) :
-	CDnnBlob( *data.GetMathEngine(), createBlobDesc( {1, 1, 1, height, width, depth, channels } ), data, false ),
-	tape( _tape )
-{
-}
-
 CTapeBlob::~CTapeBlob()
 {
 	Detach();
@@ -70,24 +64,24 @@ class CTapeVar : public ITapeOperation {
 public:
 	explicit CTapeVar( const CTapeBlob& var );
 
-	CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const override;
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
 private:
 	const CTapeBlob* variable;
-	const CPtr<CDnnBlob> grad;
+	const CPtr<CDnnBlob> jacobian;
 };
 
 CTapeVar::CTapeVar( const CTapeBlob& var ) :
 	variable( &var ),
-	grad( CDnnBlob::CreateBlob( var.GetMathEngine(), { var.GetDataSize() } ) )
+	jacobian( CDnnBlob::CreateBlob( var.GetMathEngine(), { var.GetDataSize() } ) )
 {
-	grad->Fill( 1.0f );
+	jacobian->Fill( 1.0f );
 }
 
-CPtr<CDnnBlob> CTapeVar::Gradient( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeVar::Jacobian( const CTapeBlob* var ) const
 {
 	if( variable == var ) {
-		return grad->GetCopy();
+		return jacobian->GetCopy();
 	}
 	return 0;
 }
@@ -171,14 +165,6 @@ CPtr<const CDnnBlob> CGradientTape::Variable( const CDnnBlob& blob )
 	return tapeBlob.Ptr();
 }
 
-CPtr<const CDnnBlob> CGradientTape::Variable( const CFloatHandle& data, int height, int width, int depth, int channels )
-{
-	CPtr<CTapeBlob> tapeBlob( new CTapeBlob( impl, data, height, width, depth, channels ) );
-	CPtr<CTapeVar> tapeOperation( new CTapeVar( *tapeBlob ) );
-	impl->Add( tapeBlob, tapeOperation );
-	return tapeBlob.Ptr();
-}
-
 CPtr<const CDnnBlob> CGradientTape::Gradient( const CDnnBlob& expression, const CDnnBlob& var )
 {
 	const CTapeBlob* expressionTapeBlob = dynamic_cast<const CTapeBlob*>( &expression );
@@ -192,7 +178,7 @@ CPtr<const CDnnBlob> CGradientTape::Gradient( const CDnnBlob& expression, const 
 	NeoAssert( varTapeBlob->Tape() == impl );
 
 	CPtr<const ITapeOperation> operation = impl->GetOperation( expressionTapeBlob );
-	CPtr<const CDnnBlob> grad( operation->Gradient( varTapeBlob ) );
+	CPtr<const CDnnBlob> grad( operation->Jacobian( varTapeBlob ) );
 
 	if( grad->GetObjectCount() == 1 ) {
 		return grad;

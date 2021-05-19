@@ -24,7 +24,6 @@ namespace NeoML {
 NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float data, const CBlobDesc& desc = {1} );
 // Creates the const blob using the specified data.
 NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float* data, const CBlobDesc& desc );
-NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const CArray<float>& data, const CBlobDesc& desc );
 
 // Creates the blob which is the element-wise sum of the specified blobs. 
 // Blobs sizes must be equal!

@@ -32,7 +32,6 @@ public:
 
 	// Creates tape variable.
 	CPtr<const CDnnBlob> Variable( const CDnnBlob& blob );
-	CPtr<const CDnnBlob> Variable( const CFloatHandle& data, int height, int width, int depth, int channels );
 
 	// Computes the gradient using operations recorded in this tape.
 	CPtr<const CDnnBlob> Gradient( const CDnnBlob& expression, const CDnnBlob& var );
@@ -51,7 +50,6 @@ class NEOML_API CTapeBlob : public CDnnBlob {
 public:
 	CTapeBlob( IGradientTape* tape, const CDnnBlob& blob );
 	CTapeBlob( IGradientTape* tape, IMathEngine& mathEngine, const CBlobDesc& desc );
-	CTapeBlob( IGradientTape* tape, const CFloatHandle& data, int height, int width, int depth, int channels );
 
 	// Gets used gradient calculation engine.
 	CPtr<IGradientTape> Tape() const { return tape; }
@@ -74,13 +72,16 @@ private:
 // Every user-defined operation should implement this interface for calculating gradient using CTapeGradient.
 class ITapeOperation : public IObject {
 public:
-	virtual CPtr<CDnnBlob> Gradient( const CTapeBlob* var ) const = 0;
+	// Returns the jacobian of the 'var'.
+	// Jacobian has size GetObjectCount() x GetObjectSize().
+	// If GetObjectCount() == 1 then jacobian is a diagonal matrix GetObjectSize() x GetObjectSize() stored like a vector.
+	virtual CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
 
 // Internal gradient calculation engine inteface.
-// Uses for add user-defined operations in tape.
+// Used for add user-defined operations in tape.
 class IGradientTape : public virtual IObject {
 public:
 	// Adds operation which has been used for calculating blob 'result'.
