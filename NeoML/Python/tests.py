@@ -1859,9 +1859,9 @@ class PoolingTestCase(TestCase):
         self.assertEqual(a.shape, (batch_length, batch_width, 1, 1, 1, 1, hidden_size))
 
 
-class MultLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
+class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
     def calc(self, data, labels):
-        return neoml.AutoDiff.mult(data - labels, data - labels)
+        return neoml.AutoDiff.mul(data - labels, data - labels)
 
 
 class BinaryCrossEntropyLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
@@ -1936,7 +1936,7 @@ class LossTestCase(TestCase):
         import neoml.AutoDiff as ad
         for loss_calculator, result_loss in [
             (BinaryCrossEntropyLossCalculator(), 0.313261),
-            (MultLossCalculator(), 0),
+            (MulLossCalculator(), 0),
         ]:
             self._test_custom_loss(loss_calculator, result_loss)
 
@@ -1956,8 +1956,8 @@ class LossTestCase(TestCase):
         self.assertTrue( np.equal( ad.sub(const2, blob).asarray(), ones ).all() )
         self.assertTrue( np.equal( ad.sub(const2, 0).asarray(), 2 * ones ).all() )
         self.assertTrue( np.equal( (3 - blob).asarray(), 2 * ones ).all() )
-        self.assertTrue( np.equal( ad.mult(const2, 2).asarray(), 4 * ones ).all() )
-        self.assertTrue( np.equal( ad.mult(2, blob).asarray(), 2 * ones ).all() )
+        self.assertTrue( np.equal( ad.mul(const2, 2).asarray(), 4 * ones ).all() )
+        self.assertTrue( np.equal( ad.mul(2, blob).asarray(), 2 * ones ).all() )
         self.assertTrue( np.equal( (const0 * const2).asarray(), 0 * ones ).all() )
         self.assertTrue( np.equal( ad.div(2, const2).asarray(), ones ).all() )
         self.assertTrue( np.equal( ad.div(const2, 2).asarray(), ones ).all() )

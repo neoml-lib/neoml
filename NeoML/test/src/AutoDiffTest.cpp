@@ -56,15 +56,6 @@ TEST_F( CAutoDiffTest, TestConst )
 	for( int i = 0; i < const1Data.Size(); i++ ) {
 		ASSERT_NEAR( 42.42, const1Data[i], 1e-4 );
 	}
-
-	const1 = Const( MathEngine(), const1Data, {50, 100, 200, 1, 1, 1, 1} );
-	const1Data.SetSize( const1->GetDataSize() );
-	const1->CopyTo( const1Data.GetPtr() );
-
-	ASSERT_EQ( const1->GetObjectCount(), 50 * 200 * 100 );
-	for( int i = 0; i < const1Data.Size(); i++ ) {
-		ASSERT_NEAR( 42.42, const1Data[i], 1e-4 );
-	}
 }
 
 TEST_F( CAutoDiffTest, TestAdd1 )
@@ -87,8 +78,8 @@ TEST_F( CAutoDiffTest, TestAdd1 )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top4ax = TopK(ax, 4);
 	CPtr<const CDnnBlob> top4bx = TopK(bx, 4);
@@ -136,8 +127,8 @@ TEST_F( CAutoDiffTest, TestAdd2 )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top16ax = TopK(ax, 16);
 	CPtr<const CDnnBlob> top16bx = bx;
@@ -187,8 +178,8 @@ TEST_F( CAutoDiffTest, TestSub1 )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top4ax = TopK(ax, 4);
 	CPtr<const CDnnBlob> top4bx = TopK(bx, 4);
@@ -241,8 +232,8 @@ TEST_F( CAutoDiffTest, TestSum )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top4ax = TopK(ax, 4);
 	CPtr<const CDnnBlob> top4bx = TopK(bx, 4);
@@ -295,8 +286,8 @@ TEST_F( CAutoDiffTest, TestClip )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top4ax = TopK(ax, 4);
 	CPtr<const CDnnBlob> top4bx = TopK(bx, 4);
@@ -349,8 +340,8 @@ TEST_F( CAutoDiffTest, TestMax )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top4ax = Max(ax, 0.3);
 	CPtr<const CDnnBlob> top4bx = Max(bx, 0.2);
@@ -404,13 +395,13 @@ TEST_F( CAutoDiffTest, TestMult1 )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top16ax = TopK(ax, 16);
 	CPtr<const CDnnBlob> top16bx = bx;
 
-	CPtr<const CDnnBlob> loss = Mult(top16ax, top16bx);
+	CPtr<const CDnnBlob> loss = Mul(top16ax, top16bx);
 
 	CArray<float> lossData;
 	lossData.SetSize( loss->GetDataSize() );
@@ -455,8 +446,8 @@ TEST_F( CAutoDiffTest, TestDiv1 )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = TopK( Mult(x, a), 4 );
-	CPtr<const CDnnBlob> bx = TopK( Mult(b, x), 4 );
+	CPtr<const CDnnBlob> ax = TopK( Mul(x, a), 4 );
+	CPtr<const CDnnBlob> bx = TopK( Mul(b, x), 4 );
 
 	CPtr<const CDnnBlob> loss = Div(ax, bx);
 
@@ -503,8 +494,8 @@ TEST_F( CAutoDiffTest, TestDiv2 )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top16ax = TopK(ax, 16);
 	CPtr<const CDnnBlob> top16bx = bx;
@@ -560,8 +551,8 @@ TEST_F( CAutoDiffTest, TestLog )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top4ax = TopK(ax, 4);
 	CPtr<const CDnnBlob> top4bx = TopK(bx, 4);
@@ -612,8 +603,8 @@ TEST_F( CAutoDiffTest, TestExp )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top4ax = TopK(ax, 4);
 	CPtr<const CDnnBlob> top4bx = TopK(bx, 4);
@@ -666,8 +657,8 @@ TEST_F( CAutoDiffTest, TestAbs )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top4ax = TopK(ax, 4);
 	CPtr<const CDnnBlob> top4bx = TopK(bx, 4);
@@ -721,8 +712,8 @@ TEST_F( CAutoDiffTest, TestNeg )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top4ax = TopK(ax, 4);
 	CPtr<const CDnnBlob> top4bx = TopK(bx, 4);
@@ -810,8 +801,8 @@ TEST_F( CAutoDiffTest, TestBinaryCrossEntropy )
 	CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
 	b->CopyFrom( valuesB );
 
-	CPtr<const CDnnBlob> ax = Mult(x, a);
-	CPtr<const CDnnBlob> bx = Mult(b, x);
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
 
 	CPtr<const CDnnBlob> top4ax = TopK(ax, 4);
 	CPtr<const CDnnBlob> top4bx = TopK(bx, 4);

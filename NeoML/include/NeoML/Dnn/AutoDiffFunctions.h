@@ -23,7 +23,7 @@ namespace NeoML {
 // Creates the const blob filled with the specified value.
 NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float data, const CBlobDesc& desc = {1} );
 // Creates the const blob using the specified data.
-NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float* data, const CBlobDesc& desc );
+NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const float* data, const CBlobDesc& desc );
 
 // Creates the blob which is the element-wise sum of the specified blobs. 
 // Blobs sizes must be equal!
@@ -46,11 +46,11 @@ NEOML_API CPtr<const CDnnBlob> Sub( float first, const CDnnBlob* second );
 // Creates the blob which is the element-wise multiplication of the specified blobs. 
 // Blobs sizes must be equal!
 // res[i] = first[i] * second[i]
-CPtr<const CDnnBlob> NEOML_API Mult( const CDnnBlob* first, const CDnnBlob* second );
+CPtr<const CDnnBlob> NEOML_API Mul( const CDnnBlob* first, const CDnnBlob* second );
 // res[i] = first[i] * second
-CPtr<const CDnnBlob> NEOML_API Mult( const CDnnBlob* first, float second );
+CPtr<const CDnnBlob> NEOML_API Mul( const CDnnBlob* first, float second );
 // res[i] = first * second[i]
-CPtr<const CDnnBlob> NEOML_API Mult( float first, const CDnnBlob* second );
+CPtr<const CDnnBlob> NEOML_API Mul( float first, const CDnnBlob* second );
 
 // Creates the blob which is the element-wise div of the first blob by the second. 
 // Blobs sizes must be equal!

@@ -20,18 +20,6 @@ limitations under the License.
 
 namespace NeoML {
 
-static CBlobDesc createBlobDesc( std::initializer_list<int> dimensions )
-{
-	CBlobDesc desc;
-	desc.SetDataType( CT_Float );
-	for( int i = 0; i < static_cast<int>(dimensions.size()); i++ ) {
-		desc.SetDimSize(i, dimensions.begin()[i]);
-	}
-	return desc;
-}
-
-//------------------------------------------------------------------------------------------------------------
-
 CTapeBlob::CTapeBlob( IGradientTape* _tape, const CDnnBlob& blob ) :
 	CDnnBlob( blob.GetMathEngine(), blob.GetDesc(), blob.GetMathEngine().HeapAlloc( blob.GetDataSize() * sizeof(float) ), true ),
 	tape( _tape )

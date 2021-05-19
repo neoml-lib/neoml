@@ -58,8 +58,8 @@ def sub(a, b):
 
     return a - b
 
-def mult(a, b):
-    """Elementwise mult of two blobs or blob with a scalar
+def mul(a, b):
+    """Elementwise mul of two blobs or blob with a scalar
     """
     if not type(a) is Blob and not type(b) is Blob:
         raise ValueError('`a` or `b` must be neoml.Blob.')

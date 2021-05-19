@@ -58,7 +58,7 @@ CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float data, const CBlobDesc
 	return result.Ptr();
 }
 
-CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float* data, const CBlobDesc& desc )
+CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const float* data, const CBlobDesc& desc )
 {
 	CPtr<CDnnBlob> result( new CTapeBlob( 0, mathEngine, desc ) );
 	result->CopyFrom( data );
@@ -282,9 +282,9 @@ CPtr<const CDnnBlob> Sub( float first, const CDnnBlob* second )
 
 //------------------------------------------------------------------------------------------------------------
 
-class CTapeMult : public ITapeOperation {
+class CTapeMul : public ITapeOperation {
 public:
-	explicit CTapeMult( const CDnnBlob& first, const CDnnBlob& second );
+	explicit CTapeMul( const CDnnBlob& first, const CDnnBlob& second );
 
 	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
@@ -293,14 +293,14 @@ private:
 	CPtr<const CDnnBlob> second;
 };
 
-CTapeMult::CTapeMult( const CDnnBlob& _first, const CDnnBlob& _second ) :
+CTapeMul::CTapeMul( const CDnnBlob& _first, const CDnnBlob& _second ) :
 	first( &_first ),
 	second( &_second )
 {
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 || dynamic_cast<const CTapeBlob*>(second.Ptr()) != 0 );
 }
 
-CPtr<CDnnBlob> CTapeMult::Jacobian( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeMul::Jacobian( const CTapeBlob* var ) const
 {
 	CPtr<CDnnBlob> result;
 	CPtr<CDnnBlob> firstJacobian = callJacobian( first, var );
@@ -355,7 +355,7 @@ CPtr<CDnnBlob> CTapeMult::Jacobian( const CTapeBlob* var ) const
 	return firstJacobian;
 }
 
-CPtr<const CDnnBlob> Mult( const CDnnBlob* first, const CDnnBlob* second )
+CPtr<const CDnnBlob> Mul( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
@@ -376,24 +376,24 @@ CPtr<const CDnnBlob> Mult( const CDnnBlob* first, const CDnnBlob* second )
 	mathEngine.VectorEltwiseMultiply( first->GetData(), second->GetData(), result->GetData(), result->GetDataSize() );
 
 	if( tape != 0 ) {
-		CPtr<ITapeOperation> operation( new CTapeMult( *first, *second ) ); 
+		CPtr<ITapeOperation> operation( new CTapeMul( *first, *second ) ); 
 		tape->Add( result, operation );
 	}
 
 	return result.Ptr();
 }
 
-CPtr<const CDnnBlob> Mult( const CDnnBlob* first, float value )
+CPtr<const CDnnBlob> Mul( const CDnnBlob* first, float value )
 {
 	NeoAssert( first != 0 );
 
 	CPtr<const CDnnBlob> second = Const( first->GetMathEngine(), value, first->GetDesc() );
-	return Mult( first, second );
+	return Mul( first, second );
 }
 
-CPtr<const CDnnBlob> Mult( float first, const CDnnBlob* second )
+CPtr<const CDnnBlob> Mul( float first, const CDnnBlob* second )
 {
-	return Mult( second, first );
+	return Mul( second, first );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -430,17 +430,6 @@ CPtr<CDnnBlob> CTapeDiv::Jacobian( const CTapeBlob* var ) const
 	const int gradientSize = firstJacobian != 0 ? firstJacobian->GetObjectSize() : secondJacobian->GetObjectSize();
 	const int vectorSize = first->GetDataSize();
 
-	if( firstJacobian == 0 ) {
-		if( secondJacobian->GetObjectCount() == 1 ) {
-			mathEngine.VectorEltwiseDivide( secondJacobian->GetData(), first->GetData(), secondJacobian->GetData(),
-				secondJacobian->GetDataSize() );
-		} else {
-			mathEngine.MatrixColumnsEltwiseDivide( secondJacobian->GetData(), secondJacobian->GetObjectCount(), gradientSize,
-				first->GetData(), secondJacobian->GetData() );
-		}
-		return secondJacobian;
-	}
-	
 	if( secondJacobian == 0 ) {
 		if( firstJacobian->GetObjectCount() == 1 ) {
 			mathEngine.VectorEltwiseDivide( firstJacobian->GetData(), second->GetData(), firstJacobian->GetData(),
@@ -453,15 +442,17 @@ CPtr<CDnnBlob> CTapeDiv::Jacobian( const CTapeBlob* var ) const
 	}
 
 	// firstJacobian = first' * second
-	if( firstJacobian->GetObjectCount() == 1 ) {
-		NeoAssert( firstJacobian->GetDataSize() == second->GetDataSize() );
-		mathEngine.VectorEltwiseMultiply( firstJacobian->GetData(), second->GetData(), firstJacobian->GetData(),
-			firstJacobian->GetDataSize() );
-	} else {
-		result = firstJacobian->GetClone();
-		mathEngine.MultiplyDiagMatrixByMatrix( second->GetData(), second->GetDataSize(),
-			firstJacobian->GetData(), firstJacobian->GetObjectSize(), result->GetData(), result->GetDataSize() );
-		swap( result, firstJacobian );
+	if( firstJacobian != 0 ) {
+		if( firstJacobian->GetObjectCount() == 1 ) {
+			NeoAssert( firstJacobian->GetDataSize() == second->GetDataSize() );
+			mathEngine.VectorEltwiseMultiply( firstJacobian->GetData(), second->GetData(), firstJacobian->GetData(),
+				firstJacobian->GetDataSize() );
+		} else {
+			result = firstJacobian->GetClone();
+			mathEngine.MultiplyDiagMatrixByMatrix( second->GetData(), second->GetDataSize(),
+				firstJacobian->GetData(), firstJacobian->GetObjectSize(), result->GetData(), result->GetDataSize() );
+			swap( result, firstJacobian );
+		}
 	}
 
 	// secondJacobian = -second' * first
@@ -483,32 +474,35 @@ CPtr<CDnnBlob> CTapeDiv::Jacobian( const CTapeBlob* var ) const
 	CFloatHandleStackVar secondSquare( mathEngine, second->GetDataSize() );
 	mathEngine.VectorEltwiseMultiply( second->GetData(), second->GetData(), secondSquare, second->GetDataSize() );
 
-	if( firstJacobian->GetDataSize() < secondJacobian->GetDataSize() ) {
-		// secondJacobian = firstJacobian + secondJacobian / secondSquare
-		mathEngine.AddDiagMatrixToMatrix( firstJacobian->GetData(), secondJacobian->GetData(),
-			secondJacobian->GetObjectCount(), secondJacobian->GetObjectSize(), secondJacobian->GetData() );
-		mathEngine.MatrixColumnsEltwiseDivide( secondJacobian->GetData(), secondJacobian->GetObjectCount(), gradientSize,
-			secondSquare.GetHandle(), secondJacobian->GetData() );
-		return secondJacobian;
-	} else if( secondJacobian->GetDataSize() < firstJacobian->GetDataSize() ) {
-		// firstJacobian = firstJacobian + secondJacobian / secondSquare
-		mathEngine.AddDiagMatrixToMatrix( secondJacobian->GetData(), firstJacobian->GetData(),
-			firstJacobian->GetObjectCount(), firstJacobian->GetObjectSize(), firstJacobian->GetData() );
-		mathEngine.MatrixColumnsEltwiseDivide( firstJacobian->GetData(), firstJacobian->GetObjectCount(), gradientSize,
-			secondSquare.GetHandle(), firstJacobian->GetData() );
-		return firstJacobian;
+	if( firstJacobian != 0 ) {
+		if( firstJacobian->GetDataSize() < secondJacobian->GetDataSize() ) {
+			// secondJacobian = firstJacobian + secondJacobian / secondSquare
+			mathEngine.AddDiagMatrixToMatrix( firstJacobian->GetData(), secondJacobian->GetData(),
+				secondJacobian->GetObjectCount(), secondJacobian->GetObjectSize(), secondJacobian->GetData() );
+			mathEngine.MatrixColumnsEltwiseDivide( secondJacobian->GetData(), secondJacobian->GetObjectCount(), gradientSize,
+				secondSquare.GetHandle(), secondJacobian->GetData() );
+			return secondJacobian;
+		} else if( secondJacobian->GetDataSize() < firstJacobian->GetDataSize() ) {
+			// firstJacobian = firstJacobian + secondJacobian / secondSquare
+			mathEngine.AddDiagMatrixToMatrix( secondJacobian->GetData(), firstJacobian->GetData(),
+				firstJacobian->GetObjectCount(), firstJacobian->GetObjectSize(), firstJacobian->GetData() );
+			mathEngine.MatrixColumnsEltwiseDivide( firstJacobian->GetData(), firstJacobian->GetObjectCount(), gradientSize,
+				secondSquare.GetHandle(), firstJacobian->GetData() );
+			return firstJacobian;
+		}
+		// secondJacobian = firstJacobian + secondJacobian
+		mathEngine.VectorAdd(firstJacobian->GetData(), secondJacobian->GetData(), secondJacobian->GetData(), secondJacobian->GetDataSize());
 	}
 
-	// firstJacobian = firstJacobian + secondJacobian / secondSquare
-	mathEngine.VectorAdd(firstJacobian->GetData(), secondJacobian->GetData(), firstJacobian->GetData(), firstJacobian->GetDataSize());
-	if( firstJacobian->GetObjectCount() == 1 ) {
-		mathEngine.VectorEltwiseDivide( firstJacobian->GetData(), secondSquare.GetHandle(), firstJacobian->GetData(), vectorSize );
+	// secondJacobian = secondJacobian / secondSquare
+	if( secondJacobian->GetObjectCount() == 1 ) {
+		mathEngine.VectorEltwiseDivide( secondJacobian->GetData(), secondSquare.GetHandle(), secondJacobian->GetData(), vectorSize );
 	} else {
-		mathEngine.MatrixColumnsEltwiseDivide( firstJacobian->GetData(), vectorSize, gradientSize,
-			secondSquare.GetHandle(), firstJacobian->GetData() );
+		mathEngine.MatrixColumnsEltwiseDivide( secondJacobian->GetData(), vectorSize, gradientSize,
+			secondSquare.GetHandle(), secondJacobian->GetData() );
 	}
 
-	return firstJacobian;
+	return secondJacobian;
 }
 
 CPtr<const CDnnBlob> Div( const CDnnBlob* first, const CDnnBlob* second )
@@ -1016,7 +1010,7 @@ CPtr<const CDnnBlob> BinaryCrossEntropy( const CDnnBlob* labels, const CDnnBlob*
 	CPtr<const CDnnBlob> clippedPreds = fromLogits ? preds : Clip( preds, 0.0000001f, 0.9999999f ).Ptr();
 
 	CPtr<const CDnnBlob> x = fromLogits ? clippedPreds : Log( Div( clippedPreds, Sub(1, clippedPreds) ) );
-	CPtr<const CDnnBlob> temp1 = Mult( Sub( 1, labels ), x );
+	CPtr<const CDnnBlob> temp1 = Mul( Sub( 1, labels ), x );
 	CPtr<const CDnnBlob> temp2 = Log( Add( 1, Exp( Neg( Abs(x) ) ) ) );
 	CPtr<const CDnnBlob> temp3 = Max( Neg(x), 0 );
 

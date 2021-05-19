@@ -78,18 +78,18 @@ void InitializeTape(py::module& m)
 		return CPyBlob( second.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
-	m.def("blob_mult", [](const CPyBlob& first, const CPyBlob& second) {
-		CPtr<const CDnnBlob> result( Mult( first.Blob(), second.Blob() ) );
+	m.def("blob_mul", [](const CPyBlob& first, const CPyBlob& second) {
+		CPtr<const CDnnBlob> result( Mul( first.Blob(), second.Blob() ) );
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
-	m.def("blob_mult", [](const CPyBlob& first, float second) {
-		CPtr<const CDnnBlob> result( Mult( first.Blob(), second ) );
+	m.def("blob_mul", [](const CPyBlob& first, float second) {
+		CPtr<const CDnnBlob> result( Mul( first.Blob(), second ) );
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
-	m.def("blob_mult", [](float first, const CPyBlob& second) {
-		CPtr<const CDnnBlob> result( Mult( first, second.Blob() ) );
+	m.def("blob_mul", [](float first, const CPyBlob& second) {
+		CPtr<const CDnnBlob> result( Mul( first, second.Blob() ) );
 		return CPyBlob( second.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 

@@ -167,7 +167,7 @@ class Blob:
         return Blob(PythonWrapper.blob_sub(float(other), self._internal))
 
     def __mul__(self, other):
-        """Elementwise mult of two blobs or blob with a scalar
+        """Elementwise mul of two blobs or blob with a scalar
         """
         if self.size == 0:
             raise ValueError("The blob mustn't be empty.")
@@ -175,16 +175,16 @@ class Blob:
         if type(other) is Blob:
             if self.shape != other.shape:
                 raise ValueError("The blobs must have the same shape.")
-            return Blob(PythonWrapper.blob_mult(self._internal, other._internal))
+            return Blob(PythonWrapper.blob_mul(self._internal, other._internal))
 
-        return Blob(PythonWrapper.blob_mult(self._internal, float(other)))
+        return Blob(PythonWrapper.blob_mul(self._internal, float(other)))
 
     def __rmul__(self, other):
-        """Elementwise mult of two blobs or a scalar with blob
+        """Elementwise mul of two blobs or a scalar with blob
         """
         if self.size == 0:
             raise ValueError("The blob mustn't be empty.")
-        return Blob(PythonWrapper.blob_mult(self._internal, float(other)))
+        return Blob(PythonWrapper.blob_mul(self._internal, float(other)))
 
     def __truediv__(self, other):
         """Elementwise div of two blobs or blob with a scalar
