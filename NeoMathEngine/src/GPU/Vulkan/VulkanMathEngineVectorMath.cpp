@@ -946,6 +946,116 @@ void CVulkanMathEngine::VectorEqualValue(const CConstIntHandle& firstHandle,
 		0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
 }
 
+void CVulkanMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
+	int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize > 0 );
+	ASSERT_EXPR( false );
+	secondValue;	
+}
+
+void CVulkanMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+	int gradHeight, int gradWidth )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+	ASSERT_EXPR( false );
+	secondValue;	
+}
+
+void CVulkanMathEngine::VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize >= 0 );
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorLogDiff( const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
+	const CConstFloatHandle& valueHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( valueHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( sourceGradHeight > 0 );
+	ASSERT_EXPR( sourceGradWidth > 0 );
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float second, const CFloatHandle& resultHandle,
+	int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize > 0 );
+	ASSERT_EXPR( false );
+	second;
+}
+
+void CVulkanMathEngine::VectorSub(float first, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
+	int vectorSize)
+{
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize > 0 );
+	ASSERT_EXPR( false );
+	first;
+}
+
+void CVulkanMathEngine::VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result,
+	const CIntHandle& indices)
+{
+	ASSERT_EXPR( first.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+	ASSERT_EXPR( indices.GetMathEngine() == this );
+	ASSERT_EXPR( firstSize > 0 );
+	ASSERT_EXPR( k > 0 );
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
+	const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad)
+{
+	ASSERT_EXPR( sourceGrad.GetMathEngine() == this );
+	ASSERT_EXPR( resultGrad.GetMathEngine() == this );
+	ASSERT_EXPR( indices.GetMathEngine() == this );
+	ASSERT_EXPR( sourceGradHeight > 0 );
+	ASSERT_EXPR( sourceGradWidth > 0 );
+	ASSERT_EXPR( k > 0 );
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorAbsDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle)
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
+	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( minHandle.GetMathEngine() == this );
+	ASSERT_EXPR( maxHandle.GetMathEngine() == this );
+
+	ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_VULKAN

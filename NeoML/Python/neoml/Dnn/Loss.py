@@ -17,6 +17,8 @@ limitations under the License.
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from neoml.Utils import check_input_layers
+from abc import ABCMeta, abstractmethod
+import neoml.Blob as Blob
 
 
 class Loss(Layer):
@@ -734,3 +736,49 @@ class MultiSquaredHingeLoss(Loss):
 
         internal = PythonWrapper.MultiSquaredHingeLoss(str(name), layers, outputs, float(loss_weight))
         super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class CustomLossCalculatorBase(metaclass=ABCMeta):
+    """
+    """
+    @abstractmethod
+    def calc(self, data, labels):
+        """
+        """
+
+class CustomLoss(Loss):
+    """
+    """
+    def __init__(self, input_layers, loss_calculator=None, loss_weight=1.0, name=None):
+        if type(input_layers) is PythonWrapper.CustomLoss:
+            super().__init__(input_layers)
+            return
+
+        layers, outputs = check_input_layers(input_layers, (2, 3))
+
+        if not isinstance(loss_calculator, CustomLossCalculatorBase):
+            raise ValueError("The 'loss_calculator' must be a instance of neoml.CustomLossCalculatorBase.")
+
+        internal = PythonWrapper.CustomLoss(loss_calculator, str(name), layers, outputs, float(loss_weight))
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+def call_loss_calculator(data, labels, loss_calculator):
+    """
+    """
+    data_blob = Blob.Blob(data)
+    labels_blob = Blob.Blob(labels)
+
+    loss = loss_calculator.calc(data_blob, labels_blob)
+
+    if not type(loss) is Blob.Blob:
+        raise ValueError("The result of 'calc' must be neoml.Blob.")
+
+    if loss.size != data_blob.object_count:
+        raise ValueError("The result of 'calc' must have size == data.object_count.")
+
+    return loss._internal
