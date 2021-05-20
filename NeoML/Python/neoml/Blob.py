@@ -126,6 +126,93 @@ class Blob:
         """
         return Blob(self._internal.copy(math_engine._internal))
 
+    def __add__(self, other):
+        """Elementwise sum of two blobs or blob with a scalar
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+
+        if type(other) is Blob:
+            if self.shape != other.shape:
+                raise ValueError("The blobs must have the same shape.")
+            return Blob(PythonWrapper.blob_add(self._internal, other._internal))
+
+        return Blob(PythonWrapper.blob_add(self._internal, float(other)))
+
+    def __radd__(self, other):
+        """Elementwise sum of two blobs or a scalar with blob
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+        return Blob(PythonWrapper.blob_add(self._internal, float(other)))
+
+    def __sub__(self, other):
+        """Elementwise sub of two blobs or blob with a scalar
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+
+        if type(other) is Blob:
+            if self.shape != other.shape:
+                raise ValueError("The blobs must have the same shape.")
+            return Blob(PythonWrapper.blob_sub(self._internal, other._internal))
+
+        return Blob(PythonWrapper.blob_sub(self._internal, float(other)))
+
+    def __rsub__(self, other):
+        """Elementwise sub of two blobs or a scalar with blob
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+        return Blob(PythonWrapper.blob_sub(float(other), self._internal))
+
+    def __mul__(self, other):
+        """Elementwise mul of two blobs or blob with a scalar
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+
+        if type(other) is Blob:
+            if self.shape != other.shape:
+                raise ValueError("The blobs must have the same shape.")
+            return Blob(PythonWrapper.blob_mul(self._internal, other._internal))
+
+        return Blob(PythonWrapper.blob_mul(self._internal, float(other)))
+
+    def __rmul__(self, other):
+        """Elementwise mul of two blobs or a scalar with blob
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+        return Blob(PythonWrapper.blob_mul(self._internal, float(other)))
+
+    def __truediv__(self, other):
+        """Elementwise div of two blobs or blob with a scalar
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+
+        if type(other) is Blob:
+            if self.shape != other.shape:
+                raise ValueError("The blobs must have the same shape.")
+            return Blob(PythonWrapper.blob_div(self._internal, other._internal))
+
+        return Blob(PythonWrapper.blob_div(self._internal, float(other)))
+
+    def __rtruediv__(self, other):
+        """Elementwise div of two blobs or a scalar with blob
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+        return Blob(PythonWrapper.blob_div(float(other), self._internal))
+
+    def __neg__(self):
+        """Elementwise negative
+        """
+        if self.size == 0:
+            raise ValueError("The blobs mustn't be empty.")
+        return Blob(PythonWrapper.blob_neg(self._internal))
+
 # -------------------------------------------------------------------------------------------------------------
 
 def store(blob, file_path):
