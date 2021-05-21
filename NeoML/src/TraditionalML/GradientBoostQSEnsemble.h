@@ -129,7 +129,7 @@ private:
 	void buildFeatureNodesOffsets( const CArray<int>& features );
 
 	void processFeature( int feature, float value, CFastArray<unsigned __int64, 512>& bitvectors ) const;
-	template <class T> double calculateScore( const T& data, const CFastArray<unsigned __int64, 512>& bitvectors, int lastTreeIndex ) const;
+	double calculateScore( const CFloatVectorDesc& data, const CFastArray<unsigned __int64, 512>& bitvectors, int lastTreeIndex ) const;
 };
 
 } // namespace NeoML

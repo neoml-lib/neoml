@@ -65,13 +65,6 @@ private:
 
 	bool classify( CFastArray<double, 1>& predictions, CClassificationResult& result ) const;
 	double probability( double prediction ) const;
-
-	// The common implementation for Predict methods
-	template<typename TData>
-	double doPredict( const TData& data ) const;
-	// The common implementation for MultivariatePredict methods
-	template<typename TData>
-	CFloatVector doMultivariatePredict( const TData& data ) const;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
