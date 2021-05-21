@@ -21,21 +21,14 @@ namespace NeoMLTest {
 template<typename TLabel>
 class CRandomProblemImpl : public virtual IObject {
 public:
-	CRandomProblemImpl( int height, int width, float* values, const TLabel* _labels, const float* _weights );
-
 	static CPtr<CRandomProblemImpl> Random( CRandom& rand, int samples, int features, int labelsCount );
 	CPtr<CRandomProblemImpl> CreateSparse() const;
 
 	CSparseFloatMatrix Matrix;
-	const TLabel* Labels;
-	const float* Weights;
-
-	// memory holders when applicable
-	CArray<float> Values;
-	CArray<int> PointerB;
-	CArray<int> PointerE;
 	CArray<TLabel> LabelsArr;
 	CArray<float> WeightsArr;
+	const TLabel* Labels;
+	const float* Weights;
 
 private:
 	CRandomProblemImpl() = default;
@@ -44,9 +37,7 @@ private:
 // classification random problem impl
 class CClassificationRandomProblem : public IProblem {
 public:
-	CClassificationRandomProblem( int height, int width, float* values, const int* _labels, const float* _weights );
-
-	CSparseFloatVectorDesc GetVector( int index ) const { return GetMatrix().GetRow( index ); }
+	CFloatVectorDesc GetVector( int index ) const { return GetMatrix().GetRow( index ); }
 
 	static CPtr<CClassificationRandomProblem> Random( CRandom& rand, int samples, int features, int labelsCount );
 	CPtr<CClassificationRandomProblem> CreateSparse() const;
@@ -57,7 +48,7 @@ public:
 	bool IsDiscreteFeature( int ) const override { return false; }
 	int GetVectorCount() const override { return GetMatrix().Height; }
 	int GetClass( int index ) const override { return impl->Labels[index]; }
-	CSparseFloatMatrixDesc GetMatrix() const override { return impl->Matrix.GetDesc(); }
+	CFloatMatrixDesc GetMatrix() const override { return impl->Matrix.GetDesc(); }
 	double GetVectorWeight( int index ) const override { return impl->Weights[index]; };
 
 protected:
@@ -72,9 +63,7 @@ private:
 // regression random problem impl
 class CRegressionRandomProblem : public IRegressionProblem {
 public:
-	CRegressionRandomProblem( int height, int width, float* values, const double* _labels, const float* _weights );
-
-	CSparseFloatVectorDesc GetVector( int index ) const { return GetMatrix().GetRow( index ); }
+	CFloatVectorDesc GetVector( int index ) const { return GetMatrix().GetRow( index ); }
 
 	static CPtr<CRegressionRandomProblem> Random( CRandom& rand, int samples, int features, int labels );
 	CPtr<CRegressionRandomProblem> CreateSparse() const;
@@ -83,7 +72,7 @@ public:
 	int GetFeatureCount() const override { return GetMatrix().Width; }
 	int GetVectorCount() const override { return GetMatrix().Height; }
 	double GetValue( int index ) const override { return impl->Labels[index]; }
-	CSparseFloatMatrixDesc GetMatrix() const override { return impl->Matrix.GetDesc(); }
+	CFloatMatrixDesc GetMatrix() const override { return impl->Matrix.GetDesc(); }
 	double GetVectorWeight( int index ) const override { return impl->Weights[index]; };
 
 protected:

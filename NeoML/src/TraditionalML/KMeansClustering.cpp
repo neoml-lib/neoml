@@ -29,7 +29,7 @@ limitations under the License.
 
 namespace NeoML {
 
-static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CSparseFloatMatrixDesc& data )
+static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CFloatMatrixDesc& data )
 {
 	NeoAssert( data.Columns == nullptr );
 	const int vectorCount = data.Height;
@@ -47,7 +47,7 @@ static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, const IClusteri
 {
 	const int vectorCount = data->GetVectorCount();
 	CPtr<CDnnBlob> weight = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount );
-	float* buffer = weight->GetBuffer<float>( 0, vectorCount );
+	float* buffer = weight->GetBuffer<float>( 0, vectorCount, false );
 	for( int vectorIndex = 0; vectorIndex < vectorCount; ++vectorIndex ) {
 		buffer[vectorIndex] = static_cast<float>( data->GetVectorWeight( vectorIndex ) );
 	}
@@ -75,7 +75,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 {
 	NeoAssert( input != 0 );
 
-	CSparseFloatMatrixDesc matrix = input->GetMatrix();
+	CFloatMatrixDesc matrix = input->GetMatrix();
 	NeoAssert( matrix.Height == input->GetVectorCount() );
 	NeoAssert( matrix.Width == input->GetFeaturesCount() );
 
@@ -198,7 +198,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, CClust
 }
 
 // Selects the initial clusters
-void CKMeansClustering::selectInitialClusters( const CSparseFloatMatrixDesc& matrix )
+void CKMeansClustering::selectInitialClusters( const CFloatMatrixDesc& matrix )
 {
 	if( !clusters.IsEmpty() ) {
 		// The initial clusters have been set already
@@ -223,7 +223,7 @@ void CKMeansClustering::selectInitialClusters( const CSparseFloatMatrixDesc& mat
 	}
 }
 
-void CKMeansClustering::defaultInitialization( const CSparseFloatMatrixDesc& matrix )
+void CKMeansClustering::defaultInitialization( const CFloatMatrixDesc& matrix )
 {
 	const int vectorCount = matrix.Height;
 	CCommonCluster::CParams clusterParam;
@@ -234,14 +234,14 @@ void CKMeansClustering::defaultInitialization( const CSparseFloatMatrixDesc& mat
 	NeoAssert( step > 0 );
 	clusters.SetBufferSize( params.InitialClustersCount );
 	for( int i = 0; i < params.InitialClustersCount; i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( ( i * step ) % vectorCount, desc );
 		CFloatVector mean( matrix.Width, desc );
 		clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ), clusterParam ) );
 	}
 }
 
-void CKMeansClustering::kMeansPlusPlusInitialization( const CSparseFloatMatrixDesc& matrix )
+void CKMeansClustering::kMeansPlusPlusInitialization( const CFloatMatrixDesc& matrix )
 {
 	const int vectorCount = matrix.Height;
 	NeoAssert( params.InitialClustersCount <= vectorCount );
@@ -280,7 +280,7 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CSparseFloatMatrixDe
 	}
 }
 
-bool CKMeansClustering::clusterize( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights )
+bool CKMeansClustering::clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
 {
 	if( params.Algo == KMA_Lloyd ) {
 		return lloydClusterization( matrix, weights );
@@ -289,7 +289,7 @@ bool CKMeansClustering::clusterize( const CSparseFloatMatrixDesc& matrix, const 
 	}
 }
 
-bool CKMeansClustering::lloydClusterization( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights )
+bool CKMeansClustering::lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
 {
 	CArray<int> dataCluster; // the cluster for this element
 	dataCluster.SetBufferSize( matrix.Height );
@@ -318,7 +318,7 @@ bool CKMeansClustering::lloydClusterization( const CSparseFloatMatrixDesc& matri
 }
 
 // Distributes all elements over the existing clusters
-void CKMeansClustering::classifyAllData( const CSparseFloatMatrixDesc& matrix, CArray<int>& dataCluster )
+void CKMeansClustering::classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster )
 {
 	// Each element is assigned to the nearest cluster
 	dataCluster.SetSize( matrix.Height );
@@ -335,13 +335,13 @@ void CKMeansClustering::classifyAllData( const CSparseFloatMatrixDesc& matrix, C
 }
 
 // Finds the nearest cluster for the element
-int CKMeansClustering::findNearestCluster( const CSparseFloatMatrixDesc& matrix, int dataIndex ) const
+int CKMeansClustering::findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex ) const
 {
 	double bestDistance = DBL_MAX;
 	int res = NotFound;
 	
 	for( int i = 0; i < clusters.Size(); i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( dataIndex, desc );
 		const double distance = clusters[i]->CalcDistance( desc, params.DistanceFunc );
 		if( distance < bestDistance ) {
@@ -363,7 +363,7 @@ void CKMeansClustering::storeClusterCenters( CArray<CClusterCenter>& result )
 }
 
 // Updates the clusters and returns true if the clusters were changed, false if they stayed the same
-bool CKMeansClustering::updateClusters( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights,
+bool CKMeansClustering::updateClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 	const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters )
 {
 	// Store the old cluster centers
@@ -373,7 +373,7 @@ bool CKMeansClustering::updateClusters( const CSparseFloatMatrixDesc& matrix, co
 
 	// Update the cluster contents
 	for( int i = 0; i < dataCluster.Size(); i++ ) {
-		CSparseFloatVectorDesc desc;
+		CFloatVectorDesc desc;
 		matrix.GetRow( i, desc );
 		clusters[dataCluster[i]]->Add( i, desc, weights[i] );
 	}
@@ -395,7 +395,7 @@ bool CKMeansClustering::updateClusters( const CSparseFloatMatrixDesc& matrix, co
 	return false;
 }
 
-bool CKMeansClustering::elkanClusterization( const CSparseFloatMatrixDesc& matrix, const CArray<double>& weights )
+bool CKMeansClustering::elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
 {
 	// Metric must support triangle inequality
 	NeoAssert( params.DistanceFunc == DF_Euclid );
@@ -445,7 +445,7 @@ bool CKMeansClustering::elkanClusterization( const CSparseFloatMatrixDesc& matri
 }
 
 // Initializes all required statistics for Elkan algorithm
-void CKMeansClustering::initializeElkanStatistics( const CSparseFloatMatrixDesc& matrix,
+void CKMeansClustering::initializeElkanStatistics( const CFloatMatrixDesc& matrix,
 	CArray<int>& assignments, CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds,
 	CVariableMatrix<float>& clusterDists, CArray<float>& closestClusterDist, CArray<float>& moveDistance )
 {
@@ -490,7 +490,7 @@ void CKMeansClustering::computeClustersDists( CVariableMatrix<float>& dists, CAr
 	}
 }
 
-void CKMeansClustering::assignVectors( const CSparseFloatMatrixDesc& matrix, const CVariableMatrix<float>& clusterDists,
+void CKMeansClustering::assignVectors( const CFloatMatrixDesc& matrix, const CVariableMatrix<float>& clusterDists,
 	const CArray<float>& closestClusterDist, CArray<int>& assignments, CArray<float>& upperBounds,
 	CVariableMatrix<float>& lowerBounds ) const
 {
@@ -545,7 +545,7 @@ void CKMeansClustering::updateMoveDistance( const CArray<CClusterCenter>& oldCen
 	}
 }
 
-double CKMeansClustering::updateUpperAndLowerBounds( const CSparseFloatMatrixDesc& matrix,
+double CKMeansClustering::updateUpperAndLowerBounds( const CFloatMatrixDesc& matrix,
 	const CArray<float>& moveDistance, const CArray<int>& assignments,
 	CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds ) const
 {
@@ -592,7 +592,7 @@ void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& c
 {
 	const int featureCount = data.GetObjectSize();
 	if( !initialClusterCenters.IsEmpty() ) {
-		float* buffer = centers.GetBuffer<float>( 0, params.InitialClustersCount * featureCount );
+		float* buffer = centers.GetBuffer<float>( 0, params.InitialClustersCount * featureCount, false );
 		float* currPtr = buffer;
 		for( int i = 0; i < params.InitialClustersCount; ++i ) {
 			::memcpy( currPtr, initialClusterCenters[i].Mean.GetPtr(), featureCount * sizeof( float ) );
@@ -791,7 +791,7 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& wei
 		1, sizes.GetData(), clusterCount );
 
 	CFloatHandle invertedSize = stackBuff + centers.GetDataSize();
-	float* rawSizes = sizes.GetBuffer<float>( 0, clusterCount );
+	float* rawSizes = sizes.GetBuffer<float>( 0, clusterCount, true );
 	for( int i = 0; i < clusterCount; i++ ) {
 		// Ignore empty clusters
 		if( rawSizes[i] > 0 ) {
@@ -817,8 +817,8 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 	// 1 / *cluster size*
 	CPtr<CDnnBlob> sizeInv = CDnnBlob::CreateVector( mathEngine, CT_Float, clusterCount );
 	{
-		float* sizeBuff = const_cast<CDnnBlob&>( sizes ).GetBuffer<float>( 0, clusterCount );
-		float* sizeInvBuff = sizeInv->GetBuffer<float>( 0, clusterCount );
+		float* sizeBuff = const_cast<CDnnBlob&>( sizes ).GetBuffer<float>( 0, clusterCount, true );
+		float* sizeInvBuff = sizeInv->GetBuffer<float>( 0, clusterCount, false );
 		for( int i = 0; i < clusterCount; ++i ) {
 			sizeInvBuff[i] = sizeBuff[i] > 0 ? 1.f / sizeBuff[i] : 1.f;
 		}

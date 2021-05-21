@@ -41,7 +41,7 @@ CClassificationStatistics::CClassificationStatistics( CDecisionTreeNodeBase* _no
 	discretizationIntervals.SetSize( usedFeatures.Size() );
 }
 
-void CClassificationStatistics::AddVector( int index, const CSparseFloatVectorDesc& vector )
+void CClassificationStatistics::AddVector( int index, const CFloatVectorDesc& vector )
 {
 	NeoAssert( problem != 0 );
 	const double weight = problem->GetVectorWeight( index );
@@ -93,7 +93,7 @@ size_t CClassificationStatistics::GetSize() const
 	return result;
 }
 
-bool CClassificationStatistics::GetSplit( CDecisionTreeTrainingModel::CParams param,
+bool CClassificationStatistics::GetSplit( CDecisionTree::CParams param,
 	bool& isDiscrete, int& featureIndex, CArray<double>& values, double& criterionValue ) const
 {
 	// Choose the feature so that splitting by it will give the smallest criterion value
@@ -327,7 +327,7 @@ void CClassificationStatistics::closeIntervals( double begin, double end, CArray
 }
 
 // Calculates the criterion value for continuous feature split
-double CClassificationStatistics::calcContinuousSplitCriterion( CDecisionTreeTrainingModel::CParams param,
+double CClassificationStatistics::calcContinuousSplitCriterion( CDecisionTree::CParams param,
 	const CIntervalArray& intervals, const CVectorSetClassificationStatistic& total, CArray<double>& splitValues ) const
 {
 	CVectorSetClassificationStatistic first( total.Weights().Size() ); // empty
@@ -380,7 +380,7 @@ double CClassificationStatistics::calcContinuousSplitCriterion( CDecisionTreeTra
 }
 
 // Calculates the criterion value for discrete feature split
-double CClassificationStatistics::calcDiscreteSplitCriterion( CDecisionTreeTrainingModel::CParams param,
+double CClassificationStatistics::calcDiscreteSplitCriterion( CDecisionTree::CParams param,
 	const CIntervalArray& intervals, const CVectorSetClassificationStatistic& total, CArray<double>& splitValues ) const
 {
 	splitValues.Empty();

@@ -21,44 +21,28 @@ limitations under the License.
 namespace NeoMLTest {
 
 template<typename TLabel>
-CRandomProblemImpl<TLabel>::CRandomProblemImpl( int height, int width, float* values,
-		const TLabel* _labels, const float* _weights ) :
-	Matrix( width ),
-	Labels( _labels ),
-	Weights( _weights )
-{
-	CSparseFloatMatrixDesc* desc = Matrix.CopyOnWrite();
-	NeoAssert( desc != nullptr );
-	desc->Height = height;
-	desc->Width = width;
-	desc->Values = values;
-	desc->Columns = nullptr;
-	PointerB.SetSize( height );
-	PointerE.SetSize( height );
-	for( int i = 0, pos = 0; i < height; ++i ) {
-		PointerB[i] = pos;
-		pos += width;
-		PointerE[i] = pos;
-	}
-	desc->PointerB = PointerB.GetPtr();
-	desc->PointerE = PointerE.GetPtr();
-}
-
-template<typename TLabel>
 CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::Random( CRandom& rand, int samples, int features, int labelsCount )
 {
 	CPtr< CRandomProblemImpl<TLabel> > res = new CRandomProblemImpl();
 
-	res->Values.SetBufferSize( samples * features );
+	res->Matrix = CSparseFloatMatrix( features, samples, samples * features );
+	CFloatMatrixDesc* desc = res->Matrix.CopyOnWrite();
+	desc->Height = samples;
+	desc->Width = features;
+	desc->Columns = nullptr;
+
 	res->LabelsArr.SetBufferSize( samples );
+	int pos = 0;
 	for( int i = 0; i < samples; ++i ) {
-		for( int j = 0; j < features; ++j ) {
+		desc->PointerB[i] = pos;
+		for( int j = 0; j < features; ++j, ++pos ) {
 			if( rand.UniformInt( 0, 3 ) != 0 ) { // 1/4 probability of null element
-				res->Values.Add( static_cast<float>( rand.Uniform( -10, 10 ) ) );
+				desc->Values[pos] = static_cast<float>( rand.Uniform( -10, 10 ) );
 			} else {
-				res->Values.Add( 0.0 );
+				desc->Values[pos] = 0.0;
 			}
 		}
+		desc->PointerE[i] = pos;
 		res->LabelsArr.Add( static_cast<TLabel>( rand.UniformInt( 0, labelsCount - 1 ) ) );
 	}
 
@@ -66,22 +50,6 @@ CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::Random( CRandom& 
 	res->WeightsArr.Add( 1., samples );
 	res->Labels = res->LabelsArr.GetPtr();
 	res->Weights = res->WeightsArr.GetPtr();
-
-	res->Matrix = CSparseFloatMatrix( features );
-	res->PointerB.SetSize( samples );
-	res->PointerE.SetSize( samples );
-	for( int i = 0, pos = 0; i < samples; ++i ) {
-		res->PointerB[i] = pos;
-		pos += features;
-		res->PointerE[i] = pos;
-	}
-	CSparseFloatMatrixDesc* desc = res->Matrix.CopyOnWrite();
-	desc->Height = samples;
-	desc->Width = features;
-	desc->Values = res->Values.GetPtr();
-	desc->Columns = nullptr;
-	desc->PointerB = res->PointerB.GetPtr();
-	desc->PointerE = res->PointerE.GetPtr();
 
 	return res;
 }
@@ -101,18 +69,6 @@ CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::CreateSparse() co
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-CClassificationRandomProblem::CClassificationRandomProblem( int height, int width, float* values,
-		const int* _classes, const float* _weights ) :
-	impl( new CRandomProblemImpl<int>( height, width, values, _classes, _weights ) )
-{
-	for( int i = 0; i < GetMatrix().Height; i++ ) {
-		if( classCount < impl->Labels[i] ) {
-			classCount = impl->Labels[i];
-		}
-	}
-	classCount++;
-}
-
 CPtr<CClassificationRandomProblem> CClassificationRandomProblem::Random( CRandom& rand, int samples, int features, int classCount )
 {
 	CPtr<CClassificationRandomProblem> res = new CClassificationRandomProblem();
@@ -130,12 +86,6 @@ CPtr<CClassificationRandomProblem> CClassificationRandomProblem::CreateSparse() 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-CRegressionRandomProblem::CRegressionRandomProblem( int height, int width, float* values,
-		const double* _labels, const float* _weights ) :
-	impl( new CRandomProblemImpl<double>( height, width, values, _labels, _weights ) )
-{
-}
 
 CPtr<CRegressionRandomProblem> CRegressionRandomProblem::Random( CRandom& rand, int samples, int features, int labelsCount )
 {

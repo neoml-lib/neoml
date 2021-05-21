@@ -45,8 +45,7 @@ static void blobGlobalMaxPoolingTestImpl( const CTestParams& params, int seed )
 	const int channels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const int depth = random.UniformInt( depthInterval.Begin, depthInterval.End );
 	const int height = random.UniformInt( heightInterval.Begin, heightInterval.End );
-	const int width = random.UniformInt( widthInterval.Begin, std::min( widthInterval.End,
-		( depthInterval.End * heightInterval.End ) / ( depth * height ) ) );
+	const int width = random.UniformInt( widthInterval.Begin, widthInterval.End );
 	const int maxCount = random.UniformInt( maxCountInterval.Begin, maxCountInterval.End );
 
 	CFloatBlob output( MathEngine(), batchLength, batchWidth, listSize, 1, maxCount, 1, channels );
@@ -99,15 +98,16 @@ static void blobGlobalMaxPoolingTestImpl( const CTestParams& params, int seed )
 	}
 
 	input.CopyFrom( inputBuff.data() );
+	CGlobalMaxPoolingDesc* poolingDesc;
 
-	CGlobalMaxPoolingDesc* poolingDesc = MathEngine().InitGlobalMaxPooling( input.GetDesc(), indices.GetDesc(),
+	poolingDesc = MathEngine().InitGlobalMaxPooling( input.GetDesc(), indices.GetDesc(),
 		output.GetDesc() );
 	MathEngine().BlobGlobalMaxPooling( *poolingDesc, input.GetData(), indices.GetData(),
 		output.GetData() );
-	delete poolingDesc;
-
 	output.CopyTo( actual.data() );
 	indices.CopyTo( actualIndices.data() );
+
+	delete poolingDesc;
 
 	for( size_t i = 0; i < expected.size(); ++i ) {
 		ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << params;
@@ -171,11 +171,44 @@ INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngi
 			"BatchWidth = (1..25);"
 			"ListSize = (1..25);"
 			"Channels = (1..100);"
-			"Depth = (1..25);"
+			"Depth = (1..5);"
 			"Height = (1..5);"
 			"Width = (1..25);"
 			"MaxCount = (1..7);"
 			"TestCount = 50"
+		),
+		CTestParams(
+			"BatchLength = (1..3);"
+			"BatchWidth = (1..3);"
+			"ListSize = (1..3);"
+			"Channels = (1..3);"
+			"Depth = 1;"
+			"Height = 1;"
+			"Width = 100000;"
+			"MaxCount = 10000;"
+			"TestCount = 100;"
+		),
+		CTestParams(
+			"BatchLength = (1..3);"
+			"BatchWidth = (1..3);"
+			"ListSize = (1..3);"
+			"Channels = (1..5);"
+			"Depth = 1;"
+			"Height = 1;"
+			"Width = 1000;"
+			"MaxCount = 2000;"
+			"TestCount = 10;"
+		),
+		CTestParams(
+			"BatchLength = 1;"
+			"BatchWidth = 100;"
+			"ListSize = 1;"
+			"Channels = 1000;"
+			"Depth = 1;"
+			"Height = 1;"
+			"Width = 100;"
+			"MaxCount = 100;"
+			"TestCount = 1;"
 		)
 	)
 );
