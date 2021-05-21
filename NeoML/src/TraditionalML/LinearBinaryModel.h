@@ -37,8 +37,7 @@ public:
 	CFloatVector GetPlane() const override { return plane; }
 	const CSigmoid& GetSigmoid() const override { return coefficients; }
 
-	// IRegressionModel interface methods
-	double Predict( const CFloatVector& data ) const override;
+	// IRegressionModel interface method
 	double Predict( const CFloatVectorDesc& data ) const override;
 
 protected:

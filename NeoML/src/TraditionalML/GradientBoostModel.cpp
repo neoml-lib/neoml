@@ -197,9 +197,8 @@ void CGradientBoostModel::ConvertToCompact()
 	}
 }
 
-// The common implementation for Predict methods
-template<typename TData>
-inline double CGradientBoostModel::doPredict( const TData& data ) const
+// IRegressionModel interface method
+double CGradientBoostModel::Predict( const CFloatVectorDesc& data ) const
 {
 	NeoAssert(ensembles.Size() == 1 && valueSize == 1);
 	CFastArray<double, 1> predictions;
@@ -208,19 +207,8 @@ inline double CGradientBoostModel::doPredict( const TData& data ) const
 	return predictions[0];
 }
 
-double CGradientBoostModel::Predict( const CFloatVector& data ) const
-{
-	return doPredict( data );
-}
-
-double CGradientBoostModel::Predict( const CFloatVectorDesc& data ) const
-{
-	return doPredict( data );
-}
-
-// The common implementation for the three MultivariatePredict method variations
-template<typename TData>
-CFloatVector CGradientBoostModel::doMultivariatePredict( const TData& data ) const
+// IMultivariateRegressionModel interface method
+CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVectorDesc& data ) const
 {
 	CFastArray<double, 1> predictions;
 
@@ -243,12 +231,6 @@ CFloatVector CGradientBoostModel::doMultivariatePredict( const TData& data ) con
 		resultPtr[i] = static_cast<float>(predictions[0]);
 	}
 	return result;
-}
-
-// IMultivariateRegressionModel interface methods
-CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVectorDesc& data ) const
-{
-	return doMultivariatePredict( data );
 }
 
 // Performs classification

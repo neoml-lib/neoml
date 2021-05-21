@@ -52,7 +52,6 @@ public:
 	virtual void ConvertToCompact() override;
 
 	// IRegressionModel interface methods
-	double Predict( const CFloatVector& data ) const override;
 	double Predict( const CFloatVectorDesc& data ) const override;
 
 	// IMultivariateRegressionModel interface methods
