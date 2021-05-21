@@ -342,7 +342,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_FastHist )
 	CRandom random( 0 );
 	CGradientBoost::CParams params;
 	params.Random = &random;
-	params.IterationsCount = 5;
+	params.IterationsCount = 10;
 	params.TreeBuilder = GBTB_FastHist;
 	TrainMultiGradientBoost( params );
 	TestMultiClassificationResult();
@@ -524,7 +524,7 @@ TEST_F( RandomBinaryGBRegression4000x20, Full )
 	TestBinaryRegressionResult();
 }
 
-/*TEST_F( RandomBinaryGBRegression4000x20, FastHist )
+TEST_F( RandomBinaryGBRegression4000x20, FastHist )
 {
 	CRandom random( 0 );
 	CGradientBoost::CParams params;
@@ -533,7 +533,7 @@ TEST_F( RandomBinaryGBRegression4000x20, Full )
 	params.TreeBuilder = GBTB_FastHist;
 	TrainBinaryGradientBoost( params );
 	TestBinaryRegressionResult();
-}*/
+}
 
 // GB multi tree builders
 TEST_F( RandomMultiGBRegression2000x20, Full )
@@ -546,7 +546,7 @@ TEST_F( RandomMultiGBRegression2000x20, Full )
 	TestMultiRegressionResult();
 }
 
-/*TEST_F( RandomMultiGBRegression2000x20, FastHist )
+TEST_F( RandomMultiGBRegression2000x20, FastHist )
 {
 	CRandom random( 0 );
 	CGradientBoost::CParams params;
@@ -555,7 +555,7 @@ TEST_F( RandomMultiGBRegression2000x20, Full )
 	params.TreeBuilder = GBTB_FastHist;
 	TrainMultiGradientBoost( params );
 	TestMultiRegressionResult();
-}*/
+}
 
 TEST_F( RandomMultiGBRegression2000x20, MultiFull )
 {
@@ -568,7 +568,7 @@ TEST_F( RandomMultiGBRegression2000x20, MultiFull )
 	TestMultiRegressionResult();
 }
 
-/*TEST_F( RandomMultiGBRegression2000x20, MultiFastHist )
+TEST_F( RandomMultiGBRegression2000x20, MultiFastHist )
 {
 	CRandom random( 0 );
 	CGradientBoost::CParams params;
@@ -577,7 +577,7 @@ TEST_F( RandomMultiGBRegression2000x20, MultiFull )
 	params.TreeBuilder = GBTB_MultiFastHist;
 	TrainMultiGradientBoost( params );
 	TestMultiRegressionResult();
-}*/
+}
 
 // test GB binary model's representations (to test Predict)
 TEST_F( RandomBinaryGBRegression4000x20, Linked )

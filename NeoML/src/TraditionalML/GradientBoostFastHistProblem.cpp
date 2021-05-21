@@ -198,7 +198,7 @@ void CGradientBoostFastHistProblem::buildVectorData( const CFloatMatrixDesc& mat
 		matrix.GetRow( i, vector );
 
 		for( int j = 0; j < vector.Size; j++ ) {
-			if( fabs( vector.Values[j] ) > 0.00001 ) {
+			if( vector.Values[j] != 0.0 ) {
 				++curVectorPtr;
 				const int index = vector.Indexes == nullptr ? j : vector.Indexes[j];
 				float* valuePtr = cuts.GetPtr() + featurePos[index]; // the pointer to this feature values
