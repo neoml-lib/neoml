@@ -425,7 +425,6 @@ void CGradientBoostFastHistTreeBuilder<T>::applySplit( const CGradientBoostFastH
 		FObj::swap( vectorSet[vectorPtr + leftIndex], vectorSet[vectorPtr + rightIndex] );
 	}
 
-
 	NeoAssert( leftIndex > 0 );
 	NeoAssert( vectorCount - leftIndex > 0 );
 
