@@ -43,19 +43,6 @@ struct CGradientBoostFastHistTreeBuilderParams {
 template<class T>
 class CGradientBoostFastHistTreeBuilder : public virtual IObject {
 public:
-	// Tree building parameters
-	struct CParams {
-		float L1RegFactor; // the L1 regularization factor
-		float L2RegFactor; // the L2 regularization factor
-		float MinSubsetHessian; // the minimum hessian value for a subtree
-		int ThreadCount; // the number of processing threads to be used
-		int MaxTreeDepth; // the maximum tree depth
-		float PruneCriterionValue; // the value of criterion difference when the nodes should be merged (set to 0 to never merge)
-		int MaxNodesCount; // the maximum number of nodes in a tree (set to NotFound == -1 for no limitation)
-		int MaxBins; // the maximum histogram size for a feature
-		float MinSubsetWeight; // the minimum subtree weight
-	};
-
 	CGradientBoostFastHistTreeBuilder( const CGradientBoostFastHistTreeBuilderParams& params, CTextStream* logStream, int predictionSize );
 
 	// Builds a tree

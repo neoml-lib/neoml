@@ -34,11 +34,9 @@ void TestClassificationResult( const IModel* modelDense, const IModel* modelSpar
 		CClassificationResult result4;
 		CClassificationResult result3;
 
-		modelDense->Classify( testDataDense->GetVector( i ), result1 );
-		modelSparse->Classify( testDataDense->GetVector( i ), result3 );
-		printf("%d %d\n", result1.PreferredClass, result3.PreferredClass );
-
+		ASSERT_TRUE( modelDense->Classify( testDataDense->GetVector( i ), result1 ) );
 		ASSERT_TRUE( modelDense->Classify( testDataSparse->GetVector( i ), result2 ) );
+		ASSERT_TRUE( modelSparse->Classify( testDataDense->GetVector( i ), result3 ) );
 		ASSERT_TRUE( modelSparse->Classify( testDataSparse->GetVector( i ), result4 ) );
 
 		ASSERT_EQ( result1.PreferredClass, result2.PreferredClass );
@@ -336,7 +334,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_Full )
 	params.Random = &random;
 	params.IterationsCount = 10;
 	TrainMultiGradientBoost( params );
-	//TestMultiClassificationResult();
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBTB_FastHist )
@@ -347,7 +345,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_FastHist )
 	params.IterationsCount = 5;
 	params.TreeBuilder = GBTB_FastHist;
 	TrainMultiGradientBoost( params );
-	//TestMultiClassificationResult();
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBTB_MultiFull )
@@ -358,7 +356,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_MultiFull )
 	params.IterationsCount = 10;
 	params.TreeBuilder = GBTB_MultiFull;
 	TrainMultiGradientBoost( params );
-	//TestMultiClassificationResult();
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBTB_MultiFastHist )
@@ -380,7 +378,7 @@ TEST_F( RandomMultiClassification2000x20, GBMR_Linked )
 	params.IterationsCount = 10;
 	params.Representation = GBMR_Linked;
 	TrainMultiGradientBoost( params );
-	//TestMultiClassificationResult();
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBMR_Compact )
@@ -391,7 +389,7 @@ TEST_F( RandomMultiClassification2000x20, GBMR_Compact )
 	params.IterationsCount = 10;
 	params.Representation = GBMR_Compact;
 	TrainMultiGradientBoost( params );
-	//TestMultiClassificationResult();
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, GBMR_QuickScorer )
@@ -402,7 +400,7 @@ TEST_F( RandomMultiClassification2000x20, GBMR_QuickScorer )
 	params.IterationsCount = 10;
 	params.Representation = GBMR_QuickScorer;
 	TrainMultiGradientBoost( params );
-	//TestMultiClassificationResult();
+	TestMultiClassificationResult();
 }
 
 TEST_F( RandomMultiClassification2000x20, OneVsAllLinear )
@@ -410,7 +408,7 @@ TEST_F( RandomMultiClassification2000x20, OneVsAllLinear )
 	CLinear linear( EF_SquaredHinge );
 	COneVersusAll ovaLinear( linear );
 	TrainMulti( ovaLinear );
-	//TestMultiClassificationResult();
+	TestMultiClassificationResult();
 
 	GTEST_LOG_( INFO ) << "Train implicitly and compare";
 	CPtr<IModel> modelImplicitDense;
@@ -426,7 +424,7 @@ TEST_F( RandomMultiClassification2000x20, OneVsAllRbf )
 	CSvm svmRbf( CSvmKernel::KT_RBF );
 	COneVersusAll ovaRbf( svmRbf );
 	TrainMulti( ovaRbf );
-	//TestMultiClassificationResult();
+	TestMultiClassificationResult();
 
 	GTEST_LOG_( INFO ) << "Train implicitly and compare";
 	CPtr<IModel> modelImplicitDense;
@@ -443,7 +441,7 @@ TEST_F( RandomMultiClassification2000x20, OneVsAllDecisionTree )
 	CDecisionTree decisionTree( param );
 	COneVersusAll ovaDecisionTree( decisionTree );
 	TrainMulti( ovaDecisionTree );
-	//TestMultiClassificationResult();
+	TestMultiClassificationResult();
 
 	GTEST_LOG_( INFO ) << "Train implicitly and compare";
 	CPtr<IModel> modelImplicitDense;
