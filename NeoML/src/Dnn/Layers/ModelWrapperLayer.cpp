@@ -231,25 +231,6 @@ bool CDnnModelWrapper::Classify(const CFloatVectorDesc& desc, CClassificationRes
 	return classify( result );
 }
 
-bool CDnnModelWrapper::Classify(const CFloatVector& data, CClassificationResult& result) const
-{
-	NeoAssert(SourceBlob.Ptr() != 0);
-	NeoPresume(SourceBlob.Ptr() == SourceLayer->GetBlob().Ptr());
-
-	exchangeBuffer.SetSize(SourceBlob->GetDataSize());
-
-	for(int i = 0; i < exchangeBuffer.Size(); ++i) {
-		exchangeBuffer[i] = SourceEmptyFill;
-	}
-
-	for(int i = 0; i < data.Size(); ++i) {
-		exchangeBuffer[i] = data[i];
-	}
-	SourceBlob->CopyFrom(exchangeBuffer.GetPtr());
-
-	return classify( result );
-}
-
 static const int DnnModelWrapperVersion = 2000;
 
 void CDnnModelWrapper::Serialize(CArchive& archive)

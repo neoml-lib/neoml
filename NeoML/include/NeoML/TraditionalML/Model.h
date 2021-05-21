@@ -34,7 +34,8 @@ public:
 	virtual bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const = 0;
 	virtual bool Classify( const CSparseFloatVector& data, CClassificationResult& result ) const
 		{ return Classify( data.GetDesc(), result ); }
-	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const = 0;
+	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const
+		{ return Classify( data.GetDesc(), result ); }
 
 	// Serializes the model
 	virtual void Serialize( CArchive& archive ) = 0;

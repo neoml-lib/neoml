@@ -55,12 +55,6 @@ bool CLinearBinaryModel::classify( double distance, CClassificationResult& resul
 	return true;
 }
 
-bool CLinearBinaryModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
-{
-	const double distance = LinearFunction( plane, data );
-	return classify( distance, result );
-}
-
 void CLinearBinaryModel::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( 0 );

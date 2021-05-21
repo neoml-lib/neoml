@@ -56,7 +56,6 @@ public:
 	// IGradientBoostQSModel interface methods
 	int GetClassCount() const override { return ensembles.Size() == 1 ? 2 : ensembles.Size(); };
 	bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const override;
-	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
 
 	// IGradientBoostQSModel interface methods
 	bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const override;
@@ -111,21 +110,6 @@ double CGradientBoostQSModel::Predict( const CFloatVectorDesc& data ) const
 }
 
 bool CGradientBoostQSModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const 
-{
-	if( GetClassCount() == 2 ) {
-		const double value = ensembles.First()->Predict( data );
-		return classify( value * learningRate, result );
-	}
-
-	CArray<double> predictions;
-	predictions.SetBufferSize( ensembles.Size() );
-	for( int ensembleIndex = 0; ensembleIndex < ensembles.Size(); ensembleIndex++ ) {
-		predictions.Add( ensembles[ensembleIndex]->Predict( data ) );
-	}
-	return classify( predictions, result );
-}
-
-bool CGradientBoostQSModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
 {
 	if( GetClassCount() == 2 ) {
 		const double value = ensembles.First()->Predict( data );

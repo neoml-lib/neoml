@@ -52,26 +52,6 @@ bool CGradientBoostModel::Classify( const CFloatVectorDesc& data, CClassificatio
 	return classify( predictions, result );
 }
 
-bool CGradientBoostModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
-{
-	CFastArray<double, 1> predictions;
-
-	if( ensembles.Size() > 1 ) {
-		predictions.SetSize( ensembles.Size() );
-		CFastArray<double, 1> ensemblePredictions;
-		ensemblePredictions.SetSize(1);
-		for( int i = 0; i < ensembles.Size(); i++ ) {
-			PredictRaw(ensembles[i], 0, learningRate, data, ensemblePredictions);
-			predictions[i] = ensemblePredictions[0];
-		}
-	} else {
-		predictions.SetSize( valueSize );
-		PredictRaw( ensembles[0], 0, learningRate, data, predictions );
-	}
-
-	return classify( predictions, result );
-}
-
 void CGradientBoostModel::Serialize( CArchive& archive )
 {
 #ifdef NEOML_USE_FINEOBJ
