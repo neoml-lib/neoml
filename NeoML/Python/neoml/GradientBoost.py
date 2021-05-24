@@ -29,6 +29,11 @@ class GradientBoostClassificationModel:
 
 
     def store(self, path):
+        """Saves the model at the given location.
+        
+        :param path: the full path to where the model should be saved.
+        :type path: str
+        """
         self.internal.store(path)       
 
     def classify(self, X):
@@ -40,15 +45,13 @@ class GradientBoostClassificationModel:
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :return: the predictions of class probability for each input vector.
-        :rtype: generator of ndarray of shape (n_samples, n_classes)
+        :rtype: *generator of ndarray of shape (n_samples, n_classes)*
         """
         x = convert_data(X)
         return self.internal.classify(*get_data(x))
 
 class GradientBoostClassifier(PythonWrapper.GradientBoost):
-    """Gradient boosting for classification.
-    
-    Gradient boosting method creates an ensemble of decision trees
+    """Gradient boosting for classification. Gradient boosting method creates an ensemble of decision trees
     using random subsets of features and input data.
 
     :param loss: the loss function to be optimized. 
@@ -149,8 +152,8 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``GradientBoostClassificationModel``.
-        :rtype: *object*
+        :return: the trained classification model.
+        :rtype: neoml.GradientBoost.GradientBoostClassificationModel
         """
         x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.int32, copy=False )
@@ -182,6 +185,11 @@ class GradientBoostRegressionModel:
 
 
     def store(self, path):
+        """Saves the model at the given location.
+
+        :param path: the full path to where the model should be saved.
+        :type path: str
+        """
         self.internal.store(path)       
 
     def predict(self, X):
@@ -193,7 +201,7 @@ class GradientBoostRegressionModel:
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :return: the predictions of the function value on each input vector.
-        :rtype: generator of ndarray of shape (n_samples)
+        :rtype: *generator of ndarray of shape (n_samples)*
         """
         x = convert_data(X)
         return self.internal.predict(*get_data(x))
@@ -298,8 +306,8 @@ class GradientBoostRegressor(PythonWrapper.GradientBoost):
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``GradientBoostRegressionModel``.
-        :rtype: *object*
+        :return: the trained regression model.
+        :rtype: neoml.GradientBoost.GradientBoostRegressionModel
         """
         x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.float32, copy=False )

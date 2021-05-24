@@ -25,15 +25,15 @@ limitations under the License.
 #include <stdint.h>
 #include <NeoML/Dnn/DnnLambdaHolder.h>
 
-namespace NeoML {
-
 // The macros for the internal name of a NeoML layer
 // If this macros is used when declaring a class, that class may be registered as a NeoML layer
-#define NEOML_DNN_LAYER( className ) friend class CLayerClassRegistrar< className >;
+#define NEOML_DNN_LAYER( className ) friend class NeoML::CLayerClassRegistrar< className >;
 
 // Registers the class as a NeoML layer
-#define REGISTER_NEOML_LAYER( classType, name ) static CLayerClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( name, 0 );
-#define REGISTER_NEOML_LAYER_EX( classType, name1, name2 ) static CLayerClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( name1, name2 );
+#define REGISTER_NEOML_LAYER( classType, name ) static NeoML::CLayerClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( name, 0 );
+#define REGISTER_NEOML_LAYER_EX( classType, name1, name2 ) static NeoML::CLayerClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( name1, name2 );
+
+namespace NeoML {
 
 typedef CPtr<CBaseLayer> ( *TCreateLayerFunction )( IMathEngine& mathEngine );
 

@@ -41,6 +41,7 @@ private:
 	void addRef() const;
 	void release() const;
 	void detach();
+	bool weakAddRef() const;
 
 	template<class T>
 	friend class CPtr;
@@ -142,6 +143,20 @@ inline void IObject::release() const
 inline void IObject::detach()
 {
 	refCounter.exchange( 0 );
+}
+
+inline bool IObject::weakAddRef() const
+{
+	while(1) {
+		int curValue = refCounter;
+		if( curValue <= 0 ) {
+			return false;
+		}
+		if( refCounter.compare_exchange_weak( curValue, curValue + 1 ) ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 //---------------------------------------------------------------------------------------------
