@@ -85,7 +85,7 @@ struct CQSNodeOffset {
 class IQsSerializer;
 
 // Optimized trees ensemble
-class CGradientBoostQSEnsemble : public IRegressionModel {
+class CGradientBoostQSEnsemble {
 public:
 	// Builds the ensemble from an unoptimized trees ensemble
 	void Build( const CGradientBoostEnsemble &treeModel );
