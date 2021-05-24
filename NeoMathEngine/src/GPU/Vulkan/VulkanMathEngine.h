@@ -230,6 +230,8 @@ public:
 	void VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result, const CIntHandle& indices) override;
 	void VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
 		const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad) override;
+	void SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s, CFloatHandle& vt,
+		CFloatHandle& superb ) override;
 
 	// IBlasEngine interface methods
 	void SetVectorToMatrixRows(const CFloatHandle& resultHandle, int matrixHeight,

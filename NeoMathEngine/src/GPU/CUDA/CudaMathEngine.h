@@ -350,6 +350,8 @@ public:
 	void MatrixSpreadRows(const CConstIntHandle& sourceHandle, int height, int width,
 		const CIntHandle& resultHandle, int resultHeight, const CConstIntHandle& indexHandle,
 		const CConstIntHandle& fillValue) override;
+	void SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s,
+		CFloatHandle& vt, CFloatHandle& superb ) override;
 
 	// IDnnEngine interface methods
 	void BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CFloatHandle* fromData, int fromCount,

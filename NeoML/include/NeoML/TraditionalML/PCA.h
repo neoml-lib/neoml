@@ -13,17 +13,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-#pragma once
+#pragma hdrstop
 
 #include <NeoML/NeoMLDefs.h>
+#include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/TraditionalML/TrainingModel.h>
 
 namespace NeoML {
 
-class NEOML_API CPCA : public ITrainingModel {
+class IPCAData : public virtual IObject {
 public:
-	virtual CPtr<IModel> Train( const IProblem& problem );
+	// The number of vectors
+	virtual int GetVectorCount() const = 0;
+
+	// The number of features (vector length)
+	virtual int GetFeaturesCount() const = 0;
+
+	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
+	virtual CFloatMatrixDesc GetMatrix() const = 0;
+};
+
+class NEOML_API CPCA : public IObject {
+public:
+	CPCA( NeoML::IMathEngine& mathEngine );
+	virtual CPtr<IModel> Train( const IPCAData& data );
 	~CPCA() {};
+
+private:
+	IMathEngine& mathEngine;
 };
 
 } // namespace NeoML

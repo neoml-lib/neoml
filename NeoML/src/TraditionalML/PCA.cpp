@@ -16,20 +16,78 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <NeoML/Dnn/DnnBlob.h>
 #include <NeoML/TraditionalML/PCA.h>
 
 namespace NeoML {
 
-CPtr<IModel> CPCA::Train( const IProblem& problem )
+CPCA::CPCA( IMathEngine& _mathEngine ):
+	mathEngine( _mathEngine ){};
+
+static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CFloatMatrixDesc& data )
 {
-#ifdef NEOML_USE_MKL
-	float[12] a = { 1, 2, 3, 3, 2, 1, 2, 3, 4, 4, 3, 2 };
-	float[9] vt;
-	float* u = nullptr;
-	float[16] superb;
-	LAPACKE_sgesvd(LAPACK_ROW_MAJOR, 'O', 'A', 4, 3, &a, 4, u, 4, &vt, 3, &superb);
-	printf("kulebaka\n");
-#endif
+	NeoAssert( data.Columns == nullptr );
+	const int vectorCount = data.Height;
+	const int featureCount = data.Width;
+	CPtr<CDnnBlob> result = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, vectorCount, featureCount );
+	CFloatHandle currData = result->GetData();
+	for( int row = 0; row < data.Height; ++row ) {
+		mathEngine.DataExchangeTyped( currData, data.Values + data.PointerB[row], featureCount );
+		currData += featureCount;
+	}
+	return result;
+}
+
+CPtr<IModel> CPCA::Train( const IPCAData& data )
+{
+	int n = data.GetFeaturesCount(), m = data.GetVectorCount();
+	CPtr<CDnnBlob> a = createDataBlob( mathEngine, data.GetMatrix() );
+	CPtr<CDnnBlob> u = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, m, m );
+	CPtr<CDnnBlob> s = CDnnBlob::CreateVector( mathEngine, CT_Float, min( n, m ) );
+	CPtr<CDnnBlob> vt = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, n, n );
+	CPtr<CDnnBlob> superb = CDnnBlob::CreateVector( mathEngine, CT_Float, min( n, m ) - 1 );
+
+	mathEngine.SingularValueDecomposition( a->GetData(), n, m, u->GetData(), s->GetData(), vt->GetData(), superb->GetData() );
+
+	{
+		CArray<float> res;
+		res.SetSize( s->GetDataSize() );
+		s->CopyTo( res.GetPtr() );
+		for( int i = 0; i < res.Size(); i++ ) {
+			printf( "%f ", res[i] );
+		}
+		printf("\n");
+	}
+
+	{
+		CArray<float> res;
+		res.SetSize( a->GetDataSize() );
+		a->CopyTo( res.GetPtr() );
+		for( int i = 0; i < res.Size(); i++ ) {
+			printf( "%f ", res[i] );
+		}
+		printf("\n");
+	}
+
+	{
+		CArray<float> res;
+		res.SetSize( vt->GetDataSize() );
+		vt->CopyTo( res.GetPtr() );
+		for( int i = 0; i < res.Size(); i++ ) {
+			printf( "%f ", res[i] );
+		}
+		printf("\n");
+	}
+
+	{
+		CArray<float> res;
+		res.SetSize( superb->GetDataSize() );
+		superb->CopyTo( res.GetPtr() );
+		for( int i = 0; i < res.Size(); i++ ) {
+			printf( "%f ", res[i] );
+		}
+		printf("\n");
+	}
 	return nullptr;
 }
 

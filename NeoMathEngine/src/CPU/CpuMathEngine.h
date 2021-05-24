@@ -601,6 +601,8 @@ private:
 	void blobMaxPoolingWithIndices(const CCommonMaxPoolingDesc& desc, const float* sourceData,
 		int* maxIndicesData, float* resultData);
 	void blobMaxPoolingWithoutIndices(const CCommonMaxPoolingDesc& desc, const float* sourceData, float* resultData);
+
+	void SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s, CFloatHandle& vt, CFloatHandle& superb );
 };
 
 inline void CCpuMathEngine::VectorReLUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

@@ -513,6 +513,8 @@ public:
 	virtual void MatrixSpreadRows( const CConstIntHandle& sourceHandle, int height, int width,
 		const CIntHandle& resultHandle, int resultHeight, const CConstIntHandle& indexHandle,
 		const CConstIntHandle& fillValue ) = 0;
+
+	virtual void SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s, CFloatHandle& vt, CFloatHandle& superb ) = 0;
 };
 
 // Blob operations descriptors
