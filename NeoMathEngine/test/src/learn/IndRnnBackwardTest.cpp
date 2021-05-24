@@ -108,12 +108,7 @@ static void indRnnBackwardTestImpl( const CTestParams& params, int seed )
 
 	ASSERT_EQ( expectedData.size(), actualData.size() );
 	for( int i = 0; i < dataSize; ++i ) {
-		const bool res = FloatEq( expectedData[i], actualData[i], 1e-4f );
-		if( !res ) {
-			__debugbreak();
-			EXPECT_TRUE( false );
-			break;
-		}
+		EXPECT_TRUE( FloatEq( expectedData[i], actualData[i], 1e-4f ) );
 	}
 }
 
