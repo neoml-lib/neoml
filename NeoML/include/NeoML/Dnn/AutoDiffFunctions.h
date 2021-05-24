@@ -26,7 +26,7 @@ NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float data, const
 NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const float* data, const CBlobDesc& desc );
 
 // Creates a blob which is the elementwise sum of the specified blobs. 
-// Input blob sizes must be the same.
+// Input blob sizes should be the same.
 // res[i] = first[i] + second[i]
 NEOML_API CPtr<const CDnnBlob> Add( const CDnnBlob* first, const CDnnBlob* second );
 // Creates a blob that is the elementwise sum of the input blob with the given scalar value.
@@ -36,7 +36,7 @@ NEOML_API CPtr<const CDnnBlob> Add( const CDnnBlob* first, float second );
 NEOML_API CPtr<const CDnnBlob> Add( float first, const CDnnBlob* second );
 
 // Creates a blob which is the elementwise subtraction of the specified blobs. 
-// Input blob sizes must be the same.
+// Input blob sizes should be the same.
 // res[i] = first[i] - second[i]
 NEOML_API CPtr<const CDnnBlob> Sub( const CDnnBlob* first, const CDnnBlob* second );
 // Creates a blob that is the elementwise subtraction of the input blob and the given scalar value.
@@ -46,7 +46,7 @@ NEOML_API CPtr<const CDnnBlob> Sub( const CDnnBlob* first, float second );
 NEOML_API CPtr<const CDnnBlob> Sub( float first, const CDnnBlob* second );
 
 // Creates a blob which is the elementwise product of the specified blobs. 
-// Input blob sizes must be the same.
+// Input blob sizes should be the same.
 // res[i] = first[i] * second[i]
 CPtr<const CDnnBlob> NEOML_API Mul( const CDnnBlob* first, const CDnnBlob* second );
 // Creates a blob that is the elementwise product of the input blob and the given scalar value.
@@ -56,7 +56,7 @@ CPtr<const CDnnBlob> NEOML_API Mul( const CDnnBlob* first, float second );
 CPtr<const CDnnBlob> NEOML_API Mul( float first, const CDnnBlob* second );
 
 // Creates the blob which is the result of elementwise division of the first blob by the second. 
-// Input blob sizes must be the same.
+// Input blob sizes should be the same.
 // res[i] = first[i] / second[i]
 CPtr<const CDnnBlob> NEOML_API Div( const CDnnBlob* first, const CDnnBlob* second );
 // Creates the blob which is the result of elementwise division of the input blob by the given scalar value, or the other way round.
@@ -98,10 +98,10 @@ CPtr<const CDnnBlob> NEOML_API TopK( const CDnnBlob* first, int k );
 // res[i] = min( max(first[i], minValue), maxValue )
 NEOML_API CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float minValue, float maxValue );
 
-// Calculates the binary cross-entropy of two blobs.
+// Calculates the binary cross-entropy for two blobs: the first one contains correct labels, the second one contains predictions.
 // result = (1 - labels) * x + log(1 + exp(-x))
 // if fromLogits then x = preds else x = log( clippedPreds / (1 - clippedPreds) )
-// Blobs must have the same shape.
+// Blobs should be of the same shape.
 NEOML_API CPtr<const CDnnBlob> BinaryCrossEntropy( const CDnnBlob* labels, const CDnnBlob* preds, bool fromLogits );
 
 } // namespace NeoML

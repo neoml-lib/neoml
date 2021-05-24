@@ -741,15 +741,64 @@ class MultiSquaredHingeLoss(Loss):
 
 
 class CustomLossCalculatorBase(metaclass=ABCMeta):
-    """
+    """The base class that you should implement to calculate the custom loss function.
     """
     @abstractmethod
     def calc(self, data, labels):
-        """
+        """Calculates the custom loss function.
+
+        :param neoml.Blob.Blob data: the network response.
+
+        :param neoml.Blob.Blob labels: the correct labels.
         """
 
 class CustomLoss(Loss):
-    """
+    """The layer that calculates a custom loss function.
+
+    :param input_layers: the input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: list of object, tuple(object, int)
+
+    :param neoml.Dnn.CustomLossCalculatorBase loss_calculator: a user-implemented object 
+        that provides the method to calculate the custom loss.
+
+    :param loss_weight: the multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+
+    :param name: the layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+        It should contain the probability distribution for objects over classes.
+        If you are not going to apply softmax in this layer, each element should already be >= 0, 
+        and the sum over **Height** * **Width** * **Depth** * **Channels** dimension should be equal to 1.
+        The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the number of classes
+    
+    (2) the correct class labels. Two formats are acceptable:
+
+        - The blob contains float data, the dimensions are equal to the first input dimensions. 
+          It should be filled with zeros, and only the coordinate of the class to which 
+          the corresponding object from the first input belongs should be 1.
+        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
+          equal to these dimensions of the first input, and the other dimensions equal to 1.
+          Each object in the blob contains the number of the class 
+          to which the corresponding object from the first input belongs.
+    
+    (3) (optional): the objects' weights.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
+        - the other dimensions should be 1
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
     """
     def __init__(self, input_layers, loss_calculator=None, loss_weight=1.0, name=None):
         if type(input_layers) is PythonWrapper.CustomLoss:
@@ -768,7 +817,14 @@ class CustomLoss(Loss):
 
 
 def call_loss_calculator(data, labels, loss_calculator):
-    """
+    """Calculates the value of specified custom loss function.
+    
+    :param neoml.Blob.Blob data: the network response.
+
+    :param neoml.Blob.Blob labels: the correct labels.
+
+    :param neoml.Dnn.CustomLossCalculatorBase loss_calculator: a user-implemented object
+        that provides the method to calculate the custom loss.
     """
     data_blob = Blob.Blob(data)
     labels_blob = Blob.Blob(labels)
