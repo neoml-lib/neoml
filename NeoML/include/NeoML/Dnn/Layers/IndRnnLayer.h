@@ -29,7 +29,7 @@ class CIndRnnRecurrentLayer;
 // Independently Recurrent Neural Network (IndRNN): https://arxiv.org/pdf/1803.04831.pdf
 //
 // It's a simple recurrent unit with the following formula:
-//    Y_t = sigmoid( W * X_t + B + U * dropout( Y_t-1 ) )
+//    Y_t = sigmoid( W * X_t + B + U * Y_t-1 )
 // Where:
 //    W and B are weights and free terms of the fully-connected layer (W * X_t is a matrix multiplication)
 //    U is a vector (U * Y_t-1 is an eltwise multiplication of 2 vectors of the same length)

@@ -300,6 +300,7 @@ delete gpuMathEngine;
   - [CGruLayer](GruLayer.md) implements a gated recurrent unit (GRU)
   - [CQrnnLayer](QrnnLayer.md) implements a quasi-recurrent layer
   - [CIrnnLayer](IrnnLayer.md) implements [IRNN](https://arxiv.org/pdf/1504.00941.pdf)
+  - [CIndRnnLayer](IndRnnLayer.md) implement [IndRNN](https://arxiv.org/pdf/1803.04831.pdf)
 - [Conditional random field (CRF)](CrfLayers/README.md):
   - [CCrfLayer](CrfLayers/CrfLayer.md) represents a CRF
   - [CCrfLossLayer](CrfLayers/CrfLossLayer.md) calculates the loss function for training CRF
