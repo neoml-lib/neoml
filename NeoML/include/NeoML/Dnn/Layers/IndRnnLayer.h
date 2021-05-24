@@ -90,7 +90,7 @@ class NEOML_API CIndRnnRecurrentLayer : public CBaseLayer {
 public:
 	explicit CIndRnnRecurrentLayer( IMathEngine& mathEngine );
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 	// Layer settings
 
