@@ -759,13 +759,10 @@ class CustomLoss(Loss):
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
     :type input_layers: list of object, tuple(object, int)
-
     :param neoml.Dnn.CustomLossCalculatorBase loss_calculator: a user-implemented object 
         that provides the method to calculate the custom loss.
-
     :param loss_weight: the multiplier for the loss function value during training.
     :type loss_weight: float, default=1.0
-
     :param name: the layer name.
     :type name: str, default=None
 
