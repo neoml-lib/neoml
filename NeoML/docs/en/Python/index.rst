@@ -35,6 +35,18 @@ The math engine interface is thread-safe; the same instance may be used in diffe
 
 However, the :ref:`neural network implementation <py-submodule-dnn>` is not thread-safe; the network may run only in one thread.
 
+Serialization format
+**********************
+
+The trained models can be serialized in the `internal format <https://github.com/neoml-lib/neoml/blob/master/README.md#serialization-format>`_ compatible with C++ library version, or in the standard `pickle` format for Python.
+
+GPU support
+************
+
+Processing on GPU often helps significantly improve performance of mathematical operations. The **NeoML** library uses GPU both for training and running the models. This is an optional setting and depends on the hardware and software capabilities of your system.
+
+To work on GPU, the library requires an NVIDIA® GPU card with CUDA® 11.2 update 1 support.
+
 .. ONNX support
    ********************
 
@@ -82,12 +94,12 @@ Tutorials
 
 Here are several guides that walk you through using NeoML for simple practical tasks, illustrating the specifics of building NeoML networks, working with the blob data format, and evaluating the performance.
 
-- :ref:`Neural network for CIFAR-10 dataset <tutorials/Cifar10.ipynb>`
-- :ref:`Identity recurrent neural network (IRNN) <tutorials/IRNN.ipynb>`
-- :ref:`Linear classifier <tutorials/Linear.ipynb>`
-- :ref:`k-means clustering <tutorials/KMeans.ipynb>`
-- :ref:`Linear regressor <tutorials/Regressor.ipynb>`
-- :ref:`Gradient tree boosting classifier <tutorials/Boosting.ipynb>`
+- `Neural network for CIFAR-10 dataset <https://neoml.readthedocs.io/en/latest/tutorials/Cifar10.html>`_
+- `Identity recurrent neural network (IRNN) <tutorials/IRNN.ipynb>`
+- `Linear classifier <https://neoml.readthedocs.io/en/latest/tutorials/Linear.html>`_
+- `k-means clustering <https://neoml.readthedocs.io/en/latest/tutorials/KMeans.html>`_
+- `Linear regressor <https://neoml.readthedocs.io/en/latest/tutorials/Regressor.html>`_
+- `Gradient tree boosting classifier <https://neoml.readthedocs.io/en/latest/tutorials/Boosting.html>`_
 
 Installation
 ############
@@ -108,9 +120,6 @@ Install the library you downloaded locally from `our github repo <https://github
 
 Supported Python versions: 3.6 to 3.9
 
+If you're going to use a GPU for processing, install also `CUDA 11.2 update 1 <https://developer.nvidia.com/cuda-toolkit>`_.
 
-Index
-##################
-
-* :ref:`genindex`
-* :ref:`search`
+:ref:`genindex` | :ref:`search`
