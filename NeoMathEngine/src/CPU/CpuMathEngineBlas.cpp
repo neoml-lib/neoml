@@ -336,6 +336,23 @@ void CCpuMathEngine::SumMatrixColumns(const CFloatHandle& resultHandle, const CC
 	}
 }
 
+void CCpuMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
+	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle )
+{
+	const float* matrix = GetRaw( matrixHandle );
+	const float* vector = GetRaw( vectorHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < matrixHeight; i++ ) {
+		for( int j = 0; j < matrixWidth; j++ ) {
+			*result = *matrix / *vector;
+			result++;
+			matrix++;
+		}
+		vector++;
+	}
+}
+
 void CCpuMathEngine::sumMatrixColumnsAdd(const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth)
 {
@@ -562,6 +579,25 @@ void CCpuMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrixHa
 		}
 		++result;
 		matrix += width;
+	}
+}
+
+void CCpuMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+	int height, int width, const CFloatHandle& result )
+{
+	const float* diagMatrixPtr = GetRaw(diagMatrix);
+	const float* matrixPtr = GetRaw(matrix);
+	float* resultPtr = GetRaw(result);
+	for( int i = 0; i < height; i++ ) {
+		for( int j = 0; j < width; j++ ) {
+			*resultPtr = *matrixPtr;
+			if( i == j ) {
+				*resultPtr += *diagMatrixPtr;
+			}
+			resultPtr++;
+			matrixPtr++;
+		}
+		diagMatrixPtr++;
 	}
 }
 

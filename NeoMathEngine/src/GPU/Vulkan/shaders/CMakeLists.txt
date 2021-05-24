@@ -2,6 +2,8 @@ project(VulkanShaders)
 
 set(SHADER_SOURCES
     VectorFillScalar.comp 
+    VectorConvertFloatToInt.comp
+    VectorConvertIntToFloat.comp
     VectorReLU.comp
     VectorReLU4.comp
     VectorReLUDiff.comp 

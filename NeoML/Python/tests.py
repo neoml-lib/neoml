@@ -1890,6 +1890,16 @@ class PoolingTestCase(TestCase):
         self.assertEqual(indrnn.reverse_sequence, reverse)
 
 
+class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
+    def calc(self, data, labels):
+        return neoml.AutoDiff.mul(data - labels, data - labels)
+
+
+class BinaryCrossEntropyLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
+    def calc(self, data, labels):
+        return neoml.AutoDiff.binary_cross_entropy(data, labels, True)
+
+
 class LossTestCase(TestCase):
     def _test_loss(self, layer, kwargs={},
                    n_classes=2,
@@ -1918,6 +1928,81 @@ class LossTestCase(TestCase):
             self.assertEqual(getattr(loss, k), getattr(layer, k))
         self.assertAlmostEqual(loss.last_loss, last_loss, delta=1e-3)
         self.assertAlmostEqual(layer.last_loss, last_loss, delta=1e-3)
+
+    def _test_custom_loss(self, loss_calculator, result_loss):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        shape = (2, 3, 1, 1, 1, 1, 1)
+        source1 = neoml.Dnn.Source(dnn, "source1")
+        source2 = neoml.Dnn.Source(dnn, "source2")
+        source3 = neoml.Dnn.Source(dnn, "source3")
+        loss = neoml.Dnn.CustomLoss((source1, source2, source3), name="loss", loss_weight=7.7,
+                                    loss_calculator=loss_calculator)
+
+        input1 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
+        input2 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
+        input3 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
+
+        inputs = {"source1": input1, "source2": input2, "source3": input3}
+
+        dir = tempfile.mkdtemp()
+
+        path = os.path.join(dir, 'custom_loss_dnn.arc')
+        dnn.store_checkpoint(path)
+
+        dnn_loaded = neoml.Dnn.Dnn(math_engine)
+        dnn_loaded.load_checkpoint(path)
+
+        os.remove(path)
+        os.rmdir(dir)
+
+        dnn_loaded.run(inputs)
+
+        layer = dnn_loaded.layers['loss']
+        self.assertEqual(layer.name, 'loss')
+
+        self.assertAlmostEqual(layer.last_loss, result_loss, delta=1e-3)
+
+    def test_custom_loss(self):
+        import neoml.AutoDiff as ad
+        for loss_calculator, result_loss in [
+            (BinaryCrossEntropyLossCalculator(), 0.313261),
+            (MulLossCalculator(), 0),
+        ]:
+            self._test_custom_loss(loss_calculator, result_loss)
+
+    def test_autodiff_functions(self):
+        import neoml.AutoDiff as ad
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        shape = (2, 3, 1, 1, 1, 2, 3)
+        const0 = ad.const(math_engine, shape, 0)
+        const2 = ad.const(math_engine, shape, 2)
+        ones = np.ones(shape, dtype=np.float32)
+        const_ones = ad.const(math_engine, shape, ones)
+        blob = neoml.Blob.asblob(math_engine, ones, shape)
+        
+        self.assertTrue( np.equal( ad.add(const2, blob).asarray(), 3 * ones ).all() )
+        self.assertTrue( np.equal( ad.add(2, blob).asarray(), 3 * ones ).all() )
+        self.assertTrue( np.equal( (const2 + 3).asarray(), 5 * ones ).all() )
+        self.assertTrue( np.equal( ad.sub(const2, blob).asarray(), ones ).all() )
+        self.assertTrue( np.equal( ad.sub(const2, 0).asarray(), 2 * ones ).all() )
+        self.assertTrue( np.equal( (3 - blob).asarray(), 2 * ones ).all() )
+        self.assertTrue( np.equal( ad.mul(const2, 2).asarray(), 4 * ones ).all() )
+        self.assertTrue( np.equal( ad.mul(2, blob).asarray(), 2 * ones ).all() )
+        self.assertTrue( np.equal( (const0 * const2).asarray(), 0 * ones ).all() )
+        self.assertTrue( np.equal( ad.div(2, const2).asarray(), ones ).all() )
+        self.assertTrue( np.equal( ad.div(const2, 2).asarray(), ones ).all() )
+        self.assertTrue( np.equal( (const2 / const_ones).asarray(), 2 * ones ).all() )
+        self.assertTrue( np.equal( ad.max(const_ones, 2).asarray(), 2 * ones ).all() )
+        self.assertEqual( ad.sum(blob).asarray(), 36 )
+        self.assertTrue( np.equal( ad.neg(blob).asarray(), -ones ).all() )
+        self.assertTrue( np.equal( (-blob).asarray(), -ones ).all() )
+        self.assertTrue( np.equal( ad.abs(-blob).asarray(), ones ).all() )
+        self.assertTrue( np.equal( ad.log(const_ones).asarray(), 0 * ones ).all() )
+        self.assertTrue( np.equal( ad.exp(const0).asarray(), ones ).all() )
+        self.assertTrue( np.equal( ad.clip(const2, 3, 4).asarray(), 3 * ones ).all() )
+        self.assertTrue( np.equal( ad.top_k(const2, 3).asarray(), [2, 2, 2] ).all() )
+        self.assertTrue( np.equal( ad.binary_cross_entropy(const0, const0, False).asarray(), 0 * ones ).all() )
 
     def test_cross_entropy_loss(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)

@@ -42,7 +42,7 @@ class LinearClassificationModel :
 class LinearClassifier(PythonWrapper.Linear) :
     """Linear binary classifier.
 
-    :param loss: the loss function to be optimized. 'binomial' refers to
+    :param loss: the loss function to be optimized. `binomial` refers to
         deviance (= logistic regression) for classification
         with probabilistic outputs.
     :type loss: str, {'binomial', 'squared_hinge', 'smoothed_hinge'}, default='binomial'
@@ -102,8 +102,8 @@ class LinearClassifier(PythonWrapper.Linear) :
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``LinearClassificationModel``.
-        :rtype: *object*
+        :return: the trained classification model.
+        :rtype: neoml.Linear.LinearClassificationModel
         """
         x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.int32, copy=False )
@@ -140,7 +140,7 @@ class LinearRegressionModel :
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :return: the predictions of the function value on each input vector.
-        :rtype: generator of ndarray of shape (n_samples)
+        :rtype: *generator of ndarray of shape (n_samples)*
         """
         x = convert_data( X )
         return self.internal.predict(*get_data(x))
@@ -207,8 +207,8 @@ class LinearRegressor(PythonWrapper.Linear) :
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``LinearRegressionModel``.
-        :rtype: *object*
+        :return: the trained regression model.
+        :rtype: neoml.Linear.LinearRegressionModel
         """
         x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.float32, copy=False )
