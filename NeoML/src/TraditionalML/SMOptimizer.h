@@ -81,7 +81,7 @@ private:
 	double* g0; // gradient0 raw pointer array
 	CArray<double> alphaArray; // gradient
 	double* alpha; // alpha
-	CArray<double> weightsMultErrorWeightArray; // vector of weigths * errorWeight
+	CArray<double> weightsMultErrorWeightArray; // vector of weights * errorWeight
 	double* weightsMultErrorWeight; // a raw pointer to weightsMultErrorWeightArray data
 	int vectorCount; // a problem length
 	const float* y; // vector of [-1,1] class labels
