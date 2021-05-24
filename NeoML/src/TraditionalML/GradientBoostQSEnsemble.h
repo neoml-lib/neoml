@@ -85,13 +85,12 @@ struct CQSNodeOffset {
 class IQsSerializer;
 
 // Optimized trees ensemble
-class CGradientBoostQSEnsemble {
+class CGradientBoostQSEnsemble : public IRegressionModel {
 public:
 	// Builds the ensemble from an unoptimized trees ensemble
 	void Build( const CGradientBoostEnsemble &treeModel );
 
 	// Prediction methods
-	double Predict( const CFloatVector& data ) const;
 	double Predict( const CFloatVectorDesc& data ) const;
 
 	// The prediction method that uses only the trees in the 0 to lastTreeIndex range
