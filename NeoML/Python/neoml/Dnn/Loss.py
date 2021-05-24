@@ -793,7 +793,7 @@ class CustomLoss(Loss):
         - **BatchLength**, **BatchWidth**, **ListSize** should be the same as for the first input
         - the other dimensions should be 1
 
-    .. rubric:: Layer outputs:
+    Layer outputs:
 
     The layer has no output.
     """
