@@ -25,47 +25,47 @@ NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float data, const
 // Creates a const blob using the specified data.
 NEOML_API CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const float* data, const CBlobDesc& desc );
 
-// Creates a blob which is the element-wise sum of the specified blobs. 
+// Creates a blob which is the elementwise sum of the specified blobs. 
 // Input blob sizes must be the same.
 // res[i] = first[i] + second[i]
 NEOML_API CPtr<const CDnnBlob> Add( const CDnnBlob* first, const CDnnBlob* second );
-// Creates a blob that is the element-wise sum of the input blob with the given scalar value.
+// Creates a blob that is the elementwise sum of the input blob with the given scalar value.
 // res[i] = first[i] + second
 NEOML_API CPtr<const CDnnBlob> Add( const CDnnBlob* first, float second );
 // res[i] = first + second[i]
 NEOML_API CPtr<const CDnnBlob> Add( float first, const CDnnBlob* second );
 
-// Creates a blob which is the element-wise subtraction of the specified blobs. 
+// Creates a blob which is the elementwise subtraction of the specified blobs. 
 // Input blob sizes must be the same.
 // res[i] = first[i] - second[i]
 NEOML_API CPtr<const CDnnBlob> Sub( const CDnnBlob* first, const CDnnBlob* second );
-// Creates a blob that is the element-wise subtraction of the input blob and the given scalar value.
+// Creates a blob that is the elementwise subtraction of the input blob and the given scalar value.
 // res[i] = first[i] - second
 NEOML_API CPtr<const CDnnBlob> Sub( const CDnnBlob* first, float second );
 // res[i] = first - second[i]
 NEOML_API CPtr<const CDnnBlob> Sub( float first, const CDnnBlob* second );
 
-// Creates a blob which is the element-wise product of the specified blobs. 
+// Creates a blob which is the elementwise product of the specified blobs. 
 // Input blob sizes must be the same.
 // res[i] = first[i] * second[i]
 CPtr<const CDnnBlob> NEOML_API Mul( const CDnnBlob* first, const CDnnBlob* second );
-// Creates a blob that is the element-wise product of the input blob and the given scalar value.
+// Creates a blob that is the elementwise product of the input blob and the given scalar value.
 // res[i] = first[i] * second
 CPtr<const CDnnBlob> NEOML_API Mul( const CDnnBlob* first, float second );
 // res[i] = first * second[i]
 CPtr<const CDnnBlob> NEOML_API Mul( float first, const CDnnBlob* second );
 
-// Creates the blob which is the result of element-wise division of the first blob by the second. 
+// Creates the blob which is the result of elementwise division of the first blob by the second. 
 // Input blob sizes must be the same.
 // res[i] = first[i] / second[i]
 CPtr<const CDnnBlob> NEOML_API Div( const CDnnBlob* first, const CDnnBlob* second );
-// Creates the blob which is the result of element-wise division of the input blob by the given scalar value, or the other way round.
+// Creates the blob which is the result of elementwise division of the input blob by the given scalar value, or the other way round.
 // res[i] = first[i] / second
 CPtr<const CDnnBlob> NEOML_API Div( const CDnnBlob* first, float second );
 // res[i] = first / second[i]
 CPtr<const CDnnBlob> NEOML_API Div( float first, const CDnnBlob* second );
 
-// Creates the blob which is the element-wise maximum of the specified inputs. 
+// Creates the blob which is the elementwise maximum of the specified inputs. 
 // res[i] = max(first[i], second)
 CPtr<const CDnnBlob> NEOML_API Max( const CDnnBlob* first, float second );
 // res[i] = max(first, second[i])
