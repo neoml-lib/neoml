@@ -2275,7 +2275,7 @@ kernel void matrixIndRnnRecurrent( constant bool& reverse [[buffer(0)]],
                                    constant int& objectSize [[buffer(3)]],
                                    constant float* wx [[buffer(4)]],
                                    constant float* u [[buffer(5)]],
-                                   device float* h [[buffer(5)]],
+                                   device float* h [[buffer(6)]],
                                    uint2 thread_position_in_grid [[thread_position_in_grid]] )
 {
     C2DPosition pos( thread_position_in_grid );
@@ -2285,7 +2285,7 @@ kernel void matrixIndRnnRecurrent( constant bool& reverse [[buffer(0)]],
         const float weight = u[elem];
 		const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 
-		int currOffset = index;
+		int currOffset = elem;
 		if( reverse ) {
 			currOffset += ( sequenceLength - 1 ) * batchSize * objectSize;
 		}
