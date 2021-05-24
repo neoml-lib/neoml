@@ -39,7 +39,7 @@ class NEOML_API CIndRnnLayer : public CCompositeLayer {
 public:
 	explicit CIndRnnLayer( IMathEngine& mathEngine );
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 	// Layer settings
 
