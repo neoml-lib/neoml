@@ -10,6 +10,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ArchiveFile.cpp
     NeoML.cpp
     Random.cpp
+    Dnn/AutoDiff.cpp
+    Dnn/AutoDiffFunctions.cpp
     Dnn/BaseLayer.cpp
     Dnn/Dnn.cpp
     Dnn/DnnBlob.cpp
@@ -165,6 +167,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/NeoMLDefs.h
     ../include/NeoML/Platforms.h
     ../include/NeoML/Random.h
+    ../include/NeoML/Dnn/AutoDiff.h
+    ../include/NeoML/Dnn/AutoDiffFunctions.h
     ../include/NeoML/Dnn/Dnn.h
     ../include/NeoML/Dnn/Dnn.inl
     ../include/NeoML/Dnn/DnnBlob.h

@@ -225,7 +225,7 @@ CGlobalMaxPoolingDesc* CVulkanMathEngine::InitGlobalMaxPooling( const CBlobDesc&
 }
 
 void CVulkanMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& poolingDesc,
-	const CFloatHandle& sourceData, const CIntHandle& maxIndicesData, const CFloatHandle& resultData )
+	const CConstFloatHandle& sourceData, const CIntHandle& maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );

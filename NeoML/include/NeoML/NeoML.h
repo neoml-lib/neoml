@@ -34,6 +34,8 @@ limitations under the License.
 #include <NeoML/TraditionalML/DifferentialEvolution.h>
 #include <NeoML/Dnn/DnnBlob.h>
 #include <NeoML/Dnn/DnnSparseMatrix.h>
+#include <NeoML/Dnn/AutoDiff.h>
+#include <NeoML/Dnn/AutoDiffFunctions.h>
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 #include <NeoML/Dnn/Layers/SourceLayer.h>

@@ -157,7 +157,7 @@ static void* getBufferPtr( void* buffer, ptrdiff_t offset )
 	return (char *)[metalBuffer contents] + offset;
 }
 
-void* CMetalMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t /*size*/ )
+void* CMetalMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t /*size*/, bool )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
@@ -193,7 +193,7 @@ CMemoryHandle CMetalMathEngine::CopyFrom( const CMemoryHandle& handle, size_t si
 	CMemoryHandle result = HeapAlloc( size );
 
 	IMathEngine* otherMathEngine = handle.GetMathEngine();
-	void* ptr = otherMathEngine->GetBuffer( handle, 0, size );
+	void* ptr = otherMathEngine->GetBuffer( handle, 0, size, true );
 
 	DataExchangeRaw( result, ptr, size );
 

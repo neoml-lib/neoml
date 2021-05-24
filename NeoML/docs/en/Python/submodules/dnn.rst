@@ -5,6 +5,7 @@ neoml.Dnn
 #########
 
 - :ref:`py-dnn-network`
+- :ref:`py-dnn-blob`
 - :ref:`py-dnn-layers`
 
    - :ref:`py-dnn-inputoutput`
@@ -55,6 +56,57 @@ After all the layers are added and connected the network may be set up for train
 
 .. autoclass:: neoml.Dnn.Dnn
    :members:
+
+.. _py-dnn-blob:
+
+Data blobs
+##########
+
+All data used in the network operation (inputs, outputs, trainable parameters) is stored in blobs. A *blob* is a 7-dimensional array, and each of its dimensions has a specific meaning:
+
+- **BatchLength** is a "time" axis, used to denote data sequences; it is mainly used in recurrent networks
+- **BatchWidth** corresponds to the batch, used to pass several independent objects together
+- **ListSize** is the dimensions for the objects that are connected (for example, pixels out of one image) but do not form a sequence
+- **Height** is the height of a matrix or an image
+- **Width** is the width of a matrix or an image
+- **Depth** is the width of a 3-dimensional image
+- **Channels** corresponds to channels for multi-channel image formats and is also used to work with one-dimensional vectors.
+
+The blobs may contain one of the two types of data: ``float`` and ``int``. Both data types are 32-bit.
+
+If the data type is not specified directly anywhere in this documentation, that means ``float`` is used.
+
+Class description
+*******************
+
+.. autoclass:: neoml.Blob.Blob
+   :members:
+
+Working with blobs
+*******************
+
+.. automethod:: neoml.Blob.store
+
+.. automethod:: neoml.Blob.load
+
+.. automethod:: neoml.Blob.asblob
+
+Creating blobs of typical size
+******************************
+
+The auxiliary methods that create blobs for frequently used types of data.
+
+.. automethod:: neoml.Blob.vector
+
+.. automethod:: neoml.Blob.matrix
+
+.. automethod:: neoml.Blob.tensor
+
+.. automethod:: neoml.Blob.list_blob
+
+.. automethod:: neoml.Blob.image2d
+
+.. automethod:: neoml.Blob.image3d
 
 .. _py-dnn-layers:
 

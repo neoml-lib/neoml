@@ -1137,7 +1137,7 @@ template<>
 inline void checkSpecificParams<CLstmLayer>( CLstmLayer& layer )
 {
 	ASSERT_EQ( TActivationFunction::AF_LeakyReLU, layer.GetRecurrentActivation() );
-	checkBlob( *concatLstmWeights( *layer.GetInputWeigthsData(), *layer.GetRecurWeigthsData() ), TestSize * TestSize );
+	checkBlob( *concatLstmWeights( *layer.GetInputWeightsData(), *layer.GetRecurWeightsData() ), TestSize * TestSize );
 	checkBlob( *layer.GetInputFreeTermData(), TestSize );
 	ASSERT_EQ( layer.GetRecurFreeTermData(), nullptr );
 }

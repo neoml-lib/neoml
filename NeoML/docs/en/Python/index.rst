@@ -49,11 +49,24 @@ Submodules
    :caption: Submodules
    :hidden:
 
-   submodules/clustering
    submodules/dnn
+   submodules/clustering
    submodules/classificationregression
    submodules/mathengine
    submodules/misc
+
+
+
+The Python API contains several submodules:
+
+- :ref:`Neural networks <py-submodule-dnn>`
+- :ref:`Clustering algorithms <py-submodule-clustering>`
+- :ref:`Classification and regression algorithms <py-submodule-classificationregression>`
+- :ref:`Math engine used for calculations <py-submodule-mathengine>`
+- :ref:`Other algorithms <py-submodule-misc>`
+
+Tutorials
+#########
 
 .. toctree::
    :maxdepth: 3
@@ -62,18 +75,21 @@ Submodules
 
    tutorials/Cifar10
    tutorials/IRNN
+   tutorials/CustomLoss
    tutorials/Linear
    tutorials/KMeans
    tutorials/Regressor
    tutorials/Boosting
 
-The Python API is split into several submodules:
+Here are several guides that walk you through using NeoML for simple practical tasks, illustrating the specifics of building NeoML networks, working with the blob data format, and evaluating the performance.
 
-- :ref:`Neural networks <py-submodule-dnn>`
-- :ref:`Clustering algorithms <py-submodule-clustering>`
-- :ref:`Classification and regression algorithms <py-submodule-classificationregression>`
-- :ref:`Math engine used for calculations <py-submodule-mathengine>`
-- :ref:`Other algorithms <py-submodule-misc>`
+- :ref:`Neural network for CIFAR-10 dataset <tutorials/Cifar10.ipynb>`
+- :ref:`Identity recurrent neural network (IRNN) <tutorials/IRNN.ipynb>`
+- :ref:`Neural network with custom loss function <tutorials/CustomLoss.ipynb>`
+- :ref:`Linear classifier <tutorials/Linear.ipynb>`
+- :ref:`k-means clustering <tutorials/KMeans.ipynb>`
+- :ref:`Linear regressor <tutorials/Regressor.ipynb>`
+- :ref:`Gradient tree boosting classifier <tutorials/Boosting.ipynb>`
 
 Installation
 ############
@@ -83,7 +99,16 @@ Installation
    :caption: Installation
    :hidden:
 
-TBD
+Install a stable version of NeoML library from PyPI::
+
+    pip3 install neoml
+
+Install the library you downloaded locally from `our github repo <https://github.com/neoml-lib/neoml>`_::
+
+    cd <path to neoml>/NeoML/Python
+    python3 setup.py install
+
+Supported Python versions: 3.6 to 3.9
 
 
 Index
