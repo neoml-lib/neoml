@@ -1858,6 +1858,38 @@ class PoolingTestCase(TestCase):
         self.assertAlmostEqual(irnn.input_weight_std, input_weight_std, delta=1e-5)
         self.assertEqual(a.shape, (batch_length, batch_width, 1, 1, 1, 1, hidden_size))
 
+    def test_indrnn(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+
+        batch_length = 12
+        batch_width = 6
+        channels_in = 5
+        hidden_size = 10
+        dropout_rate = 0.5
+        reverse = True
+        name = "indrnn_test_name"
+
+        source = neoml.Dnn.Source(dnn, "source")
+        indrnn = neoml.Dnn.IndRnn(source, hidden_size, dropout_rate, reverse, name)
+        sink = neoml.Dnn.Sink(indrnn, "sink")
+        print(dnn.layers)
+        layer = dnn.layers[name]
+        self.assertEqual(layer.name, name)
+
+        input1 = neoml.Blob.asblob(math_engine, np.ones((batch_length, batch_width, channels_in), dtype=np.float32),
+            (batch_length, batch_width, 1, 1, 1, 1, channels_in))
+
+        inputs = { "source" : input1 }
+        outputs = dnn.run(inputs)
+        a = outputs[sink.name]
+
+        self.assertEqual(indrnn.hidden_size, hidden_size)
+        self.assertEqual(layer.hidden_size, hidden_size)
+        self.assertAlmostEqual(indrnn.dropout_rate, dropout_rate, delta=1e-5)
+        self.assertEqual(indrnn.reverse_sequence, reverse)
+
+
 class LossTestCase(TestCase):
     def _test_loss(self, layer, kwargs={},
                    n_classes=2,

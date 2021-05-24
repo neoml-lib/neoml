@@ -501,6 +501,68 @@ void CCudaMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, i
 		GetRaw( updateDiff ), GetRaw( forgetDiff ), GetRaw( inputDiff ) );
 }
 
+void CCudaMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+	const CFloatHandle& h)
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( wx.GetMathEngine() == this );
+	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
+
+	IndRnnRecurrentKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
+		GetRaw( wx ), mask.IsNull() ? nullptr :  GetRaw( mask ), GetRaw( u ), GetRaw( h ) );
+}
+
+void CCudaMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+	const CFloatHandle& wxDiff )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+	ASSERT_EXPR( hDiff.GetMathEngine() == this );
+	ASSERT_EXPR( wxDiff.GetMathEngine() == this );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
+
+	IndRnnRecurrentBackwardKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
+		mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ), GetRaw( wxDiff ) );
+}
+
+void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+	const CFloatHandle& uDiff )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+	ASSERT_EXPR( hDiff.GetMathEngine() == this );
+	ASSERT_EXPR( uDiff.GetMathEngine() == this );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
+
+	IndRnnRecurrentLearnKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
+		mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ), GetRaw( uDiff ) );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA

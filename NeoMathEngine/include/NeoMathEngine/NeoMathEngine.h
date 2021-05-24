@@ -767,6 +767,31 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) = 0;
+
+	// Ind-RNN implementation (https://arxiv.org/pdf/1803.04831.pdf)
+	// Pay attention that functions below emulate only recurrent part of the layer
+	// the result is
+	//    h_t = sigmoid( wx + u * h_(t-1))
+	// where
+	//    wx - user input (x), processed by fully connected layer (w). Size: seqLen x batchSize x objSize
+	//    mask - (optional, may be null) dropout mask. Size: batchSize x objSize
+	//    u - trainable vector of multipliers. Size: objSize
+
+	// Inference
+	// Calculates h based on wx, mask and u
+	virtual void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+		const CFloatHandle& h ) = 0;
+	// Backward
+	// Calculates wxDiff based on mask, u, h and hDiff
+	virtual void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& wxDiff ) = 0;
+	// Learn
+	// Calculates uDiff based on wx, mask, u, h, and hDiff
+	virtual void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& uDiff ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

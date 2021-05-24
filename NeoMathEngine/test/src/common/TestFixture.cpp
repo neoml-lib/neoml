@@ -79,7 +79,15 @@ int RunTests( int argc, char* argv[] )
 	
 	auto type = GetMathEngineArgType( argc, argv );
 	if( type == TMathEngineArgType::Gpu ) {
-		mathEngine = CreateGpuMathEngine( 0 );
+		std::unique_ptr<IGpuMathEngineManager> manager( CreateGpuMathEngineManager() );
+		for( int device = 0; device < manager->GetMathEngineCount(); ++device ) {
+			CMathEngineInfo info;
+			manager->GetMathEngineInfo( device, info );
+			if( info.Type == MET_Cuda ) {
+				mathEngine = manager->CreateMathEngine( device, 0 );
+				break;
+			}
+		}
 		if( mathEngine != nullptr ) {
 			CMathEngineInfo info;
 			mathEngine->GetMathEngineInfo( info );

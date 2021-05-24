@@ -39,6 +39,7 @@ limitations under the License.
 #include "PyDropoutLayer.h"
 #include "PyFullyConnectedLayer.h"
 #include "PyImageConversionLayer.h"
+#include "PyIndRnnLayer.h"
 #include "PyIrnnLayer.h"
 #include "PyGruLayer.h"
 #include "PyMultichannelLookupLayer.h"
@@ -102,6 +103,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeDropoutLayer( m );
 	InitializeFullyConnectedLayer( m );
 	InitializeImageConversionLayer( m );
+	InitializeIndRnnLayer( m );
 	InitializeIrnnLayer( m );
 	InitializeGruLayer( m );
 	InitializeLossLayer( m );
