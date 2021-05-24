@@ -108,16 +108,23 @@ public:
 	template<class T = float>
 	void CopyTo(T* dst) const;
 
-	// Gets the pointer that will enable access to the blob memory
+	// Next functions provide access to the blob memory through pointers
+	// The GetBuffer and ReleaseBuffer methods should be called strictly on the last-in-first-out principle within the same thread
+
+	// Returns pointer to the blob memory
 	// pos sets the position in the blob where the block of memory will start
 	// size sets the size of the block of memory
 	// If pos + size > the total blob size, 0 will be returned
-	// The GetBuffer and ReleaseBuffer methods should be called strictly on the last-in-first-out principle within the same thread
+	// If exchange == true then it's guaranteed that pointer will contain actual blob data
+	// (otherwise it's implementation-dependent)
+	// It's recommended to use exchange == false when you need a write-only buffer
 	template<class T>
-	T* GetBuffer( int pos, int size );
+	T* GetBuffer( int pos, int size, bool exchange );
 
-	// exchange parameter indicates if the buffer contents should be "flushed" to the device memory
-	// If you turn it off, the changes made in the buffer may not be passed to the blob memory
+	// Releases previously created buffer to the blob memory
+	// If exchange == true then it's guaranteed that changes in the buffer will take place in the blob
+	// (otherwise it's implementation-dependent)
+	// It's recommended to use exchange == false when you need a read-only buffer
 	void ReleaseBuffer( void* ptr, bool exchange );
 
 	// Creates an empty blob of the same dimensions
@@ -200,8 +207,8 @@ public:
 protected:
 	virtual ~CDnnBlob();
 
-	CDnnBlob( IMathEngine& _mathEngine, const CBlobDesc& _desc, CMemoryHandle _data ) :
-		mathEngine( _mathEngine ), desc( _desc ), data( _data ), dataOwned( false ), parentPos( 0 )
+	CDnnBlob( IMathEngine& _mathEngine, const CBlobDesc& _desc, CMemoryHandle _data, bool _dataOwned ) :
+		mathEngine( _mathEngine ), desc( _desc ), data( _data ), dataOwned( _dataOwned ), parentPos( 0 )
 	{
 		NeoAssert( desc.GetDataType() != CT_Invalid );
 		NeoAssert( &mathEngine == data.GetMathEngine() );
@@ -366,7 +373,7 @@ inline void CDnnBlob::CopyTo(T* dst) const
 }
 
 template<class T>
-inline T* CDnnBlob::GetBuffer( int pos, int size )
+inline T* CDnnBlob::GetBuffer( int pos, int size, bool exchange )
 {
 	if( pos < 0 || GetDataSize() < pos + size ) {
 		return 0;
@@ -384,7 +391,7 @@ inline T* CDnnBlob::GetBuffer( int pos, int size )
 			NeoAssert( false );
 	}
 
-	return static_cast<T*>( mathEngine.GetBuffer( data, pos * dataSize, size * dataSize ) );
+	return static_cast<T*>( mathEngine.GetBuffer( data, pos * dataSize, size * dataSize, exchange ) );
 }
 
 inline int CDnnBlob::GetParentPos() const

@@ -44,7 +44,7 @@ public:
 	double CalcCriterion( float l1, float l2 ) const;
 
 	// Calculates the split criterion
-	static bool CalcCriterion( float& criterion, CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle& totalStatistics,
+	static bool CalcCriterion( double& criterion, CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle& totalStatistics,
 		float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient );
 
 	// Gets the total gradient
@@ -64,6 +64,9 @@ public:
 
 	// Get value size
 	int ValueSize() const { return 1; }
+
+	// Set value size
+	void SetSize( int valueSize ) { NeoAssert( valueSize == 1 ); }
 
 private:
 	double totalGradient; // total gradient
@@ -154,11 +157,11 @@ inline void CGradientBoostStatisticsSingle::Erase()
 
 inline double CGradientBoostStatisticsSingle::CalcCriterion( float l1, float l2 ) const
 {
-	double temp = totalGradient;
-	if( temp > l1 ) {
-		temp -= l1;
-	} else if( temp < -l1 ) {
-		temp += l1;
+	double temp = 0;
+	if( totalGradient > l1 ) {
+		temp = totalGradient - l1;
+	} else if( totalGradient < -l1 ) {
+		temp = totalGradient + l1;
 	}
 	return temp * temp / ( totalHessian + l2 );
 }
@@ -178,7 +181,7 @@ inline void CGradientBoostStatisticsSingle::LeafValue( double& value ) const
 	}
 }
 
-inline bool CGradientBoostStatisticsSingle::CalcCriterion( float& criterion,
+inline bool CGradientBoostStatisticsSingle::CalcCriterion( double& criterion,
 	CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle&,
 	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float )
 {
@@ -188,8 +191,8 @@ inline bool CGradientBoostStatisticsSingle::CalcCriterion( float& criterion,
 		return false;
 	}
 
-	criterion = static_cast<float>( leftResult.CalcCriterion( l1RegFactor, l2RegFactor ) +
-		rightResult.CalcCriterion( l1RegFactor, l2RegFactor ) );
+	criterion = leftResult.CalcCriterion( l1RegFactor, l2RegFactor ) +
+		rightResult.CalcCriterion( l1RegFactor, l2RegFactor );
 	return true;
 }
 

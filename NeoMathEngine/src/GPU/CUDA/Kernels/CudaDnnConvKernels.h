@@ -104,16 +104,19 @@ __global__ void BuildTempMatrixKernel( const CCudaConvolutionDescInternal desc,
 	const int dilationHeight = desc.DilationHeight;
 	const int dilationWidth = desc.DilationWidth;
 
+	int b;
 	int x;
 	int y;
 	int xy;
 	int c;
 	if( GetCudaTaskIndex2D( resultSize, desc.Source.Depth() * desc.Source.Channels(), xy, c ) ) {
-		sourceData += c;
 		resultData += xy * desc.Filter.ObjectSize() + c;
 		xy += resultOffset;
 		x = xy % desc.Result.Width();
 		y = xy / desc.Result.Width();
+		b = y / desc.Result.Height();
+		y = y % desc.Result.Height();
+		sourceData += b * desc.Source.ObjectSize() + c;
 
 		int startX = strideWidth * x + -paddingWidth;
 		int startY = strideHeight * y + -paddingHeight;

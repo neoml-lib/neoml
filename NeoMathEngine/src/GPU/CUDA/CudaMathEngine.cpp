@@ -106,7 +106,7 @@ void CCudaMathEngine::StackFree( const CMemoryHandle& ptr )
 	deviceStackRunTime->Free( ptr );
 }
 
-void* CCudaMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size )
+void* CCudaMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange )
 {
 	ASSERT_EXPR(handle.GetMathEngine() == this);
 
@@ -116,7 +116,9 @@ void* CCudaMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_
 	*posPtr = pos;
 	size_t* sizePtr = reinterpret_cast<size_t*>( result ) + 1;
 	*sizePtr = size;
-	DataExchangeRaw( result + 16, handle, size );
+	if( exchange ) {
+		DataExchangeRaw( result + 16, handle, size );
+	}
 	return result + 16;
 }
 
@@ -153,7 +155,7 @@ CMemoryHandle CCudaMathEngine::CopyFrom( const CMemoryHandle& handle, size_t siz
 	CMemoryHandle result = HeapAlloc( size );
 
 	IMathEngine* otherMathEngine = handle.GetMathEngine();
-	void* ptr = otherMathEngine->GetBuffer( handle, 0, size );
+	void* ptr = otherMathEngine->GetBuffer( handle, 0, size, true );
 
 	DataExchangeRaw( result, ptr, size );
 
