@@ -2285,7 +2285,7 @@ kernel void matrixIndRnnRecurrent( constant bool& reverse [[buffer(0)]],
         const float weight = u[elem];
 		const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 
-		int currOffset = elem;
+		int currOffset = batch * objectSize + elem;
 		if( reverse ) {
 			currOffset += ( sequenceLength - 1 ) * batchSize * objectSize;
 		}
