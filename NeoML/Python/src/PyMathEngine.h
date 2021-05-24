@@ -19,13 +19,15 @@ limitations under the License.
 
 class CPyMathEngineOwner: public IObject {
 public:
-	CPyMathEngineOwner() {}
-	explicit CPyMathEngineOwner( IMathEngine* _mathEngine ) : mathEngine( _mathEngine ) {}
+	CPyMathEngineOwner() : owned( false ) {}
+	explicit CPyMathEngineOwner( IMathEngine* _mathEngine, bool _owned = true ) : mathEngine( _mathEngine ), owned( _owned ) {}
+	~CPyMathEngineOwner() { if( !owned ) { mathEngine.release(); } }
 
 	IMathEngine& MathEngine() const { return mathEngine.get() == 0 ? GetDefaultCpuMathEngine() : *mathEngine.get(); }
 
 private:
 	std::unique_ptr<IMathEngine> mathEngine;
+	bool owned;
 };
 
 class CPyMathEngine {

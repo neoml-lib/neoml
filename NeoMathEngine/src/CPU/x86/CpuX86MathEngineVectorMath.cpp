@@ -1313,6 +1313,56 @@ void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle,
 	}
 }
 
+void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float second, const CFloatHandle& resultHandle,
+	int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw(firstHandle);
+	float* result = GetRaw(resultHandle);
+
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	__m128 secondSse = _mm_set_ps1(second);
+	for(int i = 0; i < sseSize; ++i) {
+		_mm_storeu_ps(result, _mm_sub_ps(_mm_loadu_ps(first), secondSse));
+		first += 4;
+		result += 4;
+	}
+
+	for(int i = 0; i < nonSseSize; ++i) {
+		result[i] = first[i] - second;
+	}
+}
+
+void CCpuMathEngine::VectorSub(float first, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
+	int vectorSize)
+{
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* second = GetRaw(secondHandle);
+	float* result = GetRaw(resultHandle);
+
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	__m128 firstSse = _mm_set_ps1(first);
+	for(int i = 0; i < sseSize; ++i) {
+		_mm_storeu_ps(result, _mm_sub_ps(firstSse, _mm_loadu_ps(second)));
+		second += 4;
+		result += 4;
+	}
+
+	for(int i = 0; i < nonSseSize; ++i) {
+		result[i] = first - second[i];
+	}
+}
+
 void CCpuMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle)
 {

@@ -89,13 +89,11 @@ class GpuMathEngine(MathEngine):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-
 def enum_gpu():
     """Lists the available GPUs.
     """
     return PythonWrapper.enum_gpu()
-
-
+  
 def default_math_engine():
     """Creates a default CPU math engine that uses only one processing thread and has no memory limitations.
     """
