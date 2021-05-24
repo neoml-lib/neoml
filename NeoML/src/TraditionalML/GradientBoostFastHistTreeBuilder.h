@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <GradientBoostFastHistProblem.h>
 #include <GradientBoostStatisticsSingle.h>
+#include <GradientBoostStatisticsMulti.h>
 #include <NeoML/TraditionalML/Model.h>
 
 namespace NeoML {
@@ -24,33 +25,35 @@ namespace NeoML {
 class CRegressionTree;
 class CLinkedRegressionTree;
 
+// Tree building parameters
+struct CGradientBoostFastHistTreeBuilderParams {
+	float L1RegFactor; // the L1 regularization factor
+	float L2RegFactor; // the L2 regularization factor
+	float MinSubsetHessian; // the minimum hessian value for a subtree
+	int ThreadCount; // the number of processing threads to be used
+	int MaxTreeDepth; // the maximum tree depth
+	float PruneCriterionValue; // the value of criterion difference when the nodes should be merged (set to 0 to never merge)
+	int MaxNodesCount; // the maximum number of nodes in a tree (set to NotFound == -1 for no limitation)
+	int MaxBins; // the maximum histogram size for a feature
+	float MinSubsetWeight; // the minimum subtree weight
+	float DenseTreeBoostCoefficient; // the dense tree boost coefficient 
+};
+
 // Tree builder
+template<class T>
 class CGradientBoostFastHistTreeBuilder : public virtual IObject {
 public:
-	// Tree building parameters
-	struct CParams {
-		float L1RegFactor; // the L1 regularization factor
-		float L2RegFactor; // the L2 regularization factor
-		float MinSubsetHessian; // the minimum hessian value for a subtree
-		int ThreadCount; // the number of processing threads to be used
-		int MaxTreeDepth; // the maximum tree depth
-		float PruneCriterionValue; // the value of criterion difference when the nodes should be merged (set to 0 to never merge)
-		int MaxNodesCount; // the maximum number of nodes in a tree (set to NotFound == -1 for no limitation)
-		int MaxBins; // the maximum histogram size for a feature
-		float MinSubsetWeight; // the minimum subtree weight
-	};
-
-	CGradientBoostFastHistTreeBuilder( const CParams& params, CTextStream* logStream );
+	CGradientBoostFastHistTreeBuilder( const CGradientBoostFastHistTreeBuilderParams& params, CTextStream* logStream, int predictionSize );
 
 	// Builds a tree
 	CPtr<CRegressionTree> Build( const CGradientBoostFastHistProblem& problem,
-		const CArray<double>& gradients, const CArray<double>& hessians, const CArray<double>& weights );
+		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights );
 
 protected:
 	virtual ~CGradientBoostFastHistTreeBuilder() {} // delete prohibited
 
 private:
-	const CParams params; // classifier parameters
+	const CGradientBoostFastHistTreeBuilderParams params; // classifier parameters
 	CTextStream* const logStream; // the logging stream
 
 	// A node in the tree
@@ -59,7 +62,7 @@ private:
 		int VectorSetPtr; // a pointer to the start of the vector set of the node
 		int VectorSetSize; // the size of the vector set of the node
 		int HistPtr; // a pointer to the histogram created on the vectors of the node
-		CGradientBoostStatisticsSingle Statistics; // statistics of the vectors of the node
+		T Statistics; // statistics of the vectors of the node
 		int SplitFeatureId; // the identifier of the feature used to split this node
 		int Left; // the pointer to the left child
 		int Right; // the pointer to the right child
@@ -76,15 +79,15 @@ private:
 		{}
 	};
 
+	int predictionSize; // size of prediction value in leaves
 	int histSize; // histogram size
 	CArray<CNode> nodes; // the final tree nodes
 	CArray<int> nodeStack; // the stack used to build the tree using depth-first search
 	CArray<int> vectorSet; // the array that stores the vector sets for the nodes
 	CArray<int> freeHists; // free histograms list
-	CArray<CGradientBoostStatisticsSingle> histStats; // the array for storing histograms
+	CArray<T> histStats; // the array for storing histograms
 	CArray<int> idPos; // the identifier positions in the current histogram
-	CArray<int> histIds; // histogram bins identifiers
-	CArray<CGradientBoostStatisticsSingle> tempHistStats; // a temporary array for building histograms
+	CArray<T> tempHistStats; // a temporary array for building histograms
 
 	// Caching the buffers
 	mutable CArray<double> splitGainsByThreadBuffer;
@@ -96,10 +99,10 @@ private:
 	void freeHist( int ptr );
 	void subHist( int firstPtr, int secondPtr );
 	void buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
-		const CArray<double>& gradients, const CArray<double>& hessians, const CArray<double>& weights,
-		CGradientBoostStatisticsSingle& stats );
-	void addVectorToHist( const int* vectorPtr, int vectorSize, double gradients, double hessian, double weight,
-		CGradientBoostStatisticsSingle* stats );
+		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights,
+		T& stats );
+	void addVectorToHist( const int* vectorPtr, int vectorSize, const CArray<typename T::Type>& gradients, 
+		const CArray<typename T::Type>& hessians, const CArray<double>& weights, T* stats, int vectorIndex );
 	int evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const;
 	void applySplit( const CGradientBoostFastHistProblem& problem, int node, int& leftNode, int& rightNode );
 	bool prune( int node );
