@@ -7,6 +7,8 @@
 Welcome to NeoML documentation!
 #################################
 
+:ref:`genindex` | :ref:`search`
+
 .. image:: ../../images/NeoML_logo_help.png
 
 `neoml` module provides a Python interface for the `C++ NeoML library <https://github.com/neoml-lib/neoml>`_.
@@ -45,7 +47,7 @@ GPU support
 
 Processing on GPU often helps significantly improve performance of mathematical operations. The **NeoML** library uses GPU both for training and running the models. This is an optional setting and depends on the hardware and software capabilities of your system.
 
-To work on GPU, the library requires an NVIDIA® GPU card with CUDA® 11.2 update 1 support.
+To work on GPU, the library requires an NVIDIA GPU card with CUDA 11.2 update 1 support.
 
 .. ONNX support
    ********************
@@ -121,5 +123,3 @@ Install the library you downloaded locally from `our github repo <https://github
 Supported Python versions: 3.6 to 3.9
 
 If you're going to use a GPU for processing, install also `CUDA 11.2 update 1 <https://developer.nvidia.com/cuda-toolkit>`_.
-
-:ref:`genindex` | :ref:`search`
