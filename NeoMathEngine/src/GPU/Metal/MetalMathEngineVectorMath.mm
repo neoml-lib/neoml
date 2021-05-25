@@ -72,6 +72,30 @@ void CMetalMathEngine::VectorFill(const CIntHandle& result, int vectorSize, cons
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::VectorConvert(const CConstFloatHandle& from, const CIntHandle& to, int vectorSize)
+{
+    ASSERT_EXPR( from.GetMathEngine() == this );
+    ASSERT_EXPR( to.GetMathEngine() == this );
+
+    C1DKernel kernel( *queue, "vectorKernelConvertFloatToInt", VectorCombineCount, vectorSize );
+    kernel.SetParam( from, 0 );
+    kernel.SetParam( to, 1 );
+    kernel.SetParam( vectorSize, 2 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::VectorConvert(const CConstIntHandle& from, const CFloatHandle& to, int vectorSize)
+{
+    ASSERT_EXPR( from.GetMathEngine() == this );
+    ASSERT_EXPR( to.GetMathEngine() == this );
+
+    C1DKernel kernel( *queue, "vectorKernelConvertIntToFloat", VectorCombineCount, vectorSize );
+    kernel.SetParam( from, 0 );
+    kernel.SetParam( to, 1 );
+    kernel.SetParam( vectorSize, 2 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
 void CMetalMathEngine::VectorFillBernoulli(const CFloatHandle& result, float p, int vectorSize, float value, int seed)
 {
     ASSERT_EXPR( result.GetMathEngine() == this );
@@ -1042,6 +1066,116 @@ void CMetalMathEngine::VectorEltwiseLogSumExp(const CConstFloatHandle& firstHand
     kernel.SetParam( resultHandle, 2 );
     kernel.SetParam( vectorSize, 3 );
     ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
+	int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize > 0 );
+	ASSERT_EXPR( false );
+	secondValue;	
+}
+
+void CMetalMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+	int gradHeight, int gradWidth )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+	ASSERT_EXPR( false );
+	secondValue;	
+}
+
+void CMetalMathEngine::VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize >= 0 );
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorLogDiff( const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
+	const CConstFloatHandle& valueHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( valueHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( sourceGradHeight > 0 );
+	ASSERT_EXPR( sourceGradWidth > 0 );
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float second, const CFloatHandle& resultHandle,
+	int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize > 0 );
+	ASSERT_EXPR( false );
+	second;
+}
+
+void CMetalMathEngine::VectorSub(float first, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
+	int vectorSize)
+{
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorSize > 0 );
+	ASSERT_EXPR( false );
+	first;
+}
+
+void CMetalMathEngine::VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result,
+	const CIntHandle& indices)
+{
+	ASSERT_EXPR( first.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+	ASSERT_EXPR( indices.GetMathEngine() == this );
+	ASSERT_EXPR( firstSize > 0 );
+	ASSERT_EXPR( k > 0 );
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
+	const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad)
+{
+	ASSERT_EXPR( sourceGrad.GetMathEngine() == this );
+	ASSERT_EXPR( resultGrad.GetMathEngine() == this );
+	ASSERT_EXPR( indices.GetMathEngine() == this );
+	ASSERT_EXPR( sourceGradHeight > 0 );
+	ASSERT_EXPR( sourceGradWidth > 0 );
+	ASSERT_EXPR( k > 0 );
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorAbsDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle)
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
+	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( minHandle.GetMathEngine() == this );
+	ASSERT_EXPR( maxHandle.GetMathEngine() == this );
+
+	ASSERT_EXPR( false );
 }
 
 } // namespace NeoML

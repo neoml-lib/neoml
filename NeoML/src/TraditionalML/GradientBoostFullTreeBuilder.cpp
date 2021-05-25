@@ -478,16 +478,18 @@ void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue
 	T leftStatistics( statistics.CurLeftStatistics );
 	T rightStatistics( statistics.CurRightStatistics );
 	
-	float criterion = 0;	
+	double criterion;
 	if( !T::CalcCriterion( criterion, leftStatistics, rightStatistics, statistics.TotalStatistics,
 		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient ) )
 	{
 		return;
 	}
 
-	if( statistics.Criterion < criterion || ( statistics.Criterion == criterion && statistics.FeatureIndex > feature ) ) {
+	if( statistics.Criterion < static_cast<float>( criterion ) 
+		|| ( statistics.Criterion == static_cast<float>( criterion ) && statistics.FeatureIndex > feature ) )
+	{
 		statistics.FeatureIndex = feature;
-		statistics.Criterion = criterion;
+		statistics.Criterion = static_cast<float>( criterion );
 		if( fabs( firstValue - secondValue ) > 1e-10 ) {
 			statistics.Threshold = ( firstValue + secondValue ) / 2;
 		} else {

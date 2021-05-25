@@ -122,11 +122,10 @@ void CIrnnLayer::identityInitialization( CDnnBlob& blob )
 	const int objectSize = blob.GetObjectSize();
 	NeoAssert( blob.GetObjectCount() == objectSize );
 
-	float* buff = blob.GetBuffer<float>( 0, objectSize * objectSize, false );
+	CDnnBlobBuffer<float> buff( blob, 0, objectSize * objectSize, TDnnBlobBufferAccess::Write );
 	for( int i = 0; i < blob.GetDataSize(); ++i ) {
 		buff[i] = i % objectSize == i / objectSize ? identityScale : 0.f;
 	}
-	blob.ReleaseBuffer( buff, true );
 }
 
 // Fills blob with values from N(0, inputWeightStd)
