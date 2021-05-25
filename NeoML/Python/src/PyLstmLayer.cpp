@@ -35,13 +35,13 @@ public:
 	bool GetReverseSequence() const { return Layer<CLstmLayer>()->IsReverseSequence(); }
 
 	void SetInputWeights( const CPyBlob& blob ) { Layer<CLstmLayer>()->SetInputWeightsData( blob.Blob() ); }
-	CPyBlob GetInputWeights() const { return CPyBlob( MathEngineOwner(), Layer<CLstmLayer>()->GetInputWeigthsData() ); }
+	CPyBlob GetInputWeights() const { return CPyBlob( MathEngineOwner(), Layer<CLstmLayer>()->GetInputWeightsData() ); }
 
 	void SetInputFreeTerm( const CPyBlob& blob ) { Layer<CLstmLayer>()->SetInputFreeTermData( blob.Blob() ); }
 	CPyBlob GetInputFreeTerm() const { return CPyBlob( MathEngineOwner(), Layer<CLstmLayer>()->GetInputFreeTermData() ); }
 
 	void SetRecurrentWeights( const CPyBlob& blob ) { Layer<CLstmLayer>()->SetRecurWeightsData( blob.Blob() ); }
-	CPyBlob GetRecurrentWeights() const { return CPyBlob( MathEngineOwner(), Layer<CLstmLayer>()->GetRecurWeigthsData() ); }
+	CPyBlob GetRecurrentWeights() const { return CPyBlob( MathEngineOwner(), Layer<CLstmLayer>()->GetRecurWeightsData() ); }
 
 	void SetRecurrentFreeTerm( const CPyBlob& blob ) { Layer<CLstmLayer>()->SetRecurFreeTermData( blob.Blob() ); }
 	CPyBlob GetRecurrentFreeTerm() const { return CPyBlob( MathEngineOwner(), Layer<CLstmLayer>()->GetRecurFreeTermData() ); }

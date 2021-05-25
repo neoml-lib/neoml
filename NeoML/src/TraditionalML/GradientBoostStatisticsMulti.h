@@ -46,7 +46,7 @@ public:
 	double CalcCriterion( float l1, float l2 ) const;
 
 	// Calculates the split criterion for multiple classes
-	static bool CalcCriterion( float& criterion,
+	static bool CalcCriterion( double& criterion,
 		CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult,
 		const CGradientBoostStatisticsMulti& totalStatistics, float l1RegFactor, float l2RegFactor,
 		double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient );
@@ -61,13 +61,16 @@ public:
 	double TotalWeight() const { return totalWeight; }
 
 	// Check if statistics is not enough
-	bool IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex );
+	bool IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex ) const;
 
 	// Get leaf value
 	void LeafValue( CArray<double>& value ) const;
 
 	// Get value size
 	int ValueSize() const { return totalGradient.Size(); }
+
+	// Set value size
+	void SetSize( int valueSize );
 
 private:
 	CArray<double> totalGradient; // total gradient
@@ -166,11 +169,11 @@ inline void CGradientBoostStatisticsMulti::Erase()
 
 inline double CGradientBoostStatisticsMulti::CalcCriterion( float l1, float l2, int classIndex ) const
 {
-	double temp = totalGradient[classIndex];
-	if( temp > l1 ) {
-		temp -= l1;
-	} else if( temp < -l1 ) {
-		temp += l1;
+	double temp = 0;
+	if( totalGradient[classIndex] > l1 ) {
+		temp = totalGradient[classIndex] - l1;
+	} else if( totalGradient[classIndex] < -l1 ) {
+		temp = totalGradient[classIndex] + l1;
 	}
 	return temp * temp / ( totalHessian[classIndex] + l2 );
 }
@@ -186,7 +189,7 @@ inline double CGradientBoostStatisticsMulti::CalcCriterion( float l1, float l2 )
 	return res;
 }
 
-inline bool CGradientBoostStatisticsMulti::IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex )
+inline bool CGradientBoostStatisticsMulti::IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex ) const
 {
 	return totalHessian[classIndex] < minSubsetHessian || totalWeight < minSubsetWeight;
 }
@@ -203,7 +206,7 @@ inline void CGradientBoostStatisticsMulti::LeafValue( CArray<double>& value ) co
 	}
 }
 
-inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
+inline bool CGradientBoostStatisticsMulti::CalcCriterion( double& criterion,
 	CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult, const CGradientBoostStatisticsMulti& totalStatistics,
 	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient )
 {
@@ -211,7 +214,7 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 	int leafClassesCount = 0;
 
 	for( int i = 0; i < totalStatistics.ValueSize(); i++ ) {
-		bool isAlreadyLeafClass = ( totalStatistics.TotalHessian()[i] == 0 );
+		bool isAlreadyLeafClass = totalStatistics.IsSmall( minSubsetHessian, minSubsetWeight, i );
 		bool isNewLeafClass = false;
 		double valueCriterion = 0;
 		if( !isAlreadyLeafClass ) {
@@ -252,8 +255,14 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 	if( leafClassesCount == totalStatistics.ValueSize() ) {
 		return false;
 	}
-	criterion = static_cast<float>( result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) ) );
+	criterion = result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) );
 	return true;
+}
+
+inline void CGradientBoostStatisticsMulti::SetSize( int valueSize )
+{
+	totalGradient.SetSize( valueSize );
+	totalHessian.SetSize( valueSize );
 }
 
 } // namespace NeoML

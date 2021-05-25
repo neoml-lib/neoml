@@ -112,36 +112,34 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 	}
 
 	const int tempMatrixWidth = filter.ObjectSize();
-	const int tempMatrixHeight = result.ObjectSize() / filter.ObjectCount();
+	const int tempMatrixHeight = result.ObjectCount() * result.ObjectSize() / filter.ObjectCount();
 	const int maxPossibleTempMatrixHeight = static_cast<int>( max( (size_t)1, ( GetFreeMemorySize() / ( 8 * static_cast<size_t>( tempMatrixWidth ) ) ) ) );
 	const int tempMatrixHeightBatchSize = min( tempMatrixHeight, maxPossibleTempMatrixHeight );
 
 	CFloatHandleStackVar tempMatrix( mathEngine(), tempMatrixHeightBatchSize * tempMatrixWidth );
 
-	for( int b = 0; b < source.ObjectCount(); b++ ) {
-		int tempMatrixHeightIndex = 0;
-		while( tempMatrixHeightIndex < tempMatrixHeight ) {
-			int curTempMatrixHeight = min( tempMatrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+	int tempMatrixHeightIndex = 0;
+	while( tempMatrixHeightIndex < tempMatrixHeight ) {
+		int curTempMatrixHeight = min( tempMatrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
 
-			dim3 blockCount;
-			dim3 threadCount;
-			getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, tempMatrixWidth );
-			BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ) + b * source.ObjectSize(),
-				tempMatrixHeightIndex, curTempMatrixHeight, GetRaw( tempMatrix.GetHandle() ) );
+		dim3 blockCount;
+		dim3 threadCount;
+		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, tempMatrixWidth );
+		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ),
+			tempMatrixHeightIndex, curTempMatrixHeight, GetRaw( tempMatrix.GetHandle() ) );
 
-			MultiplyMatrixByTransposedMatrix( tempMatrix, curTempMatrixHeight, filter.ObjectSize(), filter.ObjectSize(),
-				filterData, filter.ObjectCount(), filter.ObjectSize(),
-				resultData + b * result.ObjectSize() + tempMatrixHeightIndex * filter.ObjectCount(),
-				filter.ObjectCount(), curTempMatrixHeight * filter.ObjectCount() );
+		MultiplyMatrixByTransposedMatrix( tempMatrix, curTempMatrixHeight, filter.ObjectSize(), filter.ObjectSize(),
+			filterData, filter.ObjectCount(), filter.ObjectSize(),
+			resultData + tempMatrixHeightIndex * filter.ObjectCount(),
+			filter.ObjectCount(), curTempMatrixHeight * filter.ObjectCount() );
 
-			tempMatrixHeightIndex += curTempMatrixHeight;
-		}
+		tempMatrixHeightIndex += curTempMatrixHeight;
+	}
 
-		if( freeTermData != 0 ) {
-			// Fill the output with the free term values
-			AddVectorToMatrixRows( 1, resultData + b * result.ObjectSize(), resultData + b * result.ObjectSize(),
-				result.Height() * result.Width(), filter.ObjectCount(), *freeTermData );
-		}
+	if( freeTermData != 0 ) {
+		// Fill the output with the free term values
+		AddVectorToMatrixRows( 1, resultData, resultData,
+			result.BlobSize() / filter.ObjectCount(), filter.ObjectCount(), *freeTermData );
 	}
 
 }

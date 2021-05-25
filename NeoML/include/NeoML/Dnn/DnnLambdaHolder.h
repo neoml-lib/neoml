@@ -70,9 +70,8 @@ public:
 
 	Out operator()( In... in )
 	{
-		if( lambda != nullptr ) {
-			return lambda->Execute( in... );
-		}
+		NeoAssert( !IsEmpty() );
+		return lambda->Execute( in... );
 	}
 
 	// Is lambda undefined?

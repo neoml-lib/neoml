@@ -40,9 +40,7 @@ class SvmClassificationModel :
         return self.internal.classify(*get_data(x))
 
 class SvmClassifier(PythonWrapper.Svm) :
-    """Support-vector machine algorithm translates the input data
-    into vectors in a high-dimensional space and searches 
-    for a maximum-margin dividing hyperplane.
+    """Support-vector machine (SVM) classifier.
 
     :param kernel: the kernel function to be used.
     :type kernel: str, {'linear', 'poly', 'rbf', 'sigmoid'}, default='linear'
@@ -56,10 +54,10 @@ class SvmClassifier(PythonWrapper.Svm) :
     :param degree: the degree for the gaussian kernel.
     :type degree: int, default=1
 
-    :param gamma: the kernel coefficient for 'poly', 'rbf', 'sigmoid'.
+    :param gamma: the kernel coefficient for `poly`, `rbf`, `sigmoid`.
     :type gamma: float, default=1.0
 
-    :param coeff0: the kernel free term for 'poly, 'sigmoid'.
+    :param coeff0: the kernel free term for `poly`, `sigmoid`.
     :type coeff0: float, default=1.0
 
     :param tolerance: the algorithm precision.
@@ -104,8 +102,8 @@ class SvmClassifier(PythonWrapper.Svm) :
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``SvmClassificationModel``.
-        :rtype: *object*
+        :return: the trained classification model.
+        :rtype: neoml.SVM.SvmClassificationModel
         """
         x = convert_data( X )
         y = numpy.array( Y, dtype=numpy.int32, copy=False )

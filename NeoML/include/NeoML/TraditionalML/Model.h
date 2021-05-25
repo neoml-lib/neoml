@@ -33,10 +33,9 @@ public:
 	// Classifies the input vector and returns true if successful, false otherwise
 	virtual bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const = 0;
 	virtual bool Classify( const CSparseFloatVector& data, CClassificationResult& result ) const
-	{
-		return Classify( data.GetDesc(), result );
-	}
-	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const = 0;
+		{ return Classify( data.GetDesc(), result ); }
+	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const
+		{ return Classify( data.GetDesc(), result ); }
 
 	// Serializes the model
 	virtual void Serialize( CArchive& archive ) = 0;
@@ -48,9 +47,11 @@ public:
 	virtual ~IRegressionModel();
 
 	// Predicts the function value on a vector
-	virtual double Predict( const CSparseFloatVector& data ) const = 0;
-	virtual double Predict( const CFloatVector& data ) const = 0;
 	virtual double Predict( const CFloatVectorDesc& desc ) const = 0;
+	virtual double Predict( const CSparseFloatVector& data ) const
+		{ return Predict( data.GetDesc() ); }
+	virtual double Predict( const CFloatVector& data ) const
+		{ return Predict( data.GetDesc() ); };
 
 	// Serializes the model
 	virtual void Serialize( CArchive& archive ) = 0;
