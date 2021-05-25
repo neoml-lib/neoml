@@ -27,8 +27,7 @@ class Dnn(PythonWrapper.Dnn):
     calculations on data blobs. It starts with source layers and ends with 
     sink layers.
     
-    :param math_engine: The math engine that will perform calculations.
-    :type math_engine: object
+    :param neoml.MathEngine.MathEngine math_engine: The math engine that will perform calculations.
     :param random: The random numbers generator to be used for training and initialization.
     :type random: object, default=None 
     """

@@ -38,6 +38,7 @@ neoml.Dnn
 
 - :ref:`py-dnn-initializers`
 - :ref:`py-dnn-solver`
+- :ref:`py-dnn-random`
 
 .. _py-dnn-network:
 
@@ -851,4 +852,12 @@ NesterovGradient
 ******************
 
 .. autoclass:: neoml.Dnn.NesterovGradient
+   :members:
+
+.. _py-dnn-random:
+
+Random
+########
+
+.. autoclass:: neoml.Random.Random
    :members:
