@@ -35,6 +35,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR}/NeoML)
 # Build python module
 pybind11_add_module(PythonWrapper
     src/common.cpp
+    src/PyAutoDiff.cpp
     src/PyAccumulativeLookupLayer.cpp
     src/PyAccuracyLayer.cpp
     src/PyActivationLayer.cpp
@@ -49,6 +50,8 @@ pybind11_add_module(PythonWrapper
     src/PyClustering.cpp
     src/PyCrfLayer.cpp
     src/PyCtcLayer.cpp
+    src/PyCustomLossLayer.cpp
+    src/PyDifferentialEvolution.cpp
     src/PyDotProductLayer.cpp
     src/PyDropoutLayer.cpp
     src/PyDnn.cpp

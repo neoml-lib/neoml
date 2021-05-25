@@ -55,12 +55,30 @@ public:
 	static const int MaxDimensions = BD_Count;
 	static const int FirstObjectDim = 3; // the number of the first object dimension (BD_Height)
 
-	explicit CBlobDesc( TBlobType dataType = CT_Invalid )
+	explicit CBlobDesc( TBlobType dataType = CT_Invalid ) :
+		type( dataType )
 	{
 		for( int i = 0; i < MaxDimensions; i++ ) {
 			dimensions[i] = 1;
 		}
-		type = dataType;
+	}
+
+	CBlobDesc( std::initializer_list<int> list ) :
+		type( CT_Float )
+	{
+		int i = BD_Count - 1;
+		int j = static_cast<int>(list.size()) - 1;
+
+		while( i >= 0 && j >= 0 ) {
+			dimensions[i] = list.begin()[j];
+			i--;
+			j--;
+		}
+
+		while( i >= 0 ) {
+			dimensions[i] = 1;
+			i--;
+		}
 	}
 
 	// The maximum possible sequence length for a recurrent network

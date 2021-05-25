@@ -23,30 +23,30 @@ class ConcatChannels(Layer):
     """The layer that concatenates several blobs into one
     along the Channels dimension.
     
-    Layer inputs
-    ----------
-    The layer accepts an arbitrary number of inputs.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, 
-        Height, Width, Depth equal for all inputs
-    - Channels dimension may vary
-    
-    Layer outputs
-    ----------
-    #1: a blob with the result of concatenation.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, 
-        Height, Width, Depth equal to the inputs' dimensions
-    - Channels equal to the sum of all inputs' Channels
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+    
+    The layer accepts an arbitrary number of inputs.
+    The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize**, 
+      **Height**, **Width**, **Depth** equal for all inputs
+    - **Channels** dimension may vary
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the result of concatenation.
+        The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize**, 
+      **Height**, **Width**, **Depth** equal to the inputs' dimensions
+    - **Channels** equal to the sum of all inputs' **Channels**
     """
     def __init__(self, input_layers, name=None):
         if type(input_layers) is PythonWrapper.ConcatChannels:
@@ -68,30 +68,30 @@ class ConcatDepth(Layer):
     """The layer that concatenates several blobs into one
     along the Depth dimension.
     
-    Layer inputs
-    ----------
-    The layer accepts an arbitrary number of inputs.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, 
-        Height, Width, Channels equal for all inputs
-    - Depth dimension may vary
-    
-    Layer outputs
-    ----------
-    #1: a blob with the result of concatenation.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, 
-        Height, Width, Channels equal to the inputs' dimensions
-    - Depth equal to the sum of all inputs' Depth
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer accepts an arbitrary number of inputs.
+    The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize**, 
+      **Height**, **Width**, **Channels** equal for all inputs
+    - **Depth** dimension may vary
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the result of concatenation.
+        The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize**, 
+      **Height**, **Width**, **Channels** equal to the inputs' dimensions
+    - **Depth** equal to the sum of all inputs' **Depth**
     """
     def __init__(self, input_layers, name=None):
         if type(input_layers) is PythonWrapper.ConcatDepth:
@@ -113,30 +113,30 @@ class ConcatWidth(Layer):
     """The layer that concatenates several blobs into one
     along the Width dimension.
     
-    Layer inputs
-    ----------
-    The layer accepts an arbitrary number of inputs.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, 
-        Height, Depth, Channels equal for all inputs
-    - Width dimension may vary
-    
-    Layer outputs
-    ----------
-    #1: a blob with the result of concatenation.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, 
-        Height, Depth, Channels equal to the inputs' dimensions
-    - Width equal to the sum of all inputs' Width
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer accepts an arbitrary number of inputs.
+    The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize**, 
+      **Height**, **Depth**, **Channels** equal for all inputs
+    - **Width** dimension may vary
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the result of concatenation.
+        The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize**, 
+      **Height**, **Depth**, **Channels** equal to the inputs' dimensions
+    - **Width** equal to the sum of all inputs' **Width**
     """
     def __init__(self, input_layers, name=None):
         if type(input_layers) is PythonWrapper.ConcatWidth:
@@ -158,30 +158,30 @@ class ConcatHeight(Layer):
     """The layer that concatenates several blobs into one
     along the Height dimension.
     
-    Layer inputs
-    ----------
-    The layer accepts an arbitrary number of inputs.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, 
-        Width, Depth, Channels equal for all inputs
-    - Height dimension may vary
-    
-    Layer outputs
-    ----------
-    #1: a blob with the result of concatenation.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize, 
-        Width, Depth, Channels equal to the inputs' dimensions
-    - Height equal to the sum of all inputs' Height
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer accepts an arbitrary number of inputs.
+    The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize**, 
+      **Width**, **Depth**, **Channels** equal for all inputs
+    - **Height** dimension may vary
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the result of concatenation.
+        The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize**, 
+      **Width**, **Depth**, **Channels** equal to the inputs' dimensions
+    - **Height** equal to the sum of all inputs' **Height**
     """
     def __init__(self, input_layers, name=None):
         if type(input_layers) is PythonWrapper.ConcatHeight:
@@ -203,30 +203,30 @@ class ConcatBatchWidth(Layer):
     """The layer that concatenates several blobs into one
     along the BatchWidth dimension.
     
-    Layer inputs
-    ----------
-    The layer accepts an arbitrary number of inputs.
-    The dimensions:
-    - BatchLength, ListSize, Height, 
-        Width, Depth, Channels equal for all inputs
-    - BatchWidth dimension may vary
-    
-    Layer outputs
-    ----------
-    #1: a blob with the result of concatenation.
-    The dimensions:
-    - BatchLength, ListSize, Height, 
-        Width, Depth, Channels equal to the inputs' dimensions
-    - BatchWidth equal to the sum of all inputs' BatchWidth
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer accepts an arbitrary number of inputs.
+    The dimensions:
+
+    - **BatchLength**, **ListSize**, **Height**,
+      **Width**, **Depth**, **Channels** equal for all inputs
+    - **BatchWidth** dimension may vary
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the result of concatenation.
+        The dimensions:
+
+    - **BatchLength**, **ListSize**, **Height**,
+      **Width**, **Depth**, **Channels** equal to the inputs' dimensions
+    - **BatchWidth** equal to the sum of all inputs' **BatchWidth**
     """
     def __init__(self, input_layers, name=None):
         if type(input_layers) is PythonWrapper.ConcatBatchWidth:
@@ -248,30 +248,30 @@ class ConcatObject(Layer):
     """The layer that concatenates several blobs into one
     along the Height, Width, Depth, and Channels dimensions.
     
-    Layer inputs
-    ----------
-    The layer accepts an arbitrary number of inputs.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize equal for all inputs
-    - Height, Width, Depth, Channels dimensions may vary
-    
-    Layer outputs
-    ----------
-    #1: a blob with the result of concatenation.
-    The dimensions:
-    - BatchLength, BatchWidth, ListSize equal to the inputs' dimensions
-    - Height, Width, Depth equal to 1
-    - Channels equal to the sum of 
-        Height * Width * Depth * Channels over all inputs
-    
-    Parameters
-    ----------
-    input_layers : array of (object, int) tuples and objects
-        The input layers to be connected. 
+    :param input_layers: The input layers to be connected. 
         The integer in each tuple specifies the number of the output.
         If not set, the first output will be used.
-    name : str, default=None
-        The layer name.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer accepts an arbitrary number of inputs.
+    The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize** equal for all inputs
+    - **Height**, **Width**, **Depth**, **Channels** dimensions may vary
+    
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the result of concatenation.
+        The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **ListSize** equal to the inputs' dimensions
+    - **Height**, **Width**, **Depth** equal to 1
+    - **Channels** equal to the sum of 
+      **Height** * **Width** * **Depth** * **Channels** over all inputs
     """
     def __init__(self, input_layers, name=None):
         if type(input_layers) is PythonWrapper.ConcatObject:

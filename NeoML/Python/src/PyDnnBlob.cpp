@@ -125,7 +125,7 @@ private:
 };
 
 CPyDnnBlob::CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info&& _info ) :
-	CDnnBlob( mathEngine, createBlobDesc( type, dimension ), CPyMemoryHandle( &mathEngine, _info.ptr ) ),
+	CDnnBlob( mathEngine, createBlobDesc( type, dimension ), CPyMemoryHandle( &mathEngine, _info.ptr ), false ),
 	info( std::move(_info) )
 {
 }
@@ -183,19 +183,16 @@ py::buffer_info CPyBlob::GetBufferInfo() const
 		return py::buffer_info();
 	}
 
-	CIntHandle tempInt;
-	CFloatHandle tempFloat;
+	void* ptr = nullptr;
 	CMemoryHandle data;
-
 	if( blob->GetDataType() == CT_Float ) {
-		tempFloat = blob->GetData<float>();
-		data = *static_cast<CMemoryHandle*>(&tempFloat);
+		CFloatHandle floatData = blob->GetData<float>();
+		data = *static_cast<CMemoryHandle*>(&floatData);
 	} else {
-		tempInt = blob->GetData<int>();
-		data = *static_cast<CMemoryHandle*>(&tempInt);
+		CIntHandle intData = blob->GetData<int>();
+		data = *static_cast<CMemoryHandle*>(&intData);
 	}
-	
-	void* ptr = static_cast<CPyMemoryHandle*>( &data )->GetPtr();
+	ptr = static_cast<CPyMemoryHandle*>( &data )->GetPtr();
 
 	std::vector<size_t> shape;
 	for( int i = 0; i < 7; i++ ) {
@@ -208,17 +205,18 @@ py::buffer_info CPyBlob::GetBufferInfo() const
 		shape.push_back( 1 );
 	}
 
+	const int shapeSize = static_cast<int>( shape.size() );
 	std::array<std::array<size_t,7>, 7> multShape;
-	for( int i = 0; i < 7; i++ ) {
+	for( int i = 0; i < shapeSize; i++ ) {
 		multShape[i][i] = shape[i];
-		for( int j = i + 1; j < 7; j++ ) {
+		for( int j = i + 1; j < shapeSize; j++ ) {
 			multShape[i][j] = multShape[i][j-1] * shape[j];
 		}
 	}
 	size_t itemSize = blob->GetDataType() == CT_Float ? sizeof(float) : sizeof(int);
 	std::string format = blob->GetDataType() == CT_Float ? py::format_descriptor<float>::format() : py::format_descriptor<int>::format();
 
-	switch( shape.size() ) {
+	switch( shapeSize ) {
 		case 1:
 			return py::buffer_info( ptr, itemSize, format, 1, std::vector<size_t>{shape[0]},
 				std::vector<size_t>{itemSize} );
@@ -254,7 +252,17 @@ CPyBlob CPyBlob::Copy( const CPyMathEngine& pyMathEngine ) const
 
 	CPyBlob res(pyMathEngine, blob->GetDataType(), blob->GetBatchLength(), blob->GetBatchWidth(), blob->GetListSize(),
 		blob->GetHeight(), blob->GetWidth(), blob->GetDepth(), blob->GetChannelsCount());
-	res.Blob()->CopyFrom( blob );
+	if( &res.Blob()->GetMathEngine() == &blob->GetMathEngine() ) {
+		res.Blob()->CopyFrom( blob );
+	} if( blob->GetDataType() == CT_Float ) {
+		float* buffer = blob->GetBuffer<float>( 0, blob->GetDataSize(), true );
+		res.Blob()->CopyFrom( buffer );
+		blob->ReleaseBuffer( buffer, false );
+	} else {
+		int* buffer = blob->GetBuffer<int>( 0, blob->GetDataSize(), true );
+		res.Blob()->CopyFrom( buffer );
+		blob->ReleaseBuffer( buffer, false );
+	}
 	return res;		
 }
 
@@ -274,7 +282,7 @@ void InitializeBlob( py::module& m )
 	py::class_<CPyBlob>(m, "Blob", py::buffer_protocol())
 		.def( py::init([]( const CPyBlob& blob )
 		{
-			return new CPyBlob( blob.MathEngineOwner(), blob.Blob() );
+			return CPyBlob( blob.MathEngineOwner(), blob.Blob() );
 		}) )
 		.def( "math_engine", &CPyBlob::GetMathEngine, py::return_value_policy::reference )
 		.def( "shape", &CPyBlob::GetShape, py::return_value_policy::reference )
@@ -342,7 +350,7 @@ void InitializeBlob( py::module& m )
 		CArchive archive( &file, CArchive::load );
 		CPtr<CDnnBlob> blob( new CDnnBlob(mathEngine.MathEngineOwner().MathEngine()) );
 		blob->Serialize( archive );
-		return new CPyBlob( mathEngine.MathEngineOwner(), blob );
+		return CPyBlob( mathEngine.MathEngineOwner(), blob );
 	});
 
 	m.def("tensor", []( const CPyMathEngine& mathEngine, py::array shapes, const std::string& blob_type ) {
@@ -351,7 +359,7 @@ void InitializeBlob( py::module& m )
 		if( blob_type == "int32" ) {
 			blobType = CT_Int;
 		}
-		return new CPyBlob( mathEngine, blobType, shape[0], shape[1], shape[2], shape[3], shape[4], shape[5], shape[6] );
+		return CPyBlob( mathEngine, blobType, shape[0], shape[1], shape[2], shape[3], shape[4], shape[5], shape[6] );
 	});
 
 	m.def("tensor", []( const CPyMathEngine& mathEngine, py::array shapes, const std::string& blob_type, py::buffer buffer, bool copy ) {
@@ -360,6 +368,6 @@ void InitializeBlob( py::module& m )
 		if( blob_type == "int32" ) {
 			blobType = CT_Int;
 		}
-		return new CPyBlob( mathEngine, blobType, shape[0], shape[1], shape[2], shape[3], shape[4], shape[5], shape[6], buffer, copy );
+		return CPyBlob( mathEngine, blobType, shape[0], shape[1], shape[2], shape[3], shape[4], shape[5], shape[6], buffer, copy );
 	});
 }

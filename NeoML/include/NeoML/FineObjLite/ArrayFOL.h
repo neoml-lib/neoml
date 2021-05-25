@@ -105,6 +105,9 @@ public:
 	// If the array is empty, 0 is returned
 	T* GetPtr();
 	const T* GetPtr() const;
+	// Returns the pointer to the first element in the array
+	T* GetBufferPtr() { return reinterpret_cast<T*>( dataPtr ); }
+	const T* GetBufferPtr() const { return reinterpret_cast<T*>( dataPtr ); }
 	// Accessing elements by index
 	const T& operator [] ( int location ) const;
 	T& operator [] ( int location );
@@ -612,7 +615,7 @@ inline void CArray<T, Allocator>::grow( int newSize )
 {
 	PresumeFO( newSize >= 0 );
 	if( newSize > bufferSize ) {
-		int delta = max( newSize - bufferSize, max( bufferSize / 2, MinBufferGrowSize ) );
+		int delta = min( max( newSize - bufferSize, max( bufferSize / 2, MinBufferGrowSize ) ), INT_MAX - bufferSize );
 		reallocateBuffer( bufferSize + delta );
 	}
 }
@@ -624,6 +627,7 @@ inline void CArray<T, Allocator>::reallocateBuffer( int newSize )
 	PresumeFO( newSize >= size );
 	CDataHolder* oldDataPtr = dataPtr;
 
+	AssertFO( static_cast<size_t>( newSize ) <= UINTPTR_MAX / sizeof( CDataHolder ) );
 	dataPtr = static_cast<CDataHolder*>( ALLOCATE_MEMORY( Allocator, newSize * sizeof( CDataHolder ) ) );
 	moveData( dataPtr, 0, oldDataPtr, 0, size );
 

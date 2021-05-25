@@ -164,6 +164,7 @@ private:
 // #0 - the previous class in an optimal sequence (not used for calculations, only for constructing the network)
 // #1 - the non-normalized logarithm of probability of optimal class sequence ending in this position
 // #2 - the non-normalized logarithm of probability that the correct class is in this position
+// #3 - the sequence weights (optional), of dimensions (BatchLength=1, BatchWidth=batch size, 1) - one weight per sequence
 class NEOML_API CCrfLossLayer : public CCompositeLayer {
 	NEOML_DNN_LAYER( CCrfLossLayer )
 public:
@@ -175,7 +176,8 @@ public:
 	enum TInput {
 		I_BestPrevClass = 0, // a placeholder for constructing the network
 		I_ClassSeqLogProb = 1,
-		I_LabelLogProb = 2
+		I_LabelLogProb = 2,
+		I_SequenceWeights = 3
 	};
 	// Total loss weight
 	float GetLossWeight() const;
@@ -197,6 +199,7 @@ private:
 // The inputs:
 // #0 (the data) - the non-normalized logarithm of the probability of optimal sequence including this position
 // #1 (the labels) - the non-normalized logarithm of the probability of the correct class sequence
+// #2 - the sequence weights (optional), of dimensions (BatchLength=1, BatchWidth=batch size, 1) - one weight per sequence
 class NEOML_API CCrfInternalLossLayer : public CLossLayer {
 	NEOML_DNN_LAYER( CCrfInternalLossLayer )
 public:

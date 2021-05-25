@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -69,15 +69,17 @@ inline CFloatVectorDesc CFloatMatrixDesc::GetRow( int index ) const
 // A sparse matrix
 // Any value that is not specified is 0
 class NEOML_API CSparseFloatMatrix {
-	static const int InitialRowBufferSize = 32;
-	static const int InitialElementBufferSize = 512;
+	static const int InitialRowsBufferSize = 32;
+	static const int InitialElementsBufferSize = 512;
+	static const int MaxRowsCount = INT_MAX;
+	static const int MaxElementsCount = INT_MAX;
 public:
 	CSparseFloatMatrix() {}
 	explicit CSparseFloatMatrix( int width, int rowsBufferSize = 0, int elementsBufferSize = 0 );
 	explicit CSparseFloatMatrix( const CFloatMatrixDesc& desc );
 	CSparseFloatMatrix( const CSparseFloatMatrix& other );
 
-	CFloatMatrixDesc* CopyOnWrite() { return body == 0 ? 0 : &body.CopyOnWrite()->Desc; }
+	CFloatMatrixDesc* CopyOnWrite() { return body == 0 ? 0 : &copyOnWriteAndGrow()->Desc; }
 	const CFloatMatrixDesc& GetDesc() const { return body == 0 ? CFloatMatrixDesc::Empty : body->Desc; }
 
 	int GetHeight() const { return body == 0 ? 0 : body->Desc.Height; }
@@ -98,25 +100,21 @@ public:
 private:
 	// The matrix body, that is, the object that stores all its data
 	struct NEOML_API CSparseFloatMatrixBody : public IObject {
-		int RowsBufferSize;
-		int ElementsBufferSize;
-		int ElementCount;
 		CFloatMatrixDesc Desc;
 
 		// Memory holders
-		CArray<int> ColumnsBuf;
-		CArray<float> ValuesBuf;
-		CArray<int> BeginPointersBuf;
-		CArray<int> EndPointersBuf;
+		CFastArray<int, 1> ColumnsBuf;
+		CFastArray<float, 1> ValuesBuf;
+		CFastArray<int, 1> BeginPointersBuf;
+		CFastArray<int, 1> EndPointersBuf;
 
 		CSparseFloatMatrixBody( int height, int width, int elementCount, int rowsBufferSize, int elementsBufferSize );
 		explicit CSparseFloatMatrixBody( const CFloatMatrixDesc& desc );
 		~CSparseFloatMatrixBody() override = default;
-
-		CSparseFloatMatrixBody* Duplicate() const;
 	};
  
-	CCopyOnWritePtr<CSparseFloatMatrixBody> body; // The matrix body.
+	CPtr<CSparseFloatMatrixBody> body; // The matrix body.
+	CSparseFloatMatrixBody* copyOnWriteAndGrow( int rowsBufferSize = 0, int columnsBufferSize = 0 );
 };
 
 // Writing into a CTextStream

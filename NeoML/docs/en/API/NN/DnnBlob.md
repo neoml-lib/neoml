@@ -236,6 +236,17 @@ void FillObject( int num, typename CDnnType<T>::TDataType value );
 
 Fills the blob or the specified object with the given value.
 
+```c++
+template<class T>
+T* GetBuffer( int pos, int size, bool exchange );
+void ReleaseBuffer( void* ptr, bool exchange );
+```
+
+Direct memory read/modification (for cpu memory) or working with data copy (for gpu blobs).
+`exchange` parameter helps avoid unnecessary data exchange operation (allows read-only and write-only access, implementation specific).
+These methods should be used in strict LIFO-order.
+`CDnnBlobBuffer` wrapper should help control LIFO-consistency.
+
 ## Blob merging
 
 ```c++

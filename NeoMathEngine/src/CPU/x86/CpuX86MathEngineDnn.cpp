@@ -29,7 +29,7 @@ limitations under the License.
 
 namespace NeoML {
 
-void CCpuMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CCpuMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle& maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );

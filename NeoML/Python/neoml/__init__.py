@@ -1,5 +1,6 @@
 import neoml.MathEngine
 import neoml.Blob
+import neoml.AutoDiff
 import neoml.Dnn
 import neoml.Random
 
@@ -10,6 +11,6 @@ import neoml.SVM
 import neoml.DecisionTree
 
 import neoml.Clustering
-
+import neoml.DifferentialEvolution
 
 __all__ = []

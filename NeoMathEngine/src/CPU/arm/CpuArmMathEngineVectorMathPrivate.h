@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright ï¿½ 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -272,6 +272,53 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 
 //------------------------------------------------------------------------------------------------------------
 
+inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int neonSize, int nonNeonSize )
+{
+	while( neonSize >= 4 ) {
+		NEON_LOAD_16_FLOATS(first, first);
+		first += 16;
+
+		NEON_LOAD_16_FLOATS(second, second);
+		second += 16;
+
+		float32x4_t result0 = vmulq_f32( first0, second0 );
+		float32x4_t result1 = vmulq_f32( first1, second1 );
+		float32x4_t result2 = vmulq_f32( first2, second2 );
+		float32x4_t result3 = vmulq_f32( first3, second3 );
+
+		NEON_STORE_16_FLOATS(result, result);
+		result += 16;
+
+		neonSize -= 4;
+	}
+
+	while( neonSize > 0 ) {
+		float32x4_t first0 = LoadNeon4( first );
+		first += 4;
+
+		float32x4_t second0 = LoadNeon4( second );
+		second += 4;
+
+		float32x4_t res0 = vmulq_f32( first0, second0 );
+		StoreNeon4( res0, result );
+		result += 4;
+
+		neonSize--;
+	}
+
+	if( nonNeonSize ) {
+		float32x4_t first0 = LoadNeon( first, nonNeonSize );
+		float32x4_t second0 = LoadNeon( second, nonNeonSize );
+		float32x4_t res0 = vmulq_f32( first0, second0 );
+		StoreNeon( res0, result, nonNeonSize );
+	}
+}
+
+inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize )
+{
+	vectorEltwiseMultiply( first, second, result, vectorSize / 4, vectorSize % 4 );
+}
+
 inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
 {
 	int coord = 0;
@@ -433,6 +480,167 @@ inline void vectorDotProduct( const float* first, const float* second, int vecto
 	}
 
 	*result = vget_lane_f32(HorizontalAddNeon(acc), 0);
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+// QRNN primitives
+
+// res = z * ( 1 - f )
+static inline void qrnnFPoolingFirstStep( const float* z, const float* f,
+	float* res, int neonSize, int nonNeonSize )
+{
+	float32x4_t ones = vdupq_n_f32( 1.f );
+	while( neonSize >= 4 ) {
+		NEON_LOAD_16_FLOATS( z, z );
+		z += 16;
+
+		NEON_LOAD_16_FLOATS( f, f );
+		f += 16;
+
+		float32x4_t res0 = vmulq_f32( z0, vsubq_f32( ones, f0 ) );
+		float32x4_t res1 = vmulq_f32( z1, vsubq_f32( ones, f1 ) );
+		float32x4_t res2 = vmulq_f32( z2, vsubq_f32( ones, f2 ) );
+		float32x4_t res3 = vmulq_f32( z3, vsubq_f32( ones, f3 ) );
+
+		NEON_STORE_16_FLOATS( res, res );
+		res += 16;
+
+		neonSize -= 4;
+	}
+
+	while( neonSize > 0 ) {
+		float32x4_t z0 = LoadNeon4( z );
+		z += 4;
+
+		float32x4_t f0 = LoadNeon4( f );
+		f += 4;
+
+		float32x4_t res0 = vmulq_f32( z0, vsubq_f32( ones, f0 ) );
+		StoreNeon4( res0, res );
+		res += 4;
+
+		--neonSize;
+	}
+
+	if( nonNeonSize > 0 ) {
+		float32x4_t z0 = LoadNeon( z, nonNeonSize );
+		float32x4_t f0 = LoadNeon( f, nonNeonSize );
+		float32x4_t res0 = vmulq_f32( z0, vsubq_f32( ones, f0 ) );
+		StoreNeon( res0, res, nonNeonSize );
+	}
+}
+
+// res = f * h + (1 - f) * z
+// where h - res of previous step
+static inline void qrnnFPoolingStep( const float* z, const float* f, const float* h,
+	float* res, int neonSize, int nonNeonSize )
+{
+	float32x4_t ones = vdupq_n_f32( 1.f );
+	while( neonSize >= 4 ) {
+		NEON_LOAD_16_FLOATS(z, z);
+		z += 16;
+
+		NEON_LOAD_16_FLOATS(f, f);
+		f += 16;
+
+		NEON_LOAD_16_FLOATS(h, h);
+		h += 16;
+
+		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( vsubq_f32( ones, f0 ), z0 ) );
+		float32x4_t res1 = vaddq_f32( vmulq_f32( f1, h1 ), vmulq_f32( vsubq_f32( ones, f1 ), z1 ) );
+		float32x4_t res2 = vaddq_f32( vmulq_f32( f2, h2 ), vmulq_f32( vsubq_f32( ones, f2 ), z2 ) );
+		float32x4_t res3 = vaddq_f32( vmulq_f32( f3, h3 ), vmulq_f32( vsubq_f32( ones, f3 ), z3 ) );
+
+		NEON_STORE_16_FLOATS(res, res);
+		res += 16;
+
+		neonSize -= 4;
+	}
+
+	while( neonSize > 0 ) {
+		float32x4_t z0 = LoadNeon4( z );
+		z += 4;
+
+		float32x4_t f0 = LoadNeon4( f );
+		f += 4;
+
+		float32x4_t h0 = LoadNeon4( h );
+		h += 4;
+
+		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( vsubq_f32( ones, f0 ), z0 ) );
+		StoreNeon4( res0, res );
+		res += 4;
+
+		neonSize--;
+	}
+
+	if( nonNeonSize > 0 ) {
+		float32x4_t z0 = LoadNeon( z, nonNeonSize );
+		float32x4_t f0 = LoadNeon( f, nonNeonSize );
+		float32x4_t h0 = LoadNeon( h, nonNeonSize );
+		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( vsubq_f32( ones, f0 ), z0 ) );
+		StoreNeon( res0, res, nonNeonSize );
+	}
+}
+
+// res = f * h + i * z
+// where h is res of previous step
+static inline void qrnnIfPoolingStep( const float* z, const float* f, const float* i, const float* h,
+	float* res, int neonSize, int nonNeonSize )
+{
+	while( neonSize >= 4 ) {
+		NEON_LOAD_16_FLOATS(z, z);
+		z += 16;
+
+		NEON_LOAD_16_FLOATS(f, f);
+		f += 16;
+
+		NEON_LOAD_16_FLOATS(i, i);
+		i += 16;
+
+		NEON_LOAD_16_FLOATS(h, h);
+		h += 16;
+
+		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( i0, z0 ) );
+		float32x4_t res1 = vaddq_f32( vmulq_f32( f1, h1 ), vmulq_f32( i1, z1 ) );
+		float32x4_t res2 = vaddq_f32( vmulq_f32( f2, h2 ), vmulq_f32( i2, z2 ) );
+		float32x4_t res3 = vaddq_f32( vmulq_f32( f3, h3 ), vmulq_f32( i3, z3 ) );
+
+		NEON_STORE_16_FLOATS(res, res);
+		res += 16;
+
+		neonSize -= 4;
+	}
+
+	while( neonSize > 0 ) {
+		float32x4_t z0 = LoadNeon4( z );
+		z += 4;
+
+		float32x4_t f0 = LoadNeon4( f );
+		f += 4;
+
+		float32x4_t h0 = LoadNeon4( h );
+		h += 4;
+
+		float32x4_t i0 = LoadNeon4( i );
+		i += 4;
+
+		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( i0, z0 ) );
+		StoreNeon4( res0, res );
+		res += 4;
+
+		neonSize--;
+	}
+
+	if( nonNeonSize > 0 ) {
+		float32x4_t z0 = LoadNeon( z, nonNeonSize );
+		float32x4_t f0 = LoadNeon( f, nonNeonSize );
+		float32x4_t h0 = LoadNeon( h, nonNeonSize );
+		float32x4_t i0 = LoadNeon( i, nonNeonSize );
+		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( i0, z0 ) );
+		StoreNeon( res0, res, nonNeonSize );
+	}
 }
 
 } // namespace NeoML

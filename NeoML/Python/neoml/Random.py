@@ -18,7 +18,10 @@ import neoml.PythonWrapper as PythonWrapper
 
 
 class Random(PythonWrapper.Random):
-    """
+    """The random numbers generator.
+    
+    :param seed: the seed of the random numbers generator.
+    :type seed: int, default=None
     """
     def __init__(self, seed=None):
         if seed is None:
