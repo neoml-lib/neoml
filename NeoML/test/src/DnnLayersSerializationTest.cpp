@@ -49,9 +49,13 @@ GTEST_TEST( LayerSerialization, CheckRegisteredLayers )
 			continue;
 		}
 		// try to open file (it must exist)
-		CArchiveFile file( 
-			GetTestDataFilePath( "data/LayersSerializationTestData", CString( layerClasses[i] ) + ".arch" ),
-			CArchive::load );
+		try {
+			CArchiveFile file(
+				GetTestDataFilePath( "data/LayersSerializationTestData", CString( layerClasses[i] ) + ".arch" ),
+				CArchive::load );
+		} catch( ... ) {
+			GTEST_FAIL() << "archive is missing for " << CString( layerClasses[i] );
+		}
 	}
 }
 
@@ -1133,7 +1137,7 @@ template<>
 inline void checkSpecificParams<CLstmLayer>( CLstmLayer& layer )
 {
 	ASSERT_EQ( TActivationFunction::AF_LeakyReLU, layer.GetRecurrentActivation() );
-	checkBlob( *concatLstmWeights( *layer.GetInputWeigthsData(), *layer.GetRecurWeigthsData() ), TestSize * TestSize );
+	checkBlob( *concatLstmWeights( *layer.GetInputWeightsData(), *layer.GetRecurWeightsData() ), TestSize * TestSize );
 	checkBlob( *layer.GetInputFreeTermData(), TestSize );
 	ASSERT_EQ( layer.GetRecurFreeTermData(), nullptr );
 }
@@ -2012,6 +2016,64 @@ inline void checkSpecificParams<CQrnnLayer>( CQrnnLayer& layer )
 GTEST_TEST( SerializeFromFile, QrnnLayerSerialization )
 {
 	checkSerializeLayer<CQrnnLayer>( "NeoMLDnnQrnnLayer" );
+}
+
+// ====================================================================================================================
+
+// CQrnnFPoolingLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CQrnnFPoolingLayer& layer )
+{
+	layer.SetReverse( true);
+}
+
+GTEST_TEST( SerializeToFile, QrnnFPoolingLayerSerialization )
+{
+	serializeToFile<CQrnnFPoolingLayer>( "NeoMLDnnQrnnFPoolingLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CQrnnFPoolingLayer>( CQrnnFPoolingLayer& layer )
+{
+	EXPECT_TRUE( layer.IsReverse() );
+}
+
+GTEST_TEST( SerializeFromFile, QrnnFPoolingLayerLayerSerialization )
+{
+	checkSerializeLayer<CQrnnFPoolingLayer>( "NeoMLDnnQrnnFPoolingLayer" );
+}
+
+// ====================================================================================================================
+
+// CQrnnIfPoolingLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CQrnnIfPoolingLayer& layer )
+{
+	layer.SetReverse( true);
+}
+
+GTEST_TEST( SerializeToFile, QrnnIfPoolingLayerSerialization )
+{
+	serializeToFile<CQrnnIfPoolingLayer>( "NeoMLDnnQrnnIfPoolingLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CQrnnIfPoolingLayer>( CQrnnIfPoolingLayer& layer )
+{
+	EXPECT_TRUE( layer.IsReverse() );
+}
+
+GTEST_TEST( SerializeFromFile, QrnnIfPoolingLayerLayerSerialization )
+{
+	checkSerializeLayer<CQrnnIfPoolingLayer>( "NeoMLDnnQrnnIfPoolingLayer" );
 }
 
 // ====================================================================================================================

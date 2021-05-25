@@ -57,6 +57,7 @@ void CLossLayer::Reshape()
 	CheckInputs();
 	CheckArchitecture( inputDescs.Size() >= 2, GetName(), "loss layer with 1 input" );
 	CheckArchitecture( inputDescs.Size() <= 3, GetName(), "loss layer with more than 3 inputs" );
+	CheckArchitecture( outputDescs.IsEmpty(), GetName(), "loss layer has no output" );
 	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetName(), "object count mismatch" );
 	CheckArchitecture( !(trainLabels && inputDescs[1].GetDataType() == CT_Int), GetName(), "can't train integer labels" );
 

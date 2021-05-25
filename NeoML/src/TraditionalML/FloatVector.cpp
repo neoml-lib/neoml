@@ -33,7 +33,7 @@ CFloatVector::CFloatVector( int size, const CSparseFloatVector& sparseVector ) :
 	NeoAssert( sparseVector.GetDesc().Indexes != nullptr );
 }
 
-CFloatVector::CFloatVector( int size, const CSparseFloatVectorDesc& desc )
+CFloatVector::CFloatVector( int size, const CFloatVectorDesc& desc )
 {
 	NeoAssert( size >= 0 );
 	auto bodyPtr = FINE_DEBUG_NEW CFloatVectorBody( size );
@@ -232,7 +232,7 @@ void CFloatVector::Serialize( CArchive& archive )
 CFloatVector& CFloatVector::operator = ( const CSparseFloatVector& vector )
 {
 	float* ptr = CopyOnWrite();
-	const CSparseFloatVectorDesc& desc = vector.GetDesc();
+	const CFloatVectorDesc& desc = vector.GetDesc();
 	NeoAssert( desc.Indexes != nullptr );
 	const int size = body->Values.Size();
 	memset( ptr, 0, size * sizeof( float ) );
@@ -249,7 +249,7 @@ CFloatVector& CFloatVector::operator = ( const CSparseFloatVector& vector )
 CFloatVector& CFloatVector::operator += ( const CSparseFloatVector& vector )
 {
 	float* ptr = CopyOnWrite();
-	const CSparseFloatVectorDesc& desc = vector.GetDesc();
+	const CFloatVectorDesc& desc = vector.GetDesc();
 	NeoAssert( desc.Indexes != nullptr );
 	const int size = body->Values.Size();
 	const int numberOfElements = vector.NumberOfElements();
@@ -265,7 +265,7 @@ CFloatVector& CFloatVector::operator += ( const CSparseFloatVector& vector )
 CFloatVector& CFloatVector::operator -= ( const CSparseFloatVector& vector )
 {
 	float* ptr = CopyOnWrite();
-	const CSparseFloatVectorDesc& desc = vector.GetDesc();
+	const CFloatVectorDesc& desc = vector.GetDesc();
 	NeoAssert( desc.Indexes != nullptr );
 	const int size = body->Values.Size();
 	const int numberOfElements = vector.NumberOfElements();
@@ -278,7 +278,7 @@ CFloatVector& CFloatVector::operator -= ( const CSparseFloatVector& vector )
 	return *this;
 }
 
-CFloatVector& CFloatVector::MultiplyAndAdd( const CSparseFloatVectorDesc& desc, double factor )
+CFloatVector& CFloatVector::MultiplyAndAdd( const CFloatVectorDesc& desc, double factor )
 {
 	float* ptr = CopyOnWrite();
 	if( desc.Indexes != nullptr ) {

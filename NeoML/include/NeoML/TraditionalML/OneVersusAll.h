@@ -44,7 +44,7 @@ public:
 
 	// Gets the classification result with the info on normalized probabilities
 	virtual bool ClassifyEx( const CSparseFloatVector& data, COneVersusAllClassificationResult& result ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, COneVersusAllClassificationResult& result ) const = 0;
+	virtual bool ClassifyEx( const CFloatVectorDesc& data, COneVersusAllClassificationResult& result ) const = 0;
 	virtual bool ClassifyEx( const CFloatVector& data, COneVersusAllClassificationResult& result ) const = 0;
 };
 

@@ -9,7 +9,7 @@ macro(set_global_variables)
         set(LINUX TRUE)
     endif()
 
-    if((CMAKE_SIZEOF_VOID_P EQUAL 8) AND (WIN32 OR LINUX OR DARWIN) AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm.*")
+    if(NOT DEFINED ENV{READTHEDOCS} AND (CMAKE_SIZEOF_VOID_P EQUAL 8) AND (WIN32 OR LINUX OR DARWIN) AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm.*")
         set(NEOML_USE_AVX TRUE)
     endif()
 
@@ -149,7 +149,7 @@ if(USE_FINE_OBJECTS)
 
                 add_custom_command(TARGET ${PROJECT_NAME} 
                     POST_BUILD
-                    COMMAND python ${FINE_ROOT}/FineObjects/Cmake/unexport.py
+                    COMMAND python3 ${FINE_ROOT}/FineObjects/Cmake/unexport.py
                         lib${PROJECT_NAME}.so ${FINE_ROOT}/FineObjects/Cmake/unexported_symbols.txt 
                         ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}.dir/${LINK_CMD_FILE}
                         COMMENT "Unexport symbols in ${PROJECT_NAME}"

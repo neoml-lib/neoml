@@ -21,9 +21,15 @@
 
 Параметры кластеризации описываются структурой `CKMeansClustering::CParam`.
 
+- *Algo* - используемый алгоритм;
 - *DistanceFunc* — используемая функция расстояния;
 - *InitialClustersCount* — начальное количество кластеров: при создании кластеризатора вы можете передать в конструктор массив длины *InitialClustersCount* с центрами кластеров, которые должны использоваться на первой итерации алгоритма; в противном случае на первой итерации в качестве центров будут взяты случайные элементы входных данных;
-- *MaxIterations* — максимальное количество итераций алгоритма.
+- *Initialization* - используемый алгоритм инициализации;
+- *MaxIterations* — максимальное количество итераций алгоритма;
+- *Tolerance* - критерий остановки для алгоритма Elkan;
+- *ThreadCount* - количество потоков, используемых во время работы алгоритма;
+- *RunCount* - количество запусков алгоритма, в итоге будет возвращен результат с наименьшей инерцией кластеров;
+- *Seed* - `seed` для генерации случайных чисел.
 
 ## Пример
 
@@ -33,9 +39,12 @@
 void Clusterize( IClusteringData& irisDataSet, CClusteringResult& result )
 {
 	CKMeansClustering::CParam params;
+	params.Algorithm = CKMeansClustering::KMA_Lloyd;
 	params.DistanceFunc = DF_Euclid;
 	params.InitialClustersCount = 3;
+	params.Initialization = CKMeansClustering::KMI_Default;
 	params.MaxIterations = 50;
+	// params.Tolerance можно опустить т.к. он не используется алгоритмом Lloyd
 
 	CKMeansClustering kMeans( params );
 	kMeans.Clusterize( irisDataSet, result );

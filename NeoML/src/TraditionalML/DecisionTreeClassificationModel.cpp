@@ -149,16 +149,7 @@ int CDecisionTreeClassificationModel::GetClassCount() const
 	};
 }
 
-bool CDecisionTreeClassificationModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
-{
-	CPtr<CDecisionTreeNodeBase> node;
-	int level = 0;
-	GetClassifyNode( data, node, level );
-
-	return classify( node, result );
-}
-
-bool CDecisionTreeClassificationModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
+bool CDecisionTreeClassificationModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
 {
 	CPtr<CDecisionTreeNodeBase> node;
 	int level = 0;
