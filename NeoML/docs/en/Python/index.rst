@@ -75,6 +75,7 @@ Tutorials
 
    tutorials/Cifar10
    tutorials/IRNN
+   tutorials/CustomLoss
    tutorials/Linear
    tutorials/KMeans
    tutorials/Regressor
@@ -84,6 +85,7 @@ Here are several guides that walk you through using NeoML for simple practical t
 
 - :ref:`Neural network for CIFAR-10 dataset <tutorials/Cifar10.ipynb>`
 - :ref:`Identity recurrent neural network (IRNN) <tutorials/IRNN.ipynb>`
+- :ref:`Neural network with custom loss function <tutorials/CustomLoss.ipynb>`
 - :ref:`Linear classifier <tutorials/Linear.ipynb>`
 - :ref:`k-means clustering <tutorials/KMeans.ipynb>`
 - :ref:`Linear regressor <tutorials/Regressor.ipynb>`
