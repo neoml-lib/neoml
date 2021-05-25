@@ -379,6 +379,17 @@ MultiSquaredHingeLoss
 .. autoclass:: neoml.Dnn.MultiSquaredHingeLoss
    :members:
 
+CustomLoss
+==========
+
+NeoML provides an interface for user-implemented custom loss functions.
+
+.. autoclass:: neoml.Dnn.CustomLossCalculatorBase
+   :members:
+
+.. autoclass:: neoml.Dnn.CustomLoss
+   :members:
+
 .. _py-dnn-pooling:
 
 Pooling layers

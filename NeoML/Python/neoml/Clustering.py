@@ -242,10 +242,19 @@ class KMeans(PythonWrapper.KMeans) :
 
     :param distance: the distance function.
     :type distance: str, {'euclid', 'machalanobis', 'cosine'}, default='euclid'
+
+    :param thread_count: number of threads
+    :type thread_count: int, > 0, default=1
+
+    :param run_count: number of runs, the result is the best of the runs (based on inertia)
+    :type run_count: int, > 0, default=1
+
+    :param seed: the initial seed for random
+    :type seed: int, default=3306
     """
 
     def __init__(self, max_iteration_count, cluster_count, algo='lloyd', init='default', distance='euclid',
-                 thread_count=1):
+                 thread_count=1, run_count=1, seed=3306):
         if algo != 'elkan' and algo != 'lloyd':
             raise ValueError('The `algo` must be one of {`elkan`, `lloyd`}.')
         if init != 'k++' and init != 'default':
@@ -257,8 +266,13 @@ class KMeans(PythonWrapper.KMeans) :
         if cluster_count <= 0:
             raise ValueError('The `cluster_count` must be > 0.')
         if thread_count <= 0:
-            raise ValueError('The `thread_count` must be < 0')
-        super().__init__(algo, init, distance, int(max_iteration_count), int(cluster_count), int(thread_count))
+            raise ValueError('The `thread_count` must be > 0')
+        if run_count <= 0:
+            raise ValueError('The `run_count` must be > 0')
+        if not isinstance(seed, int):
+            raise ValueError('The `seed` must be integer')
+        super().__init__(algo, init, distance, int(max_iteration_count), int(cluster_count), int(thread_count),
+            int(run_count), int(seed))
 
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.

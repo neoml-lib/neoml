@@ -26,6 +26,9 @@ The clustering parameters are described by the `CKMeansClustering::CParam` struc
 - *Initialization* - the initialization algorithm
 - *MaxIterations* — the maximum number of algorithm iterations
 - *Tolerance* - tolerance for stop criteria of Elkan algorithm
+- *ThreadCount* - number of threads used during calculations
+- *RunCount* - number of runs of the alogrithm (the result with least inertia will be returned)
+- *Seed* - the initial seed for random
 
 ## Sample
 
