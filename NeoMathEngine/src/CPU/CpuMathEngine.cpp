@@ -56,7 +56,7 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
 	dllLoader( CDllLoader::AVX_DLL ),
 	simdMathEngine( nullptr ),
-	CustomSgemmFunction( nullptr )
+	customSgemmFunction( nullptr )
 {
 #ifdef NEOML_USE_AVX
 	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
@@ -64,11 +64,11 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 		// Don't use custom sgemm function when we are compiled with MKL and when we are on Intel CPU.
 		if( CPUArch == CCPUInfo::TCpuArch::Intel ) {
 #ifndef NEOML_USE_MKL
-			CustomSgemmFunction = simdMathEngine->GetSgemmFunction();
+			customSgemmFunction = simdMathEngine->GetSgemmFunction();
 #endif
 		} else {
 			// Non Intel architectures
-			CustomSgemmFunction = simdMathEngine->GetSgemmFunction();
+			customSgemmFunction = simdMathEngine->GetSgemmFunction();
 		}
 	}
 #endif

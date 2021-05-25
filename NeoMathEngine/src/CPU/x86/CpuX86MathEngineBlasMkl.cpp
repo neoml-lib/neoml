@@ -47,15 +47,15 @@ namespace NeoML {
 
 void CCpuMathEngine::multiplyMatrixByMatrix( const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, SgemmFunc customSgemm )
+	float* result, int resultRowSize )
 {
 	ASSERT_EXPR( firstWidth <= firstRowSize );
 	ASSERT_EXPR( secondWidth <= secondRowSize );
 	ASSERT_EXPR( secondWidth <= resultRowSize );
 
-	if( customSgemm != nullptr ) {
+	if( customSgemmFunction != nullptr ) {
 		nullify( result, firstHeight, secondWidth, resultRowSize );
-		customSgemm( false, false, this, first, firstRowSize, second, secondRowSize,
+		customSgemmFunction( false, false, this, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondWidth, firstWidth );
 	} else {
 #ifdef NEOML_USE_MKL
@@ -71,13 +71,13 @@ void CCpuMathEngine::multiplyMatrixByMatrix( const float* first, int firstHeight
 
 void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, SgemmFunc customSgemm )
+	float* result, int resultRowSize )
 {
 	ASSERT_EXPR( firstWidth <= firstRowSize );
 	ASSERT_EXPR( secondWidth <= resultRowSize );
 
-	if( customSgemm != nullptr ) {
-		customSgemm( false, false, this, first, firstRowSize, second, secondRowSize,
+	if( customSgemmFunction != nullptr ) {
+		customSgemmFunction( false, false, this, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondWidth, firstWidth );
 	} else {
 #ifdef NEOML_USE_MKL
@@ -92,14 +92,14 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int first
 
 void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-	float* result, int resultRowSize, SgemmFunc customSgemm )
+	float* result, int resultRowSize )
 {
 	ASSERT_EXPR(firstWidth <= firstRowSize);
 	ASSERT_EXPR(firstWidth <= secondRowSize);
 
-	if( customSgemm != nullptr ) {
+	if( customSgemmFunction != nullptr ) {
 		nullify( result, firstHeight, secondHeight, resultRowSize );
-		customSgemm( false, true, this, first, firstRowSize, second, secondRowSize,
+		customSgemmFunction( false, true, this, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondHeight, firstWidth );
 	} else {
 #ifdef NEOML_USE_MKL
@@ -115,10 +115,10 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int fi
 
 void CCpuMathEngine::multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-	float* result, int resultRowSize, SgemmFunc customSgemm )
+	float* result, int resultRowSize )
 {
-	if( customSgemm != nullptr ) {
-		customSgemm( false, true, this, first, firstRowSize, second, secondRowSize,
+	if( customSgemmFunction != nullptr ) {
+		customSgemmFunction( false, true, this, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondHeight, firstWidth );
 	} else  {
 #ifdef NEOML_USE_MKL
@@ -224,14 +224,14 @@ void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeig
 
 void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int firstHeight,
 	int firstWidth, const float* second, int secondWidth,
-	float* result, SgemmFunc customSgemm )
+	float* result )
 {
-	if( customSgemm != nullptr ) {
+	if( customSgemmFunction != nullptr ) {
 		auto firstRowSize = firstWidth;
 		auto secondRowSize = secondWidth;
 		auto resultRowSize = secondWidth;
 		nullify( result, firstWidth, secondWidth );
-		customSgemm( true, false, this, first, firstRowSize, second, secondRowSize,
+		customSgemmFunction( true, false, this, first, firstRowSize, second, secondRowSize,
 					 result, resultRowSize, firstWidth, secondWidth, firstHeight );
 	} else {
 #ifdef NEOML_USE_MKL
@@ -251,13 +251,13 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int fi
 void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd(const float* first,
 	int firstHeight, int firstWidth, int firstRowSize,
 	const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, SgemmFunc customSgemm )
+	float* result, int resultRowSize )
 {
 	ASSERT_EXPR(firstWidth <= firstRowSize);
 	ASSERT_EXPR(secondWidth <= secondRowSize);
 	ASSERT_EXPR(secondWidth <= resultRowSize);
-	if( customSgemm != nullptr ) {
-		customSgemm( true, false, this, first, firstRowSize, second, secondRowSize,
+	if( customSgemmFunction != nullptr ) {
+		customSgemmFunction( true, false, this, first, firstRowSize, second, secondRowSize,
 					 result, resultRowSize, firstWidth, secondWidth, firstHeight );
 	} else {
 #ifdef NEOML_USE_MKL

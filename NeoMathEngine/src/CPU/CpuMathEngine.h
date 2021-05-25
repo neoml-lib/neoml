@@ -490,7 +490,7 @@ private:
 
 	CDllLoader dllLoader; // loading library for simd instructions
 	std::unique_ptr<const ISimdMathEngine> simdMathEngine; // interface for using simd instructions
-	SgemmFunc CustomSgemmFunction; // Used when it is availabled and is faster then default sgemm
+	SgemmFunc customSgemmFunction; // Used when it is availabled and is faster then default sgemm
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 
@@ -523,23 +523,23 @@ private:
 		int matrixHeight, int matrixWidth);
 	void multiplyMatrixByMatrix( const float* firstHandle, int firstHeight,
 		int firstWidth, int firstRowSize, const float* secondHandle, int secondWidth, int secondRowSize,
-		float* resultHandle, int resultRowSize, SgemmFunc customSgemm = 0 );
+		float* resultHandle, int resultRowSize );
 	void multiplyMatrixByMatrixAndAdd( const float* first, int firstHeight,
 		int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-		float* result, int resultRowSize, SgemmFunc customSgemm = 0 );
+		float* result, int resultRowSize );
 	void multiplyTransposedMatrixByMatrix( const float* first, int firstHeight, int firstWidth,
-		const float* second, int secondWidth, float* result, SgemmFunc customSgemm = 0 );
+		const float* second, int secondWidth, float* result );
 	void batchMultiplyTransposedMatrixByMatrix( int batchSize, const float* first, int firstHeight, int firstWidth, 
 		const float* second, int secondWidth, float* result );
 	void multiplyTransposedMatrixByMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
-		const float* second, int secondWidth, int secondRowSize, float* result, int resultRowSize, SgemmFunc customSgemm = 0 );
+		const float* second, int secondWidth, int secondRowSize, float* result, int resultRowSize );
 	void multiplyMatrixByTransposedMatrix( const float* first, int firstHeight,
 		int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-		float* result, int resultRowSize, SgemmFunc customSgemm = 0 );
+		float* result, int resultRowSize );
 	void batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle );
 	void multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
-		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize, SgemmFunc customSgemm = 0 );
+		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize );
 
 	template<class T>
 	void blobMergeByDimCommon( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
