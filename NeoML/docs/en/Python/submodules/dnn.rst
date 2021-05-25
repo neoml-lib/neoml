@@ -8,6 +8,7 @@ neoml.Dnn
 - :ref:`py-dnn-blob`
 - :ref:`py-dnn-layers`
 
+   - :ref:`py-dnn-baselayer`
    - :ref:`py-dnn-inputoutput`
    - :ref:`py-dnn-recurrent`
    - :ref:`py-dnn-fullyconnected`
@@ -123,6 +124,8 @@ If the operation returns results that should be used by other layers, they will 
 In addition, the layer may have settings specified by the user before starting calculations, and trainable parameters that are optimized during network training.
 
 The layers also have names that can be used to find a layer in the network. The name should be set at layer creation or before adding it to the network.
+
+.. _py-dnn-baselayer:
 
 Base layer class
 *****************
