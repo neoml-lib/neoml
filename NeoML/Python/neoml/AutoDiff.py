@@ -167,7 +167,7 @@ def binary_cross_entropy(labels, preds, fromLogits):
     """Calculates binary cross-entropy for two blobs: the first one contains labels, the second one contains predictions.
     Blobs should be of the same shape.
     :math:`result = (1 - labels) * x + log(1 + exp(-x))`
-    if `fromLogits` then `x = preds`, else :math:`x = log( lippedPreds / (1 - clippedPreds))`
+    if `fromLogits` then `x = preds`, else :math:`x = log( clippedPreds / (1 - clippedPreds))`
     """
     if not type(labels) is Blob:
         raise ValueError('`labels` should be neoml.Blob.')

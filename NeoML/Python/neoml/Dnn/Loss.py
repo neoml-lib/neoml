@@ -751,10 +751,21 @@ class CustomLossCalculatorBase(metaclass=ABCMeta):
         - simple arithmetic: `+ - * /`
         - the `neoml.AutoDiff.*` functions
         - `neoml.Autodiff.const` for creating additional blobs filled with given values
+        
+        It should return a blob that contains the loss function values 
+        for each object in the batch. This blob will have the same **BatchLength** 
+        as the input blobs, and all its other dimensions should be 1.
 
-        :param neoml.Blob.Blob data: the network response.
+        :param neoml.Blob.Blob data: the network response with the probability 
+        distribution of objects over classes. The blob dimensions:
 
-        :param neoml.Blob.Blob labels: the correct labels.
+        - **BatchLength** - the number of objects
+        - **Channels** - the object size
+        - all other dimensions equal to 1
+
+        :param neoml.Blob.Blob labels: the correct labels, of the same dimensions
+        as the first blob, and containing 1 in the coordinate of the class to which
+        the corresponding object belongs, 0 in all other places.
         """
 
 class CustomLoss(Loss):
@@ -782,15 +793,9 @@ class CustomLoss(Loss):
         - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
         - **Height** * **Width** * **Depth** * **Channels** - the number of classes
     
-    (2) the correct class labels. Two formats are acceptable:
-
-        - The blob contains float data, the dimensions are equal to the first input dimensions. 
-          It should be filled with zeros, and only the coordinate of the class to which 
-          the corresponding object from the first input belongs should be 1.
-        - The blob contains int data with **BatchLength**, **BatchWidth**, and **ListSize**
-          equal to these dimensions of the first input, and the other dimensions equal to 1.
-          Each object in the blob contains the number of the class 
-          to which the corresponding object from the first input belongs.
+    (2) the correct class labels. The blob of the same dimensions as the first input, 
+        filled with zeros, where only the coordinate of the class to which 
+        the corresponding object from the first input belongs is be 1.
     
     (3) (optional): the objects' weights.
         The dimensions:
