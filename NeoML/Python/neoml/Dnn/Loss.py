@@ -748,9 +748,9 @@ class CustomLossCalculatorBase(metaclass=ABCMeta):
         """Calculates the custom loss function.
         This function may use only the operations supported for autodiff:
 
-        - simple arithmetic: `+ - * /*
-        - the neoml.AutoDiff.* functions
-        - neoml.Autodiff.const for creating additional blobs filled with given values
+        - simple arithmetic: `+ - * /`
+        - the `neoml.AutoDiff.*` functions
+        - `neoml.Autodiff.const` for creating additional blobs filled with given values
 
         :param neoml.Blob.Blob data: the network response.
 
