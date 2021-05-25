@@ -89,6 +89,7 @@ Tutorials
 
    tutorials/Cifar10
    tutorials/IRNN
+   tutorials/CustomLoss
    tutorials/Linear
    tutorials/KMeans
    tutorials/Regressor
