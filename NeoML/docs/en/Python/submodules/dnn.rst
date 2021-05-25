@@ -123,6 +123,14 @@ In addition, the layer may have settings specified by the user before starting c
 
 The layers also have names that can be used to find a layer in the network. The name should be set at layer creation or before adding it to the network.
 
+Base layer class
+*****************
+
+All NeoML layer classes are derived from this class.
+
+.. autoclass:: neoml.Dnn.Layer
+   :members:
+
 .. _py-dnn-inputoutput:
 
 Passing the data to and from the network
