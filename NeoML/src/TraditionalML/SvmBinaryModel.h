@@ -31,7 +31,6 @@ public:
 	// IModel interface methods
 	virtual int GetClassCount() const { return 2; }
 	virtual bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const;
-	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const;
 	virtual void Serialize( CArchive& archive );
 
 	// ISvmBinaryModel interface methods
