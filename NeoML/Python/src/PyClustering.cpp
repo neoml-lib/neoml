@@ -199,7 +199,7 @@ void InitializeClustering(py::module& m)
 	py::class_<CPyKMeans>(m, "KMeans")
 		.def( py::init(
 			[]( const std::string& algo, const std::string& init, const std::string& distance,
-				int max_iteration_count, int cluster_count, int thread_count )
+				int max_iteration_count, int cluster_count, int thread_count, int run_count, int seed )
 			{
 				CKMeansClustering::CParam p;
 
@@ -227,6 +227,8 @@ void InitializeClustering(py::module& m)
 				p.InitialClustersCount = cluster_count;
 				p.MaxIterations = max_iteration_count;
 				p.ThreadCount = thread_count;
+				p.RunCount = run_count;
+				p.Seed = seed;
 				return new CPyKMeans( p );
 			})
 		)
