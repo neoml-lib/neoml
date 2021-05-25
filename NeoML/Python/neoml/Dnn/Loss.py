@@ -751,10 +751,6 @@ class CustomLossCalculatorBase(metaclass=ABCMeta):
         - simple arithmetic: `+ - * /`
         - the `neoml.AutoDiff.*` functions
         - `neoml.Autodiff.const` for creating additional blobs filled with given values
-        
-        It should return a blob that contains the loss function values 
-        for each object in the batch. This blob will have the same **BatchLength** 
-        as the input blobs, and all its other dimensions should be 1.
 
         :param neoml.Blob.Blob data: the network response with the probability 
         distribution of objects over classes. The blob dimensions:
@@ -766,6 +762,11 @@ class CustomLossCalculatorBase(metaclass=ABCMeta):
         :param neoml.Blob.Blob labels: the correct labels, of the same dimensions
         as the first blob, and containing 1 in the coordinate of the class to which
         the corresponding object belongs, 0 in all other places.
+
+        :return: a blob that contains the loss function values 
+        for each object in the batch. This blob will have the same **BatchLength** 
+        as the input blobs, and all its other dimensions should be 1.
+        :rtype: `neoml.Blob.Blob`
         """
 
 class CustomLoss(Loss):
