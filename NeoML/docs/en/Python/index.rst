@@ -98,7 +98,7 @@ Here are several guides that walk you through using NeoML for simple practical t
 
 - `Neural network for CIFAR-10 dataset <https://neoml.readthedocs.io/en/latest/tutorials/Cifar10.html>`_
 - `Identity recurrent neural network (IRNN) <https://neoml.readthedocs.io/en/latest/tutorials/IRNN.html>`_
-- `Neural network with custom loss function <<https://neoml.readthedocs.io/en/latest/tutorials/CustomLoss.html>`_
+- `Neural network with custom loss function <https://neoml.readthedocs.io/en/latest/tutorials/CustomLoss.html>`_
 - `Linear classifier <https://neoml.readthedocs.io/en/latest/tutorials/Linear.html>`_
 - `k-means clustering <https://neoml.readthedocs.io/en/latest/tutorials/KMeans.html>`_
 - `Linear regressor <https://neoml.readthedocs.io/en/latest/tutorials/Regressor.html>`_
