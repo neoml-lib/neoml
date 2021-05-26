@@ -26,11 +26,11 @@ public:
 	enum TComponents {
 		// Set number of components as min(data.width, data.height)
 		PCAC_None = 0,
-		// Integer number representing a number of components to compute
+		// Integer number Components representing a number of components to compute
 		PCAC_Int,
 		// Number of components is selected such that
 		// the value of explained_variance is greater
-		// 0 < components < 1
+		// 0 < Components < 1
 		PCAC_Float,
 		PCAC_Count
 	};
