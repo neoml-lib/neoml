@@ -24,9 +24,9 @@ namespace NeoML {
 
 CPCA::CPCA( const CParams& _params ): params( _params )
 {
-	NeoAssert( ( params.ComponentsType == PCAC_None ) && ( 0 < params.Components ) && ( params.Components < 1 ) ||
+	NeoAssert( ( params.ComponentsType == PCAC_None ) ||
 		( params.ComponentsType == PCAC_Int ) && ( params.Components > 0 ) ||
-		( params.ComponentsType == PCAC_Float ) && ( 0 < params.Components < 1 ));
+		( params.ComponentsType == PCAC_Float ) && ( 0 < params.Components ) && ( params.Components < 1 ) );
 };
 
 static CPtr<CDnnBlob> convertToBlob( IMathEngine& mathEngine, const CFloatMatrixDesc& data )
