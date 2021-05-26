@@ -1152,6 +1152,12 @@ void CVulkanMathEngine::MultiplyVectorByTransposedLookupVectorAndAddToTable( int
 	ASSERT_EXPR( false );
 }
 
+void CVulkanMathEngine::SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s,
+	CFloatHandle& vt, CFloatHandle& superb )
+{
+	ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_VULKAN
