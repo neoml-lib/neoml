@@ -1237,11 +1237,11 @@ void CCpuMathEngine::BitSetBinarization( int batchSize, int bitSetSize,
 	}
 }
 
-void CCpuMathEngine::SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s, CFloatHandle& vt,
-	CFloatHandle& superb )
+void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+	const CFloatHandle& vt, const CFloatHandle& superb )
 {
 	int lda = max( 1, n ), ldu = min( n, m ), ldv = n;
-	lapack_int info = LAPACKE_sgesvd( LAPACK_ROW_MAJOR, 'S', 'S', m, n, GetRaw( a ), lda, GetRaw( s ), GetRaw( u ), ldu,
+	LAPACKE_sgesvd( LAPACK_ROW_MAJOR, 'S', 'S', m, n, GetRaw( a ), lda, GetRaw( s ), GetRaw( u ), ldu,
 		GetRaw( vt ), ldv, GetRaw( superb ) );
 }
 

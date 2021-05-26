@@ -1152,8 +1152,8 @@ void CVulkanMathEngine::MultiplyVectorByTransposedLookupVectorAndAddToTable( int
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s,
-	CFloatHandle& vt, CFloatHandle& superb )
+void CVulkanMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+	const CFloatHandle& vt, const CFloatHandle& superb )
 {
 	ASSERT_EXPR( false );
 }

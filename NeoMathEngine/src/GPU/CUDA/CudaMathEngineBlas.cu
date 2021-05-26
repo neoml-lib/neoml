@@ -816,8 +816,8 @@ void CCudaMathEngine::MatrixSpreadRows(const CConstIntHandle& sourceHandle, int 
 		resultHandle, resultHeight, GetRaw(indexHandle), fillValue);
 }
 
-void CCudaMathEngine::SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s,
-	CFloatHandle& vt, CFloatHandle& superb )
+void CCudaMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+	const CFloatHandle& vt, const CFloatHandle& superb )
 {
 	ASSERT_EXPR( false );
 }

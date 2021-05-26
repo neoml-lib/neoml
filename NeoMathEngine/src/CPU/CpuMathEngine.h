@@ -471,6 +471,8 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) override;
+	void SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s, 
+		const CFloatHandle& vt, const CFloatHandle& superb ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 
@@ -601,8 +603,6 @@ private:
 	void blobMaxPoolingWithIndices(const CCommonMaxPoolingDesc& desc, const float* sourceData,
 		int* maxIndicesData, float* resultData);
 	void blobMaxPoolingWithoutIndices(const CCommonMaxPoolingDesc& desc, const float* sourceData, float* resultData);
-
-	void SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s, CFloatHandle& vt, CFloatHandle& superb );
 };
 
 inline void CCpuMathEngine::VectorReLUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
