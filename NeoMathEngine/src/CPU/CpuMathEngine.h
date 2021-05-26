@@ -339,6 +339,8 @@ public:
 	void MatrixSpreadRows(const CConstIntHandle& sourceHandle, int height, int width,
 		const CIntHandle& resultHandle, int resultHeight, const CConstIntHandle& indexHandle,
 		const CConstIntHandle& fillValue) override;
+	void SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s, 
+		const CFloatHandle& vt, const CFloatHandle& superb ) override;
 
 	// IDnnEngine interface methods
 	void BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CFloatHandle* fromData, int fromCount,
@@ -471,8 +473,6 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) override;
-	void SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s, 
-		const CFloatHandle& vt, const CFloatHandle& superb ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 
