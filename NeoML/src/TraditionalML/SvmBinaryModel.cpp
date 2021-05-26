@@ -77,29 +77,6 @@ bool CSvmBinaryModel::Classify( const CFloatVectorDesc& data, CClassificationRes
 	return true;
 }
 
-bool CSvmBinaryModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
-{
-	CFloatVectorDesc desc;
-	double value = freeTerm;
-	for( int i = 0; i < alpha.Size(); i++ ) {
-		matrix.GetRow( i, desc );
-		value += alpha[i] * kernel.Calculate( data, desc );
-	}
-
-	const double probability = 1 / ( 1 + exp( value ) );
-	result.ExceptionProbability = CClassificationProbability( 0 );
-	result.Probabilities.SetSize( 2 );
-	result.Probabilities[0] = CClassificationProbability( probability );
-	result.Probabilities[1] = CClassificationProbability( 1 - probability );
-
-	if( probability > 1 - probability ) {
-		result.PreferredClass = 0;
-	} else {
-		result.PreferredClass = 1;
-	}
-	return true;
-}
-
 void CSvmBinaryModel::Serialize( CArchive& archive )
 {
 	const int version = archive.SerializeVersion( 1 );

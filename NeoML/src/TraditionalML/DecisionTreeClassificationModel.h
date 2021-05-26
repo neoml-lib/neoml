@@ -33,7 +33,6 @@ public:
 	// IModel interface methods
 	int GetClassCount() const override;
 	bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const override;
-	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
 	void Serialize( CArchive& archive ) override;
 
 private:

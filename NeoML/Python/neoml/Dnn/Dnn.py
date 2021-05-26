@@ -27,8 +27,7 @@ class Dnn(PythonWrapper.Dnn):
     calculations on data blobs. It starts with source layers and ends with 
     sink layers.
     
-    :param math_engine: The math engine that will perform calculations.
-    :type math_engine: object
+    :param neoml.MathEngine.MathEngine math_engine: The math engine that will perform calculations.
     :param random: The random numbers generator to be used for training and initialization.
     :type random: object, default=None 
     """
@@ -80,13 +79,13 @@ class Dnn(PythonWrapper.Dnn):
 
     @property
     def math_engine(self):
-        """Gets the math engine used by the network.
+        """The math engine `neoml.MathEngine.MathEngine` used by the network.
         """
         return self.get_math_engine()
 
     @property
     def solver(self):
-        """Gets the optimizer for the layer's trainable parameters.
+        """The optimizer for the layer's trainable parameters.
         """
         return self.get_solver()
 
@@ -98,7 +97,7 @@ class Dnn(PythonWrapper.Dnn):
 
     @property
     def initializer(self):
-        """Gets the initializer that will fill in the weight values 
+        """The initializer that will fill in the weight values 
         before training starts. Xavier initialization is the default.
         """
         return self.get_initializer()
@@ -112,13 +111,13 @@ class Dnn(PythonWrapper.Dnn):
 
     @property
     def input_layers(self):
-        """Gets the source layers of the network.
+        """All source layers of the network.
         """
         return self.get_inputs()
 
     @property
     def output_layers(self):
-        """Gets the sink layers of the network.
+        """All sink layers of the network.
         """
         return self.get_outputs()
 
@@ -129,19 +128,18 @@ class Dnn(PythonWrapper.Dnn):
         return self.get_layers()
 
     def add_layer(self, layer):
-        """Adds layer to the network
+        """Adds a layer to the network.
 
-        :param layer: The layer to be added
-        :type layer: neoml.Dnn.Layer
+        :param neoml.Dnn.Layer layer: the layer to be added.
         """
         if not isinstance(layer, Layer):
             raise ValueError('The `layer` is expected to be neoml.Dnn.Layer`')
         self._add_layer(layer.internal)
     
     def delete_layer(self, layer):
-        """Deletes layer from the network
+        """Deletes a layer from the network.
 
-        :param layer: The layer (or its name) to be deleted
+        :param layer: the layer to be deleted, or its name
         :type layer: neoml.Dnn.Layer or str
         """
         if type(layer) is str:
@@ -155,8 +153,8 @@ class Dnn(PythonWrapper.Dnn):
         """Runs the network.
         
         :param inputs: The dictionary of input blobs.
-            The dictionary keys (str) are the source layer names.
-            The dictionary values (neoml.Blob) are the blobs passed 
+            The dictionary keys (`str`) are the source layer names.
+            The dictionary values (`neoml.Blob.Blob`) are the blobs passed 
             to these source layers.
         :type: inputs: dict
 
@@ -188,8 +186,8 @@ class Dnn(PythonWrapper.Dnn):
         """Runs the network and performs a backward pass with the input data.
         
         :param: inputs: The dictionary of input blobs.
-            The dictionary keys (str) are the source layer names.
-            The dictionary values (neoml.Blob) are the blobs passed 
+            The dictionary keys (`str`) are the source layer names.
+            The dictionary values (`neoml.Blob.Blob`) are the blobs passed 
             to these source layers.
         :type inputs: dict
 
@@ -216,8 +214,8 @@ class Dnn(PythonWrapper.Dnn):
         and updates the trainable weights.
         
         :param inputs: The dictionary of input blobs.
-            The dictionary keys (str) are the source layer names.
-            The dictionary values (neoml.Blob) are the blobs passed 
+            The dictionary keys (`str`) are the source layer names.
+            The dictionary values (`neoml.Blob.Blob`) are the blobs passed 
             to these source layers.
         :type inputs: dict
 
@@ -258,6 +256,16 @@ class Layer:
         return self._internal.get_name()
     
     def connect(self, layer, output_index=0, input_index=0):
+        """Connects this layer to another.
+        
+        :param neoml.Dnn.Layer layer: the layer to which this one will be connected.
+        
+        :param output_index: the number of the `layer`'s output to be connected.
+        :type output_index: int, >=0, default=0
+        
+        :param input_index: the number of this layer's input to be connected.
+        :type input_index: int, >=0, default=0
+        """
         if not isinstance(layer, Layer):
             raise ValueError('The `layer` is expected to be neoml.Dnn.Layer')
         if output_index < 0:
