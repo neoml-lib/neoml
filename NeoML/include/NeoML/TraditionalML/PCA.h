@@ -23,7 +23,30 @@ namespace NeoML {
 
 class NEOML_API CPCA : public IObject {
 public:
-	CPCA( int _components );
+	enum TComponents {
+		// Set number of components as min(data.width, data.height)
+		PCAC_None = 0,
+		// Integer number representing a number of components to compute
+		PCAC_Int,
+		// Number of components is selected such that
+		// the value of explained_variance is greater
+		// 0 < components < 1
+		PCAC_Float,
+		PCAC_Count
+	};
+
+	struct CParams {
+		TComponents ComponentsType;
+		float Components;
+
+		CParams() :
+			ComponentsType( TComponents::PCAC_None ),
+			Components( 0 )
+		{
+		}
+	};
+
+	explicit CPCA( const CParams& params );
 	void Train( const CFloatMatrixDesc& data );
 	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
 	~CPCA() {};
@@ -32,9 +55,12 @@ public:
 	void GetExplainedVariance( CArray<float>& vals ) const { explainedVariance.CopyTo( vals ); }
 	void GetExplainedVarianceRatio( CArray<float>& vals ) const { explainedVarianceRatio.CopyTo( vals ); }
 	float GetNoiseVariance() const { return noiseVariance; }
+	int GetComponentsNum() const { return components; }
 	CFloatMatrixDesc GetComponents() { return componentsMatrix.GetDesc(); }
 
 private:
+	const CParams params;
+
 	CArray<float> singularValues;
 	CArray<float> explainedVariance;
 	CArray<float> explainedVarianceRatio;
@@ -45,6 +71,7 @@ private:
 
 	void train( const CFloatMatrixDesc& data, bool isTransform );
 	void calculateVariance(  IMathEngine& mathEngine, const CFloatHandle& s, int m, int k, int n );
+	void getComponentsNum( const CArray<float>& explainedVariance, const CArray<float>& explainedVarianceRatio, int k );
 };
 
 } // namespace NeoML

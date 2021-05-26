@@ -22,9 +22,11 @@ limitations under the License.
 
 namespace NeoML {
 
-CPCA::CPCA( int _components ): components( _components ), noiseVariance( 0 )
+CPCA::CPCA( const CParams& _params ): params( _params )
 {
-	NeoAssert( components >= 0 );
+	NeoAssert( ( params.ComponentsType == PCAC_None ) && ( 0 < params.Components < 1 ) ||
+		( params.ComponentsType == PCAC_Int ) && ( params.Components > 0 ) ||
+		( params.ComponentsType == PCAC_Float ) && ( 0 < params.Components < 1 ));
 };
 
 static CPtr<CDnnBlob> convertToBlob( IMathEngine& mathEngine, const CFloatMatrixDesc& data )
@@ -55,7 +57,7 @@ static void subtractMean( IMathEngine& mathEngine, const CFloatHandle& data, int
 	CPtr<CDnnBlob> meanVector = CDnnBlob::CreateVector( mathEngine, CT_Float, matrixWidth );
 	CPtr<CDnnBlob> height = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	CFloatHandle& heightHandle = height->GetData();
-	heightHandle.SetValue( -1. / matrixHeight );
+	heightHandle.SetValue( -1.f / static_cast<float>( matrixHeight ) );
 	mathEngine.SumMatrixRows( 1, meanVector->GetData(), data, matrixHeight, matrixWidth );
 	mathEngine.VectorMultiply( meanVector->GetData(), meanVector->GetData(), matrixWidth, heightHandle );
 	mathEngine.AddVectorToMatrixRows( 1, data, data, matrixHeight, matrixWidth, meanVector->GetData() );
@@ -72,7 +74,7 @@ static void flipSVD( IMathEngine& mathEngine, const CFloatHandle& u, const CFloa
 	int* indices = maxIndices->GetBuffer<int>( 0, k, false );
 	float* signs = maxValues->GetBuffer<float>( 0, k, false );
 	for( int i = 0; i < k; i++ ) {
-		signs[i] = ( u.GetValueAt( indices[i] * k + i ) >= 0 ? 1 : -1 );
+		signs[i] = ( u.GetValueAt( indices[i] * k + i ) >= 0 ? 1.f : -1.f );
 	}
 	maxValues->ReleaseBuffer( signs, false );
 	mathEngine.MultiplyMatrixByDiagMatrix( u, m, k, maxValues->GetData<float>(), u, m * k );
@@ -91,6 +93,27 @@ static void blobToMatrix( const CPtr<CDnnBlob>& blob, CSparseFloatMatrix& matrix
 	}
 }
 
+void CPCA::getComponentsNum( const CArray<float>& explainedVariance, const CArray<float>& explainedVarianceRatio, int k )
+{
+	if( params.ComponentsType == PCAC_None ) {
+		components = k;
+	} else if( params.ComponentsType == PCAC_Int ) {
+		components = static_cast<int>( params.Components );
+	} else if( params.ComponentsType == PCAC_Float ) {
+		float currentSum = 0;
+		components = explainedVarianceRatio.Size();
+		for( int i = 0; i < explainedVarianceRatio.Size(); i++ ) {
+			currentSum += explainedVarianceRatio[i];
+			if( currentSum > params.Components ) {
+				components = i;
+				break;
+			}
+		}
+	} else {
+		NeoAssert( false );
+	}
+}
+
 void CPCA::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, int m, int k, int n )
 {
 	CPtr<CDnnBlob> var = CDnnBlob::CreateVector( mathEngine, CT_Float, k );
@@ -100,25 +123,29 @@ void CPCA::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, in
 
 	// calculate explained_variance
 	mathEngine.VectorEltwiseMultiply( s, s, var->GetData(), k );
-	tempHandle.SetValue( 1. / ( m - 1 ) );
+	tempHandle.SetValue( 1.f / static_cast<float>( m - 1 ) );
 	mathEngine.VectorMultiply( var->GetData(), var->GetData(), k, tempHandle );
-	explainedVariance.SetSize( components );
-	var->CopyTo( explainedVariance.GetPtr(), components );
-
-	// calculate noise_variance
-	if( components < k ) {
-		mathEngine.VectorSum( var->GetData() + components, k - components, tempHandle );
-		noiseVariance = tempHandle.GetValue() / ( k - components );
-	} else {
-		noiseVariance = 0;
-	}
+	explainedVariance.SetSize( k );
+	var->CopyTo( explainedVariance.GetPtr(), k );
 
 	// calculate explained_variance_ratio
 	mathEngine.VectorSum( var->GetData(), k, totalVar->GetData() );
-	tempHandle.SetValue( 1. / totalVar->GetData().GetValue() );
+	tempHandle.SetValue( 1.f / totalVar->GetData().GetValue() );
 	mathEngine.VectorMultiply( var->GetData(), var->GetData(), k, tempHandle );
+	explainedVarianceRatio.SetSize( k );
+	var->CopyTo( explainedVarianceRatio.GetPtr(), k );
+
+	getComponentsNum( explainedVariance, explainedVarianceRatio, k );
+
+	// calculate noise_variance
+	noiseVariance = 0;
+	for( int i = components; i < k; i++ ) {
+		noiseVariance += explainedVariance[i];
+	}
+	noiseVariance /= max( 1, k - components );
+
+	explainedVariance.SetSize( components );
 	explainedVarianceRatio.SetSize( components );
-	var->CopyTo( explainedVarianceRatio.GetPtr(), components );
 }
 
 void CPCA::train( const CFloatMatrixDesc& data, bool isTransform )
@@ -126,7 +153,6 @@ void CPCA::train( const CFloatMatrixDesc& data, bool isTransform )
 	int n = data.Width;
 	int m = data.Height;
 	int k = min( n, m );
-	NeoAssert( components <= k );
 
 	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
 	CPtr<CDnnBlob> a = convertToBlob( *mathEngine, data );
@@ -139,14 +165,14 @@ void CPCA::train( const CFloatMatrixDesc& data, bool isTransform )
 	subtractMean( *mathEngine, a->GetData(), m, n );
 
 	mathEngine->SingularValueDecomposition( a->GetData(), n, m, u->GetData(), s->GetData(), vt->GetData(), superb->GetData() );
-	singularValues.SetSize( components );
-	s->CopyTo( singularValues.GetPtr(), components );
 
 	// flip signs of u columns and vt rows to obtain deterministic result
 	flipSVD( *mathEngine, u->GetData(), vt->GetData(), m, k, n );
 
 	calculateVariance( *mathEngine, s->GetData(), m, k, n );
 
+	singularValues.SetSize( components );
+	s->CopyTo( singularValues.GetPtr(), components );
 	componentsMatrix = CSparseFloatMatrix( components, n, components * n );
 	blobToMatrix( vt, componentsMatrix, components, n, n );
 
