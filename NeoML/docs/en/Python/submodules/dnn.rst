@@ -8,6 +8,7 @@ neoml.Dnn
 - :ref:`py-dnn-blob`
 - :ref:`py-dnn-layers`
 
+   - :ref:`py-dnn-baselayer`
    - :ref:`py-dnn-inputoutput`
    - :ref:`py-dnn-recurrent`
    - :ref:`py-dnn-fullyconnected`
@@ -38,6 +39,8 @@ neoml.Dnn
 
 - :ref:`py-dnn-initializers`
 - :ref:`py-dnn-solver`
+- :ref:`py-dnn-random`
+- :ref:`py-dnn-autodiff`
 
 .. _py-dnn-network:
 
@@ -122,6 +125,16 @@ If the operation returns results that should be used by other layers, they will 
 In addition, the layer may have settings specified by the user before starting calculations, and trainable parameters that are optimized during network training.
 
 The layers also have names that can be used to find a layer in the network. The name should be set at layer creation or before adding it to the network.
+
+.. _py-dnn-baselayer:
+
+Base layer class
+*****************
+
+All NeoML layer classes are derived from this class.
+
+.. autoclass:: neoml.Dnn.Layer
+   :members:
 
 .. _py-dnn-inputoutput:
 
@@ -370,7 +383,7 @@ MultiSquaredHingeLoss
 CustomLoss
 ==========
 
-NeoML provides an interface for user-implemented custom loss functions.
+NeoML provides an interface for user-implemented custom loss functions. They must be constructed out of simple arithmetic and :ref:`py-dnn-autodiff` functions.
 
 .. autoclass:: neoml.Dnn.CustomLossCalculatorBase
    :members:
@@ -855,3 +868,45 @@ NesterovGradient
 
 .. autoclass:: neoml.Dnn.NesterovGradient
    :members:
+
+.. _py-dnn-random:
+
+Random
+########
+
+.. autoclass:: neoml.Random.Random
+   :members:
+
+.. _py-dnn-autodiff:
+
+Autodifferentiation
+####################
+
+NeoML supports autodifferentiation for a wide set of operations. Use these operations and simple arithmetic if you'd like to create your own loss function `neoml.Dnn.CustomLoss`. Then during the backward pass, NeoML will be able to calculate gradients of your custom loss.
+
+.. automethod:: neoml.Autodiff.const
+
+Simple arithmetic operations
+******************************
+
+.. automethod:: neoml.Autodiff.add
+.. automethod:: neoml.Autodiff.sub
+.. automethod:: neoml.Autodiff.mul
+.. automethod:: neoml.Autodiff.div
+
+Basic math functions
+*********************
+
+.. automethod:: neoml.Autodiff.max
+.. automethod:: neoml.Autodiff.sum
+.. automethod:: neoml.Autodiff.neg
+.. automethod:: neoml.Autodiff.abs
+.. automethod:: neoml.Autodiff.log
+.. automethod:: neoml.Autodiff.exp
+
+Other operations
+*******************
+
+.. automethod:: neoml.Autodiff.clip
+.. automethod:: neoml.Autodiff.top_k
+.. automethod:: neoml.Autodiff.binary_cross_entropy

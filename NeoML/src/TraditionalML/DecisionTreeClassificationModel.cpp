@@ -158,15 +158,6 @@ bool CDecisionTreeClassificationModel::Classify( const CFloatVectorDesc& data, C
 	return classify( node, result );
 }
 
-bool CDecisionTreeClassificationModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
-{
-	CPtr<CDecisionTreeNodeBase> node;
-	int level = 0;
-	GetClassifyNode( data, node, level );
-
-	return classify( node, result );
-}
-
 void CDecisionTreeClassificationModel::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( 0 );
