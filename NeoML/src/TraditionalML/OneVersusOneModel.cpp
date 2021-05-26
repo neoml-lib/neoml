@@ -78,7 +78,7 @@ static inline bool hasConverged( const CArray<float>& matByProb, float probByMat
 
 // fills prob with approximated probabilities based on pred
 // pred is a matrix of size classCount x classCount (r in the article)
-void findProb( const CArray<CArray<float>>& pred, CArray<float>& prob )
+static void findProb( const CArray<CArray<float>>& pred, CArray<float>& prob )
 {
 	const int classCount = pred.Size();
 	NeoAssert( classCount > 1 );
