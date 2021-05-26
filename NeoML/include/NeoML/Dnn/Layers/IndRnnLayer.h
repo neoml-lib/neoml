@@ -83,7 +83,7 @@ private:
 // Recurrent part of IndRNN:
 //    Y_t = sigmoid( FC( X_t ) + U * Y_t-1 )
 //
-// For optimization purpose this class doesn't derive CRecurrentLayer
+// For optimization purposes this class doesn't inherit CRecurrentLayer
 // mathEngine 'emulates' recurrent part instead
 class NEOML_API CIndRnnRecurrentLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CIndRnnRecurrentLayer )

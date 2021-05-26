@@ -27,7 +27,7 @@ It's a simple recurrent unit with the following formula:
 where:
 
 - `W` and `B` are weight matrix and free terms of the fully-connected layer respectively (`W * X_t` means matrix-by-vector multiplication)
-- `U` is a recurrent weights vectgor (`U * Y_t-1` means element-wise multiplication of 2 vectors of same length)
+- `U` is a recurrent weights vector (`U * Y_t-1` means element-wise multiplication of 2 vectors of same length)
 
 ## Settings
 
@@ -63,7 +63,7 @@ Elements of the sequences are processed in reversed order if this flag is set.
 CPtr<CDnnBlob> GetInputWeights() const;
 ```
 
-The weight matrix `W` from formula.
+The weight matrix `W` from the formula.
 
 It has the following shape:
 
@@ -76,7 +76,7 @@ It has the following shape:
 CPtr<CDnnBlob> GetRecurrentWeights() const;
 ```
 
-The weight vector `U` from formula. It's represented by a blob of the total size `GetHiddenSize()`.
+The weight vector `U` from the formula. It's represented by a blob of the total size `GetHiddenSize()`.
 
 ### Free terms B
 
@@ -84,7 +84,7 @@ The weight vector `U` from formula. It's represented by a blob of the total size
 CPtr<CDnnBlob> GetBias() const
 ```
 
-The free terms `B` from formula. It's represented by a blob of the total size `GetHiddenSize()`.
+The free terms `B` from the formula. It's represented by a blob of the total size `GetHiddenSize()`.
 
 ## Inputs
 

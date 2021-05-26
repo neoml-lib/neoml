@@ -43,7 +43,7 @@ class IndRnn(Layer):
 
     (1) the set of vector sequences, of dimensions:
 
-        - **BatchLngth** - the length of sequence
+        - **BatchLength** - the sequence length
         - **BatchWidth** * **ListSize** - the number of vector sequences in the input set
         - **Height** * **Width** * **Depth** * **Channels** - the size of each vector in the sequence
     
