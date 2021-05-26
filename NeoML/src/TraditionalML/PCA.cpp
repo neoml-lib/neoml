@@ -117,7 +117,6 @@ void CPCA::getComponentsNum( const CArray<float>& explainedVarianceRatio, int k 
 void CPCA::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, int m, int k )
 {
 	CPtr<CDnnBlob> var = CDnnBlob::CreateVector( mathEngine, CT_Float, k );
-	CPtr<CDnnBlob> totalVar = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	CPtr<CDnnBlob> temp = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	const CFloatHandle& tempHandle = temp->GetData();
 
@@ -129,8 +128,8 @@ void CPCA::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, in
 	var->CopyTo( explainedVariance.GetPtr(), k );
 
 	// calculate explained_variance_ratio
-	mathEngine.VectorSum( var->GetData(), k, totalVar->GetData() );
-	tempHandle.SetValue( 1.f / totalVar->GetData().GetValue() );
+	mathEngine.VectorSum( var->GetData(), k, tempHandle );
+	tempHandle.SetValue( 1.f / tempHandle.GetValue() );
 	mathEngine.VectorMultiply( var->GetData(), var->GetData(), k, tempHandle );
 	explainedVarianceRatio.SetSize( k );
 	var->CopyTo( explainedVarianceRatio.GetPtr(), k );
