@@ -28,7 +28,7 @@ The parameters are represented by a `CLinear::CParams` structure.
 - *NormalizeError* — specifies if the error should be normalized.
 - *L1Coeff* — the L1 regularization coefficient; set to `0` to use the L2 regularization instead.
 - *ThreadCount* — the number of processing threads to be used while training the model.
-- *MulticlassMode* - the approach used in multiclass task.
+- *MulticlassMode* - the approach used in multiclass task: OneVsAll (default) or OneVsOne.
 
 ### Loss function
 

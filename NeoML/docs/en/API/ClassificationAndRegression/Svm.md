@@ -21,7 +21,7 @@ The parameters are represented by a `CSvm::CParams` structure.
 - *Coeff0* — the kernel free term (for `KT_Poly`, `KT_Sigmoid`)
 - *Tolerance* — the algorithm precision, the stop criterion
 - *ThreadCount* — the number of processing threads to be used while training
-- *MulticlassMode* - the approach used in multiclass task
+- *MulticlassMode* - the approach used in multiclass task: OneVsAll (default) or OneVsOne
 
 ## Model
 
