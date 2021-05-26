@@ -70,8 +70,8 @@ private:
 	int components;
 
 	void train( const CFloatMatrixDesc& data, bool isTransform );
-	void calculateVariance(  IMathEngine& mathEngine, const CFloatHandle& s, int m, int k, int n );
-	void getComponentsNum( const CArray<float>& explainedVariance, const CArray<float>& explainedVarianceRatio, int k );
+	void calculateVariance(  IMathEngine& mathEngine, const CFloatHandle& s, int m, int k );
+	void getComponentsNum( const CArray<float>& explainedVarianceRatio, int k );
 };
 
 } // namespace NeoML

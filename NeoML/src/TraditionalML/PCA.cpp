@@ -56,7 +56,7 @@ static void subtractMean( IMathEngine& mathEngine, const CFloatHandle& data, int
 {
 	CPtr<CDnnBlob> meanVector = CDnnBlob::CreateVector( mathEngine, CT_Float, matrixWidth );
 	CPtr<CDnnBlob> height = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
-	CFloatHandle& heightHandle = height->GetData();
+	const CFloatHandle& heightHandle = height->GetData();
 	heightHandle.SetValue( -1.f / static_cast<float>( matrixHeight ) );
 	mathEngine.SumMatrixRows( 1, meanVector->GetData(), data, matrixHeight, matrixWidth );
 	mathEngine.VectorMultiply( meanVector->GetData(), meanVector->GetData(), matrixWidth, heightHandle );
@@ -93,7 +93,7 @@ static void blobToMatrix( const CPtr<CDnnBlob>& blob, CSparseFloatMatrix& matrix
 	}
 }
 
-void CPCA::getComponentsNum( const CArray<float>& explainedVariance, const CArray<float>& explainedVarianceRatio, int k )
+void CPCA::getComponentsNum( const CArray<float>& explainedVarianceRatio, int k )
 {
 	if( params.ComponentsType == PCAC_None ) {
 		components = k;
@@ -114,12 +114,12 @@ void CPCA::getComponentsNum( const CArray<float>& explainedVariance, const CArra
 	}
 }
 
-void CPCA::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, int m, int k, int n )
+void CPCA::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, int m, int k )
 {
 	CPtr<CDnnBlob> var = CDnnBlob::CreateVector( mathEngine, CT_Float, k );
 	CPtr<CDnnBlob> totalVar = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	CPtr<CDnnBlob> temp = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
-	CFloatHandle& tempHandle = temp->GetData();
+	const CFloatHandle& tempHandle = temp->GetData();
 
 	// calculate explained_variance
 	mathEngine.VectorEltwiseMultiply( s, s, var->GetData(), k );
@@ -135,7 +135,7 @@ void CPCA::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, in
 	explainedVarianceRatio.SetSize( k );
 	var->CopyTo( explainedVarianceRatio.GetPtr(), k );
 
-	getComponentsNum( explainedVariance, explainedVarianceRatio, k );
+	getComponentsNum( explainedVarianceRatio, k );
 
 	// calculate noise_variance
 	noiseVariance = 0;
@@ -169,7 +169,7 @@ void CPCA::train( const CFloatMatrixDesc& data, bool isTransform )
 	// flip signs of u columns and vt rows to obtain deterministic result
 	flipSVD( *mathEngine, u->GetData(), vt->GetData(), m, k, n );
 
-	calculateVariance( *mathEngine, s->GetData(), m, k, n );
+	calculateVariance( *mathEngine, s->GetData(), m, k );
 
 	singularValues.SetSize( components );
 	s->CopyTo( singularValues.GetPtr(), components );
