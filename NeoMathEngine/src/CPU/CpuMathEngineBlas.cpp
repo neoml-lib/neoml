@@ -1237,10 +1237,12 @@ void CCpuMathEngine::BitSetBinarization( int batchSize, int bitSetSize,
 	}
 }
 
-void CCpuMathEngine::SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s, CFloatHandle& vt, CFloatHandle& superb ) {
-	
-	LAPACKE_sgesvd( LAPACK_ROW_MAJOR, 'O', 'A', 4, 3, GetRaw( a ), 4, GetRaw( s ), nullptr, 4, GetRaw( vt ), 3, GetRaw( superb ) );
-	printf("kulebaka\n");
+void CCpuMathEngine::SingularValueDecomposition( CFloatHandle& a, int n, int m, CFloatHandle& u, CFloatHandle& s, CFloatHandle& vt,
+	CFloatHandle& superb )
+{
+	int lda = max( 1, n ), ldu = min( n, m ), ldv = n;
+	lapack_int info = LAPACKE_sgesvd( LAPACK_ROW_MAJOR, 'S', 'S', m, n, GetRaw( a ), lda, GetRaw( s ), GetRaw( u ), ldu,
+		GetRaw( vt ), ldv, GetRaw( superb ) );
 }
 
 } // namespace NeoML

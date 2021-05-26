@@ -21,26 +21,30 @@ limitations under the License.
 
 namespace NeoML {
 
-class IPCAData : public virtual IObject {
-public:
-	// The number of vectors
-	virtual int GetVectorCount() const = 0;
-
-	// The number of features (vector length)
-	virtual int GetFeaturesCount() const = 0;
-
-	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
-	virtual CFloatMatrixDesc GetMatrix() const = 0;
-};
-
 class NEOML_API CPCA : public IObject {
 public:
-	CPCA( NeoML::IMathEngine& mathEngine );
-	virtual CPtr<IModel> Train( const IPCAData& data );
+	CPCA( int _components );
+	void Train( const CFloatMatrixDesc& data );
+	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
 	~CPCA() {};
 
+	void GetSingularValues( CArray<float>& vals ) const { singularValues.CopyTo( vals ); }
+	void GetExplainedVariance( CArray<float>& vals ) const { explainedVariance.CopyTo( vals ); }
+	void GetExplainedVarianceRatio( CArray<float>& vals ) const { explainedVarianceRatio.CopyTo( vals ); }
+	float GetNoiseVariance() const { return noiseVariance; }
+	CFloatMatrixDesc GetComponents() { return componentsMatrix.GetDesc(); }
+
 private:
-	IMathEngine& mathEngine;
+	CArray<float> singularValues;
+	CArray<float> explainedVariance;
+	CArray<float> explainedVarianceRatio;
+	CSparseFloatMatrix componentsMatrix;
+	CSparseFloatMatrix transformedMatrix;
+	float noiseVariance;
+	int components;
+
+	void train( const CFloatMatrixDesc& data, bool isTransform );
+	void calculateVariance(  IMathEngine& mathEngine, const CFloatHandle& s, int m, int k, int n );
 };
 
 } // namespace NeoML
