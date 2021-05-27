@@ -67,7 +67,7 @@ static CString getUniqueLayerName( const CDnn& dnn, const CString& prefix )
 
 // Converts tensor in a way that layout[heightDimIndex] is BD_Height and layout[widthDimIndex] is BD_Width.
 // If widthDimIndex is NotFound then only height dimension is moved to layout[heightDimIndex]
-CPtr<const CUserTensor> convertTensorToHw( const CUserTensor& input, int heightDimIndex, int widthDimIndex )
+static CPtr<const CUserTensor> convertTensorToHw( const CUserTensor& input, int heightDimIndex, int widthDimIndex )
 {
 	const CTensorLayout& inputLayout = input.Layout();
 
@@ -99,7 +99,7 @@ CPtr<const CUserTensor> convertTensorToHw( const CUserTensor& input, int heightD
 //---------------------------------------------------------------------------------------------------------------------
 
 // Renames dimensions of data blob (without any reordering in memory)
-CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTensorShape& shape, const CTensorLayout& outputLayout )
+static CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTensorShape& shape, const CTensorLayout& outputLayout )
 {
 	NeoAssert( shape.Size() == outputLayout.Size() );
 	// We have to copy data here because multiple tensors may be connected to the input tensor
@@ -114,7 +114,7 @@ CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTensorShape
 }
 
 // Renames dimensions of layer output (without any reordering in memory)
-CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorShape& shape, const CTensorLayout& outputLayout )
+static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorShape& shape, const CTensorLayout& outputLayout )
 {
 	NeoAssert( shape.Size() == outputLayout.Size() );
 	CDnn& dnn = *( input.Layer->GetDnn() );
@@ -134,7 +134,7 @@ CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorShape& sh
 }
 
 // Renames dimensions of tensor (without any reordering in memory)
-CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const CTensorLayout& outputLayout )
+static CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const CTensorLayout& outputLayout )
 {
 	if( input.IsCalculated() ) {
 		CPtr<const CDnnBlob> blob = renameDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
@@ -148,7 +148,7 @@ CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const CTenso
 }
 
 // Swaps 2 dimensions of data blob
-CPtr<const CDnnBlob> swapDimensions( const CDnnBlob& inputBlob, TBlobDim firstDim, TBlobDim secondDim )
+static CPtr<const CDnnBlob> swapDimensions( const CDnnBlob& inputBlob, TBlobDim firstDim, TBlobDim secondDim )
 {
 	CBlobDesc outputDesc = inputBlob.GetDesc();
 	const int firstDimSize = outputDesc.DimSize( firstDim );
@@ -163,7 +163,7 @@ CPtr<const CDnnBlob> swapDimensions( const CDnnBlob& inputBlob, TBlobDim firstDi
 }
 
 // Swasp 2 dimensions of given layer output
-CLayerOutput swapDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlobDim secondDim )
+static CLayerOutput swapDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlobDim secondDim )
 {
 	CDnn& dnn = *( input.Layer->GetDnn() );
 	CPtr<CTransposeLayer> transposeLayer = new CTransposeLayer( dnn.GetMathEngine() );
@@ -175,7 +175,7 @@ CLayerOutput swapDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlob
 }
 
 // Swaps 2 dimensions of input tensor
-CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDim firstDim, TBlobDim secondDim )
+static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDim firstDim, TBlobDim secondDim )
 {
 	CTensorLayout outputLayout = input.Layout();
 	const int firstDimIndex = outputLayout.Find( firstDim );
@@ -292,7 +292,9 @@ void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, 
 
 // --------------------------------------------------------------------------------------------------------------------
 
-CPtr<const CUserTensor> addImageResizeLayer( CImageResizeLayer& imageResize, CDnn& dnn, const CUserTensor& input,
+// Adds given image resize layer in order to resize heightDimIndex'th and widthDimIndex'th dimensions
+// widthDimIndex may be NotFound (that means only heightDimIndex'th dimension should be resized)
+static CPtr<const CUserTensor> addImageResizeLayer( CImageResizeLayer& imageResize, CDnn& dnn, const CUserTensor& input,
 	int heightDimIndex, int widthDimIndex )
 {
 	// Add imageResize layer
@@ -374,7 +376,7 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 //---------------------------------------------------------------------------------------------------------------------
 
 // Returns true if shapes are equal
-bool areShapesEqual( const CTensorShape& first, const CTensorShape& second )
+static bool areShapesEqual( const CTensorShape& first, const CTensorShape& second )
 {
 	if( first.Size() != second.Size() ) {
 		return false;
@@ -571,7 +573,7 @@ static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, co
 }
 
 // Broadcasts data tensor into outputShape via broadcastInfo
-CPtr<const CDataTensor> broadcastDataTensor( const CDataTensor& input, const CBroadcast& broadcast,
+static CPtr<const CDataTensor> broadcastDataTensor( const CDataTensor& input, const CBroadcast& broadcast,
 	const CTensorShape& outputShape )
 {
 	if( areShapesEqual( input.Shape(), outputShape ) ) {
