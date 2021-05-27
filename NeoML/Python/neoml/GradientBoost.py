@@ -112,12 +112,12 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
     def __init__(self, loss='binomial', iteration_count=100, learning_rate=0.1,
         subsample=1.0, subfeature=1.0, random_seed=0, max_depth=10,
         max_node_count=-1, l1_reg=0.0, l2_reg=1.0, prune=0.0, thread_count=1,
-        builder_type='full', max_bins=32, min_subtree_weight=0.0):
+        builder_type='full', max_bins=32, min_subtree_weight=1.0):
 
         if loss != 'binomial' and loss != 'exponential' and loss != 'squared_hinge' and loss != 'l2':
             raise ValueError('The `loss` must be one of: `exponential`, `binomial`, `squared_hinge`, `l2`.')
-        if builder_type not in ('full', 'hist', 'multi_full'):
-            raise ValueError('The `builder_type` must be one of: `full`, `hist`, `multi_full`.')
+        if builder_type not in ('full', 'hist', 'multi_full', 'multi_hist'):
+            raise ValueError('The `builder_type` must be one of: `full`, `hist`, `multi_full`, `multi_hist`.')
         if iteration_count <= 0:
             raise ValueError('The `iteration_count` must be > 0.')
         if subsample < 0 or subsample > 1:
@@ -266,7 +266,7 @@ class GradientBoostRegressor(PythonWrapper.GradientBoost):
     def __init__(self, loss='l2', iteration_count=100, learning_rate=0.1,
         subsample=1.0, subfeature=1.0, random_seed=0, max_depth=10,
         max_node_count=-1, l1_reg=0.0, l2_reg=1.0, prune=0.0, thread_count=1,
-        builder_type='full', max_bins=32, min_subtree_weight=0.0):
+        builder_type='full', max_bins=32, min_subtree_weight=1.0):
 
         if loss != 'l2':
             raise ValueError('The `loss` must be `l2` for regression.')
