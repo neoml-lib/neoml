@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-class NEOML_API CPCA : public IObject {
+class NEOML_API CPca : public IObject {
 public:
 	enum TComponents {
 		// Set number of components as min(data.width, data.height)
@@ -45,10 +45,10 @@ public:
 		}
 	};
 
-	explicit CPCA( const CParams& params );
+	explicit CPca( const CParams& params );
 	void Train( const CFloatMatrixDesc& data );
 	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
-	~CPCA() {};
+	~CPca() {};
 
 	void GetSingularValues( CArray<float>& vals ) const { singularValues.CopyTo( vals ); }
 	void GetExplainedVariance( CArray<float>& vals ) const { explainedVariance.CopyTo( vals ); }

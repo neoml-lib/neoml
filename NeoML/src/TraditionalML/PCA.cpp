@@ -22,7 +22,7 @@ limitations under the License.
 
 using namespace NeoML;
 
-CPCA::CPCA( const CParams& _params ): params( _params )
+CPca::CPca( const CParams& _params ): params( _params )
 {
 	NeoAssert( ( params.ComponentsType == PCAC_None ) ||
 		( ( params.ComponentsType == PCAC_Int ) && ( params.Components > 0 ) ) ||
@@ -97,7 +97,7 @@ static void blobToMatrix( const CPtr<CDnnBlob>& blob, CSparseFloatMatrix& matrix
 	}
 }
 
-void CPCA::getComponentsNum( const CArray<float>& explainedVarianceRatio, int k )
+void CPca::getComponentsNum( const CArray<float>& explainedVarianceRatio, int k )
 {
 	if( params.ComponentsType == PCAC_None ) {
 		components = k;
@@ -119,7 +119,7 @@ void CPCA::getComponentsNum( const CArray<float>& explainedVarianceRatio, int k 
 	}
 }
 
-void CPCA::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, int m, int k )
+void CPca::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, int m, int k )
 {
 	CPtr<CDnnBlob> var = CDnnBlob::CreateVector( mathEngine, CT_Float, k );
 	CPtr<CDnnBlob> temp = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
@@ -152,7 +152,7 @@ void CPCA::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, in
 	explainedVarianceRatio.SetSize( components );
 }
 
-void CPCA::train( const CFloatMatrixDesc& data, bool isTransform )
+void CPca::train( const CFloatMatrixDesc& data, bool isTransform )
 {
 	int n = data.Width;
 	int m = data.Height;
@@ -187,12 +187,12 @@ void CPCA::train( const CFloatMatrixDesc& data, bool isTransform )
 	}
 }
 
-void CPCA::Train( const CFloatMatrixDesc& data )
+void CPca::Train( const CFloatMatrixDesc& data )
 {
 	train( data, false );
 }
 
-CSparseFloatMatrixDesc CPCA::Transform( const CFloatMatrixDesc& data )
+CSparseFloatMatrixDesc CPca::Transform( const CFloatMatrixDesc& data )
 {
 	train( data, true );
 	return transformedMatrix.GetDesc();
