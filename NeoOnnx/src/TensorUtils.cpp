@@ -16,8 +16,6 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
-#include "onnx.pb.h"
-
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 

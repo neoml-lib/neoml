@@ -16,12 +16,12 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
-#include "onnx.pb.h"
-
 #include <fstream>
 #include <iostream>
 
 #include <NeoOnnx/NeoOnnxImport.h>
+
+#include "onnx.pb.h"
 
 #include "NeoOnnxCheck.h"
 #include "Operator.h"

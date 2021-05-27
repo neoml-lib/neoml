@@ -15,11 +15,12 @@ limitations under the License.
 
 #pragma once
 
-#include "onnx.pb.h"
-
 #include <limits>
 
 #include <NeoML/NeoML.h>
+
+#include "onnx.pb.h"
+
 #include "NeoOnnxCheck.h"
 #include "Tensor.h"
 

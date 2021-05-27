@@ -15,9 +15,9 @@ limitations under the License.
 
 #pragma once
 
-#include "Tensor.h"
-
 #include "onnx.pb.h"
+
+#include "Tensor.h"
 
 namespace NeoOnnx {
 
