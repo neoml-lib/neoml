@@ -65,7 +65,7 @@ static CMap<CString, TCreateOperatorFunction>& getRegisteredOperators()
 }
 
 // Registers function as a way to create operator for NodeProto::op_type == operatorName
-void registerOperator( const char* operatorName, TCreateOperatorFunction function )
+static void registerOperator( const char* operatorName, TCreateOperatorFunction function )
 {
 	NeoAssert( !getRegisteredOperators().Has( operatorName ) );
 	getRegisteredOperators().Add( operatorName, function );
