@@ -20,7 +20,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/PCA.h>
 #include <memory>
 
-namespace NeoML {
+using namespace NeoML;
 
 CPCA::CPCA( const CParams& _params ): params( _params )
 {
@@ -196,5 +196,3 @@ CSparseFloatMatrixDesc CPCA::Transform( const CFloatMatrixDesc& data )
 	train( data, true );
 	return transformedMatrix.GetDesc();
 }
-
-} // namespace NeoML

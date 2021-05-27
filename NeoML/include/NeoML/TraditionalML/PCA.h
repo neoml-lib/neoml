@@ -13,11 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-#pragma hdrstop
-
+#pragma once
 #include <NeoML/NeoMLDefs.h>
 #include <NeoMathEngine/NeoMathEngine.h>
-#include <NeoML/TraditionalML/TrainingModel.h>
+#include <NeoML/TraditionalML/SparseFloatMatrix.h>
 
 namespace NeoML {
 
@@ -40,7 +39,7 @@ public:
 		float Components;
 
 		CParams() :
-			ComponentsType( TComponents::PCAC_None ),
+			ComponentsType( PCAC_None ),
 			Components( 0 )
 		{
 		}

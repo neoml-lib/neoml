@@ -30,6 +30,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/DecisionTree.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
 #include <NeoML/TraditionalML/Svm.h>
+#include <NeoML/TraditionalML/PCA.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <NeoML/TraditionalML/DifferentialEvolution.h>
 #include <NeoML/Dnn/DnnBlob.h>
