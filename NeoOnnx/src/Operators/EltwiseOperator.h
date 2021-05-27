@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include "../Operator.h"
+#include "../LayerOperator.h"
 
 #include "TensorUtils.h"
 
