@@ -110,7 +110,7 @@ void CPCA::getComponentsNum( const CArray<float>& explainedVarianceRatio, int k 
 		for( int i = 0; i < explainedVarianceRatio.Size(); i++ ) {
 			currentSum += explainedVarianceRatio[i];
 			if( currentSum > params.Components ) {
-				components = i;
+				components = i + 1;
 				break;
 			}
 		}
