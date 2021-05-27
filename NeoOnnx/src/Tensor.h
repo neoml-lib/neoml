@@ -23,8 +23,7 @@ namespace NeoOnnx {
 typedef CFastArray<int, 8> CTensorShape;
 
 // NeoML layer's output
-struct CLayerOutput
-{
+struct CLayerOutput {
 	CLayerOutput() : Layer( nullptr ), OutputIndex( NotFound ) {}
 	CLayerOutput( CBaseLayer* layer, int outputIndex ) :
 		Layer( layer ), OutputIndex( outputIndex ) {}
