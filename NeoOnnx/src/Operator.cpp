@@ -16,9 +16,9 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
-#include "onnx.pb.h"
-
 #include <string>
+
+#include "onnx.pb.h"
 
 #include "Operator.h"
 #include "NeoOnnxCheck.h"
