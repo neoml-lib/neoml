@@ -36,12 +36,6 @@ int COneVersusAllModel::GetClassCount() const
 	return classifiers.Size();
 }
 
-bool COneVersusAllModel::ClassifyEx( const CSparseFloatVector& data,
-	COneVersusAllClassificationResult& result ) const
-{
-	return ClassifyEx( data.GetDesc(), result );
-}
-
 bool COneVersusAllModel::ClassifyEx( const CFloatVectorDesc& data,
 	COneVersusAllClassificationResult& result ) const
 {
@@ -70,44 +64,19 @@ bool COneVersusAllModel::ClassifyEx( const CFloatVectorDesc& data,
 	return true;
 }
 
-bool COneVersusAllModel::ClassifyEx( const CFloatVector& data, COneVersusAllClassificationResult& result ) const
+bool COneVersusAllModel::ClassifyEx( const CSparseFloatVector& data,
+	COneVersusAllClassificationResult& result ) const
 {
-	CArray<double> probability;
-	result.SigmoidSum = 0.0;
-	int preferedClass = 0;
+	return ClassifyEx( data.GetDesc(), result );
+}
 
-	for( int i = 0; i < classifiers.Size(); i++ ) {
-		CClassificationResult curResult;
-		NeoAssert( classifiers[i]->Classify( data, curResult ) );
-		const double curClassProbability = curResult.Probabilities[0].GetValue();
-		probability.Add( curClassProbability );
-		result.SigmoidSum += curClassProbability;
-
-		if( curClassProbability > probability[preferedClass] ) {
-			preferedClass = i;
-		}
-	}
-
-	result.ExceptionProbability = CClassificationProbability( 0 );
-	result.PreferredClass = preferedClass;
-	result.Probabilities.SetSize( probability.Size() );
-	for( int i = 0; i < probability.Size(); i++ ) {
-		result.Probabilities[i] = CClassificationProbability( probability[i] / result.SigmoidSum );
-	}
-	return true;
+bool COneVersusAllModel::ClassifyEx( const CFloatVector& data,
+	COneVersusAllClassificationResult& result ) const
+{
+	return ClassifyEx( data.GetDesc(), result );
 }
 
 bool COneVersusAllModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
-{
-	COneVersusAllClassificationResult extendedResult;
-	ClassifyEx( data, extendedResult );
-	result.ExceptionProbability = extendedResult.ExceptionProbability;
-	result.PreferredClass = extendedResult.PreferredClass;
-	extendedResult.Probabilities.MoveTo( result.Probabilities );
-	return true;
-}
-
-bool COneVersusAllModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
 {
 	COneVersusAllClassificationResult extendedResult;
 	ClassifyEx( data, extendedResult );

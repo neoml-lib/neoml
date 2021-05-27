@@ -22,15 +22,15 @@ import numpy
 # ----------------------------------------------------------------------------------------------------------------------
 
 def const(math_engine, shape, data):
-    """
+    """Creates a blob of the specified shape filled with `data` value.
     """
     if not isinstance(math_engine, MathEngine):
-        raise ValueError('The `math_engine` must be neoml.MathEngine.')
+        raise ValueError('The `math_engine` should be neoml.MathEngine.')
 
     np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
 
     if len(np_shape.shape) > 7:
-        raise ValueError('The `shape` must have not more then 7 dimensions.')
+        raise ValueError('The `shape` should have not more than 7 dimensions.')
 
     if numpy.isscalar(data):
         return Blob(PythonWrapper.blob_const(math_engine._internal, np_shape, float(data)))
@@ -38,107 +38,107 @@ def const(math_engine, shape, data):
     np_data = numpy.array(data, copy=False, order='C')
 
     if len(np_data.shape) > 7:
-        raise ValueError('The `shape` must have not more then 7 dimensions.')
+        raise ValueError('The `shape` should have not more than 7 dimensions.')
 
     return Blob(PythonWrapper.blob_const(math_engine._internal, np_shape, np_data))
 
 def add(a, b):
-    """Elementwise sum of two blobs or blob with a scalar
+    """Elementwise adds two blobs or a blob and a scalar value.
     """
     if not type(a) is Blob and not type(b) is Blob:
-        raise ValueError('`a` or `b` must be neoml.Blob.')
+        raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
 
     return a + b
 
 def sub(a, b):
-    """Elementwise sub of two blobs or blob with a scalar
+    """Elementwise subtracts two blobs or a blob and a scalar value.
     """
     if not type(a) is Blob and not type(b) is Blob:
-        raise ValueError('`a` or `b` must be neoml.Blob.')
+        raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
 
     return a - b
 
 def mul(a, b):
-    """Elementwise mul of two blobs or blob with a scalar
+    """Elementwise multiplies two blobs or a blob and a scalar value.
     """
     if not type(a) is Blob and not type(b) is Blob:
-        raise ValueError('`a` or `b` must be neoml.Blob.')
+        raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
 
     return a * b
 
 def div(a, b):
-    """Elementwise div of two blobs or blob with a scalar
+    """Elementwise divides two blobs or a blob and a scalar value.
     """
     if not type(a) is Blob and not type(b) is Blob:
-        raise ValueError('`a` or `b` must be neoml.Blob.')
+        raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
     
     return a / b
 
 def max(a, b):
-    """
+    """Takes the elementwise maximum of two blobs or a blob and a scalar value.
     """
     if type(a) is Blob:
         if a.size == 0:
-            raise ValueError("The blob mustn't be empty.")
+            raise ValueError("The blob shouldn't be empty.")
         return Blob(PythonWrapper.blob_max(a._internal, float(b)))
     elif type(b) is Blob:
         if b.size == 0:
-            raise ValueError("The blob mustn't be empty.")
+            raise ValueError("The blob shouldn't be empty.")
         return Blob(PythonWrapper.blob_max(float(a), b._internal))
     
-    raise ValueError('`a` or `b` must be neoml.Blob.')
+    raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
 
 def sum(a):
-    """
+    """Calculates the total sum of blob elements.
     """
     if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
+        raise ValueError('`a` should be neoml.Blob.')
 
     if a.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
+        raise ValueError("The blob shouldn't be empty.")
     
     return Blob(PythonWrapper.blob_sum(a._internal))
 
 def neg(a):
-    """
+    """Returns the negative of a blob or a number.
     """
     return -a;
 
 def abs(a):
-    """
+    """Takes absolute value of each blob element.
     """
     if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
+        raise ValueError('`a` should be neoml.Blob.')
 
     if a.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
+        raise ValueError("The blob shouldn't be empty.")
     
     return Blob(PythonWrapper.blob_abs(a._internal))
 
 def log(a):
-    """
+    """Takes the logarithm of each blob element.
     """
     if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
+        raise ValueError('`a` should be neoml.Blob.')
 
     if a.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
+        raise ValueError("The blob shouldn't be empty.")
     
     return Blob(PythonWrapper.blob_log(a._internal))
 
 def exp(a):
-    """
+    """Takes the exponential of each blob element.
     """
     if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
+        raise ValueError('`a` should be neoml.Blob.')
 
     if a.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
+        raise ValueError("The blob shouldn't be empty.")
     
     return Blob(PythonWrapper.blob_exp(a._internal))
 
 def clip(blob, min_value, max_value):
-    """
+    """Clips each element of the blob so that it fits between the specified limits.
     """
     if not type(blob) is Blob:
         raise ValueError('`blob` must be neoml.Blob.')
@@ -149,32 +149,36 @@ def clip(blob, min_value, max_value):
     return Blob(PythonWrapper.blob_clip(blob._internal, float(min_value), float(max_value)))
 
 def top_k(a, k=1):
-    """
+    """Finds values of the k largest elements in the blob.
+    The result is a blob of size k.
     """
     if not type(a) is Blob:
-        raise ValueError('`a` must be neoml.Blob.')
+        raise ValueError('`a` should be neoml.Blob.')
 
     if int(k) <= 0:
-        raise ValueError('`k` must be > 0.')
+        raise ValueError('`k` should be > 0.')
 
     if a.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
+        raise ValueError("The blob shouldn't be empty.")
     
     return Blob(PythonWrapper.blob_top_k(a._internal, int(k)))
 
 def binary_cross_entropy(labels, preds, fromLogits):
-    """
+    """Calculates binary cross-entropy for two blobs: the first one contains labels, the second one contains predictions.
+    Blobs should be of the same shape.
+    :math:`result = (1 - labels) * x + log(1 + exp(-x))`
+    if `fromLogits` then `x = preds`, else :math:`x = log( clippedPreds / (1 - clippedPreds))`
     """
     if not type(labels) is Blob:
-        raise ValueError('`labels` must be neoml.Blob.')
+        raise ValueError('`labels` should be neoml.Blob.')
 
     if not type(preds) is Blob:
-        raise ValueError('`preds` must be neoml.Blob.')
+        raise ValueError('`preds` should be neoml.Blob.')
 
     if labels.shape != preds.shape:
-        raise ValueError("The blobs must have the same shape.")
+        raise ValueError("The blobs should be of the same shape.")
 
     if labels.size == 0:
-        raise ValueError("The blobs mustn't be empty.")
+        raise ValueError("The blobs shouldn't be empty.")
     
     return Blob(PythonWrapper.blob_binary_cross_entropy(labels._internal, preds._internal, bool(fromLogits)))
