@@ -19,6 +19,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/RandomProblem.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ClassificationAndRegressionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LAMBSolverTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/PCATest.cpp
 )
 
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

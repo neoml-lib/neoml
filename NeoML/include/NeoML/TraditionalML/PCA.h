@@ -28,7 +28,7 @@ public:
 		// Integer number Components representing a number of components to compute
 		PCAC_Int,
 		// Number of components is selected such that
-		// the value of explained_variance is greater
+		// the value of explained_variance is greater than Components
 		// 0 < Components < 1
 		PCAC_Float,
 		PCAC_Count

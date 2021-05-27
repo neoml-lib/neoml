@@ -103,6 +103,7 @@ void CPCA::getComponentsNum( const CArray<float>& explainedVarianceRatio, int k 
 		components = k;
 	} else if( params.ComponentsType == PCAC_Int ) {
 		components = static_cast<int>( params.Components );
+		NeoAssert( components <= k );
 	} else if( params.ComponentsType == PCAC_Float ) {
 		float currentSum = 0;
 		components = explainedVarianceRatio.Size();
