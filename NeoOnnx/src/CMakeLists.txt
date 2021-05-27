@@ -12,6 +12,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     GraphOutput.cpp
     NeoOnnxImport.cpp
     NeoOnnxCheck.cpp
+    LayerOperator.cpp
     Operator.cpp
     OperatorAttributes.cpp
     Operators/ActivationOperator.cpp
@@ -47,6 +48,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     GraphInput.h
     GraphInitializer.h
     GraphOutput.h
+    LayerOperator.h
     NeoOnnxCheck.h
     Operator.h
     OperatorAttributes.h
