@@ -63,21 +63,25 @@ static void subtractMean( IMathEngine& mathEngine, const CFloatHandle& data, int
 	mathEngine.AddVectorToMatrixRows( 1, data, data, matrixHeight, matrixWidth, meanVector->GetData() );
 }
 
-static void flipSVD( IMathEngine& mathEngine, const CFloatHandle& u, const CFloatHandle& vt, int m, int k, int n )
+static void flipSVD( IMathEngine& mathEngine, const CPtr<CDnnBlob>& u, const CFloatHandle& vt, int m, int k, int n )
 {
-	CPtr<CDnnBlob> abs = CDnnBlob::CreateVector( mathEngine, CT_Float, m * k );
 	CPtr<CDnnBlob> maxValues = CDnnBlob::CreateVector( mathEngine, CT_Float, k );
-	CPtr<CDnnBlob> maxIndices = CDnnBlob::CreateVector( mathEngine, CT_Int, k );
+	maxValues->Fill( 0 );
+	float* uPtr = u->GetBuffer<float>( 0, m * k, false );
+	float* maxValuesPtr = maxValues->GetBuffer<float>( 0, k, false );
 
-	mathEngine.VectorAbs( u, abs->GetData(), m * k );
-	mathEngine.FindMaxValueInColumns( 1, abs->GetData(), m, k, maxValues->GetData(), maxIndices->GetData<int>(), k );
-	int* indices = maxIndices->GetBuffer<int>( 0, k, false );
-	float* signs = maxValues->GetBuffer<float>( 0, k, false );
-	for( int i = 0; i < k; i++ ) {
-		signs[i] = ( u.GetValueAt( indices[i] * k + i ) >= 0 ? 1.f : -1.f );
+	for( int row = 0; row < m; row++ ) {
+		for( int col = 0; col < k; col++ ) {
+			if( abs( uPtr[row * k + col] ) > abs( maxValuesPtr[col] ) ) {
+				maxValuesPtr[col] = uPtr[row * k + col];
+			}
+		}
 	}
-	maxValues->ReleaseBuffer( signs, false );
-	mathEngine.MultiplyMatrixByDiagMatrix( u, m, k, maxValues->GetData<float>(), u, m * k );
+	for( int col = 0; col < k; col++ ) {
+		maxValuesPtr[col] = ( ( maxValuesPtr[col] >= 0 ) ? 1.f : -1.f );
+	}
+	maxValues->ReleaseBuffer( maxValuesPtr, false );
+	mathEngine.MultiplyMatrixByDiagMatrix( u->GetData(), m, k, maxValues->GetData<float>(), u->GetData(), m * k );
 	mathEngine.MultiplyDiagMatrixByMatrix( maxValues->GetData<float>(), k, vt, n, vt, n * k );
 }
 
@@ -166,7 +170,7 @@ void CPCA::train( const CFloatMatrixDesc& data, bool isTransform )
 	mathEngine->SingularValueDecomposition( a->GetData(), n, m, u->GetData(), s->GetData(), vt->GetData(), superb->GetData() );
 
 	// flip signs of u columns and vt rows to obtain deterministic result
-	flipSVD( *mathEngine, u->GetData(), vt->GetData(), m, k, n );
+	flipSVD( *mathEngine, u, vt->GetData(), m, k, n );
 
 	calculateVariance( *mathEngine, s->GetData(), m, k );
 
