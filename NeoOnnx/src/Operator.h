@@ -41,6 +41,17 @@ public:
 	COperator( const COperator& other ) = delete;
 	COperator& operator= ( const COperator& other ) = delete;
 
+	// Static methods
+
+	// Fabric method
+	// Creates COperator's derivative for the given onnx proto
+	static COperator* CreateOperator( const onnx::NodeProto& onnxNode, int opsetVersion );
+
+	// Returns true if operatorType is supported by NeoOnnx
+	static bool IsSupportedOperator( const CString& operatorType );
+
+	// Properties
+
 	// Operator's name
 	const CString& Name() const { return name; }
 	// Operator's type
@@ -69,13 +80,6 @@ public:
 	// (which means that tensor's data is independent of user input)
 	virtual void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
 		IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs ) = 0;
-
-	// Fabric method
-	// Creates COperator's derivative for the given onnx proto
-	static COperator* CreateOperator( const onnx::NodeProto& onnxNode, int opsetVersion );
-
-	// Returns true if operatorType is supported by NeoOnnx
-	static bool IsSupportedOperator( const CString& operatorType );
 
 protected:
 	COperator( const onnx::NodeProto& node, int opsetVersion );
