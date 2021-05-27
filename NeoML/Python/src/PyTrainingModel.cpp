@@ -485,6 +485,8 @@ void InitializeTrainingModel(py::module& m)
 					p.TreeBuilder = GBTB_FastHist;
 				} else if ( builder_type == "multi_full" ) {
 					p.TreeBuilder = GBTB_MultiFull;
+				} else if( builder_type == "multi_hist" ) {
+					p.TreeBuilder = GBTB_MultiFastHist;
 				}
 				p.MaxBins = max_bins;
 				p.MinSubsetWeight = min_subtree_weight;

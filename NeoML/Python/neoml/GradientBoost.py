@@ -116,8 +116,8 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
 
         if loss != 'binomial' and loss != 'exponential' and loss != 'squared_hinge' and loss != 'l2':
             raise ValueError('The `loss` must be one of: `exponential`, `binomial`, `squared_hinge`, `l2`.')
-        if builder_type not in ('full', 'hist', 'multi_full'):
-            raise ValueError('The `builder_type` must be one of: `full`, `hist`, `multi_full`.')
+        if builder_type not in ('full', 'hist', 'multi_full', 'multi_hist'):
+            raise ValueError('The `builder_type` must be one of: `full`, `hist`, `multi_full`, `multi_hist`.')
         if iteration_count <= 0:
             raise ValueError('The `iteration_count` must be > 0.')
         if subsample < 0 or subsample > 1:
