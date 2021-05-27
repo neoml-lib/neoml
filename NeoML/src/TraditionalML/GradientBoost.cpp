@@ -721,7 +721,7 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 					CFastArray<double, 1> pred;
 					pred.SetSize(1);
 					for( int j = 0; j < problem.GetValueSize(); j++ ){
-						 CGradientBoostModel::PredictRaw(models[j], predictCache[j][index].Step, params.LearningRate, vector, pred );
+						CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step, params.LearningRate, vector, pred );
 						predictions[threadNum][j] = pred[0];
 					}
 				}

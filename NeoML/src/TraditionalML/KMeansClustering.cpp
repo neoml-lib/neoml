@@ -72,6 +72,33 @@ CKMeansClustering::CKMeansClustering( const CParam& _params ) :
 
 bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
 {
+	double inertia;
+	// Run first clusterization with params.Seed as initial seed
+	bool succeeded = runClusterization( input, params.Seed, result, inertia );
+
+	if( params.RunCount == 1 ) {
+		return succeeded;
+	}
+
+	// Run other clusterization with seeds generated from CRandom( params.Seed )
+	CRandom random( params.Seed );
+	for( int runIndex = 1; runIndex < params.RunCount; ++runIndex ) {
+		CClusteringResult newResult;
+		double newInertia;
+		bool runSucceeded = runClusterization( input, static_cast<int>( random.Next() ), newResult, newInertia );
+		// Update result if current run is better (== has less inertia)
+		if( newInertia < inertia ) {
+			inertia = newInertia;
+			succeeded = runSucceeded;
+			newResult.CopyTo( result );
+		}
+	}
+
+	return succeeded;
+}
+
+bool CKMeansClustering::runClusterization( IClusteringData* input, int seed, CClusteringResult& result, double& inertia )
+{
 	NeoAssert( input != 0 );
 
 	CFloatMatrixDesc matrix = input->GetMatrix();
@@ -84,7 +111,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 
 	// Specific optimized case (uses MathEngine)
 	if( matrix.Columns == nullptr && params.DistanceFunc == DF_Euclid && params.Algo == KMA_Lloyd ) {
-		return denseLloydL2Clusterize( input, result );
+		return denseLloydL2Clusterize( input, seed, result, inertia );
 	}
 
 	CArray<double> weights;
@@ -92,7 +119,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 		weights.Add( input->GetVectorWeight( i ) );
 	}
 
-	selectInitialClusters( matrix );
+	selectInitialClusters( matrix, seed );
 
 	if( log != 0 ) {
 		*log << "Initial clusters:\n";
@@ -102,7 +129,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 		}
 	}
 
-	bool success = clusterize( matrix, weights );
+	bool success = clusterize( matrix, weights, inertia );
 
 	result.ClusterCount = clusters.Size();
 	result.Data.SetSize( matrix.Height );
@@ -128,7 +155,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 	return success;
 }
 
-bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, CClusteringResult& result )
+bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result, double& inertia )
 {
 	NeoAssert( params.DistanceFunc == DF_Euclid );
 	NeoAssert( params.Algo == KMA_Lloyd );
@@ -143,7 +170,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, CClust
 	CPtr<CDnnBlob> weight = createWeightBlob( *mathEngine, rawData );
 	CPtr<CDnnBlob> centers = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount );
 
-	selectInitialClusters( *data, *centers );
+	selectInitialClusters( *data, seed, *centers );
 
 	bool success = false;
 
@@ -153,7 +180,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, CClust
 	static_assert( KMA_Count == 2, "KMA_Count != 2" );
 	switch( params.Algo ) {
 		case KMA_Lloyd:
-			success = lloydBlobClusterization( *data, *weight, *centers, *sizes, *labels );
+			success = lloydBlobClusterization( *data, *weight, *centers, *sizes, *labels, inertia );
 			break;
 		case KMA_Elkan:
 			// Only Lloyd algorithm is supported for dense data
@@ -197,7 +224,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, CClust
 }
 
 // Selects the initial clusters
-void CKMeansClustering::selectInitialClusters( const CFloatMatrixDesc& matrix )
+void CKMeansClustering::selectInitialClusters( const CFloatMatrixDesc& matrix, int seed )
 {
 	if( !clusters.IsEmpty() ) {
 		// The initial clusters have been set already
@@ -214,33 +241,55 @@ void CKMeansClustering::selectInitialClusters( const CFloatMatrixDesc& matrix )
 	}
 
 	if( params.Initialization == KMI_Default ) {
-		defaultInitialization( matrix );
+		defaultInitialization( matrix, seed );
 	} else if( params.Initialization == KMI_KMeansPlusPlus ) {
-		kMeansPlusPlusInitialization( matrix );
+		kMeansPlusPlusInitialization( matrix, seed );
 	} else {
 		NeoAssert( false );
 	}
 }
 
-void CKMeansClustering::defaultInitialization( const CFloatMatrixDesc& matrix )
+void CKMeansClustering::defaultInitialization( const CFloatMatrixDesc& matrix, int seed )
 {
 	const int vectorCount = matrix.Height;
 	CCommonCluster::CParams clusterParam;
 	clusterParam.MinElementCountForVariance = 1;
-
-	// If the cluster centers have not been specified, use some elements of the input data
-	const int step = max( vectorCount / params.InitialClustersCount, 1 );
-	NeoAssert( step > 0 );
 	clusters.SetBufferSize( params.InitialClustersCount );
-	for( int i = 0; i < params.InitialClustersCount; i++ ) {
-		CFloatVectorDesc desc;
-		matrix.GetRow( ( i * step ) % vectorCount, desc );
-		CFloatVector mean( matrix.Width, desc );
-		clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ), clusterParam ) );
+
+	if( seed == 0xCEA ) {
+		// !Backward compatibility!
+		// If the cluster centers have not been specified, use some elements of the input data
+		const int step = max( vectorCount / params.InitialClustersCount, 1 );
+		NeoAssert( step > 0 );
+		for( int i = 0; i < params.InitialClustersCount; i++ ) {
+			CFloatVectorDesc desc;
+			matrix.GetRow( ( i * step ) % vectorCount, desc );
+			CFloatVector mean( matrix.Width, desc );
+			clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ), clusterParam ) );
+		}
+	} else {
+		CArray<int> perm;
+		perm.SetSize( matrix.Height );
+		for( int i = 0; i < perm.Size(); ++i ) {
+			perm[i] = i;
+		}
+		CRandom random( seed );
+		for( int i = 0; i < perm.Size(); ++i ) {
+			const int j = random.UniformInt( 0, matrix.Height - 1 );
+			if( i != j ) {
+				swap( perm[i], perm[j] );
+			}
+		}
+		for( int i = 0; i < params.InitialClustersCount; i++ ) {
+			CFloatVectorDesc desc;
+			matrix.GetRow( perm[i] );
+			CFloatVector mean( matrix.Width, desc );
+			clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ), clusterParam ) );
+		}
 	}
 }
 
-void CKMeansClustering::kMeansPlusPlusInitialization( const CFloatMatrixDesc& matrix )
+void CKMeansClustering::kMeansPlusPlusInitialization( const CFloatMatrixDesc& matrix, int seed )
 {
 	const int vectorCount = matrix.Height;
 	NeoAssert( params.InitialClustersCount <= vectorCount );
@@ -248,7 +297,7 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CFloatMatrixDesc& ma
 	clusterParam.MinElementCountForVariance = 1;
 
 	// Use random element as the first center
-	CRandom random( 0xCEA );
+	CRandom random( seed );
 	const int firstCenterIndex = random.UniformInt( 0, vectorCount - 1 );
 	CFloatVector firstCenter( matrix.Width, matrix.GetRow( firstCenterIndex ) );
 	clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( firstCenter ), clusterParam ) );
@@ -279,22 +328,22 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CFloatMatrixDesc& ma
 	}
 }
 
-bool CKMeansClustering::clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
+bool CKMeansClustering::clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia )
 {
 	if( params.Algo == KMA_Lloyd ) {
-		return lloydClusterization( matrix, weights );
+		return lloydClusterization( matrix, weights, inertia );
 	} else {
-		return elkanClusterization( matrix, weights );
+		return elkanClusterization( matrix, weights, inertia );
 	}
 }
 
-bool CKMeansClustering::lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
+bool CKMeansClustering::lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia )
 {
 	CArray<int> dataCluster; // the cluster for this element
 	dataCluster.SetBufferSize( matrix.Height );
 	bool success = false;
 	for( int i = 0; i < params.MaxIterations; i++ ) {
-		classifyAllData( matrix, dataCluster );
+		classifyAllData( matrix, dataCluster, inertia );
 
 		if( log != 0 ) {
 			*log << "\n[Step " << i << "]\nData classification result:\n";
@@ -317,24 +366,31 @@ bool CKMeansClustering::lloydClusterization( const CFloatMatrixDesc& matrix, con
 }
 
 // Distributes all elements over the existing clusters
-void CKMeansClustering::classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster )
+void CKMeansClustering::classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster, double& inertia )
 {
 	// Each element is assigned to the nearest cluster
 	dataCluster.SetSize( matrix.Height );
+	CFastArray<double, 8> localInertia;
+	localInertia.Add( 0., params.ThreadCount );
 	NEOML_OMP_NUM_THREADS( params.ThreadCount ) {
 		int firstVector = 0;
 		int vectorCount = 0;
 		if( OmpGetTaskIndexAndCount( matrix.Height, firstVector, vectorCount ) ) {
 			const int lastVector = firstVector + vectorCount;
 			for( int i = firstVector; i < lastVector; i++ ) {
-				dataCluster[i] = findNearestCluster( matrix, i );
+				dataCluster[i] = findNearestCluster( matrix, i, localInertia[OmpGetThreadNum()] );
 			}
 		}
+	}
+
+	inertia = 0;
+	for( int i = 0; i < localInertia.Size(); ++i ) {
+		inertia += localInertia[i];
 	}
 }
 
 // Finds the nearest cluster for the element
-int CKMeansClustering::findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex ) const
+int CKMeansClustering::findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex, double& inertia ) const
 {
 	double bestDistance = DBL_MAX;
 	int res = NotFound;
@@ -350,6 +406,7 @@ int CKMeansClustering::findNearestCluster( const CFloatMatrixDesc& matrix, int d
 	}
 
 	NeoAssert( res != NotFound );
+	inertia += bestDistance;
 	return res;
 }
 
@@ -394,7 +451,7 @@ bool CKMeansClustering::updateClusters( const CFloatMatrixDesc& matrix, const CA
 	return false;
 }
 
-bool CKMeansClustering::elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
+bool CKMeansClustering::elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia )
 {
 	// Metric must support triangle inequality
 	NeoAssert( params.DistanceFunc == DF_Euclid );
@@ -415,7 +472,6 @@ bool CKMeansClustering::elkanClusterization( const CFloatMatrixDesc& matrix, con
 		closestClusterDist, moveDistance );
 
 	double lastResidual = DBL_MAX;
-	double inertia = DBL_MAX;
 	for( int i = 0; i < params.MaxIterations; i++ ) {
 		// Calculaate pairwise and closest cluster distances
 		computeClustersDists( clusterDists, closestClusterDist );
@@ -587,7 +643,7 @@ bool CKMeansClustering::isPruned( const CArray<float>& upperBounds, const CVaria
 }
 
 // Selects initial centers from dense data
-void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& centers )
+void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, int seed, CDnnBlob& centers )
 {
 	const int featureCount = data.GetObjectSize();
 	if( !initialClusterCenters.IsEmpty() ) {
@@ -603,10 +659,10 @@ void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& c
 	static_assert( KMI_Count == 2, "KMI_Count != 2" );
 	switch( params.Initialization ) {
 		case KMI_Default:
-			defaultInitialization( data, centers );
+			defaultInitialization( data, seed, centers );
 			break;
 		case KMI_KMeansPlusPlus:
-			kMeansPlusPlusInitialization( data, centers );
+			kMeansPlusPlusInitialization( data, seed, centers );
 			break;
 		default:
 			NeoAssert( false );
@@ -614,30 +670,50 @@ void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, CDnnBlob& c
 }
 
 // Selects initial centers by using default algo from dense data
-void CKMeansClustering::defaultInitialization( const CDnnBlob& data, CDnnBlob& centers )
+void CKMeansClustering::defaultInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers )
 {
 	const int vectorCount = data.GetObjectCount();
 	const int featureCount = data.GetObjectSize();
 	NeoAssert( centers.GetObjectCount() == params.InitialClustersCount );
 	NeoAssert( centers.GetObjectSize() == featureCount );
-
-	const int step = max( vectorCount / params.InitialClustersCount, 1 );
-	NeoAssert( step > 0 );
 	IMathEngine& mathEngine = data.GetMathEngine();
 
-	for( int i = 0; i < params.InitialClustersCount; i++ ) {
-		const int pos = ( i * step ) % vectorCount;
-		mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( pos ), featureCount );
+	if( seed == 0xCEA ) {
+		// !Backward compatibility!
+		const int step = max( vectorCount / params.InitialClustersCount, 1 );
+		NeoAssert( step > 0 );
+
+		for( int i = 0; i < params.InitialClustersCount; i++ ) {
+			const int pos = ( i * step ) % vectorCount;
+			mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( pos ), featureCount );
+		}
+	} else {
+		CArray<int> perm;
+		perm.SetSize( vectorCount );
+		for( int i = 0; i < perm.Size(); ++i ) {
+			perm[i] = i;
+		}
+		CRandom random( seed );
+		for( int i = 0; i < perm.Size(); ++i ) {
+			const int j = random.UniformInt( 0, vectorCount - 1 );
+			if( i != j ) {
+				swap( perm[i], perm[j] );
+			}
+		}
+
+		for( int i = 0; i < params.InitialClustersCount; i++ ) {
+			mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( perm[i] ), featureCount );
+		}
 	}
 }
 
 // Selects initial centers by using K-Means++ algo from dense data
-void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, CDnnBlob& centers )
+void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers )
 {
 	const int vectorCount = data.GetObjectCount();
 	const int featureCount = data.GetObjectSize();
 	// Select random vector
-	CRandom random( 0xCEA );
+	CRandom random( seed );
 	const int firstChoice = random.UniformInt( 0, vectorCount - 1 );
 	// Copy first vector
 	IMathEngine& mathEngine = centers.GetMathEngine();
@@ -684,10 +760,9 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, CDnn
 
 // Clusterizes dense data by using Lloyd algorithm
 bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data, const CDnnBlob& weight,
-	CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels )
+	CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels, double& inertia )
 {
-	double prevDist = FLT_MAX;
-	double totalDist = 0;
+	double prevInertia = FLT_MAX;
 	const float eps = 1e-3f;
 
 	IMathEngine& mathEngine = data.GetMathEngine();
@@ -696,12 +771,12 @@ bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data, const CDn
 	mathEngine.RowMultiplyMatrixByMatrix( data.GetData(), data.GetData(), data.GetObjectCount(),
 		data.GetObjectSize(), squaredData->GetData() );
 	for( int iter = 0; iter < params.MaxIterations; iter++ ) {
-		totalDist = assignClosest( data, *squaredData, weight, centers, labels );
+		inertia = assignClosest( data, *squaredData, weight, centers, labels );
 		recalcCenters( data, weight, labels, centers, sizes );
-		if( abs( prevDist - totalDist ) < eps ) {
+		if( abs( prevInertia - inertia ) < eps ) {
 			return true;
 		}
-		prevDist = totalDist;
+		prevInertia = inertia;
 	}
 
 	return false;
