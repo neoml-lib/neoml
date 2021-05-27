@@ -51,7 +51,7 @@ static void testExample( int samples, int features, float components,
 	params.ComponentsType = CPca::TComponents::PCAC_Int;
 	params.Components = components;
 
-	CSparseFloatMatrix& matrix = generateMatrix( samples, features, data );
+	const CSparseFloatMatrix& matrix = generateMatrix( samples, features, data );
 	CPca pca( params );
 	CFloatMatrixDesc transformed = pca.Transform( matrix.GetDesc() );
 	ASSERT_EQ( samples, transformed.Height );
@@ -113,8 +113,7 @@ TEST( CPCATest, PCAEllipseTest )
 		data.Add( { x, y, 0.f, 1.f } );
 		data.Add( { x, -y, 0.f, 1.f } );
 	}
-	CSparseFloatMatrix& matrix = generateMatrix( 2 * samples, features, data );
-	CFloatMatrixDesc desc = matrix.GetDesc();
+	const CSparseFloatMatrix& matrix = generateMatrix( 2 * samples, features, data );
 	CPca::CParams params;
 	params.ComponentsType = CPca::TComponents::PCAC_Int;
 	params.Components = components;
