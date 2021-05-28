@@ -100,7 +100,7 @@ TEST( CPCATest, PCAExamplesTest )
 TEST( CPCATest, PCAEllipseTest )
 {
 	CRandom rand( 42 );
-	int samples = 10000;
+	int samples = 1000;
 	int features = 4;
 	float components = 2;
 	float a = 2;
