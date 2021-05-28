@@ -358,7 +358,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_MultiFull )
 	TrainMultiGradientBoost( params );
 	TestMultiClassificationResult();
 }
-
+/*
 TEST_F( RandomMultiClassification2000x20, GBTB_MultiFastHist )
 {
 	CRandom random( 0 );
@@ -368,7 +368,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_MultiFastHist )
 	params.TreeBuilder = GBTB_MultiFastHist;
 	TrainMultiGradientBoost( params );
 	TestMultiClassificationResult();
-}
+}*/
 
 TEST_F( RandomMultiClassification2000x20, GBMR_Linked )
 {
@@ -566,7 +566,7 @@ TEST_F( RandomMultiGBRegression2000x20, MultiFull )
 	TrainMultiGradientBoost( params );
 	TestMultiRegressionResult();
 }
-
+/*
 TEST_F( RandomMultiGBRegression2000x20, MultiFastHist )
 {
 	CRandom random( 0 );
@@ -576,7 +576,7 @@ TEST_F( RandomMultiGBRegression2000x20, MultiFastHist )
 	params.TreeBuilder = GBTB_MultiFastHist;
 	TrainMultiGradientBoost( params );
 	TestMultiRegressionResult();
-}
+}*/
 
 // test GB binary model's representations (to test Predict)
 TEST_F( RandomBinaryGBRegression4000x20, Linked )
