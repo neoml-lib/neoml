@@ -491,8 +491,6 @@ void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& des
 					multiplyMatrixByTransposedMatrixAndAdd( tempBlobPtr, result.Height() * resultCount, filter.ObjectSize(),
 						filter.ObjectSize(), filterData, filter.BatchWidth(), filter.ObjectSize(), outputTransposedPtr,
 						filter.BatchWidth() );
-
-
 				} else {
 					multiplyMatrixByTransposedMatrix( tempBlobPtr, result.Height() * resultCount, filter.ObjectSize(),
 						filter.ObjectSize(), filterData, filter.BatchWidth(), filter.ObjectSize(), outputTransposedPtr,
@@ -1039,7 +1037,7 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 					inputMatrix,
 					input.Depth() * input.Channels(),
 					input.Depth() * input.Channels(),
-					filterMatrix, filterDiff.ObjectSize());
+					filterMatrix, filterDiff.ObjectSize() );
 			}
 		}
 

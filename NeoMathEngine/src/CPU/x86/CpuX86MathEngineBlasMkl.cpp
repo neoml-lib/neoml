@@ -92,7 +92,7 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int first
 
 void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-	float* result, int resultRowSize )
+	float* result, int resultRowSize)
 {
 	ASSERT_EXPR(firstWidth <= firstRowSize);
 	ASSERT_EXPR(firstWidth <= secondRowSize);
@@ -224,7 +224,7 @@ void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeig
 
 void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int firstHeight,
 	int firstWidth, const float* second, int secondWidth,
-	float* result )
+	float* result)
 {
 	if( customSgemmFunction != nullptr ) {
 		auto firstRowSize = firstWidth;
@@ -251,7 +251,7 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int fi
 void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd(const float* first,
 	int firstHeight, int firstWidth, int firstRowSize,
 	const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize )
+	float* result, int resultRowSize)
 {
 	ASSERT_EXPR(firstWidth <= firstRowSize);
 	ASSERT_EXPR(secondWidth <= secondRowSize);
