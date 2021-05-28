@@ -376,6 +376,7 @@ TEST_F( RandomMultiClassification2000x20, GBMR_Linked )
 	CGradientBoost::CParams params;
 	params.Random = &random;
 	params.Representation = GBMR_Linked;
+	params.IterationsCount = 10;
 	TrainMultiGradientBoost( params );
 	TestMultiClassificationResult();
 }
