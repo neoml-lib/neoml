@@ -230,13 +230,13 @@ protected:
 
 CClassificationRandomProblem* RandomMultiClassification2000x20::getDenseRandomMultiProblem( CRandom& rand )
 {
-	static auto denseRandomMultiProblem = CClassificationRandomProblem::Random( rand, 50, 2, 3 );
+	static auto denseRandomMultiProblem = CClassificationRandomProblem::Random( rand, 50, 1, 3 );
 	return denseRandomMultiProblem.Ptr();
 }
 
 CClassificationRandomProblem* RandomMultiClassification2000x20::getDenseMultiTestData( CRandom& rand )
 {
-	static auto denseMultiTestData = CClassificationRandomProblem::Random( rand, 500, 2, 3 );
+	static auto denseMultiTestData = CClassificationRandomProblem::Random( rand, 500, 1, 3 );
 	return denseMultiTestData.Ptr();
 }
 
