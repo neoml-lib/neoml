@@ -230,13 +230,13 @@ protected:
 
 CClassificationRandomProblem* RandomMultiClassification2000x20::getDenseRandomMultiProblem( CRandom& rand )
 {
-	static auto denseRandomMultiProblem = CClassificationRandomProblem::Random( rand, 50, 1, 3 );
+	static auto denseRandomMultiProblem = CClassificationRandomProblem::Random( rand, 2000, 20, 10 );
 	return denseRandomMultiProblem.Ptr();
 }
 
 CClassificationRandomProblem* RandomMultiClassification2000x20::getDenseMultiTestData( CRandom& rand )
 {
-	static auto denseMultiTestData = CClassificationRandomProblem::Random( rand, 500, 1, 3 );
+	static auto denseMultiTestData = CClassificationRandomProblem::Random( rand, 500, 20, 10 );
 	return denseMultiTestData.Ptr();
 }
 
@@ -364,9 +364,7 @@ TEST_F( RandomMultiClassification2000x20, GBTB_MultiFastHist )
 	CRandom random( 0 );
 	CGradientBoost::CParams params;
 	params.Random = &random;
-	params.MaxTreeDepth = 2;
-	params.MaxBins = 32;
-	params.IterationsCount = 1;
+	params.IterationsCount = 10;
 	params.TreeBuilder = GBTB_MultiFastHist;
 	TrainMultiGradientBoost( params );
 	TestMultiClassificationResult();
@@ -568,7 +566,7 @@ TEST_F( RandomMultiGBRegression2000x20, MultiFull )
 	TrainMultiGradientBoost( params );
 	TestMultiRegressionResult();
 }
-/*
+
 TEST_F( RandomMultiGBRegression2000x20, MultiFastHist )
 {
 	CRandom random( 0 );
@@ -578,7 +576,7 @@ TEST_F( RandomMultiGBRegression2000x20, MultiFastHist )
 	params.TreeBuilder = GBTB_MultiFastHist;
 	TrainMultiGradientBoost( params );
 	TestMultiRegressionResult();
-}*/
+}
 
 // test GB binary model's representations (to test Predict)
 TEST_F( RandomBinaryGBRegression4000x20, Linked )

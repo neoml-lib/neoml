@@ -214,8 +214,6 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( double& criterion,
 	int leafClassesCount = 0;
 
 	for( int i = 0; i < totalStatistics.ValueSize(); i++ ) {
-		printf( "%d %f %f %f %f %f %f %f %f %f\n", i, totalStatistics.totalGradient[i], totalStatistics.totalHessian[i], totalStatistics.totalWeight,
-			leftResult.totalGradient[i], leftResult.totalHessian[i], leftResult.totalWeight, rightResult.totalGradient[i], rightResult.totalHessian[i], rightResult.totalWeight );
 		bool isAlreadyLeafClass = totalStatistics.IsSmall( minSubsetHessian, minSubsetWeight, i );
 		bool isNewLeafClass = false;
 		double valueCriterion = 0;

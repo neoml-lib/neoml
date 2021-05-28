@@ -316,6 +316,8 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 	CArray<int>& splitIds = splitIdsBuffer;
 	splitIds.DeleteAll();
 	splitIds.Add( NotFound, params.ThreadCount );
+	T leftCandidate( predictionSize );
+	T rightCandidate( predictionSize );
 
 	NEOML_OMP_NUM_THREADS(params.ThreadCount)
 	{
@@ -334,12 +336,14 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 				left.Add( featureStats );
 				right = node.Statistics;
 				right.Sub( left );
+				leftCandidate = left;
+				rightCandidate = right;
 
 				// Calculating the gain: if the node is split at this position, 
 				// the criterion loses the parent node (bestValue) and replaces it by left.CalcCriterion and right.CalcCriterion
 				// In the reference paper, a gamma coefficient is also needed for a new node, but we take that into account while pruning
 				double criterion;
-				if( !T::CalcCriterion( criterion, left, right, node.Statistics,
+				if( !T::CalcCriterion( criterion, leftCandidate, rightCandidate, node.Statistics,
 					params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient ) )
 				{
 					continue;
