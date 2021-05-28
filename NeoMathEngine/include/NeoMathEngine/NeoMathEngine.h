@@ -514,6 +514,9 @@ public:
 		const CIntHandle& resultHandle, int resultHeight, const CConstIntHandle& indexHandle,
 		const CConstIntHandle& fillValue ) = 0;
 
+	// Computes the singular value decomposition of matrix `a` of shape m x n
+	// into `a` = `u` * `s` * `vt`, where `u` of shape m x min(n, m), `vt` of shape min(n, m) x n,
+	// `s` is the diagonal matrix of size min(n, m)
 	virtual void SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
 		const CFloatHandle& vt, const CFloatHandle& superb ) = 0;
 };
