@@ -100,7 +100,7 @@ TEST( CPCATest, PCAExamplesTest )
 TEST( CPCATest, PCAEllipseTest )
 {
 	CRandom rand( 42 );
-	int samples = 1000;
+	int samples = 10000;
 	int features = 4;
 	float components = 2;
 	float a = 2;
@@ -126,4 +126,5 @@ TEST( CPCATest, PCAEllipseTest )
 	ASSERT_EQ( 1, componentsMatrix.Columns[0] );
 	ASSERT_NEAR( 1, abs( componentsMatrix.Values[1] ), 1e-4 );
 	ASSERT_EQ( 0, componentsMatrix.Columns[1] );
+	ASSERT_NEAR( 0, pca.GetNoiseVariance(), 1e-3 );
 }

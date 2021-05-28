@@ -20,8 +20,12 @@ limitations under the License.
 
 namespace NeoML {
 
-class NEOML_API CPca : public IObject {
+// PCA algorithm implementing linear dimensionality reduction
+// using Singular Value Decomposition to project the data into
+// a lower dimensional space
+class NEOML_API CPca {
 public:
+	// Components parameter type
 	enum TComponents {
 		// Set number of components as min(data.width, data.height)
 		PCAC_None = 0,
@@ -34,6 +38,7 @@ public:
 		PCAC_Count
 	};
 
+	// PCA params
 	struct CParams {
 		TComponents ComponentsType;
 		float Components;
@@ -46,15 +51,25 @@ public:
 	};
 
 	explicit CPca( const CParams& params );
-	void Train( const CFloatMatrixDesc& data );
-	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
 	~CPca() {};
 
-	void GetSingularValues( CArray<float>& vals ) const { singularValues.CopyTo( vals ); }
-	void GetExplainedVariance( CArray<float>& vals ) const { explainedVariance.CopyTo( vals ); }
-	void GetExplainedVarianceRatio( CArray<float>& vals ) const { explainedVarianceRatio.CopyTo( vals ); }
+	// Chooses `Components` greatest singular values and
+	// selects the corresponding principal axis as the final components
+	void Train( const CFloatMatrixDesc& data );
+	// Train + transform the data into shape ( samples x components )
+	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
+
+	// Singular values corresponding to the selected principal axis
+	void GetSingularValues( CArray<float>& values ) const { singularValues.CopyTo( values ); }
+	// Variance explained by each of the selected principal axis
+	void GetExplainedVariance( CArray<float>& values ) const { explainedVariance.CopyTo( values ); }
+	// Percentage of variance explained by each of the selected principal axis
+	void GetExplainedVarianceRatio( CArray<float>& values ) const { explainedVarianceRatio.CopyTo( values ); }
+	// Mean of singular values not corresponding to the selected principal axis
 	float GetNoiseVariance() const { return noiseVariance; }
+	// Selected number of principal axis
 	int GetComponentsNum() const { return components; }
+	// Matrix ( components x features ) with rows corresponding to the selected principal axis 
 	CFloatMatrixDesc GetComponents() { return componentsMatrix.GetDesc(); }
 
 private:
