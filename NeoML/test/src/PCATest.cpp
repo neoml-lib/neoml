@@ -103,8 +103,8 @@ TEST( CPCATest, PCAEllipseTest )
 	int samples = 1000;
 	int features = 4;
 	float components = 2;
-	float a = 2;
-	float b = 3;
+	float a = 3;
+	float b = 2;
 	CArray<float> data;
 	data.SetBufferSize( features );
 	for( int i = 0; i < samples; i++ ) {
@@ -119,12 +119,19 @@ TEST( CPCATest, PCAEllipseTest )
 	params.Components = components;
 	CPca pca( params );
 	pca.Train( matrix.GetDesc() );
+	ASSERT_NEAR( 0, pca.GetNoiseVariance(), 1e-3 );
 	CFloatMatrixDesc componentsMatrix = pca.GetComponents();
 	ASSERT_EQ( components, componentsMatrix.Height );
 	ASSERT_EQ( features, componentsMatrix.Width );
-	ASSERT_NEAR( 1, abs( componentsMatrix.Values[0] ), 1e-4 );
-	ASSERT_EQ( 1, componentsMatrix.Columns[0] );
-	ASSERT_NEAR( 1, abs( componentsMatrix.Values[1] ), 1e-4 );
-	ASSERT_EQ( 0, componentsMatrix.Columns[1] );
-	ASSERT_NEAR( 0, pca.GetNoiseVariance(), 1e-3 );
+
+	CArray<float> expectedComponent;
+	for( int row = 0; row < 2; row++ ) {
+		CSparseFloatVector actualComponent( componentsMatrix.GetRow( row ) );
+		expectedComponent.Empty();
+		expectedComponent.Add( 0, features );
+		expectedComponent[row] = 1.f;
+		for( int i = 0; i < features; i++ ) {
+			ASSERT_NEAR( expectedComponent[i], abs( actualComponent.GetValue( i ) ), 1e-4 );
+		}
+	}
 }
