@@ -816,6 +816,12 @@ void CCudaMathEngine::MatrixSpreadRows(const CConstIntHandle& sourceHandle, int 
 		resultHandle, resultHeight, GetRaw(indexHandle), fillValue);
 }
 
+void CCudaMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+	const CFloatHandle& vt, const CFloatHandle& superb )
+{
+	ASSERT_EXPR( false );
+}
+
 void CCudaMathEngine::LookupAndSum( const CConstIntHandle& indicesHandle, int batchSize, int indexCount,
 	const CConstFloatHandle& tableHandle, int vectorSize, const CFloatHandle& result )
 {
