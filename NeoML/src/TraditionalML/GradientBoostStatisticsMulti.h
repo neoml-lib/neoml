@@ -214,6 +214,7 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( double& criterion,
 	int leafClassesCount = 0;
 
 	for( int i = 0; i < totalStatistics.ValueSize(); i++ ) {
+		// hessian equals 0 for leaf classes
 		bool isAlreadyLeafClass = totalStatistics.IsSmall( minSubsetHessian, minSubsetWeight, i );
 		bool isNewLeafClass = false;
 		double valueCriterion = 0;
