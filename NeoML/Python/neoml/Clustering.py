@@ -78,9 +78,9 @@ class FirstCome(PythonWrapper.FirstCome) :
         x = convert_data( X )
 
         if weight is None:
-            weight = numpy.ones(x.size, numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32, order='C')
         else:
-            weight = numpy.array(weight, dtype=numpy.float32, copy=False)
+            weight = numpy.array(weight, dtype=numpy.float32, copy=False, order='C')
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
@@ -137,9 +137,9 @@ class Hierarchical(PythonWrapper.Hierarchical) :
         x = convert_data( X )
 
         if weight is None:
-            weight = numpy.ones(x.size, numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32, order='C')
         else:
-            weight = numpy.array(weight, dtype=numpy.float32, copy=False)
+            weight = numpy.array(weight, dtype=numpy.float32, copy=False, order='C')
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
@@ -214,9 +214,9 @@ class IsoData(PythonWrapper.IsoData) :
         x = convert_data( X )
 
         if weight is None:
-            weight = numpy.ones(x.size, numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32, order='C')
         else:
-            weight = numpy.array(weight, dtype=numpy.float32, copy=False)
+            weight = numpy.array(weight, dtype=numpy.float32, copy=False, order='C')
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
@@ -300,9 +300,9 @@ class KMeans(PythonWrapper.KMeans) :
         x = convert_data(X)
 
         if weight is None:
-            weight = numpy.ones(x.shape[0], numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32, order='C')
         else:
-            weight = numpy.array(weight, dtype=numpy.float32, copy=False)
+            weight = numpy.array(weight, dtype=numpy.float32, copy=False, order='C')
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
