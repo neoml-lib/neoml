@@ -245,6 +245,7 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( double& criterion,
 				leftResult.totalGradient[i] = totalStatistics.totalGradient[i];
 				rightResult.totalGradient[i] = totalStatistics.totalGradient[i];
 			}
+			// Set totalHessian to 0 for classes that not splitting further
 			leftResult.totalHessian[i] = 0;
 			rightResult.totalHessian[i] = 0;
 			leafClassesCount++;

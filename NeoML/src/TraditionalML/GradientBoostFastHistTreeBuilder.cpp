@@ -53,8 +53,12 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 
 	// Creating the tree root
 	CNode root( 0, 0, vectorSet.Size() );
+	root.Statistics = T( predictionSize );
+	for( int i = 0; i < vectorSet.Size(); i++ ) {
+		root.Statistics.Add( gradients, hessians, weights, i );
+	}
 	root.HistPtr = allocHist();
-	buildHist( problem, root, gradients, hessians, weights, root.Statistics );
+	buildHist( problem, root, gradients, hessians, weights );
 	nodes.Empty();
 	nodes.Add( root );
 
@@ -88,21 +92,19 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 			nodeStack.Add( leftNode );
 			nodes[node].Right = rightNode;
 			nodeStack.Add( rightNode );
+			nodes[leftNode].Statistics = nodes[node].LeftStatistics;
+			nodes[rightNode].Statistics = nodes[node].RightStatistics;
 			// Building the smaller histogram and generating the other one by substraction
 			if( nodes[leftNode].VectorSetSize < nodes[rightNode].VectorSetSize ) {
 				nodes[leftNode].HistPtr = allocHist();
-				buildHist( problem, nodes[leftNode], gradients, hessians, weights, nodes[leftNode].Statistics );
+				buildHist( problem, nodes[leftNode], gradients, hessians, weights );
 				subHist( nodes[node].HistPtr, nodes[leftNode].HistPtr );
 				nodes[rightNode].HistPtr = nodes[node].HistPtr;
-				nodes[rightNode].Statistics = nodes[node].Statistics;
-				nodes[rightNode].Statistics.Sub( nodes[leftNode].Statistics );
 			} else {
 				nodes[rightNode].HistPtr = allocHist();
-				buildHist( problem, nodes[rightNode], gradients, hessians, weights, nodes[rightNode].Statistics );
+				buildHist( problem, nodes[rightNode], gradients, hessians, weights );
 				subHist( nodes[node].HistPtr, nodes[rightNode].HistPtr );
 				nodes[leftNode].HistPtr = nodes[node].HistPtr;
-				nodes[leftNode].Statistics = nodes[node].Statistics;
-				nodes[leftNode].Statistics.Sub( nodes[rightNode].Statistics );
 			}
 		} else {
 			// The node could not be split
@@ -199,16 +201,14 @@ void CGradientBoostFastHistTreeBuilder<T>::subHist( int firstPtr, int secondPtr 
 // Build a histogram on the vectors of the given node
 template<class T>
 void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
-	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights,
-	T& totalStats )
+	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights )
 {
 	T* histStatsPtr = histStats.GetPtr() + node.HistPtr;
 	for( int i = 0; i < histSize; i++ ) {
 		histStatsPtr[i].Erase();
 	}
 
-	totalStats.SetSize( predictionSize );
-	totalStats.Erase();
+	T totalStats( predictionSize );
 
 	const bool isOmp = ( node.VectorSetSize > 4 * params.ThreadCount ); // check if using OpenMP makes sense
 	if( isOmp ) {
@@ -295,10 +295,10 @@ void CGradientBoostFastHistTreeBuilder<T>::addVectorToHist( const int* vectorPtr
 // Calculates the optimal feature value for splitting the node
 // Returns NotFound if splitting is impossible
 template<class T>
-int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const
+int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFastHistProblem& problem, CNode& node ) const
 {
 	if( ( params.MaxNodesCount != NotFound && nodes.Size() + 2 > params.MaxNodesCount )
-	    || ( node.Level >= params.MaxTreeDepth ) ) {
+		|| ( node.Level >= params.MaxTreeDepth ) ) {
 		// The nodes limit has been reached
 		return NotFound;
 	}
@@ -316,13 +316,19 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 	CArray<int>& splitIds = splitIdsBuffer;
 	splitIds.DeleteAll();
 	splitIds.Add( NotFound, params.ThreadCount );
-	T leftCandidate( predictionSize );
-	T rightCandidate( predictionSize );
+	CArray<T>& leftStatisticsByThread = leftStatisticsBuffer;
+	CArray<T>& rightStatisticsByThread = rightStatisticsBuffer;
+	if( leftStatisticsByThread.Size() == 0 ) {
+		leftStatisticsByThread.Add( T( predictionSize ), params.ThreadCount );
+		rightStatisticsByThread.Add( T( predictionSize ), params.ThreadCount );
+	}
 
 	NEOML_OMP_NUM_THREADS(params.ThreadCount)
 	{
 		const int threadNumber = OmpGetThreadNum();
 		NeoAssert( threadNumber < params.ThreadCount );
+		T leftCandidate( predictionSize );
+		T rightCandidate( predictionSize );
 
 		// Iterate through features (a separate subset for each thread)
 		for( int i = threadNumber; i < usedFeatures.Size(); i += params.ThreadCount ) {
@@ -352,6 +358,9 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 				if( splitGainsByThread[threadNumber] < criterion ) {
 					splitGainsByThread[threadNumber] = criterion;
 					splitIds[threadNumber] = j;  // this number refers both to the feature and its value
+					// save calculated criterion for childs for the case when class is not splitting either
+					leftStatisticsByThread[threadNumber] = leftCandidate;
+					rightStatisticsByThread[threadNumber] = rightCandidate;
 				}
 			}
 		}
@@ -365,6 +374,8 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 		if( bestValue < threadBestGain || ( bestValue == threadBestGain && threadBestFeature < result ) ) {
 			bestValue = threadBestGain;
 			result = threadBestFeature;
+			node.LeftStatistics = leftStatisticsByThread[i];
+			node.RightStatistics = rightStatisticsByThread[i];
 		}
 	}
 	return result;
