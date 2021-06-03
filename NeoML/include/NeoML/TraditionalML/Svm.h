@@ -57,10 +57,11 @@ public:
 		double Tolerance; // the solution precision and the stop criterion
 		bool DoShrinking; // do shrinking or not
 		int ThreadCount; // the number of processing threads used
+		TMulticlassMode MulticlassMode; // algorithm used for multiclass classification
 
 		CParams( CSvmKernel::TKernelType kerneltype, double errorWeight = 1., int maxIterations = 10000,
 				int degree = 1, double gamma = 1., double coeff0 = 1., double tolerance = 0.1,
-				bool doShrinking = true, int threadCount = 1 ) :
+				bool doShrinking = true, int threadCount = 1, TMulticlassMode multiclassMode = MM_OneVsAll ) :
 			KernelType( kerneltype ),
 			ErrorWeight( errorWeight ),
 			MaxIterations( maxIterations ),
@@ -69,7 +70,8 @@ public:
 			Coeff0( coeff0 ),
 			Tolerance( tolerance ),
 			DoShrinking( doShrinking ),
-			ThreadCount( threadCount )
+			ThreadCount( threadCount ),
+			MulticlassMode( multiclassMode )
 		{
 		}
 	};
@@ -81,7 +83,7 @@ public:
 
 	// ITrainingModel interface methods:
 	// The resulting IModel is either a ILinearBinaryModel (if the KT_Linear kernel was used)
-	// or a ISvmBinaryModel (if some other kernel was used) or a COneVersusAllModel (if number of classes > 2)
+	// or a ISvmBinaryModel (if some other kernel was used) or params.MulticlassMode model (if number of classes > 2)
 	CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
 
 private:
