@@ -201,7 +201,8 @@ void CGradientBoostFastHistTreeBuilder<T>::subHist( int firstPtr, int secondPtr 
 // Build a histogram on the vectors of the given node
 template<class T>
 void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
-	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights, T& totalStats )
+	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights,
+	T& totalStats )
 {
 	T* histStatsPtr = histStats.GetPtr() + node.HistPtr;
 	for( int i = 0; i < histSize; i++ ) {
@@ -296,7 +297,7 @@ void CGradientBoostFastHistTreeBuilder<T>::addVectorToHist( const int* vectorPtr
 // Calculates the optimal feature value for splitting the node
 // Returns NotFound if splitting is impossible
 template<class T>
-int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFastHistProblem& problem, CNode& node ) const
+int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const
 {
 	if( ( params.MaxNodesCount != NotFound && nodes.Size() + 2 > params.MaxNodesCount )
 		|| ( node.Level >= params.MaxTreeDepth ) ) {
@@ -317,12 +318,6 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 	CArray<int>& splitIds = splitIdsBuffer;
 	splitIds.DeleteAll();
 	splitIds.Add( NotFound, params.ThreadCount );
-	CArray<T>& leftStatisticsByThread = leftStatisticsBuffer;
-	CArray<T>& rightStatisticsByThread = rightStatisticsBuffer;
-	if( leftStatisticsByThread.Size() == 0 ) {
-		leftStatisticsByThread.Add( T( predictionSize ), params.ThreadCount );
-		rightStatisticsByThread.Add( T( predictionSize ), params.ThreadCount );
-	}
 
 	NEOML_OMP_NUM_THREADS(params.ThreadCount)
 	{
@@ -359,9 +354,6 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 				if( splitGainsByThread[threadNumber] < criterion ) {
 					splitGainsByThread[threadNumber] = criterion;
 					splitIds[threadNumber] = j;  // this number refers both to the feature and its value
-					// save calculated criterion for childs for the case when class is not splitting either
-					leftStatisticsByThread[threadNumber] = leftCandidate;
-					rightStatisticsByThread[threadNumber] = rightCandidate;
 				}
 			}
 		}
@@ -375,8 +367,6 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 		if( bestValue < threadBestGain || ( bestValue == threadBestGain && threadBestFeature < result ) ) {
 			bestValue = threadBestGain;
 			result = threadBestFeature;
-			node.LeftStatistics = leftStatisticsByThread[i];
-			node.RightStatistics = rightStatisticsByThread[i];
 		}
 	}
 	return result;
