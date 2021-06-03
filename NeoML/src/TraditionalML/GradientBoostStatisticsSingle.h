@@ -68,6 +68,9 @@ public:
 	// Set value size
 	void SetSize( int valueSize ) { NeoAssert( valueSize == 1 ); }
 
+	// Mark classes that not splitting further
+	void NullifyLeafClasses( const CGradientBoostStatisticsSingle& parent ) {}
+
 private:
 	double totalGradient; // total gradient
 	double totalHessian; // total hessian

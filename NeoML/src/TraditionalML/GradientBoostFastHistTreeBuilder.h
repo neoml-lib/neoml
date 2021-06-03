@@ -103,7 +103,7 @@ private:
 	void freeHist( int ptr );
 	void subHist( int firstPtr, int secondPtr );
 	void buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
-		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights );
+		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights, T& totalStats );
 	void addVectorToHist( const int* vectorPtr, int vectorSize, const CArray<typename T::Type>& gradients, 
 		const CArray<typename T::Type>& hessians, const CArray<double>& weights, T* stats, int vectorIndex );
 	int evaluateSplit( const CGradientBoostFastHistProblem& problem, CNode& node ) const;
