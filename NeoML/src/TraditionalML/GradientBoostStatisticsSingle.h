@@ -69,7 +69,7 @@ public:
 	void SetSize( int valueSize ) { NeoAssert( valueSize == 1 ); }
 
 	// Mark classes that not splitting further
-	void NullifyLeafClasses( const CGradientBoostStatisticsSingle& parent ) {}
+	void NullifyLeafClasses( const CGradientBoostStatisticsSingle& ) {};
 
 private:
 	double totalGradient; // total gradient
