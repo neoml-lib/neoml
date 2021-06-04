@@ -73,10 +73,12 @@ public:
 		bool NormalizeError; // specifies if the error should be normalized
 		float L1Coeff; // the L1 regularization coefficient; set to 0 to use the L2 regularization instead
 		int ThreadCount; // the number of processing threads to be used while training the model
+		TMulticlassMode MulticlassMode; // algorithm used for multiclass classification
 
 		CParams( TErrorFunction func, double errorWeight = 1, int maxIterations = 1000,
 				const CSigmoid& coefficients = CSigmoid(), double tolerance = -1, 
-				bool normalizeError = false, float l1Coeff = 0.f, int threadCount = 1 ) :
+				bool normalizeError = false, float l1Coeff = 0.f, int threadCount = 1,
+				TMulticlassMode multiclassMode = MM_OneVsAll ) :
 			Function( func ),
 			MaxIterations( maxIterations ),
 			ErrorWeight( errorWeight ),
@@ -84,7 +86,8 @@ public:
 			Tolerance( tolerance ),
 			NormalizeError( normalizeError ),
 			L1Coeff( l1Coeff ),
-			ThreadCount( threadCount )
+			ThreadCount( threadCount ),
+			MulticlassMode( multiclassMode )
 		{
 			NeoPresume( errorWeight > 0 );
 			NeoPresume( threadCount >= 1 );

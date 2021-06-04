@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoML/TraditionalML/DecisionTree.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
+#include <NeoML/TraditionalML/OneVersusOne.h>
 #include <DecisionTreeNodeBase.h>
 #include <DecisionTreeClassificationModel.h>
 #include <DecisionTreeNodeClassificationStatistic.h>
@@ -64,6 +65,8 @@ CPtr<IModel> CDecisionTree::Train( const IProblem& problem )
 
 	if( problem.GetClassCount() > 2 && params.MulticlassMode == MM_OneVsAll ) {
 		return COneVersusAll( *this ).Train( problem );
+	} else if( problem.GetClassCount() > 2 && params.MulticlassMode == MM_OneVsOne ) {
+		return COneVersusOne( *this ).Train( problem );
 	}
 
 	classificationProblem = &problem;

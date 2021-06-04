@@ -156,15 +156,15 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
         :rtype: neoml.GradientBoost.GradientBoostClassificationModel
         """
         x = convert_data( X )
-        y = numpy.array( Y, dtype=numpy.int32, copy=False )
+        y = numpy.array( Y, dtype=numpy.int32, copy=False, order='C' )
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32)
+            weight = numpy.ones(y.size, numpy.float32, order='C')
         else:
-            weight = numpy.array( weight, dtype=numpy.float32, copy=False )
+            weight = numpy.array( weight, dtype=numpy.float32, copy=False, order='C' )
 
         if numpy.any(y < 0):
             raise ValueError('All `Y` elements must be >= 0.')
@@ -310,15 +310,15 @@ class GradientBoostRegressor(PythonWrapper.GradientBoost):
         :rtype: neoml.GradientBoost.GradientBoostRegressionModel
         """
         x = convert_data( X )
-        y = numpy.array( Y, dtype=numpy.float32, copy=False )
+        y = numpy.array( Y, dtype=numpy.float32, copy=False, order='C' )
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32)
+            weight = numpy.ones(y.size, numpy.float32, order='C')
         else:
-            weight = numpy.array( weight, dtype=numpy.float32, copy=False )
+            weight = numpy.array( weight, dtype=numpy.float32, copy=False, order='C' )
 
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')
