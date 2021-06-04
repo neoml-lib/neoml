@@ -16,19 +16,12 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
-#include <cpuid.h>
-#elif FINE_PLATFORM( FINE_WINDOWS )
-#include <intrin.h>
-#else
-#error "Platform isn't supported!"
-#endif
-
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <MathEngineCommon.h>
 
 #include <AvxDll.h>
+#include <CPUInfo.h>
 
 #include <string>
 
@@ -138,37 +131,14 @@ bool CAvxDll::loadFunctions()
 
 bool CAvxDll::isAvxAvailable()
 {
-	// Check for AVX
-#if FINE_PLATFORM(FINE_WINDOWS)
-
-#if _MSC_VER < 1925
+#if defined(_MSC_VER) && _MSC_VER < 1925
 	// VS 2015 compiles code which doesn't use all ymm registers. It brings to decrease performance compared to MKL.
 	// Therefore we just disable AVX convolution  enhancement in VS2015.
 	return false;
 #endif
 
-	int cpuInfo[4] = { 0, 0, 0, 0 };
-	int cpuInfoEx[4] = { 0, 0, 0, 0 };
-	__cpuid( cpuInfo, 1 );
-	__cpuidex( cpuInfoEx, 7, 0 );
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
-	unsigned int cpuInfo[4] = { 0, 0, 0, 0 };
-	unsigned int cpuInfoEx[4] = { 0, 0, 0, 0 };
-	__get_cpuid( 1, cpuInfo, cpuInfo + 1, cpuInfo + 2, cpuInfo + 3 );
-	#if !FINE_PLATFORM(FINE_DARWIN)
-		__cpuid_count( 7, 0, cpuInfoEx[0], cpuInfoEx[1], cpuInfoEx[2], cpuInfoEx[3] );
-	#endif
-#else
-	#error "Platform isn't supported!"
-#endif
-
-	const unsigned int AvxAndFmaBits = ( 1 << 28 ) + ( 1 << 12 );
-	bool AvxAndFmaAreAvailable = ( cpuInfo[2] & AvxAndFmaBits ) == AvxAndFmaBits;
-	// Check avx512_f bit in EBX ( any CPU with AVX512 has this bit )
-	bool AnyAvx512IsAvailable = cpuInfoEx[1] & ( 1 << 16 );
-
-	return AvxAndFmaAreAvailable && !AnyAvx512IsAvailable;
-
+	static bool res = CCPUInfo::IsAvxAndFmaAvailable() && !CCPUInfo::IsAvx512Available();
+	return res;
 }
 
 } // namespace NeoML
