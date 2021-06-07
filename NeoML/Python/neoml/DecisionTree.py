@@ -70,10 +70,13 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
     :param random_selected_feature_count: no more than this number of randomly selected features will be used for each node.
         -1 means use all features every time.
     :type random_selected_feature_count: int, default=-1
+
+    :param multiclass_mode: determines how to handle multi-class classification
+    :type multiclass_mode: str, ['single_tree', 'one_vs_all', 'one_vs_one'], default='single_tree'
     """
 
     def __init__(self, criterion='gini', min_subset_size=1, min_subset_part=0.0, min_split_size=1, max_tree_depth=32,
-                 max_node_count=4096, const_threshold=0.99, random_selected_feature_count=-1):
+                 max_node_count=4096, const_threshold=0.99, random_selected_feature_count=-1, multiclass_mode='single_tree'):
 
         if criterion != 'gini' and criterion != 'information_gain':
             raise ValueError('The `criterion` must be one of: `gini`, `information_gain`.')
@@ -91,9 +94,12 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
             raise ValueError('The `const_threshold` must be in [0, 1].')
         if random_selected_feature_count <= 0 and random_selected_feature_count != -1:
             raise ValueError('The `random_selected_feature_count` must be > 0 or -1.')
+        if multiclass_mode != 'single_tree' and multiclass_mode != 'one_vs_all' and multiclass_mode != 'one_vs_one':
+            raise ValueError('The `multiclass_mode` must be one of: `single_tree`, `one_vs_all`, `one_vs_one`.')
 
         super().__init__(int(min_subset_size), float(min_subset_part), int(min_split_size), int(max_tree_depth),
-                         int(max_node_count), criterion, float(const_threshold), int(random_selected_feature_count))
+                         int(max_node_count), criterion, float(const_threshold), int(random_selected_feature_count),
+                         multiclass_mode)
 
     def train(self, X, Y, weight=None):
         """Trains the decision tree.
@@ -114,15 +120,15 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
         """
 
         x = convert_data(X)
-        y = numpy.array(Y, dtype=numpy.int32, copy=False)
+        y = numpy.array(Y, dtype=numpy.int32, copy=False, order='C')
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32)
+            weight = numpy.ones(y.size, numpy.float32, order='C')
         else:
-            weight = numpy.array(weight, dtype=numpy.float32, copy=False)
+            weight = numpy.array(weight, dtype=numpy.float32, copy=False, order='C')
 
         if numpy.any(y < 0):
             raise ValueError('All `Y` elements must be >= 0.')
