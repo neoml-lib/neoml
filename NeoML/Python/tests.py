@@ -2133,10 +2133,14 @@ class TraditionalTestCase(TestCase):
         X_sparse = sparse.csr_matrix(X_dense)
         val = 1 if is_binary else 3
         y = val * np.ones(20, dtype=np.int32)
+        if not is_binary: # every class should be represented in dataset
+            for i in range(3):
+                y[i] = i
         weight = np.ones(20, dtype=np.float32)
         for X in (X_dense, X_dense_list, X_sparse):
             classifier = model(**params).train(X, y, weight)
-            pred = classifier.classify(X[0:3])
+            pred = classifier.classify(X[-3:])
+            print(pred, np.argmax(pred))
             self.assertTrue(np.equal(np.argmax(pred), [val, val, val]).all())
 
     def _test_regression_model(self, model, params):
@@ -2155,7 +2159,8 @@ class TraditionalTestCase(TestCase):
                 ('binomial', 'exponential', 'squared_hinge', 'l2'),
                 ('full', 'hist', 'multi_full', 'multi_hist'), (1, 4), (False, True)):
             self._test_classification_model(neoml.GradientBoost.GradientBoostClassifier,
-                dict(loss=loss, iteration_count=10, builder_type=builder_type, thread_count=thread_count))
+                dict(loss=loss, iteration_count=10, builder_type=builder_type, thread_count=thread_count),
+                is_binary=is_binary)
 
     def test_gradient_boosting_regression(self):
         for builder_type, thread_count in itertools.product(('full', 'hist'), (1, 4)):
@@ -2165,19 +2170,26 @@ class TraditionalTestCase(TestCase):
     def test_decision_tree_classification(self):
         for criterion, is_binary in itertools.product(('gini', 'information_gain'), (False, True)):
             self._test_classification_model(neoml.DecisionTree.DecisionTreeClassifier,
-                dict(criterion=criterion))
+                dict(criterion=criterion), is_binary=is_binary)
+        for multiclass_mode in ('single_tree', 'one_vs_all', 'one_vs_one'):
+            self._test_classification_model(neoml.DecisionTree.DecisionTreeClassifier, dict(multiclass_mode=multiclass_mode))
 
     def test_svm_classification(self):
         for kernel, thread_count, is_binary in itertools.product(('linear', 'poly', 'rbf', 'sigmoid'),
                                                                  (1, 4), (False, True)):
             self._test_classification_model(neoml.SVM.SvmClassifier,
-                dict(kernel=kernel, thread_count=thread_count))
+                dict(kernel=kernel, thread_count=thread_count), is_binary=is_binary)
+        for multiclass_mode in ('one_vs_all', 'one_vs_one'):
+            print('svm ', multiclass_mode)
+            self._test_classification_model(neoml.SVM.SvmClassifier, dict(multiclass_mode=multiclass_mode))
 
     def test_linear_classification(self):
         for loss, thread_count, is_binary in itertools.product(('binomial', 'squared_hinge', 'smoothed_hinge'),
                                                                (1, 4), (False, True)):
             self._test_classification_model(neoml.Linear.LinearClassifier,
-                dict(loss=loss, thread_count=thread_count))
+                dict(loss=loss, thread_count=thread_count), is_binary=is_binary)
+        for multiclass_mode in ('one_vs_all', 'one_vs_one'):
+            self._test_classification_model(neoml.Linear.LinearClassifier, dict(multiclass_mode=multiclass_mode))
 
     def test_linear_regression(self):
         for thread_count in (1, 4):
