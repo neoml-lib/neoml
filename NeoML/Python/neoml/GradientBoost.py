@@ -29,6 +29,11 @@ class GradientBoostClassificationModel:
 
 
     def store(self, path):
+        """Saves the model at the given location.
+        
+        :param path: the full path to where the model should be saved.
+        :type path: str
+        """
         self.internal.store(path)       
 
     def classify(self, X):
@@ -40,15 +45,13 @@ class GradientBoostClassificationModel:
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :return: the predictions of class probability for each input vector.
-        :rtype: generator of ndarray of shape (n_samples, n_classes)
+        :rtype: *generator of ndarray of shape (n_samples, n_classes)*
         """
         x = convert_data(X)
         return self.internal.classify(*get_data(x))
 
 class GradientBoostClassifier(PythonWrapper.GradientBoost):
-    """Gradient boosting for classification.
-    
-    Gradient boosting method creates an ensemble of decision trees
+    """Gradient boosting for classification. Gradient boosting method creates an ensemble of decision trees
     using random subsets of features and input data.
 
     :param loss: the loss function to be optimized. 
@@ -113,8 +116,8 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
 
         if loss != 'binomial' and loss != 'exponential' and loss != 'squared_hinge' and loss != 'l2':
             raise ValueError('The `loss` must be one of: `exponential`, `binomial`, `squared_hinge`, `l2`.')
-        if builder_type not in ('full', 'hist', 'multi_full'):
-            raise ValueError('The `builder_type` must be one of: `full`, `hist`, `multi_full`.')
+        if builder_type not in ('full', 'hist', 'multi_full', 'multi_hist'):
+            raise ValueError('The `builder_type` must be one of: `full`, `hist`, `multi_full`, `multi_hist`.')
         if iteration_count <= 0:
             raise ValueError('The `iteration_count` must be > 0.')
         if subsample < 0 or subsample > 1:
@@ -149,19 +152,19 @@ class GradientBoostClassifier(PythonWrapper.GradientBoost):
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``GradientBoostClassificationModel``.
-        :rtype: *object*
+        :return: the trained classification model.
+        :rtype: neoml.GradientBoost.GradientBoostClassificationModel
         """
         x = convert_data( X )
-        y = numpy.array( Y, dtype=numpy.int32, copy=False )
+        y = numpy.array( Y, dtype=numpy.int32, copy=False, order='C' )
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32)
+            weight = numpy.ones(y.size, numpy.float32, order='C')
         else:
-            weight = numpy.array( weight, dtype=numpy.float32, copy=False )
+            weight = numpy.array( weight, dtype=numpy.float32, copy=False, order='C' )
 
         if numpy.any(y < 0):
             raise ValueError('All `Y` elements must be >= 0.')
@@ -182,6 +185,11 @@ class GradientBoostRegressionModel:
 
 
     def store(self, path):
+        """Saves the model at the given location.
+
+        :param path: the full path to where the model should be saved.
+        :type path: str
+        """
         self.internal.store(path)       
 
     def predict(self, X):
@@ -193,7 +201,7 @@ class GradientBoostRegressionModel:
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :return: the predictions of the function value on each input vector.
-        :rtype: generator of ndarray of shape (n_samples)
+        :rtype: *generator of ndarray of shape (n_samples)*
         """
         x = convert_data(X)
         return self.internal.predict(*get_data(x))
@@ -298,19 +306,19 @@ class GradientBoostRegressor(PythonWrapper.GradientBoost):
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``GradientBoostRegressionModel``.
-        :rtype: *object*
+        :return: the trained regression model.
+        :rtype: neoml.GradientBoost.GradientBoostRegressionModel
         """
         x = convert_data( X )
-        y = numpy.array( Y, dtype=numpy.float32, copy=False )
+        y = numpy.array( Y, dtype=numpy.float32, copy=False, order='C' )
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32)
+            weight = numpy.ones(y.size, numpy.float32, order='C')
         else:
-            weight = numpy.array( weight, dtype=numpy.float32, copy=False )
+            weight = numpy.array( weight, dtype=numpy.float32, copy=False, order='C' )
 
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')

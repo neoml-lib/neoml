@@ -10,6 +10,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ArchiveFile.cpp
     NeoML.cpp
     Random.cpp
+    Dnn/AutoDiff.cpp
+    Dnn/AutoDiffFunctions.cpp
     Dnn/BaseLayer.cpp
     Dnn/Dnn.cpp
     Dnn/DnnBlob.cpp
@@ -137,6 +139,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/OneVersusAll.cpp
     TraditionalML/OneVersusAllModel.cpp
     TraditionalML/OneVersusAllModel.h
+    TraditionalML/OneVersusOne.cpp
+    TraditionalML/OneVersusOneModel.cpp
+    TraditionalML/OneVersusOneModel.h
     TraditionalML/PlattScalling.cpp
     TraditionalML/ProblemWrappers.cpp
     TraditionalML/ProblemWrappers.h
@@ -163,6 +168,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/NeoMLDefs.h
     ../include/NeoML/Platforms.h
     ../include/NeoML/Random.h
+    ../include/NeoML/Dnn/AutoDiff.h
+    ../include/NeoML/Dnn/AutoDiffFunctions.h
     ../include/NeoML/Dnn/Dnn.h
     ../include/NeoML/Dnn/Dnn.inl
     ../include/NeoML/Dnn/DnnBlob.h
@@ -260,6 +267,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/MemoryProblem.h
     ../include/NeoML/TraditionalML/Model.h
     ../include/NeoML/TraditionalML/OneVersusAll.h
+    ../include/NeoML/TraditionalML/OneVersusOne.h
     ../include/NeoML/TraditionalML/PlattScalling.h
     ../include/NeoML/TraditionalML/Problem.h
     ../include/NeoML/TraditionalML/Score.h

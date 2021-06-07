@@ -42,7 +42,7 @@ class LinearClassificationModel :
 class LinearClassifier(PythonWrapper.Linear) :
     """Linear binary classifier.
 
-    :param loss: the loss function to be optimized. 'binomial' refers to
+    :param loss: the loss function to be optimized. `binomial` refers to
         deviance (= logistic regression) for classification
         with probabilistic outputs.
     :type loss: str, {'binomial', 'squared_hinge', 'smoothed_hinge'}, default='binomial'
@@ -70,10 +70,14 @@ class LinearClassifier(PythonWrapper.Linear) :
     
     :param thread_count: the number of threads to be used while training the model.
     :type thread_count: int, default=1
+
+    :param multiclass_mode: determines how to handle multi-class classification
+    :type multiclass_mode: str, ['one_vs_all', 'one_vs_one'], default='one_vs_all'
     """
 
     def __init__(self, loss='binomial', max_iteration_count=1000, error_weight=1.0,
-        sigmoid=(0.0, 0.0), tolerance=-1.0, normalizeError=False, l1_reg=0.0, thread_count=1):
+        sigmoid=(0.0, 0.0), tolerance=-1.0, normalizeError=False, l1_reg=0.0, thread_count=1,
+        multiclass_mode='one_vs_all'):
 
         if loss != 'binomial' and loss != 'squared_hinge' and loss != 'smoothed_hinge':
             raise ValueError('The `loss` must be one of: `binomial`, `squared_hinge`, `smoothed_hinge`.')
@@ -84,9 +88,11 @@ class LinearClassifier(PythonWrapper.Linear) :
 
         if thread_count <= 0:
             raise ValueError('The `thread_count` must be > 0.')
+        if multiclass_mode != 'one_vs_all' and multiclass_mode != 'one_vs_one':
+            raise ValueError('The `multiclass_mode` must be one of: `one_vs_all`, `one_vs_one`.')
 
         super().__init__(loss, int(max_iteration_count), float(error_weight), float(sigmoid[0]), float(sigmoid[1]), float(tolerance), bool(normalizeError),
-            float(l1_reg), int(thread_count))
+            float(l1_reg), int(thread_count), multiclass_mode)
 
     def train(self, X, Y, weight=None):
         """Trains the linear classification model.
@@ -102,19 +108,19 @@ class LinearClassifier(PythonWrapper.Linear) :
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``LinearClassificationModel``.
-        :rtype: *object*
+        :return: the trained classification model.
+        :rtype: neoml.Linear.LinearClassificationModel
         """
         x = convert_data( X )
-        y = numpy.array( Y, dtype=numpy.int32, copy=False )
+        y = numpy.array( Y, dtype=numpy.int32, copy=False, order='C' )
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32)
+            weight = numpy.ones(y.size, numpy.float32, order='C')
         else:
-            weight = numpy.array( weight, dtype=numpy.float32, copy=False )
+            weight = numpy.array( weight, dtype=numpy.float32, copy=False, order='C' )
 
         if numpy.any(y < 0):
             raise ValueError('All `Y` elements must be >= 0.')
@@ -140,7 +146,7 @@ class LinearRegressionModel :
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
         :return: the predictions of the function value on each input vector.
-        :rtype: generator of ndarray of shape (n_samples)
+        :rtype: *generator of ndarray of shape (n_samples)*
         """
         x = convert_data( X )
         return self.internal.predict(*get_data(x))
@@ -191,7 +197,7 @@ class LinearRegressor(PythonWrapper.Linear) :
             raise ValueError('The `thread_count` must be > 0.')
 
         super().__init__(loss, int(max_iteration_count), float(error_weight), float(sigmoid[0]), float(sigmoid[1]), float(tolerance), bool(normalizeError),
-            float(l1_reg), int(thread_count))
+            float(l1_reg), int(thread_count), '')
 
     def train(self, X, Y, weight=None):
         """Trains the linear regression model.
@@ -207,19 +213,19 @@ class LinearRegressor(PythonWrapper.Linear) :
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``LinearRegressionModel``.
-        :rtype: *object*
+        :return: the trained regression model.
+        :rtype: neoml.Linear.LinearRegressionModel
         """
         x = convert_data( X )
-        y = numpy.array( Y, dtype=numpy.float32, copy=False )
+        y = numpy.array( Y, dtype=numpy.float32, copy=False, order='C' )
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32)
+            weight = numpy.ones(y.size, numpy.float32, order='C')
         else:
-            weight = numpy.array( weight, dtype=numpy.float32, copy=False )
+            weight = numpy.array( weight, dtype=numpy.float32, copy=False, order='C' )
 
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')

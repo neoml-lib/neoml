@@ -1858,6 +1858,17 @@ class PoolingTestCase(TestCase):
         self.assertAlmostEqual(irnn.input_weight_std, input_weight_std, delta=1e-5)
         self.assertEqual(a.shape, (batch_length, batch_width, 1, 1, 1, 1, hidden_size))
 
+
+class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
+    def calc(self, data, labels):
+        return neoml.AutoDiff.mul(data - labels, data - labels)
+
+
+class BinaryCrossEntropyLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
+    def calc(self, data, labels):
+        return neoml.AutoDiff.binary_cross_entropy(data, labels, True)
+
+
 class LossTestCase(TestCase):
     def _test_loss(self, layer, kwargs={},
                    n_classes=2,
@@ -1886,6 +1897,81 @@ class LossTestCase(TestCase):
             self.assertEqual(getattr(loss, k), getattr(layer, k))
         self.assertAlmostEqual(loss.last_loss, last_loss, delta=1e-3)
         self.assertAlmostEqual(layer.last_loss, last_loss, delta=1e-3)
+
+    def _test_custom_loss(self, loss_calculator, result_loss):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        shape = (2, 3, 1, 1, 1, 1, 1)
+        source1 = neoml.Dnn.Source(dnn, "source1")
+        source2 = neoml.Dnn.Source(dnn, "source2")
+        source3 = neoml.Dnn.Source(dnn, "source3")
+        loss = neoml.Dnn.CustomLoss((source1, source2, source3), name="loss", loss_weight=7.7,
+                                    loss_calculator=loss_calculator)
+
+        input1 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
+        input2 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
+        input3 = neoml.Blob.asblob(math_engine, np.ones(shape, dtype=np.float32), shape)
+
+        inputs = {"source1": input1, "source2": input2, "source3": input3}
+
+        dir = tempfile.mkdtemp()
+
+        path = os.path.join(dir, 'custom_loss_dnn.arc')
+        dnn.store_checkpoint(path)
+
+        dnn_loaded = neoml.Dnn.Dnn(math_engine)
+        dnn_loaded.load_checkpoint(path)
+
+        os.remove(path)
+        os.rmdir(dir)
+
+        dnn_loaded.run(inputs)
+
+        layer = dnn_loaded.layers['loss']
+        self.assertEqual(layer.name, 'loss')
+
+        self.assertAlmostEqual(layer.last_loss, result_loss, delta=1e-3)
+
+    def test_custom_loss(self):
+        import neoml.AutoDiff as ad
+        for loss_calculator, result_loss in [
+            (BinaryCrossEntropyLossCalculator(), 0.313261),
+            (MulLossCalculator(), 0),
+        ]:
+            self._test_custom_loss(loss_calculator, result_loss)
+
+    def test_autodiff_functions(self):
+        import neoml.AutoDiff as ad
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        shape = (2, 3, 1, 1, 1, 2, 3)
+        const0 = ad.const(math_engine, shape, 0)
+        const2 = ad.const(math_engine, shape, 2)
+        ones = np.ones(shape, dtype=np.float32)
+        const_ones = ad.const(math_engine, shape, ones)
+        blob = neoml.Blob.asblob(math_engine, ones, shape)
+        
+        self.assertTrue( np.equal( ad.add(const2, blob).asarray(), 3 * ones ).all() )
+        self.assertTrue( np.equal( ad.add(2, blob).asarray(), 3 * ones ).all() )
+        self.assertTrue( np.equal( (const2 + 3).asarray(), 5 * ones ).all() )
+        self.assertTrue( np.equal( ad.sub(const2, blob).asarray(), ones ).all() )
+        self.assertTrue( np.equal( ad.sub(const2, 0).asarray(), 2 * ones ).all() )
+        self.assertTrue( np.equal( (3 - blob).asarray(), 2 * ones ).all() )
+        self.assertTrue( np.equal( ad.mul(const2, 2).asarray(), 4 * ones ).all() )
+        self.assertTrue( np.equal( ad.mul(2, blob).asarray(), 2 * ones ).all() )
+        self.assertTrue( np.equal( (const0 * const2).asarray(), 0 * ones ).all() )
+        self.assertTrue( np.equal( ad.div(2, const2).asarray(), ones ).all() )
+        self.assertTrue( np.equal( ad.div(const2, 2).asarray(), ones ).all() )
+        self.assertTrue( np.equal( (const2 / const_ones).asarray(), 2 * ones ).all() )
+        self.assertTrue( np.equal( ad.max(const_ones, 2).asarray(), 2 * ones ).all() )
+        self.assertEqual( ad.sum(blob).asarray(), 36 )
+        self.assertTrue( np.equal( ad.neg(blob).asarray(), -ones ).all() )
+        self.assertTrue( np.equal( (-blob).asarray(), -ones ).all() )
+        self.assertTrue( np.equal( ad.abs(-blob).asarray(), ones ).all() )
+        self.assertTrue( np.equal( ad.log(const_ones).asarray(), 0 * ones ).all() )
+        self.assertTrue( np.equal( ad.exp(const0).asarray(), ones ).all() )
+        self.assertTrue( np.equal( ad.clip(const2, 3, 4).asarray(), 3 * ones ).all() )
+        self.assertTrue( np.equal( ad.top_k(const2, 3).asarray(), [2, 2, 2] ).all() )
+        self.assertTrue( np.equal( ad.binary_cross_entropy(const0, const0, False).asarray(), 0 * ones ).all() )
 
     def test_cross_entropy_loss(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2047,10 +2133,14 @@ class TraditionalTestCase(TestCase):
         X_sparse = sparse.csr_matrix(X_dense)
         val = 1 if is_binary else 3
         y = val * np.ones(20, dtype=np.int32)
+        if not is_binary: # every class should be represented in dataset
+            for i in range(3):
+                y[i] = i
         weight = np.ones(20, dtype=np.float32)
         for X in (X_dense, X_dense_list, X_sparse):
             classifier = model(**params).train(X, y, weight)
-            pred = classifier.classify(X[0:3])
+            pred = classifier.classify(X[-3:])
+            print(pred, np.argmax(pred))
             self.assertTrue(np.equal(np.argmax(pred), [val, val, val]).all())
 
     def _test_regression_model(self, model, params):
@@ -2069,7 +2159,8 @@ class TraditionalTestCase(TestCase):
                 ('binomial', 'exponential', 'squared_hinge', 'l2'),
                 ('full', 'hist', 'multi_full'), (1, 4), (False, True)):
             self._test_classification_model(neoml.GradientBoost.GradientBoostClassifier,
-                dict(loss=loss, iteration_count=10, builder_type=builder_type, thread_count=thread_count))
+                dict(loss=loss, iteration_count=10, builder_type=builder_type, thread_count=thread_count),
+                is_binary=is_binary)
 
     def test_gradient_boosting_regression(self):
         for builder_type, thread_count in itertools.product(('full', 'hist'), (1, 4)):
@@ -2079,19 +2170,26 @@ class TraditionalTestCase(TestCase):
     def test_decision_tree_classification(self):
         for criterion, is_binary in itertools.product(('gini', 'information_gain'), (False, True)):
             self._test_classification_model(neoml.DecisionTree.DecisionTreeClassifier,
-                dict(criterion=criterion))
+                dict(criterion=criterion), is_binary=is_binary)
+        for multiclass_mode in ('single_tree', 'one_vs_all', 'one_vs_one'):
+            self._test_classification_model(neoml.DecisionTree.DecisionTreeClassifier, dict(multiclass_mode=multiclass_mode))
 
     def test_svm_classification(self):
         for kernel, thread_count, is_binary in itertools.product(('linear', 'poly', 'rbf', 'sigmoid'),
                                                                  (1, 4), (False, True)):
             self._test_classification_model(neoml.SVM.SvmClassifier,
-                dict(kernel=kernel, thread_count=thread_count))
+                dict(kernel=kernel, thread_count=thread_count), is_binary=is_binary)
+        for multiclass_mode in ('one_vs_all', 'one_vs_one'):
+            print('svm ', multiclass_mode)
+            self._test_classification_model(neoml.SVM.SvmClassifier, dict(multiclass_mode=multiclass_mode))
 
     def test_linear_classification(self):
         for loss, thread_count, is_binary in itertools.product(('binomial', 'squared_hinge', 'smoothed_hinge'),
                                                                (1, 4), (False, True)):
             self._test_classification_model(neoml.Linear.LinearClassifier,
-                dict(loss=loss, thread_count=thread_count))
+                dict(loss=loss, thread_count=thread_count), is_binary=is_binary)
+        for multiclass_mode in ('one_vs_all', 'one_vs_one'):
+            self._test_classification_model(neoml.Linear.LinearClassifier, dict(multiclass_mode=multiclass_mode))
 
     def test_linear_regression(self):
         for thread_count in (1, 4):

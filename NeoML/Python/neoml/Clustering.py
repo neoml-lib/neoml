@@ -20,10 +20,8 @@ from scipy.sparse import csr_matrix
 import neoml.PythonWrapper as PythonWrapper
 
 class FirstCome(PythonWrapper.FirstCome) :
-    """First come clustering. 
-    Works with only one run through the data set. Each new vector is added to the nearest cluster, 
-    or if all the clusters are too far, a new cluster will be created for this vector.
-    At the end, the clusters that are too small are destroyed and their vectors redistributed.
+    """First come clustering creates a new cluster for each new vector
+    that is far enough from the clusters already existing.
 
     :param min_vector_count: the smallest number of vectors in a cluster to consider that the variance is valid.
     :type min_vector_count: int, > 0, default=4
@@ -59,12 +57,12 @@ class FirstCome(PythonWrapper.FirstCome) :
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.
 
-        :param X: The input samples. Internally, it will be converted
+        :param X: the input sample. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
             to a sparse ``scipy.csr_matrix``.
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        :param weight: Sample weights. If `None`, then samples are equally weighted.
+        :param weight: sample weights. If `None`, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,) or None, default=None
 
         :return:
@@ -80,9 +78,9 @@ class FirstCome(PythonWrapper.FirstCome) :
         x = convert_data( X )
 
         if weight is None:
-            weight = numpy.ones(x.size, numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32, order='C')
         else:
-            weight = numpy.array(weight, dtype=numpy.float32, copy=False)
+            weight = numpy.array(weight, dtype=numpy.float32, copy=False, order='C')
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
@@ -93,9 +91,8 @@ class FirstCome(PythonWrapper.FirstCome) :
 
 class Hierarchical(PythonWrapper.Hierarchical) :
     """Hierarchical clustering. 
-    The initial state has a cluster for every element. On each step, the two closest 
-    clusters are merged. Once the target number of clusters is reached, or all clusters
-    are too far from each other to be merged, the process ends.
+    First, it creates a cluster per element, the merges closest clusters on each step 
+    until the final cluster is achieved.
 
     :param distance: the distance function.
     :type distance: str, {'euclid', 'machalanobis', 'cosine'}, default='euclid'
@@ -119,12 +116,12 @@ class Hierarchical(PythonWrapper.Hierarchical) :
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.
 
-        :param X: The input samples. Internally, it will be converted
+        :param X: the input sample. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
             to a sparse ``scipy.csr_matrix``.
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        :param weight: Sample weights. If `None`, then samples are equally weighted.
+        :param weight: sample weights. If `None`, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,) or None, default=None
 
         :return:
@@ -140,9 +137,9 @@ class Hierarchical(PythonWrapper.Hierarchical) :
         x = convert_data( X )
 
         if weight is None:
-            weight = numpy.ones(x.size, numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32, order='C')
         else:
-            weight = numpy.array(weight, dtype=numpy.float32, copy=False)
+            weight = numpy.array(weight, dtype=numpy.float32, copy=False, order='C')
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
@@ -154,7 +151,6 @@ class Hierarchical(PythonWrapper.Hierarchical) :
 class IsoData(PythonWrapper.IsoData) :
     """IsoData clustering.
     A heuristic algorithm based on geometrical proximity of the data points.
-    See Ball, Geoffrey H., Hall, David J. *Isodata: a method of data analysis and pattern classification.* (1965)
 
     :param init_cluster_count: the number of initial clusters.
         The initial cluster centers are randomly selected from the input data.
@@ -197,12 +193,12 @@ class IsoData(PythonWrapper.IsoData) :
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.
 
-        :param X: The input samples. Internally, it will be converted
+        :param X: the input sample. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
             to a sparse ``scipy.csr_matrix``.
         :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        :param weight: Sample weights. If `None`, then samples are equally weighted.
+        :param weight: sample weights. If `None`, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,) or None, default=None
 
         :return:
@@ -218,9 +214,9 @@ class IsoData(PythonWrapper.IsoData) :
         x = convert_data( X )
 
         if weight is None:
-            weight = numpy.ones(x.size, numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32, order='C')
         else:
-            weight = numpy.array(weight, dtype=numpy.float32, copy=False)
+            weight = numpy.array(weight, dtype=numpy.float32, copy=False, order='C')
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 
@@ -230,12 +226,9 @@ class IsoData(PythonWrapper.IsoData) :
 
 
 class KMeans(PythonWrapper.KMeans) :
-    """K-Means clustering.
-    On each step, the mass center for each cluster is calculated, and then the vectors are reassigned
-    to clusters with the nearest center. The algorithm stops on the step when the in-cluster distance 
-    does not change.
+    """K-means clustering.
 
-    :param max_iteration_count: the maximim number of algorithm iterations.
+    :param max_iteration_count: the maximum number of algorithm iterations.
     :type max_iteration_count: int
 
     :param cluster_count: the number of clusters.
@@ -249,10 +242,19 @@ class KMeans(PythonWrapper.KMeans) :
 
     :param distance: the distance function.
     :type distance: str, {'euclid', 'machalanobis', 'cosine'}, default='euclid'
+
+    :param thread_count: number of threads
+    :type thread_count: int, > 0, default=1
+
+    :param run_count: number of runs, the result is the best of the runs (based on inertia)
+    :type run_count: int, > 0, default=1
+
+    :param seed: the initial seed for random
+    :type seed: int, default=3306
     """
 
     def __init__(self, max_iteration_count, cluster_count, algo='lloyd', init='default', distance='euclid',
-                 thread_count=1):
+                 thread_count=1, run_count=1, seed=3306):
         if algo != 'elkan' and algo != 'lloyd':
             raise ValueError('The `algo` must be one of {`elkan`, `lloyd`}.')
         if init != 'k++' and init != 'default':
@@ -264,18 +266,23 @@ class KMeans(PythonWrapper.KMeans) :
         if cluster_count <= 0:
             raise ValueError('The `cluster_count` must be > 0.')
         if thread_count <= 0:
-            raise ValueError('The `thread_count` must be < 0')
-        super().__init__(algo, init, distance, int(max_iteration_count), int(cluster_count), int(thread_count))
+            raise ValueError('The `thread_count` must be > 0')
+        if run_count <= 0:
+            raise ValueError('The `run_count` must be > 0')
+        if not isinstance(seed, int):
+            raise ValueError('The `seed` must be integer')
+        super().__init__(algo, init, distance, int(max_iteration_count), int(cluster_count), int(thread_count),
+            int(run_count), int(seed))
 
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.
 
-        :param X: The input samples. Internally, it will be converted
+        :param X: the input sample. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
             to a sparse ``scipy.csr_matrix``.
         :type X: array-like or sparse matrix of shape (n_samples, n_features)
 
-        :param weight: Sample weights. If `None`, then samples are equally weighted.
+        :param weight: sample weights. If `None`, then samples are equally weighted.
             `None` by default.
         :type weight: array-like of shape (n_samples,)
 
@@ -293,9 +300,9 @@ class KMeans(PythonWrapper.KMeans) :
         x = convert_data(X)
 
         if weight is None:
-            weight = numpy.ones(x.shape[0], numpy.float32)
+            weight = numpy.ones(x.shape[0], numpy.float32, order='C')
         else:
-            weight = numpy.array(weight, dtype=numpy.float32, copy=False)
+            weight = numpy.array(weight, dtype=numpy.float32, copy=False, order='C')
             if numpy.any(weight < 0):
                 raise ValueError('All `weight` elements must be >= 0.')
 

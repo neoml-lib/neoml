@@ -51,6 +51,12 @@ This method helps solve a multi-class classification problem using only binary c
 
 It is implemented by the [COneVersusAll](OneVersusAll.md) class. The trained multi-class classification model implements the `IOneVersusAllModel` interface.
 
+### One versus one method
+
+This method helps solve a multi-class classification problem using only binary classifiers.
+
+It is implemented by the [COneVersusOne](OneVersusOne.md) class. The trained model implements the `IModel` interface.
+
 ## Auxiliary interfaces
 
 All the methods for model training implement common interfaces, accept the input data of the same type and train models that may be accessed using the common interface.

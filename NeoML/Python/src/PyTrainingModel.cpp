@@ -189,7 +189,7 @@ py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array da
 
 	int rowCount = static_cast<int>( row.size() ) - 1;
 
-	py::array_t<double, py::array::c_style> totalResult( { rowCount } );
+	py::array_t<double, py::array::c_style> totalResult( rowCount );
 	auto r = totalResult.mutable_unchecked<1>();
 	for( int i = 0; i < rowCount; i++ ) {
 		CFloatVectorDesc vector;
@@ -221,7 +221,7 @@ private:
 class CPyTrainingModel {
 public:
 	explicit CPyTrainingModel( ITrainingModel* classifier ) : owner( new CPyTrainingModelOwner( classifier ) ) {}
-	explicit CPyTrainingModel( CPyTrainingModelOwner* _owner ) : owner( owner ) {}
+	explicit CPyTrainingModel( CPyTrainingModelOwner* _owner ) : owner( _owner ) {}
 	virtual ~CPyTrainingModel() {}
 
 	CPyModel TrainClassifier( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array classes, py::array weight );
@@ -360,7 +360,7 @@ void InitializeTrainingModel(py::module& m)
 	py::class_<CPyDecisionTree, CPyTrainingModel>(m, "DecisionTree")
 		.def(
 			py::init([]( int min_subset_size, float min_subset_part, int min_split_size, int max_tree_depth, int max_node_count, const std::string& criterion,
-						float const_threshold, int random_selected_feature_count )
+						float const_threshold, int random_selected_feature_count, const std::string& multiclass_mode )
 						{
 							CDecisionTreeTrainingModel::CParams p;
 							p.SplitCriterion = CDecisionTreeTrainingModel::SC_Count;
@@ -378,6 +378,14 @@ void InitializeTrainingModel(py::module& m)
 							p.ConstNodeThreshold = const_threshold;
 							p.RandomSelectedFeaturesCount = random_selected_feature_count;
 
+							if( multiclass_mode == "single_tree" ) {
+								p.MulticlassMode = MM_SingleClassifier;
+							} else if( multiclass_mode == "one_vs_all" ) {
+								p.MulticlassMode = MM_OneVsAll;
+							} else if( multiclass_mode == "one_vs_one" ) {
+								p.MulticlassMode = MM_OneVsOne;
+							}
+
 							return new CPyDecisionTree( p );
 						})
 		)
@@ -390,7 +398,7 @@ void InitializeTrainingModel(py::module& m)
 	py::class_<CPySvm, CPyTrainingModel>(m, "Svm")
 		.def( py::init(
 			[]( const std::string& kernel, float error_weight, int max_iteration_count, int degree, float gamma, float coeff0,
-					float tolerance, int thread_count ) {
+					float tolerance, int thread_count, const std::string& multiclass_mode ) {
 				CSvmBinaryClassifierBuilder::CParams p( CSvmKernel::KT_Undefined );
 				if( kernel == "linear" ) {
 					p.KernelType = CSvmKernel::KT_Linear;
@@ -409,6 +417,12 @@ void InitializeTrainingModel(py::module& m)
 				p.Tolerance = tolerance;
 				p.ThreadCount = thread_count;
 
+				if( multiclass_mode == "one_vs_all" ) {
+					p.MulticlassMode = MM_OneVsAll;
+				} else if( multiclass_mode == "one_vs_one" ) {
+					p.MulticlassMode = MM_OneVsOne;
+				}
+
 				return new CPySvm( p );
 			})
 		)
@@ -421,7 +435,7 @@ void InitializeTrainingModel(py::module& m)
 	py::class_<CPyLinear, CPyTrainingModel>(m, "Linear")
 		.def( py::init(
 			[]( const std::string& loss, int max_iteration_count, float error_weight, float sigmoid_a, float sigmoid_b,
-					float tolerance, bool normalize_error, float l1_reg, int thread_count ) {
+					float tolerance, bool normalize_error, float l1_reg, int thread_count, const std::string& multiclass_mode ) {
 				CLinearBinaryClassifierBuilder::CParams p( EF_Count );
 				if( loss == "smoothed_hinge" ) {
 					p.Function = EF_SmoothedHinge;
@@ -440,6 +454,12 @@ void InitializeTrainingModel(py::module& m)
 				p.NormalizeError = normalize_error;
 				p.L1Coeff = l1_reg;
 				p.ThreadCount = thread_count;
+
+				if( multiclass_mode == "one_vs_all" ) {
+					p.MulticlassMode = MM_OneVsAll;
+				} else if( multiclass_mode == "one_vs_one" ) {
+					p.MulticlassMode = MM_OneVsOne;
+				}
 
 				return new CPyLinear( p );
 			})
@@ -485,10 +505,12 @@ void InitializeTrainingModel(py::module& m)
 					p.TreeBuilder = GBTB_FastHist;
 				} else if ( builder_type == "multi_full" ) {
 					p.TreeBuilder = GBTB_MultiFull;
+				} else if( builder_type == "multi_hist" ) {
+					p.TreeBuilder = GBTB_MultiFastHist;
 				}
 				p.MaxBins = max_bins;
 				p.MinSubsetWeight = min_subtree_weight;
-				p.Representation = GBMR_Linked;
+				p.Representation = GBMR_Compact;
 
 				return new CPyGradientBoost( p, p.Random );
 			})

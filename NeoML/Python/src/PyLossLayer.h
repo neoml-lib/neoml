@@ -17,4 +17,23 @@ limitations under the License.
 
 #include "PyLayer.h"
 
+class CPyLossLayer : public CPyLayer {
+public:
+	explicit CPyLossLayer( CLossLayer& layer, CPyMathEngineOwner& mathEngineOwner ) :
+		CPyLayer( layer, mathEngineOwner ) {}
+
+	float GetLastLoss() const { return Layer<CLossLayer>()->GetLastLoss(); }
+
+	float GetLossWeight() const { return Layer<CLossLayer>()->GetLossWeight(); }
+	void SetLossWeight( float lossWeight ) { Layer<CLossLayer>()->SetLossWeight(lossWeight); }
+
+	bool GetTrainLabels() const { return Layer<CLossLayer>()->TrainLabels(); }
+	void SetTrainLabels( bool toSet ) { Layer<CLossLayer>()->SetTrainLabels(toSet); }
+
+	float GetMaxGradientValue() const { return Layer<CLossLayer>()->GetMaxGradientValue(); }
+	void SetMaxGradientValue(float maxValue) { Layer<CLossLayer>()->SetMaxGradientValue(maxValue); }
+};
+
+//------------------------------------------------------------------------------------------------------------
+
 void InitializeLossLayer( py::module& m );

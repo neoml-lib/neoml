@@ -27,44 +27,45 @@ class BaseTraits(metaclass=ABCMeta):
     def generate(self, min_value, max_value):
         """Generates a random trait value in the specified bounds.
         
-        Parameters
-        ---------
-        min_value : any type
-            The lower bound for the interval.
-        max_value : any type
-            The upper bound for the interval.
+        :param min_value: the lower bound for the interval.
+        :type min_value: any type
+
+        :param max_value: the upper bound for the interval.
+        :type max_value: any type
         """
 
     @abstractmethod
     def less(self, first, second):
         """Checks if the first trait value is smaller than the second.
         
-        Parameters
-        ---------
-        first : any type
-            The first value to be compared.
-        second : any type
-            The second value to be compared.
+        :param first: the first value to be compared.
+        :type first: any type
+
+        :param second: the second value to be compared.
+        :type second: any type
         """
 
     @abstractmethod
     def mutate(self, base, left, right, fluctuation, min_value, max_value):
         """Performs mutation for the differential evolution algorithm.
-        
-        Parameters
-        ---------
-        base : any type
-            A member of the original population.
-        left : any type
-            Another member of the original population.
-        right : any type
-            Another member of the original population.
-        fluctuation : any type
-            The coefficient for mutation.
-        min_value : any type
-            The lower bound for the mutated value.
-        max_value : any type
-            The upper bound for the mutated value.
+
+        :param base: a member of the original population.
+        :type base: any type
+
+        :param left: another member of the original population.
+        :type left: any type
+
+        :param right: another member of the original population.
+        :type right: any type
+
+        :param fluctuation: the coefficient for mutation.
+        :type fluctuation: any type
+
+        :param min_value: the lower bound for the mutated value.
+        :type min_value: any type
+
+        :param max_value: the upper bound for the mutated value.
+        :type max_value: any type
         """
 
 # -------------------------------------------------------------------------------------------------------------
@@ -77,44 +78,45 @@ class DoubleTraits(BaseTraits):
     def generate(self, min_value, max_value):
         """Generates a random trait value in the specified bounds.
         
-        Parameters
-        ---------
-        min_value : double
-            The lower bound for the interval.
-        max_value : double
-            The upper bound for the interval.
+        :param min_value: the lower bound for the interval.
+        :type min_value: double
+
+        :param max_value: the upper bound for the interval.
+        :type max_value: double
         """
         return random.uniform(min_value, max_value)
 
     def less(self, first, second):
         """Checks if the first trait value is smaller than the second.
-        
-        Parameters
-        ---------
-        first : double
-            The first value to be compared.
-        second : double
-            The second value to be compared.
+
+        :param first: the first value to be compared.
+        :type first: double
+
+        :param second: the second value to be compared.
+        :type second: double
         """
         return first < second
 
     def mutate(self, base, left, right, fluctuation, min_value, max_value):
         """Performs mutation for the differential evolution algorithm.
-        
-        Parameters
-        ---------
-        base : double
-            A member of the original population.
-        left : double
-            Another member of the original population.
-        right : double
-            Another member of the original population.
-        fluctuation : double
-            The coefficient for mutation.
-        min_value : double
-            The lower bound for the mutated value.
-        max_value : double
-            The upper bound for the mutated value.
+
+        :param base: a member of the original population.
+        :type base: double
+
+        :param left: another member of the original population.
+        :type left: double
+
+        :param right: another member of the original population.
+        :type right: double
+
+        :param fluctuation: the coefficient for mutation.
+        :type fluctuation: double
+
+        :param min_value: the lower bound for the mutated value.
+        :type min_value: double
+
+        :param max_value: the upper bound for the mutated value.
+        :type max_value: double
         """
         mute = base + fluctuation * (left - right)
         if mute < min_value:
@@ -134,44 +136,45 @@ class IntTraits(BaseTraits):
     def generate(self, min_value, max_value):
         """Generates a random trait value in the specified bounds.
 
-        Parameters
-        ---------
-        min_value : int
-            The lower bound for the interval.
-        max_value : int
-            The upper bound for the interval.
+        :param min_value: the lower bound for the interval.
+        :type min_value: int
+
+        :param max_value: the upper bound for the interval.
+        :type max_value: int
         """
         return int(random.uniform(min_value, max_value))
 
     def less(self, first, second):
         """Checks if the first trait value is smaller than the second.
 
-        Parameters
-        ---------
-        first : int
-            The first value to be compared.
-        second : int
-            The second value to be compared.
+        :param first: the first value to be compared.
+        :type first: int
+
+        :param second: the second value to be compared.
+        :type second: int
         """
         return first < second
 
     def mutate(self, base, left, right, fluctuation, min_value, max_value):
         """Performs mutation for the differential evolution algorithm.
 
-        Parameters
-        ---------
-        base : int
-            A member of the original population.
-        left : int
-            Another member of the original population.
-        right : int
-            Another member of the original population.
-        fluctuation : double
-            The coefficient for mutation.
-        min_value : int
-            The lower bound for the mutated value.
-        max_value : int
-            The upper bound for the mutated value.
+        :param base: a member of the original population.
+        :type base: int
+
+        :param left: another member of the original population.
+        :type left: int
+
+        :param right: another member of the original population.
+        :type right: int
+
+        :param fluctuation: the coefficient for mutation.
+        :type fluctuation: double
+
+        :param min_value: the lower bound for the mutated value.
+        :type min_value: int
+
+        :param max_value: the upper bound for the mutated value.
+        :type max_value: int
         """
         mute = base + int(fluctuation * (left - right))
         if mute < min_value:
@@ -191,6 +194,36 @@ class DifferentialEvolution:
        the specified function value f(X) will be the closest to the reference value.
        The Evaluate function to calculate f(X) and compare it with the reference
        is provided by the user.
+       
+       :param f: the function to be optimized.
+       :type f: object
+       
+       :param lower_bounds: the minimum values for the parameters.
+       :type lower_bounds: array of the same length as upper_bounds
+       
+       :param upper_bounds: the maximum values for the parameters.
+       :type upper_bounds: array of the same length as lower_bounds
+       
+       :param fluctuation: the fluctuation coefficient.
+       :type fluctuation: float, default=0.5
+       
+       :param cross_probability: the mutation probability.
+       :type cross_probability: float, default=0.5
+       
+       :param population: the number of elements in each generation.
+       :type population: int, >=5, default=100
+       
+       :param param_traits: the parameter types.
+       :type param_traits: array of ``BaseTraits``-implementing objects, default=None
+       
+       :param result_traits: the result types.
+       :type result_traits: array of ``BaseTraits``-implementing objects, default=None
+       
+       :param max_generation_count: the maximum number of generations after which the algorithm stops.
+       :type max_generation_count: int, default=None
+       
+       :param max_non_growing_count: the maximum number of iterations for which the function minimum has been unchanged.
+       :type max_non_growing_count: int, default=None
     """
     def __init__(self, f, lower_bounds, upper_bounds, fluctuation=0.5, cross_probability=0.5, population=100,
                  param_traits=None, result_traits=None, max_generation_count=None, max_non_growing_count=None):
@@ -248,10 +281,8 @@ class DifferentialEvolution:
     def build_next_generation(self):
         """Builds the next generation.
 
-        Return values
-        -------
-        success : bool
-           Returns True if any of the stop conditions was fulfilled.
+        :return: if the stop condition was reached.
+        :rtype: *bool*
         """
         return self.internal.build_next_generation()
 
@@ -263,17 +294,26 @@ class DifferentialEvolution:
     @property
     def population(self):
         """Gets the resulting population.
+
+        :return: the population on the current step.
+        :rtype: *array-like of shape {population, vector_length}*
         """
         return self.internal.get_population()
 
     @property
     def population_function_values(self):
         """Gets the function values on the resulting population.
+
+        :return: the function values
+        :rtype: *array-like of shape {population,}*
         """
         return self.internal.get_population_function_values()
 
     @property
     def optimal_vector(self):
-        """Gets the "best vector".
+        """Gets the "best vector."
+
+        :return: the best fector found
+        :rtype: *array-like of shape {vector_length,}*
         """
         return self.internal.get_optimal_vector()

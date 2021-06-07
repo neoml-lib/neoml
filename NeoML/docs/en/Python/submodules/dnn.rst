@@ -5,8 +5,10 @@ neoml.Dnn
 #########
 
 - :ref:`py-dnn-network`
+- :ref:`py-dnn-blob`
 - :ref:`py-dnn-layers`
 
+   - :ref:`py-dnn-baselayer`
    - :ref:`py-dnn-inputoutput`
    - :ref:`py-dnn-recurrent`
    - :ref:`py-dnn-fullyconnected`
@@ -37,6 +39,8 @@ neoml.Dnn
 
 - :ref:`py-dnn-initializers`
 - :ref:`py-dnn-solver`
+- :ref:`py-dnn-random`
+- :ref:`py-dnn-autodiff`
 
 .. _py-dnn-network:
 
@@ -56,6 +60,57 @@ After all the layers are added and connected the network may be set up for train
 .. autoclass:: neoml.Dnn.Dnn
    :members:
 
+.. _py-dnn-blob:
+
+Data blobs
+##########
+
+All data used in the network operation (inputs, outputs, trainable parameters) is stored in blobs. A *blob* is a 7-dimensional array, and each of its dimensions has a specific meaning:
+
+- **BatchLength** is a "time" axis, used to denote data sequences; it is mainly used in recurrent networks
+- **BatchWidth** corresponds to the batch, used to pass several independent objects together
+- **ListSize** is the dimensions for the objects that are connected (for example, pixels out of one image) but do not form a sequence
+- **Height** is the height of a matrix or an image
+- **Width** is the width of a matrix or an image
+- **Depth** is the width of a 3-dimensional image
+- **Channels** corresponds to channels for multi-channel image formats and is also used to work with one-dimensional vectors.
+
+The blobs may contain one of the two types of data: ``float`` and ``int``. Both data types are 32-bit.
+
+If the data type is not specified directly anywhere in this documentation, that means ``float`` is used.
+
+Class description
+*******************
+
+.. autoclass:: neoml.Blob.Blob
+   :members:
+
+Working with blobs
+*******************
+
+.. automethod:: neoml.Blob.store
+
+.. automethod:: neoml.Blob.load
+
+.. automethod:: neoml.Blob.asblob
+
+Creating blobs of typical size
+******************************
+
+The auxiliary methods that create blobs for frequently used types of data.
+
+.. automethod:: neoml.Blob.vector
+
+.. automethod:: neoml.Blob.matrix
+
+.. automethod:: neoml.Blob.tensor
+
+.. automethod:: neoml.Blob.list_blob
+
+.. automethod:: neoml.Blob.image2d
+
+.. automethod:: neoml.Blob.image3d
+
 .. _py-dnn-layers:
 
 Layers
@@ -70,6 +125,16 @@ If the operation returns results that should be used by other layers, they will 
 In addition, the layer may have settings specified by the user before starting calculations, and trainable parameters that are optimized during network training.
 
 The layers also have names that can be used to find a layer in the network. The name should be set at layer creation or before adding it to the network.
+
+.. _py-dnn-baselayer:
+
+Base layer class
+*****************
+
+All NeoML layer classes are derived from this class.
+
+.. autoclass:: neoml.Dnn.Layer
+   :members:
 
 .. _py-dnn-inputoutput:
 
@@ -313,6 +378,17 @@ MultiSquaredHingeLoss
 =====================
 
 .. autoclass:: neoml.Dnn.MultiSquaredHingeLoss
+   :members:
+
+CustomLoss
+==========
+
+NeoML provides an interface for user-implemented custom loss functions. They must be constructed out of simple arithmetic and :ref:`py-dnn-autodiff` functions.
+
+.. autoclass:: neoml.Dnn.CustomLossCalculatorBase
+   :members:
+
+.. autoclass:: neoml.Dnn.CustomLoss
    :members:
 
 .. _py-dnn-pooling:
@@ -792,3 +868,45 @@ NesterovGradient
 
 .. autoclass:: neoml.Dnn.NesterovGradient
    :members:
+
+.. _py-dnn-random:
+
+Random
+########
+
+.. autoclass:: neoml.Random.Random
+   :members:
+
+.. _py-dnn-autodiff:
+
+Autodifferentiation
+####################
+
+NeoML supports autodifferentiation for a wide set of operations. Use these operations and simple arithmetic if you'd like to create your own loss function `neoml.Dnn.CustomLoss`. Then during the backward pass, NeoML will be able to calculate gradients of your custom loss.
+
+.. automethod:: neoml.AutoDiff.const
+
+Simple arithmetic operations
+******************************
+
+.. automethod:: neoml.AutoDiff.add
+.. automethod:: neoml.AutoDiff.sub
+.. automethod:: neoml.AutoDiff.mul
+.. automethod:: neoml.AutoDiff.div
+
+Basic math functions
+*********************
+
+.. automethod:: neoml.AutoDiff.max
+.. automethod:: neoml.AutoDiff.sum
+.. automethod:: neoml.AutoDiff.neg
+.. automethod:: neoml.AutoDiff.abs
+.. automethod:: neoml.AutoDiff.log
+.. automethod:: neoml.AutoDiff.exp
+
+Other operations
+*******************
+
+.. automethod:: neoml.AutoDiff.clip
+.. automethod:: neoml.AutoDiff.top_k
+.. automethod:: neoml.AutoDiff.binary_cross_entropy
