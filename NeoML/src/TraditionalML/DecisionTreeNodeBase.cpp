@@ -29,7 +29,7 @@ void CDecisionTreeNodeBase::SetInfo( CDecisionTreeNodeInfoBase* newInfo )
 	info = newInfo;
 }
 
-void CDecisionTreeNodeBase::GetClassifyNode( const CSparseFloatVectorDesc& data, CPtr<CDecisionTreeNodeBase>& node, int& additionalLevel ) const
+void CDecisionTreeNodeBase::GetClassifyNode( const CFloatVectorDesc& data, CPtr<CDecisionTreeNodeBase>& node, int& additionalLevel ) const
 {
 	if( info == 0 ) {
 		node = const_cast<CDecisionTreeNodeBase*>( this );
@@ -80,49 +80,7 @@ void CDecisionTreeNodeBase::GetClassifyNode( const CSparseFloatVectorDesc& data,
 
 void CDecisionTreeNodeBase::GetClassifyNode( const CFloatVector& data, CPtr<CDecisionTreeNodeBase>& node, int& additionalLevel ) const
 {
-	if( info == 0 ) {
-		node = const_cast<CDecisionTreeNodeBase*>( this );
-		return;
-	}
-
-	switch( info->Type ) {
-		case DTNT_Discrete:
-		{
-			CDecisionTreeDiscreteNodeInfo* discreteInfo = static_cast<CDecisionTreeDiscreteNodeInfo*>( info );
-			float featureValue = data[discreteInfo->FeatureIndex];
-
-			for( int i = 0; i < discreteInfo->Values.Size(); i++ ) {
-				if( discreteInfo->Values[i] == featureValue ) {
-					additionalLevel++;
-					return discreteInfo->Children[i]->GetClassifyNode( data, node, additionalLevel );
-				}
-			}
-			node = const_cast<CDecisionTreeNodeBase*>( this );
-			return;
-		}
-
-		case DTNT_Continuous:
-		{
-			CDecisionTreeContinuousNodeInfo* continuousInfo = static_cast<CDecisionTreeContinuousNodeInfo*>( info );
-			float featureValue = data[continuousInfo->FeatureIndex];
-
-			additionalLevel++;
-			if( featureValue <= continuousInfo->Threshold ) {
-				NeoAssert( continuousInfo->Child1 != 0 );
-				return continuousInfo->Child1->GetClassifyNode( data, node, additionalLevel );
-			}
-			NeoAssert( continuousInfo->Child2 != 0 );
-			return continuousInfo->Child2->GetClassifyNode( data, node, additionalLevel );
-		}
-
-		case DTNT_Const:
-		case DTNT_Undefined:
-			node = const_cast<CDecisionTreeNodeBase*>( this );
-			return;
-
-		default:
-			NeoAssert( false );
-	};
+	GetClassifyNode( data.GetDesc(), node, additionalLevel );
 }
 
 CDecisionTreeNodeBase::~CDecisionTreeNodeBase()

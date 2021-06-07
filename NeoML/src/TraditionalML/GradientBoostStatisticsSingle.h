@@ -25,16 +25,16 @@ public:
 	CGradientBoostStatisticsSingle();
 	explicit CGradientBoostStatisticsSingle( int valueSize );
 	explicit CGradientBoostStatisticsSingle( const CGradientBoostStatisticsSingle& other );
-	explicit CGradientBoostStatisticsSingle( double gradient, double hessian, float weight );
+	explicit CGradientBoostStatisticsSingle( double gradient, double hessian, double weight );
 	CGradientBoostStatisticsSingle& operator=( const CGradientBoostStatisticsSingle& other );
 
 	// Adds a vector
-	void Add( double gradient, double hessian, float weight );
-	void Add( const CArray<double>& gradient, const CArray<double>& hessian, const CArray<float>& weight, int vectorIndex );
+	void Add( double gradient, double hessian, double weight );
+	void Add( const CArray<double>& gradient, const CArray<double>& hessian, const CArray<double>& weight, int vectorIndex );
 	void Add( const CGradientBoostStatisticsSingle& other );
 
 	// Deletes a vector
-	void Sub( double gradient, double hessian, float weight );
+	void Sub( double gradient, double hessian, double weight );
 	void Sub( const CGradientBoostStatisticsSingle& other );
 
 	// Clears all accumulated data
@@ -44,7 +44,7 @@ public:
 	double CalcCriterion( float l1, float l2 ) const;
 
 	// Calculates the split criterion
-	static bool CalcCriterion( float& criterion, CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle& totalStatistics,
+	static bool CalcCriterion( double& criterion, CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle& totalStatistics,
 		float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient );
 
 	// Gets the total gradient
@@ -54,7 +54,7 @@ public:
 	double TotalHessian() const { return totalHessian; }
 
 	// Gets the total weight
-	float TotalWeight() const { return totalWeight; }
+	double TotalWeight() const { return totalWeight; }
 
 	// Get leaf value
 	void LeafValue( double& value ) const;
@@ -65,10 +65,13 @@ public:
 	// Get value size
 	int ValueSize() const { return 1; }
 
+	// Set value size
+	void SetSize( int valueSize ) { NeoAssert( valueSize == 1 ); }
+
 private:
 	double totalGradient; // total gradient
 	double totalHessian; // total hessian
-	float totalWeight; // total weight
+	double totalWeight; // total weight
 };
 
 inline CGradientBoostStatisticsSingle::CGradientBoostStatisticsSingle()
@@ -86,7 +89,7 @@ inline CGradientBoostStatisticsSingle::CGradientBoostStatisticsSingle( int value
 	totalWeight = 0.0;
 }
 
-inline CGradientBoostStatisticsSingle::CGradientBoostStatisticsSingle( double gradient, double hessian, float weight )
+inline CGradientBoostStatisticsSingle::CGradientBoostStatisticsSingle( double gradient, double hessian, double weight )
 {
 	totalGradient = gradient;
 	totalHessian = hessian;
@@ -110,14 +113,14 @@ inline CGradientBoostStatisticsSingle& CGradientBoostStatisticsSingle::operator=
 	return *this;
 }
 
-inline void CGradientBoostStatisticsSingle::Add( double gradient, double hessian, float weight )
+inline void CGradientBoostStatisticsSingle::Add( double gradient, double hessian, double weight )
 {
 	totalGradient += gradient;
 	totalHessian += hessian;
 	totalWeight += weight;
 }
 
-inline void CGradientBoostStatisticsSingle::Add( const CArray<double>& gradient, const CArray<double>& hessian, const CArray<float>& weight, int vectorIndex )
+inline void CGradientBoostStatisticsSingle::Add( const CArray<double>& gradient, const CArray<double>& hessian, const CArray<double>& weight, int vectorIndex )
 {
 	totalGradient += gradient[vectorIndex];
 	totalHessian += hessian[vectorIndex];
@@ -131,7 +134,7 @@ inline void CGradientBoostStatisticsSingle::Add( const CGradientBoostStatisticsS
 	totalWeight += other.totalWeight;
 }
 
-inline void CGradientBoostStatisticsSingle::Sub( double gradient, double hessian, float weight )
+inline void CGradientBoostStatisticsSingle::Sub( double gradient, double hessian, double weight )
 {
 	totalGradient -= gradient;
 	totalHessian -= hessian;
@@ -154,11 +157,11 @@ inline void CGradientBoostStatisticsSingle::Erase()
 
 inline double CGradientBoostStatisticsSingle::CalcCriterion( float l1, float l2 ) const
 {
-	double temp = totalGradient;
-	if( temp > l1 ) {
-		temp -= l1;
-	} else if( temp < -l1 ) {
-		temp += l1;
+	double temp = 0;
+	if( totalGradient > l1 ) {
+		temp = totalGradient - l1;
+	} else if( totalGradient < -l1 ) {
+		temp = totalGradient + l1;
 	}
 	return temp * temp / ( totalHessian + l2 );
 }
@@ -178,7 +181,7 @@ inline void CGradientBoostStatisticsSingle::LeafValue( double& value ) const
 	}
 }
 
-inline bool CGradientBoostStatisticsSingle::CalcCriterion( float& criterion,
+inline bool CGradientBoostStatisticsSingle::CalcCriterion( double& criterion,
 	CGradientBoostStatisticsSingle& leftResult, CGradientBoostStatisticsSingle& rightResult, const CGradientBoostStatisticsSingle&,
 	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float )
 {
@@ -188,8 +191,8 @@ inline bool CGradientBoostStatisticsSingle::CalcCriterion( float& criterion,
 		return false;
 	}
 
-	criterion = static_cast<float>( leftResult.CalcCriterion( l1RegFactor, l2RegFactor ) +
-		rightResult.CalcCriterion( l1RegFactor, l2RegFactor ) );
+	criterion = leftResult.CalcCriterion( l1RegFactor, l2RegFactor ) +
+		rightResult.CalcCriterion( l1RegFactor, l2RegFactor );
 	return true;
 }
 

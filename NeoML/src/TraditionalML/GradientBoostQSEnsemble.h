@@ -91,12 +91,10 @@ public:
 	void Build( const CGradientBoostEnsemble &treeModel );
 
 	// Prediction methods
-	double Predict( const CSparseFloatVector& data ) const;
-	double Predict( const CFloatVector& data ) const;
-	double Predict( const CSparseFloatVectorDesc& data ) const;
+	double Predict( const CFloatVectorDesc& data ) const;
 
 	// The prediction method that uses only the trees in the 0 to lastTreeIndex range
-	double Predict( const CSparseFloatVectorDesc& data, int lastTreeIndex ) const;
+	double Predict( const CFloatVectorDesc& data, int lastTreeIndex ) const;
 
 	// Gets the number of trees in the ensemble
 	int GetTreesCount() const { return treeQsLeavesOffsets.Size(); };
@@ -130,7 +128,7 @@ private:
 	void buildFeatureNodesOffsets( const CArray<int>& features );
 
 	void processFeature( int feature, float value, CFastArray<unsigned __int64, 512>& bitvectors ) const;
-	template <class T> double calculateScore( const T& data, const CFastArray<unsigned __int64, 512>& bitvectors, int lastTreeIndex ) const;
+	double calculateScore( const CFloatVectorDesc& data, const CFastArray<unsigned __int64, 512>& bitvectors, int lastTreeIndex ) const;
 };
 
 } // namespace NeoML

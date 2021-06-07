@@ -21,6 +21,13 @@ limitations under the License.
 
 namespace NeoML {
 
+void AvxMultiplyMatrix( bool transA, bool transB,
+	IMathEngine *engine,
+	const float* aPtr, size_t aRowSize,
+	const float* bPtr, size_t bRowSize,
+	float* cPtr, size_t cRowSize,
+	size_t m, size_t n, size_t k );
+
 struct CAvxConvolutionDesc : public CConvolutionDesc {
 	~CAvxConvolutionDesc() override {}
 
@@ -33,9 +40,9 @@ struct CAvxConvolutionDesc : public CConvolutionDesc {
 CAvxConvolutionDesc::CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
 	BlobConvolution( CBlobConvolutionFabric::GetProperInstance( mathEngine,
-		filter.BatchWidth(), filter.Channels(), filter.Height(), filter.Width(), source.Height(), source.Width(), 
+		filter.BatchWidth(), filter.Channels() * filter.Depth(), filter.Height(), filter.Width(), source.Height(), source.Width(), 
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
-		dilationHeight, dilationWidth, result.Height(), result.Width() ) )
+		dilationHeight, dilationWidth, result.Height(), result.Width(), result.ObjectCount() ) )
 {
 }
 
@@ -49,6 +56,8 @@ public:
 
 	void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const override;
+
+	SgemmFunc GetSgemmFunction() const override;
 
 private:
 	IMathEngine* mathEngine;
@@ -72,6 +81,11 @@ void CAvxMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const fl
 	
 	desc.BlobConvolution->ProcessConvolution( threadCount, source, filter, freeTerm, result );
 
+}
+
+SgemmFunc CAvxMathEngine::GetSgemmFunction() const
+{
+	return AvxMultiplyMatrix;
 }
 
 extern "C"

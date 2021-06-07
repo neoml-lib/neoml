@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/TraditionalML/LinearBinaryClassifierBuilder.h>
+#include <NeoML/TraditionalML/Linear.h>
 
 namespace NeoML {
 
@@ -30,18 +30,15 @@ public:
 
 	// IModel interface methods
 	int GetClassCount() const override { return 2; }
-	bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
-	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
+	bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const override;
 	void Serialize( CArchive& archive ) override;
 
 	// ILinearBinaryModel interface methods
 	CFloatVector GetPlane() const override { return plane; }
 	const CSigmoid& GetSigmoid() const override { return coefficients; }
 
-	// IRegressionModel interface methods
-	double Predict( const CSparseFloatVector& data ) const override;
-	double Predict( const CFloatVector& data ) const override;
-	double Predict( const CSparseFloatVectorDesc& data ) const override;
+	// IRegressionModel interface method
+	double Predict( const CFloatVectorDesc& data ) const override;
 
 protected:
 	virtual ~CLinearBinaryModel() {} // delete prohibited

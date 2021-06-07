@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/TraditionalML/SvmBinaryClassifierBuilder.h>
+#include <NeoML/TraditionalML/Svm.h>
 
 namespace NeoML {
 
@@ -30,8 +30,7 @@ public:
 
 	// IModel interface methods
 	virtual int GetClassCount() const { return 2; }
-	virtual bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const;
-	virtual bool Classify( const CFloatVector& data, CClassificationResult& result ) const;
+	virtual bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const;
 	virtual void Serialize( CArchive& archive );
 
 	// ISvmBinaryModel interface methods

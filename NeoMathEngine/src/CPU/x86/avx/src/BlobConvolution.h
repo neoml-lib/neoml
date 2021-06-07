@@ -31,7 +31,7 @@ public:
 	CBlobConvolution( IMathEngine* mathEngine,
 		int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth, 
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth );
+		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt );
 	~CBlobConvolution() override = default;
 
 	void ProcessConvolution( int threadCount,
@@ -58,6 +58,7 @@ private:
 	const int DilationW;
 	const int ResH;
 	const int ResW;
+	const int ResObjCnt;
 
 	// For some cases we will use FltCnt, rounded up to nearest integer multiple of 8
 	static constexpr int FltCntM8 = ( FltCnt + 8 - 1 ) / 8 * 8;
@@ -140,7 +141,7 @@ public:
 	static std::unique_ptr<CBlobConvolutionBase> GetProperInstance( IMathEngine* mathEngine, int FltCnt,
 		int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth);
+		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt );
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -161,24 +162,24 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, i
 std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance( IMathEngine* mathEngine, int filterCount,
 	int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth )
+	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt )
 {
 	switch( filterCount ) {
 		case 24:
 			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24>( mathEngine,
 				channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
 				paddingHeight, paddingWidth, strideHeight, strideWidth,
-				dilationHeight, dilationWidth, resultHeight, resultWidth ) );
+				dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
 		case 18:
 			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18>( mathEngine,
 				channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
 				paddingHeight, paddingWidth, strideHeight, strideWidth,
-				dilationHeight, dilationWidth, resultHeight, resultWidth ) );
+				dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
 		case 6:
 			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<6>( mathEngine,
 				channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
 				paddingHeight, paddingWidth, strideHeight, strideWidth,
-				dilationHeight, dilationWidth, resultHeight, resultWidth ) );
+				dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
 		default:
 			return nullptr;
 	}
@@ -189,7 +190,7 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 template<int FltCnt>
 CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channelCount, int filterHeight, int filterWidth,
 		int sourceHeight, int sourceWidth, int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth ) :
+		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt ) :
 	mathEngine( _mathEngine ),
 	ChCnt( channelCount ),
 	FltH( filterHeight ),
@@ -204,6 +205,7 @@ CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channe
 	DilationW( dilationWidth ),
 	ResH( resultHeight ),
 	ResW( resultWidth ),
+	ResObjCnt( resObjCnt ),
 	src( nullptr ),
 	flt( nullptr ),
 	freeTerm( nullptr ),
@@ -234,7 +236,10 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	freeTerm = rearrangeFreeTerm( freeTermData, freeTermTempBuffer );
 	res = resultData;
 
-	const int curThreadCount = IsOmpRelevant( ResH, ResH * ResW * FltCnt * FltW * FltH * ChCnt ) ? threadCount : 1;
+	const int SrcObjSize = SrcW * SrcH * ChCnt;
+	const int ResObjSize = ResW * ResH * FltCnt;
+	const int ResRowCount = ResObjCnt * ResH;
+	const int curThreadCount = IsOmpRelevant( ResRowCount, ResRowCount * ResW * FltCnt * FltW * FltH * ChCnt ) ? threadCount : 1;
 
 	// Number of steps for each side of image, where filter is applied partially
 	int PartialStepCountBeforeX = static_cast<const int>( std::ceil( static_cast<float>( PaddingW ) / StrideW ) );
@@ -273,55 +278,70 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	// FilterH == FilterW == 3
 	const int srcXOffset = 0 + ( DilationW - PaddingW );
 	const int srcYOffset = 0 + ( DilationH - PaddingH );
-	const float* realSrcStart = src + srcXOffset * ChCnt;
-
+	
 	NEOML_OMP_NUM_THREADS( curThreadCount )
 	{
-		int ryStart;
-		int ryCount;
-		if( OmpGetTaskIndexAndCount( ResH, ryStart, ryCount ) ) {
+		// Index of row in whole result array
+		int rowIdx;
+		// Count of rows for current thread
+		int rowCount;
+		if( OmpGetTaskIndexAndCount( ResRowCount, rowIdx, rowCount ) ) {
 
-			// Iterate through result, left->right, top->bottom
-			const int currentRH = min( ResH, ryStart + ryCount );
-			int ry = ryStart;
+			while( rowCount > 0 ) {
+				// Index of result image in output batch
+				int resIdx = rowIdx / ResH;
+				// Offset in current result image 
+				int ryStart = rowIdx % ResH;
+				// Number of rows for processing ( or number of rows till the end of current result image ).
+				int ryCount = min( ResH - ryStart, rowCount );
+				rowIdx += ryCount;
+				rowCount -= ryCount;
 
-			int ryEnd = min( PartialStepCountBeforeY, currentRH );
-			while( ry < ryEnd ) {
-				// Top part of image
-				const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
-				float* resPtr = res + ry * ResLineStride;
-				bool useNarrowProcessing = ( ryEnd ) - ry >= NarrowBatchProcessSize.Height;
+				const float* realSrcStart = src + resIdx * SrcObjSize + srcXOffset * ChCnt;
+				float* realResStart = res + resIdx * ResObjSize;
 
-				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[0] );
-				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[1] );
-				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[2] );
-				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
-			}
+				// Iterate through result, left->right, top->bottom
+				const int currentRH = min( ResH, ryStart + ryCount );
+				int ry = ryStart;
 
-			ryEnd = min( ResH - PartialStepCountAfterY, currentRH );
-			while( ry < ryEnd ) {
-				// Middle part of image
-				const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
-				float* resPtr = res + ry * ResLineStride;
-				bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
+				int ryEnd = min( PartialStepCountBeforeY, currentRH );
+				while( ry < ryEnd ) {
+					// Top part of image
+					const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
+					float* resPtr = realResStart + ry * ResLineStride;
+					bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
 
-				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[7] );
-				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[8] );
-				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[3] );
-				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
-			}
+					processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[0] );
+					processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[1] );
+					processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[2] );
+					ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
+				}
 
-			ryEnd = min( ResH, currentRH );
-			while( ry < ryEnd ) {
-				// Bottom part of image
-				const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
-				float* resPtr = res + ry * ResLineStride;
-				bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
+				ryEnd = min( ResH - PartialStepCountAfterY, currentRH );
+				while( ry < ryEnd ) {
+					// Middle part of image
+					const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
+					float* resPtr = realResStart + ry * ResLineStride;
+					bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
 
-				processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[6] );
-				processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[5] );
-				processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[4] );
-				ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
+					processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[7] );
+					processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[8] );
+					processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[3] );
+					ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
+				}
+
+				ryEnd = min( ResH, currentRH );
+				while( ry < ryEnd ) {
+					// Bottom part of image
+					const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
+					float* resPtr = realResStart + ry * ResLineStride;
+					bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
+
+					processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[6] );
+					processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[5] );
+					processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[4] );
+					ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
+				}
 			}
 		}
 	}
@@ -396,7 +416,7 @@ const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData,
 	// ...
 	// Pixel[8] Channel[23] Filter[0-23] Filter[0-5]
 
-	float* resFilterStartPtr = static_cast<float*>( mathEngine->GetBuffer( filterTempBuffer.GetHandle(), 0, filterTempBuffer.Size() * sizeof( float ) ) );
+	float* resFilterStartPtr = static_cast<float*>( mathEngine->GetBuffer( filterTempBuffer.GetHandle(), 0, filterTempBuffer.Size() * sizeof( float ), false ) );
 	float* resFilter = resFilterStartPtr;
 	ASSERT_EXPR( reinterpret_cast<uintptr_t>( resFilter ) % AvxAlignment == 0 );
 	for( int y = 0; y < FltH; y++ ) {
@@ -428,7 +448,7 @@ const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermD
 		return nullptr;
 	}
 
-	float* resFreeTermStartPtr = static_cast<float*>( mathEngine->GetBuffer( freeTermTempBuffer.GetHandle(), 0, freeTermTempBuffer.Size() * sizeof( float ) ) );
+	float* resFreeTermStartPtr = static_cast<float*>( mathEngine->GetBuffer( freeTermTempBuffer.GetHandle(), 0, freeTermTempBuffer.Size() * sizeof( float ), false ) );
 	float* resFreeTerm = resFreeTermStartPtr;
 	ASSERT_EXPR( reinterpret_cast<uintptr_t>( resFreeTerm ) % AvxAlignment == 0 );
 
@@ -454,7 +474,7 @@ const std::array<std::vector<int>, 16> CBlobConvolution<FltCnt>::fillSrcPixelOff
 	const int SrcLineStride = SrcW * ChCnt;
 	const int SrcYDilation = DilationH * SrcLineStride;
 	const int SrcXDilation = DilationW * ChCnt;
-	return {
+	return {{
 		std::vector<int>{ 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 0) 4 5 7 8
 		std::vector<int>{ -SrcXDilation, 0, SrcXDilation, SrcYDilation - SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 1) 3 4 5 6 7 8
 		std::vector<int>{ -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 2) 3 4 6 7
@@ -474,13 +494,13 @@ const std::array<std::vector<int>, 16> CBlobConvolution<FltCnt>::fillSrcPixelOff
 		std::vector<int>{ -SrcXDilation, 0, SrcXDilation }, // 13) 3 4 5
 		std::vector<int>{ -SrcYDilation, 0, SrcYDilation }, // 14) 1 4 7
 		std::vector<int>{ 0 } // 15) 4
-	};
+	}};
 }
 
 template<int FltCnt>
 const std::array<std::vector<int>, 16>  CBlobConvolution<FltCnt>::fillFltPixelOffset()
 {
-	return {
+	return {{
 		std::vector<int>{ 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 0) 4 5 7 8
 		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 1) 3 4 5 6 7 8
 		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 2) 3 4 6 7
@@ -501,7 +521,7 @@ const std::array<std::vector<int>, 16>  CBlobConvolution<FltCnt>::fillFltPixelOf
 		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 13) 3 4 5
 		std::vector<int>{ 1 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 14) 1 4 7
 		std::vector<int>{ 4 * ChCnt * FltCntM8 } // 15) 4
-	};
+	}};
 }
 
 template<int FltCnt>

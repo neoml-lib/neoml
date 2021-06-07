@@ -20,6 +20,13 @@ limitations under the License.
 
 namespace NeoML {
 
+typedef void ( *SgemmFunc )( bool transA, bool transB,
+	IMathEngine *engine,
+	const float* aPtr, size_t aRowSize,
+	const float* bPtr, size_t bRowSize,
+	float* cPtr, size_t cRowSize,
+	size_t m, size_t n, size_t k );
+
 class ISimdMathEngine : public CCrtAllocatedObject {
 public:
 	virtual ~ISimdMathEngine() = default;
@@ -32,6 +39,8 @@ public:
 
 	virtual void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const = 0;
+
+	virtual SgemmFunc GetSgemmFunction() const = 0;
 };
 
 }

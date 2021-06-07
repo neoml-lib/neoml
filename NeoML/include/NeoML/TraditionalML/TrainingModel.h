@@ -21,6 +21,14 @@ limitations under the License.
 
 namespace NeoML {
 
+// The algorithm used for multi-class classification
+enum TMulticlassMode {
+	MM_SingleClassifier = 0, // Special case supported in some classifiers (CDesicionTree)
+	MM_OneVsAll,
+	MM_OneVsOne,
+	MM_Count
+};
+
 // Classification training interface
 class NEOML_API ITrainingModel {
 public:

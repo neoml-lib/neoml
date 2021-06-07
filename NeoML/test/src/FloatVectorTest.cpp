@@ -27,7 +27,7 @@ public:
 	static void DeinitTestFixture() {}
 };
 
-CSparseFloatVector generateRandomVector( CRandom& rand, int maxLength = 100,
+static CSparseFloatVector generateRandomVector( CRandom& rand, int maxLength = 100,
 	float minValue = -100., float maxValue = 100. )
 {
 	CSparseFloatVector res;
@@ -50,11 +50,11 @@ TEST_F( CFloatVectorTest, DotProduct )
 	CRandom rand( 0 );
 	CSparseFloatVector s1 = generateRandomVector( rand, maxLength );
 	CFloatVector s1Vec( maxLength, s1 );
-	CSparseFloatVectorDesc s1DenseDesc( s1Vec.GetDesc() );
+	CFloatVectorDesc s1DenseDesc( s1Vec.GetDesc() );
 	for( int i = 0; i < numberOfTests; ++i ) {
 		CSparseFloatVector s2 = generateRandomVector( rand, maxLength );
 		CFloatVector s2Vec( maxLength, s2.GetDesc() );
-		CSparseFloatVectorDesc s2DenseDesc( s2Vec.GetDesc() );
+		CFloatVectorDesc s2DenseDesc( s2Vec.GetDesc() );
 
 		ASSERT_DOUBLE_EQ( DotProduct( s1, s2 ), results[i] );
 		ASSERT_DOUBLE_EQ( DotProduct( s1.GetDesc(), s2DenseDesc ), results[i] );
@@ -72,9 +72,9 @@ TEST_F( CFloatVectorTest, DotProduct )
 	ASSERT_DOUBLE_EQ( DotProduct( minSparse, minDense ), 0 );
 
 	// test empty (treated as dense with size = 0)
-	ASSERT_DOUBLE_EQ( DotProduct( s1.GetDesc(), CSparseFloatVectorDesc::Empty ), 0 );
-	ASSERT_DOUBLE_EQ( DotProduct( CSparseFloatVectorDesc::Empty, s1.GetDesc() ), 0 );
-	ASSERT_DOUBLE_EQ( DotProduct( s1Vec, CSparseFloatVectorDesc::Empty ), 0 );
+	ASSERT_DOUBLE_EQ( DotProduct( s1.GetDesc(), CFloatVectorDesc::Empty ), 0 );
+	ASSERT_DOUBLE_EQ( DotProduct( CFloatVectorDesc::Empty, s1.GetDesc() ), 0 );
+	ASSERT_DOUBLE_EQ( DotProduct( s1Vec, CFloatVectorDesc::Empty ), 0 );
 }
 
 TEST_F( CFloatVectorTest, MultiplyAndAdd )
@@ -90,7 +90,7 @@ TEST_F( CFloatVectorTest, MultiplyAndAdd )
 	CSparseFloatVector s1 = generateRandomVector( rand, maxLength );
 	ASSERT_TRUE( s1.NumberOfElements() <= maxLength );
 	CFloatVector s1Vec( maxLength, s1.GetDesc() );
-	CSparseFloatVectorDesc s1DenseDesc( s1Vec.GetDesc() );
+	CFloatVectorDesc s1DenseDesc( s1Vec.GetDesc() );
 	for( int i = 0; i < numberOfTests; ++i ) {
 		CSparseFloatVector s2 = generateRandomVector( rand, maxLength );
 		ASSERT_TRUE( s2.NumberOfElements() <= maxLength );
@@ -125,7 +125,7 @@ TEST_F( CFloatVectorTest, MultiplyAndAdd )
 
 	// test empty
 	CFloatVector denseEmpty( 0 );
-	denseEmpty.MultiplyAndAdd( CSparseFloatVectorDesc::Empty, 4 );
+	denseEmpty.MultiplyAndAdd( CFloatVectorDesc::Empty, 4 );
 	ASSERT_EQ( denseEmpty.Size(), 0 );
 }
 
@@ -142,7 +142,7 @@ TEST_F( CFloatVectorTest, MultiplyAndAddExt )
 	CSparseFloatVector s1 = generateRandomVector( rand, maxLength - 1 );
 	ASSERT_TRUE( s1.NumberOfElements() < maxLength );
 	CFloatVector s1Vec( maxLength - 1, s1.GetDesc() );
-	CSparseFloatVectorDesc s1DenseDesc( s1Vec.GetDesc() );
+	CFloatVectorDesc s1DenseDesc( s1Vec.GetDesc() );
 	for( int i = 0; i < numberOfTests; ++i ) {
 		CSparseFloatVector s2 = generateRandomVector( rand, maxLength );
 		ASSERT_TRUE( s2.NumberOfElements() <= maxLength );
@@ -164,7 +164,7 @@ TEST_F( CFloatVectorTest, MultiplyAndAddExt )
 
 	// test empty
 	CFloatVector denseOneElement( 1, 2 );
-	denseOneElement.MultiplyAndAddExt( CSparseFloatVectorDesc::Empty, 4 );
+	denseOneElement.MultiplyAndAddExt( CFloatVectorDesc::Empty, 4 );
 	ASSERT_EQ( denseOneElement.Size(), 1 );
 	ASSERT_EQ( denseOneElement[0], 6 );
 }
@@ -174,47 +174,17 @@ TEST_F( CFloatVectorTest, GetValue )
 	const int maxLength = 100;
 	CRandom rand( 0 );
 	CSparseFloatVector s1 = generateRandomVector( rand, maxLength );
-	CSparseFloatVectorDesc s1Desc = s1.GetDesc();
+	CFloatVectorDesc s1Desc = s1.GetDesc();
 	ASSERT_TRUE( s1.NumberOfElements() <= maxLength );
 	CFloatVector s1Vec( maxLength, s1Desc );
-	CSparseFloatVectorDesc s1DenseDesc( s1Vec.GetDesc() );
+	CFloatVectorDesc s1DenseDesc( s1Vec.GetDesc() );
 
 	for( int i = -1; i < maxLength + 1; ++i ) {
 		ASSERT_EQ( GetValue( s1Desc, i ), GetValue( s1DenseDesc, i ) );
 	}
 }
 
-TEST_F( CFloatVectorTest, AddRowToSparseMatrix )
-{
-	const int maxLength = 100;
-	const int rowsCount = 1000;
-	CSparseFloatMatrix matrixFromDense;
-	CSparseFloatMatrix matrixFromSparse;
-	CRandom rand( 0 );
-	for( int i = 0; i < rowsCount; ++i ) {
-		CSparseFloatVector rowSparse = generateRandomVector( rand, maxLength );
-		CFloatVector rowDense( maxLength, rowSparse.GetDesc() );
-		CSparseFloatVectorDesc denseDesc( rowDense.GetDesc() );
-
-		matrixFromDense.AddRow( denseDesc );
-		CSparseFloatVectorDesc rowSparseGot = matrixFromDense.GetRow( i );
-		ASSERT_EQ( rowSparse.GetDesc().Size, rowSparseGot.Size );
-		for( int j = 0; j < rowSparseGot.Size; ++j ) {
-			ASSERT_EQ( rowSparse.GetDesc().Indexes[j], rowSparseGot.Indexes[j] );
-			ASSERT_EQ( rowSparse.GetDesc().Values[j], rowSparseGot.Values[j] );
-		}
-
-		matrixFromSparse.AddRow( rowSparse.GetDesc() );
-		matrixFromSparse.GetRow( i, rowSparseGot );
-		ASSERT_EQ( rowSparse.GetDesc().Size, rowSparseGot.Size );
-		for( int j = 0; j < rowSparseGot.Size; ++j ) {
-			ASSERT_EQ( rowSparse.GetDesc().Indexes[j], rowSparseGot.Indexes[j] );
-			ASSERT_EQ( rowSparse.GetDesc().Values[j], rowSparseGot.Values[j] );
-		}
-	}
-}
-
-TEST_F( CFloatVectorTest, CreationSparseVectorFromDesc )
+TEST_F( CFloatVectorTest, CreationFromDesc )
 {
 	const int maxLength = 100;
 	const int vectorsCount = 1000;
@@ -222,7 +192,7 @@ TEST_F( CFloatVectorTest, CreationSparseVectorFromDesc )
 	for( int i = 0; i < vectorsCount; ++i ) {
 		CSparseFloatVector rowSparse = generateRandomVector( rand, maxLength );
 		CFloatVector rowDense( maxLength, rowSparse.GetDesc() );
-		CSparseFloatVectorDesc denseDesc( rowDense.GetDesc() );
+		CFloatVectorDesc denseDesc( rowDense.GetDesc() );
 
 		CSparseFloatVector sparseCopy( rowSparse.GetDesc() );
 		CSparseFloatVector sparseFromDenseCopy( denseDesc );
@@ -233,57 +203,6 @@ TEST_F( CFloatVectorTest, CreationSparseVectorFromDesc )
 			ASSERT_EQ( sparseCopy.GetDesc().Values[i], sparseFromDenseCopy.GetDesc().Values[i] );
 		}
 	}
-}
-
-TEST_F( CFloatVectorTest, CreationSparseMatrixFromDesc )
-{
-	const int h = 5;
-	const int w = 10;
-	CSparseFloatMatrix sparseMatrix;
-
-	CArray<float> values;
-	values.SetSize( h * w );
-
-	CRandom rand( 0 );
-	for( int i = 0; i < h; ++i ) {
-		CSparseFloatVector row = generateRandomVector( rand, w );
-		for( int j = 0; j < w; ++j ) {
-			values[i*w + j] = GetValue( row.GetDesc(), j );
-		}
-		sparseMatrix.AddRow( row );
-	}
-	CSparseFloatMatrixDesc orig = sparseMatrix.GetDesc();
-	CSparseFloatMatrix sparseMatrixFromSparseDesc( orig );
-	CSparseFloatMatrixDesc fromSparse = sparseMatrixFromSparseDesc.GetDesc();
-
-	// check if copied matrix equals to original
-	ASSERT_EQ( fromSparse.Height, orig.Height );
-	ASSERT_EQ( fromSparse.Width, orig.Width );
-	ASSERT_EQ( ::memcmp( fromSparse.PointerB, orig.PointerB, fromSparse.Height * sizeof( int ) ), 0 );
-	ASSERT_EQ( ::memcmp( fromSparse.PointerE, orig.PointerE, fromSparse.Height * sizeof( int ) ), 0 );
-
-	const int elementsCount = fromSparse.PointerE[fromSparse.Height-1];
-	ASSERT_EQ( ::memcmp( fromSparse.Columns, orig.Columns, elementsCount * sizeof( int ) ), 0 );
-	ASSERT_EQ( ::memcmp( fromSparse.Values, orig.Values, elementsCount * sizeof( float ) ), 0 );
-
-	// check if a matrix created from dense desc is equal to created from sparse one
-	CSparseFloatMatrixDesc denseDesc;
-	denseDesc.Height = h;
-	denseDesc.Width = w;
-	denseDesc.Values = values.GetPtr();
-	CSparseFloatMatrix sparseMatrixFromDenseDesc( denseDesc );
-	CSparseFloatMatrixDesc fromDense = sparseMatrixFromDenseDesc.GetDesc();
-
-	ASSERT_EQ( fromSparse.Height, fromDense.Height );
-	ASSERT_EQ( fromSparse.Width, fromDense.Width );
-	ASSERT_EQ( ::memcmp( fromSparse.PointerB, fromDense.PointerB, fromSparse.Height * sizeof( int ) ), 0 );
-	ASSERT_EQ( ::memcmp( fromSparse.PointerE, fromDense.PointerE, fromSparse.Height * sizeof( int ) ), 0 );
-	ASSERT_EQ( ::memcmp( fromSparse.Columns, fromDense.Columns, elementsCount * sizeof( int ) ), 0 );
-	ASSERT_EQ( ::memcmp( fromSparse.Values, fromDense.Values, elementsCount * sizeof( float ) ), 0 );
-
-	CSparseFloatMatrix empty( CSparseFloatMatrixDesc::Empty );
-	ASSERT_EQ( empty.GetHeight(), 0 );
-	ASSERT_EQ( empty.GetWidth(), 0 );
 }
 
 TEST_F( CFloatVectorTest, Common )

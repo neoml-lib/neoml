@@ -28,7 +28,7 @@ template<class T>
 class CGradientBoostFullTreeBuilder;
 class CGradientBoostStatisticsSingle;
 class CGradientBoostStatisticsMulti;
-
+template<class T>
 class CGradientBoostFastHistTreeBuilder;
 class IGradientBoostingLossFunction;
 class CGradientBoostModel;
@@ -52,8 +52,6 @@ inline void ArrayMemMoveElement( CGradientBoostEnsemble* dest, CGradientBoostEns
 // The type of tree builder used in the gradient boosting algorithm
 enum TGradientBoostTreeBuilder {
 	// All feature values may be used for subtree splitting
-	// The algorithm will use up to params.AvailableMemory memory for caching the temporary data;
-	// this buffer should be at least large enough to store all values of a single feature at the same time.
 	// This algorithm can provide better quality 
 	// and may be used even in the case where the whole problem data does not fit into memory
 	GBTB_Full = 0,
@@ -63,8 +61,11 @@ enum TGradientBoostTreeBuilder {
 	// This algorithm is faster and works best for binary problems that fit into memory
 	GBTB_FastHist,
 	// Similar to GBTB_Full but with multiclass trees,
-	// whose leaves contain a vector of values for all classes
+	// which leaves contain a vector of values for all classes
 	GBTB_MultiFull,
+	// Similar to GBTB_FastHist but with multiclass trees,
+	// which leaves contain a vector of values for all classes
+	GBTB_MultiFastHist,
 	GBTB_Count
 };
 
@@ -170,7 +171,8 @@ private:
 	CTextStream* logStream; // the logging stream
 	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>> fullSingleClassTreeBuilder; // TGBT_Full tree builder for single class
 	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>> fullMultiClassTreeBuilder; // TGBT_Full tree builder for multi class
-	CPtr<CGradientBoostFastHistTreeBuilder> fastHistTreeBuilder; // TGBT_FastHist tree builder
+	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>> fastHistSingleClassTreeBuilder; // TGBT_FastHist tree builder for single class
+	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>> fastHistMultiClassTreeBuilder; // TGBT_MultiFastHist tree builder for multi class
 	CPtr<CGradientBoostFullProblem> fullProblem; // the problem data for TGBT_Full mode
 	CPtr<CGradientBoostFastHistProblem> fastHistProblem; // the problem data for TGBT_FastHist mode
 	CArray< CArray<CPredictionCacheItem> > predictCache; // the cache for predictions of the models being built
@@ -235,7 +237,7 @@ public:
 	// Gets the classification results for all tree ensembles [1..k], 
 	// with k taking values from 1 to the total number of trees
 	virtual bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
+	virtual bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
 
 	// Calculates feature usage statistics
 	// Returns the number of times each feature was used for node splitting

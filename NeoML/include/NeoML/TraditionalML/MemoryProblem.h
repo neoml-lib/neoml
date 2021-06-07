@@ -32,13 +32,13 @@ public:
 	CMemoryProblem(); // used for loading serialized problems
 
 	// Adds a vector to the set
-	void Add( const CSparseFloatVectorDesc& vector, double weight, int classNumber );
+	void Add( const CFloatVectorDesc& vector, double weight, int classNumber );
 	void Add( const CSparseFloatVector& vector, double weight, int classNumber );
-	void Add( const CSparseFloatVectorDesc& vector, int classNumber ) { Add( vector, 1.0, classNumber ); }
+	void Add( const CFloatVectorDesc& vector, int classNumber ) { Add( vector, 1.0, classNumber ); }
 	void Add( const CSparseFloatVector& vector, int classNumber ) { Add( vector, 1.0, classNumber ); }
 
 	// Gets a vector from the set
-	CSparseFloatVectorDesc GetVector( int index ) const { return matrix.GetRow( index ); }
+	CFloatVectorDesc GetVector( int index ) const { return matrix.GetRow( index ); }
 
 	// Sets the feature type
 	void SetFeatureType( int index, bool isDiscrete ) { isDiscreteFeature[index] = isDiscrete; }
@@ -55,7 +55,7 @@ public:
 	virtual bool IsDiscreteFeature( int index ) const { return isDiscreteFeature[index]; }
 	virtual int GetVectorCount() const { return matrix.GetHeight(); }
 	virtual int GetClass( int index ) const { return classes[index]; }
-	virtual CSparseFloatMatrixDesc GetMatrix() const { return matrix.GetDesc(); }
+	virtual CFloatMatrixDesc GetMatrix() const { return matrix.GetDesc(); }
 	virtual double GetVectorWeight( int index ) const { return weights[index]; };
 	virtual int GetDiscretizationValue( int index ) const { return discretizationValues[index]; }
 

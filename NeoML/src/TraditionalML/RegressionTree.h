@@ -33,7 +33,10 @@ public:
 	// Calculate prediction.
 	virtual void Predict( const CFloatVector& features, CPrediction& result ) const = 0;
 	virtual void Predict(
-		const CSparseFloatVectorDesc& features, CPrediction& result ) const = 0;
+		const CFloatVectorDesc& features, CPrediction& result ) const = 0;
+	// Calculate scalar prediction.
+	virtual double Predict( const CFloatVector& features) const = 0;
+	virtual double Predict( const CFloatVectorDesc& features ) const = 0;
 
 	// Calculates feature usage statistics.
 	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const = 0;
