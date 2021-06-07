@@ -165,7 +165,7 @@ public:
 	void Initialize( const IMultivariateRegressionProblem& _problem );
 
 	// Execute one iteration
-	bool CGradientBoost::ExecuteStep();
+	bool ExecuteStep();
 
 	// Save/load checkpoint
 	void Serialize( CArchive& archive );
