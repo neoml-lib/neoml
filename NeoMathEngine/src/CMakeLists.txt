@@ -69,6 +69,7 @@ target_sources(${PROJECT_NAME}
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+set_target_properties( ${PROJECT_NAME} PROPERTIES CUDA_STANDARD 11 )
 
 source_group("Header Files\\NeoMathEngine" REGULAR_EXPRESSION "^.*NeoMathEngine/.+\.h|inl$")
 source_group("CPU" REGULAR_EXPRESSION "CPU\/.*")
