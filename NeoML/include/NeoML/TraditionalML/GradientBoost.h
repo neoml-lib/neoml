@@ -159,6 +159,22 @@ public:
 	// Returns the last loss mean
 	double GetLastLossMean() const { return loss; }
 
+	// Initializes the algorithm
+	void Initialize( const IProblem& _problem );
+	void Initialize( const IRegressionProblem& _problem );
+	void Initialize( const IMultivariateRegressionProblem& _problem );
+
+	// Execute one iteration
+	bool CGradientBoost::ExecuteStep();
+
+	// Save/load checkpoint
+	void Serialize( CArchive& archive );
+
+	// Get final model
+	CPtr<IModel> GetClassificationModel();
+	CPtr<IRegressionModel> GetRegressionModel();
+	CPtr<IMultivariateRegressionModel> GetMultivariateRegressionModel();
+
 private:
 	// A cache element that contains the ensemble predictions for a vector on a given step
 	struct CPredictionCacheItem {
@@ -173,6 +189,7 @@ private:
 	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>> fullMultiClassTreeBuilder; // TGBT_Full tree builder for multi class
 	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>> fastHistSingleClassTreeBuilder; // TGBT_FastHist tree builder for single class
 	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>> fastHistMultiClassTreeBuilder; // TGBT_MultiFastHist tree builder for multi class
+	CPtr<IMultivariateRegressionProblem> baseProblem; // base problem
 	CPtr<CGradientBoostFullProblem> fullProblem; // the problem data for TGBT_Full mode
 	CPtr<CGradientBoostFastHistProblem> fastHistProblem; // the problem data for TGBT_FastHist mode
 	CArray< CArray<CPredictionCacheItem> > predictCache; // the cache for predictions of the models being built
@@ -196,21 +213,24 @@ private:
 	// The inverse mapping of features
 	// The array length is equal to the total number of features
 	CArray<int> featureNumbers;
+	// The current models ensemble (ensembles are used for multi-class classification)
+	CArray<CGradientBoostEnsemble> models;
+	// Loss function
+	CPtr<IGradientBoostingLossFunction> lossFunction;
 
-	CPtr<IObject> train(
-		const IMultivariateRegressionProblem* problem,
-		IGradientBoostingLossFunction* lossFunction );
 	void createTreeBuilder( const IMultivariateRegressionProblem* problem );
 	void destroyTreeBuilder();
 	CPtr<IGradientBoostingLossFunction> createLossFunction() const;
-	void initialize( int modelCount, int vectorCount, int featureCount, CArray<CGradientBoostEnsemble>& models );
+	void initialize();
 	void executeStep( IGradientBoostingLossFunction& lossFunction,
-		const IMultivariateRegressionProblem* problem, const CArray<CGradientBoostEnsemble>& models,
-		CObjectArray<IRegressionTreeNode>& curModels );
+		const IMultivariateRegressionProblem* problem, CObjectArray<IRegressionTreeNode>& curModels );
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
 	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
 	CPtr<IObject> createOutputRepresentation(
 		CArray<CGradientBoostEnsemble>& models, int predictionSize );
+	bool isMultiTreesModel() { return params.TreeBuilder == GBTB_MultiFull || params.TreeBuilder == GBTB_MultiFastHist; }
+	template<typename T>
+	CPtr<T> getModel();
 };
 
 //------------------------------------------------------------------------------------------------------------
