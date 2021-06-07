@@ -1,3 +1,6 @@
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
 if(NeoMathEngine_BUILD_SHARED)
     add_library(${PROJECT_NAME} SHARED common.cpp)
 else()

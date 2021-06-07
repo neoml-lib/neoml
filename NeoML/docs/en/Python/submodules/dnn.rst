@@ -890,29 +890,29 @@ Autodifferentiation
 
 NeoML supports autodifferentiation for a wide set of operations. Use these operations and simple arithmetic if you'd like to create your own loss function `neoml.Dnn.CustomLoss`. Then during the backward pass, NeoML will be able to calculate gradients of your custom loss.
 
-.. automethod:: neoml.Autodiff.const
+.. automethod:: neoml.AutoDiff.const
 
 Simple arithmetic operations
 ******************************
 
-.. automethod:: neoml.Autodiff.add
-.. automethod:: neoml.Autodiff.sub
-.. automethod:: neoml.Autodiff.mul
-.. automethod:: neoml.Autodiff.div
+.. automethod:: neoml.AutoDiff.add
+.. automethod:: neoml.AutoDiff.sub
+.. automethod:: neoml.AutoDiff.mul
+.. automethod:: neoml.AutoDiff.div
 
 Basic math functions
 *********************
 
-.. automethod:: neoml.Autodiff.max
-.. automethod:: neoml.Autodiff.sum
-.. automethod:: neoml.Autodiff.neg
-.. automethod:: neoml.Autodiff.abs
-.. automethod:: neoml.Autodiff.log
-.. automethod:: neoml.Autodiff.exp
+.. automethod:: neoml.AutoDiff.max
+.. automethod:: neoml.AutoDiff.sum
+.. automethod:: neoml.AutoDiff.neg
+.. automethod:: neoml.AutoDiff.abs
+.. automethod:: neoml.AutoDiff.log
+.. automethod:: neoml.AutoDiff.exp
 
 Other operations
 *******************
 
-.. automethod:: neoml.Autodiff.clip
-.. automethod:: neoml.Autodiff.top_k
-.. automethod:: neoml.Autodiff.binary_cross_entropy
+.. automethod:: neoml.AutoDiff.clip
+.. automethod:: neoml.AutoDiff.top_k
+.. automethod:: neoml.AutoDiff.binary_cross_entropy
