@@ -66,6 +66,8 @@ private:
 		int SplitFeatureId; // the identifier of the feature used to split this node
 		int Left; // the pointer to the left child
 		int Right; // the pointer to the right child
+		T LeftStatistics; // saved statistics for the left child
+		T RightStatistics; // saved statistics for the right child
 
 		CNode( int level, int vectorSetPtr, int vectorSetSize ) :
 			Level( level ),
@@ -75,7 +77,9 @@ private:
 			Statistics(),
 			SplitFeatureId( NotFound ),
 			Left( NotFound ),
-			Right( NotFound )
+			Right( NotFound ),
+			LeftStatistics(),
+			RightStatistics()
 		{}
 	};
 
@@ -92,6 +96,8 @@ private:
 	// Caching the buffers
 	mutable CArray<double> splitGainsByThreadBuffer;
 	mutable CArray<int> splitIdsBuffer;
+	mutable CArray<T> leftCandidates;
+	mutable CArray<T> rightCandidates;
 
 	void initVectorSet( int size );
 	void initHistData( const CGradientBoostFastHistProblem& problem );
@@ -103,7 +109,7 @@ private:
 		T& totalStats );
 	void addVectorToHist( const int* vectorPtr, int vectorSize, const CArray<typename T::Type>& gradients, 
 		const CArray<typename T::Type>& hessians, const CArray<double>& weights, T* stats, int vectorIndex );
-	int evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const;
+	int evaluateSplit( const CGradientBoostFastHistProblem& problem, CNode& node ) const;
 	void applySplit( const CGradientBoostFastHistProblem& problem, int node, int& leftNode, int& rightNode );
 	bool prune( int node );
 	CPtr<CLinkedRegressionTree> buildTree( int node, const CArray<int>& featureIndexes, const CArray<float>& cuts ) const;

@@ -104,8 +104,8 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 				nodes[leftNode].Statistics = nodes[node].Statistics;
 				nodes[leftNode].Statistics.Sub( nodes[rightNode].Statistics );
 			}
-			nodes[leftNode].Statistics.NullifyLeafClasses( nodes[node].Statistics );
-			nodes[rightNode].Statistics.NullifyLeafClasses( nodes[node].Statistics );
+			nodes[leftNode].Statistics.NullifyLeafClasses( nodes[node].LeftStatistics );
+			nodes[rightNode].Statistics.NullifyLeafClasses( nodes[node].RightStatistics );
 		} else {
 			// The node could not be split
 			if( logStream != 0 ) {
@@ -297,7 +297,7 @@ void CGradientBoostFastHistTreeBuilder<T>::addVectorToHist( const int* vectorPtr
 // Calculates the optimal feature value for splitting the node
 // Returns NotFound if splitting is impossible
 template<class T>
-int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const
+int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFastHistProblem& problem, CNode& node ) const
 {
 	if( ( params.MaxNodesCount != NotFound && nodes.Size() + 2 > params.MaxNodesCount )
 		|| ( node.Level >= params.MaxTreeDepth ) ) {
@@ -318,6 +318,10 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 	CArray<int>& splitIds = splitIdsBuffer;
 	splitIds.DeleteAll();
 	splitIds.Add( NotFound, params.ThreadCount );
+	if( leftCandidates.Size() == 0 ) {
+		leftCandidates.Add( T( predictionSize ), params.ThreadCount );
+		rightCandidates.Add( T( predictionSize ), params.ThreadCount );
+	}
 
 	NEOML_OMP_NUM_THREADS(params.ThreadCount)
 	{
@@ -354,6 +358,9 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 				if( splitGainsByThread[threadNumber] < criterion ) {
 					splitGainsByThread[threadNumber] = criterion;
 					splitIds[threadNumber] = j;  // this number refers both to the feature and its value
+					// save statistics for childs for case when class if not splitting further
+					leftCandidates[threadNumber] = leftCandidate;
+					rightCandidates[threadNumber] = rightCandidate;
 				}
 			}
 		}
@@ -367,6 +374,8 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 		if( bestValue < threadBestGain || ( bestValue == threadBestGain && threadBestFeature < result ) ) {
 			bestValue = threadBestGain;
 			result = threadBestFeature;
+			node.LeftStatistics = leftCandidates[i];
+			node.RightStatistics = rightCandidates[i];
 		}
 	}
 	return result;
