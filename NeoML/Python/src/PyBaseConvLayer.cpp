@@ -19,30 +19,6 @@ limitations under the License.
 #include "PyBaseConvLayer.h"
 #include "PyDnnBlob.h"
 
-py::object CPyBaseConvLayer::GetFilter() const
-{
-	CPtr<CDnnBlob> res( Layer<CBaseConvLayer>()->GetFilterData() );
-	if( res == 0 ) {
-		return py::none();
-	}
-
-	py::object m = py::module::import("neoml.Blob");
-	py::object constructor = m.attr( "Blob" );
-	return constructor( CPyBlob( MathEngineOwner(), res ) );
-}
-
-py::object CPyBaseConvLayer::GetFreeTerm() const
-{
-	CPtr<CDnnBlob> res( Layer<CBaseConvLayer>()->GetFreeTermData() );
-	if( res == 0 ) {
-		return py::none();
-	}
-
-	py::object m = py::module::import("neoml.Blob");
-	py::object constructor = m.attr( "Blob" );
-	return constructor( CPyBlob( MathEngineOwner(), res ) );
-}
-
 void CPyBaseConvLayer::ApplyBatchNormalization(const CPyLayer& layer)
 {
 	Layer<CBaseConvLayer>()->ApplyBatchNormalization(*layer.Layer<CBatchNormalizationLayer>());
@@ -76,7 +52,9 @@ void InitializeBaseConvLayer( py::module& m )
 		.def( "set_dilation_height", &CPyBaseConvLayer::SetDilationHeight, py::return_value_policy::reference )
 		.def( "set_dilation_width", &CPyBaseConvLayer::SetDilationWidth, py::return_value_policy::reference )
 
+		.def( "set_filter", &CPyBaseConvLayer::SetFilter, py::return_value_policy::reference )
 		.def( "get_filter", &CPyBaseConvLayer::GetFilter, py::return_value_policy::reference )
+		.def( "set_free_term", &CPyBaseConvLayer::SetFreeTerm, py::return_value_policy::reference )
 		.def( "get_free_term", &CPyBaseConvLayer::GetFreeTerm, py::return_value_policy::reference )
 
 		.def( "apply_batch_normalization", &CPyBaseConvLayer::ApplyBatchNormalization, py::return_value_policy::reference )
