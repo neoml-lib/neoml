@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-source ${ROOT}/FineObjects/Cmake/build.sh ${FINE_CMAKE_BUILD_TARGET}
+source ${ROOT}/FineObjects/Cmake/build.sh $1
 
 # Build FineML
 CMAKE_WORKING_DIR=$ROOT/_cmake_working_dir/NeoML.${FINE_CMAKE_BUILD_TARGET}.${FINE_CMAKE_BUILD_CONFIG}.${FINE_CMAKE_BUILD_ARCH}
