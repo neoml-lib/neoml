@@ -662,7 +662,7 @@ CPtr<CDnnBlob> CTapeSum::Jacobian( const CTapeBlob* var ) const
 		int dimension;
 		int followingDimension;
 		GetDimensions( first, axis, followingDimension, dimension, precedingDimension );
-		result = CDnnBlob::CreateBlob( jacobian->GetMathEngine(), { width, 1, 1, 1, 1, 1, height / dimension } );
+		result = CDnnBlob::CreateBlob( jacobian->GetMathEngine(), { height / dimension, 1, 1, 1, 1, 1, width } );
 		result->GetMathEngine().VectorSumAlongDimension( jacobian->GetData(), precedingDimension * width, dimension,
 			followingDimension, result->GetData() );
 	}
