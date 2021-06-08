@@ -72,7 +72,7 @@ CPtr<const CDnnBlob> NEOML_API Max( const CDnnBlob* first, float second );
 CPtr<const CDnnBlob> NEOML_API Max( float first, const CDnnBlob* second );
 
 // Calculates the total sum of all blob elements and returns it as a single-element blob.
-NEOML_API CPtr<const CDnnBlob> Sum( const CDnnBlob* first );
+NEOML_API CPtr<const CDnnBlob> Sum( const CDnnBlob* first, int axis );
 
 // Creates the blob each element of which is the negative value of the corresponding element of the specified blob.
 // res[i] = -first[i]

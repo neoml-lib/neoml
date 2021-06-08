@@ -608,16 +608,34 @@ CPtr<const CDnnBlob> NEOML_API Max( float first, const CDnnBlob* second )
 
 class CTapeSum : public ITapeOperation {
 public:
-	explicit CTapeSum( const CDnnBlob& first );
+	explicit CTapeSum( const CDnnBlob& first, int axis );
 
 	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
+	static void GetDimensions( const CDnnBlob* first, int axis, int& followingDimension,
+		int& dimensions, int& precedingDimension );
 private:
 	CPtr<const CDnnBlob> first;
+	int axis;
 };
 
-CTapeSum::CTapeSum( const CDnnBlob& _first ) :
-	first( &_first )
+void CTapeSum::GetDimensions( const CDnnBlob* first, int axis, int& followingDimension,
+	int& dimension, int& precedingDimension )
+{
+	followingDimension = 1;
+	for( int d = 0; d < axis; d++ ) {
+		followingDimension *= first->DimSize( d );
+	}
+	dimension = first->DimSize( axis );
+	precedingDimension = 1;
+	for( int d = axis + 1; d < BD_Count; d++ ) {
+		precedingDimension *= first->DimSize( d );
+	}
+}
+
+CTapeSum::CTapeSum( const CDnnBlob& _first, int axis ) :
+	first( &_first ),
+	axis( axis )
 {
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 );
 }
@@ -635,24 +653,48 @@ CPtr<CDnnBlob> CTapeSum::Jacobian( const CTapeBlob* var ) const
 		return jacobian;
 	}
 
-	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( jacobian->GetMathEngine(), { width } );
-	result->GetMathEngine().SumMatrixRows( 1, result->GetData(), jacobian->GetData(), height, width );
+	CPtr<CDnnBlob> result;
+	if( axis == -1 ) {
+		result = CDnnBlob::CreateBlob( jacobian->GetMathEngine(), { width } );
+		result->GetMathEngine().SumMatrixRows( 1, result->GetData(), jacobian->GetData(), height, width );
+	} else {
+		int precedingDimension;
+		int dimension;
+		int followingDimension;
+		GetDimensions( first, axis, followingDimension, dimension, precedingDimension );
+		result = CDnnBlob::CreateBlob( jacobian->GetMathEngine(), { width, 1, 1, 1, 1, 1, height / dimension } );
+		result->GetMathEngine().VectorSumAlongDimension( jacobian->GetData(), precedingDimension * width, dimension,
+			followingDimension, result->GetData() );
+	}
 	return result;
 }
 
-CPtr<const CDnnBlob> Sum( const CDnnBlob* first )
+CPtr<const CDnnBlob> Sum( const CDnnBlob* first, int axis )
 {
 	NeoAssert( first != 0 );
+	NeoAssert( axis >= -1 && axis < BD_Count );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 	const CTapeBlob* tapeBlob = dynamic_cast<const CTapeBlob*>( first );
 	IGradientTape* tape = tapeBlob != 0 ? tapeBlob->Tape() : 0;
 
-	CPtr<CTapeBlob> result( new CTapeBlob( tape, mathEngine, CBlobDesc( {1} ) ) );
-	mathEngine.VectorSum( first->GetData(), first->GetDataSize(), result->GetData() );
+	CPtr<CTapeBlob> result;
+	if( axis == -1 ) {
+		result = new CTapeBlob( tape, mathEngine, CBlobDesc( { 1 } ) );
+		mathEngine.VectorSum( first->GetData(), first->GetDataSize(), result->GetData() );
+	} else {
+		int precedingDimension;
+		int dimension;
+		int followingDimension;
+		CTapeSum::GetDimensions( first, axis, followingDimension, dimension, precedingDimension );
+		CBlobDesc desc = first->GetDesc();
+		desc.SetDimSize( axis, 1 );
+		result = new CTapeBlob( tape, mathEngine, desc );
+		mathEngine.VectorSumAlongDimension( first->GetData(), precedingDimension, dimension, followingDimension, result->GetData() );
+	}
 
 	if( tape != 0 ) {
-		CPtr<ITapeOperation> operation( new CTapeSum( *tapeBlob ) ); 
+		CPtr<ITapeOperation> operation( new CTapeSum( *tapeBlob, axis ) ); 
 		tape->Add( result, operation );
 	}
 
