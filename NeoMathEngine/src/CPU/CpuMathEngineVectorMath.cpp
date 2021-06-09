@@ -85,6 +85,26 @@ void CCpuMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vect
 	*GetRaw(resultHandle) = -*GetRaw(resultHandle);
 }
 
+void CCpuMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	int firstIndex = 0;
+	int resultIndex = 0;
+
+	for( int i = 0; i < followingDimension; i++ ) {
+		VectorCopy( resultHandle + resultIndex, firstHandle + firstIndex, precedingDimension );
+		firstIndex += precedingDimension;
+		for( int j = 1; j < dimension; j++ ) {
+			VectorAdd(  firstHandle + firstIndex, resultHandle + resultIndex, resultHandle + resultIndex, precedingDimension );
+			firstIndex += precedingDimension;
+		}
+		resultIndex += precedingDimension;
+	}
+}
+
 void CCpuMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed )
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
