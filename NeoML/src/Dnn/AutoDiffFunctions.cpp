@@ -674,15 +674,15 @@ CPtr<CDnnBlob> CTapeSum::JacobianImpl( const CDnnBlob* blob, int axis, const CTa
 	int height = jacobian->GetObjectCount();
 	int width = jacobian->GetObjectSize();
 
-	IMathEngine& mathEngine = blob->GetMathEngine();
+	IMathEngine& mathEngine = jacobian->GetMathEngine();
 
 	CPtr<CDnnBlob> result;
 	if( axis == -1 ) {
 		if( height == 1 ) {
 			return jacobian;
 		}
-		result = CDnnBlob::CreateBlob( jacobian->GetMathEngine(), { width } );
-		result->GetMathEngine().SumMatrixRows( 1, result->GetData(), jacobian->GetData(), height, width );
+		result = CDnnBlob::CreateBlob( mathEngine, { width } );
+		mathEngine.SumMatrixRows( 1, result->GetData(), jacobian->GetData(), height, width );
 	} else {
 		int precedingDimension;
 		int dimension;
@@ -694,10 +694,10 @@ CPtr<CDnnBlob> CTapeSum::JacobianImpl( const CDnnBlob* blob, int axis, const CTa
 		}
 		result = CDnnBlob::CreateBlob( jacobian->GetMathEngine(), { resultHeight, 1, 1, 1, 1, 1, width } );
 		if( height == 1 ) {
-			result->GetMathEngine().VectorSumAlongDimensionDiag( jacobian->GetData(), precedingDimension, dimension,
+			mathEngine.VectorSumAlongDimensionDiag( jacobian->GetData(), precedingDimension, dimension,
 				followingDimension, result->GetData() );
 		} else {
-			result->GetMathEngine().VectorSumAlongDimension( jacobian->GetData(), precedingDimension * width, dimension,
+			mathEngine.VectorSumAlongDimension( jacobian->GetData(), precedingDimension * width, dimension,
 				followingDimension, result->GetData() );
 		}
 	}
