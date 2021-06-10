@@ -899,6 +899,7 @@ Basic math functions
 
 .. automethod:: neoml.AutoDiff.max
 .. automethod:: neoml.AutoDiff.sum
+.. automethod:: neoml.AutoDiff.mean
 .. automethod:: neoml.AutoDiff.neg
 .. automethod:: neoml.AutoDiff.abs
 .. automethod:: neoml.AutoDiff.log

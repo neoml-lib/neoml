@@ -119,7 +119,12 @@ void InitializeTape(py::module& m)
 	}, py::return_value_policy::reference );
 
 	m.def( "blob_sum", [](const CPyBlob& first, int axis) {
-		CPtr<const CDnnBlob> result( Sum( first.Blob(), axis) );
+		CPtr<const CDnnBlob> result( Sum( first.Blob(), axis ) );
+		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
+	}, py::return_value_policy::reference );
+
+	m.def( "blob_mean", [](const CPyBlob& first, int axis) {
+		CPtr<const CDnnBlob> result( Mean( first.Blob(), axis ) );
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 

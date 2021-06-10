@@ -318,6 +318,166 @@ TEST_F( CAutoDiffTest, TestSum2 )
 	}
 }
 
+TEST_F( CAutoDiffTest, TestMean1 )
+{
+	for( int axis : { -1, 6 } ) {
+		CGradientTape tape;
+
+		const int VectorSize = 16;
+
+		CArray<float> xData;
+		xData.InsertAt( 1.0, 0, VectorSize );
+		CPtr<CDnnBlob> xBlob( CDnnBlob::CreateVector( MathEngine(), CT_Float, xData.Size() ) );
+		xBlob->CopyFrom( xData.GetPtr() );
+		CPtr<const CDnnBlob> x = tape.Variable( *xBlob );
+
+		float valuesA[VectorSize] = { 0.69, 0.83, 0.54, 0.25, 0.36, 0.73, 0.18, 0.42, 0.14, 0.09, 0.25,
+			0.69, 0.57, 0.44, 0.39, 0.38 };
+		CPtr<CDnnBlob> a( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
+		a->CopyFrom( valuesA );
+
+		float valuesB[VectorSize] = { 0.37, 0.44, 0.91, 0.68, 0.55, 0.1 , 0.4 , 0.46, 0.09, 0.31, 0.22,
+			0.2 , 0.27, 0.14, 0.03, 0.75 };
+		CPtr<CDnnBlob> b( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
+		b->CopyFrom( valuesB );
+
+		CPtr<const CDnnBlob> ax = Mul( x, a );
+		CPtr<const CDnnBlob> bx = Mul( b, x );
+
+		CPtr<const CDnnBlob> top4ax = TopK( ax, 4 );
+		CPtr<const CDnnBlob> top4bx = TopK( bx, 4 );
+
+		CPtr<const CDnnBlob> loss = Mean( Add( top4ax, top4bx ), axis );
+
+		CArray<float> lossData;
+		lossData.SetSize( loss->GetDataSize() );
+		loss->CopyTo( lossData.GetPtr() );
+
+		float lossRes[1] = { 1.4575 };
+		for( int i = 0; i < _countof( lossRes ); i++ ) {
+			ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		}
+
+		CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
+
+		CArray<float> gradData;
+		gradData.SetSize( grad->GetDataSize() );
+		grad->CopyTo( gradData.GetPtr() );
+
+		float gradRes[VectorSize] = { 0.1725, 0.2075, 0.2275, 0.17,
+			0.1375, 0.1825, 0., 0.,
+			0., 0., 0., 0.1725,
+			0., 0., 0., 0.1875 };
+		for( int i = 0; i < _countof( gradRes ); i++ ) {
+			ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		}
+	}
+}
+
+TEST_F( CAutoDiffTest, TestMean2 )
+{
+	CGradientTape tape;
+
+	const int VectorSize = 16;
+
+	CArray<float> xData;
+	xData.InsertAt( 1.0, 0, VectorSize );
+	auto dimensions = { 2, 1, 1, 4, 2 };
+	CPtr<CDnnBlob> xBlob( CDnnBlob::CreateTensor( MathEngine(), CT_Float, dimensions ) );
+	xBlob->CopyFrom( xData.GetPtr() );
+	CPtr<const CDnnBlob> x = tape.Variable( *xBlob );
+
+	float valuesA[VectorSize] = { 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
+								  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 };
+	CPtr<CDnnBlob> a( CDnnBlob::CreateTensor( MathEngine(), CT_Float, dimensions ) );
+	a->CopyFrom( valuesA );
+
+	float valuesB[VectorSize] = { 0.1, 0.08, 0.46, 0.26, 0.23, 0.08, 0.33, 0.34,
+								  0.1, 0.4, 0.37, 0.41, 0.32, 0.53, 0.43, 0.82 };
+	CPtr<CDnnBlob> b( CDnnBlob::CreateTensor( MathEngine(), CT_Float, dimensions ) );
+	b->CopyFrom( valuesB );
+
+	CPtr<const CDnnBlob> ax = Mul(x, a);
+	CPtr<const CDnnBlob> bx = Mul(b, x);
+
+	CPtr<const CDnnBlob> loss = TopK( Mean( Add(ax, bx), 3 ), 2 );
+
+	CArray<float> lossData;
+	lossData.SetSize( loss->GetDataSize() );
+	loss->CopyTo( lossData.GetPtr() );
+
+	float lossRes[2] = { 1.2575, 0.665 };
+	for( int i = 0; i < _countof(lossRes); i++ ) {
+		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+	}
+
+	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
+
+	CArray<float> gradData;
+	gradData.SetSize( grad->GetDataSize() );
+	grad->CopyTo( gradData.GetPtr() );
+
+	float gradRes[VectorSize] = { 0.095, 0, 0.165, 0,
+								  0.24, 0, 0.165, 0,
+								  0, 0.2225, 0, 0.2925,
+								  0, 0.295, 0, 0.4475 };
+	for( int i = 0; i < _countof(gradRes); i++ ) {
+		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+	}
+}
+
+TEST_F( CAutoDiffTest, TestMean3 )
+{
+	CGradientTape tape;
+
+	const int VectorSize = 16;
+
+	CArray<float> xData;
+	xData.InsertAt( 1.0, 0, VectorSize );
+	auto dimensions = { 2, 1, 1, 4, 2 };
+	CPtr<CDnnBlob> xBlob( CDnnBlob::CreateTensor( MathEngine(), CT_Float, dimensions ) );
+	xBlob->CopyFrom( xData.GetPtr() );
+	CPtr<const CDnnBlob> x = tape.Variable( *xBlob );
+
+	float valuesA[VectorSize] = { 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
+								  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 };
+	CPtr<CDnnBlob> a( CDnnBlob::CreateTensor( MathEngine(), CT_Float, dimensions ) );
+	a->CopyFrom( valuesA );
+
+	float valuesB[VectorSize] = { 0.1, 0.08, 0.46, 0.26, 0.23, 0.08, 0.33, 0.34,
+								  0.1, 0.4, 0.37, 0.41, 0.32, 0.53, 0.43, 0.82 };
+	CPtr<CDnnBlob> b( CDnnBlob::CreateTensor( MathEngine(), CT_Float, dimensions ) );
+	b->CopyFrom( valuesB );
+
+	CPtr<const CDnnBlob> ax = Sum( Mul(x, a), 3 );
+	CPtr<const CDnnBlob> bx = Sum( Mul(b, x), 3 );
+
+	CPtr<const CDnnBlob> loss = Mean( Add(ax, bx), 4 );
+
+	CArray<float> lossData;
+	lossData.SetSize( loss->GetDataSize() );
+	loss->CopyTo( lossData.GetPtr() );
+
+	float lossRes[2] = { 2.64, 3.375 };
+	for( int i = 0; i < _countof(lossRes); i++ ) {
+		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+	}
+
+	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
+
+	CArray<float> gradData;
+	gradData.SetSize( grad->GetDataSize() );
+	grad->CopyTo( gradData.GetPtr() );
+
+	float gradRes[VectorSize] = { 0.19, 0.19, 0.33, 0.495,
+								  0.48, 0.4, 0.33, 0.225,
+								  0.09, 0.445, 0.23, 0.585,
+								  0.185, 0.59, 0.355, 0.895 };
+	for( int i = 0; i < _countof(gradRes); i++ ) {
+		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+	}
+}
+
 TEST_F( CAutoDiffTest, TestClip )
 {
 	CGradientTape tape;

@@ -928,6 +928,12 @@ void CVulkanMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstH
 	ASSERT_EXPR(false);
 }
 
+void CVulkanMathEngine::VectorSumAlongDimensionDiag(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle)
+{
+	ASSERT_EXPR(false);
+}
+
 void CVulkanMathEngine::VectorEqual(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {

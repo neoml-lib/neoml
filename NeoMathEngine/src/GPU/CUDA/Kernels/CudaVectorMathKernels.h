@@ -167,6 +167,24 @@ __global__ void VectorSumAlongDimensionKernel( const float* __restrict__ input, 
 	}
 }
 
+__global__ void VectorSumAlongDimensionDiagKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, followingDims, x, y ) ) {
+		const int width = precedingDims * dims * followingDims;
+		const int startOffset = y * dims * precedingDims + x;
+		input += startOffset;
+		result += ( y * precedingDims + x ) * width + startOffset;
+		for( int i = 0; i < dims; i++ ) {
+			*result += *input;
+			input += precedingDims;
+			result += precedingDims;
+		}
+	}
+}
+
 const int VectorEqualCombineCount = 16;
 __global__ void VectorEqualKernel( const int* __restrict__ first,
 	const int* __restrict__ second, float* __restrict__ result, int count )

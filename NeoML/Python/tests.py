@@ -1964,6 +1964,7 @@ class LossTestCase(TestCase):
         self.assertTrue( np.equal( (const2 / const_ones).asarray(), 2 * ones ).all() )
         self.assertTrue( np.equal( ad.max(const_ones, 2).asarray(), 2 * ones ).all() )
         self.assertEqual( ad.sum(blob).asarray(), 36 )
+        self.assertEqual( ad.mean(blob).asarray(), 1 )
         self.assertTrue( np.equal( ad.neg(blob).asarray(), -ones ).all() )
         self.assertTrue( np.equal( (-blob).asarray(), -ones ).all() )
         self.assertTrue( np.equal( ad.abs(-blob).asarray(), ones ).all() )
@@ -1973,6 +1974,7 @@ class LossTestCase(TestCase):
         self.assertTrue( np.equal( ad.top_k(const2, 3).asarray(), [2, 2, 2] ).all() )
         self.assertTrue( np.equal( ad.binary_cross_entropy(const0, const0, False).asarray(), 0 * ones ).all() )
         self.assertTrue( np.equal( ad.sum(blob, 1).asarray(), 3 * np.ones((2, 1, 1, 1, 1, 2, 3)) ).all() )
+        self.assertTrue( np.equal( ad.mean(blob, 1).asarray(), np.ones((2, 1, 1, 1, 1, 2, 3)) ).all() )
 
     def test_cross_entropy_loss(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)

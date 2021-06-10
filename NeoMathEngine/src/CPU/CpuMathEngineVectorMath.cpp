@@ -105,6 +105,33 @@ void CCpuMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHand
 	}
 }
 
+void CCpuMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	VectorFill( resultHandle, 0.0, precedingDimension * precedingDimension * dimension
+		* followingDimension * followingDimension );
+
+	const int width = precedingDimension * dimension * followingDimension;
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < followingDimension; i++ ) {
+		for( int j = 0; j < precedingDimension; j++ ) {
+			float* resultRow = result + j;
+			for( int k = 0; k < dimension; k++ ) {
+				*resultRow = first[k * precedingDimension + j];
+				resultRow += precedingDimension;
+			}
+			result += width;
+		}
+		first += dimension * precedingDimension;
+		result += dimension * precedingDimension;
+	}
+}
+
 void CCpuMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed )
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
