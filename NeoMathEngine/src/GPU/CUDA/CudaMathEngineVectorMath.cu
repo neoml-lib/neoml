@@ -202,6 +202,21 @@ void CCudaMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vec
 		(GetRaw(firstHandle), vectorSize, GetRaw(resultHandle), true, setZero);
 }
 
+void CCudaMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, precedingDimension, followingDimension );
+
+	VectorSumAlongDimensionKernel<<<blockCount, threadCount>>>
+		( GetRaw(firstHandle), precedingDimension, dimension, followingDimension, GetRaw(resultHandle) );
+}
+
 void CCudaMathEngine::VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize )
 {

@@ -150,6 +150,23 @@ __global__ void VectorSumKernel(const float* __restrict__ mem, int count, float*
 		atomicAdd(result, sum);
 	}
 }
+
+__global__ void VectorSumAlongDimensionKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, followingDims, x, y ) ) {
+		input += y * dims * precedingDims + x;
+		result += y * precedingDims + x;
+		*result = 0;
+		for( int i = 0; i < dims; i++ ) {
+			*result += *input;
+			input += precedingDims;
+		}
+	}
+}
+
 const int VectorEqualCombineCount = 16;
 __global__ void VectorEqualKernel( const int* __restrict__ first,
 	const int* __restrict__ second, float* __restrict__ result, int count )
