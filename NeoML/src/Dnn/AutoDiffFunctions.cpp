@@ -689,7 +689,7 @@ CPtr<CDnnBlob> CTapeSum::JacobianImpl( const CDnnBlob* blob, int axis, const CTa
 		int followingDimension;
 		getDimensions( blob, axis, followingDimension, dimension, precedingDimension );
 		int resultHeight = followingDimension * precedingDimension;
-		if( resultHeight == 1 ) {
+		if( height == 1 && resultHeight == 1 ) {
 			return jacobian;
 		}
 		result = CDnnBlob::CreateBlob( jacobian->GetMathEngine(), { resultHeight, 1, 1, 1, 1, 1, width } );
