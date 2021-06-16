@@ -188,9 +188,9 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
             target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_CUDA)
             target_compile_options(${PROJECT_NAME} PRIVATE
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=compute_35>
+                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_61,code=sm_61>
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_75,code=sm_75>
-                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_86,code=sm_86>
-                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_86,code=compute_86>)
+                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_86,code=sm_86>)
             target_sources(${PROJECT_NAME}
                 PRIVATE
                     GPU/CUDA/CublasDll.cpp
