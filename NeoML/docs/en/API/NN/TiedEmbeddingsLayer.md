@@ -1,8 +1,8 @@
-# CTiedEmbeddingsLayerd Class
+# CTiedEmbeddingsLayer Class
 
 <!-- TOC -->
 
-- [CTiedEmbeddingsLayerd Class](#ctiedembeddingslayerd-class)
+- [CTiedEmbeddingsLayer Class](#ctiedembeddingslayer-class)
   - [Settings](#settings)
     - [EmbeddingsLayerName](#embeddingslayername)
     - [ChannelIndex](#channelindex)
@@ -28,11 +28,11 @@ Embeddings layer `name`. Only CMultichannelLookupLayer is allowed.
 ```c++
 void SetChannelIndex( int val );
 ```
-Embedding channel index `val`
+Embedding channel index.
 
 ## Trainable parameters
 
-This layer uses shared params from embeddings layer.
+This layer uses shared parameters from the embeddings layer.
 
 ## Inputs
 
@@ -47,4 +47,4 @@ The number of outputs is equal to the number of inputs.
 Each output contains a blob with dimensions:
 - `BatchLength * BatchWidth * ListSize` objects
 - `Height`, `Width`, `Depth` are equal to `1`
-- `Channels` is equal to `EmbeddingsCount`.
+- `Channels` is equal to `EmbeddingsCount`

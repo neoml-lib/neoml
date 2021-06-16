@@ -21,7 +21,7 @@
 ```c++
 void SetEmbeddingsLayerName( const char* name )
 ```
-Использовать слой эмбеддингов `name`. Только слой CMultichannelLookupLayer разрешен.
+Использовать слой эмбеддингов `name`. Поддерживается только CMultichannelLookupLayer.
 
 ### ChannelIndex
 
@@ -37,14 +37,14 @@ void SetChannelIndex( int val );
 ## Входы
 
 На каждый вход подается блоб с размерами:
-- `BatchLength * BatchWidth * ListSize` равно числу объектов
-- `Height`, `Width`, `Depth` равно `1`
-- `Channels` равно `EmbeddingSize`
+- `BatchLength * BatchWidth * ListSize` равно числу объектов;
+- `Height`, `Width`, `Depth` равны `1`;
+- `Channels` равно `EmbeddingSize`.
 
 ## Выходы
 
 Количество выходов равно количеству входов.
 Каждый выход содержит блоб с размерами:
-- `BatchLength * BatchWidth * ListSize` объектов 
-- `Height`, `Width`, `Depth` равно `1`
+- `BatchLength * BatchWidth * ListSize` объектов;
+- `Height`, `Width`, `Depth` равно `1`;
 - `Channels` равно `EmbeddingsCount` - количество эмбеддингов.
