@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <NeoMathEngine/SimdMathEngine.h>
 #include <RawMemoryManager.h>
 #include <DllLoader.h>
 #include <mutex>
@@ -69,6 +70,8 @@ public:
 	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
+	void VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) override;
 	void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorEqualValue( const CConstIntHandle& firstHandle,
@@ -489,6 +492,7 @@ private:
 
 	CDllLoader dllLoader; // loading library for simd instructions
 	std::unique_ptr<const ISimdMathEngine> simdMathEngine; // interface for using simd instructions
+	SgemmFunc customSgemmFunction; // Used when it is availabled and is faster then default sgemm
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 

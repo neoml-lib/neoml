@@ -40,6 +40,7 @@ neoml.Dnn
 - :ref:`py-dnn-initializers`
 - :ref:`py-dnn-solver`
 - :ref:`py-dnn-random`
+- :ref:`py-dnn-autodiff`
 
 .. _py-dnn-network:
 
@@ -382,7 +383,7 @@ MultiSquaredHingeLoss
 CustomLoss
 ==========
 
-NeoML provides an interface for user-implemented custom loss functions.
+NeoML provides an interface for user-implemented custom loss functions. They must be constructed out of simple arithmetic and :ref:`py-dnn-autodiff` functions.
 
 .. autoclass:: neoml.Dnn.CustomLossCalculatorBase
    :members:
@@ -875,3 +876,37 @@ Random
 
 .. autoclass:: neoml.Random.Random
    :members:
+
+.. _py-dnn-autodiff:
+
+Autodifferentiation
+####################
+
+NeoML supports autodifferentiation for a wide set of operations. Use these operations and simple arithmetic if you'd like to create your own loss function `neoml.Dnn.CustomLoss`. Then during the backward pass, NeoML will be able to calculate gradients of your custom loss.
+
+.. automethod:: neoml.AutoDiff.const
+
+Simple arithmetic operations
+******************************
+
+.. automethod:: neoml.AutoDiff.add
+.. automethod:: neoml.AutoDiff.sub
+.. automethod:: neoml.AutoDiff.mul
+.. automethod:: neoml.AutoDiff.div
+
+Basic math functions
+*********************
+
+.. automethod:: neoml.AutoDiff.max
+.. automethod:: neoml.AutoDiff.sum
+.. automethod:: neoml.AutoDiff.neg
+.. automethod:: neoml.AutoDiff.abs
+.. automethod:: neoml.AutoDiff.log
+.. automethod:: neoml.AutoDiff.exp
+
+Other operations
+*******************
+
+.. automethod:: neoml.AutoDiff.clip
+.. automethod:: neoml.AutoDiff.top_k
+.. automethod:: neoml.AutoDiff.binary_cross_entropy

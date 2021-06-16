@@ -241,6 +241,12 @@ void CMetalMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int ve
     ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
 }
 
+void CMetalMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
     const CFloatHandle& resultHandle, int vectorSize )
 {

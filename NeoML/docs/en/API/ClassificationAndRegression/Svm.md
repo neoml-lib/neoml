@@ -21,10 +21,11 @@ The parameters are represented by a `CSvm::CParams` structure.
 - *Coeff0* — the kernel free term (for `KT_Poly`, `KT_Sigmoid`)
 - *Tolerance* — the algorithm precision, the stop criterion
 - *ThreadCount* — the number of processing threads to be used while training
+- *MulticlassMode* - the approach used in multiclass task: OneVsAll (default) or OneVsOne
 
 ## Model
 
-The trained model implements the [`ILinearBinaryModel`](Linear.md#for-classification) interface if a `KT_Linear` kernel is used; the [`IOneVersusAllModel`](OneVersusAll.md#model) if number of classes > 2; otherwise, it implements the `ISvmBinaryModel` interface.
+The trained model implements the [`ILinearBinaryModel`](Linear.md#for-classification) interface if a `KT_Linear` kernel is used; or `MuticlassMode` model if number of classes > 2; otherwise, it implements the `ISvmBinaryModel` interface.
 
 ```c++
 // SVM binary classifier interface
