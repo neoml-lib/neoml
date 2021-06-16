@@ -49,26 +49,26 @@
 
 |Целевая операционная система|Компилятор|Архитектура|
 |----------|----------|------------------------------|
-|Windows 7+ (CPU и GPU)|MSVC 2015+|x86, x86_64|
+|Windows 7+ (CPU и GPU)|MSVC 2019+|x86, x86_64|
 |Ubuntu 14+ (CPU) |gcc 5.4+|x86_64|
-|MacOS 10.11+|Apple clang 11+|x86_64|
-|iOS 11+ (CPU, GPU)|Apple clang 11+|arm64-v8a, x86_64|
+|MacOS 10.11+|Apple clang 12+|x86_64|
+|iOS 11+ (CPU, GPU)|Apple clang 12+|arm64-v8a, x86_64|
 |Android 5.0+ (CPU), Android 7.0+ (GPU)|clang 7+|armeabi-v7a, arm64-v8a, x86, x86_64|
 
 Версии для прямого прохода нейронных сетей на Java и Objective-C тестировались на платформах:
 
 |Целевая операционная система|Компилятор|Архитектура|
 |----------|----------|------------------------------|
-|iOS 11+ (CPU, GPU)|Apple clang 11+|arm64-v8a, x86_64|
+|iOS 11+ (CPU, GPU)|Apple clang 12+|arm64-v8a, x86_64|
 |Android 5.0+ (CPU), Android 7.0+ (GPU)|clang 7+|armeabi-v7a, arm64-v8a, x86, x86_64|
 
 ### Сторонние программы
 
-Для сборки вам понадобится [CMake](https://cmake.org/download/) (версии не ниже 3.11).
+Для сборки вам понадобится [CMake](https://cmake.org/download/) (версии не ниже 3.18).
 
 Для максимальной производительности на CPU под Windows, Linux и macOS мы используем [Intel MKL](https://software.intel.com/en-us/mkl).
 
-Также опционально для вычислений на GPU под Windows можно использовать [CUDA](https://developer.nvidia.com/cuda-downloads) (версии 10.2), а для Android - [Vulkan](https://vulkan.lunarg.com/sdk/home) (версии не ниже 1.1.130).
+Также опционально для вычислений на GPU под Windows можно использовать [CUDA](https://developer.nvidia.com/cuda-downloads) (версии 11.2 upd.1), а для Android - [Vulkan](https://vulkan.lunarg.com/sdk/home) (версии не ниже 1.1.130).
 
 ### Сборка полных C++ версий
 
@@ -125,7 +125,7 @@
 Использование GPU часто позволяет получить существенный выигрыш в производительности при выполнении математических операций. **NeoML** активно использует возможности GPU при обучении и запуске моделей.
 Данная возможность является опциональной и зависит от наличия необходимого аппаратного и программного обеспечения. Библиотека предъявляет следующие требования для использования GPU:
 
-- Windows: NVIDIA® GPU card с поддержкой CUDA® 10.2.
+- Windows: NVIDIA® GPU card с поддержкой CUDA® 11.2 upd. 1.
 - iOS: Apple GPU A7+.
 - Android: устройства с поддержкой Vulkan 1.0.
 - Linux/macOS: вычисления на GPU пока не поддержаны. 
