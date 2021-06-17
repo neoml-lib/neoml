@@ -113,10 +113,10 @@ enum TRecurrentMode {
     RM_Direct,
     RM_Reverse,
 
-    // Двунаправлаенный режим при котором обе рекурренты используют одну и ту же свертку по времени
+    // Двунаправленный режим, при котором обе рекурренты используют одну и ту же свертку по времени
     RM_BidirectionalConcat, // возвращает объединение результатов прямой и обратной рекуррент
     RM_BidirectionalSum, // возвращает сумму результатов прямой и обратной рекуррент
-    // В случае двунаправленного qrnn где у каждой рекурренты должна быть своя свертка по времени
+    // В случае двунаправленного QRNN, где у каждой рекурренты должна быть своя свертка по времени,
     // нужно создать 2 CQrrnLayer и объединить их результаты при помощи CConcatChannelsLayer или CEltwiseSumLayer
 
     RM_Count
@@ -182,9 +182,9 @@ CPtr<CDnnBlob> GetFreeTermData() const
 
 ## Выходы
 
-Единственный выход содержит блоб с результатами следующиего размера:
+Единственный выход содержит блоб с результатами следующего размера:
 
-- `BatchLength` вычисляемый относительно размеров входа по следующей формуле `(BatchLength + GetPaddingFront() + GetPaddingBack() - (GetWindowSize() - 1)) / GetStride() + 1)`;
-- `BatchWidth` равный `BatchWidth` у первого входа;
-- `ListSize`, `Height`, `Width` и `Depth` равные `1`;
-- `Channels` равный `2 * GetHiddenSize()` если `GetRecurrentMode()` равен `RM_BidirectionalConcat`. В остальных случаях равен `GetHiddenSize()`.
+- `BatchLength` можно вычислить из размеров входа по следующей формуле `(BatchLength + GetPaddingFront() + GetPaddingBack() - (GetWindowSize() - 1)) / GetStride() + 1)`;
+- `BatchWidth` равен `BatchWidth` у первого входа;
+- `ListSize`, `Height`, `Width` и `Depth` равны `1`;
+- `Channels` равен `2 * GetHiddenSize()`, если `GetRecurrentMode()` установлен в `RM_BidirectionalConcat`. В остальных случаях равен `GetHiddenSize()`.

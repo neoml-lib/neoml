@@ -25,7 +25,7 @@ The parameters are represented by a `CSvm::CParams` structure.
 
 ## Model
 
-The trained model implements the [`ILinearBinaryModel`](Linear.md#for-classification) interface if a `KT_Linear` kernel is used; or `MuticlassMode` model if number of classes > 2; otherwise, it implements the `ISvmBinaryModel` interface.
+The trained model implements the [`ILinearBinaryModel`](Linear.md#for-classification) interface if a `KT_Linear` kernel is used; or `MulticlassMode` model if number of classes > 2; otherwise, it implements the `ISvmBinaryModel` interface.
 
 ```c++
 // SVM binary classifier interface
