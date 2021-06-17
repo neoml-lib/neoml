@@ -2094,6 +2094,14 @@ class DnnTestCase(TestCase):
         dnn = neoml.Dnn.Dnn(math_engine)
         self.assertTrue(isinstance(dnn.math_engine, neoml.MathEngine.CpuMathEngine))
 
+    def test_default_math_engine(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        data = [1, 2]
+        first_blob = neoml.Blob.asblob(math_engine, np.array(data, dtype=np.int32), (2, 1, 1, 1, 1, 1, 1))
+        second_blob = first_blob.copy(neoml.MathEngine.default_math_engine())
+        self.assertEqual(second_blob.batch_len, 2)
+        self.assertEqual(list(second_blob.asarray()), data)
+
     def test_properties(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
