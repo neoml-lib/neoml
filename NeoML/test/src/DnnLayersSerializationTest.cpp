@@ -41,7 +41,7 @@ GTEST_TEST( LayerSerialization, CheckRegisteredLayers )
 	ignoredLayers.Add( "FmlCnnGlobalMainPoolingLayer" ); // It's an alternative name for CGlobalMeanPoolingLayer
 
 	CArray<const char*> layerClasses;
-	GetRegisteredLayerNames( layerClasses );
+	GetRegisteredLayerClasses( layerClasses );
 
 	for( int i = 0; i < layerClasses.Size(); ++i ) {
 		// skip ignored layers
