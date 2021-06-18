@@ -6,7 +6,7 @@
     - [Settings](#settings)
         - [Hidden layer size](#hidden-layer-size)
         - [Identity scale](#identity-scale)
-        - [Input weight std](#input-weight-std)
+        - [Input weight standard deviation](#input-weight-standard-deviation)
     - [Trainable parameters](#trainable-parameters)
         - [Input weight matrix](#input-weight-matrix)
         - [Input free terms](#input-free-terms)
@@ -17,7 +17,7 @@
 
 <!-- /TOC -->
 
-This class implements IRNN from this [article](https://arxiv.org/pdf/1504.00941.pdf).
+This class implements an identity recurrent neural network (IRNN) from [this article](https://arxiv.org/pdf/1504.00941.pdf).
 
 It's a simple recurrent unit with the following formula:
 
@@ -27,9 +27,11 @@ It's a simple recurrent unit with the following formula:
 
 where `FC_*` are fully-connected layers.
 
-The crucial point of this layer is weights initialization.
-The weight matrix of `FC_input` is initialized from `N(0, inputWeightStd)` where `inputWeightStd` is a layer setting.
-The weight matrix of `FC_recur` is initialized with an identity matrix multiplied by `identityScale` setting.
+The crucial point of this layer lies in the weights initialization.
+
+The weight matrix of `FC_input` is initialized from `N(0, inputWeightStd)`, where `inputWeightStd` is a layer setting.
+
+The weight matrix of `FC_recur` is initialized with an identity matrix multiplied by `identityScale` value.
 
 ## Settings
 
@@ -47,9 +49,9 @@ Sets the hidden layer size. It affects the output size.
 void SetIdentityScale( float scale );
 ```
 
-Sets the scale of identity matrix, used for the initialization of recurrent weights.
+Sets the multiplier for identity matrix that is used for the initialization of recurrent weights.
 
-### Input weight std
+### Input weight standard deviation
 
 ```c++
 void SetInputWeightStd( float var );
@@ -65,11 +67,11 @@ Sets the standard deviation for input weights.
 CPtr<CDnnBlob> GetInputWeightsData() const;
 ```
 
-The weight matrix of the `FC_input` from formula.
+The weight matrix of the `FC_input` from the formula.
 
 It has the following shape:
 
-- `BatchLength * BatchWidth * ListSize` is equal to `GetHiddenSize()`
+- `BatchLength * BatchWidth * ListSize` is equal to `GetHiddenSize()`.
 - `Height * Width * Depth * Channels` is equal to the product of the same dimensions of the input.
 
 ### Input free terms
@@ -86,7 +88,7 @@ The free terms of the `FC_input`. It's represented by a blob of the total size `
 CPtr<CDnnBlob> GetRecurWeightsData() const;
 ```
 
-The weight matrix of the `FC_recur` from formula.
+The weight matrix of the `FC_recur` from the formula.
 
 It has the following shape:
 
