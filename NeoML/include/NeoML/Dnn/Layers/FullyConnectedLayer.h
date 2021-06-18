@@ -37,13 +37,13 @@ public:
 	// The dimensions of the blob are NumOfElements * InputHeight * InputWidth * InputChannelsCount
 	// If the weights have not been initialized, an empty blob will be returned; pass an empty blob to reset the weights
 	CPtr<CDnnBlob> GetWeightsData() const;
-	void SetWeightsData(CDnnBlob* newWeights);
+	void SetWeightsData(const CDnnBlob* newWeights);
 
 	// Retrieves or sets the free term (the data blob is copied)
 	// The free term blob should be of NumOfElements size
 	// If the free term has not been initialized, an empty blob will be returned; pass an empty blob to reset the free term
 	CPtr<CDnnBlob> GetFreeTermData() const;
-	void SetFreeTermData(CDnnBlob* newFreeTerms);
+	void SetFreeTermData(const CDnnBlob* newFreeTerms);
 
 	// Applies the batch normalization parameters to the internal parameters of the layer
 	// The layer will then return the same output 

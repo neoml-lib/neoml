@@ -141,7 +141,7 @@ CPtr<CDnnBlob> CFullyConnectedLayer::GetWeightsData() const
 	return Weights()->GetCopy();
 }
 
-void CFullyConnectedLayer::SetWeightsData(CDnnBlob* newWeights)
+void CFullyConnectedLayer::SetWeightsData(const CDnnBlob* newWeights)
 {
 	if(newWeights == 0) {
 		NeoAssert(Weights() == 0 || GetDnn() == 0);
@@ -168,7 +168,7 @@ CPtr<CDnnBlob> CFullyConnectedLayer::GetFreeTermData() const
 	return FreeTerms()->GetCopy();
 }
 
-void CFullyConnectedLayer::SetFreeTermData(CDnnBlob* newFreeTerms)
+void CFullyConnectedLayer::SetFreeTermData(const CDnnBlob* newFreeTerms)
 {
 	if(newFreeTerms == 0) {
 		NeoAssert(FreeTerms() == 0 || GetDnn() == 0);

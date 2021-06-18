@@ -78,6 +78,8 @@ public:
 	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
+	void VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) override;
 	void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorEqualValue( const CConstIntHandle& firstHandle,
@@ -463,6 +465,14 @@ public:
 		const CBlobDesc& result, const CFloatHandle& resultData ) override;
 	void Reorg( const CBlobDesc& source, const CIntHandle& sourceData, int stride, bool isForward,
 		const CBlobDesc& result, const CIntHandle& resultData ) override;
+	void SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) override;
+	void SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) override;
+	void DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) override;
+	void DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) override;
 	void AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
 	void AddWidthIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
 	void AddHeightIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
@@ -484,6 +494,15 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) override;
+	void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+		const CFloatHandle& h ) override;
+	void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& wxDiff ) override;
+	void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& uDiff ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:

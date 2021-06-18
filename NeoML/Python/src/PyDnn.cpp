@@ -160,6 +160,7 @@ REGISTER_NEOML_PYLAYER( "MultiheadAttention", "NeoMLDnnMultiheadAttentionLayer" 
 REGISTER_NEOML_PYLAYER( "PositionalEmbedding", "NeoMLDnnPositionalEmbeddingLayer" )
 REGISTER_NEOML_PYLAYER( "ProjectionPooling", "FmlCnnProjectionPoolingLayerClass" )
 REGISTER_NEOML_PYLAYER( "Irnn", "NeoMLDnnIrnnLayer" )
+REGISTER_NEOML_PYLAYER( "IndRnn", "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_PYLAYER( "Qrnn", "NeoMLDnnQrnnLayer" )
 
 }
