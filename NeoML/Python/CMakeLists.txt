@@ -60,6 +60,7 @@ pybind11_add_module(PythonWrapper
     src/PyFullyConnectedLayer.cpp
     src/PyInitializer.cpp
     src/PyImageConversionLayer.cpp
+    src/PyIndRnnLayer.cpp
     src/PyIrnnLayer.cpp
     src/PyGruLayer.cpp
     src/PyLayer.cpp

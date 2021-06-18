@@ -114,6 +114,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
 #include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
 #include <NeoML/Dnn/Layers/IrnnLayer.h>
+#include <NeoML/Dnn/Layers/IndRnnLayer.h>
 #include <NeoML/ArchiveFile.h>
 
 #ifndef NO_NEOML_NAMESPACE

@@ -27,6 +27,8 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/EltwiseLogSumExpVectorToMatrixElementsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FilterSmallValuesTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMinValueInColumnsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnLearnTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LookupAndAddToTableTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixLogSumExpByColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixLogSumExpByRowsTest.cpp

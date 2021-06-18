@@ -136,6 +136,7 @@ set(SHADER_SOURCES
     BlobReorgInt.comp
     QrnnFPooling.comp
     QrnnIfPooling.comp
+    IndRnnRecurrent.comp
 )
 
 set(IB_SHADER_SOURCES

@@ -187,6 +187,7 @@ enum TShader {
 	SH_BlobReorgInt,
 	SH_QrnnFPooling,
 	SH_QrnnIfPooling,
+	SH_IndRnnRecurrent,
 
 	SH_Count
 };
