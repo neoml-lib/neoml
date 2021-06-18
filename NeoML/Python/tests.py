@@ -1445,6 +1445,41 @@ class LayersTestCase(TestCase):
         self.assertEqual(out1.shape, (9, 3, 14, 11, 9, 7))
         self.assertEqual(out2.shape, (9, 3, 14, 11, 9, 7))
 
+    def test_depthtospace(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        depth_to_space = neoml.Dnn.DepthToSpace(source, block_size=3, name='depth_to_space')
+        sink = neoml.Dnn.Sink(depth_to_space, 'sink')
+
+        self.assertEqual(depth_to_space.name, 'depth_to_space')
+        self.assertEqual(depth_to_space.block_size, 3)
+        depth_to_space.block_size = 2
+        self.assertEqual(depth_to_space.block_size, 2)
+
+        input_blob = neoml.Blob.asblob(math_engine, np.ones((2, 3, 5, 4, 8, 12), dtype=np.float32), (2, 3, 5, 4, 8, 1, 12))
+        outputs = dnn.run({'source' : input_blob})
+        out = outputs['sink'].asarray()
+        self.assertEqual(out.shape, (2, 3, 5, 8, 16, 3))
+
+    def test_spacetodepth(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        space_to_depth = neoml.Dnn.SpaceToDepth(source, block_size=3, name='space_to_depth')
+        sink = neoml.Dnn.Sink(space_to_depth, 'sink')
+
+        self.assertEqual(space_to_depth.name, 'space_to_depth')
+        self.assertEqual(space_to_depth.block_size, 3)
+        space_to_depth.block_size = 2
+        self.assertEqual(space_to_depth.block_size, 2)
+
+        input_blob = neoml.Blob.asblob(math_engine, np.ones((2, 3, 5, 4, 8, 12), dtype=np.float32), (2, 3, 5, 4, 8, 1, 12))
+        outputs = dnn.run({'source' : input_blob})
+        out = outputs['sink'].asarray()
+        self.assertEqual(out.shape, (2, 3, 5, 2, 4, 48))
+
+
 class PoolingTestCase(TestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
                       input_shape=(2, 1, 2, 3, 5, 4, 2)):

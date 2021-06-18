@@ -759,6 +759,20 @@ public:
 	virtual void Reorg( const CBlobDesc& source, const CIntHandle& sourceData, int stride, bool isForward,
 		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
 
+	// Rearranges the blob elements from N x H x W x C to N x H / blockSize x W / blockSize x C * blockSize * blockSize
+	// The name is chosen to be similar with other frameworks
+	virtual void SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
+	virtual void SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+
+	// Rearranges the blob elements from N x H x W x C to N x H * blockSize x W * blockSize x C / (blockSize * blockSize)
+	// The name is chosen to be similar with other frameworks
+	virtual void DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
+	virtual void DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+
 	// To each element, adds its column number (on forward pass)
 	// 0 1 2   --->    0 2 4
 	// 3 4 5           3 5 7

@@ -2203,3 +2203,62 @@ GTEST_TEST( SerializeFromFile, IndRnnLayerSerialization )
 {
 	checkSerializeLayer<CIndRnnLayer>( "NeoMLDnnIndRnnLayer" );
 }
+
+// ====================================================================================================================
+
+// CDepthToSpaceLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CDepthToSpaceLayer& layer )
+{
+	layer.SetBlockSize( 3 );
+}
+
+GTEST_TEST( SerializeToFile, DepthToSpaceLayerSerialization )
+{
+	serializeToFile<CDepthToSpaceLayer>( "NeoMLDnnDepthToSpaceLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CDepthToSpaceLayer>( CDepthToSpaceLayer& layer )
+{
+	EXPECT_EQ( 3, layer.GetBlockSize() );
+}
+
+GTEST_TEST( SerializeFromFile, DepthToSpaceLayerSerialization )
+{
+	checkSerializeLayer<CDepthToSpaceLayer>( "NeoMLDnnDepthToSpaceLayer" );
+}
+
+// ====================================================================================================================
+
+// CSpaceToDepthLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CSpaceToDepthLayer& layer )
+{
+	layer.SetBlockSize( 4 );
+}
+
+GTEST_TEST( SerializeToFile, SpaceToDepthLayerSerialization )
+{
+	serializeToFile<CSpaceToDepthLayer>( "NeoMLDnnSpaceToDepthLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CSpaceToDepthLayer>( CSpaceToDepthLayer& layer )
+{
+	EXPECT_EQ( 4, layer.GetBlockSize() );
+}
+
+GTEST_TEST( SerializeFromFile, SpaceToDepthLayerSerialization )
+{
+	checkSerializeLayer<CSpaceToDepthLayer>( "NeoMLDnnSpaceToDepthLayer" );
+}
+

@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
+#include <CpuMathEnginePrivate.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <CpuMathEnginePrivate.h>
@@ -787,6 +788,123 @@ void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int
 			currTotalHDiff += objectSize;
 		}
 	}
+}
+
+template<class T>
+static inline void SpaceToDepthFunc( const T* source, int dataRowCount, int dataRowWidth,
+	int blockChannels, int blockSize, bool isForward, T* result, int threadCount )
+{
+	// flattens 3d-block of size (blockSize x blockSize x channels)
+
+	// number of elements in a single row inside 3d-block
+	const int blockRowSize = blockChannels * blockSize;
+
+	// offset for switching to the next data row
+	const int dataRowSize = blockSize * ( dataRowWidth * blockSize ) * blockChannels;
+	// offset for switching to the next block inside data row
+	const int sourceBlockOffset = isForward ? blockRowSize : blockSize * blockRowSize;
+	const int resultBlockOffset = isForward ? blockSize * blockRowSize : blockRowSize;
+	// offset for switching to the next row inside the 3d-block
+	const int sourceBlockRowOffset = isForward ? dataRowWidth * blockRowSize : blockRowSize;
+	const int resultBlockRowOffset = isForward ? blockRowSize : dataRowWidth * blockRowSize;
+
+	// iterate over data rows
+	const int blobSize = dataRowCount * dataRowWidth * blockSize * blockRowSize;
+	const int curThreadCount = IsOmpRelevant( dataRowCount, blobSize ) ? threadCount : 1;
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int threadRowStart;
+		int threadRowCount;
+		if( OmpGetTaskIndexAndCount( dataRowCount, threadRowStart, threadRowCount ) ) {
+			const T* sourcePtr = source + threadRowStart * dataRowSize;
+			T* resultPtr = result + threadRowStart * dataRowSize;
+			for( int dataRowIndex = 0; dataRowIndex < threadRowCount; ++dataRowIndex ) {
+				const T* sourceRow = sourcePtr;
+				T* resultRow = resultPtr;
+				// iterate over blocks in data row
+				for( int blockIndex = 0; blockIndex < dataRowWidth; ++blockIndex ) {
+					const T* sourceBlock = sourceRow;
+					T* resultBlock = resultRow;
+					// iterate over rows of 3-dimensional (blockSize x blockSize x channels) block
+					for( int blockRowIndex = 0; blockRowIndex < blockSize; ++blockRowIndex ) {
+						// copy current row of 3d-block
+						dataCopy( resultBlock, sourceBlock, blockRowSize );
+						sourceBlock += sourceBlockRowOffset;
+						resultBlock += resultBlockRowOffset;
+					}
+					// switching to the next block
+					sourceRow += sourceBlockOffset;
+					resultRow += resultBlockOffset;
+				}
+				sourcePtr += dataRowSize;
+				resultPtr += dataRowSize;
+			}
+		}
+	}
+}
+
+void CCpuMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CFloatHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() == result.Height() * blockSize );
+	ASSERT_EXPR( source.Width() == result.Width() * blockSize );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() * blockSize * blockSize == result.Channels() );
+
+	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * result.Height(), result.Width(), source.Channels(),
+		blockSize, true, GetRaw( resultData ), threadCount );
+}
+
+void CCpuMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() == result.Height() * blockSize );
+	ASSERT_EXPR( source.Width() == result.Width() * blockSize );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() * blockSize * blockSize == result.Channels() );
+
+	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * result.Height(), result.Width(), source.Channels(),
+		blockSize, true, GetRaw( resultData ), threadCount );
+}
+
+void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CFloatHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() * blockSize == result.Height() );
+	ASSERT_EXPR( source.Width() * blockSize == result.Width() );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() == result.Channels() * blockSize * blockSize );
+
+	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * source.Height(), source.Width(), result.Channels(),
+		blockSize, false, GetRaw( resultData ), threadCount );
+}
+
+void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() * blockSize == result.Height() );
+	ASSERT_EXPR( source.Width() * blockSize == result.Width() );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() == result.Channels() * blockSize * blockSize );
+
+	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * source.Height(), source.Width(), result.Channels(),
+		blockSize, false, GetRaw( resultData ), threadCount );
 }
 
 } // namespace NeoML
