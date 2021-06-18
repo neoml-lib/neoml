@@ -58,11 +58,11 @@ static CArchive& operator >>( CArchive& archive, py::object& obj )
 
 class CTempBlob : public CDnnBlob {
 public:
-	CTempBlob( IMathEngine& mathEngine, const CConstFloatHandle& data, std::initializer_list<int> dimension );
+	CTempBlob( IMathEngine& mathEngine, const CConstFloatHandle& data, const CBlobDesc& dataDesc );
 };
 
-CTempBlob::CTempBlob( IMathEngine& mathEngine, const CConstFloatHandle& data, std::initializer_list<int> dimension ) :
-	CDnnBlob( mathEngine, CBlobDesc( dimension ), data, false )
+CTempBlob::CTempBlob( IMathEngine& mathEngine, const CConstFloatHandle& data, const CBlobDesc& dataDesc ) :
+	CDnnBlob( mathEngine, dataDesc, data, false )
 {
 }
 
@@ -85,11 +85,11 @@ protected:
 
 		CPtr<CPyMathEngineOwner> mathEngineOwner = new CPyMathEngineOwner( &MathEngine(), false );
 
-		CPtr<const CDnnBlob> dataBlob = new CTempBlob( mathEngineOwner->MathEngine(), data, {batchSize, 1, 1, 1, 1, 1, vectorSize} );
+		CPtr<const CDnnBlob> dataBlob = new CTempBlob( mathEngineOwner->MathEngine(), data, inputBlobs[0]->GetDesc() );
 		CPtr<const CDnnBlob> var = tape.Variable( *dataBlob.Ptr() );
 		CPyBlob dataPyBlob( *mathEngineOwner, const_cast<CDnnBlob*>(var.Ptr()) );
 
-		CPtr<CDnnBlob> labelBlob( new CTempBlob( mathEngineOwner->MathEngine(), label, {batchSize, 1, 1, 1, 1, 1, vectorSize} ) );
+		CPtr<CDnnBlob> labelBlob( new CTempBlob( mathEngineOwner->MathEngine(), label, inputBlobs[1]->GetDesc() ) );
 		CPyBlob labelPyBlob( *mathEngineOwner, labelBlob );
 
 		py::object pyModule = py::module::import( "neoml.Dnn" );
