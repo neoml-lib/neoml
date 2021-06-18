@@ -54,6 +54,7 @@ limitations under the License.
 #include "PyRepeatSequenceLayer.h"
 #include "PySequenceSumLayer.h"
 #include "PySoftmaxLayer.h"
+#include "PySpaceAndDepthLayer.h"
 #include "PySplitLayer.h"
 #include "PySubSequenceLayer.h"
 #include "PyTransformLayer.h"
@@ -128,6 +129,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeTiedEmbeddingsLayer( m );
 	InitializeUpsampling2DLayer( m );
 	InitializeSourceLayer( m );
+	InitializeSpaceAndDepthLayer( m );
 	InitializeSinkLayer( m );
 
 	InitializeSolver( m );

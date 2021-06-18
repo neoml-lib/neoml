@@ -37,6 +37,7 @@ from .SequenceSum import SequenceSum
 from .Sink import Sink
 from .Softmax import Softmax
 from .Source import Source
+from .SpaceAndDepth import DepthToSpace, SpaceToDepth
 from .Split import SplitChannels, SplitDepth, SplitWidth, SplitHeight, SplitBatchWidth  
 from .SubSequence import SubSequence, ReverseSequence
 from .TiedEmbeddings import TiedEmbeddings
