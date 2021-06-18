@@ -2142,6 +2142,70 @@ GTEST_TEST( SerializeFromFile, IrnnLayerSerialization )
 
 // ====================================================================================================================
 
+// CIndRnnRecurrentLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CIndRnnRecurrentLayer& layer )
+{
+	layer.SetReverseSequence( true );
+	layer.SetDropoutRate( 0.5f );
+}
+
+GTEST_TEST( SerializeToFile, IndRnnRecurrentLayerSerialization )
+{
+	serializeToFile<CIndRnnRecurrentLayer>( "NeoMLDnnIndRnnRecurrentLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CIndRnnRecurrentLayer>( CIndRnnRecurrentLayer& layer )
+{
+	EXPECT_EQ( true, layer.IsReverseSequence() );
+	EXPECT_NEAR( 0.5f, layer.GetDropoutRate(), 1e-6f );
+}
+
+GTEST_TEST( SerializeFromFile, IndRnnRecurrentLayerSerialization )
+{
+	checkSerializeLayer<CIndRnnRecurrentLayer>( "NeoMLDnnIndRnnRecurrentLayer" );
+}
+
+// ====================================================================================================================
+
+// CIndRnnLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CIndRnnLayer& layer )
+{
+	layer.SetHiddenSize( 3 );
+	layer.SetReverseSequence( true );
+	layer.SetDropoutRate( 0.25f );
+}
+
+GTEST_TEST( SerializeToFile, IndRnnLayerSerialization )
+{
+	serializeToFile<CIndRnnLayer>( "NeoMLDnnIndRnnLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CIndRnnLayer>( CIndRnnLayer& layer )
+{
+	EXPECT_EQ( 3, layer.GetHiddenSize() );
+	EXPECT_EQ( true, layer.IsReverseSequence() );
+	EXPECT_NEAR( 0.25f, layer.GetDropoutRate(), 1e-6f );
+}
+
+GTEST_TEST( SerializeFromFile, IndRnnLayerSerialization )
+{
+	checkSerializeLayer<CIndRnnLayer>( "NeoMLDnnIndRnnLayer" );
+}
+
+// ====================================================================================================================
+
 // CDepthToSpaceLayer
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -2197,3 +2261,4 @@ GTEST_TEST( SerializeFromFile, SpaceToDepthLayerSerialization )
 {
 	checkSerializeLayer<CSpaceToDepthLayer>( "NeoMLDnnSpaceToDepthLayer" );
 }
+

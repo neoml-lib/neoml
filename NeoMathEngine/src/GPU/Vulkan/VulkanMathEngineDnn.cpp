@@ -40,6 +40,7 @@ namespace NeoML {
 #include <shaders/generated/BlobReorgInt.h>
 #include <shaders/generated/QrnnFPooling.h>
 #include <shaders/generated/QrnnIfPooling.h>
+#include <shaders/generated/IndRnnRecurrent.h>
 #include <shaders/generated/SpaceToDepthFloat.h>
 #include <shaders/generated/SpaceToDepthInt.h>
 
@@ -537,6 +538,49 @@ void CVulkanMathEngine::QrnnIfPoolingBackward( bool /*reverse*/, int /*sequenceL
 	const CConstFloatHandle& /*update*/, const CConstFloatHandle& /*forget*/, const CConstFloatHandle& /*input*/,
 	const CConstFloatHandle& /*initialState*/, const CConstFloatHandle& /*result*/, const CFloatHandle& /*resultDiff*/,
 	const CFloatHandle& /*updateDiff*/, const CFloatHandle& /*forgetDiff*/, const CFloatHandle& /*inputDiff*/ )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+	const CFloatHandle& h)
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( wx.GetMathEngine() == this );
+	ASSERT_EXPR( mask.IsNull() ); // Inference-only kernel, that's why dropout can't be applied
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+
+	const size_t weightSize = objectSize * sizeof( float );
+	const size_t dataSize = sequenceLength * batchSize * weightSize;
+
+	size_t sizes[3] = { dataSize, weightSize, dataSize };
+
+	PARAM_STRUCT( IndRnnRecurrent ) param = {
+		reverse ? 1 : 0,
+		sequenceLength,
+		batchSize,
+		objectSize
+	};
+
+	CMemoryHandle buffs[3] = { wx, u, h };
+	runVectorShader( shaderLoader->GET_SHADER_DATA( IndRnnRecurrent, true, 0, 0, 3 ), &param,
+		sizeof( param ), 0, 0, 0, 0, buffs, sizes, 3, batchSize * objectSize );
+}
+
+void CVulkanMathEngine::IndRnnRecurrentBackward( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
+	const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
+	const CFloatHandle& /*wxDiff*/ )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::IndRnnRecurrentLearn( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
+	const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
+	const CFloatHandle& /*uDiff*/ )
 {
 	ASSERT_EXPR( false );
 }

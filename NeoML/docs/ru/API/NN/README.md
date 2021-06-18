@@ -301,6 +301,7 @@ delete gpuMathEngine;
   - [CGruLayer](GruLayer.md) - реализация Gated Recurrent Unit
   - [CQrnnLayer](QrnnLayer.md) - квази-рекуррентный слой
   - [CIrnnLayer](IrnnLayer.md) - [IRNN](https://arxiv.org/pdf/1504.00941.pdf)
+  - [CIndRnnLayer](IndRnnLayer.md) - [IndRNN](https://arxiv.org/pdf/1803.04831.pdf)
 - [Условное случайное поле (CRF)](CrfLayers/README.md):
   - [CCrfLayer](CrfLayers/CrfLayer.md) - условное случайное поле
   - [CCrfLossLayer](CrfLayers/CrfLossLayer.md) - функция потерь для обучения условного случайного поля

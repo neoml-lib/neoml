@@ -82,6 +82,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
 #include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
 #include <NeoML/Dnn/Layers/IrnnLayer.h>
+#include <NeoML/Dnn/Layers/IndRnnLayer.h>
 #include <NeoML/Dnn/Layers/DepthToSpaceLayer.h>
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
 
@@ -316,6 +317,8 @@ REGISTER_NEOML_LAYER( CQrnnFPoolingLayer, "NeoMLDnnQrnnFPoolingLayer" )
 REGISTER_NEOML_LAYER( CQrnnIfPoolingLayer, "NeoMLDnnQrnnIfPoolingLayer" )
 REGISTER_NEOML_LAYER( CTiedEmbeddingsLayer, "TiedEmbeddingsLayer" )
 REGISTER_NEOML_LAYER( CIrnnLayer, "NeoMLDnnIrnnLayer" )
+REGISTER_NEOML_LAYER( CIndRnnRecurrentLayer, "NeoMLDnnIndRnnRecurrentLayer" )
+REGISTER_NEOML_LAYER( CIndRnnLayer, "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_LAYER( CDepthToSpaceLayer, "NeoMLDnnDepthToSpaceLayer" )
 REGISTER_NEOML_LAYER( CSpaceToDepthLayer, "NeoMLDnnSpaceToDepthLayer" )
 

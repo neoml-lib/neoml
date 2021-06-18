@@ -551,6 +551,44 @@ void CMetalMathEngine::QrnnIfPoolingBackward( bool /*reverse*/, int /*sequenceLe
     ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+    const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+    const CFloatHandle& h )
+{
+    ASSERT_EXPR( sequenceLength >= 1 );
+    ASSERT_EXPR( batchSize >= 1 );
+    ASSERT_EXPR( objectSize >= 1 );
+    ASSERT_EXPR( wx.GetMathEngine() == this );
+    ASSERT_EXPR( mask.IsNull() ); // Inference-only kernel, that's why dropout can't be applied
+    ASSERT_EXPR( u.GetMathEngine() == this );
+    ASSERT_EXPR( h.GetMathEngine() == this );
+
+    C2DKernel kernel( *queue, "matrixIndRnnRecurrent", 1, 1, batchSize, objectSize );
+    kernel.SetParam( reverse, 0 );
+    kernel.SetParam( sequenceLength, 1 );
+    kernel.SetParam( batchSize, 2 );
+    kernel.SetParam( objectSize, 3 );
+    kernel.SetParam( wx, 4 );
+    kernel.SetParam( u, 5 );
+    kernel.SetParam( h, 6 );
+
+    ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::IndRnnRecurrentBackward( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
+    const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
+    const CFloatHandle& /*wxDiff*/ )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::IndRnnRecurrentLearn( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
+    const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
+    const CFloatHandle& /*uDiff*/ )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL

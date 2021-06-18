@@ -136,6 +136,7 @@ set(SHADER_SOURCES
     BlobReorgInt.comp
     QrnnFPooling.comp
     QrnnIfPooling.comp
+    IndRnnRecurrent.comp
     SpaceToDepthFloat.comp
     SpaceToDepthInt.comp
 )

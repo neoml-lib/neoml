@@ -20,6 +20,7 @@ from .Eltwise import EltwiseSum, EltwiseMul, EltwiseNegMul, EltwiseMax
 from .FullyConnected import FullyConnected
 from .Gru import Gru
 from .ImageConversion import ImageResize, PixelToImage, ImageToPixel  
+from .IndRnn import IndRnn
 from .Irnn import Irnn
 from .Lstm import Lstm
 from .Loss import CrossEntropyLoss, BinaryCrossEntropyLoss, EuclideanLoss, HingeLoss, SquaredHingeLoss, FocalLoss, BinaryFocalLoss, CenterLoss, MultiHingeLoss, MultiSquaredHingeLoss, CustomLoss, CustomLossCalculatorBase, call_loss_calculator
