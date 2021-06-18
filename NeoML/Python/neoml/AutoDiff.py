@@ -88,7 +88,7 @@ def max(a, b):
     
     raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
 
-def sum(a):
+def sum(a, axis=None):
     """Calculates the total sum of blob elements.
     """
     if not type(a) is Blob:
@@ -97,7 +97,7 @@ def sum(a):
     if a.size == 0:
         raise ValueError("The blob shouldn't be empty.")
     
-    return Blob(PythonWrapper.blob_sum(a._internal))
+    return Blob(PythonWrapper.blob_sum(a._internal, -1 if axis is None else int(axis)))
 
 def neg(a):
     """Returns the negative of a blob or a number.
