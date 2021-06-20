@@ -39,6 +39,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/ReorgTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixElementsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixRowsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/SpaceToDepthTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Upsampling2DForwardTest.cpp

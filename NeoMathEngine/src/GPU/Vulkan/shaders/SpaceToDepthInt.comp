@@ -1,0 +1,49 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Source { int source[]; };
+layout(std430, binding=2) writeonly buffer Result { int result[]; };
+
+void main()
+{
+	// number of elements in a row of 3d-blocks
+	const int dataRowSize = P.blockSize * ( P.dataRowWidth * P.blockSize ) * P.blockChannels;
+
+	if( ID_Y >= P.dataRowCount || ID_X >= dataRowSize ) {
+		return;
+	}
+
+	// number of elements in a single row inside 3d-block
+	const int blockRowSize = P.blockChannels * P.blockSize;
+
+	// offset for switching to the next block inside data row
+	const int sourceBlockOffset = P.isForward != 0 ? blockRowSize : P.blockSize * blockRowSize;
+	const int resultBlockOffset = P.isForward != 0 ? P.blockSize * blockRowSize : blockRowSize;
+	// offset for switching to the next row inside the 3d-block
+	const int sourceBlockRowOffset = P.isForward != 0 ? P.dataRowWidth * blockRowSize : blockRowSize;
+	const int resultBlockRowOffset = P.isForward != 0 ? blockRowSize : P.dataRowWidth * blockRowSize;
+
+	const int pixelIndex = ID_X / P.blockChannels;
+	const int elementIndex = ID_X % P.blockChannels;
+	const int inBlockX = pixelIndex % P.blockSize;
+	const int inBlockY = ( pixelIndex / P.blockSize ) % P.blockSize;
+	const int blockX = ( pixelIndex / P.blockSize / P.blockSize );
+
+	const int sourceIndex = ID_Y * dataRowSize + blockX * sourceBlockOffset + inBlockY * sourceBlockRowOffset
+		+ inBlockX * P.blockChannels + elementIndex;
+	const int resultIndex = ID_Y * dataRowSize + blockX * resultBlockOffset + inBlockY * resultBlockRowOffset
+		+ inBlockX * P.blockChannels + elementIndex;
+	result[resultIndex] = source[sourceIndex];
+}
