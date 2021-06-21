@@ -10,6 +10,9 @@ In `neoml` module, you can find various methods for solving classification and r
 - :ref:`py-classification-linear`
 - :ref:`py-classification-svm`
 - :ref:`py-classification-decisiontree`
+- :ref:`py-classification-crossvalidate`
+
+Each of these algorithms accepts the training data and input data in sparse and dense formats.
 
 .. _py-classification-gradientboosting:
 
@@ -60,13 +63,14 @@ Regression
    :members:
 
 .. autoclass:: neoml.Linear.LinearRegressionModel
+   :members:
 
 .. _py-classification-svm:
 
 Support-vector machine
 ######################
 
-Support-vector machine translates the input data into vectors in a high-dimensional space and searches for a maximum-margin dividing hyperplane.
+Support-vector machine (SVM) translates the input data into vectors in a high-dimensional space and searches for a maximum-margin dividing hyperplane.
 
 .. autoclass:: neoml.SVM.SvmClassifier
    :members:
@@ -86,3 +90,12 @@ Decision tree is a classification method that involves comparing the object feat
 
 .. autoclass:: neoml.DecisionTree.DecisionTreeClassificationModel
    :members:
+
+.. _py-classification-crossvalidate:
+
+Cross-validation
+################
+
+This method performs cross-validation for any of these classifiers.
+
+.. automethod:: neoml.CrossValidation.cross_validation_score

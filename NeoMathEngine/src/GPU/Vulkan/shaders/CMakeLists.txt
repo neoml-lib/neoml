@@ -2,6 +2,8 @@ project(VulkanShaders)
 
 set(SHADER_SOURCES
     VectorFillScalar.comp 
+    VectorConvertFloatToInt.comp
+    VectorConvertIntToFloat.comp
     VectorReLU.comp
     VectorReLU4.comp
     VectorReLUDiff.comp 
@@ -134,6 +136,9 @@ set(SHADER_SOURCES
     BlobReorgInt.comp
     QrnnFPooling.comp
     QrnnIfPooling.comp
+    IndRnnRecurrent.comp
+    SpaceToDepthFloat.comp
+    SpaceToDepthInt.comp
 )
 
 set(IB_SHADER_SOURCES

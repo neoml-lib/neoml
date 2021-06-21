@@ -343,6 +343,86 @@ void CCudaMathEngine::Reorg( const CBlobDesc& source, const CIntHandle& sourceDa
 	}
 }
 
+void CCudaMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CFloatHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() == result.Height() * blockSize );
+	ASSERT_EXPR( source.Width() == result.Width() * blockSize );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() * blockSize * blockSize == result.Channels() );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, source.ObjectCount() * result.Height(),
+		blockSize * source.Width() * source.Channels() );
+	SpaceToDepthKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), source.ObjectCount() * result.Height(),
+		result.Width(), source.Channels(), blockSize, true, GetRaw( resultData ) );
+}
+
+void CCudaMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() == result.Height() * blockSize );
+	ASSERT_EXPR( source.Width() == result.Width() * blockSize );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() * blockSize * blockSize == result.Channels() );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, source.ObjectCount() * result.Height(),
+		blockSize * source.Width() * source.Channels() );
+	SpaceToDepthKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), source.ObjectCount() * result.Height(),
+		result.Width(), source.Channels(), blockSize, true, GetRaw( resultData ) );
+}
+
+void CCudaMathEngine::DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CFloatHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() * blockSize == result.Height() );
+	ASSERT_EXPR( source.Width() * blockSize == result.Width() );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() == result.Channels() * blockSize * blockSize );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, source.ObjectCount() * result.Height(),
+		blockSize * result.Width() * result.Channels() );
+	SpaceToDepthKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), source.ObjectCount() * source.Height(),
+		source.Width(), result.Channels(), blockSize, false, GetRaw( resultData ) );
+}
+
+void CCudaMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() * blockSize == result.Height() );
+	ASSERT_EXPR( source.Width() * blockSize == result.Width() );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() == result.Channels() * blockSize * blockSize );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, source.ObjectCount() * result.Height(),
+		blockSize * result.Width() * result.Channels() );
+	SpaceToDepthKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), source.ObjectCount() * source.Height(),
+		source.Width(), result.Channels(), blockSize, false, GetRaw( resultData ) );
+}
+
 void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -499,6 +579,68 @@ void CCudaMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, i
 		initialState.IsNull() ? nullptr : GetRaw( initialState ),
 		GetRaw( result ), GetRaw( resultDiff ),
 		GetRaw( updateDiff ), GetRaw( forgetDiff ), GetRaw( inputDiff ) );
+}
+
+void CCudaMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+	const CFloatHandle& h)
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( wx.GetMathEngine() == this );
+	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
+
+	IndRnnRecurrentKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
+		GetRaw( wx ), mask.IsNull() ? nullptr :  GetRaw( mask ), GetRaw( u ), GetRaw( h ) );
+}
+
+void CCudaMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+	const CFloatHandle& wxDiff )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+	ASSERT_EXPR( hDiff.GetMathEngine() == this );
+	ASSERT_EXPR( wxDiff.GetMathEngine() == this );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
+
+	IndRnnRecurrentBackwardKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
+		mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ), GetRaw( wxDiff ) );
+}
+
+void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+	const CFloatHandle& uDiff )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+	ASSERT_EXPR( hDiff.GetMathEngine() == this );
+	ASSERT_EXPR( uDiff.GetMathEngine() == this );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
+
+	IndRnnRecurrentLearnKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
+		mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ), GetRaw( uDiff ) );
 }
 
 } // namespace NeoML

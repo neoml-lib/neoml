@@ -85,6 +85,26 @@ void CCpuMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vect
 	*GetRaw(resultHandle) = -*GetRaw(resultHandle);
 }
 
+void CCpuMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	int firstIndex = 0;
+	int resultIndex = 0;
+
+	for( int i = 0; i < followingDimension; i++ ) {
+		VectorCopy( resultHandle + resultIndex, firstHandle + firstIndex, precedingDimension );
+		firstIndex += precedingDimension;
+		for( int j = 1; j < dimension; j++ ) {
+			VectorAdd(  firstHandle + firstIndex, resultHandle + resultIndex, resultHandle + resultIndex, precedingDimension );
+			firstIndex += precedingDimension;
+		}
+		resultIndex += precedingDimension;
+	}
+}
+
 void CCpuMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed )
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
@@ -195,6 +215,73 @@ void CCpuMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, cons
 	vectorDotProduct( first, second, vectorSize, result );
 }
 
+void CCpuMathEngine::VectorTopK(const CConstFloatHandle& firstHandle, int firstSize, int k, const CFloatHandle& resultHandle,
+	const CIntHandle& indicesHandle)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( firstSize >= 0 );
+	ASSERT_EXPR( k > 0 );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+	int* indices = GetRaw( indicesHandle );
+	int size = 0;
+
+	for( int i = 0; i < firstSize; i++ ) {
+		int pos = 0;
+		for( pos = 0; pos < size; pos++ ) {
+			if( *first > result[pos] ) {
+				for( int j = min(size + 1, k) - 1; j >= pos + 1; j-- ) {
+					result[j] = result[j - 1];
+					indices[j] = indices[j - 1];
+				}
+				break;
+			}
+		}
+		if( pos < k ) {
+			result[pos] = *first;
+			indices[pos] = i;
+			size = min( size + 1, k );
+		}
+		first++;
+	}
+}
+
+void CCpuMathEngine::VectorTopKDiff(const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
+	const CConstIntHandle& indicesHandle, int k, const CFloatHandle& resultGradHandle)
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( sourceGradHeight > 0 );
+	ASSERT_EXPR( sourceGradWidth > 0 );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( k > 0 );
+	ASSERT_EXPR( resultGradHandle.GetMathEngine() == this );
+
+	const float* sourceGrad = GetRaw( sourceGradHandle );
+	const int* indices = GetRaw( indicesHandle );
+	float* resultGrad = GetRaw( resultGradHandle );
+
+	if( sourceGradHeight == 1 ) {
+		vectorFill0( resultGrad, k * sourceGradWidth );
+		for( int i = 0; i < k; i++ ) {
+			const int pos = indices[i];
+			resultGrad[pos] = sourceGrad[pos];
+
+			resultGrad += sourceGradWidth;
+		}
+		return;
+	}
+
+	for( int i = 0; i < k; i++ ) {
+		const int pos = indices[i] * sourceGradWidth ;
+		vectorCopy( resultGrad, sourceGrad + pos, sourceGradWidth );
+
+		resultGrad += sourceGradWidth;
+	}
+}
+
 void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
@@ -221,6 +308,159 @@ void CCpuMathEngine::VectorEltwiseMultiplyAdd( const CConstFloatHandle& firstHan
 	float* result = GetRaw(resultHandle);
 
 	NeoML::vectorEltwiseMultiplyAdd( first ,second, result, vectorSize );
+}
+
+void CCpuMathEngine::VectorAbsDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle)
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw(firstHandle);
+	const float* grad = GetRaw(sourceGradHandle);
+	float* result = GetRaw(resultHandle);
+
+	const int firstSize = gradHeight == 1 ? gradWidth : gradHeight;
+	const int gradSize = gradHeight == 1 ? 1 : gradWidth;
+
+	for( int i = 0; i < firstSize; i++ ) {
+		if( *first > 0 ) {
+			for( int j = 0; j < gradSize; j++ ) {
+				*result = *grad;
+				result++;
+				grad++;
+			}
+		} else {
+			for( int j = 0; j < gradSize; j++ ) {
+				*result = -*grad;
+				result++;
+				grad++;
+			}
+		}
+		first++;
+	}
+}
+
+void CCpuMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result = ( *first >= secondValue ) ? *first : secondValue;
+		result++;
+		first++;
+	}
+}
+
+void CCpuMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+	int gradHeight, int gradWidth )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+
+	const float* first = GetRaw( firstHandle );
+	float* grad = GetRaw( gradHandle );
+
+	const int firstSize = gradHeight == 1 ? gradWidth : gradHeight;
+	const int gradSize =  gradHeight == 1 ? 1 : gradWidth;
+
+	for( int i = 0; i < firstSize; ++i ) {
+		if( *first < secondValue ) {
+			vectorFill( grad, 0.0f, gradSize );
+		}
+		grad += gradSize;
+		first++;
+	}
+}
+
+void CCpuMathEngine::VectorLogDiff( const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
+	const CConstFloatHandle& valueHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( sourceGradHeight > 0 );
+	ASSERT_EXPR( sourceGradWidth > 0 );
+	ASSERT_EXPR( valueHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* sourceGrad = GetRaw(sourceGradHandle);
+	const float* value = GetRaw(valueHandle);
+	float* result = GetRaw(resultHandle);
+
+	const int valueSize = sourceGradHeight == 1 ? sourceGradWidth : sourceGradHeight;
+	const int gradSize = sourceGradHeight == 1 ? 1 : sourceGradWidth;
+	for( int i = 0; i < valueSize; ++i ) {
+		float div = *value++;
+		if( (-FLT_MIN <= div && div < 0) || (0 <= div && div <= FLT_MIN) ) {
+			for( int j = 0; j < gradSize; j++ ) {
+				*result++ = 0;
+				sourceGrad++;
+			}
+		} else {
+			for( int j = 0; j < gradSize; j++ ) {
+				*result++ = *sourceGrad++ / div;
+			}
+		}
+	}
+}
+
+void CCpuMathEngine::VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw(firstHandle);
+	float* result = GetRaw(resultHandle);
+	for(int i = 0; i < vectorSize; ++i) {
+		*result++ = -*first++;
+	}
+}
+
+void CCpuMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
+	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
+{
+	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
+	ASSERT_EXPR( gradHeight > 0 );
+	ASSERT_EXPR( gradWidth > 0 );
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( minHandle.GetMathEngine() == this );
+	ASSERT_EXPR( maxHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw(firstHandle);
+	const float* sourceGrad = GetRaw(sourceGradHandle);
+	float* result = GetRaw(resultHandle);
+	const float minValue = *GetRaw(minHandle);
+	const float maxValue = *GetRaw(maxHandle);
+
+	const int firstSize = gradHeight == 1 ? gradWidth : gradHeight;
+	const int gradSize = gradHeight == 1 ? 1 : gradWidth;
+
+	for( int i = 0; i < firstSize; ++i ) {
+		if( *first < minValue || *first > maxValue ) {
+			for( int j = 0; j < gradSize; j++ ) {
+				*result = 0;
+				result++;
+				sourceGrad++;
+			}
+		} else {
+			for( int j = 0; j < gradSize; j++ ) {
+				*result = *sourceGrad;
+				result++;
+				sourceGrad++;
+			}
+		}
+		first++;
+	}
 }
 
 } // namespace NeoML

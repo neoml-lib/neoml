@@ -58,7 +58,7 @@ public:
 	size_t GetPeakMemoryUsage() const override;
 	size_t GetMemoryInPools() const override;
 	void CleanUp() override;
-	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size ) override;
+	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) override;
 	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
 	void DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size ) override;
 	void DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size ) override;
@@ -69,6 +69,8 @@ public:
 	void VectorFill(const CIntHandle& result, int value, int vectorSize) override;
 	void VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value) override;
 	void VectorFill(const CIntHandle& result, int vectorSize, const CConstIntHandle& value) override;
+	void VectorConvert(const CConstFloatHandle& from, const CIntHandle& to, int vectorSize) override;
+	void VectorConvert(const CConstIntHandle& from, const CFloatHandle& to, int vectorSize) override;
 	void VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed ) override;
 	void FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold ) override;
 	void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) override;
@@ -76,10 +78,16 @@ public:
 	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
+	void VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) override;
 	void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorEqualValue( const CConstIntHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstIntHandle& valueHandle ) override;
+	void VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
+		int vectorSize ) override;
+	void VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+		int gradHeight, int gradWidth ) override;
 	void VectorELU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		int vectorSize, const CConstFloatHandle& alpha) override;
 	void VectorELUDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -111,6 +119,8 @@ public:
 	void VectorAbs(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorAbsDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorAbsDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+		const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle) override;
 	void VectorHinge(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorHingeDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) override;
@@ -130,9 +140,12 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle ) override;
 	void VectorHardSigmoidDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle ) override;
+	void VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorExp(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorLog( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		int vectorSize ) override;
+	void VectorLogDiff( const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
+		const CConstFloatHandle& valueHandle, const CFloatHandle& resultHandle ) override;
 	void VectorNegLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorBernulliKLDerivative(const CConstFloatHandle& estimationHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& target) override;
@@ -146,6 +159,10 @@ public:
 		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& addition ) override;
 	void VectorSub(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorSub(const CConstFloatHandle& firstHandle, float second, const CFloatHandle& resultHandle,
+		int vectorSize) override;
+	void VectorSub(float first, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
+		int vectorSize) override;
 	void VectorMultiplyAndAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle) override;
 	void VectorMultiplyAndSub(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -167,6 +184,9 @@ public:
 	void VectorSqrt(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorInv(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
+		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle) override;
+	void VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+		const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle) override;
 	void VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorSigmoidDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -196,6 +216,9 @@ public:
 		const CConstIntHandle& indexHandle, int vectorSize) override;
 	void VectorEltwiseLogSumExp(const CConstFloatHandle& first, const CConstFloatHandle& second,
 		const CFloatHandle& result, int vectorSize) override;
+	void VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result, const CIntHandle& indices) override;
+	void VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
+		const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad) override;
 
 	// IBlasEngine interface methods
 	void SetVectorToMatrixRows(const CFloatHandle& resultHandle, int matrixHeight,
@@ -219,6 +242,8 @@ public:
 	void AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
 		const CFloatHandle& result, int vectorSize) override;
+	void AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+		int height, int width, const CFloatHandle& result ) override;
 	void AddMatrixElementsToMatrix(const CConstFloatHandle& matrix, int height, int width,
 		const CFloatHandle& result, const CConstIntHandle& indices) override;
 	void AddVectorToMatrixRows(int batchSize, const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
@@ -235,6 +260,8 @@ public:
 		int matrixHeight, int matrixWidth) override;
 	void SumMatrixColumns(const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 		int matrixHeight, int matrixWidth) override;
+	void MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrix, int matrixHeight, int matrixWidth,
+		const CConstFloatHandle& vector, const CFloatHandle& resultHandle ) override;
 	void MatrixLogSumExpByRows(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result, int resultSize) override;
 	void MatrixSoftmaxByRows(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result) override;
 	void MatrixSoftmaxDiffOpByRows(const CConstFloatHandle& first, const CConstFloatHandle& second,
@@ -381,7 +408,7 @@ public:
 		const CFloatHandle* freeTermDiff ) override;
 	CGlobalMaxPoolingDesc* InitGlobalMaxPooling( const CBlobDesc& source, const CBlobDesc& maxIndices, const CBlobDesc& result ) override;
 	void BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& desc,
-		const CFloatHandle& source, const CIntHandle& maxIndices, const CFloatHandle& result ) override;
+		const CConstFloatHandle& source, const CIntHandle& maxIndices, const CFloatHandle& result ) override;
 	void BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& desc,
 		const CFloatHandle& outputDiff, const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) override;
 	C3dMaxPoolingDesc* Init3dMaxPooling( const CBlobDesc& source,
@@ -438,6 +465,14 @@ public:
 		const CBlobDesc& result, const CFloatHandle& resultData ) override;
 	void Reorg( const CBlobDesc& source, const CIntHandle& sourceData, int stride, bool isForward,
 		const CBlobDesc& result, const CIntHandle& resultData ) override;
+	void SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) override;
+	void SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) override;
+	void DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) override;
+	void DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) override;
 	void AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
 	void AddWidthIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
 	void AddHeightIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
@@ -459,6 +494,15 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) override;
+	void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+		const CFloatHandle& h ) override;
+	void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& wxDiff ) override;
+	void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& uDiff ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:
@@ -527,8 +571,6 @@ private:
 	void blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 	template<class T>
 	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
-
-	void blobTimeConvolutionPrepare( const CCudaTimeConvolutionDescInternal& desc, float* data, const CFloatHandle& sourceData );
 
 	void blobConvertFromRle( const CCudaRleConvolutionDesc& desc, const CFloatHandle& source, const CFloatHandle& result );
 

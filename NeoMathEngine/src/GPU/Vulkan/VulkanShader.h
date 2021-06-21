@@ -34,6 +34,8 @@ struct CVulkanDevice;
 // All available shaders
 enum TShader {
 	SH_VectorFillScalar,
+	SH_VectorConvertFloatToInt,
+	SH_VectorConvertIntToFloat,
 	SH_Transpose,
 	SH_BlobConvolution,
 	SH_BlobConvolutionAdreno,
@@ -185,6 +187,9 @@ enum TShader {
 	SH_BlobReorgInt,
 	SH_QrnnFPooling,
 	SH_QrnnIfPooling,
+	SH_IndRnnRecurrent,
+	SH_SpaceToDepthInt,
+	SH_SpaceToDepthFloat,
 
 	SH_Count
 };

@@ -24,6 +24,7 @@ limitations under the License.
 #include <MatrixMultiplyingInterleavedCommon/MatrixMultiplying.h>
 #include <MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h>
 #include <MathEngineCommon.h>
+#include <CpuMathEngine.h>
 
 // There is no way to find out the cache size for ARM
 // Use a set value

@@ -10,6 +10,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ArchiveFile.cpp
     NeoML.cpp
     Random.cpp
+    Dnn/AutoDiff.cpp
+    Dnn/AutoDiffFunctions.cpp
     Dnn/BaseLayer.cpp
     Dnn/Dnn.cpp
     Dnn/DnnBlob.cpp
@@ -40,6 +42,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/CrfLayer.cpp
     Dnn/Layers/CrossEntropyLossLayer.cpp
     Dnn/Layers/CtcLayer.cpp
+    Dnn/Layers/DepthToSpaceLayer.cpp
     Dnn/Layers/DotProductLayer.cpp
     Dnn/Layers/DropoutLayer.cpp
     Dnn/Layers/EltwiseLayer.cpp
@@ -53,9 +56,10 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/GlobalMeanPoolingLayer.cpp
     Dnn/Layers/GruLayer.cpp
     Dnn/Layers/HingeLossLayer.cpp
-    Dnn/Layers/IrnnLayer.cpp
     Dnn/Layers/ImageAndPixelConversionLayer.cpp
     Dnn/Layers/ImageResizeLayer.cpp
+    Dnn/Layers/IndRnnLayer.cpp
+    Dnn/Layers/IrnnLayer.cpp
     Dnn/Layers/LossLayer.cpp
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
@@ -79,6 +83,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/SinkLayer.cpp
     Dnn/Layers/SoftmaxLayer.cpp
     Dnn/Layers/SourceLayer.cpp
+    Dnn/Layers/SpaceToDepthLayer.cpp
     Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/SubSequenceLayer.cpp
     Dnn/Layers/TiedEmbeddingsLayer.cpp
@@ -137,6 +142,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/OneVersusAll.cpp
     TraditionalML/OneVersusAllModel.cpp
     TraditionalML/OneVersusAllModel.h
+    TraditionalML/OneVersusOne.cpp
+    TraditionalML/OneVersusOneModel.cpp
+    TraditionalML/OneVersusOneModel.h
     TraditionalML/PlattScalling.cpp
     TraditionalML/ProblemWrappers.cpp
     TraditionalML/ProblemWrappers.h
@@ -163,6 +171,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/NeoMLDefs.h
     ../include/NeoML/Platforms.h
     ../include/NeoML/Random.h
+    ../include/NeoML/Dnn/AutoDiff.h
+    ../include/NeoML/Dnn/AutoDiffFunctions.h
     ../include/NeoML/Dnn/Dnn.h
     ../include/NeoML/Dnn/Dnn.inl
     ../include/NeoML/Dnn/DnnBlob.h
@@ -190,6 +200,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ConvLayer.h
     ../include/NeoML/Dnn/Layers/CrfLayer.h
     ../include/NeoML/Dnn/Layers/CtcLayer.h
+    ../include/NeoML/Dnn/Layers/DepthToSpaceLayer.h
     ../include/NeoML/Dnn/Layers/DotProductLayer.h
     ../include/NeoML/Dnn/Layers/DropoutLayer.h
     ../include/NeoML/Dnn/Layers/EltwiseLayer.h
@@ -201,9 +212,10 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GruLayer.h
-    ../include/NeoML/Dnn/Layers/IrnnLayer.h
     ../include/NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h
     ../include/NeoML/Dnn/Layers/ImageResizeLayer.h
+    ../include/NeoML/Dnn/Layers/IndRnnLayer.h
+    ../include/NeoML/Dnn/Layers/IrnnLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
     ../include/NeoML/Dnn/Layers/LstmLayer.h
     ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
@@ -226,6 +238,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/SinkLayer.h
     ../include/NeoML/Dnn/Layers/SoftmaxLayer.h
     ../include/NeoML/Dnn/Layers/SourceLayer.h
+    ../include/NeoML/Dnn/Layers/SpaceToDepthLayer.h
     ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/SubSequenceLayer.h
     ../include/NeoML/Dnn/Layers/TiedEmbeddingsLayer.h
@@ -260,6 +273,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/MemoryProblem.h
     ../include/NeoML/TraditionalML/Model.h
     ../include/NeoML/TraditionalML/OneVersusAll.h
+    ../include/NeoML/TraditionalML/OneVersusOne.h
     ../include/NeoML/TraditionalML/PlattScalling.h
     ../include/NeoML/TraditionalML/Problem.h
     ../include/NeoML/TraditionalML/Score.h

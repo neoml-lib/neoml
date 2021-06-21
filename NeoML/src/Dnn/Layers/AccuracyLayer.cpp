@@ -47,9 +47,9 @@ CDnnBlobBufferReader::CDnnBlobBufferReader( CDnnBlob* _blob ) :
 {
 	NeoAssert( blob != 0 );
 	if( blob->GetDataType() == CT_Float ) {
-		bufferFloat = blob->GetBuffer<float>( 0, blob->GetDataSize() );
+		bufferFloat = blob->GetBuffer<float>( 0, blob->GetDataSize(), true );
 	} else {
-		bufferInt = blob->GetBuffer<int>( 0, blob->GetDataSize() );
+		bufferInt = blob->GetBuffer<int>( 0, blob->GetDataSize() , true);
 	}
 }
 

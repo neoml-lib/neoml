@@ -525,7 +525,7 @@ private:
 template<typename TLayer>
 inline void CDnnLambGradientSolver::ExcludeWeightDecayLayer( int paramIndex ) {
 	CPtr<TLayer> layer = new TLayer( MathEngine() );
-	ExcludeWeightDecayLayer( GetLayerName( *layer ), ELNMT_LayerClass, paramIndex );
+	ExcludeWeightDecayLayer( GetLayerClass( *layer ), ELNMT_LayerClass, paramIndex );
 }
 
 

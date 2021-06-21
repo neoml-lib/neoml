@@ -6,7 +6,7 @@
     - [Настройки](#настройки)
         - [Размер скрытого слоя](#размер-скрытого-слоя)
         - [Множитель единичной матрицы](#множитель-единичной-матрицы)
-        - [Стандартное отклонение FC_input](#стандартное-отклонение-fc_input)
+        - [Стандартное отклонение для FC_input](#стандартное-отклонение-для-fc_input)
     - [Обучаемые параметры](#обучаемые-параметры)
         - [Матрица весов FC_input](#матрица-весов-fc_input)
         - [Свободные члены FC_input](#свободные-члены-fc_input)
@@ -25,10 +25,12 @@
     Y_t = ReLU( FC_input( X_t ) + FC_recur( Y_t-1 ) )
 ```
 
-где `FC_*` это полносвязные слои.
+где `FC_*` - это полносвязные слои.
 
 Основной особенностью этого слоя является инициализация весов.
-Матрица весов `FC_input` инициализируется из нормального распределения `N(0, inputWeightStd)` где `inputWeightStd` это настраиваемый параметр.
+
+Матрица весов `FC_input` инициализируется из нормального распределения `N(0, inputWeightStd)`, где `inputWeightStd` - настраиваемый параметр.
+
 Матрица весов `FC_recur` инициализируется единичной матрицей, домноженной на настраиваемый параметр `identityScale`.
 
 ## Настройки
@@ -49,7 +51,7 @@ void SetIdentityScale( float scale );
 
 Установить множитель единичной матрицы, используемой при инициализации матрицы рекуррентной части.
 
-### Стандартное отклонение FC_input
+### Стандартное отклонение для FC_input
 
 ```c++
 void SetInputWeightStd( float var );
@@ -67,7 +69,7 @@ CPtr<CDnnBlob> GetInputWeightsData() const;
 
 Матрица весов слоя `FC_input` из формулы, представляет собой [блоб](DnnBlob.md) размеров:
 
-- `BatchLength * BatchWidth * ListSize` равно `GetHiddenSize()`
+- `BatchLength * BatchWidth * ListSize` равно `GetHiddenSize()`;
 - `Height * Width * Depth * Channels` равно произведению аналогичных размеров у входа.
 
 ### Свободные члены FC_input
@@ -86,8 +88,8 @@ CPtr<CDnnBlob> GetRecurWeightsData() const;
 
 Матрица весов слоя `FC_recur` из формулы, представляет собой блоб размеров:
 
-- `BatchLength * BatchWidth * ListSize` равно `GetHiddenSize()`
-- `Height * Width * Depth * Channels` равно `GetHiddenSize()`
+- `BatchLength * BatchWidth * ListSize` равно `GetHiddenSize()`;
+- `Height * Width * Depth * Channels` равно `GetHiddenSize()`.
 
 ### Свободные члены FC_recur
 
@@ -109,6 +111,6 @@ CPtr<CDnnBlob> GetRecurrentFreeTermData() const
 
 Единственный выход содержит блоб следующего размера:
 
-- `BatchLength`, `BatchWidth` и `ListSize` равный соответствующим размерностям у первого входа;
-- `Height`, `Width` и `Depth` равные `1`.
-- `Channels` равный `GetHiddenSize()`.
+- `BatchLength`, `BatchWidth` и `ListSize` равны соответствующим размерностям у первого входа;
+- `Height`, `Width` и `Depth` равны `1`.
+- `Channels` равен `GetHiddenSize()`.

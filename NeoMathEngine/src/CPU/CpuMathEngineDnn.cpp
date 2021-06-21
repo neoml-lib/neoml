@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
+#include <CpuMathEnginePrivate.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <CpuMathEnginePrivate.h>
@@ -648,6 +649,262 @@ void CCpuMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, in
 		// fDiff = outDiff * prevOut
 		VectorEltwiseMultiply( outDiff, h0, fDiff, objectSize );
 	}
+}
+
+void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+	const CFloatHandle& h)
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( wx.GetMathEngine() == this );
+	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+
+	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
+	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
+
+	VectorSigmoid( wx + firstStepOffset, h + firstStepOffset, batchSize * objectSize );
+
+	CConstFloatHandle hPrev = h + firstStepOffset;
+
+	for( int step = 1; step < sequenceLength; ++step ) {
+		CConstFloatHandle currWx = wx + firstStepOffset + step * stepOffset;
+		CConstFloatHandle currMask = mask;
+		CFloatHandle currH = h + firstStepOffset + step * stepOffset;
+		CConstFloatHandle currHPrev = currH - stepOffset;
+		for( int batch = 0; batch < batchSize; ++batch ) {
+			if( mask.IsNull() ) {
+				VectorEltwiseMultiply( currHPrev, u, currH, objectSize );
+				VectorAdd( currH, currWx, currH, objectSize );
+				VectorSigmoid( currH, currH, objectSize );
+			} else {
+				VectorEltwiseMultiply( currHPrev, currMask, currH, objectSize );
+				VectorEltwiseMultiply( currH, u, currH, objectSize );
+				VectorAdd( currH, currWx, currH, objectSize );
+				VectorSigmoid( currH, currH, objectSize );
+			}
+			currWx += objectSize;
+			currMask += objectSize;
+			currH += objectSize;
+			currHPrev += objectSize;
+		}
+
+		hPrev = h;
+	}
+}
+
+void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+	const CFloatHandle& wxDiff )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+	ASSERT_EXPR( hDiff.GetMathEngine() == this );
+	ASSERT_EXPR( wxDiff.GetMathEngine() == this );
+
+	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
+	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
+
+	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize );
+	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
+
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		CConstFloatHandle currMask = mask;
+		CConstFloatHandle currH = h + firstStepOffset + step * stepOffset;
+		CConstFloatHandle currHDiff = hDiff + firstStepOffset + step * stepOffset;
+		CFloatHandle currTotalHDiff = totalHDiff.GetHandle();
+		CFloatHandle currWxDiff = wxDiff + firstStepOffset + step * stepOffset;
+
+		for( int batch = 0; batch < batchSize; ++batch ) {
+			VectorSigmoidDiffOp( currH, currTotalHDiff, currWxDiff, objectSize );
+			VectorEltwiseMultiply( currWxDiff, u, currTotalHDiff, objectSize );
+			if( !currMask.IsNull() ) {
+				VectorEltwiseMultiply( currMask, currTotalHDiff, currTotalHDiff, objectSize );
+			}
+			VectorAdd( currHDiff + stepOffset, currTotalHDiff, currTotalHDiff, objectSize );
+
+			if( !currMask.IsNull() ) {
+				currMask += objectSize;
+			}
+			currH += objectSize;
+			currHDiff += objectSize;
+			currTotalHDiff += objectSize;
+			currWxDiff += objectSize;
+		}
+	}
+
+	const int lastStepOffset = reverse ? 0 : ( sequenceLength - 1 ) * stepOffset;
+	VectorSigmoidDiffOp( h + lastStepOffset, totalHDiff.GetHandle(), wxDiff + lastStepOffset, batchSize * objectSize );
+}
+
+void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+	const CFloatHandle& uDiff )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+	ASSERT_EXPR( hDiff.GetMathEngine() == this );
+	ASSERT_EXPR( uDiff.GetMathEngine() == this );
+
+	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
+	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
+
+	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize );
+	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
+
+	CFloatHandleStackVar buff( *this, objectSize );
+
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		CConstFloatHandle currMask = mask;
+		CConstFloatHandle currH = h + firstStepOffset + step * stepOffset;
+		CConstFloatHandle currHDiff = hDiff + firstStepOffset + step * stepOffset;
+		CFloatHandle currTotalHDiff = totalHDiff.GetHandle();
+
+		for( int batch = 0; batch < batchSize; ++batch ) {
+			VectorSigmoidDiffOp( currH, currTotalHDiff, buff.GetHandle(), objectSize );
+			if( !currMask.IsNull() ) {
+				VectorEltwiseMultiply( buff.GetHandle(), currMask, buff.GetHandle(), objectSize );
+			}
+			VectorEltwiseMultiplyAdd( buff.GetHandle(), currH + stepOffset, uDiff, objectSize );
+			VectorEltwiseMultiply( buff.GetHandle(), u, buff.GetHandle(), objectSize );
+			VectorAdd( currHDiff + stepOffset, buff.GetHandle(), currTotalHDiff, objectSize );
+
+			if( !currMask.IsNull() ) {
+				currMask += objectSize;
+			}
+			currH += objectSize;
+			currHDiff += objectSize;
+			currTotalHDiff += objectSize;
+		}
+	}
+}
+
+template<class T>
+static inline void SpaceToDepthFunc( const T* source, int dataRowCount, int dataRowWidth,
+	int blockChannels, int blockSize, bool isForward, T* result, int threadCount )
+{
+	// flattens 3d-block of size (blockSize x blockSize x channels)
+
+	// number of elements in a single row inside 3d-block
+	const int blockRowSize = blockChannels * blockSize;
+
+	// offset for switching to the next data row
+	const int dataRowSize = blockSize * ( dataRowWidth * blockSize ) * blockChannels;
+	// offset for switching to the next block inside data row
+	const int sourceBlockOffset = isForward ? blockRowSize : blockSize * blockRowSize;
+	const int resultBlockOffset = isForward ? blockSize * blockRowSize : blockRowSize;
+	// offset for switching to the next row inside the 3d-block
+	const int sourceBlockRowOffset = isForward ? dataRowWidth * blockRowSize : blockRowSize;
+	const int resultBlockRowOffset = isForward ? blockRowSize : dataRowWidth * blockRowSize;
+
+	// iterate over data rows
+	const int blobSize = dataRowCount * dataRowWidth * blockSize * blockRowSize;
+	const int curThreadCount = IsOmpRelevant( dataRowCount, blobSize ) ? threadCount : 1;
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int threadRowStart;
+		int threadRowCount;
+		if( OmpGetTaskIndexAndCount( dataRowCount, threadRowStart, threadRowCount ) ) {
+			const T* sourcePtr = source + threadRowStart * dataRowSize;
+			T* resultPtr = result + threadRowStart * dataRowSize;
+			for( int dataRowIndex = 0; dataRowIndex < threadRowCount; ++dataRowIndex ) {
+				const T* sourceRow = sourcePtr;
+				T* resultRow = resultPtr;
+				// iterate over blocks in data row
+				for( int blockIndex = 0; blockIndex < dataRowWidth; ++blockIndex ) {
+					const T* sourceBlock = sourceRow;
+					T* resultBlock = resultRow;
+					// iterate over rows of 3-dimensional (blockSize x blockSize x channels) block
+					for( int blockRowIndex = 0; blockRowIndex < blockSize; ++blockRowIndex ) {
+						// copy current row of 3d-block
+						dataCopy( resultBlock, sourceBlock, blockRowSize );
+						sourceBlock += sourceBlockRowOffset;
+						resultBlock += resultBlockRowOffset;
+					}
+					// switching to the next block
+					sourceRow += sourceBlockOffset;
+					resultRow += resultBlockOffset;
+				}
+				sourcePtr += dataRowSize;
+				resultPtr += dataRowSize;
+			}
+		}
+	}
+}
+
+void CCpuMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CFloatHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() == result.Height() * blockSize );
+	ASSERT_EXPR( source.Width() == result.Width() * blockSize );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() * blockSize * blockSize == result.Channels() );
+
+	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * result.Height(), result.Width(), source.Channels(),
+		blockSize, true, GetRaw( resultData ), threadCount );
+}
+
+void CCpuMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() == result.Height() * blockSize );
+	ASSERT_EXPR( source.Width() == result.Width() * blockSize );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() * blockSize * blockSize == result.Channels() );
+
+	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * result.Height(), result.Width(), source.Channels(),
+		blockSize, true, GetRaw( resultData ), threadCount );
+}
+
+void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CFloatHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() * blockSize == result.Height() );
+	ASSERT_EXPR( source.Width() * blockSize == result.Width() );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() == result.Channels() * blockSize * blockSize );
+
+	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * source.Height(), source.Width(), result.Channels(),
+		blockSize, false, GetRaw( resultData ), threadCount );
+}
+
+void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() * blockSize == result.Height() );
+	ASSERT_EXPR( source.Width() * blockSize == result.Width() );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() == result.Channels() * blockSize * blockSize );
+
+	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * source.Height(), source.Width(), result.Channels(),
+		blockSize, false, GetRaw( resultData ), threadCount );
 }
 
 } // namespace NeoML

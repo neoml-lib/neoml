@@ -40,9 +40,7 @@ class SvmClassificationModel :
         return self.internal.classify(*get_data(x))
 
 class SvmClassifier(PythonWrapper.Svm) :
-    """Support-vector machine algorithm translates the input data
-    into vectors in a high-dimensional space and searches 
-    for a maximum-margin dividing hyperplane.
+    """Support-vector machine (SVM) classifier.
 
     :param kernel: the kernel function to be used.
     :type kernel: str, {'linear', 'poly', 'rbf', 'sigmoid'}, default='linear'
@@ -56,10 +54,10 @@ class SvmClassifier(PythonWrapper.Svm) :
     :param degree: the degree for the gaussian kernel.
     :type degree: int, default=1
 
-    :param gamma: the kernel coefficient for 'poly', 'rbf', 'sigmoid'.
+    :param gamma: the kernel coefficient for `poly`, `rbf`, `sigmoid`.
     :type gamma: float, default=1.0
 
-    :param coeff0: the kernel free term for 'poly, 'sigmoid'.
+    :param coeff0: the kernel free term for `poly`, `sigmoid`.
     :type coeff0: float, default=1.0
 
     :param tolerance: the algorithm precision.
@@ -67,10 +65,13 @@ class SvmClassifier(PythonWrapper.Svm) :
 
     :param thread_count: The number of processing threads to be used while training the model.
     :type thread_count: int, default=1
+
+    :param multiclass_mode: determines how to handle multi-class classification
+    :type multiclass_mode: str, ['one_vs_all', 'one_vs_one'], default='one_vs_all'
     """
 
     def __init__(self, kernel='linear', max_iteration_count=1000, error_weight=1.0,
-        degree=1, gamma=1.0, coeff0=1.0, tolerance=0.1, thread_count=1):
+        degree=1, gamma=1.0, coeff0=1.0, tolerance=0.1, thread_count=1, multiclass_mode='one_vs_all'):
 
         if kernel != 'linear' and kernel != 'poly' and kernel != 'rbf' and kernel != 'sigmoid':
             raise ValueError('The `kernel` must be one of: `linear`, `poly`, `rbf`, `sigmoid`.')
@@ -81,9 +82,11 @@ class SvmClassifier(PythonWrapper.Svm) :
 
         if thread_count <= 0:
             raise ValueError('The `thread_count` must be > 0.')
+        if multiclass_mode != 'one_vs_all' and multiclass_mode != 'one_vs_one':
+            raise ValueError('The `multiclass_mode` must be one of: `one_vs_all`, `one_vs_one`.')
 
         super().__init__(kernel, float(error_weight), int(max_iteration_count), int(degree),
-            float(gamma), float(coeff0), float(tolerance), int(thread_count))
+            float(gamma), float(coeff0), float(tolerance), int(thread_count), multiclass_mode)
 
     def train(self, X, Y, weight=None):
         """Trains the SVM classification model.
@@ -99,19 +102,19 @@ class SvmClassifier(PythonWrapper.Svm) :
         :param weight: sample weights. If None, then samples are equally weighted.
         :type weight: array-like of shape (n_samples,), default=None
 
-        :return: the trained ``SvmClassificationModel``.
-        :rtype: *object*
+        :return: the trained classification model.
+        :rtype: neoml.SVM.SvmClassificationModel
         """
         x = convert_data( X )
-        y = numpy.array( Y, dtype=numpy.int32, copy=False )
+        y = numpy.array( Y, dtype=numpy.int32, copy=False, order='C' )
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32)
+            weight = numpy.ones(y.size, numpy.float32, order='C')
         else:
-            weight = numpy.array( weight, dtype=numpy.float32, copy=False )
+            weight = numpy.array( weight, dtype=numpy.float32, copy=False, order='C' )
 
         if numpy.any(y < 0):
             raise ValueError('All `Y` elements must be >= 0.')
