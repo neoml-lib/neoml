@@ -1445,6 +1445,41 @@ class LayersTestCase(TestCase):
         self.assertEqual(out1.shape, (9, 3, 14, 11, 9, 7))
         self.assertEqual(out2.shape, (9, 3, 14, 11, 9, 7))
 
+    def test_depthtospace(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        depth_to_space = neoml.Dnn.DepthToSpace(source, block_size=3, name='depth_to_space')
+        sink = neoml.Dnn.Sink(depth_to_space, 'sink')
+
+        self.assertEqual(depth_to_space.name, 'depth_to_space')
+        self.assertEqual(depth_to_space.block_size, 3)
+        depth_to_space.block_size = 2
+        self.assertEqual(depth_to_space.block_size, 2)
+
+        input_blob = neoml.Blob.asblob(math_engine, np.ones((2, 3, 5, 4, 8, 12), dtype=np.float32), (2, 3, 5, 4, 8, 1, 12))
+        outputs = dnn.run({'source' : input_blob})
+        out = outputs['sink'].asarray()
+        self.assertEqual(out.shape, (2, 3, 5, 8, 16, 3))
+
+    def test_spacetodepth(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        space_to_depth = neoml.Dnn.SpaceToDepth(source, block_size=3, name='space_to_depth')
+        sink = neoml.Dnn.Sink(space_to_depth, 'sink')
+
+        self.assertEqual(space_to_depth.name, 'space_to_depth')
+        self.assertEqual(space_to_depth.block_size, 3)
+        space_to_depth.block_size = 2
+        self.assertEqual(space_to_depth.block_size, 2)
+
+        input_blob = neoml.Blob.asblob(math_engine, np.ones((2, 3, 5, 4, 8, 12), dtype=np.float32), (2, 3, 5, 4, 8, 1, 12))
+        outputs = dnn.run({'source' : input_blob})
+        out = outputs['sink'].asarray()
+        self.assertEqual(out.shape, (2, 3, 5, 2, 4, 48))
+
+
 class PoolingTestCase(TestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
                       input_shape=(2, 1, 2, 3, 5, 4, 2)):
@@ -1858,6 +1893,37 @@ class PoolingTestCase(TestCase):
         self.assertAlmostEqual(irnn.input_weight_std, input_weight_std, delta=1e-5)
         self.assertEqual(a.shape, (batch_length, batch_width, 1, 1, 1, 1, hidden_size))
 
+    def test_indrnn(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+
+        batch_length = 12
+        batch_width = 6
+        channels_in = 5
+        hidden_size = 10
+        dropout_rate = 0.5
+        reverse = True
+        name = "indrnn_test_name"
+
+        source = neoml.Dnn.Source(dnn, "source")
+        indrnn = neoml.Dnn.IndRnn(source, hidden_size, dropout_rate, reverse, name)
+        sink = neoml.Dnn.Sink(indrnn, "sink")
+        print(dnn.layers)
+        layer = dnn.layers[name]
+        self.assertEqual(layer.name, name)
+
+        input1 = neoml.Blob.asblob(math_engine, np.ones((batch_length, batch_width, channels_in), dtype=np.float32),
+            (batch_length, batch_width, 1, 1, 1, 1, channels_in))
+
+        inputs = { "source" : input1 }
+        outputs = dnn.run(inputs)
+        a = outputs[sink.name]
+
+        self.assertEqual(indrnn.hidden_size, hidden_size)
+        self.assertEqual(layer.hidden_size, hidden_size)
+        self.assertAlmostEqual(indrnn.dropout_rate, dropout_rate, delta=1e-5)
+        self.assertEqual(indrnn.reverse_sequence, reverse)
+
 
 class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
     def calc(self, data, labels):
@@ -2093,6 +2159,14 @@ class DnnTestCase(TestCase):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
         self.assertTrue(isinstance(dnn.math_engine, neoml.MathEngine.CpuMathEngine))
+
+    def test_default_math_engine(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        data = [1, 2]
+        first_blob = neoml.Blob.asblob(math_engine, np.array(data, dtype=np.int32), (2, 1, 1, 1, 1, 1, 1))
+        second_blob = first_blob.copy(neoml.MathEngine.default_math_engine())
+        self.assertEqual(second_blob.batch_len, 2)
+        self.assertEqual(list(second_blob.asarray()), data)
 
     def test_properties(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)

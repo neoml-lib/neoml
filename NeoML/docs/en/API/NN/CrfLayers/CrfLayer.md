@@ -2,7 +2,7 @@
 
 <!-- TOC -->
 
-- [CCrfLayer Class](#ccrflayer class)
+- [CCrfLayer Class](#ccrflayer-class)
     - [Settings](#settings)
         - [The number of classes in the CRF](#the-number-of-classes-in-the-crf)
         - [Empty class](#empty-class)
@@ -45,9 +45,9 @@ void SetBestPrevClassEnabled( bool enabled );
 ```
 
 Enables computation of the first (`O_BestPrevClass`) output during training.
-This setting allows to connect the [CBestSequenceLayer](BestSequenceLayer.md) and get predictions for every batch during training.
-Disabled by default.
-During inference the output is always computed and this setting is ignored.
+This setting allows you to connect the [CBestSequenceLayer](BestSequenceLayer.md) and get predictions for every batch during training.
+
+By default disabled during training. During inference the first output is always computed, ignoring this setting.
 
 ## Trainable parameters
 

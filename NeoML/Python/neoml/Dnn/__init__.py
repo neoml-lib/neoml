@@ -20,6 +20,7 @@ from .Eltwise import EltwiseSum, EltwiseMul, EltwiseNegMul, EltwiseMax
 from .FullyConnected import FullyConnected
 from .Gru import Gru
 from .ImageConversion import ImageResize, PixelToImage, ImageToPixel  
+from .IndRnn import IndRnn
 from .Irnn import Irnn
 from .Lstm import Lstm
 from .Loss import CrossEntropyLoss, BinaryCrossEntropyLoss, EuclideanLoss, HingeLoss, SquaredHingeLoss, FocalLoss, BinaryFocalLoss, CenterLoss, MultiHingeLoss, MultiSquaredHingeLoss, CustomLoss, CustomLossCalculatorBase, call_loss_calculator
@@ -37,6 +38,7 @@ from .SequenceSum import SequenceSum
 from .Sink import Sink
 from .Softmax import Softmax
 from .Source import Source
+from .SpaceAndDepth import DepthToSpace, SpaceToDepth
 from .Split import SplitChannels, SplitDepth, SplitWidth, SplitHeight, SplitBatchWidth  
 from .SubSequence import SubSequence, ReverseSequence
 from .TiedEmbeddings import TiedEmbeddings
