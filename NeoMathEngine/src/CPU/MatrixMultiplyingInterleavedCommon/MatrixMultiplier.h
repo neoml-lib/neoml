@@ -248,8 +248,6 @@ struct TailProcessorRight<Kernel, typename SFINAEFilter<typename Kernel::TailKer
 		size_t cRowSize, size_t k, float* cTmp, size_t height, size_t width)
 	{
 		using CKernel = typename Kernel::TailKernelRight;
-		int a = CKernel::width;
-		int b = Kernel::width;
 		const size_t bStep = CKernel::width * k;
 		for( ; width >= CKernel::width; width -= CKernel::width ) {
 			if( height >= CKernel::height ) {

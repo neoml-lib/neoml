@@ -17,12 +17,10 @@ limitations under the License.
 
 #if !FINE_ARCHITECTURE( FINE_ARM64 ) && !FINE_ARCHITECTURE( FINE_ARM )
 
-#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_IOS )
+#if FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_LINUX )
 #include <cpuid.h>
 #elif FINE_PLATFORM( FINE_WINDOWS )
 #include <intrin.h>
-#else
-#error "Platform isn't supported!"
 #endif
 
 #endif // !FINE_ARCHITECTURE( FINE_ARM64 )
@@ -189,10 +187,12 @@ private:
 	static void callCpuId( Regs& outRegs, const RegType& eax ) {
 		outRegs = { 0, 0, 0, 0 };
 #if !FINE_ARCHITECTURE( FINE_ARM64 ) || !FINE_ARCHITECTURE( FINE_ARM )
-#if FINE_PLATFORM(FINE_WINDOWS)
+#if FINE_PLATFORM( FINE_WINDOWS )
 		__cpuid( ( RegType* )( &outRegs ), eax );
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+#elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
 		__get_cpuid( eax, &outRegs.eax, &outRegs.ebx, &outRegs.ecx, &outRegs.edx );
+#else
+	( void ) eax;
 #endif
 #else
 	( void ) eax;
@@ -202,10 +202,13 @@ private:
 	static void callCpuIdEx( Regs& outRegs, const RegType& eax, const RegType& ecx ) {
 		outRegs = { 0, 0, 0, 0 };
 #if !FINE_ARCHITECTURE( FINE_ARM64 ) && !FINE_ARCHITECTURE( FINE_ARM )
-#if FINE_PLATFORM(FINE_WINDOWS)
+#if FINE_PLATFORM( FINE_WINDOWS )
 		__cpuidex((RegType*)( &outRegs ), eax, ecx );
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN)
+#elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
 		__cpuid_count( eax, ecx, outRegs.eax, outRegs.ebx, outRegs.ecx, outRegs.edx );
+#else
+	( void ) eax;
+	( void ) ecx;
 #endif
 #else
 	( void ) eax;
