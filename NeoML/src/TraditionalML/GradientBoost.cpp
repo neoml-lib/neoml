@@ -628,7 +628,7 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 				for( int j = 0; j < problem.GetValueSize(); j++ ) {
 					predictCache[j][usedVector].Value += predictions[threadNum][j];
 					predictCache[j][usedVector].Step = curStep;
-					predicts[j][index] = predictCache[j][usedVector].Value;
+					predicts[j][index] = params.LearningRate * predictCache[j][usedVector].Value;
 					answers[j][index] = value[j];
 				}
 				index++;
@@ -680,7 +680,7 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 				for( int j = 0; j < problem.GetValueSize(); j++ ) {
 					predictCache[j][index].Value += predictions[threadNum][j];
 					predictCache[j][index].Step = step;
-					predicts[j][index] = predictCache[j][index].Value;
+					predicts[j][index] = params.LearningRate * predictCache[j][index].Value;
 					answers[j][index] = value[j];
 				}
 				index++;
