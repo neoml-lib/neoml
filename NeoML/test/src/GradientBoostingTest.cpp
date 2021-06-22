@@ -105,8 +105,8 @@ static void classificationTest( const CPtr<CClassificationRandomProblem>& train,
 TEST( CGradientBoostingTest, IterativeClassificationTest )
 {
 	CRandom rand( 42 );
-	auto train = CClassificationRandomProblem::Random( rand, 4000, 20, 3 );
-	auto test = CClassificationRandomProblem::Random( rand, 500, 20, 3 );
+	auto train = CClassificationRandomProblem::Random( rand, 2000, 5, 3 );
+	auto test = CClassificationRandomProblem::Random( rand, 500, 5, 3 );
 
 	CGradientBoost::CParams params;
 	params.IterationsCount = 50;
@@ -141,7 +141,7 @@ static void regressionTest( const CPtr<CRegressionRandomProblem>& train,
 TEST( CGradientBoostingTest, IterativeRegressionTest )
 {
 	CRandom rand( 42 );
-	auto train = CRegressionRandomProblem::Random( rand, 4000, 20, 10 );
+	auto train = CRegressionRandomProblem::Random( rand, 2000, 20, 10 );
 	auto test = CRegressionRandomProblem::Random( rand, 500, 20, 10 );
 
 	CGradientBoost::CParams params;
