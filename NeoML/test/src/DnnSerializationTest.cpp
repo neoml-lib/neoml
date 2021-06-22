@@ -38,7 +38,7 @@ TEST_F( CDnnSerializationTest, CnnUninitializedLayerSerialization )
 	CDnn cnn( random, MathEngine() );
 
 	CArray<const char*> layerClasses;
-	GetRegisteredLayerNames( layerClasses );
+	GetRegisteredLayerClasses( layerClasses );
 
 	const CString layerName = "LAYER";
 	for( int layerIndex = 0; layerIndex < layerClasses.Size(); ++layerIndex ) {

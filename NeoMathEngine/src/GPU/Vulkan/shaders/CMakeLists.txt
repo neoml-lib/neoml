@@ -137,6 +137,8 @@ set(SHADER_SOURCES
     QrnnFPooling.comp
     QrnnIfPooling.comp
     IndRnnRecurrent.comp
+    SpaceToDepthFloat.comp
+    SpaceToDepthInt.comp
 )
 
 set(IB_SHADER_SOURCES

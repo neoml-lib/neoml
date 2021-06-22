@@ -85,6 +85,7 @@ pybind11_add_module(PythonWrapper
     src/PySinkLayer.cpp
     src/PySolver.cpp
     src/PySourceLayer.cpp
+    src/PySpaceAndDepthLayer.cpp
     src/PySubSequenceLayer.cpp
     src/PyTiedEmbeddingsLayer.cpp
     src/PyTrainingModel.cpp

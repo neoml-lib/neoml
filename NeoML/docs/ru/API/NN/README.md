@@ -272,6 +272,9 @@ delete gpuMathEngine;
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) - повторение последовательностей несколько раз
     - [CUpsampling2DLayer](Upsampling2DLayer.md) - увеличение размеров двумерных изображений
   - [CReorgLayer](ReorgLayer.md) - слой, преобразующий многоканальные изображения в изображения меньшего размера, с большим числом каналов
+  - [CSpaceToDepthLayer](SpaceToDepthLayer.md) слой, разбивающий входные изображения на квадраты и записывающий содержимое таких квадратов
+  в пиксели выходного изображения
+  - [CDepthToSpaceLayer](DepthToSpaceLayer.md) слой, записывающий содержимое пикселей входных изображений в квадраты выходных изображений
 - Функции потерь:
   - Бинарная классификация:
     - [CBinaryCrossEntropyLossLayer](LossLayers/BinaryCrossEntropyLossLayer.md) - перекрёстная энтропия
