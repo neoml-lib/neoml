@@ -13,7 +13,7 @@ Key features:
 - Traditional machine learning: 20+ algorithms (classification, regression, clustering, etc.)
 - CPU and GPU support, fast inference
 - ONNX support
-- Languages: C++, Java, Objective-C
+- Languages: Python, C++, Java, Objective-C
 - Cross-platform: the same code can be run on Windows, Linux, macOS, iOS, and Android
 
 ## Contents
