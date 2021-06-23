@@ -33,7 +33,8 @@ public:
 	// Gets the prediction by the tree ensemble
 	template<typename TFeatures>
 	static void PredictRaw(
-		const CGradientBoostEnsemble& models, int startPos, const TFeatures& features, CFastArray<double, 1>& predictions );
+		const CGradientBoostEnsemble& models, int startPos, double learningRate,
+		const TFeatures& features, CFastArray<double, 1>& predictions );
 
 	// IModel interface methods
 	int GetClassCount() const override { return ( valueSize == 1 && ensembles.Size() == 1 ) ? 2 : valueSize * ensembles.Size(); }
@@ -70,7 +71,8 @@ private:
 
 template<typename TFeatures>
 void CGradientBoostModel::PredictRaw(
-	const CGradientBoostEnsemble& ensemble, int startPos, const TFeatures& features, CFastArray<double, 1>& predictions )
+	const CGradientBoostEnsemble& ensemble, int startPos, double learningRate,
+	const TFeatures& features, CFastArray<double, 1>& predictions )
 {
 	const int predictionSize = predictions.Size();
 	predictions.Empty();
@@ -81,7 +83,7 @@ void CGradientBoostModel::PredictRaw(
 			prediction +=
 				static_cast<const CRegressionTree*>( ensemble[i].Ptr() )->Predict( features );
 		}
-		predictions.Add( prediction );
+		predictions.Add( prediction * learningRate );
 	} else {
 		CRegressionTree::CPrediction pred;
 		predictions.Add(0.0, predictionSize);
@@ -91,6 +93,9 @@ void CGradientBoostModel::PredictRaw(
 			for( int j = 0; j < predictionSize; j++ ) {
 				predictions[j] += pred[j];
 			}
+		}
+		for( int j = 0; j < predictionSize; j++ ) {
+			predictions[j] *= learningRate;
 		}
 	}
 }
