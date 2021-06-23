@@ -444,13 +444,14 @@ void CGradientBoost::initialize()
 	lossFunction = createLossFunction();
 	models.SetSize( isMultiTreesModel() ? 1 : modelCount );
 
-	predictCache.DeleteAll();
-	predictCache.SetSize( modelCount );
-	CPredictionCacheItem item;
-	item.Step = 0;
-	item.Value = 0;
-	for( int i = 0; i < predictCache.Size(); i++ ) {
-		predictCache[i].Add( item, vectorCount );
+	if( predictCache.Size() == 0 ) {
+		predictCache.SetSize( modelCount );
+		CPredictionCacheItem item;
+		item.Step = 0;
+		item.Value = 0;
+		for( int i = 0; i < predictCache.Size(); i++ ) {
+			predictCache[i].Add( item, vectorCount );
+		}
 	}
 
 	predicts.SetSize( modelCount );
@@ -784,6 +785,7 @@ void CGradientBoost::Serialize( CArchive& archive )
 				ensemble[j]->Serialize( archive );
 			}
 		}
+		predictCache.Serialize( archive );
 	} else {
 		int ensemblesCount;
 		archive >> ensemblesCount;
@@ -801,6 +803,7 @@ void CGradientBoost::Serialize( CArchive& archive )
 				}
 			}
 		}
+		predictCache.Serialize( archive );
 	}
 }
 
@@ -813,6 +816,7 @@ CPtr<T> CGradientBoost::getModel()
 
 	int predictionSize = isMultiTreesModel() ? baseProblem->GetValueSize() : 1;
 	destroyTreeBuilder();
+	predictCache.DeleteAll();
 
 	return CheckCast<T>( createOutputRepresentation( models, predictionSize ) );
 }

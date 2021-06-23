@@ -180,6 +180,18 @@ private:
 	struct CPredictionCacheItem {
 		int Step; // the number of the step on which the value was calculated
 		double Value; // the calculated value
+
+		friend inline CArchive& operator <<( CArchive& archive, CPredictionCacheItem& item )
+		{
+			archive << item.Step << item.Value;
+			return archive;
+		}
+
+		friend inline CArchive& operator >>( CArchive& archive, CPredictionCacheItem& item )
+		{
+			archive >> item.Step >> item.Value;
+			return archive;
+		}
 	};
 
 	const CParams params; // the classification parameters
