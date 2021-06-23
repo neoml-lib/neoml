@@ -264,7 +264,7 @@ CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVectorDesc& d
 	float* resultPtr = result.CopyOnWrite();
 	for( int i = 0; i < ensembles.Size(); i++ ) {
 		PredictRaw(ensembles[i], 0, learningRate, data, predictions);
-		resultPtr[i] = static_cast<float>( predictions[0] );
+		resultPtr[i] = static_cast<float>(predictions[0]);
 	}
 	return result;
 }
