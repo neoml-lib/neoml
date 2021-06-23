@@ -195,7 +195,7 @@ void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer
 		CString name;
 		archive >> name;
 		layer = createLayer( mathEngine, name );
-		NeoAssert( name == "" || layer != nullptr ); // assertion on restoring unknown layer
+		CheckArchitecture( name == "" || layer != nullptr, name, "restoring unknown layer from archive" );
 		if( layer != 0 ) {
 			layer->Serialize( archive );
 		}
