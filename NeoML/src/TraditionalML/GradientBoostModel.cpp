@@ -41,12 +41,15 @@ bool CGradientBoostModel::Classify( const CFloatVectorDesc& data, CClassificatio
 		CFastArray<double, 1> ensemblePredictions;
 		ensemblePredictions.SetSize(1);
 		for( int i = 0; i < ensembles.Size(); i++ ) {
-			PredictRaw(ensembles[i], 0, learningRate, data, ensemblePredictions);
-			predictions[i] = ensemblePredictions[0];
+			PredictRaw(ensembles[i], 0, data, ensemblePredictions);
+			predictions[i] = learningRate * ensemblePredictions[0];
 		}
 	} else {
 		predictions.SetSize( valueSize );
-		PredictRaw( ensembles[0], 0, learningRate, data, predictions );
+		PredictRaw( ensembles[0], 0, data, predictions );
+		for( int j = 0; j < valueSize; j++ ) {
+			predictions[j] *= learningRate;
+		}
 	}
 
 	return classify( predictions, result );
@@ -239,8 +242,8 @@ double CGradientBoostModel::Predict( const CFloatVectorDesc& data ) const
 	NeoAssert(ensembles.Size() == 1 && valueSize == 1);
 	CFastArray<double, 1> predictions;
 	predictions.SetSize(1);
-	PredictRaw( ensembles.First(), 0, learningRate, data, predictions );
-	return predictions[0];
+	PredictRaw( ensembles.First(), 0, data, predictions );
+	return predictions[0] * learningRate;
 }
 
 // IMultivariateRegressionModel interface method
@@ -250,11 +253,11 @@ CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVectorDesc& d
 
 	if( ensembles.Size() == 1 ){		
 		predictions.Add( 0.0, valueSize );
-		PredictRaw( ensembles[0], 0, learningRate, data, predictions );
+		PredictRaw( ensembles[0], 0, data, predictions );
 		CFloatVector result( valueSize );
 		float* resultPtr = result.CopyOnWrite();
 		for( int i = 0; i < valueSize; i++ ) {
-			resultPtr[i] = static_cast<float>( predictions[i] );
+			resultPtr[i] = static_cast<float>( predictions[i] * learningRate );
 		}
 		return result;
 	}
@@ -263,8 +266,8 @@ CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVectorDesc& d
 	CFloatVector result( ensembles.Size() );
 	float* resultPtr = result.CopyOnWrite();
 	for( int i = 0; i < ensembles.Size(); i++ ) {
-		PredictRaw(ensembles[i], 0, learningRate, data, predictions);
-		resultPtr[i] = static_cast<float>(predictions[0]);
+		PredictRaw(ensembles[i], 0, data, predictions);
+		resultPtr[i] = static_cast<float>( predictions[0] * learningRate );
 	}
 	return result;
 }
