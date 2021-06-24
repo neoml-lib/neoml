@@ -354,7 +354,7 @@ TEST_F( CAutoDiffTest, TestSum3 )
 	lossData.SetSize( loss->GetDataSize() );
 	loss->CopyTo( lossData.GetPtr() );
 
-	float lossRes[4] = { 3.61, 3.31 };
+	float lossRes[2] = { 3.61, 3.31 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
 		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
@@ -678,7 +678,7 @@ TEST_F( CAutoDiffTest, TestMean4 )
 	lossData.SetSize( loss->GetDataSize() );
 	loss->CopyTo( lossData.GetPtr() );
 
-	float lossRes[4] = { 0.84375 };
+	float lossRes[1] = { 0.84375 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
 		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
