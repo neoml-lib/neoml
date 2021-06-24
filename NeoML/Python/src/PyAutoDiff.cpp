@@ -124,6 +124,7 @@ void InitializeTape(py::module& m)
 		axes.SetSize( static_cast<int>( axis.size() ) );
 		for( int i = 0; i < axes.Size(); i++ ) {
 			axes[i] = axisPtr[i];
+			printf("%d %d ", i, axes[i]);
 		}
 		CPtr<const CDnnBlob> result( Sum( first.Blob(), axes ) );
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
