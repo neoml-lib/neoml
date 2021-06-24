@@ -62,22 +62,39 @@ private:
 
 	// Information about how tensor is represented in memory
 	CTensorLayout layout;
+
+	bool checkTensorLayout() const;
 };
 
 inline CTensorBase::CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout ) :
 	layout( _layout )
 {
 	_shape.CopyTo( shape );
-#ifdef _DEBUG
-	NeoPresume( layout.Size() == shape.Size() );
-	// Checking that every dimension is valid and used only once
+	NeoPresume( checkTensorLayout() );
+}
+
+// Checks that layout is consistent with tensor shape (for debug)
+// Returns false if inconsistency was found
+inline bool CTensorBase::checkTensorLayout() const
+{
+	const CTensorLayout& layout = Layout();
+
+	if( layout.Size() != Shape().Size() ) {
+		return false;
+	}
+
+	// Check that every dimension is valid and used only once
 	int mask = 0;
 	for( int dimIndex = 0; dimIndex < layout.Size(); ++dimIndex ) {
-		NeoPresume( layout[dimIndex] >= BD_BatchLength && layout[dimIndex] < BD_Count );
-		NeoPresume( ( mask & ( 1 << layout[dimIndex] ) ) == 0 );
+		if( layout[dimIndex] < BD_BatchLength || layout[dimIndex] > BD_Count
+			|| ( mask & ( 1 << layout[dimIndex] ) ) != 0 )
+		{
+			return false;
+		}
 		mask |= ( 1 << layout[dimIndex] );
 	}
-#endif
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -134,22 +151,33 @@ public:
 private:
 	// Blob with data
 	CPtr<const CDnnBlob> data;
+
+	bool checkTensorLayout() const;
 };
 
 inline CDataTensor::CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& _data ) :
 	CTensorBase( shape, layout ), data( &_data )
 {
-#ifdef _DEBUG
+	NeoPresume( checkTensorLayout() );
+}
+
+inline bool CDataTensor::checkTensorLayout() const
+{
 	// Checking that shape, layout and CDnnBlob are matching
 	for( TBlobDim i = BD_BatchLength; i < BD_Count; ++i ) {
-		const int index = layout.Find( i );
-		if( index == NotFound ) {
-			NeoPresume( data->DimSize( i ) == 1 );
-		} else {
-			NeoPresume( shape[index] == data->DimSize( i ) );
+		const int index = Layout().Find( i );
+		if( index == NotFound && data->DimSize( i ) != 1 ) {
+			return false;
+		} else if( index != NotFound && Shape()[index] != data->DimSize( i ) ) {
+			return false;
 		}
 	}
-#endif
+
+	return true;
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+typedef CObjectArray<const CTensorBase> CTensorArray;
 
 } // namespace NeoOnnx
