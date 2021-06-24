@@ -98,8 +98,8 @@ def sum(a, axis=None):
     if a.size == 0:
         raise ValueError("The blob shouldn't be empty.")
     
-    axis = numpy.array([] if axis is None else [axis]).flatten()
-    print(axis)
+    axis = [] if axis is None else [axis] if numpy.isscalar(axis) else axis
+    axis = numpy.array(axis, dtype=numpy.int32)
     return Blob(PythonWrapper.blob_sum(a._internal, axis))
 
 def cumsum(a, axis=0):
@@ -123,7 +123,8 @@ def mean(a, axis=None):
     if a.size == 0:
         raise ValueError("The blob shouldn't be empty.")
 
-    axis = numpy.array([] if axis is None else [axis]).flatten()
+    axis = [] if axis is None else [axis] if numpy.isscalar(axis) else axis
+    axis = numpy.array(axis, dtype=numpy.int32)
     return Blob(PythonWrapper.blob_mean(a._internal, axis))
 
 def neg(a):
