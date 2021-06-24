@@ -44,7 +44,7 @@ void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 
 	// Check groups (NeoML supports only 2D, 3D and Channelwise2D convolutions)
 	CheckNeoOnnxSupport( group == 1 || ( group == inputShape[1] && inputShape.Size() <= 4 ),
-		"groupped convolution (non-channelwise)", *this );
+		"groupped convolution (3d or non-channelwise)", *this );
 
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
