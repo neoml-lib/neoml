@@ -66,12 +66,31 @@ void CSourceLayer::AllocateOutputBlobs()
 	outputBlobs[0] = blob;
 }
 
-static const int SourceLayerVersion = 2000;
+static const int SourceLayerVersion = 2001;
 
 void CSourceLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( SourceLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	const int version = archive.SerializeVersion( SourceLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
+
+	// v2001 - storeBlob flag added
+	if( version >= 2001 ) {
+		archive.Serialize( storeBlob );
+		if( storeBlob ) {
+			bool isNull = blob == nullptr;
+			archive.Serialize( isNull );
+			if( isNull ) {
+				blob = nullptr;
+			} else {
+				if( archive.IsLoading() ) {
+					blob = new CDnnBlob( MathEngine() );
+				}
+				blob->Serialize( archive );
+			}
+		}
+	} else if( archive.IsLoading() ) {
+		storeBlob = false;
+	}
 }
 
 CSourceLayer* Source( CDnn& network, const char* name )

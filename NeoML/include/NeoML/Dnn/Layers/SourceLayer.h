@@ -24,17 +24,23 @@ namespace NeoML {
 class NEOML_API CSourceLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CSourceLayer )
 public:
-	explicit CSourceLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnSourceLayer", false) {}
+	explicit CSourceLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnSourceLayer", false ), storeBlob( true ) {}
 
 	// Sets the input data blob
 	void SetBlob( CDnnBlob* blob );
 	// Gets the reference to the input blob
 	const CPtr<CDnnBlob>& GetBlob() const { return blob; }
 
+	// Sets whether blob must be serialized with layer or not
+	void StoreBlob( bool value ) { storeBlob = value; }
+	// Returns true if blob will be serialized with layer
+	bool IsStoringBlob() const { return storeBlob; }
+
 	void Serialize( CArchive& archive ) override;
 
 protected:
 	CPtr<CDnnBlob> blob;
+	bool storeBlob;
 	// CBaseLayer class methods
 	void Reshape() override;
 	void RunOnce() override;

@@ -120,6 +120,8 @@ void CEltwiseOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTe
 			CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 			source->SetName( Name() + "_input_" + Str( i ) );
 			source->SetBlob( dynamic_cast<const CDataTensor*>( currInputs[i].Ptr() )->Data()->GetCopy() );
+			// We must save this pre-calculated data during serialization, otherwise net won't work after serialization
+			source->StoreBlob( true );
 			dnn.AddLayer( *source );
 			currInputs[i] = new CUserTensor( currInputs[i]->Shape(), currInputs[i]->Layout(), CLayerOutput( source, 0 ) );
 		}
