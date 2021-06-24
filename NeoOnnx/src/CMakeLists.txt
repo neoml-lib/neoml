@@ -18,8 +18,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ActivationOperator.cpp
     Operators/BatchNormalizationOperator.cpp
     Operators/ConcatOperator.cpp
-    Operators/ConstantOperator.cpp
     Operators/ConstantOfShapeOperator.cpp
+    Operators/ConstantOperator.cpp
     Operators/ConvOperator.cpp
     Operators/DropoutOperator.cpp
     Operators/EltwiseOperator.cpp
@@ -55,8 +55,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ActivationOperator.h
     Operators/BatchNormalizationOperator.h
     Operators/ConcatOperator.h
-    Operators/ConstantOperator.h
     Operators/ConstantOfShapeOperator.h
+    Operators/ConstantOperator.h
     Operators/ConvOperator.h
     Operators/DropoutOperator.h
     Operators/EltwiseOperator.h
