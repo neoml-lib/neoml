@@ -26,16 +26,6 @@ typedef CDynamicBitSet<8> CUserInputMask;
 // Provides default implementation of one of CNode's methods and adds new method to the interface
 class CLayerOperator : public COperator {
 public:
-	// Virtual methods
-
-	// Fills the mask with bools where true means that index'th input
-	// is expected to be provided by user for the correct work of CLayerOperator::AddLayers
-	virtual void UserInputMask( CUserInputMask& mask ) const = 0;
-
-	// Adds layers required which are imitating this operator to the dnn
-	// and puts corresponding CUserTensor's to the outputs
-	virtual void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const = 0;
-
 	// COperator's interface
 
 	// Default implementation which works in the next way:
@@ -46,6 +36,16 @@ public:
 
 protected:
 	CLayerOperator( const onnx::NodeProto& node, int opsetVersion ) : COperator( node, opsetVersion ) {}
+
+	// Virtual methods
+
+	// Fills the mask with bools where true means that index'th input
+	// is expected to be provided by user for the correct work of CLayerOperator::AddLayers
+	virtual void UserInputMask( CUserInputMask& mask ) const = 0;
+
+	// Adds layers required which are imitating this operator to the dnn
+	// and puts corresponding CUserTensor's to the outputs
+	virtual void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const = 0;
 
 private:
 	bool canCalculateOutput( const CTensorArray& inputs ) const;

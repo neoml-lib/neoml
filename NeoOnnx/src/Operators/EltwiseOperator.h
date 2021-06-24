@@ -38,15 +38,13 @@ public:
 		O_Count
 	};
 
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
-	// COperator methods
-	// We can guarantee the support only when second input is CDataTensor (other division is impossible)
-	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
-
 protected:
 	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = NotFound );
+
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	// We can guarantee the support only when second input is CDataTensor (other division is impossible)
+	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 	// In some versions different operators supported different broadcast types
 	// E.g. 'Add' operators in opset v1 supports onnx-broadcast but 'Sum' operators doesn't support broadcast at all

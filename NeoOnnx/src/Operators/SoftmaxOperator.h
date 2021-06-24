@@ -24,10 +24,9 @@ class CSoftmaxOperator : public CLayerOperator {
 public:
 	CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVersion );
 
+protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
-	// COperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:

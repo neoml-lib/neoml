@@ -34,10 +34,9 @@ public:
 
 	CPoolOperatorBase( TPoolType poolType, const onnx::NodeProto& pool, int opsetVersion );
 
+protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const final;
-
-	// COperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:

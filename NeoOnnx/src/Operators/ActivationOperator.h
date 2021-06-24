@@ -25,13 +25,11 @@ public:
 	CActivationOperatorBase( const onnx::NodeProto& onnxNode, int opsetVersion,
 		TActivationFunction activation );
 
-	// COperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
+protected:
 	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
-protected:
 	// Sets additional params for activation layer (e.g. negative slope coeff for CLeakyReLULayer)
 	virtual void SetLayerParams( const CTensorArray& /* inputs */, CBaseLayer* /* layer */ ) const {}
 

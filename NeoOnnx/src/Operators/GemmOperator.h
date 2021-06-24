@@ -24,10 +24,9 @@ class CGemmOperator : public CLayerOperator {
 public:
 	CGemmOperator( const onnx::NodeProto& node, int opsetVersion );
 
+protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
-	// COperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
