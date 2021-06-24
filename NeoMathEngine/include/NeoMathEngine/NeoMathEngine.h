@@ -65,8 +65,13 @@ public:
 	// Sum of blob elements along dimension with size `dimension`
 	virtual void VectorSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle) = 0;
+	// Cumulative Sum of blob elements along dimension with size `dimension`
+	virtual void VectorCumSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle) = 0;
 	// Blob `first` is assumed to be a diagonal matrix
 	virtual void VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) = 0;
+	virtual void VectorCumSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle ) = 0;
 
 	// result = (first == second) ? 1.0 : 0.0 elementwise

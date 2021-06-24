@@ -105,6 +105,28 @@ void CCpuMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHand
 	}
 }
 
+void CCpuMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	int firstIndex = 0;
+	int resultIndex = 0;
+
+	for( int i = 0; i < followingDimension; i++ ) {
+		VectorCopy( resultHandle + resultIndex, firstHandle + firstIndex, precedingDimension );
+		firstIndex += precedingDimension;
+		resultIndex += precedingDimension;
+		for( int j = 1; j < dimension; j++ ) {
+			VectorCopy( resultHandle + resultIndex, resultHandle + resultIndex - precedingDimension, precedingDimension );
+			VectorAdd(  firstHandle + firstIndex, resultHandle + resultIndex, resultHandle + resultIndex, precedingDimension );
+			firstIndex += precedingDimension;
+			resultIndex += precedingDimension;
+		}
+	}
+}
+
 void CCpuMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 	int followingDimension, const CFloatHandle& resultHandle )
 {
@@ -126,6 +148,35 @@ void CCpuMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& first
 				resultRow += precedingDimension;
 			}
 			result += width;
+		}
+		first += dimension * precedingDimension;
+		result += dimension * precedingDimension;
+	}
+}
+
+void CCpuMathEngine::VectorCumSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	VectorFill( resultHandle, 0.0, precedingDimension * precedingDimension * dimension
+		* dimension * followingDimension * followingDimension );
+
+	const int width = precedingDimension * dimension * followingDimension;
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < followingDimension; i++ ) {
+		for( int j = 0; j < precedingDimension; j++ ) {
+			for( int d = 0; d < dimension; d++ ) {
+				float* resultRow = result + j;
+				for( int k = 0; k <= d; k++ ) {
+					*resultRow = first[k * precedingDimension + j];
+					resultRow += precedingDimension;
+				}
+				result += width;
+			}
 		}
 		first += dimension * precedingDimension;
 		result += dimension * precedingDimension;

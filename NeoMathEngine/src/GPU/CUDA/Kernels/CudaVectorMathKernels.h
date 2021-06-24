@@ -167,6 +167,24 @@ __global__ void VectorSumAlongDimensionKernel( const float* __restrict__ input, 
 	}
 }
 
+__global__ void VectorCumSumAlongDimensionKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, followingDims, x, y ) ) {
+		const int offset = y * dims * precedingDims + x;
+		input += offset;
+		result += offset;
+		*result = *input;
+		for( int i = 1; i < dims; i++ ) {
+			input += precedingDims;
+			*(result + precedingDims) = *result + *input;
+			result += precedingDims;
+		}
+	}
+}
+
 __global__ void VectorSumAlongDimensionDiagKernel( const float* __restrict__ input, int precedingDims, int dims,
 	int followingDims, float* result )
 {
@@ -178,6 +196,25 @@ __global__ void VectorSumAlongDimensionDiagKernel( const float* __restrict__ inp
 		input += startOffset;
 		result += ( y * precedingDims + x ) * width + startOffset;
 		for( int i = 0; i < dims; i++ ) {
+			*result += *input;
+			input += precedingDims;
+			result += precedingDims;
+		}
+	}
+}
+
+__global__ void VectorCumSumAlongDimensionDiagKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, dims * followingDims, x, y ) ) {
+		const int cumDim = y / followingDims;
+		const int width = precedingDims * dims * followingDims;
+		const int startOffset = ( y % followingDims ) * dims * precedingDims + x;
+		input += startOffset;
+		result += ( y * precedingDims + x ) * width + startOffset;
+		for( int i = 0; i <= cumDim; i++ ) {
 			*result += *input;
 			input += precedingDims;
 			result += precedingDims;

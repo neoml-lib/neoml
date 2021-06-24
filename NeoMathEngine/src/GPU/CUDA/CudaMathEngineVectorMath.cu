@@ -217,6 +217,21 @@ void CCudaMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHan
 		( GetRaw( firstHandle ), precedingDimension, dimension, followingDimension, GetRaw( resultHandle ) );
 }
 
+void CCudaMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, precedingDimension, followingDimension );
+
+	VectorCumSumAlongDimensionKernel<<<blockCount, threadCount>>>
+		( GetRaw( firstHandle ), precedingDimension, dimension, followingDimension, GetRaw( resultHandle ) );
+}
+
 void CCudaMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 	int followingDimension, const CFloatHandle& resultHandle )
 {
@@ -231,6 +246,23 @@ void CCudaMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& firs
 	VectorFill( resultHandle, 0.0, precedingDimension * precedingDimension * dimension
 		* followingDimension * followingDimension );
 	VectorSumAlongDimensionDiagKernel<<<blockCount, threadCount>>>
+		( GetRaw( firstHandle ), precedingDimension, dimension, followingDimension, GetRaw( resultHandle ) );
+}
+
+void CCudaMathEngine::VectorCumSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, precedingDimension, dimension * followingDimension );
+
+	VectorFill( resultHandle, 0.0, precedingDimension * precedingDimension * dimension
+		* dimension * followingDimension * followingDimension );
+	VectorCumSumAlongDimensionDiagKernel<<<blockCount, threadCount>>>
 		( GetRaw( firstHandle ), precedingDimension, dimension, followingDimension, GetRaw( resultHandle ) );
 }
 
