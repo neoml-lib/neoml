@@ -25,14 +25,15 @@ public:
 	CActivationOperatorBase( const onnx::NodeProto& onnxNode, int opsetVersion,
 		TActivationFunction activation );
 
-	// Sets additional params for activation layer (e.g. negative slope coeff for CLeakyReLULayer)
-	virtual void SetLayerParams( const CTensorArray& /* inputs */, CBaseLayer* /* layer */ ) const {}
-
 	// COperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 	// CLayerOperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
+
+protected:
+	// Sets additional params for activation layer (e.g. negative slope coeff for CLeakyReLULayer)
+	virtual void SetLayerParams( const CTensorArray& /* inputs */, CBaseLayer* /* layer */ ) const {}
 
 private:
 	// Activation function which is applied to the input by this operator
@@ -53,6 +54,7 @@ class CClipOperator : public CActivationOperatorBase {
 public:
 	CClipOperator( const onnx::NodeProto& clip, int opsetVersion );
 
+protected:
 	// CActivationOperatorBase methods
 	void SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const override;
 };
@@ -68,6 +70,7 @@ class CHardSigmoidOperator : public CActivationOperatorBase {
 public:
 	CHardSigmoidOperator( const onnx::NodeProto& hardSigmoid, int opsetVersion );
 
+protected:
 	// CActivationOperatorBase methods
 	void SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const override;
 };
@@ -77,6 +80,7 @@ class CLeakyReluOperator : public CActivationOperatorBase {
 public:
 	CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int opsetVersion );
 
+protected:
 	// CActivationOperatorBase methods
 	void SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const override;
 };
