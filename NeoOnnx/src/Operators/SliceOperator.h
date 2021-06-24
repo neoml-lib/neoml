@@ -24,10 +24,9 @@ class CSliceOperator : public CLayerOperator {
 public:
 	CSliceOperator( const onnx::NodeProto& slice, int opsetVersion );
 
+protected:
 	// COperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
-	// CLayerOperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:

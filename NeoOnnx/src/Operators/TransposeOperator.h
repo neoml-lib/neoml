@@ -24,10 +24,9 @@ class CTransposeOperator : public CLayerOperator {
 public:
 	CTransposeOperator( const onnx::NodeProto& transpose, int opsetVersion );
 
+protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
-	// COperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 };
 

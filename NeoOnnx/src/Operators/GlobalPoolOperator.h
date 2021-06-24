@@ -32,8 +32,8 @@ public:
 	};
 
 	// Interface
-	// Default implementations are used for GlobalMax and GlobalAverage operators
-	// and are overridden in other operators
+	// Default implementations are used for Global* operators
+	// In other operators these methods are overridden
 
 	// Should pooled dims be kept of size 1 or removed from tensor shape
 	virtual bool KeepDims() const { return true; }
@@ -42,16 +42,12 @@ public:
 	// Result shouldn't contain negative indices and must be in sorted order
 	virtual void PoolAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const;
 
-	// Implementations
+protected:
+	CGlobalPoolOperatorBase( TPoolType poolType, const onnx::NodeProto& onnxNode, int opsetVersion );
 
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const final;
-
-	// COperator methods
 	void UserInputMask( CUserInputMask& mask ) const final { mask |= 0; }
-
-protected:
-	CGlobalPoolOperatorBase( TPoolType poolType, const onnx::NodeProto& onnxNode, int opsetVersion );
 
 private:
 	// Pool type
