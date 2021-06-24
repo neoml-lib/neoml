@@ -186,7 +186,7 @@ void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer
 {
 	if( archive.IsStoring() ) {
 		CString name = getLayerClass( layer );
-		NeoAssert( layer == nullptr|| name != ""  ); // assertion on storing not registered layer
+		NeoAssert( layer == nullptr || name != ""  ); // assertion on storing not registered layer
 		archive << name;
 		if( layer != 0 ) {
 			layer->Serialize( archive );
