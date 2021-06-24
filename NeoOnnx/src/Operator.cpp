@@ -26,8 +26,8 @@ limitations under the License.
 #include "Operators/ActivationOperator.h"
 #include "Operators/BatchNormalizationOperator.h"
 #include "Operators/ConcatOperator.h"
-#include "Operators/ConstantOperator.h"
 #include "Operators/ConstantOfShapeOperator.h"
+#include "Operators/ConstantOperator.h"
 #include "Operators/ConvOperator.h"
 #include "Operators/DropoutOperator.h"
 #include "Operators/EltwiseOperator.h"
@@ -106,8 +106,8 @@ REGISTER_OPERATOR( CAveragePoolOperator, "AveragePool" )
 REGISTER_OPERATOR( CBatchNormalizationOperator, "BatchNormalization" )
 REGISTER_OPERATOR( CClipOperator, "Clip" )
 REGISTER_OPERATOR( CConcatOperator, "Concat" )
-REGISTER_OPERATOR( CConstantOperator, "Constant" )
 REGISTER_OPERATOR( CConstantOfShapeOperator, "ConstantOfShape" )
+REGISTER_OPERATOR( CConstantOperator, "Constant" )
 REGISTER_OPERATOR( CConvOperator, "Conv" )
 REGISTER_OPERATOR( CDivOperator, "Div" )
 REGISTER_OPERATOR( CDropoutOperator, "Dropout" )
