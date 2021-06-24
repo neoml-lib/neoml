@@ -121,7 +121,7 @@ void InitializeTape(py::module& m)
 	m.def( "blob_sum", [](const CPyBlob& first, py::array axis) {
 		CArray<int> axes;
 		const int* axisPtr = reinterpret_cast< const int* >( axis.data() );
-		axes.SetSize( axis.size() );
+		axes.SetSize( static_cast<int>( axis.size() ) );
 		for( int i = 0; i < axes.Size(); i++ ) {
 			axes[i] = axisPtr[i];
 		}
@@ -137,7 +137,7 @@ void InitializeTape(py::module& m)
 	m.def( "blob_mean", [](const CPyBlob& first, py::array axis) {
 		CArray<int> axes;
 		const int* axisPtr = reinterpret_cast< const int* >( axis.data() );
-		axes.SetSize( axis.size() );
+		axes.SetSize( static_cast<int>( axis.size() ) );
 		for( int i = 0; i < axes.Size(); i++ ) {
 			axes[i] = axisPtr[i];
 		}
