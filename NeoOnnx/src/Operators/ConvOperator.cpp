@@ -60,6 +60,7 @@ void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	}
 }
 
+// Gets actual kernel shape
 void CConvOperator::getKernelShape( const CTensorArray& inputs, CTensorShape& kernelShape ) const
 {
 	const CTensorShape& inputShape = inputs[0]->Shape();
@@ -69,6 +70,7 @@ void CConvOperator::getKernelShape( const CTensorArray& inputs, CTensorShape& ke
 	}
 }
 
+// Gets actual strides
 void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const
 {
 	Attributes.GetOptionalIntArray( "strides", strides );
@@ -78,6 +80,7 @@ void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& 
 	}
 }
 
+// Gets actual padding sizes
 void CConvOperator::getPads( const CTensorArray& inputs, const CTensorShape& kernelShape, CFastArray<int, 8>& pads ) const
 {
 	Attributes.GetOptionalIntArray( "pads", pads );
@@ -90,6 +93,7 @@ void CConvOperator::getPads( const CTensorArray& inputs, const CTensorShape& ker
 	}
 }
 
+// Gets actual dilation sizes
 void CConvOperator::getDilations( const CTensorArray& inputs, CFastArray<int, 8>& dilations ) const
 {
 	Attributes.GetOptionalIntArray( "dilations", dilations );
@@ -99,6 +103,7 @@ void CConvOperator::getDilations( const CTensorArray& inputs, CFastArray<int, 8>
 	}
 }
 
+// Calculates output shape based on the convolution parameters
 void CConvOperator::calcOutputShape( const CTensorArray& inputs, const CTensorShape& kernelShape, const CFastArray<int, 8>& strides,
 	const CFastArray<int, 8>& pads, const CFastArray<int, 8>& dilations, CTensorShape& outputShape ) const
 {
