@@ -2092,6 +2092,34 @@ PARAM_STRUCT( BlobReorgFloat )
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
+// SpaceToDepth
+DEFINE_SHADER_2D( SpaceToDepthInt )
+
+PARAM_STRUCT( SpaceToDepthInt )
+{
+	int dataRowCount;
+	int dataRowWidth;
+	int blockChannels;
+	int blockSize;
+	int isForward;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// SpaceToDepth
+DEFINE_SHADER_2D( SpaceToDepthFloat )
+
+PARAM_STRUCT( SpaceToDepthFloat )
+{
+	int dataRowCount;
+	int dataRowWidth;
+	int blockChannels;
+	int blockSize;
+	int isForward;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 // BatchVectorChannelCopyFloat
 DEFINE_SHADER_2D(VectorMultichannelLookupAndCopyFloat)
 
@@ -2215,6 +2243,19 @@ PARAM_STRUCT( QrnnIfPooling )
 {
 	int reverse;
 	int sequenceLength;
+	int objectSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// IndRnnRecurrent
+DEFINE_SHADER_1D(IndRnnRecurrent)
+
+PARAM_STRUCT( IndRnnRecurrent )
+{
+	int reverse;
+	int sequenceLength;
+	int batchSize;
 	int objectSize;
 };
 

@@ -186,6 +186,12 @@ Irnn
 .. autoclass:: neoml.Dnn.Irnn
    :members:
 
+IndRnn
+======
+
+.. autoclass:: neoml.Dnn.IndRnn
+   :members:
+
 .. _py-dnn-fullyconnected:
 
 FullyConnected

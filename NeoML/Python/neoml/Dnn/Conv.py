@@ -181,13 +181,29 @@ class Conv(Layer):
         - **Height**, **Width** are taken from filter_size
         - **Depth**, **Channels** are equal to the inputs' dimensions
         """
-        return Blob(self._internal.get_filter())
+        return Blob.Blob(self._internal.get_filter())
+
+    @filter.setter
+    def filter(self, blob):
+        """Sets the filters. The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
+        - **Height**, **Width** are taken from filter_size
+        - **Depth**, **Channels** are equal to the inputs' dimensions
+        """
+        self._internal.set_filter(blob._internal)
 
     @property
     def free_term(self):
-        """Gets the free term. The blob size is filter_count
+        """Gets the free term. The blob size is filter_count.
         """
-        return Blob(self._internal.get_free_term())
+        return Blob.Blob(self._internal.get_free_term())
+
+    @free_term.setter
+    def free_term(self, blob):
+        """Sets the free term. The blob size is filter_count.
+        """
+        self._internal.set_free_term(blob._internal)
 
     def apply_batch_normalization(self, layer):
         """Applies batch normalization to this layer.
@@ -347,13 +363,29 @@ class Conv3D(Layer):
         - **Height**, **Width**, **Depth** are taken from filter_size
         - **Channels** is equal to the inputs' **Channels**
         """
-        return Blob(self._internal.get_filter())
+        return Blob.Blob(self._internal.get_filter())
+
+    @filter.setter
+    def filter(self, blob):
+        """Sets the filters. The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
+        - **Height**, **Width**, **Depth** are taken from filter_size
+        - **Channels** is equal to the inputs' **Channels**
+        """
+        self._internal.set_filter(blob._internal)
 
     @property
     def free_term(self):
-        """Gets the free term. The blob is of filter_count size.
+        """Gets the free term. The blob size is filter_count.
         """
-        return Blob(self._internal.get_free_term())
+        return Blob.Blob(self._internal.get_free_term())
+
+    @free_term.setter
+    def free_term(self, blob):
+        """Sets the free term. The blob size is filter_count.
+        """
+        self._internal.set_free_term(blob._internal)
 
     def apply_batch_normalization(self, layer):
         """Applies batch normalization to this layer.
@@ -514,13 +546,30 @@ class TransposedConv3D(Layer):
         - **Height**, **Width**, **Depth** are taken from filter_size
         - **Channels** is filter_count
         """
-        return Blob(self._internal.get_filter())
+        return Blob.Blob(self._internal.get_filter())
+
+    @filter.setter
+    def filter(self, blob):
+        """Sets the filters. The dimensions:
+
+        - **BatchLength**, **ListSize** are 1
+        - **BatchWidth** is equal to the inputs' **Channels**
+        - **Height**, **Width**, **Depth** are taken from filter_size
+        - **Channels** is filter_count
+        """
+        self._internal.set_filter(blob._internal)
 
     @property
     def free_term(self):
         """Gets the free term. The blob size is filter_count.
         """
-        return Blob(self._internal.get_free_term())
+        return Blob.Blob(self._internal.get_free_term())
+
+    @free_term.setter
+    def free_term(self, blob):
+        """Sets the free term. The blob size is filter_count.
+        """
+        self._internal.set_free_term(blob._internal)
 
     def apply_batch_normalization(self, layer):
         """Applies batch normalization to this layer.
@@ -698,13 +747,30 @@ class TransposedConv(Layer):
         - **Height**, **Width** are taken from filter_size
         - **Channels** is filter_count
         """
-        return Blob(self._internal.get_filter())
+        return Blob.Blob(self._internal.get_filter())
+
+    @filter.setter
+    def filter(self, blob):
+        """Sets the filters. The dimensions:
+
+        - **BatchLength**, **ListSize** are 1
+        - **BatchWidth** is equal to the inputs' **Channels** * **Depth**
+        - **Height**, **Width** are taken from filter_size
+        - **Channels** is filter_count
+        """
+        self._internal.set_filter(blob._internal)
 
     @property
     def free_term(self):
         """Gets the free term. The blob size is filter_count.
         """
-        return Blob(self._internal.get_free_term())
+        return Blob.Blob(self._internal.get_free_term())
+
+    @free_term.setter
+    def free_term(self, blob):
+        """Sets the free term. The blob size is filter_count.
+        """
+        self._internal.set_free_term(blob._internal)
 
     def apply_batch_normalization(self, layer):
         """Applies batch normalization to this layer.
@@ -861,13 +927,29 @@ class ChannelwiseConv(Layer):
         - **Height**, **Width** are taken from filter_size
         - **Channels** is equal to the inputs' **Channels**
         """
-        return self._internal.get_filter()
+        return Blob.Blob(self._internal.get_filter())
+
+    @filter.setter
+    def filter(self, blob):
+        """Sets the filters. The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize**, **Depth** are 1
+        - **Height**, **Width** are taken from filter_size
+        - **Channels** is equal to the inputs' **Channels**
+        """
+        self._internal.set_filter(blob._internal)
 
     @property
     def free_term(self):
         """Gets the free term. The blob size is inputs' Channels.
         """
-        return self._internal.get_free_term()
+        return Blob.Blob(self._internal.get_free_term())
+
+    @free_term.setter
+    def free_term(self, blob):
+        """Sets the free term. The blob size is inputs' Channels.
+        """
+        self._internal.set_free_term(blob._internal)
 
     def apply_batch_normalization(self, layer):
         """Applies batch normalization to this layer.
@@ -1052,10 +1134,10 @@ class TimeConv(Layer):
         - **Width**, **Depth** are 1
         - **Channels** is the inputs' **Height** * **Width** * **Depth** * **Channels**
         """
-        return Blob(self._internal.get_filter())
+        return Blob.Blob(self._internal.get_filter())
 
     @property
     def free_term(self):
         """Gets the free term. The blob size is filter_count.
         """
-        return Blob(self._internal.get_free_term())
+        return Blob.Blob(self._internal.get_free_term())

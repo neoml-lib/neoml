@@ -160,6 +160,7 @@ REGISTER_NEOML_PYLAYER( "MultiheadAttention", "NeoMLDnnMultiheadAttentionLayer" 
 REGISTER_NEOML_PYLAYER( "PositionalEmbedding", "NeoMLDnnPositionalEmbeddingLayer" )
 REGISTER_NEOML_PYLAYER( "ProjectionPooling", "FmlCnnProjectionPoolingLayerClass" )
 REGISTER_NEOML_PYLAYER( "Irnn", "NeoMLDnnIrnnLayer" )
+REGISTER_NEOML_PYLAYER( "IndRnn", "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_PYLAYER( "Qrnn", "NeoMLDnnQrnnLayer" )
 
 }
@@ -169,7 +170,7 @@ py::object createLayer( CBaseLayer& layer, CPyMathEngineOwner& mathEngineOwner )
 	CPyLayer pyLayer( layer, mathEngineOwner );
 
 	CMap<CString, CPyClass, CDefaultHash<CString>, RuntimeHeap>& layers = getRegisteredPyLayers();
-	CString layerName( GetLayerName( layer ) );
+	CString layerName( GetLayerClass( layer ) );
 
 	CPyClass c = layers.Get( layerName );
 

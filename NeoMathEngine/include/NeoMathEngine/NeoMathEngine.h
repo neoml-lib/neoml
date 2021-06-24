@@ -768,6 +768,20 @@ public:
 	virtual void Reorg( const CBlobDesc& source, const CIntHandle& sourceData, int stride, bool isForward,
 		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
 
+	// Rearranges the blob elements from N x H x W x C to N x H / blockSize x W / blockSize x C * blockSize * blockSize
+	// The name is chosen to be similar with other frameworks
+	virtual void SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
+	virtual void SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+
+	// Rearranges the blob elements from N x H x W x C to N x H * blockSize x W * blockSize x C / (blockSize * blockSize)
+	// The name is chosen to be similar with other frameworks
+	virtual void DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
+	virtual void DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+
 	// To each element, adds its column number (on forward pass)
 	// 0 1 2   --->    0 2 4
 	// 3 4 5           3 5 7
@@ -817,6 +831,31 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) = 0;
+
+	// Ind-RNN implementation (https://arxiv.org/pdf/1803.04831.pdf)
+	// Pay attention that functions below emulate only recurrent part of the layer
+	// the result is
+	//    h_t = sigmoid( wx + u * h_(t-1))
+	// where
+	//    wx - user input (x), processed by fully connected layer (w). Size: seqLen x batchSize x objSize
+	//    mask - (optional, may be null) dropout mask. Size: batchSize x objSize
+	//    u - trainable vector of multipliers. Size: objSize
+
+	// Inference
+	// Calculates h based on wx, mask and u
+	virtual void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+		const CFloatHandle& h ) = 0;
+	// Backward
+	// Calculates wxDiff based on mask, u, h and hDiff
+	virtual void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& wxDiff ) = 0;
+	// Learn
+	// Calculates uDiff based on wx, mask, u, h, and hDiff
+	virtual void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& uDiff ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
