@@ -45,13 +45,13 @@ public:
 	// We can guarantee the support only when second input is CDataTensor (other division is impossible)
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
+protected:
+	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = NotFound );
+
 	// In some versions different operators supported different broadcast types
 	// E.g. 'Add' operators in opset v1 supports onnx-broadcast but 'Sum' operators doesn't support broadcast at all
 	// That's why each derivative should determine by itself which broadcast type is supported
 	virtual CBroadcast GetBroadcast() const = 0;
-
-protected:
-	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = NotFound );
 
 private:
 	// Operation performed by this operator
@@ -70,6 +70,7 @@ public:
 	CEltwiseBinaryOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation ) :
 		CEltwiseOperatorBase( eltwise, opsetVersion, operation, 2 ) {}
 
+protected:
 	// CEltwiseOperatorBase methods
 	CBroadcast GetBroadcast() const override;
 };
@@ -105,6 +106,7 @@ class CSumOperator : public CEltwiseOperatorBase {
 public:
 	CSumOperator( const onnx::NodeProto& sum, int opsetVersion ) : CEltwiseOperatorBase( sum, opsetVersion, O_Add ) {}
 
+protected:
 	// CEltwiseOperatorBase methods
 	CBroadcast GetBroadcast() const override;
 };
