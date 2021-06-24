@@ -99,6 +99,7 @@ def sum(a, axis=None):
         raise ValueError("The blob shouldn't be empty.")
     
     axis = numpy.array([] if axis is None else [axis]).flatten()
+    print(axis)
     return Blob(PythonWrapper.blob_sum(a._internal, axis))
 
 def cumsum(a, axis=0):
