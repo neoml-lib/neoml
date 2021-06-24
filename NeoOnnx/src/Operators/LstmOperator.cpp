@@ -44,8 +44,7 @@ CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
 	CheckNeoOnnxSupport( !Attributes.Has( "activation_beta" ), "'activation_beta' attirbute", *this );
 }
 
-void CLstmOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
@@ -116,7 +115,7 @@ void CLstmOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 
 // Converts lstm weights from onnx format to NeoML
 // because gate weights in onnx and NeoML are oredered differently
-CPtr<CDnnBlob> CLstmOperator::reorderGates( CPtr<CDnnBlob> blob, TBlobDim dim )
+CPtr<CDnnBlob> CLstmOperator::reorderGates( CPtr<CDnnBlob> blob, TBlobDim dim ) const
 {
 	IMathEngine& mathEngine = blob->GetMathEngine();
 

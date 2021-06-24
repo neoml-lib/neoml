@@ -34,8 +34,7 @@ CSqueezeOperator::CSqueezeOperator( const onnx::NodeProto& squeeze, int opsetVer
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CSqueezeOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& /* dnn */, CObjectArray<const CTensorBase>& outputs )
+void CSqueezeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 

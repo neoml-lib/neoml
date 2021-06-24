@@ -34,18 +34,12 @@ CConstantOfShapeOperator::CConstantOfShapeOperator( const onnx::NodeProto& const
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CConstantOfShapeOperator::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CDnn& /* dnn */, CObjectArray<const CTensorBase>& /* outputs */ )
-{
-	NeoAssert( false );
-}
-
-void CConstantOfShapeOperator::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
+void CConstantOfShapeOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "user-provided input", *this );
 	const CDnnBlob* inputShapeBlob = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data();
 	CheckNeoOnnxSupport( inputShapeBlob->GetDataType() == CT_Int, "non-integer input tensor", *this );
+	IMathEngine& mathEngine = dnn.GetMathEngine();
 
 	// If "value" attribute is not set then float 0.f is assumed
 	CPtr<const CDnnBlob> valueBlob;

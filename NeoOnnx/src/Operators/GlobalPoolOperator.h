@@ -45,11 +45,10 @@ public:
 	// Implementations
 
 	// CLayerOperator methods
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const final;
 
 	// COperator methods
-	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
+	void UserInputMask( CUserInputMask& mask ) const final { mask |= 0; }
 
 protected:
 	CGlobalPoolOperatorBase( TPoolType poolType, const onnx::NodeProto& onnxNode, int opsetVersion );

@@ -34,56 +34,21 @@ CConvOperator::CConvOperator( const onnx::NodeProto& conv, int opsetVersion ) :
 
 	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "operator must have 2 or 3 inputs", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
-
-	Attributes.GetOptionalIntArray( "strides", strides );
-	Attributes.GetOptionalIntArray( "pads", pads );
-	Attributes.GetOptionalIntArray( "dilations", dilations );
 }
 
-void CConvOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 5,
 		"wrong input tensor's dimensions number", *this );
-	const int convDims = static_cast<int>( inputShape.Size() ) - 2;
-
-	if( strides.IsEmpty() ) {
-		strides.Add( 1, convDims );
-	}
-	if( pads.IsEmpty() ) {
-		pads.Add( 0, 2 * convDims );
-	}
-	if( dilations.IsEmpty() ) {
-		dilations.Add( 1, convDims );
-	}
 
 	// Check groups (NeoML supports only 2D, 3D and Channelwise2D convolutions)
-	CheckNeoOnnxSupport( group == 1 || ( group == inputShape[1] && convDims < 3 ),
+	CheckNeoOnnxSupport( group == 1 || ( group == inputShape[1] && inputShape.Size() <= 4 ),
 		"grouped convolutiion (non-channelwise)", *this );
 
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
 		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", *this );
-	}
-
-	// Calculate padding
-	CTensorShape kernelShape;
-	kernelShape.SetBufferSize( inputShape.Size() - 2 );
-	for( int dimIndex = 2; dimIndex < inputShape.Size(); ++dimIndex ) {
-		kernelShape.Add( inputs[1]->Shape()[dimIndex] );
-	}
-	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
-		CalculatePadding( autoPad, kernelShape, pads );
-	}
-
-	inputShape.CopyTo( outputShape );
-	if( group == 1 ) {
-		outputShape[1] = inputs[1]->Shape()[0];
-	}
-	for( int dimIndex = 0; dimIndex < convDims; ++dimIndex ) {
-		outputShape[dimIndex + 2] = ( inputShape[dimIndex + 2] + pads[dimIndex] + pads[dimIndex + convDims]
-			- ( kernelShape[dimIndex] - 1 ) * dilations[dimIndex] - 1 ) / strides[dimIndex] + 1;
 	}
 
 	if( inputShape.Size() == 4 ) {
@@ -95,28 +60,89 @@ void CConvOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 	}
 }
 
+void CConvOperator::getKernelShape( const CTensorArray& inputs, CTensorShape& kernelShape ) const
+{
+	const CTensorShape& inputShape = inputs[0]->Shape();
+	kernelShape.SetBufferSize( inputShape.Size() - 2 );
+	for( int dimIndex = 2; dimIndex < inputShape.Size(); ++dimIndex ) {
+		kernelShape.Add( inputs[1]->Shape()[dimIndex] );
+	}
+}
+
+void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const
+{
+	Attributes.GetOptionalIntArray( "strides", strides );
+	if( strides.IsEmpty() ) {
+		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
+		strides.Add( 1, convDims );
+	}
+}
+
+void CConvOperator::getPads( const CTensorArray& inputs, const CTensorShape& kernelShape, CFastArray<int, 8>& pads ) const
+{
+	Attributes.GetOptionalIntArray( "pads", pads );
+	if( pads.IsEmpty() ) {
+		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
+		pads.Add( 0, 2 * convDims );
+	}
+	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
+		CalculatePadding( autoPad, kernelShape, pads );
+	}
+}
+
+void CConvOperator::getDilations( const CTensorArray& inputs, CFastArray<int, 8>& dilations ) const
+{
+	Attributes.GetOptionalIntArray( "dilations", dilations );
+	if( dilations.IsEmpty() ) {
+		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
+		dilations.Add( 1, convDims );
+	}
+}
+
+void CConvOperator::calcOutputShape( const CTensorArray& inputs, const CTensorShape& kernelShape, const CFastArray<int, 8>& strides,
+	const CFastArray<int, 8>& pads, const CFastArray<int, 8>& dilations, CTensorShape& outputShape ) const
+{
+	const CTensorShape& inputShape = inputs[0]->Shape();
+	inputShape.CopyTo( outputShape );
+	if( group == 1 ) {
+		outputShape[1] = inputs[1]->Shape()[0];
+	}
+	const int convDims = inputShape.Size() - 2;
+	for( int dimIndex = 0; dimIndex < convDims; ++dimIndex ) {
+		outputShape[dimIndex + 2] = ( inputShape[dimIndex + 2] + pads[dimIndex] + pads[dimIndex + convDims]
+			- ( kernelShape[dimIndex] - 1 ) * dilations[dimIndex] - 1 ) / strides[dimIndex] + 1;
+	}
+}
+
 // Adds 2-dimensional convolution
-void CConvOperator::add2dConvLayer( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	const CTensorLayout neoML2dLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
+
+	CTensorShape kernelShape;
+	getKernelShape( inputs, kernelShape );
+	CFastArray<int, 8> strides;
+	getStrides( inputs, strides );
+	CFastArray<int, 8> pads;
+	getPads( inputs, kernelShape, pads );
+	CFastArray<int, 8> dilations;
+	getDilations( inputs, dilations );
+	CTensorShape outputShape;
+	calcOutputShape( inputs, kernelShape, strides, pads, dilations, outputShape );
 
 	CPtr<CBaseConvLayer> conv = nullptr;
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
 	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
-	const CTensorShape& filterShape = filter->Shape();
-	const int filterCount = filterShape[0];
+	const int filterCount = filter->Shape()[0];
 	const int inputChannels = inputs[0]->Shape()[1];
-	const int filterHeight = filterShape[2];
-	const int filterWidth = filterShape[3];
 
 	if( group == 1 ) {
 		conv = new CConvLayer( mathEngine );
 		filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoML2dLayout ).Ptr() );
 	} else {
-		CheckNeoOnnxSupport( filterCount == inputChannels, "non-trivial grouped conv", *this );
-		CheckNeoOnnxSupport( group == inputChannels, "non-trivial grouped conv", *this );
+		CheckNeoOnnxSupport( filterCount == inputChannels, "non-trivial groupped conv", *this );
+		CheckNeoOnnxSupport( group == inputChannels, "non-trivial groupped conv", *this );
 		conv = new CChannelwiseConvLayer( mathEngine );
 		// In channelwise convolution filter has specific layout
 		const CTensorLayout filterLayout( { BD_Channels, BD_BatchWidth, BD_Height, BD_Width } );
@@ -125,8 +151,8 @@ void CConvOperator::add2dConvLayer( const CObjectArray<const CTensorBase>& input
 	
 	conv->SetName( Name() );
 	conv->SetFilterCount( filterCount );
-	conv->SetFilterHeight( filterHeight );
-	conv->SetFilterWidth( filterWidth );
+	conv->SetFilterHeight( kernelShape[0] );
+	conv->SetFilterWidth( kernelShape[1] );
 	conv->SetStrideHeight( strides[0] );
 	conv->SetStrideWidth( strides[1] );
 	CPtr<const CUserTensor> currInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], neoML2dLayout ).Ptr() );
@@ -146,7 +172,7 @@ void CConvOperator::add2dConvLayer( const CObjectArray<const CTensorBase>& input
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
 		conv->SetFreeTermData( dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy() );
 	} else {
-		conv->SetZeroFreeTerm( false );
+		conv->SetZeroFreeTerm( true );
 	}
 
 	conv->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
@@ -156,16 +182,20 @@ void CConvOperator::add2dConvLayer( const CObjectArray<const CTensorBase>& input
 }
 
 // Adds 3-dimensional convolution
-void CConvOperator::add3dConvLayer( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	const CTensorLayout neoML3dLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
 
-	const CTensorShape& filterShape = inputs[1]->Shape();
-	const int filterCount = filterShape[0];
-	const int filterHeight = filterShape[2];
-	const int filterWidth = filterShape[3];
-	const int filterDepth = filterShape[4];
+	CTensorShape kernelShape;
+	getKernelShape( inputs, kernelShape );
+	CFastArray<int, 8> strides;
+	getStrides( inputs, strides );
+	CFastArray<int, 8> pads;
+	getPads( inputs, kernelShape, pads );
+	CFastArray<int, 8> dilations;
+	getDilations( inputs, dilations );
+	CTensorShape outputShape;
+	calcOutputShape( inputs, kernelShape, strides, pads, dilations, outputShape );
 
 	CheckNeoOnnxSupport( group == 1, "groupped 3d convolution", *this );
 	for( int dimIndex = 0; dimIndex < dilations.Size(); ++dimIndex ) {
@@ -174,10 +204,10 @@ void CConvOperator::add3dConvLayer( const CObjectArray<const CTensorBase>& input
 
 	CPtr<C3dConvLayer> conv = new C3dConvLayer( dnn.GetMathEngine() );
 	conv->SetName( Name() );
-	conv->SetFilterCount( filterCount );
-	conv->SetFilterHeight( filterHeight );
-	conv->SetFilterWidth( filterWidth );
-	conv->SetFilterDepth( filterDepth );
+	conv->SetFilterCount( inputs[1]->Shape()[0] );
+	conv->SetFilterHeight( kernelShape[0] );
+	conv->SetFilterWidth( kernelShape[1] );
+	conv->SetFilterDepth( kernelShape[2] );
 	conv->SetStrideHeight( strides[0] );
 	conv->SetStrideWidth( strides[1] );
 	conv->SetStrideDepth( strides[2] );
@@ -198,7 +228,7 @@ void CConvOperator::add3dConvLayer( const CObjectArray<const CTensorBase>& input
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
 		conv->SetFreeTermData( dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy() );
 	} else {
-		conv->SetZeroFreeTerm( false );
+		conv->SetZeroFreeTerm( true );
 	}
 
 	conv->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );

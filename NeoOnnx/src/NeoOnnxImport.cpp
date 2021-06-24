@@ -72,7 +72,7 @@ typedef CMap<CString, CPtr<const CTensorBase>> CTensorCache;
 // Adds operator's outputs to the tensor cache and dnn
 static void addOperator( COperator& op, CTensorCache& tensors, CDnn& dnn )
 {
-	CObjectArray<const CTensorBase> inputs;
+	CTensorArray inputs;
 	inputs.Add( nullptr, op.InputCount() );
 	for( int inputIndex = 0; inputIndex < op.InputCount(); ++inputIndex ) {
 		const CString& inputName = op.InputName( inputIndex );
@@ -82,14 +82,9 @@ static void addOperator( COperator& op, CTensorCache& tensors, CDnn& dnn )
 		}
 	}
 
-	CObjectArray<const CTensorBase> outputs;
+	CTensorArray outputs;
 	outputs.Add( nullptr, op.OutputCount() );
-
-	if( op.CanCalculateOutput( inputs ) ) {
-		op.CalculateOutput( inputs, dnn.GetMathEngine(), outputs );
-	} else {
-		op.AddLayers( inputs, dnn, outputs );
-	}
+	op.GetOutputTensors( inputs, dnn, outputs );
 
 	for( int outputIndex = 0; outputIndex < op.OutputCount(); ++outputIndex ) {
 		const CString& outputName = op.OutputName( outputIndex );

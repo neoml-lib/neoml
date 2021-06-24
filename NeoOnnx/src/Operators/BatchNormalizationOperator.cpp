@@ -41,8 +41,7 @@ CBatchNormalizationOperator::CBatchNormalizationOperator( const onnx::NodeProto&
 	}
 }
 
-void CBatchNormalizationOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CPtr<const CUserTensor> input = convertInput( dynamic_cast<const CUserTensor&>( *inputs[0] ) );
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );
@@ -87,7 +86,7 @@ CPtr<const CUserTensor> CBatchNormalizationOperator::convertInput( const CUserTe
 }
 
 // Calculates NeoML::CBatchNormalizationLayer's final params blob from onnx operator's inputs
-CPtr<CDnnBlob> CBatchNormalizationOperator::calculateFinalParams( int channels, const CObjectArray<const CTensorBase>& inputs )
+CPtr<CDnnBlob> CBatchNormalizationOperator::calculateFinalParams( int channels, const CTensorArray& inputs ) const
 {
 	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
 		CheckNeoOnnxSupport( inputs[inputIndex]->IsCalculated(), "non-constant weights", *this );

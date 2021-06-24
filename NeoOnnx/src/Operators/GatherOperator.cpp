@@ -33,14 +33,7 @@ CGatherOperator::CGatherOperator( const onnx::NodeProto& gather, int opsetVersio
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CGatherOperator::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CDnn& /* dnn */, CObjectArray<const CTensorBase>& /* outputs */ )
-{
-	CheckNeoOnnxSupport( false, "user-provided input", *this );
-}
-
-void CGatherOperator::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
+void CGatherOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	// This is a stub for a specific case: integer 1-dimensional data
 	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "User-provided data", *this );
@@ -53,7 +46,7 @@ void CGatherOperator::CalculateOutput( const CObjectArray<const CTensorBase>& in
 	const CDnnBlob* indicesBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
 	NeoAssert( indicesBlob->GetDataType() == CT_Int );
 
-	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( mathEngine, CT_Int, indicesBlob->GetDesc() );
+	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), CT_Int, indicesBlob->GetDesc() );
 	
 	// const_cast in order to avoid copying (becasuse we won't change dataBlob or indicesBlob contents anyway)
 	int* data = const_cast<CDnnBlob*>( dataBlob )->GetBuffer<int>( 0, dataBlob->GetDataSize() );

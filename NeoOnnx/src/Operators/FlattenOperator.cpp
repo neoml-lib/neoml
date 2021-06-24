@@ -40,8 +40,7 @@ CFlattenOperator::CFlattenOperator( const onnx::NodeProto& flatten, int opsetVer
 	}
 }
 
-void CFlattenOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 

@@ -30,8 +30,8 @@ CActivationOperatorBase::CActivationOperatorBase( const onnx::NodeProto& onnxNod
 {
 }
 
-void CActivationOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CActivationOperatorBase::AddLayers( const CTensorArray& inputs,
+	CDnn& dnn, CTensorArray& outputs ) const
 {
 	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
 	NeoAssert( userInput != nullptr );
@@ -48,10 +48,6 @@ void CActivationOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& 
 CAbsOperator::CAbsOperator( const onnx::NodeProto& abs, int opsetVersion ) :
 	CActivationOperatorBase( abs, opsetVersion, AF_Abs )
 {
-}
-
-void CAbsOperator::CheckOnnxNode() const
-{
 	// v1 - original
 	// v6 - removed legacy optimization attributes and added new data types support
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
@@ -64,10 +60,6 @@ void CAbsOperator::CheckOnnxNode() const
 
 CClipOperator::CClipOperator( const onnx::NodeProto& clip, int opsetVersion ) :
 	CActivationOperatorBase( clip, opsetVersion, AF_ReLU )
-{
-}
-
-void CClipOperator::CheckOnnxNode() const
 {
 	// v1 - original
 	// v6 - removed legacy optimization attributes
@@ -84,7 +76,7 @@ void CClipOperator::CheckOnnxNode() const
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CClipOperator::SetLayerParams( const CObjectArray<const CTensorBase>& inputs, CBaseLayer* layer ) const
+void CClipOperator::SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const
 {
 	CReLULayer* relu = dynamic_cast<CReLULayer*>( layer );
 	NeoAssert( relu != nullptr );
@@ -127,10 +119,6 @@ void CClipOperator::SetLayerParams( const CObjectArray<const CTensorBase>& input
 CEluOperator::CEluOperator( const onnx::NodeProto& elu, int opsetVersion ) :
 	CActivationOperatorBase( elu, opsetVersion, AF_ELU )
 {
-}
-
-void CEluOperator::CheckOnnxNode() const
-{
 	// v1 - original
 	// v6 - removed legacy optimization attributes
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
@@ -144,10 +132,6 @@ void CEluOperator::CheckOnnxNode() const
 CLeakyReluOperator::CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int opsetVersion ) :
 	CActivationOperatorBase( leakyRelu, opsetVersion, AF_LeakyReLU )
 {
-}
-
-void CLeakyReluOperator::CheckOnnxNode() const
-{
 	// v1 - original
 	// v6 - removed legacy optimization attributes
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
@@ -156,7 +140,7 @@ void CLeakyReluOperator::CheckOnnxNode() const
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CLeakyReluOperator::SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* layer ) const
+void CLeakyReluOperator::SetLayerParams( const CTensorArray& /* inputs */, CBaseLayer* layer ) const
 {
 	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( layer );
 	NeoAssert( leakyReLU != nullptr );
@@ -168,10 +152,6 @@ void CLeakyReluOperator::SetLayerParams( const CObjectArray<const CTensorBase>& 
 CHardSigmoidOperator::CHardSigmoidOperator( const onnx::NodeProto& hardSigmoid, int opsetVersion ) :
 	CActivationOperatorBase( hardSigmoid, opsetVersion, AF_HardSigmoid )
 {
-}
-
-void CHardSigmoidOperator::CheckOnnxNode() const
-{
 	// v1 - original
 	// v6 - removed legacy optimization attributes
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
@@ -180,7 +160,7 @@ void CHardSigmoidOperator::CheckOnnxNode() const
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CHardSigmoidOperator::SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* layer ) const
+void CHardSigmoidOperator::SetLayerParams( const CTensorArray& /* inputs */, CBaseLayer* layer ) const
 {
 	CHardSigmoidLayer* hardSigmoid = dynamic_cast<CHardSigmoidLayer*>( layer );
 	NeoAssert( hardSigmoid != nullptr );
@@ -197,10 +177,6 @@ void CHardSigmoidOperator::SetLayerParams( const CObjectArray<const CTensorBase>
 CReluOperator::CReluOperator( const onnx::NodeProto& relu, int opsetVersion ) :
 	CActivationOperatorBase( relu, opsetVersion, AF_ReLU )
 {
-}
-
-void CReluOperator::CheckOnnxNode() const
-{
 	// v1 - original
 	// v6 - removed legacy optimization attributes
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
@@ -214,10 +190,6 @@ void CReluOperator::CheckOnnxNode() const
 CSigmoidOperator::CSigmoidOperator( const onnx::NodeProto& sigmoid, int opsetVersion ) :
 	CActivationOperatorBase( sigmoid, opsetVersion, AF_Sigmoid )
 {
-}
-
-void CSigmoidOperator::CheckOnnxNode() const
-{
 	// v1 - original
 	// v6 - removed legacy optimization attributes
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
@@ -230,10 +202,6 @@ void CSigmoidOperator::CheckOnnxNode() const
 
 CTanhOperator::CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion ) :
 	CActivationOperatorBase( tanh, opsetVersion, AF_Tanh )
-{
-}
-
-void CTanhOperator::CheckOnnxNode() const
 {
 	// v1 - original
 	// v6 - removed legacy optimization attributes

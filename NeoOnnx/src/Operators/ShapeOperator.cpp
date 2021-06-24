@@ -33,21 +33,14 @@ CShapeOperator::CShapeOperator( const onnx::NodeProto& shape, int opsetVersion )
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CShapeOperator::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CDnn& /* dnn */, CObjectArray<const CTensorBase>& /* outputs */ )
-{
-	NeoAssert( false );
-}
-
-void CShapeOperator::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
+void CShapeOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr );
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CTensorLayout outputLayout( 1 );
 	CBlobDesc outputBlobDesc( CT_Int );
 	outputBlobDesc.SetDimSize( outputLayout[0], inputShape.Size() );
-	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( mathEngine, CT_Int, outputBlobDesc );
+	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), CT_Int, outputBlobDesc );
 	outputBlob->CopyFrom( inputShape.GetPtr() );
 	outputs[0] = new CDataTensor( { inputShape.Size() }, outputLayout, *outputBlob );
 }

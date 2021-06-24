@@ -67,19 +67,10 @@ public:
 
 	// Virtual methods
 
-	// Returns true if operator has all the data required for computing output during generation
-	virtual bool CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const = 0;
-
-	// Adds required layers to dnn and puts corresponding tensors to the outputs
-	// Called if operator output depends on the data, provided by user
-	virtual void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) = 0;
-
-	// Calculates the result of the operations
-	// Called if operator's output can be calculated during network conversion 
-	// (which means that tensor's data is independent of user input)
-	virtual void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs ) = 0;
+	// Puts output tensors to the output array
+	// If data can be calculated the output tensors will be of CDataTensor type
+	// Otherwise output tensors will be of CUserTensor type and corresponding layers will be added to dnn
+	virtual void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const = 0;
 
 protected:
 	COperator( const onnx::NodeProto& node, int opsetVersion );

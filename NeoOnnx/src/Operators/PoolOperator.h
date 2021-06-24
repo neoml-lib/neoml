@@ -35,23 +35,21 @@ public:
 	CPoolOperatorBase( TPoolType poolType, const onnx::NodeProto& pool, int opsetVersion );
 
 	// CLayerOperator methods
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const final;
 
 	// COperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
+	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;
+	void getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;
+
 	// Pooling type
 	TPoolType poolType;
 	// Padding mode
 	const CString autoPad;
 	// Shape of pool kernel
 	CFastArray<int, 8> kernelShape;
-	// Kernel strides
-	CFastArray<int, 8> strides;
-	// Convolution paddings
-	CFastArray<int, 8> pads;
 };
 
 // MaxPool operator

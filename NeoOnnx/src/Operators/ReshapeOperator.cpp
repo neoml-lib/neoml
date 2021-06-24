@@ -39,8 +39,7 @@ CReshapeOperator::CReshapeOperator( const onnx::NodeProto& reshape, int opsetVer
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CReshapeOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
@@ -103,7 +102,7 @@ void CReshapeOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 }
 
 // Gets output shape
-void CReshapeOperator::getShape( const CObjectArray<const CTensorBase>& inputs, CTensorShape& shape )
+void CReshapeOperator::getShape( const CTensorArray& inputs, CTensorShape& shape ) const
 {
 	if( OpsetVersion < 5 ) {
 		Attributes.GetRequiredIntArray( "shape", shape );

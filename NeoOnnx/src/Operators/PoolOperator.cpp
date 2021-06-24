@@ -50,14 +50,11 @@ CPoolOperatorBase::CPoolOperatorBase( TPoolType _poolType, const onnx::NodeProto
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "operator must have 1 or 2 outputs", *this );
 
 	Attributes.GetRequiredIntArray( "kernel_shape", kernelShape );
-	Attributes.GetOptionalIntArray( "strides", strides );
-	Attributes.GetOptionalIntArray( "pads", pads );
 
 	CheckNeoOnnxSupport( kernelShape.Size() == 2, "non 2-dimensional max pooling", *this );
 }
 
-void CPoolOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	// Check input
 	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(),
@@ -65,23 +62,17 @@ void CPoolOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inputs
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 4,
 		"wrong input tensor's dimensions number", *this );
-	const int poolDims = static_cast<int>( inputShape.Size() ) - 2;
+	const int poolDims = inputShape.Size() - 2;
 
-	// Initialize strides, pads and dilations (if not given)
-	if( strides.IsEmpty() ) {
-		strides.Add( 1, poolDims );
-	}
-	if( pads.IsEmpty() ) {
-		pads.Add( 0, 2 * poolDims );
-	}
-
-	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
-		CalculatePadding( autoPad, kernelShape, pads );
-	}
+	// Initialize strides and pads(if not given)
+	CFastArray<int, 8> strides;
+	getStrides( inputs, strides );
+	CFastArray<int, 8> pads;
+	getPads( inputs, pads );
 
 	if( poolType == PT_Mean ) {
+		// We can't pad image correctly for average (result will differ from Onnx anyway)
 		for( int padIndex = 0; padIndex < pads.Size(); ++padIndex ) {
-			// We can't pad image correctly for average (result will differ from Onnx anyway)
 			CheckNeoOnnxSupport( pads[padIndex] == 0, "average pooling with padding", *this );
 		}
 	}
@@ -112,6 +103,30 @@ void CPoolOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inputs
 	dnn.AddLayer( *pooling );
 
 	outputs[0] = new CUserTensor( outputShape, input->Layout(), CLayerOutput( pooling, 0 ) );
+}
+
+// Get pool strides
+void CPoolOperatorBase::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const
+{
+	Attributes.GetOptionalIntArray( "strides", strides );
+
+	if( strides.IsEmpty() ) {
+		strides.Add( 1, inputs[0]->Shape().Size() - 2 );
+	}
+}
+
+// Get pad sizes
+void CPoolOperatorBase::getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const
+{
+	Attributes.GetOptionalIntArray( "pads", pads );
+
+	if( pads.IsEmpty() ) {
+		pads.Add( 0, 2 * ( inputs[0]->Shape().Size() - 2 ) );
+	}
+
+	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
+		CalculatePadding( autoPad, kernelShape, pads );
+	}
 }
 
 } // namespace NeoOnnx

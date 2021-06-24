@@ -24,13 +24,8 @@ class CShapeOperator : public COperator {
 public:
 	CShapeOperator( const onnx::NodeProto& shape, int opsetVersion );
 
-	// CLayerOperator methods
-	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */ ) const override
-		{ return true; }
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
-	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs ) override;
+	// COperator methods
+	void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 } // namespace NeoOnnx

@@ -39,8 +39,7 @@ public:
 	};
 
 	// CLayerOperator methods
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 	// COperator methods
 	// We can guarantee the support only when second input is CDataTensor (other division is impossible)
@@ -60,7 +59,7 @@ private:
 	// Expected number of arguments (-1 if any number is supported)
 	int argsNum;
 
-	CPtr<const CTensorBase> prepareSecondInput( const CObjectArray<const CTensorBase>& inputs ) const;
+	CPtr<const CTensorBase> prepareSecondInput( const CTensorArray& inputs ) const;
 };
 
 // Eltwise operators with 2 inputs
@@ -78,29 +77,25 @@ public:
 // Add operator
 class CAddOperator : public CEltwiseBinaryOperatorBase {
 public:
-	CAddOperator( const onnx::NodeProto& add, int opsetVersion ) :
-		CEltwiseBinaryOperatorBase( add, opsetVersion, O_Add ) {}
+	CAddOperator( const onnx::NodeProto& add, int opsetVersion ) : CEltwiseBinaryOperatorBase( add, opsetVersion, O_Add ) {}
 };
 
 // Sub operator
 class CSubOperator : public CEltwiseBinaryOperatorBase {
 public:
-	CSubOperator( const onnx::NodeProto& sub, int opsetVersion ) :
-		CEltwiseBinaryOperatorBase( sub, opsetVersion, O_Sub ) {}
+	CSubOperator( const onnx::NodeProto& sub, int opsetVersion ) : CEltwiseBinaryOperatorBase( sub, opsetVersion, O_Sub ) {}
 };
 
 // Mul operator
 class CMulOperator : public CEltwiseBinaryOperatorBase {
 public:
-	CMulOperator( const onnx::NodeProto& mul, int opsetVersion ) :
-		CEltwiseBinaryOperatorBase( mul, opsetVersion, O_Mul ) {}
+	CMulOperator( const onnx::NodeProto& mul, int opsetVersion ) : CEltwiseBinaryOperatorBase( mul, opsetVersion, O_Mul ) {}
 };
 
 // Div operator
 class CDivOperator : public CEltwiseBinaryOperatorBase {
 public:
-	CDivOperator( const onnx::NodeProto& div, int opsetVersion ) :
-		CEltwiseBinaryOperatorBase( div, opsetVersion, O_Div ) {}
+	CDivOperator( const onnx::NodeProto& div, int opsetVersion ) : CEltwiseBinaryOperatorBase( div, opsetVersion, O_Div ) {}
 };
 
 // Eltwise operators with any number of inputs
@@ -108,8 +103,7 @@ public:
 // Sum operator
 class CSumOperator : public CEltwiseOperatorBase {
 public:
-	CSumOperator( const onnx::NodeProto& sum, int opsetVersion ) :
-		CEltwiseOperatorBase( sum, opsetVersion, O_Add ) {}
+	CSumOperator( const onnx::NodeProto& sum, int opsetVersion ) : CEltwiseOperatorBase( sum, opsetVersion, O_Add ) {}
 
 	// CEltwiseOperatorBase methods
 	CBroadcast GetBroadcast() const override;
