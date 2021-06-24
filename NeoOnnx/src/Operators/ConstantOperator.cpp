@@ -41,16 +41,9 @@ CConstantOperator::CConstantOperator( const onnx::NodeProto& constant, int opset
 	}
 }
 
-void CConstantOperator::AddLayers( const CObjectArray<const CTensorBase>& /* inputs */,
-	CDnn& /* dnn */, CObjectArray<const CTensorBase>& /* outputs */ )
+void CConstantOperator::GetOutputTensors( const CTensorArray& /* inputs */, CDnn& dnn, CTensorArray& outputs ) const
 {
-	NeoAssert( false );
-}
-
-void CConstantOperator::CalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */,
-	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
-{
-	outputs[0] = Attributes.GetRequiredTensor( "value", mathEngine );
+	outputs[0] = Attributes.GetRequiredTensor( "value", dnn.GetMathEngine() );
 }
 
 } // namespace NeoOnnx

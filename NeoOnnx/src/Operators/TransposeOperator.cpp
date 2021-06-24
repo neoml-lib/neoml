@@ -33,8 +33,7 @@ CTransposeOperator::CTransposeOperator( const onnx::NodeProto& transpose, int op
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CTransposeOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& /* dnn */, CObjectArray<const CTensorBase>& outputs )
+void CTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 

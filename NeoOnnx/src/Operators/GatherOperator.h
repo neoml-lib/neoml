@@ -24,14 +24,9 @@ class CGatherOperator : public COperator {
 public:
 	CGatherOperator( const onnx::NodeProto& gather, int opsetVersion );
 
-	// CLayerOperator methods
+	// COperator methods
 	// At this moment this layer can't be emulated by NeoMl
-	bool CanCalculateOutput( const CObjectArray<const CTensorBase>& /* inputs */ ) const override
-		{ return true; }
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
-	void CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-		IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs ) override;
+	void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 } // namespace NeoOnnx

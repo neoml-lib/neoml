@@ -25,8 +25,7 @@ public:
 	CConvOperator( const onnx::NodeProto& conv, int opsetVersion );
 
 	// CLayerOperator methods
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 	// COperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
@@ -36,19 +35,16 @@ private:
 	const int group;
 	// padding mode
 	const CString autoPad;
-	// kernel strides
-	CFastArray<int, 8> strides;
-	// convolution paddings
-	CFastArray<int, 8> pads;
-	// convolution dilations
-	CFastArray<int, 8> dilations;
-	// convolution dilations
-	CFastArray<int, 8> outputShape;
 
-	void add2dConvLayer( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs );
-	void add3dConvLayer( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs );
+	void add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
+	void add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
+
+	void getKernelShape( const CTensorArray& inputs, CTensorShape& kernelShape ) const;
+	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;
+	void getPads( const CTensorArray& inputs, const CTensorShape& kernelShape, CFastArray<int, 8>& pads ) const;
+	void getDilations( const CTensorArray& inputs, CFastArray<int, 8>& dilations ) const;
+	void calcOutputShape( const CTensorArray& inputs, const CTensorShape& kernelShape, const CFastArray<int, 8>& strides,
+		const CFastArray<int, 8>& pads, const CFastArray<int, 8>& dilations, CTensorShape& outputShape ) const;
 };
 
 } // namespace NeoOnnx

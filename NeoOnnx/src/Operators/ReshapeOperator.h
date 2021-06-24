@@ -25,14 +25,13 @@ public:
 	CReshapeOperator( const onnx::NodeProto& node, int opsetVersion );
 
 	// CLayerOperator methods
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 	// COperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
-	void getShape( const CObjectArray<const CTensorBase>& inputs, CTensorShape& shape );
+	void getShape( const CTensorArray& inputs, CTensorShape& shape ) const;
 };
 
 } // namespace NeoOnnx

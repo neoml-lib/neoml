@@ -34,8 +34,7 @@ CMatMulOperator::CMatMulOperator( const onnx::NodeProto& matMul, int opsetVersio
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CMatMulOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	// The only scenario we support is this:
 	//     first input - user-provided data, single matrix

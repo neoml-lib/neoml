@@ -20,29 +20,22 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-bool CLayerOperator::CanCalculateOutput( const CObjectArray<const CTensorBase>& inputs ) const
+void CLayerOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		if( inputs[inputIndex] != nullptr && !inputs[inputIndex]->IsCalculated() ) {
-			return false;
-		}
+	if( !canCalculateOutput( inputs ) ) {
+		AddLayers( inputs, dnn, outputs );
+		return;
 	}
 
-	return true;
-}
-
-void CLayerOperator::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	IMathEngine& mathEngine, CObjectArray<const CTensorBase>& outputs )
-{
 	CRandom random( 0x1231 );
-	CDnn internalDnn( random, mathEngine );
+	CDnn internalDnn( random, dnn.GetMathEngine() );
 
 	// Add source layers for the operator
-	CObjectArray<const CTensorBase> internalInputs;
+	CTensorArray internalInputs;
 	addInternalDnnSources( inputs, internalInputs, internalDnn );
 
 	// Add operator layers
-	CObjectArray<const CTensorBase> internalOutputs;
+	CTensorArray internalOutputs;
 	internalOutputs.Add( nullptr, OutputCount() );
 	AddLayers( internalInputs, internalDnn, internalOutputs );
 
@@ -57,10 +50,22 @@ void CLayerOperator::CalculateOutput( const CObjectArray<const CTensorBase>& inp
 	extractOutputs( internalOutputs, sinks, outputs );
 }
 
+// Returns true if output tensors' data can be calculated during import
+bool CLayerOperator::canCalculateOutput( const CTensorArray& inputs ) const
+{
+	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
+		if( inputs[inputIndex] != nullptr && !inputs[inputIndex]->IsCalculated() ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 // Builds array of tensors related to the internal dnn
 // Also adds required source layers to the internal dnn (with corresponding blobs)
-void CLayerOperator::addInternalDnnSources( const CObjectArray<const CTensorBase>& inputs,
-	CObjectArray<const CTensorBase>& internalInputs, CDnn& internalDnn ) const
+void CLayerOperator::addInternalDnnSources( const CTensorArray& inputs,
+	CTensorArray& internalInputs, CDnn& internalDnn ) const
 {
 	IMathEngine& mathEngine = internalDnn.GetMathEngine();
 
@@ -84,9 +89,9 @@ void CLayerOperator::addInternalDnnSources( const CObjectArray<const CTensorBase
 	}
 }
 
-// Builds array of sinks (corresponding to the op outputs)
+// Builds array of sinks (corresponding to the operator outputs)
 // Also adds those layers to the dnn
-void CLayerOperator::addInternalDnnSinks( const CObjectArray<const CTensorBase>& internalOutputs,
+void CLayerOperator::addInternalDnnSinks( const CTensorArray& internalOutputs,
 	CArray<CSinkLayer*>& sinks, CDnn& internalDnn ) const
 {
 	IMathEngine& mathEngine = internalDnn.GetMathEngine();
@@ -106,8 +111,8 @@ void CLayerOperator::addInternalDnnSinks( const CObjectArray<const CTensorBase>&
 }
 
 // Builds array of the operator outputs based on outputs of the internal dnn
-void CLayerOperator::extractOutputs( const CObjectArray<const CTensorBase>& internalOutputs,
-	const CArray<CSinkLayer*>& sinks, CObjectArray<const CTensorBase>& outputs ) const
+void CLayerOperator::extractOutputs( const CTensorArray& internalOutputs, const CArray<CSinkLayer*>& sinks,
+	CTensorArray& outputs ) const
 {
 	for( int outputIndex = 0; outputIndex < OutputCount(); ++outputIndex ) {
 		if( internalOutputs[outputIndex]->IsCalculated() ) {

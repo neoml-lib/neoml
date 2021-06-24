@@ -25,14 +25,11 @@ public:
 	CActivationOperatorBase( const onnx::NodeProto& onnxNode, int opsetVersion,
 		TActivationFunction activation );
 
-	// Checks if onnxNode is valid (opset version, number of inputs and outputs, required attributes)
-	virtual void CheckOnnxNode() const = 0;
 	// Sets additional params for activation layer (e.g. negative slope coeff for CLeakyReLULayer)
-	virtual void SetLayerParams( const CObjectArray<const CTensorBase>& /* inputs */, CBaseLayer* /* layer */ ) const {}
+	virtual void SetLayerParams( const CTensorArray& /* inputs */, CBaseLayer* /* layer */ ) const {}
 
 	// COperator methods
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 	// CLayerOperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
@@ -49,9 +46,6 @@ private:
 class CAbsOperator : public CActivationOperatorBase {
 public:
 	CAbsOperator( const onnx::NodeProto& abs, int opsetVersion );
-
-	// CActivationOperatorBase methods
-	void CheckOnnxNode() const override;
 };
 
 // Clip operator
@@ -60,17 +54,13 @@ public:
 	CClipOperator( const onnx::NodeProto& clip, int opsetVersion );
 
 	// CActivationOperatorBase methods
-	void CheckOnnxNode() const override;
-	void SetLayerParams( const CObjectArray<const CTensorBase>& inputs, CBaseLayer* layer ) const override;
+	void SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const override;
 };
 
 // Elu operator
 class CEluOperator : public CActivationOperatorBase {
 public:
 	CEluOperator( const onnx::NodeProto& elu, int opsetVersion );
-
-	// CActivationOperatorBase methods
-	void CheckOnnxNode() const override;
 };
 
 // HardSigmoid operator
@@ -79,8 +69,7 @@ public:
 	CHardSigmoidOperator( const onnx::NodeProto& hardSigmoid, int opsetVersion );
 
 	// CActivationOperatorBase methods
-	void CheckOnnxNode() const override;
-	void SetLayerParams( const CObjectArray<const CTensorBase>& inputs, CBaseLayer* layer ) const override;
+	void SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const override;
 };
 
 // LeakyRelu operator
@@ -89,35 +78,25 @@ public:
 	CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int opsetVersion );
 
 	// CActivationOperatorBase methods
-	void CheckOnnxNode() const override;
-	void SetLayerParams( const CObjectArray<const CTensorBase>& inputs, CBaseLayer* layer ) const override;
+	void SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const override;
 };
 
 // Relu operator
 class CReluOperator : public CActivationOperatorBase {
 public:
 	CReluOperator( const onnx::NodeProto& relu, int opsetVersion );
-
-	// CActivationOperatorBase methods
-	void CheckOnnxNode() const override;
 };
 
 // Sigmoid operator
 class CSigmoidOperator : public CActivationOperatorBase {
 public:
 	CSigmoidOperator( const onnx::NodeProto& sigmoid, int opsetVersion );
-
-	// CActivationOperatorBase methods
-	void CheckOnnxNode() const override;
 };
 
 // Tanh operator
 class CTanhOperator : public CActivationOperatorBase {
 public:
 	CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion );
-
-	// CActivationOperatorBase methods
-	void CheckOnnxNode() const override;
 };
 
 } // namespace NeoOnnx

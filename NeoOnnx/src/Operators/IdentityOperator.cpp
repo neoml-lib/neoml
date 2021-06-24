@@ -33,14 +33,7 @@ CIdentityOperator::CIdentityOperator( const onnx::NodeProto& identity, int opset
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CIdentityOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& /* dnn */, CObjectArray<const CTensorBase>& outputs )
-{
-	outputs[0] = inputs[0];
-}
-
-void CIdentityOperator::CalculateOutput( const CObjectArray<const CTensorBase>& inputs,
-	IMathEngine& /* mathEngine */, CObjectArray<const CTensorBase>& outputs )
+void CIdentityOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
 	outputs[0] = inputs[0];
 }

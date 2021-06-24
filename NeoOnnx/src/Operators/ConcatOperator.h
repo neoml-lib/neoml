@@ -25,8 +25,7 @@ public:
 	CConcatOperator( const onnx::NodeProto& concat, int opsetVersion );
 
 	// CLayerOperator methods
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 	// COperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { for( int i = 0; i < InputCount(); ++i ) mask |= i; }

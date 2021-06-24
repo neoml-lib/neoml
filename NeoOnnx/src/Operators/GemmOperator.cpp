@@ -47,8 +47,7 @@ CGemmOperator::CGemmOperator( const onnx::NodeProto& gemm, int opsetVersion ) :
 	}
 }
 
-void CGemmOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
 	const CTensorShape& inputShape = inputs[0]->Shape();

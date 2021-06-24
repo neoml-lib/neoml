@@ -41,8 +41,7 @@ CDropoutOperator::CDropoutOperator( const onnx::NodeProto& dropout, int opsetVer
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "operator must have 1 output", *this );
 }
 
-void CDropoutOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CDropoutOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
@@ -57,7 +56,7 @@ void CDropoutOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 }
 
 // Gets dropout rate
-float CDropoutOperator::getRatio( const CObjectArray<const CTensorBase>& inputs ) const
+float CDropoutOperator::getRatio( const CTensorArray& inputs ) const
 {
 	if( OpsetVersion < 12 ) {
 		// Before opset 12 ratio is stored as optional attribute with default value 0.5f

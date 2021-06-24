@@ -40,18 +40,6 @@ bool isEqual( const CTensorShape& first, const CTensorShape& second )
 	return true;
 }
 
-// Generate unique layer name for dnn
-static CString getUniqueLayerName( const CString& prefix, const CDnn& dnn )
-{
-	int currIndex = dnn.GetLayerCount();
-	CString currName = prefix + Str( currIndex );
-	while( dnn.HasLayer( currName ) ) {
-		++currIndex;
-		currName = prefix + Str( currIndex );
-	}
-	return currName;
-}
-
 // Converts tensor prior to imageResizeLayer
 CPtr<const CUserTensor> convertTensorBeforeUpsample( const CUserTensor& input, int heightDimIndex, int widthDimIndex )
 {
@@ -82,29 +70,6 @@ CPtr<const CUserTensor> convertTensorBeforeUpsample( const CUserTensor& input, i
 	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, newLayout ).Ptr() );
 }
 
-CPtr<const CUserTensor> addUpsample2dLayer( CUpsampling2DLayer& upsample, CDnn& dnn, const CUserTensor& input,
-	int heightDimIndex, int widthDimIndex )
-{
-	// Add imageResize layer
-	CPtr<const CUserTensor> result = convertTensorBeforeUpsample( input, heightDimIndex, widthDimIndex );
-	upsample.Connect( 0, *result->Layer(), result->OutputIndex() );
-	dnn.AddLayer( upsample );
-
-	// Calculate output shape
-	CTensorShape outputShape;
-	result->Shape().CopyTo( outputShape );
-
-	NeoAssert( outputShape[heightDimIndex] == 1 );
-	outputShape[heightDimIndex] = upsample.GetHeightCopyCount();
-	if( widthDimIndex != NotFound ) {
-		NeoAssert( outputShape[widthDimIndex] == 1 );
-		outputShape[widthDimIndex] = upsample.GetWidthCopyCount();
-	}
-
-	// Construct new CUserTensor which is provided by imageResize layer
-	return new CUserTensor( outputShape, result->Layout(), CLayerOutput( &upsample, 0 ) );
-}
-
 //---------------------------------------------------------------------------------------------------------------------
 
 CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion,
@@ -119,8 +84,7 @@ CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int 
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CEltwiseOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& dnn, CObjectArray<const CTensorBase>& outputs )
+void CEltwiseOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	// Corner case which doesn't violate Onnx protocol: opeartors with variable input count may have 1 input
 	if( inputs.Size() == 1 && argsNum < 0 ) {
@@ -138,7 +102,7 @@ void CEltwiseOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inp
 		buff.CopyTo( outputShape );
 	}
 
-	CObjectArray<const CTensorBase> currInputs;
+	CTensorArray currInputs;
 	inputs.CopyTo( currInputs );
 	if( argsNum == 2 ) {
 		// Preparing values in case of subtraction or division
@@ -179,7 +143,7 @@ void CEltwiseOperatorBase::AddLayers( const CObjectArray<const CTensorBase>& inp
 }
 
 // This method modifies second input for binary division or subtraction
-CPtr<const CTensorBase> CEltwiseOperatorBase::prepareSecondInput( const CObjectArray<const CTensorBase>& inputs ) const
+CPtr<const CTensorBase> CEltwiseOperatorBase::prepareSecondInput( const CTensorArray& inputs ) const
 {
 	static_assert( O_Count == 4, "O_Count != 4" );
 	NeoAssert( inputs.Size() == 2 );

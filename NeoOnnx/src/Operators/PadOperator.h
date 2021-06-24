@@ -25,19 +25,17 @@ public:
 	CPadOperator( const onnx::NodeProto& pad, int opsetVersion );
 
 	// CLayerOperator methods
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 	// COperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
+	void getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;
+	float getPadValue( const CTensorArray& inputs ) const;
+
 	// Pad mode
 	CString mode;
-	// Pad value
-	float value;
-	// Pad sizes
-	CFastArray<int, 8> pads;
 };
 
 } // namespace NeoOnnx

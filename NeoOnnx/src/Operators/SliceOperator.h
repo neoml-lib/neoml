@@ -25,17 +25,16 @@ public:
 	CSliceOperator( const onnx::NodeProto& slice, int opsetVersion );
 
 	// COperator methods
-	void AddLayers( const CObjectArray<const CTensorBase>& inputs,
-		CDnn& dnn, CObjectArray<const CTensorBase>& outputs ) override;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 	// CLayerOperator methods
 	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
-	void getAxes( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& axes ) const;
-	void getStarts( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& starts ) const;
-	void getEnds( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& ends ) const;
-	void getSteps( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& steps ) const;
+	void getAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const;
+	void getStarts( const CTensorArray& inputs, CFastArray<int, 8>& starts ) const;
+	void getEnds( const CTensorArray& inputs, CFastArray<int, 8>& ends ) const;
+	void getSteps( const CTensorArray& inputs, CFastArray<int, 8>& steps ) const;
 	CPtr<const CUserTensor> sliceAxis( const CUserTensor& input, int axis, int start, int end, int step ) const;
 	CPtr<const CUserTensor> prepareInputForSlice( const CUserTensor& input, int axis ) const;
 };

@@ -40,8 +40,7 @@ CSliceOperator::CSliceOperator( const onnx::NodeProto& slice, int opsetVersion )
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CSliceOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
-	CDnn& /* dnn */, CObjectArray<const CTensorBase>& outputs )
+void CSliceOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
 
@@ -65,7 +64,7 @@ void CSliceOperator::AddLayers( const CObjectArray<const CTensorBase>& inputs,
 }
 
 // Fills array with axes, affected by slice
-void CSliceOperator::getAxes( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& axes ) const
+void CSliceOperator::getAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
 {
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	// Fill with default value
@@ -92,7 +91,7 @@ void CSliceOperator::getAxes( const CObjectArray<const CTensorBase>& inputs, CFa
 }
 
 // Fills array with slice start indices
-void CSliceOperator::getStarts( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& starts ) const
+void CSliceOperator::getStarts( const CTensorArray& inputs, CFastArray<int, 8>& starts ) const
 {
 	if( OpsetVersion < 10 ) {
 		// Extracting from attributes
@@ -107,7 +106,7 @@ void CSliceOperator::getStarts( const CObjectArray<const CTensorBase>& inputs, C
 }
 
 // Fills array with slice end indices
-void CSliceOperator::getEnds( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& ends ) const
+void CSliceOperator::getEnds( const CTensorArray& inputs, CFastArray<int, 8>& ends ) const
 {
 	if( OpsetVersion < 10 ) {
 		// Extracting from attributes
@@ -122,7 +121,7 @@ void CSliceOperator::getEnds( const CObjectArray<const CTensorBase>& inputs, CFa
 }
 
 // Fills array with slice steps
-void CSliceOperator::getSteps( const CObjectArray<const CTensorBase>& inputs, CFastArray<int, 8>& steps ) const
+void CSliceOperator::getSteps( const CTensorArray& inputs, CFastArray<int, 8>& steps ) const
 {
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	// Fill with default value
