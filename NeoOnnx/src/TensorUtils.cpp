@@ -246,36 +246,6 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLa
 
 // --------------------------------------------------------------------------------------------------------------------
 
-CPtr<const CTensorBase> RemoveTensorDims( const CTensorBase& input, const CFastArray<int, 8>& _dims )
-{
-	CFastArray<int, 8> dims;
-	_dims.CopyTo( dims );
-	dims.QuickSort<Ascending<int>>();
-
-	CTensorShape outputShape;
-	input.Shape().CopyTo( outputShape );
-	for( int i = dims.Size() - 1; i >= 0; --i ) {
-		outputShape.DeleteAt( dims[i] );
-	}
-
-	CTensorLayout outputLayout = input.Layout();
-	for( int i = dims.Size() - 1; i >= 0; --i ) {
-		outputLayout.DeleteAt( dims[i] );
-	}
-
-	if( input.IsCalculated() ) {
-		return new CDataTensor( outputShape, outputLayout,
-			*( dynamic_cast<const CDataTensor&>( input ).Data() ) );
-	} else {
-		return new CUserTensor( outputShape, outputLayout,
-			dynamic_cast<const CUserTensor&>( input ).LayerOutput() );
-	}
-	// To satisfy compilers' warnings
-	return nullptr;
-}
-
-// --------------------------------------------------------------------------------------------------------------------
-
 void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads )
 {
 	const int padDims = static_cast<int>( kernelShape.Size() );

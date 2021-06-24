@@ -140,10 +140,6 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 // Converts tensor into given layout
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& destLayout );
 
-// Removes dimensions of size 1
-// Doesn't add any layers or perform any conversions
-CPtr<const CTensorBase> RemoveTensorDims( const CTensorBase& input, const CFastArray<int, 8>& dims );
-
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor padding functions
 
