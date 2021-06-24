@@ -656,8 +656,8 @@ CTapeSum::CTapeSum( const CDnnBlob& _first, const CArray<int>& _axes ) :
 CPtr<CTapeBlob> CTapeSum::Impl( const CDnnBlob* blob, const CArray<int>& axes, IGradientTape* tape )
 {
 	NeoAssert( blob != 0 );
-	for( int axis : axes ) {
-		NeoAssert( axis >= -1 && axis < BD_Count );
+	for( int i = 0; i < axes.Size(); i++ ) {
+		NeoAssert( axes[i] >= -1 && axes[i] < BD_Count );
 	}
 
 	IMathEngine& mathEngine = blob->GetMathEngine();
@@ -672,8 +672,8 @@ CPtr<CTapeBlob> CTapeSum::Impl( const CDnnBlob* blob, const CArray<int>& axes, I
 		int followingDimension;
 		getConsequentAxesDimensions( blob, axes, followingDimension, dimension, precedingDimension );
 		CBlobDesc desc = blob->GetDesc();
-		for( int axis : axes ) {
-			desc.SetDimSize( axis, 1 );
+		for( int i = 0; i < axes.Size(); i++ ) {
+			desc.SetDimSize( axes[i], 1 );
 		}
 		result = new CTapeBlob( tape, mathEngine, desc );
 		mathEngine.VectorSumAlongDimension( blob->GetData(), precedingDimension, dimension, followingDimension, result->GetData() );
@@ -734,8 +734,8 @@ CPtr<const CDnnBlob> Sum( const CDnnBlob* first, const CArray<int>& _axes )
 
 	if( !isConsequentAxes( axes ) ) {
 		CPtr<const CDnnBlob> result = first;
-		for( int axis : axes ) {
-			result = Sum( result, { axis } );
+		for( int i = 0; i < axes.Size(); i++ ) {
+			result = Sum( result, { axes[i] } );
 		}
 		return result.Ptr();
 	} else {
@@ -853,8 +853,8 @@ void CTapeMean::DivideByCount( const CDnnBlob* first, CDnnBlob* result, const CA
 		div->GetData().SetValue( 1.f / static_cast< float >( first->GetDataSize() ) );
 	} else {
 		int count = 1;
-		for( int axis : axes ) {
-			count *= first->DimSize( axis );
+		for( int i = 0; i < axes.Size(); i++ ) {
+			count *= first->DimSize( axes[i] );
 		}
 		div->GetData().SetValue( 1.f / static_cast< float >( count ) );
 	}
@@ -876,8 +876,8 @@ CPtr<const CDnnBlob> Mean( const CDnnBlob* first, const CArray<int>& _axes )
 
 	if( !isConsequentAxes( axes ) ) {
 		CPtr<const CDnnBlob> result = first;
-		for( int axis : axes ) {
-			result = Mean( result, { axis } );
+		for( int i = 0; i < axes.Size(); i++ ) {
+			result = Mean( result, { axes[i] } );
 		}
 		return result.Ptr();
 	} else {

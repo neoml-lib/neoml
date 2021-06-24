@@ -252,6 +252,17 @@ void CMetalMathEngine::VectorSumAlongDimensionDiag(const CConstFloatHandle& firs
 	ASSERT_EXPR(false);
 }
 
+void CMetalMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle&, int, int, int, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorCumSumAlongDimensionDiag(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle)
+{
+	ASSERT_EXPR(false);
+}
+
 void CMetalMathEngine::VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
     const CFloatHandle& resultHandle, int vectorSize )
 {

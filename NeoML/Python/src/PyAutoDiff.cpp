@@ -118,13 +118,30 @@ void InitializeTape(py::module& m)
 		return CPyBlob( second.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
-	m.def( "blob_sum", [](const CPyBlob& first, int axis) {
-		CPtr<const CDnnBlob> result( Sum( first.Blob(), axis ) );
+	m.def( "blob_sum", [](const CPyBlob& first, py::array axis) {
+		CArray<int> axes;
+		const int* axisPtr = reinterpret_cast< const int* >( axis.data() );
+		axes.SetSize( axis.size() );
+		for( int i = 0; i < axes.Size(); i++ ) {
+			axes[i] = axisPtr[i];
+		}
+		CPtr<const CDnnBlob> result( Sum( first.Blob(), axes ) );
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
-	m.def( "blob_mean", [](const CPyBlob& first, int axis) {
-		CPtr<const CDnnBlob> result( Mean( first.Blob(), axis ) );
+	m.def( "blob_cumsum", [](const CPyBlob& first, int axis) {
+		CPtr<const CDnnBlob> result( CumSum( first.Blob(), axis ) );
+		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
+	}, py::return_value_policy::reference );
+
+	m.def( "blob_mean", [](const CPyBlob& first, py::array axis) {
+		CArray<int> axes;
+		const int* axisPtr = reinterpret_cast< const int* >( axis.data() );
+		axes.SetSize( axis.size() );
+		for( int i = 0; i < axes.Size(); i++ ) {
+			axes[i] = axisPtr[i];
+		}
+		CPtr<const CDnnBlob> result( Mean( first.Blob(), axes ) );
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
