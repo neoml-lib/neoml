@@ -110,7 +110,7 @@ private:
 	CSize getWideBatchProcessSize();
 
 	// Process one line of image. In case of narrow processing we will step through several lines.
-	void processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, int windowIndex );
+	void processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, size_t windowIndex );
 
 	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
 		__m256& r00, __m256& r01, __m256& r02,
@@ -126,10 +126,10 @@ private:
 
 
 	// Process convolution for multiple result pixels ( number of pixels is defined by 'FastBatchProcessSize' member ).
-	void batchProcess( const float* srcPtr, float* resPtr, int windowIndex, bool useNarrowProcessing );
+	void batchProcess( const float* srcPtr, float* resPtr, size_t windowIndex, bool useNarrowProcessing );
 	// Process convolution for single result pixel.
-	void singleProcess( const float* srcPtr, float* resPtr, int windowIndex );
-	void singleProcessNarrow( const float* srcPtr, float* resPtr, int windowIndex );
+	void singleProcess( const float* srcPtr, float* resPtr, size_t windowIndex );
+	void singleProcessNarrow( const float* srcPtr, float* resPtr, size_t windowIndex );
 
 	// Rearrange filter and fill 'Filter' and 'FreeTerm' members.
 	const float* rearrangeFilter( const float* filterData, CFloatHandleStackVar& Filter );
@@ -299,7 +299,7 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 						float* resPtr = realResStart + ry * ResLineStride;
 						bool useNarrowProcessing = ryEnd - ry >= NarrowBatchProcessSize.Height;
 						
-						int pixelsOffsetIdx = yStepIdx * PixelOffsetResStepsWidthX.size();
+						size_t pixelsOffsetIdx = yStepIdx * PixelOffsetResStepsWidthX.size();
 
 						for ( const auto& xStep : PixelOffsetResStepsWidthX ) {
 							processConvolutionLoop( xStep, useNarrowProcessing, srcPtr, resPtr, pixelsOffsetIdx );
@@ -321,13 +321,13 @@ inline typename CBlobConvolution<FltCnt>::CSize CBlobConvolution<FltCnt>::getNar
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::singleProcessNarrow( const float*, float*,  int )
+inline void CBlobConvolution<FltCnt>::singleProcessNarrow( const float*, float*, size_t )
 {
 	// dummy function
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, int windowIndex )
+inline void CBlobConvolution<FltCnt>::processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, size_t windowIndex )
 {
 	const int batchStep = useNarrowProcessing ? NarrowBatchProcessSize.Width : WideBatchProcessSize.Width;
 	for( ; rxSize >= batchStep; rxSize -= batchStep ) {

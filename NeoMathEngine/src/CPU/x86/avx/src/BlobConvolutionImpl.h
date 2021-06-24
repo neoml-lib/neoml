@@ -114,7 +114,7 @@ inline void CBlobConvolution<24>::singleProcessChannels( const float* srcPtr, co
 }
 
 template<>
-inline void CBlobConvolution<24>::batchProcess( const float* srcPtr, float* resPtr, int windowIndex, bool /*useNarrowProcessing*/ )
+inline void CBlobConvolution<24>::batchProcess( const float* srcPtr, float* resPtr, size_t windowIndex, bool /*useNarrowProcessing*/ )
 {
 	const __m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 	const __m256 ft1 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 8 ) : _mm256_setzero_ps();
@@ -150,7 +150,7 @@ inline void CBlobConvolution<24>::batchProcess( const float* srcPtr, float* resP
 }
 
 template<>
-inline void CBlobConvolution<24>::singleProcess( const float* srcPtr, float* resPtr, int windowIndex )
+inline void CBlobConvolution<24>::singleProcess( const float* srcPtr, float* resPtr, size_t windowIndex )
 {
 	// Initialize result pixels with freeterm.
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
@@ -274,7 +274,7 @@ inline void CBlobConvolution<18>::singleProcessChannels( const float* srcPtr, co
 }
 
 template<>
-inline void CBlobConvolution<18>::batchProcess( const float* srcPtr, float* resPtr, int windowIndex, bool /*useNarrowProcessing*/ )
+inline void CBlobConvolution<18>::batchProcess( const float* srcPtr, float* resPtr, size_t windowIndex, bool /*useNarrowProcessing*/ )
 {
 	__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 	__m256 ft1 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm + 8 ) : _mm256_setzero_ps();
@@ -312,7 +312,7 @@ inline void CBlobConvolution<18>::batchProcess( const float* srcPtr, float* resP
 }
 
 template<>
-inline void CBlobConvolution<18>::singleProcess( const float* srcPtr, float* resPtr, int windowIndex )
+inline void CBlobConvolution<18>::singleProcess( const float* srcPtr, float* resPtr, size_t windowIndex )
 {
 	// Initialize result pixels with freeterm.
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
@@ -520,7 +520,7 @@ inline void CBlobConvolution<6>::singleProcessChannelsNarrow( const float* srcPt
 }
 
 template<>
-inline void CBlobConvolution<6>::batchProcess( const float* srcPtr, float* resPtr, int windowIndex, bool useNarrowProcessing )
+inline void CBlobConvolution<6>::batchProcess( const float* srcPtr, float* resPtr, size_t windowIndex, bool useNarrowProcessing )
 {
 	// We will set this member for narrow batch processing in order to step between neighbor source windows.
 	const int srcNarrowStep = useNarrowProcessing ? SrcYStep : 4 * SrcXStep;
@@ -559,7 +559,7 @@ inline void CBlobConvolution<6>::batchProcess( const float* srcPtr, float* resPt
 }
 
 template<>
-inline void CBlobConvolution<6>::singleProcess( const float* srcPtr, float* resPtr, int windowIndex )
+inline void CBlobConvolution<6>::singleProcess( const float* srcPtr, float* resPtr, size_t windowIndex )
 {
 	// Initialize result pixels with freeterm.
 	__m256 r0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
@@ -575,7 +575,7 @@ inline void CBlobConvolution<6>::singleProcess( const float* srcPtr, float* resP
 }
 
 template<>
-inline void CBlobConvolution<6>::singleProcessNarrow( const float* srcPtr, float* resPtr, int windowIndex )
+inline void CBlobConvolution<6>::singleProcessNarrow( const float* srcPtr, float* resPtr, size_t windowIndex )
 {
 	// Initialize result pixels with freeterm.
 	__m256 f0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
