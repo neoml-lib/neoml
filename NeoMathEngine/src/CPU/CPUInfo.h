@@ -138,7 +138,7 @@ struct CCPUInfo {
 			}
 #elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
 			floatAlignment = 8;
-#elif
+#else
 #error "Platform isn't supported!"
 #endif
 		}
