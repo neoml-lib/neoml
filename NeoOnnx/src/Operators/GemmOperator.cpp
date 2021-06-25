@@ -51,8 +51,15 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 {
 	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
 	const CTensorShape& inputShape = inputs[0]->Shape();
-	CheckOnnxProtocol( inputShape.Size() == 2, "input must be 2-dimensional", *this );
-	const int inputObjectSize = inputShape[transA == 0 ? 1 : 0];
+	CheckNeoOnnxSupport( transA == 0, "transA != 0", *this );
+	// Some models from the model zoo has this op with 4-dimensional input
+	// e.g. 1 x 512 x 7 x 7 and this input is interpreted as matrix 1 x 25088
+	// The documentation does mention 'input matrix' but doesn't clarify what needs to be done when input is N-dimensional
+	// Thats why we're heuristically trying to process this input as matrix dim[0] x (dim[1] * dim[2] * ...)
+	int inputObjectSize = inputShape[1];
+	for( int i = 2; i < inputShape.Size(); ++i ) {
+		inputObjectSize *= inputShape[i];
+	}
 
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
 	const CTensorShape& matrixShape = inputs[1]->Shape();
@@ -83,7 +90,18 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 		fc->SetZeroFreeTerm( true );
 	}
 
-	CPtr<const CUserTensor> userInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], fcLayout ).Ptr() );
+	CTensorLayout inputLayout = inputShape.Size() == 2 ? fcLayout : inputs[0]->Layout();
+	if( inputShape.Size() > 2 ) {
+		// Build input layout for N-dimensional input
+
+		// We need this in order to guarantee that output will be in { BD_BatchWidth, BD_Channels } layout
+		inputLayout[0] = BD_BatchWidth;
+		for( int i = 1; i < inputLayout.Size(); ++i ) {
+			// BD_Height, BD_Width etc...
+			inputLayout[i] = BD_ListSize + i;
+		}
+	}
+	CPtr<const CUserTensor> userInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], inputLayout ).Ptr() );
 	fc->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *fc );
 
