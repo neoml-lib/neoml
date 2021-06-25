@@ -41,13 +41,18 @@ static CPtr<CPoolingLayer> createPoolingLayer( CPoolOperatorBase::TPoolType pool
 CPoolOperatorBase::CPoolOperatorBase( TPoolType _poolType, const onnx::NodeProto& poolNode, int opsetVersion ) :
 	CLayerOperator( poolNode, opsetVersion ),
 	poolType( _poolType ),
-	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
+	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) ),
+	includePad( false )
 {
 	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc)
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "operator must have 1 or 2 outputs", *this );
+
+	if( poolType == PT_Mean && OpsetVersion >= 7 ) {
+		includePad = Attributes.GetOptionalInt( "count_include_pad", 0 ) != 0;
+	}
 
 	Attributes.GetRequiredIntArray( "kernel_shape", kernelShape );
 
@@ -70,10 +75,11 @@ void CPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTenso
 	CFastArray<int, 8> pads;
 	getPads( inputs, pads );
 
-	if( poolType == PT_Mean ) {
-		// We can't pad image correctly for average (result will differ from Onnx anyway)
+	if( poolType == PT_Mean && !includePad ) {
+		// We can't pad image correctly because NeoML's doesn't support paddings in poolings
+		// and explicit paddings will be included in calculations
 		for( int padIndex = 0; padIndex < pads.Size(); ++padIndex ) {
-			CheckNeoOnnxSupport( pads[padIndex] == 0, "average pooling with padding", *this );
+			CheckNeoOnnxSupport( pads[padIndex] == 0, "average pooling with padding not included in calc", *this );
 		}
 	}
 

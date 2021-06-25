@@ -47,6 +47,8 @@ private:
 	TPoolType poolType;
 	// Padding mode
 	const CString autoPad;
+	// Indicates whether pad pixels should be included in output calculation (average pool only)
+	bool includePad;
 	// Shape of pool kernel
 	CFastArray<int, 8> kernelShape;
 };
