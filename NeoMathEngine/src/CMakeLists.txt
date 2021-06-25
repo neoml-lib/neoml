@@ -316,6 +316,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
             target_include_directories(${PROJECT_NAME}
                 PRIVATE 
                     GPU/Vulkan
+                    "${CMAKE_CURRENT_BINARY_DIR}/GPU/Vulkan"
                     ${Vulkan_INCLUDE_DIR}
             )
             
