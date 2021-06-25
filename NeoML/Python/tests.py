@@ -2040,7 +2040,7 @@ class LossTestCase(TestCase):
         self.assertTrue( np.equal( ad.top_k(const2, 3).asarray(), [2, 2, 2] ).all() )
         self.assertTrue( np.equal( ad.binary_cross_entropy(const0, const0, False).asarray(), 0 * ones ).all() )
         self.assertTrue( np.equal( ad.sum(blob, [1]).asarray(), 3 * np.ones((2, 1, 1, 1, 1, 2, 3)) ).all() )
-        self.assertTrue( np.equal( ad.mean(blob, [1]).asarray(), np.ones((2, 1, 1, 1, 1, 2, 3)) ).all() )
+        self.assertTrue( np.equal( ad.mean(blob, 1).asarray(), np.ones((2, 1, 1, 1, 1, 2, 3)) ).all() )
         self.assertTrue( np.equal( ad.sum(blob, [0, 1]).asarray(), 6 * np.ones((1, 1, 1, 1, 1, 2, 3)) ).all() )
         self.assertTrue( np.equal( ad.mean(blob, [1, 5]).asarray(), np.ones((2, 1, 1, 1, 1, 1, 3)) ).all() )
         self.assertTrue( np.equal( ad.cumsum(blob, 1).asarray().reshape(shape), np.cumsum(ones, 1) ).all() )
