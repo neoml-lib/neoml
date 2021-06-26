@@ -126,6 +126,7 @@ private:
 
 
 	// Process convolution for multiple result pixels ( number of pixels is defined by 'FastBatchProcessSize' member ).
+	void batchProcess( const float* srcPtr, float* resPtr, size_t windowIndex, bool useNarrowProcessing );
 	// Process convolution for single result pixel.
 	void singleProcess( const float* srcPtr, float* resPtr, size_t windowIndex );
 	void singleProcessNarrow( const float* srcPtr, float* resPtr, size_t windowIndex );
