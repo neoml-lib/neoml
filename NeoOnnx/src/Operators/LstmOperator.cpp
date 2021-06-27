@@ -26,8 +26,8 @@ namespace NeoOnnx {
 
 CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
 	CLayerOperator( lstm, opsetVersion ),
-	direction( Attributes.GetOptionalString( "direction", "forward" ) ),
-	hiddenSize( Attributes.GetRequiredInt( "hidden_size" ) )
+	direction( "forward" ),
+	hiddenSize( -1 )
 {
 	// v1 - original
 	// v7 - added initial state and peephole weight inputs
@@ -36,12 +36,15 @@ CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
 	CheckOnnxProtocol( InputCount() >= 3 && InputCount() <= 8, "operator must have from 3 upto 8 inputs", *this );
 	CheckOnnxProtocol( OutputCount() >= 1 && OutputCount() <= 3, "operator must have from 1 upto 3 outputs", *this );
 
+	GetAttribute( "direction", direction );
 	CheckNeoOnnxSupport( direction != "bidirectional", "bidirectional LSTM", *this );
 
-	CheckNeoOnnxSupport( !Attributes.Has( "clip" ), "'clip' attirbute", *this );
-	CheckNeoOnnxSupport( !Attributes.Has( "activations" ), "different activations", *this );
-	CheckNeoOnnxSupport( !Attributes.Has( "activation_alpha" ), "'activation_alpha' attirbute", *this );
-	CheckNeoOnnxSupport( !Attributes.Has( "activation_beta" ), "'activation_beta' attirbute", *this );
+	CheckOnnxProtocol( GetAttribute( "hidden_size", hiddenSize ), "'hidden_size' attribute is missing", *this );
+
+	CheckNeoOnnxSupport( !HasAttribute( "clip" ), "'clip' attribute", *this );
+	CheckNeoOnnxSupport( !HasAttribute( "activations" ), "different activations", *this );
+	CheckNeoOnnxSupport( !HasAttribute( "activation_alpha" ), "'activation_alpha' attirbute", *this );
+	CheckNeoOnnxSupport( !HasAttribute( "activation_beta" ), "'activation_beta' attirbute", *this );
 }
 
 void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const

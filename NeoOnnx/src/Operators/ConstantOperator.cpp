@@ -36,14 +36,18 @@ CConstantOperator::CConstantOperator( const onnx::NodeProto& constant, int opset
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 
 	if( OpsetVersion >= 11 ) {
+		// In ONNX value can be passed through various attributes
+		// like 'sparse_value', 'value_float', 'value_ints' etc.
 		// NeoOnnx supports only "value" attribute
-		CheckNeoOnnxSupport( Attributes.Has( "value" ), "non-trivial value attribute", *this );
+		CheckNeoOnnxSupport( HasAttribute( "value" ), "'*_value' or 'value_*' attributes", *this );
 	}
 }
 
 void CConstantOperator::GetOutputTensors( const CTensorArray& /* inputs */, CDnn& dnn, CTensorArray& outputs ) const
 {
-	outputs[0] = Attributes.GetRequiredTensor( "value", dnn.GetMathEngine() );
+	CPtr<CDataTensor> value( new CDataTensor( dnn.GetMathEngine() ) );
+	CheckOnnxProtocol( GetAttribute( "value", value ), "'value' attribute is missing" );
+	outputs[0] = value.Ptr();
 }
 
 } // namespace NeoOnnx

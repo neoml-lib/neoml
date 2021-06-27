@@ -60,7 +60,9 @@ float CDropoutOperator::getRatio( const CTensorArray& inputs ) const
 {
 	if( OpsetVersion < 12 ) {
 		// Before opset 12 ratio is stored as optional attribute with default value 0.5f
-		return Attributes.GetOptionalFloat( "ratio", 0.5f );
+		float ratio = 0.5f;
+		GetAttribute( "ratio", ratio );
+		return ratio;
 	} else if( inputs.Size() < 2 || inputs[1] == nullptr ) {
 		// If "ratio" input is omitted, default value is 0.5f
 		return 0.5f;

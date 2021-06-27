@@ -25,19 +25,26 @@ limitations under the License.
 namespace NeoOnnx {
 
 CBatchNormalizationOperator::CBatchNormalizationOperator( const onnx::NodeProto& batchNormalization, int opsetVersion ) :
-	CLayerOperator( batchNormalization, opsetVersion ),
-	eps( Attributes.GetOptionalFloat( "epsilon", 1e-5f ) )
+	CLayerOperator( batchNormalization, opsetVersion )
 {
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckNeoOnnxSupport( OpsetVersion > 6 || Attributes.GetOptionalInt( "is_test", 0 ) != 0,
-		"training batch normalization is not supported", *this );
-
 	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "operator must have 5 or 6 inputs", *this );
 	CheckNeoOnnxSupport( OutputCount() == 1, "operator must have 1 output", *this );
+
+	eps = 1e-5f;
+	GetAttribute( "epsilon", eps );
+
+	if( OpsetVersion < 7 ) {
+		int isTest = 0;
+		GetAttribute( "is_test", isTest );
+		CheckNeoOnnxSupport( isTest != 0, "training batch normalization is not supported", *this );
+	}
+
 	if( OpsetVersion < 9 ) {
-		CheckNeoOnnxSupport( Attributes.GetOptionalInt( "spatial", 1 ) != 0,
-			"non-spatial batch norm", *this );
+		int spatial = 1;
+		GetAttribute( "spatial", spatial );
+		CheckNeoOnnxSupport( spatial != 0, "non-spatial batch norm", *this );
 	}
 }
 

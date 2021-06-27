@@ -15,14 +15,10 @@ limitations under the License.
 
 #pragma once
 
-#include "OperatorAttributes.h"
+#include "onnx.pb.h"
+
 #include "TensorLayout.h"
 #include "Tensor.h"
-
-// Forward declaration(s)
-namespace onnx {
-class NodeProto;
-} // namespace onnx
 
 namespace NeoML {
 class IMathEngine;
@@ -75,20 +71,52 @@ public:
 protected:
 	COperator( const onnx::NodeProto& node, int opsetVersion );
 
+	// Returns true if operator has attribute with the given name
+	bool HasAttribute( const CString& name ) const;
+
+	// Gets attribute value
+	// Returns false if there is no attribute with the given name
+	template<class T>
+	bool GetAttribute( const CString& name, T& value ) const;
+
+	void DebugPrintInputs( const CTensorArray& inputs ) const
+	{
+		printf( "Operator: %s(%s)\n", static_cast<const char*>( Name() ), static_cast<const char*>( Type() ) );
+		for( int i = 0; i < inputs.Size(); ++i ) {
+			::printf( "  input[%d]:", i );
+			if( inputs[i] == nullptr ) {
+				::printf( "  NULL\n" );
+				continue;
+			}
+			::printf( inputs[i]->IsCalculated() ? "  DATA " : "  USER " );
+			const CTensorShape& inputShape = inputs[i]->Shape();
+			for( int j = 0 ;j < inputShape.Size(); ++j ) {
+				::printf( " %d", inputShape[j] );
+			}
+			::printf( "\n" );
+		}
+		printf( "\n" );
+	}
+
 	// Opset version
 	const int OpsetVersion;
-	// Attributes of this operator
-	const COperatorAttributes Attributes;
 
 private:
 	// Operator name
 	CString name;
 	// Operator type
 	const CString type;
+	// Operator attributes
+	CMap<CString, const onnx::AttributeProto&> attributes;
 	// Input names
 	CArray<CString> inputNames;
 	// Output names
 	CArray<CString> outputNames;
+
+	template<class T>
+	void getAttributeValue( const onnx::AttributeProto& attribute, T& value ) const;
 };
 
 } // namespace NeoOnnx
+
+#include "OperatorAttributeGetters.inl"

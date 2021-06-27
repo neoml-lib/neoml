@@ -31,7 +31,7 @@ protected:
 
 private:
 	// eps value used to prevent division by zero
-	const float eps;
+	float eps;
 
 	CPtr<const CUserTensor> convertInput( const CUserTensor& input ) const;
 	CPtr<CDnnBlob> calculateFinalParams( int channels, const CTensorArray& inputs ) const;

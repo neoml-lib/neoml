@@ -31,9 +31,9 @@ protected:
 
 private:
 	// LSTM's direction ("forward", "backward" or "bidirectional")
-	const CString direction;
+	CString direction;
 	// Size of hidden state vector
-	const int hiddenSize;
+	int hiddenSize;
 
 	CPtr<CDnnBlob> reorderGates( CPtr<CDnnBlob> weights, TBlobDim dim ) const;
 };

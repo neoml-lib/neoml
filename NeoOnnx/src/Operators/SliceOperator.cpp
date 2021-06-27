@@ -75,9 +75,9 @@ void CSliceOperator::getAxes( const CTensorArray& inputs, CFastArray<int, 8>& ax
 
 	if( OpsetVersion < 10 ) {
 		// Extracting from attributes
-		if( Attributes.Has( "axes" ) ) {
+		if( HasAttribute( "axes" ) ) {
 			axes.Empty();
-			Attributes.GetRequiredIntArray( "axes", axes );
+			CheckOnnxProtocol( GetAttribute( "axes", axes ), "'axes' attribute is missing", *this );
 		}
 	} else {
 		if( inputs.Size() >= 4 && inputs[3] != nullptr ) {
@@ -95,7 +95,7 @@ void CSliceOperator::getStarts( const CTensorArray& inputs, CFastArray<int, 8>& 
 {
 	if( OpsetVersion < 10 ) {
 		// Extracting from attributes
-		Attributes.GetRequiredIntArray( "starts", starts );
+		CheckOnnxProtocol( GetAttribute( "starts", starts ), "'starts' attribute is missing", *this );
 	} else {
 		CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided starts", *this );
 		const CDnnBlob* startsBlob = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data();
@@ -110,7 +110,7 @@ void CSliceOperator::getEnds( const CTensorArray& inputs, CFastArray<int, 8>& en
 {
 	if( OpsetVersion < 10 ) {
 		// Extracting from attributes
-		Attributes.GetRequiredIntArray( "ends", ends );
+		CheckOnnxProtocol( GetAttribute( "ends", ends ), "'ends' attribute is missing", *this );
 	} else {
 		CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided ends", *this );
 		const CDnnBlob* endsBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
@@ -130,9 +130,9 @@ void CSliceOperator::getSteps( const CTensorArray& inputs, CFastArray<int, 8>& s
 
 	if( OpsetVersion < 10 ) {
 		// Extracting from attributes
-		if( Attributes.Has( "steps" ) ) {
+		if( HasAttribute( "steps" ) ) {
 			steps.Empty();
-			Attributes.GetRequiredIntArray( "steps", steps );
+			CheckOnnxProtocol( GetAttribute( "steps", steps ), "'steps' attribute is missing", *this );
 		}
 	} else {
 		if( inputs.Size() >= 5 && inputs[4] != nullptr ) {

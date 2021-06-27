@@ -53,7 +53,7 @@ void CSqueezeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, C
 void CSqueezeOperator::getAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
 {
 	axes.Empty();
-	Attributes.GetRequiredIntArray( "axes", axes );
+	CheckOnnxProtocol( GetAttribute( "axes", axes ), "'axes' attribute is missing", *this );
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
 			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", *this );

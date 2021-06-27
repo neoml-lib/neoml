@@ -41,7 +41,7 @@ static CPtr<CPoolingLayer> createPoolingLayer( CPoolOperatorBase::TPoolType pool
 CPoolOperatorBase::CPoolOperatorBase( TPoolType _poolType, const onnx::NodeProto& poolNode, int opsetVersion ) :
 	CLayerOperator( poolNode, opsetVersion ),
 	poolType( _poolType ),
-	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) ),
+	autoPad( "NOTSET" ),
 	includePad( false )
 {
 	// The difference between versions are in rarely used attributes (not supported by NeoOnnx): ceil_mode, storage_order etc)
@@ -51,12 +51,15 @@ CPoolOperatorBase::CPoolOperatorBase( TPoolType _poolType, const onnx::NodeProto
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "operator must have 1 or 2 outputs", *this );
 
 	if( poolType == PT_Mean && OpsetVersion >= 7 ) {
-		includePad = Attributes.GetOptionalInt( "count_include_pad", 0 ) != 0;
+		int countIncludePad = 0;
+		GetAttribute( "count_include_pad", countIncludePad );
+		includePad = countIncludePad != 0;
 	}
 
-	Attributes.GetRequiredIntArray( "kernel_shape", kernelShape );
-
+	CheckOnnxProtocol( GetAttribute( "kernel_shape", kernelShape ), "'kernel_shape' attribute is missing", *this );
 	CheckNeoOnnxSupport( kernelShape.Size() == 2, "non 2-dimensional max pooling", *this );
+
+	GetAttribute( "auto_pad", autoPad );
 }
 
 void CPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
@@ -114,7 +117,7 @@ void CPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTenso
 // Get pool strides
 void CPoolOperatorBase::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const
 {
-	Attributes.GetOptionalIntArray( "strides", strides );
+	GetAttribute( "strides", strides );
 
 	if( strides.IsEmpty() ) {
 		strides.Add( 1, inputs[0]->Shape().Size() - 2 );
@@ -124,7 +127,7 @@ void CPoolOperatorBase::getStrides( const CTensorArray& inputs, CFastArray<int, 
 // Get pad sizes
 void CPoolOperatorBase::getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const
 {
-	Attributes.GetOptionalIntArray( "pads", pads );
+	GetAttribute( "pads", pads );
 
 	if( pads.IsEmpty() ) {
 		pads.Add( 0, 2 * ( inputs[0]->Shape().Size() - 2 ) );

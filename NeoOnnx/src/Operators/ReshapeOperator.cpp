@@ -105,7 +105,7 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 void CReshapeOperator::getShape( const CTensorArray& inputs, CTensorShape& shape ) const
 {
 	if( OpsetVersion < 5 ) {
-		Attributes.GetRequiredIntArray( "shape", shape );
+		CheckOnnxProtocol( GetAttribute( "shape", shape ), "'shape' attribute is missing", *this );
 		return;
 	}
 

@@ -26,10 +26,10 @@ namespace NeoOnnx {
 
 CGemmOperator::CGemmOperator( const onnx::NodeProto& gemm, int opsetVersion ) :
 	CLayerOperator( gemm, opsetVersion ),
-	alpha( Attributes.GetOptionalFloat( "alpha", 1.f ) ),
-	beta( Attributes.GetOptionalFloat( "beta", 1.f ) ),
-	transA( Attributes.GetOptionalInt( "transA", 0 ) ),
-	transB( Attributes.GetOptionalInt( "transB", 0 ) )
+	alpha( 1.f ),
+	beta( 1.f ),
+	transA( 0 ),
+	transB( 0 )
 {
 	// Older versions have broadcast support
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
@@ -37,12 +37,21 @@ CGemmOperator::CGemmOperator( const onnx::NodeProto& gemm, int opsetVersion ) :
 	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "operator must have 2 or 3 inputs", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 
+	GetAttribute( "alpha", alpha );
 	CheckNeoOnnxSupport( alpha == 1.0f, "alpha != 1", *this );
+
+	GetAttribute( "beta", beta );
 	CheckNeoOnnxSupport( beta == 1.0f, "beta != 1", *this );
+
+	GetAttribute( "transA", transA );
 	CheckNeoOnnxSupport( transA == 0, "transA != 0", *this );
+
+	GetAttribute( "transB", transB );
 	CheckNeoOnnxSupport( transB != 0, "transB == 0", *this );
+
 	if( OpsetVersion < 7 ) {
-		const int broadcast = Attributes.GetOptionalInt( "broadcast", 0 );
+		int broadcast = 0;
+		GetAttribute( "broadcast", broadcast );
 		CheckNeoOnnxSupport( broadcast != 0, "broadcast == 0", *this );
 	}
 }
