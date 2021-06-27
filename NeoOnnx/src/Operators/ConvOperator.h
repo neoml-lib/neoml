@@ -31,9 +31,9 @@ protected:
 
 private:
 	// groups count
-	const int group;
+	int group;
 	// padding mode
-	const CString autoPad;
+	CString autoPad;
 
 	void add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
 	void add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;

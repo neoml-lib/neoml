@@ -253,12 +253,14 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserT
 
 bool CReducePoolOperatorBase::KeepDims() const
 {
-	return Attributes.GetOptionalInt( "keepdims", 1 ) != 0;
+	int keepDims = 1;
+	GetAttribute( "keepdims", keepDims );
+	return keepDims != 0;
 }
 
 void CReducePoolOperatorBase::PoolAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
 {
-	Attributes.GetOptionalIntArray( "axes", axes );
+	GetAttribute( "axes", axes );
 
 	// If axes attribute is missing then all dimensions must be pooled
 	if( axes.IsEmpty() ) {

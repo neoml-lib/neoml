@@ -26,12 +26,13 @@ namespace NeoOnnx {
 
 CSoftmaxOperator::CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVersion ) :
 	CLayerOperator( softmax, opsetVersion ),
-	axis( Attributes.GetOptionalInt( "axis", 1 ) )
+	axis( 1 )
 {
 	// The differences between versions are in negative axis support
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	// Negative axis index supported since v11
+	GetAttribute( "axis", axis );
 	CheckOnnxProtocol( axis >= 0 || opsetVersion >= 11, "negative axis index", *this );
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );

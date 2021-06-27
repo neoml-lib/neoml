@@ -84,8 +84,8 @@ void CClipOperator::SetLayerParams( const CTensorArray& inputs, CBaseLayer* laye
 	float minValue = -FLT_MAX;
 	float maxValue = FLT_MAX;
 	if( OpsetVersion < 11 ) {
-		minValue = Attributes.GetOptionalFloat( "min", -FLT_MAX );
-		maxValue = Attributes.GetOptionalFloat( "max", FLT_MAX );
+		GetAttribute( "min", minValue );
+		GetAttribute( "max", maxValue );
 	} else if( InputCount() > 1 ) {
 		const CDataTensor* minValueTensor = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
 		CheckNeoOnnxSupport( minValueTensor != nullptr, "user-provided clip min value", *this );
@@ -144,7 +144,9 @@ void CLeakyReluOperator::SetLayerParams( const CTensorArray& /* inputs */, CBase
 {
 	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( layer );
 	NeoAssert( leakyReLU != nullptr );
-	leakyReLU->SetAlpha( Attributes.GetOptionalFloat( "alpha", 0.f ) );
+	float alpha = 0;
+	GetAttribute( "alpha", alpha );
+	leakyReLU->SetAlpha( alpha );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -165,10 +167,12 @@ void CHardSigmoidOperator::SetLayerParams( const CTensorArray& /* inputs */, CBa
 	CHardSigmoidLayer* hardSigmoid = dynamic_cast<CHardSigmoidLayer*>( layer );
 	NeoAssert( hardSigmoid != nullptr );
 
-	const float alpha = Attributes.GetOptionalFloat( "alpha", 0.2f );
-	const float beta = Attributes.GetOptionalFloat( "beta", 0.5f );
-
+	float alpha = 0.2f;
+	GetAttribute( "alpha", alpha );
 	hardSigmoid->SetSlope( alpha );
+
+	float beta = 0.5f;
+	GetAttribute( "beta", beta );
 	hardSigmoid->SetBias( beta );
 }
 

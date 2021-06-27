@@ -41,7 +41,7 @@ void CTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */,
 	const int dimCount = inputShape.Size();
 
 	CFastArray<int, 8> perm;
-	Attributes.GetOptionalIntArray( "perm", perm );
+	GetAttribute( "perm", perm );
 	if( perm.IsEmpty() ) {
 		// Default value is reverse order
 		perm.SetBufferSize( dimCount );

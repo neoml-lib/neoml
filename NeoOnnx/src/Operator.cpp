@@ -146,10 +146,13 @@ REGISTER_OPERATOR( CUnsqueezeOperator, "Unsqueeze" )
 
 COperator::COperator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 	OpsetVersion( opsetVersion ),
-	Attributes( onnxNode, *this ),
 	name( ( ( onnxNode.name().empty() ? onnxNode.output( 0 ) : onnxNode.name() ) + "_Op" ).c_str() ),
 	type( onnxNode.op_type().c_str() )
 {
+	for( const onnx::AttributeProto& attribute : onnxNode.attribute() ) {
+		attributes.Add( attribute.name().c_str(), attribute );
+	}
+
 	for( const std::string& inputName : onnxNode.input() ) {
 		inputNames.Add( CString( inputName ) );
 	}

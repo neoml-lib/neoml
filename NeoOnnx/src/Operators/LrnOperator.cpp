@@ -46,10 +46,22 @@ void CLrnOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 
 	CPtr<CLrnLayer> lrn = new CLrnLayer( dnn.GetMathEngine() );
 	lrn->SetName( Name() );
-	lrn->SetWindowSize( Attributes.GetRequiredInt( "size" ) );
-	lrn->SetBias( Attributes.GetOptionalFloat( "bias", 1 ) );
-	lrn->SetAlpha( Attributes.GetOptionalFloat( "alpha", 1e-4f ) );
-	lrn->SetBeta( Attributes.GetOptionalFloat( "beta", 0.75f ) );
+	int size = -1;
+	CheckOnnxProtocol( GetAttribute( "size", size ), "'size' attribute is missing", *this );
+	lrn->SetWindowSize( size );
+
+	float bias = 1.f;
+	GetAttribute( "bias", bias );
+	lrn->SetBias( bias );
+
+	float alpha = 1e-4f;
+	GetAttribute( "alpha", alpha );
+	lrn->SetAlpha( alpha );
+
+	float beta = 0.75f;
+	GetAttribute( "beta", beta );
+	lrn->SetBeta( beta );
+
 	lrn->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *lrn );
 

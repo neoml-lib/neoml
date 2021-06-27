@@ -192,8 +192,12 @@ CPtr<const CTensorBase> CEltwiseOperatorBase::prepareSecondInput( const CTensorA
 CBroadcast CEltwiseBinaryOperatorBase::GetBroadcast() const
 {
 	if( OpsetVersion < 7 ) {
-		if( Attributes.GetOptionalInt( "broadcast", 0 ) != 0 ) {
-			return CBroadcast( BT_Onnx, Attributes.GetOptionalInt( "axis", NotFound ) );
+		int broadcast = 0;
+		GetAttribute( "broadcast", broadcast );
+		if( broadcast != 0 ) {
+			int axis = NotFound;
+			GetAttribute( "axis", axis );
+			return CBroadcast( BT_Onnx, axis );
 		} else {
 			return CBroadcast( BT_None );
 		}

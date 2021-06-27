@@ -43,9 +43,9 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 	int axis = 1;
 	if( OpsetVersion < 4 ) {
-		axis = Attributes.GetOptionalInt( "axis", 1 );
+		GetAttribute( "axis", axis );
 	} else {
-		axis = Attributes.GetRequiredInt( "axis" );
+		CheckOnnxProtocol( GetAttribute( "axis", axis ), "axis attribute is missing", *this );
 		if( axis < 0 ) {
 			CheckOnnxProtocol( OpsetVersion >= 11, "negative axis is supported since v11", *this );
 			axis += dimCount;

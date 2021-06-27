@@ -26,14 +26,17 @@ namespace NeoOnnx {
 
 CConvOperator::CConvOperator( const onnx::NodeProto& conv, int opsetVersion ) :
 	CLayerOperator( conv, opsetVersion ),
-	group( Attributes.GetOptionalInt( "group", 1 ) ),
-	autoPad( Attributes.GetOptionalString( "auto_pad", "NOTSET" ) )
+	group( 1 ),
+	autoPad( "auto_pad" )
 {
 	// The differences between versions are in default values of some flags and supported data types
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "operator must have 2 or 3 inputs", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+
+	GetAttribute( "group", group );
+	GetAttribute( "auto_pad", autoPad );
 }
 
 void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
@@ -73,7 +76,7 @@ void CConvOperator::getKernelShape( const CTensorArray& inputs, CTensorShape& ke
 // Gets actual strides
 void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const
 {
-	Attributes.GetOptionalIntArray( "strides", strides );
+	GetAttribute( "strides", strides );
 	if( strides.IsEmpty() ) {
 		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
 		strides.Add( 1, convDims );
@@ -83,7 +86,7 @@ void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& 
 // Gets actual padding sizes
 void CConvOperator::getPads( const CTensorArray& inputs, const CTensorShape& kernelShape, CFastArray<int, 8>& pads ) const
 {
-	Attributes.GetOptionalIntArray( "pads", pads );
+	GetAttribute( "pads", pads );
 	if( pads.IsEmpty() ) {
 		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
 		pads.Add( 0, 2 * convDims );
@@ -96,7 +99,7 @@ void CConvOperator::getPads( const CTensorArray& inputs, const CTensorShape& ker
 // Gets actual dilation sizes
 void CConvOperator::getDilations( const CTensorArray& inputs, CFastArray<int, 8>& dilations ) const
 {
-	Attributes.GetOptionalIntArray( "dilations", dilations );
+	GetAttribute( "dilations", dilations );
 	if( dilations.IsEmpty() ) {
 		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
 		dilations.Add( 1, convDims );

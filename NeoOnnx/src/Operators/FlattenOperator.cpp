@@ -25,7 +25,7 @@ namespace NeoOnnx {
 
 CFlattenOperator::CFlattenOperator( const onnx::NodeProto& flatten, int opsetVersion ) :
 	CLayerOperator( flatten, opsetVersion ),
-	axis( Attributes.GetOptionalInt( "axis", 1 ) )
+	axis( 1 )
 {
 	// v1 - original
 	// v9 - added different data types support
@@ -35,6 +35,7 @@ CFlattenOperator::CFlattenOperator( const onnx::NodeProto& flatten, int opsetVer
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 
+	GetAttribute( "axis", axis );
 	if( opsetVersion < 11 ) {
 		CheckOnnxProtocol( axis >= 0, "negative axis index", *this );
 	}

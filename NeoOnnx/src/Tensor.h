@@ -139,6 +139,7 @@ inline CUserTensor::CUserTensor( const CTensorShape& shape, const CTensorLayout&
 // Tensor with data independent of user input
 class CDataTensor : public CTensorBase {
 public:
+	explicit CDataTensor( IMathEngine& mathEngine );
 	CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& data );
 
 	// CTensorBase methods implementation
@@ -155,8 +156,16 @@ private:
 	bool checkTensorLayout() const;
 };
 
+inline CDataTensor::CDataTensor( IMathEngine& mathEngine ) :
+	CTensorBase( CTensorShape(), CTensorLayout() ),
+	data( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
+{
+	NeoPresume( checkTensorLayout() );
+}
+
 inline CDataTensor::CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& _data ) :
-	CTensorBase( shape, layout ), data( &_data )
+	CTensorBase( shape, layout ),
+	data( &_data )
 {
 	NeoPresume( checkTensorLayout() );
 }

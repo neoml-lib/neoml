@@ -26,7 +26,7 @@ namespace NeoOnnx {
 
 CPadOperator::CPadOperator( const onnx::NodeProto& pad, int opsetVersion ) :
 	CLayerOperator( pad, opsetVersion ),
-	mode( Attributes.GetOptionalString( "mode", "constant" ) )
+	mode( "constant" )
 {
 	// In v1 pads are provided by 'paddings' attribute and pad value is provided by 'value' attribute 
 	// In v2 pads are provided by 'pads' attribute and pad value is provided by 'value' attribute 
@@ -39,6 +39,8 @@ CPadOperator::CPadOperator( const onnx::NodeProto& pad, int opsetVersion ) :
 	}
 
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+
+	GetAttribute( "mode", mode );
 	CheckNeoOnnxSupport( mode == "constant", "Pad with non-constant mode", *this );
 }
 
@@ -54,7 +56,9 @@ void CPadOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTens
 void CPadOperator::getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const
 {
 	if( OpsetVersion < 11 ) {
-		Attributes.GetRequiredIntArray( OpsetVersion == 1 ? "paddings" : "pads", pads );
+		const CString padAttributeName = OpsetVersion == 1 ? "paddings" : "pads";
+		CheckOnnxProtocol( GetAttribute( padAttributeName, pads ),
+			"'pads' attribute is missing", *this );
 	} else {
 		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided pad sizes", *this );
 		const CDnnBlob& padsBlob = *( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data() );
@@ -69,7 +73,7 @@ float CPadOperator::getPadValue( const CTensorArray& inputs ) const
 {
 	float padValue = 0.f;
 	if( OpsetVersion < 11 ) {
-		padValue = Attributes.GetOptionalFloat( "value", 0.f );
+		GetAttribute( "value", padValue );
 	} else if( InputCount() == 3 ) {
 		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided pad value", *this );
 		const CDnnBlob& valueBlob = *( dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data() );

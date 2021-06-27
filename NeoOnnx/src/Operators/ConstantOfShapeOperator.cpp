@@ -43,8 +43,10 @@ void CConstantOfShapeOperator::GetOutputTensors( const CTensorArray& inputs, CDn
 
 	// If "value" attribute is not set then float 0.f is assumed
 	CPtr<const CDnnBlob> valueBlob;
-	if( Attributes.Has( "value" ) ) {
-		valueBlob = Attributes.GetRequiredTensor( "value", mathEngine )->Data();
+	if( HasAttribute( "value" ) ) {
+		CPtr<CDataTensor> dataTensor( new CDataTensor( mathEngine ) );
+		CheckOnnxProtocol( GetAttribute( "value", dataTensor ), "'value' attribute is missing" );
+		valueBlob = dataTensor->Data();
 	} else {
 		CPtr<CDnnBlob> zero = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 		zero->Clear();

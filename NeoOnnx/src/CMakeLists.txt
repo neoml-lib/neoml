@@ -14,7 +14,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnxCheck.cpp
     LayerOperator.cpp
     Operator.cpp
-    OperatorAttributes.cpp
     Operators/ActivationOperator.cpp
     Operators/BatchNormalizationOperator.cpp
     Operators/ConcatOperator.cpp
@@ -51,7 +50,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     LayerOperator.h
     NeoOnnxCheck.h
     Operator.h
-    OperatorAttributes.h
     Operators/ActivationOperator.h
     Operators/BatchNormalizationOperator.h
     Operators/ConcatOperator.h
@@ -80,6 +78,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Tensor.h
     TensorLayout.h
     TensorUtils.h
+
+    OperatorAttributeGetters.inl
 )
 
 if(ANDROID)

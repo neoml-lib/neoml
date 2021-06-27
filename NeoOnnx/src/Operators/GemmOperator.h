@@ -38,10 +38,10 @@ private:
 	//     C is optional matrix
 
 	// Values from formula above
-	const float alpha;
-	const float beta;
-	const int transA;
-	const int transB;
+	float alpha;
+	float beta;
+	int transA;
+	int transB;
 };
 
 } // namespace NeoOnnx
