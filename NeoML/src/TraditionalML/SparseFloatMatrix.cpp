@@ -169,7 +169,7 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 	
 	copyOnWriteAndGrow( newHeight, newElementCount );
 	body->Desc.Height = newHeight;
-	if( row.Indexes != nullptr && row.Size > 0 ) {
+	if( row.Indexes == nullptr ) {
 		// Dense vector
 		body->Desc.Width = max( body->Desc.Width, row.Size );
 	} else {
