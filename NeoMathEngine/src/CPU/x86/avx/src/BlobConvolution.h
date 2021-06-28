@@ -602,4 +602,7 @@ inline void CBlobConvolution<FltCnt>::rotateLeft2( __m256& y )
 } // namespace NeoML
 
 // Class specializations
-#include <BlobConvolutionImpl.h>
+#include <BlobConvolution_FltCnt_6.h>
+#include <BlobConvolution_FltCnt_18.h>
+#include <BlobConvolution_FltCnt_24.h>
+#include <BlobConvolution_FltCnt_32.h>

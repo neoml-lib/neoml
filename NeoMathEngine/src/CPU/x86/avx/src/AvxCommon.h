@@ -34,3 +34,8 @@ limitations under the License.
   _mm_storeu_ps ( loAddr, _mm256_castps256_ps128( data ) ); \
   _mm_storeu_ps ( hiAddr, _mm256_extractf128_ps( data, 1) )
 #endif
+
+#ifndef _mm256_set_m128
+// This instruction is defined since 8 gcc in avxintrin.h
+#define _mm256_set_m128( hi, lo) _mm256_insertf128_ps( _mm256_castps128_ps256( lo ), ( hi ), 0x1 )
+#endif
