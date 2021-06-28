@@ -21,8 +21,8 @@ objectNorm(x)[i][j] = ((x[i][j] - mean[i]) / sqrt(var[i] + epsilon)) * scale[j] 
 
 where:
 
-- `scale` and `bias` are the trainable parameters
-- `mean` and `var` are mean and varian of the obects in a batch.
+- `scale` and `bias` are trainable parameters
+- `mean` and `var` are the mean and variance of each object in a batch
 
 ## Settings
 

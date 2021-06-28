@@ -25,7 +25,7 @@ limitations under the License.
 namespace NeoML {
 
 // Macros to load functions
-#define LOAD_FUNC(Type, Var, NameStr) if((Var = (Type)(void*)CDll::GetProcAddress(NameStr)) == 0) return false
+#define LOAD_FUNC(Type, Var, NameStr) if((Var = CDll::GetProcAddress<Type>(NameStr)) == 0) return false
 #define LOAD_CUSPARSE_FUNC(Name) LOAD_FUNC(CCusparse::TCusparse##Name, functions.Name, "cusparse" #Name)
 
 #if FINE_PLATFORM(FINE_WINDOWS)

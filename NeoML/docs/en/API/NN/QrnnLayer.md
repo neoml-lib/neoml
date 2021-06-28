@@ -4,6 +4,7 @@
 
 - [CQrnnLayer Class](#cqrnnlayer-class)
     - [Settings](#settings)
+        - [Pooling type](#pooling-type)
         - [Hidden layer size](#hidden-layer-size)
         - [Window size](#window-size)
         - [Window stride](#window-stride)
@@ -25,13 +26,30 @@ This class implements a quasi-recurrent layer that can be applied to a set of ve
 
 The output is a sequence of vectors, each of `GetHiddenSize()` size.
 
-Unlike LSTM or GRU, this layer performs most of calculations before the recurrent part.
-That leads to significant performance improvement on GPU.
+Unlike LSTM or GRU, this layer performs most of calculations before the recurrent part, which leads to significant performance improvement on GPU.
 It's achieved by using [time convolution](ConvolutionLayers/TimeConvLayer.md).
 
-The realization of this layer is based on [this article](https://arxiv.org/abs/1611.01576).
+Based on [this article](https://arxiv.org/abs/1611.01576).
 
 ## Settings
+
+### Pooling type
+
+```c++
+// Different poolings used in QRNN
+enum TPoolingType {
+    PT_FPooling, // f-pooling from article, uses 2 gates (Update, Forget)
+    PT_FoPooling, // fo-pooling from article, uses 3 gates (Update, Forget, Output)
+    PT_IfoPooling, // ifo pooling from article, uses 4 gates (Update, Forget, Output, Input)
+
+    PT_Count
+};
+
+void SetPoolingType(TPoolingType newPoolingType);
+```
+
+Sets the pooling type. Pooling is the recurrent part of the QRNN layer.
+The exact formulas are given in [the article](https://arxiv.org/abs/1611.01576).
 
 ### Hidden layer size
 
@@ -120,7 +138,7 @@ CPtr<CDnnBlob> GetFilterData() cons;
 The filters containing the weights for each gate. The filters are represented by a [blob](DnnBlob.md) of the following dimensions:
 
 - `BatchLength` is equal to `1`
-- `BatchWidth` is equal to `3 * GetHiddenSize()`
+- `BatchWidth` is equal to `gates * GetHiddenSize()`, where `gates` is `2` if `PT_FPooling` is used, `3` in case of `PT_FoPooling` and `4` in case of `PT_IfoPooling`
 - `Height` is equal to `GetWindowSize()`
 - `Width` is equal to `1`
 - `Depth` is equal to `1`
@@ -131,7 +149,8 @@ The `BatchWidth` axis corresponds to the gate weights, in the following order:
 ```c++
 G_Update, // update gate (Z in the article)
 G_Forget, // forget gate (F in the article)
-G_Output, // output gate (O in the article)
+G_Output, // output gate if used (O in the article)
+G_Input, // input gate if used (I in the article)
 ```
 
 ### Free terms
@@ -140,7 +159,7 @@ G_Output, // output gate (O in the article)
 CPtr<CDnnBlob> GetFreeTermData() const
 ```
 
-The free terms are represented by a blob of the total size `3 * GetHiddenSize()`. The order in which they correspond to the gates is the same as [above](#filters).
+The free terms are represented by a blob of the total size of `BatchWidth` of filters above. The order in which they correspond to the gates is the same as [above](#filters).
 
 ## Inputs
 

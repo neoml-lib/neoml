@@ -300,35 +300,6 @@ void CGradientBoostQSEnsemble::Build( const CGradientBoostEnsemble &treeModel )
 	buildFeatureNodesOffsets( features );
 }
 
-double CGradientBoostQSEnsemble::Predict( const CSparseFloatVector& data ) const
-{
-	// The resulting bit masks, one per tree; for a start all bits are set to 1
-	CFastArray<unsigned __int64, 512> resultBitvectors;
-	resultBitvectors.SetSize( GetTreesCount() );
-	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
-
-	const CFloatVectorDesc& desc = data.GetDesc();
-	NeoAssert( desc.Indexes != nullptr );
-	for( int i = 0; i < desc.Size; i++ ) {
-		processFeature( desc.Indexes[i], desc.Values[i], resultBitvectors );
-	}
-
-	return calculateScore<CSparseFloatVector>( data, resultBitvectors, GetTreesCount() - 1 );
-}
-
-double CGradientBoostQSEnsemble::Predict( const CFloatVector& data ) const
-{
-	CFastArray<unsigned __int64, 512> resultBitvectors;
-	resultBitvectors.SetSize( GetTreesCount() );
-	memset( resultBitvectors.GetPtr(), ~0, resultBitvectors.Size() * sizeof( unsigned __int64 ) );
-
-	for( int i = 0; i < data.Size(); i++ ) { 
-		processFeature( i, data[i], resultBitvectors );
-	}
-
-	return calculateScore<CFloatVector>( data, resultBitvectors, GetTreesCount() - 1 );
-}
-
 double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data ) const
 {
 	// The resulting bit masks, one per tree; for a start all bits are set to 1
@@ -346,7 +317,7 @@ double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data ) const
 		}
 	}
 
-	return calculateScore<CFloatVectorDesc>( data, resultBitvectors, GetTreesCount() - 1 );
+	return calculateScore( data, resultBitvectors, GetTreesCount() - 1 );
 }
 
 double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data, int lastTreeIndex ) const
@@ -365,7 +336,7 @@ double CGradientBoostQSEnsemble::Predict( const CFloatVectorDesc& data, int last
 		}
 	}
 
-	return calculateScore<CFloatVectorDesc>( data, resultBitvectors, lastTreeIndex );
+	return calculateScore( data, resultBitvectors, lastTreeIndex );
 }
 
 CArchive& operator<<( CArchive& archive, const CGradientBoostQSEnsemble& block )
@@ -765,16 +736,6 @@ void CGradientBoostQSEnsemble::processFeature( int featureIndex, float value, CF
 	}
 }
 
-static inline float getFeatureValue( const CSparseFloatVector& data, int index )
-{
-	return data.GetValue( index );
-}
-
-static inline float getFeatureValue( const CFloatVector& data, int index )
-{
-	return data[index];
-}
-
 static inline float getFeatureValue( const CFloatVectorDesc& data, int index )
 {
 	float result;
@@ -786,8 +747,7 @@ static inline float getFeatureValue( const CFloatVectorDesc& data, int index )
 // The leaves are numbered left to right (all masks are inverted), so look for the lowest nonzero bit
 // In each bitvector the leaf we need has the index of the lowest nonzero
 // If it is a leaf in the original tree, take its value, if a subtree call its Predict method
-template <class T>
-double CGradientBoostQSEnsemble::calculateScore( const T& data, const CFastArray<unsigned __int64, 512>& bitvectors, int lastTreeIndex ) const
+double CGradientBoostQSEnsemble::calculateScore( const CFloatVectorDesc& data, const CFastArray<unsigned __int64, 512>& bitvectors, int lastTreeIndex ) const
 {
 	float score = 0.0;
 	int prev = -1;

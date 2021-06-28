@@ -1208,4 +1208,46 @@ __global__ void MatrixSpreadRowsAddKernel(const float* __restrict__ source, int 
 	}
 }
 
+const int AddDiagMatrixToMatrixCombine = 16;
+__global__ void AddDiagMatrixToMatrixKernel( const float* __restrict__ diagMatrix, const float*  __restrict__ matrix,
+	int height, int width, int widthNorm, float* result )
+{
+	int row;
+	int col;
+	if( !GetCudaTaskIndex2D( height, widthNorm, row, col ) ) {
+		return;
+	}
+
+	col *= AddDiagMatrixToMatrixCombine;
+	matrix += row * width + col;
+	result += row * width + col;
+	for( int i = col; i < min( width, col + AddDiagMatrixToMatrixCombine ); i++ ) {
+		*result = *matrix;
+		if( row == i ) {
+			*result += diagMatrix[row];
+		}
+		matrix++;
+		result++;
+	}
+}
+
+const int MatrixColumnsEltwiseDivideCombine = 16;
+__global__ void MatrixColumnsEltwiseDivideKernel( const float* __restrict__ matrix,
+	int matrixHeight, int matrixWidth, int widthNorm,
+	const float* __restrict__ vector, float* result )
+{
+	int row;
+	int col;
+	if( !GetCudaTaskIndex2D( matrixHeight, widthNorm, row, col ) ) {
+		return;
+	}
+
+	col *= MatrixColumnsEltwiseDivideCombine;
+	matrix += row * matrixWidth + col;
+	result += row * matrixWidth + col;
+	for( int i = col; i < min( matrixWidth, col + MatrixColumnsEltwiseDivideCombine ); i++ ) {
+		*result++ = *matrix++ / vector[row];
+	}
+}
+
 } // namespace NeoML

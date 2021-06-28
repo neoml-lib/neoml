@@ -83,6 +83,28 @@ namespace NeoML {
 
 //------------------------------------------------------------------------------------------------------------
 
+void CVulkanMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrix, int matrixHeight, int matrixWidth,
+	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( matrix.GetMathEngine() == this );
+	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( matrixHeight > 0 );
+	ASSERT_EXPR( matrixWidth > 0 );
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+	int height, int width, const CFloatHandle& result )
+{
+	ASSERT_EXPR( diagMatrix.GetMathEngine() == this );
+	ASSERT_EXPR( matrix.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+	ASSERT_EXPR( height > 0 );
+	ASSERT_EXPR( width > 0 );
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& firstHandle,
 	int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int /*resultBufferSize*/ )
 {

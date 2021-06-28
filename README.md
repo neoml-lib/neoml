@@ -2,6 +2,8 @@
 
 ![Desktop Build Status](https://img.shields.io/azure-devops/build/abbyyopensource/401f7fe0-92d9-411d-9839-60d3455fa1c0/2/master?label=Desktop%20Build)
 ![Python Build](https://img.shields.io/azure-devops/build/abbyyopensource/401f7fe0-92d9-411d-9839-60d3455fa1c0/14/master?label=Python%20Build)
+![iOS Build](https://img.shields.io/azure-devops/build/abbyyopensource/401f7fe0-92d9-411d-9839-60d3455fa1c0/15/master?label=iOS%20build)
+![Android Build](https://img.shields.io/azure-devops/build/abbyyopensource/401f7fe0-92d9-411d-9839-60d3455fa1c0/15/master?label=Android%20build)
 [![Documentation Status](https://readthedocs.org/projects/neoml/badge/?version=latest)](https://neoml.readthedocs.io/en/latest/?badge=latest)
 
 **NeoML** is an end-to-end machine learning framework that allows you to build, train, and deploy ML models. This framework is used by ABBYY engineers for computer vision and natural language processing tasks, including image preprocessing, classification, document layout analysis, OCR, and data extraction from structured and unstructured documents.
@@ -12,7 +14,7 @@ Key features:
 - Traditional machine learning: 20+ algorithms (classification, regression, clustering, etc.)
 - CPU and GPU support, fast inference
 - ONNX support
-- Languages: C++, Java, Objective-C
+- Languages: Python, C++, Java, Objective-C
 - Cross-platform: the same code can be run on Windows, Linux, macOS, iOS, and Android
 
 ## Contents
@@ -52,26 +54,26 @@ The full С++ library version has been tested on the platforms:
 
 |Target OS|Compiler|Architecture|
 |----------|----------|------------------------------|
-|Windows 7+ (CPU and GPU)|MSVC 2015+|x86, x86_64|
+|Windows 7+ (CPU and GPU)|MSVC 2019+|x86, x86_64|
 |Ubuntu 14+ (CPU)|gcc 5.4+|x86_64|
-|MacOS 10.11+ (CPU)|Apple clang 11+|x86_64|
-|iOS 11+ (CPU, GPU)|Apple clang 11+|arm64-v8a, x86_64|
+|MacOS 10.11+ (CPU)|Apple clang 12+|arm64, x86_64|
+|iOS 11+ (CPU, GPU)|Apple clang 12+|arm64-v8a, x86_64|
 |Android 5.0+ (CPU), Android 7.0+ (GPU)|clang 7+|armeabi-v7a, arm64-v8a, x86, x86_64|
 
 The inference Java and Objective-C library versions have been tested on the platforms:
 
 |Target OS|Compiler|Architecture|
 |----------|----------|------------------------------|
-|iOS 11+ (CPU, GPU)|Apple clang 11+|arm64-v8a, x86_64|
+|iOS 11+ (CPU, GPU)|Apple clang 12+|arm64-v8a, x86_64|
 |Android 5.0+ (CPU), Android 7.0+ (GPU)|clang 7+|armeabi-v7a, arm64-v8a, x86, x86_64|
 
 ### Third party
 
-The library is built with [CMake](https://cmake.org/download/) (recommended versions 3.11 and later).
+The library is built with [CMake](https://cmake.org/download/) (recommended versions 3.18 and later).
 
 For best CPU performance on Windows, Linux and macOS we use [Intel MKL](https://software.intel.com/en-us/mkl).
 
-When processing on a GPU, you can optionally use [CUDA](https://developer.nvidia.com/cuda-downloads) (version 10.2) on Windows or Linux and [Vulkan](https://vulkan.lunarg.com/sdk/home) (version 1.1.130 and later) on Windows, Linux or Android.
+When processing on a GPU, you can optionally use [CUDA](https://developer.nvidia.com/cuda-downloads) (version 11.2 upd.1) on Windows or Linux and [Vulkan](https://vulkan.lunarg.com/sdk/home) (version 1.1.130 and later) on Windows, Linux or Android.
 
 We also use Google [Test](https://github.com/google/googletest) for testing and Google [Protocol Buffers](https://developers.google.com/protocol-buffers) for working with ONNX model format.
 
@@ -131,7 +133,7 @@ Processing on GPU often helps significantly improve performance of mathematical 
 
 To work on GPU, the library requires:
 
-- Windows: NVIDIA® GPU card with CUDA® 10.2 support.
+- Windows: NVIDIA® GPU card with CUDA® 11.2 upd. 1 support.
 - iOS: Apple GPU A7+.
 - Android: devices with Vulkan 1.0 support.
 - Linux/macOS: no support for GPU processing as yet. 
@@ -163,7 +165,7 @@ The math engine is also a set of C++ interfaces described [here](NeoML/docs/en/A
 
 ### Python module
 
-The documentation of python module located [here](NeoML/docs/en/Python/index.rst)
+See the extensive documentation of the Python module on [readthedocs.io](https://neoml.readthedocs.io/en/latest/index.html).
 
 ### Java interface
 

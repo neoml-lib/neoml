@@ -184,6 +184,23 @@ void CCudaMathEngine::AddMatrixElementsToMatrix(const CConstFloatHandle& matrix,
 		height, width, GetRaw(result), GetRaw(indices));
 }
 
+void CCudaMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+	int height, int width, const CFloatHandle& result )
+{
+	ASSERT_EXPR( matrix.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+	ASSERT_EXPR( diagMatrix.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	const int widthNorm = ( width + AddDiagMatrixToMatrixCombine - 1 ) / AddDiagMatrixToMatrixCombine;
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, height, widthNorm );
+
+	AddDiagMatrixToMatrixKernel<<<blockCount, threadCount>>>( GetRaw( diagMatrix ), GetRaw( matrix ),
+		height, width, widthNorm, GetRaw( result ) );
+}
+
 void CCudaMathEngine::AddVectorToMatrixRows(int batchSize,
 	const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle, int matrixHeight,
 	int matrixWidth, const CConstFloatHandle& vectorHandle)
@@ -279,6 +296,23 @@ void CCudaMathEngine::SumMatrixColumns(const CFloatHandle& resultHandle, const C
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
 	sumMatrixColumnsKernelFunc(resultHandle, GetRaw(matrixHandle), matrixHeight, matrixWidth, false);
+}
+
+void CCudaMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
+	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	const int widthNorm = ( matrixWidth + MatrixColumnsEltwiseDivideCombine - 1 ) / MatrixColumnsEltwiseDivideCombine;
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm );
+
+	MatrixColumnsEltwiseDivideKernel<<<blockCount, threadCount>>>( GetRaw( matrixHandle ),
+		matrixHeight, matrixWidth, widthNorm, GetRaw( vectorHandle ), GetRaw( resultHandle ) );
 }
 
 void CCudaMathEngine::MatrixLogSumExpByRows(const CConstFloatHandle& matrix, int height, int width,

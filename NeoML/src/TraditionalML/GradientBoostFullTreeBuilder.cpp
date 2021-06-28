@@ -143,7 +143,7 @@ template<class T>
 CPtr<CRegressionTree> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBoostFullProblem& problem,
 	const CArray<typename T::Type>& gradients, const typename T::Type& gradientsSum,
 	const CArray<typename T::Type>& hessians, const typename T::Type& hessiansSum,
-	const CArray<float>& weights, float weightsSum )
+	const CArray<double>& weights, double weightsSum )
 {
 	if( logStream != 0 ) {
 		*logStream << L"\nGradient boost float problem tree building started:\n";
@@ -175,7 +175,7 @@ CPtr<CRegressionTree> CGradientBoostFullTreeBuilder<T>::Build( const CGradientBo
 // Initializes the builder
 template<class T>
 CPtr<CGradientBoostNodeStatistics<T>> CGradientBoostFullTreeBuilder<T>::initialize( const CGradientBoostFullProblem& problem,
-	const typename T::Type& gradientSum, const typename T::Type& hessianSum, float weightSum )
+	const typename T::Type& gradientSum, const typename T::Type& hessianSum, double weightSum )
 {
 	// Creating the root and filling in its statistics
 	T totalStatistics( gradientSum, hessianSum, weightSum );
@@ -197,7 +197,7 @@ CPtr<CGradientBoostNodeStatistics<T>> CGradientBoostFullTreeBuilder<T>::initiali
 // Builds one level of the tree
 template<class T>
 bool CGradientBoostFullTreeBuilder<T>::buildTreeLevel( const CGradientBoostFullProblem& problem, int level,
-	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<float>& weights )
+	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights )
 {
 	if( logStream != 0 ) {
 		*logStream << L"\nBuild level " << level << L":\n";
@@ -312,7 +312,7 @@ void CGradientBoostFullTreeBuilder<T>::distributeVectorsByNodes( const CGradient
 // Finds the best split for each node using the features in the specified range
 template<class T>
 void CGradientBoostFullTreeBuilder<T>::findSplits( const CGradientBoostFullProblem& problem,
-	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<float>& weights )
+	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights )
 {
 	NEOML_OMP_NUM_THREADS(params.ThreadCount)
 	{
@@ -336,7 +336,7 @@ void CGradientBoostFullTreeBuilder<T>::findSplits( const CGradientBoostFullProbl
 template<class T>
 void CGradientBoostFullTreeBuilder<T>::findBinarySplits( int threadNumber,
 	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians,
-	const CArray<float>& weights, int feature, const int* ptr, int size )
+	const CArray<double>& weights, int feature, const int* ptr, int size )
 {
 	if( size == 0 ) {
 		// The feature has no values
@@ -378,7 +378,7 @@ void CGradientBoostFullTreeBuilder<T>::findBinarySplits( int threadNumber,
 template<class T>
 void CGradientBoostFullTreeBuilder<T>::findSplits( int threadNumber,
 	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians,
-	const CArray<float>& weights, int feature, const CFloatVectorElement* ptr, int size )
+	const CArray<double>& weights, int feature, const CFloatVectorElement* ptr, int size )
 {
 	if( size == 0 ) {
 		// The feature has no values
@@ -478,16 +478,18 @@ void CGradientBoostFullTreeBuilder<T>::checkSplit( int feature, float firstValue
 	T leftStatistics( statistics.CurLeftStatistics );
 	T rightStatistics( statistics.CurRightStatistics );
 	
-	float criterion = 0;	
+	double criterion;
 	if( !T::CalcCriterion( criterion, leftStatistics, rightStatistics, statistics.TotalStatistics,
 		params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient ) )
 	{
 		return;
 	}
 
-	if( statistics.Criterion < criterion || ( statistics.Criterion == criterion && statistics.FeatureIndex > feature ) ) {
+	if( statistics.Criterion < static_cast<float>( criterion ) 
+		|| ( statistics.Criterion == static_cast<float>( criterion ) && statistics.FeatureIndex > feature ) )
+	{
 		statistics.FeatureIndex = feature;
-		statistics.Criterion = criterion;
+		statistics.Criterion = static_cast<float>( criterion );
 		if( fabs( firstValue - secondValue ) > 1e-10 ) {
 			statistics.Threshold = ( firstValue + secondValue ) / 2;
 		} else {

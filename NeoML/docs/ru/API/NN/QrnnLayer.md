@@ -4,6 +4,7 @@
 
 - [Класс CQrnnLayer](#класс-cqrnnlayer)
     - [Настройки](#настройки)
+        - [Тип пулинга](#тип-пулинга)
         - [Размер скрытого слоя](#размер-скрытого-слоя)
         - [Размер окна](#размер-окна)
         - [Шаг окна](#шаг-окна)
@@ -31,6 +32,24 @@
 Реализация основана на [следующей статье](https://arxiv.org/abs/1611.01576).
 
 ## Настройки
+
+### Тип пулинга
+
+```c++
+// Different poolings used in QRNN
+enum TPoolingType {
+    PT_FPooling, // f-pooling from article, uses 2 gates (Update, Forget)
+    PT_FoPooling, // fo-pooling from article, uses 3 gates (Update, Forget, Output)
+    PT_IfoPooling, // ifo pooling from article, uses 4 gates (Update, Forget, Output, Input)
+
+    PT_Count
+};
+
+void SetPoolingType(TPoolingType newPoolingType);
+```
+
+Установить тип пулинга. Пулингом в QRNN называется рекуррентная часть после свертки "по времени".
+Точные формулы соответствующих пулингов можно посмотреть в [статье](https://arxiv.org/abs/1611.01576).
 
 ### Размер скрытого слоя
 
@@ -94,10 +113,10 @@ enum TRecurrentMode {
     RM_Direct,
     RM_Reverse,
 
-    // Двунаправлаенный режим при котором обе рекурренты используют одну и ту же свертку по времени
+    // Двунаправленный режим, при котором обе рекурренты используют одну и ту же свертку по времени
     RM_BidirectionalConcat, // возвращает объединение результатов прямой и обратной рекуррент
     RM_BidirectionalSum, // возвращает сумму результатов прямой и обратной рекуррент
-    // В случае двунаправленного qrnn где у каждой рекурренты должна быть своя свертка по времени
+    // В случае двунаправленного QRNN, где у каждой рекурренты должна быть своя свертка по времени,
     // нужно создать 2 CQrrnLayer и объединить их результаты при помощи CConcatChannelsLayer или CEltwiseSumLayer
 
     RM_Count
@@ -119,7 +138,7 @@ CPtr<CDnnBlob> GetFilterData() cons;
 Фильтры, содержащие веса сразу для всех гейтов, представляют собой [блоб](DnnBlob.md) размеров:
 
 - `BatchLength` равен `1`;
-- `BatchWidth` равен `3 * GetHiddenSize()`;
+- `BatchWidth` равен `gates * GetHiddenSize()`, где `gates` равен `2` если используется `PT_FPooling`, `3` в случае `PT_FoPooling` и `4` в случае `PT_IfoPooling`;
 - `Height` равен `GetWindowSize()`;
 - `Width` равен `1`;
 - `Depth` равен `1`;
@@ -128,9 +147,10 @@ CPtr<CDnnBlob> GetFilterData() cons;
 Вдоль оси `BatchWidth` матрица содержит веса гейтов в следующем порядке:
 
 ```c++
-G_Update, // update gate (Z из статьи)
-G_Forget, // forget gate (F из статьи)
-G_Output, // output gate (O из статьи)
+G_Update, // update gate (Z in the article)
+G_Forget, // forget gate (F in the article)
+G_Output, // output gate if used (O in the article)
+G_Input, // input gate if used (I in the article)
 ```
 
 ### Свободные члены
@@ -139,7 +159,7 @@ G_Output, // output gate (O из статьи)
 CPtr<CDnnBlob> GetFreeTermData() const
 ```
 
-Свободные члены представляют собой блоб, имеющий суммарный размер, равный `3 * GetHiddenSize()`. Порядок относительно гейтов см. [выше](#фильтры-свертки).
+Свободные члены представляют собой блоб, имеющий суммарный размер, равный `BatchWidth` блоба с фильтрами выше.
 
 ## Входы
 
@@ -162,9 +182,9 @@ CPtr<CDnnBlob> GetFreeTermData() const
 
 ## Выходы
 
-Единственный выход содержит блоб с результатами следующиего размера:
+Единственный выход содержит блоб с результатами следующего размера:
 
-- `BatchLength` вычисляемый относительно размеров входа по следующей формуле `(BatchLength + GetPaddingFront() + GetPaddingBack() - (GetWindowSize() - 1)) / GetStride() + 1)`;
-- `BatchWidth` равный `BatchWidth` у первого входа;
-- `ListSize`, `Height`, `Width` и `Depth` равные `1`;
-- `Channels` равный `2 * GetHiddenSize()` если `GetRecurrentMode()` равен `RM_BidirectionalConcat`. В остальных случаях равен `GetHiddenSize()`.
+- `BatchLength` можно вычислить из размеров входа по следующей формуле `(BatchLength + GetPaddingFront() + GetPaddingBack() - (GetWindowSize() - 1)) / GetStride() + 1)`;
+- `BatchWidth` равен `BatchWidth` у первого входа;
+- `ListSize`, `Height`, `Width` и `Depth` равны `1`;
+- `Channels` равен `2 * GetHiddenSize()`, если `GetRecurrentMode()` установлен в `RM_BidirectionalConcat`. В остальных случаях равен `GetHiddenSize()`.
