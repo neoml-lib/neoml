@@ -41,13 +41,9 @@ public:
 protected:
 	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = NotFound );
 
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
-	// In some versions different operators supported different broadcast types
-	// E.g. 'Add' operators in opset v1 supports onnx-broadcast but 'Sum' operators doesn't support broadcast at all
-	// That's why each derivative should determine by itself which broadcast type is supported
-	virtual CBroadcast GetBroadcast() const = 0;
+	// AddLayers implementation for the given broadcast
+	// The derivatives should call this from their AddLayers
+	void AddLayers( const CBroadcast& broadcast, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
 
 private:
 	// Operation performed by this operator
@@ -66,9 +62,8 @@ public:
 	CEltwiseBinaryOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation ) :
 		CEltwiseOperatorBase( eltwise, opsetVersion, operation, 2 ) {}
 
-protected:
-	// CEltwiseOperatorBase methods
-	CBroadcast GetBroadcast() const override;
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // Add operator
@@ -103,8 +98,8 @@ public:
 	CSumOperator( const onnx::NodeProto& sum, int opsetVersion ) : CEltwiseOperatorBase( sum, opsetVersion, O_Add ) {}
 
 protected:
-	// CEltwiseOperatorBase methods
-	CBroadcast GetBroadcast() const override;
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 } // namespace NeoOnnx

@@ -84,7 +84,8 @@ CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int 
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CEltwiseOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+void CEltwiseOperatorBase::AddLayers( const CBroadcast& broadcast, const CTensorArray& inputs,
+	CDnn& dnn, CTensorArray& outputs ) const
 {
 	// Corner case which doesn't violate Onnx protocol: opeartors with variable input count may have 1 input
 	if( inputs.Size() == 1 && argsNum < 0 ) {
@@ -97,7 +98,7 @@ void CEltwiseOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTe
 	inputs[0]->Shape().CopyTo( outputShape );
 	for( int i = 1; i < inputs.Size(); ++i ) {
 		CTensorShape buff;
-		CheckNeoOnnxSupport( BroadcastTensorShape( outputShape, inputs[i]->Shape(), GetBroadcast(), buff ),
+		CheckNeoOnnxSupport( BroadcastTensorShape( outputShape, inputs[i]->Shape(), broadcast, buff ),
 			"Can't broadcast tensors shape", *this );
 		buff.CopyTo( outputShape );
 	}
@@ -110,7 +111,7 @@ void CEltwiseOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTe
 	}
 	// Broadcast input to the final shape and set proper layout
 	for( int i = 0; i < inputs.Size(); ++i ) {
-		currInputs[i] = BroadcastTensor( *currInputs[i], GetBroadcast(), outputShape );
+		currInputs[i] = BroadcastTensor( *currInputs[i], broadcast, outputShape );
 		currInputs[i] = ConvertTensor( *currInputs[i], currInputs[0]->Layout() );
 	}
 
@@ -189,30 +190,31 @@ CPtr<const CTensorBase> CEltwiseOperatorBase::prepareSecondInput( const CTensorA
 
 // --------------------------------------------------------------------------------------------------------------------
 
-CBroadcast CEltwiseBinaryOperatorBase::GetBroadcast() const
+void CEltwiseBinaryOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CBroadcast broadcast( BT_Numpy, NotFound );
 	if( OpsetVersion < 7 ) {
-		int broadcast = 0;
-		GetAttribute( "broadcast", broadcast );
-		if( broadcast != 0 ) {
-			int axis = NotFound;
-			GetAttribute( "axis", axis );
-			return CBroadcast( BT_Onnx, axis );
+		int broadcastAttr = 0;
+		GetAttribute( "broadcast", broadcastAttr );
+		if( broadcastAttr != 0 ) {
+			broadcast.Type = BT_Onnx;
+			GetAttribute( "axis", broadcast.Axis );
 		} else {
-			return CBroadcast( BT_None );
+			broadcast.Type = BT_None;
 		}
 	}
 
-	return CBroadcast( BT_Numpy );
+	CEltwiseOperatorBase::AddLayers( broadcast, inputs, dnn, outputs );
 }
 
-CBroadcast CSumOperator::GetBroadcast() const
+void CSumOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CBroadcast broadcast( BT_Numpy );
 	if( OpsetVersion < 8 ) {
-		return CBroadcast( BT_None );
+		broadcast.Type = BT_None;
 	}
 
-	return CBroadcast( BT_Numpy );
+	CEltwiseOperatorBase::AddLayers( broadcast, inputs, dnn, outputs );
 }
 
 } // namespace NeoOnnx
