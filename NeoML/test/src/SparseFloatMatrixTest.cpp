@@ -68,6 +68,17 @@ TEST_F( CSparseFloatMatrixTest, AddRow )
 	}
 }
 
+TEST_F( CSparseFloatMatrixTest, AddEmptyRow )
+{
+	CSparseFloatMatrix matrix;
+
+	CSparseFloatVector emptyWithBuffer( 1 );
+	matrix.AddRow( emptyWithBuffer );
+
+	EXPECT_EQ( 1, matrix.GetHeight() );
+	EXPECT_EQ( 0, matrix.GetWidth() );
+}
+
 TEST_F( CSparseFloatMatrixTest, CreationFromEmptyDesc )
 {
 	CSparseFloatMatrix empty( CFloatMatrixDesc::Empty );

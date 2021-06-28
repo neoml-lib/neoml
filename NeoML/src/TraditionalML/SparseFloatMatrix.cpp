@@ -169,7 +169,13 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 	
 	copyOnWriteAndGrow( newHeight, newElementCount );
 	body->Desc.Height = newHeight;
-	body->Desc.Width = max( body->Desc.Width, row.Indexes == nullptr ? row.Size : row.Indexes[row.Size - 1] + 1 );
+	if( row.Indexes != nullptr && row.Size > 0 ) {
+		// Dense vector
+		body->Desc.Width = max( body->Desc.Width, row.Size );
+	} else {
+		// Sparse version
+		body->Desc.Width = max( body->Desc.Width, row.Size == 0 ? 0 : row.Indexes[row.Size - 1] + 1 );		
+	}
 
 	body->BeginPointersBuf.Add( body->ValuesBuf.Size() );
 	if( row.Indexes == nullptr ) {
