@@ -27,7 +27,6 @@ public:
 protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
 	// In onnx Gemm is implemented like

@@ -47,7 +47,6 @@ protected:
 
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const final;
-	void UserInputMask( CUserInputMask& mask ) const final { mask |= 0; }
 
 private:
 	// Pool type

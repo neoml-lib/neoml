@@ -27,7 +27,6 @@ public:
 protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
 	void getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;

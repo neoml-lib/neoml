@@ -25,9 +25,13 @@ public:
 	CLrnOperator( const onnx::NodeProto& lrn, int opsetVersion );
 
 protected:
+	// COperator methods
+	// This layer requires every input to be provided as a user input
+	// That's why we need to override user input mask calculation
+	void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-	void UserInputMask( CUserInputMask& mask ) const override { for( int i = 0; i < InputCount(); ++i ) mask |= i; }
 };
 
 } // namespace NeoOnnx

@@ -28,20 +28,23 @@ class CLayerOperator : public COperator {
 public:
 	// COperator's interface
 
-	// Default implementation which works in the next way:
-	// If output tensors' data can't be calculated it just adds corresponding layers to the dnn
-	// Otherwise it creates another CDnn, adds layers to the new CDnn
-	// and uses this internal network to calculate output tensors' data
-	void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const final;
+	// Default implementation which calls protected GetOutputTensors with default input mask (only first input)
+	// See comment to the protected version for more details
+	void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 protected:
 	CLayerOperator( const onnx::NodeProto& node, int opsetVersion ) : COperator( node, opsetVersion ) {}
 
-	// Virtual methods
+	// Default implementation which works in the next way:
+	// If output tensors' data can't be calculated it just adds corresponding layers to the dnn
+	// Otherwise it creates another CDnn, adds layers to the new CDnn
+	// and uses this internal network to calculate output tensors' data
+	// inputMask indicates whether i'th input should be a CUserInput of internalDnn (instead of CDataTensor)
+	// e.g. for CConvOperator only first input must be a CUserTensor (filters and free terms should remain as CDataTensor)
+	// on the other hand for CConcatOperator each one of the inputs must be a CUserTensor
+	void GetOutputTensors( const CUserInputMask& inputMask, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
 
-	// Fills the mask with bools where true means that index'th input
-	// is expected to be provided by user for the correct work of CLayerOperator::AddLayers
-	virtual void UserInputMask( CUserInputMask& mask ) const = 0;
+	// Virtual methods
 
 	// Adds layers required which are imitating this operator to the dnn
 	// and puts corresponding CUserTensor's to the outputs
@@ -49,7 +52,8 @@ protected:
 
 private:
 	bool canCalculateOutput( const CTensorArray& inputs ) const;
-	void addInternalDnnSources( const CTensorArray& inputs, CTensorArray& internalInputs, CDnn& internalDnn ) const;
+	void addInternalDnnSources( const CUserInputMask& inputMask, const CTensorArray& inputs,
+		CTensorArray& internalInputs, CDnn& internalDnn ) const;
 	void addInternalDnnSinks( const CTensorArray& internalOutputs, CArray<CSinkLayer*>& sinks, CDnn& internalDnn ) const;
 	void extractOutputs( const CTensorArray& internalOutputs, const CArray<CSinkLayer*>& sinks, CTensorArray& outputs ) const;
 };
