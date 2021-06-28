@@ -116,11 +116,15 @@ private:
 		__m256& r00, __m256& r01, __m256& r02,
 		__m256& r10, __m256& r11, __m256& r12,
 		__m256& r20, __m256& r21, __m256& r22 );
+	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
+		__m256& r00, __m256& r01, __m256& r02, __m256& r03,
+		__m256& r10, __m256& r11, __m256& r12, __m256& r13 );
 	void batchProcessChannels( const float* srcPtr, const float* fltPtr, int srcNarrowStep,
 		__m256& r00, __m256& r01, __m256& r02,
 		__m256& r10, __m256& r11, __m256& r12,
 		__m256& r20, __m256& r21, __m256& r22 );
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
+	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2, __m256& r3 );
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0 );
 	void singleProcessChannelsNarrow( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
 
@@ -165,7 +169,9 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, i
 	if( FltH % 2 == 0 || FltW % 2 == 0 ) {
 		return false;
 	}
-	if( FltCnt == 24 ||
+	if( 
+		FltCnt == 32 ||
+		FltCnt == 24 ||
 		FltCnt == 18 ||
 		FltCnt == 6 ) {
 		return true;
@@ -179,6 +185,11 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt )
 {
 	switch( filterCount ) {
+	case 32:
+		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<32>( mathEngine,
+			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+			paddingHeight, paddingWidth, strideHeight, strideWidth,
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
 	case 24:
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24>( mathEngine,
 			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
