@@ -22,6 +22,12 @@ namespace NeoOnnx {
 
 void CLayerOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	GetOutputTensors( CUserInputMask( { 0 } ), inputs, dnn, outputs );
+}
+
+void CLayerOperator::GetOutputTensors( const CUserInputMask& inputMask, const CTensorArray& inputs,
+	CDnn& dnn, CTensorArray& outputs ) const
+{
 	if( !canCalculateOutput( inputs ) ) {
 		AddLayers( inputs, dnn, outputs );
 		return;
@@ -32,7 +38,7 @@ void CLayerOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CT
 
 	// Add source layers for the operator
 	CTensorArray internalInputs;
-	addInternalDnnSources( inputs, internalInputs, internalDnn );
+	addInternalDnnSources( inputMask, inputs, internalInputs, internalDnn );
 
 	// Add operator layers
 	CTensorArray internalOutputs;
@@ -64,18 +70,15 @@ bool CLayerOperator::canCalculateOutput( const CTensorArray& inputs ) const
 
 // Builds array of tensors related to the internal dnn
 // Also adds required source layers to the internal dnn (with corresponding blobs)
-void CLayerOperator::addInternalDnnSources( const CTensorArray& inputs,
+void CLayerOperator::addInternalDnnSources( const CUserInputMask& inputMask, const CTensorArray& inputs,
 	CTensorArray& internalInputs, CDnn& internalDnn ) const
 {
 	IMathEngine& mathEngine = internalDnn.GetMathEngine();
 
-	CUserInputMask isUserInput;
-	UserInputMask( isUserInput );
-
 	for( int inputIndex = 0; inputIndex < InputCount(); ++inputIndex ) {
 		if( inputs[inputIndex] == nullptr || !inputs[inputIndex]->IsCalculated() ) {
 			internalInputs.Add( nullptr );
-		} else if( isUserInput[inputIndex] ) {
+		} else if( inputMask[inputIndex] ) {
 			NeoAssert( inputs[inputIndex]->IsCalculated() );
 			CPtr<CSourceLayer> source = new CSourceLayer( mathEngine );
 			source->SetName( InputName( inputIndex ) );

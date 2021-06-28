@@ -37,7 +37,6 @@ public:
 protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const final;
-	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 private:
 	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;

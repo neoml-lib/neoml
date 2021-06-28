@@ -28,7 +28,6 @@ public:
 protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-	void UserInputMask( CUserInputMask& mask ) const override { mask |= 0; }
 
 	// Sets additional params for activation layer (e.g. negative slope coeff for CLeakyReLULayer)
 	virtual void SetLayerParams( const CTensorArray& /* inputs */, CBaseLayer* /* layer */ ) const {}
