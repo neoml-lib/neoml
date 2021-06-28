@@ -29,9 +29,6 @@ protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
-	// Sets additional params for activation layer (e.g. negative slope coeff for CLeakyReLULayer)
-	virtual void SetLayerParams( const CTensorArray& /* inputs */, CBaseLayer* /* layer */ ) const {}
-
 private:
 	// Activation function which is applied to the input by this operator
 	TActivationFunction activation;
@@ -52,8 +49,8 @@ public:
 	CClipOperator( const onnx::NodeProto& clip, int opsetVersion );
 
 protected:
-	// CActivationOperatorBase methods
-	void SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const override;
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // Elu operator
@@ -68,8 +65,8 @@ public:
 	CHardSigmoidOperator( const onnx::NodeProto& hardSigmoid, int opsetVersion );
 
 protected:
-	// CActivationOperatorBase methods
-	void SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const override;
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // LeakyRelu operator
@@ -78,8 +75,8 @@ public:
 	CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int opsetVersion );
 
 protected:
-	// CActivationOperatorBase methods
-	void SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const override;
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // Relu operator

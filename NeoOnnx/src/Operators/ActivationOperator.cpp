@@ -30,14 +30,12 @@ CActivationOperatorBase::CActivationOperatorBase( const onnx::NodeProto& onnxNod
 {
 }
 
-void CActivationOperatorBase::AddLayers( const CTensorArray& inputs,
-	CDnn& dnn, CTensorArray& outputs ) const
+void CActivationOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
 	NeoAssert( userInput != nullptr );
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
 	activationLayer->SetName( Name() );
-	SetLayerParams( inputs, activationLayer );
 	activationLayer->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *activationLayer );
 	outputs[0] = new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( activationLayer, 0 ) );
@@ -76,9 +74,10 @@ CClipOperator::CClipOperator( const onnx::NodeProto& clip, int opsetVersion ) :
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CClipOperator::SetLayerParams( const CTensorArray& inputs, CBaseLayer* layer ) const
+void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CReLULayer* relu = dynamic_cast<CReLULayer*>( layer );
+	CActivationOperatorBase::AddLayers( inputs, dnn, outputs );
+	CReLULayer* relu = dynamic_cast<CReLULayer*>( dnn.GetLayer( Name() ).Ptr() );
 	NeoAssert( relu != nullptr );
 
 	float minValue = -FLT_MAX;
@@ -140,10 +139,12 @@ CLeakyReluOperator::CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int op
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CLeakyReluOperator::SetLayerParams( const CTensorArray& /* inputs */, CBaseLayer* layer ) const
+void CLeakyReluOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( layer );
+	CActivationOperatorBase::AddLayers( inputs, dnn, outputs );
+	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( dnn.GetLayer( Name() ).Ptr() );
 	NeoAssert( leakyReLU != nullptr );
+
 	float alpha = 0;
 	GetAttribute( "alpha", alpha );
 	leakyReLU->SetAlpha( alpha );
@@ -162,9 +163,10 @@ CHardSigmoidOperator::CHardSigmoidOperator( const onnx::NodeProto& hardSigmoid, 
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CHardSigmoidOperator::SetLayerParams( const CTensorArray& /* inputs */, CBaseLayer* layer ) const
+void CHardSigmoidOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CHardSigmoidLayer* hardSigmoid = dynamic_cast<CHardSigmoidLayer*>( layer );
+	CActivationOperatorBase::AddLayers( inputs, dnn, outputs );
+	CHardSigmoidLayer* hardSigmoid = dynamic_cast<CHardSigmoidLayer*>( dnn.GetLayer( Name() ).Ptr() );
 	NeoAssert( hardSigmoid != nullptr );
 
 	float alpha = 0.2f;
