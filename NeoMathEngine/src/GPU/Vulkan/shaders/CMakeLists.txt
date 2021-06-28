@@ -165,7 +165,7 @@ set(IB_SHADER_SOURCES
 
 # Directories for common files and result files
 set(COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/common")
-set(RESULTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/generated")
+set(RESULTS_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 file(MAKE_DIRECTORY ${RESULTS_DIR})
 
@@ -199,11 +199,11 @@ macro(register_shader SHADER IS_IB)
         set(GLSL_DEFINES ${GLSL_DEFINES})
         set(RESULT_FILE ${RESULTS_DIR}/${COMPILED_SHADER})
         set(VAR_NAME "Shader_${SHADER_NAME}")
-        set(FULL_SOURCE_FILE "${SHADER_NAME}_source.tmp")
+        set(FULL_SOURCE_FILE "${RESULTS_DIR}/${SHADER_NAME}_source.tmp")
     else()
         set(RESULT_FILE ${RESULTS_DIR}/${COMPILED_SHADER})
         set(VAR_NAME "Shader_${SHADER_NAME}")
-        set(FULL_SOURCE_FILE "${SHADER_NAME}_source.tmp")
+        set(FULL_SOURCE_FILE "${RESULTS_DIR}/${SHADER_NAME}_source.tmp")
     endif()
 
     if(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows")

@@ -185,7 +185,9 @@ CString GetLayerClass( const CBaseLayer& layer )
 void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer )
 {
 	if( archive.IsStoring() ) {
-		archive << getLayerClass( layer );
+		CString name = getLayerClass( layer );
+		NeoAssert( layer == nullptr || name != ""  ); // assertion on storing not registered layer
+		archive << name;
 		if( layer != 0 ) {
 			layer->Serialize( archive );
 		}
@@ -193,6 +195,7 @@ void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer
 		CString name;
 		archive >> name;
 		layer = createLayer( mathEngine, name );
+		CheckArchitecture( name == "" || layer != nullptr, name, "restoring unknown layer from archive" );
 		if( layer != 0 ) {
 			layer->Serialize( archive );
 		}

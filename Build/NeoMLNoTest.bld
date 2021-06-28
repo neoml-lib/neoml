@@ -2,37 +2,35 @@
 
 set;NeoML_BUILD_DIR;%ROOT%\_cmake_working_dir\NeoML
 
-configuration;x86
-	cmd;generate_sln.cmd;Win32 -notest
-end_configuration
-
-configuration;x64
-	cmd;generate_sln.cmd;x64 -notest
-end_configuration
-
-group;para;Debug
+group;para
 	configuration;x86
-		runx;cmake;--build %NeoML_BUILD_DIR%\Win32 --config Debug --target install
+		group;seq
+			cmd;generate_sln.cmd;Win32 -notest -dir "%NeoML_BUILD_DIR%\Win32\Debug"
+			runx;cmake;--build "%NeoML_BUILD_DIR%\Win32\Debug" --config Debug --target install
+		end_group
+		group;seq
+			cmd;generate_sln.cmd;Win32 -notest -dir "%NeoML_BUILD_DIR%\Win32\RelWithDebInfo"
+			runx;cmake;--build "%NeoML_BUILD_DIR%\Win32\RelWithDebInfo" --config RelWithDebInfo --target install
+		end_group
+		group;seq
+			cmd;generate_sln.cmd;Win32 -notest -dir "%NeoML_BUILD_DIR%\Win32\Release"
+			runx;cmake;--build "%NeoML_BUILD_DIR%\Win32\Release" --config Release --target install
+		end_group
 	end_configuration
+
 	configuration;x64
-		runx;cmake;--build %NeoML_BUILD_DIR%\x64 --config Debug --target install
+		group;seq
+			cmd;generate_sln.cmd;x64 -notest -dir "%NeoML_BUILD_DIR%\x64\Debug"
+			runx;cmake;--build "%NeoML_BUILD_DIR%\x64\Debug" --config Debug --target install
+		end_group
+		group;seq
+			cmd;generate_sln.cmd;x64 -notest -dir "%NeoML_BUILD_DIR%\x64\RelWithDebInfo"
+			runx;cmake;--build "%NeoML_BUILD_DIR%\x64\RelWithDebInfo" --config RelWithDebInfo --target install
+		end_group
+		group;seq
+			cmd;generate_sln.cmd;x64 -notest -dir "%NeoML_BUILD_DIR%\x64\Release"
+			runx;cmake;--build "%NeoML_BUILD_DIR%\x64\Release" --config Release --target install
+		end_group
 	end_configuration
 end_group
 
-group;para;RelWithDebInfo
-	configuration;x86
-		runx;cmake;--build %NeoML_BUILD_DIR%\Win32 --config RelWithDebInfo --target install
-	end_configuration
-	configuration;x64
-		runx;cmake;--build %NeoML_BUILD_DIR%\x64 --config RelWithDebInfo --target install
-	end_configuration
-end_group
-
-group;para;Release
-	configuration;x86
-		runx;cmake;--build %NeoML_BUILD_DIR%\Win32 --config Release --target install
-	end_configuration
-	configuration;x64
-		runx;cmake;--build %NeoML_BUILD_DIR%\x64 --config Release --target install
-	end_configuration
-end_group
