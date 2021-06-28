@@ -28,6 +28,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiGpuMultiThreadTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMaxValueInColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMaxValueInRowsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnInferenceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LookupAndSumTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LrnTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixSpreadRowsTest.cpp
@@ -35,9 +36,11 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyDiagMatrixByMatrixAndAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyDiagMatrixByMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyMatrixByTransposedMatrixTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/QrnnInferenceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ReorgTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixElementsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixRowsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/SpaceToDepthTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Upsampling2DForwardTest.cpp
@@ -46,6 +49,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorAddValueTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorBernulliKLDerivativeTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorConvertTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorDotProductTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseDivideTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseLogSumExpTest.cpp

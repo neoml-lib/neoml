@@ -894,7 +894,7 @@ void CDnnLambGradientSolver::getWeightDecayIndices( const CBaseLayer& layer, int
 {
 	CHashTable<int> excludedIndexes;
 	const CString layerName = layer.GetName();
-	const CString layerClassName = GetLayerName( layer );
+	const CString layerClassName = GetLayerClass( layer );
 	for( int i = 0; i < excludedLayers.Size(); i++ ) {
 		const CExcludedLayer& excludedLayer = excludedLayers[i];
 		switch( excludedLayer.MatchType ) {

@@ -49,10 +49,10 @@ void CGatherOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, C
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), CT_Int, indicesBlob->GetDesc() );
 	
 	// const_cast in order to avoid copying (becasuse we won't change dataBlob or indicesBlob contents anyway)
-	int* data = const_cast<CDnnBlob*>( dataBlob )->GetBuffer<int>( 0, dataBlob->GetDataSize() );
-	int* indices = const_cast<CDnnBlob*>( indicesBlob )->GetBuffer<int>( 0, indicesBlob->GetDataSize() );
+	int* data = const_cast<CDnnBlob*>( dataBlob )->GetBuffer<int>( 0, dataBlob->GetDataSize(), true );
+	int* indices = const_cast<CDnnBlob*>( indicesBlob )->GetBuffer<int>( 0, indicesBlob->GetDataSize(), true );
 
-	int* result = resultBlob->GetBuffer<int>( 0, resultBlob->GetDataSize() );
+	int* result = resultBlob->GetBuffer<int>( 0, resultBlob->GetDataSize(), false );
 
 	for( int i = 0; i < indicesBlob->GetDataSize(); ++i ) {
 		result[i] = data[indices[i]];

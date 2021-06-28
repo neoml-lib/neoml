@@ -25,7 +25,7 @@ limitations under the License.
 namespace NeoML {
 
 // Macros for function loading
-#define LOAD_FUNC(Type, Var, NameStr) if((Var = (Type)(void*)CDll::GetProcAddress(NameStr)) == 0) return false
+#define LOAD_FUNC(Type, Var, NameStr) if((Var = CDll::GetProcAddress<Type>(NameStr)) == 0) return false
 #define LOAD_CUBLAS_FUNC(Name) LOAD_FUNC(CCublas::TCublas##Name, functions.Name, "cublas" #Name)
 // For the functions with _v2 suffix, define a separate macro
 #define LOAD_CUBLAS_FUNCV2(Name) LOAD_FUNC(CCublas::TCublas##Name, functions.Name, "cublas" #Name "_v2")

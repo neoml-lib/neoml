@@ -245,17 +245,23 @@ inline void ProcessKernel(const float* aPtr, const float* bPtr, float* cPtr, siz
 template<class Kernel>
 struct TailProcessorRight<Kernel, typename SFINAEFilter<typename Kernel::TailKernelRight>::type> {
 	static void Calculate(const float* aPtr, const float* bPtr, float* cPtr,
-		size_t cRowSize, size_t k, float* cTmp, size_t /*height*/, size_t width)
+		size_t cRowSize, size_t k, float* cTmp, size_t height, size_t width)
 	{
 		using CKernel = typename Kernel::TailKernelRight;
 		const size_t bStep = CKernel::width * k;
 		for( ; width >= CKernel::width; width -= CKernel::width ) {
+			if( height >= CKernel::height ) {
 			CKernel::Calculate(aPtr, bPtr, cPtr, cRowSize, k);
+			} else {
+				LoadCPart<CKernel>(cTmp, cPtr, cRowSize, height, CKernel::width);
+				CKernel::Calculate(aPtr, bPtr, cTmp, CKernel::width, k);
+				StoreCPart<CKernel>(cTmp, cPtr, cRowSize, height, CKernel::width);
+			}
 			cPtr += CKernel::width;
 			bPtr += bStep;
 		}
 		if( width > 0 ) {
-			TailProcessorRight<CKernel>::Calculate(aPtr, bPtr, cPtr, cRowSize, k, cTmp, CKernel::height, width);
+			TailProcessorRight<CKernel>::Calculate(aPtr, bPtr, cPtr, cRowSize, k, cTmp, height, width);
 		}
 	}
 };

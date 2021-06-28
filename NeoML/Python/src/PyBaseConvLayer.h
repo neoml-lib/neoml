@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include "PyLayer.h"
+#include "PyDnnBlob.h"
 
 class CPyBaseConvLayer : public CPyLayer {
 public:
@@ -44,8 +45,11 @@ public:
 	int GetFilterCount() const { return Layer<CBaseConvLayer>()->GetFilterCount(); }
 	void SetFilterCount( int value ) { Layer<CBaseConvLayer>()->SetFilterCount( value ); }
 
-	py::object GetFilter() const;
-	py::object GetFreeTerm() const;
+	void SetFilter( const CPyBlob& blob ) { Layer<CBaseConvLayer>()->SetFilterData( blob.Blob() ); }
+	CPyBlob GetFilter() const { return CPyBlob( MathEngineOwner(), Layer<CBaseConvLayer>()->GetFilterData() ); }
+
+	void SetFreeTerm( const CPyBlob& blob ) { Layer<CBaseConvLayer>()->SetFreeTermData( blob.Blob() ); }
+	CPyBlob GetFreeTerm() const { return CPyBlob( MathEngineOwner(), Layer<CBaseConvLayer>()->GetFreeTermData() ); }
 
 	void ApplyBatchNormalization(const CPyLayer& layer);
 };

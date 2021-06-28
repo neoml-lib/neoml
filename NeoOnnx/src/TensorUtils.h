@@ -53,7 +53,7 @@ template<class T>
 inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 {
 	dest.Clear();
-	T* buffer = dest.GetBuffer<T>( 0, dest.GetDataSize() );
+	T* buffer = dest.GetBuffer<T>( 0, dest.GetDataSize(), false );
 	const bool isRaw = src.has_raw_data();
 	switch( src.data_type() ) {
 		case onnx::TensorProto::FLOAT:

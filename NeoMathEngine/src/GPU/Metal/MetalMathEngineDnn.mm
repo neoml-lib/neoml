@@ -290,6 +290,102 @@ void CMetalMathEngine::Reorg( const CBlobDesc& source, const CIntHandle& sourceD
 	ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CFloatHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() == result.Height() * blockSize );
+	ASSERT_EXPR( source.Width() == result.Width() * blockSize );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() * blockSize * blockSize == result.Channels() );
+
+    C2DKernel kernel( *queue, "spaceToDepthFloat", 1, 1, source.ObjectCount() * result.Height(),
+        blockSize * source.Width() * source.Channels() );
+    kernel.SetParam( sourceData, 0 );
+    kernel.SetParam( source.ObjectCount() * result.Height(), 1 );
+    kernel.SetParam( result.Width(), 2 );
+    kernel.SetParam( source.Channels(), 3 );
+    kernel.SetParam( blockSize, 4 );
+    kernel.SetParam( true, 5 );
+    kernel.SetParam( resultData, 6 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() == result.Height() * blockSize );
+	ASSERT_EXPR( source.Width() == result.Width() * blockSize );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() * blockSize * blockSize == result.Channels() );
+
+    C2DKernel kernel( *queue, "spaceToDepthInt", 1, 1, source.ObjectCount() * result.Height(),
+        blockSize * source.Width() * source.Channels() );
+    kernel.SetParam( sourceData, 0 );
+    kernel.SetParam( source.ObjectCount() * result.Height(), 1 );
+    kernel.SetParam( result.Width(), 2 );
+    kernel.SetParam( source.Channels(), 3 );
+    kernel.SetParam( blockSize, 4 );
+    kernel.SetParam( true, 5 );
+    kernel.SetParam( resultData, 6 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CFloatHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() * blockSize == result.Height() );
+	ASSERT_EXPR( source.Width() * blockSize == result.Width() );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() == result.Channels() * blockSize * blockSize );
+
+    C2DKernel kernel( *queue, "spaceToDepthFloat", 1, 1, source.ObjectCount() * result.Height(),
+        blockSize * result.Width() * result.Channels() );
+    kernel.SetParam( sourceData, 0 );
+    kernel.SetParam( source.ObjectCount() * source.Height(), 1 );
+    kernel.SetParam( source.Width(), 2 );
+    kernel.SetParam( result.Channels(), 3 );
+    kernel.SetParam( blockSize, 4 );
+    kernel.SetParam( false, 5 );
+    kernel.SetParam( resultData, 6 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() * blockSize == result.Height() );
+	ASSERT_EXPR( source.Width() * blockSize == result.Width() );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() == result.Channels() * blockSize * blockSize );
+
+    C2DKernel kernel( *queue, "spaceToDepthInt", 1, 1, source.ObjectCount() * result.Height(),
+        blockSize * result.Width() * result.Channels() );
+    kernel.SetParam( sourceData, 0 );
+    kernel.SetParam( source.ObjectCount() * source.Height(), 1 );
+    kernel.SetParam( source.Width(), 2 );
+    kernel.SetParam( result.Channels(), 3 );
+    kernel.SetParam( blockSize, 4 );
+    kernel.SetParam( false, 5 );
+    kernel.SetParam( resultData, 6 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
 void CMetalMathEngine::AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward,
 	const CFloatHandle& resultData )
 {
@@ -375,6 +471,122 @@ void CMetalMathEngine::MatrixRowsToVectorSquaredL2Distance( const CConstFloatHan
     kernel.SetParam( resultHandle, 4 );
     kernel.SetSharedParam( kernel.GetThreadCount() * sizeof(float), 5 );
     ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objectSize,
+    const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& initialState,
+    const CFloatHandle& result )
+{
+    ASSERT_EXPR( sequenceLength >= 1 );
+    ASSERT_EXPR( objectSize >= 1 );
+    ASSERT_EXPR( update.GetMathEngine() == this );
+    ASSERT_EXPR( forget.GetMathEngine() == this );
+    ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+    ASSERT_EXPR( result.GetMathEngine() == this );
+
+    C1DKernel kernel( *queue, "vectorQrnnFPooling", 1, objectSize );
+    kernel.SetParam( reverse, 0 );
+    kernel.SetParam( sequenceLength, 1 );
+    kernel.SetParam( objectSize, 2 );
+    kernel.SetParam( update, 3 );
+    kernel.SetParam( forget, 4 );
+    kernel.SetParam( result, 6 );
+
+    if( initialState.IsNull() ) {
+        CFloatHandleStackVar zeros( *this, objectSize );
+        VectorFill( zeros, 0.f, objectSize );
+        kernel.SetParam( zeros, 5 );
+        ASSERT_EXPR( kernel.Run() ); 
+    } else {
+        kernel.SetParam( initialState, 5 );
+        ASSERT_EXPR( kernel.Run() ); 
+    }
+}
+
+void CMetalMathEngine::QrnnFPoolingBackward( bool /*reverse*/, int /*sequenceLength*/, int /*objectSize*/,
+    const CConstFloatHandle& /*update*/, const CConstFloatHandle& /*forget*/,
+    const CConstFloatHandle& /*initialState*/, const CConstFloatHandle& /*result*/, const CFloatHandle& /*resultDiff*/,
+    const CFloatHandle& /*updateDiff*/, const CFloatHandle& /*forgetDiff*/ )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int objectSize,
+    const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+    const CConstFloatHandle& initialState, const CFloatHandle& result )
+{
+    ASSERT_EXPR( sequenceLength >= 1 );
+    ASSERT_EXPR( objectSize >= 1 );
+    ASSERT_EXPR( update.GetMathEngine() == this );
+    ASSERT_EXPR( forget.GetMathEngine() == this );
+    ASSERT_EXPR( input.GetMathEngine() == this );
+    ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+    ASSERT_EXPR( result.GetMathEngine() == this );
+
+    C1DKernel kernel( *queue, "vectorQrnnIfPooling", 1, objectSize );
+    kernel.SetParam( reverse, 0 );
+    kernel.SetParam( sequenceLength, 1 );
+    kernel.SetParam( objectSize, 2 );
+    kernel.SetParam( update, 3 );
+    kernel.SetParam( forget, 4 );
+    kernel.SetParam( input, 5 );
+    kernel.SetParam( result, 7 );
+
+    if( initialState.IsNull() ) {
+        CFloatHandleStackVar zeros( *this, objectSize );
+        VectorFill( zeros, 0.f, objectSize );
+        kernel.SetParam( zeros, 6 );
+        ASSERT_EXPR( kernel.Run() ); 
+    } else {
+        kernel.SetParam( initialState, 6 );
+        ASSERT_EXPR( kernel.Run() ); 
+    }
+}
+
+void CMetalMathEngine::QrnnIfPoolingBackward( bool /*reverse*/, int /*sequenceLength*/, int /*objectSize*/,
+    const CConstFloatHandle& /*update*/, const CConstFloatHandle& /*forget*/, const CConstFloatHandle& /*input*/,
+    const CConstFloatHandle& /*initialState*/, const CConstFloatHandle& /*result*/, const CFloatHandle& /*resultDiff*/,
+    const CFloatHandle& /*updateDiff*/, const CFloatHandle& /*forgetDiff*/, const CFloatHandle& /*inputDiff*/ )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+    const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+    const CFloatHandle& h )
+{
+    ASSERT_EXPR( sequenceLength >= 1 );
+    ASSERT_EXPR( batchSize >= 1 );
+    ASSERT_EXPR( objectSize >= 1 );
+    ASSERT_EXPR( wx.GetMathEngine() == this );
+    ASSERT_EXPR( mask.IsNull() ); // Inference-only kernel, that's why dropout can't be applied
+    ASSERT_EXPR( u.GetMathEngine() == this );
+    ASSERT_EXPR( h.GetMathEngine() == this );
+
+    C2DKernel kernel( *queue, "matrixIndRnnRecurrent", 1, 1, batchSize, objectSize );
+    kernel.SetParam( reverse, 0 );
+    kernel.SetParam( sequenceLength, 1 );
+    kernel.SetParam( batchSize, 2 );
+    kernel.SetParam( objectSize, 3 );
+    kernel.SetParam( wx, 4 );
+    kernel.SetParam( u, 5 );
+    kernel.SetParam( h, 6 );
+
+    ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::IndRnnRecurrentBackward( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
+    const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
+    const CFloatHandle& /*wxDiff*/ )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::IndRnnRecurrentLearn( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
+    const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
+    const CFloatHandle& /*uDiff*/ )
+{
+    ASSERT_EXPR( false );
 }
 
 } // namespace NeoML
