@@ -108,7 +108,9 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CConcatDepthLayer>( "FmlCnnConcatDepthLayer" );
 	serializeToFile<CConcatHeightLayer>( "FmlCnnConcatHeightLayer" );
 	serializeToFile<CConcatWidthLayer>( "FmlCnnConcatWidthLayer" );
+	serializeToFile<CConcatBatchLengthLayer>( "FmlCnnConcatBatchLengthLayer" );
 	serializeToFile<CConcatBatchWidthLayer>( "FmlCnnConcatBatchWidthLayer" );
+	serializeToFile<CConcatBatchWidthLayer>( "FmlCnnConcatListSizeLayer" );
 	serializeToFile<CConcatObjectLayer>( "FmlCnnConcatObjectLayer" );
 	serializeToFile<CEltwiseSumLayer>( "FmlCnnEltwiseSumLayer" );
 	serializeToFile<CEltwiseMulLayer>( "FmlCnnEltwiseMulLayer" );
@@ -202,7 +204,9 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatDepthLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatHeightLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatWidthLayer" );
+	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatBatchLengthLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatBatchWidthLayer" );
+	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatListSizeLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatObjectLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseSumLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseMulLayer" );
