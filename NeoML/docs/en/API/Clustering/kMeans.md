@@ -20,9 +20,15 @@ In **NeoML** the algorithm is implemented by the `CKMeansClustering` class that 
 
 The clustering parameters are described by the `CKMeansClustering::CParam` structure.
 
+- *Algo* - algorithm used during clusterization
 - *DistanceFunc* — the distance function
 - *InitialClustersCount* — the initial cluster count: when creating the object, you may pass the array (*InitialClustersCount* long) with the centers of the initial clusters to the constructor; otherwise, the random selection of input data will be taken as cluster centers on the first step
+- *Initialization* - the initialization algorithm
 - *MaxIterations* — the maximum number of algorithm iterations
+- *Tolerance* - tolerance for stop criteria of Elkan algorithm
+- *ThreadCount* - number of threads used during calculations
+- *RunCount* - number of runs of the alogrithm (the result with least inertia will be returned)
+- *Seed* - the initial seed for random
 
 ## Sample
 
@@ -32,9 +38,12 @@ This sample shows how to use the k-means algorithm to clusterize the [Iris Data 
 void Clusterize( IClusteringData& irisDataSet, CClusteringResult& result )
 {
 	CKMeansClustering::CParam params;
+	params.Algorithm = CKMeansClustering::KMA_Lloyd;
 	params.DistanceFunc = DF_Euclid;
 	params.InitialClustersCount = 3;
+	params.Initialization = CKMeansClustering::KMI_Default;
 	params.MaxIterations = 50;
+	// params.Tolerance is omitted because it isn't used by Lloyd algo
 
 	CKMeansClustering kMeans( params );
 	kMeans.Clusterize( irisDataSet, result );

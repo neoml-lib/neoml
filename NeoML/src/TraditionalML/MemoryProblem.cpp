@@ -60,7 +60,7 @@ CMemoryProblem::CMemoryProblem() :
 {
 }
 
-void CMemoryProblem::Add( const CSparseFloatVectorDesc& vector, double weight, int classNumber )
+void CMemoryProblem::Add( const CFloatVectorDesc& vector, double weight, int classNumber )
 {
 	NeoAssert( featureCount > 0 );
 	NeoAssert( classCount > classNumber );

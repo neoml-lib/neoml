@@ -38,6 +38,11 @@ namespace NeoML {
 #include <shaders/generated/BlobMergeByDim.h>
 #include <shaders/generated/BlobReorgFloat.h>
 #include <shaders/generated/BlobReorgInt.h>
+#include <shaders/generated/QrnnFPooling.h>
+#include <shaders/generated/QrnnIfPooling.h>
+#include <shaders/generated/IndRnnRecurrent.h>
+#include <shaders/generated/SpaceToDepthFloat.h>
+#include <shaders/generated/SpaceToDepthInt.h>
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -294,6 +299,98 @@ void CVulkanMathEngine::Reorg( const CBlobDesc& source, const CIntHandle& source
 		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2, input.BatchWidth() * input.Height(), input.Channels() * input.Width(), 1 );
 }
 
+void CVulkanMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CFloatHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() == result.Height() * blockSize );
+	ASSERT_EXPR( source.Width() == result.Width() * blockSize );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() * blockSize * blockSize == result.Channels() );
+
+	CMemoryHandle bufs[2] = { sourceData, resultData };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), result.BlobSize() * sizeof( float ) };
+
+	PARAM_STRUCT( SpaceToDepthFloat ) param = { source.ObjectCount() * result.Height(), result.Width(),
+		source.Channels(), blockSize, true };
+
+	runShader( shaderLoader->GET_SHADER_DATA( SpaceToDepthFloat, true, 0, 0, 2 ), 
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
+		blockSize * ( result.Width() * blockSize ) * source.Channels(), source.ObjectCount() * result.Height(), 1 );
+}
+
+void CVulkanMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() == result.Height() * blockSize );
+	ASSERT_EXPR( source.Width() == result.Width() * blockSize );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() * blockSize * blockSize == result.Channels() );
+
+	CMemoryHandle bufs[2] = { sourceData, resultData };
+	size_t sizes[2] = { source.BlobSize() * sizeof( int ), result.BlobSize() * sizeof( int ) };
+
+	PARAM_STRUCT( SpaceToDepthInt ) param = { source.ObjectCount() * result.Height(), result.Width(),
+		source.Channels(), blockSize, true };
+
+	runShader( shaderLoader->GET_SHADER_DATA( SpaceToDepthInt, true, 0, 0, 2 ), 
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
+		blockSize * ( result.Width() * blockSize ) * source.Channels(), source.ObjectCount() * result.Height(), 1 );
+}
+
+void CVulkanMathEngine::DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CFloatHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() * blockSize == result.Height() );
+	ASSERT_EXPR( source.Width() * blockSize == result.Width() );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() == result.Channels() * blockSize * blockSize );
+
+	CMemoryHandle bufs[2] = { sourceData, resultData };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), result.BlobSize() * sizeof( float ) };
+
+	PARAM_STRUCT( SpaceToDepthInt ) param = { source.ObjectCount() * source.Height(), source.Width(),
+		result.Channels(), blockSize, false };
+
+	runShader( shaderLoader->GET_SHADER_DATA( SpaceToDepthInt, true, 0, 0, 2 ), 
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
+		blockSize * ( source.Width() * blockSize ) * result.Channels(), source.ObjectCount() * source.Height(), 1 );
+}
+
+void CVulkanMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( source.ObjectCount() == result.ObjectCount() );
+	ASSERT_EXPR( source.Height() * blockSize == result.Height() );
+	ASSERT_EXPR( source.Width() * blockSize == result.Width() );
+	ASSERT_EXPR( source.Depth() == 1 );
+	ASSERT_EXPR( result.Depth() == 1 );
+	ASSERT_EXPR( source.Channels() == result.Channels() * blockSize * blockSize );
+
+	CMemoryHandle bufs[2] = { sourceData, resultData };
+	size_t sizes[2] = { source.BlobSize() * sizeof( int ), result.BlobSize() * sizeof( int ) };
+
+	PARAM_STRUCT( SpaceToDepthInt ) param = { source.ObjectCount() * source.Height(), source.Width(),
+		result.Channels(), blockSize, false };
+
+	runShader( shaderLoader->GET_SHADER_DATA( SpaceToDepthInt, true, 0, 0, 2 ), 
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
+		blockSize * ( source.Width() * blockSize ) * result.Channels(), source.ObjectCount() * source.Height(), 1 );
+}
+
 void CVulkanMathEngine::AddWidthIndex( const CBlobDesc&, const CFloatHandle&, bool, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
@@ -360,6 +457,132 @@ void CVulkanMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHa
 
 	runShader( shaderLoader->GET_SHADER_DATA(BlobSpatialDropout, true, 0, 0, 3), &param, sizeof(param),
 		0, 0, 0, 0, bufs, sizes, 3, maskObjectSize, input.ObjectSize() / maskObjectSize, input.ObjectCount() );
+}
+
+void CVulkanMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objectSize,
+	const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& initialState,
+	const CFloatHandle& result )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( update.GetMathEngine() == this );
+	ASSERT_EXPR( forget.GetMathEngine() == this );
+	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+
+	const size_t dataSize = sequenceLength * objectSize * sizeof( float );
+	size_t sizes[4] = { dataSize, dataSize, objectSize * sizeof( float ), dataSize };
+
+	PARAM_STRUCT( QrnnFPooling ) param = {
+		reverse ? 1 : 0,
+		sequenceLength,
+		objectSize
+	};
+
+	if( initialState.IsNull() ) {
+		CFloatHandleStackVar zeros( *this, objectSize );
+		VectorFill( zeros, 0.f, objectSize );
+		CMemoryHandle buffs[4] = { update, forget, zeros.GetHandle(), result };
+		runVectorShader( shaderLoader->GET_SHADER_DATA(QrnnFPooling, true, 0, 0, 4), &param,
+			 sizeof( param ), 0, 0, 0, 0, buffs, sizes, 4, objectSize );
+	} else {
+		CMemoryHandle buffs[4] = { update, forget, initialState, result };
+		runVectorShader( shaderLoader->GET_SHADER_DATA(QrnnFPooling, true, 0, 0, 4), &param,
+			sizeof( param ), 0, 0, 0, 0, buffs, sizes, 4, objectSize );
+	}
+}
+
+void CVulkanMathEngine::QrnnFPoolingBackward( bool /*reverse*/, int /*sequenceLength*/, int /*objectSize*/,
+	const CConstFloatHandle& /*update*/, const CConstFloatHandle& /*forget*/,
+	const CConstFloatHandle& /*initialState*/, const CConstFloatHandle& /*result*/, const CFloatHandle& /*resultDiff*/,
+	const CFloatHandle& /*updateDiff*/, const CFloatHandle& /*forgetDiff*/ )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int objectSize,
+	const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+	const CConstFloatHandle& initialState, const CFloatHandle& result )
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( update.GetMathEngine() == this );
+	ASSERT_EXPR( forget.GetMathEngine() == this );
+	ASSERT_EXPR( input.GetMathEngine() == this );
+	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+
+	const size_t dataSize = sequenceLength * objectSize * sizeof( float );
+	size_t sizes[5] = { dataSize, dataSize, dataSize, objectSize * sizeof( float ), dataSize };
+
+	PARAM_STRUCT( QrnnIfPooling ) param = {
+		reverse ? 1 : 0,
+		sequenceLength,
+		objectSize
+	};
+
+	if( initialState.IsNull() ) {
+		CFloatHandleStackVar zeros( *this, objectSize );
+		VectorFill( zeros, 0.f, objectSize );
+		CMemoryHandle buffs[5] = { update, forget, input, zeros.GetHandle(), result };
+		runVectorShader( shaderLoader->GET_SHADER_DATA(QrnnIfPooling, true, 0, 0, 5), &param,
+			sizeof( param ), 0, 0, 0, 0, buffs, sizes, 5, objectSize );
+	} else {
+		CMemoryHandle buffs[5] = { update, forget, input, initialState, result };
+		runVectorShader( shaderLoader->GET_SHADER_DATA(QrnnIfPooling, true, 0, 0, 5), &param,
+			sizeof( param ), 0, 0, 0, 0, buffs, sizes, 5, objectSize );
+	}
+}
+
+void CVulkanMathEngine::QrnnIfPoolingBackward( bool /*reverse*/, int /*sequenceLength*/, int /*objectSize*/,
+	const CConstFloatHandle& /*update*/, const CConstFloatHandle& /*forget*/, const CConstFloatHandle& /*input*/,
+	const CConstFloatHandle& /*initialState*/, const CConstFloatHandle& /*result*/, const CFloatHandle& /*resultDiff*/,
+	const CFloatHandle& /*updateDiff*/, const CFloatHandle& /*forgetDiff*/, const CFloatHandle& /*inputDiff*/ )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+	const CFloatHandle& h)
+{
+	ASSERT_EXPR( sequenceLength >= 1 );
+	ASSERT_EXPR( batchSize >= 1 );
+	ASSERT_EXPR( objectSize >= 1 );
+	ASSERT_EXPR( wx.GetMathEngine() == this );
+	ASSERT_EXPR( mask.IsNull() ); // Inference-only kernel, that's why dropout can't be applied
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( h.GetMathEngine() == this );
+
+	const size_t weightSize = objectSize * sizeof( float );
+	const size_t dataSize = sequenceLength * batchSize * weightSize;
+
+	size_t sizes[3] = { dataSize, weightSize, dataSize };
+
+	PARAM_STRUCT( IndRnnRecurrent ) param = {
+		reverse ? 1 : 0,
+		sequenceLength,
+		batchSize,
+		objectSize
+	};
+
+	CMemoryHandle buffs[3] = { wx, u, h };
+	runVectorShader( shaderLoader->GET_SHADER_DATA( IndRnnRecurrent, true, 0, 0, 3 ), &param,
+		sizeof( param ), 0, 0, 0, 0, buffs, sizes, 3, batchSize * objectSize );
+}
+
+void CVulkanMathEngine::IndRnnRecurrentBackward( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
+	const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
+	const CFloatHandle& /*wxDiff*/ )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::IndRnnRecurrentLearn( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
+	const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
+	const CFloatHandle& /*uDiff*/ )
+{
+	ASSERT_EXPR( false );
 }
 
 } // namespace NeoML

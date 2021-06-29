@@ -30,14 +30,13 @@ public:
 
 	// IModel interface methods
 	int GetClassCount() const override;
-	bool Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const override;
-	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
+	bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const override;
 	void Serialize( CArchive& archive ) override;
 
 	// IOneVersusAllModel interface methods
 	const CObjectArray<IModel>& GetModels() const override { return classifiers; }
 	bool ClassifyEx( const CSparseFloatVector& data, COneVersusAllClassificationResult& result ) const override;
-	bool ClassifyEx( const CSparseFloatVectorDesc& data, COneVersusAllClassificationResult& result ) const override;
+	bool ClassifyEx( const CFloatVectorDesc& data, COneVersusAllClassificationResult& result ) const override;
 	bool ClassifyEx( const CFloatVector& data, COneVersusAllClassificationResult& result ) const override;
 
 protected:

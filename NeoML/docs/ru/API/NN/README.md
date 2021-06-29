@@ -273,6 +273,9 @@ delete gpuMathEngine;
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) - повторение последовательностей несколько раз
     - [CUpsampling2DLayer](Upsampling2DLayer.md) - увеличение размеров двумерных изображений
   - [CReorgLayer](ReorgLayer.md) - слой, преобразующий многоканальные изображения в изображения меньшего размера, с большим числом каналов
+  - [CSpaceToDepthLayer](SpaceToDepthLayer.md) слой, разбивающий входные изображения на квадраты и записывающий содержимое таких квадратов
+  в пиксели выходного изображения
+  - [CDepthToSpaceLayer](DepthToSpaceLayer.md) слой, записывающий содержимое пикселей входных изображений в квадраты выходных изображений
 - Функции потерь:
   - Бинарная классификация:
     - [CBinaryCrossEntropyLossLayer](LossLayers/BinaryCrossEntropyLossLayer.md) - перекрёстная энтропия
@@ -298,6 +301,8 @@ delete gpuMathEngine;
   - [CLstmLayer](LstmLayer.md) - реализация Long Short-Term Memory
   - [CGruLayer](GruLayer.md) - реализация Gated Recurrent Unit
   - [CQrnnLayer](QrnnLayer.md) - квази-рекуррентный слой
+  - [CIrnnLayer](IrnnLayer.md) - [IRNN](https://arxiv.org/pdf/1504.00941.pdf)
+  - [CIndRnnLayer](IndRnnLayer.md) - [IndRNN](https://arxiv.org/pdf/1803.04831.pdf)
 - [Условное случайное поле (CRF)](CrfLayers/README.md):
   - [CCrfLayer](CrfLayers/CrfLayer.md) - условное случайное поле
   - [CCrfLossLayer](CrfLayers/CrfLossLayer.md) - функция потерь для обучения условного случайного поля

@@ -21,6 +21,16 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
+// For LAMB solver init
+#include <NeoML/Dnn/Layers/BatchNormalizationLayer.h>
+#include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
+#include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
+#include <NeoML/Dnn/Layers/3dConvLayer.h>
+#include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
+#include <NeoML/Dnn/Layers/ConvLayer.h>
+#include <NeoML/Dnn/Layers/TimeConvLayer.h>
+#include <NeoML/Dnn/Layers/TransposedConvLayer.h>
+
 namespace NeoML {
 
 static CMap<CString, TCreateSolverFunction, CDefaultHash<CString>, RuntimeHeap>& getRegisteredSolvers()
@@ -154,23 +164,24 @@ CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
 }
 
 // Calculates the layer parameter gradients to then use them in Train method
-void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs )
+void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs,
+	bool sharedWeights )
 {
 	NeoAssert( layer != 0 );
 
 	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer );
-	++paramDiffBlobsSum.Count;
 
-	if( paramDiffBlobsSum.Count == 1 ) {
-		// The first term
-		NeoAssert( paramDiffBlobsSum.Sum.IsEmpty() );
-		paramDiffBlobs.CopyTo( paramDiffBlobsSum.Sum );
-		return;
+	if( !sharedWeights ) {
+		++paramDiffBlobsSum.Count;
 	}
 
-	NeoAssert( paramDiffBlobsSum.Sum.Size() == paramDiffBlobs.Size() );
-	for( int i = 0; i < paramDiffBlobs.Size(); i++ ) {
-		paramDiffBlobsSum.Sum[i]->Add( paramDiffBlobs[i] );
+	if( paramDiffBlobsSum.Sum.IsEmpty() ) {
+		paramDiffBlobs.CopyTo( paramDiffBlobsSum.Sum );
+	} else {
+		NeoAssert( paramDiffBlobsSum.Sum.Size() == paramDiffBlobs.Size() );
+		for( int i = 0; i < paramDiffBlobs.Size(); i++ ) {
+			paramDiffBlobsSum.Sum[i]->Add( paramDiffBlobs[i] );
+		}
 	}
 }
 
@@ -455,7 +466,7 @@ void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 	float regL2 = layer->GetBaseL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values of the variables
-	CFastArray<float, 9> varValues;
+	CFastArray<float, TV_Count> varValues;
 	varValues.SetSize( TV_Count );
 
 	varValues[TV_MomentDecayRateVar] = momentDecayRate;
@@ -718,6 +729,19 @@ void CDnnLambGradientSolver::ExcludeWeightDecayLayer( const char* layerName, TEx
 	excludedLayers.Add( excludedLayer );
 }
 
+void CDnnLambGradientSolver::ExcludeBiasParamLayers()
+{
+	ExcludeWeightDecayLayer<CBatchNormalizationLayer>( 0 );
+	ExcludeWeightDecayLayer<CObjectNormalizationLayer>( -1 );
+	ExcludeWeightDecayLayer<CFullyConnectedLayer>( 1 );
+	ExcludeWeightDecayLayer<CTimeConvLayer>( 1 );
+	ExcludeWeightDecayLayer<C3dConvLayer>( 1 );
+	ExcludeWeightDecayLayer<CChannelwiseConvLayer>( 1 );
+	ExcludeWeightDecayLayer<CConvLayer>( 1 );
+	ExcludeWeightDecayLayer<CRleConvLayer>( 1 );
+	ExcludeWeightDecayLayer<CTransposedConvLayer>( 1 );
+}
+
 static const int DnnLambGradientSolverVersion = 0;
 
 void CDnnLambGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
@@ -870,6 +894,7 @@ void CDnnLambGradientSolver::getWeightDecayIndices( const CBaseLayer& layer, int
 {
 	CHashTable<int> excludedIndexes;
 	const CString layerName = layer.GetName();
+	const CString layerClassName = GetLayerClass( layer );
 	for( int i = 0; i < excludedLayers.Size(); i++ ) {
 		const CExcludedLayer& excludedLayer = excludedLayers[i];
 		switch( excludedLayer.MatchType ) {
@@ -883,11 +908,17 @@ void CDnnLambGradientSolver::getWeightDecayIndices( const CBaseLayer& layer, int
 					excludedIndexes.Add( excludedLayer.ParamIndex );
 				}
 				break;
+			case ELNMT_LayerClass:
+				if( excludedLayer.LayerName == layerClassName ) {
+					excludedIndexes.Add( excludedLayer.ParamIndex );
+				}
+				break;
 			default:
 				break;
 
 		}
 	}
+	static_assert( ELNMT_ItemsCount == 3, "Not all enum item are processed" );
 
 	if( excludedIndexes.Has( -1 ) ) {
 		return;

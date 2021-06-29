@@ -3,11 +3,23 @@ setlocal EnableDelayedExpansion
 
 set ARCH=x64
 set ENABLE_TEST=ON
+set DIR=
 
 :parseArgs
 
 if "%~1" == "-notest" (
 	set ENABLE_TEST=OFF
+	shift /1
+	goto parseArgs
+)
+
+if "%~1" == "-dir" (
+	if "%~2" == "" (
+		echo Path must follow the -dir.
+		exit /b 1
+	)
+	set "DIR=%~f2"
+	shift /1
 	shift /1
 	goto parseArgs
 )
@@ -29,8 +41,11 @@ if not "%~1" == "" (
 	exit /b 1
 )
 
-if not defined NeoML_BUILD_DIR (
-    set "NeoML_BUILD_DIR=%ROOT%\_cmake_working_dir\NeoML"
+if not defined DIR (
+	if not defined NeoML_BUILD_DIR (
+		set "NeoML_BUILD_DIR=%ROOT%\_cmake_working_dir\NeoML"
+	)
+	set "DIR=%NeoML_BUILD_DIR%\%ARCH%" (
 )
 
 if not defined CMAKE_GENERATOR (
@@ -48,17 +63,18 @@ if not defined CMAKE_SYSTEM_VERSION (
 	set "CMAKE_SYSTEM_VERSION=10"
 )
 
-if exist "%NeoML_BUILD_DIR%\%ARCH%" (
-    rmdir /S /Q "%NeoML_BUILD_DIR%\%ARCH%"
+if exist "%DIR%" (
+    rmdir /S /Q "%DIR%"
 )
-mkdir "%NeoML_BUILD_DIR%\%ARCH%" || exit /b !ERRORLEVEL!
+mkdir "%DIR%" || exit /b !ERRORLEVEL!
 
 echo Generating project:
 echo   Architecture = "%ARCH%"
 echo   Tests = "%ENABLE_TEST%"
+echo   Directory = "%DIR%"
 echo   Generator = "%CMAKE_GENERATOR%"
 echo   Toolset = "%CMAKE_GENERATOR_TOOLSET%"
 echo   Target version = "%CMAKE_SYSTEM_VERSION%"
 echo.
 
-cmake -A %ARCH% -DUSE_FINE_OBJECTS=ON -DNeoML_BUILD_TESTS=%ENABLE_TEST% -DNeoMathEngine_BUILD_TESTS=%ENABLE_TEST% -DCMAKE_SYSTEM_VERSION="%CMAKE_SYSTEM_VERSION%" -B "%NeoML_BUILD_DIR%/%ARCH%" "%ROOT%/NeoML/NeoML" || exit /b !ERRORLEVEL!
+cmake -A %ARCH% -DUSE_FINE_OBJECTS=ON -DNeoML_BUILD_TESTS=%ENABLE_TEST% -DNeoMathEngine_BUILD_TESTS=%ENABLE_TEST% -DCMAKE_SYSTEM_VERSION="%CMAKE_SYSTEM_VERSION%" -B "%DIR%" "%ROOT%/NeoML/NeoML" || exit /b !ERRORLEVEL!

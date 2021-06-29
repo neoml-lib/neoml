@@ -28,7 +28,9 @@ class CDnn;
 class NEOML_API CDnnSolver : virtual public IObject {
 public:
 	// Stores the calculated values of layer parameters gradients for further use in Train method
-	void AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs );
+	// forSharedWeightsLayer=true should only be used within layers that share weights with other layers.
+	void AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs, 
+		bool sharedWeights = false );
 
 	// Modifies the trainable parameters of the network layers, 
 	// using the accumulated gradients and previous steps' history (moment, etc.) 
@@ -393,7 +395,11 @@ public:
 		// Exact match with given string
 		ELNMT_Exact,
 		// If layer's name contains given string
-		ELNMT_Include
+		ELNMT_Include,
+		// Layer class name (all layers of this type)
+		ELNMT_LayerClass,
+
+		ELNMT_ItemsCount
 	};
 
 	// Exclude layer from weightDecay optimization
@@ -402,6 +408,10 @@ public:
 	// paramIndex - index of optimized layer parameter to exclude (NotFound means all layer parameters)
 	void ExcludeWeightDecayLayer( const char* layerName, TExcludeLayerNameMatchType type = ELNMT_Exact,
 		int paramIndex = NotFound );
+	template<typename TLayer>
+	void ExcludeWeightDecayLayer( int paramIndex = NotFound );
+	// Exclude all known to NeoML layers with bias parameters
+	void ExcludeBiasParamLayers();
 
 	// Gets/set moment decay rate (weighted sum of previous gradients)
 	// By default is equal to 0.9 
@@ -511,5 +521,12 @@ private:
 
 	void calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update, const CFloatHandle& multiplier ) const;
 };
+
+template<typename TLayer>
+inline void CDnnLambGradientSolver::ExcludeWeightDecayLayer( int paramIndex ) {
+	CPtr<TLayer> layer = new TLayer( MathEngine() );
+	ExcludeWeightDecayLayer( GetLayerClass( *layer ), ELNMT_LayerClass, paramIndex );
+}
+
 
 } // namespace NeoML

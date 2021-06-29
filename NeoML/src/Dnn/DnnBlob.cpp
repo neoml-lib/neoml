@@ -24,6 +24,7 @@ namespace NeoML {
 
 CDnnBlob::CDnnBlob( IMathEngine& _mathEngine ) :
 	mathEngine( _mathEngine ),
+	dataOwned( true ),
 	parent(0),
 	parentPos(0)
 {
@@ -184,7 +185,7 @@ void CDnnBlob::initializeByPattern(TBlobType type, const CBlobDesc& pattern)
 
 CDnnBlob::~CDnnBlob()
 {
-	if( !data.IsNull() && parent == 0 ) {
+	if( !data.IsNull() && parent == 0 && dataOwned ) {
 		mathEngine.HeapFree( data );
 	}
 }
@@ -498,7 +499,7 @@ static void readRawData( IMathEngine& mathEngine, CArchive& archive, const CType
 	check( static_cast<int>( size ) >= 0, ERR_BAD_ARCHIVE, archive.Name() );
 
 	if( size > 0 ) {
-		void* ptr = mathEngine.GetBuffer( handle, 0, size * sizeof(T) );
+		void* ptr = mathEngine.GetBuffer( handle, 0, size * sizeof(T), false );
 		archive.Read( ptr, size * sizeof(T) );
 		mathEngine.ReleaseBuffer( handle, ptr, true );
 	}
@@ -510,7 +511,7 @@ static void writeRawData( IMathEngine& mathEngine, const int size, const CTypedM
 	archive << static_cast<unsigned int>( size );
 
 	if( size > 0 ) {
-		void* ptr = mathEngine.GetBuffer( handle, 0, size * sizeof(T) );
+		void* ptr = mathEngine.GetBuffer( handle, 0, size * sizeof(T), true );
 		archive.Write( ptr, size * sizeof(T) );
 		mathEngine.ReleaseBuffer( handle, ptr, false );
 	}

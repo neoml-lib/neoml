@@ -59,6 +59,8 @@ The algorithm supports two different tree builder modes:
 
 - *GBTB_Full* — all the feature values are used for splitting the nodes.
 - *GBTB_FastHist* — the steps of a histogram created from the feature values will be used for splitting the nodes. The *MaxBins* parameter limits the possible size of the histogram.
+- *GBTB_MultiFull* — similar to *GBTB_Full*, but instead of building a separate tree for each value of a multi value problem there is a single tree with leaf nodes containing a vector of such values.
+- *GBTB_MultiFastHist* — similar to *GBTB_FastHist*, but with multitrees as in *GBTB_MultiFull*.
 
 ## Model
 
@@ -87,7 +89,7 @@ public:
 	// Get the classification results for all tree ensembles [1..k], 
 	// with k taking values from 1 to the total number of trees
 	virtual bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
+	virtual bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
 
 	// Calculate feature usage statistics
 	// Returns the number of times each feature was used for node splitting
@@ -161,7 +163,7 @@ public:
 	// Get the classification results for all tree ensembles [1..k], 
 	// with k taking values from 1 to the total number of trees
 	virtual bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
+	virtual bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
 };
 ```
 

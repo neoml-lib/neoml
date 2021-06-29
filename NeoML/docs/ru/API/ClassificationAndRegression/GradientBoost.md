@@ -59,8 +59,11 @@
 
 Градиентный бустинг поддерживает два метода построения деревьев ансамбля:
 
-- *GBTB_Full* — в качестве значений признаков для разделения перебираются все имеющиеся в задаче значения признаков;
+- *GBTB_Full* — в качестве значений признаков для разделения перебираются все имеющиеся в задаче значения признаков.
 - *GBTB_FastHist* — в качестве значений, используемых для разделения, будут взяты шаги гистограммы, построенной на значениях признаков. Параметр *MaxBins* задает размер гистограмм.
+- *GBTB_MultiFull* — аналогично *GBTB_Full*, но в процессе строится не отдельное дерево для каждого целевого значения, а строится мультиклассовое дерево, листья которого содержат сразу вектор значений.
+- *GBTB_MultiFastHist* — аналогично *GBTB_FastHist*, но с мультиклассовыми деревьями как в *GBTB_MultiFull*.
+
 
 ## Модель
 
@@ -88,7 +91,7 @@ public:
 
 	// Получить результаты классификации на всех подмножествах деревьев вида [1..k]
 	virtual bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
+	virtual bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
 
 	// Посчитать статистику для признаков.
 	// Возвращает число раз, которое данный признак был использован для разделения в деревьях.
@@ -162,7 +165,7 @@ public:
 
 	// Получить результаты классификации на всех подмножествах деревьев вида [0..k].
 	virtual bool ClassifyEx( const CSparseFloatVector& data, CArray<CClassificationResult>& results ) const = 0;
-	virtual bool ClassifyEx( const CSparseFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
+	virtual bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const = 0;
 };
 ```
 

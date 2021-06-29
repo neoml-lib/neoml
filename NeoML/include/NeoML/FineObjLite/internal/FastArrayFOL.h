@@ -58,6 +58,8 @@ public:
 
 	T* GetPtr();
 	const T* GetPtr() const;
+	T* GetBufferPtr() { return dataPtr; }
+	const T* GetBufferPtr() const { return dataPtr; }
 
 	void ReplaceAt( const T& elem, int location );
 	void InsertAt( const T& elem, int location );
@@ -175,7 +177,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::grow( int newSize )
 {
 	PresumeFO( newSize >= 0 );
 	if( newSize > bufferSize ) {
-		int delta = max( newSize - bufferSize, max( bufferSize / 2, initialBufferSize ) );
+		int delta = min( max( newSize - bufferSize, max( bufferSize / 2, initialBufferSize ) ), INT_MAX - bufferSize );
 		reallocateBuffer( bufferSize + delta );
 	}
 }
@@ -472,6 +474,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::reallocateBuffer( int n
 
 	if( newSize > InitialBufferSize() ) {
 		T* oldDataPtr = dataPtr;
+		AssertFO( static_cast<size_t>( newSize ) <= UINTPTR_MAX / sizeof( T ) );
 		dataPtr = static_cast<T*>( ALLOCATE_MEMORY( Allocator, newSize * sizeof( T ) ) );
 		if( size > 0 ) {
 			::memcpy( reinterpret_cast<char*>( dataPtr ), reinterpret_cast<char*>( oldDataPtr ), size * sizeof( T ) );

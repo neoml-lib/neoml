@@ -31,8 +31,8 @@ CSvmBinaryModel::CSvmBinaryModel( const CSvmKernel& _kernel, const IProblem& pro
 	kernel( _kernel ),
 	freeTerm( _freeTerm )
 {
-	CSparseFloatVectorDesc desc;
-	CSparseFloatMatrixDesc problemMatrix = problem.GetMatrix();
+	CFloatVectorDesc desc;
+	CFloatMatrixDesc problemMatrix = problem.GetMatrix();
 	NeoAssert( problemMatrix.Height == problem.GetVectorCount() );
 	NeoAssert( problemMatrix.Width == problem.GetFeatureCount() );
 
@@ -54,32 +54,9 @@ CSvmBinaryModel::CSvmBinaryModel( const CSvmKernel& _kernel, const IProblem& pro
 	}
 }
 
-bool CSvmBinaryModel::Classify( const CSparseFloatVectorDesc& data, CClassificationResult& result ) const
+bool CSvmBinaryModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
 {
-	CSparseFloatVectorDesc desc;
-	double value = freeTerm;
-	for( int i = 0; i < alpha.Size(); i++ ) {
-		matrix.GetRow( i, desc );
-		value += alpha[i] * kernel.Calculate( data, desc );
-	}
-
-	const double probability = 1 / ( 1 + exp( value ) );
-	result.ExceptionProbability = CClassificationProbability( 0 );
-	result.Probabilities.SetSize( 2 );
-	result.Probabilities[0] = CClassificationProbability( probability );
-	result.Probabilities[1] = CClassificationProbability( 1 - probability );
-
-	if( probability > 1 - probability ) {
-		result.PreferredClass = 0;
-	} else {
-		result.PreferredClass = 1;
-	}
-	return true;
-}
-
-bool CSvmBinaryModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
-{
-	CSparseFloatVectorDesc desc;
+	CFloatVectorDesc desc;
 	double value = freeTerm;
 	for( int i = 0; i < alpha.Size(); i++ ) {
 		matrix.GetRow( i, desc );

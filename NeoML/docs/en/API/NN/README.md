@@ -245,7 +245,7 @@ delete gpuMathEngine;
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - elementwise sum
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - elementwise product
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - elementwise maximum
-  - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) -calculates the elementwise product of `1 - first input` and the other inputs
+  - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) calculates the elementwise product of `1 - first input` and the other inputs
 - Auxiliary operations:
   - [CTransformLayer](TransformLayer.md) changes the blob shape
   - [CTransposeLayer](TransposeLayer.md) switches the blob dimensions
@@ -253,7 +253,7 @@ delete gpuMathEngine;
   - [CImageResizeLayer](ImageResizeLayer.md) changes the size of images in the blob
   - [CSubSequenceLayer](SubSequenceLayer.md) extracts subsequences
   - [CDotProductLayer](DotProductLayer.md) calculates the dot product of its inputs
-  - [CAddToObjectLayer](AddToObjectLayer.md) - adds the content of one input to each of the objects of the other
+  - [CAddToObjectLayer](AddToObjectLayer.md) adds the content of one input to each of the objects of the other
   - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - mutiplication of two sets of matrices
   - Blob concatenation:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) concatenates along the Channels dimension
@@ -262,7 +262,7 @@ delete gpuMathEngine;
     - [CConcatHeightLayer](ConcatLayers/ConcatHeightLayer.md) concatenates along the Height dimension
     - [CConcatBatchWidthLayer](ConcatLayers/ConcatBatchWidthLayer.md) concatenates along the BatchWidth dimension
     - [CConcatObjectLayer](ConcatLayers/ConcatObjectLayer.md) concatenates the objects
-  - Blbo splitting:
+  - Blob splitting:
     - [CSplitChannelsLayer](SplitLayers/SplitChannelsLayer.md) splits along the Channels dimension
     - [CSplitDepthLayer](SplitLayers/SplitDepthLayer.md) splits along the Depth dimension
     - [CSplitWidthLayer](SplitLayers/SplitWidthLayer.md) splits along the Width dimension
@@ -275,6 +275,8 @@ delete gpuMathEngine;
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) repeats sequences several times
     - [CUpsampling2DLayer](Upsampling2DLayer.md) scales up two-dimensional images
   - [CReorgLayer](ReorgLayer.md) transforms a multi-channel image into several smaller images with more channels
+  - [CSpaceToDepthLayer](SpaceToDepthLayer.md) splits images into squared blocks and flattens each block
+  - [CDepthToSpaceLayer](DepthToSpaceLayer.md) transforms pixels of images into squared blocks
 - Loss functions:
   - For binary classification:
     - [CBinaryCrossEntropyLossLayer](LossLayers/BinaryCrossEntropyLossLayer.md) - cross-entropy
@@ -300,6 +302,8 @@ delete gpuMathEngine;
   - [CLstmLayer](LstmLayer.md) implements long short-term memory (LSTM)
   - [CGruLayer](GruLayer.md) implements a gated recurrent unit (GRU)
   - [CQrnnLayer](QrnnLayer.md) implements a quasi-recurrent layer
+  - [CIrnnLayer](IrnnLayer.md) implements [IRNN](https://arxiv.org/pdf/1504.00941.pdf)
+  - [CIndRnnLayer](IndRnnLayer.md) implement [IndRNN](https://arxiv.org/pdf/1803.04831.pdf)
 - [Conditional random field (CRF)](CrfLayers/README.md):
   - [CCrfLayer](CrfLayers/CrfLayer.md) represents a CRF
   - [CCrfLossLayer](CrfLayers/CrfLossLayer.md) calculates the loss function for training CRF

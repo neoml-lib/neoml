@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/TraditionalML/DecisionTreeTrainingModel.h>
+#include <NeoML/TraditionalML/DecisionTree.h>
 
 namespace NeoML {
 
@@ -25,7 +25,7 @@ public:
 	virtual ~CDecisionTreeNodeStatisticBase() {}
 
 	// Adds a vector to the statistics
-	virtual void AddVector( int index, const CSparseFloatVectorDesc& vector ) = 0;
+	virtual void AddVector( int index, const CFloatVectorDesc& vector ) = 0;
 
 	// Finishes accumulating data
 	virtual void Finish() = 0;
@@ -37,7 +37,7 @@ public:
 	// Returns false if splitting is not possible
 	// featureIndex is the index of the feature by which the node will split
 	// values contains the feature values defining the split
-	virtual bool GetSplit( CDecisionTreeTrainingModel::CParams param,
+	virtual bool GetSplit( CDecisionTree::CParams param,
 		bool& isDiscrete, int& featureIndex, CArray<double>& values, double& criterioValue ) const = 0;
 
 	// Gets the predictions according to the accumulated data

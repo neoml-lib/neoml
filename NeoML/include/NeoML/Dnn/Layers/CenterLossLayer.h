@@ -53,6 +53,7 @@ public:
 	bool HasClassCenters() { return classCentersBlob != 0; }
 
 protected:
+	void Reshape() override;
 	void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize, CConstIntHandle label,
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient ) override;
 

@@ -114,14 +114,14 @@ void CProblemSourceLayer::RunOnce()
 	float* weights = exchangeBufs[2].GetPtr();
 
 	int vectorCount = problem->GetVectorCount();
-	CSparseFloatMatrixDesc matrix = problem->GetMatrix();
-	CSparseFloatVectorDesc vector;
+	CFloatMatrixDesc matrix = problem->GetMatrix();
+	CFloatVectorDesc vector;
 
 	for(int i = 0; i < batchSize; ++i) {
 		// The data
 		matrix.GetRow( nextProblemIndex, vector );
 		for(int j = 0; j < vector.Size; ++j) {
-			data[vector.Indexes[j]] = static_cast<float>( vector.Values[j] );
+			data[vector.Indexes == nullptr ? j : vector.Indexes[j]] = static_cast<float>( vector.Values[j] );
 		}
 
 		// The labels
@@ -212,7 +212,7 @@ int CDnnModelWrapper::GetClassCount() const
 	return ClassCount;
 }
 
-bool CDnnModelWrapper::Classify(const CSparseFloatVectorDesc& desc, CClassificationResult& result) const
+bool CDnnModelWrapper::Classify(const CFloatVectorDesc& desc, CClassificationResult& result) const
 {
 	NeoAssert(SourceBlob.Ptr() != 0);
 	NeoPresume(SourceBlob.Ptr() == SourceLayer->GetBlob().Ptr());
@@ -224,26 +224,7 @@ bool CDnnModelWrapper::Classify(const CSparseFloatVectorDesc& desc, CClassificat
 	}
 
 	for(int i = 0; i < desc.Size; ++i) {
-		exchangeBuffer[desc.Indexes[i]] = desc.Values[i];
-	}
-	SourceBlob->CopyFrom(exchangeBuffer.GetPtr());
-
-	return classify( result );
-}
-
-bool CDnnModelWrapper::Classify(const CFloatVector& data, CClassificationResult& result) const
-{
-	NeoAssert(SourceBlob.Ptr() != 0);
-	NeoPresume(SourceBlob.Ptr() == SourceLayer->GetBlob().Ptr());
-
-	exchangeBuffer.SetSize(SourceBlob->GetDataSize());
-
-	for(int i = 0; i < exchangeBuffer.Size(); ++i) {
-		exchangeBuffer[i] = SourceEmptyFill;
-	}
-
-	for(int i = 0; i < data.Size(); ++i) {
-		exchangeBuffer[i] = data[i];
+		exchangeBuffer[desc.Indexes == nullptr ? i : desc.Indexes[i]] = desc.Values[i];
 	}
 	SourceBlob->CopyFrom(exchangeBuffer.GetPtr());
 

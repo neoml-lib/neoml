@@ -94,7 +94,7 @@ inline double CalcDistance( const CClusterCenter& cluster, const CSparseFloatVec
 }
 
 // Calculates the distance between the cluster center and the given element
-inline double CalcDistance( const CClusterCenter& cluster, const CSparseFloatVectorDesc& element, TDistanceFunc distanceFunc )
+inline double CalcDistance( const CClusterCenter& cluster, const CFloatVectorDesc& element, TDistanceFunc distanceFunc )
 {
 	return CalcDistance( cluster, CFloatVector( cluster.Mean.Size(), element ), distanceFunc );
 }
