@@ -452,6 +452,46 @@ class LayersTestCase(TestCase):
         self.assertEqual(outputs["sink"].batch_width, 32)
         self.assertEqual(a.size, 32)
 
+    def test_concat_batch_length(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source1 = neoml.Dnn.Source(dnn, "source1")
+        source2 = neoml.Dnn.Source(dnn, "source2")
+        concat = neoml.Dnn.ConcatBatchLength((source1, source2), "concat")
+        sink = neoml.Dnn.Sink(concat, "sink")
+        layer = dnn.layers['concat']
+        self.assertEqual(layer.name, 'concat')
+
+        input1 = neoml.Blob.asblob(math_engine, np.ones((16), dtype=np.float32), (16, 1, 1, 1, 1, 1, 1))
+        input2 = neoml.Blob.asblob(math_engine, np.ones((15), dtype=np.float32), (15, 1, 1, 1, 1, 1, 1))
+
+        inputs = {"source1": input1, "source2": input2}
+        outputs = dnn.run(inputs)
+        a = outputs["sink"].asarray()
+
+        self.assertEqual(outputs["sink"].batch_len, 31)
+        self.assertEqual(a.size, 31)
+
+    def test_concat_list_size(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source1 = neoml.Dnn.Source(dnn, "source1")
+        source2 = neoml.Dnn.Source(dnn, "source2")
+        concat = neoml.Dnn.ConcatListSize((source1, source2), "concat")
+        sink = neoml.Dnn.Sink(concat, "sink")
+        layer = dnn.layers['concat']
+        self.assertEqual(layer.name, 'concat')
+
+        input1 = neoml.Blob.asblob(math_engine, np.ones((15), dtype=np.float32), (1, 1, 15, 1, 1, 1, 1))
+        input2 = neoml.Blob.asblob(math_engine, np.ones((16), dtype=np.float32), (1, 1, 16, 1, 1, 1, 1))
+
+        inputs = {"source1": input1, "source2": input2}
+        outputs = dnn.run(inputs)
+        a = outputs["sink"].asarray()
+
+        self.assertEqual(outputs["sink"].list_size, 31)
+        self.assertEqual(a.size, 31)
+
     def test_concat_object(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)

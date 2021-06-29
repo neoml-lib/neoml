@@ -10,7 +10,7 @@ from .Argmax import Argmax
 from .AttentionDecoder import AttentionDecoder
 from .Binarization import EnumBinarization, BitSetVectorization
 from .BatchNormalization import BatchNormalization
-from .Concat import ConcatChannels, ConcatDepth, ConcatWidth, ConcatHeight, ConcatBatchWidth, ConcatObject
+from .Concat import ConcatChannels, ConcatDepth, ConcatWidth, ConcatHeight, ConcatBatchWidth, ConcatBatchLength, ConcatListSize, ConcatObject
 from .Conv import Conv, Conv3D, TransposedConv3D, TransposedConv, ChannelwiseConv, TimeConv 
 from .Crf import Crf, CrfLoss, BestSequence
 from .Ctc import CtcLoss, CtcDecoding
