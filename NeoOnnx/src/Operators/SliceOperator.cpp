@@ -67,23 +67,21 @@ void CSliceOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTe
 void CSliceOperator::getAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
 {
 	const CTensorShape& inputShape = inputs[0]->Shape();
-	// Fill with default value
-	axes.SetBufferSize( inputShape.Size() );
-	for( int i = 0; i < inputShape.Size(); ++i ) {
-		axes.Add( i );
-	}
 
-	if( OpsetVersion < 10 ) {
-		// Extracting from attributes
-		axes.Empty();
-		GetAttribute( "axes", axes );
+	if( OpsetVersion < 10 && GetAttribute( "axes", axes ) ) {
+		// Successfully extracted from the attribute
+		return;
+	} else if( OpsetVersion >= 10 && inputs.Size() >= 4 && inputs[3] != nullptr ) {
+		CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided axes", *this );
+		const CDnnBlob* axesBlob = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data();
+		CheckOnnxProtocol( axesBlob->GetDataType() == CT_Int, "Non-integer axes", *this );
+		axes.SetSize( axesBlob->GetDataSize() );
+		axesBlob->CopyTo( axes.GetPtr() );
 	} else {
-		if( inputs.Size() >= 4 && inputs[3] != nullptr ) {
-			CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided axes", *this );
-			const CDnnBlob* axesBlob = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data();
-			CheckOnnxProtocol( axesBlob->GetDataType() == CT_Int, "Non-integer axes", *this );
-			axes.SetSize( axesBlob->GetDataSize() );
-			axesBlob->CopyTo( axes.GetPtr() );
+		// Fill with default value
+		axes.SetBufferSize( inputShape.Size() );
+		for( int i = 0; i < inputShape.Size(); ++i ) {
+			axes.Add( i );
 		}
 	}
 }
@@ -122,22 +120,21 @@ void CSliceOperator::getEnds( const CTensorArray& inputs, CFastArray<int, 8>& en
 void CSliceOperator::getSteps( const CTensorArray& inputs, CFastArray<int, 8>& steps ) const
 {
 	const CTensorShape& inputShape = inputs[0]->Shape();
-	// Fill with default value
-	steps.SetBufferSize( inputShape.Size() );
-	steps.Add( 1, inputShape.Size() );
 
-	if( OpsetVersion < 10 ) {
-		// Extracting from attributes
-		steps.Empty();
-		GetAttribute( "steps", steps );
+	if( OpsetVersion < 10 && GetAttribute( "steps", steps ) ) {
+		// Successfully extracted from the attribute
+		return;
+	} else if( OpsetVersion >= 10 && inputs.Size() >= 5 && inputs[4] != nullptr ) {
+		// Extracting from the input
+		CheckNeoOnnxSupport( inputs[4]->IsCalculated(), "User-provided steps", *this );
+		const CDnnBlob* stepsBlob = dynamic_cast<const CDataTensor*>( inputs[4].Ptr() )->Data();
+		CheckOnnxProtocol( stepsBlob->GetDataType() == CT_Int, "Non-integer steps", *this );
+		steps.SetSize( stepsBlob->GetDataSize() );
+		stepsBlob->CopyTo( steps.GetPtr() );
 	} else {
-		if( inputs.Size() >= 5 && inputs[4] != nullptr ) {
-			CheckNeoOnnxSupport( inputs[4]->IsCalculated(), "User-provided steps", *this );
-			const CDnnBlob* stepsBlob = dynamic_cast<const CDataTensor*>( inputs[4].Ptr() )->Data();
-			CheckOnnxProtocol( stepsBlob->GetDataType() == CT_Int, "Non-integer steps", *this );
-			steps.SetSize( stepsBlob->GetDataSize() );
-			stepsBlob->CopyTo( steps.GetPtr() );
-		}
+		// Fill with default value
+		steps.SetBufferSize( inputShape.Size() );
+		steps.Add( 1, inputShape.Size() );
 	}
 }
 
