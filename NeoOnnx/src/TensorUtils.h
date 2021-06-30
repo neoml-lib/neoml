@@ -26,7 +26,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Auxiliary data loading functions
+// Auxiliary tensor's data loading functions
 
 // Gets NeoML blob type from onnx tensor's data type
 TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType );
@@ -143,7 +143,7 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTe
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor padding functions
 
-// Calculates padding size if autoPad is SAME_*
+// Calculates padding size if autoPad is SAME_UPPER or SAME_LOWER
 void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
 
 // Pads tensor with user-dependent data
@@ -159,9 +159,9 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 enum TBroadcastType {
 	// Broadcast not supported
 	BT_None,
-	// Onnx custom broadcast, used in some older versions
+	// Onnx custom broadcast, used in some older opset versions
 	BT_Onnx,
-	// Numpy-style broadcast, used in later versions of ONNX
+	// Numpy-style broadcast, used in later opset versions
 	BT_Numpy,
 
 	BT_Count
@@ -187,3 +187,4 @@ bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second
 CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast, const CTensorShape& outputShape );
 
 } // namespace NeoOnnx
+

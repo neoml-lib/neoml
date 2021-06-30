@@ -19,7 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Shape operator in onnx graph
+// Shape operator
 class CShapeOperator : public COperator {
 public:
 	CShapeOperator( const onnx::NodeProto& shape, int opsetVersion );
@@ -29,3 +29,4 @@ public:
 };
 
 } // namespace NeoOnnx
+

@@ -47,3 +47,4 @@ NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<co
 NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
 
 } // namespace NeoOnnx
+

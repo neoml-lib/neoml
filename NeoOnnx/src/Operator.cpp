@@ -64,11 +64,11 @@ static CMap<CString, TCreateOperatorFunction>& getRegisteredOperators()
 	return registeredOperators;
 }
 
-// Registers function as a way to create operator for NodeProto::op_type == operatorName
-static void registerOperator( const char* operatorName, TCreateOperatorFunction function )
+// Registers function as a way to create operator for NodeProto::op_type == operatorType
+static void registerOperator( const char* operatorType, TCreateOperatorFunction function )
 {
-	NeoAssert( !getRegisteredOperators().Has( operatorName ) );
-	getRegisteredOperators().Add( operatorName, function );
+	NeoAssert( !getRegisteredOperators().Has( operatorType ) );
+	getRegisteredOperators().Add( operatorType, function );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -77,16 +77,16 @@ static void registerOperator( const char* operatorName, TCreateOperatorFunction 
 template<class T>
 class COperatorClassRegistrar {
 public:
-	explicit COperatorClassRegistrar( const char* operatorName );
+	explicit COperatorClassRegistrar( const char* operatorType );
 
 private:
 	static COperator* createObject( const onnx::NodeProto& onnxNode, int opsetVersion );
 };
 
 template<class T>
-inline COperatorClassRegistrar<T>::COperatorClassRegistrar( const char* operatorName )
+inline COperatorClassRegistrar<T>::COperatorClassRegistrar( const char* operatorType )
 {
-	registerOperator( operatorName, createObject );
+	registerOperator( operatorType, createObject );
 }
 
 template<class T>
@@ -188,3 +188,4 @@ bool COperator::IsSupportedOperator( const CString& operatorType )
 }
 
 } // namespace NeoOnnx
+

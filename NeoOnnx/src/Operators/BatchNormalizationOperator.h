@@ -29,7 +29,7 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	// eps value used to prevent division by zero
+	// eps value which is used to prevent division by zero
 	float eps;
 
 	CPtr<const CUserTensor> convertInput( const CUserTensor& input ) const;
@@ -37,3 +37,4 @@ private:
 };
 
 } // namespace NeoOnnx
+

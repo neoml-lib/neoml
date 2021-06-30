@@ -19,7 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Desribes how tensor is represented in memory
+// Desribes how the tensor is represented in memory
 // tensorLayout[i] is the blob dimension, where i'th onnx axis is located
 class CTensorLayout: public CFastArray<TBlobDim, 8> {
 public:
@@ -101,7 +101,7 @@ inline bool CTensorLayout::operator==( const CTensorLayout& other ) const
 	return true;
 }
 
-// Returns true if data in blob is not in the same order, as it would be in onnx tensor
+// Returns true if data in blob is not in the same order, as it would be in an onnx tensor
 inline bool IsTransposedLayout( const CTensorLayout& layout )
 {
 	for( int dimIndex = 0; dimIndex < layout.Size() - 1; ++dimIndex ) {
@@ -113,3 +113,4 @@ inline bool IsTransposedLayout( const CTensorLayout& layout )
 }
 
 } // namespace NeoOnnx
+

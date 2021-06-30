@@ -27,6 +27,10 @@ namespace NeoOnnx {
 CBatchNormalizationOperator::CBatchNormalizationOperator( const onnx::NodeProto& batchNormalization, int opsetVersion ) :
 	CLayerOperator( batchNormalization, opsetVersion )
 {
+	// v1 - original
+	// v6 - legacy optimization attributes are removed
+	// v7 - 'is_test' attribute is removed
+	// v9 - 'spatial' attribute is removed
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "operator must have 5 or 6 inputs", *this );
@@ -108,7 +112,7 @@ CPtr<CDnnBlob> CBatchNormalizationOperator::calculateFinalParams( int channels, 
 
 	IMathEngine& mathEngine = scale->GetMathEngine();
 
-	// Calculating final params
+	// Calculate final params
 	CPtr<CDnnBlob> finalParams = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 2, channels );
 
 	CFloatHandleStackVar epsVar( mathEngine );
@@ -126,3 +130,4 @@ CPtr<CDnnBlob> CBatchNormalizationOperator::calculateFinalParams( int channels, 
 }
 
 } // namespace NeoOnnx
+

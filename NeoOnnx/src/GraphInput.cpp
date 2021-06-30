@@ -34,6 +34,7 @@ CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn ) const
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 	source->SetName( Name() );
+	// Store blob in order to save input sizes through serialization
 	source->StoreBlob( true );
 
 	CTensorShape outputShape;
@@ -63,3 +64,4 @@ CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn ) const
 }
 
 } // namespace NeoOnnx
+

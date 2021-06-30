@@ -20,10 +20,6 @@ limitations under the License.
 #include "TensorLayout.h"
 #include "Tensor.h"
 
-namespace NeoML {
-class IMathEngine;
-} // namespace NeoML
-
 namespace NeoOnnx {
 
 // Opset versioning support
@@ -65,7 +61,7 @@ public:
 
 	// Processes input tensors and puts the result to the output array
 	// If data can be calculated the output tensors will be of CDataTensor type
-	// Otherwise output tensors will be of CUserTensor type and corresponding layers will be added to dnn
+	// Otherwise output tensors will be of CUserTensor type and corresponding layers will be added to the dnn
 	virtual void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const = 0;
 
 protected:
@@ -98,3 +94,4 @@ private:
 } // namespace NeoOnnx
 
 #include "OperatorAttributeGetters.inl"
+

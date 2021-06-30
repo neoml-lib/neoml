@@ -68,7 +68,7 @@ bool CLayerOperator::canCalculateOutput( const CTensorArray& inputs ) const
 	return true;
 }
 
-// Builds array of tensors related to the internal dnn
+// Builds an array of tensors related to the internal dnn
 // Also adds required source layers to the internal dnn (with corresponding blobs)
 void CLayerOperator::addInternalDnnSources( const CUserInputMask& inputMask, const CTensorArray& inputs,
 	CTensorArray& internalInputs, CDnn& internalDnn ) const
@@ -92,7 +92,7 @@ void CLayerOperator::addInternalDnnSources( const CUserInputMask& inputMask, con
 	}
 }
 
-// Builds array of sinks (corresponding to the operator outputs)
+// Builds an array of sinks (corresponding to the operator outputs)
 // Also adds those layers to the dnn
 void CLayerOperator::addInternalDnnSinks( const CTensorArray& internalOutputs,
 	CArray<CSinkLayer*>& sinks, CDnn& internalDnn ) const
@@ -132,3 +132,4 @@ void CLayerOperator::extractOutputs( const CTensorArray& internalOutputs, const 
 }
 
 } // namespace NeoOnnx
+

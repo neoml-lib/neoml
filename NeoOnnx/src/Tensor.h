@@ -29,7 +29,7 @@ struct CLayerOutput {
 
 	// NeoML layer
 	CBaseLayer* Layer;
-	// Layer output index (layer may have multiple output)
+	// Layer output index (cause layers may have multiple outputs)
 	int OutputIndex;
 };
 
@@ -44,7 +44,7 @@ public:
 	const CTensorShape& Shape() const { return shape; }
 
 	// Tensor's layout
-	// Contains info about how tensors is represented in memory
+	// Contains info about how the tensor is represented in memory
 	const CTensorLayout& Layout() const { return layout; }
 
 	// Returns true if tensor's data doesn't depend on user data and was calculated during import
@@ -64,7 +64,7 @@ private:
 	// Information about how tensor is represented in memory
 	CTensorLayout layout;
 
-	// Indicates whether tensor's data is calculated during import or not
+	// Indicates whether tensor's data was calculated during import or not
 	bool isCalculated;
 
 	bool checkTensorLayout() const;
@@ -107,13 +107,13 @@ inline bool CTensorBase::checkTensorLayout() const
 // All tensors during Onnx processing can be divided into 2 groups:
 //
 // 1. The tensors whose data depend on the user input. These tensors can't be calculated during import.
-// In that case the tensor is an output of a layer.
+// In that case the tensor is an output of a layer in dnn.
 //
 // 2. The tensors whose data doesn't depend on user input.
-// These tensors' data can (and should) be calculated during import.
+// These tensors' data will be calculated during import.
 // Usually these tensors contain trained weights of the model.
 
-// Tensor with data depending on user input
+// Tensor whose data depends on user input
 class CUserTensor : public CTensorBase {
 public:
 	CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output );
@@ -169,6 +169,8 @@ inline CDataTensor::CDataTensor( const CTensorShape& shape, const CTensorLayout&
 	NeoPresume( checkTensorLayout() );
 }
 
+// Checks that layout is consistent with tensor shape (for debug)
+// Returns false if inconsistency was found
 inline bool CDataTensor::checkTensorLayout() const
 {
 	// Checking that shape, layout and CDnnBlob are matching
@@ -189,3 +191,4 @@ inline bool CDataTensor::checkTensorLayout() const
 typedef CObjectArray<const CTensorBase> CTensorArray;
 
 } // namespace NeoOnnx
+

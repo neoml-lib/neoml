@@ -35,7 +35,7 @@ public:
 	// Graph initializer name
 	const CString& Name() const { return name; }
 
-	// Returns initializer value as data tensor
+	// Returns initializer value as a data tensor
 	CPtr<const CDataTensor> GetDataTensor( IMathEngine& mathEngine );
 
 private:
@@ -46,3 +46,4 @@ private:
 };
 
 } // namespace NeoOnnx
+
