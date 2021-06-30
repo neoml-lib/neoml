@@ -103,7 +103,7 @@ protected:
 
 private:
 	// Operator name
-	CString name;
+	const CString name;
 	// Operator type
 	const CString type;
 	// Operator attributes
