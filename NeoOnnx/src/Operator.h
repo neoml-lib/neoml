@@ -50,7 +50,7 @@ public:
 
 	// Operator's name
 	const CString& Name() const { return name; }
-	// Operator's type
+	// Operator's type ('Conv', 'Pool' etc.)
 	const CString& Type() const { return type; }
 	// Number of inputs
 	int InputCount() const { return inputNames.Size(); }

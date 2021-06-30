@@ -51,9 +51,9 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Registers the class as a NeoOnnx operator for op_type == opName
-#define REGISTER_OPERATOR( classType, opName ) \
-	static COperatorClassRegistrar< classType > __merge__1( _RegisterOperator, __LINE__ )( opName );
+// Registers the given NeoOnnx class (e.g. CConvOperator) as an onnx operator with given opType ('Conv')
+#define REGISTER_OPERATOR( neoOnnxClass, opType ) \
+	static COperatorClassRegistrar<neoOnnxClass> __merge__1( _RegisterOperator, __LINE__ )( opType );
 
 typedef COperator* ( *TCreateOperatorFunction )( const onnx::NodeProto& onnxNode, int opsetVersion );
 
