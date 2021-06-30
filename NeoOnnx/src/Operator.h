@@ -48,9 +48,9 @@ public:
 
 	// Properties
 
-	// Operator's name
+	// Operator name
 	const CString& Name() const { return name; }
-	// Operator's type ('Conv', 'Pool' etc.)
+	// Operator type ('Conv', 'Pool' etc.)
 	const CString& Type() const { return type; }
 	// Number of inputs
 	int InputCount() const { return inputNames.Size(); }
@@ -85,7 +85,7 @@ protected:
 private:
 	// Operator name
 	const CString name;
-	// Operator type
+	// Operator type ('Conv', 'Pool' etc.)
 	const CString type;
 	// Operator attributes
 	CMap<CString, const onnx::AttributeProto&> attributes;

@@ -41,7 +41,7 @@ inline CTensorLayout::CTensorLayout( int dimCount )
 	SetBufferSize( dimCount );
 	// Next dimensions are educated guesses
 	// If they'll match future layers then it will save one transform operation
-	// (transpose can't be avoided anyway)
+	// Transpose (if needed) can't be avoided anyway
 	static_assert( BD_Count == 7, "BD_Count != 7" );
 	switch( dimCount ) {
 		case 0:
