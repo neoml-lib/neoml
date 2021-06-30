@@ -88,7 +88,7 @@ static CPtr<const CUserTensor> convertTensorToHw( const CUserTensor& input, int 
 			newLayout.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
 				: static_cast<TBlobDim>( i + 1 ) );
 		} else {
-			newLayout.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
+			newLayout.Add( i < static_cast<int>( BD_Height ) ? static_cast<TBlobDim>( i )
 				: static_cast<TBlobDim>( i + 2 ) );
 		}
 	}
