@@ -33,7 +33,7 @@ CShapeOperator::CShapeOperator( const onnx::NodeProto& shape, int opsetVersion )
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CShapeOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr );
 	const CTensorShape& inputShape = inputs[0]->Shape();

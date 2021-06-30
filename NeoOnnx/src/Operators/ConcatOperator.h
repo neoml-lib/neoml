@@ -28,7 +28,7 @@ protected:
 	// COperator methods
 	// This layer requires every input to be provided as a user input
 	// That's why we need to override user input mask calculation
-	void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;

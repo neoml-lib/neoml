@@ -33,7 +33,7 @@ CIdentityOperator::CIdentityOperator( const onnx::NodeProto& identity, int opset
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CIdentityOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
+void CIdentityOperator::ProcessTensors( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
 	outputs[0] = inputs[0];
 }

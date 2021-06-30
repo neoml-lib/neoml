@@ -28,9 +28,9 @@ class CLayerOperator : public COperator {
 public:
 	// COperator's interface
 
-	// Default implementation which calls protected GetOutputTensors with default input mask (only first input)
+	// Default implementation which calls protected ProcessTensors with default input mask (only first input)
 	// See comment to the protected version for more details
-	void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 protected:
 	CLayerOperator( const onnx::NodeProto& node, int opsetVersion ) : COperator( node, opsetVersion ) {}
@@ -42,7 +42,7 @@ protected:
 	// inputMask indicates whether i'th input should be a CUserInput of internalDnn (instead of CDataTensor)
 	// e.g. for CConvOperator only first input must be a CUserTensor (filters and free terms should remain as CDataTensor)
 	// on the other hand for CConcatOperator each one of the inputs must be a CUserTensor
-	void GetOutputTensors( const CUserInputMask& inputMask, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
+	void ProcessTensors( const CUserInputMask& inputMask, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
 
 	// Virtual methods
 

@@ -25,7 +25,7 @@ public:
 	CConstantOfShapeOperator( const onnx::NodeProto& constantOfShape, int opsetVersion );
 
 	// COperator methods
-	void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 } // namespace NeoOnnx

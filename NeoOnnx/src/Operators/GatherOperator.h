@@ -26,7 +26,7 @@ public:
 
 	// COperator methods
 	// At this moment this layer can't be emulated by NeoMl
-	void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 } // namespace NeoOnnx

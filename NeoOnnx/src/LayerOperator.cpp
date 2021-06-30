@@ -20,12 +20,12 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-void CLayerOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+void CLayerOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	GetOutputTensors( CUserInputMask( { 0 } ), inputs, dnn, outputs );
+	ProcessTensors( CUserInputMask( { 0 } ), inputs, dnn, outputs );
 }
 
-void CLayerOperator::GetOutputTensors( const CUserInputMask& inputMask, const CTensorArray& inputs,
+void CLayerOperator::ProcessTensors( const CUserInputMask& inputMask, const CTensorArray& inputs,
 	CDnn& dnn, CTensorArray& outputs ) const
 {
 	if( !canCalculateOutput( inputs ) ) {

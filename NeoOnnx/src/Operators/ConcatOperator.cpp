@@ -36,13 +36,13 @@ CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersio
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CConcatOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+void CConcatOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CUserInputMask inputMask;
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
 		inputMask |= inputIndex;
 	}
-	CLayerOperator::GetOutputTensors( inputMask, inputs, dnn, outputs );
+	CLayerOperator::ProcessTensors( inputMask, inputs, dnn, outputs );
 }
 
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
