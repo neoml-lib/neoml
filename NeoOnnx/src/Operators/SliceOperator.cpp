@@ -75,10 +75,8 @@ void CSliceOperator::getAxes( const CTensorArray& inputs, CFastArray<int, 8>& ax
 
 	if( OpsetVersion < 10 ) {
 		// Extracting from attributes
-		if( HasAttribute( "axes" ) ) {
-			axes.Empty();
-			CheckOnnxProtocol( GetAttribute( "axes", axes ), "'axes' attribute is missing", *this );
-		}
+		axes.Empty();
+		GetAttribute( "axes", axes );
 	} else {
 		if( inputs.Size() >= 4 && inputs[3] != nullptr ) {
 			CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided axes", *this );
@@ -130,10 +128,8 @@ void CSliceOperator::getSteps( const CTensorArray& inputs, CFastArray<int, 8>& s
 
 	if( OpsetVersion < 10 ) {
 		// Extracting from attributes
-		if( HasAttribute( "steps" ) ) {
-			steps.Empty();
-			CheckOnnxProtocol( GetAttribute( "steps", steps ), "'steps' attribute is missing", *this );
-		}
+		steps.Empty();
+		GetAttribute( "steps", steps );
 	} else {
 		if( inputs.Size() >= 5 && inputs[4] != nullptr ) {
 			CheckNeoOnnxSupport( inputs[4]->IsCalculated(), "User-provided steps", *this );

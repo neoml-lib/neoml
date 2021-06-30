@@ -43,15 +43,15 @@ void CConstantOfShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn&
 
 	// If "value" attribute is not set then float 0.f is assumed
 	CPtr<const CDnnBlob> valueBlob;
-	if( HasAttribute( "value" ) ) {
-		CPtr<CDataTensor> dataTensor( new CDataTensor( mathEngine ) );
-		CheckOnnxProtocol( GetAttribute( "value", dataTensor ), "'value' attribute is missing" );
+	CPtr<CDataTensor> dataTensor( new CDataTensor( mathEngine ) );
+	if( GetAttribute( "value", dataTensor ) ) {
 		valueBlob = dataTensor->Data();
 	} else {
 		CPtr<CDnnBlob> zero = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 		zero->Clear();
 		valueBlob = zero;
 	}
+	dataTensor = nullptr;
 
 	// Getting output shape from blob
 	CTensorShape outputShape;
