@@ -33,7 +33,7 @@ CPtr<const CSinkLayer> CGraphOutput::AddSinkLayer( const CUserTensor& input, CDn
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
 	sink->SetName( Name() );
 
-	// In order to be compatible with Onnx sinks must return blobs in the onnx-friendly layout (non-transposed)
+	// Sinks must return blobs in the onnx-friendly layout (non-transposed)
 	CPtr<const CUserTensor> currInput = &input;
 	if( IsTransposedLayout( currInput->Layout() ) ) {
 		CTensorLayout onnxLayout = input.Layout();
@@ -48,3 +48,4 @@ CPtr<const CSinkLayer> CGraphOutput::AddSinkLayer( const CUserTensor& input, CDn
 }
 
 } // namespace NeoOnnx
+

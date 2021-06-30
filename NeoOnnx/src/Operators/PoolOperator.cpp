@@ -23,6 +23,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Creates pooling layer for the given pooling type
 static CPtr<CPoolingLayer> createPoolingLayer( CPoolOperatorBase::TPoolType poolType, IMathEngine& mathEngine )
 {
 	static_assert( CPoolOperatorBase::PT_Count == 2, "CPoolOperatorBase::PT_Count != 2" );
@@ -114,7 +115,7 @@ void CPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTenso
 	outputs[0] = new CUserTensor( outputShape, input->Layout(), CLayerOutput( pooling, 0 ) );
 }
 
-// Get pool strides
+// Gets pool strides
 void CPoolOperatorBase::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const
 {
 	GetAttribute( "strides", strides );
@@ -124,7 +125,7 @@ void CPoolOperatorBase::getStrides( const CTensorArray& inputs, CFastArray<int, 
 	}
 }
 
-// Get pad sizes
+// Gets pad sizes
 void CPoolOperatorBase::getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const
 {
 	GetAttribute( "pads", pads );
@@ -139,3 +140,4 @@ void CPoolOperatorBase::getPads( const CTensorArray& inputs, CFastArray<int, 8>&
 }
 
 } // namespace NeoOnnx
+

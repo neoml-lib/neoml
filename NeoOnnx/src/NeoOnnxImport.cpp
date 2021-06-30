@@ -31,8 +31,8 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Checks if all the operators are supported by NeoOnnx
-// Throws exception if some op operators are not supoorted
+// Checks if all of the operators are supported by NeoOnnx
+// Throws an exception if some of the operators are not supoorted
 static void checkOperatorSupport( const onnx::GraphProto& onnxGraph )
 {
 	CHashTable<CString> notSupportedOps;
@@ -51,7 +51,7 @@ static void checkOperatorSupport( const onnx::GraphProto& onnxGraph )
 	}
 }
 
-// Gets opset version from ModelProto
+// Gets opset version from the ModelProto
 static int getOpsetVersion( const onnx::ModelProto& model )
 {
 	for( const auto& opset : model.opset_import() ) {
@@ -69,8 +69,12 @@ static int getOpsetVersion( const onnx::ModelProto& model )
 // Tensor cache used to store all named tensors during graph building
 typedef CMap<CString, CPtr<const CTensorBase>> CTensorCache;
 
-// Adds operator's outputs to the tensor cache and dnn
-static void addOperator( const COperator& op, CTensorCache& tensors, CDnn& dnn )
+// Processes given operator
+// The operator processing includes the following steps:
+// - Get operator's input tensors from the tensor cache
+// - Acquire operator's output tensors and add required layers to the dnn
+// - Add output tensors to the tensor cache
+static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& dnn )
 {
 	CTensorArray inputs;
 	inputs.Add( nullptr, op.InputCount() );
@@ -100,7 +104,7 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
 
-	// Prepare: check if every operator is supported by NeOnnx
+	// Check if every operator is supported by NeOnnx
 	checkOperatorSupport( onnxGraph );
 
 	dnn.DeleteAllLayers();
@@ -127,10 +131,10 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 		inputs.Add( inputTensor->Layer()->GetName() );
 	}
 
-	// Add onnx graph's operator nodes and connect them
+	// Add graph operators
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
 		std::unique_ptr<COperator> op( COperator::CreateOperator( onnxNode, opsetVersion ) );
-		addOperator( *op, tensors, dnn );
+		processOperator( *op, tensors, dnn );
 	}
 
 	// Add graph outputs

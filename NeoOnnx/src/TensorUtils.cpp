@@ -21,7 +21,6 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Gets NeoML blob type from onnx tensor's data type
 TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
 {
 	switch( onnxDataType ) {
@@ -53,7 +52,7 @@ TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-// Gets layer name with given prefix which isn't used in dnn
+// Gets layer name with the given prefix which isn't used in dnn
 static CString getUniqueLayerName( const CDnn& dnn, const CString& prefix )
 {
 	int currIndex = dnn.GetLayerCount();
@@ -231,8 +230,9 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLa
 	}
 
 	// Step 2: reordering dimensions
-	// NeoML has operations only for swapping 2 dimensions
 	// Step 1 guarantees that outputLayout is a permutation of currentTensor.Layout()
+	// NeoML has operations only for swapping 2 dimensions
+	// that's why reordering is implemented as a sequence of swaps
 	for( int dimIndex = 0; dimIndex < dimCount; ++dimIndex ) {
 		TBlobDim inputDim = currentTensor->Layout()[dimIndex];
 		TBlobDim outputDim = outputLayout[dimIndex];
@@ -334,8 +334,8 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 		}
 	}
 
-	// In case of padding odd number of dimnesion by this moment imageResize != nullptr
-	// widthDimIndex is equal to NotFound
+	// In case of padding odd number of dimensions by this moment imageResize != nullptr
+	// and widthDimIndex is equal to NotFound
 	if( imageResize != nullptr ) {
 		currData = addImageResizeLayer( *imageResize, dnn, *currData, heightDimIndex, widthDimIndex );
 	}
@@ -385,14 +385,14 @@ bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second
 		axis = abs( first.Size() - second.Size() );
 	}
 
-	// The shape with lesser number of dimensions must be padded with ones
+	// The shape with lesser number of dimensions must be padded
 	const CTensorShape& lesserShape = first.Size() <= second.Size() ? first : second;
 	const CTensorShape& biggerShape = first.Size() > second.Size() ? first  : second;
 	CTensorShape paddedShape;
 	paddedShape.Add( 1, axis );
 	paddedShape.Add( lesserShape );
 	if( paddedShape.Size() > biggerShape.Size() ) {
-		// Wrong braodcast parameters (axis value is too big)
+		// Wrong broadcast parameters (axis value is too big)
 		return false;
 	}
 	NeoAssert( broadcast.Type == BT_Onnx || paddedShape.Size() == biggerShape.Size() );
@@ -552,24 +552,34 @@ static CPtr<const CDataTensor> broadcastDataTensor( const CDataTensor& input, co
 
 	NeoAssert( broadcast.Type != BT_None );
 
+	// The broadcast of data tensor is done by building temporary dnn which broadcasts user tensor
+	// and running this dnn on the data from the input
 	IMathEngine& mathEngine = input.Data()->GetMathEngine();
 	CRandom random( 0x32456 );
 
 	CDnn internalDnn( random, mathEngine );
+	// Create source layer and provide tensor's data to it
 	CPtr<CSourceLayer> source = new CSourceLayer( mathEngine );
 	source->SetBlob( input.Data()->GetCopy() );
 	internalDnn.AddLayer( *source );
 
+	// Create user tensor of the same shape linked to the source layer of the internal dnn
 	CPtr<const CUserTensor> internalInput = new CUserTensor( input.Shape(), input.Layout(), CLayerOutput( source, 0 ) );
+
+	// Broadcast user tensor
+	// This step adds broadcasting layers to the internal dnn
 	CPtr<const CUserTensor> internalOutput = broadcastUserTensor( *internalInput, broadcast, outputShape );
 	NeoPresume( areShapesEqual( internalOutput->Shape(), outputShape ) );
 
+	// Add sink which will be used to extract broadcasted data from the internal dnn
 	CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
 	sink->Connect( 0, *internalOutput->Layer(), internalOutput->OutputIndex() );
 	internalDnn.AddLayer( *sink );
 
+	// Run dnn on the data from the input
 	internalDnn.RunOnce();
 
+	// Create new data tensor with the blob from the internal dnn sink
 	return new CDataTensor( outputShape, internalOutput->Layout(), *sink->GetBlob() );
 }
 

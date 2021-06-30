@@ -26,7 +26,7 @@ namespace NeoOnnx {
 CShapeOperator::CShapeOperator( const onnx::NodeProto& shape, int opsetVersion ) :
 	COperator( shape, opsetVersion )
 {
-	// This operator doesn't have multiple versions
+	// v1 - original
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -36,6 +36,9 @@ CShapeOperator::CShapeOperator( const onnx::NodeProto& shape, int opsetVersion )
 void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr );
+	// This operator returns input's shape as an 1-dimensional tensor of integers
+	// Due to the fact that tensor's shape doesn't depend on the actual values of tensor elements
+	// this operator always returns CDataTensor
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CTensorLayout outputLayout( 1 );
 	CBlobDesc outputBlobDesc( CT_Int );
@@ -46,3 +49,4 @@ void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTen
 }
 
 } // namespace NeoOnnx
+

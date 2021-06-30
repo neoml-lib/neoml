@@ -60,3 +60,4 @@ CPtr<const CDataTensor> CGraphInitializer::GetDataTensor( IMathEngine& mathEngin
 }
 
 } // namespace NeoOnnx
+

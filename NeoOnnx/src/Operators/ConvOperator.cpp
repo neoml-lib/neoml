@@ -27,9 +27,10 @@ namespace NeoOnnx {
 CConvOperator::CConvOperator( const onnx::NodeProto& conv, int opsetVersion ) :
 	CLayerOperator( conv, opsetVersion ),
 	group( 1 ),
-	autoPad( "auto_pad" )
+	autoPad( "NOTSET" )
 {
-	// The differences between versions are in default values of some flags and supported data types
+	// v1 - original
+	// v6 - default values for 'strides' and 'dilations' attributes are added
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "operator must have 2 or 3 inputs", *this );
@@ -63,7 +64,7 @@ void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	}
 }
 
-// Gets actual kernel shape
+// Gets kernel shape
 void CConvOperator::getKernelShape( const CTensorArray& inputs, CTensorShape& kernelShape ) const
 {
 	const CTensorShape& inputShape = inputs[0]->Shape();
@@ -73,7 +74,7 @@ void CConvOperator::getKernelShape( const CTensorArray& inputs, CTensorShape& ke
 	}
 }
 
-// Gets actual strides
+// Gets strides
 void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const
 {
 	GetAttribute( "strides", strides );
@@ -83,7 +84,7 @@ void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& 
 	}
 }
 
-// Gets actual padding sizes
+// Gets padding sizes
 void CConvOperator::getPads( const CTensorArray& inputs, const CTensorShape& kernelShape, CFastArray<int, 8>& pads ) const
 {
 	GetAttribute( "pads", pads );
@@ -96,7 +97,7 @@ void CConvOperator::getPads( const CTensorArray& inputs, const CTensorShape& ker
 	}
 }
 
-// Gets actual dilation sizes
+// Gets dilation sizes
 void CConvOperator::getDilations( const CTensorArray& inputs, CFastArray<int, 8>& dilations ) const
 {
 	GetAttribute( "dilations", dilations );
@@ -146,9 +147,12 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	const int inputChannels = inputs[0]->Shape()[1];
 
 	if( group == 1 ) {
+		// Non-groupped convolution can be calculated via CConvLayer
 		conv = new CConvLayer( mathEngine );
 		filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoML2dLayout ).Ptr() );
 	} else {
+		// If number of groups is equal to number of channels then this conv can be calculated via CChannelwiseConvLayer
+		// Other cases of groupped convolution aren't supported by NeoML
 		CheckNeoOnnxSupport( filterCount == inputChannels, "non-trivial groupped conv", *this );
 		CheckNeoOnnxSupport( group == inputChannels, "non-trivial groupped conv", *this );
 		conv = new CChannelwiseConvLayer( mathEngine );
@@ -166,10 +170,12 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	CPtr<const CUserTensor> currInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], neoML2dLayout ).Ptr() );
 
 	if( pads[0] >= pads[2] && pads[1] >= pads[3] ) {
-		// This is a valid case for a convolution in NeoML
+		// This is a valid padding for a convolution in NeoML
 		conv->SetPaddingHeight( pads[0] );
 		conv->SetPaddingWidth( pads[1] );
 	} else {
+		// In NeoML convolution doesn't support cases when bottom padding is larger than upper padding
+		// (the same goes for other spatial dimensions)
 		// In this case we have to add explicit padding layer
 		currInput = PadUserTensor( *currInput, pads, 0.f );
 	}
@@ -205,6 +211,7 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	CTensorShape outputShape;
 	calcOutputShape( inputs, kernelShape, strides, pads, dilations, outputShape );
 
+	// In NeoML there is no channelwise convolution for 3-dimensional images
 	CheckNeoOnnxSupport( group == 1, "groupped 3d convolution", *this );
 	for( int dimIndex = 0; dimIndex < dilations.Size(); ++dimIndex ) {
 		CheckNeoOnnxSupport( dilations[dimIndex] == 1, "dilated 3d convolution", *this );
@@ -222,11 +229,13 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	CPtr<const CUserTensor> currInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], neoML3dLayout ).Ptr() );
 	
 	if( pads[0] >= pads[3] && pads[1] >= pads[4] && pads[2] >= pads[5] ) {
-		// This is a valid case for a convolution in NeoML
+		// This is a valid padding for a convolution in NeoML
 		conv->SetPaddingHeight( pads[0] );
 		conv->SetPaddingWidth( pads[1] );
 		conv->SetPaddingDepth( pads[2] );
 	} else {
+		// In NeoML convolution doesn't support cases when bottom padding is larger than upper padding
+		// (the same goes for other spatial dimensions)
 		// In this case we have to add explicit padding layer
 		currInput = PadUserTensor( *currInput, pads, 0.f );
 	}
@@ -246,3 +255,4 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 }
 
 } // namespace NeoOnnx
+

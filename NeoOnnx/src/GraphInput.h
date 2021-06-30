@@ -35,7 +35,7 @@ public:
 	// Graph input name
 	const CString& Name() const { return name; }
 
-	// Adds corresponding source layer to the dnn and returns its output as user tensor
+	// Adds corresponding source layer to the dnn and returns its output as a user tensor
 	CPtr<const CUserTensor> AddSourceLayer( CDnn& dnn ) const;
 
 private:
@@ -46,3 +46,4 @@ private:
 };
 
 } // namespace NeoOnnx
+

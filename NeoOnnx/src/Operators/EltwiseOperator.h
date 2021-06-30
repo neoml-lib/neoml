@@ -39,20 +39,22 @@ public:
 	};
 
 protected:
-	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = NotFound );
+	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = -1 );
 
 	// AddLayers implementation for the given broadcast
-	// The derivatives should call this from their AddLayers
+	// The derivatives should call this method from their AddLayers
 	void AddLayers( const CBroadcast& broadcast, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
 
 private:
 	// Operation performed by this operator
-	TOperation operation;
+	const TOperation operation;
 	// Expected number of arguments (-1 if any number is supported)
-	int argsNum;
+	const int argsNum;
 
 	CPtr<const CTensorBase> prepareSecondInput( const CTensorArray& inputs ) const;
 };
+
+//---------------------------------------------------------------------------------------------------------------------
 
 // Eltwise operators with 2 inputs
 
@@ -90,6 +92,8 @@ public:
 	CDivOperator( const onnx::NodeProto& div, int opsetVersion ) : CEltwiseBinaryOperatorBase( div, opsetVersion, O_Div ) {}
 };
 
+//---------------------------------------------------------------------------------------------------------------------
+
 // Eltwise operators with any number of inputs
 
 // Sum operator
@@ -103,3 +107,4 @@ protected:
 };
 
 } // namespace NeoOnnx
+

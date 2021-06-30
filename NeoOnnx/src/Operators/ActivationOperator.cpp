@@ -34,10 +34,12 @@ void CActivationOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 {
 	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
 	NeoAssert( userInput != nullptr );
+
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
 	activationLayer->SetName( Name() );
 	activationLayer->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *activationLayer );
+
 	outputs[0] = new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( activationLayer, 0 ) );
 }
 
@@ -47,7 +49,7 @@ CAbsOperator::CAbsOperator( const onnx::NodeProto& abs, int opsetVersion ) :
 	CActivationOperatorBase( abs, opsetVersion, AF_Abs )
 {
 	// v1 - original
-	// v6 - removed legacy optimization attributes and added new data types support
+	// v6 - legacy optimization attributes are removed and new data types are supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -60,9 +62,9 @@ CClipOperator::CClipOperator( const onnx::NodeProto& clip, int opsetVersion ) :
 	CActivationOperatorBase( clip, opsetVersion, AF_ReLU )
 {
 	// v1 - original
-	// v6 - removed legacy optimization attributes
-	// v11 - min/max values were moved from attributes to additional inputs
-	// v12 - new data types supported
+	// v6 - legacy optimization attributes are removed
+	// v11 - min/max values are moved from attributes to additional inputs
+	// v12 - new data types are supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 11 ) {
@@ -107,6 +109,8 @@ void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 		}
 	}
 
+	// NeoOnnx emulates Clip operator via ReLU
+	// Other Clip operations are not supported
 	CheckNeoOnnxSupport( minValue == 0, "Clip with non-zero min value", *this );
 	if( maxValue != FLT_MAX ) {
 		relu->SetUpperThreshold( maxValue );
@@ -119,7 +123,7 @@ CEluOperator::CEluOperator( const onnx::NodeProto& elu, int opsetVersion ) :
 	CActivationOperatorBase( elu, opsetVersion, AF_ELU )
 {
 	// v1 - original
-	// v6 - removed legacy optimization attributes
+	// v6 - legacy optimization attributes are removed
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -132,7 +136,7 @@ CLeakyReluOperator::CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int op
 	CActivationOperatorBase( leakyRelu, opsetVersion, AF_LeakyReLU )
 {
 	// v1 - original
-	// v6 - removed legacy optimization attributes
+	// v6 - legacy optimization attributes are removed
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -156,7 +160,7 @@ CHardSigmoidOperator::CHardSigmoidOperator( const onnx::NodeProto& hardSigmoid, 
 	CActivationOperatorBase( hardSigmoid, opsetVersion, AF_HardSigmoid )
 {
 	// v1 - original
-	// v6 - removed legacy optimization attributes
+	// v6 - legacy optimization attributes are removed
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -184,7 +188,7 @@ CReluOperator::CReluOperator( const onnx::NodeProto& relu, int opsetVersion ) :
 	CActivationOperatorBase( relu, opsetVersion, AF_ReLU )
 {
 	// v1 - original
-	// v6 - removed legacy optimization attributes
+	// v6 - legacy optimization attributes are removed
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -197,7 +201,7 @@ CSigmoidOperator::CSigmoidOperator( const onnx::NodeProto& sigmoid, int opsetVer
 	CActivationOperatorBase( sigmoid, opsetVersion, AF_Sigmoid )
 {
 	// v1 - original
-	// v6 - removed legacy optimization attributes
+	// v6 - legacy optimization attributes are removed
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -210,7 +214,7 @@ CTanhOperator::CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion ) :
 	CActivationOperatorBase( tanh, opsetVersion, AF_Tanh )
 {
 	// v1 - original
-	// v6 - removed legacy optimization attributes
+	// v6 - legacy optimization attributes are removed
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -218,3 +222,4 @@ CTanhOperator::CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion ) :
 }
 
 } // namespace NeoOnnx
+

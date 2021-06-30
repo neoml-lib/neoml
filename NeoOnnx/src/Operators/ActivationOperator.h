@@ -19,7 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Base class for operators which are activation functions in NeoML
+// Base class for operators which implement activation functions from NeoML
 class CActivationOperatorBase : public CLayerOperator {
 public:
 	CActivationOperatorBase( const onnx::NodeProto& onnxNode, int opsetVersion,
@@ -98,3 +98,4 @@ public:
 };
 
 } // namespace NeoOnnx
+

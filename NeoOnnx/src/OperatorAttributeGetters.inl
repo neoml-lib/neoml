@@ -19,6 +19,8 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// This file contains implementations for COperator's methods which are working with attributes
+
 template<class T>
 inline bool COperator::GetAttribute( const CString& name, T& value ) const
 {
@@ -133,3 +135,4 @@ inline void COperator::getAttributeValue<CPtr<CDataTensor>>( const onnx::Attribu
 }
 
 } // namespace NeoOnnx
+
