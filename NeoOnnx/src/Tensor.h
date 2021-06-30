@@ -25,8 +25,7 @@ typedef CFastArray<int, 8> CTensorShape;
 // NeoML layer's output
 struct CLayerOutput {
 	CLayerOutput() : Layer( nullptr ), OutputIndex( NotFound ) {}
-	CLayerOutput( CBaseLayer* layer, int outputIndex ) :
-		Layer( layer ), OutputIndex( outputIndex ) {}
+	CLayerOutput( CBaseLayer* layer, int outputIndex ) : Layer( layer ), OutputIndex( outputIndex ) {}
 
 	// NeoML layer
 	CBaseLayer* Layer;
@@ -40,14 +39,16 @@ public:
 	// Number of tensors dimensions
 	int DimCount() const { return shape.Size(); }
 
-	// Tensor's shape. The shape always describes Onnx axes.
+	// Tensor's shape
+	// The shape always describes Onnx axes
 	const CTensorShape& Shape() const { return shape; }
 
-	// Tensor's layout. Contains info about how tensors is represented in memory.
+	// Tensor's layout
+	// Contains info about how tensors is represented in memory
 	const CTensorLayout& Layout() const { return layout; }
 
-	// Returns true if tensor's data doesn't depend on user data and was calculated during import.
-	// Used for optimization (avoid unnecessary dynamic_cast).
+	// Returns true if tensor's data doesn't depend on user data and was calculated during import
+	// Used for optimization (avoid unnecessary dynamic_cast)
 	bool IsCalculated() const { return isCalculated; }
 	
 protected:
@@ -57,13 +58,13 @@ protected:
 	virtual ~CTensorBase() = default;
 
 private:
-	// Tensor's shape. Always on Onnx order.
+	// Tensor's shape. Always on Onnx order
 	CTensorShape shape;
 
-	// Information about how tensor is represented in memory.
+	// Information about how tensor is represented in memory
 	CTensorLayout layout;
 
-	// Indicates whether tensor's data is calculated during import or not.
+	// Indicates whether tensor's data is calculated during import or not
 	bool isCalculated;
 
 	bool checkTensorLayout() const;
@@ -105,11 +106,11 @@ inline bool CTensorBase::checkTensorLayout() const
 
 // All tensors during Onnx processing can be divided into 2 groups:
 //
-// 1. The tensors whose data depend on the user input. These tensors can't be calculated during conversion.
-// In that case tensor is the result of the work of a layer.
+// 1. The tensors whose data depend on the user input. These tensors can't be calculated during import.
+// In that case the tensor is an output of a layer.
 //
 // 2. The tensors whose data doesn't depend on user input.
-// These tensors' data can (and should) be calculated during generation.
+// These tensors' data can (and should) be calculated during import.
 // Usually these tensors contain trained weights of the model.
 
 // Tensor with data depending on user input
