@@ -29,24 +29,25 @@ CConstantOperator::CConstantOperator( const onnx::NodeProto& constant, int opset
 	// v1 - original
 	// v9 - supported new data types
 	// v11 - added "sparse_value" attribute
-	// v12 - added new attributes: "value_*"
+	// v12 - added new attributes: "value_float", "value_ints" etc.
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 0, "operator must have no inputs", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
-
-	if( OpsetVersion >= 11 ) {
-		// In ONNX value can be passed through various attributes
-		// like 'sparse_value', 'value_float', 'value_ints' etc.
-		// NeoOnnx supports only "value" attribute
-		CheckNeoOnnxSupport( HasAttribute( "value" ), "'*_value' or 'value_*' attributes", *this );
-	}
 }
 
 void CConstantOperator::ProcessTensors( const CTensorArray& /* inputs */, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CPtr<CDataTensor> value( new CDataTensor( dnn.GetMathEngine() ) );
-	CheckOnnxProtocol( GetAttribute( "value", value ), "'value' attribute is missing" );
+	if( OpsetVersion < 11 ) {
+		// In earlier opset versions Constant operator must have 'value' attribute
+		CheckOnnxProtocol( GetAttribute( "value", value ), "'value' attribute is missing", *this );
+	} else {
+		// Since opset version 11 value may be passed through different attributes
+		// like 'sparse_value', 'value_float', 'value_ints' etc.
+		// For now NeoOnnx supports only 'value' attribute
+		CheckNeoOnnxSupport( GetAttribute( "value", value ), "Typed version of 'value' attribute", *this );
+	}
 	outputs[0] = value.Ptr();
 }
 

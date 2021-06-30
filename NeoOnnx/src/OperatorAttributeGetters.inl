@@ -19,12 +19,6 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-inline bool COperator::HasAttribute( const CString& name ) const
-{
-	const int pos = attributes.GetFirstPosition( name );
-	return pos != NotFound;
-}
-
 template<class T>
 inline bool COperator::GetAttribute( const CString& name, T& value ) const
 {

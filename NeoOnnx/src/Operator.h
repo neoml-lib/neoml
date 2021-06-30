@@ -71,9 +71,6 @@ public:
 protected:
 	COperator( const onnx::NodeProto& node, int opsetVersion );
 
-	// Returns true if operator has attribute with the given name
-	bool HasAttribute( const CString& name ) const;
-
 	// Gets attribute value
 	// Returns false if there is no attribute with the given name
 	template<class T>

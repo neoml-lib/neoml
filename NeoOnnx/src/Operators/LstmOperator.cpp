@@ -40,11 +40,6 @@ CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
 	CheckNeoOnnxSupport( direction != "bidirectional", "bidirectional LSTM", *this );
 
 	CheckOnnxProtocol( GetAttribute( "hidden_size", hiddenSize ), "'hidden_size' attribute is missing", *this );
-
-	CheckNeoOnnxSupport( !HasAttribute( "clip" ), "'clip' attribute", *this );
-	CheckNeoOnnxSupport( !HasAttribute( "activations" ), "different activations", *this );
-	CheckNeoOnnxSupport( !HasAttribute( "activation_alpha" ), "'activation_alpha' attirbute", *this );
-	CheckNeoOnnxSupport( !HasAttribute( "activation_beta" ), "'activation_beta' attirbute", *this );
 }
 
 void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
