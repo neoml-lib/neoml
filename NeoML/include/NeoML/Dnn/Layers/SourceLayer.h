@@ -24,7 +24,7 @@ namespace NeoML {
 class NEOML_API CSourceLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CSourceLayer )
 public:
-	explicit CSourceLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnSourceLayer", false ), storeBlob( true ) {}
+	explicit CSourceLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnSourceLayer", false ), storeBlob( false ) {}
 
 	// Sets the input data blob
 	void SetBlob( CDnnBlob* blob );
