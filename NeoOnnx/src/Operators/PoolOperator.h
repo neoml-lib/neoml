@@ -39,9 +39,6 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const final;
 
 private:
-	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;
-	void getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;
-
 	// Pooling type
 	TPoolType poolType;
 	// Padding mode
@@ -50,6 +47,9 @@ private:
 	bool includePad;
 	// Shape of pool kernel
 	CFastArray<int, 8> kernelShape;
+
+	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;
+	void getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;
 };
 
 // MaxPool operator
