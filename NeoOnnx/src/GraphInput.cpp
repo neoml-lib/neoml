@@ -34,6 +34,7 @@ CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn ) const
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 	source->SetName( Name() );
+	source->StoreBlob( true );
 
 	CTensorShape outputShape;
 	outputShape.SetBufferSize( valueInfo.type().tensor_type().shape().dim_size() );
