@@ -70,7 +70,7 @@ static int getOpsetVersion( const onnx::ModelProto& model )
 typedef CMap<CString, CPtr<const CTensorBase>> CTensorCache;
 
 // Adds operator's outputs to the tensor cache and dnn
-static void addOperator( COperator& op, CTensorCache& tensors, CDnn& dnn )
+static void addOperator( const COperator& op, CTensorCache& tensors, CDnn& dnn )
 {
 	CTensorArray inputs;
 	inputs.Add( nullptr, op.InputCount() );
