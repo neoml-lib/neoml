@@ -46,12 +46,12 @@ public:
 	// Tensor's layout. Contains info about how tensors is represented in memory.
 	const CTensorLayout& Layout() const { return layout; }
 
-	// Returns true if tensor's data doesn't depend on user data
-	// Used for optimization (avoid unnecessary dynammic_cast)
-	virtual bool IsCalculated() const = 0;
+	// Returns true if tensor's data doesn't depend on user data and was calculated during import.
+	// Used for optimization (avoid unnecessary dynamic_cast).
+	bool IsCalculated() const { return isCalculated; }
 	
 protected:
-	CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout );
+	CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout, bool _isCalculated );
 	CTensorBase( const CTensorBase& other ) = delete;
 	CTensorBase& operator=( const CTensorBase& other ) = delete;
 	virtual ~CTensorBase() = default;
@@ -60,14 +60,18 @@ private:
 	// Tensor's shape. Always on Onnx order.
 	CTensorShape shape;
 
-	// Information about how tensor is represented in memory
+	// Information about how tensor is represented in memory.
 	CTensorLayout layout;
+
+	// Indicates whether tensor's data is calculated during import or not.
+	bool isCalculated;
 
 	bool checkTensorLayout() const;
 };
 
-inline CTensorBase::CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout ) :
-	layout( _layout )
+inline CTensorBase::CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout, bool _isCalculated ) :
+	layout( _layout ),
+	isCalculated( _isCalculated )
 {
 	_shape.CopyTo( shape );
 	NeoPresume( checkTensorLayout() );
@@ -113,9 +117,6 @@ class CUserTensor : public CTensorBase {
 public:
 	CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output );
 
-	// CTensorBase methods implementation
-	bool IsCalculated() const override { return false; }
-
 	// Information about corresponding layer and its' output index
 	const CLayerOutput& LayerOutput() const { return layerOutput; }
 	CBaseLayer* Layer() const { return layerOutput.Layer; }
@@ -127,7 +128,7 @@ private:
 };
 
 inline CUserTensor::CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output ) :
-	CTensorBase( shape, layout ),
+	CTensorBase( shape, layout, false ),
 	layerOutput( output )
 {
 	NeoPresume( output.Layer != nullptr );
@@ -142,9 +143,6 @@ public:
 	explicit CDataTensor( IMathEngine& mathEngine );
 	CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& data );
 
-	// CTensorBase methods implementation
-	bool IsCalculated() const override { return true; }
-
 	// Blob with data
 	// Data ordering depends on CTensorBase::GetLayout
 	const CDnnBlob* Data() const { return data.Ptr(); }
@@ -157,14 +155,14 @@ private:
 };
 
 inline CDataTensor::CDataTensor( IMathEngine& mathEngine ) :
-	CTensorBase( CTensorShape(), CTensorLayout() ),
+	CTensorBase( CTensorShape(), CTensorLayout(), true ),
 	data( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
 {
 	NeoPresume( checkTensorLayout() );
 }
 
 inline CDataTensor::CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& _data ) :
-	CTensorBase( shape, layout ),
+	CTensorBase( shape, layout, true ),
 	data( &_data )
 {
 	NeoPresume( checkTensorLayout() );
