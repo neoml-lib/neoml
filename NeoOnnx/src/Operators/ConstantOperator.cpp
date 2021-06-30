@@ -43,7 +43,7 @@ CConstantOperator::CConstantOperator( const onnx::NodeProto& constant, int opset
 	}
 }
 
-void CConstantOperator::GetOutputTensors( const CTensorArray& /* inputs */, CDnn& dnn, CTensorArray& outputs ) const
+void CConstantOperator::ProcessTensors( const CTensorArray& /* inputs */, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CPtr<CDataTensor> value( new CDataTensor( dnn.GetMathEngine() ) );
 	CheckOnnxProtocol( GetAttribute( "value", value ), "'value' attribute is missing" );

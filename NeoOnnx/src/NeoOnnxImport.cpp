@@ -84,7 +84,7 @@ static void addOperator( const COperator& op, CTensorCache& tensors, CDnn& dnn )
 
 	CTensorArray outputs;
 	outputs.Add( nullptr, op.OutputCount() );
-	op.GetOutputTensors( inputs, dnn, outputs );
+	op.ProcessTensors( inputs, dnn, outputs );
 
 	for( int outputIndex = 0; outputIndex < op.OutputCount(); ++outputIndex ) {
 		const CString& outputName = op.OutputName( outputIndex );

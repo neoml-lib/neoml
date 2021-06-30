@@ -63,10 +63,10 @@ public:
 
 	// Virtual methods
 
-	// Puts output tensors to the output array
+	// Processes input tensors and puts the result to the output array
 	// If data can be calculated the output tensors will be of CDataTensor type
 	// Otherwise output tensors will be of CUserTensor type and corresponding layers will be added to dnn
-	virtual void GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const = 0;
+	virtual void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const = 0;
 
 protected:
 	COperator( const onnx::NodeProto& node, int opsetVersion );

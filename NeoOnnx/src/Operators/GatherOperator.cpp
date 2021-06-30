@@ -33,7 +33,7 @@ CGatherOperator::CGatherOperator( const onnx::NodeProto& gather, int opsetVersio
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CGatherOperator::GetOutputTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+void CGatherOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	// This is a stub for a specific case: integer 1-dimensional data
 	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "User-provided data", *this );
