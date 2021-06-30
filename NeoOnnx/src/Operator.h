@@ -79,25 +79,6 @@ protected:
 	template<class T>
 	bool GetAttribute( const CString& name, T& value ) const;
 
-	void DebugPrintInputs( const CTensorArray& inputs ) const
-	{
-		printf( "Operator: %s(%s)\n", static_cast<const char*>( Name() ), static_cast<const char*>( Type() ) );
-		for( int i = 0; i < inputs.Size(); ++i ) {
-			::printf( "  input[%d]:", i );
-			if( inputs[i] == nullptr ) {
-				::printf( "  NULL\n" );
-				continue;
-			}
-			::printf( inputs[i]->IsCalculated() ? "  DATA " : "  USER " );
-			const CTensorShape& inputShape = inputs[i]->Shape();
-			for( int j = 0 ;j < inputShape.Size(); ++j ) {
-				::printf( " %d", inputShape[j] );
-			}
-			::printf( "\n" );
-		}
-		printf( "\n" );
-	}
-
 	// Opset version
 	const int OpsetVersion;
 
