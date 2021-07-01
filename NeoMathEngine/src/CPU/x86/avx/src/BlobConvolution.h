@@ -170,7 +170,7 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, i
 		return false;
 	}
 	if( 
-		FltCnt == 32 ||
+		//FltCnt == 32 ||
 		FltCnt == 24 ||
 		FltCnt == 18 ||
 		FltCnt == 6 ) {
@@ -185,11 +185,11 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt )
 {
 	switch( filterCount ) {
-	case 32:
-		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<32>( mathEngine,
-			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
-			paddingHeight, paddingWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
+	//case 32:
+	//	return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<32>( mathEngine,
+	//		channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+	//		paddingHeight, paddingWidth, strideHeight, strideWidth,
+	//		dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
 	case 24:
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24>( mathEngine,
 			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
