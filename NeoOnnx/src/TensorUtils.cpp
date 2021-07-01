@@ -78,17 +78,18 @@ static CPtr<const CUserTensor> convertTensorToHw( const CUserTensor& input, int 
 
 	CTensorLayout newLayout;
 	newLayout.SetBufferSize( input.DimCount() );
+	TBlobDim unusedAxis = BD_BatchLength;
 	for( int i = 0; i < input.DimCount(); ++i ) {
 		if( i == heightDimIndex ) {
 			newLayout.Add( BD_Height );
 		} else if( i == widthDimIndex ) {
 			newLayout.Add( BD_Width );
 		} else if( widthDimIndex == NotFound ) {
-			newLayout.Add( i < static_cast<int>( BD_Width ) ? static_cast<TBlobDim>( i )
-				: static_cast<TBlobDim>( i + 1 ) );
+			newLayout.Add( unusedAxis < BD_Height ? unusedAxis : unusedAxis + 1 );
+			++unusedAxis;
 		} else {
-			newLayout.Add( i < static_cast<int>( BD_Height ) ? static_cast<TBlobDim>( i )
-				: static_cast<TBlobDim>( i + 2 ) );
+			newLayout.Add( unusedAxis < BD_Height ? unusedAxis : unusedAxis + 2 );
+			++unusedAxis;
 		}
 	}
 
