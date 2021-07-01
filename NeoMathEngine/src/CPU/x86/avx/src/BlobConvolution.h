@@ -601,6 +601,11 @@ inline void CBlobConvolution<FltCnt>::rotateLeft2( __m256& y )
 
 } // namespace NeoML
 
+#ifndef _mm256_set_m128
+// This instruction is defined since 8 gcc in avxintrin.h
+#define _mm256_set_m128( hi, lo) _mm256_insertf128_ps( _mm256_castps128_ps256( lo ), ( hi ), 0x1 )
+#endif
+
 // Class specializations
 #include <BlobConvolution_FltCnt_6.h>
 #include <BlobConvolution_FltCnt_18.h>
