@@ -48,6 +48,38 @@ void CCpuMathEngine::VectorCopy(const CFloatHandle& firstHandle, const CConstFlo
 	vectorCopy( GetRaw( firstHandle ), GetRaw( secondHandle ), vectorSize );
 }
 
+void CCpuMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
+	const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth)
+{
+	ASSERT_EXPR( toHandle.GetMathEngine() == this );
+	ASSERT_EXPR( fromHandle.GetMathEngine() == this );
+	for( int i = 0; i < BD_Count; i++ ) {
+		ASSERT_EXPR( fromDesc.DimSize( i ) == 1 || fromDesc.DimSize( i ) == toDesc.DimSize( i ) );
+	}
+
+	int curSize = fromDesc.BlobSize() * additionalWidth;
+	int copySize = additionalWidth;
+	float* to = GetRaw( toHandle );
+	const float* from = GetRaw( fromHandle );
+	vectorCopy( to, from, curSize );
+
+	for( int i = BD_Count - 1; i >= 0; i-- ) {
+		if( toDesc.DimSize( i ) != fromDesc.DimSize( i ) ) {
+			float* fromPtr = to + curSize - copySize;
+			float* toPtr = to + curSize * toDesc.DimSize( i ) - copySize;
+			for( int j = 0; j < curSize / copySize; j++ ) {
+				for( int k = 0; k < toDesc.DimSize( i ); k++ ) {
+					vectorCopy( toPtr, fromPtr, copySize );
+					toPtr -= copySize;
+				}
+				fromPtr -= copySize;
+			}
+			curSize *= toDesc.DimSize( i );
+		}
+		copySize *= toDesc.DimSize( i );
+	}
+}
+
 void CCpuMathEngine::VectorAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {

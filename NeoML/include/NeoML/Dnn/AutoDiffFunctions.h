@@ -98,11 +98,20 @@ NEOML_API CPtr<const CDnnBlob> Exp( const CDnnBlob* first );
 
 // Finds values of the k largest elements in the blob.
 // The result is a blob of size k.
-CPtr<const CDnnBlob> NEOML_API TopK( const CDnnBlob* first, int k );
+NEOML_API CPtr<const CDnnBlob> TopK( const CDnnBlob* first, int k );
 
 // Creates the blob each element of which is the clipped value of the corresponding element of the specified blob.
 // res[i] = min( max(first[i], minValue), maxValue )
 NEOML_API CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float minValue, float maxValue );
+
+// Merges blobs along given axis
+NEOML_API CPtr<const CDnnBlob> Stack( const CObjectArray<CDnnBlob>& blobs, int axis );
+
+// Change the blob shape. The total blob size must remain the same.
+NEOML_API void Reshape( CDnnBlob* first, const CBlobDesc& desc );
+
+// Broadcast the blob.
+NEOML_API CPtr<const CDnnBlob> Broadcast( const CDnnBlob* first, const CBlobDesc& desc );
 
 // Calculates the binary cross-entropy for two blobs: the first one contains correct labels, the second one contains predictions.
 // result = (1 - labels) * x + log(1 + exp(-x))

@@ -37,6 +37,9 @@ public:
 	// Copying the second vector values into the first
 	virtual void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) = 0;
 	virtual void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) = 0;
+	// Broadcasting the copy to new shape
+	virtual void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 
 	// Filling a vector with the specified value
 	virtual void VectorFill(const CFloatHandle& result, float value, int vectorSize) = 0;

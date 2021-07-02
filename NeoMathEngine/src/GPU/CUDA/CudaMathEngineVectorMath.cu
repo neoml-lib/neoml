@@ -44,6 +44,12 @@ void CCudaMathEngine::VectorCopy(const CIntHandle& first, const CConstIntHandle&
 	ASSERT_CUDA( cudaMemcpy(GetRaw(first), GetRaw(second), vectorSize * sizeof(int), cudaMemcpyDeviceToDevice));
 }
 
+void CCudaMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
+	const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth)
+{
+	ASSERT_EXPR( false );
+}
+
 void CCudaMathEngine::VectorFill(const CFloatHandle& result, float value, int vectorSize)
 {
 	ASSERT_EXPR(result.GetMathEngine() == this);

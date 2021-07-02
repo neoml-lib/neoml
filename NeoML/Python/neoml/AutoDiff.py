@@ -35,7 +35,7 @@ def const(math_engine, shape, data):
     if numpy.isscalar(data):
         return Blob(PythonWrapper.blob_const(math_engine._internal, np_shape, float(data)))
 
-    np_data = numpy.array(data, copy=False, order='C')
+    np_data = numpy.array(data, dtype=numpy.float32, copy=False, order='C')
 
     if len(np_data.shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')

@@ -76,6 +76,26 @@ static bool isConsequentAxes( const CArray<int>& axes )
 	return true;
 }
 
+static CPtr<CDnnBlob> diagJacobianToFull( const CPtr<CDnnBlob>& diag )
+{
+	IMathEngine& mathEngine = diag->GetMathEngine();
+	const int width = diag->GetObjectSize();
+	CPtr<CDnnBlob> full = CDnnBlob::CreateBlob( mathEngine, { width, 1, 1, 1, 1, 1, width } );
+	mathEngine.VectorFill( full->GetData(), 0.f, width * width );
+	mathEngine.AddDiagMatrixToMatrix( diag->GetData(), full->GetData(),
+		width, width, full->GetData() );
+	return full;
+}
+
+static CBlobDesc getBroadcastedDesc( const CBlobDesc& firstDesc, const CBlobDesc& secondDesc )
+{
+	CBlobDesc res( firstDesc.GetDataType() );
+	for( int i = 0; i < BD_Count; i++ ) {
+		res.SetDimSize( i, max( firstDesc.DimSize( i ), secondDesc.DimSize( i ) ) );
+	}
+	return res;
+}
+
 //------------------------------------------------------------------------------------------------------------
 
 CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, float data, const CBlobDesc& desc )
@@ -96,7 +116,7 @@ CPtr<const CDnnBlob> Const( IMathEngine& mathEngine, const float* data, const CB
 
 class CTapeAdd : public ITapeOperation {
 public:
-	CTapeAdd( const CDnnBlob& first, const CDnnBlob* second );
+	CTapeAdd( const CDnnBlob* first, const CDnnBlob* second );
 
 	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
@@ -105,8 +125,8 @@ private:
 	CPtr<const CDnnBlob> second;
 };
 
-CTapeAdd::CTapeAdd( const CDnnBlob& _first, const CDnnBlob* _second ) :
-	first( &_first ),
+CTapeAdd::CTapeAdd( const CDnnBlob* _first, const CDnnBlob* _second ) :
+	first( _first ),
 	second( _second )
 {
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 || dynamic_cast<const CTapeBlob*>(second.Ptr()) != 0 );
@@ -116,6 +136,7 @@ CPtr<CDnnBlob> CTapeAdd::Jacobian( const CTapeBlob* var ) const
 {
 	CPtr<CDnnBlob> firstJacobian = callJacobian( first, var );
 	CPtr<CDnnBlob> secondJacobian = callJacobian( second, var );
+
 	if( firstJacobian == 0 ) {
 		return secondJacobian;
 	}
@@ -141,24 +162,29 @@ CPtr<const CDnnBlob> Add( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
-	NeoAssert( first->GetDataSize() == second->GetDataSize() );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
-	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( first );
+	CBlobDesc broadcastedDesc = getBroadcastedDesc( first->GetDesc(), second->GetDesc() );
+	CPtr<const CDnnBlob> firstBlob = Broadcast( first, broadcastedDesc );
+	CPtr<const CDnnBlob> secondBlob = Broadcast( second, broadcastedDesc );
+
+	NeoAssert( firstBlob->GetDataSize() == secondBlob->GetDataSize() );
+
+	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( firstBlob.Ptr() );
 	IGradientTape* tape1 = tapeBlob1 != 0 ? tapeBlob1->Tape() : 0;
-	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( second );
+	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( secondBlob.Ptr() );
 	IGradientTape* tape2 = tapeBlob2 != 0 ? tapeBlob2->Tape() : 0;
 
 	NeoAssert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
 
 	IGradientTape* tape = tape1 != 0 ? tape1 : tape2;
 
-	CPtr<CTapeBlob> result( new CTapeBlob( tape, first->GetMathEngine(), first->GetDesc() ) );
-	mathEngine.VectorAdd(first->GetData(), second->GetData(), result->GetData(), result->GetDataSize());
+	CPtr<CTapeBlob> result( new CTapeBlob( tape, firstBlob->GetMathEngine(), firstBlob->GetDesc() ) );
+	mathEngine.VectorAdd( firstBlob->GetData(), secondBlob->GetData(), result->GetData(), result->GetDataSize() );
 
 	if( tape != 0 ) {
-		CPtr<ITapeOperation> operation( new CTapeAdd( *first, second ) ); 
+		CPtr<ITapeOperation> operation( new CTapeAdd( firstBlob, secondBlob ) ); 
 		tape->Add( result, operation );
 	}
 	return result.Ptr();
@@ -179,7 +205,7 @@ CPtr<const CDnnBlob> Add( const CDnnBlob* first, float second )
 	mathEngine.VectorAddValue(first->GetData(), result->GetData(), result->GetDataSize(), secondHandle );
 
 	if( tape != 0 ) {
-		CPtr<ITapeOperation> operation( new CTapeAdd( *first, nullptr ) ); 
+		CPtr<ITapeOperation> operation( new CTapeAdd( first, nullptr ) ); 
 		tape->Add( result, operation );
 	}
 	return result.Ptr();
@@ -246,24 +272,29 @@ CPtr<const CDnnBlob> Sub( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
-	NeoAssert( first->GetDesc().HasEqualDimensions( second->GetDesc() ) );
+
+	CBlobDesc broadcastedDesc = getBroadcastedDesc( first->GetDesc(), second->GetDesc() );
+	CPtr<const CDnnBlob> firstBlob = Broadcast( first, broadcastedDesc );
+	CPtr<const CDnnBlob> secondBlob = Broadcast( second, broadcastedDesc );
+
+	NeoAssert( firstBlob->GetDesc().HasEqualDimensions( secondBlob->GetDesc() ) );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
-	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( first );
+	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( firstBlob.Ptr() );
 	IGradientTape* tape1 = tapeBlob1 != 0 ? tapeBlob1->Tape() : 0;
-	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( second );
+	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( secondBlob.Ptr() );
 	IGradientTape* tape2 = tapeBlob2 != 0 ? tapeBlob2->Tape() : 0;
 
 	NeoAssert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
 
 	IGradientTape* tape = tape1 != 0 ? tape1 : tape2;
 
-	CPtr<CTapeBlob> result( new CTapeBlob( tape, first->GetMathEngine(), first->GetDesc() ) );
-	mathEngine.VectorSub(first->GetData(), second->GetData(), result->GetData(), result->GetDataSize());
+	CPtr<CTapeBlob> result( new CTapeBlob( tape, firstBlob->GetMathEngine(), firstBlob->GetDesc() ) );
+	mathEngine.VectorSub( firstBlob->GetData(), secondBlob->GetData(), result->GetData(), result->GetDataSize() );
 
 	if( tape != 0 ) {
-		CPtr<ITapeOperation> operation( new CTapeSub( first, second ) ); 
+		CPtr<ITapeOperation> operation( new CTapeSub( firstBlob, secondBlob ) ); 
 		tape->Add( result, operation );
 	}
 	return result.Ptr();
@@ -311,7 +342,7 @@ CPtr<const CDnnBlob> Sub( float first, const CDnnBlob* second )
 
 class CTapeMul : public ITapeOperation {
 public:
-	explicit CTapeMul( const CDnnBlob& first, const CDnnBlob& second );
+	explicit CTapeMul( const CDnnBlob* first, const CDnnBlob* second );
 
 	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
@@ -320,9 +351,9 @@ private:
 	CPtr<const CDnnBlob> second;
 };
 
-CTapeMul::CTapeMul( const CDnnBlob& _first, const CDnnBlob& _second ) :
-	first( &_first ),
-	second( &_second )
+CTapeMul::CTapeMul( const CDnnBlob* _first, const CDnnBlob* _second ) :
+	first( _first ),
+	second( _second )
 {
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 || dynamic_cast<const CTapeBlob*>(second.Ptr()) != 0 );
 }
@@ -386,24 +417,29 @@ CPtr<const CDnnBlob> Mul( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
-	NeoAssert( first->GetDataSize() == second->GetDataSize() );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
-	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( first );
+	CBlobDesc broadcastedDesc = getBroadcastedDesc( first->GetDesc(), second->GetDesc() );
+	CPtr<const CDnnBlob> firstBlob = Broadcast( first, broadcastedDesc );
+	CPtr<const CDnnBlob> secondBlob = Broadcast( second, broadcastedDesc );
+
+	NeoAssert( firstBlob->GetDataSize() == secondBlob->GetDataSize() );
+
+	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( firstBlob.Ptr() );
 	IGradientTape* tape1 = tapeBlob1 != 0 ? tapeBlob1->Tape() : 0;
-	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( second );
+	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( secondBlob.Ptr() );
 	IGradientTape* tape2 = tapeBlob2 != 0 ? tapeBlob2->Tape() : 0;
 
 	NeoAssert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
 
 	IGradientTape* tape = tape1 != 0 ? tape1 : tape2;
 
-	CPtr<CTapeBlob> result( new CTapeBlob( tape, mathEngine, first->GetDesc() ) );
-	mathEngine.VectorEltwiseMultiply( first->GetData(), second->GetData(), result->GetData(), result->GetDataSize() );
+	CPtr<CTapeBlob> result( new CTapeBlob( tape, mathEngine, firstBlob->GetDesc() ) );
+	mathEngine.VectorEltwiseMultiply( firstBlob->GetData(), secondBlob->GetData(), result->GetData(), result->GetDataSize() );
 
 	if( tape != 0 ) {
-		CPtr<ITapeOperation> operation( new CTapeMul( *first, *second ) ); 
+		CPtr<ITapeOperation> operation( new CTapeMul( firstBlob, secondBlob ) ); 
 		tape->Add( result, operation );
 	}
 
@@ -427,7 +463,7 @@ CPtr<const CDnnBlob> Mul( float first, const CDnnBlob* second )
 
 class CTapeDiv : public ITapeOperation {
 public:
-	explicit CTapeDiv( const CDnnBlob& first, const CDnnBlob& second );
+	explicit CTapeDiv( const CDnnBlob* first, const CDnnBlob* second );
 
 	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
@@ -436,9 +472,9 @@ private:
 	CPtr<const CDnnBlob> second;
 };
 
-CTapeDiv::CTapeDiv( const CDnnBlob& _first, const CDnnBlob& _second ) :
-	first( &_first ),
-	second( &_second )
+CTapeDiv::CTapeDiv( const CDnnBlob* _first, const CDnnBlob* _second ) :
+	first( _first ),
+	second( _second )
 {
 	NeoAssert( dynamic_cast<const CTapeBlob*>(first.Ptr()) != 0 || dynamic_cast<const CTapeBlob*>(second.Ptr()) != 0 );
 }
@@ -536,24 +572,29 @@ CPtr<const CDnnBlob> Div( const CDnnBlob* first, const CDnnBlob* second )
 {
 	NeoAssert( first != 0 );
 	NeoAssert( second != 0 );
-	NeoAssert( first->GetDataSize() == second->GetDataSize() );
+
+	CBlobDesc broadcastedDesc = getBroadcastedDesc( first->GetDesc(), second->GetDesc() );
+	CPtr<const CDnnBlob> firstBlob = Broadcast( first, broadcastedDesc );
+	CPtr<const CDnnBlob> secondBlob = Broadcast( second, broadcastedDesc );
+
+	NeoAssert( firstBlob->GetDataSize() == secondBlob->GetDataSize() );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
-	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( first );
+	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( firstBlob.Ptr() );
 	IGradientTape* tape1 = tapeBlob1 != 0 ? tapeBlob1->Tape() : 0;
-	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( second );
+	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( secondBlob.Ptr() );
 	IGradientTape* tape2 = tapeBlob2 != 0 ? tapeBlob2->Tape() : 0;
 
 	NeoAssert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
 
 	IGradientTape* tape = tape1 != 0 ? tape1 : tape2;
 
-	CPtr<CTapeBlob> result( new CTapeBlob( tape, mathEngine, first->GetDesc() ) );
-	mathEngine.VectorEltwiseDivide( first->GetData(), second->GetData(), result->GetData(), result->GetDataSize() );
+	CPtr<CTapeBlob> result( new CTapeBlob( tape, mathEngine, firstBlob->GetDesc() ) );
+	mathEngine.VectorEltwiseDivide( firstBlob->GetData(), secondBlob->GetData(), result->GetData(), result->GetDataSize() );
 
 	if( tape != 0 ) {
-		CPtr<ITapeOperation> operation( new CTapeDiv( *first, *second ) ); 
+		CPtr<ITapeOperation> operation( new CTapeDiv( firstBlob, secondBlob ) ); 
 		tape->Add( result, operation );
 	}
 
@@ -1224,6 +1265,174 @@ CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float minValue, float maxValue
 	}
 
 	return result.Ptr();
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+class CTapeStack : public ITapeOperation {
+public:
+	explicit CTapeStack( const CObjectArray<CDnnBlob>& _blobs, int _axis );
+
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
+
+private:
+	CObjectArray<CDnnBlob> blobs;
+	int axis;
+};
+
+CTapeStack::CTapeStack( const CObjectArray<CDnnBlob>& _blobs, int _axis ) :
+	axis( _axis )
+{
+	NeoAssert( axis >= 0 && axis < BD_Count );
+	_blobs.CopyTo( blobs );
+}
+
+CPtr<CDnnBlob> CTapeStack::Jacobian( const CTapeBlob* var ) const
+{
+	IMathEngine& mathEngine = blobs[0]->GetMathEngine();
+	CObjectArray<CDnnBlob> jacobians;
+	jacobians.SetSize( blobs.Size() );
+	int width = 1;
+	int resultAxis = 0;
+	for( int i = 0; i < blobs.Size(); i++ ) {
+		jacobians[i] = callJacobian( blobs[i], var );
+		if( jacobians[i] != 0 ) {
+			width = jacobians[i]->GetObjectSize();
+		}
+	}
+
+	for( int i = 0; i < blobs.Size(); i++ ) {
+		resultAxis += blobs[i]->DimSize( axis );
+		if( jacobians[i] == 0 ) {
+			CBlobDesc desc = blobs[i]->GetDesc();
+			desc.SetDimSize( BD_Channels, desc.DimSize( BD_Channels ) * width );
+			jacobians[i] = CDnnBlob::CreateBlob( mathEngine, desc );
+			mathEngine.VectorFill( jacobians[i]->GetData(), 0.f, jacobians[i]->GetDataSize() );
+		} else {
+			if( jacobians[i]->GetObjectCount() == 1 ) {
+				jacobians[i] = diagJacobianToFull( jacobians[i] );
+			}
+			CBlobDesc desc = blobs[i]->GetDesc();
+			desc.SetDimSize( BD_Channels, desc.DimSize( BD_Channels ) * width );
+			jacobians[i]->ReinterpretDimensions( desc );
+		}
+	}
+
+	CBlobDesc desc = jacobians[0]->GetDesc();
+	desc.SetDimSize( axis, resultAxis );
+	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, desc );
+	CDnnBlob::MergeByDim( mathEngine, static_cast<TBlobDim>( axis ), jacobians, result.Ptr() );
+	result->ReinterpretDimensions( { result->GetDataSize() / width, 1, 1, 1, 1, 1, width } );
+	return result.Ptr();
+}
+
+CPtr<const CDnnBlob> Stack( const CObjectArray<CDnnBlob>& blobs, int axis )
+{
+	IMathEngine& mathEngine = blobs[0]->GetMathEngine();
+	const CTapeBlob* tapeBlob = dynamic_cast<const CTapeBlob*>( blobs[0].Ptr() );
+	IGradientTape* tape = tapeBlob != 0 ? tapeBlob->Tape() : 0;
+	CBlobDesc resultDesc = blobs[0]->GetDesc();
+	int resultAxis = blobs[0]->DimSize( axis );
+	for( int i = 1; i < blobs.Size(); i++ ) {
+		const CTapeBlob* tapeBlob = dynamic_cast<const CTapeBlob*>( blobs[0].Ptr() );
+		IGradientTape* tapeTemp = tapeBlob != 0 ? tapeBlob->Tape() : 0;
+		if( tape == 0 ) {
+			tape = tapeTemp;
+		} else {
+			NeoAssert( tapeTemp == 0 || tape == tapeTemp );
+		}
+		resultAxis += blobs[i]->DimSize( axis );
+	}
+	resultDesc.SetDimSize( axis, resultAxis );
+
+	CPtr<CTapeBlob> result( new CTapeBlob( tape, mathEngine, resultDesc ) );
+	CDnnBlob::MergeByDim( mathEngine, static_cast<TBlobDim>( axis ), blobs, result.Ptr() );
+
+	if( tape != 0 ) {
+		CPtr<ITapeOperation> operation( new CTapeStack( blobs, axis ) ); 
+		tape->Add( result, operation );
+	}
+
+	return result.Ptr();
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+class CTapeBroadcast : public ITapeOperation {
+public:
+	explicit CTapeBroadcast( const CDnnBlob* first, const CBlobDesc& fromDesc );
+
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
+private:
+	CPtr<const CDnnBlob> first;
+	CBlobDesc toDesc;
+};
+
+CTapeBroadcast::CTapeBroadcast( const CDnnBlob* _first, const CBlobDesc& _toDesc ) :
+	first( _first ),
+	toDesc( _toDesc )
+{
+}
+
+CPtr<CDnnBlob> CTapeBroadcast::Jacobian( const CTapeBlob* var ) const
+{
+	CPtr<CDnnBlob> firstJacobian = callJacobian( first, var );
+	if( firstJacobian == 0 ) {
+		return 0;
+	}
+
+	IMathEngine& mathEngine = firstJacobian->GetMathEngine();
+	const int height = firstJacobian->GetObjectCount();
+	const int width = firstJacobian->GetObjectSize();
+
+	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( first->GetMathEngine(), { toDesc.BlobSize(), 1, 1, 1, 1, 1, width } );
+	if( height == 1 && first->GetDataSize() > 1 ) {
+		firstJacobian = diagJacobianToFull( firstJacobian );
+	}
+	mathEngine.BroadcastCopy( result->GetData(), firstJacobian->GetData(),
+		toDesc, first->GetDesc(), width );
+	return result.Ptr();
+}
+
+CPtr<const CDnnBlob> Broadcast( const CDnnBlob* first, const CBlobDesc& toDesc )
+{
+	const CBlobDesc& firstDesc = first->GetDesc();
+	int larger = 0;
+	for( int i = 0; i < BD_Count; i++ ) {
+		if( firstDesc.DimSize( i ) < toDesc.DimSize( i ) ) {
+			NeoAssert( larger != 1 );
+			larger = 2;
+		} else if( firstDesc.DimSize( i ) > toDesc.DimSize( i ) ) {
+			NeoAssert( larger != 2 );
+			larger = 1;
+		}
+	}
+
+	if( larger == 2 ) {
+		const CTapeBlob* tapeBlob = dynamic_cast<const CTapeBlob*>( first );
+		IGradientTape* tape = tapeBlob != 0 ? tapeBlob->Tape() : 0;
+
+		IMathEngine& mathEngine = first->GetMathEngine();
+		CPtr<CTapeBlob> result( new CTapeBlob( tape, mathEngine, toDesc ) );
+		mathEngine.BroadcastCopy( result->GetData(), first->GetData(),
+			toDesc, first->GetDesc() );
+
+		if( tape != 0 ) {
+			CPtr<ITapeOperation> operation( new CTapeBroadcast( first, toDesc ) );
+			tape->Add( result, operation );
+		}
+		return result.Ptr();
+	}
+
+	return first;
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+void Reshape( CDnnBlob* first, const CBlobDesc& desc )
+{
+	NeoAssert( first != 0 );
+	first->ReinterpretDimensions( desc );
 }
 
 //------------------------------------------------------------------------------------------------------------
