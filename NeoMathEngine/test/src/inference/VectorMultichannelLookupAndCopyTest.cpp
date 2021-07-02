@@ -51,7 +51,7 @@ static void multichannelLookupAndCopyImpl( const CTestParams& params, int seed )
 		lookupHandles.push_back( CConstFloatHandle( lookupHandleVars[i]->GetHandle() ) );
 	}
 
-	// If input data is float then number of channels may be larger than number of lookup tables (these value will be forwarded as is)
+	// If input data is float then number of channels may be larger than number of lookup tables (these values will be forwarded as is)
 	const int channelCount = std::is_integral<T>::value ? lookupCount : lookupCount + random.UniformInt( 0, 3 );
 
 	std::vector<T> inputData;
