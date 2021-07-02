@@ -15,6 +15,8 @@ limitations under the License.
 
 #include <TestFixture.h>
 
+#include <type_traits>
+
 using namespace NeoML;
 using namespace NeoMLTest;
 
@@ -48,8 +50,9 @@ static void multichannelLookupAndCopyImpl( const CTestParams& params, int seed )
 		MathEngine().DataExchangeTyped( lookupHandleVars[i]->GetHandle(), lookupData[i].data(), lookupData[i].size() );
 		lookupHandles.push_back( CConstFloatHandle( lookupHandleVars[i]->GetHandle() ) );
 	}
-	
-	const int channelCount = lookupCount;
+
+	// If input data is float then number of channels may be larger than number of lookup tables (these value will be forwarded as is)
+	const int channelCount = std::is_integral<T>::value ? lookupCount : lookupCount + random.UniformInt( 0, 3 );
 
 	std::vector<T> inputData;
 	inputData.resize( batchSize * channelCount );
