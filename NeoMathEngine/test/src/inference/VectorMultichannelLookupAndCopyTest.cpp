@@ -16,6 +16,7 @@ limitations under the License.
 #include <TestFixture.h>
 
 #include <type_traits>
+#include <numeric>
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -66,10 +67,8 @@ static void multichannelLookupAndCopyImpl( const CTestParams& params, int seed )
 		}
 	}
 
-	int resultChannelCount = channelCount - lookupCount;
-	for( int i = 0; i < lookupCount; i++ ) {
-		resultChannelCount += lookupDimensions[i].VectorSize;
-	}
+	const int resultChannelCount = std::accumulate( lookupDimensions.begin(), lookupDimensions.end(), channelCount - lookupCount,
+		[] ( const int& sum, const CLookupDimension& dim ) { return sum + dim.VectorSize; } );
 
 	std::vector<float> expected;
 	expected.resize( batchSize * resultChannelCount );
