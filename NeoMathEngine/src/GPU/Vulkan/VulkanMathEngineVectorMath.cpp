@@ -840,20 +840,20 @@ void CVulkanMathEngine::VectorEltwiseNotNegative( const CConstIntHandle&, const 
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize )
+void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle&, const CConstFloatHandle&,
+	const CFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, float second,
-	const CFloatHandle& resultHandle, int vectorSize )
+void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle&, float,
+	const CFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::VectorEltwiseLess( float firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize )
+void CVulkanMathEngine::VectorEltwiseLess( float, const CConstFloatHandle&,
+	const CFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
 }
