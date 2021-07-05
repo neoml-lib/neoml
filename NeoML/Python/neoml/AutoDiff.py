@@ -218,6 +218,9 @@ def reshape(blob, shape):
     if len(np_shape.shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')
 
+    if numpy.prod(np_shape) != blob.size:
+        raise ValueError('`shape` is incompatible with current size.')
+
     PythonWrapper.blob_reshape(blob._internal, np_shape)
 
 def top_k(a, k=1):
