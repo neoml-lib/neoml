@@ -174,6 +174,52 @@ def clip(blob, min_value, max_value):
     
     return Blob(PythonWrapper.blob_clip(blob._internal, float(min_value), float(max_value)))
 
+def stack(blobs, axis=0):
+    """Merges the blobs along given axis.
+    """
+    if len(blobs) == 0:
+        raise ValueError('Empty blobs.')
+
+    if any([not type(blob) is Blob for blob in blobs]):
+        raise ValueError('Every `blob` must be neoml.Blob.')
+
+    if any([blob.size == 0 for blob in blobs]):
+        raise ValueError("The blobs mustn't be empty.")
+
+    return Blob(PythonWrapper.blob_stack([blob._internal for blob in blobs], int(axis)))
+
+def broadcast(blob, shape):
+    """Broadcast the blob shape.
+    """
+    if not type(blob) is Blob:
+        raise ValueError('`blob` must be neoml.Blob.')
+
+    if blob.size == 0:
+        raise ValueError("The blobs mustn't be empty.")
+
+    np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
+
+    if len(np_shape.shape) > 7:
+        raise ValueError('The `shape` should have not more than 7 dimensions.')
+
+    return Blob(PythonWrapper.blob_broadcast(blob._internal, np_shape))
+
+def reshape(blob, shape):
+    """Reshape the blob.
+    """
+    if not type(blob) is Blob:
+        raise ValueError('`blob` must be neoml.Blob.')
+
+    if blob.size == 0:
+        raise ValueError("The blobs mustn't be empty.")
+
+    np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
+
+    if len(np_shape.shape) > 7:
+        raise ValueError('The `shape` should have not more than 7 dimensions.')
+
+    PythonWrapper.blob_reshape(blob._internal, np_shape)
+
 def top_k(a, k=1):
     """Finds values of the k largest elements in the blob.
     The result is a blob of size k.

@@ -175,6 +175,28 @@ void InitializeTape(py::module& m)
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
+	m.def("blob_stack", [](const py::list& blobList, int axis) {
+		CObjectArray<CDnnBlob> blobs;
+		for( int i = 0; i < blobList.size(); i++ ) {
+			blobs.Add( blobList[i].cast<CPyBlob>().Blob() );
+		}
+		CPtr<const CDnnBlob> result( Stack( blobs, axis ) );
+		return CPyBlob( blobList[0].cast<CPyBlob>().MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
+	}, py::return_value_policy::reference );
+
+	m.def("blob_reshape", [](const CPyBlob& first, py::array desc) {
+		std::vector<int> shape = createShape( desc );
+		Reshape( first.Blob(),
+			{shape[0], shape[1], shape[2], shape[3], shape[4], shape[5], shape[6]} );
+	} );
+
+	m.def("blob_broadcast", [](const CPyBlob& first, py::array desc) {
+		std::vector<int> shape = createShape( desc );
+		CPtr<const CDnnBlob> result( Broadcast( first.Blob(),
+			{shape[0], shape[1], shape[2], shape[3], shape[4], shape[5], shape[6]} ) );
+		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
+	}, py::return_value_policy::reference  );
+
 	m.def("blob_binary_cross_entropy", [](const CPyBlob& first, const CPyBlob& second, bool fromLogits ) {
 		CPtr<const CDnnBlob> result( BinaryCrossEntropy( first.Blob(), second.Blob(), fromLogits ) );
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );

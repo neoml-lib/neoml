@@ -155,6 +155,22 @@ TEST_F( CAutoDiffTest, TestReshape )
 TEST_F( CAutoDiffTest, TestBroadcast1 )
 {
 	jacobianTestImpl(
+		{ 1 },
+		{ 1 },
+		{ 1, 1, 1, 1, 1, 1, 1, 1 },
+		{ 4, 4 },
+		[]( CPtr<const CDnnBlob>& x, CPtr<CDnnBlob>& a, CPtr<CDnnBlob>& b ) {
+			return Broadcast( x, {1, 2, 1, 2, 1, 2, 1} );
+		},
+		{1, 1, 1, 2, 1, 1, 1},
+		{ 1 },
+		{ 1 }
+	);
+}
+
+TEST_F( CAutoDiffTest, TestBroadcast2 )
+{
+	jacobianTestImpl(
 		{ 0.4, 0.5 },
 		{ 0.72, 0.96, 0.49, 0.41, 0.39, 0.96, 0.95, 0.8,
 		  0.57, 0.24, 0.32, 0.17, 0.93, 0.89, 0.18, 0.79 },
@@ -172,7 +188,7 @@ TEST_F( CAutoDiffTest, TestBroadcast1 )
 	);
 }
 
-TEST_F( CAutoDiffTest, TestBroadcast2 )
+TEST_F( CAutoDiffTest, TestBroadcast3 )
 {
 	jacobianTestImpl(
 		{ 0.52, 0.73, 0.76, 0.05 },

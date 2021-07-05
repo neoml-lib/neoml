@@ -18,6 +18,7 @@ limitations under the License.
 #include <Kernels/CudaGrid.h>
 #include <CudaCommon.h>
 #include <Kernels/CudaRandom.h>
+#include <CudaBlobDesc.h>
 
 namespace NeoML {
 
@@ -68,6 +69,30 @@ __global__ void VectorConvertKernel( const From* from, To* to, int count )
 		*to = static_cast<To>( *from );
 		from += step;
 		to += step;
+	}
+}
+
+__global__ void VectorBroadcastCopyKernel( float* to, const float* from, CCudaBlobDesc toDesc, CCudaBlobDesc fromDesc,
+	int additionalWidth, int resultSize )
+{
+	int toIndex = 0;
+	int fromIndex = 0;
+	int mul = additionalWidth;
+	if( GetCudaTaskIndex( resultSize, toIndex ) ) {
+		to += toIndex * additionalWidth;
+		for( int i = CCudaBlobDesc::MaxDimensions - 1; i >= 0; i-- ) {
+			if( fromDesc.DimSize( i ) != 1 ) {
+				fromIndex += ( toIndex % toDesc.DimSize( i ) ) * mul;
+				mul *= fromDesc.DimSize( i );
+			}
+			toIndex /= toDesc.DimSize( i );
+		}
+		from += fromIndex;
+		for( int i = 0; i < additionalWidth; i++ ) {
+			*to = *from;
+			to++;
+			from++;
+		}
 	}
 }
 

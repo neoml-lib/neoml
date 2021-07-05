@@ -1415,7 +1415,7 @@ CPtr<const CDnnBlob> Broadcast( const CDnnBlob* first, const CBlobDesc& toDesc )
 		IMathEngine& mathEngine = first->GetMathEngine();
 		CPtr<CTapeBlob> result( new CTapeBlob( tape, mathEngine, toDesc ) );
 		mathEngine.BroadcastCopy( result->GetData(), first->GetData(),
-			toDesc, first->GetDesc() );
+			toDesc, first->GetDesc(), 1 );
 
 		if( tape != 0 ) {
 			CPtr<ITapeOperation> operation( new CTapeBroadcast( first, toDesc ) );

@@ -96,6 +96,12 @@ void CMetalMathEngine::VectorConvert(const CConstIntHandle& from, const CFloatHa
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
+	const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth)
+{
+	ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::VectorFillBernoulli(const CFloatHandle& result, float p, int vectorSize, float value, int seed)
 {
     ASSERT_EXPR( result.GetMathEngine() == this );
