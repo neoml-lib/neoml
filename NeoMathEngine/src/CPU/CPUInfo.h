@@ -138,7 +138,7 @@ struct CCPUInfo {
 			}
 #elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
 			floatAlignment = 8;
-#elif
+#else
 #error "Platform isn't supported!"
 #endif
 		}
@@ -186,7 +186,7 @@ private:
 
 	static void callCpuId( Regs& outRegs, const RegType& eax ) {
 		outRegs = { 0, 0, 0, 0 };
-#if !FINE_ARCHITECTURE( FINE_ARM64 ) || !FINE_ARCHITECTURE( FINE_ARM )
+#if !FINE_ARCHITECTURE( FINE_ARM64 ) && !FINE_ARCHITECTURE( FINE_ARM )
 #if FINE_PLATFORM( FINE_WINDOWS )
 		__cpuid( ( RegType* )( &outRegs ), eax );
 #elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
