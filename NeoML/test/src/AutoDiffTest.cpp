@@ -159,7 +159,7 @@ TEST_F( CAutoDiffTest, TestBroadcast1 )
 		{ 1 },
 		{ 1, 1, 1, 1, 1, 1, 1, 1 },
 		{ 4, 4 },
-		[]( CPtr<const CDnnBlob>& x, CPtr<CDnnBlob>& a, CPtr<CDnnBlob>& b ) {
+		[]( CPtr<const CDnnBlob>& x, CPtr<CDnnBlob>&, CPtr<CDnnBlob>& ) {
 			return Broadcast( x, {1, 2, 1, 2, 1, 2, 1} );
 		},
 		{1, 1, 1, 2, 1, 1, 1},
