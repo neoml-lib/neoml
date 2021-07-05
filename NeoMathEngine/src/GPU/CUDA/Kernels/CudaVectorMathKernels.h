@@ -1269,6 +1269,33 @@ __global__ void vectorGreaterEqualToZeroKernel( const int* __restrict__ first,
 	}
 }
 
+__global__ void vectorLessKernel( const float* __restrict__ first, const float* __restrict__ second,
+	float* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] < second[index] ? 1.f : 0.f;
+	}
+}
+
+__global__ void vectorLessKernel( const float* __restrict__ first, float second,
+	float* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] < second ? 1.f : 0.f;
+	}
+}
+
+__global__ void vectorLessKernel( float first, const float* __restrict__ second,
+	float* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first < second[index] ? 1.f : 0.f;
+	}
+}
+
 __global__ void VectorFindMaxValueInSetKernel( CCudaConstVectorArray vectors,
 	float* result, int vectorSize)
 {

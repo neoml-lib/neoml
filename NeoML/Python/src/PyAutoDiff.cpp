@@ -197,6 +197,21 @@ void InitializeTape(py::module& m)
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference  );
 
+	m.def("blob_less", [](float first, const CPyBlob& second) {
+		CPtr<const CDnnBlob> result( Less( first, second.Blob() ) );
+		return CPyBlob( second.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
+	}, py::return_value_policy::reference );
+
+	m.def("blob_less", [](const CPyBlob& first, float second) {
+		CPtr<const CDnnBlob> result( Less( first.Blob(), second ) );
+		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
+	}, py::return_value_policy::reference );
+
+	m.def("blob_less", [](const CPyBlob& first, const CPyBlob& second) {
+		CPtr<const CDnnBlob> result( Less( first.Blob(), second.Blob() ) );
+		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
+	}, py::return_value_policy::reference );
+
 	m.def("blob_binary_cross_entropy", [](const CPyBlob& first, const CPyBlob& second, bool fromLogits ) {
 		CPtr<const CDnnBlob> result( BinaryCrossEntropy( first.Blob(), second.Blob(), fromLogits ) );
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );

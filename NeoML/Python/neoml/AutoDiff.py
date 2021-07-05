@@ -75,7 +75,7 @@ def div(a, b):
     return a / b
 
 def max(a, b):
-    """Takes the elementwise maximum of two blobs or a blob and a scalar value.
+    """Takes the elementwise maximum of a blob and a scalar value.
     """
     if type(a) is Blob:
         if a.size == 0:
@@ -222,6 +222,14 @@ def reshape(blob, shape):
         raise ValueError('`shape` is incompatible with current size.')
 
     PythonWrapper.blob_reshape(blob._internal, np_shape)
+
+def less(a, b):
+    """Compare blobs elementwise.
+    """
+    if not type(a) is Blob and not type(b) is Blob:
+        raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
+
+    return a < b
 
 def top_k(a, k=1):
     """Finds values of the k largest elements in the blob.

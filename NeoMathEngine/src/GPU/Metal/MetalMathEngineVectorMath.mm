@@ -1206,6 +1206,24 @@ void CMetalMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandl
 	ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, float secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseLess( float firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL

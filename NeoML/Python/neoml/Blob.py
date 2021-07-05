@@ -214,6 +214,32 @@ class Blob:
             raise ValueError("The blobs mustn't be empty.")
         return Blob(PythonWrapper.blob_neg(self._internal))
 
+    def __lt__(self, other):
+        """Returns self < other elementwise.
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+
+        if type(other) is Blob:
+            if self.shape != other.shape:
+                raise ValueError("The blobs have incompatible shapes.")
+            return Blob(PythonWrapper.blob_less(self._internal, other._internal))
+
+        return Blob(PythonWrapper.blob_less(self._internal, float(other)))
+
+    def __gt__(self, other):
+        """Returns self > other elementwise.
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+
+        if type(other) is Blob:
+            if self.shape != other.shape:
+                raise ValueError("The blobs have incompatible shapes.")
+            return Blob(PythonWrapper.blob_less(other._internal, self._internal))
+
+        return Blob(PythonWrapper.blob_less(float(other), self._internal))
+
 # -------------------------------------------------------------------------------------------------------------
 
 def store(blob, file_path):

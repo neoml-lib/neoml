@@ -1437,6 +1437,40 @@ void Reshape( CDnnBlob* first, const CBlobDesc& desc )
 
 //------------------------------------------------------------------------------------------------------------
 
+CPtr<const CDnnBlob> Less( const CDnnBlob* first, const CDnnBlob* second )
+{
+	NeoAssert( first != 0 );
+	NeoAssert( second != 0 );
+	NeoAssert( first->GetDesc().HasEqualDimensions( second->GetDesc() ) );
+	IMathEngine& mathEngine = first->GetMathEngine();
+
+	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, first->GetDesc() );
+	mathEngine.VectorEltwiseLess( first->GetData(), second->GetData(), result->GetData(), result->GetDataSize() );
+	return result.Ptr();
+}
+
+CPtr<const CDnnBlob> Less( const CDnnBlob* first, float second )
+{
+	NeoAssert( first != 0 );
+	IMathEngine& mathEngine = first->GetMathEngine();
+
+	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, first->GetDesc() );
+	mathEngine.VectorEltwiseLess( first->GetData(), second, result->GetData(), result->GetDataSize() );
+	return result.Ptr();
+}
+
+CPtr<const CDnnBlob> Less( float first, const CDnnBlob* second )
+{
+	NeoAssert( second != 0 );
+	IMathEngine& mathEngine = second->GetMathEngine();
+
+	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, second->GetDesc() );
+	mathEngine.VectorEltwiseLess( first, second->GetData(), result->GetData(), result->GetDataSize() );
+	return result.Ptr();
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 CPtr<const CDnnBlob> BinaryCrossEntropy( const CDnnBlob* labels, const CDnnBlob* preds, bool fromLogits )
 {
 	NeoAssert( labels != 0 );

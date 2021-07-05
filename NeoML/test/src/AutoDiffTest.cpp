@@ -1295,3 +1295,28 @@ TEST_F( CAutoDiffTest, TestBinaryCrossEntropy )
 		ASSERT_NEAR( gradRes[i], gradData[i], 1e-4 );
 	}
 }
+
+TEST_F( CAutoDiffTest, TestLess )
+{
+	const int VectorSize = 16;
+
+	CArray<float> xData;
+	xData.InsertAt( 1.0, 0, VectorSize );
+	CPtr<CDnnBlob> x( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
+	x->CopyFrom( xData.GetPtr() );
+
+	float valuesA[VectorSize] = { 1.1, 1.2, 0.8, 0.9, -1, -2, 3, 4,
+		0.7, 0.6, 1.3, 1.4, 0.6, 1.4, -10, 5 };
+	CPtr<CDnnBlob> a( CDnnBlob::CreateVector( MathEngine(), CT_Float, VectorSize ) );
+	a->CopyFrom( valuesA );
+
+	CPtr<const CDnnBlob> res = Less(x, a);
+	CArray<float> resData;
+	resData.SetSize( res->GetDataSize() );
+	res->CopyTo( resData.GetPtr() );
+
+	CArray<float> expected( { 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1 } );
+	for( int i = 0; i < expected.Size(); i++ ) {
+		ASSERT_NEAR( resData[i], expected[i], 1e-4 );
+	}
+}

@@ -110,6 +110,11 @@ NEOML_API CPtr<const CDnnBlob> Stack( const CObjectArray<CDnnBlob>& blobs, int a
 // Change the blob shape. The total blob size must remain the same.
 NEOML_API void Reshape( CDnnBlob* first, const CBlobDesc& desc );
 
+// Returns first < second elementwise.
+NEOML_API CPtr<const CDnnBlob> Less( const CDnnBlob* first, const CDnnBlob* second );
+NEOML_API CPtr<const CDnnBlob> Less( const CDnnBlob* first, float second );
+NEOML_API CPtr<const CDnnBlob> Less( float first, const CDnnBlob* second);
+
 // Broadcast the blob.
 NEOML_API CPtr<const CDnnBlob> Broadcast( const CDnnBlob* first, const CBlobDesc& desc );
 

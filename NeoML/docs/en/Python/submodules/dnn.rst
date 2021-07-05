@@ -909,12 +909,15 @@ Basic math functions
 .. automethod:: neoml.AutoDiff.mean
 .. automethod:: neoml.AutoDiff.neg
 .. automethod:: neoml.AutoDiff.abs
+.. automethod:: neoml.AutoDiff.less
 .. automethod:: neoml.AutoDiff.log
 .. automethod:: neoml.AutoDiff.exp
 
 Other operations
 *******************
 
+.. automethod:: neoml.AutoDiff.stack
+.. automethod:: neoml.AutoDiff.reshape
 .. automethod:: neoml.AutoDiff.clip
 .. automethod:: neoml.AutoDiff.top_k
 .. automethod:: neoml.AutoDiff.binary_cross_entropy
