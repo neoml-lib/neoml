@@ -54,7 +54,7 @@ void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	softmax->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *softmax );
 
-	outputs[0] = new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( softmax, 0 ) );
+	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( softmax, 0 ) ) );
 }
 
 CTensorLayout CSoftmaxOperator::getCompatibleLayout( int dimCount, int axis, const CTensorLayout& inputLayout ) const

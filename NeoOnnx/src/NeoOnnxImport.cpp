@@ -87,8 +87,9 @@ static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& d
 	}
 
 	CTensorArray outputs;
-	outputs.Add( nullptr, op.OutputCount() );
+	outputs.SetBufferSize( op.OutputCount() );
 	op.ProcessTensors( inputs, dnn, outputs );
+	NeoAssert( outputs.Size() == op.OutputCount() );
 
 	for( int outputIndex = 0; outputIndex < op.OutputCount(); ++outputIndex ) {
 		const CString& outputName = op.OutputName( outputIndex );

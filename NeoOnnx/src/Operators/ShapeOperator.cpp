@@ -45,7 +45,7 @@ void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTen
 	outputBlobDesc.SetDimSize( outputLayout[0], inputShape.Size() );
 	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), CT_Int, outputBlobDesc );
 	outputBlob->CopyFrom( inputShape.GetPtr() );
-	outputs[0] = new CDataTensor( { inputShape.Size() }, outputLayout, *outputBlob );
+	outputs.Add( new CDataTensor( { inputShape.Size() }, outputLayout, *outputBlob ) );
 }
 
 } // namespace NeoOnnx

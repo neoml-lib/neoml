@@ -62,8 +62,8 @@ void CTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */,
 		outputShape.Add( inputShape[perm[i]] );
 	}
 
-	outputs[0] = new CUserTensor( outputShape, outputLayout,
-		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() );
+	outputs.Add( new CUserTensor( outputShape, outputLayout,
+		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() ) );
 }
 
 } // namespace NeoOnnx

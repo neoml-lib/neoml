@@ -106,9 +106,10 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	lstmLayer->Connect( 0, *inputData->Layer(), inputData->OutputIndex() );
 	dnn.AddLayer( *lstmLayer );
 
-	outputs[0] = new CUserTensor( { inputShape[0], 1, inputShape[1], hiddenSize },
+	outputs.Add( new CUserTensor( { inputShape[0], 1, inputShape[1], hiddenSize },
 		CTensorLayout( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } ),
-		CLayerOutput( lstmLayer, 0 ) );
+		CLayerOutput( lstmLayer, 0 ) ) );
+	outputs.Add( nullptr, OutputCount() - 1 );
 }
 
 // Converts lstm weights from onnx format to NeoML

@@ -35,7 +35,7 @@ CIdentityOperator::CIdentityOperator( const onnx::NodeProto& identity, int opset
 
 void CIdentityOperator::ProcessTensors( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
-	outputs[0] = inputs[0];
+	inputs.CopyTo( outputs );
 }
 
 } // namespace NeoOnnx

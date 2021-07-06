@@ -114,7 +114,7 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	fc->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *fc );
 
-	outputs[0] = new CUserTensor( { inputShape[0], numberOfElements }, fcLayout, CLayerOutput( fc, 0 ) );
+	outputs.Add( new CUserTensor( { inputShape[0], numberOfElements }, fcLayout, CLayerOutput( fc, 0 ) ) );
 }
 
 } // namespace NeoOnnx

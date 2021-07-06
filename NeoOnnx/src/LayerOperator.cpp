@@ -42,8 +42,9 @@ void CLayerOperator::ProcessTensors( const CUserInputMask& inputMask, const CTen
 
 	// Add operator layers
 	CTensorArray internalOutputs;
-	internalOutputs.Add( nullptr, OutputCount() );
+	internalOutputs.SetBufferSize( OutputCount() );
 	AddLayers( internalInputs, internalDnn, internalOutputs );
+	NeoAssert( internalOutputs.Size() == OutputCount() );
 
 	// Add sink layers for the operator
 	CArray<CSinkLayer*> sinks;
@@ -120,14 +121,16 @@ void CLayerOperator::extractOutputs( const CTensorArray& internalOutputs, const 
 	for( int outputIndex = 0; outputIndex < OutputCount(); ++outputIndex ) {
 		if( internalOutputs[outputIndex]->IsCalculated() ) {
 			// This data was calculated prior to the net
-			outputs[outputIndex] = internalOutputs[outputIndex];
+			outputs.Add( internalOutputs[outputIndex] );
 		} else if( sinks[outputIndex] != nullptr ) {
 			// Add network result as data tensor
 			// Shape and layout remain unchanged
-			outputs[outputIndex] = new CDataTensor( internalOutputs[outputIndex]->Shape(),
-				internalOutputs[outputIndex]->Layout(), *( sinks[outputIndex]->GetBlob() ) );
+			outputs.Add( new CDataTensor( internalOutputs[outputIndex]->Shape(),
+				internalOutputs[outputIndex]->Layout(), *( sinks[outputIndex]->GetBlob() ) ) );
+		} else {
+			// otherwise leave internalOutputs[outputIndex] as nullptr
+			outputs.Add( nullptr );
 		}
-		// otherwise leave internalOutputs[outputIndex] as nullptr
 	}
 }
 

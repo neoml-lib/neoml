@@ -49,7 +49,7 @@ void CPadOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTens
 	CFastArray<int, 8> pads;
 	getPads( inputs, pads );
 	const float value = getPadValue( inputs );
-	outputs[0] = PadUserTensor( dynamic_cast<const CUserTensor&>( *inputs[0] ), pads, value ).Ptr();
+	outputs.Add( PadUserTensor( dynamic_cast<const CUserTensor&>( *inputs[0] ), pads, value ).Ptr() );
 }
 
 // Gets pads sizes

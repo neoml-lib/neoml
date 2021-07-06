@@ -78,7 +78,7 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 	dnn.AddLayer( *concat );
 
-	outputs[0] = new CUserTensor( outputShape, inputLayout, CLayerOutput( concat, 0 ) );
+	outputs.Add( new CUserTensor( outputShape, inputLayout, CLayerOutput( concat, 0 ) ) );
 }
 
 // Creates corresponding CConcat*Layer
