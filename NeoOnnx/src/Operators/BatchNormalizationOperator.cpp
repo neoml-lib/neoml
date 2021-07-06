@@ -55,7 +55,7 @@ static CPtr<const CUserTensor> convertInput( const CUserTensor& input )
 }
 
 // Calculates NeoML::CBatchNormalizationLayer's final params blob from onnx operator's inputs
-static CPtr<CDnnBlob> calculateFinalParams( const float eps, const CTensorArray& inputs )
+static CPtr<CDnnBlob> calculateFinalParams( float eps, const CTensorArray& inputs )
 {
 	const CDnnBlob* scale = dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
 	NeoAssert( scale != nullptr );
@@ -123,7 +123,9 @@ void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& d
 	NeoAssert( !inputs[0]->IsCalculated() );
 
 	const int channels = inputs[0]->Shape()[1];
-	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
+	// The number of required inputs of BatchNormalization operator
+	const int batchNormReqInputCount = 5;
+	for( int inputIndex = 1; inputIndex < batchNormReqInputCount; ++inputIndex ) {
 		CheckOnnxProtocol( inputs[inputIndex] != nullptr, "input can't be optional", *this );
 		CheckNeoOnnxSupport( inputs[inputIndex]->IsCalculated(), "non-constant weights", *this );
 		CheckOnnxProtocol( inputs[inputIndex]->DimCount() == 1, "weights must be 1-dimensional", *this );
