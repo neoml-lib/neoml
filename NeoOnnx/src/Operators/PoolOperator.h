@@ -21,7 +21,7 @@ namespace NeoOnnx {
 
 // Base class for non-global Pool operators
 class CPoolOperatorBase : public CLayerOperator {
-public:
+protected:
 	// Operation type
 	enum TPoolType {
 		// Max pooling
@@ -34,13 +34,12 @@ public:
 
 	CPoolOperatorBase( TPoolType poolType, const onnx::NodeProto& pool, int opsetVersion );
 
-protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const final;
 
 private:
 	// Pooling type
-	TPoolType poolType;
+	const TPoolType poolType;
 	// Padding mode
 	CString autoPad;
 	// Indicates whether pad pixels should be included in output calculation (average pool only)
@@ -50,6 +49,8 @@ private:
 
 	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;
 	void getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;
+
+	static CPtr<CPoolingLayer> createPoolingLayer( CPoolOperatorBase::TPoolType poolType, IMathEngine& mathEngine );
 };
 
 // MaxPool operator
