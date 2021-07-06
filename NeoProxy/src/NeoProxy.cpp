@@ -379,6 +379,8 @@ public:
 	const CDnn& Dnn() const { return dnn; }
 
 	void BuildNameList();
+	void SetInputNames( const CArray<const char*>& newInputNames );
+	void SetOutputNames( const CArray<const char*>& newOutputNames );
 
 	const char* GetInputName( int index ) const { return inputNames[index]; }
 	void SetInputBlob( int index, CDnnBlob* blob ) const;
@@ -438,6 +440,18 @@ CDnnDescImpl::CDnnDescImpl( const void* buffer, int bufferSize, const CDnnMathEn
 	}
 
 	BuildNameList();
+}
+
+void CDnnDescImpl::SetInputNames( const CArray<const char*> newInputNames )
+{
+	newInputNames.CopyTo( inputNames );
+	CDnnDesc::InputCount = inputNames.Size();
+}
+
+void CDnnDescImpl::SetOutputNames( const CArray<const char*> newOutputNames )
+{
+	newOutputNames.CopyTo( outputNames );
+	CDnnDesc::InputCount = outputNames.Size();
 }
 
 void CDnnDescImpl::BuildNameList()
@@ -560,9 +574,12 @@ const struct CDnnDesc* CreateDnnFromOnnxFile( const struct CDnnMathEngineDesc* m
 
 	CDnnDescImpl* dnnDesc = nullptr;
 	try {
+		CArray<const char*> inputs;
+		CArray<const char*> outputs;
 		dnnDesc = FINE_DEBUG_NEW CDnnDescImpl( mathEngine );
-		NeoOnnx::LoadFromOnnx( fileName, dnnDesc->Dnn() );
-		dnnDesc->BuildNameList();
+		NeoOnnx::LoadFromOnnx( fileName, dnnDesc->Dnn(), inputs, outputs );
+		dnnDesc->SetInputNames( inputs );
+		dnnDesc->SetOutputNames( outputs );
 		return dnnDesc;
 #ifdef NEOML_USE_FINEOBJ
 	} catch( CException* e ) {
@@ -599,9 +616,12 @@ const struct CDnnDesc* CreateDnnFromOnnxBuffer( const struct CDnnMathEngineDesc*
 
 	CDnnDescImpl* dnnDesc = nullptr;
 	try {
+		CArray<const char*> inputs;
+		CArray<const char*> outputs;
 		dnnDesc = FINE_DEBUG_NEW CDnnDescImpl( mathEngine );
-		NeoOnnx::LoadFromOnnx( buffer, bufferSize, dnnDesc->Dnn() );
-		dnnDesc->BuildNameList();
+		NeoOnnx::LoadFromOnnx( buffer, bufferSize, dnnDesc->Dnn(), inputs, outputs );
+		dnnDesc->SetInputNames( inputs );
+		dnnDesc->SetOutputNames( outputs );
 		return dnnDesc;
 #ifdef NEOML_USE_FINEOBJ
 	} catch( CException* e ) {
