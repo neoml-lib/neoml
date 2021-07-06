@@ -1948,7 +1948,7 @@ void CCpuMathEngine::VectorEltwiseLess( float first, const CConstFloatHandle& se
 	float* result = GetRaw( resultHandle );
 
 	for( int i = 0; i < vectorSize; ++i ) {
-		*result++ = first++ < *second++ ? 1.f : 0.f;
+		*result++ = first < *second++ ? 1.f : 0.f;
 	}
 }
 
