@@ -140,11 +140,11 @@ static CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const
 		CPtr<const CDnnBlob> blob = renameDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
 			input.Shape(), outputLayout );
 		return new CDataTensor( input.Shape(), outputLayout, *blob );
-	} else {
-		CLayerOutput layerOutput = renameDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
-			input.Shape(), outputLayout );
-		return new CUserTensor( input.Shape(), outputLayout, layerOutput );
 	}
+
+	CLayerOutput layerOutput = renameDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
+		input.Shape(), outputLayout );
+	return new CUserTensor( input.Shape(), outputLayout, layerOutput );
 }
 
 // Swaps 2 dimensions of data blob
@@ -187,11 +187,11 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 		CPtr<const CDnnBlob> blob = swapDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
 			firstDim, secondDim );
 		return new CDataTensor( input.Shape(), outputLayout, *blob );
-	} else {
-		CLayerOutput layerOutput = swapDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
-			firstDim, secondDim );
-		return new CUserTensor( input.Shape(), outputLayout, layerOutput );
 	}
+
+	CLayerOutput layerOutput = swapDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
+		firstDim, secondDim );
+	return new CUserTensor( input.Shape(), outputLayout, layerOutput );
 }
 
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLayout& outputLayout )
