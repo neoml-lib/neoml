@@ -24,10 +24,8 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion,
-		TOperation _operation, int _argsNum ) :
+CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, int _argsNum ) :
 	CLayerOperator( eltwise, opsetVersion ),
-	operation( _operation ),
 	argsNum( _argsNum )
 {
 	if( argsNum > 0 ) {
@@ -36,7 +34,7 @@ CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int 
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CEltwiseOperatorBase::AddLayers( const CBroadcast& broadcast, const CTensorArray& inputs,
+void CEltwiseOperatorBase::AddLayers( TOperation operation, const CBroadcast& broadcast, const CTensorArray& inputs,
 	CDnn& dnn, CTensorArray& outputs ) const
 {
 	// Corner case which doesn't violate Onnx protocol: opeartors with variable input count may have 1 input
@@ -57,10 +55,6 @@ void CEltwiseOperatorBase::AddLayers( const CBroadcast& broadcast, const CTensor
 
 	CTensorArray currInputs;
 	inputs.CopyTo( currInputs );
-	if( argsNum == 2 ) {
-		// Preparing values in case of subtraction or division
-		currInputs[1] = prepareSecondInput( currInputs );
-	}
 	// Broadcast input to the final shape and set proper layout
 	for( int i = 0; i < inputs.Size(); ++i ) {
 		currInputs[i] = BroadcastTensor( *currInputs[i], broadcast, outputShape );
@@ -81,13 +75,16 @@ void CEltwiseOperatorBase::AddLayers( const CBroadcast& broadcast, const CTensor
 		}
 	}
 
-	static_assert( O_Count == 4, "O_Count != 4" );
+	static_assert( O_Count == 2, "O_Count != 2" );
 	CPtr<CBaseLayer> eltwise = nullptr;
-	if( operation == O_Add || operation == O_Sub ) {
+	if( operation == O_Add ) {
 		eltwise = new CEltwiseSumLayer( dnn.GetMathEngine() );
-	} else {
+	} else if( operation == O_Mul ) {
 		eltwise = new CEltwiseMulLayer( dnn.GetMathEngine() );
+	} else {
+		NeoAssert( false );
 	}
+
 	eltwise->SetName( Name() );
 	for( int i = 0; i < currInputs.Size(); ++i ) {
 		NeoAssert( !currInputs[i]->IsCalculated() );
@@ -98,53 +95,9 @@ void CEltwiseOperatorBase::AddLayers( const CBroadcast& broadcast, const CTensor
 	outputs.Add( new CUserTensor( outputShape, currInputs[0]->Layout(), CLayerOutput( eltwise, 0 ) ) );
 }
 
-// Modifies second input for binary division or subtraction
-CPtr<const CTensorBase> CEltwiseOperatorBase::prepareSecondInput( const CTensorArray& inputs ) const
-{
-	static_assert( O_Count == 4, "O_Count != 4" );
-	NeoAssert( inputs.Size() == 2 );
-	if( operation == O_Mul || operation == O_Add ) {
-		// Add and Mul already have corresponding layers 
-		return inputs[1];
-	}
-
-	if( operation == O_Sub ) {
-		// a - b = a + (-1 * b)
-		if( inputs[1]->IsCalculated() ) {
-			// Imitate by multiplying values in blob
-			CPtr<const CDataTensor> secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
-			CPtr<CDnnBlob> newBlob = secondInput->Data()->GetClone();
-			CFloatHandleStackVar minusOne( newBlob->GetMathEngine() );
-			minusOne.SetValue( -1 );
-			newBlob->GetMathEngine().VectorMultiply( secondInput->Data()->GetData(), newBlob->GetData(),
-				newBlob->GetDataSize(), minusOne );
-			return new CDataTensor( secondInput->Shape(), secondInput->Layout(), *newBlob );
-		} else {
-			// Imitate by CLinearLayer with multiplier set to -1
-			CPtr<const CUserTensor> secondInput = dynamic_cast<const CUserTensor*>( inputs[1].Ptr() );
-			CDnn& dnn = *secondInput->Layer()->GetDnn();
-			CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
-			linear->SetName( Name() + "_neg" );
-			linear->SetMultiplier( -1 );
-			linear->Connect( 0, *secondInput->Layer(), secondInput->OutputIndex() );
-			return new CUserTensor( secondInput->Shape(), secondInput->Layout(), CLayerOutput( linear, 0 ) );
-		}
-	}
-
-	// Operation is O_Div
-	// a / b = a * (1 / b)
-	// In that case it's impossible to imitate (1 / x) operation via layer
-	// That's why only CDataTensor is supported
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "Div supports only data tensor as a second input", *this );
-	CPtr<const CDataTensor> secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
-	CPtr<CDnnBlob> newBlob = secondInput->Data()->GetClone();
-	newBlob->GetMathEngine().VectorInv( secondInput->Data()->GetData(), newBlob->GetData(), newBlob->GetDataSize() );
-	return new CDataTensor( secondInput->Shape(), secondInput->Layout(), *newBlob );
-}
-
 // --------------------------------------------------------------------------------------------------------------------
 
-void CEltwiseBinaryOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+CBroadcast CEltwiseBinaryOperatorBase::Broadcast() const
 {
 	CBroadcast broadcast( BT_Numpy, NotFound );
 	if( OpsetVersion < 7 ) {
@@ -158,19 +111,84 @@ void CEltwiseBinaryOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dn
 		}
 	}
 
-	CEltwiseOperatorBase::AddLayers( broadcast, inputs, dnn, outputs );
+	return broadcast;
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+void CAddOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CEltwiseOperatorBase::AddLayers( O_Add, Broadcast(), inputs, dnn, outputs );
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+void CSubOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CTensorArray convertedInputs;
+	inputs.CopyTo( convertedInputs );
+
+	// a - b = a + (-1 * b)
+	if( inputs[1]->IsCalculated() ) {
+		// Imitate by multiplying values in blob
+		CPtr<const CDataTensor> secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
+		CPtr<CDnnBlob> newBlob = secondInput->Data()->GetClone();
+		CFloatHandleStackVar minusOne( newBlob->GetMathEngine() );
+		minusOne.SetValue( -1 );
+		newBlob->GetMathEngine().VectorMultiply( secondInput->Data()->GetData(), newBlob->GetData(),
+			newBlob->GetDataSize(), minusOne );
+		convertedInputs[1] = new CDataTensor( secondInput->Shape(), secondInput->Layout(), *newBlob );
+	} else {
+		// Imitate by CLinearLayer with multiplier set to -1 and free term set to 0 
+		CPtr<const CUserTensor> secondInput = dynamic_cast<const CUserTensor*>( inputs[1].Ptr() );
+		CDnn& dnn = *secondInput->Layer()->GetDnn();
+		CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
+		linear->SetName( Name() + "_neg" );
+		linear->SetMultiplier( -1 );
+		linear->SetFreeTerm( 0 );
+		linear->Connect( 0, *secondInput->Layer(), secondInput->OutputIndex() );
+		convertedInputs[1] = new CUserTensor( secondInput->Shape(), secondInput->Layout(), CLayerOutput( linear, 0 ) );
+	}
+
+	CEltwiseOperatorBase::AddLayers( O_Add, Broadcast(), convertedInputs, dnn, outputs );
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+void CMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CEltwiseOperatorBase::AddLayers( O_Mul, Broadcast(), inputs, dnn, outputs );
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+void CDivOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CTensorArray convertedInputs;
+	inputs.CopyTo( convertedInputs );
+
+	// a / b = a * (1 / b)
+	// In that case it's impossible to imitate (1 / x) operation via layer
+	// That's why only CDataTensor is supported
+	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "Div supports only data tensor as a second input", *this );
+	CPtr<const CDataTensor> secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
+	CPtr<CDnnBlob> newBlob = secondInput->Data()->GetClone();
+	newBlob->GetMathEngine().VectorInv( secondInput->Data()->GetData(), newBlob->GetData(), newBlob->GetDataSize() );
+	convertedInputs[1] = new CDataTensor( secondInput->Shape(), secondInput->Layout(), *newBlob );
+
+	CEltwiseOperatorBase::AddLayers( O_Mul, Broadcast(), convertedInputs, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
 
 void CSumOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CBroadcast broadcast( BT_Numpy );
+	CBroadcast broadcast( BT_Numpy, NotFound );
 	if( OpsetVersion < 8 ) {
 		broadcast.Type = BT_None;
 	}
 
-	CEltwiseOperatorBase::AddLayers( broadcast, inputs, dnn, outputs );
+	CEltwiseOperatorBase::AddLayers( O_Add, broadcast, inputs, dnn, outputs );
 }
 
 } // namespace NeoOnnx
