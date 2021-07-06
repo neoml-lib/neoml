@@ -899,6 +899,7 @@ Simple arithmetic operations
 .. automethod:: neoml.AutoDiff.sub
 .. automethod:: neoml.AutoDiff.mul
 .. automethod:: neoml.AutoDiff.div
+.. automethod:: neoml.AutoDiff.less
 
 Basic math functions
 *********************
@@ -909,9 +910,9 @@ Basic math functions
 .. automethod:: neoml.AutoDiff.mean
 .. automethod:: neoml.AutoDiff.neg
 .. automethod:: neoml.AutoDiff.abs
-.. automethod:: neoml.AutoDiff.less
 .. automethod:: neoml.AutoDiff.log
 .. automethod:: neoml.AutoDiff.exp
+.. automethod:: neoml.AutoDiff.pow
 
 Other operations
 *******************

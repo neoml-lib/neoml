@@ -573,4 +573,48 @@ void CCpuMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle,
 	}
 }
 
+void CCpuMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = *first++ < *second++ ? 1.f : 0.f;
+	}
+}
+
+void CCpuMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, float second,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = *first++ < second ? 1.f : 0.f;
+	}
+}
+
+void CCpuMathEngine::VectorEltwiseLess( float first, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = first < *second++ ? 1.f : 0.f;
+	}
+}
+
 } // namespace NeoML
