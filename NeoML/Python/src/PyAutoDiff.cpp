@@ -190,12 +190,12 @@ void InitializeTape(py::module& m)
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
-	m.def("blob_stack", [](const py::list& blobList, int axis) {
+	m.def("blob_concat", [](const py::list& blobList, int axis) {
 		CObjectArray<CDnnBlob> blobs;
 		for( int i = 0; i < blobList.size(); i++ ) {
 			blobs.Add( blobList[i].cast<CPyBlob>().Blob() );
 		}
-		CPtr<const CDnnBlob> result( Stack( blobs, axis ) );
+		CPtr<const CDnnBlob> result( Concat( blobs, axis ) );
 		return CPyBlob( blobList[0].cast<CPyBlob>().MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 

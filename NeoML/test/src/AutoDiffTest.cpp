@@ -110,7 +110,7 @@ static void jacobianCommonTestImpl( const CArray<float>& vectorA, const CArray<f
 		dimensions, dimensions, dimensions );
 }
 
-TEST_F( CAutoDiffTest, TestStack )
+TEST_F( CAutoDiffTest, TestStack1 )
 {
 	jacobianCommonTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
@@ -128,8 +128,30 @@ TEST_F( CAutoDiffTest, TestStack )
 			arr.Add( a.Ptr() );
 			arr.Add( b.Ptr() );
 			arr.Add( const_cast<CDnnBlob*>( sum.Ptr() ) );
-			return Sum( Stack( arr, 1 ), { 1, 3 } );
+			return Sum( Concat( arr, 1 ), { 1, 3 } );
 		}
+	);
+}
+
+TEST_F( CAutoDiffTest, TestStack2 )
+{
+	jacobianTestImpl(
+		{ 0.18, 0.73, 0.51, 0.32 },
+		{ 0.16, 0.66, 0.08, 0.28, 0.58, 0.32, 0.91, 0.45, 0.3, 0.31, 0.0, 0.81 },
+		{ 8.81, 9.27 },
+		{ 1.18, 1.73, 1.18, 1.73, 1.51, 1.32, 1.51, 1.32 },
+		[]( CPtr<const CDnnBlob>& x, CPtr<CDnnBlob>& a, CPtr<CDnnBlob>& b ) {
+			CPtr<const CDnnBlob> mul = Mul(x, a);
+			CObjectArray<CDnnBlob> arr;
+			arr.Add( const_cast<CDnnBlob*>( x.Ptr() ) );
+			arr.Add( a.Ptr() );
+			arr.Add( b.Ptr() );
+			arr.Add( const_cast<CDnnBlob*>( mul.Ptr() ) );
+			return Sum( Concat( arr, 3 ), { 3, 4 } );
+		},
+		{ 2, 1, 1, 2, 2 },
+		{ 2, 1, 1, 1, 2 },
+		{ 2, 1, 1, 3, 2 }
 	);
 }
 

@@ -1269,9 +1269,9 @@ CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float minValue, float maxValue
 
 //------------------------------------------------------------------------------------------------------------
 
-class CTapeStack : public ITapeOperation {
+class CTapeConcat : public ITapeOperation {
 public:
-	explicit CTapeStack( const CObjectArray<CDnnBlob>& _blobs, int _axis );
+	explicit CTapeConcat( const CObjectArray<CDnnBlob>& _blobs, int _axis );
 
 	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
@@ -1280,14 +1280,14 @@ private:
 	int axis;
 };
 
-CTapeStack::CTapeStack( const CObjectArray<CDnnBlob>& _blobs, int _axis ) :
+CTapeConcat::CTapeConcat( const CObjectArray<CDnnBlob>& _blobs, int _axis ) :
 	axis( _axis )
 {
 	NeoAssert( axis >= 0 && axis < BD_Count );
 	_blobs.CopyTo( blobs );
 }
 
-CPtr<CDnnBlob> CTapeStack::Jacobian( const CTapeBlob* var ) const
+CPtr<CDnnBlob> CTapeConcat::Jacobian( const CTapeBlob* var ) const
 {
 	IMathEngine& mathEngine = blobs[0]->GetMathEngine();
 	CObjectArray<CDnnBlob> jacobians;
@@ -1326,7 +1326,7 @@ CPtr<CDnnBlob> CTapeStack::Jacobian( const CTapeBlob* var ) const
 	return result.Ptr();
 }
 
-CPtr<const CDnnBlob> Stack( const CObjectArray<CDnnBlob>& blobs, int axis )
+CPtr<const CDnnBlob> Concat( const CObjectArray<CDnnBlob>& blobs, int axis )
 {
 	IMathEngine& mathEngine = blobs[0]->GetMathEngine();
 	const CTapeBlob* tapeBlob = dynamic_cast<const CTapeBlob*>( blobs[0].Ptr() );
@@ -1349,7 +1349,7 @@ CPtr<const CDnnBlob> Stack( const CObjectArray<CDnnBlob>& blobs, int axis )
 	CDnnBlob::MergeByDim( mathEngine, static_cast<TBlobDim>( axis ), blobs, result.Ptr() );
 
 	if( tape != 0 ) {
-		CPtr<ITapeOperation> operation( new CTapeStack( blobs, axis ) ); 
+		CPtr<ITapeOperation> operation( new CTapeConcat( blobs, axis ) ); 
 		tape->Add( result, operation );
 	}
 

@@ -110,7 +110,7 @@ NEOML_API CPtr<const CDnnBlob> TopK( const CDnnBlob* first, int k );
 NEOML_API CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float minValue, float maxValue );
 
 // Merges blobs along given axis
-NEOML_API CPtr<const CDnnBlob> Stack( const CObjectArray<CDnnBlob>& blobs, int axis );
+NEOML_API CPtr<const CDnnBlob> Concat( const CObjectArray<CDnnBlob>& blobs, int axis );
 
 // Change the blob shape. The total blob size must remain the same.
 NEOML_API void Reshape( CDnnBlob* first, const CBlobDesc& desc );

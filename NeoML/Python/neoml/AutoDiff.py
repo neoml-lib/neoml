@@ -174,7 +174,7 @@ def clip(blob, min_value, max_value):
     
     return Blob(PythonWrapper.blob_clip(blob._internal, float(min_value), float(max_value)))
 
-def stack(blobs, axis=0):
+def concat(blobs, axis=0):
     """Merges the blobs along given axis.
     """
     if len(blobs) == 0:
@@ -186,7 +186,7 @@ def stack(blobs, axis=0):
     if any([blob.size == 0 for blob in blobs]):
         raise ValueError("The blobs mustn't be empty.")
 
-    return Blob(PythonWrapper.blob_stack([blob._internal for blob in blobs], int(axis)))
+    return Blob(PythonWrapper.blob_concat([blob._internal for blob in blobs], int(axis)))
 
 def broadcast(blob, shape):
     """Broadcast the blob shape.

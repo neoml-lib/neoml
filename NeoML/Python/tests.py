@@ -2044,7 +2044,7 @@ class LossTestCase(TestCase):
         self.assertTrue( np.equal( ad.sum(blob, [0, 1]).asarray(), 6 * np.ones((1, 1, 1, 1, 1, 2, 3)) ).all() )
         self.assertTrue( np.equal( ad.mean(blob, [1, 5]).asarray(), np.ones((2, 1, 1, 1, 1, 1, 3)) ).all() )
         self.assertTrue( np.equal( ad.cumsum(blob, 1).asarray().reshape(shape), np.cumsum(ones, 1) ).all() )
-        self.assertTrue( np.equal( ad.stack([blob, blob, blob], axis=2).asarray(), np.ones((2, 3, 3, 2, 3)) ).all() )
+        self.assertTrue( np.equal( ad.concat([blob, blob, blob], axis=2).asarray(), np.ones((2, 3, 3, 2, 3)) ).all() )
         self.assertTrue( np.equal((blob < 2 * blob).asarray(), ones).all() )
         self.assertTrue( np.equal((blob < 2).asarray(), ones).all() )
         self.assertTrue( np.equal((0 < blob).asarray(), ones).all() )
