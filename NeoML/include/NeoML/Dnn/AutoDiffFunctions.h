@@ -96,6 +96,11 @@ NEOML_API CPtr<const CDnnBlob> Log( const CDnnBlob* first );
 // res[i] = exp(first[i])
 NEOML_API CPtr<const CDnnBlob> Exp( const CDnnBlob* first );
 
+// Computes the power of one blob to another elementwise.
+NEOML_API CPtr<const CDnnBlob> Pow( const CDnnBlob* first, const CDnnBlob* second );
+NEOML_API CPtr<const CDnnBlob> Pow( const CDnnBlob* first, float second );
+NEOML_API CPtr<const CDnnBlob> Pow( float first, const CDnnBlob* second );
+
 // Finds values of the k largest elements in the blob.
 // The result is a blob of size k.
 NEOML_API CPtr<const CDnnBlob> TopK( const CDnnBlob* first, int k );

@@ -240,6 +240,26 @@ class Blob:
 
         return Blob(PythonWrapper.blob_less(float(other), self._internal))
 
+    def __pow__(self, other):
+        """Computes the power of self to other.
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+
+        if type(other) is Blob:
+            if not neoml.Utils.check_can_broadcast(self, other):
+                raise ValueError("The blobs have incompatible shapes.")
+            return Blob(PythonWrapper.blob_pow(self._internal, other._internal))
+
+        return Blob(PythonWrapper.blob_pow(self._internal, float(other)))
+
+    def __rpow__(self, other):
+        """Computes the power of self to other.
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+        return Blob(PythonWrapper.blob_pow(float(other), self._internal))
+
 # -------------------------------------------------------------------------------------------------------------
 
 def store(blob, file_path):

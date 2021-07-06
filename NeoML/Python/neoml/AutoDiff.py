@@ -223,6 +223,14 @@ def reshape(blob, shape):
 
     PythonWrapper.blob_reshape(blob._internal, np_shape)
 
+def pow(a, b):
+    """Computes the power of one blob to another elementwise.
+    """
+    if not type(a) is Blob and not type(b) is Blob:
+        raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
+
+    return a**b
+
 def less(a, b):
     """Compare blobs elementwise.
     """

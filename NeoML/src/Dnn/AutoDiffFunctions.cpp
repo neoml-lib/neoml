@@ -169,7 +169,7 @@ CPtr<const CDnnBlob> Add( const CDnnBlob* first, const CDnnBlob* second )
 	CPtr<const CDnnBlob> firstBlob = Broadcast( first, broadcastedDesc );
 	CPtr<const CDnnBlob> secondBlob = Broadcast( second, broadcastedDesc );
 
-	NeoAssert( firstBlob->GetDataSize() == secondBlob->GetDataSize() );
+	NeoAssert( firstBlob->GetDesc().HasEqualDimensions( secondBlob->GetDesc() ) );
 
 	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( firstBlob.Ptr() );
 	IGradientTape* tape1 = tapeBlob1 != 0 ? tapeBlob1->Tape() : 0;
@@ -424,7 +424,7 @@ CPtr<const CDnnBlob> Mul( const CDnnBlob* first, const CDnnBlob* second )
 	CPtr<const CDnnBlob> firstBlob = Broadcast( first, broadcastedDesc );
 	CPtr<const CDnnBlob> secondBlob = Broadcast( second, broadcastedDesc );
 
-	NeoAssert( firstBlob->GetDataSize() == secondBlob->GetDataSize() );
+	NeoAssert( firstBlob->GetDesc().HasEqualDimensions( secondBlob->GetDesc() ) );
 
 	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( firstBlob.Ptr() );
 	IGradientTape* tape1 = tapeBlob1 != 0 ? tapeBlob1->Tape() : 0;
@@ -577,7 +577,7 @@ CPtr<const CDnnBlob> Div( const CDnnBlob* first, const CDnnBlob* second )
 	CPtr<const CDnnBlob> firstBlob = Broadcast( first, broadcastedDesc );
 	CPtr<const CDnnBlob> secondBlob = Broadcast( second, broadcastedDesc );
 
-	NeoAssert( firstBlob->GetDataSize() == secondBlob->GetDataSize() );
+	NeoAssert( firstBlob->GetDesc().HasEqualDimensions( secondBlob->GetDesc() ) );
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
@@ -1467,6 +1467,130 @@ CPtr<const CDnnBlob> Less( float first, const CDnnBlob* second )
 	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, second->GetDesc() );
 	mathEngine.VectorEltwiseLess( first, second->GetData(), result->GetData(), result->GetDataSize() );
 	return result.Ptr();
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+class CTapePower : public ITapeOperation {
+public:
+	explicit CTapePower( const CDnnBlob* first, const CDnnBlob* second );
+
+	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
+private:
+	CPtr<const CDnnBlob> first;
+	CPtr<const CDnnBlob> second;
+};
+
+CTapePower::CTapePower( const CDnnBlob* _first, const CDnnBlob* _second ) :
+	first( _first ),
+	second( _second )
+{
+}
+
+CPtr<CDnnBlob> CTapePower::Jacobian( const CTapeBlob* var ) const
+{
+	CPtr<CDnnBlob> firstJacobian = callJacobian( first, var );
+	CPtr<CDnnBlob> secondJacobian = callJacobian( second, var );
+
+	IMathEngine& mathEngine = first->GetMathEngine();
+	CPtr<CDnnBlob> temp = CDnnBlob::CreateBlob( first->GetMathEngine(), first->GetDesc() );
+	mathEngine.VectorLog( first->GetData(), temp->GetData(), temp->GetDataSize() );
+
+	if( secondJacobian->GetObjectCount() == 1 ) {
+		mathEngine.VectorEltwiseMultiply( temp->GetData(), secondJacobian->GetData(),
+			secondJacobian->GetData(), secondJacobian->GetDataSize() );
+	} else {
+		mathEngine.MultiplyDiagMatrixByMatrix( temp->GetData(), temp->GetDataSize(),
+			secondJacobian->GetData(), secondJacobian->GetObjectSize(), secondJacobian->GetData(),
+			secondJacobian->GetDataSize() );
+	}
+
+	mathEngine.VectorEltwiseDivide( second->GetData(), first->GetData(), temp->GetData(), temp->GetDataSize() );
+	if( firstJacobian->GetObjectCount() == 1 ) {
+		mathEngine.VectorEltwiseMultiply( temp->GetData(), firstJacobian->GetData(),
+			firstJacobian->GetData(), firstJacobian->GetDataSize() );
+	} else {
+		mathEngine.MultiplyDiagMatrixByMatrix( temp->GetData(), temp->GetDataSize(),
+			firstJacobian->GetData(), firstJacobian->GetObjectSize(), firstJacobian->GetData(),
+			firstJacobian->GetDataSize() );
+	}
+
+	CPtr<CDnnBlob> pow = CDnnBlob::CreateBlob( first->GetMathEngine(), first->GetDesc() );
+	mathEngine.VectorEltwisePower( first->GetData(), second->GetData(), pow->GetData(), pow->GetDataSize() );
+
+	if( firstJacobian->GetObjectCount() == 1 && secondJacobian->GetObjectCount() == 1 ) {
+		mathEngine.VectorAdd( firstJacobian->GetData(), secondJacobian->GetData(), firstJacobian->GetData(), firstJacobian->GetDataSize() );
+		mathEngine.VectorEltwiseMultiply( pow->GetData(), firstJacobian->GetData(),
+			firstJacobian->GetData(), firstJacobian->GetDataSize() );
+		return firstJacobian;
+	} else if( firstJacobian->GetObjectCount() == 1 ) {
+		mathEngine.AddDiagMatrixToMatrix( firstJacobian->GetData(), secondJacobian->GetData(),
+			secondJacobian->GetObjectCount(), secondJacobian->GetObjectSize(), secondJacobian->GetData() );
+		mathEngine.MultiplyDiagMatrixByMatrix( pow->GetData(), pow->GetDataSize(),
+			secondJacobian->GetData(), secondJacobian->GetObjectSize(), secondJacobian->GetData(),
+			secondJacobian->GetDataSize() );
+		return secondJacobian;
+	} else if( secondJacobian->GetObjectCount() == 1 ){
+		mathEngine.AddDiagMatrixToMatrix( secondJacobian->GetData(), firstJacobian->GetData(),
+			firstJacobian->GetObjectCount(), firstJacobian->GetObjectSize(), firstJacobian->GetData() );
+		mathEngine.MultiplyDiagMatrixByMatrix( pow->GetData(), pow->GetDataSize(),
+			firstJacobian->GetData(), firstJacobian->GetObjectSize(), firstJacobian->GetData(),
+			firstJacobian->GetDataSize() );
+		return firstJacobian;
+	} else {
+		mathEngine.VectorAdd( firstJacobian->GetData(), secondJacobian->GetData(), secondJacobian->GetData(),
+			secondJacobian->GetDataSize() );
+		mathEngine.MultiplyDiagMatrixByMatrix( pow->GetData(), pow->GetDataSize(),
+			secondJacobian->GetData(), secondJacobian->GetObjectSize(), secondJacobian->GetData(),
+			secondJacobian->GetDataSize() );
+		return secondJacobian;
+	}
+}
+
+CPtr<const CDnnBlob> Pow( const CDnnBlob* first, const CDnnBlob* second )
+{
+	NeoAssert( first != 0 );
+	NeoAssert( second != 0 );
+
+	IMathEngine& mathEngine = first->GetMathEngine();
+
+	CBlobDesc broadcastedDesc = getBroadcastedDesc( first->GetDesc(), second->GetDesc() );
+	CPtr<const CDnnBlob> firstBlob = Broadcast( first, broadcastedDesc );
+	CPtr<const CDnnBlob> secondBlob = Broadcast( second, broadcastedDesc );
+
+	NeoAssert( firstBlob->GetDesc().HasEqualDimensions( secondBlob->GetDesc() ) );
+
+	const CTapeBlob* tapeBlob1 = dynamic_cast<const CTapeBlob*>( first );
+	IGradientTape* tape1 = tapeBlob1 != 0 ? tapeBlob1->Tape() : 0;
+	const CTapeBlob* tapeBlob2 = dynamic_cast<const CTapeBlob*>( second );
+	IGradientTape* tape2 = tapeBlob2 != 0 ? tapeBlob2->Tape() : 0;
+
+	NeoAssert( tape1 == 0 || tape2 == 0 || tape1 == tape2 );
+
+	IGradientTape* tape = tape1 != 0 ? tape1 : tape2;
+
+	CPtr<CTapeBlob> result( new CTapeBlob( tape, mathEngine, firstBlob->GetDesc() ) );
+	mathEngine.VectorEltwisePower( firstBlob->GetData(), secondBlob->GetData(), result->GetData(), result->GetDataSize() );
+
+	if( tape != 0 ) {
+		CPtr<ITapeOperation> operation( new CTapePower( firstBlob, secondBlob ) );
+		tape->Add( result, operation );
+	}
+	return result.Ptr();
+}
+
+CPtr<const CDnnBlob> Pow( const CDnnBlob* first, float _second )
+{
+	CPtr<CDnnBlob> second = CDnnBlob::CreateBlob( first->GetMathEngine(), { 1 } );
+	second->GetData().SetValue( _second );
+	return Pow( first, second );
+}
+
+CPtr<const CDnnBlob> Pow( float _first, const CDnnBlob* second )
+{
+	CPtr<CDnnBlob> first = CDnnBlob::CreateBlob( second->GetMathEngine(), { 1 } );
+	first->GetData().SetValue( _first );
+	return Pow( first, second );
 }
 
 //------------------------------------------------------------------------------------------------------------

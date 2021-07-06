@@ -165,6 +165,21 @@ void InitializeTape(py::module& m)
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
 	}, py::return_value_policy::reference );
 
+	m.def( "blob_pow", [](const CPyBlob& first, const CPyBlob& second) {
+		CPtr<const CDnnBlob> result( Pow( first.Blob(), second.Blob() ) );
+		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
+	}, py::return_value_policy::reference );
+
+	m.def( "blob_pow", [](const CPyBlob& first, float second) {
+		CPtr<const CDnnBlob> result( Pow( first.Blob(), second ) );
+		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
+	}, py::return_value_policy::reference );
+
+	m.def( "blob_pow", [](float first, const CPyBlob& second) {
+		CPtr<const CDnnBlob> result( Pow( first, second.Blob() ) );
+		return CPyBlob( second.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
+	}, py::return_value_policy::reference );
+
 	m.def("blob_top_k", [](const CPyBlob& first, int k ) {
 		CPtr<const CDnnBlob> result( TopK( first.Blob(), k ) );
 		return CPyBlob( first.MathEngineOwner(), const_cast<CDnnBlob*>(result.Ptr()) );
