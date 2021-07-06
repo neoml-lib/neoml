@@ -43,7 +43,8 @@ CFlattenOperator::CFlattenOperator( const onnx::NodeProto& flatten, int opsetVer
 
 void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
 
 	// Every operator which somehow changes Onnx tensor's shape or dimensions works only with Onnx dim type
 	// Otherwise it'll lead to hardly fixable troubles with data-ordering

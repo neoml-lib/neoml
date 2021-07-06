@@ -44,7 +44,8 @@ CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
 
 void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
 
 	const CTensorShape& inputShape = inputs[0]->Shape();
 

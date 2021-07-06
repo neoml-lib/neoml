@@ -47,7 +47,7 @@ void CConcatOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTe
 
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	NeoAssert( inputs[0] != nullptr );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	const int dimCount = inputs[0]->DimCount();
 
 	int axis = 1;
@@ -70,7 +70,7 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	outputShape[axis] = 0;
 
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		NeoAssert( inputs[inputIndex] != nullptr );
+		CheckOnnxProtocol( inputs[inputIndex] != nullptr, "input can't be optional", *this );
 		CPtr<const CUserTensor> preparedInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[inputIndex], inputLayout ).Ptr() );
 		concat->Connect( inputIndex, *preparedInput->Layer(), preparedInput->OutputIndex() );
 		outputShape[axis] += inputs[inputIndex]->Shape()[axis];

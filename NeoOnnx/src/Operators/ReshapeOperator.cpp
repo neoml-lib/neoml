@@ -41,7 +41,8 @@ CReshapeOperator::CReshapeOperator( const onnx::NodeProto& reshape, int opsetVer
 
 void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
 
 	CTensorShape outputShape;
 	getShape( inputs, outputShape );

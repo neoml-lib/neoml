@@ -40,8 +40,8 @@ void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	//     first input - user-provided data, single matrix
 	//     second input - pre-calculated data, single matrix
 	// In this case we can emulate this operator by using CFullyConnectedLayer
-	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
-	NeoAssert( inputs[1] != nullptr );
+	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided second input", *this );
 
 	CheckNeoOnnxSupport( inputs[0]->DimCount() == 2, "3+ dimensional first input", *this );

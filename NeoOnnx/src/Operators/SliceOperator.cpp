@@ -42,7 +42,8 @@ CSliceOperator::CSliceOperator( const onnx::NodeProto& slice, int opsetVersion )
 
 void CSliceOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
-	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
 
 	CFastArray<int, 8> axes;
 	getAxes( inputs, axes );

@@ -66,8 +66,8 @@ CPoolOperatorBase::CPoolOperatorBase( TPoolType _poolType, const onnx::NodeProto
 void CPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	// Check input
-	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(),
-		"", *this );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 4,
 		"wrong input tensor's dimensions number", *this );
