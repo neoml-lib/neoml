@@ -19,56 +19,43 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// This file contains implementations for COperator's methods which are working with attributes
+// This file contains getters for different types of onnx attributes
 
 template<class T>
-inline bool COperator::GetAttribute( const CString& name, T& value ) const
+inline void getAttributeValue( const onnx::AttributeProto& attribute, T& /* value */, const COperator& op )
 {
-	const int pos = attributes.GetFirstPosition( name );
-	if( pos == NotFound ) {
-		return false;
-	}
-
-	const onnx::AttributeProto& attribute = attributes.GetValue( pos );
-	getAttributeValue<T>( attribute, value );
-	return true;
-}
-
-template<class T>
-inline void COperator::getAttributeValue( const onnx::AttributeProto& attribute, T& /* value */ ) const
-{
-	CheckNeoOnnxSupport( false, CString( "'" ) + attribute.name().c_str() + "' attribute's type", *this );
+	CheckNeoOnnxSupport( false, CString( "'" ) + attribute.name().c_str() + "' attribute's type", op );
 }
 
 template<>
-inline void COperator::getAttributeValue<int>( const onnx::AttributeProto& attribute, int& value ) const
+inline void getAttributeValue<int>( const onnx::AttributeProto& attribute, int& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_INT && attribute.has_i(),
-		( attribute.name() + " attribute is not an int" ).c_str(), *this );
+		( attribute.name() + " attribute is not an int" ).c_str(), op );
 	value = static_cast<int>( attribute.i() );
 }
 
 template<>
-inline void COperator::getAttributeValue<float>( const onnx::AttributeProto& attribute, float& value ) const
+inline void getAttributeValue<float>( const onnx::AttributeProto& attribute, float& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_FLOAT && attribute.has_f(),
-		( attribute.name() + " attribute is not a float" ).c_str(), *this );
+		( attribute.name() + " attribute is not a float" ).c_str(), op );
 	value = static_cast<float>( attribute.f() );
 }
 
 template<>
-inline void COperator::getAttributeValue<CString>( const onnx::AttributeProto& attribute, CString& value ) const
+inline void getAttributeValue<CString>( const onnx::AttributeProto& attribute, CString& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_STRING && attribute.has_s(),
-		( attribute.name() + " attribute is not a string" ).c_str(), *this );
+		( attribute.name() + " attribute is not a string" ).c_str(), op );
 	value = attribute.s().c_str();
 }
 
 template<>
-inline void COperator::getAttributeValue<CArray<int>>( const onnx::AttributeProto& attribute, CArray<int>& value ) const
+inline void getAttributeValue<CArray<int>>( const onnx::AttributeProto& attribute, CArray<int>& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_INTS,
-		( attribute.name() + " attribute is not an array of ints" ).c_str(), *this );
+		( attribute.name() + " attribute is not an array of ints" ).c_str(), op );
 	value.Empty();
 	value.SetBufferSize( attribute.ints_size() );
 	for( int64_t element : attribute.ints() ) {
@@ -83,10 +70,10 @@ inline void COperator::getAttributeValue<CArray<int>>( const onnx::AttributeProt
 }
 
 template<>
-inline void COperator::getAttributeValue<CArray<int64_t>>( const onnx::AttributeProto& attribute, CArray<int64_t>& value ) const
+inline void getAttributeValue<CArray<int64_t>>( const onnx::AttributeProto& attribute, CArray<int64_t>& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_INTS,
-		( attribute.name() + " attribute is not an array of ints" ).c_str(), *this );
+		( attribute.name() + " attribute is not an array of ints" ).c_str(), op );
 	value.Empty();
 	value.SetBufferSize( attribute.ints_size() );
 	for( int64_t element : attribute.ints() ) {
@@ -95,10 +82,10 @@ inline void COperator::getAttributeValue<CArray<int64_t>>( const onnx::Attribute
 }
 
 template<>
-inline void COperator::getAttributeValue<CFastArray<int, 8>>( const onnx::AttributeProto& attribute, CFastArray<int, 8>& value ) const
+inline void getAttributeValue<CFastArray<int, 8>>( const onnx::AttributeProto& attribute, CFastArray<int, 8>& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_INTS,
-		( attribute.name() + " attribute is not an array of ints" ).c_str(), *this );
+		( attribute.name() + " attribute is not an array of ints" ).c_str(), op );
 	for( int64_t element : attribute.ints() ) {
 		if( element >= static_cast<int64_t>( INT_MAX ) ) {
 			value.Add( INT_MAX );
@@ -111,10 +98,10 @@ inline void COperator::getAttributeValue<CFastArray<int, 8>>( const onnx::Attrib
 }
 
 template<>
-inline void COperator::getAttributeValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPtr<CDataTensor>& value ) const
+inline void getAttributeValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPtr<CDataTensor>& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_TENSOR && attribute.has_t(),
-		( attribute.name() + " attribute is not a tensor" ).c_str(), *this );
+		( attribute.name() + " attribute is not a tensor" ).c_str(), op );
 
 	TBlobType resultDataType = GetBlobType( static_cast<onnx::TensorProto_DataType>( attribute.t().data_type() ) );
 	CTensorLayout resultLayout( attribute.t().dims().size() );

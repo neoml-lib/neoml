@@ -79,7 +79,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TensorLayout.h
     TensorUtils.h
 
-    OperatorAttributeGetters.inl
+    AttributeGetters.inl
 )
 
 if(ANDROID)

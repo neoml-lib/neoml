@@ -86,12 +86,22 @@ private:
 	CArray<CString> inputNames;
 	// Output names
 	CArray<CString> outputNames;
-
-	template<class T>
-	void getAttributeValue( const onnx::AttributeProto& attribute, T& value ) const;
 };
+
+template<class T>
+inline bool COperator::GetAttribute( const CString& name, T& value ) const
+{
+	const int pos = attributes.GetFirstPosition( name );
+	if( pos == NotFound ) {
+		return false;
+	}
+
+	const onnx::AttributeProto& attribute = attributes.GetValue( pos );
+	getAttributeValue<T>( attribute, value, *this );
+	return true;
+}
 
 } // namespace NeoOnnx
 
-#include "OperatorAttributeGetters.inl"
+#include "AttributeGetters.inl"
 
