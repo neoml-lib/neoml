@@ -22,49 +22,47 @@ namespace NeoOnnx {
 // Base class for non-global Pool operators
 class CPoolOperatorBase : public CLayerOperator {
 protected:
-	// Operation type
-	enum TPoolType {
-		// Max pooling
-		PT_Max,
-		// Average pooling
-		PT_Mean,
+	CPoolOperatorBase( const onnx::NodeProto& pool, int opsetVersion );
 
-		PT_Count
-	};
+	// Gets padding sizes
+	void GetPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;
 
-	CPoolOperatorBase( TPoolType poolType, const onnx::NodeProto& pool, int opsetVersion );
-
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const final;
+	// AddLayers implementation for the given padding value and pooling layer
+	// The derivatives should call this method from their AddLayers
+	void AddLayers( const CTensorArray& inputs, float padValue, CPoolingLayer& layer, CDnn& dnn, CTensorArray& outputs ) const;
 
 private:
-	// Pooling type
-	const TPoolType poolType;
 	// Padding mode
 	CString autoPad;
-	// Indicates whether pad pixels should be included in output calculation (average pool only)
-	bool includePad;
 	// Shape of pool kernel
 	CFastArray<int, 8> kernelShape;
 
 	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;
-	void getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;
-
-	static CPtr<CPoolingLayer> createPoolingLayer( CPoolOperatorBase::TPoolType poolType, IMathEngine& mathEngine );
 };
 
 // MaxPool operator
 class CMaxPoolOperator : public CPoolOperatorBase {
 public:
 	CMaxPoolOperator( const onnx::NodeProto& maxPool, int opsetVersion ) :
-		CPoolOperatorBase( PT_Max, maxPool, opsetVersion ) {}
+		CPoolOperatorBase( maxPool, opsetVersion ) {}
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // AveragePool operator
 class CAveragePoolOperator : public CPoolOperatorBase {
 public:
-	CAveragePoolOperator( const onnx::NodeProto& averagePool, int opsetVersion ) :
-		CPoolOperatorBase( PT_Mean, averagePool, opsetVersion ) {}
+	CAveragePoolOperator( const onnx::NodeProto& averagePool, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	// Indicates whether pad pixels should be included in output calculation
+	bool includePad;
 };
 
 } // namespace NeoOnnx
