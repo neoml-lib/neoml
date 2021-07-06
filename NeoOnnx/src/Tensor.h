@@ -62,10 +62,10 @@ private:
 	CTensorShape shape;
 
 	// Information about how tensor is represented in memory
-	CTensorLayout layout;
+	const CTensorLayout layout;
 
 	// Indicates whether tensor's data was calculated during import or not
-	bool isCalculated;
+	const bool isCalculated;
 
 	bool checkTensorLayout() const;
 };
