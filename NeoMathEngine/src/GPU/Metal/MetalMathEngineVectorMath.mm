@@ -96,8 +96,8 @@ void CMetalMathEngine::VectorConvert(const CConstIntHandle& from, const CFloatHa
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
-	const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth)
+void CMetalMathEngine::BroadcastCopy(const CFloatHandle&, const CConstFloatHandle&,
+	const CBlobDesc&, const CBlobDesc&, int)
 {
 	ASSERT_EXPR( false );
 }
