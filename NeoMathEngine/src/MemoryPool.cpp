@@ -20,6 +20,7 @@ limitations under the License.
 #include <MemoryPool.h>
 #include <MemoryHandleInternal.h>
 #include <algorithm>
+#include <numeric>
 
 namespace NeoML {
 
@@ -169,11 +170,8 @@ size_t CMemoryPool::GetMemoryInPools() const
 		return 0;
 	}
 	const TPoolVector& threadPools = pool->second.Pool;
-	size_t res = 0;
-	for( auto cur : threadPools ) {
-		res += cur->GetMemoryInPool();
-	}
-	return res;
+	return std::accumulate( threadPools.begin(), threadPools.end(), size_t( 0 ),
+		[] ( const size_t& sum, const CMemoryBufferPool* cur ) { return sum + cur->GetMemoryInPool(); } );
 }
 
 void CMemoryPool::CleanUp()
