@@ -125,7 +125,7 @@ public:
 
 private:
 	// Information about corresponding layer and its' output index
-	CLayerOutput layerOutput;
+	const CLayerOutput layerOutput;
 };
 
 inline CUserTensor::CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output ) :
@@ -150,7 +150,7 @@ public:
 
 private:
 	// Blob with data
-	CPtr<const CDnnBlob> data;
+	const CPtr<const CDnnBlob> data;
 
 	bool checkTensorLayout() const;
 };
