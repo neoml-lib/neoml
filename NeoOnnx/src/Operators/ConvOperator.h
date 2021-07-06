@@ -37,12 +37,9 @@ private:
 	void add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
 	void add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
 
-	void getKernelShape( const CTensorArray& inputs, CTensorShape& kernelShape ) const;
 	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;
 	void getPads( const CTensorArray& inputs, const CTensorShape& kernelShape, CFastArray<int, 8>& pads ) const;
 	void getDilations( const CTensorArray& inputs, CFastArray<int, 8>& dilations ) const;
-	void calcOutputShape( const CTensorArray& inputs, const CTensorShape& kernelShape, const CFastArray<int, 8>& strides,
-		const CFastArray<int, 8>& pads, const CFastArray<int, 8>& dilations, CTensorShape& outputShape ) const;
 };
 
 } // namespace NeoOnnx

@@ -24,6 +24,34 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Gets kernel shape
+static void getKernelShape( const CTensorArray& inputs, CTensorShape& kernelShape )
+{
+	const CTensorShape& inputShape = inputs[0]->Shape();
+	kernelShape.SetBufferSize( inputShape.Size() - 2 );
+	for( int dimIndex = 2; dimIndex < inputShape.Size(); ++dimIndex ) {
+		kernelShape.Add( inputs[1]->Shape()[dimIndex] );
+	}
+}
+
+// Calculates output shape based on the convolution parameters
+static void calcOutputShape( const CTensorArray& inputs, const CTensorShape& kernelShape, const CFastArray<int, 8>& strides,
+	const CFastArray<int, 8>& pads, const CFastArray<int, 8>& dilations, int group, CTensorShape& outputShape )
+{
+	const CTensorShape& inputShape = inputs[0]->Shape();
+	inputShape.CopyTo( outputShape );
+	if( group == 1 ) {
+		outputShape[1] = inputs[1]->Shape()[0];
+	}
+	const int convDims = inputShape.Size() - 2;
+	for( int dimIndex = 0; dimIndex < convDims; ++dimIndex ) {
+		outputShape[dimIndex + 2] = ( inputShape[dimIndex + 2] + pads[dimIndex] + pads[dimIndex + convDims]
+			- ( kernelShape[dimIndex] - 1 ) * dilations[dimIndex] - 1 ) / strides[dimIndex] + 1;
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
 CConvOperator::CConvOperator( const onnx::NodeProto& conv, int opsetVersion ) :
 	CLayerOperator( conv, opsetVersion ),
 	group( 1 ),
@@ -68,16 +96,6 @@ void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	}
 }
 
-// Gets kernel shape
-void CConvOperator::getKernelShape( const CTensorArray& inputs, CTensorShape& kernelShape ) const
-{
-	const CTensorShape& inputShape = inputs[0]->Shape();
-	kernelShape.SetBufferSize( inputShape.Size() - 2 );
-	for( int dimIndex = 2; dimIndex < inputShape.Size(); ++dimIndex ) {
-		kernelShape.Add( inputs[1]->Shape()[dimIndex] );
-	}
-}
-
 // Gets strides
 void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const
 {
@@ -111,22 +129,6 @@ void CConvOperator::getDilations( const CTensorArray& inputs, CFastArray<int, 8>
 	}
 }
 
-// Calculates output shape based on the convolution parameters
-void CConvOperator::calcOutputShape( const CTensorArray& inputs, const CTensorShape& kernelShape, const CFastArray<int, 8>& strides,
-	const CFastArray<int, 8>& pads, const CFastArray<int, 8>& dilations, CTensorShape& outputShape ) const
-{
-	const CTensorShape& inputShape = inputs[0]->Shape();
-	inputShape.CopyTo( outputShape );
-	if( group == 1 ) {
-		outputShape[1] = inputs[1]->Shape()[0];
-	}
-	const int convDims = inputShape.Size() - 2;
-	for( int dimIndex = 0; dimIndex < convDims; ++dimIndex ) {
-		outputShape[dimIndex + 2] = ( inputShape[dimIndex + 2] + pads[dimIndex] + pads[dimIndex + convDims]
-			- ( kernelShape[dimIndex] - 1 ) * dilations[dimIndex] - 1 ) / strides[dimIndex] + 1;
-	}
-}
-
 // Adds 2-dimensional convolution
 void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
@@ -141,7 +143,7 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	CFastArray<int, 8> dilations;
 	getDilations( inputs, dilations );
 	CTensorShape outputShape;
-	calcOutputShape( inputs, kernelShape, strides, pads, dilations, outputShape );
+	calcOutputShape( inputs, kernelShape, strides, pads, dilations, group, outputShape );
 
 	CPtr<CBaseConvLayer> conv = nullptr;
 	IMathEngine& mathEngine = dnn.GetMathEngine();
@@ -213,7 +215,7 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	CFastArray<int, 8> dilations;
 	getDilations( inputs, dilations );
 	CTensorShape outputShape;
-	calcOutputShape( inputs, kernelShape, strides, pads, dilations, outputShape );
+	calcOutputShape( inputs, kernelShape, strides, pads, dilations, group, outputShape );
 
 	// In NeoML there is no channelwise convolution for 3-dimensional images
 	CheckNeoOnnxSupport( group == 1, "groupped 3d convolution", *this );
