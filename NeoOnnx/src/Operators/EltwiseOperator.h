@@ -23,35 +23,26 @@ namespace NeoOnnx {
 
 // Base class for operators which perform eltwise operations
 class CEltwiseOperatorBase : public CLayerOperator {
-public:
+protected:
 	// Supported eltwise operations
 	enum TOperation {
 		// Addition
 		O_Add,
-		// Subtraction
-		O_Sub,
 		// Multiplication
 		O_Mul,
-		// Division
-		O_Div,
 
 		O_Count
 	};
 
-protected:
-	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation, int argsNum = -1 );
+	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, int argsNum = -1 );
 
 	// AddLayers implementation for the given broadcast
 	// The derivatives should call this method from their AddLayers
-	void AddLayers( const CBroadcast& broadcast, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
+	void AddLayers( TOperation operation, const CBroadcast& broadcast, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
 
 private:
-	// Operation performed by this operator
-	const TOperation operation;
 	// Expected number of arguments (-1 if any number is supported)
 	const int argsNum;
-
-	CPtr<const CTensorBase> prepareSecondInput( const CTensorArray& inputs ) const;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -60,36 +51,53 @@ private:
 
 // Base class
 class CEltwiseBinaryOperatorBase : public CEltwiseOperatorBase {
-public:
-	CEltwiseBinaryOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, TOperation operation ) :
-		CEltwiseOperatorBase( eltwise, opsetVersion, operation, 2 ) {}
+protected:
+	CEltwiseBinaryOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion ) :
+		CEltwiseOperatorBase( eltwise, opsetVersion, 2 ) {}
 
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	// Returns broadcast
+	// The broadcast logic is similar for all of the eltwise binary operators in onnx
+	CBroadcast Broadcast() const;
 };
 
 // Add operator
 class CAddOperator : public CEltwiseBinaryOperatorBase {
 public:
-	CAddOperator( const onnx::NodeProto& add, int opsetVersion ) : CEltwiseBinaryOperatorBase( add, opsetVersion, O_Add ) {}
+	CAddOperator( const onnx::NodeProto& add, int opsetVersion ) : CEltwiseBinaryOperatorBase( add, opsetVersion ) {}
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // Sub operator
 class CSubOperator : public CEltwiseBinaryOperatorBase {
 public:
-	CSubOperator( const onnx::NodeProto& sub, int opsetVersion ) : CEltwiseBinaryOperatorBase( sub, opsetVersion, O_Sub ) {}
+	CSubOperator( const onnx::NodeProto& sub, int opsetVersion ) : CEltwiseBinaryOperatorBase( sub, opsetVersion ) {}
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // Mul operator
 class CMulOperator : public CEltwiseBinaryOperatorBase {
 public:
-	CMulOperator( const onnx::NodeProto& mul, int opsetVersion ) : CEltwiseBinaryOperatorBase( mul, opsetVersion, O_Mul ) {}
+	CMulOperator( const onnx::NodeProto& mul, int opsetVersion ) : CEltwiseBinaryOperatorBase( mul, opsetVersion ) {}
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // Div operator
 class CDivOperator : public CEltwiseBinaryOperatorBase {
 public:
-	CDivOperator( const onnx::NodeProto& div, int opsetVersion ) : CEltwiseBinaryOperatorBase( div, opsetVersion, O_Div ) {}
+	CDivOperator( const onnx::NodeProto& div, int opsetVersion ) : CEltwiseBinaryOperatorBase( div, opsetVersion ) {}
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
