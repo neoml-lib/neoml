@@ -58,9 +58,14 @@ static CPtr<const CUserTensor> convertInput( const CUserTensor& input )
 static CPtr<CDnnBlob> calculateFinalParams( const float eps, const CTensorArray& inputs )
 {
 	const CDnnBlob* scale = dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
+	NeoAssert( scale != nullptr );
 	const CDnnBlob* bias = dynamic_cast<const CDataTensor&>( *inputs[2] ).Data();
+	NeoAssert( bias != nullptr );
 	const CDnnBlob* mean = dynamic_cast<const CDataTensor&>( *inputs[3] ).Data();
+	NeoAssert( mean != nullptr );
 	const CDnnBlob* var = dynamic_cast<const CDataTensor&>( *inputs[4] ).Data();
+	NeoAssert( var != nullptr );
+
 	const int channels = scale->GetDataSize();
 
 	IMathEngine& mathEngine = scale->GetMathEngine();
@@ -114,10 +119,13 @@ CBatchNormalizationOperator::CBatchNormalizationOperator( const onnx::NodeProto&
 
 void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "constant data", *this );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
+
 	const int channels = inputs[0]->Shape()[1];
 	for( int inputIndex = 1; inputIndex < 5; ++inputIndex ) {
-		CheckNeoOnnxSupport( inputs[inputIndex] != nullptr && inputs[inputIndex]->IsCalculated(), "non-constant weights", *this );
+		CheckOnnxProtocol( inputs[inputIndex] != nullptr, "input can't be optional", *this );
+		CheckNeoOnnxSupport( inputs[inputIndex]->IsCalculated(), "non-constant weights", *this );
 		CheckOnnxProtocol( inputs[inputIndex]->DimCount() == 1, "weights must be 1-dimensional", *this );
 		CheckOnnxProtocol( inputs[inputIndex]->Shape()[0] == channels, "weights must have 'channels' length", *this );
 	}

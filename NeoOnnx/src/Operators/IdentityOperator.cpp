@@ -35,6 +35,7 @@ CIdentityOperator::CIdentityOperator( const onnx::NodeProto& identity, int opset
 
 void CIdentityOperator::ProcessTensors( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	inputs.CopyTo( outputs );
 }
 

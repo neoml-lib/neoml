@@ -36,7 +36,8 @@ CGatherOperator::CGatherOperator( const onnx::NodeProto& gather, int opsetVersio
 void CGatherOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	// This is a stub for a specific case: integer 1-dimensional data
-	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[0]->IsCalculated(), "User-provided data", *this );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNeoOnnxSupport( inputs[0]->IsCalculated(), "User-provided data", *this );
 	CheckNeoOnnxSupport( inputs[0]->DimCount() == 1, "2+ dimensional data", *this );
 	const CDnnBlob* dataBlob = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data();
 	CheckNeoOnnxSupport( dataBlob->GetDataType() == CT_Int, "non-integer data", *this );

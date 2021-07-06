@@ -43,7 +43,8 @@ CDropoutOperator::CDropoutOperator( const onnx::NodeProto& dropout, int opsetVer
 
 void CDropoutOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
 	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
 
 	CPtr<CDropoutLayer> dropout = new CDropoutLayer( dnn.GetMathEngine() );

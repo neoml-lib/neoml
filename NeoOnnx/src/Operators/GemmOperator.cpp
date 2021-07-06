@@ -58,7 +58,9 @@ CGemmOperator::CGemmOperator( const onnx::NodeProto& gemm, int opsetVersion ) :
 
 void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckNeoOnnxSupport( inputs[0] != nullptr && !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
+	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "input can't be optional", *this );
+
+	CheckNeoOnnxSupport( !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( transA == 0, "transA != 0", *this );
 	// Some models from the model zoo has this op with 4-dimensional input

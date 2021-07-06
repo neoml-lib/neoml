@@ -35,7 +35,7 @@ CShapeOperator::CShapeOperator( const onnx::NodeProto& shape, int opsetVersion )
 
 void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	NeoAssert( inputs[0] != nullptr );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	// This operator returns input's shape as an 1-dimensional tensor of integers
 	// Due to the fact that tensor's shape doesn't depend on the actual values of tensor elements
 	// this operator always returns CDataTensor

@@ -37,7 +37,9 @@ CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int 
 void CEltwiseOperatorBase::AddLayers( TOperation operation, const CBroadcast& broadcast, const CTensorArray& inputs,
 	CDnn& dnn, CTensorArray& outputs ) const
 {
-	// Corner case which doesn't violate Onnx protocol: opeartors with variable input count may have 1 input
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+
+	// Corner case which doesn't violate Onnx protocol: operators with variable input count may have 1 input
 	if( inputs.Size() == 1 && argsNum < 0 ) {
 		outputs[0] = inputs[0];
 		return;
@@ -47,6 +49,7 @@ void CEltwiseOperatorBase::AddLayers( TOperation operation, const CBroadcast& br
 	CTensorShape outputShape;
 	inputs[0]->Shape().CopyTo( outputShape );
 	for( int i = 1; i < inputs.Size(); ++i ) {
+		CheckOnnxProtocol( inputs[i] != nullptr, "input can't be optional", *this );
 		CTensorShape buff;
 		CheckNeoOnnxSupport( BroadcastTensorShape( outputShape, inputs[i]->Shape(), broadcast, buff ),
 			"Can't broadcast tensors shape", *this );
@@ -129,6 +132,7 @@ void CSubOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	inputs.CopyTo( convertedInputs );
 
 	// a - b = a + (-1 * b)
+	CheckOnnxProtocol( inputs[1] != nullptr, "input isn't connected", *this );
 	if( inputs[1]->IsCalculated() ) {
 		// Imitate by multiplying values in blob
 		CPtr<const CDataTensor> secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
@@ -170,6 +174,7 @@ void CDivOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	// a / b = a * (1 / b)
 	// In that case it's impossible to imitate (1 / x) operation via layer
 	// That's why only CDataTensor is supported
+	CheckOnnxProtocol( inputs[1] != nullptr, "input isn't connected", *this );
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "Div supports only data tensor as a second input", *this );
 	CPtr<const CDataTensor> secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
 	CPtr<CDnnBlob> newBlob = secondInput->Data()->GetClone();

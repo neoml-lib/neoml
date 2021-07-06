@@ -40,7 +40,8 @@ CSoftmaxOperator::CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVer
 
 void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
 
 	const int dimCount = inputs[0]->DimCount();
 	CheckNeoOnnxSupport( axis <= 3, "more than 3 batch dimensions", *this );

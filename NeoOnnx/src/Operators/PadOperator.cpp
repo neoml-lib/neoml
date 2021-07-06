@@ -46,6 +46,8 @@ CPadOperator::CPadOperator( const onnx::NodeProto& pad, int opsetVersion ) :
 
 void CPadOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
 	CFastArray<int, 8> pads;
 	getPads( inputs, pads );
 	const float value = getPadValue( inputs );

@@ -42,6 +42,9 @@ CConvOperator::CConvOperator( const onnx::NodeProto& conv, int opsetVersion ) :
 
 void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
+
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 5,
 		"wrong input tensor's dimensions number", *this );
@@ -50,6 +53,7 @@ void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	CheckNeoOnnxSupport( group == 1 || ( group == inputShape[1] && inputShape.Size() <= 4 ),
 		"groupped convolution (3d or non-channelwise)", *this );
 
+	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
 		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", *this );

@@ -32,8 +32,9 @@ CActivationOperatorBase::CActivationOperatorBase( const onnx::NodeProto& onnxNod
 
 void CActivationOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
 	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
-	NeoAssert( userInput != nullptr );
 
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
 	activationLayer->SetName( Name() );

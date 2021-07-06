@@ -80,9 +80,8 @@ static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& d
 	inputs.Add( nullptr, op.InputCount() );
 	for( int inputIndex = 0; inputIndex < op.InputCount(); ++inputIndex ) {
 		const CString& inputName = op.InputName( inputIndex );
-		// In onnx operator may have 3 inputs (e.g. 1 - required, 2 and 3 are optional)
-		// and it's possible to connect tensors to the first and the third while leaving the second empty
-		// In that case the second's input tensor name will be empty
+		// In onnx operator may have 3 inputs (e.g. Conv where 1 and 2 inputs are required and 3 is optional)
+		// In that case operator may have 3 inputs where the third input's name is empty
 		if( inputName != "" ) {
 			CheckOnnxProtocol( tensors.Has( inputName ), "Unknown input: " + inputName );
 			inputs[inputIndex] = tensors[inputName];
@@ -144,9 +143,9 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 	// Add graph outputs
 	for( const onnx::ValueInfoProto& onnxOutput : onnxGraph.output() ) {
 		CGraphOutput output( onnxOutput );
-		CheckOnnxProtocol( tensors.Has( output.Name() ), "" );
+		CheckOnnxProtocol( tensors.Has( output.Name() ), "output tensor is missing" );
 		const CPtr<const CTensorBase>& baseTensor = tensors[output.Name()];
-		NeoAssert( baseTensor != nullptr && !baseTensor->IsCalculated() );
+		CheckNeoOnnxSupport( !baseTensor->IsCalculated(), "constant network output" );
 		CPtr<const CSinkLayer> sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ), dnn );
 		outputs.Add( sink->GetName() );
 	}
