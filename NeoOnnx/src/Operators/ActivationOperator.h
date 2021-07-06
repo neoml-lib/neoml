@@ -31,7 +31,7 @@ protected:
 
 private:
 	// Activation function which is applied to the input by this operator
-	TActivationFunction activation;
+	const TActivationFunction activation;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
