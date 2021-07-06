@@ -24,21 +24,12 @@ namespace NeoOnnx {
 // Base class for operators which perform eltwise operations
 class CEltwiseOperatorBase : public CLayerOperator {
 protected:
-	// Supported eltwise operations
-	enum TOperation {
-		// Addition
-		O_Add,
-		// Multiplication
-		O_Mul,
-
-		O_Count
-	};
-
 	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, int argsNum = -1 );
 
-	// AddLayers implementation for the given broadcast
+	// AddLayers implementation for the given broadcast and layer
 	// The derivatives should call this method from their AddLayers
-	void AddLayers( TOperation operation, const CBroadcast& broadcast, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
+	void AddLayers( const CBroadcast& broadcast, const CTensorArray& inputs,
+		CBaseLayer& eltwiseLayer, CDnn& dnn, CTensorArray& outputs ) const;
 
 private:
 	// Expected number of arguments (-1 if any number is supported)
@@ -107,7 +98,7 @@ protected:
 // Sum operator
 class CSumOperator : public CEltwiseOperatorBase {
 public:
-	CSumOperator( const onnx::NodeProto& sum, int opsetVersion ) : CEltwiseOperatorBase( sum, opsetVersion, O_Add ) {}
+	CSumOperator( const onnx::NodeProto& sum, int opsetVersion ) : CEltwiseOperatorBase( sum, opsetVersion ) {}
 
 protected:
 	// CLayerOperator methods
