@@ -71,7 +71,7 @@ void CConstantOfShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn&
 		outputBlob->Fill<int>( valueBlob->GetData<int>().GetValue() );
 	}
 	
-	outputs[0] = new CDataTensor( outputShape, outputLayout, *outputBlob );
+	outputs.Add( new CDataTensor( outputShape, outputLayout, *outputBlob ) );
 }
 
 } // namespace NeoOnnx

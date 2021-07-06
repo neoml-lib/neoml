@@ -83,7 +83,7 @@ void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	transform->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *transform );
 
-	outputs[0] = new CUserTensor( outputShape, outputLayout, CLayerOutput( transform, 0 ) );
+	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( transform, 0 ) ) );
 }
 
 } // namespace NeoOnnx

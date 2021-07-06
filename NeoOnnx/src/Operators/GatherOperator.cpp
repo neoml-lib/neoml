@@ -62,7 +62,7 @@ void CGatherOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTe
 	const_cast<CDnnBlob*>( indicesBlob )->ReleaseBuffer( indices, false );
 	const_cast<CDnnBlob*>( dataBlob )->ReleaseBuffer( data, false );
 
-	outputs[0] = new CDataTensor( inputs[1]->Shape(), inputs[1]->Layout(), *resultBlob );
+	outputs.Add( new CDataTensor( inputs[1]->Shape(), inputs[1]->Layout(), *resultBlob ) );
 }
 
 } // namespace NeoOnnx

@@ -28,8 +28,8 @@ CConstantOperator::CConstantOperator( const onnx::NodeProto& constant, int opset
 {
 	// v1 - original
 	// v9 - supported new data types
-	// v11 - added "sparse_value" attribute
-	// v12 - added new attributes: "value_float", "value_ints" etc.
+	// v11 - "sparse_value" attribute are added
+	// v12 - new attributes are added: "value_float", "value_ints" etc.
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 0, "operator must have no inputs", *this );
@@ -48,7 +48,7 @@ void CConstantOperator::ProcessTensors( const CTensorArray& /* inputs */, CDnn& 
 		// For now NeoOnnx supports only 'value' attribute
 		CheckNeoOnnxSupport( GetAttribute( "value", value ), "Typed version of 'value' attribute", *this );
 	}
-	outputs[0] = value.Ptr();
+	outputs.Add( value.Ptr() );
 }
 
 } // namespace NeoOnnx

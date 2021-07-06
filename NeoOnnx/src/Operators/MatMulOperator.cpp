@@ -69,7 +69,7 @@ void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	fc->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *fc );
 
-	outputs[0] = new CUserTensor( outputShape, layout, CLayerOutput( fc, 0 ) );
+	outputs.Add( new CUserTensor( outputShape, layout, CLayerOutput( fc, 0 ) ) );
 }
 
 // Prepares tensor for CFullyConnectedLayer

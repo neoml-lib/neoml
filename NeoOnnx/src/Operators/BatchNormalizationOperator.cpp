@@ -63,7 +63,7 @@ void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& d
 	bnLayer->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *bnLayer );
 
-	outputs[0] = new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( bnLayer, 0 ) );
+	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( bnLayer, 0 ) ) );
 }
 
 // Converts layer input if needed

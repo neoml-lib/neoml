@@ -112,7 +112,7 @@ void CPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTenso
 	pooling->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *pooling );
 
-	outputs[0] = new CUserTensor( outputShape, input->Layout(), CLayerOutput( pooling, 0 ) );
+	outputs.Add( new CUserTensor( outputShape, input->Layout(), CLayerOutput( pooling, 0 ) ) );
 }
 
 // Gets pool strides

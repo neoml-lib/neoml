@@ -38,7 +38,7 @@ CDropoutOperator::CDropoutOperator( const onnx::NodeProto& dropout, int opsetVer
 	} else {
 		CheckOnnxProtocol( InputCount() >= 1 || InputCount() <= 3, "operator must have from 1 up to 3 inputs", *this );
 	}
-	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "operator must have 1 output", *this );
+	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "operator must have 1 or 2 outputs", *this );
 }
 
 void CDropoutOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
@@ -52,7 +52,11 @@ void CDropoutOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	dropout->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *dropout );
 
-	outputs[0] = new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( dropout, 0 ) );
+	outputs.Add( new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( dropout, 0 ) ) );
+	if( OutputCount() == 2 ) {
+		// neoml::CDropoutLayer doesn't support mask as output
+		outputs.Add( nullptr );
+	}
 }
 
 // Gets dropout rate

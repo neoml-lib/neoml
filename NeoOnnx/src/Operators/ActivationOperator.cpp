@@ -40,7 +40,7 @@ void CActivationOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 	activationLayer->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *activationLayer );
 
-	outputs[0] = new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( activationLayer, 0 ) );
+	outputs.Add( new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( activationLayer, 0 ) ) );
 }
 
 //---------------------------------------------------------------------------------------------------------------------

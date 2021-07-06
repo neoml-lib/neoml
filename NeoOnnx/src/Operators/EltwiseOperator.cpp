@@ -95,7 +95,7 @@ void CEltwiseOperatorBase::AddLayers( const CBroadcast& broadcast, const CTensor
 		eltwise->Connect( i, *userInput->Layer(), userInput->OutputIndex() );
 	}
 	dnn.AddLayer( *eltwise );
-	outputs[0] = new CUserTensor( outputShape, currInputs[0]->Layout(), CLayerOutput( eltwise, 0 ) );
+	outputs.Add( new CUserTensor( outputShape, currInputs[0]->Layout(), CLayerOutput( eltwise, 0 ) ) );
 }
 
 // Modifies second input for binary division or subtraction

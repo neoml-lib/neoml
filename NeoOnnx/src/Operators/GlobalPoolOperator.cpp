@@ -54,7 +54,7 @@ void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 	curr = addPoolingLayer( *curr, axes, dnn );
 	curr = addPostProcessing( *curr, dnn );
 
-	outputs[0] = curr;
+	outputs.Add( curr.Ptr() );
 }
 
 // Prepares input for NeoML's CGlobal*PoolingLayer

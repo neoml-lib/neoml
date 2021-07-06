@@ -44,8 +44,8 @@ void CSqueezeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, C
 	CTensorShape outputShape;
 	calcOutputShape( inputs[0]->Shape(), axes, outputShape );
 
-	outputs[0] = new CUserTensor( outputShape, calcOutputLayout( inputs[0]->Layout(), axes ),
-		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() );
+	outputs.Add( new CUserTensor( outputShape, calcOutputLayout( inputs[0]->Layout(), axes ),
+		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() ) );
 }
 
 // Fills array with axes indices to be squeezed

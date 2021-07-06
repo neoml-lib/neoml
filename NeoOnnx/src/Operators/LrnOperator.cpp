@@ -34,15 +34,6 @@ CLrnOperator::CLrnOperator( const onnx::NodeProto& lrn, int opsetVersion ) :
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CLrnOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
-{
-	CUserInputMask inputMask;
-	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		inputMask |= inputIndex;
-	}
-	CLayerOperator::ProcessTensors( inputMask, inputs, dnn, outputs );
-}
-
 void CLrnOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	NeoAssert( inputs[0] != nullptr && !inputs[0]->IsCalculated() );
@@ -74,7 +65,7 @@ void CLrnOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	lrn->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *lrn );
 
-	outputs[0] = new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( lrn, 0 ) );
+	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( lrn, 0 ) ) );
 }
 
 } // namespace NeoOnnx

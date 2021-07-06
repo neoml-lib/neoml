@@ -60,7 +60,7 @@ void CSliceOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTe
 	for( int i = 0; i < axes.Size(); ++i ) {
 		currInput = sliceAxis( *currInput, axes[i], starts[i], ends[i], steps[i] );
 	}
-	outputs[0] = currInput;
+	outputs.Add( currInput.Ptr() );
 }
 
 // Fills array with axes, affected by slice

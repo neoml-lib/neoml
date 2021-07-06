@@ -192,7 +192,7 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	conv->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
 	dnn.AddLayer( *conv );
 
-	outputs[0] = new CUserTensor( outputShape, neoML2dLayout, CLayerOutput( conv, 0 ) );
+	outputs.Add( new CUserTensor( outputShape, neoML2dLayout, CLayerOutput( conv, 0 ) ) );
 }
 
 // Adds 3-dimensional convolution
@@ -251,7 +251,7 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	conv->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
 	dnn.AddLayer( *conv );
 
-	outputs[0] = new CUserTensor( outputShape, neoML3dLayout, CLayerOutput( conv, 0 ) );
+	outputs.Add( new CUserTensor( outputShape, neoML3dLayout, CLayerOutput( conv, 0 ) ) );
 }
 
 } // namespace NeoOnnx
