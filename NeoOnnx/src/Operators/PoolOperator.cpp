@@ -23,22 +23,6 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Creates pooling layer for the given pooling type
-static CPtr<CPoolingLayer> createPoolingLayer( CPoolOperatorBase::TPoolType poolType, IMathEngine& mathEngine )
-{
-	static_assert( CPoolOperatorBase::PT_Count == 2, "CPoolOperatorBase::PT_Count != 2" );
-	switch( poolType ) {
-		case CPoolOperatorBase::PT_Max:
-			return new CMaxPoolingLayer( mathEngine );
-		case CPoolOperatorBase::PT_Mean:
-			return new CMeanPoolingLayer( mathEngine );
-		default:
-			NeoAssert( false );
-	}
-
-	return nullptr;
-}
-
 CPoolOperatorBase::CPoolOperatorBase( TPoolType _poolType, const onnx::NodeProto& poolNode, int opsetVersion ) :
 	CLayerOperator( poolNode, opsetVersion ),
 	poolType( _poolType ),
@@ -137,6 +121,22 @@ void CPoolOperatorBase::getPads( const CTensorArray& inputs, CFastArray<int, 8>&
 	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
 		CalculatePadding( autoPad, kernelShape, pads );
 	}
+}
+
+// Creates pooling layer for the given pooling type
+CPtr<CPoolingLayer> CPoolOperatorBase::createPoolingLayer( CPoolOperatorBase::TPoolType poolType, IMathEngine& mathEngine )
+{
+	static_assert( CPoolOperatorBase::PT_Count == 2, "CPoolOperatorBase::PT_Count != 2" );
+	switch( poolType ) {
+		case CPoolOperatorBase::PT_Max:
+			return new CMaxPoolingLayer( mathEngine );
+		case CPoolOperatorBase::PT_Mean:
+			return new CMeanPoolingLayer( mathEngine );
+		default:
+			NeoAssert( false );
+	}
+
+	return nullptr;
 }
 
 } // namespace NeoOnnx
