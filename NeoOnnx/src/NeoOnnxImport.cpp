@@ -80,6 +80,9 @@ static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& d
 	inputs.Add( nullptr, op.InputCount() );
 	for( int inputIndex = 0; inputIndex < op.InputCount(); ++inputIndex ) {
 		const CString& inputName = op.InputName( inputIndex );
+		// In onnx operator may have 3 inputs (e.g. 1 - required, 2 and 3 are optional)
+		// and it's possible to connect tensors to the first and the third while leaving the second empty
+		// In that case the second's input tensor name will be empty
 		if( inputName != "" ) {
 			CheckOnnxProtocol( tensors.Has( inputName ), "Unknown input: " + inputName );
 			inputs[inputIndex] = tensors[inputName];
