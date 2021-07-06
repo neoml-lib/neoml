@@ -31,9 +31,6 @@ protected:
 private:
 	// eps value which is used to prevent division by zero
 	float eps;
-
-	CPtr<const CUserTensor> convertInput( const CUserTensor& input ) const;
-	CPtr<CDnnBlob> calculateFinalParams( int channels, const CTensorArray& inputs ) const;
 };
 
 } // namespace NeoOnnx
