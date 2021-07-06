@@ -40,7 +40,7 @@ public:
 
 private:
 	// Graph output name
-	CString name;
+	const CString name;
 };
 
 } // namespace NeoOnnx

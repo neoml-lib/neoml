@@ -40,7 +40,7 @@ public:
 
 private:
 	// graph initializer name
-	CString name;
+	const CString name;
 	// graph initializer info from onnx
 	const onnx::TensorProto& initializer;
 };
