@@ -700,3 +700,40 @@ kernel void vectorKernelBlobGlobalMaxOverTimePooling( constant CBaseBlobDesc* so
     
     resultData[objectNum] = maxVal;
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// Max-over-time pooling
+
+kernel void matrixLrn( constant float* input [[buffer(0)]],
+                       device float* output [[buffer(1)]],
+                       constant int* vectorCount [[buffer(2)]],
+                       constant int* vectorSize [[buffer(3)]],
+                       constant int* windowSize [[buffer(4)]],
+                       constant float* bias [[buffer(5)]],
+                       constant float* alpha [[buffer(6)]],
+                       constant float* beta [[buffer(7)]],
+                       uint2 thread_position_in_grid [[thread_position_in_grid]] )
+{
+    C2DPosition pos( thread_position_in_grid );
+
+    int vectorIndex;
+    int channelIndex;
+    if( !pos.GetMetalTaskIndex2D( *vectorCount, *vectorSize, vectorIndex, channelIndex ) ) {
+        return;
+    }
+
+    const int firstC = max( 0, channelIndex - ( *windowSize - 1 ) / 2 );
+    const int lastC = min( *vectorSize - 1, channelIndex + *windowSize / 2 );
+
+    input += vectorIndex * *vectorSize;
+    output += vectorIndex * *vectorSize + channelIndex;
+
+    float res = 0;
+
+    for( int i = firstC; i <= lastC; ++i ) {
+        res += input[i] * input[i];
+    }
+
+    res = *bias + *alpha * res / *windowSize;
+    *output = pow( 1.f / res, *beta ) * input[channelIndex];
+}

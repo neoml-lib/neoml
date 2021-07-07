@@ -190,6 +190,7 @@ enum TShader {
 	SH_IndRnnRecurrent,
 	SH_SpaceToDepthInt,
 	SH_SpaceToDepthFloat,
+	SH_Lrn,
 
 	SH_Count
 };
