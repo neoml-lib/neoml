@@ -42,12 +42,12 @@ public:
 
 	py::array GetMatrix() const
 	{
-		py::gil_scoped_release release;
 		const CVariableMatrix<float>& matrix = Layer<CConfusionMatrixLayer>()->GetMatrix();
 
 		py::array_t<float, py::array::c_style> totalResult( { matrix.SizeY(), matrix.SizeX() } );
 
 		auto r = totalResult.mutable_unchecked<2>();
+		py::gil_scoped_release release;
 		for( int i = 0; i < matrix.SizeY(); i++ ) {
 			for( int j = 0; j < matrix.SizeX(); j++ ) {
 				r(i, j) = matrix(i, j);

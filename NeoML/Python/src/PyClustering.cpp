@@ -57,29 +57,34 @@ private:
 
 py::tuple CPyClustering::Clusterize( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array weight )
 {
-	py::gil_scoped_release release;
 	CPtr<CPyClusteringData> problem = new CPyClusteringData( static_cast<int>( weight.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const float*>( weight.data() ) );
 
 	CClusteringResult result;
 
-	clustering->Clusterize( problem.Ptr(), result );
+	{
+		py::gil_scoped_release release;
+		clustering->Clusterize( problem.Ptr(), result );
+	}
 
 	py::array_t<int, py::array::c_style> clusters( static_cast<int>( weight.size() ) );
 	auto tempClusters = clusters.mutable_unchecked<1>();
-	for( int i = 0; i < result.Data.Size(); i++ ) {
-		tempClusters(i) = result.Data[i];
-	}
-
 	py::array_t<double, py::array::c_style> clusterCentersMean( { result.ClusterCount, featureCount } );
 	auto tempClusterCentersMean = clusterCentersMean.mutable_unchecked<2>();
 	py::array_t<double, py::array::c_style> clusterCentersDisp( { result.ClusterCount, featureCount } );
 	auto tempClusterCentersDisp = clusterCentersDisp.mutable_unchecked<2>();
-	for( int i = 0; i < result.Clusters.Size(); i++ ) {
-		for( int j = 0; j < featureCount; j++ ) {
-			tempClusterCentersMean(i, j) = result.Clusters[i].Mean[j];
-			tempClusterCentersDisp(i, j) = result.Clusters[i].Disp[j];
+
+	{
+		py::gil_scoped_release release;
+		for( int i = 0; i < result.Data.Size(); i++ ) {
+			tempClusters(i) = result.Data[i];
+		}
+		for( int i = 0; i < result.Clusters.Size(); i++ ) {
+			for( int j = 0; j < featureCount; j++ ) {
+				tempClusterCentersMean(i, j) = result.Clusters[i].Mean[j];
+				tempClusterCentersDisp(i, j) = result.Clusters[i].Disp[j];
+			}
 		}
 	}
 
