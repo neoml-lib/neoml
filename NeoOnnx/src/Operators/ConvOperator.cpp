@@ -96,39 +96,6 @@ void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	}
 }
 
-// Gets strides
-void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const
-{
-	GetAttribute( "strides", strides );
-	if( strides.IsEmpty() ) {
-		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
-		strides.Add( 1, convDims );
-	}
-}
-
-// Gets padding sizes
-void CConvOperator::getPads( const CTensorArray& inputs, const CTensorShape& kernelShape, CFastArray<int, 8>& pads ) const
-{
-	GetAttribute( "pads", pads );
-	if( pads.IsEmpty() ) {
-		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
-		pads.Add( 0, 2 * convDims );
-	}
-	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
-		CalculatePadding( autoPad, kernelShape, pads );
-	}
-}
-
-// Gets dilation sizes
-void CConvOperator::getDilations( const CTensorArray& inputs, CFastArray<int, 8>& dilations ) const
-{
-	GetAttribute( "dilations", dilations );
-	if( dilations.IsEmpty() ) {
-		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
-		dilations.Add( 1, convDims );
-	}
-}
-
 // Adds 2-dimensional convolution
 void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
@@ -258,6 +225,39 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	dnn.AddLayer( *conv );
 
 	outputs.Add( new CUserTensor( outputShape, neoML3dLayout, CLayerOutput( conv, 0 ) ) );
+}
+
+// Gets strides
+void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const
+{
+	GetAttribute( "strides", strides );
+	if( strides.IsEmpty() ) {
+		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
+		strides.Add( 1, convDims );
+	}
+}
+
+// Gets padding sizes
+void CConvOperator::getPads( const CTensorArray& inputs, const CTensorShape& kernelShape, CFastArray<int, 8>& pads ) const
+{
+	GetAttribute( "pads", pads );
+	if( pads.IsEmpty() ) {
+		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
+		pads.Add( 0, 2 * convDims );
+	}
+	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
+		CalculatePadding( autoPad, kernelShape, pads );
+	}
+}
+
+// Gets dilation sizes
+void CConvOperator::getDilations( const CTensorArray& inputs, CFastArray<int, 8>& dilations ) const
+{
+	GetAttribute( "dilations", dilations );
+	if( dilations.IsEmpty() ) {
+		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
+		dilations.Add( 1, convDims );
+	}
 }
 
 } // namespace NeoOnnx
