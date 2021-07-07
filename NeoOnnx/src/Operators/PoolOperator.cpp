@@ -52,7 +52,7 @@ void CPoolOperatorBase::GetPads( const CTensorArray& inputs, CFastArray<int, 8>&
 	}
 }
 
-void CPoolOperatorBase::AddLayers( const CTensorArray& inputs, float padValue,
+void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValue,
 	CPoolingLayer& pooling, CDnn& dnn, CTensorArray& outputs ) const
 {
 	// Check input
@@ -111,7 +111,7 @@ void CPoolOperatorBase::getStrides( const CTensorArray& inputs, CFastArray<int, 
 void CMaxPoolOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CPtr<CPoolingLayer> pooling( new CMaxPoolingLayer( dnn.GetMathEngine() ) );
-	CPoolOperatorBase::AddLayers( inputs, -FLT_MAX, *pooling, dnn, outputs );
+	CPoolOperatorBase::AddLayersImpl( inputs, -FLT_MAX, *pooling, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -143,7 +143,7 @@ void CAveragePoolOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTe
 
 
 	CPtr<CPoolingLayer> pooling( new CMeanPoolingLayer( dnn.GetMathEngine() ) );
-	CPoolOperatorBase::AddLayers( inputs, 0.f, *pooling, dnn, outputs );
+	CPoolOperatorBase::AddLayersImpl( inputs, 0.f, *pooling, dnn, outputs );
 }
 
 } // namespace NeoOnnx
