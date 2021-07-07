@@ -49,13 +49,6 @@ protected:
 	// Adds layers required which are imitating this operator to the dnn
 	// and puts corresponding CUserTensor's to the outputs
 	virtual void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const = 0;
-
-private:
-	bool canCalculateOutput( const CTensorArray& inputs ) const;
-	void addInternalDnnSources( const CUserInputMask& inputMask, const CTensorArray& inputs,
-		CTensorArray& internalInputs, CDnn& internalDnn ) const;
-	void addInternalDnnSinks( const CTensorArray& internalOutputs, CArray<CSinkLayer*>& sinks, CDnn& internalDnn ) const;
-	void extractOutputs( const CTensorArray& internalOutputs, const CArray<CSinkLayer*>& sinks, CTensorArray& outputs ) const;
 };
 
 } // namespace NeoOnnx
