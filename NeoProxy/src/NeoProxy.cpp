@@ -444,14 +444,22 @@ CDnnDescImpl::CDnnDescImpl( const void* buffer, int bufferSize, const CDnnMathEn
 
 void CDnnDescImpl::SetInputNames( const CArray<const char*> newInputNames )
 {
-	newInputNames.CopyTo( inputNames );
+	inputNames.Empty();
+	inputNames.SetBufferSize( newInputNames.Size() );
+	for( int i = 0; i < newInputNames.Size(); ++i ) {
+		inputNames.Add( CString( newInputNames[i] ) );
+	}
 	CDnnDesc::InputCount = inputNames.Size();
 }
 
 void CDnnDescImpl::SetOutputNames( const CArray<const char*> newOutputNames )
 {
-	newOutputNames.CopyTo( outputNames );
-	CDnnDesc::InputCount = outputNames.Size();
+	outputNames.Empty();
+	outputNames.SetBufferSize( newOutputNames.Size() );
+	for( int i = 0; i < newOutputNames.Size(); ++i ) {
+		outputNames.Add( CString( newOutputNames[i] ) );
+	}
+	CDnnDesc::OutputCount = outputNames.Size();
 }
 
 void CDnnDescImpl::BuildNameList()
