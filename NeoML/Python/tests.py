@@ -1479,6 +1479,24 @@ class LayersTestCase(TestCase):
         out = outputs['sink'].asarray()
         self.assertEqual(out.shape, (2, 3, 5, 2, 4, 48))
 
+    def test_lrn(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        lrn = neoml.Dnn.Lrn(source, window_size=3, bias=-2., alpha=0.456, beta=0.123, name='lrn')
+        sink = neoml.Dnn.Sink(lrn, 'sink')
+
+        self.assertEqual(lrn.name, 'lrn')
+        self.assertEqual(lrn.window_size, 3)
+        self.assertAlmostEqual(lrn.bias, -2., delta=1e-5)
+        self.assertAlmostEqual(lrn.alpha, 0.456, delta=1e-5)
+        self.assertAlmostEqual(lrn.beta, 0.123, delta=1e-5)
+
+        input_blob = neoml.Blob.asblob(math_engine, np.ones((2, 3, 4, 5, 6, 7, 8), dtype=np.float32), (2, 3, 4, 5, 6, 7, 8))
+        outputs = dnn.run({'source': input_blob})
+        out = outputs['sink'].asarray()
+        self.assertEqual(out.shape, (2, 3, 4, 5, 6, 7, 8))
+
 
 class PoolingTestCase(TestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},

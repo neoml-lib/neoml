@@ -139,6 +139,7 @@ set(SHADER_SOURCES
     IndRnnRecurrent.comp
     SpaceToDepthFloat.comp
     SpaceToDepthInt.comp
+    Lrn.comp
 )
 
 set(IB_SHADER_SOURCES
