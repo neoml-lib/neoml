@@ -688,6 +688,18 @@ ConcatBatchWidth
 .. autoclass:: neoml.Dnn.ConcatBatchWidth
    :members:
 
+ConcatBatchLength
+--------------------
+
+.. autoclass:: neoml.Dnn.ConcatBatchLength
+   :members:
+
+ConcatListSize
+--------------------
+
+.. autoclass:: neoml.Dnn.ConcatListSize
+   :members:
+
 ConcatObject
 ----------------
 

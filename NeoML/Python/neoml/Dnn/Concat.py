@@ -99,7 +99,7 @@ class ConcatDepth(Layer):
             return
 
         if len(input_layers) > 32:
-            raise ValueError('The `ConcatDepth can merge no more than 32 blobs.')
+            raise ValueError('The `ConcatDepth` can merge no more than 32 blobs.')
 
         layers, outputs = check_input_layers(input_layers, 0)
 
@@ -144,7 +144,7 @@ class ConcatWidth(Layer):
             return
 
         if len(input_layers) > 32:
-            raise ValueError('The `ConcatWidth can merge no more than 32 blobs.')
+            raise ValueError('The `ConcatWidth` can merge no more than 32 blobs.')
 
         layers, outputs = check_input_layers(input_layers, 0)
 
@@ -189,7 +189,7 @@ class ConcatHeight(Layer):
             return
 
         if len(input_layers) > 32:
-            raise ValueError('The `ConcatHeight can merge no more than 32 blobs.')
+            raise ValueError('The `ConcatHeight` can merge no more than 32 blobs.')
 
         layers, outputs = check_input_layers(input_layers, 0)
 
@@ -234,11 +234,101 @@ class ConcatBatchWidth(Layer):
             return
 
         if len(input_layers) > 32:
-            raise ValueError('The `BatchWidth can merge no more than 32 blobs.')
+            raise ValueError('The `BatchWidth` can merge no more than 32 blobs.')
 
         layers, outputs = check_input_layers(input_layers, 0)
 
         internal = PythonWrapper.ConcatBatchWidth(str(name), layers, outputs)
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class ConcatBatchLength(Layer):
+    """The layer that concatenates several blobs into one
+    along the BatchLength dimension.
+
+    :param input_layers: The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer accepts an arbitrary number of inputs.
+    The dimensions:
+
+    - **BatchWidth**, **ListSize**, **Height**,
+      **Width**, **Depth**, **Channels** equal for all inputs
+    - **BatchLength** dimension may vary
+
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the result of concatenation.
+        The dimensions:
+
+    - **BatchWidth**, **ListSize**, **Height**,
+      **Width**, **Depth**, **Channels** equal to the inputs' dimensions
+    - **BatchLength** equal to the sum of all inputs' **BatchLength**
+    """
+    def __init__(self, input_layers, name=None):
+        if type(input_layers) is PythonWrapper.ConcatBatchLength:
+            super().__init__(input_layers)
+            return
+
+        if len(input_layers) > 32:
+            raise ValueError('The `BatchLength` can merge no more than 32 blobs.')
+
+        layers, outputs = check_input_layers(input_layers, 0)
+
+        internal = PythonWrapper.ConcatBatchLength(str(name), layers, outputs)
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class ConcatListSize(Layer):
+    """The layer that concatenates several blobs into one
+    along the ListSize dimension.
+
+    :param input_layers: The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer accepts an arbitrary number of inputs.
+    The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **Height**,
+      **Width**, **Depth**, **Channels** equal for all inputs
+    - **ListSize** dimension may vary
+
+    .. rubric:: Layer outputs:
+
+    (1) a blob with the result of concatenation.
+        The dimensions:
+
+    - **BatchLength**, **BatchWidth**, **Height**,
+      **Width**, **Depth**, **Channels** equal to the inputs' dimensions
+    - **ListSize** equal to the sum of all inputs' **ListSize**
+    """
+    def __init__(self, input_layers, name=None):
+        if type(input_layers) is PythonWrapper.ConcatListSize:
+            super().__init__(input_layers)
+            return
+
+        if len(input_layers) > 32:
+            raise ValueError('The `ListSize` can merge no more than 32 blobs.')
+
+        layers, outputs = check_input_layers(input_layers, 0)
+
+        internal = PythonWrapper.ConcatListSize(str(name), layers, outputs)
         super().__init__(internal)
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -279,7 +369,7 @@ class ConcatObject(Layer):
             return
 
         if len(input_layers) > 32:
-            raise ValueError('The `ConcatObject can merge no more than 32 blobs.')
+            raise ValueError('The `ConcatObject` can merge no more than 32 blobs.')
 
         layers, outputs = check_input_layers(input_layers, 0)
 
