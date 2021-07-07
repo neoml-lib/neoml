@@ -22,13 +22,13 @@ namespace NeoOnnx {
 // This file contains getters for different types of onnx attributes
 
 template<class T>
-inline void getAttributeValue( const onnx::AttributeProto& attribute, T& /* value */, const COperator& op )
+inline void GetAttributeValue( const onnx::AttributeProto& attribute, T& /* value */, const COperator& op )
 {
 	CheckNeoOnnxSupport( false, CString( "'" ) + attribute.name().c_str() + "' attribute's type", op );
 }
 
 template<>
-inline void getAttributeValue<int>( const onnx::AttributeProto& attribute, int& value, const COperator& op )
+inline void GetAttributeValue<int>( const onnx::AttributeProto& attribute, int& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_INT && attribute.has_i(),
 		( attribute.name() + " attribute is not an int" ).c_str(), op );
@@ -36,7 +36,7 @@ inline void getAttributeValue<int>( const onnx::AttributeProto& attribute, int& 
 }
 
 template<>
-inline void getAttributeValue<float>( const onnx::AttributeProto& attribute, float& value, const COperator& op )
+inline void GetAttributeValue<float>( const onnx::AttributeProto& attribute, float& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_FLOAT && attribute.has_f(),
 		( attribute.name() + " attribute is not a float" ).c_str(), op );
@@ -44,7 +44,7 @@ inline void getAttributeValue<float>( const onnx::AttributeProto& attribute, flo
 }
 
 template<>
-inline void getAttributeValue<CString>( const onnx::AttributeProto& attribute, CString& value, const COperator& op )
+inline void GetAttributeValue<CString>( const onnx::AttributeProto& attribute, CString& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_STRING && attribute.has_s(),
 		( attribute.name() + " attribute is not a string" ).c_str(), op );
@@ -52,7 +52,7 @@ inline void getAttributeValue<CString>( const onnx::AttributeProto& attribute, C
 }
 
 template<>
-inline void getAttributeValue<CArray<int>>( const onnx::AttributeProto& attribute, CArray<int>& value, const COperator& op )
+inline void GetAttributeValue<CArray<int>>( const onnx::AttributeProto& attribute, CArray<int>& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_INTS,
 		( attribute.name() + " attribute is not an array of ints" ).c_str(), op );
@@ -70,7 +70,7 @@ inline void getAttributeValue<CArray<int>>( const onnx::AttributeProto& attribut
 }
 
 template<>
-inline void getAttributeValue<CArray<int64_t>>( const onnx::AttributeProto& attribute, CArray<int64_t>& value, const COperator& op )
+inline void GetAttributeValue<CArray<int64_t>>( const onnx::AttributeProto& attribute, CArray<int64_t>& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_INTS,
 		( attribute.name() + " attribute is not an array of ints" ).c_str(), op );
@@ -82,7 +82,7 @@ inline void getAttributeValue<CArray<int64_t>>( const onnx::AttributeProto& attr
 }
 
 template<>
-inline void getAttributeValue<CFastArray<int, 8>>( const onnx::AttributeProto& attribute, CFastArray<int, 8>& value, const COperator& op )
+inline void GetAttributeValue<CFastArray<int, 8>>( const onnx::AttributeProto& attribute, CFastArray<int, 8>& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_INTS,
 		( attribute.name() + " attribute is not an array of ints" ).c_str(), op );
@@ -98,7 +98,7 @@ inline void getAttributeValue<CFastArray<int, 8>>( const onnx::AttributeProto& a
 }
 
 template<>
-inline void getAttributeValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPtr<CDataTensor>& value, const COperator& op )
+inline void GetAttributeValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPtr<CDataTensor>& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_TENSOR && attribute.has_t(),
 		( attribute.name() + " attribute is not a tensor" ).c_str(), op );

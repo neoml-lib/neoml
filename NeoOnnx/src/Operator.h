@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "TensorLayout.h"
 #include "Tensor.h"
+#include "AttributeGetters.h"
 
 namespace NeoOnnx {
 
@@ -97,11 +98,9 @@ inline bool COperator::GetAttribute( const CString& name, T& value ) const
 	}
 
 	const onnx::AttributeProto& attribute = attributes.GetValue( pos );
-	getAttributeValue<T>( attribute, value, *this );
+	GetAttributeValue<T>( attribute, value, *this );
 	return true;
 }
 
 } // namespace NeoOnnx
-
-#include "AttributeGetters.inl"
 

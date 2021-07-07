@@ -44,6 +44,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
     ../include/NeoOnnx/NeoOnnxImport.h
+    AttributeGetters.h
     GraphInput.h
     GraphInitializer.h
     GraphOutput.h
@@ -78,8 +79,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Tensor.h
     TensorLayout.h
     TensorUtils.h
-
-    AttributeGetters.inl
 )
 
 if(ANDROID)
