@@ -442,7 +442,7 @@ CDnnDescImpl::CDnnDescImpl( const void* buffer, int bufferSize, const CDnnMathEn
 	BuildNameList();
 }
 
-void CDnnDescImpl::SetInputNames( const CArray<const char*> newInputNames )
+void CDnnDescImpl::SetInputNames( const CArray<const char*>& newInputNames )
 {
 	inputNames.Empty();
 	inputNames.SetBufferSize( newInputNames.Size() );
@@ -452,7 +452,7 @@ void CDnnDescImpl::SetInputNames( const CArray<const char*> newInputNames )
 	CDnnDesc::InputCount = inputNames.Size();
 }
 
-void CDnnDescImpl::SetOutputNames( const CArray<const char*> newOutputNames )
+void CDnnDescImpl::SetOutputNames( const CArray<const char*>& newOutputNames )
 {
 	outputNames.Empty();
 	outputNames.SetBufferSize( newOutputNames.Size() );
