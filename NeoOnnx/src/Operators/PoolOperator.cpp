@@ -141,7 +141,6 @@ void CAveragePoolOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTe
 		}
 	}
 
-
 	CPtr<CPoolingLayer> pooling( new CMeanPoolingLayer( dnn.GetMathEngine() ) );
 	CPoolOperatorBase::AddLayersImpl( inputs, 0.f, *pooling, dnn, outputs );
 }
