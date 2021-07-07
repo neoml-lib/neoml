@@ -107,6 +107,7 @@ private:
 
 CPyModel::CPyModel( const std::string& path )
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::load );
 	CArchive archive( &file, CArchive::load );
 	SerializeModel( archive, ptr );
@@ -114,6 +115,7 @@ CPyModel::CPyModel( const std::string& path )
 
 void CPyModel::Store( const std::string& path )
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::store );
 	CArchive archive( &file, CArchive::store );
 	SerializeModel( archive, ptr );
@@ -121,6 +123,7 @@ void CPyModel::Store( const std::string& path )
 
 py::array_t<double> CPyModel::Classify( py::array indices, py::array data, py::array row, bool isSparse )
 {
+	py::gil_scoped_release release;
 	const int* indicesPtr = reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr );
 	const float* dataPtr = reinterpret_cast<const float*>( data.data() );
 	const int* rowPtr = reinterpret_cast<const int*>( row.data() );
@@ -169,6 +172,7 @@ private:
 
 CPyRegressionModel::CPyRegressionModel( const std::string& path )
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::load );
 	CArchive archive( &file, CArchive::load );
 	SerializeModel( archive, ptr );
@@ -176,6 +180,7 @@ CPyRegressionModel::CPyRegressionModel( const std::string& path )
 
 void CPyRegressionModel::Store( const std::string& path )
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::store );
 	CArchive archive( &file, CArchive::store );
 	SerializeModel( archive, ptr );
@@ -183,6 +188,7 @@ void CPyRegressionModel::Store( const std::string& path )
 
 py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array data, py::array row, bool isSparse )
 {
+	py::gil_scoped_release release;
 	const int* indicesPtr = reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr );
 	const float* dataPtr = reinterpret_cast<const float*>( data.data() );
 	const int* rowPtr = reinterpret_cast<const int*>( row.data() );
@@ -235,6 +241,7 @@ private:
 
 CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array classes, py::array weight )
 {
+	py::gil_scoped_release release;
 	CPtr<CPyMemoryProblem> problem = new CPyMemoryProblem( static_cast<int>( classes.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
@@ -246,6 +253,7 @@ CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, p
 
 CPyRegressionModel CPyTrainingModel::TrainRegressor( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array values, py::array weight )
 {
+	py::gil_scoped_release release;
 	CPtr<CPyMemoryRegressionProblem> problem = new CPyMemoryRegressionProblem( static_cast<int>( values.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const float*>( values.data() ),
@@ -296,6 +304,7 @@ void InitializeTrainingModel(py::module& m)
 		.def("store", &CPyModel::Store, py::return_value_policy::reference)
 		.def(py::pickle(
 			[](const CPyModel& pyModel) {
+				py::gil_scoped_release release;
 				CPyMemoryFile file;
 				CArchive archive( &file, CArchive::store );
 				CPtr<IModel> model( pyModel.GetModel() );
@@ -309,6 +318,7 @@ void InitializeTrainingModel(py::module& m)
 					throw std::runtime_error("Invalid state!");
 				}
 
+				py::gil_scoped_release release;
 				auto t0_array = t[0].cast<py::array>();
 				CPyMemoryFile file( t0_array );
 				CArchive archive( &file, CArchive::load );
@@ -327,6 +337,7 @@ void InitializeTrainingModel(py::module& m)
 		.def("store", &CPyRegressionModel::Store, py::return_value_policy::reference)
 		.def(py::pickle(
 			[](const CPyRegressionModel& pyModel) {
+				py::gil_scoped_release release;
 				CPyMemoryFile file;
 				CArchive archive( &file, CArchive::store );
 				CPtr<IRegressionModel> model( pyModel.GetModel() );
@@ -340,6 +351,7 @@ void InitializeTrainingModel(py::module& m)
 					throw std::runtime_error("Invalid state!");
 				}
 
+				py::gil_scoped_release release;
 				auto t0_array = t[0].cast<py::array>();
 				CPyMemoryFile file( t0_array );
 				CArchive archive( &file, CArchive::load );
@@ -525,6 +537,7 @@ void InitializeTrainingModel(py::module& m)
 	m.def("_cross_validation_score", []( const CPyTrainingModel& classifier, py::array indices, py::array data, py::array rowPtr, 
 		bool isSparse, int featureCount, py::array classes, py::array weight, const std::string& scoreName, int parts, bool stratified )
 	{
+		py::gil_scoped_release release;
 		CPtr<CPyMemoryProblem> problem = new CPyMemoryProblem( static_cast<int>( classes.size() ), featureCount,
 			reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 			reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
@@ -540,6 +553,7 @@ void InitializeTrainingModel(py::module& m)
 		for( int i = 0; i < results.Success.Size(); i++ ) {
 			tempScores(i) = results.Success[i];
 		}
+
 		return scores;
 	});
 

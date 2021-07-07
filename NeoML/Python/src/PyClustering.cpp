@@ -57,6 +57,7 @@ private:
 
 py::tuple CPyClustering::Clusterize( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array weight )
 {
+	py::gil_scoped_release release;
 	CPtr<CPyClusteringData> problem = new CPyClusteringData( static_cast<int>( weight.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const float*>( weight.data() ) );
