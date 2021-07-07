@@ -105,10 +105,10 @@ static void extractOutputs( const CTensorArray& internalOutputs, const CArray<CS
 
 void CLayerOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	ProcessTensors( CUserInputMask( 0 ), inputs, dnn, outputs );
+	ProcessTensorsImpl( CUserInputMask( 0 ), inputs, dnn, outputs );
 }
 
-void CLayerOperator::ProcessTensors( const CUserInputMask& inputMask, const CTensorArray& inputs,
+void CLayerOperator::ProcessTensorsImpl( const CUserInputMask& inputMask, const CTensorArray& inputs,
 	CDnn& dnn, CTensorArray& outputs ) const
 {
 	if( !canCalculateOutput( inputs ) ) {

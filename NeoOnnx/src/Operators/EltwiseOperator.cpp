@@ -34,7 +34,7 @@ CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int 
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CEltwiseOperatorBase::AddLayers( const CBroadcast& broadcast, const CTensorArray& inputs,
+void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTensorArray& inputs,
 	CBaseLayer& eltwiseLayer, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
@@ -112,7 +112,7 @@ CBroadcast CEltwiseBinaryOperatorBase::Broadcast() const
 void CAddOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CPtr<CBaseLayer> layer( new CEltwiseSumLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayers( Broadcast(), inputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -146,7 +146,7 @@ void CSubOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	}
 
 	CPtr<CBaseLayer> layer( new CEltwiseSumLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayers( Broadcast(), convertedInputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), convertedInputs, *layer, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -154,7 +154,7 @@ void CSubOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 void CMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CPtr<CBaseLayer> layer( new CEltwiseMulLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayers( Broadcast(), inputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -175,7 +175,7 @@ void CDivOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	convertedInputs[1] = new CDataTensor( secondInput->Shape(), secondInput->Layout(), *newBlob );
 
 	CPtr<CBaseLayer> layer( new CEltwiseMulLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayers( Broadcast(), convertedInputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), convertedInputs, *layer, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -188,7 +188,7 @@ void CSumOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	}
 
 	CPtr<CBaseLayer> layer( new CEltwiseSumLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayers( broadcast, inputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( broadcast, inputs, *layer, dnn, outputs );
 }
 
 } // namespace NeoOnnx

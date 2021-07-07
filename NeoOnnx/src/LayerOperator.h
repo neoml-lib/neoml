@@ -42,7 +42,7 @@ protected:
 	// inputMask indicates whether i'th input should be a CUserInput of internalDnn (instead of CDataTensor)
 	// e.g. for CConvOperator only first input must be a CUserTensor (filters and free terms should remain as CDataTensor)
 	// on the other hand CConcatOperator requires that all of the inputs to be a CUserTensor
-	void ProcessTensors( const CUserInputMask& inputMask, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
+	void ProcessTensorsImpl( const CUserInputMask& inputMask, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
 
 	// Virtual methods
 

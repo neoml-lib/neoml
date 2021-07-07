@@ -28,7 +28,7 @@ protected:
 
 	// AddLayers implementation for the given broadcast and layer
 	// The derivatives should call this method from their AddLayers
-	void AddLayers( const CBroadcast& broadcast, const CTensorArray& inputs,
+	void AddLayersImpl( const CBroadcast& broadcast, const CTensorArray& inputs,
 		CBaseLayer& eltwiseLayer, CDnn& dnn, CTensorArray& outputs ) const;
 
 private:

@@ -42,7 +42,7 @@ void CConcatOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTe
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
 		inputMask |= inputIndex;
 	}
-	CLayerOperator::ProcessTensors( inputMask, inputs, dnn, outputs );
+	CLayerOperator::ProcessTensorsImpl( inputMask, inputs, dnn, outputs );
 }
 
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
