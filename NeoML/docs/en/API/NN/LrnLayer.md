@@ -15,7 +15,7 @@
 
 <!-- /TOC -->
 
-The class implements a layer that performs local response normalization normalization using the following formula:
+The class implements a layer that performs local response normalization using the following formula:
 
 ```c++
 LRN(x)[obj][ch] = x[obj][ch] * / ((bias + alpha * sqrSum[obj][ch] / windowSize) ^ beta)
@@ -78,4 +78,4 @@ The single input accepts a blob of any size.
 
 ## Outputs
 
-The single output contains a blob of the same size with the results of batch normalization.
+The single output contains a blob of the same size with the results of local response normalization.

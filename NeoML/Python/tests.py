@@ -452,6 +452,46 @@ class LayersTestCase(TestCase):
         self.assertEqual(outputs["sink"].batch_width, 32)
         self.assertEqual(a.size, 32)
 
+    def test_concat_batch_length(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source1 = neoml.Dnn.Source(dnn, "source1")
+        source2 = neoml.Dnn.Source(dnn, "source2")
+        concat = neoml.Dnn.ConcatBatchLength((source1, source2), "concat")
+        sink = neoml.Dnn.Sink(concat, "sink")
+        layer = dnn.layers['concat']
+        self.assertEqual(layer.name, 'concat')
+
+        input1 = neoml.Blob.asblob(math_engine, np.ones((16), dtype=np.float32), (16, 1, 1, 1, 1, 1, 1))
+        input2 = neoml.Blob.asblob(math_engine, np.ones((15), dtype=np.float32), (15, 1, 1, 1, 1, 1, 1))
+
+        inputs = {"source1": input1, "source2": input2}
+        outputs = dnn.run(inputs)
+        a = outputs["sink"].asarray()
+
+        self.assertEqual(outputs["sink"].batch_len, 31)
+        self.assertEqual(a.size, 31)
+
+    def test_concat_list_size(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source1 = neoml.Dnn.Source(dnn, "source1")
+        source2 = neoml.Dnn.Source(dnn, "source2")
+        concat = neoml.Dnn.ConcatListSize((source1, source2), "concat")
+        sink = neoml.Dnn.Sink(concat, "sink")
+        layer = dnn.layers['concat']
+        self.assertEqual(layer.name, 'concat')
+
+        input1 = neoml.Blob.asblob(math_engine, np.ones((15), dtype=np.float32), (1, 1, 15, 1, 1, 1, 1))
+        input2 = neoml.Blob.asblob(math_engine, np.ones((16), dtype=np.float32), (1, 1, 16, 1, 1, 1, 1))
+
+        inputs = {"source1": input1, "source2": input2}
+        outputs = dnn.run(inputs)
+        a = outputs["sink"].asarray()
+
+        self.assertEqual(outputs["sink"].list_size, 31)
+        self.assertEqual(a.size, 31)
+
     def test_concat_object(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -1478,6 +1518,24 @@ class LayersTestCase(TestCase):
         outputs = dnn.run({'source' : input_blob})
         out = outputs['sink'].asarray()
         self.assertEqual(out.shape, (2, 3, 5, 2, 4, 48))
+
+    def test_lrn(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        lrn = neoml.Dnn.Lrn(source, window_size=3, bias=-2., alpha=0.456, beta=0.123, name='lrn')
+        sink = neoml.Dnn.Sink(lrn, 'sink')
+
+        self.assertEqual(lrn.name, 'lrn')
+        self.assertEqual(lrn.window_size, 3)
+        self.assertAlmostEqual(lrn.bias, -2., delta=1e-5)
+        self.assertAlmostEqual(lrn.alpha, 0.456, delta=1e-5)
+        self.assertAlmostEqual(lrn.beta, 0.123, delta=1e-5)
+
+        input_blob = neoml.Blob.asblob(math_engine, np.ones((2, 3, 4, 5, 6, 7, 8), dtype=np.float32), (2, 3, 4, 5, 6, 7, 8))
+        outputs = dnn.run({'source': input_blob})
+        out = outputs['sink'].asarray()
+        self.assertEqual(out.shape, (2, 3, 4, 5, 6, 7, 8))
 
 
 class PoolingTestCase(TestCase):

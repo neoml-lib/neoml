@@ -73,7 +73,7 @@ void CSourceLayer::Serialize( CArchive& archive )
 	const int version = archive.SerializeVersion( SourceLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
 
-	// v2001 - storeBlob flag added
+	// v2001 - storeBlob flag was added
 	if( version >= 2001 ) {
 		archive.Serialize( storeBlob );
 		if( storeBlob ) {

@@ -487,6 +487,12 @@ ObjectNormalization
 
 .. _py-dnn-eltwise:
 
+Lrn (Local Response Normalization)
+==================================
+
+.. autoclass:: neoml.Dnn.Lrn
+   :members:
+
 Elementwise operation layers
 ****************************
 
@@ -680,6 +686,18 @@ ConcatBatchWidth
 --------------------
 
 .. autoclass:: neoml.Dnn.ConcatBatchWidth
+   :members:
+
+ConcatBatchLength
+--------------------
+
+.. autoclass:: neoml.Dnn.ConcatBatchLength
+   :members:
+
+ConcatListSize
+--------------------
+
+.. autoclass:: neoml.Dnn.ConcatListSize
    :members:
 
 ConcatObject
