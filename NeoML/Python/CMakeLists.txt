@@ -65,6 +65,7 @@ pybind11_add_module(PythonWrapper
     src/PyGruLayer.cpp
     src/PyLayer.cpp
     src/PyLossLayer.cpp
+    src/PyLrnLayer.cpp
     src/PyLstmLayer.cpp
     src/PyMathEngine.cpp
     src/PyMatrixMultiplicationLayer.cpp
