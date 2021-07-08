@@ -26,7 +26,7 @@ static const float TestFloatValue = 4.;
 static const CString LayerName = "LAYER";
 static const int TestSize = 20;
 
-#define GENERATE_SERIALIZATION_FILES
+// #define GENERATE_SERIALIZATION_FILES
 
 static const CString getFileName( const CString& name )
 {
