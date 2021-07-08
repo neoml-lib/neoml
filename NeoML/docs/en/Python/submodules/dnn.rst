@@ -917,7 +917,7 @@ Basic math functions
 Other operations
 *******************
 
-.. automethod:: neoml.AutoDiff.stack
+.. automethod:: neoml.AutoDiff.concat
 .. automethod:: neoml.AutoDiff.reshape
 .. automethod:: neoml.AutoDiff.clip
 .. automethod:: neoml.AutoDiff.top_k

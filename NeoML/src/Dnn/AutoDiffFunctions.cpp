@@ -49,9 +49,11 @@ static CPtr<CDnnBlob> callJacobian( const CDnnBlob* blob, const CTapeBlob* var )
 	return result;
 }
 
-static void getConsequentAxesDimensions( const CDnnBlob* first, const CArray<int>& axes, int& followingDimension,
+static void getSequentialAxesDimensions( const CDnnBlob* first, const CArray<int>& axes, int& followingDimension,
 	int& dimension, int& precedingDimension )
 {
+	NeoPresume( isSequentialAxes( axes ) );
+
 	followingDimension = 1;
 	for( int d = 0; d < axes.First(); d++ ) {
 		followingDimension *= first->DimSize( d );
@@ -66,11 +68,13 @@ static void getConsequentAxesDimensions( const CDnnBlob* first, const CArray<int
 	}
 }
 
-static bool isConsequentAxes( const CArray<int>& axes )
+static bool isSequentialAxes( const CDnnBlob* blob, const CArray<int>& axes )
 {
 	for( int i = 1; i < axes.Size(); i++ ) {
-		if( axes[i] != axes[i - 1] + 1 ) {
-			return false;
+		for( int j = axes[i - 1] + 1; j < axes[i]; j++ ) {
+			if( blob->DimSize( j ) != 1 ) {
+				return false;
+			}
 		}
 	}
 	return true;
@@ -91,7 +95,10 @@ static CBlobDesc getBroadcastedDesc( const CBlobDesc& firstDesc, const CBlobDesc
 {
 	CBlobDesc res( firstDesc.GetDataType() );
 	for( int i = 0; i < BD_Count; i++ ) {
-		res.SetDimSize( i, max( firstDesc.DimSize( i ), secondDesc.DimSize( i ) ) );
+		const int firstDim = firstDesc.DimSize( i );
+		const int secondDim = secondDesc.DimSize( i );
+		NeoAssert( firstDim == secondDim || firstDim == 1 || secondDim == 1 );
+		res.SetDimSize( i, max( firstDim, secondDim ) );
 	}
 	return res;
 }
@@ -700,6 +707,7 @@ CPtr<CTapeBlob> CTapeSum::Impl( const CDnnBlob* blob, const CArray<int>& axes, I
 	for( int i = 0; i < axes.Size(); i++ ) {
 		NeoAssert( axes[i] >= -1 && axes[i] < BD_Count );
 	}
+	NeoAssert( isSequentialAxes( blob, axes ) );
 
 	IMathEngine& mathEngine = blob->GetMathEngine();
 
@@ -711,7 +719,7 @@ CPtr<CTapeBlob> CTapeSum::Impl( const CDnnBlob* blob, const CArray<int>& axes, I
 		int precedingDimension;
 		int dimension;
 		int followingDimension;
-		getConsequentAxesDimensions( blob, axes, followingDimension, dimension, precedingDimension );
+		getSequentialAxesDimensions( blob, axes, followingDimension, dimension, precedingDimension );
 		CBlobDesc desc = blob->GetDesc();
 		for( int i = 0; i < axes.Size(); i++ ) {
 			desc.SetDimSize( axes[i], 1 );
@@ -725,6 +733,8 @@ CPtr<CTapeBlob> CTapeSum::Impl( const CDnnBlob* blob, const CArray<int>& axes, I
 
 CPtr<CDnnBlob> CTapeSum::JacobianImpl( const CDnnBlob* blob, const CArray<int>& axes, const CTapeBlob* var )
 {
+	NeoPresume( IsSequentialAxes( axes ) );
+
 	CPtr<CDnnBlob> jacobian = callJacobian( blob, var );
 	if( jacobian == 0 ) {
 		return 0;
@@ -745,7 +755,7 @@ CPtr<CDnnBlob> CTapeSum::JacobianImpl( const CDnnBlob* blob, const CArray<int>& 
 		int precedingDimension;
 		int dimension;
 		int followingDimension;
-		getConsequentAxesDimensions( blob, axes, followingDimension, dimension, precedingDimension );
+		getSequentialAxesDimensions( blob, axes, followingDimension, dimension, precedingDimension );
 		int resultHeight = followingDimension * precedingDimension;
 		if( height == 1 && resultHeight == 1 ) {
 			return jacobian;
@@ -773,7 +783,7 @@ CPtr<const CDnnBlob> Sum( const CDnnBlob* first, const CArray<int>& _axes )
 	_axes.CopyTo( axes );
 	axes.QuickSort<Ascending<int>>();
 
-	if( !isConsequentAxes( axes ) ) {
+	if( !isSequentialAxes( first, axes ) ) {
 		CPtr<const CDnnBlob> result = first;
 		for( int i = 0; i < axes.Size(); i++ ) {
 			result = Sum( result, { axes[i] } );
@@ -823,7 +833,7 @@ CPtr<CDnnBlob> CTapeCumSum::Jacobian( const CTapeBlob* var ) const
 	int precedingDimension;
 	int dimension;
 	int followingDimension;
-	getConsequentAxesDimensions( first, { axis }, followingDimension, dimension, precedingDimension );
+	getSequentialAxesDimensions( first, { axis }, followingDimension, dimension, precedingDimension );
 
 	if( height == 1 && dimension == first->GetDataSize() ) {
 		return jacobian;
@@ -854,7 +864,7 @@ CPtr<const CDnnBlob> CumSum( const CDnnBlob* first, int axis )
 	int precedingDimension;
 	int dimension;
 	int followingDimension;
-	getConsequentAxesDimensions( first, { axis }, followingDimension, dimension, precedingDimension );
+	getSequentialAxesDimensions( first, { axis }, followingDimension, dimension, precedingDimension );
 	CPtr<CTapeBlob> result = new CTapeBlob( tape, mathEngine, first->GetDesc() );
 	mathEngine.VectorCumSumAlongDimension( first->GetData(), precedingDimension, dimension, followingDimension, result->GetData() );
 
@@ -870,7 +880,7 @@ CPtr<const CDnnBlob> CumSum( const CDnnBlob* first, int axis )
 
 class CTapeMean : public ITapeOperation {
 public:
-	explicit CTapeMean( const CDnnBlob& first, const CArray<int>& axis );
+	explicit CTapeMean( const CDnnBlob& first, const CArray<int>& axes );
 
 	CPtr<CDnnBlob> Jacobian( const CTapeBlob* var ) const override;
 
@@ -915,7 +925,7 @@ CPtr<const CDnnBlob> Mean( const CDnnBlob* first, const CArray<int>& _axes )
 	_axes.CopyTo( axes );
 	axes.QuickSort<Ascending<int>>();
 
-	if( !isConsequentAxes( axes ) ) {
+	if( !isSequentialAxes( first, axes ) ) {
 		CPtr<const CDnnBlob> result = first;
 		for( int i = 0; i < axes.Size(); i++ ) {
 			result = Mean( result, { axes[i] } );
@@ -1494,53 +1504,87 @@ CPtr<CDnnBlob> CTapePower::Jacobian( const CTapeBlob* var ) const
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 	CPtr<CDnnBlob> temp = CDnnBlob::CreateBlob( first->GetMathEngine(), first->GetDesc() );
-	mathEngine.VectorLog( first->GetData(), temp->GetData(), temp->GetDataSize() );
 
-	if( secondJacobian->GetObjectCount() == 1 ) {
-		mathEngine.VectorEltwiseMultiply( temp->GetData(), secondJacobian->GetData(),
-			secondJacobian->GetData(), secondJacobian->GetDataSize() );
-	} else {
-		mathEngine.MultiplyDiagMatrixByMatrix( temp->GetData(), temp->GetDataSize(),
-			secondJacobian->GetData(), secondJacobian->GetObjectSize(), secondJacobian->GetData(),
-			secondJacobian->GetDataSize() );
+	if( firstJacobian == 0 && secondJacobian == 0 ) {
+		return 0;
 	}
 
-	mathEngine.VectorEltwiseDivide( second->GetData(), first->GetData(), temp->GetData(), temp->GetDataSize() );
-	if( firstJacobian->GetObjectCount() == 1 ) {
-		mathEngine.VectorEltwiseMultiply( temp->GetData(), firstJacobian->GetData(),
-			firstJacobian->GetData(), firstJacobian->GetDataSize() );
-	} else {
-		mathEngine.MultiplyDiagMatrixByMatrix( temp->GetData(), temp->GetDataSize(),
-			firstJacobian->GetData(), firstJacobian->GetObjectSize(), firstJacobian->GetData(),
-			firstJacobian->GetDataSize() );
+	if( secondJacobian != 0 ) {
+		mathEngine.VectorLog( first->GetData(), temp->GetData(), temp->GetDataSize() );
+		mathEngine.VectorEltwiseMultiply( temp->GetData(), first->GetData(),
+			temp->GetData(), temp->GetDataSize() );
+		if( secondJacobian->GetObjectCount() == 1 ) {
+			mathEngine.VectorEltwiseMultiply( temp->GetData(), secondJacobian->GetData(),
+				secondJacobian->GetData(), secondJacobian->GetDataSize() );
+		} else {
+			mathEngine.MultiplyDiagMatrixByMatrix( temp->GetData(), temp->GetDataSize(),
+				secondJacobian->GetData(), secondJacobian->GetObjectSize(), secondJacobian->GetData(),
+				secondJacobian->GetDataSize() );
+		}
 	}
 
-	CPtr<CDnnBlob> pow = CDnnBlob::CreateBlob( first->GetMathEngine(), first->GetDesc() );
-	mathEngine.VectorEltwisePower( first->GetData(), second->GetData(), pow->GetData(), pow->GetDataSize() );
+	if( firstJacobian != 0 ) {
+		if( firstJacobian->GetObjectCount() == 1 ) {
+			mathEngine.VectorEltwiseMultiply( second->GetData(), firstJacobian->GetData(),
+				firstJacobian->GetData(), firstJacobian->GetDataSize() );
+		} else {
+			mathEngine.MultiplyDiagMatrixByMatrix( second->GetData(), second->GetDataSize(),
+				firstJacobian->GetData(), firstJacobian->GetObjectSize(), firstJacobian->GetData(),
+				firstJacobian->GetDataSize() );
+		}
+	}
+
+	mathEngine.VectorSub( second->GetData(), 1.f, temp->GetData(), temp->GetDataSize() );
+	mathEngine.VectorEltwisePower( first->GetData(), temp->GetData(), temp->GetData(), temp->GetDataSize() );
+
+	if( firstJacobian == 0 ) {
+		if( secondJacobian->GetObjectCount() == 1 ) {
+			mathEngine.VectorEltwiseMultiply( temp->GetData(), secondJacobian->GetData(),
+				secondJacobian->GetData(), secondJacobian->GetDataSize() );
+			return secondJacobian;
+		} else {
+			mathEngine.MultiplyDiagMatrixByMatrix( temp->GetData(), temp->GetDataSize(),
+				secondJacobian->GetData(), secondJacobian->GetObjectSize(), secondJacobian->GetData(),
+				secondJacobian->GetDataSize() );
+			return secondJacobian;
+		}
+	}
+	if( secondJacobian == 0 ) {
+		if( firstJacobian->GetObjectCount() == 1 ) {
+			mathEngine.VectorEltwiseMultiply( temp->GetData(), firstJacobian->GetData(),
+				firstJacobian->GetData(), firstJacobian->GetDataSize() );
+			return firstJacobian;
+		} else {
+			mathEngine.MultiplyDiagMatrixByMatrix( temp->GetData(), temp->GetDataSize(),
+				firstJacobian->GetData(), firstJacobian->GetObjectSize(), firstJacobian->GetData(),
+				firstJacobian->GetDataSize() );
+			return firstJacobian;
+		}
+	}
 
 	if( firstJacobian->GetObjectCount() == 1 && secondJacobian->GetObjectCount() == 1 ) {
 		mathEngine.VectorAdd( firstJacobian->GetData(), secondJacobian->GetData(), firstJacobian->GetData(), firstJacobian->GetDataSize() );
-		mathEngine.VectorEltwiseMultiply( pow->GetData(), firstJacobian->GetData(),
+		mathEngine.VectorEltwiseMultiply( temp->GetData(), firstJacobian->GetData(),
 			firstJacobian->GetData(), firstJacobian->GetDataSize() );
 		return firstJacobian;
 	} else if( firstJacobian->GetObjectCount() == 1 ) {
 		mathEngine.AddDiagMatrixToMatrix( firstJacobian->GetData(), secondJacobian->GetData(),
 			secondJacobian->GetObjectCount(), secondJacobian->GetObjectSize(), secondJacobian->GetData() );
-		mathEngine.MultiplyDiagMatrixByMatrix( pow->GetData(), pow->GetDataSize(),
+		mathEngine.MultiplyDiagMatrixByMatrix( temp->GetData(), temp->GetDataSize(),
 			secondJacobian->GetData(), secondJacobian->GetObjectSize(), secondJacobian->GetData(),
 			secondJacobian->GetDataSize() );
 		return secondJacobian;
 	} else if( secondJacobian->GetObjectCount() == 1 ){
 		mathEngine.AddDiagMatrixToMatrix( secondJacobian->GetData(), firstJacobian->GetData(),
 			firstJacobian->GetObjectCount(), firstJacobian->GetObjectSize(), firstJacobian->GetData() );
-		mathEngine.MultiplyDiagMatrixByMatrix( pow->GetData(), pow->GetDataSize(),
+		mathEngine.MultiplyDiagMatrixByMatrix( temp->GetData(), temp->GetDataSize(),
 			firstJacobian->GetData(), firstJacobian->GetObjectSize(), firstJacobian->GetData(),
 			firstJacobian->GetDataSize() );
 		return firstJacobian;
 	} else {
 		mathEngine.VectorAdd( firstJacobian->GetData(), secondJacobian->GetData(), secondJacobian->GetData(),
 			secondJacobian->GetDataSize() );
-		mathEngine.MultiplyDiagMatrixByMatrix( pow->GetData(), pow->GetDataSize(),
+		mathEngine.MultiplyDiagMatrixByMatrix( temp->GetData(), temp->GetDataSize(),
 			secondJacobian->GetData(), secondJacobian->GetObjectSize(), secondJacobian->GetData(),
 			secondJacobian->GetDataSize() );
 		return secondJacobian;

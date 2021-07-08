@@ -29,7 +29,7 @@ def const(math_engine, shape, data):
 
     np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
 
-    if len(np_shape.shape) > 7:
+    if len(np_shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')
 
     if numpy.isscalar(data):
@@ -88,9 +88,9 @@ def max(a, b):
     
     raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
 
-def sum(a, axis=None):
+def sum(a, axes=None):
     """Calculates sum of blob elements along provided axes.
-    If axis=None calculates the total sum.
+    If axes=None calculates the total sum.
     """
     if not type(a) is Blob:
         raise ValueError('`a` should be neoml.Blob.')
@@ -98,8 +98,8 @@ def sum(a, axis=None):
     if a.size == 0:
         raise ValueError("The blob shouldn't be empty.")
 
-    axis = numpy.array([] if axis is None else axis, dtype=numpy.int32)
-    return Blob(PythonWrapper.blob_sum(a._internal, axis))
+    axes = numpy.array([] if axes is None else axes, dtype=numpy.int32)
+    return Blob(PythonWrapper.blob_sum(a._internal, axes))
 
 def cumsum(a, axis=0):
     """Calculates cumulative sum of blob elements along provided axis.
@@ -112,9 +112,9 @@ def cumsum(a, axis=0):
 
     return Blob(PythonWrapper.blob_cumsum(a._internal, int(axis)))
 
-def mean(a, axis=None):
-    """Calculates mean of blob elements along provided axis.
-    If axis=None calculates the total mean.
+def mean(a, axes=None):
+    """Calculates mean of blob elements along provided axes.
+    If axes=None calculates the total mean.
     """
     if not type(a) is Blob:
         raise ValueError('`a` should be neoml.Blob.')
@@ -122,8 +122,8 @@ def mean(a, axis=None):
     if a.size == 0:
         raise ValueError("The blob shouldn't be empty.")
 
-    axis = numpy.array([] if axis is None else axis, dtype=numpy.int32)
-    return Blob(PythonWrapper.blob_mean(a._internal, axis))
+    axes = numpy.array([] if axes is None else axes, dtype=numpy.int32)
+    return Blob(PythonWrapper.blob_mean(a._internal, axes))
 
 def neg(a):
     """Returns the negative of a blob or a number.
@@ -199,8 +199,12 @@ def broadcast(blob, shape):
 
     np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
 
-    if len(np_shape.shape) > 7:
+    if len(np_shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')
+
+    for i, j in zip(blob.shape, [1] * (7 - len(np_shape)) + list(np_shape)):
+        if i != j and i != 1:
+            raise ValueError("The blobs have incompatible shapes.")
 
     return Blob(PythonWrapper.blob_broadcast(blob._internal, np_shape))
 
@@ -215,7 +219,7 @@ def reshape(blob, shape):
 
     np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
 
-    if len(np_shape.shape) > 7:
+    if len(np_shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')
 
     if numpy.prod(np_shape) != blob.size:

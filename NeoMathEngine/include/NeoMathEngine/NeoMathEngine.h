@@ -38,6 +38,9 @@ public:
 	virtual void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) = 0;
 	virtual void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) = 0;
 	// Broadcasting the copy to new shape
+	// additionalWidth = 1 means broadcasting from fromDesc to toDesc
+	// additionalWidth != 1 means broadcasting from (*fromDesc, additionalWidth) to (*toDesc, additionalWidth)
+	// (where (*desc, additionalWidth) is 8-dimensional shape with last dimension equals additionalWidth)
 	virtual void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
 		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 

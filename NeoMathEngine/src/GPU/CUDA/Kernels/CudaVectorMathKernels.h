@@ -201,11 +201,13 @@ __global__ void VectorCumSumAlongDimensionKernel( const float* __restrict__ inpu
 		const int offset = y * dims * precedingDims + x;
 		input += offset;
 		result += offset;
-		*result = *input;
+		float curSum = *input;
+		*result = curSum;
 		for( int i = 1; i < dims; i++ ) {
 			input += precedingDims;
-			*(result + precedingDims) = *result + *input;
 			result += precedingDims;
+			curSum += *input;
+			*result = curSum;
 		}
 	}
 }
