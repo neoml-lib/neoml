@@ -296,7 +296,7 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 				// Iterate through result, left->right, top->bottom
 				const int currentRH = min( ResH, ryStart + ryCount );
 				int ry = ryStart;
-				int yStep = ryStart;
+				int yStep = 0;
 
 				// Iterate through all combination of intersections
 				for( int yStepIdx = 0; yStepIdx < PixelOffsetResStepsWidthY.size(); yStepIdx++ ) {
