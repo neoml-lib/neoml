@@ -77,7 +77,7 @@ endif()
 # Install
 if(NeoMathEngine_INSTALL)
     if(USE_FINE_OBJECTS)
-        fine_install(TARGETS ${PROJECT_NAME})
+        fine_install(TARGETS ${PROJECT_NAME} NOARCHIVE)
     else()
         install(
             TARGETS ${PROJECT_NAME}
