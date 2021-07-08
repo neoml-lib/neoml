@@ -78,6 +78,30 @@ public:
 	}
 };
 
+class CPyConcatBatchLengthLayer : public CPyLayer {
+public:
+	explicit CPyConcatBatchLengthLayer( CConcatBatchLengthLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "ConcatBatchLength" );
+		return pyConstructor( py::cast(this) );
+	}
+};
+
+class CPyConcatListSizeLayer : public CPyLayer {
+public:
+	explicit CPyConcatListSizeLayer( CConcatListSizeLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "ConcatListSize" );
+		return pyConstructor( py::cast(this) );
+	}
+};
+
 class CPyConcatObjectLayer : public CPyLayer {
 public:
 	explicit CPyConcatObjectLayer( CConcatObjectLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
@@ -199,6 +223,50 @@ void InitializeConcatLayer( py::module& m )
 			}
 
 			return new CPyConcatBatchWidthLayer( *concat, inputs[0].cast<CPyLayer>().MathEngineOwner() );
+		}) )
+	;
+
+	py::class_<CPyConcatBatchLengthLayer, CPyLayer>(m, "ConcatBatchLength")
+		.def( py::init([]( const CPyLayer& layer )
+		{
+			return new CPyConcatBatchLengthLayer( *layer.Layer<CConcatBatchLengthLayer>(), layer.MathEngineOwner() );
+		}))
+		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs )
+		{
+			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+
+			CPtr<CConcatBatchLengthLayer> concat = new CConcatBatchLengthLayer( mathEngine );
+			concat->SetName( FindFreeLayerName( dnn, "ConcatBatchLength", name ).c_str() );
+			dnn.AddLayer( *concat );
+
+			for( int i = 0; i < inputs.size(); i++ ) {
+				concat->Connect( i, inputs[i].cast<CPyLayer>().BaseLayer(), input_outputs[i].cast<int>() );
+			}
+
+			return new CPyConcatBatchLengthLayer( *concat, inputs[0].cast<CPyLayer>().MathEngineOwner() );
+		}) )
+	;
+
+	py::class_<CPyConcatListSizeLayer, CPyLayer>(m, "ConcatListSize")
+		.def( py::init([]( const CPyLayer& layer )
+		{
+			return new CPyConcatListSizeLayer( *layer.Layer<CConcatListSizeLayer>(), layer.MathEngineOwner() );
+		}))
+		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs )
+		{
+			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+
+			CPtr<CConcatListSizeLayer> concat = new CConcatListSizeLayer( mathEngine );
+			concat->SetName( FindFreeLayerName( dnn, "ConcatListSize", name ).c_str() );
+			dnn.AddLayer( *concat );
+
+			for( int i = 0; i < inputs.size(); i++ ) {
+				concat->Connect( i, inputs[i].cast<CPyLayer>().BaseLayer(), input_outputs[i].cast<int>() );
+			}
+
+			return new CPyConcatListSizeLayer( *concat, inputs[0].cast<CPyLayer>().MathEngineOwner() );
 		}) )
 	;
 
