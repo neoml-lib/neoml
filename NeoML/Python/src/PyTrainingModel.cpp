@@ -305,14 +305,11 @@ void InitializeTrainingModel(py::module& m)
 		.def(py::pickle(
 			[](const CPyModel& pyModel) {
 				CPyMemoryFile file;
-				{
-					py::gil_scoped_release release;
-					CArchive archive( &file, CArchive::store );
-					CPtr<IModel> model( pyModel.GetModel() );
-					SerializeModel( archive, model );
-					archive.Close();
-					file.Close();
-				}
+				CArchive archive( &file, CArchive::store );
+				CPtr<IModel> model( pyModel.GetModel() );
+				SerializeModel( archive, model );
+				archive.Close();
+				file.Close();
 				return py::make_tuple( file.GetBuffer() );
 			},
 			[](py::tuple t) {
@@ -322,7 +319,6 @@ void InitializeTrainingModel(py::module& m)
 
 				auto t0_array = t[0].cast<py::array>();
 				CPyMemoryFile file( t0_array );
-				py::gil_scoped_release release;
 				CArchive archive( &file, CArchive::load );
 				CPtr<IModel> model;
 				SerializeModel( archive, model );
@@ -340,14 +336,11 @@ void InitializeTrainingModel(py::module& m)
 		.def(py::pickle(
 			[](const CPyRegressionModel& pyModel) {
 				CPyMemoryFile file;
-				{
-					py::gil_scoped_release release;
-					CArchive archive( &file, CArchive::store );
-					CPtr<IRegressionModel> model( pyModel.GetModel() );
-					SerializeModel( archive, model );
-					archive.Close();
-					file.Close();
-				}
+				CArchive archive( &file, CArchive::store );
+				CPtr<IRegressionModel> model( pyModel.GetModel() );
+				SerializeModel( archive, model );
+				archive.Close();
+				file.Close();
 				return py::make_tuple( file.GetBuffer() );
 			},
 			[](py::tuple t) {
@@ -357,7 +350,6 @@ void InitializeTrainingModel(py::module& m)
 
 				auto t0_array = t[0].cast<py::array>();
 				CPyMemoryFile file( t0_array );
-				py::gil_scoped_release release;
 				CArchive archive( &file, CArchive::load );
 				CPtr<IRegressionModel> model;
 				SerializeModel( archive, model );

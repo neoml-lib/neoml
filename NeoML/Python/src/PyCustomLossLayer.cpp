@@ -32,7 +32,6 @@ static CArchive& operator <<( CArchive& archive, const py::object& obj )
 		py::bytes dumpedObject = pyDumps( obj ).cast<py::bytes>();
 		str = dumpedObject;
 	}
-	py::gil_scoped_release release;
 	archive << static_cast<int>(str.length());
 	for( size_t i = 0; i < str.length(); i++ ) {
 		archive << str[i];
@@ -46,11 +45,8 @@ static CArchive& operator >>( CArchive& archive, py::object& obj )
 	int len = 0;
 	archive >> len;
 	string s(len, 't');
-	{
-		py::gil_scoped_release release;
-		for( size_t i = 0; i < len; i++ ) {
-			archive >> s[i];
-		}
+	for( size_t i = 0; i < len; i++ ) {
+		archive >> s[i];
 	}
 
 	py::gil_scoped_acquire ac;
@@ -100,18 +96,18 @@ protected:
 		CPtr<CDnnBlob> labelBlob( new CTempBlob( mathEngineOwner->MathEngine(), label, {batchSize, 1, 1, 1, 1, 1, vectorSize} ) );
 		CPyBlob labelPyBlob( *mathEngineOwner, labelBlob );
 
-		py::object pyModule = py::module::import( "neoml.Dnn" );
-		py::object pyFunction = pyModule.attr( "call_loss_calculator" );
-		CPyBlob result = pyFunction( dataPyBlob, labelPyBlob, lossCalculator ).cast<CPyBlob>();
+		CPtr<CDnnBlob> value;
 		{
-			py::gil_scoped_release release;
-			CPtr<CDnnBlob> value = result.Blob();
-			mathEngineOwner->MathEngine().VectorCopy( lossValue, value->GetData(), batchSize );
-
-			if( !lossGradient.IsNull() ) {
-				CPtr<const CDnnBlob> gradient = tape.Gradient( *result.Blob(), *var );
-				mathEngineOwner->MathEngine().VectorCopy( lossGradient, gradient->GetData(), batchSize * vectorSize );
-			}
+			py::gil_scoped_acquire acquire;
+			py::object pyModule = py::module::import( "neoml.Dnn" );
+			py::object pyFunction = pyModule.attr( "call_loss_calculator" );
+			CPyBlob result = pyFunction( dataPyBlob, labelPyBlob, lossCalculator ).cast<CPyBlob>();
+			value = result.Blob();
+		}
+		mathEngineOwner->MathEngine().VectorCopy( lossValue, value->GetData(), batchSize );
+		if( !lossGradient.IsNull() ) {
+			CPtr<const CDnnBlob> gradient = tape.Gradient( *value, *var );
+			mathEngineOwner->MathEngine().VectorCopy( lossGradient, gradient->GetData(), batchSize * vectorSize );
 		}
 	}
 
@@ -127,11 +123,8 @@ protected:
 
 	void Serialize( CArchive& archive )
 	{
-		{
-			py::gil_scoped_release release;
-			archive.SerializeVersion( PythonLossLayerVersion, 1 );
-			CLossLayer::Serialize( archive );
-		}
+		archive.SerializeVersion( PythonLossLayerVersion, 1 );
+		CLossLayer::Serialize( archive );
 		if( archive.IsLoading() ) {
 			archive >> lossCalculator;
 		} else {

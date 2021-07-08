@@ -445,13 +445,10 @@ void InitializeDnn(py::module& m)
 		.def(py::pickle(
 			[](const CPyDnn& pyDnn) {
 				CPyMemoryFile file;
-				{
-					py::gil_scoped_release release;
-					CArchive archive( &file, CArchive::store );
-					pyDnn.Dnn().SerializeCheckpoint( archive );
-					archive.Close();
-					file.Close();
-				}
+				CArchive archive( &file, CArchive::store );
+				pyDnn.Dnn().SerializeCheckpoint( archive );
+				archive.Close();
+				file.Close();
 				return py::make_tuple( file.GetBuffer() );
 			},
 			[](py::tuple t) {
@@ -461,7 +458,6 @@ void InitializeDnn(py::module& m)
 
 				auto t0_array = t[0].cast<py::array>();
 				CPyMemoryFile file( t0_array );
-				py::gil_scoped_release release;
 				CArchive archive( &file, CArchive::load );
 				CPtr<CPyMathEngineOwner> mathEngineOwner( new CPyMathEngineOwner() );
 				CPtr<CPyRandomOwner> randomOwner( new CPyRandomOwner() );
