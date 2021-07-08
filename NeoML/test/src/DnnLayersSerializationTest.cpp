@@ -26,7 +26,7 @@ static const float TestFloatValue = 4.;
 static const CString LayerName = "LAYER";
 static const int TestSize = 20;
 
-// #define GENERATE_SERIALIZATION_FILES
+#define GENERATE_SERIALIZATION_FILES
 
 static const CString getFileName( const CString& name )
 {
@@ -110,7 +110,7 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CConcatWidthLayer>( "FmlCnnConcatWidthLayer" );
 	serializeToFile<CConcatBatchLengthLayer>( "FmlCnnConcatBatchLengthLayer" );
 	serializeToFile<CConcatBatchWidthLayer>( "FmlCnnConcatBatchWidthLayer" );
-	serializeToFile<CConcatBatchWidthLayer>( "FmlCnnConcatListSizeLayer" );
+	serializeToFile<CConcatListSizeLayer>( "FmlCnnConcatListSizeLayer" );
 	serializeToFile<CConcatObjectLayer>( "FmlCnnConcatObjectLayer" );
 	serializeToFile<CEltwiseSumLayer>( "FmlCnnEltwiseSumLayer" );
 	serializeToFile<CEltwiseMulLayer>( "FmlCnnEltwiseMulLayer" );
@@ -2264,5 +2264,40 @@ inline void checkSpecificParams<CSpaceToDepthLayer>( CSpaceToDepthLayer& layer )
 GTEST_TEST( SerializeFromFile, SpaceToDepthLayerSerialization )
 {
 	checkSerializeLayer<CSpaceToDepthLayer>( "NeoMLDnnSpaceToDepthLayer" );
+}
+
+// ====================================================================================================================
+
+// CLrnLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CLrnLayer& layer )
+{
+	layer.SetWindowSize( 4 );
+	layer.SetBias( -1.f );
+	layer.SetAlpha( 0.4f );
+	layer.SetBeta( 0.25f );
+}
+
+GTEST_TEST( SerializeToFile, LrnLayerSerialization )
+{
+	serializeToFile<CLrnLayer>( "NeoMLDnnLrnLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CLrnLayer>( CLrnLayer& layer )
+{
+	EXPECT_EQ( 4, layer.GetWindowSize() );
+	EXPECT_NEAR( -1.f, layer.GetBias(), 1e-6f );
+	EXPECT_NEAR( 0.4f, layer.GetAlpha(), 1e-6f );
+	EXPECT_NEAR( 0.25f, layer.GetBeta(), 1e-6f );
+}
+
+GTEST_TEST( SerializeFromFile, LrnLayerSerialization )
+{
+	checkSerializeLayer<CLrnLayer>( "NeoMLDnnLrnLayer" );
 }
 

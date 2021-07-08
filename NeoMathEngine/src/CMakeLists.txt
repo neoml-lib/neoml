@@ -236,6 +236,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/Kernels/CudaDnnGlobalPoolingKernels.h
                     GPU/CUDA/Kernels/CudaDnnGlobalTimePoolingKernels.h
                     GPU/CUDA/Kernels/CudaDnnKernels.h
+                    GPU/CUDA/Kernels/CudaDnnLrnKernels.h
                     GPU/CUDA/Kernels/CudaDnnPoolingKernels.h
                     GPU/CUDA/Kernels/CudaDnnRleConvKernels.h
                     GPU/CUDA/Kernels/CudaDnnTimeConvKernels.h
