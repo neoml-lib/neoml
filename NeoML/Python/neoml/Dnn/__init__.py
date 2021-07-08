@@ -10,7 +10,7 @@ from .Argmax import Argmax
 from .AttentionDecoder import AttentionDecoder
 from .Binarization import EnumBinarization, BitSetVectorization
 from .BatchNormalization import BatchNormalization
-from .Concat import ConcatChannels, ConcatDepth, ConcatWidth, ConcatHeight, ConcatBatchWidth, ConcatObject
+from .Concat import ConcatChannels, ConcatDepth, ConcatWidth, ConcatHeight, ConcatBatchWidth, ConcatBatchLength, ConcatListSize, ConcatObject
 from .Conv import Conv, Conv3D, TransposedConv3D, TransposedConv, ChannelwiseConv, TimeConv 
 from .Crf import Crf, CrfLoss, BestSequence
 from .Ctc import CtcLoss, CtcDecoding
@@ -22,8 +22,9 @@ from .Gru import Gru
 from .ImageConversion import ImageResize, PixelToImage, ImageToPixel  
 from .IndRnn import IndRnn
 from .Irnn import Irnn
-from .Lstm import Lstm
 from .Loss import CrossEntropyLoss, BinaryCrossEntropyLoss, EuclideanLoss, HingeLoss, SquaredHingeLoss, FocalLoss, BinaryFocalLoss, CenterLoss, MultiHingeLoss, MultiSquaredHingeLoss, CustomLoss, CustomLossCalculatorBase, call_loss_calculator
+from .Lrn import Lrn
+from .Lstm import Lstm
 from .MatrixMultiplication import MatrixMultiplication
 from .MultichannelLookup import MultichannelLookup
 from .MultiheadAttention import MultiheadAttention

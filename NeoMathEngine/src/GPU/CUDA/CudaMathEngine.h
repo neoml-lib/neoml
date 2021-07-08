@@ -515,6 +515,12 @@ public:
 	void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
 		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
 		const CFloatHandle& uDiff ) override;
+	CLrnDesc* InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta ) override;
+	void Lrn( const CLrnDesc& desc, const CConstFloatHandle& input, const CFloatHandle& invSum,
+		const CFloatHandle& invSumBeta, const CFloatHandle& outputHandle ) override;
+	void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
+		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
+		const CFloatHandle& inputDiff ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:
