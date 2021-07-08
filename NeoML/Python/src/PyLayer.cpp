@@ -20,7 +20,6 @@ limitations under the License.
 
 std::string FindFreeLayerName( const CDnn& dnn, const std::string& layerName, const std::string& userName )
 {
-	py::gil_scoped_release release;
 	if( userName != "None" ) {
 		return userName;
 	}

@@ -47,6 +47,7 @@ void InitializeObjectNormalizationLayer( py::module& m )
 			return new CPyObjectNormalizationLayer( *layer.Layer<CObjectNormalizationLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, float epsilon ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CObjectNormalizationLayer> norm = new CObjectNormalizationLayer( mathEngine );

@@ -41,6 +41,7 @@ void InitializeRepeatSequenceLayer( py::module& m )
 			return new CPyRepeatSequenceLayer( *layer.Layer<CRepeatSequenceLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, int repeatCount ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CRepeatSequenceLayer> sequence = new CRepeatSequenceLayer( mathEngine );

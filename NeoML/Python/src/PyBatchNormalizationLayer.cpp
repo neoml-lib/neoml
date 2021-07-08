@@ -54,6 +54,7 @@ void InitializeBatchNormalizationLayer( py::module& m )
 			return new CPyBatchNormalizationLayer( *layer.Layer<CBatchNormalizationLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, int channelBased, bool zeroFreeTerm, float slowConvergenceRate ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CBatchNormalizationLayer> batchNorm = new CBatchNormalizationLayer( mathEngine );

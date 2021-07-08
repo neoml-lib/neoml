@@ -166,6 +166,7 @@ void InitializeCustomLossLayer( py::module& m )
 		.def( py::init([]( const py::object& object, const std::string& name, const py::list& layers, const py::list& outputs,
 			float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
