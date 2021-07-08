@@ -93,3 +93,8 @@ def check_can_broadcast(X, Y):
         if i != j and i != 1 and j != 1:
             return False
     return True
+
+def check_axes(axes):
+    axes = np.array(axes)
+    all_unique = np.all(np.unique(axes, return_counts=True)[1] == 1)
+    return all_unique and np.all((axes >= 0) * (axes < 7))

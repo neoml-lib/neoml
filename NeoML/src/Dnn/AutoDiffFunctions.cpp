@@ -71,6 +71,7 @@ static void getSequentialAxesDimensions( const CDnnBlob* first, const CArray<int
 static bool isSequentialAxes( const CDnnBlob* blob, const CArray<int>& axes )
 {
 	for( int i = 1; i < axes.Size(); i++ ) {
+		NeoAssert( axes[i - 1] < axes[i] );
 		for( int j = axes[i - 1] + 1; j < axes[i]; j++ ) {
 			if( blob->DimSize( j ) != 1 ) {
 				return false;

@@ -14,6 +14,7 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 """
 
+import neoml
 import neoml.PythonWrapper as PythonWrapper
 from neoml.MathEngine import MathEngine
 from neoml.Blob import Blob
@@ -99,6 +100,9 @@ def sum(a, axes=None):
         raise ValueError("The blob shouldn't be empty.")
 
     axes = numpy.array([] if axes is None else axes, dtype=numpy.int32)
+    if not neoml.Utils.check_axes(axes):
+        raise ValueError("`axes` should be unique and in range [0, 6].")
+
     return Blob(PythonWrapper.blob_sum(a._internal, axes))
 
 def cumsum(a, axis=0):
@@ -109,6 +113,9 @@ def cumsum(a, axis=0):
 
     if a.size == 0:
         raise ValueError("The blob shouldn't be empty.")
+
+    if not neoml.Utils.check_axes(axis):
+        raise ValueError("`axis` should be in range [0, 6].")
 
     return Blob(PythonWrapper.blob_cumsum(a._internal, int(axis)))
 
@@ -123,6 +130,9 @@ def mean(a, axes=None):
         raise ValueError("The blob shouldn't be empty.")
 
     axes = numpy.array([] if axes is None else axes, dtype=numpy.int32)
+    if not neoml.Utils.check_axes(axes):
+        raise ValueError("`axes` should be unique and in range [0, 6].")
+
     return Blob(PythonWrapper.blob_mean(a._internal, axes))
 
 def neg(a):
