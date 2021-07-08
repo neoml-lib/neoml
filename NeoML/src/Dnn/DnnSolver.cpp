@@ -412,6 +412,12 @@ void CDnnAdaptiveGradientSolver::EnableAmsGrad( bool enable )
 	isAmsGradEnabled = enable;
 }
 
+void CDnnAdaptiveGradientSolver::EnableDecoupledWeightDecay( bool enable )
+{
+	Reset();
+	isDecoupledWeightDecay = enable;
+}
+
 static const int DnnAdaptiveGradientSolver = 0;
 
 void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
@@ -439,6 +445,22 @@ void CDnnAdaptiveGradientSolver::OnTrain()
 	// Update the solver parameters that depend on run number
 	momentDecayRateN *= momentDecayRate;
 	secondMomentDecayRateN *= secondMomentDecayRate;
+}
+
+CDnnBlob* CDnnAdaptiveGradientSolver::addRegularization( CDnnBlob* diffBlob, CDnnBlob* params, float regL1, float regL2 )
+{
+	if( regL2 > 0 ) {
+		MathEngine().VectorMultiplyAndAdd( diffBlob->GetData(), params->GetData(),
+			temporaryBlob->GetData(), params->GetDataSize(), tempVariables->GetData( {TV_RegL2Var} ) );
+		return temporaryBlob;
+	}
+	if( regL1 > 0 ) {
+		MathEngine().VectorL1DiffAdd( diffBlob->GetData(), params->GetData(),
+			temporaryBlob->GetData(), params->GetDataSize(), tempVariables->GetData( {TV_L1Threshold} ),
+			tempVariables->GetData( {TV_L1Mult} ) );
+		return temporaryBlob;
+	}
+	return diffBlob;
 }
 
 void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs, 
@@ -491,18 +513,8 @@ void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 		}
 
 		CDnnBlob* paramDiffBlob = paramDiffBlobs[i];
-
-		// Add regularization
-		if(regL2 > 0) {
-			MathEngine().VectorMultiplyAndAdd(paramDiffBlob->GetData(), paramBlobs[i]->GetData(),
-				temporaryBlob->GetData(), dataSize, tempVariables->GetData( {TV_RegL2Var} ));
-			paramDiffBlob = temporaryBlob;
-		}
-		if(regL1 > 0) {
-			MathEngine().VectorL1DiffAdd(paramDiffBlob->GetData(), paramBlobs[i]->GetData(),
-				temporaryBlob->GetData(), dataSize, tempVariables->GetData( {TV_L1Threshold} ),
-				tempVariables->GetData( {TV_L1Mult} ));
-			paramDiffBlob = temporaryBlob;
+		if( !IsDecoupledWeightDecay() ) {
+			paramDiffBlob = addRegularization( paramDiffBlob, paramBlobs[i], regL1, regL2 );
 		}
 
 		// Update the historical gradient
@@ -534,6 +546,9 @@ void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 		// Divide the historical gradient by the square root
 		MathEngine().VectorEltwiseDivide(moment->GetData(), temporaryBlob->GetData(), 
 			temporaryBlob->GetData(), dataSize);
+		if( IsDecoupledWeightDecay() ) {
+			temporaryBlob = addRegularization( temporaryBlob, paramBlobs[i], regL1, regL2 );
+		}
 		// Add the gradient
 		MathEngine().VectorMultiplyAndAdd(paramBlobs[i]->GetData(), temporaryBlob->GetData(),
 			paramBlobs[i]->GetData(), dataSize, tempVariables->GetData( {TV_RateVar} ));
