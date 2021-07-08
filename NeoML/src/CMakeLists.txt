@@ -61,6 +61,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/IndRnnLayer.cpp
     Dnn/Layers/IrnnLayer.cpp
     Dnn/Layers/LossLayer.cpp
+    Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
@@ -217,6 +218,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/IndRnnLayer.h
     ../include/NeoML/Dnn/Layers/IrnnLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
+    ../include/NeoML/Dnn/Layers/LrnLayer.h
     ../include/NeoML/Dnn/Layers/LstmLayer.h
     ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h

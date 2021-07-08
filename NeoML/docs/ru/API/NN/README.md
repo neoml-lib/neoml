@@ -238,6 +238,7 @@ delete gpuMathEngine;
 - [CDropoutLayer](DropoutLayer.md) - реализация `dropout`
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) - батч нормализация
 - [CObjectNormalizationLayer](ObjectNormalizationLayer.md) - нормализация по объектам
+- [CLrnLayer](LrnLayer.md) - Local Response Normalization
 - Поэлементные операции над блобами:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - поэлементная сумма блобов
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - поэлементное произведение блобов

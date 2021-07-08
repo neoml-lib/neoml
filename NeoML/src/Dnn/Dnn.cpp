@@ -85,6 +85,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/IndRnnLayer.h>
 #include <NeoML/Dnn/Layers/DepthToSpaceLayer.h>
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
+#include <NeoML/Dnn/Layers/LrnLayer.h>
 
 namespace NeoML {
 
@@ -217,6 +218,8 @@ REGISTER_NEOML_LAYER( CConcatDepthLayer, "FmlCnnConcatDepthLayer" )
 REGISTER_NEOML_LAYER( CConcatWidthLayer, "FmlCnnConcatWidthLayer" )
 REGISTER_NEOML_LAYER( CConcatHeightLayer, "FmlCnnConcatHeightLayer" )
 REGISTER_NEOML_LAYER( CConcatBatchWidthLayer, "FmlCnnConcatBatchWidthLayer" )
+REGISTER_NEOML_LAYER( CConcatBatchLengthLayer, "FmlCnnConcatBatchLengthLayer" )
+REGISTER_NEOML_LAYER( CConcatListSizeLayer, "FmlCnnConcatListSizeLayer" )
 REGISTER_NEOML_LAYER( CConcatObjectLayer, "FmlCnnConcatObjectLayer" )
 REGISTER_NEOML_LAYER( CSplitChannelsLayer, "FmlCnnSplitChannelsLayer" )
 REGISTER_NEOML_LAYER( CSplitDepthLayer, "FmlCnnSplitDepthLayer" )
@@ -324,6 +327,7 @@ REGISTER_NEOML_LAYER( CIndRnnRecurrentLayer, "NeoMLDnnIndRnnRecurrentLayer" )
 REGISTER_NEOML_LAYER( CIndRnnLayer, "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_LAYER( CDepthToSpaceLayer, "NeoMLDnnDepthToSpaceLayer" )
 REGISTER_NEOML_LAYER( CSpaceToDepthLayer, "NeoMLDnnSpaceToDepthLayer" )
+REGISTER_NEOML_LAYER( CLrnLayer, "NeoMLDnnLrnLayer" )
 
 }
 
