@@ -125,6 +125,7 @@ protected:
 	{
 		archive.SerializeVersion( PythonLossLayerVersion, 1 );
 		CLossLayer::Serialize( archive );
+
 		if( archive.IsLoading() ) {
 			archive >> lossCalculator;
 		} else {

@@ -241,11 +241,11 @@ private:
 
 CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array classes, py::array weight )
 {
-	py::gil_scoped_release release;
 	CPtr<CPyMemoryProblem> problem = new CPyMemoryProblem( static_cast<int>( classes.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
 		reinterpret_cast<const float*>( weight.data() ) );
+	py::gil_scoped_release release;
 	CPtr<IModel> model = owner->TrainingModel().Train( *(problem.Ptr()) );
 
 	return CPyModel( model.Ptr() );
@@ -253,11 +253,11 @@ CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, p
 
 CPyRegressionModel CPyTrainingModel::TrainRegressor( py::array indices, py::array data, py::array rowPtr, bool isSparse, int featureCount, py::array values, py::array weight )
 {
-	py::gil_scoped_release release;
 	CPtr<CPyMemoryRegressionProblem> problem = new CPyMemoryRegressionProblem( static_cast<int>( values.size() ), featureCount,
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const float*>( values.data() ),
 		reinterpret_cast<const float*>( weight.data() ) );
+	py::gil_scoped_release release;
 	CPtr<IRegressionModel> model = dynamic_cast<IRegressionTrainingModel&>(owner->TrainingModel()).TrainRegression( *(problem.Ptr()) );
 
 	return CPyRegressionModel( model.Ptr() );
@@ -533,14 +533,13 @@ void InitializeTrainingModel(py::module& m)
 	m.def("_cross_validation_score", []( const CPyTrainingModel& classifier, py::array indices, py::array data, py::array rowPtr, 
 		bool isSparse, int featureCount, py::array classes, py::array weight, const std::string& scoreName, int parts, bool stratified )
 	{
+		CPtr<CPyMemoryProblem> problem = new CPyMemoryProblem( static_cast<int>( classes.size() ), featureCount,
+			reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
+			reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
+			reinterpret_cast<const float*>( weight.data() ) );
 		CCrossValidationResult results;
 		{
 			py::gil_scoped_release release;
-			CPtr<CPyMemoryProblem> problem = new CPyMemoryProblem( static_cast<int>( classes.size() ), featureCount,
-				reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
-				reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
-				reinterpret_cast<const float*>( weight.data() ) );
-
 			CCrossValidation crossValidation(classifier.GetOwner()->TrainingModel(), problem);
 			TScore score = scoreName == "f1" ? F1Score : AccuracyScore;
 			crossValidation.Execute( parts, score, results, stratified );
