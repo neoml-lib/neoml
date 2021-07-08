@@ -24,11 +24,15 @@ static const int PythonLossLayerVersion = 1;
 
 static CArchive& operator <<( CArchive& archive, const py::object& obj )
 {
-	py::object pyModule = py::module::import( "pickle" );
-	py::object pyDumps = pyModule.attr( "dumps" );
-	py::bytes dumpedObject = pyDumps( obj ).cast<py::bytes>();
-	string str = dumpedObject;
-
+	string str;
+	{
+		py::gil_scoped_acquire ac;
+		py::object pyModule = py::module::import( "pickle" );
+		py::object pyDumps = pyModule.attr( "dumps" );
+		py::bytes dumpedObject = pyDumps( obj ).cast<py::bytes>();
+		str = dumpedObject;
+	}
+	py::gil_scoped_release release;
 	archive << static_cast<int>(str.length());
 	for( size_t i = 0; i < str.length(); i++ ) {
 		archive << str[i];
@@ -42,10 +46,14 @@ static CArchive& operator >>( CArchive& archive, py::object& obj )
 	int len = 0;
 	archive >> len;
 	string s(len, 't');
-	for( size_t i = 0; i < len; i++ ) {
-		archive >> s[i];
+	{
+		py::gil_scoped_release release;
+		for( size_t i = 0; i < len; i++ ) {
+			archive >> s[i];
+		}
 	}
 
+	py::gil_scoped_acquire ac;
 	py::bytes dumpedObject( s );
 	py::object pyModule = py::module::import( "pickle" );
 	py::object pyLoads = pyModule.attr( "loads" );
@@ -95,13 +103,15 @@ protected:
 		py::object pyModule = py::module::import( "neoml.Dnn" );
 		py::object pyFunction = pyModule.attr( "call_loss_calculator" );
 		CPyBlob result = pyFunction( dataPyBlob, labelPyBlob, lossCalculator ).cast<CPyBlob>();
+		{
+			py::gil_scoped_release release;
+			CPtr<CDnnBlob> value = result.Blob();
+			mathEngineOwner->MathEngine().VectorCopy( lossValue, value->GetData(), batchSize );
 
-		CPtr<CDnnBlob> value = result.Blob();
-		mathEngineOwner->MathEngine().VectorCopy( lossValue, value->GetData(), batchSize );
-
-		if( !lossGradient.IsNull() ) {
-			CPtr<const CDnnBlob> gradient = tape.Gradient( *result.Blob(), *var );
-			mathEngineOwner->MathEngine().VectorCopy( lossGradient, gradient->GetData(), batchSize * vectorSize );
+			if( !lossGradient.IsNull() ) {
+				CPtr<const CDnnBlob> gradient = tape.Gradient( *result.Blob(), *var );
+				mathEngineOwner->MathEngine().VectorCopy( lossGradient, gradient->GetData(), batchSize * vectorSize );
+			}
 		}
 	}
 
@@ -117,9 +127,11 @@ protected:
 
 	void Serialize( CArchive& archive )
 	{
-		archive.SerializeVersion( PythonLossLayerVersion, 1 );
-		CLossLayer::Serialize( archive );
-
+		{
+			py::gil_scoped_release release;
+			archive.SerializeVersion( PythonLossLayerVersion, 1 );
+			CLossLayer::Serialize( archive );
+		}
 		if( archive.IsLoading() ) {
 			archive >> lossCalculator;
 		} else {
