@@ -62,7 +62,9 @@ int CPyMemoryFile::Read( void* ptr, int bytesCount )
 	if( size <= 0 ) {
 		return 0;
 	}
-	::memcpy( ptr, (char*)buffer.mutable_data() + currentPosition, size );
+	char* data = (char*)buffer.mutable_data();
+	py::gil_scoped_release release;
+	::memcpy( ptr, data + currentPosition, size );
 	currentPosition += size;
 	return size;
 }
@@ -82,7 +84,9 @@ void CPyMemoryFile::Write( const void* ptr, int bytesCount )
 	if( newPosition > bufferSize ) {
 		setBufferSize( newPosition );
 	}
-	::memcpy( (char*)buffer.mutable_data() + currentPosition, ptr, bytesCount );
+	char* data = (char*)buffer.mutable_data();
+	py::gil_scoped_release release;
+	::memcpy( data + currentPosition, ptr, bytesCount );
 	currentPosition = newPosition;
 	fileLength = max( fileLength, currentPosition );
 }
