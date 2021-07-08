@@ -138,7 +138,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor layout functions
 
-// Converts tensor into given layout
+// Converts tensor to the given layout
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& destLayout );
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -147,10 +147,10 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTe
 // Calculates padding size if autoPad is SAME_UPPER or SAME_LOWER
 void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
 
-// Pads tensor with user-dependent data
-// Last pads.Size() / 2 dimensions of tensors will be padded (it's compatible with both Conv and Pad onnx operators)
-// First pads.Size() / 2 numbers determine padding size at the front of the axis
-// Last pads.Size() / 2 numbers determine padding size at the back of the axis
+// Pads user tensor with padValue values
+// Last pads.Size() / 2 dimensions of the input tensor will be padded (it's compatible with both Conv and Pad onnx operators)
+// First pads.Size() / 2 numbers determine padding size at the front of the dims
+// Last pads.Size() / 2 numbers determine padding size at the back of the dims
 CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue );
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -172,17 +172,17 @@ enum TBroadcastType {
 struct CBroadcast {
 	// Broadcast type
 	TBroadcastType Type;
-	// Broadcasted axis index
+	// Broadcasted axis index (used in BT_Onnx broadcast)
 	int Axis;
 
-	explicit CBroadcast( TBroadcastType type, int axis = NotFound ) :
-		Type( type ), Axis( axis ) {}
+	explicit CBroadcast( TBroadcastType type, int axis = NotFound ) : Type( type ), Axis( axis ) {}
 };
 
 // Calculates shape of the result of the broadcast operation
-// If shapes can be broadcasted writes broadcasted shape to the result and returns true
+// If shapes can be broadcasted then it writes broadcasted shape to the result and returns true
 // Returns false if shapes can't be broadcasted (in this case result will be empty)
-bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast, CTensorShape& result );
+bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast,
+	CTensorShape& result );
 
 // Broadcasts the given tensor to the given outputShape according to given broadcast
 CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast, const CTensorShape& outputShape );

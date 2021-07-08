@@ -162,7 +162,7 @@ static CPtr<const CDnnBlob> swapDimensions( const CDnnBlob& inputBlob, TBlobDim 
 	return outputBlob.Ptr();
 }
 
-// Swasp 2 dimensions of given layer output
+// Swaps 2 dimensions of given layer output
 static CLayerOutput swapDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlobDim secondDim )
 {
 	CDnn& dnn = *( input.Layer->GetDnn() );

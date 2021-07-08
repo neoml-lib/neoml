@@ -57,7 +57,7 @@ namespace NeoOnnx {
 
 typedef COperator* ( *TCreateOperatorFunction )( const onnx::NodeProto& onnxNode, int opsetVersion );
 
-// Returns reference to the map containing info about registered operators
+// Returns reference to the map with info about registered operators
 static CMap<CString, TCreateOperatorFunction>& getRegisteredOperators()
 {
 	static CMap<CString, TCreateOperatorFunction> registeredOperators;
@@ -72,8 +72,8 @@ static void registerOperator( const char* operatorType, TCreateOperatorFunction 
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-// Class registers class T as an operator
-// Without this registration class will be inaccessible from COperator::CreateOperator
+// Registers class T as an operator
+// Without this registration class will be inaccessible from the COperator::CreateOperator method
 template<class T>
 class COperatorClassRegistrar {
 public:
