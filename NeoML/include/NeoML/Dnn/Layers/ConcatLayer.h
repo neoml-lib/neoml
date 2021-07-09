@@ -89,7 +89,7 @@ NEOML_API CLayerWrapper<CConcatHeightLayer> ConcatHeight();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// CConcatBatchLayer implements a layer that concatenates several blobs into one 
+// CConcatBatchWidthLayer implements a layer that concatenates several blobs into one 
 // along the BatchWidth dimension (simply stores them one after another)
 class NEOML_API CConcatBatchWidthLayer : public CBaseConcatLayer {
 	NEOML_DNN_LAYER( CConcatBatchWidthLayer )
@@ -100,6 +100,34 @@ public:
 };
 
 NEOML_API CLayerWrapper<CConcatBatchWidthLayer> ConcatBatchWidth();
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// CConcatBatchLengthLayer implements a layer that concatenates several blobs into one 
+// along the BatchLength dimension (simply stores them one after another)
+class NEOML_API CConcatBatchLengthLayer : public CBaseConcatLayer {
+	NEOML_DNN_LAYER( CConcatBatchLengthLayer )
+public:
+	explicit CConcatBatchLengthLayer( IMathEngine& mathEngine ) : CBaseConcatLayer( mathEngine, BD_BatchLength, "CConcatBatchLengthLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+};
+
+NEOML_API CLayerWrapper<CConcatBatchLengthLayer> ConcatBatchLength();
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// CConcatListSizeLayer implements a layer that concatenates several blobs into one 
+// along the ListSize dimension (simply stores them one after another)
+class NEOML_API CConcatListSizeLayer : public CBaseConcatLayer {
+	NEOML_DNN_LAYER( CConcatListSizeLayer )
+public:
+	explicit CConcatListSizeLayer( IMathEngine& mathEngine ) : CBaseConcatLayer( mathEngine, BD_ListSize, "CConcatListSizeLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+};
+
+NEOML_API CLayerWrapper<CConcatListSizeLayer> ConcatListSize();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 

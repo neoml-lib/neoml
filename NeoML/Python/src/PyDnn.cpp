@@ -59,6 +59,8 @@ REGISTER_NEOML_PYLAYER_EX( "Concat", "ConcatDepth", "FmlCnnConcatDepthLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Concat", "ConcatWidth", "FmlCnnConcatWidthLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Concat", "ConcatHeight", "FmlCnnConcatHeightLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Concat", "ConcatBatchWidth", "FmlCnnConcatBatchWidthLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Concat", "ConcatBatchLength", "FmlCnnConcatBatchLengthLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Concat", "ConcatListSize", "FmlCnnConcatListSizeLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Concat", "ConcatObject", "FmlCnnConcatObjectLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitChannels", "FmlCnnSplitChannelsLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitDepth", "FmlCnnSplitDepthLayer" )
@@ -162,6 +164,7 @@ REGISTER_NEOML_PYLAYER( "ProjectionPooling", "FmlCnnProjectionPoolingLayerClass"
 REGISTER_NEOML_PYLAYER( "Irnn", "NeoMLDnnIrnnLayer" )
 REGISTER_NEOML_PYLAYER( "IndRnn", "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_PYLAYER( "Qrnn", "NeoMLDnnQrnnLayer" )
+REGISTER_NEOML_PYLAYER( "Lrn", "NeoMLDnnLrnLayer" )
 
 }
 

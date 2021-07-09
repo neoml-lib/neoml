@@ -44,6 +44,7 @@ limitations under the License.
 #include "PyIndRnnLayer.h"
 #include "PyIrnnLayer.h"
 #include "PyGruLayer.h"
+#include "PyLrnLayer.h"
 #include "PyMultichannelLookupLayer.h"
 #include "PyMatrixMultiplicationLayer.h"
 #include "PyMultiheadAttentionLayer.h"
@@ -110,6 +111,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeIrnnLayer( m );
 	InitializeGruLayer( m );
 	InitializeLossLayer( m );
+	InitializeLrnLayer( m );
 	InitializeCustomLossLayer( m );
 	InitializeLstmLayer( m );
 	InitializeMatrixMultiplicationLayer( m );
