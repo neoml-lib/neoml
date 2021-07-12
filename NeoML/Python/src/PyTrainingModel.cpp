@@ -130,21 +130,31 @@ py::array_t<double> CPyModel::Classify( py::array indices, py::array data, py::a
 	int classesCount = ptr->GetClassCount();
 	int rowCount = static_cast<int>( row.size() ) - 1;
 
+	CVariableMatrix<double> resultProbabilities;
+	resultProbabilities.SetSize( rowCount, classesCount );
+	{
+		py::gil_scoped_release release;
+		for( int i = 0; i < rowCount; i++ ) {
+			CFloatVectorDesc vector;
+			vector.Size = rowPtr[i+1] - rowPtr[i];
+			vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
+			if ( indicesPtr != nullptr ) {
+				vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
+			}
+
+			CClassificationResult result;
+			ptr->Classify( vector, result );
+			for( int j = 0; j < classesCount; j++ ) {
+				resultProbabilities( i, j ) = result.Probabilities[j].GetValue();
+			}
+		}
+	}
+
 	py::array_t<double, py::array::c_style> totalResult( { rowCount, classesCount } );
 	auto r = totalResult.mutable_unchecked<2>();
-	py::gil_scoped_release release;
 	for( int i = 0; i < rowCount; i++ ) {
-		CFloatVectorDesc vector;
-		vector.Size = rowPtr[i+1] - rowPtr[i];
-		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
-		if ( indicesPtr != nullptr ) {
-			vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
-		}
-
-		CClassificationResult result;
-		ptr->Classify( vector, result );
 		for( int j = 0; j < classesCount; j++ ) {
-			r(i, j) = result.Probabilities[j].GetValue();
+			r(i, j) = resultProbabilities( i, j );
 		}
 	}
 
@@ -194,18 +204,25 @@ py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array da
 
 	int rowCount = static_cast<int>( row.size() ) - 1;
 
+	CArray<double> resultPredictions;
+	resultPredictions.SetSize( rowCount );
+	{
+		py::gil_scoped_release release;
+		for( int i = 0; i < rowCount; i++ ) {
+			CFloatVectorDesc vector;
+			vector.Size = rowPtr[i+1] - rowPtr[i];
+			vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
+			if ( indicesPtr != nullptr ) {
+				vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
+			}
+			resultPredictions[i] = ptr->Predict( vector );
+		}
+	}
+
 	py::array_t<double, py::array::c_style> totalResult( rowCount );
 	auto r = totalResult.mutable_unchecked<1>();
-	py::gil_scoped_release release;
 	for( int i = 0; i < rowCount; i++ ) {
-		CFloatVectorDesc vector;
-		vector.Size = rowPtr[i+1] - rowPtr[i];
-		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
-		if ( indicesPtr != nullptr ) {
-			vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
-		}
-
-		r(i) = ptr->Predict( vector );
+		r(i) = resultPredictions[i];
 	}
 
 	return totalResult;
