@@ -32,8 +32,11 @@ class MultithreadedTestCase(TestCase):
         if enable_assert:
             self.assertTrue(system_time < user_time)
 
+    def run(self, result=None):
+        self._test_mt(super().run)
 
-class MathEngineTestCase(TestCase):
+
+class MathEngineTestCase(MultithreadedTestCase):
     def test_gpu_math_engine(self):
 
         check = False
@@ -68,7 +71,7 @@ class MathEngineTestCase(TestCase):
         self.assertEqual(math_engine.peak_memory_usage, 40)
 
 
-class BlobTestCase(TestCase):
+class BlobTestCase(MultithreadedTestCase):
     def test_pickle(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         a = np.ones((2, 3, 4, 5), dtype=np.int32)
@@ -239,7 +242,7 @@ class BlobTestCase(TestCase):
         self.assertEqual(float_blob.object_size, 4 * 5 * 6 * 7)
 
 
-class SolverTestCase(TestCase):
+class SolverTestCase(MultithreadedTestCase):
     def test_nesterov_gradient(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         solver = neoml.Dnn.NesterovGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
@@ -726,9 +729,6 @@ class LayersTestCase(MultithreadedTestCase):
 
         self.assertEqual(a.size, 4)
         self.assertAlmostEqual(a[0][0], 16.0, delta=1e-3)
-
-    def test_confusion_matrix_mt(self):
-        self._test_mt(self.test_confusion_matrix)
 
     def _test_activation(self, layer, kwargs={}):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -1566,7 +1566,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out.shape, (2, 3, 4, 5, 6, 7, 8))
 
 
-class PoolingTestCase(TestCase):
+class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
                       input_shape=(2, 1, 2, 3, 5, 4, 2)):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2092,9 +2092,6 @@ class LossTestCase(MultithreadedTestCase):
         ]:
             self._test_custom_loss(loss_calculator, result_loss)
 
-    def test_custom_loss_mt(self):
-        self._test_mt(self.test_custom_loss)
-
     def test_autodiff_functions(self):
         import neoml.AutoDiff as ad
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2219,9 +2216,6 @@ class DnnTestCase(MultithreadedTestCase):
         self.assertTrue(len(dnn_loaded.layers), 3)
         self.assertTrue(len(dnn_loaded.output_layers), 1)
 
-    def test_load_store_mt(self):
-        self._test_mt(self.test_load_store)
-
     def test_solver(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -2234,9 +2228,6 @@ class DnnTestCase(MultithreadedTestCase):
 
         dnn.solver = neoml.Dnn.SimpleGradient(math_engine)
         self.assertTrue(isinstance(dnn.solver, neoml.Dnn.SimpleGradient))
-
-    def test_solver_mt(self):
-        self._test_mt(self.test_solver)
 
     def test_initializer(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2363,16 +2354,10 @@ class TraditionalTestCase(MultithreadedTestCase):
         for multiclass_mode in ('one_vs_all', 'one_vs_one'):
             self._test_classification_model(neoml.Linear.LinearClassifier, dict(multiclass_mode=multiclass_mode))
 
-    def test_classification_mt(self):
-        self._test_mt(self.test_linear_classification)
-
     def test_linear_regression(self):
         for thread_count in (1, 4):
             self._test_regression_model(neoml.Linear.LinearRegressor,
                 dict(thread_count=thread_count))
-
-    def test_regression_mt(self):
-        self._test_mt(self.test_linear_regression)
 
     def test_cross_validation_score(self):
         from neoml.CrossValidation import cross_validation_score
@@ -2391,9 +2376,6 @@ class TraditionalTestCase(MultithreadedTestCase):
                 cv_score = cross_validation_score(classifier, X, y, weight, score, 5)
                 self.assertEqual(cv_score.shape, (5,))
 
-    def test_cross_validation_mt(self):
-        self._test_mt(self.test_cross_validation_score)
-
     def test_load_store(self):
         dir = tempfile.mkdtemp()
         for model_init, model_result in (
@@ -2409,9 +2391,6 @@ class TraditionalTestCase(MultithreadedTestCase):
             self.assertEqual(type(loaded), model_result)
             os.remove(path)
         os.rmdir(dir)
-
-    def test_load_store_mt(self):
-        self._test_mt(self.test_load_store)
 
 
 class ClusteringTestCase(MultithreadedTestCase):
@@ -2440,6 +2419,3 @@ class ClusteringTestCase(MultithreadedTestCase):
 
     def test_kmeans(self):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
-
-    def test_first_come_mt(self):
-        self._test_mt(self.test_first_come)
