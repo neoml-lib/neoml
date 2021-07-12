@@ -15,7 +15,7 @@ class MultithreadedTestCase(TestCase):
         target(*args);
         print(f"python thread {threading.get_ident()} finished")
 
-    def _test_mt(self, target, args=()):
+    def _test_mt(self, target, args=(), enable_assert=False):
         import time
         threads = []
         system_time, user_time = time.perf_counter(), time.process_time()
@@ -29,7 +29,8 @@ class MultithreadedTestCase(TestCase):
         print()
         print('System time {0:.6f} sec.'.format(system_time))
         print('User time {0:.6f} sec.'.format(user_time))
-        self.assertTrue(system_time < user_time)
+        if enable_assert:
+            self.assertTrue(system_time < user_time)
 
 
 class MathEngineTestCase(TestCase):
@@ -2363,7 +2364,7 @@ class TraditionalTestCase(MultithreadedTestCase):
             self._test_classification_model(neoml.Linear.LinearClassifier, dict(multiclass_mode=multiclass_mode))
 
     def test_classification_mt(self):
-        self._test_mt(self.test_linear_classification)
+        self._test_mt(self.test_linear_classification, enable_assert=True)
 
     def test_linear_regression(self):
         for thread_count in (1, 4):
@@ -2371,7 +2372,7 @@ class TraditionalTestCase(MultithreadedTestCase):
                 dict(thread_count=thread_count))
 
     def test_regression_mt(self):
-        self._test_mt(self.test_linear_regression)
+        self._test_mt(self.test_linear_regression, enable_assert=True)
 
     def test_cross_validation_score(self):
         from neoml.CrossValidation import cross_validation_score
@@ -2391,7 +2392,7 @@ class TraditionalTestCase(MultithreadedTestCase):
                 self.assertEqual(cv_score.shape, (5,))
 
     def test_cross_validation_mt(self):
-        self._test_mt(self.test_cross_validation_score)
+        self._test_mt(self.test_cross_validation_score, enable_assert=True)
 
     def test_load_store(self):
         dir = tempfile.mkdtemp()
@@ -2441,4 +2442,4 @@ class ClusteringTestCase(MultithreadedTestCase):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
 
     def test_first_come_mt(self):
-        self._test_mt(self.test_first_come)
+        self._test_mt(self.test_first_come, enable_assert=True)
