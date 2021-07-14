@@ -56,6 +56,7 @@ void InitializeBinarizationLayer( py::module& m )
 			return new CPyEnumBinarizationLayer( *layer.Layer<CEnumBinarizationLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, int enumSize ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CEnumBinarizationLayer> bin = new CEnumBinarizationLayer( mathEngine );
@@ -75,6 +76,7 @@ void InitializeBinarizationLayer( py::module& m )
 			return new CPyBitSetVectorizationLayer( *layer.Layer<CBitSetVectorizationLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, int bitsetSize ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CBitSetVectorizationLayer> bin = new CBitSetVectorizationLayer( mathEngine );

@@ -58,6 +58,7 @@ void InitializeIndRnnLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs,
 			int hidden_size, float dropout_rate, bool reverse )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

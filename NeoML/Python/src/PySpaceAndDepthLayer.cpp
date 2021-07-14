@@ -57,6 +57,7 @@ void InitializeSpaceAndDepthLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& inputLayer, int outputNumber, int blockSize )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputLayer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			
@@ -79,6 +80,7 @@ void InitializeSpaceAndDepthLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& inputLayer, int outputNumber, int blockSize )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputLayer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			
