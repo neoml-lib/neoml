@@ -20,12 +20,15 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <cublas.h>
+#include <string>
 
 #define ASSERT_CUDA( expr ) \
 	do { \
 		int _err_ = ( int ) ( expr ); \
 		if( _err_ != cudaSuccess ) { \
-			GetMathEngineExceptionHandler()->OnAssert( cudaGetErrorString( static_cast<cudaError_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
+			GetMathEngineExceptionHandler()->OnAssert( \
+				( std::string( cudaGetErrorString( static_cast<cudaError_t>( _err_ ) ) ) + ". Try updating your driver," ).c_str(), \
+				__UNICODEFILE__, __LINE__, _err_ ); \
 		} \
 	} while(0)
 
@@ -34,12 +37,14 @@ limitations under the License.
 	do { \
 		int _err_ = ( int ) ( expr ); \
 		if( _err_ != CUSPARSE_STATUS_SUCCESS ) { \
-			GetMathEngineExceptionHandler()->OnAssert( cusparse->GetErrorString( static_cast<cusparseStatus_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
+			GetMathEngineExceptionHandler()->OnAssert( \
+				( std::string( cusparse->GetErrorString( static_cast<cusparseStatus_t>( _err_ ) ) ) + ". Try updating your driver." ).c_str(), \
+				__UNICODEFILE__, __LINE__, _err_ ); \
 		} \
 	} while(0)
 
 // There is no GetErrorString function in cuBLAS API
-// That's why using our own version
+// That's why we have to write our own version
 inline const char* cublasGetErrorString( cublasStatus_t status )
 {
 	switch( status ) {
@@ -73,7 +78,9 @@ inline const char* cublasGetErrorString( cublasStatus_t status )
 	do { \
 		int _err_ = ( int ) ( expr ); \
 		if( _err_ != CUBLAS_STATUS_SUCCESS ) { \
-			GetMathEngineExceptionHandler()->OnAssert( cublasGetErrorString( static_cast<cublasStatus_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
+			GetMathEngineExceptionHandler()->OnAssert( \
+				( std::string( cublasGetErrorString( static_cast<cublasStatus_t>( _err_ ) ) ) + ". Try updating your driver." ).c_str(), \
+				__UNICODEFILE__, __LINE__, _err_ ); \
 		} \
 	} while(0)
 
