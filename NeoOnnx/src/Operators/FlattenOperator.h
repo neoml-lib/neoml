@@ -15,4 +15,23 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// Flatten operator
+class CFlattenOperator : public CLayerOperator {
+public:
+	CFlattenOperator( const onnx::NodeProto& flatten, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	// Axis index
+	// Flatten result is a matrix with size Dim(0) * ... * Dim(axis-1) x Dim(axis) * ... * Dim(N-1)
+	int axis;
+};
+
+} // namespace NeoOnnx

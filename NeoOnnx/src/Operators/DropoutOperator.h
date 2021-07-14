@@ -15,4 +15,21 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// Dropout operator
+class CDropoutOperator : public CLayerOperator {
+public:
+	CDropoutOperator( const onnx::NodeProto& dropout, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	float getRatio( const CTensorArray& inputs ) const;
+};
+
+} // namespace NeoOnnx

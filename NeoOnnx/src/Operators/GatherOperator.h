@@ -15,4 +15,18 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../Operator.h"
+
+namespace NeoOnnx {
+
+// Gather operator
+class CGatherOperator : public COperator {
+public:
+	CGatherOperator( const onnx::NodeProto& gather, int opsetVersion );
+
+	// COperator methods
+	// At this moment this layer can't be emulated by NeoMl
+	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+};
+
+} // namespace NeoOnnx

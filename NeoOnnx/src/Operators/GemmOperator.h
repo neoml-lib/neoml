@@ -15,4 +15,32 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// Gemm operator
+class CGemmOperator : public CLayerOperator {
+public:
+	CGemmOperator( const onnx::NodeProto& node, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	// In onnx Gemm is implemented like
+	//     Y = alpha * A' * B' + beta * C
+	// where
+	//     A' is equal to A if transA == 0 or transpose(A) otherwise
+	//     B' is equal to B if transB == 0 or transpose(B) otherwise
+	//     C is optional matrix
+
+	// Values from formula above
+	float alpha;
+	float beta;
+	int transA;
+	int transB;
+};
+
+} // namespace NeoOnnx

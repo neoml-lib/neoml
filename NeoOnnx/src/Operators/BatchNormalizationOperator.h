@@ -15,4 +15,23 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// BatchNormalization operator
+class CBatchNormalizationOperator : public CLayerOperator {
+public:
+	CBatchNormalizationOperator( const onnx::NodeProto& batchNormalization, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	// eps value which is used to prevent division by zero
+	float eps;
+};
+
+} // namespace NeoOnnx
+

@@ -15,4 +15,24 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// Softmax operator
+class CSoftmaxOperator : public CLayerOperator {
+public:
+	CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	// First axis to be softmaxed
+	int axis;
+
+	CTensorLayout getCompatibleLayout( int dimCount, int axis, const CTensorLayout& inputLayout ) const;
+};
+
+} // namespace NeoOnnx
