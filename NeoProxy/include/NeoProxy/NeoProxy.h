@@ -25,9 +25,12 @@ limitations under the License.
 
 #endif
 
+
 // The minimum API for neural network use. Allows you to load and run a network (only forward pass).
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
 // Error type
 enum TDnnErrorType {
@@ -42,7 +45,7 @@ enum TDnnErrorType {
 
 // Error description
 struct NEOPROXY_API CDnnErrorInfo {
-	TDnnErrorType Type; // Error type
+	enum TDnnErrorType Type; // Error type
 	char Description[512]; // Error message
 };
 
@@ -57,7 +60,7 @@ enum TDnnMathEngineType {
 
 // The math engine descriptor
 struct NEOPROXY_API CDnnMathEngineDesc {
-	TDnnMathEngineType Type;
+	enum TDnnMathEngineType Type;
 };
 
 // Creates a math engine that uses a GPU for calculations
@@ -85,8 +88,8 @@ enum TDnnBlobType {
 
 // The blob descriptor
 struct NEOPROXY_API CDnnBlobDesc {
-	const CDnnMathEngineDesc* MathEngine; // the math engine for the blob
-	TDnnBlobType Type; // the type of data in the blob
+	const struct CDnnMathEngineDesc* MathEngine; // the math engine for the blob
+	enum TDnnBlobType Type; // the type of data in the blob
 	int BatchLength; // sequence length
 	int BatchWidth; // the number of sequences processed together
 	int Height; // object height
@@ -99,26 +102,26 @@ struct NEOPROXY_API CDnnBlobDesc {
 // Creates a data blob
 // The blob should be destroyed after use with the help of the DestroyDnnBlob function
 // If an error occurs its description will be written into the errorInfo parameter and the function will return 0
-NEOPROXY_API const struct CDnnBlobDesc* CreateDnnBlob( const struct CDnnMathEngineDesc* mathEngine, TDnnBlobType type,
+NEOPROXY_API const struct CDnnBlobDesc* CreateDnnBlob( const struct CDnnMathEngineDesc* mathEngine, enum TDnnBlobType type,
 	int batchLength, int batchWidth, int height, int width, int depth, int channelCount, struct CDnnErrorInfo* errorInfo );
 
 // Destroys the blob
 NEOPROXY_API void DestroyDnnBlob( const struct CDnnBlobDesc* blob );
 
 // Fills the blob with data from a buffer
-// If successful, returns true; if failed, returns false and fills the errorInfo parameter with the error description
-NEOPROXY_API bool CopyToBlob( const struct CDnnBlobDesc* blob, const void* buffer, struct CDnnErrorInfo* errorInfo );
+// If successful, returns 1; if failed, returns 0 and fills the errorInfo parameter with the error description
+NEOPROXY_API int CopyToBlob( const struct CDnnBlobDesc* blob, const void* buffer, struct CDnnErrorInfo* errorInfo );
 
 // Copies the blob data into a buffer
-// If successful, returns true; if failed, returns false and fills the errorInfo parameter with the error description
-NEOPROXY_API bool CopyFromBlob( void* buffer, const struct CDnnBlobDesc* blob, struct CDnnErrorInfo* errorInfo );
+// If successful, returns 1; if failed, returns 0 and fills the errorInfo parameter with the error description
+NEOPROXY_API int CopyFromBlob( void* buffer, const struct CDnnBlobDesc* blob, struct CDnnErrorInfo* errorInfo );
 
 //------------------------------------------------------------------------------------------------------------
 // Neural network functions
 
 // The neural network descriptor
 struct NEOPROXY_API CDnnDesc {
-	const CDnnMathEngineDesc* MathEngine; // the math engine for the network
+	const struct CDnnMathEngineDesc* MathEngine; // the math engine for the network
 	int InputCount; // the number of network inputs
 	int OutputCount; // the number of network outputs
 };
@@ -151,12 +154,12 @@ NEOPROXY_API void DestroyDnn( const struct CDnnDesc* dnn );
 NEOPROXY_API const char* GetInputName( const struct CDnnDesc* dnn, int index, struct CDnnErrorInfo* errorInfo );
 
 // Sets the input data blob before running the network
-// If an error occurs its description will be written into the errorInfo parameter and the function will return false
-NEOPROXY_API bool SetInputBlob( const struct CDnnDesc* dnn, int index, const struct CDnnBlobDesc* blob, struct CDnnErrorInfo* errorInfo );
+// If successful, returns 1; if failed, returns 0 and fills the errorInfo parameter with the error description
+NEOPROXY_API int SetInputBlob( const struct CDnnDesc* dnn, int index, const struct CDnnBlobDesc* blob, struct CDnnErrorInfo* errorInfo );
 
 // Run the network (perform a forward pass)
-// If an error occurs its description will be written into the errorInfo parameter and the function will return false
-NEOPROXY_API bool DnnRunOnce( const struct CDnnDesc* dnn, struct CDnnErrorInfo* errorInfo );
+// If successful, returns 1; if failed, returns 0 and fills the errorInfo parameter with the error description
+NEOPROXY_API int DnnRunOnce( const struct CDnnDesc* dnn, struct CDnnErrorInfo* errorInfo );
 
 // Retrieves the name of a network output
 // If an error occurs its description will be written into the errorInfo parameter and the function will return 0
@@ -167,4 +170,6 @@ NEOPROXY_API const char* GetOutputName( const struct CDnnDesc* dnn, int index, s
 // If an error occurs its description will be written into the errorInfo parameter and the function will return 0
 NEOPROXY_API const struct CDnnBlobDesc* GetOutputBlob( const struct CDnnDesc* dnn, int index, struct CDnnErrorInfo* errorInfo );
 
+#ifdef __cplusplus
 } // extern "C"
+#endif

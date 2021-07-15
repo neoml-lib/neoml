@@ -154,7 +154,7 @@ CDnnMathEngineDescImpl::CDnnMathEngineDescImpl( IMathEngine* mathEngine, TDnnMat
 const struct CDnnMathEngineDesc* CreateGPUMathEngine( struct CDnnErrorInfo* errorInfo )
 {
 	IMathEngine* mathEngine = nullptr;
-	
+
 	try {
 		SetMathEngineExceptionHandler( GetExceptionHandler() );
 		mathEngine = CreateGpuMathEngine( 0 );
@@ -188,7 +188,7 @@ const struct CDnnMathEngineDesc* CreateGPUMathEngine( struct CDnnErrorInfo* erro
 const struct CDnnMathEngineDesc* CreateCPUMathEngine( int threadCount, struct CDnnErrorInfo* errorInfo )
 {
 	IMathEngine* mathEngine = nullptr;
-	
+
 	try {
 		SetMathEngineExceptionHandler( GetExceptionHandler() );
 		mathEngine = CreateCpuMathEngine( threadCount, 0 );
@@ -325,7 +325,7 @@ void DestroyDnnBlob( const struct CDnnBlobDesc* blob )
 	delete static_cast<const CDnnBlobDescImpl*>( blob );
 }
 
-bool CopyToBlob( const struct CDnnBlobDesc* blobDesc, const void* buffer, struct CDnnErrorInfo* errorInfo )
+int CopyToBlob( const struct CDnnBlobDesc* blobDesc, const void* buffer, struct CDnnErrorInfo* errorInfo )
 {
 	if( blobDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnBlobDesc parameter.", errorInfo );
@@ -346,7 +346,7 @@ bool CopyToBlob( const struct CDnnBlobDesc* blobDesc, const void* buffer, struct
 	return true;
 }
 
-bool CopyFromBlob( void* buffer, const struct CDnnBlobDesc* blobDesc, struct CDnnErrorInfo* errorInfo )
+int CopyFromBlob( void* buffer, const struct CDnnBlobDesc* blobDesc, struct CDnnErrorInfo* errorInfo )
 {
 	if( blobDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnBlobDesc parameter.", errorInfo );
@@ -527,7 +527,7 @@ const struct CDnnDesc* CreateDnnFromBuffer( const struct CDnnMathEngineDesc* mat
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnMathEngineDesc parameter.", errorInfo );
 		return nullptr;
 	}
-	
+
 	const CDnnMathEngineDescImpl* mathEngine = static_cast<const CDnnMathEngineDescImpl*>( mathEngineDesc );
 	try {
 		return FINE_DEBUG_NEW CDnnDescImpl( buffer, bufferSize, mathEngine );
@@ -648,7 +648,7 @@ const char* GetInputName( const struct CDnnDesc* dnnDesc, int index, struct CDnn
 	return dnn->GetInputName( index );
 }
 
-bool SetInputBlob( const struct CDnnDesc* dnnDesc, int index, const struct CDnnBlobDesc* blobDesc, struct CDnnErrorInfo* errorInfo )
+int SetInputBlob( const struct CDnnDesc* dnnDesc, int index, const struct CDnnBlobDesc* blobDesc, struct CDnnErrorInfo* errorInfo )
 {
 	if( dnnDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnDesc parameter.", errorInfo );
@@ -671,7 +671,7 @@ bool SetInputBlob( const struct CDnnDesc* dnnDesc, int index, const struct CDnnB
 	return true;
 }
 
-bool DnnRunOnce( const struct CDnnDesc* dnnDesc, struct CDnnErrorInfo* errorInfo )
+int DnnRunOnce( const struct CDnnDesc* dnnDesc, struct CDnnErrorInfo* errorInfo )
 {
 	if( dnnDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnDesc parameter.", errorInfo );
