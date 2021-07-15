@@ -104,6 +104,8 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 				nodes[leftNode].Statistics = nodes[node].Statistics;
 				nodes[leftNode].Statistics.Sub( nodes[rightNode].Statistics );
 			}
+			nodes[leftNode].Statistics.NullifyLeafClasses( nodes[node].LeftStatistics );
+			nodes[rightNode].Statistics.NullifyLeafClasses( nodes[node].RightStatistics );
 		} else {
 			// The node could not be split
 			if( logStream != 0 ) {
@@ -295,10 +297,10 @@ void CGradientBoostFastHistTreeBuilder<T>::addVectorToHist( const int* vectorPtr
 // Calculates the optimal feature value for splitting the node
 // Returns NotFound if splitting is impossible
 template<class T>
-int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFastHistProblem& problem, const CNode& node ) const
+int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFastHistProblem& problem, CNode& node ) const
 {
 	if( ( params.MaxNodesCount != NotFound && nodes.Size() + 2 > params.MaxNodesCount )
-	    || ( node.Level >= params.MaxTreeDepth ) ) {
+		|| ( node.Level >= params.MaxTreeDepth ) ) {
 		// The nodes limit has been reached
 		return NotFound;
 	}
@@ -316,11 +318,17 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 	CArray<int>& splitIds = splitIdsBuffer;
 	splitIds.DeleteAll();
 	splitIds.Add( NotFound, params.ThreadCount );
+	if( leftCandidates.Size() == 0 ) {
+		leftCandidates.Add( T( predictionSize ), params.ThreadCount );
+		rightCandidates.Add( T( predictionSize ), params.ThreadCount );
+	}
 
 	NEOML_OMP_NUM_THREADS(params.ThreadCount)
 	{
 		const int threadNumber = OmpGetThreadNum();
 		NeoAssert( threadNumber < params.ThreadCount );
+		T leftCandidate( predictionSize );
+		T rightCandidate( predictionSize );
 
 		// Iterate through features (a separate subset for each thread)
 		for( int i = threadNumber; i < usedFeatures.Size(); i += params.ThreadCount ) {
@@ -334,12 +342,14 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 				left.Add( featureStats );
 				right = node.Statistics;
 				right.Sub( left );
+				leftCandidate = left;
+				rightCandidate = right;
 
 				// Calculating the gain: if the node is split at this position, 
 				// the criterion loses the parent node (bestValue) and replaces it by left.CalcCriterion and right.CalcCriterion
 				// In the reference paper, a gamma coefficient is also needed for a new node, but we take that into account while pruning
 				double criterion;
-				if( !T::CalcCriterion( criterion, left, right, node.Statistics,
+				if( !T::CalcCriterion( criterion, leftCandidate, rightCandidate, node.Statistics,
 					params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient ) )
 				{
 					continue;
@@ -348,6 +358,9 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 				if( splitGainsByThread[threadNumber] < criterion ) {
 					splitGainsByThread[threadNumber] = criterion;
 					splitIds[threadNumber] = j;  // this number refers both to the feature and its value
+					// save statistics for childs for case when class if not splitting further
+					leftCandidates[threadNumber] = leftCandidate;
+					rightCandidates[threadNumber] = rightCandidate;
 				}
 			}
 		}
@@ -361,6 +374,8 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 		if( bestValue < threadBestGain || ( bestValue == threadBestGain && threadBestFeature < result ) ) {
 			bestValue = threadBestGain;
 			result = threadBestFeature;
+			node.LeftStatistics = leftCandidates[i];
+			node.RightStatistics = rightCandidates[i];
 		}
 	}
 	return result;

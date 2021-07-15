@@ -55,7 +55,7 @@ The following loss functions are supported:
 
 ### Tree builder
 
-The algorithm supports two different tree builder modes:
+The algorithm supports four different tree builder modes:
 
 - *GBTB_Full* — all the feature values are used for splitting the nodes.
 - *GBTB_FastHist* — the steps of a histogram created from the feature values will be used for splitting the nodes. The *MaxBins* parameter limits the possible size of the histogram.
