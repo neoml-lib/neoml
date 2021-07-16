@@ -14,6 +14,7 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 """
 
+import neoml
 import neoml.PythonWrapper as PythonWrapper
 from neoml.MathEngine import MathEngine
 from neoml.Blob import Blob
@@ -29,13 +30,13 @@ def const(math_engine, shape, data):
 
     np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
 
-    if len(np_shape.shape) > 7:
+    if len(np_shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')
 
     if numpy.isscalar(data):
         return Blob(PythonWrapper.blob_const(math_engine._internal, np_shape, float(data)))
 
-    np_data = numpy.array(data, copy=False, order='C')
+    np_data = numpy.array(data, dtype=numpy.float32, copy=False, order='C')
 
     if len(np_data.shape) > 7:
         raise ValueError('The `shape` should have not more than 7 dimensions.')
@@ -75,7 +76,7 @@ def div(a, b):
     return a / b
 
 def max(a, b):
-    """Takes the elementwise maximum of two blobs or a blob and a scalar value.
+    """Takes the elementwise maximum of a blob and a scalar value.
     """
     if type(a) is Blob:
         if a.size == 0:
@@ -88,16 +89,51 @@ def max(a, b):
     
     raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
 
-def sum(a, axis=None):
-    """Calculates the total sum of blob elements.
+def sum(a, axes=None):
+    """Calculates sum of blob elements along provided axes.
+    If axes=None calculates the total sum.
     """
     if not type(a) is Blob:
         raise ValueError('`a` should be neoml.Blob.')
 
     if a.size == 0:
         raise ValueError("The blob shouldn't be empty.")
-    
-    return Blob(PythonWrapper.blob_sum(a._internal, -1 if axis is None else int(axis)))
+
+    axes = numpy.array([] if axes is None else axes, dtype=numpy.int32)
+    if not neoml.Utils.check_axes(axes):
+        raise ValueError("`axes` should be unique and in range [0, 6].")
+
+    return Blob(PythonWrapper.blob_sum(a._internal, axes))
+
+def cumsum(a, axis=0):
+    """Calculates cumulative sum of blob elements along provided axis.
+    """
+    if not type(a) is Blob:
+        raise ValueError('`a` should be neoml.Blob.')
+
+    if a.size == 0:
+        raise ValueError("The blob shouldn't be empty.")
+
+    if not neoml.Utils.check_axes(axis):
+        raise ValueError("`axis` should be in range [0, 6].")
+
+    return Blob(PythonWrapper.blob_cumsum(a._internal, int(axis)))
+
+def mean(a, axes=None):
+    """Calculates mean of blob elements along provided axes.
+    If axes=None calculates the total mean.
+    """
+    if not type(a) is Blob:
+        raise ValueError('`a` should be neoml.Blob.')
+
+    if a.size == 0:
+        raise ValueError("The blob shouldn't be empty.")
+
+    axes = numpy.array([] if axes is None else axes, dtype=numpy.int32)
+    if not neoml.Utils.check_axes(axes):
+        raise ValueError("`axes` should be unique and in range [0, 6].")
+
+    return Blob(PythonWrapper.blob_mean(a._internal, axes))
 
 def neg(a):
     """Returns the negative of a blob or a number.
@@ -147,6 +183,75 @@ def clip(blob, min_value, max_value):
         raise ValueError("The blobs mustn't be empty.")
     
     return Blob(PythonWrapper.blob_clip(blob._internal, float(min_value), float(max_value)))
+
+def concat(blobs, axis=0):
+    """Merges the blobs along given axis.
+    """
+    if len(blobs) == 0:
+        raise ValueError('Empty blobs.')
+
+    if any([not type(blob) is Blob for blob in blobs]):
+        raise ValueError('Every `blob` must be neoml.Blob.')
+
+    if any([blob.size == 0 for blob in blobs]):
+        raise ValueError("The blobs mustn't be empty.")
+
+    return Blob(PythonWrapper.blob_concat([blob._internal for blob in blobs], int(axis)))
+
+def broadcast(blob, shape):
+    """Broadcast the blob shape.
+    """
+    if not type(blob) is Blob:
+        raise ValueError('`blob` must be neoml.Blob.')
+
+    if blob.size == 0:
+        raise ValueError("The blobs mustn't be empty.")
+
+    np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
+
+    if len(np_shape) > 7:
+        raise ValueError('The `shape` should have not more than 7 dimensions.')
+
+    for i, j in zip(blob.shape, [1] * (7 - len(np_shape)) + list(np_shape)):
+        if i != j and i != 1:
+            raise ValueError("The blobs have incompatible shapes.")
+
+    return Blob(PythonWrapper.blob_broadcast(blob._internal, np_shape))
+
+def reshape(blob, shape):
+    """Reshape the blob.
+    """
+    if not type(blob) is Blob:
+        raise ValueError('`blob` must be neoml.Blob.')
+
+    if blob.size == 0:
+        raise ValueError("The blobs mustn't be empty.")
+
+    np_shape = numpy.array(shape, dtype=numpy.int32, copy=False)
+
+    if len(np_shape) > 7:
+        raise ValueError('The `shape` should have not more than 7 dimensions.')
+
+    if numpy.prod(np_shape) != blob.size:
+        raise ValueError('`shape` is incompatible with current size.')
+
+    PythonWrapper.blob_reshape(blob._internal, np_shape)
+
+def pow(a, b):
+    """Computes the power of one blob to another elementwise.
+    """
+    if not type(a) is Blob and not type(b) is Blob:
+        raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
+
+    return a**b
+
+def less(a, b):
+    """Compare blobs elementwise.
+    """
+    if not type(a) is Blob and not type(b) is Blob:
+        raise ValueError('At least one of `a` and `b` should be neoml.Blob.')
+
+    return a < b
 
 def top_k(a, k=1):
     """Finds values of the k largest elements in the blob.

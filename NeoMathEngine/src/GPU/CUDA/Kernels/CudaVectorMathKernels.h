@@ -18,6 +18,7 @@ limitations under the License.
 #include <Kernels/CudaGrid.h>
 #include <CudaCommon.h>
 #include <Kernels/CudaRandom.h>
+#include <CudaBlobDesc.h>
 
 namespace NeoML {
 
@@ -68,6 +69,30 @@ __global__ void VectorConvertKernel( const From* from, To* to, int count )
 		*to = static_cast<To>( *from );
 		from += step;
 		to += step;
+	}
+}
+
+__global__ void VectorBroadcastCopyKernel( float* to, const float* from, CCudaBlobDesc toDesc, CCudaBlobDesc fromDesc,
+	int additionalWidth, int resultSize )
+{
+	int toIndex = 0;
+	int fromIndex = 0;
+	int mul = additionalWidth;
+	if( GetCudaTaskIndex( resultSize, toIndex ) ) {
+		to += toIndex * additionalWidth;
+		for( int i = CCudaBlobDesc::MaxDimensions - 1; i >= 0; i-- ) {
+			if( fromDesc.DimSize( i ) != 1 ) {
+				fromIndex += ( toIndex % toDesc.DimSize( i ) ) * mul;
+				mul *= fromDesc.DimSize( i );
+			}
+			toIndex /= toDesc.DimSize( i );
+		}
+		from += fromIndex;
+		for( int i = 0; i < additionalWidth; i++ ) {
+			*to = *from;
+			to++;
+			from++;
+		}
 	}
 }
 
@@ -163,6 +188,63 @@ __global__ void VectorSumAlongDimensionKernel( const float* __restrict__ input, 
 		for( int i = 0; i < dims; i++ ) {
 			*result += *input;
 			input += precedingDims;
+		}
+	}
+}
+
+__global__ void VectorCumSumAlongDimensionKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, followingDims, x, y ) ) {
+		const int offset = y * dims * precedingDims + x;
+		input += offset;
+		result += offset;
+		float curSum = *input;
+		*result = curSum;
+		for( int i = 1; i < dims; i++ ) {
+			input += precedingDims;
+			result += precedingDims;
+			curSum += *input;
+			*result = curSum;
+		}
+	}
+}
+
+__global__ void VectorSumAlongDimensionDiagKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, followingDims, x, y ) ) {
+		const int width = precedingDims * dims * followingDims;
+		const int startOffset = y * dims * precedingDims + x;
+		input += startOffset;
+		result += ( y * precedingDims + x ) * width + startOffset;
+		for( int i = 0; i < dims; i++ ) {
+			*result += *input;
+			input += precedingDims;
+			result += precedingDims;
+		}
+	}
+}
+
+__global__ void VectorCumSumAlongDimensionDiagKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, dims * followingDims, x, y ) ) {
+		const int cumDim = y / followingDims;
+		const int width = precedingDims * dims * followingDims;
+		const int startOffset = ( y % followingDims ) * dims * precedingDims + x;
+		input += startOffset;
+		result += ( y * precedingDims + x ) * width + startOffset;
+		for( int i = 0; i <= cumDim; i++ ) {
+			*result += *input;
+			input += precedingDims;
+			result += precedingDims;
 		}
 	}
 }
@@ -1186,6 +1268,33 @@ __global__ void vectorGreaterEqualToZeroKernel( const int* __restrict__ first,
 	int index;
 	if( GetCudaTaskIndex( vectorSize, index ) ) {
 		result[index] = first[index] >= 0 ? 1.f : 0.f;
+	}
+}
+
+__global__ void vectorLessKernel( const float* __restrict__ first, const float* __restrict__ second,
+	float* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] < second[index] ? 1.f : 0.f;
+	}
+}
+
+__global__ void vectorLessKernel( const float* __restrict__ first, float second,
+	float* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] < second ? 1.f : 0.f;
+	}
+}
+
+__global__ void vectorLessKernel( float first, const float* __restrict__ second,
+	float* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first < second[index] ? 1.f : 0.f;
 	}
 }
 

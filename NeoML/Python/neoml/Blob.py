@@ -14,9 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------
 """
 
+import neoml
 import neoml.PythonWrapper as PythonWrapper
 import neoml.MathEngine as MathEngine
-import numpy
+import numpy as np
 
 
 class Blob:
@@ -117,9 +118,9 @@ class Blob:
         :type copy: bool, default=False
         """
         if type(self.math_engine) is MathEngine.CpuMathEngine:
-            return numpy.array(self._internal, copy=copy)
+            return np.array(self._internal, copy=copy)
         cpu_blob = self.copy(MathEngine.default_math_engine())
-        return numpy.array(cpu_blob._internal, copy=False)
+        return np.array(cpu_blob._internal, copy=False)
 
     def copy(self, math_engine):
         """Creates a blob copy independent of this blob.
@@ -133,8 +134,8 @@ class Blob:
             raise ValueError("The blob shouldn't be empty.")
 
         if type(other) is Blob:
-            if self.shape != other.shape:
-                raise ValueError("The blobs should have the same shape.")
+            if not neoml.Utils.check_can_broadcast(self, other):
+                raise ValueError("The blobs have incompatible shapes.")
             return Blob(PythonWrapper.blob_add(self._internal, other._internal))
 
         return Blob(PythonWrapper.blob_add(self._internal, float(other)))
@@ -153,8 +154,8 @@ class Blob:
             raise ValueError("The blob shouldn't be empty.")
 
         if type(other) is Blob:
-            if self.shape != other.shape:
-                raise ValueError("The blobs should have the same shape.")
+            if not neoml.Utils.check_can_broadcast(self, other):
+                raise ValueError("The blobs have incompatible shapes.")
             return Blob(PythonWrapper.blob_sub(self._internal, other._internal))
 
         return Blob(PythonWrapper.blob_sub(self._internal, float(other)))
@@ -173,8 +174,8 @@ class Blob:
             raise ValueError("The blob mustn't be empty.")
 
         if type(other) is Blob:
-            if self.shape != other.shape:
-                raise ValueError("The blobs must have the same shape.")
+            if not neoml.Utils.check_can_broadcast(self, other):
+                raise ValueError("The blobs have incompatible shapes.")
             return Blob(PythonWrapper.blob_mul(self._internal, other._internal))
 
         return Blob(PythonWrapper.blob_mul(self._internal, float(other)))
@@ -193,8 +194,8 @@ class Blob:
             raise ValueError("The blob mustn't be empty.")
 
         if type(other) is Blob:
-            if self.shape != other.shape:
-                raise ValueError("The blobs must have the same shape.")
+            if not neoml.Utils.check_can_broadcast(self, other):
+                raise ValueError("The blobs have incompatible shapes.")
             return Blob(PythonWrapper.blob_div(self._internal, other._internal))
 
         return Blob(PythonWrapper.blob_div(self._internal, float(other)))
@@ -212,6 +213,52 @@ class Blob:
         if self.size == 0:
             raise ValueError("The blobs mustn't be empty.")
         return Blob(PythonWrapper.blob_neg(self._internal))
+
+    def __lt__(self, other):
+        """Returns self < other elementwise.
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+
+        if type(other) is Blob:
+            if self.shape != other.shape:
+                raise ValueError("The blobs have incompatible shapes.")
+            return Blob(PythonWrapper.blob_less(self._internal, other._internal))
+
+        return Blob(PythonWrapper.blob_less(self._internal, float(other)))
+
+    def __gt__(self, other):
+        """Returns self > other elementwise.
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+
+        if type(other) is Blob:
+            if self.shape != other.shape:
+                raise ValueError("The blobs have incompatible shapes.")
+            return Blob(PythonWrapper.blob_less(other._internal, self._internal))
+
+        return Blob(PythonWrapper.blob_less(float(other), self._internal))
+
+    def __pow__(self, other):
+        """Computes the power of self to other.
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+
+        if type(other) is Blob:
+            if not neoml.Utils.check_can_broadcast(self, other):
+                raise ValueError("The blobs have incompatible shapes.")
+            return Blob(PythonWrapper.blob_pow(self._internal, other._internal))
+
+        return Blob(PythonWrapper.blob_pow(self._internal, float(other)))
+
+    def __rpow__(self, other):
+        """Computes the power of self to other.
+        """
+        if self.size == 0:
+            raise ValueError("The blob mustn't be empty.")
+        return Blob(PythonWrapper.blob_pow(float(other), self._internal))
 
 # -------------------------------------------------------------------------------------------------------------
 
@@ -263,22 +310,22 @@ def asblob(math_engine, data, shape=None, copy=False):
     :type copy: bool, default=False
     """
     if shape is None:
-        shape = numpy.ones(7, numpy.int32)
+        shape = np.ones(7, np.int32)
     else:
-        shape = numpy.array(shape, dtype=numpy.int32, copy=False)
+        shape = np.array(shape, dtype=np.int32, copy=False)
 
     if len(shape) != 7:
         raise ValueError('The `shape` must have 7 dimension sizes.')
 
-    np_data = numpy.array(data, copy=False, order='C')
+    np_data = np.array(data, copy=False, order='C')
 
     if len(np_data.shape) > 7:
         raise ValueError('The `shape` must have not more then 7 dimensions.')
 
     dtype = 'none'
-    if np_data.dtype == numpy.float32:
+    if np_data.dtype == np.float32:
         dtype = 'float32'
-    elif np_data.dtype == numpy.int32:
+    elif np_data.dtype == np.int32:
         dtype = 'int32'
     else:
         raise ValueError('The `dtype` must be one of {`float32`, `int32`}.')
@@ -305,7 +352,7 @@ def vector(math_engine, size, dtype="float32"):
     if size < 1:
         raise ValueError('The `size` must be > 0.')
 
-    shape = numpy.array((size, 1, 1, 1, 1, 1, 1), dtype=numpy.int32)
+    shape = np.array((size, 1, 1, 1, 1, 1, 1), dtype=np.int32)
 
     return Blob(PythonWrapper.tensor(math_engine._internal, shape, dtype))
 
@@ -331,7 +378,7 @@ def matrix(math_engine, matrix_height, matrix_width, dtype="float32"):
     if matrix_width < 1:
         raise ValueError('The `matrix_width` must be > 0.')
 
-    shape = numpy.array((matrix_height, matrix_width, 1, 1, 1, 1, 1), dtype=numpy.int32)
+    shape = np.array((matrix_height, matrix_width, 1, 1, 1, 1, 1), dtype=np.int32)
 
     return Blob(PythonWrapper.tensor(math_engine._internal, shape, dtype))
 
@@ -350,12 +397,12 @@ def tensor(math_engine, shape, dtype="float32"):
     if dtype != "float32" and dtype != "int32":
         raise ValueError('The `dtype` must be one of {`float32`, `int32`}.')
 
-    shape = numpy.array(shape, dtype=numpy.int32, copy=False)
+    shape = np.array(shape, dtype=np.int32, copy=False)
 
     if shape.size != 7:
         raise ValueError('The `shape.size` must be == 7.')
 
-    if numpy.any(shape <= 0):
+    if np.any(shape <= 0):
         raise ValueError('All `shape` elements must be > 0.')
 
     return Blob(PythonWrapper.tensor(math_engine._internal, shape, dtype))
@@ -392,7 +439,7 @@ def list_blob(math_engine, batch_len, batch_width, list_size, channels, dtype="f
     if channels < 1:
         raise ValueError('The `channels` must be > 0.')
 
-    shape = numpy.array((batch_len, batch_width, list_size, 1, 1, 1, channels), dtype=numpy.int32, copy=False)
+    shape = np.array((batch_len, batch_width, list_size, 1, 1, 1, channels), dtype=np.int32, copy=False)
 
     return Blob(PythonWrapper.tensor(math_engine._internal, shape, dtype))
 
@@ -433,7 +480,7 @@ def image2d(math_engine, batch_len, batch_width, height, width, channels, dtype=
     if channels < 1:
         raise ValueError('The `channels` must be > 0.')
 
-    shape = numpy.array((batch_len, batch_width, 1, height, width, 1, channels), dtype=numpy.int32, copy=False)
+    shape = np.array((batch_len, batch_width, 1, height, width, 1, channels), dtype=np.int32, copy=False)
 
     return Blob(PythonWrapper.tensor(math_engine._internal, shape, dtype))
 
@@ -479,6 +526,6 @@ def image3d(math_engine, batch_len, batch_width, height, width, depth, channels,
     if channels < 1:
         raise ValueError('The `channels` must be > 0.')
 
-    shape = numpy.array((batch_len, batch_width, 1, height, width, depth, channels), dtype=numpy.int32, copy=False)
+    shape = np.array((batch_len, batch_width, 1, height, width, depth, channels), dtype=np.int32, copy=False)
 
     return Blob(PythonWrapper.tensor(math_engine._internal, shape, dtype))
