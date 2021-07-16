@@ -107,6 +107,7 @@ private:
 
 CPyModel::CPyModel( const std::string& path )
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::load );
 	CArchive archive( &file, CArchive::load );
 	SerializeModel( archive, ptr );
@@ -114,6 +115,7 @@ CPyModel::CPyModel( const std::string& path )
 
 void CPyModel::Store( const std::string& path )
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::store );
 	CArchive archive( &file, CArchive::store );
 	SerializeModel( archive, ptr );
@@ -128,20 +130,31 @@ py::array_t<double> CPyModel::Classify( py::array indices, py::array data, py::a
 	int classesCount = ptr->GetClassCount();
 	int rowCount = static_cast<int>( row.size() ) - 1;
 
+	CVariableMatrix<double> resultProbabilities;
+	resultProbabilities.SetSize( rowCount, classesCount );
+	{
+		py::gil_scoped_release release;
+		for( int i = 0; i < rowCount; i++ ) {
+			CFloatVectorDesc vector;
+			vector.Size = rowPtr[i+1] - rowPtr[i];
+			vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
+			if ( indicesPtr != nullptr ) {
+				vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
+			}
+
+			CClassificationResult result;
+			ptr->Classify( vector, result );
+			for( int j = 0; j < classesCount; j++ ) {
+				resultProbabilities( i, j ) = result.Probabilities[j].GetValue();
+			}
+		}
+	}
+
 	py::array_t<double, py::array::c_style> totalResult( { rowCount, classesCount } );
 	auto r = totalResult.mutable_unchecked<2>();
 	for( int i = 0; i < rowCount; i++ ) {
-		CFloatVectorDesc vector;
-		vector.Size = rowPtr[i+1] - rowPtr[i];
-		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
-		if ( indicesPtr != nullptr ) {
-			vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
-		}
-
-		CClassificationResult result;
-		ptr->Classify( vector, result );
 		for( int j = 0; j < classesCount; j++ ) {
-			r(i, j) = result.Probabilities[j].GetValue();
+			r(i, j) = resultProbabilities( i, j );
 		}
 	}
 
@@ -169,6 +182,7 @@ private:
 
 CPyRegressionModel::CPyRegressionModel( const std::string& path )
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::load );
 	CArchive archive( &file, CArchive::load );
 	SerializeModel( archive, ptr );
@@ -176,6 +190,7 @@ CPyRegressionModel::CPyRegressionModel( const std::string& path )
 
 void CPyRegressionModel::Store( const std::string& path )
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::store );
 	CArchive archive( &file, CArchive::store );
 	SerializeModel( archive, ptr );
@@ -189,17 +204,25 @@ py::array_t<double> CPyRegressionModel::Predict( py::array indices, py::array da
 
 	int rowCount = static_cast<int>( row.size() ) - 1;
 
+	CArray<double> resultPredictions;
+	resultPredictions.SetSize( rowCount );
+	{
+		py::gil_scoped_release release;
+		for( int i = 0; i < rowCount; i++ ) {
+			CFloatVectorDesc vector;
+			vector.Size = rowPtr[i+1] - rowPtr[i];
+			vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
+			if ( indicesPtr != nullptr ) {
+				vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
+			}
+			resultPredictions[i] = ptr->Predict( vector );
+		}
+	}
+
 	py::array_t<double, py::array::c_style> totalResult( rowCount );
 	auto r = totalResult.mutable_unchecked<1>();
 	for( int i = 0; i < rowCount; i++ ) {
-		CFloatVectorDesc vector;
-		vector.Size = rowPtr[i+1] - rowPtr[i];
-		vector.Values = const_cast<float*>(dataPtr) + rowPtr[i];
-		if ( indicesPtr != nullptr ) {
-			vector.Indexes = const_cast<int*>(indicesPtr) + rowPtr[i];
-		}
-
-		r(i) = ptr->Predict( vector );
+		r(i) = resultPredictions[i];
 	}
 
 	return totalResult;
@@ -239,6 +262,7 @@ CPyModel CPyTrainingModel::TrainClassifier( py::array indices, py::array data, p
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
 		reinterpret_cast<const float*>( weight.data() ) );
+	py::gil_scoped_release release;
 	CPtr<IModel> model = owner->TrainingModel().Train( *(problem.Ptr()) );
 
 	return CPyModel( model.Ptr() );
@@ -250,6 +274,7 @@ CPyRegressionModel CPyTrainingModel::TrainRegressor( py::array indices, py::arra
 		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 		reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const float*>( values.data() ),
 		reinterpret_cast<const float*>( weight.data() ) );
+	py::gil_scoped_release release;
 	CPtr<IRegressionModel> model = dynamic_cast<IRegressionTrainingModel&>(owner->TrainingModel()).TrainRegression( *(problem.Ptr()) );
 
 	return CPyRegressionModel( model.Ptr() );
@@ -529,17 +554,19 @@ void InitializeTrainingModel(py::module& m)
 			reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
 			reinterpret_cast<const int*>( rowPtr.data() ), reinterpret_cast<const int*>( classes.data() ),
 			reinterpret_cast<const float*>( weight.data() ) );
-
 		CCrossValidationResult results;
-		CCrossValidation crossValidation(classifier.GetOwner()->TrainingModel(), problem);
-		TScore score = scoreName == "f1" ? F1Score : AccuracyScore;
-		crossValidation.Execute( parts, score, results, stratified );
-
+		{
+			py::gil_scoped_release release;
+			CCrossValidation crossValidation(classifier.GetOwner()->TrainingModel(), problem);
+			TScore score = scoreName == "f1" ? F1Score : AccuracyScore;
+			crossValidation.Execute( parts, score, results, stratified );
+		}
 		py::array_t<double, py::array::c_style> scores( results.Success.Size() );
 		auto tempScores = scores.mutable_unchecked<1>();
 		for( int i = 0; i < results.Success.Size(); i++ ) {
 			tempScores(i) = results.Success[i];
 		}
+
 		return scores;
 	});
 

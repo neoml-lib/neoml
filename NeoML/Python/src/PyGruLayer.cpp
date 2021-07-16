@@ -76,6 +76,7 @@ void InitializeGruLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, int hidden_size )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

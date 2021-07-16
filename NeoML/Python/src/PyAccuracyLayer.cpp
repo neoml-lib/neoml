@@ -74,6 +74,7 @@ void InitializeAccuracyLayer( py::module& m )
 			return new CPyAccuracyLayer( *layer.Layer<CAccuracyLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, const CPyLayer& layer2, int outputNumber1, int outputNumber2, bool reset ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CAccuracyLayer> accuracy = new CAccuracyLayer( mathEngine );
@@ -94,6 +95,7 @@ void InitializeAccuracyLayer( py::module& m )
 			return new CPyConfusionMatrixLayer( *layer.Layer<CConfusionMatrixLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, const CPyLayer& layer2, int outputNumber1, int outputNumber2, bool reset ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CConfusionMatrixLayer> confusion = new CConfusionMatrixLayer( mathEngine );

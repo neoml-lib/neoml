@@ -43,6 +43,7 @@ void InitializeSubSequenceLayer( py::module& m )
 			return new CPySubSequenceLayer( *layer.Layer<CSubSequenceLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, int pos, int len, bool reverse ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSubSequenceLayer> sequence = new CSubSequenceLayer( mathEngine );

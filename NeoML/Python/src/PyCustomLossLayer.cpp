@@ -24,11 +24,14 @@ static const int PythonLossLayerVersion = 1;
 
 static CArchive& operator <<( CArchive& archive, const py::object& obj )
 {
-	py::object pyModule = py::module::import( "pickle" );
-	py::object pyDumps = pyModule.attr( "dumps" );
-	py::bytes dumpedObject = pyDumps( obj ).cast<py::bytes>();
-	string str = dumpedObject;
-
+	string str;
+	{
+		py::gil_scoped_acquire ac;
+		py::object pyModule = py::module::import( "pickle" );
+		py::object pyDumps = pyModule.attr( "dumps" );
+		py::bytes dumpedObject = pyDumps( obj ).cast<py::bytes>();
+		str = dumpedObject;
+	}
 	archive << static_cast<int>(str.length());
 	for( size_t i = 0; i < str.length(); i++ ) {
 		archive << str[i];
@@ -46,6 +49,7 @@ static CArchive& operator >>( CArchive& archive, py::object& obj )
 		archive >> s[i];
 	}
 
+	py::gil_scoped_acquire ac;
 	py::bytes dumpedObject( s );
 	py::object pyModule = py::module::import( "pickle" );
 	py::object pyLoads = pyModule.attr( "loads" );
@@ -92,15 +96,17 @@ protected:
 		CPtr<CDnnBlob> labelBlob( new CTempBlob( mathEngineOwner->MathEngine(), label, inputBlobs[1]->GetDesc() ) );
 		CPyBlob labelPyBlob( *mathEngineOwner, labelBlob );
 
-		py::object pyModule = py::module::import( "neoml.Dnn" );
-		py::object pyFunction = pyModule.attr( "call_loss_calculator" );
-		CPyBlob result = pyFunction( dataPyBlob, labelPyBlob, lossCalculator ).cast<CPyBlob>();
-
-		CPtr<CDnnBlob> value = result.Blob();
+		CPtr<CDnnBlob> value;
+		{
+			py::gil_scoped_acquire acquire;
+			py::object pyModule = py::module::import( "neoml.Dnn" );
+			py::object pyFunction = pyModule.attr( "call_loss_calculator" );
+			CPyBlob result = pyFunction( dataPyBlob, labelPyBlob, lossCalculator ).cast<CPyBlob>();
+			value = result.Blob();
+		}
 		mathEngineOwner->MathEngine().VectorCopy( lossValue, value->GetData(), batchSize );
-
 		if( !lossGradient.IsNull() ) {
-			CPtr<const CDnnBlob> gradient = tape.Gradient( *result.Blob(), *var );
+			CPtr<const CDnnBlob> gradient = tape.Gradient( *value, *var );
 			mathEngineOwner->MathEngine().VectorCopy( lossGradient, gradient->GetData(), batchSize * vectorSize );
 		}
 	}
@@ -160,6 +166,7 @@ void InitializeCustomLossLayer( py::module& m )
 		.def( py::init([]( const py::object& object, const std::string& name, const py::list& layers, const py::list& outputs,
 			float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
