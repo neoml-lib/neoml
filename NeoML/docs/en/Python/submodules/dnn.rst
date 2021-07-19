@@ -917,20 +917,26 @@ Simple arithmetic operations
 .. automethod:: neoml.AutoDiff.sub
 .. automethod:: neoml.AutoDiff.mul
 .. automethod:: neoml.AutoDiff.div
+.. automethod:: neoml.AutoDiff.less
 
 Basic math functions
 *********************
 
 .. automethod:: neoml.AutoDiff.max
 .. automethod:: neoml.AutoDiff.sum
+.. automethod:: neoml.AutoDiff.cumsum
+.. automethod:: neoml.AutoDiff.mean
 .. automethod:: neoml.AutoDiff.neg
 .. automethod:: neoml.AutoDiff.abs
 .. automethod:: neoml.AutoDiff.log
 .. automethod:: neoml.AutoDiff.exp
+.. automethod:: neoml.AutoDiff.pow
 
 Other operations
 *******************
 
+.. automethod:: neoml.AutoDiff.concat
+.. automethod:: neoml.AutoDiff.reshape
 .. automethod:: neoml.AutoDiff.clip
 .. automethod:: neoml.AutoDiff.top_k
 .. automethod:: neoml.AutoDiff.binary_cross_entropy
