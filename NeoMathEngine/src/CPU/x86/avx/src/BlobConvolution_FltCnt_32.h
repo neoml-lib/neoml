@@ -27,6 +27,40 @@ inline CBlobConvolution<32>::CSize CBlobConvolution<32>::getWideBatchProcessSize
 }
 
 template<>
+inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int yStepIdx, int xStepIdx,
+                                                                    Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr )
+{
+    using namespace Xbyak;
+
+	const int rowNum = 2;
+	const int colNum = 4;
+	Xbyak::Ymm res[2][4] = { { ymm0, ymm1, ymm2, ymm3 }, { ymm4, ymm5, ymm6, ymm7 } };
+
+	initResRegs( &res[0][0], bc.freeTerm, rowNum, colNum );
+
+
+	flushResRegs( &res[0][0], regResPtr, rowNum, colNum );
+//	auto srcIt = SrcPixelsOffset[windowIndex].cbegin();
+//	auto fltIt = FltPixelsOffset[windowIndex].cbegin();
+//	for( ; srcIt != SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
+//		batchProcessChannels( srcPtr + *srcIt, flt + *fltIt, r00, r01, r02, r03, r10, r11, r12, r13 );
+//	}
+
+	// Batch process kernell function
+	Label labelBatchProcessingKernel;
+	L( labelBatchProcessingKernel );
+
+	ret();
+}
+
+template<>
+inline void CBlobConvolution<32>::CCode::fillSingleProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int yStepIdx, int xStepIdx,
+																	 Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr )
+{
+
+}
+
+template<>
 inline void CBlobConvolution<32>::batchProcessChannels( const float* srcPtr, const float* fltPtr,
 	__m256& r00, __m256& r01, __m256& r02, __m256& r03,
 	__m256& r10, __m256& r11, __m256& r12, __m256& r13 )

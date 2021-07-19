@@ -17,8 +17,14 @@ limitations under the License.
 #include <vector>
 #include <algorithm>
 #include <utility>
+#include <memory>
+#include <cstring>
 
 #include <NeoMathEngine/NeoMathEngine.h>
+
+#include <xbyak/xbyak.h>
+
+static bool useJit = getenv("USE_JIT") != nullptr;
 
 namespace NeoML {
 
@@ -45,6 +51,65 @@ private:
 		int Height;
 		int Width;
 	};
+
+	class CCode : public Xbyak::CodeGenerator {
+	public:
+		// Init JIT code main routine
+		CCode( CBlobConvolution& bc, int tStepIdx );
+
+		void Run(  bool useNarrowProcessing, const float*& srcPtr, const float*& fltPtr, float*& resPtr );
+		// Init freeTerm data location
+		void InitFreeTermLabel( const float* freeTerm, int fltCntM8 );
+
+	private:
+		// FIXME:
+#ifdef XBYAK64
+        static constexpr Xbyak::Operand::Code abi_save_gpr_regs[] = {
+            Xbyak::Operand::RBX,
+            Xbyak::Operand::RBP,
+            Xbyak::Operand::R12,
+            Xbyak::Operand::R13,
+            Xbyak::Operand::R14,
+            Xbyak::Operand::R15,
+    #ifdef _WIN32
+            Xbyak::Operand::RDI,
+            Xbyak::Operand::RSI,
+    #endif
+        };
+
+#ifdef _WIN32
+        static constexpr Xbyak::Reg64 abi_param1{Xbyak::Operand::RCX},
+        abi_param2{Xbyak::Operand::RDX}, abi_param3{Xbyak::Operand::R8},
+        abi_param4{Xbyak::Operand::R9}, abi_not_param1{Xbyak::Operand::RDI};
+#else
+        static constexpr Xbyak::Reg64 abi_param1{Xbyak::Operand::RDI},
+        abi_param2{Xbyak::Operand::RSI}, abi_param3{Xbyak::Operand::RDX},
+        abi_param4{Xbyak::Operand::RCX}, abi_param5{Xbyak::Operand::R8},
+        abi_param6{Xbyak::Operand::R9}, abi_not_param1{Xbyak::Operand::RCX};
+#endif
+#endif
+
+        void prologue();
+        void epilogue();
+        void labelAlign(Xbyak::Label &label, int alignment = 16) {
+            align( alignment );
+            L( label );
+        }
+
+        void fillBatchProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, int yStepIdx, int xStepIdx,
+                                        Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr );
+        void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, int yStepIdx, int xStepIdx,
+                                         Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr );
+
+        // Initialize result registers with data from freeTerm (if it isn't nullptr)
+        void initResRegs( Xbyak::Ymm* res, const float* freeTerm, int rowNum, int colNum );
+        // Flush result registers
+        void flushResRegs( Xbyak::Ymm* res, Xbyak::Reg64 regResPtr, int rowNum, int colNum  );
+
+        // Store freeTerm in local storage in o
+        Xbyak::Label labelFreeTerm;
+
+    };
 
 	IMathEngine* mathEngine;
 
@@ -105,12 +170,17 @@ private:
 	const CSize NarrowBatchProcessSize;
 	const CSize WideBatchProcessSize;
 
+	std::vector<std::unique_ptr<CCode>> jitCodes;
+
 	// Initialize NarrowBatchProcessSize and WideBatchProcessSize
 	CSize getNarrowBatchProcessSize();
 	CSize getWideBatchProcessSize();
 
 	// Process one line of image. In case of narrow processing we will step through several lines.
-	void processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, size_t windowIndex );
+	void processConvolutionLoop( int rxSize, bool , const float*& srcPtr, float*& resPtr, size_t windowIndex );
+
+	void initJitCodes();
+	void processLineWithJit( const float*& srcPtr, float*& resPtr, size_t lineIndex );
 
 	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
 		__m256& r00, __m256& r01, __m256& r02,
@@ -247,6 +317,7 @@ CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channe
 {
 	// // Initialize PixelOffsetResStepsX, PixelOffsetResStepsY, SrcPixelsOffset and FltPixelsOffset
 	fillPixelOffset();
+	if( useJit ) initJitCodes();
 }
 
 template<int FltCnt>
@@ -261,6 +332,12 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	flt = rearrangeFilter( filterData, filterTempBuffer ) + ( FltW * FltH ) / 2 * ChCnt * FltCntM8;
 	freeTerm = rearrangeFreeTerm( freeTermData, freeTermTempBuffer );
 	res = resultData;
+
+	if( useJit ) {
+		for( auto& c : jitCodes ) {
+			c->InitFreeTermLabel( freeTerm, FltCntM8 );
+		}
+	}
 
 	const int SrcObjSize = SrcW * SrcH * ChCnt;
 	const int ResObjSize = ResW * ResH * FltCnt;
@@ -310,11 +387,15 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 						float* resPtr = realResStart + ry * ResLineStride;
 						bool useNarrowProcessing = ryEnd - ry >= NarrowBatchProcessSize.Height;
 
-						size_t pixelsOffsetIdx = yStepIdx * PixelOffsetResStepsWidthX.size();
+						if( useJit ) {
+							jitCodes[yStepIdx]->Run( useNarrowProcessing, srcPtr, flt, resPtr );
+						} else {
+							size_t pixelsOffsetIdx = yStepIdx * PixelOffsetResStepsWidthX.size();
 
-						for( const auto& xStep : PixelOffsetResStepsWidthX ) {
-							processConvolutionLoop( xStep, useNarrowProcessing, srcPtr, resPtr, pixelsOffsetIdx );
-							pixelsOffsetIdx++;
+							for( const auto& xStep : PixelOffsetResStepsWidthX ) {
+								processConvolutionLoop( xStep, useNarrowProcessing, srcPtr, resPtr, pixelsOffsetIdx );
+								pixelsOffsetIdx++;
+							}
 						}
 						ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
 					}
@@ -361,6 +442,23 @@ inline void CBlobConvolution<FltCnt>::processConvolutionLoop( int rxSize, bool u
 		}
 	}
 }
+
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::initJitCodes()
+{
+	jitCodes.resize( PixelOffsetResStepsWidthY.size() );
+	for( int yStepIdx = 0; yStepIdx < PixelOffsetResStepsWidthY.size(); yStepIdx++ ) {
+		jitCodes[yStepIdx] = std::unique_ptr<CCode>( new CCode( *this, yStepIdx ) );
+	}
+}
+
+//template<int FltCnt>
+//inline void CBlobConvolution<FltCnt>::processLineWithJit( const float*& srcPtr, float*& resPtr, size_t lineIndex )
+//{
+//	typedef void ( *ProcessJit )( const float*&, float*& );
+//	ProcessJit processJit = jitCodes[lineIndex]->getCode<ProcessJit>();
+//	processJit( srcPtr, resPtr );
+//}
 
 template<int FltCnt>
 const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData, CFloatHandleStackVar& filterTempBuffer )
@@ -597,6 +695,162 @@ inline void CBlobConvolution<FltCnt>::rotateLeft2( __m256& y )
 	// before:  1 2 0 0|2 0 0 1
 	// after:      1 2 0 1
 	y = _mm256_blend_ps( y, yt, 0xf0 );
+}
+
+template<int FltCnt>
+CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepIdx )
+{
+	using namespace Xbyak::util;
+	using namespace Xbyak;
+	// If class doesn't has narrow processing, both height and width are equal to INT_MAX
+	const bool hasNarrowProcessing = bc.NarrowBatchProcessSize.Height != INT_MAX;
+
+    Reg64 regUseNarrowProcessing = abi_param1;
+    Reg64 regSrcPtr = abi_param2;
+    Reg64 regFltPtr = abi_param3;
+    Reg64 regResPtr = abi_param4;
+    Reg64 regNumSteps = Xbyak::util::r9;
+
+    // Process one rxSize in addRowProcessing
+    auto addStepProcessing = [&]( bool useNarrowProcessing, int numSteps, int stepSize, int xStepIdx ) {
+        Label labelProcessingStart, labelProcessingEnd;
+
+        // We don't need to use loop if we have only one batch step
+        if( numSteps > 1 ) {
+            // Iterate through all variants of src and flt intersection by axis X
+            mov( regNumSteps, numSteps );
+
+            // for( ; numSteps > 0; numSteps-- ) {
+            L( labelProcessingStart );
+            dec( regNumSteps );
+            js( labelProcessingEnd );
+        }
+
+        // Do we have any batch step at all?
+        if( numSteps > 0 ) {
+            if( stepSize == 1 ) {
+                fillSingleProcessingKernel( bc, useNarrowProcessing, yStepIdx, xStepIdx, regSrcPtr, regFltPtr, regResPtr );
+            } else {
+                fillBatchProcessingKernel( bc, useNarrowProcessing, yStepIdx, xStepIdx, regSrcPtr, regFltPtr, regResPtr );
+            }
+
+            add( regSrcPtr, stepSize * bc.SrcXStep );
+            add( regResPtr, stepSize * FltCnt );
+        }
+
+        if( numSteps > 1 ) {
+            // } // for( ; numSteps > 0; numSteps-- )
+            L( labelProcessingEnd );
+        }
+    };
+
+    // Process whole row
+    auto addRowProcessing = [&]( bool useNarrowProcessing ) {
+        int xStepIdx = 0;
+        for( auto& rxSize : bc.PixelOffsetResStepsWidthX ) {
+            const int batchStep = useNarrowProcessing ? bc.NarrowBatchProcessSize.Width : bc.WideBatchProcessSize.Width;
+            const int numBatchProcessing = rxSize / batchStep;
+            const int numSingleProcessing = rxSize % batchStep;
+
+            // Add batch processing (if required)
+            addStepProcessing( useNarrowProcessing, numBatchProcessing, batchStep, xStepIdx );
+
+            // Add single processing (if required)
+            addStepProcessing( useNarrowProcessing, numSingleProcessing, 1, xStepIdx );
+
+            xStepIdx++;
+        }
+
+        epilogue();
+        ret();
+    };
+
+    // Start code filling
+    prologue();
+
+    Label labelNarrow;
+    if( hasNarrowProcessing ) {
+        // Add selector narrow/wide
+        test( regUseNarrowProcessing, regUseNarrowProcessing );
+        jnz( labelNarrow );
+    }
+
+    // Fill wide processing
+    addRowProcessing( false );
+
+    // Fill narrow processing (if applied)
+    if( hasNarrowProcessing ) {
+        L( labelNarrow );
+        addRowProcessing( true );
+    }
+
+    labelAlign( labelFreeTerm );
+    // Reserve memory for freeTerm data in the "near" memory for quick access via rip register
+    for( int i = 0; i < FltCntM8; i++ ) {
+        dd( 0 );
+    }
+}
+
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::CCode::Run( bool useNarrowProcessing, const float*& srcPtr, const float*& fltPtr, float*& resPtr )
+{
+    return getCode<void(*)(bool, const float*&, float*&)>()( useNarrowProcessing, srcPtr, resPtr );
+}
+
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::CCode::prologue()
+{
+	push( rbp );
+	mov( rbp, rsp );
+}
+
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::CCode::epilogue()
+{
+	leave();
+}
+
+// Implementation for cases when FltCnt == FltCntM8
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, const float* freeTerm, int rowNum, int colNum )
+{
+	if( freeTerm == nullptr ) {
+		// set all regs to zero
+		for( int i = 0; i < rowNum * colNum; i++ ) {
+			vxorps( *res, *res, *res );
+		}
+	} else {
+		// Init first row of registers
+		for( int c = 0; c < colNum; c++ ) {
+			vmovups( res[c], ptr[rip + labelFreeTerm + static_cast<int>( 8 * sizeof( float ) )] );
+		}
+
+		// Duplicate first row into another rows
+		int destIdx = colNum;
+		for( int r = 1; r < rowNum; r++ ) {
+			for( int c = 0; c < colNum; c++ ) {
+				vmovups( res[destIdx++], res[c] );
+			}
+		}
+	}
+}
+
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::CCode::flushResRegs( Xbyak::Ymm* res, Xbyak::Reg64 regResPtr, int rowNum, int colNum  )
+{
+	int offsetDisp = 0;
+	for( int i = 0; i < rowNum * colNum; i++ ) {
+		vmovups( ptr[regResPtr + offsetDisp], res[i] );
+		offsetDisp += 8 * sizeof( float );
+	}
+}
+
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::CCode::InitFreeTermLabel( const float* freeTerm, int fltCntM8 )
+{
+    // FIXME: Is it safely?
+    float* jitFreeTerm = const_cast<float*>( reinterpret_cast<const float*>( labelFreeTerm.getAddress() ) );
+    memcpy( jitFreeTerm, freeTerm, fltCntM8 * sizeof( float ) );
 }
 
 } // namespace NeoML
