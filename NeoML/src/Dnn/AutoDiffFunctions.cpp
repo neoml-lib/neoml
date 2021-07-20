@@ -49,10 +49,23 @@ static CPtr<CDnnBlob> callJacobian( const CDnnBlob* blob, const CTapeBlob* var )
 	return result;
 }
 
+static bool isSequentialAxes( const CDnnBlob* blob, const CArray<int>& axes )
+{
+	for( int i = 1; i < axes.Size(); i++ ) {
+		NeoAssert( axes[i - 1] < axes[i] );
+		for( int j = axes[i - 1] + 1; j < axes[i]; j++ ) {
+			if( blob->DimSize( j ) != 1 ) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 static void getSequentialAxesDimensions( const CDnnBlob* first, const CArray<int>& axes, int& followingDimension,
 	int& dimension, int& precedingDimension )
 {
-	NeoPresume( isSequentialAxes( axes ) );
+	NeoPresume( isSequentialAxes( first, axes ) );
 
 	followingDimension = 1;
 	for( int d = 0; d < axes.First(); d++ ) {
@@ -66,19 +79,6 @@ static void getSequentialAxesDimensions( const CDnnBlob* first, const CArray<int
 	for( int d = axes.Last() + 1; d < BD_Count; d++ ) {
 		precedingDimension *= first->DimSize( d );
 	}
-}
-
-static bool isSequentialAxes( const CDnnBlob* blob, const CArray<int>& axes )
-{
-	for( int i = 1; i < axes.Size(); i++ ) {
-		NeoAssert( axes[i - 1] < axes[i] );
-		for( int j = axes[i - 1] + 1; j < axes[i]; j++ ) {
-			if( blob->DimSize( j ) != 1 ) {
-				return false;
-			}
-		}
-	}
-	return true;
 }
 
 static CPtr<CDnnBlob> diagJacobianToFull( const CPtr<CDnnBlob>& diag )
@@ -734,7 +734,7 @@ CPtr<CTapeBlob> CTapeSum::Impl( const CDnnBlob* blob, const CArray<int>& axes, I
 
 CPtr<CDnnBlob> CTapeSum::JacobianImpl( const CDnnBlob* blob, const CArray<int>& axes, const CTapeBlob* var )
 {
-	NeoPresume( IsSequentialAxes( axes ) );
+	NeoPresume( isSequentialAxes( blob, axes ) );
 
 	CPtr<CDnnBlob> jacobian = callJacobian( blob, var );
 	if( jacobian == 0 ) {
