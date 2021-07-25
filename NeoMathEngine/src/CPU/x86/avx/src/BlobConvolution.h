@@ -24,8 +24,6 @@ limitations under the License.
 
 #include <xbyak/xbyak.h>
 
-static bool useJit = getenv("USE_JIT") != nullptr;
-
 namespace NeoML {
 
 class CBlobConvolutionBase : public CCrtAllocatedObject {
@@ -40,7 +38,8 @@ public:
 	CBlobConvolution( IMathEngine* mathEngine,
 		int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt );
+		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt,
+		bool useJit );
 	~CBlobConvolution() override = default;
 
 	void ProcessConvolution( int threadCount,
@@ -55,7 +54,7 @@ private:
 	class CCode : public Xbyak::CodeGenerator {
 	public:
 		// Init JIT code main routine
-		CCode( CBlobConvolution& bc, int tStepIdx );
+		CCode( CBlobConvolution& bc, int yStepIndex );
 
 		void Run(  bool useNarrowProcessing, const float*& srcPtr, const float*& fltPtr, float*& resPtr );
 		// Init freeTerm data location
@@ -96,9 +95,9 @@ private:
             L( label );
         }
 
-        void fillBatchProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, int yStepIdx, int xStepIdx,
+        void fillBatchProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, int windowIndex,
                                         Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr );
-        void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, int yStepIdx, int xStepIdx,
+        void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, int windowIndex,
                                          Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr );
 
         // Initialize result registers with data from freeTerm (if it isn't nullptr)
@@ -127,6 +126,7 @@ private:
 	const int ResH;
 	const int ResW;
 	const int ResObjCnt;
+	const bool UseJit;
 
 	// For some cases we will use FltCnt, rounded up to nearest integer multiple of 8
 	static constexpr int FltCntM8 = ( FltCnt + 8 - 1 ) / 8 * 8;
@@ -229,7 +229,7 @@ public:
 	static std::unique_ptr<CBlobConvolutionBase> GetProperInstance( IMathEngine* mathEngine, int FltCnt,
 		int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt );
+		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt, bool useJit );
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -252,29 +252,29 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, i
 std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance( IMathEngine* mathEngine, int filterCount,
 	int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt )
+	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt, bool useJit )
 {
 	switch( filterCount ) {
 	case 32:
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<32>( mathEngine,
 			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
 			paddingHeight, paddingWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit) );
 	case 24:
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24>( mathEngine,
 			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
 			paddingHeight, paddingWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
 	case 18:
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18>( mathEngine,
 			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
 			paddingHeight, paddingWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
 	case 6:
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<6>( mathEngine,
 			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
 			paddingHeight, paddingWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
 	default:
 		return nullptr;
 	}
@@ -285,7 +285,7 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 template<int FltCnt>
 CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channelCount, int filterHeight, int filterWidth,
 	int sourceHeight, int sourceWidth, int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt ) :
+	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt, bool useJit ) :
 	mathEngine( _mathEngine ),
 	ChCnt( channelCount ),
 	FltH( filterHeight ),
@@ -301,6 +301,7 @@ CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channe
 	ResH( resultHeight ),
 	ResW( resultWidth ),
 	ResObjCnt( resObjCnt ),
+	UseJit( useJit ),
 	src( nullptr ),
 	flt( nullptr ),
 	freeTerm( nullptr ),
@@ -317,7 +318,9 @@ CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channe
 {
 	// // Initialize PixelOffsetResStepsX, PixelOffsetResStepsY, SrcPixelsOffset and FltPixelsOffset
 	fillPixelOffset();
-	if( useJit ) initJitCodes();
+	if( UseJit ) {
+		initJitCodes();
+	}
 }
 
 template<int FltCnt>
@@ -333,7 +336,7 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	freeTerm = rearrangeFreeTerm( freeTermData, freeTermTempBuffer );
 	res = resultData;
 
-	if( useJit ) {
+	if( UseJit ) {
 		for( auto& c : jitCodes ) {
 			c->InitFreeTermLabel( freeTerm, FltCntM8 );
 		}
@@ -376,10 +379,10 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 				int yStep = 0;
 
 				// Iterate through all combination of intersections
-				for( int yStepIdx = 0; yStepIdx < PixelOffsetResStepsWidthY.size(); yStepIdx++ ) {
+				for( int yStepIndex = 0; yStepIndex < PixelOffsetResStepsWidthY.size(); yStepIndex++ ) {
 
 					// Last index of res for current intersection.
-					yStep += PixelOffsetResStepsWidthY[yStepIdx];
+					yStep += PixelOffsetResStepsWidthY[yStepIndex];
 					// Process up to current step or up to and of current butch 
 					int ryEnd = min( yStep, currentRH );
 					for( ; ry < ryEnd; ) {
@@ -387,14 +390,14 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 						float* resPtr = realResStart + ry * ResLineStride;
 						bool useNarrowProcessing = ryEnd - ry >= NarrowBatchProcessSize.Height;
 
-						if( useJit ) {
-							jitCodes[yStepIdx]->Run( useNarrowProcessing, srcPtr, flt, resPtr );
+						if( UseJit ) {
+							jitCodes[yStepIndex]->Run( useNarrowProcessing, srcPtr, flt, resPtr );
 						} else {
-							size_t pixelsOffsetIdx = yStepIdx * PixelOffsetResStepsWidthX.size();
+							size_t windowIndex = yStepIndex * PixelOffsetResStepsWidthX.size();
 
 							for( const auto& xStep : PixelOffsetResStepsWidthX ) {
-								processConvolutionLoop( xStep, useNarrowProcessing, srcPtr, resPtr, pixelsOffsetIdx );
-								pixelsOffsetIdx++;
+								processConvolutionLoop( xStep, useNarrowProcessing, srcPtr, resPtr, windowIndex );
+								windowIndex++;
 							}
 						}
 						ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
@@ -447,8 +450,8 @@ template<int FltCnt>
 inline void CBlobConvolution<FltCnt>::initJitCodes()
 {
 	jitCodes.resize( PixelOffsetResStepsWidthY.size() );
-	for( int yStepIdx = 0; yStepIdx < PixelOffsetResStepsWidthY.size(); yStepIdx++ ) {
-		jitCodes[yStepIdx] = std::unique_ptr<CCode>( new CCode( *this, yStepIdx ) );
+	for( int yStepIndex = 0; yStepIndex < PixelOffsetResStepsWidthY.size(); yStepIndex++ ) {
+		jitCodes[yStepIndex] = std::unique_ptr<CCode>( new CCode( *this, yStepIndex ) );
 	}
 }
 
@@ -698,7 +701,7 @@ inline void CBlobConvolution<FltCnt>::rotateLeft2( __m256& y )
 }
 
 template<int FltCnt>
-CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepIdx )
+CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepIndex )
 {
 	using namespace Xbyak::util;
 	using namespace Xbyak;
@@ -712,7 +715,7 @@ CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepI
     Reg64 regNumSteps = Xbyak::util::r9;
 
     // Process one rxSize in addRowProcessing
-    auto addStepProcessing = [&]( bool useNarrowProcessing, int numSteps, int stepSize, int xStepIdx ) {
+    auto addStepProcessing = [&]( bool useNarrowProcessing, int numSteps, int stepSize, int windowIndex ) {
         Label labelProcessingStart, labelProcessingEnd;
 
         // We don't need to use loop if we have only one batch step
@@ -729,9 +732,9 @@ CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepI
         // Do we have any batch step at all?
         if( numSteps > 0 ) {
             if( stepSize == 1 ) {
-                fillSingleProcessingKernel( bc, useNarrowProcessing, yStepIdx, xStepIdx, regSrcPtr, regFltPtr, regResPtr );
+                fillSingleProcessingKernel( bc, useNarrowProcessing, windowIndex, regSrcPtr, regFltPtr, regResPtr );
             } else {
-                fillBatchProcessingKernel( bc, useNarrowProcessing, yStepIdx, xStepIdx, regSrcPtr, regFltPtr, regResPtr );
+                fillBatchProcessingKernel( bc, useNarrowProcessing, windowIndex, regSrcPtr, regFltPtr, regResPtr );
             }
 
             add( regSrcPtr, stepSize * bc.SrcXStep );
@@ -746,19 +749,19 @@ CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepI
 
     // Process whole row
     auto addRowProcessing = [&]( bool useNarrowProcessing ) {
-        int xStepIdx = 0;
+        int windowIndex = yStepIndex * bc.PixelOffsetResStepsWidthX.size();
         for( auto& rxSize : bc.PixelOffsetResStepsWidthX ) {
             const int batchStep = useNarrowProcessing ? bc.NarrowBatchProcessSize.Width : bc.WideBatchProcessSize.Width;
             const int numBatchProcessing = rxSize / batchStep;
             const int numSingleProcessing = rxSize % batchStep;
 
             // Add batch processing (if required)
-            addStepProcessing( useNarrowProcessing, numBatchProcessing, batchStep, xStepIdx );
+            addStepProcessing( useNarrowProcessing, numBatchProcessing, batchStep, windowIndex );
 
             // Add single processing (if required)
-            addStepProcessing( useNarrowProcessing, numSingleProcessing, 1, xStepIdx );
+            addStepProcessing( useNarrowProcessing, numSingleProcessing, 1, windowIndex );
 
-            xStepIdx++;
+            windowIndex++;
         }
 
         epilogue();

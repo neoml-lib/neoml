@@ -32,17 +32,17 @@ struct CAvxConvolutionDesc : public CConvolutionDesc {
 	~CAvxConvolutionDesc() override {}
 
 	CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
-		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth );
+		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, bool useJit );
 
 	std::unique_ptr<CBlobConvolutionBase> BlobConvolution;
 };
 
 CAvxConvolutionDesc::CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
-	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
+	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, bool useJit ) :
 	BlobConvolution( CBlobConvolutionFabric::GetProperInstance( mathEngine,
 		filter.BatchWidth(), filter.Channels() * filter.Depth(), filter.Height(), filter.Width(), source.Height(), source.Width(), 
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
-		dilationHeight, dilationWidth, result.Height(), result.Width(), result.ObjectCount() ) )
+		dilationHeight, dilationWidth, result.Height(), result.Width(), result.ObjectCount(), useJit ) )
 {
 }
 
@@ -52,7 +52,7 @@ public:
 
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
-		const CBlobDesc& result ) const override;
+		const CBlobDesc& result, bool useJit ) const override;
 
 	void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const override;
@@ -66,10 +66,10 @@ private:
 
 CConvolutionDesc* CAvxMathEngine::InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
 	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
-	const CBlobDesc& result ) const
+	const CBlobDesc& result, bool useJit ) const
 {
 	if( CBlobConvolutionFabric::IsBlobConvolutionAvailable( filter.BatchWidth() , filter.Height(), filter.Width() ) ) {
-		return new CAvxConvolutionDesc( mathEngine, source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
+		return new CAvxConvolutionDesc( mathEngine, source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth, useJit );
 	}
 	return nullptr;
 }

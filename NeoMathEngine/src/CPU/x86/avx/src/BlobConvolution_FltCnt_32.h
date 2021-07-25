@@ -27,37 +27,80 @@ inline CBlobConvolution<32>::CSize CBlobConvolution<32>::getWideBatchProcessSize
 }
 
 template<>
-inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int yStepIdx, int xStepIdx,
+inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int windowIndex,
                                                                     Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr )
 {
     using namespace Xbyak;
 
+    Reg64 regTempSrcPtr =  util::r10;
+    Reg64 regTempFltPtr =  util::r11;
+    Reg64 regChCnt =  util::rax;
+
+    Label labelBatchProcessingKernel, labelBatchProcessingKernelStart, labelBatchProcessingKernelEnd;
+
 	const int rowNum = 2;
 	const int colNum = 4;
-	Xbyak::Ymm res[2][4] = { { ymm0, ymm1, ymm2, ymm3 }, { ymm4, ymm5, ymm6, ymm7 } };
+	Ymm res[2][4] = { { ymm0, ymm1, ymm2, ymm3 }, { ymm4, ymm5, ymm6, ymm7 } };
+	Ymm st[2] = { ymm8, ymm9 };
+	Ymm f[4] = { ymm10, ymm11, ymm12, ymm13 };
 
 	initResRegs( &res[0][0], bc.freeTerm, rowNum, colNum );
 
+	auto srcIt = bc.SrcPixelsOffset[windowIndex].cbegin();
+	auto fltIt = bc.FltPixelsOffset[windowIndex].cbegin();
+
+	for( ; srcIt != bc.SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
+		lea( regTempSrcPtr, ptr[regSrcPtr + *srcIt * sizeof( float )] );
+		lea( regTempFltPtr, ptr[regFltPtr + *srcIt * sizeof( float )] );
+
+		call( ptr[rip + labelBatchProcessingKernel] );
+	}
 
 	flushResRegs( &res[0][0], regResPtr, rowNum, colNum );
-//	auto srcIt = SrcPixelsOffset[windowIndex].cbegin();
-//	auto fltIt = FltPixelsOffset[windowIndex].cbegin();
-//	for( ; srcIt != SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
-//		batchProcessChannels( srcPtr + *srcIt, flt + *fltIt, r00, r01, r02, r03, r10, r11, r12, r13 );
-//	}
 
 	// Batch process kernell function
-	Label labelBatchProcessingKernel;
 	L( labelBatchProcessingKernel );
+	// for( int c = 0; c < ChCnt; c++ ) {
+	xor_( regChCnt, regChCnt );
+	L( labelBatchProcessingKernelStart );
+	cmp( regChCnt, bc.ChCnt );
+	je( labelBatchProcessingKernelEnd );
 
+	// Load one channel from one pixels in sequenced windows and fill one ymm register with its value.
+	vbroadcastss( st[0], ptr[regTempSrcPtr] );
+	vbroadcastss( st[1], ptr[regTempSrcPtr + bc.SrcXStep * sizeof( float )] );
+	// Load one channel for the same pixel as in source for all filters.
+	vmovups( f[0], ptr[regTempFltPtr] );
+	vmovups( f[1], ptr[regTempFltPtr + 8] );
+	vmovups( f[2], ptr[regTempFltPtr + 16] );
+	vmovups( f[3], ptr[regTempFltPtr + 24] );
+	// Take result for current pixels in three sequenced windows.
+	// Multiply one chennel for all filters ( for ONE src/flt pixels )
+	vfmadd231ps( res[0][0], f[0], st[0] );
+	vfmadd231ps( res[0][1], f[1], st[0] );
+	vfmadd231ps( res[0][2], f[2], st[0] );
+	vfmadd231ps( res[0][3], f[3], st[0] );
+	vfmadd231ps( res[1][0], f[0], st[1] );
+	vfmadd231ps( res[1][1], f[1], st[1] );
+	vfmadd231ps( res[1][2], f[2], st[1] );
+	vfmadd231ps( res[1][3], f[3], st[1] );
+
+	// Go to next chennel in filter and source
+	add( regTempFltPtr, FltCntM8 * sizeof( float ) );
+	add( regTempSrcPtr, sizeof( float ) );
+	inc( regChCnt );
+
+	jmp( labelBatchProcessingKernelStart );
+	// }
+	L( labelBatchProcessingKernelEnd );
 	ret();
 }
 
 template<>
-inline void CBlobConvolution<32>::CCode::fillSingleProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int yStepIdx, int xStepIdx,
+inline void CBlobConvolution<32>::CCode::fillSingleProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int windowIndex,
 																	 Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr )
 {
-
+	// Use R10
 }
 
 template<>
