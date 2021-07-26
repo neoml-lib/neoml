@@ -62,6 +62,7 @@ void InitializeAccumulativeLookupLayer( py::module& m )
 			return new CPyAccumulativeLookupLayer( *layer.Layer<CAccumulativeLookupLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, int count, int size ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CAccumulativeLookupLayer> accumulativeLookup = new CAccumulativeLookupLayer( mathEngine );

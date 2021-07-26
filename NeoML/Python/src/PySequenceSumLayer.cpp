@@ -38,6 +38,7 @@ void InitializeSequenceSumLayer( py::module& m )
 			return new CPySequenceSumLayer( *layer.Layer<CSequenceSumLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1 ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSequenceSumLayer> sequence = new CSequenceSumLayer( mathEngine );

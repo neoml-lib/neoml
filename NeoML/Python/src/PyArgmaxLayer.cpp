@@ -41,6 +41,7 @@ void InitializeArgmaxLayer( py::module& m )
 			return new CPyArgmaxLayer( *layer.Layer<CArgmaxLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, int dimension ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CArgmaxLayer> argmax = new CArgmaxLayer( mathEngine );

@@ -67,10 +67,18 @@ public:
 	void FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold ) override;
 	void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) override;
 	void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) override;
+	void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) override;
 	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) override;
+	void VectorCumSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) override;
+	void VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) override;
+	void VectorCumSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle ) override;
 	void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
@@ -201,6 +209,12 @@ public:
 	void VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize,
 		const CFloatHandle& resultHandle) override;
 	void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) override;
+	void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize ) override;
+	void VectorEltwiseLess( const CConstFloatHandle& firstHandle, float second,
+		const CFloatHandle& resultHandle, int vectorSize ) override;
+	void VectorEltwiseLess( float first, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorFindMaxValueInSet( const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
 		int vectorSize ) override;
 	void VectorFindMaxValueInSet( const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,

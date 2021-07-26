@@ -41,6 +41,7 @@ void InitializeReorgLayer( py::module& m )
 			return new CPyReorgLayer( *layer.Layer<CReorgLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, int stride ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CReorgLayer> reorg = new CReorgLayer( mathEngine );

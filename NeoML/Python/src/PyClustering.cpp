@@ -63,7 +63,10 @@ py::tuple CPyClustering::Clusterize( py::array indices, py::array data, py::arra
 
 	CClusteringResult result;
 
-	clustering->Clusterize( problem.Ptr(), result );
+	{
+		py::gil_scoped_release release;
+		clustering->Clusterize( problem.Ptr(), result );
+	}
 
 	py::array_t<int, py::array::c_style> clusters( static_cast<int>( weight.size() ) );
 	auto tempClusters = clusters.mutable_unchecked<1>();
