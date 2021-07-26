@@ -85,6 +85,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/IndRnnLayer.h>
 #include <NeoML/Dnn/Layers/DepthToSpaceLayer.h>
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
+#include <NeoML/Dnn/Layers/LrnLayer.h>
 
 namespace NeoML {
 
@@ -185,7 +186,9 @@ CString GetLayerClass( const CBaseLayer& layer )
 void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer )
 {
 	if( archive.IsStoring() ) {
-		archive << getLayerClass( layer );
+		CString name = getLayerClass( layer );
+		NeoAssert( layer == nullptr || name != ""  ); // assertion on storing not registered layer
+		archive << name;
 		if( layer != 0 ) {
 			layer->Serialize( archive );
 		}
@@ -193,6 +196,7 @@ void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer
 		CString name;
 		archive >> name;
 		layer = createLayer( mathEngine, name );
+		CheckArchitecture( name == "" || layer != nullptr, name, "restoring unknown layer from archive" );
 		if( layer != 0 ) {
 			layer->Serialize( archive );
 		}
@@ -214,6 +218,8 @@ REGISTER_NEOML_LAYER( CConcatDepthLayer, "FmlCnnConcatDepthLayer" )
 REGISTER_NEOML_LAYER( CConcatWidthLayer, "FmlCnnConcatWidthLayer" )
 REGISTER_NEOML_LAYER( CConcatHeightLayer, "FmlCnnConcatHeightLayer" )
 REGISTER_NEOML_LAYER( CConcatBatchWidthLayer, "FmlCnnConcatBatchWidthLayer" )
+REGISTER_NEOML_LAYER( CConcatBatchLengthLayer, "FmlCnnConcatBatchLengthLayer" )
+REGISTER_NEOML_LAYER( CConcatListSizeLayer, "FmlCnnConcatListSizeLayer" )
 REGISTER_NEOML_LAYER( CConcatObjectLayer, "FmlCnnConcatObjectLayer" )
 REGISTER_NEOML_LAYER( CSplitChannelsLayer, "FmlCnnSplitChannelsLayer" )
 REGISTER_NEOML_LAYER( CSplitDepthLayer, "FmlCnnSplitDepthLayer" )
@@ -321,6 +327,7 @@ REGISTER_NEOML_LAYER( CIndRnnRecurrentLayer, "NeoMLDnnIndRnnRecurrentLayer" )
 REGISTER_NEOML_LAYER( CIndRnnLayer, "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_LAYER( CDepthToSpaceLayer, "NeoMLDnnDepthToSpaceLayer" )
 REGISTER_NEOML_LAYER( CSpaceToDepthLayer, "NeoMLDnnSpaceToDepthLayer" )
+REGISTER_NEOML_LAYER( CLrnLayer, "NeoMLDnnLrnLayer" )
 
 }
 

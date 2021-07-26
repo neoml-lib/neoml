@@ -15,6 +15,9 @@ limitations under the License.
 
 #include <array>
 #include <vector>
+#include <algorithm>
+#include <utility>
+
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
@@ -29,7 +32,7 @@ template<int FltCnt>
 class CBlobConvolution : public CBlobConvolutionBase {
 public:
 	CBlobConvolution( IMathEngine* mathEngine,
-		int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth, 
+		int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
 		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt );
 	~CBlobConvolution() override = default;
@@ -82,14 +85,20 @@ private:
 	const int SrcXWindowSize;
 	const int ResLineStride;
 
+	// When we move filter window over the source image we have different combination of intersection this window with
+	// source image. Filters window moves left to right and up to bottom, "PixelOffsetResStepsWidth..." - is number 
+	// of steps which window moved till its intersection with source image changed.We will calculate steps over width and heigh.
+	std::vector<int> PixelOffsetResStepsWidthX;
+	std::vector<int> PixelOffsetResStepsWidthY;
+
 	// Choose proper pixels in source and filter:
 	// 0  1  2
 	// 3  4  5
-	// 6  7  8
+	// 6  7  8 (example for 3x3)
 	// Offset is relative to central pixel of source window
-	const std::array<std::vector<int>, 16> SrcPixelsOffset;
-	// Offset is relative to top left pixel of filter window
-	const std::array<std::vector<int>, 16>  FltPixelsOffset;
+	std::vector<std::vector<int>> SrcPixelsOffset;
+	// Offset is relative to center pixel of filter window
+	std::vector<std::vector<int>>  FltPixelsOffset;
 	// In some cases when the width of the image is nearly equals to the width of optimized batch processing window,
 	// we may faced to situation ( when dilation is higth ) when no one optimized batch ptocessing can be
 	// applied. For such cases we will use optimized batch processing with narrower window but height greater then one.
@@ -101,32 +110,41 @@ private:
 	CSize getWideBatchProcessSize();
 
 	// Process one line of image. In case of narrow processing we will step through several lines.
-	void processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, int windowIndex );
+	void processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, size_t windowIndex );
 
 	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
 		__m256& r00, __m256& r01, __m256& r02,
 		__m256& r10, __m256& r11, __m256& r12,
 		__m256& r20, __m256& r21, __m256& r22 );
+	void batchProcessChannels( const float* srcPtr, const float* fltPtr,
+		__m256& r00, __m256& r01, __m256& r02, __m256& r03,
+		__m256& r10, __m256& r11, __m256& r12, __m256& r13 );
 	void batchProcessChannels( const float* srcPtr, const float* fltPtr, int srcNarrowStep,
 		__m256& r00, __m256& r01, __m256& r02,
 		__m256& r10, __m256& r11, __m256& r12,
 		__m256& r20, __m256& r21, __m256& r22 );
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
+	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2, __m256& r3 );
 	void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0 );
 	void singleProcessChannelsNarrow( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
 
 
 	// Process convolution for multiple result pixels ( number of pixels is defined by 'FastBatchProcessSize' member ).
-	void batchProcess( const float* srcPtr, float* resPtr, int windowIndex, bool useNarrowProcessing );
+	void batchProcess( const float* srcPtr, float* resPtr, size_t windowIndex, bool useNarrowProcessing );
 	// Process convolution for single result pixel.
-	void singleProcess( const float* srcPtr, float* resPtr, int windowIndex );
-	void singleProcessNarrow( const float* srcPtr, float* resPtr, int windowIndex );
+	void singleProcess( const float* srcPtr, float* resPtr, size_t windowIndex );
+	void singleProcessNarrow( const float* srcPtr, float* resPtr, size_t windowIndex );
 
 	// Rearrange filter and fill 'Filter' and 'FreeTerm' members.
 	const float* rearrangeFilter( const float* filterData, CFloatHandleStackVar& Filter );
 	const float* rearrangeFreeTerm( const float* freeTermData, CFloatHandleStackVar& FreeTerm );
-	const std::array<std::vector<int>, 16> fillSrcPixelOffset();
-	const std::array<std::vector<int>, 16> fillFltPixelOffset();
+	// Function calculates offsets of center of filter window over the source image, where intersection over
+	// them is changed. This function helps to calculate further PixelOffsetResStepsWidthX/Y, SrcPixelsOffset and FltPixelsOffset.
+	// Src (source), F(filter), D(dilation), S(stride) and P(padding) linear dimention by X or Y axis.
+	std::vector<int> getPixelOffsetSrcSteps( int SrcDim, int FDim, int DDim, int SDim, int PDim );
+
+	// Initialize PixelOffsetResStepsX, PixelOffsetResStepsY, SrcPixelsOffset and FltPixelsOffset
+	void fillPixelOffset();
 
 	// Circular rotation of three ymm registers to the left, step equals to six floats.
 	static void rotateLeft6( __m256& y0, __m256& y1, __m256& y2 );
@@ -148,10 +166,12 @@ public:
 
 bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW )
 {
-	if( FltH != 3 || FltW != 3 ) {
+	if( FltH % 2 == 0 || FltW % 2 == 0 ) {
 		return false;
 	}
-	if( FltCnt == 24 ||
+	if( 
+		FltCnt == 32 ||
+		FltCnt == 24 ||
 		FltCnt == 18 ||
 		FltCnt == 6 ) {
 		return true;
@@ -165,23 +185,28 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt )
 {
 	switch( filterCount ) {
-		case 24:
-			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24>( mathEngine,
-				channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
-				paddingHeight, paddingWidth, strideHeight, strideWidth,
-				dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
-		case 18:
-			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18>( mathEngine,
-				channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
-				paddingHeight, paddingWidth, strideHeight, strideWidth,
-				dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
-		case 6:
-			return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<6>( mathEngine,
-				channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
-				paddingHeight, paddingWidth, strideHeight, strideWidth,
-				dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
-		default:
-			return nullptr;
+	case 32:
+		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<32>( mathEngine,
+			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+			paddingHeight, paddingWidth, strideHeight, strideWidth,
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
+	case 24:
+		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24>( mathEngine,
+			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+			paddingHeight, paddingWidth, strideHeight, strideWidth,
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
+	case 18:
+		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18>( mathEngine,
+			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+			paddingHeight, paddingWidth, strideHeight, strideWidth,
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
+	case 6:
+		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<6>( mathEngine,
+			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+			paddingHeight, paddingWidth, strideHeight, strideWidth,
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
+	default:
+		return nullptr;
 	}
 }
 
@@ -189,8 +214,8 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 
 template<int FltCnt>
 CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channelCount, int filterHeight, int filterWidth,
-		int sourceHeight, int sourceWidth, int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-		int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt ) :
+	int sourceHeight, int sourceWidth, int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
+	int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt ) :
 	mathEngine( _mathEngine ),
 	ChCnt( channelCount ),
 	FltH( filterHeight ),
@@ -210,18 +235,18 @@ CBlobConvolution<FltCnt>::CBlobConvolution( IMathEngine* _mathEngine, int channe
 	flt( nullptr ),
 	freeTerm( nullptr ),
 	res( nullptr ),
-	SrcLineStride( SrcW * ChCnt ),
-	SrcXStep( StrideW * ChCnt ),
-	SrcYStep( StrideH * SrcLineStride ),
-	SrcXDilation( DilationW * ChCnt ),
-	SrcYDilation( DilationH * SrcLineStride ),
-	SrcXWindowSize( FltW * SrcXDilation ),
-	ResLineStride( ResW * FltCnt ),
-	SrcPixelsOffset( fillSrcPixelOffset() ),
-	FltPixelsOffset( fillFltPixelOffset() ),
+	SrcLineStride( SrcW* ChCnt ),
+	SrcXStep( StrideW* ChCnt ),
+	SrcYStep( StrideH* SrcLineStride ),
+	SrcXDilation( DilationW* ChCnt ),
+	SrcYDilation( DilationH* SrcLineStride ),
+	SrcXWindowSize( FltW* SrcXDilation ),
+	ResLineStride( ResW* FltCnt ),
 	NarrowBatchProcessSize( getNarrowBatchProcessSize() ),
 	WideBatchProcessSize( getWideBatchProcessSize() )
 {
+	// // Initialize PixelOffsetResStepsX, PixelOffsetResStepsY, SrcPixelsOffset and FltPixelsOffset
+	fillPixelOffset();
 }
 
 template<int FltCnt>
@@ -232,7 +257,8 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	CFloatHandleStackVar freeTermTempBuffer( *mathEngine, FltCntM8 );
 
 	src = sourceData;
-	flt = rearrangeFilter( filterData, filterTempBuffer );
+	// Filter offset also are calculated from center
+	flt = rearrangeFilter( filterData, filterTempBuffer ) + ( FltW * FltH ) / 2 * ChCnt * FltCntM8;
 	freeTerm = rearrangeFreeTerm( freeTermData, freeTermTempBuffer );
 	res = resultData;
 
@@ -241,44 +267,10 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	const int ResRowCount = ResObjCnt * ResH;
 	const int curThreadCount = IsOmpRelevant( ResRowCount, ResRowCount * ResW * FltCnt * FltW * FltH * ChCnt ) ? threadCount : 1;
 
-	// Number of steps for each side of image, where filter is applied partially
-	int PartialStepCountBeforeX = static_cast<const int>( std::ceil( static_cast<float>( PaddingW ) / StrideW ) );
-	int PartialStepCountAfterX = static_cast<const int>( std::ceil( ( StrideW * ( std::ceil( static_cast<float>( SrcW ) / StrideW ) - 1 ) - SrcW + PaddingW + 1 ) / StrideW ) );
-	int PartialStepCountBeforeY = static_cast<const int>( std::ceil( static_cast<float>( PaddingH ) / StrideH ) );
-	int PartialStepCountAfterY = static_cast<const int>( std::ceil( ( StrideH * ( std::ceil( static_cast<float>( SrcH ) / StrideH ) - 1 ) - SrcH + PaddingH + 1 ) / StrideH ) );
-	// For cases when filter window smaller than source image we may have situation where 
-	// PartialStepCountBefore and PartialStepCountAfter will overlap.
-	int CentralPartWidth = ResW - PartialStepCountBeforeX - PartialStepCountAfterX;
-	int CentralPartHeight = ResH - PartialStepCountBeforeY - PartialStepCountAfterY;
+	// Coordinates of the most top and left position of the center of the filter over the source image.
+	const int srcXOffset = FltW / 2 * DilationW - PaddingW;
+	const int srcYOffset = FltH / 2 * DilationH - PaddingH;
 
-	std::array<int, 9> windowOffsets;
-	if( CentralPartHeight >= 0 && CentralPartWidth >= 0 ) {
-		windowOffsets = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
-	} else {
-		// Correct PartialStepCounts
-		PartialStepCountBeforeX += CentralPartWidth < 0 ? CentralPartWidth : 0;
-		PartialStepCountAfterX += CentralPartWidth < 0 ? CentralPartWidth : 0;
-		PartialStepCountBeforeY += CentralPartHeight < 0 ? CentralPartHeight : 0;
-		PartialStepCountAfterY += CentralPartHeight < 0 ? CentralPartHeight : 0;
-
-		if( CentralPartWidth < 0 ) {
-			if( CentralPartHeight < 0 ) {
-				windowOffsets = { 0, 11, 2, 12, 4, 9, 6, 10, 15 };
-			} else {
-				windowOffsets = { 0, 11, 2, 12, 4, 9, 6, 10, 14 };
-			}
-		} else {
-			windowOffsets = { 0, 11, 2, 12, 4, 9, 6, 10, 13 };
-
-		}
-		CentralPartWidth = std::min( ResW, std::abs( CentralPartWidth ) );
-		CentralPartHeight = std::min( ResH, std::abs( CentralPartHeight ) );
-	}
-
-	// FilterH == FilterW == 3
-	const int srcXOffset = 0 + ( DilationW - PaddingW );
-	const int srcYOffset = 0 + ( DilationH - PaddingH );
-	
 	NEOML_OMP_NUM_THREADS( curThreadCount )
 	{
 		// Index of row in whole result array
@@ -297,50 +289,35 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 				rowIdx += ryCount;
 				rowCount -= ryCount;
 
+				// Pointers to src and res for current thread
 				const float* realSrcStart = src + resIdx * SrcObjSize + srcXOffset * ChCnt;
 				float* realResStart = res + resIdx * ResObjSize;
 
 				// Iterate through result, left->right, top->bottom
 				const int currentRH = min( ResH, ryStart + ryCount );
 				int ry = ryStart;
+				int yStep = 0;
 
-				int ryEnd = min( PartialStepCountBeforeY, currentRH );
-				while( ry < ryEnd ) {
-					// Top part of image
-					const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
-					float* resPtr = realResStart + ry * ResLineStride;
-					bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
+				// Iterate through all combination of intersections
+				for( int yStepIdx = 0; yStepIdx < PixelOffsetResStepsWidthY.size(); yStepIdx++ ) {
 
-					processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[0] );
-					processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[1] );
-					processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[2] );
-					ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
-				}
+					// Last index of res for current intersection.
+					yStep += PixelOffsetResStepsWidthY[yStepIdx];
+					// Process up to current step or up to and of current butch 
+					int ryEnd = min( yStep, currentRH );
+					for( ; ry < ryEnd; ) {
+						const float* srcPtr = realSrcStart + srcYOffset * SrcLineStride + ry * SrcYStep;
+						float* resPtr = realResStart + ry * ResLineStride;
+						bool useNarrowProcessing = ryEnd - ry >= NarrowBatchProcessSize.Height;
 
-				ryEnd = min( ResH - PartialStepCountAfterY, currentRH );
-				while( ry < ryEnd ) {
-					// Middle part of image
-					const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
-					float* resPtr = realResStart + ry * ResLineStride;
-					bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
+						size_t pixelsOffsetIdx = yStepIdx * PixelOffsetResStepsWidthX.size();
 
-					processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[7] );
-					processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[8] );
-					processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[3] );
-					ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
-				}
-
-				ryEnd = min( ResH, currentRH );
-				while( ry < ryEnd ) {
-					// Bottom part of image
-					const float* srcPtr = realSrcStart + ( srcYOffset + ry ) * SrcYStep;
-					float* resPtr = realResStart + ry * ResLineStride;
-					bool useNarrowProcessing = (ryEnd)-ry >= NarrowBatchProcessSize.Height;
-
-					processConvolutionLoop( PartialStepCountBeforeX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[6] );
-					processConvolutionLoop( CentralPartWidth, useNarrowProcessing, srcPtr, resPtr, windowOffsets[5] );
-					processConvolutionLoop( PartialStepCountAfterX, useNarrowProcessing, srcPtr, resPtr, windowOffsets[4] );
-					ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
+						for( const auto& xStep : PixelOffsetResStepsWidthX ) {
+							processConvolutionLoop( xStep, useNarrowProcessing, srcPtr, resPtr, pixelsOffsetIdx );
+							pixelsOffsetIdx++;
+						}
+						ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
+					}
 				}
 			}
 		}
@@ -355,13 +332,13 @@ inline typename CBlobConvolution<FltCnt>::CSize CBlobConvolution<FltCnt>::getNar
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::singleProcessNarrow( const float*, float*,  int )
+inline void CBlobConvolution<FltCnt>::singleProcessNarrow( const float*, float*, size_t )
 {
 	// dummy function
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, int windowIndex )
+inline void CBlobConvolution<FltCnt>::processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, size_t windowIndex )
 {
 	const int batchStep = useNarrowProcessing ? NarrowBatchProcessSize.Width : WideBatchProcessSize.Width;
 	for( ; rxSize >= batchStep; rxSize -= batchStep ) {
@@ -416,9 +393,9 @@ const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData,
 	// ...
 	// Pixel[8] Channel[23] Filter[0-23] Filter[0-5]
 
-	float* resFilterStartPtr = static_cast<float*>( mathEngine->GetBuffer( filterTempBuffer.GetHandle(), 0, filterTempBuffer.Size() * sizeof( float ), false ) );
+	float* resFilterStartPtr = static_cast< float* >( mathEngine->GetBuffer( filterTempBuffer.GetHandle(), 0, filterTempBuffer.Size() * sizeof( float ), false ) );
 	float* resFilter = resFilterStartPtr;
-	ASSERT_EXPR( reinterpret_cast<uintptr_t>( resFilter ) % AvxAlignment == 0 );
+	ASSERT_EXPR( reinterpret_cast< uintptr_t >( resFilter ) % AvxAlignment == 0 );
 	for( int y = 0; y < FltH; y++ ) {
 		for( int x = 0; x < FltW; x++ ) {
 			for( int c = 0; c < ChCnt; c++ ) {
@@ -448,9 +425,9 @@ const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermD
 		return nullptr;
 	}
 
-	float* resFreeTermStartPtr = static_cast<float*>( mathEngine->GetBuffer( freeTermTempBuffer.GetHandle(), 0, freeTermTempBuffer.Size() * sizeof( float ), false ) );
+	float* resFreeTermStartPtr = static_cast< float* >( mathEngine->GetBuffer( freeTermTempBuffer.GetHandle(), 0, freeTermTempBuffer.Size() * sizeof( float ), false ) );
 	float* resFreeTerm = resFreeTermStartPtr;
-	ASSERT_EXPR( reinterpret_cast<uintptr_t>( resFreeTerm ) % AvxAlignment == 0 );
+	ASSERT_EXPR( reinterpret_cast< uintptr_t >( resFreeTerm ) % AvxAlignment == 0 );
 
 	for( int f = 0; f < FltCnt; f++ ) {
 		*resFreeTerm++ = *freeTermData++;
@@ -464,64 +441,118 @@ const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermD
 	return resFreeTermStartPtr;
 }
 
-// Filter window offset
-// 0 1 2
-// 3 4 5
-// 6 7 8
 template<int FltCnt>
-const std::array<std::vector<int>, 16> CBlobConvolution<FltCnt>::fillSrcPixelOffset()
+std::vector<int> CBlobConvolution<FltCnt>::getPixelOffsetSrcSteps( int srcDim, int fDim, int dDim, int sDim, int pDim )
 {
-	const int SrcLineStride = SrcW * ChCnt;
-	const int SrcYDilation = DilationH * SrcLineStride;
-	const int SrcXDilation = DilationW * ChCnt;
-	return {{
-		std::vector<int>{ 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 0) 4 5 7 8
-		std::vector<int>{ -SrcXDilation, 0, SrcXDilation, SrcYDilation - SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 1) 3 4 5 6 7 8
-		std::vector<int>{ -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 2) 3 4 6 7
-		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcXDilation, 0, SrcYDilation - SrcXDilation, SrcYDilation }, // 3) 0 1 3 4 6 7
-		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcXDilation, 0 }, // 4) 0 1 3 4
-		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcYDilation + SrcXDilation, -SrcXDilation, 0, SrcXDilation }, // 5) 0 1 2 3 4 5
-		std::vector<int>{ -SrcYDilation, -SrcYDilation + SrcXDilation, 0, SrcXDilation }, // 6) 1 2 4 5
-		std::vector<int>{ -SrcYDilation, -SrcYDilation + SrcXDilation, 0, SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation }, // 7) 1 2 4 5 7 8
-		std::vector<int>{ -SrcYDilation - SrcXDilation, -SrcYDilation, -SrcYDilation + SrcXDilation,
-			-SrcXDilation, 0, SrcXDilation,
-			SrcYDilation - SrcXDilation, SrcYDilation, SrcYDilation + SrcXDilation}, // 8) whole filter
+	vector<int> ret( fDim );
+	const int halfFDim = fDim / 2;
 
-		std::vector<int>{ -SrcYDilation, 0 }, // 9) 1 4
-		std::vector<int>{ 0, SrcXDilation }, // 10) 4 5
-		std::vector<int>{ 0, SrcYDilation }, // 11) 4 7
-		std::vector<int>{ -SrcXDilation, 0 }, // 12) 3 4
-		std::vector<int>{ -SrcXDilation, 0, SrcXDilation }, // 13) 3 4 5
-		std::vector<int>{ -SrcYDilation, 0, SrcYDilation }, // 14) 1 4 7
-		std::vector<int>{ 0 } // 15) 4
-	}};
+	// First offset of center of the filter window (Take in consideration paddings)
+	const int firstOffset = halfFDim * dDim - pDim;
+	const int lastSrcPixelIdx = srcDim - 1;
+	// Last offset of center of the filter window (Take in consideration paddings)
+	// (lastSrcPixelIdx - 2 * firstOffset) - width of window
+	const int lastOffset = firstOffset + ( lastSrcPixelIdx - 2 * firstOffset ) / sDim * sDim;
+	ret[0] = firstOffset;
+
+	for( int i = 1; i <= halfFDim; i++ ) {
+		// up to middle
+		ret[i] = firstOffset + ( i * dDim - firstOffset + sDim - 1 ) / sDim * sDim;
+	}
+
+
+	for( int i = fDim - 1, j = 1; i > fDim / 2; i--, j++ ) {
+		// from last to next to middle
+		ret[i] = lastOffset - ( lastOffset + j * dDim - lastSrcPixelIdx ) / sDim * sDim + sDim;
+	}
+
+	sort( ret.begin(), ret.end() );
+
+	// Remove out of range and repeated items
+	auto start = ret.begin();
+	while( *start < 0 ) start++;
+	auto end = start;
+	auto tempIt = end + 1;
+	int lastSrcDim = srcDim - firstOffset - 1;
+	while( tempIt != ret.end() && *tempIt <= lastSrcDim ) {
+		if( *tempIt != *end ) {
+			int temp = *tempIt;
+			*( ++end ) = temp;
+		}
+		tempIt++;
+	}
+	end++;
+
+	return vector<int>( start, end );
 }
 
 template<int FltCnt>
-const std::array<std::vector<int>, 16>  CBlobConvolution<FltCnt>::fillFltPixelOffset()
+void CBlobConvolution<FltCnt>::fillPixelOffset()
 {
-	return {{
-		std::vector<int>{ 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 0) 4 5 7 8
-		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 1) 3 4 5 6 7 8
-		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 2) 3 4 6 7
-		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 3) 0 1 3 4 6 7
-		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8 }, // 4) 0 1 3 4
-		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 5) 0 1 2 3 4 5
-		std::vector<int>{ 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 6) 1 2 4 5
-		std::vector<int>{ 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 7) 1 2 4 5 7 8
-		std::vector<int>{ 0 * ChCnt * FltCntM8, 1 * ChCnt * FltCntM8, 2 * ChCnt * FltCntM8,
-			3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8,
-			6 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8, 8 * ChCnt * FltCntM8 }, // 8) whole filter
+	using namespace std;
+	vector<int> pixelOffsetSrcStepsX = getPixelOffsetSrcSteps( SrcW, FltW, DilationW, StrideW, PaddingW );
+	vector<int> pixelOffsetSrcStepsY = getPixelOffsetSrcSteps( SrcH, FltH, DilationH, StrideH, PaddingH );
 
-		
-		std::vector<int>{ 1 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8 }, // 9) 1 4
-		std::vector<int>{ 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 10) 4 5
-		std::vector<int>{ 4 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 11) 4 7
-		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8 }, // 12) 3 4
-		std::vector<int>{ 3 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 5 * ChCnt * FltCntM8 }, // 13) 3 4 5
-		std::vector<int>{ 1 * ChCnt * FltCntM8, 4 * ChCnt * FltCntM8, 7 * ChCnt * FltCntM8 }, // 14) 1 4 7
-		std::vector<int>{ 4 * ChCnt * FltCntM8 } // 15) 4
-	}};
+	// Calculate offset on the source image where intersection of filter and image is changed.
+	auto getPixelOffsetResStepsWidth = []( const std::vector<int>& pixelOffsetSrcSteps, int srcDim, int fDim, int dDim, int sDim, int pDim )
+	{
+		vector<int> ret( pixelOffsetSrcSteps.size() );
+		const int firstOffset = fDim / 2 * dDim - pDim;
+		const int lastSrcPixelIdx = srcDim - 1;
+		const int lastOffset = firstOffset + ( lastSrcPixelIdx - 2 * firstOffset ) / sDim * sDim;
+
+		int i = 0;
+		for( ; i < ret.size() - 1; i++ ) {
+			ret[i] = ( pixelOffsetSrcSteps[i + 1] - pixelOffsetSrcSteps[i] ) / sDim;
+		}
+		ret[i] = ( lastOffset - pixelOffsetSrcSteps[i] ) / sDim + 1;
+
+		return ret;
+	};
+
+	PixelOffsetResStepsWidthX = getPixelOffsetResStepsWidth( pixelOffsetSrcStepsX, SrcW, FltW, DilationW, StrideW, PaddingW );
+	PixelOffsetResStepsWidthY = getPixelOffsetResStepsWidth( pixelOffsetSrcStepsY, SrcH, FltH, DilationH, StrideH, PaddingH );
+
+	// Get size of intersection of filter window and source image
+	auto getFilterWindowSize = []( const vector<int>& pixelOffsetSrcSteps, int srcDim, int fDim, int dDim ) -> vector<pair<int, int>> {
+		// first - count of items in filter from center to top
+		// second - count of items in filter from center to bottom
+		vector<pair<int, int>> ret( pixelOffsetSrcSteps.size() );
+		for( int i = 0; i < pixelOffsetSrcSteps.size(); i++ ) {
+			const int halfFDim = fDim / 2;
+			ret[i] = make_pair(
+				min( pixelOffsetSrcSteps[i] / dDim, halfFDim ),
+				min( ( ( srcDim - 1 ) - pixelOffsetSrcSteps[i] ) / dDim, halfFDim ) );
+		}
+		return ret;
+	};
+
+	vector<pair<int, int>> offsetSizeX = getFilterWindowSize( pixelOffsetSrcStepsX, SrcW, FltW, DilationW );
+	vector<pair<int, int>> offsetSizeY = getFilterWindowSize( pixelOffsetSrcStepsY, SrcH, FltH, DilationH );
+
+	// Calculate resulted offsets of pixels in window.
+	auto fillPixelOffset = [&]( int hStride, int wStride ) ->vector<vector<int>> {
+		vector<vector<int>> offsets( offsetSizeX.size() * offsetSizeY.size() );
+		auto it = offsets.begin();
+
+		for( const auto& y : offsetSizeY ) {
+			for( const auto& x : offsetSizeX ) {
+				it->resize( ( x.first + x.second + 1 ) * ( y.first + y.second + 1 ) );
+				auto it_offt = it->begin();
+				for( int i = -y.first; i <= y.second; i++ ) {
+					for( int j = -x.first; j <= x.second; j++ ) {
+						*it_offt++ = i * hStride + j * wStride;
+					}
+				}
+				it++;
+			}
+		}
+		return offsets;
+	};
+
+	SrcPixelsOffset = fillPixelOffset( SrcYDilation, SrcXDilation );
+	FltPixelsOffset = fillPixelOffset( FltW * ChCnt * FltCntM8, ChCnt * FltCntM8 );
+
 }
 
 template<int FltCnt>
@@ -570,5 +601,13 @@ inline void CBlobConvolution<FltCnt>::rotateLeft2( __m256& y )
 
 } // namespace NeoML
 
+#ifndef _mm256_set_m128
+// This instruction is defined since 8 gcc in avxintrin.h
+#define _mm256_set_m128( hi, lo) _mm256_insertf128_ps( _mm256_castps128_ps256( lo ), ( hi ), 0x1 )
+#endif
+
 // Class specializations
-#include <BlobConvolutionImpl.h>
+#include <BlobConvolution_FltCnt_6.h>
+#include <BlobConvolution_FltCnt_18.h>
+#include <BlobConvolution_FltCnt_24.h>
+#include <BlobConvolution_FltCnt_32.h>

@@ -13,7 +13,10 @@ target_sources(${PROJECT_NAME}
     # Headers
     ./common.h
     ./src/BlobConvolution.h
-    ./src/BlobConvolutionImpl.h
+    ./src/BlobConvolution_FltCnt_6.h
+    ./src/BlobConvolution_FltCnt_18.h
+    ./src/BlobConvolution_FltCnt_24.h
+    ./src/BlobConvolution_FltCnt_32.h
     ./src/AvxCommon.h
     ./src/MatrixMultiplyingInterleaved/Interleavers/Interleavers.h
     ./src/MatrixMultiplyingInterleaved/MicroKernels/Kernel_AVX_6x16.h
@@ -77,7 +80,7 @@ endif()
 # Install
 if(NeoMathEngine_INSTALL)
     if(USE_FINE_OBJECTS)
-        fine_install(TARGETS ${PROJECT_NAME})
+        fine_install(TARGETS ${PROJECT_NAME} NOARCHIVE)
     else()
         install(
             TARGETS ${PROJECT_NAME}

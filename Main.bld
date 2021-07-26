@@ -18,6 +18,7 @@ set;FINEOBJ;%ROOT%\FineObjects
 set;COPYPDB;1
 
 alias;sln;vs14
+alias;vs;vs14
 alias;vcproj;vsproj14
 
 bld;FineObjects\FineObjNoTest.bld

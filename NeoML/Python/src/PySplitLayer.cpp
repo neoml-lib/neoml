@@ -87,6 +87,7 @@ void InitializeSplitLayer( py::module& m )
 			return new CPySplitChannelsLayer( *layer.Layer<CSplitChannelsLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, py::array sizes ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSplitChannelsLayer> split = new CSplitChannelsLayer( mathEngine );
@@ -109,6 +110,7 @@ void InitializeSplitLayer( py::module& m )
 			return new CPySplitDepthLayer( *layer.Layer<CSplitDepthLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, py::array sizes ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSplitDepthLayer> split = new CSplitDepthLayer( mathEngine );
@@ -131,6 +133,7 @@ void InitializeSplitLayer( py::module& m )
 			return new CPySplitWidthLayer( *layer.Layer<CSplitWidthLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, py::array sizes ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSplitWidthLayer> split = new CSplitWidthLayer( mathEngine );
@@ -153,6 +156,7 @@ void InitializeSplitLayer( py::module& m )
 			return new CPySplitHeightLayer( *layer.Layer<CSplitHeightLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, py::array sizes ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSplitHeightLayer> split = new CSplitHeightLayer( mathEngine );
@@ -175,6 +179,7 @@ void InitializeSplitLayer( py::module& m )
 			return new CPySplitBatchWidthLayer( *layer.Layer<CSplitBatchWidthLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, py::array sizes ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSplitBatchWidthLayer> split = new CSplitBatchWidthLayer( mathEngine );
