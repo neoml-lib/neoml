@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright ï¿½ 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolu
     Reg64 regTempFltPtr =  util::r11;
     Reg64 regChCnt =  util::rax;
 
+    Label labelFillBatchProcessingKernelEnd;
     Label labelBatchProcessingKernel, labelBatchProcessingKernelStart, labelBatchProcessingKernelEnd;
 
 	const int rowNum = 2;
@@ -51,29 +52,34 @@ inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolu
 
 	for( ; srcIt != bc.SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
 		lea( regTempSrcPtr, ptr[regSrcPtr + *srcIt * sizeof( float )] );
-		lea( regTempFltPtr, ptr[regFltPtr + *srcIt * sizeof( float )] );
-
-		call( ptr[rip + labelBatchProcessingKernel] );
+		lea( regTempFltPtr, ptr[regFltPtr + *fltIt * sizeof( float )] );
+		call( labelBatchProcessingKernel );
 	}
 
 	flushResRegs( &res[0][0], regResPtr, rowNum, colNum );
 
+
+	// return from function
+	jmp( labelFillBatchProcessingKernelEnd, T_NEAR );
+
+	////////////////////////////////////////////////////////////////////////////////////////////
 	// Batch process kernell function
 	L( labelBatchProcessingKernel );
 	// for( int c = 0; c < ChCnt; c++ ) {
-	xor_( regChCnt, regChCnt );
-	L( labelBatchProcessingKernelStart );
-	cmp( regChCnt, bc.ChCnt );
-	je( labelBatchProcessingKernelEnd );
-
+	if( bc.ChCnt > 1 ) {
+		xor_( regChCnt, regChCnt );
+		L( labelBatchProcessingKernelStart );
+		cmp( regChCnt, bc.ChCnt );
+		je( labelBatchProcessingKernelEnd );
+	}
 	// Load one channel from one pixels in sequenced windows and fill one ymm register with its value.
 	vbroadcastss( st[0], ptr[regTempSrcPtr] );
 	vbroadcastss( st[1], ptr[regTempSrcPtr + bc.SrcXStep * sizeof( float )] );
 	// Load one channel for the same pixel as in source for all filters.
 	vmovups( f[0], ptr[regTempFltPtr] );
-	vmovups( f[1], ptr[regTempFltPtr + 8] );
-	vmovups( f[2], ptr[regTempFltPtr + 16] );
-	vmovups( f[3], ptr[regTempFltPtr + 24] );
+	vmovups( f[1], ptr[regTempFltPtr + 8* sizeof( float )] );
+	vmovups( f[2], ptr[regTempFltPtr + 16* sizeof( float )] );
+	vmovups( f[3], ptr[regTempFltPtr + 24* sizeof( float )] );
 	// Take result for current pixels in three sequenced windows.
 	// Multiply one chennel for all filters ( for ONE src/flt pixels )
 	vfmadd231ps( res[0][0], f[0], st[0] );
@@ -90,10 +96,14 @@ inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolu
 	add( regTempSrcPtr, sizeof( float ) );
 	inc( regChCnt );
 
-	jmp( labelBatchProcessingKernelStart );
-	// }
-	L( labelBatchProcessingKernelEnd );
+	if( bc.ChCnt > 1 ) {
+		jmp( labelBatchProcessingKernelStart );
+		// }
+		L( labelBatchProcessingKernelEnd );
+	}
 	ret();
+	// End of code
+	L( labelFillBatchProcessingKernelEnd );
 }
 
 template<>

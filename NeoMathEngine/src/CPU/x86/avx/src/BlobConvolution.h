@@ -56,7 +56,7 @@ private:
 		// Init JIT code main routine
 		CCode( CBlobConvolution& bc, int yStepIndex );
 
-		void Run(  bool useNarrowProcessing, const float*& srcPtr, const float*& fltPtr, float*& resPtr );
+		void Run(  bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, float* resPtr );
 		// Init freeTerm data location
 		void InitFreeTermLabel( const float* freeTerm, int fltCntM8 );
 
@@ -795,9 +795,9 @@ CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepI
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CCode::Run( bool useNarrowProcessing, const float*& srcPtr, const float*& fltPtr, float*& resPtr )
+inline void CBlobConvolution<FltCnt>::CCode::Run( bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, float* resPtr )
 {
-    return getCode<void(*)(bool, const float*&, float*&)>()( useNarrowProcessing, srcPtr, resPtr );
+    return getCode<void(*)(bool, const float*, const float*, float*)>()( useNarrowProcessing, srcPtr, fltPtr, resPtr );
 }
 
 template<int FltCnt>
@@ -817,15 +817,15 @@ inline void CBlobConvolution<FltCnt>::CCode::epilogue()
 template<int FltCnt>
 inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, const float* freeTerm, int rowNum, int colNum )
 {
-	if( freeTerm == nullptr ) {
-		// set all regs to zero
-		for( int i = 0; i < rowNum * colNum; i++ ) {
-			vxorps( *res, *res, *res );
-		}
-	} else {
+//	if( freeTerm == nullptr ) {
+//		// set all regs to zero
+//		for( int i = 0; i < rowNum * colNum; i++ ) {
+//			vxorps( *res, *res, *res );
+//		}
+//	} else {
 		// Init first row of registers
 		for( int c = 0; c < colNum; c++ ) {
-			vmovups( res[c], ptr[rip + labelFreeTerm + static_cast<int>( 8 * sizeof( float ) )] );
+			vmovups( res[c], ptr[rip + labelFreeTerm + static_cast<int>( 8 * sizeof( float ) ) * c ] );
 		}
 
 		// Duplicate first row into another rows
@@ -835,7 +835,7 @@ inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, const
 				vmovups( res[destIdx++], res[c] );
 			}
 		}
-	}
+//	}
 }
 
 template<int FltCnt>
@@ -853,7 +853,11 @@ inline void CBlobConvolution<FltCnt>::CCode::InitFreeTermLabel( const float* fre
 {
     // FIXME: Is it safely?
     float* jitFreeTerm = const_cast<float*>( reinterpret_cast<const float*>( labelFreeTerm.getAddress() ) );
-    memcpy( jitFreeTerm, freeTerm, fltCntM8 * sizeof( float ) );
+    if( freeTerm != nullptr ) {
+        memcpy( jitFreeTerm, freeTerm, fltCntM8 * sizeof( float ) );
+    } else {
+        memset( jitFreeTerm, 0, fltCntM8 * sizeof( float ) );
+    }
 }
 
 } // namespace NeoML
