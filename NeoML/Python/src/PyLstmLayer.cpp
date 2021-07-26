@@ -64,6 +64,7 @@ void InitializeLstmLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs,
 			int hiddent_size, float dropout_rate, int recurrent_activation_index, bool reverse_seq )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

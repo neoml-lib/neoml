@@ -51,6 +51,7 @@ void InitializeLrnLayer( py::module& m )
 		} ) )
 		.def( py::init( []( const std::string& name, const CPyLayer& layer, int outputNumber,
 			int windowSize, float bias, float alpha, float beta ) {
+				py::gil_scoped_release release;
 				CDnn& dnn = layer.Dnn();
 				IMathEngine& mathEngine = dnn.GetMathEngine();
 				CPtr<CLrnLayer> lrn = new CLrnLayer( mathEngine );

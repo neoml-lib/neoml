@@ -51,6 +51,7 @@ void InitializeAttentionDecoderLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const CPyLayer& layer0, int outputNumber0, const CPyLayer& layer1, int outputNumber1,
 			int score_index, int output_object_size, int output_seq_len, int hidden_size )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layer0.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

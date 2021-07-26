@@ -49,6 +49,7 @@ void InitializeDropoutLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, float dropoutRate,
 			bool isSpatial, bool isBatchwise )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CDropoutLayer> dropout = new CDropoutLayer( mathEngine );

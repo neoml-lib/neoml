@@ -44,6 +44,7 @@ void InitializeUpsampling2DLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, int heightCopyCount, int widthCopyCount )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CUpsampling2DLayer> upsampling = new CUpsampling2DLayer( mathEngine );

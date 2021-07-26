@@ -41,6 +41,7 @@ void InitializeSoftmaxLayer( py::module& m )
 			return new CPySoftmaxLayer( *layer.Layer<CSoftmaxLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, int area_index ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer( mathEngine );

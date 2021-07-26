@@ -55,6 +55,7 @@ void InitializeFullyConnectedLayer( py::module& m )
 			return new CPyFullyConnectedLayer( *layer.Layer<CFullyConnectedLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, int numberOfElements, bool freeTerm ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

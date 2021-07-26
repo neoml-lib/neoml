@@ -97,6 +97,7 @@ void InitializeCtcLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs,
 			int blank, bool skip, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -132,6 +133,7 @@ void InitializeCtcLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs,
 			int blank, float blankThreshold, float arcThreshold )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
