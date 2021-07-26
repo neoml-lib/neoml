@@ -400,6 +400,7 @@ CDnnAdaptiveGradientSolver::CDnnAdaptiveGradientSolver( IMathEngine& mathEngine 
 	secondMomentDecayRateN(1.f),
 	epsilon(1e-6f),
 	isAmsGradEnabled( false ),
+	isDecoupledWeightDecay( false ),
 	isInCompatibilityMode( false ),
 	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
 {
@@ -452,13 +453,13 @@ CDnnBlob* CDnnAdaptiveGradientSolver::addRegularization( CDnnBlob* diffBlob, CDn
 	if( regL2 > 0 ) {
 		MathEngine().VectorMultiplyAndAdd( diffBlob->GetData(), params->GetData(),
 			temporaryBlob->GetData(), params->GetDataSize(), tempVariables->GetData( {TV_RegL2Var} ) );
-		return temporaryBlob;
+		diffBlob = temporaryBlob;
 	}
 	if( regL1 > 0 ) {
 		MathEngine().VectorL1DiffAdd( diffBlob->GetData(), params->GetData(),
 			temporaryBlob->GetData(), params->GetDataSize(), tempVariables->GetData( {TV_L1Threshold} ),
 			tempVariables->GetData( {TV_L1Mult} ) );
-		return temporaryBlob;
+		diffBlob = temporaryBlob;
 	}
 	return diffBlob;
 }
