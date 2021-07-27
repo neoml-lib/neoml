@@ -107,6 +107,16 @@ public:
 	CSigmoidOperator( const onnx::NodeProto& sigmoid, int opsetVersion );
 };
 
+// Sqrt operator
+class CSqrtOperator : public CActivationOperatorBase {
+public:
+	CSqrtOperator( const onnx::NodeProto& sqrt, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+};
+
 // Tanh operator
 class CTanhOperator : public CActivationOperatorBase {
 public:

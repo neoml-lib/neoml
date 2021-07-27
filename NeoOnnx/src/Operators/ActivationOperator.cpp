@@ -260,6 +260,28 @@ CSigmoidOperator::CSigmoidOperator( const onnx::NodeProto& sigmoid, int opsetVer
 
 //---------------------------------------------------------------------------------------------------------------------
 
+CSqrtOperator::CSqrtOperator( const onnx::NodeProto& sqrt, int opsetVersion ) :
+	CActivationOperatorBase( sqrt, opsetVersion, AF_Power )
+{
+	// v1 - original
+	// v6 - legacy optimization attribute is removed
+	// v13 - bfloat16 is supported
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
+	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
+void CSqrtOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CActivationOperatorBase::AddLayers( inputs, dnn, outputs );
+	CPowerLayer* power = dynamic_cast<CPowerLayer*>( dnn.GetLayer( Name() ).Ptr() );
+	NeoAssert( power != nullptr );
+	power->SetExponent( 0.5f );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CTanhOperator::CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion ) :
 	CActivationOperatorBase( tanh, opsetVersion, AF_Tanh )
 {
