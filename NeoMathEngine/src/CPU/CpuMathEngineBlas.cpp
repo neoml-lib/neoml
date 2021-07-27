@@ -21,6 +21,9 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <math.h>
+#ifdef NEOML_USE_MKL
+#include <mkl_lapacke.h>
+#endif
 
 namespace NeoML {
 
@@ -1234,6 +1237,18 @@ void CCpuMathEngine::BitSetBinarization( int batchSize, int bitSetSize,
 			result += min( BitsPerElement, outputVectorSize - elementIndex );
 		}
 	}
+}
+
+void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+	const CFloatHandle& vt, const CFloatHandle& superb )
+{
+	#ifdef NEOML_USE_MKL
+	int lda = max( 1, n ), ldu = min( n, m ), ldv = n;
+	LAPACKE_sgesvd( LAPACK_ROW_MAJOR, 'S', 'S', m, n, GetRaw( a ), lda, GetRaw( s ), GetRaw( u ), ldu,
+		GetRaw( vt ), ldv, GetRaw( superb ) );
+	#else
+	assert( false );
+	#endif
 }
 
 } // namespace NeoML
