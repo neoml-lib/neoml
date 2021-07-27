@@ -117,6 +117,24 @@ void CAddOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 
 // --------------------------------------------------------------------------------------------------------------------
 
+template<class T>
+static CPtr<const CDataTensor> dataTensorNeg( const CDataTensor& inputTensor )
+{
+	CDnnBlob* inputBlob = const_cast<CDnnBlob*>( inputTensor.Data() );
+	const int dataSize = inputBlob->GetDataSize();
+	CPtr<CDnnBlob> outputBlob = inputBlob->GetClone();
+
+	const T* inputBuffer = inputBlob->GetBuffer<T>( 0, dataSize, true );
+	T* outputBuffer = outputBlob->GetBuffer<T>( 0, dataSize, false );
+	for( int i = 0; i < dataSize; ++i ) {
+		outputBuffer[i] = -inputBuffer[i];
+	}
+	outputBlob->ReleaseBuffer( outputBuffer, true );
+	inputBlob->ReleaseBuffer( const_cast<T*>( inputBuffer ), false );
+
+	return new CDataTensor( inputTensor.Shape(), inputTensor.Layout(), *outputBlob );
+}
+
 void CSubOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CTensorArray convertedInputs;
@@ -126,15 +144,13 @@ void CSubOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	CheckOnnxProtocol( inputs[1] != nullptr, "input isn't connected", *this );
 	if( inputs[1]->IsCalculated() ) {
 		// Imitate by multiplying values in blob
-		CPtr<const CDataTensor> secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
-		CPtr<CDnnBlob> newBlob = secondInput->Data()->GetClone();
-		CFloatHandleStackVar minusOne( newBlob->GetMathEngine() );
-		minusOne.SetValue( -1 );
-		newBlob->GetMathEngine().VectorMultiply( secondInput->Data()->GetData(), newBlob->GetData(),
-			newBlob->GetDataSize(), minusOne );
-		convertedInputs[1] = new CDataTensor( secondInput->Shape(), secondInput->Layout(), *newBlob );
+		const CDataTensor* secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
+		NeoAssert( secondInput != nullptr );
+		convertedInputs[1] = secondInput->Data()->GetDataType() == CT_Float
+			? dataTensorNeg<float>( *secondInput )
+			: dataTensorNeg<int>( *secondInput );
 	} else {
-		// Imitate by CLinearLayer with multiplier set to -1 and free term set to 0 
+		// Imitate by CLinearLayer with multiplier set to -1 and free term set to 0
 		CPtr<const CUserTensor> secondInput = dynamic_cast<const CUserTensor*>( inputs[1].Ptr() );
 		CDnn& dnn = *secondInput->Layer()->GetDnn();
 		CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
