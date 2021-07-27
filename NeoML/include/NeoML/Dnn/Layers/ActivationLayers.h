@@ -36,6 +36,7 @@ enum TActivationFunction {
 	AF_Power,
 	AF_HSwish,
 	AF_GELU,
+	AF_Erf,
 
 	AF_Count
 };

@@ -47,6 +47,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/DropoutLayer.cpp
     Dnn/Layers/EltwiseLayer.cpp
     Dnn/Layers/EnumBinarizationLayer.cpp
+    Dnn/Layers/ErfLayer.cpp
     Dnn/Layers/EuclideanLossLayer.cpp
     Dnn/Layers/FocalLossLayer.cpp
     Dnn/Layers/FullyConnectedLayer.cpp
@@ -206,6 +207,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/DropoutLayer.h
     ../include/NeoML/Dnn/Layers/EltwiseLayer.h
     ../include/NeoML/Dnn/Layers/EnumBinarizationLayer.h
+    ../include/NeoML/Dnn/Layers/ErfLayer.h
     ../include/NeoML/Dnn/Layers/FocalLossLayer.h
     ../include/NeoML/Dnn/Layers/FullyConnectedLayer.h
     ../include/NeoML/Dnn/Layers/FullyConnectedSourceLayer.h
