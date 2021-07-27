@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2021 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -126,6 +126,20 @@ CEluOperator::CEluOperator( const onnx::NodeProto& elu, int opsetVersion ) :
 	// v1 - original
 	// v6 - legacy optimization attributes are removed
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
+	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CErfOperator::CErfOperator( const onnx::NodeProto& erf, int opsetVersion ) :
+	CActivationOperatorBase( erf, opsetVersion, AF_Erf )
+{
+	// v9 - original
+	// v13 - new data type is supported
+	CheckOnnxProtocol( OpsetVersion >= 9, "Erf operator was introduced in opset v9", *this );
+	CheckNeoOnnxSupport( OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
