@@ -47,7 +47,7 @@ CRangeOperator::CRangeOperator( const onnx::NodeProto& range, int opsetVersion )
 }
 
 template<class T>
-CPtr<const CDataTensor> generateRange( const CObjectArray<const CDnnBlob>& inputBlobs )
+static CPtr<const CDataTensor> generateRange( const CObjectArray<const CDnnBlob>& inputBlobs )
 {
 	const T start = inputBlobs[ROI_Start]->GetData<T>().GetValue();
 	const T limit = inputBlobs[ROI_Limit]->GetData<T>().GetValue();
