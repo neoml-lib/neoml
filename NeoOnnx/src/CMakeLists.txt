@@ -32,6 +32,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/MatMulOperator.cpp
     Operators/PadOperator.cpp
     Operators/PoolOperator.cpp
+    Operators/RangeOperator.cpp
     Operators/ReshapeOperator.cpp
     Operators/ShapeOperator.cpp
     Operators/SliceOperator.cpp
@@ -69,6 +70,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/MatMulOperator.h
     Operators/PadOperator.h
     Operators/PoolOperator.h
+    Operators/RangeOperator.h
     Operators/ReshapeOperator.h
     Operators/ShapeOperator.h
     Operators/SliceOperator.h

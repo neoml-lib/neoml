@@ -41,6 +41,7 @@ limitations under the License.
 #include "Operators/MatMulOperator.h"
 #include "Operators/PadOperator.h"
 #include "Operators/PoolOperator.h"
+#include "Operators/RangeOperator.h"
 #include "Operators/ReshapeOperator.h"
 #include "Operators/ShapeOperator.h"
 #include "Operators/SliceOperator.h"
@@ -128,6 +129,7 @@ REGISTER_OPERATOR( CMaxPoolOperator, "MaxPool" )
 REGISTER_OPERATOR( CMulOperator, "Mul" )
 REGISTER_OPERATOR( CPadOperator, "Pad" )
 REGISTER_OPERATOR( CPowOperator, "Pow" )
+REGISTER_OPERATOR( CRangeOperator, "Range" )
 REGISTER_OPERATOR( CReduceMaxOperator, "ReduceMax" )
 REGISTER_OPERATOR( CReduceMeanOperator, "ReduceMean" )
 REGISTER_OPERATOR( CReduceMinOperator, "ReduceMin" )
