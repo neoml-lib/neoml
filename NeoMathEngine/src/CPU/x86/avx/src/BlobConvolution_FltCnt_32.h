@@ -70,7 +70,7 @@ inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolu
 		xor_( regChCnt, regChCnt );
 		L( labelBatchProcessingKernelStart );
 		cmp( regChCnt, bc.ChCnt );
-		je( labelBatchProcessingKernelEnd );
+		je( labelBatchProcessingKernelEnd, T_NEAR );
 	}
 	// Load one channel from one pixels in sequenced windows and fill one ymm register with its value.
 	vbroadcastss( st[0], ptr[regTempSrcPtr] );
@@ -97,7 +97,7 @@ inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolu
 	inc( regChCnt );
 
 	if( bc.ChCnt > 1 ) {
-		jmp( labelBatchProcessingKernelStart );
+		jmp( labelBatchProcessingKernelStart, T_NEAR );
 		// }
 		L( labelBatchProcessingKernelEnd );
 	}
@@ -110,7 +110,99 @@ template<>
 inline void CBlobConvolution<32>::CCode::fillSingleProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int windowIndex,
 																	 Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr )
 {
-	// Use R10
+	using namespace Xbyak;
+
+    Reg64 regTempSrcPtr =  util::r10;
+    Reg64 regTempFltPtr =  util::r11;
+    Reg64 regChCnt =  util::rax;
+
+    Label labelFillSingleProcessingKernelEnd;
+    Label labelSingleProcessingKernel, labelSingleProcessingKernelStart, labelSingleProcessingKernelEnd;
+
+	const int rowNum = 1;
+	const int colNum = 4;
+	Ymm res[4] = { ymm0, ymm1, ymm2, ymm3 };
+	Xmm s = xmm4;
+	Ymm st0 = ymm5;
+	Xmm st0_toXmm = xmm5;
+	Ymm f[4] = { ymm6, ymm7, ymm8, ymm9 };
+
+	initResRegs( &res[0], bc.freeTerm, rowNum, colNum );
+
+	auto srcIt = bc.SrcPixelsOffset[windowIndex].cbegin();
+	auto fltIt = bc.FltPixelsOffset[windowIndex].cbegin();
+
+	for( ; srcIt != bc.SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
+		lea( regTempSrcPtr, ptr[regSrcPtr + *srcIt * sizeof( float )] );
+		lea( regTempFltPtr, ptr[regFltPtr + *fltIt * sizeof( float )] );
+		call( labelSingleProcessingKernel );
+	}
+
+	flushResRegs( &res[0], regResPtr, rowNum, colNum );
+
+
+	// return from function
+	jmp( labelFillSingleProcessingKernelEnd, T_NEAR );
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Single process kernell function
+	L( labelSingleProcessingKernel );
+	// for( ; c >= 4; c -= 4 ) {
+	if( bc.ChCnt >= 4 ) {
+		xor_( regChCnt, regChCnt );
+		L( labelSingleProcessingKernelStart );
+		cmp( regChCnt, bc.ChCnt / 4 );
+		je( labelSingleProcessingKernelEnd, T_NEAR );
+
+		movups( s, ptr[regTempSrcPtr] );
+		for( unsigned int mask = 0x00; mask <= 0xff; mask += 0x55 ) {
+			vpermilps( st0_toXmm, s, mask );
+			vinsertf128( st0, st0, st0_toXmm, 1);
+
+			vmovups( f[0], ptr[regTempFltPtr] );
+			vmovups( f[1], ptr[regTempFltPtr + 8* sizeof( float )] );
+			vmovups( f[2], ptr[regTempFltPtr + 16* sizeof( float )] );
+			vmovups( f[3], ptr[regTempFltPtr + 24* sizeof( float )] );
+
+			vfmadd231ps( res[0], f[0], st0 );
+			vfmadd231ps( res[1], f[1], st0 );
+			vfmadd231ps( res[2], f[2], st0 );
+			vfmadd231ps( res[3], f[3], st0 );
+
+			add( regTempFltPtr, FltCntM8 * sizeof( float ) );
+		}
+
+		add( regTempSrcPtr, 4 * sizeof( float ) );
+		inc( regChCnt );
+
+		jmp( labelSingleProcessingKernelStart, T_NEAR );
+		// }
+		L( labelSingleProcessingKernelEnd );
+	}
+
+	int chCntRemained = bc.ChCnt % 4;
+	if( chCntRemained  ) {
+		movups( s, ptr[regTempSrcPtr] );
+		for( unsigned int mask = 0x00; mask < chCntRemained * 0x55; mask += 0x55 ) {
+			vpermilps( st0_toXmm, s, mask );
+			vinsertf128( st0, st0, st0_toXmm, 1);
+
+			vmovups( f[0], ptr[regTempFltPtr] );
+			vmovups( f[1], ptr[regTempFltPtr + 8* sizeof( float )] );
+			vmovups( f[2], ptr[regTempFltPtr + 16* sizeof( float )] );
+			vmovups( f[3], ptr[regTempFltPtr + 24* sizeof( float )] );
+
+			vfmadd231ps( res[0], f[0], st0 );
+			vfmadd231ps( res[1], f[1], st0 );
+			vfmadd231ps( res[2], f[2], st0 );
+			vfmadd231ps( res[3], f[3], st0 );
+
+			add( regTempFltPtr, FltCntM8 * sizeof( float ) );
+		}
+	}
+	ret();
+	// End of code
+	L( labelFillSingleProcessingKernelEnd );
 }
 
 template<>

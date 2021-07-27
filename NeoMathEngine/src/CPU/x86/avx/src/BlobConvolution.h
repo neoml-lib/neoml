@@ -701,7 +701,7 @@ inline void CBlobConvolution<FltCnt>::rotateLeft2( __m256& y )
 }
 
 template<int FltCnt>
-CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepIndex )
+CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepIndex ) : Xbyak::CodeGenerator( 256 << 10 )
 {
 	using namespace Xbyak::util;
 	using namespace Xbyak;
@@ -726,7 +726,7 @@ CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepI
             // for( ; numSteps > 0; numSteps-- ) {
             L( labelProcessingStart );
             dec( regNumSteps );
-            js( labelProcessingEnd );
+            js( labelProcessingEnd, T_NEAR );
         }
 
         // Do we have any batch step at all?
@@ -737,12 +737,13 @@ CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepI
                 fillBatchProcessingKernel( bc, useNarrowProcessing, windowIndex, regSrcPtr, regFltPtr, regResPtr );
             }
 
-            add( regSrcPtr, stepSize * bc.SrcXStep );
-            add( regResPtr, stepSize * FltCnt );
+            add( regSrcPtr, stepSize * bc.SrcXStep * sizeof( float ) );
+            add( regResPtr, stepSize * FltCnt * sizeof( float ) );
         }
 
         if( numSteps > 1 ) {
             // } // for( ; numSteps > 0; numSteps-- )
+            jmp( labelProcessingStart, T_NEAR );
             L( labelProcessingEnd );
         }
     };
@@ -775,7 +776,7 @@ CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepI
     if( hasNarrowProcessing ) {
         // Add selector narrow/wide
         test( regUseNarrowProcessing, regUseNarrowProcessing );
-        jnz( labelNarrow );
+        jnz( labelNarrow, T_NEAR );
     }
 
     // Fill wide processing
