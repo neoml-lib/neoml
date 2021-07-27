@@ -209,7 +209,7 @@ CPowOperator::CPowOperator( const onnx::NodeProto& pow, int opsetVersion ) :
 	// v15 - bfloat16 as second argument is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( InputCount() == 2, "operator must have 2 inputs", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
