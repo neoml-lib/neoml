@@ -85,6 +85,16 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
+// Pow operator
+class CPowOperator : public CActivationOperatorBase {
+public:
+	CPowOperator( const onnx::NodeProto& pow, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+};
+
 // Relu operator
 class CReluOperator : public CActivationOperatorBase {
 public:

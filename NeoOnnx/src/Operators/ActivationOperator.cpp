@@ -137,7 +137,7 @@ CErfOperator::CErfOperator( const onnx::NodeProto& erf, int opsetVersion ) :
 	CActivationOperatorBase( erf, opsetVersion, AF_Erf )
 {
 	// v9 - original
-	// v13 - new data type is supported
+	// v13 - bfloat16 is supported
 	CheckOnnxProtocol( OpsetVersion >= 9, "Erf operator was introduced in opset v9", *this );
 	CheckNeoOnnxSupport( OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
@@ -195,6 +195,41 @@ void CHardSigmoidOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTe
 	float beta = 0.5f;
 	GetAttribute( "beta", beta );
 	hardSigmoid->SetBias( beta );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CPowOperator::CPowOperator( const onnx::NodeProto& pow, int opsetVersion ) :
+	CActivationOperatorBase( pow, opsetVersion, AF_Power )
+{
+	// v1 - original
+	// v7 - broadcast attribute is removed
+	// v12 - integer types are supported
+	// v13 - bfloat16 as first argument is supported
+	// v15 - bfloat16 as second argument is supported
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
+	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
+void CPowOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	// The only scenario supported by NeoML is when the first input is a float tensor
+	// and the second input is a constant float scalar (tensor of size 1)
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	NeoAssert( !inputs[0]->IsCalculated() );
+
+	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
+	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided power of the exponent", *this );
+	CPtr<const CDnnBlob> powerValue = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
+	CheckNeoOnnxSupport( powerValue->GetDataSize() == 1, "non-scalar power of the exponent", *this );
+	CheckNeoOnnxSupport( powerValue->GetDataType() == CT_Float, "non-float power of the exponent", *this );
+
+	CActivationOperatorBase::AddLayers( inputs, dnn, outputs );
+	CPowerLayer* power = dynamic_cast<CPowerLayer*>( dnn.GetLayer( Name() ).Ptr() );
+	NeoAssert( power != nullptr );
+	power->SetExponent( powerValue->GetData().GetValue() );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
