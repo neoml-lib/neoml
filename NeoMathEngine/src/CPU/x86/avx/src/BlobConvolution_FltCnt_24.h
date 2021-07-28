@@ -27,14 +27,12 @@ inline CBlobConvolution<24>::CSize CBlobConvolution<24>::getWideBatchProcessSize
 }
 
 template<>
-inline void CBlobConvolution<24>::CCode::fillBatchProcessingKernel( CBlobConvolution<24>& bc, bool useNarrowProcessing, int windowIndex,
-																	Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr )
+inline void CBlobConvolution<24>::CCode::fillBatchProcessingKernel( CBlobConvolution<24>& bc, bool useNarrowProcessing, int windowIndex )
 {
 }
 
 template<>
-inline void CBlobConvolution<24>::CCode::fillSingleProcessingKernel( CBlobConvolution<24>& bc, bool useNarrowProcessing, int windowIndex,
-																	 Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr )
+inline void CBlobConvolution<24>::CCode::fillSingleProcessingKernel( CBlobConvolution<24>& bc, bool useNarrowProcessing, int windowIndex )
 {
 }
 

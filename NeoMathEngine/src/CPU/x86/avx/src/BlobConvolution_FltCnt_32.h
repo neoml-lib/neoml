@@ -27,14 +27,9 @@ inline CBlobConvolution<32>::CSize CBlobConvolution<32>::getWideBatchProcessSize
 }
 
 template<>
-inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int windowIndex,
-                                                                    Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr )
+inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int windowIndex )
 {
     using namespace Xbyak;
-
-    Reg64 regTempSrcPtr =  util::r10;
-    Reg64 regTempFltPtr =  util::r11;
-    Reg64 regChCnt =  util::rax;
 
     Label labelFillBatchProcessingKernelEnd;
     Label labelBatchProcessingKernel, labelBatchProcessingKernelStart, labelBatchProcessingKernelEnd;
@@ -45,7 +40,7 @@ inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolu
 	Ymm st[2] = { ymm8, ymm9 };
 	Ymm f[4] = { ymm10, ymm11, ymm12, ymm13 };
 
-	initResRegs( &res[0][0], bc.freeTerm, rowNum, colNum );
+	initResRegs( &res[0][0], rowNum, colNum );
 
 	auto srcIt = bc.SrcPixelsOffset[windowIndex].cbegin();
 	auto fltIt = bc.FltPixelsOffset[windowIndex].cbegin();
@@ -107,14 +102,9 @@ inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolu
 }
 
 template<>
-inline void CBlobConvolution<32>::CCode::fillSingleProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int windowIndex,
-																	 Xbyak::Reg64 regSrcPtr, Xbyak::Reg64 regFltPtr, Xbyak::Reg64 regResPtr )
+inline void CBlobConvolution<32>::CCode::fillSingleProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int windowIndex )
 {
-	using namespace Xbyak;
-
-    Reg64 regTempSrcPtr =  util::r10;
-    Reg64 regTempFltPtr =  util::r11;
-    Reg64 regChCnt =  util::rax;
+    using namespace Xbyak;
 
     Label labelFillSingleProcessingKernelEnd;
     Label labelSingleProcessingKernel, labelSingleProcessingKernelStart, labelSingleProcessingKernelEnd;
@@ -127,7 +117,7 @@ inline void CBlobConvolution<32>::CCode::fillSingleProcessingKernel( CBlobConvol
 	Xmm st0_toXmm = xmm5;
 	Ymm f[4] = { ymm6, ymm7, ymm8, ymm9 };
 
-	initResRegs( &res[0], bc.freeTerm, rowNum, colNum );
+	initResRegs( &res[0], rowNum, colNum );
 
 	auto srcIt = bc.SrcPixelsOffset[windowIndex].cbegin();
 	auto fltIt = bc.FltPixelsOffset[windowIndex].cbegin();
