@@ -73,6 +73,7 @@ pybind11_add_module(PythonWrapper
     src/PyMultichannelLookupLayer.cpp
     src/PyMultiheadAttentionLayer.cpp
     src/PyObjectNormalizationLayer.cpp
+    src/PyPCA.cpp
     src/PyPoolingLayer.cpp
     src/PyPositionalEmbeddingLayer.cpp
     src/PyPrecisionRecallLayer.cpp

@@ -2437,3 +2437,22 @@ class ClusteringTestCase(MultithreadedTestCase):
 
     def test_kmeans(self):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
+
+class TestPca(MultithreadedTestCase):
+    def test_pca(self):
+        n_samples, n_components = 1000, 2
+        X = np.empty((2 *  n_samples, 4), dtype=np.float32)
+        a, b = 3., 2.
+        for i in range(n_samples):
+            x = -a + 2 * i * a / n_samples;
+            y = np.sqrt(1 - (x * x) / (a * a)) * b
+            X[2 * i] = [x, y, 1, 0]
+            X[2 * i + 1] = [x, -y, 1, 0]
+        pca = neoml.PCA.PCA(2)
+        transformedX = pca.fit_transform(X)
+        self.assertEqual( pca.components.tolist(), [[-1, 0, 0, 0], [0, 1, 0, 0]] )
+        self.assertEqual( pca.singular_values.size, 2 )
+        self.assertEqual( pca.explained_variance.size, 2 )
+        self.assertEqual( pca.explained_variance_ratio.size, 2 )
+        self.assertTrue( pca.n_components == 2 )
+        self.assertTrue( pca.noise_variance == 0 )

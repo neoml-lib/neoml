@@ -72,9 +72,7 @@ public:
 	// Matrix ( components x features ) with rows corresponding to the selected principal axis 
 	CFloatMatrixDesc GetComponents() { return componentsMatrix.GetDesc(); }
 
-private:
-	const CParams params;
-
+protected:
 	CArray<float> singularValues;
 	CArray<float> explainedVariance;
 	CArray<float> explainedVarianceRatio;
@@ -82,6 +80,9 @@ private:
 	CSparseFloatMatrix transformedMatrix;
 	float noiseVariance;
 	int components;
+
+private:
+	const CParams params;
 
 	void train( const CFloatMatrixDesc& data, bool isTransform );
 	void calculateVariance(  IMathEngine& mathEngine, const CFloatHandle& s, int m, int k );

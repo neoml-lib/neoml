@@ -177,7 +177,7 @@ void CPca::train( const CFloatMatrixDesc& data, bool isTransform )
 
 	singularValues.SetSize( components );
 	s->CopyTo( singularValues.GetPtr(), components );
-	componentsMatrix = CSparseFloatMatrix( components, n, components * n );
+	componentsMatrix = CSparseFloatMatrix( components, n );
 	blobToMatrix( vt, componentsMatrix, components, n, n );
 
 	if( isTransform ) {
@@ -192,7 +192,7 @@ void CPca::Train( const CFloatMatrixDesc& data )
 	train( data, false );
 }
 
-CSparseFloatMatrixDesc CPca::Transform( const CFloatMatrixDesc& data )
+CFloatMatrixDesc CPca::Transform( const CFloatMatrixDesc& data )
 {
 	train( data, true );
 	return transformedMatrix.GetDesc();
