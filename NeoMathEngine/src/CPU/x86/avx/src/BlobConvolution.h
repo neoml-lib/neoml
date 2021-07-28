@@ -24,6 +24,9 @@ limitations under the License.
 
 #include <xbyak/xbyak.h>
 
+#define JIT_DEBUG
+#include <JitDebug.h>
+
 namespace NeoML {
 
 using reg64_t = Xbyak::Reg64;
@@ -340,6 +343,11 @@ template<int FltCnt>
 void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
 {
+	CJitDebug jitDebug( FltCnt, ChCnt, FltH, FltW,
+						PaddingH, PaddingW, StrideH, StrideW,
+						DilationH, DilationW, ResH, ResW );
+	jitDebug.StartProcess();
+
 	CFloatHandleStackVar filterTempBuffer( *mathEngine, FltW * FltH * FltCntM8 * ChCnt );
 	CFloatHandleStackVar freeTermTempBuffer( *mathEngine, FltCntM8 );
 
@@ -348,12 +356,21 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 	flt = rearrangeFilter( filterData, filterTempBuffer ) + ( FltW * FltH ) / 2 * ChCnt * FltCntM8;
 	freeTerm = rearrangeFreeTerm( freeTermData, freeTermTempBuffer );
 	res = resultData;
+	jitDebug.StopProcess();
 
 	if( UseJit && !jitIsInited ) {
+		jitDebug.StartPrepare();
 		initJitCodes();
 		jitIsInited = true;
+		jitDebug.StopPrepare();
+		size_t codeSize = 0;
+		for( auto& jitCode : jitCodes ) {
+			codeSize += jitCode->getSize();
+		}
+		jitDebug.SetCodeSize( codeSize );
 	}
 
+	jitDebug.StartProcess();
 	const int SrcObjSize = SrcW * SrcH * ChCnt;
 	const int ResObjSize = ResW * ResH * FltCnt;
 	const int ResRowCount = ResObjCnt * ResH;
@@ -418,6 +435,7 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 			}
 		}
 	}
+	jitDebug.StopProcess();
 }
 
 template<int FltCnt>
