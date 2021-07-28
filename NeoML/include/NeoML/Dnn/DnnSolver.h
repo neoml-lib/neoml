@@ -213,6 +213,9 @@ public:
 	// Turns AMSGrad mode on. May be called only before training starts.
 	void EnableAmsGrad( bool enable );
 
+	bool IsDecoupledWeightDecay() const { return isDecoupledWeightDecay; }
+	void EnableDecoupledWeightDecay( bool enable );
+
 	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
 protected:
@@ -254,6 +257,8 @@ private:
 	float epsilon;
 	// Indicates if AMSGrad is used
 	bool isAmsGradEnabled;
+	// Perform weight decay after calculating the moving averages
+	bool isDecoupledWeightDecay;
 
 	// Backward compatibility mode
 	bool isInCompatibilityMode;
@@ -275,6 +280,9 @@ private:
 	CPtr<CDnnBlob> tempVariables;
 
 	CPtr<CDnnBlob> temporaryBlob;
+
+	// Add regularization
+	CDnnBlob* addRegularization( CDnnBlob* diffBlob, CDnnBlob* params, float regL1, float regL2 );
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
