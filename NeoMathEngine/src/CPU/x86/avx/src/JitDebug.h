@@ -157,7 +157,9 @@ class CJitDebugHolder {
 public:
     CJitDebugHolder() {}
     ~CJitDebugHolder() {
+#ifdef JIT_DEBUG
         CJitDebug::PrintResult();
+#endif
     }
 };
 

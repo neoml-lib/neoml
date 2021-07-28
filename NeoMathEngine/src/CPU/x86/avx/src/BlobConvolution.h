@@ -24,7 +24,7 @@ limitations under the License.
 
 #include <xbyak/xbyak.h>
 
-#define JIT_DEBUG
+//#define JIT_DEBUG
 #include <JitDebug.h>
 
 namespace NeoML {
@@ -92,6 +92,7 @@ private:
 
 		void Run(  bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr );
 
+		static constexpr unsigned int SizeOfYmm = 8 * sizeof( float );
 	private:
 		// Used in main loop
 
@@ -124,7 +125,10 @@ private:
         // Initialize result registers with data from freeTerm (if it isn't nullptr)
         void initResRegs( Xbyak::Ymm* res, int rowNum, int colNum );
         // Flush result registers
-        void flushResRegs( Xbyak::Ymm* res, reg64_t regResPtr, int rowNum, int colNum  );
+        void flushResRegs( Xbyak::Ymm* res, int rowNum, int colNum  );
+        void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, int rowNum, int colNum,
+                                     Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
+                                     int windowIndex );
     };
 
 	IMathEngine* mathEngine;
@@ -845,7 +849,7 @@ inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, int r
 	jz( labelFillWithZeroes );
 	// Init first row of registers
 	for( int c = 0; c < colNum; c++ ) {
-		vmovups( res[c], ptr[regFreeTermPtr + static_cast<int>( 8 * sizeof( float ) ) * c ] );
+		vmovups( res[c], ptr[regFreeTermPtr + SizeOfYmm * c ] );
 	}
 	// Duplicate first row into another rows
 	int destIdx = colNum;
@@ -866,13 +870,36 @@ inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, int r
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CCode::flushResRegs( Xbyak::Ymm* res, reg64_t regResPtr, int rowNum, int colNum  )
+inline void CBlobConvolution<FltCnt>::CCode::flushResRegs( Xbyak::Ymm* res, int rowNum, int colNum  )
 {
 	int offsetDisp = 0;
 	for( int i = 0; i < rowNum * colNum; i++ ) {
 		vmovups( ptr[regResPtr + offsetDisp], res[i] );
-		offsetDisp += 8 * sizeof( float );
+		offsetDisp += SizeOfYmm;
 	}
+}
+
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::CCode::initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, int rowNum, int colNum,
+																	 Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
+																	 int windowIndex )
+{
+	initResRegs( res, rowNum, colNum );
+
+	auto srcIt = bc.SrcPixelsOffset[windowIndex].cbegin();
+	auto fltIt = bc.FltPixelsOffset[windowIndex].cbegin();
+
+	for( ; srcIt != bc.SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
+		lea( regTempSrcPtr, ptr[regSrcPtr + *srcIt * sizeof( float )] );
+		lea( regTempFltPtr, ptr[regFltPtr + *fltIt * sizeof( float )] );
+		call( labelKernel );
+	}
+
+	flushResRegs( res, rowNum, colNum );
+
+
+	// return from function
+	jmp( labelEndOfProcessingFunction, T_NEAR );
 }
 
 } // namespace NeoML
