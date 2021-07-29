@@ -21,17 +21,17 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-// Возвращает коэффициент нейрона с одним входом и выходом.
+// Returns coefficient of neuron with one in and one out.
 static float getFcCoeff( const CFullyConnectedLayer* fcLayer )
 {
 	NeoAssert( fcLayer != 0 );
 	return fcLayer->GetWeightsData()->GetData().GetValue();
 }
 
-// Проверка на корректность сборки/изменения сети при включении режима накопления градиента
+// Check build/change correctness with gradient accumulation enabled
 TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 {
-	// Будем аппроксимировать синус.
+	// Sinus approximation.
 	const int DataCount = 10;
 	CArray<float> x, y;
 	for( int i = 0; i < DataCount; i++ ) {
@@ -40,7 +40,7 @@ TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 		y.Add( sinf(f) );
 	}
 
-	// Создаём слои.
+	// Layers creation
 	CPtr<CSourceLayer> xLayer = new CSourceLayer( MathEngine() );
 	xLayer->SetName( "xLayer" );
 	CPtr<CDnnBlob> xBlob = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, DataCount, 1 );
@@ -60,13 +60,13 @@ TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 	CPtr<CEuclideanLossLayer> lossLayer = new CEuclideanLossLayer( MathEngine() );
 	CPtr<CSinkLayer> sinkLayer = new CSinkLayer( MathEngine() );
 
-	// Солвер обучает раз в два шага и оптимизирует только лосс
-	// (регуляризацию выключаем).
+	// Solver trains once in two steps and optimizes only loss
+	// (regularization disabled).
 	CPtr<CDnnSolver> solver = new NeoML::CDnnAdaptiveGradientSolver( MathEngine() );
 	solver->SetL1Regularization(0);
 	solver->SetL2Regularization(0);
 
-	// Собираем сеть.
+	// Create network.
 	NeoML::CRandom random( 43 );
 	NeoML::CDnn dnn( random, MathEngine() );
 	dnn.AddLayer( *xLayer );
@@ -79,8 +79,8 @@ TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 	dnn.SetSolver( solver );
 	EXPECT_TRUE( dnn.IsRebuildRequested() );
 
-	// Делаем несколько шагов, следим за солвером.
-	// Обучение должно быть в чётных циклах.
+	// Make steps with solver
+	// Training in even steps.
 
 	dnn.RunAndBackwardOnce();
 	const float c1 = getFcCoeff( fcLayer );
@@ -95,13 +95,13 @@ TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 	const float c3 = getFcCoeff( fcLayer );
 	EXPECT_EQ( c2, c3 );
 
-	// Явно обучим вне очереди.
+	// Solver training.
 	solver->Train();
 	const float c3a = getFcCoeff( fcLayer );
 	EXPECT_NE( c3, c3a );
 	EXPECT_FALSE( dnn.IsRebuildRequested() );
 
-	// Продолжим, циклы обучения должны стать нечётными.
+	// Continue, make even training steps.
 	dnn.RunAndBackwardOnce();
 	const float c4 = getFcCoeff( fcLayer );
 	EXPECT_EQ( c3a, c4 );
@@ -115,12 +115,12 @@ TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 	const float c6 = getFcCoeff( fcLayer );
 	EXPECT_EQ( c5, c6 );
 
-	// Добавляем слой.
+	// Add layer
 	dnn.AddLayer( *sinkLayer );
 	sinkLayer->Connect( *fcLayer );
 	EXPECT_TRUE( dnn.IsRebuildRequested() );
 
-	// Проверяем, что словер заресетился.
+	// Check that solver has been reset.
 	dnn.RunAndBackwardOnce();
 	const float d1 = getFcCoeff( fcLayer );
 	EXPECT_EQ( c6, d1 );
@@ -135,12 +135,12 @@ TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 	const float d3 = getFcCoeff( fcLayer );
 	EXPECT_EQ( d2, d3 );
 
-	// Удаляем слои потерь и меток.
+	// Delete loss and target layers.
 	dnn.DeleteLayer( *lossLayer );
 	dnn.DeleteLayer( *yLayer );
 	EXPECT_TRUE( dnn.IsRebuildRequested() );
 
-	// Проверяем, что словер заресетился и начал работать вхолостую.
+	// Check that solver has been reset and has no impact.
 	dnn.RunAndBackwardOnce();
 	const float e1 = getFcCoeff( fcLayer );
 	EXPECT_EQ( d3, e1 );
@@ -150,8 +150,7 @@ TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 	EXPECT_EQ( e1, e2 );
 }
 
-// Проверка на наличие неиинициализированных полей.
-// Был баг, который проявляется только если в неинициализированном поле типа int оказывалась единица.
+// Check for uninitialized fields.
 template<class T>
 static void uninitializedFieldTestImpl( IMathEngine& mathEngine, int fill )
 {
@@ -160,7 +159,7 @@ static void uninitializedFieldTestImpl( IMathEngine& mathEngine, int fill )
 	buff.Add( fill, requiredArraySize );
 	
 	T* solver = reinterpret_cast<T*>( buff.GetPtr() );
-	// используем placement new в буфер, заранее наполненный необходимыми значениями.
+	// placement new in buffer already filled with correct values.
 	CPtr<CDnnSolver> solverPtr = new ( solver ) T( mathEngine );
 
 	CObjectArray<CDnnBlob> param;
@@ -188,8 +187,7 @@ static void uninitializedFieldTestImpl( IMathEngine& mathEngine, int fill )
 	solver->Train();
 
 	dnn.SetSolver( nullptr );
-	solverPtr.Detach();
-	solver->~T();
+	solverPtr.Release();
 }
 
 TEST( CDnnSolverTest, UninitializedField )
@@ -207,7 +205,7 @@ TEST( CDnnSolverTest, UninitializedField )
 	uninitializedFieldTestImpl<CDnnNesterovGradientSolver>( MathEngine(), -1 );
 }
 
-// Маленькая сеть для проверки весов.
+// Net for weight check.
 class CWeightCheckNet {
 public:
 	CWeightCheckNet();
@@ -276,14 +274,10 @@ void testSolver( CDnnSolver* solver, const CArray<CArray<float>>& expected )
 		float loss = net.RunAndLearnOnce();
 		loss;
 		net.GetWeights( weights );
-		//printf("Loss: %f\n", loss);
 		ASSERT_EQ( expected[i].Size(), weights.Size() );
-		//printf( "\texpected[%d] = { ", i );
 		for( int j = 0; j < weights.Size(); ++j ) {
 			ASSERT_TRUE( FloatEq( expected[i][j], weights[j] ) );
-			//printf( "%f, ", weights[j] );
 		}
-		//printf( "\b\b };\n" );
 	}
 }
 
