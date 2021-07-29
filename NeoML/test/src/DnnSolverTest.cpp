@@ -150,61 +150,6 @@ TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 	EXPECT_EQ( e1, e2 );
 }
 
-// Check for uninitialized fields.
-template<class T>
-static void uninitializedFieldTestImpl( IMathEngine& mathEngine, int fill )
-{
-	const int requiredArraySize = ( sizeof( T ) + sizeof( int ) - 1 ) / sizeof( int );
-	CArray<int> buff;
-	buff.Add( fill, requiredArraySize );
-	
-	T* solver = reinterpret_cast<T*>( buff.GetPtr() );
-	// placement new in buffer already filled with correct values.
-	CPtr<CDnnSolver> solverPtr = new ( solver ) T( mathEngine );
-
-	CObjectArray<CDnnBlob> param;
-	param.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 123 ) );
-	param.Last()->Fill( 55 );
-	param.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 123 ) );
-	param.Last()->Fill( 55 );
-
-	CObjectArray<CDnnBlob> paramDiff;
-	paramDiff.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 123 ) );
-	paramDiff.Last()->Fill( -23 );
-	paramDiff.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 123 ) );
-	paramDiff.Last()->Fill( -23 );
-
-	CRandom random( 0x2345 );
-	CDnn dnn( random, mathEngine );
-
-	CPtr<CFullyConnectedLayer> layer = new CFullyConnectedLayer( MathEngine() );
-	layer->SetWeightsData( param[0] );
-	layer->SetFreeTermData( param[1] );
-	dnn.AddLayer( *layer );
-
-	dnn.SetSolver( solver );
-	solver->AddDiff( layer, paramDiff );
-	solver->Train();
-
-	dnn.SetSolver( nullptr );
-	solverPtr.Release();
-}
-
-TEST( CDnnSolverTest, UninitializedField )
-{
-	uninitializedFieldTestImpl<CDnnSimpleGradientSolver>( MathEngine(), 0 );
-	uninitializedFieldTestImpl<CDnnSimpleGradientSolver>( MathEngine(), 1 );
-	uninitializedFieldTestImpl<CDnnSimpleGradientSolver>( MathEngine(), -1 );
-
-	uninitializedFieldTestImpl<CDnnAdaptiveGradientSolver>( MathEngine(), 0 );
-	uninitializedFieldTestImpl<CDnnAdaptiveGradientSolver>( MathEngine(), 1 );
-	uninitializedFieldTestImpl<CDnnAdaptiveGradientSolver>( MathEngine(), -1 );
-	
-	uninitializedFieldTestImpl<CDnnNesterovGradientSolver>( MathEngine(), 0 );
-	uninitializedFieldTestImpl<CDnnNesterovGradientSolver>( MathEngine(), 1 );
-	uninitializedFieldTestImpl<CDnnNesterovGradientSolver>( MathEngine(), -1 );
-}
-
 // Net for weight check.
 class CWeightCheckNet {
 public:
