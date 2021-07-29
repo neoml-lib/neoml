@@ -32,6 +32,7 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
+	// axis value from attributes
 	int axisAttr;
 
 	void processDataTensors( const CDataTensor& data, const CDataTensor& indices, CTensorArray& outputs ) const;
