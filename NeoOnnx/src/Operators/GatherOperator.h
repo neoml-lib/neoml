@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2021 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,18 +15,27 @@ limitations under the License.
 
 #pragma once
 
-#include "../Operator.h"
+#include "../LayerOperator.h"
 
 namespace NeoOnnx {
 
 // Gather operator
-class CGatherOperator : public COperator {
+class CGatherOperator : public CLayerOperator {
 public:
 	CGatherOperator( const onnx::NodeProto& gather, int opsetVersion );
 
+protected:
 	// COperator methods
-	// At this moment this layer can't be emulated by NeoMl
 	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	int axisAttr;
+
+	void processDataTensors( const CDataTensor& data, const CDataTensor& indices, CTensorArray& outputs ) const;
+	void addLookupLayer( const CDataTensor& data, const CUserTensor& indices, CDnn& dnn, CTensorArray& outputs ) const;
 };
 
 } // namespace NeoOnnx
