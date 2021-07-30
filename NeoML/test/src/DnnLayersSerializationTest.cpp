@@ -438,7 +438,9 @@ GTEST_TEST( SerializeToFile, BaseSplitSerialization )
 	serializeToFile<CSplitDepthLayer>( "FmlCnnSplitDepthLayer" );
 	serializeToFile<CSplitWidthLayer>( "FmlCnnSplitWidthLayer" );
 	serializeToFile<CSplitHeightLayer>( "FmlCnnSplitHeightLayer" );
+	serializeToFile<CSplitListSizeLayer>( "NeoMLDnnSplitListSizeLayer" );
 	serializeToFile<CSplitBatchWidthLayer>( "FmlCnnSplitBatchWidthLayer" );
+	serializeToFile<CSplitBatchLengthLayer>( "NeoMLDnnSplitBatchLengthLayer" );
 }
 
 #endif // GENERATE_SERIALIZATION_FILES
@@ -460,7 +462,9 @@ GTEST_TEST( SerializeFromFile, BaseSplitSerialization )
 	checkSerializeLayer<CBaseSplitLayer>( "FmlCnnSplitDepthLayer" );
 	checkSerializeLayer<CBaseSplitLayer>( "FmlCnnSplitWidthLayer" );
 	checkSerializeLayer<CBaseSplitLayer>( "FmlCnnSplitHeightLayer" );
+	checkSerializeLayer<CBaseSplitLayer>( "NeoMLDnnSplitListSizeLayer" );
 	checkSerializeLayer<CBaseSplitLayer>( "FmlCnnSplitBatchWidthLayer" );
+	checkSerializeLayer<CBaseSplitLayer>( "NeoMLDnnSplitBatchLengthLayer" );
 }
 
 // ====================================================================================================================
