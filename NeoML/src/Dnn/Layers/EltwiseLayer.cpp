@@ -262,4 +262,44 @@ CLayerWrapper<CEltwiseMaxLayer> Max()
 	return CLayerWrapper<CEltwiseMaxLayer>( "Max" );
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void CEltwiseDivLayer::Reshape()
+{
+	// This layer must have 2 inputs
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "EltwiseDiv layer must have 2 inputs" );
+	CEltwiseBaseLayer::Reshape();
+}
+
+void CEltwiseDivLayer::RunOnce()
+{
+	MathEngine().VectorEltwiseDivide( inputBlobs[0]->GetData(), inputBlobs[1]->GetData(),
+		outputBlobs[0]->GetData(), inputBlobs[0]->GetDataSize() );
+}
+
+void CEltwiseDivLayer::BackwardOnce()
+{
+	const int dataSize = inputBlobs[0]->GetDataSize();
+	MathEngine().VectorEltwiseDivide( outputDiffBlobs[0]->GetData(), inputBlobs[1]->GetData(),
+		inputDiffBlobs[0]->GetData(), dataSize );
+	MathEngine().VectorEltwiseNegMultiply( outputBlobs[0]->GetData(), outputDiffBlobs[1]->GetData(),
+		inputDiffBlobs[1]->GetData(), dataSize );
+	MathEngine().VectorEltwiseDivide( inputDiffBlobs[1]->GetData(), inputBlobs[1]->GetData(),
+		inputDiffBlobs[1]->GetData(), dataSize );
+}
+
+static const int EltwiseDivLayerVersion = 0;
+
+void CEltwiseDivLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( EltwiseDivLayerVersion );
+	CEltwiseBaseLayer::Serialize( archive );
+}
+
+CLayerWrapper<CEltwiseDivLayer> Div()
+{
+	return CLayerWrapper<CEltwiseDivLayer>( "Div" );
+}
+
 }

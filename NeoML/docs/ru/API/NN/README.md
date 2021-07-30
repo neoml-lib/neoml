@@ -242,6 +242,7 @@ delete gpuMathEngine;
 - Поэлементные операции над блобами:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - поэлементная сумма блобов
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - поэлементное произведение блобов
+  - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - поэлементное деление блобов
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - поэлементный максимум блобов
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) - поэлементное произведение разности `1` и элементов первого блоба с элементами остальных блобов
 - Вспомогательные операции:

@@ -111,4 +111,22 @@ private:
 
 NEOML_API CLayerWrapper<CEltwiseMaxLayer> Max();
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// CEltwiseDivLayer implements a layer that divides first input by the second input element by element
+class NEOML_API CEltwiseDivLayer : public CEltwiseBaseLayer {
+	NEOML_DNN_LAYER( CEltwiseDivLayer )
+public:
+	explicit CEltwiseDivLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine, "CEltwiseDivLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+};
+
+NEOML_API CLayerWrapper<CEltwiseDivLayer> Div();
+
 } // namespace NeoML
