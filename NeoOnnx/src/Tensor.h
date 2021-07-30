@@ -133,6 +133,7 @@ inline CUserTensor::CUserTensor( const CTensorShape& shape, const CTensorLayout&
 	layerOutput( output )
 {
 	NeoPresume( output.Layer != nullptr );
+	NeoPresume( output.Layer->GetDnn() != nullptr );
 	NeoPresume( output.OutputIndex >= 0 );
 }
 
