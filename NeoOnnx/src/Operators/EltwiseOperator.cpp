@@ -158,6 +158,7 @@ void CSubOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 		linear->SetMultiplier( -1 );
 		linear->SetFreeTerm( 0 );
 		linear->Connect( 0, *secondInput->Layer(), secondInput->OutputIndex() );
+		dnn.AddLayer( *linear );
 		convertedInputs[1] = new CUserTensor( secondInput->Shape(), secondInput->Layout(), CLayerOutput( linear, 0 ) );
 	}
 
@@ -177,21 +178,8 @@ void CMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 
 void CDivOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CTensorArray convertedInputs;
-	inputs.CopyTo( convertedInputs );
-
-	// a / b = a * (1 / b)
-	// In that case it's impossible to imitate (1 / x) operation via layer
-	// That's why only CDataTensor is supported
-	CheckOnnxProtocol( inputs[1] != nullptr, "input isn't connected", *this );
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "Div supports only data tensor as a second input", *this );
-	CPtr<const CDataTensor> secondInput = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
-	CPtr<CDnnBlob> newBlob = secondInput->Data()->GetClone();
-	newBlob->GetMathEngine().VectorInv( secondInput->Data()->GetData(), newBlob->GetData(), newBlob->GetDataSize() );
-	convertedInputs[1] = new CDataTensor( secondInput->Shape(), secondInput->Layout(), *newBlob );
-
-	CPtr<CBaseLayer> layer( new CEltwiseMulLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), convertedInputs, *layer, dnn, outputs );
+	CPtr<CBaseLayer> layer( new CEltwiseDivLayer( dnn.GetMathEngine() ) );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
