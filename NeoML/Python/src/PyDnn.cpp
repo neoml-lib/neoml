@@ -71,6 +71,7 @@ REGISTER_NEOML_PYLAYER_EX( "Split", "SplitBatchWidth", "FmlCnnSplitBatchWidthLay
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitBatchLength", "NeoMLDnnSplitBatchLengthLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseSum", "FmlCnnEltwiseSumLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseMul", "FmlCnnEltwiseMulLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseDiv", "NeoMLDnnEltwiseDivLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseNegMul", "FmlCnnEltwiseNegMulLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseMax", "FmlCnnEltwiseMaxLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Activation", "LinearLayer", "FmlCnnLinearLayer")

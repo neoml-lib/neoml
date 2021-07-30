@@ -1260,6 +1260,9 @@ class LayersTestCase(MultithreadedTestCase):
     def test_eltwise_mul(self):
         self._test_eltwise('EltwiseMul', lambda x: (x == 6).all())
 
+    def test_eltwise_div(self):
+        self._test_eltwise('EltwiseDiv', lambda x: (x == 1.5).all())
+
     def test_eltwise_negmul(self):
         self._test_eltwise('EltwiseNegMul', lambda x: (x == -4).all())
 

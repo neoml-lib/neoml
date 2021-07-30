@@ -83,6 +83,38 @@ class EltwiseMul(Layer):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
+class EltwiseDiv(Layer):
+    """The layer that divides its inputs element by element.
+
+    :param input_layers: The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer should have two inputs of the same size.
+    
+    .. rubric:: Layer outputs:
+
+    The layer has one output of the same size as the inputs.
+    """
+    def __init__(self, input_layers, name=None):
+
+        if type(input_layers) is PythonWrapper.EltwiseDiv:
+            super().__init__(input_layers)
+            return
+
+        layers, outputs = check_input_layers(input_layers, 0)
+
+        internal = PythonWrapper.EltwiseDiv(str(name), layers, outputs)
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 class EltwiseNegMul(Layer):
     """The layer that that calculates the element-wise product of `1 - x`,
     where `x` is the element of the first input, 
