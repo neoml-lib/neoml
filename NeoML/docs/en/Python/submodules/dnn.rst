@@ -508,6 +508,12 @@ EltwiseMul
 .. autoclass:: neoml.Dnn.EltwiseMul
    :members:
 
+EltwiseDiv
+==========
+
+.. autoclass:: neoml.Dnn.EltwiseDiv
+   :members:
+
 EltwiseNegMul
 =============
 
