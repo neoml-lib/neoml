@@ -24,18 +24,45 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Creates split layer along given dimension
+static CPtr<CBaseSplitLayer> createSplitLayer( IMathEngine& mathEngine, TBlobDim dim )
+{
+	switch( dim ) {
+		case BD_BatchLength:
+			return new CSplitBatchLengthLayer( mathEngine );
+		case BD_BatchWidth:
+			return new CSplitBatchWidthLayer( mathEngine );
+		case BD_ListSize:
+			return new CSplitListSizeLayer( mathEngine );
+		case BD_Height:
+			return new CSplitHeightLayer( mathEngine );
+		case BD_Width:
+			return new CSplitWidthLayer( mathEngine );
+		case BD_Depth:
+			return new CSplitDepthLayer( mathEngine );
+		case BD_Channels:
+			return new CSplitChannelsLayer( mathEngine );
+		default:
+			NeoAssert( false );
+	}
+	return nullptr;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CSliceOperator::CSliceOperator( const onnx::NodeProto& slice, int opsetVersion ) :
 	CLayerOperator( slice, opsetVersion )
 {
 	// v1 - original
-	// v10 - attributes replaced with additional inputs + 'step' support
-	// v11 - added backward slicing support
+	// v10 - attributes are replaced with additional inputs + 'step' support
+	// v11 - backward slicing support is added
+	// v13 - bloaf16 support is added
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 10 ) {
 		CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	} else {
-		CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+		CheckOnnxProtocol( InputCount() >= 3 && InputCount() <= 5, "operator must have from 3 up to 5 inputs", *this );
 	}
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
@@ -94,8 +121,8 @@ void CSliceOperator::getStarts( const CTensorArray& inputs, CFastArray<int, 8>& 
 		// Extracting from attributes
 		CheckOnnxProtocol( GetAttribute( "starts", starts ), "'starts' attribute is missing", *this );
 	} else {
-		CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided starts", *this );
-		const CDnnBlob* startsBlob = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data();
+		CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided starts", *this );
+		const CDnnBlob* startsBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
 		CheckOnnxProtocol( startsBlob->GetDataType() == CT_Int, "Non-integer starts", *this );
 		starts.SetSize( startsBlob->GetDataSize() );
 		startsBlob->CopyTo( starts.GetPtr() );
@@ -109,8 +136,8 @@ void CSliceOperator::getEnds( const CTensorArray& inputs, CFastArray<int, 8>& en
 		// Extracting from attributes
 		CheckOnnxProtocol( GetAttribute( "ends", ends ), "'ends' attribute is missing", *this );
 	} else {
-		CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided ends", *this );
-		const CDnnBlob* endsBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
+		CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided ends", *this );
+		const CDnnBlob* endsBlob = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data();
 		CheckOnnxProtocol( endsBlob->GetDataType() == CT_Int, "Non-integer ends", *this );
 		ends.SetSize( endsBlob->GetDataSize() );
 		endsBlob->CopyTo( ends.GetPtr() );
@@ -142,59 +169,67 @@ void CSliceOperator::getSteps( const CTensorArray& inputs, CFastArray<int, 8>& s
 // Adds slice along one axis
 CPtr<const CUserTensor> CSliceOperator::sliceAxis( const CUserTensor& input, int axis, int start, int end, int step ) const
 {
-	CheckNeoOnnxSupport( step == 1 || step == -1, "Slice with step", *this );
+	CheckNeoOnnxSupport( step == 1, "Slice with step", *this );
 
-	const CTensorShape& inputShape = input.Shape();
 	if( axis < 0 ) {
-		axis += inputShape.Size();
+		axis += input.DimCount();
 	}
+	CheckOnnxProtocol( axis >= 0 && axis < input.DimCount(), "invalid axis index", *this );
+	const int dimSize = input.Shape()[axis];
 	if( start < 0 ) {
-		start += inputShape[axis];
+		start += dimSize;
 	}
 	if( end < 0 ) {
-		end += inputShape[axis];
-	} else if( end > inputShape[axis] ) {
-		end = inputShape[axis];
+		end += dimSize;
+	} else if( end > dimSize ) {
+		end = dimSize;
 	}
 
 	NeoAssert( start < end );
 
-	CPtr<const CUserTensor> convertedInput = prepareInputForSlice( input, axis );
-	CTensorShape outputShape;
-	inputShape.CopyTo( outputShape );
-	outputShape[axis] = end - start;
-
-	CDnn& dnn = *convertedInput->Layer()->GetDnn();
-	CPtr<CSubSequenceLayer> subseq = new CSubSequenceLayer( dnn.GetMathEngine() );
-	subseq->SetName( Name() + "_" + Str( axis ) );
-	subseq->SetStartPos( start );
-	subseq->SetLength( end - start );
-	if( step == -1 ) {
-		subseq->SetReverse();
-	}
-	subseq->Connect( 0, *convertedInput->Layer(), convertedInput->OutputIndex() );
-	dnn.AddLayer( *subseq );
-
-	return new CUserTensor( outputShape, convertedInput->Layout(), CLayerOutput( subseq, 0 ) );
-}
-
-// Prepares input tensor for slice
-CPtr<const CUserTensor> CSliceOperator::prepareInputForSlice( const CUserTensor& input, int axis ) const
-{
-	TBlobDim currDim = input.Layout()[axis];
-
-	if( currDim == BD_BatchLength ) {
+	if( start == 0 && end == dimSize) {
+		// No need to split
 		return &input;
 	}
 
-	CTensorLayout outputLayout;
-	outputLayout.SetBufferSize( input.DimCount() );
-	for( int i = 0; i < input.DimCount(); ++i ) {
-		outputLayout.Add( static_cast<TBlobDim>( i ) );
-	}
-	swap( outputLayout[axis], outputLayout[0] );
+	CDnn& dnn = *input.Layer()->GetDnn();
+	CPtr<CBaseSplitLayer> split = createSplitLayer( dnn.GetMathEngine(), input.Layout()[axis] );
+	split->SetName( Name() + "_" + Str( axis ) );
+	int outputIndex = 0;
 
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, outputLayout ).Ptr() );
+	if( start == 0 ) {
+		NeoAssert( end != dimSize );
+		split->SetOutputCounts2( end );
+	} else if( end == dimSize ) {
+		split->SetOutputCounts2( start );
+	} else {
+		split->SetOutputCounts3( start, end );
+	}
+
+	if( start != 0 ) {
+		outputIndex = 1;
+		// We have to add sink for the first part
+		CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
+		sink->SetName( Name() + "_sink" + Str( dnn.GetLayerCount() ) );
+		sink->Connect( *split );
+		dnn.AddLayer( *sink );
+	}
+
+	if( end != dimSize ) {
+		// We have to add sink for the remaining part
+		CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
+		sink->SetName( Name() + "_sink" + Str( dnn.GetLayerCount() ) );
+		sink->Connect( 0, *split, outputIndex + 1 );
+		dnn.AddLayer( *sink );
+	}
+
+	split->Connect( 0, *input.Layer(), input.OutputIndex() );
+	dnn.AddLayer( *split );
+	
+	CTensorShape outputShape;
+	input.Shape().CopyTo( outputShape );
+	outputShape[axis] = end - start;
+	return new CUserTensor( outputShape, input.Layout(), CLayerOutput( split, outputIndex ) );
 }
 
 } // namespace NeoOnnx
