@@ -44,19 +44,12 @@ void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	NeoAssert( !inputs[0]->IsCalculated() );
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided second input", *this );
 
-	CheckNeoOnnxSupport( inputs[0]->DimCount() == 2, "3+ dimensional first input", *this );
-	CheckNeoOnnxSupport( inputs[1]->DimCount() == 2, "3+ dimensional second input", *this );
+	CPtr<const CDataTensor> weight = dynamic_cast<const CDataTensor*>( prepareTensor( *inputs[1], false ).Ptr() );
+	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( prepareTensor( *inputs[0], true ).Ptr() );
 
-	const int batchSize = inputs[0]->Shape()[0];
-	const int inputElems = inputs[0]->Shape()[1];
-	const int outputElems = inputs[1]->Shape()[1];
-
-	CTensorShape outputShape( { batchSize, outputElems } );
-	CTensorLayout layout( { BD_BatchWidth, BD_Channels } );
-
-	// We need to convert weight to correct pack
-	CPtr<const CDataTensor> weight = dynamic_cast<const CDataTensor*>( prepareTensor( *inputs[1] ).Ptr() );
-	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( prepareTensor( *inputs[0] ).Ptr() );
+	const int batchSize = input->Shape()[0];
+	const int inputElems = input->Shape()[1];
+	const int outputElems = weight->Shape()[1];
 
 	CPtr<CDnnBlob> weightBlob = CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), CT_Float, 1, outputElems, inputElems );
 	weightBlob->TransposeFrom( weight->Data(), weight->Layout()[0], weight->Layout()[1] );
@@ -69,19 +62,76 @@ void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	fc->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *fc );
 
-	outputs.Add( new CUserTensor( outputShape, layout, CLayerOutput( fc, 0 ) ) );
+	// Prepend 1's to the shape if inputs had more than 2 dimensions
+	CTensorShape outputShape;
+	outputShape.Add( 1, max( 2, max( inputs[0]->DimCount(), inputs[1]->DimCount() ) ) - 2 );
+	outputShape.Add( { batchSize, outputElems } );
+
+	// Prepend unused blob dimensions if inputs had more than 2 dimensions
+	CTensorLayout outputLayout = input->Layout();
+	for( TBlobDim dim = BD_BatchLength; dim < BD_Count && outputLayout.Size() < outputShape.Size(); ++dim ) {
+		if( outputLayout.Find( dim ) == NotFound ) {
+			outputLayout.InsertAt( dim, outputLayout.Size() - 2 );
+		}
+	}
+
+	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( fc, 0 ) ) );
 }
 
 // Prepares tensor for CFullyConnectedLayer
-CPtr<const CTensorBase> CMatMulOperator::prepareTensor( const CTensorBase& tensor ) const
+CPtr<const CTensorBase> CMatMulOperator::prepareTensor( const CTensorBase& tensor, bool isFirstArg ) const
 {
-	const CTensorLayout& inputLayout = tensor.Layout();
-	NeoAssert( inputLayout.Size() == 2 );
-	if( inputLayout[0] < BD_Height && inputLayout[1] >= BD_Height ) {
-		return &tensor;
+	CPtr<const CTensorBase> currTensor = &tensor;
+
+	if( currTensor->DimCount() == 1 ) {
+		CTensorLayout newLayout = currTensor->Layout();
+		CTensorShape newShape;
+		currTensor->Shape().CopyTo( newShape );
+
+		// If first argument is 1-dimensional, then 1 must be prepended to the dimensions
+		// If second aragument is 1-dimensional, then 1 must be appended to the dimensions
+		if( isFirstArg ) {
+			newShape.InsertAt( 1, 0 );
+			newLayout.InsertAt( newLayout[0] == BD_BatchLength ? BD_BatchWidth : BD_BatchLength, 0 );
+		} else {
+			newShape.Add( 1 );
+			newLayout.Add( newLayout[0] == BD_Channels ? BD_Depth : BD_Channels );
+		}
+
+		if( currTensor->IsCalculated() ) {
+			currTensor = new CDataTensor( newShape, newLayout, *dynamic_cast<const CDataTensor&>( *currTensor ).Data() );
+		} else {
+			currTensor = new CUserTensor( newShape, newLayout, dynamic_cast<const CUserTensor&>( *currTensor ).LayerOutput() );
+		}
 	}
 
-	return ConvertTensor( tensor, CTensorLayout( { BD_BatchWidth, BD_Channels } ) );
+	if( currTensor->DimCount() > 2 ) {
+		// N-dimensional tensor is treated like a stack of Dim_0 * ... * Dim_N-3 matrices of size Dim_N-2 x Dim_N-1
+		// But NeoOnnx supports only multiplicaiton of single matrices
+		const int dimCount = currTensor->DimCount();
+
+		// Check that every stack dimension is equal to 1
+		for( int i = 0; i < dimCount - 2; ++i ) {
+			CheckNeoOnnxSupport( currTensor->Shape()[i] == 1, "Non-trivial 2+-dimensional tensor", *this );
+		}
+
+		// Reinterpreting tensor as 2-dimensional
+		CTensorShape newShape( { currTensor->Shape()[dimCount - 2], currTensor->Shape()[dimCount - 1] } );
+		CTensorLayout newLayout( { currTensor->Layout()[dimCount - 2], currTensor->Layout()[dimCount - 1] } );
+		if( currTensor->IsCalculated() ) {
+			currTensor = new CDataTensor( newShape, newLayout, *dynamic_cast<const CDataTensor&>( *currTensor ).Data() );
+		} else {
+			currTensor = new CUserTensor( newShape, newLayout, dynamic_cast<const CUserTensor&>( *currTensor ).LayerOutput() );
+		}
+	}
+
+	NeoAssert( currTensor->DimCount() == 2 );
+	const CTensorLayout& tensorLayout = currTensor->Layout();
+	if( tensorLayout[0] < BD_Height && tensorLayout[1] >= BD_Height ) {
+		return currTensor;
+	}
+
+	return ConvertTensor( *currTensor, CTensorLayout( { BD_BatchWidth, BD_Channels } ) );
 }
 
 } // namespace NeoOnnx

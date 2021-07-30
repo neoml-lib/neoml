@@ -29,7 +29,7 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	CPtr<const CTensorBase> prepareTensor( const CTensorBase& tensor ) const;
+	CPtr<const CTensorBase> prepareTensor( const CTensorBase& tensor, bool isFirstArg ) const;
 };
 
 } // namespace NeoOnnx
