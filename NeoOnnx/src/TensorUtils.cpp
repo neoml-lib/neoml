@@ -109,7 +109,11 @@ static CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTens
 	}
 	IMathEngine& mathEngine = input.GetMathEngine();
 	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, input.GetDataType(), outputBlobDesc );
-	mathEngine.VectorCopy( result->GetData(), input.GetData(), input.GetDataSize() );
+	if( result->GetDataType() == CT_Float ) {
+		mathEngine.VectorCopy( result->GetData(), input.GetData(), input.GetDataSize() );
+	} else {
+		mathEngine.VectorCopy( result->GetData<int>(), input.GetData<int>(), input.GetDataSize() );
+	}
 	return result.Ptr();
 }
 
