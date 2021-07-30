@@ -88,18 +88,23 @@ void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	}
 
 	if( inputShape.Size() == 4 ) {
-		add2dConvLayer( inputs, dnn, outputs );
+		add2dConvLayer( inputs, false, dnn, outputs );
 	} else if( inputShape.Size() == 5 ) {
 		add3dConvLayer( inputs, dnn, outputs );
+	} else if ( inputShape.Size() == 3 ) {
+		add2dConvLayer( inputs, true, dnn, outputs );
 	} else {
-		CheckNeoOnnxSupport( false, "1-dimensional conv", *this );
+		CheckNeoOnnxSupport( false, "3+-dimensional convolution", *this );
 	}
 }
 
-// Adds 2-dimensional convolution
-void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+// Adds 2-dimensional convolution (also used for emulation of 1-dimensional convolution)
+void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, CDnn& dnn, CTensorArray& outputs ) const
 {
-	const CTensorLayout neoML2dLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
+	CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width }  );
+	if( is1dConv ) {
+		neoMLLayout.SetSize( 3 );
+	}
 
 	CTensorShape kernelShape;
 	getKernelShape( inputs, kernelShape );
@@ -122,7 +127,7 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	if( group == 1 ) {
 		// Non-groupped convolution can be calculated via CConvLayer
 		conv = new CConvLayer( mathEngine );
-		filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoML2dLayout ).Ptr() );
+		filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
 	} else {
 		// If number of groups is equal to number of channels then this conv can be calculated via CChannelwiseConvLayer
 		// Other cases of groupped convolution aren't supported by NeoML
@@ -130,22 +135,27 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 		CheckNeoOnnxSupport( group == inputChannels, "non-trivial groupped conv", *this );
 		conv = new CChannelwiseConvLayer( mathEngine );
 		// In channelwise convolution filter has specific layout
-		const CTensorLayout filterLayout( { BD_Channels, BD_BatchWidth, BD_Height, BD_Width } );
+		CTensorLayout filterLayout( { BD_Channels, BD_BatchWidth, BD_Height, BD_Width } );
+		if( is1dConv ) {
+			filterLayout.SetSize( 3 );
+		}
 		filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], filterLayout ).Ptr() );
 	}
 	
 	conv->SetName( Name() );
 	conv->SetFilterCount( filterCount );
 	conv->SetFilterHeight( kernelShape[0] );
-	conv->SetFilterWidth( kernelShape[1] );
+	conv->SetFilterWidth( is1dConv ? 1 : kernelShape[1] );
 	conv->SetStrideHeight( strides[0] );
-	conv->SetStrideWidth( strides[1] );
-	CPtr<const CUserTensor> currInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], neoML2dLayout ).Ptr() );
+	conv->SetStrideWidth( is1dConv ? 1 : strides[1] );
+	CPtr<const CUserTensor> currInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], neoMLLayout ).Ptr() );
 
-	if( pads[0] >= pads[2] && pads[1] >= pads[3] ) {
+	if( ( is1dConv && pads[0] >= pads[1] )
+		|| ( !is1dConv && pads[0] >= pads[2] && pads[1] >= pads[3] ) )
+	{
 		// This is a valid padding for a convolution in NeoML
 		conv->SetPaddingHeight( pads[0] );
-		conv->SetPaddingWidth( pads[1] );
+		conv->SetPaddingWidth( is1dConv ? 0 : pads[1] );
 	} else {
 		// In NeoML convolution doesn't support cases when bottom padding is larger than upper padding
 		// (the same goes for other spatial dimensions)
@@ -153,7 +163,7 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 		currInput = PadUserTensor( *currInput, pads, 0.f );
 	}
 	conv->SetDilationHeight( dilations[0] );
-	conv->SetDilationWidth( dilations[1] );
+	conv->SetDilationWidth( is1dConv ? 1 : dilations[1] );
 
 	conv->SetFilterData( filter->Data()->GetCopy() );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
@@ -165,7 +175,7 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	conv->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
 	dnn.AddLayer( *conv );
 
-	outputs.Add( new CUserTensor( outputShape, neoML2dLayout, CLayerOutput( conv, 0 ) ) );
+	outputs.Add( new CUserTensor( outputShape, neoMLLayout, CLayerOutput( conv, 0 ) ) );
 }
 
 // Adds 3-dimensional convolution

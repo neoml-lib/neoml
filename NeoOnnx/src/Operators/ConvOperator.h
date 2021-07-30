@@ -34,7 +34,7 @@ private:
 	// padding mode
 	CString autoPad;
 
-	void add2dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
+	void add2dConvLayer( const CTensorArray& inputs, bool is1dConv, CDnn& dnn, CTensorArray& outputs ) const;
 	void add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
 
 	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;
