@@ -79,9 +79,9 @@ CTensorLayout CSoftmaxOperator::getCompatibleLayout( int dimCount, int axis, con
 	compatibleLayout.SetBufferSize( dimCount );
 	for( int i = 0; i < dimCount; ++i ) {
 		if( i < axis ) {
-			compatibleLayout[i] = static_cast<TBlobDim>( i );
+			compatibleLayout.Add( static_cast<TBlobDim>( i ) );
 		} else {
-			compatibleLayout[i] = static_cast<TBlobDim>( BD_Height + i - axis );
+			compatibleLayout.Add( static_cast<TBlobDim>( BD_Height + i - axis ) );
 		}
 	}
 	return compatibleLayout;
