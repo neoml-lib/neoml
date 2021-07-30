@@ -419,11 +419,11 @@ void CDnnAdaptiveGradientSolver::EnableDecoupledWeightDecay( bool enable )
 	isDecoupledWeightDecay = enable;
 }
 
-static const int DnnAdaptiveGradientSolver = 0;
+static const int DnnAdaptiveGradientSolver = 1;
 
 void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 {
-	archive.SerializeVersion( DnnAdaptiveGradientSolver );
+	const int version = archive.SerializeVersion( DnnAdaptiveGradientSolver );
 	CDnnSolver::Serialize( archive, dnn );
 	archive.Serialize( momentDecayRate );
 	archive.Serialize( momentDecayRateN );
@@ -431,6 +431,11 @@ void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 	archive.Serialize( secondMomentDecayRateN );
 	archive.Serialize( epsilon );
 	archive.Serialize( isAmsGradEnabled );
+	if( version < DnnAdaptiveGradientSolver ) {
+		isDecoupledWeightDecay = false;
+	} else {
+		archive.Serialize( isDecoupledWeightDecay );
+	}
 	archive.Serialize( isInCompatibilityMode );
 }
 
