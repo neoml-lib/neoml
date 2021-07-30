@@ -24,6 +24,7 @@ class CRangeOperator : public COperator {
 public:
 	CRangeOperator( const onnx::NodeProto& range, int opsetVersion );
 
+protected:
 	// COperator methods
 	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };

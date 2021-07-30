@@ -24,6 +24,7 @@ class CIdentityOperator : public COperator {
 public:
 	CIdentityOperator( const onnx::NodeProto& identity, int opsetVersion );
 
+protected:
 	// COperator methods
 	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };

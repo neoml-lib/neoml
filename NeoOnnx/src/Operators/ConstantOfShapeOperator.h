@@ -24,6 +24,7 @@ class CConstantOfShapeOperator : public COperator {
 public:
 	CConstantOfShapeOperator( const onnx::NodeProto& constantOfShape, int opsetVersion );
 
+protected:
 	// COperator methods
 	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
