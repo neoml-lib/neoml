@@ -16,6 +16,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operator.cpp
     Operators/ActivationOperator.cpp
     Operators/BatchNormalizationOperator.cpp
+    Operators/CastOperator.cpp
     Operators/ConcatOperator.cpp
     Operators/ConstantOfShapeOperator.cpp
     Operators/ConstantOperator.cpp
@@ -54,6 +55,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operator.h
     Operators/ActivationOperator.h
     Operators/BatchNormalizationOperator.h
+    Operators/CastOperator.h
     Operators/ConcatOperator.h
     Operators/ConstantOfShapeOperator.h
     Operators/ConstantOperator.h
