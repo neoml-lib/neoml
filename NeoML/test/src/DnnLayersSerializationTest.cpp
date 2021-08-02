@@ -41,7 +41,7 @@ GTEST_TEST( LayerSerialization, CheckRegisteredLayers )
 	ignoredLayers.Add( "FmlCnnGlobalMainPoolingLayer" ); // It's an alternative name for CGlobalMeanPoolingLayer
 
 	CArray<const char*> layerClasses;
-	GetRegisteredLayerNames( layerClasses );
+	GetRegisteredLayerClasses( layerClasses );
 
 	for( int i = 0; i < layerClasses.Size(); ++i ) {
 		// skip ignored layers
@@ -108,7 +108,9 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CConcatDepthLayer>( "FmlCnnConcatDepthLayer" );
 	serializeToFile<CConcatHeightLayer>( "FmlCnnConcatHeightLayer" );
 	serializeToFile<CConcatWidthLayer>( "FmlCnnConcatWidthLayer" );
+	serializeToFile<CConcatBatchLengthLayer>( "FmlCnnConcatBatchLengthLayer" );
 	serializeToFile<CConcatBatchWidthLayer>( "FmlCnnConcatBatchWidthLayer" );
+	serializeToFile<CConcatListSizeLayer>( "FmlCnnConcatListSizeLayer" );
 	serializeToFile<CConcatObjectLayer>( "FmlCnnConcatObjectLayer" );
 	serializeToFile<CEltwiseSumLayer>( "FmlCnnEltwiseSumLayer" );
 	serializeToFile<CEltwiseMulLayer>( "FmlCnnEltwiseMulLayer" );
@@ -202,7 +204,9 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatDepthLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatHeightLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatWidthLayer" );
+	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatBatchLengthLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatBatchWidthLayer" );
+	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatListSizeLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatObjectLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseSumLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseMulLayer" );
@@ -2139,3 +2143,161 @@ GTEST_TEST( SerializeFromFile, IrnnLayerSerialization )
 {
 	checkSerializeLayer<CIrnnLayer>( "NeoMLDnnIrnnLayer" );
 }
+
+// ====================================================================================================================
+
+// CIndRnnRecurrentLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CIndRnnRecurrentLayer& layer )
+{
+	layer.SetReverseSequence( true );
+	layer.SetDropoutRate( 0.5f );
+}
+
+GTEST_TEST( SerializeToFile, IndRnnRecurrentLayerSerialization )
+{
+	serializeToFile<CIndRnnRecurrentLayer>( "NeoMLDnnIndRnnRecurrentLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CIndRnnRecurrentLayer>( CIndRnnRecurrentLayer& layer )
+{
+	EXPECT_EQ( true, layer.IsReverseSequence() );
+	EXPECT_NEAR( 0.5f, layer.GetDropoutRate(), 1e-6f );
+}
+
+GTEST_TEST( SerializeFromFile, IndRnnRecurrentLayerSerialization )
+{
+	checkSerializeLayer<CIndRnnRecurrentLayer>( "NeoMLDnnIndRnnRecurrentLayer" );
+}
+
+// ====================================================================================================================
+
+// CIndRnnLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CIndRnnLayer& layer )
+{
+	layer.SetHiddenSize( 3 );
+	layer.SetReverseSequence( true );
+	layer.SetDropoutRate( 0.25f );
+}
+
+GTEST_TEST( SerializeToFile, IndRnnLayerSerialization )
+{
+	serializeToFile<CIndRnnLayer>( "NeoMLDnnIndRnnLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CIndRnnLayer>( CIndRnnLayer& layer )
+{
+	EXPECT_EQ( 3, layer.GetHiddenSize() );
+	EXPECT_EQ( true, layer.IsReverseSequence() );
+	EXPECT_NEAR( 0.25f, layer.GetDropoutRate(), 1e-6f );
+}
+
+GTEST_TEST( SerializeFromFile, IndRnnLayerSerialization )
+{
+	checkSerializeLayer<CIndRnnLayer>( "NeoMLDnnIndRnnLayer" );
+}
+
+// ====================================================================================================================
+
+// CDepthToSpaceLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CDepthToSpaceLayer& layer )
+{
+	layer.SetBlockSize( 3 );
+}
+
+GTEST_TEST( SerializeToFile, DepthToSpaceLayerSerialization )
+{
+	serializeToFile<CDepthToSpaceLayer>( "NeoMLDnnDepthToSpaceLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CDepthToSpaceLayer>( CDepthToSpaceLayer& layer )
+{
+	EXPECT_EQ( 3, layer.GetBlockSize() );
+}
+
+GTEST_TEST( SerializeFromFile, DepthToSpaceLayerSerialization )
+{
+	checkSerializeLayer<CDepthToSpaceLayer>( "NeoMLDnnDepthToSpaceLayer" );
+}
+
+// ====================================================================================================================
+
+// CSpaceToDepthLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CSpaceToDepthLayer& layer )
+{
+	layer.SetBlockSize( 4 );
+}
+
+GTEST_TEST( SerializeToFile, SpaceToDepthLayerSerialization )
+{
+	serializeToFile<CSpaceToDepthLayer>( "NeoMLDnnSpaceToDepthLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CSpaceToDepthLayer>( CSpaceToDepthLayer& layer )
+{
+	EXPECT_EQ( 4, layer.GetBlockSize() );
+}
+
+GTEST_TEST( SerializeFromFile, SpaceToDepthLayerSerialization )
+{
+	checkSerializeLayer<CSpaceToDepthLayer>( "NeoMLDnnSpaceToDepthLayer" );
+}
+
+// ====================================================================================================================
+
+// CLrnLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CLrnLayer& layer )
+{
+	layer.SetWindowSize( 4 );
+	layer.SetBias( -1.f );
+	layer.SetAlpha( 0.4f );
+	layer.SetBeta( 0.25f );
+}
+
+GTEST_TEST( SerializeToFile, LrnLayerSerialization )
+{
+	serializeToFile<CLrnLayer>( "NeoMLDnnLrnLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CLrnLayer>( CLrnLayer& layer )
+{
+	EXPECT_EQ( 4, layer.GetWindowSize() );
+	EXPECT_NEAR( -1.f, layer.GetBias(), 1e-6f );
+	EXPECT_NEAR( 0.4f, layer.GetAlpha(), 1e-6f );
+	EXPECT_NEAR( 0.25f, layer.GetBeta(), 1e-6f );
+}
+
+GTEST_TEST( SerializeFromFile, LrnLayerSerialization )
+{
+	checkSerializeLayer<CLrnLayer>( "NeoMLDnnLrnLayer" );
+}
+

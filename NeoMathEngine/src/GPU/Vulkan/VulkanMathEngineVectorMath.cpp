@@ -202,6 +202,12 @@ void CVulkanMathEngine::VectorCopy(const CIntHandle& to, const CConstIntHandle& 
 	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer(), vulkanMemoryTo->Buffer(), region );
 }
 
+void CVulkanMathEngine::BroadcastCopy( const CFloatHandle& /*toHandle*/, const CConstFloatHandle& /*fromHandle*/,
+	const CBlobDesc& /*toDesc*/, const CBlobDesc& /*fromDesc*/, int /*additionalWidth*/ )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::VectorELU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 	int vectorSize, const CConstFloatHandle& alpha)
 {
@@ -834,6 +840,24 @@ void CVulkanMathEngine::VectorEltwiseNotNegative( const CConstIntHandle&, const 
 	ASSERT_EXPR( false );
 }
 
+void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle&, const CConstFloatHandle&,
+	const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle&, float,
+	const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseLess( float, const CConstFloatHandle&,
+	const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::VectorFindMaxValueInSet( const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
 	int vectorSize )
 {
@@ -920,6 +944,29 @@ void CVulkanMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int v
 	const CVulkanShaderData& shaderData = shaderLoader->GET_SHADER_DATA(VectorSum, true, 0, 0, 2);
 
 	runVectorShader(shaderData, &param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, shaderData.GetGroupSize());
+}
+
+void CVulkanMathEngine::VectorSumAlongDimension( const CConstFloatHandle&, int, int, int, const CFloatHandle& )
+{
+	ASSERT_EXPR(false);
+}
+
+void CVulkanMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
+	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/ )
+{
+	ASSERT_EXPR(false);
+}
+
+void CVulkanMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
+	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/ )
+{
+	ASSERT_EXPR(false);
+}
+
+void CVulkanMathEngine::VectorCumSumAlongDimensionDiag( const CConstFloatHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
+	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/ )
+{
+	ASSERT_EXPR(false);
 }
 
 void CVulkanMathEngine::VectorEqual(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,

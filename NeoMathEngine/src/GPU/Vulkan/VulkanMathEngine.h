@@ -84,9 +84,19 @@ public:
 	void FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold ) override;
 	void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) override;
 	void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) override;
+	void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) override;
 	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
+	void VectorSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle) override;
+	void VectorCumSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle) override;
+	void VectorSumAlongDimensionDiag(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle) override;
+	void VectorCumSumAlongDimensionDiag(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle) override;
 	void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorEqualValue( const CConstIntHandle& firstHandle,
@@ -219,6 +229,12 @@ public:
 	void VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize,
 		const CFloatHandle& resultHandle) override;
 	void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) override;
+	void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize ) override;
+	void VectorEltwiseLess( const CConstFloatHandle& firstHandle, float second,
+		const CFloatHandle& resultHandle, int vectorSize ) override;
+	void VectorEltwiseLess( float firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
 		int vectorSize) override;
 	void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
@@ -481,6 +497,14 @@ public:
 		const CBlobDesc& result, const CFloatHandle& resultData ) override;
 	void Reorg( const CBlobDesc& source, const CIntHandle& sourceData, int stride, bool isForward,
 		const CBlobDesc& result, const CIntHandle& resultData ) override;
+	void SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) override;
+	void SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) override;
+	void DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) override;
+	void DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) override;
 	void AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
 	void AddWidthIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
 	void AddHeightIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
@@ -502,6 +526,21 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) override;
+	void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+		const CFloatHandle& h ) override;
+	void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& wxDiff ) override;
+	void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& uDiff ) override;
+	CLrnDesc* InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta ) override;
+	void Lrn( const CLrnDesc& desc, const CConstFloatHandle& input, const CFloatHandle& invSum,
+		const CFloatHandle& invSumBeta, const CFloatHandle& outputHandle ) override;
+	void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
+		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
+		const CFloatHandle& inputDiff ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:

@@ -206,6 +206,7 @@ void InitializePoolingLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, int filterHeight, int filterWidth,
 			int strideHeight, int strideWidth )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -232,6 +233,7 @@ void InitializePoolingLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, int filterHeight, int filterWidth,
 			int strideHeight, int strideWidth )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -257,6 +259,7 @@ void InitializePoolingLayer( py::module& m )
 		}))
 		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber, int maxCount)
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -281,6 +284,7 @@ void InitializePoolingLayer( py::module& m )
 		}))
 		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber)
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -302,6 +306,7 @@ void InitializePoolingLayer( py::module& m )
 		}))
 		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber, int filter_len, int stride_len)
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -329,6 +334,7 @@ void InitializePoolingLayer( py::module& m )
 		}))
 		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber, int dimension, bool originalSize)
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -375,6 +381,7 @@ void InitializePoolingLayer( py::module& m )
 		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber, int filterHeight, int filterWidth, int filterDepth,
 			int strideHeight, int strideWidth, int strideDepth)
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -403,6 +410,7 @@ void InitializePoolingLayer( py::module& m )
 		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber, int filterHeight, int filterWidth, int filterDepth,
 			int strideHeight, int strideWidth, int strideDepth)
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

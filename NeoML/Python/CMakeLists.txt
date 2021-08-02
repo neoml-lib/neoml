@@ -60,10 +60,12 @@ pybind11_add_module(PythonWrapper
     src/PyFullyConnectedLayer.cpp
     src/PyInitializer.cpp
     src/PyImageConversionLayer.cpp
+    src/PyIndRnnLayer.cpp
     src/PyIrnnLayer.cpp
     src/PyGruLayer.cpp
     src/PyLayer.cpp
     src/PyLossLayer.cpp
+    src/PyLrnLayer.cpp
     src/PyLstmLayer.cpp
     src/PyMathEngine.cpp
     src/PyMatrixMultiplicationLayer.cpp
@@ -84,6 +86,7 @@ pybind11_add_module(PythonWrapper
     src/PySinkLayer.cpp
     src/PySolver.cpp
     src/PySourceLayer.cpp
+    src/PySpaceAndDepthLayer.cpp
     src/PySubSequenceLayer.cpp
     src/PyTiedEmbeddingsLayer.cpp
     src/PyTrainingModel.cpp

@@ -87,6 +87,7 @@ void InitializeImageConversionLayer( py::module& m )
 			return new CPyImageToPixelLayer( *layer.Layer<CImageToPixelLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, const CPyLayer& layer2, int outputNumber1, int outputNumber2 ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CImageToPixelLayer> accuracy = new CImageToPixelLayer( mathEngine );
@@ -104,6 +105,7 @@ void InitializeImageConversionLayer( py::module& m )
 			return new CPyPixelToImageLayer( *layer.Layer<CPixelToImageLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, const CPyLayer& layer2, int outputNumber2, int height, int width ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CPixelToImageLayer> conv = new CPixelToImageLayer( mathEngine );
@@ -127,6 +129,7 @@ void InitializeImageConversionLayer( py::module& m )
 			return new CPyImageResizeLayer( *layer.Layer<CImageResizeLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, int left, int right, int top, int bottom, float defaultValue ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CImageResizeLayer> resize = new CImageResizeLayer( mathEngine );

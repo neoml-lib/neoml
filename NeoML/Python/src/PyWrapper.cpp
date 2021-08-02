@@ -41,8 +41,10 @@ limitations under the License.
 #include "PyDropoutLayer.h"
 #include "PyFullyConnectedLayer.h"
 #include "PyImageConversionLayer.h"
+#include "PyIndRnnLayer.h"
 #include "PyIrnnLayer.h"
 #include "PyGruLayer.h"
+#include "PyLrnLayer.h"
 #include "PyMultichannelLookupLayer.h"
 #include "PyMatrixMultiplicationLayer.h"
 #include "PyMultiheadAttentionLayer.h"
@@ -54,6 +56,7 @@ limitations under the License.
 #include "PyRepeatSequenceLayer.h"
 #include "PySequenceSumLayer.h"
 #include "PySoftmaxLayer.h"
+#include "PySpaceAndDepthLayer.h"
 #include "PySplitLayer.h"
 #include "PySubSequenceLayer.h"
 #include "PyTransformLayer.h"
@@ -104,9 +107,11 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeDropoutLayer( m );
 	InitializeFullyConnectedLayer( m );
 	InitializeImageConversionLayer( m );
+	InitializeIndRnnLayer( m );
 	InitializeIrnnLayer( m );
 	InitializeGruLayer( m );
 	InitializeLossLayer( m );
+	InitializeLrnLayer( m );
 	InitializeCustomLossLayer( m );
 	InitializeLstmLayer( m );
 	InitializeMatrixMultiplicationLayer( m );
@@ -128,6 +133,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeTiedEmbeddingsLayer( m );
 	InitializeUpsampling2DLayer( m );
 	InitializeSourceLayer( m );
+	InitializeSpaceAndDepthLayer( m );
 	InitializeSinkLayer( m );
 
 	InitializeSolver( m );

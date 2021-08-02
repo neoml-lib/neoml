@@ -132,6 +132,7 @@ void InitializeConvLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, int filterCount, int filterHeight, int filterWidth,
 			int strideHeight, int strideWidth, int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth, bool freeTerm )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -175,6 +176,7 @@ void InitializeConvLayer( py::module& m )
 			int strideHeight, int strideWidth, int strideDepth, int paddingHeight, int paddingWidth, int paddingDepth,
 			bool freeTerm )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -210,6 +212,7 @@ void InitializeConvLayer( py::module& m )
 			int strideHeight, int strideWidth, int strideDepth, int paddingHeight, int paddingWidth, int paddingDepth,
 			bool freeTerm )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -243,6 +246,7 @@ void InitializeConvLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, int filterCount, int filterHeight, int filterWidth,
 			int strideHeight, int strideWidth, int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth, bool freeTerm )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -275,6 +279,7 @@ void InitializeConvLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, int filterCount, int filterSize,
 			int paddingFront, int paddingBack, int stride, int dilation )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -315,6 +320,7 @@ void InitializeConvLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, int filterCount, int filterHeight, int filterWidth,
 			int strideHeight, int strideWidth, int paddingHeight, int paddingWidth, bool freeTerm )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

@@ -9,10 +9,21 @@ target_sources(${PROJECT_NAME}
 
     # Sources
     ./src/AvxMathEngine.cpp
+    ./src/MatrixMultiplyingInterleaved/AvxMatrixMultiplying.cpp
     # Headers
     ./common.h
     ./src/BlobConvolution.h
-    ./src/BlobConvolutionImpl.h
+    ./src/BlobConvolution_FltCnt_6.h
+    ./src/BlobConvolution_FltCnt_18.h
+    ./src/BlobConvolution_FltCnt_24.h
+    ./src/BlobConvolution_FltCnt_32.h
+    ./src/AvxCommon.h
+    ./src/MatrixMultiplyingInterleaved/Interleavers/Interleavers.h
+    ./src/MatrixMultiplyingInterleaved/MicroKernels/Kernel_AVX_6x16.h
+    ./src/MatrixMultiplyingInterleaved/MicroKernels/Kernel_AVX_6x8.h
+    ./src/MatrixMultiplyingInterleaved/MicroKernels/Kernel_AVX_6x4.h
+    ./src/MatrixMultiplyingInterleaved/MicroKernels/Kernel_AVX_6x2.h
+    ./src/MatrixMultiplyingInterleaved/MicroKernels/Kernel_AVX_6x1.h
 )
 
 string(TOUPPER ${CMAKE_SYSTEM_NAME} UPPERCASE_CMAKE_SYSTEM_NAME)
@@ -21,8 +32,14 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC _${UPPERCASE_CMAKE_SYSTEM_NAME
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../MatrixMultiplyingInterleavedCommon>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/MatrixMultiplyingInterleaved>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/MatrixMultiplyingInterleaved/Interleavers>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/MatrixMultiplyingInterleaved/MicroKernels>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../../../include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../..>
 )
 
 # Add some definitions
@@ -63,7 +80,7 @@ endif()
 # Install
 if(NeoMathEngine_INSTALL)
     if(USE_FINE_OBJECTS)
-        fine_install(TARGETS ${PROJECT_NAME})
+        fine_install(TARGETS ${PROJECT_NAME} NOARCHIVE)
     else()
         install(
             TARGETS ${PROJECT_NAME}

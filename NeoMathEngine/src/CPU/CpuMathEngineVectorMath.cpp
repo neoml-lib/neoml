@@ -48,6 +48,38 @@ void CCpuMathEngine::VectorCopy(const CFloatHandle& firstHandle, const CConstFlo
 	vectorCopy( GetRaw( firstHandle ), GetRaw( secondHandle ), vectorSize );
 }
 
+void CCpuMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
+	const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth)
+{
+	ASSERT_EXPR( toHandle.GetMathEngine() == this );
+	ASSERT_EXPR( fromHandle.GetMathEngine() == this );
+	for( int i = 0; i < BD_Count; i++ ) {
+		ASSERT_EXPR( fromDesc.DimSize( i ) == 1 || fromDesc.DimSize( i ) == toDesc.DimSize( i ) );
+	}
+
+	int curSize = fromDesc.BlobSize() * additionalWidth;
+	int copySize = additionalWidth;
+	float* to = GetRaw( toHandle );
+	const float* from = GetRaw( fromHandle );
+	vectorCopy( to, from, curSize );
+
+	for( int i = BD_Count - 1; i >= 0; i-- ) {
+		if( toDesc.DimSize( i ) != fromDesc.DimSize( i ) ) {
+			float* fromPtr = to + curSize - copySize;
+			float* toPtr = to + curSize * toDesc.DimSize( i ) - copySize;
+			for( int j = 0; j < curSize / copySize; j++ ) {
+				for( int k = 0; k < toDesc.DimSize( i ); k++ ) {
+					vectorCopy( toPtr, fromPtr, copySize );
+					toPtr -= copySize;
+				}
+				fromPtr -= copySize;
+			}
+			curSize *= toDesc.DimSize( i );
+		}
+		copySize *= toDesc.DimSize( i );
+	}
+}
+
 void CCpuMathEngine::VectorAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {
@@ -83,6 +115,104 @@ void CCpuMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vect
 
 	VectorSum(firstHandle, vectorSize, resultHandle);
 	*GetRaw(resultHandle) = -*GetRaw(resultHandle);
+}
+
+void CCpuMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	int firstIndex = 0;
+	int resultIndex = 0;
+
+	for( int i = 0; i < followingDimension; i++ ) {
+		VectorCopy( resultHandle + resultIndex, firstHandle + firstIndex, precedingDimension );
+		firstIndex += precedingDimension;
+		for( int j = 1; j < dimension; j++ ) {
+			VectorAdd(  firstHandle + firstIndex, resultHandle + resultIndex, resultHandle + resultIndex, precedingDimension );
+			firstIndex += precedingDimension;
+		}
+		resultIndex += precedingDimension;
+	}
+}
+
+void CCpuMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	int firstIndex = 0;
+	int resultIndex = 0;
+
+	for( int i = 0; i < followingDimension; i++ ) {
+		VectorCopy( resultHandle + resultIndex, firstHandle + firstIndex, precedingDimension );
+		firstIndex += precedingDimension;
+		resultIndex += precedingDimension;
+		for( int j = 1; j < dimension; j++ ) {
+			VectorCopy( resultHandle + resultIndex, resultHandle + resultIndex - precedingDimension, precedingDimension );
+			VectorAdd(  firstHandle + firstIndex, resultHandle + resultIndex, resultHandle + resultIndex, precedingDimension );
+			firstIndex += precedingDimension;
+			resultIndex += precedingDimension;
+		}
+	}
+}
+
+void CCpuMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	VectorFill( resultHandle, 0.0, precedingDimension * precedingDimension * dimension
+		* followingDimension * followingDimension );
+
+	const int width = precedingDimension * dimension * followingDimension;
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < followingDimension; i++ ) {
+		for( int j = 0; j < precedingDimension; j++ ) {
+			float* resultRow = result + j;
+			for( int k = 0; k < dimension; k++ ) {
+				*resultRow = first[k * precedingDimension + j];
+				resultRow += precedingDimension;
+			}
+			result += width;
+		}
+		first += dimension * precedingDimension;
+		result += dimension * precedingDimension;
+	}
+}
+
+void CCpuMathEngine::VectorCumSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	VectorFill( resultHandle, 0.0, precedingDimension * precedingDimension * dimension
+		* dimension * followingDimension * followingDimension );
+
+	const int width = precedingDimension * dimension * followingDimension;
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < followingDimension; i++ ) {
+		for( int j = 0; j < precedingDimension; j++ ) {
+			for( int d = 0; d < dimension; d++ ) {
+				float* resultRow = result + j;
+				for( int k = 0; k <= d; k++ ) {
+					*resultRow = first[k * precedingDimension + j];
+					resultRow += precedingDimension;
+				}
+				result += width;
+			}
+		}
+		first += dimension * precedingDimension;
+		result += dimension * precedingDimension;
+	}
 }
 
 void CCpuMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float value, int seed )
@@ -440,6 +570,50 @@ void CCpuMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle,
 			}
 		}
 		first++;
+	}
+}
+
+void CCpuMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = *first++ < *second++ ? 1.f : 0.f;
+	}
+}
+
+void CCpuMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, float second,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = *first++ < second ? 1.f : 0.f;
+	}
+}
+
+void CCpuMathEngine::VectorEltwiseLess( float first, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = first < *second++ ? 1.f : 0.f;
 	}
 }
 

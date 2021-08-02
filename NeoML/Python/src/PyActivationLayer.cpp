@@ -195,6 +195,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPyLinearLayer( *layer.Layer<CLinearLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, float multiplier, float freeTerm ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CLinearLayer> linear = new CLinearLayer( mathEngine );
@@ -217,6 +218,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPyELULayer( *layer.Layer<CELULayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, float alpha ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CELULayer> elu = new CELULayer( mathEngine );
@@ -236,6 +238,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPyReLULayer( *layer.Layer<CReLULayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, float threshold ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CReLULayer> relu = new CReLULayer( mathEngine );
@@ -255,6 +258,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPyLeakyReLULayer( *layer.Layer<CLeakyReLULayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, float alpha ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CLeakyReLULayer> leakyReLU = new CLeakyReLULayer( mathEngine );
@@ -274,6 +278,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPyHSwishLayer( *layer.Layer<CHSwishLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CHSwishLayer> hswish = new CHSwishLayer( mathEngine );
@@ -290,6 +295,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPyAbsLayer( *layer.Layer<CAbsLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CAbsLayer> abs = new CAbsLayer( mathEngine );
@@ -306,6 +312,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPySigmoidLayer( *layer.Layer<CSigmoidLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSigmoidLayer> sigmoid = new CSigmoidLayer( mathEngine );
@@ -322,6 +329,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPyTanhLayer( *layer.Layer<CTanhLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CTanhLayer> tanh = new CTanhLayer( mathEngine );
@@ -338,6 +346,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPyHardTanhLayer( *layer.Layer<CHardTanhLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CHardTanhLayer> hardTanh = new CHardTanhLayer( mathEngine );
@@ -354,6 +363,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPyHardSigmoidLayer( *layer.Layer<CHardSigmoidLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, float slope, float bias ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CHardSigmoidLayer> hardSigmoid = new CHardSigmoidLayer( mathEngine );
@@ -376,6 +386,7 @@ void InitializeActivationLayer( py::module& m )
 			return new CPyPowerLayer( *layer.Layer<CPowerLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, float exponent ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CPowerLayer> power = new CPowerLayer( mathEngine );
@@ -395,6 +406,7 @@ void InitializeActivationLayer( py::module& m )
 				return new CPyGELULayer(*layer.Layer<CGELULayer>(), layer.MathEngineOwner());
 			}))
 		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber) {
+				py::gil_scoped_release release;
 				CDnn& dnn = layer.Dnn();
 				IMathEngine& mathEngine = dnn.GetMathEngine();
 				CPtr<CGELULayer> gelu = new CGELULayer(mathEngine);
