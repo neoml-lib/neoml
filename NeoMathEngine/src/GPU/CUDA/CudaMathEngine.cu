@@ -172,6 +172,13 @@ int CCudaMathEngine::alignXSizeForWarp(int xSize)
 	return candidate;
 }
 
+int CCudaMathEngine::getCudaTempMatrixMaxHeight(int matrixHeight, int matrixWidth)
+{
+	const int maxPossibleMatrixHeight =
+		static_cast<int>( max( (size_t)1, ( GetFreeMemorySize() / ( 2 * sizeof(float) * static_cast<size_t>( matrixWidth ) ) ) ) );
+	return min( matrixHeight, maxPossibleMatrixHeight );
+}
+
 void CCudaMathEngine::getCudaTaskGrid(int& blockCount, int& threadCount, int taskCount, int combineCount)
 {
 	ASSERT_EXPR( taskCount > 0 );
