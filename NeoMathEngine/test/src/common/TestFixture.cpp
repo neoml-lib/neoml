@@ -44,6 +44,12 @@ TMathEngineArgType GetMathEngineArgType( int argc, char* argv[] )
 				return TMathEngineArgType::Gpu;
 			} else if( strcmp( value, "cpu" ) == 0 ) {
 				return TMathEngineArgType::Cpu;
+			} else if( strcmp( value, "cuda" ) == 0 ) {
+				return TMathEngineArgType::Cuda;
+			} else if( strcmp( value, "vulkan" ) == 0 ) {
+				return TMathEngineArgType::Vulkan;
+			} else if( strcmp( value, "metal" ) == 0 ) {
+				return TMathEngineArgType::Metal;
 			} else {
 				return TMathEngineArgType::Undefined;
 			}
@@ -71,6 +77,23 @@ int GetThreadCount( int argc, char* argv[] )
 	return 0;
 }
 
+static std::string ToString( TMathEngineType type )
+{
+	switch( type ) {
+		case MET_Cpu:
+			return "CPU";
+		case MET_Cuda:
+			return "CUDA";
+		case MET_Vulkan:
+			return "Vulkan";
+		case MET_Metal:
+			return "Metal";
+		default:
+			return "UNKNOWN";
+	}
+	return "UNKNOWN";
+}
+
 int RunTests( int argc, char* argv[] ) 
 {
 	::testing::InitGoogleTest( &argc, argv );
@@ -83,10 +106,31 @@ int RunTests( int argc, char* argv[] )
 		if( mathEngine != nullptr ) {
 			CMathEngineInfo info;
 			mathEngine->GetMathEngineInfo( info );
-			GTEST_LOG_( INFO ) << "Using GPU MathEngine: " << info.Name << ", memory limit = " << info.AvailableMemory;
+			GTEST_LOG_( INFO ) << "Using " << ToString( info.Type ) << " GPU MathEngine: "
+				<< info.Name << ", memory limit = " << info.AvailableMemory;
 		} else {
 			GTEST_LOG_( INFO ) << "Can't create Gpu MathEngine!";
 			return 1;
+		}
+	} else if( type == TMathEngineArgType::Cuda || type == TMathEngineArgType::Vulkan || type == TMathEngineArgType::Metal ) {
+		std::unique_ptr<IGpuMathEngineManager> manager( CreateGpuMathEngineManager() );
+		TMathEngineType requiredType = type == TMathEngineArgType::Cuda ? MET_Cuda
+			: ( type == TMathEngineArgType::Vulkan ? MET_Vulkan : MET_Metal );
+
+		for( int i = 0; i < manager->GetMathEngineCount(); ++i ) {
+			CMathEngineInfo info;
+			manager->GetMathEngineInfo( i, info );
+			if( info.Type == requiredType ) {
+				mathEngine = manager->CreateMathEngine( i, 0 );
+				if( mathEngine != nullptr ) {
+					GTEST_LOG_( INFO ) << "Using " << ToString( info.Type ) << " GPU MathEngine: "
+						<< info.Name << ", memory limit = " << info.AvailableMemory;
+					break;
+				} else {
+					GTEST_LOG_( INFO ) << "Can't create Gpu MathEngine!";
+					return 1;
+				}
+			}
 		}
 	} else if( type == TMathEngineArgType::Undefined ) {
 		GTEST_LOG_( INFO ) << "Unknown type of MathEngine in command line arguments!";

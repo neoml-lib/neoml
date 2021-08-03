@@ -36,7 +36,10 @@ enum class TMathEngineArgType
 {
     Undefined = 0,
     Cpu,
-    Gpu
+    Gpu,
+	Cuda,
+	Vulkan,
+	Metal
 };
 
 TMathEngineArgType GetMathEngineArgType( int argc, char* argv[] );
