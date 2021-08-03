@@ -94,19 +94,30 @@ CLayerWrapper<CEltwiseSumLayer> Sum()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void CEltwiseMulLayer::RunOnce()
 {
-	CFloatHandle output = outputBlobs[0]->GetData();
-	int dataSize = outputBlobs[0]->GetDataSize();
+	const int dataSize = outputBlobs[0]->GetDataSize();
+	if( outputBlobs[0]->GetDataType() == CT_Float ) {
+		CFloatHandle output = outputBlobs[0]->GetData();
 
-	MathEngine().VectorEltwiseMultiply( inputBlobs[0]->GetData(), inputBlobs[1]->GetData(), output, dataSize );
-
-	for( int i = 2; i < inputBlobs.Size(); ++i ) {
-		MathEngine().VectorEltwiseMultiply( output, inputBlobs[i]->GetData(), output, dataSize );
+		MathEngine().VectorEltwiseMultiply( inputBlobs[0]->GetData(), inputBlobs[1]->GetData(), output, dataSize );
+		for( int i = 2; i < inputBlobs.Size(); ++i ) {
+			MathEngine().VectorEltwiseMultiply( output, inputBlobs[i]->GetData(), output, dataSize );
+		}
+	} else {
+		CIntHandle output = outputBlobs[0]->GetData<int>();
+		MathEngine().VectorEltwiseMultiply( inputBlobs[0]->GetData<int>(), inputBlobs[1]->GetData<int>(), output, dataSize );
+		for( int i = 2; i < inputBlobs.Size(); ++i ) {
+			MathEngine().VectorEltwiseMultiply( output, inputBlobs[i]->GetData<int>(), output, dataSize );
+		}
 	}
 }
 
 void CEltwiseMulLayer::BackwardOnce()
 {
 	int dataSize = inputDiffBlobs[0]->GetDataSize();
+	for( int i = 0; i < inputBlobs.Size(); ++i ) {
+		NeoAssert( inputBlobs[i]->GetDataType() == CT_Float );
+	}
+
 	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
 		for( int j = 0; j < inputBlobs.Size(); ++j ) {
 			if( i == j ) {
