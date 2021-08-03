@@ -817,6 +817,15 @@ void CMetalMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle, c
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::VectorEltwiseMultiply(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+    const CIntHandle& resultHandle, int vectorSize)
+{
+    ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+    ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+    ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+    ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
     const CFloatHandle& resultHandle, int vectorSize)
 {

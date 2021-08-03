@@ -186,10 +186,9 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 {
 	// nullptrs were checked in ProcessTensors
 	NeoAssert( inputs[0] != nullptr && inputs[1] != nullptr );
-	// The inputMask in ProcessTensor guarantees that indices will be provided by user
-	NeoAssert( !inputs[1]->IsCalculated() );
 
 	if( inputs[0]->IsCalculated() ) {
+		NeoAssert( !inputs[1]->IsCalculated() );
 		addLookupLayer( dynamic_cast<const CDataTensor&>( *inputs[0] ),
 			dynamic_cast<const CUserTensor&>( *inputs[1] ), dnn, outputs );
 	} else {

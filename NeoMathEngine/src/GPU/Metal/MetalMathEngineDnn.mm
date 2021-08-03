@@ -197,6 +197,22 @@ void CMetalMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHa
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHandle& inputData, int heightCopyCount,
+	int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData )
+{
+    ASSERT_EXPR( inputData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+    ASSERT_EXPR( heightCopyCount > 0 );
+    ASSERT_EXPR( widthCopyCount > 0 );
+    ASSERT_EXPR( input.BatchLength() == result.BatchLength() );
+    ASSERT_EXPR( input.BatchWidth() == result.BatchWidth() );
+    ASSERT_EXPR( input.Channels() == result.Channels() );
+    ASSERT_EXPR( input.Depth() == result.Depth() );
+    ASSERT_EXPR( input.Height() * heightCopyCount == result.Height() );
+    ASSERT_EXPR( input.Width() * widthCopyCount == result.Width() );
+    ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData )
 {
