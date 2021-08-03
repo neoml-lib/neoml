@@ -34,7 +34,7 @@ CSparseFloatMatrix generateMatrix( int samples, int features, CArray<float>& val
 	return matrix;
 }
 
-static void checkArraysEqual( const CArray<float>& expected, float* get )
+static void checkArraysEqual( const CArray<float>& expected, const float* get )
 {
 	for( int i = 0; i < expected.Size(); i++ ) {
 		ASSERT_NEAR( get[i], expected[i], 1e-4 );
@@ -63,18 +63,17 @@ static void testExample( int samples, int features, float components,
 	ASSERT_EQ( features, componentsMatrix.Width );
 	checkArraysEqual( expectedComponents, componentsMatrix.Values );
 
-	CArray<float> res;
-	pca.GetSingularValues( res );
-	ASSERT_EQ( components, res.Size() );
-	checkArraysEqual( expectedSingularValues, res.GetPtr() );
+	const CArray<float>& singular = pca.GetSingularValues();
+	ASSERT_EQ( components, singular.Size() );
+	checkArraysEqual( expectedSingularValues, singular.GetPtr() );
 
-	pca.GetExplainedVariance( res );
-	ASSERT_EQ( components, res.Size() );
-	checkArraysEqual( expectedVariance, res.GetPtr() );
+	const CArray<float>& variance = pca.GetExplainedVariance();
+	ASSERT_EQ( components, variance.Size() );
+	checkArraysEqual( expectedVariance, variance.GetPtr() );
 
-	pca.GetExplainedVarianceRatio( res );
-	ASSERT_EQ( components, res.Size() );
-	checkArraysEqual( expectedVarianceRatio, res.GetPtr() );
+	const CArray<float>& varianceRatio = pca.GetExplainedVarianceRatio();
+	ASSERT_EQ( components, varianceRatio.Size() );
+	checkArraysEqual( expectedVarianceRatio, varianceRatio.GetPtr() );
 
 	ASSERT_NEAR( expectedNoiseVariance, pca.GetNoiseVariance(), 1e-4 );
 }

@@ -22,13 +22,15 @@ limitations under the License.
 
 using namespace NeoML;
 
-CPca::CPca( const CParams& _params ): params( _params )
+CPca::CPca( const CParams& _params ) :
+	params( _params )
 {
 	NeoAssert( ( params.ComponentsType == PCAC_None ) ||
 		( ( params.ComponentsType == PCAC_Int ) && ( params.Components > 0 ) ) ||
 		( ( params.ComponentsType == PCAC_Float ) && ( 0 < params.Components ) && ( params.Components < 1 ) ) );
 }
 
+// Convert CFloatMatrix to CDnnBlob
 static CPtr<CDnnBlob> convertToBlob( IMathEngine& mathEngine, const CFloatMatrixDesc& data )
 {
 	const int vectorCount = data.Height;
@@ -52,6 +54,7 @@ static CPtr<CDnnBlob> convertToBlob( IMathEngine& mathEngine, const CFloatMatrix
 	return result;
 }
 
+// data -= mean(data)
 static void subtractMean( IMathEngine& mathEngine, const CFloatHandle& data, int matrixHeight, int matrixWidth )
 {
 	CPtr<CDnnBlob> meanVector = CDnnBlob::CreateVector( mathEngine, CT_Float, matrixWidth );
@@ -63,6 +66,7 @@ static void subtractMean( IMathEngine& mathEngine, const CFloatHandle& data, int
 	mathEngine.AddVectorToMatrixRows( 1, data, data, matrixHeight, matrixWidth, meanVector->GetData() );
 }
 
+// Flip signs of u columns and vt rows to obtain deterministic result
 static void flipSVD( IMathEngine& mathEngine, const CPtr<CDnnBlob>& u, const CFloatHandle& vt, int m, int k, int n )
 {
 	CPtr<CDnnBlob> maxValues = CDnnBlob::CreateVector( mathEngine, CT_Float, k );
@@ -85,6 +89,7 @@ static void flipSVD( IMathEngine& mathEngine, const CPtr<CDnnBlob>& u, const CFl
 	mathEngine.MultiplyDiagMatrixByMatrix( maxValues->GetData<float>(), k, vt, n, vt, n * k );
 }
 
+// Convert CDnnBlob to CSparseFloatMatrix
 static void blobToMatrix( const CPtr<CDnnBlob>& blob, CSparseFloatMatrix& matrix, int matrixHeight, int matrixWidth, int blobWidth )
 {
 	CFloatVectorDesc row;

@@ -46,16 +46,12 @@ public:
 
 	void Fit( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse );
 	py::array FitTransform( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse );
-	py::array GetSingularValues() { return getArray( singularValues ); }
-	py::array GetExplainedVariance() { return getArray( explainedVariance ); }
-	py::array GetExplainedVarianceRatio() { return getArray( explainedVarianceRatio ); }
-	py::array GetComponents();
-	int GetNComponents() { return components; }
-	float GetNoiseVariance() { return noiseVariance; }
-private:
-	CFloatMatrixDesc matrix;
-
-	CFloatMatrixDesc getMatrixDesc( int height, int width, const int* columns, const float* values, const int* rowPtr );
+	py::array SingularValues() { return getArray( GetSingularValues() ); }
+	py::array ExplainedVariance() { return getArray( GetExplainedVariance() ); }
+	py::array ExplainedVarianceRatio() { return getArray( GetExplainedVarianceRatio() ); }
+	py::array Components();
+	int NComponents() { return GetComponentsNum(); }
+	float NoiseVariance() { return GetNoiseVariance(); }
 };
 
 void CPyPca::Fit( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse )
@@ -89,9 +85,9 @@ py::array CPyPca::FitTransform( int height, int width, py::array indices, py::ar
 	return transformed;
 }
 
-py::array CPyPca::GetComponents()
+py::array CPyPca::Components()
 {
-	CFloatMatrixDesc desc = componentsMatrix.GetDesc();
+	CFloatMatrixDesc desc = GetComponents();
 	py::array_t<double, py::array::c_style> components( { desc.Height, desc.Width } );
 	memset( static_cast<double*>( components.request().ptr ), 0, desc.Height * desc.Width * sizeof(double) );
 	auto tempComponents = components.mutable_unchecked<2>();
@@ -123,11 +119,11 @@ void InitializePCA(py::module& m)
 
 		.def( "fit", &CPyPca::Fit, py::return_value_policy::reference )
 		.def( "fit_transform", &CPyPca::FitTransform, py::return_value_policy::reference )
-		.def( "components", &CPyPca::GetComponents, py::return_value_policy::reference )
-		.def( "n_components", &CPyPca::GetNComponents, py::return_value_policy::reference )
-		.def( "explained_variance", &CPyPca::GetExplainedVariance, py::return_value_policy::reference )
-		.def( "explained_variance_ratio", &CPyPca::GetExplainedVarianceRatio, py::return_value_policy::reference )
-		.def( "singular_values", &CPyPca::GetSingularValues, py::return_value_policy::reference )
-		.def( "noise_variance", &CPyPca::GetNoiseVariance, py::return_value_policy::reference )
+		.def( "components", &CPyPca::Components, py::return_value_policy::reference )
+		.def( "n_components", &CPyPca::NComponents, py::return_value_policy::reference )
+		.def( "explained_variance", &CPyPca::ExplainedVariance, py::return_value_policy::reference )
+		.def( "explained_variance_ratio", &CPyPca::ExplainedVarianceRatio, py::return_value_policy::reference )
+		.def( "singular_values", &CPyPca::SingularValues, py::return_value_policy::reference )
+		.def( "noise_variance", &CPyPca::NoiseVariance, py::return_value_policy::reference )
 	;
 }

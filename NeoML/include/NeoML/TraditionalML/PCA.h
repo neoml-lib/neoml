@@ -60,19 +60,20 @@ public:
 	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
 
 	// Singular values corresponding to the selected principal axis
-	void GetSingularValues( CArray<float>& values ) const { singularValues.CopyTo( values ); }
+	const CArray<float>& GetSingularValues() const { return singularValues; }
 	// Variance explained by each of the selected principal axis
-	void GetExplainedVariance( CArray<float>& values ) const { explainedVariance.CopyTo( values ); }
+	const CArray<float>& GetExplainedVariance() const { return explainedVariance; }
 	// Percentage of variance explained by each of the selected principal axis
-	void GetExplainedVarianceRatio( CArray<float>& values ) const { explainedVarianceRatio.CopyTo( values ); }
+	const CArray<float>& GetExplainedVarianceRatio() const { return explainedVarianceRatio; }
 	// Mean of singular values not corresponding to the selected principal axis
 	float GetNoiseVariance() const { return noiseVariance; }
 	// Selected number of principal axis
 	int GetComponentsNum() const { return components; }
 	// Matrix ( components x features ) with rows corresponding to the selected principal axis 
-	CFloatMatrixDesc GetComponents() { return componentsMatrix.GetDesc(); }
+	CFloatMatrixDesc GetComponents() const { return componentsMatrix.GetDesc(); }
 
-protected:
+private:
+	const CParams params;
 	CArray<float> singularValues;
 	CArray<float> explainedVariance;
 	CArray<float> explainedVarianceRatio;
@@ -80,9 +81,6 @@ protected:
 	CSparseFloatMatrix transformedMatrix;
 	float noiseVariance;
 	int components;
-
-private:
-	const CParams params;
 
 	void train( const CFloatMatrixDesc& data, bool isTransform );
 	void calculateVariance(  IMathEngine& mathEngine, const CFloatHandle& s, int m, int k );
