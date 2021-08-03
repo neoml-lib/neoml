@@ -219,6 +219,24 @@ void CVulkanMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatH
 	}
 }
 
+void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHandle& inputData, int heightCopyCount,
+	int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( inputData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+
+	CMemoryHandle bufs[2] = { inputData, resultData };
+	size_t sizes[2] = { input.BlobSize() * sizeof(float), result.BlobSize() * sizeof(float) };
+
+	const int inputHeight = input.Height();
+	const int inputRowSize = input.Width() * input.Depth() * input.Channels();
+	const int pixelSize = input.Depth() * input.Channels();
+	const int resultHeight = result.Height();
+	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
+
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData )
 {

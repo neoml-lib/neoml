@@ -179,6 +179,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) override;
 	void VectorNegMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) override;
+	void VectorEltwiseMultiply(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) override;
 	void VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorEltwiseMultiplyAdd(const CConstFloatHandle& firstHandle,
@@ -458,6 +460,8 @@ public:
 		const CFloatHandle& result ) override;
 	void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source, const CIntHandle& maxIndices,
 		const CFloatHandle& result ) override;
+	void Upsampling2DForward( const CBlobDesc& input, const CIntHandle& inputData, int heightCopyCount,
+		int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData ) override;
 	void Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) override;
 	void Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,

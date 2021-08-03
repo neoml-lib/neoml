@@ -229,6 +229,63 @@ void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHand
 
 //------------------------------------------------------------------------------------------------------------
 
+template<class T>
+static void upsampling2DForward( const CBlobDesc& input, const CTypedMemoryHandle<const T>& inputData, int heightCopyCount, int widthCopyCount,
+	const CBlobDesc& result, const CTypedMemoryHandle<T>& resultData )
+{
+	IMathEngine& mathEngine = *inputData.GetMathEngine();
+
+	const int inputHeight = input.Height();
+	const int inputWidth = input.Width();
+	const int pixelSize = input.Depth() * input.Channels();
+
+	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
+	const int objectCount = input.ObjectCount();
+
+	CTypedMemoryHandle<const T> inputPtr = inputData;
+	CTypedMemoryHandle<T> outputPtr = resultData;
+
+	for(int b = 0; b < objectCount; ++b) {
+		for(int srcRowIndex = 0; srcRowIndex < inputHeight; ++srcRowIndex) {
+			// Note the start of the output row with the index srcRowIndex * heightCopyCount
+			CTypedMemoryHandle<T> resultRowStart = outputPtr;
+
+			// Fill the output row with the index srcRowIndex * heightCopyCount
+			for(int srcColIndex = 0; srcColIndex < inputWidth; ++srcColIndex) {
+				for(int w = 0; w < widthCopyCount; ++w) {
+					mathEngine.VectorCopy(outputPtr, inputPtr, pixelSize);
+					outputPtr += pixelSize;
+				}
+				inputPtr += pixelSize;
+			}
+
+			// Fill the rest heightCopyCount - 1 output rows with the indices
+			// srcRowIndex * heightCopyCount + 1, ..., srcRowIndex * heightCopyCount + heightCopyCount - 1.
+			for(int h = 0; h < heightCopyCount - 1; ++h) {
+				mathEngine.VectorCopy(outputPtr, resultRowStart, resultRowSize);
+				outputPtr += resultRowSize;
+			}
+		}
+	}
+}
+
+void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHandle& inputData, int heightCopyCount, int widthCopyCount,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( inputData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( heightCopyCount > 0 );
+	ASSERT_EXPR( widthCopyCount > 0 );
+	ASSERT_EXPR( input.BatchLength() == result.BatchLength() );
+	ASSERT_EXPR( input.BatchWidth() == result.BatchWidth() );
+	ASSERT_EXPR( input.Channels() == result.Channels() );
+	ASSERT_EXPR( input.Depth() == result.Depth() );
+	ASSERT_EXPR( input.Height() * heightCopyCount == result.Height() );
+	ASSERT_EXPR( input.Width() * widthCopyCount == result.Width() );
+
+	upsampling2DForward<int>( input, inputData, heightCopyCount, widthCopyCount, result, resultData );	
+}
+
 void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
 	const CBlobDesc& result, const CFloatHandle& resultData )
 {
@@ -243,38 +300,7 @@ void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHa
 	ASSERT_EXPR( input.Height() * heightCopyCount == result.Height() );
 	ASSERT_EXPR( input.Width() * widthCopyCount == result.Width() );
 
-	const int inputHeight = input.Height();
-	const int inputWidth = input.Width();
-	const int pixelSize = input.Depth() * input.Channels();
-
-	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
-	const int objectCount = input.ObjectCount();
-
-	CConstFloatHandle inputPtr = inputData;
-	CFloatHandle outputPtr = resultData;
-
-	for(int b = 0; b < objectCount; ++b) {
-		for(int srcRowIndex = 0; srcRowIndex < inputHeight; ++srcRowIndex) {
-			// Note the start of the output row with the index srcRowIndex * heightCopyCount
-			CFloatHandle resultRowStart = outputPtr;
-
-			// Fill the output row with the index srcRowIndex * heightCopyCount
-			for(int srcColIndex = 0; srcColIndex < inputWidth; ++srcColIndex) {
-				for(int w = 0; w < widthCopyCount; ++w) {
-					VectorCopy(outputPtr, inputPtr, pixelSize);
-					outputPtr += pixelSize;
-				}
-				inputPtr += pixelSize;
-			}
-
-			// Fill the rest heightCopyCount - 1 output rows with the indices
-			// srcRowIndex * heightCopyCount + 1, ..., srcRowIndex * heightCopyCount + heightCopyCount - 1.
-			for(int h = 0; h < heightCopyCount - 1; ++h) {
-				VectorCopy(outputPtr, resultRowStart, resultRowSize);
-				outputPtr += resultRowSize;
-			}
-		}
-	}
+	upsampling2DForward<float>( input, inputData, heightCopyCount, widthCopyCount, result, resultData );	
 }
 
 void CCpuMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount, int widthCopyCount,

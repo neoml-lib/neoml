@@ -970,6 +970,17 @@ void CCudaMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 		(GetRaw(firstHandle), GetRaw(resultHandle), vectorSize, GetRaw(multiplierHandle));
 }
 
+void CCudaMathEngine::VectorEltwiseMultiply(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+	const CIntHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+	ASSERT_EXPR(secondHandle.GetMathEngine() == this);
+	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+	SetCudaDevice( device->DeviceNumber );
+
+	ASSERT_EXPR( false );
+}
+
 void CCudaMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {
