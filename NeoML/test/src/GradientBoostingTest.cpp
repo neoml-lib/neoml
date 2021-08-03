@@ -47,16 +47,14 @@ static void iterativeTrainModel( const T* train,
 	const int iterationsCount = params.IterationsCount;
 	{
 		CGradientBoost iterativeBoosting( params );
-		iterativeBoosting.Initialize( *train );
 		store( iterativeBoosting );
 	}
 
 	{
 		CGradientBoost iterativeBoosting( params );
 		load( iterativeBoosting );
-		iterativeBoosting.Initialize( *train );
 		for( int i = 0; i < iterationsCount / 2; i++ ) {
-			iterativeBoosting.ExecuteStep();
+			iterativeBoosting.TrainStep( *train );
 		}
 		store( iterativeBoosting );
 	}
@@ -64,17 +62,15 @@ static void iterativeTrainModel( const T* train,
 	{
 		CGradientBoost iterativeBoosting( params );
 		load( iterativeBoosting );
-		iterativeBoosting.Initialize( *train );
 		for( int i = iterationsCount / 2; i < iterationsCount - 1; i++ ) {
-			iterativeBoosting.ExecuteStep();
+			iterativeBoosting.TrainStep( *train );
 		}
 		store( iterativeBoosting );
 	}
 
 	CGradientBoost iterativeBoosting( params );
 	load( iterativeBoosting );
-	iterativeBoosting.Initialize( *train );
-	ASSERT_TRUE( iterativeBoosting.ExecuteStep() );
+	ASSERT_TRUE( iterativeBoosting.TrainStep( *train ) );
 	store( iterativeBoosting );
 }
 
@@ -88,8 +84,7 @@ static void classificationTest( const CPtr<CClassificationRandomProblem>& train,
 	iterativeTrainModel( train.Ptr(), params );
 	CGradientBoost iterativeBoosting( params );
 	load( iterativeBoosting );
-	iterativeBoosting.Initialize( *train );
-	auto iterativeTrained = iterativeBoosting.GetClassificationModel();
+	auto iterativeTrained = iterativeBoosting.GetClassificationModel( *train );
 
 	for( int i = 0; i < test->GetVectorCount(); i++ ) {
 		CClassificationResult result1;
@@ -127,8 +122,7 @@ static void regressionTest( const CPtr<CRegressionRandomProblem>& train,
 	iterativeTrainModel( train.Ptr(), params );
 	CGradientBoost iterativeBoosting( params );
 	load( iterativeBoosting );
-	iterativeBoosting.Initialize( *train );
-	auto iterativeTrained = iterativeBoosting.GetRegressionModel();
+	auto iterativeTrained = iterativeBoosting.GetRegressionModel( *train );
 
 	for( int i = 0; i < test->GetVectorCount(); i++ ) {
 		double result1 = trained->Predict( test->GetVector( i ) );

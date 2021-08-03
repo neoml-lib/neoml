@@ -159,21 +159,19 @@ public:
 	// Returns the last loss mean
 	double GetLastLossMean() const { return loss; }
 
-	// Initializes the algorithm
-	void Initialize( const IProblem& _problem );
-	void Initialize( const IRegressionProblem& _problem );
-	void Initialize( const IMultivariateRegressionProblem& _problem );
-
-	// Execute one iteration
-	bool ExecuteStep();
+	// Train one iteration
+	// returns true if currentIteration >= params.IterationsCount
+	bool TrainStep( const IProblem& _problem );
+	bool TrainStep( const IRegressionProblem& _problem );
+	bool TrainStep( const IMultivariateRegressionProblem& _problem );
 
 	// Save/load checkpoint
 	void Serialize( CArchive& archive );
 
 	// Get final model
-	CPtr<IModel> GetClassificationModel();
-	CPtr<IRegressionModel> GetRegressionModel();
-	CPtr<IMultivariateRegressionModel> GetMultivariateRegressionModel();
+	CPtr<IModel> GetClassificationModel( const IProblem& _problem );
+	CPtr<IRegressionModel> GetRegressionModel( const IRegressionProblem& _problem );
+	CPtr<IMultivariateRegressionModel> GetMultivariateRegressionModel( const IMultivariateRegressionProblem& _problem );
 
 private:
 	// A cache element that contains the ensemble predictions for a vector on a given step
@@ -233,7 +231,11 @@ private:
 	void createTreeBuilder( const IMultivariateRegressionProblem* problem );
 	void destroyTreeBuilder();
 	CPtr<IGradientBoostingLossFunction> createLossFunction() const;
+	void prepareProblem( const IProblem& _problem );
+	void prepareProblem( const IRegressionProblem& _problem );
+	void prepareProblem( const IMultivariateRegressionProblem& _problem );
 	void initialize();
+	bool trainStep();
 	void executeStep( IGradientBoostingLossFunction& lossFunction,
 		const IMultivariateRegressionProblem* problem, CObjectArray<IRegressionTreeNode>& curModels );
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );

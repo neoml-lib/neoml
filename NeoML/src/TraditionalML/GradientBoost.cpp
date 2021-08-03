@@ -323,23 +323,20 @@ CGradientBoost::~CGradientBoost()
 CPtr<IMultivariateRegressionModel> CGradientBoost::TrainRegression(
 	const IMultivariateRegressionProblem& problem )
 {
-	Initialize( problem );
-	while( ExecuteStep() == false ) {};
-	return GetMultivariateRegressionModel();
+	while( !TrainStep( problem ) ) {};
+	return GetMultivariateRegressionModel( problem );
 }
 
 CPtr<IRegressionModel> CGradientBoost::TrainRegression( const IRegressionProblem& problem )
 {
-	Initialize( problem );
-	while( ExecuteStep() == false ) {};
-	return GetRegressionModel();
+	while( !TrainStep( problem ) ) {};
+	return GetRegressionModel( problem );
 }
 
 CPtr<IModel> CGradientBoost::Train( const IProblem& problem )
 {
-	Initialize( problem );
-	while( ExecuteStep() == false ) {};
-	return GetClassificationModel();
+	while( !TrainStep( problem ) ) {};
+	return GetClassificationModel( problem );
 }
 
 // Creates a tree builder depending on the problem type
@@ -715,46 +712,58 @@ CPtr<IObject> CGradientBoost::createOutputRepresentation(
 	}
 }
 
-void CGradientBoost::Initialize( const IProblem& _problem )
+void CGradientBoost::prepareProblem( const IProblem& _problem )
 {
-	if( logStream != nullptr ) {
-		*logStream << "\nGradient boost training started:\n";
-	}
+	if( baseProblem == 0 ) {
+		CPtr<const IMultivariateRegressionProblem> multivariate;
+		if( _problem.GetClassCount() == 2 ) {
+			multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverBinaryClassification( &_problem );
+		} else {
+			multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( &_problem );
+		}
 
-	CPtr<const IMultivariateRegressionProblem> multivariate;
-	if( _problem.GetClassCount() == 2 ) {
-		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverBinaryClassification( &_problem );
-	} else {
-		multivariate = FINE_DEBUG_NEW CMultivariateRegressionOverClassification( &_problem );
+		baseProblem = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( multivariate );
+		initialize();
 	}
-
-	baseProblem = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( multivariate );
-	initialize();
 }
 
-void CGradientBoost::Initialize( const IRegressionProblem& _problem )
+void CGradientBoost::prepareProblem( const IRegressionProblem& _problem )
 {
-	if( logStream != nullptr ) {
-		*logStream << "\nGradient boost training started:\n";
+	if( baseProblem == 0 ) {
+		CPtr<const IMultivariateRegressionProblem> multivariate =
+			FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( &_problem );
+		baseProblem = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( multivariate );
+		initialize();
 	}
-
-	CPtr<const IMultivariateRegressionProblem> multivariate =
-		FINE_DEBUG_NEW CMultivariateRegressionOverUnivariate( &_problem );
-	baseProblem = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( multivariate );
-	initialize();
 }
 
-void CGradientBoost::Initialize( const IMultivariateRegressionProblem& _problem )
+void CGradientBoost::prepareProblem( const IMultivariateRegressionProblem& _problem )
 {
-	if( logStream != nullptr ) {
-		*logStream << "\nGradient boost training started:\n";
+	if( baseProblem == 0 ) {
+		baseProblem = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( &_problem );
+		initialize();
 	}
-
-	baseProblem = FINE_DEBUG_NEW CMultivariateRegressionProblemNotNullWeightsView( &_problem );
-	initialize();
 }
 
-bool CGradientBoost::ExecuteStep()
+bool CGradientBoost::TrainStep( const IProblem& _problem )
+{
+	prepareProblem( _problem );
+	return trainStep();
+}
+
+bool CGradientBoost::TrainStep( const IRegressionProblem& _problem )
+{
+	prepareProblem( _problem );
+	return trainStep();
+}
+
+bool CGradientBoost::TrainStep( const IMultivariateRegressionProblem& _problem )
+{
+	prepareProblem( _problem );
+	return trainStep();
+}
+
+bool CGradientBoost::trainStep()
 {
 	try {
 		if( logStream != nullptr ) {
@@ -780,11 +789,13 @@ void CGradientBoost::Serialize( CArchive& archive )
 {
 	if( archive.IsStoring() ) {
 		archive << models.Size();
-		archive << models[0].Size();
-		for( int i = 0; i < models.Size(); i++ ) {
-			CGradientBoostEnsemble& ensemble = models[i];
-			for( int j = 0; j < ensemble.Size(); j++ ) {
-				ensemble[j]->Serialize( archive );
+		if( models.Size() > 0 ) {
+			archive << models[0].Size();
+			for( int i = 0; i < models.Size(); i++ ) {
+				CGradientBoostEnsemble& ensemble = models[i];
+				for( int j = 0; j < ensemble.Size(); j++ ) {
+					ensemble[j]->Serialize( archive );
+				}
 			}
 		}
 		predictCache.Serialize( archive );
@@ -823,18 +834,21 @@ CPtr<T> CGradientBoost::getModel()
 	return CheckCast<T>( createOutputRepresentation( models, predictionSize ) );
 }
 
-CPtr<IModel> CGradientBoost::GetClassificationModel()
+CPtr<IModel> CGradientBoost::GetClassificationModel( const IProblem& _problem )
 {
+	prepareProblem( _problem );
 	return getModel<IModel>();
 }
 
-CPtr<IRegressionModel> CGradientBoost::GetRegressionModel()
+CPtr<IRegressionModel> CGradientBoost::GetRegressionModel( const IRegressionProblem& _problem )
 {
+	prepareProblem( _problem );
 	return getModel<IRegressionModel>();
 }
 
-CPtr<IMultivariateRegressionModel> CGradientBoost::GetMultivariateRegressionModel()
+CPtr<IMultivariateRegressionModel> CGradientBoost::GetMultivariateRegressionModel( const IMultivariateRegressionProblem& _problem )
 {
+	prepareProblem( _problem );
 	return getModel<IMultivariateRegressionModel>();
 }
 
