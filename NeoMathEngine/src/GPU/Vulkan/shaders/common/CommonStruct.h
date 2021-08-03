@@ -339,10 +339,22 @@ PARAM_STRUCT(VectorMultiplyAndSub)
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
-// VectorMultiply
-DEFINE_SHADER_1D(VectorMultiply)
+// VectorMultiplyInt
+DEFINE_SHADER_1D(VectorMultiplyInt)
 
-PARAM_STRUCT(VectorMultiply)
+PARAM_STRUCT(VectorMultiplyInt)
+{
+	int isSecondValue;
+	int isNeg;
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorMultiplyFloat
+DEFINE_SHADER_1D(VectorMultiplyFloat)
+
+PARAM_STRUCT(VectorMultiplyFloat)
 {
 	int isSecondValue;
 	int isNeg;

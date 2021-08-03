@@ -403,12 +403,7 @@ void CCpuMathEngine::VectorEltwiseMultiply(const CConstIntHandle& firstHandle,
 	const int* second = GetRaw( secondHandle );
 	int* result = GetRaw( resultHandle );
 
-	for( int i = 0; i < vectorSize; ++i ) {
-		*result = *first * *second;
-		++first;
-		++second;
-		++result;
-	}
+	NeoML::vectorEltwiseMultiply( first, second, result, vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,

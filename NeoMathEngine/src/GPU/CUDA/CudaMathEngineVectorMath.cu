@@ -978,7 +978,12 @@ void CCudaMathEngine::VectorEltwiseMultiply(const CConstIntHandle& firstHandle, 
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
 	SetCudaDevice( device->DeviceNumber );
 
-	ASSERT_EXPR( false );
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorEltwiseMultiplyCombineCount);
+
+	VectorEltwiseMultiplyKernel<<<blockCount, threadCount>>>
+		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
 }
 
 void CCudaMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
