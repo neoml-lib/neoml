@@ -53,6 +53,7 @@ void InitializePrecisionRecallLayer( py::module& m )
 			return new CPyPrecisionRecallLayer( *layer.Layer<CPrecisionRecallLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, const CPyLayer& layer2, int outputNumber1, int outputNumber2, bool reset ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CPrecisionRecallLayer> recall = new CPrecisionRecallLayer( mathEngine );

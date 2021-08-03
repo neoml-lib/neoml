@@ -96,6 +96,12 @@ void CMetalMathEngine::VectorConvert(const CConstIntHandle& from, const CFloatHa
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::BroadcastCopy(const CFloatHandle&, const CConstFloatHandle&,
+	const CBlobDesc&, const CBlobDesc&, int)
+{
+	ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::VectorFillBernoulli(const CFloatHandle& result, float p, int vectorSize, float value, int seed)
 {
     ASSERT_EXPR( result.GetMathEngine() == this );
@@ -241,10 +247,26 @@ void CMetalMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int ve
     ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
 }
 
-void CMetalMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
-	int followingDimension, const CFloatHandle& resultHandle )
+void CMetalMathEngine::VectorSumAlongDimension( const CConstFloatHandle&, int, int, int, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorSumAlongDimensionDiag(const CConstFloatHandle&, int, int,
+	int, const CFloatHandle&)
+{
+	ASSERT_EXPR(false);
+}
+
+void CMetalMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle&, int, int, int, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorCumSumAlongDimensionDiag(const CConstFloatHandle&, int, int,
+	int, const CFloatHandle&)
+{
+	ASSERT_EXPR(false);
 }
 
 void CMetalMathEngine::VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -1181,6 +1203,24 @@ void CMetalMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandl
 	ASSERT_EXPR( minHandle.GetMathEngine() == this );
 	ASSERT_EXPR( maxHandle.GetMathEngine() == this );
 
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseLess( const CConstFloatHandle&, const CConstFloatHandle&,
+	const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseLess( const CConstFloatHandle&, float,
+	const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseLess( float, const CConstFloatHandle&,
+	const CFloatHandle&, int )
+{
 	ASSERT_EXPR( false );
 }
 

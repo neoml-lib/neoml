@@ -37,22 +37,24 @@ namespace NeoML {
 
 typedef CPtr<CBaseLayer> ( *TCreateLayerFunction )( IMathEngine& mathEngine );
 
-void NEOML_API RegisterLayerName( const char* mainName, const char* additionalName, const std::type_info& typeInfo, TCreateLayerFunction function );
+void NEOML_API RegisterLayerClass( const char* className, const char* additionalName, const std::type_info& typeInfo, TCreateLayerFunction function );
 
-void NEOML_API UnregisterLayerName( const std::type_info& typeInfo );
+void NEOML_API UnregisterLayerClass( const std::type_info& typeInfo );
 
-bool NEOML_API IsRegisteredLayerName( const char* name );
+bool NEOML_API IsRegisteredLayerClass( const char* className );
 
-void NEOML_API GetRegisteredLayerNames( CArray<const char*>& layerNames );
+void NEOML_API GetRegisteredLayerClasses( CArray<const char*>& layerNames );
 
 CPtr<CBaseLayer> NEOML_API CreateLayer( const char* name, IMathEngine& mathEngine );
 
-NEOML_API CString GetLayerName( const CBaseLayer& layer );
+CPtr<CBaseLayer> NEOML_API CreateLayer( const char* className, IMathEngine& mathEngine );
+
+NEOML_API CString GetLayerClass( const CBaseLayer& layer );
 
 template<class T>
-CPtr<T> CreateLayer( const char* name, IMathEngine& mathEngine )
+CPtr<T> CreateLayer( const char* className, IMathEngine& mathEngine )
 {
-	return CheckCast<T>( CreateLayer( name, mathEngine ) );
+	return CheckCast<T>( CreateLayer( className, mathEngine ) );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -60,7 +62,7 @@ CPtr<T> CreateLayer( const char* name, IMathEngine& mathEngine )
 template<class T>
 class CLayerClassRegistrar {
 public:
-	CLayerClassRegistrar( const char* mainName, const char* additionalName );
+	CLayerClassRegistrar( const char* className, const char* additionalName );
 	~CLayerClassRegistrar();
 
 private:
@@ -68,15 +70,15 @@ private:
 };
 
 template<class T>
-inline CLayerClassRegistrar<T>::CLayerClassRegistrar( const char* mainName, const char* additionalName )
+inline CLayerClassRegistrar<T>::CLayerClassRegistrar( const char* className, const char* additionalName )
 {
-	RegisterLayerName( mainName, additionalName, typeid( T ), createObject );
+	RegisterLayerClass( className, additionalName, typeid( T ), createObject );
 }
 
 template<class T>
 inline CLayerClassRegistrar<T>::~CLayerClassRegistrar()
 {
-	UnregisterLayerName( typeid( T ) );
+	UnregisterLayerClass( typeid( T ) );
 }
 
 class CDnn;

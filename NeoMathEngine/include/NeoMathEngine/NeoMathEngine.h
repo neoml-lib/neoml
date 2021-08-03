@@ -37,6 +37,13 @@ public:
 	// Copying the second vector values into the first
 	virtual void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) = 0;
 	virtual void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) = 0;
+	// Broadcasting the copy to new shape
+	// additionalWidth = 1 means broadcasting from fromDesc to toDesc
+	// additionalWidth != 1 means broadcasting from (*fromDesc, additionalWidth) to (*toDesc, additionalWidth)
+	// where (*desc, additionalWidth) is 8-dimensional shape with last dimension equals additionalWidth,
+	// channels count of handle must be additionalWidth times bigger than channels count of corresponding desc.
+	virtual void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 
 	// Filling a vector with the specified value
 	virtual void VectorFill(const CFloatHandle& result, float value, int vectorSize) = 0;
@@ -62,8 +69,17 @@ public:
 	// The resultHandle is not set to null
 	virtual void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) = 0;
 	virtual void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) = 0;
+	// Sum of blob elements along dimension with size `dimension`
 	virtual void VectorSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle) = 0;
+	// Cumulative Sum of blob elements along dimension with size `dimension`
+	virtual void VectorCumSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle) = 0;
+	// Blob `first` is assumed to be a diagonal matrix
+	virtual void VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) = 0;
+	virtual void VectorCumSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) = 0;
 
 	// result = (first == second) ? 1.0 : 0.0 elementwise
 	virtual void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -276,6 +292,14 @@ public:
 
 	// result[i] = first[i] >= 0 ? 1.f : 0.f
 	virtual void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
+
+	// result[i] = first[i] < second[i] ? 1.f : 0.f
+	virtual void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseLess( const CConstFloatHandle& firstHandle, float second,
+		const CFloatHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseLess( float firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize ) = 0;
 
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
@@ -531,6 +555,7 @@ struct NEOMATHENGINE_API C3dMaxPoolingDesc : public CCrtAllocatedObject { public
 struct NEOMATHENGINE_API C3dMeanPoolingDesc : public CCrtAllocatedObject { public: virtual ~C3dMeanPoolingDesc(); };
 struct NEOMATHENGINE_API CGlobalMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CGlobalMaxOverTimePoolingDesc(); };
 struct NEOMATHENGINE_API CMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CMaxOverTimePoolingDesc(); };
+struct NEOMATHENGINE_API CLrnDesc : public CCrtAllocatedObject { public: virtual ~CLrnDesc(); };
 
 //------------------------------------------------------------------------------------------------------------
 // RLE format
@@ -759,6 +784,20 @@ public:
 	virtual void Reorg( const CBlobDesc& source, const CIntHandle& sourceData, int stride, bool isForward,
 		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
 
+	// Rearranges the blob elements from N x H x W x C to N x H / blockSize x W / blockSize x C * blockSize * blockSize
+	// The name is chosen to be similar with other frameworks
+	virtual void SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
+	virtual void SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+
+	// Rearranges the blob elements from N x H x W x C to N x H * blockSize x W * blockSize x C / (blockSize * blockSize)
+	// The name is chosen to be similar with other frameworks
+	virtual void DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
+	virtual void DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+
 	// To each element, adds its column number (on forward pass)
 	// 0 1 2   --->    0 2 4
 	// 3 4 5           3 5 7
@@ -808,6 +847,43 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) = 0;
+
+	// Ind-RNN implementation (https://arxiv.org/pdf/1803.04831.pdf)
+	// Pay attention that functions below emulate only recurrent part of the layer
+	// the result is
+	//    h_t = sigmoid( wx + u * h_(t-1))
+	// where
+	//    wx - user input (x), processed by fully connected layer (w). Size: seqLen x batchSize x objSize
+	//    mask - (optional, may be null) dropout mask. Size: batchSize x objSize
+	//    u - trainable vector of multipliers. Size: objSize
+
+	// Inference
+	// Calculates h based on wx, mask and u
+	virtual void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+		const CFloatHandle& h ) = 0;
+	// Backward
+	// Calculates wxDiff based on mask, u, h and hDiff
+	virtual void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& wxDiff ) = 0;
+	// Learn
+	// Calculates uDiff based on wx, mask, u, h, and hDiff
+	virtual void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
+		const CFloatHandle& uDiff ) = 0;
+
+	// Local responce normalization (Lrn)
+	// For more details see CLrnLayer comments
+	virtual CLrnDesc* InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta ) = 0;
+	// invSum and invSumBeta are required only for backward
+	// If you're not gonna use backward, you may pass CFloatHandle()
+	// If you need backward, invSum and invSumBeta must be of the same size as input
+	virtual void Lrn( const CLrnDesc& desc, const CConstFloatHandle& input, const CFloatHandle& invSum,
+		const CFloatHandle& invSumBeta, const CFloatHandle& outputHandle ) = 0;
+	virtual void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
+		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
+		const CFloatHandle& inputDiff ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

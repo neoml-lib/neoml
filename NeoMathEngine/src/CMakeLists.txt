@@ -16,6 +16,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnConv.cpp
     CPU/CpuMathEngineDnnChannelwiseConv.cpp
     CPU/CpuMathEngineDnnDropout.cpp
+    CPU/CpuMathEngineDnnLrn.cpp
     CPU/CpuMathEngineDnn.cpp
     CPU/CpuMathEngineDnnPooling.cpp
     CPU/CpuMathEngineDnnRleConv.cpp
@@ -38,6 +39,7 @@ target_sources(${PROJECT_NAME}
     MathEngineDll.h
     MathEngineDnnConv.h
     MathEngineDnnDropout.h
+    MathEngineDnnLrn.h
     MathEngineDnnPoolings.h
     MathEngineHostStackAllocator.h
     MemoryHandleInternal.h
@@ -207,6 +209,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CudaMathEngineDnnConv.cu
                     GPU/CUDA/CudaMathEngineDnn.cu
                     GPU/CUDA/CudaMathEngineDnnDropout.cu
+                    GPU/CUDA/CudaMathEngineDnnLrn.cu
                     GPU/CUDA/CudaMathEngineDnnPoolings.cu
                     GPU/CUDA/CudaMathEngineDnnRleConv.cu
                     GPU/CUDA/CudaMathEngineDnnTimeConv.cu
@@ -233,6 +236,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/Kernels/CudaDnnGlobalPoolingKernels.h
                     GPU/CUDA/Kernels/CudaDnnGlobalTimePoolingKernels.h
                     GPU/CUDA/Kernels/CudaDnnKernels.h
+                    GPU/CUDA/Kernels/CudaDnnLrnKernels.h
                     GPU/CUDA/Kernels/CudaDnnPoolingKernels.h
                     GPU/CUDA/Kernels/CudaDnnRleConvKernels.h
                     GPU/CUDA/Kernels/CudaDnnTimeConvKernels.h
@@ -262,6 +266,7 @@ elseif(IOS)
         GPU/Metal/MetalMathEngineDnnConvs.mm
         GPU/Metal/MetalMathEngineDnnDropout.mm
         GPU/Metal/MetalMathEngineDnnPoolings.mm
+        GPU/Metal/MetalMathEngineDnnLrn.mm
         GPU/Metal/MetalKernel.h
         GPU/Metal/MetalKernel.mm
         GPU/Metal/MetalCommandQueue.h
@@ -316,6 +321,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
             target_include_directories(${PROJECT_NAME}
                 PRIVATE 
                     GPU/Vulkan
+                    "${CMAKE_CURRENT_BINARY_DIR}/GPU/Vulkan"
                     ${Vulkan_INCLUDE_DIR}
             )
             
@@ -331,6 +337,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
                     GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
                     GPU/Vulkan/VulkanMathEngineDnn.cpp
                     GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
+                    GPU/Vulkan/VulkanMathEngineDnnLrn.cpp
                     GPU/Vulkan/VulkanMathEngine.cpp
                     GPU/Vulkan/VulkanMathEngine.h
                     GPU/Vulkan/VulkanMathEngineVectorMath.cpp

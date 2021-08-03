@@ -179,6 +179,13 @@ inline CBlob<T>::CBlob( IMathEngine& mathEngine, int batchLength, int batchWidth
 typedef CBlob<float> CFloatBlob;
 typedef CBlob<int> CIntBlob;
 
+inline int GetFlatIndex( const CBlobDesc& blob, int seq, int batch, int list, int channel, int depth,
+	int row, int column )
+{
+	return ( list + blob.ListSize() * ( batch + blob.BatchWidth() * seq ) ) * blob.ObjectSize()
+		+ channel + blob.Channels() * ( depth + blob.Depth() * ( column + row * blob.Width() ) );
+}
+
 //------------------------------------------------------------------------------------------------------------
 
 class CTestFixture : public ::testing::Test {

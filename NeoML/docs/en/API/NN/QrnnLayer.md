@@ -26,11 +26,10 @@ This class implements a quasi-recurrent layer that can be applied to a set of ve
 
 The output is a sequence of vectors, each of `GetHiddenSize()` size.
 
-Unlike LSTM or GRU, this layer performs most of calculations before the recurrent part.
-That leads to significant performance improvement on GPU.
+Unlike LSTM or GRU, this layer performs most of calculations before the recurrent part, which leads to significant performance improvement on GPU.
 It's achieved by using [time convolution](ConvolutionLayers/TimeConvLayer.md).
 
-The realization of this layer is based on [this article](https://arxiv.org/abs/1611.01576).
+Based on [this article](https://arxiv.org/abs/1611.01576).
 
 ## Settings
 
@@ -49,7 +48,7 @@ enum TPoolingType {
 void SetPoolingType(TPoolingType newPoolingType);
 ```
 
-Sets the pooling type. Pooling is the recurrent part of the qrnn layer.
+Sets the pooling type. Pooling is the recurrent part of the QRNN layer.
 The exact formulas are given in [the article](https://arxiv.org/abs/1611.01576).
 
 ### Hidden layer size

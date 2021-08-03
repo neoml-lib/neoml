@@ -85,6 +85,7 @@ void InitializeMultichannelLookupLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs, const py::list& dimensions )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

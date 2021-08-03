@@ -297,6 +297,42 @@ __global__ void ReorgKernel( const T *input, int width, int height, int nFilters
 	}
 }
 
+template<class T>
+__global__ void SpaceToDepthKernel( const T* source, int dataRowCount, int dataRowWidth,
+	int blockChannels, int blockSize, bool isForward, T* result )
+{
+	// number of elements in the single data row
+	const int dataRowSize = blockSize * ( dataRowWidth * blockSize ) * blockChannels;
+
+	int dataRowIndex = 0;
+	int elementIndex = 0;
+	if( !GetCudaTaskIndex2D( dataRowCount, dataRowSize, dataRowIndex, elementIndex ) ) {
+		return;
+	}
+
+	// number of elements in a single row inside 3d-block
+	const int blockRowSize = blockChannels * blockSize;
+
+	// offset for switching to the next block inside data row
+	const int sourceBlockOffset = isForward ? blockRowSize : blockSize * blockRowSize;
+	const int resultBlockOffset = isForward ? blockSize * blockRowSize : blockRowSize;
+	// offset for switching to the next row inside the 3d-block
+	const int sourceBlockRowOffset = isForward ? dataRowWidth * blockRowSize : blockRowSize;
+	const int resultBlockRowOffset = isForward ? blockRowSize : dataRowWidth * blockRowSize;
+
+	const int pixelIndex = elementIndex / blockChannels;
+	elementIndex %= blockChannels;
+	const int inBlockX = pixelIndex % blockSize;
+	const int inBlockY = ( pixelIndex / blockSize ) % blockSize;
+	const int blockX = ( pixelIndex / blockSize / blockSize );
+
+	source += dataRowIndex * dataRowSize + blockX * sourceBlockOffset + inBlockY * sourceBlockRowOffset
+		+ inBlockX * blockChannels + elementIndex;
+	result += dataRowIndex * dataRowSize + blockX * resultBlockOffset + inBlockY * resultBlockRowOffset
+		+ inBlockX * blockChannels + elementIndex;
+	*result = *source;
+}
+
 __global__ void AddWidthIndexKernel( const float *input, int width, int height, int nFilters,
 	int batchSize, bool isForward, float *output )
 {
@@ -491,6 +527,125 @@ __global__ void QrnnIfPoolingBackwardKernel( bool reverse, int sequenceLength, i
 		*fDiff = *outDiff * *h0;
 	}
 	*iDiff = *outDiff * *z;
+}
+
+__global__ void IndRnnRecurrentKernel( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const float* wx, const float* mask, const float* u, float* h )
+{
+	int batch, elem;
+	if( !GetCudaTaskIndex2D( batchSize, objectSize, batch, elem ) ) {
+		return;
+	}
+
+	const int inBatchOffset = batch * objectSize + elem;
+	const float dropout = mask == nullptr ? 1.f : mask[inBatchOffset];
+	const float weight = u[elem];
+
+	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
+
+	if( reverse ) {
+		wx += ( sequenceLength - 1 ) * batchSize * objectSize;
+		h += ( sequenceLength - 1 ) * batchSize * objectSize;
+	}
+	
+	wx += inBatchOffset;
+	h += inBatchOffset;
+
+	float currRes = 1.f / (1.f + ExponentFunc( -*wx ) );
+	*h = currRes;
+
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		wx += stepOffset;
+		h += stepOffset;
+		currRes = *wx + weight * dropout * currRes;
+		currRes = 1.f / (1.f + ExponentFunc( -currRes ) );
+		*h = currRes;
+	}
+}
+
+__global__ void IndRnnRecurrentBackwardKernel( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const float* mask, const float* u, const float* out, const float* outDiff, float* wxDiff )
+{
+	int batch, elem;
+	if( !GetCudaTaskIndex2D( batchSize, objectSize, batch, elem ) ) {
+		return;
+	}
+
+	const int inBatchOffset = batch * objectSize + elem;
+	const float dropout = mask == nullptr ? 1.f : mask[inBatchOffset];
+	const float weight = u[elem];
+
+	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
+
+	if( reverse ) {
+		out += ( sequenceLength - 1 ) * batchSize * objectSize;
+		wxDiff += ( sequenceLength - 1 ) * batchSize * objectSize;
+		outDiff += ( sequenceLength - 1 ) * batchSize * objectSize;
+	}
+
+	out += inBatchOffset;
+	outDiff += inBatchOffset;
+	wxDiff += inBatchOffset;
+
+	float totalOutDiff = *outDiff;
+
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		float currOut = *out;
+		float currWxDiff = totalOutDiff * currOut * ( 1.f - currOut );
+		*wxDiff = currWxDiff;
+
+		outDiff += stepOffset;
+		totalOutDiff = *outDiff + currWxDiff * weight * dropout;
+
+		out += stepOffset;
+		wxDiff += stepOffset;
+	}
+
+	float currOut = *out;
+	*wxDiff = totalOutDiff * currOut * ( 1.f - currOut );
+}
+
+__global__ void IndRnnRecurrentLearnKernel( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	const float* mask, const float* u, const float* out, const float* outDiff, float* uDiff )
+{
+	int batch, elem;
+	if( !GetCudaTaskIndex2D( batchSize, objectSize, batch, elem ) ) {
+		return;
+	}
+
+	const int inBatchOffset = batch * objectSize + elem;
+	const float dropout = mask == nullptr ? 1.f : mask[inBatchOffset];
+	const float weight = u[elem];
+
+	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
+
+	if( reverse ) {
+		out += ( sequenceLength - 1 ) * batchSize * objectSize;
+		outDiff += ( sequenceLength - 1 ) * batchSize * objectSize;
+	}
+
+	out += inBatchOffset;
+	outDiff += inBatchOffset;
+
+	float totalUDiff = 0;
+	float totalOutDiff = *outDiff;
+	float currOut = *out;
+
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		float sigmoidDiffOp = currOut * ( 1.f - currOut );
+		outDiff += stepOffset;
+		out += stepOffset;
+		currOut = *out;
+		float temp = totalOutDiff * sigmoidDiffOp * dropout;
+		totalUDiff += temp * currOut;
+		totalOutDiff = *outDiff + temp * weight;
+	}
+
+	if( batchSize > 1 ) {
+		atomicAdd( uDiff + elem, totalUDiff );
+	} else {
+		uDiff[elem] += totalUDiff;
+	}
 }
 
 } // namespace NeoML

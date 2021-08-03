@@ -33,8 +33,6 @@ enum TPositionalEmbeddingType {
 void SetType( TPositionalEmbeddingType newType );
 ```
 
-Тип векторов.
-
 ## Обучаемые параметры
 
 ### Прибавляемые представления позиций
@@ -43,7 +41,7 @@ void SetType( TPositionalEmbeddingType newType );
 CPtr<CDnnBlob> GetAddends() const;
 ```
 
-Векторные представления позиций в последовательности, прибавляемые к векторам входа. Обучаются если `GetType()` равен `PET_LearnableAddition` или `PET_LearnableMultAddition`.
+Векторные представления позиций в последовательности, прибавляемые к векторам входа. Обучаются если `GetType()` равен `PET_LearnableAddition`<!-- или `PET_LearnableMultAddition`-->.
 
 Представляют собой [блоб](../DnnBlob.md) размера
 
@@ -52,7 +50,7 @@ CPtr<CDnnBlob> GetAddends() const;
 
 ## Входы
 
-На единственный вход подается блоб, который содержит набор последовательностей векторов следующего размера
+На единственный вход подается блоб, который содержит набор последовательностей векторов следующего размера:
 
 - `BatchLength` должен быть равен `1`;
 - `BatchWidth` - количество последовательностей в наборе;
@@ -77,7 +75,7 @@ result[i][j][k] = input[i][j][k] + sin( j / pow( 10000, ( k / vectorSize ) ) )
 - `vectorSize` - длина векторов (`Height * Width * Depth * Channels`)
 - `k` - индекс элемента в векторе (от `0` до `vectorSize - 1`)
 
-Если `GetType() == PET_LearnableAddition` то результат считается по формуле:
+Если `GetType() == PET_LearnableAddition`, то результат считается по формуле:
 
 ```c++
 result[i][j] = input[i][j] + GetAddend()[j]
