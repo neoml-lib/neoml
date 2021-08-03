@@ -817,6 +817,21 @@ void CMetalMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle, c
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::VectorEltwiseMultiply(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+    const CIntHandle& resultHandle, int vectorSize)
+{
+    ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+    ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+    ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    C1DKernel kernel( *queue, "vectorKernelEltwiseMultiplyInt", VectorCombineCount, vectorSize );
+    kernel.SetParam( firstHandle, 0 );
+    kernel.SetParam( secondHandle, 1 );
+    kernel.SetParam( resultHandle, 2 );
+    kernel.SetParam( vectorSize, 3 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
 void CMetalMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
     const CFloatHandle& resultHandle, int vectorSize)
 {
@@ -824,7 +839,7 @@ void CMetalMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandl
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-    C1DKernel kernel( *queue, "vectorKernelEltwiseMultiply", VectorCombineCount, vectorSize );
+    C1DKernel kernel( *queue, "vectorKernelEltwiseMultiplyFloat", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
     kernel.SetParam( secondHandle, 1 );
     kernel.SetParam( resultHandle, 2 );
