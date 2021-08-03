@@ -18,7 +18,7 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void vectorEltwiseMultiplyImpl( const CTestParams& params, int seed )
+static void vectorEltwiseMultiplyFloatImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
 	const CInterval vectorSizeInterval = params.GetInterval( "VectorSize" );
@@ -35,6 +35,26 @@ static void vectorEltwiseMultiplyImpl( const CTestParams& params, int seed )
 	for( int i = 0; i < vectorSize; i++ ) {
 		float expected = a[i] * b[i];
 		ASSERT_NEAR( expected, result[i], 1e-3 );
+	}
+}
+
+static void vectorEltwiseMultiplyIntImpl( const CTestParams& params, int seed )
+{
+	CRandom random( seed );
+	const CInterval vectorSizeInterval = params.GetInterval( "VectorSize" );
+	const CInterval vectorValuesInterval = params.GetInterval( "VectorValues" );
+	const int vectorSize = random.UniformInt( vectorSizeInterval.Begin, vectorSizeInterval.End );
+
+	CREATE_FILL_INT_ARRAY( a, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
+	CREATE_FILL_INT_ARRAY( b, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
+
+	std::vector<int> result;
+	result.resize( vectorSize );
+	MathEngine().VectorEltwiseMultiply( CARRAY_INT_WRAPPER( a ), CARRAY_INT_WRAPPER( b ), CARRAY_INT_WRAPPER( result ), vectorSize );
+
+	for( int i = 0; i < vectorSize; i++ ) {
+		int expected = a[i] * b[i];
+		ASSERT_EQ( expected, result[i] );
 	}
 }
 
@@ -65,5 +85,6 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorEltwiseMultiplyTestInstantiation, CMat
 
 TEST_P( CMathEngineVectorEltwiseMultiplyTest, Random )
 {
-	RUN_TEST_IMPL( vectorEltwiseMultiplyImpl );
+	RUN_TEST_IMPL( vectorEltwiseMultiplyFloatImpl );
+	RUN_TEST_IMPL( vectorEltwiseMultiplyIntImpl );
 }
