@@ -66,8 +66,13 @@ void CUpsampling2DLayer::RunOnce()
 	NeoAssert( inputBlobs.Size() == outputBlobs.Size() );
 
 	for( int i = 0; i < inputBlobs.Size(); ++i ) {
-		MathEngine().Upsampling2DForward( inputBlobs[i]->GetDesc(), inputBlobs[i]->GetData(),
-			heightCopyCount, widthCopyCount, outputBlobs[i]->GetDesc(), outputBlobs[i]->GetData() );
+		if( inputBlobs[i]->GetDataType() == CT_Float ) {
+			MathEngine().Upsampling2DForward( inputBlobs[i]->GetDesc(), inputBlobs[i]->GetData(),
+				heightCopyCount, widthCopyCount, outputBlobs[i]->GetDesc(), outputBlobs[i]->GetData() );
+		} else {
+			MathEngine().Upsampling2DForward( inputBlobs[i]->GetDesc(), inputBlobs[i]->GetData<int>(),
+				heightCopyCount, widthCopyCount, outputBlobs[i]->GetDesc(), outputBlobs[i]->GetData<int>() );
+		}
 	}
 }
 
@@ -75,6 +80,7 @@ void CUpsampling2DLayer::BackwardOnce()
 {
 	NeoAssert( inputDiffBlobs.Size() == outputDiffBlobs.Size() );
 	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
+		NeoAssert( inputBlobs[i]->GetDataType() == CT_Float );
 		MathEngine().Upsampling2DBackward( outputDiffBlobs[i]->GetDesc(), outputDiffBlobs[i]->GetData(),
 			heightCopyCount, widthCopyCount, inputDiffBlobs[i]->GetDesc(), inputDiffBlobs[i]->GetData() );
 	}
