@@ -20,12 +20,13 @@ from scipy.sparse import csr_matrix
 import neoml.PythonWrapper as PythonWrapper
 
 class PCA(PythonWrapper.PCA) :
-    """PCA algorithm implementing linear dimensionality reduction
-    using Singular Value Decomposition to project the data into
+    """Principal components analysis (PCA) algorithm. 
+    It uses singular value decomposition to project the data into
     a lower dimensional space.
 
-    :param n_components: number of components.
-        If 0 < n_components < 1, set the number of components such that variance is greater than n_components.
+    :param n_components: number of components or the way it should be chosen.
+        If it's an integer value, it's simply the number of components.
+        If it's a float value and 0 < n_components < 1, set the number of components so that variance is greater than this value.
         If n_components = None, set the number of components as min(data.width, data.height).
     :type n_components: int, float, default=None
     """
@@ -72,36 +73,36 @@ class PCA(PythonWrapper.PCA) :
 
     @property
     def singular_values(self):
-        """Returns singular values corresponding to the selected principal axis
+        """Returns the singular values corresponding to the selected principal axes.
         """
         return super().singular_values()
 
     @property
     def explained_variance(self):
-        """Returns variance explained by each of the selected principal axis
+        """Returns the variance explained by each of the selected principal axes.
         """
         return super().explained_variance()
 
     @property
     def explained_variance_ratio(self):
-        """Returns percentage of variance explained by each of the selected principal axis
+        """Returns the percentage of variance explained by each of the selected principal axes.
         """
         return super().explained_variance_ratio()
 
     @property
     def components(self):
-        """Returns ndarray ( components x features ) with rows corresponding to the selected principal axis 
+        """Returns ndarray ( components x features ) with rows corresponding to the selected principal axes.
         """
         return super().components()
 
     @property
     def n_components(self):
-        """Returns selected number of principal axis
+        """Returns the selected number of principal axes.
         """
         return super().n_components()
 
     @property
     def noise_variance(self):
-        """Returns mean of singular values not corresponding to the selected principal axis
+        """Returns the mean of singular values not corresponding to the selected principal axes.
         """
         return super().noise_variance()
