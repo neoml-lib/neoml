@@ -28,7 +28,8 @@ limitations under the License.
 namespace NeoML {
 
 // Include the shader code
-#include <shaders/generated/Upsampling2DForward.h>
+#include <shaders/generated/Upsampling2DForwardInt.h>
+#include <shaders/generated/Upsampling2DForwardFloat.h>
 #include <shaders/generated/BlobResizeImage.h>
 #include <shaders/generated/BlobSpatialDropout.h>
 #include <shaders/generated/BuildIntegerHist.h>
@@ -234,7 +235,19 @@ void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntH
 	const int resultHeight = result.Height();
 	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
 
-	ASSERT_EXPR( false );
+	PARAM_STRUCT(Upsampling2DForwardInt) param = { 
+		heightCopyCount, 
+		widthCopyCount,
+		pixelSize,
+		input.ObjectCount(),
+		inputHeight,
+		inputRowSize,
+		resultHeight,
+		resultRowSize,
+	};
+
+	runShader( shaderLoader->GET_SHADER_DATA(Upsampling2DForwardInt, true, 0, 0, 2), &param, sizeof(param),
+		0, 0, 0, 0, bufs, sizes, 2, resultRowSize, resultHeight, 1 );
 }
 
 void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
@@ -252,7 +265,7 @@ void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloa
 	const int resultHeight = result.Height();
 	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
 
-	PARAM_STRUCT(Upsampling2DForward) param = { 
+	PARAM_STRUCT(Upsampling2DForwardFloat) param = { 
 		heightCopyCount, 
 		widthCopyCount,
 		pixelSize,
@@ -263,7 +276,7 @@ void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloa
 		resultRowSize,
 	};
 
-	runShader( shaderLoader->GET_SHADER_DATA(Upsampling2DForward, true, 0, 0, 2), &param, sizeof(param),
+	runShader( shaderLoader->GET_SHADER_DATA(Upsampling2DForwardFloat, true, 0, 0, 2), &param, sizeof(param),
 		0, 0, 0, 0, bufs, sizes, 2, resultRowSize, resultHeight, 1 );
 }
 
