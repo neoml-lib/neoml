@@ -74,8 +74,9 @@ inline bool FloatEq(float val1, float val2, float precision = 1e-05)
 #define FLT_MIN_LOG -87.33654474f
 #define FLT_MAX_LOG 88.f
 
-#define CARRAY_FLOAT_WRAPPER(arr) CFloatWrapper( MathEngine(), (arr.data()), ( static_cast<int>( arr.size() ) ) )
-#define CARRAY_INT_WRAPPER(arr) CIntWrapper( MathEngine(), (arr.data()), ( static_cast<int>( arr.size() ) ) )
+#define CARRAY_WRAPPER(TYPE, arr) CBufferWrapper<TYPE>( MathEngine(), ( arr.data() ), ( static_cast<int>( arr.size() ) ) )
+#define CARRAY_FLOAT_WRAPPER(arr) CARRAY_WRAPPER(float, arr)
+#define CARRAY_INT_WRAPPER(arr) CARRAY_WRAPPER(int, arr)
 
 #define FLOAT_WRAPPER(arr) CFloatWrapper( MathEngine(), (arr), (int)sizeof(arr) / sizeof(float) )
 #define FLOAT_WRAPPER_MATHENGINE(mathEngine, arr) CFloatWrapper( mathEngine, (arr), (int)sizeof(arr) / sizeof(float) )
