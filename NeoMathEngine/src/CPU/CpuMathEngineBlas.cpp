@@ -178,10 +178,10 @@ void CCpuMathEngine::transposeMatrix( int batchSize, const int* firstHandle,
 void CCpuMathEngine::addVectorToMatrixRows( const float* matrix, float* result,
 	int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector)
 {
-	for(int i = 0; i < matrixHeight; i++) {
-		vectorAdd( matrix, vector, result, matrixWidth );
-		matrix += matrixRowSize;
-		result += resultRowSize;
+	const int curThreadCount = IsOmpRelevant( matrixHeight, matrixHeight * matrixWidth ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int i = 0; i < matrixHeight; i++ ) {
+		vectorAdd( matrix + i * matrixRowSize, vector, result + i * matrixRowSize, matrixWidth );
 	}
 }
 
@@ -788,11 +788,11 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrix( const CConstFloatHandle& firstH
 	CConstFloatHandle second = secondHandle;
 	CFloatHandle result = resultHandle;
 
-	for( int j = 0; j < firstSize; ++j ) {
-		VectorMultiply( second, result, secondWidth, first );
-		second += secondWidth;
-		result += secondWidth;
-		++first;
+	const int curThreadCount = IsOmpRelevant( firstSize, firstSize * secondWidth ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int i = 0; i < firstSize; i++ ) {
+		const float multiplier = *GetRaw( first + i );
+		vectorMultiply(GetRaw( secondHandle + i * secondWidth ), GetRaw( resultHandle + i * secondWidth ), multiplier, secondWidth );
 	}
 }
 

@@ -106,6 +106,33 @@ inline void vectorFill( float* result, float value, int vectorSize )
 	}
 }
 
+inline void vectorFill( int* result, int value, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse2( vectorSize, sseSize, nonSseSize );
+
+	if( sseSize > 0 ) {
+		__m128i valueSse = _mm_set1_epi32( value );
+		for( int i = 0; i < sseSize; ++i ) {
+			_mm_storeu_si128( ( __m128i* )result, valueSse );
+			result += 4;
+		}
+	}
+
+#if FINE_PLATFORM(FINE_WINDOWS)
+	if( nonSseSize > 0 ) {
+		__stosd( (DWORD*) result, value, nonSseSize );
+	}
+#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = value;
+	}
+#else
+#error "Platform isn't supported!"
+#endif
+}
+
 inline void vectorFill0( float* result, int vectorSize )
 {
 	int sseSize;
@@ -282,6 +309,27 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 		second += 4;
 		result += 4;
 		sseSize--;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	if( sseSize > 0 ) {
+		__m128 multSse = _mm_set_ps1( multiplier );
+		for( int i = 0; i < sseSize; ++i ) {
+			_mm_storeu_ps( result, _mm_mul_ps( _mm_loadu_ps( first ), multSse ) );
+			first += 4;
+			result += 4;
+		}
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = *first++ * multiplier;
 	}
 }
 
