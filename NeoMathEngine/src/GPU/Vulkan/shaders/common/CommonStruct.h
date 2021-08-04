@@ -1592,10 +1592,27 @@ PARAM_STRUCT(LookupAndSum)
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
-// Upsampling2DForward
-DEFINE_SHADER_2D(Upsampling2DForward)
+// Upsampling2DForwardInt
+DEFINE_SHADER_2D(Upsampling2DForwardInt)
 
-PARAM_STRUCT(Upsampling2DForward)
+PARAM_STRUCT(Upsampling2DForwardInt)
+{
+	int heightCopyCount;
+	int widthCopyCount;
+	int pixelSize;
+	int batchSize;
+	int inputHeight;
+	int inputRowSize;
+	int resultHeight;
+	int resultRowSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// Upsampling2DForwardFloat
+DEFINE_SHADER_2D(Upsampling2DForwardFloat)
+
+PARAM_STRUCT(Upsampling2DForwardFloat)
 {
 	int heightCopyCount;
 	int widthCopyCount;

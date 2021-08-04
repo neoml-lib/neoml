@@ -209,8 +209,23 @@ void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHan
 	ASSERT_EXPR(input.Height() * heightCopyCount == result.Height());
 	ASSERT_EXPR(input.Width() * widthCopyCount == result.Width());
 	SetCudaDevice( device->DeviceNumber );
-	
-	ASSERT_EXPR( false );
+
+	// This is how the algorithm works
+	// The input blob can be considered as batchSize matrices of inputHeight x inputRowSize size each
+	// The output blob can be considered as batchSize matrices of resultHeight x resultRowSize size each
+	// To calculate the (i,j) element of the output matrix create a separate thread
+	const int inputHeight = input.Height();
+	const int inputRowSize = input.Width() * input.Depth() * input.Channels();
+	const int pixelSize = input.Depth() * input.Channels();
+	const int resultHeight = result.Height();
+	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, resultHeight, resultRowSize );
+	Upsampling2DForwardKernel<<<blockCount, threadCount>>>(
+		heightCopyCount, widthCopyCount, pixelSize,
+		input.ObjectCount(), inputHeight, inputRowSize, GetRaw( inputData ),
+		resultHeight, resultRowSize, GetRaw( resultData ) );
 }
 
 void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
