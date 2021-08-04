@@ -41,7 +41,7 @@ void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	//     second input - pre-calculated data, single matrix
 	// In this case we can emulate this operator by using CFullyConnectedLayer
 	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
+	CheckNeoOnnxSupport( !inputs[0]->IsCalculated(), "Constant first input", *this );
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided second input", *this );
 
 	CPtr<const CDataTensor> weight = dynamic_cast<const CDataTensor*>( prepareTensor( *inputs[1], false ).Ptr() );
