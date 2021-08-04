@@ -126,23 +126,24 @@ static CLayerOutput prepareLookupIndices( const CUserTensor& indices, const CStr
 	}
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
 	transform->SetName( opName + "_transformIndices" );
-	transform->SetDimensionRule( BD_BatchWidth, CTransformLayer::O_Remainder, 1 );
+	transform->SetDimensionRule( BD_Channels, CTransformLayer::O_SetSize, 1 );
+	transform->SetDimensionRule( BD_Depth, CTransformLayer::O_Remainder, 1 );
 	transform->Connect( 0, *indices.Layer(), indices.OutputIndex() );
 	dnn.AddLayer( *transform );
 	return CLayerOutput( transform.Ptr(), 0 );
 }
 
-// Transforms output into layout, expected by onnx
-static CPtr<const CUserTensor> transformOutput( const CMultichannelLookupLayer& lookup, const CTensorShape& resultShape, CDnn& dnn )
+// Transforms layer output into layout, expected by onnx
+static CPtr<const CUserTensor> transformOutput( const CBaseLayer& layer, const CTensorShape& resultShape, CDnn& dnn )
 {
 	CTensorLayout resultLayout( resultShape.Size() );
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
-	transform->SetName( CString( lookup.GetName() ) + "_transformOutput" );
-	NeoAssert( lookup.GetDnn() != nullptr );
+	transform->SetName( CString( layer.GetName() ) + "_transformOutput" );
+	NeoAssert( layer.GetDnn() != nullptr );
 	for( int i = 0; i < resultShape.Size(); ++i ) {
 		transform->SetDimensionRule( resultLayout[i], CTransformLayer::O_SetSize, resultShape[i] );
 	}
-	transform->Connect( lookup );
+	transform->Connect( layer );
 	dnn.AddLayer( *transform );
 	return new CUserTensor( resultShape, resultLayout, CLayerOutput( transform, 0 ) );
 }
@@ -192,8 +193,19 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		addLookupLayer( dynamic_cast<const CDataTensor&>( *inputs[0] ),
 			dynamic_cast<const CUserTensor&>( *inputs[1] ), dnn, outputs );
 	} else {
-		// TODO: implement when Gather layer will be added to NeoML
-		CheckNeoOnnxSupport( false, "user-provided data", *this );
+		if( inputs[1]->IsCalculated() ) {
+			// Put indices blob into source layer (for compatibility with CImageToPixelLayer)
+			CPtr<CSourceLayer> indexSource = new CSourceLayer( dnn.GetMathEngine() );
+			indexSource->SetName( Name() + "_IndexSource" );
+			dnn.AddLayer( *indexSource );
+			indexSource->SetBlob( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy() );
+			CPtr<CUserTensor> indicesTensor = new CUserTensor( inputs[1]->Shape(), inputs[1]->Layout(),
+				CLayerOutput( indexSource, 0 ) );
+			addImageToPixelLayer( dynamic_cast<const CUserTensor&>( *inputs[0] ), *indicesTensor, dnn, outputs );
+		} else {
+			addImageToPixelLayer( dynamic_cast<const CUserTensor&>( *inputs[0] ),
+				dynamic_cast<const CUserTensor&>( *inputs[1] ), dnn, outputs );
+		}
 	}
 }
 
@@ -254,6 +266,63 @@ void CGatherOperator::addLookupLayer( const CDataTensor& data, const CUserTensor
 	CTensorShape resultShape;
 	getResultShape( data.Shape(), axis, indices.Shape(), resultShape );
 	outputs.Add( transformOutput( *lookup, resultShape, dnn ).Ptr() );
+}
+
+void CGatherOperator::addImageToPixelLayer( const CUserTensor& data, const CUserTensor& indices,
+	CDnn& dnn, CTensorArray& outputs ) const
+{
+	const int axis = axisAttr < 0 ? axisAttr + data.DimCount() : axisAttr;
+	CheckOnnxProtocol( axis >= 0 && axis < data.DimCount(), "axis out of range", *this );
+
+	// Prepare data blob
+	CPtr<const CUserTensor> currData = &data;
+	// Step 1: move axis to BD_BatchLength with rest of dims ordered in onnx-compatible way
+	CTensorLayout requiredLayout = data.Layout();
+	for( int i = 0; i < requiredLayout.Size(); ++i ) {
+		requiredLayout[i] = i == axis ? BD_BatchLength : static_cast<TBlobDim>( i + 1 );
+	}
+	currData = dynamic_cast<const CUserTensor*>( ConvertTensor( *currData, requiredLayout ).Ptr() );
+	// CImageLookupLayer gathers pixel of BD_Channels size from the set of BD_Height x BD_Width size
+	// Step 2: move BD_BatchLength to BD_Height and the rest of the blob to the BD_Channels
+	CPtr<CTransformLayer> transformToImage = new CTransformLayer( dnn.GetMathEngine() );
+	transformToImage->SetName( Name() + "_TransformToImage" );
+	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
+		if( dim == BD_Height ) {
+			transformToImage->SetDimensionRule( dim, CTransformLayer::O_SetSize, data.Shape()[axis] );
+		} else if( dim == BD_Channels ) {
+			transformToImage->SetDimensionRule( dim, CTransformLayer::O_Remainder, 1 );
+		} else {
+			transformToImage->SetDimensionRule( dim, CTransformLayer::O_SetSize, 1 );
+		}
+	}
+	transformToImage->Connect( 0, *currData->Layer(), currData->OutputIndex() );
+	dnn.AddLayer( *transformToImage );
+
+	// Prepare indices blob
+	// CImageLookupLayer expects indices of single image to be in BD_Channels
+	CPtr<const CUserTensor> currIndices = dynamic_cast<const CUserTensor*>( convertToOnnx( indices ).Ptr() );
+	CPtr<CTransformLayer> transformIndices = new CTransformLayer( dnn.GetMathEngine() );
+	transformIndices->SetName( Name() + "_TransformIndices" );
+	for( TBlobDim dim = BD_BatchLength; dim < BD_Channels; ++dim ) {
+		transformIndices->SetDimensionRule( dim, CTransformLayer::O_SetSize, 1 );
+	}
+	transformIndices->SetDimensionRule( BD_Channels, CTransformLayer::O_Remainder, 1 );
+	transformIndices->Connect( 0, *currIndices->Layer(), currIndices->OutputIndex() );
+	dnn.AddLayer( *transformIndices );
+
+	// Perform gather
+	CPtr<CImageToPixelLayer> imageToPixel = new CImageToPixelLayer( dnn.GetMathEngine() );
+	imageToPixel->SetName( Name() );
+	imageToPixel->Connect( 0, *transformToImage );
+	imageToPixel->Connect( 1, *transformIndices );
+	dnn.AddLayer( *imageToPixel );
+
+	// All the indices dims are compressed in BD_ListSize (in onnx-compatible order)
+	// All the data dims are compressed in BD_Channels (in onnx-compatible order)
+	// Unpack them into onnx output tensor
+	CTensorShape resultShape;
+	getResultShape( data.Shape(), axis, indices.Shape(), resultShape );
+	outputs.Add( transformOutput( *imageToPixel, resultShape, dnn ).Ptr() );
 }
 
 } // namespace NeoOnnx

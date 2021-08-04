@@ -37,6 +37,7 @@ private:
 
 	void processDataTensors( const CDataTensor& data, const CDataTensor& indices, CTensorArray& outputs ) const;
 	void addLookupLayer( const CDataTensor& data, const CUserTensor& indices, CDnn& dnn, CTensorArray& outputs ) const;
+	void addImageToPixelLayer( const CUserTensor& data, const CUserTensor& indices, CDnn& dnn, CTensorArray& outputs ) const;
 };
 
 } // namespace NeoOnnx
