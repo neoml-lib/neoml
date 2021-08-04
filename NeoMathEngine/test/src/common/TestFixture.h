@@ -82,18 +82,23 @@ inline bool FloatEq(float val1, float val2, float precision = 1e-05)
 #define INT_WRAPPER(arr) CIntWrapper( MathEngine(), (arr), (int)sizeof(arr) / sizeof(int) )
 #define INT_WRAPPER_MATHENGINE(mathEngine, arr) CIntWrapper( mathEngine, (arr), (int)sizeof(arr) / sizeof(int) )
 
-#define CREATE_FILL_FLOAT_ARRAY(arr, min, max, size, random) \
-	std::vector<float> arr; \
+#define CREATE_FILL_ARRAY(TYPE, arr, min, max, size, random) \
+	std::vector<TYPE> arr; \
 	arr.resize( size ); \
 	for(int i = 0; i < size; ++i) { \
-        arr[i] = static_cast<float>( random.Uniform( min, max ) ); \
+		arr[i] = static_cast<TYPE>( random.Uniform( min, max ) ); \
 	}
 
+#define CREATE_FILL_FLOAT_ARRAY(arr, min, max, size, random) \
+	CREATE_FILL_ARRAY(float, arr, min, max, size, random)
+
+// Leaving CREATE_FILL_INT_ARRAY as it was before CREATE_FILL_ARRAY
+// for the sake of backward compatibility
 #define CREATE_FILL_INT_ARRAY(arr, min, max, size, random) \
 	std::vector<int> arr; \
 	arr.resize( size ); \
 	for(int i = 0; i < size; ++i) { \
-        arr[i] = random.UniformInt( min, max ); \
+		arr[i] = random.UniformInt( min, max ); \
 	}
 
 //------------------------------------------------------------------------------------------------------------
