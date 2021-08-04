@@ -2338,7 +2338,7 @@ class TraditionalTestCase(MultithreadedTestCase):
     def test_gradient_boosting_classification(self):
         for loss, builder_type, thread_count, is_binary in itertools.product(
                 ('binomial', 'exponential', 'squared_hinge', 'l2'),
-                ('full', 'hist', 'multi_full'), (1, 4), (False, True)):
+                ('full', 'hist', 'multi_full', 'multi_hist'), (1, 4), (False, True)):
             self._test_classification_model(neoml.GradientBoost.GradientBoostClassifier,
                 dict(loss=loss, iteration_count=10, builder_type=builder_type, thread_count=thread_count),
                 is_binary=is_binary)
