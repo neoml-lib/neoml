@@ -181,7 +181,7 @@ void CCpuMathEngine::addVectorToMatrixRows( const float* matrix, float* result,
 	const int curThreadCount = IsOmpRelevant( matrixHeight, matrixHeight * matrixWidth ) ? threadCount : 1;
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int i = 0; i < matrixHeight; i++ ) {
-		vectorAdd( matrix + i * matrixRowSize, vector, result + i * matrixRowSize, matrixWidth );
+		vectorAdd( matrix + i * matrixRowSize, vector, result + i * resultRowSize, matrixWidth );
 	}
 }
 
