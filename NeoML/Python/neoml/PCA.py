@@ -45,7 +45,10 @@ class PCA(PythonWrapper.PCA) :
         super().__init__(*components)
 
     def fit(self, X):
-        """Performs linear dimensionality reduction of the given data.
+        """Performs linear dimensionality reduction of the given data:
+        finds the singular vectors and selects the required number of them
+        to be principal components, preferring the vectors that correspond
+        to the largest singular values.
 
         :param X: the input sample. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
@@ -57,7 +60,12 @@ class PCA(PythonWrapper.PCA) :
         super().fit(*x.shape, *get_data(x))
 
     def fit_transform(self, X):
-        """Performs linear dimensionality reduction of the given data.
+        """Performs linear dimensionality reduction of the given data:
+        finds the singular vectors and selects the required number of them
+        to be principal components, preferring the vectors that correspond
+        to the largest singular values.
+        
+        Then projects the dataset onto the principal components axes and returns the result.
 
         :param X: the input sample. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
