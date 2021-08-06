@@ -69,9 +69,9 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	lstmLayer->SetName( Name() );
 
 	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided weight", *this );
-	CPtr<CDnnBlob> weights = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy();\
+	CPtr<CDnnBlob> weights = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy();
 
-	const int inputObjectSize = weights->DimSize( 1 );
+	const int inputObjectSize = inputs[1]->Shape()[2];
 
 	CBlobDesc blobDesc( CT_Float );
 	blobDesc.SetDimSize( BD_BatchWidth, 4 * hiddenSize );
