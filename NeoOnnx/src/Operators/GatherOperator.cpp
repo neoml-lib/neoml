@@ -140,8 +140,10 @@ static CPtr<const CUserTensor> transformOutput( const CBaseLayer& layer, const C
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
 	transform->SetName( CString( layer.GetName() ) + "_transformOutput" );
 	NeoAssert( layer.GetDnn() != nullptr );
-	for( int i = 0; i < resultShape.Size(); ++i ) {
-		transform->SetDimensionRule( resultLayout[i], CTransformLayer::O_SetSize, resultShape[i] );
+	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
+		const int dimIndex = resultLayout.Find( dim );
+		transform->SetDimensionRule( dim, CTransformLayer::O_SetSize,
+			dimIndex == NotFound ? 1 : resultShape[dimIndex] );
 	}
 	transform->Connect( layer );
 	dnn.AddLayer( *transform );
@@ -194,14 +196,9 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 			dynamic_cast<const CUserTensor&>( *inputs[1] ), dnn, outputs );
 	} else {
 		if( inputs[1]->IsCalculated() ) {
-			// Put indices blob into source layer (for compatibility with CImageToPixelLayer)
-			CPtr<CSourceLayer> indexSource = new CSourceLayer( dnn.GetMathEngine() );
-			indexSource->SetName( Name() + "_IndexSource" );
-			dnn.AddLayer( *indexSource );
-			indexSource->SetBlob( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy() );
-			CPtr<CUserTensor> indicesTensor = new CUserTensor( inputs[1]->Shape(), inputs[1]->Layout(),
-				CLayerOutput( indexSource, 0 ) );
-			addImageToPixelLayer( dynamic_cast<const CUserTensor&>( *inputs[0] ), *indicesTensor, dnn, outputs );
+			addImageToPixelLayer( dynamic_cast<const CUserTensor&>( *inputs[0] ),
+				*AsUserTensor( dynamic_cast<const CDataTensor&>( *inputs[1] ), Name() + "_IndexSource", dnn ),
+				dnn, outputs );
 		} else {
 			addImageToPixelLayer( dynamic_cast<const CUserTensor&>( *inputs[0] ),
 				dynamic_cast<const CUserTensor&>( *inputs[1] ), dnn, outputs );
