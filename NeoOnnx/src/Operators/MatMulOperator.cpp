@@ -24,10 +24,38 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Gets MatMul's batch size of the given tensor
+static inline int getBatchSize( const CTensorBase& tensor )
+{
+	// All the dimensions which are prior to height and width are interpreted as a batch
+	int batchSize = 1;
+	for( int i = 0; i < tensor.DimCount() - 2; ++i ) {
+		batchSize *= tensor.Shape()[i];
+	}
+	return batchSize;
+}
+
+// Gets MatMul's matrix height of the given tensor
+static inline int getMatrixHeight( const CTensorBase& tensor )
+{
+	NeoAssert( tensor.DimCount() >= 2 );
+	return tensor.Shape()[tensor.DimCount() - 2];
+}
+
+// Gets MatMul's matrix width of the given tensor
+static inline int getMatrixWidth( const CTensorBase& tensor )
+{
+	return tensor.Shape().Last();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CMatMulOperator::CMatMulOperator( const onnx::NodeProto& matMul, int opsetVersion ) :
 	CLayerOperator( matMul, opsetVersion )
 {
-	// The differences between versions are in legacy optimization flags
+	// v1 - original
+	// v9 - integer data is supported
+	// v13 - bfloat16 data is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 2, "operator must have 2 inputs", *this );
@@ -36,52 +64,78 @@ CMatMulOperator::CMatMulOperator( const onnx::NodeProto& matMul, int opsetVersio
 
 void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	// The only scenario we support is this:
-	//     first input - user-provided data, single matrix
-	//     second input - pre-calculated data, single matrix
-	// In this case we can emulate this operator by using CFullyConnectedLayer
 	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "input can't be optional", *this );
-	CheckNeoOnnxSupport( !inputs[0]->IsCalculated(), "Constant first input", *this );
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided second input", *this );
 
-	CPtr<const CDataTensor> weight = dynamic_cast<const CDataTensor*>( prepareTensor( *inputs[1], false ).Ptr() );
-	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( prepareTensor( *inputs[0], true ).Ptr() );
-
-	const int batchSize = input->Shape()[0];
-	const int inputElems = input->Shape()[1];
-	const int outputElems = weight->Shape()[1];
-
-	CPtr<CDnnBlob> weightBlob = CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), CT_Float, 1, outputElems, inputElems );
-	weightBlob->TransposeFrom( weight->Data(), weight->Layout()[0], weight->Layout()[1] );
-
-	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( dnn.GetMathEngine() );
-	fc->SetName( Name() );
-	fc->SetNumberOfElements( outputElems );
-	fc->SetWeightsData( weightBlob );
-	fc->SetZeroFreeTerm( true );
-	fc->Connect( 0, *input->Layer(), input->OutputIndex() );
-	dnn.AddLayer( *fc );
-
-	// Prepend 1's to the shape if inputs had more than 2 dimensions
-	CTensorShape outputShape;
-	outputShape.Add( 1, max( 2, max( inputs[0]->DimCount(), inputs[1]->DimCount() ) ) - 2 );
-	outputShape.Add( { batchSize, outputElems } );
-
-	// Prepend unused blob dimensions if inputs had more than 2 dimensions
-	CTensorLayout outputLayout = input->Layout();
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Count && outputLayout.Size() < outputShape.Size(); ++dim ) {
-		if( outputLayout.Find( dim ) == NotFound ) {
-			outputLayout.InsertAt( dim, outputLayout.Size() - 2 );
+	// NeoML doesn't support batch broadcast in matrix multiplication
+	const CTensorShape& biggerShape = ( inputs[0]->DimCount() >= inputs[1]->DimCount() ? inputs[0] : inputs[1] )->Shape();
+	const CTensorShape& lesserShape = ( inputs[0]->DimCount() >= inputs[1]->DimCount() ? inputs[1] : inputs[0] )->Shape();
+	const int dimDiff = biggerShape.Size() - lesserShape.Size();
+	for( int i = 0; i < biggerShape.Size() - 2; ++i ) {
+		if( i >= dimDiff ) {
+			CheckNeoOnnxSupport( biggerShape[i] == lesserShape[i - dimDiff], "MatMul with broadcast", *this );
+		} else {
+			CheckNeoOnnxSupport( biggerShape[i] == 1, "MatMul with broadcast", *this );
 		}
 	}
 
-	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( fc, 0 ) ) );
+	CPtr<const CUserTensor> first = prepareTensor( *inputs[0], true, dnn );
+	CPtr<const CUserTensor> second = prepareTensor( *inputs[1], false, dnn );
+	const int outputHeight = getMatrixHeight( *first );
+	const int outputWidth = getMatrixWidth( *second );
+
+	CPtr<CMatrixMultiplicationLayer> matmul = new CMatrixMultiplicationLayer( dnn.GetMathEngine() );
+	matmul->SetName( Name() );
+	matmul->Connect( 0, *first->Layer(), first->OutputIndex() );
+	matmul->Connect( 1, *second->Layer(), second->OutputIndex() );
+	dnn.AddLayer( *matmul );
+
+	if( inputs[0]->DimCount() > 5 || inputs[1]->DimCount() > inputs[0]->DimCount() ) {
+		// We have to transform matrix multiplication output because it doesn't support more than 3 batch dims
+		// or because CMatrixMultiplicationLayer takes batch and matrix height dimensions from the first input
+		CTensorLayout outputLayout( biggerShape.Size() );
+		CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
+		transform->SetName( Name() + "_TransformOutput" );
+		CTensorShape outputShape;
+		biggerShape.CopyTo( outputShape );
+		outputShape.Last() = outputWidth;
+		for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
+			const int dimIndex = outputLayout.Find( dim );
+			transform->SetDimensionRule( dim, CTransformLayer::O_SetSize,
+				dimIndex == NotFound ? 1 : outputShape[dimIndex] );
+		}
+		transform->Connect( *matmul );
+		dnn.AddLayer( *transform );
+		outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( transform, 0 ) ) );
+		return;
+	}
+
+	CTensorShape outputShape;
+	outputShape.SetBufferSize( max( 2, biggerShape.Size() ) );
+	CTensorLayout outputLayout;
+	outputLayout.SetBufferSize( outputShape.BufferSize() );
+	for( int i = 0; i < biggerShape.Size() - 2; ++i ) {
+		outputShape.Add( biggerShape[i] );
+		// CMatrixMultiplicationLayer forms output mostly on the first input
+		outputLayout.Add( first->Layout()[i] );
+	}
+	// It's guaranteed by prepareTensor that matrix height is located in the BD_Height
+	outputShape.Add( outputHeight );
+	outputLayout.Add( BD_Height );
+	// It's required by CMatrixMultiplication layer that matrix width is located in the BD_Channels
+	outputShape.Add( outputWidth );
+	outputLayout.Add( BD_Channels );
+
+	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( matmul, 0 ) ) );
 }
 
-// Prepares tensor for CFullyConnectedLayer
-CPtr<const CTensorBase> CMatMulOperator::prepareTensor( const CTensorBase& tensor, bool isFirstArg ) const
+// Prepares tensor for CMatrixMultiplicationLayer
+// It puts matrix height into BD_Height
+// It puts matrix width into BD_Channels
+CPtr<const CUserTensor> CMatMulOperator::prepareTensor( const CTensorBase& tensor, bool isFirstArg, CDnn& dnn ) const
 {
-	CPtr<const CTensorBase> currTensor = &tensor;
+	CPtr<const CUserTensor> currTensor = tensor.IsCalculated()
+		? AsUserTensor( dynamic_cast<const CDataTensor&>( tensor ), Name() + ( isFirstArg ? "_Input0" : "_Input1" ), dnn )
+		: dynamic_cast<const CUserTensor*>( &tensor );
 
 	if( currTensor->DimCount() == 1 ) {
 		CTensorLayout newLayout = currTensor->Layout();
@@ -98,40 +152,42 @@ CPtr<const CTensorBase> CMatMulOperator::prepareTensor( const CTensorBase& tenso
 			newLayout.Add( newLayout[0] == BD_Channels ? BD_Depth : BD_Channels );
 		}
 
-		if( currTensor->IsCalculated() ) {
-			currTensor = new CDataTensor( newShape, newLayout, *dynamic_cast<const CDataTensor&>( *currTensor ).Data() );
-		} else {
-			currTensor = new CUserTensor( newShape, newLayout, dynamic_cast<const CUserTensor&>( *currTensor ).LayerOutput() );
-		}
+		currTensor = new CUserTensor( newShape, newLayout, dynamic_cast<const CUserTensor&>( *currTensor ).LayerOutput() );
 	}
 
-	if( currTensor->DimCount() > 2 ) {
-		// N-dimensional tensor is treated like a stack of Dim_0 * ... * Dim_N-3 matrices of size Dim_N-2 x Dim_N-1
-		// But NeoOnnx supports only multiplicaiton of single matrices
-		const int dimCount = currTensor->DimCount();
+	if( currTensor->DimCount() > 5 ) {
+		// This is a tricky case because NeoML doesn't have enough batch dimensions
 
-		// Check that every stack dimension is equal to 1
-		for( int i = 0; i < dimCount - 2; ++i ) {
-			CheckNeoOnnxSupport( currTensor->Shape()[i] == 1, "Non-trivial 2+-dimensional tensor", *this );
+		// Step 1: we must guarantee that tensor is not transposed in memory (before transforming it)
+		if( IsTransposedLayout( currTensor->Layout() ) ) {
+			currTensor = dynamic_cast<const CUserTensor*>(
+				ConvertTensor( *currTensor, CTensorLayout( currTensor->DimCount() ) ).Ptr() );
 		}
+		// Step 2: transform it into Batch x Height x Channels for CMatrixMultiplicationLayer
+		CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
+		const CTensorShape& currShape = currTensor->Shape();
 
-		// Reinterpreting tensor as 2-dimensional
-		CTensorShape newShape( { currTensor->Shape()[dimCount - 2], currTensor->Shape()[dimCount - 1] } );
-		CTensorLayout newLayout( { currTensor->Layout()[dimCount - 2], currTensor->Layout()[dimCount - 1] } );
-		if( currTensor->IsCalculated() ) {
-			currTensor = new CDataTensor( newShape, newLayout, *dynamic_cast<const CDataTensor&>( *currTensor ).Data() );
-		} else {
-			currTensor = new CUserTensor( newShape, newLayout, dynamic_cast<const CUserTensor&>( *currTensor ).LayerOutput() );
+		const int batchSize = getBatchSize( *currTensor );
+		const int height = getMatrixHeight( *currTensor );
+		const int width = getMatrixWidth( *currTensor );
+
+		transform->SetName( Name() + ( isFirstArg ? "_Transform0" : "_Transform1" ) );
+		transform->SetDimensionRule( BD_BatchLength, CTransformLayer::O_Remainder, 1 );
+		for( TBlobDim dim = BD_BatchWidth; dim < BD_Channels; ++dim ) {
+			const int dimSize = dim == BD_Height ? height : 1;
+			transform->SetDimensionRule( dim, CTransformLayer::O_SetSize, dimSize );
 		}
+		transform->SetDimensionRule( BD_Channels, CTransformLayer::O_SetSize, width );
+		transform->Connect( 0, *currTensor->Layer(), currTensor->OutputIndex() );
+		dnn.AddLayer( *transform );
+		return new CUserTensor( CTensorShape( { batchSize, height, width } ),
+			CTensorLayout( { BD_BatchLength, BD_Height, BD_Channels } ),
+			CLayerOutput( transform, 0 ) );
 	}
 
-	NeoAssert( currTensor->DimCount() == 2 );
-	const CTensorLayout& tensorLayout = currTensor->Layout();
-	if( tensorLayout[0] < BD_Height && tensorLayout[1] >= BD_Height ) {
-		return currTensor;
-	}
-
-	return ConvertTensor( *currTensor, CTensorLayout( { BD_BatchWidth, BD_Channels } ) );
+	CTensorLayout outputLayout( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Height, BD_Channels } );
+	outputLayout.DeleteAt( 0, outputLayout.Size() - currTensor->DimCount() );
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( *currTensor, outputLayout ).Ptr() );
 }
 
 } // namespace NeoOnnx
