@@ -203,7 +203,7 @@ CPtr<const CUserTensor> CSliceOperator::sliceAxis( const CUserTensor& input, int
 	} else if( end == dimSize ) {
 		split->SetOutputCounts2( start );
 	} else {
-		split->SetOutputCounts3( start, end );
+		split->SetOutputCounts3( start, end - start );
 	}
 
 	if( start != 0 ) {
