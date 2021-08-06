@@ -187,5 +187,10 @@ bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second
 // Broadcasts the given tensor to the given outputShape according to given broadcast
 CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast, const CTensorShape& outputShape );
 
+//---------------------------------------------------------------------------------------------------------------------
+
+// Converts data tensor to user tensor by adding corresponding source layer to the dnn
+CPtr<const CUserTensor> AsUserTensor( const CDataTensor& dataTensor, const CString& sourceName, CDnn& dnn );
+
 } // namespace NeoOnnx
 

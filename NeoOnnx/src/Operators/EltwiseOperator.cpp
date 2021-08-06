@@ -67,14 +67,7 @@ void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTe
 	// Put pre-calculated blobs to the source in the net
 	for( int i = 0; i < currInputs.Size(); ++i ) {
 		if( currInputs[i]->IsCalculated() ) {
-			CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
-			source->SetName( Name() + "_input_" + Str( i ) );
-			source->SetBlob( dynamic_cast<const CDataTensor*>( currInputs[i].Ptr() )->Data()->GetCopy() );
-			// Save this pre-calculated data during serialization
-			// Otherwise dnn won't be able to work correctly after serialization
-			source->StoreBlob( true );
-			dnn.AddLayer( *source );
-			currInputs[i] = new CUserTensor( currInputs[i]->Shape(), currInputs[i]->Layout(), CLayerOutput( source, 0 ) );
+			currInputs[i] = AsUserTensor( dynamic_cast<const CDataTensor&>( *currInputs[i] ), Name() + "_input_" + Str( i ), dnn );
 		}
 	}
 

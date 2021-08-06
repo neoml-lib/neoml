@@ -45,13 +45,8 @@ void addInternalDnnSources( const CUserInputMask& inputMask, const CTensorArray&
 			internalInputs.Add( nullptr );
 		} else if( inputMask[inputIndex] ) {
 			// Pass data tensor to the internal dnn as user tensor
-			NeoAssert( inputs[inputIndex]->IsCalculated() );
-			CPtr<CSourceLayer> source = new CSourceLayer( mathEngine );
-			source->SetName( Str( internalDnn.GetLayerCount() ) );
-			internalDnn.AddLayer( *source );
-			source->SetBlob( dynamic_cast<const CDataTensor*>( inputs[inputIndex].Ptr() )->Data()->GetCopy() );
-			internalInputs.Add( new CUserTensor( inputs[inputIndex]->Shape(), inputs[inputIndex]->Layout(),
-				CLayerOutput( source, 0 ) ) );
+			internalInputs.Add( AsUserTensor( dynamic_cast<const CDataTensor&>( *inputs[inputIndex] ),
+					Str( internalDnn.GetLayerCount() ), internalDnn ).Ptr() );
 		} else {
 			// This data tensor should be passed as is
 			NeoAssert( inputs[inputIndex]->IsCalculated() );

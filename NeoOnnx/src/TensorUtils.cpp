@@ -93,6 +93,8 @@ static CPtr<const CUserTensor> convertTensorToHw( const CUserTensor& input, int 
 		}
 	}
 
+	NeoAssert( newLayout[heightDimIndex] == BD_Height );
+	NeoAssert( widthDimIndex == -1 || newLayout[widthDimIndex] == BD_Width );
 	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, newLayout ).Ptr() );
 }
 
@@ -563,13 +565,8 @@ static CPtr<const CDataTensor> broadcastDataTensor( const CDataTensor& input, co
 	CRandom random( 0x32456 );
 
 	CDnn internalDnn( random, mathEngine );
-	// Create source layer and provide tensor's data to it
-	CPtr<CSourceLayer> source = new CSourceLayer( mathEngine );
-	source->SetBlob( input.Data()->GetCopy() );
-	internalDnn.AddLayer( *source );
-
 	// Create user tensor of the same shape linked to the source layer of the internal dnn
-	CPtr<const CUserTensor> internalInput = new CUserTensor( input.Shape(), input.Layout(), CLayerOutput( source, 0 ) );
+	CPtr<const CUserTensor> internalInput = AsUserTensor( input, "BroadcastSource", internalDnn );
 
 	// Broadcast user tensor
 	// This step adds broadcasting layers to the internal dnn
@@ -595,6 +592,19 @@ CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadc
 		return broadcastDataTensor( dynamic_cast<const CDataTensor&>( input ), broadcast, outputShape ).Ptr();
 	}
 	return broadcastUserTensor( dynamic_cast<const CUserTensor&>( input ), broadcast, outputShape ).Ptr();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CPtr<const CUserTensor> AsUserTensor( const CDataTensor& dataTensor, const CString& sourceName, CDnn& dnn )
+{
+	CPtr<CSourceLayer> dataSource = new CSourceLayer( dnn.GetMathEngine() );
+	dataSource->SetBlob( dataTensor.Data()->GetCopy() );
+	// Guarantee that serialization won't lead to data loss
+	dataSource->StoreBlob( true );
+	dataSource->SetName( sourceName );
+	dnn.AddLayer( *dataSource );
+	return new CUserTensor( dataTensor.Shape(), dataTensor.Layout(), CLayerOutput( dataSource, 0 ) );
 }
 
 } // namespace NeoOnnx
