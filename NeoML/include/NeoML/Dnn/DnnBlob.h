@@ -298,22 +298,20 @@ public:
 	operator TBufferType*() { return ptr; }
 	operator const TBufferType*() const { return ptr; }
 
-	TBufferType& operator[]( int i ) { checkOpened(); NeoPresume( 0 <= i && i < size ); return ptr[i]; }
-	TBufferType operator[]( int i ) const { checkOpened(); NeoPresume( 0 <= i && i < size ); return ptr[i]; }
+	TBufferType& operator[]( int i ) { NeoAssert( ptr != nullptr ); NeoPresume( 0 <= i && i < size ); return ptr[i]; }
+	TBufferType operator[]( int i ) const { NeoAssert( ptr != nullptr ); NeoPresume( 0 <= i && i < size ); return ptr[i]; }
 
 	CDnnBlobBuffer& operator=( const CDnnBlobBuffer& ) = delete;
 
 	// Explicitly close (and flush if requested) buffer. It is not possible to read/write data after.
 	void Close();
-	bool IsClosed() const { return ptr == 0; }
+	bool IsClosed() const { return ptr == nullptr; }
 
 private:
 	CDnnBlob& blob;
 	TDnnBlobBufferAccess access;
 	int size;
 	TBufferType* ptr;
-
-	void checkOpened() { NeoAssert( ptr != nullptr ); }
 };
 
 inline CDnnBlob* CDnnBlob::CreateBlob( IMathEngine& mathEngine, const CBlobDesc& pattern )
@@ -504,7 +502,7 @@ inline CDnnBlobBuffer<TBufferType>::~CDnnBlobBuffer()
 template<typename TBufferType>
 inline void CDnnBlobBuffer<TBufferType>::Close()
 {
-	checkOpened();
+	NeoAssert( ptr != nullptr );
 	blob.ReleaseBuffer( ptr, access == TDnnBlobBufferAccess::Write || access == TDnnBlobBufferAccess::ReadWrite );
 	ptr = 0;
 }
