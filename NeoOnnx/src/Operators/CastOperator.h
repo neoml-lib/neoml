@@ -15,18 +15,22 @@ limitations under the License.
 
 #pragma once
 
-#include "../Operator.h"
+#include "../LayerOperator.h"
 
 namespace NeoOnnx {
 
 // Cast operator
-class CCastOperator : public COperator {
+class CCastOperator : public CLayerOperator {
 public:
 	CCastOperator( const onnx::NodeProto& cast, int opsetVersion );
 
 protected:
-	// COperator method
-	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	// CLayerOperator method
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	// Output type
+	int outputType;
 };
 
 } // namespace NeoOnnx

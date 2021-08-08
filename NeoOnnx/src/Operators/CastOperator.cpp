@@ -24,20 +24,34 @@ limitations under the License.
 namespace NeoOnnx {
 
 CCastOperator::CCastOperator( const onnx::NodeProto& cast, int opsetVersion ) :
-	COperator( cast, opsetVersion )
+	CLayerOperator( cast, opsetVersion ),
+	outputType( 0 )
 {
 	// v1 - original
 	// v6 - to attrbiute converted to integer instead of string
 	// v9 - string type support is added
 	// v13 - bloaf16 support is added
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+	CheckOnnxProtocol( GetAttribute( "to", outputType ), "'to 'attribute is missing", *this );
 }
 
-void CCastOperator::ProcessTensors( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
+void CCastOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	// TODO: add more detailed impl
-	inputs.CopyTo( outputs );
+	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	// If input is provided then it must be converted prior to this code (because of input mask)
+	NeoAssert( !inputs[0]->IsCalculated() );
+	const CUserTensor& inputTensor = dynamic_cast<const CUserTensor&>( *inputs[0] );
+
+	CPtr<CCastLayer> cast = new CCastLayer( dnn.GetMathEngine() );
+	cast->SetName( Name() );
+	cast->SetOutputType( GetBlobType( static_cast<onnx::TensorProto_DataType>( outputType ) ) );
+	cast->Connect( 0, *inputTensor.Layer(), inputTensor.OutputIndex() );
+	dnn.AddLayer( *cast );
+
+	outputs.Add( new CUserTensor( inputs[0]->Shape(), inputs[0]->Layout(), CLayerOutput( cast, 0 ) ) );
 }
 
 } // namespace NeoOnnx
