@@ -203,6 +203,8 @@ public:
 
 	// Vector substraction
 	// result = first - second
+	virtual void VectorSub(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorSub(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorSub(const CConstFloatHandle& firstHandle,
