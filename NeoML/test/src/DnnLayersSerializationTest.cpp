@@ -2311,3 +2311,31 @@ GTEST_TEST( SerializeFromFile, LrnLayerSerialization )
 	checkSerializeLayer<CLrnLayer>( "NeoMLDnnLrnLayer" );
 }
 
+// ====================================================================================================================
+
+// CCastLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CCastLayer& layer )
+{
+	layer.SetOutputType( CT_Int );
+}
+
+GTEST_TEST( SerializeToFile, CastLayerSerialization )
+{
+	serializeToFile<CCastLayer>( "NeoMLDnnCastLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CCastLayer>( CCastLayer& layer )
+{
+	EXPECT_EQ( CT_Int, layer.GetOutputType() );
+}
+
+GTEST_TEST( SerializeFromFile, CastLayerSerialization )
+{
+	checkSerializeLayer<CCastLayer>( "NeoMLDnnCastLayer" );
+}

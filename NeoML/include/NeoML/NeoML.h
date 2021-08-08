@@ -119,6 +119,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
 #include <NeoML/Dnn/Layers/LrnLayer.h>
 #include <NeoML/Dnn/Layers/ErfLayer.h>
+#include <NeoML/Dnn/Layers/CastLayer.h>
 #include <NeoML/ArchiveFile.h>
 
 #ifndef NO_NEOML_NAMESPACE

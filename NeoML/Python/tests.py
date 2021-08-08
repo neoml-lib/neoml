@@ -1571,6 +1571,32 @@ class LayersTestCase(MultithreadedTestCase):
         out = outputs['sink'].asarray()
         self.assertEqual(out.shape, (2, 3, 4, 5, 6, 7, 8))
 
+    def _test_cast_impl(self, type_from, type_to):
+
+        def generate_array(type):
+            np_type = np.float32 if type == 'float' else np.int32
+            return  np.arange(5, dtype=np_type)
+
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        cast = neoml.Dnn.Cast(source, output_type=type_to)
+        sink = neoml.Dnn.Sink(cast, 'sink')
+
+        input_arr = generate_array(type_from)
+        input_blob = neoml.Blob.as_blob(math_engine, input_arr, (1, 1, 1, 1, 1, 1, len(input_arr)))
+        outputs = dnn.run({'source': input_blob})
+        actual = outputs['sink'].asarray()
+        expected = generate_array(type_to)
+        self.assertEqual(actual.dtype, expected.dtype)
+        self.assertTrue(np.equal(actual, expected).all())
+
+    def test_cast(self):
+        types = ['int', 'float']
+        for type_from in types:
+            for type_to in types:
+                self._test_cast_impl(type_from, type_to)
+
 
 class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
