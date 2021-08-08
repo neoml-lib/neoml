@@ -1257,6 +1257,9 @@ class LayersTestCase(MultithreadedTestCase):
     def test_eltwise_sum(self):
         self._test_eltwise('EltwiseSum', lambda x: (x == 5).all())
 
+    def test_eltwise_sub(self):
+        self._test_eltwise('EltwiseSub', lambda x: (x == 1).all())
+
     def test_eltwise_mul(self):
         self._test_eltwise('EltwiseMul', lambda x: (x == 6).all())
 

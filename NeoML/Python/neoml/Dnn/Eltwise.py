@@ -51,6 +51,38 @@ class EltwiseSum(Layer):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
+class EltwiseSub(Layer):
+    """The layer that substracts the second input from the first element by element.
+
+    :param input_layers: The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer should have at least two inputs. All inputs should be the same size.
+    
+    .. rubric:: Layer outputs:
+
+    The layer has one output of the same size as the inputs.
+    """
+    def __init__(self, input_layers, name=None):
+
+        if type(input_layers) is PythonWrapper.EltwiseSun:
+            super().__init__(input_layers)
+            return
+
+        layers, outputs = check_input_layers(input_layers, 2)
+
+        internal = PythonWrapper.EltwiseSub(str(name), layers, outputs)
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 class EltwiseMul(Layer):
     """The layer that multiplies its inputs element by element.
 
