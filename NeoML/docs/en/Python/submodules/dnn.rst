@@ -502,6 +502,12 @@ EltwiseSum
 .. autoclass:: neoml.Dnn.EltwiseSum
    :members:
 
+EltwiseSub
+==========
+
+.. autoclass:: neoml.Dnn.EltwiseSub
+   :members:
+
 EltwiseMul
 ==========
 
