@@ -134,7 +134,7 @@ void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 CPtr<const CUserTensor> CMatMulOperator::prepareTensor( const CTensorBase& tensor, bool isFirstArg, CDnn& dnn ) const
 {
 	CPtr<const CUserTensor> currTensor = tensor.IsCalculated()
-		? AsUserTensor( dynamic_cast<const CDataTensor&>( tensor ), Name() + ( isFirstArg ? "_Input0" : "_Input1" ), dnn )
+		? AsUserTensor( dynamic_cast<const CDataTensor&>( tensor ), Name() + ( isFirstArg ? "_Input0" : "_Input1" ), dnn ).Ptr()
 		: dynamic_cast<const CUserTensor*>( &tensor );
 
 	if( currTensor->DimCount() == 1 ) {
@@ -165,7 +165,6 @@ CPtr<const CUserTensor> CMatMulOperator::prepareTensor( const CTensorBase& tenso
 		}
 		// Step 2: transform it into Batch x Height x Channels for CMatrixMultiplicationLayer
 		CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
-		const CTensorShape& currShape = currTensor->Shape();
 
 		const int batchSize = getBatchSize( *currTensor );
 		const int height = getMatrixHeight( *currTensor );
