@@ -108,31 +108,6 @@ static CBlobDesc getResultBlobDesc( const CTensorShape& resultShape, const CTens
 	return resultDesc;
 }
 
-// Prepares indices user tensor for the lookup layer
-static CLayerOutput prepareLookupIndices( const CUserTensor& indices, const CString& opName, CDnn& dnn )
-{
-	// Lookup with one table expects the indices in the following format:
-	// - BD_Channels == 1
-	// - Other dims == Number of objects to lookup from table
-	// - (additional) indices should be compatible with onnx
-
-	// Step 1: make sure that indices are compatible with onnx
-	CPtr<const CUserTensor> currIndices = dynamic_cast<const CUserTensor*>( convertToOnnx( indices ).Ptr() );
-
-	// Step 2: transform into BD_Channels == 1 if needed
-	const int channelsDimIndex = currIndices->Layout().Find( BD_Channels );
-	if( channelsDimIndex == NotFound || currIndices->Shape()[channelsDimIndex] == 1 ) {
-		return currIndices->LayerOutput();
-	}
-	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
-	transform->SetName( opName + "_transformIndices" );
-	transform->SetDimensionRule( BD_Channels, CTransformLayer::O_SetSize, 1 );
-	transform->SetDimensionRule( BD_Depth, CTransformLayer::O_Remainder, 1 );
-	transform->Connect( 0, *indices.Layer(), indices.OutputIndex() );
-	dnn.AddLayer( *transform );
-	return CLayerOutput( transform.Ptr(), 0 );
-}
-
 // Transforms layer output into layout, expected by onnx
 static CPtr<const CUserTensor> transformOutput( const CBaseLayer& layer, const CTensorShape& resultShape, CDnn& dnn )
 {
