@@ -190,20 +190,14 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	// nullptrs were checked in ProcessTensors
 	NeoAssert( inputs[0] != nullptr && inputs[1] != nullptr );
 
-	if( inputs[0]->IsCalculated() ) {
-		NeoAssert( !inputs[1]->IsCalculated() );
-		addLookupLayer( dynamic_cast<const CDataTensor&>( *inputs[0] ),
-			dynamic_cast<const CUserTensor&>( *inputs[1] ), dnn, outputs );
-	} else {
-		if( inputs[1]->IsCalculated() ) {
-			addImageToPixelLayer( dynamic_cast<const CUserTensor&>( *inputs[0] ),
-				*AsUserTensor( dynamic_cast<const CDataTensor&>( *inputs[1] ), Name() + "_IndexSource", dnn ),
-				dnn, outputs );
-		} else {
-			addImageToPixelLayer( dynamic_cast<const CUserTensor&>( *inputs[0] ),
-				dynamic_cast<const CUserTensor&>( *inputs[1] ), dnn, outputs );
-		}
+	CObjectArray<const CUserTensor> convertedInputs;
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		convertedInputs.Add( inputs[i]->IsCalculated()
+			? AsUserTensor( dynamic_cast<const CDataTensor&>( *inputs[i] ), Name() + "_Source" + Str( i ), dnn ).Ptr()
+			: dynamic_cast<const CUserTensor*>( inputs[i].Ptr() ) );
 	}
+
+	addImageToPixelLayer( *convertedInputs[0], *convertedInputs[1], dnn, outputs );
 }
 
 // Calculates operator results when both input tensors were calculated during conversion
@@ -229,40 +223,6 @@ void CGatherOperator::processDataTensors( const CDataTensor& data, const CDataTe
 		gather<int>( *this, *dataBlob, *indicesBlob, *resultBlob );
 	}
 	outputs.Add( new CDataTensor( resultShape, resultLayout, *resultBlob ) );
-}
-
-void CGatherOperator::addLookupLayer( const CDataTensor& data, const CUserTensor& indices, CDnn& dnn, CTensorArray& outputs ) const
-{
-	const int axis = axisAttr < 0 ? axisAttr + data.DimCount() : axisAttr;
-	CheckOnnxProtocol( axis >= 0 && axis < data.DimCount(), "axis out of range", *this );
-	CPtr<const CDnnBlob> dataBlob = prepareDataBlob( data, axis );
-	CheckNeoOnnxSupport( dataBlob->GetDataType() == CT_Float, "non-float lookup", *this );
-
-	// Prepare lookup table
-	if( dataBlob->GetObjectCount() != dataBlob->GetBatchLength() ) {
-		CPtr<CDnnBlob> lookupData = dataBlob->GetCopy();
-		CBlobDesc lookupDesc( CT_Float );
-		// GetObjectCount == number of objects to gather from
-		lookupDesc.SetDimSize( BD_BatchWidth, dataBlob->GetBatchLength() );
-		// GetObjectSize == size of each object
-		lookupDesc.SetDimSize( BD_Channels, dataBlob->GetDataSize() / dataBlob->GetBatchLength() );
-		lookupData->ReinterpretDimensions( lookupDesc );
-		dataBlob = lookupData.Ptr();
-	}
-
-	// Prepare indices
-	CLayerOutput preparedIndices = prepareLookupIndices( indices, Name(), dnn );
-
-	CPtr<CMultichannelLookupLayer> lookup = new CMultichannelLookupLayer( dnn.GetMathEngine() );
-	lookup->SetName( Name() );
-	lookup->SetDimensions( { CLookupDimension( dataBlob->GetObjectCount(), dataBlob->GetObjectSize() ) } );
-	lookup->SetEmbeddings( const_cast<CDnnBlob*>( dataBlob.Ptr() ), 0 );
-	lookup->Connect( 0, *preparedIndices.Layer, preparedIndices.OutputIndex );
-	dnn.AddLayer( *lookup );
-
-	CTensorShape resultShape;
-	getResultShape( data.Shape(), axis, indices.Shape(), resultShape );
-	outputs.Add( transformOutput( *lookup, resultShape, dnn ).Ptr() );
 }
 
 void CGatherOperator::addImageToPixelLayer( const CUserTensor& data, const CUserTensor& indices,
