@@ -352,7 +352,9 @@ void CBaseLayer::reshape()
 	outputDiffBlobs.DeleteAll();
 	clearAllRuntimeBlobs();
 
-	if( MathEngine().GetMemoryInPools() > MaxMemoryInPools ) {
+	if( MathEngine().GetType() == MET_Cpu && !GetDnn()->IsBackwardPerformed()
+		&& MathEngine().GetMemoryInPools() > MaxMemoryInPools )
+	{
 		MathEngine().CleanUp();
 	}
 
