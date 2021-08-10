@@ -83,8 +83,8 @@ static void gather( const CGatherOperator& op, const CDnnBlob& data, const CDnnB
 	const_cast<CDnnBlob&>( indices ).ReleaseBuffer( const_cast<int*>( indicesBuff ), false );
 }
 
-// Returns the shape of the result of gather operator
-static void getResultShape( const CTensorShape& dataShape, int axis, const CTensorShape& indicesShape,
+// Returns the shape after the image to pixel layer
+static void getImageToPixelShape( const CTensorShape& dataShape, int axis, const CTensorShape& indicesShape,
 	CTensorShape& resultShape )
 {
 	NeoAssert( dataShape.Size() > axis && axis >= 0 );
@@ -187,7 +187,7 @@ void CGatherOperator::processDataTensors( const CDataTensor& data, const CDataTe
 	const int resultDimCount = indices.DimCount() + data.DimCount() - 1;
 	CTensorLayout resultLayout( resultDimCount );
 	CTensorShape resultShape;
-	getResultShape( data.Shape(), axis, indices.Shape(), resultShape );
+	getImageToPixelShape( data.Shape(), axis, indices.Shape(), resultShape );
 
 	TBlobType dataType = dataBlob->GetDataType();
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( dataBlob->GetMathEngine(), dataType,
@@ -251,10 +251,33 @@ void CGatherOperator::addImageToPixelLayer( const CUserTensor& data, const CUser
 
 	// All the indices dims are compressed in BD_ListSize (in onnx-compatible order)
 	// All the data dims are compressed in BD_Channels (in onnx-compatible order)
-	// Unpack them into onnx output tensor
-	CTensorShape resultShape;
-	getResultShape( data.Shape(), axis, indices.Shape(), resultShape );
-	outputs.Add( transformOutput( *imageToPixel, resultShape, dnn ).Ptr() );
+	// Unpack them into onnx user tensor
+	CTensorShape imageToPixelShape;
+	getImageToPixelShape( data.Shape(), axis, indices.Shape(), imageToPixelShape );
+	CPtr<const CUserTensor> currOutput = transformOutput( *imageToPixel, imageToPixelShape, dnn ).Ptr();
+
+	// currOutput contains output with dims in the following order:
+	// indices_dim_0, ... , indices_dim_q-1, data_dim_0, ... , data_dim_r-1
+	// Now we have to transpose dims in the following way:
+	// data_dim_0, ... , data_dim_axis-1, indices_dim_0, ... , indices_dim_q-1, data_dim_axis+1, ... , data_dim_r-1
+	// For optimization purposes here we just reinterpret current tensor (by changing shape and layout)
+	CTensorShape outputShape;
+	outputShape.SetBufferSize( data.DimCount() + indices.DimCount() - 1 );
+	CTensorLayout outputLayout;
+	outputLayout.SetBufferSize( data.DimCount() + indices.DimCount() - 1 );
+	for( int dataDim = 0; dataDim < axis; ++dataDim ) {
+		outputShape.Add( currOutput->Shape()[indices.DimCount() + dataDim] );
+		outputLayout.Add( currOutput->Layout()[indices.DimCount() + dataDim] );
+	}
+	for( int indicesDim = 0; indicesDim < indices.DimCount(); ++indicesDim ) {
+		outputShape.Add( currOutput->Shape()[indicesDim] );
+		outputLayout.Add( currOutput->Layout()[indicesDim] );
+	}
+	for( int dataDim = axis + 1; dataDim < data.DimCount(); ++dataDim ) {
+		outputShape.Add( currOutput->Shape()[indices.DimCount() + dataDim - 1] );
+		outputLayout.Add( currOutput->Layout()[indices.DimCount() + dataDim - 1] );
+	}
+	outputs.Add( new CUserTensor( outputShape, outputLayout, currOutput->LayerOutput() ) );
 }
 
 } // namespace NeoOnnx
