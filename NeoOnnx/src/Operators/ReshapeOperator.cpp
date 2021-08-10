@@ -42,18 +42,19 @@ CReshapeOperator::CReshapeOperator( const onnx::NodeProto& reshape, int opsetVer
 void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 
 	CTensorShape outputShape;
 	getShape( inputs, outputShape );
 
 	// In order to process tensors correctly reshape is not allowed in transposed layouts
-	CPtr<const CUserTensor> input;
-	if( IsTransposedLayout( inputs[0]->Layout() ) ) {
-		input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0],
-			CTensorLayout( inputs[0]->DimCount() ) ).Ptr() );
+	CPtr<const CUserTensor> input = inputs[0]->IsCalculated()
+		? AsUserTensor( dynamic_cast<const CDataTensor&>( *inputs[0] ), Name() + "_InputSource", dnn )
+		: dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
+	if( IsTransposedLayout( input->Layout() ) ) {
+		input = dynamic_cast<const CUserTensor*>( ConvertTensor( *input,
+			CTensorLayout( input->DimCount() ) ).Ptr() );
 	} else {
-		input = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
+		input = dynamic_cast<const CUserTensor*>( input.Ptr() );
 	}
 	const CTensorShape& inputShape = input->Shape();
 
