@@ -19,7 +19,6 @@ limitations under the License.
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/GELULayer.h>
-#include <NeoML/Dnn/Layers/ErfLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
@@ -52,8 +51,6 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunc
 			return FINE_DEBUG_NEW CHSwishLayer( mathEngine );
 		case AF_GELU:
 			return FINE_DEBUG_NEW CGELULayer( mathEngine );
-		case AF_Erf:
-			return FINE_DEBUG_NEW CErfLayer( mathEngine );
 		default:
 			NeoAssert( false );
 	}

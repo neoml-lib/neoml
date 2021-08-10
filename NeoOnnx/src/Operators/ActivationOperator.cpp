@@ -133,20 +133,6 @@ CEluOperator::CEluOperator( const onnx::NodeProto& elu, int opsetVersion ) :
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CErfOperator::CErfOperator( const onnx::NodeProto& erf, int opsetVersion ) :
-	CActivationOperatorBase( erf, opsetVersion, AF_Erf )
-{
-	// v9 - original
-	// v13 - bfloat16 is supported
-	CheckOnnxProtocol( OpsetVersion >= 9, "Erf operator was introduced in opset v9", *this );
-	CheckNeoOnnxSupport( OpsetVersion <= MaxOpsetVersion, "opset version", *this );
-
-	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
-	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
 CLeakyReluOperator::CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int opsetVersion ) :
 	CActivationOperatorBase( leakyRelu, opsetVersion, AF_LeakyReLU )
 {

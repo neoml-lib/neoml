@@ -59,12 +59,6 @@ public:
 	CEluOperator( const onnx::NodeProto& elu, int opsetVersion );
 };
 
-// Erf operator
-class CErfOperator : public CActivationOperatorBase {
-public:
-	CErfOperator( const onnx::NodeProto& erf, int opsetVersion );
-};
-
 // HardSigmoid operator
 class CHardSigmoidOperator : public CActivationOperatorBase {
 public:
