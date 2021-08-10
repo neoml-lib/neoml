@@ -635,6 +635,26 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobConvolutionTestInstantiation, CMathEngin
 			"IsZeroFreeTerm = 1;"
 			"Values = (-10..10);"
 			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputLength = 1;"
+			"InputBatch = 1;"
+			"InputHeight = 11;"
+			"InputWidth = 11;"
+			"InputDepth = 1;"
+			"InputChannels = 16;"
+			"FilterCount = 32;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 0;"
+			"PaddingWidth = 0;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"IsZeroFreeTerm = 0;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
 		)
 	)
 );
