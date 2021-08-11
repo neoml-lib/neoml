@@ -314,6 +314,9 @@ public:
 	void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 		const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 		const CFloatHandle& outputHandle, int outputChannels) override;
+	void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+		const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+		const CIntHandle& outputHandle, int outputChannels) override;
 	void VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, 
 		const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int outputChannels) override;

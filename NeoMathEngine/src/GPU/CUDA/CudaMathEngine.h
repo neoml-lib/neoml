@@ -297,6 +297,9 @@ public:
 	void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 		const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 		const CFloatHandle& outputHandle, int outputChannels) override;
+	void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+		const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+		const CIntHandle& outputHandle, int outputChannels) override;
 	void VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, 
 		const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int outputChannels) override;
@@ -567,10 +570,10 @@ private:
 	template<class T>
 	void matrixSpreadRowsImpl(const T* source, int height, int width,
 		CTypedMemoryHandle<T> result, int resultHeight, const int* index, const CTypedMemoryHandle<const T>& fillValue);
-	template<class T>
-	void vectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CTypedMemoryHandle<const T>& inputHandle,
-		const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-		const CFloatHandle& outputHandle, int outputChannelsCount);
+	template<class TInput, class TLookup>
+	void vectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CTypedMemoryHandle<const TInput>& inputHandle,
+		const CTypedMemoryHandle<const TLookup>* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+		const CTypedMemoryHandle<TLookup>& outputHandle, int outputChannelsCount);
 	template<class T>
 	void vectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CTypedMemoryHandle<const T>& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
