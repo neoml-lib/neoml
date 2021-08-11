@@ -25,7 +25,7 @@ namespace NeoML {
 
 CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunction type )
 {
-	static_assert( AF_Count == 13, "AF_Count != 13" );
+	static_assert( AF_Count == 12, "AF_Count != 12" );
 	switch( type ) {
 		case AF_Linear:
 			return FINE_DEBUG_NEW CLinearLayer( mathEngine );
