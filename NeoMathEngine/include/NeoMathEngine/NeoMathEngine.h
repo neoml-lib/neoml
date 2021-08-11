@@ -739,11 +739,11 @@ public:
 	virtual void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source, const CIntHandle& maxIndices,
 		const CFloatHandle& result ) = 0;
 
-	virtual void Upsampling2DForward( const CBlobDesc& input, const CIntHandle& inputData, int heightCopyCount,
+	virtual void Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData ) = 0;
-	virtual void Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+	virtual void Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
-	virtual void Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+	virtual void Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
 
 	// Builds a histogram of the number of occurrences in numbersHandle for each integer in [0; maxNumber)

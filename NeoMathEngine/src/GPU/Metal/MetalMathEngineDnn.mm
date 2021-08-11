@@ -197,7 +197,7 @@ void CMetalMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHa
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHandle& inputData, int heightCopyCount,
+void CMetalMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData )
 {
     ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -231,7 +231,7 @@ void CMetalMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHa
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+void CMetalMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData )
 {
     ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -265,7 +265,7 @@ void CMetalMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloat
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::Upsampling2DBackward( const CBlobDesc&, const CFloatHandle&, int,
+void CMetalMathEngine::Upsampling2DBackward( const CBlobDesc&, const CConstFloatHandle&, int,
 	int, const CBlobDesc&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );

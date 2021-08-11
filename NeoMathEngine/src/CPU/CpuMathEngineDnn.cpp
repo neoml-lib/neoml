@@ -269,7 +269,7 @@ static void upsampling2DForward( const CBlobDesc& input, const CTypedMemoryHandl
 	}
 }
 
-void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHandle& inputData, int heightCopyCount, int widthCopyCount,
+void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount, int widthCopyCount,
 	const CBlobDesc& result, const CIntHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -286,7 +286,7 @@ void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHand
 	upsampling2DForward<int>( input, inputData, heightCopyCount, widthCopyCount, result, resultData );	
 }
 
-void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
+void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
 	const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -303,7 +303,7 @@ void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHa
 	upsampling2DForward<float>( input, inputData, heightCopyCount, widthCopyCount, result, resultData );	
 }
 
-void CCpuMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
+void CCpuMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
 	const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
