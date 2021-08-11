@@ -129,10 +129,12 @@ set(SHADER_SOURCES
     BlobConvertFromRLE.comp
     BlobSplitByDim.comp
     BlobMergeByDim.comp
-    VectorMultichannelLookupAndCopyFloat.comp
-    VectorMultichannelCopyFloat.comp
-    VectorMultichannelLookupAndCopyInt.comp
-    VectorMultichannelCopyInt.comp
+    VectorMultichannelLookupAndCopyFloatIndicesFloatData.comp
+    VectorMultichannelLookupAndCopyIntIndicesFloatData.comp
+    VectorMultichannelLookupAndCopyIntIndicesIntData.comp
+    VectorMultichannelCopyFloatIndicesFloatData.comp
+    VectorMultichannelCopyIntIndicesFloatData.comp
+    VectorMultichannelCopyIntIndicesIntData.comp
     BlobTimeConvolutionPrepare.comp
     PrepareBlobForConvolution.comp
     BlobReorgFloat.comp
