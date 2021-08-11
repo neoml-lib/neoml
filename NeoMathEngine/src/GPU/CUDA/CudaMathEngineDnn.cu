@@ -195,7 +195,7 @@ void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHan
 		to, GetRaw( toData ), startPos, isRev, objectSizeNorm);
 }
 
-void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHandle& inputData, int heightCopyCount,
+void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -228,7 +228,7 @@ void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHan
 		resultHeight, resultRowSize, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -261,7 +261,7 @@ void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatH
 		resultHeight, resultRowSize, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+void CCudaMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );

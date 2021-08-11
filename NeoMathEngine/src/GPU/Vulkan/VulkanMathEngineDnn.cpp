@@ -220,7 +220,7 @@ void CVulkanMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatH
 	}
 }
 
-void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntHandle& inputData, int heightCopyCount,
+void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -250,7 +250,7 @@ void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CIntH
 		0, 0, 0, 0, bufs, sizes, 2, resultRowSize, resultHeight, 1 );
 }
 
-void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -280,7 +280,7 @@ void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloa
 		0, 0, 0, 0, bufs, sizes, 2, resultRowSize, resultHeight, 1 );
 }
 
-void CVulkanMathEngine::Upsampling2DBackward( const CBlobDesc&, const CFloatHandle&, int, int, const CBlobDesc&,
+void CVulkanMathEngine::Upsampling2DBackward( const CBlobDesc&, const CConstFloatHandle&, int, int, const CBlobDesc&,
 	const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
