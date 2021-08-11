@@ -25,9 +25,6 @@ public:
 	CGatherOperator( const onnx::NodeProto& gather, int opsetVersion );
 
 protected:
-	// COperator methods
-	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
@@ -35,7 +32,7 @@ private:
 	// axis value from attributes
 	int axisAttr;
 
-	void processDataTensors( const CDataTensor& data, const CDataTensor& indices, CTensorArray& outputs ) const;
+	// void processDataTensors( const CDataTensor& data, const CDataTensor& indices, CTensorArray& outputs ) const;
 	void addImageToPixelLayer( const CUserTensor& data, const CUserTensor& indices, CDnn& dnn, CTensorArray& outputs ) const;
 };
 
