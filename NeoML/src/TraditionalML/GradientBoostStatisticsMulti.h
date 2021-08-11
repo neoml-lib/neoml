@@ -72,6 +72,9 @@ public:
 	// Set value size
 	void SetSize( int valueSize );
 
+	// Mark classes that not splitting further
+	void NullifyLeafClasses( const CGradientBoostStatisticsMulti& parent );
+
 private:
 	CArray<double> totalGradient; // total gradient
 	CArray<double> totalHessian; // total hessian
@@ -214,6 +217,7 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( double& criterion,
 	int leafClassesCount = 0;
 
 	for( int i = 0; i < totalStatistics.ValueSize(); i++ ) {
+		// hessian equals 0 for leaf classes
 		bool isAlreadyLeafClass = totalStatistics.IsSmall( minSubsetHessian, minSubsetWeight, i );
 		bool isNewLeafClass = false;
 		double valueCriterion = 0;
@@ -245,6 +249,7 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( double& criterion,
 				leftResult.totalGradient[i] = totalStatistics.totalGradient[i];
 				rightResult.totalGradient[i] = totalStatistics.totalGradient[i];
 			}
+			// Set totalHessian to 0 for classes that not splitting further
 			leftResult.totalHessian[i] = 0;
 			rightResult.totalHessian[i] = 0;
 			leafClassesCount++;
@@ -263,6 +268,16 @@ inline void CGradientBoostStatisticsMulti::SetSize( int valueSize )
 {
 	totalGradient.SetSize( valueSize );
 	totalHessian.SetSize( valueSize );
+}
+
+inline void CGradientBoostStatisticsMulti::NullifyLeafClasses( const CGradientBoostStatisticsMulti& parent )
+{
+	for( int i = 0; i < parent.totalGradient.Size(); i++ ) {
+		if( parent.totalHessian[i] == 0 ) {
+			totalGradient[i] = parent.totalGradient[i];
+			totalHessian[i] = 0;
+		}
+	}
 }
 
 } // namespace NeoML
