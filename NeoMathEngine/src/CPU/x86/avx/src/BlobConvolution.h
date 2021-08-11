@@ -470,7 +470,7 @@ std::vector<int> CBlobConvolution<FltCnt>::getPixelOffsetSrcSteps( int srcDim, i
 
 	// Remove out of range and repeated items
 	auto start = ret.begin();
-	while( *start < 0 ) start++;
+	while( *start < firstOffset ) start++;
 	auto end = start;
 	auto tempIt = end + 1;
 	int lastSrcDim = srcDim - firstOffset - 1;
