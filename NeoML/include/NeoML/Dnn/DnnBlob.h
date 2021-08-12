@@ -298,8 +298,8 @@ public:
 	operator TBufferType*() { return ptr; }
 	operator const TBufferType*() const { return ptr; }
 
-	TBufferType& operator[]( int i ) { NeoAssert( ptr != nullptr ); NeoPresume( 0 <= i && i < size ); return ptr[i]; }
-	TBufferType operator[]( int i ) const { NeoAssert( ptr != nullptr ); NeoPresume( 0 <= i && i < size ); return ptr[i]; }
+	TBufferType& operator[]( int i ) { NeoAssert( !IsClosed() ); NeoPresume( 0 <= i && i < size ); return ptr[i]; }
+	TBufferType operator[]( int i ) const { NeoAssert( !IsClosed() ); NeoPresume( 0 <= i && i < size ); return ptr[i]; }
 
 	CDnnBlobBuffer& operator=( const CDnnBlobBuffer& ) = delete;
 
@@ -502,9 +502,9 @@ inline CDnnBlobBuffer<TBufferType>::~CDnnBlobBuffer()
 template<typename TBufferType>
 inline void CDnnBlobBuffer<TBufferType>::Close()
 {
-	NeoAssert( ptr != nullptr );
+	NeoAssert( !IsClosed() );
 	blob.ReleaseBuffer( ptr, access == TDnnBlobBufferAccess::Write || access == TDnnBlobBufferAccess::ReadWrite );
-	ptr = 0;
+	ptr = nullptr;
 }
 
 } // namespace NeoML
