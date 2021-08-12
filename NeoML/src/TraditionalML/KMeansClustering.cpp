@@ -51,6 +51,7 @@ static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, const IClusteri
 	for( int vectorIndex = 0; vectorIndex < vectorCount; ++vectorIndex ) {
 		buffer[vectorIndex] = static_cast<float>( data->GetVectorWeight( vectorIndex ) );
 	}
+	buffer.Close();
 	return weight;
 }
 
@@ -653,6 +654,7 @@ void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, int seed, C
 			::memcpy( currPtr, initialClusterCenters[i].Mean.GetPtr(), featureCount * sizeof( float ) );
 			currPtr += featureCount;
 		}
+		buffer.Close();
 		return;
 	}
 
@@ -875,6 +877,7 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& wei
 		}
 		newCenter += featureCount;
 	}
+	rawSizes.Close();
 }
 
 // Calculates clusters' variances
