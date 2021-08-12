@@ -413,7 +413,7 @@ void CCpuMathEngine::VectorSub(const CConstIntHandle& firstHandle, const CConstI
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 
 	const int* first = GetRaw(firstHandle);
-	const iint* second = GetRaw(secondHandle);
+	const int* second = GetRaw(secondHandle);
 	int* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 

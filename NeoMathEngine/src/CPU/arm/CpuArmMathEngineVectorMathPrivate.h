@@ -321,8 +321,8 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 
 inline void vectorEltwiseMultiply( const int* first, const int* second, int* result, int vectorSize )
 {
-	const int neonSize = vectorSize / 4;
-	const int nonNeonSize = vectorSize % 4;
+	int neonSize = vectorSize / 4;
+	int nonNeonSize = vectorSize % 4;
 
 	while( neonSize >= 4 ) {
 		NEON_LOAD_16_INTS(first, first);
