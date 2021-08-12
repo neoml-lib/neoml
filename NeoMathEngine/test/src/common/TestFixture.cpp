@@ -69,7 +69,6 @@ using TCharType = wchar_t;
 using TCharType = char;
 #endif
 
-static constexpr TCharType testDataPath[] = { '-', '-', 'T', 'e', 's', 't', 'D', 'a', 't', 'a', 'P', 'a', 't', 'h', '=' };
 static constexpr TCharType mathEngineArg[] = { '-', '-', 'M', 'a', 't', 'h', 'E', 'n', 'g', 'i', 'n', 'e', '=' };
 static constexpr TCharType threadCount[] = { '-', '-', 'T', 'h', 'r', 'e', 'a', 'd', 'C', 'o', 'u', 'n', 't', '=' };
 
