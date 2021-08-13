@@ -229,6 +229,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
 
 	// result = first * second elementwise
+	virtual void VectorEltwiseMultiply( const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
 	virtual void VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	// result += first * second elementwise
