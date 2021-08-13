@@ -34,9 +34,9 @@ IMathEngine& MathEngine();
 
 enum class TMathEngineArgType 
 {
-    Undefined = 0,
-    Cpu,
-    Gpu,
+	Undefined = 0,
+	Cpu,
+	Gpu,
 	Cuda,
 	Vulkan,
 	Metal
