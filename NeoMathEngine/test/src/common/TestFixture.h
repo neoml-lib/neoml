@@ -28,20 +28,7 @@ namespace NeoMLTest {
 
 int RunTests( int argc, char* argv[] );
 
-void SetMathEngine( IMathEngine* mathEngine );
-
 IMathEngine& MathEngine();
-
-enum class TMathEngineArgType 
-{
-    Undefined = 0,
-    Cpu,
-    Gpu
-};
-
-TMathEngineArgType GetMathEngineArgType( int argc, char* argv[] );
-
-int GetThreadCount( int argc, char* argv[] );
 
 //------------------------------------------------------------------------------------------------------------
 
