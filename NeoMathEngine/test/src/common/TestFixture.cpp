@@ -22,11 +22,6 @@ namespace NeoMLTest {
 
 static IMathEngine* mathEngine = 0;
 
-void SetMathEngine(IMathEngine* newMathEngine)
-{
-	mathEngine = newMathEngine;
-}
-
 IMathEngine& MathEngine()
 {
 	return *mathEngine;
@@ -43,6 +38,11 @@ enum class TMathEngineArgType
 };
 
 //------------------------------------------------------------------------------------------------------------
+
+static void setMathEngine(IMathEngine* newMathEngine)
+{
+	mathEngine = newMathEngine;
+}
 
 template <typename T, std::size_t N>
 static bool startsWith( const T* str, const T( &prefix )[N] )
@@ -227,7 +227,7 @@ int RunTests( int argc, char* argv[] )
 		return 1;
 	}
 
-	SetMathEngine( mathEngine );
+	setMathEngine( mathEngine );
 
 	int result = RUN_ALL_TESTS();
 	

@@ -28,8 +28,6 @@ namespace NeoMLTest {
 
 int RunTests( int argc, char* argv[] );
 
-void SetMathEngine( IMathEngine* mathEngine );
-
 IMathEngine& MathEngine();
 
 //------------------------------------------------------------------------------------------------------------
