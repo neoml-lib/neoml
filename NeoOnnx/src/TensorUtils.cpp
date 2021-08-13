@@ -95,7 +95,7 @@ static CPtr<const CUserTensor> convertTensorToHw( const CUserTensor& input, int 
 
 	NeoAssert( newLayout[heightDimIndex] == BD_Height );
 	NeoAssert( widthDimIndex == -1 || newLayout[widthDimIndex] == BD_Width );
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, newLayout ).Ptr() );
+	return ConvertTensor( input, newLayout );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -249,6 +249,16 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLa
 	}
 
 	return currentTensor;
+}
+
+CPtr<const CDataTensor> ConvertTensor( const CDataTensor& dataTensor, const CTensorLayout& destLayout )
+{
+	return dynamic_cast<const CDataTensor*>( ConvertTensor( static_cast<const CTensorBase&>( dataTensor ), destLayout ).Ptr() );
+}
+
+CPtr<const CUserTensor> ConvertTensor( const CUserTensor& dataTensor, const CTensorLayout& destLayout )
+{
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( static_cast<const CTensorBase&>( dataTensor ), destLayout ).Ptr() );
 }
 
 // --------------------------------------------------------------------------------------------------------------------

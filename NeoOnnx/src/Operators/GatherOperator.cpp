@@ -30,7 +30,7 @@ static CPtr<const CUserTensor> convertToOnnx( const CUserTensor& data )
 		return &data;
 	}
 
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( data, CTensorLayout( data.DimCount() ) ).Ptr() );
+	return ConvertTensor( data, CTensorLayout( data.DimCount() ) );
 }
 
 // Returns the shape after the image to pixel layer
@@ -107,7 +107,7 @@ void CGatherOperator::addImageToPixelLayer( const CUserTensor& data, const CUser
 	for( int i = 0; i < requiredLayout.Size(); ++i ) {
 		requiredLayout[i] = i == axis ? BD_BatchLength : static_cast<TBlobDim>( i + 1 );
 	}
-	currData = dynamic_cast<const CUserTensor*>( ConvertTensor( *currData, requiredLayout ).Ptr() );
+	currData = ConvertTensor( *currData, requiredLayout );
 	// CImageLookupLayer gathers pixel of BD_Channels size from the set of BD_Height x BD_Width size
 	// Step 2: move BD_BatchLength to BD_Height and the rest of the blob to the BD_Channels
 	CPtr<CTransformLayer> transformToImage = new CTransformLayer( dnn.GetMathEngine() );

@@ -184,7 +184,7 @@ CPtr<const CUserTensor> CMatMulOperator::prepareTensor( const CTensorBase& tenso
 
 	CTensorLayout outputLayout( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Height, BD_Channels } );
 	outputLayout.DeleteAt( 0, outputLayout.Size() - currTensor->DimCount() );
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( *currTensor, outputLayout ).Ptr() );
+	return ConvertTensor( *currTensor, outputLayout );
 }
 
 } // namespace NeoOnnx

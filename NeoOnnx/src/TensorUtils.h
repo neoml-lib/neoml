@@ -140,6 +140,8 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 
 // Converts tensor to the given layout
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& destLayout );
+CPtr<const CUserTensor> ConvertTensor( const CUserTensor& inputTensor, const CTensorLayout& destLayout );
+CPtr<const CDataTensor> ConvertTensor( const CDataTensor& inputTensor, const CTensorLayout& destLayout );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor padding functions

@@ -38,7 +38,7 @@ CPtr<const CSinkLayer> CGraphOutput::AddSinkLayer( const CUserTensor& input, CDn
 	if( IsTransposedLayout( currInput->Layout() ) ) {
 		CTensorLayout onnxLayout = input.Layout();
 		onnxLayout.QuickSort<Ascending<TBlobDim>>();
-		currInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *currInput, onnxLayout ).Ptr() );
+		currInput = ConvertTensor( *currInput, onnxLayout );
 	}
 	const CLayerOutput& layerOutput = currInput->LayerOutput();
 	sink->Connect( 0, *layerOutput.Layer, layerOutput.OutputIndex );

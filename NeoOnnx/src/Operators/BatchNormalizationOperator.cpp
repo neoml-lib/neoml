@@ -51,7 +51,7 @@ static CPtr<const CUserTensor> convertInput( const CUserTensor& input )
 	CTensorLayout outputLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
 	outputLayout.SetSize( input.DimCount() );
 
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, outputLayout ).Ptr() );
+	return ConvertTensor( input, outputLayout );
 }
 
 // Calculates NeoML::CBatchNormalizationLayer's final params blob from onnx operator's inputs

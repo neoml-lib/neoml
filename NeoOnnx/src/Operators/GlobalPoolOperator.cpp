@@ -156,7 +156,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::convertInputLayout( const CUser
 		}
 	}
 
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( input, convertedLayout ).Ptr() );
+	return ConvertTensor( input, convertedLayout );
 }
 
 // Adds CGlobal*Pooling layer
