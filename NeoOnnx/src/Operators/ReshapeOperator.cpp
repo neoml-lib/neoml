@@ -47,14 +47,9 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	getShape( inputs, outputShape );
 
 	// In order to process tensors correctly reshape is not allowed in transposed layouts
-	CPtr<const CUserTensor> input = inputs[0]->IsCalculated()
-		? AsUserTensor( dynamic_cast<const CDataTensor&>( *inputs[0] ), Name() + "_InputSource", dnn )
-		: dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
+	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_InputSource", dnn );
 	if( IsTransposedLayout( input->Layout() ) ) {
-		input = dynamic_cast<const CUserTensor*>( ConvertTensor( *input,
-			CTensorLayout( input->DimCount() ) ).Ptr() );
-	} else {
-		input = dynamic_cast<const CUserTensor*>( input.Ptr() );
+		input = dynamic_cast<const CUserTensor*>( ConvertTensor( *input, CTensorLayout( input->DimCount() ) ).Ptr() );
 	}
 	const CTensorShape& inputShape = input->Shape();
 

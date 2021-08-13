@@ -19,30 +19,20 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Determines whether index'th input is expected to be provided by user or not
-typedef CDynamicBitSet<8> CUserInputMask;
-
 // Operator, which can be emulated by NeoML layers
 // Provides default implementation of one of CNode's methods and adds new method to the interface
 class CLayerOperator : public COperator {
 public:
 	// COperator's interface
 
-	// Default implementation which calls protected ProcessTensors with default input mask (only first input)
-	// See comment to the protected version for more details
-	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
-protected:
-	CLayerOperator( const onnx::NodeProto& node, int opsetVersion ) : COperator( node, opsetVersion ) {}
-
 	// Default implementation which works in the next way:
 	// If output tensors' data can't be calculated it just adds corresponding layers to the dnn
 	// Otherwise it creates another internal CDnn, adds layers to this new CDnn
 	// and uses this internal network to calculate output tensors' data
-	// inputMask indicates whether i'th input should be a CUserInput of internalDnn (instead of CDataTensor)
-	// e.g. for CConvOperator only first input must be a CUserTensor (filters and free terms should remain as CDataTensor)
-	// on the other hand CConcatOperator requires that all of the inputs to be a CUserTensor
-	void ProcessTensorsImpl( const CUserInputMask& inputMask, const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const;
+	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+protected:
+	CLayerOperator( const onnx::NodeProto& node, int opsetVersion ) : COperator( node, opsetVersion ) {}
 
 	// Virtual methods
 

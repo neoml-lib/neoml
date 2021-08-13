@@ -120,7 +120,6 @@ CBatchNormalizationOperator::CBatchNormalizationOperator( const onnx::NodeProto&
 void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 
 	const int channels = inputs[0]->Shape()[1];
 	// The number of required inputs of BatchNormalization operator
@@ -137,7 +136,7 @@ void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& d
 	bnLayer->SetChannelBased( true );
 	bnLayer->SetFinalParams( calculateFinalParams( eps, inputs ) );
 
-	CPtr<const CUserTensor> userData = convertInput( dynamic_cast<const CUserTensor&>( *inputs[0] ) );
+	CPtr<const CUserTensor> userData = convertInput( *AsUserTensor( *inputs[0], Name() + "_Source", dnn ) );
 	bnLayer->Connect( 0, *userData->Layer(), userData->OutputIndex() );
 	dnn.AddLayer( *bnLayer );
 

@@ -33,8 +33,7 @@ CActivationOperatorBase::CActivationOperatorBase( const onnx::NodeProto& onnxNod
 void CActivationOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
-	const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
+	CPtr<const CUserTensor> userInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
 	activationLayer->SetName( Name() );
@@ -204,7 +203,6 @@ void CPowOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	// The only scenario supported by NeoML is when the first input is a float tensor
 	// and the second input is a constant float scalar (tensor of size 1)
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 
 	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided power of the exponent", *this );

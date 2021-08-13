@@ -133,9 +133,7 @@ void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 // It puts matrix width into BD_Channels
 CPtr<const CUserTensor> CMatMulOperator::prepareTensor( const CTensorBase& tensor, bool isFirstArg, CDnn& dnn ) const
 {
-	CPtr<const CUserTensor> currTensor = tensor.IsCalculated()
-		? AsUserTensor( dynamic_cast<const CDataTensor&>( tensor ), Name() + ( isFirstArg ? "_Input0" : "_Input1" ), dnn ).Ptr()
-		: dynamic_cast<const CUserTensor*>( &tensor );
+	CPtr<const CUserTensor> currTensor = AsUserTensor( tensor, Name() + ( isFirstArg ? "_Input0" : "_Input1" ), dnn );
 
 	if( currTensor->DimCount() == 1 ) {
 		CTensorLayout newLayout = currTensor->Layout();

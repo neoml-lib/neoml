@@ -20,39 +20,16 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Returns true if output tensors' data can be calculated during import
-static bool canCalculateOutput( const CTensorArray& inputs )
+// Returns true if some of the inputs are depending on user data
+static bool hasUserInputs( const CTensorArray& inputs )
 {
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
 		if( inputs[inputIndex] != nullptr && !inputs[inputIndex]->IsCalculated() ) {
-			return false;
+			return true;
 		}
 	}
 
-	return true;
-}
-
-// Builds an array of tensors related to the internal dnn
-// Also adds required source layers to the internal dnn (with corresponding blobs)
-void addInternalDnnSources( const CUserInputMask& inputMask, const CTensorArray& inputs,
-	CTensorArray& internalInputs, CDnn& internalDnn )
-{
-	IMathEngine& mathEngine = internalDnn.GetMathEngine();
-
-	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		if( inputs[inputIndex] == nullptr || !inputs[inputIndex]->IsCalculated() ) {
-			// Only data tensors can be feeded to the internal dnn
-			internalInputs.Add( nullptr );
-		} else if( inputMask[inputIndex] ) {
-			// Pass data tensor to the internal dnn as user tensor
-			internalInputs.Add( AsUserTensor( dynamic_cast<const CDataTensor&>( *inputs[inputIndex] ),
-					Str( internalDnn.GetLayerCount() ), internalDnn ).Ptr() );
-		} else {
-			// This data tensor should be passed as is
-			NeoAssert( inputs[inputIndex]->IsCalculated() );
-			internalInputs.Add( inputs[inputIndex] );
-		}
-	}
+	return false;
 }
 
 // Builds an array of sinks (corresponding to the operator outputs)
@@ -100,13 +77,7 @@ static void extractOutputs( const CTensorArray& internalOutputs, const CArray<CS
 
 void CLayerOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	ProcessTensorsImpl( CUserInputMask( 0 ), inputs, dnn, outputs );
-}
-
-void CLayerOperator::ProcessTensorsImpl( const CUserInputMask& inputMask, const CTensorArray& inputs,
-	CDnn& dnn, CTensorArray& outputs ) const
-{
-	if( !canCalculateOutput( inputs ) ) {
+	if( hasUserInputs( inputs ) ) {
 		AddLayers( inputs, dnn, outputs );
 		return;
 	}
@@ -114,14 +85,10 @@ void CLayerOperator::ProcessTensorsImpl( const CUserInputMask& inputMask, const 
 	CRandom random( 0x1231 );
 	CDnn internalDnn( random, dnn.GetMathEngine() );
 
-	// Add source layers for the operator
-	CTensorArray internalInputs;
-	addInternalDnnSources( inputMask, inputs, internalInputs, internalDnn );
-
 	// Add operator layers
 	CTensorArray internalOutputs;
 	internalOutputs.SetBufferSize( OutputCount() );
-	AddLayers( internalInputs, internalDnn, internalOutputs );
+	AddLayers( inputs, internalDnn, internalOutputs );
 	NeoAssert( internalOutputs.Size() == OutputCount() );
 
 	// Add sink layers for the operator

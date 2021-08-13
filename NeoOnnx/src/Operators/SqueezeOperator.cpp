@@ -37,7 +37,6 @@ CSqueezeOperator::CSqueezeOperator( const onnx::NodeProto& squeeze, int opsetVer
 void CSqueezeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 
 	CFastArray<int, 8> axes;
 	getAxes( inputs[0]->Shape(), axes );
@@ -45,8 +44,14 @@ void CSqueezeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, C
 	CTensorShape outputShape;
 	calcOutputShape( inputs[0]->Shape(), axes, outputShape );
 
-	outputs.Add( new CUserTensor( outputShape, calcOutputLayout( inputs[0]->Layout(), axes ),
-		dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() ) );
+	const CTensorLayout outputLayout = calcOutputLayout( inputs[0]->Layout(), axes );
+	if( inputs[0]->IsCalculated() ) {
+		outputs.Add( new CDataTensor( outputShape, outputLayout,
+			*dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data() ) );
+	} else {
+		outputs.Add( new CUserTensor( outputShape, outputLayout,
+			dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() ) );
+	}
 }
 
 // Fills array with axes indices to be squeezed

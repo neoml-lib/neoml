@@ -41,14 +41,12 @@ CCastOperator::CCastOperator( const onnx::NodeProto& cast, int opsetVersion ) :
 void CCastOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	// If input is provided then it must be converted prior to this code (because of input mask)
-	NeoAssert( !inputs[0]->IsCalculated() );
-	const CUserTensor& inputTensor = dynamic_cast<const CUserTensor&>( *inputs[0] );
+	CPtr<const CUserTensor> inputTensor = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
 	CPtr<CCastLayer> cast = new CCastLayer( dnn.GetMathEngine() );
 	cast->SetName( Name() );
 	cast->SetOutputType( GetBlobType( static_cast<onnx::TensorProto_DataType>( outputType ) ) );
-	cast->Connect( 0, *inputTensor.Layer(), inputTensor.OutputIndex() );
+	cast->Connect( 0, *inputTensor->Layer(), inputTensor->OutputIndex() );
 	dnn.AddLayer( *cast );
 
 	outputs.Add( new CUserTensor( inputs[0]->Shape(), inputs[0]->Layout(), CLayerOutput( cast, 0 ) ) );

@@ -44,16 +44,14 @@ CFlattenOperator::CFlattenOperator( const onnx::NodeProto& flatten, int opsetVer
 void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 
 	// Every operator which somehow changes Onnx tensor's shape or dimensions works only with Onnx dim type
 	// Otherwise it'll lead to hardly fixable troubles with data-ordering
 	CPtr<const CUserTensor> input;
 	if( IsTransposedLayout( inputs[0]->Layout() ) ) {
-		input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0],
-			CTensorLayout( inputs[0]->DimCount() ) ).Ptr() );
+		input = AsUserTensor( *ConvertTensor( *inputs[0], CTensorLayout( inputs[0]->DimCount() ) ), Name() + "_Source", dnn );
 	} else {
-		input = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
+		input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	}
 
 	// Flatten operator reshapes tensor into 2-dimensional matrix of size

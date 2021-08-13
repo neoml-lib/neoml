@@ -60,7 +60,6 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 {
 	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "input can't be optional", *this );
 
-	CheckNeoOnnxSupport( !inputs[0]->IsCalculated(), "Input must be provided by user", *this );
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( transA == 0, "transA != 0", *this );
 	// Some models from the model zoo has this op with 4-dimensional input
@@ -112,7 +111,7 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 			inputLayout[i] = BD_ListSize + i;
 		}
 	}
-	CPtr<const CUserTensor> userInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], inputLayout ).Ptr() );
+	CPtr<const CUserTensor> userInput = AsUserTensor( *ConvertTensor( *inputs[0], inputLayout ), Name() + "_Source", dnn );
 	fc->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *fc );
 

@@ -596,8 +596,14 @@ CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadc
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CPtr<const CUserTensor> AsUserTensor( const CDataTensor& dataTensor, const CString& sourceName, CDnn& dnn )
+CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& sourceName, CDnn& dnn )
 {
+	if( !tensor.IsCalculated() ) {
+		// No conversion needed
+		return dynamic_cast<const CUserTensor*>( &tensor );
+	}
+
+	const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( tensor );
 	CPtr<CSourceLayer> dataSource = new CSourceLayer( dnn.GetMathEngine() );
 	dataSource->SetBlob( dataTensor.Data()->GetCopy() );
 	// Guarantee that serialization won't lead to data loss

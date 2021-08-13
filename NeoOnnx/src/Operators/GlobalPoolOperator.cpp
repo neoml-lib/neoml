@@ -45,12 +45,11 @@ void CGlobalPoolOperatorBase::PoolAxes( const CTensorShape& inputShape, CFastArr
 void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 
 	CFastArray<int, 8> axes;
 	PoolAxes( inputs[0]->Shape(), axes );
 
-	CPtr<const CUserTensor> curr = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
+	CPtr<const CUserTensor> curr = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	curr = prepareInput( *curr, axes, dnn );
 	curr = addPoolingLayer( *curr, axes, dnn );
 	curr = addPostProcessing( *curr, dnn );

@@ -37,13 +37,12 @@ CLrnOperator::CLrnOperator( const onnx::NodeProto& lrn, int opsetVersion ) :
 void CLrnOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 	CheckNeoOnnxSupport( inputs[0]->DimCount() <= 5, "6+ dimensional input", *this );
 
 	CTensorLayout outputLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
 	outputLayout.SetSize( inputs[0]->DimCount() );
 
-	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], outputLayout ).Ptr() );
+	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], outputLayout ), Name() + "_Source", dnn );
 
 	CPtr<CLrnLayer> lrn = new CLrnLayer( dnn.GetMathEngine() );
 	lrn->SetName( Name() );

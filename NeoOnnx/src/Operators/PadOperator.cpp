@@ -44,14 +44,13 @@ CPadOperator::CPadOperator( const onnx::NodeProto& pad, int opsetVersion ) :
 	CheckNeoOnnxSupport( mode == "constant", "Pad with non-constant mode", *this );
 }
 
-void CPadOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
+void CPadOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 	CFastArray<int, 8> pads;
 	getPads( inputs, pads );
 	const float value = getPadValue( inputs );
-	outputs.Add( PadUserTensor( dynamic_cast<const CUserTensor&>( *inputs[0] ), pads, value ).Ptr() );
+	outputs.Add( PadUserTensor( *AsUserTensor( *inputs[0], Name() + "_Source", dnn ), pads, value).Ptr());
 }
 
 // Gets pads sizes

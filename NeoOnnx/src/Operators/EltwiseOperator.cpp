@@ -56,26 +56,19 @@ void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTe
 		buff.CopyTo( outputShape );
 	}
 
-	CTensorArray currInputs;
-	inputs.CopyTo( currInputs );
+	CObjectArray<const CUserTensor> currInputs;
+	currInputs.SetBufferSize( inputs.Size() );
 	// Broadcast input to the final shape and set proper layout
+	// After that put pre-calculated tensors to the sources in the net
 	for( int i = 0; i < inputs.Size(); ++i ) {
-		currInputs[i] = BroadcastTensor( *currInputs[i], broadcast, outputShape );
-		currInputs[i] = ConvertTensor( *currInputs[i], currInputs[0]->Layout() );
-	}
-
-	// Put pre-calculated blobs to the source in the net
-	for( int i = 0; i < currInputs.Size(); ++i ) {
-		if( currInputs[i]->IsCalculated() ) {
-			currInputs[i] = AsUserTensor( dynamic_cast<const CDataTensor&>( *currInputs[i] ), Name() + "_input_" + Str( i ), dnn );
-		}
+		CPtr<const CTensorBase> tensor = BroadcastTensor( *inputs[i], broadcast, outputShape );
+		tensor = ConvertTensor( *tensor, i == 0 ? tensor->Layout() : currInputs[0]->Layout() );
+		currInputs.Add( AsUserTensor( *tensor, Name() + "_input_" + Str( i ), dnn ) );
 	}
 
 	eltwiseLayer.SetName( Name() );
 	for( int i = 0; i < currInputs.Size(); ++i ) {
-		NeoAssert( !currInputs[i]->IsCalculated() );
-		const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( currInputs[i].Ptr() );
-		eltwiseLayer.Connect( i, *userInput->Layer(), userInput->OutputIndex() );
+		eltwiseLayer.Connect( i, *currInputs[i]->Layer(), currInputs[i]->OutputIndex() );
 	}
 	dnn.AddLayer( eltwiseLayer );
 	outputs.Add( new CUserTensor( outputShape, currInputs[0]->Layout(), CLayerOutput( &eltwiseLayer, 0 ) ) );

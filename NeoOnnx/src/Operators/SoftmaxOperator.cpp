@@ -41,14 +41,13 @@ CSoftmaxOperator::CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVer
 void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 
 	const int dimCount = inputs[0]->DimCount();
 	CheckNeoOnnxSupport( axis <= 3, "more than 3 batch dimensions", *this );
 	CheckNeoOnnxSupport( dimCount - axis + 1 <= 4, "more than 4 object  dimensions", *this );
 
 	CTensorLayout compatibleLayout = getCompatibleLayout( dimCount, axis, inputs[0]->Layout() );
-	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], compatibleLayout ).Ptr() );
+	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], compatibleLayout ), Name() + "_Source", dnn );
 
 	CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer( dnn.GetMathEngine() );
 	softmax->SetName( Name() );

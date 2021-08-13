@@ -36,15 +36,6 @@ CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersio
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CConcatOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
-{
-	CUserInputMask inputMask;
-	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		inputMask |= inputIndex;
-	}
-	CLayerOperator::ProcessTensorsImpl( inputMask, inputs, dnn, outputs );
-}
-
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
@@ -71,7 +62,8 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
 		CheckOnnxProtocol( inputs[inputIndex] != nullptr, "input can't be optional", *this );
-		CPtr<const CUserTensor> preparedInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[inputIndex], inputLayout ).Ptr() );
+		CPtr<const CUserTensor> preparedInput = AsUserTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
+			Name() + "_Source" + Str( inputIndex ), dnn );
 		concat->Connect( inputIndex, *preparedInput->Layer(), preparedInput->OutputIndex() );
 		outputShape[axis] += inputs[inputIndex]->Shape()[axis];
 	}

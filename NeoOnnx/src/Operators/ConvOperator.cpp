@@ -71,7 +71,6 @@ CConvOperator::CConvOperator( const onnx::NodeProto& conv, int opsetVersion ) :
 void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 5,
@@ -148,7 +147,7 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, C
 	conv->SetFilterWidth( is1dConv ? 1 : kernelShape[1] );
 	conv->SetStrideHeight( strides[0] );
 	conv->SetStrideWidth( is1dConv ? 1 : strides[1] );
-	CPtr<const CUserTensor> currInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], neoMLLayout ).Ptr() );
+	CPtr<const CUserTensor> currInput = AsUserTensor( *ConvertTensor( *inputs[0], neoMLLayout ), Name() + "_Source", dnn );
 
 	if( ( is1dConv && pads[0] >= pads[1] )
 		|| ( !is1dConv && pads[0] >= pads[2] && pads[1] >= pads[3] ) )
@@ -209,7 +208,7 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	conv->SetStrideHeight( strides[0] );
 	conv->SetStrideWidth( strides[1] );
 	conv->SetStrideDepth( strides[2] );
-	CPtr<const CUserTensor> currInput = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], neoML3dLayout ).Ptr() );
+	CPtr<const CUserTensor> currInput = AsUserTensor( *ConvertTensor( *inputs[0], neoML3dLayout ), Name() + "_Source", dnn );
 	
 	if( pads[0] >= pads[3] && pads[1] >= pads[4] && pads[2] >= pads[5] ) {
 		// This is a valid padding for a convolution in NeoML

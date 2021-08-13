@@ -57,7 +57,6 @@ void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValu
 {
 	// Check input
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 4,
 		"wrong input tensor's dimensions number", *this );
@@ -81,7 +80,7 @@ void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValu
 
 	CTensorLayout expectedLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
 	expectedLayout.SetSize( inputShape.Size() );
-	CPtr<const CUserTensor> input = dynamic_cast<const CUserTensor*>( ConvertTensor( *inputs[0], expectedLayout ).Ptr() );
+	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], expectedLayout ), Name() + "_Source", dnn );
 	input = PadUserTensor( *input, pads, padValue );
 
 	pooling.SetFilterHeight( kernelShape[0] );

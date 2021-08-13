@@ -24,13 +24,13 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Converts tensor to onnx-compatible layout
-static CPtr<const CTensorBase> convertToOnnx( const CTensorBase& data )
+static CPtr<const CUserTensor> convertToOnnx( const CUserTensor& data )
 {
 	if( !IsTransposedLayout( data.Layout() ) ) {
 		return &data;
 	}
 
-	return ConvertTensor( data, CTensorLayout( data.DimCount() ) );
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( data, CTensorLayout( data.DimCount() ) ).Ptr() );
 }
 
 // Returns the shape after the image to pixel layer
@@ -88,9 +88,7 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 	CObjectArray<const CUserTensor> convertedInputs;
 	for( int i = 0; i < inputs.Size(); ++i ) {
-		convertedInputs.Add( inputs[i]->IsCalculated()
-			? AsUserTensor( dynamic_cast<const CDataTensor&>( *inputs[i] ), Name() + "_Source" + Str( i ), dnn ).Ptr()
-			: dynamic_cast<const CUserTensor*>( inputs[i].Ptr() ) );
+		convertedInputs.Add( AsUserTensor( *inputs[i], Name() + "_Source" + Str( i ), dnn ).Ptr() );
 	}
 
 	addImageToPixelLayer( *convertedInputs[0], *convertedInputs[1], dnn, outputs );
@@ -128,7 +126,7 @@ void CGatherOperator::addImageToPixelLayer( const CUserTensor& data, const CUser
 
 	// Prepare indices blob
 	// CImageLookupLayer expects indices of single image to be in BD_Channels
-	CPtr<const CUserTensor> currIndices = dynamic_cast<const CUserTensor*>( convertToOnnx( indices ).Ptr() );
+	CPtr<const CUserTensor> currIndices = convertToOnnx( indices );
 	CPtr<CTransformLayer> transformIndices = new CTransformLayer( dnn.GetMathEngine() );
 	transformIndices->SetName( Name() + "_TransformIndices" );
 	for( TBlobDim dim = BD_BatchLength; dim < BD_Channels; ++dim ) {

@@ -67,10 +67,9 @@ CSliceOperator::CSliceOperator( const onnx::NodeProto& slice, int opsetVersion )
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CSliceOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
+void CSliceOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	NeoAssert( !inputs[0]->IsCalculated() );
 
 	CFastArray<int, 8> axes;
 	getAxes( inputs, axes );
@@ -84,7 +83,7 @@ void CSliceOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTe
 	CFastArray<int, 8> steps;
 	getSteps( inputs, steps );
 
-	CPtr<const CUserTensor> currInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
+	CPtr<const CUserTensor> currInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	for( int i = 0; i < axes.Size(); ++i ) {
 		currInput = sliceAxis( *currInput, axes[i], starts[i], ends[i], steps[i] );
 	}
