@@ -34,7 +34,7 @@ The layer has no trainable parameters.
 
 ## Inputs
 
-Each of the inputs accepts a blob with a set of images:
+Each of the inputs accepts a blob of `int` or `float` data with a set of images:
 
 - `BatchLength * BatchWidth * ListSize` is the number of images in the set
 - `Height` is the images' height
