@@ -73,4 +73,11 @@ void CCastLayer::BackwardOnce()
 	inputDiffBlobs[0]->CopyFrom( outputDiffBlobs[0] );
 }
 
+CLayerWrapper<CCastLayer> Cast( TBlobType outputType )
+{
+	return CLayerWrapper<CCastLayer>( "Cast", [=] ( CCastLayer* result ) {
+		result->SetOutputType( outputType );
+	} );
+}
+
 } // namespace NeoML

@@ -44,4 +44,6 @@ private:
 	TBlobType outputType;
 };
 
+NEOML_API CLayerWrapper<CCastLayer> Cast( TBlobType outputType );
+
 } // namespace NeoML
