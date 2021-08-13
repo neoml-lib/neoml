@@ -2,7 +2,7 @@
 
 <!-- TOC -->
 
-- [CEltwiseSumLayer Class](#celtwisesumlayer-class)
+- [CEltwiseMulLayer Class](#celtwisemullayer-class)
     - [Settings](#settings)
     - [Trainable parameters](#trainable-parameters)
     - [Inputs](#inputs)
