@@ -32,6 +32,16 @@ IMathEngine& MathEngine()
 	return *mathEngine;
 }
 
+enum class TMathEngineArgType 
+{
+	Undefined = 0,
+	Cpu,
+	Gpu,
+	Cuda,
+	Vulkan,
+	Metal
+};
+
 //------------------------------------------------------------------------------------------------------------
 
 template <typename T, std::size_t N>
@@ -78,9 +88,10 @@ static constexpr TCharType cuda[] = { 'c', 'u', 'd', 'a' };
 static constexpr TCharType vulkan[] = { 'v', 'u', 'l', 'k', 'a', 'n' };
 static constexpr TCharType metal[] = { 'm', 'e', 't', 'a', 'l' };
 
-TMathEngineArgType GetMathEngineArgType( int argc, char* argv[] )
+template<typename T>
+TMathEngineArgType getMathEngineArgType( int argc, T* argv[] )
 {
-	const TCharType* rawArg = argValue( argc, argv, mathEngineArg );
+	const T* rawArg = argValue( argc, argv, mathEngineArg );
 
 	if( rawArg != nullptr ) {
 		if( equal( rawArg, cpuArg ) ) {
@@ -99,9 +110,23 @@ TMathEngineArgType GetMathEngineArgType( int argc, char* argv[] )
 	return TMathEngineArgType::Undefined;
 }
 
-int GetThreadCount( int argc, char* argv[] )
+#ifdef NEOML_USE_FINEOBJ
+
+int getThreadCount( int argc, wchar_t* argv[] )
 {
-	const TCharType* rawThreadCount = argValue( argc, argv, threadCount );
+	const wchar_t* value = argValue( argc, argv, ThreadCount );
+	int res = 0;
+	if( value && FObj::Value( value, res ) ) {
+		return res;
+	}
+	return 0;
+}
+
+#else // NEOML_USE_FINEOBJ
+
+int getThreadCount( int argc, char* argv[] )
+{
+	const char* rawThreadCount = argValue( argc, argv, threadCount );
 
 	if( rawThreadCount != nullptr ) {
 		try {
@@ -113,6 +138,8 @@ int GetThreadCount( int argc, char* argv[] )
 
 	return 0;
 }
+
+#endif // NEOML_USE_FINEOBJ
 
 static std::string toString( TMathEngineType type )
 {
@@ -185,8 +212,8 @@ int RunTests( int argc, char* argv[] )
 {
 	::testing::InitGoogleTest( &argc, argv );
 	
-	auto type = GetMathEngineArgType( argc, argv );
-	const int threadCount = GetThreadCount( argc, argv );
+	auto type = getMathEngineArgType( argc, argv );
+	const int threadCount = getThreadCount( argc, argv );
 
 	IMathEngine* mathEngine = createMathEngine( type, threadCount );
 

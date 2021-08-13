@@ -32,20 +32,6 @@ void SetMathEngine( IMathEngine* mathEngine );
 
 IMathEngine& MathEngine();
 
-enum class TMathEngineArgType 
-{
-	Undefined = 0,
-	Cpu,
-	Gpu,
-	Cuda,
-	Vulkan,
-	Metal
-};
-
-TMathEngineArgType GetMathEngineArgType( int argc, char* argv[] );
-
-int GetThreadCount( int argc, char* argv[] );
-
 //------------------------------------------------------------------------------------------------------------
 
 inline bool FloatEq(float val1, float val2, float precision = 1e-05)
