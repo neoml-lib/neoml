@@ -651,6 +651,18 @@ void CCpuMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, in
 	}
 }
 
+static inline void sigmoidActivation( const CConstFloatHandle& from, const CFloatHandle& to, int dataSize,
+	const CConstFloatHandle& )
+{
+	from.GetMathEngine()->VectorSigmoid( from, to, dataSize );
+}
+
+static inline void reLUActivation( const CConstFloatHandle& from, const CFloatHandle& to, int dataSize,
+	const CConstFloatHandle& threshold )
+{
+	from.GetMathEngine()->VectorReLU( from, to, dataSize, threshold );
+}
+
 void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
 	TIndRnnActivation activation, const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
 	const CFloatHandle& h)
@@ -669,15 +681,8 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
 
 	static_assert( IRA_Count == 2, "IRA_Count != 2" );
-	auto applyActivation = activation == IRA_Sigmoid
-		? []( const CConstFloatHandle& from, const CFloatHandle& to, int dataSize, const CConstFloatHandle& )
-			{
-				from.GetMathEngine()->VectorSigmoid( from, to, dataSize );
-			}
-		: []( const CConstFloatHandle& from, const CFloatHandle& to, int dataSize, const CConstFloatHandle& threshold )
-			{
-				from.GetMathEngine()->VectorReLU( from, to, dataSize, threshold );
-			};
+	void ( *applyActivation )( const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle& )
+		= activation == IRA_Sigmoid ? sigmoidActivation : reLUActivation;
 
 	// Upper threshold variable (for ReLU)
 	CFloatHandleStackVar threshold( *this );
@@ -712,6 +717,18 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 	}
 }
 
+static inline void sigmoidActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outDiff,
+	const CFloatHandle& inDiff, int dataSize, const CConstFloatHandle& )
+{
+	output.GetMathEngine()->VectorSigmoidDiffOp( output, outDiff, inDiff, dataSize );
+}
+
+static inline void reLUActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outDiff,
+	const CFloatHandle& inDiff, int dataSize, const CConstFloatHandle& threshold )
+{
+	output.GetMathEngine()->VectorReLUDiffOp( output, outDiff, inDiff, dataSize, threshold );
+}
+
 void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
 	TIndRnnActivation activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
 	const CConstFloatHandle& hDiff, const CFloatHandle& wxDiff )
@@ -724,24 +741,14 @@ void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, 
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( wxDiff.GetMathEngine() == this );
+	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
 
 	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
 
-	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
-
 	static_assert( IRA_Count == 2, "IRA_Count != 2" );
-	auto activationDiffOp = activation == IRA_Sigmoid
-		? []( const CConstFloatHandle& output, const CConstFloatHandle& outDiff, const CFloatHandle& inDiff, int dataSize,
-				const CConstFloatHandle& )
-			{
-				output.GetMathEngine()->VectorSigmoidDiffOp( output, outDiff, inDiff, dataSize );
-			}
-		: []( const CConstFloatHandle& output, const CConstFloatHandle& outDiff, const CFloatHandle& inDiff, int dataSize,
-				const CConstFloatHandle& threshold )
-			{
-				output.GetMathEngine()->VectorReLUDiffOp( output, outDiff, inDiff, dataSize, threshold );
-			};
+	void ( *activationDiffOp )( const CConstFloatHandle&, const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle& )
+		= activation == IRA_Sigmoid ? sigmoidActivationDiffOp : reLUActivationDiffOp;
 
 	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize + 1 );
 	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
@@ -789,24 +796,14 @@ void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( uDiff.GetMathEngine() == this );
+	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
 
 	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
 
-	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
-
 	static_assert( IRA_Count == 2, "IRA_Count != 2" );
-	auto activationDiffOp = activation == IRA_Sigmoid
-		? []( const CConstFloatHandle& output, const CConstFloatHandle& outDiff, const CFloatHandle& inDiff, int dataSize,
-				const CConstFloatHandle& )
-			{
-				output.GetMathEngine()->VectorSigmoidDiffOp( output, outDiff, inDiff, dataSize );
-			}
-		: []( const CConstFloatHandle& output, const CConstFloatHandle& outDiff, const CFloatHandle& inDiff, int dataSize,
-				const CConstFloatHandle& threshold )
-			{
-				output.GetMathEngine()->VectorReLUDiffOp( output, outDiff, inDiff, dataSize, threshold );
-			};
+	void ( *activationDiffOp )( const CConstFloatHandle&, const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle& )
+		= activation == IRA_Sigmoid ? sigmoidActivationDiffOp : reLUActivationDiffOp;
 
 	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize + objectSize + 1 );
 	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
