@@ -15,6 +15,7 @@ limitations under the License.
 
 #pragma once
 
+#include <memory>
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
@@ -29,10 +30,11 @@ class CIndRnnRecurrentLayer;
 // Independently Recurrent Neural Network (IndRNN): https://arxiv.org/pdf/1803.04831.pdf
 //
 // It's a simple recurrent unit with the following formula:
-//    Y_t = sigmoid( W * X_t + B + U * Y_t-1 )
+//    Y_t = activation( W * X_t + B + U * Y_t-1 )
 // Where:
 //    W and B are weights and free terms of the fully-connected layer (W * X_t is a matrix multiplication)
 //    U is a vector (U * Y_t-1 is an eltwise multiplication of 2 vectors of the same length)
+//    activation is an activation function (sigmoid or ReLU)
 
 class NEOML_API CIndRnnLayer : public CCompositeLayer {
 	NEOML_DNN_LAYER( CIndRnnLayer )
@@ -58,6 +60,11 @@ public:
 	bool IsReverseSequence() const;
 	void SetReverseSequence( bool reverse );
 
+	// Sets the activation function used in the recurrent part
+	// IRA_Sigmoid by default
+	IMathEngine::TIndRnnActivation GetActivation() const;
+	void SetActivation( IMathEngine::TIndRnnActivation activation );
+
 	// Trainable parameters
 	
 	// Input weights (matrix W from formula)
@@ -81,7 +88,7 @@ private:
 };
 
 // Recurrent part of IndRNN:
-//    Y_t = sigmoid( FC( X_t ) + U * Y_t-1 )
+//    Y_t = activation( FC( X_t ) + U * Y_t-1 )
 //
 // For optimization purposes this class doesn't inherit CRecurrentLayer
 // mathEngine 'emulates' recurrent part instead
@@ -102,6 +109,10 @@ public:
 	float GetDropoutRate() const { return dropoutRate; }
 	void SetDropoutRate( float rate );
 
+	// Sets activation function
+	IMathEngine::TIndRnnActivation GetActivation() const { return activation; }
+	void SetActivation( IMathEngine::TIndRnnActivation activation );
+
 	// Trainable parameters
 
 	// Weights (vector U from formula)
@@ -115,14 +126,15 @@ protected:
 	void LearnOnce() override;
 
 private:
-	// int hiddenSize; // Number of elements in vector
+	IMathEngine::TIndRnnActivation activation; // Activation function
 	bool reverse; // If true then sequences must be processed in reversed order
 	float dropoutRate; // Dropout rate on recurrent link
-	CFloatHandleVar* dropoutMask; // Dropout mask
+	std::unique_ptr<CFloatHandleVar> dropoutMask; // Dropout mask
 
 	CConstFloatHandle maskHandle() const;
 };
 
-NEOML_API CLayerWrapper<CIndRnnLayer> IndRnn( int hiddenSize, float dropoutRate = 0.f, bool reverse = false );
+NEOML_API CLayerWrapper<CIndRnnLayer> IndRnn( int hiddenSize, float dropoutRate = 0.f, bool reverse = false,
+	IMathEngine::TIndRnnActivation activation = IMathEngine::IRA_Sigmoid );
 
 } // namespace NeoML
