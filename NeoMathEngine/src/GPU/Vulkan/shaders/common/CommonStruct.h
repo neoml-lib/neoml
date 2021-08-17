@@ -19,6 +19,8 @@ limitations under the License.
 #ifndef _GLSL_
 #pragma once
 
+#include <cstdint>
+
 namespace NeoML {
 #endif
 
@@ -2248,10 +2250,23 @@ PARAM_STRUCT( QrnnIfPooling )
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
-// IndRnnRecurrent
-DEFINE_SHADER_1D(IndRnnRecurrent)
+// IndRnnRecurrentSigmoid
+DEFINE_SHADER_1D(IndRnnRecurrentSigmoid)
 
-PARAM_STRUCT( IndRnnRecurrent )
+PARAM_STRUCT( IndRnnRecurrentSigmoid )
+{
+	int reverse;
+	int sequenceLength;
+	int batchSize;
+	int objectSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// IndRnnRecurrentReLU
+DEFINE_SHADER_1D(IndRnnRecurrentReLU)
+
+PARAM_STRUCT( IndRnnRecurrentReLU )
 {
 	int reverse;
 	int sequenceLength;

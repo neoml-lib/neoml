@@ -2313,14 +2313,14 @@ kernel void vectorQrnnIfPooling( constant bool& reverse [[buffer(0)]],
     }
 }
 
-kernel void matrixIndRnnRecurrent( constant bool& reverse [[buffer(0)]],
-                                   constant int& sequenceLength [[buffer(1)]],
-                                   constant int& batchSize [[buffer(2)]],
-                                   constant int& objectSize [[buffer(3)]],
-                                   constant float* wx [[buffer(4)]],
-                                   constant float* u [[buffer(5)]],
-                                   device float* h [[buffer(6)]],
-                                   uint2 thread_position_in_grid [[thread_position_in_grid]] )
+kernel void matrixIndRnnRecurrentSigmoid( constant bool& reverse [[buffer(0)]],
+                                          constant int& sequenceLength [[buffer(1)]],
+                                          constant int& batchSize [[buffer(2)]],
+                                          constant int& objectSize [[buffer(3)]],
+                                          constant float* wx [[buffer(4)]],
+                                          constant float* u [[buffer(5)]],
+                                          device float* h [[buffer(6)]],
+                                          uint2 thread_position_in_grid [[thread_position_in_grid]] )
 {
     C2DPosition pos( thread_position_in_grid );
     int batch;
@@ -2341,6 +2341,40 @@ kernel void matrixIndRnnRecurrent( constant bool& reverse [[buffer(0)]],
 			currOffset += stepOffset;
 			currRes = wx[currOffset] + weight * currRes;
 			currRes = 1.f / (1.f + ExponentFunc( -currRes ) );
+			h[currOffset] = currRes;
+		}
+    }
+}
+
+kernel void matrixIndRnnRecurrentReLU( constant bool& reverse [[buffer(0)]],
+                                       constant int& sequenceLength [[buffer(1)]],
+                                       constant int& batchSize [[buffer(2)]],
+                                       constant int& objectSize [[buffer(3)]],
+                                       constant float* wx [[buffer(4)]],
+                                       constant float* u [[buffer(5)]],
+                                       device float* h [[buffer(6)]],
+                                       uint2 thread_position_in_grid [[thread_position_in_grid]] )
+{
+    C2DPosition pos( thread_position_in_grid );
+    int batch;
+    int elem;
+    if( pos.GetMetalTaskIndex2D( batchSize, objectSize, batch, elem ) ) {
+        const float weight = u[elem];
+		const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
+
+		int currOffset = batch * objectSize + elem;
+		if( reverse ) {
+			currOffset += ( sequenceLength - 1 ) * batchSize * objectSize;
+		}
+
+		float currRes = wx[currOffset];
+        currRes = currRes > 0.f ? currRes : 0.f;
+		h[currOffset] = currRes;
+
+		for( int step = 0; step < sequenceLength - 1; ++step ) {
+			currOffset += stepOffset;
+			currRes = wx[currOffset] + weight * currRes;
+            currRes = currRes > 0.f ? currRes : 0.f;
 			h[currOffset] = currRes;
 		}
     }

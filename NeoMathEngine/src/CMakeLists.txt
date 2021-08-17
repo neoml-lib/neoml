@@ -291,7 +291,7 @@ elseif(IOS)
 endif()
 
 if(NeoMathEngine_ENABLE_VULKAN)
-    if(WIN32 OR ANDROID)
+    if(WIN32 OR LINUX OR ANDROID)
         # Vulkan
         if(USE_FINE_OBJECTS)
             set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})

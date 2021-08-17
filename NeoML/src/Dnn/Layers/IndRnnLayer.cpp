@@ -202,7 +202,7 @@ void CIndRnnRecurrentLayer::RunOnce()
 			1.f / ( 1.f - dropoutRate ), GetDnn()->Random().Next() );
 	}
 
-	MathEngine().IndRnnRecurrent( reverse, sequenceLength, batchSize, objectSize,
+	MathEngine().IndRnnRecurrent( reverse, sequenceLength, batchSize, objectSize, IMathEngine::IRA_Sigmoid,
 		inputBlobs[0]->GetData(), maskHandle(), paramBlobs[0]->GetData(), outputBlobs[0]->GetData() );
 }
 
@@ -215,7 +215,7 @@ void CIndRnnRecurrentLayer::BackwardOnce()
 	NeoPresume( ( dropoutRate <= 0.f && dropoutMask == nullptr ) ||
 		( dropoutRate > 0.f && dropoutMask != nullptr ) );
 
-	MathEngine().IndRnnRecurrentBackward( !reverse, sequenceLength, batchSize, objectSize,
+	MathEngine().IndRnnRecurrentBackward( !reverse, sequenceLength, batchSize, objectSize, IMathEngine::IRA_Sigmoid,
 		maskHandle(), paramBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 		inputDiffBlobs[0]->GetData() );
 
@@ -234,7 +234,7 @@ void CIndRnnRecurrentLayer::LearnOnce()
 	NeoPresume( ( dropoutRate <= 0.f && dropoutMask == nullptr ) ||
 		( dropoutRate > 0.f && dropoutMask != nullptr ) );
 
-	MathEngine().IndRnnRecurrentLearn( !reverse, sequenceLength, batchSize, objectSize,
+	MathEngine().IndRnnRecurrentLearn( !reverse, sequenceLength, batchSize, objectSize, IMathEngine::IRA_Sigmoid,
 		maskHandle(), paramBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 		paramDiffBlobs[0]->GetData() );
 	

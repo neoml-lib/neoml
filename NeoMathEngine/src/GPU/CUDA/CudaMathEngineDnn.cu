@@ -582,8 +582,8 @@ void CCudaMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, i
 }
 
 void CCudaMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
-	const CFloatHandle& h)
+	TIndRnnActivation activation, const CConstFloatHandle& wx, const CConstFloatHandle& mask,
+	const CConstFloatHandle& u, const CFloatHandle& h )
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
 	ASSERT_EXPR( batchSize >= 1 );
@@ -592,18 +592,21 @@ void CCudaMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int bat
 	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
 	ASSERT_EXPR( u.GetMathEngine() == this );
 	ASSERT_EXPR( h.GetMathEngine() == this );
+	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
 
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
 
+	// If assertion fails check kernel code!
+	static_assert( IRA_Count == 2, "IRA_Count != 2" );
 	IndRnnRecurrentKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
-		GetRaw( wx ), mask.IsNull() ? nullptr :  GetRaw( mask ), GetRaw( u ), GetRaw( h ) );
+		static_cast<int>( activation ), GetRaw( wx ), mask.IsNull() ? nullptr :  GetRaw( mask ), GetRaw( u ), GetRaw( h ) );
 }
 
 void CCudaMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-	const CFloatHandle& wxDiff )
+	TIndRnnActivation activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+	const CConstFloatHandle& hDiff, const CFloatHandle& wxDiff )
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
 	ASSERT_EXPR( batchSize >= 1 );
@@ -613,18 +616,22 @@ void CCudaMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength,
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( wxDiff.GetMathEngine() == this );
+	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
 
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
 
+	// If assertion fails check kernel code!
+	static_assert( IRA_Count == 2, "IRA_Count != 2" );
 	IndRnnRecurrentBackwardKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
-		mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ), GetRaw( wxDiff ) );
+		static_cast<int>( activation ),  mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ),
+		GetRaw( wxDiff ) );
 }
 
 void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-	const CFloatHandle& uDiff )
+	TIndRnnActivation activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+	const CConstFloatHandle& hDiff, const CFloatHandle& uDiff )
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
 	ASSERT_EXPR( batchSize >= 1 );
@@ -634,13 +641,17 @@ void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, in
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( uDiff.GetMathEngine() == this );
+	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
 
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
 
+	// If assertion fails check kernel code!
+	static_assert( IRA_Count == 2, "IRA_Count != 2" );
 	IndRnnRecurrentLearnKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
-		mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ), GetRaw( uDiff ) );
+		static_cast<int>( activation ), mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ),
+		GetRaw( uDiff ) );
 }
 
 } // namespace NeoML

@@ -652,7 +652,7 @@ void CCpuMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, in
 }
 
 void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+	TIndRnnActivation activation, const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
 	const CFloatHandle& h)
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
@@ -666,7 +666,23 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
 
-	VectorSigmoid( wx + firstStepOffset, h + firstStepOffset, batchSize * objectSize );
+	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
+
+	static_assert( IRA_Count == 2, "IRA_Count != 2" );
+	auto applyActivation = activation == IRA_Sigmoid
+		? []( const CConstFloatHandle& from, const CFloatHandle& to, int dataSize, const CConstFloatHandle& )
+			{
+				from.GetMathEngine()->VectorSigmoid( from, to, dataSize );
+			}
+		: []( const CConstFloatHandle& from, const CFloatHandle& to, int dataSize, const CConstFloatHandle& threshold )
+			{
+				from.GetMathEngine()->VectorReLU( from, to, dataSize, threshold );
+			};
+
+	// Upper threshold variable (for ReLU)
+	CFloatHandleStackVar threshold( *this );
+	threshold.GetHandle().SetValue( 0.f );
+	applyActivation( wx + firstStepOffset, h + firstStepOffset, batchSize * objectSize, threshold );
 
 	CConstFloatHandle hPrev = h + firstStepOffset;
 
@@ -679,12 +695,12 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 			if( mask.IsNull() ) {
 				VectorEltwiseMultiply( currHPrev, u, currH, objectSize );
 				VectorAdd( currH, currWx, currH, objectSize );
-				VectorSigmoid( currH, currH, objectSize );
+				applyActivation( currH, currH, objectSize, threshold );
 			} else {
 				VectorEltwiseMultiply( currHPrev, currMask, currH, objectSize );
 				VectorEltwiseMultiply( currH, u, currH, objectSize );
 				VectorAdd( currH, currWx, currH, objectSize );
-				VectorSigmoid( currH, currH, objectSize );
+				applyActivation( currH, currH, objectSize, threshold );
 			}
 			currWx += objectSize;
 			currMask += objectSize;
@@ -697,8 +713,8 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 }
 
 void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-	const CFloatHandle& wxDiff )
+	TIndRnnActivation activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+	const CConstFloatHandle& hDiff, const CFloatHandle& wxDiff )
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
 	ASSERT_EXPR( batchSize >= 1 );
@@ -712,8 +728,25 @@ void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, 
 	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
 
-	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize );
+	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
+
+	static_assert( IRA_Count == 2, "IRA_Count != 2" );
+	auto activationDiffOp = activation == IRA_Sigmoid
+		? []( const CConstFloatHandle& output, const CConstFloatHandle& outDiff, const CFloatHandle& inDiff, int dataSize,
+				const CConstFloatHandle& )
+			{
+				output.GetMathEngine()->VectorSigmoidDiffOp( output, outDiff, inDiff, dataSize );
+			}
+		: []( const CConstFloatHandle& output, const CConstFloatHandle& outDiff, const CFloatHandle& inDiff, int dataSize,
+				const CConstFloatHandle& threshold )
+			{
+				output.GetMathEngine()->VectorReLUDiffOp( output, outDiff, inDiff, dataSize, threshold );
+			};
+
+	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize + 1 );
 	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
+	CFloatHandle threshold = totalHDiff.GetHandle() + batchSize * objectSize;
+	threshold.SetValue( 0.f );
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
 		CConstFloatHandle currMask = mask;
@@ -723,7 +756,7 @@ void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, 
 		CFloatHandle currWxDiff = wxDiff + firstStepOffset + step * stepOffset;
 
 		for( int batch = 0; batch < batchSize; ++batch ) {
-			VectorSigmoidDiffOp( currH, currTotalHDiff, currWxDiff, objectSize );
+			activationDiffOp( currH, currTotalHDiff, currWxDiff, objectSize, threshold );
 			VectorEltwiseMultiply( currWxDiff, u, currTotalHDiff, objectSize );
 			if( !currMask.IsNull() ) {
 				VectorEltwiseMultiply( currMask, currTotalHDiff, currTotalHDiff, objectSize );
@@ -741,12 +774,12 @@ void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, 
 	}
 
 	const int lastStepOffset = reverse ? 0 : ( sequenceLength - 1 ) * stepOffset;
-	VectorSigmoidDiffOp( h + lastStepOffset, totalHDiff.GetHandle(), wxDiff + lastStepOffset, batchSize * objectSize );
+	activationDiffOp( h + lastStepOffset, totalHDiff.GetHandle(), wxDiff + lastStepOffset, batchSize * objectSize, threshold );
 }
 
 void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-	const CFloatHandle& uDiff )
+	TIndRnnActivation activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+	const CConstFloatHandle& hDiff, const CFloatHandle& uDiff )
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
 	ASSERT_EXPR( batchSize >= 1 );
@@ -760,10 +793,26 @@ void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int
 	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
 
-	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize );
-	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
+	ASSERT_EXPR( activation == IRA_Sigmoid || activation == IRA_ReLU );
 
-	CFloatHandleStackVar buff( *this, objectSize );
+	static_assert( IRA_Count == 2, "IRA_Count != 2" );
+	auto activationDiffOp = activation == IRA_Sigmoid
+		? []( const CConstFloatHandle& output, const CConstFloatHandle& outDiff, const CFloatHandle& inDiff, int dataSize,
+				const CConstFloatHandle& )
+			{
+				output.GetMathEngine()->VectorSigmoidDiffOp( output, outDiff, inDiff, dataSize );
+			}
+		: []( const CConstFloatHandle& output, const CConstFloatHandle& outDiff, const CFloatHandle& inDiff, int dataSize,
+				const CConstFloatHandle& threshold )
+			{
+				output.GetMathEngine()->VectorReLUDiffOp( output, outDiff, inDiff, dataSize, threshold );
+			};
+
+	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize + objectSize + 1 );
+	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
+	CFloatHandle buff = totalHDiff.GetHandle() + batchSize * objectSize;
+	CFloatHandle threshold = buff + objectSize;
+	threshold.SetValue( 0.f );
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
 		CConstFloatHandle currMask = mask;
@@ -772,13 +821,13 @@ void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int
 		CFloatHandle currTotalHDiff = totalHDiff.GetHandle();
 
 		for( int batch = 0; batch < batchSize; ++batch ) {
-			VectorSigmoidDiffOp( currH, currTotalHDiff, buff.GetHandle(), objectSize );
+			activationDiffOp( currH, currTotalHDiff, buff, objectSize, threshold );
 			if( !currMask.IsNull() ) {
-				VectorEltwiseMultiply( buff.GetHandle(), currMask, buff.GetHandle(), objectSize );
+				VectorEltwiseMultiply( buff, currMask, buff, objectSize );
 			}
-			VectorEltwiseMultiplyAdd( buff.GetHandle(), currH + stepOffset, uDiff, objectSize );
-			VectorEltwiseMultiply( buff.GetHandle(), u, buff.GetHandle(), objectSize );
-			VectorAdd( currHDiff + stepOffset, buff.GetHandle(), currTotalHDiff, objectSize );
+			VectorEltwiseMultiplyAdd( buff, currH + stepOffset, uDiff, objectSize );
+			VectorEltwiseMultiply( buff, u, buff, objectSize );
+			VectorAdd( currHDiff + stepOffset, buff, currTotalHDiff, objectSize );
 
 			if( !currMask.IsNull() ) {
 				currMask += objectSize;
