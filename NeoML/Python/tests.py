@@ -664,6 +664,9 @@ class LayersTestCase(MultithreadedTestCase):
         blob = lookup.get_embeddings(0)
         lookup.set_embeddings(0, blob)
 
+        uniform = neoml.Dnn.Uniform()
+        lookup.initialize(uniform)
+
     def test_tied_embeddings(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
