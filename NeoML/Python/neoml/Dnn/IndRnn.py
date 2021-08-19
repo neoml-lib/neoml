@@ -23,7 +23,7 @@ class IndRnn(Layer):
     """Independently Recurrent Neural Network (IndRNN): https://arxiv.org/pdf/1803.04831.pdf
 
     It's a simple recurrent unit with the following formula:
-    :math:`Y_t = sigmoid(W * X_t + B + U * dropout(Y_{t-1}))`
+    :math:`Y_t = activation(W * X_t + B + U * dropout(Y_{t-1}))`
     where :math:`W` and :math:`B` are weights and free terms of the fully-connected layer
     (:math:`W * X_t` is a matrix multiplication) and :math:`U` is a vector
     (:math:`U * Y_{t-1}` is an eltwise multiplication of 2 vectors of the same length)
@@ -36,6 +36,8 @@ class IndRnn(Layer):
     :type hidden_size: int, default=1
     :param dropout_rate: The rate of the dropout, applied to both input and recurrent data
     :type dropout_rate: float, default=0.
+    :param activation: The activation funciton applied to the output
+    :type activation: str, {'sigmoid', 'relu'}, default='sigmoid'
     :param reverse_sequence: Indicates if the input sequence should be taken in the reverse order.
     :type reverse_sequence: bool, default=False
 
@@ -56,7 +58,7 @@ class IndRnn(Layer):
         - **Channels** is hidden_size
     """
 
-    def __init__(self, input_layer, hidden_size=1, dropout_rate=0., reverse_sequence=False, name=None):
+    def __init__(self, input_layer, hidden_size=1, dropout_rate=0., reverse_sequence=False, activation='sigmoid', name=None):
 
         if type(input_layer) is PythonWrapper.IndRnn:
             super().__init__(input_layer)
@@ -68,9 +70,11 @@ class IndRnn(Layer):
             raise ValueError('The `hidden_size` must be > 0.')
         if dropout_rate >= 1.:
             raise ValueError('The `dropout_rate` must be < 1.')
+        if activation != 'sigmoid' and activation != 'relu':
+            raise ValueError('The `activation` must be one of {`sigmoid`, `relu`}')
 
         internal = PythonWrapper.IndRnn(str(name), layers, outputs, int(hidden_size), float(dropout_rate),
-                                        bool(reverse_sequence))
+                                        bool(reverse_sequence), str(activation))
         super().__init__(internal)
 
     @property
@@ -108,6 +112,20 @@ class IndRnn(Layer):
         """Specifies if the input sequence should be taken in reverse order.
         """
         self._internal.set_reverse_sequence(bool(reverse_sequence))
+
+    @property
+    def activation(self):
+        """Gets the activation function.
+        """
+        return self._internal.get_activation()
+
+    @activation.setter
+    def activation(self, activation):
+        """Sets the activation function.
+        """
+        if activation != 'sigmoid' and activation != 'relu':
+            raise ValueError('The `activation` must be one of {`sigmoid`, `relu`}')
+        self._internal.set_activation(activation)
 
     @property
     def input_weights(self):

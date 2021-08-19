@@ -1989,12 +1989,12 @@ class PoolingTestCase(MultithreadedTestCase):
         hidden_size = 10
         dropout_rate = 0.5
         reverse = True
+        activation = 'relu'
         name = "indrnn_test_name"
 
         source = neoml.Dnn.Source(dnn, "source")
-        indrnn = neoml.Dnn.IndRnn(source, hidden_size, dropout_rate, reverse, name)
+        indrnn = neoml.Dnn.IndRnn(source, hidden_size, dropout_rate, reverse, activation, name)
         sink = neoml.Dnn.Sink(indrnn, "sink")
-        print(dnn.layers)
         layer = dnn.layers[name]
         self.assertEqual(layer.name, name)
 
@@ -2009,6 +2009,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(layer.hidden_size, hidden_size)
         self.assertAlmostEqual(indrnn.dropout_rate, dropout_rate, delta=1e-5)
         self.assertEqual(indrnn.reverse_sequence, reverse)
+        self.assertEqual(indrnn.activation, activation)
 
 
 class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
