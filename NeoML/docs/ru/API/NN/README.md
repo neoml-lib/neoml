@@ -200,10 +200,11 @@ delete gpuMathEngine;
 
 - [CBaseLayer](BaseLayer.md) - базовый класс
 - Слои для обмена данными с сетью:
-  - [CSourceLayer](IOLayers/SourceLayer.md) - передача блобов с данными в сеть
+  - [CSourceLayer](IOLayers/SourceLayer.md) - передача блобов с пользовательскими данными в сеть
   - [CSinkLayer](IOLayers/SinkLayer.md) - получение блобов с данными из сети
   - [CProblemSourceLayer](IOLayers/ProblemSourceLayer.md) - передача данных из [`IProblem`](../ClassificationAndRegression/Problems.md) в сеть
   - [CFullyConnectedSourceLayer](IOLayers/FullyConnectedSourceLayer.md) - передача данных из `IProblem` в сеть и домножение их на матрицу
+  - [CDataLayer](IOLayers/DataLayer.md) - передача блобов с фиксированными данными в сеть
 - [CFullyConnectedLayer](FullyConnectedLayer.md) - полносвязный слой
 - [Функции активации](ActivationLayers/README.md):
   - [CLinearLayer](ActivationLayers/LinearLayer.md) - функция активации вида `ax + b`
