@@ -51,6 +51,7 @@ pybind11_add_module(PythonWrapper
     src/PyCrfLayer.cpp
     src/PyCtcLayer.cpp
     src/PyCustomLossLayer.cpp
+    src/PyDataLayer.cpp
     src/PyDifferentialEvolution.cpp
     src/PyDotProductLayer.cpp
     src/PyDropoutLayer.cpp
