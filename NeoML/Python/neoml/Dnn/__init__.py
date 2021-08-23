@@ -14,6 +14,7 @@ from .Concat import ConcatChannels, ConcatDepth, ConcatWidth, ConcatHeight, Conc
 from .Conv import Conv, Conv3D, TransposedConv3D, TransposedConv, ChannelwiseConv, TimeConv 
 from .Crf import Crf, CrfLoss, BestSequence
 from .Ctc import CtcLoss, CtcDecoding
+from .Data import Data
 from .DotProduct import DotProduct
 from .Dropout import Dropout
 from .Eltwise import EltwiseSum, EltwiseMul, EltwiseNegMul, EltwiseMax
