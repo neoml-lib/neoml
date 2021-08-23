@@ -191,8 +191,8 @@ CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadc
 
 //---------------------------------------------------------------------------------------------------------------------
 
-// Converts the given tensor to user tensor by adding corresponding source layer to the dnn (if needed)
-CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& sourceName, CDnn& dnn );
+// Converts the given tensor to user tensor by adding corresponding data layer to the dnn (if needed)
+CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn );
 
 } // namespace NeoOnnx
 

@@ -606,7 +606,7 @@ CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadc
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& sourceName, CDnn& dnn )
+CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn )
 {
 	if( !tensor.IsCalculated() ) {
 		// No conversion needed
@@ -614,13 +614,12 @@ CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& 
 	}
 
 	const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( tensor );
-	CPtr<CSourceLayer> dataSource = new CSourceLayer( dnn.GetMathEngine() );
-	dataSource->SetBlob( dataTensor.Data()->GetCopy() );
+	CPtr<CDataLayer> dataLayer = new CDataLayer( dnn.GetMathEngine() );
+	dataLayer->SetBlob( dataTensor.Data()->GetCopy() );
 	// Guarantee that serialization won't lead to data loss
-	dataSource->StoreBlob( true );
-	dataSource->SetName( sourceName );
-	dnn.AddLayer( *dataSource );
-	return new CUserTensor( dataTensor.Shape(), dataTensor.Layout(), CLayerOutput( dataSource, 0 ) );
+	dataLayer->SetName( layerName );
+	dnn.AddLayer( *dataLayer );
+	return new CUserTensor( dataTensor.Shape(), dataTensor.Layout(), CLayerOutput( dataLayer, 0 ) );
 }
 
 } // namespace NeoOnnx
