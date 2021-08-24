@@ -204,8 +204,8 @@ void CVulkanMathEngine::VectorCopy(const CIntHandle& to, const CConstIntHandle& 
 	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer(), vulkanMemoryTo->Buffer(), region );
 }
 
-void CVulkanMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
-	const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth)
+void CVulkanMathEngine::BroadcastCopy( const CFloatHandle& /*toHandle*/, const CConstFloatHandle& /*fromHandle*/,
+	const CBlobDesc& /*toDesc*/, const CBlobDesc& /*fromDesc*/, int /*additionalWidth*/ )
 {
 	ASSERT_EXPR( false );
 }
@@ -975,20 +975,20 @@ void CVulkanMathEngine::VectorSumAlongDimension( const CConstFloatHandle&, int, 
 	ASSERT_EXPR(false);
 }
 
-void CVulkanMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
-	int followingDimension, const CFloatHandle& resultHandle )
+void CVulkanMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
+	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/ )
 {
 	ASSERT_EXPR(false);
 }
 
-void CVulkanMathEngine::VectorSumAlongDimensionDiag(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
-	int followingDimension, const CFloatHandle& resultHandle)
+void CVulkanMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
+	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/ )
 {
 	ASSERT_EXPR(false);
 }
 
-void CVulkanMathEngine::VectorCumSumAlongDimensionDiag(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
-	int followingDimension, const CFloatHandle& resultHandle)
+void CVulkanMathEngine::VectorCumSumAlongDimensionDiag( const CConstFloatHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
+	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/ )
 {
 	ASSERT_EXPR(false);
 }

@@ -277,7 +277,7 @@ enum class TDnnBlobBufferAccess {
 	ReadWrite
 };
 
-// Helper to safely work with `CDnnBlob::GetBuffer`/`CDnnBlob::ReleaseBuffer`.
+// RAII-helper to safely work with `CDnnBlob::GetBuffer`/`CDnnBlob::ReleaseBuffer`.
 template<typename TBufferType = float>
 class CDnnBlobBuffer {
 public:
@@ -288,7 +288,9 @@ public:
 		ptr( blob.GetBuffer<TBufferType>( pos, size, access == TDnnBlobBufferAccess::Read || access == TDnnBlobBufferAccess::ReadWrite ) )
 	{}
 	CDnnBlobBuffer( const CDnnBlobBuffer& ) = delete;
-	~CDnnBlobBuffer() { blob.ReleaseBuffer( ptr, access == TDnnBlobBufferAccess::Write || access == TDnnBlobBufferAccess::ReadWrite ); }
+	~CDnnBlobBuffer();
+
+	int Size() const { return size; }
 
 	TBufferType* Ptr() { return ptr; }
 	const TBufferType* Ptr() const { return ptr; }
@@ -296,10 +298,14 @@ public:
 	operator TBufferType*() { return ptr; }
 	operator const TBufferType*() const { return ptr; }
 
-	TBufferType& operator[]( int i ) { NeoAssert( 0 <= i && i < size ); return ptr[i]; }
-	TBufferType operator[]( int i ) const { NeoAssert( 0 <= i && i < size ); return ptr[i]; }
+	TBufferType& operator[]( int i ) { NeoAssert( !IsClosed() ); NeoPresume( 0 <= i && i < size ); return ptr[i]; }
+	TBufferType operator[]( int i ) const { NeoAssert( !IsClosed() ); NeoPresume( 0 <= i && i < size ); return ptr[i]; }
 
 	CDnnBlobBuffer& operator=( const CDnnBlobBuffer& ) = delete;
+
+	// Explicitly close (and flush if requested) buffer. It is not possible to read/write data after.
+	void Close();
+	bool IsClosed() const { return ptr == nullptr; }
 
 private:
 	CDnnBlob& blob;
@@ -472,6 +478,33 @@ inline CDnnBlob* CDnnBlob::GetOwner()
 		result = result->parent;
 	}
 	return result;
+}
+
+template<typename TBufferType>
+inline CDnnBlobBuffer<TBufferType>::~CDnnBlobBuffer()
+{
+	try {
+		if( !IsClosed() ) {
+			Close();
+		}
+#ifdef NEOML_USE_FINEOBJ
+	} catch( CException* e ) {
+		FineBreakPoint();
+		delete e;
+#else
+	} catch( CException& e ) {
+		(void) e;
+		FineBreakPoint();
+#endif
+	}
+}
+
+template<typename TBufferType>
+inline void CDnnBlobBuffer<TBufferType>::Close()
+{
+	NeoAssert( !IsClosed() );
+	blob.ReleaseBuffer( ptr, access == TDnnBlobBufferAccess::Write || access == TDnnBlobBufferAccess::ReadWrite );
+	ptr = nullptr;
 }
 
 } // namespace NeoML
