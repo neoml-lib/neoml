@@ -701,6 +701,14 @@ void CCudaMathEngine::Multiply1DiagMatrixByMatrix(int batchSize, const CConstFlo
 void CCudaMathEngine::MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int)
 {
+	if( firstHeight == 1 ) {
+		VectorEltwiseMultiply( firstHandle, secondHandle, resultHandle, firstWidth );
+		return;
+	} else if( firstWidth == 1 ) {
+		VectorMultiply( firstHandle, resultHandle, firstHeight, secondHandle );
+		return;
+	}
+
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
