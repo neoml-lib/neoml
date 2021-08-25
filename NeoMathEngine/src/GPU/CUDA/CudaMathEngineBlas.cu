@@ -129,8 +129,14 @@ void CCudaMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle&
 	dim3 threadCount;
 	getCudaTaskGrid2D(blockCount, threadCount, height, width);
 
-	EltwiseLogSumExpVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(GetRaw(matrix), height, width,
-		GetRaw(rowIndices), GetRaw(columnIndices), GetRaw(vector), vectorSize);
+	const int sharedSize = 2 * vectorSize * sizeof( int );
+	if( sharedSize < device->SharedMemoryLimit ) {
+		EltwiseLogSumExpVectorToMatrixElementsKernel<<<blockCount, threadCount, sharedSize>>>( GetRaw( matrix ), height, width,
+			GetRaw( rowIndices ), GetRaw( columnIndices ), GetRaw( vector ), vectorSize );
+	} else {
+		EltwiseLogSumExpVectorToMatrixElementsKernelNaive<<<blockCount, threadCount>>>( GetRaw( matrix ), height, width,
+			GetRaw( rowIndices ), GetRaw( columnIndices ), GetRaw( vector ), vectorSize );
+	}
 }
 
 void CCudaMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
