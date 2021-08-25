@@ -217,22 +217,31 @@ void CCudaMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc,
 	}
 
 	// Build the temporary matrix
-	const int matrixHeight = tempMatrixHeight( desc );
-	const int matrixWidth = tempMatrixWidth( desc );
+	const int tempMatrixWidth = desc.Filter.ObjectSize();
+	const int tempMatrixHeight = desc.Result.ObjectCount() * desc.Result.ObjectSize() / desc.Filter.ObjectCount();
 	const int filterCount = desc.Filter.ObjectCount();
-	CFloatHandleStackVar tempMatrix( *this, matrixHeight * matrixWidth );
-	{
+	const int maxPossibleTempMatrixHeight = static_cast<int>( max( (size_t)1, ( GetFreeMemorySize() / ( 8 * static_cast<size_t>( tempMatrixWidth ) ) ) ) );
+	const int tempMatrixHeightBatchSize = min( tempMatrixHeight, maxPossibleTempMatrixHeight );
+
+	CFloatHandleStackVar tempMatrix( mathEngine(), tempMatrixHeightBatchSize * tempMatrixWidth );
+
+	int tempMatrixHeightIndex = 0;
+	while( tempMatrixHeightIndex < tempMatrixHeight ) {
+		int curTempMatrixHeight = min( tempMatrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+
 		dim3 blockCount;
 		dim3 threadCount;
-		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
-		getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm, 512 );
-		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( input ), matrixHeight,
-			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm );
-	}
+		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, tempMatrixWidth );
+		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( input ),
+			tempMatrixHeightIndex, curTempMatrixHeight, GetRaw( tempMatrix.GetHandle() ) );
 
-	// Get the filter gradients by multiplying the temporary matrix and the output gradients
-	MultiplyTransposedMatrixByMatrixAndAdd( outputDiff, matrixHeight, filterCount, filterCount,
-		tempMatrix, matrixWidth, matrixWidth, filterDiff, matrixWidth, desc.Filter.BlobSize() );
+		// Get the filter gradients by multiplying the temporary matrix and the output gradients
+		MultiplyTransposedMatrixByMatrixAndAdd( outputDiff + tempMatrixHeightIndex * desc.Filter.ObjectCount(),
+			curTempMatrixHeight, filterCount, filterCount, tempMatrix, tempMatrixWidth, tempMatrixWidth,
+			filterDiff, tempMatrixWidth, desc.Filter.BlobSize() );
+
+		tempMatrixHeightIndex += curTempMatrixHeight;
+	}
 }
 
 } // namespace NeoML
