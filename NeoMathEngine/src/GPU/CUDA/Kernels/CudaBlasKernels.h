@@ -95,72 +95,29 @@ __global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int
 	}
 }
 
-__global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int height, int width,
+__global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int /* height */, int width,
 	const int* __restrict__ rowIndices, const int* __restrict__ columnIndices,
 	const float* __restrict__ vector, int vectorSize )
 {
-	int row;
-	int col;
-	if( !GetCudaTaskIndex2D( height, width, row, col ) ) {
+	int elem;
+	if( !GetCudaTaskIndex( vectorSize, elem ) ) {
 		return;
 	}
 
-	float data = matrix[row * width + col];
+	const int row = rowIndices[elem];
+	const int col = columnIndices[elem];
+	const int matrixOffset = row * width + col;
 
-	// Iterate through the array looking for the needed coordinates
-	// No parallel processing of a vector because the indices may be the same
-	for( int i = 0; i < vectorSize; ++i ) {
-		if( rowIndices[i] == row && columnIndices[i] == col ) {
-			data = LogSumExpFunc( vector[i], data );
-		}
-	}
+	int* matrixAsInt = reinterpret_cast<int*>( matrix + matrixOffset );
+	const float elemValue = vector[elem];
 
-	matrix[row * width + col] = data;
-}
-
-__global__ void EltwiseLogSumExpVectorToMatrixElementsShMemKernel( float* matrix, int height, int width,
-	const int* __restrict__ rowIndicesRaw, const int* __restrict__ columnIndicesRaw,
-	const float* __restrict__ vector, int vectorSize )
-{
-	extern __shared__ float buffer[];
-	int* rowIndices = reinterpret_cast<int*>( buffer );
-	int* columnIndices = rowIndices + vectorSize;
-
-	// Step 1: copying indices into shared memory
-	{
-		const int blockSize = blockDim.x * blockDim.y;
-		int currIndex = threadIdx.x + threadIdx.y * blockDim.x;
-		while( currIndex < vectorSize ) {
-			rowIndices[currIndex] = rowIndicesRaw[currIndex];
-			currIndex += blockSize;
-		}
-		currIndex -= vectorSize;
-		while( currIndex < vectorSize ) {
-			columnIndices[currIndex] = columnIndicesRaw[currIndex];
-			currIndex += blockSize;
-		}
-	}
-
-	__syncthreads();
-
-	// Step 2: Calculating results based on indices in shared memory
-	int row;
-	int col;
-	if( !GetCudaTaskIndex2D( height, width, row, col ) ) {
-		return;
-	}
-
-	float data = matrix[row * width + col];
-
-	// Iterate through the array looking for the needed coordinates
-	// No parallel processing of a vector because the indices may be the same
-	for( int i = 0; i < vectorSize; ++i ) {
-		if( rowIndices[i] == row && columnIndices[i] == col ) {
-			data = LogSumExpFunc( vector[i], data );
-		}
-	}
-
-	matrix[row * width + col] = data;
+	int oldValue = *matrixAsInt;
+	int newValue;
+	do {
+		// int <-> float conversion is used because atomicCAS works only with integer types
+		newValue = __float_as_int( LogSumExpFunc( elemValue, __int_as_float( oldValue ) ) );
+		oldValue = atomicCAS( matrixAsInt, oldValue, newValue );
+	} while( oldValue != newValue );
 }
 
 const int AddMatrixElementsToVectorCombine = 4;
