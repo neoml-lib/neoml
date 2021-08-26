@@ -96,6 +96,29 @@ __global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int
 }
 
 __global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int height, int width,
+	const int* __restrict__ rowIndices, const int* __restrict__ columnIndices,
+	const float* __restrict__ vector, int vectorSize )
+{
+	int row;
+	int col;
+	if( !GetCudaTaskIndex2D( height, width, row, col ) ) {
+		return;
+	}
+
+	float data = matrix[row * width + col];
+
+	// Iterate through the array looking for the needed coordinates
+	// No parallel processing of a vector because the indices may be the same
+	for( int i = 0; i < vectorSize; ++i ) {
+		if( rowIndices[i] == row && columnIndices[i] == col ) {
+			data = LogSumExpFunc( vector[i], data );
+		}
+	}
+
+	matrix[row * width + col] = data;
+}
+
+__global__ void EltwiseLogSumExpVectorToMatrixElementsShMemKernel( float* matrix, int height, int width,
 	const int* __restrict__ rowIndicesRaw, const int* __restrict__ columnIndicesRaw,
 	const float* __restrict__ vector, int vectorSize )
 {
@@ -121,29 +144,6 @@ __global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int
 	__syncthreads();
 
 	// Step 2: Calculating results based on indices in shared memory
-	int row;
-	int col;
-	if( !GetCudaTaskIndex2D( height, width, row, col ) ) {
-		return;
-	}
-
-	float data = matrix[row * width + col];
-
-	// Iterate through the array looking for the needed coordinates
-	// No parallel processing of a vector because the indices may be the same
-	for( int i = 0; i < vectorSize; ++i ) {
-		if( rowIndices[i] == row && columnIndices[i] == col ) {
-			data = LogSumExpFunc( vector[i], data );
-		}
-	}
-
-	matrix[row * width + col] = data;
-}
-
-__global__ void EltwiseLogSumExpVectorToMatrixElementsKernelNaive( float* matrix, int height, int width,
-	const int* __restrict__ rowIndices, const int* __restrict__ columnIndices,
-	const float* __restrict__ vector, int vectorSize )
-{
 	int row;
 	int col;
 	if( !GetCudaTaskIndex2D( height, width, row, col ) ) {
