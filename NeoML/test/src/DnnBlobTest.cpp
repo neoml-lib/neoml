@@ -26,3 +26,18 @@ TEST(CDnnBlobTest, InitWindowBlob)
 
     ASSERT_FALSE( blob->GetData().IsNull() );
 }
+
+TEST(CDnnBlobTest, BufferTest)
+{
+    NeoML::IMathEngine& engine = NeoML::GetSingleThreadCpuMathEngine();
+    CPtr<NeoML::CDnnBlob> blob = NeoML::CDnnBlob::CreateDataBlob( engine, NeoML::CT_Float, 16, 1, 1 );
+    ASSERT_FALSE( blob->GetData().IsNull() );
+
+    NeoML::CDnnBlobBuffer<float> buffer( *blob, 0, blob->GetDataSize(), NeoML::TDnnBlobBufferAccess::Write );
+    ASSERT_NE( nullptr, buffer.Ptr() );
+    ::memset( buffer, 0, buffer.Size() * sizeof(float) );
+
+    EXPECT_FALSE( buffer.IsClosed() );
+    buffer.Close();
+    EXPECT_TRUE( buffer.IsClosed() );
+}

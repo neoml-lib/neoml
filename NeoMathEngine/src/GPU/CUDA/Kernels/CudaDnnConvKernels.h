@@ -34,7 +34,7 @@ const int BuildTempMatrixCombine = 16;
 __launch_bounds__(512, 2)
 __global__ void BuildTempMatrixKernel( const CCudaConvolutionDescInternal desc,
 	const float* __restrict__ input, int matrixHeight, int matrixWidth, float* __restrict__ matrix,
-	int matrixWidthNorm )
+	int matrixWidthNorm, int heightOffset )
 {
 	const int inputChannels = desc.Source.Depth() * desc.Source.Channels();
 	const int filterWidth = desc.Filter.Width();
@@ -63,6 +63,7 @@ __global__ void BuildTempMatrixKernel( const CCudaConvolutionDescInternal desc,
 	int step;
 	int count = GetCudaTaskCountAndIndex( matrixWidth, BuildTempMatrixCombine, matrixCol, step );
 	matrix += matrixRow * matrixWidth + matrixCol;
+	matrixRow += heightOffset;
 
 	const int outCol = matrixRow % outputWidth;
 	const int outRow = ( matrixRow / outputWidth ) % outputHeight;
@@ -305,7 +306,7 @@ enum TBackwardOperationType {
 const int BuildInputFromTempMatrixCombine = 16;
 __global__ void BuildInputFromTempMatrixKernel( const CCudaConvolutionDescInternal desc,
 	const float* __restrict__ tempMatrix, int matrixHeight, int matrixWidth, float* result,
-	TBackwardOperationType operation, int widthNorm )
+	TBackwardOperationType operation, int widthNorm, int heightOffset )
 {
 	int matrixRow;
 	int matrixCol;
@@ -314,6 +315,7 @@ __global__ void BuildInputFromTempMatrixKernel( const CCudaConvolutionDescIntern
 		return;
 	}
 	tempMatrix += matrixRow * matrixWidth;
+	matrixRow += heightOffset;
 
 	const int outCol = matrixRow % desc.Result.Width();
 	matrixRow /= desc.Result.Width();
