@@ -1001,11 +1001,21 @@ __global__ void VectorEltwiseMultiplyKernel(const float* __restrict__ first,
 	second += index;
 	result += index;
 
-	for(int i = 0; i < actionCount; ++i) {
-		*result = *first * (*second);
-		first += step;
-		second += step;
-		result += step;
+	if( actionCount == VectorEltwiseMultiplyCombineCount ) {
+		#pragma unroll
+		for(int i = 0; i < VectorEltwiseMultiplyCombineCount; ++i) {
+			*result = *first * ( *second );
+			first += step;
+			second += step;
+			result += step;
+		}
+	} else {
+		for(int i = 0; i < actionCount; ++i) {
+			*result = *first * ( *second );
+			first += step;
+			second += step;
+			result += step;
+		}
 	}
 }
 
