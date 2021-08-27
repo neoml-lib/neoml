@@ -543,33 +543,6 @@ void CCpuMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle,
 	}
 }
 
-void CCpuMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	float32x4_t mult = vdupq_n_f32(*GetRaw(multHandle));
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vmulq_f32(LoadNeon4(first), mult);
-		StoreNeon4(res, result);
-
-		first += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), mult);
-		StoreNeon(res, result, vectorSize);
-	}
-}
-
 void CCpuMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle)
 {

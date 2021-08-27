@@ -45,7 +45,16 @@ void CCpuMathEngine::VectorCopy(const CFloatHandle& firstHandle, const CConstFlo
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 
-	vectorCopy( GetRaw( firstHandle ), GetRaw( secondHandle ), vectorSize );
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int index;
+		int count;
+		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+			vectorCopy( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), count );
+		}
+	}
 }
 
 void CCpuMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
@@ -392,6 +401,27 @@ void CCpuMathEngine::VectorTopKDiff(const CConstFloatHandle& sourceGradHandle, i
 	}
 }
 
+void CCpuMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
+	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( multiplierHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	float multiplier = *GetRaw(multiplierHandle);
+
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int index;
+		int count;
+		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+			vectorMultiply( GetRaw( firstHandle + index ), GetRaw( resultHandle + index ), multiplier, count );
+		}
+	}
+}
+
 void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
@@ -399,11 +429,16 @@ void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	NeoML::vectorEltwiseMultiply( first, second, result, vectorSize );
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int index;
+		int count;
+		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+			NeoML::vectorEltwiseMultiply( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), GetRaw( resultHandle + index ), count );
+		}
+	}
 }
 
 void CCpuMathEngine::VectorEltwiseMultiplyAdd( const CConstFloatHandle& firstHandle,
@@ -413,11 +448,16 @@ void CCpuMathEngine::VectorEltwiseMultiplyAdd( const CConstFloatHandle& firstHan
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	NeoML::vectorEltwiseMultiplyAdd( first ,second, result, vectorSize );
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int index;
+		int count;
+		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+			NeoML::vectorEltwiseMultiplyAdd( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), GetRaw( resultHandle + index ), count );
+		}
+	}
 }
 
 void CCpuMathEngine::VectorAbsDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,

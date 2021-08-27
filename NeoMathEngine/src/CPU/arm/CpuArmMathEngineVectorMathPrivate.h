@@ -272,6 +272,26 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 
 //------------------------------------------------------------------------------------------------------------
 
+inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+{
+	int count = GetCount4(vectorSize);
+
+	for(int i = 0; i < count; ++i) {
+		float32x4_t res = vmulq_f32(LoadNeon4(first), multiplier);
+		StoreNeon4(res, result);
+
+		first += 4;
+		result += 4;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), multiplier);
+		StoreNeon(res, result, vectorSize);
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int neonSize, int nonNeonSize )
 {
 	while( neonSize >= 4 ) {
