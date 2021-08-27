@@ -84,6 +84,7 @@ bool CCublasDll::loadFunctions()
 	LOAD_CUBLAS_FUNCV2( Saxpy );
 	LOAD_CUBLAS_FUNCV2( Sgemm );
 	LOAD_CUBLAS_FUNC( SgemmStridedBatched );
+	LOAD_CUBLAS_FUNC( Sdgmm );
 	return true;
 }
 

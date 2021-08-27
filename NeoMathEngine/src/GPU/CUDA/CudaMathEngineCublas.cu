@@ -149,6 +149,25 @@ void CCudaMathEngine::multiplyMatrixByTransposedMatrixAndAdd(const CConstFloatHa
 		GetRaw( resultHandle ), resultRowSize ) );
 }
 
+void CCudaMathEngine::MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int)
+{
+	if( firstHeight == 1 ) {
+		VectorEltwiseMultiply( firstHandle, secondHandle, resultHandle, firstWidth );
+		return;
+	} else if( firstWidth == 1 ) {
+		VectorMultiply( firstHandle, resultHandle, firstHeight, secondHandle );
+		return;
+	}
+
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+	ASSERT_CUBLAS( cublas->Sdgmm( cublasHandle, CUBLAS_SIDE_LEFT, firstWidth, firstHeight, GetRaw( firstHandle ), firstWidth,
+		GetRaw( secondHandle ), 1, GetRaw( resultHandle ), firstWidth ) );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA
