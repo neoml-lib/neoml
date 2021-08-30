@@ -736,10 +736,22 @@ SplitHeight
 .. autoclass:: neoml.Dnn.SplitHeight
    :members:
 
+SplitListSize
+-----------------
+
+.. autoclass:: neoml.Dnn.SplitListSize
+   :members:
+
 SplitBatchWidth
 -----------------
 
 .. autoclass:: neoml.Dnn.SplitBatchWidth
+   :members:
+
+SplitBatchLength
+-----------------
+
+.. autoclass:: neoml.Dnn.SplitBatchLength
    :members:
 
 .. _py-dnn-sequences:
