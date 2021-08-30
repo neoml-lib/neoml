@@ -57,7 +57,8 @@ set(SHADER_SOURCES
     VectorSubFloat.comp 
     VectorMultiplyAndAdd.comp 
     VectorMultiplyAndSub.comp 
-    VectorMultiply.comp
+    VectorMultiplyInt.comp
+    VectorMultiplyFloat.comp
     VectorEltwisePower.comp 
     VectorSqrt.comp 
     VectorInv.comp 
