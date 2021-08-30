@@ -1223,13 +1223,38 @@ kernel void vectorKernelAddValueInt( constant int* first [[buffer(0)]],
     }
 }
 
-kernel void vectorKernelSub( constant float* first [[buffer(0)]],
-                             constant float* second [[buffer(1)]],
-                             device float* result [[buffer(2)]],
-                             constant int* count [[buffer(3)]],
-                             uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
-                             uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
-                             uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+kernel void vectorKernelSubInt( constant int* first [[buffer(0)]],
+                                constant int* second [[buffer(1)]],
+                                device int* result [[buffer(2)]],
+                                constant int* count [[buffer(3)]],
+                                uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+{
+    C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
+    int index;
+    int step;
+    int actionCount = pos.GetMetalTaskCountAndIndex( *count, VectorCombineCount, index, step );
+    
+    first += index;
+    second += index;
+    result += index;
+    
+    for(int i = 0; i < actionCount; ++i) {
+        *result = *first - *second;
+        first += step;
+        second += step;
+        result += step;
+    }
+}
+
+kernel void vectorKernelSubFloat( constant float* first [[buffer(0)]],
+                                  constant float* second [[buffer(1)]],
+                                  device float* result [[buffer(2)]],
+                                  constant int* count [[buffer(3)]],
+                                  uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                  uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                  uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
 {
     C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
     int index;

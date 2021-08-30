@@ -405,6 +405,33 @@ void CCpuMathEngine::VectorAddValue(const CConstIntHandle& firstHandle,
 	}
 }
 
+void CCpuMathEngine::VectorSub(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+	const CIntHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+
+	const int* first = GetRaw(firstHandle);
+	const int* second = GetRaw(secondHandle);
+	int* result = GetRaw(resultHandle);
+	int count = GetCount4(vectorSize);
+
+	for(int i = 0; i < count; ++i) {
+		int32x4_t res = vsubq_s32(LoadIntNeon4(first), LoadIntNeon4(second));
+		StoreIntNeon4(res, result);
+
+		first += 4;
+		second += 4;
+		result += 4;
+	}
+
+	if(vectorSize > 0) {
+		int32x4_t res = vsubq_s32(LoadIntNeon(first, vectorSize), LoadIntNeon(second, vectorSize));
+		StoreIntNeon(res, result, vectorSize);
+	}
+}
+
 void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {
