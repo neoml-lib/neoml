@@ -176,6 +176,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& addition) override;
 	void VectorAddValue( const CConstIntHandle& firstHandle,
 		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& addition ) override;
+	void VectorSub(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) override;
 	void VectorSub(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorSub(const CConstFloatHandle& firstHandle,
