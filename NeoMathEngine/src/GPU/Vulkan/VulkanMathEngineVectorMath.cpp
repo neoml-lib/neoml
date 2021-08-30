@@ -64,7 +64,8 @@ namespace NeoML {
 #include <shaders/generated/VectorAddFloat1.h>
 #include <shaders/generated/VectorAddValue.h>
 #include <shaders/generated/VectorAddInt.h>
-#include <shaders/generated/VectorSub.h>
+#include <shaders/generated/VectorSubInt.h>
+#include <shaders/generated/VectorSubFloat.h>
 #include <shaders/generated/VectorMultiplyAndAdd.h>
 #include <shaders/generated/VectorMultiplyAndSub.h>
 #include <shaders/generated/VectorMultiply.h>
@@ -566,13 +567,23 @@ void CVulkanMathEngine::VectorAddValue(const CConstIntHandle& firstHandle,
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
 }
 
+void CVulkanMathEngine::VectorSub(const CConstIntHandle& firstHandle,
+	const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize)
+{
+	CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle };
+	size_t sizes[3] = { vectorSize * sizeof(float), vectorSize * sizeof(float), vectorSize * sizeof(float) };
+
+	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorSubInt, false, 0, 0, 3),
+		0, 0, 0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
+}
+
 void CVulkanMathEngine::VectorSub(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
 	CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle };
 	size_t sizes[3] = { vectorSize * sizeof(float), vectorSize * sizeof(float), vectorSize * sizeof(float) };
 
-	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorSub, false, 0, 0, 3),
+	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorSubFloat, false, 0, 0, 3),
 		0, 0, 0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
 }
 
