@@ -49,6 +49,24 @@ NEOML_API CLayerWrapper<CEltwiseSumLayer> Sum();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// CEltwiseSubLayer implements a layer that subtracts its second inputs from the first element by element
+class NEOML_API CEltwiseSubLayer : public CEltwiseBaseLayer {
+	NEOML_DNN_LAYER( CEltwiseSubLayer )
+public:
+	explicit CEltwiseSubLayer( IMathEngine& mathEngine ) : CEltwiseBaseLayer( mathEngine, "CCnnEltwiseSubLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+};
+
+NEOML_API CLayerWrapper<CEltwiseSubLayer> Sub();
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // CEltwiseMulLayer implements a layer that multiplies its inputs element by element
 class NEOML_API CEltwiseMulLayer : public CEltwiseBaseLayer {
 	NEOML_DNN_LAYER( CEltwiseMulLayer )

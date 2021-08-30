@@ -113,6 +113,7 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CConcatListSizeLayer>( "FmlCnnConcatListSizeLayer" );
 	serializeToFile<CConcatObjectLayer>( "FmlCnnConcatObjectLayer" );
 	serializeToFile<CEltwiseSumLayer>( "FmlCnnEltwiseSumLayer" );
+	serializeToFile<CEltwiseSubLayer>( "NeoMLDnnEltwiseSubLayer" );
 	serializeToFile<CEltwiseMulLayer>( "FmlCnnEltwiseMulLayer" );
 	serializeToFile<CEltwiseNegMulLayer>( "FmlCnnEltwiseNegMulLayer" );
 	serializeToFile<CEltwiseMaxLayer>( "FmlCnnEltwiseMaxLayer" );
@@ -209,6 +210,7 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatListSizeLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatObjectLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseSumLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnEltwiseSubLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseMulLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseNegMulLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseMaxLayer" );
