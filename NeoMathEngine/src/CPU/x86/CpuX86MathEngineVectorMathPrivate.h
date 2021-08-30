@@ -346,6 +346,75 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 	vectorEltwiseMultiply( first, second, result, sseSize, nonSseSize );
 }
 
+// Due to SSE 2.0 requirement we can't use _mm_mullo_epi32
+inline __m128i sse2Multiply4SignedInts( const __m128i& first, const __m128i& second )
+{
+	__m128i prod02 = _mm_mul_epu32( first, second ); // multiplies 0'th and 2'nd elems
+	__m128i prod13 = _mm_mul_epu32(
+		_mm_srli_si128( first, 4 ), // shift right by one integer in order to get 1'st and 3'rd elems
+		_mm_srli_si128( second, 4 )
+	);
+	return _mm_unpacklo_epi32(
+		_mm_shuffle_epi32( prod02, _MM_SHUFFLE( 0, 0, 2, 0 ) ), // move 0'th and 2'nd productions into 2 lower integers
+		_mm_shuffle_epi32( prod13, _MM_SHUFFLE( 0, 0, 2, 0 ) ) // move 1'st adn 3'rd productions into 2 lower integers
+	);
+}
+
+inline void vectorEltwiseMultiply( const int* first, const int* second, int* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	while( sseSize >= 4 ) {
+		__m128i first0 = LoadIntSse4( first );
+		__m128i first1 = LoadIntSse4( first + 4 );
+		__m128i first2 = LoadIntSse4( first + 8 );
+		__m128i first3 = LoadIntSse4( first + 12 );
+		first += 16;
+
+		__m128i second0 = LoadIntSse4( second );
+		__m128i second1 = LoadIntSse4( second + 4 );
+		__m128i second2 = LoadIntSse4( second + 8 );
+		__m128i second3 = LoadIntSse4( second + 12 );
+		second += 16;
+
+		__m128i res0 = sse2Multiply4SignedInts( first0, second0 );
+		__m128i res1 = sse2Multiply4SignedInts( first1, second1 );
+		__m128i res2 = sse2Multiply4SignedInts( first2, second2 );
+		__m128i res3 = sse2Multiply4SignedInts( first3, second3 );
+
+		StoreIntSse4( res0, result );
+		StoreIntSse4( res1, result + 4 );
+		StoreIntSse4( res2, result + 8 );
+		StoreIntSse4( res3, result + 12 );
+		result += 16;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		__m128i first0 = LoadIntSse4( first );
+		first += 4;
+
+		__m128i second0 = LoadIntSse4( second );
+		second += 4;
+
+		__m128i res0 = sse2Multiply4SignedInts( first0, second0 );
+		StoreIntSse4( res0, result );
+		result += 4;
+
+		sseSize--;
+	}
+
+	if( nonSseSize ) {
+		__m128i first0 = LoadIntSse( first, nonSseSize );
+		__m128i second0 = LoadIntSse( second, nonSseSize );
+		__m128i res0 = sse2Multiply4SignedInts( first0, second0 );
+		StoreIntSse( res0, result, nonSseSize );
+	}
+}
+
 inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
 {
 	int sseSize;
