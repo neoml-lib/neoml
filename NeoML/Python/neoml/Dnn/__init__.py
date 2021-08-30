@@ -40,7 +40,7 @@ from .Sink import Sink
 from .Softmax import Softmax
 from .Source import Source
 from .SpaceAndDepth import DepthToSpace, SpaceToDepth
-from .Split import SplitChannels, SplitDepth, SplitWidth, SplitHeight, SplitBatchWidth  
+from .Split import SplitChannels, SplitDepth, SplitWidth, SplitHeight, SplitListSize, SplitBatchWidth, SplitBatchLength
 from .SubSequence import SubSequence, ReverseSequence
 from .TiedEmbeddings import TiedEmbeddings
 from .Transform import Transform

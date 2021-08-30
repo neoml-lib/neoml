@@ -267,7 +267,9 @@ delete gpuMathEngine;
     - [CSplitDepthLayer](SplitLayers/SplitDepthLayer.md) splits along the Depth dimension
     - [CSplitWidthLayer](SplitLayers/SplitWidthLayer.md) splits along the Width dimension
     - [CSplitHeightLayer](SplitLayers/SplitHeightLayer.md) splits along the Height dimension
+    - [CSplitListSizeLayer](SplitLayers/SplitListSizeLayer.md) splits along the ListSize dimension
     - [CSplitBatchWidthLayer](SplitLayers/SplitBatchWidthLayer.md) splits along the BatchWidth dimension
+    - [CSplitBatchLengthLayer](SplitLayers/SplitBatchLengthLayer.md) splits along the BatchLength dimension
   - Working with pixel lists:
     - [CPixelToImageLayer](PixelToImageLayer.md) creates images from the pixel lists
     - [CImageToPixelLayer](ImageToPixelLayer.md) extracts pixel lists from the images
