@@ -165,6 +165,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& addition) override;
 	void VectorAddValue( const CConstIntHandle& firstHandle,
 		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& addition ) override;
+	void VectorSub(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) override;
 	void VectorSub(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorSub(const CConstFloatHandle& firstHandle, float second, const CFloatHandle& resultHandle,
@@ -550,6 +552,7 @@ private:
 	CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t memoryLimit, bool reuseDevice );
 
 	int alignXSizeForWarp(int xSize);
+	int getCudaTempMatrixMaxHeight( int matrixHeight, int matrixWidth );
 	void getCudaTaskGrid(int& blockCount, int& threadCount, int taskCount, int combineCount = 1);
 	void getCudaTaskGrid2D(dim3& blockCount, dim3& threadCount, int height, int width, int _maxThreadCount = UINT_MAX);
 	void getCudaTaskGrid3D(dim3& blockCount, dim3& threadCount, int batchSize, int height, int width, int _maxThreadCount = UINT_MAX);
