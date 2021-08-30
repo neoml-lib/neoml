@@ -150,6 +150,7 @@ private:
 	static void rotateLeft6( __m256& y0, __m256& y1, __m256& y2 );
 	// Circular rotation of three ymm registers to the left, step equals to two floats.
 	static void rotateLeft2( __m256& y );
+	static int ceilDiv( int a, int b );
 
 };
 
@@ -453,17 +454,28 @@ std::vector<int> CBlobConvolution<FltCnt>::getPixelOffsetSrcSteps( int srcDim, i
 	// Last offset of center of the filter window (Take in consideration paddings)
 	// (lastSrcPixelIdx - 2 * firstOffset) - width of window
 	const int lastOffset = firstOffset + ( lastSrcPixelIdx - 2 * firstOffset ) / sDim * sDim;
+	
+	int currentOffset = firstOffset;
 	ret[0] = firstOffset;
-
 	for( int i = 1; i <= halfFDim; i++ ) {
-		// up to middle
-		ret[i] = firstOffset + ( i * dDim - firstOffset + sDim - 1 ) / sDim * sDim;
+		if( currentOffset - i * dDim >= 0 ) {
+			// i-th pixel is already overlaped with source
+			ret[i] = -1;
+		} else {
+			currentOffset += ceilDiv( i * dDim - currentOffset, sDim ) * sDim;
+			ret[i] = currentOffset;
+		}
 	}
 
-
-	for( int i = fDim - 1, j = 1; i > fDim / 2; i--, j++ ) {
-		// from last to next to middle
-		ret[i] = lastOffset - ( lastOffset + j * dDim - lastSrcPixelIdx ) / sDim * sDim + sDim;
+	currentOffset = lastOffset;
+	for( int i = fDim - 1, j = 1; i > halfFDim; i--, j++ ) {
+		if( currentOffset + i * dDim <= lastSrcPixelIdx ) {
+			// i-th pixel is already overlaped with source
+			ret[i] = -1;
+		} else {
+			currentOffset -= ( ( currentOffset + j * dDim ) - srcDim ) / sDim * sDim;
+			ret[i] = currentOffset;
+		}
 	}
 
 	sort( ret.begin(), ret.end() );
@@ -597,6 +609,12 @@ inline void CBlobConvolution<FltCnt>::rotateLeft2( __m256& y )
 	// before:  1 2 0 0|2 0 0 1
 	// after:      1 2 0 1
 	y = _mm256_blend_ps( y, yt, 0xf0 );
+}
+
+template<int FltCnt>
+inline int CBlobConvolution<FltCnt>::ceilDiv( int a, int b )
+{
+	return ( a + b - 1 ) / b;
 }
 
 } // namespace NeoML
