@@ -554,6 +554,15 @@ private:
 	void getCudaTaskGrid2DMinYX(int minY, int minX, dim3& blockCount, dim3& threadCount, int height, int width, int _maxThreadCount = UINT_MAX);
 	void getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3& blockCount, dim3& threadCount,
 		int batchSize, int height, int width, int _maxThreadCount = UINT_MAX);
+	template<class T>
+	void getMaxOccupancyTaskGrid(int& blockCount, int& threadCount, int taskCount,
+		T kernel, int dynamicSMemSize = 0);
+	template<class T>
+	void getMaxOccupancyTaskGrid2D(dim3& blockCount, dim3& threadCount, int height, int width,
+		T kernel, int dynamicSMemSize = 0);
+	template<class T>
+	void getMaxOccupancyTaskGrid3D(dim3& blockCount, dim3& threadCount, int batchSize, int height, int width,
+		T kernel, int dynamicSMemSize = 0);
 
 	template<class T>
 	void transposeMatrixImpl(int batchSize, const CTypedMemoryHandle<const T>& firstHandle,
@@ -622,6 +631,36 @@ inline void CCudaMathEngine::SumMatrixRows(int batchSize,
 {
 	VectorFill(resultHandle, 0.f, batchSize * matrixWidth);
 	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
+}
+
+template<class T>
+void getMaxOccupancyTaskGrid( int& blockCount, int& threadCount, int taskCount,
+	T kernel, int dynamicSMemSize )
+{
+	int minGridSize;
+	int blockSize;
+	cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize, kernel, dynamicSMemSize, 0 );
+	getCudaTaskGrid( blockCount, threadCount, taskCount, blockSize );
+}
+
+template<class T>
+void CCudaMathEngine::getMaxOccupancyTaskGrid2D(dim3& blockCount, dim3& threadCount, int height, int width,
+	T kernel, int dynamicSMemSize )
+{
+	int minGridSize;
+	int blockSize;
+	cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize, kernel, dynamicSMemSize, 0 );
+	getCudaTaskGrid2D( blockCount, threadCount, height, width, blockSize );
+}
+
+template<class T>
+void getMaxOccupancyTaskGrid3D( dim3& blockCount, dim3& threadCount, int batchSize, int height, int width,
+	T kernel, int dynamicSMemSize )
+{
+	int minGridSize;
+	int blockSize;
+	cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize, kernel, dynamicSMemSize, 0 );
+	getCudaTaskGrid3D( blockCount, threadCount, batchSize, height, width, blockSize );
 }
 
 } // namespace NeoML

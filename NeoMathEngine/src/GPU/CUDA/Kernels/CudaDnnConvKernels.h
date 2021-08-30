@@ -92,7 +92,7 @@ __global__ void BuildTempMatrixKernel( const CCudaConvolutionDescInternal desc,
 }
 
 // Build the matrix for the forward pass
-__global__ void BuildTempMatrixKernel( const CCudaConvolutionDescInternal desc,
+__global__ void BuildTempMatrixForwardKernel( const CCudaConvolutionDescInternal desc,
 	const float* __restrict__ sourceData, int resultOffset, int resultSize, float* __restrict__ resultData )
 {
 	const int strideHeight = desc.StrideHeight;

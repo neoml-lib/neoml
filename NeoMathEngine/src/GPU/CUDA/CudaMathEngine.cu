@@ -225,6 +225,7 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 	blockCount = dim3(width, height, batchSize);
 
 	dim3 currentGeom;
+	bool isWarpFullLoadAchieved = false;
 	unsigned int zLimit = min(geom.z * 2, maxThreadCount + 1);
 	for(currentGeom.z = minZ; currentGeom.z < zLimit; currentGeom.z *= 2) {
 		unsigned int zBlock = min(currentGeom.z, geom.z);
@@ -246,7 +247,9 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 			unsigned int xBlockCount = (width + xBlock - 1) / xBlock;
 
 			unsigned int gridSize = xBlockCount * yBlockCount * zBlockCount;
-			if(gridSize < optimalGridSize) {
+			bool isWarpFullLoad = ( xBlock % device->WarpSize == 0 );
+			if(( !isWarpFullLoadAchieved && isWarpFullLoad ) || ( isWarpFullLoadAchieved == isWarpFullLoad && gridSize < optimalGridSize )) {
+				isWarpFullLoadAchieved = isWarpFullLoad;
 				optimalGridSize = gridSize;
 				threadCount = dim3(xBlock, yBlock, zBlock);
 				blockCount = dim3(xBlockCount, yBlockCount, zBlockCount);
