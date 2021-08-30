@@ -17,7 +17,7 @@ from .Crf import Crf, CrfLoss, BestSequence
 from .Ctc import CtcLoss, CtcDecoding
 from .DotProduct import DotProduct
 from .Dropout import Dropout
-from .Eltwise import EltwiseSum, EltwiseMul, EltwiseNegMul, EltwiseMax
+from .Eltwise import EltwiseSum, EltwiseSub, EltwiseMul, EltwiseNegMul, EltwiseMax
 from .FullyConnected import FullyConnected
 from .Gru import Gru
 from .ImageConversion import ImageResize, PixelToImage, ImageToPixel  

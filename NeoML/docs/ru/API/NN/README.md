@@ -241,6 +241,7 @@ delete gpuMathEngine;
 - [CLrnLayer](LrnLayer.md) - Local Response Normalization
 - Поэлементные операции над блобами:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - поэлементная сумма блобов
+  - [CEltwiseSubLayer](EltwiseLayers/EltwiseSubLayer.md) - поэлементная разность блобов
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - поэлементное произведение блобов
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - поэлементный максимум блобов
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) - поэлементное произведение разности `1` и элементов первого блоба с элементами остальных блобов

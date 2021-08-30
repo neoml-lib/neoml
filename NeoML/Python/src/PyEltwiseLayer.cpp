@@ -32,6 +32,20 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
+class CPyEltwiseSubLayer : public CPyLayer {
+public:
+	explicit CPyEltwiseSubLayer( CEltwiseSubLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "EltwiseSub" );
+		return pyConstructor( py::cast(this) );
+	}
+};
+
+//------------------------------------------------------------------------------------------------------------
+
 class CPyEltwiseMulLayer : public CPyLayer {
 public:
 	explicit CPyEltwiseMulLayer( CEltwiseMulLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
@@ -94,6 +108,31 @@ void InitializeEltwiseLayer( py::module& m )
 			}
 
 			return new CPyEltwiseSumLayer( *eltwise, layers[0].cast<CPyLayer>().MathEngineOwner() );
+		}) )
+	;
+
+//------------------------------------------------------------------------------------------------------------
+
+		py::class_<CPyEltwiseSubLayer, CPyLayer>(m, "EltwiseSub")
+		.def( py::init([]( const CPyLayer& layer )
+		{
+			return CPyEltwiseSubLayer( *layer.Layer<CEltwiseSubLayer>(), layer.MathEngineOwner() );
+		}))
+		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs )
+		{
+			py::gil_scoped_release release;
+			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+
+			CPtr<CEltwiseSubLayer> eltwise = new CEltwiseSubLayer( mathEngine );
+			eltwise->SetName( FindFreeLayerName( dnn, "EltwiseSub", name ).c_str() );
+			dnn.AddLayer( *eltwise );
+
+			for( int i = 0; i < layers.size(); i++ ) {
+				eltwise->Connect( i, layers[i].cast<CPyLayer>().BaseLayer(), outputs[i].cast<int>() );
+			}
+
+			return new CPyEltwiseSubLayer( *eltwise, layers[0].cast<CPyLayer>().MathEngineOwner() );
 		}) )
 	;
 
