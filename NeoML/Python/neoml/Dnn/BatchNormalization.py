@@ -71,26 +71,26 @@ class BatchNormalization(Layer):
 
     @property
     def channel_based(self):
-        """Sets the channel-based mode.
+        """Gets the channel-based mode.
         """
         return self._internal.get_channel_based()
 
     @channel_based.setter
     def channel_based(self, channel_based):
-        """Gets the channel-based mode.
+        """Sets the channel-based mode.
         """
         self._internal.set_channel_based(bool(channel_based))
 
     @property
     def slow_convergence_rate(self):
-        """Sets the coefficient for calculating 
+        """Gets the coefficient for calculating 
         the exponential moving mean and variance.
         """
         return self._internal.get_slow_convergence_rate()
 
     @slow_convergence_rate.setter
     def slow_convergence_rate(self, slow_convergence_rate):
-        """Gets the coefficient for calculating 
+        """Sets the coefficient for calculating 
         the exponential moving mean and variance.
         """
         if slow_convergence_rate <= 0 or slow_convergence_rate > 1:
@@ -100,13 +100,13 @@ class BatchNormalization(Layer):
 
     @property
     def zero_free_term(self):
-        """Specifies if the free term should be zero.
+        """Indicates if the free term should be zero.
         """
         return self._internal.get_zero_free_term()
 
     @zero_free_term.setter
     def zero_free_term(self, zero_free_term):
-        """Indicates if the free term will be zero or trained.
+        """Specifies if the free term will be zero or trained.
         """
         self._internal.set_zero_free_term(bool(zero_free_term))
 
