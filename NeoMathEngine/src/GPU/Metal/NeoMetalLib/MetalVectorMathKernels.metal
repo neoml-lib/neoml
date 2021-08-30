@@ -2220,17 +2220,46 @@ kernel void vectorKernelBitSetBinarization( constant int* batchSize [[buffer(0)]
     }
 }
 
-kernel void matrixKernelUpsampling2DForward( constant int* heightCopyCount [[buffer(0)]],
-                                             constant int* widthCopyCount [[buffer(1)]],
-                                             constant int* pixelSize [[buffer(2)]],
-                                             constant int* batchSize [[buffer(3)]],
-                                             constant int* inputHeight [[buffer(4)]],
-                                             constant int* inputRowSize [[buffer(5)]],
-                                             constant float* input [[buffer(6)]],
-                                             constant int* resultHeight [[buffer(7)]],
-                                             constant int* resultRowSize [[buffer(8)]],
-                                             device float* result [[buffer(9)]],
-                                             uint2 thread_position_in_grid [[ thread_position_in_grid ]]  )
+kernel void matrixKernelUpsampling2DForwardInt( constant int* heightCopyCount [[buffer(0)]],
+                                                constant int* widthCopyCount [[buffer(1)]],
+                                                constant int* pixelSize [[buffer(2)]],
+                                                constant int* batchSize [[buffer(3)]],
+                                                constant int* inputHeight [[buffer(4)]],
+                                                constant int* inputRowSize [[buffer(5)]],
+                                                constant int* input [[buffer(6)]],
+                                                constant int* resultHeight [[buffer(7)]],
+                                                constant int* resultRowSize [[buffer(8)]],
+                                                device int* result [[buffer(9)]],
+                                                uint2 thread_position_in_grid [[ thread_position_in_grid ]]  )
+{
+    C2DPosition pos( thread_position_in_grid );
+    
+    int resultI;
+    int resultJ;
+    if( !pos.GetMetalTaskIndex2D( *resultHeight, *resultRowSize, resultI, resultJ ) ) {
+        return;
+    }
+    const int inputI = resultI / *heightCopyCount;
+    const int inputJ = ( resultJ / *pixelSize / *widthCopyCount ) * *pixelSize + resultJ % *pixelSize;
+    
+    for( int batchIndex = 0; batchIndex < *batchSize; ++batchIndex ) {
+        *( result + resultI * *resultRowSize + resultJ ) = *( input + inputI * *inputRowSize + inputJ );
+        input += *inputHeight * *inputRowSize;
+        result += *resultHeight * *resultRowSize;
+    }
+}
+
+kernel void matrixKernelUpsampling2DForwardFloat( constant int* heightCopyCount [[buffer(0)]],
+                                                  constant int* widthCopyCount [[buffer(1)]],
+                                                  constant int* pixelSize [[buffer(2)]],
+                                                  constant int* batchSize [[buffer(3)]],
+                                                  constant int* inputHeight [[buffer(4)]],
+                                                  constant int* inputRowSize [[buffer(5)]],
+                                                  constant float* input [[buffer(6)]],
+                                                  constant int* resultHeight [[buffer(7)]],
+                                                  constant int* resultRowSize [[buffer(8)]],
+                                                  device float* result [[buffer(9)]],
+                                                  uint2 thread_position_in_grid [[ thread_position_in_grid ]]  )
 {
     C2DPosition pos( thread_position_in_grid );
     
