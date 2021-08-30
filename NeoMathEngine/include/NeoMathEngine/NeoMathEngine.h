@@ -435,6 +435,9 @@ public:
 	virtual void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 		const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 		const CFloatHandle& outputHandle, int outputChannels) = 0;
+	virtual void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+		const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+		const CIntHandle& outputHandle, int outputChannels) = 0;
 	// Finds the position in the representation table for the channel and adds a row from the specified matrix (of batchSize height)
 	virtual void VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, 
