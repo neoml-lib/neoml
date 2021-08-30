@@ -52,19 +52,31 @@ void CEltwiseBaseLayer::Serialize( CArchive& archive )
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+template<class T>
+static void eltwiseSumRunOnce( const CObjectArray<CDnnBlob>& inputBlobs, const CObjectArray<CDnnBlob>& outputBlobs )
+{
+	IMathEngine& mathEngine = inputBlobs[0]->GetMathEngine();
+	CTypedMemoryHandle<T> output = outputBlobs[0]->GetData<T>();
+	const int dataSize = outputBlobs[0]->GetDataSize();
+
+	mathEngine.VectorAdd( inputBlobs[0]->GetData<T>(), inputBlobs[1]->GetData<T>(), output, dataSize );
+	for( int i = 2; i < inputBlobs.Size(); ++i ) {
+		mathEngine.VectorAdd( output, inputBlobs[i]->GetData<T>(), output, dataSize );
+	}
+}
+
 void CEltwiseSumLayer::RunOnce()
 {
-	CFloatHandle output = outputBlobs[0]->GetData();
-	int dataSize = outputBlobs[0]->GetDataSize();
-
-	MathEngine().VectorAdd( inputBlobs[0]->GetData(), inputBlobs[1]->GetData(), output, dataSize );
-	for( int i = 2; i < inputBlobs.Size(); ++i ) {
-		MathEngine().VectorAdd( output, inputBlobs[i]->GetData(), output, dataSize );
+	if( inputBlobs[0]->GetDataType() == CT_Float ) {
+		eltwiseSumRunOnce<float>( inputBlobs, outputBlobs );
+	} else {
+		eltwiseSumRunOnce<int>( inputBlobs, outputBlobs );
 	}
 }
 
 void CEltwiseSumLayer::BackwardOnce()
 {
+	NeoAssert( inputBlobs[0]->GetDataType() == CT_Float );
 	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
 		MathEngine().VectorCopy( inputDiffBlobs[i]->GetData(), outputDiffBlobs[0]->GetData(),
 			inputDiffBlobs[i]->GetDataSize() );
