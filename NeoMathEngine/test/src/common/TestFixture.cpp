@@ -14,91 +14,220 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <algorithm>
+#include <memory>
+#include <string>
 #include "TestFixture.h"
 
 namespace NeoMLTest {
 
 static IMathEngine* mathEngine = 0;
 
-void SetMathEngine(IMathEngine* newMathEngine)
-{
-	mathEngine = newMathEngine;
-}
-
 IMathEngine& MathEngine()
 {
 	return *mathEngine;
 }
 
+enum class TMathEngineArgType 
+{
+	Undefined = 0,
+	Cpu,
+	Gpu,
+	Cuda,
+	Vulkan,
+	Metal
+};
+
 //------------------------------------------------------------------------------------------------------------
 
-TMathEngineArgType GetMathEngineArgType( int argc, char* argv[] )
+static void setMathEngine(IMathEngine* newMathEngine)
 {
-	constexpr char arg[] = "--MathEngine=";
-	constexpr size_t argSize = sizeof( arg ) / sizeof( arg[0] ) - 1;
-	
-	for( int i = 0; i < argc; ++i ) {
-		if( std::search( argv[i], argv[i] + strlen( argv[i] ), arg, arg + argSize ) == argv[i] ) {
-			const char* value = argv[i] + argSize;
-			if( strcmp( value, "gpu" ) == 0 ) {
-				return TMathEngineArgType::Gpu;
-			} else if( strcmp( value, "cpu" ) == 0 ) {
-				return TMathEngineArgType::Cpu;
-			} else {
-				return TMathEngineArgType::Undefined;
-			}
+	mathEngine = newMathEngine;
+}
+
+template <typename T, std::size_t N>
+static bool startsWith( const T* str, const T( &prefix )[N] )
+{
+	size_t i = 0;
+	for( ; i < N && *str != '\0'; ++i, ++str ) {
+		if( *str != prefix[i] ) {
+			return false;
 		}
 	}
+	return i == N;
+}
+
+template <typename T, std::size_t N>
+static bool equal( const T* one, const T( &two )[N] )
+{
+	return startsWith( one, two ) && one[N] == '\0';
+}
+
+template <typename T, std::size_t N>
+static const T* argValue( int argc, T* argv[], const T( &argument )[N] )
+{
+	for( int i = 0; i < argc; ++i ) {
+		if( startsWith( argv[i], argument ) ) {
+			return argv[i] + N;
+		}
+	}
+	return nullptr;
+}
+
+#ifdef NEOML_USE_FINEOBJ
+using TCharType = wchar_t;
+#else
+using TCharType = char;
+#endif
+
+static constexpr TCharType mathEngineArg[] = { '-', '-', 'M', 'a', 't', 'h', 'E', 'n', 'g', 'i', 'n', 'e', '=' };
+static constexpr TCharType threadCount[] = { '-', '-', 'T', 'h', 'r', 'e', 'a', 'd', 'C', 'o', 'u', 'n', 't', '=' };
+
+static constexpr TCharType cpuArg[] = { 'c', 'p', 'u' };
+static constexpr TCharType gpu[] = { 'g', 'p', 'u' };
+static constexpr TCharType cuda[] = { 'c', 'u', 'd', 'a' };
+static constexpr TCharType vulkan[] = { 'v', 'u', 'l', 'k', 'a', 'n' };
+static constexpr TCharType metal[] = { 'm', 'e', 't', 'a', 'l' };
+
+template<typename T>
+TMathEngineArgType getMathEngineArgType( int argc, T* argv[] )
+{
+	const T* rawArg = argValue( argc, argv, mathEngineArg );
+
+	if( rawArg != nullptr ) {
+		if( equal( rawArg, cpuArg ) ) {
+			return TMathEngineArgType::Cpu;
+		} else if( equal( rawArg, gpu ) ) {
+			return TMathEngineArgType::Gpu;
+		} else if( equal( rawArg, cuda ) ) {
+			return TMathEngineArgType::Cuda;
+		} else if( equal( rawArg, vulkan ) ) {
+			return TMathEngineArgType::Vulkan;
+		} else if( equal( rawArg, metal ) ) {
+			return TMathEngineArgType::Metal;
+		}
+	}
+
 	return TMathEngineArgType::Undefined;
 }
 
-int GetThreadCount( int argc, char* argv[] )
-{
-	constexpr char arg[] = "--ThreadCount=";
-	constexpr size_t argSize = sizeof( arg ) / sizeof( arg[0] ) - 1;
+#ifdef NEOML_USE_FINEOBJ
 
-	for( int i = 0; i < argc; ++i ) {
-		const size_t argLen = strlen( argv[i] );
-		if( std::search( argv[i], argv[i] + argLen, arg, arg + argSize ) == argv[i] ) {
-			try {
-				return std::stoi( argv[i] + argSize );
-			} catch( std::exception& ) {
-				// ...
-			}
+int getThreadCount( int argc, wchar_t* argv[] )
+{
+	const wchar_t* value = argValue( argc, argv, ThreadCount );
+	int res = 0;
+	if( value && FObj::Value( value, res ) ) {
+		return res;
+	}
+	return 0;
+}
+
+#else // NEOML_USE_FINEOBJ
+
+int getThreadCount( int argc, char* argv[] )
+{
+	const char* rawThreadCount = argValue( argc, argv, threadCount );
+
+	if( rawThreadCount != nullptr ) {
+		try {
+			return std::stoi( rawThreadCount );
+		} catch( std::exception& ) {
 			return 0;
 		}
 	}
+
 	return 0;
+}
+
+#endif // NEOML_USE_FINEOBJ
+
+static std::string toString( TMathEngineType type )
+{
+	switch( type ) {
+		case MET_Cpu:
+			return "CPU";
+		case MET_Cuda:
+			return "CUDA";
+		case MET_Vulkan:
+			return "Vulkan";
+		case MET_Metal:
+			return "Metal";
+		default:
+			return "UNKNOWN";
+	}
+	return "UNKNOWN";
+}
+
+static IMathEngine* createMathEngine( TMathEngineArgType argType, int threadCount )
+{
+	switch( argType ) {
+		case TMathEngineArgType::Cuda:
+		case TMathEngineArgType::Vulkan:
+		case TMathEngineArgType::Metal:
+		{
+			TMathEngineType meType = argType == TMathEngineArgType::Cuda ? MET_Cuda
+				: ( argType == TMathEngineArgType::Vulkan ? MET_Vulkan : MET_Metal );
+			std::unique_ptr<IGpuMathEngineManager> manager( CreateGpuMathEngineManager() );
+			if( manager == nullptr ) {
+				return nullptr;
+			}
+			for( int i = 0; i < manager->GetMathEngineCount(); ++i ) {
+				CMathEngineInfo info;
+				manager->GetMathEngineInfo( i, info );
+				if( info.Type == meType ) {
+					IMathEngine* mathEngine = manager->CreateMathEngine( i, 0 );
+					if( mathEngine != nullptr ) {
+						return mathEngine;
+					}
+				}
+			}
+			break;
+		}
+		case TMathEngineArgType::Gpu:
+		{
+			std::unique_ptr<IGpuMathEngineManager> manager( CreateGpuMathEngineManager() );
+			if( manager == nullptr ) {
+				return nullptr;
+			}
+			for( int i = 0; i < manager->GetMathEngineCount(); ++i ) {
+				IMathEngine* mathEngine = manager->CreateMathEngine( i, 0 );
+				if( mathEngine != nullptr ) {
+					return mathEngine;
+				}
+			}
+			break;
+		}
+		case TMathEngineArgType::Undefined:
+			GTEST_LOG_( WARNING ) << "Unknown type of MathEngine!";
+			// fall through
+		case TMathEngineArgType::Cpu:
+			return CreateCpuMathEngine( threadCount, 0 );
+		default:
+			return nullptr;
+	}
+	return nullptr;
 }
 
 int RunTests( int argc, char* argv[] ) 
 {
 	::testing::InitGoogleTest( &argc, argv );
 	
-	IMathEngine* mathEngine = nullptr;
-	
-	auto type = GetMathEngineArgType( argc, argv );
-	if( type == TMathEngineArgType::Gpu ) {
-		mathEngine = CreateGpuMathEngine( 0 );
-		if( mathEngine != nullptr ) {
-			CMathEngineInfo info;
-			mathEngine->GetMathEngineInfo( info );
-			GTEST_LOG_( INFO ) << "Using GPU MathEngine: " << info.Name << ", memory limit = " << info.AvailableMemory;
-		} else {
-			GTEST_LOG_( INFO ) << "Can't create Gpu MathEngine!";
-			return 1;
-		}
-	} else if( type == TMathEngineArgType::Undefined ) {
-		GTEST_LOG_( INFO ) << "Unknown type of MathEngine in command line arguments!";
-	}
-	
-	if( mathEngine == nullptr ) {
-		const int threadCount = GetThreadCount( argc, argv );
-		mathEngine = CreateCpuMathEngine( threadCount, 0 );
-		GTEST_LOG_( INFO ) << "Using CPU MathEngine, threadCount = " << threadCount;
+	auto type = getMathEngineArgType( argc, argv );
+	const int threadCount = getThreadCount( argc, argv );
+
+	IMathEngine* mathEngine = createMathEngine( type, threadCount );
+
+	if( mathEngine != nullptr ) {
+		CMathEngineInfo info;
+		mathEngine->GetMathEngineInfo( info );
+		GTEST_LOG_( INFO ) << "Using " << toString( info.Type ) << " MathEngine: "
+			<< info.Name << ", memory limit = " << info.AvailableMemory;
+	} else {
+		GTEST_LOG_( INFO ) << "Can't create MathEngine!";
+		return 1;
 	}
 
-	SetMathEngine( mathEngine );
+	setMathEngine( mathEngine );
 
 	int result = RUN_ALL_TESTS();
 	
