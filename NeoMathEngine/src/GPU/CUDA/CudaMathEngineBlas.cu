@@ -542,6 +542,17 @@ void CCudaMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channel
 		lookupHandles, lookupDimensions, lookupCount, outputHandle, outputChannelsCount);
 }
 
+void CCudaMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+	const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+	const CIntHandle& outputHandle, int outputChannelsCount)
+{
+	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+	vectorMultichannelLookupAndCopy(batchSize, channelCount, inputHandle,
+		lookupHandles, lookupDimensions, lookupCount, outputHandle, outputChannelsCount);
+}
+
 void CCudaMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 	const CConstFloatHandle& multHandle,
@@ -974,10 +985,10 @@ void CCudaMathEngine::matrixSpreadRowsImpl(const T* source, int height, int widt
 		GetRaw( result ), index, widthNorm);
 }
 
-template<class T>
-void CCudaMathEngine::vectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CTypedMemoryHandle<const T>& inputHandle,
-	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CFloatHandle& outputHandle, int outputChannelsCount)
+template<class TInput, class TLookup>
+void CCudaMathEngine::vectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CTypedMemoryHandle<const TInput>& inputHandle,
+	const CTypedMemoryHandle<const TLookup>* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+	const CTypedMemoryHandle<TLookup>& outputHandle, int outputChannelsCount)
 {
 	SetCudaDevice( device->DeviceNumber );
 	int batchNorm = (batchSize + BatchVectorLookupAndCopyCombineBatch - 1) / BatchVectorLookupAndCopyCombineBatch;
