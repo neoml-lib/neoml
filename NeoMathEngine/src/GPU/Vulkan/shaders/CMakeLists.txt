@@ -80,7 +80,8 @@ set(SHADER_SOURCES
     VectorEltwiseLogSumExp.comp 
     SetVectorToMatrixElements.comp 
     LookupAndSum.comp 
-    Upsampling2DForward.comp
+    Upsampling2DForwardInt.comp
+    Upsampling2DForwardFloat.comp
     FindMaxValueInRows.comp 
     FindMaxValueInRowsNoIndices.comp 
     FindMaxValueInColumns.comp
