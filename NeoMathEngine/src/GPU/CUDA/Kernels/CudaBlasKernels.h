@@ -721,9 +721,9 @@ static __global__ void FindMinValueInColumnsKernel( const float* matrixHandle, i
 }
 
 const int BatchVectorLookupAndCopyCombineBatch = 4;
-template<class T>
-__global__ void VectorChannelLookupAndCopyKernel(int batchSize, const T* __restrict__ input, int inputChannels,
-	const float* __restrict__ lookup, int vectorSize, float* output, int outputChannels, int batchNorm)
+template<class TInput, class TLookup>
+__global__ void VectorChannelLookupAndCopyKernel(int batchSize, const TInput* __restrict__ input, int inputChannels,
+	const TLookup* __restrict__ lookup, int vectorSize, TLookup* output, int outputChannels, int batchNorm)
 {
 	int b;
 	int index;
@@ -750,9 +750,9 @@ __global__ void VectorChannelLookupAndCopyKernel(int batchSize, const T* __restr
 	}
 }
 
-template<class T>
-__global__ void BatchVectorChannelCopyKernel(int batchSize, const T* __restrict__ input,
-	int inputChannels, int vectorSize, float* output, int outputChannels, int batchNorm)
+template<class TInput, class TLookup>
+__global__ void BatchVectorChannelCopyKernel(int batchSize, const TInput* __restrict__ input,
+	int inputChannels, int vectorSize, TLookup* output, int outputChannels, int batchNorm)
 {
 	int b;
 	int index;
