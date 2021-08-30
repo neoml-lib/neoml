@@ -243,6 +243,7 @@ delete gpuMathEngine;
 - [CLrnLayer](LrnLayer.md) implements local response normalization
 - Elementwise operations with data blobs:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - elementwise sum
+  - [CEltwiseSubLayer](EltwiseLayers/EltwiseSubLayer.md) - elementwise sub
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - elementwise product
   - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - elementwise division
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - elementwise maximum

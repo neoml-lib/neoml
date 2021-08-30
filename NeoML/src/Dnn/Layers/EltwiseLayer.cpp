@@ -26,10 +26,16 @@ void CEltwiseBaseLayer::Reshape()
 {
 	CheckInputs();
 	CheckArchitecture( inputDescs.Size() > 1, GetName(), "eltwise layer with single input" );
+	CheckArchitecture( !IsBackwardPerformed() || inputDescs[0].GetDataType() == CT_Float, GetName(), "integer eltwise backward" );
 
 	for( int i = 1; i < inputDescs.Size(); ++i ) {
 		CheckArchitecture( inputDescs[i].HasEqualDimensions(inputDescs[0]),
 			GetName(), "eltwise input size mismatch (batchSize mismatch)" );
+		const CBlobDesc& blobDesc = inputDescs[i];
+		CheckArchitecture( blobDesc.GetDataType() == inputDescs[0].GetDataType(),
+			GetName(), "input types mismatch" );
+		CheckArchitecture( inputDescs[i].GetDataType() == inputDescs[0].GetDataType(),
+			GetName(), "input types mismatch" );
 	}
 
 	outputDescs[0] = inputDescs[0];
@@ -88,6 +94,59 @@ void CEltwiseSumLayer::Serialize( CArchive& archive )
 CLayerWrapper<CEltwiseSumLayer> Sum()
 {
 	return CLayerWrapper<CEltwiseSumLayer>( "Sum" );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void CEltwiseSubLayer::Reshape()
+{
+	// This layer must have 2 inputs
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "EltwiseSub layer must have 2 inputs" );
+	CEltwiseBaseLayer::Reshape();
+}
+
+template<class T>
+static void eltwiseSubRunOnce( const CObjectArray<CDnnBlob>& inputBlobs, const CObjectArray<CDnnBlob>& outputBlobs )
+{
+	IMathEngine& mathEngine = inputBlobs[0]->GetMathEngine();
+	CTypedMemoryHandle<T> output = outputBlobs[0]->GetData<T>();
+	const int dataSize = outputBlobs[0]->GetDataSize();
+
+	mathEngine.VectorSub( inputBlobs[0]->GetData<T>(), inputBlobs[1]->GetData<T>(), output, dataSize );
+	for( int i = 2; i < inputBlobs.Size(); ++i ) {
+		mathEngine.VectorSub( output, inputBlobs[i]->GetData<T>(), output, dataSize );
+	}
+}
+
+void CEltwiseSubLayer::RunOnce()
+{
+	if( inputBlobs[0]->GetDataType() == CT_Float ) {
+		eltwiseSubRunOnce<float>( inputBlobs, outputBlobs );
+	} else {
+		eltwiseSubRunOnce<int>( inputBlobs, outputBlobs );
+	}
+}
+
+void CEltwiseSubLayer::BackwardOnce()
+{
+	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
+		MathEngine().VectorCopy( inputDiffBlobs[i]->GetData(), outputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[i]->GetDataSize() );
+	}
+}
+
+static const int EltwiseSubLayerVersion = 0;
+
+void CEltwiseSubLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( EltwiseSubLayerVersion );
+	CEltwiseBaseLayer::Serialize( archive );
+}
+
+CLayerWrapper<CEltwiseSubLayer> Sub()
+{
+	return CLayerWrapper<CEltwiseSubLayer>( "Sub" );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
