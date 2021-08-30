@@ -66,6 +66,18 @@ public:
 	}
 };
 
+class CPySplitListSizeLayer : public CPyLayer {
+public:
+	explicit CPySplitListSizeLayer( CSplitListSizeLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "SplitListSize" );
+		return pyConstructor( py::cast(this), 0 );
+	}
+};
+
 class CPySplitBatchWidthLayer : public CPyLayer {
 public:
 	explicit CPySplitBatchWidthLayer( CSplitBatchWidthLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
@@ -78,6 +90,17 @@ public:
 	}
 };
 
+class CPySplitBatchLengthLayer : public CPyLayer {
+public:
+	explicit CPySplitBatchLengthLayer( CSplitBatchLengthLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "SplitBatchLength" );
+		return pyConstructor( py::cast(this), 0 );
+	}
+};
 
 void InitializeSplitLayer( py::module& m )
 {
@@ -173,6 +196,29 @@ void InitializeSplitLayer( py::module& m )
 		}) )
 	;
 
+	py::class_<CPySplitListSizeLayer, CPyLayer>(m, "SplitListSize")
+		.def( py::init([]( const CPyLayer& layer )
+		{
+			return new CPySplitListSizeLayer( *layer.Layer<CSplitListSizeLayer>(), layer.MathEngineOwner() );
+		}))
+		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, py::array sizes ) {
+			py::gil_scoped_release release;
+			CDnn& dnn = layer1.Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+			CPtr<CSplitListSizeLayer> split = new CSplitListSizeLayer( mathEngine );
+			CArray<int> outputs;
+			outputs.SetSize(static_cast<int>(sizes.size()));
+			for( int i = 0; i < outputs.Size(); i++ ) {
+				outputs[i] = reinterpret_cast<const int*>(sizes.data())[i];
+			}
+			split->SetOutputCounts(outputs);
+			split->SetName( FindFreeLayerName( dnn, "SplitListSize", name ).c_str() );
+			dnn.AddLayer( *split );
+			split->Connect( 0, layer1.BaseLayer(), outputNumber1 );
+			return new CPySplitListSizeLayer( *split, layer1.MathEngineOwner() );
+		}) )
+	;
+
 	py::class_<CPySplitBatchWidthLayer, CPyLayer>(m, "SplitBatchWidth")
 		.def( py::init([]( const CPyLayer& layer )
 		{
@@ -196,5 +242,27 @@ void InitializeSplitLayer( py::module& m )
 		}) )
 	;
 
+	py::class_<CPySplitBatchLengthLayer, CPyLayer>(m, "SplitBatchLength")
+		.def( py::init([]( const CPyLayer& layer )
+		{
+			return new CPySplitBatchLengthLayer( *layer.Layer<CSplitBatchLengthLayer>(), layer.MathEngineOwner() );
+		}))
+		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, py::array sizes ) {
+			py::gil_scoped_release release;
+			CDnn& dnn = layer1.Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+			CPtr<CSplitBatchLengthLayer> split = new CSplitBatchLengthLayer( mathEngine );
+			CArray<int> outputs;
+			outputs.SetSize(static_cast<int>(sizes.size()));
+			for( int i = 0; i < outputs.Size(); i++ ) {
+				outputs[i] = reinterpret_cast<const int*>(sizes.data())[i];
+			}
+			split->SetOutputCounts(outputs);
+			split->SetName( FindFreeLayerName( dnn, "SplitBatchLength", name ).c_str() );
+			dnn.AddLayer( *split );
+			split->Connect( 0, layer1.BaseLayer(), outputNumber1 );
+			return new CPySplitBatchLengthLayer( *split, layer1.MathEngineOwner() );
+		}) )
+	;
 
 }
