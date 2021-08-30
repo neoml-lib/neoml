@@ -266,7 +266,9 @@ delete gpuMathEngine;
     - [CSplitDepthLayer](SplitLayers/SplitDepthLayer.md) - разделение блобов по глубине
     - [CSplitWidthLayer](SplitLayers/SplitWidthLayer.md) - разделение блобов по ширине
     - [CSplitHeightLayer](SplitLayers/SplitHeightLayer.md) - разделение блобов по высоте
+    - [CSplitListSizeLayer](SplitLayers/SplitListSizeLayer.md) - разделение блобов по `ListSize`
     - [CSplitBatchWidthLayer](SplitLayers/SplitBatchWidthLayer.md) - разделение блобов по `BatchWidth`
+    - [CSplitBatchLengthLayer](SplitLayers/SplitBatchLengthLayer.md) - разделение блобов по `BatchLength`
   - Работа со списками пикселей:
     - [CPixelToImageLayer](PixelToImageLayer.md) - построение изображений из списков пикселей
     - [CImageToPixelLayer](ImageToPixelLayer.md) - выделение списков пикселей из изображений
