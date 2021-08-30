@@ -1821,14 +1821,14 @@ class PoolingTestCase(MultithreadedTestCase):
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
 
-        split_types = ("SplitBatchWidth", "SplitHeight", "SplitWidth", "SplitDepth", "SplitChannels")
+        split_types = ("SplitBatchLength", "SplitBatchWidth", "SplitListSize", "SplitHeight", "SplitWidth", "SplitDepth", "SplitChannels")
         for i, split_name in enumerate(split_types):
             split = getattr(neoml.Dnn, split_name)(source, (2, 3), split_name)
             sink = neoml.Dnn.Sink((split, 0), "sink{}".format(2 * i))
             sink = neoml.Dnn.Sink((split, 1), "sink{}".format(2 * i + 1))
 
-        arr = np.ones((5, 5, 5, 5, 5), dtype=np.float32)
-        input1 = neoml.Blob.asblob(math_engine, arr, (1, 5, 1, 5, 5, 5, 5))
+        arr = np.ones((5, 5, 5, 5, 5, 5, 5), dtype=np.float32)
+        input1 = neoml.Blob.asblob(math_engine, arr, (5, 5, 5, 5, 5, 5, 5))
         inputs = {"source1": input1}
         outputs = dnn.run(inputs)
 
