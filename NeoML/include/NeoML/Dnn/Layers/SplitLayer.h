@@ -109,6 +109,22 @@ NEOML_API CLayerWrapper<CSplitHeightLayer> SplitHeight( int output0,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// CSplitListSizeLayer implements a layer that splits a blob by the ListSize dimension
+class NEOML_API CSplitListSizeLayer : public CBaseSplitLayer {
+	NEOML_DNN_LAYER( CSplitListSizeLayer )
+public:
+	explicit CSplitListSizeLayer( IMathEngine& mathEngine ) : CBaseSplitLayer( mathEngine, BD_ListSize, "CSplitListSizeLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+};
+
+NEOML_API CLayerWrapper<CSplitListSizeLayer> SplitListSize(
+	const CArray<int>& outputCounts );
+NEOML_API CLayerWrapper<CSplitListSizeLayer> SplitListSize( int output0,
+	int output1 = 0, int output2 = 0 );
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // CSplitBatchWidthLayer implements a layer that splits a blob by the BatchWidth dimension
 class NEOML_API CSplitBatchWidthLayer : public CBaseSplitLayer {
 	NEOML_DNN_LAYER( CSplitBatchWidthLayer )
@@ -121,6 +137,22 @@ public:
 NEOML_API CLayerWrapper<CSplitBatchWidthLayer> SplitBatchWidth(
 	const CArray<int>& outputCounts );
 NEOML_API CLayerWrapper<CSplitBatchWidthLayer> SplitBatchWidth( int output0,
+	int output1 = 0, int output2 = 0 );
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// CSplitBatchLengthLayer implements a layer that splits a blob by the BatchLength dimension
+class NEOML_API CSplitBatchLengthLayer : public CBaseSplitLayer {
+	NEOML_DNN_LAYER( CSplitBatchLengthLayer )
+public:
+	explicit CSplitBatchLengthLayer( IMathEngine& mathEngine ) : CBaseSplitLayer( mathEngine, BD_BatchLength, "CSplitBatchLengthLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+};
+
+NEOML_API CLayerWrapper<CSplitBatchLengthLayer> SplitBatchLength(
+	const CArray<int>& outputCounts );
+NEOML_API CLayerWrapper<CSplitBatchLengthLayer> SplitBatchLength( int output0,
 	int output1 = 0, int output2 = 0 );
 
 } // namespace NeoML
