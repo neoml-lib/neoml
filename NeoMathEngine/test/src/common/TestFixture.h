@@ -28,20 +28,7 @@ namespace NeoMLTest {
 
 int RunTests( int argc, char* argv[] );
 
-void SetMathEngine( IMathEngine* mathEngine );
-
 IMathEngine& MathEngine();
-
-enum class TMathEngineArgType 
-{
-    Undefined = 0,
-    Cpu,
-    Gpu
-};
-
-TMathEngineArgType GetMathEngineArgType( int argc, char* argv[] );
-
-int GetThreadCount( int argc, char* argv[] );
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -71,26 +58,32 @@ inline bool FloatEq(float val1, float val2, float precision = 1e-05)
 #define FLT_MIN_LOG -87.33654474f
 #define FLT_MAX_LOG 88.f
 
-#define CARRAY_FLOAT_WRAPPER(arr) CFloatWrapper( MathEngine(), (arr.data()), ( static_cast<int>( arr.size() ) ) )
-#define CARRAY_INT_WRAPPER(arr) CIntWrapper( MathEngine(), (arr.data()), ( static_cast<int>( arr.size() ) ) )
+#define CARRAY_WRAPPER(TYPE, arr) CBufferWrapper<TYPE>( MathEngine(), ( arr.data() ), ( static_cast<int>( arr.size() ) ) )
+#define CARRAY_FLOAT_WRAPPER(arr) CARRAY_WRAPPER(float, arr)
+#define CARRAY_INT_WRAPPER(arr) CARRAY_WRAPPER(int, arr)
 
 #define FLOAT_WRAPPER(arr) CFloatWrapper( MathEngine(), (arr), (int)sizeof(arr) / sizeof(float) )
 #define FLOAT_WRAPPER_MATHENGINE(mathEngine, arr) CFloatWrapper( mathEngine, (arr), (int)sizeof(arr) / sizeof(float) )
 #define INT_WRAPPER(arr) CIntWrapper( MathEngine(), (arr), (int)sizeof(arr) / sizeof(int) )
 #define INT_WRAPPER_MATHENGINE(mathEngine, arr) CIntWrapper( mathEngine, (arr), (int)sizeof(arr) / sizeof(int) )
 
-#define CREATE_FILL_FLOAT_ARRAY(arr, min, max, size, random) \
-	std::vector<float> arr; \
+#define CREATE_FILL_ARRAY(TYPE, arr, min, max, size, random) \
+	std::vector<TYPE> arr; \
 	arr.resize( size ); \
 	for(int i = 0; i < size; ++i) { \
-        arr[i] = static_cast<float>( random.Uniform( min, max ) ); \
+		arr[i] = static_cast<TYPE>( random.Uniform( min, max ) ); \
 	}
 
+#define CREATE_FILL_FLOAT_ARRAY(arr, min, max, size, random) \
+	CREATE_FILL_ARRAY(float, arr, min, max, size, random)
+
+// Leaving CREATE_FILL_INT_ARRAY as it was before CREATE_FILL_ARRAY
+// for the sake of backward compatibility
 #define CREATE_FILL_INT_ARRAY(arr, min, max, size, random) \
 	std::vector<int> arr; \
 	arr.resize( size ); \
 	for(int i = 0; i < size; ++i) { \
-        arr[i] = random.UniformInt( min, max ); \
+		arr[i] = random.UniformInt( min, max ); \
 	}
 
 //------------------------------------------------------------------------------------------------------------

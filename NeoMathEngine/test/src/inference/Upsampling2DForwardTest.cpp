@@ -18,8 +18,9 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void upsampling2DNaive( const float* input, int inputHeight, int inputWidth, int inputChannels,
-	int batchSize, int heightCopyCount, int widthCopyCount, float* output )
+template<class T>
+static void upsampling2DNaive( const T* input, int inputHeight, int inputWidth, int inputChannels,
+	int batchSize, int heightCopyCount, int widthCopyCount, T* output )
 {
 	for( int b = 0; b < batchSize; ++b ) {
 		int inOffset = b * inputHeight * inputWidth * inputChannels;
@@ -42,6 +43,7 @@ static void upsampling2DNaive( const float* input, int inputHeight, int inputWid
 	}
 }
 
+template<class T>
 static void upsampling2DImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
@@ -61,28 +63,28 @@ static void upsampling2DImpl( const CTestParams& params, int seed )
 	const int heightCopyCount = random.UniformInt( heightCopyCountInterval.Begin, heightCopyCountInterval.End );
 	const int widthCopyCount = random.UniformInt( widthCopyCountInterval.Begin, widthCopyCountInterval.End );
 
-	CREATE_FILL_FLOAT_ARRAY( inputData, valuesInterval.Begin, valuesInterval.End, batchSize * inputHeight * inputWidth * inputChannels, random )
-	CFloatBlob inputBlob( MathEngine(), batchSize, inputHeight, inputWidth, 1, inputChannels );
+	CREATE_FILL_ARRAY( T, inputData, valuesInterval.Begin, valuesInterval.End, batchSize * inputHeight * inputWidth * inputChannels, random )
+	CBlob<T> inputBlob( MathEngine(), batchSize, inputHeight, inputWidth, 1, inputChannels );
 	inputBlob.CopyFrom( inputData.data() );
 
 	const int outHeight = inputHeight * heightCopyCount;
 	const int outWidth = inputWidth * widthCopyCount;
 	const int outChannels = inputChannels;
-	CFloatBlob outBlob( MathEngine(), batchSize, outHeight, outWidth, 1, outChannels );
+	CBlob<T> outBlob( MathEngine(), batchSize, outHeight, outWidth, 1, outChannels );
 
 	MathEngine().Upsampling2DForward( inputBlob.GetDesc(), inputBlob.GetData(),
 		heightCopyCount, widthCopyCount, outBlob.GetDesc(), outBlob.GetData() );
 
-	std::vector<float> resultData;
+	std::vector<T> resultData;
 	resultData.resize( batchSize * outHeight * outWidth * outChannels );
 	outBlob.CopyTo( resultData.data() );
 
-	std::vector<float> expectedData;
+	std::vector<T> expectedData;
 	expectedData.resize( batchSize * outHeight * outWidth * outChannels );
 	upsampling2DNaive( inputData.data(), inputHeight, inputWidth, inputChannels, batchSize, heightCopyCount, widthCopyCount, expectedData.data() );
 
 	for( size_t i = 0; i < resultData.size(); i++ ) {
-		ASSERT_NEAR( expectedData[i], resultData[i], 1e-3f );
+		ASSERT_EQ( expectedData[i], resultData[i] );
 	}
 }
 
@@ -108,5 +110,6 @@ INSTANTIATE_TEST_CASE_P(CMathEngineUpsampling2DForwardTestInstantiation, CMathEn
 
 TEST_P(CMathEngineUpsampling2DForwardTest, Random )
 {
-	RUN_TEST_IMPL( upsampling2DImpl );
+	RUN_TEST_IMPL( upsampling2DImpl<float> );
+	RUN_TEST_IMPL( upsampling2DImpl<int> );
 }

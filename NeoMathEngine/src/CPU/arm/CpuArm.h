@@ -145,6 +145,18 @@ inline void StoreIntNeon(const int32x4_t& val, int* data, int count)
     StoreNeon4(varPrefix##2, dst + 4 * 2); \
     StoreNeon4(varPrefix##3, dst + 4 * 3);
 
+#define NEON_LOAD_16_INTS(varPrefix, src) \
+    int32x4_t varPrefix##0 = LoadIntNeon4(src + 4 * 0); \
+    int32x4_t varPrefix##1 = LoadIntNeon4(src + 4 * 1); \
+    int32x4_t varPrefix##2 = LoadIntNeon4(src + 4 * 2); \
+    int32x4_t varPrefix##3 = LoadIntNeon4(src + 4 * 3);
+
+#define NEON_STORE_16_INTS(varPrefix, dst) \
+    StoreIntNeon4(varPrefix##0, dst + 4 * 0); \
+    StoreIntNeon4(varPrefix##1, dst + 4 * 1); \
+    StoreIntNeon4(varPrefix##2, dst + 4 * 2); \
+    StoreIntNeon4(varPrefix##3, dst + 4 * 3);
+
 inline void dataCopy(float* dst, const float* src, int vectorSize)
 {
 	int count = GetCount4(vectorSize);

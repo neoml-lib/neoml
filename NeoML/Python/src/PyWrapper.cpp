@@ -32,11 +32,13 @@ limitations under the License.
 #include "PyBatchNormalizationLayer.h"
 #include "PyBaseConvLayer.h"
 #include "PyBinarizationLayer.h"
+#include "PyCastLayer.h"
 #include "PyConvLayer.h"
 #include "PyConcatLayer.h"
 #include "PyCrfLayer.h"
 #include "PyCtcLayer.h"
 #include "PyCustomLossLayer.h"
+#include "PyDataLayer.h"
 #include "PyDotProductLayer.h"
 #include "PyDropoutLayer.h"
 #include "PyFullyConnectedLayer.h"
@@ -98,10 +100,12 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeBaseConvLayer( m );
 	InitializeBatchNormalizationLayer( m );
 	InitializeBinarizationLayer( m );
+	InitializeCastLayer( m );
 	InitializeConvLayer( m );
 	InitializeConcatLayer( m );
 	InitializeCrfLayer( m );
 	InitializeCtcLayer( m );
+	InitializeDataLayer( m );
 	InitializeEltwiseLayer( m );
 	InitializeDotProductLayer( m );
 	InitializeDropoutLayer( m );
