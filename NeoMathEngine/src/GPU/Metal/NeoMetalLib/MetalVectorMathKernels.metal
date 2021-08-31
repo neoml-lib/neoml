@@ -1223,13 +1223,38 @@ kernel void vectorKernelAddValueInt( constant int* first [[buffer(0)]],
     }
 }
 
-kernel void vectorKernelSub( constant float* first [[buffer(0)]],
-                             constant float* second [[buffer(1)]],
-                             device float* result [[buffer(2)]],
-                             constant int* count [[buffer(3)]],
-                             uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
-                             uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
-                             uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+kernel void vectorKernelSubInt( constant int* first [[buffer(0)]],
+                                constant int* second [[buffer(1)]],
+                                device int* result [[buffer(2)]],
+                                constant int* count [[buffer(3)]],
+                                uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+{
+    C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
+    int index;
+    int step;
+    int actionCount = pos.GetMetalTaskCountAndIndex( *count, VectorCombineCount, index, step );
+    
+    first += index;
+    second += index;
+    result += index;
+    
+    for(int i = 0; i < actionCount; ++i) {
+        *result = *first - *second;
+        first += step;
+        second += step;
+        result += step;
+    }
+}
+
+kernel void vectorKernelSubFloat( constant float* first [[buffer(0)]],
+                                  constant float* second [[buffer(1)]],
+                                  device float* result [[buffer(2)]],
+                                  constant int* count [[buffer(3)]],
+                                  uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                  uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                  uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
 {
     C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
     int index;
@@ -1769,15 +1794,15 @@ kernel void vectorKernelAddHeightIndexInt( constant int* input [[buffer(0)]],
     }
 }
   
-kernel void matrixKernelBatchVectorChannelLookupAndCopyFloat( constant int* batchSize [[buffer(0)]],
-                                                              constant const float* input [[buffer(1)]],
-                                                              constant int* inputChannels [[buffer(2)]],
-                                                              constant float* lookup [[buffer(3)]],
-                                                              constant int* vectorSize [[buffer(4)]],
-                                                              device float* output [[buffer(5)]],
-                                                              constant int* outputChannels [[buffer(6)]],
-                                                              constant int* batchNorm [[buffer(7)]],
-                                                              uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
+kernel void matrixKernelBatchVectorChannelLookupAndCopyFloatIndicesFloatData( constant int* batchSize [[buffer(0)]],
+                                                                              constant const float* input [[buffer(1)]],
+                                                                              constant int* inputChannels [[buffer(2)]],
+                                                                              constant float* lookup [[buffer(3)]],
+                                                                              constant int* vectorSize [[buffer(4)]],
+                                                                              device float* output [[buffer(5)]],
+                                                                              constant int* outputChannels [[buffer(6)]],
+                                                                              constant int* batchNorm [[buffer(7)]],
+                                                                              uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
 {
     C2DPosition pos( thread_position_in_grid );
     int b;
@@ -1803,15 +1828,15 @@ kernel void matrixKernelBatchVectorChannelLookupAndCopyFloat( constant int* batc
     }
 }
     
-kernel void matrixKernelBatchVectorChannelLookupAndCopyInt( constant int* batchSize [[buffer(0)]],
-                                                            constant const int* input [[buffer(1)]],
-                                                            constant int* inputChannels [[buffer(2)]],
-                                                            constant float* lookup [[buffer(3)]],
-                                                            constant int* vectorSize [[buffer(4)]],
-                                                            device float* output [[buffer(5)]],
-                                                            constant int* outputChannels [[buffer(6)]],
-                                                            constant int* batchNorm [[buffer(7)]],
-                                                            uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
+kernel void matrixKernelBatchVectorChannelLookupAndCopyIntIndicesFloatData( constant int* batchSize [[buffer(0)]],
+                                                                            constant const int* input [[buffer(1)]],
+                                                                            constant int* inputChannels [[buffer(2)]],
+                                                                            constant float* lookup [[buffer(3)]],
+                                                                            constant int* vectorSize [[buffer(4)]],
+                                                                            device float* output [[buffer(5)]],
+                                                                            constant int* outputChannels [[buffer(6)]],
+                                                                            constant int* batchNorm [[buffer(7)]],
+                                                                            uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
 {
     C2DPosition pos( thread_position_in_grid );
     int b;
@@ -1837,14 +1862,48 @@ kernel void matrixKernelBatchVectorChannelLookupAndCopyInt( constant int* batchS
     }
 }
 
-kernel void matrixKernelBatchVectorChannelCopyFloat( constant int* batchSize [[buffer(0)]],
-                                                     constant float* input [[buffer(1)]],
-                                                     constant int* inputChannels [[buffer(2)]],
-                                                     constant int* vectorSize [[buffer(3)]],
-                                                     device float* output [[buffer(4)]],
-                                                     constant int* outputChannels [[buffer(5)]],
-                                                     constant int* batchNorm [[buffer(6)]],
-                                                     uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
+kernel void matrixKernelBatchVectorChannelLookupAndCopyIntIndicesIntData( constant int* batchSize [[buffer(0)]],
+                                                                          constant const int* input [[buffer(1)]],
+                                                                          constant int* inputChannels [[buffer(2)]],
+                                                                          constant int* lookup [[buffer(3)]],
+                                                                          constant int* vectorSize [[buffer(4)]],
+                                                                          device int* output [[buffer(5)]],
+                                                                          constant int* outputChannels [[buffer(6)]],
+                                                                          constant int* batchNorm [[buffer(7)]],
+                                                                          uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
+{
+    C2DPosition pos( thread_position_in_grid );
+    int b;
+    int index;
+    if( pos.GetMetalTaskIndex2D( *batchNorm, *vectorSize, b, index ) ) {
+        b *= MatrixCombineCount;
+        int bLast = b + MatrixCombineCount;
+        if( bLast > *batchSize ) {
+            bLast = *batchSize;
+        }
+        
+        int count = bLast - b;
+        
+        input += b * *inputChannels;
+        output += b * *outputChannels + index;
+        lookup += index;
+        for( int k = 0; k < count; ++k ) {
+            int tableIndex = (int)(*input);
+            input += *inputChannels;
+            *output = lookup[tableIndex * *vectorSize];
+            output += *outputChannels;
+        }
+    }
+}
+
+kernel void matrixKernelBatchVectorChannelCopyFloatIndicesFloatData( constant int* batchSize [[buffer(0)]],
+                                                                     constant float* input [[buffer(1)]],
+                                                                     constant int* inputChannels [[buffer(2)]],
+                                                                     constant int* vectorSize [[buffer(3)]],
+                                                                     device float* output [[buffer(4)]],
+                                                                     constant int* outputChannels [[buffer(5)]],
+                                                                     constant int* batchNorm [[buffer(6)]],
+                                                                     uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
 {
     C2DPosition pos( thread_position_in_grid );
     int b;
@@ -1869,15 +1928,15 @@ kernel void matrixKernelBatchVectorChannelCopyFloat( constant int* batchSize [[b
         output += *outputChannels;
     }
 }
-   
-kernel void matrixKernelBatchVectorChannelCopyInt( constant int* batchSize [[buffer(0)]],
-                                                   constant int* input [[buffer(1)]],
-                                                   constant int* inputChannels [[buffer(2)]],
-                                                   constant int* vectorSize [[buffer(3)]],
-                                                   device float* output [[buffer(4)]],
-                                                   constant int* outputChannels [[buffer(5)]],
-                                                   constant int* batchNorm [[buffer(6)]],
-                                                   uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
+
+kernel void matrixKernelBatchVectorChannelCopyIntIndicesFloatData( constant int* batchSize [[buffer(0)]],
+                                                                   constant int* input [[buffer(1)]],
+                                                                   constant int* inputChannels [[buffer(2)]],
+                                                                   constant int* vectorSize [[buffer(3)]],
+                                                                   device float* output [[buffer(4)]],
+                                                                   constant int* outputChannels [[buffer(5)]],
+                                                                   constant int* batchNorm [[buffer(6)]],
+                                                                   uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
 {
     C2DPosition pos( thread_position_in_grid );
     int b;
@@ -1902,7 +1961,40 @@ kernel void matrixKernelBatchVectorChannelCopyInt( constant int* batchSize [[buf
         output += *outputChannels;
     }
 }
+
+kernel void matrixKernelBatchVectorChannelCopyIntIndicesIntData( constant int* batchSize [[buffer(0)]],
+                                                                 constant int* input [[buffer(1)]],
+                                                                 constant int* inputChannels [[buffer(2)]],
+                                                                 constant int* vectorSize [[buffer(3)]],
+                                                                 device int* output [[buffer(4)]],
+                                                                 constant int* outputChannels [[buffer(5)]],
+                                                                 constant int* batchNorm [[buffer(6)]],
+                                                                 uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
+{
+    C2DPosition pos( thread_position_in_grid );
+    int b;
+    int index;
+    if( !pos.GetMetalTaskIndex2D( *batchNorm, *vectorSize, b, index ) ) {
+        return;
+    }
     
+    b *= MatrixCombineCount;
+    int bLast = b + MatrixCombineCount;
+    if( bLast > *batchSize ) {
+        bLast = *batchSize;
+    }
+    
+    int count = bLast - b;
+    
+    input += b * *inputChannels;
+    output += b * *outputChannels + index;
+    for( int k = 0; k < count; ++k ) {
+        *output = *input;
+        input += *inputChannels;
+        output += *outputChannels;
+    }
+}
+
 kernel void matrixKernelBatchVectorChannelLookupAndAddToTableFloat( constant int* batchSize [[buffer(0)]],
                                                                     constant float* input [[buffer(1)]],
                                                                     constant int* inputIndex [[buffer(2)]],
@@ -2153,17 +2245,46 @@ kernel void vectorKernelBitSetBinarization( constant int* batchSize [[buffer(0)]
     }
 }
 
-kernel void matrixKernelUpsampling2DForward( constant int* heightCopyCount [[buffer(0)]],
-                                             constant int* widthCopyCount [[buffer(1)]],
-                                             constant int* pixelSize [[buffer(2)]],
-                                             constant int* batchSize [[buffer(3)]],
-                                             constant int* inputHeight [[buffer(4)]],
-                                             constant int* inputRowSize [[buffer(5)]],
-                                             constant float* input [[buffer(6)]],
-                                             constant int* resultHeight [[buffer(7)]],
-                                             constant int* resultRowSize [[buffer(8)]],
-                                             device float* result [[buffer(9)]],
-                                             uint2 thread_position_in_grid [[ thread_position_in_grid ]]  )
+kernel void matrixKernelUpsampling2DForwardInt( constant int* heightCopyCount [[buffer(0)]],
+                                                constant int* widthCopyCount [[buffer(1)]],
+                                                constant int* pixelSize [[buffer(2)]],
+                                                constant int* batchSize [[buffer(3)]],
+                                                constant int* inputHeight [[buffer(4)]],
+                                                constant int* inputRowSize [[buffer(5)]],
+                                                constant int* input [[buffer(6)]],
+                                                constant int* resultHeight [[buffer(7)]],
+                                                constant int* resultRowSize [[buffer(8)]],
+                                                device int* result [[buffer(9)]],
+                                                uint2 thread_position_in_grid [[ thread_position_in_grid ]]  )
+{
+    C2DPosition pos( thread_position_in_grid );
+    
+    int resultI;
+    int resultJ;
+    if( !pos.GetMetalTaskIndex2D( *resultHeight, *resultRowSize, resultI, resultJ ) ) {
+        return;
+    }
+    const int inputI = resultI / *heightCopyCount;
+    const int inputJ = ( resultJ / *pixelSize / *widthCopyCount ) * *pixelSize + resultJ % *pixelSize;
+    
+    for( int batchIndex = 0; batchIndex < *batchSize; ++batchIndex ) {
+        *( result + resultI * *resultRowSize + resultJ ) = *( input + inputI * *inputRowSize + inputJ );
+        input += *inputHeight * *inputRowSize;
+        result += *resultHeight * *resultRowSize;
+    }
+}
+
+kernel void matrixKernelUpsampling2DForwardFloat( constant int* heightCopyCount [[buffer(0)]],
+                                                  constant int* widthCopyCount [[buffer(1)]],
+                                                  constant int* pixelSize [[buffer(2)]],
+                                                  constant int* batchSize [[buffer(3)]],
+                                                  constant int* inputHeight [[buffer(4)]],
+                                                  constant int* inputRowSize [[buffer(5)]],
+                                                  constant float* input [[buffer(6)]],
+                                                  constant int* resultHeight [[buffer(7)]],
+                                                  constant int* resultRowSize [[buffer(8)]],
+                                                  device float* result [[buffer(9)]],
+                                                  uint2 thread_position_in_grid [[ thread_position_in_grid ]]  )
 {
     C2DPosition pos( thread_position_in_grid );
     

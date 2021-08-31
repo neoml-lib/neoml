@@ -53,7 +53,8 @@ set(SHADER_SOURCES
     VectorAddInt.comp 
     VectorSum.comp 
     VectorEqual.comp
-    VectorSub.comp 
+    VectorSubInt.comp 
+    VectorSubFloat.comp 
     VectorMultiplyAndAdd.comp 
     VectorMultiplyAndSub.comp 
     VectorMultiplyInt.comp
@@ -80,7 +81,8 @@ set(SHADER_SOURCES
     VectorEltwiseLogSumExp.comp 
     SetVectorToMatrixElements.comp 
     LookupAndSum.comp 
-    Upsampling2DForward.comp
+    Upsampling2DForwardInt.comp
+    Upsampling2DForwardFloat.comp
     FindMaxValueInRows.comp 
     FindMaxValueInRowsNoIndices.comp 
     FindMaxValueInColumns.comp
@@ -127,10 +129,12 @@ set(SHADER_SOURCES
     BlobConvertFromRLE.comp
     BlobSplitByDim.comp
     BlobMergeByDim.comp
-    VectorMultichannelLookupAndCopyFloat.comp
-    VectorMultichannelCopyFloat.comp
-    VectorMultichannelLookupAndCopyInt.comp
-    VectorMultichannelCopyInt.comp
+    VectorMultichannelLookupAndCopyFloatIndicesFloatData.comp
+    VectorMultichannelLookupAndCopyIntIndicesFloatData.comp
+    VectorMultichannelLookupAndCopyIntIndicesIntData.comp
+    VectorMultichannelCopyFloatIndicesFloatData.comp
+    VectorMultichannelCopyIntIndicesFloatData.comp
+    VectorMultichannelCopyIntIndicesIntData.comp
     BlobTimeConvolutionPrepare.comp
     PrepareBlobForConvolution.comp
     BlobReorgFloat.comp
