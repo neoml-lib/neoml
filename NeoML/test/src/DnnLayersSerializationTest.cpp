@@ -115,6 +115,7 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CEltwiseSumLayer>( "FmlCnnEltwiseSumLayer" );
 	serializeToFile<CEltwiseSubLayer>( "NeoMLDnnEltwiseSubLayer" );
 	serializeToFile<CEltwiseMulLayer>( "FmlCnnEltwiseMulLayer" );
+	serializeToFile<CEltwiseDivLayer>( "NeoMLDnnEltwiseDivLayer" );
 	serializeToFile<CEltwiseNegMulLayer>( "FmlCnnEltwiseNegMulLayer" );
 	serializeToFile<CEltwiseMaxLayer>( "FmlCnnEltwiseMaxLayer" );
 	serializeToFile<CAbsLayer>( "FmlCnnAbsLayer" );
@@ -212,6 +213,7 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseSumLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnEltwiseSubLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseMulLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnEltwiseDivLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseNegMulLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseMaxLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnAbsLayer" );
