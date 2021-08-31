@@ -26,7 +26,7 @@ namespace NeoML {
 // input[0].Channels must be equal to input[1].Height * input[1].Width * input[1].Depth
 // BatchLength * BatchWidth * ListSize of both inputs must be equal
 // The result matrix size is (input[0].Height * input[0].Width * input[0].Depth) x input[1].Channels
-// All the output dimensions except for BD_Channels will be equal to the corresponding dimensions of the first input
+// All of the output dimensions (except for BD_Channels) will be equal to the corresponding dimensions of the first input
 // BD_Channels of the output will be equal to the BD_Channels of the second input
 class NEOML_API CMatrixMultiplicationLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CMatrixMultiplicationLayer )
