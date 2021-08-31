@@ -884,6 +884,14 @@ public:
 	virtual void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) = 0;
+
+	// CTC auxiliary functions
+	// Fills with padding elements outside of sequences
+	// e.g. if seqLens[i] == 2 then first 2 elements will be saved and all the others will be filled with paddings
+	// Padding depends on the blankLabel value. If blankLabel is -1 then data is padded with zeros.
+	// Otherwise it's padded with log(one-hot(blankLabel))
+	virtual void CtcFillPadding( int maxSeqLen, int batchSize, int objSize, int blankLabel, const CFloatHandle& data,
+		const CConstIntHandle& seqLens ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

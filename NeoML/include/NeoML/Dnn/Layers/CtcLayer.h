@@ -101,7 +101,6 @@ private:
 	CPtr<CDnnBlob> logBetaPrev2; // the blob with logarithms of suffixes shifted 2 steps back in time { 2 * LabelLength + 1, BW }
 	CPtr<CDnnBlob> resultProb; // softmax(I_Result)	{ InputLength, BW, Classes }
 	CPtr<CDnnBlob> resultLogProb; // log(softmax(I_Result)) { InputLength, BW, Classes }
-	CPtr<CDnnBlob> paddingResultValue; // contains the padding for the result { Classes }
 
 	CPtr<CDnnBlob> resultProbWindow;
 	CPtr<CDnnBlob> resultLogProbWindow;
@@ -132,8 +131,6 @@ private:
 	void calculateBackwardVariables( CDnnBlob* labelsLength, CDnnBlob* inputsLengths );
 	void calculateGradient(CFloatHandle totalLogProb);
 	void calculateBlankSkipMasks();
-	void applyInputLengthsPadding( CDnnBlob* inputLengths, CDnnBlob* paddingBlob,
-		CDnnBlob* targetBlob, CDnnBlob* targetBlobWindow );
 };
 
 NEOML_API CLayerWrapper<CCtcLossLayer> CtcLoss( int blankLabel, bool allowBlankLabelSkip,

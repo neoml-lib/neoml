@@ -648,4 +648,21 @@ __global__ void IndRnnRecurrentLearnKernel( bool reverse, int sequenceLength, in
 	}
 }
 
+__global__ void CtcFillPaddingKernel( int maxSeqLen, int batchSize, int classCount, int blankLabel,
+	float* data, const int* seqLens )
+{
+	int seq, b, classIndex;
+	if( !GetCudaTaskIndex3D( maxSeqLen, batchSize, classCount, seq, b, classIndex ) ) {
+		return;
+	}
+
+	if( seq < seqLens[b] ) {
+		return;
+	}
+
+	const float fillValue = blankLabel == -1 ? 0.f
+		: ( classIndex == blankLabel ? -FLT_MIN * 2 : -FLT_MAX / 4 );
+	data[(seq * batchSize + b) * classCount + classIndex] = fillValue;
+}
+
 } // namespace NeoML

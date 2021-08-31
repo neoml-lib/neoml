@@ -494,6 +494,7 @@ void CCudaMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int object
 	ASSERT_EXPR( forget.GetMathEngine() == this );
 	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -519,6 +520,7 @@ void CCudaMathEngine::QrnnFPoolingBackward( bool reverse, int sequenceLength, in
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( updateDiff.GetMathEngine() == this );
 	ASSERT_EXPR( forgetDiff.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -542,6 +544,7 @@ void CCudaMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int objec
 	ASSERT_EXPR( input.GetMathEngine() == this );
 	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -569,6 +572,7 @@ void CCudaMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, i
 	ASSERT_EXPR( updateDiff.GetMathEngine() == this );
 	ASSERT_EXPR( forgetDiff.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiff.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -592,6 +596,7 @@ void CCudaMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int bat
 	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
 	ASSERT_EXPR( u.GetMathEngine() == this );
 	ASSERT_EXPR( h.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -613,6 +618,7 @@ void CCudaMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength,
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( wxDiff.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -634,6 +640,7 @@ void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, in
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( uDiff.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -641,6 +648,21 @@ void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, in
 
 	IndRnnRecurrentLearnKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
 		mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ), GetRaw( uDiff ) );
+}
+
+void CCudaMathEngine::CtcFillPadding( int maxSeqLen, int batchSize, int objSize, int blankLabel,
+	const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() ==  this );
+	ASSERT_EXPR( seqLensHandle.GetMathEngine() == this );
+	ASSERT_EXPR( ( blankLabel >= 0 && blankLabel < maxSeqLen ) || blankLabel == -1 );
+	SetCudaDevice( device->DeviceNumber );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid3D( blockCount, threadCount, maxSeqLen, batchSize, objSize );
+	CtcFillPaddingKernel<<<blockCount, threadCount>>>( maxSeqLen, batchSize, objSize, blankLabel,
+		GetRaw( dataHandle ), GetRaw( seqLensHandle ) );
 }
 
 } // namespace NeoML

@@ -511,6 +511,8 @@ public:
 	void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) override;
+	void CtcFillPadding( int maxSeqLen, int batchSize, int objSize, int blankLabel, const CFloatHandle& data,
+		const CConstIntHandle& seqLens ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 

@@ -178,7 +178,6 @@ void CCtcLossLayer::Reshape()
 
 	// The padding blob
 	const int classesCount = inputDescs[I_Result].ObjectSize();
-	paddingResultValue = CDnnBlob::CreateVector( MathEngine(), CT_Float, classesCount );
 
 	resultProb = CDnnBlob::CreateBlob( MathEngine(), inputDescs[I_Result] );
 	resultLogProb = resultProb->GetClone();
@@ -347,22 +346,23 @@ void CCtcLossLayer::calculateBackwardVariables( CDnnBlob* labelsLengths, CDnnBlo
 // Calculates the loss function gradient
 void CCtcLossLayer::calculateGradient(CFloatHandle totalLogProb)
 {
-	if(lossGradient == 0) {
+	if( lossGradient == 0 ) {
 		lossGradient = inputBlobs[I_Result]->GetClone();
-		lossGradientWindow = CDnnBlob::CreateWindowBlob(lossGradient, 1);
+		lossGradientWindow = CDnnBlob::CreateWindowBlob( lossGradient, 1 );
 	}
+
 	const int T = logAlpha->GetBatchLength(); // the number of "time moments"
 
 // See Alex Graves "Supervised Sequence Labelling with Recurrent Neural Networks", 
 // chapter 7.4.1
-	for(int t = 0; t < T; t++) {
-		probSum->Fill(logZero);
-		resultProbWindow->SetParentPos(t);
-		logAlphaWindow->SetParentPos(t);
-		logBetaWindow->SetParentPos(t);
-		lossGradientWindow->SetParentPos(t);
-		MathEngine().VectorAdd(logAlphaWindow->GetData(), logBetaWindow->GetData(),
-			logAlphaBeta->GetData(), logAlphaBeta->GetDataSize());
+	for( int t = 0; t < T; t++ ) {
+		probSum->Fill( logZero );
+		resultProbWindow->SetParentPos( t );
+		logAlphaWindow->SetParentPos( t );
+		logBetaWindow->SetParentPos( t );
+		lossGradientWindow->SetParentPos( t );
+		MathEngine().VectorAdd( logAlphaWindow->GetData(), logBetaWindow->GetData(),
+			logAlphaBeta->GetData(), logAlphaBeta->GetDataSize() );
 
 		if( allowBlankLabelSkip ) {
 			// For the sake of computational stability
@@ -371,23 +371,24 @@ void CCtcLossLayer::calculateGradient(CFloatHandle totalLogProb)
 				totalLogProb, inputBlobs[I_Result]->GetBatchWidth() );
 		}
 
-		MathEngine().EltwiseLogSumExpVectorToMatrixElements(probSum->GetData(), 
+		MathEngine().EltwiseLogSumExpVectorToMatrixElements( probSum->GetData(),
 			probSum->GetBatchWidth(), probSum->GetObjectSize(),
-			rowIndices->GetData<int>(), paddedLabels->GetData<int>(), 
-			logAlphaBeta->GetData(), logAlphaBeta->GetDataSize());
+			rowIndices->GetData<int>(), paddedLabels->GetData<int>(),
+			logAlphaBeta->GetData(), logAlphaBeta->GetDataSize() );
 
-		MathEngine().SubVectorFromMatrixColumns(probSum->GetData(), probSum->GetData(),
-			probSum->GetBatchWidth(), probSum->GetObjectSize(), totalLogProb);
-		MathEngine().VectorExp(probSum->GetData(), probSum->GetData(), 
-			probSum->GetDataSize());
+		MathEngine().SubVectorFromMatrixColumns( probSum->GetData(), probSum->GetData(),
+			probSum->GetBatchWidth(), probSum->GetObjectSize(), totalLogProb );
+		MathEngine().VectorExp( probSum->GetData(), probSum->GetData(),
+			probSum->GetDataSize() );
 
-		MathEngine().VectorSub(resultProbWindow->GetData(), probSum->GetData(),
-			lossGradientWindow->GetData(), lossGradientWindow->GetDataSize());
+		MathEngine().VectorSub( resultProbWindow->GetData(), probSum->GetData(),
+			lossGradientWindow->GetData(), lossGradientWindow->GetDataSize() );
 	}
+
 	// For the elements after the input sequence end the gradient is 0
 	if( inputBlobs.Size() > I_InputLengths ) {
-		paddingResultValue->Fill( 0.0f );
-		applyInputLengthsPadding( inputBlobs[I_InputLengths], paddingResultValue, lossGradient, lossGradientWindow );
+		MathEngine().CtcFillPadding( lossGradient->GetBatchLength(), lossGradient->GetBatchWidth() * lossGradient->GetListSize(),
+			lossGradient->GetObjectSize(), -1, lossGradient->GetData(), inputBlobs[I_InputLengths]->GetData<int>() );
 	}
 }
 
@@ -407,39 +408,6 @@ void CCtcLossLayer::calculateBlankSkipMasks()
 		blankSkipMask->GetDataSize(), logZeroVal );
 }
 
-// Fills the sequence ends (the elements after inputLengths[i]) in targetBlob with the paddingBlob values
-// [[t_11, t_12, t_13, t_14, t_15], [t_21, t_22, t_23, t_24, t_25]]; [i_1 = 3, i_2 = 4]; pad 
-//		=> [[t_11, t_12, t_13, pad, pad], [t_21, t_22, t_23, t_24, pad]]
-void CCtcLossLayer::applyInputLengthsPadding( CDnnBlob* inputLengths, CDnnBlob* paddingBlob, 
-	CDnnBlob* targetBlob, CDnnBlob* targetBlobWindow )
-{
-	NeoAssert( paddingBlob->GetDataSize() == targetBlobWindow->GetObjectSize() );
-	if( inputLengths == 0 ) {
-		return;
-	}
-	const int maxInputLength = targetBlob->GetBatchLength();
-	const int batchWidth = targetBlob->GetBatchWidth();
-	const int classesCount = targetBlob->GetObjectSize();
-
-	CArray<int> buffer;
-	buffer.SetSize( batchWidth );
-	inputLengths->CopyTo( buffer.GetPtr() );
-	int minLength = maxInputLength;
-	for( int i = 0; i < buffer.Size(); ++i ) {
-		if( buffer[i] < minLength ) {
-			minLength = buffer[i];
-		}
-	}
-	for( int timePosition = maxInputLength - 1; timePosition >= minLength; --timePosition ) {
-		targetBlobWindow->SetParentPos( timePosition );
-		for( int batchIndex = 0; batchIndex < batchWidth; ++batchIndex ) {
-			if( buffer[batchIndex] <= timePosition ) {
-				MathEngine().VectorCopy( targetBlobWindow->GetObjectData( batchIndex ), paddingBlob->GetData(), classesCount );
-			}
-		}
-	}
-}
-
 void CCtcLossLayer::RunOnce()
 {
 	CDnnBlob* labelsLengths =
@@ -454,53 +422,54 @@ void CCtcLossLayer::RunOnce()
 	}
 	// Insert spaces
 	CIntHandleStackVar fillValue( MathEngine() );
-	fillValue.SetValue(blankLabel);
-	MathEngine().MatrixSpreadRows(inputBlobs[I_Labels]->GetData<int>(), 
+	fillValue.SetValue( blankLabel );
+	MathEngine().MatrixSpreadRows( inputBlobs[I_Labels]->GetData<int>(),
 		inputBlobs[I_Labels]->GetBatchLength(), inputBlobs[I_Labels]->GetBatchWidth(),
-		paddedLabels->GetData<int>(), paddedLabels->GetBatchLength(), 
-		labelRows->GetData<int>(), fillValue);
+		paddedLabels->GetData<int>(), paddedLabels->GetBatchLength(),
+		labelRows->GetData<int>(), fillValue );
 
 	if( allowBlankLabelSkip ) {
 		calculateBlankSkipMasks();
 	}
 
 	// Calculate the log(softmax) for the input results
-	MathEngine().MatrixSoftmaxByRows(inputBlobs[I_Result]->GetData(), 
-		inputBlobs[I_Result]->GetObjectCount(), inputBlobs[I_Result]->GetObjectSize(), 
-		resultProb->GetData());
-	MathEngine().VectorLog(resultProb->GetData(), resultLogProb->GetData(), 
-		resultLogProb->GetDataSize());
+	MathEngine().MatrixSoftmaxByRows( inputBlobs[I_Result]->GetData(),
+		inputBlobs[I_Result]->GetObjectCount(), inputBlobs[I_Result]->GetObjectSize(),
+		resultProb->GetData() );
+	MathEngine().VectorLog( resultProb->GetData(), resultLogProb->GetData(),
+		resultLogProb->GetDataSize() );
 
-	// Fill the ends with blanks
-	paddingResultValue->Fill( logZero );
-	paddingResultValue->GetData().SetValueAt( blankLabel, logOneNeg );
-	applyInputLengthsPadding( inputLengths, paddingResultValue, resultLogProb, resultLogProbWindow );
+	if( inputLengths != nullptr ) {
+		MathEngine().CtcFillPadding( resultLogProb->GetBatchLength(), resultLogProb->GetBatchWidth() * resultLogProb->GetListSize(),
+			resultLogProb->GetObjectSize(), blankLabel, resultLogProb->GetData(), inputLengths->GetData<int>() );
+	}
 
 	// Calculate the logarithm of prefix probability with a forward pass
 	calculateForwardVariables();
 	// Calculate the logarithm of suffix probability with a backward pass
 	calculateBackwardVariables( labelsLengths, inputLengths );
-	
-	CFloatHandleStackVar totalLogProb(MathEngine(), batchWidth);
+
+	CFloatHandleStackVar totalLogProb( MathEngine(), batchWidth );
+
 	// Maximize the total logarithm of the probability of recognizing the correct sequence
-	logAlphaWindow->SetParentPos(0);
-	logBetaWindow->SetParentPos(0);
-	MathEngine().VectorAdd(logAlphaWindow->GetData(), logBetaWindow->GetData(), 
-		logAlphaBeta->GetData(), logAlphaBeta->GetDataSize());
+	logAlphaWindow->SetParentPos( 0 );
+	logBetaWindow->SetParentPos( 0 );
+	MathEngine().VectorAdd( logAlphaWindow->GetData(), logBetaWindow->GetData(),
+		logAlphaBeta->GetData(), logAlphaBeta->GetDataSize() );
 
 	// Calculate the total logarithm of the probability of recognizing
 	// the correct sequence by adding across all possible pairings
-	NeoAssert(logAlphaBeta->GetObjectSize() == batchWidth);
-	MathEngine().MatrixLogSumExpByColumns(logAlphaBeta->GetData(),
+	NeoAssert( logAlphaBeta->GetObjectSize() == batchWidth );
+	MathEngine().MatrixLogSumExpByColumns( logAlphaBeta->GetData(),
 		logAlphaBeta->GetBatchWidth(), logAlphaBeta->GetObjectSize(),
-		totalLogProb, batchWidth);
+		totalLogProb, batchWidth );
 
 	// Take weights into account
-	MathEngine().VectorDotProduct(weights->GetData(), totalLogProb, batchWidth,
-		loss->GetData());
+	MathEngine().VectorDotProduct( weights->GetData(), totalLogProb, batchWidth,
+		loss->GetData() );
 	// lossDivider is negative, so loss = -totalLogProb
-	MathEngine().VectorMultiply(loss->GetData(), loss->GetData(), 1,
-		lossDivider->GetData());
+	MathEngine().VectorMultiply( loss->GetData(), loss->GetData(), 1,
+		lossDivider->GetData() );
 
 	// Calculate the loss function gradient
 	if(IsBackwardPerformed()) {

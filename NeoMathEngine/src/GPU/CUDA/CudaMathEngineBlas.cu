@@ -216,11 +216,24 @@ void CCudaMathEngine::AddVectorToMatrixRows(int batchSize,
 
 	dim3 blockCount;
 	dim3 threadCount;
-	getCudaTaskGrid2D(blockCount, threadCount, batchSize * matrixHeight, widthNorm);
+	getCudaTaskGrid2DMinYX(1, device->ThreadMax3DCountX, blockCount, threadCount, batchSize * matrixHeight, widthNorm);
 
 	AddVectorToMatrixRowsKernel<<<blockCount, threadCount>>>(batchSize,
 		GetRaw(matrixHandle), GetRaw(resultHandle), matrixHeight,
 		matrixWidth, GetRaw(vectorHandle), widthNorm);
+
+	/*const int widthNorm = (matrixWidth + BatchAddVectorToMatrixRowsCombine - 1) /
+		BatchAddVectorToMatrixRowsCombine;
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid3DMinZYX( 1, 1, device->ThreadMax3DCountX, blockCount, threadCount, batchSize, matrixHeight, widthNorm);
+	const int sharedMem = threadCount.z * threadCount.x * BatchAddVectorToMatrixRowsCombine * sizeof( float );
+	ASSERT_EXPR( sharedMem < device->SharedMemoryLimit );
+
+	AddVectorToMatrixRowsKernel<<<blockCount, threadCount, sharedMem>>>(batchSize,
+		GetRaw(matrixHandle), GetRaw(resultHandle), matrixHeight,
+		matrixWidth, GetRaw(vectorHandle), widthNorm);*/
 }
 
 void CCudaMathEngine::AddVectorToMatrixColumns( const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,

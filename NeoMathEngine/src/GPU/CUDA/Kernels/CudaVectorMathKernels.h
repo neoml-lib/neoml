@@ -22,19 +22,14 @@ limitations under the License.
 
 namespace NeoML {
 
-const int VectorFillCombineCount = 8;
 template<class T>
 __global__ void VectorFillKernel(T* mem, T value, int count)
 {
-	int index;
-	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorFillCombineCount, index, step);
-
-	mem += index;
-
-	for(int i = 0; i < actionCount; ++i) {
-		*mem = value;
-		mem += step;
+	for( int index = blockIdx.x * blockDim.x + threadIdx.x;
+		index < count;
+		index += blockDim.x * gridDim.x )
+	{
+		mem[index] = value;
 	}
 }
 
@@ -124,11 +119,12 @@ __global__ void VectorFillBernoulliKernel( float* result, float p, int vectorSiz
 	}
 }
 
+const int FilterSmallValuesCombineCount = 8;
 __global__ void FilterSmallValuesKernel( float* data, float threshold, int count )
 {
 	int start;
 	int stepSize;
-	int stepCount = GetCudaTaskCountAndIndex( count, VectorFillCombineCount, start, stepSize );
+	int stepCount = GetCudaTaskCountAndIndex( count, FilterSmallValuesCombineCount, start, stepSize );
 
 	data += start;
 
@@ -848,24 +844,15 @@ __global__ void VectorBernulliKLDerivativeKernel(const float* __restrict__ first
 	}
 }
 
-const int VectorAddCombineCount = 8;
 template<class T>
 __global__ void VectorAddKernel(const T* __restrict__ first,
 	const T* __restrict__ second, T* result, int count)
 {
-	int index;
-	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorAddCombineCount, index, step);
-
-	first += index;
-	second += index;
-	result += index;
-
-	for(int i = 0; i < actionCount; ++i) {
-		*result = *first + *second;
-		first += step;
-		second += step;
-		result += step;
+	for( int index = blockIdx.x * blockDim.x + threadIdx.x;
+		index < count;
+		index += blockDim.x * gridDim.x )
+	{
+		result[index] = first[index] + second[index];
 	}
 }
 
@@ -989,33 +976,14 @@ __global__ void VectorNegMultiplyKernel(const float* __restrict__ first,
 	}
 }
 
-const int VectorEltwiseMultiplyCombineCount = 8;
 __global__ void VectorEltwiseMultiplyKernel(const float* __restrict__ first,
 	const float* __restrict__ second, float* result, int count)
 {
-	int index;
-	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseMultiplyCombineCount, index, step);
-
-	first += index;
-	second += index;
-	result += index;
-
-	if( actionCount == VectorEltwiseMultiplyCombineCount ) {
-		#pragma unroll
-		for(int i = 0; i < VectorEltwiseMultiplyCombineCount; ++i) {
-			*result = *first * ( *second );
-			first += step;
-			second += step;
-			result += step;
-		}
-	} else {
-		for(int i = 0; i < actionCount; ++i) {
-			*result = *first * ( *second );
-			first += step;
-			second += step;
-			result += step;
-		}
+	for( int index = blockIdx.x * blockDim.x + threadIdx.x;
+		index < count;
+		index += blockDim.x * gridDim.x )
+	{
+		result[index] = first[index] * second[index];
 	}
 }
 

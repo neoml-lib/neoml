@@ -17,6 +17,8 @@ limitations under the License.
 
 #ifdef NEOML_USE_CUDA
 
+#include <cstdint>
+
 #include <CudaMathEngine.h>
 #include <CudaDevice.h>
 #include <CudaAssert.h>
@@ -67,9 +69,8 @@ void CCudaMathEngine::VectorFill(const CFloatHandle& result, float value, int ve
 
 	int blockCount;
 	int threadCount;
-	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorFillCombineCount);
-
-	VectorFillKernel<<<blockCount, threadCount>>>(GetRaw(result), value, vectorSize);
+	getCudaOccupancyTaskGrid( static_cast<void*>( VectorFillKernel<float> ), blockCount, threadCount );
+	VectorFillKernel<<<blockCount, threadCount>>> ( GetRaw( result ), value, vectorSize );
 }
 
 void CCudaMathEngine::VectorFill(const CIntHandle& result, int value, int vectorSize)
@@ -79,9 +80,8 @@ void CCudaMathEngine::VectorFill(const CIntHandle& result, int value, int vector
 
 	int blockCount;
 	int threadCount;
-	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorFillCombineCount);
-
-	VectorFillKernel<<<blockCount, threadCount>>>(GetRaw(result), value, vectorSize);
+	getCudaOccupancyTaskGrid( static_cast<void*>( VectorFillKernel<int> ), blockCount, threadCount );
+	VectorFillKernel<<<blockCount, threadCount>>> ( GetRaw( result ), value, vectorSize );
 }
 
 void CCudaMathEngine::VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value)
@@ -156,7 +156,7 @@ void CCudaMathEngine::FilterSmallValues( const CFloatHandle& data, int dataSize,
 
 	int blockCount;
 	int threadCount;
-	getCudaTaskGrid( blockCount, threadCount, dataSize, VectorFillCombineCount );
+	getCudaTaskGrid( blockCount, threadCount, dataSize, FilterSmallValuesCombineCount );
 
 	FilterSmallValuesKernel<<<blockCount, threadCount>>>( GetRaw( data ), threshold, dataSize );
 }
@@ -819,10 +819,9 @@ void CCudaMathEngine::VectorAdd(const CConstFloatHandle& firstHandle, const CCon
 
 	int blockCount;
 	int threadCount;
-	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorAddCombineCount);
-
+	getCudaOccupancyTaskGrid( static_cast<void*>( VectorAddKernel<float> ), blockCount, threadCount );
 	VectorAddKernel<<<blockCount, threadCount>>>
-		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
+		( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCudaMathEngine::VectorAdd( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -835,8 +834,7 @@ void CCudaMathEngine::VectorAdd( const CConstIntHandle& firstHandle, const CCons
 
 	int blockCount;
 	int threadCount;
-	getCudaTaskGrid( blockCount, threadCount, vectorSize, VectorAddCombineCount );
-
+	getCudaOccupancyTaskGrid( static_cast<void*>( VectorAddKernel<float> ), blockCount, threadCount );
 	VectorAddKernel<<<blockCount, threadCount>>>
 		( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
 }
@@ -980,8 +978,7 @@ void CCudaMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle
 
 	int blockCount;
 	int threadCount;
-	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorEltwiseMultiplyCombineCount);
-
+	getCudaOccupancyTaskGrid(static_cast<void*>(VectorEltwiseMultiplyKernel), blockCount, threadCount);
 	VectorEltwiseMultiplyKernel<<<blockCount, threadCount>>>
 		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
 }

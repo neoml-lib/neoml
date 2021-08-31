@@ -191,6 +191,55 @@ __global__ void AddVectorToMatrixRowsKernel(int batchSize,
 		}
 	}
 }
+//__global__ void AddVectorToMatrixRowsKernel(int batchSize,
+//	const float* __restrict__ matrix, float* result, int matrixHeight,
+//	int matrixWidth, const float* __restrict__ vector, int widthNorm)
+//{
+//	extern __shared__ float buffer[];
+//	const int batch = blockIdx.z * blockDim.z + threadIdx.z;
+//	if( batch >= batchSize ) {
+//		return;
+//	}
+//	vector += batch * matrixWidth;
+//	matrix += batch * matrixHeight * matrixWidth;
+//	result += batch * matrixHeight * matrixWidth;
+//
+//	float* sharedVec = buffer + threadIdx.z * BatchAddVectorToMatrixRowsCombine * blockDim.x;
+//	const int shVecBase = blockIdx.x * blockDim.x * BatchAddVectorToMatrixRowsCombine;
+//	{
+//		const int threadIndex = threadIdx.y * blockDim.x + threadIdx.x;
+//		const int step = blockDim.y * blockDim.x;
+//		for( int index = threadIndex; index < BatchAddVectorToMatrixRowsCombine * blockDim.x; index += step ) {
+//			sharedVec[index] = vector[index - shVecBase];
+//		}
+//	}
+//
+//	__syncthreads();
+//
+//	const int yPos = blockIdx.y * blockDim.y + threadIdx.y;
+//	if( yPos < matrixHeight ) {
+//		const int matrixBaseIndex = yPos * matrixWidth;
+//		matrix += matrixBaseIndex;
+//		result += matrixBaseIndex;
+//
+//		int index;
+//		int step;
+//		int count = GetCudaTaskCountAndIndexX(matrixWidth, BatchAddVectorToMatrixRowsCombine, index, step);
+//
+//		if( count == BatchAddVectorToMatrixRowsCombine ) {
+//			#pragma unroll
+//			for(int i = 0; i < BatchAddVectorToMatrixRowsCombine; ++i) {
+//				result[index] = matrix[index] + sharedVec[index - shVecBase];
+//				index += step;
+//			}
+//		} else {
+//			for(int i = 0; i < count; ++i) {
+//				result[index] = matrix[index] + sharedVec[index - shVecBase];
+//				index += step;
+//			}
+//		}
+//	}
+//}
 
 template<class T>
 __global__ void AddVectorToMatrixColumnsKernel( const T* __restrict__ matrix, T* result,

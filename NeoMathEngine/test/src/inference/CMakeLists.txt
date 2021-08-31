@@ -23,6 +23,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobRleConvolutionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobSplitByDimTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobTimeConvolutionTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CtcFillPaddingTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DropoutTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/EnumBinarizationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiGpuMultiThreadTest.cpp

@@ -521,6 +521,8 @@ public:
 	void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) override;
+	void CtcFillPadding( int maxSeqLen, int batchSize, int objSize, int blankLabel, const CFloatHandle& data,
+		const CConstIntHandle& seqLens ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:
@@ -554,6 +556,7 @@ private:
 	void getCudaTaskGrid2DMinYX(int minY, int minX, dim3& blockCount, dim3& threadCount, int height, int width, int _maxThreadCount = UINT_MAX);
 	void getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3& blockCount, dim3& threadCount,
 		int batchSize, int height, int width, int _maxThreadCount = UINT_MAX);
+	void getCudaOccupancyTaskGrid( void* func, int& blockCount, int& threadCount );
 
 	template<class T>
 	void transposeMatrixImpl(int batchSize, const CTypedMemoryHandle<const T>& firstHandle,

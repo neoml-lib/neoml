@@ -86,6 +86,10 @@ struct CCudaRleImage {
 
 // Setting device
 void SetCudaDevice( int deviceNum );
+//------------------------------------------------------------------------------------------------------------
+
+// EXPERIMENTAL
+void GetCudaOccupancyTaskGrid( void* func, int& blockCount, int& threadCount, int taskCount, int combineCount = 1 );
 
 } // namespace NeoML
 

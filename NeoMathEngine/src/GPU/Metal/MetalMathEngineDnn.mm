@@ -589,6 +589,28 @@ void CMetalMathEngine::IndRnnRecurrentLearn( bool /*reverse*/, int /*sequenceLen
     ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::CtcPadSequence( int maxSeqLen, int batchSize, int classCount, int blankLabel,
+    const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() ==  this );
+	ASSERT_EXPR( seqLensHandle.GetMathEngine() == this );
+	ASSERT_EXPR( ( blankLabel >= 0 && blankLabel < maxSeqLen ) || blankLabel == -1 );
+
+	const float fillValue = blankLabel == -1 ? 0.f : -FLT_MAX / 4;
+
+	for( int b = 0; b < batchSize; ++b ) {
+		const int currLen = seqLensHandle.GetValueAt( b );
+		CFloatHandle currData = dataHandle + b * classCount + currLen * batchSize * classCount;
+		for( int seq = currLen; seq < maxSeqLen; ++seq ) {
+			VectorFill( currData, fillValue, classCount );
+			if( blankLabel != -1 ) {
+				currData.SetValueAt( blankLabel, -FLT_MIN * 2 );
+			}
+			currData += batchSize * classCount;
+		}
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL
