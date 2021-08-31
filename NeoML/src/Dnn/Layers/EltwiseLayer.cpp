@@ -173,6 +173,10 @@ void CEltwiseMulLayer::RunOnce()
 void CEltwiseMulLayer::BackwardOnce()
 {
 	int dataSize = inputDiffBlobs[0]->GetDataSize();
+	for( int i = 0; i < inputBlobs.Size(); ++i ) {
+		NeoAssert( inputBlobs[i]->GetDataType() == CT_Float );
+	}
+
 	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
 		for( int j = 0; j < inputBlobs.Size(); ++j ) {
 			if( i == j ) {
