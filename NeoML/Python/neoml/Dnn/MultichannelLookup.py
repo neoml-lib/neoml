@@ -17,6 +17,7 @@ limitations under the License.
 import numpy
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
+from .Initializer import Initializer
 from neoml.Utils import check_input_layers
 import neoml.Blob as Blob
 
@@ -136,7 +137,7 @@ class MultichannelLookup(Layer):
         if initializer is None:
             return self._internal.clear()
     
-        if not isinstance(initializer, Dnn.Initializer):
+        if not isinstance(initializer, Initializer):
             raise ValueError('The `initializer` must be an Initializer.')
 
         self._internal.initialize(initializer._internal)
