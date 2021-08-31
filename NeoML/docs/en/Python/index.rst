@@ -94,6 +94,7 @@ Tutorials
    tutorials/KMeans
    tutorials/Regressor
    tutorials/Boosting
+   tutorials/PortingNN
 
 Here are several guides that walk you through using NeoML for simple practical tasks, illustrating the specifics of building NeoML networks, working with the blob data format, and evaluating the performance.
 
@@ -104,6 +105,7 @@ Here are several guides that walk you through using NeoML for simple practical t
 - `k-means clustering <https://neoml.readthedocs.io/en/latest/tutorials/KMeans.html>`_
 - `Linear regressor <https://neoml.readthedocs.io/en/latest/tutorials/Regressor.html>`_
 - `Gradient tree boosting classifier <https://neoml.readthedocs.io/en/latest/tutorials/Boosting.html>`_
+- `Porting neural networks <https://neoml.readthedocs.io/en/latest/tutorials/PortingNN.html>`_
 
 Installation
 ############
