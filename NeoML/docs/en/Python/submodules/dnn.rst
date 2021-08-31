@@ -502,10 +502,22 @@ EltwiseSum
 .. autoclass:: neoml.Dnn.EltwiseSum
    :members:
 
+EltwiseSub
+==========
+
+.. autoclass:: neoml.Dnn.EltwiseSub
+   :members:
+
 EltwiseMul
 ==========
 
 .. autoclass:: neoml.Dnn.EltwiseMul
+   :members:
+
+EltwiseDiv
+==========
+
+.. autoclass:: neoml.Dnn.EltwiseDiv
    :members:
 
 EltwiseNegMul
@@ -736,10 +748,22 @@ SplitHeight
 .. autoclass:: neoml.Dnn.SplitHeight
    :members:
 
+SplitListSize
+-----------------
+
+.. autoclass:: neoml.Dnn.SplitListSize
+   :members:
+
 SplitBatchWidth
 -----------------
 
 .. autoclass:: neoml.Dnn.SplitBatchWidth
+   :members:
+
+SplitBatchLength
+-----------------
+
+.. autoclass:: neoml.Dnn.SplitBatchLength
    :members:
 
 .. _py-dnn-sequences:
