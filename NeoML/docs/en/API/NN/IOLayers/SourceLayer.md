@@ -10,7 +10,7 @@
 
 <!-- /TOC -->
 
-This class implements a layer that serves to input a blob of data into the neural network.
+This class implements a layer that serves to input a blob of user data into the neural network.
 
 ## Settings
 

@@ -2,7 +2,7 @@
 
 <!-- TOC -->
 
-- [CEltwiseSumLayer Class](#celtwisesumlayer-class)
+- [CEltwiseMulLayer Class](#celtwisemullayer-class)
     - [Settings](#settings)
     - [Trainable parameters](#trainable-parameters)
     - [Inputs](#inputs)
@@ -22,7 +22,7 @@ This layer has no trainable parameters.
 
 ## Inputs
 
-The layer should have at least two inputs. The [blobs](../DnnBlob.md) of all inputs should have the same dimensions.
+The layer should have at least two inputs with `float` or `int` data. The [blobs](../DnnBlob.md) of all inputs should have the same dimensions.
 
 ## Outputs
 

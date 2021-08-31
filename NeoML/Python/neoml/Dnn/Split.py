@@ -216,6 +216,55 @@ class SplitHeight(Layer):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
+class SplitListSize(Layer):
+    """The layer that splits an input blob along the ListSize dimension.
+    
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: object, tuple(object, int)
+    :param sizes: The sizes of the first one, two, or three parts. 
+        The final part size is what's left.
+    :type sizes: array of int, up to 3 elements
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with input data.
+        The dimensions:
+
+        - **ListSize** should not be less than the sum of sizes array elements.
+    
+    .. rubric:: Layer outputs:
+
+    The layer has at least len(sizes) outputs.
+    The dimensions:
+
+        - **ListSize** equals the corresponding element of sizes array, 
+          for the last output it is input **ListSize** minus the sum of sizes
+        - all other dimensions are the same as for the input
+    """
+    def __init__(self, input_layer, sizes, name=None):
+        if type(input_layer) is PythonWrapper.SplitListSize:
+            super().__init__(input_layer)
+            return
+
+        layers, outputs = check_input_layers(input_layer, 1)
+
+        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
+
+        if s.size > 3:
+            raise ValueError('The `sizes` must contain not more than 3 elements.')
+
+        if numpy.any(s < 0):
+            raise ValueError('The `sizes` must contain only positive values.')
+
+        internal = PythonWrapper.SplitListSize(str(name), layers[0], int(outputs[0]), s)
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 class SplitBatchWidth(Layer):
     """The layer that splits an input blob along the BatchWidth dimension.
     
@@ -260,4 +309,53 @@ class SplitBatchWidth(Layer):
             raise ValueError('The `sizes` must contain only positive values.')
 
         internal = PythonWrapper.SplitBatchWidth(str(name), layers[0], int(outputs[0]), s)
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class SplitBatchLength(Layer):
+    """The layer that splits an input blob along the BatchLength dimension.
+    
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: object, tuple(object, int)
+    :param sizes: The sizes of the first one, two, or three parts. 
+        The final part size is what's left.
+    :type sizes: array of int, up to 3 elements
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a blob with input data.
+        The dimensions:
+
+        - **BatchLength** should not be less than the sum of sizes array elements.
+    
+    .. rubric:: Layer outputs:
+
+    The layer has at least len(sizes) outputs.
+    The dimensions:
+
+        - **BatchLength** equals the corresponding element of sizes array, 
+          for the last output it is input **BatchLength** minus the sum of sizes
+        - all other dimensions are the same as for the input
+    """
+    def __init__(self, input_layer, sizes, name=None):
+        if type(input_layer) is PythonWrapper.SplitBatchLength:
+            super().__init__(input_layer)
+            return
+
+        layers, outputs = check_input_layers(input_layer, 1)
+
+        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
+
+        if s.size > 3:
+            raise ValueError('The `sizes` must contain not more than 3 elements.')
+
+        if numpy.any(s < 0):
+            raise ValueError('The `sizes` must contain only positive values.')
+
+        internal = PythonWrapper.SplitBatchLength(str(name), layers[0], int(outputs[0]), s)
         super().__init__(internal)

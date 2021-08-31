@@ -113,7 +113,9 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CConcatListSizeLayer>( "FmlCnnConcatListSizeLayer" );
 	serializeToFile<CConcatObjectLayer>( "FmlCnnConcatObjectLayer" );
 	serializeToFile<CEltwiseSumLayer>( "FmlCnnEltwiseSumLayer" );
+	serializeToFile<CEltwiseSubLayer>( "NeoMLDnnEltwiseSubLayer" );
 	serializeToFile<CEltwiseMulLayer>( "FmlCnnEltwiseMulLayer" );
+	serializeToFile<CEltwiseDivLayer>( "NeoMLDnnEltwiseDivLayer" );
 	serializeToFile<CEltwiseNegMulLayer>( "FmlCnnEltwiseNegMulLayer" );
 	serializeToFile<CEltwiseMaxLayer>( "FmlCnnEltwiseMaxLayer" );
 	serializeToFile<CAbsLayer>( "FmlCnnAbsLayer" );
@@ -138,6 +140,7 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CAddToObjectLayer>( "NeoMLDnnAddToObjectLayer" );
 	serializeToFile<CGELULayer>( "NeoMLDnnGELULayer" );
 	serializeToFile<CGlobalMeanPoolingLayer>( "FmlCnnGlobalAveragePoolingLayer" );
+	serializeToFile<CDataLayer>( "NeoMLDnnDataLayer" );
 }
 
 #endif // GENERATE_SERIALIZATION_FILES
@@ -209,7 +212,9 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatListSizeLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnConcatObjectLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseSumLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnEltwiseSubLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseMulLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnEltwiseDivLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseNegMulLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnEltwiseMaxLayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnAbsLayer" );
@@ -234,6 +239,7 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnAddToObjectLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnGELULayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnGlobalAveragePoolingLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnDataLayer" );
 }
 
 // ====================================================================================================================
@@ -436,7 +442,9 @@ GTEST_TEST( SerializeToFile, BaseSplitSerialization )
 	serializeToFile<CSplitDepthLayer>( "FmlCnnSplitDepthLayer" );
 	serializeToFile<CSplitWidthLayer>( "FmlCnnSplitWidthLayer" );
 	serializeToFile<CSplitHeightLayer>( "FmlCnnSplitHeightLayer" );
+	serializeToFile<CSplitListSizeLayer>( "NeoMLDnnSplitListSizeLayer" );
 	serializeToFile<CSplitBatchWidthLayer>( "FmlCnnSplitBatchWidthLayer" );
+	serializeToFile<CSplitBatchLengthLayer>( "NeoMLDnnSplitBatchLengthLayer" );
 }
 
 #endif // GENERATE_SERIALIZATION_FILES
@@ -458,7 +466,9 @@ GTEST_TEST( SerializeFromFile, BaseSplitSerialization )
 	checkSerializeLayer<CBaseSplitLayer>( "FmlCnnSplitDepthLayer" );
 	checkSerializeLayer<CBaseSplitLayer>( "FmlCnnSplitWidthLayer" );
 	checkSerializeLayer<CBaseSplitLayer>( "FmlCnnSplitHeightLayer" );
+	checkSerializeLayer<CBaseSplitLayer>( "NeoMLDnnSplitListSizeLayer" );
 	checkSerializeLayer<CBaseSplitLayer>( "FmlCnnSplitBatchWidthLayer" );
+	checkSerializeLayer<CBaseSplitLayer>( "NeoMLDnnSplitBatchLengthLayer" );
 }
 
 // ====================================================================================================================
@@ -2301,3 +2311,31 @@ GTEST_TEST( SerializeFromFile, LrnLayerSerialization )
 	checkSerializeLayer<CLrnLayer>( "NeoMLDnnLrnLayer" );
 }
 
+// ====================================================================================================================
+
+// CCastLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CCastLayer& layer )
+{
+	layer.SetOutputType( CT_Int );
+}
+
+GTEST_TEST( SerializeToFile, CastLayerSerialization )
+{
+	serializeToFile<CCastLayer>( "NeoMLDnnCastLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CCastLayer>( CCastLayer& layer )
+{
+	EXPECT_EQ( CT_Int, layer.GetOutputType() );
+}
+
+GTEST_TEST( SerializeFromFile, CastLayerSerialization )
+{
+	checkSerializeLayer<CCastLayer>( "NeoMLDnnCastLayer" );
+}
