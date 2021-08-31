@@ -245,6 +245,7 @@ delete gpuMathEngine;
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - elementwise sum
   - [CEltwiseSubLayer](EltwiseLayers/EltwiseSubLayer.md) - elementwise sub
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - elementwise product
+  - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - elementwise division
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - elementwise maximum
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) calculates the elementwise product of `1 - first input` and the other inputs
 - Auxiliary operations:
