@@ -98,7 +98,7 @@ class Hierarchical(PythonWrapper.Hierarchical) :
     :type distance: str, {'euclid', 'machalanobis', 'cosine'}, default='euclid'
 
     :param max_cluster_distance: the maximum distance between two clusters that still may be merged.
-    :type max_cluster_distance: int
+    :type max_cluster_distance: float
 
     :param min_cluster_count: the minimum number of clusters in the result.
     :type min_cluster_count: int
@@ -111,7 +111,7 @@ class Hierarchical(PythonWrapper.Hierarchical) :
         if min_cluster_count <= 0:
             raise ValueError('The `min_cluster_count` must be > 0.')
 
-        super().__init__(distance, int(max_cluster_distance), int(min_cluster_count))
+        super().__init__(distance, float(max_cluster_distance), int(min_cluster_count))
 
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.

@@ -86,6 +86,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/DepthToSpaceLayer.h>
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
 #include <NeoML/Dnn/Layers/LrnLayer.h>
+#include <NeoML/Dnn/Layers/CastLayer.h>
 #include <NeoML/Dnn/Layers/DataLayer.h>
 
 namespace NeoML {
@@ -226,9 +227,13 @@ REGISTER_NEOML_LAYER( CSplitChannelsLayer, "FmlCnnSplitChannelsLayer" )
 REGISTER_NEOML_LAYER( CSplitDepthLayer, "FmlCnnSplitDepthLayer" )
 REGISTER_NEOML_LAYER( CSplitWidthLayer, "FmlCnnSplitWidthLayer" )
 REGISTER_NEOML_LAYER( CSplitHeightLayer, "FmlCnnSplitHeightLayer" )
+REGISTER_NEOML_LAYER( CSplitListSizeLayer, "NeoMLDnnSplitListSizeLayer" )
 REGISTER_NEOML_LAYER( CSplitBatchWidthLayer, "FmlCnnSplitBatchWidthLayer" )
+REGISTER_NEOML_LAYER( CSplitBatchLengthLayer, "NeoMLDnnSplitBatchLengthLayer" )
 REGISTER_NEOML_LAYER( CEltwiseSumLayer, "FmlCnnEltwiseSumLayer" )
+REGISTER_NEOML_LAYER( CEltwiseSubLayer, "NeoMLDnnEltwiseSubLayer" )
 REGISTER_NEOML_LAYER( CEltwiseMulLayer, "FmlCnnEltwiseMulLayer" )
+REGISTER_NEOML_LAYER( CEltwiseDivLayer, "NeoMLDnnEltwiseDivLayer" )
 REGISTER_NEOML_LAYER( CEltwiseNegMulLayer, "FmlCnnEltwiseNegMulLayer" )
 REGISTER_NEOML_LAYER( CEltwiseMaxLayer, "FmlCnnEltwiseMaxLayer" )
 REGISTER_NEOML_LAYER( CELULayer, "FmlCnnELULayer" )
@@ -329,6 +334,7 @@ REGISTER_NEOML_LAYER( CIndRnnLayer, "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_LAYER( CDepthToSpaceLayer, "NeoMLDnnDepthToSpaceLayer" )
 REGISTER_NEOML_LAYER( CSpaceToDepthLayer, "NeoMLDnnSpaceToDepthLayer" )
 REGISTER_NEOML_LAYER( CLrnLayer, "NeoMLDnnLrnLayer" )
+REGISTER_NEOML_LAYER( CCastLayer, "NeoMLDnnCastLayer" )
 REGISTER_NEOML_LAYER( CDataLayer, "NeoMLDnnDataLayer" )
 
 }

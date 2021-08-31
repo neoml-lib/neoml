@@ -242,7 +242,9 @@ delete gpuMathEngine;
 - [CLrnLayer](LrnLayer.md) - Local Response Normalization
 - Поэлементные операции над блобами:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - поэлементная сумма блобов
+  - [CEltwiseSubLayer](EltwiseLayers/EltwiseSubLayer.md) - поэлементная разность блобов
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - поэлементное произведение блобов
+  - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - поэлементное деление блобов
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - поэлементный максимум блобов
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) - поэлементное произведение разности `1` и элементов первого блоба с элементами остальных блобов
 - Вспомогательные операции:
@@ -254,6 +256,7 @@ delete gpuMathEngine;
   - [CDotProductLayer](DotProductLayer.md) - скалярное произведение объектов двух блобов
   - [CAddToObjectLayer](AddToObjectLayer.md) - прибавление содержимого одного входа ко всем объектам другого
   - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - перемножение двух наборов матриц
+  - [CCastLayer](CastLayer.md) - преобразование типа данных блоба
   - Объединение блобов:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) - объединение блобов по каналам
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) - объединение блобов по глубине
@@ -266,7 +269,9 @@ delete gpuMathEngine;
     - [CSplitDepthLayer](SplitLayers/SplitDepthLayer.md) - разделение блобов по глубине
     - [CSplitWidthLayer](SplitLayers/SplitWidthLayer.md) - разделение блобов по ширине
     - [CSplitHeightLayer](SplitLayers/SplitHeightLayer.md) - разделение блобов по высоте
+    - [CSplitListSizeLayer](SplitLayers/SplitListSizeLayer.md) - разделение блобов по `ListSize`
     - [CSplitBatchWidthLayer](SplitLayers/SplitBatchWidthLayer.md) - разделение блобов по `BatchWidth`
+    - [CSplitBatchLengthLayer](SplitLayers/SplitBatchLengthLayer.md) - разделение блобов по `BatchLength`
   - Работа со списками пикселей:
     - [CPixelToImageLayer](PixelToImageLayer.md) - построение изображений из списков пикселей
     - [CImageToPixelLayer](ImageToPixelLayer.md) - выделение списков пикселей из изображений

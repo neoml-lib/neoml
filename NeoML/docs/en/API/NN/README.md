@@ -244,7 +244,9 @@ delete gpuMathEngine;
 - [CLrnLayer](LrnLayer.md) implements local response normalization
 - Elementwise operations with data blobs:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - elementwise sum
+  - [CEltwiseSubLayer](EltwiseLayers/EltwiseSubLayer.md) - elementwise sub
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - elementwise product
+  - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - elementwise division
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - elementwise maximum
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) calculates the elementwise product of `1 - first input` and the other inputs
 - Auxiliary operations:
@@ -256,6 +258,7 @@ delete gpuMathEngine;
   - [CDotProductLayer](DotProductLayer.md) calculates the dot product of its inputs
   - [CAddToObjectLayer](AddToObjectLayer.md) adds the content of one input to each of the objects of the other
   - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - mutiplication of two sets of matrices
+  - [CCastLayer](CastLayer.md) - data type conversion
   - Blob concatenation:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) concatenates along the Channels dimension
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) concatenates along the Depth dimension
@@ -268,7 +271,9 @@ delete gpuMathEngine;
     - [CSplitDepthLayer](SplitLayers/SplitDepthLayer.md) splits along the Depth dimension
     - [CSplitWidthLayer](SplitLayers/SplitWidthLayer.md) splits along the Width dimension
     - [CSplitHeightLayer](SplitLayers/SplitHeightLayer.md) splits along the Height dimension
+    - [CSplitListSizeLayer](SplitLayers/SplitListSizeLayer.md) splits along the ListSize dimension
     - [CSplitBatchWidthLayer](SplitLayers/SplitBatchWidthLayer.md) splits along the BatchWidth dimension
+    - [CSplitBatchLengthLayer](SplitLayers/SplitBatchLengthLayer.md) splits along the BatchLength dimension
   - Working with pixel lists:
     - [CPixelToImageLayer](PixelToImageLayer.md) creates images from the pixel lists
     - [CImageToPixelLayer](ImageToPixelLayer.md) extracts pixel lists from the images
