@@ -163,10 +163,11 @@ __global__ void BlobGetSubSequenceKernel( CCudaBlobDesc from, const float* fromD
 	}
 }
 
+template<class T>
 __global__ void Upsampling2DForwardKernel(
 	int heightCopyCount, int widthCopyCount, int pixelSize,
-	int batchSize, int inputHeight, int inputRowSize, const float* input,
-	int resultHeight, int resultRowSize, float* result )
+	int batchSize, int inputHeight, int inputRowSize, const T* input,
+	int resultHeight, int resultRowSize, T* result )
 {
 	int resultI;
 	int resultJ;

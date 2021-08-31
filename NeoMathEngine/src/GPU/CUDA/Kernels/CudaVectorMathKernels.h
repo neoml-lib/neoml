@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright ï¿½ 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -889,8 +889,8 @@ __global__ void VectorAddValueKernel(
 }
 
 const int VectorSubCombineCount = 8;
-__global__ void VectorSubKernel( const float* __restrict__ first,
-	const float* __restrict__ second, float* result, int count )
+template<class T>
+__global__ void VectorSubKernel( const T* __restrict__ first, const T* __restrict__ second, T* result, int count )
 {
 	int index;
 	int step;
@@ -990,8 +990,9 @@ __global__ void VectorNegMultiplyKernel(const float* __restrict__ first,
 }
 
 const int VectorEltwiseMultiplyCombineCount = 8;
-__global__ void VectorEltwiseMultiplyKernel(const float* __restrict__ first,
-	const float* __restrict__ second, float* result, int count)
+template<class T>
+__global__ void VectorEltwiseMultiplyKernel(const T* __restrict__ first,
+	const T* __restrict__ second, T* result, int count)
 {
 	int index;
 	int step;

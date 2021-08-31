@@ -195,7 +195,40 @@ void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHan
 		to, GetRaw( toData ), startPos, isRev, objectSizeNorm);
 }
 
-void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
+	int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( inputData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR(heightCopyCount > 0);
+	ASSERT_EXPR(widthCopyCount > 0);
+	ASSERT_EXPR(input.BatchLength() == result.BatchLength());
+	ASSERT_EXPR(input.BatchWidth() == result.BatchWidth());
+	ASSERT_EXPR(input.Channels() == result.Channels());
+	ASSERT_EXPR(input.Depth() == result.Depth());
+	ASSERT_EXPR(input.Height() * heightCopyCount == result.Height());
+	ASSERT_EXPR(input.Width() * widthCopyCount == result.Width());
+	SetCudaDevice( device->DeviceNumber );
+
+	// This is how the algorithm works
+	// The input blob can be considered as batchSize matrices of inputHeight x inputRowSize size each
+	// The output blob can be considered as batchSize matrices of resultHeight x resultRowSize size each
+	// To calculate the (i,j) element of the output matrix create a separate thread
+	const int inputHeight = input.Height();
+	const int inputRowSize = input.Width() * input.Depth() * input.Channels();
+	const int pixelSize = input.Depth() * input.Channels();
+	const int resultHeight = result.Height();
+	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, resultHeight, resultRowSize );
+	Upsampling2DForwardKernel<<<blockCount, threadCount>>>(
+		heightCopyCount, widthCopyCount, pixelSize,
+		input.ObjectCount(), inputHeight, inputRowSize, GetRaw( inputData ),
+		resultHeight, resultRowSize, GetRaw( resultData ) );
+}
+
+void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -228,7 +261,7 @@ void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatH
 		resultHeight, resultRowSize, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+void CCudaMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
