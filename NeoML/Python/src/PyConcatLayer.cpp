@@ -123,6 +123,7 @@ void InitializeConcatLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -145,6 +146,7 @@ void InitializeConcatLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -167,6 +169,7 @@ void InitializeConcatLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -189,6 +192,7 @@ void InitializeConcatLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -211,6 +215,7 @@ void InitializeConcatLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -233,6 +238,7 @@ void InitializeConcatLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -255,6 +261,7 @@ void InitializeConcatLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -277,6 +284,7 @@ void InitializeConcatLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

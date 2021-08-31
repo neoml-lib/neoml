@@ -6,9 +6,37 @@ import itertools
 import numpy as np
 from scipy import sparse
 import neoml
+import threading
 
 
-class MathEngineTestCase(TestCase):
+class MultithreadedTestCase(TestCase):
+    def _thread_function(self, target, args):
+        print(f"python thread {threading.get_ident()} started")
+        target(*args);
+        print(f"python thread {threading.get_ident()} finished")
+
+    def _test_mt(self, target, args=(), enable_assert=False):
+        import time
+        threads = []
+        system_time, user_time = time.perf_counter(), time.process_time()
+        for i in range(4):
+            t = threading.Thread(target=self._thread_function, args=(target, args))
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        system_time, user_time = time.perf_counter() - system_time, time.process_time() - user_time
+        print()
+        print('System time {0:.6f} sec.'.format(system_time))
+        print('User time {0:.6f} sec.'.format(user_time))
+        if enable_assert:
+            self.assertTrue(system_time < user_time)
+
+    def run(self, result=None):
+        self._test_mt(super().run)
+
+
+class MathEngineTestCase(MultithreadedTestCase):
     def test_gpu_math_engine(self):
 
         check = False
@@ -43,7 +71,7 @@ class MathEngineTestCase(TestCase):
         self.assertEqual(math_engine.peak_memory_usage, 40)
 
 
-class BlobTestCase(TestCase):
+class BlobTestCase(MultithreadedTestCase):
     def test_pickle(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         a = np.ones((2, 3, 4, 5), dtype=np.int32)
@@ -214,7 +242,7 @@ class BlobTestCase(TestCase):
         self.assertEqual(float_blob.object_size, 4 * 5 * 6 * 7)
 
 
-class SolverTestCase(TestCase):
+class SolverTestCase(MultithreadedTestCase):
     def test_nesterov_gradient(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         solver = neoml.Dnn.NesterovGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
@@ -257,7 +285,7 @@ class SolverTestCase(TestCase):
         self.assertAlmostEqual(solver.moment_decay_rate, 0.6, delta=1e-3)
 
 
-class LayersTestCase(TestCase):
+class LayersTestCase(MultithreadedTestCase):
     def test_lstm(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -635,6 +663,9 @@ class LayersTestCase(TestCase):
 
         blob = lookup.get_embeddings(0)
         lookup.set_embeddings(0, blob)
+
+        uniform = neoml.Dnn.Uniform()
+        lookup.initialize(uniform)
 
     def test_tied_embeddings(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -1229,8 +1260,14 @@ class LayersTestCase(TestCase):
     def test_eltwise_sum(self):
         self._test_eltwise('EltwiseSum', lambda x: (x == 5).all())
 
+    def test_eltwise_sub(self):
+        self._test_eltwise('EltwiseSub', lambda x: (x == 1).all())
+
     def test_eltwise_mul(self):
         self._test_eltwise('EltwiseMul', lambda x: (x == 6).all())
+
+    def test_eltwise_div(self):
+        self._test_eltwise('EltwiseDiv', lambda x: (x == 1.5).all())
 
     def test_eltwise_negmul(self):
         self._test_eltwise('EltwiseNegMul', lambda x: (x == -4).all())
@@ -1537,8 +1574,34 @@ class LayersTestCase(TestCase):
         out = outputs['sink'].asarray()
         self.assertEqual(out.shape, (2, 3, 4, 5, 6, 7, 8))
 
+    def _test_cast_impl(self, type_from, type_to):
 
-class PoolingTestCase(TestCase):
+        def generate_array(type):
+            np_type = np.float32 if type == 'float' else np.int32
+            return  np.arange(5, dtype=np_type)
+
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        cast = neoml.Dnn.Cast(source, output_type=type_to)
+        sink = neoml.Dnn.Sink(cast, 'sink')
+
+        input_arr = generate_array(type_from)
+        input_blob = neoml.Blob.as_blob(math_engine, input_arr, (1, 1, 1, 1, 1, 1, len(input_arr)))
+        outputs = dnn.run({'source': input_blob})
+        actual = outputs['sink'].asarray()
+        expected = generate_array(type_to)
+        self.assertEqual(actual.dtype, expected.dtype)
+        self.assertTrue(np.equal(actual, expected).all())
+
+    def test_cast(self):
+        types = ['int', 'float']
+        for type_from in types:
+            for type_to in types:
+                self._test_cast_impl(type_from, type_to)
+
+
+class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
                       input_shape=(2, 1, 2, 3, 5, 4, 2)):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -1790,14 +1853,14 @@ class PoolingTestCase(TestCase):
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
 
-        split_types = ("SplitBatchWidth", "SplitHeight", "SplitWidth", "SplitDepth", "SplitChannels")
+        split_types = ("SplitBatchLength", "SplitBatchWidth", "SplitListSize", "SplitHeight", "SplitWidth", "SplitDepth", "SplitChannels")
         for i, split_name in enumerate(split_types):
             split = getattr(neoml.Dnn, split_name)(source, (2, 3), split_name)
             sink = neoml.Dnn.Sink((split, 0), "sink{}".format(2 * i))
             sink = neoml.Dnn.Sink((split, 1), "sink{}".format(2 * i + 1))
 
-        arr = np.ones((5, 5, 5, 5, 5), dtype=np.float32)
-        input1 = neoml.Blob.asblob(math_engine, arr, (1, 5, 1, 5, 5, 5, 5))
+        arr = np.ones((5, 5, 5, 5, 5, 5, 5), dtype=np.float32)
+        input1 = neoml.Blob.asblob(math_engine, arr, (5, 5, 5, 5, 5, 5, 5))
         inputs = {"source1": input1}
         outputs = dnn.run(inputs)
 
@@ -1993,7 +2056,7 @@ class BinaryCrossEntropyLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
         return neoml.AutoDiff.binary_cross_entropy(data, labels, True)
 
 
-class LossTestCase(TestCase):
+class LossTestCase(MultithreadedTestCase):
     def _test_loss(self, layer, kwargs={},
                    n_classes=2,
                    labels_type=np.float32,
@@ -2088,6 +2151,7 @@ class LossTestCase(TestCase):
         self.assertTrue( np.equal( (const2 / const_ones).asarray(), 2 * ones ).all() )
         self.assertTrue( np.equal( ad.max(const_ones, 2).asarray(), 2 * ones ).all() )
         self.assertEqual( ad.sum(blob).asarray(), 36 )
+        self.assertEqual( ad.mean(blob).asarray(), 1 )
         self.assertTrue( np.equal( ad.neg(blob).asarray(), -ones ).all() )
         self.assertTrue( np.equal( (-blob).asarray(), -ones ).all() )
         self.assertTrue( np.equal( ad.abs(-blob).asarray(), ones ).all() )
@@ -2096,7 +2160,24 @@ class LossTestCase(TestCase):
         self.assertTrue( np.equal( ad.clip(const2, 3, 4).asarray(), 3 * ones ).all() )
         self.assertTrue( np.equal( ad.top_k(const2, 3).asarray(), [2, 2, 2] ).all() )
         self.assertTrue( np.equal( ad.binary_cross_entropy(const0, const0, False).asarray(), 0 * ones ).all() )
-        self.assertTrue( np.equal( ad.sum(blob, 1).asarray(), 3 * np.ones((2, 1, 1, 1, 1, 2, 3)) ).all() )
+        self.assertTrue( np.equal( ad.sum(blob, [1]).asarray(), 3 * np.ones((2, 1, 1, 1, 1, 2, 3)) ).all() )
+        self.assertTrue( np.equal( ad.mean(blob, 1).asarray(), np.ones((2, 1, 1, 1, 1, 2, 3)) ).all() )
+        self.assertTrue( np.equal( ad.sum(blob, [0, 1]).asarray(), 6 * np.ones((1, 1, 1, 1, 1, 2, 3)) ).all() )
+        self.assertTrue( np.equal( ad.mean(blob, [1, 5]).asarray(), np.ones((2, 1, 1, 1, 1, 1, 3)) ).all() )
+        self.assertTrue( np.equal( ad.cumsum(blob, 1).asarray().reshape(shape), np.cumsum(ones, 1) ).all() )
+        self.assertTrue( np.equal( ad.concat([blob, blob, blob], axis=2).asarray(), np.ones((2, 3, 3, 2, 3)) ).all() )
+        self.assertTrue( np.equal((blob < 2 * blob).asarray(), ones).all() )
+        self.assertTrue( np.equal((blob < 2).asarray(), ones).all() )
+        self.assertTrue( np.equal((0 < blob).asarray(), ones).all() )
+        self.assertTrue( np.equal(ad.less(blob, 0).asarray(), 0 * ones).all() )
+        self.assertTrue( np.equal(ad.pow(2 * blob, 3 * blob).asarray(), 8 * ones).all() )
+        self.assertTrue( np.equal((2**blob).asarray(), 2 * ones).all() )
+        self.assertTrue( np.equal((blob**2).asarray(), ones).all() )
+        new_shape = (3, 3, 1, 1, 2, 2, 1)
+        ad.reshape(blob, new_shape)
+        self.assertTrue( np.equal(blob.shape, new_shape).all() )
+        broadcasted = ad.broadcast(blob, (3, 3, 2, 1, 2, 2, 2))
+        self.assertTrue( np.equal(broadcasted.asarray(), np.ones((3, 3, 2, 2, 2, 2))).all() )
 
     def test_cross_entropy_loss(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2158,7 +2239,8 @@ class LossTestCase(TestCase):
     def test_multisquaredhinge_loss(self):
         self._test_loss('MultiSquaredHingeLoss', dict(loss_weight=7.7), last_loss=0.)
 
-class DnnTestCase(TestCase):
+
+class DnnTestCase(MultithreadedTestCase):
     def test_load_store(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -2237,7 +2319,8 @@ class DnnTestCase(TestCase):
         self.assertTrue(len(dnn.layers), 3)
         self.assertTrue(len(dnn.output_layers), 1)
 
-class TraditionalTestCase(TestCase):
+
+class TraditionalTestCase(MultithreadedTestCase):
     def test_differential_evolution(self):
         from neoml.DifferentialEvolution import IntTraits, DoubleTraits, DifferentialEvolution
         def func(vec):
@@ -2290,7 +2373,7 @@ class TraditionalTestCase(TestCase):
     def test_gradient_boosting_classification(self):
         for loss, builder_type, thread_count, is_binary in itertools.product(
                 ('binomial', 'exponential', 'squared_hinge', 'l2'),
-                ('full', 'hist', 'multi_full'), (1, 4), (False, True)):
+                ('full', 'hist', 'multi_full', 'multi_hist'), (1, 4), (False, True)):
             self._test_classification_model(neoml.GradientBoost.GradientBoostClassifier,
                 dict(loss=loss, iteration_count=10, builder_type=builder_type, thread_count=thread_count),
                 is_binary=is_binary)
@@ -2362,7 +2445,8 @@ class TraditionalTestCase(TestCase):
             os.remove(path)
         os.rmdir(dir)
 
-class ClusteringTestCase(TestCase):
+
+class ClusteringTestCase(MultithreadedTestCase):
     def _test_clusterize(self, method, params={}):
         X_dense = np.eye(20, 5, dtype=np.float32)
         X_dense_list = X_dense.tolist()

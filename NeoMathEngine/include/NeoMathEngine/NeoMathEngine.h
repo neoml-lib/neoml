@@ -37,6 +37,13 @@ public:
 	// Copying the second vector values into the first
 	virtual void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) = 0;
 	virtual void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) = 0;
+	// Broadcasting the copy to new shape
+	// additionalWidth = 1 means broadcasting from fromDesc to toDesc
+	// additionalWidth != 1 means broadcasting from (*fromDesc, additionalWidth) to (*toDesc, additionalWidth)
+	// where (*desc, additionalWidth) is 8-dimensional shape with last dimension equals additionalWidth,
+	// channels count of handle must be additionalWidth times bigger than channels count of corresponding desc.
+	virtual void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 
 	// Filling a vector with the specified value
 	virtual void VectorFill(const CFloatHandle& result, float value, int vectorSize) = 0;
@@ -62,8 +69,17 @@ public:
 	// The resultHandle is not set to null
 	virtual void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) = 0;
 	virtual void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) = 0;
+	// Sum of blob elements along dimension with size `dimension`
 	virtual void VectorSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle) = 0;
+	// Cumulative Sum of blob elements along dimension with size `dimension`
+	virtual void VectorCumSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle) = 0;
+	// Blob `first` is assumed to be a diagonal matrix
+	virtual void VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) = 0;
+	virtual void VectorCumSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) = 0;
 
 	// result = (first == second) ? 1.0 : 0.0 elementwise
 	virtual void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -187,6 +203,8 @@ public:
 
 	// Vector substraction
 	// result = first - second
+	virtual void VectorSub(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorSub(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorSub(const CConstFloatHandle& firstHandle,
@@ -213,6 +231,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
 
 	// result = first * second elementwise
+	virtual void VectorEltwiseMultiply( const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
 	virtual void VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	// result += first * second elementwise
@@ -276,6 +296,14 @@ public:
 
 	// result[i] = first[i] >= 0 ? 1.f : 0.f
 	virtual void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
+
+	// result[i] = first[i] < second[i] ? 1.f : 0.f
+	virtual void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseLess( const CConstFloatHandle& firstHandle, float second,
+		const CFloatHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseLess( float firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize ) = 0;
 
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
@@ -407,6 +435,9 @@ public:
 	virtual void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 		const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 		const CFloatHandle& outputHandle, int outputChannels) = 0;
+	virtual void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+		const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+		const CIntHandle& outputHandle, int outputChannels) = 0;
 	// Finds the position in the representation table for the channel and adds a row from the specified matrix (of batchSize height)
 	virtual void VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, 
@@ -715,9 +746,11 @@ public:
 	virtual void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source, const CIntHandle& maxIndices,
 		const CFloatHandle& result ) = 0;
 
-	virtual void Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+	virtual void Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
+		int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+	virtual void Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
-	virtual void Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+	virtual void Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
 
 	// Builds a histogram of the number of occurrences in numbersHandle for each integer in [0; maxNumber)

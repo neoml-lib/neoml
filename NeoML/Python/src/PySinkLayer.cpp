@@ -44,6 +44,7 @@ void InitializeSinkLayer( py::module& m )
 			return new CPySinkLayer( *layer.Layer<CSinkLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );

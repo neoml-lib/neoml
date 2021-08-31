@@ -220,6 +220,36 @@ CLayerWrapper<CSplitHeightLayer> SplitHeight( int output0, int output1, int outp
 
 // ====================================================================================================================
 
+static const int SplitListSizeLayerVersion = 0;
+
+void CSplitListSizeLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( SplitListSizeLayerVersion );
+	CBaseSplitLayer::Serialize( archive );
+}
+
+CLayerWrapper<CSplitListSizeLayer> SplitListSize( const CArray<int>& outputCounts )
+{
+	return CLayerWrapper<CSplitListSizeLayer>( "SplitListSize", [&outputCounts]( CSplitListSizeLayer* result ) {
+		result->SetOutputCounts( outputCounts );
+		} );
+}
+
+CLayerWrapper<CSplitListSizeLayer> SplitListSize( int output0, int output1, int output2 )
+{
+	return CLayerWrapper<CSplitListSizeLayer>( "SplitListSize", [=]( CSplitListSizeLayer* result ) {
+		if( output1 == 0 ) {
+			result->SetOutputCounts2( output0 );
+		} else if( output2 == 0 ) {
+			result->SetOutputCounts3( output0, output1 );
+		} else {
+			result->SetOutputCounts4( output0, output1, output2 );
+		}
+		} );
+}
+
+// ====================================================================================================================
+
 static const int SplitBatchWidthLayerVersion = 2000;
 
 void CSplitBatchWidthLayer::Serialize( CArchive& archive )
@@ -246,6 +276,36 @@ CLayerWrapper<CSplitBatchWidthLayer> SplitBatchWidth( int output0, int output1, 
 			result->SetOutputCounts4( output0, output1, output2 );
 		}
 	} );
+}
+
+// ====================================================================================================================
+
+static const int SplitBatchLengthLayerVersion = 0;
+
+void CSplitBatchLengthLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( SplitBatchLengthLayerVersion );
+	CBaseSplitLayer::Serialize( archive );
+}
+
+CLayerWrapper<CSplitBatchLengthLayer> SplitBatchLength( const CArray<int>& outputCounts )
+{
+	return CLayerWrapper<CSplitBatchLengthLayer>( "SplitBatchLength", [&outputCounts]( CSplitBatchLengthLayer* result ) {
+		result->SetOutputCounts( outputCounts );
+		} );
+}
+
+CLayerWrapper<CSplitBatchLengthLayer> SplitBatchLength( int output0, int output1, int output2 )
+{
+	return CLayerWrapper<CSplitBatchLengthLayer>( "SplitBatchLength", [=]( CSplitBatchLengthLayer* result ) {
+		if( output1 == 0 ) {
+			result->SetOutputCounts2( output0 );
+		} else if( output2 == 0 ) {
+			result->SetOutputCounts3( output0, output1 );
+		} else {
+			result->SetOutputCounts4( output0, output1, output2 );
+		}
+		} );
 }
 
 } // namespace NeoML

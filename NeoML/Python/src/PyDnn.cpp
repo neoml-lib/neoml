@@ -66,9 +66,13 @@ REGISTER_NEOML_PYLAYER_EX( "Split", "SplitChannels", "FmlCnnSplitChannelsLayer" 
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitDepth", "FmlCnnSplitDepthLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitWidth", "FmlCnnSplitWidthLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitHeight", "FmlCnnSplitHeightLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Split", "SplitListSize", "NeoMLDnnSplitListSizeLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitBatchWidth", "FmlCnnSplitBatchWidthLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Split", "SplitBatchLength", "NeoMLDnnSplitBatchLengthLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseSum", "FmlCnnEltwiseSumLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseSub", "NeoMLDnnEltwiseSubLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseMul", "FmlCnnEltwiseMulLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseDiv", "NeoMLDnnEltwiseDivLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseNegMul", "FmlCnnEltwiseNegMulLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseMax", "FmlCnnEltwiseMaxLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Activation", "LinearLayer", "FmlCnnLinearLayer")
@@ -165,6 +169,8 @@ REGISTER_NEOML_PYLAYER( "Irnn", "NeoMLDnnIrnnLayer" )
 REGISTER_NEOML_PYLAYER( "IndRnn", "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_PYLAYER( "Qrnn", "NeoMLDnnQrnnLayer" )
 REGISTER_NEOML_PYLAYER( "Lrn", "NeoMLDnnLrnLayer" )
+REGISTER_NEOML_PYLAYER( "Cast", "NeoMLDnnCastLayer" )
+REGISTER_NEOML_PYLAYER( "Data", "NeoMLDnnDataLayer" )
 
 }
 
@@ -197,6 +203,7 @@ CPyDnn::CPyDnn( CPyRandomOwner& _randomOwner, CPyMathEngineOwner& _mathEngineOwn
 
 void CPyDnn::Load(const std::string& path)
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::load );
 	CArchive archive( &file, CArchive::load );
 	dnn->Serialize( archive );
@@ -204,6 +211,7 @@ void CPyDnn::Load(const std::string& path)
 
 void CPyDnn::Store(const std::string& path)
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::store );
 	CArchive archive( &file, CArchive::store );
 	dnn->Serialize( archive );
@@ -211,6 +219,7 @@ void CPyDnn::Store(const std::string& path)
 
 void CPyDnn::LoadCheckpoint(const std::string& path)
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::load );
 	CArchive archive( &file, CArchive::load );
 	dnn->SerializeCheckpoint( archive );
@@ -218,6 +227,7 @@ void CPyDnn::LoadCheckpoint(const std::string& path)
 
 void CPyDnn::StoreCheckpoint(const std::string& path)
 {
+	py::gil_scoped_release release;
 	CArchiveFile file( path.c_str(), CArchive::store );
 	CArchive archive( &file, CArchive::store );
 	dnn->SerializeCheckpoint( archive );
@@ -353,8 +363,10 @@ py::dict CPyDnn::Run( py::list inputs )
 			index++;
 		}
 	}
-
-	dnn->RunOnce();
+	{
+		py::gil_scoped_release release;
+		dnn->RunOnce();
+	}
 
 	auto result = py::dict();
 	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
@@ -382,7 +394,10 @@ void CPyDnn::RunAndBackward( py::list inputs )
 		}
 	}
 
-	dnn->RunAndBackwardOnce();
+	{
+		py::gil_scoped_release release;
+		dnn->RunAndBackwardOnce();
+	}
 }
 
 void CPyDnn::Learn( py::list inputs )
@@ -400,7 +415,10 @@ void CPyDnn::Learn( py::list inputs )
 		}
 	}
 
-	dnn->RunAndLearnOnce();
+	{
+		py::gil_scoped_release release;
+		dnn->RunAndLearnOnce();
+	}
 }
 
 //------------------------------------------------------------------------------------------------------------

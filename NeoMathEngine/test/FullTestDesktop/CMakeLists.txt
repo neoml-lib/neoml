@@ -23,6 +23,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 configure_target(${PROJECT_NAME})
 
+if(USE_FINE_OBJECTS AND (IOS OR DARWIN))
+    #TODO: fix FineGTest
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-copy>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wno-unknown-warning-option>)
+endif()
+
 add_gtest_for_target(${PROJECT_NAME} CPU ${CMAKE_CURRENT_SOURCE_DIR})
 if(WIN32 AND CMAKE_CUDA_COMPILER)
     add_gtest_for_target(${PROJECT_NAME} GPU ${CMAKE_CURRENT_SOURCE_DIR})

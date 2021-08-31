@@ -156,10 +156,12 @@ void CDnnBlob::initializeWindow(const CPtr<CDnnBlob>& _parent, int windowSize)
 {
 	NeoAssert(desc.GetDataType() == CT_Invalid);
 
-	parentPos = 0;
 	parent = _parent;
 	desc = parent->GetDesc();
 	desc.SetDimSize(BD_BatchLength, windowSize);
+
+	// Initializing data pointer
+	SetParentPos( 0 );
 }
 
 void CDnnBlob::initializeByPattern(TBlobType type, const CBlobDesc& pattern)

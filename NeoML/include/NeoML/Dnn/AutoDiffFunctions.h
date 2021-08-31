@@ -71,8 +71,14 @@ CPtr<const CDnnBlob> NEOML_API Max( const CDnnBlob* first, float second );
 // res[i] = max(first, second[i])
 CPtr<const CDnnBlob> NEOML_API Max( float first, const CDnnBlob* second );
 
-// Calculates the total sum of all blob elements and returns it as a single-element blob.
-NEOML_API CPtr<const CDnnBlob> Sum( const CDnnBlob* first, int axis );
+// Calculates sum of blob elements along provided axes (empty axes means the total sum).
+NEOML_API CPtr<const CDnnBlob> Sum( const CDnnBlob* first, const CArray<int>& axis );
+
+// Calculates cumulative sum of blob elements along provided axis.
+NEOML_API CPtr<const CDnnBlob> CumSum( const CDnnBlob* first, int axis );
+
+// Calculates mean of blob elements along provided axis (axis=-1 means the total mean).
+NEOML_API CPtr<const CDnnBlob> Mean( const CDnnBlob* first, const CArray<int>& axis );
 
 // Creates the blob each element of which is the negative value of the corresponding element of the specified blob.
 // res[i] = -first[i]
@@ -90,13 +96,32 @@ NEOML_API CPtr<const CDnnBlob> Log( const CDnnBlob* first );
 // res[i] = exp(first[i])
 NEOML_API CPtr<const CDnnBlob> Exp( const CDnnBlob* first );
 
+// Computes the power of one blob to another elementwise.
+NEOML_API CPtr<const CDnnBlob> Pow( const CDnnBlob* first, const CDnnBlob* second );
+NEOML_API CPtr<const CDnnBlob> Pow( const CDnnBlob* first, float second );
+NEOML_API CPtr<const CDnnBlob> Pow( float first, const CDnnBlob* second );
+
 // Finds values of the k largest elements in the blob.
 // The result is a blob of size k.
-CPtr<const CDnnBlob> NEOML_API TopK( const CDnnBlob* first, int k );
+NEOML_API CPtr<const CDnnBlob> TopK( const CDnnBlob* first, int k );
 
 // Creates the blob each element of which is the clipped value of the corresponding element of the specified blob.
 // res[i] = min( max(first[i], minValue), maxValue )
 NEOML_API CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float minValue, float maxValue );
+
+// Merges blobs along given axis
+NEOML_API CPtr<const CDnnBlob> Concat( const CObjectArray<CDnnBlob>& blobs, int axis );
+
+// Change the blob shape. The total blob size must remain the same.
+NEOML_API void Reshape( CDnnBlob* first, const CBlobDesc& desc );
+
+// Returns first < second elementwise.
+NEOML_API CPtr<const CDnnBlob> Less( const CDnnBlob* first, const CDnnBlob* second );
+NEOML_API CPtr<const CDnnBlob> Less( const CDnnBlob* first, float second );
+NEOML_API CPtr<const CDnnBlob> Less( float first, const CDnnBlob* second);
+
+// Broadcast the blob.
+NEOML_API CPtr<const CDnnBlob> Broadcast( const CDnnBlob* first, const CBlobDesc& desc );
 
 // Calculates the binary cross-entropy for two blobs: the first one contains correct labels, the second one contains predictions.
 // result = (1 - labels) * x + log(1 + exp(-x))

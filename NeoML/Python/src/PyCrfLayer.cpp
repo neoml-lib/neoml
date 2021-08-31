@@ -109,6 +109,7 @@ void InitializeCrfLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs,
 			int classCount, int padding, float dropoutRate )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CCrfLayer> crf = new CCrfLayer( mathEngine );
@@ -146,6 +147,7 @@ void InitializeCrfLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float loss_weight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -173,6 +175,7 @@ void InitializeCrfLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

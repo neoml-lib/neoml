@@ -88,7 +88,7 @@ public:
 void InitializeSolver( py::module& m )
 {
 	py::class_<CPySolver>(m, "Solver")
-		.def( "_train", &CPySolver::Train, py::return_value_policy::reference )
+		.def( "_train", &CPySolver::Train, py::call_guard<py::gil_scoped_release>(), py::return_value_policy::reference )
 		.def( "_reset", &CPySolver::Reset, py::return_value_policy::reference )
 		.def( "get_learning_rate", &CPySolver::GetLearningRate, py::return_value_policy::reference )
 		.def( "set_learning_rate", &CPySolver::SetLearningRate, py::return_value_policy::reference )
