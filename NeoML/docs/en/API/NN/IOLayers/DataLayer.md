@@ -1,8 +1,8 @@
-# CSourceLayer Class
+# CDataLayer Class
 
 <!-- TOC -->
 
-- [CSourceLayer Class](#csourcelayer-class)
+- [CDataLayer Class](#cdatalayer-class)
     - [Settings](#settings)
     - [Trainable parameters](#trainable-parameters)
     - [Inputs](#inputs)
@@ -10,7 +10,7 @@
 
 <!-- /TOC -->
 
-This class implements a layer that serves to input a blob of user data into the neural network.
+This class implements a layer that serves to input a blob of fixed data into the neural network.
 
 ## Settings
 
