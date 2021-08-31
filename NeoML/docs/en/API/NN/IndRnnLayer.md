@@ -7,6 +7,7 @@
         - [Hidden layer size](#hidden-layer-size)
         - [Dropout rate](#dropout-rate)
         - [Reverse sequences](#reverse-sequences)
+        - [Activation](#activation)
     - [Trainable parameters](#trainable-parameters)
         - [Weight matrix W](#weight-matrix-w)
         - [Weight vector U](#weight-vector-u)
@@ -21,13 +22,14 @@ This class implements IndRNN from this [article](https://arxiv.org/pdf/1803.0483
 It's a simple recurrent unit with the following formula:
 
 ```c++
-    Y_t = sigmoid( W * X_t + B + U * Y_t-1 )
+    Y_t = activation( W * X_t + B + U * Y_t-1 )
 ```
 
 where:
 
 - `W` and `B` are weight matrix and free terms of the fully-connected layer respectively (`W * X_t` means matrix-by-vector multiplication)
 - `U` is a recurrent weights vector (`U * Y_t-1` means element-wise multiplication of 2 vectors of same length)
+- `activation` is an activation function (`sigmoid` or `ReLU`)
 
 ## Settings
 
@@ -54,6 +56,14 @@ void SetReverseSequence( bool reverse );
 ```
 
 Elements of the sequences are processed in reversed order if this flag is set.
+
+### Activation
+
+```c++
+void SetActivation( IMathEngine::TIndRnnActivation activation );
+```
+
+Sets the activation function used in recurrent part. `IRA_Sigmoid` by default.
 
 ## Trainable parameters
 

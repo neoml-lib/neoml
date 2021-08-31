@@ -10,13 +10,14 @@ from .Argmax import Argmax
 from .AttentionDecoder import AttentionDecoder
 from .Binarization import EnumBinarization, BitSetVectorization
 from .BatchNormalization import BatchNormalization
+from .Cast import Cast
 from .Concat import ConcatChannels, ConcatDepth, ConcatWidth, ConcatHeight, ConcatBatchWidth, ConcatBatchLength, ConcatListSize, ConcatObject
 from .Conv import Conv, Conv3D, TransposedConv3D, TransposedConv, ChannelwiseConv, TimeConv 
 from .Crf import Crf, CrfLoss, BestSequence
 from .Ctc import CtcLoss, CtcDecoding
 from .DotProduct import DotProduct
 from .Dropout import Dropout
-from .Eltwise import EltwiseSum, EltwiseMul, EltwiseNegMul, EltwiseMax
+from .Eltwise import EltwiseSum, EltwiseSub, EltwiseMul, EltwiseDiv, EltwiseNegMul, EltwiseMax
 from .FullyConnected import FullyConnected
 from .Gru import Gru
 from .ImageConversion import ImageResize, PixelToImage, ImageToPixel  
@@ -40,7 +41,7 @@ from .Sink import Sink
 from .Softmax import Softmax
 from .Source import Source
 from .SpaceAndDepth import DepthToSpace, SpaceToDepth
-from .Split import SplitChannels, SplitDepth, SplitWidth, SplitHeight, SplitBatchWidth  
+from .Split import SplitChannels, SplitDepth, SplitWidth, SplitHeight, SplitListSize, SplitBatchWidth, SplitBatchLength
 from .SubSequence import SubSequence, ReverseSequence
 from .TiedEmbeddings import TiedEmbeddings
 from .Transform import Transform

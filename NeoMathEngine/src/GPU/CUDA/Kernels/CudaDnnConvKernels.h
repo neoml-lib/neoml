@@ -243,7 +243,7 @@ enum TBackwardOperationType {
 const int BuildInputFromTempMatrixCombine = 16;
 __global__ void BuildInputFromTempMatrixKernel( const CCudaConvolutionDescInternal desc,
 	const float* __restrict__ tempMatrix, int matrixHeight, int matrixWidth, float* result,
-	TBackwardOperationType operation, int widthNorm )
+	TBackwardOperationType operation, int widthNorm, int heightOffset )
 {
 	int matrixRow;
 	int matrixCol;
@@ -252,6 +252,7 @@ __global__ void BuildInputFromTempMatrixKernel( const CCudaConvolutionDescIntern
 		return;
 	}
 	tempMatrix += matrixRow * matrixWidth;
+	matrixRow += heightOffset;
 
 	const int outCol = matrixRow % desc.Result.Width();
 	matrixRow /= desc.Result.Width();

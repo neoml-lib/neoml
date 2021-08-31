@@ -28,10 +28,19 @@ static inline float sigmoid( float x )
 	}
 }
 
+static inline float relu( float x )
+{
+	return x > 0.f ? x : 0.f;
+}
+
+typedef float ( *TTestActivation ) ( float x );
+
 static void indRnnRecurrentNaive( bool reverse, int seqLength, int batchSize, int objSize,
-	const float* wx, const float* mask, const float* u, float* res )
+	IMathEngine::TIndRnnActivation activation, const float* wx, const float* mask, const float* u, float* res )
 {
 	const int stepOffset = reverse ? -batchSize * objSize : batchSize * objSize;
+
+	TTestActivation applyActivation = activation == IMathEngine::IRA_Sigmoid ? sigmoid : relu;
 
 	if( reverse ) {
 		const int firstElemOffset = ( seqLength - 1 ) * batchSize * objSize;
@@ -40,7 +49,7 @@ static void indRnnRecurrentNaive( bool reverse, int seqLength, int batchSize, in
 	}
 
 	for( int index = 0; index < batchSize * objSize; ++index ) {
-		res[index] = sigmoid( wx[index] );
+		res[index] = applyActivation( wx[index] );
 	}
 
 	const float* hPrev = res;
@@ -49,7 +58,7 @@ static void indRnnRecurrentNaive( bool reverse, int seqLength, int batchSize, in
 		res += stepOffset;
 		wx += stepOffset;
 		for( int index = 0; index < batchSize * objSize; ++index ) {
-			res[index] = sigmoid( wx[index] + u[index % objSize] * ( mask == nullptr ? hPrev[index] : hPrev[index] * mask[index] ) );
+			res[index] = applyActivation( wx[index] + u[index % objSize] * ( mask == nullptr ? hPrev[index] : hPrev[index] * mask[index] ) );
 		}
 		hPrev = res;
 	}
@@ -69,6 +78,8 @@ static void indRnnInferenceTestImpl( const CTestParams& params, int seed )
 	const int batchWidth = random.UniformInt( batchWidthInterval.Begin, batchWidthInterval.End );
 	const int channels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const bool reverse = random.Next() % 2 == 1;
+	const IMathEngine::TIndRnnActivation activation = random.Next() % 2 == 1
+		? IMathEngine::IRA_Sigmoid : IMathEngine::IRA_ReLU;
 
 	float dropoutRate = 0.f;
 	// Dropout is supported only on CPU and Cuda
@@ -97,12 +108,12 @@ static void indRnnInferenceTestImpl( const CTestParams& params, int seed )
 	uBlob.CopyFrom( uData.data() );
 
 	std::vector<float> expectedData( dataSize );
-	indRnnRecurrentNaive( reverse, batchLength, batchWidth, channels,
+	indRnnRecurrentNaive( reverse, batchLength, batchWidth, channels, activation,
 		wxData.data(), dropoutRate > 0 ? maskData.data() : nullptr, uData.data(),
 		expectedData.data() );
 
 	CFloatBlob actualBlob( MathEngine(), batchLength, batchWidth, 1, 1, 1, 1, channels );
-	MathEngine().IndRnnRecurrent( reverse, batchLength, batchWidth, channels,
+	MathEngine().IndRnnRecurrent( reverse, batchLength, batchWidth, channels, activation,
 		wxBlob.GetData(), dropoutRate > 0 ? maskBlob.GetData() : CFloatHandle(), uBlob.GetData(),
 		actualBlob.GetData() );
 	std::vector<float> actualData( dataSize );
@@ -123,7 +134,7 @@ INSTANTIATE_TEST_CASE_P( CIndRnnInferenceTest, CIndRnnInferenceTest,
 			"BatchLength = (1..20);"
 			"BatchWidth = (1..10);"
 			"Channels = (1..10);"
-			"TestCount = 500;"
+			"TestCount = 5000;"
 		),
 		CTestParams(
 			"BatchLength = (1..20);"

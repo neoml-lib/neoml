@@ -18,13 +18,21 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static inline float sigmoidDiffOp( float sigmoidRes )
+static inline float sigmoidDiffOp( float output, float outputDiff )
 {
-	return sigmoidRes * ( 1.f - sigmoidRes );
+	return outputDiff * output * ( 1.f - output );
 }
 
+static inline float reluDiffOp( float output, float outputDiff )
+{
+	return output > 0.f ? outputDiff : 0.f;
+}
+
+typedef float( *TTestActivationDiffOp ) ( float output, float outputDiff );
+
 static void indRnnRecurrentBackwardNaive( bool reverse, int seqLength, int batchSize, int objSize,
-	const float* mask, const float* u, const float* out, const float* outDiff, float* wxDiff )
+	IMathEngine::TIndRnnActivation activation, const float* mask, const float* u, const float* out, const float* outDiff,
+	float* wxDiff )
 {
 	const int stepOffset = reverse ? -batchSize * objSize : batchSize * objSize;
 
@@ -35,12 +43,14 @@ static void indRnnRecurrentBackwardNaive( bool reverse, int seqLength, int batch
 		outDiff += firstElemOffset;
 	}
 
+	TTestActivationDiffOp activationDiffOp = activation == IMathEngine::IRA_Sigmoid ? sigmoidDiffOp : reluDiffOp;
+
 	std::vector<float> currOutDiff;
 	currOutDiff.resize( batchSize * objSize );
 	::memcpy( currOutDiff.data(), outDiff, objSize * batchSize * sizeof( float ) );
 	for( int step = 0; step < seqLength - 1; ++step ) {
 		for( int index = 0; index < batchSize * objSize; ++index ) {
-			wxDiff[index] = currOutDiff[index] * sigmoidDiffOp( out[index] );
+			wxDiff[index] = activationDiffOp( out[index], currOutDiff[index] );
 			currOutDiff[index] = outDiff[stepOffset + index]
 				+ wxDiff[index] * u[index % objSize] * ( mask == nullptr ? 1.f : mask[index] );
 		}
@@ -50,7 +60,7 @@ static void indRnnRecurrentBackwardNaive( bool reverse, int seqLength, int batch
 	}
 
 	for( int index = 0; index < batchSize * objSize; ++index ) {
-		wxDiff[index] = currOutDiff[index] * sigmoidDiffOp( out[index] );
+		wxDiff[index] = activationDiffOp( out[index], currOutDiff[index] );
 	}
 }
 
@@ -68,6 +78,8 @@ static void indRnnBackwardTestImpl( const CTestParams& params, int seed )
 	const int batchWidth = random.UniformInt( batchWidthInterval.Begin, batchWidthInterval.End );
 	const int channels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const bool reverse = random.Next() % 2 == 1;
+	const IMathEngine::TIndRnnActivation activation = random.Next() % 2 == 1
+		? IMathEngine::IRA_Sigmoid : IMathEngine::IRA_ReLU;
 
 	const float dropoutRate = random.Next() % 2 == 1 ? static_cast<float>( random.Uniform( 0., 1. ) ) : 0.f;
 
@@ -95,12 +107,12 @@ static void indRnnBackwardTestImpl( const CTestParams& params, int seed )
 	outDiffBlob.CopyFrom( outDiffData.data() );
 
 	std::vector<float> expectedData( dataSize );
-	indRnnRecurrentBackwardNaive( reverse, batchLength, batchWidth, channels,
+	indRnnRecurrentBackwardNaive( reverse, batchLength, batchWidth, channels, activation,
 		dropoutRate > 0 ? maskData.data() : nullptr, uData.data(), outData.data(), outDiffData.data(),
 		expectedData.data() );
 
 	CFloatBlob actualBlob( MathEngine(), batchLength, batchWidth, 1, 1, 1, 1, channels );
-	MathEngine().IndRnnRecurrentBackward( reverse, batchLength, batchWidth, channels,
+	MathEngine().IndRnnRecurrentBackward( reverse, batchLength, batchWidth, channels, activation,
 		dropoutRate > 0 ? maskBlob.GetData() : CFloatHandle(), uBlob.GetData(), outBlob.GetData(), outDiffBlob.GetData(),
 		actualBlob.GetData() );
 	std::vector<float> actualData( dataSize );
@@ -108,7 +120,7 @@ static void indRnnBackwardTestImpl( const CTestParams& params, int seed )
 
 	ASSERT_EQ( expectedData.size(), actualData.size() );
 	for( int i = 0; i < dataSize; ++i ) {
-		EXPECT_TRUE( FloatEq( expectedData[i], actualData[i], 1e-4f ) );
+		EXPECT_TRUE( FloatEq( expectedData[i], actualData[i], 1e-2f ) );
 	}
 }
 
@@ -127,7 +139,7 @@ INSTANTIATE_TEST_CASE_P( CIndRnnBackwardTest, CIndRnnBackwardTest,
 			"BatchLength = (1..20);"
 			"BatchWidth = (1..10);"
 			"Channels = (1..10);"
-			"TestCount = 500;"
+			"TestCount = 5000;"
 		),
 		CTestParams(
 			"BatchLength = (1..20);"

@@ -203,6 +203,8 @@ public:
 
 	// Vector substraction
 	// result = first - second
+	virtual void VectorSub(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorSub(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorSub(const CConstFloatHandle& firstHandle,
@@ -229,6 +231,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
 
 	// result = first * second elementwise
+	virtual void VectorEltwiseMultiply( const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
 	virtual void VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	// result += first * second elementwise
@@ -431,6 +435,9 @@ public:
 	virtual void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 		const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 		const CFloatHandle& outputHandle, int outputChannels) = 0;
+	virtual void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+		const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+		const CIntHandle& outputHandle, int outputChannels) = 0;
 	// Finds the position in the representation table for the channel and adds a row from the specified matrix (of batchSize height)
 	virtual void VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, 
@@ -739,9 +746,11 @@ public:
 	virtual void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source, const CIntHandle& maxIndices,
 		const CFloatHandle& result ) = 0;
 
-	virtual void Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+	virtual void Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
+		int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+	virtual void Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
-	virtual void Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+	virtual void Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
 
 	// Builds a histogram of the number of occurrences in numbersHandle for each integer in [0; maxNumber)
@@ -851,27 +860,36 @@ public:
 	// Ind-RNN implementation (https://arxiv.org/pdf/1803.04831.pdf)
 	// Pay attention that functions below emulate only recurrent part of the layer
 	// the result is
-	//    h_t = sigmoid( wx + u * h_(t-1))
+	//    h_t = activation( wx + u * h_(t-1))
 	// where
 	//    wx - user input (x), processed by fully connected layer (w). Size: seqLen x batchSize x objSize
 	//    mask - (optional, may be null) dropout mask. Size: batchSize x objSize
 	//    u - trainable vector of multipliers. Size: objSize
 
+	// Supported activations
+	// - sigmoid
+	// - ReLU
+	enum TIndRnnActivation {
+		IRA_Sigmoid,
+		IRA_ReLU,
+
+		IRA_Count
+	};
+
 	// Inference
 	// Calculates h based on wx, mask and u
-	virtual void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
-		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
-		const CFloatHandle& h ) = 0;
+	virtual void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize, TIndRnnActivation activation,
+		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CFloatHandle& h ) = 0;
 	// Backward
 	// Calculates wxDiff based on mask, u, h and hDiff
 	virtual void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
-		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-		const CFloatHandle& wxDiff ) = 0;
+		TIndRnnActivation activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+		const CConstFloatHandle& hDiff, const CFloatHandle& wxDiff ) = 0;
 	// Learn
 	// Calculates uDiff based on wx, mask, u, h, and hDiff
 	virtual void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
-		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-		const CFloatHandle& uDiff ) = 0;
+		TIndRnnActivation activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+		const CConstFloatHandle& hDiff, const CFloatHandle& uDiff ) = 0;
 
 	// Local responce normalization (Lrn)
 	// For more details see CLrnLayer comments

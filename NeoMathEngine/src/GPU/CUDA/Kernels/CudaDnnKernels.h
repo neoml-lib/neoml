@@ -163,10 +163,11 @@ __global__ void BlobGetSubSequenceKernel( CCudaBlobDesc from, const float* fromD
 	}
 }
 
+template<class T>
 __global__ void Upsampling2DForwardKernel(
 	int heightCopyCount, int widthCopyCount, int pixelSize,
-	int batchSize, int inputHeight, int inputRowSize, const float* input,
-	int resultHeight, int resultRowSize, float* result )
+	int batchSize, int inputHeight, int inputRowSize, const T* input,
+	int resultHeight, int resultRowSize, T* result )
 {
 	int resultI;
 	int resultJ;
@@ -529,13 +530,20 @@ __global__ void QrnnIfPoolingBackwardKernel( bool reverse, int sequenceLength, i
 	*iDiff = *outDiff * *z;
 }
 
-__global__ void IndRnnRecurrentKernel( bool reverse, int sequenceLength, int batchSize, int objectSize,
+inline __device__ float cudaSigmoid( float x ) { return 1.f / ( 1.f + ExponentFunc( -x ) ); }
+inline __device__ float cudaReLU( float x ) { return max( 0.f, x ); }
+
+__global__ void IndRnnRecurrentKernel( bool reverse, int sequenceLength, int batchSize, int objectSize, int activation,
 	const float* wx, const float* mask, const float* u, float* h )
 {
 	int batch, elem;
 	if( !GetCudaTaskIndex2D( batchSize, objectSize, batch, elem ) ) {
 		return;
 	}
+
+	// IRA_Sigmoid == 0
+	// IRA_ReLU == 1
+	float ( *applyActivation )( float ) = activation == 0 ? cudaSigmoid : cudaReLU;
 
 	const int inBatchOffset = batch * objectSize + elem;
 	const float dropout = mask == nullptr ? 1.f : mask[inBatchOffset];
@@ -547,29 +555,36 @@ __global__ void IndRnnRecurrentKernel( bool reverse, int sequenceLength, int bat
 		wx += ( sequenceLength - 1 ) * batchSize * objectSize;
 		h += ( sequenceLength - 1 ) * batchSize * objectSize;
 	}
-	
+
 	wx += inBatchOffset;
 	h += inBatchOffset;
 
-	float currRes = 1.f / (1.f + ExponentFunc( -*wx ) );
+	float currRes = applyActivation( *wx );
 	*h = currRes;
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
 		wx += stepOffset;
 		h += stepOffset;
 		currRes = *wx + weight * dropout * currRes;
-		currRes = 1.f / (1.f + ExponentFunc( -currRes ) );
+		currRes = applyActivation( currRes );
 		*h = currRes;
 	}
 }
 
-__global__ void IndRnnRecurrentBackwardKernel( bool reverse, int sequenceLength, int batchSize, int objectSize,
+inline __device__ float cudaSigmoidDiffOp( float out, float outDiff ) { return out * ( 1.f - out ) * outDiff; }
+inline __device__ float cudaReLUDiffOp( float out, float outDiff ) { return out > 0.f ? outDiff : 0.f; }
+
+__global__ void IndRnnRecurrentBackwardKernel( bool reverse, int sequenceLength, int batchSize, int objectSize, int activation,
 	const float* mask, const float* u, const float* out, const float* outDiff, float* wxDiff )
 {
 	int batch, elem;
 	if( !GetCudaTaskIndex2D( batchSize, objectSize, batch, elem ) ) {
 		return;
 	}
+
+	// IRA_Sigmoid == 0
+	// IRA_ReLU == 1
+	float ( *activationDiffOp )( float, float ) = activation == 0 ? cudaSigmoidDiffOp : cudaReLUDiffOp;
 
 	const int inBatchOffset = batch * objectSize + elem;
 	const float dropout = mask == nullptr ? 1.f : mask[inBatchOffset];
@@ -591,7 +606,7 @@ __global__ void IndRnnRecurrentBackwardKernel( bool reverse, int sequenceLength,
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
 		float currOut = *out;
-		float currWxDiff = totalOutDiff * currOut * ( 1.f - currOut );
+		float currWxDiff = activationDiffOp( currOut, totalOutDiff );
 		*wxDiff = currWxDiff;
 
 		outDiff += stepOffset;
@@ -602,16 +617,20 @@ __global__ void IndRnnRecurrentBackwardKernel( bool reverse, int sequenceLength,
 	}
 
 	float currOut = *out;
-	*wxDiff = totalOutDiff * currOut * ( 1.f - currOut );
+	*wxDiff = activationDiffOp( currOut, totalOutDiff );
 }
 
-__global__ void IndRnnRecurrentLearnKernel( bool reverse, int sequenceLength, int batchSize, int objectSize,
+__global__ void IndRnnRecurrentLearnKernel( bool reverse, int sequenceLength, int batchSize, int objectSize, int activation,
 	const float* mask, const float* u, const float* out, const float* outDiff, float* uDiff )
 {
 	int batch, elem;
 	if( !GetCudaTaskIndex2D( batchSize, objectSize, batch, elem ) ) {
 		return;
 	}
+
+	// IRA_Sigmoid == 0
+	// IRA_ReLU == 1
+	float ( *activationDiffOp )( float, float ) = activation == 0 ? cudaSigmoidDiffOp : cudaReLUDiffOp;
 
 	const int inBatchOffset = batch * objectSize + elem;
 	const float dropout = mask == nullptr ? 1.f : mask[inBatchOffset];
@@ -632,11 +651,10 @@ __global__ void IndRnnRecurrentLearnKernel( bool reverse, int sequenceLength, in
 	float currOut = *out;
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
-		float sigmoidDiffOp = currOut * ( 1.f - currOut );
+		const float temp = activationDiffOp( currOut, totalOutDiff ) * dropout;
 		outDiff += stepOffset;
 		out += stepOffset;
 		currOut = *out;
-		float temp = totalOutDiff * sigmoidDiffOp * dropout;
 		totalUDiff += temp * currOut;
 		totalOutDiff = *outDiff + temp * weight;
 	}
