@@ -309,10 +309,20 @@ PARAM_STRUCT(VectorAddInt)
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
-// VectorSub
-DEFINE_SHADER_1D(VectorSub)
+// VectorSubInt
+DEFINE_SHADER_1D(VectorSubInt)
 
-PARAM_STRUCT(VectorSub)
+PARAM_STRUCT(VectorSubInt)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorSubFloat
+DEFINE_SHADER_1D(VectorSubFloat)
+
+PARAM_STRUCT(VectorSubFloat)
 {
 	int dummy;
 };
@@ -339,10 +349,22 @@ PARAM_STRUCT(VectorMultiplyAndSub)
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
-// VectorMultiply
-DEFINE_SHADER_1D(VectorMultiply)
+// VectorMultiplyInt
+DEFINE_SHADER_1D(VectorMultiplyInt)
 
-PARAM_STRUCT(VectorMultiply)
+PARAM_STRUCT(VectorMultiplyInt)
+{
+	int isSecondValue;
+	int isNeg;
+	int toAdd;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorMultiplyFloat
+DEFINE_SHADER_1D(VectorMultiplyFloat)
+
+PARAM_STRUCT(VectorMultiplyFloat)
 {
 	int isSecondValue;
 	int isNeg;
@@ -2138,9 +2160,9 @@ PARAM_STRUCT( SpaceToDepthFloat )
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 // BatchVectorChannelCopyFloat
-DEFINE_SHADER_2D(VectorMultichannelLookupAndCopyFloat)
+DEFINE_SHADER_2D(VectorMultichannelLookupAndCopyFloatIndicesFloatData)
 
-PARAM_STRUCT(VectorMultichannelLookupAndCopyFloat)
+PARAM_STRUCT(VectorMultichannelLookupAndCopyFloatIndicesFloatData)
 {
 	int batchSize;
 	int lookupIndex;
@@ -2153,9 +2175,9 @@ PARAM_STRUCT(VectorMultichannelLookupAndCopyFloat)
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 // BatchVectorMultichannelCopyFloat
-DEFINE_SHADER_2D(VectorMultichannelCopyFloat)
+DEFINE_SHADER_2D(VectorMultichannelCopyFloatIndicesFloatData)
 
-PARAM_STRUCT(VectorMultichannelCopyFloat)
+PARAM_STRUCT(VectorMultichannelCopyFloatIndicesFloatData)
 {
 	int batchSize;
 	int inputChannelCount;
@@ -2168,9 +2190,24 @@ PARAM_STRUCT(VectorMultichannelCopyFloat)
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 // BatchVectorChannelCopyInt
-DEFINE_SHADER_2D(VectorMultichannelLookupAndCopyInt)
+DEFINE_SHADER_2D(VectorMultichannelLookupAndCopyIntIndicesFloatData)
 
-PARAM_STRUCT(VectorMultichannelLookupAndCopyInt)
+PARAM_STRUCT(VectorMultichannelLookupAndCopyIntIndicesFloatData)
+{
+	int batchSize;
+	int lookupIndex;
+	int inputChannelCount;
+	int outputChannelCount;
+	int vectorSize;
+	int outputChannel;	
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchVectorChannelCopyInt
+DEFINE_SHADER_2D(VectorMultichannelLookupAndCopyIntIndicesIntData)
+
+PARAM_STRUCT(VectorMultichannelLookupAndCopyIntIndicesIntData)
 {
 	int batchSize;
 	int lookupIndex;
@@ -2183,9 +2220,24 @@ PARAM_STRUCT(VectorMultichannelLookupAndCopyInt)
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
 // BatchVectorMultichannelCopyInt
-DEFINE_SHADER_2D(VectorMultichannelCopyInt)
+DEFINE_SHADER_2D(VectorMultichannelCopyIntIndicesFloatData)
 
-PARAM_STRUCT(VectorMultichannelCopyInt)
+PARAM_STRUCT(VectorMultichannelCopyIntIndicesFloatData)
+{
+	int batchSize;
+	int inputChannelCount;
+	int outputChannelCount;
+	int lookupCount;
+	int outputChannel;
+	int vectorSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BatchVectorMultichannelCopyInt
+DEFINE_SHADER_2D(VectorMultichannelCopyIntIndicesIntData)
+
+PARAM_STRUCT(VectorMultichannelCopyIntIndicesIntData)
 {
 	int batchSize;
 	int inputChannelCount;

@@ -1286,6 +1286,33 @@ void CCpuMathEngine::VectorAddValue( const CConstIntHandle& firstHandle,
 	}
 }
 
+void CCpuMathEngine::VectorSub(const CConstIntHandle& firstHandle,
+	const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const int* first = GetRaw(firstHandle);
+	const int* second = GetRaw(secondHandle);
+	int* result = GetRaw(resultHandle);
+
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	for(int i = 0; i < sseSize; ++i) {
+		StoreIntSse4(_mm_sub_epi32(LoadIntSse4(first), LoadIntSse4(second)), result);
+		first += 4;
+		second += 4;
+		result += 4;
+	}
+
+	for(int i = 0; i < nonSseSize; ++i) {
+		result[i] = first[i] - second[i];
+	}
+}
+
 void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
