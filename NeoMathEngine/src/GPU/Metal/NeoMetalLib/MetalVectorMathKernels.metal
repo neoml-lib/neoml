@@ -1223,13 +1223,38 @@ kernel void vectorKernelAddValueInt( constant int* first [[buffer(0)]],
     }
 }
 
-kernel void vectorKernelSub( constant float* first [[buffer(0)]],
-                             constant float* second [[buffer(1)]],
-                             device float* result [[buffer(2)]],
-                             constant int* count [[buffer(3)]],
-                             uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
-                             uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
-                             uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+kernel void vectorKernelSubInt( constant int* first [[buffer(0)]],
+                                constant int* second [[buffer(1)]],
+                                device int* result [[buffer(2)]],
+                                constant int* count [[buffer(3)]],
+                                uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+{
+    C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
+    int index;
+    int step;
+    int actionCount = pos.GetMetalTaskCountAndIndex( *count, VectorCombineCount, index, step );
+    
+    first += index;
+    second += index;
+    result += index;
+    
+    for(int i = 0; i < actionCount; ++i) {
+        *result = *first - *second;
+        first += step;
+        second += step;
+        result += step;
+    }
+}
+
+kernel void vectorKernelSubFloat( constant float* first [[buffer(0)]],
+                                  constant float* second [[buffer(1)]],
+                                  device float* result [[buffer(2)]],
+                                  constant int* count [[buffer(3)]],
+                                  uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                  uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                  uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
 {
     C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
     int index;
@@ -1296,13 +1321,38 @@ kernel void vectorKernelNegMultiply( constant float* first [[buffer(0)]],
     }
 }
 
-kernel void vectorKernelEltwiseMultiply( constant float* first [[buffer(0)]],
-                                         constant float* second [[buffer(1)]],
-                                         device float* result [[buffer(2)]],
-                                         constant int* count [[buffer(3)]],
-                                         uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
-                                         uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
-                                         uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]])
+kernel void vectorKernelEltwiseMultiplyInt( constant int* first [[buffer(0)]],
+                                            constant int* second [[buffer(1)]],
+                                            device int* result [[buffer(2)]],
+                                            constant int* count [[buffer(3)]],
+                                            uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                            uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                            uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]])
+{
+    C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
+    int index;
+    int step;
+    int actionCount = pos.GetMetalTaskCountAndIndex( *count, VectorCombineCount, index, step );
+    
+    first += index;
+    second += index;
+    result += index;
+    
+    for( int i = 0; i < actionCount; ++i ) {
+        *result = *first * *second;
+        first += step;
+        second += step;
+        result += step;
+    }
+}
+
+kernel void vectorKernelEltwiseMultiplyFloat( constant float* first [[buffer(0)]],
+                                              constant float* second [[buffer(1)]],
+                                              device float* result [[buffer(2)]],
+                                              constant int* count [[buffer(3)]],
+                                              uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                              uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                              uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]])
 {
     C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
     int index;
@@ -2195,17 +2245,46 @@ kernel void vectorKernelBitSetBinarization( constant int* batchSize [[buffer(0)]
     }
 }
 
-kernel void matrixKernelUpsampling2DForward( constant int* heightCopyCount [[buffer(0)]],
-                                             constant int* widthCopyCount [[buffer(1)]],
-                                             constant int* pixelSize [[buffer(2)]],
-                                             constant int* batchSize [[buffer(3)]],
-                                             constant int* inputHeight [[buffer(4)]],
-                                             constant int* inputRowSize [[buffer(5)]],
-                                             constant float* input [[buffer(6)]],
-                                             constant int* resultHeight [[buffer(7)]],
-                                             constant int* resultRowSize [[buffer(8)]],
-                                             device float* result [[buffer(9)]],
-                                             uint2 thread_position_in_grid [[ thread_position_in_grid ]]  )
+kernel void matrixKernelUpsampling2DForwardInt( constant int* heightCopyCount [[buffer(0)]],
+                                                constant int* widthCopyCount [[buffer(1)]],
+                                                constant int* pixelSize [[buffer(2)]],
+                                                constant int* batchSize [[buffer(3)]],
+                                                constant int* inputHeight [[buffer(4)]],
+                                                constant int* inputRowSize [[buffer(5)]],
+                                                constant int* input [[buffer(6)]],
+                                                constant int* resultHeight [[buffer(7)]],
+                                                constant int* resultRowSize [[buffer(8)]],
+                                                device int* result [[buffer(9)]],
+                                                uint2 thread_position_in_grid [[ thread_position_in_grid ]]  )
+{
+    C2DPosition pos( thread_position_in_grid );
+    
+    int resultI;
+    int resultJ;
+    if( !pos.GetMetalTaskIndex2D( *resultHeight, *resultRowSize, resultI, resultJ ) ) {
+        return;
+    }
+    const int inputI = resultI / *heightCopyCount;
+    const int inputJ = ( resultJ / *pixelSize / *widthCopyCount ) * *pixelSize + resultJ % *pixelSize;
+    
+    for( int batchIndex = 0; batchIndex < *batchSize; ++batchIndex ) {
+        *( result + resultI * *resultRowSize + resultJ ) = *( input + inputI * *inputRowSize + inputJ );
+        input += *inputHeight * *inputRowSize;
+        result += *resultHeight * *resultRowSize;
+    }
+}
+
+kernel void matrixKernelUpsampling2DForwardFloat( constant int* heightCopyCount [[buffer(0)]],
+                                                  constant int* widthCopyCount [[buffer(1)]],
+                                                  constant int* pixelSize [[buffer(2)]],
+                                                  constant int* batchSize [[buffer(3)]],
+                                                  constant int* inputHeight [[buffer(4)]],
+                                                  constant int* inputRowSize [[buffer(5)]],
+                                                  constant float* input [[buffer(6)]],
+                                                  constant int* resultHeight [[buffer(7)]],
+                                                  constant int* resultRowSize [[buffer(8)]],
+                                                  device float* result [[buffer(9)]],
+                                                  uint2 thread_position_in_grid [[ thread_position_in_grid ]]  )
 {
     C2DPosition pos( thread_position_in_grid );
     

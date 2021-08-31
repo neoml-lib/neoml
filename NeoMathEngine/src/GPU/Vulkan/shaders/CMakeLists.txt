@@ -53,10 +53,12 @@ set(SHADER_SOURCES
     VectorAddInt.comp 
     VectorSum.comp 
     VectorEqual.comp
-    VectorSub.comp 
+    VectorSubInt.comp 
+    VectorSubFloat.comp 
     VectorMultiplyAndAdd.comp 
     VectorMultiplyAndSub.comp 
-    VectorMultiply.comp
+    VectorMultiplyInt.comp
+    VectorMultiplyFloat.comp
     VectorEltwisePower.comp 
     VectorSqrt.comp 
     VectorInv.comp 
@@ -79,7 +81,8 @@ set(SHADER_SOURCES
     VectorEltwiseLogSumExp.comp 
     SetVectorToMatrixElements.comp 
     LookupAndSum.comp 
-    Upsampling2DForward.comp
+    Upsampling2DForwardInt.comp
+    Upsampling2DForwardFloat.comp
     FindMaxValueInRows.comp 
     FindMaxValueInRowsNoIndices.comp 
     FindMaxValueInColumns.comp
