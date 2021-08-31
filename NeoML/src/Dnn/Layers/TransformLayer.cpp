@@ -160,6 +160,7 @@ void CTransformLayer::RunOnce()
 
 void CTransformLayer::BackwardOnce()
 {
+	NeoAssert( inputBlobs[0]->GetDataType() == CT_Float );
 	if( inputDiffBlobs[0]->GetData() != outputDiffBlobs[0]->GetData() ) {
 		MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 			inputDiffBlobs[0]->GetDataSize() );
