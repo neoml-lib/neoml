@@ -126,7 +126,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, desc.Source.Depth() * desc.Source.Channels() );
-		BuildTempMatrixForwardKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ),
+		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ),
 			tempMatrixHeightIndex, curTempMatrixHeight, GetRaw( tempMatrix.GetHandle() ) );
 
 		MultiplyMatrixByTransposedMatrix( tempMatrix, curTempMatrixHeight, filter.ObjectSize(), filter.ObjectSize(),
