@@ -170,6 +170,7 @@ REGISTER_NEOML_PYLAYER( "IndRnn", "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_PYLAYER( "Qrnn", "NeoMLDnnQrnnLayer" )
 REGISTER_NEOML_PYLAYER( "Lrn", "NeoMLDnnLrnLayer" )
 REGISTER_NEOML_PYLAYER( "Cast", "NeoMLDnnCastLayer" )
+REGISTER_NEOML_PYLAYER( "Data", "NeoMLDnnDataLayer" )
 
 }
 

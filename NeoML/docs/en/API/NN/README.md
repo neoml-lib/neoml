@@ -202,10 +202,11 @@ delete gpuMathEngine;
 
 - [CBaseLayer](BaseLayer.md) is the base class for common layer functionality
 - The layers used to pass the data to and from the network:
-  - [CSourceLayer](IOLayers/SourceLayer.md) transmits a blob of data into the network
+  - [CSourceLayer](IOLayers/SourceLayer.md) transmits a blob of user data into the network
   - [CSinkLayer](IOLayers/SinkLayer.md) is used to retrieve a blob of data with the network response
   - [CProblemSourceLayer](IOLayers/ProblemSourceLayer.md) transmits the data from [`IProblem`](../ClassificationAndRegression/Problems.md) into the network
   - [CFullyConnectedSourceLayer](IOLayers/FullyConnectedSourceLayer.md) transmits the data from `IProblem` into the network, multiplying the vectors by a trainable weights matrix
+  - [CDataLayer](IOLayers/DataLayer.md) transmits a blob of fixed data into the network
 - [CFullyConnectedLayer](FullyConnectedLayer.md) is the fully-connected layer
 - [Activation functions](ActivationLayers/README.md):
   - [CLinearLayer](ActivationLayers/LinearLayer.md) - a linear activation function `ax + b`

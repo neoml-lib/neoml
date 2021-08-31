@@ -87,6 +87,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
 #include <NeoML/Dnn/Layers/LrnLayer.h>
 #include <NeoML/Dnn/Layers/CastLayer.h>
+#include <NeoML/Dnn/Layers/DataLayer.h>
 
 namespace NeoML {
 
@@ -334,6 +335,7 @@ REGISTER_NEOML_LAYER( CDepthToSpaceLayer, "NeoMLDnnDepthToSpaceLayer" )
 REGISTER_NEOML_LAYER( CSpaceToDepthLayer, "NeoMLDnnSpaceToDepthLayer" )
 REGISTER_NEOML_LAYER( CLrnLayer, "NeoMLDnnLrnLayer" )
 REGISTER_NEOML_LAYER( CCastLayer, "NeoMLDnnCastLayer" )
+REGISTER_NEOML_LAYER( CDataLayer, "NeoMLDnnDataLayer" )
 
 }
 
