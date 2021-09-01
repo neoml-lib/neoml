@@ -32,6 +32,13 @@ inline Type* AddressOfObject( const Type& what )
 	return const_cast<Type*>( reinterpret_cast<const Type*>( &( reinterpret_cast<const char&>( what ) ) ) );
 }
 
+// in order to avoid GCC 9+ warnings
+template<>
+inline const char** AddressOfObject<const char*>( const char* const& what )
+{
+	return const_cast<const char**>( &what );
+}
+
 const int Megabyte = 1024 * 1024;
 const int Gigabyte = 1024 * Megabyte;
 const double Pi = 3.1415926535897932384626433832795;

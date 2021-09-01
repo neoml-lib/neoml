@@ -23,7 +23,7 @@ class CPerformanceCountersDefault : public IPerformanceCounters {
 public:
 	CPerformanceCountersDefault() : IPerformanceCounters( &counter )
 	{
-		counter.Name = "time ms";
+		counter.Name = "time ns";
 		CounterCount() = 1;
 	}
 
@@ -31,7 +31,7 @@ public:
 	{
 		auto cnow = std::chrono::steady_clock::now().time_since_epoch();
 		auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(cnow).count();
-		counter.Value = ( now - old ) / 1000000;
+		counter.Value = now - old;
 		old = now;
 	}
 
