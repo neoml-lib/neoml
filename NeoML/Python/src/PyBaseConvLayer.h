@@ -18,6 +18,8 @@ limitations under the License.
 #include "PyLayer.h"
 #include "PyDnnBlob.h"
 
+class CPyBlob;
+
 class CPyBaseConvLayer : public CPyLayer {
 public:
 	explicit CPyBaseConvLayer( CBaseConvLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
@@ -47,6 +49,8 @@ public:
 
 	void SetFilter( const CPyBlob& blob ) { Layer<CBaseConvLayer>()->SetFilterData( blob.Blob() ); }
 	CPyBlob GetFilter() const { return CPyBlob( MathEngineOwner(), Layer<CBaseConvLayer>()->GetFilterData() ); }
+	void SetFilter( CPyBlob& value ) const;
+	void SetFreeTerm( CPyBlob& value ) const;
 
 	void SetFreeTerm( const CPyBlob& blob ) { Layer<CBaseConvLayer>()->SetFreeTermData( blob.Blob() ); }
 	CPyBlob GetFreeTerm() const { return CPyBlob( MathEngineOwner(), Layer<CBaseConvLayer>()->GetFreeTermData() ); }

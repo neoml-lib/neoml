@@ -16,6 +16,7 @@ limitations under the License.
 
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
+from ..Blob import Blob
 from neoml.Utils import check_input_layers
 
 
@@ -83,7 +84,10 @@ class Gru(Layer):
         - **Height** * **Width** * **Depth** * **Channels** equal to 
           this dimension of the input plus hidden_size
         """
-        self._internal.set_main_weights(main_weights)
+        if not isinstance(main_weights, Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
+        self._internal.set_main_weights(main_weights._internal)
 
     @property
     def main_free_term(self):
@@ -95,7 +99,10 @@ class Gru(Layer):
     def main_free_term(self, main_free_term):
         """Sets the output free terms as a blob of total hidden_size size.
         """
-        self._internal.set_main_free_term(main_free_term)
+        if not isinstance(main_free_term, Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
+        self._internal.set_main_free_term(main_free_term._internal)
 
     @property
     def gate_weights(self):
@@ -115,7 +122,10 @@ class Gru(Layer):
         - **Height** * **Width** * **Depth** * **Channels** equal to 
           this dimension of the input plus hidden_size
         """
-        self._internal.set_gate_weights(gate_weights)
+        if not isinstance(gate_weights, Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
+        self._internal.set_gate_weights(gate_weights._internal)
 
     @property
     def gate_free_term(self):
@@ -127,7 +137,10 @@ class Gru(Layer):
     def gate_free_term(self, gate_free_term):
         """Sets the gate free terms as a blob of total 2 * hidden_size size.
         """
-        self._internal.set_gate_free_term(gate_free_term)
+        if not isinstance(gate_free_term, Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
+        self._internal.set_gate_free_term(gate_free_term._internal)
 
     @property
     def hidden_size(self):

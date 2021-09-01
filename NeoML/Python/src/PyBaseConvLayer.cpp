@@ -19,6 +19,16 @@ limitations under the License.
 #include "PyBaseConvLayer.h"
 #include "PyDnnBlob.h"
 
+void CPyBaseConvLayer::SetFilter( CPyBlob& value ) const
+{
+	Layer<CBaseConvLayer>()->SetFilterData( value.Blob() );
+}
+
+void CPyBaseConvLayer::SetFreeTerm( CPyBlob& value ) const
+{
+	Layer<CBaseConvLayer>()->SetFreeTermData( value.Blob() );
+}
+
 void CPyBaseConvLayer::ApplyBatchNormalization(const CPyLayer& layer)
 {
 	Layer<CBaseConvLayer>()->ApplyBatchNormalization(*layer.Layer<CBatchNormalizationLayer>());
@@ -56,6 +66,8 @@ void InitializeBaseConvLayer( py::module& m )
 		.def( "get_filter", &CPyBaseConvLayer::GetFilter, py::return_value_policy::reference )
 		.def( "set_free_term", &CPyBaseConvLayer::SetFreeTerm, py::return_value_policy::reference )
 		.def( "get_free_term", &CPyBaseConvLayer::GetFreeTerm, py::return_value_policy::reference )
+		.def( "set_filter", &CPyBaseConvLayer::SetFilter, py::return_value_policy::reference )
+		.def( "set_free_term", &CPyBaseConvLayer::SetFreeTerm, py::return_value_policy::reference )
 
 		.def( "apply_batch_normalization", &CPyBaseConvLayer::ApplyBatchNormalization, py::return_value_policy::reference )
 	;

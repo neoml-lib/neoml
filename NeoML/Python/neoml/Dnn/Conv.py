@@ -190,7 +190,12 @@ class Conv(Layer):
         - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
         - **Height**, **Width** are taken from filter_size
         - **Depth**, **Channels** are equal to the inputs' dimensions
+
+        :param neoml.Blob.Blob blob: blob to be used as filter
         """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
         self._internal.set_filter(blob._internal)
 
     @property
@@ -202,7 +207,12 @@ class Conv(Layer):
     @free_term.setter
     def free_term(self, blob):
         """Sets the free term. The blob size is filter_count.
+
+        :param neoml.Blob.Blob blob: blob to be used as free term
         """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
         self._internal.set_free_term(blob._internal)
 
     def apply_batch_normalization(self, layer):
@@ -370,9 +380,14 @@ class Conv3D(Layer):
         """Sets the filters. The dimensions:
 
         - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
-        - **Height**, **Width**, **Depth** are taken from filter_size
-        - **Channels** is equal to the inputs' **Channels**
+        - **Height**, **Width** are taken from filter_size
+        - **Depth**, **Channels** are equal to the inputs' dimensions
+
+        :param neoml.Blob.Blob blob: blob to be used as filter
         """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
         self._internal.set_filter(blob._internal)
 
     @property
@@ -384,7 +399,12 @@ class Conv3D(Layer):
     @free_term.setter
     def free_term(self, blob):
         """Sets the free term. The blob size is filter_count.
+
+        :param neoml.Blob.Blob blob: blob to be used as free term
         """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
         self._internal.set_free_term(blob._internal)
 
     def apply_batch_normalization(self, layer):
@@ -552,11 +572,15 @@ class TransposedConv3D(Layer):
     def filter(self, blob):
         """Sets the filters. The dimensions:
 
-        - **BatchLength**, **ListSize** are 1
-        - **BatchWidth** is equal to the inputs' **Channels**
-        - **Height**, **Width**, **Depth** are taken from filter_size
-        - **Channels** is filter_count
+        - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
+        - **Height**, **Width** are taken from filter_size
+        - **Depth**, **Channels** are equal to the inputs' dimensions
+
+        :param neoml.Blob.Blob blob: blob to be used as filter
         """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
         self._internal.set_filter(blob._internal)
 
     @property
@@ -568,7 +592,12 @@ class TransposedConv3D(Layer):
     @free_term.setter
     def free_term(self, blob):
         """Sets the free term. The blob size is filter_count.
+
+        :param neoml.Blob.Blob blob: blob to be used as free term
         """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
         self._internal.set_free_term(blob._internal)
 
     def apply_batch_normalization(self, layer):
@@ -753,11 +782,15 @@ class TransposedConv(Layer):
     def filter(self, blob):
         """Sets the filters. The dimensions:
 
-        - **BatchLength**, **ListSize** are 1
-        - **BatchWidth** is equal to the inputs' **Channels** * **Depth**
+        - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
         - **Height**, **Width** are taken from filter_size
-        - **Channels** is filter_count
+        - **Depth**, **Channels** are equal to the inputs' dimensions
+
+        :param neoml.Blob.Blob blob: blob to be used as filter
         """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
         self._internal.set_filter(blob._internal)
 
     @property
@@ -769,7 +802,12 @@ class TransposedConv(Layer):
     @free_term.setter
     def free_term(self, blob):
         """Sets the free term. The blob size is filter_count.
+
+        :param neoml.Blob.Blob blob: blob to be used as free term
         """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
         self._internal.set_free_term(blob._internal)
 
     def apply_batch_normalization(self, layer):
@@ -933,10 +971,15 @@ class ChannelwiseConv(Layer):
     def filter(self, blob):
         """Sets the filters. The dimensions:
 
-        - **BatchLength**, **BatchWidth**, **ListSize**, **Depth** are 1
+        - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
         - **Height**, **Width** are taken from filter_size
-        - **Channels** is equal to the inputs' **Channels**
+        - **Depth**, **Channels** are equal to the inputs' dimensions
+
+        :param neoml.Blob.Blob blob: blob to be used as filter
         """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
         self._internal.set_filter(blob._internal)
 
     @property
@@ -947,8 +990,13 @@ class ChannelwiseConv(Layer):
 
     @free_term.setter
     def free_term(self, blob):
-        """Sets the free term. The blob size is inputs' Channels.
+        """Sets the free term. The blob size is filter_count.
+
+        :param neoml.Blob.Blob blob: blob to be used as free term
         """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
         self._internal.set_free_term(blob._internal)
 
     def apply_batch_normalization(self, layer):
@@ -1136,8 +1184,34 @@ class TimeConv(Layer):
         """
         return Blob.Blob(self._internal.get_filter())
 
+    @filter.setter
+    def filter(self, blob):
+        """Sets the filters. The dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** is filter_count
+        - **Height**, **Width** are taken from filter_size
+        - **Depth**, **Channels** are equal to the inputs' dimensions
+
+        :param neoml.Blob.Blob blob: blob to be used as filter
+        """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
+        self._internal.set_filter(blob._internal)
+
     @property
     def free_term(self):
         """Gets the free term. The blob size is filter_count.
         """
         return Blob.Blob(self._internal.get_free_term())
+
+    @free_term.setter
+    def free_term(self, blob):
+        """Sets the free term. The blob size is filter_count
+
+        :param neoml.Blob.Blob blob: blob to be used as free term
+        """
+        if not isinstance(blob, Blob.Blob):
+            raise ValueError('The `blob` must be neoml.Blob.Blob.')
+
+        self._internal.set_free_term(blob._internal)
