@@ -37,7 +37,7 @@ class IndRnn(Layer):
     :param dropout_rate: The rate of the dropout, applied to both input and recurrent data
     :type dropout_rate: float, default=0.
     :param activation: The activation funciton applied to the output
-    :type activation: str, {'sigmoid', 'relu'}, default='sigmoid'
+    :type activation: str, {'sigmoid', 'relu'}, default='relu'
     :param reverse_sequence: Indicates if the input sequence should be taken in the reverse order.
     :type reverse_sequence: bool, default=False
 
@@ -58,7 +58,7 @@ class IndRnn(Layer):
         - **Channels** is hidden_size
     """
 
-    def __init__(self, input_layer, hidden_size=1, dropout_rate=0., reverse_sequence=False, activation='sigmoid', name=None):
+    def __init__(self, input_layer, hidden_size=1, dropout_rate=0., reverse_sequence=False, activation='relu', name=None):
 
         if type(input_layer) is PythonWrapper.IndRnn:
             super().__init__(input_layer)

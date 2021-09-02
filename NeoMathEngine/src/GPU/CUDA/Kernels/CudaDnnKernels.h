@@ -541,9 +541,9 @@ __global__ void IndRnnRecurrentKernel( bool reverse, int sequenceLength, int bat
 		return;
 	}
 
-	// IRA_Sigmoid == 0
-	// IRA_ReLU == 1
-	float ( *applyActivation )( float ) = activation == 0 ? cudaSigmoid : cudaReLU;
+	// AF_Sigmoid == 5
+	// AF_ReLU == 2
+	float ( *applyActivation )( float ) = activation == 5 ? cudaSigmoid : cudaReLU;
 
 	const int inBatchOffset = batch * objectSize + elem;
 	const float dropout = mask == nullptr ? 1.f : mask[inBatchOffset];
@@ -582,9 +582,9 @@ __global__ void IndRnnRecurrentBackwardKernel( bool reverse, int sequenceLength,
 		return;
 	}
 
-	// IRA_Sigmoid == 0
-	// IRA_ReLU == 1
-	float ( *activationDiffOp )( float, float ) = activation == 0 ? cudaSigmoidDiffOp : cudaReLUDiffOp;
+	// AF_Sigmoid == 5
+	// AF_ReLU == 2
+	float ( *activationDiffOp )( float, float ) = activation == 5 ? cudaSigmoidDiffOp : cudaReLUDiffOp;
 
 	const int inBatchOffset = batch * objectSize + elem;
 	const float dropout = mask == nullptr ? 1.f : mask[inBatchOffset];
@@ -628,9 +628,9 @@ __global__ void IndRnnRecurrentLearnKernel( bool reverse, int sequenceLength, in
 		return;
 	}
 
-	// IRA_Sigmoid == 0
-	// IRA_ReLU == 1
-	float ( *activationDiffOp )( float, float ) = activation == 0 ? cudaSigmoidDiffOp : cudaReLUDiffOp;
+	// AF_Sigmoid == 5
+	// AF_ReLU == 2
+	float ( *activationDiffOp )( float, float ) = activation == 5 ? cudaSigmoidDiffOp : cudaReLUDiffOp;
 
 	const int inBatchOffset = batch * objectSize + elem;
 	const float dropout = mask == nullptr ? 1.f : mask[inBatchOffset];

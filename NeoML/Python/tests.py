@@ -2024,7 +2024,7 @@ class PoolingTestCase(MultithreadedTestCase):
         hidden_size = 10
         dropout_rate = 0.5
         reverse = True
-        activation = 'relu'
+        activation = 'sigmoid'
         name = "indrnn_test_name"
 
         source = neoml.Dnn.Source(dnn, "source")

@@ -54,11 +54,10 @@ public:
 
 void CPyIndRnnLayer::SetActivation( const std::string& activation )
 {
-	static_assert( IMathEngine::IRA_Count == 2, "IRA_Count != 2" );
 	if( activation == "sigmoid" ) {
-		Layer<CIndRnnLayer>()->SetActivation( IMathEngine::IRA_Sigmoid );
+		Layer<CIndRnnLayer>()->SetActivation( AF_Sigmoid );
 	} else if( activation == "relu" ) {
-		Layer<CIndRnnLayer>()->SetActivation( IMathEngine::IRA_ReLU );
+		Layer<CIndRnnLayer>()->SetActivation( AF_ReLU );
 	} else {
 		assert( false );
 	}
@@ -66,12 +65,11 @@ void CPyIndRnnLayer::SetActivation( const std::string& activation )
 
 std::string CPyIndRnnLayer::GetActivation() const
 {
-	static_assert( IMathEngine::IRA_Count == 2, "IRA_Count != 2" );
-	IMathEngine::TIndRnnActivation activation = Layer<CIndRnnLayer>()->GetActivation();
+	TActivationFunction activation = Layer<CIndRnnLayer>()->GetActivation();
 	switch( activation ) {
-		case IMathEngine::IRA_Sigmoid:
+		case AF_Sigmoid:
 			return "sigmoid";
-		case IMathEngine::IRA_ReLU:
+		case AF_ReLU:
 			return "relu";
 		default:
 			assert( false );
@@ -98,9 +96,9 @@ void InitializeIndRnnLayer( py::module& m )
 			indRnn->SetReverseSequence( reverse );
 			indRnn->SetName( FindFreeLayerName( dnn, "IndRnn", name ).c_str() );
 			if( activation == "sigmoid" ) {
-				indRnn->SetActivation( IMathEngine::IRA_Sigmoid );
+				indRnn->SetActivation( AF_Sigmoid );
 			} else if( activation == "relu" ) {
-				indRnn->SetActivation( IMathEngine::IRA_ReLU );
+				indRnn->SetActivation( AF_ReLU );
 			} else {
 				assert( false );
 			}

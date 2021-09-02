@@ -104,12 +104,12 @@ void CIndRnnLayer::SetRecurrentWeights( const CDnnBlob* recurrentWeights )
 	recurrent->SetWeights( recurrentWeights );
 }
 
-IMathEngine::TIndRnnActivation CIndRnnLayer::GetActivation() const
+TActivationFunction CIndRnnLayer::GetActivation() const
 {
 	return recurrent->GetActivation();
 }
 
-void CIndRnnLayer::SetActivation( IMathEngine::TIndRnnActivation activation )
+void CIndRnnLayer::SetActivation( TActivationFunction activation )
 {
 	recurrent->SetActivation( activation );
 }
@@ -134,7 +134,7 @@ void CIndRnnLayer::buildLayer()
 
 CIndRnnRecurrentLayer::CIndRnnRecurrentLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CIndRnnRecurrentLayer", true ),
-	activation( IMathEngine::IRA_Sigmoid ),
+	activation( AF_Sigmoid ),
 	reverse( false ),
 	dropoutRate( -1.f ),
 	dropoutMask( nullptr )
@@ -154,11 +154,11 @@ void CIndRnnRecurrentLayer::Serialize( CArchive& archive )
 
 	// v1 - activation added
 	if( version == 0 ) {
-		activation = IMathEngine::IRA_Sigmoid;
+		activation = AF_Sigmoid;
 	} else {
 		int activationInt = static_cast<int>( activation );
 		archive.Serialize( activationInt );
-		activation = static_cast<IMathEngine::TIndRnnActivation>( activationInt );
+		activation = static_cast<TActivationFunction>( activationInt );
 	}
 }
 
@@ -168,10 +168,9 @@ void CIndRnnRecurrentLayer::SetDropoutRate( float rate )
 	dropoutRate = rate;
 }
 
-void CIndRnnRecurrentLayer::SetActivation( IMathEngine::TIndRnnActivation newActivation )
+void CIndRnnRecurrentLayer::SetActivation( TActivationFunction newActivation )
 {
-	static_assert( IMathEngine::IRA_Count == 2, "IRA_Count != 2" );
-	NeoAssert( newActivation == IMathEngine::IRA_Sigmoid || newActivation == IMathEngine::IRA_ReLU );
+	NeoAssert( newActivation == AF_Sigmoid || newActivation == AF_ReLU );
 	activation = newActivation;
 }
 
@@ -277,7 +276,7 @@ CConstFloatHandle CIndRnnRecurrentLayer::maskHandle() const
 
 // --------------------------------------------------------------------------------------------------------------------
 
-CLayerWrapper<CIndRnnLayer> IndRnn( int hiddenSize, float dropoutRate, bool reverse, IMathEngine::TIndRnnActivation activation )
+CLayerWrapper<CIndRnnLayer> IndRnn( int hiddenSize, float dropoutRate, bool reverse, TActivationFunction activation )
 {
 	return CLayerWrapper<CIndRnnLayer>( "IndRnn", [=]( CIndRnnLayer* result ) {
 		result->SetHiddenSize( hiddenSize );

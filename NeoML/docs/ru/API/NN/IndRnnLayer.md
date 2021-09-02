@@ -60,10 +60,10 @@ void SetReverseSequence( bool reverse );
 ### Функция активации
 
 ```c++
-void SetActivation( IMathEngine::TIndRnnActivation activation );
+void SetActivation( TActivationFunction activation );
 ```
 
-Устанавливает функцию активации, используемую в рекуррентной части. По умолчанию `IRA_Sigmoid`.
+Устанавливает функцию активации, используемую в рекуррентной части. По умолчанию `AF_Sigmoid`.
 
 ## Обучаемые параметры
 

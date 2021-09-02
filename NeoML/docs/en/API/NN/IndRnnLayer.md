@@ -60,10 +60,10 @@ Elements of the sequences are processed in reversed order if this flag is set.
 ### Activation
 
 ```c++
-void SetActivation( IMathEngine::TIndRnnActivation activation );
+void SetActivation( TActivationFunction activation );
 ```
 
-Sets the activation function used in recurrent part. `IRA_Sigmoid` by default.
+Sets the activation function used in recurrent part. `AF_Sigmoid` by default.
 
 ## Trainable parameters
 

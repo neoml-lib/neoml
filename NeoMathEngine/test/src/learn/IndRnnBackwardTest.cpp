@@ -31,7 +31,7 @@ static inline float reluDiffOp( float output, float outputDiff )
 typedef float( *TTestActivationDiffOp ) ( float output, float outputDiff );
 
 static void indRnnRecurrentBackwardNaive( bool reverse, int seqLength, int batchSize, int objSize,
-	IMathEngine::TIndRnnActivation activation, const float* mask, const float* u, const float* out, const float* outDiff,
+	TActivationFunction activation, const float* mask, const float* u, const float* out, const float* outDiff,
 	float* wxDiff )
 {
 	const int stepOffset = reverse ? -batchSize * objSize : batchSize * objSize;
@@ -43,7 +43,7 @@ static void indRnnRecurrentBackwardNaive( bool reverse, int seqLength, int batch
 		outDiff += firstElemOffset;
 	}
 
-	TTestActivationDiffOp activationDiffOp = activation == IMathEngine::IRA_Sigmoid ? sigmoidDiffOp : reluDiffOp;
+	TTestActivationDiffOp activationDiffOp = activation == AF_Sigmoid ? sigmoidDiffOp : reluDiffOp;
 
 	std::vector<float> currOutDiff;
 	currOutDiff.resize( batchSize * objSize );
@@ -78,8 +78,8 @@ static void indRnnBackwardTestImpl( const CTestParams& params, int seed )
 	const int batchWidth = random.UniformInt( batchWidthInterval.Begin, batchWidthInterval.End );
 	const int channels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const bool reverse = random.Next() % 2 == 1;
-	const IMathEngine::TIndRnnActivation activation = random.Next() % 2 == 1
-		? IMathEngine::IRA_Sigmoid : IMathEngine::IRA_ReLU;
+	const TActivationFunction activation = random.Next() % 2 == 1
+		? AF_Sigmoid : AF_ReLU;
 
 	const float dropoutRate = random.Next() % 2 == 1 ? static_cast<float>( random.Uniform( 0., 1. ) ) : 0.f;
 

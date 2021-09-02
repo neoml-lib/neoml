@@ -36,11 +36,11 @@ static inline float relu( float x )
 typedef float ( *TTestActivation ) ( float x );
 
 static void indRnnRecurrentNaive( bool reverse, int seqLength, int batchSize, int objSize,
-	IMathEngine::TIndRnnActivation activation, const float* wx, const float* mask, const float* u, float* res )
+	TActivationFunction activation, const float* wx, const float* mask, const float* u, float* res )
 {
 	const int stepOffset = reverse ? -batchSize * objSize : batchSize * objSize;
 
-	TTestActivation applyActivation = activation == IMathEngine::IRA_Sigmoid ? sigmoid : relu;
+	TTestActivation applyActivation = activation == AF_Sigmoid ? sigmoid : relu;
 
 	if( reverse ) {
 		const int firstElemOffset = ( seqLength - 1 ) * batchSize * objSize;
@@ -78,8 +78,8 @@ static void indRnnInferenceTestImpl( const CTestParams& params, int seed )
 	const int batchWidth = random.UniformInt( batchWidthInterval.Begin, batchWidthInterval.End );
 	const int channels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const bool reverse = random.Next() % 2 == 1;
-	const IMathEngine::TIndRnnActivation activation = random.Next() % 2 == 1
-		? IMathEngine::IRA_Sigmoid : IMathEngine::IRA_ReLU;
+	const TActivationFunction activation = random.Next() % 2 == 1
+		? AF_Sigmoid : AF_ReLU;
 
 	float dropoutRate = 0.f;
 	// Dropout is supported only on CPU and Cuda
