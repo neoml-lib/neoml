@@ -64,7 +64,7 @@ private:
 	// The number of repetitions of the same input sequence
 	int repeatCount;
 
-	void getSequenceParams(int& batchWidth, int& sequenceLength);
+	void getSequenceParams(int& listSize, int& batchWidth, int& sequenceLength);
 	void serializationHook(CArchive& archive) override;
 };
 

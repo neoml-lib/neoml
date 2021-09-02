@@ -137,11 +137,12 @@ void CRecurrentLayer::SetRepeatCount(int count)
 	repeatCount = count;
 }
 
-void CRecurrentLayer::getSequenceParams(int& batchWidth, int& sequenceLength)
+void CRecurrentLayer::getSequenceParams(int& listSize, int& batchWidth, int& sequenceLength)
 {
 	// The outermost recurrent layer runs in recurrent mode, 
 	// the inner layers run step-by-step managed by the outer one
 	bool recurrentMode = !GetDnn()->IsRecurrentMode();
+	listSize = inputDescs[0].ListSize();
 	batchWidth = inputDescs[0].BatchWidth();
 	sequenceLength = recurrentMode ? inputDescs[0].BatchLength() : GetDnn()->GetMaxSequenceLength();
 	sequenceLength *= repeatCount;
@@ -153,9 +154,10 @@ void CRecurrentLayer::SetInternalDnnParams()
 	CheckInputs();
 	// Call the parent layer's method
 	CCompositeLayer::SetInternalDnnParams();
+	int listSize;
 	int batchWidth;
 	int sequenceLength;
-	getSequenceParams(batchWidth, sequenceLength);
+	getSequenceParams(listSize, batchWidth, sequenceLength);
 	if(!GetDnn()->IsRecurrentMode()) {
 		GetInternalDnn()->setProcessingParams(true, sequenceLength, isReverseSequence, GetDnn()->IsBackwardPerformed());
 	} else {
@@ -165,6 +167,7 @@ void CRecurrentLayer::SetInternalDnnParams()
 	// Set the parameters for the back link
 	for(int i = 0; i < backLinks.Size(); ++i) {
 		backLinks[i]->SetBackwardForced(IsBackwardNeeded() || IsLearningNeeded());
+		backLinks[i]->SetDimSize(BD_ListSize, listSize);
 		backLinks[i]->SetDimSize(BD_BatchWidth, batchWidth);
 		backLinks[i]->SetDimSize(BD_BatchLength, sequenceLength);
 	}
