@@ -530,8 +530,10 @@ public:
 	void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) override;
-	void CtcFillPadding( int maxSeqLen, int batchSize, int objSize, int blankLabel, const CFloatHandle& data,
-		const CConstIntHandle& seqLens ) override;
+	void CtcLossForward(int resultLen, int batchSize, int classCount, int labelLen, int blankLabel, bool skipBlanks,
+		const CConstFloatHandle& result, const CConstIntHandle& labels,
+		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
+		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:
@@ -609,6 +611,20 @@ private:
 		int firstHeight, int firstWidth, int firstRowSize,
 		const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize );
+	
+	void ctcFillPadding( int maxSeqLen, int batchSize, int classCount, int blankLabel,
+		const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle );
+	void ctcCalcForwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+		const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
+		const CConstFloatHandle& resultLogProb, const CFloatHandle& logAlpha );
+	void ctcCalcBackwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+		const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
+		const CConstFloatHandle& resultLogProb, const CConstIntHandle& resultLens, const CConstIntHandle& labelLens,
+		const CFloatHandle& logBeta );
+	void ctcCalcGradient( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+		const CConstFloatHandle& resultProb, const CConstFloatHandle& logAlpha, const CConstFloatHandle& logBeta,
+		const CConstIntHandle& padLabels, const CConstIntHandle& resultLens,
+		const CFloatHandle& totalLogProb, const CFloatHandle& lossGradient );
 };
 
 inline void CCudaMathEngine::VectorReLUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

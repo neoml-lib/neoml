@@ -694,21 +694,6 @@ void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, in
 		GetRaw( uDiff ) );
 }
 
-void CCudaMathEngine::CtcFillPadding( int maxSeqLen, int batchSize, int objSize, int blankLabel,
-	const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle )
-{
-	ASSERT_EXPR( dataHandle.GetMathEngine() ==  this );
-	ASSERT_EXPR( seqLensHandle.GetMathEngine() == this );
-	ASSERT_EXPR( ( blankLabel >= 0 && blankLabel < maxSeqLen ) || blankLabel == -1 );
-	SetCudaDevice( device->DeviceNumber );
-
-	dim3 blockCount;
-	dim3 threadCount;
-	getCudaTaskGrid3D( blockCount, threadCount, maxSeqLen, batchSize, objSize );
-	CtcFillPaddingKernel<<<blockCount, threadCount>>>( maxSeqLen, batchSize, objSize, blankLabel,
-		GetRaw( dataHandle ), GetRaw( seqLensHandle ) );
-}
-
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA

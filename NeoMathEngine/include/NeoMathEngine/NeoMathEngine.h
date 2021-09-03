@@ -903,13 +903,30 @@ public:
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) = 0;
 
-	// CTC auxiliary functions
-	// Fills with padding elements outside of sequences
-	// e.g. if seqLens[i] == 2 then first 2 elements will be saved and all the others will be filled with paddings
-	// Padding depends on the blankLabel value. If blankLabel is -1 then data is padded with zeros.
-	// Otherwise it's padded with log(one-hot(blankLabel))
-	virtual void CtcFillPadding( int maxSeqLen, int batchSize, int objSize, int blankLabel, const CFloatHandle& data,
-		const CConstIntHandle& seqLens ) = 0;
+	// CTC
+
+	// Calculates CTC loss (and gradient if needed)
+	// optional handles may be passed as empty CTypedMemoryHandle<T>()
+	// params:
+	//     resultLen - number of timesteps in the network result
+	//     batchSize - number of independent sequences in the batch
+	//     classCount - number of classes in the task (length of the probability vectors)
+	//     labelLen - number fo timesteps in the labels
+	//     blankLabel - index of the class used for blanks
+	//     skipBlank - indicates if blank labels may be skipped during alignment
+	// input data:
+	//     result - network result (resultLen x batchSize x classCount)
+	//     labels - class labels (labelLen x batchSize)
+	//     labelLens - (optional) lengths of sequences in labels (batchSize)
+	//     resultLens - (optional) lengths of sequences in result (batchSize)
+	//     labelWeights - (optional) weights of sequences in the batch (batchSize)
+	// output data:
+	//     loss - loss value (1)
+	//     lossGradient - (optional) lossGradient (resultLen x batchSize x classCount)
+	virtual void CtcLossForward(int resultLen, int batchSize, int classCount, int labelLen, int blankLabel, bool skipBlanks,
+		const CConstFloatHandle& result, const CConstIntHandle& labels,
+		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
+		const CFloatHandle& loss, const CFloatHandle& lossGradient ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

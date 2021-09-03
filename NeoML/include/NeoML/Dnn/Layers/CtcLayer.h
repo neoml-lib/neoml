@@ -82,48 +82,19 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 
-private:
+// TODO: FIX AFTER debug
+// private:
+public:
 	CPtr<CDnnBlob> lossWeight; // scale multiplier for the loss function
 	CPtr<CDnnBlob> loss; // the loss value on the last tep
-	CPtr<CDnnBlob> lossDivider; // the averaging factor for calculating the loss value
 	CPtr<CDnnBlob> lossGradientDivider; // the averaging factor for calculating the loss gradient (taking lossWeight into account)
-	CPtr<CDnnBlob> weights;	// the vector weights
 
 	CPtr<CDnnBlob> minGradient;
 	CPtr<CDnnBlob> maxGradient;
 
 	int blankLabel; // the blank label
-	CPtr<CDnnBlob> paddedLabels; // the sequence of labels separated by blanks { 2 * LabelLength + 1, BW, 1 } int
-	CPtr<CDnnBlob> nonBlanksMask; // 0.0 for the blanks, 1.0 for the rest { 2 * LabelLength + 1 }
-	CPtr<CDnnBlob> labelRows; // the matrix row numbers for filling in paddedLabels
-	CPtr<CDnnBlob> logAlpha, logBeta; // the blobs with logarithms of prefix and suffix sequence probabilities { InputLength, 2 * LabelLength + 1, BW }
-	CPtr<CDnnBlob> blankSkipMask; // the blobs with masks for elements with blanks removed { 2 * LabelLength + 1, BW }
-	CPtr<CDnnBlob> logBetaPrev2; // the blob with logarithms of suffixes shifted 2 steps back in time { 2 * LabelLength + 1, BW }
-	CPtr<CDnnBlob> resultProb; // softmax(I_Result)	{ InputLength, BW, Classes }
-	CPtr<CDnnBlob> resultLogProb; // log(softmax(I_Result)) { InputLength, BW, Classes }
-
-	CPtr<CDnnBlob> resultProbWindow;
-	CPtr<CDnnBlob> resultLogProbWindow;
-	CPtr<CDnnBlob> logAlphaWindow;
-	CPtr<CDnnBlob> logAlphaPrevWindow;
-	CPtr<CDnnBlob> logBetaWindow;
-	// total logarithm of the probability of sequences with a given alignment at a given moment
-	CPtr<CDnnBlob> logAlphaBeta; // { 2 * LabelLength + 1, BW }
 	
 	CPtr<CDnnBlob> lossGradient; // loss function gradient { InputLength, BW, Classes }
-	CPtr<CDnnBlob> lossGradientWindow;
-	CPtr<CDnnBlob> probSum;     // a temporary blob for calculating gradient
-	CPtr<CDnnBlob> rowIndices;  // the row indices blob
-
-	// The arrays of indices for initializing beta on a backward pass
-	// They point at where the labels end in the length and position dimensions in a batch
-	CPtr<CDnnBlob> endOfLabelPosition;
-	CPtr<CDnnBlob> endOfLabelSample;
-
-	// The integer constant -1
-	CPtr<CDnnBlob> minusOneInt;
-	// The array of float zeros of BatchWidth size
-	CPtr<CDnnBlob> batchOfZeros;
 
 	bool allowBlankLabelSkip; // indicates if blanks between different labels may be skipped
 

@@ -979,30 +979,4 @@ void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHandl
 		blockSize, false, GetRaw( resultData ), threadCount );
 }
 
-void CCpuMathEngine::CtcFillPadding( int maxSeqLen, int batchSize, int classCount, int blankLabel,
-	const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle )
-{
-	ASSERT_EXPR( dataHandle.GetMathEngine() ==  this );
-	ASSERT_EXPR( seqLensHandle.GetMathEngine() == this );
-	ASSERT_EXPR( ( blankLabel >= 0 && blankLabel < maxSeqLen ) || blankLabel == -1 );
-
-	float* data = GetRaw( dataHandle );
-	const int* seqLens = GetRaw( seqLensHandle );
-	const float fillValue = blankLabel == -1 ? 0.f : -FLT_MAX / 4;
-
-	const int curThreadCount = IsOmpRelevant( batchSize, maxSeqLen * batchSize * classCount ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
-	for( int b = 0; b < batchSize; ++b ) {
-		const int currLen = seqLens[b];
-		float* currData = data + ( currLen * batchSize + b ) * classCount;
-		for( int seq = currLen; seq < maxSeqLen; ++seq ) {
-			vectorFill( currData, fillValue, classCount );
-			if( blankLabel != -1 ) {
-				currData[blankLabel] = -FLT_MIN * 2;
-			}
-			currData += batchSize * classCount;
-		}
-	}
-}
-
 } // namespace NeoML
