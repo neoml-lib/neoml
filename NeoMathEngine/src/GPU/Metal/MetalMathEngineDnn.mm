@@ -586,7 +586,7 @@ void CMetalMathEngine::QrnnIfPoolingBackward( bool /*reverse*/, int /*sequenceLe
 }
 
 void CMetalMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
-    const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+    TActivationFunction activation, const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
     const CFloatHandle& h )
 {
     ASSERT_EXPR( sequenceLength >= 1 );
@@ -596,8 +596,11 @@ void CMetalMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int ba
     ASSERT_EXPR( mask.IsNull() ); // Inference-only kernel, that's why dropout can't be applied
     ASSERT_EXPR( u.GetMathEngine() == this );
     ASSERT_EXPR( h.GetMathEngine() == this );
+    ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
 
-    C2DKernel kernel( *queue, "matrixIndRnnRecurrent", 1, 1, batchSize, objectSize );
+    C2DKernel kernel( *queue,
+        activation == AF_Sigmoid ? "matrixIndRnnRecurrentSigmoid" : "matrixIndRnnRecurrentReLU",
+        1, 1, batchSize, objectSize );
     kernel.SetParam( reverse, 0 );
     kernel.SetParam( sequenceLength, 1 );
     kernel.SetParam( batchSize, 2 );
@@ -610,15 +613,15 @@ void CMetalMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int ba
 }
 
 void CMetalMathEngine::IndRnnRecurrentBackward( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
-    const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
-    const CFloatHandle& /*wxDiff*/ )
+    TActivationFunction /*activation*/, const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/,
+    const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/, const CFloatHandle& /*wxDiff*/ )
 {
     ASSERT_EXPR( false );
 }
 
 void CMetalMathEngine::IndRnnRecurrentLearn( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
-    const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
-    const CFloatHandle& /*uDiff*/ )
+    TActivationFunction /*activation*/, const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/,
+    const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/, const CFloatHandle& /*uDiff*/ )
 {
     ASSERT_EXPR( false );
 }

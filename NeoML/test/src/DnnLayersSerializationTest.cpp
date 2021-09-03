@@ -2178,6 +2178,7 @@ inline void checkSpecificParams<CIndRnnRecurrentLayer>( CIndRnnRecurrentLayer& l
 {
 	EXPECT_EQ( true, layer.IsReverseSequence() );
 	EXPECT_NEAR( 0.5f, layer.GetDropoutRate(), 1e-6f );
+	EXPECT_EQ( AF_Sigmoid, layer.GetActivation() );
 }
 
 GTEST_TEST( SerializeFromFile, IndRnnRecurrentLayerSerialization )
@@ -2211,6 +2212,7 @@ inline void checkSpecificParams<CIndRnnLayer>( CIndRnnLayer& layer )
 	EXPECT_EQ( 3, layer.GetHiddenSize() );
 	EXPECT_EQ( true, layer.IsReverseSequence() );
 	EXPECT_NEAR( 0.25f, layer.GetDropoutRate(), 1e-6f );
+	EXPECT_EQ( AF_Sigmoid, layer.GetActivation() );
 }
 
 GTEST_TEST( SerializeFromFile, IndRnnLayerSerialization )
