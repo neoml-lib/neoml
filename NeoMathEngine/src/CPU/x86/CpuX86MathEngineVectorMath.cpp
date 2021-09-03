@@ -1541,59 +1541,6 @@ void CCpuMathEngine::VectorInv(const CConstFloatHandle& firstHandle, const CFloa
 	}
 }
 
-inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
-{
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	if(sseSize > 0) {
-		const __m128 minSse = _mm_set_ps1(minValue);
-		const __m128 maxSse = _mm_set_ps1(maxValue);
-		for(int i = 0; i < sseSize; ++i) {
-			__m128 value = _mm_loadu_ps(first);
-
-			__m128 cmpMin = _mm_cmplt_ps(value, minSse);
-			__m128 cmpMax = _mm_cmpgt_ps(value, maxSse);
-			__m128 cmpNotNorm = _mm_or_ps(cmpMin, cmpMax);
-			__m128 res = _mm_or_ps(_mm_or_ps(_mm_andnot_ps(cmpNotNorm, value),
-				_mm_and_ps(cmpMin, minSse)), _mm_and_ps(cmpMax, maxSse));
-
-			_mm_storeu_ps(result, res);
-			first += 4;
-			result += 4;
-		}
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result = min(max(*first, minValue), maxValue);
-		result++;
-		first++;
-	}
-}
-
-void CCpuMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( minHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	const float minValue = *GetRaw(minHandle);
-	const float maxValue = *GetRaw(maxHandle);
-
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			vectorMinMax( GetRaw(firstHandle + index), GetRaw(resultHandle + index), minValue, maxValue, count );
-		}
-	}
-}
-
 void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );

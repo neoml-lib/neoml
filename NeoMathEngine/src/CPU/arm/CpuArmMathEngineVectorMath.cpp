@@ -650,35 +650,6 @@ void CCpuMathEngine::VectorSqrt(const CConstFloatHandle& firstHandle,
 	}
 }
 
-void CCpuMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( minHandle.GetMathEngine() == this );
-	ASSERT_EXPR( maxHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	float32x4_t minVal = vdupq_n_f32(*GetRaw(minHandle));
-	float32x4_t maxVal = vdupq_n_f32(*GetRaw(maxHandle));
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon4(first)));
-		StoreNeon4(res, result);
-
-		first += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon(first, vectorSize)));
-		StoreNeon(res, result, vectorSize);
-	}
-}
-
 static inline float32x4_t filterSmallValuesWorker(const float32x4_t& val, const float32x4_t& thres)
 {
 	uint32x4_t nonZeroMask = vcageq_f32(val, thres);

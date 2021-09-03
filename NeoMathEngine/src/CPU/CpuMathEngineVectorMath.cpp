@@ -605,6 +605,28 @@ void CCpuMathEngine::VectorNeg(const CConstFloatHandle& firstHandle, const CFloa
 	}
 }
 
+void CCpuMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
+	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( minHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float minValue = *GetRaw(minHandle);
+	const float maxValue = *GetRaw(maxHandle);
+
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int index;
+		int count;
+		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+			vectorMinMax( GetRaw(firstHandle + index), GetRaw(resultHandle + index), minValue, maxValue, count );
+		}
+	}
+}
+
 void CCpuMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
 	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)

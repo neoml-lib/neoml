@@ -708,6 +708,43 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 	}
 }
 
+inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
+{
+	int count = GetCount4(vectorSize);
+
+	float32x4_t minVal = vdupq_n_f32(*GetRaw(minHandle));
+	float32x4_t maxVal = vdupq_n_f32(*GetRaw(maxHandle));
+
+	while( count >= 4 ) {
+		NEON_LOAD_16_FLOATS( first, first );
+		first += 16;
+
+		float32x4_t res0 = vmaxq_f32(minVal, vminq_f32(maxVal, first0));
+		float32x4_t res1 = vmaxq_f32(minVal, vminq_f32(maxVal, first1));
+		float32x4_t res2 = vmaxq_f32(minVal, vminq_f32(maxVal, first2));
+		float32x4_t res3 = vmaxq_f32(minVal, vminq_f32(maxVal, first3));
+
+		NEON_STORE_16_FLOATS( res, result );
+		result += 16;
+
+		count -= 4;
+	}
+
+	while( count > 0 ) {
+		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon4(first)));
+		StoreNeon4(res, result);
+
+		first += 4;
+		result += 4;
+		--count;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon(first, vectorSize)));
+		StoreNeon(res, result, vectorSize);
+	}
+}
+
 } // namespace NeoML
 
 #endif
