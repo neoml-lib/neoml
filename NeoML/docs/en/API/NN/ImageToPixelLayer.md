@@ -22,9 +22,9 @@ This layer has no trainable parameters.
 
 ## Inputs
 
-The layer has two inputs. 
+The layer has two inputs.
 
-The first input accepts a blob with a set of two-dimensional images:
+The first input accepts a blob of integer or float data with a set of two-dimensional images:
 
 - `BatchLength` is equal to `1`
 - `BatchWidth` is the number of sequences in the set
@@ -44,7 +44,7 @@ The coordinates of a pixel `(col, row)` are represented in this blob by a single
 
 ## Outputs
 
-The single output returns a blob with the pixel sequences:
+The single output returns a blob of the same data type as the first input with the pixel sequences:
 
 - `BatchLength` is equal to `1`
 - `BatchWidth` equals the inputs' `BatchWidth`

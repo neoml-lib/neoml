@@ -89,8 +89,7 @@ void CCudaMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc,
 		const int tempMatrixWidth = filter.ObjectSize();
 		const int tempMatrixHeight = result.BlobSize() / filter.ObjectCount();
 		// Max amount of memory allowed is a half of math engine's free memory
-		const int maxInMemoryHeight = max( 1,
-			min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ), tempMatrixHeight ) );
+		const int maxInMemoryHeight = getCudaTempMatrixMaxHeight( tempMatrixHeight, tempMatrixWidth );
 
 		int matrixRowIndex = 0;
 		CFloatHandle currResult = resultData;
@@ -144,8 +143,7 @@ void CCudaMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& c
 		const int tempMatrixWidth = filter.ObjectSize();
 		const int tempMatrixHeight = outputDiff.BlobSize() / filter.ObjectCount();
 		// Max amount of memory allowed is a half of math engine's free memory
-		const int maxInMemoryHeight = max( 1,
-			min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ), tempMatrixHeight ) );
+		const int maxInMemoryHeight = getCudaTempMatrixMaxHeight( tempMatrixHeight, tempMatrixWidth );
 
 		int matrixRowIndex = 0;
 		CFloatHandle currOutputDiff = outputDiffData;
@@ -199,8 +197,7 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 		const int tempMatrixWidth = filterDiff.ObjectSize();
 		const int tempMatrixHeight = outputDiff.BlobSize() / filterDiff.ObjectCount();
 		// Max amount of memory allowed is a half of math engine's free memory
-		const int maxInMemoryHeight = min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ),
-			tempMatrixHeight );
+		const int maxInMemoryHeight = getCudaTempMatrixMaxHeight( tempMatrixHeight, tempMatrixWidth );
 
 		if( maxInMemoryHeight == 0 ) {
 			// naive implementatino which doesn't use additional memory
