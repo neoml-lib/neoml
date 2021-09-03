@@ -622,7 +622,7 @@ private:
 		const CConstFloatHandle& resultLogProb, const CConstIntHandle& resultLens, const CConstIntHandle& labelLens,
 		const CFloatHandle& logBeta );
 	void ctcCalcGradient( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
-		const CConstFloatHandle& resultProb, const CConstFloatHandle& logAlpha, const CConstFloatHandle& logBeta,
+		const CConstFloatHandle& resultProb, const CConstFloatHandle& logAlphaBeta,
 		const CConstIntHandle& padLabels, const CConstIntHandle& resultLens,
 		const CFloatHandle& totalLogProb, const CFloatHandle& lossGradient );
 };

@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <CudaMathEngineDnnConvs.h>
 #include <Kernels/CudaGrid.h>
+#include <Kernels/CudaReduce.h>
 
 namespace NeoML {
 
@@ -76,7 +77,7 @@ __global__ void CtcCalcForwardVariableKernel( int resultLen, int batchSize, int 
 	}
 }
 
-__global__ void CtcCaclBackwardVariableKernel( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+__global__ void CtcCalcBackwardVariableKernel( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
 	const int* padLabels, const float* blankSkipMask, const float* resultLogProb,
 	float* logBetaWindowBuffer, float* logBeta )
 {
@@ -122,52 +123,90 @@ __global__ void CtcCaclBackwardVariableKernel( int resultLen, int batchSize, int
 	}
 }
 
-__global__ void CtcCalcGradientKernel( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks, float logZero,
-	const int* padLabels, const float* resultProb, const float* logAlpha, const float* logBeta,
-	const float* totalLogProbArray, float* probSum, float* lossGradient )
+const int CtcCalcTotalLogProbCombine = 2;
+__global__ void CtcCalcTotalLogProbKernel( int batchSize, const float* __restrict__ matrix, int height, int width, float* result, int heightNorm )
 {
-	int b;
-	if( GetCudaTaskIndex( batchSize, b ) ) {
-		probSum += b * classCount;
-		const int T = resultLen;
-		const int U = padLabelLen;
-		float totalLogProb = totalLogProbArray[b];
+	extern __shared__  float buffer[];
+	float& my = buffer[( threadIdx.z * blockDim.y + threadIdx.y ) * blockDim.x + threadIdx.x];
 
-		for( int t = 0; t < T; ++t ) {
-			for( int c = 0; c < classCount; c++ ) {
-				probSum[c] = logZero;
-			}
-			const float* resultProbWindow = resultProb + t * batchSize * classCount + b * classCount;
-			const float* logAlphaWindow = logAlpha + t * U * batchSize;
-			const float* logBetaWindow = logBeta + t * U * batchSize;
-			float* lossGradientWiundow = lossGradient + t * batchSize * classCount + b * classCount;
+	my = -FLT_MAX;
 
-			if( skipBlanks ) {
-				// For the sake of computational stability
-				float maxValue = logAlphaWindow[b] + logBetaWindow[b];
-				for( int u = 1; u < U; ++u ) {
-					const int idx = u * batchSize + b;
-					maxValue = max( maxValue, logAlphaWindow[idx] + logBetaWindow[idx] );
-				}
-				totalLogProb = expf( logAlphaWindow[b] + logBetaWindow[b] - maxValue );
-				for( int u = 1; u < U; ++u ) {
-					const int idx = u * batchSize + b;
-					totalLogProb += expf( logAlphaWindow[idx] + logBetaWindow[idx] - maxValue );
-				}
-				totalLogProb = maxValue + log( totalLogProb );
-			}
+	int combineCount = ( height + blockDim.x - 1 ) / blockDim.x;
 
-			for( int u = 0; u < U; ++u ) {
-				const int idx = u * batchSize + b;
-				const float value = logAlphaWindow[idx] + logBetaWindow[idx];
-				const int col = padLabels[idx];
-				probSum[col] = LogSumExpFunc( probSum[col], value );
-			}
+	int index;
+	int step;
+	int count = GetCudaTaskCountAndIndexX( height, combineCount, index, step );
+	index *= width;
+	step *= width;
 
-			for( int c = 0; c < classCount; c++ ) {
-				lossGradientWiundow[c] = resultProbWindow[c] - ExponentFunc( probSum[c] - totalLogProb );
+	int xPos;
+	int yPos;
+	int zPos;
+	GetCudaTaskIndex3D( batchSize, width, heightNorm, zPos, xPos, yPos );
+	if( xPos < width && zPos < batchSize && count > 0 ) {
+		matrix += zPos * height * width;
+		result += zPos * width;
+
+		matrix += xPos; // get the correct column
+						// find the maximum
+		my = matrix[index];
+		for( int j = 1; j < count; ++j ) {
+			float val = matrix[index + j * step];
+			if( val > my ) {
+				my = val;
 			}
 		}
+	}
+
+	float maxVal = ReduceMaxXSharedBuffer( buffer );
+
+	// Add up the needed part
+	if( xPos < width && zPos < batchSize && count > 0 ) {
+		my = expf( matrix[index] - maxVal );
+		for( int j = 1; j < count; ++j ) {
+			my += expf( matrix[index + j * step] - maxVal );
+		}
+	} else {
+		my = 0.f;
+	}
+
+	float sumVal = ReduceSumXSharedBuffer( buffer );
+
+	if( xPos < width && zPos < batchSize && threadIdx.x == 0 ) {
+		result[xPos] = maxVal + log( sumVal );
+	}
+}
+
+__global__ void CtcCalcProbSumKernel( int resultLen, int batchSize, int classCount, int padLabelLen,
+	const int* padLabels, const float* logAlphaBeta, float* probSum )
+{
+	int t;
+	int b;
+	if( GetCudaTaskIndex2D( resultLen, batchSize, t, b ) ) {
+		padLabels += b;
+		logAlphaBeta += t * padLabelLen * batchSize + b;
+		probSum += ( t * batchSize + b ) * classCount;
+		for( int u = 0; u < padLabelLen; ++u ) {
+			const int classIdx = *padLabels;
+			probSum[classIdx] = LogSumExpFunc( probSum[classIdx], *logAlphaBeta );
+			padLabels += batchSize;
+			logAlphaBeta += batchSize;
+		}
+	}
+}
+
+__global__ void CtcCalcGradientKernel( int resultLen, int batchSize, int classCount, bool skipBlanks,
+	const float* resultProb, const float* totalLogProb, const float* probSum, float* lossGradient )
+{
+	int t, b, c;
+	if( GetCudaTaskIndex3D( resultLen, batchSize, classCount, t, b, c ) ) {
+		const int offset = ( t * batchSize + b ) * classCount + c;
+		resultProb += offset;
+		totalLogProb += skipBlanks ? t * batchSize + b : b;
+		probSum += offset;
+		lossGradient += offset;
+
+		*lossGradient = *resultProb - ExponentFunc( *probSum - *totalLogProb );
 	}
 }
 
