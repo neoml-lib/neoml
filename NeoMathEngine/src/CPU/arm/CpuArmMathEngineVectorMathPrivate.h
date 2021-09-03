@@ -275,9 +275,10 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
 {
 	int count = GetCount4(vectorSize);
+	float32x4_t mult = vdupq_f32(multiplier);
 
 	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vmulq_f32(LoadNeon4(first), multiplier);
+		float32x4_t res = vmulq_f32(LoadNeon4(first), mult);
 		StoreNeon4(res, result);
 
 		first += 4;
@@ -285,7 +286,7 @@ inline void vectorMultiply( const float* first, float* result, float multiplier,
 	}
 
 	if(vectorSize > 0) {
-		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), multiplier);
+		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), mult);
 		StoreNeon(res, result, vectorSize);
 	}
 }
@@ -712,8 +713,8 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 {
 	int count = GetCount4(vectorSize);
 
-	float32x4_t minVal = vdupq_n_f32(*GetRaw(minHandle));
-	float32x4_t maxVal = vdupq_n_f32(*GetRaw(maxHandle));
+	float32x4_t minVal = vdupq_n_f32(minValue);
+	float32x4_t maxVal = vdupq_n_f32(maxValue);
 
 	while( count >= 4 ) {
 		NEON_LOAD_16_FLOATS( first, first );

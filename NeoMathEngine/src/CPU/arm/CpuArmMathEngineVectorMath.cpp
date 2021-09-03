@@ -109,7 +109,7 @@ void CCpuMathEngine::VectorSumAdd(const CConstFloatHandle& firstHandle, int vect
 	float32x2_t sum2 = vpadd_f32(vget_high_f32(sum), vget_low_f32(sum));
 	float32x2_t res = vpadd_f32(sum2, sum2);
 
-	*GetRaw(resultHandle) = vget_lane_f32(res, 0);
+	*GetRaw(resultHandle) += vget_lane_f32(res, 0);
 }
 
 void CCpuMathEngine::VectorReLU(const CConstFloatHandle& firstHandle,
