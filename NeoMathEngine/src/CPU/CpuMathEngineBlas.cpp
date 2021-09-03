@@ -786,7 +786,7 @@ void CCpuMathEngine::findMaxValueInColumns( float* result, int* rowIndices,
 	const float* matrix, int matrixHeight, int matrixWidth )
 {
 	// Copy the first row
-	vectorCopy( result, matrix, matrixWidth );
+	dataCopy( result, matrix, matrixWidth );
 	memset( rowIndices, 0, matrixWidth * sizeof( *rowIndices ) );
 	matrix += matrixWidth;
 	// Process the rest

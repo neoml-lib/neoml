@@ -28,19 +28,6 @@ limitations under the License.
 
 namespace NeoML {
 
-void CCpuMathEngine::VectorCopy(const CIntHandle& firstHandle, const CConstIntHandle& secondHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-
-	dataCopy(GetRaw(firstHandle), GetRaw(secondHandle), vectorSize);
-}
-
-void CCpuMathEngine::vectorCopy(float* first, const float* second, int vectorSize)
-{
-	dataCopy(first, second, vectorSize);
-}
-
 void CCpuMathEngine::VectorFill(const CFloatHandle& result, float value, int vectorSize)
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );

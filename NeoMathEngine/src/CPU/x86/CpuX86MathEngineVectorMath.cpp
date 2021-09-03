@@ -29,28 +29,6 @@ limitations under the License.
 
 namespace NeoML {
 
-void CCpuMathEngine::VectorCopy( const CIntHandle& firstHandle, const CConstIntHandle& secondHandle, int vectorSize )
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			dataCopy( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), count );
-		}
-	}
-}
-
-void CCpuMathEngine::vectorCopy( float* firstHandle, const float* secondHandle, int vectorSize )
-{
-	dataCopy( firstHandle, secondHandle, vectorSize );
-}
-
 void CCpuMathEngine::VectorFill( const CFloatHandle& result, float value, int vectorSize )
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );

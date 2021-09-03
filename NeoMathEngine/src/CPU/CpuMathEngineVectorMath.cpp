@@ -52,7 +52,24 @@ void CCpuMathEngine::VectorCopy(const CFloatHandle& firstHandle, const CConstFlo
 		int index;
 		int count;
 		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			vectorCopy( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), count );
+			dataCopy( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), count );
+		}
+	}
+}
+
+void CCpuMathEngine::VectorCopy( const CIntHandle& firstHandle, const CConstIntHandle& secondHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int index;
+		int count;
+		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+			dataCopy( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), count );
 		}
 	}
 }
@@ -70,7 +87,7 @@ void CCpuMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFlo
 	int copySize = additionalWidth;
 	float* to = GetRaw( toHandle );
 	const float* from = GetRaw( fromHandle );
-	vectorCopy( to, from, curSize );
+	dataCopy( to, from, curSize );
 
 	for( int i = BD_Count - 1; i >= 0; i-- ) {
 		if( toDesc.DimSize( i ) != fromDesc.DimSize( i ) ) {
@@ -78,7 +95,7 @@ void CCpuMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFlo
 			float* toPtr = to + curSize * toDesc.DimSize( i ) - copySize;
 			for( int j = 0; j < curSize / copySize; j++ ) {
 				for( int k = 0; k < toDesc.DimSize( i ); k++ ) {
-					vectorCopy( toPtr, fromPtr, copySize );
+					dataCopy( toPtr, fromPtr, copySize );
 					toPtr -= copySize;
 				}
 				fromPtr -= copySize;
@@ -395,7 +412,7 @@ void CCpuMathEngine::VectorTopKDiff(const CConstFloatHandle& sourceGradHandle, i
 
 	for( int i = 0; i < k; i++ ) {
 		const int pos = indices[i] * sourceGradWidth ;
-		vectorCopy( resultGrad, sourceGrad + pos, sourceGradWidth );
+		dataCopy( resultGrad, sourceGrad + pos, sourceGradWidth );
 
 		resultGrad += sourceGradWidth;
 	}
