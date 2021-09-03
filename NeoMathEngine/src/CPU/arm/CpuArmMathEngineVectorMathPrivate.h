@@ -275,7 +275,7 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
 {
 	int count = GetCount4(vectorSize);
-	float32x4_t mult = vdupq_f32(multiplier);
+	float32x4_t mult = vdupq_n_f32(multiplier);
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vmulq_f32(LoadNeon4(first), mult);
