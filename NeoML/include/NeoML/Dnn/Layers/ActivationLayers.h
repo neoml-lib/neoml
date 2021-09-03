@@ -22,24 +22,6 @@ limitations under the License.
 
 namespace NeoML {
 
-// Supported activation functions
-enum TActivationFunction {
-	AF_Linear = 0,
-	AF_ELU,
-	AF_ReLU,
-	AF_LeakyReLU,
-	AF_Abs,
-	AF_Sigmoid,
-	AF_Tanh,
-	AF_HardTanh,
-	AF_HardSigmoid,
-	AF_Power,
-	AF_HSwish,
-	AF_GELU,
-
-	AF_Count
-};
-
 // Creates an activation layer using the specified activation function
 CPtr<CBaseLayer> NEOML_API CreateActivationLayer( IMathEngine& mathEngine, TActivationFunction type );
 

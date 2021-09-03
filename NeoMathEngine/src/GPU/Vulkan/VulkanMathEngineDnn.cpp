@@ -41,7 +41,8 @@ namespace NeoML {
 #include <shaders/generated/BlobReorgInt.h>
 #include <shaders/generated/QrnnFPooling.h>
 #include <shaders/generated/QrnnIfPooling.h>
-#include <shaders/generated/IndRnnRecurrent.h>
+#include <shaders/generated/IndRnnRecurrentReLU.h>
+#include <shaders/generated/IndRnnRecurrentSigmoid.h>
 #include <shaders/generated/SpaceToDepthFloat.h>
 #include <shaders/generated/SpaceToDepthInt.h>
 
@@ -574,7 +575,7 @@ void CVulkanMathEngine::QrnnIfPoolingBackward( bool /*reverse*/, int /*sequenceL
 }
 
 void CVulkanMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+	TActivationFunction activation, const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
 	const CFloatHandle& h)
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
@@ -584,34 +585,48 @@ void CVulkanMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int b
 	ASSERT_EXPR( mask.IsNull() ); // Inference-only kernel, that's why dropout can't be applied
 	ASSERT_EXPR( u.GetMathEngine() == this );
 	ASSERT_EXPR( h.GetMathEngine() == this );
+	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
 
 	const size_t weightSize = objectSize * sizeof( float );
 	const size_t dataSize = sequenceLength * batchSize * weightSize;
 
 	size_t sizes[3] = { dataSize, weightSize, dataSize };
 
-	PARAM_STRUCT( IndRnnRecurrent ) param = {
-		reverse ? 1 : 0,
-		sequenceLength,
-		batchSize,
-		objectSize
-	};
+	if( activation == AF_Sigmoid ) {
+		PARAM_STRUCT( IndRnnRecurrentSigmoid ) param = {
+			reverse ? 1 : 0,
+			sequenceLength,
+			batchSize,
+			objectSize
+		};
 
-	CMemoryHandle buffs[3] = { wx, u, h };
-	runVectorShader( shaderLoader->GET_SHADER_DATA( IndRnnRecurrent, true, 0, 0, 3 ), &param,
-		sizeof( param ), 0, 0, 0, 0, buffs, sizes, 3, batchSize * objectSize );
+		CMemoryHandle buffs[3] = { wx, u, h };
+		runVectorShader( shaderLoader->GET_SHADER_DATA( IndRnnRecurrentSigmoid, true, 0, 0, 3 ), &param,
+			sizeof( param ), 0, 0, 0, 0, buffs, sizes, 3, batchSize * objectSize );
+	} else {
+		PARAM_STRUCT( IndRnnRecurrentReLU ) param = {
+			reverse ? 1 : 0,
+			sequenceLength,
+			batchSize,
+			objectSize
+		};
+
+		CMemoryHandle buffs[3] = { wx, u, h };
+		runVectorShader( shaderLoader->GET_SHADER_DATA( IndRnnRecurrentReLU, true, 0, 0, 3 ), &param,
+			sizeof( param ), 0, 0, 0, 0, buffs, sizes, 3, batchSize * objectSize );
+	}
 }
 
 void CVulkanMathEngine::IndRnnRecurrentBackward( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
-	const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
-	const CFloatHandle& /*wxDiff*/ )
+	TActivationFunction /*activation*/, const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/,
+	const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/, const CFloatHandle& /*wxDiff*/ )
 {
 	ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::IndRnnRecurrentLearn( bool /*reverse*/, int /*sequenceLength*/, int /*batchSize*/, int /*objectSize*/,
-	const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/, const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/,
-	const CFloatHandle& /*uDiff*/ )
+	TActivationFunction /*activation*/, const CConstFloatHandle& /*mask*/, const CConstFloatHandle& /*u*/,
+	const CConstFloatHandle& /*h*/, const CConstFloatHandle& /*hDiff*/, const CFloatHandle& /*uDiff*/ )
 {
 	ASSERT_EXPR( false );
 }
