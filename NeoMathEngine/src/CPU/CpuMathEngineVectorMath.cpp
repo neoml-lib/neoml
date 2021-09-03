@@ -401,6 +401,20 @@ void CCpuMathEngine::VectorTopKDiff(const CConstFloatHandle& sourceGradHandle, i
 	}
 }
 
+void CCpuMathEngine::VectorEltwiseMultiply(const CConstIntHandle& firstHandle,
+	const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	
+	const int* first = GetRaw( firstHandle );
+	const int* second = GetRaw( secondHandle );
+	int* result = GetRaw( resultHandle );
+
+	NeoML::vectorEltwiseMultiply( first, second, result, vectorSize );
+}
+
 void CCpuMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle)
 {

@@ -470,6 +470,33 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelC
 	}
 }
 
+void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+	const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+	const CIntHandle& outputHandle, int /*outputChannels*/)
+{
+	ASSERT_EXPR(lookupCount <= channelCount);
+
+	CConstIntHandle input = inputHandle;
+	CIntHandle output = outputHandle;
+
+	for(int i = 0; i < batchSize; ++i) {
+		for(int j = 0; j < lookupCount; ++j) {
+			int index = (int)input.GetValue();
+			input++;
+			PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
+			int vectorSize = lookupDimensions[j].VectorSize;
+			VectorCopy(output, lookupHandles[j] + index * vectorSize, vectorSize);
+			output += vectorSize;
+		}
+		int remained = channelCount - lookupCount;
+		if(remained > 0) {
+			VectorCopy(output, input, remained);
+			input += remained;
+			output += remained;
+		}
+	}
+}
+
 void CCpuMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 	const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int /*outputChannels*/)

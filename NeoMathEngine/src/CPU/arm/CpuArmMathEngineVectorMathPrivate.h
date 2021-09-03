@@ -1,4 +1,4 @@
-/* Copyright � 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -337,6 +337,51 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize )
 {
 	vectorEltwiseMultiply( first, second, result, vectorSize / 4, vectorSize % 4 );
+}
+
+inline void vectorEltwiseMultiply( const int* first, const int* second, int* result, int vectorSize )
+{
+	int neonSize = vectorSize / 4;
+	int nonNeonSize = vectorSize % 4;
+
+	while( neonSize >= 4 ) {
+		NEON_LOAD_16_INTS(first, first);
+		first += 16;
+
+		NEON_LOAD_16_INTS(second, second);
+		second += 16;
+
+		int32x4_t result0 = vmulq_s32( first0, second0 );
+		int32x4_t result1 = vmulq_s32( first1, second1 );
+		int32x4_t result2 = vmulq_s32( first2, second2 );
+		int32x4_t result3 = vmulq_s32( first3, second3 );
+
+		NEON_STORE_16_INTS(result, result);
+		result += 16;
+
+		neonSize -= 4;
+	}
+
+	while( neonSize > 0 ) {
+		int32x4_t first0 = LoadIntNeon4( first );
+		first += 4;
+
+		int32x4_t second0 = LoadIntNeon4( second );
+		second += 4;
+
+		int32x4_t res0 = vmulq_s32( first0, second0 );
+		StoreIntNeon4( res0, result );
+		result += 4;
+
+		neonSize--;
+	}
+
+	if( nonNeonSize ) {
+		int32x4_t first0 = LoadIntNeon( first, nonNeonSize );
+		int32x4_t second0 = LoadIntNeon( second, nonNeonSize );
+		int32x4_t res0 = vmulq_s32( first0, second0 );
+		StoreIntNeon( res0, result, nonNeonSize );
+	}
 }
 
 inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
