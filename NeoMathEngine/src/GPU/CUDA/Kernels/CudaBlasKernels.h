@@ -95,29 +95,25 @@ __global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int
 	}
 }
 
-__global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int /* height */, int width,
+__global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int height, int width,
 	const int* __restrict__ rowIndices, const int* __restrict__ columnIndices,
 	const float* __restrict__ vector, int vectorSize )
 {
-	int elem;
-	if( !GetCudaTaskIndex( vectorSize, elem ) ) {
+	int row;
+	int col;
+	if( !GetCudaTaskIndex2D( height, width, row, col ) ) {
 		return;
 	}
 
-	const int row = rowIndices[elem];
-	const int col = columnIndices[elem];
-	const int matrixOffset = row * width + col;
+	float& data = matrix[row * width + col];
 
-	int* matrixAsInt = reinterpret_cast<int*>( matrix + matrixOffset );
-	const float elemValue = vector[elem];
-
-	int oldValue = *matrixAsInt;
-	int newValue;
-	do {
-		// int <-> float conversion is used because atomicCAS works only with integer types
-		newValue = __float_as_int( LogSumExpFunc( elemValue, __int_as_float( oldValue ) ) );
-		oldValue = atomicCAS( matrixAsInt, oldValue, newValue );
-	} while( oldValue != newValue );
+	// Iterate through the array looking for the needed coordinates
+	// No parallel processing of a vector because the indices may be the same
+	for( int i = 0; i < vectorSize; ++i ) {
+		if( rowIndices[i] == row && columnIndices[i] == col ) {
+			data = LogSumExpFunc( vector[i], data );
+		}
+	}
 }
 
 const int AddMatrixElementsToVectorCombine = 4;

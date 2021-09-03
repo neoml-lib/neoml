@@ -125,12 +125,12 @@ void CCudaMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle&
 	ASSERT_EXPR( vector.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
-	getCudaTaskGrid( blockCount, threadCount, vectorSize );
-	EltwiseLogSumExpVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(
-		GetRaw( matrix ), height, width, GetRaw( rowIndices ), GetRaw( columnIndices ), GetRaw( vector ), vectorSize
-	);
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D(blockCount, threadCount, height, width);
+
+	EltwiseLogSumExpVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(GetRaw(matrix), height, width,
+		GetRaw(rowIndices), GetRaw(columnIndices), GetRaw(vector), vectorSize);
 }
 
 void CCudaMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
