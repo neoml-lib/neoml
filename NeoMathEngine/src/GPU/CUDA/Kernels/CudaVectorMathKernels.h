@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright ï¿½ 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ limitations under the License.
 #include <Kernels/CudaGrid.h>
 #include <CudaCommon.h>
 #include <Kernels/CudaRandom.h>
+#include <CudaBlobDesc.h>
 
 namespace NeoML {
 
@@ -50,6 +51,48 @@ __global__ void VectorFillHandleKernel(T* mem, int count, const T* __restrict__ 
 	for(int i = 0; i < actionCount; ++i) {
 		*mem = *value;
 		mem += step;
+	}
+}
+
+const int VectorConvertCombineCount = 8;
+template<class From, class To>
+__global__ void VectorConvertKernel( const From* from, To* to, int count )
+{
+	int index;
+	int step;
+	int actionCount = GetCudaTaskCountAndIndex(count, VectorConvertCombineCount, index, step);
+
+	from += index;
+	to += index;
+
+	for( int i = 0; i < actionCount; ++i ) {
+		*to = static_cast<To>( *from );
+		from += step;
+		to += step;
+	}
+}
+
+__global__ void VectorBroadcastCopyKernel( float* to, const float* from, CCudaBlobDesc toDesc, CCudaBlobDesc fromDesc,
+	int additionalWidth, int resultSize )
+{
+	int toIndex = 0;
+	int fromIndex = 0;
+	int mul = additionalWidth;
+	if( GetCudaTaskIndex( resultSize, toIndex ) ) {
+		to += toIndex * additionalWidth;
+		for( int i = CCudaBlobDesc::MaxDimensions - 1; i >= 0; i-- ) {
+			if( fromDesc.DimSize( i ) != 1 ) {
+				fromIndex += ( toIndex % toDesc.DimSize( i ) ) * mul;
+				mul *= fromDesc.DimSize( i );
+			}
+			toIndex /= toDesc.DimSize( i );
+		}
+		from += fromIndex;
+		for( int i = 0; i < additionalWidth; i++ ) {
+			*to = *from;
+			to++;
+			from++;
+		}
 	}
 }
 
@@ -132,6 +175,80 @@ __global__ void VectorSumKernel(const float* __restrict__ mem, int count, float*
 		atomicAdd(result, sum);
 	}
 }
+
+__global__ void VectorSumAlongDimensionKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, followingDims, x, y ) ) {
+		input += y * dims * precedingDims + x;
+		result += y * precedingDims + x;
+		*result = 0;
+		for( int i = 0; i < dims; i++ ) {
+			*result += *input;
+			input += precedingDims;
+		}
+	}
+}
+
+__global__ void VectorCumSumAlongDimensionKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, followingDims, x, y ) ) {
+		const int offset = y * dims * precedingDims + x;
+		input += offset;
+		result += offset;
+		float curSum = *input;
+		*result = curSum;
+		for( int i = 1; i < dims; i++ ) {
+			input += precedingDims;
+			result += precedingDims;
+			curSum += *input;
+			*result = curSum;
+		}
+	}
+}
+
+__global__ void VectorSumAlongDimensionDiagKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, followingDims, x, y ) ) {
+		const int width = precedingDims * dims * followingDims;
+		const int startOffset = y * dims * precedingDims + x;
+		input += startOffset;
+		result += ( y * precedingDims + x ) * width + startOffset;
+		for( int i = 0; i < dims; i++ ) {
+			*result += *input;
+			input += precedingDims;
+			result += precedingDims;
+		}
+	}
+}
+
+__global__ void VectorCumSumAlongDimensionDiagKernel( const float* __restrict__ input, int precedingDims, int dims,
+	int followingDims, float* result )
+{
+	int x;
+	int y;
+	if( GetCudaTaskIndex2D( precedingDims, dims * followingDims, x, y ) ) {
+		const int cumDim = y / followingDims;
+		const int width = precedingDims * dims * followingDims;
+		const int startOffset = ( y % followingDims ) * dims * precedingDims + x;
+		input += startOffset;
+		result += ( y * precedingDims + x ) * width + startOffset;
+		for( int i = 0; i <= cumDim; i++ ) {
+			*result += *input;
+			input += precedingDims;
+			result += precedingDims;
+		}
+	}
+}
+
 const int VectorEqualCombineCount = 16;
 __global__ void VectorEqualKernel( const int* __restrict__ first,
 	const int* __restrict__ second, float* __restrict__ result, int count )
@@ -772,20 +889,54 @@ __global__ void VectorAddValueKernel(
 }
 
 const int VectorSubCombineCount = 8;
-__global__ void VectorSubKernel(const float* __restrict__ first,
-	const float* __restrict__ second, float* result, int count)
+template<class T>
+__global__ void VectorSubKernel( const T* __restrict__ first, const T* __restrict__ second, T* result, int count )
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorSubCombineCount, index, step);
+	int actionCount = GetCudaTaskCountAndIndex( count, VectorSubCombineCount, index, step );
 
 	first += index;
 	second += index;
 	result += index;
 
-	for(int i = 0; i < actionCount; ++i) {
+	for( int i = 0; i < actionCount; ++i ) {
 		*result = *first - *second;
 		first += step;
+		second += step;
+		result += step;
+	}
+}
+
+__global__ void VectorSubKernel( const float* __restrict__ first,
+	float second, float* result, int count )
+{
+	int index;
+	int step;
+	int actionCount = GetCudaTaskCountAndIndex( count, VectorSubCombineCount, index, step );
+
+	first += index;
+	result += index;
+
+	for( int i = 0; i < actionCount; ++i ) {
+		*result = *first - second;
+		first += step;
+		result += step;
+	}
+}
+
+__global__ void VectorSubKernel( float first,
+	const float* __restrict__ second, float* result, int count )
+{
+	int index;
+	int step;
+	int actionCount = GetCudaTaskCountAndIndex( count, VectorSubCombineCount, index, step );
+
+	second += index;
+	result += index;
+
+	for( int i = 0; i < actionCount; ++i ) {
+		*result = first - *second;
 		second += step;
 		result += step;
 	}
@@ -839,8 +990,9 @@ __global__ void VectorNegMultiplyKernel(const float* __restrict__ first,
 }
 
 const int VectorEltwiseMultiplyCombineCount = 8;
-__global__ void VectorEltwiseMultiplyKernel(const float* __restrict__ first,
-	const float* __restrict__ second, float* result, int count)
+template<class T>
+__global__ void VectorEltwiseMultiplyKernel(const T* __restrict__ first,
+	const T* __restrict__ second, T* result, int count)
 {
 	int index;
 	int step;
@@ -1120,6 +1272,33 @@ __global__ void vectorGreaterEqualToZeroKernel( const int* __restrict__ first,
 	}
 }
 
+__global__ void vectorLessKernel( const float* __restrict__ first, const float* __restrict__ second,
+	float* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] < second[index] ? 1.f : 0.f;
+	}
+}
+
+__global__ void vectorLessKernel( const float* __restrict__ first, float second,
+	float* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] < second ? 1.f : 0.f;
+	}
+}
+
+__global__ void vectorLessKernel( float first, const float* __restrict__ second,
+	float* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first < second[index] ? 1.f : 0.f;
+	}
+}
+
 __global__ void VectorFindMaxValueInSetKernel( CCudaConstVectorArray vectors,
 	float* result, int vectorSize)
 {
@@ -1173,6 +1352,139 @@ __global__ void VectorEltwiseLogSumExpKernel(const float* __restrict__ first,
 	int index;
 	if(GetCudaTaskIndex(vectorSize, index)) {
 		result[index] = LogSumExpFunc(first[index], second[index]);
+	}
+}
+
+__global__ void VectorTopKDiffKernel( const float* __restrict__ source,
+	const int* __restrict__ indices, float* result, int height, int width )
+{
+	int k;
+	if( GetCudaTaskIndex( height, k ) ) {
+		int index = indices[k];
+		result[k * width + index] = source[index];
+	}
+}
+
+__global__ void VectorNegKernel( const float* __restrict__ first,
+	float* __restrict__ second, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		second[index] = -first[index];
+	}
+}
+
+const int VectorLogDiffCombine = 16;
+__global__ void VectorLogDiffKernel( const float* __restrict__ sourceGrad,
+	int gradCount, int gradSize, int gradNorm,
+	const float* __restrict__ first, float* resultGrad )
+{
+	int num;
+	int index;
+	if( !GetCudaTaskIndex2D( gradCount, gradNorm, num, index ) ) {
+		return;
+	}
+
+	float div = first[num];
+	bool isCloseToZero = ( -FLT_MIN <= div && div <= FLT_MIN );
+	index *= VectorLogDiffCombine;
+	sourceGrad += num * gradSize + index;
+	resultGrad += num * gradSize + index;
+	for( int i = index; i < min( gradSize, index + VectorLogDiffCombine ); i++ ) {
+		if( isCloseToZero ) {
+			*resultGrad = 0;
+		} else {
+			*resultGrad = *sourceGrad / div;
+		}
+		resultGrad++;
+		sourceGrad++;
+	}
+}
+
+const int VectorAbsDiffCombine = 16;
+__global__ void VectorAbsDiffKernel( const float* __restrict__ sourceGrad,
+	int gradCount, int gradSize, int gradNorm,
+	const float* __restrict__ first, float* resultGrad )
+{
+	int num;
+	int index;
+	if( !GetCudaTaskIndex2D( gradCount, gradNorm, num, index ) ) {
+		return;
+	}
+
+	index *= VectorAbsDiffCombine;
+	sourceGrad += num * gradSize + index;
+	resultGrad += num * gradSize + index;
+	for( int i = index; i < min( gradSize, index + VectorAbsDiffCombine ); i++ ) {
+		if( first[num] > 0 ) {
+			*resultGrad = *sourceGrad;
+		} else {
+			*resultGrad = -*sourceGrad;
+		}
+		resultGrad++;
+		sourceGrad++;
+	}
+}
+
+const int VectorMinMaxDiffCombine = 16;
+__global__ void VectorMinMaxDiffKernel( const float* __restrict__ sourceGrad,
+	int gradCount, int gradSize, int gradNorm,
+	const float* __restrict__ first, float* resultGrad,
+	const float* __restrict__ minPtr, const float* __restrict__ maxPtr )
+{
+	int num;
+	int index;
+	if( !GetCudaTaskIndex2D( gradCount, gradNorm, num, index ) ) {
+		return;
+	}
+
+	bool isOut = first[num] < *minPtr || first[num] > *maxPtr;
+	index *= VectorMinMaxDiffCombine;
+	sourceGrad += num * gradSize + index;
+	resultGrad += num * gradSize + index;
+	for( int i = index; i < min( gradSize, index + VectorMinMaxDiffCombine ); i++ ) {
+		if( isOut ) {
+			*resultGrad = 0;
+		} else {
+			*resultGrad = *sourceGrad;
+		}
+		resultGrad++;
+		sourceGrad++;
+	}
+}
+
+const int VectorMaxCombineCount = 16;
+__global__ void VectorMaxKernel( const float* __restrict__ first,
+	float value, float* __restrict__ result, int count )
+{
+	int index;
+	int step;
+	int actionCount = GetCudaTaskCountAndIndex( count, VectorMaxCombineCount, index, step );
+
+	first += index;
+	result += index;
+
+	for( int action = 0; action < actionCount; ++action ) {
+		*result = ( *first >= value ) ? *first : value;
+		first += step;
+		result += step;
+	}
+}
+
+const int VectorMaxDiffCombineCount = 16;
+__global__ void VectorMaxDiffKernel( float* grad, int gradCount, int gradSize, int gradNorm,
+	const float* __restrict__ first, float secondValue )
+{
+	int num;
+	int index;
+	if( !GetCudaTaskIndex2D( gradCount, gradNorm, num, index ) || ( first[num] >= secondValue ) ) {
+		return;
+	}
+
+	index *= VectorMinMaxDiffCombine;
+	grad += num * gradSize + index;
+	for( int i = index; i < min( gradSize, index + VectorMaxDiffCombineCount ); i++ ) {
+		*grad++ = 0;
 	}
 }
 

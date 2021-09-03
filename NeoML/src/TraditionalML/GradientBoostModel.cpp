@@ -52,26 +52,6 @@ bool CGradientBoostModel::Classify( const CFloatVectorDesc& data, CClassificatio
 	return classify( predictions, result );
 }
 
-bool CGradientBoostModel::Classify( const CFloatVector& data, CClassificationResult& result ) const
-{
-	CFastArray<double, 1> predictions;
-
-	if( ensembles.Size() > 1 ) {
-		predictions.SetSize( ensembles.Size() );
-		CFastArray<double, 1> ensemblePredictions;
-		ensemblePredictions.SetSize(1);
-		for( int i = 0; i < ensembles.Size(); i++ ) {
-			PredictRaw(ensembles[i], 0, learningRate, data, ensemblePredictions);
-			predictions[i] = ensemblePredictions[0];
-		}
-	} else {
-		predictions.SetSize( valueSize );
-		PredictRaw( ensembles[0], 0, learningRate, data, predictions );
-	}
-
-	return classify( predictions, result );
-}
-
 void CGradientBoostModel::Serialize( CArchive& archive )
 {
 #ifdef NEOML_USE_FINEOBJ
@@ -204,22 +184,57 @@ void CGradientBoostModel::CutNumberOfTrees( int numberOfTrees )
 	}
 }
 
+static void regressionTreeSearch( uint64_t& featureCount, uint64_t& nodesCount, const IRegressionTreeNode* node )
+{
+	CFastArray<const IRegressionTreeNode*, 32> stack;
+	CRegressionTreeNodeInfo info;
+	while( node != nullptr || !stack.IsEmpty() ) {
+		if( !stack.IsEmpty() ) {
+			node = stack.Last();
+			stack.DeleteLast();
+		}
+		while( node != nullptr ) {
+			node->GetNodeInfo( info );
+			if( info.FeatureIndex >= 0 ) {
+				featureCount = max( featureCount, static_cast<uint64_t>( info.FeatureIndex ) );
+			}
+			nodesCount++;
+			const IRegressionTreeNode* left = node->GetLeftChild().Ptr();
+			const IRegressionTreeNode* right = node->GetRightChild().Ptr();
+			if( right != nullptr ) {
+				stack.Add( right );
+			}
+			node = left;
+		}
+	}
+}
+
 void CGradientBoostModel::ConvertToCompact()
 {
 	for( int i = 0; i < ensembles.Size() ; i++ ) {
 		CGradientBoostEnsemble& ensemble = ensembles[i];
 		for( int j = 0; j < ensemble.Size(); j++ ) {
 			CPtr<IRegressionTreeNode>& tree = ensemble[j];
-			if( dynamic_cast<CCompactRegressionTree*>( tree.Ptr() ) == 0 ) {
-				tree = FINE_DEBUG_NEW CCompactRegressionTree( tree );
+
+			if( dynamic_cast< CCompact16RegressionTree* >( tree.Ptr() ) == 0 && dynamic_cast< CCompact32RegressionTree* >( tree.Ptr() ) == 0 ) {
+				// find max featureIndex and nodes count
+				uint64_t featureCount = 0, nodesCount = 0;
+				regressionTreeSearch( featureCount, nodesCount, tree );
+
+				if( featureCount <= CCompact16RegressionTree::MaxFeature && nodesCount <= CCompact16RegressionTree::MaxNodeIndex ) {
+					tree = FINE_DEBUG_NEW CCompact16RegressionTree( tree );
+				} else if( featureCount <= CCompact32RegressionTree::MaxFeature && nodesCount <= CCompact32RegressionTree::MaxNodeIndex ) {
+					tree = FINE_DEBUG_NEW CCompact32RegressionTree( tree );
+				} else {
+					NeoAssert( false );
+				}
 			}
 		}
 	}
 }
 
-// The common implementation for Predict methods
-template<typename TData>
-inline double CGradientBoostModel::doPredict( const TData& data ) const
+// IRegressionModel interface method
+double CGradientBoostModel::Predict( const CFloatVectorDesc& data ) const
 {
 	NeoAssert(ensembles.Size() == 1 && valueSize == 1);
 	CFastArray<double, 1> predictions;
@@ -228,24 +243,8 @@ inline double CGradientBoostModel::doPredict( const TData& data ) const
 	return predictions[0];
 }
 
-double CGradientBoostModel::Predict( const CSparseFloatVector& data ) const
-{
-	return doPredict( data.GetDesc() );
-}
-
-double CGradientBoostModel::Predict( const CFloatVector& data ) const
-{
-	return doPredict( data );
-}
-
-double CGradientBoostModel::Predict( const CFloatVectorDesc& data ) const
-{
-	return doPredict( data );
-}
-
-// The common implementation for the three MultivariatePredict method variations
-template<typename TData>
-CFloatVector CGradientBoostModel::doMultivariatePredict( const TData& data ) const
+// IMultivariateRegressionModel interface method
+CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVectorDesc& data ) const
 {
 	CFastArray<double, 1> predictions;
 
@@ -268,12 +267,6 @@ CFloatVector CGradientBoostModel::doMultivariatePredict( const TData& data ) con
 		resultPtr[i] = static_cast<float>(predictions[0]);
 	}
 	return result;
-}
-
-// IMultivariateRegressionModel interface methods
-CFloatVector CGradientBoostModel::MultivariatePredict( const CFloatVectorDesc& data ) const
-{
-	return doMultivariatePredict( data );
 }
 
 // Performs classification

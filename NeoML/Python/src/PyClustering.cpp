@@ -63,7 +63,10 @@ py::tuple CPyClustering::Clusterize( py::array indices, py::array data, py::arra
 
 	CClusteringResult result;
 
-	clustering->Clusterize( problem.Ptr(), result );
+	{
+		py::gil_scoped_release release;
+		clustering->Clusterize( problem.Ptr(), result );
+	}
 
 	py::array_t<int, py::array::c_style> clusters( static_cast<int>( weight.size() ) );
 	auto tempClusters = clusters.mutable_unchecked<1>();
@@ -199,7 +202,7 @@ void InitializeClustering(py::module& m)
 	py::class_<CPyKMeans>(m, "KMeans")
 		.def( py::init(
 			[]( const std::string& algo, const std::string& init, const std::string& distance,
-				int max_iteration_count, int cluster_count, int thread_count )
+				int max_iteration_count, int cluster_count, int thread_count, int run_count, int seed )
 			{
 				CKMeansClustering::CParam p;
 
@@ -227,6 +230,8 @@ void InitializeClustering(py::module& m)
 				p.InitialClustersCount = cluster_count;
 				p.MaxIterations = max_iteration_count;
 				p.ThreadCount = thread_count;
+				p.RunCount = run_count;
+				p.Seed = seed;
 				return new CPyKMeans( p );
 			})
 		)

@@ -200,10 +200,11 @@ delete gpuMathEngine;
 
 - [CBaseLayer](BaseLayer.md) - базовый класс
 - Слои для обмена данными с сетью:
-  - [CSourceLayer](IOLayers/SourceLayer.md) - передача блобов с данными в сеть
+  - [CSourceLayer](IOLayers/SourceLayer.md) - передача блобов с пользовательскими данными в сеть
   - [CSinkLayer](IOLayers/SinkLayer.md) - получение блобов с данными из сети
   - [CProblemSourceLayer](IOLayers/ProblemSourceLayer.md) - передача данных из [`IProblem`](../ClassificationAndRegression/Problems.md) в сеть
   - [CFullyConnectedSourceLayer](IOLayers/FullyConnectedSourceLayer.md) - передача данных из `IProblem` в сеть и домножение их на матрицу
+  - [CDataLayer](IOLayers/DataLayer.md) - передача блобов с фиксированными данными в сеть
 - [CFullyConnectedLayer](FullyConnectedLayer.md) - полносвязный слой
 - [Функции активации](ActivationLayers/README.md):
   - [CLinearLayer](ActivationLayers/LinearLayer.md) - функция активации вида `ax + b`
@@ -238,9 +239,12 @@ delete gpuMathEngine;
 - [CDropoutLayer](DropoutLayer.md) - реализация `dropout`
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) - батч нормализация
 - [CObjectNormalizationLayer](ObjectNormalizationLayer.md) - нормализация по объектам
+- [CLrnLayer](LrnLayer.md) - Local Response Normalization
 - Поэлементные операции над блобами:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - поэлементная сумма блобов
+  - [CEltwiseSubLayer](EltwiseLayers/EltwiseSubLayer.md) - поэлементная разность блобов
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - поэлементное произведение блобов
+  - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - поэлементное деление блобов
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - поэлементный максимум блобов
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) - поэлементное произведение разности `1` и элементов первого блоба с элементами остальных блобов
 - Вспомогательные операции:
@@ -252,6 +256,7 @@ delete gpuMathEngine;
   - [CDotProductLayer](DotProductLayer.md) - скалярное произведение объектов двух блобов
   - [CAddToObjectLayer](AddToObjectLayer.md) - прибавление содержимого одного входа ко всем объектам другого
   - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - перемножение двух наборов матриц
+  - [CCastLayer](CastLayer.md) - преобразование типа данных блоба
   - Объединение блобов:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) - объединение блобов по каналам
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) - объединение блобов по глубине
@@ -264,7 +269,9 @@ delete gpuMathEngine;
     - [CSplitDepthLayer](SplitLayers/SplitDepthLayer.md) - разделение блобов по глубине
     - [CSplitWidthLayer](SplitLayers/SplitWidthLayer.md) - разделение блобов по ширине
     - [CSplitHeightLayer](SplitLayers/SplitHeightLayer.md) - разделение блобов по высоте
+    - [CSplitListSizeLayer](SplitLayers/SplitListSizeLayer.md) - разделение блобов по `ListSize`
     - [CSplitBatchWidthLayer](SplitLayers/SplitBatchWidthLayer.md) - разделение блобов по `BatchWidth`
+    - [CSplitBatchLengthLayer](SplitLayers/SplitBatchLengthLayer.md) - разделение блобов по `BatchLength`
   - Работа со списками пикселей:
     - [CPixelToImageLayer](PixelToImageLayer.md) - построение изображений из списков пикселей
     - [CImageToPixelLayer](ImageToPixelLayer.md) - выделение списков пикселей из изображений
@@ -272,6 +279,9 @@ delete gpuMathEngine;
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) - повторение последовательностей несколько раз
     - [CUpsampling2DLayer](Upsampling2DLayer.md) - увеличение размеров двумерных изображений
   - [CReorgLayer](ReorgLayer.md) - слой, преобразующий многоканальные изображения в изображения меньшего размера, с большим числом каналов
+  - [CSpaceToDepthLayer](SpaceToDepthLayer.md) слой, разбивающий входные изображения на квадраты и записывающий содержимое таких квадратов
+  в пиксели выходного изображения
+  - [CDepthToSpaceLayer](DepthToSpaceLayer.md) слой, записывающий содержимое пикселей входных изображений в квадраты выходных изображений
 - Функции потерь:
   - Бинарная классификация:
     - [CBinaryCrossEntropyLossLayer](LossLayers/BinaryCrossEntropyLossLayer.md) - перекрёстная энтропия
@@ -298,6 +308,7 @@ delete gpuMathEngine;
   - [CGruLayer](GruLayer.md) - реализация Gated Recurrent Unit
   - [CQrnnLayer](QrnnLayer.md) - квази-рекуррентный слой
   - [CIrnnLayer](IrnnLayer.md) - [IRNN](https://arxiv.org/pdf/1504.00941.pdf)
+  - [CIndRnnLayer](IndRnnLayer.md) - [IndRNN](https://arxiv.org/pdf/1803.04831.pdf)
 - [Условное случайное поле (CRF)](CrfLayers/README.md):
   - [CCrfLayer](CrfLayers/CrfLayer.md) - условное случайное поле
   - [CCrfLossLayer](CrfLayers/CrfLossLayer.md) - функция потерь для обучения условного случайного поля

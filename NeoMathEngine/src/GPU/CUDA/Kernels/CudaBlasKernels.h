@@ -721,9 +721,9 @@ static __global__ void FindMinValueInColumnsKernel( const float* matrixHandle, i
 }
 
 const int BatchVectorLookupAndCopyCombineBatch = 4;
-template<class T>
-__global__ void VectorChannelLookupAndCopyKernel(int batchSize, const T* __restrict__ input, int inputChannels,
-	const float* __restrict__ lookup, int vectorSize, float* output, int outputChannels, int batchNorm)
+template<class TInput, class TLookup>
+__global__ void VectorChannelLookupAndCopyKernel(int batchSize, const TInput* __restrict__ input, int inputChannels,
+	const TLookup* __restrict__ lookup, int vectorSize, TLookup* output, int outputChannels, int batchNorm)
 {
 	int b;
 	int index;
@@ -750,9 +750,9 @@ __global__ void VectorChannelLookupAndCopyKernel(int batchSize, const T* __restr
 	}
 }
 
-template<class T>
-__global__ void BatchVectorChannelCopyKernel(int batchSize, const T* __restrict__ input,
-	int inputChannels, int vectorSize, float* output, int outputChannels, int batchNorm)
+template<class TInput, class TLookup>
+__global__ void BatchVectorChannelCopyKernel(int batchSize, const TInput* __restrict__ input,
+	int inputChannels, int vectorSize, TLookup* output, int outputChannels, int batchNorm)
 {
 	int b;
 	int index;
@@ -1205,6 +1205,48 @@ __global__ void MatrixSpreadRowsAddKernel(const float* __restrict__ source, int 
 		atomicAdd(result, source[sourceIndex]);
 		sourceIndex += step;
 		result += step;
+	}
+}
+
+const int AddDiagMatrixToMatrixCombine = 16;
+__global__ void AddDiagMatrixToMatrixKernel( const float* __restrict__ diagMatrix, const float*  __restrict__ matrix,
+	int height, int width, int widthNorm, float* result )
+{
+	int row;
+	int col;
+	if( !GetCudaTaskIndex2D( height, widthNorm, row, col ) ) {
+		return;
+	}
+
+	col *= AddDiagMatrixToMatrixCombine;
+	matrix += row * width + col;
+	result += row * width + col;
+	for( int i = col; i < min( width, col + AddDiagMatrixToMatrixCombine ); i++ ) {
+		*result = *matrix;
+		if( row == i ) {
+			*result += diagMatrix[row];
+		}
+		matrix++;
+		result++;
+	}
+}
+
+const int MatrixColumnsEltwiseDivideCombine = 16;
+__global__ void MatrixColumnsEltwiseDivideKernel( const float* __restrict__ matrix,
+	int matrixHeight, int matrixWidth, int widthNorm,
+	const float* __restrict__ vector, float* result )
+{
+	int row;
+	int col;
+	if( !GetCudaTaskIndex2D( matrixHeight, widthNorm, row, col ) ) {
+		return;
+	}
+
+	col *= MatrixColumnsEltwiseDivideCombine;
+	matrix += row * matrixWidth + col;
+	result += row * matrixWidth + col;
+	for( int i = col; i < min( matrixWidth, col + MatrixColumnsEltwiseDivideCombine ); i++ ) {
+		*result++ = *matrix++ / vector[row];
 	}
 }
 

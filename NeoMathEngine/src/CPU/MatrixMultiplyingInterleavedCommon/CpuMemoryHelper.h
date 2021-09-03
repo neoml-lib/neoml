@@ -15,14 +15,14 @@ limitations under the License.
 
 #pragma once
 
-#include <CpuMathEngine.h>
+#include <NeoMathEngine/NeoMathEngine.h>
 #include <MemoryHandleInternal.h>
 
 // Wraps the stack allocator in a template
 // The template does not use NeoML structures, 
 // so it can be reused in other projects (for example, you may want to compare performance)
 struct CTmpMemoryHandler : public NeoML::CFloatHandleStackVar {
-	CTmpMemoryHandler( NeoML::CCpuMathEngine* engine, size_t size ) :
+	CTmpMemoryHandler( NeoML::IMathEngine* engine, size_t size ) :
 		NeoML::CFloatHandleStackVar( *engine, size )
 	{
 	}

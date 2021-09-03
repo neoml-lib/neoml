@@ -45,6 +45,7 @@ void InitializeTiedEmbeddingsLayer( py::module& m )
 		}))
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs, const std::string& embeddingsName, int channel )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

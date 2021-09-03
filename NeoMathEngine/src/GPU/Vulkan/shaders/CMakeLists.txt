@@ -2,6 +2,8 @@ project(VulkanShaders)
 
 set(SHADER_SOURCES
     VectorFillScalar.comp 
+    VectorConvertFloatToInt.comp
+    VectorConvertIntToFloat.comp
     VectorReLU.comp
     VectorReLU4.comp
     VectorReLUDiff.comp 
@@ -51,10 +53,12 @@ set(SHADER_SOURCES
     VectorAddInt.comp 
     VectorSum.comp 
     VectorEqual.comp
-    VectorSub.comp 
+    VectorSubInt.comp 
+    VectorSubFloat.comp 
     VectorMultiplyAndAdd.comp 
     VectorMultiplyAndSub.comp 
-    VectorMultiply.comp
+    VectorMultiplyInt.comp
+    VectorMultiplyFloat.comp
     VectorEltwisePower.comp 
     VectorSqrt.comp 
     VectorInv.comp 
@@ -77,7 +81,8 @@ set(SHADER_SOURCES
     VectorEltwiseLogSumExp.comp 
     SetVectorToMatrixElements.comp 
     LookupAndSum.comp 
-    Upsampling2DForward.comp
+    Upsampling2DForwardInt.comp
+    Upsampling2DForwardFloat.comp
     FindMaxValueInRows.comp 
     FindMaxValueInRowsNoIndices.comp 
     FindMaxValueInColumns.comp
@@ -124,14 +129,23 @@ set(SHADER_SOURCES
     BlobConvertFromRLE.comp
     BlobSplitByDim.comp
     BlobMergeByDim.comp
-    VectorMultichannelLookupAndCopyFloat.comp
-    VectorMultichannelCopyFloat.comp
-    VectorMultichannelLookupAndCopyInt.comp
-    VectorMultichannelCopyInt.comp
+    VectorMultichannelLookupAndCopyFloatIndicesFloatData.comp
+    VectorMultichannelLookupAndCopyIntIndicesFloatData.comp
+    VectorMultichannelLookupAndCopyIntIndicesIntData.comp
+    VectorMultichannelCopyFloatIndicesFloatData.comp
+    VectorMultichannelCopyIntIndicesFloatData.comp
+    VectorMultichannelCopyIntIndicesIntData.comp
     BlobTimeConvolutionPrepare.comp
     PrepareBlobForConvolution.comp
     BlobReorgFloat.comp
     BlobReorgInt.comp
+    QrnnFPooling.comp
+    QrnnIfPooling.comp
+    IndRnnRecurrentReLU.comp
+    IndRnnRecurrentSigmoid.comp
+    SpaceToDepthFloat.comp
+    SpaceToDepthInt.comp
+    Lrn.comp
 )
 
 set(IB_SHADER_SOURCES
@@ -158,7 +172,7 @@ set(IB_SHADER_SOURCES
 
 # Directories for common files and result files
 set(COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/common")
-set(RESULTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/generated")
+set(RESULTS_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 file(MAKE_DIRECTORY ${RESULTS_DIR})
 
@@ -192,11 +206,11 @@ macro(register_shader SHADER IS_IB)
         set(GLSL_DEFINES ${GLSL_DEFINES})
         set(RESULT_FILE ${RESULTS_DIR}/${COMPILED_SHADER})
         set(VAR_NAME "Shader_${SHADER_NAME}")
-        set(FULL_SOURCE_FILE "${SHADER_NAME}_source.tmp")
+        set(FULL_SOURCE_FILE "${RESULTS_DIR}/${SHADER_NAME}_source.tmp")
     else()
         set(RESULT_FILE ${RESULTS_DIR}/${COMPILED_SHADER})
         set(VAR_NAME "Shader_${SHADER_NAME}")
-        set(FULL_SOURCE_FILE "${SHADER_NAME}_source.tmp")
+        set(FULL_SOURCE_FILE "${RESULTS_DIR}/${SHADER_NAME}_source.tmp")
     endif()
 
     if(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows")

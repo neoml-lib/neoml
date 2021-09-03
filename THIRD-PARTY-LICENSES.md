@@ -541,7 +541,7 @@ of the input file used when generating it.  This code is not
 standalone and requires a support library to be linked with it.  This
 support library is itself covered by the above license.
 
-# Nvidia CUDA Toolkit, version 10.2, https://developer.nvidia.com/cuda-toolkit
+# Nvidia CUDA Toolkit, version 11.2 upd. 1, https://developer.nvidia.com/cuda-toolkit
 
 WE OPTIONAL USE CUDA FOR COMPUTING ON NVIDIA GPUs.
 

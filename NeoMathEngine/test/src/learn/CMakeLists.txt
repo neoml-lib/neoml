@@ -27,7 +27,10 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/EltwiseLogSumExpVectorToMatrixElementsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FilterSmallValuesTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMinValueInColumnsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnBackwardTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnLearnTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LookupAndAddToTableTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/LrnBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixLogSumExpByColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixLogSumExpByRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixRowsToVectorSquaredL2DistanceTest.cpp
@@ -46,6 +49,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedMatrixByMatrixAndAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedMatrixBySparseMatrixAndAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyVectorByTransposedLookupVectorAndAddToTableTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/QrnnBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RowMultiplyMatrixByMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SubVectorFromMatrixColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsAddTest.cpp

@@ -17,25 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include "PyLossLayer.h"
-
-class CPyLossLayer : public CPyLayer {
-public:
-	explicit CPyLossLayer( CLossLayer& layer, CPyMathEngineOwner& mathEngineOwner ) :
-		CPyLayer( layer, mathEngineOwner ) {}
-
-	float GetLastLoss() const { return Layer<CLossLayer>()->GetLastLoss(); }
-
-	float GetLossWeight() const { return Layer<CLossLayer>()->GetLossWeight(); }
-	void SetLossWeight( float lossWeight ) { Layer<CLossLayer>()->SetLossWeight(lossWeight); }
-
-	bool GetTrainLabels() const { return Layer<CLossLayer>()->TrainLabels(); }
-	void SetTrainLabels( bool toSet ) { Layer<CLossLayer>()->SetTrainLabels(toSet); }
-
-	float GetMaxGradientValue() const { return Layer<CLossLayer>()->GetMaxGradientValue(); }
-	void SetMaxGradientValue(float maxValue) { Layer<CLossLayer>()->SetMaxGradientValue(maxValue); }
-};
-
-//------------------------------------------------------------------------------------------------------------
+#include "PyDnnBlob.h"
 
 class CPyCrossEntropyLossLayer : public CPyLossLayer {
 public:
@@ -228,6 +210,7 @@ void InitializeLossLayer( py::module& m )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs,
 			bool softmax, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -257,6 +240,7 @@ void InitializeLossLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float positiveWeight, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -286,6 +270,7 @@ void InitializeLossLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -312,6 +297,7 @@ void InitializeLossLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -338,6 +324,7 @@ void InitializeLossLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -364,6 +351,7 @@ void InitializeLossLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -390,6 +378,7 @@ void InitializeLossLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -416,6 +405,7 @@ void InitializeLossLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float force, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -445,6 +435,7 @@ void InitializeLossLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float force, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 
@@ -474,6 +465,7 @@ void InitializeLossLayer( py::module& m )
 		}) )
 		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, int classCount, float rate, float lossWeight )
 		{
+			py::gil_scoped_release release;
 			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 

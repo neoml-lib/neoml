@@ -145,12 +145,12 @@ CLayerWrapper<CTransposedConvLayer> TransposedConv( int filterCount,
 
 		result->SetFilterHeight( heightParams.FilterSize );
 		result->SetPaddingHeight( heightParams.Padding );
-		result->SetStrideWidth( heightParams.Stride );
+		result->SetStrideHeight( heightParams.Stride );
 		result->SetDilationHeight( heightParams.Dilation );
 
 		result->SetFilterWidth( widthParams.FilterSize );
 		result->SetPaddingWidth( widthParams.Padding );
-		result->SetStrideHeight( widthParams.Stride );
+		result->SetStrideWidth( widthParams.Stride );
 		result->SetDilationWidth( widthParams.Dilation );
 
 		result->SetZeroFreeTerm( isZeroFreeTerm );

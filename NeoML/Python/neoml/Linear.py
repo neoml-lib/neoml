@@ -28,17 +28,13 @@ class LinearClassificationModel :
     def classify(self, X):
         """Gets the classification results for the input sample.
 
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The input vectors, put into a matrix. The values will be 
-            converted to ``dtype=np.float32``. If a sparse matrix is
-            passed in, it will be converted to a sparse ``csr_matrix``.
-            
-        Return values
-        -------
-        predictions : generator of ndarray of shape (n_samples, n_classes)
-            The predictions of class probability for each input vector.
+        :param X: the input sample. Internally, it will be converted to
+            ``dtype=np.float32``, and if a sparse matrix is provided -
+            to a sparse ``csr_matrix``.
+        :type X:  {array-like, sparse matrix} of shape (n_samples, n_features)
+
+        :return: predictions of the input samples.
+        :rtype: *generator of ndarray of shape (n_samples, n_classes)*
         """
         x = convert_data( X )
         return self.internal.classify(*get_data(x))
@@ -46,40 +42,42 @@ class LinearClassificationModel :
 class LinearClassifier(PythonWrapper.Linear) :
     """Linear binary classifier.
 
-    Parameters
-    ----------
-    loss : {'binomial', 'squared_hinge', 'smoothed_hinge'}, default='binomial'
-        The loss function to be optimized. 'binomial' refers to
+    :param loss: the loss function to be optimized. `binomial` refers to
         deviance (= logistic regression) for classification
         with probabilistic outputs.
+    :type loss: str, {'binomial', 'squared_hinge', 'smoothed_hinge'}, default='binomial'
 
-    max_iteration_count : int, default=1000
-        The maximum number of iterations.
+    :param max_iteration_count: the maximum number of iterations.
+    :type max_iteration_count: int, default=1000
     
-    error_weight : float, default=1.0
-        The error weight relative to the regularization coefficient.
+    :param error_weight: the error weight relative to the regularization coefficient.
+    :type error_weight: float, default=1.0
     
-    sigmoid : array of 2 float, default=(0.0, 0.0)
-        The predefined sigmoid function coefficients.
+    :param sigmoid: the predefined sigmoid function coefficients.
+    :type sigmoid: array of 2 float, default=(0.0, 0.0)
     
-    tolerance : float, default=-1.0
-        The stop criterion.
+    :param tolerance: the stop criterion.
         -1 means calculate stop criterion automatically, 
         from the amount of vectors in each class in the training sample.
+    :type tolerance: float, default=-1.0
         
-    normalizeError : bool, default=False
-        Specifies if the error should be normalized.
+    :param normalizeError: specifies if the error should be normalized.
+    :type normalizeError: bool, default=False
         
-    l1_reg : float, default=0.0
-        The L1 regularization coefficient.
+    :param l1_reg: the L1 regularization coefficient.
         If 0, L2 regularization will be used instead.
+    :type l1_reg: float, default=0.0
     
-    thread_count: int, default=1
-        The number of threads to be used while training the model.
+    :param thread_count: the number of threads to be used while training the model.
+    :type thread_count: int, default=1
+
+    :param multiclass_mode: determines how to handle multi-class classification
+    :type multiclass_mode: str, ['one_vs_all', 'one_vs_one'], default='one_vs_all'
     """
 
     def __init__(self, loss='binomial', max_iteration_count=1000, error_weight=1.0,
-        sigmoid=(0.0, 0.0), tolerance=-1.0, normalizeError=False, l1_reg=0.0, thread_count=1):
+        sigmoid=(0.0, 0.0), tolerance=-1.0, normalizeError=False, l1_reg=0.0, thread_count=1,
+        multiclass_mode='one_vs_all'):
 
         if loss != 'binomial' and loss != 'squared_hinge' and loss != 'smoothed_hinge':
             raise ValueError('The `loss` must be one of: `binomial`, `squared_hinge`, `smoothed_hinge`.')
@@ -90,41 +88,39 @@ class LinearClassifier(PythonWrapper.Linear) :
 
         if thread_count <= 0:
             raise ValueError('The `thread_count` must be > 0.')
+        if multiclass_mode != 'one_vs_all' and multiclass_mode != 'one_vs_one':
+            raise ValueError('The `multiclass_mode` must be one of: `one_vs_all`, `one_vs_one`.')
 
         super().__init__(loss, int(max_iteration_count), float(error_weight), float(sigmoid[0]), float(sigmoid[1]), float(tolerance), bool(normalizeError),
-            float(l1_reg), int(thread_count))
+            float(l1_reg), int(thread_count), multiclass_mode)
 
     def train(self, X, Y, weight=None):
         """Trains the linear classification model.
-        
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The training sample. The values will be converted 
+
+        :param X: the training sample. The values will be converted 
             to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Y : array-like of shape (n_samples,)
-            Correct class labels (``int``) for the training set vectors.
+        :param Y: correct class labels (``int``) for the training set vectors.
+        :type Y: array-like of shape (n_samples,)
 
-        weight : array-like of shape (n_samples,), default=None
-            Sample weights. If None, then samples are equally weighted.
+        :param weight: sample weights. If None, then samples are equally weighted.
+        :type weight: array-like of shape (n_samples,), default=None
 
-        Return values
-        -------
-        model : object
-            The trained ``LinearClassificationModel``.
+        :return: the trained classification model.
+        :rtype: neoml.Linear.LinearClassificationModel
         """
         x = convert_data( X )
-        y = numpy.array( Y, dtype=numpy.int32, copy=False )
+        y = numpy.array( Y, dtype=numpy.int32, copy=False, order='C' )
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32)
+            weight = numpy.ones(y.size, numpy.float32, order='C')
         else:
-            weight = numpy.array( weight, dtype=numpy.float32, copy=False )
+            weight = numpy.array( weight, dtype=numpy.float32, copy=False, order='C' )
 
         if numpy.any(y < 0):
             raise ValueError('All `Y` elements must be >= 0.')
@@ -144,17 +140,13 @@ class LinearRegressionModel :
     def predict(self, X):
         """Predicts the value of the function.
 
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The input vectors. The values will be converted 
+        :param X: the input vectors. The values will be converted 
             to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Return values
-        -------
-        predictions : generator of ndarray of shape (n_samples)
-            The predictions of the function value on each input vector.
+        :return: the predictions of the function value on each input vector.
+        :rtype: *generator of ndarray of shape (n_samples)*
         """
         x = convert_data( X )
         return self.internal.predict(*get_data(x))
@@ -162,42 +154,40 @@ class LinearRegressionModel :
 class LinearRegressor(PythonWrapper.Linear) :
     """Linear regressor.
 
-    Parameters
-    ----------
-    loss : {'l2'}, default='l2'
-        The loss function to be optimized. 
+    :param loss: the loss function to be optimized. 
         The quadratic loss L2 is the only one supported.
+    :type loss: str, {'l2'}, default='l2'
 
-    max_iteration_count : int, default=1000
-        The maximum number of iterations.
-    
-    error_weight : float, default=1.0
-        The error weight relative to the regularization coefficient.
+    :param max_iteration_count: the maximum number of iterations.
+    :type max_iteration_count: int, default=1000
 
-    sigmoid : array of 2 float, default=(0.0, 0.0)
-        The predefined sigmoid function coefficients.
-    
-    tolerance : float, default=-1.0
-        The stop criterion.
+    :param error_weight: the error weight relative to the regularization coefficient.
+    :type error_weight: float, default=1.0
+
+    :param sigmoid: the predefined sigmoid function coefficients.
+    :type sigmoid: array of 2 float, default=(0.0, 0.0)
+
+    :param tolerance: the stop criterion.
         -1 means calculate stop criterion automatically, 
         from the amount of vectors in each class in the training sample.
-        
-    normalizeError : bool, default=False
-        Specifies if the error should be normalized.
-        
-    l1_reg : float, default=0.0
-        The L1 regularization coefficient.
+    :type tolerance: float, default=-1.0
+
+    :param normalizeError: specifies if the error should be normalized.
+    :type normalizeError: bool, default=False
+
+    :param l1_reg: the L1 regularization coefficient.
         If 0, L2 regularization will be used instead.
-    
-    thread_count: int, default=1
-        The number of threads to be used while training the model.
+    :type l1_reg: float, default=0.0
+
+    :param thread_count: the number of threads to be used while training the model.
+    :type thread_count: int, default=1
     """
 
     def __init__(self, loss='l2', max_iteration_count=1000, error_weight=1.0,
         sigmoid=(0.0, 0.0), tolerance=-1.0, normalizeError=False, l1_reg=0.0, thread_count=1):
 
         if loss != 'l2':
-            raise ValueError('The `loss` must be `l2 for regression.')
+            raise ValueError('The `loss` must be `l2` for regression.')
         if max_iteration_count <= 0:
             raise ValueError('The `max_iteration_count` must be > 0.')
         if error_weight <= 0:
@@ -207,39 +197,35 @@ class LinearRegressor(PythonWrapper.Linear) :
             raise ValueError('The `thread_count` must be > 0.')
 
         super().__init__(loss, int(max_iteration_count), float(error_weight), float(sigmoid[0]), float(sigmoid[1]), float(tolerance), bool(normalizeError),
-            float(l1_reg), int(thread_count))
+            float(l1_reg), int(thread_count), '')
 
     def train(self, X, Y, weight=None):
         """Trains the linear regression model.
 
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            The training sample. The values will be converted 
+        :param X: the training sample. The values will be converted 
             to ``dtype=np.float32``. If a sparse matrix is
             passed in, it will be converted to a sparse ``csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
 
-        Y : array-like of shape (n_samples,)
-            Correct function values (``float``) for the training set vectors.
+        :param Y: correct function values (``float``) for the training set vectors.
+        :type Y: array-like of shape (n_samples,)
 
-        weight : array-like of shape (n_samples,), default=None
-            Sample weights. If None, then samples are equally weighted.
+        :param weight: sample weights. If None, then samples are equally weighted.
+        :type weight: array-like of shape (n_samples,), default=None
 
-        Return values
-        -------
-        model : object
-            The trained ``LinearRegressionModel``.
+        :return: the trained regression model.
+        :rtype: neoml.Linear.LinearRegressionModel
         """
         x = convert_data( X )
-        y = numpy.array( Y, dtype=numpy.float32, copy=False )
+        y = numpy.array( Y, dtype=numpy.float32, copy=False, order='C' )
 
         if x.shape[0] != y.size:
             raise ValueError('The `X` and `Y` inputs must be the same length.')
 
         if weight is None:
-            weight = numpy.ones(y.size, numpy.float32)
+            weight = numpy.ones(y.size, numpy.float32, order='C')
         else:
-            weight = numpy.array( weight, dtype=numpy.float32, copy=False )
+            weight = numpy.array( weight, dtype=numpy.float32, copy=False, order='C' )
 
         if numpy.any(weight < 0):
             raise ValueError('All `weight` elements must be >= 0.')

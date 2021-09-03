@@ -30,6 +30,28 @@ namespace NeoML {
 // The number of combined values for the vector kernels
 static const int VectorCombineCount = 8;
 
+void CMetalMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrix, int matrixHeight, int matrixWidth,
+	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( matrix.GetMathEngine() == this );
+	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( matrixHeight > 0 );
+	ASSERT_EXPR( matrixWidth > 0 );
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+	int height, int width, const CFloatHandle& result )
+{
+	ASSERT_EXPR( diagMatrix.GetMathEngine() == this );
+	ASSERT_EXPR( matrix.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+	ASSERT_EXPR( height > 0 );
+	ASSERT_EXPR( width > 0 );
+	ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
 	const CConstIntHandle& indices, const CFloatHandle& result, int)
 {
@@ -75,7 +97,7 @@ void CMetalMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channe
 
     int outputChannel = 0;
     for( int i = 0; i < lookupCount; ++i ) {
-        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelLookupAndCopyFloat", 4, 1, batchSize, lookupDimensions[i].VectorSize );
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelLookupAndCopyFloatIndicesFloatData", 4, 1, batchSize, lookupDimensions[i].VectorSize );
         kernel.SetParam( batchSize, 0 );
         kernel.SetParam( inputHandle + i, 1 );
         kernel.SetParam( channelCount, 2 );
@@ -90,7 +112,7 @@ void CMetalMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channe
     }
     
     if( lookupCount < channelCount ) {
-        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelCopyFloat",
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelCopyFloatIndicesFloatData",
             4, 1, batchSize, channelCount - lookupCount );
         kernel.SetParam( batchSize, 0 );
         kernel.SetParam( inputHandle + lookupCount, 1 );
@@ -112,7 +134,7 @@ void CMetalMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channe
 
     int outputChannel = 0;
     for( int i = 0; i < lookupCount; ++i ) {
-        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelLookupAndCopyInt", 4, 1, batchSize, lookupDimensions[i].VectorSize );
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelLookupAndCopyIntIndicesFloatData", 4, 1, batchSize, lookupDimensions[i].VectorSize );
         kernel.SetParam( batchSize, 0 );
         kernel.SetParam( inputHandle + i, 1 );
         kernel.SetParam( channelCount, 2 );
@@ -127,7 +149,43 @@ void CMetalMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channe
     }
     
     if( lookupCount < channelCount ) {
-        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelCopyInt", 4, 1, batchSize, channelCount - lookupCount );
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelCopyIntIndicesFloatData", 4, 1, batchSize, channelCount - lookupCount );
+        kernel.SetParam( batchSize, 0 );
+        kernel.SetParam( inputHandle + lookupCount, 1 );
+        kernel.SetParam( channelCount, 2 );
+        kernel.SetParam( channelCount - lookupCount, 3 );
+        kernel.SetParam( outputHandle + outputChannel, 5 );
+        kernel.SetParam( outputChannelsCount, 6 );
+        kernel.SetParam( kernel.GetGridWidth(), 7 );
+        ASSERT_EXPR( kernel.Run() );
+    }
+}
+
+void CMetalMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+    const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+    const CIntHandle& outputHandle, int outputChannelsCount)
+{
+    ASSERT_EXPR( inputHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+    int outputChannel = 0;
+    for( int i = 0; i < lookupCount; ++i ) {
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelLookupAndCopyIntIndicesIntData", 4, 1, batchSize, lookupDimensions[i].VectorSize );
+        kernel.SetParam( batchSize, 0 );
+        kernel.SetParam( inputHandle + i, 1 );
+        kernel.SetParam( channelCount, 2 );
+        kernel.SetParam( lookupHandles[i], 3 );
+        kernel.SetParam( lookupDimensions[i].VectorSize, 4 );
+        kernel.SetParam( outputHandle + outputChannel, 5 );
+        kernel.SetParam( outputChannelsCount, 6 );
+        kernel.SetParam( kernel.GetGridWidth(), 7 );
+        ASSERT_EXPR( kernel.Run() );
+        
+        outputChannel += lookupDimensions[i].VectorSize;
+    }
+    
+    if( lookupCount < channelCount ) {
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelCopyIntIndicesIntData", 4, 1, batchSize, channelCount - lookupCount );
         kernel.SetParam( batchSize, 0 );
         kernel.SetParam( inputHandle + lookupCount, 1 );
         kernel.SetParam( channelCount, 2 );

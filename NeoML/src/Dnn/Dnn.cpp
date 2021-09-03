@@ -82,6 +82,12 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
 #include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
 #include <NeoML/Dnn/Layers/IrnnLayer.h>
+#include <NeoML/Dnn/Layers/IndRnnLayer.h>
+#include <NeoML/Dnn/Layers/DepthToSpaceLayer.h>
+#include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
+#include <NeoML/Dnn/Layers/LrnLayer.h>
+#include <NeoML/Dnn/Layers/CastLayer.h>
+#include <NeoML/Dnn/Layers/DataLayer.h>
 
 namespace NeoML {
 
@@ -108,38 +114,48 @@ struct CTypeInfoNameHash {
 	}
 };
 
-static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap>& getLayerNames()
+static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap>& getLayerClasses()
 {
-	static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap> layerNames;
-	return layerNames;
+	static CMap<const std::type_info*, CString, CTypeInfoNameHash, RuntimeHeap> layerClasses;
+	return layerClasses;
 }
 
-void RegisterLayerName( const char* mainName, const char* additionalName, const std::type_info& typeInfo, TCreateLayerFunction function )
+void RegisterLayerClass( const char* className, const char* additionalName, const std::type_info& typeInfo, TCreateLayerFunction function )
 {
-	NeoAssert( !getRegisteredLayers().Has( mainName ) );
-	getRegisteredLayers().Add( mainName, function );
+	NeoAssert( !getRegisteredLayers().Has( className ) );
+	getRegisteredLayers().Add( className, function );
 	if( additionalName != 0 ) {
 		NeoAssert( !getRegisteredLayers().Has( additionalName ) );
 		getRegisteredLayers().Add( additionalName, function );
 	}
-	getLayerNames().Add( &typeInfo, mainName );
+	getLayerClasses().Add( &typeInfo, className );
 }
 
-void UnregisterLayerName( const std::type_info& typeInfo )
+void UnregisterLayerClass( const std::type_info& typeInfo )
 {
-	getRegisteredLayers().Delete( getLayerNames().Get( &typeInfo ) );
-	getLayerNames().Delete( &typeInfo );
+	getRegisteredLayers().Delete( getLayerClasses().Get( &typeInfo ) );
+	getLayerClasses().Delete( &typeInfo );
 }
 
-bool IsRegisteredLayerName( const char* name )
+bool IsRegisteredLayerClass( const char* className )
 {
-	return getRegisteredLayers().Has( name );
+	return getRegisteredLayers().Has( className );
 }
 
-CPtr<CBaseLayer> CreateLayer( const char* name, IMathEngine& mathEngine )
+void GetRegisteredLayerClasses( CArray<const char*>& layerNames )
 {
-	NeoAssert( getRegisteredLayers().Has( name ) );
-	return getRegisteredLayers()[name]( mathEngine );
+	const CMap<CString, TCreateLayerFunction, CDefaultHash<CString>, RuntimeHeap>& registeredLayers = getRegisteredLayers();
+	layerNames.DeleteAll();
+	layerNames.SetBufferSize( registeredLayers.Size() );
+	for( int pos = registeredLayers.GetFirstPosition(); pos != NotFound; pos = registeredLayers.GetNextPosition( pos ) ) {
+		layerNames.Add( registeredLayers.GetKey( pos ) );
+	}
+}
+
+CPtr<CBaseLayer> CreateLayer( const char* className, IMathEngine& mathEngine )
+{
+	NeoAssert( getRegisteredLayers().Has( className ) );
+	return getRegisteredLayers()[className]( mathEngine );
 }
 
 static CPtr<CBaseLayer> createLayer( IMathEngine& mathEngine, const CString& className )
@@ -151,28 +167,30 @@ static CPtr<CBaseLayer> createLayer( IMathEngine& mathEngine, const CString& cla
 	return getRegisteredLayers().GetValue( pos )( mathEngine );
 }
 
-static CString getLayerName( const CBaseLayer* layer )
+static CString getLayerClass( const CBaseLayer* layer )
 {
 	if( layer == 0 ) {
 		return CString();
 	}
 	const std::type_info& layerType = typeid( *layer );
-	TMapPosition pos = getLayerNames().GetFirstPosition( &layerType );
+	TMapPosition pos = getLayerClasses().GetFirstPosition( &layerType );
 	if( pos == NotFound ) {
 		return CString();
 	}
-	return getLayerNames().GetValue( pos );
+	return getLayerClasses().GetValue( pos );
 }
 
-CString GetLayerName( const CBaseLayer& layer )
+CString GetLayerClass( const CBaseLayer& layer )
 {
-	return getLayerName( &layer );
+	return getLayerClass( &layer );
 }
 
 void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer )
 {
 	if( archive.IsStoring() ) {
-		archive << getLayerName( layer );
+		CString name = getLayerClass( layer );
+		NeoAssert( layer == nullptr || name != ""  ); // assertion on storing not registered layer
+		archive << name;
 		if( layer != 0 ) {
 			layer->Serialize( archive );
 		}
@@ -180,6 +198,7 @@ void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer
 		CString name;
 		archive >> name;
 		layer = createLayer( mathEngine, name );
+		CheckArchitecture( name == "" || layer != nullptr, name, "restoring unknown layer from archive" );
 		if( layer != 0 ) {
 			layer->Serialize( archive );
 		}
@@ -201,14 +220,20 @@ REGISTER_NEOML_LAYER( CConcatDepthLayer, "FmlCnnConcatDepthLayer" )
 REGISTER_NEOML_LAYER( CConcatWidthLayer, "FmlCnnConcatWidthLayer" )
 REGISTER_NEOML_LAYER( CConcatHeightLayer, "FmlCnnConcatHeightLayer" )
 REGISTER_NEOML_LAYER( CConcatBatchWidthLayer, "FmlCnnConcatBatchWidthLayer" )
+REGISTER_NEOML_LAYER( CConcatBatchLengthLayer, "FmlCnnConcatBatchLengthLayer" )
+REGISTER_NEOML_LAYER( CConcatListSizeLayer, "FmlCnnConcatListSizeLayer" )
 REGISTER_NEOML_LAYER( CConcatObjectLayer, "FmlCnnConcatObjectLayer" )
 REGISTER_NEOML_LAYER( CSplitChannelsLayer, "FmlCnnSplitChannelsLayer" )
 REGISTER_NEOML_LAYER( CSplitDepthLayer, "FmlCnnSplitDepthLayer" )
 REGISTER_NEOML_LAYER( CSplitWidthLayer, "FmlCnnSplitWidthLayer" )
 REGISTER_NEOML_LAYER( CSplitHeightLayer, "FmlCnnSplitHeightLayer" )
+REGISTER_NEOML_LAYER( CSplitListSizeLayer, "NeoMLDnnSplitListSizeLayer" )
 REGISTER_NEOML_LAYER( CSplitBatchWidthLayer, "FmlCnnSplitBatchWidthLayer" )
+REGISTER_NEOML_LAYER( CSplitBatchLengthLayer, "NeoMLDnnSplitBatchLengthLayer" )
 REGISTER_NEOML_LAYER( CEltwiseSumLayer, "FmlCnnEltwiseSumLayer" )
+REGISTER_NEOML_LAYER( CEltwiseSubLayer, "NeoMLDnnEltwiseSubLayer" )
 REGISTER_NEOML_LAYER( CEltwiseMulLayer, "FmlCnnEltwiseMulLayer" )
+REGISTER_NEOML_LAYER( CEltwiseDivLayer, "NeoMLDnnEltwiseDivLayer" )
 REGISTER_NEOML_LAYER( CEltwiseNegMulLayer, "FmlCnnEltwiseNegMulLayer" )
 REGISTER_NEOML_LAYER( CEltwiseMaxLayer, "FmlCnnEltwiseMaxLayer" )
 REGISTER_NEOML_LAYER( CELULayer, "FmlCnnELULayer" )
@@ -300,8 +325,17 @@ REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLay
 REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
 REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClass" )
 REGISTER_NEOML_LAYER( CQrnnLayer, "NeoMLDnnQrnnLayer" )
+REGISTER_NEOML_LAYER( CQrnnFPoolingLayer, "NeoMLDnnQrnnFPoolingLayer" )
+REGISTER_NEOML_LAYER( CQrnnIfPoolingLayer, "NeoMLDnnQrnnIfPoolingLayer" )
 REGISTER_NEOML_LAYER( CTiedEmbeddingsLayer, "TiedEmbeddingsLayer" )
 REGISTER_NEOML_LAYER( CIrnnLayer, "NeoMLDnnIrnnLayer" )
+REGISTER_NEOML_LAYER( CIndRnnRecurrentLayer, "NeoMLDnnIndRnnRecurrentLayer" )
+REGISTER_NEOML_LAYER( CIndRnnLayer, "NeoMLDnnIndRnnLayer" )
+REGISTER_NEOML_LAYER( CDepthToSpaceLayer, "NeoMLDnnDepthToSpaceLayer" )
+REGISTER_NEOML_LAYER( CSpaceToDepthLayer, "NeoMLDnnSpaceToDepthLayer" )
+REGISTER_NEOML_LAYER( CLrnLayer, "NeoMLDnnLrnLayer" )
+REGISTER_NEOML_LAYER( CCastLayer, "NeoMLDnnCastLayer" )
+REGISTER_NEOML_LAYER( CDataLayer, "NeoMLDnnDataLayer" )
 
 }
 
@@ -666,7 +700,7 @@ void CDnn::Serialize( CArchive& archive )
 
 		archive << layers.Size();
 		for( int i = 0; i < layers.Size(); ++i) {
-			archive << getLayerName( layers[i] );
+			archive << getLayerClass( layers[i] );
 			if( layers[i] != 0 ) {
 				layers[i]->Serialize( archive );
 			}

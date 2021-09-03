@@ -12,7 +12,7 @@
 
 <!-- /TOC -->
 
-This class implements a layer that maps vectors with positions in sequence and trains these vectors in some cases.
+This class implements a layer that maps sequence positions into vectors, and trains these vectors in some cases.
 
 ## Settings
 
@@ -33,8 +33,6 @@ enum TPositionalEmbeddingType {
 void SetType( TPositionalEmbeddingType newType );
 ```
 
-Vector types.
-
 ## Trainable parameters
 
 ### Additive positional representations
@@ -43,7 +41,7 @@ Vector types.
 CPtr<CDnnBlob> GetAddends() const;
 ```
 
-Vector representations of positions in a sequence, added to input vectors. Trained if `GetType()` is `PET_LearnableAddition` or `PET_LearnableMultAddition`.
+Vector representations of positions in a sequence, added to input vectors. Trained if `GetType()` is `PET_LearnableAddition`<!-- or `PET_LearnableMultAddition`-->.
 
 Represented by a [blob](../DnnBlob.md) of the following dimensions:
 

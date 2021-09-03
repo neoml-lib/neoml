@@ -85,5 +85,16 @@ def get_data(X):
     if issparse(X):
         return X.indices, X.data, X.indptr, True
     height, width = X.shape
-    indptr = np.array([i * width for i in range(height+1)], dtype=np.int32)
+    indptr = np.array([i * width for i in range(height+1)], dtype=np.int32, order='C')
     return np.array([]), X.ravel(), indptr, False
+
+def check_can_broadcast(X, Y):
+    for i, j in zip(X.shape, Y.shape):
+        if i != j and i != 1 and j != 1:
+            return False
+    return True
+
+def check_axes(axes):
+    axes = np.array(axes)
+    all_unique = np.all(np.unique(axes, return_counts=True)[1] == 1)
+    return all_unique and np.all((axes >= 0) * (axes < 7))

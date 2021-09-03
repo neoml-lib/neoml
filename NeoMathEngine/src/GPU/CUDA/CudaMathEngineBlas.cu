@@ -184,6 +184,23 @@ void CCudaMathEngine::AddMatrixElementsToMatrix(const CConstFloatHandle& matrix,
 		height, width, GetRaw(result), GetRaw(indices));
 }
 
+void CCudaMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+	int height, int width, const CFloatHandle& result )
+{
+	ASSERT_EXPR( matrix.GetMathEngine() == this );
+	ASSERT_EXPR( result.GetMathEngine() == this );
+	ASSERT_EXPR( diagMatrix.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	const int widthNorm = ( width + AddDiagMatrixToMatrixCombine - 1 ) / AddDiagMatrixToMatrixCombine;
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, height, widthNorm );
+
+	AddDiagMatrixToMatrixKernel<<<blockCount, threadCount>>>( GetRaw( diagMatrix ), GetRaw( matrix ),
+		height, width, widthNorm, GetRaw( result ) );
+}
+
 void CCudaMathEngine::AddVectorToMatrixRows(int batchSize,
 	const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle, int matrixHeight,
 	int matrixWidth, const CConstFloatHandle& vectorHandle)
@@ -279,6 +296,23 @@ void CCudaMathEngine::SumMatrixColumns(const CFloatHandle& resultHandle, const C
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
 	sumMatrixColumnsKernelFunc(resultHandle, GetRaw(matrixHandle), matrixHeight, matrixWidth, false);
+}
+
+void CCudaMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
+	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	const int widthNorm = ( matrixWidth + MatrixColumnsEltwiseDivideCombine - 1 ) / MatrixColumnsEltwiseDivideCombine;
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm );
+
+	MatrixColumnsEltwiseDivideKernel<<<blockCount, threadCount>>>( GetRaw( matrixHandle ),
+		matrixHeight, matrixWidth, widthNorm, GetRaw( vectorHandle ), GetRaw( resultHandle ) );
 }
 
 void CCudaMathEngine::MatrixLogSumExpByRows(const CConstFloatHandle& matrix, int height, int width,
@@ -500,6 +534,17 @@ void CCudaMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channel
 void CCudaMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 	const CFloatHandle& outputHandle, int outputChannelsCount)
+{
+	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+	vectorMultichannelLookupAndCopy(batchSize, channelCount, inputHandle,
+		lookupHandles, lookupDimensions, lookupCount, outputHandle, outputChannelsCount);
+}
+
+void CCudaMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+	const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+	const CIntHandle& outputHandle, int outputChannelsCount)
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
 	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
@@ -940,10 +985,10 @@ void CCudaMathEngine::matrixSpreadRowsImpl(const T* source, int height, int widt
 		GetRaw( result ), index, widthNorm);
 }
 
-template<class T>
-void CCudaMathEngine::vectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CTypedMemoryHandle<const T>& inputHandle,
-	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CFloatHandle& outputHandle, int outputChannelsCount)
+template<class TInput, class TLookup>
+void CCudaMathEngine::vectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CTypedMemoryHandle<const TInput>& inputHandle,
+	const CTypedMemoryHandle<const TLookup>* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+	const CTypedMemoryHandle<TLookup>& outputHandle, int outputChannelsCount)
 {
 	SetCudaDevice( device->DeviceNumber );
 	int batchNorm = (batchSize + BatchVectorLookupAndCopyCombineBatch - 1) / BatchVectorLookupAndCopyCombineBatch;

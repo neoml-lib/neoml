@@ -30,6 +30,24 @@ limitations under the License.
 
 namespace NeoML {
 
+// Supported activation functions
+enum TActivationFunction {
+	AF_Linear = 0,
+	AF_ELU,
+	AF_ReLU,
+	AF_LeakyReLU,
+	AF_Abs,
+	AF_Sigmoid,
+	AF_Tanh,
+	AF_HardTanh,
+	AF_HardSigmoid,
+	AF_Power,
+	AF_HSwish,
+	AF_GELU,
+
+	AF_Count
+};
+
 // The class provides operations on vectors
 class NEOMATHENGINE_API IVectorMathEngine : public CCrtAllocatedObject {
 public:
@@ -37,6 +55,13 @@ public:
 	// Copying the second vector values into the first
 	virtual void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) = 0;
 	virtual void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) = 0;
+	// Broadcasting the copy to new shape
+	// additionalWidth = 1 means broadcasting from fromDesc to toDesc
+	// additionalWidth != 1 means broadcasting from (*fromDesc, additionalWidth) to (*toDesc, additionalWidth)
+	// where (*desc, additionalWidth) is 8-dimensional shape with last dimension equals additionalWidth,
+	// channels count of handle must be additionalWidth times bigger than channels count of corresponding desc.
+	virtual void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 
 	// Filling a vector with the specified value
 	virtual void VectorFill(const CFloatHandle& result, float value, int vectorSize) = 0;
@@ -45,6 +70,10 @@ public:
 	// Filling a vector with a value stored in MathEngine memory
 	virtual void VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value) = 0;
 	virtual void VectorFill(const CIntHandle& result, int vectorSize, const CConstIntHandle& value) = 0;
+
+	// Converting data type
+	virtual void VectorConvert(const CConstFloatHandle& from, const CIntHandle& to, int vectorSize) = 0;
+	virtual void VectorConvert(const CConstIntHandle& from, const CFloatHandle& to, int vectorSize) = 0;
 
 	// Filling a vector using the Bernoulli distribution with p being the probability of 1
 	// The elements for which the distribution gives 1 are set to the specified value
@@ -58,6 +87,17 @@ public:
 	// The resultHandle is not set to null
 	virtual void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) = 0;
 	virtual void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) = 0;
+	// Sum of blob elements along dimension with size `dimension`
+	virtual void VectorSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle) = 0;
+	// Cumulative Sum of blob elements along dimension with size `dimension`
+	virtual void VectorCumSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle) = 0;
+	// Blob `first` is assumed to be a diagonal matrix
+	virtual void VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) = 0;
+	virtual void VectorCumSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle ) = 0;
 
 	// result = (first == second) ? 1.0 : 0.0 elementwise
 	virtual void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -65,6 +105,12 @@ public:
 	// result = (first == value) ? 1.0 : 0.0 elementwise
 	virtual void VectorEqualValue( const CConstIntHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstIntHandle& valueHandle ) = 0;
+
+	// result = max( first, second )
+	virtual void VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
+		int vectorSize ) = 0;
+	virtual void VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+		int gradHeight, int gradWidth ) = 0;
 
 	// ELU
 	virtual void VectorELU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
@@ -111,6 +157,8 @@ public:
 	virtual void VectorAbs(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorAbsDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) = 0;
+	virtual void VectorAbsDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+		const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle) = 0;
 
 	// Hinge function
 	virtual void VectorHinge(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
@@ -140,13 +188,19 @@ public:
 	virtual void VectorHardSigmoidDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle) = 0;
 
+	// result = -first
+	virtual void VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
+
 	// result = exp(first)
 	virtual void VectorExp(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
 	// result = log(first)
 	virtual void VectorLog( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		int vectorSize ) = 0;
-	
+	// result = first == 0 ? 0 : 1/first
+	virtual void VectorLogDiff( const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
+		const CConstFloatHandle& valueHandle, const CFloatHandle& resultHandle ) = 0;
+
 	// result = -log(first)
 	virtual void VectorNegLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
@@ -167,7 +221,13 @@ public:
 
 	// Vector substraction
 	// result = first - second
+	virtual void VectorSub(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorSub(const CConstFloatHandle& firstHandle,
+		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
+	virtual void VectorSub(const CConstFloatHandle& firstHandle,
+		float second, const CFloatHandle& resultHandle, int vectorSize) = 0;
+	virtual void VectorSub(float first,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
 	// Multiplies a vector by a number and adds it to another vector
@@ -189,6 +249,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
 
 	// result = first * second elementwise
+	virtual void VectorEltwiseMultiply( const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
 	virtual void VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	// result += first * second elementwise
@@ -214,6 +276,9 @@ public:
 
 	// result = min(max(first, minValue), maxValue)
 	virtual void VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
+		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle) = 0;
+	virtual void VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
+		const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle) = 0;
 
 	virtual void VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
@@ -250,6 +315,14 @@ public:
 	// result[i] = first[i] >= 0 ? 1.f : 0.f
 	virtual void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
 
+	// result[i] = first[i] < second[i] ? 1.f : 0.f
+	virtual void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseLess( const CConstFloatHandle& firstHandle, float second,
+		const CFloatHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseLess( float firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize ) = 0;
+
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
 		const CIntHandle& indexHandle, int vectorSize) = 0;
@@ -259,6 +332,11 @@ public:
 	// elementwise LogSumExp: result[i] = log(exp(first[i]) + exp(second[i]))
 	virtual void VectorEltwiseLogSumExp(const CConstFloatHandle& first, const CConstFloatHandle& second,
 		const CFloatHandle& result, int vectorSize) = 0;
+
+	virtual void VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result, const CIntHandle& indices) = 0;
+
+	virtual void VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
+		const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -295,6 +373,11 @@ public:
 	virtual void AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
 		const CFloatHandle& result, int vectorSize) = 0;
+
+	// Elementwise adds two matrices of the same size
+	virtual void AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+		int height, int width, const CFloatHandle& result ) = 0;
+
 	// Elementwise adds two matrices of the same size
 	virtual void AddMatrixElementsToMatrix(const CConstFloatHandle& matrix, int height, int width,
 		const CFloatHandle& result, const CConstIntHandle& indices) = 0;
@@ -320,6 +403,10 @@ public:
 	// Calculates the total of matrix columns
 	virtual void SumMatrixColumns(const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 		int matrixHeight, int matrixWidth) = 0;
+
+	// Elementwise divide matrix columns by vector of size matrixHeight.
+	virtual void MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrix, int matrixHeight, int matrixWidth,
+		const CConstFloatHandle& vector, const CFloatHandle& resultHandle ) = 0;
 
 	// Vector operations over matrix rows
 	// log(exp(x0) + ... + exp(xn)), the result is a vector with "height" elements
@@ -366,6 +453,9 @@ public:
 	virtual void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 		const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 		const CFloatHandle& outputHandle, int outputChannels) = 0;
+	virtual void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+		const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+		const CIntHandle& outputHandle, int outputChannels) = 0;
 	// Finds the position in the representation table for the channel and adds a row from the specified matrix (of batchSize height)
 	virtual void VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, 
@@ -490,6 +580,7 @@ struct NEOMATHENGINE_API C3dMaxPoolingDesc : public CCrtAllocatedObject { public
 struct NEOMATHENGINE_API C3dMeanPoolingDesc : public CCrtAllocatedObject { public: virtual ~C3dMeanPoolingDesc(); };
 struct NEOMATHENGINE_API CGlobalMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CGlobalMaxOverTimePoolingDesc(); };
 struct NEOMATHENGINE_API CMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CMaxOverTimePoolingDesc(); };
+struct NEOMATHENGINE_API CLrnDesc : public CCrtAllocatedObject { public: virtual ~CLrnDesc(); };
 
 //------------------------------------------------------------------------------------------------------------
 // RLE format
@@ -608,7 +699,7 @@ public:
 		const CBlobDesc& result ) = 0;
 
 	virtual void BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& desc,
-		const CFloatHandle& source, const CIntHandle& maxIndices, const CFloatHandle& result ) = 0;
+		const CConstFloatHandle& source, const CIntHandle& maxIndices, const CFloatHandle& result ) = 0;
 	virtual void BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& desc,
 		const CFloatHandle& outputDiff, const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) = 0;
 
@@ -673,9 +764,11 @@ public:
 	virtual void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source, const CIntHandle& maxIndices,
 		const CFloatHandle& result ) = 0;
 
-	virtual void Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+	virtual void Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
+		int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+	virtual void Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
-	virtual void Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+	virtual void Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
 
 	// Builds a histogram of the number of occurrences in numbersHandle for each integer in [0; maxNumber)
@@ -718,6 +811,20 @@ public:
 	virtual void Reorg( const CBlobDesc& source, const CIntHandle& sourceData, int stride, bool isForward,
 		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
 
+	// Rearranges the blob elements from N x H x W x C to N x H / blockSize x W / blockSize x C * blockSize * blockSize
+	// The name is chosen to be similar with other frameworks
+	virtual void SpaceToDepth( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
+	virtual void SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+
+	// Rearranges the blob elements from N x H x W x C to N x H * blockSize x W * blockSize x C / (blockSize * blockSize)
+	// The name is chosen to be similar with other frameworks
+	virtual void DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CFloatHandle& resultData ) = 0;
+	virtual void DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
+		const CBlobDesc& result, const CIntHandle& resultData ) = 0;
+
 	// To each element, adds its column number (on forward pass)
 	// 0 1 2   --->    0 2 4
 	// 3 4 5           3 5 7
@@ -740,6 +847,73 @@ public:
 		const CBlobDesc& output, int seed ) = 0;
 	// Performs dropout on an input
 	virtual void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) = 0;
+
+	// QRNN poolings (https://arxiv.org/pdf/1611.01576.pdf)
+	// These operations calculate recursive parts of QRNN
+	// It doesn't include output gate handling
+	// Initial states are optional (maybe null)
+
+	// QRNN f-pooling
+	virtual void QrnnFPooling( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& initialState,
+		const CFloatHandle& result ) = 0;
+	// QRNN f-pooling backward
+	// Note: it will modify the contents of resultDiff
+	virtual void QrnnFPoolingBackward( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget,
+		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
+		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff ) = 0;
+
+	// QRNN if-pooling
+	virtual void QrnnIfPooling( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+		const CConstFloatHandle& initialState, const CFloatHandle& result ) = 0;
+	// QRNN if-pooling backward
+	// Note: it will modify the contents of resultDiff
+	virtual void QrnnIfPoolingBackward( bool reverse, int sequenceLength, int objectSize,
+		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
+		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
+		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) = 0;
+
+	// Ind-RNN implementation (https://arxiv.org/pdf/1803.04831.pdf)
+	// Pay attention that functions below emulate only recurrent part of the layer
+	// the result is
+	//    h_t = activation( wx + u * h_(t-1))
+	// where
+	//    wx - user input (x), processed by fully connected layer (w). Size: seqLen x batchSize x objSize
+	//    mask - (optional, may be null) dropout mask. Size: batchSize x objSize
+	//    u - trainable vector of multipliers. Size: objSize
+
+	// Supported activations
+	// - sigmoid
+	// - ReLU
+
+	// Inference
+	// Calculates h based on wx, mask and u
+	virtual void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
+		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CFloatHandle& h ) = 0;
+	// Backward
+	// Calculates wxDiff based on mask, u, h and hDiff
+	virtual void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		TActivationFunction activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+		const CConstFloatHandle& hDiff, const CFloatHandle& wxDiff ) = 0;
+	// Learn
+	// Calculates uDiff based on wx, mask, u, h, and hDiff
+	virtual void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+		TActivationFunction activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+		const CConstFloatHandle& hDiff, const CFloatHandle& uDiff ) = 0;
+
+	// Local responce normalization (Lrn)
+	// For more details see CLrnLayer comments
+	virtual CLrnDesc* InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta ) = 0;
+	// invSum and invSumBeta are required only for backward
+	// If you're not gonna use backward, you may pass CFloatHandle()
+	// If you need backward, invSum and invSumBeta must be of the same size as input
+	virtual void Lrn( const CLrnDesc& desc, const CConstFloatHandle& input, const CFloatHandle& invSum,
+		const CFloatHandle& invSumBeta, const CFloatHandle& outputHandle ) = 0;
+	virtual void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
+		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
+		const CFloatHandle& inputDiff ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -810,7 +984,7 @@ public:
 
 	// Gets a pointer to access the handle memory
 	// GetBuffer and ReleaseBuffer should be called strictly in LIFO order
-	virtual void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size ) = 0;
+	virtual void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) = 0;
 	virtual void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) = 0;
 
 	// Data exchange device <-> host.

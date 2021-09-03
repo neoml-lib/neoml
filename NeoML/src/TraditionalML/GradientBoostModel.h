@@ -39,7 +39,6 @@ public:
 	// IModel interface methods
 	int GetClassCount() const override { return ( valueSize == 1 && ensembles.Size() == 1 ) ? 2 : valueSize * ensembles.Size(); }
 	bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const override;
-	bool Classify( const CFloatVector& data, CClassificationResult& result ) const override;
 	void Serialize( CArchive& archive ) override;
 
 	// IGradientBoostModel inteface methods
@@ -53,8 +52,6 @@ public:
 	virtual void ConvertToCompact() override;
 
 	// IRegressionModel interface methods
-	double Predict( const CSparseFloatVector& data ) const override;
-	double Predict( const CFloatVector& data ) const override;
 	double Predict( const CFloatVectorDesc& data ) const override;
 
 	// IMultivariateRegressionModel interface methods
@@ -68,13 +65,6 @@ private:
 
 	bool classify( CFastArray<double, 1>& predictions, CClassificationResult& result ) const;
 	double probability( double prediction ) const;
-
-	// The common implementation for Predict methods
-	template<typename TData>
-	double doPredict( const TData& data ) const;
-	// The common implementation for MultivariatePredict methods
-	template<typename TData>
-	CFloatVector doMultivariatePredict( const TData& data ) const;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////

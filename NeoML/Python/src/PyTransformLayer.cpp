@@ -69,6 +69,7 @@ void InitializeTransformLayer( py::module& m )
 			return new CPyTransformLayer( *layer.Layer<CTransformLayer>(), layer.MathEngineOwner() );
 		}))
 		.def( py::init([]( const std::string& name, const CPyLayer& layer1, int outputNumber1, py::array operations, py::array parameters ) {
+			py::gil_scoped_release release;
 			CDnn& dnn = layer1.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CTransformLayer> transform = new CTransformLayer( mathEngine );

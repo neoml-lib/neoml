@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoML/TraditionalML/Linear.h>
 #include <NeoML/TraditionalML/OneVersusAll.h>
+#include <NeoML/TraditionalML/OneVersusOne.h>
 #include <NeoML/TraditionalML/TrustRegionNewtonOptimizer.h>
 #include <LinearBinaryModel.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
@@ -112,7 +113,17 @@ CPtr<IRegressionModel> CLinear::TrainRegression( const IRegressionProblem& probl
 CPtr<IModel> CLinear::Train( const IProblem& trainingClassificationData )
 {
 	if( trainingClassificationData.GetClassCount() > 2 ) {
-		return COneVersusAll( *this ).Train( trainingClassificationData );
+		static_assert( MM_Count == 3, "MM_Count != 3" );
+		switch( params.MulticlassMode ) {
+			case MM_OneVsAll:
+				return COneVersusAll( *this ).Train( trainingClassificationData );
+			case MM_OneVsOne:
+				return COneVersusOne( *this ).Train( trainingClassificationData );
+			case MM_SingleClassifier:
+			default:
+				NeoAssert( false );
+		}
+		return nullptr;
 	}
 
 	if( function != 0 ) {

@@ -336,6 +336,23 @@ void CCpuMathEngine::SumMatrixColumns(const CFloatHandle& resultHandle, const CC
 	}
 }
 
+void CCpuMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
+	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle )
+{
+	const float* matrix = GetRaw( matrixHandle );
+	const float* vector = GetRaw( vectorHandle );
+	float* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < matrixHeight; i++ ) {
+		for( int j = 0; j < matrixWidth; j++ ) {
+			*result = *matrix / *vector;
+			result++;
+			matrix++;
+		}
+		vector++;
+	}
+}
+
 void CCpuMathEngine::sumMatrixColumnsAdd(const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth)
 {
@@ -453,6 +470,33 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelC
 	}
 }
 
+void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+	const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+	const CIntHandle& outputHandle, int /*outputChannels*/)
+{
+	ASSERT_EXPR(lookupCount <= channelCount);
+
+	CConstIntHandle input = inputHandle;
+	CIntHandle output = outputHandle;
+
+	for(int i = 0; i < batchSize; ++i) {
+		for(int j = 0; j < lookupCount; ++j) {
+			int index = (int)input.GetValue();
+			input++;
+			PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
+			int vectorSize = lookupDimensions[j].VectorSize;
+			VectorCopy(output, lookupHandles[j] + index * vectorSize, vectorSize);
+			output += vectorSize;
+		}
+		int remained = channelCount - lookupCount;
+		if(remained > 0) {
+			VectorCopy(output, input, remained);
+			input += remained;
+			output += remained;
+		}
+	}
+}
+
 void CCpuMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 	const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int /*outputChannels*/)
@@ -562,6 +606,25 @@ void CCpuMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrixHa
 		}
 		++result;
 		matrix += width;
+	}
+}
+
+void CCpuMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
+	int height, int width, const CFloatHandle& result )
+{
+	const float* diagMatrixPtr = GetRaw(diagMatrix);
+	const float* matrixPtr = GetRaw(matrix);
+	float* resultPtr = GetRaw(result);
+	for( int i = 0; i < height; i++ ) {
+		for( int j = 0; j < width; j++ ) {
+			*resultPtr = *matrixPtr;
+			if( i == j ) {
+				*resultPtr += *diagMatrixPtr;
+			}
+			resultPtr++;
+			matrixPtr++;
+		}
+		diagMatrixPtr++;
 	}
 }
 

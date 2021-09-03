@@ -24,16 +24,16 @@ public:
 	CGradientBoostStatisticsMulti() = default;
 	explicit CGradientBoostStatisticsMulti( int valueSize );
 	explicit CGradientBoostStatisticsMulti( const CGradientBoostStatisticsMulti& other );
-	explicit CGradientBoostStatisticsMulti( const CArray<double>& gradient, const CArray<double>& hessian, float weight );
+	explicit CGradientBoostStatisticsMulti( const CArray<double>& gradient, const CArray<double>& hessian, double weight );
 	CGradientBoostStatisticsMulti& operator=( const CGradientBoostStatisticsMulti& other );
 
 	// Adds a vector
-	void Add( const CArray<double>& gradient, const CArray<double>& hessian, float weight );
-	void Add( const CArray<CArray<double>>& gradient, const CArray<CArray<double>>& hessian, const CArray<float>& weight, int vectorIndex );
+	void Add( const CArray<double>& gradient, const CArray<double>& hessian, double weight );
+	void Add( const CArray<CArray<double>>& gradient, const CArray<CArray<double>>& hessian, const CArray<double>& weight, int vectorIndex );
 	void Add( const CGradientBoostStatisticsMulti& other );
 
 	// Deletes a vector
-	void Sub( const CArray<double>& gradient, const CArray<double>& hessian, float weight );
+	void Sub( const CArray<double>& gradient, const CArray<double>& hessian, double weight );
 	void Sub( const CGradientBoostStatisticsMulti& other );
 
 	// Clears all accumulated data
@@ -46,7 +46,7 @@ public:
 	double CalcCriterion( float l1, float l2 ) const;
 
 	// Calculates the split criterion for multiple classes
-	static bool CalcCriterion( float& criterion,
+	static bool CalcCriterion( double& criterion,
 		CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult,
 		const CGradientBoostStatisticsMulti& totalStatistics, float l1RegFactor, float l2RegFactor,
 		double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient );
@@ -58,10 +58,10 @@ public:
 	const CArray<double>& TotalHessian() const { return totalHessian; }
 
 	// Gets the total weight
-	float TotalWeight() const { return totalWeight; }
+	double TotalWeight() const { return totalWeight; }
 
 	// Check if statistics is not enough
-	bool IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex );
+	bool IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex ) const;
 
 	// Get leaf value
 	void LeafValue( CArray<double>& value ) const;
@@ -69,10 +69,16 @@ public:
 	// Get value size
 	int ValueSize() const { return totalGradient.Size(); }
 
+	// Set value size
+	void SetSize( int valueSize );
+
+	// Mark classes that not splitting further
+	void NullifyLeafClasses( const CGradientBoostStatisticsMulti& parent );
+
 private:
 	CArray<double> totalGradient; // total gradient
 	CArray<double> totalHessian; // total hessian
-	float totalWeight; // total weight
+	double totalWeight; // total weight
 };
 
 inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( int valueSize )
@@ -82,7 +88,7 @@ inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( int valueSi
 	totalWeight = 0.0;
 }
 
-inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
+inline CGradientBoostStatisticsMulti::CGradientBoostStatisticsMulti( const CArray<double>& gradient, const CArray<double>& hessian, double weight )
 {
 	totalGradient.SetSize( gradient.Size() );
 	totalHessian.SetSize( hessian.Size() );
@@ -110,7 +116,7 @@ inline CGradientBoostStatisticsMulti& CGradientBoostStatisticsMulti::operator=( 
 	return *this;
 }
 
-inline void CGradientBoostStatisticsMulti::Add( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
+inline void CGradientBoostStatisticsMulti::Add( const CArray<double>& gradient, const CArray<double>& hessian, double weight )
 {
 	for( int i = 0; i < totalGradient.Size(); i++ ) {
 		totalGradient[i] += gradient[i];
@@ -119,7 +125,7 @@ inline void CGradientBoostStatisticsMulti::Add( const CArray<double>& gradient, 
 	totalWeight += weight;
 }
 
-inline void CGradientBoostStatisticsMulti::Add( const CArray<CArray<double>>& gradient, const CArray<CArray<double>>& hessian, const CArray<float>& weight, int vectorIndex )
+inline void CGradientBoostStatisticsMulti::Add( const CArray<CArray<double>>& gradient, const CArray<CArray<double>>& hessian, const CArray<double>& weight, int vectorIndex )
 {
 	for( int i = 0; i < gradient.Size(); i++ ) {
 		totalGradient[i] += gradient[i][vectorIndex];
@@ -137,7 +143,7 @@ inline void CGradientBoostStatisticsMulti::Add( const CGradientBoostStatisticsMu
 	totalWeight += other.totalWeight;
 }
 
-inline void CGradientBoostStatisticsMulti::Sub( const CArray<double>& gradient, const CArray<double>& hessian, float weight )
+inline void CGradientBoostStatisticsMulti::Sub( const CArray<double>& gradient, const CArray<double>& hessian, double weight )
 {
 	for( int i = 0; i < totalGradient.Size(); i++ ) {
 		totalGradient[i] -= gradient[i];
@@ -166,11 +172,11 @@ inline void CGradientBoostStatisticsMulti::Erase()
 
 inline double CGradientBoostStatisticsMulti::CalcCriterion( float l1, float l2, int classIndex ) const
 {
-	double temp = totalGradient[classIndex];
-	if( temp > l1 ) {
-		temp -= l1;
-	} else if( temp < -l1 ) {
-		temp += l1;
+	double temp = 0;
+	if( totalGradient[classIndex] > l1 ) {
+		temp = totalGradient[classIndex] - l1;
+	} else if( totalGradient[classIndex] < -l1 ) {
+		temp = totalGradient[classIndex] + l1;
 	}
 	return temp * temp / ( totalHessian[classIndex] + l2 );
 }
@@ -186,7 +192,7 @@ inline double CGradientBoostStatisticsMulti::CalcCriterion( float l1, float l2 )
 	return res;
 }
 
-inline bool CGradientBoostStatisticsMulti::IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex )
+inline bool CGradientBoostStatisticsMulti::IsSmall( double minSubsetHessian, double minSubsetWeight, int classIndex ) const
 {
 	return totalHessian[classIndex] < minSubsetHessian || totalWeight < minSubsetWeight;
 }
@@ -203,7 +209,7 @@ inline void CGradientBoostStatisticsMulti::LeafValue( CArray<double>& value ) co
 	}
 }
 
-inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
+inline bool CGradientBoostStatisticsMulti::CalcCriterion( double& criterion,
 	CGradientBoostStatisticsMulti& leftResult, CGradientBoostStatisticsMulti& rightResult, const CGradientBoostStatisticsMulti& totalStatistics,
 	float l1RegFactor, float l2RegFactor, double minSubsetHessian, double minSubsetWeight, float denseTreeBoostCoefficient )
 {
@@ -211,7 +217,8 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 	int leafClassesCount = 0;
 
 	for( int i = 0; i < totalStatistics.ValueSize(); i++ ) {
-		bool isAlreadyLeafClass = ( totalStatistics.TotalHessian()[i] == 0 );
+		// hessian equals 0 for leaf classes
+		bool isAlreadyLeafClass = totalStatistics.IsSmall( minSubsetHessian, minSubsetWeight, i );
 		bool isNewLeafClass = false;
 		double valueCriterion = 0;
 		if( !isAlreadyLeafClass ) {
@@ -242,6 +249,7 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 				leftResult.totalGradient[i] = totalStatistics.totalGradient[i];
 				rightResult.totalGradient[i] = totalStatistics.totalGradient[i];
 			}
+			// Set totalHessian to 0 for classes that not splitting further
 			leftResult.totalHessian[i] = 0;
 			rightResult.totalHessian[i] = 0;
 			leafClassesCount++;
@@ -252,8 +260,24 @@ inline bool CGradientBoostStatisticsMulti::CalcCriterion( float& criterion,
 	if( leafClassesCount == totalStatistics.ValueSize() ) {
 		return false;
 	}
-	criterion = static_cast<float>( result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) ) );
+	criterion = result * ( 1 + denseTreeBoostCoefficient / ( leafClassesCount + 1 ) );
 	return true;
+}
+
+inline void CGradientBoostStatisticsMulti::SetSize( int valueSize )
+{
+	totalGradient.SetSize( valueSize );
+	totalHessian.SetSize( valueSize );
+}
+
+inline void CGradientBoostStatisticsMulti::NullifyLeafClasses( const CGradientBoostStatisticsMulti& parent )
+{
+	for( int i = 0; i < parent.totalGradient.Size(); i++ ) {
+		if( parent.totalHessian[i] == 0 ) {
+			totalGradient[i] = parent.totalGradient[i];
+			totalHessian[i] = 0;
+		}
+	}
 }
 
 } // namespace NeoML

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ limitations under the License.
 #include <MathEngineDnnPoolings.h>
 
 #include <climits>
+#include <cfloat>
 
 namespace NeoML {
 
@@ -225,7 +226,7 @@ CGlobalMaxPoolingDesc* CVulkanMathEngine::InitGlobalMaxPooling( const CBlobDesc&
 }
 
 void CVulkanMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& poolingDesc,
-	const CFloatHandle& sourceData, const CIntHandle& maxIndicesData, const CFloatHandle& resultData )
+	const CConstFloatHandle& sourceData, const CIntHandle& maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
