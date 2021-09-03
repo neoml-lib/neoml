@@ -178,10 +178,10 @@ void CCpuMathEngine::transposeMatrix( int batchSize, const int* firstHandle,
 void CCpuMathEngine::addVectorToMatrixRows( const float* matrix, float* result,
 	int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector)
 {
-	const int curThreadCount = IsOmpRelevant( matrixHeight, matrixHeight * matrixWidth ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
-	for( int i = 0; i < matrixHeight; i++ ) {
-		vectorAdd( matrix + i * matrixRowSize, vector, result + i * resultRowSize, matrixWidth );
+	for(int i = 0; i < matrixHeight; i++) {
+		vectorAdd( matrix, vector, result, matrixWidth );
+		matrix += matrixRowSize;
+		result += resultRowSize;
 	}
 }
 
