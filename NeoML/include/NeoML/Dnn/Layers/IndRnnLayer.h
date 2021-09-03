@@ -15,7 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#include <memory>
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
@@ -129,7 +128,7 @@ private:
 	TActivationFunction activation; // Activation function
 	bool reverse; // If true then sequences must be processed in reversed order
 	float dropoutRate; // Dropout rate on recurrent link
-	std::unique_ptr<CFloatHandleVar> dropoutMask; // Dropout mask
+	CFloatHandleVar* dropoutMask; // Dropout mask
 
 	CConstFloatHandle maskHandle() const;
 };
