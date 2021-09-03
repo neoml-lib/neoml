@@ -110,14 +110,27 @@ inline void vectorFill( int* result, int value, int vectorSize )
 {
 	int sseSize;
 	int nonSseSize;
-	checkSse2( vectorSize, sseSize, nonSseSize );
+	checkSse( vectorSize, sseSize, nonSseSize );
 
-	if( sseSize > 0 ) {
-		__m128i valueSse = _mm_set1_epi32( value );
-		for( int i = 0; i < sseSize; ++i ) {
-			_mm_storeu_si128( ( __m128i* )result, valueSse );
-			result += 4;
-		}
+	__m128i valueSse = _mm_set1_epi32( value );
+
+	while( sseSize >= 4 ) {
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		sseSize--;
 	}
 
 #if FINE_PLATFORM(FINE_WINDOWS)
