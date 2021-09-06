@@ -61,9 +61,9 @@ public:
 	void SetReverseSequence( bool reverse );
 
 	// Sets the activation function used in the recurrent part
-	// IRA_Sigmoid by default
-	IMathEngine::TIndRnnActivation GetActivation() const;
-	void SetActivation( IMathEngine::TIndRnnActivation activation );
+	// AF_Sigmoid by default
+	TActivationFunction GetActivation() const;
+	void SetActivation( TActivationFunction activation );
 
 	// Trainable parameters
 	
@@ -110,8 +110,8 @@ public:
 	void SetDropoutRate( float rate );
 
 	// Sets activation function
-	IMathEngine::TIndRnnActivation GetActivation() const { return activation; }
-	void SetActivation( IMathEngine::TIndRnnActivation activation );
+	TActivationFunction GetActivation() const { return activation; }
+	void SetActivation( TActivationFunction activation );
 
 	// Trainable parameters
 
@@ -126,7 +126,7 @@ protected:
 	void LearnOnce() override;
 
 private:
-	IMathEngine::TIndRnnActivation activation; // Activation function
+	TActivationFunction activation; // Activation function
 	bool reverse; // If true then sequences must be processed in reversed order
 	float dropoutRate; // Dropout rate on recurrent link
 	std::unique_ptr<CFloatHandleVar> dropoutMask; // Dropout mask
@@ -135,6 +135,6 @@ private:
 };
 
 NEOML_API CLayerWrapper<CIndRnnLayer> IndRnn( int hiddenSize, float dropoutRate = 0.f, bool reverse = false,
-	IMathEngine::TIndRnnActivation activation = IMathEngine::IRA_Sigmoid );
+	TActivationFunction activation = AF_Sigmoid );
 
 } // namespace NeoML

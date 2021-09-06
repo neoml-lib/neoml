@@ -30,6 +30,24 @@ limitations under the License.
 
 namespace NeoML {
 
+// Supported activation functions
+enum TActivationFunction {
+	AF_Linear = 0,
+	AF_ELU,
+	AF_ReLU,
+	AF_LeakyReLU,
+	AF_Abs,
+	AF_Sigmoid,
+	AF_Tanh,
+	AF_HardTanh,
+	AF_HardSigmoid,
+	AF_Power,
+	AF_HSwish,
+	AF_GELU,
+
+	AF_Count
+};
+
 // The class provides operations on vectors
 class NEOMATHENGINE_API IVectorMathEngine : public CCrtAllocatedObject {
 public:
@@ -869,26 +887,20 @@ public:
 	// Supported activations
 	// - sigmoid
 	// - ReLU
-	enum TIndRnnActivation {
-		IRA_Sigmoid,
-		IRA_ReLU,
-
-		IRA_Count
-	};
 
 	// Inference
 	// Calculates h based on wx, mask and u
-	virtual void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize, TIndRnnActivation activation,
+	virtual void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
 		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CFloatHandle& h ) = 0;
 	// Backward
 	// Calculates wxDiff based on mask, u, h and hDiff
 	virtual void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
-		TIndRnnActivation activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+		TActivationFunction activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
 		const CConstFloatHandle& hDiff, const CFloatHandle& wxDiff ) = 0;
 	// Learn
 	// Calculates uDiff based on wx, mask, u, h, and hDiff
 	virtual void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
-		TIndRnnActivation activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+		TActivationFunction activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
 		const CConstFloatHandle& hDiff, const CFloatHandle& uDiff ) = 0;
 
 	// Local responce normalization (Lrn)

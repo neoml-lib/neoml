@@ -664,6 +664,9 @@ class LayersTestCase(MultithreadedTestCase):
         blob = lookup.get_embeddings(0)
         lookup.set_embeddings(0, blob)
 
+        uniform = neoml.Dnn.Uniform()
+        lookup.initialize(uniform)
+
     def test_tied_embeddings(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -2021,7 +2024,7 @@ class PoolingTestCase(MultithreadedTestCase):
         hidden_size = 10
         dropout_rate = 0.5
         reverse = True
-        activation = 'relu'
+        activation = 'sigmoid'
         name = "indrnn_test_name"
 
         source = neoml.Dnn.Source(dnn, "source")

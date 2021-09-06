@@ -70,7 +70,7 @@ public:
 		// Number of threads used in KMeans
 		int ThreadCount;
 		// Number of runs of algorithm
-		// If more than one then the best variant (least ineratia) will be returned
+		// If more than one then the best variant (least inertia) will be returned
 		int RunCount;
 		// Initial seed for random
 		int Seed;
@@ -86,7 +86,7 @@ public:
 	// that will be used on the first step of the algorithm
 	CKMeansClustering( const CArray<CClusterCenter>& initialClusters, const CParam& params );
 	// If you do not specify the initial cluster centers, they will be selected randomly from the input data
-	CKMeansClustering( const CParam& params );
+	explicit CKMeansClustering( const CParam& params );
 	virtual ~CKMeansClustering() {}
 
 	// Sets a text stream for logging processing
