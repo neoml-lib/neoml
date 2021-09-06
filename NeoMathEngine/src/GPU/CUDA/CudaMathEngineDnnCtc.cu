@@ -29,6 +29,10 @@ limitations under the License.
 
 namespace NeoML {
 
+static const float logZero = -FLT_MAX / 4;
+// log(1-). Using 0.0 may lead to denormalized numbers
+static const float logOneNeg = -FLT_MIN * 2;
+
 // Fills a matrix with the two-dimensional arithmetic progression values:
 //  result[i, j] = start + i * rowStep + j * colStep
 static void matrixFillLinear( const CIntHandle& resultHandle, int height, int width,
@@ -57,7 +61,7 @@ static void calcBlankSkipMask( int padLabelLen, int batchSize, const CConstIntHa
 {
 	IMathEngine& mathEngine = *padLabels.GetMathEngine();
 	CFloatHandleStackVar logZeroVar( mathEngine );
-	logZeroVar.SetValue( CTC_LOG_ZERO );
+	logZeroVar.SetValue( logZero );
 	mathEngine.VectorFill( blankSkipMask + batchSize * ( padLabelLen - 2 ), 1.f, batchSize * 2 );
 	const int effectiveMaskSize = ( padLabelLen - 2 ) * batchSize;
 	mathEngine.VectorEqual( padLabels, padLabels + 2 * batchSize, blankSkipMask, effectiveMaskSize );
@@ -103,7 +107,7 @@ void CCudaMathEngine::CtcLossForward( int resultLen, int batchSize, int classCou
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid3D( blockCount, threadCount, resultLen, padLabelLen, batchSize );
-		CtcCalcResultLogProbMaskKernel<<<blockCount, threadCount>>>( resultLen, batchSize, classCount, padLabelLen, blankLabel,
+		CtcCalcResultLogProbMaskKernel<<<blockCount, threadCount>>>( resultLen, batchSize, classCount, padLabelLen, blankLabel, logZero, logOneNeg,
 			GetRaw( resultLens ), GetRaw( padLabels.GetHandle() ), GetRaw( resultProb.GetHandle() ), GetRaw( resultLogProbMask.GetHandle() ) );
 	}
 
@@ -134,7 +138,7 @@ void CCudaMathEngine::CtcLossForward( int resultLen, int batchSize, int classCou
 		ctcCalcGradient( resultLen, batchSize, classCount, padLabelLen, skipBlanks, resultProb,
 			logAlphaBeta, padLabels, resultLens, totalLogProb, lossGradient );
 		if( !resultLens.IsNull() ) {
-			ctcFillPadding( resultLen, batchSize, classCount, -1, lossGradient, resultLens );
+			ctcFillPadding( resultLen, batchSize, classCount, lossGradient, resultLens );
 		}
 	}
 }
@@ -147,7 +151,7 @@ void CCudaMathEngine::ctcCalcForwardVariables( int resultLen, int batchSize, int
 
 	// The sequence may start with a space or with the first element
 	VectorFill( logAlpha, 0.f, batchSize * 2 );
-	VectorFill( logAlpha + batchSize * 2, CTC_LOG_ZERO, batchSize * ( U - 2 ) );
+	VectorFill( logAlpha + batchSize * 2, logZero, batchSize * ( U - 2 ) );
 	// Add the logarithm of probability of label recognition
 	VectorAdd( logAlpha, resultLogProbMask, logAlpha, batchSize * U );
 
@@ -176,7 +180,7 @@ void CCudaMathEngine::ctcCalcBackwardVariables( int resultLen, int batchSize, in
 	// The sequence may end either with a space or with the actual last element
 	// Therefore logBetaWindow is filled with logZero everywhere except two positions per sample
 	// which should be filled with zero
-	VectorFill( logBetaWindow, CTC_LOG_ZERO, U * batchSize );
+	VectorFill( logBetaWindow, logZero, U * batchSize );
 	if( labelLens.IsNull() ) {
 		// Fixed length. Fill the two last positions with zero
 		VectorFill( logBetaWindow + ( U - 2 ) * batchSize, 0.f, batchSize * 2 );
@@ -213,11 +217,12 @@ void CCudaMathEngine::ctcCalcBackwardVariables( int resultLen, int batchSize, in
 			batchOfZeros, batchSize );
 	}
 
-	CFloatHandleStackVar logBetaWindowBuffer( *this, U * batchSize );
-	int blockCount, threadCount;
-	getCudaTaskGrid( blockCount, threadCount, batchSize );
+	const int padLabelLenForWarp = alignXSizeForWarp( padLabelLen );
+	dim3 blockCount, threadCount;
+	getCudaTaskGrid2DMinYX( 1, 1024, blockCount, threadCount, batchSize, padLabelLenForWarp );
+	blockCount.x = 1;
 	CtcCalcBackwardVariableKernel<<<blockCount, threadCount>>>( resultLen, batchSize, classCount, padLabelLen, skipBlanks,
-		GetRaw( blankSkipMask ), GetRaw( resultLogProbMask ), GetRaw( logBetaWindowBuffer.GetHandle() ), GetRaw( logBeta ) );
+		GetRaw( blankSkipMask ), GetRaw( resultLogProbMask ), GetRaw( logBeta ) );
 }
 
 void CCudaMathEngine::ctcCalcGradient( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
@@ -229,7 +234,7 @@ void CCudaMathEngine::ctcCalcGradient( int resultLen, int batchSize, int classCo
 	// chapter 7.4.1
 	CFloatHandleStackVar probSum( *this, resultLen * batchSize * classCount );
 	{
-		VectorFill( probSum, CTC_LOG_ZERO, resultLen * batchSize * classCount );
+		VectorFill( probSum, logZero, resultLen * batchSize * classCount );
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid2D( blockCount, threadCount, resultLen, batchSize );
@@ -245,13 +250,13 @@ void CCudaMathEngine::ctcCalcGradient( int resultLen, int batchSize, int classCo
 	}
 }
 
-void CCudaMathEngine::ctcFillPadding( int maxSeqLen, int batchSize, int classCount, int blankLabel,
+void CCudaMathEngine::ctcFillPadding( int maxSeqLen, int batchSize, int classCount,
 	const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle )
 {
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid3D( blockCount, threadCount, maxSeqLen, batchSize, classCount );
-	CtcFillPaddingKernel<<<blockCount, threadCount>>>( maxSeqLen, batchSize, classCount, blankLabel,
+	CtcFillPaddingKernel<<<blockCount, threadCount>>>( maxSeqLen, batchSize, classCount,
 		GetRaw( dataHandle ), GetRaw( seqLensHandle ) );
 }
 

@@ -613,7 +613,7 @@ private:
 		const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize );
 	
-	void ctcFillPadding( int maxSeqLen, int batchSize, int classCount, int blankLabel,
+	void ctcFillPadding( int maxSeqLen, int batchSize, int classCount,
 		const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle );
 	void ctcCalcForwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
 		const CConstFloatHandle& blankSkipMask, const CConstFloatHandle& resultLogProbMask, const CFloatHandle& logAlpha );
