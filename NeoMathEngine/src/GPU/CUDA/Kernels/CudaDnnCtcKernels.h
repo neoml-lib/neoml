@@ -64,8 +64,8 @@ __global__ void CtcCalcResultLogProbMaskKernel( int resultLen, int batchSize, in
 __global__ void CtcCalcForwardVariableKernel( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
 	const float* blankSkipMask, const float* resultLogProbMask, float* logAlpha )
 {
-	int b;
-	if( GetCudaTaskIndex( batchSize, b ) ) {
+	int b = blockIdx.y * blockDim.y + threadIdx.y;
+	if( b < batchSize ) {
 		const int T = resultLen;
 		const int U = padLabelLen;
 		for( int t = 1; t < T; ++t ) {
@@ -74,27 +74,24 @@ __global__ void CtcCalcForwardVariableKernel( int resultLen, int batchSize, int 
 			float* logAlphaPrevWindow = logAlpha + ( t - 1 ) * U * batchSize;
 
 			// Add up the alternative pairings after the previous moment in time
-			logAlphaWindow[b] = logAlphaPrevWindow[b];
-			for( int u = 1; u < U; ++u ) {
-				logAlphaWindow[batchSize * u + b] = LogSumExpFunc( logAlphaPrevWindow[batchSize * ( u - 1 ) + b],
-					logAlphaPrevWindow[batchSize * u + b] );
-			}
-
-			if( skipBlanks ) {
-				// If label[i] != blank and label[i] != label[i-2], the labels may be put together with no space:
-				// label[i-2];label[i] -> label[i-2];blank;label[i]
-				for( int u = 2; u < U; ++u ) {
-					logAlphaWindow[batchSize * u + b] = LogSumExpFunc(
-						logAlphaWindow[batchSize * u + b],
-						logAlphaPrevWindow[( u - 2 ) * batchSize + b] + blankSkipMask[( u - 2 ) * batchSize + b]
-					);
-				}
-			}
-
-			// Add the logarithm of probability of label recognition
-			for( int u = 0; u < U; ++u ) {
+			for( int u = threadIdx.x; u < padLabelLen; u += blockDim.x ) {
 				const int idx = u * batchSize + b;
-				logAlphaWindow[idx] += resultLogProbWindow[idx];
+				float value = logAlphaPrevWindow[idx];
+				if( u != 0 ) {
+					value = LogSumExpFunc( value, logAlphaPrevWindow[idx - batchSize] );
+					if( skipBlanks && u > 1 ) {
+						// If label[i] != blank and label[i] != label[i-2], the labels may be put together with no space:
+						// label[i-2];label[i] -> label[i-2];blank;label[i]
+						value = LogSumExpFunc( value, logAlphaPrevWindow[idx - batchSize * 2] + blankSkipMask[idx - batchSize * 2] );
+					}
+				}
+				value += resultLogProbWindow[idx];
+				logAlphaWindow[idx] = value;
+			}
+
+			// logAlpha[T - 1] must be calculated in order to calculate logAlpha[T]
+			if( blockDim.x > warpSize && t < T - 1 ) {
+				__syncthreads();
 			}
 		}
 	}

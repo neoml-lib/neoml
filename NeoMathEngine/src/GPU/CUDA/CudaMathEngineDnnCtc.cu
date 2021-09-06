@@ -152,8 +152,10 @@ void CCudaMathEngine::ctcCalcForwardVariables( int resultLen, int batchSize, int
 	VectorAdd( logAlpha, resultLogProbMask, logAlpha, batchSize * U );
 
 	// Align the result sequence T elements long with the labels and spaces sequence U elements long
-	int blockCount, threadCount;
-	getCudaTaskGrid( blockCount, threadCount, batchSize );
+	const int padLabelLenForWarp = alignXSizeForWarp( padLabelLen );
+	dim3 blockCount, threadCount;
+	getCudaTaskGrid2DMinYX( 1, 1024, blockCount, threadCount, batchSize, padLabelLenForWarp );
+	blockCount.x = 1;
 	CtcCalcForwardVariableKernel<<<blockCount, threadCount>>>( resultLen, batchSize, classCount, padLabelLen, skipBlanks,
 		GetRaw( blankSkipMask ), GetRaw( resultLogProbMask ), GetRaw( logAlpha ) );
 }
