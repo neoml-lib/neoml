@@ -1159,31 +1159,40 @@ void CCpuMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle& firstHa
 	VectorEltwiseMultiply( resultHandle, firstHandle, resultHandle, height * width );
 }
 
-void CCpuMathEngine::MatrixLogSumExpByColumns( const CConstFloatHandle& matrixHandle,
+void CCpuMathEngine::MatrixLogSumExpByColumns( int batchSize, const CConstFloatHandle& matrixHandle,
 	int height, int width, const CFloatHandle& resultHandle, int resultSize )
 {
 	ASSERT_EXPR( resultSize >= width );
+	
+	CConstFloatHandle matrix = matrixHandle;
+	CFloatHandle result = resultHandle;
 
 	CFloatHandleStackVar temp( mathEngine(), height * width );
 	CFloatHandleStackVar tempVec( mathEngine(), width );
 
-	// Find maximum in each column
-	findMaxValueInColumns( GetRaw( resultHandle ), GetRaw( matrixHandle ), height, width );
+	for( int b = 0; b < batchSize; ++b ) {
+		// Find maximum in each column
+		findMaxValueInColumns( GetRaw( result ), GetRaw( matrix ), height, width );
 
-	// Subtract the maximum and save the result to a temporary variable
-	subVectorFromMatrixRows( this, matrixHandle, temp, height, width, resultHandle );
+		// Subtract the maximum and save the result to a temporary variable
+		subVectorFromMatrixRows( this, matrix, temp, height, width, result );
 
-	// exp
-	VectorExp( temp, temp, height * width );
+		// exp
+		VectorExp( temp, temp, height * width );
 
-	// Add up the rows, putting the result into tempVec
-	SumMatrixRows( 1, tempVec, temp, height, width );
+		// Add up the rows, putting the result into tempVec
+		SumMatrixRows( 1, tempVec, temp, height, width );
 
-	// log
-	VectorLog( tempVec, tempVec, width );
+		// log
+		VectorLog( tempVec, tempVec, width );
 
-	// Add the logarithm to the maximum
-	VectorAdd( resultHandle, tempVec, resultHandle, width );
+		// Add the logarithm to the maximum
+		VectorAdd( result, tempVec, result, width );
+
+		// Move to the next elements in the batch
+		matrix += height * width;
+		result += width;
+	}
 }
 
 void CCpuMathEngine::MatrixSoftmaxByColumns( const CConstFloatHandle& matrix, int height, int width,

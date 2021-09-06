@@ -366,7 +366,7 @@ void CCtcLossLayer::calculateGradient(CFloatHandle totalLogProb)
 
 		if( allowBlankLabelSkip ) {
 			// For the sake of computational stability
-			MathEngine().MatrixLogSumExpByColumns( logAlphaBeta->GetData(),
+			MathEngine().MatrixLogSumExpByColumns( 1, logAlphaBeta->GetData(),
 				logAlphaBeta->GetBatchWidth(), logAlphaBeta->GetObjectSize(),
 				totalLogProb, inputBlobs[I_Result]->GetBatchWidth() );
 		}
@@ -491,7 +491,7 @@ void CCtcLossLayer::RunOnce()
 	// Calculate the total logarithm of the probability of recognizing
 	// the correct sequence by adding across all possible pairings
 	NeoAssert(logAlphaBeta->GetObjectSize() == batchWidth);
-	MathEngine().MatrixLogSumExpByColumns(logAlphaBeta->GetData(),
+	MathEngine().MatrixLogSumExpByColumns(1, logAlphaBeta->GetData(),
 		logAlphaBeta->GetBatchWidth(), logAlphaBeta->GetObjectSize(),
 		totalLogProb, batchWidth);
 

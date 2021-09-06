@@ -419,8 +419,11 @@ public:
 		int height, int width, const CFloatHandle& result) = 0;
 
 	// Vector operations over matrix columns
-	// log(exp(x0) + ... + exp(xn)), the result is a vector with "width" elements
-	virtual void MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result, int resultSize) = 0;
+	// log(exp(x0) + ... + exp(xn))
+	// takes batchSize matrix of size height x width as input
+	// the result is batchSize of vectors of "width" elements
+	virtual void MatrixLogSumExpByColumns(int batchSize, const CConstFloatHandle& matrix, int height, int width,
+		const CFloatHandle& result, int resultSize) = 0;
 	// softmax : exp(xi) / (exp(x0) + ... + exp(xn))
 	virtual void MatrixSoftmaxByColumns(const CConstFloatHandle& matrix, int height, int width,
 		const CFloatHandle& result) = 0;
