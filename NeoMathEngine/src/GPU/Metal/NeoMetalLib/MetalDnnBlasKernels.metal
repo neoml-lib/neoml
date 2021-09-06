@@ -1848,7 +1848,7 @@ kernel void cubeKernelMatrixLogSumExpByColumns( constant int* batchSize [[buffer
     int zPos;
     int step;
     int count = 0;
-    pos.GetMetalTaskIndex3D( *batchSize, *height, *width, 1, 1, zPos, yPos, xPos );
+    pos.GetMetalTaskIndex3D( *batchSize, *height, *width, 1, 1, 1, zPos, yPos, xPos );
     if( zPos < *batchSize && xPos < *width ) {
         matrix += zPos * *height * *width;
         result += zPos * *width;
