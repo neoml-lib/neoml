@@ -267,6 +267,7 @@ elseif(IOS)
         GPU/Metal/MetalMathEngineBlas.mm
         GPU/Metal/MetalMathEngineDnn.mm
         GPU/Metal/MetalMathEngineDnnConvs.mm
+        GPU/Metal/MetalMathEngineDnnCtc.mm
         GPU/Metal/MetalMathEngineDnnDropout.mm
         GPU/Metal/MetalMathEngineDnnPoolings.mm
         GPU/Metal/MetalMathEngineDnnLrn.mm
@@ -338,6 +339,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
                     GPU/Vulkan/VulkanImage.h
                     GPU/Vulkan/VulkanMathEngineBlas.cpp
                     GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
+                    GPU/Vulkan/VulkanMathEngineDnnCtc.cpp
                     GPU/Vulkan/VulkanMathEngineDnn.cpp
                     GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
                     GPU/Vulkan/VulkanMathEngineDnnLrn.cpp

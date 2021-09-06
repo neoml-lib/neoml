@@ -554,10 +554,7 @@ public:
 	void CtcLossForward( int resultLen, int batchSize, int classCount, int labelLen, int blankLabel, bool skipBlanks,
 		const CConstFloatHandle& result, const CConstIntHandle& labels,
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
-		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override
-	{
-		ASSERT_EXPR( false );
-	}
+		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:
