@@ -19,8 +19,8 @@ from .Dnn import Layer
 import neoml.Blob as Blob
 
 
-class Source(Layer):
-    """The source layer that serves to pass a user data blob into the network.
+class Data(Layer):
+    """The data layer that serves to pass a fixed data blob into the network.
 
     :param dnn: The neural network.
     :type dnn: object
@@ -37,19 +37,19 @@ class Source(Layer):
     passed into the last call of set_blob.
     """
     def __init__(self, dnn, name=None):
-        if type(dnn) is PythonWrapper.Source:
+        if type(dnn) is PythonWrapper.Data:
             super().__init__(dnn)
             return
 
-        internal = PythonWrapper.Source(dnn, str(name))
+        internal = PythonWrapper.Data(dnn, str(name))
         super().__init__(internal)
 
     def set_blob(self, blob):
-        """Sets the blob with source data.
+        """Sets the blob with data.
         """
         self._internal.set_blob(blob._internal)
             
     def get_blob(self):
-        """Gets the blob with source data.
+        """Gets the blob with data.
         """
         return Blob(self._internal.get_blob())

@@ -140,6 +140,7 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CAddToObjectLayer>( "NeoMLDnnAddToObjectLayer" );
 	serializeToFile<CGELULayer>( "NeoMLDnnGELULayer" );
 	serializeToFile<CGlobalMeanPoolingLayer>( "FmlCnnGlobalAveragePoolingLayer" );
+	serializeToFile<CDataLayer>( "NeoMLDnnDataLayer" );
 }
 
 #endif // GENERATE_SERIALIZATION_FILES
@@ -238,6 +239,7 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnAddToObjectLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnGELULayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnGlobalAveragePoolingLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnDataLayer" );
 }
 
 // ====================================================================================================================
