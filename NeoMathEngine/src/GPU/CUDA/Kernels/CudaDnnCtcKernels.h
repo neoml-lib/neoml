@@ -21,46 +21,72 @@ limitations under the License.
 
 namespace NeoML {
 
+#define CTC_LOG_ONE_NEG ( -FLT_MIN * 2 )
+#define CTC_LOG_ZERO ( -FLT_MAX / 4 )
+
 __global__ void CtcFillPaddingKernel( int maxSeqLen, int batchSize, int classCount, int blankLabel,
 	float* data, const int* seqLens )
 {
 	int seq, b, classIndex;
 	if( GetCudaTaskIndex3D( maxSeqLen, batchSize, classCount, seq, b, classIndex ) && seq >= seqLens[b] ) {
 		const float fillValue = blankLabel == -1 ? 0.f
-			: ( classIndex == blankLabel ? -FLT_MIN * 2 : -FLT_MAX / 4 );
+			: ( classIndex == blankLabel ? CTC_LOG_ONE_NEG : CTC_LOG_ZERO );
 		data[( seq * batchSize + b ) * classCount + classIndex] = fillValue;
-		if( ( seq * batchSize + b ) * classCount + classIndex == 0 ) {
-			::printf( "WTF\n" );
+	}
+}
+
+__global__ void CtcCalcResultLogProbMaskKernel( int resultLen, int batchSize, int classCount, int padLabelLen, int blankLabel,
+	const int* resultLens, const int* padLabels, const float* resultProb, float* resultLogProbMask )
+{
+	int t;
+	int u;
+	int b;
+	if( GetCudaTaskIndex3D( resultLen, padLabelLen, batchSize, t, u, b ) ) {
+		resultLogProbMask += ( t * padLabelLen + u ) * batchSize + b;
+		resultProb += ( t * batchSize + b ) * classCount;
+		if( resultLens != nullptr ) {
+			resultLens += b;
+		}
+		padLabels += u * batchSize + b;
+		const int col = *padLabels;
+		if( resultLens == nullptr || t < *resultLens ) {
+			if( col >= 0 && col < classCount ) {
+				*resultLogProbMask = logf( resultProb[col] );
+			} else {
+				*resultLogProbMask = 0.f;
+			}
+		} else {
+			*resultLogProbMask = ( col == blankLabel ) ? CTC_LOG_ONE_NEG : CTC_LOG_ZERO;
 		}
 	}
 }
 
 __global__ void CtcCalcForwardVariableKernel( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
-	const int* padLabels, const float* blankSkipMask, const float* resultLogProb, float* logAlpha )
+	const float* blankSkipMask, const float* resultLogProbMask, float* logAlpha )
 {
 	int b;
 	if( GetCudaTaskIndex( batchSize, b ) ) {
 		const int T = resultLen;
 		const int U = padLabelLen;
 		for( int t = 1; t < T; ++t ) {
-			const float* resultLogProbWindow = resultLogProb + t * batchSize * classCount + b * classCount;
+			const float* resultLogProbWindow = resultLogProbMask + t * padLabelLen * batchSize;
 			float* logAlphaWindow = logAlpha + t * U * batchSize;
 			float* logAlphaPrevWindow = logAlpha + ( t - 1 ) * U * batchSize;
 
 			// Add up the alternative pairings after the previous moment in time
 			logAlphaWindow[b] = logAlphaPrevWindow[b];
-			for( int u = 0; u < U - 1; ++u ) {
-				logAlphaWindow[batchSize * ( u + 1 ) + b] = LogSumExpFunc( logAlphaPrevWindow[batchSize * u + b],
-					logAlphaPrevWindow[batchSize * ( u + 1 ) + b] );
+			for( int u = 1; u < U; ++u ) {
+				logAlphaWindow[batchSize * u + b] = LogSumExpFunc( logAlphaPrevWindow[batchSize * ( u - 1 ) + b],
+					logAlphaPrevWindow[batchSize * u + b] );
 			}
 
 			if( skipBlanks ) {
 				// If label[i] != blank and label[i] != label[i-2], the labels may be put together with no space:
 				// label[i-2];label[i] -> label[i-2];blank;label[i]
-				for( int u = 0; u < U - 2; ++u ) {
-					logAlphaWindow[batchSize * ( u + 2 ) + b] = LogSumExpFunc(
-						logAlphaWindow[batchSize * ( u + 2 ) + b],
-						logAlphaPrevWindow[u * batchSize + b] + blankSkipMask[u * batchSize + b]
+				for( int u = 2; u < U; ++u ) {
+					logAlphaWindow[batchSize * u + b] = LogSumExpFunc(
+						logAlphaWindow[batchSize * u + b],
+						logAlphaPrevWindow[( u - 2 ) * batchSize + b] + blankSkipMask[( u - 2 ) * batchSize + b]
 					);
 				}
 			}
@@ -68,18 +94,14 @@ __global__ void CtcCalcForwardVariableKernel( int resultLen, int batchSize, int 
 			// Add the logarithm of probability of label recognition
 			for( int u = 0; u < U; ++u ) {
 				const int idx = u * batchSize + b;
-				const int col = padLabels[idx];
-				if( col >= 0 && col < classCount ) {
-					logAlphaWindow[idx] += resultLogProbWindow[col];
-				}
+				logAlphaWindow[idx] += resultLogProbWindow[idx];
 			}
 		}
 	}
 }
 
 __global__ void CtcCalcBackwardVariableKernel( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
-	const int* padLabels, const float* blankSkipMask, const float* resultLogProb,
-	float* logBetaWindowBuffer, float* logBeta )
+	const float* blankSkipMask, const float* resultLogProbMask, float* logBetaWindowBuffer, float* logBeta )
 {
 	int b;
 	if( GetCudaTaskIndex( batchSize, b ) ) {
@@ -87,7 +109,7 @@ __global__ void CtcCalcBackwardVariableKernel( int resultLen, int batchSize, int
 		const int U = padLabelLen;
 
 		for( int t = T - 2; t >= 0; --t ) {
-			const float* resultLogProbWindow = resultLogProb + ( t + 1 ) * batchSize * classCount + b * classCount;
+			const float* resultLogProbWindow = resultLogProbMask + ( t + 1 ) * padLabelLen * batchSize;
 			for( int u = 0; u < U; ++u ) {
 				const int idx = u * batchSize + b;
 				logBetaWindowBuffer[idx] = logBeta[( t + 1 ) * U * batchSize + idx];
@@ -97,10 +119,7 @@ __global__ void CtcCalcBackwardVariableKernel( int resultLen, int batchSize, int
 			// Add the logarithm of probability of label recognition
 			for( int u = 0; u < U; ++u ) {
 				const int idx = u * batchSize + b;
-				const int col = padLabels[idx];
-				if( col >= 0 && col < classCount ) {
-					logBetaWindowBuffer[idx] += resultLogProbWindow[col];
-				}
+				logBetaWindowBuffer[idx] += resultLogProbWindow[idx];
 			}
 
 			// Add up the alternative pairings after the previous moment in time

@@ -616,12 +616,10 @@ private:
 	void ctcFillPadding( int maxSeqLen, int batchSize, int classCount, int blankLabel,
 		const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle );
 	void ctcCalcForwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
-		const CConstFloatHandle& resultLogProb, const CFloatHandle& logAlpha );
+		const CConstFloatHandle& blankSkipMask, const CConstFloatHandle& resultLogProbMask, const CFloatHandle& logAlpha );
 	void ctcCalcBackwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
-		const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
-		const CConstFloatHandle& resultLogProb, const CConstIntHandle& resultLens, const CConstIntHandle& labelLens,
-		const CFloatHandle& logBeta );
+		const CConstFloatHandle& blankSkipMask, const CConstFloatHandle& resultLogProbMask, const CConstIntHandle& resultLens,
+		const CConstIntHandle& labelLens, const CFloatHandle& logBeta );
 	void ctcCalcGradient( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
 		const CConstFloatHandle& resultProb, const CConstFloatHandle& logAlphaBeta,
 		const CConstIntHandle& padLabels, const CConstIntHandle& resultLens,
