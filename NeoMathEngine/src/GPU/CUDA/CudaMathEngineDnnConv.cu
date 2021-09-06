@@ -73,7 +73,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 	if( filter.Height() == 3 && filter.Width() == 3
 		&& desc.StrideHeight == 1 && desc.StrideWidth == 1
 		&& desc.DilationHeight == 1 && desc.DilationWidth == 1
-		&& source.Channels() * source.Depth() < 32 )
+		&& source.Channels() * source.Depth() < 16 )
 	{
 		// Use a convolution kernel of size 3*3 with stride 1
 		dim3 blockCount;
