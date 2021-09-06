@@ -22,26 +22,31 @@ static void matrixLogSumExpByColumnsTestImpl( const CTestParams& params, int see
 {
 	CRandom random( seed );
 
+	const CInterval batchSizeInterval = params.GetInterval( "BatchSize" );
 	const CInterval heightInterval = params.GetInterval( "Height" );
 	const CInterval widthInterval = params.GetInterval( "Width" );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
 
+	const int batchSize = random.UniformInt( batchSizeInterval.Begin, batchSizeInterval.End );
 	const int height = random.UniformInt( heightInterval.Begin, heightInterval.End );
 	const int width = random.UniformInt( widthInterval.Begin, widthInterval.End );
 
-	CREATE_FILL_FLOAT_ARRAY( matrix, valuesInterval.Begin, valuesInterval.End, height * width, random )
+	CREATE_FILL_FLOAT_ARRAY( matrix, valuesInterval.Begin, valuesInterval.End, batchSize * height * width, random )
 	std::vector<float> getVector, expectedVector;
-	getVector.insert( getVector.begin(), width, 0 );
-	expectedVector.insert( expectedVector.begin(), width, 0 );
+	getVector.insert( getVector.begin(), batchSize * width, 0 );
+	expectedVector.insert( expectedVector.begin(), batchSize * width, 0 );
 
-	MathEngine().MatrixLogSumExpByColumns( CARRAY_FLOAT_WRAPPER( matrix ), height, width, CARRAY_FLOAT_WRAPPER( getVector ), width );
+	MathEngine().MatrixLogSumExpByColumns( batchSize, CARRAY_FLOAT_WRAPPER( matrix ), height, width,
+		CARRAY_FLOAT_WRAPPER( getVector ), batchSize * width );
 
-	for( int w = 0; w < width; ++w ) {
-		float row = 0.f;
-		for( int h = 0; h < height; ++h ) {
-			row += expf( matrix[h * width + w] );
+	for( int b = 0; b < batchSize; ++b ) {
+		for( int w = 0; w < width; ++w ) {
+			float row = 0.f;
+			for( int h = 0; h < height; ++h ) {
+				row += expf( matrix[(b * height + h) * width + w] );
+			}
+			expectedVector[b * width + w] = logf( row );
 		}
-		expectedVector[w] = logf( row );
 	}
 
 	for( int i = 0; i < width; ++i ) {

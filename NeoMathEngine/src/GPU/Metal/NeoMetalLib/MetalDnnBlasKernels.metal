@@ -1827,25 +1827,32 @@ kernel void matrixKernelMatrixLogSumExpByRows( constant float* matrix [[buffer(0
 	}
 }
 
-kernel void matrixKernelMatrixLogSumExpByColumns( constant float* matrix [[buffer(0)]],
-                                                  constant int* height [[buffer(1)]],
-                                                  constant int* width [[buffer(2)]],
-                                                  device float* result [[buffer(3)]],
-                                                  threadgroup float* buffer [[threadgroup(4)]],
-                                                  uint2 thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
-                                                  uint2 threads_per_threadgroup        [[ threads_per_threadgroup ]],
-                                                  uint2 threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
+kernel void cubeKernelMatrixLogSumExpByColumns( constant int* batchSize [[buffer(0)]],
+                                                constant float* matrix [[buffer(1)]],
+                                                constant int* height [[buffer(2)]],
+                                                constant int* width [[buffer(3)]],
+                                                device float* result [[buffer(4)]],
+                                                threadgroup float* buffer [[threadgroup(5)]],
+                                                uint3 thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                                uint3 threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                                uint3 threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]] )
 {
-    threadgroup float& my = buffer[thread_position_in_threadgroup.y * threads_per_threadgroup.x + thread_position_in_threadgroup.x];
+    threadgroup float& my = buffer[(thread_position_in_threadgroup.z * threads_per_threadgroup.y + thread_position_in_threadgroup.y)
+        * threads_per_threadgroup.x + thread_position_in_threadgroup.x];
     my = -FLT_MAX;
     
-    C2DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
+    C3DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
     
     int xPos;
     int yPos;
+    int zPos;
     int step;
     int count = 0;
-    if( pos.GetMetalTaskIndex2D( *height, *width, 1, 1, yPos, xPos ) ) {
+    pos.GetMetalTaskIndex3D( *batchSize, *height, *width, 1, 1, 1, zPos, yPos, xPos );
+    if( zPos < *batchSize && xPos < *width ) {
+        matrix += zPos * *height * *width;
+        result += zPos * *width;
+
         int combine = ( *height + threads_per_threadgroup.y - 1) / threads_per_threadgroup.y;
         count = pos.GetMetalHeightTaskCountAndIndex( *height, combine, yPos, step );
         matrix += xPos;
@@ -1860,7 +1867,7 @@ kernel void matrixKernelMatrixLogSumExpByColumns( constant float* matrix [[buffe
         }
     }
     
-    Reduce2DMaxTrans( thread_position_in_threadgroup, threads_per_threadgroup, buffer );
+    Reduce3DMaxTrans( thread_position_in_threadgroup, threads_per_threadgroup, buffer );
     
     const float maxVal = buffer[thread_position_in_threadgroup.x];
  
@@ -1869,9 +1876,9 @@ kernel void matrixKernelMatrixLogSumExpByColumns( constant float* matrix [[buffe
         my += ExponentFunc(matrix[yPos + i * step] - maxVal);
     }
     
-    Reduce2DSumTrans( thread_position_in_threadgroup, threads_per_threadgroup, buffer );
+    Reduce3DSumTrans( thread_position_in_threadgroup, threads_per_threadgroup, buffer );
     
-    if( thread_position_in_threadgroup.y == 0 ) {
+    if( zPos < *batchSize && xPos < *width && thread_position_in_threadgroup.y == 0 ) {
         result[xPos] = maxVal + LogFunc(my);
     }
 }

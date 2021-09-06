@@ -778,7 +778,7 @@ void CVulkanMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle&, con
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::MatrixLogSumExpByColumns( const CConstFloatHandle&, int, int, const CFloatHandle&, int )
+void CVulkanMathEngine::MatrixLogSumExpByColumns( int, const CConstFloatHandle&, int, int, const CFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
 }

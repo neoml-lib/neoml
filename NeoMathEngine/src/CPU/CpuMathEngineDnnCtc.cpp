@@ -223,7 +223,7 @@ static void calcGradient( int resultLen, int batchSize, int classCount, int padL
 
 		if( skipBlanks ) {
 			// For the sake of computational stability
-			mathEngine.MatrixLogSumExpByColumns( logAlphaBeta, U, batchSize, totalLogProb, batchSize );
+			mathEngine.MatrixLogSumExpByColumns( 1, logAlphaBeta, U, batchSize, totalLogProb, batchSize );
 		}
 
 		mathEngine.EltwiseLogSumExpVectorToMatrixElements( probSum, batchSize, classCount,
@@ -291,7 +291,7 @@ void CCpuMathEngine::CtcLossForward( int resultLen, int batchSize, int classCoun
 	CFloatHandleStackVar totalLogProb( *this, batchSize );
 	CFloatHandleStackVar logAlphaBeta( *this, padLabelLen * batchSize );
 	VectorAdd( logAlpha, logBeta, logAlphaBeta, padLabelLen * batchSize );
-	MatrixLogSumExpByColumns( logAlphaBeta, padLabelLen, batchSize, totalLogProb, batchSize );
+	MatrixLogSumExpByColumns( 1, logAlphaBeta, padLabelLen, batchSize, totalLogProb, batchSize );
 
 	if( !labelWeights.IsNull() ) {
 		VectorDotProduct( labelWeights, totalLogProb, batchSize, loss );
