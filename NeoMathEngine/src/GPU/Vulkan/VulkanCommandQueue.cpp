@@ -321,7 +321,8 @@ void CVulkanCommandQueue::CData::submitCommand( VkCommandBuffer commandBuffer )
 	VkMemoryBarrier barrier{ VK_STRUCTURE_TYPE_MEMORY_BARRIER, 
 		nullptr, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT };
 
-	device.vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0, 1, &barrier, 0, nullptr, 0, nullptr);
+	device.vkCmdPipelineBarrier( commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 
+		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier, 0, nullptr, 0, nullptr );
 	vkSucceded( device.vkEndCommandBuffer( commandBuffer ) );
 
 	if( commandBufferCount > 1 && commandBufferCount % SubmitBatchSize == 1 ) {
