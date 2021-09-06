@@ -811,15 +811,15 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrix( const CConstFloatHandle& firstH
 {
 	ASSERT_EXPR( resultBufferSize >= firstSize * secondWidth );
 
-	CConstFloatHandle first = firstHandle;
-	CConstFloatHandle second = secondHandle;
-	CFloatHandle result = resultHandle;
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
 
 	const int curThreadCount = IsOmpRelevant( firstSize, firstSize * secondWidth ) ? threadCount : 1;
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int i = 0; i < firstSize; i++ ) {
-		const float multiplier = *GetRaw( first + i );
-		vectorMultiply(GetRaw( secondHandle + i * secondWidth ), GetRaw( resultHandle + i * secondWidth ), multiplier, secondWidth );
+		const float multiplier = *( first + i );
+		vectorMultiply( second + i * secondWidth, result + i * secondWidth, multiplier, secondWidth );
 	}
 }
 
