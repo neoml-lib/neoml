@@ -17,8 +17,6 @@ limitations under the License.
 
 #ifdef NEOML_USE_CUDA
 
-#include <cstdint>
-
 #include <CudaMathEngine.h>
 #include <CudaDevice.h>
 #include <CudaAssert.h>
@@ -158,7 +156,7 @@ void CCudaMathEngine::FilterSmallValues( const CFloatHandle& data, int dataSize,
 
 	int blockCount;
 	int threadCount;
-	getCudaTaskGrid( blockCount, threadCount, dataSize, FilterSmallValuesCombineCount );
+	getCudaTaskGrid( blockCount, threadCount, dataSize, VectorFillCombineCount );
 
 	FilterSmallValuesKernel<<<blockCount, threadCount>>>( GetRaw( data ), threshold, dataSize );
 }
@@ -825,7 +823,7 @@ void CCudaMathEngine::VectorAdd(const CConstFloatHandle& firstHandle, const CCon
 
 	VectorAddKernel<<<blockCount, threadCount>>>
 		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
-	}
+}
 
 void CCudaMathEngine::VectorAdd( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 	const CIntHandle& resultHandle, int vectorSize )
@@ -837,10 +835,10 @@ void CCudaMathEngine::VectorAdd( const CConstIntHandle& firstHandle, const CCons
 
 	int blockCount;
 	int threadCount;
-	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorAddCombineCount);
+	getCudaTaskGrid( blockCount, threadCount, vectorSize, VectorAddCombineCount );
 
 	VectorAddKernel<<<blockCount, threadCount>>>
-		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
+		( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCudaMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle,
