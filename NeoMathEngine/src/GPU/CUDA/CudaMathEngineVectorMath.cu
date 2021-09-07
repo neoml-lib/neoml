@@ -69,8 +69,9 @@ void CCudaMathEngine::VectorFill(const CFloatHandle& result, float value, int ve
 
 	int blockCount;
 	int threadCount;
-	getCudaOccupancyTaskGrid( static_cast<void*>( VectorFillKernel<float> ), blockCount, threadCount );
-	VectorFillKernel<<<blockCount, threadCount>>> ( GetRaw( result ), value, vectorSize );
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorFillCombineCount);
+
+	VectorFillKernel<<<blockCount, threadCount>>>(GetRaw(result), value, vectorSize);
 }
 
 void CCudaMathEngine::VectorFill(const CIntHandle& result, int value, int vectorSize)
@@ -80,8 +81,9 @@ void CCudaMathEngine::VectorFill(const CIntHandle& result, int value, int vector
 
 	int blockCount;
 	int threadCount;
-	getCudaOccupancyTaskGrid( static_cast<void*>( VectorFillKernel<int> ), blockCount, threadCount );
-	VectorFillKernel<<<blockCount, threadCount>>> ( GetRaw( result ), value, vectorSize );
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorFillCombineCount);
+
+	VectorFillKernel<<<blockCount, threadCount>>>(GetRaw(result), value, vectorSize);
 }
 
 void CCudaMathEngine::VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value)

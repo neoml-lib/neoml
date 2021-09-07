@@ -22,14 +22,19 @@ limitations under the License.
 
 namespace NeoML {
 
+const int VectorFillCombineCount = 8;
 template<class T>
 __global__ void VectorFillKernel(T* mem, T value, int count)
 {
-	for( int index = blockIdx.x * blockDim.x + threadIdx.x;
-		index < count;
-		index += blockDim.x * gridDim.x )
-	{
-		mem[index] = value;
+	int index;
+	int step;
+	int actionCount = GetCudaTaskCountAndIndex(count, VectorFillCombineCount, index, step);
+
+	mem += index;
+
+	for(int i = 0; i < actionCount; ++i) {
+		*mem = value;
+		mem += step;
 	}
 }
 
