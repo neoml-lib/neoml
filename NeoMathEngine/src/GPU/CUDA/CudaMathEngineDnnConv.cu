@@ -123,7 +123,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 
 		dim3 blockCount;
 		dim3 threadCount;
-		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, tempMatrixWidth );
+		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, source.Depth() * source.Channels() );
 		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ),
 			tempMatrixHeightIndex, curTempMatrixHeight, GetRaw( tempMatrix.GetHandle() ) );
 
@@ -234,10 +234,9 @@ void CCudaMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc,
 		int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
 		dim3 blockCount;
 		dim3 threadCount;
-		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
-		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, widthNorm, 512 );
-		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( input ), curTempMatrixHeight,
-			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm, tempMatrixHeightIndex );
+		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, desc.Source.Depth() * desc.Source.Channels() );
+		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( input ), tempMatrixHeightIndex, curTempMatrixHeight,
+			GetRaw( tempMatrix.GetHandle() ) );
 
 		// Get the filter gradients by multiplying the temporary matrix and the output gradients
 		MultiplyTransposedMatrixByMatrixAndAdd( outputDiff + tempMatrixHeightIndex * filterCount, curTempMatrixHeight,
