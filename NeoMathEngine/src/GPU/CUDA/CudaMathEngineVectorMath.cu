@@ -821,10 +821,11 @@ void CCudaMathEngine::VectorAdd(const CConstFloatHandle& firstHandle, const CCon
 
 	int blockCount;
 	int threadCount;
-	getCudaOccupancyTaskGrid( static_cast<void*>( VectorAddKernel<float> ), blockCount, threadCount );
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorAddCombineCount);
+
 	VectorAddKernel<<<blockCount, threadCount>>>
-		( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
-}
+		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
+	}
 
 void CCudaMathEngine::VectorAdd( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 	const CIntHandle& resultHandle, int vectorSize )
@@ -836,9 +837,10 @@ void CCudaMathEngine::VectorAdd( const CConstIntHandle& firstHandle, const CCons
 
 	int blockCount;
 	int threadCount;
-	getCudaOccupancyTaskGrid( static_cast<void*>( VectorAddKernel<float> ), blockCount, threadCount );
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorAddCombineCount);
+
 	VectorAddKernel<<<blockCount, threadCount>>>
-		( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
+		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
 }
 
 void CCudaMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle,
@@ -996,7 +998,8 @@ void CCudaMathEngine::VectorEltwiseMultiply(const CConstIntHandle& firstHandle, 
 
 	int blockCount;
 	int threadCount;
-	getCudaOccupancyTaskGrid(static_cast<void*>(VectorEltwiseMultiplyKernel<int>), blockCount, threadCount);
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorEltwiseMultiplyCombineCount);
+
 	VectorEltwiseMultiplyKernel<<<blockCount, threadCount>>>
 		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
 }
@@ -1011,7 +1014,8 @@ void CCudaMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle
 
 	int blockCount;
 	int threadCount;
-	getCudaOccupancyTaskGrid(static_cast<void*>(VectorEltwiseMultiplyKernel<float>), blockCount, threadCount);
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorEltwiseMultiplyCombineCount);
+
 	VectorEltwiseMultiplyKernel<<<blockCount, threadCount>>>
 		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
 }

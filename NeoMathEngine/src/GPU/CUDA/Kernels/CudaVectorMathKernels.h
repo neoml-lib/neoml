@@ -849,15 +849,24 @@ __global__ void VectorBernulliKLDerivativeKernel(const float* __restrict__ first
 	}
 }
 
+const int VectorAddCombineCount = 8;
 template<class T>
 __global__ void VectorAddKernel(const T* __restrict__ first,
 	const T* __restrict__ second, T* result, int count)
 {
-	for( int index = blockIdx.x * blockDim.x + threadIdx.x;
-		index < count;
-		index += blockDim.x * gridDim.x )
-	{
-		result[index] = first[index] + second[index];
+	int index;
+	int step;
+	int actionCount = GetCudaTaskCountAndIndex(count, VectorAddCombineCount, index, step);
+
+	first += index;
+	second += index;
+	result += index;
+
+	for(int i = 0; i < actionCount; ++i) {
+		*result = *first + *second;
+		first += step;
+		second += step;
+		result += step;
 	}
 }
 
@@ -981,15 +990,24 @@ __global__ void VectorNegMultiplyKernel(const float* __restrict__ first,
 	}
 }
 
+const int VectorEltwiseMultiplyCombineCount = 8;
 template<class T>
 __global__ void VectorEltwiseMultiplyKernel(const T* __restrict__ first,
 	const T* __restrict__ second, T* result, int count)
 {
-	for( int index = blockIdx.x * blockDim.x + threadIdx.x;
-		index < count;
-		index += blockDim.x * gridDim.x )
-	{
-		result[index] = first[index] * second[index];
+	int index;
+	int step;
+	int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseMultiplyCombineCount, index, step);
+
+	first += index;
+	second += index;
+	result += index;
+
+	for(int i = 0; i < actionCount; ++i) {
+		*result = *first * (*second);
+		first += step;
+		second += step;
+		result += step;
 	}
 }
 

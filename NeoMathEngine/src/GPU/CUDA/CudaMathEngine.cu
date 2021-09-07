@@ -263,17 +263,6 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 	}
 }
 
-void CCudaMathEngine::getCudaOccupancyTaskGrid( void* func, int& blockCount, int& threadCount )
-{
-	SetCudaDevice( device->DeviceNumber );
-	int cudaRecommendedBlockSize = 0;
-	int cudaRecommendedMinGrid = 0;
-	ASSERT_CUDA( ::cudaOccupancyMaxPotentialBlockSize( &cudaRecommendedMinGrid, &cudaRecommendedBlockSize, func, 0, device->ThreadMaxCount ) );
-
-	threadCount = cudaRecommendedBlockSize;
-	blockCount = cudaRecommendedMinGrid;
-}
-
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA

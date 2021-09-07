@@ -569,7 +569,6 @@ private:
 	void getCudaTaskGrid2DMinYX(int minY, int minX, dim3& blockCount, dim3& threadCount, int height, int width, int _maxThreadCount = UINT_MAX);
 	void getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3& blockCount, dim3& threadCount,
 		int batchSize, int height, int width, int _maxThreadCount = UINT_MAX);
-	void getCudaOccupancyTaskGrid( void* func, int& blockCount, int& threadCount );
 
 	template<class T>
 	void transposeMatrixImpl(int batchSize, const CTypedMemoryHandle<const T>& firstHandle,
