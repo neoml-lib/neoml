@@ -136,39 +136,3 @@ inline void Reduce2DMaxTrans( thread uint2 thread_position_in_threadgroup, threa
         }
     }
 }
-
-inline void Reduce3DSumTrans( thread uint3 thread_position_in_threadgroup, thread uint3 threads_per_threadgroup, threadgroup float* buffer )
-{
-    thread uint s = 1;
-    while( s * 2 < threads_per_threadgroup.y ) {
-        s = s * 2;
-    }
-    
-    int bufferIndex = ( thread_position_in_threadgroup.z * threads_per_threadgroup.y + thread_position_in_threadgroup.y )
-        * threads_per_threadgroup.x + thread_position_in_threadgroup.x;
-    
-    for( uint i = s; i >= 1; i = i >> 1 ) {
-        if( thread_position_in_threadgroup.y < i && thread_position_in_threadgroup.y + i < threads_per_threadgroup.y ) {
-            buffer[bufferIndex] += buffer[bufferIndex + i * threads_per_threadgroup.x];
-        }
-    }
-}
-
-inline void Reduce3DMaxTrans( thread uint3 thread_position_in_threadgroup, thread uint3 threads_per_threadgroup, threadgroup float* buffer )
-{
-    uint s = 1;
-    while( s * 2 < threads_per_threadgroup.y ) {
-        s = s * 2;
-    }
-    
-    int bufferIndex = ( thread_position_in_threadgroup.z * threads_per_threadgroup.y + thread_position_in_threadgroup.y )
-        * threads_per_threadgroup.x + thread_position_in_threadgroup.x;
-    
-    for( uint i = s; i >= 1; i = i >> 1 ) {
-        if( thread_position_in_threadgroup.y < i && thread_position_in_threadgroup.y + i < threads_per_threadgroup.y ) {
-            if( buffer[bufferIndex] <= buffer[bufferIndex + i * threads_per_threadgroup.x] ) {
-                buffer[bufferIndex] = buffer[bufferIndex + i * threads_per_threadgroup.x];
-            }
-        }
-    }
-}

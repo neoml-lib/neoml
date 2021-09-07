@@ -31,7 +31,6 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnLearnTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LookupAndAddToTableTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LrnBackwardTest.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/MatrixLogSumExpByColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixLogSumExpByRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixRowsToVectorSquaredL2DistanceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixSoftmaxByColumnsTest.cpp

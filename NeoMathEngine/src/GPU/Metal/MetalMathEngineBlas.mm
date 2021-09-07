@@ -1142,25 +1142,6 @@ void CMetalMathEngine::MatrixLogSumExpByRows(const CConstFloatHandle& matrix, in
     ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
 }
 
-void CMetalMathEngine::MatrixLogSumExpByColumns(int batchSize, const CConstFloatHandle& matrix, int height, int width,
-	const CFloatHandle& result, int resultSize)
-{
-    ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( result.GetMathEngine() == this );
-	ASSERT_EXPR( resultSize >= width );
-
-    C3DKernel kernel( *queue, "cubeKernelMatrixLogSumExpByColumns", 1, 1, 1, batchSize, height, width );
-    kernel.SetParam( batchSize, 0 );
-    kernel.SetParam( matrix, 1 );
-    kernel.SetParam( height, 2 );
-    kernel.SetParam( width, 3 );
-    kernel.SetParam( result, 4 );
-    kernel.SetSharedParam( kernel.GetThreadCount() * sizeof(float), 5 );
-    
-    // threadgroupCount.height = 1;
-    ASSERT_EXPR( kernel.Run( 0, 1, 0 ) );
-}
-
 void CMetalMathEngine::MatrixSoftmaxByRows(const CConstFloatHandle& matrix, int height, int width,
 	const CFloatHandle& result)
 {

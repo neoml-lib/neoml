@@ -376,28 +376,6 @@ void CCudaMathEngine::MatrixSoftmaxDiffOpByRows(const CConstFloatHandle& first, 
 		height, width, GetRaw(result), widthNorm);
 }
 
-void CCudaMathEngine::MatrixLogSumExpByColumns(int batchSize, const CConstFloatHandle& matrix, int height, int width,
-	const CFloatHandle& result, int resultSize)
-{
-	ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( result.GetMathEngine() == this );
-	ASSERT_EXPR(resultSize >= width);
-	SetCudaDevice( device->DeviceNumber );
-
-	int heightNorm = (height + MatrixLogSumExpByColumnsCombine - 1) / MatrixLogSumExpByColumnsCombine;
-	heightNorm = alignXSizeForWarp(heightNorm);
-
-	dim3 blockCount;
-	dim3 threadCount;
-	// Rows over the X instead of Y axis, so we could reduce by X
-	getCudaTaskGrid3DMinZYX(1, 1, 1024, blockCount, threadCount, batchSize, width, heightNorm);
-	blockCount.x = 1;
-
-	const int sharedSize = threadCount.x * threadCount.y * threadCount.z * sizeof(float);
-	MatrixLogSumExpByColumnsKernel<<<blockCount, threadCount, sharedSize>>>(
-		batchSize, GetRaw(matrix), height, width, GetRaw(result), heightNorm);
-}
-
 void CCudaMathEngine::MatrixSoftmaxByColumns(const CConstFloatHandle& matrix, int height, int width,
 	const CFloatHandle& result)
 {

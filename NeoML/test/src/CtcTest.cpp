@@ -25,6 +25,28 @@ using namespace NeoMLTest;
 
 namespace NeoMLTest {
 
+static void matrixLogSumExpByColumns(CDnnBlob& matrixBlob, int height, int width, const CFloatHandle& resultHandle)
+{
+	float* matrix = matrixBlob.GetBuffer<float>( 0, matrixBlob.GetDataSize(), true );
+	CArray<float> result;
+	result.SetSize( width );
+	for( int w = 0; w < width; ++w ) {
+		float maxVal = matrix[w];
+		for( int h = 0; h < height; ++h ) {
+			maxVal = fmaxf( maxVal, matrix[h * width + w] );
+		}
+		float row = 0.f;
+		for( int h = 0; h < height; ++h ) {
+			row += expf( matrix[h * width + w] - maxVal );
+		}
+		result[w] = maxVal + logf( row );
+	}
+	matrixBlob.ReleaseBuffer( matrix, false );
+
+	IMathEngine& mathEngine = *resultHandle.GetMathEngine();
+	mathEngine.DataExchangeTyped<float>( resultHandle, result.GetPtr(), width );
+}
+
 // The layer that implements connectionist temporal classification (CTC) 
 // for training recurrent networks to recognize sequences
 class CCtcLossNaiveLayer : public CBaseLayer {
@@ -481,9 +503,7 @@ void CCtcLossNaiveLayer::calculateGradient(CFloatHandle totalLogProb)
 
 		if( allowBlankLabelSkip ) {
 			// For the sake of computational stability
-			MathEngine().MatrixLogSumExpByColumns( 1, logAlphaBeta->GetData(),
-				logAlphaBeta->GetBatchWidth(), logAlphaBeta->GetObjectSize(),
-				totalLogProb, inputBlobs[I_Result]->GetBatchWidth() );
+			matrixLogSumExpByColumns( *logAlphaBeta, logAlphaBeta->GetBatchWidth(), logAlphaBeta->GetObjectSize(), totalLogProb );
 		}
 
 		MathEngine().EltwiseLogSumExpVectorToMatrixElements(probSum->GetData(),
@@ -606,9 +626,7 @@ void CCtcLossNaiveLayer::RunOnce()
 	// Calculate the total logarithm of the probability of recognizing
 	// the correct sequence by adding across all possible pairings
 	NeoAssert(logAlphaBeta->GetObjectSize() == batchWidth);
-	MathEngine().MatrixLogSumExpByColumns(1, logAlphaBeta->GetData(),
-		logAlphaBeta->GetBatchWidth(), logAlphaBeta->GetObjectSize(),
-		totalLogProb, batchWidth);
+	matrixLogSumExpByColumns(*logAlphaBeta, logAlphaBeta->GetBatchWidth(), logAlphaBeta->GetObjectSize(), totalLogProb);
 
 	// Take weights into account
 	MathEngine().VectorDotProduct(weights->GetData(), totalLogProb, batchWidth,

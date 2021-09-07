@@ -124,8 +124,19 @@ void CCudaMathEngine::CtcLossForward( int resultLen, int batchSize, int classCou
 
 	const int totalLogProbBatch = ( skipBlanks && !lossGradient.IsNull() ) ? resultLen : 1;
 	CFloatHandleStackVar totalLogProb( *this, totalLogProbBatch * batchSize );
-	MatrixLogSumExpByColumns( totalLogProbBatch, logAlphaBeta, padLabelLen, batchSize,
-		totalLogProb, totalLogProbBatch * batchSize );
+	{
+		int heightNorm = (padLabelLen + CtcMatrixLogSumExpByColumnsCombine - 1) / CtcMatrixLogSumExpByColumnsCombine;
+		heightNorm = alignXSizeForWarp(heightNorm);
+		dim3 blockCount;
+		dim3 threadCount;
+		// Rows over the X instead of Y axis, so we could reduce by X
+		getCudaTaskGrid3DMinZYX(1, 1, 1024, blockCount, threadCount, totalLogProbBatch, batchSize, heightNorm);
+		blockCount.x = 1;
+
+		const int sharedSize = threadCount.x * threadCount.y * threadCount.z * sizeof(float);
+		CtcMatrixLogSumExpByColumnsKernel<<<blockCount, threadCount, sharedSize>>>(
+			totalLogProbBatch, GetRaw(logAlphaBeta.GetHandle()), padLabelLen, batchSize, GetRaw(totalLogProb.GetHandle()), heightNorm);
+	}
 
 	if( !labelWeights.IsNull() ) {
 		VectorDotProduct( labelWeights, totalLogProb, batchSize, loss );

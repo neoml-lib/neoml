@@ -441,61 +441,6 @@ __global__ void MatrixSoftmaxDiffOpByRowsKernel(const float* __restrict__ first,
 	}
 }
 
-const int MatrixLogSumExpByColumnsCombine = 2;
-__global__ void MatrixLogSumExpByColumnsKernel(int batchSize, const float* __restrict__ matrix, int height, int width,
-	float* result, int heightNorm)
-{
-	extern __shared__  float buffer[];
-	float& my = buffer[(threadIdx.z * blockDim.y + threadIdx.y) * blockDim.x + threadIdx.x];
-
-	my = -FLT_MAX;
-
-	int combineCount = (height + blockDim.x - 1) / blockDim.x;
-
-	int index;
-	int step;
-	int count = GetCudaTaskCountAndIndexX(height, combineCount, index, step);
-	index *= width;
-	step *= width;
-
-	int xPos;
-	int yPos;
-	int zPos;
-	GetCudaTaskIndex3D(batchSize, width, heightNorm, zPos, xPos, yPos);
-	if(xPos < width && zPos < batchSize && count > 0) {
-		matrix += zPos * height * width;
-		result += zPos * width;
-
-		matrix += xPos; // get the correct column
-						// find the maximum
-		my = matrix[index];
-		for(int j = 1; j < count; ++j) {
-			float val = matrix[index + j * step];
-			if(val > my) {
-				my = val;
-			}
-		}
-	}
-
-	float maxVal = ReduceMaxXSharedBuffer(buffer);
-
-	// Add up the needed part
-	if(xPos < width && zPos < batchSize && count > 0) {
-		my = expf(matrix[index] - maxVal);
-		for(int j = 1; j < count; ++j) {
-			my += expf(matrix[index + j * step] - maxVal);
-		}
-	} else {
-		my = 0.f;
-	}
-
-	float sumVal = ReduceSumXSharedBuffer(buffer);
-
-	if(xPos < width && zPos < batchSize && threadIdx.x == 0) {
-		result[xPos] = maxVal + log(sumVal);
-	}
-}
-
 const int MatrixSoftmaxByColumnsCombine = 2;
 __global__ void MatrixSoftmaxByColumnsKernel(const float* __restrict__ matrix,
 	int height, int width, float* result, int heightNorm)

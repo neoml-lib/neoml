@@ -200,6 +200,53 @@ static void fillPadding( int maxSeqLen, int batchSize, int classCount, int blank
 	}
 }
 
+static void subVectorFromMatrixRows(const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
+	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle)
+{
+	IMathEngine& mathEngine = *matrixHandle.GetMathEngine();
+	CConstFloatHandle matrix = matrixHandle;
+	CFloatHandle result = resultHandle;
+
+	for(int i = 0; i < matrixHeight; i++) {
+		mathEngine.VectorSub( matrix, vectorHandle, result, matrixWidth );
+		matrix += matrixWidth;
+		result += matrixWidth;
+	}
+}
+
+static void matrixLogSumExpByColumns( const CConstFloatHandle& matrixHandle, int height, int width,
+	const CFloatHandle& resultHandle, int resultSize )
+{
+	IMathEngine& mathEngine = *matrixHandle.GetMathEngine();
+
+	CConstFloatHandle matrix = matrixHandle;
+	CFloatHandle result = resultHandle;
+
+	CFloatHandleStackVar temp( mathEngine, height * width );
+	CFloatHandleStackVar tempVec( mathEngine, width );
+
+	// Find maximum in each column
+	{
+		CIntHandleStackVar indices( mathEngine, width );
+		mathEngine.FindMaxValueInColumns( 1, matrix, height, width, result, indices, width );
+	}
+
+	// Subtract the maximum and save the result to a temporary variable
+	subVectorFromMatrixRows( matrix, temp, height, width, result );
+
+	// exp
+	mathEngine.VectorExp( temp, temp, height * width );
+
+	// Add up the rows, putting the result into tempVec
+	mathEngine.SumMatrixRows( 1, tempVec, temp, height, width );
+
+	// log
+	mathEngine.VectorLog( tempVec, tempVec, width );
+
+	// Add the logarithm to the maximum
+	mathEngine.VectorAdd( result, tempVec, result, width );
+}
+
 static void calcGradient( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
 	const CConstFloatHandle& resultProb, const CConstFloatHandle& logAlpha, const CConstFloatHandle& logBeta,
 	const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstIntHandle& resultLens,
@@ -223,7 +270,7 @@ static void calcGradient( int resultLen, int batchSize, int classCount, int padL
 
 		if( skipBlanks ) {
 			// For the sake of computational stability
-			mathEngine.MatrixLogSumExpByColumns( 1, logAlphaBeta, U, batchSize, totalLogProb, batchSize );
+			matrixLogSumExpByColumns( logAlphaBeta, U, batchSize, totalLogProb, batchSize );
 		}
 
 		mathEngine.EltwiseLogSumExpVectorToMatrixElements( probSum, batchSize, classCount,
@@ -291,7 +338,7 @@ void CCpuMathEngine::CtcLossForward( int resultLen, int batchSize, int classCoun
 	CFloatHandleStackVar totalLogProb( *this, batchSize );
 	CFloatHandleStackVar logAlphaBeta( *this, padLabelLen * batchSize );
 	VectorAdd( logAlpha, logBeta, logAlphaBeta, padLabelLen * batchSize );
-	MatrixLogSumExpByColumns( 1, logAlphaBeta, padLabelLen, batchSize, totalLogProb, batchSize );
+	matrixLogSumExpByColumns( logAlphaBeta, padLabelLen, batchSize, totalLogProb, batchSize );
 
 	if( !labelWeights.IsNull() ) {
 		VectorDotProduct( labelWeights, totalLogProb, batchSize, loss );
