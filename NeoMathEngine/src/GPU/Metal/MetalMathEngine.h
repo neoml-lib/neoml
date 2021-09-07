@@ -543,8 +543,6 @@ public:
 		const CConstFloatHandle& result, const CConstIntHandle& labels,
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
-	void CtcPadSequence( int maxSeqLen, int batchSize, int objSize, int blankLabel, const CFloatHandle& data,
-		const CConstIntHandle& seqLens ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:

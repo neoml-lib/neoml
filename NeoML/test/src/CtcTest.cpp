@@ -848,28 +848,20 @@ static void ctcTestImpl( const CTestParams& params, int seed )
 		result, label, labelLens.get(), resultLens.get(), weights.get(), actualDnn );
 	CPtr<CDummyLearn> actualLearn = CheckCast<CDummyLearn>( actualDnn.GetLayer( dummyLearnName ) );
 
-	const bool isTrainable = MathEngine().GetType() == MET_Cpu || MathEngine().GetType() == MET_Cuda;
-	if( isTrainable ) {
-		naiveDnn.RunAndBackwardOnce();
-		actualDnn.RunAndBackwardOnce();
-	} else {
-		naiveDnn.RunOnce();
-		actualDnn.RunOnce();
-	}
+	naiveDnn.RunAndBackwardOnce();
+	actualDnn.RunAndBackwardOnce();
 
-	// ::printf( "%d\t%f\t%f\n", skipBlanks, naiveLoss->GetLastLoss(), actualLoss->GetLastLoss() );
-	if( fabsf( naiveLoss->GetLastLoss() - actualLoss->GetLastLoss() ) >= 1e-4f ) {
-		FineDebugBreak();
-	}
 	ASSERT_NEAR( naiveLoss->GetLastLoss(), actualLoss->GetLastLoss(), 1e-4f );
-	if( isTrainable ) {
-		compareBlobs( naiveLoss->GetLastGradient(), actualLoss->GetLastGradient(), 1e-4f );
-		compareBlobs( naiveLearn->ActualDiff, actualLearn->ActualDiff, 1e-4f );
-	}
+	compareBlobs( naiveLoss->GetLastGradient(), actualLoss->GetLastGradient(), 1e-4f );
+	compareBlobs( naiveLearn->ActualDiff, actualLearn->ActualDiff, 1e-4f );
 }
 
 TEST_P( CCtcTest, Random )
 {
+	if( MathEngine().GetType() != MET_Cpu && MathEngine().GetType() != MET_Cuda ) {
+		GTEST_SKIP();
+	}
+
 	RUN_TEST_IMPL( ctcTestImpl );
 }
 
