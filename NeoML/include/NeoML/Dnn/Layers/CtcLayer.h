@@ -82,9 +82,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 
-// TODO: FIX AFTER debug
-// private:
-public:
+private:
 	CPtr<CDnnBlob> lossWeight; // scale multiplier for the loss function
 	CPtr<CDnnBlob> loss; // the loss value on the last tep
 	CPtr<CDnnBlob> lossGradientDivider; // the averaging factor for calculating the loss gradient (taking lossWeight into account)
@@ -97,11 +95,6 @@ public:
 	CPtr<CDnnBlob> lossGradient; // loss function gradient { InputLength, BW, Classes }
 
 	bool allowBlankLabelSkip; // indicates if blanks between different labels may be skipped
-
-	void calculateForwardVariables();
-	void calculateBackwardVariables( CDnnBlob* labelsLength, CDnnBlob* inputsLengths );
-	void calculateGradient(CFloatHandle totalLogProb);
-	void calculateBlankSkipMasks();
 };
 
 NEOML_API CLayerWrapper<CCtcLossLayer> CtcLoss( int blankLabel, bool allowBlankLabelSkip,
