@@ -223,7 +223,7 @@ void CIndRnnRecurrentLayer::RunOnce()
 
 	if( IsBackwardPerformed() && dropoutRate > 0 ) {
 		NeoPresume( dropoutMask == nullptr );
-		dropoutMask.reset( new CFloatHandleVar( MathEngine(), batchSize * objectSize ) );
+		dropoutMask = new CFloatHandleVar( MathEngine(), batchSize * objectSize );
 		MathEngine().VectorFillBernoulli( dropoutMask->GetHandle(), 1.f - dropoutRate, batchSize * objectSize,
 			1.f / ( 1.f - dropoutRate ), GetDnn()->Random().Next() );
 	}
@@ -246,7 +246,8 @@ void CIndRnnRecurrentLayer::BackwardOnce()
 		inputDiffBlobs[0]->GetData() );
 
 	if( !IsLearningPerformed() && dropoutMask != nullptr ) {
-		dropoutMask.reset( nullptr );
+		delete dropoutMask;
+		dropoutMask = nullptr;
 	}
 }
 
@@ -264,7 +265,8 @@ void CIndRnnRecurrentLayer::LearnOnce()
 		paramDiffBlobs[0]->GetData() );
 	
 	if( dropoutMask != nullptr ) {
-		dropoutMask.reset( nullptr );
+		delete dropoutMask;
+		dropoutMask = nullptr;
 	}
 }
 
