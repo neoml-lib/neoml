@@ -858,11 +858,9 @@ static void ctcTestImpl( const CTestParams& params, int seed )
 
 TEST_P( CCtcTest, Random )
 {
-	if( MathEngine().GetType() != MET_Cpu && MathEngine().GetType() != MET_Cuda ) {
-		GTEST_SKIP();
+	if( MathEngine().GetType() == MET_Cpu || MathEngine().GetType() == MET_Cuda ) {
+		RUN_TEST_IMPL( ctcTestImpl );
 	}
-
-	RUN_TEST_IMPL( ctcTestImpl );
 }
 
 INSTANTIATE_TEST_CASE_P( CCtcTestInstantiation, CCtcTest,
