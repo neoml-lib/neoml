@@ -16,6 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <cmath>
+
 #include <CpuMathEngine.h>
 #include <CpuMathEnginePrivate.h>
 #include <MemoryHandleInternal.h>

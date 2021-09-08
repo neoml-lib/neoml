@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <memory>
+#include <cmath>
 
 #include <TestFixture.h>
 
