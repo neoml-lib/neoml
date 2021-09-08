@@ -29,6 +29,69 @@ namespace NeoML {
 // Each row of this matrix contains the values that will be affected by the filter on the step equal to the row index
 // Then the convolution consists of multiplying the temporary matrix by the transposed filter
 
+// One thread can write into a temporary matrix row not more than this number of elements
+const int BuildTempMatrixCombine = 16;
+__launch_bounds__(512, 2)
+__global__ void BuildTempMatrixKernel( const CCudaConvolutionDescInternal desc,
+	const float* __restrict__ input, int matrixHeight, int matrixWidth, float* __restrict__ matrix,
+	int matrixWidthNorm, int heightOffset )
+{
+	const int inputChannels = desc.Source.Depth() * desc.Source.Channels();
+	const int filterWidth = desc.Filter.Width();
+	const int outputHeight = desc.Result.Height();
+	const int outputWidth = desc.Result.Width();
+	const int inputHeight = desc.Source.Height();
+	const int inputWidth = desc.Source.Width();
+
+	const int strideHeight = desc.StrideHeight;
+	const int strideWidth = desc.StrideWidth;
+
+	const int paddingHeight = desc.PaddingHeight;
+	const int paddingWidth = desc.PaddingWidth;
+
+	const int dilationHeight = desc.DilationHeight;
+	const int dilationWidth = desc.DilationWidth;
+
+	int matrixRow;
+	int matrixCol;
+
+	GetCudaTaskIndex2D( matrixHeight, matrixWidthNorm, matrixRow, matrixCol );
+	if( matrixRow >= matrixHeight ) {
+		return;
+	}
+
+	int step;
+	int count = GetCudaTaskCountAndIndex( matrixWidth, BuildTempMatrixCombine, matrixCol, step );
+	matrix += matrixRow * matrixWidth + matrixCol;
+	matrixRow += heightOffset;
+
+	const int outCol = matrixRow % outputWidth;
+	const int outRow = ( matrixRow / outputWidth ) % outputHeight;
+	const int batch = matrixRow / ( outputWidth * outputHeight );
+
+	const int inputRowStart = outRow * strideHeight - paddingHeight;
+	const int inputColStart = outCol * strideWidth - paddingWidth;
+
+	for( int i = 0; i < count; ++i ) {
+		const int channel = matrixCol % inputChannels;
+		const int filterGeom = matrixCol / inputChannels;
+		const int filterCol = filterGeom % filterWidth;
+		const int filterRow = filterGeom / filterWidth;
+
+		const int inputRow = inputRowStart + filterRow * dilationHeight;
+		const int inputCol = inputColStart + filterCol * dilationWidth;
+
+		if( inputRow >= 0 && inputRow < inputHeight && inputCol >= 0 && inputCol < inputWidth ) {
+			*matrix = input[( ( batch * inputHeight + inputRow ) * inputWidth + inputCol ) * inputChannels + channel];
+		} else {
+			*matrix = 0.;
+		}
+
+		matrixCol += step;
+		matrix += step;
+	}
+}
+
 // Build the matrix for the forward pass
 __global__ void BuildTempMatrixKernel( const CCudaConvolutionDescInternal desc,
 	const float* __restrict__ sourceData, int resultOffset, int resultSize, float* __restrict__ resultData )

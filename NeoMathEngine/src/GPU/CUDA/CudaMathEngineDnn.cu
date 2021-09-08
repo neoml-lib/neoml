@@ -527,7 +527,6 @@ void CCudaMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int object
 	ASSERT_EXPR( forget.GetMathEngine() == this );
 	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -553,7 +552,6 @@ void CCudaMathEngine::QrnnFPoolingBackward( bool reverse, int sequenceLength, in
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( updateDiff.GetMathEngine() == this );
 	ASSERT_EXPR( forgetDiff.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -577,7 +575,6 @@ void CCudaMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int objec
 	ASSERT_EXPR( input.GetMathEngine() == this );
 	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -605,7 +602,6 @@ void CCudaMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, i
 	ASSERT_EXPR( updateDiff.GetMathEngine() == this );
 	ASSERT_EXPR( forgetDiff.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiff.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;

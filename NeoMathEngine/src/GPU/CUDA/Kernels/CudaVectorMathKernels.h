@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright � 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -124,12 +124,11 @@ __global__ void VectorFillBernoulliKernel( float* result, float p, int vectorSiz
 	}
 }
 
-const int FilterSmallValuesCombineCount = 8;
 __global__ void FilterSmallValuesKernel( float* data, float threshold, int count )
 {
 	int start;
 	int stepSize;
-	int stepCount = GetCudaTaskCountAndIndex( count, FilterSmallValuesCombineCount, start, stepSize );
+	int stepCount = GetCudaTaskCountAndIndex( count, VectorFillCombineCount, start, stepSize );
 
 	data += start;
 

@@ -437,10 +437,10 @@ static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceM
 	result->DeviceId = devProp.pciBusID;
 	result->MemoryLimit = deviceMemoryLimit;
 	result->SharedMemoryLimit = 48 * 1024;
-	result->ThreadMaxCount = min( devProp.maxThreadsPerBlock, devProp.maxThreadsPerMultiProcessor / 2 );
-	result->ThreadMax3DCountX = min( result->ThreadMaxCount, devProp.maxThreadsDim[0] );
-	result->ThreadMax3DCountY = min( result->ThreadMaxCount, devProp.maxThreadsDim[1] );
-	result->ThreadMax3DCountZ = min( result->ThreadMaxCount, devProp.maxThreadsDim[2] );
+	result->ThreadMaxCount = devProp.maxThreadsPerBlock;
+	result->ThreadMax3DCountX = devProp.maxThreadsDim[0];
+	result->ThreadMax3DCountY = devProp.maxThreadsDim[1];
+	result->ThreadMax3DCountZ = devProp.maxThreadsDim[2];
 	result->WarpSize = devProp.warpSize;
 	result->Handle = handle;
 
