@@ -98,41 +98,6 @@ void CCudaMathEngine::setVectorToMatrixElements(
 		GetRaw( vectorHandle ), vectorSize );
 }
 
-void CCudaMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-	const CConstIntHandle& indices, const CConstFloatHandle& vector)
-{
-	ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( indices.GetMathEngine() == this );
-	ASSERT_EXPR( vector.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-
-	int blockCount;
-	int threadCount;
-	getCudaTaskGrid(blockCount, threadCount, height);
-
-	EltwiseLogSumExpVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(GetRaw(matrix),
-		height, width, GetRaw(indices), GetRaw(vector));
-}
-
-void CCudaMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix,
-	int height, int width,
-	const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-	const CConstFloatHandle& vector, int vectorSize)
-{
-	ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
-	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
-	ASSERT_EXPR( vector.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-
-	dim3 blockCount;
-	dim3 threadCount;
-	getCudaTaskGrid2D(blockCount, threadCount, height, width);
-
-	EltwiseLogSumExpVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(GetRaw(matrix), height, width,
-		GetRaw(rowIndices), GetRaw(columnIndices), GetRaw(vector), vectorSize);
-}
-
 void CCudaMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
 	const CConstIntHandle& indices, const CFloatHandle& result, int vectorSize)
 {

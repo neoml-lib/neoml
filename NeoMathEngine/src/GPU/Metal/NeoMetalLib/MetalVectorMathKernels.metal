@@ -2137,46 +2137,6 @@ kernel void vectorKernelEnumBinarizationInt( constant int* batchSize [[buffer(0)
         index += step;
     }
 }
-
-kernel void matrixKernelEltwiseLogSumExpVectorToMatrixElements( device float* matrix [[buffer(0)]],
-                                                                constant int* height [[buffer(1)]],
-                                                                constant int* width [[buffer(2)]],
-                                                                constant int* rowIndices [[buffer(3)]],
-                                                                constant int* columnIndices [[buffer(4)]],
-                                                                constant float* vector [[buffer(5)]],
-                                                                constant int* vectorSize [[buffer(6)]],
-                                                                uint2 thread_position_in_grid [[ thread_position_in_grid ]] )
-{
-    C2DPosition pos( thread_position_in_grid );
-    int row;
-    int column;
-    if( pos.GetMetalTaskIndex2D( *height, *width, row, column ) ) {
-        device float& data = matrix[row * *width + column];
-        for( int i = 0; i < *vectorSize; i++ ) {
-            if( rowIndices[i] == row && columnIndices[i] == column ) {
-                data = LogSumExpFunc( vector[i], data );
-            }
-        }
-    }
-}
-    
-kernel void vectorKernelEltwiseLogSumExpVectorToMatrixElements( device float* matrix [[buffer(0)]],
-                                                                constant int* height [[buffer(1)]],
-                                                                constant int* width [[buffer(2)]],
-                                                                constant int* indices [[buffer(3)]],
-                                                                constant float* vector [[buffer(4)]],
-                                                                uint thread_position_in_grid [[ thread_position_in_grid ]] )
-{
-    C1DPosition pos( thread_position_in_grid );
-    int jPos;
-    if( pos.GetMetalTaskIndex( *height, jPos ) ) {
-        int index = indices[jPos];
-        if( index >= 0 && index < *width ) {
-            device float& elem = matrix[jPos * *width + index];
-            elem = LogSumExpFunc( vector[jPos], elem );
-        }
-    }
-}
     
 kernel void matrixKernelLookupAndAddToTable( constant int* indices [[buffer(0)]],
                                              constant int* batchSize [[buffer(1)]],

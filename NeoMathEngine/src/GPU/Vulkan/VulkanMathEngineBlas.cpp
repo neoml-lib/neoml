@@ -380,18 +380,6 @@ void CVulkanMathEngine::AddVectorToMatrixElements( const CFloatHandle&, int, int
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::EltwiseLogSumExpVectorToMatrixElements( const CFloatHandle&, int, int, const CConstIntHandle&,
-	const CConstFloatHandle& )
-{
-	ASSERT_EXPR( false );
-}
-
-void CVulkanMathEngine::EltwiseLogSumExpVectorToMatrixElements( const CFloatHandle&, int, int,
-	const CConstIntHandle&, const CConstIntHandle&, const CConstFloatHandle&, int )
-{
-	ASSERT_EXPR( false );
-}
-
 void CVulkanMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
 	const CConstIntHandle& indices, const CFloatHandle& result, int vectorSize)
 {

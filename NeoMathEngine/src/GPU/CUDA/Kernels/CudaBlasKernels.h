@@ -82,40 +82,6 @@ __global__ void SetVectorToMatrixElementsKernel(
 	}
 }
 
-__global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int height, int width,
-	const int* __restrict__ indices, const float* __restrict__ vector )
-{
-	int jPos;
-	if( GetCudaTaskIndex( height, jPos ) ) {
-		int index = indices[jPos];
-		if( index >= 0 && index < width ) {
-			float& elem = matrix[jPos * width + index];
-			elem = LogSumExpFunc( vector[jPos], elem );
-		}
-	}
-}
-
-__global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int height, int width,
-	const int* __restrict__ rowIndices, const int* __restrict__ columnIndices,
-	const float* __restrict__ vector, int vectorSize )
-{
-	int row;
-	int col;
-	if( !GetCudaTaskIndex2D( height, width, row, col ) ) {
-		return;
-	}
-
-	float& data = matrix[row * width + col];
-
-	// Iterate through the array looking for the needed coordinates
-	// No parallel processing of a vector because the indices may be the same
-	for( int i = 0; i < vectorSize; ++i ) {
-		if( rowIndices[i] == row && columnIndices[i] == col ) {
-			data = LogSumExpFunc( vector[i], data );
-		}
-	}
-}
-
 const int AddMatrixElementsToVectorCombine = 4;
 __global__ void AddMatrixElementsToVectorKernel( const float* __restrict__ matrix, int height, int width,
 	const int* __restrict__ indices, float* result )

@@ -304,26 +304,6 @@ void CMetalMathEngine::AddMatrixElementsToMatrix(const CConstFloatHandle& matrix
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-	const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-	const CConstFloatHandle& vector, int vectorSize)
-{
-    ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
-	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
-	ASSERT_EXPR( vector.GetMathEngine() == this ); 
-
-    C2DKernel kernel( *queue, "matrixKernelEltwiseLogSumExpVectorToMatrixElements", 1, 1, height, width );
-    kernel.SetParam( matrix, 0 );
-    kernel.SetParam( height, 1 );
-    kernel.SetParam( width, 2 );
-    kernel.SetParam( rowIndices, 3 );
-    kernel.SetParam( columnIndices, 4 );
-    kernel.SetParam( vector, 5 );
-    kernel.SetParam( vectorSize, 6 );
-    ASSERT_EXPR( kernel.Run() );
-}
-
 void CMetalMathEngine::BitSetBinarization(int batchSize, int bitSetSize,
     const CConstIntHandle& inputHandle, int outputVectorSize, const CFloatHandle& resultHandle)
 {

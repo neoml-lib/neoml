@@ -249,6 +249,51 @@ static void setVectorToMatrixElements( const CFloatHandle& matrixHandle, int hei
 	mathEngine.DataExchangeTyped<float>( matrixHandle, matrix.GetPtr(), height * width );
 }
 
+// LogSumExp for two inputs
+static inline float LogSumExpFunc(float f, float s)
+{
+	if(f >= s) {
+		return f + log1pf(expf(s - f));
+	} else {
+		return s + log1pf(expf(f - s));
+	}
+}
+
+static void eltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrixHandle, int height, int width,
+	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
+	const CConstFloatHandle& vectorHandle, int vectorSize)
+{
+	IMathEngine& mathEngine = *matrixHandle.GetMathEngine();
+
+	CArray<float> matrix;
+	matrix.SetSize( height * width );
+	mathEngine.DataExchangeTyped<float>( matrix.GetPtr(), matrixHandle, height * width );
+
+	CArray<int> rowIndices;
+	rowIndices.SetSize( vectorSize );
+	mathEngine.DataExchangeTyped<int>( rowIndices.GetPtr(), rowIndicesHandle, vectorSize );
+
+	CArray<int> columnIndices;
+	columnIndices.SetSize( vectorSize );
+	mathEngine.DataExchangeTyped<int>( columnIndices.GetPtr(), columnIndicesHandle, vectorSize );
+
+	CArray<float> vector;
+	vector.SetSize( vectorSize );
+	mathEngine.DataExchangeTyped<float>( vector.GetPtr(), vectorHandle, vectorSize );
+
+	for(int i = 0; i < vectorSize; i++) {
+		const int rowIndex = rowIndices[i];
+		const int columnIndex = columnIndices[i];
+		if(rowIndex >= 0 && rowIndex < height &&
+			columnIndex >= 0 && columnIndex < width) {
+			const int matrixIndex = rowIndex * width + columnIndex;
+			matrix[matrixIndex] = LogSumExpFunc(vector[i], matrix[matrixIndex]);
+		}
+	}
+
+	mathEngine.DataExchangeTyped<float>( matrixHandle, matrix.GetPtr(), height * width );
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // CCtcLossNaiveLayer
 
@@ -560,7 +605,7 @@ void CCtcLossNaiveLayer::calculateGradient(CFloatHandle totalLogProb)
 			matrixLogSumExpByColumns( *logAlphaBeta, logAlphaBeta->GetBatchWidth(), logAlphaBeta->GetObjectSize(), totalLogProb );
 		}
 
-		MathEngine().EltwiseLogSumExpVectorToMatrixElements(probSum->GetData(),
+		eltwiseLogSumExpVectorToMatrixElements(probSum->GetData(),
 			probSum->GetBatchWidth(), probSum->GetObjectSize(),
 			rowIndices->GetData<int>(), paddedLabels->GetData<int>(), 
 			logAlphaBeta->GetData(), logAlphaBeta->GetDataSize());

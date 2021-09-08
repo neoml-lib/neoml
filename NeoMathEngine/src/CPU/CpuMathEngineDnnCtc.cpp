@@ -22,6 +22,36 @@ limitations under the License.
 
 namespace NeoML {
 
+// LogSumExp for two inputs
+static inline float LogSumExpFunc(float f, float s)
+{
+	if(f >= s) {
+		return f + log1pf(expf(s - f));
+	} else {
+		return s + log1pf(expf(f - s));
+	}
+}
+
+static void eltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrixHandle, int height, int width,
+	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
+	const CConstFloatHandle& vectorHandle, int vectorSize)
+{
+	float* matrix = GetRaw(matrixHandle);
+	const int* rowIndices = GetRaw(rowIndicesHandle);
+	const int* columnIndices = GetRaw(columnIndicesHandle);
+	const float* vector = GetRaw(vectorHandle);
+
+	for(int i = 0; i < vectorSize; i++) {
+		const int rowIndex = rowIndices[i];
+		const int columnIndex = columnIndices[i];
+		if(rowIndex >= 0 && rowIndex < height &&
+			columnIndex >= 0 && columnIndex < width) {
+			const int matrixIndex = rowIndex * width + columnIndex;
+			matrix[matrixIndex] = LogSumExpFunc(vector[i], matrix[matrixIndex]);
+		}
+	}
+}
+
 static const float logZero = -FLT_MAX / 4;
 
 // Fills a matrix with the two-dimensional arithmetic progression values:
@@ -152,7 +182,7 @@ static void calcGradient( int resultLen, int batchSize, int classCount, int padL
 			matrixLogSumExpByColumns( logAlphaBeta, U, batchSize, totalLogProb, batchSize );
 		}
 
-		mathEngine.EltwiseLogSumExpVectorToMatrixElements( probSum, batchSize, classCount,
+		eltwiseLogSumExpVectorToMatrixElements( probSum, batchSize, classCount,
 			rowIndices, padLabels, logAlphaBeta, U * batchSize );
 		mathEngine.SubVectorFromMatrixColumns( probSum, probSum, batchSize, classCount, totalLogProb );
 		mathEngine.VectorExp( probSum, probSum, batchSize * classCount );

@@ -169,22 +169,6 @@ void CMetalMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrix, int
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-	const CConstIntHandle& indices, const CConstFloatHandle& vector)
-{
-    ASSERT_EXPR( matrix.GetMathEngine() == this );
-    ASSERT_EXPR( indices.GetMathEngine() == this );
-    ASSERT_EXPR( vector.GetMathEngine() == this );
-
-    C1DKernel kernel( *queue, "vectorKernelEltwiseLogSumExpVectorToMatrixElements", 1, height );
-    kernel.SetParam( matrix, 0 );
-    kernel.SetParam( height, 1 );
-    kernel.SetParam( width, 2 );
-    kernel.SetParam( indices, 3 );
-    kernel.SetParam( vector, 4 );
-    ASSERT_EXPR( kernel.Run() );
-}
-
 void CMetalMathEngine::FilterSmallValues(const CFloatHandle& data, int dataSize, float threshold)
 {
     ASSERT_EXPR( data.GetMathEngine() == this );

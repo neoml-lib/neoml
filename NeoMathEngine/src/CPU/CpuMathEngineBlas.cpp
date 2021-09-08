@@ -24,16 +24,6 @@ limitations under the License.
 
 namespace NeoML {
 
-// LogSumExp for two inputs
-inline float LogSumExpFunc(float f, float s)
-{
-	if(f >= s) {
-		return f + log1pf(expf(s - f));
-	} else {
-		return s + log1pf(expf(f - s));
-	}
-}
-
 static void subVectorFromMatrixRows(CCpuMathEngine* engine, const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle)
 {
@@ -675,45 +665,6 @@ void CCpuMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrixHandle,
 
 	for(int i = 0; i < vectorSize; ++i) {
 		matrix[rowIndices[i] * width + columnIndices[i]] += vector[i];
-	}
-}
-
-void CCpuMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrixHandle, int height, int width,
-	const CConstIntHandle& indicesHandle, const CConstFloatHandle& vectorHandle)
-{
-	float* matrix = GetRaw(matrixHandle);
-	const int* indices = GetRaw(indicesHandle);
-	const float* vector = GetRaw(vectorHandle);
-
-	for(int j = 0; j < height; ++j) {
-		int index = *indices++;
-		if(index < 0 || index >= width) {
-			++vector;
-		} else {
-			matrix[index] = LogSumExpFunc(*vector++, matrix[index]);
-		}
-		matrix += width;
-	}
-}
-
-void CCpuMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrixHandle,
-	int height, int width,
-	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-	const CConstFloatHandle& vectorHandle, int vectorSize)
-{
-	float* matrix = GetRaw(matrixHandle);
-	const int* rowIndices = GetRaw(rowIndicesHandle);
-	const int* columnIndices = GetRaw(columnIndicesHandle);
-	const float* vector = GetRaw(vectorHandle);
-
-	for(int i = 0; i < vectorSize; i++) {
-		const int rowIndex = rowIndices[i];
-		const int columnIndex = columnIndices[i];
-		if(rowIndex >= 0 && rowIndex < height &&
-			columnIndex >= 0 && columnIndex < width) {
-			const int matrixIndex = rowIndex * width + columnIndex;
-			matrix[matrixIndex] = LogSumExpFunc(vector[i], matrix[matrixIndex]);
-		}
 	}
 }
 

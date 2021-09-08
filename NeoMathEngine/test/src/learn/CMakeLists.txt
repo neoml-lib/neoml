@@ -24,7 +24,6 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobTimeConvolutionBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobTimeConvolutionLearnAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BuildIntegerHistTest.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/EltwiseLogSumExpVectorToMatrixElementsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FilterSmallValuesTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMinValueInColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnBackwardTest.cpp
