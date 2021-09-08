@@ -947,18 +947,6 @@ void CVulkanMathEngine::VectorSumAdd( const CConstFloatHandle& firstHandle, int 
 	runVectorShader(shaderData, &param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, shaderData.GetGroupSize());
 }
 
-void CVulkanMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle)
-{
-	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
-	size_t sizes[2] = { vectorSize * sizeof(float), sizeof(float) };
-
-	PARAM_STRUCT(VectorSum) param = { 0, 1 };
-
-	const CVulkanShaderData& shaderData = shaderLoader->GET_SHADER_DATA(VectorSum, true, 0, 0, 2);
-
-	runVectorShader(shaderData, &param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, shaderData.GetGroupSize());
-}
-
 void CVulkanMathEngine::VectorSumAlongDimension( const CConstFloatHandle&, int, int, int, const CFloatHandle& )
 {
 	ASSERT_EXPR(false);

@@ -229,24 +229,6 @@ void CMetalMathEngine::VectorSumAdd(const CConstFloatHandle& firstHandle, int ve
     ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
 }
 
-void CMetalMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle)
-{
-    ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-    ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-    VectorFill( resultHandle, 0.0, vectorSize );
-    
-    C1DKernel kernel( *queue, "vectorKernelSum", 1, vectorSize );
-    kernel.SetParam( firstHandle, 0 );
-    kernel.SetParam( vectorSize, 1 );
-    kernel.SetParam( 1, 2 );
-    kernel.SetParam( resultHandle, 3 );
-    kernel.SetSharedParam( kernel.GetThreadCount() * sizeof(float), 4 );
-
-    // threadgroupCount.width = 1
-    ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
-}
-
 void CMetalMathEngine::VectorSumAlongDimension( const CConstFloatHandle&, int, int, int, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );

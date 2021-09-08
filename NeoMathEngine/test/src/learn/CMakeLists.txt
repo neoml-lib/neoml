@@ -63,7 +63,6 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorMultichannelLookupAndAddToTableTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorMultiplyAndSubTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorNegMultiplyTest.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/VectorNegSumTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorReLUDiffOpTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorSpreadValuesTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorSquaredHingeDiffTest.cpp
