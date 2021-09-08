@@ -527,6 +527,7 @@ void CCudaMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int object
 	ASSERT_EXPR( forget.GetMathEngine() == this );
 	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -552,6 +553,7 @@ void CCudaMathEngine::QrnnFPoolingBackward( bool reverse, int sequenceLength, in
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( updateDiff.GetMathEngine() == this );
 	ASSERT_EXPR( forgetDiff.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -575,6 +577,7 @@ void CCudaMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int objec
 	ASSERT_EXPR( input.GetMathEngine() == this );
 	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -602,6 +605,7 @@ void CCudaMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, i
 	ASSERT_EXPR( updateDiff.GetMathEngine() == this );
 	ASSERT_EXPR( forgetDiff.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiff.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -626,6 +630,7 @@ void CCudaMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int bat
 	ASSERT_EXPR( u.GetMathEngine() == this );
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -649,6 +654,7 @@ void CCudaMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength,
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( wxDiff.GetMathEngine() == this );
 	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -673,6 +679,7 @@ void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, in
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( uDiff.GetMathEngine() == this );
 	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
