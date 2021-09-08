@@ -23,7 +23,6 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnBlobTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSolverTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CtcTest.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnPerfTest.cpp
 )
 
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
