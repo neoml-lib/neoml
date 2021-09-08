@@ -449,26 +449,6 @@ void CMetalMathEngine::SetVectorToMatrixRows(const CFloatHandle& resultHandle,
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::SetVectorToMatrixElements( const CFloatHandle& matrixHandle, int height, int width,
-    const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-    const CConstFloatHandle& vectorHandle, int vectorSize )
-{
-    ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
-	ASSERT_EXPR( rowIndicesHandle.GetMathEngine() == this );
-	ASSERT_EXPR( columnIndicesHandle.GetMathEngine() == this );
-	ASSERT_EXPR( vectorHandle.GetMathEngine() == this ); 
-
-    C1DKernel kernel( *queue, "vectorKernelSetVectorToMatrixElements", 4, vectorSize );
-    kernel.SetParam( matrixHandle, 0 );
-    kernel.SetParam( height, 1 );
-    kernel.SetParam( width, 2 );
-    kernel.SetParam( rowIndicesHandle, 3 );
-    kernel.SetParam( columnIndicesHandle, 4 );
-    kernel.SetParam( vectorHandle, 5 );
-    kernel.SetParam( vectorSize, 6 );
-    ASSERT_EXPR( kernel.Run() );
-}
-
 void CMetalMathEngine::AddVectorToMatrixColumns( const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle )
 {

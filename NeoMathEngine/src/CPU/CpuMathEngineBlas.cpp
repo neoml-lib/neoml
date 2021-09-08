@@ -404,22 +404,6 @@ void CCpuMathEngine::findMaxValueInColumns( float* resultHandle, const float* ma
 	}
 }
 
-// Sets the matrix elements to the values from a vector: matrix[rowIndices[i], columnIndices[i]] = vector[i].
-void CCpuMathEngine::SetVectorToMatrixElements(
-	const CFloatHandle& matrixHandle, int /*height*/, int width,
-	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-	const CConstFloatHandle& vectorHandle, int vectorSize )
-{
-	float* matrix = GetRaw( matrixHandle );
-	const int* rowIndices = GetRaw( rowIndicesHandle );
-	const int* columnIndices = GetRaw( columnIndicesHandle );
-	const float* vector = GetRaw( vectorHandle );
-
-	for( int i = 0; i < vectorSize; i++ ) {
-		matrix[rowIndices[i] * width + columnIndices[i]] = vector[i];
-	}
-}
-
 void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 	const CFloatHandle& outputHandle, int /*outputChannels*/ )

@@ -76,7 +76,7 @@ void CCudaMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrixHandle
 }
 
 // Assigns the values: matrix[rowIndices[i], columnIndices[i]] = vector[i].
-void CCudaMathEngine::SetVectorToMatrixElements(
+void CCudaMathEngine::setVectorToMatrixElements(
 	const CFloatHandle& matrixHandle, int height, int width,
 	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
 	const CConstFloatHandle& vectorHandle, int vectorSize )

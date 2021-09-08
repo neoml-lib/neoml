@@ -241,10 +241,6 @@ public:
 	void AddVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
 		const CConstFloatHandle& vector, int vectorSize) override;
-	void SetVectorToMatrixElements(
-		const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize ) override;
 	void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& indices, const CConstFloatHandle& vector) override;
 	void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
@@ -607,6 +603,9 @@ private:
 		const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize );
 	
+	void setVectorToMatrixElements( const CFloatHandle& matrix, int height, int width,
+		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
+		const CConstFloatHandle& vector, int vectorSize );
 	void ctcFillPadding( int maxSeqLen, int batchSize, int classCount,
 		const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle );
 	void ctcCalcForwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,

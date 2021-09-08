@@ -156,29 +156,6 @@ kernel void matrixKernelSetVectorToMatrixRows( device float* result [[buffer(0)]
 	}
 }
 
-kernel void vectorKernelSetVectorToMatrixElements( device float* matrix [[buffer(0)]],
-                                             constant int* height [[buffer(1)]],
-                                             constant int* width [[buffer(2)]],
-                                             constant int* rowIndices [[buffer(3)]],
-                                             constant int* columnIndices [[buffer(4)]],
-                                             constant float* vector [[buffer(5)]],
-                                             constant int* vectorSize [[buffer(6)]],
-                                             uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
-                                             uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
-                                             uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]]  )
-{
-    C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
-    
-    int index;
-    int step;
-    int count = pos.GetMetalTaskCountAndIndex( *vectorSize, 4, index, step );
-    
-    for( int i = 0; i < count; ++i ) {
-        matrix[rowIndices[index] * *width + columnIndices[index]] = vector[index];
-        index += step;
-    }
-}
-
 kernel void matrixKernelAddVectorToMatrixColumnsFloat( constant float* matrix [[buffer(0)]],
                                                        device float* result [[buffer(1)]],
                                                        constant int* matrixHeight [[buffer(2)]],

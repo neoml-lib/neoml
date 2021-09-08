@@ -220,6 +220,35 @@ static void vectorEltwiseLogSumExp( const CConstFloatHandle& firstHandle, const 
 	mathEngine.DataExchangeTyped<float>( resultHandle, result.GetPtr(), vectorSize );
 }
 
+static void setVectorToMatrixElements( const CFloatHandle& matrixHandle, int height, int width,
+	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
+	const CConstFloatHandle& vectorHandle, int vectorSize )
+{
+	IMathEngine& mathEngine = *matrixHandle.GetMathEngine();
+
+	CArray<float> matrix;
+	matrix.SetSize( height * width );
+	mathEngine.DataExchangeTyped<float>( matrix.GetPtr(), matrixHandle, height * width );
+
+	CArray<int> rowIndices;
+	rowIndices.SetSize( vectorSize );
+	mathEngine.DataExchangeTyped<int>( rowIndices.GetPtr(), rowIndicesHandle, vectorSize );
+
+	CArray<int> columnIndices;
+	columnIndices.SetSize( vectorSize );
+	mathEngine.DataExchangeTyped<int>( columnIndices.GetPtr(), columnIndicesHandle, vectorSize );
+
+	CArray<float> vector;
+	vector.SetSize( vectorSize );
+	mathEngine.DataExchangeTyped<float>( vector.GetPtr(), vectorHandle, vectorSize );
+
+	for( int i = 0; i < vectorSize; i++ ) {
+		matrix[rowIndices[i] * width + columnIndices[i]] = vector[i];
+	}
+
+	mathEngine.DataExchangeTyped<float>( matrixHandle, matrix.GetPtr(), height * width );
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // CCtcLossNaiveLayer
 
@@ -452,7 +481,7 @@ void CCtcLossNaiveLayer::calculateBackwardVariables( CDnnBlob* labelsLengths, CD
 		MathEngine().VectorAdd(
 			labelsLengths->GetData<int>(), labelsLengths->GetData<int>(),
 			endOfLabelPosition->GetData<int>(), batchWidth );
-		MathEngine().SetVectorToMatrixElements(
+		setVectorToMatrixElements(
 			logBetaWindow->GetData(), U, batchWidth,
 			endOfLabelPosition->GetData<int>(), endOfLabelSample->GetData<int>(),
 			batchOfZeros->GetData(), batchWidth );
@@ -470,7 +499,7 @@ void CCtcLossNaiveLayer::calculateBackwardVariables( CDnnBlob* labelsLengths, CD
 			MathEngine().VectorAdd( endOfLabelPosition->GetData<int>(), addition->GetData<int>(), 
 				endOfLabelPosition->GetData<int>(), batchWidth );
 		}
-		MathEngine().SetVectorToMatrixElements(
+		setVectorToMatrixElements(
 			logBetaWindow->GetData(), U, batchWidth,
 			endOfLabelPosition->GetData<int>(), endOfLabelSample->GetData<int>(),
 			batchOfZeros->GetData(), batchWidth );

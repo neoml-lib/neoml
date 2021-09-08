@@ -206,7 +206,7 @@ void CCudaMathEngine::ctcCalcBackwardVariables( int resultLen, int batchSize, in
 		CFloatHandleStackVar batchOfZeros( *this, batchSize );
 		VectorFill( batchOfZeros, 0.f, batchSize );
 
-		SetVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
+		setVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
 			batchOfZeros, batchSize );
 		CIntHandleStackVar minusOneInt( *this );
 		minusOneInt.SetValue( -1 );
@@ -224,7 +224,7 @@ void CCudaMathEngine::ctcCalcBackwardVariables( int resultLen, int batchSize, in
 			DataExchangeTyped( addition.GetHandle(), buffer.data(), batchSize );
 			VectorAdd( endOfLabelPos, addition, endOfLabelPos, batchSize );
 		}
-		SetVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
+		setVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
 			batchOfZeros, batchSize );
 	}
 

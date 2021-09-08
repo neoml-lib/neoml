@@ -245,10 +245,6 @@ public:
 	void AddVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
 		const CConstFloatHandle& vector, int vectorSize) override;
-	void SetVectorToMatrixElements(
-		const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize ) override;
 	void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& indices, const CConstFloatHandle& vector) override;
 	void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,

@@ -273,6 +273,21 @@ void CCpuMathEngine::ctcCalcForwardVariables( int resultLen, int batchSize, int 
 	}
 }
 
+// Sets the matrix elements to the values from a vector: matrix[rowIndices[i], columnIndices[i]] = vector[i].
+static void setVectorToMatrixElements( const CFloatHandle& matrixHandle, int /*height*/, int width,
+	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
+	const CConstFloatHandle& vectorHandle, int vectorSize )
+{
+	float* matrix = GetRaw( matrixHandle );
+	const int* rowIndices = GetRaw( rowIndicesHandle );
+	const int* columnIndices = GetRaw( columnIndicesHandle );
+	const float* vector = GetRaw( vectorHandle );
+
+	for( int i = 0; i < vectorSize; i++ ) {
+		matrix[rowIndices[i] * width + columnIndices[i]] = vector[i];
+	}
+}
+
 // Calculates the logarithms of suffixes probability logBeta on a backward pass
 // The difference in calculating logAlpha[t] and logBeta[t] stems from the fact
 // that logAlpha[t] + logBeta[t] must be equal to the logarithm of probability of recognizing the sequence
@@ -306,7 +321,7 @@ void CCpuMathEngine::ctcCalcBackwardVariables( int resultLen, int batchSize, int
 		CFloatHandleStackVar batchOfZeros( *this, batchSize );
 		VectorFill( batchOfZeros, 0.f, batchSize );
 
-		SetVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
+		setVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
 			batchOfZeros, batchSize );
 		CIntHandleStackVar minusOneInt( *this );
 		minusOneInt.SetValue( -1 );
@@ -324,7 +339,7 @@ void CCpuMathEngine::ctcCalcBackwardVariables( int resultLen, int batchSize, int
 			DataExchangeTyped( addition.GetHandle(), buffer.data(), batchSize );
 			VectorAdd( endOfLabelPos, addition, endOfLabelPos, batchSize );
 		}
-		SetVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
+		setVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
 			batchOfZeros, batchSize );
 	}
 

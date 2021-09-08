@@ -351,11 +351,6 @@ public:
 	virtual void AddVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
 		const CConstFloatHandle& vector, int vectorSize) = 0;
-	// Assigns the values: matrix[rowIndices[i], columnIndices[i]] = vector[i].
-	virtual void SetVectorToMatrixElements(
-		const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize ) = 0;
 	// Elementwise LogSumExp of vector elements with matrix elements (the indices of matrix elements in the rows are specified)
 	virtual void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& indices, const CConstFloatHandle& vector) = 0;

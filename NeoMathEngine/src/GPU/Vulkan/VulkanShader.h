@@ -141,7 +141,6 @@ enum TShader {
 	SH_RowMultiplyMatrixByMatrix,
 	SH_VectorEqual,
 	SH_VectorToImage,
-	SH_SetVectorToMatrixElements,
 	SH_LookupAndSum,
 	SH_Upsampling2DForwardInt,
 	SH_Upsampling2DForwardFloat,
