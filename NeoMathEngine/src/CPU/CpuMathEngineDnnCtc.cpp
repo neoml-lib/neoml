@@ -59,127 +59,6 @@ static void calcBlankSkipMask( int padLabelLen, int batchSize, const CConstIntHa
 	mathEngine.VectorMultiply( blankSkipMask, blankSkipMask, padLabelLen * batchSize, logZeroVar );
 }
 
-// Calculates the logarithms of prefix probabilities logAlpha on a forward pass
-static void calcForwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
-	const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
-	const CConstFloatHandle& resultLogProb, const CFloatHandle& logAlpha )
-{
-	IMathEngine& mathEngine = *padLabels.GetMathEngine();
-	const int T = resultLen;
-	const int U = padLabelLen;
-
-	// The sequence may start with a space or with the first element
-	mathEngine.VectorFill( logAlpha, 0.f, batchSize * 2 );
-	mathEngine.VectorFill( logAlpha + batchSize * 2, logZero, batchSize * ( U - 2 ) );
-	// Add the logarithm of probability of label recognition
-	mathEngine.AddMatrixElementsToVector( resultLogProb, batchSize, classCount, rowIndices, padLabels,
-		logAlpha, U * batchSize );
-
-	// Align the result sequence T elements long with the labels and spaces sequence U elements long
-	CFloatHandleStackVar logAlphaShift2Buffer( mathEngine, U * batchSize );
-	for( int t = 1; t < T; ++t ) {
-		CConstFloatHandle resultLogProbWindow = resultLogProb + t * batchSize * classCount;
-		CFloatHandle logAlphaWindow = logAlpha + t * U * batchSize;
-		CFloatHandle logAlphaPrevWindow = logAlpha + ( t - 1 ) * U * batchSize;
-		// Add up the alternative pairings after the previous moment in time
-		mathEngine.VectorCopy( logAlphaWindow, logAlphaPrevWindow, batchSize );
-		mathEngine.VectorEltwiseLogSumExp( logAlphaPrevWindow,
-			logAlphaPrevWindow + batchSize, logAlphaWindow + batchSize,
-			batchSize * ( U - 1 ) );
-
-		if( skipBlanks ) {
-			// If label[i] != blank and label[i] != label[i-2], the labels may be put together with no space:
-			// label[i-2];label[i] -> label[i-2];blank;label[i]
-			mathEngine.VectorAdd( logAlphaPrevWindow, blankSkipMask, logAlphaShift2Buffer, batchSize * ( U - 2 ) );
-			mathEngine.VectorEltwiseLogSumExp( logAlphaWindow + batchSize * 2, logAlphaShift2Buffer,
-				logAlphaWindow + batchSize * 2, batchSize * ( U - 2 ) );
-		}
-		
-		// Add the logarithm of probability of label recognition
-		mathEngine.AddMatrixElementsToVector( resultLogProbWindow, batchSize, classCount,
-			rowIndices, padLabels, logAlphaWindow, batchSize * U );
-	}
-}
-
-// Calculates the logarithms of suffixes probability logBeta on a backward pass
-// The difference in calculating logAlpha[t] and logBeta[t] stems from the fact
-// that logAlpha[t] + logBeta[t] must be equal to the logarithm of probability of recognizing the sequence
-static void calcBackwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
-	const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
-	const CConstFloatHandle& resultLogProb, const CConstIntHandle& resultLens, const CConstIntHandle& labelLens,
-	const CFloatHandle& logBeta )
-{
-	IMathEngine& mathEngine = *padLabels.GetMathEngine();
-	const int T = resultLen;
-	const int U = padLabelLen;
-
-	// Initialize
-	CConstFloatHandle resultLogProbWindow = resultLogProb + ( T - 1 ) * batchSize * classCount;
-	CFloatHandle logBetaWindow = logBeta + ( T - 1 ) * U * batchSize;
-
-	// The sequence may end either with a space or with the actual last element
-	// Therefore logBetaWindow is filled with logZero everywhere except two positions per sample
-	// which should be filled with zero
-	mathEngine.VectorFill( logBetaWindow, logZero, U * batchSize );
-	if( labelLens.IsNull() ) {
-		// Fixed length. Fill the two last positions with zero
-		mathEngine.VectorFill( logBetaWindow + ( U - 2 ) * batchSize, 0.f, batchSize * 2 );
-	} else {
-		// Varying length. Fill the (2 * labelsLengths[j]) and (2 * labelsLengths[j] - 1) positions with zero
-		CIntHandleStackVar endOfLabelPos( mathEngine, batchSize );
-		mathEngine.VectorAdd( labelLens, labelLens, endOfLabelPos, batchSize );
-
-		CIntHandleStackVar endOfLabelSample( mathEngine, batchSize );
-		vectorFillLinear( endOfLabelSample, batchSize, 0, 1 );
-
-		CFloatHandleStackVar batchOfZeros( mathEngine, batchSize );
-		mathEngine.VectorFill( batchOfZeros, 0.f, batchSize );
-		
-		mathEngine.SetVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
-			batchOfZeros, batchSize );
-		CIntHandleStackVar minusOneInt( mathEngine );
-		minusOneInt.SetValue( -1 );
-		mathEngine.VectorAddValue( endOfLabelPos, endOfLabelPos, batchSize, minusOneInt );
-		
-		if( !resultLens.IsNull() ) {
-			std::vector<int> buffer;
-			buffer.resize( batchSize );
-			CIntHandleStackVar addition( mathEngine, batchSize );
-			mathEngine.VectorCopy( addition, resultLens, batchSize );
-			mathEngine.DataExchangeTyped( buffer.data(), resultLens, batchSize );
-			for( size_t i = 0; i < buffer.size(); ++i ) {
-				buffer[i] = ( buffer[i] < T ) ? 1 : 0;
-			}
-			mathEngine.DataExchangeTyped( addition.GetHandle(), buffer.data(), batchSize );
-			mathEngine.VectorAdd( endOfLabelPos, addition, endOfLabelPos, batchSize );
-		}
-		mathEngine.SetVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
-			batchOfZeros, batchSize );
-	}
-
-	CFloatHandleStackVar logBetaWindowBuffer( mathEngine, U * batchSize );
-	for( int t = T - 2; t >= 0; --t ) {
-		resultLogProbWindow = resultLogProb + ( t + 1 ) * batchSize * classCount;
-		mathEngine.VectorCopy( logBetaWindowBuffer, logBeta + ( t + 1 ) * U * batchSize, U * batchSize );
-		logBetaWindow = logBeta + t * U * batchSize;
-
-		// Add the logarithm of probability of label recognition
-		mathEngine.AddMatrixElementsToVector( resultLogProbWindow, batchSize, classCount, rowIndices, padLabels,
-			logBetaWindowBuffer, U * batchSize );
-		// Add up the alternative pairings after the previous moment in time
-		mathEngine.VectorEltwiseLogSumExp( logBetaWindowBuffer, logBetaWindowBuffer + batchSize,
-			logBetaWindow, batchSize * ( U - 1 ) );
-		if( skipBlanks ) {
-			// If label[i] != blank and label[i] != label[i+2], the labels may be put together with no space:
-			// label[i];label[i+2] -> label[i];blank;label[i+2]
-			CFloatHandleStackVar logBetaShift2Buffer( mathEngine, ( U - 2 ) * batchSize );
-			mathEngine.VectorAdd( logBetaWindowBuffer + 2 * batchSize, blankSkipMask, logBetaShift2Buffer, batchSize * ( U - 2 ) );
-			mathEngine.VectorEltwiseLogSumExp( logBetaWindow, logBetaShift2Buffer, logBetaWindow, batchSize * ( U - 2) );
-		}
-		mathEngine.VectorCopy( logBetaWindow + batchSize * ( U - 1 ), logBetaWindowBuffer + batchSize * ( U - 1 ), batchSize );
-	}
-}
-
 static void fillPadding( int maxSeqLen, int batchSize, int classCount, int blankLabel,
 	const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle )
 {
@@ -329,10 +208,10 @@ void CCpuMathEngine::CtcLossForward( int resultLen, int batchSize, int classCoun
 	matrixFillLinear( rowIndices, padLabelLen, batchSize, 0, 0, 1 );
 
 	CFloatHandleStackVar logAlpha( *this, resultLen * padLabelLen * batchSize );
-	calcForwardVariables( resultLen, batchSize, classCount, padLabelLen, skipBlanks, rowIndices,
+	ctcCalcForwardVariables( resultLen, batchSize, classCount, padLabelLen, skipBlanks, rowIndices,
 		padLabels, blankSkipMask, resultLogProb, logAlpha );
 	CFloatHandleStackVar logBeta( *this, resultLen * padLabelLen * batchSize );
-	calcBackwardVariables( resultLen, batchSize, classCount, padLabelLen, skipBlanks, rowIndices,
+	ctcCalcBackwardVariables( resultLen, batchSize, classCount, padLabelLen, skipBlanks, rowIndices,
 		padLabels, blankSkipMask, resultLogProb, resultLens, labelLens, logBeta );
 
 	CFloatHandleStackVar totalLogProb( *this, batchSize );
@@ -350,6 +229,125 @@ void CCpuMathEngine::CtcLossForward( int resultLen, int batchSize, int classCoun
 	if( !lossGradient.IsNull() ) {
 		calcGradient( resultLen, batchSize, classCount, padLabelLen, skipBlanks, resultProb,
 			logAlpha, logBeta, rowIndices, padLabels, resultLens, totalLogProb, lossGradient );
+	}
+}
+
+// Calculates the logarithms of prefix probabilities logAlpha on a forward pass
+void CCpuMathEngine::ctcCalcForwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+	const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
+	const CConstFloatHandle& resultLogProb, const CFloatHandle& logAlpha )
+{
+	IMathEngine& mathEngine = *padLabels.GetMathEngine();
+	const int T = resultLen;
+	const int U = padLabelLen;
+
+	// The sequence may start with a space or with the first element
+	mathEngine.VectorFill( logAlpha, 0.f, batchSize * 2 );
+	mathEngine.VectorFill( logAlpha + batchSize * 2, logZero, batchSize * ( U - 2 ) );
+	// Add the logarithm of probability of label recognition
+	mathEngine.AddMatrixElementsToVector( resultLogProb, batchSize, classCount, rowIndices, padLabels,
+		logAlpha, U * batchSize );
+
+	// Align the result sequence T elements long with the labels and spaces sequence U elements long
+	CFloatHandleStackVar logAlphaShift2Buffer( mathEngine, U * batchSize );
+	for( int t = 1; t < T; ++t ) {
+		CConstFloatHandle resultLogProbWindow = resultLogProb + t * batchSize * classCount;
+		CFloatHandle logAlphaWindow = logAlpha + t * U * batchSize;
+		CFloatHandle logAlphaPrevWindow = logAlpha + ( t - 1 ) * U * batchSize;
+		// Add up the alternative pairings after the previous moment in time
+		mathEngine.VectorCopy( logAlphaWindow, logAlphaPrevWindow, batchSize );
+		vectorEltwiseLogSumExp( logAlphaPrevWindow, logAlphaPrevWindow + batchSize,
+			logAlphaWindow + batchSize, batchSize * ( U - 1 ) );
+
+		if( skipBlanks ) {
+			// If label[i] != blank and label[i] != label[i-2], the labels may be put together with no space:
+			// label[i-2];label[i] -> label[i-2];blank;label[i]
+			mathEngine.VectorAdd( logAlphaPrevWindow, blankSkipMask, logAlphaShift2Buffer, batchSize * ( U - 2 ) );
+			vectorEltwiseLogSumExp( logAlphaWindow + batchSize * 2, logAlphaShift2Buffer,
+				logAlphaWindow + batchSize * 2, batchSize * ( U - 2 ) );
+		}
+
+		// Add the logarithm of probability of label recognition
+		mathEngine.AddMatrixElementsToVector( resultLogProbWindow, batchSize, classCount,
+			rowIndices, padLabels, logAlphaWindow, batchSize * U );
+	}
+}
+
+// Calculates the logarithms of suffixes probability logBeta on a backward pass
+// The difference in calculating logAlpha[t] and logBeta[t] stems from the fact
+// that logAlpha[t] + logBeta[t] must be equal to the logarithm of probability of recognizing the sequence
+void CCpuMathEngine::ctcCalcBackwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+	const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
+	const CConstFloatHandle& resultLogProb, const CConstIntHandle& resultLens, const CConstIntHandle& labelLens,
+	const CFloatHandle& logBeta )
+{
+	const int T = resultLen;
+	const int U = padLabelLen;
+
+	// Initialize
+	CConstFloatHandle resultLogProbWindow = resultLogProb + ( T - 1 ) * batchSize * classCount;
+	CFloatHandle logBetaWindow = logBeta + ( T - 1 ) * U * batchSize;
+
+	// The sequence may end either with a space or with the actual last element
+	// Therefore logBetaWindow is filled with logZero everywhere except two positions per sample
+	// which should be filled with zero
+	VectorFill( logBetaWindow, logZero, U * batchSize );
+	if( labelLens.IsNull() ) {
+		// Fixed length. Fill the two last positions with zero
+		VectorFill( logBetaWindow + ( U - 2 ) * batchSize, 0.f, batchSize * 2 );
+	} else {
+		// Varying length. Fill the (2 * labelsLengths[j]) and (2 * labelsLengths[j] - 1) positions with zero
+		CIntHandleStackVar endOfLabelPos( *this, batchSize );
+		VectorAdd( labelLens, labelLens, endOfLabelPos, batchSize );
+
+		CIntHandleStackVar endOfLabelSample( *this, batchSize );
+		vectorFillLinear( endOfLabelSample, batchSize, 0, 1 );
+
+		CFloatHandleStackVar batchOfZeros( *this, batchSize );
+		VectorFill( batchOfZeros, 0.f, batchSize );
+
+		SetVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
+			batchOfZeros, batchSize );
+		CIntHandleStackVar minusOneInt( *this );
+		minusOneInt.SetValue( -1 );
+		VectorAddValue( endOfLabelPos, endOfLabelPos, batchSize, minusOneInt );
+
+		if( !resultLens.IsNull() ) {
+			std::vector<int> buffer;
+			buffer.resize( batchSize );
+			CIntHandleStackVar addition( *this, batchSize );
+			VectorCopy( addition, resultLens, batchSize );
+			DataExchangeTyped( buffer.data(), resultLens, batchSize );
+			for( size_t i = 0; i < buffer.size(); ++i ) {
+				buffer[i] = ( buffer[i] < T ) ? 1 : 0;
+			}
+			DataExchangeTyped( addition.GetHandle(), buffer.data(), batchSize );
+			VectorAdd( endOfLabelPos, addition, endOfLabelPos, batchSize );
+		}
+		SetVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
+			batchOfZeros, batchSize );
+	}
+
+	CFloatHandleStackVar logBetaWindowBuffer( *this, U * batchSize );
+	for( int t = T - 2; t >= 0; --t ) {
+		resultLogProbWindow = resultLogProb + ( t + 1 ) * batchSize * classCount;
+		VectorCopy( logBetaWindowBuffer, logBeta + ( t + 1 ) * U * batchSize, U * batchSize );
+		logBetaWindow = logBeta + t * U * batchSize;
+
+		// Add the logarithm of probability of label recognition
+		AddMatrixElementsToVector( resultLogProbWindow, batchSize, classCount, rowIndices, padLabels,
+			logBetaWindowBuffer, U * batchSize );
+		// Add up the alternative pairings after the previous moment in time
+		vectorEltwiseLogSumExp( logBetaWindowBuffer, logBetaWindowBuffer + batchSize,
+			logBetaWindow, batchSize * ( U - 1 ) );
+		if( skipBlanks ) {
+			// If label[i] != blank and label[i] != label[i+2], the labels may be put together with no space:
+			// label[i];label[i+2] -> label[i];blank;label[i+2]
+			CFloatHandleStackVar logBetaShift2Buffer( *this, ( U - 2 ) * batchSize );
+			VectorAdd( logBetaWindowBuffer + 2 * batchSize, blankSkipMask, logBetaShift2Buffer, batchSize * ( U - 2 ) );
+			vectorEltwiseLogSumExp( logBetaWindow, logBetaShift2Buffer, logBetaWindow, batchSize * ( U - 2) );
+		}
+		VectorCopy( logBetaWindow + batchSize * ( U - 1 ), logBetaWindowBuffer + batchSize * ( U - 1 ), batchSize );
 	}
 }
 

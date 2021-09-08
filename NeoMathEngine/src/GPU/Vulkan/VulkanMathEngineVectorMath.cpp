@@ -86,7 +86,6 @@ namespace NeoML {
 #include <shaders/generated/VectorPowerDiffOp.h>
 #include <shaders/generated/VectorL1DiffAdd.h>
 #include <shaders/generated/VectorDotProduct.h>
-#include <shaders/generated/VectorEltwiseLogSumExp.h>
 #include <shaders/generated/VectorSum.h>
 #include <shaders/generated/VectorEqual.h>
 #include <shaders/generated/VectorFillBernoulli.h>
@@ -922,16 +921,6 @@ void CVulkanMathEngine::VectorFindMaxValueInSet( const CConstFloatHandle* vector
 void CVulkanMathEngine::VectorSpreadValues( const CConstFloatHandle&, CFloatHandle*, int, const CConstIntHandle&, int )
 {
 	ASSERT_EXPR( false );
-}
-
-void CVulkanMathEngine::VectorEltwiseLogSumExp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize )
-{
-	CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle};
-	size_t sizes[3] = { vectorSize * sizeof(float), vectorSize * sizeof(float), vectorSize * sizeof(float) };
-
-	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorEltwiseLogSumExp, false, 0, 0, 3), 0, 0, 0, 0, 0, 0, bufs, sizes, 3,
-		Ceil(vectorSize, VectorCombine) );
 }
 
 void CVulkanMathEngine::VectorSum( const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle )

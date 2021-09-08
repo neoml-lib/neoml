@@ -1111,21 +1111,6 @@ void CMetalMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, con
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::VectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-    const CFloatHandle& resultHandle, int vectorSize)
-{
-    ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-    ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-    ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-    C1DKernel kernel( *queue, "vectorKernelEltwiseLogSumExp", 1, vectorSize );
-    kernel.SetParam( firstHandle, 0 );
-    kernel.SetParam( secondHandle, 1 );
-    kernel.SetParam( resultHandle, 2 );
-    kernel.SetParam( vectorSize, 3 );
-    ASSERT_EXPR( kernel.Run() );
-}
-
 void CMetalMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
 	int vectorSize )
 {

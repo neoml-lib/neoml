@@ -225,8 +225,6 @@ public:
 		const CIntHandle& indexHandle, int vectorSize ) override;
 	void VectorSpreadValues( const CConstFloatHandle& sourceHandle, CFloatHandle* vectors, int vectorCount,
 		const CConstIntHandle& indexHandle, int vectorSize ) override;
-	void VectorEltwiseLogSumExp( const CConstFloatHandle& first, const CConstFloatHandle& second,
-		const CFloatHandle& result, int vectorSize ) override;
 	void VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result, const CIntHandle& indices) override;
 	void VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
 		const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad) override;
@@ -654,6 +652,16 @@ private:
 	void blobMaxPoolingWithIndices(const CCommonMaxPoolingDesc& desc, const float* sourceData,
 		int* maxIndicesData, float* resultData);
 	void blobMaxPoolingWithoutIndices(const CCommonMaxPoolingDesc& desc, const float* sourceData, float* resultData);
+
+	void vectorEltwiseLogSumExp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize );
+	void ctcCalcForwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+		const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
+		const CConstFloatHandle& resultLogProb, const CFloatHandle& logAlpha );
+	void ctcCalcBackwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+		const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
+		const CConstFloatHandle& resultLogProb, const CConstIntHandle& resultLens, const CConstIntHandle& labelLens,
+		const CFloatHandle& logBeta );
 };
 
 inline void CCpuMathEngine::VectorReLUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

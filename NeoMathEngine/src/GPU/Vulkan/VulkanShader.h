@@ -137,7 +137,6 @@ enum TShader {
 	SH_VectorPowerDiffOp,
 	SH_VectorL1DiffAdd,
 	SH_VectorDotProduct,
-	SH_VectorEltwiseLogSumExp,
 	SH_VectorSum,
 	SH_RowMultiplyMatrixByMatrix,
 	SH_VectorEqual,

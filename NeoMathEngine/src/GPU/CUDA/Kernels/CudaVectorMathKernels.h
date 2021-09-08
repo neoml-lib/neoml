@@ -1347,15 +1347,6 @@ __global__ void VectorSpreadValuesKernel(const float* __restrict__ source,
 	}
 }
 
-__global__ void VectorEltwiseLogSumExpKernel(const float* __restrict__ first,
-	const float* __restrict__ second, float* result, int vectorSize)
-{
-	int index;
-	if(GetCudaTaskIndex(vectorSize, index)) {
-		result[index] = LogSumExpFunc(first[index], second[index]);
-	}
-}
-
 __global__ void VectorTopKDiffKernel( const float* __restrict__ source,
 	const int* __restrict__ indices, float* result, int height, int width )
 {

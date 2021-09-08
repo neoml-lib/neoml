@@ -52,7 +52,6 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorConvertTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorDotProductTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseDivideTest.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseLogSumExpTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMaxTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMinTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMultiplyTest.cpp

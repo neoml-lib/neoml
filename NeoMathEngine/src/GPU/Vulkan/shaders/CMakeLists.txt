@@ -78,7 +78,6 @@ set(SHADER_SOURCES
     VectorFillBernoulli.comp
     BlobConvolutionBackward.comp
     PrepareBlobWithPaddingBuffers.comp
-    VectorEltwiseLogSumExp.comp 
     SetVectorToMatrixElements.comp 
     LookupAndSum.comp 
     Upsampling2DForwardInt.comp

@@ -2031,7 +2031,7 @@ static inline float32x4_t vectorEltwiseLogSumExpWorker(const float32x4_t& first,
 	return vaddq_f32(maxVal, logObj.ExecuteNoCheck(vaddq_f32(one, expObj.Execute(vsubq_f32(minVal, maxVal)))));
 }
 
-void CCpuMathEngine::VectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+void CCpuMathEngine::vectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );

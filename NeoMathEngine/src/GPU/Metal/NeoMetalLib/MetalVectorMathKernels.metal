@@ -2138,19 +2138,6 @@ kernel void vectorKernelEnumBinarizationInt( constant int* batchSize [[buffer(0)
     }
 }
 
-kernel void vectorKernelEltwiseLogSumExp( constant float* first [[buffer(0)]],
-                                          constant float* second [[buffer(1)]],
-                                          device float* result [[buffer(2)]],
-                                          constant int* vectorSize [[buffer(3)]],
-                                          uint thread_position_in_grid [[ thread_position_in_grid ]] )
-{
-    C1DPosition pos( thread_position_in_grid );
-    int index;
-    if( pos.GetMetalTaskIndex( *vectorSize, index ) ) {
-        result[index] = LogSumExpFunc(first[index], second[index]);
-    }
-}
-
 kernel void matrixKernelEltwiseLogSumExpVectorToMatrixElements( device float* matrix [[buffer(0)]],
                                                                 constant int* height [[buffer(1)]],
                                                                 constant int* width [[buffer(2)]],

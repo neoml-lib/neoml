@@ -25,28 +25,6 @@ using namespace NeoMLTest;
 
 namespace NeoMLTest {
 
-static void matrixLogSumExpByColumns(CDnnBlob& matrixBlob, int height, int width, const CFloatHandle& resultHandle)
-{
-	float* matrix = matrixBlob.GetBuffer<float>( 0, matrixBlob.GetDataSize(), true );
-	CArray<float> result;
-	result.SetSize( width );
-	for( int w = 0; w < width; ++w ) {
-		float maxVal = matrix[w];
-		for( int h = 0; h < height; ++h ) {
-			maxVal = fmaxf( maxVal, matrix[h * width + w] );
-		}
-		float row = 0.f;
-		for( int h = 0; h < height; ++h ) {
-			row += expf( matrix[h * width + w] - maxVal );
-		}
-		result[w] = maxVal + logf( row );
-	}
-	matrixBlob.ReleaseBuffer( matrix, false );
-
-	IMathEngine& mathEngine = *resultHandle.GetMathEngine();
-	mathEngine.DataExchangeTyped<float>( resultHandle, result.GetPtr(), width );
-}
-
 // The layer that implements connectionist temporal classification (CTC) 
 // for training recurrent networks to recognize sequences
 class CCtcLossNaiveLayer : public CBaseLayer {
@@ -195,6 +173,53 @@ static void vectorFillLinear( IMathEngine& mathEngine,
 	matrixFillLinear( mathEngine, resultHandle, 1, vectorSize, start, 0, step );
 }
 
+// Naive implementation of MatrixLogSumExpByColumns
+static void matrixLogSumExpByColumns(CDnnBlob& matrixBlob, int height, int width, const CFloatHandle& resultHandle)
+{
+	float* matrix = matrixBlob.GetBuffer<float>( 0, matrixBlob.GetDataSize(), true );
+	CArray<float> result;
+	result.SetSize( width );
+	for( int w = 0; w < width; ++w ) {
+		float maxVal = matrix[w];
+		for( int h = 0; h < height; ++h ) {
+			maxVal = fmaxf( maxVal, matrix[h * width + w] );
+		}
+		float row = 0.f;
+		for( int h = 0; h < height; ++h ) {
+			row += expf( matrix[h * width + w] - maxVal );
+		}
+		result[w] = maxVal + logf( row );
+	}
+	matrixBlob.ReleaseBuffer( matrix, false );
+
+	IMathEngine& mathEngine = *resultHandle.GetMathEngine();
+	mathEngine.DataExchangeTyped<float>( resultHandle, result.GetPtr(), width );
+}
+
+// Naive implementation of VectorEltwiseLogSumExp
+static void vectorEltwiseLogSumExp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	IMathEngine& mathEngine = *firstHandle.GetMathEngine();
+
+	CArray<float> first;
+	first.SetSize( vectorSize );
+	mathEngine.DataExchangeTyped<float>( first.GetPtr(), firstHandle, vectorSize );
+
+	CArray<float> second;
+	second.SetSize( vectorSize );
+	mathEngine.DataExchangeTyped<float>( second.GetPtr(), secondHandle, vectorSize );
+
+	CArray<float> result;
+	result.SetBufferSize( vectorSize );
+	for( int i = 0; i < vectorSize; ++i ) {
+		result.Add( first[i] > second[i]
+			? first[i] + ::log1pf( ::expf( second[i] - first[i] ) )
+			: second[i] + ::log1pf( ::expf( first[i] - second[i] ) ) );
+	}
+	mathEngine.DataExchangeTyped<float>( resultHandle, result.GetPtr(), vectorSize );
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // CCtcLossNaiveLayer
 
@@ -336,7 +361,7 @@ void CCtcLossNaiveLayer::Reshape()
 	MathEngine().VectorEltwiseMultiply( tempLossDivider.GetHandle(), lossWeight->GetData(),
 		lossGradientDivider->GetData(), 1 );
 	// Change the sign before the lossDivider:
-	MathEngine().VectorNegSum( tempLossDivider.GetHandle(), 1, lossDivider->GetData() );
+	MathEngine().VectorNeg( tempLossDivider.GetHandle(), lossDivider->GetData(), 1 );
 }
 
 // Calculates the logarithms of prefix probability logAlpha on a forward pass
@@ -371,7 +396,7 @@ void CCtcLossNaiveLayer::calculateForwardVariables()
 		// Add up the alternative pairings after the previous moment in time
 		MathEngine().VectorCopy( logAlphaWindow->GetObjectData( 0 ),
 			logAlphaPrevWindow->GetObjectData( 0 ), logAlphaWindow->GetObjectSize() );
-		MathEngine().VectorEltwiseLogSumExp( logAlphaPrevWindow->GetObjectData( 0 ),
+		vectorEltwiseLogSumExp( logAlphaPrevWindow->GetObjectData( 0 ),
 			logAlphaPrevWindow->GetObjectData( 1 ), logAlphaWindow->GetObjectData( 1 ),
 			logAlphaWindow->GetObjectSize() * (U - 1) );
 		if( allowBlankLabelSkip ) {
@@ -380,7 +405,7 @@ void CCtcLossNaiveLayer::calculateForwardVariables()
 			MathEngine().VectorAdd( logAlphaPrevWindow->GetObjectData( 0 ),
 				blankSkipMask->GetObjectData( 0 ), logAlphaShift2Buffer->GetData(),
 				logAlphaWindow->GetObjectSize() * (U - 2) );
-			MathEngine().VectorEltwiseLogSumExp( logAlphaWindow->GetObjectData( 2 ),
+			vectorEltwiseLogSumExp( logAlphaWindow->GetObjectData( 2 ),
 				logAlphaShift2Buffer->GetData(), logAlphaWindow->GetObjectData( 2 ),
 				logAlphaWindow->GetObjectSize() * (U - 2) );
 		}
@@ -462,7 +487,7 @@ void CCtcLossNaiveLayer::calculateBackwardVariables( CDnnBlob* labelsLengths, CD
 			rowIndices->GetData<int>(), paddedLabels->GetData<int>(), 
 			logBetaWindowBuffer->GetData(), logBetaWindowBuffer->GetDataSize());
 		// Add up the alternative pairings after the previous moment in time
-		MathEngine().VectorEltwiseLogSumExp(logBetaWindowBuffer->GetObjectData( 0 ),
+		vectorEltwiseLogSumExp(logBetaWindowBuffer->GetObjectData( 0 ),
 			logBetaWindowBuffer->GetObjectData( 1 ), logBetaWindow->GetObjectData( 0 ),
 			logBetaWindow->GetObjectSize() * (U - 1));
 		if( allowBlankLabelSkip ) {
@@ -472,7 +497,7 @@ void CCtcLossNaiveLayer::calculateBackwardVariables( CDnnBlob* labelsLengths, CD
 			MathEngine().VectorAdd( logBetaWindowBuffer->GetObjectData( 2 ),
 				blankSkipMask->GetObjectData( 0 ), logBetaShift2Buffer->GetData(),
 				logBetaWindow->GetObjectSize() * (U - 2) );
-			MathEngine().VectorEltwiseLogSumExp( logBetaWindow->GetObjectData( 0 ),
+			vectorEltwiseLogSumExp( logBetaWindow->GetObjectData( 0 ),
 				logBetaShift2Buffer->GetData(), logBetaWindow->GetObjectData( 0 ),
 				logBetaWindow->GetObjectSize() * (U - 2) );
 		}
@@ -887,13 +912,13 @@ INSTANTIATE_TEST_CASE_P( CCtcTestInstantiation, CCtcTest,
 			"BatchSize=(1..1);"
 			"LabelLen=(1..3);"
 			"ClassCount=(2..80);"
-			"TestCount=1000;"
+			"TestCount=100;"
 		),
 		CTestParams(
 			"BatchSize=(1..20);"
 			"LabelLen=(1..30);"
 			"ClassCount=(2..20);"
-			"TestCount=1000;"
+			"TestCount=100;"
 		)
 	)
 );
