@@ -42,6 +42,8 @@ struct CCublas {
 		cublasOperation_t transb, int m, int n, int k, const float *alpha, const float *A, int lda, long long int strideA,
 		const float *B, int ldb, long long int strideB, const float *beta, float *C, int ldc, long long int strideC,
 		int batchCount );
+	typedef cublasStatus_t( CUBLASWINAPI *TCublasSdgmm ) ( cublasHandle_t handle, cublasSideMode_t mode, int m, int n,
+		const float *A, int lda, const float *x, int incx, float *C, int ldc );
 
 	TCublasCreate Create;
 	TCublasDestroy Destroy;
@@ -52,6 +54,7 @@ struct CCublas {
 	TCublasSaxpy Saxpy;
 	TCublasSgemm Sgemm;
 	TCublasSgemmStridedBatched SgemmStridedBatched;
+	TCublasSdgmm Sdgmm;
 };
 
 } // namespace NeoML
