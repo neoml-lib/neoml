@@ -167,11 +167,10 @@ __global__ void AddMatrixElementsToMatrixKernel(const float* __restrict__ matrix
 const int BatchAddVectorToMatrixRowsCombine = 4;
 __global__ void AddVectorToMatrixRowsKernel(int batchSize,
 	const float* __restrict__ matrix, float* result, int matrixHeight,
-	int matrixWidth, const float* __restrict__ vector, int widthNorm)
+	int matrixWidth, const float* __restrict__ vector)
 {
-	int xPos;
-	int yPos;
-	if(GetCudaTaskIndex2D(batchSize * matrixHeight, matrixWidth, yPos, xPos)) {
+	const int yPos = blockIdx.y * blockDim.y + threadIdx.y;
+	if(yPos < batchSize * matrixHeight) {
 		int matrixBaseIndex = yPos * matrixWidth;
 		int batch = yPos / matrixHeight;
 		int vectorBaseIndex = batch * matrixWidth;
