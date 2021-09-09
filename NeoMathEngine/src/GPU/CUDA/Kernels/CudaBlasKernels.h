@@ -1045,17 +1045,6 @@ __global__ void Multiply1DiagMatrixByMatrixKernel(int batchSize, const float* __
 	}
 }
 
-__global__ void MultiplyMatrixByDiagMatrixKernel(const float* __restrict__ first,
-	int firstHeight, int firstWidth, const float* __restrict__ second, float* result)
-{
-	int i;
-	int j;
-	if(GetCudaTaskIndex2D(firstHeight, firstWidth, j, i)) {
-		int index = j * firstWidth + i;
-		result[index] = first[index] * second[i];
-	}
-}
-
 const int TransposeMatrixCombine = 8;
 template<class T> __global__ void TransposeMatrixKernel(int batchSize,
 	const T* __restrict__ first, int height, int medium, int width, int channels, T* result, int size)

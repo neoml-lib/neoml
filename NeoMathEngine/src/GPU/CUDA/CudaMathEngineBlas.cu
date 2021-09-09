@@ -703,23 +703,6 @@ void CCudaMathEngine::Multiply1DiagMatrixByMatrix(int batchSize, const CConstFlo
 		(batchSize, GetRaw(firstHandle), firstSize, GetRaw(secondHandle), secondWidth, GetRaw(resultHandle), batchNorm);
 }
 
-void CCudaMathEngine::MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-
-	dim3 blockCount;
-	dim3 threadCount;
-
-	getCudaTaskGrid2D(blockCount, threadCount, firstHeight, firstWidth);
-
-	MultiplyMatrixByDiagMatrixKernel<<<blockCount, threadCount>>>
-		(GetRaw(firstHandle), firstHeight, firstWidth, GetRaw(secondHandle), GetRaw(resultHandle));
-}
-
 void CCudaMathEngine::TransposeMatrix(int batchSize, const CConstFloatHandle& firstHandle,
 	int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int resultBufferSize)
 {
