@@ -268,7 +268,6 @@ void CHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, con
 		}
 		const float distance = recalcDistance( *clusters[i], *clusters[first], firstSize, secondSize,
 			i < first ? distances[i][first] : distances[first][i], secondDistances[i], mergeDistance );
-		NeoAssert( distance >= 0.f );
 		if( i < first ) {
 			distances[i].SetAt( first, distance );
 		} else {
