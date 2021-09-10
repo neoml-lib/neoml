@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoML/TraditionalML/HierarchicalClustering.h>
 #include <float.h>
+#include <math.h>
 
 namespace NeoML {
 
@@ -292,16 +293,19 @@ float CHierarchicalClustering::recalcDistance( const CCommonCluster& currCluster
 			// No optimizations, just calculate distance between new centers
 			return static_cast<float>( currCluster.CalcDistance( mergedCluster, params.DistanceType ) );
 		case L_Single:
-			return fminf( currToFirst, currToSecond );
+			return ::fminf( currToFirst, currToSecond );
 		case L_Average:
 		{
-			// NeoML computes squared distances
-			const float total = ::sqrtf( currToFirst ) * firstSize + ::sqrtf( currToSecond ) * secondSize;
-			const float avg = total / ( firstSize + secondSize );
-			return avg * avg;
+			if( params.DistanceType == DF_Euclid || params.DistanceType == DF_Machalanobis ) {
+				// NeoML works with squared Euclid and Machalanobis
+				const float total = ::sqrtf( currToFirst ) * firstSize + ::sqrtf( currToSecond ) * secondSize;
+				const float avg = total / ( firstSize + secondSize );
+				return avg * avg;
+			}
+			return ( currToFirst * firstSize + currToSecond * secondSize ) / ( firstSize + secondSize );
 		}
 		case L_Complete:
-			return fmaxf( currToFirst, currToSecond );
+			return ::fmaxf( currToFirst, currToSecond );
 		case L_Ward:
 		{
 			const int mergeSize = firstSize + secondSize;
