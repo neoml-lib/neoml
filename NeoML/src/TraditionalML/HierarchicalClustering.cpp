@@ -106,7 +106,7 @@ bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClustering
 			*log << "Merge clusters (" << first << ") and (" << second << ") distance - " << distances[first][second] << "\n";
 		}
 
-		mergeClusters( matrix, weights, first, second, dendrogram );
+		mergeClusters( matrix, first, second, dendrogram );
 	}
 
 	result.ClusterCount = clusters.Size();
@@ -214,8 +214,7 @@ void CHierarchicalClustering::findNearestClusters( int& first, int& second ) con
 }
 
 // Merges two clusters
-void CHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
-	int first, int second, CArray<CMergeInfo>* dendrogram )
+void CHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, int first, int second, CArray<CMergeInfo>* dendrogram )
 {
 	NeoAssert( first < second );
 

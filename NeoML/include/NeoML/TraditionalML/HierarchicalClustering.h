@@ -92,8 +92,7 @@ private:
 	bool clusterizeImpl( IClusteringData* input, CClusteringResult& result, CArray<CMergeInfo>* dendrogram );
 	void initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
 	void findNearestClusters( int& first, int& second ) const;
-	void mergeClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights, int first, int second,
-		CArray<CMergeInfo>* dendrogram );
+	void mergeClusters( const CFloatMatrixDesc& matrix, int first, int second, CArray<CMergeInfo>* dendrogram );
 	float recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
 		int firstSize, int secondSize, float currToFirst, float currToSecond, float firstAndSecond ) const;
 };
