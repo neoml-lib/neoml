@@ -26,6 +26,8 @@ CHierarchicalClustering::CHierarchicalClustering( const CArray<CClusterCenter>& 
 	log( 0 )
 {
 	NeoAssert( params.MinClustersCount > 0 );
+	// Initial cluster centers are supported only for centroid
+	NeoAssert( params.Linkage == L_Centroid );
 	clustersCenters.CopyTo( initialClusters );
 }
 
@@ -36,8 +38,20 @@ CHierarchicalClustering::CHierarchicalClustering( const CParam& _params ) :
 	NeoAssert( params.MinClustersCount > 0 );
 }
 
-bool CHierarchicalClustering::Clusterize( IClusteringData* data, CClusteringResult& result )
+bool CHierarchicalClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
 {
+	return clusterizeImpl( input, result, nullptr );
+}
+
+bool CHierarchicalClustering::ClusterizeEx( IClusteringData* input, CClusteringResult& result,
+	CArray<CMergeInfo>& dendrogram )
+{
+	return clusterizeImpl( input, result, &dendrogram );
+}
+
+bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClusteringResult& result, CArray<CMergeInfo>* dendrogram )
+{
+	NeoAssert( params.Linkage != L_Ward || params.DistanceType == DF_Euclid ); // Ward works only in L2
 	NeoAssert( data != 0 );
 
 	if( log != 0 ) {
@@ -91,7 +105,7 @@ bool CHierarchicalClustering::Clusterize( IClusteringData* data, CClusteringResu
 			*log << "Merge clusters (" << first << ") and (" << second << ") distance - " << distances[first][second] << "\n";
 		}
 
-		mergeClusters( matrix, weights, first, second );
+		mergeClusters( matrix, weights, first, second, dendrogram );
 	}
 
 	result.ClusterCount = clusters.Size();
@@ -127,18 +141,22 @@ void CHierarchicalClustering::initialize( const CFloatMatrixDesc& matrix, const 
 	if( initialClusters.IsEmpty() ) {
 		// Each element is a cluster
 		clusters.SetBufferSize( vectorsCount );
+		clusterIndices.SetBufferSize( vectorsCount );
 		for( int i = 0; i < vectorsCount; i++ ) {
 			CFloatVectorDesc desc;
 			matrix.GetRow( i, desc );
 			CFloatVector mean( matrix.Width, desc );
 			clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ) ) );
 			clusters.Last()->Add( i, desc, weights[i] );
+			clusterIndices.Add( i );
 		}
 	} else {
 		// The initial cluster centers have been specified directly
 		clusters.SetBufferSize( initialClusters.Size() );
+		clusterIndices.SetBufferSize( initialClusters.Size() );
 		for( int i = 0; i < initialClusters.Size(); i++ ) {
 			clusters.Add( FINE_DEBUG_NEW CCommonCluster( initialClusters[i] ) );
+			clusterIndices.Add( i );
 		}
 
 		// Each element of the original data set is put into the nearest cluster
@@ -196,7 +214,7 @@ void CHierarchicalClustering::findNearestClusters( int& first, int& second ) con
 
 // Merges two clusters
 void CHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
-	int first, int second )
+	int first, int second, CArray<CMergeInfo>* dendrogram )
 {
 	NeoAssert( first < second );
 
@@ -207,40 +225,94 @@ void CHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, con
 		*log << *clusters[second];
 	}
 
-	// Move all elements of the second cluster into the first
-	CArray<int> secondClustersElements;
-	clusters[second]->GetAllElements( secondClustersElements );
-	for( int i = 0; i < secondClustersElements.Size(); i++ ) {
-		CFloatVectorDesc desc;
-		matrix.GetRow( secondClustersElements[i], desc );
-		clusters[first]->Add( secondClustersElements[i], desc, weights[secondClustersElements[i]] );
+	const int firstSize = clusters[first]->GetElementsCount();
+	const int secondSize = clusters[second]->GetElementsCount();
+	const float mergeDistance = distances[first][second];
+
+	if( dendrogram != nullptr ) {
+		CMergeInfo& mergeInfo = dendrogram->Append();
+		mergeInfo.First = clusterIndices[first];
+		mergeInfo.Second = clusterIndices[second];
+		mergeInfo.Distance = mergeDistance;
 	}
-	clusters[first]->RecalcCenter();
+
+	const int last = clusters.Size() - 1;
+
+	// Move all elements of the second cluster into the first
+	const int initialClusterCount = initialClusters.IsEmpty() ? matrix.Height : initialClusters.Size();
+	const int newClusterIndex = 2 * initialClusterCount - clusters.Size();
+	clusters[first] = FINE_DEBUG_NEW CCommonCluster( *clusters[first], *clusters[second] );
+	clusterIndices[first] = newClusterIndex;
+	clusters[second] = clusters[last];
+	clusterIndices[second] = clusterIndices[last];
+	clusters.SetSize( last );
 
 	// Switch the second cluster with the last; now we can calculate the cluster distance matrix in linear time
-	const int last = clusters.Size() - 1;
-	clusters[second] = clusters[last];
+	CFloatVector secondDistances = distances[second];
 	distances[second] = distances[last];
 	for( int i = 0; i < second; i++ ) {
+		secondDistances.SetAt( i, distances[i][second] );
 		distances[i].SetAt( second, distances[i][last] );
 	}
 	for( int i = second + 1; i < last; i++ ) {
+		// These were already copied during secondDistances construction
 		distances[second].SetAt( i, distances[i][last] );
 	}
+	// distances[last] was moved to distances[second]
+	secondDistances.SetAt( second, secondDistances[last] );
 	for( int i = 0; i < last; i++ ) {
-		const double distance = clusters[first]->CalcDistance( *clusters[i], params.DistanceType );
+		if( i == first ) {
+			distances[first].SetAt( first, 0.f );
+			continue;
+		}
+		const float distance = recalcDistance( *clusters[i], *clusters[first], firstSize, secondSize,
+			i < first ? distances[i][first] : distances[first][i], secondDistances[i], mergeDistance );
+		NeoAssert( distance >= 0.f );
 		if( i < first ) {
-			distances[i].SetAt( first, static_cast<float>( distance ) );
+			distances[i].SetAt( first, distance );
 		} else {
-			distances[first].SetAt( i, static_cast<float>( distance ) );
+			distances[first].SetAt( i, distance );
 		}
 	}
-	clusters.SetSize( last );
 
 	if( log != 0 ) {
 		*log << "Result:\n";
 		*log << *clusters[first];
 	}
+}
+
+// Calculates distance between current cluster and merged cluster based on 
+float CHierarchicalClustering::recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
+	int firstSize, int secondSize, float currToFirst, float currToSecond, float firstToSecond ) const
+{
+	static_assert( L_Count == 5, "L_Count != 5" );
+
+	switch( params.Linkage ) {
+		case L_Centroid:
+			// No optimizations, just calculate distance between new centers
+			return static_cast<float>( currCluster.CalcDistance( mergedCluster, params.DistanceType ) );
+		case L_Single:
+			return fminf( currToFirst, currToSecond );
+		case L_Average:
+		{
+			// NeoML computes squared distances
+			const float total = ::sqrtf( currToFirst ) * firstSize + ::sqrtf( currToSecond ) * secondSize;
+			const float avg = total / ( firstSize + secondSize );
+			return avg * avg;
+		}
+		case L_Complete:
+			return fmaxf( currToFirst, currToSecond );
+		case L_Ward:
+		{
+			const int mergeSize = firstSize + secondSize;
+			return ( firstSize * currToFirst + secondSize * currToSecond
+				- ( firstSize * secondSize * firstToSecond ) / mergeSize ) / mergeSize;
+		}
+		default:
+			NeoAssert( false );
+	}
+
+	return 0.f;
 }
 
 } // namespace NeoML

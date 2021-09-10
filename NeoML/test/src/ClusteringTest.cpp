@@ -153,15 +153,22 @@ static void firstComeClustering( IClusteringData* data, CClusteringResult& resul
 	firstCome.Clusterize( data, result );
 }
 
+template<CHierarchicalClustering::TLinkage LINKAGE>
 static void hierarchicalClustering( IClusteringData* data, CClusteringResult& result )
 {
 	CHierarchicalClustering::CParam params;
+	params.Linkage = LINKAGE;
 	params.DistanceType = DF_Euclid;
 	params.MinClustersCount = 2;
-	params.MaxClustersDistance = 5;
+	params.MaxClustersDistance = 10;
 
 	CHierarchicalClustering hierarchical( params );
-	hierarchical.Clusterize( data, result );
+	if( static_cast<int>( LINKAGE ) % 2 == 0 ) {
+		CArray<CHierarchicalClustering::CMergeInfo> dendrogram;
+		hierarchical.ClusterizeEx( data, result, dendrogram );
+	} else {
+		hierarchical.Clusterize( data, result );
+	}
 }
 
 static void isoDataClustering( IClusteringData* data, CClusteringResult& result )
@@ -351,7 +358,7 @@ TEST_F( CClusteringTest, PrecalcFirstCome )
 	precalcTestImpl( firstComeClustering, expectedResult );
 }
 
-TEST_F( CClusteringTest, PrecalcHierarchical )
+TEST_F( CClusteringTest, PrecalcHierarchicalCentroid )
 {
 	CClusteringResult expectedResult;
 	expectedResult.ClusterCount = 2;
@@ -363,7 +370,7 @@ TEST_F( CClusteringTest, PrecalcHierarchical )
 	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.212050, 0.282753, 0.268198 } );
 	expectedResult.Clusters[1].Norm = 1.273450;
 
-	precalcTestImpl( hierarchicalClustering, expectedResult );
+	precalcTestImpl( hierarchicalClustering<CHierarchicalClustering::L_Centroid>, expectedResult );
 }
 
 TEST_F( CClusteringTest, PrecalcIsoData )
@@ -413,5 +420,10 @@ TEST_F( CClusteringTest, PrecalcKmeans )
 }
 
 INSTANTIATE_TEST_CASE_P( CClusteringTestInstantiation, CClusteringTest,
-	::testing::Values( firstComeClustering, hierarchicalClustering,
+	::testing::Values( firstComeClustering,
+		hierarchicalClustering<CHierarchicalClustering::L_Centroid>,
+		hierarchicalClustering<CHierarchicalClustering::L_Single>,
+		hierarchicalClustering<CHierarchicalClustering::L_Average>,
+		hierarchicalClustering<CHierarchicalClustering::L_Complete>,
+		hierarchicalClustering<CHierarchicalClustering::L_Ward>,
 		isoDataClustering, kmeansElkanClustering, kmeansLloydClustering ) );
