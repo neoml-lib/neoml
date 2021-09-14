@@ -41,18 +41,21 @@ CHierarchicalClustering::CHierarchicalClustering( const CParam& _params ) :
 
 bool CHierarchicalClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
 {
-	return clusterizeImpl( input, result, nullptr );
+	return clusterizeImpl( input, result, nullptr, nullptr );
 }
 
 bool CHierarchicalClustering::ClusterizeEx( IClusteringData* input, CClusteringResult& result,
-	CArray<CMergeInfo>& dendrogram )
+	CArray<CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices )
 {
-	return clusterizeImpl( input, result, &dendrogram );
+	return clusterizeImpl( input, result, &dendrogram, &dendrogramIndices );
 }
 
-bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClusteringResult& result, CArray<CMergeInfo>* dendrogram )
+bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClusteringResult& result,
+	CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices )
 {
 	NeoAssert( params.Linkage != L_Ward || params.DistanceType == DF_Euclid ); // Ward works only in L2
+	NeoAssert( ( dendrogram != nullptr && dendrogramIndices != nullptr )
+		|| ( dendrogram == nullptr && dendrogramIndices == nullptr ) );
 	NeoAssert( data != 0 );
 
 	if( log != 0 ) {
@@ -113,6 +116,11 @@ bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClustering
 	result.Data.SetSize( data->GetVectorCount() );
 	result.Clusters.SetBufferSize( clusters.Size() );
 
+	if( dendrogramIndices != nullptr ) {
+		dendrogramIndices->Empty();
+		dendrogramIndices->SetBufferSize( clusters.Size() );
+	}
+
 	for( int i = 0; i < clusters.Size(); i++ ) {
 		CArray<int> elements;
 		clusters[i]->GetAllElements( elements );
@@ -120,6 +128,9 @@ bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClustering
 			result.Data[elements[j]]=i;
 		}
 		result.Clusters.Add( clusters[i]->GetCenter() );
+		if( dendrogramIndices != nullptr ) {
+			dendrogramIndices->Add( clusterIndices[i] );
+		}
 	}
 
 	if( log != 0 ) {

@@ -78,8 +78,9 @@ public:
 	// Returns true if the specified distance between the clusters was reached AND 
 	// there are more than MinClustersCount clusters
 	// Also fills the dendrogram: a sequence of (InitialClusters - ClusterCount) merges
+	// dendrogramIndices[i] contains the index of result.Clusters[i] in the dendrogram
 	bool ClusterizeEx( IClusteringData* input, CClusteringResult& result,
-		CArray<CMergeInfo>& dendrogram );
+		CArray<CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices );
 
 private:
 	const CParam params; // the clustering parameters
@@ -89,7 +90,8 @@ private:
 	CArray<int> clusterIndices; // the current clusters indices in the dendrogram
 	CFloatVectorArray distances; // the matrix containing distances between clusters
 
-	bool clusterizeImpl( IClusteringData* input, CClusteringResult& result, CArray<CMergeInfo>* dendrogram );
+	bool clusterizeImpl( IClusteringData* input, CClusteringResult& result,
+		CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices );
 	void initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
 	void findNearestClusters( int& first, int& second ) const;
 	void mergeClusters( const CFloatMatrixDesc& matrix, int first, int second, CArray<CMergeInfo>* dendrogram );

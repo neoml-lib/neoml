@@ -165,7 +165,8 @@ static void hierarchicalClustering( IClusteringData* data, CClusteringResult& re
 	CHierarchicalClustering hierarchical( params );
 	if( static_cast<int>( LINKAGE ) % 2 == 0 ) {
 		CArray<CHierarchicalClustering::CMergeInfo> dendrogram;
-		hierarchical.ClusterizeEx( data, result, dendrogram );
+		CArray<int> dendrogramIndices;
+		hierarchical.ClusterizeEx( data, result, dendrogram, dendrogramIndices );
 	} else {
 		hierarchical.Clusterize( data, result );
 	}
