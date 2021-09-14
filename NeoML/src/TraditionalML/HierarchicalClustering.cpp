@@ -22,55 +22,74 @@ limitations under the License.
 
 namespace NeoML {
 
-CHierarchicalClustering::CHierarchicalClustering( const CArray<CClusterCenter>& clustersCenters, const CParam& _params ) :
-	params( _params ),
-	log( 0 )
+// Recalculates distance between current and the result of the merge of the first and second clusters
+// Doesn't support centroid linkage!
+static float recalcDistance( CHierarchicalClustering::TLinkage linkage, TDistanceFunc distance, int firstSize, int secondSize,
+	float currToFirst, float currToSecond, float firstToSecond )
 {
-	NeoAssert( params.MinClustersCount > 0 );
-	// Initial cluster centers are supported only for centroid
-	NeoAssert( params.Linkage == L_Centroid );
-	clustersCenters.CopyTo( initialClusters );
-}
-
-CHierarchicalClustering::CHierarchicalClustering( const CParam& _params ) :
-	params( _params ),
-	log( 0 )
-{
-	NeoAssert( params.MinClustersCount > 0 );
-}
-
-bool CHierarchicalClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
-{
-	return clusterizeImpl( input, result, nullptr, nullptr );
-}
-
-bool CHierarchicalClustering::ClusterizeEx( IClusteringData* input, CClusteringResult& result,
-	CArray<CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices )
-{
-	return clusterizeImpl( input, result, &dendrogram, &dendrogramIndices );
-}
-
-bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClusteringResult& result,
-	CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices )
-{
-	NeoAssert( params.Linkage != L_Ward || params.DistanceType == DF_Euclid ); // Ward works only in L2
-	NeoAssert( ( dendrogram != nullptr && dendrogramIndices != nullptr )
-		|| ( dendrogram == nullptr && dendrogramIndices == nullptr ) );
-	NeoAssert( data != 0 );
-
-	if( log != 0 ) {
-		*log << "\nHierarchical clustering started:\n";
+	switch( linkage ) {
+		case CHierarchicalClustering::L_Single:
+			return ::fminf( currToFirst, currToSecond );
+		case CHierarchicalClustering::L_Average:
+		{
+			if( distance == DF_Euclid || distance == DF_Machalanobis ) {
+				// NeoML works with squared Euclid and Machalanobis
+				const float total = ::sqrtf( currToFirst ) * firstSize + ::sqrtf( currToSecond ) * secondSize;
+				const float avg = total / ( firstSize + secondSize );
+				return avg * avg;
+			}
+			return ( currToFirst * firstSize + currToSecond * secondSize ) / ( firstSize + secondSize );
+		}
+		case CHierarchicalClustering::L_Complete:
+			return ::fmaxf( currToFirst, currToSecond );
+		case CHierarchicalClustering::L_Ward:
+		{
+			const int mergedSize = firstSize + secondSize;
+			return ( firstSize * currToFirst + secondSize * currToSecond
+				- ( firstSize * secondSize * firstToSecond ) / mergedSize ) / mergedSize;
+		}
+		case CHierarchicalClustering::L_Centroid:
+		default:
+			NeoAssert( false );
 	}
 
-	CFloatMatrixDesc matrix = data->GetMatrix();
-	NeoAssert( matrix.Height == data->GetVectorCount() );
-	NeoAssert( matrix.Width == data->GetFeaturesCount() );
+	return 0.f;
+}
 
-	CArray<double> weights;
-	for( int i = 0; i < data->GetVectorCount(); i++ ) {
-		weights.Add( data->GetVectorWeight( i ) );
-	}
+// --------------------------------------------------------------------------------------------------------------------
 
+// Naive hierarchical clustering algorithm (O(N^3) time)
+class CNaiveHierarchicalClustering {
+	typedef CHierarchicalClustering::CParam CParam;
+	typedef CHierarchicalClustering::CMergeInfo CMergeInfo;
+
+public:
+	CNaiveHierarchicalClustering( const CParam& params, const CArray<CClusterCenter>& initialClusters, CTextStream* log )
+		: params( params ), initialClusters( initialClusters ), log( log ) {}
+
+	bool Clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
+		CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices );
+
+private:
+	const CParam& params; // the clustering parameters
+	const CArray<CClusterCenter>& initialClusters; // the initial cluster centers
+	CTextStream* log; // the logging stream
+	CObjectArray<CCommonCluster> clusters; // the current clusters
+	CArray<int> clusterIndices; // the current clusters indices in the dendrogram
+	CFloatVectorArray distances; // the matrix containing distances between clusters
+
+	void initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
+	void findNearestClusters( int& first, int& second ) const;
+	void mergeClusters( const CFloatMatrixDesc& matrix, int first, int second, int newClusterIndex,
+		CArray<CMergeInfo>* dendrogram );
+	float recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
+		int firstSize, int secondSize, float currToFirst, float currToSecond, float firstToSecond ) const;
+	void fillResult( const CFloatMatrixDesc& matrix, CClusteringResult& result, CArray<int>* dendrogramIndices ) const;
+};
+
+bool CNaiveHierarchicalClustering::Clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
+	CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices )
+{
 	initialize( matrix, weights );
 
 	if( log != 0 ) {
@@ -83,12 +102,13 @@ bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClustering
 
 	bool success = false;
 	const int initialClustersCount = clusters.Size();
+	int step = 0;
 	while( true ) {
 		if( log != 0 ) {
-			*log << "\n[Step " << initialClustersCount - clusters.Size() << "]\n";
+			*log << "\n[Step " << step << "]\n";
 		}
 
-		if( clusters.Size() <= params.MinClustersCount ) {
+		if( initialClustersCount - step <= params.MinClustersCount ) {
 			break;
 		}
 
@@ -109,43 +129,18 @@ bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClustering
 			*log << "Merge clusters (" << first << ") and (" << second << ") distance - " << distances[first][second] << "\n";
 		}
 
-		mergeClusters( matrix, first, second, dendrogram );
+		mergeClusters( matrix, first, second, initialClustersCount + step, dendrogram );
+
+		step += 1;
 	}
 
-	result.ClusterCount = clusters.Size();
-	result.Data.SetSize( data->GetVectorCount() );
-	result.Clusters.SetBufferSize( clusters.Size() );
-
-	if( dendrogramIndices != nullptr ) {
-		dendrogramIndices->Empty();
-		dendrogramIndices->SetBufferSize( clusters.Size() );
-	}
-
-	for( int i = 0; i < clusters.Size(); i++ ) {
-		CArray<int> elements;
-		clusters[i]->GetAllElements( elements );
-		for(int j = 0; j < elements.Size(); j++ ) {
-			result.Data[elements[j]]=i;
-		}
-		result.Clusters.Add( clusters[i]->GetCenter() );
-		if( dendrogramIndices != nullptr ) {
-			dendrogramIndices->Add( clusterIndices[i] );
-		}
-	}
-
-	if( log != 0 ) {
-		if( success ) {
-			*log << "\nSuccessful!\n";
-		} else {
-			*log << "\nMaxClustersDistance is too small!\n";
-		}
-	}
+	fillResult( matrix, result, dendrogramIndices );
 
 	return success;
 }
 
 // Initializes the algorithm
-void CHierarchicalClustering::initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
+void CNaiveHierarchicalClustering::initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights )
 {
 	const int vectorsCount = matrix.Height;
 
@@ -208,15 +203,28 @@ void CHierarchicalClustering::initialize( const CFloatMatrixDesc& matrix, const 
 }
 
 // Finds the two closest clusters
-void CHierarchicalClustering::findNearestClusters( int& first, int& second ) const
+void CNaiveHierarchicalClustering::findNearestClusters( int& first, int& second ) const
 {
 	NeoAssert( clusters.Size() > 1 );
 
 	first = 0;
-	second = 1;
-	for( int i = 0; i < clusters.Size(); i++ ) {
+	while( first < clusters.Size() && clusters[first] == nullptr ) {
+		++first;
+	}
+	NeoAssert( first < clusters.Size() );
+
+	second = first + 1;
+	while( second < clusters.Size() && clusters[second] == nullptr ) {
+		++second;
+	}
+	NeoAssert( second < clusters.Size() );
+
+	for( int i = first; i < clusters.Size(); i++ ) {
+		if( clusters[i] == nullptr ) {
+			continue;
+		}
 		for( int j = i + 1; j < clusters.Size(); j++ ) {
-			if( distances[i][j] < distances[first][second] ) {
+			if( clusters[j] != nullptr && distances[i][j] < distances[first][second] ) {
 				first = i;
 				second = j;
 			}
@@ -225,7 +233,8 @@ void CHierarchicalClustering::findNearestClusters( int& first, int& second ) con
 }
 
 // Merges two clusters
-void CHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, int first, int second, CArray<CMergeInfo>* dendrogram )
+void CNaiveHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, int first, int second, int newClusterIndex,
+	CArray<CMergeInfo>* dendrogram )
 {
 	NeoAssert( first < second );
 
@@ -251,39 +260,25 @@ void CHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, int
 
 	// Move all elements of the second cluster into the first
 	const int initialClusterCount = initialClusters.IsEmpty() ? matrix.Height : initialClusters.Size();
-	const int newClusterIndex = 2 * initialClusterCount - clusters.Size();
 	clusters[first] = FINE_DEBUG_NEW CCommonCluster( *clusters[first], *clusters[second] );
-	clusterIndices[first] = newClusterIndex;
-	clusters[second] = clusters[last];
-	clusterIndices[second] = clusterIndices[last];
-	clusters.SetSize( last );
+	clusters[second] = nullptr;
 
-	// Switch the second cluster with the last; now we can calculate the cluster distance matrix in linear time
-	CFloatVector secondDistances = distances[second];
-	distances[second] = distances[last];
-	for( int i = 0; i < second; i++ ) {
-		secondDistances.SetAt( i, distances[i][second] );
-		distances[i].SetAt( second, distances[i][last] );
-	}
-	for( int i = second + 1; i < last; i++ ) {
-		// These were already copied during secondDistances construction
-		distances[second].SetAt( i, distances[i][last] );
-	}
-	// distances[last] was moved to distances[second]
-	secondDistances.SetAt( second, secondDistances[last] );
-	for( int i = 0; i < last; i++ ) {
-		if( i == first ) {
-			distances[first].SetAt( first, 0.f );
+	for( int i = 0; i < clusters.Size(); i++ ) {
+		if( i == first || clusters[i] == nullptr ) {
 			continue;
 		}
 		const float distance = recalcDistance( *clusters[i], *clusters[first], firstSize, secondSize,
-			i < first ? distances[i][first] : distances[first][i], secondDistances[i], mergeDistance );
+			i < first ? distances[i][first] : distances[first][i],
+			i < second ? distances[i][second] : distances[second][i],
+			mergeDistance );
 		if( i < first ) {
 			distances[i].SetAt( first, distance );
 		} else {
 			distances[first].SetAt( i, distance );
 		}
 	}
+
+	clusterIndices[first] = newClusterIndex;
 
 	if( log != 0 ) {
 		*log << "Result:\n";
@@ -292,40 +287,456 @@ void CHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, int
 }
 
 // Calculates distance between current cluster and merged cluster based on 
-float CHierarchicalClustering::recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
+float CNaiveHierarchicalClustering::recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
 	int firstSize, int secondSize, float currToFirst, float currToSecond, float firstToSecond ) const
 {
-	static_assert( L_Count == 5, "L_Count != 5" );
+	static_assert( CHierarchicalClustering::L_Count == 5, "L_Count != 5" );
 
+	if( params.Linkage == CHierarchicalClustering::L_Centroid ) {
+		return static_cast<float>( currCluster.CalcDistance( mergedCluster, params.DistanceType ) );
+	}
+
+	return NeoML::recalcDistance(params.Linkage, params.DistanceType, firstSize, secondSize, currToFirst, currToSecond, firstToSecond);
+}
+
+void CNaiveHierarchicalClustering::fillResult( const CFloatMatrixDesc& matrix,
+	CClusteringResult& result, CArray<int>* dendrogramIndices ) const
+{
+	result.Data.SetSize( matrix.Height );
+	result.Clusters.Empty();
+	if( dendrogramIndices != nullptr ) {
+		dendrogramIndices->Empty();
+	}
+
+	for( int i = 0; i < clusters.Size(); i++ ) {
+		if( clusters[i] == nullptr ) {
+			continue;
+		}
+
+		CArray<int> elements;
+		clusters[i]->GetAllElements( elements );
+		for( int j = 0; j < elements.Size(); j++ ) {
+			result.Data[elements[j]] = i;
+		}
+		result.Clusters.Add( clusters[i]->GetCenter() );
+		if( dendrogramIndices != nullptr ) {
+			dendrogramIndices->Add( clusterIndices[i] );
+		}
+	}
+
+	result.ClusterCount = result.Clusters.Size();
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+// Union-find data structure used for re-labeling clusters in sorted dendrogram during NnChain algo
+class CUnionFind
+{
+public:
+	explicit CUnionFind( int size );
+
+	int Root( int index );
+	void Merge( int first, int second, int newLabel );
+
+private:
+	CArray<int> root;
+};
+
+CUnionFind::CUnionFind( int size )
+{
+	root.SetBufferSize( size );
+	for( int i = 0; i < size; ++i ) {
+		root.Add( i );
+	}
+}
+
+int CUnionFind::Root( int index )
+{
+	int actualRoot = index;
+	while( root[actualRoot] != actualRoot ) {
+		actualRoot = root[actualRoot];
+	}
+
+	while( index != actualRoot ) {
+		int temp = index;
+		index = root[index];
+		root[temp] = actualRoot;
+	}
+
+	return actualRoot;
+}
+
+void CUnionFind::Merge( int first, int second, int newRoot )
+{
+	int firstRoot = Root( first );
+	int secondRoot = Root( second );
+
+	root[firstRoot] = newRoot;
+	root[secondRoot] = newRoot;
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+// Nearest neighbor chain clustering algorithm (O(N^2) time, incompatible with centroid linkage)
+class CNnChainHierarchicalClustering {
+	typedef CHierarchicalClustering::CParam CParam;
+	typedef CHierarchicalClustering::CMergeInfo CMergeInfo;
+
+public:
+	CNnChainHierarchicalClustering( const CParam& params, CTextStream* log ) : params( params ), log( log ) {}
+
+	bool Clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
+		CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices );
+
+private:
+	const CParam& params; // the clustering parameters
+	CTextStream* log; // the logging stream
+	CFloatVectorArray distances; // the matrix containing distances between clusters
+	CArray<int> clusterSizes; // sizes of current clusters
+	CArray<int> clusterIndices; // indices in full dendrogram of current clusters
+	CArray<CMergeInfo> fullDendrogram; // dendrogram of the whole tree
+	CArray<int> sortedDendrogram; // indices of full dendrogram nodes in distance-increasing order
+
+	void initialize( const CFloatMatrixDesc& matrix );
+	void buildFullDendrogram( const CFloatMatrixDesc& matrix );
+	void mergeClusters( int first, int second, int newClusterIndex );
+	void sortDendrogram();
+	bool buildResult( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
+		CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const;
+};
+
+bool CNnChainHierarchicalClustering::Clusterize( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
+	CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices )
+{
+	initialize( matrix );
+	buildFullDendrogram( matrix );
+	sortDendrogram();
+	return buildResult( matrix, weights, result, dendrogram, dendrogramIndices );
+}
+
+// Initializes NnChain algo algo
+void CNnChainHierarchicalClustering::initialize( const CFloatMatrixDesc& matrix )
+{
+	const int vectorCount = matrix.Height;
+	const int featureCount = matrix.Width;
+
+	clusterSizes.Empty();
+	clusterSizes.Add( 1, vectorCount );
+
+	// Initialize the cluster distance matrix and cluster indices
+	distances.DeleteAll();
+	distances.Add( CFloatVector( vectorCount ), vectorCount );
+	clusterIndices.Empty();
+	clusterIndices.SetBufferSize( vectorCount );
+
+	for( int i = 0; i < vectorCount; i++ ) {
+		clusterIndices.Add( i );
+		CClusterCenter currObject( CFloatVector( featureCount, matrix.GetRow( i ) ) );
+		for( int j = i + 1; j < vectorCount; j++ ) {
+			distances[i].SetAt( j, static_cast<float>( CalcDistance( currObject, matrix.GetRow( j ), params.DistanceType ) ) );
+		}
+	}
+}
+
+// Builds full dendrogram
+// NnChain always builds full tree and cuts it later (if result contains more than 1 cluster)
+void CNnChainHierarchicalClustering::buildFullDendrogram( const CFloatMatrixDesc& matrix )
+{
+	fullDendrogram.Empty();
+	fullDendrogram.SetBufferSize( matrix.Height - 1 );
+
+	CArray<int> chain;
+	chain.SetSize( matrix.Height );
+	int chainSize = 0;
+
+	for( int step = 0; step < matrix.Height - 1; ++step ) {
+		if( chainSize == 0 ) {
+			int first = 0;
+			while( clusterSizes[first] == 0 ) {
+				++first;
+			}
+			chain[chainSize++] = first;
+		}
+
+		while( true ) {
+			const int first = chain[chainSize - 1];
+			int second = chainSize == 1 ? NotFound : chain[chainSize - 2];
+			float minDistance = second == NotFound ? FLT_MAX
+				: ( first < second ? distances[first][second] : distances[second][first] );
+
+			for( int candidate = 0; candidate < clusterSizes.Size(); ++candidate ) {
+				if( candidate == first || clusterSizes[candidate] == 0 ) {
+					continue;
+				}
+
+				const float currDistance = candidate < first ? distances[candidate][first] : distances[first][candidate];
+				if( currDistance < minDistance ) {
+					minDistance = currDistance;
+					second = candidate;
+				}
+			}
+
+			if( chainSize > 1 && chain[chainSize - 2] == second ) {
+				break;
+			}
+
+			chain[chainSize++] = second;
+		}
+
+		const int first = chain[--chainSize];
+		const int second = chain[--chainSize];
+		mergeClusters( first, second, matrix.Height + step );
+	}
+}
+
+// Merges 2 clusters during NnChain algorithm
+void CNnChainHierarchicalClustering::mergeClusters( int first, int second, int newClusterIndex )
+{
+	if( second < first ) {
+		swap( first, second );
+	}
+
+	const int firstSize = clusterSizes[first];
+	const int secondSize = clusterSizes[second];
+	const float mergeDistance = distances[first][second];
+
+	CMergeInfo& newMerge = fullDendrogram.Append();
+	newMerge.First = clusterIndices[first];
+	newMerge.Second = clusterIndices[second];
+	newMerge.Distance = mergeDistance;
+
+	clusterSizes[first] = 0;
+	clusterSizes[second] = firstSize + secondSize;
+	clusterIndices[first] = newClusterIndex;
+
+	for( int i = 0; i < clusterSizes.Size(); i++ ) {
+		if( i == first || clusterSizes[i] == 0 ) {
+			continue;
+		}
+		// We can pass ref to any cluster here because linkage isn't centroid
+		const float distance = recalcDistance( params.Linkage, params.DistanceType, firstSize, secondSize,
+			i < first ? distances[i][first] : distances[first][i],
+			i < second ? distances[i][second] : distances[second][i],
+			mergeDistance );
+		if( i < first ) {
+			distances[i].SetAt( first, distance );
+		} else {
+			distances[first].SetAt( i, distance );
+		}
+	}
+}
+
+// Finds distance-sorted order of the current full dendrogram
+void CNnChainHierarchicalClustering::sortDendrogram()
+{
+	sortedDendrogram.Empty();
+	sortedDendrogram.SetBufferSize( fullDendrogram.Size() );
+	for( int i = 0; i < fullDendrogram.Size(); ++i ) {
+		sortedDendrogram.Add( i );
+	}
+
+	// Compares indices based on the distances in the data array
+	class CMergeInfoIndexCompare
+	{
+	public:
+		explicit CMergeInfoIndexCompare( const CArray<CMergeInfo>& data ) : data( data ) {}
+
+		bool Predicate( const int& first, const int& second ) const { return data[first].Distance < data[second].Distance; }
+		bool IsEqual( const int& first, const int& second ) const { return data[first].Distance == data[second].Distance; }
+		void Swap( int& first, int& second ) const { swap( first, second ); }
+	private:
+		const CArray<CMergeInfo>& data;
+	};
+
+	CMergeInfoIndexCompare compare( fullDendrogram );
+	sortedDendrogram.QuickSort<CMergeInfoIndexCompare>( &compare );
+}
+
+bool CNnChainHierarchicalClustering::buildResult( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
+	CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const
+{
+	bool success = false;
+	int clusterCount = matrix.Height;
+
+	NeoAssert( ( dendrogram == nullptr && dendrogramIndices == nullptr )
+		|| ( dendrogram != nullptr && dendrogramIndices != nullptr ) );
+
+	// Step 1: build shortened dendrogram and re-label clusters
+	CUnionFind clusters( 2 * matrix.Height - 1 );
+	for( int step = 0; step < sortedDendrogram.Size(); ++step ) {
+		if( log != 0 ) {
+			*log << "\n[Step " << step << "]\n";
+		}
+
+		const int currClusterCount = matrix.Height - step;
+		if( currClusterCount <= params.MinClustersCount ) {
+			break;
+		}
+
+		CMergeInfo merge = fullDendrogram[sortedDendrogram[step]];
+		if( log != 0 ) {
+			*log << "Distance: " << merge.Distance << "\n";
+		}
+
+		if( merge.Distance > params.MaxClustersDistance ) {
+			success = true;
+			break;
+		}
+
+		merge.First = clusters.Root( merge.First );
+		merge.Second = clusters.Root( merge.Second );
+		if( merge.Second < merge.First ) {
+			swap( merge.First, merge.Second );
+		}
+		clusters.Merge( merge.First, merge.Second, matrix.Height + step );
+		clusterCount--;
+
+		if( log != 0 ) {
+			*log << "Merge clusters (" << merge.First << ") and (" << merge.Second << ") distance - " << merge.Distance << "\n";
+		}
+
+		if( dendrogram != nullptr ) {
+			dendrogram->Add( merge );
+		}
+	}
+
+	// Step 2: fill result clusters, calc centers
+	result.ClusterCount = clusterCount;
+	CObjectArray<CCommonCluster> resultClusters;
+	resultClusters.SetBufferSize( clusterCount );
+	result.Data.SetSize( matrix.Height );
+	// <index in dendrogram, index in result array>
+	CMap<int, int> resultIndices;
+
+	for( int i = 0; i < matrix.Height; ++i ) {
+		const int dendrogramClusterIndex = clusters.Root( i );
+		if( !resultIndices.Has( dendrogramClusterIndex ) ) {
+			const int resultClusterIndex = resultClusters.Size();
+			resultIndices.Add( dendrogramClusterIndex, resultClusterIndex );
+			resultClusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( CFloatVector( matrix.Width, 0.f ) ) ) );
+		}
+		const int resultClusterIndex = resultIndices[dendrogramClusterIndex];
+		resultClusters[resultClusterIndex]->Add( i, matrix.GetRow( i ), weights[i] );
+		result.Data[i] = resultClusterIndex;
+	}
+
+	NeoAssert( resultClusters.Size() == clusterCount );
+	result.Clusters.SetBufferSize( clusterCount );
+	for( int i = 0; i < clusterCount; ++i ) {
+		resultClusters[i]->RecalcCenter();
+		result.Clusters.Add( resultClusters[i]->GetCenter() );
+	}
+
+	if( dendrogramIndices != nullptr ) {
+		// Fill this array with inverted resultIndices mapping
+		dendrogramIndices->Empty();
+		dendrogramIndices->SetSize( clusterCount );
+		for( int pos = resultIndices.GetFirstPosition(); pos != NotFound; pos = resultIndices.GetNextPosition( pos ) ) {
+			( *dendrogramIndices )[resultIndices.GetValue( pos )] = resultIndices.GetKey( pos );
+		}
+	}
+
+	return success;
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+CHierarchicalClustering::CHierarchicalClustering( const CArray<CClusterCenter>& clustersCenters, const CParam& _params ) :
+	params( _params ),
+	log( 0 )
+{
+	NeoAssert( params.MinClustersCount > 0 );
+	// Initial cluster centers are supported only for centroid
+	NeoAssert( params.Linkage == L_Centroid );
+	clustersCenters.CopyTo( initialClusters );
+}
+
+CHierarchicalClustering::CHierarchicalClustering( const CParam& _params ) :
+	params( _params ),
+	log( 0 )
+{
+	NeoAssert( params.MinClustersCount > 0 );
+}
+
+bool CHierarchicalClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
+{
+	return clusterizeImpl( input, result, nullptr, nullptr );
+}
+
+bool CHierarchicalClustering::ClusterizeEx( IClusteringData* input, CClusteringResult& result,
+	CArray<CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices )
+{
+	return clusterizeImpl( input, result, &dendrogram, &dendrogramIndices );
+}
+
+bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClusteringResult& result,
+	CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const
+{
+	NeoAssert( params.Linkage != L_Ward || params.DistanceType == DF_Euclid ); // Ward works only in L2
+	NeoAssert( ( dendrogram != nullptr && dendrogramIndices != nullptr )
+		|| ( dendrogram == nullptr && dendrogramIndices == nullptr ) );
+	NeoAssert( data != 0 );
+
+	if( log != 0 ) {
+		*log << "\nHierarchical clustering started:\n";
+	}
+
+	CFloatMatrixDesc matrix = data->GetMatrix();
+	NeoAssert( matrix.Height == data->GetVectorCount() );
+	NeoAssert( matrix.Width == data->GetFeaturesCount() );
+
+	CArray<double> weights;
+	for( int i = 0; i < data->GetVectorCount(); i++ ) {
+		weights.Add( data->GetVectorWeight( i ) );
+	}
+
+	static_assert( L_Count == 5, "L_Count != 5" );
+	bool success = false;
 	switch( params.Linkage ) {
 		case L_Centroid:
-			// No optimizations, just calculate distance between new centers
-			return static_cast<float>( currCluster.CalcDistance( mergedCluster, params.DistanceType ) );
+			success = naiveAlgo( matrix, weights, result, dendrogram, dendrogramIndices );
+			break;
 		case L_Single:
-			return ::fminf( currToFirst, currToSecond );
 		case L_Average:
-		{
-			if( params.DistanceType == DF_Euclid || params.DistanceType == DF_Machalanobis ) {
-				// NeoML works with squared Euclid and Machalanobis
-				const float total = ::sqrtf( currToFirst ) * firstSize + ::sqrtf( currToSecond ) * secondSize;
-				const float avg = total / ( firstSize + secondSize );
-				return avg * avg;
-			}
-			return ( currToFirst * firstSize + currToSecond * secondSize ) / ( firstSize + secondSize );
-		}
 		case L_Complete:
-			return ::fmaxf( currToFirst, currToSecond );
 		case L_Ward:
-		{
-			const int mergeSize = firstSize + secondSize;
-			return ( firstSize * currToFirst + secondSize * currToSecond
-				- ( firstSize * secondSize * firstToSecond ) / mergeSize ) / mergeSize;
-		}
+			if( initialClusters.IsEmpty() ) {
+				success = nnChainAlgo( matrix, weights, result, dendrogram, dendrogramIndices );
+			} else {
+				success = naiveAlgo( matrix, weights, result, dendrogram, dendrogramIndices );
+			}
+			break;
 		default:
 			NeoAssert( false );
 	}
 
-	return 0.f;
+	if( log != 0 ) {
+		if( success ) {
+			*log << "\nSuccessful!\n";
+		} else {
+			*log << "\nMaxClustersDistance is too small!\n";
+		}
+	}
+
+	return success;
+}
+
+// Clusterizes data by using naive algorithm
+bool CHierarchicalClustering::naiveAlgo( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
+	CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const
+{
+	CNaiveHierarchicalClustering naiveClustering( params, initialClusters, log );
+	return naiveClustering.Clusterize( matrix, weights, result, dendrogram, dendrogramIndices );
+}
+
+// Clusterizes data by using nearest neighbor chain algorithm
+bool CHierarchicalClustering::nnChainAlgo(const CFloatMatrixDesc& matrix, const CArray<double>& weights,
+	CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const
+{
+	NeoAssert( params.Linkage != L_Centroid );
+	NeoAssert( initialClusters.IsEmpty() );
+	CNnChainHierarchicalClustering nnChainClustering( params, log );
+	return nnChainClustering.Clusterize( matrix, weights, result, dendrogram, dendrogramIndices );
 }
 
 } // namespace NeoML
