@@ -393,13 +393,12 @@ private:
 	CTextStream* log; // the logging stream
 	CFloatVectorArray distances; // the matrix containing distances between clusters
 	CArray<int> clusterSizes; // sizes of current clusters
-	CArray<int> clusterIndices; // indices in full dendrogram of current clusters
 	CArray<CMergeInfo> fullDendrogram; // dendrogram of the whole tree
 	CArray<int> sortedDendrogram; // indices of full dendrogram nodes in distance-increasing order
 
 	void initialize( const CFloatMatrixDesc& matrix );
 	void buildFullDendrogram( const CFloatMatrixDesc& matrix );
-	void mergeClusters( int first, int second, int newClusterIndex );
+	void mergeClusters( int first, int second );
 	void sortDendrogram();
 	bool buildResult( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 		CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const;
@@ -423,14 +422,11 @@ void CNnChainHierarchicalClustering::initialize( const CFloatMatrixDesc& matrix 
 	clusterSizes.Empty();
 	clusterSizes.Add( 1, vectorCount );
 
-	// Initialize the cluster distance matrix and cluster indices
+	// Initialize the cluster distance matrix
 	distances.DeleteAll();
 	distances.Add( CFloatVector( vectorCount ), vectorCount );
-	clusterIndices.Empty();
-	clusterIndices.SetBufferSize( vectorCount );
 
 	for( int i = 0; i < vectorCount; i++ ) {
-		clusterIndices.Add( i );
 		CClusterCenter currObject( CFloatVector( featureCount, matrix.GetRow( i ) ) );
 		for( int j = i + 1; j < vectorCount; j++ ) {
 			distances[i].SetAt( j, static_cast<float>( CalcDistance( currObject, matrix.GetRow( j ), params.DistanceType ) ) );
@@ -485,12 +481,12 @@ void CNnChainHierarchicalClustering::buildFullDendrogram( const CFloatMatrixDesc
 
 		const int first = chain[--chainSize];
 		const int second = chain[--chainSize];
-		mergeClusters( first, second, matrix.Height + step );
+		mergeClusters( first, second );
 	}
 }
 
-// Merges 2 clusters during NnChain algorithm
-void CNnChainHierarchicalClustering::mergeClusters( int first, int second, int newClusterIndex )
+// Merges 2 clusters during NnChain algorithm and adds merge result to the full dendrogram
+void CNnChainHierarchicalClustering::mergeClusters( int first, int second )
 {
 	if( second < first ) {
 		swap( first, second );
@@ -501,13 +497,12 @@ void CNnChainHierarchicalClustering::mergeClusters( int first, int second, int n
 	const float mergeDistance = distances[first][second];
 
 	CMergeInfo& newMerge = fullDendrogram.Append();
-	newMerge.First = clusterIndices[first];
-	newMerge.Second = clusterIndices[second];
+	newMerge.First = first;
+	newMerge.Second = second;
 	newMerge.Distance = mergeDistance;
 
 	clusterSizes[first] = 0;
 	clusterSizes[second] = firstSize + secondSize;
-	clusterIndices[first] = newClusterIndex;
 
 	for( int i = 0; i < clusterSizes.Size(); i++ ) {
 		if( i == first || clusterSizes[i] == 0 ) {
@@ -600,7 +595,7 @@ bool CNnChainHierarchicalClustering::buildResult( const CFloatMatrixDesc& matrix
 		}
 	}
 
-	// Step 2: fill result clusters, calc centers
+	// Step 2: fill result clusters and calc centers
 	result.ClusterCount = clusterCount;
 	CObjectArray<CCommonCluster> resultClusters;
 	resultClusters.SetBufferSize( clusterCount );
