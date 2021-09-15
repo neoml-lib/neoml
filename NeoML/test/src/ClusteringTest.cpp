@@ -21,7 +21,7 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-typedef void (*TClusteringFunction)( IClusteringData* data, CClusteringResult& result );
+typedef void (*TClusteringFunction)( const IClusteringData* data, CClusteringResult& result );
 
 class CClusteringTest : public CNeoMLTestFixture, public ::testing::WithParamInterface<TClusteringFunction> {
 public:
@@ -144,7 +144,7 @@ static void generateData( int vectorCount, int featureCount, int seed,
 // --------------------------------------------------------------------------------------------------------------------
 // Clustering functions
 
-static void firstComeClustering( IClusteringData* data, CClusteringResult& result )
+static void firstComeClustering( const IClusteringData* data, CClusteringResult& result )
 {
 	CFirstComeClustering::CParam params;
 	params.Threshold = 5.0;
@@ -154,7 +154,7 @@ static void firstComeClustering( IClusteringData* data, CClusteringResult& resul
 }
 
 template<CHierarchicalClustering::TLinkage LINKAGE>
-static void hierarchicalClustering( IClusteringData* data, CClusteringResult& result )
+static void hierarchicalClustering( const IClusteringData* data, CClusteringResult& result )
 {
 	CHierarchicalClustering::CParam params;
 	params.Linkage = LINKAGE;
@@ -172,7 +172,7 @@ static void hierarchicalClustering( IClusteringData* data, CClusteringResult& re
 	}
 }
 
-static void isoDataClustering( IClusteringData* data, CClusteringResult& result )
+static void isoDataClustering( const IClusteringData* data, CClusteringResult& result )
 {
 	CIsoDataClustering::CParam params;
 	params.MinClusterSize = 1;
@@ -187,7 +187,7 @@ static void isoDataClustering( IClusteringData* data, CClusteringResult& result 
 	isoData.Clusterize( data, result );
 }
 
-static void kmeansLloydClustering( IClusteringData* data, CClusteringResult& result )
+static void kmeansLloydClustering( const IClusteringData* data, CClusteringResult& result )
 {
 	CKMeansClustering::CParam params;
 	params.DistanceFunc = DF_Euclid;
@@ -201,7 +201,7 @@ static void kmeansLloydClustering( IClusteringData* data, CClusteringResult& res
 	kMeans.Clusterize( data, result );
 }
 
-static void kmeansElkanClustering( IClusteringData* data, CClusteringResult& result )
+static void kmeansElkanClustering( const IClusteringData* data, CClusteringResult& result )
 {
 	CKMeansClustering::CParam params;
 	params.DistanceFunc = DF_Euclid;
@@ -389,7 +389,7 @@ TEST_F( CClusteringTest, PrecalcIsoData )
 	precalcTestImpl( isoDataClustering, expectedResult );
 }
 
-static void kmeansElkanDefaultInitClustering( IClusteringData* data, CClusteringResult& result )
+static void kmeansElkanDefaultInitClustering( const IClusteringData* data, CClusteringResult& result )
 {
 	CKMeansClustering::CParam params;
 	params.DistanceFunc = DF_Euclid;

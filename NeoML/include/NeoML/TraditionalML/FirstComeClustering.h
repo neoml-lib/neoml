@@ -57,7 +57,7 @@ public:
 	// By default logging is off (set to null to turn off)
 	void SetLog( CTextStream* newLog ) { log = newLog; }
 
-	bool Clusterize( IClusteringData* input, CClusteringResult& result ) override;
+	bool Clusterize( const IClusteringData* input, CClusteringResult& result ) override;
 
 private:
 	const CParam init; // the clustering parameters

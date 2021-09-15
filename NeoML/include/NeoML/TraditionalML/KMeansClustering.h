@@ -96,7 +96,7 @@ public:
 	// IClustering inteface methods:
 	// Clusterizes the input data and returns true if successful,
 	// false if more iterations are needed
-	bool Clusterize( IClusteringData* data, CClusteringResult& result ) override;
+	bool Clusterize( const IClusteringData* data, CClusteringResult& result ) override;
 
 private:
 	const CParam params; // clustering parameters
@@ -105,7 +105,7 @@ private:
 	CArray<CClusterCenter> initialClusterCenters; // the initial cluster centers
 
 	// Single run of clusterization with given seed
-	bool runClusterization( IClusteringData* input, int seed, CClusteringResult& result, double& inertia );
+	bool runClusterization( const IClusteringData* input, int seed, CClusteringResult& result, double& inertia );
 
 	// Initial cluster selection for sparse data
 	void selectInitialClusters( const CFloatMatrixDesc& matrix, int seed );
@@ -140,7 +140,7 @@ private:
 		const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id) const;
 
 	// Specific case for dense data with Euclidean metrics and Lloyd algorithm
-	bool denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result, double& inertia );
+	bool denseLloydL2Clusterize( const IClusteringData* rawData, int seed, CClusteringResult& result, double& inertia );
 	// Initial cluster selection
 	void selectInitialClusters( const CDnnBlob& data, int seed, CDnnBlob& centers );
 	void defaultInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers );

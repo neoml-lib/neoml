@@ -29,7 +29,7 @@ CFirstComeClustering::CFirstComeClustering( const CParam& params ) :
 	NeoAssert( 0 < init.MinClusterSizeRatio && init.MinClusterSizeRatio <= 1 );
 }
 
-bool CFirstComeClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
+bool CFirstComeClustering::Clusterize( const IClusteringData* input, CClusteringResult& result )
 {
 	result.ClusterCount = 0;
 	result.Data.SetSize( input->GetVectorCount() );
