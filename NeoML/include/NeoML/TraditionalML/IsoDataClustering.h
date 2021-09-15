@@ -60,7 +60,7 @@ public:
 	// IClustering inteface methods:
 	// Clusterizes the input data and returns true if successful,
 	// false if more iterations are needed
-	bool Clusterize( IClusteringData* input, CClusteringResult& result ) override;
+	bool Clusterize( const IClusteringData* input, CClusteringResult& result ) override;
 
 private:
 	// A pair of clusters that will be merged

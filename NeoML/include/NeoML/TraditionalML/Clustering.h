@@ -67,7 +67,7 @@ public:
 
 	// Clusterizes the input data 
 	// and returns true if successful with the given parameters
-	virtual bool Clusterize( IClusteringData*, CClusteringResult& ) = 0;
+	virtual bool Clusterize( const IClusteringData*, CClusteringResult& ) = 0;
 };
 
 } // namespace NeoML
