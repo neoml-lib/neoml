@@ -272,6 +272,27 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 
 //------------------------------------------------------------------------------------------------------------
 
+inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+{
+	int count = GetCount4(vectorSize);
+	float32x4_t mult = vdupq_n_f32(multiplier);
+
+	for(int i = 0; i < count; ++i) {
+		float32x4_t res = vmulq_f32(LoadNeon4(first), mult);
+		StoreNeon4(res, result);
+
+		first += 4;
+		result += 4;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), mult);
+		StoreNeon(res, result, vectorSize);
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int neonSize, int nonNeonSize )
 {
 	while( neonSize >= 4 ) {
@@ -685,6 +706,43 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 		float32x4_t i0 = LoadNeon( i, nonNeonSize );
 		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( i0, z0 ) );
 		StoreNeon( res0, res, nonNeonSize );
+	}
+}
+
+inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
+{
+	int count = GetCount4(vectorSize);
+
+	float32x4_t minVal = vdupq_n_f32(minValue);
+	float32x4_t maxVal = vdupq_n_f32(maxValue);
+
+	while( count >= 4 ) {
+		NEON_LOAD_16_FLOATS( first, first );
+		first += 16;
+
+		float32x4_t res0 = vmaxq_f32(minVal, vminq_f32(maxVal, first0));
+		float32x4_t res1 = vmaxq_f32(minVal, vminq_f32(maxVal, first1));
+		float32x4_t res2 = vmaxq_f32(minVal, vminq_f32(maxVal, first2));
+		float32x4_t res3 = vmaxq_f32(minVal, vminq_f32(maxVal, first3));
+
+		NEON_STORE_16_FLOATS( res, result );
+		result += 16;
+
+		count -= 4;
+	}
+
+	while( count > 0 ) {
+		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon4(first)));
+		StoreNeon4(res, result);
+
+		first += 4;
+		result += 4;
+		--count;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon(first, vectorSize)));
+		StoreNeon(res, result, vectorSize);
 	}
 }
 
