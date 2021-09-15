@@ -80,8 +80,7 @@ private:
 
 	void initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
 	void findNearestClusters( int& first, int& second ) const;
-	void mergeClusters( const CFloatMatrixDesc& matrix, int first, int second, int newClusterIndex,
-		CArray<CMergeInfo>* dendrogram );
+	void mergeClusters( int first, int second, int newClusterIndex, CArray<CMergeInfo>* dendrogram );
 	float recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
 		int firstSize, int secondSize, float currToFirst, float currToSecond, float firstToSecond ) const;
 	void fillResult( const CFloatMatrixDesc& matrix, CClusteringResult& result, CArray<int>* dendrogramIndices ) const;
@@ -129,7 +128,7 @@ bool CNaiveHierarchicalClustering::Clusterize( const CFloatMatrixDesc& matrix, c
 			*log << "Merge clusters (" << first << ") and (" << second << ") distance - " << distances[first][second] << "\n";
 		}
 
-		mergeClusters( matrix, first, second, initialClustersCount + step, dendrogram );
+		mergeClusters( first, second, initialClustersCount + step, dendrogram );
 
 		step += 1;
 	}
@@ -233,8 +232,7 @@ void CNaiveHierarchicalClustering::findNearestClusters( int& first, int& second 
 }
 
 // Merges two clusters
-void CNaiveHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, int first, int second, int newClusterIndex,
-	CArray<CMergeInfo>* dendrogram )
+void CNaiveHierarchicalClustering::mergeClusters( int first, int second, int newClusterIndex, CArray<CMergeInfo>* dendrogram )
 {
 	NeoAssert( first < second );
 
