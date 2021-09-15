@@ -512,7 +512,7 @@ TEST_F( CClusteringTest, HierarchicalDendrogram )
 
 		ASSERT_EQ( expectedIndices.Size(), actualIndices.Size() );
 		for( int i = 0; i < expectedIndices.Size(); ++i ) {
-			ASSERT_EQ( expectedIndices[i], actualIndices[i] ) << step << '\t' << i;
+			ASSERT_EQ( expectedIndices[i], actualIndices[i] );
 		}
 	}
 }
