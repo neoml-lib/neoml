@@ -28,19 +28,6 @@ limitations under the License.
 
 namespace NeoML {
 
-void CCpuMathEngine::VectorCopy(const CIntHandle& firstHandle, const CConstIntHandle& secondHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-
-	dataCopy(GetRaw(firstHandle), GetRaw(secondHandle), vectorSize);
-}
-
-void CCpuMathEngine::vectorCopy(float* first, const float* second, int vectorSize)
-{
-	dataCopy(first, second, vectorSize);
-}
-
 void CCpuMathEngine::VectorFill(const CFloatHandle& result, float value, int vectorSize)
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
@@ -122,7 +109,7 @@ void CCpuMathEngine::VectorSumAdd(const CConstFloatHandle& firstHandle, int vect
 	float32x2_t sum2 = vpadd_f32(vget_high_f32(sum), vget_low_f32(sum));
 	float32x2_t res = vpadd_f32(sum2, sum2);
 
-	*GetRaw(resultHandle) = vget_lane_f32(res, 0);
+	*GetRaw(resultHandle) += vget_lane_f32(res, 0);
 }
 
 void CCpuMathEngine::VectorReLU(const CConstFloatHandle& firstHandle,
@@ -570,33 +557,6 @@ void CCpuMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle,
 	}
 }
 
-void CCpuMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	float32x4_t mult = vdupq_n_f32(*GetRaw(multHandle));
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vmulq_f32(LoadNeon4(first), mult);
-		StoreNeon4(res, result);
-
-		first += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), mult);
-		StoreNeon(res, result, vectorSize);
-	}
-}
-
 void CCpuMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle)
 {
@@ -686,35 +646,6 @@ void CCpuMathEngine::VectorSqrt(const CConstFloatHandle& firstHandle,
 
 	if(vectorSize > 0) {
 		float32x4_t res = sqrtObj.Execute(LoadNeon(first, vectorSize));
-		StoreNeon(res, result, vectorSize);
-	}
-}
-
-void CCpuMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( minHandle.GetMathEngine() == this );
-	ASSERT_EXPR( maxHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	float32x4_t minVal = vdupq_n_f32(*GetRaw(minHandle));
-	float32x4_t maxVal = vdupq_n_f32(*GetRaw(maxHandle));
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon4(first)));
-		StoreNeon4(res, result);
-
-		first += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon(first, vectorSize)));
 		StoreNeon(res, result, vectorSize);
 	}
 }

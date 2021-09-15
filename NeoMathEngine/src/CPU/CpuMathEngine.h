@@ -559,7 +559,6 @@ private:
 	void blob3dConvolutionPrepareInput( const CCommon3dConvolutionDesc& desc, float* inputPreparedData,
 		const float* inputBlobData, int inputObject, int outputHeight, int outputWidthExStart, int outputWidthExCount );
 
-	void vectorCopy( float* first, const float* second, int vectorSize);
 	void setVectorToMatrixRows( float* result, int matrixHeight, int matrixWidth, const float* vector );
 	void addVectorToMatrixRows( const float* matrix, float* result,
 		int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector );
