@@ -786,7 +786,7 @@ void CCpuMathEngine::findMaxValueInColumns( float* result, int* rowIndices,
 	const float* matrix, int matrixHeight, int matrixWidth )
 {
 	// Copy the first row
-	vectorCopy( result, matrix, matrixWidth );
+	dataCopy( result, matrix, matrixWidth );
 	memset( rowIndices, 0, matrixWidth * sizeof( *rowIndices ) );
 	matrix += matrixWidth;
 	// Process the rest
@@ -811,15 +811,15 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrix( const CConstFloatHandle& firstH
 {
 	ASSERT_EXPR( resultBufferSize >= firstSize * secondWidth );
 
-	CConstFloatHandle first = firstHandle;
-	CConstFloatHandle second = secondHandle;
-	CFloatHandle result = resultHandle;
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
 
-	for( int j = 0; j < firstSize; ++j ) {
-		VectorMultiply( second, result, secondWidth, first );
-		second += secondWidth;
-		result += secondWidth;
-		++first;
+	const int curThreadCount = IsOmpRelevant( firstSize, firstSize * secondWidth ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int i = 0; i < firstSize; i++ ) {
+		const float multiplier = *( first + i );
+		vectorMultiply( second + i * secondWidth, result + i * secondWidth, multiplier, secondWidth );
 	}
 }
 

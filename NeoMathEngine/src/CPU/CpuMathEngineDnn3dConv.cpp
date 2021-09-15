@@ -145,7 +145,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionD
 				for( int i = 0; i < inputBlob.Width(); ++i ) {
 					const float* inputPixelData = inputColData;
 					for( int k = 0; k < inputBlob.Depth(); ++k ) {
-						vectorCopy( inputBlobDataPtr, inputPixelData, input.Channels() );
+						dataCopy( inputBlobDataPtr, inputPixelData, input.Channels() );
 						inputBlobDataPtr += input.Channels();
 						inputPixelData += input.Channels() * desc.StrideDepth;
 					}
@@ -200,7 +200,7 @@ void CCpuMathEngine::blob3dConvolutionPrepareInput( const CCommon3dConvolutionDe
 				// Copy part of the data from the previous rows
 				int rowsToCopy = filterBlob.Height() - desc.StrideHeight;
 				if( rowsToCopy > 0 ) {
-					vectorCopy( inputPrepared, inputPrepared - rowsToCopy * filterRowSize,
+					dataCopy( inputPrepared, inputPrepared - rowsToCopy * filterRowSize,
 						rowsToCopy * filterRowSize );
 					rowsToComplete -= rowsToCopy;
 					inputJ += rowsToCopy;
@@ -254,7 +254,7 @@ void CCpuMathEngine::blob3dConvolutionPrepareInput( const CCommon3dConvolutionDe
 
 							if( validK > 0 ) {
 								// Copy the main data
-								vectorCopy( inputPrepared,
+								dataCopy( inputPrepared,
 									input + ( ( inputJ * inputBlob.Width() + startI ) * inputBlob.Depth() + startK )
 									* inputBlob.Channels(),
 									validK * inputBlob.Channels() );
@@ -347,7 +347,7 @@ void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, co
 				for( int tj = 0; tj < outputCount; ++tj ) {
 					float* outputRowData = outputDataPtr;
 					for( int ti = 0; ti < result.Height(); ++ti ) {
-						vectorCopy( outputRowData, tempData, result.Channels() );
+						dataCopy( outputRowData, tempData, result.Channels() );
 						tempData += result.Channels();
 						outputRowData += outputRowSize;
 					}
