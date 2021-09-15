@@ -256,10 +256,7 @@ void CNaiveHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix
 		mergeInfo.Distance = mergeDistance;
 	}
 
-	const int last = clusters.Size() - 1;
-
 	// Move all elements of the second cluster into the first
-	const int initialClusterCount = initialClusters.IsEmpty() ? matrix.Height : initialClusters.Size();
 	clusters[first] = FINE_DEBUG_NEW CCommonCluster( *clusters[first], *clusters[second] );
 	clusters[second] = nullptr;
 
