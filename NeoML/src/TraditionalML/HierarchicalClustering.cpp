@@ -58,7 +58,76 @@ static float recalcDistance( CHierarchicalClustering::TLinkage linkage, TDistanc
 
 // --------------------------------------------------------------------------------------------------------------------
 
-// Naive hierarchical clustering algorithm (O(N^3) time)
+// Matrix row which supports both random indexing and getting minimum
+class CDistanceMatrixRow {
+public:
+	CDistanceMatrixRow() {}
+	CDistanceMatrixRow( const CDistanceMatrixRow& other );
+
+	// Random access (CFloatVector-like)
+	float operator[] ( int index ) const { return index < distances.Size() ? distances[index] : FLT_MAX; }
+	void SetAt( int index, float newValue );
+	void ResetAt( int index );
+
+	// Returns closest cluster information
+	// It takes logN * X where X is a number of changes made since last Closest* method call
+	int ClosestCluster() const { synchronize(); return queue.IsEmpty() ? NotFound : queue.Peek().Index; }
+	float ClosestDistance() const { synchronize(); return queue.IsEmpty() ? FLT_MAX : queue.Peek().Distance; }
+
+private:
+	struct CDistanceInfo {
+		float Distance;
+		int Index;
+
+		CDistanceInfo() : Distance( FLT_MAX ), Index( NotFound ) {}
+		CDistanceInfo( float distance, int index ) : Distance( distance ), Index( index ) {}
+	};
+
+	CArray<float> distances;
+	mutable CPriorityQueue<CArray<CDistanceInfo>,
+		CompositeComparer<CDistanceInfo,
+			DescendingByMember<CDistanceInfo, float, &CDistanceInfo::Distance>,
+			DescendingByMember<CDistanceInfo, int, &CDistanceInfo::Index>>> queue;
+
+	// Removes the peak of the priority queue till it's in sycn with the distances' content
+	void synchronize() const
+	{
+		while( !queue.IsEmpty() && queue.Peek().Distance != distances[queue.Peek().Index] ) {
+			queue.Pop();
+		}
+	}
+};
+
+CDistanceMatrixRow::CDistanceMatrixRow( const CDistanceMatrixRow& other )
+{
+	other.distances.CopyTo( distances );
+	CArray<CDistanceInfo> queueArray;
+	other.queue.CopyTo( queueArray );
+	queue.Attach( queueArray );
+}
+
+void CDistanceMatrixRow::ResetAt( int index )
+{
+	if( index < distances.Size() ) {
+		distances[index] = FLT_MAX;
+	}
+}
+
+void CDistanceMatrixRow::SetAt( int index, float newValue )
+{
+	NeoAssert( newValue != FLT_MAX );
+	if( index < distances.Size() && distances[index] == newValue ) {
+		return;
+	}
+
+	if( index >= distances.Size() ) {
+		distances.Add( FLT_MAX, index - distances.Size() + 1 );
+	}
+	distances[index] = newValue;
+	queue.Push( CDistanceInfo( newValue, index ) );
+}
+
+// Naive hierarchical clustering algorithm (O(N^2 logN) time)
 class CNaiveHierarchicalClustering {
 	typedef CHierarchicalClustering::CParam CParam;
 	typedef CHierarchicalClustering::CMergeInfo CMergeInfo;
@@ -76,11 +145,11 @@ private:
 	CTextStream* log; // the logging stream
 	CObjectArray<CCommonCluster> clusters; // the current clusters
 	CArray<int> clusterIndices; // the current clusters indices in the dendrogram
-	CFloatVectorArray distances; // the matrix containing distances between clusters
+	CArray<CDistanceMatrixRow> distances; // distances matrix stored in priority queues
 
 	void initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
-	void findNearestClusters( int& first, int& second ) const;
-	void mergeClusters( int first, int second, int newClusterIndex, CArray<CMergeInfo>* dendrogram );
+	void findNearestClusters( int& first ) const;
+	void mergeClusters( int first, int newClusterIndex, CArray<CMergeInfo>* dendrogram );
 	float recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
 		int firstSize, int secondSize, float currToFirst, float currToSecond, float firstToSecond ) const;
 	void fillResult( const CFloatMatrixDesc& matrix, CClusteringResult& result, CArray<int>* dendrogramIndices ) const;
@@ -112,23 +181,23 @@ bool CNaiveHierarchicalClustering::Clusterize( const CFloatMatrixDesc& matrix, c
 		}
 
 		int first = NotFound;
-		int second = NotFound;
-		findNearestClusters( first, second );
+		findNearestClusters( first );
+		const float mergeDistance = distances[first].ClosestDistance();
 
 		if( log != 0 ) {
-			*log << "Distance: " << distances[first][second] << "\n";
+			*log << "Distance: " << mergeDistance << "\n";
 		}
 
-		if( distances[first][second] > params.MaxClustersDistance ) {
+		if( mergeDistance > params.MaxClustersDistance ) {
 			success = true;
 			break;
 		}
 
 		if( log != 0 ) {
-			*log << "Merge clusters (" << first << ") and (" << second << ") distance - " << distances[first][second] << "\n";
+			*log << "Merge clusters (" << first << ") and (" << distances[first].ClosestCluster() << ") distance - " << mergeDistance << "\n";
 		}
 
-		mergeClusters( first, second, initialClustersCount + step, dendrogram );
+		mergeClusters( first, initialClustersCount + step, dendrogram );
 
 		step += 1;
 	}
@@ -193,16 +262,17 @@ void CNaiveHierarchicalClustering::initialize( const CFloatMatrixDesc& matrix, c
 
 	// Initialize the cluster distance matrix
 	distances.DeleteAll();
-	distances.Add( CFloatVector( clusters.Size() ), clusters.Size() );
+	distances.SetSize( clusters.Size() );
 	for( int i = 0; i < clusters.Size(); i++ ) {
 		for( int j = i + 1; j < clusters.Size(); j++ ) {
-			distances[i].SetAt( j, static_cast<float>( clusters[i]->CalcDistance( *clusters[j], params.DistanceType ) ) );
+			const float currDist = static_cast<float>( clusters[i]->CalcDistance( *clusters[j], params.DistanceType ) );
+			distances[i].SetAt( j, currDist );
 		}
 	}
 }
 
 // Finds the two closest clusters
-void CNaiveHierarchicalClustering::findNearestClusters( int& first, int& second ) const
+void CNaiveHierarchicalClustering::findNearestClusters( int& first ) const
 {
 	NeoAssert( clusters.Size() > 1 );
 
@@ -212,29 +282,21 @@ void CNaiveHierarchicalClustering::findNearestClusters( int& first, int& second 
 	}
 	NeoAssert( first < clusters.Size() );
 
-	second = first + 1;
-	while( second < clusters.Size() && clusters[second] == nullptr ) {
-		++second;
-	}
-	NeoAssert( second < clusters.Size() );
-
-	for( int i = first; i < clusters.Size(); i++ ) {
+	for( int i = first + 1; i < clusters.Size(); i++ ) {
 		if( clusters[i] == nullptr ) {
 			continue;
 		}
-		for( int j = i + 1; j < clusters.Size(); j++ ) {
-			if( clusters[j] != nullptr && distances[i][j] < distances[first][second] ) {
-				first = i;
-				second = j;
-			}
+		if( distances[first].ClosestDistance() > distances[i].ClosestDistance() ) {
+			first = i;
 		}
 	}
 }
 
 // Merges two clusters
-void CNaiveHierarchicalClustering::mergeClusters( int first, int second, int newClusterIndex, CArray<CMergeInfo>* dendrogram )
+void CNaiveHierarchicalClustering::mergeClusters( int first, int newClusterIndex, CArray<CMergeInfo>* dendrogram )
 {
-	NeoAssert( first < second );
+	const int second = distances[first].ClosestCluster();
+	NeoAssert( first < second && clusters[second] != nullptr );
 
 	if( log != 0 ) {
 		*log << "Cluster " << first << "\n";
@@ -245,7 +307,7 @@ void CNaiveHierarchicalClustering::mergeClusters( int first, int second, int new
 
 	const int firstSize = clusters[first]->GetElementsCount();
 	const int secondSize = clusters[second]->GetElementsCount();
-	const float mergeDistance = distances[first][second];
+	const float mergeDistance = distances[first].ClosestDistance();
 
 	if( dendrogram != nullptr ) {
 		CMergeInfo& mergeInfo = dendrogram->Append();
@@ -259,6 +321,9 @@ void CNaiveHierarchicalClustering::mergeClusters( int first, int second, int new
 	clusters[second] = nullptr;
 
 	for( int i = 0; i < clusters.Size(); i++ ) {
+		if( i < second ) {
+			distances[i].ResetAt( second );
+		}
 		if( i == first || clusters[i] == nullptr ) {
 			continue;
 		}
