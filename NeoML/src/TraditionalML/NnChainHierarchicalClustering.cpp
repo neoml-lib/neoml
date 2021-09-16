@@ -18,6 +18,8 @@ limitations under the License.
 
 #include <NnChainHierarchicalClustering.h>
 
+#include <cfloat>
+
 namespace NeoML {
 
 // Recalculates distance between current and the result of the merge of the first and second clusters

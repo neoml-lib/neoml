@@ -17,6 +17,8 @@ limitations under the License.
 
 #include <NeoML/TraditionalML/HierarchicalClustering.h>
 
+#include <cfloat>
+
 namespace NeoML {
 
 // Matrix row which supports both random indexing and getting minimum
