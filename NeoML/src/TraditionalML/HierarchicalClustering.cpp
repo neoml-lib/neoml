@@ -160,6 +160,7 @@ void CHierarchicalClustering::initialize( const CFloatMatrixDesc& matrix, const 
 			CFloatVector mean( matrix.Width, desc );
 			clusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( mean ) ) );
 			clusters.Last()->Add( i, desc, weights[i] );
+			clusters.Last()->RecalcCenter();
 			clusterIndices.Add( i );
 		}
 	} else {
