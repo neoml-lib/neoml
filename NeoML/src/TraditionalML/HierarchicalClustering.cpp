@@ -552,8 +552,16 @@ bool CNnChainHierarchicalClustering::buildResult( const CFloatMatrixDesc& matrix
 	NeoAssert( ( dendrogram == nullptr && dendrogramIndices == nullptr )
 		|| ( dendrogram != nullptr && dendrogramIndices != nullptr ) );
 
+	CObjectArray<CCommonCluster> clusters;
+	clusters.Add( nullptr, matrix.Height * 2 - 1 );
+	for( int i = 0; i < matrix.Height; ++i ) {
+		clusters[i] = FINE_DEBUG_NEW CCommonCluster( CClusterCenter( CFloatVector( matrix.Width, 0.f ) ) );
+		clusters[i]->Add( i, matrix.GetRow( i ), weights[i] );
+		clusters[i]->RecalcCenter();
+	}
+
 	// Step 1: build shortened dendrogram and re-label clusters
-	CUnionFind clusters( 2 * matrix.Height - 1 );
+	CUnionFind clusterIndex( 2 * matrix.Height - 1 );
 	for( int step = 0; step < sortedDendrogram.Size(); ++step ) {
 		if( log != 0 ) {
 			*log << "\n[Step " << step << "]\n";
@@ -574,12 +582,16 @@ bool CNnChainHierarchicalClustering::buildResult( const CFloatMatrixDesc& matrix
 			break;
 		}
 
-		merge.First = clusters.Root( merge.First );
-		merge.Second = clusters.Root( merge.Second );
+		merge.First = clusterIndex.Root( merge.First );
+		merge.Second = clusterIndex.Root( merge.Second );
 		if( merge.Second < merge.First ) {
 			swap( merge.First, merge.Second );
 		}
-		clusters.Merge( merge.First, merge.Second, matrix.Height + step );
+		const int newClusterIndex = matrix.Height + step;
+		clusterIndex.Merge( merge.First, merge.Second, newClusterIndex );
+		clusters[newClusterIndex] = FINE_DEBUG_NEW CCommonCluster( *clusters[merge.First], *clusters[merge.Second] );
+		clusters[merge.First] = nullptr;
+		clusters[merge.Second] = nullptr;
 		clusterCount--;
 
 		if( log != 0 ) {
@@ -587,45 +599,38 @@ bool CNnChainHierarchicalClustering::buildResult( const CFloatMatrixDesc& matrix
 		}
 
 		if( dendrogram != nullptr ) {
+			merge.Center = clusters[matrix.Height + step]->GetCenter();
 			dendrogram->Add( merge );
 		}
 	}
 
-	// Step 2: fill result clusters and calc centers
+	// Step 2: fill CClusteringResult
 	result.ClusterCount = clusterCount;
-	CObjectArray<CCommonCluster> resultClusters;
-	resultClusters.SetBufferSize( clusterCount );
 	result.Data.SetSize( matrix.Height );
-	// CMap<index in dendrogram, index in result array>
-	CMap<int, int> resultIndices;
-
-	for( int i = 0; i < matrix.Height; ++i ) {
-		const int dendrogramClusterIndex = clusters.Root( i );
-		if( !resultIndices.Has( dendrogramClusterIndex ) ) {
-			const int resultClusterIndex = resultClusters.Size();
-			resultIndices.Add( dendrogramClusterIndex, resultClusterIndex );
-			resultClusters.Add( FINE_DEBUG_NEW CCommonCluster( CClusterCenter( CFloatVector( matrix.Width, 0.f ) ) ) );
-		}
-		const int resultClusterIndex = resultIndices[dendrogramClusterIndex];
-		resultClusters[resultClusterIndex]->Add( i, matrix.GetRow( i ), weights[i] );
-		result.Data[i] = resultClusterIndex;
-	}
-
-	NeoAssert( resultClusters.Size() == clusterCount );
-	result.Clusters.SetBufferSize( clusterCount );
-	for( int i = 0; i < clusterCount; ++i ) {
-		resultClusters[i]->RecalcCenter();
-		result.Clusters.Add( resultClusters[i]->GetCenter() );
-	}
-
 	if( dendrogramIndices != nullptr ) {
-		// Fill this array with inverted resultIndices mapping
 		dendrogramIndices->Empty();
-		dendrogramIndices->SetSize( clusterCount );
-		for( int pos = resultIndices.GetFirstPosition(); pos != NotFound; pos = resultIndices.GetNextPosition( pos ) ) {
-			( *dendrogramIndices )[resultIndices.GetValue( pos )] = resultIndices.GetKey( pos );
-		}
+		dendrogramIndices->SetBufferSize( clusterCount );
 	}
+	CArray<int> resultClusterIndex;
+	resultClusterIndex.Add( NotFound, clusters.Size() );
+	result.Clusters.Empty();
+	result.Clusters.SetBufferSize( clusterCount );
+	for( int i = 0; i < matrix.Height; ++i ) {
+		const int dendrogramClusterIndex = clusterIndex.Root( i );
+		if( clusters[dendrogramClusterIndex] != nullptr ) {
+			NeoAssert( resultClusterIndex[dendrogramClusterIndex] == NotFound );
+			resultClusterIndex[dendrogramClusterIndex] = result.Clusters.Size();
+			result.Clusters.Add( clusters[dendrogramClusterIndex]->GetCenter() );
+			clusters[dendrogramClusterIndex] = nullptr;
+			if( dendrogramIndices != nullptr ) {
+				dendrogramIndices->Add( dendrogramClusterIndex );
+			}
+		}
+		NeoAssert( resultClusterIndex[dendrogramClusterIndex] != NotFound );
+		result.Data[i] = resultClusterIndex[dendrogramClusterIndex];
+	}
+	NeoAssert( result.Clusters.Size() == clusterCount );
+	NeoAssert( dendrogramIndices == nullptr || dendrogramIndices->Size() == clusterCount );
 
 	return success;
 }

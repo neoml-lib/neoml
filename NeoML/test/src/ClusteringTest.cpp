@@ -534,7 +534,7 @@ TEST_F( CClusteringTest, HierarchicalDendrogram )
 				ASSERT_NEAR( expected.Center.Mean[j], actual.Center.Mean[j], 1e-5f );
 				ASSERT_NEAR( expected.Center.Disp[j], actual.Center.Disp[j], 1e-5f );
 			}
-			ASSERT_NEAR( expected.Center.Weight, actual.Center.Weight, 1e-5 );
+			ASSERT_NEAR( expected.Center.Weight, actual.Center.Weight, 1e-5f );
 		}
 
 		ASSERT_EQ( expectedIndices.Size(), actualIndices.Size() );
