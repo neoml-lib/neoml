@@ -181,7 +181,6 @@ void CNaiveHierarchicalClustering::mergeClusters( int first, int second, int new
 	const int firstSize = clusters[first]->GetElementsCount();
 	const int secondSize = clusters[second]->GetElementsCount();
 	const float mergeDistance = distances[first][second];
-	const int last = clusters.Size() - 1;
 
 	// Move all elements of the second cluster into the first
 	clusters[first] = FINE_DEBUG_NEW CCommonCluster( *clusters[first], *clusters[second] );
