@@ -249,10 +249,7 @@ void CNaiveHierarchicalClustering::mergeClusters( int first, int second, int new
 	const int last = clusters.Size() - 1;
 
 	// Move all elements of the second cluster into the first
-	const int initialClusterCount = initialClusters.IsEmpty() ? matrix.Height : initialClusters.Size();
-	const int newClusterIndex = 2 * initialClusterCount - clusters.Size();
 	clusters[first] = FINE_DEBUG_NEW CCommonCluster( *clusters[first], *clusters[second] );
-
 	if( dendrogram != nullptr ) {
 		CMergeInfo& mergeInfo = dendrogram->Append();
 		mergeInfo.First = clusterIndices[first];
@@ -260,7 +257,6 @@ void CNaiveHierarchicalClustering::mergeClusters( int first, int second, int new
 		mergeInfo.Distance = mergeDistance;
 		mergeInfo.Center = clusters[first]->GetCenter();
 	}
-
 	clusters[second] = nullptr;
 
 	for( int i = 0; i < clusters.Size(); i++ ) {
@@ -600,7 +596,7 @@ bool CNnChainHierarchicalClustering::buildResult( const CFloatMatrixDesc& matrix
 	CObjectArray<CCommonCluster> resultClusters;
 	resultClusters.SetBufferSize( clusterCount );
 	result.Data.SetSize( matrix.Height );
-	// <index in dendrogram, index in result array>
+	// CMap<index in dendrogram, index in result array>
 	CMap<int, int> resultIndices;
 
 	for( int i = 0; i < matrix.Height; ++i ) {
