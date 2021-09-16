@@ -239,20 +239,21 @@ void CHierarchicalClustering::mergeClusters( const CFloatMatrixDesc& matrix, int
 	const int firstSize = clusters[first]->GetElementsCount();
 	const int secondSize = clusters[second]->GetElementsCount();
 	const float mergeDistance = distances[first][second];
-
-	if( dendrogram != nullptr ) {
-		CMergeInfo& mergeInfo = dendrogram->Append();
-		mergeInfo.First = clusterIndices[first];
-		mergeInfo.Second = clusterIndices[second];
-		mergeInfo.Distance = mergeDistance;
-	}
-
 	const int last = clusters.Size() - 1;
 
 	// Move all elements of the second cluster into the first
 	const int initialClusterCount = initialClusters.IsEmpty() ? matrix.Height : initialClusters.Size();
 	const int newClusterIndex = 2 * initialClusterCount - clusters.Size();
 	clusters[first] = FINE_DEBUG_NEW CCommonCluster( *clusters[first], *clusters[second] );
+
+	if( dendrogram != nullptr ) {
+		CMergeInfo& mergeInfo = dendrogram->Append();
+		mergeInfo.First = clusterIndices[first];
+		mergeInfo.Second = clusterIndices[second];
+		mergeInfo.Distance = mergeDistance;
+		mergeInfo.Center = clusters[first]->GetCenter();
+	}
+
 	clusterIndices[first] = newClusterIndex;
 	clusters[second] = clusters[last];
 	clusterIndices[second] = clusterIndices[last];

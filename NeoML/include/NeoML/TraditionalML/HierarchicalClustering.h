@@ -58,7 +58,7 @@ public:
 	void SetLog( CTextStream* newLog ) { log = newLog; }
 
 	// IClustering interface methods:
-	// Returns true if the specified distance between the clusters was reached AND 
+	// Returns true if the specified distance between the clusters was reached AND
 	// there are more than MinClustersCount clusters
 	bool Clusterize( IClusteringData* input, CClusteringResult& result ) override;
 
@@ -73,12 +73,18 @@ public:
 		int Second;
 		// The distance between clusters before merge
 		double Distance;
+		// The info about cluster center
+		CClusterCenter Center;
 	};
 
-	// Returns true if the specified distance between the clusters was reached AND 
+	// Returns true if the specified distance between the clusters was reached AND
 	// there are more than MinClustersCount clusters
 	// Also fills the dendrogram: a sequence of (InitialClusters - ClusterCount) merges
-	// dendrogramIndices[i] contains the index of result.Clusters[i] in the dendrogram
+	// The dendrogramIndices[i] contains the index of result.Clusters[i] in the dendrogram where:
+	// - value from [0; InitialClusters-1] means corresponding initial cluster
+	// - InitialClusters means dendrogram[0]
+	// - InitialClusters+1 means dendrogram[1]
+	// - etc. till InitialClusters+DendrogramSize-1
 	bool ClusterizeEx( IClusteringData* input, CClusteringResult& result,
 		CArray<CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices );
 
