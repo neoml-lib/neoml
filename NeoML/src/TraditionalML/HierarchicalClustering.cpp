@@ -59,6 +59,7 @@ static float recalcDistance( CHierarchicalClustering::TLinkage linkage, TDistanc
 // --------------------------------------------------------------------------------------------------------------------
 
 // Matrix row which supports both random indexing and getting minimum
+// FLT_MAX is used as "not set" value
 class CDistanceMatrixRow {
 public:
 	CDistanceMatrixRow() {}
@@ -66,12 +67,17 @@ public:
 
 	// Random access (CFloatVector-like)
 	float operator[] ( int index ) const { return index < distances.Size() ? distances[index] : FLT_MAX; }
+	// Sets index'th distance
+	// newValue must not be equal to FLT_MAX
 	void SetAt( int index, float newValue );
+	// Resets index'th distance
 	void ResetAt( int index );
 
 	// Returns closest cluster information
 	// It takes logN * X where X is a number of changes made since last Closest* method call
+	// Returns NotFound if no distance is set in this row
 	int ClosestCluster() const { synchronize(); return queue.IsEmpty() ? NotFound : queue.Peek().Index; }
+	// Returns FLT_MAX if no distance is set in this row
 	float ClosestDistance() const { synchronize(); return queue.IsEmpty() ? FLT_MAX : queue.Peek().Distance; }
 
 private:
@@ -83,15 +89,20 @@ private:
 		CDistanceInfo( float distance, int index ) : Distance( distance ), Index( index ) {}
 	};
 
+	// Array with current distances
 	CArray<float> distances;
+	// Priority queue with minimum distance at the top
+	// May contain outdated entries (see synchronize method)
 	mutable CPriorityQueue<CArray<CDistanceInfo>,
 		CompositeComparer<CDistanceInfo,
 			DescendingByMember<CDistanceInfo, float, &CDistanceInfo::Distance>,
 			DescendingByMember<CDistanceInfo, int, &CDistanceInfo::Index>>> queue;
 
-	// Removes the peak of the priority queue till it's in sycn with the distances' content
+	// Synchronizes the peak of the priority queue with current distances
 	void synchronize() const
 	{
+		// queue.Peek().Distance != distances[queue.Peek().Index] means that distance was changed
+		// (via SetAt or ResetAt methods)
 		while( !queue.IsEmpty() && queue.Peek().Distance != distances[queue.Peek().Index] ) {
 			queue.Pop();
 		}
