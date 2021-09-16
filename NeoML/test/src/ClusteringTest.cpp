@@ -431,7 +431,8 @@ static void getDendrogramData( CPtr<IClusteringData>& denseData, CArray<CHierarc
 		2.f, 0.f,
 		10.f, 10.f,
 		10.1f, 10.f,
-		10.f, 10.2f };
+		10.f, 10.2f,
+		25.f, 25.f };
 	const int vectorCount = flattenedData.Size() / 2;
 	const int featureCount = 2;
 
@@ -444,24 +445,44 @@ static void getDendrogramData( CPtr<IClusteringData>& denseData, CArray<CHierarc
 	}
 
 	denseData = new CClusteringTestData( vectors, featureCount, true );
+	CFloatVector mean( 2 );
 
 	dendrogram.SetSize( 4 );
 	dendrogram[0].First = 3;
 	dendrogram[0].Second = 4;
+	mean.SetAt( 0, 10.05f );
+	mean.SetAt( 1, 10.f );
+	dendrogram[0].Center = CClusterCenter( mean );
+	dendrogram[0].Center.Weight = 2;
+
 	dendrogram[1].First = 5;
-	dendrogram[1].Second = 6;
+	dendrogram[1].Second = 7;
+	mean.SetAt( 0, 30.1f / 3.f );
+	mean.SetAt( 1, 30.2f / 3.f );
+	dendrogram[1].Center = CClusterCenter( mean );
+	dendrogram[1].Center.Weight = 3;
+
 	dendrogram[2].First = 0;
 	dendrogram[2].Second = 1;
+	mean.SetAt( 0, 0.f );
+	mean.SetAt( 1, 0.5f );
+	dendrogram[2].Center = CClusterCenter( mean );
+	dendrogram[2].Center.Weight = 2;
+
 	dendrogram[3].First = 2;
-	dendrogram[3].Second = 8;
+	dendrogram[3].Second = 9;
+	mean.SetAt( 0, 2.f / 3.f );
+	mean.SetAt( 1, 1.f / 3.f );
+	dendrogram[3].Center = CClusterCenter( mean );
+	dendrogram[3].Center.Weight = 3;
 
 	dendrogramIndices.Empty();
-	dendrogramIndices.Add( { 9, 7 } );
+	dendrogramIndices.Add( { 6, 8, 10 } );
 }
 
 template<CHierarchicalClustering::TLinkage LINKAGE>
-static void hierarchicalDendrogram( IClusteringData* data, CArray<CHierarchicalClustering::CMergeInfo>& dendrogram,
-	CArray<int>& dendrogramIndices )
+static void hierarchicalDendrogram( IClusteringData* data, CClusteringResult& result,
+	CArray<CHierarchicalClustering::CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices )
 {
 	CHierarchicalClustering::CParam params;
 	params.Linkage = LINKAGE;
@@ -470,12 +491,32 @@ static void hierarchicalDendrogram( IClusteringData* data, CArray<CHierarchicalC
 	params.MaxClustersDistance = 7;
 	CHierarchicalClustering clustering( params );
 
-	CClusteringResult result;
 	EXPECT_TRUE( clustering.ClusterizeEx( data, result, dendrogram, dendrogramIndices ) );
 }
 
-typedef void ( *THierarchicalClusteringFunction )( IClusteringData* data,
+typedef void ( *THierarchicalClusteringFunction )( IClusteringData* data, CClusteringResult& result,
 	CArray<CHierarchicalClustering::CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices );
+
+static inline bool compareVectors( const CFloatVector& first, const CFloatVector& second, float eps = 1e-5f )
+{
+	if( first.Size() != second.Size() ) {
+		return false;
+	}
+
+	for( int i = 0; i < first.Size(); ++i ) {
+		if( ::fabsf( first[i] - second[i] ) >= eps ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static inline bool compareCenters( const CClusterCenter& first, const CClusterCenter& second, float eps = 1e-5f )
+{
+	return compareVectors( first.Mean, second.Mean ) && compareVectors( first.Disp, second.Disp )
+		&& ::abs( first.Norm - second.Norm ) < eps && ::abs( first.Weight - second.Weight ) < eps;
+}
 
 TEST_F( CClusteringTest, HierarchicalDendrogram )
 {
@@ -493,10 +534,10 @@ TEST_F( CClusteringTest, HierarchicalDendrogram )
 		CArray<int> expectedIndices;
 		getDendrogramData( data, expectedDendrogram, expectedIndices );
 
+		CClusteringResult result;
 		CArray<CHierarchicalClustering::CMergeInfo> actualDendrogram;
-
 		CArray<int> actualIndices;
-		functions[step]( data, actualDendrogram, actualIndices );
+		functions[step]( data, result, actualDendrogram, actualIndices );
 
 		ASSERT_EQ( expectedDendrogram.Size(), actualDendrogram.Size() );
 		for( int i = 0; i < expectedDendrogram.Size(); ++i ) {
@@ -508,11 +549,24 @@ TEST_F( CClusteringTest, HierarchicalDendrogram )
 			if( i < expectedDendrogram.Size() - 1 ) {
 				ASSERT_GT( actualDendrogram[i + 1].Distance, actual.Distance );
 			}
+			ASSERT_TRUE( compareCenters( expected.Center, actual.Center ) );
 		}
 
 		ASSERT_EQ( expectedIndices.Size(), actualIndices.Size() );
 		for( int i = 0; i < expectedIndices.Size(); ++i ) {
-			ASSERT_EQ( expectedIndices[i], actualIndices[i] ) << step << '\t' << i;
+			int resultPos = actualIndices.Find( expectedIndices[i] );
+			ASSERT_NE( NotFound, resultPos );
+			int index = expectedIndices[i];
+			if( index < data->GetVectorCount() ) {
+				// One of the original 1-element clusters
+				ASSERT_TRUE( compareVectors( result.Clusters[resultPos].Mean,
+					CFloatVector( data->GetFeaturesCount(), data->GetMatrix().GetRow( index ) ) ) );
+				ASSERT_NEAR( result.Clusters[resultPos].Weight, data->GetVectorWeight( index ), 1e-5 );
+			} else {
+				// One of the dendrogram roots
+				index -= data->GetVectorCount();
+				ASSERT_TRUE( compareCenters( result.Clusters[resultPos], actualDendrogram[index].Center ) );
+			}
 		}
 	}
 }
