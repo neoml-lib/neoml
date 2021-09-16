@@ -452,24 +452,28 @@ static void getDendrogramData( CPtr<IClusteringData>& denseData, CArray<CHierarc
 	mean.SetAt( 0, 10.05f );
 	mean.SetAt( 1, 10.f );
 	dendrogram[0].Center = CClusterCenter( mean );
+	dendrogram[0].Center.Weight = 2;
 
 	dendrogram[1].First = 5;
 	dendrogram[1].Second = 6;
 	mean.SetAt( 0, 30.1f / 3.f );
 	mean.SetAt( 1, 30.2f / 3.f );
 	dendrogram[1].Center = CClusterCenter( mean );
+	dendrogram[1].Center.Weight = 3;
 
 	dendrogram[2].First = 0;
 	dendrogram[2].Second = 1;
 	mean.SetAt( 0, 0.f );
 	mean.SetAt( 1, 0.5f );
 	dendrogram[2].Center = CClusterCenter( mean );
+	dendrogram[2].Center.Weight = 2;
 
 	dendrogram[3].First = 2;
 	dendrogram[3].Second = 8;
 	mean.SetAt( 0, 2.f / 3.f );
 	mean.SetAt( 1, 1.f / 3.f );
 	dendrogram[3].Center = CClusterCenter( mean );
+	dendrogram[3].Center.Weight = 3;
 
 	dendrogramIndices.Empty();
 	dendrogramIndices.Add( { 9, 7 } );
@@ -530,6 +534,7 @@ TEST_F( CClusteringTest, HierarchicalDendrogram )
 				ASSERT_NEAR( expected.Center.Mean[j], actual.Center.Mean[j], 1e-5f );
 				ASSERT_NEAR( expected.Center.Disp[j], actual.Center.Disp[j], 1e-5f );
 			}
+			ASSERT_NEAR( expected.Center.Weight, actual.Center.Weight, 1e-5 );
 		}
 
 		ASSERT_EQ( expectedIndices.Size(), actualIndices.Size() );
