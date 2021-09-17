@@ -28,13 +28,6 @@ CDistanceMatrixRow::CDistanceMatrixRow( const CDistanceMatrixRow& other )
 	queue.Attach( queueArray );
 }
 
-void CDistanceMatrixRow::ResetAt( int index )
-{
-	if( index < distances.Size() ) {
-		distances[index] = FLT_MAX;
-	}
-}
-
 void CDistanceMatrixRow::SetAt( int index, float newValue )
 {
 	NeoAssert( newValue != FLT_MAX );
@@ -46,7 +39,26 @@ void CDistanceMatrixRow::SetAt( int index, float newValue )
 		distances.Add( FLT_MAX, index - distances.Size() + 1 );
 	}
 	distances[index] = newValue;
+	// The previous entry of index becomes outdated
 	queue.Push( CDistanceInfo( newValue, index ) );
+}
+
+void CDistanceMatrixRow::ResetAt( int index )
+{
+	if( index < distances.Size() ) {
+		distances[index] = FLT_MAX;
+	}
+}
+
+void CDistanceMatrixRow::Reset()
+{
+	// We have to overwrite values in distances array
+	// Otherwise it may lead to a bug, when SetAt is called with a value equal to already written in the array
+	for( int i = 0; i < distances.Size(); ++i ) {
+		distances[i] = FLT_MAX;
+	}
+
+	queue.Reset();
 }
 
 void CDistanceMatrixRow::synchronize() const
@@ -76,6 +88,11 @@ bool CNaiveHierarchicalClustering::Clusterize( const CFloatMatrixDesc& matrix, c
 	bool success = false;
 	const int initialClustersCount = clusters.Size();
 	int step = 0;
+	// This cycle will take at most N steps (N is vectorCount)
+	// The findNearestClusters takes O(N + XlogN) where X is a number of outdated entries
+	// And mergeClusters is implemented in a way which adds only 1 outdated entry per queue
+	// As a result in worst case scenario the sum of X across all cycle steps is at max N^2
+	// and each of the queues may contain 2N elements at most which leads to O(N^2 logN) total complexity of the algo
 	while( true ) {
 		if( log != 0 ) {
 			*log << "\n[Step " << step << "]\n";
@@ -226,6 +243,10 @@ void CNaiveHierarchicalClustering::mergeClusters( int first, int newClusterIndex
 	}
 	clusters[second] = nullptr;
 
+	CArray<float> prevDistances;
+	distances[first].CopyTo( prevDistances );
+	// Due to this reset distances[first] won't contain any outdated entries in its priority queue
+	distances[first].Reset();
 	for( int i = 0; i < clusters.Size(); i++ ) {
 		if( i < second ) {
 			distances[i].ResetAt( second );
@@ -234,7 +255,7 @@ void CNaiveHierarchicalClustering::mergeClusters( int first, int newClusterIndex
 			continue;
 		}
 		const float distance = recalcDistance( *clusters[i], *clusters[first], firstSize, secondSize,
-			i < first ? distances[i][first] : distances[first][i],
+			i < first ? distances[i][first] : prevDistances[i],
 			i < second ? distances[i][second] : distances[second][i],
 			mergeDistance );
 		if( i < first ) {

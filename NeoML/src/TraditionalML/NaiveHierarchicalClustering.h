@@ -35,9 +35,14 @@ public:
 	void SetAt( int index, float newValue );
 	// Resets index'th distance
 	void ResetAt( int index );
+	// Resets all the distances
+	void Reset();
+	// Copies the content to the array
+	void CopyTo( CArray<float>& buffer ) const { distances.CopyTo( buffer ); }
 
 	// Returns closest cluster information
-	// It takes logN * X where X is a number of changes made since last Closest* method call
+	// It takes logN * X where X is a number of outdated entries
+	// Outdated entries appear when overwriting values which were already set
 	// Returns NotFound if no distance is set in this row
 	int ClosestCluster() const { synchronize(); return queue.IsEmpty() ? NotFound : queue.Peek().Index; }
 	// Returns FLT_MAX if no distance is set in this row
