@@ -142,6 +142,10 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/LinkedRegressionTree.cpp
     TraditionalML/LinkedRegressionTree.h
     TraditionalML/MemoryProblem.cpp
+    TraditionalML/NaiveHierarchicalClustering.h
+    TraditionalML/NaiveHierarchicalClustering.cpp
+    TraditionalML/NnChainHierarchicalClustering.h
+    TraditionalML/NnChainHierarchicalClustering.cpp
     TraditionalML/OneVersusAll.cpp
     TraditionalML/OneVersusAllModel.cpp
     TraditionalML/OneVersusAllModel.h
