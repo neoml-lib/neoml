@@ -92,17 +92,13 @@ private:
 	const CParam params; // the clustering parameters
 	CTextStream* log; // the logging stream
 	CArray<CClusterCenter> initialClusters; // the initial cluster centers
-	CObjectArray<CCommonCluster> clusters; // the current clusters
-	CArray<int> clusterIndices; // the current clusters indices in the dendrogram
-	CFloatVectorArray distances; // the matrix containing distances between clusters
 
 	bool clusterizeImpl( IClusteringData* input, CClusteringResult& result,
-		CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices );
-	void initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
-	void findNearestClusters( int& first, int& second ) const;
-	void mergeClusters( const CFloatMatrixDesc& matrix, int first, int second, CArray<CMergeInfo>* dendrogram );
-	float recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
-		int firstSize, int secondSize, float currToFirst, float currToSecond, float firstAndSecond ) const;
+		CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const;
+	bool naiveAlgo( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
+		CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const;
+	bool nnChainAlgo( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
+		CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const;
 };
 
 } // namespace NeoML
