@@ -27,11 +27,27 @@ namespace NeoML {
 // until the limit to the clusters number or the distance between them is reached
 class NEOML_API CHierarchicalClustering : public IClustering {
 public:
+	// Hierarchical clustering linkage
+	// Determines the approach used for distance calculation between clusters
+	enum TLinkage {
+		L_Centroid, // Distance between centroids (NeoML's default)
+		L_Single, // Min distance between objects in clusters
+		L_Average, // Average distance between objects in clusters
+		L_Complete, // Max distance between objects in clusters
+		L_Ward, // Ward's linkage
+
+		L_Count
+	};
+
 	// Algorithm settings
 	struct CParam {
 		TDistanceFunc DistanceType; // the distance function
 		double MaxClustersDistance; // the maximum distance between two clusters that still may be merged
 		int MinClustersCount; // the minimum number of clusters in the result
+		TLinkage Linkage; // the clustering linkage
+
+		CParam() : DistanceType( DF_Euclid ), MaxClustersDistance( 1e32 ),
+			MinClustersCount( 1 ), Linkage( L_Centroid ) {}
 	};
 
 	CHierarchicalClustering( const CArray<CClusterCenter>& clusters, const CParam& params );
@@ -42,20 +58,51 @@ public:
 	void SetLog( CTextStream* newLog ) { log = newLog; }
 
 	// IClustering interface methods:
-	// Returns true if the specified distance between the clusters was reached AND 
+	// Returns true if the specified distance between the clusters was reached AND
 	// there are more than MinClustersCount clusters
 	bool Clusterize( IClusteringData* input, CClusteringResult& result ) override;
+
+	// Information about one step of the clustering
+	struct CMergeInfo {
+		// Merged clusters indices
+		// If initial centers were not provided to the constructor, then InitialClusters is equal to VectorCount
+		// and each of initial clusters consists of the corresponding input vector
+		// If index is in [0; InitialClusters - 1] then it's one of the initial clusters
+		// If index >- InitialClusters then it's the result of (index - InitialClusters)'th merge
+		int First;
+		int Second;
+		// The distance between clusters before merge
+		double Distance;
+		// The info about cluster center
+		CClusterCenter Center;
+	};
+
+	// Returns true if the specified distance between the clusters was reached AND
+	// there are more than MinClustersCount clusters
+	// Also fills the dendrogram: a sequence of (InitialClusters - ClusterCount) merges
+	// The dendrogramIndices[i] contains the index of result.Clusters[i] in the dendrogram where:
+	// - value from [0; InitialClusters-1] means corresponding initial cluster
+	// - InitialClusters means dendrogram[0]
+	// - InitialClusters+1 means dendrogram[1]
+	// - etc. till InitialClusters+DendrogramSize-1
+	bool ClusterizeEx( IClusteringData* input, CClusteringResult& result,
+		CArray<CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices );
 
 private:
 	const CParam params; // the clustering parameters
 	CTextStream* log; // the logging stream
 	CArray<CClusterCenter> initialClusters; // the initial cluster centers
 	CObjectArray<CCommonCluster> clusters; // the current clusters
+	CArray<int> clusterIndices; // the current clusters indices in the dendrogram
 	CFloatVectorArray distances; // the matrix containing distances between clusters
 
+	bool clusterizeImpl( IClusteringData* input, CClusteringResult& result,
+		CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices );
 	void initialize( const CFloatMatrixDesc& matrix, const CArray<double>& weights );
 	void findNearestClusters( int& first, int& second ) const;
-	void mergeClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights, int first, int second );
+	void mergeClusters( const CFloatMatrixDesc& matrix, int first, int second, CArray<CMergeInfo>* dendrogram );
+	float recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
+		int firstSize, int secondSize, float currToFirst, float currToSecond, float firstAndSecond ) const;
 };
 
 } // namespace NeoML
