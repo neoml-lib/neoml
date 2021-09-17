@@ -15,4 +15,18 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../Operator.h"
+
+namespace NeoOnnx {
+
+// ConstantOfShape operator
+class CConstantOfShapeOperator : public COperator {
+public:
+	CConstantOfShapeOperator( const onnx::NodeProto& constantOfShape, int opsetVersion );
+
+protected:
+	// COperator methods
+	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+};
+
+} // namespace NeoOnnx

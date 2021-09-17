@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2021 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,4 +15,22 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// Cast operator
+class CCastOperator : public CLayerOperator {
+public:
+	CCastOperator( const onnx::NodeProto& cast, int opsetVersion );
+
+protected:
+	// CLayerOperator method
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	// Output type
+	int outputType;
+};
+
+} // namespace NeoOnnx

@@ -15,4 +15,21 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// Reshape operator
+class CReshapeOperator : public CLayerOperator {
+public:
+	CReshapeOperator( const onnx::NodeProto& node, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	void getShape( const CTensorArray& inputs, CTensorShape& shape ) const;
+};
+
+} // namespace NeoOnnx

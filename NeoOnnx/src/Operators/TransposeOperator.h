@@ -15,4 +15,18 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// Transpose operator
+class CTransposeOperator : public CLayerOperator {
+public:
+	CTransposeOperator( const onnx::NodeProto& transpose, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+};
+
+} // namespace NeoOnnx

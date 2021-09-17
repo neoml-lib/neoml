@@ -15,4 +15,25 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// Pad operator
+class CPadOperator : public CLayerOperator {
+public:
+	CPadOperator( const onnx::NodeProto& pad, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	void getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;
+	float getPadValue( const CTensorArray& inputs ) const;
+
+	// Pad mode
+	CString mode;
+};
+
+} // namespace NeoOnnx

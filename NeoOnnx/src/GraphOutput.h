@@ -15,4 +15,33 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "Tensor.h"
+
+// Forward declaration(s)
+namespace onnx {
+class ValueInfoProto;
+} // namespace onnx
+
+namespace NeoOnnx {
+
+// Graph output
+class CGraphOutput {
+public:
+	explicit CGraphOutput( const onnx::ValueInfoProto& output );
+
+	CGraphOutput( const CGraphOutput& other ) = delete;
+	CGraphOutput& operator= ( const CGraphOutput& other ) = delete;
+
+	// Graph output name
+	const CString& Name() const { return name; }
+
+	// Adds corresponding sink layer to the dnn
+	CPtr<const CSinkLayer> AddSinkLayer( const CUserTensor& input, CDnn& dnn ) const;
+
+private:
+	// Graph output name
+	const CString name;
+};
+
+} // namespace NeoOnnx
+

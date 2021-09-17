@@ -15,4 +15,26 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// Lstm operator
+class CLstmOperator : public CLayerOperator {
+public:
+	CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	// LSTM's direction ("forward", "backward" or "bidirectional")
+	CString direction;
+	// Size of hidden state vector
+	int hiddenSize;
+
+	CPtr<CDnnBlob> reorderGates( CPtr<CDnnBlob> weights, TBlobDim dim ) const;
+};
+
+} // namespace NeoOnnx

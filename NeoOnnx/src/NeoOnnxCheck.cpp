@@ -13,6 +13,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-#pragma once
+#include "common.h"
+#pragma hdrstop
 
-#include "NeoOnnxImport.h"
+#include "NeoOnnxCheck.h"
+#include "Operator.h"
+
+namespace NeoOnnx {
+
+CString GetMessageWithOperatorInfo( const CString& what, const COperator& op )
+{
+	return what + " in operator " + op.Type() + "(" + op.Name() + ")";
+}
+
+} // namespace NeoOnnx

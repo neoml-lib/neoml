@@ -15,4 +15,21 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxImport.h"
+#include "../LayerOperator.h"
+
+namespace NeoOnnx {
+
+// Concat operator
+class CConcatOperator : public CLayerOperator {
+public:
+	CConcatOperator( const onnx::NodeProto& concat, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	CPtr<CBaseLayer> createLayer( TBlobDim concatDim, IMathEngine& mathEngine ) const;
+};
+
+} // namespace NeoOnnx
