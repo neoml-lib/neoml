@@ -22,6 +22,8 @@ limitations under the License.
 
 namespace NeoML {
 
+// --------------------------------------------------------------------------------------------------------------------
+
 CHierarchicalClustering::CHierarchicalClustering( const CArray<CClusterCenter>& clustersCenters, const CParam& _params ) :
 	params( _params ),
 	log( 0 )
