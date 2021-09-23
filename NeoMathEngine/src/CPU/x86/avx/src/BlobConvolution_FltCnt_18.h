@@ -27,13 +27,205 @@ inline CBlobConvolution<18>::CSize CBlobConvolution<18>::getWideBatchProcessSize
 }
 
 template<>
+inline void CBlobConvolution<18>::CCode::initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int stepCount, int stepSize )
+{
+	using namespace Xbyak;
+
+	Label labelFillWithZeroes, labelEnd;
+	test( regFreeTermPtr, regFreeTermPtr );
+	jz( labelFillWithZeroes );
+	// Init first row of registers
+	for( int c = 0; c < stepSize; c++ ) {
+		vmovups( res[c], ptr[regFreeTermPtr + SizeOfYmm * c ] );
+	}
+
+	for( int r = 1; r < stepCount; r++ ) {
+		// Copy previouse row to the current row and rotate last one
+		Xbyak::Ymm* prevStepRes = &res[( r - 1 ) * stepSize];
+		Xbyak::Ymm* curStepRes = &res[r * stepSize];
+		for( int c = 0; c < stepSize; c++ ) {
+			vmovaps( curStepRes[c], prevStepRes[c] );
+		}
+		// Rotate current registers
+		rotateLeft6( curStepRes[0], curStepRes[1], curStepRes[2],
+				tempRes[0], tempRes[1], tempRes[2] );
+	}
+	jmp( labelEnd, T_NEAR );
+
+	L( labelFillWithZeroes );
+	// Init with zeroes
+	for( int i = 0; i < stepCount * stepSize; i++ ) {
+		vxorps( *res, *res, *res );
+		res++;
+	}
+	L( labelEnd );
+}
+
+template<>
 inline void CBlobConvolution<18>::CCode::fillBatchProcessingKernel( CBlobConvolution<18>& bc, bool useNarrowProcessing, int windowIndex )
 {
+    using namespace Xbyak;
+
+    Label labelFillProcessingKernelEnd;
+    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
+
+	const int stepCount = 3;
+	const int stepSize = 3;
+	Ymm res[3][3] = { { ymm0, ymm1, ymm2 }, { ymm3, ymm4, ymm5 }, { ymm6, ymm7, ymm8 } };
+	Ymm f[3] = { ymm9, ymm10, ymm11 };
+	Ymm s[3] = { ymm12, ymm13, ymm14 };
+	Ymm temp[4] = { ymm12, ymm13, ymm14, ymm15 };
+
+	initProcessingMainLoop( bc, &res[0][0], &temp[0], stepCount, stepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// Batch process kernell function
+	L( labelProcessingKernel );
+	// for( int c = 0; c < ChCnt; c++ ) {
+	if( bc.ChCnt > 1 ) {
+		xor_( regChCnt, regChCnt );
+		L( labelProcessingKernelStart );
+		cmp( regChCnt, bc.ChCnt );
+		je( labelProcessingKernelEnd, T_NEAR );
+	}
+
+	// We will process four pixels of source in three steps ( merge each two floats for clarity )
+	// After each step we will "rotate" filter's values.
+	// Step 1:
+	// S: 0 0 0 0 - 0 0 0 0 - 0 1 1 1
+	// F: 0 1 2 3 - 4 5 6 7 - 8 0 1 2
+	vmovups( f[0], ptr[regTempFltPtr] );
+	vmovups( f[1], ptr[regTempFltPtr + SizeOfYmm] );
+	vmovups( f[2], ptr[regTempFltPtr + 2 * SizeOfYmm] );
+	vbroadcastss( s[0], ptr[regTempSrcPtr] );
+	vbroadcastss( s[2], ptr[regTempSrcPtr + bc.SrcXStep * sizeof( float )] );
+	vfmadd231ps( res[0][0], f[0], s[0] );
+	vblendps( s[2], s[2], s[0], 0x03 );
+	vfmadd231ps( res[0][1], f[1], s[0] );
+	vfmadd231ps( res[0][2], f[2], s[2] );
+
+	// Step 2:
+	// S: 1 1 1 1 - 1 1 2 2 - 2 2 2 2
+	// F: 3 4 5 6 - 7 8 0 1 - 2 3 4 5
+	// Don't use temp2 because it corresponds to s[2] which is used in next step
+	rotateLeft6( f[0], f[1], f[2], temp[0], temp[1], temp[3] );
+	vunpckhps( s[0], s[2], s[2] );
+	vbroadcastss( s[2], ptr[regTempSrcPtr + 2 * bc.SrcXStep * sizeof( float )] );
+	vblendps( s[1], s[0], s[2], 0xf0 );
+	vfmadd231ps( res[1][0], f[0], s[0] );
+	vfmadd231ps( res[1][1], f[1], s[1] );
+	vfmadd231ps( res[1][2], f[2], s[2] );
+
+	// Step 3:
+	// S: 2 2 2 3 - 3 3 3 3 - 3 3 3 3
+	// F: 6 7 8 0 - 1 2 3 4 - 5 6 7 8
+	// Don't use temp[2] because it corresponds to s[2] which is used in next step
+	rotateLeft6( f[0], f[1], f[2], temp[0], temp[1], temp[3] );
+	vbroadcastss( s[1], ptr[regTempSrcPtr + 3 * bc.SrcXStep * sizeof( float )] );
+	vblendps( s[0], s[2], s[1], 0xc0 );
+	vfmadd231ps( res[2][0], f[0], s[0] );
+	vfmadd231ps( res[2][1], f[1], s[1] );
+	vfmadd231ps( res[2][2], f[2], s[1] );
+
+	// Go to next channel in filter and source
+	add( regTempFltPtr, FltCntM8 * sizeof( float ) );
+	add( regTempSrcPtr, sizeof( float ) );
+
+	if( bc.ChCnt > 1 ) {
+		inc( regChCnt );
+		jmp( labelProcessingKernelStart, T_NEAR );
+		// }
+		L( labelProcessingKernelEnd );
+	}
+	ret();
+	// End of code
+	L( labelFillProcessingKernelEnd );
 }
 
 template<>
 inline void CBlobConvolution<18>::CCode::fillSingleProcessingKernel( CBlobConvolution<18>& bc, bool useNarrowProcessing, int windowIndex )
 {
+    using namespace Xbyak;
+
+    Label labelFillProcessingKernelEnd;
+    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
+
+	const int stepCount = 1;
+	const int stepSize = 3;
+	Ymm res[4] = { ymm0, ymm1, ymm2 };
+	Xmm s = xmm3;
+	Ymm st0 = ymm4;
+	Xmm st0_toXmm = xmm4;
+	Ymm f[3] = { ymm5, ymm6, ymm7 };
+
+	initProcessingMainLoop( bc, &res[0], 0, stepCount, stepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+
+	const int BatchStepSize = 4;
+	// channelCount - number of channels for frocessing
+	// isLast - true if it is last of channel chank (we can skip src and flt pointers incrementing )
+	auto fillKernel = [&]( int channelCount, bool isLast ) {
+		// stepCount <= 4
+		movups( s, ptr[regTempSrcPtr] );
+		for( int i = 0; i < channelCount; i++ ) {
+			unsigned int mask = i * 0x55;
+			vpermilps( st0_toXmm, s, mask );
+			vinsertf128( st0, st0, st0_toXmm, 1);
+
+			vmovups( f[0], ptr[regTempFltPtr + ( stepSize * i + 0 ) * SizeOfYmm] );
+			vmovups( f[1], ptr[regTempFltPtr + ( stepSize * i + 1 ) * SizeOfYmm] );
+			vmovups( f[2], ptr[regTempFltPtr + ( stepSize * i + 2 ) * SizeOfYmm] );
+
+			vfmadd231ps( res[0], f[0], st0 );
+			vfmadd231ps( res[1], f[1], st0 );
+			vfmadd231ps( res[2], f[2], st0 );
+
+		}
+		if( !isLast ) {
+			add( regTempFltPtr, stepSize * channelCount * SizeOfYmm );
+		}
+	};
+
+	// Single process kernell function
+	int singleStepCount = bc.ChCnt % BatchStepSize;
+	int batchStepCount = bc.ChCnt / BatchStepSize;
+
+	L( labelProcessingKernel );
+	// Process kernels in group
+	if( batchStepCount ) {
+		if( batchStepCount > 1 ) {
+			// for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ) {
+			// If we need loop
+			xor_( regChCnt, regChCnt );
+			L( labelProcessingKernelStart );
+			cmp( regChCnt, batchStepCount );
+			je( labelProcessingKernelEnd, T_NEAR );
+		}
+		// Only one batch step
+		bool isLast = ( singleStepCount == 0 ) && ( batchStepCount == 1 );
+		fillKernel( 4, isLast );
+
+		if( !isLast ) {
+			add( regTempSrcPtr, BatchStepSize * sizeof( float ) );
+		}
+
+		if( batchStepCount > 1 ) {
+			// } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
+			inc( regChCnt );
+			jmp( labelProcessingKernelStart, T_NEAR );
+		}
+
+		L( labelProcessingKernelEnd );
+	}
+
+	// Process remained kernels one by one
+	if( singleStepCount  ) {
+		fillKernel( singleStepCount, true );
+	}
+	ret();
+	// End of code
+	L( labelFillProcessingKernelEnd );
 }
 
 template<>

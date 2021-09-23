@@ -123,12 +123,16 @@ private:
         void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, int windowIndex );
 
         // Initialize result registers with data from freeTerm (if it isn't nullptr)
-        void initResRegs( Xbyak::Ymm* res, int rowNum, int colNum );
+        void initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int stepCount, int stepSize );
         // Flush result registers
-        void flushResRegs( Xbyak::Ymm* res, int rowNum, int colNum  );
-        void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, int rowNum, int colNum,
+        void flushResRegs( Xbyak::Ymm* res, int stepCount, int stepSize  );
+        void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int stepCount, int stepSize,
                                      Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
                                      int windowIndex );
+
+        void rotateLeft6( Xbyak::Ymm& y0, Xbyak::Ymm& y1, Xbyak::Ymm& y2,
+                          Xbyak::Ymm& yt0, Xbyak::Ymm& yt1, Xbyak::Ymm& yt2 );
+        void rotateLeft2( Xbyak::Ymm& y, Xbyak::Ymm& yt );
     };
 
 	IMathEngine* mathEngine;
@@ -286,17 +290,17 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<24>( mathEngine,
 			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
 			paddingHeight, paddingWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, false ) );
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
 	case 18:
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<18>( mathEngine,
 			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
 			paddingHeight, paddingWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, false ) );
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
 	case 6:
 		return std::unique_ptr<CBlobConvolutionBase>( new CBlobConvolution<6>( mathEngine,
 			channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
 			paddingHeight, paddingWidth, strideHeight, strideWidth,
-			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, false ) );
+			dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
 	default:
 		return nullptr;
 	}
@@ -840,7 +844,7 @@ inline void CBlobConvolution<FltCnt>::CCode::epilogue()
 
 // Implementation for cases when FltCnt == FltCntM8
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, int rowNum, int colNum )
+inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int stepCount, int stepSize )
 {
 	using namespace Xbyak;
 
@@ -848,13 +852,13 @@ inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, int r
 	test( regFreeTermPtr, regFreeTermPtr );
 	jz( labelFillWithZeroes );
 	// Init first row of registers
-	for( int c = 0; c < colNum; c++ ) {
+	for( int c = 0; c < stepSize; c++ ) {
 		vmovups( res[c], ptr[regFreeTermPtr + SizeOfYmm * c ] );
 	}
 	// Duplicate first row into another rows
-	int destIdx = colNum;
-	for( int r = 1; r < rowNum; r++ ) {
-		for( int c = 0; c < colNum; c++ ) {
+	int destIdx = stepSize;
+	for( int r = 1; r < stepCount; r++ ) {
+		for( int c = 0; c < stepSize; c++ ) {
 			vmovups( res[destIdx++], res[c] );
 		}
 	}
@@ -862,7 +866,7 @@ inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, int r
 
 	L( labelFillWithZeroes );
 	// Init with zeroes
-	for( int i = 0; i < rowNum * colNum; i++ ) {
+	for( int i = 0; i < stepCount * stepSize; i++ ) {
 		vxorps( *res, *res, *res );
 		res++;
 	}
@@ -870,21 +874,49 @@ inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, int r
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CCode::flushResRegs( Xbyak::Ymm* res, int rowNum, int colNum  )
+inline void CBlobConvolution<FltCnt>::CCode::flushResRegs( Xbyak::Ymm* res, int stepCount, int stepSize  )
 {
+	using namespace Xbyak;
+
+	int numRegsForFlush = ( stepCount * stepSize * 8 ) / FltCnt * FltCnt;
+	Label labelPartialStore, labelPartialStoreEnd;
+	// Last register is always unused at the end of the processing
+	Ymm regMask = ymm15;
+
+	if( numRegsForFlush % 8 != 0 ) {
+		vmovdqa( regMask, ptr[rip + labelPartialStore] );
+	}
+
 	int offsetDisp = 0;
-	for( int i = 0; i < rowNum * colNum; i++ ) {
+	int i = 0;
+	for( ; i < numRegsForFlush / 8; i++ ) {
 		vmovups( ptr[regResPtr + offsetDisp], res[i] );
 		offsetDisp += SizeOfYmm;
+	}
+
+	if( numRegsForFlush % 8 != 0 ) {
+		// Mask store ( only elements which is mentioned in regTemp )
+		vmaskmovps( ptr[regResPtr + offsetDisp], regMask, res[i] );
+
+		jmp( labelPartialStoreEnd, T_NEAR );
+		align( 32 );
+		L( labelPartialStore );
+		for( int i = 0; i < numRegsForFlush % 8; i++ ){
+			dd( -1 );
+		}
+		for( int i = 0; i < 8 - numRegsForFlush % 8; i++ ){
+			dd( 0 );
+		}
+		L( labelPartialStoreEnd );
 	}
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CCode::initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, int rowNum, int colNum,
+inline void CBlobConvolution<FltCnt>::CCode::initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int stepCount, int stepSize,
 																	 Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
 																	 int windowIndex )
 {
-	initResRegs( res, rowNum, colNum );
+	initResRegs( res, tempRes, stepCount, stepSize );
 
 	auto srcIt = bc.SrcPixelsOffset[windowIndex].cbegin();
 	auto fltIt = bc.FltPixelsOffset[windowIndex].cbegin();
@@ -895,11 +927,56 @@ inline void CBlobConvolution<FltCnt>::CCode::initProcessingMainLoop( CBlobConvol
 		call( labelKernel );
 	}
 
-	flushResRegs( res, rowNum, colNum );
+	flushResRegs( res, stepCount, stepSize );
 
 
 	// return from function
 	jmp( labelEndOfProcessingFunction, T_NEAR );
+}
+
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::CCode::rotateLeft6( Xbyak::Ymm& y0, Xbyak::Ymm& y1, Xbyak::Ymm& y2,
+														  Xbyak::Ymm& yt0, Xbyak::Ymm& yt1, Xbyak::Ymm& yt2 )
+{   //   y0        y1        y2
+	// 0 1 2 3 - 4 5 6 7 - 8 0 1 2
+	// 3 4 5 6 - 7 8 0 1 - 2 3 4 5
+	// 6 7 8 0 - 1 2 3 4 - 5 6 7 8
+
+	// before: 0 1 2 3
+	// after:  2 3 0 1
+	vperm2f128( yt0, y0, y0, _MM_SHUFFLE( 0, 0, 0, 1 ) );
+	// before: 4 5 6 7
+	// after:  6 7 4 5
+	vperm2f128( yt1, y1, y1, _MM_SHUFFLE( 0, 0, 0, 1 ) );
+	// before: 6 7 4 5|8 0 1 2
+	// after:      7 8 5 1
+	vshufps( yt2, yt1, y2, _MM_SHUFFLE( 1, 0, 3, 2 ) );
+	// before: 2 3 0 1|6 7 4 5
+	// after:      2 3 4 5
+	vblendps( y2, yt0, yt1, 0xf0 );
+	// before: 2 3 4 5|4 5 6 7
+	// after:      3 4 5 6
+	vshufps( y0, y2, y1, _MM_SHUFFLE( 1, 0, 3, 2 ) );
+	// before: 7 8 5 1|2 3 0 1
+	// after:      7 8 0 1
+	vblendps( y1, yt2, yt0, 0xf0 );
+}
+
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::CCode::rotateLeft2( Xbyak::Ymm& y, Xbyak::Ymm& yt )
+{
+	// 0 1 2 0
+	// 1 2 0 1
+	// 2 0 1 2
+	// before: 0 1 2 0
+	// after:  2 0 0 1
+	vperm2f128( yt, y, y, _MM_SHUFFLE( 0, 0, 0, 1 ) );
+	// before: 0 1 2 0|2 0 0 1
+	// after:      1 2 0 0
+	vshufps( y, y, yt, _MM_SHUFFLE( 1, 0, 3, 2 ) );
+	// before:  1 2 0 0|2 0 0 1
+	// after:      1 2 0 1
+	vblendps( y, y, yt, 0xf0 );
 }
 
 } // namespace NeoML
