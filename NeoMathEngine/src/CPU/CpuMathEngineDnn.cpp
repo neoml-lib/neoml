@@ -20,7 +20,6 @@ limitations under the License.
 #include <CpuMathEnginePrivate.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
-#include <CpuMathEnginePrivate.h>
 
 namespace NeoML {
 
@@ -41,7 +40,7 @@ void CCpuMathEngine::blobMergeByDimCommon( int dimNum, const CBlobDesc* from, co
 	int objectSize = to.BlobSize() / objectCount;
 
 	// Splitted object sizes
-	int fromObjectSizes[CBlobDesc::MaxDimensions] = { 0 };
+	int fromObjectSizes[MaxBlobDescs] = { 0 };
 	for( int i = 0; i < fromCount; i++ ) {
 		int fromLimits[CBlobDesc::MaxDimensions];
 		from[i].GetDimSizes( fromLimits );
@@ -117,7 +116,7 @@ void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, co
 	int objectSize = from.BlobSize() / objectCount;
 
 	// Splitted objects sizes
-	int toObjectSizes[CBlobDesc::MaxDimensions] = { 0 };
+	int toObjectSizes[MaxBlobDescs] = { 0 };
 	for( int i = 0; i < toCount; i++ ) {
 		int toLimits[CBlobDesc::MaxDimensions];
 		to[i].GetDimSizes( toLimits );
