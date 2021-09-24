@@ -280,8 +280,6 @@ template<class T>
 static void upsampling2DForward( int threadCount, const CBlobDesc& input, const CTypedMemoryHandle<const T>& inputData,
 	int heightCopyCount, int widthCopyCount, const CBlobDesc& result, const CTypedMemoryHandle<T>& resultData )
 {
-	IMathEngine& mathEngine = *inputData.GetMathEngine();
-
 	const int inputHeight = input.Height();
 	const int inputWidth = input.Width();
 	const int pixelSize = input.Depth() * input.Channels();
@@ -292,7 +290,7 @@ static void upsampling2DForward( int threadCount, const CBlobDesc& input, const 
 	const T* inputStart = GetRaw( inputData );
 	T* outputStart = GetRaw( resultData );
 
-	const int curThreadCount = IsOmpRelevant( objectCount, result.BlobSize() );
+	const int curThreadCount = IsOmpRelevant( objectCount, result.BlobSize() ) ? threadCount : 1;
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int b = 0; b < objectCount; ++b) {
 		const T* inputPtr = inputStart + b * input.ObjectSize();
