@@ -207,7 +207,7 @@ void CNnChainHierarchicalClustering::mergeClusters( int first, int second )
 	clusterSizes[second] = firstSize + secondSize;
 
 	for( int i = 0; i < clusterSizes.Size(); i++ ) {
-		if( i == first || clusterSizes[i] == 0 ) {
+		if( i == second || clusterSizes[i] == 0 ) {
 			continue;
 		}
 		// We can pass ref to any cluster here because linkage isn't centroid
@@ -215,10 +215,10 @@ void CNnChainHierarchicalClustering::mergeClusters( int first, int second )
 			i < first ? distances[i][first] : distances[first][i],
 			i < second ? distances[i][second] : distances[second][i],
 			mergeDistance );
-		if( i < first ) {
-			distances[i].SetAt( first, distance );
+		if( i < second ) {
+			distances[i].SetAt( second, distance );
 		} else {
-			distances[first].SetAt( i, distance );
+			distances[second].SetAt( i, distance );
 		}
 	}
 }
