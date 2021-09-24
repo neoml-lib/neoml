@@ -327,7 +327,7 @@ void CNaiveHierarchicalClustering::fillResult( const CFloatMatrixDesc& matrix,
 		CArray<int> elements;
 		clusters[i]->GetAllElements( elements );
 		for( int j = 0; j < elements.Size(); j++ ) {
-			result.Data[elements[j]] = i;
+			result.Data[elements[j]] = result.Clusters.Size();
 		}
 		result.Clusters.Add( clusters[i]->GetCenter() );
 		if( dendrogramIndices != nullptr ) {
