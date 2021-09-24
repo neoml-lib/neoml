@@ -20,7 +20,6 @@ limitations under the License.
 #include <CpuMathEnginePrivate.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
-#include <CpuMathEnginePrivate.h>
 
 namespace NeoML {
 
@@ -32,11 +31,25 @@ void CCpuMathEngine::blobMergeByDimCommon( int dimNum, const CBlobDesc* from, co
 {
 	int s[CBlobDesc::MaxDimensions];
 	to.GetDimSizes( s );
+	// Objects count to be merged
 	int objectCount = 1;
 	for(int z  = 0; z < dimNum; z++) {
 		objectCount *= s[z];
 	}
+	// Merged object size
 	int objectSize = to.BlobSize() / objectCount;
+
+	// Splitted object sizes
+	int fromObjectSizes[MaxBlobDescs] = { 0 };
+	for( int i = 0; i < fromCount; i++ ) {
+		int fromLimits[CBlobDesc::MaxDimensions];
+		from[i].GetDimSizes( fromLimits );
+		fromObjectSizes[i] = 1;
+		for(int z = dimNum; z < CBlobDesc::MaxDimensions; z++) {
+			fromObjectSizes[i] *= fromLimits[z];
+		}
+	}
+
 	T* rawTo = GetRaw( toData );
 
 	const int currThreadCount = IsOmpRelevant( objectCount, objectCount * objectSize ) ? threadCount : 1;
@@ -44,14 +57,8 @@ void CCpuMathEngine::blobMergeByDimCommon( int dimNum, const CBlobDesc* from, co
 	for(int x = 0; x < objectCount; x++) {
 		T* output = rawTo + x * objectSize;
 		for( int i = 0; i < fromCount; ++i ) {
-			int fromLimits[CBlobDesc::MaxDimensions];
-			from[i].GetDimSizes( fromLimits );
-			int fromObjectSize = 1;
-			for(int z = dimNum; z < CBlobDesc::MaxDimensions; z++) {
-				fromObjectSize *= fromLimits[z];
-			}
-			dataCopy( output, GetRaw( fromData[i] ) + x * fromObjectSize, fromObjectSize );
-			output += fromObjectSize;
+			dataCopy( output, GetRaw( fromData[i] ) + x * fromObjectSizes[i], fromObjectSizes[i] );
+			output += fromObjectSizes[i];
 		}
 	}
 }
@@ -100,11 +107,25 @@ void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, co
 {
 	int s[CBlobDesc::MaxDimensions];
 	from.GetDimSizes( s );
+	// Objects count to be splitted
 	int objectCount = 1;
 	for(int z  = 0; z < dimNum; z++) {
 		objectCount *= s[z];
 	}
+	// Size of object to be splitted
 	int objectSize = from.BlobSize() / objectCount;
+
+	// Splitted objects sizes
+	int toObjectSizes[MaxBlobDescs] = { 0 };
+	for( int i = 0; i < toCount; i++ ) {
+		int toLimits[CBlobDesc::MaxDimensions];
+		to[i].GetDimSizes( toLimits );
+		toObjectSizes[i] = 1;
+		for(int z = dimNum; z < CBlobDesc::MaxDimensions; z++) {
+			toObjectSizes[i] *= toLimits[z];
+		}
+	}
+
 	const T* rawFrom = GetRaw( fromData );
 
 	const int currThreadCount = IsOmpRelevant( objectCount, objectCount * objectSize ) ? threadCount : 1;
@@ -112,14 +133,8 @@ void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, co
 	for(int x = 0; x < objectCount; x++) {
 		const T* input = rawFrom + x * objectSize;
 		for( int i = 0; i < toCount; ++i ) {
-			int toLimits[CBlobDesc::MaxDimensions];
-			to[i].GetDimSizes( toLimits );
-			int toObjectSize = 1;
-			for(int z = dimNum; z < CBlobDesc::MaxDimensions; z++) {
-				toObjectSize *= toLimits[z];
-			}
-			dataCopy( GetRaw( toData[i] ) + x * toObjectSize, input, toObjectSize );
-			input += toObjectSize;
+			dataCopy( GetRaw( toData[i] ) + x * toObjectSizes[i], input, toObjectSizes[i] );
+			input += toObjectSizes[i];
 		}
 	}
 }
