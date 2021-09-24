@@ -152,11 +152,14 @@ void CCpuMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHand
 	int firstIndex = 0;
 	int resultIndex = 0;
 
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
 	for( int i = 0; i < followingDimension; i++ ) {
-		VectorCopy( resultHandle + resultIndex, firstHandle + firstIndex, precedingDimension );
+		dataCopy( result + resultIndex, first + firstIndex, precedingDimension );
 		firstIndex += precedingDimension;
 		for( int j = 1; j < dimension; j++ ) {
-			VectorAdd(  firstHandle + firstIndex, resultHandle + resultIndex, resultHandle + resultIndex, precedingDimension );
+			vectorAdd( first + firstIndex, result + resultIndex, result + resultIndex, precedingDimension );
 			firstIndex += precedingDimension;
 		}
 		resultIndex += precedingDimension;
@@ -172,13 +175,16 @@ void CCpuMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& firstH
 	int firstIndex = 0;
 	int resultIndex = 0;
 
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
 	for( int i = 0; i < followingDimension; i++ ) {
-		VectorCopy( resultHandle + resultIndex, firstHandle + firstIndex, precedingDimension );
+		dataCopy( result + resultIndex, first + firstIndex, precedingDimension );
 		firstIndex += precedingDimension;
 		resultIndex += precedingDimension;
 		for( int j = 1; j < dimension; j++ ) {
-			VectorCopy( resultHandle + resultIndex, resultHandle + resultIndex - precedingDimension, precedingDimension );
-			VectorAdd(  firstHandle + firstIndex, resultHandle + resultIndex, resultHandle + resultIndex, precedingDimension );
+			dataCopy( result + resultIndex, result + resultIndex - precedingDimension, precedingDimension );
+			vectorAdd(  first + firstIndex, result + resultIndex, result + resultIndex, precedingDimension );
 			firstIndex += precedingDimension;
 			resultIndex += precedingDimension;
 		}
