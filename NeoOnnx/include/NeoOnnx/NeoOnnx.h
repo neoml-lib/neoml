@@ -15,31 +15,4 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoOnnx/NeoOnnxDefs.h>
-#include <NeoML/NeoML.h>
-
-namespace NeoOnnx {
-
-// Loads network "dnn" from onnx file "fileName"
-//
-// For every uninitialized onnx graph input there will be CSourceLayer with the same name
-// For every CSourceLayer will be allocated input blob of the given size
-// Inputs with initializers will be ignored (used for parameters calculation)
-//
-// For every onnx graph output there will be CSinkLayer with the same name
-//
-// Throws std::logic_error if failed to load network
-NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn );
-
-// Loads network "dnn" from buffer with onnx data
-//
-// For every uninitialized onnx graph input there will be CSourceLayer with the same name
-// For every CSourceLayer will be allocated input blob of the given size
-// Inputs with initializers will be ignored (used for parameters calculation)
-//
-// For every onnx graph output there will be CSinkLayer with the same name
-//
-// Throws std::logic_error if failed to load network
-NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn );
-
-} // namespace NeoOnnx
+#include "NeoOnnxImport.h"
