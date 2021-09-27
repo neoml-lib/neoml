@@ -10,17 +10,17 @@ import threading
 
 
 class MultithreadedTestCase(TestCase):
-    def _thread_function(self, target, args, kwargs):
+    def _thread_function(self, target, kwargs):
         print(f"python thread {threading.get_ident()} started")
-        target(*args, **kwargs)
+        target(**kwargs)
         print(f"python thread {threading.get_ident()} finished")
 
-    def _test_mt(self, target, args=(), result=None, enable_assert=False):
+    def _test_mt(self, target, result, enable_assert=False):
         import time
         threads = []
         system_time, user_time = time.perf_counter(), time.process_time()
         for _ in range(4):
-            t = threading.Thread(target=self._thread_function, args=(target, args, {'result': result}))
+            t = threading.Thread(target=self._thread_function, args=(target, {'result': result}))
             threads.append(t)
             t.start()
         for t in threads:
