@@ -6,37 +6,9 @@ import itertools
 import numpy as np
 from scipy import sparse
 import neoml
-import threading
 
 
-class MultithreadedTestCase(TestCase):
-    def _thread_function(self, target, args):
-        print(f"python thread {threading.get_ident()} started")
-        target(*args);
-        print(f"python thread {threading.get_ident()} finished")
-
-    def _test_mt(self, target, args=(), enable_assert=False):
-        import time
-        threads = []
-        system_time, user_time = time.perf_counter(), time.process_time()
-        for i in range(4):
-            t = threading.Thread(target=self._thread_function, args=(target, args))
-            threads.append(t)
-            t.start()
-        for t in threads:
-            t.join()
-        system_time, user_time = time.perf_counter() - system_time, time.process_time() - user_time
-        print()
-        print('System time {0:.6f} sec.'.format(system_time))
-        print('User time {0:.6f} sec.'.format(user_time))
-        if enable_assert:
-            self.assertTrue(system_time < user_time)
-
-    def run(self, result=None):
-        self._test_mt(super().run)
-
-
-class MathEngineTestCase(MultithreadedTestCase):
+class MathEngineTestCase(TestCase):
     def test_gpu_math_engine(self):
 
         check = False
@@ -71,7 +43,7 @@ class MathEngineTestCase(MultithreadedTestCase):
         self.assertEqual(math_engine.peak_memory_usage, 40)
 
 
-class BlobTestCase(MultithreadedTestCase):
+class BlobTestCase(TestCase):
     def test_pickle(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         a = np.ones((2, 3, 4, 5), dtype=np.int32)
@@ -242,7 +214,7 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(float_blob.object_size, 4 * 5 * 6 * 7)
 
 
-class SolverTestCase(MultithreadedTestCase):
+class SolverTestCase(TestCase):
     def test_nesterov_gradient(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         solver = neoml.Dnn.NesterovGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
@@ -285,7 +257,7 @@ class SolverTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(solver.moment_decay_rate, 0.6, delta=1e-3)
 
 
-class LayersTestCase(MultithreadedTestCase):
+class LayersTestCase(TestCase):
     def test_lstm(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -1587,7 +1559,7 @@ class LayersTestCase(MultithreadedTestCase):
         sink = neoml.Dnn.Sink(cast, 'sink')
 
         input_arr = generate_array(type_from)
-        input_blob = neoml.Blob.as_blob(math_engine, input_arr, (1, 1, 1, 1, 1, 1, len(input_arr)))
+        input_blob = neoml.Blob.asblob(math_engine, input_arr, (1, 1, 1, 1, 1, 1, len(input_arr)))
         outputs = dnn.run({'source': input_blob})
         actual = outputs['sink'].asarray()
         expected = generate_array(type_to)
@@ -1601,7 +1573,7 @@ class LayersTestCase(MultithreadedTestCase):
                 self._test_cast_impl(type_from, type_to)
 
 
-class PoolingTestCase(MultithreadedTestCase):
+class PoolingTestCase(TestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
                       input_shape=(2, 1, 2, 3, 5, 4, 2)):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2057,7 +2029,7 @@ class BinaryCrossEntropyLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
         return neoml.AutoDiff.binary_cross_entropy(data, labels, True)
 
 
-class LossTestCase(MultithreadedTestCase):
+class LossTestCase(TestCase):
     def _test_loss(self, layer, kwargs={},
                    n_classes=2,
                    labels_type=np.float32,
@@ -2241,7 +2213,7 @@ class LossTestCase(MultithreadedTestCase):
         self._test_loss('MultiSquaredHingeLoss', dict(loss_weight=7.7), last_loss=0.)
 
 
-class DnnTestCase(MultithreadedTestCase):
+class DnnTestCase(TestCase):
     def test_load_store(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -2321,7 +2293,7 @@ class DnnTestCase(MultithreadedTestCase):
         self.assertTrue(len(dnn.output_layers), 1)
 
 
-class TraditionalTestCase(MultithreadedTestCase):
+class TraditionalTestCase(TestCase):
     def test_differential_evolution(self):
         from neoml.DifferentialEvolution import IntTraits, DoubleTraits, DifferentialEvolution
         def func(vec):
@@ -2447,7 +2419,7 @@ class TraditionalTestCase(MultithreadedTestCase):
         os.rmdir(dir)
 
 
-class ClusteringTestCase(MultithreadedTestCase):
+class ClusteringTestCase(TestCase):
     def _test_clusterize(self, method, params={}):
         X_dense = np.eye(20, 5, dtype=np.float32)
         X_dense_list = X_dense.tolist()
