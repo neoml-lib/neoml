@@ -505,13 +505,13 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) override;
-	void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
 		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
 		const CFloatHandle& h ) override;
-	void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
 		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
 		const CFloatHandle& wxDiff ) override;
-	void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
 		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
 		const CFloatHandle& uDiff ) override;
 	CLrnDesc* InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta ) override;
@@ -559,7 +559,6 @@ private:
 	void blob3dConvolutionPrepareInput( const CCommon3dConvolutionDesc& desc, float* inputPreparedData,
 		const float* inputBlobData, int inputObject, int outputHeight, int outputWidthExStart, int outputWidthExCount );
 
-	void vectorCopy( float* first, const float* second, int vectorSize);
 	void setVectorToMatrixRows( float* result, int matrixHeight, int matrixWidth, const float* vector );
 	void addVectorToMatrixRows( const float* matrix, float* result,
 		int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector );
@@ -593,13 +592,15 @@ private:
 	void blobMergeByDimCommon( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
 		const CBlobDesc& to, const CTypedMemoryHandle<T>& toData );
 	template<class T>
-	void blobMergeByDim0( const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount, const CTypedMemoryHandle<T>& toData );
+	void blobMergeByDim0( const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
+		const CBlobDesc& to, const CTypedMemoryHandle<T>& toData );
 	template<class T>
 	void blobMergeByDim( int dim, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData );
 	template<class T>
 	void blobSplitByDimCommon( int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 	template<class T>
-	void blobSplitByDim0( const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
+	void blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData,
+		const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 	template<class T>
 	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 

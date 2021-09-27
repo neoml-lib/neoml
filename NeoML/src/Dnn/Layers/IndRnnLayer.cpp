@@ -104,6 +104,16 @@ void CIndRnnLayer::SetRecurrentWeights( const CDnnBlob* recurrentWeights )
 	recurrent->SetWeights( recurrentWeights );
 }
 
+TActivationFunction CIndRnnLayer::GetActivation() const
+{
+	return recurrent->GetActivation();
+}
+
+void CIndRnnLayer::SetActivation( TActivationFunction activation )
+{
+	recurrent->SetActivation( activation );
+}
+
 void CIndRnnLayer::buildLayer()
 {
 	fc = new CFullyConnectedLayer( MathEngine() );
@@ -124,6 +134,7 @@ void CIndRnnLayer::buildLayer()
 
 CIndRnnRecurrentLayer::CIndRnnRecurrentLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CIndRnnRecurrentLayer", true ),
+	activation( AF_Sigmoid ),
 	reverse( false ),
 	dropoutRate( -1.f ),
 	dropoutMask( nullptr )
@@ -131,21 +142,36 @@ CIndRnnRecurrentLayer::CIndRnnRecurrentLayer( IMathEngine& mathEngine ) :
 	paramBlobs.SetSize( 1 );
 }
 
-static const int IndRnnRecurrentLayerVersion = 0;
+static const int IndRnnRecurrentLayerVersion = 1;
 
 void CIndRnnRecurrentLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( IndRnnRecurrentLayerVersion );
+	const int version = archive.SerializeVersion( IndRnnRecurrentLayerVersion );
 	CBaseLayer::Serialize( archive );
 	archive.Serialize( reverse );
 	archive.Serialize( dropoutRate );
 	NeoPresume( dropoutMask == nullptr );
+
+	// v1 - activation added
+	if( version == 0 ) {
+		activation = AF_Sigmoid;
+	} else {
+		int activationInt = static_cast<int>( activation );
+		archive.Serialize( activationInt );
+		activation = static_cast<TActivationFunction>( activationInt );
+	}
 }
 
 void CIndRnnRecurrentLayer::SetDropoutRate( float rate )
 {
 	NeoAssert( rate < 1.f );
 	dropoutRate = rate;
+}
+
+void CIndRnnRecurrentLayer::SetActivation( TActivationFunction newActivation )
+{
+	NeoAssert( newActivation == AF_Sigmoid || newActivation == AF_ReLU );
+	activation = newActivation;
 }
 
 CPtr<CDnnBlob> CIndRnnRecurrentLayer::GetWeights() const
@@ -202,7 +228,7 @@ void CIndRnnRecurrentLayer::RunOnce()
 			1.f / ( 1.f - dropoutRate ), GetDnn()->Random().Next() );
 	}
 
-	MathEngine().IndRnnRecurrent( reverse, sequenceLength, batchSize, objectSize,
+	MathEngine().IndRnnRecurrent( reverse, sequenceLength, batchSize, objectSize, activation,
 		inputBlobs[0]->GetData(), maskHandle(), paramBlobs[0]->GetData(), outputBlobs[0]->GetData() );
 }
 
@@ -215,7 +241,7 @@ void CIndRnnRecurrentLayer::BackwardOnce()
 	NeoPresume( ( dropoutRate <= 0.f && dropoutMask == nullptr ) ||
 		( dropoutRate > 0.f && dropoutMask != nullptr ) );
 
-	MathEngine().IndRnnRecurrentBackward( !reverse, sequenceLength, batchSize, objectSize,
+	MathEngine().IndRnnRecurrentBackward( !reverse, sequenceLength, batchSize, objectSize, activation,
 		maskHandle(), paramBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 		inputDiffBlobs[0]->GetData() );
 
@@ -234,7 +260,7 @@ void CIndRnnRecurrentLayer::LearnOnce()
 	NeoPresume( ( dropoutRate <= 0.f && dropoutMask == nullptr ) ||
 		( dropoutRate > 0.f && dropoutMask != nullptr ) );
 
-	MathEngine().IndRnnRecurrentLearn( !reverse, sequenceLength, batchSize, objectSize,
+	MathEngine().IndRnnRecurrentLearn( !reverse, sequenceLength, batchSize, objectSize, activation,
 		maskHandle(), paramBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 		paramDiffBlobs[0]->GetData() );
 	
@@ -252,12 +278,13 @@ CConstFloatHandle CIndRnnRecurrentLayer::maskHandle() const
 
 // --------------------------------------------------------------------------------------------------------------------
 
-CLayerWrapper<CIndRnnLayer> IndRnn( int hiddenSize, float dropoutRate, bool reverse )
+CLayerWrapper<CIndRnnLayer> IndRnn( int hiddenSize, float dropoutRate, bool reverse, TActivationFunction activation )
 {
 	return CLayerWrapper<CIndRnnLayer>( "IndRnn", [=]( CIndRnnLayer* result ) {
 		result->SetHiddenSize( hiddenSize );
 		result->SetDropoutRate( dropoutRate );
 		result->SetReverseSequence( reverse );
+		result->SetActivation( activation );
 	} );
 }
 

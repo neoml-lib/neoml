@@ -188,12 +188,13 @@ void CCpuMathEngine::addVectorToMatrixRows( const float* matrix, float* result,
 void CCpuMathEngine::SetVectorToMatrixRows( const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle )
 {
-	CFloatHandle result = resultHandle;
+	float* result = GetRaw( resultHandle );
+	const float* vector = GetRaw( vectorHandle );
 
 	const int curThreadCount = IsOmpRelevant( matrixHeight, matrixHeight * matrixWidth ) ? threadCount : 1;
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < matrixHeight; i++) {
-		VectorCopy( result + i * matrixWidth, vectorHandle, matrixWidth );
+		dataCopy( result + i * matrixWidth, vector, matrixWidth );
 	}
 }
 
@@ -422,48 +423,54 @@ void CCpuMathEngine::SetVectorToMatrixElements(
 
 void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CFloatHandle& outputHandle, int /*outputChannels*/ )
+	const CFloatHandle& outputHandle, int outputChannels )
 {
 	ASSERT_EXPR(lookupCount <= channelCount);
 
-	CConstFloatHandle input = inputHandle;
-	CFloatHandle output = outputHandle;
+	const float* inputStart = GetRaw(inputHandle);
+	float* outputStart = GetRaw(outputHandle);
 
+	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * outputChannels ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < batchSize; ++i) {
+		const float* input = inputStart + i * channelCount;
+		float* output = outputStart + i * outputChannels;
 		for(int j = 0; j < lookupCount; ++j) {
-			int index = (int)input.GetValue();
+			int index = (int)*input;
 			input++;
 			PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
 			int vectorSize = lookupDimensions[j].VectorSize;
-			VectorCopy(output, lookupHandles[j] + index * vectorSize, vectorSize);
+			dataCopy(output, GetRaw(lookupHandles[j]) + index * vectorSize, vectorSize);
 			output += vectorSize;
 		}
 		int remained = channelCount - lookupCount;
 		if(remained > 0) {
-			VectorCopy(output, input, remained);
-			input += remained;
-			output += remained;
+			dataCopy(output, input, remained);
 		}
 	}
 }
 
 void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CFloatHandle& outputHandle, int /*outputChannels*/)
+	const CFloatHandle& outputHandle, int outputChannels)
 {
 	ASSERT_EXPR(lookupCount == channelCount);
 
-	CConstIntHandle input = inputHandle;
-	CFloatHandle output = outputHandle;
+	const int* inputStart = GetRaw( inputHandle );
+	float* outputStart = GetRaw( outputHandle );
 
+	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * outputChannels ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < batchSize; ++i) {
+		const int* input = inputStart + i * channelCount;
+		float* output = outputStart + i * outputChannels;
 		for(int j = 0; j < lookupCount; ++j) {
 			if(j < channelCount) {
-				int index = input.GetValue();
+				int index = *input;
 				input++;
 				PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
 				int vectorSize = lookupDimensions[j].VectorSize;
-				VectorCopy(output, lookupHandles[j] + index * vectorSize, vectorSize);
+				dataCopy(output, GetRaw(lookupHandles[j]) + index * vectorSize, vectorSize);
 				output += vectorSize;
 			}
 		}
@@ -472,27 +479,29 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelC
 
 void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 	const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CIntHandle& outputHandle, int /*outputChannels*/)
+	const CIntHandle& outputHandle, int outputChannels)
 {
 	ASSERT_EXPR(lookupCount <= channelCount);
 
-	CConstIntHandle input = inputHandle;
-	CIntHandle output = outputHandle;
+	const int* inputStart = GetRaw(inputHandle);
+	int* outputStart = GetRaw(outputHandle);
 
+	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * outputChannels ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < batchSize; ++i) {
+		const int* input = inputStart + i * channelCount;
+		int* output = outputStart + i * outputChannels;
 		for(int j = 0; j < lookupCount; ++j) {
-			int index = (int)input.GetValue();
+			int index = *input;
 			input++;
 			PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
 			int vectorSize = lookupDimensions[j].VectorSize;
-			VectorCopy(output, lookupHandles[j] + index * vectorSize, vectorSize);
+			dataCopy(output, GetRaw(lookupHandles[j]) + index * vectorSize, vectorSize);
 			output += vectorSize;
 		}
 		int remained = channelCount - lookupCount;
 		if(remained > 0) {
-			VectorCopy(output, input, remained);
-			input += remained;
-			output += remained;
+			dataCopy(output, input, remained);
 		}
 	}
 }
@@ -736,24 +745,29 @@ void CCpuMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& 
 void CCpuMathEngine::LookupAndSum(const CConstIntHandle& indicesHandle, int batchSize, int indexCount,
 	const CConstFloatHandle& tableHandle, int vectorSize, const CFloatHandle& result)
 {
-	CConstIntHandle indices = indicesHandle;
-	CFloatHandle output = result;
+	const int* indicesStart = GetRaw(indicesHandle);
+	float* outputStart = GetRaw(result);
+	const float* table = GetRaw(tableHandle);
+
+	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * indexCount * vectorSize ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int b = 0; b < batchSize; ++b) {
-		int index = (int)indices.GetValue();
+		float* output = outputStart + b * vectorSize;
+		const int* indices = indicesStart + b * indexCount;
+		int index = *indices;
 		indices++;
 		if(index >= 0) {
-			VectorCopy(output, tableHandle + vectorSize * index, vectorSize);
+			dataCopy(output, table + vectorSize * index, vectorSize);
 		} else {
-			VectorFill(output, 0.f, vectorSize);
+			vectorFill(output, 0.f, vectorSize);
 		}
 		for(int elem = 1; elem < indexCount; ++elem) {
-			index = (int)indices.GetValue();
+			index = *indices;
 			indices++;
 			if(index >= 0) {
-				VectorAdd(output, tableHandle + vectorSize * index, output, vectorSize);
+				vectorAdd(output, table + vectorSize * index, output, vectorSize);
 			}
 		}
-		output += vectorSize;
 	}
 }
 
@@ -786,7 +800,7 @@ void CCpuMathEngine::findMaxValueInColumns( float* result, int* rowIndices,
 	const float* matrix, int matrixHeight, int matrixWidth )
 {
 	// Copy the first row
-	vectorCopy( result, matrix, matrixWidth );
+	dataCopy( result, matrix, matrixWidth );
 	memset( rowIndices, 0, matrixWidth * sizeof( *rowIndices ) );
 	matrix += matrixWidth;
 	// Process the rest
@@ -811,15 +825,15 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrix( const CConstFloatHandle& firstH
 {
 	ASSERT_EXPR( resultBufferSize >= firstSize * secondWidth );
 
-	CConstFloatHandle first = firstHandle;
-	CConstFloatHandle second = secondHandle;
-	CFloatHandle result = resultHandle;
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
 
-	for( int j = 0; j < firstSize; ++j ) {
-		VectorMultiply( second, result, secondWidth, first );
-		second += secondWidth;
-		result += secondWidth;
-		++first;
+	const int curThreadCount = IsOmpRelevant( firstSize, firstSize * secondWidth ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int i = 0; i < firstSize; i++ ) {
+		const float multiplier = *( first + i );
+		vectorMultiply( second + i * secondWidth, result + i * secondWidth, multiplier, secondWidth );
 	}
 }
 
@@ -988,13 +1002,15 @@ void CCpuMathEngine::MatrixSpreadRows( const CConstFloatHandle& sourceHandle, in
 
 	VectorFill( resultHandle, val, resultHeight * width );
 
-	CConstFloatHandle source = sourceHandle;
+	const float* source = GetRaw(sourceHandle);
+	float* result = GetRaw(resultHandle);
+
+	const int curThreadCount = IsOmpRelevant( height, height * width ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int j = 0; j < height; ++j ) {
-		if( *indices >= 0 ) {
-			VectorCopy( resultHandle + *indices * width, source, width );
+		if( indices[j] >= 0 ) {
+			dataCopy( result + indices[j] * width, source + j * width, width );
 		}
-		source += width;
-		++indices;
 	}
 }
 
@@ -1007,13 +1023,15 @@ void CCpuMathEngine::MatrixSpreadRows( const CConstIntHandle& sourceHandle, int 
 
 	VectorFill( resultHandle, val, resultHeight * width );
 
-	CConstIntHandle source = sourceHandle;
+	const int* source = GetRaw( sourceHandle );
+	int* result = GetRaw( resultHandle );
+
+	const int curThreadCount = IsOmpRelevant( height, height * width ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int j = 0; j < height; ++j ) {
-		if( *indices >= 0 ) {
-			VectorCopy( resultHandle + *indices * width, source, width );
+		if( indices[j] >= 0 ) {
+			dataCopy( result + indices[j] * width, source + j * width, width );
 		}
-		source += width;
-		++indices;
 	}
 }
 

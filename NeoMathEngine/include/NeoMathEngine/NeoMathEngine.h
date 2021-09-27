@@ -30,6 +30,24 @@ limitations under the License.
 
 namespace NeoML {
 
+// Supported activation functions
+enum TActivationFunction {
+	AF_Linear = 0,
+	AF_ELU,
+	AF_ReLU,
+	AF_LeakyReLU,
+	AF_Abs,
+	AF_Sigmoid,
+	AF_Tanh,
+	AF_HardTanh,
+	AF_HardSigmoid,
+	AF_Power,
+	AF_HSwish,
+	AF_GELU,
+
+	AF_Count
+};
+
 // The class provides operations on vectors
 class NEOMATHENGINE_API IVectorMathEngine : public CCrtAllocatedObject {
 public:
@@ -860,27 +878,30 @@ public:
 	// Ind-RNN implementation (https://arxiv.org/pdf/1803.04831.pdf)
 	// Pay attention that functions below emulate only recurrent part of the layer
 	// the result is
-	//    h_t = sigmoid( wx + u * h_(t-1))
+	//    h_t = activation( wx + u * h_(t-1))
 	// where
 	//    wx - user input (x), processed by fully connected layer (w). Size: seqLen x batchSize x objSize
 	//    mask - (optional, may be null) dropout mask. Size: batchSize x objSize
 	//    u - trainable vector of multipliers. Size: objSize
 
+	// Supported activations
+	// - sigmoid
+	// - ReLU
+
 	// Inference
 	// Calculates h based on wx, mask and u
-	virtual void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
-		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
-		const CFloatHandle& h ) = 0;
+	virtual void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
+		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CFloatHandle& h ) = 0;
 	// Backward
 	// Calculates wxDiff based on mask, u, h and hDiff
 	virtual void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
-		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-		const CFloatHandle& wxDiff ) = 0;
+		TActivationFunction activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+		const CConstFloatHandle& hDiff, const CFloatHandle& wxDiff ) = 0;
 	// Learn
 	// Calculates uDiff based on wx, mask, u, h, and hDiff
 	virtual void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
-		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-		const CFloatHandle& uDiff ) = 0;
+		TActivationFunction activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+		const CConstFloatHandle& hDiff, const CFloatHandle& uDiff ) = 0;
 
 	// Local responce normalization (Lrn)
 	// For more details see CLrnLayer comments

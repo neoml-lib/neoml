@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <vector>
 #include <mutex>
+#include <memory>
 #include <vulkan/vulkan.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
@@ -535,13 +536,13 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) override;
-	void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
 		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
 		const CFloatHandle& h ) override;
-	void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
 		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
 		const CFloatHandle& wxDiff ) override;
-	void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
 		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
 		const CFloatHandle& uDiff ) override;
 	CLrnDesc* InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta ) override;
