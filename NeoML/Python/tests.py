@@ -6,9 +6,37 @@ import itertools
 import numpy as np
 from scipy import sparse
 import neoml
+import threading
 
 
-class MathEngineTestCase(TestCase):
+class MultithreadedTestCase(TestCase):
+    def _thread_function(self, target, args, kwargs):
+        print(f"python thread {threading.get_ident()} started")
+        target(*args, **kwargs)
+        print(f"python thread {threading.get_ident()} finished")
+
+    def _test_mt(self, target, args=(), result=None, enable_assert=False):
+        import time
+        threads = []
+        system_time, user_time = time.perf_counter(), time.process_time()
+        for _ in range(4):
+            t = threading.Thread(target=self._thread_function, args=(target, args, {'result': result}))
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        system_time, user_time = time.perf_counter() - system_time, time.process_time() - user_time
+        print()
+        print('System time {0:.6f} sec.'.format(system_time))
+        print('User time {0:.6f} sec.'.format(user_time))
+        if enable_assert:
+            self.assertTrue(system_time < user_time)
+
+    def run(self, result=None):
+        self._test_mt(super().run, result=result)
+
+
+class MathEngineTestCase(MultithreadedTestCase):
     def test_gpu_math_engine(self):
 
         check = False
@@ -43,7 +71,7 @@ class MathEngineTestCase(TestCase):
         self.assertEqual(math_engine.peak_memory_usage, 40)
 
 
-class BlobTestCase(TestCase):
+class BlobTestCase(MultithreadedTestCase):
     def test_pickle(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         a = np.ones((2, 3, 4, 5), dtype=np.int32)
@@ -214,7 +242,7 @@ class BlobTestCase(TestCase):
         self.assertEqual(float_blob.object_size, 4 * 5 * 6 * 7)
 
 
-class SolverTestCase(TestCase):
+class SolverTestCase(MultithreadedTestCase):
     def test_nesterov_gradient(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         solver = neoml.Dnn.NesterovGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
@@ -257,7 +285,7 @@ class SolverTestCase(TestCase):
         self.assertAlmostEqual(solver.moment_decay_rate, 0.6, delta=1e-3)
 
 
-class LayersTestCase(TestCase):
+class LayersTestCase(MultithreadedTestCase):
     def test_lstm(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -1573,7 +1601,7 @@ class LayersTestCase(TestCase):
                 self._test_cast_impl(type_from, type_to)
 
 
-class PoolingTestCase(TestCase):
+class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
                       input_shape=(2, 1, 2, 3, 5, 4, 2)):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2029,7 +2057,7 @@ class BinaryCrossEntropyLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
         return neoml.AutoDiff.binary_cross_entropy(data, labels, True)
 
 
-class LossTestCase(TestCase):
+class LossTestCase(MultithreadedTestCase):
     def _test_loss(self, layer, kwargs={},
                    n_classes=2,
                    labels_type=np.float32,
@@ -2213,7 +2241,7 @@ class LossTestCase(TestCase):
         self._test_loss('MultiSquaredHingeLoss', dict(loss_weight=7.7), last_loss=0.)
 
 
-class DnnTestCase(TestCase):
+class DnnTestCase(MultithreadedTestCase):
     def test_load_store(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -2293,7 +2321,7 @@ class DnnTestCase(TestCase):
         self.assertTrue(len(dnn.output_layers), 1)
 
 
-class TraditionalTestCase(TestCase):
+class TraditionalTestCase(MultithreadedTestCase):
     def test_differential_evolution(self):
         from neoml.DifferentialEvolution import IntTraits, DoubleTraits, DifferentialEvolution
         def func(vec):
@@ -2419,7 +2447,7 @@ class TraditionalTestCase(TestCase):
         os.rmdir(dir)
 
 
-class ClusteringTestCase(TestCase):
+class ClusteringTestCase(MultithreadedTestCase):
     def _test_clusterize(self, method, params={}):
         X_dense = np.eye(20, 5, dtype=np.float32)
         X_dense_list = X_dense.tolist()
