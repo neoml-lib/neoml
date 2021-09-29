@@ -71,7 +71,7 @@ class EltwiseSub(Layer):
     """
     def __init__(self, input_layers, name=None):
 
-        if type(input_layers) is PythonWrapper.EltwiseSun:
+        if type(input_layers) is PythonWrapper.EltwiseSub:
             super().__init__(input_layers)
             return
 
