@@ -118,16 +118,28 @@ static CBlobDesc createBlobDesc( TBlobType type, std::initializer_list<int> dime
 class CPyDnnBlob : public CDnnBlob {
 public:
 	CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info&& _info );
-	virtual ~CPyDnnBlob() = default;
+	virtual ~CPyDnnBlob();
+
+	CPyDnnBlob( const CPyDnnBlob& ) = delete;
+	CPyDnnBlob& operator=( const CPyDnnBlob& ) = delete;
 
 private:
-	py::buffer_info info;
+	py::buffer_info* info;
 };
 
 CPyDnnBlob::CPyDnnBlob( IMathEngine& mathEngine, TBlobType type, std::initializer_list<int> dimension, py::buffer_info&& _info ) :
 	CDnnBlob( mathEngine, createBlobDesc( type, dimension ), CPyMemoryHandle( &mathEngine, _info.ptr ), false ),
-	info( std::move(_info) )
+	info( new py::buffer_info( std::move( _info ) ) )
 {
+}
+
+CPyDnnBlob::~CPyDnnBlob()
+{
+	// py::buffer_info holds reference to the corresponding Python object
+	// This reference will be released during py::~buffer_info
+	// All the reference counting must be done under GIL
+	py::gil_scoped_acquire acquire;
+	delete info;
 }
 
 //------------------------------------------------------------------------------------------------------------
