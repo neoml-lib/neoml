@@ -10,17 +10,17 @@ import threading
 
 
 class MultithreadedTestCase(TestCase):
-    def _thread_function(self, target, args):
+    def _thread_function(self, target, kwargs):
         print(f"python thread {threading.get_ident()} started")
-        target(*args);
+        target(**kwargs)
         print(f"python thread {threading.get_ident()} finished")
 
-    def _test_mt(self, target, args=(), enable_assert=False):
+    def _test_mt(self, target, result, enable_assert=False):
         import time
         threads = []
         system_time, user_time = time.perf_counter(), time.process_time()
-        for i in range(4):
-            t = threading.Thread(target=self._thread_function, args=(target, args))
+        for _ in range(4):
+            t = threading.Thread(target=self._thread_function, args=(target, {'result': result}))
             threads.append(t)
             t.start()
         for t in threads:
@@ -33,7 +33,7 @@ class MultithreadedTestCase(TestCase):
             self.assertTrue(system_time < user_time)
 
     def run(self, result=None):
-        self._test_mt(super().run)
+        self._test_mt(super().run, result=result)
 
 
 class MathEngineTestCase(MultithreadedTestCase):
@@ -1587,7 +1587,7 @@ class LayersTestCase(MultithreadedTestCase):
         sink = neoml.Dnn.Sink(cast, 'sink')
 
         input_arr = generate_array(type_from)
-        input_blob = neoml.Blob.as_blob(math_engine, input_arr, (1, 1, 1, 1, 1, 1, len(input_arr)))
+        input_blob = neoml.Blob.asblob(math_engine, input_arr, (1, 1, 1, 1, 1, 1, len(input_arr)))
         outputs = dnn.run({'source': input_blob})
         actual = outputs['sink'].asarray()
         expected = generate_array(type_to)
