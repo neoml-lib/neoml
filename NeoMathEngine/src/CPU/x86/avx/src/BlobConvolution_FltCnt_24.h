@@ -42,7 +42,7 @@ inline void CBlobConvolution<24>::CCode::fillBatchProcessingKernel( CBlobConvolu
 	Ymm st[3] = { ymm9, ymm10, ymm11 };
 	Ymm f[3] = { ymm12, ymm13, ymm14 };
 
-	initProcessingMainLoop( bc, &res[0][0], 0, StepCount, StepSize, KernelHeight, KernelWidth, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
+	initProcessingMainLoop( bc, &res[0][0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Batch process kernell function
@@ -107,7 +107,7 @@ inline void CBlobConvolution<24>::CCode::fillSingleProcessingKernel( CBlobConvol
 	Xmm st0_toXmm = xmm4;
 	Ymm f[3] = { ymm5, ymm6, ymm7 };
 
-	initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, KernelHeight, KernelWidth, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
+	initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 
