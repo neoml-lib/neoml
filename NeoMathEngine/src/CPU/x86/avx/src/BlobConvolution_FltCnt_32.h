@@ -21,10 +21,10 @@ namespace NeoML {
 // Channel count: 32
 
 template<>
-inline CBlobConvolution<32>::CSize CBlobConvolution<32>::getWideBatchProcessSize()
-{
-	return { 1, 2 };
-}
+const int CBlobConvolution<32>::WideBatchKernelHeight = 1;
+
+template<>
+const int CBlobConvolution<32>::WideBatchKernelWidth = 2;
 
 template<>
 inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, int windowIndex )
@@ -33,14 +33,16 @@ inline void CBlobConvolution<32>::CCode::fillBatchProcessingKernel( CBlobConvolu
 
     Label labelFillProcessingKernelEnd;
     Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
+    const int KernelHeight = useNarrowProcessing ? NarrowBatchKernelHeight : WideBatchKernelHeight;
+    const int KernelWidth = useNarrowProcessing ? NarrowBatchKernelWidth : WideBatchKernelWidth;
+    const int StepCount = 2;
+    const int StepSize = 4;
 
-	const int stepCount = 2;
-	const int stepSize = 4;
-	Ymm res[2][4] = { { ymm0, ymm1, ymm2, ymm3 }, { ymm4, ymm5, ymm6, ymm7 } };
+	Ymm res[StepCount][StepSize] = { { ymm0, ymm1, ymm2, ymm3 }, { ymm4, ymm5, ymm6, ymm7 } };
 	Ymm st[2] = { ymm8, ymm9 };
 	Ymm f[4] = { ymm10, ymm11, ymm12, ymm13 };
 
-	initProcessingMainLoop( bc, &res[0][0], 0, stepCount, stepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
+	initProcessingMainLoop( bc, &res[0][0], 0, StepCount, StepSize, KernelHeight, KernelWidth, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Batch process kernell function
@@ -93,16 +95,18 @@ inline void CBlobConvolution<32>::CCode::fillSingleProcessingKernel( CBlobConvol
 
     Label labelFillProcessingKernelEnd;
     Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
+    const int KernelHeight = useNarrowProcessing ? NarrowBatchKernelHeight : WideBatchKernelHeight;
+    const int KernelWidth = 1;
+    const int StepCount = 1;
+    const int StepSize = 4;
 
-	const int stepCount = 1;
-	const int stepSize = 4;
-	Ymm res[4] = { ymm0, ymm1, ymm2, ymm3 };
+	Ymm res[StepSize] = { ymm0, ymm1, ymm2, ymm3 };
 	Xmm s = xmm4;
 	Ymm st0 = ymm5;
 	Xmm st0_toXmm = xmm5;
-	Ymm f[4] = { ymm6, ymm7, ymm8, ymm9 };
+	Ymm f[StepSize] = { ymm6, ymm7, ymm8, ymm9 };
 
-	initProcessingMainLoop( bc, &res[0], 0, stepCount, stepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
+	initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, KernelHeight, KernelWidth, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -117,10 +121,10 @@ inline void CBlobConvolution<32>::CCode::fillSingleProcessingKernel( CBlobConvol
 			vpermilps( st0_toXmm, s, mask );
 			vinsertf128( st0, st0, st0_toXmm, 1);
 
-			vmovups( f[0], ptr[regTempFltPtr + ( stepSize * i + 0 ) * SizeOfYmm] );
-			vmovups( f[1], ptr[regTempFltPtr + ( stepSize * i + 1 ) * SizeOfYmm] );
-			vmovups( f[2], ptr[regTempFltPtr + ( stepSize * i + 2 ) * SizeOfYmm] );
-			vmovups( f[3], ptr[regTempFltPtr + ( stepSize * i + 3 ) * SizeOfYmm] );
+			vmovups( f[0], ptr[regTempFltPtr + ( StepSize * i + 0 ) * SizeOfYmm] );
+			vmovups( f[1], ptr[regTempFltPtr + ( StepSize * i + 1 ) * SizeOfYmm] );
+			vmovups( f[2], ptr[regTempFltPtr + ( StepSize * i + 2 ) * SizeOfYmm] );
+			vmovups( f[3], ptr[regTempFltPtr + ( StepSize * i + 3 ) * SizeOfYmm] );
 
 			vfmadd231ps( res[0], f[0], st0 );
 			vfmadd231ps( res[1], f[1], st0 );
@@ -129,7 +133,7 @@ inline void CBlobConvolution<32>::CCode::fillSingleProcessingKernel( CBlobConvol
 
 		}
 		if( !isLast ) {
-			add( regTempFltPtr, stepSize * channelCount * SizeOfYmm );
+			add( regTempFltPtr, StepSize * channelCount * SizeOfYmm );
 		}
 	};
 

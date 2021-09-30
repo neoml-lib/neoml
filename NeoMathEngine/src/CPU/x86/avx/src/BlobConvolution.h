@@ -85,14 +85,20 @@ private:
 		int Width;
 	};
 
+	static const int WideBatchKernelHeight;
+	static const int WideBatchKernelWidth;
+	static const int NarrowBatchKernelHeight;
+	static const int NarrowBatchKernelWidth;
+
 	class CCode : public Xbyak::CodeGenerator {
 	public:
 		// Init JIT code main routine
 		CCode( CBlobConvolution& bc, int yStepIndex );
 
-		void Run(  bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr );
+		void Run(  bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr, size_t srcYStep, size_t resStride );
 
-		static constexpr unsigned int SizeOfYmm = 8 * sizeof( float );
+		static constexpr unsigned int NumFloatInYmm = 8;
+		static constexpr unsigned int SizeOfYmm = NumFloatInYmm * sizeof( float );
 	private:
 		// Used in main loop
 
@@ -101,15 +107,19 @@ private:
 		const reg64_t regFltPtr = FuncParam3;
 		const reg64_t regFreeTermPtr = FuncParam4;
 	#ifdef _WIN32
-			const reg64_t regNumSteps = Xbyak::util::r12;
+		const reg64_t regResPtr = Xbyak::util::rdi;
+		const reg64_t regSrcNarrowStep = Xbyak::util::rsi;
 	#else
-			const reg64_t regResPtr = FuncParam5;
+		const reg64_t regResPtr = FuncParam5;
+		const reg64_t regSrcNarrowStep = FuncParam6;
 	#endif
-		const reg64_t regNumSteps= Xbyak::util::r9;
+		const reg64_t regResNarrowStep =  Xbyak::util::r13;
 
 		// Used in kernels:
 		const reg64_t regTempSrcPtr =  Xbyak::util::r10;
 		const reg64_t regTempFltPtr =  Xbyak::util::r11;
+		const reg64_t retTemp =  Xbyak::util::r14;
+		const reg64_t regNumSteps= Xbyak::util::r12;
 		const reg64_t regChCnt =  Xbyak::util::rax;
 
         void prologue();
@@ -123,12 +133,13 @@ private:
         void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, int windowIndex );
 
         // Initialize result registers with data from freeTerm (if it isn't nullptr)
-        void initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int stepCount, int stepSize );
+        void initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int KernelHeight, int KernelWidth );
         // Flush result registers
-        void flushResRegs( Xbyak::Ymm* res, int stepCount, int stepSize  );
-        void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int stepCount, int stepSize,
+        void flushResRegs( Xbyak::Ymm* res, int KernelHeight, int KernelWidth, bool useNarrowProcessing  );
+        void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes,
+                                     int stepCount, int stepSize, int KernelHeight, int KernelWidth,
                                      Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
-                                     int windowIndex );
+                                     int windowIndex, bool useNarrowProcessing = false );
 
         void rotateLeft6( Xbyak::Ymm& y0, Xbyak::Ymm& y1, Xbyak::Ymm& y2,
                           Xbyak::Ymm& yt0, Xbyak::Ymm& yt1, Xbyak::Ymm& yt2 );
@@ -248,6 +259,12 @@ private:
 	static void rotateLeft2( __m256& y );
 
 };
+
+template<int FltCnt>
+const int CBlobConvolution<FltCnt>::NarrowBatchKernelHeight = INT_MAX;
+
+template<int FltCnt>
+const int CBlobConvolution<FltCnt>::NarrowBatchKernelWidth = INT_MAX;
 
 class CBlobConvolutionFabric : public CCrtAllocatedObject {
 public:
@@ -428,7 +445,7 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 						bool useNarrowProcessing = ryEnd - ry >= NarrowBatchProcessSize.Height;
 
 						if( UseJit ) {
-							jitCodes[yStepIndex]->Run( useNarrowProcessing, srcPtr, flt, freeTerm, resPtr );
+							jitCodes[yStepIndex]->Run( useNarrowProcessing, srcPtr, flt, freeTerm, resPtr, SrcYStep, ResLineStride );
 						} else {
 							size_t windowIndex = yStepIndex * PixelOffsetResStepsWidthX.size();
 
@@ -447,10 +464,16 @@ void CBlobConvolution<FltCnt>::ProcessConvolution( int threadCount,
 }
 
 template<int FltCnt>
+inline typename CBlobConvolution<FltCnt>::CSize CBlobConvolution<FltCnt>::getWideBatchProcessSize()
+{
+	return { WideBatchKernelHeight, WideBatchKernelWidth };
+}
+
+template<int FltCnt>
 inline typename CBlobConvolution<FltCnt>::CSize CBlobConvolution<FltCnt>::getNarrowBatchProcessSize()
 {
 	// Disable narrow processing by default
-	return { INT_MAX, INT_MAX };
+	return { NarrowBatchKernelHeight, NarrowBatchKernelWidth };
 }
 
 template<int FltCnt>
@@ -797,7 +820,16 @@ CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepI
     // Start code filling
     prologue();
 #ifdef _WIN32
-        mov( regResPtr, dword ptr[rsp] );
+    // Parameters are in reverse order in stack
+    // First two values are 'rip' and 'rbp', then follow preserves registers from prologue
+    const int StackOffset = 6 * sizeof( void* );
+    mov( regResPtr, ptr[rsp + StackOffset + 16] );
+    mov( regSrcNarrowStep, ptr[rsp + StackOffset + 8] );
+    mov( regResNarrowStep, ptr[rsp + StackOffset] );
+#else
+    // First two values are 'rip' and 'rbp', then follow preserves registers from prologue
+    const int StackOffset = 4 * sizeof( void* );
+    mov( regResNarrowStep, ptr[rsp+StackOffset] );
 #endif
 
     Label labelNarrow;
@@ -818,9 +850,10 @@ CBlobConvolution<FltCnt>::CCode::CCode( CBlobConvolution<FltCnt>& bc, int yStepI
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CCode::Run( bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr )
+inline void CBlobConvolution<FltCnt>::CCode::Run( bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr,
+                                                  size_t srcYStep, size_t resStride )
 {
-    return getCode<void(*)(bool, const float*, const float*, const float*, float*)>()( useNarrowProcessing, srcPtr, fltPtr, freeTermPtr, resPtr );
+    return getCode<void(*)(bool, const float*, const float*, const float*, float*, size_t, size_t)>()( useNarrowProcessing, srcPtr, fltPtr, freeTermPtr, resPtr, srcYStep, resStride );
 }
 
 template<int FltCnt>
@@ -829,15 +862,21 @@ inline void CBlobConvolution<FltCnt>::CCode::prologue()
 	push( rbp );
 	mov( rbp, rsp );
 #ifdef _WIN32
-		push( regResPtr );
+	push( regResPtr );
+	push( regSrcNarrowStep );
 #endif
+	push( regNumSteps );
+	push( regResNarrowStep );
 }
 
 template<int FltCnt>
 inline void CBlobConvolution<FltCnt>::CCode::epilogue()
 {
+	pop( regResNarrowStep );
+	pop( regNumSteps );
 #ifdef _WIN32
-		pop( regResPtr );
+	pop( regSrcNarrowStep )
+	pop( regResPtr );
 #endif
 	leave();
 }
@@ -874,37 +913,61 @@ inline void CBlobConvolution<FltCnt>::CCode::initResRegs( Xbyak::Ymm* res, Xbyak
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CCode::flushResRegs( Xbyak::Ymm* res, int stepCount, int stepSize  )
+inline void CBlobConvolution<FltCnt>::CCode::flushResRegs( Xbyak::Ymm* res, int KernelHeight, int KernelWidth, bool useNarrowProcessing  )
 {
 	using namespace Xbyak;
 
-	int numRegsForFlush = ( stepCount * stepSize * 8 ) / FltCnt * FltCnt;
 	Label labelPartialStore, labelPartialStoreEnd;
 	// Last register is always unused at the end of the processing
 	Ymm regMask = ymm15;
 
-	if( numRegsForFlush % 8 != 0 ) {
+	const int KernelWidthInRegs = ( KernelWidth * FltCnt + NumFloatInYmm - 1 ) / NumFloatInYmm;
+	const int KernelWidthInFloats = KernelWidth * FltCnt;
+
+	if( FltCnt % NumFloatInYmm != 0 ) {
 		vmovdqa( regMask, ptr[rip + labelPartialStore] );
 	}
 
 	int offsetDisp = 0;
-	int i = 0;
-	for( ; i < numRegsForFlush / 8; i++ ) {
-		vmovups( ptr[regResPtr + offsetDisp], res[i] );
-		offsetDisp += SizeOfYmm;
+	for( int row = 0; row < KernelHeight; row++ ) {
+		int i = 0;
+		for( ; i < KernelWidthInFloats / NumFloatInYmm; i++ ) {
+			if( useNarrowProcessing && row > 0 ) {
+				vmovups( ptr[regResPtr + retTemp * sizeof( float ) + offsetDisp], res[row * KernelWidthInRegs + i] );
+			} else {
+				vmovups( ptr[regResPtr + offsetDisp], res[row * KernelWidthInRegs + i] );
+			}
+			offsetDisp += SizeOfYmm;
+		}
+
+		if( KernelWidthInFloats % NumFloatInYmm != 0 ) {
+			// Mask store ( only elements which is mentioned in regTemp )
+			if( useNarrowProcessing && row > 0 ) {
+				vmaskmovps( ptr[regResPtr + retTemp * sizeof( float ) + offsetDisp], regMask, res[row * KernelWidthInRegs + i] );
+			} else {
+				vmaskmovps( ptr[regResPtr + offsetDisp], regMask, res[row * KernelWidthInRegs + i] );
+			}
+		}
+
+		if( useNarrowProcessing ) {
+			if( row == 0 && KernelHeight > 1 ) {
+				// After first sep we init retTemp with stride
+				mov( retTemp, regResNarrowStep );
+			} else if( row > 0 && row < KernelHeight - 1 ) {
+				// We will increase retTemp by stride untill last row
+				add( retTemp, regResNarrowStep );
+			}
+			offsetDisp = 0;
+		}
 	}
-
-	if( numRegsForFlush % 8 != 0 ) {
-		// Mask store ( only elements which is mentioned in regTemp )
-		vmaskmovps( ptr[regResPtr + offsetDisp], regMask, res[i] );
-
+	if( FltCnt % NumFloatInYmm != 0 ) {
 		jmp( labelPartialStoreEnd, T_NEAR );
 		align( 32 );
 		L( labelPartialStore );
-		for( int i = 0; i < numRegsForFlush % 8; i++ ){
+		for( int i = 0; i < FltCnt % 8; i++ ){
 			dd( -1 );
 		}
-		for( int i = 0; i < 8 - numRegsForFlush % 8; i++ ){
+		for( int i = 0; i < 8 - FltCnt % 8; i++ ){
 			dd( 0 );
 		}
 		L( labelPartialStoreEnd );
@@ -912,9 +975,10 @@ inline void CBlobConvolution<FltCnt>::CCode::flushResRegs( Xbyak::Ymm* res, int 
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CCode::initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int stepCount, int stepSize,
+inline void CBlobConvolution<FltCnt>::CCode::initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes,
+																	 int stepCount, int stepSize, int KernelHeight, int KernelWidth,
 																	 Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
-																	 int windowIndex )
+																	 int windowIndex, bool useNarrowProcessing )
 {
 	initResRegs( res, tempRes, stepCount, stepSize );
 
@@ -927,7 +991,7 @@ inline void CBlobConvolution<FltCnt>::CCode::initProcessingMainLoop( CBlobConvol
 		call( labelKernel );
 	}
 
-	flushResRegs( res, stepCount, stepSize );
+	flushResRegs( res, KernelHeight, KernelWidth, useNarrowProcessing );
 
 
 	// return from function
