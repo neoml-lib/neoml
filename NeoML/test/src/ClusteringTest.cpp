@@ -406,7 +406,7 @@ static void getDendrogramData( CPtr<IClusteringData>& denseData, CArray<CHierarc
 }
 
 template<CHierarchicalClustering::TLinkage LINKAGE>
-static void hierarchicalDendrogram( IClusteringData* data, CClusteringResult& result,
+static void hierarchicalDendrogram( const IClusteringData* data, CClusteringResult& result,
 	CArray<CHierarchicalClustering::CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices )
 {
 	CHierarchicalClustering::CParam params;
@@ -419,7 +419,7 @@ static void hierarchicalDendrogram( IClusteringData* data, CClusteringResult& re
 	EXPECT_TRUE( clustering.ClusterizeEx( data, result, dendrogram, dendrogramIndices ) );
 }
 
-typedef void ( *THierarchicalClusteringFunction )( IClusteringData* data, CClusteringResult& result,
+typedef void ( *THierarchicalClusteringFunction )( const IClusteringData* data, CClusteringResult& result,
 	CArray<CHierarchicalClustering::CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices );
 
 static inline bool compareVectors( const CFloatVector& first, const CFloatVector& second, float eps = 1e-5f )
