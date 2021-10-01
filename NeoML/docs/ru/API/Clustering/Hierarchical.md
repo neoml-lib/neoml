@@ -27,7 +27,7 @@
 В данном примере набор данных разбивается на два кластера:
 
 ```c++
-void Clusterize( IClusteringData& data, CClusteringResult& result )
+void Clusterize( const IClusteringData& data, CClusteringResult& result )
 {
 	CHierarchicalClustering::CParam params;
 	params.DistanceType = DF_Euclid;

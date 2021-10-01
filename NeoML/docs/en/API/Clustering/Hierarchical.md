@@ -27,7 +27,7 @@ The clustering parameters are described by the `CHierarchicalClustering::CParam`
 In this sample an input data set is split into two clusters:
 
 ```c++
-void Clusterize( IClusteringData& data, CClusteringResult& result )
+void Clusterize( const IClusteringData& data, CClusteringResult& result )
 {
 	CHierarchicalClustering::CParam params;
 	params.DistanceType = DF_Euclid;
