@@ -14,6 +14,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineBlas.cpp
     CPU/CpuMathEngineDnn3dConv.cpp
     CPU/CpuMathEngineDnnConv.cpp
+    CPU/CpuMathEngineDnnCtc.cpp
     CPU/CpuMathEngineDnnChannelwiseConv.cpp
     CPU/CpuMathEngineDnnDropout.cpp
     CPU/CpuMathEngineDnnLrn.cpp
@@ -207,6 +208,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CudaMathEngineDnn3dConv.cu
                     GPU/CUDA/CudaMathEngineDnnChannelwiseConv.cu
                     GPU/CUDA/CudaMathEngineDnnConv.cu
+                    GPU/CUDA/CudaMathEngineDnnCtc.cu
                     GPU/CUDA/CudaMathEngineDnn.cu
                     GPU/CUDA/CudaMathEngineDnnDropout.cu
                     GPU/CUDA/CudaMathEngineDnnLrn.cu
@@ -232,6 +234,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/Kernels/CudaDnn3dPoolingKernels.h
                     GPU/CUDA/Kernels/CudaDnnChannelwiseConvKernels.h
                     GPU/CUDA/Kernels/CudaDnnConvKernels.h
+                    GPU/CUDA/Kernels/CudaDnnCtcKernels.h
                     GPU/CUDA/Kernels/CudaDnnDropoutKernels.h
                     GPU/CUDA/Kernels/CudaDnnGlobalPoolingKernels.h
                     GPU/CUDA/Kernels/CudaDnnGlobalTimePoolingKernels.h

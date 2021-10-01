@@ -76,7 +76,7 @@ void CCudaMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrixHandle
 }
 
 // Assigns the values: matrix[rowIndices[i], columnIndices[i]] = vector[i].
-void CCudaMathEngine::SetVectorToMatrixElements(
+void CCudaMathEngine::setVectorToMatrixElements(
 	const CFloatHandle& matrixHandle, int height, int width,
 	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
 	const CConstFloatHandle& vectorHandle, int vectorSize )
@@ -96,41 +96,6 @@ void CCudaMathEngine::SetVectorToMatrixElements(
 		GetRaw( matrixHandle ), height, width,
 		GetRaw( rowIndicesHandle ), GetRaw( columnIndicesHandle ),
 		GetRaw( vectorHandle ), vectorSize );
-}
-
-void CCudaMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-	const CConstIntHandle& indices, const CConstFloatHandle& vector)
-{
-	ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( indices.GetMathEngine() == this );
-	ASSERT_EXPR( vector.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-
-	int blockCount;
-	int threadCount;
-	getCudaTaskGrid(blockCount, threadCount, height);
-
-	EltwiseLogSumExpVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(GetRaw(matrix),
-		height, width, GetRaw(indices), GetRaw(vector));
-}
-
-void CCudaMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix,
-	int height, int width,
-	const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-	const CConstFloatHandle& vector, int vectorSize)
-{
-	ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
-	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
-	ASSERT_EXPR( vector.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-
-	dim3 blockCount;
-	dim3 threadCount;
-	getCudaTaskGrid2D(blockCount, threadCount, height, width);
-
-	EltwiseLogSumExpVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(GetRaw(matrix), height, width,
-		GetRaw(rowIndices), GetRaw(columnIndices), GetRaw(vector), vectorSize);
 }
 
 void CCudaMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
@@ -374,28 +339,6 @@ void CCudaMathEngine::MatrixSoftmaxDiffOpByRows(const CConstFloatHandle& first, 
 	const int sharedSize = threadCount.x * threadCount.y * sizeof(float);
 	MatrixSoftmaxDiffOpByRowsKernel<<<blockCount, threadCount, sharedSize>>>(GetRaw(first), GetRaw(second),
 		height, width, GetRaw(result), widthNorm);
-}
-
-void CCudaMathEngine::MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, int height, int width,
-	const CFloatHandle& result, int resultSize)
-{
-	ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( result.GetMathEngine() == this );
-	ASSERT_EXPR(resultSize >= width);
-	SetCudaDevice( device->DeviceNumber );
-
-	int heightNorm = (height + MatrixLogSumExpByColumnsCombine - 1) / MatrixLogSumExpByColumnsCombine;
-	heightNorm = alignXSizeForWarp(heightNorm);
-
-	dim3 blockCount;
-	dim3 threadCount;
-	// Rows over the X instead of Y axis, so we could reduce by X
-	getCudaTaskGrid2DMinYX(1, 1024, blockCount, threadCount, width, heightNorm);
-	blockCount.x = 1;
-
-	const int sharedSize = threadCount.x * threadCount.y * sizeof(float);
-	MatrixLogSumExpByColumnsKernel<<<blockCount, threadCount, sharedSize>>>(
-		GetRaw(matrix), height, width, GetRaw(result), heightNorm);
 }
 
 void CCudaMathEngine::MatrixSoftmaxByColumns(const CConstFloatHandle& matrix, int height, int width,

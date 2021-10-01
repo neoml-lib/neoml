@@ -86,7 +86,6 @@ namespace NeoML {
 #include <shaders/generated/VectorPowerDiffOp.h>
 #include <shaders/generated/VectorL1DiffAdd.h>
 #include <shaders/generated/VectorDotProduct.h>
-#include <shaders/generated/VectorEltwiseLogSumExp.h>
 #include <shaders/generated/VectorSum.h>
 #include <shaders/generated/VectorEqual.h>
 #include <shaders/generated/VectorFillBernoulli.h>
@@ -924,16 +923,6 @@ void CVulkanMathEngine::VectorSpreadValues( const CConstFloatHandle&, CFloatHand
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::VectorEltwiseLogSumExp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize )
-{
-	CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle};
-	size_t sizes[3] = { vectorSize * sizeof(float), vectorSize * sizeof(float), vectorSize * sizeof(float) };
-
-	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorEltwiseLogSumExp, false, 0, 0, 3), 0, 0, 0, 0, 0, 0, bufs, sizes, 3,
-		Ceil(vectorSize, VectorCombine) );
-}
-
 void CVulkanMathEngine::VectorSum( const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle )
 {
 	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
@@ -952,18 +941,6 @@ void CVulkanMathEngine::VectorSumAdd( const CConstFloatHandle& firstHandle, int 
 	size_t sizes[2] = { vectorSize * sizeof(float), sizeof(float) };
 
 	PARAM_STRUCT(VectorSum) param = { 1, 0 };
-
-	const CVulkanShaderData& shaderData = shaderLoader->GET_SHADER_DATA(VectorSum, true, 0, 0, 2);
-
-	runVectorShader(shaderData, &param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, shaderData.GetGroupSize());
-}
-
-void CVulkanMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle)
-{
-	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
-	size_t sizes[2] = { vectorSize * sizeof(float), sizeof(float) };
-
-	PARAM_STRUCT(VectorSum) param = { 0, 1 };
 
 	const CVulkanShaderData& shaderData = shaderLoader->GET_SHADER_DATA(VectorSum, true, 0, 0, 2);
 

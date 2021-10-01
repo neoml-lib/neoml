@@ -22,6 +22,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/GradientBoostingTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnBlobTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSolverTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CtcTest.cpp
 )
 
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

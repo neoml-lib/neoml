@@ -134,15 +134,6 @@ void CCpuMathEngine::VectorSum(const CConstFloatHandle& firstHandle, int vectorS
 	VectorSumAdd(firstHandle, vectorSize, resultHandle);
 }
 
-void CCpuMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	VectorSum(firstHandle, vectorSize, resultHandle);
-	*GetRaw(resultHandle) = -*GetRaw(resultHandle);
-}
-
 void CCpuMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 	int followingDimension, const CFloatHandle& resultHandle )
 {
