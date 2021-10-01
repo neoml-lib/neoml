@@ -31,7 +31,7 @@ The clustering parameters are described by the `CIsoDataClustering::CParam` stru
 This sample shows how to use the ISODATA algorithm to clusterize the [Iris Data Set](http://archive.ics.uci.edu/ml/datasets/Iris):
 
 ```c++
-void Clusterize( IClusteringData& irisDataSet, CClusteringResult& result )
+void Clusterize( const IClusteringData& irisDataSet, CClusteringResult& result )
 {
 	CIsoDataClustering::CParam params;
 	params.InitialClustersCount = 1;
