@@ -33,8 +33,6 @@ inline void CBlobConvolution<24>::CCode::fillBatchProcessingKernel( CBlobConvolu
 
     Label labelFillProcessingKernelEnd;
     Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
-    const int KernelHeight = useNarrowProcessing ? NarrowBatchKernelHeight : WideBatchKernelHeight;
-    const int KernelWidth = useNarrowProcessing ? NarrowBatchKernelWidth : WideBatchKernelWidth;
     const int StepCount = 3;
     const int StepSize = 3;
 
@@ -96,8 +94,6 @@ inline void CBlobConvolution<24>::CCode::fillSingleProcessingKernel( CBlobConvol
 
     Label labelFillProcessingKernelEnd;
     Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
-    const int KernelHeight = useNarrowProcessing ? NarrowBatchKernelHeight : WideBatchKernelHeight;
-    const int KernelWidth = 1;
     const int StepCount = 1;
     const int StepSize = 3;
 
