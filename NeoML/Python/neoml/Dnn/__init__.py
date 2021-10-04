@@ -46,6 +46,7 @@ from .Split import SplitChannels, SplitDepth, SplitWidth, SplitHeight, SplitList
 from .SubSequence import SubSequence, ReverseSequence
 from .TiedEmbeddings import TiedEmbeddings
 from .Transform import Transform
+from .Transformer import Transformer
 from .Transpose import Transpose
 from .Upsampling2D import Upsampling2D
 
