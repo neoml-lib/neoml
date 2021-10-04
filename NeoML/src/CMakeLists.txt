@@ -33,6 +33,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/BinaryCrossEntropyLayer.cpp
     Dnn/Layers/BinaryFocalLossLayer.cpp
+    Dnn/Layers/CastLayer.cpp
     Dnn/Layers/CenterLossLayer.cpp
     Dnn/Layers/ChannelwiseConvLayer.cpp
     Dnn/Layers/CompositeLayer.cpp
@@ -42,6 +43,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/CrfLayer.cpp
     Dnn/Layers/CrossEntropyLossLayer.cpp
     Dnn/Layers/CtcLayer.cpp
+    Dnn/Layers/DataLayer.cpp
     Dnn/Layers/DepthToSpaceLayer.cpp
     Dnn/Layers/DotProductLayer.cpp
     Dnn/Layers/DropoutLayer.cpp
@@ -140,6 +142,10 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/LinkedRegressionTree.cpp
     TraditionalML/LinkedRegressionTree.h
     TraditionalML/MemoryProblem.cpp
+    TraditionalML/NaiveHierarchicalClustering.h
+    TraditionalML/NaiveHierarchicalClustering.cpp
+    TraditionalML/NnChainHierarchicalClustering.h
+    TraditionalML/NnChainHierarchicalClustering.cpp
     TraditionalML/OneVersusAll.cpp
     TraditionalML/OneVersusAllModel.cpp
     TraditionalML/OneVersusAllModel.h
@@ -194,6 +200,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/BatchNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
+    ../include/NeoML/Dnn/Layers/CastLayer.h
     ../include/NeoML/Dnn/Layers/CenterLossLayer.h
     ../include/NeoML/Dnn/Layers/ChannelwiseConvLayer.h
     ../include/NeoML/Dnn/Layers/CompositeLayer.h
@@ -201,6 +208,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ConvLayer.h
     ../include/NeoML/Dnn/Layers/CrfLayer.h
     ../include/NeoML/Dnn/Layers/CtcLayer.h
+    ../include/NeoML/Dnn/Layers/DataLayer.h
     ../include/NeoML/Dnn/Layers/DepthToSpaceLayer.h
     ../include/NeoML/Dnn/Layers/DotProductLayer.h
     ../include/NeoML/Dnn/Layers/DropoutLayer.h

@@ -20,7 +20,6 @@ limitations under the License.
 #include <CpuMathEnginePrivate.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
-#include <CpuMathEnginePrivate.h>
 
 namespace NeoML {
 
@@ -32,34 +31,64 @@ void CCpuMathEngine::blobMergeByDimCommon( int dimNum, const CBlobDesc* from, co
 {
 	int s[CBlobDesc::MaxDimensions];
 	to.GetDimSizes( s );
+	// Objects count to be merged
 	int objectCount = 1;
 	for(int z  = 0; z < dimNum; z++) {
 		objectCount *= s[z];
 	}
+	// Merged object size
 	int objectSize = to.BlobSize() / objectCount;
+
+	// Splitted object sizes
+	int fromObjectSizes[MaxBlobDescs] = { 0 };
+	for( int i = 0; i < fromCount; i++ ) {
+		int fromLimits[CBlobDesc::MaxDimensions];
+		from[i].GetDimSizes( fromLimits );
+		fromObjectSizes[i] = 1;
+		for(int z = dimNum; z < CBlobDesc::MaxDimensions; z++) {
+			fromObjectSizes[i] *= fromLimits[z];
+		}
+	}
+
+	T* rawTo = GetRaw( toData );
+
+	const int currThreadCount = IsOmpRelevant( objectCount, objectCount * objectSize ) ? threadCount : 1;
+	NEOML_OMP_NUM_THREADS( currThreadCount )
 	for(int x = 0; x < objectCount; x++) {
-		CTypedMemoryHandle<T> output = toData + x * objectSize;
+		T* output = rawTo + x * objectSize;
 		for( int i = 0; i < fromCount; ++i ) {
-			int fromLimits[CBlobDesc::MaxDimensions];
-			from[i].GetDimSizes( fromLimits );
-			int fromObjectSize = 1;
-			for(int z = dimNum; z < CBlobDesc::MaxDimensions; z++) {
-				fromObjectSize *= fromLimits[z];
-			}
-			VectorCopy( output, fromData[i] + x * fromObjectSize, fromObjectSize );
-			output += fromObjectSize;
+			dataCopy( output, GetRaw( fromData[i] ) + x * fromObjectSizes[i], fromObjectSizes[i] );
+			output += fromObjectSizes[i];
 		}
 	}
 }
 
 template<class T>
-void CCpuMathEngine::blobMergeByDim0( const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount, const CTypedMemoryHandle<T>& toData )
+void CCpuMathEngine::blobMergeByDim0( const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
+	const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
 {
-	CTypedMemoryHandle<T> output = toData;
-	for( int i = 0; i < fromCount; ++i ) {
-		int blobSize = from[i].BlobSize();
-		VectorCopy( output, fromData[i], blobSize );
-		output += blobSize;
+	T* output = GetRaw( toData );
+	const int currThreadCount = IsOmpRelevant( fromCount, to.BlobSize() ) ? threadCount : 1;
+
+	if( currThreadCount > 1 ) {
+		static_assert( MaxBlobDescs <= 32, "MaxBlobDescs > 32" );
+		int blobOffset[MaxBlobDescs];
+		blobOffset[0] = 0;
+		for( int i = 0; i < fromCount - 1; ++i ) {
+			blobOffset[i + 1] = blobOffset[i] + from[i].BlobSize();
+		}
+
+		NEOML_OMP_NUM_THREADS( currThreadCount )
+		for( int i = 0; i < fromCount; ++i ) {
+			int blobSize = from[i].BlobSize();
+			dataCopy( output + blobOffset[i], GetRaw( fromData[i] ), blobSize );
+		}
+	} else {
+		for( int i = 0; i < fromCount; ++i ) {
+			int blobSize = from[i].BlobSize();
+			dataCopy( output, GetRaw( fromData[i] ), blobSize );
+			output += blobSize;
+		}
 	}
 }
 
@@ -67,44 +96,75 @@ template<class T>
 void CCpuMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
 {
 	if(dim == 0) {
-		return blobMergeByDim0(from, fromData, fromCount, toData);
+		return blobMergeByDim0(from, fromData, fromCount, to, toData);
 	}
 	return blobMergeByDimCommon(dim, from, fromData, fromCount, to, toData);
 }
 
 template<class T>
-void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
+void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData,
+	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	int s[CBlobDesc::MaxDimensions];
 	from.GetDimSizes( s );
+	// Objects count to be splitted
 	int objectCount = 1;
 	for(int z  = 0; z < dimNum; z++) {
 		objectCount *= s[z];
 	}
+	// Size of object to be splitted
 	int objectSize = from.BlobSize() / objectCount;
+
+	// Splitted objects sizes
+	int toObjectSizes[MaxBlobDescs] = { 0 };
+	for( int i = 0; i < toCount; i++ ) {
+		int toLimits[CBlobDesc::MaxDimensions];
+		to[i].GetDimSizes( toLimits );
+		toObjectSizes[i] = 1;
+		for(int z = dimNum; z < CBlobDesc::MaxDimensions; z++) {
+			toObjectSizes[i] *= toLimits[z];
+		}
+	}
+
+	const T* rawFrom = GetRaw( fromData );
+
+	const int currThreadCount = IsOmpRelevant( objectCount, objectCount * objectSize ) ? threadCount : 1;
+	NEOML_OMP_NUM_THREADS( currThreadCount )
 	for(int x = 0; x < objectCount; x++) {
-		CTypedMemoryHandle<T> input = fromData + x * objectSize;
+		const T* input = rawFrom + x * objectSize;
 		for( int i = 0; i < toCount; ++i ) {
-			int toLimits[CBlobDesc::MaxDimensions];
-			to[i].GetDimSizes( toLimits );
-			int toObjectSize = 1;
-			for(int z = dimNum; z < CBlobDesc::MaxDimensions; z++) {
-				toObjectSize *= toLimits[z];
-			}
-			VectorCopy( toData[i] + x * toObjectSize, input, toObjectSize );
-			input += toObjectSize;
+			dataCopy( GetRaw( toData[i] ) + x * toObjectSizes[i], input, toObjectSizes[i] );
+			input += toObjectSizes[i];
 		}
 	}
 }
 
 template<class T>
-void CCpuMathEngine::blobSplitByDim0( const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
+void CCpuMathEngine::blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData,
+	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
-	CTypedMemoryHandle<const T> input = fromData;
-	for( int i = 0; i < toCount; ++i ) {
-		int blobSize = to[i].BlobSize();
-		VectorCopy( toData[i], input, blobSize );
-		input += blobSize;
+	const T* input = GetRaw( fromData );
+	const int currThreadCount = IsOmpRelevant( toCount, from.BlobSize() ) ? threadCount : 1;
+
+	if( currThreadCount > 1 ) {
+		static_assert( MaxBlobDescs <= 32, "MaxBlobDescs > 32" );
+		int blobOffset[MaxBlobDescs];
+		blobOffset[0] = 0;
+		for( int i = 0; i < toCount - 1; ++i ) {
+			blobOffset[i + 1] = blobOffset[i] + to[i].BlobSize();
+		}
+
+		NEOML_OMP_NUM_THREADS( currThreadCount )
+		for( int i = 0; i < toCount; ++i ) {
+			int blobSize = to[i].BlobSize();
+			dataCopy( GetRaw( toData[i] ), input + blobOffset[i], blobSize );
+		}
+	} else {
+		for( int i = 0; i < toCount; ++i ) {
+			int blobSize = to[i].BlobSize();
+			dataCopy( GetRaw( toData[i] ), input, blobSize );
+			input += blobSize;
+		}
 	}
 }
 
@@ -112,7 +172,7 @@ template<class T>
 void CCpuMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	if(dim == 0) {
-		return blobSplitByDim0(fromData, to, toData, toCount);
+		return blobSplitByDim0(from, fromData, to, toData, toCount);
 	}
 	return blobSplitByDimCommon(dim, from, fromData, to, toData, toCount);
 }
@@ -162,20 +222,25 @@ void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle&
 	}
 
 	// The pointer to the current image (the element of a separate batch)
-	CFloatHandle inputImage = fromData;
-	CFloatHandle outputImage = toData;
+	const float* inputImageStart = GetRaw( fromData );
+	float* outputImageStart = GetRaw( toData );
 	// The image size (used to offset pointers)
 	const int inputImageSize = from.ObjectSize();
 	const int outputImageSize = to.ObjectSize();
 	// The image rows length
 	const int inputRowSize = from.Width() * from.Depth() * from.Channels();
 	const int outputRowSize = to.Width() * to.Depth() * to.Channels();
+
+	const int currThreadCount = IsOmpRelevant( from.ObjectCount(), from.BlobSize() ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
 	for( int batch = 0; batch < from.ObjectCount(); ++batch ) {
+		const float* inputImage = inputImageStart + batch * inputImageSize;
+		float* outputImage = outputImageStart + batch * outputImageSize;
 		if( deltaLeft == 0 && deltaRight == 0 ) {
 			ASSERT_EXPR( inputRowSize == outputRowSize );
 			// If the image width isn't changed, copy together
-			VectorCopy( CFloatHandle( outputImage + outputRowSize * max( 0, deltaTop ) ),
-				CFloatHandle( inputImage + inputRowSize * max( 0, -deltaTop ) ),
+			dataCopy( outputImage + outputRowSize * max( 0, deltaTop ),
+				inputImage + inputRowSize * max( 0, -deltaTop ),
 				inputRowSize * ( from.Height() + min( 0, deltaTop ) + min( 0, deltaBottom ) ) );
 		} else {
 			// Otherwise copy the necessary parts row by row
@@ -184,13 +249,11 @@ void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle&
 			const int rowSizeToCopy = ( from.Width() + min( 0, deltaLeft ) + min( 0, deltaRight ) ) * totalChannels;
 			for( int rowIndex = max( 0, -deltaTop ); rowIndex < from.Height() + min( 0, deltaBottom );
 				++rowIndex ) {
-				VectorCopy( CFloatHandle( outputImage + outputRowSize * ( rowIndex + deltaTop ) + horizontalOutputOffset ),
-					CFloatHandle( inputImage + inputRowSize * rowIndex + horizontalInputOffset ),
+				dataCopy( outputImage + outputRowSize * ( rowIndex + deltaTop ) + horizontalOutputOffset,
+					inputImage + inputRowSize * rowIndex + horizontalInputOffset,
 					rowSizeToCopy );
 			}
 		}
-		inputImage += inputImageSize;
-		outputImage += outputImageSize;
 	}
 }
 
@@ -206,19 +269,18 @@ void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHand
 	int objectSize = from.ObjectSize() * from.ListSize();
 	int subSequenceLen = to.BatchLength();
 
-	CFloatHandle curToData = toData;
+	float* rawToData = GetRaw( toData );
+	const float* rawFrom = GetRaw( fromData );
 
 	// Calculate the subsequence using sequenceLen
+	const int currThreadCount = IsOmpRelevant( subSequenceLen, subSequenceLen * batchWidth * objectSize ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
 	for( int pos = 0; pos < subSequenceLen; ++pos ) {
+		float* curToData = rawToData + pos * batchWidth * objectSize;
+		const int baseIndex = ( isRev ? startPos - pos : startPos + pos ) * batchWidth;
 		for( int seq = 0; seq < batchWidth; ++seq ) {
-			int index = startPos;
-			if( isRev ) {
-				index -= pos;
-			} else {
-				index += pos;
-			}
-			index = index * batchWidth + seq;
-			VectorCopy( curToData, CConstFloatHandle( fromData + index * objectSize ), objectSize );
+			const int index = baseIndex + seq;
+			dataCopy( curToData, rawFrom + index * objectSize, objectSize );
 			if( indices != 0 ) {
 				*indices++ = index;
 			}
@@ -229,7 +291,66 @@ void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHand
 
 //------------------------------------------------------------------------------------------------------------
 
-void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
+template<class T>
+static void upsampling2DForward( int threadCount, const CBlobDesc& input, const CTypedMemoryHandle<const T>& inputData,
+	int heightCopyCount, int widthCopyCount, const CBlobDesc& result, const CTypedMemoryHandle<T>& resultData )
+{
+	const int inputHeight = input.Height();
+	const int inputWidth = input.Width();
+	const int pixelSize = input.Depth() * input.Channels();
+
+	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
+	const int objectCount = input.ObjectCount();
+
+	const T* inputStart = GetRaw( inputData );
+	T* outputStart = GetRaw( resultData );
+
+	const int curThreadCount = IsOmpRelevant( objectCount, result.BlobSize() ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for(int b = 0; b < objectCount; ++b) {
+		const T* inputPtr = inputStart + b * input.ObjectSize();
+		T* outputPtr = outputStart + b * result.ObjectSize();
+		for(int srcRowIndex = 0; srcRowIndex < inputHeight; ++srcRowIndex) {
+			// Note the start of the output row with the index srcRowIndex * heightCopyCount
+			T* resultRowStart = outputPtr;
+
+			// Fill the output row with the index srcRowIndex * heightCopyCount
+			for(int srcColIndex = 0; srcColIndex < inputWidth; ++srcColIndex) {
+				for(int w = 0; w < widthCopyCount; ++w) {
+					dataCopy(outputPtr, inputPtr, pixelSize);
+					outputPtr += pixelSize;
+				}
+				inputPtr += pixelSize;
+			}
+
+			// Fill the rest heightCopyCount - 1 output rows with the indices
+			// srcRowIndex * heightCopyCount + 1, ..., srcRowIndex * heightCopyCount + heightCopyCount - 1.
+			for(int h = 0; h < heightCopyCount - 1; ++h) {
+				dataCopy(outputPtr, resultRowStart, resultRowSize);
+				outputPtr += resultRowSize;
+			}
+		}
+	}
+}
+
+void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount, int widthCopyCount,
+	const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( inputData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR( heightCopyCount > 0 );
+	ASSERT_EXPR( widthCopyCount > 0 );
+	ASSERT_EXPR( input.BatchLength() == result.BatchLength() );
+	ASSERT_EXPR( input.BatchWidth() == result.BatchWidth() );
+	ASSERT_EXPR( input.Channels() == result.Channels() );
+	ASSERT_EXPR( input.Depth() == result.Depth() );
+	ASSERT_EXPR( input.Height() * heightCopyCount == result.Height() );
+	ASSERT_EXPR( input.Width() * widthCopyCount == result.Width() );
+
+	upsampling2DForward<int>( threadCount, input, inputData, heightCopyCount, widthCopyCount, result, resultData );	
+}
+
+void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
 	const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -243,41 +364,10 @@ void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHa
 	ASSERT_EXPR( input.Height() * heightCopyCount == result.Height() );
 	ASSERT_EXPR( input.Width() * widthCopyCount == result.Width() );
 
-	const int inputHeight = input.Height();
-	const int inputWidth = input.Width();
-	const int pixelSize = input.Depth() * input.Channels();
-
-	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
-	const int objectCount = input.ObjectCount();
-
-	CConstFloatHandle inputPtr = inputData;
-	CFloatHandle outputPtr = resultData;
-
-	for(int b = 0; b < objectCount; ++b) {
-		for(int srcRowIndex = 0; srcRowIndex < inputHeight; ++srcRowIndex) {
-			// Note the start of the output row with the index srcRowIndex * heightCopyCount
-			CFloatHandle resultRowStart = outputPtr;
-
-			// Fill the output row with the index srcRowIndex * heightCopyCount
-			for(int srcColIndex = 0; srcColIndex < inputWidth; ++srcColIndex) {
-				for(int w = 0; w < widthCopyCount; ++w) {
-					VectorCopy(outputPtr, inputPtr, pixelSize);
-					outputPtr += pixelSize;
-				}
-				inputPtr += pixelSize;
-			}
-
-			// Fill the rest heightCopyCount - 1 output rows with the indices
-			// srcRowIndex * heightCopyCount + 1, ..., srcRowIndex * heightCopyCount + heightCopyCount - 1.
-			for(int h = 0; h < heightCopyCount - 1; ++h) {
-				VectorCopy(outputPtr, resultRowStart, resultRowSize);
-				outputPtr += resultRowSize;
-			}
-		}
-	}
+	upsampling2DForward<float>( threadCount, input, inputData, heightCopyCount, widthCopyCount, result, resultData );	
 }
 
-void CCpuMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
+void CCpuMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
 	const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -651,8 +741,20 @@ void CCpuMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, in
 	}
 }
 
+static inline void sigmoidActivation( const CConstFloatHandle& from, const CFloatHandle& to, int dataSize,
+	const CConstFloatHandle& )
+{
+	from.GetMathEngine()->VectorSigmoid( from, to, dataSize );
+}
+
+static inline void reLUActivation( const CConstFloatHandle& from, const CFloatHandle& to, int dataSize,
+	const CConstFloatHandle& threshold )
+{
+	from.GetMathEngine()->VectorReLU( from, to, dataSize, threshold );
+}
+
 void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
+	TActivationFunction activation, const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
 	const CFloatHandle& h)
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
@@ -666,7 +768,15 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
 
-	VectorSigmoid( wx + firstStepOffset, h + firstStepOffset, batchSize * objectSize );
+	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
+
+	void ( *applyActivation )( const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle& )
+		= activation == AF_Sigmoid ? sigmoidActivation : reLUActivation;
+
+	// Upper threshold variable (for ReLU)
+	CFloatHandleStackVar threshold( *this );
+	threshold.GetHandle().SetValue( 0.f );
+	applyActivation( wx + firstStepOffset, h + firstStepOffset, batchSize * objectSize, threshold );
 
 	CConstFloatHandle hPrev = h + firstStepOffset;
 
@@ -679,12 +789,12 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 			if( mask.IsNull() ) {
 				VectorEltwiseMultiply( currHPrev, u, currH, objectSize );
 				VectorAdd( currH, currWx, currH, objectSize );
-				VectorSigmoid( currH, currH, objectSize );
+				applyActivation( currH, currH, objectSize, threshold );
 			} else {
 				VectorEltwiseMultiply( currHPrev, currMask, currH, objectSize );
 				VectorEltwiseMultiply( currH, u, currH, objectSize );
 				VectorAdd( currH, currWx, currH, objectSize );
-				VectorSigmoid( currH, currH, objectSize );
+				applyActivation( currH, currH, objectSize, threshold );
 			}
 			currWx += objectSize;
 			currMask += objectSize;
@@ -696,9 +806,21 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 	}
 }
 
+static inline void sigmoidActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outDiff,
+	const CFloatHandle& inDiff, int dataSize, const CConstFloatHandle& )
+{
+	output.GetMathEngine()->VectorSigmoidDiffOp( output, outDiff, inDiff, dataSize );
+}
+
+static inline void reLUActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outDiff,
+	const CFloatHandle& inDiff, int dataSize, const CConstFloatHandle& threshold )
+{
+	output.GetMathEngine()->VectorReLUDiffOp( output, outDiff, inDiff, dataSize, threshold );
+}
+
 void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-	const CFloatHandle& wxDiff )
+	TActivationFunction activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+	const CConstFloatHandle& hDiff, const CFloatHandle& wxDiff )
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
 	ASSERT_EXPR( batchSize >= 1 );
@@ -708,12 +830,18 @@ void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, 
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( wxDiff.GetMathEngine() == this );
+	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
 
 	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
 
-	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize );
+	void ( *activationDiffOp )( const CConstFloatHandle&, const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle& )
+		= activation == AF_Sigmoid ? sigmoidActivationDiffOp : reLUActivationDiffOp;
+
+	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize + 1 );
 	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
+	CFloatHandle threshold = totalHDiff.GetHandle() + batchSize * objectSize;
+	threshold.SetValue( 0.f );
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
 		CConstFloatHandle currMask = mask;
@@ -723,7 +851,7 @@ void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, 
 		CFloatHandle currWxDiff = wxDiff + firstStepOffset + step * stepOffset;
 
 		for( int batch = 0; batch < batchSize; ++batch ) {
-			VectorSigmoidDiffOp( currH, currTotalHDiff, currWxDiff, objectSize );
+			activationDiffOp( currH, currTotalHDiff, currWxDiff, objectSize, threshold );
 			VectorEltwiseMultiply( currWxDiff, u, currTotalHDiff, objectSize );
 			if( !currMask.IsNull() ) {
 				VectorEltwiseMultiply( currMask, currTotalHDiff, currTotalHDiff, objectSize );
@@ -741,12 +869,12 @@ void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, 
 	}
 
 	const int lastStepOffset = reverse ? 0 : ( sequenceLength - 1 ) * stepOffset;
-	VectorSigmoidDiffOp( h + lastStepOffset, totalHDiff.GetHandle(), wxDiff + lastStepOffset, batchSize * objectSize );
+	activationDiffOp( h + lastStepOffset, totalHDiff.GetHandle(), wxDiff + lastStepOffset, batchSize * objectSize, threshold );
 }
 
 void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-	const CFloatHandle& uDiff )
+	TActivationFunction activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+	const CConstFloatHandle& hDiff, const CFloatHandle& uDiff )
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
 	ASSERT_EXPR( batchSize >= 1 );
@@ -756,14 +884,19 @@ void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( uDiff.GetMathEngine() == this );
+	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
 
 	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
 
-	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize );
-	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
+	void ( *activationDiffOp )( const CConstFloatHandle&, const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle& )
+		= activation == AF_Sigmoid ? sigmoidActivationDiffOp : reLUActivationDiffOp;
 
-	CFloatHandleStackVar buff( *this, objectSize );
+	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize + objectSize + 1 );
+	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
+	CFloatHandle buff = totalHDiff.GetHandle() + batchSize * objectSize;
+	CFloatHandle threshold = buff + objectSize;
+	threshold.SetValue( 0.f );
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
 		CConstFloatHandle currMask = mask;
@@ -772,13 +905,13 @@ void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int
 		CFloatHandle currTotalHDiff = totalHDiff.GetHandle();
 
 		for( int batch = 0; batch < batchSize; ++batch ) {
-			VectorSigmoidDiffOp( currH, currTotalHDiff, buff.GetHandle(), objectSize );
+			activationDiffOp( currH, currTotalHDiff, buff, objectSize, threshold );
 			if( !currMask.IsNull() ) {
-				VectorEltwiseMultiply( buff.GetHandle(), currMask, buff.GetHandle(), objectSize );
+				VectorEltwiseMultiply( buff, currMask, buff, objectSize );
 			}
-			VectorEltwiseMultiplyAdd( buff.GetHandle(), currH + stepOffset, uDiff, objectSize );
-			VectorEltwiseMultiply( buff.GetHandle(), u, buff.GetHandle(), objectSize );
-			VectorAdd( currHDiff + stepOffset, buff.GetHandle(), currTotalHDiff, objectSize );
+			VectorEltwiseMultiplyAdd( buff, currH + stepOffset, uDiff, objectSize );
+			VectorEltwiseMultiply( buff, u, buff, objectSize );
+			VectorAdd( currHDiff + stepOffset, buff, currTotalHDiff, objectSize );
 
 			if( !currMask.IsNull() ) {
 				currMask += objectSize;

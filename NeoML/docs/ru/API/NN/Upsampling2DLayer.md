@@ -34,7 +34,7 @@ void SetWidthCopyCount( int newHeightCopyCount );
 
 ## Входы
 
-На каждый вход слоя подаётся блоб с набором изображений:
+На каждый вход слоя подаётся блоб типа `float` или `int` с набором изображений:
 
 - `BatchLength * BatchWidth * ListSize` - количество изображений в наборе;
 - `Height` - высота изображений;

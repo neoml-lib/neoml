@@ -18,13 +18,20 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static inline float sigmoidDiffOp( float sigmoidRes )
+static inline float sigmoidDiffOp( float output, float outputDiff )
 {
-	return sigmoidRes * ( 1.f - sigmoidRes );
+	return outputDiff * output * ( 1.f - output );
 }
 
+static inline float reluDiffOp( float output, float outputDiff )
+{
+	return output > 0.f ? outputDiff : 0.f;
+}
+
+typedef float( *TTestActivationDiffOp ) ( float output, float outputDiff );
+
 static void indRnnRecurrentLearnNaive( bool reverse, int seqLength, int batchSize, int objSize,
-	const float* mask, const float* u, const float* out, const float* outDiff,
+	TActivationFunction activation, const float* mask, const float* u, const float* out, const float* outDiff,
 	float* uDiff )
 {
 	const int stepOffset = reverse ? -batchSize * objSize : batchSize * objSize;
@@ -35,15 +42,17 @@ static void indRnnRecurrentLearnNaive( bool reverse, int seqLength, int batchSiz
 		outDiff += firstElemOffset;
 	}
 
+	TTestActivationDiffOp activationDiffOp = activation == AF_Sigmoid ? sigmoidDiffOp : reluDiffOp;
+
 	std::vector<float> currOutDiff;
 	currOutDiff.resize( batchSize * objSize );
 	::memcpy( currOutDiff.data(), outDiff, batchSize * objSize * sizeof( float ) );
 	for( int step = 0; step < seqLength - 1; ++step ) {
 		for( int index = 0; index < batchSize * objSize; ++index ) {
-			uDiff[index % objSize] += currOutDiff[index] * sigmoidDiffOp( out[index] ) * out[stepOffset + index]
+			uDiff[index % objSize] += activationDiffOp( out[index], currOutDiff[index] ) * out[stepOffset + index]
 				* ( mask == nullptr ? 1.f : mask[index] );
 			currOutDiff[index] = outDiff[stepOffset + index]
-				+ currOutDiff[index] * sigmoidDiffOp( out[index] ) * u[index % objSize] * ( mask == nullptr ? 1.f : mask[index] );
+				+ activationDiffOp( out[index], currOutDiff[index] ) * u[index % objSize] * ( mask == nullptr ? 1.f : mask[index] );
 		}
 		out += stepOffset;
 		outDiff += stepOffset;
@@ -67,6 +76,8 @@ static void indRnnLearnTestImpl( const CTestParams& params, int seed )
 	const int batchWidth = random.UniformInt( batchWidthInterval.Begin, batchWidthInterval.End );
 	const int channels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const bool reverse = random.Next() % 2 == 1;
+	const TActivationFunction activation = random.Next() % 2 == 1
+		? AF_Sigmoid : AF_ReLU;
 
 	const float dropoutRate = random.Next() % 2 == 1 ? static_cast<float>( random.Uniform( 0., 1. ) ) : 0.f;
 
@@ -97,10 +108,10 @@ static void indRnnLearnTestImpl( const CTestParams& params, int seed )
 	CFloatBlob actualBlob( MathEngine(), 1, 1, 1, 1, 1, 1, channels );
 	actualBlob.CopyFrom( expectedData.data() );
 
-	indRnnRecurrentLearnNaive( reverse, batchLength, batchWidth, channels,
+	indRnnRecurrentLearnNaive( reverse, batchLength, batchWidth, channels, activation,
 		dropoutRate > 0 ? maskData.data() : nullptr, uData.data(), outData.data(), outDiffData.data(),
 		expectedData.data() );
-	MathEngine().IndRnnRecurrentLearn( reverse, batchLength, batchWidth, channels,
+	MathEngine().IndRnnRecurrentLearn( reverse, batchLength, batchWidth, channels, activation,
 		dropoutRate > 0 ? maskBlob.GetData() : CFloatHandle(), uBlob.GetData(), outBlob.GetData(), outDiffBlob.GetData(),
 		actualBlob.GetData() );
 
@@ -109,7 +120,7 @@ static void indRnnLearnTestImpl( const CTestParams& params, int seed )
 
 	ASSERT_EQ( expectedData.size(), actualData.size() );
 	for( int i = 0; i < channels; ++i ) {
-		EXPECT_TRUE( FloatEq( expectedData[i], actualData[i], 1e-4f ) );
+		EXPECT_TRUE( FloatEq( expectedData[i], actualData[i], 1e-2f ) );
 	}
 }
 
@@ -128,7 +139,7 @@ INSTANTIATE_TEST_CASE_P( CIndRnnLearnTest, CIndRnnLearnTest,
 			"BatchLength = (1..20);"
 			"BatchWidth = (1..10);"
 			"Channels = (1..10);"
-			"TestCount = 500;"
+			"TestCount = 5000;"
 		),
 		CTestParams(
 			"BatchLength = (1..20);"

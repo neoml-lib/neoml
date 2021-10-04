@@ -502,10 +502,22 @@ EltwiseSum
 .. autoclass:: neoml.Dnn.EltwiseSum
    :members:
 
+EltwiseSub
+==========
+
+.. autoclass:: neoml.Dnn.EltwiseSub
+   :members:
+
 EltwiseMul
 ==========
 
 .. autoclass:: neoml.Dnn.EltwiseMul
+   :members:
+
+EltwiseDiv
+==========
+
+.. autoclass:: neoml.Dnn.EltwiseDiv
    :members:
 
 EltwiseNegMul
@@ -736,10 +748,22 @@ SplitHeight
 .. autoclass:: neoml.Dnn.SplitHeight
    :members:
 
+SplitListSize
+-----------------
+
+.. autoclass:: neoml.Dnn.SplitListSize
+   :members:
+
 SplitBatchWidth
 -----------------
 
 .. autoclass:: neoml.Dnn.SplitBatchWidth
+   :members:
+
+SplitBatchLength
+-----------------
+
+.. autoclass:: neoml.Dnn.SplitBatchLength
    :members:
 
 .. _py-dnn-sequences:
@@ -917,20 +941,26 @@ Simple arithmetic operations
 .. automethod:: neoml.AutoDiff.sub
 .. automethod:: neoml.AutoDiff.mul
 .. automethod:: neoml.AutoDiff.div
+.. automethod:: neoml.AutoDiff.less
 
 Basic math functions
 *********************
 
 .. automethod:: neoml.AutoDiff.max
 .. automethod:: neoml.AutoDiff.sum
+.. automethod:: neoml.AutoDiff.cumsum
+.. automethod:: neoml.AutoDiff.mean
 .. automethod:: neoml.AutoDiff.neg
 .. automethod:: neoml.AutoDiff.abs
 .. automethod:: neoml.AutoDiff.log
 .. automethod:: neoml.AutoDiff.exp
+.. automethod:: neoml.AutoDiff.pow
 
 Other operations
 *******************
 
+.. automethod:: neoml.AutoDiff.concat
+.. automethod:: neoml.AutoDiff.reshape
 .. automethod:: neoml.AutoDiff.clip
 .. automethod:: neoml.AutoDiff.top_k
 .. automethod:: neoml.AutoDiff.binary_cross_entropy
