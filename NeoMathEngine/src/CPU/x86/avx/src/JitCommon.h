@@ -18,33 +18,31 @@ namespace NeoML {
 
 using reg64_t = Xbyak::Reg64;
 
-#ifdef XBYAK64
-        static constexpr Xbyak::Operand::Code CalleeSavedRegisters[] = {
-            Xbyak::Operand::RBX,
-            Xbyak::Operand::RBP,
-            Xbyak::Operand::R12,
-            Xbyak::Operand::R13,
-            Xbyak::Operand::R14,
-            Xbyak::Operand::R15,
+static constexpr Xbyak::Operand::Code CalleeSavedRegisters[] = {
+    Xbyak::Operand::RBX,
+    Xbyak::Operand::RBP,
+    Xbyak::Operand::R12,
+    Xbyak::Operand::R13,
+    Xbyak::Operand::R14,
+    Xbyak::Operand::R15,
     #ifdef _WIN32
-            Xbyak::Operand::RDI,
-            Xbyak::Operand::RSI,
+    Xbyak::Operand::RDI,
+    Xbyak::Operand::RSI,
     #endif
-        };
+};
 
 #ifdef _WIN32
-        static const reg64_t FuncParam1{Xbyak::Operand::RCX};
-        static const reg64_t FuncParam2{Xbyak::Operand::RDX};
-        static const reg64_t FuncParam3{Xbyak::Operand::R8};
-        static const reg64_t FuncParam4{Xbyak::Operand::R9};
+static const reg64_t Param1{Xbyak::Operand::RCX};
+static const reg64_t Param2{Xbyak::Operand::RDX};
+static const reg64_t Param3{Xbyak::Operand::R8};
+static const reg64_t Param4{Xbyak::Operand::R9};
 #else
-        static const reg64_t FuncParam1{Xbyak::Operand::RDI};
-        static const reg64_t FuncParam2{Xbyak::Operand::RSI};
-        static const reg64_t FuncParam3{Xbyak::Operand::RDX};
-        static const reg64_t FuncParam4{Xbyak::Operand::RCX};
-        static const reg64_t FuncParam5{Xbyak::Operand::R8};
-        static const reg64_t FuncParam6{Xbyak::Operand::R9};
-#endif
+static const reg64_t Param1{Xbyak::Operand::RDI};
+static const reg64_t Param2{Xbyak::Operand::RSI};
+static const reg64_t Param3{Xbyak::Operand::RDX};
+static const reg64_t Param4{Xbyak::Operand::RCX};
+static const reg64_t Param5{Xbyak::Operand::R8};
+static const reg64_t Param6{Xbyak::Operand::R9};
 #endif
 
 }
