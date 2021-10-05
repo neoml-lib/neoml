@@ -16,13 +16,6 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-namespace FObj {
-template<>
-void swap< CArray<int>* >( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
-	FObj::swap( a, b );
-}
-}
-
 #include <memory>
 #include <cmath>
 
@@ -30,7 +23,6 @@ void swap< CArray<int>* >( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
 
 namespace NeoMLTest {
 
@@ -914,6 +906,10 @@ static void compareBlobs( const CDnnBlob* expected, const CDnnBlob* actual, cons
 			ASSERT_EQ( expectedData[i], actualData[i] );
 		}
 	}
+}
+
+void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
+	FObj::swap( a, b );
 }
 
 static void ctcTestImpl( const CTestParams& params, int seed )
