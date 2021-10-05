@@ -259,7 +259,8 @@ public:
 
 // JIT
 #include <BlobConvolution_jit.inl>
-#include <BlobConvolution_jit_FltCnt_32.inl>
 #include <BlobConvolution_jit_FltCnt_6.inl>
+#include <BlobConvolution_jit_FltCnt_8.inl>
 #include <BlobConvolution_jit_FltCnt_18.inl>
 #include <BlobConvolution_jit_FltCnt_24.inl>
+#include <BlobConvolution_jit_FltCnt_32.inl>
