@@ -16,7 +16,10 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-using std::swap;
+void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
+	FObj::swap( a, b );
+}
+
 #include <memory>
 #include <cmath>
 
@@ -24,7 +27,7 @@ using std::swap;
 
 using namespace NeoML;
 using namespace NeoMLTest;
-using FObj::swap;
+
 
 namespace NeoMLTest {
 
