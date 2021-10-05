@@ -18,9 +18,10 @@ limitations under the License.
 #endif
 
 #include <NeoML/NeoML.h>
-
-inline void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
-	std::swap( a, b );
+namespace FObj {
+	inline void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
+		std::swap( a, b );
+	}
 }
 
 #include <gtest/gtest.h>
