@@ -13,11 +13,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 #pragma once
-
 #ifdef NEOML_USE_FINEOBJ
 #include <FineObj.h>
 #endif
 
 #include <NeoML/NeoML.h>
+
+inline void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
+	std::swap( a, b );
+}
 
 #include <gtest/gtest.h>

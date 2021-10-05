@@ -908,10 +908,6 @@ static void compareBlobs( const CDnnBlob* expected, const CDnnBlob* actual, cons
 	}
 }
 
-void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
-	FObj::swap( a, b );
-}
-
 static void ctcTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
