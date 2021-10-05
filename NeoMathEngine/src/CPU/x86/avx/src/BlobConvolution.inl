@@ -414,7 +414,7 @@ void CBlobConvolution<FltCnt>::fillPixelOffset()
     vector<pair<int, int>> offsetSizeY = getFilterWindowSize( pixelOffsetSrcStepsY, SrcH, FltH, DilationH );
 
     // Calculate resulted offsets of pixels in window.
-    auto fillPixelOffset = [&]( int hStride, int wStride ) ->vector<vector<int>> {
+    auto fillPixelOffset = [&]( size_t hStride, size_t wStride ) ->vector<vector<int>> {
         vector<vector<int>> offsets( offsetSizeX.size() * offsetSizeY.size() );
         auto it = offsets.begin();
 
@@ -424,7 +424,7 @@ void CBlobConvolution<FltCnt>::fillPixelOffset()
                 auto it_offt = it->begin();
                 for( int i = -y.first; i <= y.second; i++ ) {
                     for( int j = -x.first; j <= x.second; j++ ) {
-                        *it_offt++ = i * hStride + j * wStride;
+                        *it_offt++ = static_cast<int>( i * hStride + j * wStride );
                     }
                 }
                 it++;

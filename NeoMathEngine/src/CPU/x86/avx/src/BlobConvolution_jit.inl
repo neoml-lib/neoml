@@ -28,7 +28,7 @@ CBlobConvolution<FltCnt>::CJitConvolution::CJitConvolution( CBlobConvolution<Flt
     const bool hasNarrowProcessing = bc.NarrowBatchProcessSize.Height != INT_MAX;
 
     // Process one rxSize in addRowProcessing
-    auto addStepProcessing = [&]( bool useNarrowProcessing, int numSteps, int stepSize, int windowIndex ) {
+    auto addStepProcessing = [&]( bool useNarrowProcessing, size_t numSteps, size_t stepSize, size_t windowIndex ) {
         Label labelProcessingStart, labelProcessingEnd;
 
         // Skip using loop if we have only one batch step
@@ -50,8 +50,8 @@ CBlobConvolution<FltCnt>::CJitConvolution::CJitConvolution( CBlobConvolution<Flt
                 fillBatchProcessingKernel( bc, useNarrowProcessing, windowIndex );
             }
 
-            add( regSrcPtr, stepSize * bc.SrcXStep * sizeof( float ) );
-            add( regResPtr, stepSize * FltCnt * sizeof( float ) );
+            add( regSrcPtr, static_cast<uint32_t>( stepSize * bc.SrcXStep * sizeof( float ) ) );
+            add( regResPtr, static_cast< uint32_t >( stepSize * FltCnt * sizeof( float ) ) );
         }
 
         if( numSteps > 1 ) {
@@ -63,7 +63,7 @@ CBlobConvolution<FltCnt>::CJitConvolution::CJitConvolution( CBlobConvolution<Flt
 
     // Process whole row
     auto addRowProcessing = [&]( bool useNarrowProcessing ) {
-        int windowIndex = yStepIndex * bc.PixelOffsetResStepsWidthX.size();
+        size_t windowIndex = yStepIndex * bc.PixelOffsetResStepsWidthX.size();
         for( auto& rxSize : bc.PixelOffsetResStepsWidthX ) {
             const int batchStep = useNarrowProcessing ? bc.NarrowBatchProcessSize.Width : bc.WideBatchProcessSize.Width;
             const int numBatchProcessing = rxSize / batchStep;
@@ -86,8 +86,8 @@ CBlobConvolution<FltCnt>::CJitConvolution::CJitConvolution( CBlobConvolution<Flt
     prologue();
 #ifdef _WIN32
     // Parameters are in reverse order in stack
-    // First two values are 'rip' and 'rbp', then follow preserves registers from prologue
-    const int StackOffset = 4 * sizeof( void* );
+    // First two values are 'rip' and 'rbp', then two values pushed in prologue
+    const int StackOffset = 8 * sizeof( void* );
     mov( regResPtr, ptr[rsp + StackOffset] );
 #endif
 
@@ -111,7 +111,7 @@ CBlobConvolution<FltCnt>::CJitConvolution::CJitConvolution( CBlobConvolution<Flt
 template<int FltCnt>
 inline void CBlobConvolution<FltCnt>::CJitConvolution::Run( bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr )
 {
-    return getCode<void(*)(bool, const float*, const float*, const float*, float*)>()( useNarrowProcessing, srcPtr, fltPtr, freeTermPtr, resPtr );
+    getCode<void( * )( bool, const float*, const float*, const float*, float* )>()( useNarrowProcessing, srcPtr, fltPtr, freeTermPtr, resPtr );
 }
 
 template<int FltCnt>
@@ -137,7 +137,7 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::epilogue()
 
 // Implementation for cases when FltCnt == FltCntM8
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int stepCount, int stepSize )
+inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, size_t stepCount, size_t stepSize )
 {
     using namespace Xbyak;
 
@@ -149,7 +149,7 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( Xbyak::Ymm* 
         vmovups( res[i], ptr[regFreeTermPtr + SizeOfYmm * i ] );
     }
     // Duplicate first batch into another ones
-    int destIdx = stepSize;
+    size_t destIdx = stepSize;
     for( int j = 1; j < stepCount; j++ ) {
         for( int i = 0; i < stepSize; i++ ) {
             vmovups( res[destIdx++], res[i] );
@@ -167,7 +167,7 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( Xbyak::Ymm* 
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( Xbyak::Ymm* res, int stepCount, int stepSize, bool useNarrowProcessing, int resNarrowStep )
+inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( Xbyak::Ymm* res, size_t stepCount, size_t stepSize, bool useNarrowProcessing, size_t resNarrowStep )
 {
     using namespace Xbyak;
 
@@ -177,19 +177,19 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( Xbyak::Ymm*
 
     // "narrow" kernel processes several rows per time
     const bool HasSeveralRows = resNarrowStep != 0;
-    const int RowCount = HasSeveralRows ? stepCount : 1;
-    const int ColCount = HasSeveralRows ? stepSize : stepCount * stepSize;
+    const size_t RowCount = HasSeveralRows ? stepCount : 1;
+    const size_t ColCount = HasSeveralRows ? stepSize : stepCount * stepSize;
     // If length of data for flushing doesn't multiple of size of ymm we should perform storring tail of data by mask.
     const bool HasPartitialFlush = ColCount * NumFloatInYmm % FltCnt != 0;
     // Number of ymm registers stored fully.
-    const int FullFlushCount = HasPartitialFlush ? ColCount - 1 : ColCount;
+    const size_t FullFlushCount = HasPartitialFlush ? ColCount - 1 : ColCount;
 
     if( HasPartitialFlush ) {
         vmovdqa( regMask, ptr[rip + labelPartialStore] );
     }
 
-    int offsetDisp = 0;
-    int resNarrowStepDisp = 0;
+    size_t offsetDisp = 0;
+    size_t resNarrowStepDisp = 0;
     for( int i = 0; i < RowCount; i++ ) {
         int j = 0;
         for( ; j < FullFlushCount; j++ ) {
@@ -224,9 +224,9 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( Xbyak::Ymm*
 template<int FltCnt>
 inline void CBlobConvolution<FltCnt>::CJitConvolution::initProcessingMainLoop(
         CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes,
-        int stepCount, int stepSize,
+        size_t stepCount, size_t stepSize,
         Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
-        int windowIndex, bool useNarrowProcessing, int resNarrowStep )
+        size_t windowIndex, bool useNarrowProcessing, size_t resNarrowStep )
 {
     // Initialize result registers with freeTerm
     initResRegs( res, tempRes, stepCount, stepSize );

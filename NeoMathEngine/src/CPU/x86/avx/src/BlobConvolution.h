@@ -94,17 +94,17 @@ private:
             L( label );
         }
 
-        void fillBatchProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, int windowIndex);
-        void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, int windowIndex );
+        void fillBatchProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex);
+        void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
 
         // Initialize result registers with data from freeTerm (if it isn't nullptr)
-        void initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, int KernelHeight, int KernelWidth );
+        void initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, size_t KernelHeight, size_t KernelWidth );
         // Flush result registers
-        void flushResRegs( Xbyak::Ymm* res, int KernelHeight, int KernelWidth, bool useNarrowProcessing, int resNarrowStep );
+        void flushResRegs( Xbyak::Ymm* res, size_t KernelHeight, size_t KernelWidth, bool useNarrowProcessing, size_t resNarrowStep );
         void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes,
-            int stepCount, int stepSize,
+            size_t stepCount, size_t stepSize,
             Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
-            int windowIndex, bool useNarrowProcessing = false, int resNarrowStep = 0 );
+            size_t windowIndex, bool useNarrowProcessing = false, size_t resNarrowStep = 0 );
 
         // Circular rotate y0, y1 and y2 to the left at 6 floats using 3 additional temporary registers.
         void rotateLeft6( Xbyak::Ymm& y0, Xbyak::Ymm& y1, Xbyak::Ymm& y2,
@@ -194,7 +194,7 @@ private:
     void batchProcessChannels( const float* srcPtr, const float* fltPtr,
         __m256& r00, __m256& r01, __m256& r02, __m256& r03,
         __m256& r10, __m256& r11, __m256& r12, __m256& r13 );
-    void batchProcessChannels( const float* srcPtr, const float* fltPtr, int srcNarrowStep,
+    void batchProcessChannels( const float* srcPtr, const float* fltPtr, size_t srcNarrowStep,
         __m256& r00, __m256& r01, __m256& r02,
         __m256& r10, __m256& r11, __m256& r12,
         __m256& r20, __m256& r21, __m256& r22 );

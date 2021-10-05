@@ -21,7 +21,7 @@ namespace NeoML {
 // Channel count: 24
 
 template<>
-inline void CBlobConvolution<24>::CJitConvolution::fillBatchProcessingKernel( CBlobConvolution<24>& bc, bool useNarrowProcessing, int windowIndex )
+inline void CBlobConvolution<24>::CJitConvolution::fillBatchProcessingKernel( CBlobConvolution<24>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
     using namespace Xbyak;
 
@@ -30,7 +30,7 @@ inline void CBlobConvolution<24>::CJitConvolution::fillBatchProcessingKernel( CB
     const int StepCount = 3;
     const int StepSize = 3;
 
-    Ymm res[StepCount][StepSize] = { { ymm0, ymm1, ymm2 }, { ymm3, ymm4, ymm5 }, { ymm6, ymm7, ymm8 } };
+    Ymm res[3][3] = { { ymm0, ymm1, ymm2 }, { ymm3, ymm4, ymm5 }, { ymm6, ymm7, ymm8 } };
     Ymm st[3] = { ymm9, ymm10, ymm11 };
     Ymm f[3] = { ymm12, ymm13, ymm14 };
 
@@ -82,7 +82,7 @@ inline void CBlobConvolution<24>::CJitConvolution::fillBatchProcessingKernel( CB
 }
 
 template<>
-inline void CBlobConvolution<24>::CJitConvolution::fillSingleProcessingKernel( CBlobConvolution<24>& bc, bool useNarrowProcessing, int windowIndex )
+inline void CBlobConvolution<24>::CJitConvolution::fillSingleProcessingKernel( CBlobConvolution<24>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
     using namespace Xbyak;
 
@@ -91,7 +91,7 @@ inline void CBlobConvolution<24>::CJitConvolution::fillSingleProcessingKernel( C
     const int StepCount = 1;
     const int StepSize = 3;
 
-    Ymm res[StepSize] = { ymm0, ymm1, ymm2 };
+    Ymm res[3] = { ymm0, ymm1, ymm2 };
     Xmm s = xmm3;
     Ymm st0 = ymm4;
     Xmm st0_toXmm = xmm4;

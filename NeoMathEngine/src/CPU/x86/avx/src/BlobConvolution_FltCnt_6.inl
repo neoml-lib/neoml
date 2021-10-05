@@ -33,7 +33,7 @@ template<>
 const int CBlobConvolution<6>::WideBatchKernelWidth = 12;
 
 template<>
-inline void CBlobConvolution<6>::batchProcessChannels( const float* srcPtr, const float* fltPtr, int srcNarrowStep,
+inline void CBlobConvolution<6>::batchProcessChannels( const float* srcPtr, const float* fltPtr, size_t srcNarrowStep,
 	__m256& r0, __m256& r1, __m256& r2,
 	__m256& r3, __m256& r4, __m256& r5,
 	__m256& r6, __m256& r7, __m256& r8 )
@@ -207,8 +207,8 @@ template<>
 inline void CBlobConvolution<6>::batchProcess( const float* srcPtr, float* resPtr, size_t windowIndex, bool useNarrowProcessing )
 {
 	// We will set this member for narrow batch processing in order to step between neighbor source windows.
-	const int srcNarrowStep = useNarrowProcessing ? SrcYStep : 4 * SrcXStep;
-	const int resNarrowStep = useNarrowProcessing ? ResLineStride : 24;
+	const size_t srcNarrowStep = useNarrowProcessing ? SrcYStep : 4 * SrcXStep;
+	const size_t resNarrowStep = useNarrowProcessing ? ResLineStride : 24;
 	__m256 ft0 = freeTerm != nullptr ? _mm256_loadu_ps( freeTerm ) : _mm256_setzero_ps();
 
 	// Initialize result pixels with freeterm.
