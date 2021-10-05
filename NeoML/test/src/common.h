@@ -22,6 +22,9 @@ namespace FObj {
 	inline void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
 		std::swap( a, b );
 	}
+	inline void swap( FObj::CArray<float>*& a, FObj::CArray < float > *& b ) {
+		std::swap( a, b );
+	}
 }
 
 #include <gtest/gtest.h>
