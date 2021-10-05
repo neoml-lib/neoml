@@ -16,8 +16,11 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
+namespace FObj {
+template<>
+void swap< CArray<int>* >( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
 	FObj::swap( a, b );
+}
 }
 
 #include <memory>
@@ -936,10 +939,6 @@ static void ctcTestImpl( const CTestParams& params, int seed )
 	std::unique_ptr<CArray<int>> labelLens;
 	std::unique_ptr<CArray<int>> resultLens;
 	std::unique_ptr<CArray<float>> weights;
-
-	auto swap = []( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
-		FObj::swap( a, b );
-	};
 
 	if( random.Next() % 2 == 0 ) {
 		labelLens.reset( new CArray<int>() );
