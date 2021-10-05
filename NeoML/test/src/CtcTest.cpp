@@ -16,6 +16,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+using std::swap;
 #include <memory>
 #include <cmath>
 
@@ -23,6 +24,7 @@ limitations under the License.
 
 using namespace NeoML;
 using namespace NeoMLTest;
+using FObj::swap;
 
 namespace NeoMLTest {
 
