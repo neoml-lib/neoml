@@ -934,6 +934,10 @@ static void ctcTestImpl( const CTestParams& params, int seed )
 	std::unique_ptr<CArray<int>> resultLens;
 	std::unique_ptr<CArray<float>> weights;
 
+	auto swap = []( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
+		FObj::swap( a, b );
+	};
+
 	if( random.Next() % 2 == 0 ) {
 		labelLens.reset( new CArray<int>() );
 		labelLens->SetBufferSize( batchSize );
