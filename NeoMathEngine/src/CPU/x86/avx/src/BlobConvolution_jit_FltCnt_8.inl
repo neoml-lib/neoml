@@ -136,17 +136,17 @@ inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CB
         // Store data into temporary regs
         if( channelCount <= 4 ) {
             for( int i = 0; i < channelCount; i++ ) {
-                vfmadd231ps( res[i], f[i], s[i] );
+                vfmadd231ps( tempRes[i], f[i], s[i] );
             }
         } else {
-            vfmadd231ps( res[0], f[0], s[0] );
+            vfmadd231ps( tempRes[0], f[0], s[0] );
             vmulps( s[1], f[1], s[1] );
-            vfmadd231ps( res[1], f[2], s[2] );
+            vfmadd231ps( tempRes[1], f[2], s[2] );
             vmulps( s[3], f[3], s[3] );
-            vfmadd231ps( res[2], f[4], s[4] );
-            vfmadd231ps( res[3], f[5], s[5] );
-            vaddps( res[0], res[0], s[1] );
-            vaddps( res[1], res[1], s[3] );
+            vfmadd231ps( tempRes[2], f[4], s[4] );
+            vfmadd231ps( tempRes[3], f[5], s[5] );
+            vaddps( tempRes[0], tempRes[0], s[1] );
+            vaddps( tempRes[1], tempRes[1], s[3] );
         }
     };
 
