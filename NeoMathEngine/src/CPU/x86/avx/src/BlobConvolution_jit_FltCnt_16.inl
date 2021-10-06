@@ -173,11 +173,7 @@ inline void CBlobConvolution<16>::CJitConvolution::fillSingleProcessingKernel( C
         L( labelProcessingKernelEnd );
     }
 
-    // Process remained kernels one by one
-    if( remainedStepCount >= 2 ) {
-        fillKernel( 2, remainedStepCount == 2 );
-        remainedStepCount -= 2;
-    }
+    // Process remained kernels
     if( remainedStepCount > 0 ) {
         fillKernel( remainedStepCount, true );
     }

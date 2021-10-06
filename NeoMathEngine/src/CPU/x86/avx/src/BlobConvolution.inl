@@ -372,7 +372,7 @@ std::vector<int> CBlobConvolution<FltCnt>::getPixelOffsetSrcSteps( int srcDim, i
 
     for( int i = fDim - 1, j = 1; i > fDim / 2; i--, j++ ) {
         // from last to next to middle
-        ret[i] = lastOffset - ( lastOffset + j * dDim - lastSrcPixelIdx ) / sDim * sDim + sDim;
+        ret[i] = ( ( ( srcDim - j * dDim ) - firstOffset ) + sDim - 1 ) / sDim * sDim + firstOffset;
     }
 
     sort( ret.begin(), ret.end() );
