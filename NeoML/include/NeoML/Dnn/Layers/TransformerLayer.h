@@ -25,35 +25,41 @@ limitations under the License.
 
 namespace NeoML {
 
-// Forward declaration(s)
-
-// Transformer-layer
+// Transformer encoder layer
+//
+// Encoder from the "Attention is all you need"
+// Optional layers are mentioned in (brackets)
 //
 //     feedForwardNorm
 //           |
 //     feedForwardSum
 //      |          |
-//      |    fc2 (with optional dropout)
+//      |      (dropout)
 //      |          |
-//      |    (with optional dropout)
-//      |    fc1 with activation
+//      |         fc2
 //      |          |
-//      +----------+
-//           |
-//      attentionNorm
-//           |
-//      attentionSum
+//      |      (dropout)
 //      |          |
-//      |    selfAttention
+//      |   fc1 + activation
 //      |          |
 //      +----------+
 //           |
-//       inputData
+//    selfAttentionNorm
+//           |
+//    selfAttentionSum
+//      |          |
+//      |      (dropout)
+//      |          |
+//      |       selfAttention
+//      |          |     |
+//      +----------+     |
+//           |           |
+//       inputData  (inputMask)
 //
-class NEOML_API CTransformerLayer : public CCompositeLayer {
-	NEOML_DNN_LAYER( CTransformerLayer )
+class NEOML_API CTransformerEncoderLayer : public CCompositeLayer {
+	NEOML_DNN_LAYER( CTransformerEncoderLayer )
 public:
-	explicit CTransformerLayer( IMathEngine& mathEngine );
+	explicit CTransformerEncoderLayer( IMathEngine& mathEngine );
 
 	void Serialize( CArchive& archive ) override;
 
@@ -69,9 +75,9 @@ public:
 	int GetOutputSize() const;
 	void SetOutputSize( int outputSize );
 
-	// Dropout rate of the self-attention
-	float GetAttentionDropout() const { return selfAttention->GetDropoutRate(); }
-	void SetAttentionDropout( float rate );
+	// Dropout rate
+	float GetDropoutRate() const;
+	void SetDropoutRate( float rate );
 
 	// Sets the size of the first fully-connected layer inside of feed-forward
 	int GetFeedForwardSize() const { return fc1->GetNumberOfElements(); }
@@ -81,24 +87,121 @@ public:
 	// ReLU by default
 	void SetActivation( TActivationFunction newFunction );
 
-	// Dropout rate inside of feed-forward
-	float GetFeedForwardDropout() const;
-	void SetFeedForwardDropout( float rate );
+protected:
+	void Reshape() override;
 
 private:
 	CPtr<CMultiheadAttentionLayer> selfAttention;
+	CPtr<CDropoutLayer> dropoutSelfAttention;
+	CPtr<CEltwiseSumLayer> selfAttentionSum;
 	CPtr<CFullyConnectedLayer> fc1;
-	CPtr<CDropoutLayer> dropout1;
+	CPtr<CDropoutLayer> dropoutFc1;
 	CPtr<CFullyConnectedLayer> fc2;
-	CPtr<CDropoutLayer> dropout2;
-	CPtr<CEltwiseSumLayer> feedForwardResidual;
+	CPtr<CDropoutLayer> dropoutFc2;
+	CPtr<CEltwiseSumLayer> feedForwardSum;
 
 	void buildLayer();
 	void addDropoutLayers();
 	void removeDropoutLayers();
 };
 
-NEOML_API CLayerWrapper<CTransformerLayer> Transformer( int headCount, int hiddenSize, int outputSize,
-	float attentionDropout, int feedForwardSize, float feedForwardDropout, TActivationFunction activation );
+NEOML_API CLayerWrapper<CTransformerEncoderLayer> TransformerEncoder( int headCount, int hiddenSize, int outputSize,
+	float dropout, int feedForwardSize, TActivationFunction activation );
+
+// --------------------------------------------------------------------------------------------------------------------
+
+// Transformer decoder layer
+//
+//     feedForwardNorm
+//           |
+//     feedForwardSum
+//      |          |
+//      |      (dropout)
+//      |          |
+//      |         fc2
+//      |          |
+//      |      (dropout)
+//      |          |
+//      |   fc1 + activation
+//      |          |
+//      +----------+
+//           |
+//   mheadAttentionNorm
+//           |
+//   mheadAttentionSum
+//      |          |
+//      |      (dropout)
+//      |          |
+//      |           mheadAttention
+//      |          |     |        |
+//      |          | encoderData (encoderMask)
+//      +----------+
+//           |
+//    selfAttentionNorm
+//           |
+//    selfAttentionSum
+//      |          |
+//      |      (dropout)
+//      |          |
+//      |       selfAttention
+//      |          |     |
+//      +----------+     |
+//           |           |
+//       inputData  (inputMask)
+//
+class NEOML_API CTransformerDecoderLayer : public CCompositeLayer {
+	NEOML_DNN_LAYER( CTransformerDecoderLayer )
+public:
+	explicit CTransformerDecoderLayer( IMathEngine& mathEngine );
+
+	void Serialize( CArchive& archive ) override;
+
+	// Number of heads in the attention layers
+	int GetHeadCount() const;
+	void SetHeadCount( int headCount );
+
+	// Hidden size of the attentions layer
+	int GetHiddenSize() const;
+	void SetHiddenSize( int hiddenSize );
+
+	// Size of the output of the layer (and both of the attentions)
+	int GetOutputSize() const;
+	void SetOutputSize( int outputSize );
+
+	// Dropout rate
+	float GetDropoutRate() const;
+	void SetDropoutRate( float rate );
+
+	// Sets the size of the first fully-connected layer inside of feed-forward
+	int GetFeedForwardSize() const { return fc1->GetNumberOfElements(); }
+	void SetFeedForwardSize( int size );
+
+	// Sets activation between fully-connected layers inside of feed-forward
+	// ReLU by default
+	void SetActivation( TActivationFunction newFunction );
+
+protected:
+	void Reshape() override;
+
+private:
+	CPtr<CMultiheadAttentionLayer> selfAttention;
+	CPtr<CDropoutLayer> dropoutSelfAttention;
+	CPtr<CEltwiseSumLayer> selfAttentionSum;
+	CPtr<CMultiheadAttentionLayer> mheadAttention;
+	CPtr<CDropoutLayer> dropoutMheadAttention;
+	CPtr<CEltwiseSumLayer> mheadAttentionSum;
+	CPtr<CFullyConnectedLayer> fc1;
+	CPtr<CDropoutLayer> dropoutFc1;
+	CPtr<CFullyConnectedLayer> fc2;
+	CPtr<CDropoutLayer> dropoutFc2;
+	CPtr<CEltwiseSumLayer> feedForwardSum;
+
+	void buildLayer();
+	void addDropoutLayers();
+	void removeDropoutLayers();
+};
+
+NEOML_API CLayerWrapper<CTransformerDecoderLayer> TransformerDecoder( int headCount, int hiddenSize, int outputSize,
+	float dropout, int feedForwardSize, TActivationFunction activation );
 
 } // namespace NeoML

@@ -337,7 +337,8 @@ REGISTER_NEOML_LAYER( CSpaceToDepthLayer, "NeoMLDnnSpaceToDepthLayer" )
 REGISTER_NEOML_LAYER( CLrnLayer, "NeoMLDnnLrnLayer" )
 REGISTER_NEOML_LAYER( CCastLayer, "NeoMLDnnCastLayer" )
 REGISTER_NEOML_LAYER( CDataLayer, "NeoMLDnnDataLayer" )
-REGISTER_NEOML_LAYER( CTransformerLayer, "NeoMLDnnTransformerLayer" )
+REGISTER_NEOML_LAYER( CTransformerEncoderLayer, "NeoMLDnnTransformerEncoderLayer" )
+REGISTER_NEOML_LAYER( CTransformerDecoderLayer, "NeoMLDnnTransformerDecoderLayer" )
 
 }
 
