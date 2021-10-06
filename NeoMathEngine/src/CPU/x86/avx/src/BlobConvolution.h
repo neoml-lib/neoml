@@ -19,6 +19,7 @@ limitations under the License.
 #include <utility>
 #include <memory>
 #include <cstring>
+#include <functional>
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <JitCommon.h>
@@ -100,11 +101,13 @@ private:
         // Initialize result registers with data from freeTerm (if it isn't nullptr)
         void initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, size_t KernelHeight, size_t KernelWidth );
         // Flush result registers
+        // 'callBeforeFlush' will be called before flushing of result registers. It can be captured labda function.
         void flushResRegs( Xbyak::Ymm* res, size_t KernelHeight, size_t KernelWidth, bool useNarrowProcessing, size_t resNarrowStep );
         void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes,
             size_t stepCount, size_t stepSize,
             Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
-            size_t windowIndex, bool useNarrowProcessing = false, size_t resNarrowStep = 0 );
+            size_t windowIndex, bool useNarrowProcessing = false, size_t resNarrowStep = 0,
+            std::function<void()>* callBeforeFlush = nullptr );
 
         // Circular rotate y0, y1 and y2 to the left at 6 floats using 3 additional temporary registers.
         void rotateLeft6( Xbyak::Ymm& y0, Xbyak::Ymm& y1, Xbyak::Ymm& y2,
@@ -261,6 +264,7 @@ public:
 #include <BlobConvolution_jit.inl>
 #include <BlobConvolution_jit_FltCnt_6.inl>
 #include <BlobConvolution_jit_FltCnt_8.inl>
+#include <BlobConvolution_jit_FltCnt_16.inl>
 #include <BlobConvolution_jit_FltCnt_18.inl>
 #include <BlobConvolution_jit_FltCnt_24.inl>
 #include <BlobConvolution_jit_FltCnt_32.inl>
