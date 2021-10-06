@@ -226,7 +226,8 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initProcessingMainLoop(
         CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes,
         size_t stepCount, size_t stepSize,
         Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
-        size_t windowIndex, bool useNarrowProcessing, size_t resNarrowStep )
+        size_t windowIndex,
+        bool useNarrowProcessing, size_t resNarrowStep, std::function<void()>* callBeforeFlush )
 {
     // Initialize result registers with freeTerm
     initResRegs( res, tempRes, stepCount, stepSize );
@@ -239,6 +240,10 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initProcessingMainLoop(
         lea( regTempSrcPtr, ptr[regSrcPtr + *srcIt * sizeof( float )] );
         lea( regTempFltPtr, ptr[regFltPtr + *fltIt * sizeof( float )] );
         call( labelKernel );
+    }
+
+    if( callBeforeFlush ) {
+        ( *callBeforeFlush )();
     }
 
     // Flush result registers

@@ -22,6 +22,7 @@ target_sources(${PROJECT_NAME}
     ./src/BlobConvolution_FltCnt_32.inl
     ./src/BlobConvolution_jit_FltCnt_6.inl
     ./src/BlobConvolution_jit_FltCnt_8.inl
+    ./src/BlobConvolution_jit_FltCnt_16.inl
     ./src/BlobConvolution_jit_FltCnt_18.inl
     ./src/BlobConvolution_jit_FltCnt_24.inl
     ./src/BlobConvolution_jit_FltCnt_32.inl

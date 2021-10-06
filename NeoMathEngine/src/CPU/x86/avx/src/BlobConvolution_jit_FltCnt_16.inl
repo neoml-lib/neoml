@@ -18,29 +18,30 @@ limitations under the License.
 namespace NeoML {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Channel count: 8
+// Channel count: 16
 
 template<>
-const int CBlobConvolution<8>::WideBatchKernelHeight = 1;
+const int CBlobConvolution<16>::WideBatchKernelHeight = 1;
 
 template<>
-const int CBlobConvolution<8>::WideBatchKernelWidth = 7;
+const int CBlobConvolution<16>::WideBatchKernelWidth = 5;
 
 template<>
-inline void CBlobConvolution<8>::CJitConvolution::fillBatchProcessingKernel( CBlobConvolution<8>& bc, bool useNarrowProcessing, size_t windowIndex )
+inline void CBlobConvolution<16>::CJitConvolution::fillBatchProcessingKernel( CBlobConvolution<16>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
     using namespace Xbyak;
 
     Label labelFillProcessingKernelEnd;
     Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
-    const int StepCount = 7;
-    const int StepSize = 1;
+    const int StepCount = 5;
+    const int StepSize = 2;
 
-    Ymm res[7] = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6 };
-    Ymm st[7] = { ymm7, ymm8, ymm9, ymm10, ymm11, ymm12, ymm13 };
-    Ymm f[1] = { ymm14 };
+    Ymm res[5][2] = { { ymm0, ymm1 }, { ymm2, ymm3 }, { ymm4, ymm5 }, { ymm6, ymm7 }, { ymm8, ymm9 } };
+    // We will first load 4 pixels, store them. Remained pixel will be loaded between storring of 3-d and 4-th result pixels
+    Ymm st[4] = { ymm10, ymm11, ymm12, ymm13 };
+    Ymm f[2] = { ymm14, ymm15 };
 
-    initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
+    initProcessingMainLoop( bc, &res[0][0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
 
     ////////////////////////////////////////////////////////////////////////////////////////////
     // Batch process kernell function
@@ -55,17 +56,23 @@ inline void CBlobConvolution<8>::CJitConvolution::fillBatchProcessingKernel( CBl
 
     // Load one channel for the same pixel as in source for all filters.
     vmovups( f[0], ptr[regTempFltPtr] );
+    vmovups( f[1], ptr[regTempFltPtr + SizeOfYmm] );
 
     // Load one channel from one pixels in sequenced windows and fill one ymm register with its value.
-    for( int i = 0; i < 7; i++ ) {
+    for( int i = 0; i < 4; i++ ) {
         vbroadcastss( st[i], ptr[regTempSrcPtr + i * bc.SrcXStep * sizeof( float )] );
     }
-
-    // Take result for current pixels in three sequenced windows.
-    // Multiply one channel for all filters ( for ONE src/flt pixels )
-    for( int i = 0; i < 7; i++ ) {
-        vfmadd231ps( res[i], f[0], st[i] );
+    // Multiply and accumulate result pixels [0..2]
+    for( int i = 0; i < 3; i++ ) {
+        vfmadd231ps( res[i][0], f[0], st[i] );
+        vfmadd231ps( res[i][1], f[1], st[i] );
     }
+    // Load remained pixel
+    vbroadcastss( st[0], ptr[regTempSrcPtr + 4 * bc.SrcXStep * sizeof( float )] );
+    vfmadd231ps( res[3][0], f[0], st[3] );
+    vfmadd231ps( res[3][1], f[1], st[3] );
+    vfmadd231ps( res[4][0], f[0], st[0] );
+    vfmadd231ps( res[4][1], f[1], st[0] );
 
     // Go to next channel in filter and source
     add( regTempFltPtr, FltCntM8 * sizeof( float ) );
@@ -83,30 +90,27 @@ inline void CBlobConvolution<8>::CJitConvolution::fillBatchProcessingKernel( CBl
 }
 
 template<>
-inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CBlobConvolution<8>& bc, bool useNarrowProcessing, size_t windowIndex )
+inline void CBlobConvolution<16>::CJitConvolution::fillSingleProcessingKernel( CBlobConvolution<16>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
     using namespace Xbyak;
 
     Label labelFillProcessingKernelEnd;
     Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
     const int StepCount = 1;
-    const int StepSize = 1;
+    const int StepSize = 2;
 
-    Ymm res[1] = { ymm0 };
+    Ymm res[2] = { ymm0, ymm1 };
     // We will accumulate intermediate result in temp registers and then we will flush them to the 'res'.
-    Ymm tempRes[4] = { ymm0, ymm1, ymm2, ymm3 };
-    Ymm s[6] = { ymm4, ymm5, ymm6, ymm7, ymm8, ymm9 };
-    Ymm f[6] = { ymm10, ymm11, ymm12, ymm13, ymm14, ymm15 };
+    Ymm tempRes[2][2] = { { ymm0, ymm1 }, { ymm2, ymm3 } };
+    Ymm s[4] = { ymm4, ymm5, ymm6, ymm7 };
+    Ymm f[4][2] = { { ymm8, ymm9 }, { ymm10, ymm11 }, { ymm12, ymm13 }, { ymm14, ymm15 } };
 
-    // Clear temp regs[1..3]
-    vxorps( tempRes[1], tempRes[1], tempRes[1] );
-    vxorps( tempRes[2], tempRes[2], tempRes[2] );
-    vxorps( tempRes[3], tempRes[3], tempRes[3] );
-
+    // Clear temp reg[1][..]
+    vxorps( tempRes[1][0], tempRes[1][0], tempRes[1][0] );
+    vxorps( tempRes[1][1], tempRes[1][1], tempRes[1][1] );
     std::function<void()> mergeResRegs( [&]() {
-        vaddps( tempRes[0], tempRes[0], tempRes[1] );
-        vaddps( tempRes[2], tempRes[2], tempRes[3] );
-        vaddps( res[0], tempRes[0], tempRes[2] );
+        vaddps( res[0], tempRes[0][0], tempRes[1][0] );
+        vaddps( res[1], tempRes[0][1], tempRes[1][1] );
     } );
 
     initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex,
@@ -117,7 +121,6 @@ inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CB
     // channelCount - number of channels for processing
     // isLast - true if it is last of channel chank (we can skip src and flt pointers incrementing )
     auto fillKernel = [&]( int channelCount, bool isLast ) {
-        // channelCount are 6, 4, 2 or 1
         // Load channels
         for( int i = 0; i < channelCount; i++ ) {
             vbroadcastss( s[i], ptr[regTempSrcPtr + i * sizeof( float )] );
@@ -125,7 +128,8 @@ inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CB
 
         // Load filters
         for( int i = 0; i < channelCount; i++ ) {
-            vmovups( f[i], ptr[regTempFltPtr + i * FltCntM8 * sizeof( float ) ] );
+            vmovups( f[i][0], ptr[regTempFltPtr + i * FltCntM8 * sizeof( float ) ] );
+            vmovups( f[i][1], ptr[regTempFltPtr + ( i * FltCntM8 + NumFloatInYmm ) * sizeof( float ) ] );
         }
 
         if( !isLast ) {
@@ -134,24 +138,14 @@ inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CB
         }
 
         // Store data into temporary regs
-        if( channelCount <= 4 ) {
-            for( int i = 0; i < channelCount; i++ ) {
-                vfmadd231ps( res[i], f[i], s[i] );
-            }
-        } else {
-            vfmadd231ps( res[0], f[0], s[0] );
-            vmulps( s[1], f[1], s[1] );
-            vfmadd231ps( res[1], f[2], s[2] );
-            vmulps( s[3], f[3], s[3] );
-            vfmadd231ps( res[2], f[4], s[4] );
-            vfmadd231ps( res[3], f[5], s[5] );
-            vaddps( res[0], res[0], s[1] );
-            vaddps( res[1], res[1], s[3] );
+        for( int i = 0; i < channelCount; i++ ) {
+            vfmadd231ps( tempRes[i % 2][0], f[i][0], s[i] );
+            vfmadd231ps( tempRes[i % 2][1], f[i][1], s[i] );
         }
     };
 
-    // Steps are 6, 4, 2, 1
-    const int BatchStepSize = 6;
+    // Steps are 4, 2, 1
+    const int BatchStepSize = 4;
     int batchStepCount = bc.ChCnt / BatchStepSize;
     int remainedStepCount = bc.ChCnt % BatchStepSize;
 
@@ -168,7 +162,7 @@ inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CB
         }
         // Only one batch step
         bool isLast = ( remainedStepCount == 0 ) && ( batchStepCount == 1 );
-        fillKernel( 6, isLast );
+        fillKernel( 4, isLast );
 
         if( batchStepCount > 1 ) {
             // } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
@@ -180,9 +174,9 @@ inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CB
     }
 
     // Process remained kernels one by one
-    if( remainedStepCount >= 4 ) {
-        fillKernel( 4, remainedStepCount == 4 );
-        remainedStepCount -= 4;
+    if( remainedStepCount >= 2 ) {
+        fillKernel( 2, remainedStepCount == 2 );
+        remainedStepCount -= 2;
     }
     if( remainedStepCount > 0 ) {
         fillKernel( remainedStepCount, true );
