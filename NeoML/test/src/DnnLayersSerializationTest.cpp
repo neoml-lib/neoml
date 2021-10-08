@@ -2341,3 +2341,73 @@ GTEST_TEST( SerializeFromFile, CastLayerSerialization )
 {
 	checkSerializeLayer<CCastLayer>( "NeoMLDnnCastLayer" );
 }
+
+// ====================================================================================================================
+
+// CTransformerEncoderLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CTransformerEncoderLayer& layer )
+{
+	layer.SetHeadCount( 6 );
+	layer.SetHiddenSize( 36 );
+	layer.SetDropoutRate( 0.2f );
+	layer.SetFeedForwardSize( 16 );
+}
+
+GTEST_TEST( SerializeToFile, TransformerEncoderLayerSerialization )
+{
+	serializeToFile<CTransformerEncoderLayer>( "NeoMLDnnTransformerEncoderLayer" );
+}
+
+#endif
+
+template<>
+inline void checkSpecificParams<CTransformerEncoderLayer>( CTransformerEncoderLayer& layer )
+{
+	EXPECT_EQ( 6, layer.GetHeadCount() );
+	EXPECT_EQ( 36, layer.GetHiddenSize() );
+	EXPECT_NEAR( 0.2f, layer.GetDropoutRate(), 1e-6f );
+	EXPECT_EQ( 16, layer.GetFeedForwardSize() );
+}
+
+GTEST_TEST( SerializeFromFile, TransformerEncoderLayerSerialization )
+{
+	checkSerializeLayer<CTransformerEncoderLayer>( "NeoMLDnnTransformerEncoderLayer" );
+}
+
+// ====================================================================================================================
+
+// CTransformerDecoderLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CTransformerDecoderLayer& layer )
+{
+	layer.SetHeadCount( 5 );
+	layer.SetHiddenSize( 35 );
+	layer.SetDropoutRate( 0.3f );
+	layer.SetFeedForwardSize( 15 );
+}
+
+GTEST_TEST( SerializeToFile, TransformerDecoderLayerSerialization )
+{
+	serializeToFile<CTransformerDecoderLayer>( "NeoMLDnnTransformerDecoderLayer" );
+}
+
+#endif
+
+template<>
+inline void checkSpecificParams<CTransformerDecoderLayer>( CTransformerDecoderLayer& layer )
+{
+	EXPECT_EQ( 5, layer.GetHeadCount() );
+	EXPECT_EQ( 35, layer.GetHiddenSize() );
+	EXPECT_NEAR( 0.3f, layer.GetDropoutRate(), 1e-6f );
+	EXPECT_EQ( 15, layer.GetFeedForwardSize() );
+}
+
+GTEST_TEST( SerializeFromFile, TransformerDecoderLayerSerialization )
+{
+	checkSerializeLayer<CTransformerDecoderLayer>( "NeoMLDnnTransformerDecoderLayer" );
+}
