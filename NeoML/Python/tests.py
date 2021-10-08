@@ -1600,6 +1600,126 @@ class LayersTestCase(MultithreadedTestCase):
             for type_to in types:
                 self._test_cast_impl(type_from, type_to)
 
+    def _transformer_test_data(self, math_engine, batch_size, list_size, obj_size, seed):
+        rng = np.random.default_rng(seed)
+        data_ndarr = rng.uniform(-1., 1., size=(batch_size, list_size, obj_size)).astype(np.float32)
+        return neoml.Blob.asblob(math_engine, data_ndarr, (1, batch_size, list_size, 1, 1, 1, obj_size))
+
+    def _transformer_test_mask(self, math_engine, list_size_in, list_size_out, seed):
+        mask_ndarr = np.zeros((list_size_in, list_size_out), dtype=np.float32)
+        rng = np.random.default_rng(seed)
+        for i in range(list_size_in):
+            pad_len = rng.integers(0, list_size_out - 1, 1)[0]
+            if pad_len > 0:
+                mask_ndarr[i,-pad_len:] = 1.
+        return neoml.Blob.asblob(math_engine, mask_ndarr, (1, 1, 1, 1, list_size_in, 1, list_size_out))
+
+    def test_transformer_encoder(self):
+        batch_size = 17
+        list_size_in = 13
+        obj_size_in = 11
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        input_data = neoml.Dnn.Source(dnn, 'input_data')
+        transformer_encoder = neoml.Dnn.TransformerEncoder(input_data, head_count=2, hidden_size=8,
+            dropout=0.2, feed_forward_size=3, activation='tanh', name='transformer_encoder')
+        sink = neoml.Dnn.Sink(transformer_encoder, name='sink')
+        # getters/setters tests
+        self.assertEqual(transformer_encoder.head_count, 2)
+        transformer_encoder.head_count = 5
+        self.assertEqual(transformer_encoder.head_count, 5)
+        self.assertEqual(transformer_encoder.hidden_size, 8)
+        transformer_encoder.hidden_size = 25
+        self.assertEqual(transformer_encoder.hidden_size, 25)
+        self.assertAlmostEqual(transformer_encoder.dropout, 0.2, delta=1e-6)
+        transformer_encoder.dropout = 0.1
+        self.assertAlmostEqual(transformer_encoder.dropout, 0.1, delta=1e-6)
+        self.assertEqual(transformer_encoder.feed_forward_size, 3)
+        transformer_encoder.feed_forward_size = 15
+        self.assertEqual(transformer_encoder.feed_forward_size, 15)
+        self.assertEqual(transformer_encoder.name, 'transformer_encoder')
+        # run with different mask config
+        for step in range(20):
+            if step % 2 == 0:
+                input_mask = neoml.Dnn.Source(dnn, 'input_mask')
+                transformer_encoder.connect(input_mask, input_index=1)
+                input_data_blob = self._transformer_test_data(math_engine, batch_size, list_size_in, obj_size_in, seed=123545+step*5)
+                input_mask_blob = self._transformer_test_mask(math_engine, list_size_in, list_size_in, seed=123545+step*5+1)
+                outputs = dnn.run({
+                    'input_data': input_data_blob,
+                    'input_mask': input_mask_blob
+                })
+            else:
+                dnn.delete_layer('input_mask')
+                input_data_blob = self._transformer_test_data(math_engine, batch_size, list_size_in, obj_size_in, seed=123545+step*5)
+                outputs = dnn.run({'input_data': input_data_blob})
+            self.assertEqual(outputs['sink'].shape, (1, batch_size, list_size_in, 1, 1, 1, obj_size_in))
+
+    def test_transformer_decoder(self):
+        batch_size = 17
+        list_size_in = 13
+        obj_size_in = 11
+        list_size_enc = 19
+        obj_size_enc = 23
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        input_data = neoml.Dnn.Source(dnn, 'input_data')
+        encoder_data = neoml.Dnn.Source(dnn, 'encoder_data')
+        transformer_decoder = neoml.Dnn.TransformerDecoder((input_data, encoder_data), head_count=2, hidden_size=8,
+            dropout=0.2, feed_forward_size=3, activation='tanh', name='transformer_decoder')
+        sink = neoml.Dnn.Sink(transformer_decoder, name='sink')
+        # getters/setters tests
+        self.assertEqual(transformer_decoder.head_count, 2)
+        transformer_decoder.head_count = 5
+        self.assertEqual(transformer_decoder.head_count, 5)
+        self.assertEqual(transformer_decoder.hidden_size, 8)
+        transformer_decoder.hidden_size = 25
+        self.assertEqual(transformer_decoder.hidden_size, 25)
+        self.assertAlmostEqual(transformer_decoder.dropout, 0.2, delta=1e-6)
+        transformer_decoder.dropout = 0.1
+        self.assertAlmostEqual(transformer_decoder.dropout, 0.1, delta=1e-6)
+        self.assertEqual(transformer_decoder.feed_forward_size, 3)
+        transformer_decoder.feed_forward_size = 15
+        self.assertEqual(transformer_decoder.feed_forward_size, 15)
+        self.assertEqual(transformer_decoder.name, 'transformer_decoder')
+        # run with different mask config
+        for step in range(20):
+            input_data_blob = self._transformer_test_data(math_engine, batch_size, list_size_in, obj_size_in, seed=123545+step*5)
+            encoder_data_blob = self._transformer_test_data(math_engine, batch_size, list_size_enc, obj_size_enc, seed=123545+step*5+1)
+            input_mask_blob = self._transformer_test_mask(math_engine, list_size_in, list_size_in, seed=123545+step*5+2)
+            encoder_mask_blob = self._transformer_test_mask(math_engine, list_size_in, list_size_enc, seed=123545+step*5+3)
+            if step % 4 == 0:
+                input_mask = neoml.Dnn.Source(dnn, 'input_mask')
+                transformer_decoder.connect(input_mask, input_index=2)
+                outputs = dnn.run({
+                    'input_data': input_data_blob,
+                    'encoder_data': encoder_data_blob,
+                    'input_mask': input_mask_blob
+                })
+            elif step % 4 == 1:
+                encoder_mask = neoml.Dnn.Source(dnn, 'encoder_mask')
+                transformer_decoder.connect(encoder_mask, input_index=3)
+                outputs = dnn.run({
+                    'input_data': input_data_blob,
+                    'encoder_data': encoder_data_blob,
+                    'input_mask': input_mask_blob,
+                    'encoder_mask': encoder_mask_blob
+                })
+            elif step % 4 == 2:
+                dnn.delete_layer('encoder_mask')
+                outputs = dnn.run({
+                    'input_data': input_data_blob,
+                    'encoder_data': encoder_data_blob,
+                    'input_mask': input_mask_blob
+                })
+            elif step % 4 == 3:
+                dnn.delete_layer('input_mask')
+                outputs = dnn.run({
+                    'input_data': input_data_blob,
+                    'encoder_data': encoder_data_blob
+                })
+            self.assertEqual(outputs['sink'].shape, (1, batch_size, list_size_in, 1, 1, 1, obj_size_in))
+
 
 class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},

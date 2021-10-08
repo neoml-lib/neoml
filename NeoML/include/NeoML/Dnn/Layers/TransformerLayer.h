@@ -56,6 +56,20 @@ namespace NeoML {
 //           |           |
 //       inputData  (inputMask)
 //
+// Inputs:
+//      1. input data - float blob of size:
+//          - BatchLength, Height, Width and Depth must be equal to 1
+//          - BatchWidth - number of sequences in batch
+//          - ListSize - length of sequences
+//          - Channels - size of the elements in sequences
+//      2. (optional) input mask - float blob containing 1.f or 0.f where 1.f means IGNORED object
+//          - Width(seq_Q) and Channels(seq_V) must be equal to the ListSize of the first input
+//          - Other dimensions must be equal to 1
+// Outputs:
+//      1. output data - float blob of size:
+//          - BatchWidth and ListSize are equal to the corresponding dims of the first input
+//          - BatchLength, Height, Width and Depth are equal to 1
+//          - Channels is equal to the Channels of the first input
 class NEOML_API CTransformerEncoderLayer : public CCompositeLayer {
 	NEOML_DNN_LAYER( CTransformerEncoderLayer )
 public:
@@ -68,12 +82,9 @@ public:
 	void SetHeadCount( int headCount );
 
 	// Hidden size of the attention layer
+	// Must be a multiple of head count
 	int GetHiddenSize() const { return selfAttention->GetHiddenSize(); }
 	void SetHiddenSize( int hiddenSize );
-
-	// Size of the output of the layer (and self-attention)
-	int GetOutputSize() const;
-	void SetOutputSize( int outputSize );
 
 	// Dropout rate
 	float GetDropoutRate() const;
@@ -105,7 +116,7 @@ private:
 	void removeDropoutLayers();
 };
 
-NEOML_API CLayerWrapper<CTransformerEncoderLayer> TransformerEncoder( int headCount, int hiddenSize, int outputSize,
+NEOML_API CLayerWrapper<CTransformerEncoderLayer> TransformerEncoder( int headCount, int hiddenSize,
 	float dropout, int feedForwardSize, TActivationFunction activation );
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -149,6 +160,29 @@ NEOML_API CLayerWrapper<CTransformerEncoderLayer> TransformerEncoder( int headCo
 //           |           |
 //       inputData  (inputMask)
 //
+// Inputs:
+//      1. input data - float blob of size:
+//          - BatchLength, Height, Width and Depth must be equal to 1
+//          - BatchWidth - number of sequences in batch
+//          - ListSize - length of output sequences
+//          - Channels - size of the elements in input sequences
+//      2. encoder data - float blob of size:
+//          - BatchLength, Height, Width and Depth must be equal to 1
+//          - BatchWidth must be equal to the BatchWidth of the first input
+//          - ListSize - length of encoder sequences
+//          - Channels - size of the elements in encoder sequences
+//      3. (optional) input mask - float blob containing 1.f or 0.f where 1.f means that object will be IGNORED
+//          - Width(seq_Q) and Channels(seq_V) must be equal to the ListSize of the first input
+//          - Other dimensions must be equal to 1
+//      4. (optional) encoder mask - float blob containing 1.f or 0.f where 1.f means that object will be IGNORED
+//          - Width must be equal to the ListSize of the first input
+//          - Channels must be equal to the ListSize of the second input
+//          - Other dimensions must be equal to 1
+// Outputs:
+//      1. output data - float blob of size:
+//          - BatchWidth and ListSize are equal to the corresponding dims of the first input
+//          - BatchLength, Height, Width and Depth are equal to 1
+//          - Channels is equal to the Channels of the first input
 class NEOML_API CTransformerDecoderLayer : public CCompositeLayer {
 	NEOML_DNN_LAYER( CTransformerDecoderLayer )
 public:
@@ -161,12 +195,9 @@ public:
 	void SetHeadCount( int headCount );
 
 	// Hidden size of the attentions layer
+	// Must be a multiple of head count
 	int GetHiddenSize() const;
 	void SetHiddenSize( int hiddenSize );
-
-	// Size of the output of the layer (and both of the attentions)
-	int GetOutputSize() const;
-	void SetOutputSize( int outputSize );
 
 	// Dropout rate
 	float GetDropoutRate() const;
@@ -201,7 +232,7 @@ private:
 	void removeDropoutLayers();
 };
 
-NEOML_API CLayerWrapper<CTransformerDecoderLayer> TransformerDecoder( int headCount, int hiddenSize, int outputSize,
+NEOML_API CLayerWrapper<CTransformerDecoderLayer> TransformerDecoder( int headCount, int hiddenSize,
 	float dropout, int feedForwardSize, TActivationFunction activation );
 
 } // namespace NeoML

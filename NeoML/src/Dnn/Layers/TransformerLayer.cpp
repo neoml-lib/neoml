@@ -43,6 +43,27 @@ static CPtr<CDropoutLayer> getOptionalDropout( CDnnLayerGraph& dnn, const char* 
 	return nullptr;
 }
 
+static inline void checkBlob( const CBlobDesc& desc, const char* layerName, const char* blobName,
+	int batchWidth, int listSize, int width, int channels )
+{
+	CheckArchitecture( desc.GetDataType() == CT_Float, layerName, CString( blobName ) + " must be float" );
+	CheckArchitecture( desc.BatchLength() == 1, layerName, CString( blobName ) + "'s BatchLength must be 1" );
+	CheckArchitecture( desc.Height() == 1, layerName, CString( blobName ) + "'s Height must be 1" );
+	CheckArchitecture( desc.Depth() == 1, layerName, CString( blobName ) + "'s Depth must be 1" );
+	if( batchWidth > 0 ) {
+		CheckArchitecture( desc.BatchWidth() == batchWidth, layerName, CString( blobName ) + "'s BatchWidth mismatch" );
+	}
+	if( listSize > 0 ) {
+		CheckArchitecture( desc.ListSize() == listSize, layerName, CString( blobName ) + "'s ListSize mismatch" );
+	}
+	if( width > 0 ) {
+		CheckArchitecture( desc.Width() == width, layerName, CString( blobName ) + "'s Width mismatch" );
+	}
+	if( channels > 0 ) {
+		CheckArchitecture( desc.Channels() == channels, layerName, CString( blobName ) + "'s Channels mismatch" );
+	}
+}
+
 // --------------------------------------------------------------------------------------------------------------------
 
 CTransformerEncoderLayer::CTransformerEncoderLayer( IMathEngine& mathEngine )
@@ -83,22 +104,6 @@ void CTransformerEncoderLayer::SetHiddenSize( int hiddenSize )
 	selfAttention->SetHiddenSize( hiddenSize );
 	ForceReshape();
 	NeoPresume( GetHiddenSize() == hiddenSize );
-}
-
-int CTransformerEncoderLayer::GetOutputSize() const
-{
-	NeoAssert( selfAttention->GetOutputSize() == fc2->GetNumberOfElements() );
-	return selfAttention->GetOutputSize();
-}
-
-void CTransformerEncoderLayer::SetOutputSize( int outputSize )
-{
-	NeoAssert( outputSize > 0 );
-	NeoAssert( selfAttention->GetOutputSize() == fc2->GetNumberOfElements() );
-	selfAttention->SetOutputSize( outputSize );
-	fc2->SetNumberOfElements( outputSize );
-	ForceReshape();
-	NeoPresume( GetOutputSize() == outputSize );
 }
 
 float CTransformerEncoderLayer::GetDropoutRate() const
@@ -158,6 +163,20 @@ void CTransformerEncoderLayer::SetActivation( TActivationFunction newFunction )
 
 void CTransformerEncoderLayer::Reshape()
 {
+	CheckArchitecture( GetHiddenSize() % GetHeadCount() == 0, GetName(), "HiddenSize must be a multiple of HeadCount" );
+	CheckArchitecture( GetInputCount() == 1 || GetInputCount() == 2, GetName(), "Layer must have 1 or 2 inputs" );
+	checkBlob( inputDescs[0], GetName(), "input data", -1, -1, 1, -1 );
+	if( GetInputCount() == 2 ) {
+		checkBlob( inputDescs[1], GetName(), "input mask", 1, 1, inputDescs[0].ListSize(), inputDescs[0].ListSize() );
+	}
+
+	if( selfAttention->GetOutputSize() != inputDescs[0].Channels() ) {
+		selfAttention->SetOutputSize( inputDescs[0].Channels() );
+	}
+	if( fc2->GetNumberOfElements() != inputDescs[0].Channels() ) {
+		fc2->SetNumberOfElements( inputDescs[0].Channels() );
+	}
+
 	if( GetInputCount() == 2 && !selfAttention->GetUseMask() ) {
 		selfAttention->SetUseMask( true );
 		SetInputMapping( 1, *selfAttention, 3 );
@@ -290,13 +309,12 @@ void CTransformerEncoderLayer::removeDropoutLayers()
 	NeoPresume( dropoutFc2 == nullptr && !HasLayer( dropoutFc2Name ) );
 }
 
-CLayerWrapper<CTransformerEncoderLayer> TransformerEncoder( int headCount, int hiddenSize, int outputSize,
+CLayerWrapper<CTransformerEncoderLayer> TransformerEncoder( int headCount, int hiddenSize,
 	float dropout, int feedForwardSize, TActivationFunction activation )
 {
 	return CLayerWrapper<CTransformerEncoderLayer>( "CTransformerEncoderLayer", [=]( CTransformerEncoderLayer* result ) {
 		result->SetHeadCount( headCount );
 		result->SetHiddenSize( hiddenSize );
-		result->SetOutputSize( outputSize );
 		result->SetDropoutRate( dropout );
 		result->SetFeedForwardSize( feedForwardSize );
 		result->SetActivation( activation );
@@ -362,23 +380,6 @@ void CTransformerDecoderLayer::SetHiddenSize( int hiddenSize )
 	NeoPresume( GetHiddenSize() == hiddenSize );
 }
 
-int CTransformerDecoderLayer::GetOutputSize() const
-{
-	NeoPresume( selfAttention->GetOutputSize() == mheadAttention->GetOutputSize()
-		&& selfAttention->GetOutputSize() == fc2->GetNumberOfElements() );
-	return selfAttention->GetOutputSize();
-}
-
-void CTransformerDecoderLayer::SetOutputSize( int outputSize )
-{
-	NeoAssert( outputSize > 0 );
-	selfAttention->SetOutputSize( outputSize );
-	mheadAttention->SetOutputSize( outputSize );
-	fc2->SetNumberOfElements( outputSize );
-	ForceReshape();
-	NeoPresume( GetOutputSize() == outputSize );
-}
-
 float CTransformerDecoderLayer::GetDropoutRate() const
 {
 	if( dropoutSelfAttention == nullptr ) {
@@ -440,6 +441,27 @@ void CTransformerDecoderLayer::SetActivation( TActivationFunction newFunction )
 
 void CTransformerDecoderLayer::Reshape()
 {
+	CheckArchitecture( GetHiddenSize() % GetHeadCount() == 0, GetName(), "HiddenSize must be a multiple of HeadCount" );
+	CheckArchitecture( GetInputCount() >= 2 && GetInputCount() <= 4, GetName(), "Layer must have from 2 to 4 inputs" );
+	checkBlob( inputDescs[0], GetName(), "input data", -1, -1, -1, -1 );
+	checkBlob( inputDescs[1], GetName(), "encoder data", inputDescs[0].BatchWidth(), -1, -1, -1 );
+	if( GetInputCount() >= 3 ) {
+		checkBlob( inputDescs[2], GetName(), "input mask", 1, 1, inputDescs[0].ListSize(), inputDescs[0].ListSize() );
+		if( GetInputCount() >= 4 ) {
+			checkBlob( inputDescs[3], GetName(), "encoder mask", 1, 1, inputDescs[0].ListSize(), inputDescs[1].ListSize() );
+		}
+	}
+
+	if( selfAttention->GetOutputSize() != inputDescs[0].Channels() ) {
+		selfAttention->SetOutputSize( inputDescs[0].Channels() );
+	}
+	if( mheadAttention->GetOutputSize() != inputDescs[0].Channels() ) {
+		mheadAttention->SetOutputSize( inputDescs[0].Channels() );
+	}
+	if( fc2->GetNumberOfElements() != inputDescs[0].Channels() ) {
+		fc2->SetNumberOfElements( inputDescs[0].Channels() );
+	}
+
 	if( GetInputCount() > 2 && !selfAttention->GetUseMask() ) {
 		selfAttention->SetUseMask( true );
 		SetInputMapping( 2, *selfAttention, 3 );
@@ -496,10 +518,10 @@ void CTransformerDecoderLayer::buildLayer()
 	AddLayer( *mheadAttention );
 
 	mheadAttentionSum = FINE_DEBUG_NEW CEltwiseSumLayer( MathEngine() );
-	mheadAttentionSum->SetName( mheadAttentionName );
+	mheadAttentionSum->SetName( mheadAttentionSumName );
 	mheadAttentionSum->Connect( 0, *selfAttentionNorm );
 	mheadAttentionSum->Connect( 1, *mheadAttention );
-	AddLayer( *mheadAttention );
+	AddLayer( *mheadAttentionSum );
 
 	CPtr<CObjectNormalizationLayer> mheadAttentionNorm = FINE_DEBUG_NEW CObjectNormalizationLayer( MathEngine() );
 	mheadAttentionNorm->SetName( "MheadAttentionNorm" );
@@ -618,13 +640,12 @@ void CTransformerDecoderLayer::removeDropoutLayers()
 	NeoPresume( dropoutFc2 == nullptr && !HasLayer( dropoutFc2Name ) );
 }
 
-CLayerWrapper<CTransformerDecoderLayer> TransformerDecoder( int headCount, int hiddenSize, int outputSize,
+CLayerWrapper<CTransformerDecoderLayer> TransformerDecoder( int headCount, int hiddenSize,
 	float dropout, int feedForwardSize, TActivationFunction activation )
 {
 	return CLayerWrapper<CTransformerDecoderLayer>( "CTransformerDecoderLayer", [=]( CTransformerDecoderLayer* result ) {
 		result->SetHeadCount( headCount );
 		result->SetHiddenSize( hiddenSize );
-		result->SetOutputSize( outputSize );
 		result->SetDropoutRate( dropout );
 		result->SetFeedForwardSize( feedForwardSize );
 		result->SetActivation( activation );

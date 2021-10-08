@@ -18,44 +18,124 @@ limitations under the License.
 
 #include "PyTransformerLayer.h"
 
-class CPyTransformerLayer : public CPyLayer {
+class CPyTransformerEncoderLayer : public CPyLayer {
 public:
-	explicit CPyTransformerLayer( CTransformerLayer& layer, CPyMathEngineOwner& mathEngineOwner )
+	explicit CPyTransformerEncoderLayer( CTransformerEncoderLayer& layer, CPyMathEngineOwner& mathEngineOwner )
 		: CPyLayer( layer, mathEngineOwner ) {}
+
+	int GetHeadCount() const { return Layer<CTransformerEncoderLayer>()->GetHeadCount(); }
+	void SetHeadCount( int headCount ) { Layer<CTransformerEncoderLayer>()->SetHeadCount( headCount ); }
+
+	int GetHiddenSize() const { return Layer<CTransformerEncoderLayer>()->GetHiddenSize(); }
+	void SetHiddenSize( int hiddenSize ) { Layer<CTransformerEncoderLayer>()->SetHiddenSize( hiddenSize ); }
+
+	float GetDropoutRate() const { return Layer<CTransformerEncoderLayer>()->GetDropoutRate(); }
+	void SetDropoutRate( float rate ) { Layer<CTransformerEncoderLayer>()->SetDropoutRate( rate ); }
+	
+	int GetFeedForwardSize() const { return Layer<CTransformerEncoderLayer>()->GetFeedForwardSize(); }
+	void SetFeedForwardSize( int size ) { Layer<CTransformerEncoderLayer>()->SetFeedForwardSize( size ); }
 
 	py::object CreatePythonObject() const
 	{
 		py::object pyModule = py::module::import( "neoml.Dnn" );
-		py::object pyConstructor = pyModule.attr( "Transformer" );
+		py::object pyConstructor = pyModule.attr( "TransformerEncoder" );
 		return pyConstructor( py::cast( this ) );
 	}
 };
 
+class CPyTransformerDecoderLayer : public CPyLayer {
+public:
+	explicit CPyTransformerDecoderLayer( CTransformerDecoderLayer& layer, CPyMathEngineOwner& mathEngineOwner )
+		: CPyLayer( layer, mathEngineOwner ) {}
+
+	int GetHeadCount() const { return Layer<CTransformerDecoderLayer>()->GetHeadCount(); }
+	void SetHeadCount( int headCount ) { Layer<CTransformerDecoderLayer>()->SetHeadCount( headCount ); }
+
+	int GetHiddenSize() const { return Layer<CTransformerDecoderLayer>()->GetHiddenSize(); }
+	void SetHiddenSize( int hiddenSize ) { Layer<CTransformerDecoderLayer>()->SetHiddenSize( hiddenSize ); }
+
+	float GetDropoutRate() const { return Layer<CTransformerDecoderLayer>()->GetDropoutRate(); }
+	void SetDropoutRate( float rate ) { Layer<CTransformerDecoderLayer>()->SetDropoutRate( rate ); }
+	
+	int GetFeedForwardSize() const { return Layer<CTransformerDecoderLayer>()->GetFeedForwardSize(); }
+	void SetFeedForwardSize( int size ) { Layer<CTransformerDecoderLayer>()->SetFeedForwardSize( size ); }
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "TransformerDecoder" );
+		return pyConstructor( py::cast( this ) );
+	}
+};
+
+
 void InitializeTransformerLayer( py::module& m )
 {
-	py::class_<CPyTransformerLayer, CPyLayer>(m, "Transformer")
+	py::class_<CPyTransformerEncoderLayer, CPyLayer>(m, "TransformerEncoder")
 		.def( py::init( []( const CPyLayer& layer )
 		{
-			return new CPyTransformerLayer( *layer.Layer<CTransformerLayer>(), layer.MathEngineOwner() );
+			return new CPyTransformerEncoderLayer( *layer.Layer<CTransformerEncoderLayer>(), layer.MathEngineOwner() );
 		} ) )
-		.def( py::init( []( const std::string& name, const CPyLayer& layer1, int outputNumber1, int headCount, int hiddenSize,
-			int outputSize, float attentionDropout, int feedForwardSize, float feedForwardDropout, int activationIndex )
+		.def( py::init( []( const std::string& name, const py::list& inputs, const py::list& input_outputs,
+			int headCount, int hiddenSize, float dropout, int feedForwardSize, int activationIndex )
 		{
 			py::gil_scoped_release release;
-			CDnn& dnn = layer1.Dnn();
+			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
-			CPtr<CTransformerLayer> transformer = new CTransformerLayer( mathEngine );
-			transformer->SetName( FindFreeLayerName( dnn, "Transformer", name ).c_str() );
+			CPtr<CTransformerEncoderLayer> transformer = new CTransformerEncoderLayer( mathEngine );
+			transformer->SetName( FindFreeLayerName( dnn, "TransformerEncoder", name ).c_str() );
 			transformer->SetHeadCount( headCount );
 			transformer->SetHiddenSize( hiddenSize );
-			transformer->SetOutputSize( outputSize );
-			transformer->SetAttentionDropout( attentionDropout );
+			transformer->SetDropoutRate( dropout );
 			transformer->SetFeedForwardSize( feedForwardSize );
-			transformer->SetFeedForwardDropout( feedForwardDropout );
 			transformer->SetActivation( static_cast<TActivationFunction>( activationIndex ) );
+			for( int i = 0; i < inputs.size(); i++ ) {
+				transformer->Connect( i, inputs[i].cast<CPyLayer>().BaseLayer(), input_outputs[i].cast<int>() );
+			}
 			dnn.AddLayer( *transformer );
-			transformer->Connect( 0, layer1.BaseLayer(), outputNumber1 );
-			return CPyTransformerLayer( *transformer, layer1.MathEngineOwner() );
+			return CPyTransformerEncoderLayer( *transformer, inputs[0].cast<CPyLayer>().MathEngineOwner() );
 		} ) )
+		.def( "get_head_count", &CPyTransformerEncoderLayer::GetHeadCount, py::return_value_policy::reference )
+		.def( "set_head_count", &CPyTransformerEncoderLayer::SetHeadCount, py::return_value_policy::reference )
+		.def( "get_hidden_size", &CPyTransformerEncoderLayer::GetHiddenSize, py::return_value_policy::reference )
+		.def( "set_hidden_size", &CPyTransformerEncoderLayer::SetHiddenSize, py::return_value_policy::reference )
+		.def( "get_dropout", &CPyTransformerEncoderLayer::GetDropoutRate, py::return_value_policy::reference )
+		.def( "set_dropout", &CPyTransformerEncoderLayer::SetDropoutRate, py::return_value_policy::reference )
+		.def( "get_feed_forward_size", &CPyTransformerEncoderLayer::GetFeedForwardSize, py::return_value_policy::reference )
+		.def( "set_feed_forward_size", &CPyTransformerEncoderLayer::SetFeedForwardSize, py::return_value_policy::reference )
+	;
+	
+	py::class_<CPyTransformerDecoderLayer, CPyLayer>(m, "TransformerDecoder")
+		.def( py::init( []( const CPyLayer& layer )
+		{
+			return new CPyTransformerDecoderLayer( *layer.Layer<CTransformerDecoderLayer>(), layer.MathEngineOwner() );
+		} ) )
+		.def( py::init( []( const std::string& name, const py::list& inputs, const py::list& input_outputs,
+			int headCount, int hiddenSize, float dropout, int feedForwardSize, int activationIndex )
+		{
+			py::gil_scoped_release release;
+			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+			CPtr<CTransformerDecoderLayer> transformer = new CTransformerDecoderLayer( mathEngine );
+			transformer->SetName( FindFreeLayerName( dnn, "TransformerDecoder", name ).c_str() );
+			transformer->SetHeadCount( headCount );
+			transformer->SetHiddenSize( hiddenSize );
+			transformer->SetDropoutRate( dropout );
+			transformer->SetFeedForwardSize( feedForwardSize );
+			transformer->SetActivation( static_cast<TActivationFunction>( activationIndex ) );
+			for( int i = 0; i < inputs.size(); i++ ) {
+				transformer->Connect( i, inputs[i].cast<CPyLayer>().BaseLayer(), input_outputs[i].cast<int>() );
+			}
+			dnn.AddLayer( *transformer );
+			return CPyTransformerDecoderLayer( *transformer, inputs[0].cast<CPyLayer>().MathEngineOwner() );
+		} ) )
+		.def( "get_head_count", &CPyTransformerDecoderLayer::GetHeadCount, py::return_value_policy::reference )
+		.def( "set_head_count", &CPyTransformerDecoderLayer::SetHeadCount, py::return_value_policy::reference )
+		.def( "get_hidden_size", &CPyTransformerDecoderLayer::GetHiddenSize, py::return_value_policy::reference )
+		.def( "set_hidden_size", &CPyTransformerDecoderLayer::SetHiddenSize, py::return_value_policy::reference )
+		.def( "get_dropout", &CPyTransformerDecoderLayer::GetDropoutRate, py::return_value_policy::reference )
+		.def( "set_dropout", &CPyTransformerDecoderLayer::SetDropoutRate, py::return_value_policy::reference )
+		.def( "get_feed_forward_size", &CPyTransformerDecoderLayer::GetFeedForwardSize, py::return_value_policy::reference )
+		.def( "set_feed_forward_size", &CPyTransformerDecoderLayer::SetFeedForwardSize, py::return_value_policy::reference )
 	;
 }
