@@ -64,7 +64,7 @@ CPerformanceCountersCpuLinux::CPerformanceCountersCpuLinux() :
 	conf.exclude_kernel = 1;
 	conf.exclude_hv = 1;
 
-	counter[0].Name = "time ms";
+	counter[0].Name = "time ns";
 	counter[0].Value = 0;
 	info[0].Fd = -1;
 	info[0].Old = 0;
@@ -101,7 +101,7 @@ void CPerformanceCountersCpuLinux::Synchronise()
 {
 	auto cnow = std::chrono::steady_clock::now().time_since_epoch();
 	auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(cnow).count();
-	counter[0].Value = ( now - info[0].Old ) / 1000000;
+	counter[0].Value = now - info[0].Old;
 	info[0].Old = now;
 
 	for( size_t i = 1; i < CounterCount(); ++i ) {

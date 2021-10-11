@@ -251,7 +251,7 @@ void CCpuMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandl
 	int* rowIndices = GetRaw( rowIndicesHandle );
 
 	// Copy the first row
-	vectorCopy( result, matrix, matrixWidth );
+	dataCopy( result, matrix, matrixWidth );
 	vectorFill( rowIndices, 0, matrixWidth );
 	matrix += matrixWidth;
 	// Process the rest

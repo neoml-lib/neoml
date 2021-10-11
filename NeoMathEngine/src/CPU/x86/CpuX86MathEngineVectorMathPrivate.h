@@ -106,6 +106,46 @@ inline void vectorFill( float* result, float value, int vectorSize )
 	}
 }
 
+inline void vectorFill( int* result, int value, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	__m128i valueSse = _mm_set1_epi32( value );
+
+	while( sseSize >= 4 ) {
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		sseSize--;
+	}
+
+#if FINE_PLATFORM(FINE_WINDOWS)
+	if( nonSseSize > 0 ) {
+		__stosd( (DWORD*) result, value, nonSseSize );
+	}
+#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = value;
+	}
+#else
+#error "Platform isn't supported!"
+#endif
+}
+
 inline void vectorFill0( float* result, int vectorSize )
 {
 	int sseSize;
@@ -286,6 +326,27 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 }
 
 //------------------------------------------------------------------------------------------------------------
+inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	if( sseSize > 0 ) {
+		__m128 multSse = _mm_set_ps1( multiplier );
+		for( int i = 0; i < sseSize; ++i ) {
+			_mm_storeu_ps( result, _mm_mul_ps( _mm_loadu_ps( first ), multSse ) );
+			first += 4;
+			result += 4;
+		}
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = *first++ * multiplier;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
 
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int sseSize, int nonSseSize )
 {
@@ -344,6 +405,75 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
 	vectorEltwiseMultiply( first, second, result, sseSize, nonSseSize );
+}
+
+// Due to SSE 2.0 requirement we can't use _mm_mullo_epi32
+inline __m128i sse2Multiply4SignedInts( const __m128i& first, const __m128i& second )
+{
+	__m128i prod02 = _mm_mul_epu32( first, second ); // multiplies 0'th and 2'nd elems
+	__m128i prod13 = _mm_mul_epu32(
+		_mm_srli_si128( first, 4 ), // shift right by one integer in order to get 1'st and 3'rd elems
+		_mm_srli_si128( second, 4 )
+	);
+	return _mm_unpacklo_epi32(
+		_mm_shuffle_epi32( prod02, _MM_SHUFFLE( 0, 0, 2, 0 ) ), // move 0'th and 2'nd productions into 2 lower integers
+		_mm_shuffle_epi32( prod13, _MM_SHUFFLE( 0, 0, 2, 0 ) ) // move 1'st adn 3'rd productions into 2 lower integers
+	);
+}
+
+inline void vectorEltwiseMultiply( const int* first, const int* second, int* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	while( sseSize >= 4 ) {
+		__m128i first0 = LoadIntSse4( first );
+		__m128i first1 = LoadIntSse4( first + 4 );
+		__m128i first2 = LoadIntSse4( first + 8 );
+		__m128i first3 = LoadIntSse4( first + 12 );
+		first += 16;
+
+		__m128i second0 = LoadIntSse4( second );
+		__m128i second1 = LoadIntSse4( second + 4 );
+		__m128i second2 = LoadIntSse4( second + 8 );
+		__m128i second3 = LoadIntSse4( second + 12 );
+		second += 16;
+
+		__m128i res0 = sse2Multiply4SignedInts( first0, second0 );
+		__m128i res1 = sse2Multiply4SignedInts( first1, second1 );
+		__m128i res2 = sse2Multiply4SignedInts( first2, second2 );
+		__m128i res3 = sse2Multiply4SignedInts( first3, second3 );
+
+		StoreIntSse4( res0, result );
+		StoreIntSse4( res1, result + 4 );
+		StoreIntSse4( res2, result + 8 );
+		StoreIntSse4( res3, result + 12 );
+		result += 16;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		__m128i first0 = LoadIntSse4( first );
+		first += 4;
+
+		__m128i second0 = LoadIntSse4( second );
+		second += 4;
+
+		__m128i res0 = sse2Multiply4SignedInts( first0, second0 );
+		StoreIntSse4( res0, result );
+		result += 4;
+
+		sseSize--;
+	}
+
+	if( nonSseSize ) {
+		__m128i first0 = LoadIntSse( first, nonSseSize );
+		__m128i second0 = LoadIntSse( second, nonSseSize );
+		__m128i res0 = sse2Multiply4SignedInts( first0, second0 );
+		StoreIntSse( res0, result, nonSseSize );
+	}
 }
 
 inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
@@ -720,6 +850,37 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 		__m128 h0 = LoadSse( h, nonSseSize );
 		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( i0, z0 ) );
 		StoreSse( res0, res, nonSseSize );
+	}
+}
+
+inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	if(sseSize > 0) {
+		const __m128 minSse = _mm_set_ps1(minValue);
+		const __m128 maxSse = _mm_set_ps1(maxValue);
+		for(int i = 0; i < sseSize; ++i) {
+			__m128 value = _mm_loadu_ps(first);
+
+			__m128 cmpMin = _mm_cmplt_ps(value, minSse);
+			__m128 cmpMax = _mm_cmpgt_ps(value, maxSse);
+			__m128 cmpNotNorm = _mm_or_ps(cmpMin, cmpMax);
+			__m128 res = _mm_or_ps(_mm_or_ps(_mm_andnot_ps(cmpNotNorm, value),
+				_mm_and_ps(cmpMin, minSse)), _mm_and_ps(cmpMax, maxSse));
+
+			_mm_storeu_ps(result, res);
+			first += 4;
+			result += 4;
+		}
+	}
+
+	for(int i = 0; i < nonSseSize; ++i) {
+		*result = min(max(*first, minValue), maxValue);
+		result++;
+		first++;
 	}
 }
 

@@ -10,17 +10,17 @@ import threading
 
 
 class MultithreadedTestCase(TestCase):
-    def _thread_function(self, target, args):
+    def _thread_function(self, target, kwargs):
         print(f"python thread {threading.get_ident()} started")
-        target(*args);
+        target(**kwargs)
         print(f"python thread {threading.get_ident()} finished")
 
-    def _test_mt(self, target, args=(), enable_assert=False):
+    def _test_mt(self, target, result, enable_assert=False):
         import time
         threads = []
         system_time, user_time = time.perf_counter(), time.process_time()
-        for i in range(4):
-            t = threading.Thread(target=self._thread_function, args=(target, args))
+        for _ in range(4):
+            t = threading.Thread(target=self._thread_function, args=(target, {'result': result}))
             threads.append(t)
             t.start()
         for t in threads:
@@ -33,7 +33,7 @@ class MultithreadedTestCase(TestCase):
             self.assertTrue(system_time < user_time)
 
     def run(self, result=None):
-        self._test_mt(super().run)
+        self._test_mt(super().run, result=result)
 
 
 class MathEngineTestCase(MultithreadedTestCase):
@@ -664,6 +664,9 @@ class LayersTestCase(MultithreadedTestCase):
         blob = lookup.get_embeddings(0)
         lookup.set_embeddings(0, blob)
 
+        uniform = neoml.Dnn.Uniform()
+        lookup.initialize(uniform)
+
     def test_tied_embeddings(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -1257,8 +1260,14 @@ class LayersTestCase(MultithreadedTestCase):
     def test_eltwise_sum(self):
         self._test_eltwise('EltwiseSum', lambda x: (x == 5).all())
 
+    def test_eltwise_sub(self):
+        self._test_eltwise('EltwiseSub', lambda x: (x == 1).all())
+
     def test_eltwise_mul(self):
         self._test_eltwise('EltwiseMul', lambda x: (x == 6).all())
+
+    def test_eltwise_div(self):
+        self._test_eltwise('EltwiseDiv', lambda x: (x == 1.5).all())
 
     def test_eltwise_negmul(self):
         self._test_eltwise('EltwiseNegMul', lambda x: (x == -4).all())
@@ -1565,6 +1574,32 @@ class LayersTestCase(MultithreadedTestCase):
         out = outputs['sink'].asarray()
         self.assertEqual(out.shape, (2, 3, 4, 5, 6, 7, 8))
 
+    def _test_cast_impl(self, type_from, type_to):
+
+        def generate_array(type):
+            np_type = np.float32 if type == 'float' else np.int32
+            return  np.arange(5, dtype=np_type)
+
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        cast = neoml.Dnn.Cast(source, output_type=type_to)
+        sink = neoml.Dnn.Sink(cast, 'sink')
+
+        input_arr = generate_array(type_from)
+        input_blob = neoml.Blob.asblob(math_engine, input_arr, (1, 1, 1, 1, 1, 1, len(input_arr)))
+        outputs = dnn.run({'source': input_blob})
+        actual = outputs['sink'].asarray()
+        expected = generate_array(type_to)
+        self.assertEqual(actual.dtype, expected.dtype)
+        self.assertTrue(np.equal(actual, expected).all())
+
+    def test_cast(self):
+        types = ['int', 'float']
+        for type_from in types:
+            for type_to in types:
+                self._test_cast_impl(type_from, type_to)
+
 
 class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
@@ -1818,14 +1853,14 @@ class PoolingTestCase(MultithreadedTestCase):
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
 
-        split_types = ("SplitBatchWidth", "SplitHeight", "SplitWidth", "SplitDepth", "SplitChannels")
+        split_types = ("SplitBatchLength", "SplitBatchWidth", "SplitListSize", "SplitHeight", "SplitWidth", "SplitDepth", "SplitChannels")
         for i, split_name in enumerate(split_types):
             split = getattr(neoml.Dnn, split_name)(source, (2, 3), split_name)
             sink = neoml.Dnn.Sink((split, 0), "sink{}".format(2 * i))
             sink = neoml.Dnn.Sink((split, 1), "sink{}".format(2 * i + 1))
 
-        arr = np.ones((5, 5, 5, 5, 5), dtype=np.float32)
-        input1 = neoml.Blob.asblob(math_engine, arr, (1, 5, 1, 5, 5, 5, 5))
+        arr = np.ones((5, 5, 5, 5, 5, 5, 5), dtype=np.float32)
+        input1 = neoml.Blob.asblob(math_engine, arr, (5, 5, 5, 5, 5, 5, 5))
         inputs = {"source1": input1}
         outputs = dnn.run(inputs)
 
@@ -1989,12 +2024,12 @@ class PoolingTestCase(MultithreadedTestCase):
         hidden_size = 10
         dropout_rate = 0.5
         reverse = True
+        activation = 'sigmoid'
         name = "indrnn_test_name"
 
         source = neoml.Dnn.Source(dnn, "source")
-        indrnn = neoml.Dnn.IndRnn(source, hidden_size, dropout_rate, reverse, name)
+        indrnn = neoml.Dnn.IndRnn(source, hidden_size, dropout_rate, reverse, activation, name)
         sink = neoml.Dnn.Sink(indrnn, "sink")
-        print(dnn.layers)
         layer = dnn.layers[name]
         self.assertEqual(layer.name, name)
 
@@ -2009,6 +2044,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(layer.hidden_size, hidden_size)
         self.assertAlmostEqual(indrnn.dropout_rate, dropout_rate, delta=1e-5)
         self.assertEqual(indrnn.reverse_sequence, reverse)
+        self.assertEqual(indrnn.activation, activation)
 
 
 class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):

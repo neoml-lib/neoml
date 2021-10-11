@@ -32,6 +32,9 @@ public:
 	void SetReverseSequence( bool reverse ) { Layer<CIndRnnLayer>()->SetReverseSequence( reverse ); }
 	bool GetReverseSequence() const { return Layer<CIndRnnLayer>()->IsReverseSequence(); }
 
+	void SetActivation( const std::string& activation );
+	std::string GetActivation() const;
+
 	void SetInputWeights( const CPyBlob& blob ) { Layer<CIndRnnLayer>()->SetInputWeights( blob.Blob() ); }
 	CPyBlob GetInputWeights() const { return CPyBlob( MathEngineOwner(), Layer<CIndRnnLayer>()->GetInputWeights() ); }
 
@@ -49,6 +52,31 @@ public:
 	}
 };
 
+void CPyIndRnnLayer::SetActivation( const std::string& activation )
+{
+	if( activation == "sigmoid" ) {
+		Layer<CIndRnnLayer>()->SetActivation( AF_Sigmoid );
+	} else if( activation == "relu" ) {
+		Layer<CIndRnnLayer>()->SetActivation( AF_ReLU );
+	} else {
+		assert( false );
+	}
+}
+
+std::string CPyIndRnnLayer::GetActivation() const
+{
+	TActivationFunction activation = Layer<CIndRnnLayer>()->GetActivation();
+	switch( activation ) {
+		case AF_Sigmoid:
+			return "sigmoid";
+		case AF_ReLU:
+			return "relu";
+		default:
+			assert( false );
+	}
+	return "";
+}
+
 void InitializeIndRnnLayer( py::module& m )
 {
 	py::class_<CPyIndRnnLayer, CPyLayer>( m, "IndRnn" )
@@ -56,7 +84,7 @@ void InitializeIndRnnLayer( py::module& m )
 			return new CPyIndRnnLayer( *layer.Layer<CIndRnnLayer>(), layer.MathEngineOwner() );
 		} ) )
 		.def( py::init([]( const std::string& name, const py::list& inputs, const py::list& input_outputs,
-			int hidden_size, float dropout_rate, bool reverse )
+			int hidden_size, float dropout_rate, bool reverse, std::string activation )
 		{
 			py::gil_scoped_release release;
 			CDnn& dnn = inputs[0].cast<CPyLayer>().Dnn();
@@ -67,6 +95,13 @@ void InitializeIndRnnLayer( py::module& m )
 			indRnn->SetDropoutRate( dropout_rate );
 			indRnn->SetReverseSequence( reverse );
 			indRnn->SetName( FindFreeLayerName( dnn, "IndRnn", name ).c_str() );
+			if( activation == "sigmoid" ) {
+				indRnn->SetActivation( AF_Sigmoid );
+			} else if( activation == "relu" ) {
+				indRnn->SetActivation( AF_ReLU );
+			} else {
+				assert( false );
+			}
 			dnn.AddLayer( *indRnn );
 
 			for( int i = 0; i < inputs.size(); ++i ) {
@@ -81,6 +116,8 @@ void InitializeIndRnnLayer( py::module& m )
 		.def( "get_dropout_rate", &CPyIndRnnLayer::GetDropoutRate, py::return_value_policy::reference )
 		.def( "get_reverse_sequence", &CPyIndRnnLayer::GetReverseSequence, py::return_value_policy::reference )
 		.def( "set_reverse_sequence", &CPyIndRnnLayer::SetReverseSequence, py::return_value_policy::reference )
+		.def( "get_activation", &CPyIndRnnLayer::GetActivation, py::return_value_policy::reference )
+		.def( "set_activation", &CPyIndRnnLayer::SetActivation, py::return_value_policy::reference )
 		.def( "get_input_weights", &CPyIndRnnLayer::GetInputWeights, py::return_value_policy::reference )
 		.def( "set_input_weights", &CPyIndRnnLayer::SetInputWeights, py::return_value_policy::reference )
 		.def( "get_recurrent_weights", &CPyIndRnnLayer::GetRecurrentWeights, py::return_value_policy::reference )
