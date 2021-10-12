@@ -908,6 +908,15 @@ static void compareBlobs( const CDnnBlob* expected, const CDnnBlob* actual, cons
 	}
 }
 
+namespace FObj {
+	inline void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
+		std::swap( a, b );
+	}
+	inline void swap( FObj::CArray<float>*& a, FObj::CArray < float >*& b ) {
+		std::swap( a, b );
+	}
+}
+
 static void ctcTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
