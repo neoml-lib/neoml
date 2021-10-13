@@ -254,6 +254,21 @@ class Layer:
         """Gets the layer name.
         """
         return self._internal.get_name()
+
+    @property
+    def learning_enabled(self):
+        """Gets whether the weights are frozen or not.
+        """
+        return self._internal.is_learning_enabled()
+
+    @learning_enabled.setter
+    def learning_enabled(self, value):
+        """Freezes or unfreezes the weights.
+        """
+        if value:
+            self._internal.enable_learning()
+        else:
+            self._internal.disable_learning()    
     
     def connect(self, layer, output_index=0, input_index=0):
         """Connects this layer to another.
