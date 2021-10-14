@@ -79,6 +79,13 @@ CBlobConvolution<FltCnt>::CJitConvolution::CJitConvolution( CBlobConvolution<Flt
         }
 
         epilogue();
+
+        // !!! This instruction should always be called at the end of AVX code.
+        // Intel® 64 and IA - 32 Architectures Optimization Reference Manual, item 11.3.1
+        // Assembly / Compiler Coding Rule 72. ( H impact, H generality ) Add VZEROUPPER instruction after
+        // 256 - bit AVX instructions are executed and before any function call that might execute SSE code.Add
+        // VZEROUPPER at the end of any function that uses 256 - bit AVX instructions.
+        vzeroupper();
         ret();
     };
 
