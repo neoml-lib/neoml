@@ -163,6 +163,7 @@ void CTransformerEncoderLayer::Reshape()
 	CheckArchitecture( GetHiddenSize() % GetHeadCount() == 0, GetName(), "HiddenSize must be a multiple of HeadCount" );
 	CheckArchitecture( GetInputCount() == 1 || GetInputCount() == 2, GetName(), "Layer must have 1 or 2 inputs" );
 	checkBlob( inputDescs[0], GetName(), "input data", -1, -1, 1, -1 );
+
 	if( GetInputCount() == 2 ) {
 		checkBlob( inputDescs[1], GetName(), "input mask", 1, 1, inputDescs[0].ListSize(), inputDescs[0].ListSize() );
 	}
