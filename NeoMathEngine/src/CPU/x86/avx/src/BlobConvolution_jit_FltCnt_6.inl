@@ -191,8 +191,8 @@ inline void CBlobConvolution<6>::CJitConvolution::fillSingleProcessingKernel( CB
     Ymm f = ymm9;
     Ymm temp[1] = { ymm15 };
 
-    const size_t srcNarrowStep = useNarrowProcessing ? bc.SrcYStep : 4 * bc.SrcXStep;
-    const size_t resNarrowStep = useNarrowProcessing ? bc.ResLineStride : 24;
+    const size_t srcNarrowStep = bc.SrcYStep;
+    const size_t resNarrowStep = bc.ResLineStride;
 
     initProcessingMainLoop( bc, &res[0], &temp[0], StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex,
             useNarrowProcessing, resNarrowStep );

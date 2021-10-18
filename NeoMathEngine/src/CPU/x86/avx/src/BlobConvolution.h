@@ -65,7 +65,7 @@ private:
         // Init JIT code main routine
         CJitConvolution( CBlobConvolution& bc, int yStepIndex );
 
-        void Run(  bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr );
+        void Run( bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr );
 
         static constexpr unsigned int NumFloatInYmm = 8;
         static constexpr unsigned int SizeOfYmm = NumFloatInYmm * sizeof( float );
@@ -82,20 +82,20 @@ private:
 #endif
 
         // Used in kernels:
-        const reg64_t regTempSrcPtr =  Xbyak::util::r10;
-        const reg64_t regTempFltPtr =  Xbyak::util::r11;
-        const reg64_t retTemp =  Xbyak::util::r14;
-        const reg64_t regNumSteps= Xbyak::util::r12;
-        const reg64_t regChCnt =  Xbyak::util::rax;
+        const reg64_t regTempSrcPtr = Xbyak::util::r10;
+        const reg64_t regTempFltPtr = Xbyak::util::r11;
+        const reg64_t retTemp = Xbyak::util::r14;
+        const reg64_t regNumSteps = Xbyak::util::r12;
+        const reg64_t regChCnt = Xbyak::util::rax;
 
         void prologue();
         void epilogue();
-        void labelAlign(Xbyak::Label &label, int alignment = 16) {
+        void labelAlign( Xbyak::Label& label, int alignment = 16 ) {
             align( alignment );
             L( label );
         }
 
-        void fillBatchProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex);
+        void fillBatchProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
         void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
 
         // Initialize result registers with data from freeTerm (if it isn't nullptr)
@@ -112,8 +112,10 @@ private:
         // Circular rotate y0, y1 and y2 to the left at 6 floats using 3 additional temporary registers.
         void rotateLeft6( Xbyak::Ymm& y0, Xbyak::Ymm& y1, Xbyak::Ymm& y2,
             Xbyak::Ymm& yt0, Xbyak::Ymm& yt1, Xbyak::Ymm& yt2 );
-        // Circular rotate y0, y1 and y2 to the left at 2 floats using 1 additional temporary register.
+        // Circular rotate y0 to the left at 2 floats using 1 additional temporary register.
         void rotateLeft2( Xbyak::Ymm& y, Xbyak::Ymm& yt );
+        // Circular rotate y to the right at 2
+        void rotateRight2( Xbyak::Ymm& dst, Xbyak::Ymm& src );
     };
 
     IMathEngine* mathEngine;
@@ -185,7 +187,7 @@ private:
     CSize getWideBatchProcessSize();
 
     // Process one line of image. In case of narrow processing we will step through several lines.
-    void processConvolutionLoop( int rxSize, bool , const float*& srcPtr, float*& resPtr, size_t windowIndex );
+    void processConvolutionLoop( int rxSize, bool, const float*& srcPtr, float*& resPtr, size_t windowIndex );
 
     void initJitCodes();
     void processLineWithJit( const float*& srcPtr, float*& resPtr, size_t lineIndex );
@@ -238,7 +240,7 @@ const int CBlobConvolution<FltCnt>::NarrowBatchKernelWidth = INT_MAX;
 
 class CBlobConvolutionFabric : public CCrtAllocatedObject {
 public:
-    static bool IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW );
+    static bool IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW, bool useJit );
     static std::unique_ptr<CBlobConvolutionBase> GetProperInstance(
         IMathEngine* mathEngine, int FltCnt,
         int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
@@ -262,6 +264,7 @@ public:
 
 // JIT
 #include <BlobConvolution_jit.inl>
+#include <BlobConvolution_jit_FltCnt_3.inl>
 #include <BlobConvolution_jit_FltCnt_6.inl>
 #include <BlobConvolution_jit_FltCnt_8.inl>
 #include <BlobConvolution_jit_FltCnt_16.inl>

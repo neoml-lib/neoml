@@ -307,4 +307,17 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::rotateLeft2(
     vblendps( y, y, yt, 0xf0 );
 }
 
+
+template<int FltCnt>
+inline void CBlobConvolution<FltCnt>::CJitConvolution::rotateRight2( Xbyak::Ymm& dst, Xbyak::Ymm& src )
+{
+    using namespace Xbyak;
+    Label labelPermuteIdx;
+
+    // before: 0 1 2 0 1 2 0 1
+    // after:  2 0 1 2 0 1 2 0
+
+    vpermilps( dst, src, _MM_SHUFFLE( 2, 1, 0, 2 ) );
+}
+
 } // namespace NeoML

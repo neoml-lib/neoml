@@ -15,66 +15,73 @@ limitations under the License.
 
 namespace NeoML {
 
-bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW )
+bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW, bool useJit )
 {
     if( FltH % 2 == 0 || FltW % 2 == 0 ) {
         return false;
     }
     if(
-            FltCnt == 32 ||
-            FltCnt == 24 ||
-            FltCnt == 18 ||
-            FltCnt == 16 ||
-            FltCnt == 8 ||
-            FltCnt == 6 ) {
+        FltCnt == 32 ||
+        FltCnt == 24 ||
+        FltCnt == 18 ||
+        ( FltCnt == 16 && useJit ) ||
+        ( FltCnt == 8 && useJit ) ||
+        FltCnt == 6 ||
+        ( FltCnt == 3 && useJit ) ) {
         return true;
     }
     return false;
 }
 
 std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
-        IMathEngine* mathEngine, int filterCount,
-        int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
-        int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-        int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt, bool useJit )
+    IMathEngine* mathEngine, int filterCount,
+    int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
+    int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
+    int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt, bool useJit )
 {
     switch( filterCount ) {
     case 32:
         return std::unique_ptr<CBlobConvolutionBase>(
-                    new CBlobConvolution<32>(
-                        mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
-                        paddingHeight, paddingWidth, strideHeight, strideWidth,
-                        dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit) );
+            new CBlobConvolution<32>(
+                mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+                paddingHeight, paddingWidth, strideHeight, strideWidth,
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
     case 24:
         return std::unique_ptr<CBlobConvolutionBase>(
-                    new CBlobConvolution<24>(
-                        mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
-                        paddingHeight, paddingWidth, strideHeight, strideWidth,
-                        dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
+            new CBlobConvolution<24>(
+                mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+                paddingHeight, paddingWidth, strideHeight, strideWidth,
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
     case 18:
         return std::unique_ptr<CBlobConvolutionBase>(
-                    new CBlobConvolution<18>(
-                        mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
-                        paddingHeight, paddingWidth, strideHeight, strideWidth,
-                        dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
+            new CBlobConvolution<18>(
+                mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+                paddingHeight, paddingWidth, strideHeight, strideWidth,
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
     case 16:
         return std::unique_ptr<CBlobConvolutionBase>(
-                    new CBlobConvolution<16>(
-                        mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
-                        paddingHeight, paddingWidth, strideHeight, strideWidth,
-                        dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, true ) );
+            new CBlobConvolution<16>(
+                mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+                paddingHeight, paddingWidth, strideHeight, strideWidth,
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, true ) );
     case 8:
         return std::unique_ptr<CBlobConvolutionBase>(
-                    new CBlobConvolution<8>(
-                        mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
-                        paddingHeight, paddingWidth, strideHeight, strideWidth,
-                        dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, true ) );
+            new CBlobConvolution<8>(
+                mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+                paddingHeight, paddingWidth, strideHeight, strideWidth,
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, true ) );
     case 6:
         return std::unique_ptr<CBlobConvolutionBase>(
-                    new CBlobConvolution<6>(
-                        mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
-                        paddingHeight, paddingWidth, strideHeight, strideWidth,
-                        dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
+            new CBlobConvolution<6>(
+                mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+                paddingHeight, paddingWidth, strideHeight, strideWidth,
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
+    case 3:
+        return std::unique_ptr<CBlobConvolutionBase>(
+            new CBlobConvolution<3>(
+                mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
+                paddingHeight, paddingWidth, strideHeight, strideWidth,
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, true ) );
     default:
         return nullptr;
     }
@@ -84,9 +91,9 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
 
 template<int FltCnt>
 CBlobConvolution<FltCnt>::CBlobConvolution(
-        IMathEngine* _mathEngine, int channelCount, int filterHeight, int filterWidth,
-        int sourceHeight, int sourceWidth, int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-        int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt, bool useJit ) :
+    IMathEngine* _mathEngine, int channelCount, int filterHeight, int filterWidth,
+    int sourceHeight, int sourceWidth, int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
+    int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt, bool useJit ) :
     mathEngine( _mathEngine ),
     ChCnt( channelCount ),
     FltH( filterHeight ),
@@ -124,7 +131,7 @@ CBlobConvolution<FltCnt>::CBlobConvolution(
 
 template<int FltCnt>
 void CBlobConvolution<FltCnt>::ProcessConvolution(
-        int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
+    int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
 {
     CFloatHandleStackVar filterTempBuffer( *mathEngine, FltW * FltH * FltCntM8 * ChCnt );
     CFloatHandleStackVar freeTermTempBuffer( *mathEngine, FltCntM8 );
@@ -220,7 +227,7 @@ inline typename CBlobConvolution<FltCnt>::CSize CBlobConvolution<FltCnt>::getNar
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::batchProcess( const float* , float* resPtr, size_t, bool )
+inline void CBlobConvolution<FltCnt>::batchProcess( const float*, float* resPtr, size_t, bool )
 {
     // dummy function
 }
@@ -310,16 +317,13 @@ const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData,
             for( int c = 0; c < ChCnt; c++ ) {
                 const float* srcFilter = filterData + ( x + y * FltW ) * ChCnt + c;
                 for( int f = 0; f < FltCnt; f++ ) {
-                    *resFilter++ = *srcFilter;
+                    resFilter[f] = *srcFilter;
                     srcFilter += FltW * FltH * ChCnt;
                 }
-                if( FltCntM8 != FltCnt ) {
-                    srcFilter = filterData + ( x + y * FltW ) * ChCnt + c;
-                    for( int f = 0; f < FltCntM8 - FltCnt; f++ ) {
-                        *resFilter++ = *srcFilter;
-                        srcFilter += FltW * FltH * ChCnt;
-                    }
+                for( int f = FltCnt; f < FltCntM8; f++ ) {
+                    resFilter[f] = resFilter[f % FltCnt];
                 }
+                resFilter += FltCntM8;
             }
         }
     }
@@ -338,14 +342,8 @@ const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermD
     float* resFreeTerm = resFreeTermStartPtr;
     ASSERT_EXPR( reinterpret_cast< uintptr_t >( resFreeTerm ) % AvxAlignment == 0 );
 
-    for( int f = 0; f < FltCnt; f++ ) {
-        *resFreeTerm++ = *freeTermData++;
-    }
-    if( FltCnt != FltCntM8 ) {
-        freeTermData -= FltCnt;
-        for( int f = 0; f < FltCnt; f++ ) {
-            *resFreeTerm++ = *freeTermData++;
-        }
+    for( int f = 0; f < FltCntM8; f++ ) {
+        *resFreeTerm++ = freeTermData[f % FltCnt];
     }
     return resFreeTermStartPtr;
 }
@@ -430,8 +428,8 @@ void CBlobConvolution<FltCnt>::fillPixelOffset()
         for( int i = 0; i < pixelOffsetSrcSteps.size(); i++ ) {
             const int halfFDim = fDim / 2;
             ret[i] = make_pair(
-                        min( pixelOffsetSrcSteps[i] / dDim, halfFDim ),
-                        min( ( ( srcDim - 1 ) - pixelOffsetSrcSteps[i] ) / dDim, halfFDim ) );
+                min( pixelOffsetSrcSteps[i] / dDim, halfFDim ),
+                min( ( ( srcDim - 1 ) - pixelOffsetSrcSteps[i] ) / dDim, halfFDim ) );
         }
         return ret;
     };
@@ -450,7 +448,7 @@ void CBlobConvolution<FltCnt>::fillPixelOffset()
                 auto it_offt = it->begin();
                 for( int i = -y.first; i <= y.second; i++ ) {
                     for( int j = -x.first; j <= x.second; j++ ) {
-                        *it_offt++ = static_cast<int>( i * hStride + j * wStride );
+                        *it_offt++ = static_cast< int >( i * hStride + j * wStride );
                     }
                 }
                 it++;

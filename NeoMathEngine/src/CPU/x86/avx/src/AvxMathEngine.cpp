@@ -68,7 +68,7 @@ CConvolutionDesc* CAvxMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
 	const CBlobDesc& result, bool useJit ) const
 {
-	if( CBlobConvolutionFabric::IsBlobConvolutionAvailable( filter.BatchWidth() , filter.Height(), filter.Width() ) ) {
+	if( CBlobConvolutionFabric::IsBlobConvolutionAvailable( filter.BatchWidth() , filter.Height(), filter.Width(), useJit ) ) {
 		return new CAvxConvolutionDesc( mathEngine, source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth, useJit );
 	}
 	return nullptr;
