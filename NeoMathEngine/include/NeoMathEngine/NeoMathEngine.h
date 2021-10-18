@@ -86,7 +86,6 @@ public:
 	virtual void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) = 0;
 	// The resultHandle is not set to null
 	virtual void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) = 0;
-	virtual void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) = 0;
 	// Sum of blob elements along dimension with size `dimension`
 	virtual void VectorSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle) = 0;
@@ -329,10 +328,6 @@ public:
 	virtual void VectorSpreadValues(const CConstFloatHandle& sourceHandle, CFloatHandle* vectors, int vectorCount,
 		const CConstIntHandle& indexHandle, int vectorSize) = 0;
 
-	// elementwise LogSumExp: result[i] = log(exp(first[i]) + exp(second[i]))
-	virtual void VectorEltwiseLogSumExp(const CConstFloatHandle& first, const CConstFloatHandle& second,
-		const CFloatHandle& result, int vectorSize) = 0;
-
 	virtual void VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result, const CIntHandle& indices) = 0;
 
 	virtual void VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
@@ -354,17 +349,6 @@ public:
 		const CConstIntHandle& indices, const CConstFloatHandle& vector) = 0;
 	// Adds the vector elements to the matrix elements; the indices in both rows and columns are specified
 	virtual void AddVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize) = 0;
-	// Assigns the values: matrix[rowIndices[i], columnIndices[i]] = vector[i].
-	virtual void SetVectorToMatrixElements(
-		const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize ) = 0;
-	// Elementwise LogSumExp of vector elements with matrix elements (the indices of matrix elements in the rows are specified)
-	virtual void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& indices, const CConstFloatHandle& vector) = 0;
-	virtual void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
 		const CConstFloatHandle& vector, int vectorSize) = 0;
 	// Reverse functions: adding the specified matrix elements to the vector
@@ -419,8 +403,6 @@ public:
 		int height, int width, const CFloatHandle& result) = 0;
 
 	// Vector operations over matrix columns
-	// log(exp(x0) + ... + exp(xn)), the result is a vector with "width" elements
-	virtual void MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result, int resultSize) = 0;
 	// softmax : exp(xi) / (exp(x0) + ... + exp(xn))
 	virtual void MatrixSoftmaxByColumns(const CConstFloatHandle& matrix, int height, int width,
 		const CFloatHandle& result) = 0;
@@ -914,6 +896,31 @@ public:
 	virtual void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) = 0;
+
+	// CTC
+
+	// Calculates CTC loss (and gradient if needed)
+	// optional handles may be passed as empty CTypedMemoryHandle<T>()
+	// params:
+	//     resultLen - number of timesteps in the network result
+	//     batchSize - number of independent sequences in the batch
+	//     classCount - number of classes in the task (length of the probability vectors)
+	//     labelLen - number fo timesteps in the labels
+	//     blankLabel - index of the class used for blanks
+	//     skipBlank - indicates if blank labels may be skipped during alignment
+	// input data:
+	//     result - network result (resultLen x batchSize x classCount)
+	//     labels - class labels (labelLen x batchSize)
+	//     labelLens - (optional) lengths of sequences in labels (batchSize)
+	//     resultLens - (optional) lengths of sequences in result (batchSize)
+	//     labelWeights - (optional) weights of sequences in the batch (batchSize)
+	// output data:
+	//     loss - loss value (1)
+	//     lossGradient - (optional) lossGradient (resultLen x batchSize x classCount)
+	virtual void CtcLossForward(int resultLen, int batchSize, int classCount, int labelLen, int blankLabel, bool skipBlanks,
+		const CConstFloatHandle& result, const CConstIntHandle& labels,
+		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
+		const CFloatHandle& loss, const CFloatHandle& lossGradient ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

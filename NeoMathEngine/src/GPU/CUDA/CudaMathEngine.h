@@ -79,7 +79,6 @@ public:
 		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth ) override;
 	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
-	void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle ) override;
 	void VectorCumSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
@@ -230,8 +229,6 @@ public:
 		const CIntHandle& indexHandle, int vectorSize) override;
 	void VectorSpreadValues(const CConstFloatHandle& sourceHandle, CFloatHandle* vectors, int vectorCount,
 		const CConstIntHandle& indexHandle, int vectorSize) override;
-	void VectorEltwiseLogSumExp(const CConstFloatHandle& first, const CConstFloatHandle& second,
-		const CFloatHandle& result, int vectorSize) override;
 	void VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result, const CIntHandle& indices) override;
 	void VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
 		const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad) override;
@@ -242,15 +239,6 @@ public:
 	void AddVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& indices, const CConstFloatHandle& vector) override;
 	void AddVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize) override;
-	void SetVectorToMatrixElements(
-		const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize ) override;
-	void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& indices, const CConstFloatHandle& vector) override;
-	void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
 		const CConstFloatHandle& vector, int vectorSize) override;
 	void AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
@@ -282,7 +270,6 @@ public:
 	void MatrixSoftmaxByRows(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result) override;
 	void MatrixSoftmaxDiffOpByRows(const CConstFloatHandle& first, const CConstFloatHandle& second,
 		int height, int width, const CFloatHandle& result) override;
-	void MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result, int resultSize) override;
 	void MatrixSoftmaxByColumns(const CConstFloatHandle& matrix, int height, int width,
 		const CFloatHandle& result) override;
 	void MatrixSoftmaxDiffOpByColumns(const CConstFloatHandle& first, const CConstFloatHandle& second,
@@ -530,6 +517,10 @@ public:
 	void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) override;
+	void CtcLossForward(int resultLen, int batchSize, int classCount, int labelLen, int blankLabel, bool skipBlanks,
+		const CConstFloatHandle& result, const CConstIntHandle& labels,
+		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
+		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:
@@ -606,6 +597,21 @@ private:
 		int firstHeight, int firstWidth, int firstRowSize,
 		const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize );
+	
+	void setVectorToMatrixElements( const CFloatHandle& matrix, int height, int width,
+		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
+		const CConstFloatHandle& vector, int vectorSize );
+	void ctcFillPadding( int maxSeqLen, int batchSize, int classCount,
+		const CFloatHandle& dataHandle, const CConstIntHandle& seqLensHandle );
+	void ctcCalcForwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+		const CConstFloatHandle& blankSkipMask, const CConstFloatHandle& resultLogProbMask, const CFloatHandle& logAlpha );
+	void ctcCalcBackwardVariables( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+		const CConstFloatHandle& blankSkipMask, const CConstFloatHandle& resultLogProbMask, const CConstIntHandle& resultLens,
+		const CConstIntHandle& labelLens, const CFloatHandle& logBeta );
+	void ctcCalcGradient( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
+		const CConstFloatHandle& resultProb, const CConstFloatHandle& logAlphaBeta,
+		const CConstIntHandle& padLabels, const CConstIntHandle& resultLens,
+		const CFloatHandle& totalLogProb, const CFloatHandle& lossGradient );
 };
 
 inline void CCudaMathEngine::VectorReLUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
