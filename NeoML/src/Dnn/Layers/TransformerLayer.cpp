@@ -25,9 +25,6 @@ namespace NeoML {
 static const char* selfAttentionName = "SelfAttention";
 static const char* selfAttentionSumName = "SelfAttentionSum";
 static const char* dropoutSelfAttentionName = "DropoutSelfAttention";
-static const char* mheadAttentionName = "MheadAttention";
-static const char* mheadAttentionSumName = "MheadAttentionSum";
-static const char* dropoutMheadAttentionName = "DropoutMheadAttention";
 static const char* fc1Name = "FullyConnected1";
 static const char* activationName = "Activation";
 static const char* dropoutFc1Name = "DropoutFc1";
