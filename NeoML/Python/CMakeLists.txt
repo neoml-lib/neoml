@@ -92,6 +92,7 @@ pybind11_add_module(PythonWrapper
     src/PySubSequenceLayer.cpp
     src/PyTiedEmbeddingsLayer.cpp
     src/PyTrainingModel.cpp
+    src/PyTransformerLayer.cpp
     src/PyTransformLayer.cpp
     src/PyTransposeLayer.cpp
     src/PyUpsampling2DLayer.cpp
