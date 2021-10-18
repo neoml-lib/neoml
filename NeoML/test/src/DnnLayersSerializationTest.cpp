@@ -2341,3 +2341,38 @@ GTEST_TEST( SerializeFromFile, CastLayerSerialization )
 {
 	checkSerializeLayer<CCastLayer>( "NeoMLDnnCastLayer" );
 }
+
+// ====================================================================================================================
+
+// CTransformerEncoderLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CTransformerEncoderLayer& layer )
+{
+	layer.SetHeadCount( 6 );
+	layer.SetHiddenSize( 36 );
+	layer.SetDropoutRate( 0.2f );
+	layer.SetFeedForwardSize( 16 );
+}
+
+GTEST_TEST( SerializeToFile, TransformerEncoderLayerSerialization )
+{
+	serializeToFile<CTransformerEncoderLayer>( "NeoMLDnnTransformerEncoderLayer" );
+}
+
+#endif
+
+template<>
+inline void checkSpecificParams<CTransformerEncoderLayer>( CTransformerEncoderLayer& layer )
+{
+	EXPECT_EQ( 6, layer.GetHeadCount() );
+	EXPECT_EQ( 36, layer.GetHiddenSize() );
+	EXPECT_NEAR( 0.2f, layer.GetDropoutRate(), 1e-6f );
+	EXPECT_EQ( 16, layer.GetFeedForwardSize() );
+}
+
+GTEST_TEST( SerializeFromFile, TransformerEncoderLayerSerialization )
+{
+	checkSerializeLayer<CTransformerEncoderLayer>( "NeoMLDnnTransformerEncoderLayer" );
+}
