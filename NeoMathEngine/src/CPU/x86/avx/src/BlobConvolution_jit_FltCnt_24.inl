@@ -253,3 +253,5 @@ inline void CBlobConvolution<24>::CJitConvolution::fillSingleProcessingKernel( C
     // End of code
     L( labelFillProcessingKernelEnd );
 }
+
+} // namespace NeoML
