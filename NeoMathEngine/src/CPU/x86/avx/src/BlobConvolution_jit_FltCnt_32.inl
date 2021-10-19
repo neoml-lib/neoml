@@ -93,7 +93,6 @@ inline void CBlobConvolution<32>::CJitConvolution::fillSingleProcessingKernel( C
     Ymm res[4] = { ymm0, ymm1, ymm2, ymm3 };
     Xmm s = xmm4;
     Ymm st0 = ymm5;
-    Xmm st0_toXmm = xmm5;
     Ymm f[4] = { ymm6, ymm7, ymm8, ymm9 };
 
     initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
@@ -105,11 +104,11 @@ inline void CBlobConvolution<32>::CJitConvolution::fillSingleProcessingKernel( C
     // isLast - true if it is last of channel chank (we can skip src and flt pointers incrementing )
     auto fillKernel = [&]( int channelCount, bool isLast ) {
         // stepCount <= 4
-        movups( s, ptr[regTempSrcPtr] );
+        vmovups( s, ptr[regTempSrcPtr] );
         for( int i = 0; i < channelCount; i++ ) {
             unsigned int mask = i * 0x55;
-            vpermilps( st0_toXmm, s, mask );
-            vinsertf128( st0, st0, st0_toXmm, 1);
+            vpermilps( st0.copyAndSetKind( Operand::XMM ), s, mask );
+            vinsertf128( st0, st0, st0.copyAndSetKind( Operand::XMM ), 1);
 
             vmovups( f[0], ptr[regTempFltPtr + ( StepSize * i + 0 ) * SizeOfYmm] );
             vmovups( f[1], ptr[regTempFltPtr + ( StepSize * i + 1 ) * SizeOfYmm] );

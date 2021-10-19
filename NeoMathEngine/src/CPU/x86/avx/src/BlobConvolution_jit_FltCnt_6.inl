@@ -187,7 +187,6 @@ inline void CBlobConvolution<6>::CJitConvolution::fillSingleProcessingKernel( CB
     Ymm res[3] = { ymm0,  ymm1, ymm2 };
     Xmm s[3] = { xmm3, xmm4, xmm5 };
     Ymm st[3] = { ymm6, ymm7, ymm8 };
-    Xmm st_toXmm[3] = { xmm6, xmm7, xmm8 };
     Ymm f = ymm9;
     Ymm temp[1] = { ymm15 };
 
@@ -204,22 +203,22 @@ inline void CBlobConvolution<6>::CJitConvolution::fillSingleProcessingKernel( CB
     // isLast - true if it is last of channel chank (we can skip src and flt pointers incrementing )
     auto fillKernel = [&]( int channelCount, bool isLast ) {
         // stepCount <= 4
-        movups( s[0], ptr[regTempSrcPtr] );
+        vmovups( s[0], ptr[regTempSrcPtr] );
         if( useNarrowProcessing ) {
-            movups( s[1], ptr[regTempSrcPtr + srcNarrowStep * sizeof( float )] );
-            movups( s[2], ptr[regTempSrcPtr + srcNarrowStep * (2 * sizeof( float ) )] );
+            vmovups( s[1], ptr[regTempSrcPtr + srcNarrowStep * sizeof( float )] );
+            vmovups( s[2], ptr[regTempSrcPtr + srcNarrowStep * (2 * sizeof( float ) )] );
         }
         for( int i = 0; i < channelCount; i++ ) {
             unsigned int mask = i * 0x55;
-            vpermilps( st_toXmm[0], s[0], mask );
+            vpermilps( st[0].copyAndSetKind( Operand::XMM ), s[0], mask );
             if( useNarrowProcessing ) {
-                vpermilps( st_toXmm[1], s[1], mask );
-                vpermilps( st_toXmm[2], s[2], mask );
+                vpermilps( st[1].copyAndSetKind( Operand::XMM ), s[1], mask );
+                vpermilps( st[2].copyAndSetKind( Operand::XMM ), s[2], mask );
             }
-            vinsertf128( st[0], st[0], st_toXmm[0], 1);
+            vinsertf128( st[0], st[0], st[0].copyAndSetKind( Operand::XMM ), 1);
             if( useNarrowProcessing ) {
-                vinsertf128( st[1], st[1], st_toXmm[1], 1);
-                vinsertf128( st[2], st[2], st_toXmm[2], 1);
+                vinsertf128( st[1], st[1], st[1].copyAndSetKind( Operand::XMM ), 1);
+                vinsertf128( st[2], st[2], st[2].copyAndSetKind( Operand::XMM ), 1);
             }
 
             vmovups( f, ptr[regTempFltPtr + ( StepSize * i + 0 ) * SizeOfYmm] );
