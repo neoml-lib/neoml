@@ -177,7 +177,7 @@ inline void CBlobConvolution<3>::CJitConvolution::fillSingleProcessingKernel( CB
 	// We haven't enough ymm registers, therefore we will use only two temporary ones.
 	Ymm tempRes[2] = { ymm14, ymm15 };
 	Ymm s[3][2] = { { ymm3, ymm4 }, { ymm5, ymm6 }, { ymm7, ymm8 } };
-	Ymm f[3] = { ymm9, ymm10 };
+	Ymm f[2] = { ymm9, ymm10 };
 	Ymm t[3] = { ymm11, ymm12, ymm13 };
 
 	const size_t srcNarrowStep = bc.SrcYStep;
