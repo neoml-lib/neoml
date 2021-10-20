@@ -42,13 +42,13 @@ inline void CBlobConvolution<32>::CJitConvolution::fillBatchProcessingKernel( CB
             size_t fltOffset = i * FltCntM8 * sizeof( float );
             size_t srcOffset = i * sizeof( float );
             // Load one channel from one pixels in sequenced windows and fill one ymm register with its value.
-            vbroadcastss( st[0], ptr[regTempSrcPtr] );
-            vbroadcastss( st[1], ptr[regTempSrcPtr + bc.SrcXStep * sizeof( float )] );
+            vbroadcastss( st[0], ptr[regTempSrcPtr + srcOffset] );
+            vbroadcastss( st[1], ptr[regTempSrcPtr + srcOffset + bc.SrcXStep * sizeof( float )] );
             // Load one channel for the same pixel as in source for all filters.
-            vmovups( f[0], ptr[regTempFltPtr] );
-            vmovups( f[1], ptr[regTempFltPtr + SizeOfYmm] );
-            vmovups( f[2], ptr[regTempFltPtr + 2 * SizeOfYmm] );
-            vmovups( f[3], ptr[regTempFltPtr + 3 * SizeOfYmm] );
+            vmovups( f[0], ptr[regTempFltPtr + fltOffset] );
+            vmovups( f[1], ptr[regTempFltPtr + fltOffset + SizeOfYmm] );
+            vmovups( f[2], ptr[regTempFltPtr + fltOffset + 2 * SizeOfYmm] );
+            vmovups( f[3], ptr[regTempFltPtr + fltOffset + 3 * SizeOfYmm] );
             // Take result for current pixels in three sequenced windows.
             // Multiply one channel for all filters ( for ONE src/flt pixels )
             vfmadd231ps( res[0][0], f[0], st[0] );
@@ -113,44 +113,53 @@ inline void CBlobConvolution<32>::CJitConvolution::fillSingleProcessingKernel( C
     const int StepSize = 4;
 
     Ymm res[4] = { ymm0, ymm1, ymm2, ymm3 };
-    Xmm s = xmm4;
-    Ymm st0 = ymm5;
-    Ymm f[4] = { ymm6, ymm7, ymm8, ymm9 };
+    Ymm s[2] = { ymm5, ymm6 };
+    Ymm f[2][4] = { { ymm7, ymm8, ymm9, ymm10 }, { ymm11, ymm12, ymm13, ymm14 } };
 
     initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
 
     ////////////////////////////////////////////////////////////////////////////////////////////
 
-    const int BatchStepSize = 4;
-    // channelCount - number of channels for frocessing
-    // isLast - true if it is last of channel chank (we can skip src and flt pointers incrementing )
-    auto fillKernel = [&]( int channelCount, bool isLast ) {
-        // stepCount <= 4
-        vmovups( s, ptr[regTempSrcPtr] );
-        for( int i = 0; i < channelCount; i++ ) {
-            unsigned int mask = i * 0x55;
-            vpermilps( st0.copyAndSetKind( Operand::XMM ), s, mask );
-            vinsertf128( st0, st0, st0.copyAndSetKind( Operand::XMM ), 1);
+    // channelCount - number of channels for processing
+    auto fillKernel = [&]( int channelCount ) {
+        const int InnerBatchStepSize = 2;
+        int offset = 0;
+        for( int batchStep = channelCount; batchStep > 0; batchStep -= InnerBatchStepSize ) {
+            const int innerChannelCount = min( InnerBatchStepSize, batchStep );
+            size_t fltOffset = offset * FltCntM8 * sizeof( float );
+            size_t srcOffset = offset * sizeof( float );
 
-            vmovups( f[0], ptr[regTempFltPtr + ( StepSize * i + 0 ) * SizeOfYmm] );
-            vmovups( f[1], ptr[regTempFltPtr + ( StepSize * i + 1 ) * SizeOfYmm] );
-            vmovups( f[2], ptr[regTempFltPtr + ( StepSize * i + 2 ) * SizeOfYmm] );
-            vmovups( f[3], ptr[regTempFltPtr + ( StepSize * i + 3 ) * SizeOfYmm] );
+            // Load channels
+            for( int i = 0; i < innerChannelCount; i++ ) {
+                vbroadcastss( s[i], ptr[regTempSrcPtr + srcOffset + i * sizeof( float )] );
+            }
 
-            vfmadd231ps( res[0], f[0], st0 );
-            vfmadd231ps( res[1], f[1], st0 );
-            vfmadd231ps( res[2], f[2], st0 );
-            vfmadd231ps( res[3], f[3], st0 );
+            // Load filters
+            for( int i = 0; i < innerChannelCount; i++ ) {
+                vmovups( f[i][0], ptr[regTempFltPtr + fltOffset + i * FltCntM8 * sizeof( float ) + 0 * SizeOfYmm] );
+                vmovups( f[i][1], ptr[regTempFltPtr + fltOffset + i * FltCntM8 * sizeof( float ) + 1 * SizeOfYmm] );
+                vmovups( f[i][2], ptr[regTempFltPtr + fltOffset + i * FltCntM8 * sizeof( float ) + 2 * SizeOfYmm] );
+                vmovups( f[i][3], ptr[regTempFltPtr + fltOffset + i * FltCntM8 * sizeof( float ) + 3 * SizeOfYmm] );
+            }
 
+            // Store data into temporary regs
+            for( int i = 0; i < innerChannelCount; i++ ) {
+                vfmadd231ps( res[0], f[i][0], s[i] );
+                vfmadd231ps( res[1], f[i][1], s[i] );
+                vfmadd231ps( res[2], f[i][2], s[i] );
+                vfmadd231ps( res[3], f[i][3], s[i] );
+            }
+            offset += innerChannelCount;
         }
-        if( !isLast ) {
-            add( regTempFltPtr, StepSize * channelCount * SizeOfYmm );
-        }
+
+        // Go to next channel in filter and source
+        add( regTempFltPtr, channelCount * FltCntM8 * sizeof( float ) );
+        add( regTempSrcPtr, channelCount * sizeof( float ) );
     };
 
-    // Single process kernell function
-    int singleStepCount = bc.ChCnt % BatchStepSize;
+    const int BatchStepSize = 8;
     int batchStepCount = bc.ChCnt / BatchStepSize;
+    int remainedStepCount = bc.ChCnt % BatchStepSize;
 
     L( labelProcessingKernel );
     // Process kernels in group
@@ -163,13 +172,8 @@ inline void CBlobConvolution<32>::CJitConvolution::fillSingleProcessingKernel( C
             cmp( regChCnt, batchStepCount );
             je( labelProcessingKernelEnd, T_NEAR );
         }
-        // Only one batch step
-        bool isLast = ( singleStepCount == 0 ) && ( batchStepCount == 1 );
-        fillKernel( 4, isLast );
 
-        if( !isLast ) {
-            add( regTempSrcPtr, BatchStepSize * sizeof( float ) );
-        }
+        fillKernel( BatchStepSize );
 
         if( batchStepCount > 1 ) {
             // } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
@@ -180,10 +184,10 @@ inline void CBlobConvolution<32>::CJitConvolution::fillSingleProcessingKernel( C
         L( labelProcessingKernelEnd );
     }
 
-    // Process remained kernels one by one
-    if( singleStepCount  ) {
-        fillKernel( singleStepCount, true );
+    if( remainedStepCount > 0 ) {
+        fillKernel( remainedStepCount );
     }
+
     ret();
     // End of code
     L( labelFillProcessingKernelEnd );
