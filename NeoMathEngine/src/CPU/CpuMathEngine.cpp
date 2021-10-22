@@ -244,6 +244,19 @@ IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters() const
 #endif
 }
 
+void CCpuMathEngine::SetDistributedCommunicator( std::shared_ptr<IDistributedCommunicator> comm, const CMathEngineDistributedInfo& info )
+{
+	communicator = static_pointer_cast<CMultiThreadDistributedCommunicator>( comm );
+	distributedInfo = info;
+}
+
+void CCpuMathEngine::AllReduce( const CFloatHandle& handle, int size )
+{
+	if( communicator != nullptr ){
+		communicator->AllReduce( handle, size );
+	}
+}
+
 void CpuMathEngineCleanUp()
 {
 #ifdef NEOML_USE_MKL

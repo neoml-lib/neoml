@@ -27,6 +27,9 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
 #include <climits>
+#include <vector>
+#include <memory>
+#include <initializer_list>
 
 namespace NeoML {
 
@@ -925,6 +928,21 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
+// The position in distributed system
+struct CMathEngineDistributedInfo {
+	int Thread; // number among all threads
+	int Threads; // number of all threads
+
+	CMathEngineDistributedInfo() : Thread( 1 ), Threads( 1 ) {};
+	CMathEngineDistributedInfo( int thread, int threads ) : Thread( thread ), Threads( threads ) {};
+};
+
+struct IDistributedCommunicator {
+	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
+};
+
+//------------------------------------------------------------------------------------------------------------
+
 // The maximum number of blobs in split or merge operations
 const int MaxBlobDescs = 32;
 
@@ -1010,6 +1028,10 @@ public:
 	// Creates a object for aggregating statistics.
 	// This object should be destroyed using the standard delete operator after use.
 	virtual IPerformanceCounters* CreatePerformanceCounters() const = 0;
+
+	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
+	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
+	virtual void SetDistributedCommunicator( std::shared_ptr<IDistributedCommunicator> comm, const CMathEngineDistributedInfo& info ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1068,6 +1090,9 @@ public:
 // Should be destroyed after use with the standard delete operator
 // You should call SetMathEngineExceptionHandler() before this call
 NEOMATHENGINE_API IGpuMathEngineManager* CreateGpuMathEngineManager();
+
+NEOMATHENGINE_API void CreateDistributedMathEngines( std::vector<std::unique_ptr<IMathEngine>>& mathEngines,
+	TMathEngineType type, int count, std::initializer_list<int> devs );
 
 } // namespace NeoML
 

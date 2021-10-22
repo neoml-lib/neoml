@@ -24,6 +24,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
     CPU/CpuMathEngineVectorMath.cpp
+    CPU/CpuMathEngineDnnDistributed.cpp
     CrtAllocatedObject.cpp
     DllLoader.cpp
     MathEngineDeviceStackAllocator.cpp
@@ -50,6 +51,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuRandom.h
     CPU/CpuMathEnginePrivate.h
     CPU/CpuMathEngineOmp.h
+    CPU/CpuMathEngineDnnDistributed.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
@@ -178,7 +180,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         list(GET NEOML_CUDA_VERSION_LIST 0 NEOML_CUDA_VERSION_MAJOR)
         list(GET NEOML_CUDA_VERSION_LIST 1 NEOML_CUDA_VERSION_MINOR)
 
-        if(NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11" OR NOT "${NEOML_CUDA_VERSION_MINOR}" STREQUAL "2")
+        if(NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11")
             if(USE_FINE_OBJECTS)
                 # Internal build must fail in case of version mismatch
                 message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
@@ -217,6 +219,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CudaMathEngineDnnTimeConv.cu
                     GPU/CUDA/CudaMathEngine.cu
                     GPU/CUDA/CudaMathEngineVectorMath.cu
+                    GPU/CUDA/CudaMathEngineDnnDistributed.cpp
                     # Headers
                     GPU/CUDA/CublasDll.h
                     GPU/CUDA/CublasFunctions.h
@@ -248,11 +251,24 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/Kernels/CudaRandom.h
                     GPU/CUDA/Kernels/CudaReduce.h
                     GPU/CUDA/Kernels/CudaVectorMathKernels.h
+                    GPU/CUDA/CudaMathEngineDnnDistributed.h
             )
             target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/CUDA>)
             target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>)
             source_group("GPU\\CUDA" REGULAR_EXPRESSION "GPU\/CUDA\/[A-Za-z0-9_]+\.(h|cpp|cu)")
             source_group("GPU\\CUDA\\Kernels" REGULAR_EXPRESSION "GPU\/CUDA\/Kernels\/.+")
+
+            find_path(NCCL_INCLUDE_DIR NAMES nccl.h PATHS ${NCCL_ROOT_DIR}/include)
+            find_library(NCCL_LIBRARY NAMES nccl PATHS ${NCCL_ROOT_DIR}/lib ${NCCL_ROOT_DIR}/lib64)
+            include(FindPackageHandleStandardArgs)
+            find_package_handle_standard_args(NCCL DEFAULT_MSG NCCL_INCLUDE_DIR NCCL_LIBRARY)
+
+	        if (NCCL_FOUND)
+		        message(STATUS "Found NCCL (include: ${NCCL_INCLUDE_DIR}, library: ${NCCL_LIBRARY})")
+                target_compile_definitions(${PROJECT_NAME} PUBLIC -D NEOML_USE_NCCL)
+		        target_include_directories(${PROJECT_NAME} PRIVATE ${NCCL_INCLUDE_DIR})
+                target_link_libraries(${PROJECT_NAME} PRIVATE ${NCCL_LIBRARY})
+            endif ()
         endif()
     else()
         message(STATUS "No CUDA support.")
@@ -462,3 +478,5 @@ if(NeoMathEngine_INSTALL)
         endif()
     endif()
 endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE dl)

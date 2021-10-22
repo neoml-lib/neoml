@@ -21,6 +21,7 @@ limitations under the License.
 #include <DllLoader.h>
 #include <mutex>
 #include <memory>
+#include <CpuMathEngineDnnDistributed.h>
 
 namespace NeoML {
 
@@ -515,7 +516,9 @@ public:
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
-
+	void SetDistributedCommunicator( std::shared_ptr<IDistributedCommunicator> comm, const CMathEngineDistributedInfo& info ) override;
+	void AllReduce( const CFloatHandle& handle, int size ) override;
+	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
 protected:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
@@ -528,6 +531,8 @@ private:
 	const std::unique_ptr<CMemoryPool> memoryPool; // the memory manager
 	const std::unique_ptr<CDeviceStackAllocator> stackAllocator; // the stack memory allocator
 	mutable std::mutex mutex; // to protect the allocations
+	std::shared_ptr<CMultiThreadDistributedCommunicator> communicator;
+	CMathEngineDistributedInfo distributedInfo;
 
 	CDllLoader dllLoader; // loading library for simd instructions
 	std::unique_ptr<const ISimdMathEngine> simdMathEngine; // interface for using simd instructions

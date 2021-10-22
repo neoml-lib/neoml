@@ -58,6 +58,9 @@ public:
 	// because the archive may be reading/writing with offset from the file beginning
 	__int64 GetPosition() const;
 	int GetPosition32() const;
+	// Navigate through file
+	__int64 Seek( __int64 offset, CBaseFile::TSeekPosition from );
+	int Seek32( int offset, CBaseFile::TSeekPosition from );
 	// Gets the current archive length
 	// Note that it may not be the same as file length because some of the data may not have been written into the file yet
 	__int64 GetLength() const;
@@ -365,6 +368,46 @@ inline __int64 CArchive::GetPosition() const
 	} else {
 		return filePosition - beginOfArchive + static_cast<__int64>( currentPosition );
 	}
+}
+
+inline int CArchive::Seek32( int offset, CBaseFile::TSeekPosition from )
+{
+	__int64 result = Seek( to<__int64>( offset ), from );
+	assert( result <= INT_MAX );
+	return to<int>( result );
+}
+
+inline __int64 CArchive::Seek( __int64 offset, CBaseFile::TSeekPosition from )
+{
+	assert( file != 0 );
+	if( !isActualizedFileParameters ) {
+		actualizeFileParameters();
+	}
+	__int64 newArchivePosition = 0;
+
+	switch( from ) {
+		case CBaseFile::current:
+			newArchivePosition = GetPosition() + offset;
+			break;
+		case CBaseFile::begin: // от начала архива, а не всего файла
+			newArchivePosition = offset;
+			break;
+		case CBaseFile::end: // от конца архива, а не файла
+			newArchivePosition = GetLength() + offset;
+			break;
+		default:
+			assert( false );
+	}
+	if( newArchivePosition < 0 || newArchivePosition > GetLength() ) {
+		throwEofException();
+	}
+
+	if( IsLoading() ) {
+		seekWhenLoading( newArchivePosition );
+	} else { // IsStoring
+		seekWhenStoring( newArchivePosition );
+	}
+	return GetPosition();
 }
 
 inline int CArchive::GetLength32() const

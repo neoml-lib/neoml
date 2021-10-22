@@ -191,6 +191,21 @@ void CCudaMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 	::strcpy( info.Name, devProp.name );
 }
 
+void CCudaMathEngine::AllReduce( const CFloatHandle& handle, int size )
+{
+	if( communicator != nullptr ){
+		communicator->AllReduce( handle, size );
+	}
+}
+
+void CCudaMathEngine::SetDistributedCommunicator( std::shared_ptr<IDistributedCommunicator> comm, const CMathEngineDistributedInfo& info )
+{
+#ifdef NEOML_USE_NCCL
+	communicator = static_pointer_cast<CCudaDistributedCommunicator>( comm );
+	distributedInfo = info;
+#endif
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA

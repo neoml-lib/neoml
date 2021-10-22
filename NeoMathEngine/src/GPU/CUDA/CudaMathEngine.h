@@ -26,6 +26,7 @@ limitations under the License.
 #include <mutex>
 #include <memory>
 #include <PerformanceCountersDefault.h>
+#include <CudaMathEngineDnnDistributed.h>
 
 namespace NeoML {
 
@@ -39,6 +40,7 @@ struct CCudaDevice;
 class CDeviceStackAllocator;
 class CHostStackAllocator;
 class CMemoryPool;
+class CCudaDistributedCommunicator;
 
 // CUDA math engine
 class CCudaMathEngine : public IMathEngine, public IRawMemoryManager {
@@ -522,7 +524,9 @@ public:
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
-
+	void SetDistributedCommunicator( std::shared_ptr<IDistributedCommunicator> comm, const CMathEngineDistributedInfo& info ) override;
+	void AllReduce( const CFloatHandle& handle, int size ) override;
+	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
 protected:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
@@ -542,6 +546,8 @@ private:
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
 	std::unique_ptr<CDeviceStackAllocator> deviceStackRunTime; // GPU memory stack allocator
 	std::unique_ptr<CHostStackAllocator> hostStackRunTime; // regular memory stack allocator
+	std::shared_ptr<CCudaDistributedCommunicator> communicator;
+	CMathEngineDistributedInfo distributedInfo;
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 	CCudaDevice* captureCudaDevice( int deviceNumber, size_t memoryLimit );

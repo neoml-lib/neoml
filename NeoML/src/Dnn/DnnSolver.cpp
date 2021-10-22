@@ -337,6 +337,10 @@ void CDnnSimpleGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 void CDnnSimpleGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
 	const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory )
 {
+	for( int i = 0; i < paramDiffBlobs.Size(); i++ ){
+		MathEngine().AllReduce( paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetDataSize() );
+	}
+
 	if(gradientHistory.Size() == 0) {
 		for (int i = 0; i < paramDiffBlobs.Size(); ++i) {
 			CDnnBlob* blob = paramDiffBlobs[i]->GetClone();
