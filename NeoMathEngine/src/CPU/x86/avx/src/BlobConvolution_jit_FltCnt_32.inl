@@ -21,6 +21,12 @@ namespace NeoML {
 // Channel count: 32
 
 template<>
+const int CBlobConvolution<32>::WideBatchKernelHeight = 1;
+
+template<>
+const int CBlobConvolution<32>::WideBatchKernelWidth = 2;
+
+template<>
 inline void CBlobConvolution<32>::CJitConvolution::fillBatchProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
     using namespace Xbyak;

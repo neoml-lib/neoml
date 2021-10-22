@@ -41,8 +41,7 @@ public:
         IMathEngine* mathEngine,
         int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
         int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-        int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt,
-        bool useJit );
+        int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt );
     ~CBlobConvolution() override = default;
 
     void ProcessConvolution( int threadCount,
@@ -134,7 +133,6 @@ private:
     const int ResH;
     const int ResW;
     const int ResObjCnt;
-    const bool UseJit;
     bool jitIsInited;
 
     // For some cases we will use FltCnt, rounded up to nearest integer multiple of 8
@@ -186,34 +184,7 @@ private:
     CSize getNarrowBatchProcessSize();
     CSize getWideBatchProcessSize();
 
-    // Process one line of image. In case of narrow processing we will step through several lines.
-    void processConvolutionLoop( int rxSize, bool, const float*& srcPtr, float*& resPtr, size_t windowIndex );
-
     void initJitCodes();
-    void processLineWithJit( const float*& srcPtr, float*& resPtr, size_t lineIndex );
-
-    void batchProcessChannels( const float* srcPtr, const float* fltPtr,
-        __m256& r00, __m256& r01, __m256& r02,
-        __m256& r10, __m256& r11, __m256& r12,
-        __m256& r20, __m256& r21, __m256& r22 );
-    void batchProcessChannels( const float* srcPtr, const float* fltPtr,
-        __m256& r00, __m256& r01, __m256& r02, __m256& r03,
-        __m256& r10, __m256& r11, __m256& r12, __m256& r13 );
-    void batchProcessChannels( const float* srcPtr, const float* fltPtr, size_t srcNarrowStep,
-        __m256& r00, __m256& r01, __m256& r02,
-        __m256& r10, __m256& r11, __m256& r12,
-        __m256& r20, __m256& r21, __m256& r22 );
-    void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
-    void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2, __m256& r3 );
-    void singleProcessChannels( const float* srcPtr, const float* fltPtr, __m256& r0 );
-    void singleProcessChannelsNarrow( const float* srcPtr, const float* fltPtr, __m256& r0, __m256& r1, __m256& r2 );
-
-
-    // Process convolution for multiple result pixels ( number of pixels is defined by 'FastBatchProcessSize' member ).
-    void batchProcess( const float* srcPtr, float* resPtr, size_t windowIndex, bool useNarrowProcessing );
-    // Process convolution for single result pixel.
-    void singleProcess( const float* srcPtr, float* resPtr, size_t windowIndex );
-    void singleProcessNarrow( const float* srcPtr, float* resPtr, size_t windowIndex );
 
     // Rearrange filter and fill 'Filter' and 'FreeTerm' members.
     const float* rearrangeFilter( const float* filterData, CFloatHandleStackVar& Filter );
@@ -225,11 +196,6 @@ private:
 
     // Initialize PixelOffsetResStepsX, PixelOffsetResStepsY, SrcPixelsOffset and FltPixelsOffset
     void fillPixelOffset();
-
-    // Circular rotation of three ymm registers to the left, step equals to six floats.
-    static void rotateLeft6( __m256& y0, __m256& y1, __m256& y2 );
-    // Circular rotation of three ymm registers to the left, step equals to two floats.
-    static void rotateLeft2( __m256& y );
 };
 
 template<int FltCnt>
@@ -240,28 +206,17 @@ const int CBlobConvolution<FltCnt>::NarrowBatchKernelWidth = INT_MAX;
 
 class CBlobConvolutionFabric : public CCrtAllocatedObject {
 public:
-    static bool IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW, bool useJit );
+    static bool IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW );
     static std::unique_ptr<CBlobConvolutionBase> GetProperInstance(
         IMathEngine* mathEngine, int FltCnt,
         int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
         int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-        int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt, bool useJit );
+        int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt );
 };
 
 } // namespace NeoML
 
-#ifndef _mm256_set_m128
-// This instruction is defined since 8 gcc in avxintrin.h
-#define _mm256_set_m128( hi, lo) _mm256_insertf128_ps( _mm256_castps128_ps256( lo ), ( hi ), 0x1 )
-#endif
-
-// Class specializations
 #include <BlobConvolution.inl>
-#include <BlobConvolution_FltCnt_6.inl>
-#include <BlobConvolution_FltCnt_18.inl>
-#include <BlobConvolution_FltCnt_24.inl>
-#include <BlobConvolution_FltCnt_32.inl>
-
 // JIT
 #include <BlobConvolution_jit.inl>
 #include <BlobConvolution_jit_FltCnt_3.inl>

@@ -35,7 +35,7 @@ public:
 	// The descriptor should be destroyed using the standard delete operator after use.
 	virtual CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
-        const CBlobDesc& result, bool useJit = true ) const = 0;
+        const CBlobDesc& result ) const = 0;
 
 	virtual void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const = 0;

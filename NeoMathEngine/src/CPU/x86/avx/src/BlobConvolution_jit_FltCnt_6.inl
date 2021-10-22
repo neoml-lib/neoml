@@ -21,6 +21,18 @@ namespace NeoML {
 // Channel count: 6
 
 template<>
+const int CBlobConvolution<6>::NarrowBatchKernelHeight = 3;
+
+template<>
+const int CBlobConvolution<6>::NarrowBatchKernelWidth = 4;
+
+template<>
+const int CBlobConvolution<6>::WideBatchKernelHeight = 1;
+
+template<>
+const int CBlobConvolution<6>::WideBatchKernelWidth = 12;
+
+template<>
 inline void CBlobConvolution<6>::CJitConvolution::initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, size_t stepCount, size_t StepSize )
 {
     using namespace Xbyak;
@@ -185,7 +197,7 @@ inline void CBlobConvolution<6>::CJitConvolution::fillSingleProcessingKernel( CB
     const int StepSize = 1;
 
     Ymm res[3] = { ymm0,  ymm1, ymm2 };
-    Xmm s[3] = { xmm3, xmm4, xmm5 };
+    Ymm s[3] = { ymm3, ymm4, ymm5 };
     Ymm st[3] = { ymm6, ymm7, ymm8 };
     Ymm f = ymm9;
     Ymm temp[1] = { ymm15 };
@@ -203,10 +215,24 @@ inline void CBlobConvolution<6>::CJitConvolution::fillSingleProcessingKernel( CB
     // isLast - true if it is last of channel chank (we can skip src and flt pointers incrementing )
     auto fillKernel = [&]( int channelCount, bool isLast ) {
         // stepCount <= 4
-        vmovups( s[0], ptr[regTempSrcPtr] );
-        if( useNarrowProcessing ) {
-            vmovups( s[1], ptr[regTempSrcPtr + srcNarrowStep * sizeof( float )] );
-            vmovups( s[2], ptr[regTempSrcPtr + srcNarrowStep * (2 * sizeof( float ) )] );
+        switch( channelCount ) {
+        case 4:
+            vmovups( s[0].copyAndSetKind( Operand::XMM ), ptr[regTempSrcPtr] );
+            if( useNarrowProcessing ) {
+                vmovups( s[1].copyAndSetKind( Operand::XMM ), ptr[regTempSrcPtr + srcNarrowStep * sizeof( float )] );
+                vmovups( s[2].copyAndSetKind( Operand::XMM ), ptr[regTempSrcPtr + srcNarrowStep * ( 2 * sizeof( float ) )] );
+            }
+            break;
+        default:
+            // Create bitmask
+            vxorps( st[0], st[0], st[0] );
+            vpcmpeqd( st[1], st[1], st[1] );
+            vblendps( st[1], st[0], st[1], 0xff >> ( 8 - channelCount ) );
+            vmaskmovps( s[0], st[1], ptr[regTempSrcPtr] );
+            if( useNarrowProcessing ) {
+                vmaskmovps( s[1], st[1], ptr[regTempSrcPtr + srcNarrowStep * sizeof( float )] );
+                vmaskmovps( s[2], st[1], ptr[regTempSrcPtr + srcNarrowStep * ( 2 * sizeof( float ) )] );
+            }
         }
         for( int i = 0; i < channelCount; i++ ) {
             unsigned int mask = i * 0x55;

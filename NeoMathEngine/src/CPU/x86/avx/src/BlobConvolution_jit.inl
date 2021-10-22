@@ -93,15 +93,15 @@ CBlobConvolution<FltCnt>::CJitConvolution::CJitConvolution( CBlobConvolution<Flt
     prologue();
 #ifdef _WIN32
     // Parameters are in reverse order in stack
-    // First two values are 'rip' and 'rbp', then two values pushed in prologue
-    const int StackOffset = 8 * sizeof( void* );
-    mov( regResPtr, ptr[rsp + StackOffset] );
+    // First two values are 'rip' and 'rbp'
+    const int StackOffset = 6 * sizeof( void* );
+    mov( regResPtr, ptr[rbp + StackOffset] );
 #endif
 
     Label labelNarrow;
     if( hasNarrowProcessing ) {
         // Add selector narrow/wide
-        test( regUseNarrowProcessing, regUseNarrowProcessing );
+        test( regUseNarrowProcessing.cvt8(), regUseNarrowProcessing.cvt8() );
         jnz( labelNarrow, T_NEAR );
     }
 
@@ -124,17 +124,32 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::Run( bool useNarrowProces
 template<int FltCnt>
 inline void CBlobConvolution<FltCnt>::CJitConvolution::prologue()
 {
+    using namespace Xbyak::util;
+    using namespace Xbyak;
     push( rbp );
     mov( rbp, rsp );
+
 #ifdef _WIN32
     push( regResPtr );
 #endif
     push( regNumSteps );
+    push( retTemp );
+    for( int i = 6; i <= 15; i++ ) {
+        // '-8' for alignment to 16 byte
+        // '-16' - place for first xmm
+        vmovaps( ptr[rsp - 8 - 16 - ( i - 6 ) * 16], Xmm( i ) );
+    }
 }
 
 template<int FltCnt>
 inline void CBlobConvolution<FltCnt>::CJitConvolution::epilogue()
 {
+    using namespace Xbyak::util;
+    using namespace Xbyak;
+    for( int i = 15; i >= 6; i-- ) {
+        vmovaps( Xmm( i ), ptr[rsp - 8 - 16  - ( i - 6 ) * 16] );
+    }
+    pop( retTemp );
     pop( regNumSteps );
 #ifdef _WIN32
     pop( regResPtr );

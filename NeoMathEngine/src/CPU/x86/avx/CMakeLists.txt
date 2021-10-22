@@ -16,10 +16,6 @@ target_sources(${PROJECT_NAME}
     ./src/BlobConvolution.h
     ./src/BlobConvolution.inl
     ./src/BlobConvolution_jit.inl
-    ./src/BlobConvolution_FltCnt_6.inl
-    ./src/BlobConvolution_FltCnt_18.inl
-    ./src/BlobConvolution_FltCnt_24.inl
-    ./src/BlobConvolution_FltCnt_32.inl
     ./src/BlobConvolution_jit_FltCnt_3.inl
     ./src/BlobConvolution_jit_FltCnt_6.inl
     ./src/BlobConvolution_jit_FltCnt_8.inl

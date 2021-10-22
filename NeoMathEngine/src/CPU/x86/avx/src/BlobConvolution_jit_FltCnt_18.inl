@@ -21,6 +21,12 @@ namespace NeoML {
 // Channel count: 18
 
 template<>
+const int CBlobConvolution<18>::WideBatchKernelHeight = 1;
+
+template<>
+const int CBlobConvolution<18>::WideBatchKernelWidth = 4;
+
+template<>
 inline void CBlobConvolution<18>::CJitConvolution::initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, size_t stepCount, size_t stepSize )
 {
     using namespace Xbyak;
@@ -147,9 +153,10 @@ inline void CBlobConvolution<18>::CJitConvolution::fillSingleProcessingKernel( C
     const int StepSize = 3;
 
     Ymm res[3] = { ymm0, ymm1, ymm2 };
-    Xmm s = xmm3;
+    Ymm s = ymm3;
     Ymm st0 = ymm4;
     Ymm f[3] = { ymm5, ymm6, ymm7 };
+    Ymm st[2] = { ymm8, ymm9 };
 
     initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
 
@@ -160,7 +167,17 @@ inline void CBlobConvolution<18>::CJitConvolution::fillSingleProcessingKernel( C
     // isLast - true if it is last of channel chank (we can skip src and flt pointers incrementing )
     auto fillKernel = [&]( int channelCount, bool isLast ) {
         // stepCount <= 4
-        vmovups( s, ptr[regTempSrcPtr] );
+        switch( channelCount ) {
+        case 4:
+            vmovups( s.copyAndSetKind( Operand::XMM ), ptr[regTempSrcPtr] );
+            break;
+        default:
+            // Create bitmask
+            vxorps( st[0], st[0], st[0] );
+            vpcmpeqd( st[1], st[1], st[1] );
+            vblendps( st[1], st[0], st[1], 0xff >> ( 8 - channelCount ) );
+            vmaskmovps( s, st[1], ptr[regTempSrcPtr] );
+        }
         for( int i = 0; i < channelCount; i++ ) {
             unsigned int mask = i * 0x55;
             vpermilps( st0.copyAndSetKind( Operand::XMM ), s, mask );

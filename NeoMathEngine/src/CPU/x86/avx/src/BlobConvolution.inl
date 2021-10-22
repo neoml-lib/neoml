@@ -15,7 +15,7 @@ limitations under the License.
 
 namespace NeoML {
 
-bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW, bool useJit )
+bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW )
 {
     if( FltH % 2 == 0 || FltW % 2 == 0 ) {
         return false;
@@ -24,10 +24,10 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, i
         FltCnt == 32 ||
         FltCnt == 24 ||
         FltCnt == 18 ||
-        ( FltCnt == 16 && useJit ) ||
-        ( FltCnt == 8 && useJit ) ||
+        FltCnt == 16 ||
+        FltCnt == 8 ||
         FltCnt == 6 ||
-        ( FltCnt == 3 && useJit ) ) {
+        FltCnt == 3 ) {
         return true;
     }
     return false;
@@ -37,7 +37,7 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
     IMathEngine* mathEngine, int filterCount,
     int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
     int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-    int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt, bool useJit )
+    int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt )
 {
     switch( filterCount ) {
     case 32:
@@ -45,43 +45,43 @@ std::unique_ptr<CBlobConvolutionBase> CBlobConvolutionFabric::GetProperInstance(
             new CBlobConvolution<32>(
                 mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
                 paddingHeight, paddingWidth, strideHeight, strideWidth,
-                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
     case 24:
         return std::unique_ptr<CBlobConvolutionBase>(
             new CBlobConvolution<24>(
                 mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
                 paddingHeight, paddingWidth, strideHeight, strideWidth,
-                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
     case 18:
         return std::unique_ptr<CBlobConvolutionBase>(
             new CBlobConvolution<18>(
                 mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
                 paddingHeight, paddingWidth, strideHeight, strideWidth,
-                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
     case 16:
         return std::unique_ptr<CBlobConvolutionBase>(
             new CBlobConvolution<16>(
                 mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
                 paddingHeight, paddingWidth, strideHeight, strideWidth,
-                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, true ) );
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
     case 8:
         return std::unique_ptr<CBlobConvolutionBase>(
             new CBlobConvolution<8>(
                 mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
                 paddingHeight, paddingWidth, strideHeight, strideWidth,
-                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, true ) );
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
     case 6:
         return std::unique_ptr<CBlobConvolutionBase>(
             new CBlobConvolution<6>(
                 mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
                 paddingHeight, paddingWidth, strideHeight, strideWidth,
-                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, useJit ) );
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
     case 3:
         return std::unique_ptr<CBlobConvolutionBase>(
             new CBlobConvolution<3>(
                 mathEngine, channelCount, filterHeight, filterWidth, sourceHeight, sourceWidth,
                 paddingHeight, paddingWidth, strideHeight, strideWidth,
-                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt, true ) );
+                dilationHeight, dilationWidth, resultHeight, resultWidth, resObjCnt ) );
     default:
         return nullptr;
     }
@@ -93,7 +93,7 @@ template<int FltCnt>
 CBlobConvolution<FltCnt>::CBlobConvolution(
     IMathEngine* _mathEngine, int channelCount, int filterHeight, int filterWidth,
     int sourceHeight, int sourceWidth, int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
-    int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt, bool useJit ) :
+    int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt ) :
     mathEngine( _mathEngine ),
     ChCnt( channelCount ),
     FltH( filterHeight ),
@@ -109,7 +109,6 @@ CBlobConvolution<FltCnt>::CBlobConvolution(
     ResH( resultHeight ),
     ResW( resultWidth ),
     ResObjCnt( resObjCnt ),
-    UseJit( useJit ),
     jitIsInited( false ),
     src( nullptr ),
     flt( nullptr ),
@@ -142,7 +141,7 @@ void CBlobConvolution<FltCnt>::ProcessConvolution(
     freeTerm = rearrangeFreeTerm( freeTermData, freeTermTempBuffer );
     res = resultData;
 
-    if( UseJit && !jitIsInited ) {
+    if( !jitIsInited ) {
         initJitCodes();
         jitIsInited = true;
     }
@@ -195,16 +194,8 @@ void CBlobConvolution<FltCnt>::ProcessConvolution(
                         float* resPtr = realResStart + ry * ResLineStride;
                         bool useNarrowProcessing = ryEnd - ry >= NarrowBatchProcessSize.Height;
 
-                        if( UseJit ) {
-                            jitCodes[yStepIndex]->Run( useNarrowProcessing, srcPtr, flt, freeTerm, resPtr );
-                        } else {
-                            size_t windowIndex = yStepIndex * PixelOffsetResStepsWidthX.size();
-
-                            for( const auto& xStep : PixelOffsetResStepsWidthX ) {
-                                processConvolutionLoop( xStep, useNarrowProcessing, srcPtr, resPtr, windowIndex );
-                                windowIndex++;
-                            }
-                        }
+                        jitCodes[yStepIndex]->Run( useNarrowProcessing, srcPtr, flt, freeTerm, resPtr );
+                        
                         ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
                     }
                 }
@@ -224,49 +215,6 @@ inline typename CBlobConvolution<FltCnt>::CSize CBlobConvolution<FltCnt>::getNar
 {
     // Disable narrow processing by default
     return { NarrowBatchKernelHeight, NarrowBatchKernelWidth };
-}
-
-template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::batchProcess( const float*, float* resPtr, size_t, bool )
-{
-    // dummy function
-}
-
-template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::singleProcess( const float*, float*, size_t )
-{
-    // dummy function
-}
-
-template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::singleProcessNarrow( const float*, float*, size_t )
-{
-    // dummy function
-}
-
-template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::processConvolutionLoop( int rxSize, bool useNarrowProcessing, const float*& srcPtr, float*& resPtr, size_t windowIndex )
-{
-    const int batchStep = useNarrowProcessing ? NarrowBatchProcessSize.Width : WideBatchProcessSize.Width;
-    for( ; rxSize >= batchStep; rxSize -= batchStep ) {
-        batchProcess( srcPtr, resPtr, windowIndex, useNarrowProcessing );
-        srcPtr += batchStep * SrcXStep;
-        resPtr += batchStep * FltCnt;
-    }
-
-    if( useNarrowProcessing ) {
-        for( ; rxSize > 0; rxSize-- ) {
-            singleProcessNarrow( srcPtr, resPtr, windowIndex );
-            srcPtr += SrcXStep;
-            resPtr += FltCnt;
-        }
-    } else {
-        for( ; rxSize > 0; rxSize-- ) {
-            singleProcess( srcPtr, resPtr, windowIndex );
-            srcPtr += SrcXStep;
-            resPtr += FltCnt;
-        }
-    }
 }
 
 template<int FltCnt>
@@ -460,50 +408,6 @@ void CBlobConvolution<FltCnt>::fillPixelOffset()
     SrcPixelsOffset = fillPixelOffset( SrcYDilation, SrcXDilation );
     FltPixelsOffset = fillPixelOffset( FltW * ChCnt * FltCntM8, ChCnt * FltCntM8 );
 
-}
-
-template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::rotateLeft6( __m256& y0, __m256& y1, __m256& y2 )
-{   //   y0        y1        y2
-    // 0 1 2 3 - 4 5 6 7 - 8 0 1 2
-    // 3 4 5 6 - 7 8 0 1 - 2 3 4 5
-    // 6 7 8 0 - 1 2 3 4 - 5 6 7 8
-
-    // before: 0 1 2 3
-    // after:  2 3 0 1
-    __m256 yt0 = _mm256_permute2f128_ps( y0, y0, _MM_SHUFFLE( 0, 0, 0, 1 ) );
-    // before: 4 5 6 7
-    // after:  6 7 4 5
-    __m256 yt1 = _mm256_permute2f128_ps( y1, y1, _MM_SHUFFLE( 0, 0, 0, 1 ) );
-    // before: 6 7 4 5|8 0 1 2
-    // after:      7 8 5 1
-    __m256 yt2 = _mm256_shuffle_ps( yt1, y2, _MM_SHUFFLE( 1, 0, 3, 2 ) );
-    // before: 2 3 0 1|6 7 4 5
-    // after:      2 3 4 5
-    y2 = _mm256_blend_ps( yt0, yt1, 0xf0 );
-    // before: 2 3 4 5|4 5 6 7
-    // after:      3 4 5 6
-    y0 = _mm256_shuffle_ps( y2, y1, _MM_SHUFFLE( 1, 0, 3, 2 ) );
-    // before: 7 8 5 1|2 3 0 1
-    // after:      7 8 0 1
-    y1 = _mm256_blend_ps( yt2, yt0, 0xf0 );
-}
-
-template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::rotateLeft2( __m256& y )
-{
-    // 0 1 2 0
-    // 1 2 0 1
-    // 2 0 1 2
-    // before: 0 1 2 0
-    // after:  2 0 0 1
-    __m256 yt = _mm256_permute2f128_ps( y, y, _MM_SHUFFLE( 0, 0, 0, 1 ) );
-    // before: 0 1 2 0|2 0 0 1
-    // after:      1 2 0 0
-    y = _mm256_shuffle_ps( y, yt, _MM_SHUFFLE( 1, 0, 3, 2 ) );
-    // before:  1 2 0 0|2 0 0 1
-    // after:      1 2 0 1
-    y = _mm256_blend_ps( y, yt, 0xf0 );
 }
 
 } // namespace NeoML
