@@ -98,15 +98,14 @@ private:
         void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
 
         // Initialize result registers with data from freeTerm (if it isn't nullptr)
-        void initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, size_t KernelHeight, size_t KernelWidth );
+        void initResRegs( size_t stepCount, size_t stepSize );
         // Flush result registers
+        // 'fillKernel' will be called for filling of kernel in main loop
         // 'callBeforeFlush' will be called before flushing of result registers. It can be captured labda function.
-        void flushResRegs( Xbyak::Ymm* res, size_t KernelHeight, size_t KernelWidth, bool useNarrowProcessing, size_t resNarrowStep );
-        void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes,
-            size_t stepCount, size_t stepSize,
-            Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
-            size_t windowIndex, bool useNarrowProcessing = false, size_t resNarrowStep = 0,
-            std::function<void()>* callBeforeFlush = nullptr );
+        void flushResRegs( CBlobConvolution<FltCnt>& bc, size_t stepCount, size_t stepSize, bool useNarrowProcessing );
+        void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc,
+            size_t stepCount, size_t stepSize, int batchChannelSize, std::function<void( int )>& fillKernel,
+            size_t windowIndex, bool useNarrowProcessing = false, std::function<void()>* callBeforeFlush = nullptr );
 
         // Circular rotate y0, y1 and y2 to the left at 6 floats using 3 additional temporary registers.
         void rotateLeft6( Xbyak::Ymm& y0, Xbyak::Ymm& y1, Xbyak::Ymm& y2,

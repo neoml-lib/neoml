@@ -33,9 +33,14 @@ template<>
 const int CBlobConvolution<6>::WideBatchKernelWidth = 12;
 
 template<>
-inline void CBlobConvolution<6>::CJitConvolution::initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, size_t stepCount, size_t StepSize )
+inline void CBlobConvolution<6>::CJitConvolution::initResRegs( size_t stepCount, size_t StepSize )
 {
     using namespace Xbyak;
+
+    Ymm res[] = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6, ymm7,
+        ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15 };
+    // tempRegs are always in reverse order in order to not overlap with resRegs.
+    Ymm tempRes[] = { ymm15, ymm14, ymm13, ymm12 };
 
     Label labelFillWithZeroes, labelEnd;
     test( regFreeTermPtr, regFreeTermPtr );
@@ -60,8 +65,7 @@ inline void CBlobConvolution<6>::CJitConvolution::initResRegs( Xbyak::Ymm* res, 
     L( labelFillWithZeroes );
     // Init with zeroes
     for( int i = 0; i < stepCount * StepSize; i++ ) {
-        vxorps( *res, *res, *res );
-        res++;
+        vxorps( res[i], res[i], res[i] );
     }
     L( labelEnd );
 }
@@ -71,12 +75,10 @@ inline void CBlobConvolution<6>::CJitConvolution::fillBatchProcessingKernel( CBl
 {
     using namespace Xbyak;
 
-    Label labelFillProcessingKernelEnd;
-    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
-    const int KernelHeight = useNarrowProcessing ? NarrowBatchKernelHeight : WideBatchKernelHeight;
-    const int KernelWidth = useNarrowProcessing ? NarrowBatchKernelWidth : WideBatchKernelWidth;
     const int StepCount = 3;
     const int StepSize = 3;
+    const size_t srcNarrowStep = useNarrowProcessing ? bc.SrcYStep : NarrowBatchKernelWidth * bc.SrcXStep;
+    const int BatchChannelSize = 1;
 
     Ymm res[3][3] = { { ymm0, ymm1, ymm2 }, { ymm3, ymm4, ymm5 }, { ymm6, ymm7, ymm8 } };
     Ymm f[1] = { ymm9 };
@@ -84,106 +86,82 @@ inline void CBlobConvolution<6>::CJitConvolution::fillBatchProcessingKernel( CBl
     Ymm st[3] = { ymm13, ymm14, ymm15 };
     Ymm temp[1] = { ymm15 };
 
-    const size_t srcNarrowStep = useNarrowProcessing ? bc.SrcYStep : 4 * bc.SrcXStep;
-    const size_t resNarrowStep = useNarrowProcessing ? bc.ResLineStride : 24;
+    std::function<void( int )> fillKernel( [&]( int channelCount ) {
+        PRESUME_EXPR( channelCount == 1 );
+		// We will process pixels in three steps
+	    //           Step 1    Step 2      Step 3
+	    // Source: 0 0 0 1 - 1 1 2  2  - 2  3  3  3
+	    // Source: 4 4 4 5 - 5 5 6  6  - 6  7  7  7
+	    // Source: 8 8 8 9 - 9 9 10 10 - 10 11 11 11
+	    // Filter: 0 1 2 0 - 1 2 0  1  - 2  0  1  2
+	    // Three groups of source windows are sequenced in wide case or are placed one below another in narrow case.
+	    // load: 0 1 2 0
+		vmovups( f[0], ptr[regTempFltPtr] );
 
-    initProcessingMainLoop( bc, &res[0][0], &temp[0], StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex,
-            useNarrowProcessing, resNarrowStep );
+		// load: 0 0 0 0
+		vbroadcastss( s[0], ptr[regTempSrcPtr] );
+		// load: 1 1 1 1
+		vbroadcastss( st[0], ptr[regTempSrcPtr + bc.SrcXStep * sizeof( float )] );
+		// load: 4 4 4 4
+		vbroadcastss( s[1], ptr[regTempSrcPtr + srcNarrowStep * sizeof( float )] );
+		// load: 5 5 5 5
+		vbroadcastss( st[1], ptr[regTempSrcPtr + ( srcNarrowStep + bc.SrcXStep ) * sizeof( float )] );
+		// load: 8 8 8 8
+		vbroadcastss( s[2], ptr[regTempSrcPtr + 2 * srcNarrowStep * sizeof( float )] );
+		// load: 9 9 9 9
+		vbroadcastss( st[2], ptr[regTempSrcPtr + ( 2 * srcNarrowStep + bc.SrcXStep ) * sizeof( float )] );
 
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    // Batch process kernell function
-    L( labelProcessingKernel );
-    // for( int c = 0; c < ChCnt; c++ ) {
-    if( bc.ChCnt > 1 ) {
-        xor_( regChCnt, regChCnt );
-        L( labelProcessingKernelStart );
-        cmp( regChCnt, bc.ChCnt );
-        je( labelProcessingKernelEnd, T_NEAR );
-    }
+		// blend( 0 0 0 0, 1 1 1 1 ) -> 0 0 0 1
+		vblendps( s[0], s[0], st[0], 0xc0 );
+		// blend( 4 4 4 4, 5 5 5 5 ) -> 4 4 4 5
+		vblendps( s[1], s[1], st[1], 0xc0 );
+		// blend( 8 8 8 8, 9 9 9 9 ) -> 8 8 8 9
+		vblendps( s[2], s[2], st[2], 0xc0 );
+		vfmadd231ps( res[0][0], f[0], s[0] );
+		vfmadd231ps( res[1][0], f[0], s[1] );
+		vfmadd231ps( res[2][0], f[0], s[2] );
+		// 0 1 2 0 -> 1 2 0 1 ( use s[2] as temp register )
+		rotateLeft2( f[0], s[2] );
 
-    // We will process pixels in three steps
-    //           Step 1    Step 2      Step 3
-    // Source: 0 0 0 1 - 1 1 2  2  - 2  3  3  3
-    // Source: 4 4 4 5 - 5 5 6  6  - 6  7  7  7
-    // Source: 8 8 8 9 - 9 9 10 10 - 10 11 11 11
-    // Filter: 0 1 2 0 - 1 2 0  1  - 2  0  1  2
-    // Three groups of source windows are sequenced in wide case or are placed one below another in narrow case.
-    // load: 0 1 2 0
-    vmovups( f[0], ptr[regTempFltPtr] );
+		// load: 2 2 2 2
+		vbroadcastss( s[0], ptr[regTempSrcPtr + 2 * bc.SrcXStep * sizeof( float )] );
+		// load: 6 6 6 6
+		vbroadcastss( s[1], ptr[regTempSrcPtr + ( srcNarrowStep + 2 * bc.SrcXStep ) * sizeof( float )] );
+		// load: 10 10 10 10
+		vbroadcastss( s[2], ptr[regTempSrcPtr + ( 2 * srcNarrowStep + 2 * bc.SrcXStep ) * sizeof( float )] );
 
-    // load: 0 0 0 0
-    vbroadcastss( s[0], ptr[regTempSrcPtr] );
-    // load: 1 1 1 1
-    vbroadcastss( st[0], ptr[regTempSrcPtr + bc.SrcXStep * sizeof( float )] );
-    // load: 4 4 4 4
-    vbroadcastss( s[1], ptr[regTempSrcPtr + srcNarrowStep * sizeof( float )] );
-    // load: 5 5 5 5
-    vbroadcastss( st[1], ptr[regTempSrcPtr + ( srcNarrowStep + bc.SrcXStep ) * sizeof( float )] );
-    // load: 8 8 8 8
-    vbroadcastss( s[2], ptr[regTempSrcPtr + 2 * srcNarrowStep * sizeof( float )] );
-    // load: 9 9 9 9
-    vbroadcastss( st[2], ptr[regTempSrcPtr + ( 2 * srcNarrowStep + bc.SrcXStep ) * sizeof( float )] );
+		// blend( 1 1 1 1, 2 2 2 2 ) -> 1 1 2 2
+		vblendps( st[0], st[0], s[0], 0xf0 );
+		// blend( 5 5 5 5, 6 6 6 6 ) -> 5 5 6 6
+		vblendps( st[1], st[1], s[1], 0xf0 );
+		// blend( 9 9 9 9, 10 10 10 10 ) -> 9 9 10 10
+		vblendps( st[2], st[2], s[2], 0xf0 );
+		vfmadd231ps( res[0][1], f[0], st[0] );
+		vfmadd231ps( res[1][1], f[0], st[1] );
+		vfmadd231ps( res[2][1], f[0], st[2] );
+		// 1 2 0 1 -> 2 0 1 2 ( use st[2] as a temp register )
+		rotateLeft2( f[0], st[2] );
 
-    // blend( 0 0 0 0, 1 1 1 1 ) -> 0 0 0 1
-    vblendps( s[0], s[0], st[0], 0xc0 );
-    // blend( 4 4 4 4, 5 5 5 5 ) -> 4 4 4 5
-    vblendps( s[1], s[1], st[1], 0xc0 );
-    // blend( 8 8 8 8, 9 9 9 9 ) -> 8 8 8 9
-    vblendps( s[2], s[2], st[2], 0xc0 );
-    vfmadd231ps( res[0][0], f[0], s[0] );
-    vfmadd231ps( res[1][0], f[0], s[1] );
-    vfmadd231ps( res[2][0], f[0], s[2] );
-    // 0 1 2 0 -> 1 2 0 1 ( use s[2] as temp register )
-    rotateLeft2( f[0], s[2] );
+		// load: 3 3 3 3
+		vbroadcastss( st[0], ptr[regTempSrcPtr + 3 * bc.SrcXStep * sizeof( float )] );
+		// load: 7 7 7 7
+		vbroadcastss( st[1], ptr[regTempSrcPtr + ( srcNarrowStep + 3 * bc.SrcXStep ) * sizeof( float )] );
+		// load: 11 11 11 11
+		vbroadcastss( st[2], ptr[regTempSrcPtr + ( 2 * srcNarrowStep + 3 * bc.SrcXStep ) * sizeof( float )] );
 
-    // load: 2 2 2 2
-    vbroadcastss( s[0], ptr[regTempSrcPtr + 2 * bc.SrcXStep * sizeof( float )] );
-    // load: 6 6 6 6
-    vbroadcastss( s[1], ptr[regTempSrcPtr + ( srcNarrowStep + 2 * bc.SrcXStep ) * sizeof( float )] );
-    // load: 10 10 10 10
-    vbroadcastss( s[2], ptr[regTempSrcPtr + ( 2 * srcNarrowStep + 2 * bc.SrcXStep ) * sizeof( float )] );
+		// blend( 3 3 3 3, 2 2 2 2 ) -> 2 3 3 3
+		vblendps( st[0], st[0], s[0], 0x03 );
+		// blend( 7 7 7 7, 6 6 6 6 ) -> 6 7 7 7
+		vblendps( st[1], st[1], s[1], 0x03 );
+		// blend( 11 11 11 11, 10 10 10 10 ) -> 10 11 11 11
+		vblendps( st[2], st[2], s[2], 0x03 );
+		vfmadd231ps( res[0][2], f[0], st[0] );
+		vfmadd231ps( res[1][2], f[0], st[1] );
+		vfmadd231ps( res[2][2], f[0], st[2] );
+        } );
 
-    // blend( 1 1 1 1, 2 2 2 2 ) -> 1 1 2 2
-    vblendps( st[0], st[0], s[0], 0xf0 );
-    // blend( 5 5 5 5, 6 6 6 6 ) -> 5 5 6 6
-    vblendps( st[1], st[1], s[1], 0xf0 );
-    // blend( 9 9 9 9, 10 10 10 10 ) -> 9 9 10 10
-    vblendps( st[2], st[2], s[2], 0xf0 );
-    vfmadd231ps( res[0][1], f[0], st[0] );
-    vfmadd231ps( res[1][1], f[0], st[1] );
-    vfmadd231ps( res[2][1], f[0], st[2] );
-    // 1 2 0 1 -> 2 0 1 2 ( use st[2] as a temp register )
-    rotateLeft2( f[0], st[2] );
-
-    // load: 3 3 3 3
-    vbroadcastss( st[0], ptr[regTempSrcPtr + 3 * bc.SrcXStep * sizeof( float )] );
-    // load: 7 7 7 7
-    vbroadcastss( st[1], ptr[regTempSrcPtr + ( srcNarrowStep + 3 * bc.SrcXStep ) * sizeof( float )] );
-    // load: 11 11 11 11
-    vbroadcastss( st[2], ptr[regTempSrcPtr + ( 2 * srcNarrowStep + 3 * bc.SrcXStep ) * sizeof( float )] );
-
-    // blend( 3 3 3 3, 2 2 2 2 ) -> 2 3 3 3
-    vblendps( st[0], st[0], s[0], 0x03 );
-    // blend( 7 7 7 7, 6 6 6 6 ) -> 6 7 7 7
-    vblendps( st[1], st[1], s[1], 0x03 );
-    // blend( 11 11 11 11, 10 10 10 10 ) -> 10 11 11 11
-    vblendps( st[2], st[2], s[2], 0x03 );
-    vfmadd231ps( res[0][2], f[0], st[0] );
-    vfmadd231ps( res[1][2], f[0], st[1] );
-    vfmadd231ps( res[2][2], f[0], st[2] );
-
-    add( regTempFltPtr, FltCntM8 * sizeof( float ) );
-    add( regTempSrcPtr, sizeof( float ) );
-
-    if( bc.ChCnt > 1 ) {
-        inc( regChCnt );
-        jmp( labelProcessingKernelStart, T_NEAR );
-        // }
-        L( labelProcessingKernelEnd );
-    }
-    ret();
-    // End of code
-    L( labelFillProcessingKernelEnd );
+    initProcessingMainLoop( bc, StepCount, StepSize, BatchChannelSize, fillKernel,
+        windowIndex, useNarrowProcessing );
 }
 
 template<>
@@ -191,10 +169,10 @@ inline void CBlobConvolution<6>::CJitConvolution::fillSingleProcessingKernel( CB
 {
     using namespace Xbyak;
 
-    Label labelFillProcessingKernelEnd;
-    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
     const int StepCount = useNarrowProcessing ? 3 : 1;
     const int StepSize = 1;
+    const size_t srcNarrowStep = bc.SrcYStep;
+    const int BatchChannelSize = 4;
 
     Ymm res[3] = { ymm0,  ymm1, ymm2 };
     Ymm s[3] = { ymm3, ymm4, ymm5 };
@@ -202,19 +180,9 @@ inline void CBlobConvolution<6>::CJitConvolution::fillSingleProcessingKernel( CB
     Ymm f = ymm9;
     Ymm temp[1] = { ymm15 };
 
-    const size_t srcNarrowStep = bc.SrcYStep;
-    const size_t resNarrowStep = bc.ResLineStride;
+    std::function<void( int )> fillKernel( [&]( int channelCount ) {
+        PRESUME_EXPR( channelCount <= 4 );
 
-    initProcessingMainLoop( bc, &res[0], &temp[0], StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex,
-            useNarrowProcessing, resNarrowStep );
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-
-    const int BatchStepSize = 4;
-    // channelCount - number of channels for frocessing
-    // isLast - true if it is last of channel chank (we can skip src and flt pointers incrementing )
-    auto fillKernel = [&]( int channelCount, bool isLast ) {
-        // stepCount <= 4
         switch( channelCount ) {
         case 4:
             vmovups( s[0].copyAndSetKind( Operand::XMM ), ptr[regTempSrcPtr] );
@@ -241,10 +209,10 @@ inline void CBlobConvolution<6>::CJitConvolution::fillSingleProcessingKernel( CB
                 vpermilps( st[1].copyAndSetKind( Operand::XMM ), s[1], mask );
                 vpermilps( st[2].copyAndSetKind( Operand::XMM ), s[2], mask );
             }
-            vinsertf128( st[0], st[0], st[0].copyAndSetKind( Operand::XMM ), 1);
+            vinsertf128( st[0], st[0], st[0].copyAndSetKind( Operand::XMM ), 1 );
             if( useNarrowProcessing ) {
-                vinsertf128( st[1], st[1], st[1].copyAndSetKind( Operand::XMM ), 1);
-                vinsertf128( st[2], st[2], st[2].copyAndSetKind( Operand::XMM ), 1);
+                vinsertf128( st[1], st[1], st[1].copyAndSetKind( Operand::XMM ), 1 );
+                vinsertf128( st[2], st[2], st[2].copyAndSetKind( Operand::XMM ), 1 );
             }
 
             vmovups( f, ptr[regTempFltPtr + ( StepSize * i + 0 ) * SizeOfYmm] );
@@ -256,50 +224,9 @@ inline void CBlobConvolution<6>::CJitConvolution::fillSingleProcessingKernel( CB
             }
 
         }
-        if( !isLast ) {
-            add( regTempFltPtr, StepSize * channelCount * SizeOfYmm );
-        }
-    };
-
-    // Single process kernell function
-    int singleStepCount = bc.ChCnt % BatchStepSize;
-    int batchStepCount = bc.ChCnt / BatchStepSize;
-
-    L( labelProcessingKernel );
-    // Process kernels in group
-    if( batchStepCount ) {
-        if( batchStepCount > 1 ) {
-            // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ) {
-            // If we need loop
-            xor_( regChCnt, regChCnt );
-            L( labelProcessingKernelStart );
-            cmp( regChCnt, batchStepCount );
-            je( labelProcessingKernelEnd, T_NEAR );
-        }
-        // Only one batch step
-        bool isLast = ( singleStepCount == 0 ) && ( batchStepCount == 1 );
-        fillKernel( 4, isLast );
-
-        if( !isLast ) {
-            add( regTempSrcPtr, BatchStepSize * sizeof( float ) );
-        }
-
-        if( batchStepCount > 1 ) {
-            // } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
-            inc( regChCnt );
-            jmp( labelProcessingKernelStart, T_NEAR );
-        }
-
-        L( labelProcessingKernelEnd );
-    }
-
-    // Process remained kernels one by one
-    if( singleStepCount  ) {
-        fillKernel( singleStepCount, true );
-    }
-    ret();
-    // End of code
-    L( labelFillProcessingKernelEnd );
+        } );
+    initProcessingMainLoop( bc, StepCount, StepSize, BatchChannelSize, fillKernel,
+        windowIndex, useNarrowProcessing );
 }
 
 } // namespace NeoML

@@ -31,19 +31,15 @@ inline void CBlobConvolution<24>::CJitConvolution::fillBatchProcessingKernel( CB
 {
     using namespace Xbyak;
 
-    Label labelFillProcessingKernelEnd;
-    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
     const int StepCount = 3;
     const int StepSize = 3;
+    const int BatchChannelSize = 24;
 
     Ymm res[3][3] = { { ymm0, ymm1, ymm2 }, { ymm3, ymm4, ymm5 }, { ymm6, ymm7, ymm8 } };
     Ymm st[3] = { ymm9, ymm10, ymm11 };
     Ymm f[3] = { ymm12, ymm13, ymm14 };
 
-    initProcessingMainLoop( bc, &res[0][0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    auto fillKernel = [&]( int channelCount ) {
+    std::function<void( int )> fillKernel( [&]( int channelCount ) {
         for( int i = 0; i < channelCount; i++ ) {
             size_t fltOffset = i * FltCntM8 * sizeof( float );
             size_t srcOffset = i * sizeof( float );
@@ -53,7 +49,7 @@ inline void CBlobConvolution<24>::CJitConvolution::fillBatchProcessingKernel( CB
             vbroadcastss( st[2], ptr[regTempSrcPtr + srcOffset + 2 * bc.SrcXStep * sizeof( float )] );
             // Load one channel for the same pixel as in source for all filters.
             vmovups( f[0], ptr[regTempFltPtr + fltOffset] );
-            vmovups( f[1], ptr[regTempFltPtr + fltOffset  + SizeOfYmm] );
+            vmovups( f[1], ptr[regTempFltPtr + fltOffset + SizeOfYmm] );
             vmovups( f[2], ptr[regTempFltPtr + fltOffset + 2 * SizeOfYmm] );
             // Take result for current pixels in three sequenced windows.
             // Multiply one channel for all filters ( for ONE src/flt pixels )
@@ -67,46 +63,9 @@ inline void CBlobConvolution<24>::CJitConvolution::fillBatchProcessingKernel( CB
             vfmadd231ps( res[2][1], f[1], st[2] );
             vfmadd231ps( res[2][2], f[2], st[2] );
         }
+        } );
 
-        // Go to next channel in filter and source
-        add( regTempFltPtr, channelCount * FltCntM8 * sizeof( float ) );
-        add( regTempSrcPtr, channelCount * sizeof( float ) );
-    };
-
-    const int BatchStepSize = 24;
-    int batchStepCount = bc.ChCnt / BatchStepSize;
-    int remainedStepCount = bc.ChCnt % BatchStepSize;
-
-	L( labelProcessingKernel );
-	// Process kernels in group
-	if( batchStepCount ) {
-		if( batchStepCount > 1 ) {
-			// for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ) {
-			// If we need loop
-			xor_( regChCnt, regChCnt );
-			L( labelProcessingKernelStart );
-			cmp( regChCnt, batchStepCount );
-			je( labelProcessingKernelEnd, T_NEAR );
-		}
-
-		fillKernel( BatchStepSize );
-
-		if( batchStepCount > 1 ) {
-			// } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
-			inc( regChCnt );
-			jmp( labelProcessingKernelStart, T_NEAR );
-		}
-
-		L( labelProcessingKernelEnd );
-	}
-
-    if( remainedStepCount > 0 ) {
-        fillKernel( remainedStepCount );
-    }
-
-    ret();
-    // End of code
-    L( labelFillProcessingKernelEnd );
+    initProcessingMainLoop( bc, StepCount, StepSize, BatchChannelSize, fillKernel, windowIndex );
 }
 
 template<>
@@ -114,10 +73,9 @@ inline void CBlobConvolution<24>::CJitConvolution::fillSingleProcessingKernel( C
 {
     using namespace Xbyak;
 
-    Label labelFillProcessingKernelEnd;
-    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
     const int StepCount = 1;
     const int StepSize = 3;
+    const int BatchChannelSize = 8;
 
     Ymm res[3] = { ymm0, ymm1, ymm2 };
     Ymm tempRes[2][3] = { { ymm0, ymm1, ymm2 }, { ymm3, ymm4, ymm5 } };
@@ -137,117 +95,9 @@ inline void CBlobConvolution<24>::CJitConvolution::fillSingleProcessingKernel( C
         vaddps( res[2], tempRes[0][2], tempRes[1][2] );
         } );
 
-    Label labelShiftMask;
+    Label labelShiftMask, labelShiftMaskEnd;
     vmovdqa( regShiftIndex, ptr[rip + labelShiftMask] );
-
-    initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex,
-        false, 0, &mergeResRegs );
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-
-    // channelCount - number of channels for frocessing
-    // isLast - true if it is last of channel chank (we can skip src and flt pointers incrementing )
-    auto fillKernel = [&]( int channelCount ) {
-		// Load source to st[0]
-		switch( channelCount ) {
-		case 8:
-			vmovups( s, ptr[regTempSrcPtr] );
-			break;
-		case 4:
-			vmovups( s.copyAndSetKind( Operand::XMM ), ptr[regTempSrcPtr] );
-			break;
-		default:
-			// Create bitmask
-			vxorps( st[0], st[0], st[0] );
-            vpcmpeqd( st[1], st[1], st[1] );
-			vblendps( st[1], st[0], st[1], 0xff >> ( 8 - channelCount ) );
-			vmaskmovps( s, st[1], ptr[regTempSrcPtr] );
-		}
-
-        int ch = 0;
-
-		auto fillKernelInternal = [&]( int channelCountInternal, bool isLast ) {
-			// First source and filter
-			vbroadcastss( st[0], s.copyAndSetKind( Operand::XMM ) );
-			if( channelCountInternal == 2 ) {
-				// shift right by one float
-				vpermps( s, regShiftIndex, s );
-			}
-			vmovups( f[0][0], ptr[regTempFltPtr + ( StepSize * ch + 0 ) * SizeOfYmm] );
-			vmovups( f[0][1], ptr[regTempFltPtr + ( StepSize * ch + 1 ) * SizeOfYmm] );
-			vmovups( f[0][2], ptr[regTempFltPtr + ( StepSize * ch + 2 ) * SizeOfYmm] );
-			ch++;
-
-			if( channelCountInternal == 2 ) {
-				// Second source and filter
-				vbroadcastss( st[1], s.copyAndSetKind( Operand::XMM ) );
-				if( !isLast ) {
-					// shift right by one float
-					vpermps( s, regShiftIndex, s );
-				}
-				vmovups( f[1][0], ptr[regTempFltPtr + ( StepSize * ch + 0 ) * SizeOfYmm] );
-				vmovups( f[1][1], ptr[regTempFltPtr + ( StepSize * ch + 1 ) * SizeOfYmm] );
-				vmovups( f[1][2], ptr[regTempFltPtr + ( StepSize * ch + 2 ) * SizeOfYmm] );
-				ch++;
-			}
-
-			vfmadd231ps( tempRes[0][0], f[0][0], st[0] );
-			vfmadd231ps( tempRes[0][1], f[0][1], st[0] );
-			vfmadd231ps( tempRes[0][2], f[0][2], st[0] );
-			if( channelCountInternal == 2 ) {
-				vfmadd231ps( tempRes[1][0], f[1][0], st[1] );
-				vfmadd231ps( tempRes[1][1], f[1][1], st[1] );
-				vfmadd231ps( tempRes[1][2], f[1][2], st[1] );
-			}
-		};
-
-		int batchStepCount = channelCount / 2;
-		int remainedStepCount = channelCount % 2;
-		for( int s = 0; s < batchStepCount; s++ ) {
-			bool isLast = remainedStepCount == 0 && s == ( batchStepCount - 1 );
-			fillKernelInternal( 2, isLast );
-		}
-		if( remainedStepCount != 0 ) {
-			fillKernelInternal( 1, true );
-		}
-
-        add( regTempFltPtr, channelCount * FltCntM8 * sizeof( float ) );
-        add( regTempSrcPtr, channelCount * sizeof( float ) );
-    };
-
-    const int BatchStepSize = 8;
-    int batchStepCount = bc.ChCnt / BatchStepSize;
-    int remainedStepCount = bc.ChCnt % BatchStepSize;
-
-    L( labelProcessingKernel );
-    // Process kernels in group
-    if( batchStepCount ) {
-        if( batchStepCount > 1 ) {
-            // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ) {
-            // If we need loop
-            xor_( regChCnt, regChCnt );
-            L( labelProcessingKernelStart );
-            cmp( regChCnt, batchStepCount );
-            je( labelProcessingKernelEnd, T_NEAR );
-        }
-
-        fillKernel( BatchStepSize );
-
-        if( batchStepCount > 1 ) {
-            // } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
-            inc( regChCnt );
-            jmp( labelProcessingKernelStart, T_NEAR );
-        }
-
-        L( labelProcessingKernelEnd );
-    }
-
-    if( remainedStepCount > 0 ) {
-        fillKernel( remainedStepCount );
-    }
-
-    ret();
-
+    jmp( labelShiftMaskEnd, T_NEAR );
     align( 32 );
     L( labelShiftMask );
     // Index [1, 2, 3, 4, 5, 6, 7, 0] will circulary shift Ymm to the right
@@ -255,9 +105,78 @@ inline void CBlobConvolution<24>::CJitConvolution::fillSingleProcessingKernel( C
         dd( i );
     }
     dd( 0 );
+    L( labelShiftMaskEnd );
 
-    // End of code
-    L( labelFillProcessingKernelEnd );
+    std::function<void( int )> fillKernel( [&]( int channelCount ) {
+        PRESUME_EXPR( channelCount <= 8 );
+
+        // Load source to st[0]
+        switch( channelCount ) {
+        case 8:
+            vmovups( s, ptr[regTempSrcPtr] );
+            break;
+        case 4:
+            vmovups( s.copyAndSetKind( Operand::XMM ), ptr[regTempSrcPtr] );
+            break;
+        default:
+            // Create bitmask
+            vxorps( st[0], st[0], st[0] );
+            vpcmpeqd( st[1], st[1], st[1] );
+            vblendps( st[1], st[0], st[1], 0xff >> ( 8 - channelCount ) );
+            vmaskmovps( s, st[1], ptr[regTempSrcPtr] );
+        }
+
+        int ch = 0;
+
+        auto fillKernelInternal = [&]( int channelCountInternal, bool isLast ) {
+            // First source and filter
+            vbroadcastss( st[0], s.copyAndSetKind( Operand::XMM ) );
+            if( channelCountInternal == 2 ) {
+                // shift right by one float
+                vpermps( s, regShiftIndex, s );
+            }
+            vmovups( f[0][0], ptr[regTempFltPtr + ( StepSize * ch + 0 ) * SizeOfYmm] );
+            vmovups( f[0][1], ptr[regTempFltPtr + ( StepSize * ch + 1 ) * SizeOfYmm] );
+            vmovups( f[0][2], ptr[regTempFltPtr + ( StepSize * ch + 2 ) * SizeOfYmm] );
+            ch++;
+
+            if( channelCountInternal == 2 ) {
+                // Second source and filter
+                vbroadcastss( st[1], s.copyAndSetKind( Operand::XMM ) );
+                if( !isLast ) {
+                    // shift right by one float
+                    vpermps( s, regShiftIndex, s );
+                }
+                vmovups( f[1][0], ptr[regTempFltPtr + ( StepSize * ch + 0 ) * SizeOfYmm] );
+                vmovups( f[1][1], ptr[regTempFltPtr + ( StepSize * ch + 1 ) * SizeOfYmm] );
+                vmovups( f[1][2], ptr[regTempFltPtr + ( StepSize * ch + 2 ) * SizeOfYmm] );
+                ch++;
+            }
+
+            vfmadd231ps( tempRes[0][0], f[0][0], st[0] );
+            vfmadd231ps( tempRes[0][1], f[0][1], st[0] );
+            vfmadd231ps( tempRes[0][2], f[0][2], st[0] );
+            if( channelCountInternal == 2 ) {
+                vfmadd231ps( tempRes[1][0], f[1][0], st[1] );
+                vfmadd231ps( tempRes[1][1], f[1][1], st[1] );
+                vfmadd231ps( tempRes[1][2], f[1][2], st[1] );
+            }
+        };
+
+        int batchStepCount = channelCount / 2;
+        int remainedStepCount = channelCount % 2;
+        for( int s = 0; s < batchStepCount; s++ ) {
+            bool isLast = remainedStepCount == 0 && s == ( batchStepCount - 1 );
+            fillKernelInternal( 2, isLast );
+        }
+        if( remainedStepCount != 0 ) {
+            fillKernelInternal( 1, true );
+        }
+
+        } );
+
+    initProcessingMainLoop( bc, StepCount, StepSize, BatchChannelSize, fillKernel,
+        windowIndex, false, &mergeResRegs );
 }
 
 } // namespace NeoML

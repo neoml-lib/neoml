@@ -31,19 +31,15 @@ inline void CBlobConvolution<32>::CJitConvolution::fillBatchProcessingKernel( CB
 {
     using namespace Xbyak;
 
-    Label labelFillProcessingKernelEnd;
-    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
     const int StepCount = 2;
     const int StepSize = 4;
+    const int BatchChannelSize = 16;
 
     Ymm res[2][4] = { { ymm0, ymm1, ymm2, ymm3 }, { ymm4, ymm5, ymm6, ymm7 } };
     Ymm st[2] = { ymm8, ymm9 };
     Ymm f[4] = { ymm10, ymm11, ymm12, ymm13 };
 
-    initProcessingMainLoop( bc, &res[0][0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    auto fillKernel = [&]( int channelCount ) {
+    std::function<void( int )> fillKernel( [&]( int channelCount ) {
         for( int i = 0; i < channelCount; i++ ) {
             size_t fltOffset = i * FltCntM8 * sizeof( float );
             size_t srcOffset = i * sizeof( float );
@@ -66,46 +62,9 @@ inline void CBlobConvolution<32>::CJitConvolution::fillBatchProcessingKernel( CB
             vfmadd231ps( res[1][2], f[2], st[1] );
             vfmadd231ps( res[1][3], f[3], st[1] );
         }
+        } );
 
-        // Go to next channel in filter and source
-        add( regTempFltPtr, channelCount * FltCntM8 * sizeof( float ) );
-        add( regTempSrcPtr, channelCount * sizeof( float ) );
-    };
-
-    const int BatchStepSize = 16;
-    int batchStepCount = bc.ChCnt / BatchStepSize;
-    int remainedStepCount = bc.ChCnt % BatchStepSize;
-
-    L( labelProcessingKernel );
-    // Process kernels in group
-    if( batchStepCount ) {
-        if( batchStepCount > 1 ) {
-            // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ) {
-            // If we need loop
-            xor_( regChCnt, regChCnt );
-            L( labelProcessingKernelStart );
-            cmp( regChCnt, batchStepCount );
-            je( labelProcessingKernelEnd, T_NEAR );
-        }
-
-        fillKernel( BatchStepSize );
-
-        if( batchStepCount > 1 ) {
-            // } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
-            inc( regChCnt );
-            jmp( labelProcessingKernelStart, T_NEAR );
-        }
-
-        L( labelProcessingKernelEnd );
-    }
-
-    if( remainedStepCount > 0 ) {
-        fillKernel( remainedStepCount );
-    }
-
-    ret();
-    // End of code
-    L( labelFillProcessingKernelEnd );
+    initProcessingMainLoop( bc, StepCount, StepSize, BatchChannelSize, fillKernel, windowIndex );
 }
 
 template<>
@@ -113,21 +72,15 @@ inline void CBlobConvolution<32>::CJitConvolution::fillSingleProcessingKernel( C
 {
     using namespace Xbyak;
 
-    Label labelFillProcessingKernelEnd;
-    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
     const int StepCount = 1;
     const int StepSize = 4;
+    const int BatchChannelSize = 8;
 
     Ymm res[4] = { ymm0, ymm1, ymm2, ymm3 };
     Ymm s[2] = { ymm5, ymm6 };
     Ymm f[2][4] = { { ymm7, ymm8, ymm9, ymm10 }, { ymm11, ymm12, ymm13, ymm14 } };
 
-    initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-
-    // channelCount - number of channels for processing
-    auto fillKernel = [&]( int channelCount ) {
+    std::function<void( int )> fillKernel( [&]( int channelCount ) {
         const int InnerBatchStepSize = 2;
         int offset = 0;
         for( int batchStep = channelCount; batchStep > 0; batchStep -= InnerBatchStepSize ) {
@@ -157,46 +110,9 @@ inline void CBlobConvolution<32>::CJitConvolution::fillSingleProcessingKernel( C
             }
             offset += innerChannelCount;
         }
+        } );
 
-        // Go to next channel in filter and source
-        add( regTempFltPtr, channelCount * FltCntM8 * sizeof( float ) );
-        add( regTempSrcPtr, channelCount * sizeof( float ) );
-    };
-
-    const int BatchStepSize = 8;
-    int batchStepCount = bc.ChCnt / BatchStepSize;
-    int remainedStepCount = bc.ChCnt % BatchStepSize;
-
-    L( labelProcessingKernel );
-    // Process kernels in group
-    if( batchStepCount ) {
-        if( batchStepCount > 1 ) {
-            // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ) {
-            // If we need loop
-            xor_( regChCnt, regChCnt );
-            L( labelProcessingKernelStart );
-            cmp( regChCnt, batchStepCount );
-            je( labelProcessingKernelEnd, T_NEAR );
-        }
-
-        fillKernel( BatchStepSize );
-
-        if( batchStepCount > 1 ) {
-            // } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
-            inc( regChCnt );
-            jmp( labelProcessingKernelStart, T_NEAR );
-        }
-
-        L( labelProcessingKernelEnd );
-    }
-
-    if( remainedStepCount > 0 ) {
-        fillKernel( remainedStepCount );
-    }
-
-    ret();
-    // End of code
-    L( labelFillProcessingKernelEnd );
+    initProcessingMainLoop( bc, StepCount, StepSize, BatchChannelSize, fillKernel, windowIndex );
 }
 
 } // namespace NeoML

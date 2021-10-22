@@ -159,22 +159,27 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::epilogue()
 
 // Implementation for cases when FltCnt == FltCntM8
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( Xbyak::Ymm* res, Xbyak::Ymm* tempRes, size_t stepCount, size_t stepSize )
+inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( size_t stepCount, size_t stepSize )
 {
     using namespace Xbyak;
+
+    Ymm resRegs[] = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6, ymm7,
+        ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15 };
+    // tempRegs are always in reverse order in order to not overlap with resRegs.
+    Ymm tempRegs[] = { ymm15, ymm14, ymm13, ymm12 };
 
     Label labelFillWithZeroes, labelEnd;
     test( regFreeTermPtr, regFreeTermPtr );
     jz( labelFillWithZeroes );
     // Init first batch of registers
     for( int i = 0; i < stepSize; i++ ) {
-        vmovups( res[i], ptr[regFreeTermPtr + SizeOfYmm * i ] );
+        vmovups( resRegs[i], ptr[regFreeTermPtr + SizeOfYmm * i ] );
     }
     // Duplicate first batch into another ones
     size_t destIdx = stepSize;
     for( int j = 1; j < stepCount; j++ ) {
         for( int i = 0; i < stepSize; i++ ) {
-            vmovups( res[destIdx++], res[i] );
+            vmovups( resRegs[destIdx++], resRegs[i] );
         }
     }
     jmp( labelEnd, T_NEAR );
@@ -182,23 +187,26 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( Xbyak::Ymm* 
     L( labelFillWithZeroes );
     // Init with zeroes
     for( int i = 0; i < stepCount * stepSize; i++ ) {
-        vxorps( *res, *res, *res );
-        res++;
+        vxorps( resRegs[i], resRegs[i], resRegs[i] );
     }
     L( labelEnd );
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( Xbyak::Ymm* res, size_t stepCount, size_t stepSize, bool useNarrowProcessing, size_t resNarrowStep )
+inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( CBlobConvolution<FltCnt>& bc, size_t stepCount, size_t stepSize, bool useNarrowProcessing )
 {
     using namespace Xbyak;
 
+    const size_t resNarrowStep = useNarrowProcessing ? bc.ResLineStride : stepSize * NumFloatInYmm;
+
     Label labelPartialStore, labelPartialStoreEnd;
+    Ymm resRegs[] = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6, ymm7,
+        ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15 };
     // Last register is always unused at the end of the processing
     Ymm regMask = ymm15;
 
     // "narrow" kernel processes several rows per time
-    const bool HasSeveralRows = resNarrowStep != 0;
+    const bool HasSeveralRows = useNarrowProcessing;
     const size_t RowCount = HasSeveralRows ? stepCount : 1;
     const size_t ColCount = HasSeveralRows ? stepSize : stepCount * stepSize;
     // If length of data for flushing doesn't multiple of size of ymm we should perform storring tail of data by mask.
@@ -215,16 +223,16 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( Xbyak::Ymm*
     for( int i = 0; i < RowCount; i++ ) {
         int j = 0;
         for( ; j < FullFlushCount; j++ ) {
-            vmovups( ptr[regResPtr + ( resNarrowStepDisp  + offsetDisp ) * sizeof( float )], res[i * ColCount + j] );
+            vmovups( ptr[regResPtr + ( resNarrowStepDisp  + offsetDisp ) * sizeof( float )], resRegs[i * ColCount + j] );
             offsetDisp += NumFloatInYmm;
         }
 
         if( HasPartitialFlush ) {
             // Mask store ( only elements which is mentioned in regMask )
-            vmaskmovps( ptr[regResPtr + ( resNarrowStepDisp  + offsetDisp ) * sizeof( float )], regMask, res[i * ColCount + j] );
+            vmaskmovps( ptr[regResPtr + ( resNarrowStepDisp  + offsetDisp ) * sizeof( float )], regMask, resRegs[i * ColCount + j] );
         }
 
-        if( resNarrowStep != 0 ) {
+        if( useNarrowProcessing ) {
             resNarrowStepDisp += resNarrowStep;
             offsetDisp = 0;
         }
@@ -245,14 +253,17 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( Xbyak::Ymm*
 
 template<int FltCnt>
 inline void CBlobConvolution<FltCnt>::CJitConvolution::initProcessingMainLoop(
-        CBlobConvolution<FltCnt>& bc, Xbyak::Ymm* res, Xbyak::Ymm* tempRes,
-        size_t stepCount, size_t stepSize,
-        Xbyak::Label& labelKernel, Xbyak::Label& labelEndOfProcessingFunction,
-        size_t windowIndex,
-        bool useNarrowProcessing, size_t resNarrowStep, std::function<void()>* callBeforeFlush )
+        CBlobConvolution<FltCnt>& bc,
+        size_t stepCount, size_t stepSize, int batchChannelSize, std::function<void(int)>& fillKernel,
+        size_t windowIndex, bool useNarrowProcessing, std::function<void()>* callBeforeFlush )
 {
+    using namespace Xbyak;
+
+    Label labelFillProcessingKernelEnd;
+    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
+
     // Initialize result registers with freeTerm
-    initResRegs( res, tempRes, stepCount, stepSize );
+    initResRegs( stepCount, stepSize );
 
     // Process convolution
     auto srcIt = bc.SrcPixelsOffset[windowIndex].cbegin();
@@ -261,7 +272,7 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initProcessingMainLoop(
     for( ; srcIt != bc.SrcPixelsOffset[windowIndex].cend(); srcIt++, fltIt++ ) {
         lea( regTempSrcPtr, ptr[regSrcPtr + *srcIt * sizeof( float )] );
         lea( regTempFltPtr, ptr[regFltPtr + *fltIt * sizeof( float )] );
-        call( labelKernel );
+        call( labelProcessingKernel );
     }
 
     if( callBeforeFlush ) {
@@ -269,10 +280,49 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initProcessingMainLoop(
     }
 
     // Flush result registers
-    flushResRegs( res, stepCount, stepSize, useNarrowProcessing, resNarrowStep );
+    flushResRegs( bc, stepCount, stepSize, useNarrowProcessing );
 
     // return from function
-    jmp( labelEndOfProcessingFunction, T_NEAR );
+    jmp( labelFillProcessingKernelEnd, T_NEAR );
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // Fill kernels
+    int batchStepCount = bc.ChCnt / batchChannelSize;
+    int remainedStepCount = bc.ChCnt % batchChannelSize;
+
+    L( labelProcessingKernel );
+    // Process kernels in group
+    if( batchStepCount ) {
+        if( batchStepCount > 1 ) {
+            // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ) {
+            // If we need loop
+            xor_( regChCnt, regChCnt );
+            L( labelProcessingKernelStart );
+            cmp( regChCnt, batchStepCount );
+            je( labelProcessingKernelEnd, T_NEAR );
+        }
+
+        fillKernel( batchChannelSize );
+        // Go to next channel in filter and source
+        add( regTempFltPtr, batchChannelSize * FltCntM8 * sizeof( float ) );
+        add( regTempSrcPtr, batchChannelSize * sizeof( float ) );
+
+        if( batchStepCount > 1 ) {
+            // } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
+            inc( regChCnt );
+            jmp( labelProcessingKernelStart, T_NEAR );
+        }
+
+        L( labelProcessingKernelEnd );
+    }
+
+    if( remainedStepCount > 0 ) {
+        fillKernel( remainedStepCount );
+    }
+
+    ret();
+    // End of code
+    L( labelFillProcessingKernelEnd );
 }
 
 template<int FltCnt>

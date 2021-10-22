@@ -31,77 +31,36 @@ inline void CBlobConvolution<8>::CJitConvolution::fillBatchProcessingKernel( CBl
 {
     using namespace Xbyak;
 
-    Label labelFillProcessingKernelEnd;
-    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
     const int StepCount = 7;
     const int StepSize = 1;
+    const int BatchChannelSize = 16;
 
     Ymm res[7] = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6 };
     Ymm st[7] = { ymm7, ymm8, ymm9, ymm10, ymm11, ymm12, ymm13 };
     Ymm f[1] = { ymm14 };
 
-    initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd,  windowIndex );
+    std::function<void( int )> fillKernel( [&]( int channelCount ) {
+        for( int c = 0; c < channelCount; c++ ) {
+            size_t fltOffset = c * FltCntM8 * sizeof( float );
+            size_t srcOffset = c * sizeof( float );
 
-    ////////////////////////////////////////////////////////////////////////////////////////////
-	auto fillKernel = [&]( int channelCount ) {
-		for( int c = 0; c < channelCount; c++ ) {
-			size_t fltOffset = c * FltCntM8 * sizeof( float );
-			size_t srcOffset = c * sizeof( float );
+            // Load one channel for the same pixel as in source for all filters.
+            vmovups( f[0], ptr[regTempFltPtr + fltOffset] );
 
-			// Load one channel for the same pixel as in source for all filters.
-			vmovups( f[0], ptr[regTempFltPtr + fltOffset] );
+            // Load one channel from one pixels in sequenced windows and fill one ymm register with its value.
+            for( int i = 0; i < 7; i++ ) {
+                vbroadcastss( st[i], ptr[regTempSrcPtr + srcOffset + i * bc.SrcXStep * sizeof( float )] );
+            }
 
-			// Load one channel from one pixels in sequenced windows and fill one ymm register with its value.
-			for( int i = 0; i < 7; i++ ) {
-				vbroadcastss( st[i], ptr[regTempSrcPtr + srcOffset + i * bc.SrcXStep * sizeof( float )] );
-			}
-
-			// Take result for current pixels in three sequenced windows.
-			// Multiply one channel for all filters ( for ONE src/flt pixels )
-			for( int i = 0; i < 7; i++ ) {
-				vfmadd231ps( res[i], f[0], st[i] );
-			}
-		}
-
-        // Go to next channel in filter and source
-        add( regTempFltPtr, channelCount* FltCntM8 * sizeof( float ) );
-        add( regTempSrcPtr, channelCount * sizeof( float ) );
-    };
-    
-    const int BatchStepSize = 16;
-    int batchStepCount = bc.ChCnt / BatchStepSize;
-    int remainedStepCount = bc.ChCnt % BatchStepSize;
-
-    L( labelProcessingKernel );
-    // Process kernels in group
-    if( batchStepCount ) {
-        if( batchStepCount > 1 ) {
-            // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ) {
-            // If we need loop
-            xor_( regChCnt, regChCnt );
-            L( labelProcessingKernelStart );
-            cmp( regChCnt, batchStepCount );
-            je( labelProcessingKernelEnd, T_NEAR );
+            // Take result for current pixels in three sequenced windows.
+            // Multiply one channel for all filters ( for ONE src/flt pixels )
+            for( int i = 0; i < 7; i++ ) {
+                vfmadd231ps( res[i], f[0], st[i] );
+            }
         }
+        } );
 
-        fillKernel( BatchStepSize );
-
-        if( batchStepCount > 1 ) {
-            // } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
-            inc( regChCnt );
-            jmp( labelProcessingKernelStart, T_NEAR );
-        }
-
-        L( labelProcessingKernelEnd );
-    }
-
-    if( remainedStepCount > 0 ) {
-        fillKernel( remainedStepCount );
-    }
-
-    ret();
-    // End of code
-    L( labelFillProcessingKernelEnd );
+    initProcessingMainLoop( bc, StepCount, StepSize, BatchChannelSize, fillKernel, windowIndex );
 }
 
 template<>
@@ -109,10 +68,9 @@ inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CB
 {
     using namespace Xbyak;
 
-    Label labelFillProcessingKernelEnd;
-    Label labelProcessingKernel, labelProcessingKernelStart, labelProcessingKernelEnd;
     const int StepCount = 1;
     const int StepSize = 1;
+    const int BatchChannelSize = 15;
 
     Ymm res[1] = { ymm0 };
     // We will accumulate intermediate result in temp registers and then we will flush them to the 'res'.
@@ -133,13 +91,7 @@ inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CB
         vaddps( res[0], tempRes[0], tempRes[1] );
         } );
 
-    initProcessingMainLoop( bc, &res[0], 0, StepCount, StepSize, labelProcessingKernel, labelFillProcessingKernelEnd, windowIndex,
-        false, 0, &mergeResRegs );
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-
-    // channelCount - number of channels for processing
-    auto fillKernel = [&]( int channelCount ) {
+    std::function<void( int )> fillKernel( [&]( int channelCount ) {
         const int InnerBatchStepSize = 5;
         int offset = 0;
         for( int batchStep = channelCount; batchStep > 0; batchStep -= InnerBatchStepSize ) {
@@ -163,46 +115,10 @@ inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CB
             }
             offset += innerChannelCount;
         }
+        } );
 
-        // Go to next channel in filter and source
-        add( regTempFltPtr, channelCount * FltCntM8 * sizeof( float ) );
-        add( regTempSrcPtr, channelCount * sizeof( float ) );
-        };
-
-    const int BatchStepSize = 15;
-    int batchStepCount = bc.ChCnt / BatchStepSize;
-    int remainedStepCount = bc.ChCnt % BatchStepSize;
-
-    L( labelProcessingKernel );
-    // Process kernels in group
-    if( batchStepCount ) {
-        if( batchStepCount > 1 ) {
-            // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ) {
-            // If we need loop
-            xor_( regChCnt, regChCnt );
-            L( labelProcessingKernelStart );
-            cmp( regChCnt, batchStepCount );
-            je( labelProcessingKernelEnd, T_NEAR );
-        }
-
-        fillKernel( BatchStepSize );
-
-        if( batchStepCount > 1 ) {
-            // } // for( regChCnt i = 0; regChCnt < batchStepCount; regChCnt++ ){}
-            inc( regChCnt );
-            jmp( labelProcessingKernelStart, T_NEAR );
-        }
-
-        L( labelProcessingKernelEnd );
-    }
-
-    if( remainedStepCount > 0 ) {
-        fillKernel( remainedStepCount );
-    }
-
-    ret();
-    // End of code
-    L( labelFillProcessingKernelEnd );
+    initProcessingMainLoop( bc, StepCount, StepSize, BatchChannelSize, fillKernel,
+        windowIndex, false, &mergeResRegs );
 }
 
 } // namespace NeoML
