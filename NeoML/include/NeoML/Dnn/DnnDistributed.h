@@ -29,10 +29,10 @@ public:
 	explicit CDistributedTraining( CArchive& archive, TMathEngineType type, int count, std::initializer_list<int> devs );
 
 	void RunAndLearnOnce( IDistributedDataset& data );
-    float GetLastLoss( const CString& layerName );
+	float GetLastLoss( const CString& layerName );
 private:
-    std::vector<std::unique_ptr<IMathEngine>> mathEngines;
-    std::vector<std::unique_ptr<CRandom>> rands;
+	std::vector<std::unique_ptr<IMathEngine>> mathEngines;
+	std::vector<std::unique_ptr<CRandom>> rands;
 	std::vector<std::unique_ptr<CDnn>> cnns;
 };
 
