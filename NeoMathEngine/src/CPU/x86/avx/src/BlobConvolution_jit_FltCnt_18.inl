@@ -27,42 +27,31 @@ template<>
 const int CBlobConvolution<18>::WideBatchKernelWidth = 4;
 
 template<>
-inline void CBlobConvolution<18>::CJitConvolution::initResRegs( size_t stepCount, size_t stepSize )
+inline void CBlobConvolution<18>::CJitConvolution::circularShift( Xbyak::Ymm* dst, Xbyak::Ymm* src, Xbyak::Ymm* temp )
 {
-    using namespace Xbyak;
+    // src[0]    src[1]    src[2]
+    // 0 1 2 3 - 4 5 6 7 - 8 0 1 2
+    // 3 4 5 6 - 7 8 0 1 - 2 3 4 5
+    // 6 7 8 0 - 1 2 3 4 - 5 6 7 8
 
-    Ymm res[] = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6, ymm7,
-        ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15 };
-    // tempRegs are always in reverse order in order to not overlap with resRegs.
-    Ymm tempRes[] = { ymm15, ymm14, ymm13, ymm12 };
-
-    Label labelFillWithZeroes, labelEnd;
-    test( regFreeTermPtr, regFreeTermPtr );
-    jz( labelFillWithZeroes );
-
-    // Init first register
-    for( int i = 0; i < stepSize; i++ ) {
-        vmovups( res[i], ptr[regFreeTermPtr + i * SizeOfYmm] );
-    }
-
-    for( int step = 1; step < stepCount; step++ ) {
-        Xbyak::Ymm* from = &res[( step - 1 ) * stepSize];
-        Xbyak::Ymm* to = &res[step * stepSize];
-        for( int i = 0; i < stepSize; i++ ) {
-            vmovaps( to[i], from[i] );
-        }
-        rotateLeft6( to[0], to[1], to[2],
-                tempRes[0], tempRes[1], tempRes[2] );
-    }
-
-    jmp( labelEnd, T_NEAR );
-
-    L( labelFillWithZeroes );
-    // Init with zeroes
-    for( int i = 0; i < stepCount * stepSize; i++ ) {
-        vxorps( res[i], res[i], res[i] );
-    }
-    L( labelEnd );
+    // before: 0 1 2 3
+    // after:  2 3 0 1
+    vperm2f128( temp[0], src[0], src[0], _MM_SHUFFLE( 0, 0, 0, 1 ) );
+    // before: 4 5 6 7
+    // after:  6 7 4 5
+    vperm2f128( temp[1], src[1], src[1], _MM_SHUFFLE( 0, 0, 0, 1 ) );
+    // before: 6 7 4 5|8 0 1 2
+    // after:      7 8 5 1
+    vshufps( temp[2], temp[1], src[2], _MM_SHUFFLE( 1, 0, 3, 2 ) );
+    // before: 2 3 0 1|6 7 4 5
+    // after:      2 3 4 5
+    vblendps( dst[2], temp[0], temp[1], 0xf0 );
+    // before: 2 3 4 5|4 5 6 7
+    // after:      3 4 5 6
+    vshufps( dst[0], dst[2], src[1], _MM_SHUFFLE( 1, 0, 3, 2 ) );
+    // before: 7 8 5 1|2 3 0 1
+    // after:      7 8 0 1
+    vblendps( dst[1], temp[2], temp[0], 0xf0 );
 }
 
 template<>
@@ -77,7 +66,7 @@ inline void CBlobConvolution<18>::CJitConvolution::fillBatchProcessingKernel( CB
     Ymm res[3][3] = { { ymm0, ymm1, ymm2 }, { ymm3, ymm4, ymm5 }, { ymm6, ymm7, ymm8 } };
     Ymm f[3] = { ymm9, ymm10, ymm11 };
     Ymm s[3] = { ymm12, ymm13, ymm14 };
-    Ymm temp[4] = { ymm12, ymm13, ymm14, ymm15 };
+    Ymm temp[3] = { ymm12, ymm13, ymm15 };
 
     std::function<void( int )> fillKernel( [&]( int channelCount ) {
         PRESUME_EXPR( channelCount == 1 );
@@ -101,7 +90,7 @@ inline void CBlobConvolution<18>::CJitConvolution::fillBatchProcessingKernel( CB
         // S: 1 1 1 1 - 1 1 2 2 - 2 2 2 2
         // F: 3 4 5 6 - 7 8 0 1 - 2 3 4 5
         // Don't use temp2 because it corresponds to s[2] which is used in next step
-        rotateLeft6( f[0], f[1], f[2], temp[0], temp[1], temp[3] );
+        circularShift( f, f, temp );
         vunpckhps( s[0], s[2], s[2] );
         vbroadcastss( s[2], ptr[regTempSrcPtr + 2 * bc.SrcXStep * sizeof( float )] );
         vblendps( s[1], s[0], s[2], 0xf0 );
@@ -113,7 +102,7 @@ inline void CBlobConvolution<18>::CJitConvolution::fillBatchProcessingKernel( CB
         // S: 2 2 2 3 - 3 3 3 3 - 3 3 3 3
         // F: 6 7 8 0 - 1 2 3 4 - 5 6 7 8
         // Don't use temp[2] because it corresponds to s[2] which is used in next step
-        rotateLeft6( f[0], f[1], f[2], temp[0], temp[1], temp[3] );
+        circularShift( f, f, temp );
         vbroadcastss( s[1], ptr[regTempSrcPtr + 3 * bc.SrcXStep * sizeof( float )] );
         vblendps( s[0], s[2], s[1], 0xc0 );
         vfmadd231ps( res[2][0], f[0], s[0] );

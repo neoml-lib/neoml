@@ -33,44 +33,11 @@ template<>
 const int CBlobConvolution<3>::WideBatchKernelWidth = 24;
 
 template<>
-inline void CBlobConvolution<3>::CJitConvolution::initResRegs( size_t stepCount, size_t StepSize )
+inline void CBlobConvolution<3>::CJitConvolution::circularShift( Xbyak::Ymm* dst, Xbyak::Ymm* src, Xbyak::Ymm* temp )
 {
-	using namespace Xbyak;
-
-	Ymm res[] = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6, ymm7,
-		ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15 };
-	// tempRegs are always in reverse order in order to not overlap with resRegs.
-	Ymm tempRes[] = { ymm15, ymm14, ymm13, ymm12 };
-
-	Label labelFillWithZeroes, labelEnd;
-	test( regFreeTermPtr, regFreeTermPtr );
-	jz( labelFillWithZeroes );
-
-	// Init first register
-	if( StepSize == 1 ) {
-		vmovups( res[0].copyAndSetKind( Operand::XMM ), ptr[regFreeTermPtr] );
-	}  else {
-		vmovups( res[0], ptr[regFreeTermPtr] );
-	}
-
-	for( int c = 0; c < StepSize; c++ ) {
-		for( int r = 1; r < stepCount; r++ ) {
-			vmovaps( res[r * StepSize + c], res[c] );
-		}
-
-		if( c != ( StepSize - 1 ) ) {
-			rotateRight2( res[c + 1], res[c] );
-		}
-	}
-
-	jmp( labelEnd, T_NEAR );
-
-	L( labelFillWithZeroes );
-	// Init with zeroes
-	for( int i = 0; i < stepCount * StepSize; i++ ) {
-		vxorps( res[i], res[i], res[i] );
-	}
-	L( labelEnd );
+	// before: 0 1 2 0 1 2 0 1
+	// after:  2 0 1 2 0 1 2 0
+	vpermilps( *dst, *src, _MM_SHUFFLE( 2, 1, 0, 2 ) );
 }
 
 template<>
@@ -124,13 +91,13 @@ inline void CBlobConvolution<3>::CJitConvolution::fillBatchProcessingKernel( CBl
 			// s[1] : 2 3 3 3 4 4 4 4
 			vblendps( s[1], s[1], t[1], 0x01 );
 			// t[1]: shifted filter for s[1]
-			rotateRight2( t[1], f );
+			circularShift( &t[1], &f );
 			// s[1] : 2 3 3 3 4 4 4 5 (READY)
 			vblendps( s[1], s[1], s[2], 0x80 );
 			// s[2] " 5 5 6 6 6 6 6 6
 			vblendps( s[2], s[2], t[0], 0xfc );
 			// t[0]: shifted filter for s[2]
-			rotateRight2( t[0], t[1] );
+			circularShift( &t[0], &t[1] );
 			// s[2] " 5 5 6 6 6 7 7 7
 			vblendps( s[2], s[2], t[2], 0xe0 );
 

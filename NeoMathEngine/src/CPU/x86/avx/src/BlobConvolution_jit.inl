@@ -171,17 +171,43 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( size_t stepC
     Label labelFillWithZeroes, labelEnd;
     test( regFreeTermPtr, regFreeTermPtr );
     jz( labelFillWithZeroes );
+   
+    // For single processing we haven't any shifts because stepSize equals to 1.
+    // In another cases NumberOfShifts means number of shifts we should 
+    // perform in order  before we come back to initial state.
+    // Example for FC == 3:
+    //        r0                r1                r2                r3
+    // 0 1 2 0 1 2 0 1 | 2 0 1 2 0 1 2 0 | 1 2 0 1 2 0 1 2 | 0 1 2 0 1 2 0 1
+    // We see that r3 is the same as r0, therefore number of shift is 3 (r0, r1, r2)
+    const int NumberOfShifts = min( stepSize, FltCntM8 == FltCnt ? 1 : stepSize );
+    // If we shift registers we will do that every ShiftStep regs.
+    constexpr int ChunkSize = FltCntM8 / 8;
+    // Number of identical chunks
+    const size_t NumberOfCopies = stepSize * stepCount / ( NumberOfShifts * ChunkSize );
+
     // Init first batch of registers
-    for( int i = 0; i < stepSize; i++ ) {
-        vmovups( resRegs[i], ptr[regFreeTermPtr + SizeOfYmm * i ] );
-    }
-    // Duplicate first batch into another ones
-    size_t destIdx = stepSize;
-    for( int j = 1; j < stepCount; j++ ) {
-        for( int i = 0; i < stepSize; i++ ) {
-            vmovups( resRegs[destIdx++], resRegs[i] );
+    if( FltCnt <= 4 && NumberOfShifts == 1 ) {
+        // High half of register should be zerroed because we might use it for result accumulation.
+        vmovups( resRegs[0].copyAndSetKind( Operand::XMM ), ptr[regFreeTermPtr] );
+    } else {
+        for( int i = 0; i < ChunkSize; i++ ) {
+            vmovups( resRegs[i], ptr[regFreeTermPtr + SizeOfYmm * i] );
         }
     }
+   
+    for( int shiftIdx = 0; shiftIdx < NumberOfShifts; shiftIdx++ ) {
+        // Duplicate to the identical chunk
+        for( int i = 1; i < NumberOfCopies; i++ ) {
+            for( int j = 0; j < ChunkSize; j++ ) {
+                vmovaps( resRegs[i * stepSize + j + shiftIdx], resRegs[j + shiftIdx] );
+            }
+        }
+
+        if( shiftIdx < ( NumberOfShifts - 1 ) ) {
+            circularShift( &resRegs[( shiftIdx + 1 ) * ChunkSize], &resRegs[shiftIdx * ChunkSize], tempRegs );
+        }
+    }
+
     jmp( labelEnd, T_NEAR );
 
     L( labelFillWithZeroes );
@@ -323,66 +349,6 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initProcessingMainLoop(
     ret();
     // End of code
     L( labelFillProcessingKernelEnd );
-}
-
-template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CJitConvolution::rotateLeft6(
-        Xbyak::Ymm& y0, Xbyak::Ymm& y1, Xbyak::Ymm& y2,
-        Xbyak::Ymm& yt0, Xbyak::Ymm& yt1, Xbyak::Ymm& yt2 )
-{   //   y0        y1        y2
-    // 0 1 2 3 - 4 5 6 7 - 8 0 1 2
-    // 3 4 5 6 - 7 8 0 1 - 2 3 4 5
-    // 6 7 8 0 - 1 2 3 4 - 5 6 7 8
-
-    // before: 0 1 2 3
-    // after:  2 3 0 1
-    vperm2f128( yt0, y0, y0, _MM_SHUFFLE( 0, 0, 0, 1 ) );
-    // before: 4 5 6 7
-    // after:  6 7 4 5
-    vperm2f128( yt1, y1, y1, _MM_SHUFFLE( 0, 0, 0, 1 ) );
-    // before: 6 7 4 5|8 0 1 2
-    // after:      7 8 5 1
-    vshufps( yt2, yt1, y2, _MM_SHUFFLE( 1, 0, 3, 2 ) );
-    // before: 2 3 0 1|6 7 4 5
-    // after:      2 3 4 5
-    vblendps( y2, yt0, yt1, 0xf0 );
-    // before: 2 3 4 5|4 5 6 7
-    // after:      3 4 5 6
-    vshufps( y0, y2, y1, _MM_SHUFFLE( 1, 0, 3, 2 ) );
-    // before: 7 8 5 1|2 3 0 1
-    // after:      7 8 0 1
-    vblendps( y1, yt2, yt0, 0xf0 );
-}
-
-template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CJitConvolution::rotateLeft2(
-        Xbyak::Ymm& y, Xbyak::Ymm& yt )
-{
-    // 0 1 2 0
-    // 1 2 0 1
-    // 2 0 1 2
-    // before: 0 1 2 0
-    // after:  2 0 0 1
-    vperm2f128( yt, y, y, _MM_SHUFFLE( 0, 0, 0, 1 ) );
-    // before: 0 1 2 0|2 0 0 1
-    // after:      1 2 0 0
-    vshufps( y, y, yt, _MM_SHUFFLE( 1, 0, 3, 2 ) );
-    // before:  1 2 0 0|2 0 0 1
-    // after:      1 2 0 1
-    vblendps( y, y, yt, 0xf0 );
-}
-
-
-template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CJitConvolution::rotateRight2( Xbyak::Ymm& dst, Xbyak::Ymm& src )
-{
-    using namespace Xbyak;
-    Label labelPermuteIdx;
-
-    // before: 0 1 2 0 1 2 0 1
-    // after:  2 0 1 2 0 1 2 0
-
-    vpermilps( dst, src, _MM_SHUFFLE( 2, 1, 0, 2 ) );
 }
 
 } // namespace NeoML

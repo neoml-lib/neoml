@@ -33,41 +33,20 @@ template<>
 const int CBlobConvolution<6>::WideBatchKernelWidth = 12;
 
 template<>
-inline void CBlobConvolution<6>::CJitConvolution::initResRegs( size_t stepCount, size_t StepSize )
+inline void CBlobConvolution<6>::CJitConvolution::circularShift( Xbyak::Ymm* dst, Xbyak::Ymm* src, Xbyak::Ymm* temp )
 {
-    using namespace Xbyak;
-
-    Ymm res[] = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6, ymm7,
-        ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15 };
-    // tempRegs are always in reverse order in order to not overlap with resRegs.
-    Ymm tempRes[] = { ymm15, ymm14, ymm13, ymm12 };
-
-    Label labelFillWithZeroes, labelEnd;
-    test( regFreeTermPtr, regFreeTermPtr );
-    jz( labelFillWithZeroes );
-
-    // Init first register
-    vmovups( res[0], ptr[regFreeTermPtr] );
-
-    for( int c = 0; c < StepSize; c++ ) {
-        for( int r = 1; r < stepCount; r++ ) {
-            vmovaps(res[r * StepSize + c], res[c]);
-        }
-
-        if( c != ( StepSize - 1 ) ) {
-            vmovaps( res[c + 1], res[c] );
-            rotateLeft2( res[c + 1], tempRes[0]  );
-        }
-    }
-
-    jmp( labelEnd, T_NEAR );
-
-    L( labelFillWithZeroes );
-    // Init with zeroes
-    for( int i = 0; i < stepCount * StepSize; i++ ) {
-        vxorps( res[i], res[i], res[i] );
-    }
-    L( labelEnd );
+    // 0 1 2 0
+    // 1 2 0 1
+    // 2 0 1 2
+    // before: 0 1 2 0
+    // after:  2 0 0 1
+    vperm2f128( *temp, *src, *src, _MM_SHUFFLE( 0, 0, 0, 1 ) );
+    // before: 0 1 2 0|2 0 0 1
+    // after:      1 2 0 0
+    vshufps( *dst, *src, *temp, _MM_SHUFFLE( 1, 0, 3, 2 ) );
+    // before:  1 2 0 0|2 0 0 1
+    // after:      1 2 0 1
+    vblendps( *dst, *dst, *temp, 0xf0 );
 }
 
 template<>
@@ -121,7 +100,7 @@ inline void CBlobConvolution<6>::CJitConvolution::fillBatchProcessingKernel( CBl
 		vfmadd231ps( res[1][0], f[0], s[1] );
 		vfmadd231ps( res[2][0], f[0], s[2] );
 		// 0 1 2 0 -> 1 2 0 1 ( use s[2] as temp register )
-		rotateLeft2( f[0], s[2] );
+        circularShift( &f[0], &f[0], &s[2] );
 
 		// load: 2 2 2 2
 		vbroadcastss( s[0], ptr[regTempSrcPtr + 2 * bc.SrcXStep * sizeof( float )] );
@@ -140,7 +119,7 @@ inline void CBlobConvolution<6>::CJitConvolution::fillBatchProcessingKernel( CBl
 		vfmadd231ps( res[1][1], f[0], st[1] );
 		vfmadd231ps( res[2][1], f[0], st[2] );
 		// 1 2 0 1 -> 2 0 1 2 ( use st[2] as a temp register )
-		rotateLeft2( f[0], st[2] );
+        circularShift( &f[0], &f[0], &st[2] );
 
 		// load: 3 3 3 3
 		vbroadcastss( st[0], ptr[regTempSrcPtr + 3 * bc.SrcXStep * sizeof( float )] );

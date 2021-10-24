@@ -107,13 +107,7 @@ private:
             size_t stepCount, size_t stepSize, int batchChannelSize, std::function<void( int )>& fillKernel,
             size_t windowIndex, bool useNarrowProcessing = false, std::function<void()>* callBeforeFlush = nullptr );
 
-        // Circular rotate y0, y1 and y2 to the left at 6 floats using 3 additional temporary registers.
-        void rotateLeft6( Xbyak::Ymm& y0, Xbyak::Ymm& y1, Xbyak::Ymm& y2,
-            Xbyak::Ymm& yt0, Xbyak::Ymm& yt1, Xbyak::Ymm& yt2 );
-        // Circular rotate y0 to the left at 2 floats using 1 additional temporary register.
-        void rotateLeft2( Xbyak::Ymm& y, Xbyak::Ymm& yt );
-        // Circular rotate y to the right at 2
-        void rotateRight2( Xbyak::Ymm& dst, Xbyak::Ymm& src );
+        void circularShift( Xbyak::Ymm* dst, Xbyak::Ymm* src, Xbyak::Ymm* temp = nullptr ) {}
     };
 
     IMathEngine* mathEngine;
