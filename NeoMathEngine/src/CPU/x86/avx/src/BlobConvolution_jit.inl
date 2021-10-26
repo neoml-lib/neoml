@@ -129,15 +129,17 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::prologue()
     push( rbp );
     mov( rbp, rsp );
 
+    // stack should be alinged to 16 byte because we use vmovaps instruction
+    int stackAlignment = 0;
 #ifdef _WIN32
+    stackAlignment = 8;
     push( regResPtr );
 #endif
     push( regNumSteps );
     push( retTemp );
     for( int i = 6; i <= 15; i++ ) {
-        // '-8' for alignment to 16 byte
         // '-16' - place for first xmm
-        vmovaps( ptr[rsp - 8 - 16 - ( i - 6 ) * 16], Xmm( i ) );
+        vmovaps( ptr[rsp - stackAlignment - 16 - ( i - 6 ) * 16], Xmm( i ) );
     }
 }
 
@@ -146,11 +148,18 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::epilogue()
 {
     using namespace Xbyak::util;
     using namespace Xbyak;
+    // stack should be alinged to 16 byte because we use vmovaps instruction
+    int stackAlignment = 0;
+#ifdef _WIN32
+    stackAlignment = 8;
+#endif
+
     for( int i = 15; i >= 6; i-- ) {
-        vmovaps( Xmm( i ), ptr[rsp - 8 - 16  - ( i - 6 ) * 16] );
+        vmovaps( Xmm( i ), ptr[rsp - stackAlignment - 16  - ( i - 6 ) * 16] );
     }
     pop( retTemp );
     pop( regNumSteps );
+
 #ifdef _WIN32
     pop( regResPtr );
 #endif
