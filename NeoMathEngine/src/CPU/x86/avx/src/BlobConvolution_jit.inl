@@ -179,7 +179,7 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( size_t stepC
     //        r0                r1                r2                r3
     // 0 1 2 0 1 2 0 1 | 2 0 1 2 0 1 2 0 | 1 2 0 1 2 0 1 2 | 0 1 2 0 1 2 0 1
     // We see that r3 is the same as r0, therefore number of shift is 3 (r0, r1, r2)
-    const int NumberOfShifts = min( stepSize, FltCntM8 == FltCnt ? 1 : stepSize );
+    const int NumberOfShifts = static_cast<int>( min( stepSize, FltCntM8 == FltCnt ? 1 : stepSize ) );
     // If we shift registers we will do that every ShiftStep regs.
     constexpr int ChunkSize = FltCntM8 / 8;
     // Number of identical chunks
