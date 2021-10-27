@@ -195,7 +195,40 @@ void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHan
 		to, GetRaw( toData ), startPos, isRev, objectSizeNorm);
 }
 
-void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
+	int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData )
+{
+	ASSERT_EXPR( inputData.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	ASSERT_EXPR(heightCopyCount > 0);
+	ASSERT_EXPR(widthCopyCount > 0);
+	ASSERT_EXPR(input.BatchLength() == result.BatchLength());
+	ASSERT_EXPR(input.BatchWidth() == result.BatchWidth());
+	ASSERT_EXPR(input.Channels() == result.Channels());
+	ASSERT_EXPR(input.Depth() == result.Depth());
+	ASSERT_EXPR(input.Height() * heightCopyCount == result.Height());
+	ASSERT_EXPR(input.Width() * widthCopyCount == result.Width());
+	SetCudaDevice( device->DeviceNumber );
+
+	// This is how the algorithm works
+	// The input blob can be considered as batchSize matrices of inputHeight x inputRowSize size each
+	// The output blob can be considered as batchSize matrices of resultHeight x resultRowSize size each
+	// To calculate the (i,j) element of the output matrix create a separate thread
+	const int inputHeight = input.Height();
+	const int inputRowSize = input.Width() * input.Depth() * input.Channels();
+	const int pixelSize = input.Depth() * input.Channels();
+	const int resultHeight = result.Height();
+	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, resultHeight, resultRowSize );
+	Upsampling2DForwardKernel<<<blockCount, threadCount>>>(
+		heightCopyCount, widthCopyCount, pixelSize,
+		input.ObjectCount(), inputHeight, inputRowSize, GetRaw( inputData ),
+		resultHeight, resultRowSize, GetRaw( resultData ) );
+}
+
+void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -228,7 +261,7 @@ void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CFloatH
 		resultHeight, resultRowSize, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+void CCudaMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 	int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
@@ -494,6 +527,7 @@ void CCudaMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int object
 	ASSERT_EXPR( forget.GetMathEngine() == this );
 	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -519,6 +553,7 @@ void CCudaMathEngine::QrnnFPoolingBackward( bool reverse, int sequenceLength, in
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( updateDiff.GetMathEngine() == this );
 	ASSERT_EXPR( forgetDiff.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -542,6 +577,7 @@ void CCudaMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int objec
 	ASSERT_EXPR( input.GetMathEngine() == this );
 	ASSERT_EXPR( initialState.IsNull() || initialState.GetMathEngine() == this );
 	ASSERT_EXPR( result.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -569,6 +605,7 @@ void CCudaMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, i
 	ASSERT_EXPR( updateDiff.GetMathEngine() == this );
 	ASSERT_EXPR( forgetDiff.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiff.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount = 0;
 	int threadCount = 0;
@@ -582,8 +619,8 @@ void CCudaMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, i
 }
 
 void CCudaMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
-	const CFloatHandle& h)
+	TActivationFunction activation, const CConstFloatHandle& wx, const CConstFloatHandle& mask,
+	const CConstFloatHandle& u, const CFloatHandle& h )
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
 	ASSERT_EXPR( batchSize >= 1 );
@@ -592,18 +629,21 @@ void CCudaMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int bat
 	ASSERT_EXPR( mask.IsNull() || mask.GetMathEngine() == this );
 	ASSERT_EXPR( u.GetMathEngine() == this );
 	ASSERT_EXPR( h.GetMathEngine() == this );
+	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
 
+	// If assertion fails check kernel code!
 	IndRnnRecurrentKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
-		GetRaw( wx ), mask.IsNull() ? nullptr :  GetRaw( mask ), GetRaw( u ), GetRaw( h ) );
+		static_cast<int>( activation ), GetRaw( wx ), mask.IsNull() ? nullptr :  GetRaw( mask ), GetRaw( u ), GetRaw( h ) );
 }
 
 void CCudaMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-	const CFloatHandle& wxDiff )
+	TActivationFunction activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+	const CConstFloatHandle& hDiff, const CFloatHandle& wxDiff )
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
 	ASSERT_EXPR( batchSize >= 1 );
@@ -613,18 +653,22 @@ void CCudaMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength,
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( wxDiff.GetMathEngine() == this );
+	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
 
+	// If assertion fails check kernel code!
 	IndRnnRecurrentBackwardKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
-		mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ), GetRaw( wxDiff ) );
+		static_cast<int>( activation ),  mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ),
+		GetRaw( wxDiff ) );
 }
 
 void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
-	const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
-	const CFloatHandle& uDiff )
+	TActivationFunction activation, const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h,
+	const CConstFloatHandle& hDiff, const CFloatHandle& uDiff )
 {
 	ASSERT_EXPR( sequenceLength >= 1 );
 	ASSERT_EXPR( batchSize >= 1 );
@@ -634,13 +678,17 @@ void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, in
 	ASSERT_EXPR( h.GetMathEngine() == this );
 	ASSERT_EXPR( hDiff.GetMathEngine() == this );
 	ASSERT_EXPR( uDiff.GetMathEngine() == this );
+	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
+	SetCudaDevice( device->DeviceNumber );
 
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, batchSize, objectSize );
 
+	// If assertion fails check kernel code!
 	IndRnnRecurrentLearnKernel<<<blockCount, threadCount>>>( reverse, sequenceLength, batchSize, objectSize,
-		mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ), GetRaw( uDiff ) );
+		static_cast<int>( activation ), mask.IsNull() ? nullptr : GetRaw( mask ), GetRaw( u ), GetRaw( h ), GetRaw( hDiff ),
+		GetRaw( uDiff ) );
 }
 
 } // namespace NeoML

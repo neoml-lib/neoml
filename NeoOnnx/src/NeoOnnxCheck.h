@@ -16,11 +16,10 @@ limitations under the License.
 #pragma once
 
 #include <exception>
-#include <string>
-
-#include "onnx.pb.h"
 
 namespace NeoOnnx {
+
+class COperator;
 
 #ifdef NEOML_USE_FINEOBJ
 
@@ -38,53 +37,51 @@ inline void NeoOnnxCheck( bool expr, const CString& what )
 inline void NeoOnnxCheck( bool expr, const CString& what )
 {
 	if( !( expr ) ) {
-		FineDebugBreak();
+#if defined(_DEBUG) && defined(_WIN32)
+		if( ::IsDebuggerPresent() ) {
+			FineDebugBreak();
+		}
+#endif
 		throw std::logic_error( what );
 	}
 }
 
 #endif
 
-// Adds node info to message 'what'
-inline CString GetMessageWithNodeInfo( const CString& what, const onnx::NodeProto& node )
-{
-	return what + " at node " + node.op_type().c_str() + "(" + node.output( 0 ).c_str() + ")";
-}
+// Adds operator info to message 'what'
+CString GetMessageWithOperatorInfo( const CString& what, const COperator& op );
 
 // Throws std::logic_error if 'expr' is false
-// Checks if graph or nodes are sticking to the onnx protocol
+// Checks if onnx protocol has been violated
 inline void CheckOnnxProtocol( bool expr, const CString& what )
 {
-	NeoOnnxCheck( expr, CString( "onnx protocol violation: " ) + what );
+	if( !( expr ) ) {
+		NeoOnnxCheck( false, CString( "onnx protocol violation: " ) + what );
+	}
 }
 
-inline void CheckOnnxProtocol( bool expr, const CString& what, const onnx::NodeProto& node )
+inline void CheckOnnxProtocol( bool expr, const CString& what, const COperator& op )
 {
-	CheckOnnxProtocol( expr, GetMessageWithNodeInfo( what, node )  );
+	if( !( expr ) ) {
+		CheckOnnxProtocol( false, GetMessageWithOperatorInfo( what, op ) );
+	}
 }
 
 // Throws std::logic_error if 'expr' is false
-// Checks if there is something which is a valid onnx but is not supported by NeoOnnx
+// Used when expr can't be emulated by NeoOnnx despite being valid case of onnx
+// e.g. 8+ dimensional tensors which aren't supported by NeoML
 inline void CheckNeoOnnxSupport( bool expr, const CString& what ) 
 {
-	NeoOnnxCheck( expr, CString( "Not supported by NeoOnnx: " ) + what );
+	if( !( expr ) ) {
+		NeoOnnxCheck( false, CString( "Not supported by NeoOnnx: " ) + what );
+	}
 }
 
-inline void CheckNeoOnnxSupport( bool expr, const CString& what, const onnx::NodeProto& node )
+inline void CheckNeoOnnxSupport( bool expr, const CString& what, const COperator& op )
 {
-	CheckNeoOnnxSupport( expr, GetMessageWithNodeInfo( what, node ) );
-}
-
-// Throws std::logic_error if 'expr' is false
-// Checks if something goes wrong inside of NeoOnnx
-inline void CheckNeoOnnxInternal( bool expr, const CString& what )
-{
-	NeoOnnxCheck( expr, CString( "NeoOnnx internal error: " ) + what );
-}
-
-inline void CheckNeoOnnxInternal( bool expr, const CString& what, const onnx::NodeProto& node )
-{
-	CheckNeoOnnxInternal( expr, GetMessageWithNodeInfo( what, node ) );
+	if( !( expr ) ) {
+		CheckNeoOnnxSupport( false, GetMessageWithOperatorInfo( what, op ) );
+	}
 }
 
 } // namespace NeoOnnx

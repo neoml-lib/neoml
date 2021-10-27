@@ -29,55 +29,40 @@ limitations under the License.
 
 namespace NeoML {
 
-void CCpuMathEngine::VectorCopy( const CIntHandle& firstHandle, const CConstIntHandle& secondHandle, int vectorSize )
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-
-	dataCopy( GetRaw( firstHandle ), GetRaw( secondHandle ), vectorSize );
-}
-
-void CCpuMathEngine::vectorCopy( float* firstHandle, const float* secondHandle, int vectorSize )
-{
-	dataCopy( firstHandle, secondHandle, vectorSize );
-}
-
 void CCpuMathEngine::VectorFill( const CFloatHandle& result, float value, int vectorSize )
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
 
-	vectorFill( GetRaw( result ), value, vectorSize );
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+
+	if( threadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				vectorFill( GetRaw( result + index ), value, count );
+			}
+		}
+	} else {
+		vectorFill( GetRaw( result ), value, vectorSize );
+	}
 }
 
 void CCpuMathEngine::VectorFill( const CIntHandle& resultHandle, int value, int vectorSize )
 {
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	int* result = GetRaw( resultHandle );
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	int sseSize;
-	int nonSseSize;
-	checkSse2( vectorSize, sseSize, nonSseSize );
-
-	if( sseSize > 0 ) {
-		__m128i valueSse = _mm_set1_epi32( value );
-		for( int i = 0; i < sseSize; ++i ) {
-			_mm_storeu_si128( ( __m128i* )result, valueSse );
-			result += 4;
+	if( threadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				vectorFill( GetRaw( resultHandle + index ), value, count );
+			}
 		}
+	} else {
+		vectorFill( GetRaw( resultHandle ), value, vectorSize );
 	}
-
-	#if FINE_PLATFORM(FINE_WINDOWS)
-	if( nonSseSize > 0 ) {
-		__stosd( (DWORD*)result, value, nonSseSize );
-	}
-	#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	for( int i = 0; i < nonSseSize; ++i ) {
-		*result++ = value;
-	}
-	#else
-	#error "Platform isn't supported!"
-	#endif
 }
 
 void CCpuMathEngine::VectorConvert( const CConstFloatHandle& from, const CIntHandle& to, int vectorSize )
@@ -374,16 +359,22 @@ void CCpuMathEngine::VectorReLU( const CConstFloatHandle& firstHandle, const CFl
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			if( threshold > 0 ) {
-				vectorReLU( first + index, result + index, count, threshold );
-			} else {
-				vectorReLU( first + index, result + index, count );
+	if( threadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				if( threshold > 0 ) {
+					vectorReLU( first + index, result + index, count, threshold );
+				} else {
+					vectorReLU( first + index, result + index, count );
+				}
 			}
+		}
+	} else {
+		if( threshold > 0 ) {
+			vectorReLU( first, result, vectorSize, threshold );
+		} else {
+			vectorReLU( first, result, vectorSize );
 		}
 	}
 }
@@ -1286,6 +1277,33 @@ void CCpuMathEngine::VectorAddValue( const CConstIntHandle& firstHandle,
 	}
 }
 
+void CCpuMathEngine::VectorSub(const CConstIntHandle& firstHandle,
+	const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const int* first = GetRaw(firstHandle);
+	const int* second = GetRaw(secondHandle);
+	int* result = GetRaw(resultHandle);
+
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	for(int i = 0; i < sseSize; ++i) {
+		StoreIntSse4(_mm_sub_epi32(LoadIntSse4(first), LoadIntSse4(second)), result);
+		first += 4;
+		second += 4;
+		result += 4;
+	}
+
+	for(int i = 0; i < nonSseSize; ++i) {
+		result[i] = first[i] - second[i];
+	}
+}
+
 void CCpuMathEngine::VectorSub(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
@@ -1373,36 +1391,6 @@ void CCpuMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle, 
 	CFloatHandleStackVar mult( mathEngine(), 1 );
 	mult.SetValue( -*GetRaw(multHandle) );
 	VectorMultiplyAndAdd(firstHandle, secondHandle, resultHandle, vectorSize, mult);
-}
-
-void CCpuMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multiplierHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-
-	float multiplier = *GetRaw(multiplierHandle);
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	if(sseSize > 0) {
-		__m128 multSse = _mm_set_ps1(multiplier);
-		for(int i = 0; i < sseSize; ++i) {
-			_mm_storeu_ps(result, _mm_mul_ps(_mm_loadu_ps(first), multSse));
-			first += 4;
-			result += 4;
-		}
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result++ = *first++ * multiplier;
-	}
 }
 
 void CCpuMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
@@ -1560,47 +1548,6 @@ void CCpuMathEngine::VectorInv(const CConstFloatHandle& firstHandle, const CFloa
 		} else {
 			*result++ = 1.f / div;
 		}
-	}
-}
-
-void CCpuMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( minHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	const float minValue = *GetRaw(minHandle);
-	const float maxValue = *GetRaw(maxHandle);
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	if(sseSize > 0) {
-		const __m128 minSse = _mm_set_ps1(minValue);
-		const __m128 maxSse = _mm_set_ps1(maxValue);
-		for(int i = 0; i < sseSize; ++i) {
-			__m128 value = _mm_loadu_ps(first);
-
-			__m128 cmpMin = _mm_cmplt_ps(value, minSse);
-			__m128 cmpMax = _mm_cmpgt_ps(value, maxSse);
-			__m128 cmpNotNorm = _mm_or_ps(cmpMin, cmpMax);
-			__m128 res = _mm_or_ps(_mm_or_ps(_mm_andnot_ps(cmpNotNorm, value),
-				_mm_and_ps(cmpMin, minSse)), _mm_and_ps(cmpMax, maxSse));
-
-			_mm_storeu_ps(result, res);
-			first += 4;
-			result += 4;
-		}
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result = min(max(*first, minValue), maxValue);
-		result++;
-		first++;
 	}
 }
 

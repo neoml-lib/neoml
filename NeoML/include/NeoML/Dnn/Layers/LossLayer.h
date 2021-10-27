@@ -166,7 +166,8 @@ NEOML_API CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
 ///////////////////////////////////////////////////////////////////////////////////
 
 // CBinaryCrossEntropyLossLayer is a binary variant of cross-entropy
-// taking the input of BatchSize * 1 size with the [-1;+1] values
+// It takes non-normalized probabilities of +1 class of size BatchSize x 1 as the first input (network response)
+// and blob of the same size with values -1.f / +1.f as the second input (labels)
 class NEOML_API CBinaryCrossEntropyLossLayer : public CLossLayer {
 	NEOML_DNN_LAYER( CBinaryCrossEntropyLossLayer )
 public:

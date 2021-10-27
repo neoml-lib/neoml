@@ -197,27 +197,6 @@ void CCudaMathEngine::VectorSumAdd(const CConstFloatHandle& firstHandle, int vec
 		GetRaw(resultHandle), false, false);
 }
 
-void CCudaMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle)
-{
-	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
-	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
-	SetCudaDevice( device->DeviceNumber );
-
-	int blockCount;
-	int threadCount;
-	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorSumCombineCount);
-
-	bool setZero = true;
-	if(blockCount > 1) {
-		setZero = false;
-		resultHandle.SetValue(0);
-	}
-
-	const int sharedSize = threadCount * sizeof(float);
-	VectorSumKernel<<<blockCount, threadCount, sharedSize>>>
-		(GetRaw(firstHandle), vectorSize, GetRaw(resultHandle), true, setZero);
-}
-
 void CCudaMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 	int followingDimension, const CFloatHandle& resultHandle )
 {
@@ -875,6 +854,22 @@ void CCudaMathEngine::VectorAddValue(
 		GetRaw( additionHandle ) );
 }
 
+void CCudaMathEngine::VectorSub(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+	const CIntHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+	ASSERT_EXPR(secondHandle.GetMathEngine() == this);
+	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+	SetCudaDevice( device->DeviceNumber );
+
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid( blockCount, threadCount, vectorSize, VectorSubCombineCount );
+
+	VectorSubKernel<<<blockCount, threadCount>>>
+		( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
+}
+
 void CCudaMathEngine::VectorSub(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {
@@ -968,6 +963,22 @@ void CCudaMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 
 	VectorNegMultiplyKernel<<<blockCount, threadCount>>>
 		(GetRaw(firstHandle), GetRaw(resultHandle), vectorSize, GetRaw(multiplierHandle));
+}
+
+void CCudaMathEngine::VectorEltwiseMultiply(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+	const CIntHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+	ASSERT_EXPR(secondHandle.GetMathEngine() == this);
+	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+	SetCudaDevice( device->DeviceNumber );
+
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorEltwiseMultiplyCombineCount);
+
+	VectorEltwiseMultiplyKernel<<<blockCount, threadCount>>>
+		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
 }
 
 void CCudaMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -1389,22 +1400,6 @@ void CCudaMathEngine::VectorSpreadValues(const CConstFloatHandle& sourceHandle, 
 			cudaVectors.VectorCount = 0;
 		}
 	}
-}
-
-void CCudaMathEngine::VectorEltwiseLogSumExp(const CConstFloatHandle& first, const CConstFloatHandle& second,
-	const CFloatHandle& result, int vectorSize)
-{
-	ASSERT_EXPR(first.GetMathEngine() == this);
-	ASSERT_EXPR(second.GetMathEngine() == this);
-	ASSERT_EXPR(result.GetMathEngine() == this);
-	SetCudaDevice( device->DeviceNumber );
-
-	int blockCount;
-	int threadCount;
-	getCudaTaskGrid(blockCount, threadCount, vectorSize);
-
-	VectorEltwiseLogSumExpKernel<<<blockCount, threadCount>>>(GetRaw(first),
-		GetRaw(second), GetRaw(result), vectorSize);
 }
 
 void CCudaMathEngine::VectorTopK(const CConstFloatHandle& firstHandle, int firstSize, int k, const CFloatHandle& resultHandle,

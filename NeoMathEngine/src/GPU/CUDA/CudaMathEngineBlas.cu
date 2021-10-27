@@ -76,7 +76,7 @@ void CCudaMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrixHandle
 }
 
 // Assigns the values: matrix[rowIndices[i], columnIndices[i]] = vector[i].
-void CCudaMathEngine::SetVectorToMatrixElements(
+void CCudaMathEngine::setVectorToMatrixElements(
 	const CFloatHandle& matrixHandle, int height, int width,
 	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
 	const CConstFloatHandle& vectorHandle, int vectorSize )
@@ -96,41 +96,6 @@ void CCudaMathEngine::SetVectorToMatrixElements(
 		GetRaw( matrixHandle ), height, width,
 		GetRaw( rowIndicesHandle ), GetRaw( columnIndicesHandle ),
 		GetRaw( vectorHandle ), vectorSize );
-}
-
-void CCudaMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-	const CConstIntHandle& indices, const CConstFloatHandle& vector)
-{
-	ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( indices.GetMathEngine() == this );
-	ASSERT_EXPR( vector.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-
-	int blockCount;
-	int threadCount;
-	getCudaTaskGrid(blockCount, threadCount, height);
-
-	EltwiseLogSumExpVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(GetRaw(matrix),
-		height, width, GetRaw(indices), GetRaw(vector));
-}
-
-void CCudaMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix,
-	int height, int width,
-	const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-	const CConstFloatHandle& vector, int vectorSize)
-{
-	ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
-	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
-	ASSERT_EXPR( vector.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-
-	dim3 blockCount;
-	dim3 threadCount;
-	getCudaTaskGrid2D(blockCount, threadCount, height, width);
-
-	EltwiseLogSumExpVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(GetRaw(matrix), height, width,
-		GetRaw(rowIndices), GetRaw(columnIndices), GetRaw(vector), vectorSize);
 }
 
 void CCudaMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
@@ -216,11 +181,11 @@ void CCudaMathEngine::AddVectorToMatrixRows(int batchSize,
 
 	dim3 blockCount;
 	dim3 threadCount;
-	getCudaTaskGrid2D(blockCount, threadCount, batchSize * matrixHeight, widthNorm);
+	getCudaTaskGrid2DMinYX(1, device->ThreadMax3DCountX, blockCount, threadCount, batchSize * matrixHeight, widthNorm);
 
 	AddVectorToMatrixRowsKernel<<<blockCount, threadCount>>>(batchSize,
 		GetRaw(matrixHandle), GetRaw(resultHandle), matrixHeight,
-		matrixWidth, GetRaw(vectorHandle), widthNorm);
+		matrixWidth, GetRaw(vectorHandle));
 }
 
 void CCudaMathEngine::AddVectorToMatrixColumns( const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
@@ -376,28 +341,6 @@ void CCudaMathEngine::MatrixSoftmaxDiffOpByRows(const CConstFloatHandle& first, 
 		height, width, GetRaw(result), widthNorm);
 }
 
-void CCudaMathEngine::MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, int height, int width,
-	const CFloatHandle& result, int resultSize)
-{
-	ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( result.GetMathEngine() == this );
-	ASSERT_EXPR(resultSize >= width);
-	SetCudaDevice( device->DeviceNumber );
-
-	int heightNorm = (height + MatrixLogSumExpByColumnsCombine - 1) / MatrixLogSumExpByColumnsCombine;
-	heightNorm = alignXSizeForWarp(heightNorm);
-
-	dim3 blockCount;
-	dim3 threadCount;
-	// Rows over the X instead of Y axis, so we could reduce by X
-	getCudaTaskGrid2DMinYX(1, 1024, blockCount, threadCount, width, heightNorm);
-	blockCount.x = 1;
-
-	const int sharedSize = threadCount.x * threadCount.y * sizeof(float);
-	MatrixLogSumExpByColumnsKernel<<<blockCount, threadCount, sharedSize>>>(
-		GetRaw(matrix), height, width, GetRaw(result), heightNorm);
-}
-
 void CCudaMathEngine::MatrixSoftmaxByColumns(const CConstFloatHandle& matrix, int height, int width,
 	const CFloatHandle& result)
 {
@@ -534,6 +477,17 @@ void CCudaMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channel
 void CCudaMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 	const CFloatHandle& outputHandle, int outputChannelsCount)
+{
+	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+	vectorMultichannelLookupAndCopy(batchSize, channelCount, inputHandle,
+		lookupHandles, lookupDimensions, lookupCount, outputHandle, outputChannelsCount);
+}
+
+void CCudaMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+	const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+	const CIntHandle& outputHandle, int outputChannelsCount)
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
 	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
@@ -690,23 +644,6 @@ void CCudaMathEngine::Multiply1DiagMatrixByMatrix(int batchSize, const CConstFlo
 
 	Multiply1DiagMatrixByMatrixKernel<<<blockCount, threadCount>>>
 		(batchSize, GetRaw(firstHandle), firstSize, GetRaw(secondHandle), secondWidth, GetRaw(resultHandle), batchNorm);
-}
-
-void CCudaMathEngine::MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-
-	dim3 blockCount;
-	dim3 threadCount;
-
-	getCudaTaskGrid2D(blockCount, threadCount, firstHeight, firstWidth);
-
-	MultiplyMatrixByDiagMatrixKernel<<<blockCount, threadCount>>>
-		(GetRaw(firstHandle), firstHeight, firstWidth, GetRaw(secondHandle), GetRaw(resultHandle));
 }
 
 void CCudaMathEngine::TransposeMatrix(int batchSize, const CConstFloatHandle& firstHandle,
@@ -974,10 +911,10 @@ void CCudaMathEngine::matrixSpreadRowsImpl(const T* source, int height, int widt
 		GetRaw( result ), index, widthNorm);
 }
 
-template<class T>
-void CCudaMathEngine::vectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CTypedMemoryHandle<const T>& inputHandle,
-	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CFloatHandle& outputHandle, int outputChannelsCount)
+template<class TInput, class TLookup>
+void CCudaMathEngine::vectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CTypedMemoryHandle<const TInput>& inputHandle,
+	const CTypedMemoryHandle<const TLookup>* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+	const CTypedMemoryHandle<TLookup>& outputHandle, int outputChannelsCount)
 {
 	SetCudaDevice( device->DeviceNumber );
 	int batchNorm = (batchSize + BatchVectorLookupAndCopyCombineBatch - 1) / BatchVectorLookupAndCopyCombineBatch;

@@ -125,7 +125,7 @@ void InitializeClustering(py::module& m)
 {
 	py::class_<CPyHierarchical>(m, "Hierarchical")
 		.def( py::init(
-			[]( const std::string& distance, float max_cluster_distance, int min_cluster_count ) {
+			[]( const std::string& distance, float max_cluster_distance, int min_cluster_count, const std::string& linkage ) {
 				CHierarchicalClustering::CParam p;
 				p.DistanceType = DF_Undefined;
 				if( distance == "euclid" ) {
@@ -137,6 +137,18 @@ void InitializeClustering(py::module& m)
 				}
 				p.MaxClustersDistance = max_cluster_distance;
 				p.MinClustersCount = min_cluster_count;
+				p.Linkage = CHierarchicalClustering::L_Count;
+				if( linkage == "centroid" ) {
+					p.Linkage = CHierarchicalClustering::L_Centroid;
+				} else if( linkage == "single" ) {
+					p.Linkage = CHierarchicalClustering::L_Single;
+				} else if( linkage == "average" ) {
+					p.Linkage = CHierarchicalClustering::L_Average;
+				} else if( linkage == "complete" ) {
+					p.Linkage = CHierarchicalClustering::L_Complete;
+				} else if( linkage == "ward" ) {
+					p.Linkage = CHierarchicalClustering::L_Ward;
+				}
 
 				return new CPyHierarchical( p );
 			})

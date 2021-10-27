@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <vector>
 #include <mutex>
+#include <memory>
 #include <vulkan/vulkan.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
@@ -88,7 +89,6 @@ public:
 		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) override;
 	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
-	void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle) override;
 	void VectorCumSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
@@ -176,6 +176,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& addition) override;
 	void VectorAddValue( const CConstIntHandle& firstHandle,
 		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& addition ) override;
+	void VectorSub(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) override;
 	void VectorSub(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorSub(const CConstFloatHandle& firstHandle,
@@ -190,6 +192,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) override;
 	void VectorNegMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) override;
+	void VectorEltwiseMultiply(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) override;
 	void VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorEltwiseMultiplyAdd(const CConstFloatHandle& firstHandle,
@@ -241,8 +245,6 @@ public:
 		const CIntHandle& indexHandle, int vectorSize) override;
 	void VectorSpreadValues(const CConstFloatHandle& sourceHandle, CFloatHandle* vectors, int vectorCount,
 		const CConstIntHandle& indexHandle, int vectorSize) override;
-	void VectorEltwiseLogSumExp(const CConstFloatHandle& first, const CConstFloatHandle& second,
-		const CFloatHandle& result, int vectorSize) override;
 	void VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result, const CIntHandle& indices) override;
 	void VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
 		const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad) override;
@@ -253,15 +255,6 @@ public:
 	void AddVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& indices, const CConstFloatHandle& vector) override;
 	void AddVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize) override;
-	void SetVectorToMatrixElements(
-		const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize ) override;
-	void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& indices, const CConstFloatHandle& vector) override;
-	void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
 		const CConstFloatHandle& vector, int vectorSize) override;
 	void AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
@@ -294,8 +287,6 @@ public:
 	void MatrixSoftmaxByRows(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result) override;
 	void MatrixSoftmaxDiffOpByRows(const CConstFloatHandle& first, const CConstFloatHandle& second,
 		int height, int width, const CFloatHandle& result) override;
-	void MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result,
-		int resultSize) override;
 	void MatrixSoftmaxByColumns(const CConstFloatHandle& matrix, int height, int width,
 		const CFloatHandle& result) override;
 	void MatrixSoftmaxDiffOpByColumns(const CConstFloatHandle& first, const CConstFloatHandle& second,
@@ -314,6 +305,9 @@ public:
 	void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 		const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 		const CFloatHandle& outputHandle, int outputChannels) override;
+	void VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+		const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+		const CIntHandle& outputHandle, int outputChannels) override;
 	void VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, 
 		const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int outputChannels) override;
@@ -478,9 +472,11 @@ public:
 		const CIntHandle* maxIndices, const CFloatHandle& result ) override;
 	void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
 		const CIntHandle& maxIndices, const CFloatHandle& result ) override;
-	void Upsampling2DForward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+	void Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
+		int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData ) override;
+	void Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) override;
-	void Upsampling2DBackward( const CBlobDesc& input, const CFloatHandle& inputData, int heightCopyCount,
+	void Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CFloatHandle& resultData ) override;
 	void BuildIntegerHist( const CConstIntHandle& numbersHandle, int numbersCount,
 		const CIntHandle& resultHandle, int maxNumber ) override;
@@ -526,13 +522,13 @@ public:
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& input,
 		const CConstFloatHandle& initialState, const CConstFloatHandle& result, const CFloatHandle& resultDiff,
 		const CFloatHandle& updateDiff, const CFloatHandle& forgetDiff, const CFloatHandle& inputDiff ) override;
-	void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	void IndRnnRecurrent( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
 		const CConstFloatHandle& wx, const CConstFloatHandle& mask, const CConstFloatHandle& u,
 		const CFloatHandle& h ) override;
-	void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	void IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
 		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
 		const CFloatHandle& wxDiff ) override;
-	void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize,
+	void IndRnnRecurrentLearn( bool reverse, int sequenceLength, int batchSize, int objectSize, TActivationFunction activation,
 		const CConstFloatHandle& mask, const CConstFloatHandle& u, const CConstFloatHandle& h, const CConstFloatHandle& hDiff,
 		const CFloatHandle& uDiff ) override;
 	CLrnDesc* InitLrn( const CBlobDesc& source, int windowSize, float bias, float alpha, float beta ) override;
@@ -541,6 +537,10 @@ public:
 	void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) override;
+	void CtcLossForward( int resultLen, int batchSize, int classCount, int labelLen, int blankLabel, bool skipBlanks,
+		const CConstFloatHandle& result, const CConstIntHandle& labels,
+		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
+		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:
