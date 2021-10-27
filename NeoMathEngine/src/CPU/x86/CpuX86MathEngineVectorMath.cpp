@@ -35,7 +35,7 @@ void CCpuMathEngine::VectorFill( const CFloatHandle& result, float value, int ve
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	if( threadCount > 1 ) {
+	if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
@@ -53,7 +53,7 @@ void CCpuMathEngine::VectorFill( const CIntHandle& resultHandle, int value, int 
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	if( threadCount > 1 ) {
+	if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
@@ -359,7 +359,7 @@ void CCpuMathEngine::VectorReLU( const CConstFloatHandle& firstHandle, const CFl
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	if( threadCount > 1 ) {
+	if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
