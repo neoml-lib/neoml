@@ -304,26 +304,6 @@ void CMetalMathEngine::AddMatrixElementsToMatrix(const CConstFloatHandle& matrix
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-	const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-	const CConstFloatHandle& vector, int vectorSize)
-{
-    ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
-	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
-	ASSERT_EXPR( vector.GetMathEngine() == this ); 
-
-    C2DKernel kernel( *queue, "matrixKernelEltwiseLogSumExpVectorToMatrixElements", 1, 1, height, width );
-    kernel.SetParam( matrix, 0 );
-    kernel.SetParam( height, 1 );
-    kernel.SetParam( width, 2 );
-    kernel.SetParam( rowIndices, 3 );
-    kernel.SetParam( columnIndices, 4 );
-    kernel.SetParam( vector, 5 );
-    kernel.SetParam( vectorSize, 6 );
-    ASSERT_EXPR( kernel.Run() );
-}
-
 void CMetalMathEngine::BitSetBinarization(int batchSize, int bitSetSize,
     const CConstIntHandle& inputHandle, int outputVectorSize, const CFloatHandle& resultHandle)
 {
@@ -446,26 +426,6 @@ void CMetalMathEngine::SetVectorToMatrixRows(const CFloatHandle& resultHandle,
     kernel.SetParam( matrixHeight, 1 );
     kernel.SetParam( matrixWidth, 2 );
     kernel.SetParam( vectorHandle, 3 );
-    ASSERT_EXPR( kernel.Run() );
-}
-
-void CMetalMathEngine::SetVectorToMatrixElements( const CFloatHandle& matrixHandle, int height, int width,
-    const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-    const CConstFloatHandle& vectorHandle, int vectorSize )
-{
-    ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
-	ASSERT_EXPR( rowIndicesHandle.GetMathEngine() == this );
-	ASSERT_EXPR( columnIndicesHandle.GetMathEngine() == this );
-	ASSERT_EXPR( vectorHandle.GetMathEngine() == this ); 
-
-    C1DKernel kernel( *queue, "vectorKernelSetVectorToMatrixElements", 4, vectorSize );
-    kernel.SetParam( matrixHandle, 0 );
-    kernel.SetParam( height, 1 );
-    kernel.SetParam( width, 2 );
-    kernel.SetParam( rowIndicesHandle, 3 );
-    kernel.SetParam( columnIndicesHandle, 4 );
-    kernel.SetParam( vectorHandle, 5 );
-    kernel.SetParam( vectorSize, 6 );
     ASSERT_EXPR( kernel.Run() );
 }
 
@@ -1140,24 +1100,6 @@ void CMetalMathEngine::MatrixLogSumExpByRows(const CConstFloatHandle& matrix, in
     
     // threadgroupCount.width = 1;
     ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
-}
-
-void CMetalMathEngine::MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, int height, int width,
-	const CFloatHandle& result, int resultSize)
-{
-    ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( result.GetMathEngine() == this );
-	ASSERT_EXPR( resultSize >= width );
-
-    C2DKernel kernel( *queue, "matrixKernelMatrixLogSumExpByColumns", 1, 1, height, width );
-    kernel.SetParam( matrix, 0 );
-    kernel.SetParam( height, 1 );
-    kernel.SetParam( width, 2 );
-    kernel.SetParam( result, 3 );
-    kernel.SetSharedParam( kernel.GetThreadCount() * sizeof(float), 4 );
-    
-    // threadgroupCount.height = 1;
-    ASSERT_EXPR( kernel.Run( 0, 1, 0 ) );
 }
 
 void CMetalMathEngine::MatrixSoftmaxByRows(const CConstFloatHandle& matrix, int height, int width,

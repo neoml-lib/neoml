@@ -54,7 +54,6 @@ namespace NeoML {
 #include <shaders/generated/BatchMultiplyTransposedMatrixByMatrixBorders.h>
 #include <shaders/generated/BatchInitAddMultiplyMatrixByTransposedMatrix.h>
 #include <shaders/generated/BatchInitMultiplyMatrixByTransposedMatrixBorders.h>
-#include <shaders/generated/SetVectorToMatrixElements.h>
 #include <shaders/generated/FindMaxValueInRows.h>
 #include <shaders/generated/FindMaxValueInRowsNoIndices.h>
 #include <shaders/generated/FindMaxValueInColumns.h>
@@ -377,31 +376,6 @@ void CVulkanMathEngine::AddVectorToMatrixElements( const CFloatHandle&, int, int
 
 void CVulkanMathEngine::AddVectorToMatrixElements( const CFloatHandle&, int, int, const CConstIntHandle&, const CConstIntHandle&,
 	const CConstFloatHandle&, int )
-{
-	ASSERT_EXPR( false );
-}
-
-void CVulkanMathEngine::SetVectorToMatrixElements( const CFloatHandle& matrixHandle, int height, int width,
-	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-	const CConstFloatHandle& vectorHandle, int vectorSize )
-{
-	CMemoryHandle bufs[4] = { rowIndicesHandle, columnIndicesHandle, vectorHandle, matrixHandle };
-	size_t sizes[4] = { vectorSize * sizeof(int), vectorSize * sizeof(int), vectorSize * sizeof(float), height * width * sizeof(float) };
-
-	PARAM_STRUCT(SetVectorToMatrixElements) param = { width };
-
-	runShader( shaderLoader->GET_SHADER_DATA(SetVectorToMatrixElements, true, 0, 0, 4),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 4, vectorSize, 1, 1 );
-}
-
-void CVulkanMathEngine::EltwiseLogSumExpVectorToMatrixElements( const CFloatHandle&, int, int, const CConstIntHandle&,
-	const CConstFloatHandle& )
-{
-	ASSERT_EXPR( false );
-}
-
-void CVulkanMathEngine::EltwiseLogSumExpVectorToMatrixElements( const CFloatHandle&, int, int,
-	const CConstIntHandle&, const CConstIntHandle&, const CConstFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
 }
@@ -774,11 +748,6 @@ void CVulkanMathEngine::MatrixSoftmaxByRows( const CConstFloatHandle& matrix, in
 }
 
 void CVulkanMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle&, const CConstFloatHandle&, int, int, const CFloatHandle& )
-{
-	ASSERT_EXPR( false );
-}
-
-void CVulkanMathEngine::MatrixLogSumExpByColumns( const CConstFloatHandle&, int, int, const CFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
 }

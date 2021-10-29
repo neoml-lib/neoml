@@ -35,13 +35,15 @@ void CCpuMathEngine::VectorFill( const CFloatHandle& result, float value, int ve
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			vectorFill( GetRaw( result + index ), value, count );
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				vectorFill( GetRaw( result + index ), value, count );
+			}
 		}
+	} else {
+		vectorFill( GetRaw( result ), value, vectorSize );
 	}
 }
 
@@ -51,13 +53,15 @@ void CCpuMathEngine::VectorFill( const CIntHandle& resultHandle, int value, int 
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			vectorFill( GetRaw( resultHandle + index ), value, count );
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				vectorFill( GetRaw( resultHandle + index ), value, count );
+			}
 		}
+	} else {
+		vectorFill( GetRaw( resultHandle ), value, vectorSize );
 	}
 }
 
@@ -355,16 +359,22 @@ void CCpuMathEngine::VectorReLU( const CConstFloatHandle& firstHandle, const CFl
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			if( threshold > 0 ) {
-				vectorReLU( first + index, result + index, count, threshold );
-			} else {
-				vectorReLU( first + index, result + index, count );
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				if( threshold > 0 ) {
+					vectorReLU( first + index, result + index, count, threshold );
+				} else {
+					vectorReLU( first + index, result + index, count );
+				}
 			}
+		}
+	} else {
+		if( threshold > 0 ) {
+			vectorReLU( first, result, vectorSize, threshold );
+		} else {
+			vectorReLU( first, result, vectorSize );
 		}
 	}
 }
