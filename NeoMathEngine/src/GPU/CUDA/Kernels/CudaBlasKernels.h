@@ -24,11 +24,9 @@ namespace NeoML {
 __global__ void SetVectorToMatrixRowsKernel(float* result,
 	int matrixHeight, int matrixWidth, const float* __restrict__ vector)
 {
-	int i;
-	int j;
-	if(GetCudaTaskIndex2D(matrixHeight, matrixWidth, j, i)) {
-		int index = matrixWidth * j + i;
-		result[index] = vector[i];
+	int index;
+	if( GetCudaTaskIndex( matrixHeight * matrixWidth, index ) ) {
+		result[index] = vector[index % matrixWidth];
 	}
 }
 
