@@ -77,17 +77,12 @@ void CMultiThreadDistributedCommunicator::AllReduce( const CFloatHandle& handle,
     barrier();
 }
 
-
-
-void CreateDistributedCpuMathEngines( std::vector<std::unique_ptr<IMathEngine>>& mathEngines, int count, std::initializer_list<int> devs )
+void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count )
 {
-    // NeoAssert( devs.size() == count );
-
     auto comm = std::make_shared<CMultiThreadDistributedCommunicator>( count );
-    mathEngines.resize( count );
     for( int i = 0; i < count; i++ ){
-        mathEngines[i].reset( CreateCpuMathEngine( 1, 0 ) );
-        mathEngines[i]->SetDistributedCommunicator( comm, {i, count} );
+        mathEngines[i] = CreateCpuMathEngine( 1, 0 );
+        static_cast<CCpuMathEngine*>( mathEngines[i] )->SetDistributedCommunicator( comm, {i, count} );
     }
 }
 

@@ -27,9 +27,6 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
 #include <climits>
-#include <vector>
-#include <memory>
-#include <initializer_list>
 
 namespace NeoML {
 
@@ -937,10 +934,6 @@ struct CMathEngineDistributedInfo {
 	CMathEngineDistributedInfo( int thread, int threads ) : Thread( thread ), Threads( threads ) {};
 };
 
-struct IDistributedCommunicator {
-	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
-};
-
 //------------------------------------------------------------------------------------------------------------
 
 // The maximum number of blobs in split or merge operations
@@ -1031,7 +1024,6 @@ public:
 
 	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
 	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
-	virtual void SetDistributedCommunicator( std::shared_ptr<IDistributedCommunicator> comm, const CMathEngineDistributedInfo& info ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1091,8 +1083,7 @@ public:
 // You should call SetMathEngineExceptionHandler() before this call
 NEOMATHENGINE_API IGpuMathEngineManager* CreateGpuMathEngineManager();
 
-NEOMATHENGINE_API void CreateDistributedMathEngines( std::vector<std::unique_ptr<IMathEngine>>& mathEngines,
-	TMathEngineType type, int count, std::initializer_list<int> devs );
+NEOMATHENGINE_API void CreateDistributedMathEngines( IMathEngine** mathEngines, TMathEngineType type, int count, const int* devs );
 
 } // namespace NeoML
 

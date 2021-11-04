@@ -244,9 +244,9 @@ IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters() const
 #endif
 }
 
-void CCpuMathEngine::SetDistributedCommunicator( std::shared_ptr<IDistributedCommunicator> comm, const CMathEngineDistributedInfo& info )
+void CCpuMathEngine::SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info )
 {
-	communicator = static_pointer_cast<CMultiThreadDistributedCommunicator>( comm );
+	communicator = comm;
 	distributedInfo = info;
 }
 

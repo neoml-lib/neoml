@@ -23,10 +23,10 @@ limitations under the License.
 
 namespace NeoML {
 
-class CMultiThreadDistributedCommunicator : public IDistributedCommunicator {
+class CMultiThreadDistributedCommunicator {
 public:
     CMultiThreadDistributedCommunicator( int n_threads );
-    void AllReduce( const CFloatHandle& handle, int size ) override;
+    void AllReduce( const CFloatHandle& handle, int size );
 private:
     std::vector<float*> handles;
 
@@ -46,6 +46,6 @@ private:
     void barrier();
 };
 
-void CreateDistributedCpuMathEngines( std::vector<std::unique_ptr<IMathEngine>>& mathEngines, int count, std::initializer_list<int> devs );
+void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count );
 
 } // namespace NeoML

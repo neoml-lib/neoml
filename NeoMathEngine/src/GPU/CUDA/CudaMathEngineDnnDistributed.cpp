@@ -11,49 +11,64 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <common.h>
-#include "cuda_runtime.h"
 #pragma hdrstop
-
-#include <NeoMathEngine/NeoMathEngineException.h>
-#include <CudaMathEngineDnnDistributed.h>
-#include <MemoryHandleInternal.h>
 
 #ifdef NEOML_USE_NCCL
 
+#include "cuda_runtime.h"
+#include <NeoMathEngine/NeoMathEngineException.h>
+#include <CudaMathEngineDnnDistributed.h>
+#include <MemoryHandleInternal.h>
+#include <CudaMathEngine.h>
+#include <CudaCommon.h>
+#include <DllLoader.h>
+#include <thread>
+#include <vector>
+#include <functional>
+
 namespace NeoML {
 
-#define ASSERT_NCCL( expr ) \
+#define ASSERT_NCCL( nccl, expr ) \
 	do { \
 		int _err_ = ( int ) ( expr ); \
 		if( _err_ != ncclSuccess ) { \
-			GetMathEngineExceptionHandler()->OnAssert( ncclGetErrorString( static_cast<ncclResult_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
+			GetMathEngineExceptionHandler()->OnAssert( nccl->GetErrorString( static_cast<ncclResult_t>( _err_ ) ), __UNICODEFILE__, __LINE__, _err_ ); \
 		} \
 	} while(0)
 
+CCudaDistributedCommunicator::CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CNccl* _nccl, const CMathEngineDistributedInfo& info )
+    : nccl( _nccl )
+{
+    ASSERT_NCCL( nccl, nccl->CommInitRank( &comm, info.Threads, uniqueId, info.Thread ) );
+}
+
 CCudaDistributedCommunicator::~CCudaDistributedCommunicator()
 {
-    ASSERT_NCCL( ncclCommDestroy( comm ) );
+    ASSERT_NCCL( nccl, nccl->CommDestroy( comm ) );
 }
 
 void CCudaDistributedCommunicator::AllReduce( const CFloatHandle& handle, int size )
 {
-    ASSERT_NCCL( ncclAllReduce( ( const void* )GetRaw( handle ), (void*)GetRaw( handle ), size,
+    ASSERT_NCCL( nccl, nccl->AllReduce( ( const void* )GetRaw( handle ), (void*)GetRaw( handle ), size,
         ncclFloat, ncclAvg, comm, 0 ) );
 }
 
-void CreateDistributedCudaMathEngines( std::vector<std::unique_ptr<IMathEngine>>& mathEngines, int count, std::initializer_list<int> devs )
+void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, const int* devs )
 {
     std::unique_ptr<IGpuMathEngineManager> gpuManager( CreateGpuMathEngineManager() );
-    mathEngines.resize( devs.size() );
-    vector<ncclComm_t> comms( devs.size() );
-    ASSERT_NCCL( ncclCommInitAll( comms.data(), count, devs.begin() ) );
-    int ind = 0;
-    for( int dev : devs ){
-        mathEngines[ind].reset( gpuManager->CreateMathEngine( dev, 0u ) );
-        auto comm = make_shared<CCudaDistributedCommunicator>( comms[ind] );
-        mathEngines[ind]->SetDistributedCommunicator( comm, {ind, count} );
-        ind++;
+    const CNccl* nccl = CDllLoader::ncclDll->GetFunctions();
+    if( nccl == nullptr ){
+        return;
     }
+    ncclUniqueId id;
+    nccl->GetUniqueId( &id );
+    ASSERT_NCCL( nccl, nccl->GroupStart() );
+    for( int i = 0; i < count; i++ ){
+        mathEngines[i]  = gpuManager->CreateMathEngine( devs[i], 0u );
+        SetCudaDevice( devs[i] );
+        static_cast<CCudaMathEngine*>( mathEngines[i] )->SetDistributedCommunicator( id, {i, count} );
+    }
+    ASSERT_NCCL( nccl, nccl->GroupEnd() );
 }
 
 } // namespace NeoML

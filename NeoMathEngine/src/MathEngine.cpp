@@ -144,7 +144,8 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 		if( device == nullptr ) {
 			return nullptr;
 		}
-		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(), device, flags );
+		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(),
+			CDllLoader::ncclDll->GetFunctions(), device, flags );
 	}
 #endif
 #ifdef NEOML_USE_VULKAN
@@ -225,10 +226,10 @@ IGpuMathEngineManager* CreateGpuMathEngineManager()
 	return new CGpuMathEngineManager();
 }
 
-void CreateDistributedMathEngines( std::vector<std::unique_ptr<IMathEngine>>& mathEngines, TMathEngineType type, int count, std::initializer_list<int> devs )
+void CreateDistributedMathEngines( IMathEngine** mathEngines, TMathEngineType type, int count, const int* devs )
 {
 	if( type == MET_Cpu ) {
-		CreateDistributedCpuMathEngines( mathEngines, count, devs );
+		CreateDistributedCpuMathEngines( mathEngines, count );
 	}
 #ifdef NEOML_USE_NCCL
 	else if( type == MET_Cuda ) {
@@ -236,6 +237,7 @@ void CreateDistributedMathEngines( std::vector<std::unique_ptr<IMathEngine>>& ma
 	}
 #endif
 	else {
+		printf("ok5\n");
 		ASSERT_EXPR( false );
 	}
 }

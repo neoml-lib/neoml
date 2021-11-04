@@ -203,6 +203,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CudaDevice.cpp
                     GPU/CUDA/CudaMathEngine.cpp
                     GPU/CUDA/CusparseDll.cpp
+                    GPU/CUDA/NcclDll.cpp
                     # CUDA Sources
                     GPU/CUDA/CudaMathEngineBlas.cu
                     GPU/CUDA/CudaMathEngineCublas.cu
@@ -223,6 +224,8 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     # Headers
                     GPU/CUDA/CublasDll.h
                     GPU/CUDA/CublasFunctions.h
+                    GPU/CUDA/NcclDll.h
+                    GPU/CUDA/NcclFunctions.h
                     GPU/CUDA/CudaAssert.h
                     GPU/CUDA/CudaBlobDesc.h
                     GPU/CUDA/CudaCommon.h
@@ -251,7 +254,6 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/Kernels/CudaRandom.h
                     GPU/CUDA/Kernels/CudaReduce.h
                     GPU/CUDA/Kernels/CudaVectorMathKernels.h
-                    GPU/CUDA/CudaMathEngineDnnDistributed.h
             )
             target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/CUDA>)
             target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>)
@@ -267,7 +269,6 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                 message(STATUS "Found NCCL (include: ${NCCL_INCLUDE_DIR}, library: ${NCCL_LIBRARY})")
                 target_compile_definitions(${PROJECT_NAME} PUBLIC -D NEOML_USE_NCCL)
                 target_include_directories(${PROJECT_NAME} PRIVATE ${NCCL_INCLUDE_DIR})
-                target_link_libraries(${PROJECT_NAME} PRIVATE ${NCCL_LIBRARY})
             endif ()
         endif()
     else()
@@ -478,3 +479,5 @@ if(NeoMathEngine_INSTALL)
         endif()
     endif()
 endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE dl)

@@ -1,8 +1,11 @@
 /* Copyright © 2017-2020 ABBYY Production LLC
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
 	http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -12,26 +15,41 @@ limitations under the License.
 
 #pragma once
 
-#ifdef NEOML_USE_NCCL
+#include <NeoMathEngine/NeoMathEngineDefs.h>
 
-#include <nccl.h>
-#include <NeoMathEngine/NeoMathEngine.h>
+#ifdef NEOML_USE_CUDA
+
+#include <NeoMathEngine/CrtAllocatedObject.h>
+#include <MathEngineDll.h>
 #include <NcclFunctions.h>
 
 namespace NeoML {
 
-class CCudaDistributedCommunicator {
+// A dynamic link library called cublas
+// Used for linear algebra operations
+class CNcclDll : public CDll {
 public:
-    CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CNccl* nccl, const CMathEngineDistributedInfo& info );
-    void AllReduce( const CFloatHandle& handle, int size );
-    ~CCudaDistributedCommunicator();
-private:
-    ncclComm_t comm;
-    const CNccl* nccl;
-};
+	CNcclDll();
+	virtual ~CNcclDll();
 
-void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, const int* devs );
+	// Loads the library
+	bool Load();
+
+	// Checks if the library has been loaded
+	bool IsLoaded() const { return CDll::IsLoaded(); }
+
+	// Gets the structure that exposes the cublas functions used in MathEngine
+	const CNccl* GetFunctions() const { return IsLoaded() ? &functions : 0; }
+
+	// Unloads the library
+	void Free();
+
+private:
+	CNccl functions; // the structure that exposes the cublas functions used in MathEngine
+
+	bool loadFunctions();
+};
 
 } // namespace NeoML
 
-#endif
+#endif // NEOML_USE_CUDA

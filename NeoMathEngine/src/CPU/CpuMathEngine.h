@@ -516,7 +516,7 @@ public:
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
-	void SetDistributedCommunicator( std::shared_ptr<IDistributedCommunicator> comm, const CMathEngineDistributedInfo& info ) override;
+	void SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info );
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
 protected:

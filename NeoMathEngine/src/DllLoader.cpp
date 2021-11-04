@@ -26,6 +26,9 @@ namespace NeoML {
 CCusparseDll* CDllLoader::cusparseDll = nullptr;
 CCublasDll* CDllLoader::cublasDll = nullptr;
 int CDllLoader::cudaDllLinkCount = 0;
+#ifdef NEOML_USE_CUDA
+CNcclDll* CDllLoader::ncclDll = nullptr;
+#endif
 #endif
 
 #ifdef NEOML_USE_VULKAN
@@ -66,15 +69,19 @@ int CDllLoader::Load( int dll )
 			if( cusparseDll == nullptr ) {
 				cusparseDll = new CCusparseDll();
 				cublasDll = new CCublasDll();
+				ncclDll = new CNcclDll();
 			}
 
-			if( !cusparseDll->Load() || !cublasDll->Load() ) {
+			if( !cusparseDll->Load() || !cublasDll->Load() || !ncclDll->Load() ) {
 				cusparseDll->Free();
 				delete cusparseDll;
 				cusparseDll = nullptr;
 				cublasDll->Free();
 				delete cublasDll;
 				cublasDll = nullptr;
+				ncclDll->Free();
+				delete ncclDll;
+				ncclDll = nullptr;
 			} else {
 				result |= CUDA_DLL;
 				cudaDllLinkCount++;

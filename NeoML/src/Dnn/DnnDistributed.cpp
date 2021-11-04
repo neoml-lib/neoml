@@ -22,9 +22,13 @@ namespace NeoML {
 
 CDistributedTraining::CDistributedTraining( CArchive& archive, TMathEngineType type, int count, std::initializer_list<int> devs )
 {
-    CreateDistributedMathEngines( mathEngines, type, count, devs );
+    mathEngines.resize( count );
+    CArray<IMathEngine*> mathEnginesPtr;
+    mathEnginesPtr.SetSize( count );
+    CreateDistributedMathEngines( mathEnginesPtr.GetPtr(), type, count, devs.begin() );
     for( int i = 0; i < count; i++ ){
         rands.emplace_back( new CRandom( 42 ) );
+        mathEngines[i] = std::unique_ptr<IMathEngine>( mathEnginesPtr[i] );
         cnns.emplace_back( new CDnn( *rands[i], *mathEngines[i] ) );
         archive.Serialize( *cnns[i] );
         archive.Seek( 0, static_cast<CBaseFile::TSeekPosition>( 0 ) );

@@ -215,6 +215,10 @@ void CDnnSolver::Train()
 
 		clipGradients( paramDiffBlobsSum.Sum );
 
+		for( int i = 0; i < paramDiffBlobsSum.Sum.Size(); i++ ){
+			mathEngine.AllReduce( paramDiffBlobsSum.Sum[i]->GetData(), paramDiffBlobsSum.Sum[i]->GetDataSize() );
+		}
+
 		// Train the layer based on the calculated diff data
 		TrainLayer( layer, layer->paramBlobs, paramDiffBlobsSum.Sum, layerToGradientHistory.GetOrCreateValue( layer ) );
 
@@ -337,10 +341,6 @@ void CDnnSimpleGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 void CDnnSimpleGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
 	const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory )
 {
-	for( int i = 0; i < paramDiffBlobs.Size(); i++ ){
-		MathEngine().AllReduce( paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetDataSize() );
-	}
-
 	if(gradientHistory.Size() == 0) {
 		for (int i = 0; i < paramDiffBlobs.Size(); ++i) {
 			CDnnBlob* blob = paramDiffBlobs[i]->GetClone();

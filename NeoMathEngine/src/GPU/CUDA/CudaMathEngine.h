@@ -26,7 +26,9 @@ limitations under the License.
 #include <mutex>
 #include <memory>
 #include <PerformanceCountersDefault.h>
+#ifdef NEOML_USE_NCCL
 #include <CudaMathEngineDnnDistributed.h>
+#endif
 
 namespace NeoML {
 
@@ -36,6 +38,7 @@ struct CCudaConvolutionDescInternal;
 struct CCuda3dConvolutionDescInternal;
 struct CCusparse;
 struct CCublas;
+struct CNccl;
 struct CCudaDevice;
 class CDeviceStackAllocator;
 class CHostStackAllocator;
@@ -45,7 +48,7 @@ class CCudaDistributedCommunicator;
 // CUDA math engine
 class CCudaMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, std::unique_ptr<CCudaDevice>& device, int flags = 0 );
+	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, const CNccl* nccl, std::unique_ptr<CCudaDevice>& device, int flags = 0 );
 	~CCudaMathEngine() override;
 
 	// IMathEngine interface methods
@@ -524,9 +527,11 @@ public:
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
-	void SetDistributedCommunicator( std::shared_ptr<IDistributedCommunicator> comm, const CMathEngineDistributedInfo& info ) override;
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
+#ifdef NEOML_USE_NCCL
+	void SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info );
+#endif
 protected:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
@@ -535,6 +540,7 @@ protected:
 private:
 	const CCusparse* cusparse; // cusparse library functions
 	const CCublas* cublas; // cublas library functions
+	const CNccl* nccl; // nccl library functions
 
 	const float* cudaConstZero; // pointer to __constant__ == 0.f
 	const float* cudaConstOne; // pointer to __constant__ == 1.f
@@ -546,8 +552,10 @@ private:
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
 	std::unique_ptr<CDeviceStackAllocator> deviceStackRunTime; // GPU memory stack allocator
 	std::unique_ptr<CHostStackAllocator> hostStackRunTime; // regular memory stack allocator
-	std::shared_ptr<CCudaDistributedCommunicator> communicator;
 	CMathEngineDistributedInfo distributedInfo;
+#ifdef NEOML_USE_NCCL
+	std::unique_ptr<CCudaDistributedCommunicator> ncclCommunicator;
+#endif
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 	CCudaDevice* captureCudaDevice( int deviceNumber, size_t memoryLimit );
