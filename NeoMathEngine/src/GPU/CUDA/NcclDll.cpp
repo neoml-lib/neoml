@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 
-#ifdef NEOML_USE_CUDA
+#ifdef NEOML_USE_NCCL
 
 #include <NcclDll.h>
 
@@ -45,7 +45,6 @@ CNcclDll::~CNcclDll()
 
 bool CNcclDll::Load()
 {
-#ifdef NEOML_USE_NCCL
 	if( IsLoaded() ) {
 		return true;
 	}
@@ -58,7 +57,7 @@ bool CNcclDll::Load()
 		CDll::Free();
 		return false;
 	}
-#endif
+
 	return true;
 }
 
@@ -72,7 +71,6 @@ void CNcclDll::Free()
 // Load all cublas functions used
 bool CNcclDll::loadFunctions()
 {
-#ifdef NEOML_USE_NCCL
 	LOAD_NCCL_FUNC( CommInitAll );
 	LOAD_NCCL_FUNC( CommDestroy );
 	LOAD_NCCL_FUNC( AllReduce );
@@ -81,10 +79,10 @@ bool CNcclDll::loadFunctions()
 	LOAD_NCCL_FUNC( GroupEnd );
 	LOAD_NCCL_FUNC( GetUniqueId );
 	LOAD_NCCL_FUNC( GetErrorString );
-#endif
+
 	return true;
 }
 
 } // namespace NeoML
 
-#endif // NEOML_USE_CUDA
+#endif // NEOML_USE_NCCL

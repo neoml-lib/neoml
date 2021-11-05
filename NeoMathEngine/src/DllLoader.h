@@ -25,7 +25,9 @@ limitations under the License.
 #include <CudaMathEngine.h>
 #include <CublasDll.h>
 #include <CusparseDll.h>
+#ifdef NEOML_USE_NCCL
 #include <NcclDll.h>
+#endif
 #endif
 
 #ifdef NEOML_USE_VULKAN
@@ -44,7 +46,9 @@ public:
 #ifdef NEOML_USE_CUDA
 	static CCusparseDll* cusparseDll;
 	static CCublasDll* cublasDll;
+#ifdef NEOML_USE_NCCL
 	static CNcclDll* ncclDll;
+#endif
 	static int cudaDllLinkCount;
 	static constexpr int CUDA_DLL = 0x1;
 #else

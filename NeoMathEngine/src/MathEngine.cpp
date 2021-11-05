@@ -144,8 +144,7 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 		if( device == nullptr ) {
 			return nullptr;
 		}
-		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(),
-			CDllLoader::ncclDll->GetFunctions(), device, flags );
+		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(), device, flags );
 	}
 #endif
 #ifdef NEOML_USE_VULKAN

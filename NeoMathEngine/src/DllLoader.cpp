@@ -25,7 +25,9 @@ namespace NeoML {
 #ifdef NEOML_USE_CUDA
 CCusparseDll* CDllLoader::cusparseDll = nullptr;
 CCublasDll* CDllLoader::cublasDll = nullptr;
+#ifdef NEOML_USE_NCCL
 CNcclDll* CDllLoader::ncclDll = nullptr;
+#endif
 int CDllLoader::cudaDllLinkCount = 0;
 #endif
 
@@ -67,19 +69,25 @@ int CDllLoader::Load( int dll )
 			if( cusparseDll == nullptr ) {
 				cusparseDll = new CCusparseDll();
 				cublasDll = new CCublasDll();
+#ifdef NEOML_USE_NCCL
 				ncclDll = new CNcclDll();
+#endif
 			}
 
+#ifdef NEOML_USE_NCCL
 			if( !cusparseDll->Load() || !cublasDll->Load() || !ncclDll->Load() ) {
+				ncclDll->Free();
+				delete ncclDll;
+				ncclDll = nullptr;
+#else
+			if( !cusparseDll->Load() || !cublasDll->Load() ) {}
+#endif
 				cusparseDll->Free();
 				delete cusparseDll;
 				cusparseDll = nullptr;
 				cublasDll->Free();
 				delete cublasDll;
 				cublasDll = nullptr;
-				ncclDll->Free();
-				delete ncclDll;
-				ncclDll = nullptr;
 			} else {
 				result |= CUDA_DLL;
 				cudaDllLinkCount++;
@@ -127,6 +135,10 @@ void CDllLoader::Free( int dll )
 				cusparseDll = nullptr;
 				delete cublasDll;
 				cublasDll = nullptr;
+#ifdef NEOML_USE_NCCL
+				delete ncclDll;
+				ncclDll = nullptr;
+#endif
 			}
 		}
 #endif

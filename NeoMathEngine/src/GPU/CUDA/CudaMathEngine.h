@@ -48,7 +48,7 @@ class CCudaDistributedCommunicator;
 // CUDA math engine
 class CCudaMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, const CNccl* nccl, std::unique_ptr<CCudaDevice>& device, int flags = 0 );
+	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, std::unique_ptr<CCudaDevice>& device, int flags = 0 );
 	~CCudaMathEngine() override;
 
 	// IMathEngine interface methods
@@ -530,7 +530,7 @@ public:
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
 #ifdef NEOML_USE_NCCL
-	void SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info );
+	void SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CNccl* nccl, const CMathEngineDistributedInfo& info );
 #endif
 protected:
 	// IRawMemoryManager interface methods
@@ -540,7 +540,6 @@ protected:
 private:
 	const CCusparse* cusparse; // cusparse library functions
 	const CCublas* cublas; // cublas library functions
-	const CNccl* nccl; // nccl library functions
 
 	const float* cudaConstZero; // pointer to __constant__ == 0.f
 	const float* cudaConstOne; // pointer to __constant__ == 1.f
