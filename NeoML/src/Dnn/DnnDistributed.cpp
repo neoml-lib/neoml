@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, TMathEngineType type, int count, const CArray<int>& devs )
+CDistributedTraining::CDistributedTraining( CArchive& archive, TMathEngineType type, int count, CArray<int> devs )
 {
     mathEngines.resize( count );
     CArray<IMathEngine*> mathEnginesPtr;

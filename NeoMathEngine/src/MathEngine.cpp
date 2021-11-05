@@ -228,6 +228,7 @@ IGpuMathEngineManager* CreateGpuMathEngineManager()
 void CreateDistributedMathEngines( IMathEngine** mathEngines, TMathEngineType type, int count, const int* devs )
 {
 	if( type == MET_Cpu ) {
+		devs;
 		CreateDistributedCpuMathEngines( mathEngines, count );
 	}
 #ifdef NEOML_USE_NCCL

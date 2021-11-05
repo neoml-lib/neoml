@@ -25,7 +25,7 @@ public:
 
 class NEOML_API CDistributedTraining : public IObject {
 public:
-	explicit CDistributedTraining( CArchive& archive, TMathEngineType type, int count, const CArray<int>& devs );
+	explicit CDistributedTraining( CArchive& archive, TMathEngineType type, int count, CArray<int> devs = {} );
 
 	void RunAndLearnOnce( IDistributedDataset& data );
 	float GetLastLoss( const CString& layerName );
