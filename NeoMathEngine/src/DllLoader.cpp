@@ -80,7 +80,7 @@ int CDllLoader::Load( int dll )
 				delete ncclDll;
 				ncclDll = nullptr;
 #else
-			if( !cusparseDll->Load() || !cublasDll->Load() ) {}
+			if( !cusparseDll->Load() || !cublasDll->Load() ) {
 #endif
 				cusparseDll->Free();
 				delete cusparseDll;
