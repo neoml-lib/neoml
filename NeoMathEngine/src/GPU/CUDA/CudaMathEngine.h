@@ -38,12 +38,10 @@ struct CCudaConvolutionDescInternal;
 struct CCuda3dConvolutionDescInternal;
 struct CCusparse;
 struct CCublas;
-struct CNccl;
 struct CCudaDevice;
 class CDeviceStackAllocator;
 class CHostStackAllocator;
 class CMemoryPool;
-class CCudaDistributedCommunicator;
 
 // CUDA math engine
 class CCudaMathEngine : public IMathEngine, public IRawMemoryManager {

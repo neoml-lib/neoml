@@ -17,17 +17,14 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 
-#ifdef NEOML_USE_CUDA
-
 #ifdef NEOML_USE_NCCL
+
 #include <nccl.h>
-#endif
 
 namespace NeoML {
 
 // The nccl functions used in CUDA implementation of the MathEngine
 struct CNccl {
-#ifdef NEOML_USE_NCCL
 	// typedef for convenience
     typedef ncclResult_t( *TNcclCommInitAll ) ( ncclComm_t* comms, int ndev, const int* devlist );
     typedef ncclResult_t( *TNcclCommDestroy ) ( ncclComm_t comm );
@@ -48,11 +45,9 @@ struct CNccl {
     TNcclGroupEnd GroupEnd;
     TNcclGetUniqueId GetUniqueId;
     TNcclGetErrorString GetErrorString;
-
-#endif
 };
 
 } // namespace NeoML
 
-#endif // NEOML_USE_CUDA
+#endif // NEOML_USE_NCCL
 
