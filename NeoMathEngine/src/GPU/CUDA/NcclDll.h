@@ -17,7 +17,7 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 
-#ifdef NEOML_USE_CUDA
+#ifdef NEOML_USE_NCCL
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <MathEngineDll.h>
@@ -52,4 +52,4 @@ private:
 
 } // namespace NeoML
 
-#endif // NEOML_USE_CUDA
+#endif // NEOML_USE_NCCL

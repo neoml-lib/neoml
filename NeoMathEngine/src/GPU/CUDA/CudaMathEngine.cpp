@@ -194,7 +194,9 @@ void CCudaMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 void CCudaMathEngine::AllReduce( const CFloatHandle& handle, int size )
 {
 #ifdef NEOML_USE_NCCL
-	ncclCommunicator->AllReduce( handle, size );
+	if( ncclCommunicator != nullptr ){
+		ncclCommunicator->AllReduce( handle, size );
+	}
 #endif
 }
 

@@ -84,7 +84,7 @@ private:
 };
 
 CGpuMathEngineManager::CGpuMathEngineManager() :
-	loader( CDllLoader::CUDA_DLL | CDllLoader::VULKAN_DLL )
+	loader( CDllLoader::CUDA_DLL | CDllLoader::VULKAN_DLL | CDllLoader::NCCL_DLL )
 {
 #ifdef NEOML_USE_CUDA
 	if( loader.IsLoaded( CDllLoader::CUDA_DLL ) ) {

@@ -551,7 +551,7 @@ private:
 	std::unique_ptr<CHostStackAllocator> hostStackRunTime; // regular memory stack allocator
 	CMathEngineDistributedInfo distributedInfo;
 #ifdef NEOML_USE_NCCL
-	std::unique_ptr<CCudaDistributedCommunicator> ncclCommunicator;
+	std::unique_ptr<CCudaDistributedCommunicator> ncclCommunicator = nullptr;
 #endif
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }

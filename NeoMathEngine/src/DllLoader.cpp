@@ -25,10 +25,12 @@ namespace NeoML {
 #ifdef NEOML_USE_CUDA
 CCusparseDll* CDllLoader::cusparseDll = nullptr;
 CCublasDll* CDllLoader::cublasDll = nullptr;
+int CDllLoader::cudaDllLinkCount = 0;
+#endif
+
 #ifdef NEOML_USE_NCCL
 CNcclDll* CDllLoader::ncclDll = nullptr;
-#endif
-int CDllLoader::cudaDllLinkCount = 0;
+int CDllLoader::ncclDllLinkCount = 0;
 #endif
 
 #ifdef NEOML_USE_VULKAN
@@ -69,19 +71,9 @@ int CDllLoader::Load( int dll )
 			if( cusparseDll == nullptr ) {
 				cusparseDll = new CCusparseDll();
 				cublasDll = new CCublasDll();
-#ifdef NEOML_USE_NCCL
-				ncclDll = new CNcclDll();
-#endif
 			}
 
-#ifdef NEOML_USE_NCCL
-			if( !cusparseDll->Load() || !cublasDll->Load() || !ncclDll->Load() ) {
-				ncclDll->Free();
-				delete ncclDll;
-				ncclDll = nullptr;
-#else
 			if( !cusparseDll->Load() || !cublasDll->Load() ) {
-#endif
 				cusparseDll->Free();
 				delete cusparseDll;
 				cusparseDll = nullptr;
@@ -93,6 +85,23 @@ int CDllLoader::Load( int dll )
 				cudaDllLinkCount++;
 			}
 		}
+#endif
+
+#ifdef NEOML_USE_NCCL
+	if( (dll & NCCL_DLL) != 0 ) {
+		if( ncclDll == nullptr ){
+			ncclDll = new CNcclDll();
+		}
+
+		if( !ncclDll->Load() ){
+			ncclDll->Free();
+			delete ncclDll;
+			ncclDll = nullptr;
+		} else {
+			result |= NCCL_DLL;
+			ncclDllLinkCount++;
+		}
+	}
 #endif
 
 #ifdef NEOML_USE_AVX
@@ -135,10 +144,16 @@ void CDllLoader::Free( int dll )
 				cusparseDll = nullptr;
 				delete cublasDll;
 				cublasDll = nullptr;
+			}
+		}
+#endif
+
 #ifdef NEOML_USE_NCCL
+		if( (dll & NCCL_DLL) != 0 && ncclDllLinkCount > 0 ) {
+			ncclDllLinkCount--;
+			if( ncclDllLinkCount <= 0 ) {
 				delete ncclDll;
 				ncclDll = nullptr;
-#endif
 			}
 		}
 #endif

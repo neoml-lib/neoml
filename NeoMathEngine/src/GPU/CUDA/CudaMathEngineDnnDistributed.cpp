@@ -39,12 +39,14 @@ namespace NeoML {
 CCudaDistributedCommunicator::CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CNccl* _nccl, const CMathEngineDistributedInfo& info )
     : nccl( _nccl )
 {
+    CDllLoader::Load(CDllLoader::NCCL_DLL);
     ASSERT_NCCL( nccl, nccl->CommInitRank( &comm, info.Threads, uniqueId, info.Thread ) );
 }
 
 CCudaDistributedCommunicator::~CCudaDistributedCommunicator()
 {
     ASSERT_NCCL( nccl, nccl->CommDestroy( comm ) );
+    CDllLoader::Free(CDllLoader::NCCL_DLL);
 }
 
 void CCudaDistributedCommunicator::AllReduce( const CFloatHandle& handle, int size )
