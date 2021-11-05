@@ -203,9 +203,9 @@ void CCudaMathEngine::AllReduce( const CFloatHandle& handle, int size )
 }
 
 #ifdef NEOML_USE_NCCL
-void CCudaMathEngine::SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CNccl* nccl, const CMathEngineDistributedInfo& info )
+void CCudaMathEngine::SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info )
 {
-	ncclCommunicator = std::make_unique<CCudaDistributedCommunicator>( uniqueId, nccl, info );
+	ncclCommunicator = std::make_unique<CCudaDistributedCommunicator>( uniqueId, info );
 	distributedInfo = info;
 }
 #endif

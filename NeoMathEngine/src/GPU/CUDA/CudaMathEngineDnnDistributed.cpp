@@ -36,10 +36,10 @@ namespace NeoML {
 		} \
 	} while(0)
 
-CCudaDistributedCommunicator::CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CNccl* _nccl, const CMathEngineDistributedInfo& info )
-    : nccl( _nccl )
+CCudaDistributedCommunicator::CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info )
 {
     CDllLoader::Load(CDllLoader::NCCL_DLL);
+    nccl = CDllLoader::ncclDll->GetFunctions();
     ASSERT_NCCL( nccl, nccl->CommInitRank( &comm, info.Threads, uniqueId, info.Thread ) );
 }
 
@@ -69,7 +69,7 @@ void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, con
         const int dev = ( devs == nullptr ) ? i : devs[i];
         mathEngines[i]  = gpuManager->CreateMathEngine( dev, 0u );
         SetCudaDevice( dev );
-        static_cast<CCudaMathEngine*>( mathEngines[i] )->SetDistributedCommunicator( id, nccl, {i, count} );
+        static_cast<CCudaMathEngine*>( mathEngines[i] )->SetDistributedCommunicator( id, {i, count} );
     }
     ASSERT_NCCL( nccl, nccl->GroupEnd() );
 }

@@ -528,7 +528,7 @@ public:
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
 #ifdef NEOML_USE_NCCL
-	void SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CNccl* nccl, const CMathEngineDistributedInfo& info );
+	void SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info );
 #endif
 protected:
 	// IRawMemoryManager interface methods
