@@ -193,6 +193,8 @@ void CCudaMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 
 void CCudaMathEngine::AllReduce( const CFloatHandle& handle, int size )
 {
+	ASSERT_EXPR( handle.GetMathEngine() == this );
+	ASSERT_EXPR( size >= 0 );
 #ifdef NEOML_USE_NCCL
 	if( ncclCommunicator != nullptr ){
 		ncclCommunicator->AllReduce( handle, size );

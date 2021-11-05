@@ -542,6 +542,7 @@ public:
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
+	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};
 
 protected:
 	// IRawMemoryManager interface methods
