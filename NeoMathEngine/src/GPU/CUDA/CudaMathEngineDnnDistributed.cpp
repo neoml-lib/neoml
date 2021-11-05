@@ -66,8 +66,9 @@ void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, con
     nccl->GetUniqueId( &id );
     ASSERT_NCCL( nccl, nccl->GroupStart() );
     for( int i = 0; i < count; i++ ){
-        mathEngines[i]  = gpuManager->CreateMathEngine( devs[i], 0u );
-        SetCudaDevice( devs[i] );
+        const int dev = ( devs == nullptr ) ? i : devs[i];
+        mathEngines[i]  = gpuManager->CreateMathEngine( dev, 0u );
+        SetCudaDevice( dev );
         static_cast<CCudaMathEngine*>( mathEngines[i] )->SetDistributedCommunicator( id, nccl, {i, count} );
     }
     ASSERT_NCCL( nccl, nccl->GroupEnd() );

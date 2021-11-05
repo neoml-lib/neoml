@@ -389,10 +389,10 @@ inline __int64 CArchive::Seek( __int64 offset, CBaseFile::TSeekPosition from )
 		case CBaseFile::current:
 			newArchivePosition = GetPosition() + offset;
 			break;
-		case CBaseFile::begin: // от начала архива, а не всего файла
+		case CBaseFile::begin:
 			newArchivePosition = offset;
 			break;
-		case CBaseFile::end: // от конца архива, а не файла
+		case CBaseFile::end:
 			newArchivePosition = GetLength() + offset;
 			break;
 		default:
