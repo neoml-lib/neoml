@@ -237,7 +237,6 @@ void CreateDistributedMathEngines( IMathEngine** mathEngines, TMathEngineType ty
 	}
 #endif
 	else {
-		printf("ok5\n");
 		ASSERT_EXPR( false );
 	}
 }

@@ -29,7 +29,7 @@ namespace NeoML {
 struct CNccl {
 #ifdef NEOML_USE_NCCL
 	// typedef for convenience
-	typedef ncclResult_t( *TNcclCommInitAll ) ( ncclComm_t* comms, int ndev, const int* devlist );
+    typedef ncclResult_t( *TNcclCommInitAll ) ( ncclComm_t* comms, int ndev, const int* devlist );
     typedef ncclResult_t( *TNcclCommDestroy ) ( ncclComm_t comm );
     typedef ncclResult_t( *TNcclAllReduce ) ( const void* sendbuff, void* recvbuff, size_t count,
         ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream );
@@ -40,8 +40,8 @@ struct CNccl {
     typedef const char*( *TNcclGetErrorString ) (  ncclResult_t result );
 
 
-	TNcclCommInitAll CommInitAll;
-	TNcclCommDestroy CommDestroy;
+    TNcclCommInitAll CommInitAll;
+    TNcclCommDestroy CommDestroy;
     TNcclAllReduce AllReduce;
     TNcclCommInitRank CommInitRank;
     TNcclGroupStart GroupStart;

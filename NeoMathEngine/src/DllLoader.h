@@ -25,9 +25,7 @@ limitations under the License.
 #include <CudaMathEngine.h>
 #include <CublasDll.h>
 #include <CusparseDll.h>
-#ifdef NEOML_USE_NCCL
 #include <NcclDll.h>
-#endif
 #endif
 
 #ifdef NEOML_USE_VULKAN

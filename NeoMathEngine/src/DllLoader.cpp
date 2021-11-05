@@ -25,10 +25,8 @@ namespace NeoML {
 #ifdef NEOML_USE_CUDA
 CCusparseDll* CDllLoader::cusparseDll = nullptr;
 CCublasDll* CDllLoader::cublasDll = nullptr;
-int CDllLoader::cudaDllLinkCount = 0;
-#ifdef NEOML_USE_CUDA
 CNcclDll* CDllLoader::ncclDll = nullptr;
-#endif
+int CDllLoader::cudaDllLinkCount = 0;
 #endif
 
 #ifdef NEOML_USE_VULKAN

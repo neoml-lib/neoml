@@ -76,11 +76,11 @@ bool CNcclDll::loadFunctions()
 	LOAD_NCCL_FUNC( CommInitAll );
 	LOAD_NCCL_FUNC( CommDestroy );
 	LOAD_NCCL_FUNC( AllReduce );
-    LOAD_NCCL_FUNC( CommInitRank );
-    LOAD_NCCL_FUNC( GroupStart );
-    LOAD_NCCL_FUNC( GroupEnd );
-    LOAD_NCCL_FUNC( GetUniqueId );
-    LOAD_NCCL_FUNC( GetErrorString );
+	LOAD_NCCL_FUNC( CommInitRank );
+	LOAD_NCCL_FUNC( GroupStart );
+	LOAD_NCCL_FUNC( GroupEnd );
+	LOAD_NCCL_FUNC( GetUniqueId );
+	LOAD_NCCL_FUNC( GetErrorString );
 #endif
 	return true;
 }

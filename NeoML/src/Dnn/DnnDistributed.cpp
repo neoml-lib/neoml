@@ -20,12 +20,12 @@ limitations under the License.
 
 namespace NeoML {
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, TMathEngineType type, int count, std::initializer_list<int> devs )
+CDistributedTraining::CDistributedTraining( CArchive& archive, TMathEngineType type, int count, const CArray<int>& devs )
 {
     mathEngines.resize( count );
     CArray<IMathEngine*> mathEnginesPtr;
     mathEnginesPtr.SetSize( count );
-    CreateDistributedMathEngines( mathEnginesPtr.GetPtr(), type, count, devs.begin() );
+    CreateDistributedMathEngines( mathEnginesPtr.GetPtr(), type, count, devs.GetPtr() );
     for( int i = 0; i < count; i++ ){
         rands.emplace_back( new CRandom( 42 ) );
         mathEngines[i] = std::unique_ptr<IMathEngine>( mathEnginesPtr[i] );

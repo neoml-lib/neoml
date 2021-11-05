@@ -12,7 +12,6 @@ limitations under the License.
 
 #pragma once
 
-#include <initializer_list>
 #include <memory>
 #include <vector>
 #include <NeoML/NeoML.h>
@@ -26,7 +25,7 @@ public:
 
 class NEOML_API CDistributedTraining : public IObject {
 public:
-	explicit CDistributedTraining( CArchive& archive, TMathEngineType type, int count, std::initializer_list<int> devs );
+	explicit CDistributedTraining( CArchive& archive, TMathEngineType type, int count, const CArray<int>& devs );
 
 	void RunAndLearnOnce( IDistributedDataset& data );
 	float GetLastLoss( const CString& layerName );

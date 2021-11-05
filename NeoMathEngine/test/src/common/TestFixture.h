@@ -201,7 +201,7 @@ class CTestFixtureWithParams : public CTestFixture, public ::testing::WithParamI
 // The class to generate random values
 // It uses the complementary-multiply-with-carry algorithm
 // C lag-1024, multiplier(a) = 108798, initial carry(c) = 12345678
-class CRandom {
+class CRando {
 public:
 	explicit CRandom( unsigned int seed = 0xBADF00D ) { srand(seed); }
 
