@@ -14,6 +14,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <thread>
+#include <vector>
 #include <functional>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/DnnDistributed.h>
@@ -44,7 +45,7 @@ CDistributedTraining::~CDistributedTraining()
 void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 {
     std::vector<std::thread> threads;
-    for ( unsigned i = 0; i < cnns.Size(); i++ ) {
+    for ( int i = 0; i < cnns.Size(); i++ ) {
         std::thread t( std::bind(
             [&]( int thread ){
                 data.SetInputBatch( *cnns[thread], 0, thread );
@@ -52,7 +53,7 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
             },  i ) );
         threads.push_back( std::move( t ) );
     }
-    for ( unsigned i = 0; i < cnns.Size(); i++ ) {
+    for ( int i = 0; i < cnns.Size(); i++ ) {
         threads[i].join();
     }
 }
@@ -60,7 +61,7 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>& losses )
 {
     losses.SetSize( cnns.Size() );
-    for( unsigned i = 0; i < cnns.Size(); i++ ){
+    for( int i = 0; i < cnns.Size(); i++ ){
         CLossLayer* lossLayer = dynamic_cast<CLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() );
         if( lossLayer == nullptr ){
             losses[i] = dynamic_cast<CCtcLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() )->GetLastLoss();
