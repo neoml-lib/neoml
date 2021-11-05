@@ -26,13 +26,14 @@ public:
 class NEOML_API CDistributedTraining : public IObject {
 public:
 	explicit CDistributedTraining( CArchive& archive, TMathEngineType type, int count, CArray<int> devs = {} );
+	~CDistributedTraining();
 
 	void RunAndLearnOnce( IDistributedDataset& data );
 	void GetLastLoss( const CString& layerName, CArray<float>& losses );
 private:
-	std::vector<std::unique_ptr<IMathEngine>> mathEngines;
-	std::vector<std::unique_ptr<CRandom>> rands;
-	std::vector<std::unique_ptr<CDnn>> cnns;
+	CArray<IMathEngine*> mathEngines;
+	CArray<CRandom*> rands;
+	CArray<CDnn*> cnns;
 };
 
 } // namespace NeoML

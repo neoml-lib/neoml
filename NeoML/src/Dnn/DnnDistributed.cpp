@@ -22,23 +22,29 @@ namespace NeoML {
 
 CDistributedTraining::CDistributedTraining( CArchive& archive, TMathEngineType type, int count, CArray<int> devs )
 {
-    mathEngines.resize( count );
-    CArray<IMathEngine*> mathEnginesPtr;
-    mathEnginesPtr.SetSize( count );
-    CreateDistributedMathEngines( mathEnginesPtr.GetPtr(), type, count, devs.GetPtr() );
+    mathEngines.SetSize( count );
+    CreateDistributedMathEngines( mathEngines.GetPtr(), type, count, devs.GetPtr() );
     for( int i = 0; i < count; i++ ){
-        rands.emplace_back( new CRandom( 42 ) );
-        mathEngines[i] = std::unique_ptr<IMathEngine>( mathEnginesPtr[i] );
-        cnns.emplace_back( new CDnn( *rands[i], *mathEngines[i] ) );
+        rands.Add( new CRandom( 42 ) );
+        cnns.Add( new CDnn( *rands[i], *mathEngines[i] ) );
         archive.Serialize( *cnns[i] );
         archive.Seek( 0, static_cast<CBaseFile::TSeekPosition>( 0 ) );
+    }
+}
+
+CDistributedTraining::~CDistributedTraining()
+{
+    for( int i = 0; i < cnns.Size(); i++ ){
+        delete cnns[i];
+        delete rands[i];
+        delete mathEngines[i];
     }
 }
 
 void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 {
     std::vector<std::thread> threads;
-    for ( unsigned i = 0; i < cnns.size(); i++ ) {
+    for ( unsigned i = 0; i < cnns.Size(); i++ ) {
         std::thread t( std::bind(
             [&]( int thread ){
                 data.SetInputBatch( *cnns[thread], 0, thread );
@@ -46,15 +52,15 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
             },  i ) );
         threads.push_back( std::move( t ) );
     }
-    for ( unsigned i = 0; i < cnns.size(); i++ ) {
+    for ( unsigned i = 0; i < cnns.Size(); i++ ) {
         threads[i].join();
     }
 }
 
 void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>& losses )
 {
-    losses.SetSize( cnns.size() );
-    for( unsigned i = 0; i < cnns.size(); i++ ){
+    losses.SetSize( cnns.Size() );
+    for( unsigned i = 0; i < cnns.Size(); i++ ){
         CLossLayer* lossLayer = dynamic_cast<CLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() );
         if( lossLayer == nullptr ){
             losses[i] = dynamic_cast<CCtcLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() )->GetLastLoss();
