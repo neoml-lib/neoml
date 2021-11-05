@@ -51,18 +51,17 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
     }
 }
 
-float CDistributedTraining::GetLastLoss( const CString& layerName )
+void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>& losses )
 {
-    float loss = 0;
+    losses.SetSize( cnns.size() );
     for( unsigned i = 0; i < cnns.size(); i++ ){
         CLossLayer* lossLayer = dynamic_cast<CLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() );
         if( lossLayer == nullptr ){
-            loss += dynamic_cast<CCtcLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() )->GetLastLoss();
+            losses[i] = dynamic_cast<CCtcLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() )->GetLastLoss();
         } else {
-            loss += lossLayer->GetLastLoss();
+            losses[i] = lossLayer->GetLastLoss();
         }
     }
-    return loss / cnns.size();
 }
 
 } // namespace NeoML

@@ -28,7 +28,7 @@ public:
 	explicit CDistributedTraining( CArchive& archive, TMathEngineType type, int count, CArray<int> devs = {} );
 
 	void RunAndLearnOnce( IDistributedDataset& data );
-	float GetLastLoss( const CString& layerName );
+	void GetLastLoss( const CString& layerName, CArray<float>& losses );
 private:
 	std::vector<std::unique_ptr<IMathEngine>> mathEngines;
 	std::vector<std::unique_ptr<CRandom>> rands;

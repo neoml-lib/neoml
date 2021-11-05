@@ -22,7 +22,7 @@ namespace NeoML {
 
 class CCudaDistributedCommunicator {
 public:
-    CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CNccl* nccl, const CMathEngineDistributedInfo& info );
+    CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info );
     void AllReduce( const CFloatHandle& handle, int size );
     ~CCudaDistributedCommunicator();
 private:
