@@ -41,7 +41,7 @@ void CCpuMathEngine::VectorExp(const CConstFloatHandle& firstHandle, const CFloa
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, 4 * vectorSize ) ? threadCount : 1;
+	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
 
 #ifdef NEOML_USE_MKL
 	CFloatHandleStackVar minLimit( mathEngine(), 1 );
@@ -140,7 +140,7 @@ void CCpuMathEngine::VectorTanh(const CConstFloatHandle& firstHandle, const CFlo
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, 8 * vectorSize ) ? threadCount : 1;
+	const int curThreadCount = IsOmpRelevant( vectorSize, 16 * vectorSize ) ? threadCount : 1;
 	if( curThreadCount == 1 ) {
 #ifdef NEOML_USE_MKL
 		vsTanh(vectorSize, GetRaw(firstHandle), GetRaw(resultHandle));
