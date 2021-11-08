@@ -1024,6 +1024,7 @@ public:
 
 	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
 	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
+	virtual bool IsDistributed() { return false; }
 };
 
 //------------------------------------------------------------------------------------------------------------

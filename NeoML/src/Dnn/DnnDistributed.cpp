@@ -48,7 +48,7 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
     for ( int i = 0; i < cnns.Size(); i++ ) {
         std::thread t( std::bind(
             [&]( int thread ){
-                data.SetInputBatch( *cnns[thread], 0, thread );
+                data.SetInputBatch( *cnns[thread], thread );
                 cnns[thread]->RunAndLearnOnce();
             },  i ) );
         threads.push_back( std::move( t ) );

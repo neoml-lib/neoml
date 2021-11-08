@@ -16,17 +16,25 @@ limitations under the License.
 
 namespace NeoML {
 
+// Interface for setting input to a neural network
 class IDistributedDataset {
 public:
-	virtual void SetInputBatch( CDnn& cnn, int iteration, int thread ) = 0;
+	virtual void SetInputBatch( CDnn& cnn, int thread ) = 0;
 };
 
+// Single process, multiple threads distributed training
 class NEOML_API CDistributedTraining : public IObject {
 public:
+	// Creates `count` cpu or gpu models according to `type` parameter
+	// For gpu models `devs` should contain numbers of using devices
+	// When `devs` is not provided it is set to [0...count-1]
 	explicit CDistributedTraining( CArchive& archive, TMathEngineType type, int count, CArray<int> devs = {} );
 	~CDistributedTraining();
 
+	// Runs the network, performs a backward pass and updates the trainable weights of all models
 	void RunAndLearnOnce( IDistributedDataset& data );
+	// Returns last loss of `layerName` for all models
+	// `layerName` should correspond to CLossLayer or CCtcLossLayer
 	void GetLastLoss( const CString& layerName, CArray<float>& losses );
 private:
 	CArray<IMathEngine*> mathEngines;

@@ -527,6 +527,7 @@ public:
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
+	bool IsDistributed() override { return distributedInfo.Thread > 1; }
 #ifdef NEOML_USE_NCCL
 	void SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info );
 #endif

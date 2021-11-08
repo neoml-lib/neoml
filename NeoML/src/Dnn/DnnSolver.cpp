@@ -215,16 +215,16 @@ void CDnnSolver::Train()
 
 		clipGradients( paramDiffBlobsSum.Sum );
 
-		for( int i = 0; i < paramDiffBlobsSum.Sum.Size(); i++ ){
-			mathEngine.AllReduce( paramDiffBlobsSum.Sum[i]->GetData(), paramDiffBlobsSum.Sum[i]->GetDataSize() );
-		}
-
 		// Train the layer based on the calculated diff data
 		TrainLayer( layer, layer->paramBlobs, paramDiffBlobsSum.Sum, layerToGradientHistory.GetOrCreateValue( layer ) );
 
 		// Clear the diff data
 		paramDiffBlobsSum.Sum.Empty();
 		paramDiffBlobsSum.Count = 0;
+	}
+
+	if( MathEngine().IsDistributed() ){
+		allReduce();
 	}
 }
 
@@ -233,6 +233,22 @@ void CDnnSolver::Reset()
 	layerToParamDiffBlobsSum.DeleteAll();
 	layerToGradientHistory.DeleteAll();
 	OnReset();
+}
+
+void CDnnSolver::allReduce()
+{
+	CDnn* dnn = layerToParamDiffBlobsSum.GetKey( layerToParamDiffBlobsSum.GetFirstPosition() )->GetDnn();
+	CArray<const char*> layerList;
+	dnn->GetLayerList( layerList );
+	for( int i = 0; i < layerList.Size(); i++ ){
+		CBaseLayer* layer = dnn->GetLayer( layerList[i] );
+		if( layer->IsLearnable() && layer->IsLearningEnabled() ){
+			CObjectArray<CDnnBlob>& params = layer->paramBlobs;
+			for( int j = 0; j < params.Size(); j++ ){
+				MathEngine().AllReduce( params[i]->GetData(), params[i]->GetDataSize() );
+			}
+		}
+	}
 }
 
 void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)

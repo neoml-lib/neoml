@@ -519,6 +519,7 @@ public:
 	void SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info );
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
+	bool IsDistributed() override { return distributedInfo.Threads > 1; }
 protected:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
