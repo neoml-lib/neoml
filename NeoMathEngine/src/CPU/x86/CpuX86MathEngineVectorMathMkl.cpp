@@ -50,9 +50,7 @@ void CCpuMathEngine::VectorExp(const CConstFloatHandle& firstHandle, const CFloa
 	maxLimit.SetValue( FLT_MAX_LOG );
 	VectorMinMax(firstHandle, resultHandle, vectorSize, minLimit, maxLimit);
 	float* result = GetRaw( resultHandle );
-	if( curThreadCount == 1 ) {
-		vsExp(vectorSize, result, result);
-	} else {
+	if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount )
 		{
 			int start;
@@ -61,6 +59,8 @@ void CCpuMathEngine::VectorExp(const CConstFloatHandle& firstHandle, const CFloa
 				vsExp(count, result + start, result + start);
 			}
 		}
+	} else {
+		vsExp(vectorSize, result, result);
 	}
 #else
 	const float* first = GetRaw(firstHandle);
@@ -141,18 +141,8 @@ void CCpuMathEngine::VectorTanh(const CConstFloatHandle& firstHandle, const CFlo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, 8 * vectorSize ) ? threadCount : 1;
-	if( curThreadCount == 1 ) {
 #ifdef NEOML_USE_MKL
-		vsTanh(vectorSize, GetRaw(firstHandle), GetRaw(resultHandle));
-#else
-		const float* first = GetRaw(firstHandle);
-		float* result = GetRaw(resultHandle);
-		for(int i = 0; i < vectorSize; ++i) {
-			*result++ = -1.f + 2 / (1.f + ExponentFunc(-2 * *first++));
-		}
-#endif
-	} else {
-#ifdef NEOML_USE_MKL
+	if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount )
 		{
 			int start;
@@ -161,15 +151,17 @@ void CCpuMathEngine::VectorTanh(const CConstFloatHandle& firstHandle, const CFlo
 				vsTanh(count, GetRaw(firstHandle) + start, GetRaw(resultHandle) + start);
 			}
 		}
-#else
-		const float* first = GetRaw(firstHandle);
-		float* result = GetRaw(resultHandle);
-		NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
-		for(int i = 0; i < vectorSize; ++i) {
-			result[i] = -1.f + 2 / (1.f + ExponentFunc(-2 * first[i]));
-		}
-#endif
+	} else {
+		vsTanh(vectorSize, GetRaw(firstHandle), GetRaw(resultHandle));
 	}
+#else
+	const float* first = GetRaw(firstHandle);
+	float* result = GetRaw(resultHandle);
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for(int i = 0; i < vectorSize; ++i) {
+		result[i] = -1.f + 2 / (1.f + ExponentFunc(-2 * first[i]));
+	}
+#endif
 }
 
 void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
