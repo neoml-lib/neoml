@@ -30,6 +30,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/TimeConvLayer.h>
 #include <NeoML/Dnn/Layers/TransposedConvLayer.h>
+#include <thread>
 
 namespace NeoML {
 
@@ -243,9 +244,9 @@ void CDnnSolver::allReduce()
 	for( int i = 0; i < layerList.Size(); i++ ){
 		CBaseLayer* layer = dnn->GetLayer( layerList[i] );
 		if( layer->IsLearnable() && layer->IsLearningEnabled() ){
-			CObjectArray<CDnnBlob>& params = layer->paramBlobs;
+			const CObjectArray<CDnnBlob>& params = layer->paramBlobs;
 			for( int j = 0; j < params.Size(); j++ ){
-				MathEngine().AllReduce( params[i]->GetData(), params[i]->GetDataSize() );
+				MathEngine().AllReduce( params[j]->GetData(), params[j]->GetDataSize() );
 			}
 		}
 	}

@@ -16,10 +16,6 @@ limitations under the License.
 #include <thread>
 #include <atomic>
 #include <NeoMathEngine/NeoMathEngine.h>
-/*
-#include <mutex>
-#include <condition_variable>
-*/
 
 namespace NeoML {
 
@@ -34,13 +30,6 @@ private:
     std::atomic<int> counter;
     std::atomic<int> waiting_flag;
 
-    // blocking
-    /*
-    int counter;
-    std::condition_variable cv;
-    std::mutex m;
-    int waiting_flag;
-    */
     int n_threads;
 
     void barrier();

@@ -38,21 +38,6 @@ void CMultiThreadDistributedCommunicator::barrier()
     }
 }
 
-/*
-void CMultiThreadDistributedCommunicator::barrier()
-{
-    std::unique_lock<std::mutex> lock(m);
-    int wait = waiting_flag;
-    if( !--counter ){
-        waiting_flag++;
-        counter = n_threads;
-        cv.notify_all();
-    } else {
-        cv.wait(lock, [this, wait]{ return ( wait != waiting_flag ); } );
-    }
-}
-*/
-
 void CMultiThreadDistributedCommunicator::AllReduce( const CFloatHandle& handle, int size )
 {
     IMathEngine* mathEngine = handle.GetMathEngine();
