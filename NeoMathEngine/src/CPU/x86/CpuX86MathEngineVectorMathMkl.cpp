@@ -41,18 +41,33 @@ void CCpuMathEngine::VectorExp(const CConstFloatHandle& firstHandle, const CFloa
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
+	const int curThreadCount = IsOmpRelevant( vectorSize, 4 * vectorSize ) ? threadCount : 1;
+
 #ifdef NEOML_USE_MKL
 	CFloatHandleStackVar minLimit( mathEngine(), 1 );
 	minLimit.SetValue( FLT_MIN_LOG );
 	CFloatHandleStackVar maxLimit( mathEngine(), 1 );
 	maxLimit.SetValue( FLT_MAX_LOG );
 	VectorMinMax(firstHandle, resultHandle, vectorSize, minLimit, maxLimit);
-	vsExp(vectorSize, GetRaw(resultHandle), GetRaw(resultHandle));
+	float* result = GetRaw( resultHandle );
+	if( curThreadCount == 1 ) {
+		vsExp(vectorSize, result, result);
+	} else {
+		NEOML_OMP_NUM_THREADS( curThreadCount )
+		{
+			int start;
+			int count;
+			if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
+				vsExp(count, result + start, result + start);
+			}
+		}
+	}
 #else
 	const float* first = GetRaw(firstHandle);
 	float* result = GetRaw(resultHandle);
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < vectorSize; ++i) {
-		*result++ = ExponentFunc(*first++);
+		*result[i] = ExponentFunc(*first[i]);
 	}
 #endif
 }
