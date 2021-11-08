@@ -125,15 +125,36 @@ void CCpuMathEngine::VectorTanh(const CConstFloatHandle& firstHandle, const CFlo
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
+	const int curThreadCount = IsOmpRelevant( vectorSize, 8 * vectorSize ) ? threadCount : 1;
+	if( curThreadCount == 1 ) {
 #ifdef NEOML_USE_MKL
-	vsTanh(vectorSize, GetRaw(firstHandle), GetRaw(resultHandle));
+		vsTanh(vectorSize, GetRaw(firstHandle), GetRaw(resultHandle));
 #else
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	for(int i = 0; i < vectorSize; ++i) {
-		*result++ = -1.f + 2 / (1.f + ExponentFunc(-2 * *first++));
-	}
+		const float* first = GetRaw(firstHandle);
+		float* result = GetRaw(resultHandle);
+		for(int i = 0; i < vectorSize; ++i) {
+			*result++ = -1.f + 2 / (1.f + ExponentFunc(-2 * *first++));
+		}
 #endif
+	} else {
+#ifdef NEOML_USE_MKL
+		NEOML_OMP_NUM_THREADS( curThreadCount )
+		{
+			int start;
+			int count;
+			if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
+				vsTanh(count, GetRaw(firstHandle) + start, GetRaw(resultHandle) + start);
+			}
+		}
+#else
+		const float* first = GetRaw(firstHandle);
+		float* result = GetRaw(resultHandle);
+		NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+		for(int i = 0; i < vectorSize; ++i) {
+			result[i] = -1.f + 2 / (1.f + ExponentFunc(-2 * first[i]));
+		}
+#endif
+	}
 }
 
 void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
