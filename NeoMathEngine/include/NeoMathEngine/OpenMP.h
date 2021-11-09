@@ -43,7 +43,7 @@ limitations under the License.
 
 namespace NeoML {
 
-const int MinOmpOperationCount = 4096;
+const int MinOmpOperationCount = 32768;
 
 // Indicates if using the OMP pool makes sense for the scenario
 // taskCount is the number of tasks that may run on a thread
