@@ -180,7 +180,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         list(GET NEOML_CUDA_VERSION_LIST 0 NEOML_CUDA_VERSION_MAJOR)
         list(GET NEOML_CUDA_VERSION_LIST 1 NEOML_CUDA_VERSION_MINOR)
 
-        if(NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11")
+        if(NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11" OR NOT "${NEOML_CUDA_VERSION_MINOR}" STREQUAL "2")
             if(USE_FINE_OBJECTS)
                 # Internal build must fail in case of version mismatch
                 message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
