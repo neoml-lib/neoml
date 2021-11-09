@@ -30,7 +30,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/TimeConvLayer.h>
 #include <NeoML/Dnn/Layers/TransposedConvLayer.h>
-#include <thread>
 
 namespace NeoML {
 
