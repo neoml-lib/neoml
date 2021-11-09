@@ -21,7 +21,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 #include <memory>
-#include <thread>
 
 namespace NeoML {
 
