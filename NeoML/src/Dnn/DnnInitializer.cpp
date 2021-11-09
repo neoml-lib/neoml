@@ -68,17 +68,9 @@ void CDnnUniformInitializer::InitializeLayerParams(CDnnBlob& blob, int)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void CDnnDistributedInitializer::InitializeLayerParams( CDnnBlob& blob, int inputCount )
 {
-	double deviation = sqrt(1. / max(inputCount, 1));
-
-	CArray<float> tempData;
-	tempData.SetSize(blob.GetDataSize());
-
-	float* data = tempData.GetPtr();
-	for(int i = 0; i < tempData.Size(); ++i) {
-		*data++ = (float)Random().Normal(0, deviation);
+	if( mathEngine->GetDistributedInfo().Thread == 0 ){
+		baseInitializer->InitializeLayerParams( blob, inputCount );
 	}
-
-	blob.CopyFrom(tempData.GetPtr());
 
 	mathEngine->Broadcast( blob.GetData(), blob.GetDataSize(), 0 );
 }

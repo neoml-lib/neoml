@@ -74,12 +74,13 @@ private:
 // Initialization only in root, then root broadcasts to all
 class NEOML_API CDnnDistributedInitializer : public CDnnInitializer {
 public:
-	explicit CDnnDistributedInitializer( CRandom& _random, IMathEngine* _mathEngine ) :
-		CDnnInitializer( _random ), mathEngine( _mathEngine ) {}
+	explicit CDnnDistributedInitializer( CRandom& _random, IMathEngine* _mathEngine, const CPtr<CDnnInitializer>& initializer ) :
+		CDnnInitializer( _random ), mathEngine( _mathEngine ), baseInitializer( initializer ) {}
 
 	void InitializeLayerParams( CDnnBlob& blob, int inputCount ) override;
 private:
 	IMathEngine* mathEngine;
+	CPtr<CDnnInitializer> baseInitializer;
 };
 
 } // namespace NeoML
