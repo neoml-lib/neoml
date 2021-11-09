@@ -25,7 +25,6 @@ namespace NeoML {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void CDnnXavierInitializer::InitializeLayerParams(CDnnBlob& blob, int inputCount)
 {
-
 	double deviation = sqrt(1. / max(inputCount, 1));
 
 	CArray<float> tempData;
