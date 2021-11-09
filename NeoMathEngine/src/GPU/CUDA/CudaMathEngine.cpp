@@ -202,6 +202,18 @@ void CCudaMathEngine::AllReduce( const CFloatHandle& handle, int size )
 #endif
 }
 
+void CCudaMathEngine::Broadcast( const CFloatHandle& handle, int size, int root )
+{
+	ASSERT_EXPR( handle.GetMathEngine() == this );
+	ASSERT_EXPR( size >= 0 );
+	ASSERT_EXPR( root >= 0 );
+#ifdef NEOML_USE_NCCL
+	if( ncclCommunicator != nullptr ){
+		ncclCommunicator->Broadcast( handle, size, root );
+	}
+#endif
+}
+
 #ifdef NEOML_USE_NCCL
 void CCudaMathEngine::SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info )
 {

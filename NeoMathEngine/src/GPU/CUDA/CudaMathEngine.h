@@ -526,6 +526,7 @@ public:
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& handle, int size ) override;
+	void Broadcast( const CFloatHandle& handle, int size, int root ) override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
 	bool IsDistributed() override { return distributedInfo.Threads > 1; }
 #ifdef NEOML_USE_NCCL

@@ -74,6 +74,7 @@ bool CNcclDll::loadFunctions()
 	LOAD_NCCL_FUNC( CommInitAll );
 	LOAD_NCCL_FUNC( CommDestroy );
 	LOAD_NCCL_FUNC( AllReduce );
+	LOAD_NCCL_FUNC( Broadcast );
 	LOAD_NCCL_FUNC( CommInitRank );
 	LOAD_NCCL_FUNC( GroupStart );
 	LOAD_NCCL_FUNC( GroupEnd );

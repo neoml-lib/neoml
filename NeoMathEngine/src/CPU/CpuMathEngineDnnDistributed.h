@@ -23,6 +23,7 @@ class CMultiThreadDistributedCommunicator {
 public:
     CMultiThreadDistributedCommunicator( int n_threads );
     void AllReduce( const CFloatHandle& handle, int size );
+    void Broadcast( const CFloatHandle& handle, int size, int root );
 private:
     std::vector<float*> handles;
 
@@ -32,7 +33,10 @@ private:
 
     int n_threads;
 
+    // non-blocking barrier
     void barrier();
+    // collects handles from all threads into the common array
+    void collectHandles( const CFloatHandle& handle );
 };
 
 void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count );

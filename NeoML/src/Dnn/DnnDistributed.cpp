@@ -28,6 +28,8 @@ CDistributedTraining::CDistributedTraining( CArchive& archive, TMathEngineType t
     for( int i = 0; i < count; i++ ){
         rands.Add( new CRandom( 42 ) );
         cnns.Add( new CDnn( *rands[i], *mathEngines[i] ) );
+        // cnns[i]->SetInitializer( new CDnnXavierInitializer( *rands[i] ) );
+        cnns[i]->SetInitializer( new CDnnDistributedInitializer( *rands[i], mathEngines[i] ) );
         archive.Serialize( *cnns[i] );
         archive.Seek( 0, static_cast<CBaseFile::TSeekPosition>( 0 ) );
     }

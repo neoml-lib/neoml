@@ -930,7 +930,7 @@ struct CMathEngineDistributedInfo {
 	int Thread; // number among all threads
 	int Threads; // number of all threads
 
-	CMathEngineDistributedInfo() : Thread( 1 ), Threads( 1 ) {};
+	CMathEngineDistributedInfo() : Thread( 0 ), Threads( 1 ) {};
 	CMathEngineDistributedInfo( int thread, int threads ) : Thread( thread ), Threads( threads ) {};
 };
 
@@ -1024,6 +1024,7 @@ public:
 
 	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
 	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
+	virtual void Broadcast( const CFloatHandle& handle, int size, int root ) = 0;
 	virtual bool IsDistributed() { return false; }
 };
 

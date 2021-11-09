@@ -25,6 +25,13 @@ CMultiThreadDistributedCommunicator::CMultiThreadDistributedCommunicator( int _n
     handles.resize( n_threads );
 }
 
+void CMultiThreadDistributedCommunicator::collectHandles( const CFloatHandle& handle )
+{
+    IMathEngine* mathEngine = handle.GetMathEngine();
+    int thread = mathEngine->GetDistributedInfo().Thread;
+    handles[thread] = reinterpret_cast<float*>( GetRaw( handle ) );
+}
+
 void CMultiThreadDistributedCommunicator::barrier()
 {
     int wait = waiting_flag;
@@ -40,9 +47,8 @@ void CMultiThreadDistributedCommunicator::barrier()
 
 void CMultiThreadDistributedCommunicator::AllReduce( const CFloatHandle& handle, int size )
 {
-    IMathEngine* mathEngine = handle.GetMathEngine();
-    int thread = mathEngine->GetDistributedInfo().Thread;
-    handles[thread] = reinterpret_cast<float*>( GetRaw( handle ) );
+    collectHandles( handle );
+    int thread = handle.GetMathEngine()->GetDistributedInfo().Thread;
 
     barrier();
 
@@ -59,6 +65,20 @@ void CMultiThreadDistributedCommunicator::AllReduce( const CFloatHandle& handle,
         }
     }
     
+    barrier();
+}
+
+void CMultiThreadDistributedCommunicator::Broadcast( const CFloatHandle& handle, int size, int root )
+{
+    collectHandles( handle );
+    int thread = handle.GetMathEngine()->GetDistributedInfo().Thread;
+    barrier();
+
+    if( thread != root ){
+        for( int i = 0; i < size; i++ ){
+            handles[thread][i] = handles[root][i];
+        }
+    }
     barrier();
 }
 

@@ -24,6 +24,7 @@ class CCudaDistributedCommunicator {
 public:
     CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info );
     void AllReduce( const CFloatHandle& handle, int size );
+    void Broadcast( const CFloatHandle& handle, int size, int root );
     ~CCudaDistributedCommunicator();
 private:
     ncclComm_t comm;

@@ -25,6 +25,7 @@ namespace NeoML {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void CDnnXavierInitializer::InitializeLayerParams(CDnnBlob& blob, int inputCount)
 {
+
 	double deviation = sqrt(1. / max(inputCount, 1));
 
 	CArray<float> tempData;
@@ -61,6 +62,25 @@ void CDnnUniformInitializer::InitializeLayerParams(CDnnBlob& blob, int)
 	}
 
 	blob.CopyFrom(tempData.GetPtr());
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+void CDnnDistributedInitializer::InitializeLayerParams( CDnnBlob& blob, int inputCount )
+{
+	double deviation = sqrt(1. / max(inputCount, 1));
+
+	CArray<float> tempData;
+	tempData.SetSize(blob.GetDataSize());
+
+	float* data = tempData.GetPtr();
+	for(int i = 0; i < tempData.Size(); ++i) {
+		*data++ = (float)Random().Normal(0, deviation);
+	}
+
+	blob.CopyFrom(tempData.GetPtr());
+
+	mathEngine->Broadcast( blob.GetData(), blob.GetDataSize(), 0 );
 }
 
 }

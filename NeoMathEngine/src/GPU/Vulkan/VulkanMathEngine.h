@@ -543,6 +543,7 @@ public:
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};
+	void Broadcast( const CFloatHandle& /*handle*/, int /*size*/, int /*root*/ ) override {};
 
 protected:
 	// IRawMemoryManager interface methods

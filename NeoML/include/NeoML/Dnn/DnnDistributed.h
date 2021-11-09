@@ -23,7 +23,7 @@ public:
 };
 
 // Single process, multiple threads distributed training
-class NEOML_API CDistributedTraining : public IObject {
+class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu or gpu models according to `type` parameter
 	// For gpu models `devs` should contain numbers of using devices

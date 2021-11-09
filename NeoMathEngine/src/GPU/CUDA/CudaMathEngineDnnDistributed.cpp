@@ -55,6 +55,12 @@ void CCudaDistributedCommunicator::AllReduce( const CFloatHandle& handle, int si
         ncclFloat, ncclAvg, comm, 0 ) );
 }
 
+void CCudaDistributedCommunicator::Broadcast( const CFloatHandle& handle, int size, int root )
+{
+    ASSERT_NCCL( nccl, nccl->Broadcast( ( const void* )GetRaw( handle ), (void*)GetRaw( handle ), size,
+        ncclFloat, root, comm, 0 ) );
+}
+
 void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, const int* devs )
 {
     std::unique_ptr<IGpuMathEngineManager> gpuManager( CreateGpuMathEngineManager() );

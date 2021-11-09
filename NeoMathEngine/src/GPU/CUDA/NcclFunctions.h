@@ -30,6 +30,8 @@ struct CNccl {
     typedef ncclResult_t( *TNcclCommDestroy ) ( ncclComm_t comm );
     typedef ncclResult_t( *TNcclAllReduce ) ( const void* sendbuff, void* recvbuff, size_t count,
         ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream );
+    typedef ncclResult_t( *TNcclBroadcast ) ( const void* sendbuff, void* recvbuff, size_t count,
+        ncclDataType_t datatype, int root, ncclComm_t comm, cudaStream_t stream );
     typedef ncclResult_t( *TNcclCommInitRank ) ( ncclComm_t* comm, int nranks, ncclUniqueId commId, int rank );
     typedef ncclResult_t( *TNcclGroupStart ) ();
     typedef ncclResult_t( *TNcclGroupEnd ) ();
@@ -40,6 +42,7 @@ struct CNccl {
     TNcclCommInitAll CommInitAll;
     TNcclCommDestroy CommDestroy;
     TNcclAllReduce AllReduce;
+    TNcclBroadcast Broadcast;
     TNcclCommInitRank CommInitRank;
     TNcclGroupStart GroupStart;
     TNcclGroupEnd GroupEnd;

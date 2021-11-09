@@ -518,6 +518,7 @@ public:
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info );
 	void AllReduce( const CFloatHandle& handle, int size ) override;
+	void Broadcast( const CFloatHandle& handle, int size, int root ) override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
 	bool IsDistributed() override { return distributedInfo.Threads > 1; }
 protected:
