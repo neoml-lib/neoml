@@ -456,11 +456,10 @@ if(NeoMathEngine_INSTALL)
             file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Windows/redist/x64/*.dll)
             install(FILES ${CUDA_LIBS} DESTINATION ${FINE_ROOT}/Win${FINE_BUILD_TYPE}.x64)
         elseif(LINUX AND CMAKE_CUDA_COMPILER)
-            file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Linux/redist/x64/*.so.11)
+            file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Linux/redist/x64/*.so.11 ${FINE_ROOT}/ThirdParty/CUDA/Linux/redist/x64/libnccl.so)
             install(FILES ${CUDA_LIBS} DESTINATION ${FINE_ROOT}/X.${CMAKE_SYSTEM_NAME}.${FINE_BUILD_TYPE}/x86_64)
         endif()
     else()
-
         install(DIRECTORY ../include/NeoMathEngine DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
         if(CMAKE_PROJECT_NAME STREQUAL "NeoMathEngine")
@@ -480,3 +479,5 @@ if(NeoMathEngine_INSTALL)
         endif()
     endif()
 endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE dl)
