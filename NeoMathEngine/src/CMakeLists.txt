@@ -168,7 +168,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         endif()
 
         if(LINUX)
-            set(NCCL_ROOT_DIR $ENV{ROOT}/ThirdParty/CUDA/Linux)
+            set(NCCL_ROOT_DIR $ENV{ROOT}/ThirdParty/CUDA/Linux/nccl)
         endif()
     endif() # USE_FINE_OBJECTS
 
@@ -264,9 +264,9 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
             source_group("GPU\\CUDA" REGULAR_EXPRESSION "GPU\/CUDA\/[A-Za-z0-9_]+\.(h|cpp|cu)")
             source_group("GPU\\CUDA\\Kernels" REGULAR_EXPRESSION "GPU\/CUDA\/Kernels\/.+")
 
-            find_path(NCCL_INCLUDE_DIR NAMES nccl.h PATHS ${NCCL_ROOT_DIR}/nccl)
+            find_path(NCCL_INCLUDE_DIR NAMES nccl.h PATHS ${NCCL_ROOT_DIR})
 
-	        if (NOT "${NCCL_INCLUDE_DIR}" STREQUAL "")
+	        if (NOT "${NCCL_INCLUDE_DIR}" STREQUAL "NCCL_INCLUDE_DIR-NOTFOUND")
                 message(STATUS "Found NCCL (include: ${NCCL_INCLUDE_DIR})")
                 target_compile_definitions(${PROJECT_NAME} PUBLIC -D NEOML_USE_NCCL)
                 target_include_directories(${PROJECT_NAME} PRIVATE ${NCCL_INCLUDE_DIR})
