@@ -686,9 +686,9 @@ void CMetalMathEngine::Unfold( int batchSize, const CConstFloatHandle& imageHand
     source.SetDimSize( BD_Channels, channels );
 
     CBlobDesc filter( CT_Float );
-    source.SetDimSize( BD_Height, filterHeight );
-    source.SetDimSize( BD_Width, filterWidth );
-    source.SetDimSize( BD_Channels, channels );
+    filter.SetDimSize( BD_Height, filterHeight );
+    filter.SetDimSize( BD_Width, filterWidth );
+    filter.SetDimSize( BD_Channels, channels );
 
     CBlobDesc result( CT_Float );
     result.SetDimSize( BD_BatchWidth, batchSize );
