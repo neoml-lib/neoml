@@ -94,7 +94,6 @@ int CDllLoader::Load( int dll )
 		}
 
 		if( !ncclDll->Load() ){
-			ncclDll->Free();
 			delete ncclDll;
 			ncclDll = nullptr;
 		} else {
