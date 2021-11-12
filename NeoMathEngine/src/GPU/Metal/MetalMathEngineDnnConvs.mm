@@ -672,7 +672,7 @@ static inline int convOutputSize( int imageSize, int filterSize, int stride, int
     return 1 + ( fullImageSize - fullFilterSize ) / stride;
 }
 
-void CCpuMathEngine::Unfold( int batchSize, const CConstFloatHandle& imageHandle, int imageHeight, int imageWidth, int channels,
+void CMetalMathEngine::Unfold( int batchSize, const CConstFloatHandle& imageHandle, int imageHeight, int imageWidth, int channels,
     const CFloatHandle& matrixHandle, int filterHeight, int filterWidth, int strideHeight, int strideWidth,
     int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth )
 {
@@ -695,23 +695,26 @@ void CCpuMathEngine::Unfold( int batchSize, const CConstFloatHandle& imageHandle
     result.SetDimSize( BD_Height, convOutputSize( imageHeight, filterHeight, strideHeight, paddingHeight, dilationHeight ) );
     result.SetDimSize( BD_Width, convOutputSize( imageWidth, filterWidth, strideWidth, paddingWidth, dilationWidth ) );
 
-    const int matrixHeight = result.BlobSize();
+    const int matrixHeight = result.ObjectSize();
+    const int matrixWidth = filter.ObjectSize();
 
-    C2DKernel kernel( *queue, "matrixKernelBlobConvolutionPrepare", 1, 1, matrixHeight, filter.Channels() * filter.Depth() );
-    kernel.SetParam( source, 0 );
-    kernel.SetParam( imageHandle, 1 );
-    kernel.SetParam( paddingHeight, 2 );
-    kernel.SetParam( paddingWidth, 3 );
-    kernel.SetParam( strideHeight, 4 );
-    kernel.SetParam( strideWidth, 5 );
-    kernel.SetParam( dilationHeight, 6 );
-    kernel.SetParam( dilationWidth, 7 );
-    kernel.SetParam( filter, 8 );
-    kernel.SetParam( result, 9 );
-    kernel.SetParam( 0, 10 );
-    kernel.SetParam( matrixHeight, 11 );
-    kernel.SetParam( matrixHandle, 12 );
-    ASSERT_EXPR( kernel.Run() );
+    for( int b = 0; b < source.ObjectCount(); ++b ) {
+        C2DKernel kernel( *queue, "matrixKernelBlobConvolutionPrepare", 1, 1, matrixHeight, filter.Channels() * filter.Depth() );
+        kernel.SetParam( source, 0 );
+        kernel.SetParam( imageHandle + b * source.ObjectSize(), 1 );
+        kernel.SetParam( paddingHeight, 2 );
+        kernel.SetParam( paddingWidth, 3 );
+        kernel.SetParam( strideHeight, 4 );
+        kernel.SetParam( strideWidth, 5 );
+        kernel.SetParam( dilationHeight, 6 );
+        kernel.SetParam( dilationWidth, 7 );
+        kernel.SetParam( filter, 8 );
+        kernel.SetParam( result, 9 );
+        kernel.SetParam( 0, 10 );
+        kernel.SetParam( matrixHeight, 11 );
+        kernel.SetParam( matrixHandle + b * matrixHeight * matrixWidth, 12 );
+        ASSERT_EXPR( kernel.Run() );
+    }
 }
 
 void CMetalMathEngine::Fold( int, const CConstFloatHandle&, int, int, int, int, int, int, int, int,
