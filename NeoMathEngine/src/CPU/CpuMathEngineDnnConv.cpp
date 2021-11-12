@@ -1362,7 +1362,8 @@ static inline CCpuConvolutionDesc createDescForFold( int batchSize, int imageHei
 	filterDesc.SetDimSize( BD_Width, filterWidth );
 	filterDesc.SetDimSize( BD_Channels, channels );
 
-	return CCpuConvolutionDesc( std::unique_ptr<CConvolutionDesc>(), imageDesc, matrixDesc, filterDesc, paddingHeight, paddingWidth,
+	std::unique_ptr<CConvolutionDesc> simd( nullptr );
+	return CCpuConvolutionDesc( simd, imageDesc, matrixDesc, filterDesc, paddingHeight, paddingWidth,
 		strideHeight, strideWidth, dilationHeight, dilationWidth );
 }
 

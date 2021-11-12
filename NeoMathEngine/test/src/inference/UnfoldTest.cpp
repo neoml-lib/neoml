@@ -115,7 +115,7 @@ static void unfoldTestImpl( const CTestParams& params, int seed )
 		dilationHeight, dilationWidth );
 
 	ASSERT_EQ( expected.size(), actual.size() );
-	for( int i = 0; i < actual.size(); ++i ) {
+	for( size_t i = 0; i < actual.size(); ++i ) {
 		ASSERT_TRUE( FloatEq( expected[i], actual[i], 1e-5f ) );
 	}
 }
