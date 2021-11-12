@@ -1378,6 +1378,11 @@ void CCpuMathEngine::Unfold( int batchSize, const CConstFloatHandle& imageHandle
 		strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
 
 	const int curThreadCount = IsOmpRelevant( convDesc.Result.BlobSize(), convDesc.Result.BlobSize() ) ? threadCount : 1;
+	const int resultItemCount = convDesc.Result.BatchWidth() * convDesc.Result.Height() * convDesc.Result.Width();
+
+	const float* images = GetRaw( imageHandle );
+	float* matrices = GetRaw( matrixHandle );
+
 	NEOML_OMP_NUM_THREADS( curThreadCount )
 	{
 		int index;
@@ -1399,11 +1404,6 @@ void CCpuMathEngine::Fold( int batchSize, const CConstFloatHandle& matrixHandle,
 		strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
 
 	const int curThreadCount = IsOmpRelevant( convDesc.Result.BlobSize(), convDesc.Result.BlobSize() ) ? threadCount : 1;
-	const int resultItemCount = convDesc.Result.BatchWidth() * convDesc.Result.Height() * convDesc.Result.Width();
-
-	const float* matrices = GetRaw( matrixHandle );
-	float* images = GetRaw( imageHandle );
-
 	NEOML_OMP_NUM_THREADS( curThreadCount )
 	{
 		if( dilationHeight > 1 || dilationWidth > 1 ) {
