@@ -17,6 +17,7 @@ set(NeoML_SOURCES
     Dnn/DnnBlob.cpp
     Dnn/DnnInitializer.cpp
     Dnn/DnnSparseMatrix.cpp
+    Dnn/DnnDistributed.cpp
     Dnn/Layers/3dConvLayer.cpp
     Dnn/Layers/3dPoolingLayer.cpp
     Dnn/Layers/3dTransposedConvLayer.cpp
@@ -203,6 +204,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
     ../include/NeoML/Dnn/DnnLambdaHolder.h
+    ../include/NeoML/Dnn/DnnDistributed.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h

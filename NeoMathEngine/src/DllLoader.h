@@ -27,6 +27,10 @@ limitations under the License.
 #include <CusparseDll.h>
 #endif
 
+#ifdef NEOML_USE_NCCL
+#include <NcclDll.h>
+#endif
+
 #ifdef NEOML_USE_VULKAN
 #include <VulkanDll.h>
 #endif
@@ -47,6 +51,14 @@ public:
 	static constexpr int CUDA_DLL = 0x1;
 #else
 	static constexpr int CUDA_DLL = 0x0;
+#endif
+
+#ifdef NEOML_USE_NCCL
+	static CNcclDll* ncclDll;
+	static int ncclDllLinkCount;
+	static constexpr int NCCL_DLL = 0x8;
+#else
+	static constexpr int NCCL_DLL = 0x0;
 #endif
 
 #ifdef NEOML_USE_VULKAN

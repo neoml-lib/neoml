@@ -135,7 +135,7 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 	if( b < source.ObjectCount() && c < totalChannels ) {
 		const float* curSourceData = sourceData + ( b * poolSize + threadIdx.x ) * totalChannels + c;
 		for( int ind = threadIdx.x; ind < poolSize; ind += threadCountX ) {
-			heap.insert( { __ldg( curSourceData ), ind } );
+			heap.insert( { __ldg( curSourceData ), float( ind ) } );
 			curSourceData += threadCountX * totalChannels;
 		}
 		heap.sort();
@@ -151,7 +151,7 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 		// add max from each thread to min heap
 		Heap<HeapType::MinHeap> minHeap( globalHeap, maxCount );
 		for( int i = 0; i < threadCountX; ++i ) {
-			minHeap.insert( { localHeap[i * bufferStep], i * bufferStep } );
+			minHeap.insert( { localHeap[i * bufferStep], float( i * bufferStep ) } );
 		}
 
 		// build max heap and extract maximum maxCount times
@@ -167,7 +167,7 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 				IndexedValue* threadMax = reinterpret_cast< IndexedValue* >( localHeap + rootIndex );
 				maxIndicesData[resIndex] = ( int )threadMax->ind;
 				IndexedValue* threadNextMax = reinterpret_cast< IndexedValue* >( localHeap + rootIndex + 2 );
-				maxHeap.replaceRoot( { threadNextMax->val, rootIndex + 2 } );
+				maxHeap.replaceRoot( { threadNextMax->val, float( rootIndex + 2 ) } );
 			}
 		}
 	}
