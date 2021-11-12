@@ -52,6 +52,7 @@ namespace NeoML {
 #include <shaders/generated/Blob3dConvolutionBackward.h>
 #include <shaders/generated/BlobConvertFromRLE.h>
 #include <shaders/generated/BlobTimeConvolutionPrepare.h>
+#include <shaders/generated/Unfold.h>
 
 //------------------------------------------------------------------------------------------------------------
 // RLE convolution
@@ -1057,6 +1058,58 @@ void CVulkanMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseCo
 
 void CVulkanMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc&, const CFloatHandle&,
 	const CFloatHandle&, const CFloatHandle&, const CFloatHandle* )
+{
+	ASSERT_EXPR( false );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+static inline int convOutputSize( int imageSize, int filterSize, int stride, int padding, int dilation )
+{
+	const int fullFilterSize = 1 + ( filterSize - 1 ) * dilation;
+	const int fullImageSize = 2 * padding + imageSize;
+	return 1 + ( fullImageSize - fullFilterSize ) / stride;
+}
+
+void CVulkanMathEngine::Unfold( int batchSize, const CConstFloatHandle& images, int imageHeight, int imageWidth, int channels,
+	const CFloatHandle& matrices, int filterHeight, int filterWidth, int strideHeight, int strideWidth,
+	int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth )
+{
+	ASSERT_EXPR( images.GetMathEngine() == this );
+	ASSERT_EXPR( matrices.GetMathEngine() == this );
+
+	const int outputHeight = convOutputSize( imageHeight, filterHeight, strideHeight, paddingHeight, dilationHeight );
+	const int outputWidth = convOutputSize( imageWidth, filterWidth, strideWidth, paddingWidth, dilationWidth );
+	const int matrixHeight = batchSize * outputHeight * outputWidth;
+	const int matrixWidth = filterHeight * filterWidth * channels;
+
+	CMemoryHandle bufs[2] = { images, matrices };
+	size_t sizes[2] = { batchSize * imageHeight * imageWidth * channels * sizeof( float ),
+		batchSize * matrixHeight * matrixWidth * sizeof( float ) };
+
+	PARAM_STRUCT( Unfold ) param = {
+		batchSize,
+		imageHeight,
+		imageWidth,
+		channels,
+		outputHeight,
+		outputWidth,
+		filterHeight,
+		filterWidth,
+		strideHeight,
+		strideWidth,
+		paddingHeight,
+		paddingWidth,
+		dilationHeight,
+		dilationWidth
+	};
+
+	runShader( shaderLoader->GET_SHADER_DATA( Unfold, true, 0, 0, 2 ), &param, sizeof( param ),
+		0, 0, 0, 0, bufs, sizes, 2, channels, matrixHeight, 1 );
+}
+
+void CVulkanMathEngine::Fold( int, const CConstFloatHandle&, int, int, int, int, int, int, int, int,
+	const CFloatHandle&, int, int, int )
 {
 	ASSERT_EXPR( false );
 }

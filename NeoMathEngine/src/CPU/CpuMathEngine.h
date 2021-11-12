@@ -513,6 +513,12 @@ public:
 		const CConstFloatHandle& result, const CConstIntHandle& labels,
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
+	void Unfold( int batchSize, const CConstFloatHandle& images, int imageHeight, int imageWidth, int channels,
+		const CFloatHandle& matrices, int filterHeight, int filterWidth, int strideHeight, int strideWidth,
+		int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth ) override;
+	void Fold( int batchSize, const CConstFloatHandle& matrices, int filterHeight, int filterWidth,
+		int strideHeight, int strideWidth, int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth,
+		const CFloatHandle& images, int imageHeight, int imageWidth, int channels ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 
@@ -616,9 +622,9 @@ private:
 		const float* filterData, const CFloatHandle* freeTermData, float* resultData );
 	void blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc, const float* sourceData,
 		const float* filterData, const CFloatHandle* freeTermData, float* resultData );
-	void backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
+	void backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
 		const CFloatHandle* freeTerm, const CFloatHandle& output );
-	void backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
+	void backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
 		const CFloatHandle* freeTermData, const CFloatHandle& outputData );
 	void blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& desc,
 		const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTerm,

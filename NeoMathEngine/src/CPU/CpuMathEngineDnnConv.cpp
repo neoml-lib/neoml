@@ -550,7 +550,7 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 	}
 }
 
-void CCpuMathEngine::backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
+void CCpuMathEngine::backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
 	const CFloatHandle* freeTermData, const CFloatHandle& outputData )
 {
 	const float* tempRaw = GetRaw( temp );
@@ -627,7 +627,7 @@ void CCpuMathEngine::backwardConvolutionAddFilterToOutput( const CCpuConvolution
 	}
 }
 
-void CCpuMathEngine::backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
+void CCpuMathEngine::backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
 	const CFloatHandle* freeTermData, const CFloatHandle& outputData )
 {
 	const float* tempRaw = GetRaw( temp );
@@ -1331,6 +1331,91 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 
 	TransposeMatrix( 1, filterDiffTransposedHolder.GetHandle(),
 		filterDiff.Channels(), 1, filterDiff.Height() * filterDiff.Width(), 1, filterDiffData, filterDiff.BlobSize() );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+static inline int getConvOutputSize( int imageSize, int filterSize, int stride, int padding, int dilation )
+{
+	const int fullFilterSize = 1 + ( filterSize - 1 ) * dilation;
+	const int fullImageSize = 2 * padding + imageSize;
+	return 1 + ( fullImageSize - fullFilterSize ) / stride;
+}
+
+static inline CCpuConvolutionDesc createDescForFold( int batchSize, int imageHeight, int imageWidth, int channels,
+	int filterHeight, int filterWidth, int strideHeight, int strideWidth, int paddingHeight, int paddingWidth,
+	int dilationHeight, int dilationWidth )
+{
+	CBlobDesc imageDesc( CT_Float );
+	imageDesc.SetDimSize( BD_BatchWidth, batchSize );
+	imageDesc.SetDimSize( BD_Height, imageHeight );
+	imageDesc.SetDimSize( BD_Width, imageWidth );
+	imageDesc.SetDimSize( BD_Channels, channels );
+
+	CBlobDesc matrixDesc( CT_Float );
+	matrixDesc.SetDimSize( BD_BatchWidth, batchSize );
+	matrixDesc.SetDimSize( BD_Height, getConvOutputSize( imageHeight, filterHeight, strideHeight, paddingHeight, dilationHeight ) );
+	matrixDesc.SetDimSize( BD_Width, getConvOutputSize( imageWidth, filterWidth, strideWidth, paddingWidth, dilationWidth ) );
+
+	CBlobDesc filterDesc( CT_Float );
+	filterDesc.SetDimSize( BD_Height, filterHeight );
+	filterDesc.SetDimSize( BD_Width, filterWidth );
+	filterDesc.SetDimSize( BD_Channels, channels );
+
+	return CCpuConvolutionDesc( std::unique_ptr<CConvolutionDesc>(), imageDesc, matrixDesc, filterDesc, paddingHeight, paddingWidth,
+		strideHeight, strideWidth, dilationHeight, dilationWidth );
+}
+
+void CCpuMathEngine::Unfold( int batchSize, const CConstFloatHandle& imageHandle, int imageHeight, int imageWidth, int channels,
+	const CFloatHandle& matrixHandle, int filterHeight, int filterWidth, int strideHeight, int strideWidth,
+	int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth )
+{
+	ASSERT_EXPR( imageHandle.GetMathEngine() == this );
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+
+	CCpuConvolutionDesc convDesc = createDescForFold( batchSize, imageHeight, imageWidth, channels, filterHeight, filterWidth,
+		strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
+
+	const int curThreadCount = IsOmpRelevant( convDesc.Result.BlobSize(), convDesc.Result.BlobSize() ) ? threadCount : 1;
+	const int resultItemCount = convDesc.Result.BatchWidth() * convDesc.Result.Height() * convDesc.Result.Width();
+
+	const float* images = GetRaw( imageHandle );
+	float* matrices = GetRaw( matrixHandle );
+
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int index;
+		int count;
+		if( OmpGetTaskIndexAndCount( resultItemCount, index, count ) ) {
+			fillTempData( images, matrices, convDesc, index, count );
+		}
+	}
+}
+
+void CCpuMathEngine::Fold( int batchSize, const CConstFloatHandle& matrixHandle, int filterHeight, int filterWidth,
+	int strideHeight, int strideWidth, int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth,
+	const CFloatHandle& imageHandle, int imageHeight, int imageWidth, int channels )
+{
+	ASSERT_EXPR( imageHandle.GetMathEngine() == this );
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+
+	CCpuConvolutionDesc convDesc = createDescForFold( batchSize, imageHeight, imageWidth, channels, filterHeight, filterWidth,
+		strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
+
+	const int curThreadCount = IsOmpRelevant( convDesc.Result.BlobSize(), convDesc.Result.BlobSize() ) ? threadCount : 1;
+	const int resultItemCount = convDesc.Result.BatchWidth() * convDesc.Result.Height() * convDesc.Result.Width();
+
+	const float* matrices = GetRaw( matrixHandle );
+	float* images = GetRaw( imageHandle );
+
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		if( dilationHeight > 1 || dilationWidth > 1 ) {
+			backwardDilationConvolutionAddFilterToOutput( convDesc, matrixHandle, nullptr, imageHandle );
+		} else {
+			backwardConvolutionAddFilterToOutput( convDesc, matrixHandle, nullptr, imageHandle );
+		}
+	}
 }
 
 } // namespace NeoML

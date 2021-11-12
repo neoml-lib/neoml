@@ -663,6 +663,63 @@ void CMetalMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc&, c
 	ASSERT_EXPR( false );
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+static inline int convOutputSize( int imageSize, int filterSize, int stride, int padding, int dilation )
+{
+    const int fullFilterSize = 1 + ( filterSize - 1 ) * dilation;
+    const int fullImageSize = 2 * padding + imageSize;
+    return 1 + ( fullImageSize - fullFilterSize ) / stride;
+}
+
+void CCpuMathEngine::Unfold( int batchSize, const CConstFloatHandle& imageHandle, int imageHeight, int imageWidth, int channels,
+    const CFloatHandle& matrixHandle, int filterHeight, int filterWidth, int strideHeight, int strideWidth,
+    int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth )
+{
+    ASSERT_EXPR( imageHandle.GetMathEngine() == this );
+    ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+
+    CBlobDesc source( CT_Float );
+    source.SetDimSize( BD_BatchWidth, batchSize );
+    source.SetDimSize( BD_Height, imageHeight );
+    source.SetDimSize( BD_Width, imageWidth );
+    source.SetDimSize( BD_Channels, channels );
+
+    CBlobDesc filter( CT_Float );
+    source.SetDimSize( BD_Height, filterHeight );
+    source.SetDimSize( BD_Width, filterWidth );
+    source.SetDimSize( BD_Channels, channels );
+
+    CBlobDesc result( CT_Float );
+    result.SetDimSize( BD_BatchWidth, batchSize );
+    result.SetDimSize( BD_Height, convOutputSize( imageHeight, filterHeight, strideHeight, paddingHeight, dilationHeight ) );
+    result.SetDimSize( BD_Width, convOutputSize( imageWidth, filterWidth, strideWidth, paddingWidth, dilationWidth ) );
+
+    const int matrixHeight = result.BlobSize();
+
+    C2DKernel kernel( *queue, "matrixKernelBlobConvolutionPrepare", 1, 1, matrixHeight, filter.Channels() * filter.Depth() );
+    kernel.SetParam( source, 0 );
+    kernel.SetParam( imageHandle, 1 );
+    kernel.SetParam( paddingHeight, 2 );
+    kernel.SetParam( paddingWidth, 3 );
+    kernel.SetParam( strideHeight, 4 );
+    kernel.SetParam( strideWidth, 5 );
+    kernel.SetParam( dilationHeight, 6 );
+    kernel.SetParam( dilationWidth, 7 );
+    kernel.SetParam( filter, 8 );
+    kernel.SetParam( result, 9 );
+    kernel.SetParam( 0, 10 );
+    kernel.SetParam( matrixHeight, 11 );
+    kernel.SetParam( matrixHandle, 12 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::Fold( int, const CConstFloatHandle&, int, int, int, int, int, int, int, int,
+    const CFloatHandle&, int, int, int )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL

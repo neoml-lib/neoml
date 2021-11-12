@@ -245,6 +245,98 @@ void CCudaMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc,
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+static inline int getConvOutputSize( int imageSize, int filterSize, int stride, int padding, int dilation )
+{
+	const int fullFilterSize = 1 + ( filterSize - 1 ) * dilation;
+	const int fullImageSize = 2 * padding + imageSize;
+	return 1 + ( fullImageSize - fullFilterSize ) / stride;
+}
+
+static inline CCudaConvolutionDescInternal createDescForFold( int batchSize, int imageHeight, int imageWidth, int channels,
+	int filterHeight, int filterWidth, int strideHeight, int strideWidth, int paddingHeight, int paddingWidth,
+	int dilationHeight, int dilationWidth )
+{
+	CCudaConvolutionDescInternal desc;
+
+	desc.StrideHeight = strideHeight;
+	desc.StrideWidth = strideWidth;
+	desc.PaddingHeight = paddingHeight;
+	desc.PaddingWidth = paddingWidth;
+	desc.DilationHeight = dilationHeight;
+	desc.DilationWidth = dilationWidth;
+
+	CBlobDesc imageDesc( CT_Float );
+	imageDesc.SetDimSize( BD_BatchWidth, batchSize );
+	imageDesc.SetDimSize( BD_Height, imageHeight );
+	imageDesc.SetDimSize( BD_Width, imageWidth );
+	imageDesc.SetDimSize( BD_Channels, channels );
+	desc.Source = CCudaBlobDesc( imageDesc );
+
+	CBlobDesc matrixDesc( CT_Float );
+	matrixDesc.SetDimSize( BD_BatchWidth, batchSize );
+	matrixDesc.SetDimSize( BD_Height, getConvOutputSize( imageHeight, filterHeight, strideHeight, paddingHeight, dilationHeight ) );
+	matrixDesc.SetDimSize( BD_Width, getConvOutputSize( imageWidth, filterWidth, strideWidth, paddingWidth, dilationWidth ) );
+	desc.Result = CCudaBlobDesc( matrixDesc );
+
+	CBlobDesc filterDesc( CT_Float );
+	filterDesc.SetDimSize( BD_Height, filterHeight );
+	filterDesc.SetDimSize( BD_Width, filterWidth );
+	filterDesc.SetDimSize( BD_Channels, channels );
+	desc.Filter = CCudaBlobDesc( filterDesc );
+
+	return desc;
+}
+
+void CCudaMathEngine::Unfold( int batchSize, const CConstFloatHandle& imageHandle, int imageHeight, int imageWidth, int channels,
+	const CFloatHandle& matrixHandle, int filterHeight, int filterWidth, int strideHeight, int strideWidth,
+	int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth )
+{
+	ASSERT_EXPR( imageHandle.GetMathEngine() == this );
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+
+	CCudaConvolutionDescInternal desc = createDescForFold( batchSize, imageHeight, imageWidth, channels, filterHeight, filterWidth,
+		strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
+
+	const int matrixHeight = tempMatrixHeight( desc );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, desc.Source.Depth() * desc.Source.Channels() );
+	BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( imageHandle ), 0, matrixHeight, GetRaw( matrixHandle ) );
+}
+
+void CCudaMathEngine::Fold( int batchSize, const CConstFloatHandle& matrixHandle, int filterHeight, int filterWidth,
+	int strideHeight, int strideWidth, int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth,
+	const CFloatHandle& imageHandle, int imageHeight, int imageWidth, int channels )
+{
+	ASSERT_EXPR( imageHandle.GetMathEngine() == this );
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+
+	CCudaConvolutionDescInternal desc = createDescForFold( batchSize, imageHeight, imageWidth, channels, filterHeight, filterWidth,
+		strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
+
+	const int matrixHeight = tempMatrixHeight( desc );
+	const int matrixWidth = tempMatrixWidth( desc );
+	VectorFill( imageHandle, 0.f, desc.Source.BlobSize() );
+
+	TBackwardOperationType operation = BOT_AtomicAdd;
+	if( ( desc.Filter.Width() - 1 ) * desc.DilationWidth + 1 <= desc.StrideWidth
+		&& ( desc.Filter.Height() - 1 ) * desc.DilationHeight + 1 <= desc.StrideHeight )
+	{
+		// The filter areas do not intersect, so atomic operations are not needed
+		operation = BOT_Set;
+	}
+
+	dim3 blockCount;
+	dim3 threadCount;
+	int widthNorm = ( matrixWidth + BuildInputFromTempMatrixCombine - 1 ) / BuildInputFromTempMatrixCombine;
+	getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm );
+	BuildInputFromTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( matrixHandle ),
+		matrixHeight, matrixWidth, GetRaw( imageHandle ), operation, widthNorm, 0 );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA

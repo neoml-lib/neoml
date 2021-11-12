@@ -26,6 +26,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/BuildIntegerHistTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FilterSmallValuesTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMinValueInColumnsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/FoldTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnLearnTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LookupAndAddToTableTest.cpp

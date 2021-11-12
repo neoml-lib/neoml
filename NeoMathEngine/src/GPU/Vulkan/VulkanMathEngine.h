@@ -541,6 +541,13 @@ public:
 		const CConstFloatHandle& result, const CConstIntHandle& labels,
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
+	void Unfold( int batchSize, const CConstFloatHandle& images, int imageHeight, int imageWidth, int channels,
+		const CFloatHandle& matrices, int filterHeight, int filterWidth, int strideHeight, int strideWidth,
+		int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth ) override;
+	void Fold( int batchSize, const CConstFloatHandle& matrices, int filterHeight, int filterWidth,
+		int strideHeight, int strideWidth, int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth,
+		const CFloatHandle& images, int imageHeight, int imageWidth, int channels ) override;
+
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 
 protected:

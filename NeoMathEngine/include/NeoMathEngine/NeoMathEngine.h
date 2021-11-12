@@ -921,6 +921,28 @@ public:
 		const CConstFloatHandle& result, const CConstIntHandle& labels,
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) = 0;
+
+	// Unfold
+
+	// Builds a matrix from the input image based on the convolution parameters.
+	// The idea is to extract data from the image regions where convolution filters would be applied.
+	// As a result convolution may be implemented as building this matrix and multiplying this matrix by the matrix of filters.
+	// Processes batch of input images and returns batch of matrices.
+	//
+	// Output size:
+	// - BatchSize is equal to the BatchSize of the input
+	// - Height is equal to the product image height and width of the corresponding convolution output
+	// - Width is equal to the product of filter height and width multiplied by the input channels
+	virtual void Unfold( int batchSize, const CConstFloatHandle& imageHandle, int imageHeight, int imageWidth, int imageChannels,
+		const CFloatHandle& matrixHandle, int filterHeight, int filterWidth, int strideHeight, int strideWidth,
+		int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth ) = 0;
+
+	// Fold
+
+	// Reverse of the 'Unfold' operation: builds image from the matrix bsaed on the convolution parameters.
+	virtual void Fold( int batchSize, const CConstFloatHandle& matrixHandle, int filterHeight, int filterWidth,
+		int strideHeight, int strideWidth, int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth,
+		const CFloatHandle& imageHandle, int imageHeight, int imageWidth, int imageChannels ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

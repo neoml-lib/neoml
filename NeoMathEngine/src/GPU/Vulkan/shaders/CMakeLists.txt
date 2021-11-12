@@ -144,6 +144,7 @@ set(SHADER_SOURCES
     SpaceToDepthFloat.comp
     SpaceToDepthInt.comp
     Lrn.comp
+    Unfold.comp
 )
 
 set(IB_SHADER_SOURCES
