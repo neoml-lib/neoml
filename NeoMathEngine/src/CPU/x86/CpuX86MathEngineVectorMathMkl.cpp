@@ -67,7 +67,7 @@ void CCpuMathEngine::VectorExp(const CConstFloatHandle& firstHandle, const CFloa
 	float* result = GetRaw(resultHandle);
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < vectorSize; ++i) {
-		*result[i] = ExponentFunc(*first[i]);
+		result[i] = ExponentFunc(first[i]);
 	}
 #endif
 }
