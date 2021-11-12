@@ -6,7 +6,7 @@ endif()
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-target_sources( ${PROJECT_NAME} PRIVATE
+set(NeoML_SOURCES
     ArchiveFile.cpp
     NeoML.cpp
     Random.cpp
@@ -16,7 +16,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Dnn.cpp
     Dnn/DnnBlob.cpp
     Dnn/DnnInitializer.cpp
-    Dnn/DnnSolver.cpp
     Dnn/DnnSparseMatrix.cpp
     Dnn/DnnDistributed.cpp
     Dnn/Layers/3dConvLayer.cpp
@@ -63,7 +62,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/ImageResizeLayer.cpp
     Dnn/Layers/IndRnnLayer.cpp
     Dnn/Layers/IrnnLayer.cpp
-    Dnn/Layers/LossLayer.cpp
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
@@ -101,17 +99,10 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ClassificationProbability.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
-    TraditionalML/CompactRegressionTree.cpp
-    TraditionalML/CompactRegressionTree.h
     TraditionalML/CrossValidation.cpp
     TraditionalML/CrossValidationSubProblem.cpp
-    TraditionalML/DecisionTreeClassificationModel.cpp
-    TraditionalML/DecisionTreeClassificationModel.h
     TraditionalML/DecisionTreeNodeBase.cpp
-    TraditionalML/DecisionTreeNodeBase.h
     TraditionalML/DecisionTreeNodeClassificationStatistic.cpp
-    TraditionalML/DecisionTreeNodeClassificationStatistic.h
-    TraditionalML/DecisionTreeNodeStatisticBase.h
     TraditionalML/DecisionTree.cpp
     TraditionalML/DifferentialEvolution.cpp
     TraditionalML/FeatureSelection.cpp
@@ -119,59 +110,83 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/FloatVector.cpp
     TraditionalML/Function.cpp
     TraditionalML/FunctionEvaluation.cpp
-    TraditionalML/GradientBoost.cpp
     TraditionalML/GradientBoostFastHistProblem.cpp
-    TraditionalML/GradientBoostFastHistProblem.h
     TraditionalML/GradientBoostFastHistTreeBuilder.cpp
-    TraditionalML/GradientBoostFastHistTreeBuilder.h
     TraditionalML/GradientBoostFullProblem.cpp
-    TraditionalML/GradientBoostFullProblem.h
     TraditionalML/GradientBoostFullTreeBuilder.cpp
-    TraditionalML/GradientBoostFullTreeBuilder.h
-    TraditionalML/GradientBoostModel.cpp
-    TraditionalML/GradientBoostModel.h
     TraditionalML/GradientBoostQSEnsemble.cpp
-    TraditionalML/GradientBoostQSEnsemble.h
-    TraditionalML/GradientBoostQuickScorer.cpp
-    TraditionalML/GradientBoostStatisticsSingle.h
-    TraditionalML/GradientBoostStatisticsMulti.h
     TraditionalML/HierarchicalClustering.cpp
     TraditionalML/IsoDataClustering.cpp
     TraditionalML/KMeansClustering.cpp
     TraditionalML/Linear.cpp
-    TraditionalML/LinearBinaryModel.cpp
-    TraditionalML/LinearBinaryModel.h
     TraditionalML/LinkedRegressionTree.cpp
-    TraditionalML/LinkedRegressionTree.h
     TraditionalML/MemoryProblem.cpp
-    TraditionalML/NaiveHierarchicalClustering.h
     TraditionalML/NaiveHierarchicalClustering.cpp
-    TraditionalML/NnChainHierarchicalClustering.h
     TraditionalML/NnChainHierarchicalClustering.cpp
     TraditionalML/OneVersusAll.cpp
-    TraditionalML/OneVersusAllModel.cpp
-    TraditionalML/OneVersusAllModel.h
     TraditionalML/OneVersusOne.cpp
-    TraditionalML/OneVersusOneModel.cpp
-    TraditionalML/OneVersusOneModel.h
     TraditionalML/PlattScalling.cpp
     TraditionalML/ProblemWrappers.cpp
-    TraditionalML/ProblemWrappers.h
-    TraditionalML/ProblemWrappers.inl
-    TraditionalML/RegressionTree.h
     TraditionalML/Score.cpp
-    TraditionalML/SerializeCompact.h
     TraditionalML/Shuffler.cpp
     TraditionalML/SMOptimizer.cpp
-    TraditionalML/SMOptimizer.h
     TraditionalML/SparseFloatMatrix.cpp
-    TraditionalML/SparseFloatVector.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
     TraditionalML/Svm.cpp
-    TraditionalML/SvmBinaryModel.cpp
-    TraditionalML/SvmBinaryModel.h
     TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
+)
+set(NeoML_NON_UNITY_SOURCES
+    Dnn/DnnSolver.cpp
+    Dnn/Layers/LossLayer.cpp
+    Dnn/Layers/LstmLayer.cpp
+    TraditionalML/CompactRegressionTree.cpp
+    TraditionalML/DecisionTreeClassificationModel.cpp
+    TraditionalML/GradientBoost.cpp
+    TraditionalML/GradientBoostModel.cpp
+    TraditionalML/GradientBoostQuickScorer.cpp
+    TraditionalML/LinearBinaryModel.cpp
+    TraditionalML/LinkedRegressionTree.cpp
+    TraditionalML/OneVersusAllModel.cpp
+    TraditionalML/OneVersusOneModel.cpp
+    TraditionalML/SparseFloatVector.cpp
+    TraditionalML/SvmBinaryModel.cpp
+)
+
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE BATCH
+    UNITY_BUILD_BATCH_SIZE ${NeoML_UNITY_BUILD_BATCH_SIZE}
+)
+set_property(SOURCE ${NeoML_NON_UNITY_SOURCES} PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
+
+target_sources( ${PROJECT_NAME} PRIVATE
+    ${NeoML_SOURCES}
+    ${NeoML_NON_UNITY_SOURCES}
+    TraditionalML/CompactRegressionTree.h
+    TraditionalML/DecisionTreeClassificationModel.h
+    TraditionalML/DecisionTreeNodeBase.h
+    TraditionalML/DecisionTreeNodeClassificationStatistic.h
+    TraditionalML/DecisionTreeNodeStatisticBase.h
+    TraditionalML/GradientBoostFastHistProblem.h
+    TraditionalML/GradientBoostFastHistTreeBuilder.h
+    TraditionalML/GradientBoostFullProblem.h
+    TraditionalML/GradientBoostFullTreeBuilder.h
+    TraditionalML/GradientBoostModel.h
+    TraditionalML/GradientBoostQSEnsemble.h
+    TraditionalML/GradientBoostStatisticsSingle.h
+    TraditionalML/GradientBoostStatisticsMulti.h
+    TraditionalML/LinearBinaryModel.h
+    TraditionalML/LinkedRegressionTree.h
+    TraditionalML/NaiveHierarchicalClustering.h
+    TraditionalML/NnChainHierarchicalClustering.h
+    TraditionalML/OneVersusAllModel.h
+    TraditionalML/OneVersusOneModel.h
+    TraditionalML/ProblemWrappers.h
+    TraditionalML/RegressionTree.h
+    TraditionalML/SerializeCompact.h
+    TraditionalML/SMOptimizer.h
+    TraditionalML/SvmBinaryModel.h
+    TraditionalML/ProblemWrappers.inl
 
     # Headers
     ../include/NeoML/ArchiveFile.h
