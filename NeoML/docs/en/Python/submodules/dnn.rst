@@ -818,6 +818,12 @@ Upsampling2D
 .. autoclass:: neoml.Dnn.Upsampling2D
    :members:
 
+Unfold
+------
+
+.. autocless:: neoml.Dnn.Unfold
+   :members:
+
 .. _py-dnn-crf:
 
 Conditional random field (CRF)

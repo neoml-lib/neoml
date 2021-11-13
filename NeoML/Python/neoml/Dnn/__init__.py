@@ -48,6 +48,7 @@ from .TiedEmbeddings import TiedEmbeddings
 from .Transform import Transform
 from .Transformer import TransformerEncoder
 from .Transpose import Transpose
+from .Unfold import Unfold
 from .Upsampling2D import Upsampling2D
 
 __all__ = []

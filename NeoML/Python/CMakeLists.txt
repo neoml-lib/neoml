@@ -95,6 +95,7 @@ pybind11_add_module(PythonWrapper
     src/PyTransformerLayer.cpp
     src/PyTransformLayer.cpp
     src/PyTransposeLayer.cpp
+    src/PyUnfoldLayer.cpp
     src/PyUpsampling2DLayer.cpp
     src/PyWrapper.cpp
 )

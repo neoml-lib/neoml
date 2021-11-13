@@ -64,6 +64,7 @@ limitations under the License.
 #include "PyTransformerLayer.h"
 #include "PyTransformLayer.h"
 #include "PyTransposeLayer.h"
+#include "PyUnfoldLayer.h"
 #include "PyUpsampling2DLayer.h"
 #include "PyLossLayer.h"
 #include "PyLstmLayer.h"
@@ -137,6 +138,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeTransformLayer( m );
 	InitializeTransposeLayer( m );
 	InitializeTiedEmbeddingsLayer( m );
+	InitializeUnfoldLayer( m );
 	InitializeUpsampling2DLayer( m );
 	InitializeSourceLayer( m );
 	InitializeSpaceAndDepthLayer( m );

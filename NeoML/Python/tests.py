@@ -1655,6 +1655,48 @@ class LayersTestCase(MultithreadedTestCase):
                 outputs = dnn.run({'input_data': input_data_blob})
             self.assertEqual(outputs['sink'].shape, (1, batch_size, list_size_in, 1, 1, 1, obj_size_in))
 
+    def test_unfold(self):
+        # input images size
+        batch_len = 2
+        batch_width = 3
+        list_size = 5
+        image_height = 7
+        image_width = 11
+        depth = 13
+        channels = 17
+        # network
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        input_data = neoml.Dnn.Source(dnn, 'input_data')
+        unfold = neoml.Dnn.Unfold(input_data, filter_size=(3,2), stride_size=(5,4), padding_size=(7,6),
+                                    dilation_size=(9,8), name='unfold')
+        sink = neoml.Dnn.Sink(unfold, name='sink')
+        # testing getters/setters
+        self.assertEqual(unfold.filter_size, (3,2))
+        unfold.filter_size=(2,3)
+        self.assertEqual(unfold.filter_size, (2,3))
+        self.assertEqual(unfold.stride_size, (5,4))
+        unfold.stride_size=(1,2)
+        self.assertEqual(unfold.stride_size, (1,2))
+        self.assertEqual(unfold.padding_size, (7,6))
+        unfold.padding_size=(1,2)
+        self.assertEqual(unfold.padding_size, (1,2))
+        unfold.padding_size=(0,0)
+        self.assertEqual(unfold.dilation_size, (9,8))
+        unfold.dilation_size=(2,3)
+        self.assertEqual(unfold.dilation_size, (2,3))
+        # testing running
+        input_arr = 3 * np.ones((batch_len, batch_width, list_size, image_height, image_width, depth, channels),
+                                dtype=np.float32)
+        input_blob = neoml.Blob.asblob(math_engine, input_arr,
+                                       (batch_len, batch_width, list_size, image_height, image_width, depth, channels))
+        outputs = dnn.run({'input_data': input_blob})
+        out_h = 15
+        out_ch = 1326
+        self.assertEqual(outputs['sink'].shape, (batch_len, batch_width, list_size, out_h, 1, 1, out_ch))
+        out = outputs['sink'].asarray()
+        self.assertTrue(np.equal(out, 3 * np.ones((batch_len, batch_width, list_size, out_h, out_ch), dtype=np.float32)).all())
+
 
 class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
