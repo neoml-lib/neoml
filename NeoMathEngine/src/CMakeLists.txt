@@ -7,9 +7,7 @@ else()
     add_library(${PROJECT_NAME} STATIC common.cpp)
 endif()
 
-target_sources(${PROJECT_NAME}
-    PRIVATE
-
+set(CPU_COMMON_SOURCES
     # Sources
     CPU/CpuMathEngineBlas.cpp
     CPU/CpuMathEngineDnn3dConv.cpp
@@ -32,6 +30,11 @@ target_sources(${PROJECT_NAME}
     MathEngineHostStackAllocator.cpp
     MemoryPool.cpp
     common.cpp
+)
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+    ${CPU_COMMON_SOURCES}
     # Headers
     common.h
     MathEngineAllocator.h
@@ -71,6 +74,12 @@ target_sources(${PROJECT_NAME}
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE GROUP
+)
+set_property(SOURCE ${CPU_COMMON_SOURCES} PROPERTY UNITY_GROUP 1)
+set_property(SOURCE MathEngineDeviceStackAllocator.cpp PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
+
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 
 source_group("Header Files\\NeoMathEngine" REGULAR_EXPRESSION "^.*NeoMathEngine/.+\.h|inl$")
@@ -101,13 +110,16 @@ endif()
 
 # CPU specific settings
 if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROID_ABI MATCHES "^arm.*") OR (IOS AND IOS_ARCH MATCHES "^arm.*"))
-    target_sources(${PROJECT_NAME} 
-    PRIVATE
+    set(CPU_ARM_SOURCES
         CPU/arm/CpuArmMathEngineBlas.cpp
         CPU/arm/CpuArmMathEngineDnn.cpp
         CPU/arm/CpuArmMathEngineVectorMath.cpp
         CPU/arm/CpuArmMathEngineDnn3dConv.cpp
         CPU/arm/CpuArmMathEngineMatrixMultiplying.cpp
+    )
+    target_sources(${PROJECT_NAME} 
+    PRIVATE
+        ${CPU_ARM_SOURCES}
         CPU/arm/CpuArm.h
         CPU/arm/CpuArmMathEngineBlasPrivate.h
         CPU/arm/CpuArmMathEngineVectorMathPrivate.h
@@ -122,21 +134,26 @@ if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROI
         CPU/arm/MatrixMultiplyingInterleaved/MicroKernels/Kernel_ARM64_8x12.h
         CPU/arm/MatrixMultiplyingInterleaved/MicroKernels/Kernel_ARM64_8x4.h
     )
+    set_property(SOURCE ${CPU_ARM_SOURCES} PROPERTY UNITY_GROUP 1)
     source_group("CPU\\arm" REGULAR_EXPRESSION "CPU\/arm\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/arm>)
 else()
-    target_sources(${PROJECT_NAME} 
-    PRIVATE
+    set(CPU_X86_SOURCES
         CPU/x86/CpuX86MathEngineBlas.cpp
         CPU/x86/CpuX86MathEngineBlasMkl.cpp
         CPU/x86/CpuX86MathEngineDnn.cpp
         CPU/x86/CpuX86MathEngineVectorMath.cpp
         CPU/x86/CpuX86MathEngineVectorMathMkl.cpp
         CPU/x86/CpuX86MathEngineDnn3dConv.cpp
+    )
+    target_sources(${PROJECT_NAME} 
+    PRIVATE
+        ${CPU_X86_SOURCES}
         CPU/x86/CpuX86.h
         CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
     )
+    set_property(SOURCE ${CPU_X86_SOURCES} PROPERTY UNITY_GROUP 1)
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
     if(NEOML_USE_AVX)
@@ -328,28 +345,32 @@ if(NeoMathEngine_ENABLE_VULKAN)
                     ${Vulkan_INCLUDE_DIR}
             )
             
+            set(VULKAN_SOURCES
+                GPU/Vulkan/VulkanCommandQueue.cpp
+                GPU/Vulkan/VulkanDll.cpp
+                GPU/Vulkan/VulkanImage.cpp
+                GPU/Vulkan/VulkanMathEngineBlas.cpp
+                GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
+                GPU/Vulkan/VulkanMathEngineDnn.cpp
+                GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
+                GPU/Vulkan/VulkanMathEngineDnnLrn.cpp
+                GPU/Vulkan/VulkanMathEngine.cpp
+                GPU/Vulkan/VulkanMathEngineVectorMath.cpp
+                GPU/Vulkan/VulkanShader.cpp
+                GPU/Vulkan/VulkanMemory.cpp
+            )
             target_sources(${PROJECT_NAME}
                 PRIVATE
-                    GPU/Vulkan/VulkanCommandQueue.cpp
+                    ${VULKAN_SOURCES}
                     GPU/Vulkan/VulkanCommandQueue.h
-                    GPU/Vulkan/VulkanDll.cpp
                     GPU/Vulkan/VulkanDll.h
-                    GPU/Vulkan/VulkanImage.cpp
                     GPU/Vulkan/VulkanImage.h
-                    GPU/Vulkan/VulkanMathEngineBlas.cpp
-                    GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
-                    GPU/Vulkan/VulkanMathEngineDnn.cpp
-                    GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
-                    GPU/Vulkan/VulkanMathEngineDnnLrn.cpp
-                    GPU/Vulkan/VulkanMathEngine.cpp
                     GPU/Vulkan/VulkanMathEngine.h
-                    GPU/Vulkan/VulkanMathEngineVectorMath.cpp
-                    GPU/Vulkan/VulkanShader.cpp
                     GPU/Vulkan/VulkanShader.h
-                    GPU/Vulkan/VulkanMemory.cpp
                     GPU/Vulkan/VulkanMemory.h
                     GPU/Vulkan/shaders/common/CommonStruct.h
             )
+            set_property(SOURCE ${VULKAN_SOURCES} PROPERTY UNITY_GROUP 2)
             source_group("GPU\\Vulkan" REGULAR_EXPRESSION "GPU\/Vulkan\/[A-Za-z0-9_]+\.(h|cpp)")
             
             add_subdirectory(GPU/Vulkan/shaders)
