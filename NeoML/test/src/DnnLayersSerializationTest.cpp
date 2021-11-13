@@ -2376,3 +2376,46 @@ GTEST_TEST( SerializeFromFile, TransformerEncoderLayerSerialization )
 {
 	checkSerializeLayer<CTransformerEncoderLayer>( "NeoMLDnnTransformerEncoderLayer" );
 }
+
+// ====================================================================================================================
+
+// CUnfoldLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CUnfoldLayer& layer )
+{
+	layer.SetFilterHeight( 2 );
+	layer.SetFilterWidth( 3 );
+	layer.SetStrideHeight( 4 );
+	layer.SetStrideWidth( 5 );
+	layer.SetPaddingHeight( 6 );
+	layer.SetPaddingWidth( 7 );
+	layer.SetDilationHeight( 8 );
+	layer.SetDilationWidth( 9 );
+}
+
+GTEST_TEST( SerializeToFile, UnfoldLayerSerialization )
+{
+	serializeToFile<CUnfoldLayer>( "NeoMLDnnUnfoldLayer" );
+}
+
+#endif
+
+template<>
+inline void checkSpecificParams<CUnfoldLayer>( CUnfoldLayer& layer )
+{
+	EXPECT_EQ( layer.GetFilterHeight(), 2 );
+	EXPECT_EQ( layer.GetFilterWidth(), 3 );
+	EXPECT_EQ( layer.GetStrideHeight(), 4 );
+	EXPECT_EQ( layer.GetStrideWidth(), 5 );
+	EXPECT_EQ( layer.GetPaddingHeight(), 6 );
+	EXPECT_EQ( layer.GetPaddingWidth(), 7 );
+	EXPECT_EQ( layer.GetDilationHeight(), 8 );
+	EXPECT_EQ( layer.GetDilationWidth(), 9 );
+}
+
+GTEST_TEST( SerializeFromFile, UnfoldLayerSerialization )
+{
+	checkSerializeLayer<CUnfoldLayer>( "NeoMLDnnUnfoldLayer" );
+}
