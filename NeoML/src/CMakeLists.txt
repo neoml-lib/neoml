@@ -93,6 +93,7 @@ set(NeoML_SOURCES
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
     Dnn/Layers/TransposeLayer.cpp
+    Dnn/Layers/UnfoldLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
     TraditionalML/AIModel.cpp
     TraditionalML/ClassificationProbability.cpp
@@ -273,6 +274,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/TransposeLayer.h
+    ../include/NeoML/Dnn/Layers/UnfoldLayer.h
     ../include/NeoML/Dnn/Layers/Upsampling2DLayer.h
     ../include/NeoML/TraditionalML/ClassificationProbability.h
     ../include/NeoML/TraditionalML/ClassificationResult.h
