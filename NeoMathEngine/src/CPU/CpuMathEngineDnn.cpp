@@ -53,12 +53,22 @@ void CCpuMathEngine::blobMergeByDimCommon( int dimNum, const CBlobDesc* from, co
 	T* rawTo = GetRaw( toData );
 
 	const int currThreadCount = IsOmpRelevant( objectCount, objectCount * objectSize ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( currThreadCount )
-	for(int x = 0; x < objectCount; x++) {
-		T* output = rawTo + x * objectSize;
-		for( int i = 0; i < fromCount; ++i ) {
-			dataCopy( output, GetRaw( fromData[i] ) + x * fromObjectSizes[i], fromObjectSizes[i] );
-			output += fromObjectSizes[i];
+	if( currThreadCount > 1 ) {
+		NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
+		for(int x = 0; x < objectCount; x++) {
+			T* output = rawTo + x * objectSize;
+			for( int i = 0; i < fromCount; ++i ) {
+				dataCopy( output, GetRaw( fromData[i] ) + x * fromObjectSizes[i], fromObjectSizes[i] );
+				output += fromObjectSizes[i];
+			}
+		}
+	} else {
+		for(int x = 0; x < objectCount; x++) {
+			T* output = rawTo + x * objectSize;
+			for( int i = 0; i < fromCount; ++i ) {
+				dataCopy( output, GetRaw( fromData[i] ) + x * fromObjectSizes[i], fromObjectSizes[i] );
+				output += fromObjectSizes[i];
+			}
 		}
 	}
 }
@@ -78,7 +88,7 @@ void CCpuMathEngine::blobMergeByDim0( const CBlobDesc* from, const CTypedMemoryH
 			blobOffset[i + 1] = blobOffset[i] + from[i].BlobSize();
 		}
 
-		NEOML_OMP_NUM_THREADS( currThreadCount )
+		NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
 		for( int i = 0; i < fromCount; ++i ) {
 			int blobSize = from[i].BlobSize();
 			dataCopy( output + blobOffset[i], GetRaw( fromData[i] ), blobSize );
@@ -129,12 +139,22 @@ void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, co
 	const T* rawFrom = GetRaw( fromData );
 
 	const int currThreadCount = IsOmpRelevant( objectCount, objectCount * objectSize ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( currThreadCount )
-	for(int x = 0; x < objectCount; x++) {
-		const T* input = rawFrom + x * objectSize;
-		for( int i = 0; i < toCount; ++i ) {
-			dataCopy( GetRaw( toData[i] ) + x * toObjectSizes[i], input, toObjectSizes[i] );
-			input += toObjectSizes[i];
+	if( currThreadCount > 1 ) {
+		NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
+		for(int x = 0; x < objectCount; x++) {
+			const T* input = rawFrom + x * objectSize;
+			for( int i = 0; i < toCount; ++i ) {
+				dataCopy( GetRaw( toData[i] ) + x * toObjectSizes[i], input, toObjectSizes[i] );
+				input += toObjectSizes[i];
+			}
+		}
+	} else {
+		for(int x = 0; x < objectCount; x++) {
+			const T* input = rawFrom + x * objectSize;
+			for( int i = 0; i < toCount; ++i ) {
+				dataCopy( GetRaw( toData[i] ) + x * toObjectSizes[i], input, toObjectSizes[i] );
+				input += toObjectSizes[i];
+			}
 		}
 	}
 }
@@ -154,7 +174,7 @@ void CCpuMathEngine::blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryH
 			blobOffset[i + 1] = blobOffset[i] + to[i].BlobSize();
 		}
 
-		NEOML_OMP_NUM_THREADS( currThreadCount )
+		NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
 		for( int i = 0; i < toCount; ++i ) {
 			int blobSize = to[i].BlobSize();
 			dataCopy( GetRaw( toData[i] ), input + blobOffset[i], blobSize );
