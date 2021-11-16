@@ -2,10 +2,6 @@ project(NeoMLTestSrc)
 
 add_library(${PROJECT_NAME} INTERFACE)
 
-set_target_properties( ${PROJECT_NAME} PROPERTIES
-    UNITY_BUILD_MODE GROUP
-)
-
 target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/AutoDiffTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common.h
