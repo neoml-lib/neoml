@@ -25,6 +25,10 @@ public:
 // Single process, multiple threads distributed training
 class NEOML_API CDistributedTraining {
 public:
+	// Creates `count` cpu models
+	explicit CDistributedTraining( CArchive& archive, int count );
+	// Creates gpu models, `devs` should contain numbers of using devices
+	explicit CDistributedTraining( CArchive& archive, const CArray<int>& devs );
 	// Runs the networks, performs a backward pass and updates the trainable weights of all models
 	void RunAndLearnOnce( IDistributedDataset& data );
 	// Returns last loss of `layerName` for all models
@@ -39,17 +43,5 @@ protected:
 	void initialize( CArchive& archive, int count );
 };
 
-class NEOML_API CDistributedCpuTraining : public CDistributedTraining {
-public:
-	// Creates `count` cpu models
-	explicit CDistributedCpuTraining( CArchive& archive, int count );
-};
-
-class NEOML_API CDistributedCudaTraining : public CDistributedTraining {
-public:
-	// Creates `count` gpu models, `devs` should contain numbers of using devices
-	// When `devs` is not provided it is set to [0...count-1]
-	explicit CDistributedCudaTraining( CArchive& archive, int count, CArray<int> devs = {} );
-};
 
 } // namespace NeoML

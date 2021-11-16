@@ -229,7 +229,7 @@ void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, con
 {
 	ASSERT_EXPR( mathEngines != nullptr );
 	ASSERT_EXPR( count > 0 );
-	devs;
+	ASSERT_EXPR( devs != nullptr );
 #ifdef NEOML_USE_NCCL
 	CreateDistributedCudaMathEnginesNccl( mathEngines, count, devs );
 #else

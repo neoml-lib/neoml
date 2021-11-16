@@ -32,6 +32,20 @@ void CDistributedTraining::initialize( CArchive& archive, int count )
     }
 }
 
+CDistributedTraining::CDistributedTraining( CArchive& archive, int count )
+{
+    mathEngines.SetSize( count );
+    CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+    initialize( archive, count );
+}
+
+CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& devs )
+{
+    mathEngines.SetSize( devs.Size() );
+    CreateDistributedCudaMathEngines( mathEngines.GetPtr(), devs.Size(), devs.GetPtr() );
+    initialize( archive, devs.Size() );
+}
+
 CDistributedTraining::~CDistributedTraining()
 {
     for( int i = 0; i < cnns.Size(); i++ ){
@@ -68,20 +82,6 @@ void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>&
             losses[i] = lossLayer->GetLastLoss();
         }
     }
-}
-
-CDistributedCpuTraining::CDistributedCpuTraining( CArchive& archive, int count )
-{
-    mathEngines.SetSize( count );
-    CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
-    initialize( archive, count );
-}
-
-CDistributedCudaTraining::CDistributedCudaTraining( CArchive& archive, int count, CArray<int> devs )
-{
-    mathEngines.SetSize( count );
-    CreateDistributedCudaMathEngines( mathEngines.GetPtr(), count, devs.GetPtr() );
-    initialize( archive, count );
 }
 
 } // namespace NeoML
