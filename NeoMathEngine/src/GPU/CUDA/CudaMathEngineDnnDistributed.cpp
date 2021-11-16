@@ -58,7 +58,7 @@ void CCudaDistributedCommunicator::Broadcast( const CFloatHandle& handle, int si
         ncclFloat, root, comm, 0 ) );
 }
 
-void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int count, const int* devs )
+void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int devsCount, const int* cudaDevs )
 {
     std::unique_ptr<IGpuMathEngineManager> gpuManager( CreateGpuMathEngineManager() );
     const CNccl* nccl = CDllLoader::ncclDll->GetFunctions();
@@ -68,10 +68,10 @@ void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int count,
     ncclUniqueId id;
     nccl->GetUniqueId( &id );
     ASSERT_NCCL( nccl, nccl->GroupStart() );
-    for( int i = 0; i < count; i++ ){
-        mathEngines[i]  = gpuManager->CreateMathEngine( devs[i], 0u );
-        SetCudaDevice( devs[i] );
-        static_cast<CCudaMathEngine*>( mathEngines[i] )->SetDistributedCommunicator( id, {i, count} );
+    for( int i = 0; i < devsCount; i++ ){
+        mathEngines[i]  = gpuManager->CreateMathEngine( cudaDevs[i], 0u );
+        SetCudaDevice( cudaDevs[i] );
+        static_cast<CCudaMathEngine*>( mathEngines[i] )->SetDistributedCommunicator( id, {i, devsCount} );
     }
     ASSERT_NCCL( nccl, nccl->GroupEnd() );
 }

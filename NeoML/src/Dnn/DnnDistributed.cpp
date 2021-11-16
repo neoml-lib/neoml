@@ -39,11 +39,11 @@ CDistributedTraining::CDistributedTraining( CArchive& archive, int count )
     initialize( archive, count );
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& devs )
+CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs )
 {
-    mathEngines.SetSize( devs.Size() );
-    CreateDistributedCudaMathEngines( mathEngines.GetPtr(), devs.Size(), devs.GetPtr() );
-    initialize( archive, devs.Size() );
+    mathEngines.SetSize( cudaDevs.Size() );
+    CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
+    initialize( archive, cudaDevs.Size() );
 }
 
 CDistributedTraining::~CDistributedTraining()

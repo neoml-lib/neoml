@@ -225,13 +225,13 @@ IGpuMathEngineManager* CreateGpuMathEngineManager()
 	return new CGpuMathEngineManager();
 }
 
-void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, const int* devs )
+void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs )
 {
 	ASSERT_EXPR( mathEngines != nullptr );
-	ASSERT_EXPR( count > 0 );
-	ASSERT_EXPR( devs != nullptr );
+	ASSERT_EXPR( devsCount > 0 );
+	ASSERT_EXPR( cudaDevs != nullptr );
 #ifdef NEOML_USE_NCCL
-	CreateDistributedCudaMathEnginesNccl( mathEngines, count, devs );
+	CreateDistributedCudaMathEnginesNccl( mathEngines, devsCount, cudaDevs );
 #else
 	ASSERT_EXPR( false );
 #endif

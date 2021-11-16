@@ -28,7 +28,7 @@ public:
 	// Creates `count` cpu models
 	explicit CDistributedTraining( CArchive& archive, int count );
 	// Creates gpu models, `devs` should contain numbers of using devices
-	explicit CDistributedTraining( CArchive& archive, const CArray<int>& devs );
+	explicit CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs );
 	// Runs the networks, performs a backward pass and updates the trainable weights of all models
 	void RunAndLearnOnce( IDistributedDataset& data );
 	// Returns last loss of `layerName` for all models

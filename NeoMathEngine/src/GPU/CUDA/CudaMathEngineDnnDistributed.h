@@ -31,7 +31,7 @@ private:
     const CNccl* nccl;
 };
 
-void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int count, const int* devs );
+void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int devsCount, const int* cudaDevs );
 
 } // namespace NeoML
 

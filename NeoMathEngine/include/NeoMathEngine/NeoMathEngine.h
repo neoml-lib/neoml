@@ -1089,7 +1089,7 @@ NEOMATHENGINE_API IGpuMathEngineManager* CreateGpuMathEngineManager();
 NEOMATHENGINE_API void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count );
 // Creates `count` gpu MathEngines connected via distributed communicator object
 // i-th MathEngine placed on gpu with number devs[i]
-NEOMATHENGINE_API void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, const int* devs );
+NEOMATHENGINE_API void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs );
 
 } // namespace NeoML
 
