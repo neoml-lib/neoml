@@ -925,6 +925,17 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
+// The position in distributed system
+struct CMathEngineDistributedInfo {
+	int Thread; // number among all threads
+	int Threads; // number of all threads
+
+	CMathEngineDistributedInfo() : Thread( 0 ), Threads( 1 ) {};
+	CMathEngineDistributedInfo( int thread, int threads ) : Thread( thread ), Threads( threads ) {};
+};
+
+//------------------------------------------------------------------------------------------------------------
+
 // The maximum number of blobs in split or merge operations
 const int MaxBlobDescs = 32;
 
@@ -1010,6 +1021,11 @@ public:
 	// Creates a object for aggregating statistics.
 	// This object should be destroyed using the standard delete operator after use.
 	virtual IPerformanceCounters* CreatePerformanceCounters() const = 0;
+
+	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
+	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
+	virtual void Broadcast( const CFloatHandle& handle, int size, int root ) = 0;
+	virtual bool IsDistributed() { return false; }
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1068,6 +1084,12 @@ public:
 // Should be destroyed after use with the standard delete operator
 // You should call SetMathEngineExceptionHandler() before this call
 NEOMATHENGINE_API IGpuMathEngineManager* CreateGpuMathEngineManager();
+
+// Creates `count` cpu MathEngines connected via distributed communicator object
+NEOMATHENGINE_API void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count );
+// Creates `count` gpu MathEngines connected via distributed communicator object
+// i-th MathEngine placed on gpu with number devs[i]
+NEOMATHENGINE_API void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs );
 
 } // namespace NeoML
 

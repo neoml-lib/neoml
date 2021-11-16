@@ -26,6 +26,9 @@ limitations under the License.
 #include <mutex>
 #include <memory>
 #include <PerformanceCountersDefault.h>
+#ifdef NEOML_USE_NCCL
+#include <CudaMathEngineDnnDistributed.h>
+#endif
 
 namespace NeoML {
 
@@ -522,7 +525,13 @@ public:
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
-
+	void AllReduce( const CFloatHandle& handle, int size ) override;
+	void Broadcast( const CFloatHandle& handle, int size, int root ) override;
+	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
+	bool IsDistributed() override { return distributedInfo.Threads > 1; }
+#ifdef NEOML_USE_NCCL
+	void SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info );
+#endif
 protected:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
@@ -542,6 +551,10 @@ private:
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
 	std::unique_ptr<CDeviceStackAllocator> deviceStackRunTime; // GPU memory stack allocator
 	std::unique_ptr<CHostStackAllocator> hostStackRunTime; // regular memory stack allocator
+	CMathEngineDistributedInfo distributedInfo;
+#ifdef NEOML_USE_NCCL
+	std::unique_ptr<CCudaDistributedCommunicator> ncclCommunicator = nullptr;
+#endif
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 	CCudaDevice* captureCudaDevice( int deviceNumber, size_t memoryLimit );

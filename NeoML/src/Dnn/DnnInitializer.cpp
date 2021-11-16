@@ -63,4 +63,15 @@ void CDnnUniformInitializer::InitializeLayerParams(CDnnBlob& blob, int)
 	blob.CopyFrom(tempData.GetPtr());
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+void CDnnDistributedInitializer::InitializeLayerParams( CDnnBlob& blob, int inputCount )
+{
+	if( mathEngine->GetDistributedInfo().Thread == 0 ){
+		baseInitializer->InitializeLayerParams( blob, inputCount );
+	}
+
+	mathEngine->Broadcast( blob.GetData(), blob.GetDataSize(), 0 );
+}
+
 }
