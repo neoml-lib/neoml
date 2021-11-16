@@ -14,6 +14,7 @@ limitations under the License.
 #pragma hdrstop
 
 #ifdef NEOML_USE_NCCL
+
 #include "cuda_runtime.h"
 #include <CudaMathEngine.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
@@ -57,7 +58,7 @@ void CCudaDistributedCommunicator::Broadcast( const CFloatHandle& handle, int si
         ncclFloat, root, comm, 0 ) );
 }
 
-void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, const int* devs )
+void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int count, const int* devs )
 {
     std::unique_ptr<IGpuMathEngineManager> gpuManager( CreateGpuMathEngineManager() );
     const CNccl* nccl = CDllLoader::ncclDll->GetFunctions();
@@ -77,15 +78,5 @@ void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, con
 }
 
 } // namespace NeoML
-
-#elif NEOML_USE_CUDA
-
-#include <CudaMathEngine.h>
-namespace NeoML {
-void CreateDistributedCudaMathEngines( IMathEngine** /* mathEngines */, int /* count */, const int* /* devs */ )
-{
-    ASSERT_EXPR( false );
-}
-}
 
 #endif
