@@ -25,13 +25,12 @@ public:
 // Single process, multiple threads distributed training
 class NEOML_API CDistributedTraining {
 public:
-	~CDistributedTraining();
-
 	// Runs the network, performs a backward pass and updates the trainable weights of all models
 	void RunAndLearnOnce( IDistributedDataset& data );
 	// Returns last loss of `layerName` for all models
 	// `layerName` should correspond to CLossLayer or CCtcLossLayer
 	void GetLastLoss( const CString& layerName, CArray<float>& losses );
+	~CDistributedTraining();
 protected:
 	CArray<IMathEngine*> mathEngines;
 	CArray<CRandom*> rands;
