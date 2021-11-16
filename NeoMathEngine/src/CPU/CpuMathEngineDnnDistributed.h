@@ -39,6 +39,4 @@ private:
     void collectHandles( const CFloatHandle& handle );
 };
 
-void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count );
-
 } // namespace NeoML

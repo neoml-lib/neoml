@@ -1085,7 +1085,11 @@ public:
 // You should call SetMathEngineExceptionHandler() before this call
 NEOMATHENGINE_API IGpuMathEngineManager* CreateGpuMathEngineManager();
 
-NEOMATHENGINE_API void CreateDistributedMathEngines( IMathEngine** mathEngines, TMathEngineType type, int count, const int* devs );
+// Creates `count` cpu MathEngines connected via distributed communicator object
+NEOMATHENGINE_API void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count );
+// Creates `count` gpu MathEngines connected via distributed communicator object
+// i-th MathEngine placed on gpu with number devs[i]
+NEOMATHENGINE_API void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, const int* devs );
 
 } // namespace NeoML
 

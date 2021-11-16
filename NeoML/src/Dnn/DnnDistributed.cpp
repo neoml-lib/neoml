@@ -21,10 +21,8 @@ limitations under the License.
 
 namespace NeoML {
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, TMathEngineType type, int count, CArray<int> devs )
+void CDistributedTraining::initialize( CArchive& archive, int count )
 {
-    mathEngines.SetSize( count );
-    CreateDistributedMathEngines( mathEngines.GetPtr(), type, count, devs.GetPtr() );
     for( int i = 0; i < count; i++ ){
         rands.Add( new CRandom( 42 ) );
         cnns.Add( new CDnn( *rands[i], *mathEngines[i] ) );
@@ -70,6 +68,20 @@ void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>&
             losses[i] = lossLayer->GetLastLoss();
         }
     }
+}
+
+CDistributedCpuTraining::CDistributedCpuTraining( CArchive& archive, int count )
+{
+    mathEngines.SetSize( count );
+    CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+    initialize( archive, count );
+}
+
+CDistributedCudaTraining::CDistributedCudaTraining( CArchive& archive, int count, CArray<int> devs )
+{
+    mathEngines.SetSize( count );
+    CreateDistributedCudaMathEngines( mathEngines.GetPtr(), count, devs.GetPtr() );
+    initialize( archive, count );
 }
 
 } // namespace NeoML

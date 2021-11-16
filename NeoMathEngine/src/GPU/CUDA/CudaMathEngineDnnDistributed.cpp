@@ -14,17 +14,13 @@ limitations under the License.
 #pragma hdrstop
 
 #ifdef NEOML_USE_NCCL
-
 #include "cuda_runtime.h"
+#include <CudaMathEngine.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
 #include <CudaMathEngineDnnDistributed.h>
 #include <MemoryHandleInternal.h>
-#include <CudaMathEngine.h>
 #include <CudaCommon.h>
 #include <DllLoader.h>
-#include <thread>
-#include <vector>
-#include <functional>
 
 namespace NeoML {
 
@@ -81,5 +77,15 @@ void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int count, con
 }
 
 } // namespace NeoML
+
+#elif NEOML_USE_CUDA
+
+#include <CudaMathEngine.h>
+namespace NeoML {
+void CreateDistributedCudaMathEngines( IMathEngine** /* mathEngines */, int /* count */, const int* /* devs */ )
+{
+    ASSERT_EXPR( false );
+}
+}
 
 #endif

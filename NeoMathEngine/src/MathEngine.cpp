@@ -225,20 +225,4 @@ IGpuMathEngineManager* CreateGpuMathEngineManager()
 	return new CGpuMathEngineManager();
 }
 
-void CreateDistributedMathEngines( IMathEngine** mathEngines, TMathEngineType type, int count, const int* devs )
-{
-	if( type == MET_Cpu ) {
-		devs;
-		CreateDistributedCpuMathEngines( mathEngines, count );
-	}
-#ifdef NEOML_USE_NCCL
-	else if( type == MET_Cuda ) {
-		CreateDistributedCudaMathEngines( mathEngines, count, devs );
-	}
-#endif
-	else {
-		ASSERT_EXPR( false );
-	}
-}
-
 } // namespace NeoML
