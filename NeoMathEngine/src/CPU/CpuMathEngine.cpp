@@ -71,6 +71,9 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 			customSgemmFunction = simdMathEngine->GetSgemmFunction();
 		}
 	}
+#else // NEOML_USE_AVX
+	// warning fix
+	(void)customSgemmFunction;
 #endif
 }
 

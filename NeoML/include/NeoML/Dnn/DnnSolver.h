@@ -399,6 +399,7 @@ private:
 class NEOML_API CDnnLambGradientSolver : public CDnnSolver {
 	NEOML_DNN_SOLVER( CDnnLambGradientSolver )
 public:
+	// This solver sets default L2 regularazation to 0.01
 	explicit CDnnLambGradientSolver( IMathEngine& mathEngine );
 
 	// Match type used when checking if layer is excluded from weightDecay
@@ -527,7 +528,7 @@ private:
 	// Layers excluded from weight decay
 	CArray<CExcludedLayer> excludedLayers;
 
-	float calcL2Norm( const CConstFloatHandle& data, int dataSize ) const;
+	float calcL2NormAverage( const CConstFloatHandle& data, int dataSize ) const;
 	void getWeightDecayIndices( const CBaseLayer& layer, int paramsCount, CHashTable<int>& indexes ) const;
 
 	void calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update, const CFloatHandle& multiplier ) const;
