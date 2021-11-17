@@ -12,6 +12,10 @@ add_executable(${PROJECT_NAME}
     main.cpp
 )
 
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE GROUP
+)
+
 configure_target(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE NeoMLTestSrc gtest NeoML)
@@ -21,6 +25,12 @@ if(USE_FINE_OBJECTS)
         target_compile_definitions(${PROJECT_NAME} PRIVATE _CONSOLE)
         target_link_options(${PROJECT_NAME} PRIVATE "/ENTRY:wmainCRTStartup")
         target_link_libraries(${PROJECT_NAME} PRIVATE msvcprt$<$<CONFIG:Debug>:d>)
+    endif()
+    if(IOS OR DARWIN)
+        #TODO: fix FineGTest
+        target_compile_options(${PROJECT_NAME} PRIVATE
+            $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-copy>
+            $<$<COMPILE_LANGUAGE:CXX>:-Wno-unknown-warning-option>)
     endif()
 else()
     if(WIN32)

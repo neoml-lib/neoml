@@ -21,7 +21,7 @@ limitations under the License.
 #ifdef NEOML_USE_SSE
 
 #include <CpuMathEngine.h>
-#include <CpuX86.h>
+#include <CpuMathEnginePrivate.h>
 #include <float.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
@@ -552,25 +552,25 @@ void CCpuMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& pool
 		int seqElemSize = source.BlobSize() / source.BatchLength();
 		int seqElemSizeSse = seqElemSize / 4;
 		int seqElemSizeNonSse = seqElemSize % 4;
-	
-		CConstFloatHandle sourceStart = sourceData;
-		CFloatHandle resultStart = resultData;
-		CIntHandle indexStart = *maxIndicesData;
+
+		const float* sourceStart = GetRaw( sourceData );
+		float* resultStart = GetRaw( resultData );
+		int* indexStart = GetRaw( *maxIndicesData );
 
 		int indexValueStart = 0;
 		for(int l = 0; l < result.BatchLength(); ++l) {
-			const float* sourceDataPtr = GetRaw( sourceStart );
+			const float* sourceDataPtr = sourceStart;
 
 			// Set the initial values (the zero value)
-			VectorCopy(resultStart, sourceStart, seqElemSize);
-			VectorFill(indexStart, indexValueStart, seqElemSize);
+			dataCopy(resultStart, sourceStart, seqElemSize);
+			vectorFill(indexStart, indexValueStart, seqElemSize);
 
 			sourceDataPtr += seqElemSize;
 
 			for(int n = 1; n < desc.FilterLen; ++n) {
 				// Restart the result data
-				float* resultDataPtr = GetRaw( resultStart );
-				int* indexData = GetRaw( indexStart );
+				float* resultDataPtr = resultStart;
+				int* indexData = indexStart;
 				int indexValue = indexValueStart + n;
 				__m128i indexValueSse = _mm_set1_epi32(indexValue);
 
@@ -611,21 +611,20 @@ void CCpuMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& pool
 		int seqElemSizeSse = seqElemSize / 4;
 		int seqElemSizeNonSse = seqElemSize % 4;
 
-		CConstFloatHandle sourceStart = sourceData;
-		CFloatHandle resultStart = resultData;
+		const float* sourceStart = GetRaw(sourceData);
+		float* resultStart = GetRaw(resultData);
 
 		for(int l = 0; l < result.BatchLength(); ++l) {
-			const float* sourceDataPtr = GetRaw( sourceStart );
+			const float* sourceDataPtr = sourceStart;
 
 			// Set the initial values (the zero value)
-			VectorCopy( resultStart, sourceStart, seqElemSize);
+			dataCopy(resultStart, sourceStart, seqElemSize);
 
 			sourceDataPtr += seqElemSize;
 
 			for(int n = 1; n < desc.FilterLen; ++n) {
 				// Restart the result data
-				float* resultDataPtr = GetRaw(resultStart);
-
+				float* resultDataPtr = resultStart;
 				for(int i = 0; i < seqElemSizeSse; ++i) {
 					__m128 src = _mm_loadu_ps(sourceDataPtr);
 					__m128 res = _mm_loadu_ps(resultDataPtr);

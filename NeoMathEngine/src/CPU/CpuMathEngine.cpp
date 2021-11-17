@@ -71,6 +71,9 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 			customSgemmFunction = simdMathEngine->GetSgemmFunction();
 		}
 	}
+#else // NEOML_USE_AVX
+	// warning fix
+	(void)customSgemmFunction;
 #endif
 }
 
@@ -242,6 +245,26 @@ IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters() const
 	#error "Platform is not supported!";
 	return 0;
 #endif
+}
+
+void CCpuMathEngine::SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info )
+{
+	communicator = comm;
+	distributedInfo = info;
+}
+
+void CCpuMathEngine::AllReduce( const CFloatHandle& handle, int size )
+{
+	if( communicator != nullptr ){
+		communicator->AllReduce( handle, size );
+	}
+}
+
+void CCpuMathEngine::Broadcast( const CFloatHandle& handle, int size, int root )
+{
+	if( communicator != nullptr ){
+		communicator->Broadcast( handle, size, root );
+	}
 }
 
 void CpuMathEngineCleanUp()

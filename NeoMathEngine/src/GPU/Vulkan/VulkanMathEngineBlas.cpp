@@ -54,7 +54,6 @@ namespace NeoML {
 #include <shaders/generated/BatchMultiplyTransposedMatrixByMatrixBorders.h>
 #include <shaders/generated/BatchInitAddMultiplyMatrixByTransposedMatrix.h>
 #include <shaders/generated/BatchInitMultiplyMatrixByTransposedMatrixBorders.h>
-#include <shaders/generated/SetVectorToMatrixElements.h>
 #include <shaders/generated/FindMaxValueInRows.h>
 #include <shaders/generated/FindMaxValueInRowsNoIndices.h>
 #include <shaders/generated/FindMaxValueInColumns.h>
@@ -76,10 +75,12 @@ namespace NeoML {
 #include <shaders/generated/MatrixSpreadRowsInt.h>
 #include <shaders/generated/FindMaxValueInColumnsNoIndices.h>
 #include <shaders/generated/FindMinValueInColumns.h>
-#include <shaders/generated/VectorMultichannelLookupAndCopyFloat.h>
-#include <shaders/generated/VectorMultichannelCopyFloat.h>
-#include <shaders/generated/VectorMultichannelLookupAndCopyInt.h>
-#include <shaders/generated/VectorMultichannelCopyInt.h>
+#include <shaders/generated/VectorMultichannelLookupAndCopyFloatIndicesFloatData.h>
+#include <shaders/generated/VectorMultichannelLookupAndCopyIntIndicesFloatData.h>
+#include <shaders/generated/VectorMultichannelLookupAndCopyIntIndicesIntData.h>
+#include <shaders/generated/VectorMultichannelCopyFloatIndicesFloatData.h>
+#include <shaders/generated/VectorMultichannelCopyIntIndicesFloatData.h>
+#include <shaders/generated/VectorMultichannelCopyIntIndicesIntData.h>
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -379,31 +380,6 @@ void CVulkanMathEngine::AddVectorToMatrixElements( const CFloatHandle&, int, int
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::SetVectorToMatrixElements( const CFloatHandle& matrixHandle, int height, int width,
-	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-	const CConstFloatHandle& vectorHandle, int vectorSize )
-{
-	CMemoryHandle bufs[4] = { rowIndicesHandle, columnIndicesHandle, vectorHandle, matrixHandle };
-	size_t sizes[4] = { vectorSize * sizeof(int), vectorSize * sizeof(int), vectorSize * sizeof(float), height * width * sizeof(float) };
-
-	PARAM_STRUCT(SetVectorToMatrixElements) param = { width };
-
-	runShader( shaderLoader->GET_SHADER_DATA(SetVectorToMatrixElements, true, 0, 0, 4),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 4, vectorSize, 1, 1 );
-}
-
-void CVulkanMathEngine::EltwiseLogSumExpVectorToMatrixElements( const CFloatHandle&, int, int, const CConstIntHandle&,
-	const CConstFloatHandle& )
-{
-	ASSERT_EXPR( false );
-}
-
-void CVulkanMathEngine::EltwiseLogSumExpVectorToMatrixElements( const CFloatHandle&, int, int,
-	const CConstIntHandle&, const CConstIntHandle&, const CConstFloatHandle&, int )
-{
-	ASSERT_EXPR( false );
-}
-
 void CVulkanMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
 	const CConstIntHandle& indices, const CFloatHandle& result, int vectorSize)
 {
@@ -533,10 +509,10 @@ void CVulkanMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int chan
 		size_t sizes[3] = { batchSize * channelCount * sizeof(float), 
 			lookupDimensions[i].VectorSize * lookupDimensions[i].VectorCount * sizeof(float), batchSize * outputChannelCount * sizeof(int) };
 
-		PARAM_STRUCT(VectorMultichannelLookupAndCopyFloat) param =
+		PARAM_STRUCT(VectorMultichannelLookupAndCopyFloatIndicesFloatData) param =
 			{ batchSize, i, channelCount, outputChannelCount, lookupDimensions[i].VectorSize, outputChannel };
 
-		runShader( shaderLoader->GET_SHADER_DATA(VectorMultichannelLookupAndCopyFloat, true, 0, 0, 3),
+		runShader( shaderLoader->GET_SHADER_DATA(VectorMultichannelLookupAndCopyFloatIndicesFloatData, true, 0, 0, 3),
 			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, Ceil(batchSize, 4), lookupDimensions[i].VectorSize, 1 );	
         
         outputChannel += lookupDimensions[i].VectorSize;
@@ -546,10 +522,10 @@ void CVulkanMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int chan
     	CMemoryHandle bufs[2] = { inputHandle, outputHandle };
 		size_t sizes[2] = { batchSize * channelCount * sizeof(float), batchSize * outputChannelCount * sizeof(int)  };
 
-		PARAM_STRUCT(VectorMultichannelCopyFloat) param =
+		PARAM_STRUCT(VectorMultichannelCopyFloatIndicesFloatData) param =
 			{ batchSize, channelCount, outputChannelCount, lookupCount, outputChannel, channelCount - lookupCount };
 
-		runShader( shaderLoader->GET_SHADER_DATA(VectorMultichannelCopyFloat, true, 0, 0, 2),
+		runShader( shaderLoader->GET_SHADER_DATA(VectorMultichannelCopyFloatIndicesFloatData, true, 0, 0, 2),
 			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, Ceil(batchSize, 4), channelCount - lookupCount, 1 );	
 	}
 }
@@ -567,10 +543,10 @@ void CVulkanMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int chan
 		size_t sizes[3] = { batchSize * channelCount * sizeof(int), 
 			lookupDimensions[i].VectorSize * lookupDimensions[i].VectorCount * sizeof(float), batchSize * outputChannelCount * sizeof(int) };
 
-		PARAM_STRUCT(VectorMultichannelLookupAndCopyInt) param =
+		PARAM_STRUCT(VectorMultichannelLookupAndCopyIntIndicesFloatData) param =
 			{ batchSize, i, channelCount, outputChannelCount, lookupDimensions[i].VectorSize, outputChannel };
 
-		runShader( shaderLoader->GET_SHADER_DATA(VectorMultichannelLookupAndCopyInt, true, 0, 0, 3),
+		runShader( shaderLoader->GET_SHADER_DATA(VectorMultichannelLookupAndCopyIntIndicesFloatData, true, 0, 0, 3),
 			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, Ceil(batchSize, 4), lookupDimensions[i].VectorSize, 1 );	
         
         outputChannel += lookupDimensions[i].VectorSize;
@@ -580,10 +556,44 @@ void CVulkanMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int chan
     	CMemoryHandle bufs[2] = { inputHandle, outputHandle };
 		size_t sizes[2] = { batchSize * channelCount * sizeof(float), batchSize * outputChannelCount * sizeof(int)  };
 
-		PARAM_STRUCT(VectorMultichannelCopyInt) param =
+		PARAM_STRUCT(VectorMultichannelCopyIntIndicesFloatData) param =
 			{ batchSize, channelCount, outputChannelCount, lookupCount, outputChannel, channelCount - lookupCount };
 
-		runShader( shaderLoader->GET_SHADER_DATA(VectorMultichannelCopyInt, true, 0, 0, 2),
+		runShader( shaderLoader->GET_SHADER_DATA(VectorMultichannelCopyIntIndicesFloatData, true, 0, 0, 2),
+			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, Ceil(batchSize, 4), channelCount - lookupCount, 1 );	
+	}
+}
+
+void CVulkanMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+	const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+	const CIntHandle& outputHandle, int outputChannelCount )
+{
+    ASSERT_EXPR( inputHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+    int outputChannel = 0;
+    for( int i = 0; i < lookupCount; ++i ) {
+		CMemoryHandle bufs[3] = { inputHandle, lookupHandles[i], outputHandle };
+		size_t sizes[3] = { batchSize * channelCount * sizeof(int), 
+			lookupDimensions[i].VectorSize * lookupDimensions[i].VectorCount * sizeof(float), batchSize * outputChannelCount * sizeof(int) };
+
+		PARAM_STRUCT(VectorMultichannelLookupAndCopyIntIndicesIntData) param =
+			{ batchSize, i, channelCount, outputChannelCount, lookupDimensions[i].VectorSize, outputChannel };
+
+		runShader( shaderLoader->GET_SHADER_DATA(VectorMultichannelLookupAndCopyIntIndicesIntData, true, 0, 0, 3),
+			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, Ceil(batchSize, 4), lookupDimensions[i].VectorSize, 1 );	
+        
+        outputChannel += lookupDimensions[i].VectorSize;
+    }
+    
+    if( lookupCount < channelCount ) {
+    	CMemoryHandle bufs[2] = { inputHandle, outputHandle };
+		size_t sizes[2] = { batchSize * channelCount * sizeof(float), batchSize * outputChannelCount * sizeof(int)  };
+
+		PARAM_STRUCT(VectorMultichannelCopyIntIndicesIntData) param =
+			{ batchSize, channelCount, outputChannelCount, lookupCount, outputChannel, channelCount - lookupCount };
+
+		runShader( shaderLoader->GET_SHADER_DATA(VectorMultichannelCopyIntIndicesIntData, true, 0, 0, 2),
 			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, Ceil(batchSize, 4), channelCount - lookupCount, 1 );	
 	}
 }
@@ -738,11 +748,6 @@ void CVulkanMathEngine::MatrixSoftmaxByRows( const CConstFloatHandle& matrix, in
 }
 
 void CVulkanMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle&, const CConstFloatHandle&, int, int, const CFloatHandle& )
-{
-	ASSERT_EXPR( false );
-}
-
-void CVulkanMathEngine::MatrixLogSumExpByColumns( const CConstFloatHandle&, int, int, const CFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
 }

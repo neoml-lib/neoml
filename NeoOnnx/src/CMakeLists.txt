@@ -6,80 +6,86 @@ endif()
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE GROUP
+)
+
 target_sources( ${PROJECT_NAME} PRIVATE
-    NeoOnnx.cpp
-    Node.cpp
-    OpNodeAttributes.cpp
-    Nodes/AbsNode.cpp
-    Nodes/AddNode.cpp
-    Nodes/BatchNormalizationNode.cpp
-    Nodes/ClipNode.cpp
-    Nodes/ConcatNode.cpp
-    Nodes/ConstantNode.cpp
-    Nodes/ConstantOfShapeNode.cpp
-    Nodes/ConvNode.cpp
-    Nodes/EluNode.cpp
-    Nodes/FlattenNode.cpp
-    Nodes/GatherNode.cpp
-    Nodes/GemmNode.cpp
-    Nodes/GlobalAveragePoolNode.cpp
-    Nodes/GlobalPoolNodeBase.cpp
-    Nodes/GraphInput.cpp
-    Nodes/GraphInitializer.cpp
-    Nodes/GraphOutput.cpp
-    Nodes/LeakyReluNode.cpp
-    Nodes/LstmNode.cpp
-    Nodes/PoolNode.cpp
-    Nodes/ReduceMeanNode.cpp
-    Nodes/ReluNode.cpp
-    Nodes/ReshapeNode.cpp
-    Nodes/ShapeNode.cpp
-    Nodes/SigmoidNode.cpp
-    Nodes/SliceNode.cpp
-    Nodes/SqueezeNode.cpp
-    Nodes/TanhNode.cpp
-    Nodes/UnsqueezeNode.cpp
-    NodeUtils.cpp
+    GraphInput.cpp
+    GraphInitializer.cpp
+    GraphOutput.cpp
+    NeoOnnxImport.cpp
+    NeoOnnxCheck.cpp
+    LayerOperator.cpp
+    Operator.cpp
+    Operators/ActivationOperator.cpp
+    Operators/BatchNormalizationOperator.cpp
+    Operators/CastOperator.cpp
+    Operators/ConcatOperator.cpp
+    Operators/ConstantOfShapeOperator.cpp
+    Operators/ConstantOperator.cpp
+    Operators/ConvOperator.cpp
+    Operators/DropoutOperator.cpp
+    Operators/EltwiseOperator.cpp
+    Operators/FlattenOperator.cpp
+    Operators/GatherOperator.cpp
+    Operators/GemmOperator.cpp
+    Operators/GlobalPoolOperator.cpp
+    Operators/IdentityOperator.cpp
+    Operators/LrnOperator.cpp
+    Operators/LstmOperator.cpp
+    Operators/MatMulOperator.cpp
+    Operators/PadOperator.cpp
+    Operators/PoolOperator.cpp
+    Operators/RangeOperator.cpp
+    Operators/ReshapeOperator.cpp
+    Operators/ShapeOperator.cpp
+    Operators/SliceOperator.cpp
+    Operators/SoftmaxOperator.cpp
+    Operators/SqueezeOperator.cpp
+    Operators/TransposeOperator.cpp
+    Operators/UnsqueezeOperator.cpp
+    TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
-    Graph.h
-    GraphCache.h
-    NeoMLLink.h
+    ../include/NeoOnnx/NeoOnnxImport.h
+    AttributeGetters.h
+    GraphInput.h
+    GraphInitializer.h
+    GraphOutput.h
+    LayerOperator.h
     NeoOnnxCheck.h
-    Node.h
-    OpNodeAttributes.h
-    Nodes/AbsNode.h
-    Nodes/AddNode.h
-    Nodes/BatchNormalizationNode.h
-    Nodes/ClipNode.h
-    Nodes/ConcatNode.h
-    Nodes/ConstantNode.h
-    Nodes/ConstantOfShapeNode.h
-    Nodes/ConvNode.h
-    Nodes/EluNode.h
-    Nodes/FlattenNode.h
-    Nodes/GatherNode.h
-    Nodes/GemmNode.h
-    Nodes/GlobalAveragePoolNode.h
-    Nodes/GlobalPoolNodeBase.h
-    Nodes/GraphInput.h
-    Nodes/GraphInitializer.h
-    Nodes/GraphOutput.h
-    Nodes/LeakyReluNode.h
-    Nodes/LstmNode.h
-    Nodes/PoolNode.h
-    Nodes/ReduceMeanNode.h
-    Nodes/ReluNode.h
-    Nodes/ReshapeNode.h
-    Nodes/ShapeNode.h
-    Nodes/SigmoidNode.h
-    Nodes/SliceNode.h
-    Nodes/SqueezeNode.h
-    Nodes/TanhNode.h
-    Nodes/UnsqueezeNode.h
-    NodeUtils.h
+    Operator.h
+    Operators/ActivationOperator.h
+    Operators/BatchNormalizationOperator.h
+    Operators/CastOperator.h
+    Operators/ConcatOperator.h
+    Operators/ConstantOfShapeOperator.h
+    Operators/ConstantOperator.h
+    Operators/ConvOperator.h
+    Operators/DropoutOperator.h
+    Operators/EltwiseOperator.h
+    Operators/FlattenOperator.h
+    Operators/GatherOperator.h
+    Operators/GemmOperator.h
+    Operators/GlobalPoolOperator.h
+    Operators/IdentityOperator.h
+    Operators/LrnOperator.h
+    Operators/LstmOperator.h
+    Operators/MatMulOperator.h
+    Operators/PadOperator.h
+    Operators/PoolOperator.h
+    Operators/RangeOperator.h
+    Operators/ReshapeOperator.h
+    Operators/ShapeOperator.h
+    Operators/SliceOperator.h
+    Operators/SoftmaxOperator.h
+    Operators/SqueezeOperator.h
+    Operators/TransposeOperator.h
+    Operators/UnsqueezeOperator.h
     Tensor.h
+    TensorLayout.h
     TensorUtils.h
 )
 
@@ -138,7 +144,9 @@ if(NOT NeoOnnx_BUILD_SHARED)
 endif()
 
 if(NeoOnnx_BUILD_SHARED AND NOT WIN32)
-    set(EXPORT_SYMBOLS _ZN7NeoOnnx12LoadFromOnnxEPKcRN5NeoML4CDnnE _ZN7NeoOnnx12LoadFromOnnxEPKviRN5NeoML4CDnnE)
+    set(EXPORT_SYMBOLS
+        _ZN7NeoOnnx12LoadFromOnnxEPKviRN5NeoML4CDnnERN4FObj6CArrayIPKcNS5_20CurrentMemoryManagerEEESB_
+        _ZN7NeoOnnx12LoadFromOnnxEPKcRN5NeoML4CDnnERN4FObj6CArrayIS1_NS5_20CurrentMemoryManagerEEES9_)
     if(LINUX OR ANDROID)
         set(EXPORT_SYMBOLS_STR "${EXPORT_SYMBOLS};")
         configure_file(../NeoOnnx.version.in NeoOnnx.version)

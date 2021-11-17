@@ -41,18 +41,33 @@ void CCpuMathEngine::VectorExp(const CConstFloatHandle& firstHandle, const CFloa
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
+	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
+
 #ifdef NEOML_USE_MKL
 	CFloatHandleStackVar minLimit( mathEngine(), 1 );
 	minLimit.SetValue( FLT_MIN_LOG );
 	CFloatHandleStackVar maxLimit( mathEngine(), 1 );
 	maxLimit.SetValue( FLT_MAX_LOG );
 	VectorMinMax(firstHandle, resultHandle, vectorSize, minLimit, maxLimit);
-	vsExp(vectorSize, GetRaw(resultHandle), GetRaw(resultHandle));
+	float* result = GetRaw( resultHandle );
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount )
+		{
+			int start;
+			int count;
+			if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
+				vsExp(count, result + start, result + start);
+			}
+		}
+	} else {
+		vsExp(vectorSize, result, result);
+	}
 #else
 	const float* first = GetRaw(firstHandle);
 	float* result = GetRaw(resultHandle);
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < vectorSize; ++i) {
-		*result++ = ExponentFunc(*first++);
+		result[i] = ExponentFunc(first[i]);
 	}
 #endif
 }
@@ -125,13 +140,26 @@ void CCpuMathEngine::VectorTanh(const CConstFloatHandle& firstHandle, const CFlo
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
+	const int curThreadCount = IsOmpRelevant( vectorSize, 8 * vectorSize ) ? threadCount : 1;
 #ifdef NEOML_USE_MKL
-	vsTanh(vectorSize, GetRaw(firstHandle), GetRaw(resultHandle));
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount )
+		{
+			int start;
+			int count;
+			if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
+				vsTanh(count, GetRaw(firstHandle) + start, GetRaw(resultHandle) + start);
+			}
+		}
+	} else {
+		vsTanh(vectorSize, GetRaw(firstHandle), GetRaw(resultHandle));
+	}
 #else
 	const float* first = GetRaw(firstHandle);
 	float* result = GetRaw(resultHandle);
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < vectorSize; ++i) {
-		*result++ = -1.f + 2 / (1.f + ExponentFunc(-2 * *first++));
+		result[i] = -1.f + 2 / (1.f + ExponentFunc(-2 * first[i]));
 	}
 #endif
 }
@@ -152,7 +180,7 @@ void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstH
 #endif
 }
 
-void CCpuMathEngine::VectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+void CCpuMathEngine::vectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );

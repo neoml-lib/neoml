@@ -99,6 +99,7 @@ void CCommonCluster::RecalcCenter()
 	}
 
 	center.Norm = DotProduct( center.Mean, center.Mean );
+	center.Weight = sumWeight;
 }
 
 } // namespace NeoML

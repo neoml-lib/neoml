@@ -28,6 +28,11 @@ CCublasDll* CDllLoader::cublasDll = nullptr;
 int CDllLoader::cudaDllLinkCount = 0;
 #endif
 
+#ifdef NEOML_USE_NCCL
+CNcclDll* CDllLoader::ncclDll = nullptr;
+int CDllLoader::ncclDllLinkCount = 0;
+#endif
+
 #ifdef NEOML_USE_VULKAN
 CVulkanDll* CDllLoader::vulkanDll = nullptr;
 int CDllLoader::vulkanDllLinkCount = 0;
@@ -82,6 +87,22 @@ int CDllLoader::Load( int dll )
 		}
 #endif
 
+#ifdef NEOML_USE_NCCL
+	if( (dll & NCCL_DLL) != 0 ) {
+		if( ncclDll == nullptr ){
+			ncclDll = new CNcclDll();
+		}
+
+		if( !ncclDll->Load() ){
+			delete ncclDll;
+			ncclDll = nullptr;
+		} else {
+			result |= NCCL_DLL;
+			ncclDllLinkCount++;
+		}
+	}
+#endif
+
 #ifdef NEOML_USE_AVX
 		if( ( dll & AVX_DLL ) != 0 ) {
 			if( avxDll == nullptr ) {
@@ -122,6 +143,16 @@ void CDllLoader::Free( int dll )
 				cusparseDll = nullptr;
 				delete cublasDll;
 				cublasDll = nullptr;
+			}
+		}
+#endif
+
+#ifdef NEOML_USE_NCCL
+		if( (dll & NCCL_DLL) != 0 && ncclDllLinkCount > 0 ) {
+			ncclDllLinkCount--;
+			if( ncclDllLinkCount <= 0 ) {
+				delete ncclDll;
+				ncclDll = nullptr;
 			}
 		}
 #endif

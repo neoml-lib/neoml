@@ -6,7 +6,7 @@ endif()
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-target_sources( ${PROJECT_NAME} PRIVATE
+set(NeoML_SOURCES
     ArchiveFile.cpp
     NeoML.cpp
     Random.cpp
@@ -16,8 +16,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Dnn.cpp
     Dnn/DnnBlob.cpp
     Dnn/DnnInitializer.cpp
-    Dnn/DnnSolver.cpp
     Dnn/DnnSparseMatrix.cpp
+    Dnn/DnnDistributed.cpp
     Dnn/Layers/3dConvLayer.cpp
     Dnn/Layers/3dPoolingLayer.cpp
     Dnn/Layers/3dTransposedConvLayer.cpp
@@ -33,6 +33,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/BinaryCrossEntropyLayer.cpp
     Dnn/Layers/BinaryFocalLossLayer.cpp
+    Dnn/Layers/CastLayer.cpp
     Dnn/Layers/CenterLossLayer.cpp
     Dnn/Layers/ChannelwiseConvLayer.cpp
     Dnn/Layers/CompositeLayer.cpp
@@ -42,6 +43,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/CrfLayer.cpp
     Dnn/Layers/CrossEntropyLossLayer.cpp
     Dnn/Layers/CtcLayer.cpp
+    Dnn/Layers/DataLayer.cpp
     Dnn/Layers/DepthToSpaceLayer.cpp
     Dnn/Layers/DotProductLayer.cpp
     Dnn/Layers/DropoutLayer.cpp
@@ -60,7 +62,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/ImageResizeLayer.cpp
     Dnn/Layers/IndRnnLayer.cpp
     Dnn/Layers/IrnnLayer.cpp
-    Dnn/Layers/LossLayer.cpp
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
@@ -89,6 +90,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Dnn/Layers/SubSequenceLayer.cpp
     Dnn/Layers/TiedEmbeddingsLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
+    Dnn/Layers/TransformerLayer.cpp
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
     Dnn/Layers/TransposeLayer.cpp
@@ -97,17 +99,10 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/ClassificationProbability.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
-    TraditionalML/CompactRegressionTree.cpp
-    TraditionalML/CompactRegressionTree.h
     TraditionalML/CrossValidation.cpp
     TraditionalML/CrossValidationSubProblem.cpp
-    TraditionalML/DecisionTreeClassificationModel.cpp
-    TraditionalML/DecisionTreeClassificationModel.h
     TraditionalML/DecisionTreeNodeBase.cpp
-    TraditionalML/DecisionTreeNodeBase.h
     TraditionalML/DecisionTreeNodeClassificationStatistic.cpp
-    TraditionalML/DecisionTreeNodeClassificationStatistic.h
-    TraditionalML/DecisionTreeNodeStatisticBase.h
     TraditionalML/DecisionTree.cpp
     TraditionalML/DifferentialEvolution.cpp
     TraditionalML/FeatureSelection.cpp
@@ -115,56 +110,84 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TraditionalML/FloatVector.cpp
     TraditionalML/Function.cpp
     TraditionalML/FunctionEvaluation.cpp
-    TraditionalML/GradientBoost.cpp
     TraditionalML/GradientBoostFastHistProblem.cpp
-    TraditionalML/GradientBoostFastHistProblem.h
     TraditionalML/GradientBoostFastHistTreeBuilder.cpp
-    TraditionalML/GradientBoostFastHistTreeBuilder.h
     TraditionalML/GradientBoostFullProblem.cpp
-    TraditionalML/GradientBoostFullProblem.h
     TraditionalML/GradientBoostFullTreeBuilder.cpp
-    TraditionalML/GradientBoostFullTreeBuilder.h
-    TraditionalML/GradientBoostModel.cpp
-    TraditionalML/GradientBoostModel.h
     TraditionalML/GradientBoostQSEnsemble.cpp
-    TraditionalML/GradientBoostQSEnsemble.h
-    TraditionalML/GradientBoostQuickScorer.cpp
-    TraditionalML/GradientBoostStatisticsSingle.h
-    TraditionalML/GradientBoostStatisticsMulti.h
     TraditionalML/HierarchicalClustering.cpp
     TraditionalML/IsoDataClustering.cpp
     TraditionalML/KMeansClustering.cpp
     TraditionalML/Linear.cpp
-    TraditionalML/LinearBinaryModel.cpp
-    TraditionalML/LinearBinaryModel.h
     TraditionalML/LinkedRegressionTree.cpp
-    TraditionalML/LinkedRegressionTree.h
     TraditionalML/MemoryProblem.cpp
+    TraditionalML/NaiveHierarchicalClustering.cpp
+    TraditionalML/NnChainHierarchicalClustering.cpp
     TraditionalML/OneVersusAll.cpp
-    TraditionalML/OneVersusAllModel.cpp
-    TraditionalML/OneVersusAllModel.h
     TraditionalML/OneVersusOne.cpp
-    TraditionalML/OneVersusOneModel.cpp
-    TraditionalML/OneVersusOneModel.h
     TraditionalML/PlattScalling.cpp
     TraditionalML/ProblemWrappers.cpp
-    TraditionalML/ProblemWrappers.h
-    TraditionalML/ProblemWrappers.inl
-    TraditionalML/RegressionTree.h
     TraditionalML/Score.cpp
-    TraditionalML/SerializeCompact.h
     TraditionalML/Shuffler.cpp
     TraditionalML/SMOptimizer.cpp
-    TraditionalML/SMOptimizer.h
     TraditionalML/SparseFloatMatrix.cpp
-    TraditionalML/SparseFloatVector.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
     TraditionalML/Svm.cpp
     TraditionalML/PCA.cpp
-    TraditionalML/SvmBinaryModel.cpp
-    TraditionalML/SvmBinaryModel.h
     TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
+)
+set(NeoML_NON_UNITY_SOURCES
+    Dnn/DnnSolver.cpp
+    Dnn/Layers/LossLayer.cpp
+    Dnn/Layers/LstmLayer.cpp
+    TraditionalML/CompactRegressionTree.cpp
+    TraditionalML/DecisionTreeClassificationModel.cpp
+    TraditionalML/GradientBoost.cpp
+    TraditionalML/GradientBoostModel.cpp
+    TraditionalML/GradientBoostQuickScorer.cpp
+    TraditionalML/LinearBinaryModel.cpp
+    TraditionalML/LinkedRegressionTree.cpp
+    TraditionalML/OneVersusAllModel.cpp
+    TraditionalML/OneVersusOneModel.cpp
+    TraditionalML/SparseFloatVector.cpp
+    TraditionalML/SvmBinaryModel.cpp
+)
+
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE BATCH
+    UNITY_BUILD_BATCH_SIZE ${NeoML_UNITY_BUILD_BATCH_SIZE}
+)
+set_property(SOURCE ${NeoML_NON_UNITY_SOURCES} PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
+
+target_sources( ${PROJECT_NAME} PRIVATE
+    ${NeoML_SOURCES}
+    ${NeoML_NON_UNITY_SOURCES}
+    TraditionalML/CompactRegressionTree.h
+    TraditionalML/DecisionTreeClassificationModel.h
+    TraditionalML/DecisionTreeNodeBase.h
+    TraditionalML/DecisionTreeNodeClassificationStatistic.h
+    TraditionalML/DecisionTreeNodeStatisticBase.h
+    TraditionalML/GradientBoostFastHistProblem.h
+    TraditionalML/GradientBoostFastHistTreeBuilder.h
+    TraditionalML/GradientBoostFullProblem.h
+    TraditionalML/GradientBoostFullTreeBuilder.h
+    TraditionalML/GradientBoostModel.h
+    TraditionalML/GradientBoostQSEnsemble.h
+    TraditionalML/GradientBoostStatisticsSingle.h
+    TraditionalML/GradientBoostStatisticsMulti.h
+    TraditionalML/LinearBinaryModel.h
+    TraditionalML/LinkedRegressionTree.h
+    TraditionalML/NaiveHierarchicalClustering.h
+    TraditionalML/NnChainHierarchicalClustering.h
+    TraditionalML/OneVersusAllModel.h
+    TraditionalML/OneVersusOneModel.h
+    TraditionalML/ProblemWrappers.h
+    TraditionalML/RegressionTree.h
+    TraditionalML/SerializeCompact.h
+    TraditionalML/SMOptimizer.h
+    TraditionalML/SvmBinaryModel.h
+    TraditionalML/ProblemWrappers.inl
 
     # Headers
     ../include/NeoML/ArchiveFile.h
@@ -182,6 +205,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
     ../include/NeoML/Dnn/DnnLambdaHolder.h
+    ../include/NeoML/Dnn/DnnDistributed.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h
@@ -195,6 +219,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/BatchNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
+    ../include/NeoML/Dnn/Layers/CastLayer.h
     ../include/NeoML/Dnn/Layers/CenterLossLayer.h
     ../include/NeoML/Dnn/Layers/ChannelwiseConvLayer.h
     ../include/NeoML/Dnn/Layers/CompositeLayer.h
@@ -202,6 +227,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ConvLayer.h
     ../include/NeoML/Dnn/Layers/CrfLayer.h
     ../include/NeoML/Dnn/Layers/CtcLayer.h
+    ../include/NeoML/Dnn/Layers/DataLayer.h
     ../include/NeoML/Dnn/Layers/DepthToSpaceLayer.h
     ../include/NeoML/Dnn/Layers/DotProductLayer.h
     ../include/NeoML/Dnn/Layers/DropoutLayer.h
@@ -246,6 +272,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/SubSequenceLayer.h
     ../include/NeoML/Dnn/Layers/TiedEmbeddingsLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h
+    ../include/NeoML/Dnn/Layers/TransformerLayer.h
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/TransposeLayer.h
