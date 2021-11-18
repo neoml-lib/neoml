@@ -21,6 +21,7 @@ limitations under the License.
 #include "PyMathEngine.h"
 #include "PyDnn.h"
 #include "PyDnnBlob.h"
+#include "PyDnnDistributed.h"
 #include "PyAutoDiff.h"
 #include "PyLayer.h"
 #include "PyAccumulativeLookupLayer.h"
@@ -110,6 +111,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeEltwiseLayer( m );
 	InitializeDotProductLayer( m );
 	InitializeDropoutLayer( m );
+	InitializeDistributedTraining( m );
 	InitializeFullyConnectedLayer( m );
 	InitializeImageConversionLayer( m );
 	InitializeIndRnnLayer( m );
