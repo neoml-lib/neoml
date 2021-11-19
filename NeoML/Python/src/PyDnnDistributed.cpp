@@ -46,10 +46,10 @@ py::array CPyDistributedTraining::LastLosses( const std::string& layer )
     GetLastLoss( layer, losses );
     py::array_t<double, py::array::c_style> lastLosses( { losses.Size() } );
     auto tempLosses = lastLosses.mutable_unchecked<1>();
-	for( int i = 0; i < losses.Size(); i++ ){
-		tempLosses(i) = losses[i];
-	}
-	return lastLosses;
+    for( int i = 0; i < losses.Size(); i++ ){
+        tempLosses(i) = losses[i];
+    }
+    return lastLosses;
 }
 
 void InitializeDistributedTraining(py::module& m)
