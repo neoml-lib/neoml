@@ -55,13 +55,13 @@ py::array CPyDistributedTraining::LastLosses( const std::string& layer )
 void InitializeDistributedTraining(py::module& m)
 {
 	py::class_<CPyDistributedTraining>(m, "DnnDistributed")
-		.def( py::init(
-			[]( const std::string& path, int count ) {
+        .def( py::init(
+            []( const std::string& path, int count ) {
                 CArchiveFile file( path.c_str(), CArchive::load );
                 CArchive archive( &file, CArchive::load );
-				return new CPyDistributedTraining( archive, count );
-			})
-		)
+                return new CPyDistributedTraining( archive, count );
+            })
+)
 
         .def( py::init(
 			[]( const std::string& path, py::list cudaDevs ) {
