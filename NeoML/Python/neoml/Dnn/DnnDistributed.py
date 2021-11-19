@@ -11,27 +11,62 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 """
 
+from neoml.MathEngine import MathEngine
 import neoml.PythonWrapper as PythonWrapper
+
+def set_distributed_input(math_engine, thread, set_data):
+    me = MathEngine(math_engine)
+    data = set_data(me, thread)
+    if not type(data) is dict:
+        raise ValueError("Input for distributed net must be dict.")
+    return {k: v._internal for k, v in data.items()}
 
 class DnnDistributed(PythonWrapper.DnnDistributed):
     """Single process, multiple threads distributed training.
     
-    :param dnn: .
-    :type neoml.Dnn
-    :param type: .
-    :type random: , default=None 
+    :param dnn: The dnn to learn distributed.
+    :type dnn: neoml.Dnn
+    :param type: Learn on cpu or gpu.
+    :type type: str, ("cpu", "gpu"), default="cpu"
+    :param count: Count of models to use.
+    :type count: int, default=0
+    :param devs: Numbers of gpus to use
+    :type devs: list, default=None
+    :param path: The archive filename using for internal purposes.
+    :type path: str, default="distributed.arch"
     """
     def __init__(self, dnn, type='cpu', count=0, devs=None, path='distributed.arch'):
         if type == 'cpu':
             if count < 1:
-                raise ValueError('Count must be a positive number.')
+                raise ValueError('`count` must be a positive number.')
             dnn.store(path)
             super().__init__(path, count)
         elif type == 'cuda':
             if devs is None:
-                raise ValueError('`devs` must be specified.')
+                if count < 1:
+                    raise ValueError('`devs` or `count` must be specified.')
+                devs = list(range(count))
             dnn.store(path)
             super().__init__(path, devs)
         else:
-            raise ValueError('type must be one of: `cpu`, `cuda`.')
-        
+            raise ValueError('`type` must be one of: "cpu", "cuda".')
+
+    def learn(self, set_data):
+        """Performs one iteration of learning.
+
+        :param set_data: A callback that takes a math_engine and thread number
+            as an argument. It must return a dictionary of input blobs for the
+            dnn on a given thread, this dictionary must be the same as for the
+            learn method of a dnn.
+        :type set_data: callable
+        """
+        self._learn(set_data)
+
+    def last_losses(self, layer_name):
+        """Gets values of the loss function on the last step for all models.
+
+        :param layer_name: The name of the loss layer for which last losses will
+            be returned. The class of the layer with that name must be `Loss`.
+        :type layer_name: str
+        """
+        return self._last_losses(layer_name)

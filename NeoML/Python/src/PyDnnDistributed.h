@@ -12,4 +12,25 @@ limitations under the License.
 
 #pragma once
 
+#include "PyDnnBlob.h"
+#include <NeoML/Dnn/DnnDistributed.h>
+
+class CPyDistributedDataset : public IDistributedDataset {
+public:
+    CPyDistributedDataset( const py::object& data ) : getData( data ) {};
+    void SetInputBatch( CDnn& dnn, int thread ) override;
+private:
+    py::object getData;
+};
+
+class CPyDistributedTraining : public CDistributedTraining {
+public:
+    CPyDistributedTraining( CArchive& archive, int count )
+        : CDistributedTraining( archive, count ) {};
+    CPyDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs )
+        : CDistributedTraining( archive, cudaDevs ) {};
+    void Learn( const py::object& data );
+    py::array LastLosses( const std::string& layer );
+};
+
 void InitializeDistributedTraining(py::module& m);

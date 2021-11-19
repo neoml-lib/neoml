@@ -13,45 +13,43 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <map>
 #include "PyDnnDistributed.h"
-#include "PyDnnBlob.h"
-#include <NeoML/Dnn/DnnDistributed.h>
-
-class CPyDistributedDataset : public IDistributedDataset {
-public:
-    CPyDistributedDataset( py::list _inputs ) : inputs( _inputs ) {};
-    void SetInputBatch( CDnn& dnn, int thread ) override;
-private:
-    py::list inputs;
-};
 
 void CPyDistributedDataset::SetInputBatch( CDnn& dnn, int thread )
 {
-    CArray<const char*> layerNames;
-	dnn.GetLayerList( layerNames );
-    auto dnnInputs = inputs[thread].cast<std::map<std::string, CPyBlob>>();
+    py::gil_scoped_acquire acquire;
 
-    for( std::map<std::string, CPyBlob>::iterator it = dnnInputs.begin(); it != dnnInputs.end(); it++ ){
-		CPtr<CSourceLayer> layer = dynamic_cast<CSourceLayer*>( dnn.GetLayer( it->first.c_str() ).Ptr() );
-        CPyBlob input = it->second;
-		layer->SetBlob( input.Blob() );
-	}
+    CPyMathEngineOwner* owner = new CPyMathEngineOwner( &dnn.GetMathEngine(), false );
+    CPyMathEngine mathEngine( *owner );
+    py::object pyModule = py::module::import( "neoml.Dnn.DnnDistributed" );
+    py::object pyFunction = pyModule.attr( "set_distributed_input" );
+    py::dict inputs = pyFunction( mathEngine, thread, getData );
+
+    for ( std::pair<py::handle, py::handle> item : inputs ){
+        auto layerName = item.first.cast<std::string>();
+        auto input = item.second.cast<CPyBlob>();
+        CPtr<CSourceLayer> layer = dynamic_cast<CSourceLayer*>( dnn.GetLayer( layerName.c_str() ).Ptr() );
+        layer->SetBlob( input.Blob() );
+    }
 }
 
-class CPyDistributedTraining : public CDistributedTraining {
-public:
-    CPyDistributedTraining( CArchive& archive, int count )
-        : CDistributedTraining( archive, count ) {};
-    CPyDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs )
-        : CDistributedTraining( archive, cudaDevs ) {};
-    void Learn( py::list inputs );
-};
-
-void CPyDistributedTraining::Learn( py::list inputs )
+void CPyDistributedTraining::Learn( const py::object& data )
 {
-    CPyDistributedDataset dataset( inputs );
+    py::gil_scoped_release release;
+    CPyDistributedDataset dataset( data );
     RunAndLearnOnce( dataset );
+}
+
+py::array CPyDistributedTraining::LastLosses( const std::string& layer )
+{
+    CArray<float> losses;
+    GetLastLoss( layer, losses );
+    py::array_t<double, py::array::c_style> lastLosses( { losses.Size() } );
+    auto tempLosses = lastLosses.mutable_unchecked<1>();
+	for( int i = 0; i < losses.Size(); i++ ){
+		tempLosses(i) = losses[i];
+	}
+	return lastLosses;
 }
 
 void InitializeDistributedTraining(py::module& m)
@@ -77,6 +75,7 @@ void InitializeDistributedTraining(py::module& m)
 			})
 		)
 
-        .def( "learn", &CPyDistributedTraining::Learn, py::return_value_policy::reference )
+        .def( "_learn", &CPyDistributedTraining::Learn, py::return_value_policy::reference )
+        .def( "_last_losses", &CPyDistributedTraining::LastLosses, py::return_value_policy::reference )
 	;
 } 
