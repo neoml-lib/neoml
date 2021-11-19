@@ -61,19 +61,19 @@ void InitializeDistributedTraining(py::module& m)
                 CArchive archive( &file, CArchive::load );
                 return new CPyDistributedTraining( archive, count );
             })
-)
+        )
 
         .def( py::init(
-			[]( const std::string& path, py::list cudaDevs ) {
+            []( const std::string& path, py::list cudaDevs ) {
                 CArchiveFile file( path.c_str(), CArchive::load );
                 CArchive archive( &file, CArchive::load );
                 CArray<int> devs;
                 for( int i = 0; i < cudaDevs.size(); i++ ){
                     devs.Add( cudaDevs[i].cast<int>() );
                 }
-				return new CPyDistributedTraining( archive, devs );
-			})
-		)
+                return new CPyDistributedTraining( archive, devs );
+            })
+        )
 
         .def( "_learn", &CPyDistributedTraining::Learn, py::return_value_policy::reference )
         .def( "_last_losses", &CPyDistributedTraining::LastLosses, py::return_value_policy::reference )
