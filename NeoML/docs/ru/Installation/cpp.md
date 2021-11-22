@@ -7,7 +7,7 @@
 - [Linux/macOS](#linux/macos)
 - [Android](#android)
 - [iOS](#ios)
-- [Troubleshooting]($troubleshooting)
+- [Troubleshooting](#troubleshooting)
 
 <!-- /TOC -->
 
