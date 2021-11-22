@@ -11,15 +11,11 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 """
 
+import uuid
+import os
 from neoml.MathEngine import MathEngine
 import neoml.PythonWrapper as PythonWrapper
 
-def set_distributed_input(math_engine, thread, set_data):
-    me = MathEngine(math_engine)
-    data = set_data(me, thread)
-    if not type(data) is dict:
-        raise ValueError("Input for distributed net must be dict.")
-    return {k: v._internal for k, v in data.items()}
 
 class DnnDistributed(PythonWrapper.DnnDistributed):
     """Single process, multiple threads distributed training.
@@ -35,7 +31,8 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
     :param path: The archive filename using for internal purposes.
     :type path: str, default="distributed.arch"
     """
-    def __init__(self, dnn, type='cpu', count=0, devs=None, path='distributed.arch'):
+    def __init__(self, dnn, type='cpu', count=0, devs=None):
+        path = str(uuid.uuid4())
         if type == 'cpu':
             if count < 1:
                 raise ValueError('`count` must be a positive number.')
@@ -50,6 +47,7 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
             super().__init__(path, devs)
         else:
             raise ValueError('`type` must be one of: "cpu", "cuda".')
+        os.remove(path)
 
     def learn(self, set_data):
         """Performs one iteration of learning.

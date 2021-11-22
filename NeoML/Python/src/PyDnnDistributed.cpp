@@ -21,13 +21,12 @@ void CPyDistributedDataset::SetInputBatch( CDnn& dnn, int thread )
 
     CPyMathEngineOwner* owner = new CPyMathEngineOwner( &dnn.GetMathEngine(), false );
     CPyMathEngine mathEngine( *owner );
-    py::object pyModule = py::module::import( "neoml.Dnn.DnnDistributed" );
-    py::object pyFunction = pyModule.attr( "set_distributed_input" );
-    py::dict inputs = pyFunction( mathEngine, thread, getData );
+    py::object pyMathEngine = py::module::import( "neoml.MathEngine" ).attr( "MathEngine" )( mathEngine );
+    py::dict inputs = getData( pyMathEngine, thread );
 
     for ( std::pair<py::handle, py::handle> item : inputs ){
         auto layerName = item.first.cast<std::string>();
-        auto input = item.second.cast<CPyBlob>();
+        auto input = item.second.attr( "_internal" ).cast<CPyBlob>();
         CPtr<CSourceLayer> layer = dynamic_cast<CSourceLayer*>( dnn.GetLayer( layerName.c_str() ).Ptr() );
         layer->SetBlob( input.Blob() );
     }
