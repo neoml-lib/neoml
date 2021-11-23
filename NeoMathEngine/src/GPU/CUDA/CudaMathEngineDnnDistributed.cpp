@@ -25,8 +25,6 @@ limitations under the License.
 
 namespace NeoML {
 
-static std::exception_ptr DistributedException = nullptr;
-
 #define ASSERT_NCCL( nccl, expr ) \
 	do { \
 		int _err_ = ( int ) ( expr ); \
@@ -108,7 +106,6 @@ void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int devsCo
     ncclUniqueId id;
     nccl->GetUniqueId( &id );
     auto isAbort = std::make_shared<std::atomic<bool>>( false );
-    isAbort->store( false );
     ASSERT_NCCL( nccl, nccl->GroupStart() );
     for( int i = 0; i < devsCount; i++ ){
         mathEngines[i]  = gpuManager->CreateMathEngine( cudaDevs[i], 0u );
