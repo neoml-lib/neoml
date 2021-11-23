@@ -2474,7 +2474,7 @@ kernel void matrixIndRnnRecurrentReLU( constant bool& reverse [[buffer(0)]],
 }
 
 kernel void vectorBertConv( constant float* data [[buffer(0)]],
-                            constant float* kernel [[buffer(1)]],
+                            constant float* kernelData [[buffer(1)]],
                             constant int& seqLen [[buffer(2)]],
                             constant int& batchSize [[buffer(3)]],
                             constant int& numHeads [[buffer(4)]],
@@ -2504,7 +2504,7 @@ kernel void vectorBertConv( constant float* data [[buffer(0)]],
         int dataOffset = h + b * headSize + ( seq - pad + kernelStart ) * dataSeqStep;
 
         for( int k = kernelStart; k < kernelEnd; ++k ) {
-            res += data[dataOffset] * kernel[kernelOffset + k];
+            res += data[dataOffset] * kernelData[kernelOffset + k];
             dataOffset += dataSeqStep;
         }
 
