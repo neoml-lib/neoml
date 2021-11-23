@@ -85,7 +85,7 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
     for ( int i = 0; i < cnns.Size(); i++ ) {
         threads[i].join();
     }
-    CheckArchitecture( errorMessage.IsEmpty(), "", errorMessage );
+    CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
 }
 
 void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>& losses )
