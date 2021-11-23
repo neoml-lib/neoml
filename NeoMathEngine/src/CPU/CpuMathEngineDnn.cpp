@@ -576,7 +576,7 @@ void CCpuMathEngine::QrnnFPoolingBackward( bool reverse, int sequenceLength, int
 	CConstFloatHandle f = forget;
 	CConstFloatHandle h0 = initialState;
 	CConstFloatHandle out = result;
-	CFloatHandle outDiff = resultDiff;
+	CFloatHandle outputDiff = resultDiff;
 	CFloatHandle zDiff = updateDiff;
 	CFloatHandle fDiff = forgetDiff;
 
@@ -587,37 +587,37 @@ void CCpuMathEngine::QrnnFPoolingBackward( bool reverse, int sequenceLength, int
 		z += firstElemOffset;
 		f += firstElemOffset;
 		out += firstElemOffset;
-		outDiff += firstElemOffset;
+		outputDiff += firstElemOffset;
 		zDiff += firstElemOffset;
 		fDiff += firstElemOffset;
 	}
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
-		// zDiff = outDiff * (1 - f) = outDiff - f * outDiff
-		VectorEltwiseNegMultiply( outDiff, f, zDiff, objectSize );
-		VectorAdd( zDiff, outDiff, zDiff, objectSize );
-		// fDiff = outDifF * (prevOut - z) = outDiff * prevOut - outDiff * z
-		VectorEltwiseNegMultiply( outDiff, z, fDiff, objectSize );
-		VectorEltwiseMultiplyAdd( outDiff, out + nextObjectOffset, fDiff, objectSize );
+		// zDiff = outputDiff * (1 - f) = outputDiff - f * outputDiff
+		VectorEltwiseNegMultiply( outputDiff, f, zDiff, objectSize );
+		VectorAdd( zDiff, outputDiff, zDiff, objectSize );
+		// fDiff = outDifF * (prevOut - z) = outputDiff * prevOut - outputDiff * z
+		VectorEltwiseNegMultiply( outputDiff, z, fDiff, objectSize );
+		VectorEltwiseMultiplyAdd( outputDiff, out + nextObjectOffset, fDiff, objectSize );
 		// Adding diff of recurrent part
-		// prevOutDiff += outDiff * f
-		VectorEltwiseMultiplyAdd( outDiff, f, outDiff + nextObjectOffset, objectSize );
+		// prevOutDiff += outputDiff * f
+		VectorEltwiseMultiplyAdd( outputDiff, f, outputDiff + nextObjectOffset, objectSize );
 
 		z += nextObjectOffset;
 		f += nextObjectOffset;
 		out += nextObjectOffset;
-		outDiff += nextObjectOffset;
+		outputDiff += nextObjectOffset;
 		zDiff += nextObjectOffset;
 		fDiff += nextObjectOffset;
 	}
 
 	// Last step
-	// zDiff = outDiff * (1 - f) = outDiff - f * outDiff
-	VectorEltwiseNegMultiply( outDiff, f, zDiff, objectSize );
-	VectorAdd( zDiff, outDiff, zDiff, objectSize );
-	VectorEltwiseNegMultiply( outDiff, z, fDiff, objectSize );
+	// zDiff = outputDiff * (1 - f) = outputDiff - f * outputDiff
+	VectorEltwiseNegMultiply( outputDiff, f, zDiff, objectSize );
+	VectorAdd( zDiff, outputDiff, zDiff, objectSize );
+	VectorEltwiseNegMultiply( outputDiff, z, fDiff, objectSize );
 	if( !h0.IsNull() ) {
-		VectorEltwiseMultiplyAdd( outDiff, h0, fDiff, objectSize );
+		VectorEltwiseMultiplyAdd( outputDiff, h0, fDiff, objectSize );
 	}
 }
 
@@ -706,7 +706,7 @@ void CCpuMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, in
 	CConstFloatHandle i = input;
 	CConstFloatHandle h0 = initialState;
 	CConstFloatHandle out = result;
-	CFloatHandle outDiff = resultDiff;
+	CFloatHandle outputDiff = resultDiff;
 	CFloatHandle zDiff = updateDiff;
 	CFloatHandle fDiff = forgetDiff;
 	CFloatHandle iDiff = inputDiff;
@@ -719,45 +719,45 @@ void CCpuMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, in
 		f += firstElemOffset;
 		i += firstElemOffset;
 		out += firstElemOffset;
-		outDiff += firstElemOffset;
+		outputDiff += firstElemOffset;
 		zDiff += firstElemOffset;
 		fDiff += firstElemOffset;
 		iDiff += firstElemOffset;
 	}
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
-		// zDiff = outDiff * i
-		VectorEltwiseMultiply( outDiff, i, zDiff, objectSize );
-		// fDiff = outDiff * prevOut
-		VectorEltwiseMultiply( outDiff, out + nextObjectOffset, fDiff, objectSize );
-		// iDiff = outDiff * z
-		VectorEltwiseMultiply( outDiff, z, iDiff, objectSize );
+		// zDiff = outputDiff * i
+		VectorEltwiseMultiply( outputDiff, i, zDiff, objectSize );
+		// fDiff = outputDiff * prevOut
+		VectorEltwiseMultiply( outputDiff, out + nextObjectOffset, fDiff, objectSize );
+		// iDiff = outputDiff * z
+		VectorEltwiseMultiply( outputDiff, z, iDiff, objectSize );
 		// Adding diff of recurrent part
-		// prevOutDiff += outDiff * f
-		VectorEltwiseMultiplyAdd( outDiff, f, outDiff + nextObjectOffset, objectSize );
+		// prevOutDiff += outputDiff * f
+		VectorEltwiseMultiplyAdd( outputDiff, f, outputDiff + nextObjectOffset, objectSize );
 
 		z += nextObjectOffset;
 		f += nextObjectOffset;
 		i += nextObjectOffset;
 		out += nextObjectOffset;
-		outDiff += nextObjectOffset;
+		outputDiff += nextObjectOffset;
 		zDiff += nextObjectOffset;
 		fDiff += nextObjectOffset;
 		iDiff += nextObjectOffset;
 	}
 
 	// Last step
-	// zDiff = outDiff * i
-	VectorEltwiseMultiply( outDiff, i, zDiff, objectSize );
-	// iDiff = outDiff * z
-	VectorEltwiseMultiply( outDiff, z, iDiff, objectSize );
+	// zDiff = outputDiff * i
+	VectorEltwiseMultiply( outputDiff, i, zDiff, objectSize );
+	// iDiff = outputDiff * z
+	VectorEltwiseMultiply( outputDiff, z, iDiff, objectSize );
 	if( h0.IsNull() ) {
 		// prevOut == 0
-		// fDiff = outDiff * prevOut = 0
+		// fDiff = outputDiff * prevOut = 0
 		VectorFill( fDiff, 0.f, objectSize );
 	} else {
-		// fDiff = outDiff * prevOut
-		VectorEltwiseMultiply( outDiff, h0, fDiff, objectSize );
+		// fDiff = outputDiff * prevOut
+		VectorEltwiseMultiply( outputDiff, h0, fDiff, objectSize );
 	}
 }
 
@@ -826,16 +826,16 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 	}
 }
 
-static inline void sigmoidActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outDiff,
+static inline void sigmoidActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outputDiff,
 	const CFloatHandle& inDiff, int dataSize, const CConstFloatHandle& )
 {
-	output.GetMathEngine()->VectorSigmoidDiffOp( output, outDiff, inDiff, dataSize );
+	output.GetMathEngine()->VectorSigmoidDiffOp( output, outputDiff, inDiff, dataSize );
 }
 
-static inline void reLUActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outDiff,
+static inline void reLUActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outputDiff,
 	const CFloatHandle& inDiff, int dataSize, const CConstFloatHandle& threshold )
 {
-	output.GetMathEngine()->VectorReLUDiffOp( output, outDiff, inDiff, dataSize, threshold );
+	output.GetMathEngine()->VectorReLUDiffOp( output, outputDiff, inDiff, dataSize, threshold );
 }
 
 void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
@@ -1058,6 +1058,91 @@ void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHandl
 
 	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * source.Height(), source.Width(), result.Channels(),
 		blockSize, false, GetRaw( resultData ), threadCount );
+}
+
+void CCpuMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle, int seqLen,
+	int batchSize, int numHeads, int headSize, int kernelSize, const CFloatHandle& outputHandle )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( kernelHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+	const int taskCount = seqLen * batchSize * numHeads;
+	const int curThreadCount = IsOmpRelevant( taskCount, taskCount * headSize * kernelSize ) ? threadCount : 1;
+
+	const int pad = ( kernelSize - 1 ) / 2;
+	const int dataSeqStep = batchSize * numHeads * headSize;
+
+	const float* data = GetRaw( dataHandle );
+	const float* kernel = GetRaw( kernelHandle );
+	float* output = GetRaw( outputHandle );
+
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int i = 0; i < taskCount; ++i ) {
+		const int b = i % ( batchSize * numHeads );
+		const int seq = i / ( batchSize * numHeads );
+
+		int outputOffset = i * headSize;
+		const int kernelOffset = i * kernelSize;
+
+		const int kernelStart = max( 0, pad - seq );
+		const int kernelEnd = min( kernelSize, seqLen + pad - seq );
+
+		vectorFill( output + outputOffset, 0.f, headSize );
+
+		for( int h = 0; h < headSize; ++h ) {
+			int dataOffset = h + b * headSize + ( seq - pad + kernelStart ) * dataSeqStep;
+			for( int k = kernelStart; k < kernelEnd; ++k ) {
+				output[outputOffset] += data[dataOffset] * kernel[kernelOffset + k];
+				dataOffset += dataSeqStep;
+			}
+			outputOffset++;
+		}
+	}
+}
+
+void CCpuMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+	const CConstFloatHandle& outputDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
+	const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( kernelHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputDiffHandle.GetMathEngine() == this );
+	ASSERT_EXPR( dataDiffHandle.GetMathEngine() == this );
+	ASSERT_EXPR( kernelDiffHandle.GetMathEngine() == this );
+
+	const int pad = ( kernelSize - 1 ) / 2;
+	const int dataSeqStep = batchSize * numHeads * headSize;
+
+	const int taskCount = batchSize * numHeads;
+	const int curThreadCount = IsOmpRelevant( taskCount, seqLen * taskCount * headSize * kernelSize ) ? threadCount : 1;
+
+	const float* data = GetRaw( dataHandle );
+	const float* kernel = GetRaw( kernelHandle );
+	const float* outputDiff = GetRaw( outputDiffHandle );
+	float* dataDiff = GetRaw( dataDiffHandle );
+	float* kernelDiff = GetRaw( kernelDiffHandle );
+
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int b = 0; b < taskCount; ++b ) {
+		for( int seq = 0; seq < seqLen; ++seq ) {
+			int outputOffset = ( seq * batchSize * numHeads + b ) * headSize;
+			const int kernelOffset = ( seq * batchSize * numHeads + b ) * kernelSize;
+
+			const int kernelStart = max( 0, pad - seq );
+			const int kernelEnd = min( kernelSize, seqLen + pad - seq );
+
+			for( int h = 0; h < headSize; ++h ) {
+				int dataOffset = h + b * headSize + ( seq - pad + kernelStart ) * dataSeqStep;
+				for( int k = kernelStart; k < kernelEnd; ++k ) {
+					dataDiff[dataOffset] += outputDiff[outputOffset] * kernel[kernelOffset + k];
+					kernelDiff[kernelOffset + k] += outputDiff[outputOffset] * data[dataOffset];
+					dataOffset += dataSeqStep;
+				}
+				outputOffset++;
+			}
+		}
+	}
 }
 
 } // namespace NeoML
