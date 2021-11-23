@@ -2528,3 +2528,20 @@ class ClusteringTestCase(MultithreadedTestCase):
 
     def test_kmeans(self):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
+
+
+class DnnDistributedTestCase(TestCase):
+    def test_distributed(self):
+        def set_data(math_engine, thread):
+            source = neoml.Blob.asblob(math_engine, np.ones((20,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 20))
+            labels = neoml.Blob.asblob(math_engine, np.ones((5,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 5))
+            return dict(source=source, labels=labels)
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, "source")
+        labels = neoml.Dnn.Source(dnn, 'labels')
+        fully = neoml.Dnn.FullyConnected(source, 5, False, "fully")
+        loss = neoml.Dnn.CrossEntropyLoss((fully, labels), name='loss')
+        distributed = neoml.Dnn.DnnDistributed(dnn, 'cpu', 4)
+        distributed.learn(set_data)
+        self.assertEqual(distributed.last_losses("loss").shape, (4,))

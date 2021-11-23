@@ -18,6 +18,7 @@ from .Ctc import CtcLoss, CtcDecoding
 from .Data import Data
 from .DotProduct import DotProduct
 from .Dropout import Dropout
+from .DnnDistributed import DnnDistributed
 from .Eltwise import EltwiseSum, EltwiseSub, EltwiseMul, EltwiseDiv, EltwiseNegMul, EltwiseMax
 from .FullyConnected import FullyConnected
 from .Gru import Gru
