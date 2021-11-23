@@ -46,6 +46,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h>
 #include <NeoML/Dnn/Layers/GruLayer.h>
+#include <NeoML/Dnn/Layers/FastLstmLayer.h>
 #include <NeoML/Dnn/Layers/LstmLayer.h>
 #include <NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h>
 #include <NeoML/Dnn/Layers/3dConvLayer.h>
