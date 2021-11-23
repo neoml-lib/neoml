@@ -76,6 +76,7 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
                         errorMessage = e->MessageText().CreateString();
                     }
                     cnns[thread]->GetMathEngine().AbortDistributed();
+                    delete e;
                 }
 #endif
             },  i ) );
