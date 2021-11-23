@@ -39,6 +39,7 @@ private:
 	CArray<IMathEngine*> mathEngines;
 	CArray<CRandom*> rands;
 	CArray<CDnn*> cnns;
+	CString errorMessage;
 
 	void initialize( CArchive& archive, int count );
 };

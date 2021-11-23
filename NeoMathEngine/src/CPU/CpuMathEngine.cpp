@@ -267,6 +267,13 @@ void CCpuMathEngine::Broadcast( const CFloatHandle& handle, int size, int root )
 	}
 }
 
+void CCpuMathEngine::AbortDistributed() 
+{
+	if( communicator != nullptr ){
+		communicator->Abort();
+	}
+}
+
 void CpuMathEngineCleanUp()
 {
 #ifdef NEOML_USE_MKL
