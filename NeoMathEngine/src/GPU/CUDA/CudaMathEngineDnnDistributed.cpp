@@ -64,7 +64,6 @@ void CCudaDistributedCommunicator::ncclStreamSynchronize( cudaStream_t stream ) 
 CCudaDistributedCommunicator::CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info,
     std::shared_ptr<std::atomic<bool>> _isAbort ) : isAbort( _isAbort )
 {
-    DistributedException = nullptr;
     CDllLoader::Load(CDllLoader::NCCL_DLL);
     nccl = CDllLoader::ncclDll->GetFunctions();
     ASSERT_NCCL( nccl, nccl->CommInitRank( &comm, info.Threads, uniqueId, info.Thread ) );
