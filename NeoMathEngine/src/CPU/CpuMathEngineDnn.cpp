@@ -576,7 +576,7 @@ void CCpuMathEngine::QrnnFPoolingBackward( bool reverse, int sequenceLength, int
 	CConstFloatHandle f = forget;
 	CConstFloatHandle h0 = initialState;
 	CConstFloatHandle out = result;
-	CFloatHandle outputDiff = resultDiff;
+	CFloatHandle outDiff = resultDiff;
 	CFloatHandle zDiff = updateDiff;
 	CFloatHandle fDiff = forgetDiff;
 
@@ -587,37 +587,37 @@ void CCpuMathEngine::QrnnFPoolingBackward( bool reverse, int sequenceLength, int
 		z += firstElemOffset;
 		f += firstElemOffset;
 		out += firstElemOffset;
-		outputDiff += firstElemOffset;
+		outDiff += firstElemOffset;
 		zDiff += firstElemOffset;
 		fDiff += firstElemOffset;
 	}
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
-		// zDiff = outputDiff * (1 - f) = outputDiff - f * outputDiff
-		VectorEltwiseNegMultiply( outputDiff, f, zDiff, objectSize );
-		VectorAdd( zDiff, outputDiff, zDiff, objectSize );
-		// fDiff = outDifF * (prevOut - z) = outputDiff * prevOut - outputDiff * z
-		VectorEltwiseNegMultiply( outputDiff, z, fDiff, objectSize );
-		VectorEltwiseMultiplyAdd( outputDiff, out + nextObjectOffset, fDiff, objectSize );
+		// zDiff = outDiff * (1 - f) = outDiff - f * outDiff
+		VectorEltwiseNegMultiply( outDiff, f, zDiff, objectSize );
+		VectorAdd( zDiff, outDiff, zDiff, objectSize );
+		// fDiff = outDifF * (prevOut - z) = outDiff * prevOut - outDiff * z
+		VectorEltwiseNegMultiply( outDiff, z, fDiff, objectSize );
+		VectorEltwiseMultiplyAdd( outDiff, out + nextObjectOffset, fDiff, objectSize );
 		// Adding diff of recurrent part
-		// prevOutDiff += outputDiff * f
-		VectorEltwiseMultiplyAdd( outputDiff, f, outputDiff + nextObjectOffset, objectSize );
+		// prevOutDiff += outDiff * f
+		VectorEltwiseMultiplyAdd( outDiff, f, outDiff + nextObjectOffset, objectSize );
 
 		z += nextObjectOffset;
 		f += nextObjectOffset;
 		out += nextObjectOffset;
-		outputDiff += nextObjectOffset;
+		outDiff += nextObjectOffset;
 		zDiff += nextObjectOffset;
 		fDiff += nextObjectOffset;
 	}
 
 	// Last step
-	// zDiff = outputDiff * (1 - f) = outputDiff - f * outputDiff
-	VectorEltwiseNegMultiply( outputDiff, f, zDiff, objectSize );
-	VectorAdd( zDiff, outputDiff, zDiff, objectSize );
-	VectorEltwiseNegMultiply( outputDiff, z, fDiff, objectSize );
+	// zDiff = outDiff * (1 - f) = outDiff - f * outDiff
+	VectorEltwiseNegMultiply( outDiff, f, zDiff, objectSize );
+	VectorAdd( zDiff, outDiff, zDiff, objectSize );
+	VectorEltwiseNegMultiply( outDiff, z, fDiff, objectSize );
 	if( !h0.IsNull() ) {
-		VectorEltwiseMultiplyAdd( outputDiff, h0, fDiff, objectSize );
+		VectorEltwiseMultiplyAdd( outDiff, h0, fDiff, objectSize );
 	}
 }
 
@@ -706,7 +706,7 @@ void CCpuMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, in
 	CConstFloatHandle i = input;
 	CConstFloatHandle h0 = initialState;
 	CConstFloatHandle out = result;
-	CFloatHandle outputDiff = resultDiff;
+	CFloatHandle outDiff = resultDiff;
 	CFloatHandle zDiff = updateDiff;
 	CFloatHandle fDiff = forgetDiff;
 	CFloatHandle iDiff = inputDiff;
@@ -719,45 +719,45 @@ void CCpuMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, in
 		f += firstElemOffset;
 		i += firstElemOffset;
 		out += firstElemOffset;
-		outputDiff += firstElemOffset;
+		outDiff += firstElemOffset;
 		zDiff += firstElemOffset;
 		fDiff += firstElemOffset;
 		iDiff += firstElemOffset;
 	}
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
-		// zDiff = outputDiff * i
-		VectorEltwiseMultiply( outputDiff, i, zDiff, objectSize );
-		// fDiff = outputDiff * prevOut
-		VectorEltwiseMultiply( outputDiff, out + nextObjectOffset, fDiff, objectSize );
-		// iDiff = outputDiff * z
-		VectorEltwiseMultiply( outputDiff, z, iDiff, objectSize );
+		// zDiff = outDiff * i
+		VectorEltwiseMultiply( outDiff, i, zDiff, objectSize );
+		// fDiff = outDiff * prevOut
+		VectorEltwiseMultiply( outDiff, out + nextObjectOffset, fDiff, objectSize );
+		// iDiff = outDiff * z
+		VectorEltwiseMultiply( outDiff, z, iDiff, objectSize );
 		// Adding diff of recurrent part
-		// prevOutDiff += outputDiff * f
-		VectorEltwiseMultiplyAdd( outputDiff, f, outputDiff + nextObjectOffset, objectSize );
+		// prevOutDiff += outDiff * f
+		VectorEltwiseMultiplyAdd( outDiff, f, outDiff + nextObjectOffset, objectSize );
 
 		z += nextObjectOffset;
 		f += nextObjectOffset;
 		i += nextObjectOffset;
 		out += nextObjectOffset;
-		outputDiff += nextObjectOffset;
+		outDiff += nextObjectOffset;
 		zDiff += nextObjectOffset;
 		fDiff += nextObjectOffset;
 		iDiff += nextObjectOffset;
 	}
 
 	// Last step
-	// zDiff = outputDiff * i
-	VectorEltwiseMultiply( outputDiff, i, zDiff, objectSize );
-	// iDiff = outputDiff * z
-	VectorEltwiseMultiply( outputDiff, z, iDiff, objectSize );
+	// zDiff = outDiff * i
+	VectorEltwiseMultiply( outDiff, i, zDiff, objectSize );
+	// iDiff = outDiff * z
+	VectorEltwiseMultiply( outDiff, z, iDiff, objectSize );
 	if( h0.IsNull() ) {
 		// prevOut == 0
-		// fDiff = outputDiff * prevOut = 0
+		// fDiff = outDiff * prevOut = 0
 		VectorFill( fDiff, 0.f, objectSize );
 	} else {
-		// fDiff = outputDiff * prevOut
-		VectorEltwiseMultiply( outputDiff, h0, fDiff, objectSize );
+		// fDiff = outDiff * prevOut
+		VectorEltwiseMultiply( outDiff, h0, fDiff, objectSize );
 	}
 }
 
@@ -826,16 +826,16 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 	}
 }
 
-static inline void sigmoidActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outputDiff,
+static inline void sigmoidActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outDiff,
 	const CFloatHandle& inDiff, int dataSize, const CConstFloatHandle& )
 {
-	output.GetMathEngine()->VectorSigmoidDiffOp( output, outputDiff, inDiff, dataSize );
+	output.GetMathEngine()->VectorSigmoidDiffOp( output, outDiff, inDiff, dataSize );
 }
 
-static inline void reLUActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outputDiff,
+static inline void reLUActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outDiff,
 	const CFloatHandle& inDiff, int dataSize, const CConstFloatHandle& threshold )
 {
-	output.GetMathEngine()->VectorReLUDiffOp( output, outputDiff, inDiff, dataSize, threshold );
+	output.GetMathEngine()->VectorReLUDiffOp( output, outDiff, inDiff, dataSize, threshold );
 }
 
 void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, int batchSize, int objectSize,
