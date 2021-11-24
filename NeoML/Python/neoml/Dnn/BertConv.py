@@ -14,7 +14,7 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 """
 
-import neoml.PythonWrapper
+import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from neoml.Utils import check_input_layers
 
@@ -37,23 +37,23 @@ class BertConv(Layer):
     .. rublic:: Layer inputs:
 
     (1) convolution data
-        - BD_BatchLentgh is equal to (sequence length)
-        - BD_BatchWidth is equal to (batch size)
-        - BD_Channels is equal to (attention heads) * (head size)
+        - **BatchLength** is equal to (sequence length)
+        - **BatchWidth** is equal to (batch size)
+        - **Channels** is equal to (attention heads) * (head size)
         - others are equal to 1
 
     (2) convolution kernels
-        - BD_BatchLength is equal to (sequence length)
-        - BD_BatchWidth is equal to (batch size) * (attention heads)
-        - BD_Height is equal to (kernel size)
+        - **BatchLength** is equal to (sequence length)
+        - **BatchWidth** is equal to (batch size) * (attention heads)
+        - **Height** is equal to (kernel size)
         - others are equal to 1
 
     .. rubric:: Layer outputs:
 
     (2) convolution result
-        - BD_BatchLength is equal to (sequence length)
-        - BD_BatchWidth is equal to (batch size) * (attention heads)
-        - BD_Height is equal to (head size)
+        - **BatchLength** is equal to (sequence length)
+        - **BatchWidth** is equal to (batch size) * (attention heads)
+        - **Height** is equal to (head size)
         - others are equal to 1
     """
     def __init__(self, input_layer, name=None):
