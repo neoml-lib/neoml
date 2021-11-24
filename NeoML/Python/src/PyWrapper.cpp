@@ -31,6 +31,7 @@ limitations under the License.
 #include "PyAttentionDecoderLayer.h"
 #include "PyBatchNormalizationLayer.h"
 #include "PyBaseConvLayer.h"
+#include "PyBertConvLayer.h"
 #include "PyBinarizationLayer.h"
 #include "PyCastLayer.h"
 #include "PyConvLayer.h"
@@ -100,6 +101,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeAttentionDecoderLayer( m );
 	InitializeBaseConvLayer( m );
 	InitializeBatchNormalizationLayer( m );
+	InitializeBertConvLayer( m );
 	InitializeBinarizationLayer( m );
 	InitializeCastLayer( m );
 	InitializeConvLayer( m );
