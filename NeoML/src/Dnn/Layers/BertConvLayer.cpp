@@ -56,7 +56,6 @@ void CBertConvLayer::Reshape()
 	CheckArchitecture( inputDescs[1].BatchWidth() % batchSize == 0, GetName(),
 		"Kernel input's batch width must be a multiple of Data input's batch width" );
 
-	const int kernelSize = inputDescs[1].Height();
 	const int numHeads = inputDescs[1].BatchWidth() / batchSize;
 
 	CheckArchitecture( inputDescs[0].Channels() % numHeads == 0, GetName(),
