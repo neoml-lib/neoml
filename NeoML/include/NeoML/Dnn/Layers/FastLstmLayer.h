@@ -46,7 +46,7 @@ public:
 
 	// The dropout rate for the hidden layer
 	// Variational tied weights dropout is used (see https://arxiv.org/abs/1512.05287)
-	float GetDropoutRate() const { return dropout == 0 ? 0 : dropoutRate; }
+	float GetDropoutRate() const { return useDropout ? dropoutRate : 0; }
 	void SetDropoutRate(float newDropoutRate);
 
 	// The activation function to be used in the recurrent layer
@@ -91,16 +91,24 @@ private:
 	CPtr<CDnnBlob> mainBacklink;
 	CPtr<CDnnBlob> stateBacklink;
 
-	CPtr<CDnnBlob> dropout;
+	bool useDropout;
 	float dropoutRate;
+	CDropoutDesc* dropoutDesc;
 
 	TActivationFunction recurrentActivation;
 	bool isInCompatibilityMode;
 	bool isReverseSequence;
 
-	static void setWeightsData( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
-	static void setFreeTermData( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
+	void setWeightsData( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
+	void setFreeTermData( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
 
+	void dropoutRunOnce( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
+	void dropoutBackwardOnce( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
+	void initBacklinkBlobs();
+	void fullyconnectedRunOnce( const CDnnBlob* input, const CDnnBlob* weights, CDnnBlob* output, CDnnBlob* freeTerm );
+
+	void processRestOfLstm( CDnnBlob* inputFullyConnectedResult, CDnnBlob* reccurentFullyConnectedResult,
+		int inputPos, int outputPos );
 };
 
 NEOML_API CLayerWrapper<CFastLstmLayer> FastLstm(
