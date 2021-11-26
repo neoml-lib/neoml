@@ -42,12 +42,12 @@ void CDnnXavierInitializer::InitializeLayerParams(CDnnBlob& blob, int inputCount
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void CDnnXavierUniformInitializer::InitializeLayerParams( CDnnBlob& blob, int inputCount )
 {
-	const double deviation = sqrt( 1. / max( inputCount, 1 ) );
+	const double bound = sqrt( 1. / max( inputCount, 1 ) );
 	float* buffer = blob.GetBuffer<float>( 0, blob.GetDataSize(), false );
 
 	float* data = buffer;
 	for( int i = 0; i < blob.GetDataSize(); ++i ) {
-		*data++ = static_cast<float>( Random().Uniform( -deviation, deviation ) );
+		*data++ = static_cast<float>( Random().Uniform( -bound, bound ) );
 	}
 
 	blob.ReleaseBuffer( buffer, true );
