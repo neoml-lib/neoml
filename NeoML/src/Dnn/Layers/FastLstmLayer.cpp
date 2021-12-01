@@ -30,6 +30,7 @@ CFastLstmLayer::CFastLstmLayer( IMathEngine& mathEngine ) :
 	isReverseSequence( false ),
 	hiddenSize( 0 )
 {
+	paramBlobs.SetSize( 4 );
 }
 
 void CFastLstmLayer::Serialize( CArchive& archive )
@@ -61,23 +62,40 @@ void CFastLstmLayer::SetReverseSequence( bool _isReverseSequense )
 void CFastLstmLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( inputWeights->GetObjectSize() == G_Count * hiddenSize * inputBlobs[0]->GetObjectSize(),
-		GetName(), "wrong input weight size" );
-	CheckArchitecture( recurrentWeights->GetObjectSize() == G_Count * hiddenSize * hiddenSize,
-		GetName(), "wrong recurrent weight size" );
-	CheckArchitecture( inputFreeTerm->GetObjectSize() == G_Count * hiddenSize,
-		GetName(), "wrong input freeTerm size" );
-	CheckArchitecture( recurrentFreeTerm->GetObjectSize() == G_Count * hiddenSize,
-		GetName(), "wrong reccurent freeTerm size" );
+	CheckOutputs();
+	CheckArchitecture( outputDescs.Size() == 1 || outputDescs.Size() == 2,
+		GetName(), "Lstm layer has only 1 or 2 outputs" );
 
-	CPtr<CDnnBlob> mainBacklink = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float,
-		inputBlobs[0]->GetBatchLength(), inputBlobs[0]->GetBatchWidth(), hiddenSize );
-	CPtr<CDnnBlob> stateBacklink = CDnnBlob::CreateBlob( MathEngine(), mainBacklink->GetDesc() );
+	initWeightAndFreeTerm( inputWeights(), inputFreeTerm(), 0, inputDescs[0].ObjectSize() );
+	initWeightAndFreeTerm( recurrentWeights(), recurrentFreeTerm(), 1, hiddenSize );
+
+
+	for( int i = 0; i < outputDescs.Size(); i++ ) {
+		outputDescs[i] = inputDescs[0];
+		outputDescs[i].SetDimSize( BD_Height, 1 );
+		outputDescs[i].SetDimSize( BD_Width, 1 );
+		outputDescs[i].SetDimSize( BD_Depth, 1 );
+		outputDescs[i].SetDimSize( BD_Channels, hiddenSize );
+	}
+
+	if( outputDescs.Size() == 2 ) {
+		// We will write state directly to output ( we bind them on RunOnce step )
+		stateBacklinkBlob = 0;
+	} else {
+		// Create temporary state blob
+		stateBacklinkBlob = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float,
+			1, outputDescs[0].BatchWidth(), outputDescs[0].ObjectSize() );
+	}
 }
 
 void CFastLstmLayer::RunOnce()
 {
-	CPtr<CDnnBlob> mainBacklinkWindow = CDnnBlob::CreateWindowBlob( mainBacklink );
+	bool hasStateBacklinkOutput = outputDescs.Size() == 2;
+	if( hasStateBacklinkOutput ) {
+		stateBacklinkBlob = outputBlobs[1];
+	}
+
+	CPtr<CDnnBlob> mainBacklinkWindow = CDnnBlob::CreateWindowBlob( mainBacklink() );
 	CPtr<CDnnBlob> inputWindow = CDnnBlob::CreateWindowBlob( inputBlobs[0] );
 
 	// Init state and main backlink blobs
@@ -88,7 +106,7 @@ void CFastLstmLayer::RunOnce()
 	CPtr<CDnnBlob> tempInput;
 	if( useDropout ) {
 		// Create temp vector in order to apply dropout
-		tempMainBackLink = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, mainBacklink->GetBatchWidth(), mainBacklink->GetObjectSize() );
+		tempMainBackLink = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, mainBacklink()->GetBatchWidth(), mainBacklink()->GetObjectSize() );
 		tempInput = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, inputWindow->GetBatchWidth(), inputWindow->GetObjectSize() );
 	}
 
@@ -101,7 +119,7 @@ void CFastLstmLayer::RunOnce()
 		const int InputPos = max( 0, i - 1 );
 		const int OutputPos = i;
 		// Set current step
-		mainBacklinkWindow->SetParentPos( i );
+		mainBacklinkWindow->SetParentPos( InputPos );
 		inputWindow->SetParentPos( i );
 
 		// Apply dropout
@@ -115,8 +133,16 @@ void CFastLstmLayer::RunOnce()
 		}
 
 		// Apply fully connected layers
-		fullyconnectedRunOnce( tempInput, inputWeights, inputFullyConnectedResult, inputFreeTerm );
-		fullyconnectedRunOnce( tempMainBackLink, recurrentWeights, reccurentFullyConnectedResult, recurrentFreeTerm );
+		fullyconnectedRunOnce( tempInput, inputWeights(), inputFullyConnectedResult, inputFreeTerm() );
+		fullyconnectedRunOnce( tempMainBackLink, recurrentWeights(), reccurentFullyConnectedResult, recurrentFreeTerm() );
+		tempInput->print10( "inputA" );
+		inputWeights()->print10( "inputB" );
+		inputFullyConnectedResult->print10( "inputC" );
+
+		tempMainBackLink->print10( "recA" );
+		recurrentWeights()->print10( "recB" );
+		reccurentFullyConnectedResult->print10( "recC" );
+		printf( "\n" );
 
 		// Perform remaining calculation of LSTM
 		processRestOfLstm( inputFullyConnectedResult, reccurentFullyConnectedResult, InputPos, OutputPos );
@@ -128,34 +154,57 @@ void CFastLstmLayer::BackwardOnce()
 	// FIXME:
 }
 
-void CFastLstmLayer::setWeightsData( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst )
+void CFastLstmLayer::initWeightAndFreeTerm( CDnnBlob* weight, CDnnBlob* freeTerm, int inputIndex, size_t inputObjectSize )
 {
-	if( src == nullptr ) {
-		NeoAssert( dst == nullptr || GetDnn() == nullptr );
-		dst = 0;
-	} else if( dst != nullptr && GetDnn() != nullptr ) {
-		NeoAssert( dst->GetObjectCount() == src->GetObjectCount() );
-		NeoAssert( dst->GetObjectSize() == src->GetObjectSize() );
-		dst->CopyFrom( src );
+	const size_t MatrixWidth = G_Count * hiddenSize;
+	const size_t WeightObjectSize = inputObjectSize * MatrixWidth;
+	const size_t FreeTermObjectSize = 1 * MatrixWidth;
+
+	if( weight == 0 ) {
+		// Create a weights matrix
+		weight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 1, WeightObjectSize );
+		// Initialize
+		InitializeParamBlob( inputIndex, *weight );
 	} else {
-		dst = src->GetCopy();
+		CheckArchitecture( weight->GetDataSize() == WeightObjectSize,
+			GetName(), "weights have wrong size" );
+	}
+
+	if( freeTerm == 0 ) {
+		freeTerm = CDnnBlob::CreateVector( MathEngine(), CT_Float, FreeTermObjectSize );
+		// Initialize
+		freeTerm->Fill( 0 );
+	} else {
+		CheckArchitecture( freeTerm->GetDataSize() == FreeTermObjectSize,
+			GetName(), "free terms have wrong size" );
 	}
 }
 
-void CFastLstmLayer::setFreeTermData( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst )
+void CFastLstmLayer::setData( CPtr<CDnnBlob>& dst, CDnnBlob* src, bool makeCopy )
 {
-	if( src == nullptr ) {
-		NeoAssert( dst == nullptr || GetDnn() == nullptr );
-		dst = 0;
+	if( !makeCopy ) {
+		dst = src;
 	} else {
-		if( dst != nullptr && GetDnn() != nullptr ) {
-			NeoAssert( dst->GetDataSize() == src->GetDataSize() );
-
+		if( src == nullptr ) {
+			NeoAssert( dst == nullptr || GetDnn() == nullptr );
+			dst = 0;
+		} else if( dst != nullptr && GetDnn() != nullptr ) {
+			NeoAssert( dst->GetObjectCount() == src->GetObjectCount() );
+			NeoAssert( dst->GetObjectSize() == src->GetObjectSize() );
 			dst->CopyFrom( src );
 		} else {
 			dst = src->GetCopy();
 		}
 	}
+}
+
+CPtr<CDnnBlob> CFastLstmLayer::getData( const CPtr<CDnnBlob>& data ) const
+{
+	if( data == 0 ) {
+		return 0;
+	}
+
+	return data->GetCopy();
 }
 
 void CFastLstmLayer::dropoutRunOnce( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst )
@@ -200,15 +249,15 @@ void CFastLstmLayer::initBacklinkBlobs()
 {
 	auto initRecurentBlob = [&]( CPtr<CDnnBlob>& backlinkBlob, int num ) {
 		if( inputBlobs.Size() > num && inputBlobs[num] != nullptr ) {
-			NeoAssert( backlinkBlob->GetObjectSize() == inputBlobs[num]->GetObjectSize() );
-			MathEngine().VectorCopy( backlinkBlob->GetObjectData( 0 ), inputBlobs[num]->GetData(), backlinkBlob->GetObjectSize() );
+			NeoAssert( backlinkBlob->GetDataSize() == inputBlobs[num]->GetDataSize() );
+			MathEngine().VectorCopy( backlinkBlob->GetObjectData( 0 ), inputBlobs[num]->GetData(), backlinkBlob->GetDataSize() );
 		} else {
-			backlinkBlob->ClearObject( 0 );
+			backlinkBlob->Clear();
 		}
 	};
 
-	initRecurentBlob( stateBacklink, 1 );
-	initRecurentBlob( mainBacklink, 2 );
+	initRecurentBlob( stateBacklink(), 1 );
+	initRecurentBlob( mainBacklink(), 2 );
 }
 
 void CFastLstmLayer::fullyconnectedRunOnce( const CDnnBlob* input, const CDnnBlob* weights, CDnnBlob* output, CDnnBlob* freeTerm )
@@ -231,43 +280,77 @@ void CFastLstmLayer::fullyconnectedRunOnce( const CDnnBlob* input, const CDnnBlo
 void CFastLstmLayer::processRestOfLstm( CDnnBlob* inputFullyConnectedResult, CDnnBlob* reccurentFullyConnectedResult,
 	int inputPos, int outputPos )
 {
-	CPtr<CDnnBlob> stateBacklinkInput = CDnnBlob::CreateWindowBlob( stateBacklink );
-	CPtr<CDnnBlob> stateBacklinkOutput = CDnnBlob::CreateWindowBlob( stateBacklink );
-	CPtr<CDnnBlob> mainBacklinkOutput = CDnnBlob::CreateWindowBlob( mainBacklink );
+	CPtr<CDnnBlob> stateBacklinkInput = CDnnBlob::CreateWindowBlob( stateBacklink() );
+	CPtr<CDnnBlob> stateBacklinkOutput = CDnnBlob::CreateWindowBlob( stateBacklink() );
+	CPtr<CDnnBlob> mainBacklinkOutput = CDnnBlob::CreateWindowBlob( mainBacklink() );
 
-	stateBacklinkInput->SetParentPos( inputPos );
-	stateBacklinkOutput->SetParentPos( outputPos );
+	if( outputDescs.Size() == 2 ) {
+		// if ( outputDescs.Size() == 1 ) we could preserve only one step of state ( and we do it )
+		stateBacklinkInput->SetParentPos( inputPos );
+		stateBacklinkOutput->SetParentPos( outputPos );
+	}
 	mainBacklinkOutput->SetParentPos( outputPos );
 
 	// Elementwise summ of fully connected layers' results (inplace)
 	CDnnBlob* hiddenLayerSum = inputFullyConnectedResult;
 	MathEngine().VectorAdd( inputFullyConnectedResult->GetData(), reccurentFullyConnectedResult->GetData(), hiddenLayerSum->GetData(), hiddenLayerSum->GetDataSize() );
+
+	hiddenLayerSum->print10( "sum" );
 	const int DataSize = mainBacklinkOutput->GetDataSize();
-	CFloatHandle forgetData = hiddenLayerSum->GetData();
+	CFloatHandle inputTanhData = hiddenLayerSum->GetData();
+	CFloatHandle forgetData = inputTanhData + DataSize;
 	CFloatHandle inputData = forgetData + DataSize;
-	CFloatHandle inputTanhData = inputData + DataSize;
-	CFloatHandle outputData = inputTanhData + DataSize;
+	CFloatHandle outputData = inputData + DataSize;
+
+	// FIXME: rearrange sum
+	CPtr<CDnnBlob> TEMP_hiddenLayerSum = hiddenLayerSum->GetCopy();
+	int objectSize = hiddenSize;
+	float* rawFrom = TEMP_hiddenLayerSum->GetBuffer<float>( 0, TEMP_hiddenLayerSum->GetDataSize(), false );
+	float* rawTo = hiddenLayerSum->GetBuffer<float>( 0, hiddenLayerSum->GetDataSize(), false );
+	for( int x = 0; x < hiddenLayerSum->GetObjectCount(); x++ ) {
+		const float* input = rawFrom + x * G_Count * objectSize;
+		for( int i = 0; i < G_Count; ++i ) {
+			memcpy( ( rawTo + i * DataSize ) + x * objectSize, input, objectSize * sizeof( float ) );
+			input += objectSize;
+		}
+	}
+	TEMP_hiddenLayerSum->ReleaseBuffer( rawFrom, false );
+	hiddenLayerSum->ReleaseBuffer( rawTo, false );
+	// FIXME_END
 
 	// Apply activations
-	MathEngine().VectorSigmoid( forgetData, forgetData, DataSize );
-	MathEngine().VectorSigmoid( inputData, inputData, DataSize );
+	CDnnBlob::print10( "tanh_IN", inputTanhData, DataSize );
 	MathEngine().VectorTanh( inputTanhData, inputTanhData, DataSize );
+	CDnnBlob::print10( "tanh_OUT", inputTanhData, DataSize );
+	CDnnBlob::print10( "sigm_IN_forget", forgetData, DataSize );
+	MathEngine().VectorSigmoid( forgetData, forgetData, DataSize );
+	CDnnBlob::print10( "sigm_OUT_forget", forgetData, DataSize );
+	CDnnBlob::print10( "sigm_IN_input", inputData, DataSize );
+	MathEngine().VectorSigmoid( inputData, inputData, DataSize );
+	CDnnBlob::print10( "sigm_OUT_input", inputData, DataSize );
+	CDnnBlob::print10( "sigm_IN_output", outputData, DataSize );
 	MathEngine().VectorSigmoid( outputData, outputData, DataSize );
+	CDnnBlob::print10( "sigm_OUT_output", outputData, DataSize );
 
 	// Multiply input gates
 	MathEngine().VectorEltwiseMultiply( inputData, inputTanhData, inputData, DataSize );
+	CDnnBlob::print10( "inputData = inputData * inputTanhData", inputData, DataSize );
 
 	// Multiply state backlink with forget gate
 	MathEngine().VectorEltwiseMultiply( forgetData, stateBacklinkInput->GetData(), forgetData, DataSize );
+	CDnnBlob::print10( "forgetData = forgetData * stateBacklinkInput", forgetData, DataSize );
 
 	// Append input gate to state backlink
-	MathEngine().VectorAdd( stateBacklinkInput->GetData(), inputData, stateBacklinkOutput->GetData(), DataSize );
+	MathEngine().VectorAdd( forgetData, inputData, stateBacklinkOutput->GetData(), DataSize );
+	CDnnBlob::print10( "stateBacklinkOutput = stateBacklinkInput + inputData", stateBacklinkOutput->GetData(), DataSize );
 
 	// Apply tanh to state baclink
 	MathEngine().VectorTanh( stateBacklinkOutput->GetData(), inputData, DataSize );
+	CDnnBlob::print10( "inputData = tanh( stateBacklinkOutput )", inputData, DataSize );
 
 	// Multiply output gate with result of previous operation
 	MathEngine().VectorEltwiseMultiply( outputData, inputData, mainBacklinkOutput->GetData(), DataSize );
+	CDnnBlob::print10( "mainBacklinkOutput = outputData * inputData", inputData, DataSize );
 }
 
 } // namespace NeoML
