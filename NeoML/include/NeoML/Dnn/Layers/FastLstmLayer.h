@@ -33,16 +33,17 @@ public:
 	void SetHiddenSize( int size );
 
 	// The input hidden layers weights (the blob size is (4*HiddenSize)x1x1xInputSize)
-	CPtr<CDnnBlob> GetInputWeightsData() const { return inputWeights; }
-	CPtr<CDnnBlob> GetInputFreeTermData() const { return inputFreeTerm; }
-	void SetInputWeightsData( const CPtr<CDnnBlob>& newInputWeights ) { setWeightsData( newInputWeights, inputWeights ); }
-	void SetInputFreeTermData( const CPtr<CDnnBlob>& newInputFreeTerm ) { setFreeTermData( newInputFreeTerm, inputFreeTerm ); }
+	// If makeCopy == true, input data will be copied internally and user can do with his data what he whant.
+	CPtr<CDnnBlob> GetInputWeightsData() const { return getData( inputWeights() ); }
+	CPtr<CDnnBlob> GetInputFreeTermData() const { return getData( inputFreeTerm() ); }
+	void SetInputWeightsData( CDnnBlob* newInputWeights, bool makeCopy = true ) { setData( inputWeights(), newInputWeights, makeCopy ); }
+	void SetInputFreeTermData( CDnnBlob* newInputFreeTerm, bool makeCopy = true ) { setData( inputFreeTerm(), newInputFreeTerm, makeCopy ); }
 
 	// The recurrent hidden layers weights (the blob size is (4*HiddenSize)x1x1xHiddenSize)
-	CPtr<CDnnBlob> GetRecurWeightsData() const { return recurrentWeights; }
-	CPtr<CDnnBlob> GetRecurFreeTermData() const { return recurrentFreeTerm; }
-	void SetRecurWeightsData( const CPtr<CDnnBlob>& newRecurWeights ) { setWeightsData( newRecurWeights, recurrentWeights ); }
-	void SetRecurFreeTermData( const CPtr<CDnnBlob>& newRecurFreeTerm ) { setFreeTermData( newRecurFreeTerm, recurrentFreeTerm ); }
+	CPtr<CDnnBlob> GetRecurWeightsData() const { return getData( recurrentWeights() ); }
+	CPtr<CDnnBlob> GetRecurFreeTermData() const { return getData( recurrentFreeTerm() ); }
+	void SetRecurWeightsData( CDnnBlob* newRecurWeights, bool makeCopy = true ) { setData( recurrentWeights(), newRecurWeights, makeCopy ); }
+	void SetRecurFreeTermData( CDnnBlob* newRecurFreeTerm, bool makeCopy = true ) { setData( recurrentFreeTerm(), newRecurFreeTerm, makeCopy ); }
 
 	// The dropout rate for the hidden layer
 	// Variational tied weights dropout is used (see https://arxiv.org/abs/1512.05287)
@@ -83,13 +84,8 @@ private:
 
 	int hiddenSize;
 
-	CPtr<CDnnBlob> inputWeights;
-	CPtr<CDnnBlob> recurrentWeights;
-	CPtr<CDnnBlob> inputFreeTerm;
-	CPtr<CDnnBlob> recurrentFreeTerm;
-
-	CPtr<CDnnBlob> mainBacklink;
-	CPtr<CDnnBlob> stateBacklink;
+	// If second output of layer is set this CPtr will just point to outputBlobs[1]
+	CPtr<CDnnBlob> stateBacklinkBlob;
 
 	bool useDropout;
 	float dropoutRate;
@@ -99,8 +95,10 @@ private:
 	bool isInCompatibilityMode;
 	bool isReverseSequence;
 
-	void setWeightsData( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
-	void setFreeTermData( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
+	void initWeightAndFreeTerm( CDnnBlob* weight, CDnnBlob* freeTerm, int inputIndex, size_t objectSize );
+
+	void setData( CPtr<CDnnBlob>& dst, CDnnBlob* src, bool makeCopy );
+	CPtr<CDnnBlob> getData( const CPtr<CDnnBlob>& data ) const;
 
 	void dropoutRunOnce( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
 	void dropoutBackwardOnce( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
@@ -109,6 +107,23 @@ private:
 
 	void processRestOfLstm( CDnnBlob* inputFullyConnectedResult, CDnnBlob* reccurentFullyConnectedResult,
 		int inputPos, int outputPos );
+
+	CPtr<CDnnBlob>& inputWeights() { return paramBlobs[0]; }
+	CPtr<CDnnBlob>& inputFreeTerm() { return paramBlobs[1]; }
+	CPtr<CDnnBlob>& recurrentWeights() { return paramBlobs[2]; }
+	CPtr<CDnnBlob>& recurrentFreeTerm() { return paramBlobs[3]; }
+
+	const CPtr<CDnnBlob>& inputWeights() const { return paramBlobs[0]; }
+	const CPtr<CDnnBlob>& inputFreeTerm() const { return paramBlobs[1]; }
+	const CPtr<CDnnBlob>& recurrentWeights() const { return paramBlobs[2]; }
+	const CPtr<CDnnBlob>& recurrentFreeTerm() const { return paramBlobs[3]; }
+
+	CPtr<CDnnBlob>& mainBacklink() { return outputBlobs[0]; }
+	CPtr<CDnnBlob>& stateBacklink() { return stateBacklinkBlob; }
+
+	const CPtr<CDnnBlob>& mainBacklink() const { return outputBlobs[0]; }
+	const CPtr<CDnnBlob>& stateBacklink() const { return stateBacklinkBlob; }
+
 };
 
 NEOML_API CLayerWrapper<CFastLstmLayer> FastLstm(
