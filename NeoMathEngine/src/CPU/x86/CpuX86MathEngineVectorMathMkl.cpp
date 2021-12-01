@@ -25,6 +25,7 @@ limitations under the License.
 #include <float.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <cmath>
 
 #ifdef NEOML_USE_MKL
 #if FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
@@ -173,9 +174,11 @@ void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstH
 	const float* first = GetRaw(firstHandle);
 	float* result = GetRaw(resultHandle);
 
-	// Profiler showed that vsPowx is effective only in case of square
+	// Profiler showed that vsPowx is effective in 2 cases:
+	//    1. Non-integer exponent
+	//    2. Exponent is integer == 2
 #ifdef NEOML_USE_MKL
-	if( exponent > 2.f - FLT_EPSILON && exponent < 2.f + FLT_EPSILON ) {
+	if( std::truncf( exponent ) != exponent || exponent == 2 ) {
 		if( curThreadCount > 1 ) {
 			NEOML_OMP_NUM_THREADS( curThreadCount )
 			{
