@@ -47,23 +47,12 @@ public:
 
 	// The dropout rate for the hidden layer
 	// Variational tied weights dropout is used (see https://arxiv.org/abs/1512.05287)
-	float GetDropoutRate() const { return useDropout ? dropoutRate : 0; }
+	float GetDropoutRate() const { return useDropout ? dropoutRate : 0.f; }
 	void SetDropoutRate(float newDropoutRate);
-
-	// The activation function to be used in the recurrent layer
-	// Sigmoid by default
-	TActivationFunction GetRecurrentActivation() const { return recurrentActivation; }
-	void SetRecurrentActivation( TActivationFunction newActivation ) { recurrentActivation = newActivation;  }
-
-	// Backward compatibility setting. 
-	// By default, the layer returns the resetGate output. If you turn on compatibility mode, 
-	// it will return the result of tanh function that is passed to the resetGate.
-	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
-	void SetCompatibilityMode( bool newCompatibilityMode ) { isInCompatibilityMode = newCompatibilityMode; }
 
 	// Indicates that the sequence is processed in reverse order
 	bool IsReverseSequence() const { return isReverseSequence; }
-	void SetReverseSequence( bool _isReverseSequense );
+	void SetReverseSequence( bool _isReverseSequense ) { isReverseSequence = _isReverseSequense; }
 
 	// A virtual method that creates output blobs using the input blobs
 	virtual void Reshape() override;
@@ -84,15 +73,13 @@ private:
 
 	int hiddenSize;
 
-	// If second output of layer is set this CPtr will just point to outputBlobs[1]
+	// If second output blob of layer is set this CPtr will just point to outputBlobs[1]
 	CPtr<CDnnBlob> stateBacklinkBlob;
 
 	bool useDropout;
 	float dropoutRate;
 	CDropoutDesc* dropoutDesc;
 
-	TActivationFunction recurrentActivation;
-	bool isInCompatibilityMode;
 	bool isReverseSequence;
 
 	void initWeightAndFreeTerm( CDnnBlob* weight, CDnnBlob* freeTerm, int inputIndex, size_t objectSize );
