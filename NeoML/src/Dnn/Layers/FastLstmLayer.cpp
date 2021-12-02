@@ -25,8 +25,6 @@ CFastLstmLayer::CFastLstmLayer( IMathEngine& mathEngine ) :
 	useDropout( false ),
 	dropoutRate( 0. ),
 	dropoutDesc( nullptr ),
-	recurrentActivation( AF_Sigmoid ),
-	isInCompatibilityMode( false ),
 	isReverseSequence( false ),
 	hiddenSize( 0 )
 {
@@ -52,11 +50,6 @@ void CFastLstmLayer::SetDropoutRate( float newDropoutRate )
 		delete dropoutDesc;
 		dropoutDesc = nullptr;
 	}
-}
-
-void CFastLstmLayer::SetReverseSequence( bool _isReverseSequense )
-{
-	// FIXME:
 }
 
 void CFastLstmLayer::Reshape()
@@ -116,11 +109,19 @@ void CFastLstmLayer::RunOnce()
 
 	// Iterate recurent net step by step
 	for( int i = 0; i < inputBlobs[0]->GetBatchLength(); i++ ) {
-		const int InputPos = max( 0, i - 1 );
-		const int OutputPos = i;
+		int inputPos, outputPos;
+		if( isReverseSequence ) {
+			const int LastIdx = inputBlobs[0]->GetBatchLength() - 1;
+			int iRev = LastIdx - i;
+			inputPos = min( LastIdx, iRev + 1 );
+			outputPos = iRev;
+		} else {
+			inputPos = max( 0, i - 1 );
+			outputPos = i;
+		}
 		// Set current step
-		mainBacklinkWindow->SetParentPos( InputPos );
-		inputWindow->SetParentPos( i );
+		mainBacklinkWindow->SetParentPos( inputPos );
+		inputWindow->SetParentPos( outputPos );
 
 		// Apply dropout
 		if( useDropout ) {
@@ -135,17 +136,9 @@ void CFastLstmLayer::RunOnce()
 		// Apply fully connected layers
 		fullyconnectedRunOnce( tempInput, inputWeights(), inputFullyConnectedResult, inputFreeTerm() );
 		fullyconnectedRunOnce( tempMainBackLink, recurrentWeights(), reccurentFullyConnectedResult, recurrentFreeTerm() );
-		tempInput->print10( "inputA" );
-		inputWeights()->print10( "inputB" );
-		inputFullyConnectedResult->print10( "inputC" );
-
-		tempMainBackLink->print10( "recA" );
-		recurrentWeights()->print10( "recB" );
-		reccurentFullyConnectedResult->print10( "recC" );
-		printf( "\n" );
 
 		// Perform remaining calculation of LSTM
-		processRestOfLstm( inputFullyConnectedResult, reccurentFullyConnectedResult, InputPos, OutputPos );
+		processRestOfLstm( inputFullyConnectedResult, reccurentFullyConnectedResult, inputPos, outputPos );
 	}
 }
 
@@ -249,8 +242,10 @@ void CFastLstmLayer::initBacklinkBlobs()
 {
 	auto initRecurentBlob = [&]( CPtr<CDnnBlob>& backlinkBlob, int num ) {
 		if( inputBlobs.Size() > num && inputBlobs[num] != nullptr ) {
-			NeoAssert( backlinkBlob->GetDataSize() == inputBlobs[num]->GetDataSize() );
-			MathEngine().VectorCopy( backlinkBlob->GetObjectData( 0 ), inputBlobs[num]->GetData(), backlinkBlob->GetDataSize() );
+			CPtr<CDnnBlob> windowBlob = CDnnBlob::CreateWindowBlob( backlinkBlob );
+			windowBlob->SetParentPos( isReverseSequence ? backlinkBlob->GetBatchLength() - 1 : 0 );
+			NeoAssert( windowBlob->GetDataSize() == inputBlobs[num]->GetDataSize() );
+			MathEngine().VectorCopy( windowBlob->GetData(), inputBlobs[num]->GetData(), windowBlob->GetDataSize() );
 		} else {
 			backlinkBlob->Clear();
 		}
@@ -295,7 +290,6 @@ void CFastLstmLayer::processRestOfLstm( CDnnBlob* inputFullyConnectedResult, CDn
 	CDnnBlob* hiddenLayerSum = inputFullyConnectedResult;
 	MathEngine().VectorAdd( inputFullyConnectedResult->GetData(), reccurentFullyConnectedResult->GetData(), hiddenLayerSum->GetData(), hiddenLayerSum->GetDataSize() );
 
-	hiddenLayerSum->print10( "sum" );
 	const int DataSize = mainBacklinkOutput->GetDataSize();
 	CFloatHandle inputTanhData = hiddenLayerSum->GetData();
 	CFloatHandle forgetData = inputTanhData + DataSize;
@@ -319,38 +313,25 @@ void CFastLstmLayer::processRestOfLstm( CDnnBlob* inputFullyConnectedResult, CDn
 	// FIXME_END
 
 	// Apply activations
-	CDnnBlob::print10( "tanh_IN", inputTanhData, DataSize );
 	MathEngine().VectorTanh( inputTanhData, inputTanhData, DataSize );
-	CDnnBlob::print10( "tanh_OUT", inputTanhData, DataSize );
-	CDnnBlob::print10( "sigm_IN_forget", forgetData, DataSize );
 	MathEngine().VectorSigmoid( forgetData, forgetData, DataSize );
-	CDnnBlob::print10( "sigm_OUT_forget", forgetData, DataSize );
-	CDnnBlob::print10( "sigm_IN_input", inputData, DataSize );
 	MathEngine().VectorSigmoid( inputData, inputData, DataSize );
-	CDnnBlob::print10( "sigm_OUT_input", inputData, DataSize );
-	CDnnBlob::print10( "sigm_IN_output", outputData, DataSize );
 	MathEngine().VectorSigmoid( outputData, outputData, DataSize );
-	CDnnBlob::print10( "sigm_OUT_output", outputData, DataSize );
 
 	// Multiply input gates
 	MathEngine().VectorEltwiseMultiply( inputData, inputTanhData, inputData, DataSize );
-	CDnnBlob::print10( "inputData = inputData * inputTanhData", inputData, DataSize );
 
 	// Multiply state backlink with forget gate
 	MathEngine().VectorEltwiseMultiply( forgetData, stateBacklinkInput->GetData(), forgetData, DataSize );
-	CDnnBlob::print10( "forgetData = forgetData * stateBacklinkInput", forgetData, DataSize );
 
 	// Append input gate to state backlink
 	MathEngine().VectorAdd( forgetData, inputData, stateBacklinkOutput->GetData(), DataSize );
-	CDnnBlob::print10( "stateBacklinkOutput = stateBacklinkInput + inputData", stateBacklinkOutput->GetData(), DataSize );
 
 	// Apply tanh to state baclink
 	MathEngine().VectorTanh( stateBacklinkOutput->GetData(), inputData, DataSize );
-	CDnnBlob::print10( "inputData = tanh( stateBacklinkOutput )", inputData, DataSize );
 
 	// Multiply output gate with result of previous operation
 	MathEngine().VectorEltwiseMultiply( outputData, inputData, mainBacklinkOutput->GetData(), DataSize );
-	CDnnBlob::print10( "mainBacklinkOutput = outputData * inputData", inputData, DataSize );
 }
 
 } // namespace NeoML
