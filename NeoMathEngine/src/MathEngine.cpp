@@ -67,6 +67,7 @@ C3dMeanPoolingDesc::~C3dMeanPoolingDesc() = default;
 CGlobalMaxOverTimePoolingDesc::~CGlobalMaxOverTimePoolingDesc() = default;
 CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() = default;
 CLrnDesc::~CLrnDesc() = default;
+CLstmDesc::~CLstmDesc() = default;
 
 // GPU manager implementation
 class CGpuMathEngineManager : public IGpuMathEngineManager {

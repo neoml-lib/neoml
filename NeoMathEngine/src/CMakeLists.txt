@@ -16,6 +16,7 @@ set(CPU_COMMON_SOURCES
     CPU/CpuMathEngineDnnChannelwiseConv.cpp
     CPU/CpuMathEngineDnnDropout.cpp
     CPU/CpuMathEngineDnnLrn.cpp
+    CPU/CpuMathEngineDnnLstm.cpp
     CPU/CpuMathEngineDnn.cpp
     CPU/CpuMathEngineDnnPooling.cpp
     CPU/CpuMathEngineDnnRleConv.cpp
@@ -45,6 +46,7 @@ target_sources(${PROJECT_NAME}
     MathEngineDnnConv.h
     MathEngineDnnDropout.h
     MathEngineDnnLrn.h
+    MathEngineDnnLstm.h
     MathEngineDnnPoolings.h
     MathEngineHostStackAllocator.h
     MemoryHandleInternal.h
