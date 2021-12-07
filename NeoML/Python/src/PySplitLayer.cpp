@@ -18,6 +18,31 @@ limitations under the License.
 
 #include "PySplitLayer.h"
 
+py::array CPyBaseSplitLayer::GetOutputCounts() const {
+	const auto& fineCounts = Layer<CBaseSplitLayer>()->GetOutputCounts();
+
+	py::array_t<int, py::array::c_style> counts( fineCounts.Size() );
+	auto countsData = counts.mutable_unchecked<>();
+
+	for( int i = 0; i < fineCounts.Size(); ++i ) {
+		countsData( i ) = fineCounts[i];
+	}
+
+	return counts;
+}
+
+void CPyBaseSplitLayer::SetOutputCounts( py::array counts ) {
+	NeoAssert( counts.ndim() == 1 );
+	NeoAssert( counts.dtype().is( py::dtype::of<int>() ) );
+
+	CArray<int> fineCounts;
+	fineCounts.SetSize( static_cast<int>(counts.size()) );
+	for( int i = 0; i < fineCounts.Size(); i++ ) {
+		fineCounts[i] = static_cast<const int*>(counts.data())[i];
+	}
+	Layer<CBaseSplitLayer>()->SetOutputCounts( fineCounts );
+}
+
 class CPySplitChannelsLayer : public CPyBaseSplitLayer {
 public:
 	explicit CPySplitChannelsLayer( CSplitChannelsLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyBaseSplitLayer( layer, mathEngineOwner ) {}
@@ -105,8 +130,8 @@ public:
 template <class Layer, class PythonLayer>
 PythonLayer* InitSplit( const std::string& className, const std::string& name, const CPyLayer& layer1, int outputNumber1, py::array sizes )
 {
-	static_assert( std::is_base_of_v<CPyBaseSplitLayer, PythonLayer>, "PySplitLayer.cpp, InitSplit" );
-	static_assert( std::is_constructible_v<PythonLayer, Layer&, CPyMathEngineOwner&>, "PySplitLayer.cpp, InitSplit" );
+	static_assert( std::is_base_of<CPyBaseSplitLayer, PythonLayer>::value, "PySplitLayer.cpp, InitSplit" );
+	static_assert( std::is_constructible<PythonLayer, Layer&, CPyMathEngineOwner&>::value, "PySplitLayer.cpp, InitSplit" );
 
 	py::gil_scoped_release release;
 	CDnn& dnn = layer1.Dnn();
@@ -114,7 +139,7 @@ PythonLayer* InitSplit( const std::string& className, const std::string& name, c
 	split->SetName( FindFreeLayerName( dnn, className, name ).c_str() );
 	dnn.AddLayer( *split );
 	split->Connect( 0, layer1.BaseLayer(), outputNumber1 );
-	auto layer = std::make_unique<PythonLayer>( *split, layer1.MathEngineOwner() );
+	std::unique_ptr<PythonLayer> layer( new PythonLayer( *split, layer1.MathEngineOwner() ) );
 	layer->SetOutputCounts( sizes );
 	return layer.release();
 }

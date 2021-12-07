@@ -21,32 +21,9 @@ class CPyBaseSplitLayer : public CPyLayer {
 public:
 	CPyBaseSplitLayer( CBaseSplitLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
 
-	py::array GetOutputCounts() const
-	{
-		const auto& fineCounts = Layer<CBaseSplitLayer>()->GetOutputCounts();
+	py::array GetOutputCounts() const;
 
-		py::array_t<int, py::array::c_style> counts( fineCounts.Size() );
-		auto countsData = counts.mutable_unchecked<>();
-
-		for( int i = 0; i < fineCounts.Size(); ++i ) {
-			countsData( i ) = fineCounts[i];
-		}
-
-		return counts;
-	}
-
-	void SetOutputCounts( py::array counts )
-	{
-		NeoAssert( counts.ndim() == 1 );
-		NeoAssert( counts.dtype().is( py::dtype::of<int>() ) );
-
-		CArray<int> fineCounts;
-		fineCounts.SetSize( static_cast<int>(counts.size()) );
-		for( int i = 0; i < fineCounts.Size(); i++ ) {
-			fineCounts[i] = static_cast<const int*>(counts.data())[i];
-		}
-		Layer<CBaseSplitLayer>()->SetOutputCounts( fineCounts );
-	}
+	void SetOutputCounts( py::array counts );
 };
 
 void InitializeSplitLayer( py::module& m );

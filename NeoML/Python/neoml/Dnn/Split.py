@@ -86,7 +86,7 @@ class SplitChannels(SplitLayer):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitDepth(Layer):
+class SplitDepth(SplitLayer):
     """The layer that splits an input blob along the Depth dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -120,7 +120,7 @@ class SplitDepth(Layer):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitWidth(Layer):
+class SplitWidth(SplitLayer):
     """The layer that splits an input blob along the Width dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -154,7 +154,7 @@ class SplitWidth(Layer):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitHeight(Layer):
+class SplitHeight(SplitLayer):
     """The layer that splits an input blob along the Height dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -188,7 +188,7 @@ class SplitHeight(Layer):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitListSize(Layer):
+class SplitListSize(SplitLayer):
     """The layer that splits an input blob along the ListSize dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -222,7 +222,7 @@ class SplitListSize(Layer):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitBatchWidth(Layer):
+class SplitBatchWidth(SplitLayer):
     """The layer that splits an input blob along the BatchWidth dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -256,7 +256,7 @@ class SplitBatchWidth(Layer):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitBatchLength(Layer):
+class SplitBatchLength(SplitLayer):
     """The layer that splits an input blob along the BatchLength dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
