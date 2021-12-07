@@ -25,6 +25,7 @@ class NEOML_API CFastLstmLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CFastLstmLayer )
 public:
 	explicit CFastLstmLayer( IMathEngine& mathEngine );
+	~CFastLstmLayer();
 
 	void Serialize( CArchive& archive ) override;
 
@@ -75,12 +76,16 @@ private:
 
 	// If second output blob of layer is set this CPtr will just point to outputBlobs[1]
 	CPtr<CDnnBlob> stateBacklinkBlob;
+	CPtr<CDnnBlob> inputFullyConnectedResult;
+	CPtr<CDnnBlob> reccurentFullyConnectedResult;
 
 	bool useDropout;
 	float dropoutRate;
 	CDropoutDesc* dropoutDesc;
 
 	bool isReverseSequence;
+
+	CLstmDesc* lstmDesc;
 
 	void initWeightAndFreeTerm( CDnnBlob* weight, CDnnBlob* freeTerm, int inputIndex, size_t objectSize );
 
@@ -90,10 +95,6 @@ private:
 	void dropoutRunOnce( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
 	void dropoutBackwardOnce( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
 	void initBacklinkBlobs();
-	void fullyconnectedRunOnce( const CDnnBlob* input, const CDnnBlob* weights, CDnnBlob* output, CDnnBlob* freeTerm );
-
-	void processRestOfLstm( CDnnBlob* inputFullyConnectedResult, CDnnBlob* reccurentFullyConnectedResult,
-		int inputPos, int outputPos );
 
 	CPtr<CDnnBlob>& inputWeights() { return paramBlobs[0]; }
 	CPtr<CDnnBlob>& inputFreeTerm() { return paramBlobs[1]; }
@@ -112,8 +113,5 @@ private:
 	const CPtr<CDnnBlob>& stateBacklink() const { return stateBacklinkBlob; }
 
 };
-
-NEOML_API CLayerWrapper<CFastLstmLayer> FastLstm(
-	int hiddenSize, float dropoutRate, bool isInCompatibilityMode = false );
 
 } // namespace NeoML
