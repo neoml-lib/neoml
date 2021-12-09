@@ -2351,6 +2351,9 @@ class DnnTestCase(MultithreadedTestCase):
         dnn.initializer = neoml.Dnn.Uniform()
         self.assertTrue(isinstance(dnn.initializer, neoml.Dnn.Uniform))
 
+        dnn.initializer = neoml.Dnn.XavierUniform(random)
+        self.assertTrue(isinstance(dnn.initializer, neoml.Dnn.XavierUniform))
+
     def test_math_engine(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)

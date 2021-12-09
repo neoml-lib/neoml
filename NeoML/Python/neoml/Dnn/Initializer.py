@@ -63,6 +63,31 @@ class Xavier(Initializer):
 # -------------------------------------------------------------------------------------------------------------
 
 
+class XavierUniform(Initializer):
+    """Initializes a blob using the Xavier algorithm: with random values
+    from a uniform distribution over (-sqrt(1 / input_size), sqrt(1 / input_size)).
+    
+    :param random_generator: Sets the random numbers generator to be used.
+        By default, the standard NeoML randomizer with default seed is used.
+    :type random_generator: object, default=None     
+    """
+    def __init__(self, random_generator=None):
+        if isinstance(random_generator, PythonWrapper.XavierUniform):
+            super().__init__(random_generator)
+            return
+
+        if random_generator is None:
+            random_generator = neoml.Random.Random()
+
+        if not isinstance(random_generator, neoml.Random.Random):
+            raise ValueError('The `random_generator` must be a neoml.Random.Random.')
+
+        internal = PythonWrapper.XavierUniform(random_generator)
+        super().__init__(internal)
+
+# -------------------------------------------------------------------------------------------------------------
+
+
 class Uniform(Initializer):
     """Initializes a blob using uniform distribution between the set bounds.
     
