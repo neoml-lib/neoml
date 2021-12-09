@@ -21,22 +21,18 @@ import numpy
 
 
 class SplitLayer(Layer):
+    """The base (abstract) class for a split layer.
+    """
     def __init__(self, classname, input_layer, sizes, name):
+        assert hasattr(PythonWrapper, classname), 'Incorrect split layer specified: ' + classname
+
         if type(input_layer) is getattr(PythonWrapper, classname):
             super().__init__(input_layer)
             return
 
         layers, outputs = check_input_layers(input_layer, 1)
 
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
-
-        if s.size > 3:
-            raise ValueError('The `sizes` must contain not more than 3 elements.')
-
-        if numpy.any(s < 0):
-            raise ValueError('The `sizes` must contain only positive values.')
-
-        internal = getattr(PythonWrapper, classname)(str(name), layers[0], int(outputs[0]), s)
+        internal = getattr(PythonWrapper, classname)(str(name), layers[0], int(outputs[0]), self.__sizes_to_array(sizes))
         super().__init__(internal)
 
     @property
@@ -48,8 +44,21 @@ class SplitLayer(Layer):
     @output_sizes.setter
     def output_sizes(self, value):
         """
-        """
-        self._internal.set_output_counts(value)
+        """        
+        self._internal.set_output_counts(self.__sizes_to_array(value))
+
+    @staticmethod
+    def __sizes_to_array(sizes) -> numpy.ndarray:
+        sizes = numpy.array(sizes, dtype=numpy.int32)
+        if sizes.ndim != 1 or sizes.size > 3:
+            raise ValueError('The `sizes` must be a one-dimentional sequence containing not more than 3 elements.')
+
+        if numpy.any(sizes < 0):
+            raise ValueError('The `sizes` must contain only positive values.')
+
+        return sizes
+
+# ----------------------------------------------------------------------------------------------------------------------
 
 
 class SplitChannels(SplitLayer):
