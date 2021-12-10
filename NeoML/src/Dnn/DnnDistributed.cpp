@@ -13,9 +13,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <thread>
+#include <omp.h>
 #include <vector>
-#include <functional>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/DnnDistributed.h>
 
@@ -57,33 +56,30 @@ CDistributedTraining::~CDistributedTraining()
 
 void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 {
-    std::vector<std::thread> threads;
-    for ( int i = 0; i < cnns.Size(); i++ ) {
-        std::thread t( std::bind(
-            [&]( int thread ){
-                try {
-                    data.SetInputBatch( *cnns[thread], thread );
-                    cnns[thread]->RunAndLearnOnce();
-                } catch( std::exception& e ) {
-                    if( errorMessage.IsEmpty() ){
-                        errorMessage = e.what();
-                    }
-                    cnns[thread]->GetMathEngine().AbortDistributed();
-                }
+    NEOML_OMP_NUM_THREADS( cnns.Size() )
+    {
+        const int thread = omp_get_thread_num();
+        data.SetInputBatch( *cnns[thread], thread );
+        cnns[thread]->RunAndLearnOnce();
+        /*
+        try {
+            data.SetInputBatch( *cnns[thread], thread );
+            cnns[thread]->RunAndLearnOnce();
+        } catch( std::exception& e ) {
+            if( errorMessage.IsEmpty() ){
+                errorMessage = e.what();
+            }
+            cnns[thread]->GetMathEngine().AbortDistributed();
+        }
 #ifdef NEOML_USE_FINEOBJ
-                catch( CCheckException* e ) {
-                    if( errorMessage.IsEmpty() ){
-                        errorMessage = e->MessageText().CreateString();
-                    }
-                    cnns[thread]->GetMathEngine().AbortDistributed();
-                    delete e;
-                }
-#endif
-            },  i ) );
-        threads.push_back( std::move( t ) );
-    }
-    for ( int i = 0; i < cnns.Size(); i++ ) {
-        threads[i].join();
+        catch( CCheckException* e ) {
+            if( errorMessage.IsEmpty() ){
+                errorMessage = e->MessageText().CreateString();
+            }
+            cnns[thread]->GetMathEngine().AbortDistributed();
+            delete e;
+        }
+#endif*/
     }
     CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
 }
