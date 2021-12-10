@@ -58,10 +58,6 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 {
     NEOML_OMP_NUM_THREADS( cnns.Size() )
     {
-        const int thread = omp_get_thread_num();
-        data.SetInputBatch( *cnns[thread], thread );
-        cnns[thread]->RunAndLearnOnce();
-        /*
         try {
             data.SetInputBatch( *cnns[thread], thread );
             cnns[thread]->RunAndLearnOnce();
@@ -79,7 +75,7 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
             cnns[thread]->GetMathEngine().AbortDistributed();
             delete e;
         }
-#endif*/
+#endif
     }
     CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
 }
