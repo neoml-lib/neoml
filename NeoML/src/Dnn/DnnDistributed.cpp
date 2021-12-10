@@ -13,7 +13,6 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <omp.h>
 #include <vector>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/DnnDistributed.h>
@@ -58,7 +57,7 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 {
     NEOML_OMP_NUM_THREADS( cnns.Size() )
     {
-        const int thread = omp_get_thread_num();
+        const int thread = OmpGetThreadNum();
         try {
             data.SetInputBatch( *cnns[thread], thread );
             cnns[thread]->RunAndLearnOnce();
