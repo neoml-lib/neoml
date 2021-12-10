@@ -13,7 +13,6 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <vector>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/DnnDistributed.h>
 
