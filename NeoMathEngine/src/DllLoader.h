@@ -77,16 +77,16 @@ public:
 	static constexpr int AVX_DLL = 0x0;
 #endif
 
-	explicit CDllLoader( int dll ) : loadedDlls( Load( dll ) ) {}
-	~CDllLoader() { Free( loadedDlls ); }
+	explicit CDllLoader( int dll ) : loadedDlls( loadDlls( dll ) ) {}
+	~CDllLoader() { freeDlls( loadedDlls ); }
 
 	bool IsLoaded( int dll ) const { return ( loadedDlls & dll ) != 0; }
 
-	static int Load( int dll );
-	static void Free( int dll );
-
 private:
 	int loadedDlls;
+
+	static int loadDlls( int dll );
+	static void freeDlls( int dll );
 };
 
 } // namespace NeoML
