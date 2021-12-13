@@ -40,6 +40,11 @@ public:
 		const float* filter, const float* freeTerm, float* result ) const = 0;
 
 	virtual SgemmFunc GetSgemmFunction() const = 0;
+
+	virtual CLstmDesc* InitLstmDesc( const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
+		const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm,
+		const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
+		int hiddenSize, int objectCount, int objectSize, IMathEngine* _mathEngine, int _threadCount ) const = 0;
 };
 
 }

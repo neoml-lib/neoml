@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <BlobConvolution.h>
+#include <DnnLstmJit.h>
 
 namespace NeoML {
 
@@ -59,6 +60,11 @@ public:
 
 	SgemmFunc GetSgemmFunction() const override;
 
+	CLstmDesc* InitLstmDesc( const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
+		const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm,
+		const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
+		int hiddenSize, int objectCount, int objectSize, IMathEngine* _mathEngine, int _threadCount ) const override;
+
 private:
 	IMathEngine* mathEngine;
 	int threadCount;
@@ -86,6 +92,17 @@ void CAvxMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const fl
 SgemmFunc CAvxMathEngine::GetSgemmFunction() const
 {
 	return AvxMultiplyMatrix;
+}
+
+CLstmDesc* CAvxMathEngine::InitLstmDesc( const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
+	const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm,
+	const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
+	int hiddenSize, int objectCount, int objectSize, IMathEngine* _mathEngine, int _threadCount ) const
+{
+	return new CLstmDescJit( inputWeights, inputFreeTerm,
+		recurrentWeights, recurrentFreeTerm,
+		inputFullyConnectedResult, reccurentFullyConnectedResult,
+		hiddenSize, objectCount, objectSize, _mathEngine, _threadCount );
 }
 
 extern "C"

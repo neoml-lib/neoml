@@ -12,13 +12,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
+#pragma once
+
 #include <xbyak/xbyak.h>
 
 namespace NeoML {
 
 using reg64_t = Xbyak::Reg64;
 
-static constexpr Xbyak::Operand::Code CalleeSavedRegisters[] = {
+constexpr Xbyak::Operand::Code CalleeSavedRegisters[] = {
     Xbyak::Operand::RBX,
     Xbyak::Operand::RBP,
     Xbyak::Operand::R12,
@@ -32,17 +34,19 @@ static constexpr Xbyak::Operand::Code CalleeSavedRegisters[] = {
 };
 
 #ifdef _WIN32
-static const reg64_t Param1{Xbyak::Operand::RCX};
-static const reg64_t Param2{Xbyak::Operand::RDX};
-static const reg64_t Param3{Xbyak::Operand::R8};
-static const reg64_t Param4{Xbyak::Operand::R9};
+constexpr reg64_t Param1{Xbyak::Operand::RCX};
+constexpr reg64_t Param2{Xbyak::Operand::RDX};
+constexpr reg64_t Param3{Xbyak::Operand::R8};
+constexpr reg64_t Param4{Xbyak::Operand::R9};
 #else
-static const reg64_t Param1{Xbyak::Operand::RDI};
-static const reg64_t Param2{Xbyak::Operand::RSI};
-static const reg64_t Param3{Xbyak::Operand::RDX};
-static const reg64_t Param4{Xbyak::Operand::RCX};
-static const reg64_t Param5{Xbyak::Operand::R8};
-static const reg64_t Param6{Xbyak::Operand::R9};
+constexpr reg64_t Param1{Xbyak::Operand::RDI};
+constexpr reg64_t Param2{Xbyak::Operand::RSI};
+constexpr reg64_t Param3{Xbyak::Operand::RDX};
+constexpr reg64_t Param4{Xbyak::Operand::RCX};
+constexpr reg64_t Param5{Xbyak::Operand::R8};
+constexpr reg64_t Param6{Xbyak::Operand::R9};
 #endif
 
+constexpr unsigned int NumFloatInYmm = 8;
+constexpr unsigned int SizeOfYmm = NumFloatInYmm * sizeof( float );
 }
