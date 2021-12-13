@@ -33,9 +33,9 @@ void CCudaMathEngine::SetVectorToMatrixRows(const CFloatHandle& resultHandle,
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	dim3 blockCount;
-	dim3 threadCount;
-	getCudaTaskGrid2D(blockCount, threadCount, matrixHeight, matrixWidth);
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid( blockCount, threadCount, matrixHeight * matrixWidth );
 
 	SetVectorToMatrixRowsKernel<<<blockCount, threadCount>>>
 		(GetRaw(resultHandle), matrixHeight, matrixWidth, GetRaw(vectorHandle));

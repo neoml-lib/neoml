@@ -7,9 +7,7 @@ else()
     add_library(${PROJECT_NAME} STATIC common.cpp)
 endif()
 
-target_sources(${PROJECT_NAME}
-    PRIVATE
-
+set(CPU_COMMON_SOURCES
     # Sources
     CPU/CpuMathEngineBlas.cpp
     CPU/CpuMathEngineDnn3dConv.cpp
@@ -24,6 +22,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
     CPU/CpuMathEngineVectorMath.cpp
+    CPU/CpuMathEngineDnnDistributed.cpp
     CrtAllocatedObject.cpp
     DllLoader.cpp
     MathEngineDeviceStackAllocator.cpp
@@ -32,6 +31,11 @@ target_sources(${PROJECT_NAME}
     MathEngineHostStackAllocator.cpp
     MemoryPool.cpp
     common.cpp
+)
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+    ${CPU_COMMON_SOURCES}
     # Headers
     common.h
     MathEngineAllocator.h
@@ -50,6 +54,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuRandom.h
     CPU/CpuMathEnginePrivate.h
     CPU/CpuMathEngineOmp.h
+    CPU/CpuMathEngineDnnDistributed.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
@@ -70,6 +75,12 @@ target_sources(${PROJECT_NAME}
 )
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE GROUP
+)
+set_property(SOURCE ${CPU_COMMON_SOURCES} PROPERTY UNITY_GROUP 1)
+set_property(SOURCE MathEngineDeviceStackAllocator.cpp PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 
@@ -101,13 +112,16 @@ endif()
 
 # CPU specific settings
 if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROID_ABI MATCHES "^arm.*") OR (IOS AND IOS_ARCH MATCHES "^arm.*"))
-    target_sources(${PROJECT_NAME} 
-    PRIVATE
+    set(CPU_ARM_SOURCES
         CPU/arm/CpuArmMathEngineBlas.cpp
         CPU/arm/CpuArmMathEngineDnn.cpp
         CPU/arm/CpuArmMathEngineVectorMath.cpp
         CPU/arm/CpuArmMathEngineDnn3dConv.cpp
         CPU/arm/CpuArmMathEngineMatrixMultiplying.cpp
+    )
+    target_sources(${PROJECT_NAME} 
+    PRIVATE
+        ${CPU_ARM_SOURCES}
         CPU/arm/CpuArm.h
         CPU/arm/CpuArmMathEngineBlasPrivate.h
         CPU/arm/CpuArmMathEngineVectorMathPrivate.h
@@ -122,21 +136,26 @@ if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROI
         CPU/arm/MatrixMultiplyingInterleaved/MicroKernels/Kernel_ARM64_8x12.h
         CPU/arm/MatrixMultiplyingInterleaved/MicroKernels/Kernel_ARM64_8x4.h
     )
+    set_property(SOURCE ${CPU_ARM_SOURCES} PROPERTY UNITY_GROUP 1)
     source_group("CPU\\arm" REGULAR_EXPRESSION "CPU\/arm\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/arm>)
 else()
-    target_sources(${PROJECT_NAME} 
-    PRIVATE
+    set(CPU_X86_SOURCES
         CPU/x86/CpuX86MathEngineBlas.cpp
         CPU/x86/CpuX86MathEngineBlasMkl.cpp
         CPU/x86/CpuX86MathEngineDnn.cpp
         CPU/x86/CpuX86MathEngineVectorMath.cpp
         CPU/x86/CpuX86MathEngineVectorMathMkl.cpp
         CPU/x86/CpuX86MathEngineDnn3dConv.cpp
+    )
+    target_sources(${PROJECT_NAME} 
+    PRIVATE
+        ${CPU_X86_SOURCES}
         CPU/x86/CpuX86.h
         CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
     )
+    set_property(SOURCE ${CPU_X86_SOURCES} PROPERTY UNITY_GROUP 1)
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
     if(NEOML_USE_AVX)
@@ -163,6 +182,10 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
 
         if(WIN32)
             set(CMAKE_CUDA_COMPILER "${CMAKE_CUDA_COMPILER}.exe")
+        endif()
+
+        if(LINUX)
+            set(NCCL_ROOT_DIR $ENV{ROOT}/ThirdParty/CUDA/Linux/nccl)
         endif()
     endif() # USE_FINE_OBJECTS
 
@@ -201,6 +224,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CudaDevice.cpp
                     GPU/CUDA/CudaMathEngine.cpp
                     GPU/CUDA/CusparseDll.cpp
+                    GPU/CUDA/NcclDll.cpp
                     # CUDA Sources
                     GPU/CUDA/CudaMathEngineBlas.cu
                     GPU/CUDA/CudaMathEngineCublas.cu
@@ -217,9 +241,12 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CudaMathEngineDnnTimeConv.cu
                     GPU/CUDA/CudaMathEngine.cu
                     GPU/CUDA/CudaMathEngineVectorMath.cu
+                    GPU/CUDA/CudaMathEngineDnnDistributed.cpp
                     # Headers
                     GPU/CUDA/CublasDll.h
                     GPU/CUDA/CublasFunctions.h
+                    GPU/CUDA/NcclDll.h
+                    GPU/CUDA/NcclFunctions.h
                     GPU/CUDA/CudaAssert.h
                     GPU/CUDA/CudaBlobDesc.h
                     GPU/CUDA/CudaCommon.h
@@ -253,6 +280,14 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
             target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>)
             source_group("GPU\\CUDA" REGULAR_EXPRESSION "GPU\/CUDA\/[A-Za-z0-9_]+\.(h|cpp|cu)")
             source_group("GPU\\CUDA\\Kernels" REGULAR_EXPRESSION "GPU\/CUDA\/Kernels\/.+")
+
+            find_path(NCCL_INCLUDE_DIR NAMES nccl.h PATHS ${NCCL_ROOT_DIR})
+
+	        if (NOT "${NCCL_INCLUDE_DIR}" STREQUAL "NCCL_INCLUDE_DIR-NOTFOUND")
+                message(STATUS "Found NCCL (include: ${NCCL_INCLUDE_DIR})")
+                target_compile_definitions(${PROJECT_NAME} PUBLIC -D NEOML_USE_NCCL)
+                target_include_directories(${PROJECT_NAME} PRIVATE ${NCCL_INCLUDE_DIR})
+            endif ()
         endif()
     else()
         message(STATUS "No CUDA support.")
@@ -328,28 +363,32 @@ if(NeoMathEngine_ENABLE_VULKAN)
                     ${Vulkan_INCLUDE_DIR}
             )
             
+            set(VULKAN_SOURCES
+                GPU/Vulkan/VulkanCommandQueue.cpp
+                GPU/Vulkan/VulkanDll.cpp
+                GPU/Vulkan/VulkanImage.cpp
+                GPU/Vulkan/VulkanMathEngineBlas.cpp
+                GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
+                GPU/Vulkan/VulkanMathEngineDnn.cpp
+                GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
+                GPU/Vulkan/VulkanMathEngineDnnLrn.cpp
+                GPU/Vulkan/VulkanMathEngine.cpp
+                GPU/Vulkan/VulkanMathEngineVectorMath.cpp
+                GPU/Vulkan/VulkanShader.cpp
+                GPU/Vulkan/VulkanMemory.cpp
+            )
             target_sources(${PROJECT_NAME}
                 PRIVATE
-                    GPU/Vulkan/VulkanCommandQueue.cpp
+                    ${VULKAN_SOURCES}
                     GPU/Vulkan/VulkanCommandQueue.h
-                    GPU/Vulkan/VulkanDll.cpp
                     GPU/Vulkan/VulkanDll.h
-                    GPU/Vulkan/VulkanImage.cpp
                     GPU/Vulkan/VulkanImage.h
-                    GPU/Vulkan/VulkanMathEngineBlas.cpp
-                    GPU/Vulkan/VulkanMathEngineDnnConvs.cpp
-                    GPU/Vulkan/VulkanMathEngineDnn.cpp
-                    GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
-                    GPU/Vulkan/VulkanMathEngineDnnLrn.cpp
-                    GPU/Vulkan/VulkanMathEngine.cpp
                     GPU/Vulkan/VulkanMathEngine.h
-                    GPU/Vulkan/VulkanMathEngineVectorMath.cpp
-                    GPU/Vulkan/VulkanShader.cpp
                     GPU/Vulkan/VulkanShader.h
-                    GPU/Vulkan/VulkanMemory.cpp
                     GPU/Vulkan/VulkanMemory.h
                     GPU/Vulkan/shaders/common/CommonStruct.h
             )
+            set_property(SOURCE ${VULKAN_SOURCES} PROPERTY UNITY_GROUP 2)
             source_group("GPU\\Vulkan" REGULAR_EXPRESSION "GPU\/Vulkan\/[A-Za-z0-9_]+\.(h|cpp)")
             
             add_subdirectory(GPU/Vulkan/shaders)
@@ -438,11 +477,10 @@ if(NeoMathEngine_INSTALL)
             file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Windows/redist/x64/*.dll)
             install(FILES ${CUDA_LIBS} DESTINATION ${FINE_ROOT}/Win${FINE_BUILD_TYPE}.x64)
         elseif(LINUX AND CMAKE_CUDA_COMPILER)
-            file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Linux/redist/x64/*.so.10)
+            file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Linux/redist/x64/*.so.11 ${FINE_ROOT}/ThirdParty/CUDA/Linux/redist/x64/libnccl.so)
             install(FILES ${CUDA_LIBS} DESTINATION ${FINE_ROOT}/X.${CMAKE_SYSTEM_NAME}.${FINE_BUILD_TYPE}/x86_64)
         endif()
     else()
-
         install(DIRECTORY ../include/NeoMathEngine DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
         if(CMAKE_PROJECT_NAME STREQUAL "NeoMathEngine")

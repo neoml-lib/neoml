@@ -47,7 +47,7 @@ void CCpuMathEngine::VectorCopy(const CFloatHandle& firstHandle, const CConstFlo
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	if( threadCount > 1 ) {
+	if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
@@ -117,7 +117,7 @@ void CCpuMathEngine::VectorAdd(const CConstFloatHandle& firstHandle, const CCons
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	if( threadCount > 1 ) {
+	if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
@@ -444,7 +444,7 @@ void CCpuMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	if( threadCount > 1 ) {
+	if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
@@ -465,7 +465,7 @@ void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	if( threadCount > 1 ) {
+	if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
@@ -622,7 +622,7 @@ void CCpuMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const CF
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	if( threadCount > 1 ) {
+	if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {

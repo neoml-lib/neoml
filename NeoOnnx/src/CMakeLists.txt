@@ -6,6 +6,10 @@ endif()
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE GROUP
+)
+
 target_sources( ${PROJECT_NAME} PRIVATE
     GraphInput.cpp
     GraphInitializer.cpp
