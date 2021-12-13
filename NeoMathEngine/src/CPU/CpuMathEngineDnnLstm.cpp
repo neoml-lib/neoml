@@ -19,7 +19,6 @@ limitations under the License.
 #include <CpuMathEngine.h>
 #include <CpuMathEnginePrivate.h>
 #include <MathEngineDnnLstm.h>
-#include <MemoryHandleInternal.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
 #include <NeoMathEngine/OpenMP.h>
 
@@ -30,10 +29,16 @@ CLstmDesc* CCpuMathEngine::InitLstm( const CFloatHandle& inputWeights, const CFl
 	const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
 	int hiddenSize, int objectCount, int objectSize )
 {
+	if( simdMathEngine != nullptr ) {
+		return simdMathEngine->InitLstmDesc( inputWeights, inputFreeTerm,
+			recurrentWeights, recurrentFreeTerm,
+			inputFullyConnectedResult, reccurentFullyConnectedResult,
+			hiddenSize, objectCount, objectSize, this, threadCount );
+	}
 	return new CMathEngineLstmDesc( inputWeights, inputFreeTerm,
 		recurrentWeights, recurrentFreeTerm,
 		inputFullyConnectedResult, reccurentFullyConnectedResult,
-		hiddenSize, objectCount, objectSize );
+		hiddenSize, objectCount, objectSize, this, threadCount );
 }
 
 void CCpuMathEngine::Lstm( CLstmDesc& desc, const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
@@ -65,55 +70,13 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, const CConstFloatHandle& inputStateB
 		lstmDesc.recurrentWeights, lstmDesc.hiddenSize, CMathEngineLstmDesc::GatesNum * lstmDesc.hiddenSize,
 		lstmDesc.reccurentFullyConnectedResult, lstmDesc.recurrentFreeTerm );
 
-	if( lstmDesc.hasSimdImplementations ) {
-		lstmDesc.simdRunOnceOfLstm( GetRaw( inputStateBackLink ), GetRaw( outputStateBackLink ), GetRaw( outputMainBackLink ) );
-	} else {
-		// Elementwise summ of fully connected layers' results (inplace)
-		const int ResultMatrixHeight = lstmDesc.objectCount;
-		const int ResultMatrixWidth = CMathEngineLstmDesc::GatesNum * lstmDesc.hiddenSize;
-		const CFloatHandle& hiddenLayerSum = lstmDesc.inputFullyConnectedResult;
-		VectorAdd( lstmDesc.inputFullyConnectedResult, lstmDesc.reccurentFullyConnectedResult, hiddenLayerSum, ResultMatrixHeight * ResultMatrixWidth );
+	lstmDesc.SimdRunOnceRestOfLstm( inputStateBackLink, outputStateBackLink, outputMainBackLink );		
+}
 
-		// Rearrange sum
-		const CFloatHandle& hiddenLayerSumRearranged = lstmDesc.reccurentFullyConnectedResult;
-		const int DataSize = ResultMatrixHeight * lstmDesc.hiddenSize;
-		CFloatHandle inputTanhData = hiddenLayerSumRearranged;
-		CFloatHandle forgetData = inputTanhData + DataSize;
-		CFloatHandle inputData = forgetData + DataSize;
-		CFloatHandle outputData = inputData + DataSize;
-
-		int objectSize = lstmDesc.hiddenSize;
-		float* rawFrom = GetRaw( hiddenLayerSum );
-		float* rawTo = GetRaw( hiddenLayerSumRearranged );
-		for( int x = 0; x < ResultMatrixHeight; x++ ) {
-			const float* input = rawFrom + x * ResultMatrixWidth;
-			for( int i = 0; i < CMathEngineLstmDesc::GatesNum; ++i ) {
-				memcpy( ( rawTo + i * DataSize ) + x * objectSize, input, objectSize * sizeof( float ) );
-				input += objectSize;
-			}
-		}
-
-		// Apply activations
-		VectorTanh( inputTanhData, inputTanhData, DataSize );
-		VectorSigmoid( forgetData, forgetData, DataSize );
-		VectorSigmoid( inputData, inputData, DataSize );
-		VectorSigmoid( outputData, outputData, DataSize );
-
-		// Multiply input gates
-		VectorEltwiseMultiply( inputData, inputTanhData, inputData, DataSize );
-
-		// Multiply state backlink with forget gate
-		VectorEltwiseMultiply( forgetData, inputStateBackLink, forgetData, DataSize );
-
-		// Append input gate to state backlink
-		VectorAdd( forgetData, inputData, outputStateBackLink, DataSize );
-
-		// Apply tanh to state baclink
-		VectorTanh( outputStateBackLink, inputData, DataSize );
-
-		// Multiply output gate with result of previous operation
-		VectorEltwiseMultiply( outputData, inputData, outputMainBackLink, DataSize );
-	}
+void CCpuMathEngine::CalcTanh( CLstmDesc* desc, float* data, size_t dataSize )
+{
+	CMathEngineLstmDesc* lstmDesc = dynamic_cast< CMathEngineLstmDesc* >( desc );
+	lstmDesc->CalcTanh( data, dataSize );
 }
 
 } // namespace NeoML
