@@ -22,7 +22,6 @@ limitations under the License.
 
 #ifdef NEOML_USE_CUDA
 #include <cuda_runtime.h>
-#include <CudaMathEngine.h>
 #include <CublasDll.h>
 #include <CusparseDll.h>
 #endif

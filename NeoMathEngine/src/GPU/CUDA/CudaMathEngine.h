@@ -20,6 +20,7 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <DllLoader.h>
 #include <RawMemoryManager.h>
 #include <cusparse.h>
 #include <cublas.h>
@@ -42,7 +43,6 @@ struct CCudaDevice;
 class CDeviceStackAllocator;
 class CHostStackAllocator;
 class CMemoryPool;
-class CDllLoader;
 
 // CUDA math engine
 class CCudaMathEngine : public IMathEngine, public IRawMemoryManager {
@@ -539,7 +539,7 @@ protected:
 	void Free( const CMemoryHandle& handle ) override;
 
 private:
-	std::unique_ptr<CDllLoader> loader; // loader to guarantee the correctness of dlls' loads/frees
+	CDllLoader loader; // loader to guarantee the correctness of dlls' loads/frees
 	const CCusparse* cusparse; // cusparse library functions
 	const CCublas* cublas; // cublas library functions
 
