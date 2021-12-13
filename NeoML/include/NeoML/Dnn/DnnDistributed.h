@@ -19,7 +19,7 @@ namespace NeoML {
 // Interface for setting input to a neural network
 class IDistributedDataset {
 public:
-	virtual void SetInputBatch( CDnn& cnn, int thread ) = 0;
+	virtual void SetInputBatch( CDnn& dnn, int thread ) = 0;
 };
 
 // Single process, multiple threads distributed training
@@ -35,7 +35,7 @@ public:
 	// `layerName` should correspond to CLossLayer or CCtcLossLayer
 	void GetLastLoss( const CString& layerName, CArray<float>& losses );
 	~CDistributedTraining();
-protected:
+private:
 	CArray<IMathEngine*> mathEngines;
 	CArray<CRandom*> rands;
 	CArray<CDnn*> cnns;

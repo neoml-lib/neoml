@@ -83,6 +83,7 @@ Before the first training iteration the layers' weights (trainable parameters) a
 
 - `CDnnUniformInitializer` generates the weights using a uniform distribution over a segment from `GetLowerBound` to `GetUpperBound`.
 - `CDnnXavierInitializer` generates the weights using the normal distribution `N(0, 1/n)` where `n` is the input size.
+- `CDnnXavierUniformInitializer` generates the weights using the uniform distribution `U(-sqrt(1/n), sqrt(1/n))` where `n` is the input size.
 
 To select the preferred initializer, create an instance of one of these classes and pass it to the network using the [`CDnn::SetInitializer`](Dnn.md#weights-initialization) method. The default initialization methods is `Xavier`.
 
