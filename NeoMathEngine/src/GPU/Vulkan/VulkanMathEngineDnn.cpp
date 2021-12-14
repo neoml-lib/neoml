@@ -631,6 +631,14 @@ void CVulkanMathEngine::IndRnnRecurrentLearn( bool /*reverse*/, int /*sequenceLe
 	ASSERT_EXPR( false );
 }
 
+void CVulkanMathEngine::CtcLossForward( int /*resultLen*/, int /*batchSize*/, int /*classCount*/, int /*labelLen*/,
+	int /*blankLabel*/, bool /*skipBlanks*/, const CConstFloatHandle& /*result*/, const CConstIntHandle& /*labels*/,
+	const CConstIntHandle& /*labelLens*/, const CConstIntHandle& /*resultLens*/, const CConstFloatHandle& /*labelWeights*/,
+	const CFloatHandle& /*loss*/, const CFloatHandle& /*lossGradient*/ )
+{
+	ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_VULKAN

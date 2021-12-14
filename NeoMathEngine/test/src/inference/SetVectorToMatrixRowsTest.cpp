@@ -59,6 +59,18 @@ INSTANTIATE_TEST_CASE_P(CMathEngineSetVectorToMatrixRowsTestInstantiation, CMath
 			"MatrixWidth = (1..100);"
 			"Values = (-50..50);"
 			"TestCount = 100;"
+		),
+		CTestParams(
+			"MatrixHeight = (1089536..1089536);"
+			"MatrixWidth = (48..48);"
+			"Values = (-1..1);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"MatrixHeight = (1089536..1089536);"
+			"MatrixWidth = (64..64);"
+			"Values = (-1..1);"
+			"TestCount = 1;"
 		)
 	)
 );

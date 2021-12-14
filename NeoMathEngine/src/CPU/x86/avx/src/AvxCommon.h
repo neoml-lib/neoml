@@ -34,3 +34,4 @@ limitations under the License.
   _mm_storeu_ps ( loAddr, _mm256_castps256_ps128( data ) ); \
   _mm_storeu_ps ( hiAddr, _mm256_extractf128_ps( data, 1) )
 #endif
+

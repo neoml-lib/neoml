@@ -19,7 +19,7 @@ limitations under the License.
 
 #ifdef NEOML_USE_CUDA
 
-#include <cublas_v2.h>
+#include <cublas.h>
 
 namespace NeoML {
 

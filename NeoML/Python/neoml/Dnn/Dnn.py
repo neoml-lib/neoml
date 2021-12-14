@@ -175,12 +175,8 @@ class Dnn(PythonWrapper.Dnn):
             input_list.append(inputs[layer_name]._internal)
 
         dnn_outputs = self._run(input_list)
-
-        outputs = {}
-        for layer_name in dnn_outputs:
-            outputs[layer_name] = neoml.Blob.Blob(dnn_outputs[layer_name])
-
-        return outputs
+        outputs_blobs = { k: neoml.Blob.Blob(v) for k, v in dnn_outputs.items() }
+        return outputs_blobs 
 
     def run_and_backward(self, inputs):
         """Runs the network and performs a backward pass with the input data.
@@ -207,7 +203,9 @@ class Dnn(PythonWrapper.Dnn):
         for layer_name in dnn_inputs:
             input_list.append(inputs[layer_name]._internal)
 
-        return self._run_and_backward(input_list)
+        dnn_outputs = self._run_and_backward(input_list)
+        outputs_blobs = { k: neoml.Blob.Blob(v) for k, v in dnn_outputs.items() }
+        return outputs_blobs 
 
     def learn(self, inputs):
         """Runs the network, performs a backward pass 
@@ -235,7 +233,9 @@ class Dnn(PythonWrapper.Dnn):
         for layer_name in dnn_inputs:
             input_list.append(inputs[layer_name]._internal)
 
-        self._learn(input_list)
+        dnn_outputs = self._learn(input_list)
+        outputs_blobs = { k: neoml.Blob.Blob(v) for k, v in dnn_outputs.items() }
+        return outputs_blobs 
 
 # -------------------------------------------------------------------------------------------------------------
 
@@ -254,6 +254,21 @@ class Layer:
         """Gets the layer name.
         """
         return self._internal.get_name()
+
+    @property
+    def learning_enabled(self):
+        """Gets whether the weights are frozen or not.
+        """
+        return self._internal.is_learning_enabled()
+
+    @learning_enabled.setter
+    def learning_enabled(self, value):
+        """Freezes or unfreezes the weights.
+        """
+        if value:
+            self._internal.enable_learning()
+        else:
+            self._internal.disable_learning()    
     
     def connect(self, layer, output_index=0, input_index=0):
         """Connects this layer to another.

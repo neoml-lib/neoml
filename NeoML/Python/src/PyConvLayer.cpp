@@ -102,6 +102,12 @@ public:
 	int GetDilation() const { return Layer<CTimeConvLayer>()->GetDilation(); }
 	void SetDilation( int value ) { Layer<CTimeConvLayer>()->SetDilation( value ); }
 
+	void SetFilter( const CPyBlob& blob ) { Layer<CTimeConvLayer>()->SetFilterData( blob.Blob() ); }
+	CPyBlob GetFilter() const { return CPyBlob( MathEngineOwner(), Layer<CTimeConvLayer>()->GetFilterData() ); }
+
+	void SetFreeTerm( const CPyBlob& blob ) { Layer<CTimeConvLayer>()->SetFreeTermData( blob.Blob() ); }
+	CPyBlob GetFreeTerm() const { return CPyBlob( MathEngineOwner(), Layer<CTimeConvLayer>()->GetFreeTermData() ); }
+
 	py::object CreatePythonObject() const
 	{
 		py::object pyModule = py::module::import( "neoml.Dnn" );
@@ -310,6 +316,10 @@ void InitializeConvLayer( py::module& m )
 		.def("set_padding_back", &CPyTimeConvLayer::SetPaddingBack, py::return_value_policy::reference)
 		.def("get_dilation", &CPyTimeConvLayer::GetDilation, py::return_value_policy::reference)
 		.def("set_dilation", &CPyTimeConvLayer::SetDilation, py::return_value_policy::reference)
+		.def("get_filter", &CPyTimeConvLayer::GetFilter, py::return_value_policy::reference)
+		.def("set_filter", &CPyTimeConvLayer::SetFilter, py::return_value_policy::reference)
+		.def("get_free_term", &CPyTimeConvLayer::GetFreeTerm, py::return_value_policy::reference)
+		.def("set_free_term", &CPyTimeConvLayer::SetFreeTerm, py::return_value_policy::reference)
 	;
 
 	py::class_<CPyChannelwiseConvLayer, CPyBaseConvLayer>(m, "ChannelwiseConv")

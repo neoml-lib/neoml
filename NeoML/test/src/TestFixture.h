@@ -185,4 +185,13 @@ class CNeoMLTestFixture : public ::testing::Test {
 class CNeoMlTestFixtureWithParams : public CNeoMLTestFixture, public ::testing::WithParamInterface<CTestParams> {
 };
 
+//------------------------------------------------------------------------------------------------------------
+
+#define RUN_TEST_IMPL( impl ) { \
+	CTestParams params = GetParam(); \
+	const int testCount = params.GetValue<int>( "TestCount" ); \
+	for( int test = 0; test < testCount; ++test ) { \
+		impl ( params, 282 + test * 10000 + test % 3  ); \
+	} } \
+
 } // namespace NeoMLTest

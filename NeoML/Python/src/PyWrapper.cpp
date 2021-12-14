@@ -21,6 +21,7 @@ limitations under the License.
 #include "PyMathEngine.h"
 #include "PyDnn.h"
 #include "PyDnnBlob.h"
+#include "PyDnnDistributed.h"
 #include "PyAutoDiff.h"
 #include "PyLayer.h"
 #include "PyAccumulativeLookupLayer.h"
@@ -61,6 +62,7 @@ limitations under the License.
 #include "PySpaceAndDepthLayer.h"
 #include "PySplitLayer.h"
 #include "PySubSequenceLayer.h"
+#include "PyTransformerLayer.h"
 #include "PyTransformLayer.h"
 #include "PyTransposeLayer.h"
 #include "PyUpsampling2DLayer.h"
@@ -109,6 +111,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeEltwiseLayer( m );
 	InitializeDotProductLayer( m );
 	InitializeDropoutLayer( m );
+	InitializeDistributedTraining( m );
 	InitializeFullyConnectedLayer( m );
 	InitializeImageConversionLayer( m );
 	InitializeIndRnnLayer( m );
@@ -132,6 +135,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeSoftmaxLayer( m );
 	InitializeSplitLayer( m );
 	InitializeSubSequenceLayer( m );
+	InitializeTransformerLayer( m );
 	InitializeTransformLayer( m );
 	InitializeTransposeLayer( m );
 	InitializeTiedEmbeddingsLayer( m );

@@ -375,7 +375,6 @@ void CCpuMathEngine::sumMatrixRowsAdd( float* result, const float* matrix,
 		vectorAdd(result, matrix, result, matrixWidth);
 		matrix += matrixWidth;
 	}
-	result += matrixWidth;
 }
 
 void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& desc, const float* sourceData,

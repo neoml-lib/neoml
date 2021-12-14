@@ -130,10 +130,10 @@ void CEltwiseSubLayer::RunOnce()
 
 void CEltwiseSubLayer::BackwardOnce()
 {
-	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
-		MathEngine().VectorCopy( inputDiffBlobs[i]->GetData(), outputDiffBlobs[0]->GetData(),
-			inputDiffBlobs[i]->GetDataSize() );
-	}
+	MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+		inputDiffBlobs[0]->GetDataSize() );
+	MathEngine().VectorNeg( outputDiffBlobs[0]->GetData(), inputDiffBlobs[1]->GetData(),
+		inputDiffBlobs[1]->GetDataSize() );
 }
 
 static const int EltwiseSubLayerVersion = 0;

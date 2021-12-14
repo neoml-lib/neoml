@@ -36,7 +36,7 @@ CDropoutOperator::CDropoutOperator( const onnx::NodeProto& dropout, int opsetVer
 	if( OpsetVersion < 12 ) {
 		CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	} else {
-		CheckOnnxProtocol( InputCount() >= 1 || InputCount() <= 3, "operator must have from 1 up to 3 inputs", *this );
+		CheckOnnxProtocol( InputCount() >= 1 && InputCount() <= 3, "operator must have from 1 up to 3 inputs", *this );
 	}
 	CheckOnnxProtocol( OutputCount() == 1 || OutputCount() == 2, "operator must have 1 or 2 outputs", *this );
 }

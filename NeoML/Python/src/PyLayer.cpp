@@ -45,5 +45,8 @@ void InitializeLayer( py::module& m )
 		.def( "get_name", &CPyLayer::GetName, py::return_value_policy::reference )
 		.def( "create_python_object", &CPyLayer::CreatePythonObject, py::return_value_policy::reference )
 		.def( "connect", &CPyLayer::Connect, py::return_value_policy::reference )
+		.def( "is_learning_enabled", &CPyLayer::IsLearningEnabled, py::return_value_policy::reference )
+		.def( "enable_learning", &CPyLayer::EnableLearning, py::return_value_policy::reference )
+		.def( "disable_learning", &CPyLayer::DisableLearning, py::return_value_policy::reference )
 	;
 }

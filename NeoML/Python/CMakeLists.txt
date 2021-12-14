@@ -56,6 +56,7 @@ pybind11_add_module(PythonWrapper
     src/PyDifferentialEvolution.cpp
     src/PyDotProductLayer.cpp
     src/PyDropoutLayer.cpp
+    src/PyDnnDistributed.cpp
     src/PyDnn.cpp
     src/PyDnnBlob.cpp
     src/PyEltwiseLayer.cpp
@@ -92,6 +93,7 @@ pybind11_add_module(PythonWrapper
     src/PySubSequenceLayer.cpp
     src/PyTiedEmbeddingsLayer.cpp
     src/PyTrainingModel.cpp
+    src/PyTransformerLayer.cpp
     src/PyTransformLayer.cpp
     src/PyTransposeLayer.cpp
     src/PyUpsampling2DLayer.cpp

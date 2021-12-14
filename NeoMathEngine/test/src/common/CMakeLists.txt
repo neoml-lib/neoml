@@ -7,6 +7,10 @@ add_library(${PROJECT_NAME}
 	TestParams.h
 )
 
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE GROUP
+)
+
 configure_target(${PROJECT_NAME})
 
 if(USE_FINE_OBJECTS AND (IOS OR DARWIN))

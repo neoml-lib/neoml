@@ -71,6 +71,7 @@ void CMultiheadAttentionLayer::SetOutputSize( int _outputSize )
 	NeoAssert( _outputSize > 0 );
 
 	outputSize = _outputSize;
+	DeleteAllLayers();
 }
 
 static const int MultiheadAttentionLayerVersion = 0;

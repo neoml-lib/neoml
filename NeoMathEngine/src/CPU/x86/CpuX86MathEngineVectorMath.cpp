@@ -35,13 +35,15 @@ void CCpuMathEngine::VectorFill( const CFloatHandle& result, float value, int ve
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			vectorFill( GetRaw( result + index ), value, count );
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				vectorFill( GetRaw( result + index ), value, count );
+			}
 		}
+	} else {
+		vectorFill( GetRaw( result ), value, vectorSize );
 	}
 }
 
@@ -51,13 +53,15 @@ void CCpuMathEngine::VectorFill( const CIntHandle& resultHandle, int value, int 
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			vectorFill( GetRaw( resultHandle + index ), value, count );
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				vectorFill( GetRaw( resultHandle + index ), value, count );
+			}
 		}
+	} else {
+		vectorFill( GetRaw( resultHandle ), value, vectorSize );
 	}
 }
 
@@ -355,16 +359,22 @@ void CCpuMathEngine::VectorReLU( const CConstFloatHandle& firstHandle, const CFl
 
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			if( threshold > 0 ) {
-				vectorReLU( first + index, result + index, count, threshold );
-			} else {
-				vectorReLU( first + index, result + index, count );
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				if( threshold > 0 ) {
+					vectorReLU( first + index, result + index, count, threshold );
+				} else {
+					vectorReLU( first + index, result + index, count );
+				}
 			}
+		}
+	} else {
+		if( threshold > 0 ) {
+			vectorReLU( first, result, vectorSize, threshold );
+		} else {
+			vectorReLU( first, result, vectorSize );
 		}
 	}
 }
@@ -1541,18 +1551,11 @@ void CCpuMathEngine::VectorInv(const CConstFloatHandle& firstHandle, const CFloa
 	}
 }
 
-void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+static inline void vectorSigmoidWorker( float* result, int vectorSize )
 {
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-	VectorExp(firstHandle, resultHandle, vectorSize);
-
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
-
-	float* result = GetRaw(resultHandle);
 
 	if(sseSize > 0) {
 		const __m128 oneSse = _mm_set_ps1(1);
@@ -1568,6 +1571,29 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 	for(int i = 0; i < nonSseSize; ++i) {
 		*result = *result / (*result + 1);
 		++result;
+	}
+}
+
+void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	VectorExp(firstHandle, resultHandle, vectorSize);
+
+	float* result = GetRaw( resultHandle );
+	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount )
+		{
+			int start;
+			int count;
+			if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
+				vectorSigmoidWorker( result + start, count );
+			}
+		}
+	} else {
+		vectorSigmoidWorker( result, vectorSize );
 	}
 }
 

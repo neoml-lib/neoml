@@ -262,7 +262,8 @@ class SolverTestCase(MultithreadedTestCase):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         solver = neoml.Dnn.AdaptiveGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
                                                moment_decay_rate=0.6, max_gradient_norm=0.6,
-                                               second_moment_decay_rate=0.6, epsilon=0.6, ams_grad=True)
+                                               second_moment_decay_rate=0.6, epsilon=0.6,
+                                               ams_grad=True, decoupled_weight_decay=True)
 
         self.assertAlmostEqual(solver.l1, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.l2, 0.6, delta=1e-3)
@@ -272,6 +273,7 @@ class SolverTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(solver.second_moment_decay_rate, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.epsilon, 0.6, delta=1e-3)
         self.assertEqual(solver.ams_grad, True)
+        self.assertEqual(solver.decoupled_weight_decay, True)
 
     def test_simple_gradient(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -1600,6 +1602,61 @@ class LayersTestCase(MultithreadedTestCase):
             for type_to in types:
                 self._test_cast_impl(type_from, type_to)
 
+    def _transformer_test_data(self, math_engine, batch_size, list_size, obj_size, seed):
+        rng = np.random.default_rng(seed)
+        data_ndarr = rng.uniform(-1., 1., size=(batch_size, list_size, obj_size)).astype(np.float32)
+        return neoml.Blob.asblob(math_engine, data_ndarr, (1, batch_size, list_size, 1, 1, 1, obj_size))
+
+    def _transformer_test_mask(self, math_engine, list_size_in, list_size_out, seed):
+        mask_ndarr = np.zeros((list_size_in, list_size_out), dtype=np.float32)
+        rng = np.random.default_rng(seed)
+        for i in range(list_size_in):
+            pad_len = rng.integers(0, list_size_out - 1, 1)[0]
+            if pad_len > 0:
+                mask_ndarr[i,-pad_len:] = 1.
+        return neoml.Blob.asblob(math_engine, mask_ndarr, (1, 1, 1, 1, list_size_in, 1, list_size_out))
+
+    def test_transformer_encoder(self):
+        batch_size = 17
+        list_size_in = 13
+        obj_size_in = 11
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        input_data = neoml.Dnn.Source(dnn, 'input_data')
+        transformer_encoder = neoml.Dnn.TransformerEncoder(input_data, head_count=2, hidden_size=8,
+            dropout=0.2, feed_forward_size=3, activation='tanh', name='transformer_encoder')
+        sink = neoml.Dnn.Sink(transformer_encoder, name='sink')
+        # getters/setters tests
+        self.assertEqual(transformer_encoder.head_count, 2)
+        transformer_encoder.head_count = 5
+        self.assertEqual(transformer_encoder.head_count, 5)
+        self.assertEqual(transformer_encoder.hidden_size, 8)
+        transformer_encoder.hidden_size = 25
+        self.assertEqual(transformer_encoder.hidden_size, 25)
+        self.assertAlmostEqual(transformer_encoder.dropout, 0.2, delta=1e-6)
+        transformer_encoder.dropout = 0.1
+        self.assertAlmostEqual(transformer_encoder.dropout, 0.1, delta=1e-6)
+        self.assertEqual(transformer_encoder.feed_forward_size, 3)
+        transformer_encoder.feed_forward_size = 15
+        self.assertEqual(transformer_encoder.feed_forward_size, 15)
+        self.assertEqual(transformer_encoder.name, 'transformer_encoder')
+        # run with different mask config
+        for step in range(20):
+            if step % 2 == 0:
+                input_mask = neoml.Dnn.Source(dnn, 'input_mask')
+                transformer_encoder.connect(input_mask, input_index=1)
+                input_data_blob = self._transformer_test_data(math_engine, batch_size, list_size_in, obj_size_in, seed=123545+step*5)
+                input_mask_blob = self._transformer_test_mask(math_engine, list_size_in, list_size_in, seed=123545+step*5+1)
+                outputs = dnn.run({
+                    'input_data': input_data_blob,
+                    'input_mask': input_mask_blob
+                })
+            else:
+                dnn.delete_layer('input_mask')
+                input_data_blob = self._transformer_test_data(math_engine, batch_size, list_size_in, obj_size_in, seed=123545+step*5)
+                outputs = dnn.run({'input_data': input_data_blob})
+            self.assertEqual(outputs['sink'].shape, (1, batch_size, list_size_in, 1, 1, 1, obj_size_in))
+
 
 class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
@@ -2296,6 +2353,9 @@ class DnnTestCase(MultithreadedTestCase):
         dnn.initializer = neoml.Dnn.Uniform()
         self.assertTrue(isinstance(dnn.initializer, neoml.Dnn.Uniform))
 
+        dnn.initializer = neoml.Dnn.XavierUniform(random)
+        self.assertTrue(isinstance(dnn.initializer, neoml.Dnn.XavierUniform))
+
     def test_math_engine(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -2473,3 +2533,20 @@ class ClusteringTestCase(MultithreadedTestCase):
 
     def test_kmeans(self):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
+
+
+class DnnDistributedTestCase(TestCase):
+    def test_distributed(self):
+        def set_data(math_engine, thread):
+            source = neoml.Blob.asblob(math_engine, np.ones((20,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 20))
+            labels = neoml.Blob.asblob(math_engine, np.ones((5,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 5))
+            return dict(source=source, labels=labels)
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, "source")
+        labels = neoml.Dnn.Source(dnn, 'labels')
+        fully = neoml.Dnn.FullyConnected(source, 5, False, "fully")
+        loss = neoml.Dnn.CrossEntropyLoss((fully, labels), name='loss')
+        distributed = neoml.Dnn.DnnDistributed(dnn, 'cpu', 4)
+        distributed.learn(set_data)
+        self.assertEqual(distributed.last_losses("loss").shape, (4,))

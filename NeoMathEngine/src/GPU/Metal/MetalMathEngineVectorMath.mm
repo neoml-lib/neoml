@@ -169,22 +169,6 @@ void CMetalMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrix, int
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-	const CConstIntHandle& indices, const CConstFloatHandle& vector)
-{
-    ASSERT_EXPR( matrix.GetMathEngine() == this );
-    ASSERT_EXPR( indices.GetMathEngine() == this );
-    ASSERT_EXPR( vector.GetMathEngine() == this );
-
-    C1DKernel kernel( *queue, "vectorKernelEltwiseLogSumExpVectorToMatrixElements", 1, height );
-    kernel.SetParam( matrix, 0 );
-    kernel.SetParam( height, 1 );
-    kernel.SetParam( width, 2 );
-    kernel.SetParam( indices, 3 );
-    kernel.SetParam( vector, 4 );
-    ASSERT_EXPR( kernel.Run() );
-}
-
 void CMetalMathEngine::FilterSmallValues(const CFloatHandle& data, int dataSize, float threshold)
 {
     ASSERT_EXPR( data.GetMathEngine() == this );
@@ -222,24 +206,6 @@ void CMetalMathEngine::VectorSumAdd(const CConstFloatHandle& firstHandle, int ve
     kernel.SetParam( firstHandle, 0 );
     kernel.SetParam( vectorSize, 1 );
     kernel.SetParam( 0, 2 );
-    kernel.SetParam( resultHandle, 3 );
-    kernel.SetSharedParam( kernel.GetThreadCount() * sizeof(float), 4 );
-
-    // threadgroupCount.width = 1
-    ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
-}
-
-void CMetalMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle)
-{
-    ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-    ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-    VectorFill( resultHandle, 0.0, vectorSize );
-    
-    C1DKernel kernel( *queue, "vectorKernelSum", 1, vectorSize );
-    kernel.SetParam( firstHandle, 0 );
-    kernel.SetParam( vectorSize, 1 );
-    kernel.SetParam( 1, 2 );
     kernel.SetParam( resultHandle, 3 );
     kernel.SetSharedParam( kernel.GetThreadCount() * sizeof(float), 4 );
 
@@ -1108,21 +1074,6 @@ void CMetalMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, con
     kernel.SetParam( vectorSize, 3 );
     kernel.SetParam( hubertThresholdHandle, 4 );
     kernel.SetParam( multHandle, 5 );
-    ASSERT_EXPR( kernel.Run() );
-}
-
-void CMetalMathEngine::VectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-    const CFloatHandle& resultHandle, int vectorSize)
-{
-    ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-    ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-    ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
-    C1DKernel kernel( *queue, "vectorKernelEltwiseLogSumExp", 1, vectorSize );
-    kernel.SetParam( firstHandle, 0 );
-    kernel.SetParam( secondHandle, 1 );
-    kernel.SetParam( resultHandle, 2 );
-    kernel.SetParam( vectorSize, 3 );
     ASSERT_EXPR( kernel.Run() );
 }
 

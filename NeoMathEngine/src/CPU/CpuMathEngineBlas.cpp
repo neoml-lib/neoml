@@ -24,16 +24,6 @@ limitations under the License.
 
 namespace NeoML {
 
-// LogSumExp for two inputs
-inline float LogSumExpFunc(float f, float s)
-{
-	if(f >= s) {
-		return f + log1pf(expf(s - f));
-	} else {
-		return s + log1pf(expf(f - s));
-	}
-}
-
 static void subVectorFromMatrixRows(CCpuMathEngine* engine, const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle)
 {
@@ -405,22 +395,6 @@ void CCpuMathEngine::findMaxValueInColumns( float* resultHandle, const float* ma
 	}
 }
 
-// Sets the matrix elements to the values from a vector: matrix[rowIndices[i], columnIndices[i]] = vector[i].
-void CCpuMathEngine::SetVectorToMatrixElements(
-	const CFloatHandle& matrixHandle, int /*height*/, int width,
-	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-	const CConstFloatHandle& vectorHandle, int vectorSize )
-{
-	float* matrix = GetRaw( matrixHandle );
-	const int* rowIndices = GetRaw( rowIndicesHandle );
-	const int* columnIndices = GetRaw( columnIndicesHandle );
-	const float* vector = GetRaw( vectorHandle );
-
-	for( int i = 0; i < vectorSize; i++ ) {
-		matrix[rowIndices[i] * width + columnIndices[i]] = vector[i];
-	}
-}
-
 void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
 	const CFloatHandle& outputHandle, int outputChannels )
@@ -700,45 +674,6 @@ void CCpuMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrixHandle,
 
 	for(int i = 0; i < vectorSize; ++i) {
 		matrix[rowIndices[i] * width + columnIndices[i]] += vector[i];
-	}
-}
-
-void CCpuMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrixHandle, int height, int width,
-	const CConstIntHandle& indicesHandle, const CConstFloatHandle& vectorHandle)
-{
-	float* matrix = GetRaw(matrixHandle);
-	const int* indices = GetRaw(indicesHandle);
-	const float* vector = GetRaw(vectorHandle);
-
-	for(int j = 0; j < height; ++j) {
-		int index = *indices++;
-		if(index < 0 || index >= width) {
-			++vector;
-		} else {
-			matrix[index] = LogSumExpFunc(*vector++, matrix[index]);
-		}
-		matrix += width;
-	}
-}
-
-void CCpuMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrixHandle,
-	int height, int width,
-	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-	const CConstFloatHandle& vectorHandle, int vectorSize)
-{
-	float* matrix = GetRaw(matrixHandle);
-	const int* rowIndices = GetRaw(rowIndicesHandle);
-	const int* columnIndices = GetRaw(columnIndicesHandle);
-	const float* vector = GetRaw(vectorHandle);
-
-	for(int i = 0; i < vectorSize; i++) {
-		const int rowIndex = rowIndices[i];
-		const int columnIndex = columnIndices[i];
-		if(rowIndex >= 0 && rowIndex < height &&
-			columnIndex >= 0 && columnIndex < width) {
-			const int matrixIndex = rowIndex * width + columnIndex;
-			matrix[matrixIndex] = LogSumExpFunc(vector[i], matrix[matrixIndex]);
-		}
 	}
 }
 
@@ -1175,33 +1110,6 @@ void CCpuMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle& firstHa
 
 	// dE/dxi = yi * (dE/dyi - <dE/dy, y>)
 	VectorEltwiseMultiply( resultHandle, firstHandle, resultHandle, height * width );
-}
-
-void CCpuMathEngine::MatrixLogSumExpByColumns( const CConstFloatHandle& matrixHandle,
-	int height, int width, const CFloatHandle& resultHandle, int resultSize )
-{
-	ASSERT_EXPR( resultSize >= width );
-
-	CFloatHandleStackVar temp( mathEngine(), height * width );
-	CFloatHandleStackVar tempVec( mathEngine(), width );
-
-	// Find maximum in each column
-	findMaxValueInColumns( GetRaw( resultHandle ), GetRaw( matrixHandle ), height, width );
-
-	// Subtract the maximum and save the result to a temporary variable
-	subVectorFromMatrixRows( this, matrixHandle, temp, height, width, resultHandle );
-
-	// exp
-	VectorExp( temp, temp, height * width );
-
-	// Add up the rows, putting the result into tempVec
-	SumMatrixRows( 1, tempVec, temp, height, width );
-
-	// log
-	VectorLog( tempVec, tempVec, width );
-
-	// Add the logarithm to the maximum
-	VectorAdd( resultHandle, tempVec, resultHandle, width );
 }
 
 void CCpuMathEngine::MatrixSoftmaxByColumns( const CConstFloatHandle& matrix, int height, int width,
