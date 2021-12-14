@@ -416,7 +416,7 @@ endif()
 
 
 # OpenMP
-if(NOT IOS AND NOT DARWIN))
+if(NOT IOS AND NOT DARWIN)
     link_openmp(${PROJECT_NAME})
 endif()
 
