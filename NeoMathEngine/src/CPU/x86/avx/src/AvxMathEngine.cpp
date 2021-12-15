@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <BlobConvolution.h>
-#include <DnnLstmJit.h>
+#include <PrimitivesJit.h>
 
 namespace NeoML {
 
@@ -49,7 +49,8 @@ CAvxConvolutionDesc::CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDe
 
 class CAvxMathEngine : public ISimdMathEngine {
 public:
-	CAvxMathEngine( IMathEngine* _mathEngine, int _threadCount ) : mathEngine( _mathEngine ), threadCount( _threadCount ) {}
+	CAvxMathEngine( IMathEngine* _mathEngine, int _threadCount ) :
+		mathEngine( _mathEngine ), threadCount( _threadCount ), primitives( _mathEngine, _threadCount ) {}
 
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
@@ -60,14 +61,12 @@ public:
 
 	SgemmFunc GetSgemmFunction() const override;
 
-	CLstmDesc* InitLstmDesc( const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
-		const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm,
-		const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
-		int hiddenSize, int objectCount, int objectSize, IMathEngine* _mathEngine, int _threadCount ) const override;
+	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
 
 private:
 	IMathEngine* mathEngine;
 	int threadCount;
+	CPrimitivesJit primitives;
 };
 
 CConvolutionDesc* CAvxMathEngine::InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
@@ -94,15 +93,9 @@ SgemmFunc CAvxMathEngine::GetSgemmFunction() const
 	return AvxMultiplyMatrix;
 }
 
-CLstmDesc* CAvxMathEngine::InitLstmDesc( const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
-	const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm,
-	const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
-	int hiddenSize, int objectCount, int objectSize, IMathEngine* _mathEngine, int _threadCount ) const
+void CAvxMathEngine::Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread )
 {
-	return new CLstmDescJit( inputWeights, inputFreeTerm,
-		recurrentWeights, recurrentFreeTerm,
-		inputFullyConnectedResult, reccurentFullyConnectedResult,
-		hiddenSize, objectCount, objectSize, _mathEngine, _threadCount );
+	primitives.Tanh( dst, src, dataSize, isMultithread );
 }
 
 extern "C"

@@ -29,12 +29,6 @@ CLstmDesc* CCpuMathEngine::InitLstm( const CFloatHandle& inputWeights, const CFl
 	const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
 	int hiddenSize, int objectCount, int objectSize )
 {
-	if( simdMathEngine != nullptr ) {
-		return simdMathEngine->InitLstmDesc( inputWeights, inputFreeTerm,
-			recurrentWeights, recurrentFreeTerm,
-			inputFullyConnectedResult, reccurentFullyConnectedResult,
-			hiddenSize, objectCount, objectSize, this, threadCount );
-	}
 	return new CMathEngineLstmDesc( inputWeights, inputFreeTerm,
 		recurrentWeights, recurrentFreeTerm,
 		inputFullyConnectedResult, reccurentFullyConnectedResult,
@@ -71,12 +65,6 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, const CConstFloatHandle& inputStateB
 		lstmDesc.reccurentFullyConnectedResult, lstmDesc.recurrentFreeTerm );
 
 	lstmDesc.SimdRunOnceRestOfLstm( inputStateBackLink, outputStateBackLink, outputMainBackLink );		
-}
-
-void CCpuMathEngine::CalcTanh( CLstmDesc* desc, float* data, size_t dataSize )
-{
-	CMathEngineLstmDesc* lstmDesc = dynamic_cast< CMathEngineLstmDesc* >( desc );
-	lstmDesc->CalcTanh( data, dataSize );
 }
 
 } // namespace NeoML

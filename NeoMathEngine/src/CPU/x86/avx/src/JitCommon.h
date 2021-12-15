@@ -15,10 +15,12 @@ limitations under the License.
 #pragma once
 
 #include <xbyak/xbyak.h>
+#include <stack>
 
 namespace NeoML {
 
 using reg64_t = Xbyak::Reg64;
+using ymm_t = Xbyak::Ymm;
 
 constexpr Xbyak::Operand::Code CalleeSavedRegisters[] = {
     Xbyak::Operand::RBX,
@@ -49,4 +51,38 @@ constexpr reg64_t Param6{Xbyak::Operand::R9};
 
 constexpr unsigned int NumFloatInYmm = 8;
 constexpr unsigned int SizeOfYmm = NumFloatInYmm * sizeof( float );
+constexpr unsigned int SizeofReg64 = 8;
+constexpr unsigned int MaxYmmCount = 16;
+
+class CJitCommon : public Xbyak::CodeGenerator {
+public:
+    CJitCommon() = default;
+
+    // preservedGPR and preservedYmm will be preserved on stack (must be the same as in Epilogue()!!!)
+    // return Address which point to first of arguments is stored on stack if 
+    // such arguments exist (passed in gprArgsCount and ymmArgsCount params)
+    Xbyak::Address Prologue( const std::vector<reg64_t>& preservedGPR,
+        const std::vector<ymm_t>& preservedYmm );
+    // preservedGPR and preservedYmm will be poped from stack (must be the same as in Prologue()!!!)
+    void Epilogue( const std::vector<reg64_t>& preservedGPR,
+        const std::vector<ymm_t>& preservedYmm );
+
+    // Implement loop (can be nested one into another ):
+    // while( counter >= step ) {
+    //    // do some useful work
+    //    counter -= step;
+    // }
+    void StartDownCountLoop( reg64_t counter, size_t step );
+    void StopDownCountLoop();
+private:
+    struct CLoopDesc {
+        CLoopDesc( reg64_t counter, size_t step ) : Counter( counter ), Step( step ) {}
+        Xbyak::Label StartLabel;
+        Xbyak::Label EndLabel;
+        reg64_t Counter;
+        size_t Step;
+    };
+    std::stack<CLoopDesc> loopDescs;
+};
+
 }

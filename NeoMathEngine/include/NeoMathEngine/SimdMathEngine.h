@@ -41,10 +41,7 @@ public:
 
 	virtual SgemmFunc GetSgemmFunction() const = 0;
 
-	virtual CLstmDesc* InitLstmDesc( const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
-		const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm,
-		const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
-		int hiddenSize, int objectCount, int objectSize, IMathEngine* _mathEngine, int _threadCount ) const = 0;
+	virtual void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
 };
 
 }

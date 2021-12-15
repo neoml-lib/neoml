@@ -525,6 +525,9 @@ public:
 		int hiddenSize, int objectCount, int objectSize ) override;
 	void Lstm( CLstmDesc& desc, const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
+	void CalcTanh( float* dst, const float* src, size_t dataSize, bool isMultithread ) {
+		simdMathEngine->Tanh( dst, src, dataSize, isMultithread );
+	}
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info );
@@ -549,7 +552,7 @@ private:
 	CMathEngineDistributedInfo distributedInfo;
 
 	CDllLoader dllLoader; // loading library for simd instructions
-	std::unique_ptr<const ISimdMathEngine> simdMathEngine; // interface for using simd instructions
+	std::unique_ptr<ISimdMathEngine> simdMathEngine; // interface for using simd instructions
 	SgemmFunc customSgemmFunction; // Used when it is availabled and is faster then default sgemm
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }

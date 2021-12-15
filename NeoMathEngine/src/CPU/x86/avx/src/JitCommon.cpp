@@ -1,0 +1,77 @@
+/* Copyright © 2017-2020 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+#pragma once
+
+#include <JitCommon.h>
+
+namespace NeoML {
+
+using namespace std;
+
+Xbyak::Address CJitCommon::Prologue( const vector<Xbyak::Reg64>& preservedGPR,
+    const vector<Xbyak::Ymm>& preservedYmm )
+{
+    using namespace Xbyak::util;
+    using namespace Xbyak;
+
+    push( rbp );
+    mov( rbp, rsp );
+ 
+    sub( rsp, preservedYmm.size() * SizeOfYmm );
+    for( int i = 0; i < preservedYmm.size(); i++ ) {
+        vmovdqu( ptr[rsp + i * SizeOfYmm], preservedYmm[i] );
+    }
+
+    for( int i = 0; i < preservedGPR.size(); i++ ) {
+        push( preservedGPR[i] );
+    }
+
+    return ptr[rsp + 16 + preservedGPR.size() * SizeofReg64 + preservedYmm.size() * SizeOfYmm];
+}
+
+void CJitCommon::Epilogue( const vector<Xbyak::Reg64>& preservedGPR,
+    const vector<Xbyak::Ymm>& preservedYmm )
+{
+    for( int i = preservedGPR.size() - 1; i >= 0; i-- ) {
+        pop( preservedGPR[i] );
+    }
+
+    for( int i = 0; i < preservedYmm.size(); i++ ) {
+        vmovdqu( preservedYmm[i], ptr[rsp + i * SizeOfYmm] );
+    }
+
+    leave();
+}
+
+void CJitCommon::StartDownCountLoop( reg64_t counter, size_t step )
+{
+    loopDescs.emplace( counter, step );
+    CLoopDesc& loopDesc = loopDescs.top();
+    L( loopDesc.StartLabel );
+    cmp( loopDesc.Counter, loopDesc.Step );
+    jl( loopDesc.EndLabel, T_NEAR );
+}
+
+void CJitCommon::StopDownCountLoop()
+{
+    assert( !loopDescs.empty() );
+    CLoopDesc& loopDesc = loopDescs.top();
+    sub( loopDesc.Counter, loopDesc.Step );
+    jmp( loopDesc.StartLabel, T_NEAR );
+    L( loopDesc.EndLabel );
+    loopDescs.pop();
+}
+
+}
