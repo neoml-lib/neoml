@@ -10,7 +10,8 @@ target_sources(${PROJECT_NAME}
     # Sources
     ./src/AvxMathEngine.cpp
     ./src/MatrixMultiplyingInterleaved/AvxMatrixMultiplying.cpp
-    ./src/DnnLstmJit.cpp
+    ./src/PrimitivesJit.cpp
+    ./src/JitCommon.cpp
 
     # Headers
     ./common.h
@@ -24,7 +25,7 @@ target_sources(${PROJECT_NAME}
     ./src/BlobConvolution_jit_FltCnt_18.inl
     ./src/BlobConvolution_jit_FltCnt_24.inl
     ./src/BlobConvolution_jit_FltCnt_32.inl
-    ./src/DnnLstmJit.h
+    ./src/PrimitivesJit.h
     ./src/AvxCommon.h
     ./src/JitCommon.h
     ./src/MatrixMultiplyingInterleaved/Interleavers/Interleavers.h
