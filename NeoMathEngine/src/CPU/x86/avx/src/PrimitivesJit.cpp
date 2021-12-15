@@ -26,19 +26,12 @@ CPrimitivesJit::CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount ) :
 	mathEngine( _mathEngine ), threadCount( _threadCount )
 {
 	initTable();
-	primitivesFunc.fill( nullptr );
 }
 
 void CPrimitivesJit::Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread )
 {
-	TanhFunc tanh = reinterpret_cast< TanhFunc >( primitivesFunc[static_cast< size_t >( TPrimitive::Tanh )] );
-	if( tanh == nullptr ) {
-		tanh = getTanh();
-		tanh = reinterpret_cast< TanhFunc >( primitivesFunc[static_cast< size_t >( TPrimitive::Tanh )] );
-	}
-
-	const int curThreadCount = isMultithread && IsOmpRelevant( static_cast<int>( dataSize ) ) ? threadCount : 1;
-	
+	TanhFunc tanh = initTanh();
+	const int curThreadCount = isMultithread && IsOmpRelevant( static_cast< int >( dataSize ) ) ? threadCount : 1;
 	if( curThreadCount != 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int offt, count;
@@ -152,17 +145,18 @@ void CPrimitivesJit::addVal( TTableKey key, uint32_t val, size_t repeatNum )
 	std::fill_n( pTable, repeatNum, val );
 }
 
-inline CPrimitivesJit::TanhFunc CPrimitivesJit::getTanh()
+CPrimitivesJit::TanhFunc CPrimitivesJit::initTanh()
 {
 	using namespace Xbyak::util;
 
-	TanhFunc tanh = reinterpret_cast< TanhFunc >( primitivesFunc[static_cast< size_t >( TPrimitive::Tanh )] );
-	if( tanh != nullptr ) {
-		return tanh;
+	CGenerator& genInst = gens[static_cast< size_t >( TPrimitive::Tanh )];
+	lock_guard<mutex> lock( genInst.lock );
+	if( genInst.gen.getSize() != 0 ) {
+		return genInst.gen.getCode<TanhFunc>();
 	}
 
 	// create new instance
-	auto& gen = gens[TPrimitive::Tanh];
+	auto& gen = genInst.gen;
 
 	const reg64_t regDstPtr = Param1;
 	const reg64_t regSrcPtr = Param2;
@@ -208,8 +202,8 @@ inline CPrimitivesJit::TanhFunc CPrimitivesJit::getTanh()
 	gen.Epilogue( {}, preservedYmm );
 	gen.ret();
 
-	primitivesFunc[static_cast< size_t >( TPrimitive::Tanh )] = gen.getCode();
-	return reinterpret_cast< TanhFunc >( primitivesFunc[static_cast< size_t >( TPrimitive::Tanh )] );
+	// call function
+	return genInst.gen.getCode<TanhFunc>();
 }
 
 void CPrimitivesJit::insertTanh( CJitCommon& gen, vector<ymm_t>&& ymmAux, ymm_t ymmData )

@@ -21,6 +21,7 @@ limitations under the License.
 #include <JitCommon.h>
 #include <unordered_map>
 #include <array>
+#include <mutex>
 
 namespace NeoML {
 
@@ -63,15 +64,18 @@ private:
 
 	};
 	
+	struct CGenerator {
+		CJitCommon gen;
+		std::mutex lock;
+	};
+
 	using TanhFunc = void( * )( float*, const float*, size_t );
 
 	IMathEngine* mathEngine;
 	int threadCount;
 
 	// Contains jit code generators for partial primitives
-	std::unordered_map<TPrimitive, CJitCommon> gens;
-	// Array contains pointers to primitive functions for fast access (pointers should be casted before use)
-	std::array<const uint8_t*, static_cast<size_t>( TPrimitive::Count )> primitivesFunc;
+	std::array<CGenerator, static_cast<size_t>( TPrimitive::Count )> gens;
 	// Table for storing of constans and map for matching table keys to it offsets 
 	std::vector<uint32_t> table;
 	std::unordered_map<TTableKey, size_t> tableOffsets;
@@ -85,8 +89,7 @@ private:
 	void addVector( TTableKey key, std::initializer_list<uint32_t>&& data );
 	void addVal( TTableKey key, uint32_t val, size_t repreatNum = NumFloatInYmm );
 
-	// Initializatin primitives
-	TanhFunc getTanh();
+	TanhFunc initTanh();
 
 	// Function for inserting one primitives into another ones
 	// Insert code of tanh function into another code
