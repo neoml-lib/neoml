@@ -101,6 +101,8 @@ if(DEFINED ENV{Protobuf_ROOT} AND (IOS OR ANDROID))
     list(APPEND CMAKE_FIND_ROOT_PATH $ENV{Protobuf_ROOT})
 endif()
 
+set(Protobuf_USE_STATIC_LIBS ON)
+
 find_package(Protobuf REQUIRED)
 
 if(NOT Protobuf_PROTOC_EXECUTABLE)
