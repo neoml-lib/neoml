@@ -50,7 +50,14 @@ const int MinOmpOperationCount = 32768;
 // operationCount is the total number of operations across all tasks
 inline bool IsOmpRelevant( int taskCount, int64_t operationCount = MinOmpOperationCount )
 {
+#ifdef NEOML_USE_OMP
 	return taskCount > 1 && operationCount >= MinOmpOperationCount;
+#else
+	(void)MinOmpOperationCount;
+	(void)taskCount;
+	(void)operationCount;
+	return false;
+#endif
 }
 
 // Returns the maximum possible number of threads used in an OMP block
