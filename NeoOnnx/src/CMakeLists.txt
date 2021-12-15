@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+
 if(NeoOnnx_BUILD_SHARED)
     add_library(${PROJECT_NAME} SHARED common.cpp)
 else()
@@ -99,8 +101,6 @@ if(DEFINED ENV{Protobuf_ROOT} AND (IOS OR ANDROID))
     list(APPEND CMAKE_FIND_ROOT_PATH $ENV{Protobuf_ROOT})
 endif()
 
-set(Protobuf_USE_STATIC_LIBS ON)
-
 find_package(Protobuf REQUIRED)
 
 if(NOT Protobuf_PROTOC_EXECUTABLE)
@@ -156,6 +156,15 @@ if(NeoOnnx_BUILD_SHARED AND NOT WIN32)
                 target_link_options(${PROJECT_NAME} PRIVATE -Wl,-exported_symbol,_${SYM})
             endforeach() 
     endif()
+endif()
+
+if(NOT Protobuf_LIBRARY)
+    message(FATAL_ERROR "Protobuf_LIBRARY not found!")
+endif()
+
+# Fix for a known protobuf Windows dll issue https://github.com/protocolbuffers/protobuf/issues/2502
+if((Protobuf_LIBRARY MATCHES ".*dll") OR (Protobuf_LIBRARY MATCHES ".*DLL"))
+    target_compile_definitions(${PROJECT_NAME} PRIVATE PROTOBUF_USE_DLLS)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE protobuf::libprotobuf NeoML)
