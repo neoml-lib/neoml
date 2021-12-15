@@ -20,6 +20,7 @@ limitations under the License.
 #ifdef NEOML_USE_CUDA
 
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <DllLoader.h>
 #include <RawMemoryManager.h>
 #include <cusparse.h>
 #include <cublas.h>
@@ -540,6 +541,7 @@ protected:
 	void Free( const CMemoryHandle& handle ) override;
 
 private:
+	CDllLoader loader; // loader to guarantee the correctness of dlls' loads/frees
 	const CCusparse* cusparse; // cusparse library functions
 	const CCublas* cublas; // cublas library functions
 

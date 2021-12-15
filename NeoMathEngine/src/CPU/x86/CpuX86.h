@@ -36,7 +36,7 @@ limitations under the License.
 namespace NeoML {
 
 // define for logarithms FLT_MIN/MAX. define is used to avoid problems with CUDA
-#define FLT_MIN_LOG -87.33654474f
+#define FLT_MIN_LOG -87.336544f
 #define FLT_MAX_LOG 88.f
 
 // Split the vector length into registers of 4 elements each + the remainder
