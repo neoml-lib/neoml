@@ -43,6 +43,8 @@ private:
 
 #ifdef NEOML_USE_NEON
 
+#define ARM_FLUSH_TO_ZERO (1 << 24)
+
 #if FINE_PLATFORM( FINE_ARM64 )
 uint64_t prevFpcr;
 #else // FINE_PLATFORM( FINE_ARM64 )
@@ -67,11 +69,11 @@ inline CCpuExecutionScope::CCpuExecutionScope()
 
 #if FINE_PLATFORM( FINE_ARM64 )
 	__asm __volatile("mrs %[fpcr], fpcr" : [fpcr] "=r" (prevFpcr));
-	uint64_t newFpcr = ( prevFpcr | ARM_FPCR_FZ );
+	uint64_t newFpcr = ( prevFpcr | ARM_FLUSH_TO_ZERO );
 	__asm __volatile("msr fpcr, %[fpcr]" : : [fpcr] "r" (newFpcr));
 #else // FINE_PLATFORM( FINE_ARM64 )
 	__asm __volatile("vmrs %[fpscr], fpscr" : [fpscr] "=r" (prevFpscr));
-	uint32_t newFpscr = ( prevFpscr | ARM_FPCR_FZ );
+	uint32_t newFpscr = ( prevFpscr | ARM_FLUSH_TO_ZERO );
 	__asm __volatile("vmsr fpscr, %[fpscr]" : : [fpscr] "r" (newFpscr));
 #endif // FINE_PLATFORM( FINE_ARM64 )
 
