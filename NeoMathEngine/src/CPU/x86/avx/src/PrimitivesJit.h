@@ -33,7 +33,9 @@ public:
 	CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount );
 
 	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
-	void CalcSigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
+	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
+	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
+
 	void RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink );
 
@@ -41,6 +43,7 @@ private:
 	enum class TPrimitive {
 		Tanh,
 		Sigmoid,
+		Exp,
 		RestOfLstm,
 
 		Count
@@ -56,18 +59,28 @@ private:
 		TanhSaturationLBound,
 
 		// Common Items
+		Ln2f,
 		PositiveMask,
+		Half,
 		One,
+		Two,
 		SignMask,
+		ExpBias,
 
-		LoadMask
+		LoadMask,
 
+		ExpLog2ef,
+		ExpFltMax,
+		ExpFltMin,
+		ExpPolyCoeff
 	};
 	
 	struct CGenerator {
 		CJitCommon gen;
 		std::mutex lock;
 	};
+
+	static constexpr int MantissaNumBits = 23;
 
 	using ActivationFunc = void( * )( float*, const float*, size_t );
 
@@ -85,9 +98,9 @@ private:
 	// Functions for handling table
 	void initTable();
 	uint32_t getOfft( TTableKey key, uint32_t offset = 0 ) const;
-	Xbyak::Address getAddr( TTableKey key ) const;
-	void addVector( TTableKey key, std::initializer_list<uint32_t>&& data );
-	void addVal( TTableKey key, uint32_t val, size_t repreatNum = NumFloatInYmm );
+	Xbyak::Address getAddr( TTableKey key, uint32_t offset = 0 ) const;
+	void addVector( TTableKey key, std::initializer_list<uint32_t>&& data, size_t repeatNum = 1 );
+	void addVal( TTableKey key, uint32_t val, size_t repeatNum = NumFloatInYmm );
 
 	template<TPrimitive P>
 	void initActivation();
@@ -98,15 +111,15 @@ private:
 	// ymmAux - auxiliary registers which will be used inside function
 	// ymmData - inplace updated src data (can't be one of ymmAux registers!)
 	void insertTanh( CJitCommon& gen, std::vector<Xbyak::Ymm>&& ymmAux, Xbyak::Ymm ymmData );
-	void insertSigmoid( CJitCommon& gen, std::vector<Xbyak::Ymm>&& ymmAux, Xbyak::Ymm ymmData );
+	void insertSigmoid( CJitCommon& gen, ymm_t& one, std::vector<ymm_t>& ymmData, std::vector<ymm_t>& ymmTempData );
+	void insertExp( CJitCommon& gen, vector<ymm_t>&& ymmAux, ymm_t ymmData );
 
 	template<TPrimitive P>
 	void callActivation( float* dst, const float* src, size_t dataSize, bool isMultithread );
 
 	// Check if two arrays have insersected registers and each array contains only unique registers
-	// TODO: remove
-	template<int AuxSize, class RegType>
-	bool isIntersected( const std::array<RegType, AuxSize>& arr0, const std::vector<RegType>& arr1 );
+	template<class RegType, class ArrayType0, class ArrayType1>
+	bool isRegArraysIntersected( const ArrayType0& arr0, const ArrayType1& arr1 );
 
 };
 
