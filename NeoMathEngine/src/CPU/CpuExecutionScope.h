@@ -72,7 +72,7 @@ inline CCpuExecutionScope::CCpuExecutionScope()
 #else // FINE_BIT( FINE_64_BIT )
 	__asm __volatile("vmrs %[fpcr], fpscr" : [fpcr] "=r" (prevFpcr));
 	uint32_t newFpcr = ( prevFpcr | ARM_FPCR_FZ );
-	__asm __volatile("vmrs fpscr, %[fpcr]" : : [fpcr] "r" (newFpcr));
+	__asm __volatile("vmsr fpscr, %[fpcr]" : : [fpcr] "r" (newFpcr));
 #endif // FINE_BIT( FINE_64_BIT )
 
 #endif // NEOML_USE_NEON
@@ -90,7 +90,7 @@ inline CCpuExecutionScope::~CCpuExecutionScope()
 #if FINE_BIT( FINE_64_BIT )
 	__asm __volatile("msr fpcr, %[fpcr]" : : [fpcr] "r" (prevFpcr));
 #else // FINE_BIT( FINE_64_BIT )
-	__asm __volatile("vmrs fpscr, %[fpcr]" : : [fpcr] "r" (prevFpcr));
+	__asm __volatile("vmsr fpscr, %[fpcr]" : : [fpcr] "r" (prevFpcr));
 #endif // FINE_BIT( FINE_64_BIT )
 
 #endif // NEOML_USE_NEON
