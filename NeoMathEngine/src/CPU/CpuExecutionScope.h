@@ -22,6 +22,22 @@ limitations under the License.
 #include <pmmintrin.h>
 #endif
 
+#if FINE_PLATFORM( FINE_ARM )
+#pragma message "FINE_PLATFORM( FINE_ARM )"
+#endif
+
+#if FINE_PLATFORM( FINE_ARM64 )
+#pragma message "FINE_PLATFORM( FINE_ARM64 )"
+#endif
+
+#if FINE_BIT( FINE_32_BIT )
+#pragma message "FINE_BIT( FINE_32_BIT )"
+#endif
+
+#if FINE_BIT( FINE_64_BIT )
+#pragma message "FINE_BIT( FINE_64_BIT )"
+#endif
+
 namespace NeoML {
 
 // Scope which sets register for calculations on CPU
@@ -46,7 +62,7 @@ private:
 #if FINE_BIT( FINE_64_BIT )
 uint64_t prevFpcr;
 #else // FINE_BIT( FINE_64_BIT )
-uint32_t prevFpcr;
+uint32_t prevFpscr;
 #endif // FINE_BIT( FINE_64_BIT )
 
 #endif // NEOML_USE_NEON
@@ -70,9 +86,9 @@ inline CCpuExecutionScope::CCpuExecutionScope()
 	uint64_t newFpcr = ( prevFpcr | ARM_FPCR_FZ );
 	__asm __volatile("msr fpcr, %[fpcr]" : : [fpcr] "r" (newFpcr));
 #else // FINE_BIT( FINE_64_BIT )
-	__asm __volatile("vmrs %[fpcr], fpscr" : [fpcr] "=r" (prevFpcr));
-	uint32_t newFpcr = ( prevFpcr | ARM_FPCR_FZ );
-	__asm __volatile("vmsr fpscr, %[fpcr]" : : [fpcr] "r" (newFpcr));
+	__asm __volatile("vmrs %[fpscr], fpscr" : [fpscr] "=r" (prevFpscr));
+	uint32_t newFpscr = ( prevFpscr | ARM_FPCR_FZ );
+	__asm __volatile("vmsr fpscr, %[fpscr]" : : [fpscr] "r" (newFpscr));
 #endif // FINE_BIT( FINE_64_BIT )
 
 #endif // NEOML_USE_NEON
@@ -90,7 +106,7 @@ inline CCpuExecutionScope::~CCpuExecutionScope()
 #if FINE_BIT( FINE_64_BIT )
 	__asm __volatile("msr fpcr, %[fpcr]" : : [fpcr] "r" (prevFpcr));
 #else // FINE_BIT( FINE_64_BIT )
-	__asm __volatile("vmsr fpscr, %[fpcr]" : : [fpcr] "r" (prevFpcr));
+	__asm __volatile("vmsr fpscr, %[fpscr]" : : [fpscr] "r" (prevFpscr));
 #endif // FINE_BIT( FINE_64_BIT )
 
 #endif // NEOML_USE_NEON
