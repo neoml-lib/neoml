@@ -62,6 +62,8 @@ public:
 	SgemmFunc GetSgemmFunction() const override;
 
 	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
+	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
+	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
 
 private:
 	IMathEngine* mathEngine;
@@ -96,6 +98,16 @@ SgemmFunc CAvxMathEngine::GetSgemmFunction() const
 void CAvxMathEngine::Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread )
 {
 	primitives.Tanh( dst, src, dataSize, isMultithread );
+}
+
+void CAvxMathEngine::Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread )
+{
+	primitives.Sigmoid( dst, src, dataSize, isMultithread );
+}
+
+void CAvxMathEngine::Exp( float* dst, const float* src, size_t dataSize, bool isMultithread )
+{
+	primitives.Exp( dst, src, dataSize, isMultithread );
 }
 
 extern "C"

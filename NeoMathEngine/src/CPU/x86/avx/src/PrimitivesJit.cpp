@@ -33,9 +33,15 @@ void CPrimitivesJit::Tanh( float* dst, const float* src, size_t dataSize, bool i
 	callActivation<TPrimitive::Tanh>( dst, src, dataSize, isMultithread );
 }
 
-void CPrimitivesJit::CalcSigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread )
+void CPrimitivesJit::Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread )
 {
-	callActivation<TPrimitive::Tanh>( dst, src, dataSize, isMultithread );
+	callActivation<TPrimitive::Exp>( dst, src, dataSize, isMultithread );
+	callActivation<TPrimitive::Sigmoid>( dst, dst, dataSize, isMultithread );
+}
+
+void CPrimitivesJit::Exp( float* dst, const float* src, size_t dataSize, bool isMultithread )
+{
+	callActivation<TPrimitive::Exp>( dst, src, dataSize, isMultithread );
 }
 
 void CPrimitivesJit::RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
@@ -44,8 +50,8 @@ void CPrimitivesJit::RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& input
 
 void CPrimitivesJit::initTable()
 {
-    // tanh(x) polynomial approximation
-    // For each coefficient, there is 32 entries
+	// tanh(x) polynomial approximation
+	// For each coefficient, there is 32 entries
 	addVector( TTableKey::TanhPolyCoeff, {
 		// coefficients of degree 0
 		0x00000000, 0x39bfffff, 0x39ffffff, 0x3a3ffffe, 0x3a7ffffb, 0x3abffff7, 0x3affffeb, 0x3b3fffdc,
@@ -83,15 +89,20 @@ void CPrimitivesJit::initTable()
 		0x43c83910, 0xc3c872d1, 0xc186bc9e, 0x42325bc3, 0xbf2ffa4a, 0x3d9a203c, 0xbc545a43, 0xbae08fee,
 		0x3c80225d, 0x3b1fd1df, 0xba36b9d1, 0xb91de544, 0xb71f100f, 0xb408e2ed, 0xb685fec8, 0x00000000
 		} );
-    addVal( TTableKey::TanhIdxBias, 0x39800000 );
-    addVal( TTableKey::TanhIdxMaskShifted, 0x0000001f );
-    addVal( TTableKey::TanhIdxMask, 0xffc00000 );
-    addVal( TTableKey::TanhLineralUBound, 0x39ddb3d7 );
-    addVal( TTableKey::TanhSaturationLBound, 0x41102cb3 );
+	addVal( TTableKey::TanhIdxBias, 0x39800000 );
+	addVal( TTableKey::TanhIdxMaskShifted, 0x0000001f );
+	addVal( TTableKey::TanhIdxMask, 0xffc00000 );
+	addVal( TTableKey::TanhLineralUBound, 0x39ddb3d7 );
+	addVal( TTableKey::TanhSaturationLBound, 0x41102cb3 );
 
-    addVal( TTableKey::PositiveMask, 0x7fffffff );
-    addVal( TTableKey::One, 0x3f800000 );
-    addVal( TTableKey::SignMask, 0x80000000 );
+	// Common
+	addVal( TTableKey::Ln2f, 0x3f317218 );
+    addVal( TTableKey::PositiveMask, 0x7fffffff ); // changes sign to positive
+	addVal( TTableKey::Half, 0x3f000000 ); // 0.5f
+    addVal( TTableKey::One, 0x3f800000 ); // 1.f  or  mask for exponent bits
+	addVal( TTableKey::Two, 0x40000000 ); // 2.f
+    addVal( TTableKey::SignMask, 0x80000000 ); // gets sign value
+	addVal( TTableKey::ExpBias, 0x0000007f ); // (127 = 2^7 - 1), gets exponent bits
 	addVector( TTableKey::LoadMask, {
 		0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
 		0xffffffff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
@@ -102,6 +113,19 @@ void CPrimitivesJit::initTable()
 		0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x00000000, 0x00000000,
 		0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x00000000
 		} );
+
+	addVal( TTableKey::ExpLog2ef, 0x3fb8aa3b ); // 1.44269502f - formula-based for approx
+	addVal( TTableKey::ExpFltMax, 0x42b17218 ); // logf(FLT_MAX) - max normal value
+	addVal( TTableKey::ExpFltMin, 0xc2aeac50 ); // logf(FLT_MIN) - min normal value
+
+	addVector( TTableKey::ExpPolyCoeff, {
+		// p0 = 1.0f
+		0x3f7ffffb, // p1 = 0.999999701f
+		0x3efffee3, // p2 = 0.499991506f
+		0x3e2aad40, // p3 = 0.166676521f
+		0x3d2b9d0d, // p4 = 0.0418978221f
+		0x3c07cfce // p5 = 0.00828929059f
+	}, NumFloatInYmm );
 }
 
 uint32_t CPrimitivesJit::getOfft( TTableKey key, uint32_t offset ) const
@@ -111,19 +135,26 @@ uint32_t CPrimitivesJit::getOfft( TTableKey key, uint32_t offset ) const
     return ( it->second + offset ) * sizeof( decltype( table )::value_type );
 }
 
-Xbyak::Address CPrimitivesJit::getAddr( TTableKey key ) const
+Xbyak::Address CPrimitivesJit::getAddr( TTableKey key, uint32_t offset ) const
 {
-	return Xbyak::util::ptr[regTablePtr + getOfft( key )];
+	return Xbyak::util::ptr[regTablePtr + getOfft( key ) + offset * sizeof( float ) ];
 }
 
-void CPrimitivesJit::addVector( TTableKey key, std::initializer_list<uint32_t>&& data )
+void CPrimitivesJit::addVector( TTableKey key, std::initializer_list<uint32_t>&& data, size_t repeatNum )
 {
 	assert( tableOffsets.find( key ) == tableOffsets.end() );
 	size_t currentSize = table.size();
 	tableOffsets.emplace( key, currentSize );
-	table.resize( currentSize + data.size() );
+	table.resize( currentSize + data.size() * repeatNum );
 	uint32_t* pTable = &table[currentSize];
-	std::copy( data.begin(), data.end(), pTable );
+	if( repeatNum == 1 ) {
+		std::copy( data.begin(), data.end(), pTable );
+	} else {
+		for( auto& val : data ) {
+			std::fill_n( pTable, repeatNum, val );
+			pTable += repeatNum;
+		}
+	}
 }
 
 void CPrimitivesJit::addVal( TTableKey key, uint32_t val, size_t repeatNum )
@@ -191,6 +222,111 @@ void CPrimitivesJit::initActivation <CPrimitivesJit::TPrimitive::Tanh>()
 template<>
 void CPrimitivesJit::initActivation <CPrimitivesJit::TPrimitive::Sigmoid>()
 {
+	using namespace Xbyak::util;
+	// create new instance
+	auto& gen = gens[static_cast< size_t >( TPrimitive::Sigmoid )].gen;
+
+	const reg64_t regDstPtr = Param1;
+	const reg64_t regSrcPtr = Param2;
+	const reg64_t regCountParam = Param3;
+	// TODO: Check for Linux
+	reg64_t regCount = r11;
+	// We could use regCount in SIB addressing when we process tail.
+	// For linux we can't use simultaniously r10(regTablePtr) and RDX(param3)
+	gen.mov( regCount, regCountParam );
+
+	const vector<ymm_t> preservedYmm = { ymm6, ymm7, ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14 };
+	ymm_t one = ymm14;
+
+	gen.Prologue( {}, preservedYmm );
+
+	gen.mov( regTablePtr, ( uint64_t )table.data() );
+	gen.vmovups( one, gen.ptr[regTablePtr + getOfft( TTableKey::One )] );
+	vector<ymm_t> ymmData = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6 };
+	vector<ymm_t> ymmTempData = { ymm7, ymm8, ymm9, ymm10, ymm11, ymm12, ymm13 };
+
+	auto insertCode = [&]( vector<ymm_t>&& ymmData, vector<ymm_t>&& ymmTempData ) {
+		size_t stepCount = ymmData.size();
+		gen.StartDownCountLoop( regCount, stepCount * NumFloatInYmm );
+		for( int i = 0; i < stepCount; i++ ) { gen.vmovups( ymmData[i], ptr[regSrcPtr + i * SizeOfYmm] ); }
+		insertSigmoid( gen, one, ymmData, ymmTempData );
+		for( int i = 0; i < stepCount; i++ ) { gen.vmovups( ptr[regDstPtr + i * SizeOfYmm], ymmData[i] ); }
+		gen.lea( regSrcPtr, gen.ptr[regSrcPtr + stepCount * SizeOfYmm] );
+		gen.lea( regDstPtr, gen.ptr[regDstPtr + stepCount * SizeOfYmm] );
+		gen.StopDownCountLoop();
+	};
+	// 1. Unrolled batch processing (step == 4, first register for data ymm5 )
+	insertCode( { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6 }, { ymm7, ymm8, ymm9, ymm10, ymm11, ymm12, ymm13 } );
+	// 2. Single processing (step == 1, first register for data ymm5 )
+	insertCode( { ymm0 }, { ymm7 } );
+	// 3. Process tail of array
+	gen.cmp( regCount, 0 );
+	gen.jz( "end", gen.T_NEAR );
+	ymm_t ymmMask = ymm0;
+	ymm_t ymmSrc = ymm1;
+	ymm_t ymmTemp = ymm2;
+	// Multiply by 8 for calculate right offset
+	gen.shl( regCount, 3 );
+	gen.vmovups( ymmMask, gen.ptr[regTablePtr + regCount * sizeof( float ) + getOfft( TTableKey::LoadMask )] );
+	gen.vmaskmovps( ymmSrc, ymmMask, gen.ptr[regSrcPtr] );
+	insertSigmoid( gen, one, vector<ymm_t>{ ymmSrc }, vector<ymm_t>{ ymmTemp } );
+	gen.vmaskmovps( gen.ptr[regDstPtr], ymmMask, ymmSrc );
+	gen.L( "end" );
+
+	gen.Epilogue( {}, preservedYmm );
+	gen.ret();
+}
+
+template<>
+void CPrimitivesJit::initActivation <CPrimitivesJit::TPrimitive::Exp>()
+{
+	using namespace Xbyak::util;
+	// create new instance
+	auto& gen = gens[static_cast< size_t >( TPrimitive::Exp )].gen;
+
+	const reg64_t regDstPtr = Param1;
+	const reg64_t regSrcPtr = Param2;
+	const reg64_t regCountParam = Param3;
+	// TODO: Check for Linux
+	reg64_t regCount = r11;
+	// We could use regCount in SIB addressing when we process tail.
+	// For linux we can't use simultaniously r10(regTablePtr) and RDX(param3)
+	gen.mov( regCount, regCountParam );
+	const vector<ymm_t> preservedYmm = { ymm6 };
+
+	gen.Prologue( {}, preservedYmm );
+
+	gen.mov( regTablePtr, ( uint64_t )table.data() );
+
+	auto insertCode = [&]( int stepCount, int firstYmmIdx ) {
+		assert( ( firstYmmIdx + stepCount ) < MaxYmmCount );
+		gen.StartDownCountLoop( regCount, stepCount * NumFloatInYmm );
+		for( int i = 0; i < stepCount; i++ ) { gen.vmovups( ymm_t( firstYmmIdx + i ), ptr[regSrcPtr + i * SizeOfYmm] ); }
+		for( int i = 0; i < stepCount; i++ ) { insertExp( gen, { ymm0, ymm1, ymm2 }, ymm_t( firstYmmIdx + i ) ); }
+		for( int i = 0; i < stepCount; i++ ) { gen.vmovups( ptr[regDstPtr + i * SizeOfYmm], ymm_t( firstYmmIdx + i ) ); }
+		gen.lea( regSrcPtr, gen.ptr[regSrcPtr + stepCount * SizeOfYmm] );
+		gen.lea( regDstPtr, gen.ptr[regDstPtr + stepCount * SizeOfYmm] );
+		gen.StopDownCountLoop();
+	};
+	// 1. Unrolled batch processing (step == 4, first register for data ymm5 )
+	insertCode( 4, 3 );
+	// 2. Single processing (step == 1, first register for data ymm5 )
+	insertCode( 1, 3 );
+	// 3. Process tail of array
+	gen.cmp( regCount, 0 );
+	gen.jz( "end", gen.T_NEAR );
+	ymm_t ymmMask = ymm3;
+	ymm_t ymmSrc = ymm4;
+	// Multiply by 8 for calculate right offset
+	gen.shl( regCount, 3 );
+	gen.vmovups( ymmMask, gen.ptr[regTablePtr + regCount * sizeof( float ) + getOfft( TTableKey::LoadMask )] );
+	gen.vmaskmovps( ymmSrc, ymmMask, gen.ptr[regSrcPtr] );
+	insertExp( gen, { ymm0, ymm1, ymm2 }, ymmSrc );
+	gen.vmaskmovps( gen.ptr[regDstPtr], ymmMask, ymmSrc );
+	gen.L( "end" );
+
+	gen.Epilogue( {}, preservedYmm );
+	gen.ret();
 }
 
 void CPrimitivesJit::insertTanh( CJitCommon& gen, vector<ymm_t>&& ymmAux, ymm_t ymmData )
@@ -295,9 +431,70 @@ void CPrimitivesJit::insertTanh( CJitCommon& gen, vector<ymm_t>&& ymmAux, ymm_t 
 	gen.vmovups( ymmSrc, ymmDst );
 }
 
-void CPrimitivesJit::insertSigmoid( CJitCommon& gen, vector<ymm_t>&& ymmAux, ymm_t ymmData )
+void CPrimitivesJit::insertExp( CJitCommon& gen, vector<ymm_t>&& ymmAux, ymm_t ymmData )
 {
+	assert( ymmAux.size() == 3 );
+	// exp(x) =
+	// = exp(n * ln(2) + r) // divide x by ln(2) and get quot and rem
+	// = 2^n * exp(r) // simplify the exp(n*ln(2)) expression
 
+	// get mask of values lower than log(FLT_MIN) to zero them in the output
+	gen.vcmpltps( ymmAux[0], ymmData, getAddr( TTableKey::ExpFltMin ) );
+
+	gen.vminps( ymmData, ymmData, getAddr( TTableKey::ExpFltMax ) );
+	gen.vmaxps( ymmData, ymmData, getAddr( TTableKey::ExpFltMin ) );
+	gen.vmovups( ymmAux[1], ymmData );
+
+	// calculate exp(x)
+	// fx = x * log2ef + 0.5
+	gen.vmulps( ymmData, ymmData, getAddr( TTableKey::ExpLog2ef ) );
+	gen.vaddps( ymmData, ymmData, getAddr( TTableKey::Half ) );
+
+	// tmp = floorf(fx)
+	gen.vroundps( ymmAux[2], ymmData, 1u );
+
+	// keep ymmData = fx for further computations
+	gen.vmovups( ymmData, ymmAux[2] );
+
+	// x = x - fx * ln2
+	gen.vfnmadd231ps( ymmAux[1], ymmAux[2], getAddr( TTableKey::Ln2f ) );
+
+	// We do not count 2^n here, because n can reach 128 and 2^128 is not
+	// representable by fp32, so to get around this problem, instead of computing
+	// 2^n * exp(r) will be counted 2*2^(n-1)*exp(r), because 2^127
+	// and 2 are numbers representable in fp32.
+
+	// compute 2^(n-1)
+	gen.vsubps( ymmData, ymmData, getAddr( TTableKey::One ) );
+	gen.vcvtps2dq( ymmAux[2], ymmData );
+	gen.vpaddd( ymmAux[2], ymmAux[2], getAddr( TTableKey::ExpBias ) );
+	gen.vpslld( ymmAux[2], ymmAux[2], MantissaNumBits );
+	// use ymmData as tmp vmm_zero when applying mask
+	gen.vxorps( ymmData, ymmData, ymmData );
+	// set zeroes at those points which were < log(FLT_MIN)
+	gen.vblendvps( ymmAux[2], ymmAux[2], ymmData, ymmAux[0] );
+
+	// compute polynomial
+	gen.vmovups( ymmData, getAddr( TTableKey::ExpPolyCoeff, 4 * NumFloatInYmm ) );
+	gen.vfmadd213ps( ymmData, ymmAux[1], getAddr( TTableKey::ExpPolyCoeff, 3 * NumFloatInYmm ) );
+	gen.vfmadd213ps( ymmData, ymmAux[1], getAddr( TTableKey::ExpPolyCoeff, 2 * NumFloatInYmm ) );
+	gen.vfmadd213ps( ymmData, ymmAux[1], getAddr( TTableKey::ExpPolyCoeff, 1 * NumFloatInYmm ) );
+	gen.vfmadd213ps( ymmData, ymmAux[1], getAddr( TTableKey::ExpPolyCoeff, 0 * NumFloatInYmm ) );
+	gen.vfmadd213ps( ymmData, ymmAux[1], getAddr( TTableKey::One ) );
+	// y = y * 2^n
+	gen.vmulps( ymmData, ymmData, ymmAux[2] );
+	gen.vmulps( ymmData, ymmData, getAddr( TTableKey::Two ) );
+}
+
+void CPrimitivesJit::insertSigmoid( CJitCommon& gen, ymm_t& one, std::vector<ymm_t>& ymmData, std::vector<ymm_t>& ymmTempData )
+{
+	assert( ( ymmTempData.size() == ymmData.size() ) && !isRegArraysIntersected<ymm_t>( ymmTempData, ymmData ) );
+	for( int i = 0; i < ymmData.size(); i++ ) {
+		gen.vaddps( ymmTempData[i], ymmData[i], one );
+	}
+	for( int i = 0; i < ymmData.size(); i++ ) {
+		gen.vdivps( ymmData[i], ymmData[i], ymmTempData[i] );
+	}
 }
 
 template<CPrimitivesJit::TPrimitive P>
@@ -328,14 +525,14 @@ inline void CPrimitivesJit::callActivation( float* dst, const float* src, size_t
 	}
 }
 
-template<int AuxSize, class RegType>
-bool CPrimitivesJit::isIntersected( const std::array<RegType, AuxSize>& arr0, const std::vector<RegType>& arr1 )
+template<class RegType, class ArrayType0, class ArrayType1>
+bool CPrimitivesJit::isRegArraysIntersected( const ArrayType0& arr0, const ArrayType1& arr1 )
 {
 	// ymm_t and GPR has up to 16 registers
 	const int MaxRegNum = 16;
 	int isAlreadyExists[MaxRegNum] = { 0, };
-	for_each( arr0.cbegin(), arr0.cend(), []( const Reg& Type reg ) { isAlreadyExists[reg.idx]++; } );
-	for_each( arr1.cbegin(), arr1.cend(), []( const Reg& Type reg ) { isAlreadyExists[reg.idx]++; } );
+	for_each( arr0.cbegin(), arr0.cend(), [&]( const RegType& reg ) { isAlreadyExists[reg.getIdx()]++; } );
+	for_each( arr1.cbegin(), arr1.cend(), [&]( const RegType& reg ) { isAlreadyExists[reg.getIdx()]++; } );
 	int* it = isAlreadyExists;
 	for( int* it = isAlreadyExists; it < &isAlreadyExists[MaxRegNum]; it++ ) {
 		if( *it > 1 ) {
