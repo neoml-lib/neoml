@@ -30,22 +30,13 @@ CPrimitivesJit::CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount ) :
 
 void CPrimitivesJit::Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread )
 {
-	TanhFunc tanh = initTanh();
-	const int curThreadCount = isMultithread && IsOmpRelevant( static_cast< int >( dataSize ) ) ? threadCount : 1;
-	if( curThreadCount != 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int offt, count;
-			if( OmpGetTaskIndexAndCount( static_cast< int >( dataSize ), offt, count ) ) {
-				tanh( dst + offt, src + offt, count );
-			}
-		}
-	} else {
-		tanh( dst, src, dataSize );
-	}
+	callActivation<TPrimitive::Tanh>( dst, src, dataSize, isMultithread );
 }
 
 void CPrimitivesJit::CalcSigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread )
-{}
+{
+	callActivation<TPrimitive::Tanh>( dst, src, dataSize, isMultithread );
+}
 
 void CPrimitivesJit::RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
 	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
@@ -145,18 +136,12 @@ void CPrimitivesJit::addVal( TTableKey key, uint32_t val, size_t repeatNum )
 	std::fill_n( pTable, repeatNum, val );
 }
 
-CPrimitivesJit::TanhFunc CPrimitivesJit::initTanh()
+template<>
+void CPrimitivesJit::initActivation <CPrimitivesJit::TPrimitive::Tanh>()
 {
 	using namespace Xbyak::util;
-
-	CGenerator& genInst = gens[static_cast< size_t >( TPrimitive::Tanh )];
-	lock_guard<mutex> lock( genInst.lock );
-	if( genInst.gen.getSize() != 0 ) {
-		return genInst.gen.getCode<TanhFunc>();
-	}
-
 	// create new instance
-	auto& gen = genInst.gen;
+	auto& gen = gens[static_cast< size_t >( TPrimitive::Tanh )].gen;
 
 	const reg64_t regDstPtr = Param1;
 	const reg64_t regSrcPtr = Param2;
@@ -201,9 +186,11 @@ CPrimitivesJit::TanhFunc CPrimitivesJit::initTanh()
 
 	gen.Epilogue( {}, preservedYmm );
 	gen.ret();
+}
 
-	// call function
-	return genInst.gen.getCode<TanhFunc>();
+template<>
+void CPrimitivesJit::initActivation <CPrimitivesJit::TPrimitive::Sigmoid>()
+{
 }
 
 void CPrimitivesJit::insertTanh( CJitCommon& gen, vector<ymm_t>&& ymmAux, ymm_t ymmData )
@@ -306,6 +293,39 @@ void CPrimitivesJit::insertTanh( CJitCommon& gen, vector<ymm_t>&& ymmAux, ymm_t 
 	// We reapply the sign and return
 	gen.vxorps( ymmDst, ymmDst, ymmSign );
 	gen.vmovups( ymmSrc, ymmDst );
+}
+
+void CPrimitivesJit::insertSigmoid( CJitCommon& gen, vector<ymm_t>&& ymmAux, ymm_t ymmData )
+{
+
+}
+
+template<CPrimitivesJit::TPrimitive P>
+inline void CPrimitivesJit::callActivation( float* dst, const float* src, size_t dataSize, bool isMultithread )
+{
+	using namespace Xbyak::util;
+
+	CGenerator& genInst = gens[static_cast< size_t >( P )];
+	ActivationFunc func;
+
+	genInst.lock.lock();
+	if( genInst.gen.getSize() == 0 ) {
+		initActivation<P>();
+	}
+	genInst.lock.unlock();
+	func = genInst.gen.getCode<ActivationFunc>();
+
+	const int curThreadCount = isMultithread && IsOmpRelevant( static_cast< int >( dataSize ) ) ? threadCount : 1;
+	if( curThreadCount != 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int offt, count;
+			if( OmpGetTaskIndexAndCount( static_cast< int >( dataSize ), offt, count ) ) {
+				func( dst + offt, src + offt, count );
+			}
+		}
+	} else {
+		func( dst, src, dataSize );
+	}
 }
 
 template<int AuxSize, class RegType>
