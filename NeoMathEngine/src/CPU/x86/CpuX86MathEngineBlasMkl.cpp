@@ -21,6 +21,7 @@ limitations under the License.
 #ifdef NEOML_USE_SSE
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuX86.h>
 #include <float.h>
 #include <MemoryHandleInternal.h>
@@ -140,6 +141,7 @@ void CCpuMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, in
 	ASSERT_EXPR( firstDesc.Values.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	int* firstRows = GetRaw( firstDesc.Rows );
 	int* firstColumns = GetRaw( firstDesc.Columns );
@@ -186,6 +188,7 @@ void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeig
 	ASSERT_EXPR( secondDesc.Columns.GetMathEngine() == this );
 	ASSERT_EXPR( secondDesc.Values.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* first = GetRaw( firstHandle );
 	int* secondRows = GetRaw( secondDesc.Rows );
