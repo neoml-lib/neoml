@@ -69,7 +69,7 @@ private:
 		std::mutex lock;
 	};
 
-	using TanhFunc = void( * )( float*, const float*, size_t );
+	using ActivationFunc = void( * )( float*, const float*, size_t );
 
 	IMathEngine* mathEngine;
 	int threadCount;
@@ -89,7 +89,8 @@ private:
 	void addVector( TTableKey key, std::initializer_list<uint32_t>&& data );
 	void addVal( TTableKey key, uint32_t val, size_t repreatNum = NumFloatInYmm );
 
-	TanhFunc initTanh();
+	template<TPrimitive P>
+	void initActivation();
 
 	// Function for inserting one primitives into another ones
 	// Insert code of tanh function into another code
@@ -97,6 +98,10 @@ private:
 	// ymmAux - auxiliary registers which will be used inside function
 	// ymmData - inplace updated src data (can't be one of ymmAux registers!)
 	void insertTanh( CJitCommon& gen, std::vector<Xbyak::Ymm>&& ymmAux, Xbyak::Ymm ymmData );
+	void insertSigmoid( CJitCommon& gen, std::vector<Xbyak::Ymm>&& ymmAux, Xbyak::Ymm ymmData );
+
+	template<TPrimitive P>
+	void callActivation( float* dst, const float* src, size_t dataSize, bool isMultithread );
 
 	// Check if two arrays have insersected registers and each array contains only unique registers
 	// TODO: remove
