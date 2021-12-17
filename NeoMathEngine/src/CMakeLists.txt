@@ -55,6 +55,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEnginePrivate.h
     CPU/CpuMathEngineOmp.h
     CPU/CpuMathEngineDnnDistributed.h
+    CPU/CpuExecutionScope.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
@@ -416,7 +417,7 @@ endif()
 
 
 # OpenMP
-if(NOT IOS AND NOT (DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64?"))
+if(NOT IOS AND NOT DARWIN)
     link_openmp(${PROJECT_NAME})
 endif()
 

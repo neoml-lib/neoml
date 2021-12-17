@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuMathEnginePrivate.h>
 #include <CpuMathEngineOmp.h>
 #include <MemoryHandleInternal.h>
@@ -192,6 +193,7 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTerm == 0 || freeTerm->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCpuRleConvolutionDesc& desc = static_cast<const CCpuRleConvolutionDesc&>( convDesc );
 	const CBlobDesc& source = desc.Source;
@@ -283,6 +285,7 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermDiffData == 0 || freeTermDiffData->GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCpuRleConvolutionDesc& desc = static_cast<const CCpuRleConvolutionDesc&>( convDesc );
 	const CBlobDesc& input = desc.Source;
