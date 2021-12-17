@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <float.h>
 #include <CpuMathEngineOmp.h>
 #include <MathEngineCommon.h>
@@ -507,6 +508,8 @@ void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& des
 void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CFloatHandle& source,
 	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result )
 {
+	CCpuExecutionScope scope;
+
 	const float* sourceRaw = GetRaw( source );
 	const float* filterRaw = GetRaw( filter );
 	float* freeTermRaw = freeTerm != nullptr ? GetRaw( *freeTerm ) : nullptr;
@@ -870,6 +873,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& de
 void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
 	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiffData )
 {
+	CCpuExecutionScope scope;
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
 
 	switch( desc.BackwardAlgo ) {
@@ -1077,6 +1081,7 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 void CCpuMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc, const CFloatHandle& input,
 	const CFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
+	CCpuExecutionScope scope;
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
 
 	switch( desc.BackwardAlgo ) {
@@ -1132,6 +1137,8 @@ CChannelwiseConvolutionDesc* CCpuMathEngine::InitBlobChannelwiseConvolution( con
 void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc,
 	const CFloatHandle& inputDiffData, const CFloatHandle& filterData, const CFloatHandle& outputDiffData )
 {
+	CCpuExecutionScope scope;
+
 	const float* inputDiffDataRaw = GetRaw( inputDiffData );
 	const float* filterDataRaw = GetRaw( filterData );
 	float* outputDiffDataRaw = GetRaw( outputDiffData );
@@ -1235,6 +1242,8 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc, const CFloatHandle& inputData,
 	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData )
 {
+	CCpuExecutionScope scope;
+
 	const float* inputDataRaw = GetRaw( inputData );
 	const float* filterDiffDataRaw = GetRaw( filterDiffData );
 	float* outputDiffDataRaw = GetRaw( outputDiffData );
