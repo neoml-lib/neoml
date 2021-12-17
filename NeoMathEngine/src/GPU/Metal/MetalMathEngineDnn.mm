@@ -634,6 +634,33 @@ void CMetalMathEngine::CtcLossForward( int /*resultLen*/, int /*batchSize*/, int
     ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle, int seqLen,
+    int batchSize, int numHeads, int headSize, int kernelSize, const CFloatHandle& outputHandle )
+{
+    ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+    ASSERT_EXPR( kernelHandle.GetMathEngine() == this );
+    ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+    C1DKernel kernel( *queue, "vectorBertConv", 1, seqLen * batchSize * numHeads * headSize * kernelSize );
+    kernel.SetParam( dataHandle, 0 );
+    kernel.SetParam( kernelHandle, 1 );
+    kernel.SetParam( seqLen, 2 );
+    kernel.SetParam( batchSize, 3 );
+    kernel.SetParam( numHeads, 4 );
+    kernel.SetParam( headSize, 5 );
+    kernel.SetParam( kernelSize, 6 );
+    kernel.SetParam( outputHandle, 7 );
+
+    ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::BertConvBackward( const CConstFloatHandle& /*dataHandle*/, const CConstFloatHandle& /*kernelHandle*/,
+    const CConstFloatHandle& /*outDiffHandle*/, int /*seqLen*/, int /*batchSize*/, int /*numHeads*/, int /*headSize*/, int /*kernelSize*/,
+    const CFloatHandle& /*dataDiffHandle*/, const CFloatHandle& /*kernelDiffHandle*/ )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL
