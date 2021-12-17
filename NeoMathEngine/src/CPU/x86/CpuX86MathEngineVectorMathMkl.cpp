@@ -26,6 +26,7 @@ limitations under the License.
 #include <float.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <cmath>
 
 #ifdef NEOML_USE_MKL
 #if FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
@@ -175,15 +176,41 @@ void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstH
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-#ifdef NEOML_USE_MKL
-	vsPowx(vectorSize, GetRaw(firstHandle), exponent, GetRaw(resultHandle));
-#else
+	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
 	const float* first = GetRaw(firstHandle);
 	float* result = GetRaw(resultHandle);
-	for(int i = 0; i < vectorSize; ++i) {
-		*result++ = powf(*first++, exponent);
+
+	// Profiler showed that vsPowx is effective in 2 cases:
+	//    1. Non-integer exponent
+	//    2. Exponent is integer == 2
+#ifdef NEOML_USE_MKL
+	if( std::truncf( exponent ) != exponent || ( exponent > 2 - FLT_EPSILON && exponent < 2 + FLT_EPSILON ) ) {
+		if( curThreadCount > 1 ) {
+			NEOML_OMP_NUM_THREADS( curThreadCount )
+			{
+				int start;
+				int count;
+				if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
+					vsPowx( count, first + start, exponent, result + start );
+				}
+			}
+		} else {
+			vsPowx( vectorSize, first, exponent, result );
+		}
+		return;
 	}
 #endif
+
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+		for( int i = 0; i < vectorSize; ++i ) {
+			result[i] = powf( first[i], exponent );
+		}
+	} else {
+		for( int i = 0; i < vectorSize; ++i ) {
+			*result++ = powf( *first++, exponent );
+		}
+	}
 }
 
 void CCpuMathEngine::vectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
