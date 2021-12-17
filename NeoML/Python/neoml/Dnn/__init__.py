@@ -1,6 +1,6 @@
 from .Dnn import Dnn, Layer
 from .Solver import AdaptiveGradient, NesterovGradient, SimpleGradient
-from .Initializer import Xavier, Uniform
+from .Initializer import Xavier, XavierUniform, Uniform
 
 from .Accuracy import Accuracy, ConfusionMatrix
 from .AccumulativeLookup import AccumulativeLookup

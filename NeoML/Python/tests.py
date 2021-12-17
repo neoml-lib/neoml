@@ -262,7 +262,8 @@ class SolverTestCase(MultithreadedTestCase):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         solver = neoml.Dnn.AdaptiveGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
                                                moment_decay_rate=0.6, max_gradient_norm=0.6,
-                                               second_moment_decay_rate=0.6, epsilon=0.6, ams_grad=True)
+                                               second_moment_decay_rate=0.6, epsilon=0.6,
+                                               ams_grad=True, decoupled_weight_decay=True)
 
         self.assertAlmostEqual(solver.l1, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.l2, 0.6, delta=1e-3)
@@ -272,6 +273,7 @@ class SolverTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(solver.second_moment_decay_rate, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.epsilon, 0.6, delta=1e-3)
         self.assertEqual(solver.ams_grad, True)
+        self.assertEqual(solver.decoupled_weight_decay, True)
 
     def test_simple_gradient(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2373,6 +2375,9 @@ class DnnTestCase(MultithreadedTestCase):
 
         dnn.initializer = neoml.Dnn.Uniform()
         self.assertTrue(isinstance(dnn.initializer, neoml.Dnn.Uniform))
+
+        dnn.initializer = neoml.Dnn.XavierUniform(random)
+        self.assertTrue(isinstance(dnn.initializer, neoml.Dnn.XavierUniform))
 
     def test_math_engine(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)

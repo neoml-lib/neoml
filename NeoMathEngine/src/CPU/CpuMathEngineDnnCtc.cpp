@@ -19,6 +19,7 @@ limitations under the License.
 #include <cmath>
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuMathEnginePrivate.h>
 #include <MemoryHandleInternal.h>
 
@@ -210,6 +211,7 @@ void CCpuMathEngine::CtcLossForward( int resultLen, int batchSize, int classCoun
 	ASSERT_EXPR( labelWeights.IsNull() || labelWeights.GetMathEngine() == this );
 	ASSERT_EXPR( loss.GetMathEngine() == this );
 	ASSERT_EXPR( lossGradient.IsNull() || lossGradient.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const int padLabelLen = labelLen * 2 + 1;
 
