@@ -172,6 +172,7 @@ REGISTER_NEOML_PYLAYER( "Lrn", "NeoMLDnnLrnLayer" )
 REGISTER_NEOML_PYLAYER( "Cast", "NeoMLDnnCastLayer" )
 REGISTER_NEOML_PYLAYER( "Data", "NeoMLDnnDataLayer" )
 REGISTER_NEOML_PYLAYER( "TransformerEncoder", "NeoMLDnnTransformerEncoderLayer" )
+REGISTER_NEOML_PYLAYER( "BertConv", "NeoMLDnnBertConvLayer" )
 
 }
 

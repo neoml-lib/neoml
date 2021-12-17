@@ -45,6 +45,7 @@ namespace NeoML {
 #include <shaders/generated/IndRnnRecurrentSigmoid.h>
 #include <shaders/generated/SpaceToDepthFloat.h>
 #include <shaders/generated/SpaceToDepthInt.h>
+#include <shaders/generated/BertConv.h>
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -635,6 +636,40 @@ void CVulkanMathEngine::CtcLossForward( int /*resultLen*/, int /*batchSize*/, in
 	int /*blankLabel*/, bool /*skipBlanks*/, const CConstFloatHandle& /*result*/, const CConstIntHandle& /*labels*/,
 	const CConstIntHandle& /*labelLens*/, const CConstIntHandle& /*resultLens*/, const CConstFloatHandle& /*labelWeights*/,
 	const CFloatHandle& /*loss*/, const CFloatHandle& /*lossGradient*/ )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle, int seqLen,
+	int batchSize, int numHeads, int headSize, int kernelSize, const CFloatHandle& outputHandle )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( kernelHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+	size_t sizes[3] = {
+		static_cast<size_t>( seqLen ) * batchSize * numHeads * headSize * sizeof( float ),
+		static_cast<size_t>( seqLen ) * batchSize * numHeads * kernelSize * sizeof( float ),
+		static_cast<size_t>( seqLen ) * batchSize * numHeads * headSize * sizeof( float )
+	};
+
+	CMemoryHandle buffs[3] = { dataHandle, kernelHandle, outputHandle };
+
+	PARAM_STRUCT( BertConv ) param = {
+		seqLen,
+		batchSize,
+		numHeads,
+		headSize,
+		kernelSize
+	};
+
+	runVectorShader( shaderLoader->GET_SHADER_DATA( BertConv, true, 0, 0, 3 ), &param,
+		sizeof( param ), 0, 0, 0, 0, buffs, sizes, 3, static_cast<int>( sizes[2] ) );
+}
+
+void CVulkanMathEngine::BertConvBackward( const CConstFloatHandle& /*dataHandle*/, const CConstFloatHandle& /*kernelHandle*/,
+	const CConstFloatHandle& /*outDiffHandle*/, int /*seqLen*/, int /*batchSize*/, int /*numHeads*/, int /*headSize*/, int /*kernelSize*/,
+	const CFloatHandle& /*dataDiffHandle*/, const CFloatHandle& /*kernelDiffHandle*/ )
 {
 	ASSERT_EXPR( false );
 }

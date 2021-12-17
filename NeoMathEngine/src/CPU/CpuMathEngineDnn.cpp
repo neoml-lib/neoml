@@ -1086,4 +1086,89 @@ void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHandl
 		blockSize, false, GetRaw( resultData ), threadCount );
 }
 
+void CCpuMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle, int seqLen,
+	int batchSize, int numHeads, int headSize, int kernelSize, const CFloatHandle& outputHandle )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( kernelHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+	const int taskCount = seqLen * batchSize * numHeads;
+	const int curThreadCount = IsOmpRelevant( taskCount, taskCount * headSize * kernelSize ) ? threadCount : 1;
+
+	const int pad = ( kernelSize - 1 ) / 2;
+	const int dataSeqStep = batchSize * numHeads * headSize;
+
+	const float* data = GetRaw( dataHandle );
+	const float* kernel = GetRaw( kernelHandle );
+	float* output = GetRaw( outputHandle );
+
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int i = 0; i < taskCount; ++i ) {
+		const int b = i % ( batchSize * numHeads );
+		const int seq = i / ( batchSize * numHeads );
+
+		int outputOffset = i * headSize;
+		const int kernelOffset = i * kernelSize;
+
+		const int kernelStart = max( 0, pad - seq );
+		const int kernelEnd = min( kernelSize, seqLen + pad - seq );
+
+		vectorFill( output + outputOffset, 0.f, headSize );
+
+		for( int h = 0; h < headSize; ++h ) {
+			int dataOffset = h + b * headSize + ( seq - pad + kernelStart ) * dataSeqStep;
+			for( int k = kernelStart; k < kernelEnd; ++k ) {
+				output[outputOffset] += data[dataOffset] * kernel[kernelOffset + k];
+				dataOffset += dataSeqStep;
+			}
+			outputOffset++;
+		}
+	}
+}
+
+void CCpuMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+	const CConstFloatHandle& outputDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
+	const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( kernelHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputDiffHandle.GetMathEngine() == this );
+	ASSERT_EXPR( dataDiffHandle.GetMathEngine() == this );
+	ASSERT_EXPR( kernelDiffHandle.GetMathEngine() == this );
+
+	const int pad = ( kernelSize - 1 ) / 2;
+	const int dataSeqStep = batchSize * numHeads * headSize;
+
+	const int taskCount = batchSize * numHeads;
+	const int curThreadCount = IsOmpRelevant( taskCount, seqLen * taskCount * headSize * kernelSize ) ? threadCount : 1;
+
+	const float* data = GetRaw( dataHandle );
+	const float* kernel = GetRaw( kernelHandle );
+	const float* outputDiff = GetRaw( outputDiffHandle );
+	float* dataDiff = GetRaw( dataDiffHandle );
+	float* kernelDiff = GetRaw( kernelDiffHandle );
+
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int b = 0; b < taskCount; ++b ) {
+		for( int seq = 0; seq < seqLen; ++seq ) {
+			int outputOffset = ( seq * batchSize * numHeads + b ) * headSize;
+			const int kernelOffset = ( seq * batchSize * numHeads + b ) * kernelSize;
+
+			const int kernelStart = max( 0, pad - seq );
+			const int kernelEnd = min( kernelSize, seqLen + pad - seq );
+
+			for( int h = 0; h < headSize; ++h ) {
+				int dataOffset = h + b * headSize + ( seq - pad + kernelStart ) * dataSeqStep;
+				for( int k = kernelStart; k < kernelEnd; ++k ) {
+					dataDiff[dataOffset] += outputDiff[outputOffset] * kernel[kernelOffset + k];
+					kernelDiff[kernelOffset + k] += outputDiff[outputOffset] * data[dataOffset];
+					dataOffset += dataSeqStep;
+				}
+				outputOffset++;
+			}
+		}
+	}
+}
+
 } // namespace NeoML

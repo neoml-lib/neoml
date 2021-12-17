@@ -666,4 +666,108 @@ __global__ void IndRnnRecurrentLearnKernel( bool reverse, int sequenceLength, in
 	}
 }
 
+__global__ void BertConvKernel( const float* data, const float* kernel, int seqLen, int batchSize, int numHeads,
+	int headSize, int kernelSize, float* output )
+{
+	const int taskCount = seqLen * batchSize * numHeads * headSize;
+	int index;
+	if( !GetCudaTaskIndex( taskCount, index ) ) {
+		return;
+	}
+
+	const int pad = ( kernelSize - 1 ) / 2;
+	const int dataSeqStep = batchSize * numHeads * headSize;
+
+	const int outputOffset = index;
+	const int h = index % headSize;
+	index /= headSize;
+	const int b = index % ( batchSize * numHeads );
+	const int seq = index / ( batchSize * numHeads );
+
+	const int kernelOffset = index * kernelSize;
+
+	float res = 0.f;
+	const int kernelStart = max( 0, pad - seq );
+	const int kernelEnd = min( kernelSize, seqLen + pad - seq );
+	int dataOffset = h + b * headSize + ( seq - pad + kernelStart ) * dataSeqStep;
+
+	for( int k = kernelStart; k < kernelEnd; ++k ) {
+		res += data[dataOffset] * kernel[kernelOffset + k];
+		dataOffset += dataSeqStep;
+	}
+
+	output[outputOffset] = res;
+}
+
+__global__ void BertConvBackwardDataKernel( const float* kernel, const float* outputDiff, int seqLen,
+	int batchSize, int numHeads, int headSize, int kernelSize, float* dataDiff )
+{
+	const int taskCount = seqLen * batchSize * numHeads * headSize;
+	int index;
+	if( !GetCudaTaskIndex( taskCount, index ) ) {
+		return;
+	}
+
+	const int pad = ( kernelSize - 1 ) / 2;
+	const int outputSeqStep = batchSize * numHeads * headSize;
+	const int kernelSeqStep = batchSize * numHeads * kernelSize;
+
+	const int dataOffset = index;
+	const int h = index % headSize;
+	index /= headSize;
+	const int b = index % ( batchSize * numHeads );
+	const int dataSeq = index / ( batchSize * numHeads );
+
+	float res = 0.f;
+
+	const int outputSeqStart = max( 0, dataSeq + pad - kernelSize + 1 );
+	const int outputSeqEnd = min( seqLen, dataSeq + pad + 1 );
+	int outputOffset = b * headSize + outputSeqStart * outputSeqStep + h;
+	int kernelOffset = b * kernelSize + outputSeqStart * kernelSeqStep;
+
+	for( int outputSeq = outputSeqStart; outputSeq < outputSeqEnd; ++outputSeq ) {
+		const int posInKernel = dataSeq - ( outputSeq - pad );
+		res += kernel[kernelOffset + posInKernel] * outputDiff[outputOffset];
+		kernelOffset += kernelSeqStep;
+		outputOffset += outputSeqStep;
+	}
+
+	dataDiff[dataOffset] = res;
+}
+
+__global__ void BertConvBackwardKernelKernel( const float* data, const float* outputDiff, int seqLen,
+	int batchSize, int numHeads, int headSize, int kernelSize, float* kernelDiff )
+{
+	const int taskCount = seqLen * batchSize * numHeads * kernelSize;
+	int index;
+	if( !GetCudaTaskIndex( taskCount, index ) ) {
+		return;
+	}
+
+	const int kernelOffset = index;
+	const int posInKernel = index % kernelSize;
+	index /= kernelSize;
+	const int b = index % ( batchSize * numHeads );
+	const int outputSeq = index / ( batchSize * numHeads );
+
+	const int pad = ( kernelSize - 1 ) / 2;
+	const int dataSeqStep = batchSize * numHeads * headSize;
+
+	const int dataSeq = ( outputSeq - pad ) + posInKernel;
+	if( dataSeq < 0 || dataSeq >= seqLen ) {
+		kernelDiff[kernelOffset] = 0.f;
+		return;
+	}
+
+	float res = 0.f;
+	int dataOffset = dataSeq * dataSeqStep + b * headSize;
+	int outputOffset = outputSeq * dataSeqStep + b * headSize;
+
+	for( int h = 0; h < headSize; ++h ) {
+		res += data[dataOffset++] * outputDiff[outputOffset++];
+	}
+
+	kernelDiff[kernelOffset] = res;
+}
+
 } // namespace NeoML

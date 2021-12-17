@@ -89,6 +89,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/CastLayer.h>
 #include <NeoML/Dnn/Layers/DataLayer.h>
 #include <NeoML/Dnn/Layers/TransformerLayer.h>
+#include <NeoML/Dnn/Layers/BertConvLayer.h>
 
 namespace NeoML {
 
@@ -338,6 +339,7 @@ REGISTER_NEOML_LAYER( CLrnLayer, "NeoMLDnnLrnLayer" )
 REGISTER_NEOML_LAYER( CCastLayer, "NeoMLDnnCastLayer" )
 REGISTER_NEOML_LAYER( CDataLayer, "NeoMLDnnDataLayer" )
 REGISTER_NEOML_LAYER( CTransformerEncoderLayer, "NeoMLDnnTransformerEncoderLayer" )
+REGISTER_NEOML_LAYER( CBertConvLayer, "NeoMLDnnBertConvLayer" )
 
 }
 
