@@ -35,8 +35,7 @@ void CPrimitivesJit::Tanh( float* dst, const float* src, size_t dataSize, bool i
 
 void CPrimitivesJit::Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread )
 {
-	callPrimitive<TPrimitive::Exp>( dataSize, isMultithread, dst, src );
-	callPrimitive<TPrimitive::Sigmoid>( dataSize, isMultithread, dst, dst );
+	callPrimitive<TPrimitive::Sigmoid>( dataSize, isMultithread, dst, src );
 }
 
 void CPrimitivesJit::Exp( float* dst, const float* src, size_t dataSize, bool isMultithread )
@@ -176,9 +175,9 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Tanh>()
 	auto& gen = gens[static_cast< size_t >( TPrimitive::Sigmoid )].gen;
 
 	const reg64Vec_t preservedReg64;
-	const ymmVec_t preservedYmm = { ymm6, ymm7, ymm8, ymm9, ymm10, ymm11 };
-	const ymmVec_t ymmSrc = { ymm10, ymm11 };
-	const ymmVec_t ymmAux = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6, ymm7, ymm8, ymm9 };
+	const ymmVec_t preservedYmm = initYmmVecRange( 6, 11 );
+	const ymmVec_t ymmSrc = initYmmVecRange( 10, 11 );
+	const ymmVec_t ymmAux = initYmmVecRange( 0, 9 );
 
 	initActivationFunction<TPrimitive::Tanh>( std::function<void()>(),
 		preservedReg64, preservedYmm, ymmSrc, ymmAux );
@@ -192,9 +191,9 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Sigmoid>()
 	auto& gen = gens[static_cast< size_t >( TPrimitive::Sigmoid )].gen;
 
 	const reg64Vec_t preservedReg64;
-	const ymmVec_t preservedYmm = { ymm6, ymm7, ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14 };
-	const ymmVec_t ymmSrc = { ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6 };
-	const ymmVec_t ymmAux = { ymm7, ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14 };
+	const ymmVec_t preservedYmm = initYmmVecRange( 6, 12 );
+	const ymmVec_t ymmSrc = initYmmVecRange( 0, 2 );
+	const ymmVec_t ymmAux = initYmmVecRange( 3, 12 );
 	
 	std::function<void()> afterPrologue = [&]() {
 		// Last aux for storing 1.0
@@ -458,6 +457,8 @@ void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Sigmoid>( CJitC
 
 	// Last aux - is one
 	const ymm_t& one = ymmAux.back();
+	// Calculate Exp first
+	insertPrimitive<TPrimitive::Exp>( gen, ymmSrc, ymmAux );
 	gen.vaddps( ymmTemp, ymmSrc, one );
 	gen.vdivps( ymmSrc, ymmSrc, ymmTemp );
 }
