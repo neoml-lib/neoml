@@ -59,13 +59,7 @@ inline void GetAttributeValue<CArray<int>>( const onnx::AttributeProto& attribut
 	value.Empty();
 	value.SetBufferSize( attribute.ints_size() );
 	for( int64_t element : attribute.ints() ) {
-		if( element >= static_cast<int64_t>( INT_MAX ) ) {
-			value.Add( INT_MAX );
-		} else if( element <= static_cast<int64_t>( INT_MIN ) ) {
-			value.Add( INT_MIN );
-		} else {
-			value.Add( static_cast<int>( element ) );
-		}
+		value.Add( static_cast<int>( clamp( element, static_cast<int64_t>( INT_MIN ), static_cast<int64_t>( INT_MAX ) ) ) );
 	}
 }
 
@@ -87,13 +81,7 @@ inline void GetAttributeValue<CFastArray<int, 8>>( const onnx::AttributeProto& a
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_INTS,
 		( attribute.name() + " attribute is not an array of ints" ).c_str(), op );
 	for( int64_t element : attribute.ints() ) {
-		if( element >= static_cast<int64_t>( INT_MAX ) ) {
-			value.Add( INT_MAX );
-		} else if( element <= static_cast<int64_t>( INT_MIN ) ) {
-			value.Add( INT_MIN );
-		} else {
-			value.Add( static_cast<int>( element ) );
-		}
+		value.Add( static_cast<int>( clamp( element, static_cast<int64_t>( INT_MIN ), static_cast<int64_t>( INT_MAX ) ) ) );
 	}
 }
 
