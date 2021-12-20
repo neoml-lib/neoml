@@ -20,8 +20,8 @@ namespace NeoML {
 
 using namespace std;
 
-Xbyak::Address CJitCommon::Prologue( const vector<Xbyak::Reg64>& preservedGPR,
-    const vector<Xbyak::Ymm>& preservedYmm )
+Xbyak::Address CJitCommon::Prologue( const reg64Vec_t& preservedGPR,
+    const ymmVec_t& preservedYmm )
 {
     using namespace Xbyak::util;
     using namespace Xbyak;
@@ -41,8 +41,8 @@ Xbyak::Address CJitCommon::Prologue( const vector<Xbyak::Reg64>& preservedGPR,
     return ptr[rsp + 16 + preservedGPR.size() * SizeofReg64 + preservedYmm.size() * SizeOfYmm];
 }
 
-void CJitCommon::Epilogue( const vector<Xbyak::Reg64>& preservedGPR,
-    const vector<Xbyak::Ymm>& preservedYmm )
+void CJitCommon::Epilogue( const reg64Vec_t& preservedGPR,
+    const ymmVec_t& preservedYmm )
 {
     for( int i = preservedGPR.size() - 1; i >= 0; i-- ) {
         pop( preservedGPR[i] );

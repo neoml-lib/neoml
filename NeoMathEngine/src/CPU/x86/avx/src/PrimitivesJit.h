@@ -22,6 +22,7 @@ limitations under the License.
 #include <unordered_map>
 #include <array>
 #include <mutex>
+#include <functional>
 
 namespace NeoML {
 
@@ -82,7 +83,7 @@ private:
 
 	static constexpr int MantissaNumBits = 23;
 
-	using ActivationFunc = void( * )( float*, const float*, size_t );
+	using ActivationFunc = void( * )( float* dst, const float* src, size_t offset, size_t count );
 
 	IMathEngine* mathEngine;
 	int threadCount;
@@ -103,23 +104,44 @@ private:
 	void addVal( TTableKey key, uint32_t val, size_t repeatNum = NumFloatInYmm );
 
 	template<TPrimitive P>
-	void initActivation();
+	void initPrimitive();
+	template<TPrimitive P>
+	void initActivationFunction( std::function<void()>& afterPrologue,
+		const reg64Vec_t& preservedGPR, const ymmVec_t& preservedYmm,
+		const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux );
 
 	// Function for inserting one primitives into another ones
-	// Insert code of tanh function into another code
 	// gen - jit generator which is used in paren function.
+	// ymmSrc - inplace updated src data (can't be one of ymmAux registers!) (types: ymm_t or ymmVec_t)
 	// ymmAux - auxiliary registers which will be used inside function
-	// ymmData - inplace updated src data (can't be one of ymmAux registers!)
-	void insertTanh( CJitCommon& gen, std::vector<Xbyak::Ymm>&& ymmAux, Xbyak::Ymm ymmData );
-	void insertSigmoid( CJitCommon& gen, ymm_t& one, std::vector<ymm_t>& ymmData, std::vector<ymm_t>& ymmTempData );
-	void insertExp( CJitCommon& gen, vector<ymm_t>&& ymmAux, ymm_t ymmData );
-
 	template<TPrimitive P>
-	void callActivation( float* dst, const float* src, size_t dataSize, bool isMultithread );
+	void insertPrimitive( CJitCommon& gen, const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux );
+
+	template<TPrimitive P, class... Args>
+	void callPrimitive( size_t dataSize, bool isMultithread, Args... args );
 
 	// Check if two arrays have insersected registers and each array contains only unique registers
 	template<class RegType, class ArrayType0, class ArrayType1>
 	bool isRegArraysIntersected( const ArrayType0& arr0, const ArrayType1& arr1 );
+
+	// Function helps to parse raw aux vector to the small slices
+	ymmVec_t initFromAux( int idx, const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux ) {
+		const int SrcSize = ymmSrc.size();
+		auto begin = ymmAux.begin() + idx * SrcSize;
+		return ymmVec_t( begin, begin + SrcSize );
+	};
+
+	ymmVec_t initYmmVecRange( int firstIdx, int lastIdx ) {
+		const int VecSize = lastIdx - firstIdx + 1;
+		assert( VecSize > 0 );
+		assert( firstIdx >= 0 && lastIdx < 16 );
+		ymmVec_t ret( VecSize );
+		int idx = firstIdx;
+		for( auto& v : ret ) {
+			v = Xbyak::Ymm( idx++ );
+		}
+		return ret;
+	};
 
 };
 
