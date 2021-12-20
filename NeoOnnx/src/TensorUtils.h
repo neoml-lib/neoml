@@ -99,8 +99,8 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				LoadFromRawData<uint64_t, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.uint64_data_size(); ++valueIndex ) {
-					uint64_t value = Clamp( src.uint64_data( valueIndex ), 0ULL,
-						static_cast<uint64_t>( std::numeric_limits<T>::max() ) );
+					uint64_t value = Clamp( static_cast<uint64_t>( src.uint64_data( valueIndex ) ),
+						static_cast<uint64_t>( 0 ), static_cast<uint64_t>( std::numeric_limits<T>::max() ) );
 					buffer[valueIndex] = static_cast<T>( value );
 				}
 			}
