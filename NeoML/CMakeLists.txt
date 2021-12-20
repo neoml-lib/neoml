@@ -82,7 +82,7 @@ endif()
 if(NeoML_INSTALL)
     set(INSTALLED_TARGETS NeoML NeoMathEngine)
     if(NeoOnnx_BUILD)
-        list(APPEND INSTALLED_TARGETS NeoOnnx Onnx2NeoML)
+        list(APPEND INSTALLED_TARGETS NeoOnnx )
     endif()
     
     if(USE_FINE_OBJECTS)

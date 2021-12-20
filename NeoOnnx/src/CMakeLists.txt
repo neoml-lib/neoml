@@ -88,8 +88,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TensorLayout.h
     TensorUtils.h
 )
-
-add_subdirectory(Onnx2NeoML)
+if(NOT ANDROID AND NOT IOS)
+    add_subdirectory(Onnx2NeoML)
+endif()
 
 if(ANDROID)
     set(CMAKE_LIBRARY_ARCHITECTURE ${ANDROID_ABI})
