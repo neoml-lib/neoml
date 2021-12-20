@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
-project(NeoOnnx::Onnx2NeoML LANGUAGES CXX)
+project( Onnx2NeoML LANGUAGES CXX)
 
 include(Version)
 include(Settings)
