@@ -89,7 +89,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TensorUtils.h
 )
 
-add_subdirectory(Onnx2NeoML ${CMAKE_BINARY_DIR}/Onnx2NeoML)
+add_subdirectory(Onnx2NeoML)
 
 if(ANDROID)
     set(CMAKE_LIBRARY_ARCHITECTURE ${ANDROID_ABI})
