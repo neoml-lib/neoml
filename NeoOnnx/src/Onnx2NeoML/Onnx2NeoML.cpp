@@ -41,7 +41,7 @@ int ConvertOnnx2NeoML( const char* inputOnnxFilename, const char* outputDnnArchi
         return 1;
     }
 };
-static constexpr char* Help = 
+static const char* Help = 
 "Usage:\n$ Onnx2NeoML <path to some existing model.onnx> <path to new saved model.dnnarchive>\n"
 "Use this tool to convert your ONNX model "
 "into the archived NeoML::CDnn. To be converted your model "
