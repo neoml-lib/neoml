@@ -137,7 +137,7 @@ static void blobConvolutionBackwardImpl( const CTestParams& params, int seed )
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
 		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputBlob.GetDesc() );
 
-	CFloatHandle freeTermDataPtr = freeTermBlob.GetData();
+	CConstFloatHandle freeTermDataPtr = freeTermBlob.GetData();
 
 	MathEngine().BlobConvolutionBackward( *convDesc, outputBlob.GetData(), filterBlob.GetData(),
 		isZeroFreeTerm ? 0 : &freeTermDataPtr, inputBlob.GetData() );
