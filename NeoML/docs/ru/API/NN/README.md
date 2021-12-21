@@ -296,6 +296,7 @@ delete gpuMathEngine;
     - [CFocalLossLayer](LossLayers/FocalLossLayer.md) - функция `Focal` (модифицированная кросс-энтропия)
   - Регрессия:
     - [CEuclideanLossLayer](LossLayers/EuclideanLossLayer.md) - евклидово расстояние
+    - [CL1LossLayer](LossLayers/L1ossLayer.md) - L1 расстояние
   - Дополнительно:
     - [CCenterLossLayer](LossLayers/CenterLossLayer.md) - вспомогательная функция `Center`, штрафующая дисперсию внутри классов
 - Работа с дискретными признаками:

@@ -297,6 +297,7 @@ delete gpuMathEngine;
     - [CFocalLossLayer](LossLayers/FocalLossLayer.md) - focal loss function (modified cross-entropy)
   - For regression:
     - [CEuclideanLossLayer](LossLayers/EuclideanLossLayer.md) - Euclidean distance
+    - [CL1LossLayer](LossLayers/L1LossLayer.md) - L1 distance
   - Additionally:
     - [CCenterLossLayer](LossLayers/CenterLossLayer.md) - the auxiliary *center loss* function that penalizes large variance inside a class
 - Working with discrete features:
