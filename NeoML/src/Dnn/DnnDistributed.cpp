@@ -54,6 +54,7 @@ CDistributedTraining::~CDistributedTraining()
 
 void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 {
+#ifdef NEOML_USE_OMP
     NEOML_OMP_NUM_THREADS( cnns.Size() )
     {
         const int thread = OmpGetThreadNum();
@@ -77,6 +78,10 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 #endif
     }
     CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
+#else
+    data;
+    NeoAssert( false );
+#endif
 }
 
 void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>& losses )

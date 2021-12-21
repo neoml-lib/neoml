@@ -26,9 +26,7 @@ limitations under the License.
 #include <mutex>
 #include <memory>
 #include <PerformanceCountersDefault.h>
-#ifdef NEOML_USE_NCCL
 #include <CudaMathEngineDnnDistributed.h>
-#endif
 
 namespace NeoML {
 

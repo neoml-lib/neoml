@@ -1,5 +1,6 @@
-from unittest import TestCase
+from unittest import TestCase, skipIf
 import os
+import sys
 import tempfile
 import pickle
 import itertools
@@ -2530,6 +2531,7 @@ class ClusteringTestCase(MultithreadedTestCase):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
 
 
+@skipIf(sys.platform == 'darwin', 'Not supposed to work on MacOS')
 class DnnDistributedTestCase(TestCase):
     def test_distributed(self):
         def set_data(math_engine, thread):
