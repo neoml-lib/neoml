@@ -921,6 +921,13 @@ public:
 		const CConstFloatHandle& result, const CConstIntHandle& labels,
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) = 0;
+
+	// BERT Conv operations
+	virtual void BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+		int seqLen, int batchSize, int numHeads, int headSize, int kernelSize, const CFloatHandle& outputHandle ) = 0;
+	virtual void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
+		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

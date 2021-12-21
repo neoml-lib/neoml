@@ -47,6 +47,17 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Initializes a blob using the Xavier algorithm with uniform distribution
+// (randomly chosen values from ~U(-sqrt(1/<the input size>), sqrt(1/<the input size>))
+class NEOML_API CDnnXavierUniformInitializer : public CDnnInitializer {
+public:
+	explicit CDnnXavierUniformInitializer( CRandom& random ) : CDnnInitializer( random ) {}
+
+	void InitializeLayerParams( CDnnBlob& blob, int inputCount ) override;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Initializes a blob using uniform distribution
 class NEOML_API CDnnUniformInitializer : public CDnnInitializer {
 public:

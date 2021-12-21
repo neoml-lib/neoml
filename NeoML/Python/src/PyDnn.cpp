@@ -172,6 +172,7 @@ REGISTER_NEOML_PYLAYER( "Lrn", "NeoMLDnnLrnLayer" )
 REGISTER_NEOML_PYLAYER( "Cast", "NeoMLDnnCastLayer" )
 REGISTER_NEOML_PYLAYER( "Data", "NeoMLDnnDataLayer" )
 REGISTER_NEOML_PYLAYER( "TransformerEncoder", "NeoMLDnnTransformerEncoderLayer" )
+REGISTER_NEOML_PYLAYER( "BertConv", "NeoMLDnnBertConvLayer" )
 
 }
 
@@ -380,7 +381,7 @@ py::dict CPyDnn::Run( py::list inputs )
 	return result;
 }
 
-void CPyDnn::RunAndBackward( py::list inputs )
+py::dict CPyDnn::RunAndBackward( py::list inputs )
 {
 	CArray<const char*> layerNames;
 	dnn->GetLayerList( layerNames );
@@ -399,9 +400,19 @@ void CPyDnn::RunAndBackward( py::list inputs )
 		py::gil_scoped_release release;
 		dnn->RunAndBackwardOnce();
 	}
+
+	auto result = py::dict();
+	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
+		CPtr<CSinkLayer> layer = dynamic_cast<CSinkLayer*>( dnn->GetLayer( layerNames[layerIndex] ).Ptr() );
+		if( layer != 0 ) {
+			result[layerNames[layerIndex]] = CPyBlob( *mathEngineOwner, layer->GetBlob() );
+		}
+	}
+
+	return result;
 }
 
-void CPyDnn::Learn( py::list inputs )
+py::dict CPyDnn::Learn( py::list inputs )
 {
 	CArray<const char*> layerNames;
 	dnn->GetLayerList( layerNames );
@@ -420,6 +431,16 @@ void CPyDnn::Learn( py::list inputs )
 		py::gil_scoped_release release;
 		dnn->RunAndLearnOnce();
 	}
+
+	auto result = py::dict();
+	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
+		CPtr<CSinkLayer> layer = dynamic_cast<CSinkLayer*>( dnn->GetLayer( layerNames[layerIndex] ).Ptr() );
+		if( layer != 0 ) {
+			result[layerNames[layerIndex]] = CPyBlob( *mathEngineOwner, layer->GetBlob() );
+		}
+	}
+
+	return result;
 }
 
 //------------------------------------------------------------------------------------------------------------

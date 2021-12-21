@@ -17,7 +17,6 @@ limitations under the License.
 
 #ifdef NEOML_USE_CUDA
 
-#include <DllLoader.h>
 #include <CudaMathEngine.h>
 #include <CudaCommon.h>
 #include <CublasFunctions.h>
@@ -42,6 +41,7 @@ const int CudaMemoryAlignment = 4;
 //------------------------------------------------------------------------------------------------------------
 
 CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, std::unique_ptr<CCudaDevice>& _device, int flags ) :
+	loader( CDllLoader::CUDA_DLL ),
 	cusparse( _cusparse ),
 	cublas( _cublas ),
 	cublasHandle( 0 ),
@@ -75,8 +75,6 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( device->MemoryLimit, this, true ) );
 	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
 	hostStackRunTime = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( CudaMemoryAlignment ) );
-
-	CDllLoader::Load(CDllLoader::CUDA_DLL);
 }
 
 CCudaMathEngine::~CCudaMathEngine()
@@ -87,8 +85,6 @@ CCudaMathEngine::~CCudaMathEngine()
 
 	cusparse->Destroy( cusparseHandle );
 	cublas->Destroy( cublasHandle );
-
-	CDllLoader::Free(CDllLoader::CUDA_DLL);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

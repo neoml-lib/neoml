@@ -23,6 +23,9 @@ std::string CPyInitializer::GetClassName() const
 	if( Initializer<CDnnXavierInitializer>() != 0 ) {
 		return "Xavier";
 	}
+	if( Initializer<CDnnXavierUniformInitializer>() != 0 ) {
+		return "XavierUniform";
+	}
 	if( Initializer<CDnnUniformInitializer>() != 0 ) {
 		return "Uniform";
 	}
@@ -35,6 +38,16 @@ std::string CPyInitializer::GetClassName() const
 class CPyXavierInitializer : public CPyInitializer {
 public:
 	explicit CPyXavierInitializer( CPyRandomOwner& _randomOwner, CDnnInitializer* _initializer ) :
+		CPyInitializer( _randomOwner, _initializer )
+	{
+	}
+};
+
+//------------------------------------------------------------------------------------------------------------
+
+class CPyXavierUniformInitializer : public CPyInitializer {
+public:
+	explicit CPyXavierUniformInitializer( CPyRandomOwner& _randomOwner, CDnnInitializer* _initializer ) :
 		CPyInitializer( _randomOwner, _initializer )
 	{
 	}
@@ -74,6 +87,19 @@ void InitializeInitializer( py::module& m )
 		.def( py::init([]( const CPyInitializer& initializer )
 		{
 			return new CPyXavierInitializer( initializer.RandomOwner(), initializer.Initializer<CDnnXavierInitializer>() );
+		}) )
+	;
+
+//------------------------------------------------------------------------------------------------------------
+
+	py::class_<CPyXavierUniformInitializer, CPyInitializer>(m, "XavierUniform")
+		.def( py::init([]( const CPyRandom& random ) {
+			CPtr<CDnnXavierUniformInitializer> initializer( new CDnnXavierUniformInitializer( random.Random() ) );
+			return new CPyXavierUniformInitializer( random.RandomOwner(), initializer );
+		}) )
+		.def( py::init([]( const CPyInitializer& initializer )
+		{
+			return new CPyXavierUniformInitializer( initializer.RandomOwner(), initializer.Initializer<CDnnXavierUniformInitializer>() );
 		}) )
 	;
 
