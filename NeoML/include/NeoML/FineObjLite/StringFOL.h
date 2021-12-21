@@ -29,6 +29,7 @@ public:
 
 	operator const char*() const { return data(); }
 
+	bool IsEmpty() const { return empty(); }
 	int Find( const CString& other ) const;
 };
 
