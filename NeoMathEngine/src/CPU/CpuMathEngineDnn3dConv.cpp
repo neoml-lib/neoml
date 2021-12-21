@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <float.h>
 #include <CpuMathEngineOmp.h>
 #include <MathEngineCommon.h>
@@ -375,7 +376,6 @@ void CCpuMathEngine::sumMatrixRowsAdd( float* result, const float* matrix,
 		vectorAdd(result, matrix, result, matrixWidth);
 		matrix += matrixWidth;
 	}
-	result += matrixWidth;
 }
 
 void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& desc, const float* sourceData,
@@ -607,6 +607,7 @@ void CCpuMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, cons
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData == 0 || freeTermData->GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* sourceDataRaw = GetRaw( sourceData );
 	const float* filterDataRaw = GetRaw( filterData );
@@ -630,6 +631,7 @@ void CCpuMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDe
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData == 0 || freeTermData->GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* sourceDataRaw = GetRaw( sourceData );
 	const float* filterDataRaw = GetRaw( filterData );
@@ -651,6 +653,7 @@ void CCpuMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convDe
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermDiffData == 0 || freeTermDiffData->GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
 

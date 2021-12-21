@@ -1,6 +1,6 @@
 from .Dnn import Dnn, Layer
 from .Solver import AdaptiveGradient, NesterovGradient, SimpleGradient
-from .Initializer import Xavier, Uniform
+from .Initializer import Xavier, XavierUniform, Uniform
 
 from .Accuracy import Accuracy, ConfusionMatrix
 from .AccumulativeLookup import AccumulativeLookup
@@ -8,8 +8,9 @@ from .Activation import Linear, ELU, ReLU, LeakyReLU, HSwish, Abs, Sigmoid, Tanh
 from .AddToObject import AddToObject
 from .Argmax import Argmax
 from .AttentionDecoder import AttentionDecoder
-from .Binarization import EnumBinarization, BitSetVectorization
 from .BatchNormalization import BatchNormalization
+from .BertConv import BertConv
+from .Binarization import EnumBinarization, BitSetVectorization
 from .Cast import Cast
 from .Concat import ConcatChannels, ConcatDepth, ConcatWidth, ConcatHeight, ConcatBatchWidth, ConcatBatchLength, ConcatListSize, ConcatObject
 from .Conv import Conv, Conv3D, TransposedConv3D, TransposedConv, ChannelwiseConv, TimeConv 
@@ -18,6 +19,7 @@ from .Ctc import CtcLoss, CtcDecoding
 from .Data import Data
 from .DotProduct import DotProduct
 from .Dropout import Dropout
+from .DnnDistributed import DnnDistributed
 from .Eltwise import EltwiseSum, EltwiseSub, EltwiseMul, EltwiseDiv, EltwiseNegMul, EltwiseMax
 from .FullyConnected import FullyConnected
 from .Gru import Gru

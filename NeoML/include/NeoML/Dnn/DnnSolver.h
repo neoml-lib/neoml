@@ -94,6 +94,9 @@ private:
 	// Used in the inheriting classes
 	CMap<CBaseLayer*, CObjectArray<CDnnBlob>> layerToGradientHistory;
 
+	// Averages weights over all threads
+	void allReduce();
+
 	// Clips gradients according to the settings
 	void clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs);
 

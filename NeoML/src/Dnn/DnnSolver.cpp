@@ -222,6 +222,10 @@ void CDnnSolver::Train()
 		paramDiffBlobsSum.Sum.Empty();
 		paramDiffBlobsSum.Count = 0;
 	}
+
+	if( MathEngine().IsDistributed() ){
+		allReduce();
+	}
 }
 
 void CDnnSolver::Reset()
@@ -229,6 +233,22 @@ void CDnnSolver::Reset()
 	layerToParamDiffBlobsSum.DeleteAll();
 	layerToGradientHistory.DeleteAll();
 	OnReset();
+}
+
+void CDnnSolver::allReduce()
+{
+	CDnn* dnn = layerToParamDiffBlobsSum.GetKey( layerToParamDiffBlobsSum.GetFirstPosition() )->GetDnn();
+	CArray<const char*> layerList;
+	dnn->GetLayerList( layerList );
+	for( int i = 0; i < layerList.Size(); i++ ){
+		CBaseLayer* layer = dnn->GetLayer( layerList[i] );
+		if( layer->IsLearnable() && layer->IsLearningEnabled() ){
+			const CObjectArray<CDnnBlob>& params = layer->paramBlobs;
+			for( int j = 0; j < params.Size(); j++ ){
+				MathEngine().AllReduce( params[j]->GetData(), params[j]->GetDataSize() );
+			}
+		}
+	}
 }
 
 void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)

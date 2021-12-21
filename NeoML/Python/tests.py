@@ -1,5 +1,6 @@
-from unittest import TestCase
+from unittest import TestCase, skipIf
 import os
+import sys
 import tempfile
 import pickle
 import itertools
@@ -262,7 +263,8 @@ class SolverTestCase(MultithreadedTestCase):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         solver = neoml.Dnn.AdaptiveGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
                                                moment_decay_rate=0.6, max_gradient_norm=0.6,
-                                               second_moment_decay_rate=0.6, epsilon=0.6, ams_grad=True)
+                                               second_moment_decay_rate=0.6, epsilon=0.6,
+                                               ams_grad=True, decoupled_weight_decay=True)
 
         self.assertAlmostEqual(solver.l1, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.l2, 0.6, delta=1e-3)
@@ -272,6 +274,7 @@ class SolverTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(solver.second_moment_decay_rate, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.epsilon, 0.6, delta=1e-3)
         self.assertEqual(solver.ams_grad, True)
+        self.assertEqual(solver.decoupled_weight_decay, True)
 
     def test_simple_gradient(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -1655,6 +1658,29 @@ class LayersTestCase(MultithreadedTestCase):
                 outputs = dnn.run({'input_data': input_data_blob})
             self.assertEqual(outputs['sink'].shape, (1, batch_size, list_size_in, 1, 1, 1, obj_size_in))
 
+    def test_bert_conv(self):
+        seq_len = 7
+        batch_size = 16
+        num_heads = 8
+        head_size = 12
+        kernel_size = 5
+
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        data = neoml.Dnn.Source(dnn, 'data')
+        kernel = neoml.Dnn.Source(dnn, 'kernel')
+        bert_conv = neoml.Dnn.BertConv([data, kernel], 'bert_conv')
+        sink = neoml.Dnn.Sink(bert_conv, 'sink')
+        
+        data_arr = np.ones(seq_len * batch_size * num_heads * head_size, dtype=np.float32)
+        data_blob = neoml.Blob.asblob(math_engine, data_arr, (seq_len, batch_size, 1, 1, 1, 1, num_heads * head_size))
+        kernel_arr = np.zeros(seq_len * batch_size * num_heads * kernel_size, dtype=np.float32)
+        kernel_blob = neoml.Blob.asblob(math_engine, kernel_arr, (seq_len, batch_size * num_heads, 1, kernel_size, 1, 1, 1))
+
+        outputs = dnn.run({'data': data_blob, 'kernel': kernel_blob})
+        self.assertEqual(outputs['sink'].shape, (seq_len, batch_size * num_heads, 1, head_size, 1, 1, 1))
+        self.assertTrue(np.equal(outputs['sink'].asarray(), np.zeros((seq_len, batch_size * num_heads, head_size), np.float32)).all())
+
 
 class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
@@ -2351,6 +2377,9 @@ class DnnTestCase(MultithreadedTestCase):
         dnn.initializer = neoml.Dnn.Uniform()
         self.assertTrue(isinstance(dnn.initializer, neoml.Dnn.Uniform))
 
+        dnn.initializer = neoml.Dnn.XavierUniform(random)
+        self.assertTrue(isinstance(dnn.initializer, neoml.Dnn.XavierUniform))
+
     def test_math_engine(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -2528,3 +2557,21 @@ class ClusteringTestCase(MultithreadedTestCase):
 
     def test_kmeans(self):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
+
+
+@skipIf(sys.platform == 'darwin', 'Not supposed to work on MacOS')
+class DnnDistributedTestCase(TestCase):
+    def test_distributed(self):
+        def set_data(math_engine, thread):
+            source = neoml.Blob.asblob(math_engine, np.ones((20,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 20))
+            labels = neoml.Blob.asblob(math_engine, np.ones((5,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 5))
+            return dict(source=source, labels=labels)
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, "source")
+        labels = neoml.Dnn.Source(dnn, 'labels')
+        fully = neoml.Dnn.FullyConnected(source, 5, False, "fully")
+        loss = neoml.Dnn.CrossEntropyLoss((fully, labels), name='loss')
+        distributed = neoml.Dnn.DnnDistributed(dnn, 'cpu', 4)
+        distributed.learn(set_data)
+        self.assertEqual(distributed.last_losses("loss").shape, (4,))

@@ -21,6 +21,7 @@ limitations under the License.
 #ifdef NEOML_USE_SSE
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuX86.h>
 #include <float.h>
 #include <MemoryHandleInternal.h>
@@ -36,6 +37,7 @@ void CCpuMathEngine::MatrixRowsToVectorSquaredL2Distance( const CConstFloatHandl
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* matrix = GetRaw( matrixHandle );
 	float* result = GetRaw( resultHandle );
@@ -61,6 +63,7 @@ void CCpuMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle, i
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
 	ASSERT_EXPR( vectorSize >= matrixHeight );
+	CCpuExecutionScope scope;
 
 	const float* matrix = GetRaw(matrixHandle);
 	float* result = GetRaw(resultHandle);
@@ -128,6 +131,7 @@ void CCpuMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle, i
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorSize >= matrixHeight );
+	CCpuExecutionScope scope;
 
 	const float* matrix = GetRaw(matrixHandle);
 	float* result = GetRaw(resultHandle);
@@ -182,6 +186,7 @@ void CCpuMathEngine::FindMaxValueInColumns( int batchSize, const CConstFloatHand
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	if( matrixWidth == 1 ) {
 		// For x86 FindMaxValueInRows would be more optimal,
@@ -259,6 +264,7 @@ void CCpuMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandl
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	// Split matrix horizontally into blocks of smaller size and pray that it will fit into cache
 	const int cacheSize = 0x60000;
@@ -398,6 +404,7 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrixAndAdd(int batchSize, const CCons
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* first = GetRaw(firstHandle);
 	const float* second = GetRaw(secondHandle);
@@ -455,6 +462,7 @@ void CCpuMathEngine::MultiplyLookupMatrixByLookupVector(int batchSize, const CLo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR(matrix.Width() == vector.VectorSize());
 	ASSERT_EXPR(resultSize >= batchSize * matrix.Height());
+	CCpuExecutionScope scope;
 
 	int sseSize;
 	int nonSseSize;
