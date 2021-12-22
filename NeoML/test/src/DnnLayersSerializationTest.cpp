@@ -683,6 +683,7 @@ GTEST_TEST( SerializeToFile, LossLayerSerialization )
 	serializeToFile<CCrfInternalLossLayer>( "FmlCnnCrfInternalLossLayer" );
 	serializeToFile<CMultiHingeLossLayer>( "FmlCnnMultyHingeLossLayer" );
 	serializeToFile<CMultiSquaredHingeLossLayer>( "FmlCnnMultySquaredHingeLossLayer" );
+	serializeToFile<CL1LossLayer>( "NeoMLDnnL1LossLayer" );
 }
 
 #endif
@@ -701,6 +702,7 @@ GTEST_TEST( SerializeFromFile, LossLayerSerialization )
 	checkSerializeLayer<CLossLayer>( "FmlCnnCrfInternalLossLayer" );
 	checkSerializeLayer<CLossLayer>( "FmlCnnMultyHingeLossLayer" );
 	checkSerializeLayer<CLossLayer>( "FmlCnnMultySquaredHingeLossLayer" );
+	checkSerializeLayer<CLossLayer>( "NeoMLDnnL1LossLayer" );
 }
 
 // ====================================================================================================================
