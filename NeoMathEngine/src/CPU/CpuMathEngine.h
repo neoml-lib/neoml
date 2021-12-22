@@ -514,11 +514,17 @@ public:
 		const CConstFloatHandle& result, const CConstIntHandle& labels,
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
+	void BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle, int seqLen, int batchSize,
+		int numHeads, int headSize, int kernelSize, const CFloatHandle& outputHandle ) override;
+	void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
+		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info );
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	void Broadcast( const CFloatHandle& handle, int size, int root ) override;
+	void AbortDistributed() override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
 	bool IsDistributed() override { return distributedInfo.Threads > 1; }
 protected:

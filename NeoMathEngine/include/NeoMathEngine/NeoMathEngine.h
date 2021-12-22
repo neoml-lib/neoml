@@ -921,6 +921,13 @@ public:
 		const CConstFloatHandle& result, const CConstIntHandle& labels,
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) = 0;
+
+	// BERT Conv operations
+	virtual void BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+		int seqLen, int batchSize, int numHeads, int headSize, int kernelSize, const CFloatHandle& outputHandle ) = 0;
+	virtual void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
+		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1025,6 +1032,7 @@ public:
 	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
 	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
 	virtual void Broadcast( const CFloatHandle& handle, int size, int root ) = 0;
+	virtual void AbortDistributed() {};
 	virtual bool IsDistributed() { return false; }
 };
 

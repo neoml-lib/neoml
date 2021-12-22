@@ -44,6 +44,7 @@ pybind11_add_module(PythonWrapper
     src/PyAttentionDecoderLayer.cpp
     src/PyBaseConvLayer.cpp
     src/PyBatchNormalizationLayer.cpp
+    src/PyBertConvLayer.cpp
     src/PyBinarizationLayer.cpp
     src/PyConcatLayer.cpp
     src/PyCastLayer.cpp

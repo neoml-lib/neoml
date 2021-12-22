@@ -49,9 +49,9 @@ public:
 
 	py::dict Run( py::list inputs );
 
-	void RunAndBackward( py::list inputs );
+	py::dict RunAndBackward( py::list inputs );
 
-	void Learn( py::list inputs );
+	py::dict Learn( py::list inputs );
 
 	CDnn& Dnn() const { return *dnn; }
 	CPyMathEngineOwner& MathEngineOwner() const{ return *mathEngineOwner; }
