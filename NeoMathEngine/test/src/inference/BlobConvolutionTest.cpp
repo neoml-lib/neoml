@@ -128,7 +128,7 @@ static void blobConvolutionImpl( const CTestParams& params, int seed )
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
 		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputBlob.GetDesc() );
 
-	CFloatHandle freeTermDataPtr = freeTermBlob.GetData();
+	CConstFloatHandle freeTermDataPtr = freeTermBlob.GetData();
 
 	MathEngine().BlobConvolution( *convDesc, inputBlob.GetData(), filterBlob.GetData(),
 		isZeroFreeTerm ? 0 : &freeTermDataPtr, outputBlob.GetData() );
