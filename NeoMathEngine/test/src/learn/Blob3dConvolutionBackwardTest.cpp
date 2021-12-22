@@ -217,7 +217,7 @@ static void blob3dConvolutionBackwardImpl( const CTestParams& params, int seed )
 
 	CFloatBlob inputBlob( MathEngine(), convParams.InputCount, convParams.InputHeight, convParams.InputWidth, convParams.InputDepth, convParams.InputChannels );
 
-	CFloatHandle ft = freeTermBlob.GetData();
+	CConstFloatHandle ft = freeTermBlob.GetData();
 
 	C3dConvolutionDesc *convDesc = MathEngine().InitBlob3dConvolution( inputBlob.GetDesc(),
 		convParams.PaddingHeight, convParams.PaddingWidth, convParams.PaddingDepth, convParams.StrideHeight, convParams.StrideWidth, convParams.StrideDepth,

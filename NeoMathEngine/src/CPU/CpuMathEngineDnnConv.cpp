@@ -392,7 +392,7 @@ inline int ceilTo( int val, int discret )
 }
 
 void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc, const float* sourceData,
-	const float* filterData, const CFloatHandle* freeTermData, float* resultData )
+	const float* filterData, const CConstFloatHandle* freeTermData, float* resultData )
 {
 	const int resultItemCount = desc.Result.ObjectCount() * desc.Result.Width() * desc.Result.Height();
 	const int curThreadCount = IsOmpRelevant( resultItemCount, static_cast< int64_t >( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
@@ -435,9 +435,9 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 }
 
 void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc, const float* sourceData,
-	const float* filterData, const CFloatHandle* freeTermData, float* resultData )
+	const float* filterData, const CConstFloatHandle* freeTermData, float* resultData )
 {
-	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+	const float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
 
 	const CBlobDesc& src = desc.Source;
 	const CBlobDesc& fil = desc.Filter;
@@ -505,14 +505,14 @@ void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& des
 	}
 }
 
-void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CFloatHandle& source,
-	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result )
+void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CConstFloatHandle& source,
+	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result )
 {
 	CCpuExecutionScope scope;
 
 	const float* sourceRaw = GetRaw( source );
 	const float* filterRaw = GetRaw( filter );
-	float* freeTermRaw = freeTerm != nullptr ? GetRaw( *freeTerm ) : nullptr;
+	const float* freeTermRaw = freeTerm != nullptr ? GetRaw( *freeTerm ) : nullptr;
 	float* resultRaw = GetRaw( result );
 
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
@@ -553,11 +553,11 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CF
 	}
 }
 
-void CCpuMathEngine::backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
-	const CFloatHandle* freeTermData, const CFloatHandle& outputData )
+void CCpuMathEngine::backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
+	const CConstFloatHandle* freeTermData, const CFloatHandle& outputData )
 {
 	const float* tempRaw = GetRaw( temp );
-	float* freeTermDataRaw = freeTermData != nullptr ? GetRaw( *freeTermData ) : nullptr;
+	const float* freeTermDataRaw = freeTermData != nullptr ? GetRaw( *freeTermData ) : nullptr;
 	float* outputDataRaw = GetRaw( outputData );
 
 	const CBlobDesc& input = desc.Result;
@@ -630,11 +630,11 @@ void CCpuMathEngine::backwardConvolutionAddFilterToOutput( const CCpuConvolution
 	}
 }
 
-void CCpuMathEngine::backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CFloatHandle& temp,
-	const CFloatHandle* freeTermData, const CFloatHandle& outputData )
+void CCpuMathEngine::backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
+	const CConstFloatHandle* freeTermData, const CFloatHandle& outputData )
 {
 	const float* tempRaw = GetRaw( temp );
-	float* freeTermDataRaw = freeTermData != nullptr ? GetRaw( *freeTermData ) : nullptr;
+	const float* freeTermDataRaw = freeTermData != nullptr ? GetRaw( *freeTermData ) : nullptr;
 	float* outputDataRaw = GetRaw( outputData );
 
 	const CBlobDesc& source = desc.Result;
@@ -708,8 +708,8 @@ void CCpuMathEngine::backwardDilationConvolutionAddFilterToOutput( const CCpuCon
 	}
 }
 
-void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& desc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTerm, const CFloatHandle& resultData )
+void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& desc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm, const CFloatHandle& resultData )
 {
 	const float* sourceDataRaw = GetRaw( sourceData );
 
@@ -774,7 +774,7 @@ static void createTempBlobsLearnAlgo2( const CBlobDesc& outputDiff, const CBlobD
 }
 
 // Fills the temporary outputDiff blob using the #2 algorithm
-void CCpuMathEngine::fillTempBlobsForLearnAlgo2( const CCpuConvolutionDesc& desc, const CFloatHandle& outputDiffData,
+void CCpuMathEngine::fillTempBlobsForLearnAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& outputDiffData,
 	const CBlobDesc& tempBlob, const CFloatHandle& tempHandle )
 {
 	const CBlobDesc& outputDiff = desc.Result;
@@ -798,8 +798,8 @@ void CCpuMathEngine::fillTempBlobsForLearnAlgo2( const CCpuConvolutionDesc& desc
 	}
 }
 
-void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& desc, const CFloatHandle& outputDiffData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
+void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& outputDiffData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
 {
 	ASSERT_EXPR( desc.StrideHeight == 1 );
 	ASSERT_EXPR( desc.StrideWidth == 1 );
@@ -870,8 +870,8 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& de
 	}
 }
 
-void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
-	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiffData )
+void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CConstFloatHandle& outputDiffData,
+	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& inputDiffData )
 {
 	CCpuExecutionScope scope;
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
@@ -899,7 +899,7 @@ void CCpuMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, 
 }
 
 void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
-	const CFloatHandle& inputData, const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData,
+	const CConstFloatHandle& inputData, const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData,
 	const CFloatHandle* freeTermDiffData, bool isFreeTermDiffFromInput )
 {
 	const float* inputDataRaw = GetRaw( inputData );
@@ -991,8 +991,8 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 	filterDiffReduction.Reduce();
 }
 
-void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc, const CFloatHandle& inputData,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData,
+void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& inputData,
+	const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData,
 	bool isFreeTermDiffFromInput )
 {
 	const CBlobDesc& input = desc.Source;
@@ -1078,8 +1078,9 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 	}
 }
 
-void CCpuMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc, const CFloatHandle& input,
-	const CFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
+void CCpuMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc, const CConstFloatHandle& input,
+	const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle* freeTermDiff,
+	bool isFreeTermDiffFromInput )
 {
 	CCpuExecutionScope scope;
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
@@ -1135,7 +1136,7 @@ CChannelwiseConvolutionDesc* CCpuMathEngine::InitBlobChannelwiseConvolution( con
 }
 
 void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc,
-	const CFloatHandle& inputDiffData, const CFloatHandle& filterData, const CFloatHandle& outputDiffData )
+	const CConstFloatHandle& inputDiffData, const CConstFloatHandle& filterData, const CFloatHandle& outputDiffData )
 {
 	CCpuExecutionScope scope;
 
@@ -1239,14 +1240,14 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 	}
 }
 
-void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc, const CFloatHandle& inputData,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData )
+void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputData,
+	const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData )
 {
 	CCpuExecutionScope scope;
 
 	const float* inputDataRaw = GetRaw( inputData );
 	const float* filterDiffDataRaw = GetRaw( filterDiffData );
-	float* outputDiffDataRaw = GetRaw( outputDiffData );
+	const float* outputDiffDataRaw = GetRaw( outputDiffData );
 
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
 	const CBlobDesc& outputDiff = desc.Result;
