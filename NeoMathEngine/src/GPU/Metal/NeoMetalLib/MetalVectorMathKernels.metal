@@ -2472,3 +2472,42 @@ kernel void matrixIndRnnRecurrentReLU( constant bool& reverse [[buffer(0)]],
 		}
     }
 }
+
+kernel void vectorBertConv( constant float* data [[buffer(0)]],
+                            constant float* kernelData [[buffer(1)]],
+                            constant int& seqLen [[buffer(2)]],
+                            constant int& batchSize [[buffer(3)]],
+                            constant int& numHeads [[buffer(4)]],
+                            constant int& headSize [[buffer(5)]],
+                            constant int& kernelSize [[buffer(6)]],
+                            device float* output [[buffer(7)]],
+                            uint thread_position_in_grid [[thread_position_in_grid]] )
+{
+    C1DPosition pos( thread_position_in_grid );
+    const int taskCount = seqLen * batchSize * numHeads * headSize;
+    int index;
+    if( pos.GetMetalTaskIndex( taskCount, index ) ) {
+        const int pad = ( kernelSize - 1 ) / 2;
+        const int dataSeqStep = batchSize * numHeads * headSize;
+
+        const int outputOffset = index;
+        const int h = index % headSize;
+        index /= headSize;
+        const int b = index % ( batchSize * numHeads );
+        const int seq = index / ( batchSize * numHeads );
+
+        const int kernelOffset = index * kernelSize;
+
+        float res = 0.f;
+        const int kernelStart = max( 0, pad - seq );
+        const int kernelEnd = min( kernelSize, seqLen + pad - seq );
+        int dataOffset = h + b * headSize + ( seq - pad + kernelStart ) * dataSeqStep;
+
+        for( int k = kernelStart; k < kernelEnd; ++k ) {
+            res += data[dataOffset] * kernelData[kernelOffset + k];
+            dataOffset += dataSeqStep;
+        }
+
+        output[outputOffset] = res;
+    }
+}

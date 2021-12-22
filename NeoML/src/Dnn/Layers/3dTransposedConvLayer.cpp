@@ -108,7 +108,7 @@ void C3dTransposedConvLayer::RunOnce()
 {
 	initConvDesc();
 
-	CFloatHandle freeTerm = FreeTerms()->GetData();
+	CConstFloatHandle freeTerm = FreeTerms()->GetData();
 	for( int i = 0; i < outputBlobs.Size(); ++i ) {
 		MathEngine().Blob3dConvolutionBackward( *convDesc, inputBlobs[i]->GetData(),
 			Filter()->GetData(), IsZeroFreeTerm() ? 0 : &freeTerm, outputBlobs[i]->GetData());

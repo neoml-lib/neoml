@@ -195,6 +195,7 @@ enum TShader {
 	SH_SpaceToDepthInt,
 	SH_SpaceToDepthFloat,
 	SH_Lrn,
+	SH_BertConv,
 
 	SH_Count
 };

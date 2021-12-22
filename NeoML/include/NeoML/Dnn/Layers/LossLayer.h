@@ -219,6 +219,25 @@ NEOML_API CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight = 1
 
 ///////////////////////////////////////////////////////////////////////////////////
 
+// CL1LossLayer implements a layer that estimates the loss value as abs(result - standard)
+// The layer has two inputs: #0 - result, #1 - standard
+class NEOML_API CL1LossLayer : public CLossLayer {
+	NEOML_DNN_LAYER( CL1LossLayer )
+public:
+	explicit CL1LossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "CL1LossLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient ) override;
+};
+
+NEOML_API CLayerWrapper<CL1LossLayer> L1Loss( float lossWeight = 1.0f );
+
+///////////////////////////////////////////////////////////////////////////////////
+
 // CHingeLossLayer implements a layer that estimates the loss value as max(0, 1 - result * standard)
 // The layer has two inputs: #0 - result, #1 - standard
 // The standard contains the data in the format: 1 for objects that belong to the class, -1 for the rest

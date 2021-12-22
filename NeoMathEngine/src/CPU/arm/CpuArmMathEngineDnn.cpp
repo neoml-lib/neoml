@@ -21,6 +21,7 @@ limitations under the License.
 #ifdef NEOML_USE_NEON
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuArm.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
@@ -32,6 +33,7 @@ void CCpuMathEngine::AddWidthIndex( const CBlobDesc& source, const CFloatHandle&
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* pSource = GetRaw( sourceData );
 	float* pResult = GetRaw( resultData );
@@ -57,6 +59,7 @@ void CCpuMathEngine::AddWidthIndex( const CBlobDesc& source, const CIntHandle& s
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const int* pSource = GetRaw( sourceData );
 	int* pResult = GetRaw( resultData );
@@ -82,6 +85,7 @@ void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CFloatHandle
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* pSource = GetRaw( sourceData );
 	float* pResult = GetRaw( resultData );
@@ -107,6 +111,7 @@ void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CIntHandle& 
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const int* pSource = GetRaw( sourceData );
 	int* pResult = GetRaw( resultData );
@@ -164,6 +169,7 @@ void CCpuMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& poolingD
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommonGlobalMaxPoolingDesc& desc = static_cast<const CCommonGlobalMaxPoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
@@ -318,6 +324,7 @@ void CCpuMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, con
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommon3dMaxPoolingDesc& desc = static_cast<const CCommon3dMaxPoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
@@ -427,6 +434,7 @@ void CCpuMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, c
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommon3dMeanPoolingDesc& desc = static_cast<const CCommon3dMeanPoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
@@ -550,6 +558,7 @@ void CCpuMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& poolin
 {
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommon3dMeanPoolingDesc& desc = static_cast<const CCommon3dMeanPoolingDesc&>( poolingDesc );
 	const CBlobDesc& inputDiff = desc.Source;
@@ -612,6 +621,7 @@ void CCpuMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& pool
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == 0 );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommonMaxOverTimePoolingDesc& desc = static_cast<const CCommonMaxOverTimePoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;

@@ -16,3 +16,8 @@ add_subdirectory(src)
 if(NeoML_INSTALL)
     install(DIRECTORY include/NeoOnnx DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
+
+# Build Onnx2NeoML
+if(NOT ANDROID AND NOT IOS)
+    add_subdirectory(Onnx2NeoML)
+endif()

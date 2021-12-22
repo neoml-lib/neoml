@@ -28,6 +28,7 @@ struct CNccl {
 	// typedef for convenience
     typedef ncclResult_t( *TNcclCommInitAll ) ( ncclComm_t* comms, int ndev, const int* devlist );
     typedef ncclResult_t( *TNcclCommDestroy ) ( ncclComm_t comm );
+    typedef ncclResult_t( *TNcclCommAbort ) ( ncclComm_t comm );
     typedef ncclResult_t( *TNcclAllReduce ) ( const void* sendbuff, void* recvbuff, size_t count,
         ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream );
     typedef ncclResult_t( *TNcclBroadcast ) ( const void* sendbuff, void* recvbuff, size_t count,
@@ -37,10 +38,12 @@ struct CNccl {
     typedef ncclResult_t( *TNcclGroupEnd ) ();
     typedef ncclResult_t( *TNcclGetUniqueId ) ( ncclUniqueId* uniqueId );
     typedef const char*( *TNcclGetErrorString ) (  ncclResult_t result );
+    typedef ncclResult_t( *TNcclCommGetAsyncError ) ( ncclComm_t comm, ncclResult_t* asyncError );
 
 
     TNcclCommInitAll CommInitAll;
     TNcclCommDestroy CommDestroy;
+    TNcclCommAbort CommAbort;
     TNcclAllReduce AllReduce;
     TNcclBroadcast Broadcast;
     TNcclCommInitRank CommInitRank;
@@ -48,6 +51,7 @@ struct CNccl {
     TNcclGroupEnd GroupEnd;
     TNcclGetUniqueId GetUniqueId;
     TNcclGetErrorString GetErrorString;
+    TNcclCommGetAsyncError CommGetAsyncError;
 };
 
 } // namespace NeoML

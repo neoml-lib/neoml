@@ -161,7 +161,7 @@ static void blobRleConvolutionImpl( const CTestParams& params, int seed )
 	
 	CFloatBlob outBlob( MathEngine(), batchSize, outputHeight, outputWidth, 1, filterCount );
 
-	CFloatHandle ft = freeTermBlob.GetData();
+	CConstFloatHandle ft = freeTermBlob.GetData();
 	
 	CRleConvolutionDesc* rleConvDesc = MathEngine().InitBlobRleConvolution( inputBlobRle.GetDesc(), stroke, nonStroke,
 		strideHeight, strideWidth, filterBlob.GetDesc(), outBlob.GetDesc() );

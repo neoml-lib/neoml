@@ -28,7 +28,7 @@ Platform | CPU | GPU
 ----------|-----|-----
 Windows | OpenMP + MKL | CUDA
 Linux | OpenMP + MKL | -
-MacOS | OpenMP + MKL | -
+MacOS | MKL | -
 Android | OpenMP + ARM Neon | Vulkan
 iOS | ARM Neon | Metal
 

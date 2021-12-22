@@ -85,7 +85,7 @@ void CCudaMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionD
 }
 
 void CCudaMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle& resultData )
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -104,7 +104,7 @@ void CCudaMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConv
 }
 
 void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc,
-	const CFloatHandle& inputData, const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData,
+	const CConstFloatHandle& inputData, const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData,
 	const CFloatHandle* freeTermDiffData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );

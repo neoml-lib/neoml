@@ -80,6 +80,8 @@ bool CNcclDll::loadFunctions()
 	LOAD_NCCL_FUNC( GroupEnd );
 	LOAD_NCCL_FUNC( GetUniqueId );
 	LOAD_NCCL_FUNC( GetErrorString );
+	LOAD_NCCL_FUNC( CommGetAsyncError );
+	LOAD_NCCL_FUNC( CommAbort );
 
 	return true;
 }

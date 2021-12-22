@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuMathEngineOmp.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
@@ -51,13 +52,14 @@ CTimeConvolutionDesc* CCpuMathEngine::InitTimeConvolution( const CBlobDesc& sour
 	return desc;
 }
 
-void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle& freeTermData, const CFloatHandle& resultData )
+void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle& freeTermData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* sourceDataRaw = GetRaw( sourceData );
 	const float* filterDataRaw = GetRaw( filterData );
@@ -110,13 +112,14 @@ void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, 
 	AddVectorToMatrixRows( 1, resultData, resultData, result.ObjectCount(), result.ObjectSize(), freeTermData );
 }
 
-void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
-	const CFloatHandle& filterData, const CFloatHandle& freeTermData, const CFloatHandle& inputDiffData )
+void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& convDesc, const CConstFloatHandle& outputDiffData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle& freeTermData, const CFloatHandle& inputDiffData )
 {
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData.GetMathEngine() == this );
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* outputDiffDataRaw = GetRaw( outputDiffData );
 	const float* filterDataRaw = GetRaw( filterData );
@@ -164,13 +167,14 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 	}
 }
 
-void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& convDesc, const CFloatHandle& inputData,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle& freeTermDiffData )
+void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& convDesc, const CConstFloatHandle& inputData,
+	const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle& freeTermDiffData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* outputDiffDataRaw = GetRaw( outputDiffData );
 	const float* inputDataRaw = GetRaw( inputData );

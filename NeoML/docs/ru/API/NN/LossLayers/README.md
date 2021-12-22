@@ -12,5 +12,6 @@
   - [CFocalLossLayer](FocalLossLayer.md) - функция `Focal` (модифицированная кросс-энтропия);
 - Регрессия:
   - [CEuclideanLossLayer](EuclideanLossLayer.md) - евклидово расстояние;
+  - [CL1LossLayer](L1LossLayer.md) - L1 расстояние;
 - Дополнительно:
   - [CCenterLossLayer](CenterLossLayer.md) - вспомогательная функция `Center`, штрафующая дисперсию внутри классов.

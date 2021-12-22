@@ -187,7 +187,7 @@ static void blob3dConvolutionImpl( const CTestParams& params, int seed )
 	
 	CFloatBlob outBlob( MathEngine(), batchSize, outHeight, outWidth, outDepth, filterCount );
 
-	CFloatHandle ft = freeTermBlob.GetData();
+	CConstFloatHandle ft = freeTermBlob.GetData();
 
 	C3dConvolutionDesc *convDesc = MathEngine().InitBlob3dConvolution( inputBlob.GetDesc(),
 		paddingHeight, paddingWidth, paddingDepth, strideHeight, strideWidth, strideDepth, filterBlob.GetDesc(), outBlob.GetDesc() );

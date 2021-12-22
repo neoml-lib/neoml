@@ -27,6 +27,8 @@ _PYTHON=%ProgramFiles%\Python36
 
 BUILD_PLATFORM=Win32
 
+FINE_CMAKE_NDK_ROOT=C:\android-ndk18
+
 PATH=%SystemRoot%;%SystemRoot%\System32
 PATH=%PATH%;%_VC16%\bin\HostX64\x86
 PATH=%PATH%;%_VC16%\bin\HostX64\x64

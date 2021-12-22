@@ -18,12 +18,15 @@ limitations under the License.
 
 #include <MathEngineDnnDropout.h>
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuRandom.h>
 
 namespace NeoML {
 
 void CCpuMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData )
 {
+	CCpuExecutionScope scope;
+
 	const CMathEngineDropoutDesc& desc = static_cast<const CMathEngineDropoutDesc&>( dropoutDesc );
 	const CBlobDesc& input = desc.Input;
 	const CBlobDesc& output = desc.Output;
