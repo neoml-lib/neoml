@@ -2293,6 +2293,9 @@ class LossTestCase(MultithreadedTestCase):
     def test_euclidean_loss(self):
         self._test_loss('EuclideanLoss', dict(loss_weight=7.7), last_loss=0.)
 
+    def test_l1_loss(self):
+        self._test_loss('L1Loss', dict(loss_weight=7.7), last_loss=0.)
+
     def test_hinge_loss(self):
         self._test_loss('HingeLoss', dict(loss_weight=7.7), last_loss=0.)
 

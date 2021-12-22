@@ -12,5 +12,6 @@
   - [CFocalLossLayer](FocalLossLayer.md) - focal loss (modified cross-entropy)
 - For regression:
   - [CEuclideanLossLayer](EuclideanLossLayer.md) - Euclidean distance
+  - [CL1LossLayer](L1LossLayer.md) - L1 distance
 - Additionally:
   - [CCenterLossLayer](CenterLossLayer.md) - the auxiliary *center loss* function that penalizes large variance inside a class
