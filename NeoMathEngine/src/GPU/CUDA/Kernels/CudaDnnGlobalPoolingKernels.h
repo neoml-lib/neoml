@@ -109,8 +109,6 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 	int* maxIndicesData, float* resultData, int poolSize, int maxCount )
 {
 	const CCudaBlobDesc& source = desc.Source;
-	const CCudaBlobDesc& maxIndices = desc.MaxIndices;
-	const CCudaBlobDesc& result = desc.Result;
 
 	// Initialize the data
 	extern __shared__ float sharedData[];
@@ -176,7 +174,7 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 __device__ inline unsigned FloatToUnsigned( const float* ptr )
 {
 	unsigned res = *( unsigned* )ptr;
-	unsigned sign = 1 << ( sizeof( float ) * 8 - 1 );
+	unsigned sign = 1U << ( sizeof( float ) * 8 - 1 );
 	if( res & sign ) {
 		res = ~res;
 	} else {
@@ -368,8 +366,6 @@ __global__ void BlobGlobalMaxPoolingGlobalShuffleKernel( const CCudaGlobalMaxPoo
 	int* indicesSorted1, int* indicesSorted2, int bin, int histSize, int poolSize, int* local, int* global, float* resultData, int* resultIndices, int maxCount, bool isFirst, bool isLast )
 {
 	const CCudaBlobDesc& source = desc.Source;
-	const CCudaBlobDesc& maxIndices = desc.MaxIndices;
-	const CCudaBlobDesc& result = desc.Result;
 
 	int totalChannels = source.Channels();
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
