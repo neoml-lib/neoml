@@ -105,6 +105,7 @@ Here is a sample that runs the algorithm:
 // That's why we're searching the optimal logoarithm (base 10) of some of the parameters
 class CSvmEvaluation : public IFunctionEvaluation {
 private:
+	// CSvm parameters optimized during diff evolution
 	enum TSvmParam {
 		SP_KernelType, // Kernel type, enum (which is encoded as int)
 		SP_LogErrorWeight, // Logarithm of ErrorWeight parameter
@@ -123,7 +124,7 @@ public:
 
 	// IFunctionEvaluation interface 
 
-	// Number of elements in each vector
+	// Number of elements in vector of parameters
 	int NumberOfDimensions() const override { return static_cast<int>( SP_Count ); }
 
 	// Type of each of the parameter in vector
