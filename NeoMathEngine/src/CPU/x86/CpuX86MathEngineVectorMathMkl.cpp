@@ -184,7 +184,9 @@ void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstH
 	//    1. Non-integer exponent
 	//    2. Exponent is integer == 2
 #ifdef NEOML_USE_MKL
-	if( std::truncf( exponent ) != exponent || ( exponent > 2 - FLT_EPSILON && exponent < 2 + FLT_EPSILON ) ) {
+	if( std::fabsf( std::truncf( exponent ) - exponent ) >= FLT_EPSILON
+		|| std::fabsf( 2.0f - exponent ) < FLT_EPSILON )
+	{
 		if( curThreadCount > 1 ) {
 			NEOML_OMP_NUM_THREADS( curThreadCount )
 			{
