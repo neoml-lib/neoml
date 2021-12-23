@@ -97,6 +97,7 @@ public:
 // Поэтому для некоторых параметров мы ищем их оптимальные логарифмы (по основанию 10)
 class CSvmEvaluation : public IFunctionEvaluation {
 private:
+	// Подбираемые параметры CSvm
 	enum TSvmParam {
 		SP_KernelType, // Тип ядра CSvm (enum интерпретируемый как int)
 		SP_LogErrorWeight, // Логарифм параметра ErrorWeight
@@ -115,7 +116,7 @@ public:
 
 	// IFunctionEvaluation interface 
 
-	// Число элементов в каждом векторе
+	// Число элементов в векторе параметров
 	int NumberOfDimensions() const override { return static_cast<int>( SP_Count ); }
 
 	// Тип каждого параметра в векторе
@@ -190,7 +191,7 @@ public:
 	}
 
 	// Оценка одного вектора параметров
-	// В нашем случае это средний результат на кросс-валидации CSvm с этими параметрами
+	// В нашем случае это средний результат кросс-валидации CSvm с этими параметрами
 	// на данных, переданных в конструкторе
 	CFunctionParam Evaluate( const CFunctionParamVector& param ) override
 	{
