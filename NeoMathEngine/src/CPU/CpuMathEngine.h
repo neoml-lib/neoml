@@ -526,9 +526,9 @@ public:
 		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
 		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
-	void CalcTanh( float* dst, const float* src, size_t dataSize, bool isMultithread ) {
-		simdMathEngine->Tanh( dst, src, dataSize, isMultithread );
-	}
+	void CalcTanh( const CConstFloatHandle& src, const CFloatHandle& dst, int dataSize ) override;
+	void CalcSigmoid( const CConstFloatHandle& src, const CFloatHandle& dst, int dataSize ) override;
+	void CalcExp( const CConstFloatHandle& src, const CFloatHandle& dst, int dataSize ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info );
