@@ -44,6 +44,8 @@ public:
 	virtual void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
 	virtual void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
 	virtual void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
+	virtual void RunOnceRestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
+		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread = true ) = 0;
 };
 
 }

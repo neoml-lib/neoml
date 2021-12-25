@@ -64,7 +64,11 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, const CConstFloatHandle& inputStateB
 		lstmDesc.recurrentWeights, lstmDesc.hiddenSize, CMathEngineLstmDesc::GatesNum * lstmDesc.hiddenSize,
 		lstmDesc.reccurentFullyConnectedResult, lstmDesc.recurrentFreeTerm );
 
-	lstmDesc.SimdRunOnceRestOfLstm( inputStateBackLink, outputStateBackLink, outputMainBackLink );		
+	if( simdMathEngine != nullptr ) {
+		simdMathEngine->RunOnceRestOfLstm( &lstmDesc, inputStateBackLink, outputStateBackLink, outputMainBackLink );
+	} else {
+		lstmDesc.RunOnceRestOfLstm( inputStateBackLink, outputStateBackLink, outputMainBackLink );
+	}
 }
 
 } // namespace NeoML
