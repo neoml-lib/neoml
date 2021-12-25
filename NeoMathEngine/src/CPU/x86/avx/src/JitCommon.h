@@ -59,7 +59,8 @@ constexpr unsigned int MaxYmmCount = 16;
 class CJitCommon : public Xbyak::CodeGenerator {
 public:
     using Base = Xbyak::CodeGenerator;
-    CJitCommon() = default;
+    // FIXME: set proper max_size (8192 for RestOfLstm)
+    CJitCommon() : Base( 8192 ) {};
 
     // preservedGPR and preservedYmm will be preserved on stack (must be the same as in Epilogue()!!!)
     // return Address which point to first of arguments is stored on stack if 
@@ -130,6 +131,10 @@ public:
     void funcName( const Xbyak::op1& p1, const Xbyak::op2& p2 ) { \
         Base::funcName( p1, p2 ); }
 
+#define XBYAK_FORWARD_CAST_3( funcName, op1, op2, op3 ) \
+    void funcName( const Xbyak::op1& p1, const Xbyak::op2& p2, const Xbyak::op3& p3 ) { \
+        Base::funcName( p1, p2, p3 ); }
+
 #define XBYAK_CAST_3( funcName, castType, fromOp1, fromOp2, fromOp3, toOp1, toOp2, toOp3 ) \
     void funcName( const toOp1& p1, const toOp2& p2, const toOp3& p3 ) { \
         void ( Base::* pFunc )( const Xbyak::fromOp1&, const Xbyak::fromOp2&, const Xbyak::fromOp3& ) = &Base::funcName; \
@@ -158,6 +163,7 @@ public:
     XBYAK_CAST_3( vdivps, VectorImpl_3V, Xmm, Operand, Operand, ymmVec_t, ymmVec_t, ymmVec_t )
     XBYAK_CAST_3( vfmadd213ps, VectorImpl_2VS, Xmm, Xmm, Operand, ymmVec_t, ymmVec_t, Xbyak::Operand )
     XBYAK_CAST_3( vfmadd213ps, VectorImpl_3V, Xmm, Xmm, Operand, ymmVec_t, ymmVec_t, ymmVec_t )
+    XBYAK_CAST_3( vfmadd231ps, VectorImpl_3V, Xmm, Xmm, Operand, ymmVec_t, ymmVec_t, ymmVec_t )
     XBYAK_CAST_3( vfnmadd231ps, VectorImpl_2VS, Xmm, Xmm, Operand, ymmVec_t, ymmVec_t, Xbyak::Operand )
     XBYAK_CAST_3( vgatherdps, VectorImpl_3V, Xmm, Address, Xmm, ymmVec_t, std::vector<Xbyak::Address>, ymmVec_t )
     XBYAK_CAST_3( vmaxps, VectorImpl_2VS, Xmm, Operand, Operand, ymmVec_t, ymmVec_t, Xbyak::Operand )
@@ -175,6 +181,8 @@ public:
     XBYAK_CAST_4( vblendvps, VectorImpl_4V, Xmm, Xmm, Operand, Xmm, ymmVec_t, ymmVec_t, ymmVec_t, ymmVec_t )
     XBYAK_FORWARD_CAST_2( vmovups, Address, Xmm )
     XBYAK_FORWARD_CAST_2( vmovups, Xmm, Operand )
+    XBYAK_FORWARD_CAST_3( vaddps, Xmm, Operand, Operand )
+    XBYAK_FORWARD_CAST_3( vmulps, Xmm, Operand, Operand )
 
 private:
     struct CLoopDesc {

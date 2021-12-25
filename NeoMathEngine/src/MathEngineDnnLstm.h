@@ -47,13 +47,11 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 	IMathEngine* mathEngine;
 	int threadCount;
 
-	virtual void SimdRunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink,
+	virtual void RunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink );
-
-	virtual void CalcTanh( float* data, size_t dataSize ) {}
 };
 
-void CMathEngineLstmDesc::SimdRunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink, 
+void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink, 
 	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
 {
 	// Elementwise summ of fully connected layers' results (inplace)

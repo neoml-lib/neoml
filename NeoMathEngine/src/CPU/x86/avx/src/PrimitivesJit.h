@@ -38,7 +38,8 @@ public:
 	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
 
 	void RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink );
+		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink,
+		bool isMultithread );
 
 private:
 	enum class TPrimitive {
@@ -84,6 +85,8 @@ private:
 	static constexpr int MantissaNumBits = 23;
 
 	using ActivationFunc = void( * )( float* dst, const float* src, size_t offset, size_t count );
+	using RestOfLstmFunc = void( * )( size_t hiddenSize, const float* inputStateBackLinkPtr, float* outputStateBackLinkPtr,
+		float* outputMainBackLinkPtr, float* inputFullyConnectedResultPtr, float* reccurentFullyConnectedResultPtr, size_t offset, size_t count );
 
 	IMathEngine* mathEngine;
 	int threadCount;
@@ -117,7 +120,7 @@ private:
 	template<TPrimitive P>
 	void insertPrimitive( CJitCommon& gen, const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux );
 
-	template<TPrimitive P, class... Args>
+	template<TPrimitive P, class PrimitiveFuncType, class... Args>
 	void callPrimitive( size_t dataSize, bool isMultithread, Args... args );
 
 	// Check if two arrays have insersected registers and each array contains only unique registers
@@ -131,14 +134,15 @@ private:
 		return ymmVec_t( begin, begin + SrcSize );
 	};
 
-	ymmVec_t initYmmVecRange( int firstIdx, int lastIdx ) {
+	template<class RegType>
+	std::vector<RegType> initVecRange( int firstIdx, int lastIdx ) {
 		const int VecSize = lastIdx - firstIdx + 1;
 		assert( VecSize > 0 );
 		assert( firstIdx >= 0 && lastIdx < 16 );
-		ymmVec_t ret( VecSize );
+		std::vector<RegType> ret( VecSize );
 		int idx = firstIdx;
 		for( auto& v : ret ) {
-			v = Xbyak::Ymm( idx++ );
+			v = RegType( idx++ );
 		}
 		return ret;
 	};

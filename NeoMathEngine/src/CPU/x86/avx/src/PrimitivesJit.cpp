@@ -22,6 +22,13 @@ limitations under the License.
 
 namespace NeoML {
 
+template<>
+void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Tanh>( CJitCommon& gen, const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux );
+template<>
+void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Exp>( CJitCommon& gen, const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux );
+template<>
+void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Sigmoid>( CJitCommon& gen, const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux );
+
 CPrimitivesJit::CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount ) :
 	mathEngine( _mathEngine ), threadCount( _threadCount )
 {
@@ -30,22 +37,33 @@ CPrimitivesJit::CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount ) :
 
 void CPrimitivesJit::Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread )
 {
-	callPrimitive<TPrimitive::Tanh>( dataSize, isMultithread, dst, src );
+	callPrimitive<TPrimitive::Tanh, ActivationFunc>( dataSize, isMultithread, dst, src );
 }
 
 void CPrimitivesJit::Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread )
 {
-	callPrimitive<TPrimitive::Sigmoid>( dataSize, isMultithread, dst, src );
+	callPrimitive<TPrimitive::Sigmoid, ActivationFunc>( dataSize, isMultithread, dst, src );
 }
 
 void CPrimitivesJit::Exp( float* dst, const float* src, size_t dataSize, bool isMultithread )
 {
-	callPrimitive<TPrimitive::Exp>( dataSize, isMultithread, dst, src );
+	callPrimitive<TPrimitive::Exp, ActivationFunc>( dataSize, isMultithread, dst, src );
 }
 
 void CPrimitivesJit::RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
+	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread )
 {
+	CMathEngineLstmDesc& lstmDesc = dynamic_cast< CMathEngineLstmDesc& >( *desc );
+
+	const float* inputStateBackLinkPtr = GetRaw( inputStateBackLink );
+	float* outputStateBackLinkPtr = GetRaw( outputStateBackLink );
+	float* outputMainBackLinkPtr = GetRaw( outputMainBackLink );
+	float* inputFullyConnectedResultPtr = GetRaw( lstmDesc.inputFullyConnectedResult );
+	float* reccurentFullyConnectedResultPtr = GetRaw( lstmDesc.reccurentFullyConnectedResult );
+
+	callPrimitive<TPrimitive::RestOfLstm, RestOfLstmFunc>( lstmDesc.objectCount, isMultithread,
+		lstmDesc.hiddenSize, inputStateBackLinkPtr, outputStateBackLinkPtr, outputMainBackLinkPtr,
+		inputFullyConnectedResultPtr, reccurentFullyConnectedResultPtr );
 }
 
 void CPrimitivesJit::initTable()
@@ -172,12 +190,12 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Tanh>()
 {
 	using namespace Xbyak::util;
 	// create new instance
-	auto& gen = gens[static_cast< size_t >( TPrimitive::Sigmoid )].gen;
+	auto& gen = gens[static_cast< size_t >( TPrimitive::Tanh )].gen;
 
 	const reg64Vec_t preservedReg64;
-	const ymmVec_t preservedYmm = initYmmVecRange( 6, 11 );
-	const ymmVec_t ymmSrc = initYmmVecRange( 10, 11 );
-	const ymmVec_t ymmAux = initYmmVecRange( 0, 9 );
+	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( 6, 11 );
+	const ymmVec_t ymmSrc = initVecRange<Xbyak::Ymm>( 10, 11 );
+	const ymmVec_t ymmAux = initVecRange<Xbyak::Ymm>( 0, 9 );
 
 	initActivationFunction<TPrimitive::Tanh>( std::function<void()>(),
 		preservedReg64, preservedYmm, ymmSrc, ymmAux );
@@ -191,9 +209,9 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Sigmoid>()
 	auto& gen = gens[static_cast< size_t >( TPrimitive::Sigmoid )].gen;
 
 	const reg64Vec_t preservedReg64;
-	const ymmVec_t preservedYmm = initYmmVecRange( 6, 12 );
-	const ymmVec_t ymmSrc = initYmmVecRange( 0, 2 );
-	const ymmVec_t ymmAux = initYmmVecRange( 3, 12 );
+	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( 6, 12 );
+	const ymmVec_t ymmSrc = initVecRange<Xbyak::Ymm>( 0, 2 );
+	const ymmVec_t ymmAux = initVecRange<Xbyak::Ymm>( 3, 12 );
 	
 	std::function<void()> afterPrologue = [&]() {
 		// Last aux for storing 1.0
@@ -210,15 +228,248 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Exp>()
 {
 	using namespace Xbyak::util;
 	// create new instance
-	auto& gen = gens[static_cast< size_t >( TPrimitive::Sigmoid )].gen;
+	auto& gen = gens[static_cast< size_t >( TPrimitive::Exp )].gen;
 
 	const reg64Vec_t preservedReg64;
-	const ymmVec_t preservedYmm = initYmmVecRange( 6, 15 );
-	const ymmVec_t ymmSrc = initYmmVecRange( 12, 15 );
-	const ymmVec_t ymmAux = initYmmVecRange( 0, 11 );
+	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( 6, 15 );
+	const ymmVec_t ymmSrc = initVecRange<Xbyak::Ymm>( 12, 15 );
+	const ymmVec_t ymmAux = initVecRange<Xbyak::Ymm>( 0, 11 );
 
 	initActivationFunction<TPrimitive::Exp>( std::function<void()>(),
 		preservedReg64, preservedYmm, ymmSrc, ymmAux );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
+{
+	using namespace Xbyak;
+	using namespace Xbyak::util;
+	// create new instance
+	auto& gen = gens[static_cast< size_t >( TPrimitive::RestOfLstm )].gen;
+
+#ifdef _WIN32
+	const reg64Vec_t preservedGPR = { rdi, rsi, r12, r13, r14, r15, rbx };
+#else
+	const reg64Vec_t preservedGPR = { r12, r13, r14, r15, rbx };
+#endif
+	const ymmVec_t preservedYmm = initVecRange<Ymm>( 6, 15 );
+
+	// Insert prologue and calculate pointer to function arguments (in reverse order)
+	Address stackArgsPtr = gen.Prologue( preservedGPR, preservedYmm );
+
+	// *** Define registers ***
+	const reg64_t regHiddenSize = Param1;
+	const reg64_t regInputStateBackLinkPtr = Param2;
+	const reg64_t regOutputStateBackLinkPtr = Param3;
+	const reg64_t regOutputMainBackLinkPtr = Param4;
+#ifdef _WIN32
+	const reg64_t regInputFullyConnectedResultPtr = rdi; // param5
+	const reg64_t regReccurentFullyConnectedResultPtr = rsi; // param6
+	gen.mov( regInputFullyConnectedResultPtr, gen.ptr[stackArgsPtr.getRegExp() + 3 * SizeofReg64] );
+	gen.mov( regReccurentFullyConnectedResultPtr, gen.ptr[stackArgsPtr.getRegExp() + 2 * SizeofReg64] );
+#else
+	const reg64_t regInputFullyConnectedResultPtr = Param5;
+	const reg64_t regReccurentFullyConnectedResultPtr = Param6;
+#endif
+	const reg64_t regOffset = rax;
+	const reg64_t regObjectsCount = rbx;
+	gen.mov( regOffset, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64] );
+	gen.mov( regObjectsCount, stackArgsPtr );
+	
+	// Current offset of intput in each of gates
+	const reg64_t regForgetOffset = r11;
+	const reg64_t regInputOffset = r12;
+	const reg64_t regMainOffset = r13;
+	const reg64_t regResetOffset = r14;
+	gen.xor( regForgetOffset, regForgetOffset ); // 0
+	gen.mov( regInputOffset, regHiddenSize ); // hiddenSize
+	gen.mov( regMainOffset, regHiddenSize );
+	gen.shl( regMainOffset, 1 ); // 2 * hiddenSize
+	gen.mov( regResetOffset, regMainOffset );
+	gen.add( regResetOffset, regHiddenSize ); // 3 * hiddenSize
+	// Register for moving offsets to the next row
+	const reg64_t regGoBack = rbx; // = 3 * regHiddenSize + regHiddenSize % 8
+	gen.mov( regGoBack, regHiddenSize );
+	gen.and( regGoBack, 0x7 ); // regHiddenSize % 8
+	gen.add( regGoBack, regResetOffset ); // + 3 * regHiddenSize
+
+	// Update data pointers with accordind to offset
+	gen.imul( regOffset, regHiddenSize );
+	gen.lea( regInputStateBackLinkPtr, gen.ptr[regInputStateBackLinkPtr + regOffset * sizeof( float )] ); // += Offset * HiddenSize
+	gen.lea( regOutputStateBackLinkPtr, gen.ptr[regOutputStateBackLinkPtr + regOffset * sizeof( float )] ); // += Offset * HiddenSize
+	gen.lea( regOutputMainBackLinkPtr, gen.ptr[regOutputMainBackLinkPtr + regOffset * sizeof( float )] ); // += Offset * HiddenSize
+	gen.shl( regOffset, 2 );
+	gen.lea( regInputFullyConnectedResultPtr, gen.ptr[regInputFullyConnectedResultPtr + regOffset * sizeof( float )] ); // += Offset * 4 *HiddenSize
+	gen.lea( regReccurentFullyConnectedResultPtr, gen.ptr[regReccurentFullyConnectedResultPtr + regOffset * sizeof( float )] ); // += Offset * 4 * HiddenSize
+
+	const reg64_t regLoopCounter = rax;
+
+	auto insertCode = [&]( unsigned int wholeYmmNumber ) {
+		assert( wholeYmmNumber <= 2 );
+		// Block #1, number of used ymm 6/12/6 (in/max/out)
+		// Process forget and input gates up to sigmoid calculation, process main gate up to sum of fullyconnected results.
+		ymmVec_t forget = wholeYmmNumber == 2 ? ymmVec_t{ ymm0, ymm1 } : ymmVec_t{ ymm0 };
+		ymmVec_t input = wholeYmmNumber == 2 ? ymmVec_t{ ymm2, ymm3 } : ymmVec_t{ ymm2 };
+		ymmVec_t main = wholeYmmNumber == 2 ? ymmVec_t{ ymm4, ymm5 } : ymmVec_t{ ymm4 };
+		// Reuse after block#2
+		ymmVec_t reset = input;
+		ymmVec_t ymmAux = initVecRange<ymm_t>( 6, 15 );
+		// Use only in tail and is valid during whole function
+		ymm_t ymmMask = ymm1;
+		// 1.1 Load data
+		if( wholeYmmNumber == 0 ) {
+			// load data with mask
+			gen.vmovups( ymmMask, gen.ptr[regTablePtr + regLoopCounter * sizeof( float ) + getOfft( TTableKey::LoadMask )] );
+			gen.vmaskmovps( forget[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
+			gen.vmaskmovps( input[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
+			gen.vmaskmovps( main[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
+			gen.vmaskmovps( ymmAux[0], ymmMask, gen.ptr[regReccurentFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
+			gen.vmaskmovps( ymmAux[1], ymmMask, gen.ptr[regReccurentFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
+			gen.vmaskmovps( ymmAux[2], ymmMask, gen.ptr[regReccurentFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
+			gen.vaddps( forget[0], forget[0], ymmAux[0] );
+			gen.vaddps( input[0], input[0], ymmAux[1] );
+			gen.vaddps( main[0], main[0], ymmAux[2] );
+		} else {
+			gen.vmovups( forget[0], gen.ptr[regInputFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
+			gen.vmovups( input[0], gen.ptr[regInputFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
+			gen.vmovups( main[0], gen.ptr[regInputFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
+			gen.vaddps( forget[0], forget[0], gen.ptr[regReccurentFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
+			gen.vaddps( input[0], input[0], gen.ptr[regReccurentFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
+			gen.vaddps( main[0], main[0], gen.ptr[regReccurentFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
+			if( wholeYmmNumber == 2 ) {
+				gen.vmovups( forget[1], gen.ptr[regInputFullyConnectedResultPtr + regForgetOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vmovups( input[1], gen.ptr[regInputFullyConnectedResultPtr + regInputOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vmovups( main[1], gen.ptr[regInputFullyConnectedResultPtr + regMainOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vaddps( forget[1], forget[1], gen.ptr[regReccurentFullyConnectedResultPtr + regForgetOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vaddps( input[1], input[1], gen.ptr[regReccurentFullyConnectedResultPtr + regInputOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vaddps( main[1], main[1], gen.ptr[regReccurentFullyConnectedResultPtr + regMainOffset * sizeof( float ) + SizeOfYmm] );
+			}
+		}
+
+		// 1.2 Calculate sigmoid (exp+sigmoid)
+		// last ymm is One!!!
+		gen.vmovups( ymmAux.back(), gen.ptr[regTablePtr + getOfft( TTableKey::One )] );
+		insertPrimitive<TPrimitive::Sigmoid>( gen, forget, ymmAux );
+		insertPrimitive<TPrimitive::Sigmoid>( gen, input, ymmAux );
+		
+		// Block #2, number of used ymm 6/16/2 (in/max/out)
+		// Finish processing of forget, input and main gates. Store state backlink, calculate second tanh.
+		// 2.1 Add input state backlink
+		if( wholeYmmNumber == 0 ) {
+			// Mask should be valid yet because we use only 12 at the peak in previous block
+			gen.vmaskmovps( ymmAux[0], ymmMask, gen.ptr[regInputStateBackLinkPtr + regForgetOffset * sizeof( float )] );
+			gen.vmulps( forget[0], forget[0], ymmAux[0] );
+		} else {
+			gen.vmulps( forget[0], forget[0], gen.ptr[regInputStateBackLinkPtr + regForgetOffset * sizeof( float )] );
+			if( wholeYmmNumber == 2 ) {
+				gen.vmulps( forget[1], forget[1], gen.ptr[regInputStateBackLinkPtr + regForgetOffset * sizeof( float ) + SizeOfYmm] );
+			}
+		}
+
+		// 2.2 Calc tanh
+		insertPrimitive<TPrimitive::Tanh>( gen, main, ymmAux );
+
+		// 2.3 Multiple input and main and append result to the forget
+		gen.vfmadd231ps( forget, main, input );
+
+		// 2.4 Store state backlink
+		if( wholeYmmNumber == 0 ) {
+			// Mask should be valid yet because we use only 12 at the peak in previous block
+			gen.vmaskmovps( gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float )], forget[0], ymmMask );
+		} else {
+			gen.vmovups( gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float )], forget[0] );
+			if( wholeYmmNumber == 2 ) {
+				gen.vmovups( gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float )], forget[1] );
+			}
+		}
+
+		// 2.5 Calc tanh
+		insertPrimitive<TPrimitive::Tanh>( gen, forget, ymmAux );
+
+		// Block #3, number of used ymm 4/10/2 (in/max/out)
+		// Last block, store main backlink
+		// 3.1 Load reset gate
+		if( wholeYmmNumber == 0 ) {
+			// load data with mask
+			gen.vmaskmovps( reset[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regResetOffset * sizeof( float )] );
+			gen.vmaskmovps( ymmAux[0], ymmMask, gen.ptr[regReccurentFullyConnectedResultPtr + regResetOffset * sizeof( float )] );
+			gen.vaddps( reset[0], reset[0], ymmAux[0] );
+		} else {
+			gen.vmovups( reset[0], gen.ptr[regInputFullyConnectedResultPtr + regResetOffset * sizeof( float )] );
+			gen.vaddps( reset[0], reset[0], gen.ptr[regReccurentFullyConnectedResultPtr + regResetOffset * sizeof( float )] );
+			if( wholeYmmNumber == 2 ) {
+				gen.vmovups( reset[1], gen.ptr[regInputFullyConnectedResultPtr + regResetOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vaddps( reset[1], reset[1], gen.ptr[regReccurentFullyConnectedResultPtr + regResetOffset * sizeof( float ) + SizeOfYmm] );
+			}
+		}
+
+		// 3.2 Calc sigmoid
+		insertPrimitive<TPrimitive::Sigmoid>( gen, reset, ymmAux );
+
+		// 3.3 Multiple with result of block#2
+		gen.vmulps( reset, reset, forget );
+
+		// 3.4 Store result
+		if( wholeYmmNumber == 0 ) {
+			// Mask should be valid yet because we use only 12 at the peak in previous block
+			gen.vmaskmovps( reset[0], ymmMask, gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float )] );
+		} else {
+			gen.vmulps( reset[0], reset[0], gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float )] );
+			if( wholeYmmNumber == 2 ) {
+				gen.vmulps( reset[1], reset[1], gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float ) + SizeOfYmm] );
+			}
+		}
+	};
+
+	Label labelTailProcessing, labelEndProcessing;
+	// *** Main loop ***
+	gen.StartDownCountLoop( regObjectsCount, 1 );
+
+	// 1. Init loop
+	// regForgetPtr is already up to date
+	gen.mov( regLoopCounter, regHiddenSize );
+
+	// 2. Process lstm by 16 floats
+	// for( regLoopCounter = hiddenSize; regLoopCounter >= 2 * NumFloatInYmm; regLoopCounter -= 2 * NumFloatInYmm ) {
+	gen.StartDownCountLoop( regLoopCounter, 2 * NumFloatInYmm );
+	insertCode( 2 );
+	gen.add( regForgetOffset, 2 * NumFloatInYmm );
+	gen.add( regInputOffset, 2 * NumFloatInYmm );
+	gen.add( regMainOffset, 2 * NumFloatInYmm );
+	gen.add( regResetOffset, 2 * NumFloatInYmm );
+	gen.StopDownCountLoop();
+
+	// 3. Process lstm by 8 floats
+	// if( regLoopCounter >= NumFloatInYmm ) {
+	gen.cmp( regLoopCounter, NumFloatInYmm );
+	gen.jl( labelTailProcessing, gen.T_NEAR );
+	insertCode( 1 );
+	gen.add( regForgetOffset, NumFloatInYmm );
+	gen.add( regInputOffset, NumFloatInYmm );
+	gen.add( regMainOffset, NumFloatInYmm );
+	gen.add( regResetOffset, NumFloatInYmm );
+	gen.sub( regLoopCounter, NumFloatInYmm );
+
+	// 4. Process tail of lstm
+	gen.test( regLoopCounter, regLoopCounter );
+	gen.je( labelEndProcessing, gen.T_NEAR );
+	// Multiply by 8 for calculate right offset during mask loading/storing.
+	// We can do it inplace because we process tail of loop.
+	gen.shl( regLoopCounter, 3 );
+	insertCode( 0 );
+	gen.L( labelEndProcessing );
+
+	// 5. Update offsets
+	gen.add( regForgetOffset, regGoBack );
+	gen.add( regInputOffset, regGoBack );
+	gen.add( regMainOffset, regGoBack );
+	gen.add( regResetOffset, regGoBack );
+
+	// *** Stop Main loop ***
+	gen.StopDownCountLoop();
+
+	gen.Epilogue( preservedGPR, preservedYmm );
+	gen.ret();
 }
 
 template<CPrimitivesJit::TPrimitive P>
@@ -237,9 +488,7 @@ void CPrimitivesJit::initActivationFunction( std::function<void()>& afterPrologu
 	const reg64_t regDstPtr = Param1;
 	const reg64_t regSrcPtr = Param2;
 	const reg64_t regOffset = Param3;
-	const reg64_t regCountParam = Param4;
-	// TODO: Check for Linux
-	reg64_t regCount = r11;
+	const reg64_t regCount = Param4;
 
 	auto insertCode = [&]( const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux ) {
 				size_t stepCount = ymmSrc.size();
@@ -258,10 +507,6 @@ void CPrimitivesJit::initActivationFunction( std::function<void()>& afterPrologu
 	if( afterPrologue ) {
 		afterPrologue();
 	}
-
-	// We could use regCount in SIB addressing when we process tail.
-	// For linux we can't use simultaniously r10(regTablePtr) and RDX(param3)
-	gen.mov( regCount, regCountParam );
 
 	// update Src and Dst pointers (add regOffset * sizeof(float))
 	gen.lea( regDstPtr, gen.ptr[regDstPtr + regOffset * sizeof( float )] );
@@ -463,21 +708,21 @@ void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Sigmoid>( CJitC
 	gen.vdivps( ymmSrc, ymmSrc, ymmTemp );
 }
 
-template<CPrimitivesJit::TPrimitive P, class... Args>
+template<CPrimitivesJit::TPrimitive P, class PrimitiveFuncType, class... Args>
 inline void CPrimitivesJit::callPrimitive( size_t dataSize, bool isMultithread, Args... args )
 {
 	// args - usually are different kind of pointers
 	using namespace Xbyak::util;
 
 	CGenerator& genInst = gens[static_cast< size_t >( P )];
-	ActivationFunc func;
+	PrimitiveFuncType func;
 
 	genInst.lock.lock();
 	if( genInst.gen.getSize() == 0 ) {
 		initPrimitive<P>();
 	}
 	genInst.lock.unlock();
-	func = genInst.gen.getCode<ActivationFunc>();
+	func = genInst.gen.getCode<PrimitiveFuncType>();
 
 	const int curThreadCount = isMultithread && IsOmpRelevant( static_cast< int >( dataSize ) ) ? threadCount : 1;
 	if( curThreadCount != 1 ) {
