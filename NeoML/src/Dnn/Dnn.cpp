@@ -340,6 +340,7 @@ REGISTER_NEOML_LAYER( CCastLayer, "NeoMLDnnCastLayer" )
 REGISTER_NEOML_LAYER( CDataLayer, "NeoMLDnnDataLayer" )
 REGISTER_NEOML_LAYER( CTransformerEncoderLayer, "NeoMLDnnTransformerEncoderLayer" )
 REGISTER_NEOML_LAYER( CBertConvLayer, "NeoMLDnnBertConvLayer" )
+REGISTER_NEOML_LAYER( CL1LossLayer, "NeoMLDnnL1LossLayer" )
 
 }
 

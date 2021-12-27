@@ -26,6 +26,12 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+template<class T>
+constexpr const T& Clamp( const T& value, const T& low, const T& high )
+{
+	return value < low ? low : ( high < value ? high : value );
+}
+
 // Auxiliary tensor's data loading functions
 
 // Gets NeoML blob type from onnx tensor's data type
@@ -37,14 +43,9 @@ inline void LoadFromRawData( const std::string& rawSrc, TDst* dest )
 {
 	const TSrc* src = reinterpret_cast<const TSrc*>( rawSrc.data() );
 	for( size_t i = 0; i < rawSrc.size() / sizeof( TSrc ); ++i ) {
-		TSrc value = src[i];
-		if( value >= static_cast<TSrc>( (std::numeric_limits<TDst>::max)() ) ) {
-			dest[i] = (std::numeric_limits<TDst>::max)();
-		} else if( value <= static_cast<TSrc>( (std::numeric_limits<TDst>::lowest)() ) ) {
-			dest[i] = (std::numeric_limits<TDst>::lowest)();
-		} else {
-			dest[i] = static_cast<TDst>( value );
-		}
+		TSrc value = Clamp( src[i], static_cast<TSrc>( std::numeric_limits<TDst>::lowest() ),
+			static_cast<TSrc>( std::numeric_limits<TDst>::max() ) );
+		dest[i] = static_cast<TDst>( value );
 	}
 }
 
@@ -98,12 +99,9 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				LoadFromRawData<uint64_t, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.uint64_data_size(); ++valueIndex ) {
-					uint64_t value = src.uint64_data( valueIndex );
-					if( value >= static_cast<uint64_t>( std::numeric_limits<T>::max() ) ) {
-						buffer[valueIndex] = std::numeric_limits<T>::max();
-					} else {
-						buffer[valueIndex] = static_cast<T>( value );
-					}
+					uint64_t value = Clamp( static_cast<uint64_t>( src.uint64_data( valueIndex ) ),
+						static_cast<uint64_t>( 0 ), static_cast<uint64_t>( std::numeric_limits<T>::max() ) );
+					buffer[valueIndex] = static_cast<T>( value );
 				}
 			}
 			break;
@@ -112,14 +110,10 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				LoadFromRawData<int64_t, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.int64_data_size(); ++valueIndex ) {
-					int64_t value = src.int64_data( valueIndex );
-					if( value >= static_cast<int64_t>( (std::numeric_limits<T>::max)() ) ) {
-						buffer[valueIndex] = (std::numeric_limits<T>::max)();
-					} else if( value <= static_cast<int64_t>( (std::numeric_limits<T>::lowest)() ) ) {
-						buffer[valueIndex] = (std::numeric_limits<T>::lowest)();
-					} else {
-						buffer[valueIndex] = static_cast<T>( value );
-					}
+					int64_t value = Clamp( src.int64_data( valueIndex ),
+						static_cast<int64_t>( std::numeric_limits<T>::lowest() ),
+						static_cast<int64_t>( std::numeric_limits<T>::max() ) );
+					buffer[valueIndex] = static_cast<T>( value );
 				}
 			}
 			break;

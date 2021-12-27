@@ -102,7 +102,7 @@ CRleConvolutionDesc* CVulkanMathEngine::InitBlobRleConvolution( const CBlobDesc&
 	return desc;
 }
 
-void CVulkanMathEngine::blobConvertFromRleCommon( const CVulkanRleConvolutionDesc& desc, const CFloatHandle& sourceData,
+void CVulkanMathEngine::blobConvertFromRleCommon( const CVulkanRleConvolutionDesc& desc, const CConstFloatHandle& sourceData,
 	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -128,8 +128,8 @@ void CVulkanMathEngine::blobConvertFromRleCommon( const CVulkanRleConvolutionDes
 		source.Height(), source.ObjectCount(), 1 );
 }
 
-void CVulkanMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
+void CVulkanMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -144,8 +144,8 @@ void CVulkanMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, con
 	BlobConvolution( *(rleDesc.ConvDesc), inputConverted, filterData, freeTermData, resultData );
 }
 
-void CVulkanMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc&, const CFloatHandle&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle* )
+void CVulkanMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle&, const CFloatHandle* )
 {
 	ASSERT_EXPR( false );
 }
@@ -179,8 +179,8 @@ CTimeConvolutionDesc* CVulkanMathEngine::InitTimeConvolution( const CBlobDesc& s
 	return desc;
 }
 
-void CVulkanMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle& freeTermData, const CFloatHandle& resultData )
+void CVulkanMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle& freeTermData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -229,14 +229,14 @@ void CVulkanMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDes
 	AddVectorToMatrixRows( 1, resultData, resultData, result.ObjectCount(), result.ObjectSize(), freeTermData );
 }
 
-void CVulkanMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, const CFloatHandle& )
+void CVulkanMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, const CFloatHandle& )
+void CVulkanMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -254,8 +254,8 @@ C3dConvolutionDesc* CVulkanMathEngine::InitBlob3dConvolution( const CBlobDesc& s
 	return desc;
 }
 
-void CVulkanMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTerm, const CFloatHandle& resultData )
+void CVulkanMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm, const CFloatHandle& resultData )
 {
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
 	const CBlobDesc& source = desc.Source;
@@ -279,8 +279,8 @@ void CVulkanMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, c
 		result.Width(), result.Height(), result.Channels() * result.ObjectCount() * result.Depth() );
 }
 
-void CVulkanMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTerm, const CFloatHandle& resultData )
+void CVulkanMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm, const CFloatHandle& resultData )
 {   
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
 	const CBlobDesc& source = desc.Source;
@@ -319,8 +319,8 @@ void CVulkanMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& con
     }
 }
 
-void CVulkanMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, const CFloatHandle*, bool )
+void CVulkanMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle&, const CFloatHandle*, bool )
 {
 	ASSERT_EXPR( false );
 }
@@ -357,7 +357,7 @@ CConvolutionDesc* CVulkanMathEngine::InitBlobConvolution( const CBlobDesc& sourc
 }
 
 void CVulkanMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData,
 	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -428,8 +428,8 @@ void CVulkanMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 	}
 }
 
-void CVulkanMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
+void CVulkanMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CConstFloatHandle& outputDiffData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
 {
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -483,7 +483,7 @@ void CVulkanMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDes
 	}
 }
 
-void CVulkanMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc&, const CFloatHandle&, const CFloatHandle&,
+void CVulkanMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc&, const CConstFloatHandle&, const CConstFloatHandle&,
 	const CFloatHandle&, const CFloatHandle*, bool )
 {
 	ASSERT_EXPR( false );
@@ -491,7 +491,7 @@ void CVulkanMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc&, const 
 
 // Implements convolution 1x1 with stride 1
 void CVulkanMathEngine::blobConvolution1x1s1Common( const CCommonConvolutionDesc& desc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData,
 	const CFloatHandle& resultData )
 {
 	const CBlobDesc& source = desc.Source;
@@ -568,7 +568,7 @@ const CVulkanImage& CVulkanMathEngine::prepareBlobForConvolutionAdreno( const CB
 }
 
 void CVulkanMathEngine::blobConvolution3x3s1d1Adreno( const CCommonConvolutionDesc& desc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData,
 	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( device->Type == VDT_Adreno );
@@ -618,7 +618,7 @@ void CVulkanMathEngine::blobConvolution3x3s1d1Adreno( const CCommonConvolutionDe
 }
 
 const CVulkanImage& CVulkanMathEngine::blobConvolution3x3s1d1PrepareFilterAdreno( const CBlobDesc& filter,
-	const CFloatHandle& filterData, int imageId )
+	const CConstFloatHandle& filterData, int imageId )
 {
 	ASSERT_EXPR( device->Type == VDT_Adreno );
 	ASSERT_EXPR( device->IsImageBased );
@@ -641,7 +641,7 @@ const CVulkanImage& CVulkanMathEngine::blobConvolution3x3s1d1PrepareFilterAdreno
 }
 
 const CVulkanImage& CVulkanMathEngine::blobConvolution3x3s1d1PrepareSourceAdreno( const CBlobDesc& blob,
-	const CFloatHandle& blobData, int paddingTop, int paddingBottom, int paddingLeft, int paddingRight,
+	const CConstFloatHandle& blobData, int paddingTop, int paddingBottom, int paddingLeft, int paddingRight,
 	int imageId, int& channelGroupSize )
 {
 	ASSERT_EXPR( device->Type == VDT_Adreno );
@@ -677,7 +677,7 @@ const CVulkanImage& CVulkanMathEngine::blobConvolution3x3s1d1PrepareSourceAdreno
 }
 
 void CVulkanMathEngine::blobConvolution3x3s1d1( const CCommonConvolutionDesc& desc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData,
 	const CFloatHandle& resultData )
 {
 	const CBlobDesc& source = desc.Source;
@@ -719,7 +719,7 @@ void CVulkanMathEngine::blobConvolution3x3s1d1( const CCommonConvolutionDesc& de
 		sizeof(param), 0, 0, 0, 0, bufs, sizes, 4, width4, height3 * result.ObjectCount(), filter.ObjectCount() );
 }
 
-void CVulkanMathEngine::blobConvolution3x3s1d1PrepareSource( const CBlobDesc& blob, const CFloatHandle& blobData,
+void CVulkanMathEngine::blobConvolution3x3s1d1PrepareSource( const CBlobDesc& blob, const CConstFloatHandle& blobData,
 	int paddingTop, int paddingBottom, int paddingLeft, int paddingRight, const CFloatHandle& buffer )
 {
 	int channels = blob.Depth() * blob.Channels();
@@ -739,7 +739,7 @@ void CVulkanMathEngine::blobConvolution3x3s1d1PrepareSource( const CBlobDesc& bl
 }
 
 void CVulkanMathEngine::blobConvolutionImpl1Adreno( const CCommonConvolutionDesc& desc,
-	const CFloatHandle& /*sourceData*/, const CFloatHandle& /*filterData*/, bool isFreeTerm,
+	const CConstFloatHandle& /*sourceData*/, const CConstFloatHandle& /*filterData*/, bool isFreeTerm,
 	const CFloatHandle& resultData, int startChannel, int inputChannelGroupSize, int filterChannelGroupSize )
 {
 	ASSERT_EXPR( device->Type == VDT_Adreno );
@@ -775,7 +775,7 @@ void CVulkanMathEngine::blobConvolutionImpl1Adreno( const CCommonConvolutionDesc
 }
 
 void CVulkanMathEngine::blobConvolutionImpl8Adreno( const CCommonConvolutionDesc& desc,
-	const CFloatHandle& /*sourceData*/, const CFloatHandle& /*filterData*/, bool isFreeTerm,
+	const CConstFloatHandle& /*sourceData*/, const CConstFloatHandle& /*filterData*/, bool isFreeTerm,
 	const CFloatHandle& resultData, int channels8, int inputChannelGroupSize, int filterChannelGroupSize )
 {
 	ASSERT_EXPR( device->Type == VDT_Adreno );
@@ -809,7 +809,7 @@ void CVulkanMathEngine::blobConvolutionImpl8Adreno( const CCommonConvolutionDesc
 
 void CVulkanMathEngine::blobConvolutionImpl1( const CCommonConvolutionDesc& desc,
 	const CFloatHandleStackVar& sourceData, const CFloatHandleStackVar& filterData,
-	const CFloatHandle* freeTermData, const CFloatHandle& resultData, int startChannel, int totalChannels )
+	const CConstFloatHandle* freeTermData, const CFloatHandle& resultData, int startChannel, int totalChannels )
 {
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& filter = desc.Filter;
@@ -834,7 +834,7 @@ void CVulkanMathEngine::blobConvolutionImpl1( const CCommonConvolutionDesc& desc
 }
 
 void CVulkanMathEngine::blobConvolutionImpl8( const CCommonConvolutionDesc& desc, const CFloatHandleStackVar& sourceData, const CFloatHandleStackVar& filterData,
-	const CFloatHandle* freeTermData, const CFloatHandle& resultData, int totalChannels )
+	const CConstFloatHandle* freeTermData, const CFloatHandle& resultData, int totalChannels )
 {
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& filter = desc.Filter;
@@ -859,7 +859,7 @@ void CVulkanMathEngine::blobConvolutionImpl8( const CCommonConvolutionDesc& desc
 
 // Filter transform from NHWC -> Image(N/4 * H, C * W)
 const CVulkanImage& CVulkanMathEngine::blobConvolutionBackwardPrepareFilterAdreno( const CBlobDesc& blob,
-	const CFloatHandle& blobData, int imageId )
+	const CConstFloatHandle& blobData, int imageId )
 {
 	ASSERT_EXPR( device->Type == VDT_Adreno );
 	ASSERT_EXPR( device->IsImageBased );
@@ -1049,14 +1049,14 @@ void CVulkanMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutio
 	}
 }
 
-void CVulkanMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle& )
+void CVulkanMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, const CFloatHandle* )
+void CVulkanMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle&, const CFloatHandle* )
 {
 	ASSERT_EXPR( false );
 }
