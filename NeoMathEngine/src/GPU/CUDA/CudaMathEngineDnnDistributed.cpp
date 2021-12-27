@@ -62,7 +62,7 @@ void CCudaDistributedCommunicator::ncclStreamSynchronize( cudaStream_t stream ) 
 }
 
 CCudaDistributedCommunicator::CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info,
-    std::shared_ptr<std::atomic<bool>> _isAbort ) : isAbort( _isAbort )
+    std::shared_ptr<std::atomic<bool>> _isAbort ) : isAbort( _isAbort ), ncclLoader( CDllLoader::NCCL_DLL )
 {
     nccl = CDllLoader::ncclDll->GetFunctions();
     ASSERT_NCCL( nccl, nccl->CommInitRank( &comm, info.Threads, uniqueId, info.Thread ) );
@@ -96,8 +96,9 @@ void CCudaDistributedCommunicator::Broadcast( const CFloatHandle& handle, int si
 void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int devsCount, const int* cudaDevs )
 {
     std::unique_ptr<IGpuMathEngineManager> gpuManager( CreateGpuMathEngineManager() );
+    CDllLoader ncclLoader( CDllLoader::NCCL_DLL );
+    ASSERT_EXPR( ncclLoader.IsLoaded( CDllLoader::NCCL_DLL ) );
     const CNccl* nccl = CDllLoader::ncclDll->GetFunctions();
-    ASSERT_EXPR( nccl != nullptr );
     ncclUniqueId id;
     nccl->GetUniqueId( &id );
     auto isAbort = std::make_shared<std::atomic<bool>>( false );
