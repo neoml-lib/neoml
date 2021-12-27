@@ -32,6 +32,7 @@ private:
     ncclComm_t comm;
     const CNccl* nccl;
     std::shared_ptr<std::atomic<bool>> isAbort;
+    CDllLoader ncclLoader;
 
     void ncclStreamSynchronize( cudaStream_t stream );
 };
