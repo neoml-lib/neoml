@@ -44,7 +44,7 @@ inline void LoadFromRawData( const std::string& rawSrc, TDst* dest )
 	const TSrc* src = reinterpret_cast<const TSrc*>( rawSrc.data() );
 	for( size_t i = 0; i < rawSrc.size() / sizeof( TSrc ); ++i ) {
 		TSrc value = Clamp( src[i], static_cast<TSrc>( std::numeric_limits<TDst>::lowest() ),
-			static_cast<TSrc>( std::numeric_limits<TDst>::max() ) );
+			static_cast<TSrc>( (std::numeric_limits<TDst>::max)() ) );
 		dest[i] = static_cast<TDst>( value );
 	}
 }
@@ -100,7 +100,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 			} else {
 				for( int valueIndex = 0; valueIndex < src.uint64_data_size(); ++valueIndex ) {
 					uint64_t value = Clamp( static_cast<uint64_t>( src.uint64_data( valueIndex ) ),
-						static_cast<uint64_t>( 0 ), static_cast<uint64_t>( std::numeric_limits<T>::max() ) );
+						static_cast<uint64_t>( 0 ), static_cast<uint64_t>( (std::numeric_limits<T>::max)() ) );
 					buffer[valueIndex] = static_cast<T>( value );
 				}
 			}
@@ -112,7 +112,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				for( int valueIndex = 0; valueIndex < src.int64_data_size(); ++valueIndex ) {
 					int64_t value = Clamp( src.int64_data( valueIndex ),
 						static_cast<int64_t>( std::numeric_limits<T>::lowest() ),
-						static_cast<int64_t>( std::numeric_limits<T>::max() ) );
+						static_cast<int64_t>( (std::numeric_limits<T>::max)() ) );
 					buffer[valueIndex] = static_cast<T>( value );
 				}
 			}
