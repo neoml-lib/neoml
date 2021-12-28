@@ -34,16 +34,18 @@ CPtr< CRandomProblemImpl<TLabel> > CRandomProblemImpl<TLabel>::Random( CRandom& 
 	res->LabelsArr.SetBufferSize( samples );
 	int pos = 0;
 	for( int i = 0; i < samples; ++i ) {
+		const int label = rand.UniformInt( 0, labelsCount - 1 );
+		const double step = 20. / ( labelsCount + 2 );
 		desc->PointerB[i] = pos;
 		for( int j = 0; j < features; ++j, ++pos ) {
 			if( rand.UniformInt( 0, 3 ) != 0 ) { // 1/4 probability of null element
-				desc->Values[pos] = static_cast<float>( rand.Uniform( -10, 10 ) );
+				desc->Values[pos] = static_cast<float>( rand.Uniform( -10.0 + label * step, -10.0 + ( label + 3 ) * step ) );
 			} else {
 				desc->Values[pos] = 0.0;
 			}
 		}
 		desc->PointerE[i] = pos;
-		res->LabelsArr.Add( static_cast<TLabel>( rand.UniformInt( 0, labelsCount - 1 ) ) );
+		res->LabelsArr.Add( static_cast<TLabel>( label ) );
 	}
 
 	// set Weights to 1

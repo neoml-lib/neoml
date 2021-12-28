@@ -63,11 +63,11 @@ void CCudaMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, i
 	size_t bufferSize = 0;
 	ASSERT_CUSPARSE( cusparse->SpMM_bufferSize( cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
 		CUSPARSE_OPERATION_NON_TRANSPOSE, static_cast<void*>( &alpha ), firstCuDesc, secondDesc, static_cast<void*>( &beta ),
-		resultDesc, CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT, &bufferSize ) );
+		resultDesc, CUDA_R_32F, CUSPARSE_SPMM_ALG_DEFAULT, &bufferSize ) );
 	
 	CFloatHandleStackVar buffer( mathEngine(), bufferSize / sizeof( float ) );
 	ASSERT_CUSPARSE( cusparse->SpMM( cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-		&alpha, firstCuDesc, secondDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT, GetRaw( buffer ) ) );
+		&alpha, firstCuDesc, secondDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_SPMM_ALG_DEFAULT, GetRaw( buffer ) ) );
 
 	ASSERT_CUSPARSE( cusparse->DestroyDnMat( resultDesc ) );
 	ASSERT_CUSPARSE( cusparse->DestroyDnMat( secondDesc ) );
@@ -113,11 +113,11 @@ void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHei
 
 	size_t bufferSize = 0;
 	ASSERT_CUSPARSE( cusparse->SpMM_bufferSize( cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-		&alpha, secondCuDesc, tFirstDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT, &bufferSize ) );
+		&alpha, secondCuDesc, tFirstDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_SPMM_ALG_DEFAULT, &bufferSize ) );
 
 	CFloatHandleStackVar buffer( mathEngine(), bufferSize / sizeof( float ) );
 	ASSERT_CUSPARSE( cusparse->SpMM( cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-		&alpha, secondCuDesc, tFirstDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT, GetRaw( buffer ) ) );
+		&alpha, secondCuDesc, tFirstDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_SPMM_ALG_DEFAULT, GetRaw( buffer ) ) );
 
 	ASSERT_CUSPARSE( cusparse->DestroyDnMat( resultDesc ) );
 	ASSERT_CUSPARSE( cusparse->DestroySpMat( secondCuDesc ) );

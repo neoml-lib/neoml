@@ -163,7 +163,7 @@ void CVulkanMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p
 	CMemoryHandle bufs[1] = { result };
 	size_t sizes[1] = { vectorSize * sizeof(float) };
 
-	const uint32_t threshold = uint32_t(p * 0xFFFFFFFF);
+	const unsigned int threshold = ( unsigned int ) ( ( double ) p * UINT_MAX );
 	PARAM_STRUCT(VectorFillBernoulli) param = { value, p, threshold, seed };
 
 	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorFillBernoulli, true, 0, 0, 1),

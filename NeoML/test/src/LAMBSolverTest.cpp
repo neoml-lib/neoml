@@ -27,16 +27,16 @@ static NeoML::CFullyConnectedLayer* createSimpleNetwork( NeoML::CDnn& dnn )
     NeoML::CrossEntropyLoss()( fc, etalon );
 
     // Non-zero free term
-    auto freeTerm = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Float, 1, 1, 4);
+    CPtr<CDnnBlob> freeTerm = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Float, 1, 1, 4);
     dnn.GetInitializer()->InitializeLayerParams( *freeTerm, 4 );
     fc->SetFreeTermData( freeTerm );
 
     // Simple data for forward pass
-    auto inputData = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Float, 4, 4, 4 );
+    CPtr<CDnnBlob> inputData = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Float, 4, 4, 4 );
     inputData->Fill<float>( 1.f );
     input->SetBlob( inputData );
 
-    auto etalonData = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Int, 4, 4, 1 );
+    CPtr<CDnnBlob> etalonData = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Int, 4, 4, 1 );
     etalonData->Fill<int>( 0 );
     etalon->SetBlob( etalonData );
 

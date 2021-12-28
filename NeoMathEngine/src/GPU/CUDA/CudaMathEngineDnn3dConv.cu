@@ -193,7 +193,6 @@ void CCudaMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convD
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 
 	if( freeTermDiff != 0 ) {
-		const CConstFloatHandle& freeTermSrc = isFreeTermDiffFromInput ? input : outputDiff;
 		// Get the free term gradient
 		if( !isFreeTermDiffFromInput ) {
 			SumMatrixRowsAdd( 1, *freeTermDiff, outputDiff, desc.Result.BlobSize() / desc.Filter.ObjectCount(),
