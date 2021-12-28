@@ -256,6 +256,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 
 	// Insert prologue and calculate pointer to function arguments (in reverse order)
 	Address stackArgsPtr = gen.Prologue( preservedGPR, preservedYmm );
+	gen.mov( regTablePtr, ( uint64_t )table.data() );
 
 	// *** Define registers ***
 	const reg64_t regHiddenSize = Param1;
@@ -265,27 +266,27 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 #ifdef _WIN32
 	const reg64_t regInputFullyConnectedResultPtr = rdi; // param5
 	const reg64_t regReccurentFullyConnectedResultPtr = rsi; // param6
-	gen.mov( regInputFullyConnectedResultPtr, gen.ptr[stackArgsPtr.getRegExp() + 3 * SizeofReg64] );
-	gen.mov( regReccurentFullyConnectedResultPtr, gen.ptr[stackArgsPtr.getRegExp() + 2 * SizeofReg64] );
+	gen.mov( regInputFullyConnectedResultPtr, stackArgsPtr );
+	gen.mov( regReccurentFullyConnectedResultPtr, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64] );
 #else
 	const reg64_t regInputFullyConnectedResultPtr = Param5;
 	const reg64_t regReccurentFullyConnectedResultPtr = Param6;
 #endif
 	const reg64_t regOffset = rax;
-	const reg64_t regObjectsCount = rbx;
-	gen.mov( regOffset, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64] );
-	gen.mov( regObjectsCount, stackArgsPtr );
+	const reg64_t regObjectsCount = r11;
+	gen.mov( regOffset, gen.ptr[stackArgsPtr.getRegExp() + 2 * SizeofReg64] );
+	gen.mov( regObjectsCount, gen.ptr[stackArgsPtr.getRegExp() + 3 * SizeofReg64] );
 	
 	// Current offset of intput in each of gates
-	const reg64_t regForgetOffset = r11;
-	const reg64_t regInputOffset = r12;
-	const reg64_t regMainOffset = r13;
-	const reg64_t regResetOffset = r14;
-	gen.xor( regForgetOffset, regForgetOffset ); // 0
-	gen.mov( regInputOffset, regHiddenSize ); // hiddenSize
-	gen.mov( regMainOffset, regHiddenSize );
-	gen.shl( regMainOffset, 1 ); // 2 * hiddenSize
-	gen.mov( regResetOffset, regMainOffset );
+	const reg64_t regForgetOffset = r12;
+	const reg64_t regInputOffset = r13;
+	const reg64_t regMainOffset = r14;
+	const reg64_t regResetOffset = r15;
+	gen.xor( regMainOffset, regMainOffset ); // 0
+	gen.mov( regForgetOffset, regHiddenSize ); // hiddenSize
+	gen.mov( regInputOffset, regHiddenSize );
+	gen.shl( regInputOffset, 1 ); // 2 * hiddenSize
+	gen.mov( regResetOffset, regInputOffset );
 	gen.add( regResetOffset, regHiddenSize ); // 3 * hiddenSize
 	// Register for moving offsets to the next row
 	const reg64_t regGoBack = rbx; // = 3 * regHiddenSize + regHiddenSize % 8
@@ -301,6 +302,12 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	gen.shl( regOffset, 2 );
 	gen.lea( regInputFullyConnectedResultPtr, gen.ptr[regInputFullyConnectedResultPtr + regOffset * sizeof( float )] ); // += Offset * 4 *HiddenSize
 	gen.lea( regReccurentFullyConnectedResultPtr, gen.ptr[regReccurentFullyConnectedResultPtr + regOffset * sizeof( float )] ); // += Offset * 4 * HiddenSize
+
+	// regHiddenSize is read only and is used very rare, hence we put it onto stack and reuse its register
+	gen.push( regHiddenSize );
+	const reg64_t regBacklinkOffset = regHiddenSize;
+	gen.xor( regBacklinkOffset, regBacklinkOffset );
+	Address addrStackHiddenSize = gen.ptr[rsp];
 
 	const reg64_t regLoopCounter = rax;
 
@@ -319,7 +326,10 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 		// 1.1 Load data
 		if( wholeYmmNumber == 0 ) {
 			// load data with mask
+			// Multiply by 8 for calculate right offset during mask loading/storing.
+			gen.shl( regLoopCounter, 3 );
 			gen.vmovups( ymmMask, gen.ptr[regTablePtr + regLoopCounter * sizeof( float ) + getOfft( TTableKey::LoadMask )] );
+			gen.shr( regLoopCounter, 3 );
 			gen.vmaskmovps( forget[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
 			gen.vmaskmovps( input[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
 			gen.vmaskmovps( main[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
@@ -357,12 +367,12 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 		// 2.1 Add input state backlink
 		if( wholeYmmNumber == 0 ) {
 			// Mask should be valid yet because we use only 12 at the peak in previous block
-			gen.vmaskmovps( ymmAux[0], ymmMask, gen.ptr[regInputStateBackLinkPtr + regForgetOffset * sizeof( float )] );
+			gen.vmaskmovps( ymmAux[0], ymmMask, gen.ptr[regInputStateBackLinkPtr + regBacklinkOffset * sizeof( float )] );
 			gen.vmulps( forget[0], forget[0], ymmAux[0] );
 		} else {
-			gen.vmulps( forget[0], forget[0], gen.ptr[regInputStateBackLinkPtr + regForgetOffset * sizeof( float )] );
+			gen.vmulps( forget[0], forget[0], gen.ptr[regInputStateBackLinkPtr + regBacklinkOffset * sizeof( float )] );
 			if( wholeYmmNumber == 2 ) {
-				gen.vmulps( forget[1], forget[1], gen.ptr[regInputStateBackLinkPtr + regForgetOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vmulps( forget[1], forget[1], gen.ptr[regInputStateBackLinkPtr + regBacklinkOffset * sizeof( float ) + SizeOfYmm] );
 			}
 		}
 
@@ -375,11 +385,11 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 		// 2.4 Store state backlink
 		if( wholeYmmNumber == 0 ) {
 			// Mask should be valid yet because we use only 12 at the peak in previous block
-			gen.vmaskmovps( gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float )], forget[0], ymmMask );
+			gen.vmaskmovps( gen.ptr[regOutputStateBackLinkPtr + regBacklinkOffset * sizeof( float )], ymmMask, forget[0] );
 		} else {
-			gen.vmovups( gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float )], forget[0] );
+			gen.vmovups( gen.ptr[regOutputStateBackLinkPtr + regBacklinkOffset * sizeof( float )], forget[0] );
 			if( wholeYmmNumber == 2 ) {
-				gen.vmovups( gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float )], forget[1] );
+				gen.vmovups( gen.ptr[regOutputStateBackLinkPtr + regBacklinkOffset * sizeof( float ) + SizeOfYmm], forget[1] );
 			}
 		}
 
@@ -404,6 +414,8 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 		}
 
 		// 3.2 Calc sigmoid
+		// last ymm is One!!!
+		gen.vmovups( ymmAux.back(), gen.ptr[regTablePtr + getOfft( TTableKey::One )] );
 		insertPrimitive<TPrimitive::Sigmoid>( gen, reset, ymmAux );
 
 		// 3.3 Multiple with result of block#2
@@ -412,11 +424,11 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 		// 3.4 Store result
 		if( wholeYmmNumber == 0 ) {
 			// Mask should be valid yet because we use only 12 at the peak in previous block
-			gen.vmaskmovps( reset[0], ymmMask, gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float )] );
+			gen.vmaskmovps( gen.ptr[regOutputMainBackLinkPtr + regBacklinkOffset * sizeof( float )], ymmMask, reset[0] );
 		} else {
-			gen.vmulps( reset[0], reset[0], gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float )] );
+			gen.vmovups( gen.ptr[regOutputMainBackLinkPtr + regBacklinkOffset * sizeof( float )], reset[0] );
 			if( wholeYmmNumber == 2 ) {
-				gen.vmulps( reset[1], reset[1], gen.ptr[regOutputStateBackLinkPtr + regForgetOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vmovups(gen.ptr[regOutputMainBackLinkPtr + regBacklinkOffset * sizeof( float ) + SizeOfYmm], reset[1] );
 			}
 		}
 	};
@@ -427,7 +439,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 
 	// 1. Init loop
 	// regForgetPtr is already up to date
-	gen.mov( regLoopCounter, regHiddenSize );
+	gen.mov( regLoopCounter, addrStackHiddenSize );
 
 	// 2. Process lstm by 16 floats
 	// for( regLoopCounter = hiddenSize; regLoopCounter >= 2 * NumFloatInYmm; regLoopCounter -= 2 * NumFloatInYmm ) {
@@ -437,6 +449,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	gen.add( regInputOffset, 2 * NumFloatInYmm );
 	gen.add( regMainOffset, 2 * NumFloatInYmm );
 	gen.add( regResetOffset, 2 * NumFloatInYmm );
+	gen.add( regBacklinkOffset, 2 * NumFloatInYmm );
 	gen.StopDownCountLoop();
 
 	// 3. Process lstm by 8 floats
@@ -448,15 +461,15 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	gen.add( regInputOffset, NumFloatInYmm );
 	gen.add( regMainOffset, NumFloatInYmm );
 	gen.add( regResetOffset, NumFloatInYmm );
+	gen.add( regBacklinkOffset, NumFloatInYmm );
 	gen.sub( regLoopCounter, NumFloatInYmm );
 
 	// 4. Process tail of lstm
+	gen.L( labelTailProcessing );
 	gen.test( regLoopCounter, regLoopCounter );
-	gen.je( labelEndProcessing, gen.T_NEAR );
-	// Multiply by 8 for calculate right offset during mask loading/storing.
-	// We can do it inplace because we process tail of loop.
-	gen.shl( regLoopCounter, 3 );
+	gen.jz( labelEndProcessing, gen.T_NEAR );
 	insertCode( 0 );
+	gen.add( regBacklinkOffset, regLoopCounter );
 	gen.L( labelEndProcessing );
 
 	// 5. Update offsets
@@ -468,6 +481,8 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	// *** Stop Main loop ***
 	gen.StopDownCountLoop();
 
+	// Restore stack pointer after pushing regHiddenSize
+	gen.add( rsp, SizeofReg64 );
 	gen.Epilogue( preservedGPR, preservedYmm );
 	gen.ret();
 }
