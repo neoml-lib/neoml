@@ -26,6 +26,12 @@ Xbyak::Address CJitCommon::Prologue( const reg64Vec_t& preservedGPR,
     using namespace Xbyak::util;
     using namespace Xbyak;
 
+#ifdef _WIN32
+    const int ShadowSpace = 0x20;
+#else
+    const int HomeSpace = 0;
+#endif
+
     push( rbp );
     mov( rbp, rsp );
  
@@ -38,7 +44,7 @@ Xbyak::Address CJitCommon::Prologue( const reg64Vec_t& preservedGPR,
         push( preservedGPR[i] );
     }
 
-    return ptr[rsp + 16 + preservedGPR.size() * SizeofReg64 + preservedYmm.size() * SizeOfYmm];
+    return ptr[rsp + ShadowSpace + 2 * SizeofReg64 + preservedGPR.size() * SizeofReg64 + preservedYmm.size() * SizeOfYmm];
 }
 
 void CJitCommon::Epilogue( const reg64Vec_t& preservedGPR,
