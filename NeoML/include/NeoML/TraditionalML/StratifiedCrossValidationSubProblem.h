@@ -28,7 +28,7 @@ public:
 	CStratifiedCrossValidationSubProblem( const IProblem* problem, int partsCount, int partIndex, bool testSet );
 
 	// The index of the element in the original data set
-	int GetOriginalIndex( int index ) const { return translateIndex( index ); }
+	int GetOriginalIndex( int index ) const override { return translateIndex( index ); }
 
 	// IProblem interface methods
 	int GetClassCount() const override { return problem->GetClassCount(); }
