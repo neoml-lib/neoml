@@ -20,6 +20,34 @@ limitations under the License.
 
 namespace NeoML {
 
+static void softplus( const CConstFloatHandle& first, const CFloatHandle& result, int size )
+{
+	IMathEngine& mathEngine = *first.GetMathEngine();
+	// log( 1 + e^x ) = log( 1 + e^-|x| ) + max( 0, x )
+	CFloatHandleStackVar temp( mathEngine, size );
+
+	// temp = e^-|x|
+	mathEngine.VectorAbs( first, temp, size );
+	mathEngine.VectorNeg( temp, temp, size );
+	mathEngine.VectorExp( temp, temp, size );
+
+	// temp = log( 1 + e^-|x| )
+	CFloatHandleStackVar one( mathEngine );
+	one.SetValue( 1 );
+	mathEngine.VectorAddValue( temp, temp, size, one );
+	mathEngine.VectorLog( temp, temp, size );
+
+	// result = max( 0, x )
+	CFloatHandleStackVar zero( mathEngine );
+	zero.SetValue( 0 );
+	mathEngine.VectorReLU( first, result, size, zero );
+
+	// result = max( 0, x ) + log( 1 + e^-|x| )
+	mathEngine.VectorAdd( result, temp, result, size );
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
 const float CBinaryFocalLossLayer::DefaultFocalForceValue = 2.0f;
 
 static const int BinaryFocalLossLayerVersion = 2000;
@@ -67,39 +95,35 @@ void CBinaryFocalLossLayer::BatchCalculateLossAndGradient( int batchSize, CConst
 {
 	CFloatHandleStackVar tempVector(MathEngine(), batchSize);
 	CFloatHandleStackVar sigmoidVector(MathEngine(), batchSize);
-	CFloatHandleStackVar onesVector(MathEngine(), batchSize);
 	CFloatHandleStackVar sigmoidPowerFocal(MathEngine(), batchSize);
 
 	// tempVector = -y * r
 	MathEngine().VectorEltwiseNegMultiply( label, data, tempVector, batchSize );
 	// sigmoidVector = sigma(-y*r)
 	MathEngine().VectorSigmoid( tempVector, sigmoidVector, batchSize );
-	MathEngine().VectorFill( onesVector, 1.0f, batchSize );
 	MathEngine().VectorPower( focalForce->GetData().GetValue(), sigmoidVector,
 		sigmoidPowerFocal, batchSize ); 
-	// tempVector = e^(-y*r)
-	MathEngine().VectorExp( tempVector, tempVector, batchSize );
-	// tempVector = 1 + e^(-y*r)
-	MathEngine().VectorAdd( onesVector, tempVector, tempVector, batchSize );
 	// entropyValues = log(1 + e^(-y*r))
 	CFloatHandle entropyValues = tempVector;
-	MathEngine().VectorLog( tempVector, entropyValues, batchSize );
+	softplus( tempVector, entropyValues, batchSize );
 	// loss = sigma(-y*r)^focalForce * log(1 + e^(-y*r))
 	MathEngine().VectorEltwiseMultiply( sigmoidPowerFocal, entropyValues, lossValue, batchSize );
 	if( !lossGradient.IsNull() ) {
-		calculateGradient( onesVector, entropyValues, sigmoidVector, sigmoidPowerFocal, label,
+		calculateGradient( entropyValues, sigmoidVector, sigmoidPowerFocal, label,
 			batchSize, lossGradient );
 	}
 }
 
-void CBinaryFocalLossLayer::calculateGradient( CFloatHandle onesVector, CFloatHandle entropyValues,
+void CBinaryFocalLossLayer::calculateGradient( CFloatHandle entropyValues,
 	CFloatHandle sigmoidVector, CFloatHandle sigmoidPowerFocal, CConstFloatHandle labels,
 	int batchSize, CFloatHandle lossGradient )
 {
 	NeoAssert( !lossGradient.IsNull() );
-	CFloatHandle tempVector = onesVector;
+	CFloatHandleStackVar tempVector( MathEngine(), batchSize );
 	// tempVector = sigma(-y*r) - 1
-	MathEngine().VectorSub( sigmoidVector, onesVector, tempVector, batchSize );
+	CFloatHandleStackVar minusOne( MathEngine() );
+	minusOne.SetValue( -1.f );
+	MathEngine().VectorAddValue( sigmoidVector, tempVector, batchSize, minusOne );
 	// tempVector = (sigma(-y*r) - 1)*log(1+e^(-y*r))^M
 	MathEngine().VectorEltwiseMultiply( tempVector, entropyValues, tempVector, batchSize );
 	// tempVector = focalForce*(sigma(-y*r) - 1)*log(1+e^(-y*r))
