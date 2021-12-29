@@ -195,7 +195,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/NeoML.h
     ../include/NeoML/NeoMLCommon.h
     ../include/NeoML/NeoMLDefs.h
-    ../include/NeoML/Platforms.h
     ../include/NeoML/Random.h
     ../include/NeoML/Dnn/AutoDiff.h
     ../include/NeoML/Dnn/AutoDiffFunctions.h
