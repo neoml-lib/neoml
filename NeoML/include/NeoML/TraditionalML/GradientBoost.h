@@ -36,10 +36,7 @@ class CGradientBoostFullProblem;
 class CGradientBoostFastHistProblem;
 
 // Decision tree ensemble that has been built by gradient boosting
-class CGradientBoostEnsemble : public CObjectArray<IRegressionTreeNode> {
-public:
-	CGradientBoostEnsemble() {}
-};
+using CGradientBoostEnsemble = CObjectArray<IRegressionTreeNode>;
 
 inline void ArrayMemMoveElement( CGradientBoostEnsemble* dest, CGradientBoostEnsemble* src )
 {
@@ -237,7 +234,7 @@ private:
 	void initialize();
 	bool trainStep();
 	void executeStep( IGradientBoostingLossFunction& lossFunction,
-		const IMultivariateRegressionProblem* problem, CObjectArray<IRegressionTreeNode>& curModels );
+		const IMultivariateRegressionProblem* problem, CGradientBoostEnsemble& curModels );
 	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
 	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
 	CPtr<IObject> createOutputRepresentation(
