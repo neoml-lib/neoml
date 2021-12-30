@@ -28,18 +28,17 @@ public:
 	CStratifiedCrossValidationSubProblem( const IProblem* problem, int partsCount, int partIndex, bool testSet );
 
 	// The index of the element in the original data set
-	int GetOriginalIndex( int index ) const { return translateIndex( index ); }
+	int GetOriginalIndex( int index ) const override { return translateIndex( index ); }
 
 	// IProblem interface methods
-	virtual int GetClassCount() const { return problem->GetClassCount(); }
-	virtual int GetFeatureCount() const { return problem->GetFeatureCount(); }
-	virtual bool IsDiscreteFeature( int index ) const { return problem->IsDiscreteFeature( index ); }
-	virtual int GetVectorCount() const { return vectorsCount; }
-	virtual int GetClass( int index ) const { return problem->GetClass( translateIndex( index ) ); }
-	virtual CFloatVectorDesc GetVector( int index ) const { return matrix.GetRow( index ); }
-	virtual CFloatMatrixDesc GetMatrix() const { return matrix; }
-	virtual double GetVectorWeight( int index ) const { return problem->GetVectorWeight( translateIndex( index ) ); }
-	virtual int GetDiscretizationValue( int index ) const { return problem->GetDiscretizationValue( index ); }
+	int GetClassCount() const override { return problem->GetClassCount(); }
+	int GetFeatureCount() const override { return problem->GetFeatureCount(); }
+	bool IsDiscreteFeature( int index ) const override { return problem->IsDiscreteFeature( index ); }
+	int GetVectorCount() const override { return vectorsCount; }
+	int GetClass( int index ) const override { return problem->GetClass( translateIndex( index ) ); }
+	CFloatMatrixDesc GetMatrix() const override { return matrix; }
+	double GetVectorWeight( int index ) const override { return problem->GetVectorWeight( translateIndex( index ) ); }
+	int GetDiscretizationValue( int index ) const override { return problem->GetDiscretizationValue( index ); }
 
 protected:
 	// delete prohibited

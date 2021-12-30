@@ -52,8 +52,8 @@ CTimeConvolutionDesc* CCpuMathEngine::InitTimeConvolution( const CBlobDesc& sour
 	return desc;
 }
 
-void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle& freeTermData, const CFloatHandle& resultData )
+void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle& freeTermData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -112,8 +112,8 @@ void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, 
 	AddVectorToMatrixRows( 1, resultData, resultData, result.ObjectCount(), result.ObjectSize(), freeTermData );
 }
 
-void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
-	const CFloatHandle& filterData, const CFloatHandle& freeTermData, const CFloatHandle& inputDiffData )
+void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& convDesc, const CConstFloatHandle& outputDiffData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle& freeTermData, const CFloatHandle& inputDiffData )
 {
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -167,8 +167,8 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 	}
 }
 
-void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& convDesc, const CFloatHandle& inputData,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle& freeTermDiffData )
+void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& convDesc, const CConstFloatHandle& inputData,
+	const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle& freeTermDiffData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
