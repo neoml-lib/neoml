@@ -123,15 +123,15 @@ void CPrecisionRecallLayer::RunOnceAfterReset()
 	MathEngine().VectorAbs( binarizedLabel, binarizedLabel, vectorSize );
 	MathEngine().VectorSum( binarizedLabel, vectorSize, negativesCount );
 
-	negativesTotal += to<int>( negativesCount.GetValue() );
 	positivesTotal += to<int>( positivesCount.GetValue() );
+	negativesTotal += to<int>( negativesCount.GetValue() );
 	positivesCorrect += to<int>( truePositivesCount.GetValue() );
 	negativesCorrect += to<int>( trueNegativeCount.GetValue() );
 
-	assert( positivesCount >= 0 );
-	assert( negativesCount >= 0 );
-	assert( positivesCorrect <= positivesTotal );
-	assert( negativesCorrect <= negativesTotal );
+	NeoAssert( positivesTotal >= 0 );
+	NeoAssert( negativesTotal >= 0 );
+	NeoAssert( positivesCorrect <= positivesTotal );
+	NeoAssert( negativesCorrect <= negativesTotal );
 
 	CFastArray<float, 1> buffer;
 	buffer.Add( static_cast<float>( positivesCorrect ) );
