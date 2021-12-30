@@ -8,8 +8,9 @@ from .Activation import Linear, ELU, ReLU, LeakyReLU, HSwish, Abs, Sigmoid, Tanh
 from .AddToObject import AddToObject
 from .Argmax import Argmax
 from .AttentionDecoder import AttentionDecoder
-from .Binarization import EnumBinarization, BitSetVectorization
 from .BatchNormalization import BatchNormalization
+from .BertConv import BertConv
+from .Binarization import EnumBinarization, BitSetVectorization
 from .Cast import Cast
 from .Concat import ConcatChannels, ConcatDepth, ConcatWidth, ConcatHeight, ConcatBatchWidth, ConcatBatchLength, ConcatListSize, ConcatObject
 from .Conv import Conv, Conv3D, TransposedConv3D, TransposedConv, ChannelwiseConv, TimeConv 
@@ -25,7 +26,7 @@ from .Gru import Gru
 from .ImageConversion import ImageResize, PixelToImage, ImageToPixel  
 from .IndRnn import IndRnn
 from .Irnn import Irnn
-from .Loss import CrossEntropyLoss, BinaryCrossEntropyLoss, EuclideanLoss, HingeLoss, SquaredHingeLoss, FocalLoss, BinaryFocalLoss, CenterLoss, MultiHingeLoss, MultiSquaredHingeLoss, CustomLoss, CustomLossCalculatorBase, call_loss_calculator
+from .Loss import CrossEntropyLoss, BinaryCrossEntropyLoss, EuclideanLoss, L1Loss, HingeLoss, SquaredHingeLoss, FocalLoss, BinaryFocalLoss, CenterLoss, MultiHingeLoss, MultiSquaredHingeLoss, CustomLoss, CustomLossCalculatorBase, call_loss_calculator
 from .Lrn import Lrn
 from .Lstm import Lstm
 from .MatrixMultiplication import MatrixMultiplication

@@ -34,7 +34,9 @@ public:
 	void SetNumberOfElements(int newNumberOfElements);
 
 	// Retrieves or sets the weights data (the data blob is copied)
-	// The dimensions of the blob are NumOfElements * InputHeight * InputWidth * InputChannelsCount
+	// The dimensions of the blob are
+	//     weightsData.GetObjectCount() is equal to GetNumberOfElements()
+	//     weightsData.GetObjectSize() is equal to inputBlob.GetObjectSize()
 	// If the weights have not been initialized, an empty blob will be returned; pass an empty blob to reset the weights
 	CPtr<CDnnBlob> GetWeightsData() const;
 	void SetWeightsData(const CDnnBlob* newWeights);

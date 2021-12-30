@@ -100,6 +100,7 @@ REGISTER_NEOML_PYLAYER( "FullyConnectedSource", "FmlCnnFullyConnectedSourceLayer
 REGISTER_NEOML_PYLAYER_EX( "Loss", "CrossEntropyLoss", "FmlCnnCrossEntropyLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "BinaryCrossEntropyLoss", "FmlCnnBinaryCrossEntropyLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "EuclideanLoss", "FmlCnnEuclideanLossLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Loss", "L1Loss", "NeoMLDnnL1LossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "HingeLoss", "FmlCnnHingeLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "SquaredHingeLoss", "FmlCnnSquaredHingeLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "CustomLoss", "NeoMLCustomLossLayer" )
@@ -172,6 +173,7 @@ REGISTER_NEOML_PYLAYER( "Lrn", "NeoMLDnnLrnLayer" )
 REGISTER_NEOML_PYLAYER( "Cast", "NeoMLDnnCastLayer" )
 REGISTER_NEOML_PYLAYER( "Data", "NeoMLDnnDataLayer" )
 REGISTER_NEOML_PYLAYER( "TransformerEncoder", "NeoMLDnnTransformerEncoderLayer" )
+REGISTER_NEOML_PYLAYER( "BertConv", "NeoMLDnnBertConvLayer" )
 
 }
 

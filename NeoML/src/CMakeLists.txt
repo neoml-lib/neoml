@@ -30,6 +30,7 @@ set(NeoML_SOURCES
     Dnn/Layers/BaseConvLayer.cpp
     Dnn/Layers/BaseInPlaceLayer.cpp
     Dnn/Layers/BatchNormalizationLayer.cpp
+    Dnn/Layers/BertConvLayer.cpp
     Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/BinaryCrossEntropyLayer.cpp
     Dnn/Layers/BinaryFocalLossLayer.cpp
@@ -62,6 +63,7 @@ set(NeoML_SOURCES
     Dnn/Layers/ImageResizeLayer.cpp
     Dnn/Layers/IndRnnLayer.cpp
     Dnn/Layers/IrnnLayer.cpp
+    Dnn/Layers/L1LossLayer.cpp
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
@@ -193,7 +195,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/NeoML.h
     ../include/NeoML/NeoMLCommon.h
     ../include/NeoML/NeoMLDefs.h
-    ../include/NeoML/Platforms.h
     ../include/NeoML/Random.h
     ../include/NeoML/Dnn/AutoDiff.h
     ../include/NeoML/Dnn/AutoDiffFunctions.h
@@ -217,6 +218,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/BaseInPlaceLayer.h
     ../include/NeoML/Dnn/Layers/BatchNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
+    ../include/NeoML/Dnn/Layers/BertConvLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
     ../include/NeoML/Dnn/Layers/CastLayer.h
     ../include/NeoML/Dnn/Layers/CenterLossLayer.h

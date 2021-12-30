@@ -55,6 +55,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEnginePrivate.h
     CPU/CpuMathEngineOmp.h
     CPU/CpuMathEngineDnnDistributed.h
+    CPU/CpuExecutionScope.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
@@ -216,7 +217,8 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=compute_35>
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_61,code=sm_61>
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_75,code=sm_75>
-                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_86,code=sm_86>)
+                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_86,code=sm_86>
+                $<$<COMPILE_LANGUAGE:CUDA>:-Wno-deprecated-gpu-targets>)
             target_sources(${PROJECT_NAME}
                 PRIVATE
                     GPU/CUDA/CublasDll.cpp
@@ -416,7 +418,7 @@ endif()
 
 
 # OpenMP
-if(NOT IOS AND NOT (DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64?"))
+if(NOT IOS AND NOT DARWIN)
     link_openmp(${PROJECT_NAME})
 endif()
 
