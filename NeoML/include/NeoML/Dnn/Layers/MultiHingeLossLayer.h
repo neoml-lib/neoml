@@ -52,7 +52,7 @@ public:
 
 protected:
 	void CalculateEltwiseLoss( const CFloatHandle& first, const CFloatHandle& result, int vectorSize ) override;
-	virtual void CalculateEltwiseLossDiff( const CFloatHandle& first, const CFloatHandle& second, const CFloatHandle& result,
+	void CalculateEltwiseLossDiff( const CFloatHandle& first, const CFloatHandle& second, const CFloatHandle& result,
 		int vectorSize ) override;
 };
 
@@ -70,7 +70,7 @@ public:
 
 protected:
 	void CalculateEltwiseLoss( const CFloatHandle& first, const CFloatHandle& result, int vectorSize ) override;
-	virtual void CalculateEltwiseLossDiff( const CFloatHandle& first, const CFloatHandle& second, const CFloatHandle& result,
+	void CalculateEltwiseLossDiff( const CFloatHandle& first, const CFloatHandle& second, const CFloatHandle& result,
 		int vectorSize ) override;
 };
 

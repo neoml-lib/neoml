@@ -41,7 +41,7 @@ public:
 	double Predict( const CFloatVectorDesc& data ) const override;
 
 protected:
-	virtual ~CLinearBinaryModel() {} // delete prohibited
+	~CLinearBinaryModel() override = default; // delete prohibited
 
 private:
 	CFloatVector plane; // the base plane

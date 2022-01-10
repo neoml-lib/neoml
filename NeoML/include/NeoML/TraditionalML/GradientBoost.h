@@ -138,7 +138,7 @@ public:
 	};
 
 	explicit CGradientBoost( const CParams& params );
-	virtual ~CGradientBoost();
+	~CGradientBoost() override;
 
 	// Sets a text stream for logging processing
 	void SetLog( CTextStream* newLog ) { logStream = newLog; }
@@ -148,10 +148,10 @@ public:
 		const IMultivariateRegressionProblem& problem );
 
 	// IRegressionTrainingModel interface methods:
-	virtual CPtr<IRegressionModel> TrainRegression( const IRegressionProblem& problem );
+	CPtr<IRegressionModel> TrainRegression( const IRegressionProblem& problem ) override;
 
 	// ITrainingModel interface methods:
-	virtual CPtr<IModel> Train( const IProblem& problem );
+	CPtr<IModel> Train( const IProblem& problem ) override;
 
 	// Returns the last loss mean
 	double GetLastLossMean() const { return loss; }
@@ -251,13 +251,13 @@ DECLARE_NEOML_MODEL_NAME( GradientBoostModelName, "FmlGradientBoostModel" )
 // Gradient boosting classification model interface
 class NEOML_API IGradientBoostModel : public IModel {
 public:
-	virtual ~IGradientBoostModel();
+	~IGradientBoostModel() override;
 
 	// Gets the tree ensemble
 	virtual const CArray<CGradientBoostEnsemble>& GetEnsemble() const = 0;
 
 	// Serializes the model
-	virtual void Serialize( CArchive& ) = 0;
+	void Serialize( CArchive& ) override = 0;
 
 	// Gets the learning rate
 	virtual double GetLearningRate() const = 0;
@@ -286,13 +286,13 @@ DECLARE_NEOML_MODEL_NAME( GradientBoostRegressionModelName, "FmlGradientBoostMod
 // Gradient boosting regression model interface
 class NEOML_API IGradientBoostRegressionModel : public IRegressionModel, public IMultivariateRegressionModel {
 public:
-	virtual ~IGradientBoostRegressionModel();
+	~IGradientBoostRegressionModel() override;
 	
     // Gets the tree ensemble
 	virtual const CArray<CGradientBoostEnsemble>& GetEnsemble() const = 0;
 
 	// Serializes the model
-	virtual void Serialize( CArchive& ) = 0;
+	void Serialize( CArchive& ) override = 0;
 
 	// Gets the learning rate
 	virtual double GetLearningRate() const = 0;
@@ -389,7 +389,7 @@ inline CArchive& operator >> ( CArchive& archive, CRegressionTreeNodeInfo& info 
 // Can be used for iterating through the boosting results.
 class NEOML_API IRegressionTreeNode : virtual public IObject {
 public:
-	virtual ~IRegressionTreeNode();
+	~IRegressionTreeNode() override;
 
 	// Gets the child nodes
 	virtual CPtr<const IRegressionTreeNode> GetLeftChild() const = 0;

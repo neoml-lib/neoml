@@ -180,7 +180,7 @@ public:
 	static void SplitByBatchLength( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
 	static void SplitByObject( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
 
-	virtual void Serialize( CArchive& );
+	void Serialize( CArchive& ) override;
 
 	// Gets the pointer to the MathEngine on which the blob was created
 	IMathEngine& GetMathEngine() const { return mathEngine; }
@@ -205,7 +205,7 @@ public:
 	void ShiftParentPos( int shift );
 
 protected:
-	virtual ~CDnnBlob();
+	~CDnnBlob() override;
 
 	CDnnBlob( IMathEngine& _mathEngine, const CBlobDesc& _desc, CMemoryHandle _data, bool _dataOwned ) :
 		mathEngine( _mathEngine ), desc( _desc ), data( _data ), dataOwned( _dataOwned ), parentPos( 0 )
