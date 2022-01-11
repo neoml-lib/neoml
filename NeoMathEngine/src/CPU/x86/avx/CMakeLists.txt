@@ -60,7 +60,9 @@ target_compile_definitions(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE NeoMathEngine)
 
 # OpenMP
-link_openmp(${PROJECT_NAME})
+if(NOT DARWIN)
+    link_openmp(${PROJECT_NAME})
+endif()
 
 # AVX
 if(WIN32)
